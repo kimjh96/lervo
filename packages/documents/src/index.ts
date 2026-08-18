@@ -1,5 +1,7 @@
 export * from "./adapters.js";
 export * from "./apply.js";
+export * from "./document-staleness.js";
+export * from "./document-staleness-types.js";
 export * from "./import.js";
 export * from "./integrity.js";
 export * from "./legacy-registry.js";

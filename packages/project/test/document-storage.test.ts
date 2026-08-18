@@ -99,6 +99,33 @@ describe("sharded document storage", () => {
     await expect(loadDocumentManifests(root)).resolves.toEqual([managed]);
   });
 
+  it("rejects a managed input source reused across blocks", async () => {
+    const root = await initializedRepository();
+    const managed = managedManifest();
+    if (managed.record.ownership.mode !== "managed_blocks") throw new Error("invalid fixture");
+    const duplicate: DocumentManifest = {
+      ...managed,
+      record: {
+        ...managed.record,
+        ownership: {
+          ...managed.record.ownership,
+          blocks: [
+            ...managed.record.ownership.blocks,
+            {
+              blockId: "duplicate_input",
+              startMarker: "<!-- lervo:begin block=duplicate_input schema=1 -->",
+              endMarker: "<!-- lervo:end block=duplicate_input -->",
+              inputs: managed.record.ownership.blocks[0]!.inputs,
+            },
+          ],
+        },
+      },
+    };
+    await writeManifest(root, duplicate);
+
+    await expect(loadDocumentManifests(root)).rejects.toMatchObject({ code: "contract_invalid" });
+  });
+
   it("rejects a migration transaction marker instead of loading a partial layout", async () => {
     const root = await initializedRepository();
     await writeFile(

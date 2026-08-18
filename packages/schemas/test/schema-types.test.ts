@@ -7,6 +7,7 @@ import type {
   DocumentMigrationApplyReceipt,
   DocumentMigrationCandidate,
   DocumentMigrationPlan,
+  DocumentStalenessResult,
   HandoffBundle,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationApplyReceipt,
@@ -64,6 +65,13 @@ describe("schema-derived TypeScript contracts", () => {
       .toEqualTypeOf<"lervo_v1">();
     expectTypeOf<ManagedBlockPatchCandidate["assurances"]["onlyTargetContentChanged"]>()
       .toEqualTypeOf<true>();
+  });
+
+  it("keeps unknown document staleness separate from current and stale", () => {
+    expectTypeOf<DocumentStalenessResult["status"]>()
+      .toEqualTypeOf<"current" | "stale" | "unknown">();
+    expectTypeOf<DocumentStalenessResult["signals"]["managedInputs"]["status"]>()
+      .toEqualTypeOf<"not_applicable" | "current" | "stale" | "unknown">();
   });
 
   it("requires reviewed sidecars and returns a hash-only apply event payload", () => {

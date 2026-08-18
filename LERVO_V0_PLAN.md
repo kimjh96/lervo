@@ -143,7 +143,9 @@
 
 구현 현황(2026-08-19): **Byte 보존 managed block patch candidate 완료.** Source hash와 표준 block 하나에 결속해 content range만 교체하고, 결과 전체의 CommonMark 구조·block topology·marker bytes·대상 앞뒤 bytes를 다시 검증합니다. Candidate JSON은 원본/replacement/output hash와 byte 좌표, 실제로 확인한 보존 상수만 가지며 전체 output bytes는 별도 검토 payload로 반환합니다. Candidate는 쓰기 권한이 없고 이전 marker, stale source, 8 KiB 초과, marker 주입, 구조 오류와 no-op을 닫힌 상태로 거부합니다. 결정성과 한글·CRLF 사용자 영역 보존을 실제 fixture로 검증했습니다. 결정은 [ADR-0022](./docs/adr/0022-byte-preserving-managed-block-patch-candidate.md)에 기록했습니다.
 
-남은 구현 순서: **stale detector**입니다.
+구현 현황(2026-08-19): **증거 기반 document stale detector 완료.** Manifest의 검토 기한, 문서·연결 경로와 managed/generated input hash를 독립 `DocumentStalenessResult`로 계산합니다. Revision 문자열 차이만으로 stale을 주장하지 않고 검증 snapshot이 없거나 연결 범위·입력을 관측하지 못하면 `unknown`으로 남깁니다. 판정기는 파일·CAS·event를 쓰지 않으며 결과 ID는 canonical 내용에 결속됩니다. `AGENTS.md`, `CLAUDE.md`, `README.md` 경로 변경과 기한 경계, 변경·삭제·미관측 입력, snapshot 불일치를 fixture로 검증했습니다. 결정은 [ADR-0023](./docs/adr/0023-evidence-based-document-staleness.md)에 기록했습니다.
+
+M4 완료. 다음 구현 순서: **M5 verification command/result artifact**입니다.
 
 ### M5: 검증과 지식 후보
 
@@ -270,4 +272,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 document stale detector**입니다. Document manifest의 `verifiedRevision`, `verifiedAt`, `reviewIntervalDays`, `connectedPaths`와 managed input hash를 현재 저장소 snapshot에 대조해 노후화 사유를 문서별로 계산해야 합니다. 확인하지 못한 신호는 stale이 아니라고 넘기지 않고 `unknown`으로 분리하며, 판정은 원본 문서나 manifest를 수정하지 않는 재생성 가능한 결과여야 합니다.
+다음 구현 작업은 **M5 verification command/result artifact**입니다. 실행한 검증 명령, 종료 상태, 시간과 로그 artifact hash를 provider-neutral 결과로 고정하고, 실행하지 않았거나 실패한 검증을 성공으로 표시할 수 없게 해야 합니다. 이 결과는 이후 writing 공개 gate와 Codex·Claude 숙의가 같은 검증 근거를 참조하는 기반이 됩니다.

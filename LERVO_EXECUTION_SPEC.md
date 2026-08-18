@@ -463,6 +463,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - legacy registry entry artifact: source registry hash, document ID와 축약하지 않은 기존 document record
 - legacy registry structural plan/apply: 원본 보존·비활성화 처분, archive·manifest directory·sidecar target과 참조 문서 snapshot, 항목별 승인, hash-only 완료 event와 local receipt
 - managed block patch candidate/artifact: source·기존 content·replacement·output hash, 원본/결과 byte range, review-only 처분과 byte 보존 검증 상수
+- document staleness result: 문서별 검증·현재 revision, 검토 기한, 경로·managed input 신호, `current`/`stale`/`unknown` 상태와 기계용 사유
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -550,6 +551,10 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 - managed block의 입력 hash 불일치
 - 실행 실패나 반복 질문으로 드러난 지침 누락
 
+현재 stale detector는 앞의 신호 중 repository snapshot으로 증명할 수 있는 문서 경로·연결 경로 변경, 검토 주기와 manifest에 고정된 managed/generated input hash를 계산합니다. 입력은 `DocumentManifest`, 판정 시각, 현재 snapshot, 선택적인 검증 revision snapshot과 managed input 관측입니다. 현재 revision이 manifest의 `verifiedRevision`과 다를 때 일치하는 검증 snapshot이 없으면 경로 신호를 `unknown`으로 남깁니다. 연결 범위가 두 snapshot 모두에서 비어 있거나 필요한 input 관측이 없을 때도 `current`로 올리지 않습니다. 전체 상태는 stale 근거가 하나라도 있으면 `stale`, stale 없이 불확실한 신호가 있으면 `unknown`, 나머지만 `current`입니다.
+
+`DocumentStalenessResult`는 document/result ID, 판정 시각, 검증·현재 revision, 전체 상태, 검토 기한과 신호별 상태, 변경·부재·미관측 경로/source ID, 기계용 사유를 갖는 문서별 파생 artifact 계약입니다. Result ID는 나머지 결과의 canonical hash로 결정합니다. 판정기는 원본 문서, manifest, CAS와 event를 쓰지 않고 patch·승인·검증 완료를 주장하지 않습니다. 상대 경로와 source ID는 로컬 진단 정보이며 문서 본문, 입력 원문, 절대 경로와 비밀정보는 결과에 넣지 않습니다. 상세 결정은 [ADR-0023](./docs/adr/0023-evidence-based-document-staleness.md)에 정의합니다.
+
 자동 수정은 patch/candidate로 생성하고, managed block 이외의 변경에는 사용자 또는 정책상 승인된 reviewer가 필요합니다.
 
 ## 지식 승격 규칙
@@ -595,3 +600,5 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 | `source_structure_invalid` / `block_not_found` / `legacy_marker_not_writable` | 안전한 표준 managed block 하나를 확정할 수 없습니다. 원본과 이전 marker를 유지하며 파일을 쓰지 않습니다. |
 | `replacement_invalid_utf8` / `replacement_too_large` / `no_changes` | Replacement가 입력 계약을 어겼거나 실제 변경이 아닙니다. Candidate artifact와 output을 만들지 않습니다. |
 | `output_structure_invalid` / `candidate_contract_invalid` | 결과 Markdown의 구조·보존 조건 또는 candidate schema를 증명하지 못했습니다. 검토나 적용 가능한 결과로 공개하지 않습니다. |
+| `invalid_staleness_request` | Manifest, repository snapshot, 판정 시각 또는 managed input 관측이 일관된 노후화 근거가 아닙니다. 결과를 만들지 않고 입력을 다시 수집합니다. |
+| `staleness_contract_invalid` | 계산된 노후화 결과가 공개 schema를 통과하지 못했습니다. `current`, `stale`, `unknown` 어느 상태로도 보고하지 않습니다. |

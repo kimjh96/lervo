@@ -48,6 +48,7 @@ export function validateDocumentManifest(
   }
   if (manifest.record.ownership.mode !== "managed_blocks") return;
   const blockIds = new Set<string>();
+  const inputSourceIds = new Set<string>();
   for (const block of manifest.record.ownership.blocks) {
     if (blockIds.has(block.blockId)) {
       invalid(`${manifest.documentId}에 중복된 managed block ID가 있습니다.`);
@@ -59,9 +60,11 @@ export function validateDocumentManifest(
     ) {
       invalid(`${manifest.documentId}의 managed block marker가 표준 형식이 아닙니다.`);
     }
-    const sourceIds = block.inputs.map((item) => item.sourceId);
-    if (new Set(sourceIds).size !== sourceIds.length) {
-      invalid(`${manifest.documentId}의 managed block 입력 source가 중복됩니다.`);
+    for (const input of block.inputs) {
+      if (inputSourceIds.has(input.sourceId)) {
+        invalid(`${manifest.documentId}의 managed block 입력 source가 중복됩니다.`);
+      }
+      inputSourceIds.add(input.sourceId);
     }
   }
 }

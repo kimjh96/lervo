@@ -14,6 +14,7 @@ import {
   documentMigrationPlanSchema,
 } from "./document-migration.js";
 import { documentRegistrySchema } from "./document-registry.js";
+import { documentStalenessResultSchema } from "./document-staleness.js";
 import { eventEnvelopeSchema } from "./event.js";
 import {
   legacyRegistryEntryArtifactSchema,
@@ -64,6 +65,7 @@ const validators = {
   skill: ajv.compile(skillManifestSchema),
   skillLock: ajv.compile(skillLockSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
+  documentStalenessResult: ajv.compile(documentStalenessResultSchema),
   documentManifest: ajv.getSchema(documentManifestSchema.$id)!,
   documentMigrationApproval: ajv.compile(documentMigrationApprovalSchema),
   documentMigrationAppliedEventPayload: ajv.compile(

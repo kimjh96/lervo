@@ -1,0 +1,34 @@
+[
+  {
+    "name": "document staleness result with explicit unknown evidence",
+    "schema": "documentStalenessResult",
+    "value": {
+      "schemaVersion": 1,
+      "resultId": "dst_aaaaaaaaaaaaaaaa",
+      "documentId": "doc_readme_000001",
+      "evaluatedAt": "2026-08-19T00:00:00.000Z",
+      "status": "unknown",
+      "verifiedRevision": "git:verified",
+      "currentRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "signals": {
+        "reviewInterval": {
+          "status": "current",
+          "dueAt": "2026-09-18T00:00:00.000Z"
+        },
+        "documentPath": { "status": "unknown" },
+        "connectedPaths": {
+          "status": "unknown",
+          "changedPaths": [],
+          "unobservedPaths": []
+        },
+        "managedInputs": {
+          "status": "not_applicable",
+          "changedSourceIds": [],
+          "missingSourceIds": [],
+          "unobservedSourceIds": []
+        }
+      },
+      "reasons": ["verified_snapshot_unavailable"]
+    }
+  }
+]

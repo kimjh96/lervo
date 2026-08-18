@@ -266,12 +266,14 @@ M4 첫 슬라이스의 `@lervo/skills`는 명시적으로 요청한 ID만 프로
 
 자동 생성 시 managed block marker와 생성 입력 hash를 사용합니다. Lervo는 블록 밖의 사용자 내용을 보존하며 다음 경우 PR/patch 후보를 만듭니다.
 
-Document manifest는 소유권을 `user`, `managed_blocks`, `lervo_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Lervo 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Loader는 marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계를 검증합니다. 읽기 전용 parser는 CommonMark tree에서 code와 HTML comment를 구분하고 UTF-8 byte 단위 block/사용자 범위를 반환합니다. Patch candidate 생성기는 source hash와 표준 block 하나에 결속해 content range만 바꾸고 전체 구조·marker·앞뒤 bytes를 다시 검증합니다. Candidate에는 쓰기 권한이 없으며 파일 적용은 아직 구현하지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md), [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)과 [ADR-0022](./docs/adr/0022-byte-preserving-managed-block-patch-candidate.md)에 기록합니다.
+Document manifest는 소유권을 `user`, `managed_blocks`, `lervo_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Lervo 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Loader는 marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계를 검증합니다. 읽기 전용 parser는 CommonMark tree에서 code와 HTML comment를 구분하고 UTF-8 byte 단위 block/사용자 범위를 반환합니다. Patch candidate 생성기는 source hash와 표준 block 하나에 결속해 content range만 바꾸고 전체 구조·marker·앞뒤 bytes를 다시 검증합니다. Candidate에는 쓰기 권한이 없으며 파일 적용은 아직 구현하지 않습니다.
+
+Stale detector는 이 쓰기 경계와 분리된 순수 판정 계층입니다. Manifest의 검증 revision과 현재 revision이 다르면 검증 당시 repository snapshot이 있을 때만 문서·연결 경로 hash를 비교합니다. Snapshot이나 managed input 관측이 부족한 신호는 최신으로 간주하지 않고 `unknown`으로 남깁니다. 검토 기한 경과, 경로 변경, 입력 변경·부재는 `stale` 근거이며 결과는 재생성 가능한 문서별 artifact 계약만 따르고 파일이나 event를 쓰지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md), [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md), [ADR-0022](./docs/adr/0022-byte-preserving-managed-block-patch-candidate.md)과 [ADR-0023](./docs/adr/0023-evidence-based-document-staleness.md)에 기록합니다.
 
 - 연결 경로가 검증 revision 이후 변경됨
 - review interval 초과
-- 참조한 정책/스킬/명령이 삭제 또는 변경됨
-- provider별 생성 문서가 canonical policy와 불일치
+- managed/generated 입력 source가 삭제되거나 hash가 변경됨
+- 필요한 snapshot 또는 입력 관측이 없어 `unknown`임
 
 ## 다직군 에이전트 모델
 
@@ -328,6 +330,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입 탐색·계획·metadata 적용과 legacy 구조 전환 계획(`documents`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M4의 다음 범위는 structural dry-run의 승인과 원자적 전체 전환 apply입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 M5의 provider-neutral verification command/result artifact입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

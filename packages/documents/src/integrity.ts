@@ -1,6 +1,7 @@
 import type {
   DocumentMigrationCandidate,
   DocumentMigrationPlan,
+  DocumentStalenessResult,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationPlan,
   ManagedBlockPatchCandidate,
@@ -27,6 +28,15 @@ export function calculateManagedBlockPatchCandidateId(
   const { candidateId: _candidateId, ...content } = value;
   const digest = sha256(canonicalJsonBytes(content));
   return `mbpc_${digest.slice("sha256:".length, "sha256:".length + 16)}`;
+}
+
+export function calculateDocumentStalenessResultId(
+  result: Omit<DocumentStalenessResult, "resultId"> | DocumentStalenessResult,
+): string {
+  const value = result as Partial<DocumentStalenessResult> & Record<string, unknown>;
+  const { resultId: _resultId, ...content } = value;
+  const digest = sha256(canonicalJsonBytes(content));
+  return `dst_${digest.slice("sha256:".length, "sha256:".length + 16)}`;
 }
 
 export function calculateMigrationPlanId(

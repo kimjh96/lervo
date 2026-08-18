@@ -1,0 +1,66 @@
+[
+  {
+    "name": "document staleness result must not invent a fourth overall state",
+    "schema": "documentStalenessResult",
+    "value": {
+      "schemaVersion": 1,
+      "resultId": "dst_aaaaaaaaaaaaaaaa",
+      "documentId": "doc_readme_000001",
+      "evaluatedAt": "2026-08-19T00:00:00.000Z",
+      "status": "fresh",
+      "verifiedRevision": "git:verified",
+      "currentRevision": "git:verified",
+      "signals": {
+        "reviewInterval": {
+          "status": "current",
+          "dueAt": "2026-09-18T00:00:00.000Z"
+        },
+        "documentPath": { "status": "current" },
+        "connectedPaths": {
+          "status": "current",
+          "changedPaths": [],
+          "unobservedPaths": []
+        },
+        "managedInputs": {
+          "status": "not_applicable",
+          "changedSourceIds": [],
+          "missingSourceIds": [],
+          "unobservedSourceIds": []
+        }
+      },
+      "reasons": []
+    }
+  },
+  {
+    "name": "document staleness result rejects unknown reason codes",
+    "schema": "documentStalenessResult",
+    "value": {
+      "schemaVersion": 1,
+      "resultId": "dst_bbbbbbbbbbbbbbbb",
+      "documentId": "doc_readme_000001",
+      "evaluatedAt": "2026-08-19T00:00:00.000Z",
+      "status": "stale",
+      "verifiedRevision": "git:verified",
+      "currentRevision": "git:current",
+      "signals": {
+        "reviewInterval": {
+          "status": "stale",
+          "dueAt": "2026-08-19T00:00:00.000Z"
+        },
+        "documentPath": { "status": "current" },
+        "connectedPaths": {
+          "status": "current",
+          "changedPaths": [],
+          "unobservedPaths": []
+        },
+        "managedInputs": {
+          "status": "not_applicable",
+          "changedSourceIds": [],
+          "missingSourceIds": [],
+          "unobservedSourceIds": []
+        }
+      },
+      "reasons": ["probably_old"]
+    }
+  }
+]
