@@ -12,7 +12,7 @@ const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CONTEXT_ID = "22222222-2222-4222-8222-222222222222";
 const TURN_ID = "33333333-3333-4333-8333-333333333333";
 
-function fakeSdk(options: { alterReplay?: boolean } = {}) {
+function fakeSdk(options: { alterReplay?: boolean; hangOnReturn?: boolean } = {}) {
   const state = {
     startupParams: undefined as Parameters<typeof startup>[0] | undefined,
     interrupted: false,
@@ -44,6 +44,9 @@ function fakeSdk(options: { alterReplay?: boolean } = {}) {
             state.interrupted = true;
             return undefined;
           },
+          ...(options.hangOnReturn === true
+            ? { return: () => new Promise<never>(() => undefined) }
+            : {}),
         }) as unknown as Query;
       },
       close() {
@@ -145,5 +148,17 @@ describe("Claude Agent SDK client", () => {
       code: "provider_protocol_failed",
     });
     await client.close();
+  });
+
+  it("bounds SDK shutdown and aborts a query that never returns", async () => {
+    const fake = fakeSdk({ hangOnReturn: true });
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), requestTimeoutMs: 10 },
+      fake.sdkStartup,
+    );
+    await client.appendContext("managed context");
+
+    await expect(client.close()).rejects.toMatchObject({ code: "provider_process_failed" });
+    expect(fake.state.startupParams?.options?.abortController?.signal.aborted).toBe(true);
   });
 });

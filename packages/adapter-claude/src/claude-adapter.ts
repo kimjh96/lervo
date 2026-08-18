@@ -28,9 +28,14 @@ import { buildManagedContextMessage } from "./context-message.js";
 import { ClaudeEventNormalizer } from "./normalize.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
-import { ClaudeAdapterError, type ClaudeAdapterOptions } from "./types.js";
+import {
+  ClaudeAdapterError,
+  type ClaudeAdapterOptions,
+  type ClaudePermissionMode,
+} from "./types.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const READ_ONLY_TOOLS = new Set(["Read", "Glob", "Grep"]);
 
 export class ClaudeAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor = {
@@ -57,6 +62,8 @@ export class ClaudeAdapter implements ProviderAdapter {
   private readonly createProviderSessionId: () => string;
   private readonly createProviderMessageId: () => string;
   private readonly sessions = new ClaudeSessionRegistry();
+  private readonly tools: readonly string[];
+  private readonly permissionMode: ClaudePermissionMode;
 
   constructor(private readonly options: ClaudeAdapterOptions) {
     this.repositoryRoot = resolve(options.repositoryRoot);
@@ -65,6 +72,8 @@ export class ClaudeAdapter implements ProviderAdapter {
     this.createReceiptId = options.createReceiptId ?? defaultReceiptId;
     this.createProviderSessionId = options.createProviderSessionId ?? randomUUID;
     this.createProviderMessageId = options.createProviderMessageId ?? randomUUID;
+    this.permissionMode = options.permissionMode ?? "plan";
+    this.tools = [...(options.tools ?? ["Read", "Glob", "Grep"])];
     assertAdapterMessage(this.descriptor, "Claude adapter descriptor");
   }
 
@@ -72,6 +81,15 @@ export class ClaudeAdapter implements ProviderAdapter {
     assertAdapterMessage(request, "Claude start request");
     if (request.adapterId !== this.descriptor.adapterId) {
       throw new ClaudeAdapterError("session_mismatch", "Start request의 adapter ID가 Claude와 다릅니다.");
+    }
+    if (
+      this.permissionMode !== "plan" ||
+      this.tools.some((tool) => !READ_ONLY_TOOLS.has(tool))
+    ) {
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "읽기 전용 managed session에는 Claude plan mode와 읽기 전용 도구가 필요합니다.",
+      );
     }
     const providerSessionId = this.uuid(this.createProviderSessionId(), "Claude provider session ID");
     const client = await this.createClient(providerSessionId);
@@ -87,6 +105,7 @@ export class ClaudeAdapter implements ProviderAdapter {
         writingPolicyId: request.writingPolicyId,
         provider: this.descriptor.provider,
         providerSessionId,
+        executionMode: request.executionMode,
         startedAt: timestamp(this.now, "Claude session 시작 시각", request.requestedAt),
       };
       assertAdapterMessage(session, "Claude session");
@@ -266,10 +285,10 @@ export class ClaudeAdapter implements ProviderAdapter {
       cwd: this.repositoryRoot,
       ...(this.options.model === undefined ? {} : { model: this.options.model }),
       ...(this.options.executable === undefined ? {} : { executable: this.options.executable }),
-      permissionMode: this.options.permissionMode ?? "plan",
+      permissionMode: this.permissionMode,
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
       createMessageId: this.createProviderMessageId,
-      ...(this.options.tools === undefined ? {} : { tools: [...this.options.tools] }),
+      tools: [...this.tools],
     };
     if (this.options.clientFactory !== undefined) return this.options.clientFactory(clientOptions);
     return ClaudeSdkAgentClient.connect(clientOptions, this.options.sdkStartup);

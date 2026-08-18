@@ -98,9 +98,8 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       if (this.query === undefined) {
         this.warm.close();
       } else {
-        await this.query.return(undefined);
+        await this.finishQueryWithinDeadline();
       }
-      await this.pump;
     } catch {
       this.abortController.abort();
       throw new ClaudeAdapterError("provider_process_failed", "Claude Agent SDK를 종료하지 못했습니다.");
@@ -110,6 +109,29 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       this.replays.fail(
         new ClaudeAdapterError("session_stopped", "Claude session이 입력 확인 전에 종료되었습니다."),
       );
+    }
+  }
+
+  private async finishQueryWithinDeadline(): Promise<void> {
+    const operation = (async () => {
+      await this.query!.return(undefined);
+      await this.pump;
+    })();
+    void operation.catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        operation,
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Claude shutdown deadline exceeded")),
+            this.options.requestTimeoutMs,
+          );
+          timer.unref?.();
+        }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
     }
   }
 

@@ -24,6 +24,8 @@
     "@roven/storage-contract": "workspace:*"
   },
   "devDependencies": {
+    "@roven/adapter-claude": "workspace:*",
+    "@roven/adapter-codex": "workspace:*",
     "@roven/event-store-sqlite": "workspace:*"
   }
 }

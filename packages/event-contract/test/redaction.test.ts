@@ -11,6 +11,7 @@ describe("event payload privacy boundary", () => {
       adapterId: "roven/codex",
       adapterVersion: "1",
       providerSessionId: "session-1",
+      executionMode: "read_only",
       capabilities: {
         api_key: "secret-1",
         apiKey: "secret-2",
@@ -30,6 +31,7 @@ describe("event payload privacy boundary", () => {
       adapterId: "roven/codex",
       adapterVersion: "1",
       providerSessionId: "session-1",
+      executionMode: "read_only",
       capabilities: { toolCalls: "supported" },
     });
     expect(JSON.stringify(result.payload)).not.toContain("secret-");

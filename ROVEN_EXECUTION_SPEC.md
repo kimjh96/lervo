@@ -278,7 +278,7 @@ Raw task instructions와 context 원문은 로컬 app-server 입력에만 존재
 
 ### Claude Agent SDK 첫 슬라이스
 
-Claude adapter는 `startup`으로 session process와 initialize handshake를 먼저 완료하고 호출자가 만든 UUID를 provider session ID로 사용합니다. 기본 permission mode는 `plan`입니다. Filesystem setting source, 자동 skill과 외부 MCP 설정을 불러오지 않으며 권한 요청은 모두 거부합니다. Roven이 주입한 context를 따로 받지 않는 내부 Agent/Task는 차단합니다. 여러 전문 에이전트가 필요하면 각각 managed session을 만들고 Role, writing policy와 현재 generation에 맞는 envelope를 주입합니다.
+Claude adapter는 `startup`으로 session process와 initialize handshake를 먼저 완료하고 호출자가 만든 UUID를 provider session ID로 사용합니다. 기본 permission mode는 `plan`이고 기본 도구는 `Read`, `Glob`, `Grep`뿐입니다. Filesystem setting source, 자동 skill과 외부 MCP 설정을 불러오지 않으며 권한 요청은 모두 거부합니다. Roven이 주입한 context를 따로 받지 않는 내부 Agent/Task는 차단합니다. 여러 전문 에이전트가 필요하면 각각 managed session을 만들고 Role, writing policy와 현재 generation에 맞는 envelope를 주입합니다.
 
 Inline/CAS bytes 검증은 Codex와 같은 공통 materializer를 사용합니다. 검증된 문서 묶음을 `shouldQuery=false` synthetic user message로 보내고, 같은 session ID·message UUID·원문을 가진 SDK replay와 init을 확인한 뒤에만 receipt를 만듭니다. 실제 task는 `shouldQuery=true` message로 보내며 그 UUID가 provider turn ID입니다. Init과 replay를 받지 못하거나 replay 원문이 다르면 `provider_protocol_failed`로 중단합니다.
 
@@ -299,11 +299,17 @@ Provider가 다른 session ID를 보내거나 tool result와 turn result를 기�
 7. 실행 후 snapshot 비교
 8. `run.completed` 또는 `run.failed`
 
-Signal consumer는 context 상태 머신과 독립적으로 stream 종료와 terminal event를 판정합니다. `provider.context.compacted` 또는 session restart는 같은 좌표인지 확인한 뒤 즉시 현재 generation을 무효화합니다. Terminal event 전 stream 종료는 `provider_stream_failed`입니다. 호출자 취소는 `cancelled`이며 adapter가 active turn을 interrupt하고 process를 닫은 뒤에만 수명주기를 끝냅니다.
+Signal consumer는 context 상태 머신과 독립적으로 stream 종료와 terminal event를 판정합니다. `provider.context.compacted` 또는 session restart는 같은 좌표인지 확인한 뒤 즉시 현재 generation을 무효화합니다. Terminal event 전 stream 종료는 `provider_stream_failed`입니다. 호출자 취소는 `cancelled`이며 adapter에 active turn 중단과 process 종료를 요청합니다. 종료가 제한 시간 안에 확인되지 않으면 정상 종료를 주장하지 않고 `provider_stop_failed`도 함께 남깁니다.
 
-Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `run.requested`는 `requestDigest`, `role`, `risk`, `run.resolved`는 `role`, `risk`, `policyVersion`을 필수로 가집니다. `adapter.started`는 adapter ID/version, provider session ID와 capability matrix를, `adapter.stopped`는 adapter ID, provider session ID와 종료 `status`를 가집니다. `tool.called`는 tool 이름, input digest, status와 duration만 남깁니다. `command.executed`는 command/output digest, 저장소 상대 cwd, `status`, exit code와 duration만 남기며 command와 output 원문은 허용하지 않습니다. `run.completed`와 `run.failed`는 각각 result/diagnostic digest를 사용하고 raw task나 provider result를 저장하지 않습니다.
+Coordinator가 만드는 `start_request`와 adapter가 돌려주는 `session`은 모두 `executionMode=read_only`를 필수로 가집니다. Role의 선언만 믿지 않고 Codex의 `read-only` sandbox·`never` approval과 Claude의 `plan` mode·`Read/Glob/Grep` 부분집합을 adapter 시작 전에 확인합니다. 값이 없거나 다르면 `contract_validation_failed`, 경계를 넓히는 provider 구성은 provider 호출 전에 `invalid_request`로 거부합니다. 실행 모드는 비밀정보가 아닌 고정된 정책 좌표이며 `adapter.started`에 기록합니다.
 
-실행 전후 snapshot은 실제 repository root의 일반 파일 bytes와 symlink target을 SHA-256으로 묶습니다. `.git`, `node_modules`, `.roven/state`는 제외하며 제외 경로의 불변성을 증명하지 않습니다. 한 snapshot은 20,000개 항목, 일반 파일 256 MiB를 넘지 않습니다. Root가 실제 디렉터리가 아니거나 제한 초과, 읽는 중 변경과 안전한 읽기 실패는 `repository_snapshot_failed`입니다.
+Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `run.requested`는 `requestDigest`, `role`, `risk`, `run.resolved`는 `role`, `risk`, `policyVersion`을 필수로 가집니다. `adapter.started`는 adapter ID/version, provider session ID, `executionMode`와 capability matrix를, `adapter.stopped`는 adapter ID, provider session ID와 종료 `status`를 가집니다. `tool.called`는 tool 이름, input digest, status와 duration만 남깁니다. `command.executed`는 command/output digest, 저장소 상대 cwd, `status`, exit code와 duration만 남기며 command와 output 원문은 허용하지 않습니다. `run.completed`와 `run.failed`는 각각 result/diagnostic digest를 사용하고 raw task나 provider result를 저장하지 않습니다.
+
+실행 전후 snapshot은 실제 repository root의 일반 파일 bytes와 symlink target을 SHA-256으로 묶습니다. 기본 정책은 `.git`, `node_modules`, `.roven/state`를 제외하고 20,000개 항목, 일반 파일 256 MiB로 제한합니다. 저장소별 정책으로 제외 경로와 한도를 바꿀 수 있지만, 제외한 경로의 불변성은 증명하지 않습니다. Root가 실제 디렉터리가 아니거나 정책이 유효하지 않거나 제한 초과, 읽는 중 변경과 안전한 읽기 실패는 `repository_snapshot_failed`입니다.
+
+Coordinator는 부작용 없는 snapshot 대기와 중단 경계가 있는 실행 단계에만 제한 시간을 둡니다. 기본값은 snapshot 30초, provider turn 10분, signal stream 정리 5초, adapter 종료 10초이며 호출자는 양의 정수 millisecond로 좁힐 수 있습니다. Adapter 시작·context 주입·turn 시작의 transport 제한은 실제 요청을 취소하거나 process를 닫을 수 있는 각 adapter가 책임집니다. 단순히 `Promise.race`로 상태 변경 작업을 버려 두고 종료됐다고 주장하지 않습니다. Coordinator 제한 시간도 대기를 끝내는 경계일 뿐이므로 stream abort와 adapter stop을 별도로 시도하고 확인하지 못한 종료는 실패로 남깁니다.
+
+실패는 마지막 오류로 덮어쓰지 않고 단계와 함께 모두 모읍니다. `run.failed.failureCode`는 개인정보 없는 결정적 우선순위인 telemetry, provider stop, unmanaged change, contract, snapshot, context, provider 실행, cancellation 순으로 대표 실패를 고릅니다. `diagnosticDigest`는 모든 `{code, phase, retryable}` 묶음으로 만들고 원문 예외는 저장하지 않습니다. 호출자 오류에는 같은 안전한 관련 실패와 정렬된 unmanaged 경로를 제공하므로 종료 실패와 저장소 변경을 동시에 잃지 않습니다.
 
 현재 adapter process는 파일마다 Roven write permit를 요청하지 못합니다. 따라서 managed provider run은 Role의 `filesystem.write=deny`만 허용합니다. 다른 Role은 provider 시작 전에 `contract_validation_failed`로 거부합니다. 전후 snapshot의 정렬된 변경 경로가 하나라도 있으면 `unmanaged_change.detected`를 기록한 뒤 `unmanaged_change_detected`로 실패합니다. 이 event는 저장소 상대 `paths`, `beforeRevision`, `afterRevision`, `detectedAt`을 필수로 가지며 command, diff와 파일 bytes는 포함하지 않습니다. Adapter가 file change를 보고했더라도 검증된 permit가 없으면 `file.changed`로 바꾸지 않습니다.
 

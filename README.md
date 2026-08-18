@@ -2,7 +2,7 @@
 
 Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2 완료, M3 managed provider run 수명주기와 unmanaged 변경 탐지 완료 (2026-08-18)
+현재 상태: M0·M1·M2 완료, M3 managed provider run의 실제 adapter 연결·읽기 전용 경계·실패 복구 완료 (2026-08-18)
 
 ## 목표
 

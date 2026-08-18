@@ -31,7 +31,7 @@ export function hash(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-function sequenceFactory(prefix: string): () => string {
+export function sequenceFactory(prefix: string): () => string {
   let sequence = 0;
   return () => `${prefix}_${String(++sequence).padStart(8, "0")}`;
 }
@@ -83,11 +83,11 @@ export interface ManagedFixture {
 export async function createManagedFixture(): Promise<ManagedFixture> {
   const root = await mkdtemp(resolve(tmpdir(), "roven-orchestrator-"));
   temporaryRoots.push(root);
-  await mkdir(resolve(root, ".state"), { recursive: true });
+  await mkdir(resolve(root, ".roven/state"), { recursive: true });
   await mkdir(resolve(root, "src"), { recursive: true });
   await writeFile(resolve(root, "AGENTS.md"), "저장소 작업 지침입니다.\n");
   const store = await SQLiteEventStore.open({
-    path: resolve(root, ".state", "events.sqlite"),
+    path: resolve(root, ".roven/state", "events.sqlite"),
     projectId,
   });
   const session: AdapterSession = {
@@ -101,6 +101,7 @@ export async function createManagedFixture(): Promise<ManagedFixture> {
     writingPolicyId: null,
     provider: "fixture",
     providerSessionId: "provider-session-1",
+    executionMode: "read_only",
     startedAt: "2026-08-18T01:00:00Z",
   };
   return {
@@ -114,6 +115,31 @@ export async function createManagedFixture(): Promise<ManagedFixture> {
         events,
         createEventId: sequenceFactory("evt_orchestrator"),
       }),
+  };
+}
+
+export function providerRunInput() {
+  const registry: DocumentRegistry = { schemaVersion: 1, documents: {} };
+  return {
+    requestDigest: targetDigest,
+    risk: "low",
+    instructions: "저장소를 읽고 결과를 설명합니다.",
+    targetTurnId: "turn-managed-provider-1",
+    context: {
+      registry,
+      role: {
+        ...role,
+        capabilities: { ...role.capabilities, "filesystem.write": "deny" as const },
+      },
+      expectedPaths: ["src/result.ts"],
+      documentRules: {},
+      publications: [],
+      handoffs: [],
+      createReceiptId: sequenceFactory("ctx_selected"),
+    },
+    writingPolicy: null,
+    createEnvelopeId: () => "envelope-provider-run-1",
+    createEvidenceReceiptId: sequenceFactory("ctx_injected"),
   };
 }
 

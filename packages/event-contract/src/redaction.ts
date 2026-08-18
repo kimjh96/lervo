@@ -35,7 +35,13 @@ export const eventPayloadAllowlists = {
     "evidenceEventIds",
     "requestDigest"
   ],
-  "adapter.started": ["adapterId", "adapterVersion", "providerSessionId", "capabilities"],
+  "adapter.started": [
+    "adapterId",
+    "adapterVersion",
+    "providerSessionId",
+    "executionMode",
+    "capabilities"
+  ],
   "adapter.stopped": ["adapterId", "providerSessionId", "status"],
   "capability.requested": ["capability", "targetDigest", "risk"],
   "capability.decided": ["capability", "decision", "policyRuleId", "approvalId"],

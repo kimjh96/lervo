@@ -1,31 +1,35 @@
 import {
   type AdapterNormalizedEvent,
-  type AdapterStopRequest,
+  type AdapterSession,
+  type AdapterTurn,
   type AdapterTurnRequest,
 } from "@roven/schemas";
 
 import { ManagedContextRun } from "./managed-context-run.js";
 import {
   adapterStartedSpec,
-  adapterStoppedSpec,
   providerSignalSpec,
   runCompletedSpec,
   runFailedSpec,
   runRequestedSpecs,
-  unmanagedChangeSpec,
 } from "./provider-run-events.js";
 import {
   assertAdapterMessage,
   assertManagedSession,
   assertTerminalTurn,
-  classifyRunFailure,
   createAdapterStartRequest,
-  type RunFailure,
   validateManagedProviderRunInput,
-} from "./provider-run-contract.js";
+} from "./provider-run-validation.js";
+import {
+  resolveManagedProviderRunDeadlines,
+  withinDeadline,
+  type ManagedProviderRunDeadlines,
+} from "./provider-run-deadline.js";
+import { RunFailureLedger } from "./provider-run-failures.js";
+import { finalizeProviderRun } from "./provider-run-finalizer.js";
+import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import {
   ManagedProviderRunError,
-  type ManagedProviderRunExecutionState,
   type ManagedProviderRunInput,
   type ManagedProviderRunOptions,
   type ManagedProviderRunResult,
@@ -36,7 +40,9 @@ import {
 } from "./provider-signal-monitor.js";
 import {
   captureRepositorySnapshot,
-  changedRepositoryPaths,
+  resolveRepositorySnapshotPolicy,
+  type RepositorySnapshot,
+  type RepositorySnapshotPolicy,
 } from "./repository-snapshot.js";
 import { ManagedTelemetryRecorder, TelemetryWriteError } from "./telemetry.js";
 
@@ -80,11 +86,20 @@ function abortPromise(signal: AbortSignal | undefined): {
   };
 }
 
+interface ManagedProviderRunExecutionState {
+  session?: AdapterSession;
+  turn?: AdapterTurn;
+  before?: RepositorySnapshot;
+  after?: RepositorySnapshot;
+}
+
 export class ManagedProviderRunCoordinator {
   private readonly context: ManagedContextRun;
   private readonly telemetry: ManagedTelemetryRecorder;
   private readonly now: () => Date;
   private readonly captureSnapshot: NonNullable<ManagedProviderRunOptions["captureSnapshot"]>;
+  private readonly snapshotPolicy: RepositorySnapshotPolicy;
+  private readonly deadlines: ManagedProviderRunDeadlines;
   private running = false;
 
   constructor(private readonly options: ManagedProviderRunOptions) {
@@ -97,6 +112,8 @@ export class ManagedProviderRunCoordinator {
     );
     this.now = options.now ?? (() => new Date());
     this.captureSnapshot = options.captureSnapshot ?? captureRepositorySnapshot;
+    this.snapshotPolicy = resolveRepositorySnapshotPolicy(options.snapshotPolicy);
+    this.deadlines = resolveManagedProviderRunDeadlines(options.deadlines);
     assertAdapterMessage(options.adapter.descriptor, "Adapter descriptor");
   }
 
@@ -116,8 +133,8 @@ export class ManagedProviderRunCoordinator {
     const state: ManagedProviderRunExecutionState = {};
     let monitor: ProviderSignalMonitor | undefined;
     let terminal: AdapterNormalizedEvent | undefined;
-    let failure: RunFailure | undefined;
-    let phase = "request";
+    const failures = new RunFailureLedger();
+    let phase: ManagedProviderRunPhase = "request";
 
     const requestedAt = this.time();
     this.append(
@@ -132,7 +149,12 @@ export class ManagedProviderRunCoordinator {
 
     try {
       phase = "before_snapshot";
-      state.before = await this.captureSnapshot(input.repositoryRoot);
+      state.before = await withinDeadline({
+        operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
+        timeoutMs: this.deadlines.snapshotMs,
+        failureCode: "repository_snapshot_failed",
+        label: "실행 전 repository snapshot",
+      });
 
       phase = "adapter_start";
       const startRequest = createAdapterStartRequest({
@@ -207,7 +229,12 @@ export class ManagedProviderRunCoordinator {
       phase = "provider_turn";
       const cancelled = abortPromise(input.signal);
       try {
-        terminal = await Promise.race([monitor.terminal, cancelled.promise]);
+        terminal = await withinDeadline({
+          operation: () => Promise.race([monitor!.terminal, cancelled.promise]),
+          timeoutMs: this.deadlines.providerTurnMs,
+          failureCode: "provider_turn_failed",
+          label: "Provider turn 완료 대기",
+        });
       } finally {
         cancelled.dispose();
       }
@@ -219,93 +246,36 @@ export class ManagedProviderRunCoordinator {
         );
       }
     } catch (error) {
-      failure = classifyRunFailure(error, phase);
+      failures.add(error, phase);
     }
 
-    if (monitor !== undefined) {
-      monitor.abort();
-      await monitor.done;
-      try {
-        monitor.throwIfFailed();
-      } catch (error) {
-        failure ??= classifyRunFailure(error, "provider_stream");
-      }
-    }
+    const after = await finalizeProviderRun({
+      adapter: this.options.adapter,
+      ...(state.session === undefined ? {} : { session: state.session }),
+      ...(monitor === undefined ? {} : { monitor }),
+      ...(state.before === undefined ? {} : { before: state.before }),
+      repositoryRoot: input.repositoryRoot,
+      captureSnapshot: this.captureSnapshot,
+      snapshotPolicy: this.snapshotPolicy,
+      deadlines: this.deadlines,
+      failures,
+      time: () => this.time(),
+      append: (specs) => this.append(specs),
+    });
+    if (after !== undefined) state.after = after;
 
-    if (state.session !== undefined) {
-      phase = "adapter_stop";
-      const stopReason =
-        failure?.error.code === "cancelled"
-          ? "cancelled"
-          : failure === undefined
-            ? "completed"
-            : "failed";
-      const stopRequest: AdapterStopRequest = {
-        kind: "stop_request",
-        schemaVersion: 1,
-        adapterId: this.options.adapter.descriptor.adapterId,
-        projectId: state.session.projectId,
-        runId: state.session.runId,
-        sessionId: state.session.sessionId,
-        providerSessionId: state.session.providerSessionId,
-        reason: stopReason,
-        requestedAt: this.time(),
-      };
-      try {
-        const stopped = await this.options.adapter.stop(state.session, stopRequest);
-        assertAdapterMessage(stopped, "Adapter stop result");
-        this.append([adapterStoppedSpec(state.session, stopped)]);
-      } catch (error) {
-        failure ??= classifyRunFailure(
-          new ManagedProviderRunError(
-            "provider_stop_failed",
-            "Provider session을 안전하게 종료하지 못했습니다.",
-            { cause: error },
-          ),
-          phase,
-        );
-      }
-    }
-
-    if (state.before !== undefined) {
-      phase = "after_snapshot";
-      try {
-        state.after = await this.captureSnapshot(input.repositoryRoot);
-        const unmanagedPaths = changedRepositoryPaths(state.before, state.after);
-        if (unmanagedPaths.length > 0) {
-          const detectedAt = this.time();
-          this.append([
-            unmanagedChangeSpec({
-              paths: unmanagedPaths,
-              beforeRevision: state.before.revision,
-              afterRevision: state.after.revision,
-              detectedAt,
-            }),
-          ]);
-          failure = classifyRunFailure(
-            new ManagedProviderRunError(
-              "unmanaged_change_detected",
-              "Provider 실행 중 관리되지 않은 저장소 변경을 발견했습니다.",
-              { paths: unmanagedPaths },
-            ),
-            phase,
-          );
-        }
-      } catch (error) {
-        failure ??= classifyRunFailure(error, phase);
-      }
-    }
-
-    if (failure !== undefined) {
+    const resultError = failures.resultError();
+    const primaryFailure = failures.primary;
+    if (resultError !== undefined && primaryFailure !== undefined) {
       this.append([
         runFailedSpec({
-          failureCode: failure.error.code,
-          retryable: failure.retryable,
-          phase: failure.phase,
+          failureCode: primaryFailure.error.code,
+          retryable: primaryFailure.retryable,
+          failures: failures.details(),
           occurredAt: this.time(),
         }),
       ]);
-      throw failure.error;
+      throw resultError;
     }
     if (
       terminal === undefined ||
@@ -328,7 +298,6 @@ export class ManagedProviderRunCoordinator {
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,
       afterRevision: state.after.revision,
-      unmanagedPaths: [],
     };
   }
 

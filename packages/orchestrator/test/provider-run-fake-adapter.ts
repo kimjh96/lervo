@@ -1,0 +1,252 @@
+import type { ProviderAdapter } from "@roven/adapter-contract";
+import type {
+  AdapterContextEnvelope,
+  AdapterContextReceipt,
+  AdapterDescriptor,
+  AdapterNormalizedEvent,
+  AdapterSession,
+  AdapterStartRequest,
+  AdapterStopRequest,
+  AdapterTurnRequest,
+} from "@roven/schemas";
+
+import { projectId, runId, sessionId } from "./fixture.js";
+
+const requestDigest =
+  "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+export class FakeManagedAdapter implements ProviderAdapter {
+  readonly descriptor: AdapterDescriptor;
+  readonly calls: string[] = [];
+  stopReason: AdapterStopRequest["reason"] | undefined;
+  private session: AdapterSession | undefined;
+  private turnId: string | undefined;
+  private releaseTurn!: () => void;
+  private readonly turnStarted = new Promise<void>((resolve) => {
+    this.releaseTurn = resolve;
+  });
+  readonly turnAccepted: Promise<void>;
+  private acceptTurn!: () => void;
+
+  constructor(
+    provider: "codex" | "claude",
+    private readonly options: {
+      compact?: boolean;
+      hang?: boolean;
+      mutate?: () => Promise<void>;
+      terminalTurnId?: string;
+      postTerminalMismatch?: boolean;
+      streamFailure?: boolean;
+      failStop?: boolean;
+      hangOnStop?: boolean;
+      invalidStopCoordinates?: boolean;
+    } = {},
+  ) {
+    this.descriptor = {
+      kind: "descriptor",
+      schemaVersion: 1,
+      adapterId: `roven/${provider}`,
+      adapterVersion: "fixture-1",
+      provider,
+      capabilities: {
+        controlledContextInjection: "supported",
+        toolCalls: "supported",
+        commandExecution: "supported",
+        fileChanges: provider === "codex" ? "supported" : "unknown",
+        contextCompaction: "supported",
+        sessionResume: "unsupported",
+        usage: provider === "codex" ? "supported" : "unknown",
+      },
+    };
+    this.turnAccepted = new Promise<void>((resolve) => {
+      this.acceptTurn = resolve;
+    });
+  }
+
+  async start(request: AdapterStartRequest): Promise<AdapterSession> {
+    this.calls.push("start");
+    this.session = {
+      kind: "session",
+      schemaVersion: 1,
+      adapterId: this.descriptor.adapterId,
+      projectId: request.projectId,
+      runId: request.runId,
+      sessionId: request.sessionId,
+      roleId: request.roleId,
+      writingPolicyId: request.writingPolicyId,
+      provider: this.descriptor.provider,
+      providerSessionId: `${this.descriptor.provider}-session-1`,
+      executionMode: request.executionMode,
+      startedAt: request.requestedAt,
+    };
+    return structuredClone(this.session);
+  }
+
+  async injectContext(
+    session: AdapterSession,
+    envelope: AdapterContextEnvelope,
+  ): Promise<AdapterContextReceipt> {
+    this.calls.push("injectContext");
+    return {
+      kind: "context_receipt",
+      schemaVersion: 1,
+      receiptId: `ctx_${this.descriptor.provider}0001`,
+      envelopeId: envelope.envelopeId,
+      adapterId: this.descriptor.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      roleId: session.roleId,
+      writingPolicyId: session.writingPolicyId,
+      writingPolicyDocumentId: envelope.writingPolicyDocumentId,
+      provider: session.provider,
+      providerSessionId: session.providerSessionId,
+      targetTurnId: envelope.targetTurnId,
+      contextGeneration: envelope.contextGeneration,
+      controlledInput: true,
+      documents: envelope.documents.map((document) => ({
+        documentId: document.documentId,
+        contentHash: document.contentHash,
+        scope: document.scope,
+        status: "injected" as const,
+      })),
+      acceptedAt: envelope.createdAt,
+    };
+  }
+
+  async startTurn(_session: AdapterSession, request: AdapterTurnRequest) {
+    this.calls.push("startTurn");
+    this.turnId = `${this.descriptor.provider}-turn-1`;
+    await this.options.mutate?.();
+    this.acceptTurn();
+    this.releaseTurn();
+    return {
+      kind: "turn" as const,
+      schemaVersion: 1 as const,
+      adapterId: this.descriptor.adapterId,
+      projectId: request.projectId,
+      runId: request.runId,
+      sessionId: request.sessionId,
+      providerSessionId: request.providerSessionId,
+      targetTurnId: request.targetTurnId,
+      providerTurnId: this.turnId,
+      acceptedAt: request.requestedAt,
+    };
+  }
+
+  async *events(_session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent> {
+    const base = () => ({
+      kind: "normalized_event" as const,
+      schemaVersion: 1 as const,
+      projectId,
+      runId,
+      sessionId,
+      providerSessionId: `${this.descriptor.provider}-session-1`,
+      occurredAt: "2026-08-18T01:10:00Z",
+    });
+    yield {
+      ...base(),
+      eventId: `evt_${this.descriptor.provider}start`,
+      type: "provider.session.started",
+      payload: { adapterVersion: this.descriptor.adapterVersion },
+    };
+    await Promise.race([
+      this.turnStarted,
+      new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })),
+    ]);
+    if (signal.aborted) return;
+    yield {
+      ...base(),
+      eventId: `evt_${this.descriptor.provider}turn1`,
+      type: "provider.turn.started",
+      payload: { providerTurnId: this.turnId as string },
+    };
+    if (this.options.compact === true) {
+      yield {
+        ...base(),
+        eventId: `evt_${this.descriptor.provider}comp1`,
+        type: "provider.context.compacted",
+        payload: {
+          providerTurnId: this.turnId as string,
+          providerItemId: `${this.descriptor.provider}-compact-1`,
+        },
+      };
+    }
+    yield {
+      ...base(),
+      eventId: `evt_${this.descriptor.provider}tool01`,
+      type: "provider.tool.called",
+      payload: {
+        providerItemId: "tool-1",
+        toolName: "Read",
+        inputDigest: requestDigest,
+        status: "completed",
+        durationMs: 2,
+      },
+    };
+    yield {
+      ...base(),
+      eventId: `evt_${this.descriptor.provider}cmd001`,
+      type: "provider.command.executed",
+      payload: {
+        providerItemId: "command-1",
+        commandDigest: requestDigest,
+        cwdRelative: ".",
+        status: "completed",
+        exitCode: 0,
+        outputDigest: requestDigest,
+        durationMs: 3,
+      },
+    };
+    if (this.options.hang === true) {
+      if (!signal.aborted) {
+        await new Promise<void>((resolve) =>
+          signal.addEventListener("abort", () => resolve(), { once: true }),
+        );
+      }
+      return;
+    }
+    if (this.options.streamFailure === true) throw new Error("fixture stream failure");
+    yield {
+      ...base(),
+      eventId: `evt_${this.descriptor.provider}done01`,
+      type: "provider.turn.completed",
+      payload: {
+        providerTurnId: this.options.terminalTurnId ?? (this.turnId as string),
+        status: "completed",
+        durationMs: 10,
+      },
+    };
+    if (this.options.postTerminalMismatch === true) {
+      yield {
+        ...base(),
+        eventId: `evt_${this.descriptor.provider}late01`,
+        providerSessionId: "foreign-session",
+        type: "provider.session.started",
+        payload: { adapterVersion: this.descriptor.adapterVersion },
+      };
+    }
+  }
+
+  async stop(_session: AdapterSession, request: AdapterStopRequest) {
+    this.calls.push("stop");
+    this.stopReason = request.reason;
+    if (this.options.failStop === true) throw new Error("fixture stop failure");
+    if (this.options.hangOnStop === true) {
+      await new Promise<void>(() => undefined);
+    }
+    return {
+      kind: "stop_result" as const,
+      schemaVersion: 1 as const,
+      adapterId: this.descriptor.adapterId,
+      projectId: this.options.invalidStopCoordinates === true ? "prj_foreign" : request.projectId,
+      runId: request.runId,
+      sessionId: request.sessionId,
+      providerSessionId: request.providerSessionId,
+      status: request.reason,
+      stoppedAt: request.requestedAt,
+    };
+  }
+}
+
+

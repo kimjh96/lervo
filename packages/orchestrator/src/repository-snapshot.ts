@@ -4,8 +4,6 @@ import { relative, resolve, sep } from "node:path";
 
 import { readRepositoryFile } from "@roven/context";
 
-import { ManagedProviderRunError } from "./provider-run-types.js";
-
 export interface RepositorySnapshot {
   revision: string;
   files: Readonly<Record<string, string>>;
@@ -13,11 +11,29 @@ export interface RepositorySnapshot {
 
 export type CaptureRepositorySnapshot = (
   repositoryRoot: string,
+  policy?: RepositorySnapshotPolicy,
 ) => Promise<RepositorySnapshot>;
 
-const excludedDirectories = new Set([".git", "node_modules"]);
-const MAX_FILES = 20_000;
-const MAX_BYTES = 256 * 1024 * 1024;
+export interface RepositorySnapshotPolicy {
+  excludedDirectoryNames: readonly string[];
+  excludedPaths: readonly string[];
+  maxEntries: number;
+  maxBytes: number;
+}
+
+export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.freeze({
+  excludedDirectoryNames: Object.freeze([".git", "node_modules"]),
+  excludedPaths: Object.freeze([".roven/state"]),
+  maxEntries: 20_000,
+  maxBytes: 256 * 1024 * 1024,
+});
+
+export class RepositorySnapshotError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "RepositorySnapshotError";
+  }
+}
 
 function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -27,21 +43,59 @@ function portablePath(root: string, absolutePath: string): string {
   return relative(root, absolutePath).split(sep).join("/");
 }
 
-function isExcluded(path: string, name: string): boolean {
-  if (excludedDirectories.has(name)) return true;
-  return path === ".roven/state";
+export function resolveRepositorySnapshotPolicy(
+  policy: RepositorySnapshotPolicy = defaultRepositorySnapshotPolicy,
+): RepositorySnapshotPolicy {
+  const resolved = {
+    excludedDirectoryNames: [...policy.excludedDirectoryNames],
+    excludedPaths: [...policy.excludedPaths],
+    maxEntries: policy.maxEntries,
+    maxBytes: policy.maxBytes,
+  };
+  if (
+    !Number.isSafeInteger(resolved.maxEntries) ||
+    resolved.maxEntries < 1 ||
+    !Number.isSafeInteger(resolved.maxBytes) ||
+    resolved.maxBytes < 1 ||
+    resolved.excludedDirectoryNames.some(
+      (name) =>
+        name.length === 0 ||
+        name === "." ||
+        name === ".." ||
+        name.includes("/") ||
+        name.includes("\\"),
+    ) ||
+    resolved.excludedPaths.some(
+      (path) =>
+        path.length === 0 ||
+        path.startsWith("/") ||
+        path.endsWith("/") ||
+        path.includes("\\") ||
+        path.split("/").some((part) => part.length === 0 || part === "." || part === ".."),
+    )
+  ) {
+    throw new RepositorySnapshotError("저장소 snapshot 정책이 유효하지 않습니다.");
+  }
+  return Object.freeze({
+    ...resolved,
+    excludedDirectoryNames: Object.freeze(resolved.excludedDirectoryNames),
+    excludedPaths: Object.freeze(resolved.excludedPaths),
+  });
 }
 
 export async function captureRepositorySnapshot(
   repositoryRoot: string,
+  policy: RepositorySnapshotPolicy = defaultRepositorySnapshotPolicy,
 ): Promise<RepositorySnapshot> {
+  const resolvedPolicy = resolveRepositorySnapshotPolicy(policy);
+  const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
+  const excludedPaths = new Set(resolvedPolicy.excludedPaths);
   const root = resolve(repositoryRoot);
   try {
     const rootStats = await lstat(root);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error("unsafe root");
   } catch {
-    throw new ManagedProviderRunError(
-      "repository_snapshot_failed",
+    throw new RepositorySnapshotError(
       "저장소 snapshot root가 안전한 실제 디렉터리가 아닙니다.",
     );
   }
@@ -54,8 +108,7 @@ export async function captureRepositorySnapshot(
     try {
       entries = await readdir(directory, { withFileTypes: true });
     } catch {
-      throw new ManagedProviderRunError(
-        "repository_snapshot_failed",
+      throw new RepositorySnapshotError(
         "저장소 snapshot을 읽지 못했습니다.",
       );
     }
@@ -63,14 +116,16 @@ export async function captureRepositorySnapshot(
     for (const entry of entries) {
       const absolutePath = resolve(directory, entry.name);
       const path = portablePath(root, absolutePath);
+      if (excludedPaths.has(path)) continue;
       if (entry.isDirectory()) {
-        if (!isExcluded(path, entry.name)) await visit(absolutePath);
+        if (!excludedDirectories.has(entry.name)) {
+          await visit(absolutePath);
+        }
         continue;
       }
       fileCount += 1;
-      if (fileCount > MAX_FILES) {
-        throw new ManagedProviderRunError(
-          "repository_snapshot_failed",
+      if (fileCount > resolvedPolicy.maxEntries) {
+        throw new RepositorySnapshotError(
           "저장소 snapshot 파일 수 제한을 넘었습니다.",
         );
       }
@@ -97,18 +152,17 @@ export async function captureRepositorySnapshot(
           throw new Error("changed while reading");
         }
         byteCount += bytes.byteLength;
-        if (byteCount > MAX_BYTES) {
-          throw new ManagedProviderRunError(
-            "repository_snapshot_failed",
+        if (byteCount > resolvedPolicy.maxBytes) {
+          throw new RepositorySnapshotError(
             "저장소 snapshot byte 제한을 넘었습니다.",
           );
         }
         files[path] = sha256(bytes);
       } catch (error) {
-        if (error instanceof ManagedProviderRunError) throw error;
-        throw new ManagedProviderRunError(
-          "repository_snapshot_failed",
+        if (error instanceof RepositorySnapshotError) throw error;
+        throw new RepositorySnapshotError(
           "저장소 파일을 안전하게 snapshot하지 못했습니다.",
+          { cause: error },
         );
       }
     }

@@ -59,6 +59,7 @@ export function adapterStartedSpec(
       adapterId: descriptor.adapterId,
       adapterVersion: descriptor.adapterVersion,
       providerSessionId: session.providerSessionId,
+      executionMode: session.executionMode,
       capabilities: descriptor.capabilities,
     },
   };
@@ -153,7 +154,7 @@ export function runCompletedSpec(input: {
 export function runFailedSpec(input: {
   failureCode: string;
   retryable: boolean;
-  phase: string;
+  failures: ReadonlyArray<{ code: string; phase: string; retryable: boolean }>;
   occurredAt: string;
 }): ManagedEventSpec {
   return {
@@ -163,7 +164,7 @@ export function runFailedSpec(input: {
     payload: {
       failureCode: input.failureCode,
       retryable: input.retryable,
-      diagnosticDigest: digest({ failureCode: input.failureCode, phase: input.phase }),
+      diagnosticDigest: digest({ failures: input.failures }),
     },
   };
 }

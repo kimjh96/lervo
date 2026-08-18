@@ -148,6 +148,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
     writingPolicyId: "writing_ko-kr-human",
     provider: "fixture",
     providerSessionId: "provider-session-1",
+    executionMode: "read_only",
     startedAt: "2026-08-18T01:00:00Z",
   };
   const policyDocument = loaded.documents.find(

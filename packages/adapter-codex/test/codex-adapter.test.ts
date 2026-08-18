@@ -181,6 +181,7 @@ function fixture() {
     roleId: "developer",
     writingPolicyId: "writing_ko-kr-human",
     requestDigest: sha("fixture request"),
+    executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
   };
   const contextEnvelope: AdapterContextEnvelope = {
@@ -236,6 +237,22 @@ async function started(adapterInstance: CodexAdapter): Promise<AdapterSession> {
 }
 
 describe("Codex managed adapter", () => {
+  it("rejects a write-capable sandbox before starting Codex", async () => {
+    const client = new FakeCodexClient();
+    await expect(
+      adapter(client, { sandbox: "workspace-write" }).start(fixture().startRequest),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(client.calls).toEqual([]);
+  });
+
+  it("rejects an approval policy that could leave the managed boundary", async () => {
+    const client = new FakeCodexClient();
+    await expect(
+      adapter(client, { approvalPolicy: "on-request" }).start(fixture().startRequest),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(client.calls).toEqual([]);
+  });
+
   it("passes the common adapter contract with a controlled turn", async () => {
     const client = new FakeCodexClient();
     const report = await evaluateAdapterContract(adapter(client), {

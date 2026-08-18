@@ -195,6 +195,7 @@ function fixture() {
     roleId: "developer",
     writingPolicyId: "writing_ko-kr-human",
     requestDigest: sha("fixture request"),
+    executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
   };
   const contextEnvelope: AdapterContextEnvelope = {
@@ -250,6 +251,22 @@ async function start(instance: ClaudeAdapter): Promise<AdapterSession> {
 }
 
 describe("Claude managed adapter", () => {
+  it("rejects a non-plan permission mode before starting Claude", async () => {
+    const client = new FakeClaudeClient();
+    await expect(
+      adapter(client, { permissionMode: "dontAsk" }).start(fixture().startRequest),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(client.calls).toEqual([]);
+  });
+
+  it("rejects tools outside the managed read-only set", async () => {
+    const client = new FakeClaudeClient();
+    await expect(
+      adapter(client, { tools: ["Read", "Bash"] }).start(fixture().startRequest),
+    ).rejects.toMatchObject({ code: "invalid_request" });
+    expect(client.calls).toEqual([]);
+  });
+
   it("passes the common contract with the same role, writing policy and document hashes", async () => {
     const client = new FakeClaudeClient();
     const report = await evaluateAdapterContract(adapter(client), {

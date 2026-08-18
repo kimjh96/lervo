@@ -82,6 +82,7 @@ class FixtureAdapter implements ProviderAdapter {
           : this.writingPolicyOverride,
       provider: this.descriptor.provider,
       providerSessionId: `${this.descriptor.provider}-session-1`,
+      executionMode: request.executionMode,
       startedAt: "2026-08-18T00:00:01Z",
     };
   }
@@ -170,6 +171,7 @@ function fixture(provider: string) {
     roleId: "developer",
     writingPolicyId: "writing_ko-kr-human",
     requestDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
   };
   const contextEnvelope: AdapterContextEnvelope = {

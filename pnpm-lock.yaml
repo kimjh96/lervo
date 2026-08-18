@@ -133,6 +133,12 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
     devDependencies:
+      '@roven/adapter-claude':
+        specifier: workspace:*
+        version: link:../adapter-claude
+      '@roven/adapter-codex':
+        specifier: workspace:*
+        version: link:../adapter-codex
       '@roven/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite

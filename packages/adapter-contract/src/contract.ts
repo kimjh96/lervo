@@ -111,7 +111,8 @@ export async function evaluateAdapterContract(
     session.adapterId !== adapter.descriptor.adapterId ||
     session.provider !== adapter.descriptor.provider ||
     session.roleId !== fixture.startRequest.roleId ||
-    session.writingPolicyId !== fixture.startRequest.writingPolicyId
+    session.writingPolicyId !== fixture.startRequest.writingPolicyId ||
+    session.executionMode !== fixture.startRequest.executionMode
   ) {
     violations.push({
       code: "session_mismatch",

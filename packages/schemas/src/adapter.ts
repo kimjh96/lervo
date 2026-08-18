@@ -84,6 +84,7 @@ export const adapterStartRequestSchema = {
       anyOf: [writingPolicyIdSchema, { type: "null" }],
     },
     requestDigest: sha256Schema,
+    executionMode: { const: "read_only" },
     requestedAt: timestampSchema,
   },
   required: [
@@ -96,6 +97,7 @@ export const adapterStartRequestSchema = {
     "roleId",
     "writingPolicyId",
     "requestDigest",
+    "executionMode",
     "requestedAt"
   ],
   additionalProperties: false,
@@ -116,6 +118,7 @@ export const adapterSessionSchema = {
     },
     provider: providerSchema,
     providerSessionId: { type: "string", minLength: 1 },
+    executionMode: { const: "read_only" },
     startedAt: timestampSchema,
   },
   required: [
@@ -129,6 +132,7 @@ export const adapterSessionSchema = {
     "writingPolicyId",
     "provider",
     "providerSessionId",
+    "executionMode",
     "startedAt"
   ],
   additionalProperties: false,
@@ -711,6 +715,7 @@ export const adapterContractMessageSchema = {
 export type AdapterDescriptor = FromSchema<typeof adapterDescriptorSchema>;
 export type AdapterStartRequest = FromSchema<typeof adapterStartRequestSchema>;
 export type AdapterSession = FromSchema<typeof adapterSessionSchema>;
+export type AdapterExecutionMode = AdapterStartRequest["executionMode"];
 export type AdapterContextEnvelope = FromSchema<typeof adapterContextEnvelopeSchema>;
 export type AdapterContextReceipt = FromSchema<typeof adapterContextReceiptSchema>;
 export type AdapterTurnRequest = FromSchema<typeof adapterTurnRequestSchema>;

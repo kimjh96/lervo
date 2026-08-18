@@ -69,6 +69,15 @@ export class CodexAdapter implements ProviderAdapter {
     if (request.adapterId !== this.descriptor.adapterId) {
       throw new CodexAdapterError("session_mismatch", "Start request의 adapter ID가 Codex와 다릅니다.");
     }
+    if (
+      (this.options.sandbox ?? "read-only") !== "read-only" ||
+      (this.options.approvalPolicy ?? "never") !== "never"
+    ) {
+      throw new CodexAdapterError(
+        "invalid_request",
+        "읽기 전용 managed session에는 Codex read-only sandbox와 never approval이 필요합니다.",
+      );
+    }
     const client = await this.createClient();
     try {
       const thread = await client.startThread({
@@ -88,6 +97,7 @@ export class CodexAdapter implements ProviderAdapter {
         writingPolicyId: request.writingPolicyId,
         provider: this.descriptor.provider,
         providerSessionId: thread.threadId,
+        executionMode: request.executionMode,
         startedAt: timestamp(this.now, "Codex session 시작 시각", request.requestedAt),
       };
       assertAdapterMessage(session, "Codex session");

@@ -59,6 +59,7 @@ function request(adapterId: string): AdapterStartRequest {
     roleId: "developer",
     writingPolicyId: "writing_ko-kr-human",
     requestDigest: sha("same task"),
+    executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
   };
 }

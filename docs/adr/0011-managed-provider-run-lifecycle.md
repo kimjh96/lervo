@@ -14,7 +14,7 @@ Codex와 Claude adapter는 같은 session, controlled context, turn과 normalize
 ### 책임 분리
 
 - `ManagedProviderRunCoordinator`는 요청, 저장소 snapshot, adapter 시작, context 준비·주입, turn 시작, signal 소비, 중단, adapter 종료와 최종 run event의 순서만 소유합니다.
-- Context 선택·E1/E2/E3와 generation 전이는 기존 `ManagedContextRun`에 위임합니다. Provider signal stream의 종료와 terminal event 판정은 별도 monitor가 맡고, adapter 계약 검증·실패 분류도 별도 모듈에 둡니다.
+- Context 선택·E1/E2/E3와 generation 전이는 기존 `ManagedContextRun`에 위임합니다. Provider signal stream의 종료와 terminal event 판정은 별도 monitor가 맡고, adapter 계약, deadline, 실패 원장, 종료 처리와 snapshot도 각각 별도 모듈에 둡니다.
 - 공급자별 process와 protocol은 adapter 안에 남습니다. Coordinator는 Codex나 Claude 구현을 import하지 않고 `ProviderAdapter` 포트만 받습니다.
 - 같은 coordinator instance는 한 run에만 사용합니다. 입력은 함수와 `AbortSignal`을 제외하고 격리 복사하여 실행 중 외부 변경이 계약 판정에 섞이지 않게 합니다.
 
@@ -37,7 +37,7 @@ Compaction/restart signal은 terminal 결과와 별개로 즉시 기존 generati
 
 - `run.requested`: `requestDigest`, `role`, `risk`
 - `run.resolved`: `role`, `risk`, `policyVersion`
-- `adapter.started`: `adapterId`, `adapterVersion`, `providerSessionId`, `capabilities`
+- `adapter.started`: `adapterId`, `adapterVersion`, `providerSessionId`, `executionMode`, `capabilities`
 - `tool.called`: `toolName`, `inputDigest`, `status`, `durationMs`
 - `command.executed`: `commandDigest`, 저장소 상대 `cwdRelative`, `status`, `exitCode`, `outputDigest`, `durationMs`
 - `unmanaged_change.detected`: 정렬된 저장소 상대 `paths`, `beforeRevision`, `afterRevision`, `detectedAt`
@@ -50,11 +50,15 @@ Compaction/restart signal은 terminal 결과와 별개로 즉시 기존 generati
 
 - Snapshot은 실제 repository root 아래의 일반 파일 전체 bytes를 안전하게 읽어 SHA-256으로 묶습니다. 심볼릭 링크는 따라가지 않고 link target 문자열만 hash하며, 그 밖의 항목은 고정 marker로 표시합니다.
 - `.git`, `node_modules`, `.roven/state`는 제외합니다. `.roven/state`는 coordinator 자신의 SQLite/CAS 쓰기를 변경으로 오인하지 않기 위해 제외합니다. 제외 경로의 불변성은 이 snapshot이 증명하지 않습니다.
-- 한 snapshot은 최대 20,000개 항목과 일반 파일 256 MiB까지 허용합니다. 제한 초과, 읽는 중 파일 변경, 안전하지 않은 root나 항목 읽기 실패는 `repository_snapshot_failed`로 run을 중단합니다.
+- 기본 snapshot은 최대 20,000개 항목과 일반 파일 256 MiB까지 허용합니다. 저장소별 정책으로 제외 경로와 한도를 바꿀 수 있습니다. 잘못된 정책, 제한 초과, 읽는 중 파일 변경, 안전하지 않은 root나 항목 읽기 실패는 `repository_snapshot_failed`로 run을 중단합니다.
 - 현재 provider run은 읽기 전용입니다. Role의 `filesystem.write`가 `deny`가 아니면 provider 시작 전에 거부합니다. 실행 전후 revision이 다르면 adapter의 file-change capability와 관계없이 모든 변경 경로를 `unmanaged_change.detected`로 기록하고 `unmanaged_change_detected`로 실패합니다. `file.changed`는 만들지 않습니다.
 - 실제 managed write는 provider가 파일별 permit를 요청하고 coordinator가 before/after bytes를 검증하는 bridge가 생긴 뒤에만 엽니다.
 
-Claude adapter는 호출자가 tool 집합을 좁힐 수 있게 합니다. 기본 preset은 기존 adapter 계약을 유지하지만, 향후 읽기 전용 실행 진입점은 `Read`, `Glob`, `Grep`처럼 명시한 도구만 넘길 수 있습니다. Codex는 기존 read-only sandbox를 사용합니다.
+Start request와 session은 `executionMode=read_only`를 필수로 공유합니다. Codex는 `read-only` sandbox와 `never` approval이 아니면 시작 전에 거부합니다. Claude는 `plan` mode와 `Read`, `Glob`, `Grep` 도구의 부분집합만 허용합니다. 이 실행 모드는 비밀정보가 아니며 `adapter.started` allowlist에 남깁니다.
+
+Coordinator deadline은 부작용 없는 snapshot과 중단 경계가 있는 provider turn, stream 정리, stop에만 둡니다. 기본값은 각각 30초, 10분, 5초, 10초입니다. Start·context 주입·turn start는 취소 가능한 transport를 가진 adapter가 자체 request deadline을 책임집니다. 상태 변경 promise를 단순 race로 버려 두지 않습니다. Coordinator deadline도 provider 종료를 증명하지 않으므로 abort와 stop을 별도로 시도하며, Claude SDK close는 자체 request deadline 뒤 abort합니다.
+
+실패는 단계별 원장에 누적합니다. 대표 실패는 telemetry, stop, unmanaged, contract, snapshot, context, provider 실행, cancellation 순으로 결정하고 `run.failed` 진단 digest에는 모든 code·phase·retryable 묶음을 넣습니다. 원문 오류는 event에 넣지 않습니다. 이로써 stop 실패와 unmanaged 변경처럼 동시에 발생한 사실을 하나가 덮지 않습니다.
 
 ### 실패와 개인정보 처리
 
@@ -72,7 +76,7 @@ Event에는 raw task, context, provider result, command/output과 provider 오�
 
 ## 결과
 
-- Codex와 Claude가 같은 lifecycle fixture에서 context 주입 뒤에만 turn을 시작하고, 취소·compaction·종료를 같은 의미로 처리합니다.
+- Codex와 Claude의 실제 adapter가 같은 coordinator acceptance fixture에서 context 주입 뒤에만 turn을 시작하고, 읽기 전용 실행 모드와 종료를 같은 의미로 처리합니다.
 - Provider가 직접 만든 변경은 capability 보고 여부와 무관하게 검증된 `file.changed`로 승격되지 않습니다.
 - Coordinator, context gate, signal monitor, contract/failure 판정과 snapshot 책임이 분리되어 provider와 정책 bridge를 독립적으로 확장할 수 있습니다.
 - `roven run` 공개는 최종 결과 전달 계약과 managed write bridge가 생길 때까지 미룹니다.

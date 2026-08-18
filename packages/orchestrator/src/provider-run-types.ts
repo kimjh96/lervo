@@ -2,10 +2,12 @@ import type { ProviderAdapter } from "@roven/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@roven/context-delivery";
 import type { AdapterSession, AdapterTurn } from "@roven/schemas";
 
+import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
+import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import type { ManagedContextRunOptions, ManagedPrepareContextInput } from "./types.js";
 import type {
   CaptureRepositorySnapshot,
-  RepositorySnapshot,
+  RepositorySnapshotPolicy,
 } from "./repository-snapshot.js";
 
 export type ManagedProviderRunFailureCode =
@@ -23,15 +25,30 @@ export type ManagedProviderRunFailureCode =
 
 export class ManagedProviderRunError extends Error {
   readonly paths: readonly string[];
+  readonly relatedFailures: ReadonlyArray<{
+    code: ManagedProviderRunFailureCode;
+    phase: ManagedProviderRunPhase;
+    retryable: boolean;
+  }>;
 
   constructor(
     readonly code: ManagedProviderRunFailureCode,
     message: string,
-    options?: ErrorOptions & { paths?: readonly string[] },
+    options?: ErrorOptions & {
+      paths?: readonly string[];
+      relatedFailures?: ReadonlyArray<{
+        code: ManagedProviderRunFailureCode;
+        phase: ManagedProviderRunPhase;
+        retryable: boolean;
+      }>;
+    },
   ) {
     super(message, options);
     this.name = "ManagedProviderRunError";
     this.paths = options?.paths === undefined ? [] : [...options.paths];
+    this.relatedFailures = options?.relatedFailures === undefined
+      ? []
+      : structuredClone(options.relatedFailures);
   }
 }
 
@@ -39,6 +56,8 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
   adapter: ProviderAdapter;
   artifactStore?: ContextArtifactPort;
   captureSnapshot?: CaptureRepositorySnapshot;
+  snapshotPolicy?: RepositorySnapshotPolicy;
+  deadlines?: Partial<ManagedProviderRunDeadlines>;
   now?: () => Date;
 }
 
@@ -66,12 +85,4 @@ export interface ManagedProviderRunResult {
   contextGeneration: number;
   beforeRevision: string;
   afterRevision: string;
-  unmanagedPaths: [];
-}
-
-export interface ManagedProviderRunExecutionState {
-  session?: AdapterSession;
-  turn?: AdapterTurn;
-  before?: RepositorySnapshot;
-  after?: RepositorySnapshot;
 }

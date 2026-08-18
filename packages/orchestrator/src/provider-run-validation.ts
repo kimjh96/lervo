@@ -1,27 +1,18 @@
-import { ContextPreparationError } from "@roven/context";
-import { ContextDeliveryError } from "@roven/context-delivery";
 import type {
   AdapterNormalizedEvent,
   AdapterSession,
   AdapterStartRequest,
+  AdapterStopRequest,
+  AdapterStopResult,
   AdapterTurn,
 } from "@roven/schemas";
 import { validateSchema } from "@roven/schemas";
 
-import { TelemetryWriteError } from "./telemetry.js";
-import { ManagedContextError } from "./types.js";
 import {
   ManagedProviderRunError,
-  type ManagedProviderRunFailureCode,
   type ManagedProviderRunInput,
   type ManagedProviderRunOptions,
 } from "./provider-run-types.js";
-
-export interface RunFailure {
-  error: ManagedProviderRunError;
-  phase: string;
-  retryable: boolean;
-}
 
 export function assertAdapterMessage(value: unknown, label: string): void {
   if (!validateSchema("adapter", value).valid) {
@@ -81,6 +72,7 @@ export function createAdapterStartRequest(input: {
     roleId: input.options.coordinates.roleId,
     writingPolicyId: expectedWritingPolicyId(input.run),
     requestDigest: input.run.requestDigest,
+    executionMode: "read_only",
     requestedAt: input.requestedAt,
   };
   assertAdapterMessage(request, "Adapter start request");
@@ -100,11 +92,12 @@ export function assertManagedSession(input: {
     input.session.sessionId !== input.request.sessionId ||
     input.session.roleId !== input.request.roleId ||
     input.session.writingPolicyId !== input.request.writingPolicyId ||
+    input.session.executionMode !== input.request.executionMode ||
     input.session.provider !== input.provider
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Adapter session이 managed run 좌표와 다릅니다.",
+      "Adapter session이 managed run 좌표 또는 실행 모드와 다릅니다.",
     );
   }
 }
@@ -124,80 +117,22 @@ export function assertTerminalTurn(
   }
 }
 
-export function classifyRunFailure(error: unknown, phase: string): RunFailure {
-  if (error instanceof ManagedProviderRunError) {
-    return {
-      error,
-      phase,
-      retryable:
-        error.code === "provider_start_failed" ||
-        error.code === "provider_stream_failed" ||
-        error.code === "provider_stop_failed",
-    };
+export function assertManagedStopResult(input: {
+  request: AdapterStopRequest;
+  result: AdapterStopResult;
+}): void {
+  assertAdapterMessage(input.result, "Adapter stop result");
+  if (
+    input.result.adapterId !== input.request.adapterId ||
+    input.result.projectId !== input.request.projectId ||
+    input.result.runId !== input.request.runId ||
+    input.result.sessionId !== input.request.sessionId ||
+    input.result.providerSessionId !== input.request.providerSessionId ||
+    input.result.status !== input.request.reason
+  ) {
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      "Adapter stop result가 managed session 좌표와 다릅니다.",
+    );
   }
-  if (error instanceof TelemetryWriteError) {
-    return {
-      error: new ManagedProviderRunError(
-        "telemetry_recording_failed",
-        "Managed run telemetry 기록에 실패했습니다.",
-        { cause: error },
-      ),
-      phase,
-      retryable: false,
-    };
-  }
-  if (error instanceof ManagedContextError) {
-    const code =
-      error.code === "telemetry_recording_failed"
-        ? "telemetry_recording_failed"
-        : phase === "context_prepare"
-          ? "context_preparation_failed"
-          : phase === "context_inject"
-            ? "context_injection_failed"
-            : "contract_validation_failed";
-    return {
-      error: new ManagedProviderRunError(code, "Managed context 단계가 실패했습니다.", {
-        cause: error,
-      }),
-      phase,
-      retryable: false,
-    };
-  }
-  if (error instanceof ContextPreparationError) {
-    return {
-      error: new ManagedProviderRunError(
-        "context_preparation_failed",
-        "Managed context 준비에 실패했습니다.",
-        { cause: error },
-      ),
-      phase,
-      retryable: false,
-    };
-  }
-  if (error instanceof ContextDeliveryError) {
-    return {
-      error: new ManagedProviderRunError(
-        "context_injection_failed",
-        "Managed context 주입에 실패했습니다.",
-        { cause: error },
-      ),
-      phase,
-      retryable: false,
-    };
-  }
-  const code: ManagedProviderRunFailureCode =
-    phase === "adapter_start"
-      ? "provider_start_failed"
-      : phase === "turn_start" || phase === "provider_turn"
-        ? "provider_turn_failed"
-        : phase === "before_snapshot" || phase === "after_snapshot"
-          ? "repository_snapshot_failed"
-          : "contract_validation_failed";
-  return {
-    error: new ManagedProviderRunError(code, "Managed provider run이 실패했습니다.", {
-      cause: error,
-    }),
-    phase,
-    retryable: code === "provider_start_failed",
-  };
 }
