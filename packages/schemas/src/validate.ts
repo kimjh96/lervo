@@ -3,6 +3,11 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 import { adapterContractMessageSchema } from "./adapter.js";
 import { contextEvidenceSchema } from "./context-evidence.js";
 import { documentManifestSchema } from "./document-manifest.js";
+import {
+  documentMigrationCandidateArtifactSchema,
+  documentMigrationCandidateSchema,
+  documentMigrationPlanSchema,
+} from "./document-migration.js";
 import { documentRegistrySchema } from "./document-registry.js";
 import { eventEnvelopeSchema } from "./event.js";
 import { projectManifestSchema } from "./project.js";
@@ -32,6 +37,9 @@ const validators = {
   skillLock: ajv.compile(skillLockSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
   documentManifest: ajv.compile(documentManifestSchema),
+  documentMigrationCandidate: ajv.compile(documentMigrationCandidateSchema),
+  documentMigrationCandidateArtifact: ajv.compile(documentMigrationCandidateArtifactSchema),
+  documentMigrationPlan: ajv.compile(documentMigrationPlanSchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
 } satisfies Record<string, ValidateFunction>;

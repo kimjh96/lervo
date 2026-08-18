@@ -81,6 +81,8 @@ flowchart LR
 
 Dry-run 계획은 source path와 hash에 묶입니다. 승인 뒤 첫 적용도 기본적으로 `.roven/documents/<documentId>.yaml` sidecar만 만들고 원본 위치와 byte를 유지합니다. 적용 직전 source hash나 대상 layout이 바뀌면 전체 계획을 stale로 처리해 다시 탐색합니다. 본문 이동, 형식 변환, managed marker 삽입은 sidecar 도입과 다른 구조 변경 계획이며 별도 승인이 필요합니다. 따라서 CommonMark managed block parser/compiler는 이 import 계약과 legacy marker 해석 경계를 먼저 구현한 뒤에 착수합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
 
+M4 첫 `@roven/documents` 슬라이스는 scanner, adapter와 planner를 분리했습니다. Scanner는 최대 4,096개 파일·파일당 4 MiB·전체 64 MiB 안에서 stable bytes와 hash를 만들고 adapter에는 격리된 byte 복사본만 줍니다. Markdown/MDX와 schema-valid 기존 registry adapter는 adapter ID/version을 candidate에 남기며, 지원하지 않는 형식은 `roven_unknown`의 `observed` 후보로 보존합니다. Candidate JSON은 source별 artifact/hash로 분리하고 plan은 현재 source/target snapshot에만 묶입니다. Existing/unsafe sidecar, 중복 document ID/path는 conflict이고 legacy registry가 가리키는 원문을 함께 scan하지 않았으면 review 경고입니다. 이 슬라이스는 파일이나 event를 쓰지 않습니다.
+
 ### Project Storage Bootstrap
 
 `@roven/project`는 설정과 관리 경로만 정의하고 SQLite나 CAS 구현을 알지 않습니다. `@roven/project-storage`가 두 저장 구현을 조합해 실행 진입점에 제공합니다. 저장소 root를 받으면 canonical 경로를 한 번 계산하고, `project.yaml`을 검증한 뒤 그 manifest의 project id로 `.roven/state/events.sqlite`를 엽니다. CAS는 같은 경로 계약의 `.roven/state/cas`를 사용합니다. 호출자가 임의의 project id나 서로 다른 저장 root를 섞을 수 없습니다.
@@ -314,6 +316,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M3의 다음 범위는 이 계약을 `roven run` CLI와 fixture 저장소에 연결하는 수직 슬라이스입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입 탐색과 계획(`documents`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M4의 다음 범위는 승인된 migration plan의 metadata-only sidecar apply입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

@@ -3,6 +3,8 @@ import type {
   DocumentRecord,
   DocumentRegistry,
   DocumentManifest,
+  DocumentMigrationCandidate,
+  DocumentMigrationPlan,
   HandoffBundle,
   RoleProfile,
   SharedContextPublication,
@@ -40,6 +42,13 @@ describe("schema-derived TypeScript contracts", () => {
       .toEqualTypeOf<"separate_documents">();
     expectTypeOf<GeneratedManifest["contentPolicy"]["maxDocumentBytes"]>()
       .toEqualTypeOf<65536>();
+  });
+
+  it("keeps migration discovery read-only and source-hash bound", () => {
+    expectTypeOf<DocumentMigrationPlan["writesAllowed"]>().toEqualTypeOf<false>();
+    expectTypeOf<DocumentMigrationPlan["mode"]>().toEqualTypeOf<"dry_run">();
+    expectTypeOf<DocumentMigrationCandidate["source"]["contentHash"]>()
+      .toEqualTypeOf<string>();
   });
 
   it("keeps shared context provenance and handoff coordinates explicit", () => {

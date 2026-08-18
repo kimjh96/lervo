@@ -439,7 +439,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 
 ## M0 직렬화 계약
 
-현재 구현은 다음 열한 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
+현재 구현은 다음 열세 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
@@ -450,6 +450,8 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 - handoff bundle: 보내고 받는 역할, 생산 context generation, 요청 digest, shared context와 evidence 좌표
 - skill manifest: 출처·publisher·version/hash, 역할, provider/runtime/tool 호환성, capability, 입출력 schema, trust와 enabled scope
 - document manifest/legacy registry: 상대 경로, 책임자, 연결 경로, 검증 revision/date, review interval, 사용자/managed block/Roven 생성 파일 소유권과 분할 정책
+- document migration candidate/artifact: source path/hash, importer ID/version, 형식·소유권 판정, 제안 sidecar 좌표, confidence와 warning, 분리 artifact hash
+- document migration plan: read-only 상수, source/candidate/target snapshot, review/conflict 결과와 승인 전 상태
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -509,7 +511,7 @@ Discovery와 lock의 실패 코드는 `invalid_skill_request`, `invalid_skill_ma
 
 기본 적용은 승인된 plan으로 새 sidecar를 만드는 metadata-only 작업입니다. Source byte와 위치, 사용자 front matter, 기존 marker는 유지합니다. Source hash나 target layout이 dry-run 이후 바뀌거나 ID·경로 소유권이 충돌하면 plan 전체를 `stale` 또는 `conflict`로 거부하고 일부만 적용하지 않습니다. 알 수 없는 형식과 낮은 신뢰도 후보는 `observed/review_required`로 남깁니다. 본문 이동·변환·marker 삽입은 별도 structural patch이며 명시적 승인과 byte 보존 검증 없이는 실행하지 않습니다.
 
-첫 구현은 새 event type을 만들거나 migration 완료를 주장하지 않고 read-only candidate와 dry-run plan까지만 제공합니다. 이후 apply event를 추가할 때는 candidate/plan hash, 승인 원본, before/after layout hash와 실패 처분을 type별 allowlist에 고정해야 합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
+M4 첫 구현은 새 event type을 만들거나 migration 완료를 주장하지 않고 read-only candidate와 dry-run plan까지만 제공합니다. Scanner가 stable source bytes/hash를 소유하고 adapter ID/version, 형식 판정과 경고를 candidate artifact에 남깁니다. Plan은 source snapshot, candidate artifact hash와 sidecar target의 missing/file/unsafe snapshot을 결속하며 `writesAllowed=false`, `approvalStatus=not_requested`가 schema 상수입니다. 이후 apply event를 추가할 때는 candidate/plan hash, 승인 원본, before/after layout hash와 실패 처분을 type별 allowlist에 고정해야 합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
 
 Roven은 문서를 세 유형으로 다룹니다.
 

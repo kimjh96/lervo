@@ -127,7 +127,9 @@
 
 구현 현황(2026-08-19): **분할 document manifest와 누적 금지 계약 완료.** 새 init은 중앙 `documents.yaml` 대신 빈 `.roven/documents/`를 만들고 document ID별 최대 64 KiB sidecar를 결정적으로 조립합니다. 사용자·managed block·Roven 전용 문서의 쓰기 범위, 크기, separate history와 topic split을 schema로 고정했습니다. 파일명/ID, 표준 marker, 관계, 대상 경로의 단일 소유권과 심볼릭 링크를 loader가 거부합니다. 기존 단일 registry는 자동 migration 없이 byte를 보존하고 읽기 호환만 제공합니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록했습니다.
 
-남은 구현 순서: **(1) 기존 문서 read-only scanner와 provider-neutral `DocumentImportAdapter` 계약 → (2) source hash에 묶인 문서별 migration candidate와 dry-run → (3) 명시적 승인 뒤 sidecar만 만드는 metadata-only apply → (4) 같은 import 경계를 사용하는 CommonMark/legacy marker parser → (5) byte 보존 managed block patch candidate → (6) stale detector** 순으로 진행합니다. Migration이 원본 구조를 이해하기 전에 parser/compiler가 Roven 표준 형식을 강제하지 않도록 순서를 바꿨습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
+구현 현황(2026-08-19): **기존 문서 read-only discovery와 migration dry-run 첫 슬라이스 완료.** `@roven/documents`가 제한된 root에서 symbolic link, root 이탈, 변경 중인 파일과 파일/전체 byte·항목 한도를 거부하고 stable source hash를 만듭니다. Provider-neutral `DocumentImportAdapter`는 파일 시스템 port 없이 격리된 byte만 받고 adapter ID/version을 결과에 남깁니다. Markdown/MDX, schema-valid 기존 `documents.yaml`과 unknown fallback을 구현했습니다. Candidate는 source별 canonical JSON artifact/hash로 분리되고 dry-run plan은 source hash와 sidecar target snapshot에 묶이며 어떤 파일이나 event도 쓰지 않습니다. 원본 tree 불변, 결정적 순서, source 변경에 따른 plan ID 변경, existing/unsafe target, 중복 문서 제안, legacy 원문 미탐색, adapter 입력 변조와 모호한 adapter를 실제 fixture로 검증했습니다.
+
+남은 구현 순서: **(1) 명시적 승인 뒤 같은 source/candidate/target hash를 재검증하고 sidecar만 만드는 metadata-only apply → (2) CommonMark/legacy marker parser → (3) byte 보존 managed block patch candidate → (4) stale detector** 순입니다. Apply 전에는 dry-run 결과를 migration 완료나 문서 등록으로 주장하지 않습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
 
 ### M5: 검증과 지식 후보
 
@@ -254,4 +256,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 기존 문서 도입을 위한 read-only discovery와 migration 계약 첫 슬라이스**입니다. Core scanner가 안전한 byte 읽기, source hash와 탐색 한도를 소유하고 `DocumentImportAdapter`에는 byte와 상대 경로만 전달합니다. 첫 fixture는 Markdown, 기존 Roven `documents.yaml`, 알 수 없는 형식을 포함하며 source 문서별 `MigrationCandidate`와 hash-bound dry-run plan을 만들되 원본과 `.roven/documents/`를 수정하지 않아야 합니다. Adapter 계약, 결정적 순서, 심볼릭 링크/읽는 중 변경 거부, 낮은 신뢰도 `review_required`, 단일 누적 보고서 금지를 먼저 검증합니다. Metadata-only apply와 managed block parser/compiler는 이 슬라이스 뒤에 각각 별도 작업으로 진행합니다.
+다음 구현 작업은 **M4 승인된 migration plan의 metadata-only sidecar apply**입니다. Apply 입력은 dry-run plan ID, candidate artifact ID/hash와 명시적 승인 좌표를 받아야 합니다. 쓰기 직전에 모든 source hash와 sidecar target의 missing/file/unsafe snapshot을 다시 확인하고 하나라도 달라지면 전체 계획을 `stale` 또는 `conflict`로 거부해야 합니다. 성공 시에도 source 본문·위치·front matter·marker는 그대로 두고 새 `.roven/documents/<documentId>.yaml`만 임시 트리와 원자적 공개로 생성합니다. 여러 sidecar 중 하나라도 만들 수 없으면 일부 결과를 남기지 않으며, apply event schema와 개인정보 allowlist를 먼저 고정합니다.

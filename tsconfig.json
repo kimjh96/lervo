@@ -11,6 +11,7 @@
       "@roven/context": ["packages/context/src/index.ts"],
       "@roven/context-delivery": ["packages/context-delivery/src/index.ts"],
       "@roven/core": ["packages/core/src/index.ts"],
+      "@roven/documents": ["packages/documents/src/index.ts"],
       "@roven/event-contract": ["packages/event-contract/src/index.ts"],
       "@roven/event-store-sqlite": ["packages/event-store-sqlite/src/index.ts"],
       "@roven/orchestrator": ["packages/orchestrator/src/index.ts"],

@@ -115,6 +115,15 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/documents:
+    dependencies:
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
+
   packages/event-contract:
     dependencies:
       '@roven/schemas':

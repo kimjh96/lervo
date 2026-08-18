@@ -51,6 +51,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
 - `@roven/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 provider 요청에 연결하고, 실제 변경 hash·snapshot·결과 artifact를 함께 검증하는 fail-closed 상태 머신
 - `@roven/project`: 관리 경로, project 설정, 분할 document manifest/기존 registry 호환 loader와 원자적인 초기화 계획·적용
+- `@roven/documents`: 제한된 root의 안전한 read-only scan, Markdown/MDX·기존 Roven registry adapter, unknown 보존, 문서별 migration candidate artifact와 source hash 기반 dry-run plan
 - `@roven/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
@@ -60,7 +61,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/cli`: 안전한 `roven init`과 project storage·context·provider adapter를 연결하는 한 파일 `roven run` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-다음 구현은 기존 저장소 문서를 수정하지 않고 탐색해 migration 후보와 hash-bound dry-run 계획을 만드는 작업입니다. 이 계약과 형식별 import adapter를 먼저 고정한 뒤 managed block parser/compiler를 구현합니다. Codex·Claude가 역할별로 검토하고 결론에 수렴하는 숙의 실행은 verification artifact가 준비된 M5에서 별도 공급자 세션과 구조화된 제안·반론·결정 계약으로 추가합니다.
+기존 저장소 문서를 수정하지 않고 탐색해 migration 후보와 hash-bound dry-run 계획을 만드는 첫 작업은 완료했습니다. 다음에는 명시적으로 승인된 같은 계획으로 sidecar만 원자적으로 만드는 metadata-only apply를 구현하고, 그 뒤 managed block parser/compiler를 연결합니다. Codex·Claude가 역할별로 검토하고 결론에 수렴하는 숙의 실행은 verification artifact가 준비된 M5에서 별도 공급자 세션과 구조화된 제안·반론·결정 계약으로 추가합니다.
 
 ## 핵심 명제
 

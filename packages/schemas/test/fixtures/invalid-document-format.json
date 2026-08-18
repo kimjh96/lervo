@@ -78,5 +78,61 @@
         "relatedDocumentIds": []
       }
     }
+  },
+  {
+    "name": "migration dry-run cannot allow writes",
+    "schema": "documentMigrationPlan",
+    "value": {
+      "schemaVersion": 1,
+      "planId": "migp_bbbbbbbbbbbbbbbb",
+      "generatedAt": "2026-08-19T00:00:00Z",
+      "mode": "dry_run",
+      "writesAllowed": true,
+      "approvalStatus": "not_requested",
+      "outcome": "ready_for_review",
+      "sources": [],
+      "candidates": [],
+      "warnings": []
+    }
+  },
+  {
+    "name": "migration candidate source must stay in repository",
+    "schema": "documentMigrationCandidate",
+    "value": {
+      "schemaVersion": 1,
+      "candidateId": "migc_aaaaaaaaaaaaaaaa",
+      "importer": { "adapterId": "markdown", "version": "1.0.0" },
+      "source": {
+        "path": "../README.md",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "byteCount": 120,
+        "formatId": "markdown"
+      },
+      "disposition": "observed",
+      "confidence": "none",
+      "detectedOwnership": "unknown",
+      "proposal": null,
+      "warnings": ["unsupported_format"]
+    }
+  },
+  {
+    "name": "migration candidate cannot be ready without a proposal",
+    "schema": "documentMigrationCandidate",
+    "value": {
+      "schemaVersion": 1,
+      "candidateId": "migc_bbbbbbbbbbbbbbbb",
+      "importer": { "adapterId": "custom", "version": "1.0.0" },
+      "source": {
+        "path": "README.md",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "byteCount": 120,
+        "formatId": "markdown"
+      },
+      "disposition": "ready_for_approval",
+      "confidence": "high",
+      "detectedOwnership": "unknown",
+      "proposal": null,
+      "warnings": []
+    }
   }
 ]
