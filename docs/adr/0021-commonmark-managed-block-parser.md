@@ -39,5 +39,5 @@ Parser 결과는 입력에서 다시 계산할 수 있는 일시적 판정입니
 - 예제 코드 속 marker를 managed ownership의 근거로 사용하지 않습니다.
 - 한글과 CRLF가 섞인 문서에서도 소유 경계가 원본 UTF-8 bytes에 정확히 대응합니다.
 - 불완전하거나 혼합된 문서에서는 block 밖 범위도 안전하다고 주장하지 않습니다.
-- 다음 compiler는 parser가 반환한 range와 source hash를 사용해 byte 보존 patch candidate를 만들 수 있습니다.
+- Parser range와 source hash를 사용하는 review-only patch candidate는 [ADR-0022](./0022-byte-preserving-managed-block-patch-candidate.md)에 정의합니다.
 - 이전 marker를 발견할 수 있지만 명시적 migration 전에는 다시 쓰지 않습니다.

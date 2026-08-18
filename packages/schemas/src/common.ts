@@ -35,6 +35,12 @@ export const documentIdSchema = {
   pattern: "^doc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const blockIdSchema = {
+  type: "string",
+  pattern: "^[a-z][a-z0-9_-]*$",
+  maxLength: 100,
+} as const;
+
 export const eventIdSchema = {
   type: "string",
   pattern: "^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",

@@ -266,7 +266,7 @@ M4 첫 슬라이스의 `@lervo/skills`는 명시적으로 요청한 ID만 프로
 
 자동 생성 시 managed block marker와 생성 입력 hash를 사용합니다. Lervo는 블록 밖의 사용자 내용을 보존하며 다음 경우 PR/patch 후보를 만듭니다.
 
-Document manifest는 소유권을 `user`, `managed_blocks`, `lervo_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Lervo 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Loader는 marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계를 검증합니다. 별도의 읽기 전용 parser는 CommonMark tree에서 code와 HTML comment를 구분하고 UTF-8 byte 단위 block/사용자 범위를 반환합니다. 구조 오류가 하나라도 있으면 사용자 범위를 안전하다고 반환하지 않으며 아직 block을 수정하지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)과 [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)에 기록합니다.
+Document manifest는 소유권을 `user`, `managed_blocks`, `lervo_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Lervo 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Loader는 marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계를 검증합니다. 읽기 전용 parser는 CommonMark tree에서 code와 HTML comment를 구분하고 UTF-8 byte 단위 block/사용자 범위를 반환합니다. Patch candidate 생성기는 source hash와 표준 block 하나에 결속해 content range만 바꾸고 전체 구조·marker·앞뒤 bytes를 다시 검증합니다. Candidate에는 쓰기 권한이 없으며 파일 적용은 아직 구현하지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md), [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)과 [ADR-0022](./docs/adr/0022-byte-preserving-managed-block-patch-candidate.md)에 기록합니다.
 
 - 연결 경로가 검증 revision 이후 변경됨
 - review interval 초과

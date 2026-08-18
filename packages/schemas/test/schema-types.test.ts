@@ -12,6 +12,7 @@ import type {
   LegacyRegistryMigrationApplyReceipt,
   LegacyRegistryMigrationApproval,
   LegacyRegistryMigrationPlan,
+  ManagedBlockPatchCandidate,
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
@@ -55,6 +56,14 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<DocumentMigrationPlan["mode"]>().toEqualTypeOf<"dry_run">();
     expectTypeOf<DocumentMigrationCandidate["source"]["contentHash"]>()
       .toEqualTypeOf<string>();
+  });
+
+  it("keeps managed block patch candidates review-only and byte-hash bound", () => {
+    expectTypeOf<ManagedBlockPatchCandidate["writesAllowed"]>().toEqualTypeOf<false>();
+    expectTypeOf<ManagedBlockPatchCandidate["target"]["markerFamily"]>()
+      .toEqualTypeOf<"lervo_v1">();
+    expectTypeOf<ManagedBlockPatchCandidate["assurances"]["onlyTargetContentChanged"]>()
+      .toEqualTypeOf<true>();
   });
 
   it("requires reviewed sidecars and returns a hash-only apply event payload", () => {

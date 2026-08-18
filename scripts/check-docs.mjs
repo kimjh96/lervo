@@ -1,4 +1,4 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,31 +9,18 @@ const lifecycleDocuments = [
   "LERVO_EXECUTION_SPEC.md",
   "LERVO_V0_PLAN.md",
 ];
+const adrDocuments = (await readdir(resolve(repositoryRoot, "docs/adr"), {
+  withFileTypes: true,
+}))
+  .filter((entry) => entry.isFile() && /^\d{4}-.+\.md$/.test(entry.name))
+  .map((entry) => `docs/adr/${entry.name}`)
+  .sort();
 const markdownDocuments = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
   ...lifecycleDocuments,
-  "docs/adr/0001-m0-contracts-and-data-defaults.md",
-  "docs/adr/0002-safe-project-initialization.md",
-  "docs/adr/0003-local-event-store-and-cas.md",
-  "docs/adr/0004-project-storage-bootstrap.md",
-  "docs/adr/0005-shared-context-and-role-handoff.md",
-  "docs/adr/0006-deterministic-context-preparation.md",
-  "docs/adr/0007-provider-neutral-context-delivery.md",
-  "docs/adr/0008-managed-context-gate-orchestration.md",
-  "docs/adr/0009-codex-app-server-managed-adapter.md",
-  "docs/adr/0010-claude-agent-sdk-managed-adapter.md",
-  "docs/adr/0011-managed-provider-run-lifecycle.md",
-  "docs/adr/0012-provider-result-artifacts.md",
-  "docs/adr/0013-provider-neutral-managed-write-bridge.md",
-  "docs/adr/0014-managed-adapter-session-hardening.md",
-  "docs/adr/0015-lervo-run-cli-vertical-slice.md",
-  "docs/adr/0016-local-skill-resolution-and-lock.md",
-  "docs/adr/0017-sharded-document-manifests.md",
-  "docs/adr/0018-existing-document-adoption.md",
-  "docs/adr/0019-provider-neutral-deliberation.md",
-  "docs/adr/0020-lervo-product-identity.md",
+  ...adrDocuments,
 ];
 
 const failures = [];

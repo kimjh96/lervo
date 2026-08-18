@@ -462,6 +462,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - document migration apply receipt: 생성 sidecar 상대 경로, 건너뛴 candidate와 성공 event payload
 - legacy registry entry artifact: source registry hash, document ID와 축약하지 않은 기존 document record
 - legacy registry structural plan/apply: 원본 보존·비활성화 처분, archive·manifest directory·sidecar target과 참조 문서 snapshot, 항목별 승인, hash-only 완료 event와 local receipt
+- managed block patch candidate/artifact: source·기존 content·replacement·output hash, 원본/결과 byte range, review-only 처분과 byte 보존 검증 상수
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -537,7 +538,9 @@ Lervo는 문서를 세 유형으로 다룹니다.
 
 `AGENTS.md`를 공통 canonical 진입점으로 쓰고 `CLAUDE.md`에는 해당 지침을 연결하는 얇은 호환 블록을 둘 수 있습니다. 프로젝트가 반대 방향을 선택해도 manifest에 명시하면 됩니다.
 
-새 문서 metadata는 `.lervo/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Lervo가 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Lervo 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. Markdown parser는 CommonMark HTML comment만 marker로 인정하고 code 안의 예시는 제외합니다. 성공할 때만 UTF-8 byte 단위 block/사용자 범위를 반환하며 중첩·중복·불완전·혼합 marker에서는 `invalid`로 닫힙니다. 이전 제품 marker는 migration 입력으로만 읽고 새 출력에 사용하지 않습니다. MDX는 아직 구조를 확정하지 않습니다. Parser는 파일이나 event를 쓰지 않으며 실제 block 교체 증거는 후속 patch candidate가 구현되기 전까지 만들지 않습니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md), [ADR-0018](./docs/adr/0018-existing-document-adoption.md)과 [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)에 정의합니다.
+새 문서 metadata는 `.lervo/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Lervo가 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Lervo 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. Markdown parser는 CommonMark HTML comment만 marker로 인정하고 code 안의 예시는 제외합니다. 성공할 때만 UTF-8 byte 단위 block/사용자 범위를 반환하며 중첩·중복·불완전·혼합 marker에서는 `invalid`로 닫힙니다. 이전 제품 marker는 migration 입력으로만 읽고 새 출력에 사용하지 않습니다. MDX는 아직 구조를 확정하지 않습니다.
+
+Managed block patch candidate는 source path/hash/byte count, parser version, 표준 block ID와 원본 content range/hash, replacement hash/크기, 전체 output hash/크기/range를 결속합니다. 생성기는 target content range만 교체한 뒤 결과를 다시 parse하고 block topology, 모든 marker bytes, 대상 앞뒤 bytes와 replacement 일치를 확인합니다. Candidate는 `review_required`, `writesAllowed=false`이며 원문과 replacement는 JSON이나 event에 넣지 않습니다. 전체 결과 bytes는 별도 로컬 검토 payload로 반환합니다. 생성 단계는 파일·CAS·event를 쓰지 않고 승인이나 적용을 주장하지 않습니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md), [ADR-0018](./docs/adr/0018-existing-document-adoption.md), [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)과 [ADR-0022](./docs/adr/0022-byte-preserving-managed-block-patch-candidate.md)에 정의합니다.
 
 노후화 판정 신호:
 
@@ -588,3 +591,7 @@ Lervo는 문서를 세 유형으로 다룹니다.
 | `plan_stale` / `migration_conflict` | Dry-run 이후 source·target·manifest layout이 달라졌거나 기존 registry, ID, path, 관계가 충돌합니다. 부분 적용하지 않고 새 계획 또는 structural migration을 요구합니다. |
 | `migration_apply_failed` | Event 기록 전에 승인 sidecar 전체를 공개·검증하지 못했습니다. 이번 작업이 만든 파일을 되돌리고 새 apply에서 재검증합니다. |
 | `migration_finalization_failed` / `rollback_failed` | 성공 event 뒤 transaction marker를 제거하지 못했거나 실패한 apply의 생성 파일을 안전하게 되돌리지 못했습니다. 완료로 표시하지 않으며 marker와 현재 layout을 운영자가 확인해야 합니다. |
+| `invalid_patch_request` / `source_changed` | Managed block patch의 source 좌표가 잘못됐거나 요청에 결속된 bytes/hash가 달라졌습니다. 후보를 만들지 않고 새 source snapshot을 요구합니다. |
+| `source_structure_invalid` / `block_not_found` / `legacy_marker_not_writable` | 안전한 표준 managed block 하나를 확정할 수 없습니다. 원본과 이전 marker를 유지하며 파일을 쓰지 않습니다. |
+| `replacement_invalid_utf8` / `replacement_too_large` / `no_changes` | Replacement가 입력 계약을 어겼거나 실제 변경이 아닙니다. Candidate artifact와 output을 만들지 않습니다. |
+| `output_structure_invalid` / `candidate_contract_invalid` | 결과 Markdown의 구조·보존 조건 또는 candidate schema를 증명하지 못했습니다. 검토나 적용 가능한 결과로 공개하지 않습니다. |

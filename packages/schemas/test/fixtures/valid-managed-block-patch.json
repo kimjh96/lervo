@@ -1,0 +1,88 @@
+[
+  {
+    "name": "read-only managed block patch candidate",
+    "schema": "managedBlockPatchCandidate",
+    "value": {
+      "schemaVersion": 1,
+      "candidateId": "mbpc_aaaaaaaaaaaaaaaa",
+      "disposition": "review_required",
+      "writesAllowed": false,
+      "source": {
+        "path": "README.md",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "byteCount": 200
+      },
+      "parser": {
+        "parserId": "lervo/commonmark-managed-blocks",
+        "parserVersion": "1.0.0"
+      },
+      "target": {
+        "blockId": "summary",
+        "markerFamily": "lervo_v1",
+        "fullRange": { "start": 20, "end": 150 },
+        "contentRange": { "start": 70, "end": 110 },
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "replacement": {
+        "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "byteCount": 30
+      },
+      "output": {
+        "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "byteCount": 190,
+        "contentRange": { "start": 70, "end": 100 }
+      },
+      "assurances": {
+        "onlyTargetContentChanged": true,
+        "markerBytesUnchanged": true,
+        "outputStructureValid": true
+      }
+    }
+  },
+  {
+    "name": "managed block patch candidate artifact",
+    "schema": "managedBlockPatchCandidateArtifact",
+    "value": {
+      "schemaVersion": 1,
+      "artifactId": "art_patchcandidate1",
+      "contentHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "byteCount": 900,
+      "candidate": {
+        "schemaVersion": 1,
+        "candidateId": "mbpc_aaaaaaaaaaaaaaaa",
+        "disposition": "review_required",
+        "writesAllowed": false,
+        "source": {
+          "path": "README.md",
+          "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "byteCount": 200
+        },
+        "parser": {
+          "parserId": "lervo/commonmark-managed-blocks",
+          "parserVersion": "1.0.0"
+        },
+        "target": {
+          "blockId": "summary",
+          "markerFamily": "lervo_v1",
+          "fullRange": { "start": 20, "end": 150 },
+          "contentRange": { "start": 70, "end": 110 },
+          "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "replacement": {
+          "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "byteCount": 30
+        },
+        "output": {
+          "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "byteCount": 190,
+          "contentRange": { "start": 70, "end": 100 }
+        },
+        "assurances": {
+          "onlyTargetContentChanged": true,
+          "markerBytesUnchanged": true,
+          "outputStructureValid": true
+        }
+      }
+    }
+  }
+]

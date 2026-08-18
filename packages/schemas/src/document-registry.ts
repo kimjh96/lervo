@@ -1,6 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import {
+  blockIdSchema,
   documentIdSchema,
   repositoryRelativePathSchema,
   schemaVersionSchema,
@@ -37,11 +38,7 @@ const managedBlocksOwnershipSchema = {
       items: {
         type: "object",
         properties: {
-          blockId: {
-            type: "string",
-            pattern: "^[a-z][a-z0-9_-]*$",
-            maxLength: 100,
-          },
+          blockId: blockIdSchema,
           startMarker: { type: "string", minLength: 1, maxLength: 300 },
           endMarker: { type: "string", minLength: 1, maxLength: 300 },
           inputs: {

@@ -3,6 +3,7 @@ import type {
   DocumentMigrationPlan,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationPlan,
+  ManagedBlockPatchCandidate,
 } from "@lervo/schemas";
 
 import { canonicalJsonBytes, sha256 } from "./hash.js";
@@ -11,6 +12,21 @@ export function migrationCandidateBytes(
   candidate: DocumentMigrationCandidate,
 ): Uint8Array {
   return canonicalJsonBytes(candidate);
+}
+
+export function managedBlockPatchCandidateBytes(
+  candidate: ManagedBlockPatchCandidate,
+): Uint8Array {
+  return canonicalJsonBytes(candidate);
+}
+
+export function calculateManagedBlockPatchCandidateId(
+  candidate: Omit<ManagedBlockPatchCandidate, "candidateId"> | ManagedBlockPatchCandidate,
+): string {
+  const value = candidate as Partial<ManagedBlockPatchCandidate> & Record<string, unknown>;
+  const { candidateId: _candidateId, ...content } = value;
+  const digest = sha256(canonicalJsonBytes(content));
+  return `mbpc_${digest.slice("sha256:".length, "sha256:".length + 16)}`;
 }
 
 export function calculateMigrationPlanId(

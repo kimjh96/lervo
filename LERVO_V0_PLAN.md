@@ -141,7 +141,9 @@
 
 구현 현황(2026-08-19): **CommonMark/legacy marker parser 완료.** 최대 4 MiB의 검증된 bytes를 읽기만 하고 code block·inline code와 HTML comment를 구조적으로 구분합니다. 표준·이전 marker family, 중첩·중복·불완전·혼합 상태와 8 KiB 한도를 판정하며 정상 문서에만 managed block과 그 밖의 UTF-8 byte range를 반환합니다. Markdown import adapter는 이 결과로 소유권 confidence와 migration warning을 만들고, MDX는 구조 미검증 상태를 유지합니다. 한글·CRLF byte 경계, code 예시 오탐, 오류 상태와 입력 불변을 실제 fixture로 검증했습니다. 결정은 [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)에 기록했습니다.
 
-남은 구현 순서: **(1) byte 보존 managed block patch candidate → (2) stale detector** 순입니다.
+구현 현황(2026-08-19): **Byte 보존 managed block patch candidate 완료.** Source hash와 표준 block 하나에 결속해 content range만 교체하고, 결과 전체의 CommonMark 구조·block topology·marker bytes·대상 앞뒤 bytes를 다시 검증합니다. Candidate JSON은 원본/replacement/output hash와 byte 좌표, 실제로 확인한 보존 상수만 가지며 전체 output bytes는 별도 검토 payload로 반환합니다. Candidate는 쓰기 권한이 없고 이전 marker, stale source, 8 KiB 초과, marker 주입, 구조 오류와 no-op을 닫힌 상태로 거부합니다. 결정성과 한글·CRLF 사용자 영역 보존을 실제 fixture로 검증했습니다. 결정은 [ADR-0022](./docs/adr/0022-byte-preserving-managed-block-patch-candidate.md)에 기록했습니다.
+
+남은 구현 순서: **stale detector**입니다.
 
 ### M5: 검증과 지식 후보
 
@@ -268,4 +270,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 byte 보존 managed block patch candidate**입니다. Parser가 반환한 정상 block range와 source hash를 입력으로 받아 표준 Lervo marker 안의 content만 교체한 후보 bytes를 만들어야 합니다. 원본의 block 밖 bytes가 완전히 같고 이전 marker는 쓰지 않으며, source hash 변경·8 KiB 초과·구조 오류에서는 후보를 만들지 않습니다. 이 단계도 원본 파일을 직접 수정하지 않고 검토 가능한 patch artifact와 검증 결과까지만 생성합니다.
+다음 구현 작업은 **M4 document stale detector**입니다. Document manifest의 `verifiedRevision`, `verifiedAt`, `reviewIntervalDays`, `connectedPaths`와 managed input hash를 현재 저장소 snapshot에 대조해 노후화 사유를 문서별로 계산해야 합니다. 확인하지 못한 신호는 stale이 아니라고 넘기지 않고 `unknown`으로 분리하며, 판정은 원본 문서나 manifest를 수정하지 않는 재생성 가능한 결과여야 합니다.

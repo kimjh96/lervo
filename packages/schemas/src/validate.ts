@@ -24,6 +24,10 @@ import {
   legacyRegistryMigrationApplyReceiptSchema,
   legacyRegistryMigrationApprovalSchema,
 } from "./legacy-registry-migration-apply.js";
+import {
+  managedBlockPatchCandidateArtifactSchema,
+  managedBlockPatchCandidateSchema,
+} from "./managed-block-patch.js";
 import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -69,6 +73,8 @@ const validators = {
   documentMigrationCandidate: ajv.compile(documentMigrationCandidateSchema),
   documentMigrationCandidateArtifact: ajv.compile(documentMigrationCandidateArtifactSchema),
   documentMigrationPlan: ajv.compile(documentMigrationPlanSchema),
+  managedBlockPatchCandidate: ajv.compile(managedBlockPatchCandidateSchema),
+  managedBlockPatchCandidateArtifact: ajv.compile(managedBlockPatchCandidateArtifactSchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
 } satisfies Record<string, ValidateFunction>;
