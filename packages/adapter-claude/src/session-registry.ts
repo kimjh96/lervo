@@ -10,6 +10,10 @@ import {
 export class ClaudeSessionRegistry {
   private readonly sessions = new Map<string, ClaudeSessionState>();
 
+  has(providerSessionId: string): boolean {
+    return this.sessions.has(providerSessionId);
+  }
+
   add(session: AdapterSession, client: ClaudeAgentClient): void {
     if (this.sessions.has(session.providerSessionId)) {
       throw new ClaudeAdapterError("provider_protocol_failed", "Claude session ID가 중복되었습니다.");
@@ -20,9 +24,7 @@ export class ClaudeSessionRegistry {
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
-      approvedWrites: new Map(),
       eventStreamClaimed: false,
-      stopped: false,
     });
   }
 
@@ -35,9 +37,18 @@ export class ClaudeSessionRegistry {
     if (!sameSession(state.session, session)) {
       throw new ClaudeAdapterError("session_mismatch", "Claude session 좌표가 시작 시점과 다릅니다.");
     }
-    if (state.stopped) {
-      throw new ClaudeAdapterError("session_stopped", "이미 종료된 Claude session입니다.");
-    }
     return state;
+  }
+
+  release(session: AdapterSession): void {
+    const state = this.get(session);
+    state.injectedTargetTurnIds.clear();
+    state.startedTargetTurnIds.clear();
+    state.turnResults.clear();
+    state.managedWrites?.clear();
+    delete state.managedWrites;
+    delete state.activeTurn;
+    delete state.activeProviderTurnId;
+    this.sessions.delete(session.providerSessionId);
   }
 }

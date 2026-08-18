@@ -230,19 +230,15 @@ class AcceptanceClaudeClient implements ClaudeAgentClient {
         file_path: resolve(this.managedRoot, "src/result.ts"),
         content: "export const managed = true;\n",
       };
-      setTimeout(() => {
-        void (async () => {
-          const allowed = await this.toolUseHandler?.authorize(
-            "Write",
-            input,
-            "claude-managed-write",
-          );
-          if (allowed !== true) throw new Error("managed write denied");
-          await writeFile(input.file_path, input.content);
-          await this.toolUseHandler?.complete("Write", input, "claude-managed-write", "completed");
-          emitResult();
-        })();
-      }, 0);
+      const allowed = await this.toolUseHandler?.authorize(
+        "Write",
+        input,
+        "claude-managed-write",
+      );
+      if (allowed !== true) throw new Error("managed write denied");
+      await writeFile(input.file_path, input.content);
+      await this.toolUseHandler?.complete("Write", input, "claude-managed-write", "completed");
+      emitResult();
       return;
     }
     emitResult();

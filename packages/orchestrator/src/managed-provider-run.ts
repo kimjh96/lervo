@@ -7,6 +7,7 @@ import {
 } from "@roven/schemas";
 
 import { ManagedContextRun } from "./managed-context-run.js";
+import { createManagedWritePlan } from "./managed-write-plan.js";
 import {
   adapterStartedSpec,
   providerSignalSpec,
@@ -17,6 +18,7 @@ import {
 import {
   assertAdapterMessage,
   assertManagedSession,
+  assertManagedTurn,
   assertTerminalTurn,
   createAdapterStartRequest,
   validateManagedProviderRunInput,
@@ -173,6 +175,7 @@ export class ManagedProviderRunCoordinator {
         request: startRequest,
         session: state.session,
         provider: this.options.adapter.descriptor.provider,
+        descriptorCapabilities: this.options.adapter.descriptor.capabilities,
       });
       this.append([adapterStartedSpec(this.options.adapter.descriptor, state.session)]);
       monitor = startProviderSignalMonitor({
@@ -214,10 +217,15 @@ export class ManagedProviderRunCoordinator {
       monitor.throwIfFailed();
 
       phase = "write_bridge";
+      const writePlan = createManagedWritePlan({
+        executionMode: state.session.executionMode,
+        expectedPaths: input.context.expectedPaths,
+      });
       state.writeBridge = new ManagedProviderWriteBridge({
         session: state.session,
         currentTurn: () => state.turn,
         context: this.context,
+        plan: writePlan,
         repositoryRoot: input.repositoryRoot,
         risk: input.risk,
         publications: input.context.publications,
@@ -241,8 +249,42 @@ export class ManagedProviderRunCoordinator {
         instructions: input.instructions,
         requestedAt: this.time(),
       };
-      state.turn = await this.options.adapter.startTurn(state.session, turnRequest);
-      assertAdapterMessage(state.turn, "Adapter turn");
+      let acceptedTurn: AdapterTurn | undefined;
+      const returnedTurn = await this.options.adapter.startTurn(
+        state.session,
+        turnRequest,
+        (turn) => {
+          if (acceptedTurn !== undefined) {
+            throw new ManagedProviderRunError(
+              "contract_validation_failed",
+              "Adapter가 같은 turn을 두 번 수락했습니다.",
+            );
+          }
+          assertManagedTurn({ request: turnRequest, session: state.session!, turn });
+          acceptedTurn = copy(turn);
+          state.turn = copy(turn);
+        },
+      );
+      if (acceptedTurn === undefined) {
+        throw new ManagedProviderRunError(
+          "contract_validation_failed",
+          "Adapter가 provider 실행 전에 turn 수락을 알리지 않았습니다.",
+        );
+      }
+      assertManagedTurn({ request: turnRequest, session: state.session, turn: returnedTurn });
+      if (JSON.stringify(returnedTurn) !== JSON.stringify(acceptedTurn)) {
+        throw new ManagedProviderRunError(
+          "contract_validation_failed",
+          "Adapter가 알린 turn과 반환한 turn이 다릅니다.",
+        );
+      }
+      const managedTurn = state.turn;
+      if (managedTurn === undefined) {
+        throw new ManagedProviderRunError(
+          "contract_validation_failed",
+          "수락된 adapter turn이 실행 상태에 없습니다.",
+        );
+      }
       monitor.throwIfFailed();
 
       phase = "provider_turn";
@@ -257,19 +299,19 @@ export class ManagedProviderRunCoordinator {
       } finally {
         cancelled.dispose();
       }
-      assertTerminalTurn(state.turn, terminal);
+      assertTerminalTurn(managedTurn, terminal);
       if (terminal.type === "provider.turn.failed") {
         throw new ManagedProviderRunError(
           "provider_turn_failed",
           "Provider turn이 실패했습니다.",
         );
       }
-      state.writeBridge.assertSettled(state.session.executionMode === "managed_write");
+      state.writeBridge.assertSettled();
       phase = "result_collect";
       state.turnResult = await collectProviderResult({
         adapter: this.options.adapter,
         session: state.session,
-        turn: state.turn,
+        turn: managedTurn,
       });
     } catch (error) {
       failures.add(error, phase);

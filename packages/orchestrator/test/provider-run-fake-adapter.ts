@@ -54,6 +54,9 @@ export class FakeManagedAdapter implements ProviderAdapter {
         targetDigest: string;
         changeKind: "created" | "modified" | "deleted" | "upsert";
         apply(): Promise<void>;
+        skipCompletion?: boolean;
+        duplicateAuthorization?: boolean;
+        duplicateCompletion?: boolean;
       };
     } = {},
   ) {
@@ -92,9 +95,14 @@ export class FakeManagedAdapter implements ProviderAdapter {
       provider: this.descriptor.provider,
       providerSessionId: `${this.descriptor.provider}-session-1`,
       executionMode: request.executionMode,
+      effectiveCapabilities: {
+        ...this.descriptor.capabilities,
+        fileChanges:
+          request.executionMode === "managed_write" ? "supported" : "unsupported",
+      },
       startedAt: request.requestedAt,
     };
-    return structuredClone(this.session);
+    return structuredClone(this.session!);
   }
 
   async injectContext(
@@ -137,12 +145,13 @@ export class FakeManagedAdapter implements ProviderAdapter {
     this.writeBridge = bridge;
   }
 
-  async startTurn(_session: AdapterSession, request: AdapterTurnRequest) {
+  async startTurn(
+    _session: AdapterSession,
+    request: AdapterTurnRequest,
+    accepted: (turn: import("@roven/schemas").AdapterTurn) => void,
+  ) {
     this.calls.push("startTurn");
     this.turnId = `${this.descriptor.provider}-turn-1`;
-    await this.options.mutate?.();
-    this.acceptTurn();
-    this.releaseTurn();
     this.turn = {
       kind: "turn" as const,
       schemaVersion: 1 as const,
@@ -155,6 +164,10 @@ export class FakeManagedAdapter implements ProviderAdapter {
       providerTurnId: this.turnId,
       acceptedAt: request.requestedAt,
     };
+    accepted(structuredClone(this.turn));
+    await this.options.mutate?.();
+    this.acceptTurn();
+    this.releaseTurn();
     return structuredClone(this.turn);
   }
 
@@ -201,15 +214,22 @@ export class FakeManagedAdapter implements ProviderAdapter {
         requestedAt: "2026-08-18T01:09:00Z",
       });
       const decision = await this.writeBridge.authorize(request);
+      if (this.options.managedWrite.duplicateAuthorization === true) {
+        await this.writeBridge.authorize(request);
+      }
       if (decision.decision === "allow") {
         await this.options.managedWrite.apply();
-        await this.writeBridge.complete(
-          createManagedWriteCompletion({
+        if (this.options.managedWrite.skipCompletion !== true) {
+          const completion = createManagedWriteCompletion({
             request,
             status: "completed",
             completedAt: "2026-08-18T01:10:00Z",
-          }),
-        );
+          });
+          await this.writeBridge.complete(completion);
+          if (this.options.managedWrite.duplicateCompletion === true) {
+            await this.writeBridge.complete(completion);
+          }
+        }
       }
     }
     if (this.options.compact === true) {

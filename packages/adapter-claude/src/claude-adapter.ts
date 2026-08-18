@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import {
   createAdapterTurnResult,
-  inspectManagedWriteDecisionBinding,
+  type AdapterTurnAccepted,
   type ProviderAdapter,
   type ProviderManagedWriteBridge,
 } from "@roven/adapter-contract";
@@ -33,8 +33,7 @@ import {
 import { buildManagedContextMessage } from "./context-message.js";
 import { ClaudeEventNormalizer } from "./normalize.js";
 import {
-  createClaudeManagedWriteCompletion,
-  createClaudeManagedWriteRequest,
+  ClaudeManagedWriteController,
 } from "./managed-write.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
@@ -127,6 +126,12 @@ export class ClaudeAdapter implements ProviderAdapter {
         provider: this.descriptor.provider,
         providerSessionId,
         executionMode: request.executionMode,
+        effectiveCapabilities: {
+          ...this.descriptor.capabilities,
+          commandExecution: "unsupported",
+          fileChanges:
+            request.executionMode === "managed_write" ? "supported" : "unsupported",
+        },
         startedAt: timestamp(this.now, "Claude session 시작 시각", request.requestedAt),
       };
       assertAdapterMessage(session, "Claude session");
@@ -188,55 +193,24 @@ export class ClaudeAdapter implements ProviderAdapter {
     bridge: ProviderManagedWriteBridge,
   ): Promise<void> {
     const state = this.sessions.get(session);
-    if (state.managedWriteBridge !== undefined) {
+    if (state.managedWrites !== undefined) {
       throw new ClaudeAdapterError("invalid_request", "Managed write bridge가 이미 연결되었습니다.");
     }
-    state.managedWriteBridge = bridge;
-    state.client.attachToolUseHandler({
-      authorize: async (toolName, toolInput, toolUseId) => {
-        if (state.activeTurn === undefined) {
-          throw new ClaudeAdapterError("provider_protocol_failed", "Turn 밖에서 write 도구를 요청했습니다.");
-        }
-        const request = createClaudeManagedWriteRequest({
-          session: state.session,
-          turn: state.activeTurn,
-          repositoryRoot: this.repositoryRoot,
-          toolName,
-          toolInput,
-          toolUseId,
-          requestedAt: this.now().toISOString(),
-        });
-        assertAdapterMessage(request, "Claude managed write request");
-        const decision = await bridge.authorize(request);
-        assertAdapterMessage(decision, "Claude managed write decision");
-        if (!inspectManagedWriteDecisionBinding({ request, decision }).passed) {
-          throw new ClaudeAdapterError(
-            "provider_protocol_failed",
-            "Managed write 결정이 Claude 요청과 다릅니다.",
-          );
-        }
-        if (decision.decision === "allow") {
-          state.approvedWrites.set(toolUseId, clone(request));
-          return true;
-        }
-        return false;
-      },
-      complete: async (_toolName, _toolInput, toolUseId, status) => {
-        const request = state.approvedWrites.get(toolUseId);
-        if (request === undefined) return;
-        await bridge.complete(
-          createClaudeManagedWriteCompletion({
-            request,
-            status,
-            completedAt: this.now().toISOString(),
-          }),
-        );
-        state.approvedWrites.delete(toolUseId);
-      },
+    state.managedWrites = new ClaudeManagedWriteController({
+      session: state.session,
+      activeTurn: () => state.activeTurn,
+      repositoryRoot: this.repositoryRoot,
+      bridge,
+      now: this.now,
     });
+    state.client.attachToolUseHandler(state.managedWrites);
   }
 
-  async startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn> {
+  async startTurn(
+    session: AdapterSession,
+    request: AdapterTurnRequest,
+    accepted: AdapterTurnAccepted,
+  ): Promise<AdapterTurn> {
     const state = this.sessions.get(session);
     assertAdapterMessage(request, "Claude turn request");
     if (
@@ -270,6 +244,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     };
     assertAdapterMessage(turn, "Claude turn");
     state.activeTurn = clone(turn);
+    accepted(clone(turn));
     try {
       await state.client.startTurn(providerTurnId, request.instructions);
     } catch (error) {
@@ -374,6 +349,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     ) {
       throw new ClaudeAdapterError("session_mismatch", "Stop request가 managed Claude session과 다릅니다.");
     }
+    let stopFailure: ClaudeAdapterError | undefined;
     try {
       if (request.reason === "cancelled" && state.activeProviderTurnId !== undefined) {
         await state.client.interrupt();
@@ -381,10 +357,14 @@ export class ClaudeAdapter implements ProviderAdapter {
       await state.client.close();
     } catch {
       await state.client.close().catch(() => undefined);
-      throw new ClaudeAdapterError("provider_process_failed", "Claude session을 안전하게 종료하지 못했습니다.");
+      stopFailure = new ClaudeAdapterError(
+        "provider_process_failed",
+        "Claude session을 안전하게 종료하지 못했습니다.",
+      );
+    } finally {
+      this.sessions.release(session);
     }
-    state.stopped = true;
-    delete state.activeProviderTurnId;
+    if (stopFailure !== undefined) throw stopFailure;
     const result: AdapterStopResult = {
       kind: "stop_result",
       schemaVersion: 1,

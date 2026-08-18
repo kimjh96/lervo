@@ -5,6 +5,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { AsyncQueue } from "./async-queue.js";
+import { createClaudeManagedWriteHooks } from "./sdk-managed-write-hooks.js";
 import { ClaudeInputStream, ClaudeReplayTracker } from "./sdk-stream.js";
 import {
   ClaudeAdapterError,
@@ -60,92 +61,15 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           disallowedTools: ["Agent", "Task"],
           tools: options.tools ?? { type: "preset", preset: "claude_code" },
           includePartialMessages: false,
-          hooks: {
-            PreToolUse: [
-              {
-                hooks: [
-                  async (input) => {
-                    if (
-                      input.hook_event_name !== "PreToolUse" ||
-                      (input.tool_name !== "Write" && input.tool_name !== "Edit")
-                    ) {
-                      return { continue: true };
-                    }
-                    let allowed = false;
-                    try {
-                      allowed =
-                        connected !== undefined &&
-                        connected.toolUseHandler !== undefined &&
-                        (await connected.toolUseHandler.authorize(
-                          input.tool_name,
-                          input.tool_input,
-                          input.tool_use_id,
-                        ));
-                    } catch (error) {
-                      connected?.failManagedWrite(error);
-                    }
-                    return {
-                      hookSpecificOutput: {
-                        hookEventName: "PreToolUse" as const,
-                        permissionDecision: allowed ? "allow" as const : "deny" as const,
-                        permissionDecisionReason: allowed
-                          ? "Roven managed write permit가 발급되었습니다."
-                          : "Roven managed write permit가 없습니다.",
-                      },
-                    };
-                  },
-                ],
-              },
-            ],
-            PostToolUse: [
-              {
-                hooks: [
-                  async (input) => {
-                    if (
-                      input.hook_event_name === "PostToolUse" &&
-                      (input.tool_name === "Write" || input.tool_name === "Edit")
-                    ) {
-                      try {
-                        await connected?.toolUseHandler?.complete(
-                          input.tool_name,
-                          input.tool_input,
-                          input.tool_use_id,
-                          "completed",
-                        );
-                      } catch (error) {
-                        connected?.failManagedWrite(error);
-                      }
-                    }
-                    return { continue: true };
-                  },
-                ],
-              },
-            ],
-            PostToolUseFailure: [
-              {
-                hooks: [
-                  async (input) => {
-                    if (
-                      input.hook_event_name === "PostToolUseFailure" &&
-                      (input.tool_name === "Write" || input.tool_name === "Edit")
-                    ) {
-                      try {
-                        await connected?.toolUseHandler?.complete(
-                          input.tool_name,
-                          input.tool_input,
-                          input.tool_use_id,
-                          "failed",
-                        );
-                      } catch (error) {
-                        connected?.failManagedWrite(error);
-                      }
-                    }
-                    return { continue: true };
-                  },
-                ],
-              },
-            ],
-          },
+          hooks: createClaudeManagedWriteHooks({
+            handler: () => connected?.toolUseHandler,
+            fail: (error) => {
+              if (connected === undefined) {
+                throw error;
+              }
+              return connected.failManagedWrite(error);
+            },
+          }),
           canUseTool: async () => ({
             behavior: "deny" as const,
             message: "Roven approval bridge가 연결되지 않아 이 권한 요청을 거부했습니다.",

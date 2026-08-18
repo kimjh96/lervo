@@ -1,6 +1,8 @@
 import {
   createManagedWriteCompletion,
   createManagedWriteRequest,
+  inspectManagedWriteDecisionBinding,
+  type ProviderManagedWriteBridge,
 } from "@roven/adapter-contract";
 import type {
   AdapterManagedWriteCompletion,
@@ -10,7 +12,11 @@ import type {
 } from "@roven/schemas";
 
 import { asRecord, digest, repositoryPath, text } from "./normalization-utils.js";
-import { ClaudeAdapterError } from "./types.js";
+import { assertAdapterMessage, clone } from "./adapter-validation.js";
+import {
+  ClaudeAdapterError,
+  type ClaudeManagedWriteHandler,
+} from "./types.js";
 
 export function createClaudeManagedWriteRequest(input: {
   session: AdapterSession;
@@ -56,4 +62,68 @@ export function createClaudeManagedWriteCompletion(input: {
     status: input.status,
     completedAt: input.completedAt,
   });
+}
+
+export class ClaudeManagedWriteController implements ClaudeManagedWriteHandler {
+  private readonly approved = new Map<string, AdapterManagedWriteRequest>();
+
+  constructor(
+    private readonly options: {
+      session: AdapterSession;
+      activeTurn: () => AdapterTurn | undefined;
+      repositoryRoot: string;
+      bridge: ProviderManagedWriteBridge;
+      now: () => Date;
+    },
+  ) {}
+
+  async authorize(toolName: string, toolInput: unknown, toolUseId: string): Promise<boolean> {
+    const turn = this.options.activeTurn();
+    if (turn === undefined) {
+      throw new ClaudeAdapterError("provider_protocol_failed", "Turn 밖에서 write 도구를 요청했습니다.");
+    }
+    const request = createClaudeManagedWriteRequest({
+      session: this.options.session,
+      turn,
+      repositoryRoot: this.options.repositoryRoot,
+      toolName,
+      toolInput,
+      toolUseId,
+      requestedAt: this.options.now().toISOString(),
+    });
+    assertAdapterMessage(request, "Claude managed write request");
+    const decision = await this.options.bridge.authorize(request);
+    assertAdapterMessage(decision, "Claude managed write decision");
+    if (!inspectManagedWriteDecisionBinding({ request, decision }).passed) {
+      throw new ClaudeAdapterError(
+        "provider_protocol_failed",
+        "Managed write 결정이 Claude 요청과 다릅니다.",
+      );
+    }
+    if (decision.decision !== "allow") return false;
+    this.approved.set(toolUseId, clone(request));
+    return true;
+  }
+
+  async complete(
+    _toolName: string,
+    _toolInput: unknown,
+    toolUseId: string,
+    status: "completed" | "failed",
+  ): Promise<void> {
+    const request = this.approved.get(toolUseId);
+    if (request === undefined) return;
+    await this.options.bridge.complete(
+      createClaudeManagedWriteCompletion({
+        request,
+        status,
+        completedAt: this.options.now().toISOString(),
+      }),
+    );
+    this.approved.delete(toolUseId);
+  }
+
+  clear(): void {
+    this.approved.clear();
+  }
 }

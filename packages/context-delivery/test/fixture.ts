@@ -149,6 +149,15 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
     provider: "fixture",
     providerSessionId: "provider-session-1",
     executionMode: "read_only",
+    effectiveCapabilities: {
+      controlledContextInjection: "supported",
+      toolCalls: "supported",
+      commandExecution: "unsupported",
+      fileChanges: "unsupported",
+      contextCompaction: "unknown",
+      sessionResume: "unsupported",
+      usage: "unknown",
+    },
     startedAt: "2026-08-18T01:00:00Z",
   };
   const policyDocument = loaded.documents.find(

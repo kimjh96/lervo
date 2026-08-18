@@ -37,6 +37,7 @@ export class ManagedProviderRunError extends Error {
     phase: ManagedProviderRunPhase;
     retryable: boolean;
   }>;
+  readonly originPhase: ManagedProviderRunPhase | undefined;
 
   constructor(
     readonly code: ManagedProviderRunFailureCode,
@@ -48,6 +49,7 @@ export class ManagedProviderRunError extends Error {
         phase: ManagedProviderRunPhase;
         retryable: boolean;
       }>;
+      originPhase?: ManagedProviderRunPhase;
     },
   ) {
     super(message, options);
@@ -56,6 +58,7 @@ export class ManagedProviderRunError extends Error {
     this.relatedFailures = options?.relatedFailures === undefined
       ? []
       : structuredClone(options.relatedFailures);
+    this.originPhase = options?.originPhase;
   }
 }
 

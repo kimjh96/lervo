@@ -89,6 +89,8 @@ M2의 `@roven/orchestrator` 첫 슬라이스는 context 준비와 delivery를 �
 
 M3의 managed provider coordinator는 실행 전 snapshot, adapter 시작, context 준비·주입, target turn, 중단 가능한 signal stream, adapter 종료와 실행 후 snapshot을 한 수명주기로 묶습니다. Coordinator는 순서만 소유하고 context 상태 머신, provider signal monitor, adapter 계약, 단계별 deadline, 실패 원장, 종료 처리와 repository snapshot을 별도 모듈에 맡깁니다. Codex/Claude 구현을 직접 알지 않고 공통 adapter 포트만 사용합니다. Compaction/restart는 terminal 결과와 별도로 generation을 즉시 무효화하며, terminal 전에 stream이 끝나거나 필수 telemetry가 기록되지 않으면 정상 완료를 만들지 않습니다. 여러 실패가 겹치면 마지막 오류로 덮지 않고 안전한 code·phase를 모두 보존합니다.
 
+Turn 시작은 adapter의 동기 수락 callback과 최종 반환값을 두 단계로 확인합니다. Callback에서 schema와 session·target turn 좌표를 검증한 뒤에만 provider tool 요청이 참조할 현재 turn을 공개합니다. 쓰기 범위는 별도 `ManagedWritePlan`이 실행 모드, 허용 경로, 최소·최대 검증 변경 수와 변경 뒤 context 처분으로 표현합니다. 현재 계획은 읽기 전용 `0..0`, managed write `1..1`이고, bridge는 provider 종류를 모른 채 이 계획을 집행합니다.
+
 Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다. 공통 managed write bridge가 공급자의 파일 변경 요청을 M2의 경로별 1회용 permit에 연결하고, 완료 뒤 실제 파일 hash를 다시 읽어 `file.changed`와 context 무효화를 기록합니다. 첫 쓰기 슬라이스는 준비 때 선언한 예상 경로 중 정확히 한 파일만 허용합니다. 검증된 변경과 실행 전후 hash가 모두 맞는 경로만 managed로 빼며, 나머지는 `unmanaged_change.detected`와 run 실패로 남깁니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.roven/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다.
 
 최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `roven run` CLI는 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결하는 다음 수직 슬라이스입니다.
@@ -148,6 +150,8 @@ Codex와 Claude의 실행 차이를 공통 계약으로 변환합니다.
 - capability 요청을 정책 엔진으로 전달
 - 중단, 재개, 결과 및 사용량 정규화
 
+Descriptor capability는 adapter 구현의 최대 범위이고, session의 `effectiveCapabilities`는 현재 sandbox·permission·tool 구성에서 실제 열린 범위입니다. Session은 descriptor보다 기능을 넓힐 수 없으며 `adapter.started`에는 session 값을 기록합니다. 종료할 때는 provider close의 성공 여부와 관계없이 주입·turn·승인·결과 원문 상태를 registry에서 제거합니다. 같은 session을 다시 사용하면 `session_not_found`이고 close 실패는 별도 종료 실패로 남습니다.
+
 정규화 이벤트는 완료되는 배열이 아니라 중단 신호를 받는 스트림입니다. 계약 검사는 필요한 이벤트 수만 제한 시간 안에 확인한 뒤 스트림을 중단하므로, 실제 공급자의 장기 세션 종료를 기다리지 않습니다.
 
 공급자 자체 CLI를 Roven 밖에서 직접 실행하면 강한 보장을 제공할 수 없습니다. Git/파일 시스템 변화로 이를 감지할 수는 있지만 해당 변경은 `unmanaged`로 기록합니다.
@@ -155,6 +159,8 @@ Codex와 Claude의 실행 차이를 공통 계약으로 변환합니다.
 M3 Codex adapter는 app-server stdio process를 session별로 격리합니다. 연결마다 `initialize`를 마친 뒤 `thread/start`로 provider session을 만들고, `thread/inject_items` 성공 응답을 받은 문서만 controlled E3 receipt 후보로 반환합니다. Managed write에서도 sandbox는 `read-only`로 유지하고 approval만 `on-request`로 엽니다. `fileChange` 제안과 승인 요청의 thread·turn·item 좌표가 일치할 때만 bridge에 요청하며, 명령 승인이나 여러 파일·이동·안전하지 않은 경로는 거부합니다. 완료 item 뒤 실제 bytes가 permit와 맞아야 managed 변경이 됩니다.
 
 M3 Claude adapter는 공식 Agent SDK process를 session별로 미리 시작합니다. Filesystem setting, 자동 skill과 외부 MCP를 불러오지 않습니다. 검증된 문서 묶음은 `shouldQuery=false`인 synthetic user message로 넣으며, 같은 session·message ID·원문의 replay와 init을 확인한 뒤에만 controlled E3 receipt 후보로 반환합니다. Managed write는 `default` permission mode에서 `Read`, `Glob`, `Grep`, `Write`, `Edit`만 제공하고, Write/Edit의 실행 전·후 hook을 bridge 요청과 완료에 연결합니다. Bash와 내부 Agent/Task는 열지 않으며 전문 에이전트마다 managed session과 envelope를 따로 만듭니다.
+
+두 adapter의 승인 상태와 provider 메시지 해석은 adapter 본체와 분리된 managed write controller가 소유합니다. Claude SDK hook 구성도 별도 모듈이 맡습니다. 요청·결정·완료의 schema, 좌표, 시간과 원문 비포함 규칙은 공통 managed write contract suite가 검증합니다.
 
 Claude adapter의 tool 집합은 실행 모드별 허용 집합 안에서만 호출자가 좁힐 수 있습니다. 읽기 전용은 `Read`, `Glob`, `Grep`, managed write는 여기에 `Write`, `Edit`만 더할 수 있습니다. 공급자 설정과 공통 run 정책을 섞지 않도록 이 선택은 adapter option 뒤에 둡니다.
 
@@ -286,6 +292,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M3의 다음 범위는 이 계약을 `roven run` CLI와 fixture 저장소에 연결하는 수직 슬라이스입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M3의 다음 범위는 이 계약을 `roven run` CLI와 fixture 저장소에 연결하는 수직 슬라이스입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

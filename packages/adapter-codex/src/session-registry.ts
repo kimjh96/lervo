@@ -24,10 +24,7 @@ export class CodexSessionRegistry {
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
-      writeProposals: new Map(),
-      approvedWrites: new Map(),
       eventStreamClaimed: false,
-      stopped: false,
     });
   }
 
@@ -40,9 +37,18 @@ export class CodexSessionRegistry {
     if (!sameSession(state.session, session)) {
       throw new CodexAdapterError("session_mismatch", "Codex session 좌표가 시작 시점과 다릅니다.");
     }
-    if (state.stopped) {
-      throw new CodexAdapterError("session_stopped", "이미 종료된 Codex session입니다.");
-    }
     return state;
+  }
+
+  release(session: AdapterSession): void {
+    const state = this.get(session);
+    state.injectedTargetTurnIds.clear();
+    state.startedTargetTurnIds.clear();
+    state.turnResults.clear();
+    state.managedWrites?.clear();
+    delete state.managedWrites;
+    delete state.activeTurn;
+    delete state.activeProviderTurnId;
+    this.sessions.delete(session.providerSessionId);
   }
 }

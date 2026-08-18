@@ -20,6 +20,8 @@ export interface ProviderManagedWriteBridge {
   complete(completion: AdapterManagedWriteCompletion): Promise<void>;
 }
 
+export type AdapterTurnAccepted = (turn: AdapterTurn) => void;
+
 export interface ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
 
@@ -32,7 +34,11 @@ export interface ProviderAdapter {
     session: AdapterSession,
     bridge: ProviderManagedWriteBridge,
   ): Promise<void>;
-  startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn>;
+  startTurn(
+    session: AdapterSession,
+    request: AdapterTurnRequest,
+    accepted: AdapterTurnAccepted,
+  ): Promise<AdapterTurn>;
   events(session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent>;
   getTurnResult(session: AdapterSession, turn: AdapterTurn): Promise<AdapterTurnResult>;
   stop(session: AdapterSession, request: AdapterStopRequest): Promise<AdapterStopResult>;

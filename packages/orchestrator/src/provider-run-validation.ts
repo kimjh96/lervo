@@ -1,4 +1,5 @@
 import type {
+  AdapterCapabilityMatrix,
   AdapterNormalizedEvent,
   AdapterSession,
   AdapterStartRequest,
@@ -86,6 +87,7 @@ export function assertManagedSession(input: {
   request: AdapterStartRequest;
   session: AdapterSession;
   provider: string;
+  descriptorCapabilities: AdapterCapabilityMatrix;
 }): void {
   assertAdapterMessage(input.session, "Adapter session");
   if (
@@ -96,6 +98,15 @@ export function assertManagedSession(input: {
     input.session.roleId !== input.request.roleId ||
     input.session.writingPolicyId !== input.request.writingPolicyId ||
     input.session.executionMode !== input.request.executionMode ||
+    (input.session.executionMode === "read_only" &&
+      input.session.effectiveCapabilities.fileChanges === "supported") ||
+    (input.session.executionMode === "managed_write" &&
+      input.session.effectiveCapabilities.fileChanges !== "supported") ||
+    Object.entries(input.session.effectiveCapabilities).some(
+      ([capability, support]) =>
+        support === "supported" &&
+        input.descriptorCapabilities[capability as keyof AdapterCapabilityMatrix] !== "supported",
+    ) ||
     input.session.provider !== input.provider
   ) {
     throw new ManagedProviderRunError(
@@ -116,6 +127,27 @@ export function assertTerminalTurn(
     throw new ManagedProviderRunError(
       "contract_validation_failed",
       "Provider terminal signal이 현재 managed turn과 다릅니다.",
+    );
+  }
+}
+
+export function assertManagedTurn(input: {
+  request: import("@roven/schemas").AdapterTurnRequest;
+  session: AdapterSession;
+  turn: AdapterTurn;
+}): void {
+  assertAdapterMessage(input.turn, "Adapter turn");
+  if (
+    input.turn.adapterId !== input.session.adapterId ||
+    input.turn.projectId !== input.session.projectId ||
+    input.turn.runId !== input.session.runId ||
+    input.turn.sessionId !== input.session.sessionId ||
+    input.turn.providerSessionId !== input.session.providerSessionId ||
+    input.turn.targetTurnId !== input.request.targetTurnId
+  ) {
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      "Adapter turn이 managed session 또는 target turn 좌표와 다릅니다.",
     );
   }
 }

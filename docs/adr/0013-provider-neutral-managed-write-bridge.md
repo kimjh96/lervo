@@ -54,3 +54,5 @@ Claude는 읽기 전용에서 `plan` mode와 `Read`, `Glob`, `Grep`만 사용합
 - Provider별 승인 protocol은 adapter 안에 남고, orchestrator의 정책과 증거 모델은 공급자에 종속되지 않습니다.
 - Provider가 보고한 의도와 실제 bytes, 실행 전후 저장소 상태를 각각 대조하므로 직접 변경을 managed 작업으로 위장할 수 없습니다.
 - 다음 작업은 이 실행 계약을 `roven run` CLI와 fixture repository에 연결하는 한 파일 수직 슬라이스입니다.
+
+Turn 수락, session의 실제 capability, 종료 정리, 쓰기 계획과 adapter controller 분리는 [ADR-0014](./0014-managed-adapter-session-hardening.md)에서 보완했습니다.

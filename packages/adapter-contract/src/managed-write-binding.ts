@@ -7,6 +7,7 @@ import type {
 } from "@roven/schemas";
 
 export type ManagedWriteBindingViolationCode =
+  | "write_message_invalid"
   | "write_coordinates_mismatch"
   | "write_decision_invalid"
   | "write_request_time_invalid"

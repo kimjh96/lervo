@@ -33,10 +33,11 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [Managed provider run 수명주기 ADR](./docs/adr/0011-managed-provider-run-lifecycle.md)
 - [Provider-neutral 결과 artifact ADR](./docs/adr/0012-provider-result-artifacts.md)
 - [Provider-neutral managed write bridge ADR](./docs/adr/0013-provider-neutral-managed-write-bridge.md)
+- [Managed adapter session 경계 강화 ADR](./docs/adr/0014-managed-adapter-session-hardening.md)
 
 ## 현재 구현
 
-- `@roven/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill, document registry, writing policy/evaluation JSON Schema와 파생 TypeScript 타입
+- `@roven/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill, document registry, writing policy/evaluation JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
 - `@roven/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, canonical JSON과 event hash 규칙
 - `@roven/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@roven/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
@@ -47,7 +48,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
-- `@roven/adapter-contract`: Codex와 Claude가 같은 역할·writing 정책·managed write 요청/결정/완료 계약을 따르도록 강제하는 provider adapter interface와 contract suite
+- `@roven/adapter-contract`: Codex와 Claude가 같은 역할·writing 정책·turn 수락·session 유효 기능·managed write 요청/결정/완료 계약을 따르도록 강제하는 provider adapter interface와 contract suite
 - `@roven/adapter-codex`: Codex app-server thread/turn과 controlled context를 관리하고 file-change 승인을 Roven의 1회용 permit에 연결하는 adapter
 - `@roven/adapter-claude`: Claude Agent SDK context replay를 검증하고 Write/Edit hook을 Roven의 1회용 permit에 연결하는 adapter
 - `@roven/cli`: `roven init` 명령 진입점

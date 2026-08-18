@@ -1,5 +1,6 @@
 import {
   type AdapterStopRequest,
+  type AdapterTurn,
   validateSchema,
 } from "@roven/schemas";
 
@@ -116,7 +117,18 @@ export async function evaluateAdapterContract(
     session.provider !== adapter.descriptor.provider ||
     session.roleId !== fixture.startRequest.roleId ||
     session.writingPolicyId !== fixture.startRequest.writingPolicyId ||
-    session.executionMode !== fixture.startRequest.executionMode
+    session.executionMode !== fixture.startRequest.executionMode ||
+    (session.executionMode === "read_only" &&
+      session.effectiveCapabilities.fileChanges === "supported") ||
+    (session.executionMode === "managed_write" &&
+      session.effectiveCapabilities.fileChanges !== "supported") ||
+    Object.entries(session.effectiveCapabilities).some(
+      ([capability, support]) =>
+        support === "supported" &&
+        adapter.descriptor.capabilities[
+          capability as keyof typeof adapter.descriptor.capabilities
+        ] !== "supported",
+    )
   ) {
     violations.push({
       code: "session_mismatch",
@@ -176,7 +188,17 @@ export async function evaluateAdapterContract(
       detail: "turn request is not bound to the session and injected target turn",
     });
   }
-  const turn = await adapter.startTurn(session, fixture.turnRequest);
+  let acceptedTurn: AdapterTurn | undefined;
+  const turn = await adapter.startTurn(session, fixture.turnRequest, (accepted) => {
+    if (acceptedTurn !== undefined) {
+      violations.push({
+        code: "turn_mismatch",
+        detail: "adapter accepted the same turn more than once",
+      });
+      return;
+    }
+    acceptedTurn = structuredClone(accepted);
+  });
   addValidationViolation(violations, "turn_invalid", turn);
   if (
     !sameCoordinates(turn, session) ||
@@ -187,6 +209,12 @@ export async function evaluateAdapterContract(
     violations.push({
       code: "turn_mismatch",
       detail: "adapter turn changed the managed coordinates or target turn",
+    });
+  }
+  if (acceptedTurn === undefined || JSON.stringify(acceptedTurn) !== JSON.stringify(turn)) {
+    violations.push({
+      code: "turn_mismatch",
+      detail: "adapter did not announce the returned turn before provider execution",
     });
   }
 

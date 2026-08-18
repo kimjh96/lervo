@@ -56,8 +56,9 @@ class FixtureAdapter implements ProviderAdapter {
   async startTurn(
     session: AdapterSession,
     request: AdapterTurnRequest,
+    accepted: (turn: AdapterTurn) => void,
   ): Promise<AdapterTurn> {
-    return {
+    const turn: AdapterTurn = {
       kind: "turn",
       schemaVersion: 1,
       adapterId: this.descriptor.adapterId,
@@ -69,6 +70,8 @@ class FixtureAdapter implements ProviderAdapter {
       providerTurnId: "provider-turn-1",
       acceptedAt: "2026-08-18T00:00:02Z",
     };
+    accepted(structuredClone(turn));
+    return turn;
   }
 
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
@@ -87,6 +90,11 @@ class FixtureAdapter implements ProviderAdapter {
       provider: this.descriptor.provider,
       providerSessionId: `${this.descriptor.provider}-session-1`,
       executionMode: request.executionMode,
+      effectiveCapabilities: {
+        ...this.descriptor.capabilities,
+        fileChanges:
+          request.executionMode === "managed_write" ? "supported" : "unsupported",
+      },
       startedAt: "2026-08-18T00:00:01Z",
     };
   }
@@ -437,6 +445,49 @@ describe("adapter contract evidence integrity", () => {
     );
     expect(report.violations).toContainEqual(
       expect.objectContaining({ code: "context_envelope_mismatch" }),
+    );
+  });
+
+  it("rejects a turn that was returned without an acceptance announcement", async () => {
+    class UnannouncedTurnAdapter extends FixtureAdapter {
+      override async startTurn(
+        session: AdapterSession,
+        request: AdapterTurnRequest,
+        _accepted: (turn: AdapterTurn) => void,
+      ): Promise<AdapterTurn> {
+        return super.startTurn(session, request, () => undefined);
+      }
+    }
+
+    const report = await evaluateAdapterContract(
+      new UnannouncedTurnAdapter("codex"),
+      fixture("codex"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "turn_mismatch" }),
+    );
+  });
+
+  it("rejects session capabilities that exceed the adapter descriptor", async () => {
+    class OverbroadSessionAdapter extends FixtureAdapter {
+      constructor() {
+        super("claude");
+        this.descriptor.capabilities.commandExecution = "unsupported";
+      }
+
+      override async start(request: AdapterStartRequest): Promise<AdapterSession> {
+        const session = await super.start(request);
+        session.effectiveCapabilities.commandExecution = "supported";
+        return session;
+      }
+    }
+
+    const report = await evaluateAdapterContract(
+      new OverbroadSessionAdapter(),
+      fixture("claude"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "session_mismatch" }),
     );
   });
 });

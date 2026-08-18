@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 
 import {
   createAdapterTurnResult,
-  inspectManagedWriteDecisionBinding,
+  type AdapterTurnAccepted,
   type ProviderAdapter,
   type ProviderManagedWriteBridge,
 } from "@roven/adapter-contract";
@@ -33,12 +33,7 @@ import { CodexStdioAppServerClient } from "./app-server-client.js";
 import { buildManagedContextItems } from "./context-items.js";
 import { CodexEventNormalizer } from "./normalize.js";
 import { CodexSessionRegistry } from "./session-registry.js";
-import {
-  captureCodexWriteApproval,
-  captureCodexWriteCompletion,
-  captureCodexWriteProposal,
-  codexWriteApprovalRequestId,
-} from "./managed-write.js";
+import { CodexManagedWriteController } from "./managed-write.js";
 import { captureCodexTurnResult } from "./turn-result.js";
 import {
   CodexAdapterError,
@@ -117,6 +112,11 @@ export class CodexAdapter implements ProviderAdapter {
         provider: this.descriptor.provider,
         providerSessionId: thread.threadId,
         executionMode: request.executionMode,
+        effectiveCapabilities: {
+          ...this.descriptor.capabilities,
+          fileChanges:
+            request.executionMode === "managed_write" ? "supported" : "unsupported",
+        },
         startedAt: timestamp(this.now, "Codex session 시작 시각", request.requestedAt),
       };
       assertAdapterMessage(session, "Codex session");
@@ -179,13 +179,23 @@ export class CodexAdapter implements ProviderAdapter {
     bridge: ProviderManagedWriteBridge,
   ): Promise<void> {
     const state = this.sessions.get(session);
-    if (state.managedWriteBridge !== undefined) {
+    if (state.managedWrites !== undefined) {
       throw new CodexAdapterError("invalid_request", "Managed write bridge가 이미 연결되었습니다.");
     }
-    state.managedWriteBridge = bridge;
+    state.managedWrites = new CodexManagedWriteController({
+      session: state.session,
+      repositoryRoot: this.repositoryRoot,
+      bridge,
+      client: state.client,
+      now: this.now,
+    });
   }
 
-  async startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn> {
+  async startTurn(
+    session: AdapterSession,
+    request: AdapterTurnRequest,
+    accepted: AdapterTurnAccepted,
+  ): Promise<AdapterTurn> {
     const state = this.sessions.get(session);
     assertAdapterMessage(request, "Codex turn request");
     if (
@@ -220,6 +230,7 @@ export class CodexAdapter implements ProviderAdapter {
     };
     assertAdapterMessage(turn, "Codex turn");
     state.activeTurn = clone(turn);
+    accepted(clone(turn));
     return clone(turn);
   }
 
@@ -240,77 +251,8 @@ export class CodexAdapter implements ProviderAdapter {
       createEventId: this.createEventId,
     });
     try {
-      eventLoop: for await (const notification of state.client.notifications(signal)) {
-        const activeTurn = state.activeTurn;
-        if (activeTurn !== undefined) {
-          const proposal = captureCodexWriteProposal({
-            raw: notification,
-            repositoryRoot: this.repositoryRoot,
-            providerSessionId: session.providerSessionId,
-            providerTurnId: activeTurn.providerTurnId,
-          });
-          if (proposal !== null) {
-            state.writeProposals.set(proposal.providerItemId, proposal);
-          }
-          for (const candidate of state.writeProposals.values()) {
-            const approval = captureCodexWriteApproval({
-              raw: notification,
-              session,
-              turn: activeTurn,
-              proposal: candidate,
-              now: this.now,
-            });
-            if (approval === null) continue;
-            const decision =
-              state.managedWriteBridge === undefined
-                ? null
-                : await state.managedWriteBridge.authorize(approval.request);
-            if (decision !== null) {
-              assertAdapterMessage(decision, "Codex managed write decision");
-              const binding = inspectManagedWriteDecisionBinding({
-                request: approval.request,
-                decision,
-              });
-              if (!binding.passed) {
-                throw new CodexAdapterError(
-                  "provider_protocol_failed",
-                  "Managed write 결정이 Codex 요청과 다릅니다.",
-                );
-              }
-            }
-            const allowed = decision?.decision === "allow";
-            await state.client.respondFileChangeApproval(
-              approval.requestId,
-              allowed ? "accept" : "decline",
-            );
-            if (allowed) {
-              state.approvedWrites.set(candidate.providerItemId, approval.request);
-            }
-            state.writeProposals.delete(candidate.providerItemId);
-            continue eventLoop;
-          }
-          const unmatchedApproval = codexWriteApprovalRequestId(notification);
-          if (unmatchedApproval !== null) {
-            await state.client.respondFileChangeApproval(unmatchedApproval, "decline");
-            continue;
-          }
-          for (const request of state.approvedWrites.values()) {
-            const completion = captureCodexWriteCompletion({
-              raw: notification,
-              request,
-              now: this.now,
-            });
-            if (completion === null) continue;
-            if (state.managedWriteBridge === undefined) {
-              throw new CodexAdapterError(
-                "provider_protocol_failed",
-                "승인된 Codex 변경에 managed write bridge가 없습니다.",
-              );
-            }
-            await state.managedWriteBridge.complete(completion);
-            state.approvedWrites.delete(request.providerItemId);
-          }
-        }
+      for await (const notification of state.client.notifications(signal)) {
+        if (await state.managedWrites?.handle(notification, state.activeTurn)) continue;
         const normalized = normalizer.normalize(notification);
         const captured = captureCodexTurnResult({
           raw: notification,
@@ -388,6 +330,7 @@ export class CodexAdapter implements ProviderAdapter {
     ) {
       throw new CodexAdapterError("session_mismatch", "Stop request가 managed Codex session과 다릅니다.");
     }
+    let stopFailure: CodexAdapterError | undefined;
     try {
       if (request.reason === "cancelled" && state.activeProviderTurnId !== undefined) {
         await state.client.interruptTurn(session.providerSessionId, state.activeProviderTurnId);
@@ -396,10 +339,14 @@ export class CodexAdapter implements ProviderAdapter {
       await state.client.close();
     } catch {
       await state.client.close().catch(() => undefined);
-      throw new CodexAdapterError("provider_process_failed", "Codex session을 안전하게 종료하지 못했습니다.");
+      stopFailure = new CodexAdapterError(
+        "provider_process_failed",
+        "Codex session을 안전하게 종료하지 못했습니다.",
+      );
+    } finally {
+      this.sessions.release(session);
     }
-    state.stopped = true;
-    delete state.activeProviderTurnId;
+    if (stopFailure !== undefined) throw stopFailure;
     const result: AdapterStopResult = {
       kind: "stop_result",
       schemaVersion: 1,

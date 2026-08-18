@@ -30,6 +30,8 @@ export function sameSession(left: AdapterSession, right: AdapterSession): boolea
     left.writingPolicyId === right.writingPolicyId &&
     left.provider === right.provider &&
     left.providerSessionId === right.providerSessionId &&
+    left.executionMode === right.executionMode &&
+    JSON.stringify(left.effectiveCapabilities) === JSON.stringify(right.effectiveCapabilities) &&
     left.startedAt === right.startedAt
   );
 }

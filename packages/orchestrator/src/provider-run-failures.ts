@@ -20,6 +20,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   telemetry_recording_failed: 100,
   artifact_storage_failed: 95,
   provider_stop_failed: 90,
+  provider_write_failed: 85,
   unmanaged_change_detected: 80,
   contract_validation_failed: 70,
   repository_snapshot_failed: 60,
@@ -27,7 +28,6 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   context_preparation_failed: 50,
   provider_stream_failed: 40,
   provider_turn_failed: 40,
-  provider_write_failed: 40,
   provider_result_failed: 40,
   provider_start_failed: 40,
   cancelled: 30,
@@ -54,6 +54,7 @@ function failureCodeForPhase(
     case "result_collect":
       return "provider_result_failed";
     case "write_bridge":
+    case "provider_write":
       return "provider_write_failed";
     case "result_store":
       return "artifact_storage_failed";
@@ -74,7 +75,11 @@ export function classifyRunFailure(
   phase: ManagedProviderRunPhase,
 ): RunFailure {
   if (error instanceof ManagedProviderRunError) {
-    return { error, phase, retryable: retryable(error.code) };
+    return {
+      error,
+      phase: error.originPhase ?? phase,
+      retryable: retryable(error.code),
+    };
   }
   if (error instanceof TelemetryWriteError) {
     return {

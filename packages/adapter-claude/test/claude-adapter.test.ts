@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   createManagedWriteDecision,
   evaluateAdapterContract,
+  evaluateManagedWriteContract,
   type ProviderManagedWriteBridge,
 } from "@roven/adapter-contract";
 import type {
@@ -33,6 +34,7 @@ class FakeClaudeClient implements ClaudeAgentClient {
   readonly calls: Array<{ method: string; value: unknown }> = [];
   readonly messageList: unknown[] = [];
   closed = false;
+  failClose = false;
   toolUseHandler?: ClaudeToolUseHandler;
 
   attachToolUseHandler(handler: ClaudeToolUseHandler) {
@@ -169,6 +171,7 @@ class FakeClaudeClient implements ClaudeAgentClient {
   async close() {
     this.closed = true;
     this.calls.push({ method: "close", value: null });
+    if (this.failClose) throw new Error("close failed");
   }
 }
 
@@ -296,18 +299,38 @@ describe("Claude managed adapter", () => {
     expect(client.closed).toBe(true);
   });
 
+  it("reports only the capabilities effective for the selected session mode", async () => {
+    const readOnly = await start(adapter(new FakeClaudeClient()));
+    const managed = await adapter(new FakeClaudeClient()).start({
+      ...fixture().startRequest,
+      executionMode: "managed_write",
+    });
+
+    expect(readOnly.effectiveCapabilities).toMatchObject({
+      commandExecution: "unsupported",
+      fileChanges: "unsupported",
+    });
+    expect(managed.effectiveCapabilities).toMatchObject({
+      commandExecution: "unsupported",
+      fileChanges: "supported",
+    });
+  });
+
   it("routes Write through the managed bridge without exposing tool content", async () => {
     class RecordingBridge implements ProviderManagedWriteBridge {
       requests: AdapterManagedWriteRequest[] = [];
+      decisions: ReturnType<typeof createManagedWriteDecision>[] = [];
       completions: AdapterManagedWriteCompletion[] = [];
       async authorize(request: AdapterManagedWriteRequest) {
         this.requests.push(structuredClone(request));
-        return createManagedWriteDecision({
+        const decision = createManagedWriteDecision({
           request,
           decision: "allow",
           reasonCode: "authorized",
           decidedAt: new Date(Date.parse(request.requestedAt) + 1_000).toISOString(),
         });
+        this.decisions.push(structuredClone(decision));
+        return decision;
       }
       async complete(completion: AdapterManagedWriteCompletion) {
         this.completions.push(structuredClone(completion));
@@ -320,7 +343,7 @@ describe("Claude managed adapter", () => {
     const session = await instance.start({ ...data.startRequest, executionMode: "managed_write" });
     await instance.injectContext(session, data.contextEnvelope);
     await instance.attachManagedWriteBridge(session, bridge);
-    await instance.startTurn(session, data.turnRequest);
+    const turn = await instance.startTurn(session, data.turnRequest, () => undefined);
     const allowed = await client.toolUseHandler?.authorize(
       "Write",
       { file_path: "/repo/src/new.ts", content: "super-secret-file-content" },
@@ -345,6 +368,15 @@ describe("Claude managed adapter", () => {
       expect.objectContaining({ providerItemId: "tool-write-1", status: "completed" }),
     ]);
     expect(JSON.stringify(bridge.requests)).not.toContain("super-secret-file-content");
+    expect(
+      evaluateManagedWriteContract({
+        session,
+        turn,
+        request: bridge.requests[0]!,
+        decision: bridge.decisions[0]!,
+        completion: bridge.completions[0]!,
+      }),
+    ).toEqual({ passed: true, violations: [] });
   });
 
   it("appends all managed documents without a model query before starting the turn", async () => {
@@ -353,7 +385,7 @@ describe("Claude managed adapter", () => {
     const data = fixture();
     const session = await instance.start(data.startRequest);
     const receipt = await instance.injectContext(session, data.contextEnvelope);
-    await instance.startTurn(session, data.turnRequest);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
 
     const context = String(client.calls[0]?.value);
     expect(context).toContain(data.agents.trim());
@@ -370,7 +402,9 @@ describe("Claude managed adapter", () => {
     const client = new FakeClaudeClient();
     const instance = adapter(client);
     const session = await start(instance);
-    await expect(instance.startTurn(session, fixture().turnRequest)).rejects.toMatchObject({
+    await expect(
+      instance.startTurn(session, fixture().turnRequest, () => undefined),
+    ).rejects.toMatchObject({
       code: "invalid_request",
     });
     expect(client.calls).toEqual([]);
@@ -411,7 +445,7 @@ describe("Claude managed adapter", () => {
     const data = fixture();
     const session = await instance.start(data.startRequest);
     await instance.injectContext(session, data.contextEnvelope);
-    await instance.startTurn(session, data.turnRequest);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
     const controller = new AbortController();
     const iterator = instance.events(session, controller.signal)[Symbol.asyncIterator]();
     const events = [];
@@ -456,7 +490,7 @@ describe("Claude managed adapter", () => {
     const data = fixture();
     const session = await instance.start(data.startRequest);
     await instance.injectContext(session, data.contextEnvelope);
-    await instance.startTurn(session, data.turnRequest);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
     await instance.stop(session, {
       kind: "stop_request",
       schemaVersion: 1,
@@ -469,5 +503,32 @@ describe("Claude managed adapter", () => {
       requestedAt: "2026-08-18T00:00:04Z",
     });
     expect(client.calls.slice(-2).map((call) => call.method)).toEqual(["interrupt", "close"]);
+    await expect(instance.injectContext(session, data.contextEnvelope)).rejects.toMatchObject({
+      code: "session_not_found",
+    });
+  });
+
+  it("releases session state even when the provider close operation fails", async () => {
+    const client = new FakeClaudeClient();
+    client.failClose = true;
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    const stop = instance.stop(session, {
+      kind: "stop_request",
+      schemaVersion: 1,
+      adapterId: "roven/claude",
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      reason: "failed",
+      requestedAt: "2026-08-18T00:00:04Z",
+    });
+
+    await expect(stop).rejects.toMatchObject({ code: "provider_process_failed" });
+    await expect(instance.injectContext(session, data.contextEnvelope)).rejects.toMatchObject({
+      code: "session_not_found",
+    });
   });
 });

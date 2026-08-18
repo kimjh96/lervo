@@ -182,15 +182,75 @@ describe("managed provider run coordinator", () => {
     });
 
     await expect(run).rejects.toMatchObject({
-      code: "unmanaged_change_detected",
+      code: "provider_write_failed",
       paths: ["src/result.ts"],
       relatedFailures: expect.arrayContaining([
-        expect.objectContaining({ code: "provider_write_failed" }),
+        expect.objectContaining({ code: "provider_write_failed", phase: "provider_write" }),
+        expect.objectContaining({ code: "unmanaged_change_detected" }),
       ]),
     });
     expect(data.store.list({ runId }).map((event) => event.type)).not.toContain("file.changed");
     data.store.close();
   });
+
+  it("fails when an approved write never reports completion", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude", {
+      managedWrite: {
+        path: "src/result.ts",
+        targetDigest,
+        changeKind: "created",
+        apply: () => writeFile(resolve(data.root, "src/result.ts"), "pending\n"),
+        skipCompletion: true,
+      },
+    });
+    const input = providerRunInput();
+
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        context: { ...input.context, role },
+      }),
+    ).rejects.toMatchObject({
+      code: "provider_write_failed",
+      relatedFailures: expect.arrayContaining([
+        expect.objectContaining({ phase: "provider_write" }),
+      ]),
+    });
+    data.store.close();
+  });
+
+  it.each(["duplicateAuthorization", "duplicateCompletion"] as const)(
+    "rejects %s for the same provider write",
+    async (duplicate) => {
+      const data = await createManagedFixture();
+      const adapter = new FakeManagedAdapter("codex", {
+        managedWrite: {
+          path: "src/result.ts",
+          targetDigest,
+          changeKind: "created",
+          apply: () => writeFile(resolve(data.root, "src/result.ts"), "duplicate\n"),
+          [duplicate]: true,
+        },
+      });
+      const input = providerRunInput();
+
+      await expect(
+        coordinator(adapter, data.root, data.store).run({
+          ...input,
+          repositoryRoot: data.root,
+          context: { ...input.context, role },
+        }),
+      ).rejects.toMatchObject({
+        code: "contract_validation_failed",
+        relatedFailures: expect.arrayContaining([
+          expect.objectContaining({ phase: "provider_write" }),
+        ]),
+      });
+      data.store.close();
+    },
+  );
 
   it("invalidates E3 on provider compaction without pretending the turn failed", async () => {
     const data = await createManagedFixture();

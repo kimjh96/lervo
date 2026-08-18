@@ -61,7 +61,7 @@ export function adapterStartedSpec(
       adapterVersion: descriptor.adapterVersion,
       providerSessionId: session.providerSessionId,
       executionMode: session.executionMode,
-      capabilities: descriptor.capabilities,
+      capabilities: session.effectiveCapabilities,
     },
   };
 }

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   createManagedWriteDecision,
   evaluateAdapterContract,
+  evaluateManagedWriteContract,
   type ProviderManagedWriteBridge,
 } from "@roven/adapter-contract";
 import type {
@@ -38,6 +39,7 @@ class FakeCodexClient implements CodexAppServerClient {
     },
   ];
   closed = false;
+  failClose = false;
 
   async startThread(options: CodexThreadStartOptions) {
     this.calls.push({ method: "startThread", value: options });
@@ -170,6 +172,7 @@ class FakeCodexClient implements CodexAppServerClient {
   async close() {
     this.closed = true;
     this.calls.push({ method: "close", value: null });
+    if (this.failClose) throw new Error("close failed");
   }
 }
 
@@ -292,18 +295,32 @@ describe("Codex managed adapter", () => {
     expect(client.closed).toBe(true);
   });
 
+  it("reports only the capabilities effective for the selected session mode", async () => {
+    const readOnly = await started(adapter(new FakeCodexClient()));
+    const managed = await adapter(new FakeCodexClient()).start({
+      ...fixture().startRequest,
+      executionMode: "managed_write",
+    });
+
+    expect(readOnly.effectiveCapabilities.fileChanges).toBe("unsupported");
+    expect(managed.effectiveCapabilities.fileChanges).toBe("supported");
+  });
+
   it("binds a file-change server approval to the managed write bridge", async () => {
     class RecordingBridge implements ProviderManagedWriteBridge {
       requests: AdapterManagedWriteRequest[] = [];
+      decisions: ReturnType<typeof createManagedWriteDecision>[] = [];
       completions: AdapterManagedWriteCompletion[] = [];
       async authorize(request: AdapterManagedWriteRequest) {
         this.requests.push(structuredClone(request));
-        return createManagedWriteDecision({
+        const decision = createManagedWriteDecision({
           request,
           decision: "allow",
           reasonCode: "authorized",
           decidedAt: new Date(Date.parse(request.requestedAt) + 1_000).toISOString(),
         });
+        this.decisions.push(structuredClone(decision));
+        return decision;
       }
       async complete(completion: AdapterManagedWriteCompletion) {
         this.completions.push(structuredClone(completion));
@@ -316,7 +333,7 @@ describe("Codex managed adapter", () => {
     const session = await instance.start({ ...data.startRequest, executionMode: "managed_write" });
     await instance.injectContext(session, data.contextEnvelope);
     await instance.attachManagedWriteBridge(session, bridge);
-    await instance.startTurn(session, data.turnRequest);
+    const turn = await instance.startTurn(session, data.turnRequest, () => undefined);
     const change = {
       path: "/repo/src/index.ts",
       kind: { type: "update", move_path: null },
@@ -383,6 +400,15 @@ describe("Codex managed adapter", () => {
       value: { requestId: 99, decision: "accept" },
     });
     expect(JSON.stringify(bridge.requests)).not.toContain("secret patch");
+    expect(
+      evaluateManagedWriteContract({
+        session,
+        turn,
+        request: bridge.requests[0]!,
+        decision: bridge.decisions[0]!,
+        completion: bridge.completions[0]!,
+      }),
+    ).toEqual({ passed: true, violations: [] });
   });
 
   it("injects exact role, writing policy, hashes and document bytes before the turn", async () => {
@@ -391,7 +417,7 @@ describe("Codex managed adapter", () => {
     const data = fixture();
     const session = await instance.start(data.startRequest);
     await instance.injectContext(session, data.contextEnvelope);
-    await instance.startTurn(session, data.turnRequest);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
 
     const injection = client.calls.find((call) => call.method === "injectItems");
     const serialized = JSON.stringify(injection?.value);
@@ -410,7 +436,9 @@ describe("Codex managed adapter", () => {
     const client = new FakeCodexClient();
     const instance = adapter(client);
     const session = await started(instance);
-    await expect(instance.startTurn(session, fixture().turnRequest)).rejects.toMatchObject({
+    await expect(
+      instance.startTurn(session, fixture().turnRequest, () => undefined),
+    ).rejects.toMatchObject({
       code: "invalid_request",
     });
     expect(client.calls.some((call) => call.method === "startTurn")).toBe(false);
@@ -432,7 +460,7 @@ describe("Codex managed adapter", () => {
     const data = fixture();
     const session = await instance.start(data.startRequest);
     await instance.injectContext(session, data.contextEnvelope);
-    await instance.startTurn(session, data.turnRequest);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
     const controller = new AbortController();
     const events = instance.events(session, controller.signal)[Symbol.asyncIterator]();
     const values = [];
@@ -468,7 +496,7 @@ describe("Codex managed adapter", () => {
     const data = fixture();
     const session = await instance.start(data.startRequest);
     await instance.injectContext(session, data.contextEnvelope);
-    await instance.startTurn(session, data.turnRequest);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
     await instance.stop(session, {
       kind: "stop_request",
       schemaVersion: 1,
@@ -485,6 +513,33 @@ describe("Codex managed adapter", () => {
       "unsubscribe",
       "close",
     ]);
+    await expect(instance.injectContext(session, data.contextEnvelope)).rejects.toMatchObject({
+      code: "session_not_found",
+    });
+  });
+
+  it("releases session state even when the provider close operation fails", async () => {
+    const client = new FakeCodexClient();
+    client.failClose = true;
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    const stop = instance.stop(session, {
+      kind: "stop_request",
+      schemaVersion: 1,
+      adapterId: "roven/codex",
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      reason: "failed",
+      requestedAt: "2026-08-18T00:00:04Z",
+    });
+
+    await expect(stop).rejects.toMatchObject({ code: "provider_process_failed" });
+    await expect(instance.injectContext(session, data.contextEnvelope)).rejects.toMatchObject({
+      code: "session_not_found",
+    });
   });
 
   it("marks incomplete usage as a provider error instead of inventing zero counts", async () => {

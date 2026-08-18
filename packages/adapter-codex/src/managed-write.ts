@@ -1,6 +1,8 @@
 import {
   createManagedWriteCompletion,
   createManagedWriteRequest,
+  inspectManagedWriteDecisionBinding,
+  type ProviderManagedWriteBridge,
 } from "@roven/adapter-contract";
 import type {
   AdapterManagedWriteCompletion,
@@ -9,6 +11,7 @@ import type {
   AdapterTurn,
 } from "@roven/schemas";
 
+import { assertAdapterMessage } from "./adapter-validation.js";
 import {
   asRecord,
   digest,
@@ -18,6 +21,7 @@ import {
   repositoryPath,
   text,
 } from "./normalization-utils.js";
+import { CodexAdapterError, type CodexAppServerClient } from "./types.js";
 
 export type CodexServerRequestId = string | number;
 
@@ -138,4 +142,80 @@ export function captureCodexWriteCompletion(input: {
     status,
     completedAt: eventTime(message, params ?? {}, input.now),
   });
+}
+
+export class CodexManagedWriteController {
+  private readonly proposals = new Map<string, CodexWriteProposal>();
+  private readonly approved = new Map<string, AdapterManagedWriteRequest>();
+
+  constructor(
+    private readonly options: {
+      session: AdapterSession;
+      repositoryRoot: string;
+      bridge: ProviderManagedWriteBridge;
+      client: CodexAppServerClient;
+      now: () => Date;
+    },
+  ) {}
+
+  async handle(raw: unknown, activeTurn: AdapterTurn | undefined): Promise<boolean> {
+    if (activeTurn === undefined) return false;
+    const proposal = captureCodexWriteProposal({
+      raw,
+      repositoryRoot: this.options.repositoryRoot,
+      providerSessionId: this.options.session.providerSessionId,
+      providerTurnId: activeTurn.providerTurnId,
+    });
+    if (proposal !== null) this.proposals.set(proposal.providerItemId, proposal);
+
+    for (const candidate of this.proposals.values()) {
+      const approval = captureCodexWriteApproval({
+        raw,
+        session: this.options.session,
+        turn: activeTurn,
+        proposal: candidate,
+        now: this.options.now,
+      });
+      if (approval === null) continue;
+      const decision = await this.options.bridge.authorize(approval.request);
+      assertAdapterMessage(decision, "Codex managed write decision");
+      if (!inspectManagedWriteDecisionBinding({ request: approval.request, decision }).passed) {
+        throw new CodexAdapterError(
+          "provider_protocol_failed",
+          "Managed write 결정이 Codex 요청과 다릅니다.",
+        );
+      }
+      const allowed = decision.decision === "allow";
+      await this.options.client.respondFileChangeApproval(
+        approval.requestId,
+        allowed ? "accept" : "decline",
+      );
+      if (allowed) this.approved.set(candidate.providerItemId, approval.request);
+      this.proposals.delete(candidate.providerItemId);
+      return true;
+    }
+
+    const unmatchedApproval = codexWriteApprovalRequestId(raw);
+    if (unmatchedApproval !== null) {
+      await this.options.client.respondFileChangeApproval(unmatchedApproval, "decline");
+      return true;
+    }
+
+    for (const request of this.approved.values()) {
+      const completion = captureCodexWriteCompletion({
+        raw,
+        request,
+        now: this.options.now,
+      });
+      if (completion === null) continue;
+      await this.options.bridge.complete(completion);
+      this.approved.delete(request.providerItemId);
+    }
+    return false;
+  }
+
+  clear(): void {
+    this.proposals.clear();
+    this.approved.clear();
+  }
 }
