@@ -17,10 +17,11 @@ Roven을 새 저장소에만 설치한다고 가정할 수 없습니다. 실제 
 
 1. 안전한 read-only scanner와 `DocumentImportAdapter` 공통 계약
 2. Source 문서별 `MigrationCandidate`와 hash-bound dry-run plan
-3. 사용자 승인과 metadata-only sidecar apply
-4. CommonMark와 legacy marker adapter/parser
-5. Byte 보존 managed block patch candidate
-6. Staleness detector와 구조 변경 후보
+3. 사용자 승인과 분할 layout 대상 metadata-only sidecar apply
+4. 기존 단일 registry의 명시적 비활성화·분할 structural migration
+5. CommonMark와 legacy marker adapter/parser
+6. Byte 보존 managed block patch candidate
+7. Staleness detector와 구조 변경 후보
 
 앞 단계의 계약 테스트와 원본 무변경 fixture를 통과하기 전에는 다음 단계가 사용자 문서를 수정하지 않습니다.
 
@@ -49,17 +50,30 @@ Dry-run은 어떤 파일도 만들거나 수정하지 않습니다. Apply 직전
 
 본문 이동, 형식 변환, marker 삽입과 문서 분할은 별도 structural patch입니다. Source와 target snapshot, block 밖 byte 보존과 명시적 승인이 없으면 적용하지 않습니다. 기존 `.roven/documents.yaml`의 분할도 같은 원칙을 따르며 init이 자동 실행하지 않습니다.
 
-### 첫 슬라이스의 상태와 실패 의미
+### 승인은 최종 manifest를 확정한다
 
-첫 슬라이스는 read-only candidate와 dry-run plan만 구현하므로 migration 완료 event를 만들지 않습니다.
+승인은 plan ID와 candidate artifact ID/hash에 묶이며 plan의 모든 candidate를 중복 없이 정확히 한 번 다룹니다. 각 결정은 `skip`과 사유 code이거나 `approve_sidecar`와 최종 `DocumentManifest`입니다. Dry-run 제안만으로는 책임자, locale, 검토 주기와 검증 revision을 확정할 수 없으므로 apply가 이를 임의로 채우지 않습니다. 승인 시각은 적용 시각보다 늦을 수 없고 승인 manifest의 document ID, 원본 경로와 sidecar target은 candidate 제안과 같아야 합니다.
+
+### 적용은 부분 layout을 활성화하지 않는다
+
+적용기는 plan 내용으로 plan ID를 다시 계산하고 candidate artifact canonical byte의 hash·크기·ID를 검증합니다. 이어서 모든 source byte, 각 target과 현재 `.roven/documents/` snapshot을 다시 읽습니다. 하나라도 달라지거나 기존 manifest 전체와 새 manifest의 path·ID·관계가 충돌하면 어떤 sidecar도 활성화하지 않습니다.
+
+Sidecar는 격리된 staging directory에서 완성하고 파일을 동기화합니다. 공개 전 `.roven/documents/`에 transaction marker를 만들며 loader는 이 marker가 있는 부분 layout을 계약 위반으로 거부합니다. 승인된 sidecar를 모두 공개하고 전체 snapshot을 다시 확인한 뒤 `document.migration.applied` event를 영속합니다. Event recorder는 성공 반환 전에 event를 durable하게 commit하고, 실패 반환 시에는 commit하지 않는 port여야 합니다. Event 기록 전에 실패하면 이번 apply가 만든 파일을 content hash로 확인해 전부 되돌립니다. Event가 기록된 뒤 marker 제거에 실패하거나 rollback 안전성을 증명하지 못하면 정상 receipt를 반환하지 않고 fail-closed 상태를 남깁니다.
+
+기존 `.roven/documents.yaml`과 분할 sidecar directory는 동시에 활성화할 수 없습니다. 첫 metadata-only apply는 legacy registry가 있는 layout을 `migration_conflict`로 거부합니다. Registry byte의 보존 위치, 비활성화 동작과 새 sidecar 전체 공개를 하나의 승인에 묶는 structural migration은 다음 구현 단계에서 별도로 고정합니다.
+
+### 상태, event와 실패 의미
+
+성공 event 이름은 `document.migration.applied`입니다. 필수 payload는 plan/approval ID, 승인 원본 digest, source와 candidate artifact hash 집합, 적용 전후 전체 sidecar layout hash, 생성한 document ID/content hash와 적용 시각입니다. 승인자 ID, source path, document path·본문, manifest 내용과 절대 경로는 event에 넣지 않습니다. 반환 receipt에는 로컬 사용을 위한 생성 sidecar 상대 경로와 건너뛴 candidate ID를 포함하지만 event payload와 같은 정보라고 주장하지 않습니다.
 
 - `review_required`: 형식은 읽었지만 소유권·profile·관계를 자동 확정할 신뢰도가 부족합니다. 원본을 유지하고 사람 결정을 기다립니다.
-- `stale`: Plan 생성 뒤 source hash 또는 대상 layout이 바뀌었습니다. 어떤 sidecar도 쓰지 않고 다시 탐색합니다.
-- `conflict`: Document ID, source path 소유권 또는 대상 sidecar가 기존 원본과 충돌합니다. 부분 적용하지 않습니다.
+- `plan_stale`: Plan 생성 뒤 source hash 또는 대상 layout이 바뀌었습니다. 어떤 sidecar도 쓰지 않고 다시 탐색합니다.
+- `migration_conflict`: Document ID, source path 소유권, 대상 sidecar 또는 document layout이 기존 원본과 충돌합니다. 부분 적용하지 않습니다.
 - `unsupported_format`: 일치하는 adapter가 없습니다. 오류로 원본을 배제하지 않고 observed 후보와 경고를 반환합니다.
 - `unsafe_source`: 경로, 파일 종류, 크기 또는 읽기 안정성을 보장할 수 없습니다. 해당 scan을 실패시키고 원문을 읽은 것으로 주장하지 않습니다.
-
-후속 apply event를 추가할 때는 이름, candidate/plan hash, 승인 원본, before/after layout hash, 개인정보 allowlist와 위 실패 처분을 별도 schema 변경에 고정합니다.
+- `invalid_approval` / `invalid_migration_artifact`: 승인 또는 hash-bound 계획·artifact 계약이 다릅니다. 쓰기 전에 거부합니다.
+- `telemetry_recording_failed`: 성공 event를 기록하지 못했습니다. 생성한 sidecar를 되돌리고 완료를 주장하지 않습니다.
+- `migration_finalization_failed` / `rollback_failed`: event 이후 공개 marker 정리 또는 실패 전 파일 복구를 안전하게 끝내지 못했습니다. 자동 성공이나 부분 복구로 표시하지 않습니다.
 
 ## 결과
 

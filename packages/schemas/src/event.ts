@@ -36,6 +36,7 @@ export const eventTypes = [
   "verification.completed",
   "knowledge.candidate.created",
   "document.stale.detected",
+  "document.migration.applied",
   "unmanaged_change.detected",
   "sync.acknowledged",
 ] as const;

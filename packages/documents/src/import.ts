@@ -5,7 +5,8 @@ import {
 } from "@roven/schemas";
 
 import { normalizeScanPath } from "./filesystem.js";
-import { canonicalJsonBytes, digestSuffix, sha256 } from "./hash.js";
+import { digestSuffix, sha256 } from "./hash.js";
+import { migrationCandidateBytes } from "./integrity.js";
 import {
   DocumentMigrationError,
   type DocumentImportAdapter,
@@ -121,7 +122,7 @@ function candidateFromDraft(
 function materializeCandidate(
   candidate: DocumentMigrationCandidate,
 ): { artifact: DocumentMigrationCandidateArtifact; bytes: Uint8Array } {
-  const bytes = canonicalJsonBytes(candidate);
+  const bytes = migrationCandidateBytes(candidate);
   const contentHash = sha256(bytes);
   const artifact: DocumentMigrationCandidateArtifact = {
     schemaVersion: 1,

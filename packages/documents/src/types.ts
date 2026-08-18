@@ -1,4 +1,7 @@
 import type {
+  DocumentMigrationAppliedEventPayload,
+  DocumentMigrationApproval,
+  DocumentMigrationApplyReceipt,
   DocumentMigrationCandidate,
   DocumentMigrationCandidateArtifact,
   DocumentMigrationPlan,
@@ -63,13 +66,40 @@ export interface DocumentMigrationDryRun {
   candidateArtifactBytes: ReadonlyMap<string, Uint8Array>;
 }
 
+export interface DocumentMigrationAppliedEvent {
+  type: "document.migration.applied";
+  payload: DocumentMigrationAppliedEventPayload;
+}
+
+export interface DurableDocumentMigrationEventRecorder {
+  record(event: DocumentMigrationAppliedEvent): void | Promise<void>;
+}
+
+export interface ApplyDocumentMigrationInput {
+  repositoryRoot: string;
+  plan: DocumentMigrationPlan;
+  candidateArtifacts: readonly DocumentMigrationCandidateArtifact[];
+  approval: DocumentMigrationApproval;
+  eventRecorder: DurableDocumentMigrationEventRecorder;
+  appliedAt?: string;
+}
+
+export type ApplyDocumentMigrationResult = DocumentMigrationApplyReceipt;
+
 export type DocumentMigrationErrorCode =
   | "ambiguous_import_adapter"
   | "invalid_adapter_contract"
   | "invalid_generated_at"
+  | "invalid_approval"
   | "invalid_migration_artifact"
   | "invalid_scan_request"
   | "scan_limit_exceeded"
+  | "migration_apply_failed"
+  | "migration_conflict"
+  | "migration_finalization_failed"
+  | "plan_stale"
+  | "rollback_failed"
+  | "telemetry_recording_failed"
   | "unsafe_source";
 
 export class DocumentMigrationError extends Error {

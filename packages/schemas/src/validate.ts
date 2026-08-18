@@ -4,6 +4,11 @@ import { adapterContractMessageSchema } from "./adapter.js";
 import { contextEvidenceSchema } from "./context-evidence.js";
 import { documentManifestSchema } from "./document-manifest.js";
 import {
+  documentMigrationAppliedEventPayloadSchema,
+  documentMigrationApplyReceiptSchema,
+  documentMigrationApprovalSchema,
+} from "./document-migration-apply.js";
+import {
   documentMigrationCandidateArtifactSchema,
   documentMigrationCandidateSchema,
   documentMigrationPlanSchema,
@@ -24,6 +29,7 @@ ajv.addFormat("date-time", {
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
     !Number.isNaN(Date.parse(value)),
 });
+ajv.addSchema(documentManifestSchema);
 
 const validators = {
   project: ajv.compile(projectManifestSchema),
@@ -36,7 +42,12 @@ const validators = {
   skill: ajv.compile(skillManifestSchema),
   skillLock: ajv.compile(skillLockSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
-  documentManifest: ajv.compile(documentManifestSchema),
+  documentManifest: ajv.getSchema(documentManifestSchema.$id)!,
+  documentMigrationApproval: ajv.compile(documentMigrationApprovalSchema),
+  documentMigrationAppliedEventPayload: ajv.compile(
+    documentMigrationAppliedEventPayloadSchema,
+  ),
+  documentMigrationApplyReceipt: ajv.compile(documentMigrationApplyReceiptSchema),
   documentMigrationCandidate: ajv.compile(documentMigrationCandidateSchema),
   documentMigrationCandidateArtifact: ajv.compile(documentMigrationCandidateArtifactSchema),
   documentMigrationPlan: ajv.compile(documentMigrationPlanSchema),

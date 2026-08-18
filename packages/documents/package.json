@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@roven/project": "workspace:*",
     "@roven/schemas": "workspace:*",
     "yaml": "^2.9.0"
   }

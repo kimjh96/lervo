@@ -99,6 +99,21 @@ describe("sharded document storage", () => {
     await expect(loadDocumentManifests(root)).resolves.toEqual([managed]);
   });
 
+  it("rejects a migration transaction marker instead of loading a partial layout", async () => {
+    const root = await initializedRepository();
+    await writeFile(
+      resolve(root, ".roven/documents/.migration-migp_aaaaaaaaaaaaaaaa.lock"),
+      "transaction in progress\n",
+    );
+
+    await expect(loadDocumentManifests(root)).rejects.toMatchObject({
+      code: "document_layout_conflict",
+    });
+    await expect(loadDocumentRegistry(root)).rejects.toMatchObject({
+      code: "document_layout_conflict",
+    });
+  });
+
   it("rejects noncanonical paths and oversized sidecars before aggregation", async () => {
     const root = await initializedRepository();
     const path = resolve(root, ".roven/documents/doc_path_0000001.yaml");

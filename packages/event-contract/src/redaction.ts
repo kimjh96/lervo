@@ -68,6 +68,17 @@ export const eventPayloadAllowlists = {
   ],
   "knowledge.candidate.created": ["candidateId", "claimDigest", "paths", "evidenceIds"],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
+  "document.migration.applied": [
+    "planId",
+    "approvalId",
+    "approvalDigest",
+    "beforeLayoutHash",
+    "afterLayoutHash",
+    "sourceHashes",
+    "candidateArtifactHashes",
+    "sidecars",
+    "appliedAt"
+  ],
   "unmanaged_change.detected": ["paths", "beforeRevision", "afterRevision", "detectedAt"],
   "sync.acknowledged": ["eventIds", "hubId", "acknowledgedAt"],
 } as const satisfies Record<EventType, readonly string[]>;

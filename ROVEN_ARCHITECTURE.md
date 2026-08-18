@@ -79,9 +79,11 @@ flowchart LR
 
 형식 해석은 `DocumentImportAdapter` 뒤에 둡니다. Core scanner가 안전한 byte 읽기와 hash를 소유하고 adapter는 전달받은 byte에서 Markdown, MDX, AsciiDoc, 기존 Roven registry 또는 프로젝트 custom 형식의 metadata 후보만 반환합니다. Adapter는 파일 시스템 쓰기 권한을 받지 않습니다. 알 수 없는 형식과 낮은 신뢰도는 `observed` 후보로 남기고 관리 대상으로 자동 승격하지 않습니다.
 
-Dry-run 계획은 source path와 hash에 묶입니다. 승인 뒤 첫 적용도 기본적으로 `.roven/documents/<documentId>.yaml` sidecar만 만들고 원본 위치와 byte를 유지합니다. 적용 직전 source hash나 대상 layout이 바뀌면 전체 계획을 stale로 처리해 다시 탐색합니다. 본문 이동, 형식 변환, managed marker 삽입은 sidecar 도입과 다른 구조 변경 계획이며 별도 승인이 필요합니다. 따라서 CommonMark managed block parser/compiler는 이 import 계약과 legacy marker 해석 경계를 먼저 구현한 뒤에 착수합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
+Dry-run 계획은 source path·hash, candidate artifact와 target snapshot에 묶입니다. 승인은 모든 candidate를 정확히 한 번 다루며, sidecar를 만들 후보에는 책임자·locale·검토 주기까지 사람이 확정한 최종 `DocumentManifest`가 들어갑니다. 적용기는 승인과 source·candidate·target·기존 manifest 전체를 다시 검증한 뒤 `.roven/documents/<documentId>.yaml`만 만듭니다. 원본 위치와 byte는 유지합니다.
 
-M4 첫 `@roven/documents` 슬라이스는 scanner, adapter와 planner를 분리했습니다. Scanner는 최대 4,096개 파일·파일당 4 MiB·전체 64 MiB 안에서 stable bytes와 hash를 만들고 adapter에는 격리된 byte 복사본만 줍니다. Markdown/MDX와 schema-valid 기존 registry adapter는 adapter ID/version을 candidate에 남기며, 지원하지 않는 형식은 `roven_unknown`의 `observed` 후보로 보존합니다. Candidate JSON은 source별 artifact/hash로 분리하고 plan은 현재 source/target snapshot에만 묶입니다. Existing/unsafe sidecar, 중복 document ID/path는 conflict이고 legacy registry가 가리키는 원문을 함께 scan하지 않았으면 review 경고입니다. 이 슬라이스는 파일이나 event를 쓰지 않습니다.
+여러 sidecar를 공개하는 동안에는 transaction marker를 두어 loader가 부분 layout을 읽지 못하게 합니다. File과 directory entry를 동기화하고 성공 event를 영속한 뒤 marker를 제거합니다. Event 기록 전 실패하면 이번 작업이 만든 sidecar를 hash로 확인해 모두 되돌립니다. Event 기록 뒤 marker 정리에 실패하거나 rollback 대상을 안전하게 확인하지 못하면 정상 완료로 표시하지 않고 운영자 복구가 필요한 fail-closed 상태로 남깁니다. 기존 단일 `.roven/documents.yaml`과 새 sidecar는 loader 계약상 충돌하므로 metadata-only apply가 둘을 섞지 않습니다. 이를 분할하려면 기존 registry 비활성화까지 포함한 별도 structural migration과 승인이 먼저 필요합니다.
+
+`@roven/documents`는 scanner, adapter, planner, 승인 검증, preflight와 filesystem publication을 분리합니다. Scanner는 최대 4,096개 파일·파일당 4 MiB·전체 64 MiB 안에서 stable bytes와 hash를 만들고 adapter에는 격리된 byte 복사본만 줍니다. Markdown/MDX와 schema-valid 기존 registry adapter는 adapter ID/version을 candidate에 남기며, 지원하지 않는 형식은 `roven_unknown`의 `observed` 후보로 보존합니다. Candidate JSON은 source별 artifact/hash로 분리합니다. Apply는 hash에 묶인 승인 원본과 privacy-bounded `document.migration.applied` event recorder를 필수 port로 받고, event 저장이 성공한 경우에만 receipt를 반환합니다.
 
 ### Project Storage Bootstrap
 
@@ -316,6 +318,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입 탐색과 계획(`documents`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M4의 다음 범위는 승인된 migration plan의 metadata-only sidecar apply입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입 탐색·계획·metadata 적용(`documents`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M4의 다음 범위는 기존 단일 registry를 안전하게 비활성화하고 sidecar로 전환하는 structural migration 계약입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

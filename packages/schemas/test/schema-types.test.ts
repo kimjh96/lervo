@@ -3,6 +3,8 @@ import type {
   DocumentRecord,
   DocumentRegistry,
   DocumentManifest,
+  DocumentMigrationApproval,
+  DocumentMigrationApplyReceipt,
   DocumentMigrationCandidate,
   DocumentMigrationPlan,
   HandoffBundle,
@@ -48,6 +50,18 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<DocumentMigrationPlan["writesAllowed"]>().toEqualTypeOf<false>();
     expectTypeOf<DocumentMigrationPlan["mode"]>().toEqualTypeOf<"dry_run">();
     expectTypeOf<DocumentMigrationCandidate["source"]["contentHash"]>()
+      .toEqualTypeOf<string>();
+  });
+
+  it("requires reviewed sidecars and returns a hash-only apply event payload", () => {
+    type Approved = Extract<
+      DocumentMigrationApproval["decisions"][number],
+      { action: "approve_sidecar" }
+    >;
+    expectTypeOf<Approved["manifest"]>().toEqualTypeOf<DocumentManifest>();
+    expectTypeOf<DocumentMigrationApplyReceipt["eventPayload"]["approvalDigest"]>()
+      .toEqualTypeOf<string>();
+    expectTypeOf<DocumentMigrationApplyReceipt["eventPayload"]["afterLayoutHash"]>()
       .toEqualTypeOf<string>();
   });
 

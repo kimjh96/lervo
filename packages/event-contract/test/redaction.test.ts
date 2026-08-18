@@ -91,4 +91,31 @@ describe("event payload privacy boundary", () => {
     });
     expect(JSON.stringify(result.payload)).not.toContain("cat .env");
   });
+
+  it("keeps migration hashes but removes reviewer and source path details", () => {
+    const result = sanitizeEventPayload("document.migration.applied", {
+      planId: "migp_aaaaaaaaaaaaaaaa",
+      approvalId: "apr_migration_0001",
+      approvalDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      beforeLayoutHash: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      afterLayoutHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      sourceHashes: ["sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+      candidateArtifactHashes: [
+        "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      ],
+      sidecars: [{
+        documentId: "doc_readme_000001",
+        contentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      }],
+      appliedAt: "2026-08-19T02:00:00Z",
+      approverId: "private-reviewer",
+      sourcePaths: ["README.md"],
+      documentBody: "private body",
+    });
+
+    expect(result.payload).not.toHaveProperty("approverId");
+    expect(result.payload).not.toHaveProperty("sourcePaths");
+    expect(result.payload).not.toHaveProperty("documentBody");
+    expect(result.payload).toHaveProperty("approvalDigest");
+  });
 });

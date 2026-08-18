@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { lstat, readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
 import type {
@@ -25,6 +25,10 @@ function fail(code: "contract_invalid" | "document_layout_conflict", message: st
 }
 
 async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
+  const before = await lstat(path, { bigint: true });
+  if (!before.isDirectory() || before.isSymbolicLink()) {
+    fail("document_layout_conflict", "문서 manifest 경로는 실제 디렉터리여야 합니다.");
+  }
   const entries = await readdir(path, { withFileTypes: true });
   if (entries.length > MAX_DOCUMENT_MANIFESTS) {
     fail("contract_invalid", "문서 manifest 수가 한 프로젝트의 안전한 조회 한도를 넘었습니다.");
@@ -46,6 +50,14 @@ async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
     );
     validateDocumentManifest(manifest, basename(entry.name));
     manifests.push(manifest);
+  }
+  const after = await lstat(path, { bigint: true });
+  if (
+    !after.isDirectory() || after.isSymbolicLink() ||
+    before.dev !== after.dev || before.ino !== after.ino ||
+    before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+  ) {
+    fail("document_layout_conflict", "문서 manifest 디렉터리가 읽는 동안 바뀌었습니다.");
   }
   validateDocumentManifestSet(manifests);
   return manifests;

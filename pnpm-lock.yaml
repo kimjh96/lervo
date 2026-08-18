@@ -117,6 +117,9 @@ importers:
 
   packages/documents:
     dependencies:
+      '@roven/project':
+        specifier: workspace:*
+        version: link:../project
       '@roven/schemas':
         specifier: workspace:*
         version: link:../schemas

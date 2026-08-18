@@ -409,11 +409,14 @@ Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 
 - `skill.resolved`, `skill.invoked`, `skill.completed`
 - `verification.started`, `verification.completed`
 - `knowledge.candidate.created`, `document.stale.detected`
+- `document.migration.applied`
 - `unmanaged_change.detected`, `sync.acknowledged`
 
 M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. 키는 Unicode 호환 정규화 후 구분 기호와 대소문자를 제거해 검사하므로 `rawPrompt`, `access_token`, 전각 문자 변형도 같은 민감 키로 취급합니다. raw prompt, 문서 본문, authorization/cookie/credential/password/secret/token/API key/tool input 같은 민감 키는 중첩 객체에서도 event에 보존하지 않습니다. 순환 참조, 유한하지 않은 숫자, 일반 JSON 객체가 아닌 값은 정리된 것처럼 저장하지 않고 `redaction_failed`로 기록을 중단합니다. 파일 경로와 작업 디렉터리는 저장소 상대 경로만 허용합니다. 원문이 필요한 실행 경로는 event payload와 분리된 로컬 context envelope/CAS를 사용합니다.
 
 `context.published`에는 shared context/document ID, content hash, 생산 역할, 공개 방식과 허용 역할, 만료 시각만 저장합니다. `handoff.created`에는 handoff ID, 보내고 받는 역할, shared context/evidence event ID와 요청 digest만 저장합니다. 두 event 모두 문서 본문, raw prompt, 내부 추론과 provider payload를 허용하지 않습니다. 이 event를 기록하지 못하면 역할 간 공유가 성립했다고 주장하지 않고 `telemetry_recording_failed`로 실행을 중단합니다. `context.published`는 다른 역할이 읽었다는 뜻이 아니며, 수신 역할의 `document.loaded`와 `context.injected`가 별도로 필요합니다.
+
+`document.migration.applied`에는 plan/approval ID, 승인 digest, source/candidate artifact hash, 적용 전후 sidecar layout hash, 생성한 document ID/content hash와 적용 시각만 저장합니다. 승인자, source/document path, manifest와 문서 본문은 허용하지 않습니다. 이 event는 sidecar 생성 시도나 승인만 뜻하지 않고, 모든 파일 공개와 snapshot 재검증이 끝났음을 뜻합니다. Recorder가 event를 durable하게 기록하지 못하면 적용기가 이번 작업의 sidecar를 되돌리므로 event와 receipt 어느 쪽도 성공으로 만들지 않습니다.
 
 ## 로컬 event store, outbox와 CAS
 
@@ -439,7 +442,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 
 ## M0 직렬화 계약
 
-현재 구현은 다음 열세 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
+현재 구현은 다음 열여섯 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
@@ -452,6 +455,9 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 - document manifest/legacy registry: 상대 경로, 책임자, 연결 경로, 검증 revision/date, review interval, 사용자/managed block/Roven 생성 파일 소유권과 분할 정책
 - document migration candidate/artifact: source path/hash, importer ID/version, 형식·소유권 판정, 제안 sidecar 좌표, confidence와 warning, 분리 artifact hash
 - document migration plan: read-only 상수, source/candidate/target snapshot, review/conflict 결과와 승인 전 상태
+- document migration approval: approver 좌표, plan/candidate artifact hash와 candidate별 skip 또는 최종 manifest 결정
+- document migration applied payload: 승인 digest, source/candidate artifact hash, 적용 전후 layout hash와 생성 sidecar hash
+- document migration apply receipt: 생성 sidecar 상대 경로, 건너뛴 candidate와 성공 event payload
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -511,7 +517,9 @@ Discovery와 lock의 실패 코드는 `invalid_skill_request`, `invalid_skill_ma
 
 기본 적용은 승인된 plan으로 새 sidecar를 만드는 metadata-only 작업입니다. Source byte와 위치, 사용자 front matter, 기존 marker는 유지합니다. Source hash나 target layout이 dry-run 이후 바뀌거나 ID·경로 소유권이 충돌하면 plan 전체를 `stale` 또는 `conflict`로 거부하고 일부만 적용하지 않습니다. 알 수 없는 형식과 낮은 신뢰도 후보는 `observed/review_required`로 남깁니다. 본문 이동·변환·marker 삽입은 별도 structural patch이며 명시적 승인과 byte 보존 검증 없이는 실행하지 않습니다.
 
-M4 첫 구현은 새 event type을 만들거나 migration 완료를 주장하지 않고 read-only candidate와 dry-run plan까지만 제공합니다. Scanner가 stable source bytes/hash를 소유하고 adapter ID/version, 형식 판정과 경고를 candidate artifact에 남깁니다. Plan은 source snapshot, candidate artifact hash와 sidecar target의 missing/file/unsafe snapshot을 결속하며 `writesAllowed=false`, `approvalStatus=not_requested`가 schema 상수입니다. 이후 apply event를 추가할 때는 candidate/plan hash, 승인 원본, before/after layout hash와 실패 처분을 type별 allowlist에 고정해야 합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
+Dry-run은 파일이나 event를 쓰지 않습니다. Scanner가 stable source bytes/hash를 소유하고 adapter ID/version, 형식 판정과 경고를 candidate artifact에 남깁니다. Plan은 source snapshot, candidate artifact hash와 sidecar target의 missing/file/unsafe snapshot을 결속하며 `writesAllowed=false`, `approvalStatus=not_requested`가 schema 상수입니다.
+
+Metadata-only apply 승인은 모든 candidate를 중복 없이 다루고, 승인된 항목마다 사람이 검토한 최종 manifest를 포함합니다. Apply는 plan ID, candidate artifact canonical bytes, source·target과 현재 manifest 집합을 다시 검증합니다. Sidecar를 staging에서 동기화하고 transaction marker로 부분 layout의 loader 사용을 차단한 뒤 전체를 공개합니다. 공개 뒤 snapshot이 승인 내용과 같을 때만 필수 `document.migration.applied` recorder를 호출합니다. Recorder가 commit 없이 실패하면 생성 파일을 hash로 확인해 되돌립니다. Event commit 뒤 marker 제거 실패 또는 안전한 rollback 실패는 정상 receipt를 만들지 않습니다. 기존 단일 `documents.yaml`이 있는 layout은 sidecar와 혼용하지 않고 별도 structural migration 전까지 `migration_conflict`로 거부합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
 
 Roven은 문서를 세 유형으로 다룹니다.
 
@@ -550,7 +558,7 @@ Roven은 문서를 세 유형으로 다룹니다.
 
 | code | 실패 의미 |
 |---|---|
-| `telemetry_recording_failed` | 변경 capability를 닫고 run을 중단합니다. |
+| `telemetry_recording_failed` | 변경 capability를 닫고 run을 중단합니다. Document migration에서는 성공 event를 commit하지 못한 것으로 보고 이번 apply가 만든 sidecar를 모두 되돌립니다. |
 | `redaction_failed` | 민감정보가 섞인 event를 생략해 진행하지 않고 변경 capability를 닫습니다. |
 | `hub_sync_failed` | 로컬 run은 계속하고 outbox에 보관합니다. |
 | `derived_index_failed` | 명시적 경로와 전문 검색으로 저하 운전합니다. |
@@ -567,3 +575,7 @@ Roven은 문서를 세 유형으로 다룹니다.
 | `cancelled` | 호출자가 run을 중단했습니다. Active turn interrupt와 adapter 종료를 시도하고 정상 완료를 기록하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |
+| `invalid_approval` / `invalid_migration_artifact` | Migration 승인, plan ID 또는 candidate artifact bytes/hash가 계약과 다릅니다. Sidecar를 쓰기 전에 전체 apply를 거부합니다. |
+| `plan_stale` / `migration_conflict` | Dry-run 이후 source·target·manifest layout이 달라졌거나 기존 registry, ID, path, 관계가 충돌합니다. 부분 적용하지 않고 새 계획 또는 structural migration을 요구합니다. |
+| `migration_apply_failed` | Event 기록 전에 승인 sidecar 전체를 공개·검증하지 못했습니다. 이번 작업이 만든 파일을 되돌리고 새 apply에서 재검증합니다. |
+| `migration_finalization_failed` / `rollback_failed` | 성공 event 뒤 transaction marker를 제거하지 못했거나 실패한 apply의 생성 파일을 안전하게 되돌리지 못했습니다. 완료로 표시하지 않으며 marker와 현재 layout을 운영자가 확인해야 합니다. |

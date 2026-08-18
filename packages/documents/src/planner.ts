@@ -6,8 +6,9 @@ import {
 
 import { builtInDocumentImportAdapters } from "./adapters.js";
 import { canonicalRepositoryRoot, inspectTargetFile } from "./filesystem.js";
-import { canonicalJsonBytes, sha256 } from "./hash.js";
+import { sha256 } from "./hash.js";
 import { importDocumentSources } from "./import.js";
+import { calculateMigrationPlanId } from "./integrity.js";
 import { scanDocumentSources } from "./scanner.js";
 import {
   DocumentMigrationError,
@@ -142,28 +143,24 @@ export async function createDocumentMigrationDryRun(input: {
     entries,
     new Set(sources.map((source) => source.path)),
   );
-  const planBasis = {
+  const planContent = {
+    schemaVersion: 1 as const,
+    mode: "dry_run" as const,
+    writesAllowed: false as const,
+    approvalStatus: "not_requested" as const,
+    outcome: summary.conflict
+      ? "conflict" as const
+      : summary.reviewRequired
+        ? "review_required" as const
+        : "ready_for_review" as const,
     sources: sources.map(({ path, contentHash, byteCount }) => ({ path, contentHash, byteCount })),
     candidates: entries,
+    warnings: summary.warnings,
   };
   const plan: DocumentMigrationPlan = {
-    schemaVersion: 1,
-    planId: `migp_${sha256(canonicalJsonBytes(planBasis)).slice(
-      "sha256:".length,
-      "sha256:".length + 16,
-    )}`,
+    ...planContent,
+    planId: calculateMigrationPlanId(planContent),
     generatedAt,
-    mode: "dry_run",
-    writesAllowed: false,
-    approvalStatus: "not_requested",
-    outcome: summary.conflict
-      ? "conflict"
-      : summary.reviewRequired
-        ? "review_required"
-        : "ready_for_review",
-    sources: planBasis.sources,
-    candidates: entries,
-    warnings: summary.warnings,
   };
   if (!validateSchema("documentMigrationPlan", plan).valid) {
     throw new DocumentMigrationError(

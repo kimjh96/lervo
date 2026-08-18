@@ -9,12 +9,12 @@ import {
   timestampSchema,
 } from "./common.js";
 
-const migrationCandidateIdSchema = {
+export const migrationCandidateIdSchema = {
   type: "string",
   pattern: "^migc_[a-f0-9]{16}$",
 } as const;
 
-const migrationPlanIdSchema = {
+export const migrationPlanIdSchema = {
   type: "string",
   pattern: "^migp_[a-f0-9]{16}$",
 } as const;
