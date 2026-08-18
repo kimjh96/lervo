@@ -318,4 +318,17 @@ describe("adapter contract evidence integrity", () => {
       expect.objectContaining({ code: "context_envelope_mismatch" }),
     );
   });
+
+  it("rejects an envelope created before its managed session", async () => {
+    const backdatedFixture = fixture("codex");
+    backdatedFixture.contextEnvelope.createdAt = "2026-08-17T23:59:59Z";
+
+    const report = await evaluateAdapterContract(
+      new FixtureAdapter("codex"),
+      backdatedFixture,
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "context_envelope_mismatch" }),
+    );
+  });
 });

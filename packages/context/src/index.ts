@@ -4,6 +4,7 @@ export * from "./evidence.js";
 export * from "./filesystem.js";
 export * from "./freshness.js";
 export * from "./loading.js";
+export * from "./loaded-validation.js";
 export * from "./paths.js";
 export * from "./plan-validation.js";
 export * from "./prepare.js";

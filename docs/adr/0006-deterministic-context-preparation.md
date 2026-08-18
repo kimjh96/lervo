@@ -37,6 +37,7 @@ Context router가 event store, CAS와 provider adapter까지 직접 알게 만�
 - Final file은 `O_NOFOLLOW`로 열고, 읽기 전후 file descriptor의 device, inode, size, mtime과 ctime을 비교합니다. 읽은 뒤 경로가 같은 inode와 canonical path를 가리키는지도 확인합니다.
 - Handoff 문서는 publication의 content hash와 실제 bytes가 일치해야 합니다.
 - Loader는 E2를 만들기 전에 plan이 현재 project/run/session의 E0/E1만 포함하고, 모든 문서와 선택 이유가 plan에 대응하는지 다시 검증합니다. 다른 run의 receipt나 기존 E2/E3가 들어 있는 plan을 거부합니다.
+- `LoadedContext`의 plan·문서·E0~E2 evidence 무결성 재검증은 이 패키지가 소유합니다. 문서 배열 순서는 계약 의미가 아니며 ID로 대응합니다.
 - 한 문서라도 적재하지 못하면 `LoadedContext`와 E2 evidence 묶음을 반환하지 않습니다.
 - 이 과정은 사용자 파일을 쓰거나 수정 시각을 바꾸지 않습니다.
 
@@ -50,7 +51,7 @@ Context router가 event store, CAS와 provider adapter까지 직접 알게 만�
 
 | 분류 | 대표 code | 처분 |
 |---|---|---|
-| 계약 오류 | `invalid_expected_path`, `invalid_path_rule`, `required_rule_unresolved`, `duplicate_document_path`, `duplicate_shared_context_id`, `duplicate_handoff_id`, `handoff_recipient_mismatch`, `handoff_invalid`, `invalid_context_evidence`, `invalid_context_plan` | `contract_validation_failed`로 context 준비를 시작 전 또는 E1 반환 전에 중단합니다. 자동 재시도하지 않습니다. |
+| 계약 오류 | `invalid_expected_path`, `invalid_path_rule`, `required_rule_unresolved`, `duplicate_document_path`, `duplicate_shared_context_id`, `duplicate_handoff_id`, `handoff_recipient_mismatch`, `handoff_invalid`, `invalid_context_evidence`, `invalid_context_plan`, `invalid_loaded_context` | `contract_validation_failed`로 context 준비를 시작 전 또는 E1/E2 사용 전에 중단합니다. 자동 재시도하지 않습니다. |
 | 원문 적재 실패 | `document_missing`, `unsafe_document_path`, `document_read_failed`, `document_changed_during_read`, `content_hash_mismatch` | `required_context_missing`으로 변경 capability를 닫고 원문 상태를 바로잡은 뒤 다시 준비합니다. |
 | 좌표 충돌 | `content_expectation_conflict`, `receipt_id_conflict`, `document_not_registered`, `shared_context_document_missing` | 모호한 증거를 만들지 않고 `contract_validation_failed`로 중단합니다. |
 

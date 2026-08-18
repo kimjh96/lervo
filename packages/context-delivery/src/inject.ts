@@ -15,7 +15,6 @@ function assertCurrentGeneration(input: InjectLoadedContextInput): void {
   if (current !== input.contextGeneration) {
     throw new ContextDeliveryError(
       "stale_context_generation",
-      "required_context_missing",
       "Context generation이 바뀌어 재주입이 필요합니다.",
     );
   }
@@ -34,7 +33,6 @@ async function assertFreshSnapshot(
   if (!freshness.valid) {
     throw new ContextDeliveryError(
       "context_snapshot_invalid",
-      "required_context_missing",
       `Context snapshot이 유효하지 않습니다: ${freshness.invalidations
         .map((item) => `${item.documentId}:${item.reason}`)
         .join(",")}`,
@@ -52,14 +50,13 @@ export async function injectLoadedContext(
   const envelope = await buildContextEnvelope({
     loaded: input.loaded,
     session: input.session,
-    writingPolicyDocumentId: input.writingPolicyDocumentId,
+    writingPolicy: input.writingPolicy,
     targetTurnId: input.targetTurnId,
     contextGeneration: input.contextGeneration,
     createdAt,
-    ...(input.deliveryMode === undefined ? {} : { deliveryMode: input.deliveryMode }),
-    ...(input.inlineByteLimit === undefined
+    ...(input.deliveryPolicy === undefined
       ? {}
-      : { inlineByteLimit: input.inlineByteLimit }),
+      : { deliveryPolicy: input.deliveryPolicy }),
     ...(input.artifactStore === undefined ? {} : { artifactStore: input.artifactStore }),
     ...(input.createEnvelopeId === undefined
       ? {}
@@ -70,21 +67,25 @@ export async function injectLoadedContext(
   await assertFreshSnapshot(input, now());
   assertCurrentGeneration(input);
 
+  const sessionSnapshot = structuredClone(input.session);
+  const envelopeSnapshot = structuredClone(envelope);
+  const adapterSession = structuredClone(sessionSnapshot);
+  const adapterEnvelope = structuredClone(envelopeSnapshot);
   let rawReceipt: unknown;
   try {
-    rawReceipt = await input.injectContext(input.session, envelope);
+    rawReceipt = await input.injectContext(adapterSession, adapterEnvelope);
   } catch {
     throw new ContextDeliveryError(
       "injection_failed",
-      "required_context_missing",
       "Adapter가 controlled context 입력을 완료하지 못했습니다.",
     );
   }
+  await assertFreshSnapshot(input, now());
   const currentGeneration = input.getCurrentContextGeneration();
   assertGeneration(currentGeneration, "currentContextGeneration");
   const verified = verifyContextReceipt({
-    envelope,
-    session: input.session,
+    envelope: envelopeSnapshot,
+    session: sessionSnapshot,
     receipt: rawReceipt,
     expectedContextGeneration: currentGeneration,
     existingEvidence: input.loaded.evidence,
@@ -93,7 +94,7 @@ export async function injectLoadedContext(
       : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
   });
   return {
-    envelope,
+    envelope: envelopeSnapshot,
     receipt: verified.receipt,
     e3Evidence: verified.evidence,
     evidence: [...input.loaded.evidence, ...verified.evidence],

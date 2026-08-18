@@ -21,6 +21,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  assertLoadedContextIntegrity,
   ContextPreparationError,
   createContextPlan,
   discoverInstructionDocuments,
@@ -482,6 +483,47 @@ describe("context preparation", () => {
         }),
       ],
     });
+  });
+
+  it("owns LoadedContext integrity validation without depending on document order", async () => {
+    const fixture = await fixtureRepository();
+    const loaded = await prepareContext({
+      repositoryRoot: fixture.root,
+      sourceRevision: "working-tree:fixture-1",
+      ...planInput(fixture),
+    });
+    expect(() =>
+      assertLoadedContextIntegrity({
+        ...loaded,
+        documents: [...loaded.documents].reverse(),
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertLoadedContextIntegrity({
+        ...loaded,
+        documents: loaded.documents.map((document, index) =>
+          index === 0 ? { ...document, bytes: Buffer.from("altered") } : document,
+        ),
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<ContextPreparationError>>({
+        code: "invalid_loaded_context",
+      }),
+    );
+    expect(() =>
+      assertLoadedContextIntegrity({
+        ...loaded,
+        evidence: loaded.evidence.map((evidence) =>
+          evidence.state === "loaded"
+            ? { ...evidence, recordedAt: "2026-08-18T01:01:59Z" }
+            : evidence,
+        ),
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<ContextPreparationError>>({
+        code: "invalid_loaded_context",
+      }),
+    );
   });
 
   it("invalidates a handoff when its publication expires or is superseded", async () => {

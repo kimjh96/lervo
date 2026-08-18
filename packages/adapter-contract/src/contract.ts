@@ -1,9 +1,12 @@
 import {
   type AdapterStopRequest,
-  type ContextScope,
   validateSchema,
 } from "@roven/schemas";
 
+import {
+  inspectContextEnvelopeBinding,
+  inspectContextReceiptBinding,
+} from "./context-binding.js";
 import { type AdapterContractFixture, type ProviderAdapter } from "./provider-adapter.js";
 
 export type AdapterContractViolationCode =
@@ -56,15 +59,6 @@ function sameCoordinates(
     value.projectId === expected.projectId &&
     value.runId === expected.runId &&
     value.sessionId === expected.sessionId
-  );
-}
-
-function sameScope(left: ContextScope, right: ContextScope): boolean {
-  if (left.kind !== right.kind) return false;
-  if (left.kind === "full" || right.kind === "full") return true;
-  return (
-    left.sections.length === right.sections.length &&
-    left.sections.every((section) => right.sections.includes(section))
   );
 }
 
@@ -121,70 +115,30 @@ export async function evaluateAdapterContract(
     });
   }
   addValidationViolation(violations, "context_envelope_invalid", fixture.contextEnvelope);
-  const writingPolicyDocumentExists =
-    fixture.contextEnvelope.writingPolicyDocumentId === null ||
-    fixture.contextEnvelope.documents.some(
-      (document) => document.documentId === fixture.contextEnvelope.writingPolicyDocumentId,
-    );
-
-  if (
-    !sameCoordinates(fixture.contextEnvelope, session) ||
-    fixture.contextEnvelope.adapterId !== adapter.descriptor.adapterId ||
-    fixture.contextEnvelope.roleId !== session.roleId ||
-    fixture.contextEnvelope.writingPolicyId !== session.writingPolicyId ||
-    (session.writingPolicyId !== null && fixture.contextEnvelope.writingPolicyDocumentId === null) ||
-    !writingPolicyDocumentExists
-  ) {
+  const envelopeBinding = inspectContextEnvelopeBinding({
+    session,
+    envelope: fixture.contextEnvelope,
+    expectedContextGeneration: fixture.contextEnvelope.contextGeneration,
+  });
+  if (!envelopeBinding.passed) {
     violations.push({
       code: "context_envelope_mismatch",
-      detail: "context envelope is not bound to the managed adapter session",
+      detail: envelopeBinding.violations.map((item) => item.detail).join("; "),
     });
   }
 
   const receipt = await adapter.injectContext(session, fixture.contextEnvelope);
   addValidationViolation(violations, "context_receipt_invalid", receipt);
-  const expectedDocuments = new Map(
-    fixture.contextEnvelope.documents.map((document) => [document.documentId, document]),
-  );
-  const receivedDocumentIds = new Set<string>();
-  const documentsMatch =
-    expectedDocuments.size === fixture.contextEnvelope.documents.length &&
-    receipt.documents.length === expectedDocuments.size &&
-    receipt.documents.every((document) => {
-      if (receivedDocumentIds.has(document.documentId)) return false;
-      receivedDocumentIds.add(document.documentId);
-      const expected = expectedDocuments.get(document.documentId);
-      return (
-        expected?.contentHash === document.contentHash &&
-        sameScope(expected.scope, document.scope) &&
-        document.status === "injected"
-      );
-    });
-  const writingPolicyReceiptExists =
-    receipt.writingPolicyDocumentId === null ||
-    receipt.documents.some(
-      (document) => document.documentId === receipt.writingPolicyDocumentId,
-    );
-  if (
-    !sameCoordinates(receipt, session) ||
-    receipt.adapterId !== adapter.descriptor.adapterId ||
-    receipt.provider !== adapter.descriptor.provider ||
-    receipt.providerSessionId !== session.providerSessionId ||
-    receipt.roleId !== session.roleId ||
-    receipt.writingPolicyId !== session.writingPolicyId ||
-    receipt.writingPolicyDocumentId !== fixture.contextEnvelope.writingPolicyDocumentId ||
-    receipt.envelopeId !== fixture.contextEnvelope.envelopeId ||
-    receipt.targetTurnId !== fixture.contextEnvelope.targetTurnId ||
-    receipt.contextGeneration !== fixture.contextEnvelope.contextGeneration ||
-    receipt.controlledInput !== true ||
-    Date.parse(receipt.acceptedAt) < Date.parse(fixture.contextEnvelope.createdAt) ||
-    Date.parse(receipt.acceptedAt) < Date.parse(session.startedAt) ||
-    !documentsMatch ||
-    !writingPolicyReceiptExists
-  ) {
+  const receiptBinding = inspectContextReceiptBinding({
+    session,
+    envelope: fixture.contextEnvelope,
+    receipt,
+    expectedContextGeneration: fixture.contextEnvelope.contextGeneration,
+  });
+  if (!receiptBinding.passed) {
     violations.push({
       code: "context_receipt_mismatch",
-      detail: "context receipt does not prove the exact controlled envelope was injected",
+      detail: receiptBinding.violations.map((item) => item.detail).join("; "),
     });
   }
 

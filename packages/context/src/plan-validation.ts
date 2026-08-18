@@ -1,19 +1,10 @@
-import type { ContextEvidence, ContextScope } from "@roven/schemas";
+import { contextScopesEqual, type ContextEvidence } from "@roven/schemas";
 
 import {
   type ContextPlan,
   ContextPreparationError,
   type PlannedContextDocument,
 } from "./types.js";
-
-function sameScope(left: ContextScope, right: ContextScope): boolean {
-  if (left.kind !== right.kind) return false;
-  if (left.kind === "full" || right.kind === "full") return true;
-  return (
-    left.sections.length === right.sections.length &&
-    left.sections.every((section) => right.sections.includes(section))
-  );
-}
 
 function invalid(message: string): never {
   throw new ContextPreparationError("invalid_context_plan", message);
@@ -39,7 +30,7 @@ function validateDocumentEvidence(
         item.state === "selected" &&
         item.documentId === document.documentId &&
         item.required === document.required &&
-        sameScope(item.scope, document.scope) &&
+        contextScopesEqual(item.scope, document.scope) &&
         item.reasonCode === reason.reasonCode &&
         item.ruleId === reason.ruleId &&
         item.projectId === plan.coordinates.projectId &&
@@ -91,7 +82,7 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
       if (
         !reasonExists ||
         evidence.required !== document.required ||
-        !sameScope(evidence.scope, document.scope)
+        !contextScopesEqual(evidence.scope, document.scope)
       ) {
         invalid(`선택 evidence가 plan의 선택 이유와 다릅니다: ${evidence.receiptId}`);
       }

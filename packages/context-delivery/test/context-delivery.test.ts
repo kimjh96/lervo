@@ -1,219 +1,37 @@
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { prepareContext, type LoadedContext } from "@roven/context";
-import {
-  type AdapterContextEnvelope,
-  type AdapterContextReceipt,
-  type AdapterSession,
-  type DocumentRegistry,
-  type RoleProfile,
-} from "@roven/schemas";
-import type { ArtifactPutResult, ArtifactStore } from "@roven/storage-contract";
+import { FileSystemCas } from "@roven/cas";
+import type { LoadedContext } from "@roven/context";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   buildContextEnvelope,
+  casContextDelivery,
   ContextDeliveryError,
+  createInlineThresholdPolicy,
   injectLoadedContext,
   verifyContextReceipt,
 } from "../src/index.js";
+import {
+  cleanupDeliveryFixtures,
+  createDeliveryFixture,
+  hash,
+  MemoryArtifactStore,
+  receiptFactory,
+  receiptFor,
+  writingPolicyDocumentId,
+} from "./fixture.js";
 
-const projectId = "prj_01234567";
-const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const writingPolicyDocumentId = "doc_writing_policy";
-const temporaryRoots: string[] = [];
-
-function receiptFactory(prefix = "ctx_evidence"): () => string {
-  let sequence = 0;
-  return () => `${prefix}_${String(++sequence).padStart(8, "0")}`;
-}
-
-function hash(bytes: Uint8Array): string {
-  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-}
-
-class MemoryArtifactStore implements ArtifactStore {
-  readonly objects = new Map<string, Uint8Array>();
-
-  async put(content: string | Uint8Array): Promise<ArtifactPutResult> {
-    const bytes = typeof content === "string" ? Buffer.from(content) : Buffer.from(content);
-    const contentHash = hash(bytes);
-    const uri = `roven-cas://sha256/${contentHash.slice("sha256:".length)}`;
-    const created = !this.objects.has(uri);
-    this.objects.set(uri, bytes);
-    return { uri, contentHash, byteCount: bytes.byteLength, created };
-  }
-
-  async putStream(chunks: AsyncIterable<string | Uint8Array>): Promise<ArtifactPutResult> {
-    const buffers: Buffer[] = [];
-    for await (const chunk of chunks) {
-      buffers.push(typeof chunk === "string" ? Buffer.from(chunk) : Buffer.from(chunk));
-    }
-    return this.put(Buffer.concat(buffers));
-  }
-
-  async get(uri: string): Promise<Uint8Array> {
-    const bytes = this.objects.get(uri);
-    if (bytes === undefined) throw new Error("missing fixture object");
-    return Buffer.from(bytes);
-  }
-
-  async has(uri: string): Promise<boolean> {
-    return this.objects.has(uri);
-  }
-}
-
-interface Fixture {
-  repositoryRoot: string;
-  loaded: LoadedContext;
-  session: AdapterSession;
-}
-
-async function fixture(): Promise<Fixture> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-context-delivery-"));
-  temporaryRoots.push(root);
-  await mkdir(resolve(root, "docs"), { recursive: true });
-  await writeFile(resolve(root, "AGENTS.md"), "저장소 작업 지침입니다.\n");
-  await writeFile(
-    resolve(root, "docs/writing.md"),
-    "한국 사람이 일상에서 쓰는 자연스러운 문단으로 작성합니다.\n",
-  );
-  const registry: DocumentRegistry = {
-    schemaVersion: 1,
-    documents: {
-      [writingPolicyDocumentId]: {
-        path: "docs/writing.md",
-        kind: "canonical",
-        responsibleParty: { kind: "team", id: "team_content" },
-        connectedPaths: ["outputs/**"],
-        verifiedRevision: "fixture-v1",
-        verifiedAt: "2026-08-18T00:00:00Z",
-        reviewIntervalDays: 30,
-        ownership: { mode: "user" },
-      },
-    },
-  };
-  const role: RoleProfile = {
-    schemaVersion: 1,
-    roleId: "writer",
-    name: "Writer",
-    description: "사람이 읽는 글을 작성합니다.",
-    requestTypes: ["writing"],
-    requiredInputs: [],
-    contextPolicy: {
-      requiredDocumentRuleIds: ["repository.instructions", "writing.policy"],
-      minimumAssurance: "E3",
-      referencesRequired: true,
-    },
-    capabilities: {
-      "filesystem.read": "allow",
-      "filesystem.write": "allow",
-      "shell.execute": "deny",
-      "network.access": "deny",
-      "external.message": "deny",
-      deploy: "deny",
-      "data.mutate": "deny",
-    },
-    defaultSkills: [],
-    outputContract: {
-      artifactKind: "human_text",
-      schemaRef: "roven-schema://fixture/human-text/v1",
-      pathTemplate: "outputs/{runId}.md",
-      citationsRequired: true,
-      presentation: {
-        audience: "human",
-        locale: "ko-KR",
-        writingPolicyId: "writing_ko-kr-human",
-      },
-    },
-    verification: { suiteIds: ["writing.fixture"], failureDisposition: "fail_run" },
-    handoff: { allowedRoleIds: [], evidenceLinksRequired: true, sharedContextRequired: true },
-  };
-  const loaded = await prepareContext({
-    repositoryRoot: root,
-    sourceRevision: "working-tree:fixture-v1",
-    coordinates: {
-      projectId,
-      runId: "run_delivery_01",
-      sessionId: "ses_delivery_01",
-      roleId: role.roleId,
-    },
-    registry,
-    role,
-    expectedPaths: ["outputs/result.md"],
-    documentRules: { "writing.policy": [writingPolicyDocumentId] },
-    publications: [],
-    handoffs: [],
-    policyVersion,
-    recordedAt: new Date("2026-08-18T01:01:00Z"),
-    createReceiptId: receiptFactory(),
-  });
-  const session: AdapterSession = {
-    kind: "session",
-    schemaVersion: 1,
-    adapterId: "roven/fixture",
-    projectId,
-    runId: "run_delivery_01",
-    sessionId: "ses_delivery_01",
-    roleId: role.roleId,
-    writingPolicyId: "writing_ko-kr-human",
-    provider: "fixture",
-    providerSessionId: "provider-session-1",
-    startedAt: "2026-08-18T01:00:00Z",
-  };
-  return { repositoryRoot: root, loaded, session };
-}
-
-function receiptFor(
-  session: AdapterSession,
-  envelope: AdapterContextEnvelope,
-  overrides: Partial<AdapterContextReceipt> = {},
-): AdapterContextReceipt {
-  return {
-    kind: "context_receipt",
-    schemaVersion: 1,
-    receiptId: "ctx_adapter_01234567",
-    envelopeId: envelope.envelopeId,
-    adapterId: session.adapterId,
-    projectId: session.projectId,
-    runId: session.runId,
-    sessionId: session.sessionId,
-    roleId: session.roleId,
-    writingPolicyId: session.writingPolicyId,
-    writingPolicyDocumentId: envelope.writingPolicyDocumentId,
-    provider: session.provider,
-    providerSessionId: session.providerSessionId,
-    targetTurnId: envelope.targetTurnId,
-    contextGeneration: envelope.contextGeneration,
-    controlledInput: true,
-    documents: envelope.documents.map((document) => ({
-      documentId: document.documentId,
-      contentHash: document.contentHash,
-      scope: document.scope,
-      status: "injected" as const,
-    })),
-    acceptedAt: "2026-08-18T01:03:00Z",
-    ...overrides,
-  };
-}
-
-afterEach(async () => {
-  await Promise.all(
-    temporaryRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
-  );
-});
+afterEach(cleanupDeliveryFixtures);
 
 describe("provider-neutral context delivery", () => {
   it("creates E3 only after an exact controlled receipt including the writing policy", async () => {
     const currentGeneration = 2;
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     const injected = await injectLoadedContext({
       ...input,
       publications: [],
-      writingPolicyDocumentId,
       targetTurnId: "turn-1",
       contextGeneration: currentGeneration,
       getCurrentContextGeneration: () => currentGeneration,
@@ -242,20 +60,29 @@ describe("provider-neutral context delivery", () => {
     expect(injected.evidence.slice(0, input.loaded.evidence.length)).toEqual(
       input.loaded.evidence,
     );
+    for (const evidence of injected.e3Evidence) {
+      const envelopeDocument = injected.envelope.documents.find(
+        (document) => document.documentId === evidence.documentId,
+      )!;
+      const loadedDocument = input.loaded.documents.find(
+        (document) => document.documentId === evidence.documentId,
+      )!;
+      expect(envelopeDocument.scope).not.toBe(loadedDocument.scope);
+      expect(evidence.scope).not.toBe(envelopeDocument.scope);
+    }
   });
 
   it("moves documents to verified CAS objects when inline delivery is too small", async () => {
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     const store = new MemoryArtifactStore();
     const envelope = await buildContextEnvelope({
       loaded: input.loaded,
       session: input.session,
-      writingPolicyDocumentId,
+      writingPolicy: input.writingPolicy,
       targetTurnId: "turn-cas",
       contextGeneration: 0,
       createdAt: new Date("2026-08-18T01:02:00Z"),
-      deliveryMode: "auto",
-      inlineByteLimit: 0,
+      deliveryPolicy: createInlineThresholdPolicy(0),
       artifactStore: store,
       createEnvelopeId: () => "envelope-cas",
     });
@@ -268,23 +95,43 @@ describe("provider-neutral context delivery", () => {
     }
   });
 
+  it("uses the real filesystem CAS through the narrow artifact port", async () => {
+    const input = await createDeliveryFixture();
+    const store = await FileSystemCas.open(resolve(input.repositoryRoot, ".cas-test"));
+    const envelope = await buildContextEnvelope({
+      loaded: input.loaded,
+      session: input.session,
+      writingPolicy: input.writingPolicy,
+      targetTurnId: "turn-real-cas",
+      contextGeneration: 0,
+      createdAt: new Date("2026-08-18T01:02:00Z"),
+      deliveryPolicy: casContextDelivery,
+      artifactStore: store,
+    });
+
+    for (const document of envelope.documents) {
+      if (document.delivery.kind !== "cas") throw new Error("expected CAS delivery");
+      expect(hash(await store.get(document.delivery.uri))).toBe(document.contentHash);
+    }
+  });
+
   it("rejects a CAS backend that cannot return the exact stored bytes", async () => {
     class CorruptingStore extends MemoryArtifactStore {
       override async get(_uri: string): Promise<Uint8Array> {
         return Buffer.from("different bytes");
       }
     }
-    const input = await fixture();
+    const input = await createDeliveryFixture();
 
     await expect(
       buildContextEnvelope({
         loaded: input.loaded,
         session: input.session,
-        writingPolicyDocumentId,
+        writingPolicy: input.writingPolicy,
         targetTurnId: "turn-missing-cas",
         contextGeneration: 0,
         createdAt: new Date("2026-08-18T01:02:00Z"),
-        deliveryMode: "cas",
+        deliveryPolicy: casContextDelivery,
       }),
     ).rejects.toMatchObject({
       code: "artifact_store_required",
@@ -295,11 +142,11 @@ describe("provider-neutral context delivery", () => {
       buildContextEnvelope({
         loaded: input.loaded,
         session: input.session,
-        writingPolicyDocumentId,
+        writingPolicy: input.writingPolicy,
         targetTurnId: "turn-corrupt-cas",
         contextGeneration: 0,
         createdAt: new Date("2026-08-18T01:02:00Z"),
-        deliveryMode: "cas",
+        deliveryPolicy: casContextDelivery,
         artifactStore: new CorruptingStore(),
       }),
     ).rejects.toMatchObject({
@@ -309,9 +156,9 @@ describe("provider-neutral context delivery", () => {
   });
 
   it("does not call the adapter when a loaded file changed before injection", async () => {
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     await writeFile(
-      resolve(input.repositoryRoot, "docs/writing.md"),
+      resolve(input.repositoryRoot, "docs/writing.json"),
       "주입 전에 바뀐 정책입니다.\n",
     );
     let called = false;
@@ -320,7 +167,6 @@ describe("provider-neutral context delivery", () => {
       injectLoadedContext({
         ...input,
         publications: [],
-        writingPolicyDocumentId,
         targetTurnId: "turn-changed",
         contextGeneration: 1,
         getCurrentContextGeneration: () => 1,
@@ -337,15 +183,152 @@ describe("provider-neutral context delivery", () => {
     expect(called).toBe(false);
   });
 
+  it("binds the writing policy ID to a schema-valid document and exact hash", async () => {
+    const input = await createDeliveryFixture();
+    const wrongDocument = input.loaded.documents.find(
+      (document) => document.documentId !== writingPolicyDocumentId,
+    )!;
+
+    await expect(
+      buildContextEnvelope({
+        loaded: input.loaded,
+        session: input.session,
+        writingPolicy: {
+          writingPolicyId: input.session.writingPolicyId!,
+          documentId: wrongDocument.documentId,
+          contentHash: wrongDocument.contentHash,
+        },
+        targetTurnId: "turn-wrong-policy",
+        contextGeneration: 0,
+        createdAt: new Date("2026-08-18T01:02:00Z"),
+      }),
+    ).rejects.toMatchObject({
+      code: "writing_policy_document_invalid",
+      failure: "contract_validation_failed",
+    });
+  });
+
+  it("rejects an envelope timestamp older than its E2 snapshot", async () => {
+    const input = await createDeliveryFixture();
+
+    await expect(
+      buildContextEnvelope({
+        loaded: input.loaded,
+        session: input.session,
+        writingPolicy: input.writingPolicy,
+        targetTurnId: "turn-backdated",
+        contextGeneration: 0,
+        createdAt: new Date("2026-08-18T01:00:30Z"),
+      }),
+    ).rejects.toMatchObject({ code: "invalid_delivery_request" });
+  });
+
+  it("does not create E3 evidence when the adapter call fails", async () => {
+    const input = await createDeliveryFixture();
+    let evidenceIdsCreated = 0;
+
+    await expect(
+      injectLoadedContext({
+        ...input,
+        publications: [],
+        targetTurnId: "turn-adapter-failure",
+        contextGeneration: 0,
+        getCurrentContextGeneration: () => 0,
+        injectContext: async () => {
+          throw new Error("provider payload must not escape");
+        },
+        now: () => new Date("2026-08-18T01:02:00Z"),
+        createEvidenceReceiptId: () => {
+          evidenceIdsCreated += 1;
+          return `ctx_failed_${evidenceIdsCreated}`;
+        },
+      }),
+    ).rejects.toMatchObject({ code: "injection_failed" });
+    expect(evidenceIdsCreated).toBe(0);
+  });
+
+  it("maps E3 receipt ID factory failures to the public delivery error contract", async () => {
+    const input = await createDeliveryFixture();
+
+    await expect(
+      injectLoadedContext({
+        ...input,
+        publications: [],
+        targetTurnId: "turn-evidence-id-failure",
+        contextGeneration: 0,
+        getCurrentContextGeneration: () => 0,
+        injectContext: async (session, envelope) => receiptFor(session, envelope),
+        now: () => new Date("2026-08-18T01:02:00Z"),
+        createEvidenceReceiptId: () => {
+          throw new Error("internal ID provider detail");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "invalid_context_evidence" });
+  });
+
+  it("does not create E3 when a source file changes during adapter injection", async () => {
+    const input = await createDeliveryFixture();
+    let evidenceIdsCreated = 0;
+
+    await expect(
+      injectLoadedContext({
+        ...input,
+        publications: [],
+        targetTurnId: "turn-racing-change",
+        contextGeneration: 0,
+        getCurrentContextGeneration: () => 0,
+        injectContext: async (session, envelope) => {
+          await writeFile(
+            resolve(input.repositoryRoot, "docs/writing.json"),
+            `${JSON.stringify({ changed: true })}\n`,
+          );
+          return receiptFor(session, envelope);
+        },
+        now: () => new Date("2026-08-18T01:02:00Z"),
+        createEvidenceReceiptId: () => {
+          evidenceIdsCreated += 1;
+          return `ctx_racing_${evidenceIdsCreated}`;
+        },
+      }),
+    ).rejects.toMatchObject({ code: "context_snapshot_invalid" });
+    expect(evidenceIdsCreated).toBe(0);
+  });
+
+  it("rejects an adapter that mutates the controlled envelope before issuing a receipt", async () => {
+    const input = await createDeliveryFixture();
+    const originalSession = structuredClone(input.session);
+
+    await expect(
+      injectLoadedContext({
+        ...input,
+        publications: [],
+        targetTurnId: "turn-mutating-adapter",
+        contextGeneration: 0,
+        getCurrentContextGeneration: () => 0,
+        injectContext: async (session, envelope) => {
+          session.roleId = "mutated-role";
+          envelope.documents[0] = {
+            ...envelope.documents[0]!,
+            contentHash:
+              "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          };
+          return receiptFor(session, envelope);
+        },
+        now: () => new Date("2026-08-18T01:02:00Z"),
+      }),
+    ).rejects.toMatchObject({ code: "context_receipt_mismatch" });
+    expect(input.session).toEqual(originalSession);
+  });
+
   it.each([
     ["another session", { sessionId: "ses_other_01" }, "context_receipt_mismatch"],
     ["another document hash", {}, "context_receipt_mismatch"],
   ] as const)("rejects a receipt for %s", async (_label, overrides, expectedCode) => {
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     const envelope = await buildContextEnvelope({
       loaded: input.loaded,
       session: input.session,
-      writingPolicyDocumentId,
+      writingPolicy: input.writingPolicy,
       targetTurnId: "turn-invalid",
       contextGeneration: 3,
       createdAt: new Date("2026-08-18T01:02:00Z"),
@@ -369,11 +352,11 @@ describe("provider-neutral context delivery", () => {
   });
 
   it("rejects a receipt that omits a document or changes its scope", async () => {
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     const envelope = await buildContextEnvelope({
       loaded: input.loaded,
       session: input.session,
-      writingPolicyDocumentId,
+      writingPolicy: input.writingPolicy,
       targetTurnId: "turn-document-set",
       contextGeneration: 3,
       createdAt: new Date("2026-08-18T01:02:00Z"),
@@ -403,14 +386,13 @@ describe("provider-neutral context delivery", () => {
   });
 
   it("rejects E3 when compaction changes generation during adapter injection", async () => {
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     let generation = 4;
 
     await expect(
       injectLoadedContext({
         ...input,
         publications: [],
-        writingPolicyDocumentId,
         targetTurnId: "turn-compacted",
         contextGeneration: generation,
         getCurrentContextGeneration: () => generation,
@@ -427,7 +409,7 @@ describe("provider-neutral context delivery", () => {
   });
 
   it("rejects altered E2 bytes and a session missing its writing policy document", async () => {
-    const input = await fixture();
+    const input = await createDeliveryFixture();
     const altered: LoadedContext = {
       ...input.loaded,
       documents: input.loaded.documents.map((document, index) =>
@@ -438,7 +420,7 @@ describe("provider-neutral context delivery", () => {
       buildContextEnvelope({
         loaded: altered,
         session: input.session,
-        writingPolicyDocumentId,
+        writingPolicy: input.writingPolicy,
         targetTurnId: "turn-altered",
         contextGeneration: 0,
         createdAt: new Date("2026-08-18T01:02:00Z"),
@@ -449,7 +431,7 @@ describe("provider-neutral context delivery", () => {
       buildContextEnvelope({
         loaded: input.loaded,
         session: input.session,
-        writingPolicyDocumentId: null,
+        writingPolicy: null,
         targetTurnId: "turn-no-policy",
         contextGeneration: 0,
         createdAt: new Date("2026-08-18T01:02:00Z"),

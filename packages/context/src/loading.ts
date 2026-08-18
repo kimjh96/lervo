@@ -22,6 +22,12 @@ export async function loadContextPlan(input: {
   createReceiptId?: () => string;
 }): Promise<LoadedContext> {
   validateContextPlanForLoading(input.plan);
+  if (input.recordedAt.getTime() < Date.parse(input.plan.createdAt)) {
+    throw new ContextPreparationError(
+      "invalid_context_plan",
+      "E2 적재 시각은 context plan 생성 이후여야 합니다.",
+    );
+  }
   const evidence = new ContextEvidenceCollector(input.plan.evidence);
   const loaded = await Promise.all(
     input.plan.documents.map(async (document): Promise<LoadedContextDocument> => {

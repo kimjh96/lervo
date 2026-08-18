@@ -34,13 +34,13 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, canonical JSON과 event hash 규칙
 - `@roven/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@roven/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
-- `@roven/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기와 E2 hash, snapshot 무효화 판정
-- `@roven/context-delivery`: E2 원문을 검증된 inline/CAS envelope로 조립하고 adapter receipt를 대조한 뒤에만 E3를 만드는 공급자 중립 경계
+- `@roven/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
+- `@roven/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
 - `@roven/project`: 관리 경로, project 설정과 원자적인 초기화 계획·적용
 - `@roven/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
-- `@roven/adapter-contract`: Codex와 Claude가 같은 역할과 writing 정책을 받도록 강제하는 provider adapter interface와 contract suite
+- `@roven/adapter-contract`: Codex와 Claude가 같은 역할과 writing 정책을 받도록 강제하는 provider adapter interface, 공통 envelope/receipt 의미 판정과 contract suite
 - `@roven/cli`: `roven init` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 

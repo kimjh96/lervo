@@ -123,6 +123,7 @@ export type ContextPreparationErrorCode =
   | "handoff_recipient_mismatch"
   | "invalid_expected_path"
   | "invalid_context_evidence"
+  | "invalid_loaded_context"
   | "invalid_context_plan"
   | "invalid_path_rule"
   | "receipt_id_conflict"
