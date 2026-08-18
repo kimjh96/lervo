@@ -62,10 +62,10 @@ const managedBlocksOwnershipSchema = {
   additionalProperties: false,
 } as const;
 
-const rovenGeneratedOwnershipSchema = {
+const lervoGeneratedOwnershipSchema = {
   type: "object",
   properties: {
-    mode: { const: "roven_generated" },
+    mode: { const: "lervo_generated" },
     userContentAllowed: { const: false },
     manifestPath: repositoryRelativePathSchema,
     inputs: {
@@ -90,7 +90,7 @@ export const documentRecordSchema = {
     responsibleParty: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: ["user", "team", "roven"] },
+        kind: { type: "string", enum: ["user", "team", "lervo"] },
         id: { type: "string", minLength: 1, maxLength: 150 },
       },
       required: ["kind", "id"],
@@ -109,7 +109,7 @@ export const documentRecordSchema = {
       oneOf: [
         userOwnershipSchema,
         managedBlocksOwnershipSchema,
-        rovenGeneratedOwnershipSchema,
+        lervoGeneratedOwnershipSchema,
       ],
     },
   },
@@ -154,7 +154,7 @@ export const documentRecordSchema = {
       then: {
         properties: {
           ownership: {
-            oneOf: [managedBlocksOwnershipSchema, rovenGeneratedOwnershipSchema],
+            oneOf: [managedBlocksOwnershipSchema, lervoGeneratedOwnershipSchema],
           },
         },
       },
@@ -165,8 +165,8 @@ export const documentRecordSchema = {
 
 export const documentRegistrySchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-registry.schema.json",
-  title: "Roven document lifecycle registry",
+  $id: "https://schemas.lervo.dev/v0/document-registry.schema.json",
+  title: "Lervo document lifecycle registry",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

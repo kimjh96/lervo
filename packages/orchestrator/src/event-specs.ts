@@ -1,7 +1,7 @@
-import type { LoadedContext } from "@roven/context";
-import type { InjectedContext } from "@roven/context-delivery";
-import type { ContextInvalidation } from "@roven/context";
-import type { CapabilityDecision } from "@roven/schemas";
+import type { LoadedContext } from "@lervo/context";
+import type { InjectedContext } from "@lervo/context-delivery";
+import type { ContextInvalidation } from "@lervo/context";
+import type { CapabilityDecision } from "@lervo/schemas";
 
 import type { FileChangeRecord } from "./types.js";
 import type { ManagedEventSpec } from "./telemetry.js";

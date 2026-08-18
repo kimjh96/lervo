@@ -5,7 +5,7 @@ import {
   type DocumentRecord,
   type LegacyRegistryEntryArtifact,
   type LegacyRegistryMigrationPlan,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { inspectTargetFile } from "./filesystem.js";
 import { sha256 } from "./hash.js";
@@ -27,7 +27,7 @@ export function legacyRecordWarnings(record: DocumentRecord): string[] {
     warnings.push("invalid_legacy_connected_path");
   }
   if (
-    record.ownership.mode === "roven_generated" &&
+    record.ownership.mode === "lervo_generated" &&
     !canonicalLegacyRecordPath(record.ownership.manifestPath)
   ) {
     warnings.push("invalid_legacy_generation_manifest_path");
@@ -35,7 +35,7 @@ export function legacyRecordWarnings(record: DocumentRecord): string[] {
   if (record.ownership.mode === "managed_blocks") {
     warnings.push("legacy_managed_blocks_require_review");
   }
-  if (record.ownership.mode === "roven_generated") {
+  if (record.ownership.mode === "lervo_generated") {
     warnings.push("legacy_generated_document_requires_review");
   }
   return warnings;

@@ -1,18 +1,18 @@
-# Roven v0 구현 계획
+# Lervo v0 구현 계획
 
 상태: `0.1-draft`  
 기준일: 2026-08-19
 
 ## v0 목표
 
-하나의 실제 저장소에서 `roven init`과 `roven run`을 사용해 Codex 또는 Claude 작업을 실행하고, 필수 문서의 선택 이유·현재 hash·컨텍스트 주입 receipt·사용 스킬·파일 변경·검증 결과를 로컬 trace로 재구성합니다. Hub, Slack, 그래프 DB, 임베딩은 이 기반이 증명된 뒤 확장합니다.
+하나의 실제 저장소에서 `lervo init`과 `lervo run`을 사용해 Codex 또는 Claude 작업을 실행하고, 필수 문서의 선택 이유·현재 hash·컨텍스트 주입 receipt·사용 스킬·파일 변경·검증 결과를 로컬 trace로 재구성합니다. Hub, Slack, 그래프 DB, 임베딩은 이 기반이 증명된 뒤 확장합니다.
 
 ## 범위
 
 포함:
 
 - TypeScript/Node.js monorepo와 CLI
-- `.roven/project.yaml`, policy 및 분할 document manifest schema
+- `.lervo/project.yaml`, policy 및 분할 document manifest schema
 - SQLite event store, CAS, outbox interface
 - deterministic context router와 문서 E0~E3 receipt
 - 전문 에이전트가 함께 읽는 shared context publication과 역할 간 handoff bundle
@@ -21,7 +21,7 @@
 - 스킬 discovery/lock/usage event
 - 기존 저장소 문서의 형식별 read-only 탐색, migration dry-run과 승인된 sidecar 도입
 - `AGENTS.md`, `CLAUDE.md`, `README.md` managed block 및 staleness 검사
-- `roven trace` 텍스트/JSON 출력
+- `lervo trace` 텍스트/JSON 출력
 - fixture 저장소 기반 contract/acceptance test
 - 사람 대상 산출물의 provider 중립 writing 정책과 공개 전 평가
 - 역할별 독립 session과 구조화된 artifact를 사용하는 제한 회차 provider 중립 숙의
@@ -36,6 +36,10 @@
 - 에이전트의 의미적 “이해”를 증명한다는 주장
 
 ## 구현 단계
+
+### 제품 식별자 전환
+
+구현 현황(2026-08-19): **Lervo 명칭 통일 완료.** 제품명, CLI, `.lervo` 관리 경로, `@lervo` package scope, schema/CAS URI, adapter ID, managed marker와 스킬 manifest 이름을 하나의 식별자로 맞췄습니다. 저장소가 아직 `0.0.0`인 동안 별도 호환 CLI와 이중 package scope는 두지 않습니다. 이전 `.roven`이 있으면 새 초기화를 무부작용으로 차단하며, 원본 event hash chain과 CAS 주소를 보존하는 명시적 명칭 migration은 후속 작업으로 남깁니다. 결정은 [ADR-0020](./docs/adr/0020-lervo-product-identity.md)에 기록했습니다.
 
 ### M0: 계약 고정
 
@@ -54,7 +58,7 @@
 
 ### M1: 로컬 기반
 
-- `roven init`, project identity, 설정 로더 구현
+- `lervo init`, project identity, 설정 로더 구현
 - SQLite WAL event store와 CAS 구현
 - 순서, hash chain, crash recovery, outbox 멱등성 테스트
 - 기존 파일을 보존하는 dry-run/patch 출력 구현
@@ -65,7 +69,7 @@
 - Hub가 없어도 모든 로컬 상태 저장 및 조회 가능
 - 사용자 작성 문서 영역을 byte-level fixture로 보존
 
-구현 현황(2026-08-18): **M1 완료.** 안전한 `roven init`, project별 SQLite event/outbox와 CAS에 이어 project storage bootstrap을 구현했습니다. Bootstrap은 검증된 manifest와 canonical 경로만 사용하며, 다른 project database와 심볼릭 링크를 거부합니다. 부분 개방 시 이미 연 자원을 정리하고 정상 handle은 멱등적으로 닫힙니다. 실제 저장소 fixture에서 event와 artifact 재시작 복구, Hub 비활성 시 outbox 미생성, manifest/layout 오류의 무부작용을 검증했습니다. 결정은 [ADR-0004](./docs/adr/0004-project-storage-bootstrap.md)에 기록했습니다.
+구현 현황(2026-08-18): **M1 완료.** 안전한 `lervo init`, project별 SQLite event/outbox와 CAS에 이어 project storage bootstrap을 구현했습니다. Bootstrap은 검증된 manifest와 canonical 경로만 사용하며, 다른 project database와 심볼릭 링크를 거부합니다. 부분 개방 시 이미 연 자원을 정리하고 정상 handle은 멱등적으로 닫힙니다. 실제 저장소 fixture에서 event와 artifact 재시작 복구, Hub 비활성 시 outbox 미생성, manifest/layout 오류의 무부작용을 검증했습니다. 결정은 [ADR-0004](./docs/adr/0004-project-storage-bootstrap.md)에 기록했습니다.
 
 ### M2: 컨텍스트와 가드레일
 
@@ -85,7 +89,7 @@
 - 문서 변경 후 오래된 receipt 재사용 불가
 - trace에 선택 이유, 정책 버전, hash, invalidation 표시
 
-구현 현황(2026-08-18): **M2 완료.** `@roven/context`가 E0/E1 선택, 안전한 전체 bytes 읽기와 E2 체인 무결성을 소유하고 `@roven/context-delivery`가 writing policy까지 결속한 provider-neutral E3를 만듭니다. `@roven/orchestrator`는 E1/E2/E3를 append-only event store에 원자적으로 기록하고, Role의 파일 쓰기 정책·현재 generation·필수 문서 E3를 경로별 1회용 permit에 연결합니다. 쓰기 직전 snapshot 변경, managed file change, compaction/restart와 telemetry transaction 실패가 capability를 닫는 전이를 실제 SQLite fixture로 검증했습니다. 실제 provider 신호 수집과 Codex/Claude 실행은 M3에 남습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md), [ADR-0007](./docs/adr/0007-provider-neutral-context-delivery.md), [ADR-0008](./docs/adr/0008-managed-context-gate-orchestration.md)에 기록했습니다.
+구현 현황(2026-08-18): **M2 완료.** `@lervo/context`가 E0/E1 선택, 안전한 전체 bytes 읽기와 E2 체인 무결성을 소유하고 `@lervo/context-delivery`가 writing policy까지 결속한 provider-neutral E3를 만듭니다. `@lervo/orchestrator`는 E1/E2/E3를 append-only event store에 원자적으로 기록하고, Role의 파일 쓰기 정책·현재 generation·필수 문서 E3를 경로별 1회용 permit에 연결합니다. 쓰기 직전 snapshot 변경, managed file change, compaction/restart와 telemetry transaction 실패가 capability를 닫는 전이를 실제 SQLite fixture로 검증했습니다. 실제 provider 신호 수집과 Codex/Claude 실행은 M3에 남습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md), [ADR-0007](./docs/adr/0007-provider-neutral-context-delivery.md), [ADR-0008](./docs/adr/0008-managed-context-gate-orchestration.md)에 기록했습니다.
 
 ### M3: 공급자 어댑터
 
@@ -101,7 +105,7 @@
 - 제공되지 않는 telemetry는 `unknown/unsupported`로 남음
 - 관리 경로 밖 변경은 `unmanaged`로 탐지
 
-구현 현황(2026-08-19): **M3와 `roven run` 한 파일 CLI 수직 슬라이스 완료.** Codex의 file-change approval과 Claude의 Write/Edit hook을 같은 요청·결정·완료 계약으로 바꾸고, orchestrator의 예상 경로별 1회용 permit에 연결했습니다. 승인 직전 before hash, 완료 직후 after hash, 실행 전후 snapshot이 모두 맞아야 `file.changed`가 되며 추가 변경은 계속 `unmanaged`로 실패합니다. Session은 실행 모드에서 실제 열린 기능을 별도로 기록하고, provider 도구 실행 전 turn 수락을 알리며, 종료 실패 때도 승인·결과 원문 상태를 폐기합니다. `roven run`은 provider·예상 경로·작업 문장을 받아 검증된 project storage와 coordinator를 실행하고 결과 CAS를 로컬 출력으로 연결합니다. Codex와 Claude fixture가 같은 CLI 경로에서 `AGENTS.md` E3, 한 파일 변경, 결과 원문 비보존과 자원 정리를 통과합니다. 실행하지 않은 project verification과 writing 검사는 `not_run`으로 표시합니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md), [ADR-0014](./docs/adr/0014-managed-adapter-session-hardening.md), [ADR-0015](./docs/adr/0015-roven-run-cli-vertical-slice.md)에 기록했습니다.
+구현 현황(2026-08-19): **M3와 `lervo run` 한 파일 CLI 수직 슬라이스 완료.** Codex의 file-change approval과 Claude의 Write/Edit hook을 같은 요청·결정·완료 계약으로 바꾸고, orchestrator의 예상 경로별 1회용 permit에 연결했습니다. 승인 직전 before hash, 완료 직후 after hash, 실행 전후 snapshot이 모두 맞아야 `file.changed`가 되며 추가 변경은 계속 `unmanaged`로 실패합니다. Session은 실행 모드에서 실제 열린 기능을 별도로 기록하고, provider 도구 실행 전 turn 수락을 알리며, 종료 실패 때도 승인·결과 원문 상태를 폐기합니다. `lervo run`은 provider·예상 경로·작업 문장을 받아 검증된 project storage와 coordinator를 실행하고 결과 CAS를 로컬 출력으로 연결합니다. Codex와 Claude fixture가 같은 CLI 경로에서 `AGENTS.md` E3, 한 파일 변경, 결과 원문 비보존과 자원 정리를 통과합니다. 실행하지 않은 project verification과 writing 검사는 `not_run`으로 표시합니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md), [ADR-0014](./docs/adr/0014-managed-adapter-session-hardening.md), [ADR-0015](./docs/adr/0015-lervo-run-cli-vertical-slice.md)에 기록했습니다.
 
 ### M4: 스킬과 문서 수명주기
 
@@ -123,15 +127,15 @@
 - AGENTS/CLAUDE/README의 노후화 fixture를 검출
 - managed block 밖 사용자 내용 무변경
 
-구현 현황(2026-08-19): **스킬 discovery와 lock 첫 슬라이스 완료.** `@roven/skills`가 요청된 프로젝트·사용자 후보의 패키지 전체 hash를 확인하고 pinned project, project, user 순서와 version으로 선택합니다. Provider, Role, runtime, platform, 도구와 허용 capability를 보수적으로 판정하며 선택과 탈락 사유를 독립 schema의 `.roven/skills.lock`에 원자적으로 기록합니다. `roven run --skill`은 `skill.resolved`를 실행 시작 event와 같은 transaction에 남기되 URI와 publisher 정보는 event에 넣지 않습니다. Provider에 실제 스킬을 호출하는 경로는 아직 없으므로 `skill.invoked`나 사용을 주장하지 않습니다. 원본 스킬과 유효하지 않은 기존 lock을 byte 단위로 보존하는 fixture를 포함합니다. 결정은 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 기록했습니다.
+구현 현황(2026-08-19): **스킬 discovery와 lock 첫 슬라이스 완료.** `@lervo/skills`가 요청된 프로젝트·사용자 후보의 패키지 전체 hash를 확인하고 pinned project, project, user 순서와 version으로 선택합니다. Provider, Role, runtime, platform, 도구와 허용 capability를 보수적으로 판정하며 선택과 탈락 사유를 독립 schema의 `.lervo/skills.lock`에 원자적으로 기록합니다. `lervo run --skill`은 `skill.resolved`를 실행 시작 event와 같은 transaction에 남기되 URI와 publisher 정보는 event에 넣지 않습니다. Provider에 실제 스킬을 호출하는 경로는 아직 없으므로 `skill.invoked`나 사용을 주장하지 않습니다. 원본 스킬과 유효하지 않은 기존 lock을 byte 단위로 보존하는 fixture를 포함합니다. 결정은 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **분할 document manifest와 누적 금지 계약 완료.** 새 init은 중앙 `documents.yaml` 대신 빈 `.roven/documents/`를 만들고 document ID별 최대 64 KiB sidecar를 결정적으로 조립합니다. 사용자·managed block·Roven 전용 문서의 쓰기 범위, 크기, separate history와 topic split을 schema로 고정했습니다. 파일명/ID, 표준 marker, 관계, 대상 경로의 단일 소유권과 심볼릭 링크를 loader가 거부합니다. 기존 단일 registry는 자동 migration 없이 byte를 보존하고 읽기 호환만 제공합니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록했습니다.
+구현 현황(2026-08-19): **분할 document manifest와 누적 금지 계약 완료.** 새 init은 중앙 `documents.yaml` 대신 빈 `.lervo/documents/`를 만들고 document ID별 최대 64 KiB sidecar를 결정적으로 조립합니다. 사용자·managed block·Lervo 전용 문서의 쓰기 범위, 크기, separate history와 topic split을 schema로 고정했습니다. 파일명/ID, 표준 marker, 관계, 대상 경로의 단일 소유권과 심볼릭 링크를 loader가 거부합니다. 기존 단일 registry는 자동 migration 없이 byte를 보존하고 읽기 호환만 제공합니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **기존 문서 read-only discovery와 migration dry-run 첫 슬라이스 완료.** `@roven/documents`가 제한된 root에서 symbolic link, root 이탈, 변경 중인 파일과 파일/전체 byte·항목 한도를 거부하고 stable source hash를 만듭니다. Provider-neutral `DocumentImportAdapter`는 파일 시스템 port 없이 격리된 byte만 받고 adapter ID/version을 결과에 남깁니다. Markdown/MDX, schema-valid 기존 `documents.yaml`과 unknown fallback을 구현했습니다. Candidate는 source별 canonical JSON artifact/hash로 분리되고 dry-run plan은 source hash와 sidecar target snapshot에 묶이며 어떤 파일이나 event도 쓰지 않습니다. 원본 tree 불변, 결정적 순서, source 변경에 따른 plan ID 변경, existing/unsafe target, 중복 문서 제안, legacy 원문 미탐색, adapter 입력 변조와 모호한 adapter를 실제 fixture로 검증했습니다.
+구현 현황(2026-08-19): **기존 문서 read-only discovery와 migration dry-run 첫 슬라이스 완료.** `@lervo/documents`가 제한된 root에서 symbolic link, root 이탈, 변경 중인 파일과 파일/전체 byte·항목 한도를 거부하고 stable source hash를 만듭니다. Provider-neutral `DocumentImportAdapter`는 파일 시스템 port 없이 격리된 byte만 받고 adapter ID/version을 결과에 남깁니다. Markdown/MDX, schema-valid 기존 `documents.yaml`과 unknown fallback을 구현했습니다. Candidate는 source별 canonical JSON artifact/hash로 분리되고 dry-run plan은 source hash와 sidecar target snapshot에 묶이며 어떤 파일이나 event도 쓰지 않습니다. 원본 tree 불변, 결정적 순서, source 변경에 따른 plan ID 변경, existing/unsafe target, 중복 문서 제안, legacy 원문 미탐색, adapter 입력 변조와 모호한 adapter를 실제 fixture로 검증했습니다.
 
 구현 현황(2026-08-19): **검토된 metadata-only sidecar apply 완료.** 승인은 plan의 모든 candidate를 정확히 한 번 다루고 생성 항목에는 책임자·locale·검토 주기를 포함한 최종 manifest를 요구합니다. Apply는 plan ID와 candidate canonical bytes, source·target·기존 manifest 전체를 다시 검증합니다. Staging과 transaction marker로 부분 layout의 loader 사용을 차단하며 파일과 directory entry를 동기화합니다. 공개 뒤 snapshot이 승인 내용과 같고 privacy-bounded `document.migration.applied` event가 durable하게 기록된 경우에만 receipt를 반환합니다. Event 기록 실패 rollback, source/target 변경, 변조된 plan/artifact/승인과 legacy registry 혼용을 실제 fixture로 검증했습니다.
 
-구현 현황(2026-08-19): **기존 단일 registry structural migration dry-run 완료.** `.roven/documents.yaml` 원본은 stable hash와 content-addressed archive target에 묶고, 최대 4,096개 `DocumentRecord`는 source registry hash를 포함한 독립 artifact로 분리합니다. Plan은 `archive_then_remove` 처분, 새 manifest directory와 모든 sidecar target, 각 record가 가리키는 문서의 file hash 또는 missing/unsafe 상태까지 결속합니다. Duplicate path, 안전하게 snapshot할 수 없는 참조 문서, 기존 sidecar layout과 archive 충돌은 conflict이며 managed/generated ownership과 missing 참조 문서는 review warning입니다. 원본 tree 무변경, 생성 시각과 무관한 결정성, source byte 변경 전파, 충돌과 unsafe source를 fixture로 검증했습니다.
+구현 현황(2026-08-19): **기존 단일 registry structural migration dry-run 완료.** `.lervo/documents.yaml` 원본은 stable hash와 content-addressed archive target에 묶고, 최대 4,096개 `DocumentRecord`는 source registry hash를 포함한 독립 artifact로 분리합니다. Plan은 `archive_then_remove` 처분, 새 manifest directory와 모든 sidecar target, 각 record가 가리키는 문서의 file hash 또는 missing/unsafe 상태까지 결속합니다. Duplicate path, 안전하게 snapshot할 수 없는 참조 문서, 기존 sidecar layout과 archive 충돌은 conflict이며 managed/generated ownership과 missing 참조 문서는 review warning입니다. 원본 tree 무변경, 생성 시각과 무관한 결정성, source byte 변경 전파, 충돌과 unsafe source를 fixture로 검증했습니다.
 
 남은 구현 순서: **(1) structural plan의 최종 manifest 승인과 archive·legacy 비활성화·sidecar 전체 공개 apply → (2) CommonMark/legacy marker parser → (3) byte 보존 managed block patch candidate → (4) stale detector** 순입니다. 기존 registry를 그대로 둔 채 새 sidecar를 활성화하지 않습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
 
@@ -143,7 +147,7 @@
 - 역할별 독립 provider session을 순서화하는 제한 회차 숙의와 `converged`/`no_consensus`/`failed` 판정
 - observation/candidate 생성 및 paths/evidence 연결
 - 검증 revision 기반 stale 전이
-- `roven doctor`, `roven trace` 완성
+- `lervo doctor`, `lervo trace` 완성
 
 완료 조건:
 
@@ -177,12 +181,12 @@
 
 ```text
 fixture repo
-  -> roven init --dry-run / apply
-  -> roven run --provider codex "작은 기능 변경"
+  -> lervo init --dry-run / apply
+  -> lervo run --provider codex "작은 기능 변경"
   -> AGENTS.md + path 문서 E3 확인
   -> 한 파일 변경
   -> 지정 테스트 실행
-  -> roven trace last
+  -> lervo trace last
 ```
 
 그 다음 같은 fixture를 Claude adapter로 통과시켜 공급자 중립 계약의 실제 틈을 찾습니다.

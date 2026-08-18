@@ -1,5 +1,5 @@
 {
-  "name": "@roven/core",
+  "name": "@lervo/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/event-contract": "workspace:*",
-    "@roven/schemas": "workspace:*"
+    "@lervo/event-contract": "workspace:*",
+    "@lervo/schemas": "workspace:*"
   }
 }

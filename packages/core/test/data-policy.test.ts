@@ -102,7 +102,7 @@ describe("M0 data policy and failure semantics", () => {
 
   it("redacts sensitive keys nested inside an allowlisted field", () => {
     const result = sanitizeEventPayload("adapter.started", {
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       adapterVersion: "0.0.0",
       providerSessionId: "provider-session-1",
       capabilities: {

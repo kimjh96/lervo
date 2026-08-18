@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 
-import { canonicalJson } from "@roven/event-contract";
+import { canonicalJson } from "@lervo/event-contract";
 import type {
   AdapterDescriptor,
   AdapterNormalizedEvent,
   AdapterSession,
   AdapterStopResult,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import type { ManagedEventSpec } from "./telemetry.js";
 import type {

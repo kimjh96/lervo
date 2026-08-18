@@ -6,11 +6,11 @@ import {
   createInitPlan,
   type InitOperation,
   type InitPlan,
-} from "@roven/project";
+} from "@lervo/project";
 
 import type { CliIo } from "./types.js";
 
-export const initUsage = "  roven init [--dry-run] [--root <path>] [--name <name>] [--json]";
+export const initUsage = "  lervo init [--dry-run] [--root <path>] [--name <name>] [--json]";
 
 function operationLabel(operation: InitOperation): string {
   switch (operation.action) {
@@ -90,7 +90,7 @@ export async function runInitCommand(args: string[], io: CliIo): Promise<number>
     if (!values.json) {
       io.stdout(
         result.created.length > 0
-          ? `Roven 프로젝트를 초기화했습니다. projectId: ${result.projectManifest.projectId}\n`
+          ? `Lervo 프로젝트를 초기화했습니다. projectId: ${result.projectManifest.projectId}\n`
           : `이미 초기화된 프로젝트입니다. projectId: ${result.projectManifest.projectId}\n`,
       );
     }

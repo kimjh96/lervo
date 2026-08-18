@@ -2,8 +2,8 @@ import {
   validateSchema,
   type DocumentMigrationAppliedEventPayload,
   type DocumentMigrationApplyReceipt,
-} from "@roven/schemas";
-import { loadDocumentManifests } from "@roven/project";
+} from "@lervo/schemas";
+import { loadDocumentManifests } from "@lervo/project";
 
 import { publishMigrationSidecars } from "./apply-filesystem.js";
 import {

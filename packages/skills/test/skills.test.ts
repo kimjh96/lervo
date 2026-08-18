@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import type { SkillManifest } from "@roven/schemas";
+import type { SkillManifest } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -16,7 +16,7 @@ import {
 const roots: string[] = [];
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-skills-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-skills-"));
   roots.push(root);
   return root;
 }
@@ -71,14 +71,14 @@ async function createSkill(input: {
     },
     requiredCapabilities: ["filesystem.read"],
     contracts: {
-      inputSchemaRef: "roven-schema://skill/input/v1",
-      outputSchemaRef: "roven-schema://skill/output/v1",
+      inputSchemaRef: "lervo-schema://skill/input/v1",
+      outputSchemaRef: "lervo-schema://skill/output/v1",
     },
     trust: { level: "untrusted", signatureStatus: "unsigned" },
     enabledScope: { kind: "user" },
     pinned: input.pinned ?? false,
   };
-  await writeFile(resolve(directoryPath, "roven-skill.json"), `${JSON.stringify(manifest)}\n`);
+  await writeFile(resolve(directoryPath, "lervo-skill.json"), `${JSON.stringify(manifest)}\n`);
   return { directoryPath, manifest, original };
 }
 

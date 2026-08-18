@@ -4,7 +4,7 @@ import {
   contextScopesEqual,
   type ContextEvidence,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { validateContextPlanForLoading } from "./plan-validation.js";
 import {

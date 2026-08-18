@@ -20,31 +20,31 @@ importers:
 
   apps/cli:
     dependencies:
-      '@roven/adapter-claude':
+      '@lervo/adapter-claude':
         specifier: workspace:*
         version: link:../../packages/adapter-claude
-      '@roven/adapter-codex':
+      '@lervo/adapter-codex':
         specifier: workspace:*
         version: link:../../packages/adapter-codex
-      '@roven/adapter-contract':
+      '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../../packages/adapter-contract
-      '@roven/context':
+      '@lervo/context':
         specifier: workspace:*
         version: link:../../packages/context
-      '@roven/orchestrator':
+      '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
-      '@roven/project':
+      '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
-      '@roven/project-storage':
+      '@lervo/project-storage':
         specifier: workspace:*
         version: link:../../packages/project-storage
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
-      '@roven/skills':
+      '@lervo/skills':
         specifier: workspace:*
         version: link:../../packages/skills
 
@@ -53,74 +53,74 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.226
         version: 0.3.226(@anthropic-ai/sdk@0.117.1(zod@4.4.3))(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(zod@4.4.3)
-      '@roven/adapter-contract':
+      '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../adapter-contract
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/adapter-codex:
     dependencies:
-      '@roven/adapter-contract':
+      '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../adapter-contract
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/adapter-contract:
     dependencies:
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/cas:
     dependencies:
-      '@roven/storage-contract':
+      '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
 
   packages/context:
     dependencies:
-      '@roven/core':
+      '@lervo/core':
         specifier: workspace:*
         version: link:../core
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/context-delivery:
     dependencies:
-      '@roven/adapter-contract':
+      '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../adapter-contract
-      '@roven/context':
+      '@lervo/context':
         specifier: workspace:*
         version: link:../context
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
     devDependencies:
-      '@roven/cas':
+      '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
 
   packages/core:
     dependencies:
-      '@roven/event-contract':
+      '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/documents:
     dependencies:
-      '@roven/project':
+      '@lervo/project':
         specifier: workspace:*
         version: link:../project
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
       yaml:
@@ -129,62 +129,62 @@ importers:
 
   packages/event-contract:
     dependencies:
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/event-store-sqlite:
     dependencies:
-      '@roven/event-contract':
+      '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-      '@roven/storage-contract':
+      '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
 
   packages/orchestrator:
     dependencies:
-      '@roven/adapter-contract':
+      '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../adapter-contract
-      '@roven/context':
+      '@lervo/context':
         specifier: workspace:*
         version: link:../context
-      '@roven/context-delivery':
+      '@lervo/context-delivery':
         specifier: workspace:*
         version: link:../context-delivery
-      '@roven/core':
+      '@lervo/core':
         specifier: workspace:*
         version: link:../core
-      '@roven/event-contract':
+      '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-      '@roven/storage-contract':
+      '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
     devDependencies:
-      '@roven/adapter-claude':
+      '@lervo/adapter-claude':
         specifier: workspace:*
         version: link:../adapter-claude
-      '@roven/adapter-codex':
+      '@lervo/adapter-codex':
         specifier: workspace:*
         version: link:../adapter-codex
-      '@roven/cas':
+      '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
-      '@roven/event-store-sqlite':
+      '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
 
   packages/project:
     dependencies:
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
       yaml:
@@ -193,19 +193,19 @@ importers:
 
   packages/project-storage:
     dependencies:
-      '@roven/cas':
+      '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
-      '@roven/event-store-sqlite':
+      '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
-      '@roven/project':
+      '@lervo/project':
         specifier: workspace:*
         version: link:../project
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-      '@roven/storage-contract':
+      '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
 
@@ -220,16 +220,16 @@ importers:
 
   packages/skills:
     dependencies:
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 
   packages/storage-contract:
     dependencies:
-      '@roven/event-contract':
+      '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-      '@roven/schemas':
+      '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
 

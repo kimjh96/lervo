@@ -1,4 +1,4 @@
-import type { LoadedContext } from "@roven/context";
+import type { LoadedContext } from "@lervo/context";
 import type {
   AdapterContextEnvelope,
   AdapterContextReceipt,
@@ -6,7 +6,7 @@ import type {
   ContextEvidence,
   ContextScope,
   SharedContextPublication,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export type ContextDeliveryKind = "inline" | "cas";
 

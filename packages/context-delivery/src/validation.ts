@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import {
   assertLoadedContextIntegrity,
   type LoadedContext,
-} from "@roven/context";
-import { type AdapterSession, validateSchema } from "@roven/schemas";
+} from "@lervo/context";
+import { type AdapterSession, validateSchema } from "@lervo/schemas";
 
 import { ContextDeliveryError } from "./types.js";
 

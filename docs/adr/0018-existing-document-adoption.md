@@ -5,9 +5,9 @@
 
 ## 맥락
 
-Roven을 새 저장소에만 설치한다고 가정할 수 없습니다. 실제 저장소에는 `README.md`, `AGENTS.md`, `CLAUDE.md`, ADR, MDX, AsciiDoc, custom front matter와 과거 Roven `documents.yaml`이 서로 다른 규칙으로 쌓여 있을 수 있습니다. 표준 managed block parser부터 구현하면 기존 형식을 표준 marker에 억지로 맞추거나 사용자 원본을 수정하는 방향으로 경계가 굳어질 수 있습니다.
+Lervo를 새 저장소에만 설치한다고 가정할 수 없습니다. 실제 저장소에는 `README.md`, `AGENTS.md`, `CLAUDE.md`, ADR, MDX, AsciiDoc, custom front matter와 과거 Lervo `documents.yaml`이 서로 다른 규칙으로 쌓여 있을 수 있습니다. 표준 managed block parser부터 구현하면 기존 형식을 표준 marker에 억지로 맞추거나 사용자 원본을 수정하는 방향으로 경계가 굳어질 수 있습니다.
 
-`roven init`은 안전한 project layout 생성만 담당합니다. 기존 문서를 Roven의 관리 대상으로 도입하는 일은 원본 형식과 소유권을 판정하고 사용자가 승인해야 하므로 init과 같은 암묵적 단계가 될 수 없습니다.
+`lervo init`은 안전한 project layout 생성만 담당합니다. 기존 문서를 Lervo의 관리 대상으로 도입하는 일은 원본 형식과 소유권을 판정하고 사용자가 승인해야 하므로 init과 같은 암묵적 단계가 될 수 없습니다.
 
 ## 결정
 
@@ -28,9 +28,9 @@ Roven을 새 저장소에만 설치한다고 가정할 수 없습니다. 실제 
 
 ### 탐색과 형식 adapter를 분리한다
 
-Core scanner가 탐색 root, 제외 경로, 파일 수·개별 크기·전체 byte 한도, 안전한 전체 파일 읽기, source hash와 결정적 순서를 소유합니다. 절대 경로, root 이탈, 심볼릭 링크, 일반 파일이 아닌 항목과 읽는 중 변경을 거부합니다. 기본 제외 대상은 `.git`, 의존성 디렉터리와 `.roven/state`입니다.
+Core scanner가 탐색 root, 제외 경로, 파일 수·개별 크기·전체 byte 한도, 안전한 전체 파일 읽기, source hash와 결정적 순서를 소유합니다. 절대 경로, root 이탈, 심볼릭 링크, 일반 파일이 아닌 항목과 읽는 중 변경을 거부합니다. 기본 제외 대상은 `.git`, 의존성 디렉터리와 `.lervo/state`입니다.
 
-`DocumentImportAdapter`는 adapter ID/version, 지원 확장자와 탐지 함수를 공개합니다. Adapter는 scanner가 읽은 저장소 상대 경로와 byte만 받고 파일 시스템이나 event store 쓰기 port를 받지 않습니다. 반환값은 형식, 소유권, document ID/profile/관계와 marker 후보, confidence와 warnings입니다. Markdown, MDX, AsciiDoc, 과거 Roven registry와 프로젝트 custom 형식은 같은 공통 계약 테스트를 통과해야 합니다.
+`DocumentImportAdapter`는 adapter ID/version, 지원 확장자와 탐지 함수를 공개합니다. Adapter는 scanner가 읽은 저장소 상대 경로와 byte만 받고 파일 시스템이나 event store 쓰기 port를 받지 않습니다. 반환값은 형식, 소유권, document ID/profile/관계와 marker 후보, confidence와 warnings입니다. Markdown, MDX, AsciiDoc, 과거 Lervo registry와 프로젝트 custom 형식은 같은 공통 계약 테스트를 통과해야 합니다.
 
 ### 후보와 계획은 원본에 묶는다
 
@@ -47,9 +47,9 @@ Dry-run은 어떤 파일도 만들거나 수정하지 않습니다. Apply 직전
 
 ### 기본 적용은 metadata-only다
 
-승인된 첫 적용은 `.roven/documents/<documentId>.yaml` sidecar만 원자적으로 만듭니다. Source 위치, byte, front matter와 기존 marker를 유지합니다. 알 수 없는 형식과 낮은 신뢰도는 자동 관리 대상으로 승격하지 않고 `observed/review_required`로 남깁니다.
+승인된 첫 적용은 `.lervo/documents/<documentId>.yaml` sidecar만 원자적으로 만듭니다. Source 위치, byte, front matter와 기존 marker를 유지합니다. 알 수 없는 형식과 낮은 신뢰도는 자동 관리 대상으로 승격하지 않고 `observed/review_required`로 남깁니다.
 
-본문 이동, 형식 변환, marker 삽입과 문서 분할은 별도 structural patch입니다. Source와 target snapshot, block 밖 byte 보존과 명시적 승인이 없으면 적용하지 않습니다. 기존 `.roven/documents.yaml`의 분할도 같은 원칙을 따르며 init이 자동 실행하지 않습니다.
+본문 이동, 형식 변환, marker 삽입과 문서 분할은 별도 structural patch입니다. Source와 target snapshot, block 밖 byte 보존과 명시적 승인이 없으면 적용하지 않습니다. 기존 `.lervo/documents.yaml`의 분할도 같은 원칙을 따르며 init이 자동 실행하지 않습니다.
 
 ### 승인은 최종 manifest를 확정한다
 
@@ -57,19 +57,19 @@ Dry-run은 어떤 파일도 만들거나 수정하지 않습니다. Apply 직전
 
 ### 적용은 부분 layout을 활성화하지 않는다
 
-적용기는 plan 내용으로 plan ID를 다시 계산하고 candidate artifact canonical byte의 hash·크기·ID를 검증합니다. 이어서 모든 source byte, 각 target과 현재 `.roven/documents/` snapshot을 다시 읽습니다. 하나라도 달라지거나 기존 manifest 전체와 새 manifest의 path·ID·관계가 충돌하면 어떤 sidecar도 활성화하지 않습니다.
+적용기는 plan 내용으로 plan ID를 다시 계산하고 candidate artifact canonical byte의 hash·크기·ID를 검증합니다. 이어서 모든 source byte, 각 target과 현재 `.lervo/documents/` snapshot을 다시 읽습니다. 하나라도 달라지거나 기존 manifest 전체와 새 manifest의 path·ID·관계가 충돌하면 어떤 sidecar도 활성화하지 않습니다.
 
-Sidecar는 격리된 staging directory에서 완성하고 파일을 동기화합니다. 공개 전 `.roven/documents/`에 transaction marker를 만들며 loader는 이 marker가 있는 부분 layout을 계약 위반으로 거부합니다. 승인된 sidecar를 모두 공개하고 전체 snapshot을 다시 확인한 뒤 `document.migration.applied` event를 영속합니다. Event recorder는 성공 반환 전에 event를 durable하게 commit하고, 실패 반환 시에는 commit하지 않는 port여야 합니다. Event 기록 전에 실패하면 이번 apply가 만든 파일을 content hash로 확인해 전부 되돌립니다. Event가 기록된 뒤 marker 제거에 실패하거나 rollback 안전성을 증명하지 못하면 정상 receipt를 반환하지 않고 fail-closed 상태를 남깁니다.
+Sidecar는 격리된 staging directory에서 완성하고 파일을 동기화합니다. 공개 전 `.lervo/documents/`에 transaction marker를 만들며 loader는 이 marker가 있는 부분 layout을 계약 위반으로 거부합니다. 승인된 sidecar를 모두 공개하고 전체 snapshot을 다시 확인한 뒤 `document.migration.applied` event를 영속합니다. Event recorder는 성공 반환 전에 event를 durable하게 commit하고, 실패 반환 시에는 commit하지 않는 port여야 합니다. Event 기록 전에 실패하면 이번 apply가 만든 파일을 content hash로 확인해 전부 되돌립니다. Event가 기록된 뒤 marker 제거에 실패하거나 rollback 안전성을 증명하지 못하면 정상 receipt를 반환하지 않고 fail-closed 상태를 남깁니다.
 
-기존 `.roven/documents.yaml`과 분할 sidecar directory는 동시에 활성화할 수 없습니다. 첫 metadata-only apply는 legacy registry가 있는 layout을 `migration_conflict`로 거부합니다. Registry byte의 보존 위치와 비활성화 처분, 항목별 artifact와 새 sidecar 전체를 묶는 structural dry-run 계약은 아래와 같이 분리합니다.
+기존 `.lervo/documents.yaml`과 분할 sidecar directory는 동시에 활성화할 수 없습니다. 첫 metadata-only apply는 legacy registry가 있는 layout을 `migration_conflict`로 거부합니다. Registry byte의 보존 위치와 비활성화 처분, 항목별 artifact와 새 sidecar 전체를 묶는 structural dry-run 계약은 아래와 같이 분리합니다.
 
 ### Legacy registry는 불변 원본과 항목별 artifact로 나눈다
 
-Structural dry-run은 `.roven/documents.yaml`을 안정적으로 한 번 읽고 최대 4,096개 record를 document ID 순서로 분리합니다. 각 artifact는 source registry hash, document ID와 원래 `DocumentRecord` 전체를 포함합니다. 따라서 책임자, 연결 경로, 검증 revision·시각·주기와 소유권을 일반 import 제안으로 축약하지 않습니다. Artifact hash에는 source registry hash도 들어가므로 registry의 주석이나 직렬화가 달라져 원본 bytes가 바뀌면 모든 승인 좌표가 새로 만들어집니다.
+Structural dry-run은 `.lervo/documents.yaml`을 안정적으로 한 번 읽고 최대 4,096개 record를 document ID 순서로 분리합니다. 각 artifact는 source registry hash, document ID와 원래 `DocumentRecord` 전체를 포함합니다. 따라서 책임자, 연결 경로, 검증 revision·시각·주기와 소유권을 일반 import 제안으로 축약하지 않습니다. Artifact hash에는 source registry hash도 들어가므로 registry의 주석이나 직렬화가 달라져 원본 bytes가 바뀌면 모든 승인 좌표가 새로 만들어집니다.
 
-원본 보존 target은 `.roven/archive/document-registries/sha256/<source-digest>.yaml`입니다. 이 파일은 다음 migration 내용을 append하는 문서가 아니라 특정 source bytes의 불변 사본입니다. Plan은 원본 경로의 처분을 `archive_then_remove`로 명시하지만 dry-run은 archive directory도 만들지 않습니다.
+원본 보존 target은 `.lervo/archive/document-registries/sha256/<source-digest>.yaml`입니다. 이 파일은 다음 migration 내용을 append하는 문서가 아니라 특정 source bytes의 불변 사본입니다. Plan은 원본 경로의 처분을 `archive_then_remove`로 명시하지만 dry-run은 archive directory도 만들지 않습니다.
 
-Plan에는 새 `.roven/documents` directory와 모든 sidecar target뿐 아니라 각 record가 가리키는 문서의 missing/file/unsafe snapshot도 포함합니다. 참조 문서는 structural apply가 수정하지 않지만, 승인자가 검토한 저장소 상태와 다른 문서 집합에 오래된 registry 분할을 적용하지 않기 위해 결속합니다. 참조 문서 부재는 review warning이고 안전한 snapshot을 만들 수 없는 문서는 `conflict`입니다. 중복 path·비정규 경로, 기존 sidecar layout과 다른 bytes의 archive target도 `conflict`입니다. Managed block과 Roven 생성 소유권은 실제 본문 parser가 아직 없으므로 자동 확정하지 않고 review 대상으로 남깁니다.
+Plan에는 새 `.lervo/documents` directory와 모든 sidecar target뿐 아니라 각 record가 가리키는 문서의 missing/file/unsafe snapshot도 포함합니다. 참조 문서는 structural apply가 수정하지 않지만, 승인자가 검토한 저장소 상태와 다른 문서 집합에 오래된 registry 분할을 적용하지 않기 위해 결속합니다. 참조 문서 부재는 review warning이고 안전한 snapshot을 만들 수 없는 문서는 `conflict`입니다. 중복 path·비정규 경로, 기존 sidecar layout과 다른 bytes의 archive target도 `conflict`입니다. Managed block과 Lervo 생성 소유권은 실제 본문 parser가 아직 없으므로 자동 확정하지 않고 review 대상으로 남깁니다.
 
 현재 구현은 이 structural dry-run까지만 제공하며 승인, source 비활성화, archive·sidecar 쓰기와 완료 event를 만들지 않습니다. 후속 apply는 archive와 sidecar를 먼저 완성하고 transaction marker로 loader를 닫은 상태에서만 legacy 원본 경로를 제거해야 합니다. Event 기록 전 실패하면 archive 사본으로 legacy 경로를 복원할 수 있어야 하며, 이 순서와 failure injection fixture가 준비되기 전에는 구조 전환 완료를 주장하지 않습니다.
 

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import type { EventDraft } from "@roven/event-contract";
-import type { EventEnvelope } from "@roven/schemas";
+import type { EventDraft } from "@lervo/event-contract";
+import type { EventEnvelope } from "@lervo/schemas";
 
 import type { ManagedEventStore, ManagedRunCoordinates } from "./types.js";
 

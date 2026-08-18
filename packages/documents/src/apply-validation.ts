@@ -4,11 +4,11 @@ import {
   type DocumentMigrationApproval,
   type DocumentMigrationCandidateArtifact,
   type DocumentMigrationPlan,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import {
   validateDocumentManifest,
   validateDocumentManifestSet,
-} from "@roven/project";
+} from "@lervo/project";
 import { stringify } from "yaml";
 
 import { canonicalJsonBytes, sha256 } from "./hash.js";
@@ -96,7 +96,7 @@ function sidecarFromDecision(input: {
     entry.target.expected.kind !== "missing" || candidate.proposal === null ||
     input.decision.manifest.documentId !== candidate.proposal.documentId ||
     input.decision.manifest.record.path !== candidate.proposal.documentPath ||
-    entry.target.path !== `.roven/documents/${input.decision.manifest.documentId}.yaml` ||
+    entry.target.path !== `.lervo/documents/${input.decision.manifest.documentId}.yaml` ||
     !input.sourcePaths.has(input.decision.manifest.record.path)
   ) {
     invalidApproval(

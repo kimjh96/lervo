@@ -13,7 +13,7 @@ Context router가 event store, CAS와 provider adapter까지 직접 알게 만�
 
 ### 패키지 경계
 
-- `@roven/context`는 document registry, Role, 예상 변경 경로, shared context와 handoff를 입력으로 받습니다.
+- `@lervo/context`는 document registry, Role, 예상 변경 경로, shared context와 handoff를 입력으로 받습니다.
 - 출력은 E0/E1 계획, 읽은 원문 bytes, E2 evidence와 snapshot 무효화 사유입니다.
 - Event append, CAS 저장, adapter envelope와 E3는 이 패키지의 책임이 아닙니다.
 - 선택 누적, evidence 생성·schema 검증, 파일 시스템 읽기, freshness 판정을 별도 모듈로 둡니다.

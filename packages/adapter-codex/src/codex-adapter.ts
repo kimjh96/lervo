@@ -5,7 +5,7 @@ import {
   type AdapterTurnAccepted,
   type ProviderAdapter,
   type ProviderManagedWriteBridge,
-} from "@roven/adapter-contract";
+} from "@lervo/adapter-contract";
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
@@ -18,7 +18,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import {
   assertAdapterMessage,

@@ -1,4 +1,4 @@
-import type { AdapterExecutionMode } from "@roven/schemas";
+import type { AdapterExecutionMode } from "@lervo/schemas";
 
 import { normalizeExpectedWritePaths } from "./validation.js";
 

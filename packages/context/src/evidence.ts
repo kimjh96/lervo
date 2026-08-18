@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { type ContextEvidence, validateSchema } from "@roven/schemas";
+import { type ContextEvidence, validateSchema } from "@lervo/schemas";
 
 import { ContextPreparationError } from "./types.js";
 

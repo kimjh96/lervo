@@ -6,12 +6,12 @@ import {
   type ClaudeAgentClient,
   type ClaudeAgentClientStartOptions,
   type ClaudeToolUseHandler,
-} from "@roven/adapter-claude";
+} from "@lervo/adapter-claude";
 import {
   CodexAdapter,
   type CodexAppServerClient,
   type CodexThreadStartOptions,
-} from "@roven/adapter-codex";
+} from "@lervo/adapter-codex";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ManagedProviderRunCoordinator } from "../src/index.js";

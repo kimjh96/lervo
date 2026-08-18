@@ -7,13 +7,13 @@ import {
   eventWithoutHash,
   sanitizeEventPayload,
   type EventDraft,
-} from "@roven/event-contract";
-import { type EventEnvelope, validateSchema } from "@roven/schemas";
+} from "@lervo/event-contract";
+import { type EventEnvelope, validateSchema } from "@lervo/schemas";
 import {
   type AppendEventResult,
   type EventChainReport,
   type ListEventsOptions,
-} from "@roven/storage-contract";
+} from "@lervo/storage-contract";
 
 import { EventStoreError } from "./errors.js";
 import { requireString, rowToEvent } from "./row-codec.js";

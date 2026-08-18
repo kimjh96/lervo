@@ -1,4 +1,4 @@
-import { defaultProjectDataPolicy } from "@roven/schemas";
+import { defaultProjectDataPolicy } from "@lervo/schemas";
 
 export const defaultDataPolicy = defaultProjectDataPolicy;
 

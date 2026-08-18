@@ -1,4 +1,4 @@
-import type { ContextEvidence, ContextScope } from "@roven/schemas";
+import type { ContextEvidence, ContextScope } from "@lervo/schemas";
 
 type LoadedEvidence = Extract<ContextEvidence, { state: "loaded" }>;
 type InjectedEvidence = Extract<ContextEvidence, { state: "injected" }>;

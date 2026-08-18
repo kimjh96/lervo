@@ -1,7 +1,7 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
-import type { DocumentMigrationPlan } from "@roven/schemas";
+import type { DocumentMigrationPlan } from "@lervo/schemas";
 
 import { inspectTargetFile, readStableFile } from "./filesystem.js";
 import { canonicalJsonBytes, sha256 } from "./hash.js";
@@ -69,7 +69,7 @@ export async function captureSidecarDirectorySnapshot(
   root: string,
   ignoredFileName?: string,
 ): Promise<ReadonlyMap<string, string>> {
-  const directory = resolve(root, ".roven/documents");
+  const directory = resolve(root, ".lervo/documents");
   let before;
   try {
     before = await lstat(directory, { bigint: true });
@@ -79,7 +79,7 @@ export async function captureSidecarDirectorySnapshot(
   } catch (error) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Metadata-only apply에는 안전한 .roven/documents 디렉터리가 필요합니다.",
+      "Metadata-only apply에는 안전한 .lervo/documents 디렉터리가 필요합니다.",
       { cause: error },
     );
   }
@@ -99,7 +99,7 @@ export async function captureSidecarDirectorySnapshot(
         "Document manifest 디렉터리에 계약 밖의 항목이 있습니다.",
       );
     }
-    const path = `.roven/documents/${entry.name}`;
+    const path = `.lervo/documents/${entry.name}`;
     const bytes = await readStableFile(root, path, 64 * 1024);
     snapshot.set(path, sha256(bytes));
   }

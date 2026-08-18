@@ -5,7 +5,7 @@
 
 ## 맥락
 
-Roven의 실행 증거는 Hub가 없어도 로컬에서 완결되어야 한다. Event 순서와 연결 관계를 재시작 뒤에도 복구해야 하며, raw prompt와 문서 본문 같은 큰 원문은 event metadata와 분리해야 한다. 같은 event의 재전송은 중복 기록을 만들지 않아야 하고, 이미 기록한 event를 조용히 수정하거나 삭제할 수 없어야 한다.
+Lervo의 실행 증거는 Hub가 없어도 로컬에서 완결되어야 한다. Event 순서와 연결 관계를 재시작 뒤에도 복구해야 하며, raw prompt와 문서 본문 같은 큰 원문은 event metadata와 분리해야 한다. 같은 event의 재전송은 중복 기록을 만들지 않아야 하고, 이미 기록한 event를 조용히 수정하거나 삭제할 수 없어야 한다.
 
 Node 22.13부터 별도 실행 플래그 없이 사용할 수 있는 내장 `node:sqlite`를 선택한다. v0는 별도 네이티브 addon보다 Node 런타임과 함께 배포되는 동기 API로 로컬 단일 writer 경계를 단순하게 유지한다. `node:sqlite`의 안정도와 API 변화는 Node 버전 상향 시 다시 검토한다.
 
@@ -13,7 +13,7 @@ Node 22.13부터 별도 실행 플래그 없이 사용할 수 있는 내장 `nod
 
 ### SQLite event store
 
-- 기본 경로는 `.roven/state/events.sqlite`이며 database metadata에 project id와 storage schema version을 기록한다.
+- 기본 경로는 `.lervo/state/events.sqlite`이며 database metadata에 project id와 storage schema version을 기록한다.
 - `seq`는 run별이 아니라 project 전체에서 1부터 증가한다.
 - 첫 event의 `previousHash`는 `null`이고 이후 event는 직전 project event의 hash를 가리킨다.
 - Event hash와 canonical JSON은 저장 구현이 아닌 공통 event 계약에 둔다. `eventHash`를 제외한 전체 envelope를 key 정렬 canonical JSON으로 직렬화한 SHA-256이며 배열 순서는 유지한다.
@@ -56,8 +56,8 @@ Node 22.13부터 별도 실행 플래그 없이 사용할 수 있는 내장 `nod
 
 ### 파일 CAS
 
-- 기본 root는 `.roven/state/cas`다.
-- Object 주소는 원문 bytes의 SHA-256이며 URI는 `roven-cas://sha256/<64 hex>`다.
+- 기본 root는 `.lervo/state/cas`다.
+- Object 주소는 원문 bytes의 SHA-256이며 URI는 `lervo-cas://sha256/<64 hex>`다.
 - 파일 경로는 `sha256/<앞 2자리>/<나머지>`로 나눠 한 디렉터리에 object가 몰리지 않게 한다.
 - 입력 청크를 임시 파일에 쓰면서 SHA-256과 byte count를 계산한다. 생산자가 실패하면 임시 파일을 제거하며 전체 bytes를 메모리에 모으지 않는다.
 - 임시 파일을 `fsync`한 뒤 같은 파일 시스템의 hard link로 대상 이름을 원자적으로 확정한다.

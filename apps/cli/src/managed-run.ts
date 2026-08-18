@@ -1,20 +1,20 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import type { ProviderAdapter } from "@roven/adapter-contract";
-import { ClaudeAdapter } from "@roven/adapter-claude";
-import { CodexAdapter } from "@roven/adapter-codex";
-import { normalizeRepositoryPath } from "@roven/context";
+import type { ProviderAdapter } from "@lervo/adapter-contract";
+import { ClaudeAdapter } from "@lervo/adapter-claude";
+import { CodexAdapter } from "@lervo/adapter-codex";
+import { normalizeRepositoryPath } from "@lervo/context";
 import {
   ManagedProviderRunCoordinator,
   type ManagedFileChangeEvidence,
   type ManagedProviderResultArtifact,
-} from "@roven/orchestrator";
-import { loadDocumentRegistry } from "@roven/project";
+} from "@lervo/orchestrator";
+import { loadDocumentRegistry } from "@lervo/project";
 import {
   openProjectStorage,
   type ProjectStorage,
-} from "@roven/project-storage";
-import type { RoleProfile } from "@roven/schemas";
+} from "@lervo/project-storage";
+import type { RoleProfile } from "@lervo/schemas";
 
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
 
@@ -91,13 +91,13 @@ const developerRoleBase: RoleProfile = {
   defaultSkills: [],
   outputContract: {
     artifactKind: "source_code",
-    schemaRef: "roven-schema://run/source-code/v1",
+    schemaRef: "lervo-schema://run/source-code/v1",
     pathTemplate: "{expectedPath}",
     citationsRequired: false,
     presentation: { audience: "machine", writingPolicyId: null },
   },
   verification: {
-    suiteIds: ["roven.v0.not_run"],
+    suiteIds: ["lervo.v0.not_run"],
     failureDisposition: "fail_run",
   },
   handoff: {

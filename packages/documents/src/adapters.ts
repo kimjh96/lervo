@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 
-import type { DocumentRegistry } from "@roven/schemas";
+import type { DocumentRegistry } from "@lervo/schemas";
 
 import { digestSuffix } from "./hash.js";
 import { parseLegacyDocumentRegistry } from "./legacy-registry.js";
@@ -29,16 +29,16 @@ function markdownDraft(source: DocumentImportSource): DocumentImportDraft {
       warnings: ["invalid_utf8"],
     };
   }
-  const containsRovenMarker = text.includes("<!-- roven:");
+  const containsLervoMarker = text.includes("<!-- lervo:");
   const warnings = ["profile_requires_review"];
   if (extension === ".mdx") warnings.push("mdx_semantics_not_parsed");
   if (source.byteCount >= 32768) warnings.push("split_recommended");
-  if (containsRovenMarker) warnings.push("marker_structure_not_verified");
+  if (containsLervoMarker) warnings.push("marker_structure_not_verified");
   return {
     formatId: extension === ".mdx" ? "mdx" : "markdown",
     disposition: "review_required",
-    confidence: containsRovenMarker ? "low" : "medium",
-    detectedOwnership: containsRovenMarker ? "managed_blocks" : "user",
+    confidence: containsLervoMarker ? "low" : "medium",
+    detectedOwnership: containsLervoMarker ? "managed_blocks" : "user",
     proposal: {
       documentId: documentId(source.path),
       documentPath: source.path,
@@ -62,7 +62,7 @@ export const markdownImportAdapter: DocumentImportAdapter = {
 
 function invalidLegacyDraft(warning: string, locator?: string): DocumentImportDraft {
   return {
-    formatId: "roven_legacy_registry",
+    formatId: "lervo_legacy_registry",
     ...(locator === undefined ? {} : { locator }),
     disposition: "observed",
     confidence: "none",
@@ -86,7 +86,7 @@ function legacyDraft(
     return invalidLegacyDraft("invalid_legacy_registry_layout", documentIdValue);
   }
   return {
-    formatId: "roven_legacy_registry",
+    formatId: "lervo_legacy_registry",
     locator: documentIdValue,
     disposition: "review_required",
     confidence: "high",
@@ -102,9 +102,9 @@ function legacyDraft(
 }
 
 export const legacyRegistryImportAdapter: DocumentImportAdapter = {
-  descriptor: { adapterId: "roven_legacy_registry", version: "1.0.0" },
+  descriptor: { adapterId: "lervo_legacy_registry", version: "1.0.0" },
   supports(path) {
-    return path === ".roven/documents.yaml";
+    return path === ".lervo/documents.yaml";
   },
   inspect(source) {
     const registry = parseLegacyDocumentRegistry(source.bytes);

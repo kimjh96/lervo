@@ -6,7 +6,7 @@ import type {
   RoleProfile,
   SelectionReasonCode,
   SharedContextPublication,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export interface ContextRunCoordinates {
   projectId: string;

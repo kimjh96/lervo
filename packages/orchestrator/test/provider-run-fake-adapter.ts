@@ -1,4 +1,4 @@
-import type { ProviderAdapter, ProviderManagedWriteBridge } from "@roven/adapter-contract";
+import type { ProviderAdapter, ProviderManagedWriteBridge } from "@lervo/adapter-contract";
 import type {
   AdapterContextEnvelope,
   AdapterContextReceipt,
@@ -9,12 +9,12 @@ import type {
   AdapterStopRequest,
   AdapterTurnRequest,
   AdapterTurnResult,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import {
   createAdapterTurnResult,
   createManagedWriteCompletion,
   createManagedWriteRequest,
-} from "@roven/adapter-contract";
+} from "@lervo/adapter-contract";
 
 import { projectId, runId, sessionId } from "./fixture.js";
 
@@ -27,7 +27,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
   stopReason: AdapterStopRequest["reason"] | undefined;
   private session: AdapterSession | undefined;
   private turnId: string | undefined;
-  private turn: import("@roven/schemas").AdapterTurn | undefined;
+  private turn: import("@lervo/schemas").AdapterTurn | undefined;
   private writeBridge: ProviderManagedWriteBridge | undefined;
   private releaseTurn!: () => void;
   private readonly turnStarted = new Promise<void>((resolve) => {
@@ -63,7 +63,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
     this.descriptor = {
       kind: "descriptor",
       schemaVersion: 1,
-      adapterId: `roven/${provider}`,
+      adapterId: `lervo/${provider}`,
       adapterVersion: "fixture-1",
       provider,
       capabilities: {
@@ -148,7 +148,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
   async startTurn(
     _session: AdapterSession,
     request: AdapterTurnRequest,
-    accepted: (turn: import("@roven/schemas").AdapterTurn) => void,
+    accepted: (turn: import("@lervo/schemas").AdapterTurn) => void,
   ) {
     this.calls.push("startTurn");
     this.turnId = `${this.descriptor.provider}-turn-1`;

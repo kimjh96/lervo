@@ -1,6 +1,6 @@
 import { type SQLOutputValue } from "node:sqlite";
 
-import { type OutboxDelivery, type OutboxStatus } from "@roven/storage-contract";
+import { type OutboxDelivery, type OutboxStatus } from "@lervo/storage-contract";
 
 import { EventStoreError } from "./errors.js";
 import {

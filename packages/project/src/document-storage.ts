@@ -5,7 +5,7 @@ import type {
   DocumentManifest,
   DocumentRecord,
   DocumentRegistry,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { parseAndValidateYaml } from "./config.js";
 import {
@@ -14,14 +14,14 @@ import {
 } from "./document-validation.js";
 import { readEntry } from "./filesystem.js";
 import { resolveProjectPaths } from "./layout.js";
-import { RovenProjectError } from "./types.js";
+import { LervoProjectError } from "./types.js";
 
 const MAX_DOCUMENT_MANIFEST_BYTES = 64 * 1024;
 const MAX_DOCUMENT_MANIFESTS = 4096;
 const DOCUMENT_FILE_PATTERN = /^doc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.yaml$/;
 
 function fail(code: "contract_invalid" | "document_layout_conflict", message: string): never {
-  throw new RovenProjectError(code, message);
+  throw new LervoProjectError(code, message);
 }
 
 async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
@@ -68,17 +68,17 @@ async function documentStorageKind(root: string): Promise<{
   legacy: Awaited<ReturnType<typeof readEntry>>;
 }> {
   const paths = resolveProjectPaths(root);
-  const rovenRoot = await readEntry(paths.rovenRoot);
-  if (rovenRoot.kind === "missing") {
-    throw new RovenProjectError(
+  const lervoRoot = await readEntry(paths.lervoRoot);
+  if (lervoRoot.kind === "missing") {
+    throw new LervoProjectError(
       "not_initialized",
-      `${paths.rovenRoot}이 없습니다. 먼저 roven init을 실행하세요.`,
+      `${paths.lervoRoot}이 없습니다. 먼저 lervo init을 실행하세요.`,
     );
   }
-  if (rovenRoot.kind !== "directory") {
-    throw new RovenProjectError(
+  if (lervoRoot.kind !== "directory") {
+    throw new LervoProjectError(
       "unsafe_path",
-      `${paths.rovenRoot}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
+      `${paths.lervoRoot}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
     );
   }
   return {
@@ -94,15 +94,15 @@ export async function loadDocumentManifests(root: string): Promise<DocumentManif
     return loadShardedManifests(paths.documents);
   }
   if (storage.documents.kind === "missing" && storage.legacy.kind === "file") {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "document_layout_conflict",
       "기존 documents.yaml은 읽을 수 있지만 문서별 manifest API에는 사용할 수 없습니다.",
     );
   }
   if (storage.documents.kind === "missing" && storage.legacy.kind === "missing") {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "not_initialized",
-      `${paths.documents}이 없습니다. 먼저 roven init을 실행하세요.`,
+      `${paths.documents}이 없습니다. 먼저 lervo init을 실행하세요.`,
     );
   }
   fail("document_layout_conflict", "문서 registry 저장 형식이 하나로 결정되지 않습니다.");
@@ -121,9 +121,9 @@ export async function loadDocumentRegistry(root: string): Promise<DocumentRegist
     return parseAndValidateYaml<DocumentRegistry>("documentRegistry", storage.legacy.content);
   }
   if (storage.documents.kind === "missing" && storage.legacy.kind === "missing") {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "not_initialized",
-      `${paths.documents}이 없습니다. 먼저 roven init을 실행하세요.`,
+      `${paths.documents}이 없습니다. 먼저 lervo init을 실행하세요.`,
     );
   }
   fail("document_layout_conflict", "documents 디렉터리와 기존 documents.yaml을 함께 사용할 수 없습니다.");

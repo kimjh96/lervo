@@ -1,4 +1,4 @@
-# ADR-0015: `roven run` 한 파일 CLI 수직 슬라이스
+# ADR-0015: `lervo run` 한 파일 CLI 수직 슬라이스
 
 - 상태: 채택
 - 기준일: 2026-08-19
@@ -14,7 +14,7 @@ Managed provider coordinator, project storage와 Codex/Claude adapter는 각각 
 첫 명령 형식은 다음과 같습니다.
 
 ```text
-roven run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>
+lervo run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>
 ```
 
 `provider`, 저장소 상대 `path` 하나와 비어 있지 않은 작업 문장은 필수입니다. 경로는 storage나 provider를 열기 전에 공통 repository path 규칙으로 정규화합니다. 현재 명령은 정확히 한 파일을 변경하는 `managed_write`만 실행합니다. 여러 경로, 사람 승인 대기, 읽기 전용 선택과 provider별 추가 권한은 이 명령에 노출하지 않습니다.

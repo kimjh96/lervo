@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { ContextDeliveryError } from "@roven/context-delivery";
-import type { AdapterNormalizedEvent } from "@roven/schemas";
+import { ContextDeliveryError } from "@lervo/context-delivery";
+import type { AdapterNormalizedEvent } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ManagedContextError } from "../src/index.js";

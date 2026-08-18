@@ -1,5 +1,5 @@
-import { type EventDraft, type RedactionRecord } from "@roven/event-contract";
-import { type EventEnvelope } from "@roven/schemas";
+import { type EventDraft, type RedactionRecord } from "@lervo/event-contract";
+import { type EventEnvelope } from "@lervo/schemas";
 
 export interface AppendEventResult {
   event: EventEnvelope;

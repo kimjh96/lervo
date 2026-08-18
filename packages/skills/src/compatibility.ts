@@ -1,4 +1,4 @@
-import type { SkillLockRejection } from "@roven/schemas";
+import type { SkillLockRejection } from "@lervo/schemas";
 
 import type { DiscoveredSkill, SkillRuntimeContext } from "./types.js";
 

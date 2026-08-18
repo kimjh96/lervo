@@ -33,17 +33,17 @@
       "approvalStatus": "not_requested",
       "outcome": "review_required",
       "source": {
-        "path": ".roven/documents.yaml",
+        "path": ".lervo/documents.yaml",
         "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "byteCount": 1024,
         "deactivationAction": "archive_then_remove"
       },
       "archiveTarget": {
-        "path": ".roven/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
+        "path": ".lervo/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
         "expected": { "kind": "missing" }
       },
       "manifestDirectory": {
-        "path": ".roven/documents",
+        "path": ".lervo/documents",
         "expected": { "kind": "missing" }
       },
       "referencedDocuments": [{
@@ -60,7 +60,7 @@
         "artifactId": "art_aaaaaaaaaaaaaaaa",
         "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "target": {
-          "path": ".roven/documents/doc_readme_000001.yaml",
+          "path": ".lervo/documents/doc_readme_000001.yaml",
           "expected": { "kind": "missing" }
         }
       }],

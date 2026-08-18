@@ -12,7 +12,7 @@ import {
   type PurgeAcknowledgedOutboxResult,
   type RescheduleOutboxRequest,
   type RescheduleOutboxResult,
-} from "@roven/storage-contract";
+} from "@lervo/storage-contract";
 
 import { EventStoreError } from "./errors.js";
 import {

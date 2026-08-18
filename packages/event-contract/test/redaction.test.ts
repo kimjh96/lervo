@@ -8,7 +8,7 @@ import {
 describe("event payload privacy boundary", () => {
   it("removes separator, camelCase, and compatibility-form secret keys", () => {
     const result = sanitizeEventPayload("adapter.started", {
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       adapterVersion: "1",
       providerSessionId: "session-1",
       executionMode: "read_only",
@@ -28,7 +28,7 @@ describe("event payload privacy boundary", () => {
     });
 
     expect(result.payload).toEqual({
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       adapterVersion: "1",
       providerSessionId: "session-1",
       executionMode: "read_only",
@@ -44,7 +44,7 @@ describe("event payload privacy boundary", () => {
 
     expect(() =>
       sanitizeEventPayload("adapter.started", {
-        adapterId: "roven/codex",
+        adapterId: "lervo/codex",
         adapterVersion: "1",
         providerSessionId: "session-1",
         capabilities,
@@ -62,7 +62,7 @@ describe("event payload privacy boundary", () => {
 
     expect(() =>
       sanitizeEventPayload("adapter.started", {
-        adapterId: "roven/codex",
+        adapterId: "lervo/codex",
         adapterVersion: "1",
         providerSessionId: "session-1",
         capabilities: new Date(),

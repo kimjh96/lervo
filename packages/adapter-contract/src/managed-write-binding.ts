@@ -4,7 +4,7 @@ import type {
   AdapterManagedWriteRequest,
   AdapterSession,
   AdapterTurn,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export type ManagedWriteBindingViolationCode =
   | "write_message_invalid"

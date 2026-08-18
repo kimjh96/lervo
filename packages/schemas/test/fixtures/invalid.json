@@ -89,7 +89,7 @@
       "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "provider": "codex",
       "providerSessionId": "provider-session-1",
-      "adapterId": "roven/codex",
+      "adapterId": "lervo/codex",
       "adapterReceiptId": "ctx_adapter_01234567",
       "envelopeId": "envelope-1",
       "targetTurnId": "turn-1",
@@ -103,7 +103,7 @@
     "value": {
       "kind": "descriptor",
       "schemaVersion": 1,
-      "adapterId": "roven/codex",
+      "adapterId": "lervo/codex",
       "adapterVersion": "0.0.0",
       "provider": "codex",
       "capabilities": {

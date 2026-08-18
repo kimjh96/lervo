@@ -3,7 +3,7 @@ import type {
   HandoffBundle,
   RoleProfile,
   SharedContextPublication,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -40,8 +40,8 @@ function researcherRole(allowedRoleIds = ["marketer"]): RoleProfile {
     defaultSkills: [],
     outputContract: {
       artifactKind: "research_finding",
-      schemaRef: "roven-schema://outputs/research-finding/v1",
-      pathTemplate: ".roven/generated/research/{runId}.md",
+      schemaRef: "lervo-schema://outputs/research-finding/v1",
+      pathTemplate: ".lervo/generated/research/{runId}.md",
       citationsRequired: true,
       presentation: {
         audience: "human",
@@ -148,7 +148,7 @@ function recipientEvidence(): ContextEvidence[] {
       contentHash,
       provider: "claude",
       providerSessionId: "provider-marketing-1",
-      adapterId: "roven/claude",
+      adapterId: "lervo/claude",
       adapterReceiptId: "ctx_adapter_marketing",
       envelopeId: "envelope-marketing-1",
       targetTurnId: "turn-marketing-1",

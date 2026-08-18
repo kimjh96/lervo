@@ -5,7 +5,7 @@ import {
   evaluateAdapterContract,
   evaluateManagedWriteContract,
   type ProviderManagedWriteBridge,
-} from "@roven/adapter-contract";
+} from "@lervo/adapter-contract";
 import type {
   AdapterContextEnvelope,
   AdapterManagedWriteCompletion,
@@ -13,7 +13,7 @@ import type {
   AdapterSession,
   AdapterStartRequest,
   AdapterTurnRequest,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -203,7 +203,7 @@ function fixture() {
   const startRequest: AdapterStartRequest = {
     kind: "start_request",
     schemaVersion: 1,
-    adapterId: "roven/codex",
+    adapterId: "lervo/codex",
     projectId: "prj_01234567",
     runId: "run_01234567",
     sessionId: "ses_01234567",
@@ -217,7 +217,7 @@ function fixture() {
     kind: "context_envelope",
     schemaVersion: 1,
     envelopeId: "envelope-codex-1",
-    adapterId: "roven/codex",
+    adapterId: "lervo/codex",
     projectId: startRequest.projectId,
     runId: startRequest.runId,
     sessionId: startRequest.sessionId,
@@ -237,7 +237,7 @@ function fixture() {
       },
       {
         documentId: "doc_writing_policy",
-        path: ".roven/writing.ko-KR.md",
+        path: ".lervo/writing.ko-KR.md",
         contentHash: sha(writing),
         byteCount: Buffer.byteLength(writing),
         scope: { kind: "full" },
@@ -249,7 +249,7 @@ function fixture() {
   const turnRequest: AdapterTurnRequest = {
     kind: "turn_request",
     schemaVersion: 1,
-    adapterId: "roven/codex",
+    adapterId: "lervo/codex",
     projectId: startRequest.projectId,
     runId: startRequest.runId,
     sessionId: startRequest.sessionId,
@@ -500,7 +500,7 @@ describe("Codex managed adapter", () => {
     await instance.stop(session, {
       kind: "stop_request",
       schemaVersion: 1,
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       projectId: session.projectId,
       runId: session.runId,
       sessionId: session.sessionId,
@@ -527,7 +527,7 @@ describe("Codex managed adapter", () => {
     const stop = instance.stop(session, {
       kind: "stop_request",
       schemaVersion: 1,
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       projectId: session.projectId,
       runId: session.runId,
       sessionId: session.sessionId,

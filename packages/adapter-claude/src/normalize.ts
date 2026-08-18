@@ -2,7 +2,7 @@ import type {
   AdapterNormalizedEvent,
   AdapterNormalizedEventType,
   AdapterSession,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import {
   asRecord,

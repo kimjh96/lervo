@@ -1,4 +1,4 @@
-import { type WritingContract, validateSchema } from "@roven/schemas";
+import { type WritingContract, validateSchema } from "@lervo/schemas";
 
 import {
   type BuildContextEnvelopeInput,

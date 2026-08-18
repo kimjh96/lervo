@@ -9,8 +9,8 @@ import {
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { applyInitPlan, createInitPlan } from "@roven/project";
-import { type OutboxStore } from "@roven/storage-contract";
+import { applyInitPlan, createInitPlan } from "@lervo/project";
+import { type OutboxStore } from "@lervo/storage-contract";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -25,7 +25,7 @@ const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 const temporaryRoots: string[] = [];
 
 async function temporaryRepository(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-project-storage-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-project-storage-"));
   temporaryRoots.push(root);
   return root;
 }
@@ -79,8 +79,8 @@ describe("project storage bootstrap", () => {
 
     expect(storage.manifest.projectId).toBe(projectId);
     expect(storage.manifest.dataPolicy.hubSyncEnabled).toBe(false);
-    expect(storage.paths.eventDatabase).toBe(resolve(root, ".roven/state/events.sqlite"));
-    expect(storage.paths.cas).toBe(resolve(root, ".roven/state/cas"));
+    expect(storage.paths.eventDatabase).toBe(resolve(root, ".lervo/state/events.sqlite"));
+    expect(storage.paths.cas).toBe(resolve(root, ".lervo/state/cas"));
     const event = storage.events.append(eventDraft()).event;
     const artifact = await storage.artifacts.put("재시작 뒤에도 읽을 원문");
     expect(storage.events.listOutbox()).toEqual([]);
@@ -155,7 +155,7 @@ describe("project storage bootstrap", () => {
 
   it("validates the manifest before opening either backend", async () => {
     const root = await initializedRepository();
-    await writeFile(resolve(root, ".roven/project.yaml"), "schemaVersion: 1\nprojectId: bad\n");
+    await writeFile(resolve(root, ".lervo/project.yaml"), "schemaVersion: 1\nprojectId: bad\n");
     const openEventStore = vi.fn();
     const openArtifactStore = vi.fn();
     const open = createProjectStorageOpener({ openEventStore, openArtifactStore });
@@ -169,13 +169,13 @@ describe("project storage bootstrap", () => {
     const root = await initializedRepository();
     const first = await openProjectStorage(root);
     await first.close();
-    const manifestPath = resolve(root, ".roven/project.yaml");
+    const manifestPath = resolve(root, ".lervo/project.yaml");
     const manifest = await readFile(manifestPath, "utf8");
     await writeFile(manifestPath, manifest.replace(projectId, "prj_99999999"), "utf8");
     const openArtifactStore = vi.fn();
     const open = createProjectStorageOpener({
       openEventStore: async (options) => {
-        const { SQLiteEventStore } = await import("@roven/event-store-sqlite");
+        const { SQLiteEventStore } = await import("@lervo/event-store-sqlite");
         return SQLiteEventStore.open(options);
       },
       openArtifactStore,
@@ -188,8 +188,8 @@ describe("project storage bootstrap", () => {
   it("rejects a symbolic-link state directory before creating storage outside the project", async () => {
     const root = await initializedRepository();
     const outside = await temporaryRepository();
-    await rm(resolve(root, ".roven/state"), { recursive: true });
-    await symlink(outside, resolve(root, ".roven/state"));
+    await rm(resolve(root, ".lervo/state"), { recursive: true });
+    await symlink(outside, resolve(root, ".lervo/state"));
 
     const opening = openProjectStorage(root);
     await expect(opening).rejects.toBeInstanceOf(ProjectStorageError);
@@ -201,12 +201,12 @@ describe("project storage bootstrap", () => {
 
   it("rejects an unsafe CAS path before creating the event database", async () => {
     const root = await initializedRepository();
-    await writeFile(resolve(root, ".roven/state/cas"), "user-owned file\n");
+    await writeFile(resolve(root, ".lervo/state/cas"), "user-owned file\n");
 
     await expect(openProjectStorage(root)).rejects.toMatchObject({
       code: "storage_layout_invalid",
     });
-    await expect(readFile(resolve(root, ".roven/state/events.sqlite"))).rejects.toThrow();
+    await expect(readFile(resolve(root, ".lervo/state/events.sqlite"))).rejects.toThrow();
   });
 
   it("keeps an uninitialized repository free of storage side effects", async () => {

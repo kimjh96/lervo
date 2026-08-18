@@ -11,7 +11,7 @@
       "requiredInputs": [
         {
           "name": "request",
-          "schemaRef": "roven-schema://inputs/task-request/v1",
+          "schemaRef": "lervo-schema://inputs/task-request/v1",
           "required": true,
           "sensitive": false
         }
@@ -33,8 +33,8 @@
       "defaultSkills": ["repository/testing"],
       "outputContract": {
         "artifactKind": "change_summary",
-        "schemaRef": "roven-schema://outputs/change-summary/v1",
-        "pathTemplate": ".roven/artifacts/{runId}/change-summary.json",
+        "schemaRef": "lervo-schema://outputs/change-summary/v1",
+        "pathTemplate": ".lervo/artifacts/{runId}/change-summary.json",
         "citationsRequired": false,
         "presentation": {
           "audience": "human",
@@ -65,8 +65,8 @@
         "kind": "project",
         "uri": ".agents/skills/repository-testing",
         "publisher": {
-          "id": "team_roven",
-          "name": "Roven maintainers"
+          "id": "team_lervo",
+          "name": "Lervo maintainers"
         }
       },
       "supportedRoles": ["developer"],
@@ -79,13 +79,13 @@
       },
       "requiredCapabilities": ["filesystem.read", "shell.execute"],
       "contracts": {
-        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
-        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+        "inputSchemaRef": "lervo-schema://skills/testing-input/v1",
+        "outputSchemaRef": "lervo-schema://skills/testing-output/v1"
       },
       "trust": {
         "level": "reviewed",
         "signatureStatus": "unsigned",
-        "reviewedBy": "team_roven",
+        "reviewedBy": "team_lervo",
         "reviewedAt": "2026-08-18T00:00:00Z"
       },
       "enabledScope": {
@@ -104,7 +104,7 @@
         "doc_agents_root": {
           "path": "AGENTS.md",
           "kind": "canonical",
-          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "responsibleParty": { "kind": "team", "id": "team_lervo" },
           "connectedPaths": ["**/*"],
           "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
           "verifiedAt": "2026-08-18T00:00:00Z",
@@ -114,7 +114,7 @@
         "doc_claude_compat": {
           "path": "CLAUDE.md",
           "kind": "generated",
-          "responsibleParty": { "kind": "roven", "id": "node" },
+          "responsibleParty": { "kind": "lervo", "id": "node" },
           "connectedPaths": ["AGENTS.md"],
           "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
           "verifiedAt": "2026-08-18T00:00:00Z",
@@ -125,8 +125,8 @@
             "blocks": [
               {
                 "blockId": "canonical-link",
-                "startMarker": "<!-- roven managed start -->",
-                "endMarker": "<!-- roven managed end -->",
+                "startMarker": "<!-- lervo managed start -->",
+                "endMarker": "<!-- lervo managed end -->",
                 "inputs": [
                   {
                     "sourceId": "doc_agents_root",
@@ -140,7 +140,7 @@
         "doc_readme_main": {
           "path": "README.md",
           "kind": "observed",
-          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "responsibleParty": { "kind": "team", "id": "team_lervo" },
           "connectedPaths": ["package.json"],
           "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
           "verifiedAt": "2026-08-18T00:00:00Z",
@@ -148,17 +148,17 @@
           "ownership": { "mode": "user" }
         },
         "doc_generated_index": {
-          "path": ".roven/generated/provider-index.md",
+          "path": ".lervo/generated/provider-index.md",
           "kind": "generated",
-          "responsibleParty": { "kind": "roven", "id": "node" },
+          "responsibleParty": { "kind": "lervo", "id": "node" },
           "connectedPaths": ["AGENTS.md", "CLAUDE.md"],
           "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
           "verifiedAt": "2026-08-18T00:00:00Z",
           "reviewIntervalDays": 30,
           "ownership": {
-            "mode": "roven_generated",
+            "mode": "lervo_generated",
             "userContentAllowed": false,
-            "manifestPath": ".roven/generated/provider-index.manifest.json",
+            "manifestPath": ".lervo/generated/provider-index.manifest.json",
             "inputs": [
               {
                 "sourceId": "doc_agents_root",

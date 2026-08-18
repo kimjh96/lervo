@@ -5,15 +5,15 @@
 
 ## 맥락
 
-M2는 provider-neutral context envelope와 쓰기 gate를 만들었지만 실제 Codex process가 어떤 문서를 받았는지, 어느 turn을 실행했는지, compaction이 언제 일어났는지는 관측하지 못했습니다. 기존 adapter의 `normalized_event.type`도 append-only Roven event 이름을 그대로 사용해, provider가 보고한 file change가 실제 bytes까지 검증된 `file.changed`처럼 보일 위험이 있었습니다. 공통 adapter에는 raw task를 provider turn으로 시작하는 메서드도 없었습니다.
+M2는 provider-neutral context envelope와 쓰기 gate를 만들었지만 실제 Codex process가 어떤 문서를 받았는지, 어느 turn을 실행했는지, compaction이 언제 일어났는지는 관측하지 못했습니다. 기존 adapter의 `normalized_event.type`도 append-only Lervo event 이름을 그대로 사용해, provider가 보고한 file change가 실제 bytes까지 검증된 `file.changed`처럼 보일 위험이 있었습니다. 공통 adapter에는 raw task를 provider turn으로 시작하는 메서드도 없었습니다.
 
-Codex CLI의 안정적인 `exec --json`은 JSONL 실행 event를 제공하지만 현재 context compaction lifecycle을 직접 구분하지 못합니다. App-server는 명령 자체가 experimental이지만 experimental API capability를 켜지 않은 surface에서도 thread 시작, model-visible item 주입, turn 시작·중단, item lifecycle과 `contextCompaction` item을 제공합니다. Roven의 E3와 generation 전이를 만들려면 이 구조화된 경계가 필요합니다.
+Codex CLI의 안정적인 `exec --json`은 JSONL 실행 event를 제공하지만 현재 context compaction lifecycle을 직접 구분하지 못합니다. App-server는 명령 자체가 experimental이지만 experimental API capability를 켜지 않은 surface에서도 thread 시작, model-visible item 주입, turn 시작·중단, item lifecycle과 `contextCompaction` item을 제공합니다. Lervo의 E3와 generation 전이를 만들려면 이 구조화된 경계가 필요합니다.
 
 ## 결정
 
 ### Process와 session 경계
 
-- `@roven/adapter-codex`는 managed session마다 `codex app-server --stdio` process 하나를 시작합니다.
+- `@lervo/adapter-codex`는 managed session마다 `codex app-server --stdio` process 하나를 시작합니다.
 - 연결 직후 `initialize` 요청과 `initialized` notification을 완료한 뒤 `thread/start` 응답의 thread ID를 provider session ID로 고정합니다.
 - 기본 sandbox는 `read-only`, approval policy는 `never`입니다. 상위 정책 연결 없이 승인이나 client tool 요청을 대신 승인하지 않습니다.
 - Adapter stop이 취소 사유이고 turn이 실행 중이면 `turn/interrupt`를 먼저 호출합니다. 그 뒤 `thread/unsubscribe`와 process 종료를 모두 완료해야 stop result를 반환합니다.
@@ -51,6 +51,6 @@ Raw task instructions, context 원문과 credential은 adapter process 입력에
 ## 결과
 
 - Codex session, context와 turn이 같은 provider thread에 묶이고, 문서 변조나 turn 선행 실행이 fail-closed로 막힙니다.
-- Provider가 보고한 상태와 Roven이 검증한 원본 event를 이름만으로 구분할 수 있습니다.
+- Provider가 보고한 상태와 Lervo가 검증한 원본 event를 이름만으로 구분할 수 있습니다.
 - 실제 compaction 신호가 과거 E3 generation을 닫지만 중복 신호는 generation을 반복 증가시키지 않습니다.
 - Claude adapter는 같은 turn과 provider signal 계약을 구현하되 얻을 수 없는 telemetry를 그대로 `unknown/unsupported`로 표시할 수 있습니다.

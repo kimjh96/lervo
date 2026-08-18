@@ -1,4 +1,4 @@
-import { validateContextSnapshot } from "@roven/context";
+import { validateContextSnapshot } from "@lervo/context";
 
 import { buildContextEnvelope } from "./envelope.js";
 import { verifyContextReceipt } from "./receipt.js";

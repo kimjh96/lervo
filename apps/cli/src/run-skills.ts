@@ -1,15 +1,15 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
-import { resolveProjectPaths } from "@roven/project";
-import type { ManagedResolvedSkill } from "@roven/orchestrator";
-import type { RoleProfile } from "@roven/schemas";
+import { resolveProjectPaths } from "@lervo/project";
+import type { ManagedResolvedSkill } from "@lervo/orchestrator";
+import type { RoleProfile } from "@lervo/schemas";
 import {
   discoverSkillRoot,
   resolveSkills,
   SkillResolutionError,
   writeSkillLock,
-} from "@roven/skills";
+} from "@lervo/skills";
 
 import type { RunProvider } from "./managed-run.js";
 
@@ -49,7 +49,7 @@ export async function resolveRunSkills(input: {
   )) {
     throw new SkillResolutionError(
       "invalid_skill_request",
-      "요청한 skill ID가 Roven 계약에 맞지 않습니다.",
+      "요청한 skill ID가 Lervo 계약에 맞지 않습니다.",
     );
   }
   const candidates = [

@@ -2,7 +2,7 @@ import {
   validateSchema,
   type LegacyRegistryEntryArtifact,
   type LegacyRegistryMigrationPlan,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import {
   canonicalRepositoryRoot,
@@ -22,8 +22,8 @@ import {
   type LegacyRegistryMigrationDryRun,
 } from "./types.js";
 
-const LEGACY_REGISTRY_PATH = ".roven/documents.yaml";
-const MANIFEST_DIRECTORY_PATH = ".roven/documents";
+const LEGACY_REGISTRY_PATH = ".lervo/documents.yaml";
+const MANIFEST_DIRECTORY_PATH = ".lervo/documents";
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function compareText(left: string, right: string): number {
@@ -59,7 +59,7 @@ export async function createLegacyRegistryMigrationDryRun(input: {
   }
 
   const sourceHash = sha256(sourceBytes);
-  const archivePath = `.roven/archive/document-registries/sha256/${sourceHash.slice("sha256:".length)}.yaml`;
+  const archivePath = `.lervo/archive/document-registries/sha256/${sourceHash.slice("sha256:".length)}.yaml`;
   const archiveExpected = await snapshotLegacyMigrationPath(root, archivePath, 4 * 1024 * 1024);
   const directoryExpected = await snapshotLegacyMigrationPath(root, MANIFEST_DIRECTORY_PATH, 64 * 1024);
   const warnings = new Set<string>();
@@ -121,7 +121,7 @@ export async function createLegacyRegistryMigrationDryRun(input: {
     });
     artifacts.push(materialized.artifact);
     artifactBytes.set(materialized.artifact.artifactId, materialized.bytes);
-    const targetPath = `.roven/documents/${documentId}.yaml`;
+    const targetPath = `.lervo/documents/${documentId}.yaml`;
     const targetExpected = await snapshotLegacyMigrationPath(root, targetPath, 64 * 1024);
     if (targetExpected.kind !== "missing") {
       conflict = true;

@@ -61,8 +61,8 @@ const roleAudienceSchema = {
 
 export const sharedContextPublicationSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/shared-context-publication.schema.json",
-  title: "Roven shared context publication",
+  $id: "https://schemas.lervo.dev/v0/shared-context-publication.schema.json",
+  title: "Lervo shared context publication",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -154,8 +154,8 @@ export const sharedContextPublicationSchema = {
 
 export const handoffBundleSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/handoff-bundle.schema.json",
-  title: "Roven role handoff bundle",
+  $id: "https://schemas.lervo.dev/v0/handoff-bundle.schema.json",
+  title: "Lervo role handoff bundle",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

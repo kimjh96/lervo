@@ -12,7 +12,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -27,7 +27,7 @@ function descriptor(provider: string): AdapterDescriptor {
   return {
     kind: "descriptor",
     schemaVersion: 1,
-    adapterId: `roven/${provider}`,
+    adapterId: `lervo/${provider}`,
     adapterVersion: "0.0.0",
     provider,
     capabilities: {
@@ -221,7 +221,7 @@ function fixture(provider: string) {
   const startRequest: AdapterStartRequest = {
     kind: "start_request",
     schemaVersion: 1,
-    adapterId: `roven/${provider}`,
+    adapterId: `lervo/${provider}`,
     projectId: "prj_01234567",
     runId: "run_01234567",
     sessionId: "ses_01234567",
@@ -235,7 +235,7 @@ function fixture(provider: string) {
     kind: "context_envelope",
     schemaVersion: 1,
     envelopeId: "envelope-1",
-    adapterId: `roven/${provider}`,
+    adapterId: `lervo/${provider}`,
     projectId: startRequest.projectId,
     runId: startRequest.runId,
     sessionId: startRequest.sessionId,
@@ -255,7 +255,7 @@ function fixture(provider: string) {
       },
       {
         documentId: "doc_writing_policy",
-        path: ".roven/policies/writing.ko-KR.json",
+        path: ".lervo/policies/writing.ko-KR.json",
         contentHash:
           "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         byteCount: 84,
@@ -268,7 +268,7 @@ function fixture(provider: string) {
   const turnRequest: AdapterTurnRequest = {
     kind: "turn_request",
     schemaVersion: 1,
-    adapterId: `roven/${provider}`,
+    adapterId: `lervo/${provider}`,
     projectId: startRequest.projectId,
     runId: startRequest.runId,
     sessionId: startRequest.sessionId,

@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const lifecycleDocuments = [
-  "ROVEN_VISION.md",
-  "ROVEN_ARCHITECTURE.md",
-  "ROVEN_EXECUTION_SPEC.md",
-  "ROVEN_V0_PLAN.md",
+  "LERVO_VISION.md",
+  "LERVO_ARCHITECTURE.md",
+  "LERVO_EXECUTION_SPEC.md",
+  "LERVO_V0_PLAN.md",
 ];
 const markdownDocuments = [
   "README.md",
@@ -28,11 +28,12 @@ const markdownDocuments = [
   "docs/adr/0012-provider-result-artifacts.md",
   "docs/adr/0013-provider-neutral-managed-write-bridge.md",
   "docs/adr/0014-managed-adapter-session-hardening.md",
-  "docs/adr/0015-roven-run-cli-vertical-slice.md",
+  "docs/adr/0015-lervo-run-cli-vertical-slice.md",
   "docs/adr/0016-local-skill-resolution-and-lock.md",
   "docs/adr/0017-sharded-document-manifests.md",
   "docs/adr/0018-existing-document-adoption.md",
   "docs/adr/0019-provider-neutral-deliberation.md",
+  "docs/adr/0020-lervo-product-identity.md",
 ];
 
 const failures = [];

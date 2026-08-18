@@ -17,7 +17,7 @@ const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 const temporaryRoots: string[] = [];
 
 async function databasePath(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-events-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-events-"));
   temporaryRoots.push(root);
   return resolve(root, "state/events.sqlite");
 }
@@ -105,7 +105,7 @@ describe("SQLite append-only event store", () => {
       draft({
         type: "adapter.started",
         payload: {
-          adapterId: "roven/claude",
+          adapterId: "lervo/claude",
           adapterVersion: "1",
           providerSessionId: "provider-session-1",
           capabilities: { toolCalls: "supported", accessToken: "secret-must-not-persist" },
@@ -114,7 +114,7 @@ describe("SQLite append-only event store", () => {
     );
 
     expect(result.event.payload).toEqual({
-      adapterId: "roven/claude",
+      adapterId: "lervo/claude",
       adapterVersion: "1",
       providerSessionId: "provider-session-1",
       capabilities: { toolCalls: "supported" },

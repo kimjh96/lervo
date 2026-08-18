@@ -1,7 +1,7 @@
 import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { type RovenProjectPaths } from "@roven/project";
+import { type LervoProjectPaths } from "@lervo/project";
 
 import { ProjectStorageError } from "./types.js";
 
@@ -13,7 +13,7 @@ async function requireRealDirectory(path: string, label: string): Promise<void> 
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new ProjectStorageError(
         "storage_layout_invalid",
-        `${label} ${path}이 없습니다. 먼저 roven init을 실행하세요.`,
+        `${label} ${path}이 없습니다. 먼저 lervo init을 실행하세요.`,
       );
     }
     throw error;
@@ -41,16 +41,16 @@ async function validateOptionalRealDirectory(path: string, label: string): Promi
 }
 
 export async function validateProjectStorageLayout(
-  paths: RovenProjectPaths,
+  paths: LervoProjectPaths,
 ): Promise<void> {
   await requireRealDirectory(paths.repositoryRoot, "저장소 root");
-  await requireRealDirectory(paths.rovenRoot, "Roven 설정 경로");
-  await requireRealDirectory(paths.state, "Roven 상태 경로");
+  await requireRealDirectory(paths.lervoRoot, "Lervo 설정 경로");
+  await requireRealDirectory(paths.state, "Lervo 상태 경로");
   await validateOptionalRealDirectory(paths.cas, "CAS 경로");
   await validateOptionalRealDirectory(resolve(paths.cas, "sha256"), "CAS object 경로");
   await validateOptionalRealDirectory(resolve(paths.cas, ".tmp"), "CAS 임시 경로");
 }
 
-export async function validateRepositoryRoot(paths: RovenProjectPaths): Promise<void> {
+export async function validateRepositoryRoot(paths: LervoProjectPaths): Promise<void> {
   await requireRealDirectory(paths.repositoryRoot, "저장소 root");
 }

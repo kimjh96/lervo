@@ -2,7 +2,7 @@ import {
   validateSchema,
   type DocumentMigrationCandidate,
   type DocumentMigrationCandidateArtifact,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { normalizeScanPath } from "./filesystem.js";
 import { digestSuffix, sha256 } from "./hash.js";
@@ -178,7 +178,7 @@ export async function importDocumentSources(input: {
     let importer: { adapterId: string; version: string };
     if (adapter === undefined) {
       drafts = [unknownDraft()];
-      importer = { adapterId: "roven_unknown", version: "1.0.0" };
+      importer = { adapterId: "lervo_unknown", version: "1.0.0" };
     } else {
       const adapterBytes = new Uint8Array(source.bytes);
       try {

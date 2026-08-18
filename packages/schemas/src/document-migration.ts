@@ -73,8 +73,8 @@ const documentProposalSchema = {
 
 export const documentMigrationCandidateSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-migration-candidate.schema.json",
-  title: "Roven document migration candidate",
+  $id: "https://schemas.lervo.dev/v0/document-migration-candidate.schema.json",
+  title: "Lervo document migration candidate",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -117,7 +117,7 @@ export const documentMigrationCandidateSchema = {
     },
     detectedOwnership: {
       type: "string",
-      enum: ["user", "managed_blocks", "roven_generated", "unknown"],
+      enum: ["user", "managed_blocks", "lervo_generated", "unknown"],
     },
     proposal: {
       oneOf: [{ type: "null" }, documentProposalSchema],
@@ -171,8 +171,8 @@ export const documentMigrationCandidateSchema = {
 
 export const documentMigrationCandidateArtifactSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-migration-candidate-artifact.schema.json",
-  title: "Roven document migration candidate artifact",
+  $id: "https://schemas.lervo.dev/v0/document-migration-candidate-artifact.schema.json",
+  title: "Lervo document migration candidate artifact",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -266,8 +266,8 @@ const planCandidateSchema = {
 
 export const documentMigrationPlanSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-migration-plan.schema.json",
-  title: "Roven document migration dry-run plan",
+  $id: "https://schemas.lervo.dev/v0/document-migration-plan.schema.json",
+  title: "Lervo document migration dry-run plan",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

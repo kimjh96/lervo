@@ -1,1 +1,1 @@
-export * from "@roven/event-contract";
+export * from "@lervo/event-contract";

@@ -37,8 +37,8 @@ const skillLockIdentityProperties = {
 
 export const skillLockSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/skill-lock.schema.json",
-  title: "Roven resolved skill lock",
+  $id: "https://schemas.lervo.dev/v0/skill-lock.schema.json",
+  title: "Lervo resolved skill lock",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

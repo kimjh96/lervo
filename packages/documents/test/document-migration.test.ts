@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import type { DocumentRegistry } from "@roven/schemas";
+import type { DocumentRegistry } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -23,7 +23,7 @@ import {
 const roots: string[] = [];
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-documents-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-documents-"));
   roots.push(root);
   return root;
 }
@@ -70,19 +70,19 @@ afterEach(async () => {
 describe("document migration discovery", () => {
   it("creates per-source candidates without changing legacy, Markdown, or unknown originals", async () => {
     const root = await temporaryRoot();
-    await mkdir(resolve(root, ".roven"));
+    await mkdir(resolve(root, ".lervo"));
     await mkdir(resolve(root, "docs"));
     await writeFile(resolve(root, "README.md"), "# Project\n\n사람이 작성한 원본입니다.\n");
     await writeFile(resolve(root, "docs", "notes.txt"), "custom document bytes\n");
     await writeFile(
-      resolve(root, ".roven", "documents.yaml"),
+      resolve(root, ".lervo", "documents.yaml"),
       `${JSON.stringify(legacyRegistry(), null, 2)}\n`,
     );
     const before = await treeSnapshot(root);
 
     const result = await createDocumentMigrationDryRun({
       repositoryRoot: root,
-      roots: ["docs", "README.md", ".roven/documents.yaml"],
+      roots: ["docs", "README.md", ".lervo/documents.yaml"],
       generatedAt: "2026-08-19T00:00:00Z",
     });
 
@@ -94,17 +94,17 @@ describe("document migration discovery", () => {
       warnings: expect.arrayContaining(["duplicate_document_proposal", "observed_source"]),
     });
     expect(result.plan.sources.map((source) => source.path)).toEqual([
-      ".roven/documents.yaml",
+      ".lervo/documents.yaml",
       "README.md",
       "docs/notes.txt",
     ]);
     expect(result.candidateArtifacts.map((artifact) => artifact.candidate.source.formatId))
-      .toEqual(["roven_legacy_registry", "markdown", "unknown"]);
+      .toEqual(["lervo_legacy_registry", "markdown", "unknown"]);
     expect(result.candidateArtifacts.map((artifact) => artifact.candidate.importer))
       .toEqual([
-        { adapterId: "roven_legacy_registry", version: "1.0.0" },
+        { adapterId: "lervo_legacy_registry", version: "1.0.0" },
         { adapterId: "markdown", version: "1.0.0" },
-        { adapterId: "roven_unknown", version: "1.0.0" },
+        { adapterId: "lervo_unknown", version: "1.0.0" },
       ]);
     expect(result.candidateArtifacts).toHaveLength(3);
     for (const artifact of result.candidateArtifacts) {
@@ -114,7 +114,7 @@ describe("document migration discovery", () => {
       expect(bytes?.byteLength).toBe(artifact.byteCount);
     }
     expect(await treeSnapshot(root)).toEqual(before);
-    await expect(lstat(resolve(root, ".roven", "documents"))).rejects.toMatchObject({
+    await expect(lstat(resolve(root, ".lervo", "documents"))).rejects.toMatchObject({
       code: "ENOENT",
     });
   });
@@ -149,14 +149,14 @@ describe("document migration discovery", () => {
 
   it("does not treat a legacy registry reference as a scanned document", async () => {
     const root = await temporaryRoot();
-    await mkdir(resolve(root, ".roven"));
+    await mkdir(resolve(root, ".lervo"));
     await writeFile(
-      resolve(root, ".roven", "documents.yaml"),
+      resolve(root, ".lervo", "documents.yaml"),
       `${JSON.stringify(legacyRegistry())}\n`,
     );
     const result = await createDocumentMigrationDryRun({
       repositoryRoot: root,
-      roots: [".roven/documents.yaml"],
+      roots: [".lervo/documents.yaml"],
       generatedAt: "2026-08-19T00:00:00Z",
     });
     expect(result.plan).toMatchObject({
@@ -164,7 +164,7 @@ describe("document migration discovery", () => {
       warnings: expect.arrayContaining(["referenced_document_not_scanned"]),
     });
     expect(result.plan.sources.map((source) => source.path)).toEqual([
-      ".roven/documents.yaml",
+      ".lervo/documents.yaml",
     ]);
   });
 
@@ -178,7 +178,7 @@ describe("document migration discovery", () => {
     });
     const target = first.plan.candidates[0]?.target;
     expect(target).not.toBeNull();
-    await mkdir(resolve(root, ".roven", "documents"), { recursive: true });
+    await mkdir(resolve(root, ".lervo", "documents"), { recursive: true });
     const targetPath = resolve(root, (target as { path: string }).path);
     await writeFile(targetPath, "user-owned sidecar bytes\n");
 
@@ -194,9 +194,9 @@ describe("document migration discovery", () => {
     expect(await readFile(targetPath, "utf8")).toBe("user-owned sidecar bytes\n");
 
     await rm(targetPath);
-    await rm(resolve(root, ".roven", "documents"), { recursive: true });
+    await rm(resolve(root, ".lervo", "documents"), { recursive: true });
     const outside = await temporaryRoot();
-    await symlink(outside, resolve(root, ".roven", "documents"));
+    await symlink(outside, resolve(root, ".lervo", "documents"));
     const unsafe = await createDocumentMigrationDryRun({
       repositoryRoot: root,
       roots: ["README.md"],
@@ -229,11 +229,11 @@ describe("document migration discovery", () => {
     const root = await temporaryRoot();
     await mkdir(resolve(root, ".git"));
     await mkdir(resolve(root, "node_modules", "fixture"), { recursive: true });
-    await mkdir(resolve(root, ".roven", "state"), { recursive: true });
+    await mkdir(resolve(root, ".lervo", "state"), { recursive: true });
     await mkdir(resolve(root, "private"));
     await writeFile(resolve(root, ".git", "internal.md"), "# Git\n");
     await writeFile(resolve(root, "node_modules", "fixture", "README.md"), "# Dependency\n");
-    await writeFile(resolve(root, ".roven", "state", "trace.md"), "# State\n");
+    await writeFile(resolve(root, ".lervo", "state", "trace.md"), "# State\n");
     await writeFile(resolve(root, "private", "notes.md"), "# Private\n");
     await writeFile(resolve(root, "README.md"), "# Included\n");
 

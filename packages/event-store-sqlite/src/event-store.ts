@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 
-import { type EventDraft } from "@roven/event-contract";
-import { type ProjectManifest } from "@roven/schemas";
+import { type EventDraft } from "@lervo/event-contract";
+import { type ProjectManifest } from "@lervo/schemas";
 import {
   type AcknowledgeOutboxRequest,
   type AcknowledgeOutboxResult,
@@ -19,7 +19,7 @@ import {
   type PurgeAcknowledgedOutboxResult,
   type RescheduleOutboxRequest,
   type RescheduleOutboxResult,
-} from "@roven/storage-contract";
+} from "@lervo/storage-contract";
 
 import { bindDatabaseMetadata, ensureDatabasePath } from "./database-lifecycle.js";
 import { EventStoreError } from "./errors.js";

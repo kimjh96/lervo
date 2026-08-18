@@ -1,5 +1,5 @@
-import type { ProviderAdapter } from "@roven/adapter-contract";
-import type { AdapterSession, AdapterStopRequest } from "@roven/schemas";
+import type { ProviderAdapter } from "@lervo/adapter-contract";
+import type { AdapterSession, AdapterStopRequest } from "@lervo/schemas";
 
 import { adapterStoppedSpec, unmanagedChangeSpec } from "./provider-run-events.js";
 import { withinDeadline, type ManagedProviderRunDeadlines } from "./provider-run-deadline.js";

@@ -2,9 +2,9 @@ import {
   assertLoadedContextIntegrity,
   prepareContext as prepareContextDocuments,
   type LoadedContext,
-} from "@roven/context";
-import { injectLoadedContext, type InjectedContext } from "@roven/context-delivery";
-import type { AdapterNormalizedEvent, AdapterSession } from "@roven/schemas";
+} from "@lervo/context";
+import { injectLoadedContext, type InjectedContext } from "@lervo/context-delivery";
+import type { AdapterNormalizedEvent, AdapterSession } from "@lervo/schemas";
 
 import { adapterInvalidationReason } from "./adapter-signals.js";
 import {

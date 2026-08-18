@@ -6,16 +6,16 @@ import {
   ClaudeAdapter,
   type ClaudeAgentClient,
   type ClaudeToolUseHandler,
-} from "@roven/adapter-claude";
+} from "@lervo/adapter-claude";
 import {
   CodexAdapter,
   type CodexAppServerClient,
   type CodexThreadStartOptions,
-} from "@roven/adapter-codex";
-import { applyInitPlan, createInitPlan } from "@roven/project";
-import { openProjectStorage } from "@roven/project-storage";
-import { validateSchema, type SkillManifest } from "@roven/schemas";
-import { hashSkillPackage } from "@roven/skills";
+} from "@lervo/adapter-codex";
+import { applyInitPlan, createInitPlan } from "@lervo/project";
+import { openProjectStorage } from "@lervo/project-storage";
+import { validateSchema, type SkillManifest } from "@lervo/schemas";
+import { hashSkillPackage } from "@lervo/skills";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
@@ -235,7 +235,7 @@ class ManagedClaudeClient implements ClaudeAgentClient {
 }
 
 async function createRepository(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-cli-run-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-run-"));
   temporaryRoots.push(root);
   await applyInitPlan(
     await createInitPlan({
@@ -278,14 +278,14 @@ async function createProjectSkill(root: string): Promise<{
     },
     requiredCapabilities: ["filesystem.read", "shell.execute"],
     contracts: {
-      inputSchemaRef: "roven-schema://skill/input/v1",
-      outputSchemaRef: "roven-schema://skill/output/v1",
+      inputSchemaRef: "lervo-schema://skill/input/v1",
+      outputSchemaRef: "lervo-schema://skill/output/v1",
     },
     trust: { level: "untrusted", signatureStatus: "unsigned" },
     enabledScope: { kind: "user" },
     pinned: false,
   };
-  await writeFile(resolve(path, "roven-skill.json"), `${JSON.stringify(manifest)}\n`);
+  await writeFile(resolve(path, "lervo-skill.json"), `${JSON.stringify(manifest)}\n`);
   return { manifest, original, path };
 }
 
@@ -300,7 +300,7 @@ afterEach(async () => {
   );
 });
 
-describe("roven run vertical slice", () => {
+describe("lervo run vertical slice", () => {
   it.each(["codex", "claude"] as const)(
     "runs one managed %s change through project storage and the production adapter",
     async (provider) => {
@@ -362,7 +362,7 @@ describe("roven run vertical slice", () => {
   it("locks and records a resolved skill without claiming invocation", async () => {
     const root = await createRepository();
     const skill = await createProjectSkill(root);
-    const userSkillRoot = await mkdtemp(resolve(tmpdir(), "roven-user-skills-"));
+    const userSkillRoot = await mkdtemp(resolve(tmpdir(), "lervo-user-skills-"));
     temporaryRoots.push(userSkillRoot);
     const client = new ManagedCodexClient(root);
     const executeManagedRun = createManagedRunExecutor({
@@ -403,7 +403,7 @@ describe("roven run vertical slice", () => {
     expect(output).toContain("repository/testing@1.2.0 (project)");
     expect(output).toContain("호출하거나 사용했다는 뜻이 아닙니다");
     expect(await readFile(resolve(skill.path, "SKILL.md"), "utf8")).toBe(skill.original);
-    const lock: unknown = JSON.parse(await readFile(resolve(root, ".roven/skills.lock"), "utf8"));
+    const lock: unknown = JSON.parse(await readFile(resolve(root, ".lervo/skills.lock"), "utf8"));
     expect(validateSchema("skillLock", lock).valid).toBe(true);
     expect(lock).toMatchObject({
       entries: [{

@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { AdapterSession } from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+import type { AdapterSession } from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import { ClaudeAdapterError } from "./types.js";
 
-export const CLAUDE_ADAPTER_ID = "roven/claude";
+export const CLAUDE_ADAPTER_ID = "lervo/claude";
 export const CLAUDE_ADAPTER_VERSION = "0.1.0";
 
 export function defaultEventId(): string {

@@ -1,4 +1,4 @@
-import type { SharedContextPublication } from "@roven/schemas";
+import type { SharedContextPublication } from "@lervo/schemas";
 
 import {
   type ContextHandoffInput,

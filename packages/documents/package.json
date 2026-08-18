@@ -1,5 +1,5 @@
 {
-  "name": "@roven/documents",
+  "name": "@lervo/documents",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,8 +15,8 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/project": "workspace:*",
-    "@roven/schemas": "workspace:*",
+    "@lervo/project": "workspace:*",
+    "@lervo/schemas": "workspace:*",
     "yaml": "^2.9.0"
   }
 }

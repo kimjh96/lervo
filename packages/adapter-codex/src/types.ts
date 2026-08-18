@@ -1,4 +1,4 @@
-import type { AdapterNormalizedEvent, AdapterSession, AdapterTurn } from "@roven/schemas";
+import type { AdapterNormalizedEvent, AdapterSession, AdapterTurn } from "@lervo/schemas";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";

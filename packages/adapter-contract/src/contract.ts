@@ -2,7 +2,7 @@ import {
   type AdapterStopRequest,
   type AdapterTurn,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import {
   inspectContextEnvelopeBinding,

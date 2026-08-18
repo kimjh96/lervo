@@ -4,7 +4,7 @@ import type {
   AdapterManagedWriteRequest,
   AdapterSession,
   AdapterTurn,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -27,7 +27,7 @@ function exchange() {
   const session: AdapterSession = {
     kind: "session",
     schemaVersion: 1,
-    adapterId: "roven/fixture",
+    adapterId: "lervo/fixture",
     projectId: "prj_contract01",
     runId: "run_contract01",
     sessionId: "ses_contract01",

@@ -5,14 +5,14 @@ import {
   defaultProjectDataPolicy,
   type ProjectManifest,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { parse, stringify } from "yaml";
 
 import { readEntry } from "./filesystem.js";
 import { resolveProjectPaths } from "./layout.js";
 import {
   type CreateInitPlanOptions,
-  RovenProjectError,
+  LervoProjectError,
 } from "./types.js";
 
 function formatValidationErrors(
@@ -32,11 +32,11 @@ export function parseAndValidateYaml<T>(
     value = parse(content);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new RovenProjectError("invalid_yaml", `YAML을 읽을 수 없습니다: ${detail}`);
+    throw new LervoProjectError("invalid_yaml", `YAML을 읽을 수 없습니다: ${detail}`);
   }
   const validation = validateSchema(schema, value);
   if (!validation.valid) {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "contract_invalid",
       `계약에 맞지 않습니다: ${formatValidationErrors(validation.errors)}`,
     );
@@ -63,7 +63,7 @@ export function createDefaultManifest(
   };
   const validation = validateSchema("project", manifest);
   if (!validation.valid) {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "contract_invalid",
       `새 project 설정을 만들 수 없습니다: ${formatValidationErrors(validation.errors)}`,
     );
@@ -71,16 +71,16 @@ export function createDefaultManifest(
   return manifest;
 }
 
-async function assertRovenDirectory(path: string): Promise<void> {
-  const rovenDirectory = await readEntry(path);
-  if (rovenDirectory.kind === "missing") {
-    throw new RovenProjectError(
+async function assertLervoDirectory(path: string): Promise<void> {
+  const lervoDirectory = await readEntry(path);
+  if (lervoDirectory.kind === "missing") {
+    throw new LervoProjectError(
       "not_initialized",
-      `${path}이 없습니다. 먼저 roven init을 실행하세요.`,
+      `${path}이 없습니다. 먼저 lervo init을 실행하세요.`,
     );
   }
-  if (rovenDirectory.kind !== "directory") {
-    throw new RovenProjectError(
+  if (lervoDirectory.kind !== "directory") {
+    throw new LervoProjectError(
       "unsafe_path",
       `${path}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
     );
@@ -89,16 +89,16 @@ async function assertRovenDirectory(path: string): Promise<void> {
 
 export async function loadProjectManifest(root: string): Promise<ProjectManifest> {
   const paths = resolveProjectPaths(root);
-  await assertRovenDirectory(paths.rovenRoot);
+  await assertLervoDirectory(paths.lervoRoot);
   const entry = await readEntry(paths.projectManifest);
   if (entry.kind === "missing") {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "not_initialized",
-      `${paths.projectManifest}이 없습니다. 먼저 roven init을 실행하세요.`,
+      `${paths.projectManifest}이 없습니다. 먼저 lervo init을 실행하세요.`,
     );
   }
   if (entry.kind !== "file") {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "unsafe_path",
       `${paths.projectManifest}은 일반 파일이어야 하며 심볼릭 링크일 수 없습니다.`,
     );

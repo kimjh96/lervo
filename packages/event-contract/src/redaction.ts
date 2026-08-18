@@ -1,4 +1,4 @@
-import type { EventType } from "@roven/schemas";
+import type { EventType } from "@lervo/schemas";
 
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };

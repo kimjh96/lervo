@@ -78,7 +78,7 @@
       "appliedAt": "2026-08-19T02:00:00Z",
       "created": [{
         "documentId": "doc_readme_000001",
-        "path": ".roven/documents/doc_readme_000001.yaml",
+        "path": ".lervo/documents/doc_readme_000001.yaml",
         "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }],
       "skippedCandidateIds": [],

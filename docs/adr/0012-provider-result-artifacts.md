@@ -21,7 +21,7 @@ Provider 결과를 terminal event payload에 넣으면 event store와 Hub outbox
 ### Artifact 저장과 event
 
 - Orchestrator는 terminal 뒤 결과를 메모리에서 검증하지만 adapter 종료와 실행 후 snapshot이 모두 성공하기 전에는 완료 artifact로 저장하지 않습니다.
-- 결과 저장소는 `put` 뒤 같은 URI를 다시 `get`하여 URI, hash, byte count와 bytes를 모두 대조해야 합니다. 기본 구현은 로컬 CAS이며 URI는 `roven-cas://sha256/<digest>`입니다.
+- 결과 저장소는 `put` 뒤 같은 URI를 다시 `get`하여 URI, hash, byte count와 bytes를 모두 대조해야 합니다. 기본 구현은 로컬 CAS이며 URI는 `lervo-cas://sha256/<digest>`입니다.
 - Artifact ID는 같은 content hash에서 `art_<digest>`로 결정적으로 만듭니다. `ManagedProviderRunResult`는 ID, URI, media type, hash와 byte count만 공개합니다. 원문은 호출자가 허가된 local artifact store에서 읽습니다.
 - `run.completed.resultDigest`는 결과 content hash이고 `artifactIds`에는 결과 artifact ID 하나가 들어갑니다. Event에는 URI와 원문을 넣지 않습니다.
 - Provider 종료, telemetry 또는 unmanaged 변경이 실패하면 결과를 `run.completed` artifact로 공개하지 않습니다. CAS 저장 뒤 완료 event 기록이 실패해 남은 content-addressed object는 완료 증거로 간주하지 않으며 후속 정리 대상입니다.
@@ -41,4 +41,4 @@ Result 원문은 local adapter와 artifact store 사이에서만 이동합니다
 - Codex와 Claude가 같은 결과 schema와 CAS 무결성 검사를 통과합니다.
 - 실행 telemetry의 원문 비저장 원칙을 유지하면서 사용자가 읽을 수 있는 로컬 결과 원본을 얻습니다.
 - Writing 검증, shared context 발행과 CLI 출력이 provider별 raw payload 대신 같은 artifact 좌표를 사용할 수 있습니다.
-- 경로별 managed write bridge는 [ADR-0013](./0013-provider-neutral-managed-write-bridge.md)에서 해소했습니다. `roven run` 공개에는 이 실행 계약을 CLI와 local storage bootstrap에 연결하는 작업이 남았습니다.
+- 경로별 managed write bridge는 [ADR-0013](./0013-provider-neutral-managed-write-bridge.md)에서 해소했습니다. `lervo run` 공개에는 이 실행 계약을 CLI와 local storage bootstrap에 연결하는 작업이 남았습니다.

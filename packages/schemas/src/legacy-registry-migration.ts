@@ -50,8 +50,8 @@ const pathSnapshotSchema = {
 
 export const legacyRegistryEntryArtifactSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/legacy-registry-entry-artifact.schema.json",
-  title: "Roven legacy document registry entry artifact",
+  $id: "https://schemas.lervo.dev/v0/legacy-registry-entry-artifact.schema.json",
+  title: "Lervo legacy document registry entry artifact",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -107,8 +107,8 @@ const referencedDocumentSchema = {
 
 export const legacyRegistryMigrationPlanSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/legacy-registry-migration-plan.schema.json",
-  title: "Roven legacy document registry structural migration dry-run plan",
+  $id: "https://schemas.lervo.dev/v0/legacy-registry-migration-plan.schema.json",
+  title: "Lervo legacy document registry structural migration dry-run plan",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -124,7 +124,7 @@ export const legacyRegistryMigrationPlanSchema = {
     source: {
       type: "object",
       properties: {
-        path: { const: ".roven/documents.yaml" },
+        path: { const: ".lervo/documents.yaml" },
         contentHash: sha256Schema,
         byteCount: { type: "integer", minimum: 1, maximum: 4194304 },
         deactivationAction: { const: "archive_then_remove" },
@@ -144,7 +144,7 @@ export const legacyRegistryMigrationPlanSchema = {
     manifestDirectory: {
       type: "object",
       properties: {
-        path: { const: ".roven/documents" },
+        path: { const: ".lervo/documents" },
         expected: pathSnapshotSchema,
       },
       required: ["path", "expected"],

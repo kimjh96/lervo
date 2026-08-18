@@ -5,7 +5,7 @@ import type {
   WritingCheckResult,
   WritingContract,
   WritingEvaluation,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export const defaultKoreanWritingContract = {
   schemaVersion: 1,

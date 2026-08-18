@@ -1,5 +1,5 @@
-import type { WritingEvaluation } from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+import type { WritingEvaluation } from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -26,8 +26,8 @@ function evaluation(status: "failed" | "not_run" | "passed"): WritingEvaluation 
     locale: defaultKoreanWritingContract.locale,
     checkedAt: "2026-08-18T00:00:00Z",
     evaluators: [
-      { kind: "deterministic", evaluatorId: "roven-writing-lint-v1" },
-      { kind: "model", evaluatorId: "roven-writing-review-v1", phase: "separate_pass" },
+      { kind: "deterministic", evaluatorId: "lervo-writing-lint-v1" },
+      { kind: "model", evaluatorId: "lervo-writing-review-v1", phase: "separate_pass" },
     ],
     checks: [
       ...deterministicChecks,

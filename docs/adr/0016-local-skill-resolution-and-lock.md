@@ -5,15 +5,15 @@
 
 ## 맥락
 
-Skill manifest 계약은 있었지만 실제 실행이 어떤 스킬 후보를 골랐는지 재현할 discovery와 lock이 없었습니다. Provider가 자동으로 읽은 파일이나 사용자가 직접 실행한 스킬을 Roven이 관측한 선택처럼 기록하면 `resolved`, `invoked`, `used`의 의미도 무너집니다. 사용자 전역 스킬은 저장소 밖에 있으므로 원본 보존, 심볼릭 링크와 개인정보 경계도 함께 고정해야 합니다.
+Skill manifest 계약은 있었지만 실제 실행이 어떤 스킬 후보를 골랐는지 재현할 discovery와 lock이 없었습니다. Provider가 자동으로 읽은 파일이나 사용자가 직접 실행한 스킬을 Lervo가 관측한 선택처럼 기록하면 `resolved`, `invoked`, `used`의 의미도 무너집니다. 사용자 전역 스킬은 저장소 밖에 있으므로 원본 보존, 심볼릭 링크와 개인정보 경계도 함께 고정해야 합니다.
 
 ## 결정
 
 ### 첫 discovery 범위와 패키지 무결성
 
-`roven run --skill <skill-id>`는 요청한 ID에 한해 프로젝트의 `.agents/skills/*/roven-skill.json`과 사용자의 `~/.agents/skills/*/roven-skill.json`을 읽습니다. Manifest가 없는 디렉터리와 요청하지 않은 ID는 후보로 해석하지 않습니다. 조직 및 외부 registry는 이 계약의 후속 source adapter로 남깁니다.
+`lervo run --skill <skill-id>`는 요청한 ID에 한해 프로젝트의 `.agents/skills/*/lervo-skill.json`과 사용자의 `~/.agents/skills/*/lervo-skill.json`을 읽습니다. Manifest가 없는 디렉터리와 요청하지 않은 ID는 후보로 해석하지 않습니다. 조직 및 외부 registry는 이 계약의 후속 source adapter로 남깁니다.
 
-각 후보 디렉터리의 최상위 `roven-skill.json`을 제외한 모든 일반 파일을 상대 경로 순서로 읽고 경로, byte 수와 본문을 함께 SHA-256 입력으로 사용합니다. Manifest의 `contentHash`가 이 값과 다르면 실행 전에 실패합니다. Discovery root, 후보 디렉터리와 패키지 파일에서 심볼릭 링크를 따라가지 않습니다. 패키지는 최대 256개 파일과 16 MiB, manifest는 1 MiB로 제한하며 읽는 동안 파일 identity, 크기 또는 수정 시각이 바뀌어도 실패합니다. Roven은 manifest와 스킬 본문을 수정하지 않습니다.
+각 후보 디렉터리의 최상위 `lervo-skill.json`을 제외한 모든 일반 파일을 상대 경로 순서로 읽고 경로, byte 수와 본문을 함께 SHA-256 입력으로 사용합니다. Manifest의 `contentHash`가 이 값과 다르면 실행 전에 실패합니다. Discovery root, 후보 디렉터리와 패키지 파일에서 심볼릭 링크를 따라가지 않습니다. 패키지는 최대 256개 파일과 16 MiB, manifest는 1 MiB로 제한하며 읽는 동안 파일 identity, 크기 또는 수정 시각이 바뀌어도 실패합니다. Lervo는 manifest와 스킬 본문을 수정하지 않습니다.
 
 ### 호환성 및 선택 순서
 
@@ -29,7 +29,7 @@ Skill manifest 계약은 있었지만 실제 실행이 어떤 스킬 후보를 �
 
 ### `skills.lock`과 실행 증거
 
-해석 결과는 `.roven/skills.lock`의 독립 JSON Schema로 검증하고 4 MiB로 제한합니다. Lock에는 project ID, 생성 시각, provider/Role/runtime/platform, 알려진 도구와 허용 capability, 선택 항목, 탈락 항목과 기계용 사유가 들어갑니다. URI는 로컬 lock에만 저장합니다. 같은 의미의 lock이 이미 있으면 기존 byte와 `generatedAt`을 유지합니다. 기존 lock이 schema를 통과하지 않거나 일반 파일이 아니면 사용자 내용을 덮어쓰지 않고 실패합니다. 새 값은 같은 디렉터리의 임시 파일을 완성한 뒤 rename합니다.
+해석 결과는 `.lervo/skills.lock`의 독립 JSON Schema로 검증하고 4 MiB로 제한합니다. Lock에는 project ID, 생성 시각, provider/Role/runtime/platform, 알려진 도구와 허용 capability, 선택 항목, 탈락 항목과 기계용 사유가 들어갑니다. URI는 로컬 lock에만 저장합니다. 같은 의미의 lock이 이미 있으면 기존 byte와 `generatedAt`을 유지합니다. 기존 lock이 schema를 통과하지 않거나 일반 파일이 아니면 사용자 내용을 덮어쓰지 않고 실패합니다. 새 값은 같은 디렉터리의 임시 파일을 완성한 뒤 rename합니다.
 
 Lock은 현재 해석 결과인 파생 상태이며 실행 증거가 아닙니다. 실행을 시작할 때 `run.requested`, `run.resolved`와 선택 항목별 `skill.resolved`를 같은 event transaction에 기록합니다. Event에는 skill ID, version, content hash, source kind와 trust level만 넣고 URI, publisher, reviewer와 본문은 넣지 않습니다. 이 transaction이 실패하면 실행하지 않으며, 앞서 만들어진 lock만으로 실행했다고 주장할 수 없습니다.
 

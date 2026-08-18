@@ -25,8 +25,8 @@
       "defaultSkills": [],
       "outputContract": {
         "artifactKind": "change_summary",
-        "schemaRef": "roven-schema://outputs/change-summary/v1",
-        "pathTemplate": ".roven/artifacts/{runId}/change-summary.json",
+        "schemaRef": "lervo-schema://outputs/change-summary/v1",
+        "pathTemplate": ".lervo/artifacts/{runId}/change-summary.json",
         "citationsRequired": false,
         "presentation": {
           "audience": "human",
@@ -72,7 +72,7 @@
       "defaultSkills": [],
       "outputContract": {
         "artifactKind": "change_summary",
-        "schemaRef": "roven-schema://outputs/change-summary/v1",
+        "schemaRef": "lervo-schema://outputs/change-summary/v1",
         "pathTemplate": "../outside.json",
         "citationsRequired": false,
         "presentation": {
@@ -103,7 +103,7 @@
       "source": {
         "kind": "project",
         "uri": ".agents/skills/repository-testing",
-        "publisher": { "id": "team_roven", "name": "Roven maintainers" }
+        "publisher": { "id": "team_lervo", "name": "Lervo maintainers" }
       },
       "supportedRoles": ["developer"],
       "compatibility": {
@@ -115,8 +115,8 @@
       },
       "requiredCapabilities": [],
       "contracts": {
-        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
-        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+        "inputSchemaRef": "lervo-schema://skills/testing-input/v1",
+        "outputSchemaRef": "lervo-schema://skills/testing-output/v1"
       },
       "trust": {
         "level": "reviewed",
@@ -149,13 +149,13 @@
       },
       "requiredCapabilities": [],
       "contracts": {
-        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
-        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+        "inputSchemaRef": "lervo-schema://skills/testing-input/v1",
+        "outputSchemaRef": "lervo-schema://skills/testing-output/v1"
       },
       "trust": {
         "level": "verified",
         "signatureStatus": "unknown",
-        "reviewedBy": "team_roven",
+        "reviewedBy": "team_lervo",
         "reviewedAt": "2026-08-18T00:00:00Z"
       },
       "enabledScope": { "kind": "disabled" },
@@ -185,8 +185,8 @@
       },
       "requiredCapabilities": [],
       "contracts": {
-        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
-        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+        "inputSchemaRef": "lervo-schema://skills/testing-input/v1",
+        "outputSchemaRef": "lervo-schema://skills/testing-output/v1"
       },
       "trust": { "level": "untrusted", "signatureStatus": "unknown" },
       "enabledScope": { "kind": "user" },
@@ -194,7 +194,7 @@
     }
   },
   {
-    "name": "observed document cannot be Roven managed",
+    "name": "observed document cannot be Lervo managed",
     "schema": "documentRegistry",
     "value": {
       "schemaVersion": 1,
@@ -202,7 +202,7 @@
         "doc_readme_main": {
           "path": "README.md",
           "kind": "observed",
-          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "responsibleParty": { "kind": "team", "id": "team_lervo" },
           "connectedPaths": ["package.json"],
           "verifiedRevision": "working-tree",
           "verifiedAt": "2026-08-18T00:00:00Z",
@@ -235,9 +235,9 @@
       "schemaVersion": 1,
       "documents": {
         "doc_generated_main": {
-          "path": ".roven/generated/index.md",
+          "path": ".lervo/generated/index.md",
           "kind": "generated",
-          "responsibleParty": { "kind": "roven", "id": "node" },
+          "responsibleParty": { "kind": "lervo", "id": "node" },
           "connectedPaths": ["AGENTS.md"],
           "verifiedRevision": "working-tree",
           "verifiedAt": "2026-08-18T00:00:00Z",
@@ -256,7 +256,7 @@
         "doc_agents_root": {
           "path": "/tmp/AGENTS.md",
           "kind": "canonical",
-          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "responsibleParty": { "kind": "team", "id": "team_lervo" },
           "connectedPaths": ["**/*"],
           "verifiedRevision": "working-tree",
           "verifiedAt": "2026-08-18T00:00:00Z",

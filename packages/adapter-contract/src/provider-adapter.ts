@@ -13,7 +13,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export interface ProviderManagedWriteBridge {
   authorize(request: AdapterManagedWriteRequest): Promise<AdapterManagedWriteDecision>;

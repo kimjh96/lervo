@@ -1,4 +1,4 @@
-import { contextScopesEqual, type ContextEvidence } from "@roven/schemas";
+import { contextScopesEqual, type ContextEvidence } from "@lervo/schemas";
 
 import {
   type ContextPlan,

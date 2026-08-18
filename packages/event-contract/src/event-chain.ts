@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { type EventEnvelope } from "@roven/schemas";
+import { type EventEnvelope } from "@lervo/schemas";
 
 import { canonicalJson } from "./canonical-json.js";
 

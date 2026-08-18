@@ -1,4 +1,4 @@
-import { normalizeRepositoryPath, type LoadedContext } from "@roven/context";
+import { normalizeRepositoryPath, type LoadedContext } from "@lervo/context";
 
 import {
   type FileChangeRecord,

@@ -2,7 +2,7 @@ import {
   type AdapterNormalizedEvent,
   type AdapterSession,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { ManagedContextError, type ManagedRunCoordinates } from "./types.js";
 

@@ -1,8 +1,8 @@
 import {
   type AdapterContextEnvelope,
   cloneContextScope,
-} from "@roven/schemas";
-import type { LoadedContext } from "@roven/context";
+} from "@lervo/schemas";
+import type { LoadedContext } from "@lervo/context";
 
 import { createInlineThresholdPolicy } from "./delivery-policy.js";
 import {
@@ -31,7 +31,7 @@ async function storeInCas(
   try {
     const result = await artifactStore.put(bytes);
     const stored = await artifactStore.get(result.uri);
-    const expectedUri = `roven-cas://sha256/${expectedHash.slice("sha256:".length)}`;
+    const expectedUri = `lervo-cas://sha256/${expectedHash.slice("sha256:".length)}`;
     if (
       result.uri !== expectedUri ||
       result.contentHash !== expectedHash ||

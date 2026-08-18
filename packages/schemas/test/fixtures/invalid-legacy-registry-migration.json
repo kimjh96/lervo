@@ -23,17 +23,17 @@
       "approvalStatus": "not_requested",
       "outcome": "ready_for_review",
       "source": {
-        "path": ".roven/documents.yaml",
+        "path": ".lervo/documents.yaml",
         "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "byteCount": 16,
         "deactivationAction": "archive_then_remove"
       },
       "archiveTarget": {
-        "path": ".roven/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
+        "path": ".lervo/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
         "expected": { "kind": "missing" }
       },
       "manifestDirectory": {
-        "path": ".roven/documents",
+        "path": ".lervo/documents",
         "expected": { "kind": "missing" }
       },
       "referencedDocuments": [],

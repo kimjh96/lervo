@@ -2,9 +2,9 @@ import { createHash, randomUUID } from "node:crypto";
 import { link, lstat, mkdir, open, readFile, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { type ArtifactStore } from "@roven/storage-contract";
+import { type ArtifactStore } from "@lervo/storage-contract";
 
-const uriPattern = /^roven-cas:\/\/sha256\/([a-f0-9]{64})$/;
+const uriPattern = /^lervo-cas:\/\/sha256\/([a-f0-9]{64})$/;
 
 export type CasErrorCode = "corrupt_object" | "invalid_uri" | "not_found" | "unsafe_path";
 
@@ -30,7 +30,7 @@ function digest(bytes: Uint8Array): string {
 }
 
 function uriForDigest(hash: string): string {
-  return `roven-cas://sha256/${hash}`;
+  return `lervo-cas://sha256/${hash}`;
 }
 
 async function ensureRealDirectory(path: string): Promise<void> {

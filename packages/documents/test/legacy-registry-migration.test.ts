@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
-import type { DocumentRecord, DocumentRegistry } from "@roven/schemas";
+import type { DocumentRecord, DocumentRegistry } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createLegacyRegistryMigrationDryRun } from "../src/index.js";
@@ -37,11 +37,11 @@ function record(path: string): DocumentRecord {
 }
 
 async function fixtureRoot(registry: DocumentRegistry): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-legacy-registry-plan-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-legacy-registry-plan-"));
   roots.push(root);
-  await mkdir(resolve(root, ".roven"));
+  await mkdir(resolve(root, ".lervo"));
   await writeFile(
-    resolve(root, ".roven/documents.yaml"),
+    resolve(root, ".lervo/documents.yaml"),
     `${JSON.stringify(registry, null, 2)}\n`,
   );
   return root;
@@ -88,11 +88,11 @@ describe("legacy document registry structural migration dry-run", () => {
       approvalStatus: "not_requested",
       outcome: "review_required",
       source: {
-        path: ".roven/documents.yaml",
+        path: ".lervo/documents.yaml",
         deactivationAction: "archive_then_remove",
       },
       manifestDirectory: {
-        path: ".roven/documents",
+        path: ".lervo/documents",
         expected: { kind: "missing" },
       },
       warnings: expect.arrayContaining([
@@ -101,7 +101,7 @@ describe("legacy document registry structural migration dry-run", () => {
       ]),
     });
     expect(result.plan.archiveTarget.path).toBe(
-      `.roven/archive/document-registries/sha256/${
+      `.lervo/archive/document-registries/sha256/${
         result.plan.source.contentHash.slice("sha256:".length)
       }.yaml`,
     );
@@ -139,8 +139,8 @@ describe("legacy document registry structural migration dry-run", () => {
         });
     }
     expect(await treeSnapshot(root)).toEqual(before);
-    await expect(access(resolve(root, ".roven/archive"))).rejects.toThrow();
-    await expect(access(resolve(root, ".roven/documents"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo/archive"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo/documents"))).rejects.toThrow();
   });
 
   it("is deterministic across generation times and changes every bound coordinate with source bytes", async () => {
@@ -162,9 +162,9 @@ describe("legacy document registry structural migration dry-run", () => {
     expect(second.entryArtifacts).toEqual(first.entryArtifacts);
 
     const parsed = JSON.parse(
-      await readFile(resolve(root, ".roven/documents.yaml"), "utf8"),
+      await readFile(resolve(root, ".lervo/documents.yaml"), "utf8"),
     ) as DocumentRegistry;
-    await writeFile(resolve(root, ".roven/documents.yaml"), `${JSON.stringify(parsed)}\n`);
+    await writeFile(resolve(root, ".lervo/documents.yaml"), `${JSON.stringify(parsed)}\n`);
     const changed = await createLegacyRegistryMigrationDryRun({
       repositoryRoot: root,
       generatedAt: "2026-08-19T05:00:00Z",
@@ -188,9 +188,9 @@ describe("legacy document registry structural migration dry-run", () => {
       repositoryRoot: root,
       generatedAt: "2026-08-19T03:00:00Z",
     });
-    await mkdir(resolve(root, ".roven/documents"));
+    await mkdir(resolve(root, ".lervo/documents"));
     await writeFile(
-      resolve(root, ".roven/documents/doc_first_0000001.yaml"),
+      resolve(root, ".lervo/documents/doc_first_0000001.yaml"),
       "occupied sidecar target\n",
     );
     await mkdir(dirname(resolve(root, initial.plan.archiveTarget.path)), { recursive: true });
@@ -213,7 +213,7 @@ describe("legacy document registry structural migration dry-run", () => {
 
   it("rejects invalid or linked legacy registries instead of treating them as migrated", async () => {
     const invalidRoot = await fixtureRoot({ schemaVersion: 1, documents: {} });
-    await writeFile(resolve(invalidRoot, ".roven/documents.yaml"), "not: a registry\n");
+    await writeFile(resolve(invalidRoot, ".lervo/documents.yaml"), "not: a registry\n");
     await expect(createLegacyRegistryMigrationDryRun({
       repositoryRoot: invalidRoot,
       generatedAt: "2026-08-19T03:00:00Z",
@@ -237,13 +237,13 @@ describe("legacy document registry structural migration dry-run", () => {
       warnings: expect.arrayContaining(["referenced_document_unsafe"]),
     });
 
-    const linkedRoot = await mkdtemp(resolve(tmpdir(), "roven-legacy-registry-link-"));
+    const linkedRoot = await mkdtemp(resolve(tmpdir(), "lervo-legacy-registry-link-"));
     roots.push(linkedRoot);
-    await mkdir(resolve(linkedRoot, ".roven"));
+    await mkdir(resolve(linkedRoot, ".lervo"));
     await writeFile(resolve(linkedRoot, "outside.yaml"), "schemaVersion: 1\ndocuments: {}\n");
     await symlink(
       resolve(linkedRoot, "outside.yaml"),
-      resolve(linkedRoot, ".roven/documents.yaml"),
+      resolve(linkedRoot, ".lervo/documents.yaml"),
     );
     await expect(createLegacyRegistryMigrationDryRun({
       repositoryRoot: linkedRoot,

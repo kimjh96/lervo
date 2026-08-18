@@ -18,18 +18,18 @@ afterEach(async () => {
 
 describe("repository snapshot", () => {
   it("detects content, creation and symlink changes while excluding runtime state", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "roven-snapshot-"));
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-"));
     roots.push(root);
-    await mkdir(resolve(root, ".roven/state"), { recursive: true });
+    await mkdir(resolve(root, ".lervo/state"), { recursive: true });
     await mkdir(resolve(root, "src"), { recursive: true });
     await writeFile(resolve(root, "src/a.ts"), "before\n");
-    await writeFile(resolve(root, ".roven/state/events.sqlite"), "before state\n");
+    await writeFile(resolve(root, ".lervo/state/events.sqlite"), "before state\n");
     const before = await captureRepositorySnapshot(root);
 
     await writeFile(resolve(root, "src/a.ts"), "after\n");
     await writeFile(resolve(root, "src/b.ts"), "created\n");
     await symlink("a.ts", resolve(root, "src/link.ts"));
-    await writeFile(resolve(root, ".roven/state/events.sqlite"), "after state\n");
+    await writeFile(resolve(root, ".lervo/state/events.sqlite"), "after state\n");
     const after = await captureRepositorySnapshot(root);
 
     expect(changedRepositoryPaths(before, after)).toEqual([
@@ -37,12 +37,12 @@ describe("repository snapshot", () => {
       "src/b.ts",
       "src/link.ts",
     ]);
-    expect(Object.keys(after.files)).not.toContain(".roven/state/events.sqlite");
+    expect(Object.keys(after.files)).not.toContain(".lervo/state/events.sqlite");
     expect(before.revision).not.toBe(after.revision);
   });
 
   it("supports repository-specific exclusions without changing the global default", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "roven-snapshot-policy-"));
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-policy-"));
     roots.push(root);
     await mkdir(resolve(root, "generated"), { recursive: true });
     await mkdir(resolve(root, "src"), { recursive: true });
@@ -64,7 +64,7 @@ describe("repository snapshot", () => {
   });
 
   it("fails safely when repository limits or exclusions are invalid", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "roven-snapshot-limits-"));
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-limits-"));
     roots.push(root);
     await writeFile(resolve(root, "a.ts"), "a\n");
     await writeFile(resolve(root, "b.ts"), "b\n");

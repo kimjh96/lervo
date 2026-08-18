@@ -39,8 +39,8 @@ describe("schema-derived TypeScript contracts", () => {
 
   it("keeps document ownership and bounded content policy aligned", () => {
     type GeneratedManifest = DocumentManifest & {
-      record: { ownership: { mode: "roven_generated" } };
-      contentPolicy: { mode: "roven_generated" };
+      record: { ownership: { mode: "lervo_generated" } };
+      contentPolicy: { mode: "lervo_generated" };
     };
     expectTypeOf<GeneratedManifest["contentPolicy"]["historyMode"]>()
       .toEqualTypeOf<"separate_documents">();
@@ -74,7 +74,7 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<LegacyRegistryEntryArtifact["record"]>().toEqualTypeOf<DocumentRecord>();
   });
 
-  it("keeps shared context provenance and handoff coordinates explicit", () => {
+  it("keeps shared context plervoance and handoff coordinates explicit", () => {
     type AgentPublication = SharedContextPublication & {
       producer: { kind: "agent" };
     };

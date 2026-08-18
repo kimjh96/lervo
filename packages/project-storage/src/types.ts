@@ -1,6 +1,6 @@
-import { type RovenProjectPaths } from "@roven/project";
-import { type ProjectManifest } from "@roven/schemas";
-import { type ArtifactStore, type OutboxStore } from "@roven/storage-contract";
+import { type LervoProjectPaths } from "@lervo/project";
+import { type ProjectManifest } from "@lervo/schemas";
+import { type ArtifactStore, type OutboxStore } from "@lervo/storage-contract";
 
 export type ProjectStorageErrorCode = "cleanup_failed" | "storage_layout_invalid";
 
@@ -26,7 +26,7 @@ export interface ProjectStorageBackends {
 
 export interface ProjectStorage {
   readonly manifest: ProjectManifest;
-  readonly paths: RovenProjectPaths;
+  readonly paths: LervoProjectPaths;
   readonly events: OutboxStore;
   readonly artifacts: CloseableArtifactStore;
   close(): Promise<void>;

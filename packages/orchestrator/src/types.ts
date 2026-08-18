@@ -1,8 +1,8 @@
-import type { InjectLoadedContextInput } from "@roven/context-delivery";
-import type { PrepareContextInput } from "@roven/context";
-import type { WriteContextDecision } from "@roven/core";
-import type { SharedContextPublication } from "@roven/schemas";
-import type { EventStoreTransaction } from "@roven/storage-contract";
+import type { InjectLoadedContextInput } from "@lervo/context-delivery";
+import type { PrepareContextInput } from "@lervo/context";
+import type { WriteContextDecision } from "@lervo/core";
+import type { SharedContextPublication } from "@lervo/schemas";
+import type { EventStoreTransaction } from "@lervo/storage-contract";
 
 export interface ManagedEventStore {
   transact<T>(work: (transaction: EventStoreTransaction) => T): T;

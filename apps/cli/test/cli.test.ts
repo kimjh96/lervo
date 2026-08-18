@@ -9,7 +9,7 @@ import { runCli } from "../src/main.js";
 const temporaryRoots: string[] = [];
 
 async function temporaryRepository(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-cli-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-"));
   temporaryRoots.push(root);
   return root;
 }
@@ -20,7 +20,7 @@ afterEach(async () => {
   );
 });
 
-describe("roven init CLI", () => {
+describe("lervo init CLI", () => {
   it("prints the exact creation plan without mutating on dry-run", async () => {
     const root = await temporaryRepository();
     let output = "";
@@ -33,9 +33,9 @@ describe("roven init CLI", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(output).toContain("생성  .roven/project.yaml");
+    expect(output).toContain("생성  .lervo/project.yaml");
     expect(output).toContain("+ name: fixture");
-    await expect(access(resolve(root, ".roven"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo"))).rejects.toThrow();
   });
 
   it("applies init and reports an idempotent second run", async () => {
@@ -49,12 +49,12 @@ describe("roven init CLI", () => {
 
     expect(await runCli(["init"], io)).toBe(0);
     expect(await runCli(["init"], io)).toBe(0);
-    expect(messages.join("")).toContain("Roven 프로젝트를 초기화했습니다.");
+    expect(messages.join("")).toContain("Lervo 프로젝트를 초기화했습니다.");
     expect(messages.join("")).toContain("이미 초기화된 프로젝트입니다.");
   });
 });
 
-describe("roven run CLI arguments", () => {
+describe("lervo run CLI arguments", () => {
   it("rejects an incomplete run command before opening a managed run", async () => {
     const root = await temporaryRepository();
     let called = false;

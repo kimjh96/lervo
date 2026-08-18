@@ -3,13 +3,13 @@ import {
   createManagedWriteRequest,
   inspectManagedWriteDecisionBinding,
   type ProviderManagedWriteBridge,
-} from "@roven/adapter-contract";
+} from "@lervo/adapter-contract";
 import type {
   AdapterManagedWriteCompletion,
   AdapterManagedWriteRequest,
   AdapterSession,
   AdapterTurn,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { asRecord, digest, repositoryPath, text } from "./normalization-utils.js";
 import { assertAdapterMessage, clone } from "./adapter-validation.js";

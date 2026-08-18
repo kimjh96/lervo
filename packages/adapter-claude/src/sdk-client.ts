@@ -72,7 +72,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           }),
           canUseTool: async () => ({
             behavior: "deny" as const,
-            message: "Roven approval bridge가 연결되지 않아 이 권한 요청을 거부했습니다.",
+            message: "Lervo approval bridge가 연결되지 않아 이 권한 요청을 거부했습니다.",
           }),
         },
       });

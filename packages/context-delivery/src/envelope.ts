@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import { inspectContextEnvelopeBinding } from "@roven/adapter-contract";
-import type { AdapterContextEnvelope } from "@roven/schemas";
+import { inspectContextEnvelopeBinding } from "@lervo/adapter-contract";
+import type { AdapterContextEnvelope } from "@lervo/schemas";
 
 import { materializeContextDocuments } from "./materialize.js";
 import {

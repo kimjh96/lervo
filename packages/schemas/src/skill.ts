@@ -73,8 +73,8 @@ const enabledScopeSchema = {
 
 export const skillManifestSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/skill-manifest.schema.json",
-  title: "Roven versioned skill manifest",
+  $id: "https://schemas.lervo.dev/v0/skill-manifest.schema.json",
+  title: "Lervo versioned skill manifest",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

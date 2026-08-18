@@ -1,22 +1,26 @@
 import { resolve } from "node:path";
 
-export const rovenRelativePaths = {
-  root: ".roven",
-  projectManifest: ".roven/project.yaml",
-  documents: ".roven/documents",
-  legacyDocumentRegistry: ".roven/documents.yaml",
-  gitignore: ".roven/.gitignore",
-  generated: ".roven/generated",
-  state: ".roven/state",
-  knowledge: ".roven/knowledge",
-  eventDatabase: ".roven/state/events.sqlite",
-  cas: ".roven/state/cas",
-  skillsLock: ".roven/skills.lock",
+export const lervoRelativePaths = {
+  root: ".lervo",
+  projectManifest: ".lervo/project.yaml",
+  documents: ".lervo/documents",
+  legacyDocumentRegistry: ".lervo/documents.yaml",
+  gitignore: ".lervo/.gitignore",
+  generated: ".lervo/generated",
+  state: ".lervo/state",
+  knowledge: ".lervo/knowledge",
+  eventDatabase: ".lervo/state/events.sqlite",
+  cas: ".lervo/state/cas",
+  skillsLock: ".lervo/skills.lock",
 } as const;
 
-export interface RovenProjectPaths {
+export const previousBrandRelativePaths = {
+  root: ".roven",
+} as const;
+
+export interface LervoProjectPaths {
   repositoryRoot: string;
-  rovenRoot: string;
+  lervoRoot: string;
   projectManifest: string;
   documents: string;
   legacyDocumentRegistry: string;
@@ -29,20 +33,20 @@ export interface RovenProjectPaths {
   skillsLock: string;
 }
 
-export function resolveProjectPaths(root: string): RovenProjectPaths {
+export function resolveProjectPaths(root: string): LervoProjectPaths {
   const repositoryRoot = resolve(root);
   return {
     repositoryRoot,
-    rovenRoot: resolve(repositoryRoot, rovenRelativePaths.root),
-    projectManifest: resolve(repositoryRoot, rovenRelativePaths.projectManifest),
-    documents: resolve(repositoryRoot, rovenRelativePaths.documents),
-    legacyDocumentRegistry: resolve(repositoryRoot, rovenRelativePaths.legacyDocumentRegistry),
-    gitignore: resolve(repositoryRoot, rovenRelativePaths.gitignore),
-    generated: resolve(repositoryRoot, rovenRelativePaths.generated),
-    state: resolve(repositoryRoot, rovenRelativePaths.state),
-    knowledge: resolve(repositoryRoot, rovenRelativePaths.knowledge),
-    eventDatabase: resolve(repositoryRoot, rovenRelativePaths.eventDatabase),
-    cas: resolve(repositoryRoot, rovenRelativePaths.cas),
-    skillsLock: resolve(repositoryRoot, rovenRelativePaths.skillsLock),
+    lervoRoot: resolve(repositoryRoot, lervoRelativePaths.root),
+    projectManifest: resolve(repositoryRoot, lervoRelativePaths.projectManifest),
+    documents: resolve(repositoryRoot, lervoRelativePaths.documents),
+    legacyDocumentRegistry: resolve(repositoryRoot, lervoRelativePaths.legacyDocumentRegistry),
+    gitignore: resolve(repositoryRoot, lervoRelativePaths.gitignore),
+    generated: resolve(repositoryRoot, lervoRelativePaths.generated),
+    state: resolve(repositoryRoot, lervoRelativePaths.state),
+    knowledge: resolve(repositoryRoot, lervoRelativePaths.knowledge),
+    eventDatabase: resolve(repositoryRoot, lervoRelativePaths.eventDatabase),
+    cas: resolve(repositoryRoot, lervoRelativePaths.cas),
+    skillsLock: resolve(repositoryRoot, lervoRelativePaths.skillsLock),
   };
 }

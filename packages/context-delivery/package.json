@@ -1,5 +1,5 @@
 {
-  "name": "@roven/context-delivery",
+  "name": "@lervo/context-delivery",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,11 +15,11 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/adapter-contract": "workspace:*",
-    "@roven/context": "workspace:*",
-    "@roven/schemas": "workspace:*"
+    "@lervo/adapter-contract": "workspace:*",
+    "@lervo/context": "workspace:*",
+    "@lervo/schemas": "workspace:*"
   },
   "devDependencies": {
-    "@roven/cas": "workspace:*"
+    "@lervo/cas": "workspace:*"
   }
 }

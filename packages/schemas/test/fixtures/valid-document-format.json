@@ -36,23 +36,23 @@
     }
   },
   {
-    "name": "bounded Roven-generated document manifest",
+    "name": "bounded Lervo-generated document manifest",
     "schema": "documentManifest",
     "value": {
       "schemaVersion": 1,
       "documentId": "doc_generated_0001",
       "record": {
-        "path": ".roven/generated/documents/project-context.md",
+        "path": ".lervo/generated/documents/project-context.md",
         "kind": "generated",
-        "responsibleParty": { "kind": "roven", "id": "document-compiler" },
+        "responsibleParty": { "kind": "lervo", "id": "document-compiler" },
         "connectedPaths": ["src"],
         "verifiedRevision": "git:fixture",
         "verifiedAt": "2026-08-19T00:00:00Z",
         "reviewIntervalDays": 7,
         "ownership": {
-          "mode": "roven_generated",
+          "mode": "lervo_generated",
           "userContentAllowed": false,
-          "manifestPath": ".roven/generated/manifests/doc_generated_0001.json",
+          "manifestPath": ".lervo/generated/manifests/doc_generated_0001.json",
           "inputs": [{
             "sourceId": "project-policy",
             "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -60,7 +60,7 @@
         }
       },
       "contentPolicy": {
-        "mode": "roven_generated",
+        "mode": "lervo_generated",
         "mediaType": "text/markdown; charset=utf-8",
         "profileId": "project-context.ko-KR/v1",
         "locale": "ko-KR",
@@ -131,7 +131,7 @@
         "sourceHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "action": "create_sidecar",
         "target": {
-          "path": ".roven/documents/doc_readme_000001.yaml",
+          "path": ".lervo/documents/doc_readme_000001.yaml",
           "expected": { "kind": "missing" }
         }
       }],

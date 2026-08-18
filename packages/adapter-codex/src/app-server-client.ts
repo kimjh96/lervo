@@ -68,7 +68,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     const client = new CodexStdioAppServerClient(child, options.requestTimeoutMs);
     try {
       await client.request("initialize", {
-        clientInfo: { name: "roven", title: "Roven", version: "0.0.0" },
+        clientInfo: { name: "lervo", title: "Lervo", version: "0.0.0" },
         capabilities: null,
       });
       client.notify("initialized");

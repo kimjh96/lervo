@@ -1,4 +1,4 @@
-import type { ContextEvidence } from "@roven/schemas";
+import type { ContextEvidence } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import { assuranceLevels, evaluateWriteContext } from "../src/index.js";
@@ -52,7 +52,7 @@ function evidence(): ContextEvidence[] {
       contentHash,
       provider: "codex",
       providerSessionId: "provider-session-1",
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       adapterReceiptId: "ctx_adapter_01234567",
       envelopeId: "envelope-1",
       targetTurnId: "turn-1",

@@ -63,12 +63,12 @@ export async function publishMigrationSidecars(input: {
   verifyBeforePublish: (markerFileName: string) => Promise<void>;
   verifyAfterPublish: (markerFileName: string) => Promise<void>;
 }): Promise<void> {
-  const stagingRelative = `.roven/.document-migration-${input.planId}-${randomUUID()}`;
+  const stagingRelative = `.lervo/.document-migration-${input.planId}-${randomUUID()}`;
   const staging = absoluteRepositoryPath(input.root, stagingRelative);
   const markerFileName = `.migration-${input.planId}.lock`;
-  const markerRelative = `.roven/documents/${markerFileName}`;
+  const markerRelative = `.lervo/documents/${markerFileName}`;
   const marker = absoluteRepositoryPath(input.root, markerRelative);
-  const documentDirectory = absoluteRepositoryPath(input.root, ".roven/documents");
+  const documentDirectory = absoluteRepositoryPath(input.root, ".lervo/documents");
   const markerBytes = Buffer.from(
     `${JSON.stringify({ planId: input.planId, approvalId: input.approvalId })}\n`,
     "utf8",

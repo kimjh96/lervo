@@ -75,10 +75,10 @@
       "locale": "ko-KR",
       "checkedAt": "2026-08-18T00:00:00Z",
       "evaluators": [
-        { "kind": "deterministic", "evaluatorId": "roven-writing-lint-v1" },
+        { "kind": "deterministic", "evaluatorId": "lervo-writing-lint-v1" },
         {
           "kind": "model",
-          "evaluatorId": "roven-writing-review-v1",
+          "evaluatorId": "lervo-writing-review-v1",
           "phase": "separate_pass"
         }
       ],

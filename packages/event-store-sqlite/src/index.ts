@@ -1,6 +1,6 @@
 export * from "./event-store.js";
 export * from "./errors.js";
-export { computeEventHash, type EventDraft } from "@roven/event-contract";
+export { computeEventHash, type EventDraft } from "@lervo/event-contract";
 export type {
   AcknowledgeOutboxRequest,
   AcknowledgeOutboxResult,
@@ -21,4 +21,4 @@ export type {
   PurgeAcknowledgedOutboxResult,
   RescheduleOutboxRequest,
   RescheduleOutboxResult,
-} from "@roven/storage-contract";
+} from "@lervo/storage-contract";

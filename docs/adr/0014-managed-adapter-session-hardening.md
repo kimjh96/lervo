@@ -23,7 +23,7 @@ Provider별 승인 처리까지 adapter 본체에 섞여 있어 protocol 변경�
 
 Orchestrator는 `ManagedWritePlan`을 한 번 만들고 bridge에 전달합니다. 계획은 실행 모드, 정규화된 허용 경로, 최소·최대 검증 변경 수와 변경 뒤 context 처분을 가집니다. 현재 `read_only`는 `0..0`, `managed_write`는 `1..1`이며 변경 뒤 context를 무효화합니다. Bridge는 요청 경로와 완료 수를 계획으로 판정하므로 이후 여러 파일 단계는 provider adapter를 바꾸지 않고 계획 생성 규칙을 확장할 수 있습니다.
 
-Codex와 Claude adapter는 승인 상태와 provider 메시지 해석을 각각 `ManagedWriteController`에 맡깁니다. Claude SDK의 Pre/PostToolUse 연결도 별도 hook 모듈로 둡니다. Adapter 본체는 session, context, turn, event와 종료 순서만 소유합니다. Managed write 요청·결정·완료의 schema, 좌표와 시간 결속은 `@roven/adapter-contract`의 공통 contract suite로 두 adapter가 함께 검증합니다.
+Codex와 Claude adapter는 승인 상태와 provider 메시지 해석을 각각 `ManagedWriteController`에 맡깁니다. Claude SDK의 Pre/PostToolUse 연결도 별도 hook 모듈로 둡니다. Adapter 본체는 session, context, turn, event와 종료 순서만 소유합니다. Managed write 요청·결정·완료의 schema, 좌표와 시간 결속은 `@lervo/adapter-contract`의 공통 contract suite로 두 adapter가 함께 검증합니다.
 
 승인 뒤 완료가 없거나 실패 상태, 중복 요청·완료, 허용 경로 밖 요청과 실제 변경 종류 불일치는 실패합니다. 쓰기 bridge에서 시작된 실패는 `provider_write` phase를 보존합니다. 대표 실패 우선순위는 telemetry, artifact, provider stop, provider write, unmanaged change 순이므로 실제 쓰기 검증 실패가 뒤의 snapshot 결과에 가려지지 않습니다. 관련 실패 목록에는 두 사실을 모두 남깁니다.
 

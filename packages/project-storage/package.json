@@ -1,5 +1,5 @@
 {
-  "name": "@roven/project-storage",
+  "name": "@lervo/project-storage",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,10 +15,10 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/cas": "workspace:*",
-    "@roven/event-store-sqlite": "workspace:*",
-    "@roven/project": "workspace:*",
-    "@roven/schemas": "workspace:*",
-    "@roven/storage-contract": "workspace:*"
+    "@lervo/cas": "workspace:*",
+    "@lervo/event-store-sqlite": "workspace:*",
+    "@lervo/project": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*"
   }
 }

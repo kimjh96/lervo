@@ -38,8 +38,8 @@ const writingFollowupInformationItems = [
 
 export const writingContractSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/writing-contract.schema.json",
-  title: "Roven human-readable writing policy",
+  $id: "https://schemas.lervo.dev/v0/writing-contract.schema.json",
+  title: "Lervo human-readable writing policy",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -228,8 +228,8 @@ const writingCheckResultSchema = {
 
 export const writingEvaluationSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/writing-evaluation.schema.json",
-  title: "Roven writing verification result",
+  $id: "https://schemas.lervo.dev/v0/writing-evaluation.schema.json",
+  title: "Lervo writing verification result",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

@@ -9,13 +9,13 @@ import { CasError, FileSystemCas } from "../src/index.js";
 const temporaryRoots: string[] = [];
 
 async function casRoot(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-cas-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-cas-"));
   temporaryRoots.push(root);
   return resolve(root, "state/cas");
 }
 
 function pathForUri(root: string, uri: string): string {
-  const hash = uri.slice("roven-cas://sha256/".length);
+  const hash = uri.slice("lervo-cas://sha256/".length);
   return resolve(root, "sha256", hash.slice(0, 2), hash.slice(2));
 }
 
@@ -68,9 +68,9 @@ describe("file system content-addressed storage", () => {
   it("returns false only when a valid address is absent", async () => {
     const cas = await FileSystemCas.open(await casRoot());
     await expect(
-      cas.has(`roven-cas://sha256/${"a".repeat(64)}`),
+      cas.has(`lervo-cas://sha256/${"a".repeat(64)}`),
     ).resolves.toBe(false);
-    await expect(cas.get(`roven-cas://sha256/${"a".repeat(64)}`)).rejects.toMatchObject({
+    await expect(cas.get(`lervo-cas://sha256/${"a".repeat(64)}`)).rejects.toMatchObject({
       code: "not_found",
     });
   });
@@ -114,10 +114,10 @@ describe("file system content-addressed storage", () => {
     const root = await casRoot();
     const cas = await FileSystemCas.open(root);
 
-    await expect(cas.get("roven-cas://sha256/../../secret")).rejects.toBeInstanceOf(
+    await expect(cas.get("lervo-cas://sha256/../../secret")).rejects.toBeInstanceOf(
       CasError,
     );
-    await expect(cas.get("roven-cas://sha256/../../secret")).rejects.toMatchObject({
+    await expect(cas.get("lervo-cas://sha256/../../secret")).rejects.toMatchObject({
       code: "invalid_uri",
     });
   });

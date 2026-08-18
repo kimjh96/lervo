@@ -1,5 +1,5 @@
 import type { startup } from "@anthropic-ai/claude-agent-sdk";
-import type { AdapterSession, AdapterTurn } from "@roven/schemas";
+import type { AdapterSession, AdapterTurn } from "@lervo/schemas";
 
 export type ClaudePermissionMode = "default" | "plan" | "dontAsk";
 

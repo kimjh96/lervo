@@ -1,4 +1,4 @@
-# Roven 시스템 아키텍처
+# Lervo 시스템 아키텍처
 
 상태: `0.1-draft`  
 기준일: 2026-08-19
@@ -8,8 +8,8 @@
 ```mermaid
 flowchart LR
     UI[CLI / Web / Slack / Discord] --> CP[Command Plane]
-    CP --> HUB[Roven Hub]
-    CP --> NODE[Roven Node]
+    CP --> HUB[Lervo Hub]
+    CP --> NODE[Lervo Node]
     HUB <-->|signed commands / event sync| NODE
 
     subgraph Repository
@@ -33,33 +33,33 @@ flowchart LR
 
 ## 배포 단위
 
-### Roven CLI
+### Lervo CLI
 
 사람과 자동화의 로컬 진입점입니다. 초기화, 실행, 추적, 진단, 문서 점검, Hub 연결을 제공합니다.
 
 명령 상태:
 
-- `roven init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
-- `roven run --provider <provider> --path <path> [--skill <skill-id> ...] <request>`: project storage, 스킬 해석과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
-- `roven trace [run]`: 실행 근거와 이벤트 조회
-- `roven doctor`: 문서·스킬·어댑터·Hub 상태 진단
-- `roven docs check`: 문서 노후화 검사
-- `roven hub connect`: 선택적 중앙 등록
+- `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
+- `lervo run --provider <provider> --path <path> [--skill <skill-id> ...] <request>`: project storage, 스킬 해석과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
+- `lervo trace [run]`: 실행 근거와 이벤트 조회
+- `lervo doctor`: 문서·스킬·어댑터·Hub 상태 진단
+- `lervo docs check`: 문서 노후화 검사
+- `lervo hub connect`: 선택적 중앙 등록
 
-### Roven Node
+### Lervo Node
 
 저장소별 로컬 런타임입니다. 초기에는 CLI 프로세스 안에서 동작하고, 원격 작업과 장기 실행이 필요해질 때 선택적 데몬 모드를 제공합니다. Node가 원본 실행 이벤트를 소유합니다.
 
-### Roven Hub
+### Lervo Hub
 
 다중 프로젝트의 제어·조회 계층입니다. 프로젝트 등록, 정책 배포, 추적 시각화, 원격 명령, 채널 연동을 담당합니다. 저장소 파일 시스템을 직접 마운트하지 않고 Node가 내보낸 이벤트와 허용된 아티팩트만 저장합니다.
 
 ## 저장소 내부 구조
 
-`roven init`의 목표 구조입니다.
+`lervo init`의 목표 구조입니다.
 
 ```text
-.roven/
+.lervo/
   project.yaml             # 안정적인 project id와 로컬 설정
   policy.yaml              # 역할, 도구, 승인, 필수 컨텍스트 정책
   documents/               # document ID별 수명주기 sidecar manifest
@@ -71,27 +71,33 @@ flowchart LR
 
 기존 프로젝트 구조를 강제로 이동하지 않습니다. 문서와 스킬 위치는 manifest에서 연결할 수 있습니다.
 
-새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서별 manifest 파일이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.roven`은 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
+### 제품 명칭 전환 경계
+
+새 공개 식별자는 제품 `Lervo`, CLI `lervo`, 관리 경로 `.lervo`, npm scope `@lervo`로 통일합니다. Schema URI, CAS URI, adapter ID, managed marker와 스킬 manifest 이름도 같은 `lervo` 식별자를 사용합니다. 별도 호환 CLI나 이중 package scope는 두지 않습니다.
+
+이전 실험 버전의 `.roven`은 `.lervo`와 함께 읽지 않습니다. `lervo init`은 저장소 root에서 이전 경로를 발견하면 어떤 새 파일도 만들지 않고 차단합니다. Event hash chain과 CAS URI는 원본 증거 좌표이므로 단순 문자열 치환이나 디렉터리 rename으로 migration되었다고 주장하지 않습니다. 명칭 migration은 원본 보존, 새 좌표 생성, 검증과 완료 event를 갖춘 별도 작업으로 구현합니다.
+
+새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서별 manifest 파일이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.lervo`는 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
 
 ### Document Adoption & Migration
 
-기존 저장소 도입은 `roven init`과 분리된 명시적 작업입니다. 탐색기는 설정된 문서 root만 읽고 `.git`, 의존성 디렉터리와 `.roven/state`를 제외하며 파일 수·개별 크기·전체 byte 한도를 적용합니다. 심볼릭 링크를 따라가지 않고 원본을 수정하지 않은 채 경로, 형식, content hash, 탐지한 소유권, 제안 document ID/profile/관계, 신뢰도와 경고를 `MigrationCandidate`로 만듭니다. 후보는 큰 단일 보고서에 누적하지 않고 source document별 artifact로 분리하며 migration plan은 그 artifact ID와 hash만 연결합니다.
+기존 저장소 도입은 `lervo init`과 분리된 명시적 작업입니다. 탐색기는 설정된 문서 root만 읽고 `.git`, 의존성 디렉터리와 `.lervo/state`를 제외하며 파일 수·개별 크기·전체 byte 한도를 적용합니다. 심볼릭 링크를 따라가지 않고 원본을 수정하지 않은 채 경로, 형식, content hash, 탐지한 소유권, 제안 document ID/profile/관계, 신뢰도와 경고를 `MigrationCandidate`로 만듭니다. 후보는 큰 단일 보고서에 누적하지 않고 source document별 artifact로 분리하며 migration plan은 그 artifact ID와 hash만 연결합니다.
 
-형식 해석은 `DocumentImportAdapter` 뒤에 둡니다. Core scanner가 안전한 byte 읽기와 hash를 소유하고 adapter는 전달받은 byte에서 Markdown, MDX, AsciiDoc, 기존 Roven registry 또는 프로젝트 custom 형식의 metadata 후보만 반환합니다. Adapter는 파일 시스템 쓰기 권한을 받지 않습니다. 알 수 없는 형식과 낮은 신뢰도는 `observed` 후보로 남기고 관리 대상으로 자동 승격하지 않습니다.
+형식 해석은 `DocumentImportAdapter` 뒤에 둡니다. Core scanner가 안전한 byte 읽기와 hash를 소유하고 adapter는 전달받은 byte에서 Markdown, MDX, AsciiDoc, 기존 Lervo registry 또는 프로젝트 custom 형식의 metadata 후보만 반환합니다. Adapter는 파일 시스템 쓰기 권한을 받지 않습니다. 알 수 없는 형식과 낮은 신뢰도는 `observed` 후보로 남기고 관리 대상으로 자동 승격하지 않습니다.
 
-Dry-run 계획은 source path·hash, candidate artifact와 target snapshot에 묶입니다. 승인은 모든 candidate를 정확히 한 번 다루며, sidecar를 만들 후보에는 책임자·locale·검토 주기까지 사람이 확정한 최종 `DocumentManifest`가 들어갑니다. 적용기는 승인과 source·candidate·target·기존 manifest 전체를 다시 검증한 뒤 `.roven/documents/<documentId>.yaml`만 만듭니다. 원본 위치와 byte는 유지합니다.
+Dry-run 계획은 source path·hash, candidate artifact와 target snapshot에 묶입니다. 승인은 모든 candidate를 정확히 한 번 다루며, sidecar를 만들 후보에는 책임자·locale·검토 주기까지 사람이 확정한 최종 `DocumentManifest`가 들어갑니다. 적용기는 승인과 source·candidate·target·기존 manifest 전체를 다시 검증한 뒤 `.lervo/documents/<documentId>.yaml`만 만듭니다. 원본 위치와 byte는 유지합니다.
 
-여러 sidecar를 공개하는 동안에는 transaction marker를 두어 loader가 부분 layout을 읽지 못하게 합니다. File과 directory entry를 동기화하고 성공 event를 영속한 뒤 marker를 제거합니다. Event 기록 전 실패하면 이번 작업이 만든 sidecar를 hash로 확인해 모두 되돌립니다. Event 기록 뒤 marker 정리에 실패하거나 rollback 대상을 안전하게 확인하지 못하면 정상 완료로 표시하지 않고 운영자 복구가 필요한 fail-closed 상태로 남깁니다. 기존 단일 `.roven/documents.yaml`과 새 sidecar는 loader 계약상 충돌하므로 metadata-only apply가 둘을 섞지 않습니다. 이를 분할하려면 기존 registry 비활성화까지 포함한 별도 structural migration과 승인이 먼저 필요합니다.
+여러 sidecar를 공개하는 동안에는 transaction marker를 두어 loader가 부분 layout을 읽지 못하게 합니다. File과 directory entry를 동기화하고 성공 event를 영속한 뒤 marker를 제거합니다. Event 기록 전 실패하면 이번 작업이 만든 sidecar를 hash로 확인해 모두 되돌립니다. Event 기록 뒤 marker 정리에 실패하거나 rollback 대상을 안전하게 확인하지 못하면 정상 완료로 표시하지 않고 운영자 복구가 필요한 fail-closed 상태로 남깁니다. 기존 단일 `.lervo/documents.yaml`과 새 sidecar는 loader 계약상 충돌하므로 metadata-only apply가 둘을 섞지 않습니다. 이를 분할하려면 기존 registry 비활성화까지 포함한 별도 structural migration과 승인이 먼저 필요합니다.
 
-Legacy structural dry-run은 `.roven/documents.yaml`의 원본 bytes를 최대 4 MiB로 안정적으로 읽고 document record마다 독립 artifact를 만듭니다. 계획에는 원본 hash와 `archive_then_remove` 처분, `.roven/archive/document-registries/sha256/<digest>.yaml` 보존 target, 새 manifest directory, 모든 sidecar target과 각 record가 가리키는 문서의 현재 missing/file/unsafe snapshot이 들어갑니다. Archive는 계속 덧붙이는 registry가 아니라 한 source hash에 대응하는 불변 원본입니다. 기존 파일을 수정하지 않으며 duplicate path, 안전하게 snapshot할 수 없는 참조 문서, 기존 sidecar layout과 archive hash 충돌을 적용 불가 상태로 표시합니다.
+Legacy structural dry-run은 `.lervo/documents.yaml`의 원본 bytes를 최대 4 MiB로 안정적으로 읽고 document record마다 독립 artifact를 만듭니다. 계획에는 원본 hash와 `archive_then_remove` 처분, `.lervo/archive/document-registries/sha256/<digest>.yaml` 보존 target, 새 manifest directory, 모든 sidecar target과 각 record가 가리키는 문서의 현재 missing/file/unsafe snapshot이 들어갑니다. Archive는 계속 덧붙이는 registry가 아니라 한 source hash에 대응하는 불변 원본입니다. 기존 파일을 수정하지 않으며 duplicate path, 안전하게 snapshot할 수 없는 참조 문서, 기존 sidecar layout과 archive hash 충돌을 적용 불가 상태로 표시합니다.
 
-`@roven/documents`는 scanner, adapter, 일반 planner/apply와 legacy structural planner를 분리합니다. Scanner는 최대 4,096개 파일·파일당 4 MiB·전체 64 MiB 안에서 stable bytes와 hash를 만들고 adapter에는 격리된 byte 복사본만 줍니다. Markdown/MDX와 schema-valid 기존 registry adapter는 adapter ID/version을 candidate에 남기며, 지원하지 않는 형식은 `roven_unknown`의 `observed` 후보로 보존합니다. Candidate와 legacy record JSON은 source별 또는 registry entry별 artifact/hash로 분리합니다. Metadata apply는 hash에 묶인 승인 원본과 privacy-bounded `document.migration.applied` event recorder를 필수 port로 받고, event 저장이 성공한 경우에만 receipt를 반환합니다. Structural dry-run은 쓰기 port와 event recorder를 받지 않습니다.
+`@lervo/documents`는 scanner, adapter, 일반 planner/apply와 legacy structural planner를 분리합니다. Scanner는 최대 4,096개 파일·파일당 4 MiB·전체 64 MiB 안에서 stable bytes와 hash를 만들고 adapter에는 격리된 byte 복사본만 줍니다. Markdown/MDX와 schema-valid 기존 registry adapter는 adapter ID/version을 candidate에 남기며, 지원하지 않는 형식은 `lervo_unknown`의 `observed` 후보로 보존합니다. Candidate와 legacy record JSON은 source별 또는 registry entry별 artifact/hash로 분리합니다. Metadata apply는 hash에 묶인 승인 원본과 privacy-bounded `document.migration.applied` event recorder를 필수 port로 받고, event 저장이 성공한 경우에만 receipt를 반환합니다. Structural dry-run은 쓰기 port와 event recorder를 받지 않습니다.
 
 ### Project Storage Bootstrap
 
-`@roven/project`는 설정과 관리 경로만 정의하고 SQLite나 CAS 구현을 알지 않습니다. `@roven/project-storage`가 두 저장 구현을 조합해 실행 진입점에 제공합니다. 저장소 root를 받으면 canonical 경로를 한 번 계산하고, `project.yaml`을 검증한 뒤 그 manifest의 project id로 `.roven/state/events.sqlite`를 엽니다. CAS는 같은 경로 계약의 `.roven/state/cas`를 사용합니다. 호출자가 임의의 project id나 서로 다른 저장 root를 섞을 수 없습니다.
+`@lervo/project`는 설정과 관리 경로만 정의하고 SQLite나 CAS 구현을 알지 않습니다. `@lervo/project-storage`가 두 저장 구현을 조합해 실행 진입점에 제공합니다. 저장소 root를 받으면 canonical 경로를 한 번 계산하고, `project.yaml`을 검증한 뒤 그 manifest의 project id로 `.lervo/state/events.sqlite`를 엽니다. CAS는 같은 경로 계약의 `.lervo/state/cas`를 사용합니다. 호출자가 임의의 project id나 서로 다른 저장 root를 섞을 수 없습니다.
 
-Bootstrap은 저장소 root, `.roven`, `.roven/state`가 실제 디렉터리인지 확인하고 심볼릭 링크를 따라가지 않습니다. 이미 존재하는 CAS 구성 경로도 같은 규칙으로 확인합니다. Event store를 연 뒤 CAS를 열지 못하면 먼저 연 store를 닫습니다. 반환한 handle의 `close`는 여러 번 불러도 각 backend를 한 번만 닫습니다. Hub가 비활성인 manifest는 event 기록을 막지 않으며 outbox 항목을 자동으로 만들지 않습니다.
+Bootstrap은 저장소 root, `.lervo`, `.lervo/state`가 실제 디렉터리인지 확인하고 심볼릭 링크를 따라가지 않습니다. 이미 존재하는 CAS 구성 경로도 같은 규칙으로 확인합니다. Event store를 연 뒤 CAS를 열지 못하면 먼저 연 store를 닫습니다. 반환한 handle의 `close`는 여러 번 불러도 각 backend를 한 번만 닫습니다. Hub가 비활성인 manifest는 event 기록을 막지 않으며 outbox 항목을 자동으로 만들지 않습니다.
 
 ## 핵심 구성 요소
 
@@ -99,17 +105,17 @@ Bootstrap은 저장소 root, `.roven`, `.roven/state`가 실제 디렉터리인�
 
 요청을 실행 가능한 run으로 바꾸는 상태 머신입니다. 역할 선택, 컨텍스트 준비, 공급자 실행, 승인, 검증, 지식 후보 생성, 완료를 순서화합니다. 공급자 프로세스는 오케스트레이터가 발급한 run/session 식별자를 통해서만 관리 상태가 됩니다.
 
-M2의 `@roven/orchestrator` 첫 슬라이스는 context 준비와 delivery를 직접 순서화합니다. `awaiting_context → context_prepared → context_injected → write_authorized` 전이를 사용하며, 파일 변경이나 context 무효화 뒤에는 generation을 올리고 `awaiting_context`로 돌아갑니다. Prepare, inject와 write authorization은 같은 run에서 겹치지 않게 직렬화하지만 adapter 주입 중 compaction/restart 무효화 신호는 받을 수 있습니다. E1/E2 묶음과 각 E3·capability·변경/무효화 묶음은 공통 event store의 동기 transaction으로 기록하고 commit 뒤에만 메모리 상태를 전진시킵니다. 실제 SQLite fixture가 rollback과 hash chain을 검증합니다. 기록이나 redaction이 실패하면 `telemetry_failed`로 전환하고 pending permit를 폐기합니다.
+M2의 `@lervo/orchestrator` 첫 슬라이스는 context 준비와 delivery를 직접 순서화합니다. `awaiting_context → context_prepared → context_injected → write_authorized` 전이를 사용하며, 파일 변경이나 context 무효화 뒤에는 generation을 올리고 `awaiting_context`로 돌아갑니다. Prepare, inject와 write authorization은 같은 run에서 겹치지 않게 직렬화하지만 adapter 주입 중 compaction/restart 무효화 신호는 받을 수 있습니다. E1/E2 묶음과 각 E3·capability·변경/무효화 묶음은 공통 event store의 동기 transaction으로 기록하고 commit 뒤에만 메모리 상태를 전진시킵니다. 실제 SQLite fixture가 rollback과 hash chain을 검증합니다. 기록이나 redaction이 실패하면 `telemetry_failed`로 전환하고 pending permit를 폐기합니다.
 
 M3의 managed provider coordinator는 실행 전 snapshot, adapter 시작, context 준비·주입, target turn, 중단 가능한 signal stream, adapter 종료와 실행 후 snapshot을 한 수명주기로 묶습니다. Coordinator는 순서만 소유하고 context 상태 머신, provider signal monitor, adapter 계약, 단계별 deadline, 실패 원장, 종료 처리와 repository snapshot을 별도 모듈에 맡깁니다. Codex/Claude 구현을 직접 알지 않고 공통 adapter 포트만 사용합니다. Compaction/restart는 terminal 결과와 별도로 generation을 즉시 무효화하며, terminal 전에 stream이 끝나거나 필수 telemetry가 기록되지 않으면 정상 완료를 만들지 않습니다. 여러 실패가 겹치면 마지막 오류로 덮지 않고 안전한 code·phase를 모두 보존합니다.
 
 Turn 시작은 adapter의 동기 수락 callback과 최종 반환값을 두 단계로 확인합니다. Callback에서 schema와 session·target turn 좌표를 검증한 뒤에만 provider tool 요청이 참조할 현재 turn을 공개합니다. 쓰기 범위는 별도 `ManagedWritePlan`이 실행 모드, 허용 경로, 최소·최대 검증 변경 수와 변경 뒤 context 처분으로 표현합니다. 현재 계획은 읽기 전용 `0..0`, managed write `1..1`이고, bridge는 provider 종류를 모른 채 이 계획을 집행합니다.
 
-Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다. 공통 managed write bridge가 공급자의 파일 변경 요청을 M2의 경로별 1회용 permit에 연결하고, 완료 뒤 실제 파일 hash를 다시 읽어 `file.changed`와 context 무효화를 기록합니다. 첫 쓰기 슬라이스는 준비 때 선언한 예상 경로 중 정확히 한 파일만 허용합니다. 검증된 변경과 실행 전후 hash가 모두 맞는 경로만 managed로 빼며, 나머지는 `unmanaged_change.detected`와 run 실패로 남깁니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.roven/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다.
+Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다. 공통 managed write bridge가 공급자의 파일 변경 요청을 M2의 경로별 1회용 permit에 연결하고, 완료 뒤 실제 파일 hash를 다시 읽어 `file.changed`와 context 무효화를 기록합니다. 첫 쓰기 슬라이스는 준비 때 선언한 예상 경로 중 정확히 한 파일만 허용합니다. 검증된 변경과 실행 전후 hash가 모두 맞는 경로만 managed로 빼며, 나머지는 `unmanaged_change.detected`와 run 실패로 남깁니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.lervo/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다.
 
-최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `roven run` CLI가 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결합니다.
+최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `lervo run` CLI가 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결합니다.
 
-현재 `roven run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator와 같은 CAS를 한 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 작업 문장과 위험도만 받습니다. 성공과 실패 모두 storage를 닫고, CAS에서 다시 읽은 결과와 검증된 한 파일 변경을 출력합니다. Project verification과 writing 의미 검사는 아직 실행하지 않으므로 두 상태를 `not_run`으로 명시합니다. 명령 파싱·출력, 실행 조합과 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
+현재 `lervo run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator와 같은 CAS를 한 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 작업 문장과 위험도만 받습니다. 성공과 실패 모두 storage를 닫고, CAS에서 다시 읽은 결과와 검증된 한 파일 변경을 출력합니다. Project verification과 writing 의미 검사는 아직 실행하지 않으므로 두 상태를 `not_run`으로 명시합니다. 명령 파싱·출력, 실행 조합과 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
 
 파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 
@@ -125,17 +131,17 @@ Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다.
 
 각 선택에는 `reasonCode`, 일치한 규칙, 정책 버전이 남습니다. 강제 문서는 점수와 무관하게 포함됩니다.
 
-M2 첫 슬라이스의 `@roven/context`는 선택과 읽기를 별도 단계로 실행합니다. 예상 변경 경로마다 root부터 가장 가까운 상위 디렉터리까지 `AGENTS.md`를 찾고, registry의 `connectedPaths` glob, Role의 필수 rule과 handoff를 합쳐 E1 계획을 만듭니다. Registry에 아직 없는 `AGENTS.md`는 정규화한 상대 경로의 SHA-256에서 안정된 document ID를 파생합니다. 같은 경로가 registry의 여러 ID에 연결되거나 필수 rule이 문서로 해석되지 않으면 계획을 만들지 않습니다.
+M2 첫 슬라이스의 `@lervo/context`는 선택과 읽기를 별도 단계로 실행합니다. 예상 변경 경로마다 root부터 가장 가까운 상위 디렉터리까지 `AGENTS.md`를 찾고, registry의 `connectedPaths` glob, Role의 필수 rule과 handoff를 합쳐 E1 계획을 만듭니다. Registry에 아직 없는 `AGENTS.md`는 정규화한 상대 경로의 SHA-256에서 안정된 document ID를 파생합니다. 같은 경로가 registry의 여러 ID에 연결되거나 필수 rule이 문서로 해석되지 않으면 계획을 만들지 않습니다.
 
-E1 계획에는 원문이나 현재 content hash가 없습니다. Loader는 선택된 파일의 전체 bytes를 읽고 SHA-256과 byte count를 계산한 뒤에만 E2를 만듭니다. 저장소 root와 각 경로 구성 요소의 실제 파일 종류를 확인하고 심볼릭 링크를 따라가지 않습니다. 파일 descriptor를 연 전후의 inode, 크기와 변경 시각을 비교해 읽는 중 바뀐 파일도 E2로 인정하지 않습니다. Plan·문서·E0~E2 체인의 무결성 재검증도 `@roven/context`가 소유하며 문서 배열 순서에는 의존하지 않습니다. 이 계층은 파일을 쓰거나 event를 저장하거나 adapter E3를 만들지 않습니다.
+E1 계획에는 원문이나 현재 content hash가 없습니다. Loader는 선택된 파일의 전체 bytes를 읽고 SHA-256과 byte count를 계산한 뒤에만 E2를 만듭니다. 저장소 root와 각 경로 구성 요소의 실제 파일 종류를 확인하고 심볼릭 링크를 따라가지 않습니다. 파일 descriptor를 연 전후의 inode, 크기와 변경 시각을 비교해 읽는 중 바뀐 파일도 E2로 인정하지 않습니다. Plan·문서·E0~E2 체인의 무결성 재검증도 `@lervo/context`가 소유하며 문서 배열 순서에는 의존하지 않습니다. 이 계층은 파일을 쓰거나 event를 저장하거나 adapter E3를 만들지 않습니다.
 
 ### Context Delivery
 
-`@roven/context-delivery`는 router와 provider adapter 사이의 공급자 중립 경계입니다. `@roven/context`의 E2 무결성 판정을 호출하고 현재 파일·publication snapshot을 다시 확인해 adapter `context_envelope`을 만듭니다. 기본 delivery policy는 64 KiB 이하이며 손실 없이 UTF-8로 왕복되는 원문을 inline으로 선택하지만, 호출자는 문서 metadata를 받는 policy 함수로 선택 규칙을 교체할 수 있습니다. CAS에는 전체 저장소 계약 대신 `put/get`만 가진 좁은 artifact port를 사용하며 put 결과와 다시 읽은 bytes의 hash·크기를 확인합니다.
+`@lervo/context-delivery`는 router와 provider adapter 사이의 공급자 중립 경계입니다. `@lervo/context`의 E2 무결성 판정을 호출하고 현재 파일·publication snapshot을 다시 확인해 adapter `context_envelope`을 만듭니다. 기본 delivery policy는 64 KiB 이하이며 손실 없이 UTF-8로 왕복되는 원문을 inline으로 선택하지만, 호출자는 문서 metadata를 받는 policy 함수로 선택 규칙을 교체할 수 있습니다. CAS에는 전체 저장소 계약 대신 `put/get`만 가진 좁은 artifact port를 사용하며 put 결과와 다시 읽은 bytes의 hash·크기를 확인합니다.
 
 Writing policy는 ID, document ID와 E2 content hash가 묶인 resolved binding으로 받습니다. 연결된 원문이 UTF-8 JSON `WritingContract` schema를 통과하고 내부 policy ID도 session과 같아야 envelope에 포함합니다. 따라서 다른 E2 문서를 policy 문서로 바꿔 끼울 수 없습니다. Envelope 생성 시각은 E2 적재와 session 시작 이후여야 합니다.
 
-Delivery는 Codex·Claude 구현에 의존하지 않고 `(session, envelope) -> receipt` 함수 포트만 호출합니다. 좌표·시간·문서 집합을 판정하는 순수 함수는 `@roven/adapter-contract`에 한 번만 두고 delivery와 공통 contract suite가 함께 사용합니다. 검증 뒤 문서별 E3 evidence를 만들며, scope는 복사하고 반환 타입을 injected evidence로 좁힙니다. 문서별 evidence ID와 adapter가 반환한 묶음 receipt ID는 `adapterReceiptId`로 연결합니다.
+Delivery는 Codex·Claude 구현에 의존하지 않고 `(session, envelope) -> receipt` 함수 포트만 호출합니다. 좌표·시간·문서 집합을 판정하는 순수 함수는 `@lervo/adapter-contract`에 한 번만 두고 delivery와 공통 contract suite가 함께 사용합니다. 검증 뒤 문서별 E3 evidence를 만들며, scope는 복사하고 반환 타입을 injected evidence로 좁힙니다. 문서별 evidence ID와 adapter가 반환한 묶음 receipt ID는 `adapterReceiptId`로 연결합니다.
 
 Context generation은 호출자가 소유하는 단조 증가 값입니다. Delivery는 envelope 조립 전, adapter 호출 직전, receipt 수신 뒤에 현재 값을 확인합니다. Compaction이나 restart로 값이 바뀌면 이전 envelope receipt로 E3를 만들지 않습니다. 파일 snapshot은 조립 전, adapter 호출 직전과 receipt 수신 뒤에 확인하므로 호출 중 원문이 바뀌어도 E3를 만들지 않습니다. Adapter에는 managed session/envelope의 격리된 복사본을 전달하고 별도 snapshot과 receipt를 대조해 adapter의 입력 객체 변경이 호출자 상태나 증거에 반영되지 않게 합니다.
 
@@ -178,7 +184,7 @@ Descriptor capability는 adapter 구현의 최대 범위이고, session의 `effe
 
 정규화 이벤트는 완료되는 배열이 아니라 중단 신호를 받는 스트림입니다. 계약 검사는 필요한 이벤트 수만 제한 시간 안에 확인한 뒤 스트림을 중단하므로, 실제 공급자의 장기 세션 종료를 기다리지 않습니다.
 
-공급자 자체 CLI를 Roven 밖에서 직접 실행하면 강한 보장을 제공할 수 없습니다. Git/파일 시스템 변화로 이를 감지할 수는 있지만 해당 변경은 `unmanaged`로 기록합니다.
+공급자 자체 CLI를 Lervo 밖에서 직접 실행하면 강한 보장을 제공할 수 없습니다. Git/파일 시스템 변화로 이를 감지할 수는 있지만 해당 변경은 `unmanaged`로 기록합니다.
 
 M3 Codex adapter는 app-server stdio process를 session별로 격리합니다. 연결마다 `initialize`를 마친 뒤 `thread/start`로 provider session을 만들고, `thread/inject_items` 성공 응답을 받은 문서만 controlled E3 receipt 후보로 반환합니다. Managed write에서도 sandbox는 `read-only`로 유지하고 approval만 `on-request`로 엽니다. `fileChange` 제안과 승인 요청의 thread·turn·item 좌표가 일치할 때만 bridge에 요청하며, 명령 승인이나 여러 파일·이동·안전하지 않은 경로는 거부합니다. 완료 item 뒤 실제 bytes가 permit와 맞아야 managed 변경이 됩니다.
 
@@ -188,7 +194,7 @@ M3 Claude adapter는 공식 Agent SDK process를 session별로 미리 시작합�
 
 Claude adapter의 tool 집합은 실행 모드별 허용 집합 안에서만 호출자가 좁힐 수 있습니다. 읽기 전용은 `Read`, `Glob`, `Grep`, managed write는 여기에 `Write`, `Edit`만 더할 수 있습니다. 공급자 설정과 공통 run 정책을 섞지 않도록 이 선택은 adapter option 뒤에 둡니다.
 
-Provider 관측 신호는 append-only Roven event와 다른 계약을 사용합니다. 예를 들어 Codex의 file change item은 `provider.file_change.reported`이며 실제 저장소 bytes를 검증한 `file.changed`가 아닙니다. Command, output, tool input과 diff 원문은 보존하지 않고 digest만 남깁니다. App-server의 완료된 `contextCompaction` item은 `provider.context.compacted`로 변환하고, orchestrator가 같은 run/session/provider session인지 확인한 뒤에만 `context.invalidated`와 generation 전이를 만듭니다. 같은 방식으로 재시작 신호를 받을 수 있지만, provider session resume 실행은 이 첫 슬라이스에서 `unsupported`입니다.
+Provider 관측 신호는 append-only Lervo event와 다른 계약을 사용합니다. 예를 들어 Codex의 file change item은 `provider.file_change.reported`이며 실제 저장소 bytes를 검증한 `file.changed`가 아닙니다. Command, output, tool input과 diff 원문은 보존하지 않고 digest만 남깁니다. App-server의 완료된 `contextCompaction` item은 `provider.context.compacted`로 변환하고, orchestrator가 같은 run/session/provider session인지 확인한 뒤에만 `context.invalidated`와 generation 전이를 만듭니다. 같은 방식으로 재시작 신호를 받을 수 있지만, provider session resume 실행은 이 첫 슬라이스에서 `unsupported`입니다.
 
 Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. 일반 tool result는 ID가 연결된 경우에만 tool signal로 만들고 원문은 digest로 바꿉니다. 현재 SDK usage에는 공통 계약의 reasoning token이 없으므로 `usage`는 `unknown`입니다. Managed Write/Edit는 provider file-change signal을 추정하지 않고 bridge가 실제 before/after hash로 `file.changed`를 만듭니다.
 
@@ -208,7 +214,7 @@ Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. 일반
 
 Outbox 항목은 `pending`, `leased`, `acknowledged` 상태를 가집니다. Worker는 제한된 수의 준비된 항목을 안정된 순서로 가져가고 만료 시각이 있는 lease를 받습니다. 다른 worker는 유효한 lease를 가져갈 수 없으며, worker가 사라지면 만료 뒤 같은 항목을 다시 가져옵니다. 전송 실패는 원문 오류 대신 짧은 실패 코드와 다음 시도 시각만 남깁니다. Ack는 현재 lease 소유자만 할 수 있고 중복 ack는 상태를 바꾸지 않습니다. 보존 기간이 지난 ack 항목은 event 원본을 남긴 채 제한된 묶음으로 정리할 수 있습니다.
 
-CAS는 `.roven/state/cas/sha256/<앞 2자리>/<나머지>`에 원문 bytes를 저장하고 `roven-cas://sha256/<digest>`를 반환합니다. 큰 입력은 청크 단위로 임시 파일에 쓰면서 SHA-256을 계산하므로 전체 원문을 한 번에 메모리에 올릴 필요가 없습니다. 임시 파일을 동기화한 뒤 같은 파일 시스템의 hard link로 새 object를 확정합니다. 기존 object와 읽은 object는 모두 주소의 SHA-256과 다시 비교합니다. `has`는 주소가 없을 때만 `false`이며, 변조는 `corrupt_object`로 드러냅니다. 원문은 event payload에 복제하지 않습니다.
+CAS는 `.lervo/state/cas/sha256/<앞 2자리>/<나머지>`에 원문 bytes를 저장하고 `lervo-cas://sha256/<digest>`를 반환합니다. 큰 입력은 청크 단위로 임시 파일에 쓰면서 SHA-256을 계산하므로 전체 원문을 한 번에 메모리에 올릴 필요가 없습니다. 임시 파일을 동기화한 뒤 같은 파일 시스템의 hard link로 새 object를 확정합니다. 기존 object와 읽은 object는 모두 주소의 SHA-256과 다시 비교합니다. `has`는 주소가 없을 때만 `false`이며, 변조는 `corrupt_object`로 드러냅니다. 원문은 event payload에 복제하지 않습니다.
 
 ### Knowledge Lifecycle
 
@@ -248,17 +254,17 @@ RAG 결과는 반드시 원본 id와 content hash를 포함하며, 모델에 전
 
 M0 skill 계약은 provider 호환성을 `any` 또는 명시적 allowlist로 표현하고, 확인할 수 없는 호환성을 지원으로 간주하지 않습니다. trust는 `untrusted`, 검토자와 검토 시각이 있는 `reviewed`, 유효한 서명까지 확인한 `verified`로 분리합니다. manifest에는 입력값이 아니라 입력/출력 schema reference와 필요한 capability만 저장합니다.
 
-M4 첫 슬라이스의 `@roven/skills`는 명시적으로 요청한 ID만 프로젝트 `.agents/skills`와 사용자 `~/.agents/skills`에서 찾습니다. 최상위 manifest를 제외한 패키지 전체의 일반 파일을 hash하고 심볼릭 링크와 읽는 중 변경을 거부합니다. `pinned project`, `project`, `user` 순서와 각 단계의 가장 높은 version으로 선택하며 provider, Role, runtime, platform, 도구와 허용 capability가 하나라도 맞지 않으면 후보를 올리지 않습니다. 결과와 탈락 사유는 schema-valid `.roven/skills.lock`에 기록합니다. 기존 lock이 유효하지 않으면 덮어쓰지 않습니다.
+M4 첫 슬라이스의 `@lervo/skills`는 명시적으로 요청한 ID만 프로젝트 `.agents/skills`와 사용자 `~/.agents/skills`에서 찾습니다. 최상위 manifest를 제외한 패키지 전체의 일반 파일을 hash하고 심볼릭 링크와 읽는 중 변경을 거부합니다. `pinned project`, `project`, `user` 순서와 각 단계의 가장 높은 version으로 선택하며 provider, Role, runtime, platform, 도구와 허용 capability가 하나라도 맞지 않으면 후보를 올리지 않습니다. 결과와 탈락 사유는 schema-valid `.lervo/skills.lock`에 기록합니다. 기존 lock이 유효하지 않으면 덮어쓰지 않습니다.
 
 선택 항목의 `skill.resolved`는 `run.requested`, `run.resolved`와 같은 event transaction에 기록하지만 source URI와 publisher/reviewer는 로컬 lock 밖으로 내보내지 않습니다. 현재는 provider에 스킬 내용을 넣거나 호출하지 않으므로 `skill.invoked`와 `skill.completed`는 만들지 않습니다. 자세한 경계는 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 정의합니다.
 
 ### Document Lifecycle
 
-`AGENTS.md`, `CLAUDE.md`, `README.md`를 포함한 관리 문서는 `.roven/documents/<documentId>.yaml` sidecar에 각각 등록합니다. 각 manifest는 책임자, 검증 revision/date, 연결 경로, review interval, 생성 정책과 문서 관계를 가집니다. 별도 중앙 index 없이 디렉터리를 결정적 순서로 읽어 기존 in-memory registry를 조립합니다.
+`AGENTS.md`, `CLAUDE.md`, `README.md`를 포함한 관리 문서는 `.lervo/documents/<documentId>.yaml` sidecar에 각각 등록합니다. 각 manifest는 책임자, 검증 revision/date, 연결 경로, review interval, 생성 정책과 문서 관계를 가집니다. 별도 중앙 index 없이 디렉터리를 결정적 순서로 읽어 기존 in-memory registry를 조립합니다.
 
-자동 생성 시 managed block marker와 생성 입력 hash를 사용합니다. Roven은 블록 밖의 사용자 내용을 보존하며 다음 경우 PR/patch 후보를 만듭니다.
+자동 생성 시 managed block marker와 생성 입력 hash를 사용합니다. Lervo는 블록 밖의 사용자 내용을 보존하며 다음 경우 PR/patch 후보를 만듭니다.
 
-Document manifest는 소유권을 `user`, `managed_blocks`, `roven_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Roven 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계는 loader가 검증합니다. Code fence와 중첩을 판정하는 실제 Markdown parser는 다음 compiler 슬라이스에 남아 있으므로 아직 block을 수정하지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록합니다.
+Document manifest는 소유권을 `user`, `managed_blocks`, `lervo_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Lervo 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계는 loader가 검증합니다. Code fence와 중첩을 판정하는 실제 Markdown parser는 다음 compiler 슬라이스에 남아 있으므로 아직 block을 수정하지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록합니다.
 
 - 연결 경로가 검증 revision 이후 변경됨
 - review interval 초과
@@ -287,7 +293,7 @@ M0 role 계약은 파일 읽기/쓰기, 셸, 네트워크, 외부 메시지, 배
 ```mermaid
 sequenceDiagram
     participant U as User/Slack
-    participant H as Roven Hub
+    participant H as Lervo Hub
     participant N as Project Node
     participant A as Agent Adapter
 

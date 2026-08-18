@@ -3,7 +3,7 @@ import { constants } from "node:fs";
 import { lstat, open, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { validateSchema, type SkillLock } from "@roven/schemas";
+import { validateSchema, type SkillLock } from "@lervo/schemas";
 
 import { SkillResolutionError } from "./types.js";
 

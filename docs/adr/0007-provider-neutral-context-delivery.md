@@ -5,7 +5,7 @@
 
 ## 맥락
 
-`@roven/context`는 문서를 선택하고 안전하게 읽어 E2를 만들지만 provider 입력에 전달하지 않습니다. E2 bytes를 바로 Codex나 Claude 구현에 넘기면 inline/CAS 선택, writing policy 포함, receipt 판정과 generation 무효화가 공급자마다 달라질 수 있습니다. 반대로 context router가 adapter와 CAS까지 알게 되면 선택 정책, 원문 수명주기와 provider 실행이 한 패키지에 섞입니다.
+`@lervo/context`는 문서를 선택하고 안전하게 읽어 E2를 만들지만 provider 입력에 전달하지 않습니다. E2 bytes를 바로 Codex나 Claude 구현에 넘기면 inline/CAS 선택, writing policy 포함, receipt 판정과 generation 무효화가 공급자마다 달라질 수 있습니다. 반대로 context router가 adapter와 CAS까지 알게 되면 선택 정책, 원문 수명주기와 provider 실행이 한 패키지에 섞입니다.
 
 E3는 “adapter 메서드를 호출했다”는 기록이 아니라 현재 managed session의 통제된 입력에 정확한 E2 문서 집합을 전달했다는 receipt가 있어야 합니다. Aggregate adapter receipt 하나를 여러 문서 evidence에 그대로 쓰면 문서별 evidence ID의 고유성과 공급자 receipt 추적이 충돌합니다.
 
@@ -13,13 +13,13 @@ E3는 “adapter 메서드를 호출했다”는 기록이 아니라 현재 mana
 
 ### 패키지와 포트
 
-- 새 `@roven/context-delivery` 패키지가 `LoadedContext`에서 provider-neutral envelope를 만들고 receipt를 검증합니다.
-- 이 패키지는 Codex·Claude 구현에 의존하지 않습니다. `(session, envelope) -> receipt` 함수 포트만 호출하고, `@roven/adapter-contract`의 공급자 중립 의미 판정을 공통 contract suite와 함께 사용합니다.
-- `@roven/context`는 E0~E2 무결성과 snapshot 판정 책임을 유지합니다. Delivery가 plan 내부 규칙을 복제하지 않습니다. Event 저장, capability gate와 provider 프로세스 수명주기는 각각 orchestrator와 adapter 책임입니다.
+- 새 `@lervo/context-delivery` 패키지가 `LoadedContext`에서 provider-neutral envelope를 만들고 receipt를 검증합니다.
+- 이 패키지는 Codex·Claude 구현에 의존하지 않습니다. `(session, envelope) -> receipt` 함수 포트만 호출하고, `@lervo/adapter-contract`의 공급자 중립 의미 판정을 공통 contract suite와 함께 사용합니다.
+- `@lervo/context`는 E0~E2 무결성과 snapshot 판정 책임을 유지합니다. Delivery가 plan 내부 규칙을 복제하지 않습니다. Event 저장, capability gate와 provider 프로세스 수명주기는 각각 orchestrator와 adapter 책임입니다.
 
 ### Envelope 조립
 
-- `@roven/context`의 E2 무결성 판정을 먼저 통과해야 합니다. Session의 project/run/session/role도 E2 좌표와 같아야 합니다.
+- `@lervo/context`의 E2 무결성 판정을 먼저 통과해야 합니다. Session의 project/run/session/role도 E2 좌표와 같아야 합니다.
 - Writing policy는 policy ID, document ID와 E2 content hash가 묶인 resolved binding입니다. 원문은 UTF-8 JSON `WritingContract` schema를 통과하고 내부 policy ID가 session과 같아야 합니다.
 - 기본 policy는 64 KiB 이하이면서 UTF-8 왕복이 정확한 문서를 inline으로 선택합니다. 문서 metadata를 받는 함수로 policy를 교체할 수 있습니다.
 - CAS는 `put/get`만 가진 좁은 artifact port를 사용합니다. 반환 URI·hash·byte count와 다시 읽은 bytes를 검증합니다. 전달 bytes와 scope는 E2 객체에서 복사합니다.
@@ -34,7 +34,7 @@ E3는 “adapter 메서드를 호출했다”는 기록이 아니라 현재 mana
 
 ### Receipt와 E3
 
-- `@roven/adapter-contract`의 한 의미 판정 함수가 envelope ID, adapter/project/run/session/role/writing policy/provider session, 시간, 대상 turn, generation과 `controlledInput=true`를 확인합니다. Delivery와 contract suite가 이 함수를 공유합니다.
+- `@lervo/adapter-contract`의 한 의미 판정 함수가 envelope ID, adapter/project/run/session/role/writing policy/provider session, 시간, 대상 turn, generation과 `controlledInput=true`를 확인합니다. Delivery와 contract suite가 이 함수를 공유합니다.
 - 문서 목록은 ID가 고유하고 envelope와 같은 집합이어야 하며 각 hash와 scope가 같아야 합니다. 누락, 추가, 중복, 변조를 허용하지 않습니다.
 - Writing policy 문서도 receipt 문서 집합에 있어야 합니다.
 - Adapter receipt의 `acceptedAt`은 session 시작과 envelope 생성보다 빠를 수 없습니다.

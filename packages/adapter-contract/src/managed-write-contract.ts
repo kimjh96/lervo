@@ -4,8 +4,8 @@ import type {
   AdapterManagedWriteRequest,
   AdapterSession,
   AdapterTurn,
-} from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+} from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import {
   inspectManagedWriteCompletionBinding,

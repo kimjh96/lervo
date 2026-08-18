@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 
-import { inspectContextReceiptBinding } from "@roven/adapter-contract";
+import { inspectContextReceiptBinding } from "@lervo/adapter-contract";
 import {
   type AdapterContextReceipt,
   cloneContextScope,
   type ContextEvidence,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import {
   ContextDeliveryError,

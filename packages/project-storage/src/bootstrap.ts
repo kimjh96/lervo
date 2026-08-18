@@ -1,7 +1,7 @@
-import { FileSystemCas } from "@roven/cas";
-import { SQLiteEventStore } from "@roven/event-store-sqlite";
-import { loadProjectManifest, resolveProjectPaths } from "@roven/project";
-import { type OutboxStore } from "@roven/storage-contract";
+import { FileSystemCas } from "@lervo/cas";
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
+import { type OutboxStore } from "@lervo/storage-contract";
 
 import { validateProjectStorageLayout, validateRepositoryRoot } from "./layout.js";
 import {

@@ -13,11 +13,11 @@ import {
   applyInitPlan,
   createInitPlan,
   loadDocumentManifests,
-} from "@roven/project";
+} from "@lervo/project";
 import type {
   DocumentManifest,
   DocumentMigrationApproval,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -30,7 +30,7 @@ import {
 const roots: string[] = [];
 
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-document-apply-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-document-apply-"));
   roots.push(root);
   return root;
 }
@@ -173,9 +173,9 @@ describe("metadata-only document migration apply", () => {
     expect(await readFile(resolve(root, "docs/guide.md"))).toEqual(beforeGuide);
     expect((await loadDocumentManifests(root)).map((manifest) => manifest.documentId).sort())
       .toEqual(receipt.created.map((item) => item.documentId).sort());
-    expect((await readdir(resolve(root, ".roven", "documents"))).sort())
+    expect((await readdir(resolve(root, ".lervo", "documents"))).sort())
       .toEqual(receipt.created.map((item) => `${item.documentId}.yaml`).sort());
-    expect((await readdir(resolve(root, ".roven"))).some(
+    expect((await readdir(resolve(root, ".lervo"))).some(
       (name) => name.startsWith(".document-migration-"),
     )).toBe(false);
   });
@@ -193,7 +193,7 @@ describe("metadata-only document migration apply", () => {
       eventRecorder: { record: () => { sourceEvents += 1; } },
     })).rejects.toMatchObject({ code: "plan_stale" });
     expect(sourceEvents).toBe(0);
-    expect(await readdir(resolve(sourceRoot, ".roven", "documents"))).toEqual([]);
+    expect(await readdir(resolve(sourceRoot, ".lervo", "documents"))).toEqual([]);
 
     const targetRoot = await initializedRoot({ "README.md": "# Target\n" });
     const targetPlan = await dryRun(targetRoot, ["README.md"]);
@@ -257,7 +257,7 @@ describe("metadata-only document migration apply", () => {
       appliedAt: "2026-08-19T02:00:00Z",
       eventRecorder: { record: () => undefined },
     })).rejects.toMatchObject({ code: "invalid_approval" });
-    expect(await readdir(resolve(root, ".roven", "documents"))).toEqual([]);
+    expect(await readdir(resolve(root, ".lervo", "documents"))).toEqual([]);
   });
 
   it("rolls every sidecar back when durable event recording fails", async () => {
@@ -275,8 +275,8 @@ describe("metadata-only document migration apply", () => {
       eventRecorder: { record: () => { throw new Error("fixture telemetry failure"); } },
     })).rejects.toMatchObject({ code: "telemetry_recording_failed" });
 
-    expect(await readdir(resolve(root, ".roven", "documents"))).toEqual([]);
-    expect((await readdir(resolve(root, ".roven"))).some(
+    expect(await readdir(resolve(root, ".lervo", "documents"))).toEqual([]);
+    expect((await readdir(resolve(root, ".lervo"))).some(
       (name) => name.startsWith(".document-migration-"),
     )).toBe(false);
     expect(await readFile(resolve(root, "a.md"), "utf8")).toBe("# A\n");
@@ -285,7 +285,7 @@ describe("metadata-only document migration apply", () => {
 
   it("does not activate sidecars beside a legacy registry", async () => {
     const root = await temporaryRoot();
-    await mkdir(resolve(root, ".roven"));
+    await mkdir(resolve(root, ".lervo"));
     const legacy = {
       schemaVersion: 1,
       documents: {
@@ -301,9 +301,9 @@ describe("metadata-only document migration apply", () => {
         },
       },
     };
-    await writeFile(resolve(root, ".roven", "documents.yaml"), `${JSON.stringify(legacy)}\n`);
+    await writeFile(resolve(root, ".lervo", "documents.yaml"), `${JSON.stringify(legacy)}\n`);
     await writeFile(resolve(root, "guide.txt"), "legacy source\n");
-    const planned = await dryRun(root, [".roven/documents.yaml", "guide.txt"]);
+    const planned = await dryRun(root, [".lervo/documents.yaml", "guide.txt"]);
     await expect(applyDocumentMigration({
       repositoryRoot: root,
       plan: planned.plan,
@@ -311,7 +311,7 @@ describe("metadata-only document migration apply", () => {
       approval: approvalFor(planned),
       eventRecorder: { record: () => undefined },
     })).rejects.toMatchObject({ code: "migration_conflict" });
-    expect(await readFile(resolve(root, ".roven", "documents.yaml"), "utf8"))
+    expect(await readFile(resolve(root, ".lervo", "documents.yaml"), "utf8"))
       .toBe(`${JSON.stringify(legacy)}\n`);
   });
 });

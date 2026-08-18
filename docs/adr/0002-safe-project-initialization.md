@@ -5,7 +5,7 @@
 
 ## 맥락
 
-`roven init`은 기존 저장소에 Roven의 project identity와 로컬 상태 경로를 추가합니다. 이 과정에서 사용자 문서를 덮어쓰거나 dry-run과 실제 적용이 서로 다른 판단을 하면 이후 실행 증거를 신뢰할 수 없습니다. 반대로 아직 계약이 없는 설정 파일을 미리 만들면 임시 형식이 공개 규격처럼 굳을 수 있습니다.
+`lervo init`은 기존 저장소에 Lervo의 project identity와 로컬 상태 경로를 추가합니다. 이 과정에서 사용자 문서를 덮어쓰거나 dry-run과 실제 적용이 서로 다른 판단을 하면 이후 실행 증거를 신뢰할 수 없습니다. 반대로 아직 계약이 없는 설정 파일을 미리 만들면 임시 형식이 공개 규격처럼 굳을 수 있습니다.
 
 ## 결정
 
@@ -16,19 +16,19 @@
 - 새 파일은 dry-run에 전체 내용을 표시한다.
 - Apply 직전에 모든 대상의 존재 여부와 기존 파일 hash를 다시 확인한다.
 - 계획 이후 대상이 바뀌면 새 계획을 요구하며 적용하지 않는다.
-- 새 `.roven`은 같은 저장소 안의 임시 트리에 모든 내용을 쓴 뒤 원자적인 rename으로 공개한다. 중간 쓰기가 실패하면 임시 트리를 제거하므로 부분 초기화가 보이지 않는다.
-- 이미 `.roven`이 있는 경우 이번 적용에서 새로 만든 항목만 추적하고, 중간 실패 시 역순으로 되돌린다.
-- 적용할 수 있는 경로는 `.roven`과 그 하위로 제한하며, 외부에서 만든 계획 객체도 저장소의 다른 파일을 쓸 수 없다.
+- 새 `.lervo`는 같은 저장소 안의 임시 트리에 모든 내용을 쓴 뒤 원자적인 rename으로 공개한다. 중간 쓰기가 실패하면 임시 트리를 제거하므로 부분 초기화가 보이지 않는다.
+- 이미 `.lervo`가 있는 경우 이번 적용에서 새로 만든 항목만 추적하고, 중간 실패 시 역순으로 되돌린다.
+- 적용할 수 있는 경로는 `.lervo`와 그 하위로 제한하며, 외부에서 만든 계획 객체도 저장소의 다른 파일을 쓸 수 없다.
 
 ### 첫 슬라이스의 소유 범위
 
-- `.roven/project.yaml`과 당시의 `.roven/documents.yaml`은 현재 JSON Schema를 통과하는 내용만 만들거나 읽는다.
-- `.roven/.gitignore`는 새 파일일 때만 `state/` 규칙을 쓴다. 기존 파일은 수정하지 않는다.
-- `.roven/generated/`, `.roven/state/`, `.roven/knowledge/` 디렉터리를 준비한다.
+- `.lervo/project.yaml`과 당시의 `.lervo/documents.yaml`은 현재 JSON Schema를 통과하는 내용만 만들거나 읽는다.
+- `.lervo/.gitignore`는 새 파일일 때만 `state/` 규칙을 쓴다. 기존 파일은 수정하지 않는다.
+- `.lervo/generated/`, `.lervo/state/`, `.lervo/knowledge/` 디렉터리를 준비한다.
 - 아직 독립 계약이 없는 `policy.yaml`과 `skills.lock`은 만들지 않는다.
 
 후속 결정: [ADR-0016](./0016-local-skill-resolution-and-lock.md)에서 `skills.lock` 계약을 추가했습니다. Lock은 provider·Role·runtime별 해석 결과이므로 init은 여전히 빈 lock을 만들지 않고 첫 스킬 해석이 기록을 소유합니다.
-후속 결정: [ADR-0017](./0017-sharded-document-manifests.md)에서 새 init의 문서 저장소를 빈 `.roven/documents/`와 문서별 sidecar manifest로 바꿨습니다. 기존 단일 registry는 자동 migration하지 않고 단독일 때만 읽습니다.
+후속 결정: [ADR-0017](./0017-sharded-document-manifests.md)에서 새 init의 문서 저장소를 빈 `.lervo/documents/`와 문서별 sidecar manifest로 바꿨습니다. 기존 단일 registry는 자동 migration하지 않고 단독일 때만 읽습니다.
 - 저장소 루트의 `README.md`, `AGENTS.md`, `CLAUDE.md`와 다른 사용자 파일은 읽거나 수정하지 않는다.
 
 ### 기존 상태와 충돌
@@ -43,6 +43,6 @@
 
 - 초기화를 반복해도 project identity와 사용자 파일이 바뀌지 않는다.
 - Dry-run에서 본 새 파일 내용과 같은 계획이 실제 적용된다.
-- 새 저장소의 중간 실패는 `.roven` 일부를 남기지 않으며 다시 계획할 수 있다.
+- 새 저장소의 중간 실패는 `.lervo` 일부를 남기지 않으며 다시 계획할 수 있다.
 - 계약이 없는 설정 형식을 서둘러 고정하지 않고 이후 단계의 ADR과 schema에서 결정할 수 있다.
 - SQLite event store가 아직 없어 init 자체는 실행 이벤트를 기록하지 않는다. M1의 다음 수직 슬라이스에서 로컬 event store를 연결한다.

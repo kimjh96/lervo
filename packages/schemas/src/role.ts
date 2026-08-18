@@ -19,8 +19,8 @@ const capabilityDecisionSchema = {
 
 export const roleProfileSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/role-profile.schema.json",
-  title: "Roven role profile",
+  $id: "https://schemas.lervo.dev/v0/role-profile.schema.json",
+  title: "Lervo role profile",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

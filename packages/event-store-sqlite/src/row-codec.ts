@@ -1,6 +1,6 @@
 import { type SQLOutputValue } from "node:sqlite";
 
-import { type EventEnvelope, validateSchema } from "@roven/schemas";
+import { type EventEnvelope, validateSchema } from "@lervo/schemas";
 
 import { EventStoreError } from "./errors.js";
 

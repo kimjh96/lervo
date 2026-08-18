@@ -1,4 +1,4 @@
-import { validateSchema, type DocumentRegistry } from "@roven/schemas";
+import { validateSchema, type DocumentRegistry } from "@lervo/schemas";
 import { parse } from "yaml";
 
 export function parseLegacyDocumentRegistry(

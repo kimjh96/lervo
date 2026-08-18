@@ -27,7 +27,7 @@ function compareText(left: string, right: string): number {
 function isExcluded(path: string, configured: ReadonlySet<string>): boolean {
   const segments = path.split("/");
   if (segments.includes(".git") || segments.includes("node_modules")) return true;
-  if (path === ".roven/state" || path.startsWith(".roven/state/")) return true;
+  if (path === ".lervo/state" || path.startsWith(".lervo/state/")) return true;
   for (const excluded of configured) {
     if (path === excluded || path.startsWith(`${excluded}/`)) return true;
   }

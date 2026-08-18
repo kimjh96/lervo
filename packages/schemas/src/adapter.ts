@@ -162,7 +162,7 @@ const contextDocumentSchema = {
           type: "object",
           properties: {
             kind: { const: "cas" },
-            uri: { type: "string", pattern: "^roven-cas://sha256/[a-f0-9]{64}$" },
+            uri: { type: "string", pattern: "^lervo-cas://sha256/[a-f0-9]{64}$" },
           },
           required: ["kind", "uri"],
           additionalProperties: false,
@@ -463,8 +463,8 @@ export const adapterStopResultSchema = {
 
 export const adapterContractMessageSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/adapter-contract.schema.json",
-  title: "Roven provider adapter contract message",
+  $id: "https://schemas.lervo.dev/v0/adapter-contract.schema.json",
+  title: "Lervo provider adapter contract message",
   oneOf: [
     adapterDescriptorSchema,
     adapterStartRequestSchema,

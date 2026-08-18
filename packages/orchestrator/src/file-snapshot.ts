@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { ContextPreparationError, readRepositoryFile } from "@roven/context";
+import { ContextPreparationError, readRepositoryFile } from "@lervo/context";
 
 import { ManagedContextError } from "./types.js";
 

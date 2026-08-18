@@ -3,14 +3,14 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { prepareContext, type LoadedContext } from "@roven/context";
+import { prepareContext, type LoadedContext } from "@lervo/context";
 import type {
   AdapterContextEnvelope,
   AdapterContextReceipt,
   AdapterSession,
   DocumentRegistry,
   RoleProfile,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import type {
   ContextArtifactPort,
@@ -39,7 +39,7 @@ export class MemoryArtifactStore implements ContextArtifactPort {
   async put(content: Uint8Array): Promise<ContextArtifactPutResult> {
     const bytes = Buffer.from(content);
     const contentHash = hash(bytes);
-    const uri = `roven-cas://sha256/${contentHash.slice("sha256:".length)}`;
+    const uri = `lervo-cas://sha256/${contentHash.slice("sha256:".length)}`;
     this.objects.set(uri, bytes);
     return { uri, contentHash, byteCount: bytes.byteLength };
   }
@@ -59,7 +59,7 @@ export interface DeliveryFixture {
 }
 
 export async function createDeliveryFixture(): Promise<DeliveryFixture> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-context-delivery-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-context-delivery-"));
   temporaryRoots.push(root);
   await mkdir(resolve(root, "docs"), { recursive: true });
   await writeFile(resolve(root, "AGENTS.md"), "저장소 작업 지침입니다.\n");
@@ -106,7 +106,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
     defaultSkills: [],
     outputContract: {
       artifactKind: "human_text",
-      schemaRef: "roven-schema://fixture/human-text/v1",
+      schemaRef: "lervo-schema://fixture/human-text/v1",
       pathTemplate: "outputs/{runId}.md",
       citationsRequired: true,
       presentation: {
@@ -140,7 +140,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
   const session: AdapterSession = {
     kind: "session",
     schemaVersion: 1,
-    adapterId: "roven/fixture",
+    adapterId: "lervo/fixture",
     projectId,
     runId: "run_delivery_01",
     sessionId: "ses_delivery_01",

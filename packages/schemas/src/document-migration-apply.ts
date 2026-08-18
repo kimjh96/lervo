@@ -84,8 +84,8 @@ const approvalMetadataSchema = {
 
 export const documentMigrationApprovalSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-migration-approval.schema.json",
-  title: "Roven reviewed document migration approval",
+  $id: "https://schemas.lervo.dev/v0/document-migration-approval.schema.json",
+  title: "Lervo reviewed document migration approval",
   ...approvalMetadataSchema,
   properties: {
     ...approvalMetadataSchema.properties,
@@ -111,8 +111,8 @@ const appliedSidecarSchema = {
 
 export const documentMigrationAppliedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-migration-applied-event-payload.schema.json",
-  title: "Roven document migration applied event payload",
+  $id: "https://schemas.lervo.dev/v0/document-migration-applied-event-payload.schema.json",
+  title: "Lervo document migration applied event payload",
   type: "object",
   properties: {
     planId: migrationPlanIdSchema,
@@ -158,8 +158,8 @@ export const documentMigrationAppliedEventPayloadSchema = {
 
 export const documentMigrationApplyReceiptSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-migration-apply-receipt.schema.json",
-  title: "Roven document migration apply receipt",
+  $id: "https://schemas.lervo.dev/v0/document-migration-apply-receipt.schema.json",
+  title: "Lervo document migration apply receipt",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

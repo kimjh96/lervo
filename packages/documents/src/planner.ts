@@ -2,7 +2,7 @@ import {
   validateSchema,
   type DocumentMigrationCandidateArtifact,
   type DocumentMigrationPlan,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { builtInDocumentImportAdapters } from "./adapters.js";
 import { canonicalRepositoryRoot, inspectTargetFile } from "./filesystem.js";
@@ -39,7 +39,7 @@ async function candidatePlanEntry(
       target: null,
     };
   }
-  const path = `.roven/documents/${candidate.proposal.documentId}.yaml`;
+  const path = `.lervo/documents/${candidate.proposal.documentId}.yaml`;
   const inspected = await inspectTargetFile(root, path, 64 * 1024);
   const expected = inspected.kind === "file"
     ? {
@@ -79,7 +79,7 @@ function planWarnings(
     }
     if (candidate.proposal === null) continue;
     if (
-      candidate.source.formatId === "roven_legacy_registry" &&
+      candidate.source.formatId === "lervo_legacy_registry" &&
       !sourcePaths.has(candidate.proposal.documentPath)
     ) {
       reviewRequired = true;

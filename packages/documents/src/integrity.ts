@@ -3,7 +3,7 @@ import type {
   DocumentMigrationPlan,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationPlan,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { canonicalJsonBytes, sha256 } from "./hash.js";
 

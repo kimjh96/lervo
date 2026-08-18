@@ -4,11 +4,11 @@ import {
   CodexAdapter,
   type CodexAppServerClient,
   type CodexThreadStartOptions,
-} from "@roven/adapter-codex";
+} from "@lervo/adapter-codex";
 import type {
   AdapterContextEnvelope,
   AdapterStartRequest,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -94,7 +94,7 @@ function envelope(adapterId: string): AdapterContextEnvelope {
       },
       {
         documentId: "doc_writing_policy",
-        path: ".roven/writing.ko-KR.md",
+        path: ".lervo/writing.ko-KR.md",
         contentHash: sha(writing),
         byteCount: Buffer.byteLength(writing),
         scope: { kind: "full" },
@@ -124,10 +124,10 @@ describe("managed provider parity", () => {
       createReceiptId: () => "ctx_parityclaud",
     });
 
-    const codexSession = await codex.start(request("roven/codex"));
-    const claudeSession = await claude.start(request("roven/claude"));
-    const codexEnvelope = envelope("roven/codex");
-    const claudeEnvelope = envelope("roven/claude");
+    const codexSession = await codex.start(request("lervo/codex"));
+    const claudeSession = await claude.start(request("lervo/claude"));
+    const codexEnvelope = envelope("lervo/codex");
+    const claudeEnvelope = envelope("lervo/claude");
     const codexReceipt = await codex.injectContext(codexSession, codexEnvelope);
     const claudeReceipt = await claude.injectContext(claudeSession, claudeEnvelope);
 

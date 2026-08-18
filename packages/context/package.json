@@ -1,5 +1,5 @@
 {
-  "name": "@roven/context",
+  "name": "@lervo/context",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/core": "workspace:*",
-    "@roven/schemas": "workspace:*"
+    "@lervo/core": "workspace:*",
+    "@lervo/schemas": "workspace:*"
   }
 }

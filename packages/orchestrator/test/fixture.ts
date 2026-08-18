@@ -3,15 +3,15 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { SQLiteEventStore } from "@roven/event-store-sqlite";
-import type { ContextArtifactPort, ContextArtifactPutResult } from "@roven/context-delivery";
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import type { ContextArtifactPort, ContextArtifactPutResult } from "@lervo/context-delivery";
 import type {
   AdapterContextEnvelope,
   AdapterContextReceipt,
   AdapterSession,
   DocumentRegistry,
   RoleProfile,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import {
   ManagedContextRun,
@@ -38,7 +38,7 @@ export class MemoryArtifactStore implements ContextArtifactPort {
   async put(content: Uint8Array): Promise<ContextArtifactPutResult> {
     const bytes = new Uint8Array(content);
     const contentHash = hash(bytes);
-    const uri = `roven-cas://sha256/${contentHash.slice(7)}`;
+    const uri = `lervo-cas://sha256/${contentHash.slice(7)}`;
     this.objects.set(uri, bytes);
     return { uri, contentHash, byteCount: bytes.byteLength };
   }
@@ -79,7 +79,7 @@ export const role: RoleProfile = {
   defaultSkills: [],
   outputContract: {
     artifactKind: "source_code",
-    schemaRef: "roven-schema://fixture/source-code/v1",
+    schemaRef: "lervo-schema://fixture/source-code/v1",
     pathTemplate: "src/{runId}.ts",
     citationsRequired: false,
     presentation: { audience: "machine", writingPolicyId: null },
@@ -100,19 +100,19 @@ export interface ManagedFixture {
 }
 
 export async function createManagedFixture(): Promise<ManagedFixture> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-orchestrator-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-orchestrator-"));
   temporaryRoots.push(root);
-  await mkdir(resolve(root, ".roven/state"), { recursive: true });
+  await mkdir(resolve(root, ".lervo/state"), { recursive: true });
   await mkdir(resolve(root, "src"), { recursive: true });
   await writeFile(resolve(root, "AGENTS.md"), "저장소 작업 지침입니다.\n");
   const store = await SQLiteEventStore.open({
-    path: resolve(root, ".roven/state", "events.sqlite"),
+    path: resolve(root, ".lervo/state", "events.sqlite"),
     projectId,
   });
   const session: AdapterSession = {
     kind: "session",
     schemaVersion: 1,
-    adapterId: "roven/fixture",
+    adapterId: "lervo/fixture",
     projectId,
     runId,
     sessionId,

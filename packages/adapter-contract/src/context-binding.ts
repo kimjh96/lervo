@@ -4,7 +4,7 @@ import {
   type AdapterSession,
   contextScopesEqual,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export type ContextBindingViolationCode =
   | "session_invalid"

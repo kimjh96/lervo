@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { AdapterContextEnvelope, AdapterSession } from "@roven/schemas";
+import type { AdapterContextEnvelope, AdapterSession } from "@lervo/schemas";
 
 import { inspectContextEnvelopeBinding } from "./context-binding.js";
 

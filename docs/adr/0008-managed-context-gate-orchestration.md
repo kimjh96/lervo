@@ -11,7 +11,7 @@ Context preparation은 E1/E2를 만들고 delivery는 검증된 E3를 만들지�
 
 ### 책임과 상태
 
-- 새 `@roven/orchestrator` 패키지가 provider 중립적인 managed context 상태를 소유합니다.
+- 새 `@lervo/orchestrator` 패키지가 provider 중립적인 managed context 상태를 소유합니다.
 - 정상 상태는 `awaiting_context`, `context_prepared`, `context_injected`, `write_authorized`입니다.
 - Prepare, inject와 write authorization은 run별로 직렬화합니다. Inject 중 adapter가 전달한 compaction/restart 무효화 신호는 별도로 받아 generation을 먼저 닫을 수 있습니다.
 - 필수 telemetry 기록 또는 예상 payload redaction이 실패하면 `telemetry_failed`로 전환합니다. 이 상태는 같은 객체에서 복구하지 않으며 새 permit를 만들지 않습니다.

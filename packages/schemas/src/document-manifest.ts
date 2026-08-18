@@ -71,11 +71,11 @@ const managedBlocksContentPolicySchema = {
   additionalProperties: false,
 } as const;
 
-const rovenGeneratedContentPolicySchema = {
+const lervoGeneratedContentPolicySchema = {
   type: "object",
   properties: {
     ...commonProperties,
-    mode: { const: "roven_generated" },
+    mode: { const: "lervo_generated" },
     writeScope: { const: "full_document_if_unmodified" },
     maxDocumentBytes: { const: 65536 },
     maxTopLevelSections: { const: 12 },
@@ -92,7 +92,7 @@ const rovenGeneratedContentPolicySchema = {
   additionalProperties: false,
 } as const;
 
-function ownershipCondition(mode: "user" | "managed_blocks" | "roven_generated") {
+function ownershipCondition(mode: "user" | "managed_blocks" | "lervo_generated") {
   return {
     properties: {
       record: {
@@ -113,8 +113,8 @@ function ownershipCondition(mode: "user" | "managed_blocks" | "roven_generated")
 
 export const documentManifestSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/document-manifest.schema.json",
-  title: "Roven sharded document lifecycle manifest",
+  $id: "https://schemas.lervo.dev/v0/document-manifest.schema.json",
+  title: "Lervo sharded document lifecycle manifest",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,
@@ -124,7 +124,7 @@ export const documentManifestSchema = {
       oneOf: [
         userManagedContentPolicySchema,
         managedBlocksContentPolicySchema,
-        rovenGeneratedContentPolicySchema,
+        lervoGeneratedContentPolicySchema,
       ],
     },
     relations: {
@@ -159,8 +159,8 @@ export const documentManifestSchema = {
       then: { properties: { contentPolicy: managedBlocksContentPolicySchema } },
     },
     {
-      if: ownershipCondition("roven_generated"),
-      then: { properties: { contentPolicy: rovenGeneratedContentPolicySchema } },
+      if: ownershipCondition("lervo_generated"),
+      then: { properties: { contentPolicy: lervoGeneratedContentPolicySchema } },
     },
   ],
   additionalProperties: false,

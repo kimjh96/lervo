@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { decideSharedContextAccess } from "@roven/core";
-import type { SharedContextPublication } from "@roven/schemas";
+import { decideSharedContextAccess } from "@lervo/core";
+import type { SharedContextPublication } from "@lervo/schemas";
 
 import { indexPublications } from "./collections.js";
 import { readRepositoryFile } from "./filesystem.js";

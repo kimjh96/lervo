@@ -1,5 +1,5 @@
 {
-  "name": "@roven/orchestrator",
+  "name": "@lervo/orchestrator",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,18 +15,18 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/adapter-contract": "workspace:*",
-    "@roven/context": "workspace:*",
-    "@roven/context-delivery": "workspace:*",
-    "@roven/core": "workspace:*",
-    "@roven/event-contract": "workspace:*",
-    "@roven/schemas": "workspace:*",
-    "@roven/storage-contract": "workspace:*"
+    "@lervo/adapter-contract": "workspace:*",
+    "@lervo/context": "workspace:*",
+    "@lervo/context-delivery": "workspace:*",
+    "@lervo/core": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*"
   },
   "devDependencies": {
-    "@roven/adapter-claude": "workspace:*",
-    "@roven/adapter-codex": "workspace:*",
-    "@roven/cas": "workspace:*",
-    "@roven/event-store-sqlite": "workspace:*"
+    "@lervo/adapter-claude": "workspace:*",
+    "@lervo/adapter-codex": "workspace:*",
+    "@lervo/cas": "workspace:*",
+    "@lervo/event-store-sqlite": "workspace:*"
   }
 }

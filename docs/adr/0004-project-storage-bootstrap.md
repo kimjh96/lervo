@@ -7,24 +7,24 @@
 
 Project manifest, SQLite event/outbox와 파일 CAS는 각각 구현되어 있었지만 실행 진입점에서 함께 여는 계약은 없었습니다. 호출자가 다른 root나 project id를 조합하면 manifest와 실행 증거가 어긋날 수 있고, 두 저장소 중 하나만 열린 채 다음 단계가 실패하면 자원이 남을 수 있습니다.
 
-이 조합을 `@roven/project`에 넣으면 project 설정 계층이 SQLite와 CAS 구현에 의존합니다. 이후 저장 backend를 바꾸거나 테스트용 구현을 넣기도 어려워집니다. 설정과 저장 구현 사이에 별도 조합 계층이 필요합니다.
+이 조합을 `@lervo/project`에 넣으면 project 설정 계층이 SQLite와 CAS 구현에 의존합니다. 이후 저장 backend를 바꾸거나 테스트용 구현을 넣기도 어려워집니다. 설정과 저장 구현 사이에 별도 조합 계층이 필요합니다.
 
 ## 결정
 
 ### 패키지 경계
 
-- `@roven/project`는 초기화, manifest 검증과 관리 경로 계산만 담당합니다.
-- `@roven/project-storage`는 검증된 project와 구체적인 저장 backend를 조합합니다.
-- 기본 backend는 `@roven/event-store-sqlite`와 `@roven/cas`입니다. 테스트나 이후 구현은 같은 공통 계약을 만족하는 opener로 바꿀 수 있습니다.
+- `@lervo/project`는 초기화, manifest 검증과 관리 경로 계산만 담당합니다.
+- `@lervo/project-storage`는 검증된 project와 구체적인 저장 backend를 조합합니다.
+- 기본 backend는 `@lervo/event-store-sqlite`와 `@lervo/cas`입니다. 테스트나 이후 구현은 같은 공통 계약을 만족하는 opener로 바꿀 수 있습니다.
 - 반환 handle은 manifest, canonical project 경로, event/outbox store와 artifact store를 한 묶음으로 제공합니다.
 
 ### 개방 순서와 경로
 
 1. 입력한 저장소 root를 canonical 경로로 바꿉니다.
-2. `.roven/project.yaml`을 읽고 현재 schema로 검증합니다.
-3. `.roven`, `.roven/state`와 이미 존재하는 `cas`, `cas/sha256`, `cas/.tmp`가 실제 디렉터리인지 확인하고 심볼릭 링크를 거부합니다.
-4. Manifest의 project id와 `.roven/state/events.sqlite`로 event/outbox store를 엽니다.
-5. `.roven/state/cas`로 artifact store를 엽니다.
+2. `.lervo/project.yaml`을 읽고 현재 schema로 검증합니다.
+3. `.lervo`, `.lervo/state`와 이미 존재하는 `cas`, `cas/sha256`, `cas/.tmp`가 실제 디렉터리인지 확인하고 심볼릭 링크를 거부합니다.
+4. Manifest의 project id와 `.lervo/state/events.sqlite`로 event/outbox store를 엽니다.
+5. `.lervo/state/cas`로 artifact store를 엽니다.
 
 호출자는 project id나 backend 경로를 따로 넘기지 않습니다. 따라서 manifest의 identity와 실제 저장 위치가 한 경로 계약에서 나옵니다. Hub가 비활성인 manifest도 로컬 저장소를 열 수 있으며, bootstrap은 outbox 항목을 자동으로 만들지 않습니다.
 
@@ -45,7 +45,7 @@ Project manifest, SQLite event/outbox와 파일 CAS는 각각 구현되어 있�
 
 ## 결과
 
-- 이후 `roven run`은 project 설정과 서로 다른 저장 root를 임의로 조합하지 않습니다.
+- 이후 `lervo run`은 project 설정과 서로 다른 저장 root를 임의로 조합하지 않습니다.
 - Project 설정 계층은 구체적인 저장 구현에 의존하지 않습니다.
 - 부분 개방 실패와 반복 종료의 자원 수명주기를 독립적인 backend fixture로 검증할 수 있습니다.
 - 실제 저장소 fixture에서 event와 artifact를 기록하고 닫은 뒤 같은 project로 다시 열어 복구할 수 있습니다.

@@ -1,6 +1,6 @@
-import type { ProviderAdapter } from "@roven/adapter-contract";
-import type { ContextArtifactPort, ResolvedWritingPolicy } from "@roven/context-delivery";
-import type { AdapterSession, AdapterTurn } from "@roven/schemas";
+import type { ProviderAdapter } from "@lervo/adapter-contract";
+import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
+import type { AdapterSession, AdapterTurn } from "@lervo/schemas";
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";

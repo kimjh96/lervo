@@ -7,7 +7,7 @@ import type {
   DocumentMigrationPlan,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationPlan,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 export interface DocumentScanLimits {
   maximumFiles: number;

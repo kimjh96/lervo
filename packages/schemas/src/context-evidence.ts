@@ -52,8 +52,8 @@ const commonRequired = [
 
 export const contextEvidenceSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/context-evidence.schema.json",
-  title: "Roven context evidence receipt",
+  $id: "https://schemas.lervo.dev/v0/context-evidence.schema.json",
+  title: "Lervo context evidence receipt",
   oneOf: [
     {
       type: "object",

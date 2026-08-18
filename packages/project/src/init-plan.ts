@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import type { ProjectManifest } from "@roven/schemas";
+import type { ProjectManifest } from "@lervo/schemas";
 
 import {
   createDefaultManifest,
@@ -9,20 +9,20 @@ import {
 } from "./config.js";
 import { planDocumentStorage } from "./document-init-plan.js";
 import { contentHash, readEntry } from "./filesystem.js";
-import { rovenRelativePaths } from "./layout.js";
+import { lervoRelativePaths, previousBrandRelativePaths } from "./layout.js";
 import {
   type CreateInitPlanOptions,
   type InitFileOperation,
   type InitOperation,
   type InitPlan,
-  RovenProjectError,
+  LervoProjectError,
 } from "./types.js";
 
 const managedDirectories = [
-  rovenRelativePaths.root,
-  rovenRelativePaths.generated,
-  rovenRelativePaths.state,
-  rovenRelativePaths.knowledge,
+  lervoRelativePaths.root,
+  lervoRelativePaths.generated,
+  lervoRelativePaths.state,
+  lervoRelativePaths.knowledge,
 ] as const;
 
 async function planDirectory(root: string, path: string): Promise<InitOperation> {
@@ -82,23 +82,39 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
   const root = resolve(options.root);
   const rootEntry = await readEntry(root);
   if (rootEntry.kind !== "directory") {
-    throw new RovenProjectError(
+    throw new LervoProjectError(
       "unsafe_path",
       `초기화 대상 ${root}은 존재하는 디렉터리여야 합니다.`,
     );
   }
 
+  const previousBrandRoot = await readEntry(resolve(root, previousBrandRelativePaths.root));
+  if (previousBrandRoot.kind !== "missing") {
+    return {
+      schemaVersion: 1,
+      root,
+      status: "blocked",
+      projectManifest: null,
+      operations: [{
+        kind: "directory",
+        path: lervoRelativePaths.root,
+        action: "conflict",
+        reason: `이전 제품명으로 만든 ${previousBrandRelativePaths.root} 경로가 있습니다. Lervo는 이 경로를 자동 변환하거나 ${lervoRelativePaths.root}와 함께 사용하지 않습니다. 기존 상태를 보존한 뒤 명시적인 명칭 migration을 사용해야 합니다.`,
+      }],
+    };
+  }
+
   const operations: InitOperation[] = [];
-  const rovenRootOperation = await planDirectory(root, managedDirectories[0]);
-  operations.push(rovenRootOperation);
-  if (rovenRootOperation.action === "conflict") {
+  const lervoRootOperation = await planDirectory(root, managedDirectories[0]);
+  operations.push(lervoRootOperation);
+  if (lervoRootOperation.action === "conflict") {
     return { schemaVersion: 1, root, status: "blocked", projectManifest: null, operations };
   }
   for (const path of managedDirectories.slice(1)) {
     operations.push(await planDirectory(root, path));
   }
 
-  const projectPath = rovenRelativePaths.projectManifest;
+  const projectPath = lervoRelativePaths.projectManifest;
   const existingProject = await readEntry(resolve(root, projectPath));
   let projectManifest: ProjectManifest | null = null;
   let desiredProjectManifest: ProjectManifest;
@@ -130,7 +146,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
     ...await planDocumentStorage(root),
     await planManagedFile({
       root,
-      path: rovenRelativePaths.gitignore,
+      path: lervoRelativePaths.gitignore,
       desiredContent: "state/\n",
     }),
   );

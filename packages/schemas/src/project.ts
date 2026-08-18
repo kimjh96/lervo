@@ -17,8 +17,8 @@ export const defaultProjectDataPolicy = {
 
 export const projectManifestSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/project.schema.json",
-  title: "Roven project manifest",
+  $id: "https://schemas.lervo.dev/v0/project.schema.json",
+  title: "Lervo project manifest",
   type: "object",
   properties: {
     schemaVersion: schemaVersionSchema,

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { AdapterSession, AdapterTurn, AdapterTurnResult } from "@roven/schemas";
+import type { AdapterSession, AdapterTurn, AdapterTurnResult } from "@lervo/schemas";
 
 export const MAX_ADAPTER_TURN_RESULT_BYTES = 4 * 1024 * 1024;
 

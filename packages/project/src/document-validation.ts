@@ -1,11 +1,11 @@
 import { posix } from "node:path";
 
-import type { DocumentManifest } from "@roven/schemas";
+import type { DocumentManifest } from "@lervo/schemas";
 
-import { RovenProjectError } from "./types.js";
+import { LervoProjectError } from "./types.js";
 
 function invalid(message: string): never {
-  throw new RovenProjectError("contract_invalid", message);
+  throw new LervoProjectError("contract_invalid", message);
 }
 
 function validateRepositoryPath(path: string, label: string): void {
@@ -30,7 +30,7 @@ export function validateDocumentManifest(
   for (const path of manifest.record.connectedPaths) {
     validateRepositoryPath(path, `${manifest.documentId}의 connectedPaths`);
   }
-  if (manifest.record.ownership.mode === "roven_generated") {
+  if (manifest.record.ownership.mode === "lervo_generated") {
     validateRepositoryPath(
       manifest.record.ownership.manifestPath,
       `${manifest.documentId}의 generation manifestPath`,
@@ -54,8 +54,8 @@ export function validateDocumentManifest(
     }
     blockIds.add(block.blockId);
     if (
-      block.startMarker !== `<!-- roven:begin block=${block.blockId} schema=1 -->` ||
-      block.endMarker !== `<!-- roven:end block=${block.blockId} -->`
+      block.startMarker !== `<!-- lervo:begin block=${block.blockId} schema=1 -->` ||
+      block.endMarker !== `<!-- lervo:end block=${block.blockId} -->`
     ) {
       invalid(`${manifest.documentId}의 managed block marker가 표준 형식이 아닙니다.`);
     }

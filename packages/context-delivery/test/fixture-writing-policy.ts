@@ -1,4 +1,4 @@
-import type { WritingContract } from "@roven/schemas";
+import type { WritingContract } from "@lervo/schemas";
 
 export const writingPolicyFixture = {
   schemaVersion: 1,

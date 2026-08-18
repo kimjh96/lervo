@@ -2,7 +2,7 @@ import type {
   HandoffBundle,
   RoleProfile,
   SharedContextPublication,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import type { RequiredContextDocument } from "./assurance.js";
 

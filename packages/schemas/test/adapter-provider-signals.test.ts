@@ -18,7 +18,7 @@ describe("provider signal schema", () => {
     const request = {
       kind: "managed_write_request",
       schemaVersion: 1,
-      adapterId: "roven/codex",
+      adapterId: "lervo/codex",
       projectId: "prj_provider001",
       runId: "run_provider001",
       sessionId: "ses_provider001",
@@ -82,7 +82,7 @@ describe("provider signal schema", () => {
       validateSchema("adapter", {
         kind: "turn_request",
         schemaVersion: 1,
-        adapterId: "roven/codex",
+        adapterId: "lervo/codex",
         projectId: "prj_provider001",
         runId: "run_provider001",
         sessionId: "ses_provider001",

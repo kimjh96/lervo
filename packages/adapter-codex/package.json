@@ -1,5 +1,5 @@
 {
-  "name": "@roven/adapter-codex",
+  "name": "@lervo/adapter-codex",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/adapter-contract": "workspace:*",
-    "@roven/schemas": "workspace:*"
+    "@lervo/adapter-contract": "workspace:*",
+    "@lervo/schemas": "workspace:*"
   }
 }

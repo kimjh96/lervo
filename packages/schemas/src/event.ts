@@ -43,8 +43,8 @@ export const eventTypes = [
 
 export const eventEnvelopeSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.roven.dev/v0/event.schema.json",
-  title: "Roven append-only event envelope",
+  $id: "https://schemas.lervo.dev/v0/event.schema.json",
+  title: "Lervo append-only event envelope",
   type: "object",
   properties: {
     eventId: eventIdSchema,

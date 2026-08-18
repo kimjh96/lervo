@@ -3,8 +3,8 @@ import { matchesGlob } from "node:path";
 import {
   decideSharedContextAccess,
   resolveHandoffContext,
-} from "@roven/core";
-import type { SharedContextPublication } from "@roven/schemas";
+} from "@lervo/core";
+import type { SharedContextPublication } from "@lervo/schemas";
 
 import { ContextSelectionAccumulator } from "./accumulator.js";
 import { assertUniqueHandoffs, indexPublications } from "./collections.js";

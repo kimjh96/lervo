@@ -3,7 +3,7 @@ import {
   inspectManagedWriteCompletionBinding,
   inspectManagedWriteRequestBinding,
   type ProviderManagedWriteBridge,
-} from "@roven/adapter-contract";
+} from "@lervo/adapter-contract";
 import type {
   AdapterManagedWriteCompletion,
   AdapterManagedWriteDecision,
@@ -11,8 +11,8 @@ import type {
   AdapterSession,
   AdapterTurn,
   SharedContextPublication,
-} from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+} from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import { readManagedFileHash } from "./file-snapshot.js";
 import { ManagedContextRun } from "./managed-context-run.js";

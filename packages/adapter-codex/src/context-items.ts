@@ -1,8 +1,8 @@
 import {
   ContextMaterializationError,
   materializeContextEnvelope,
-} from "@roven/adapter-contract";
-import type { AdapterContextEnvelope, AdapterSession } from "@roven/schemas";
+} from "@lervo/adapter-contract";
+import type { AdapterContextEnvelope, AdapterSession } from "@lervo/schemas";
 
 import { CodexAdapterError } from "./types.js";
 
@@ -24,7 +24,7 @@ export async function buildManagedContextItems(
   const items: unknown[] = [];
   for (const { document, content } of materialized) {
     const managedContext = {
-      kind: "roven_managed_context",
+      kind: "lervo_managed_context",
       envelopeId: envelope.envelopeId,
       targetTurnId: envelope.targetTurnId,
       contextGeneration: envelope.contextGeneration,

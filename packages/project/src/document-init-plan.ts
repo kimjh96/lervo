@@ -1,16 +1,16 @@
 import { resolve } from "node:path";
 
-import type { DocumentRegistry } from "@roven/schemas";
+import type { DocumentRegistry } from "@lervo/schemas";
 
 import { parseAndValidateYaml } from "./config.js";
 import { loadDocumentManifests } from "./document-storage.js";
 import { contentHash, readEntry } from "./filesystem.js";
-import { rovenRelativePaths } from "./layout.js";
+import { lervoRelativePaths } from "./layout.js";
 import type { InitOperation } from "./types.js";
 
 export async function planDocumentStorage(root: string): Promise<InitOperation[]> {
-  const documentsPath = rovenRelativePaths.documents;
-  const legacyPath = rovenRelativePaths.legacyDocumentRegistry;
+  const documentsPath = lervoRelativePaths.documents;
+  const legacyPath = lervoRelativePaths.legacyDocumentRegistry;
   const documentsEntry = await readEntry(resolve(root, documentsPath));
   const legacyEntry = await readEntry(resolve(root, legacyPath));
 

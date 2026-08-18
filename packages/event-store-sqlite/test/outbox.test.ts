@@ -13,7 +13,7 @@ const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 const temporaryRoots: string[] = [];
 
 async function databasePath(): Promise<string> {
-  const root = await mkdtemp(resolve(tmpdir(), "roven-outbox-"));
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-outbox-"));
   temporaryRoots.push(root);
   return resolve(root, "state/events.sqlite");
 }

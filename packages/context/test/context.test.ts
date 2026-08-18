@@ -17,7 +17,7 @@ import {
   type RoleProfile,
   type SharedContextPublication,
   validateSchema,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -44,7 +44,7 @@ function receiptFactory(): () => string {
   return () => `ctx_receipt_${String(++sequence).padStart(8, "0")}`;
 }
 
-async function temporaryDirectory(prefix = "roven-context-"): Promise<string> {
+async function temporaryDirectory(prefix = "lervo-context-"): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), prefix));
   temporaryRoots.push(root);
   return root;
@@ -79,8 +79,8 @@ function role(
     defaultSkills: [],
     outputContract: {
       artifactKind: "fixture_output",
-      schemaRef: "roven-schema://fixture/output/v1",
-      pathTemplate: ".roven/generated/{runId}.md",
+      schemaRef: "lervo-schema://fixture/output/v1",
+      pathTemplate: ".lervo/generated/{runId}.md",
       citationsRequired: true,
       presentation: {
         audience: "human",
@@ -104,7 +104,7 @@ function registry(): DocumentRegistry {
   const record = (path: string, connectedPaths: string[]) => ({
     path,
     kind: "canonical" as const,
-    responsibleParty: { kind: "team" as const, id: "team_roven" },
+    responsibleParty: { kind: "team" as const, id: "team_lervo" },
     connectedPaths,
     verifiedRevision: "fixture-revision",
     verifiedAt: "2026-08-18T00:00:00Z",
@@ -116,10 +116,10 @@ function registry(): DocumentRegistry {
     documents: {
       doc_architecture: record("docs/architecture.md", ["packages/api/**"]),
       doc_brand_policy: record("docs/brand.md", ["marketing/**"]),
-      doc_research_finding: record(".roven/generated/research/finding.md", [
+      doc_research_finding: record(".lervo/generated/research/finding.md", [
         "marketing/**",
       ]),
-      doc_restricted_finding: record(".roven/generated/research/restricted.md", [
+      doc_restricted_finding: record(".lervo/generated/research/restricted.md", [
         "research/**",
       ]),
     },
@@ -142,7 +142,7 @@ async function fixtureRepository(): Promise<FixtureRepository> {
     mkdir(resolve(root, "packages/api"), { recursive: true }),
     mkdir(resolve(root, "packages/other"), { recursive: true }),
     mkdir(resolve(root, "docs"), { recursive: true }),
-    mkdir(resolve(root, ".roven/generated/research"), { recursive: true }),
+    mkdir(resolve(root, ".lervo/generated/research"), { recursive: true }),
   ]);
   const researchContent = "사용자 인터뷰에서 반복된 문제와 근거입니다.\n";
   await Promise.all([
@@ -152,9 +152,9 @@ async function fixtureRepository(): Promise<FixtureRepository> {
     writeFile(resolve(root, "packages/other/AGENTS.md"), "다른 패키지 지침입니다.\n"),
     writeFile(resolve(root, "docs/architecture.md"), "API 아키텍처 원칙입니다.\n"),
     writeFile(resolve(root, "docs/brand.md"), "브랜드 표현 원칙입니다.\n"),
-    writeFile(resolve(root, ".roven/generated/research/finding.md"), researchContent),
+    writeFile(resolve(root, ".lervo/generated/research/finding.md"), researchContent),
     writeFile(
-      resolve(root, ".roven/generated/research/restricted.md"),
+      resolve(root, ".lervo/generated/research/restricted.md"),
       "연구자만 읽을 수 있는 제한 자료입니다.\n",
     ),
   ]);
@@ -280,7 +280,7 @@ describe("context preparation", () => {
       instructionDocuments: instructions,
     });
     expect(plan.documents.map((document) => document.path)).toEqual([
-      ".roven/generated/research/finding.md",
+      ".lervo/generated/research/finding.md",
       "AGENTS.md",
       "docs/architecture.md",
       "docs/brand.md",
@@ -443,7 +443,7 @@ describe("context preparation", () => {
       instructionDocuments: instructions,
     });
     await writeFile(
-      resolve(fixture.root, ".roven/generated/research/finding.md"),
+      resolve(fixture.root, ".lervo/generated/research/finding.md"),
       "publication 이후 바뀐 조사 결과입니다.\n",
     );
 
@@ -629,7 +629,7 @@ describe("context preparation", () => {
 
   it("rejects symbolic-link parents before reading outside the repository", async () => {
     const root = await temporaryDirectory();
-    const outside = await temporaryDirectory("roven-context-outside-");
+    const outside = await temporaryDirectory("lervo-context-outside-");
     await writeFile(resolve(root, "AGENTS.md"), "프로젝트 지침입니다.\n");
     await writeFile(resolve(outside, "secret.md"), "저장소 밖 원문입니다.\n");
     await symlink(outside, resolve(root, "docs"));

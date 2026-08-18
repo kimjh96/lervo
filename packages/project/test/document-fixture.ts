@@ -1,4 +1,4 @@
-import type { DocumentManifest } from "@roven/schemas";
+import type { DocumentManifest } from "@lervo/schemas";
 
 export function userManifest(input: {
   documentId: string;
@@ -51,10 +51,10 @@ export function managedManifest(standardMarkers = true): DocumentManifest {
         blocks: [{
           blockId: "agent_context",
           startMarker: standardMarkers
-            ? "<!-- roven:begin block=agent_context schema=1 -->"
+            ? "<!-- lervo:begin block=agent_context schema=1 -->"
             : "<!-- arbitrary -->",
           endMarker: standardMarkers
-            ? "<!-- roven:end block=agent_context -->"
+            ? "<!-- lervo:end block=agent_context -->"
             : "<!-- /arbitrary -->",
           inputs: [{
             sourceId: "project-policy",

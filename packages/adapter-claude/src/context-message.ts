@@ -1,8 +1,8 @@
 import {
   ContextMaterializationError,
   materializeContextEnvelope,
-} from "@roven/adapter-contract";
-import type { AdapterContextEnvelope, AdapterSession } from "@roven/schemas";
+} from "@lervo/adapter-contract";
+import type { AdapterContextEnvelope, AdapterSession } from "@lervo/schemas";
 
 import { ClaudeAdapterError } from "./types.js";
 
@@ -22,7 +22,7 @@ export async function buildManagedContextMessage(
   }
 
   return JSON.stringify({
-    kind: "roven_managed_context",
+    kind: "lervo_managed_context",
     envelopeId: envelope.envelopeId,
     targetTurnId: envelope.targetTurnId,
     contextGeneration: envelope.contextGeneration,

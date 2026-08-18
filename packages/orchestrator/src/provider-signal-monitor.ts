@@ -1,5 +1,5 @@
-import type { ProviderAdapter } from "@roven/adapter-contract";
-import type { AdapterNormalizedEvent, AdapterSession } from "@roven/schemas";
+import type { ProviderAdapter } from "@lervo/adapter-contract";
+import type { AdapterNormalizedEvent, AdapterSession } from "@lervo/schemas";
 
 import { ManagedProviderRunError } from "./provider-run-types.js";
 

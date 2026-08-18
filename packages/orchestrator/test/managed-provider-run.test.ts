@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type { ProviderAdapter } from "@roven/adapter-contract";
-import { FileSystemCas } from "@roven/cas";
+import type { ProviderAdapter } from "@lervo/adapter-contract";
+import { FileSystemCas } from "@lervo/cas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -298,7 +298,7 @@ describe("managed provider run coordinator", () => {
 
   it("stores the provider result in the real filesystem CAS", async () => {
     const data = await createManagedFixture();
-    const artifacts = await FileSystemCas.open(resolve(data.root, ".roven/state/cas"));
+    const artifacts = await FileSystemCas.open(resolve(data.root, ".lervo/state/cas"));
     const result = await coordinator(
       new FakeManagedAdapter("codex"),
       data.root,

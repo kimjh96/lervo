@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import type { AdapterSession } from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+import type { AdapterSession } from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import { CodexAdapterError } from "./types.js";
 
-export const CODEX_ADAPTER_ID = "roven/codex";
+export const CODEX_ADAPTER_ID = "lervo/codex";
 export const CODEX_ADAPTER_VERSION = "0.1.0";
 
 export function defaultEventId(): string {

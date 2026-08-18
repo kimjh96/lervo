@@ -6,8 +6,8 @@ import type {
   AdapterStopRequest,
   AdapterStopResult,
   AdapterTurn,
-} from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+} from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import {
   ManagedProviderRunError,
@@ -143,7 +143,7 @@ export function assertTerminalTurn(
 }
 
 export function assertManagedTurn(input: {
-  request: import("@roven/schemas").AdapterTurnRequest;
+  request: import("@lervo/schemas").AdapterTurnRequest;
   session: AdapterSession;
   turn: AdapterTurn;
 }): void {

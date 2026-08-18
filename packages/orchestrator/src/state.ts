@@ -1,11 +1,11 @@
-import type { LoadedContext } from "@roven/context";
-import type { InjectedContext } from "@roven/context-delivery";
+import type { LoadedContext } from "@lervo/context";
+import type { InjectedContext } from "@lervo/context-delivery";
 import {
   evaluateWriteContext,
   type RequiredContextDocument,
   type WriteContextDecision,
-} from "@roven/core";
-import type { CapabilityDecision, ContextEvidence } from "@roven/schemas";
+} from "@lervo/core";
+import type { CapabilityDecision, ContextEvidence } from "@lervo/schemas";
 
 import {
   type FileWritePermit,

@@ -1,4 +1,4 @@
-import type { AdapterSession } from "@roven/schemas";
+import type { AdapterSession } from "@lervo/schemas";
 
 import { assertAdapterMessage, clone, sameSession } from "./adapter-validation.js";
 import {

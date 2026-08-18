@@ -1,5 +1,5 @@
-import { ContextPreparationError } from "@roven/context";
-import { ContextDeliveryError } from "@roven/context-delivery";
+import { ContextPreparationError } from "@lervo/context";
+import { ContextDeliveryError } from "@lervo/context-delivery";
 
 import { TelemetryWriteError } from "./telemetry.js";
 import { ManagedContextError } from "./types.js";

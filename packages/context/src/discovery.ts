@@ -1,4 +1,4 @@
-import type { DocumentRegistry } from "@roven/schemas";
+import type { DocumentRegistry } from "@lervo/schemas";
 
 import { repositoryFileExists } from "./filesystem.js";
 import { documentIdForPath, instructionPathsFor } from "./paths.js";

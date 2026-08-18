@@ -3,7 +3,7 @@ import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
 import { basename, relative, resolve, sep } from "node:path";
 
-import { validateSchema, type SkillManifest } from "@roven/schemas";
+import { validateSchema, type SkillManifest } from "@lervo/schemas";
 
 import {
   SkillResolutionError,
@@ -11,7 +11,7 @@ import {
   type LocalSkillSourceKind,
 } from "./types.js";
 
-const MANIFEST_NAME = "roven-skill.json";
+const MANIFEST_NAME = "lervo-skill.json";
 const MAX_PACKAGE_FILES = 256;
 const MAX_PACKAGE_BYTES = 16 * 1024 * 1024;
 const MAX_MANIFEST_BYTES = 1024 * 1024;
@@ -153,7 +153,7 @@ async function readCandidate(input: {
   } catch (error) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
-      "roven-skill.json을 UTF-8 JSON으로 읽을 수 없습니다.",
+      "lervo-skill.json을 UTF-8 JSON으로 읽을 수 없습니다.",
       { cause: error },
     );
   }
@@ -165,7 +165,7 @@ async function readCandidate(input: {
   if (!validateSchema("skill", manifest).valid) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
-      "roven-skill.json이 스킬 manifest 계약을 통과하지 못했습니다.",
+      "lervo-skill.json이 스킬 manifest 계약을 통과하지 못했습니다.",
     );
   }
   const typedManifest = manifest as SkillManifest;

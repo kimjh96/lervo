@@ -2,10 +2,10 @@ import {
   encodeTurnResultContent,
   inspectTurnResultBinding,
   type ProviderAdapter,
-} from "@roven/adapter-contract";
-import type { ContextArtifactPort } from "@roven/context-delivery";
-import type { AdapterSession, AdapterTurn, AdapterTurnResult } from "@roven/schemas";
-import { validateSchema } from "@roven/schemas";
+} from "@lervo/adapter-contract";
+import type { ContextArtifactPort } from "@lervo/context-delivery";
+import type { AdapterSession, AdapterTurn, AdapterTurnResult } from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 
 import {
   ManagedProviderRunError,
@@ -46,7 +46,7 @@ export async function storeProviderResult(input: {
   try {
     const stored = await input.artifactStore.put(bytes);
     const restored = new Uint8Array(await input.artifactStore.get(stored.uri));
-    const expectedUri = `roven-cas://sha256/${input.result.contentHash.slice(7)}`;
+    const expectedUri = `lervo-cas://sha256/${input.result.contentHash.slice(7)}`;
     if (
       stored.uri !== expectedUri ||
       stored.contentHash !== input.result.contentHash ||

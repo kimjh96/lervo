@@ -4,7 +4,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
-} from "@roven/schemas";
+} from "@lervo/schemas";
 
 import { ManagedContextRun } from "./managed-context-run.js";
 import { createManagedWritePlan } from "./managed-write-plan.js";

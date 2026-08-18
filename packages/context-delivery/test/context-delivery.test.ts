@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { FileSystemCas } from "@roven/cas";
-import type { LoadedContext } from "@roven/context";
+import { FileSystemCas } from "@lervo/cas";
+import type { LoadedContext } from "@lervo/context";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {

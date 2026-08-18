@@ -5,13 +5,13 @@
 
 ## 맥락
 
-Roven의 첫 구현은 공급자 구현보다 먼저 project, event, context evidence, adapter 경계를 고정해야 한다. 타입과 런타임 검증 규격이 따로 관리되면 Codex와 Claude가 서로 다른 의미를 구현하거나, 텔레메트리가 증명하지 못한 상태를 채우게 될 위험이 있다. 사람 대상 글도 공급자의 기본 말투에 맡기면 번역투, 명사 조각, 이어지지 않는 문단이 다시 생길 수 있다. 기존 Actverse writing rule과 공개 전 guard 경험을 참고해 provider 중립 writing 계약을 M0에 포함한다. 개인정보와 로컬 보존 기본값도 event store 구현 전에 결정되어야 한다.
+Lervo의 첫 구현은 공급자 구현보다 먼저 project, event, context evidence, adapter 경계를 고정해야 한다. 타입과 런타임 검증 규격이 따로 관리되면 Codex와 Claude가 서로 다른 의미를 구현하거나, 텔레메트리가 증명하지 못한 상태를 채우게 될 위험이 있다. 사람 대상 글도 공급자의 기본 말투에 맡기면 번역투, 명사 조각, 이어지지 않는 문단이 다시 생길 수 있다. 기존 Actverse writing rule과 공개 전 guard 경험을 참고해 provider 중립 writing 계약을 M0에 포함한다. 개인정보와 로컬 보존 기본값도 event store 구현 전에 결정되어야 한다.
 
 ## 결정
 
 ### 계약 원본
 
-- JSON Schema Draft 2020-12 객체를 `@roven/schemas`의 TypeScript 상수로 관리한다.
+- JSON Schema Draft 2020-12 객체를 `@lervo/schemas`의 TypeScript 상수로 관리한다.
 - TypeScript 타입은 `json-schema-to-ts`로 같은 객체에서 추론한다.
 - 외부 저장 형식은 schema version `1`, RFC 3339 timestamp, `sha256:<64 hex>` 콘텐츠 해시를 사용한다.
 - project/run/session/event/document/receipt id는 접두사가 있는 opaque id이며 내부 생성 알고리즘을 공개 계약으로 고정하지 않는다.
@@ -59,10 +59,10 @@ Roven의 첫 구현은 공급자 구현보다 먼저 project, event, context evi
 ### 문서 registry 계약
 
 - Registry는 document id를 key로 사용해 중복 id를 구조적으로 방지한다.
-- `observed` 문서는 `user` 소유만 허용하고 Roven이 자동 수정하지 않는다.
-- `canonical` 문서는 `user` 또는 `managed_blocks`, `generated` 문서는 `managed_blocks` 또는 `roven_generated`만 허용한다.
+- `observed` 문서는 `user` 소유만 허용하고 Lervo가 자동 수정하지 않는다.
+- `canonical` 문서는 `user` 또는 `managed_blocks`, `generated` 문서는 `managed_blocks` 또는 `lervo_generated`만 허용한다.
 - `managed_blocks`는 블록 밖을 `preserve`하고 생성 입력의 id/hash를 기록한다.
-- `roven_generated`는 사용자 내용이 없는 전용 파일이며 생성 manifest와 입력 hash를 기록한다.
+- `lervo_generated`는 사용자 내용이 없는 전용 파일이며 생성 manifest와 입력 hash를 기록한다.
 - Managed block marker의 구체 문법과 parser 선택은 M4 전 별도 ADR로 남긴다.
 
 ### 개인정보·보존 기본값

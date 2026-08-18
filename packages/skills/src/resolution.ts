@@ -1,4 +1,4 @@
-import type { SkillLock, SkillLockRejection } from "@roven/schemas";
+import type { SkillLock, SkillLockRejection } from "@lervo/schemas";
 
 import { compareSemver, rejectionReason } from "./compatibility.js";
 import {

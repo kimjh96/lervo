@@ -1,4 +1,4 @@
-import type { ProjectManifest } from "@roven/schemas";
+import type { ProjectManifest } from "@lervo/schemas";
 
 export type InitDirectoryOperation =
   | { kind: "directory"; path: string; action: "create" | "unchanged" }
@@ -41,14 +41,14 @@ export type ProjectErrorCode =
   | "plan_stale"
   | "unsafe_path";
 
-export class RovenProjectError extends Error {
+export class LervoProjectError extends Error {
   constructor(
     readonly code: ProjectErrorCode,
     message: string,
   ) {
     super(message);
-    this.name = "RovenProjectError";
+    this.name = "LervoProjectError";
   }
 }
 
-export { RovenProjectError as RovenInitError };
+export { LervoProjectError as LervoInitError };

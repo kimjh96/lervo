@@ -5,7 +5,7 @@ import type { ManagedRunOutcome, RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const runUsage =
-  "  roven run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>";
+  "  lervo run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>";
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;

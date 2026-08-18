@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, readdir, readlink } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
-import { readRepositoryFile } from "@roven/context";
+import { readRepositoryFile } from "@lervo/context";
 
 export interface RepositorySnapshot {
   revision: string;
@@ -23,7 +23,7 @@ export interface RepositorySnapshotPolicy {
 
 export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.freeze({
   excludedDirectoryNames: Object.freeze([".git", "node_modules"]),
-  excludedPaths: Object.freeze([".roven/state"]),
+  excludedPaths: Object.freeze([".lervo/state"]),
   maxEntries: 20_000,
   maxBytes: 256 * 1024 * 1024,
 });
