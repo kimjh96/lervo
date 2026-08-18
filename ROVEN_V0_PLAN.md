@@ -83,7 +83,7 @@
 - 문서 변경 후 오래된 receipt 재사용 불가
 - trace에 선택 이유, 정책 버전, hash, invalidation 표시
 
-구현 현황(2026-08-18): **첫 번째 수직 슬라이스 완료.** `@roven/context`가 root·하위 `AGENTS.md` 계층, document registry의 `connectedPaths`, Role 필수 rule과 handoff를 결정적으로 합쳐 E0/E1을 만듭니다. 선택과 실제 읽기를 분리하고, 심볼릭 링크를 따라가지 않는 전체 bytes 읽기 뒤에만 SHA-256·byte count·source revision이 있는 E2를 만듭니다. 일반 shared context는 발견만 하고 handoff에 포함된 원문만 선택하며, 생산 run의 receipt를 수신 run에 복사하지 않습니다. 파일 변경, publication 만료·대체·접근 회수와 hash 불일치를 fixture로 검증했습니다. 이 단계는 E3를 만들지 않습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md)에 기록했습니다.
+구현 현황(2026-08-18): **Context preparation과 provider-neutral delivery 수직 슬라이스 완료.** `@roven/context`가 root·하위 `AGENTS.md` 계층, document registry의 `connectedPaths`, Role 필수 rule과 handoff를 결정적으로 합쳐 E0/E1을 만들고 안전한 전체 bytes 읽기 뒤 E2를 만듭니다. `@roven/context-delivery`는 이 E2와 주입 직전 snapshot을 검증해 inline 또는 검증된 CAS URI envelope를 조립합니다. Role/writing policy, 대상 turn, provider session, 현재 context generation과 정확한 문서 ID·hash·scope 집합을 adapter receipt와 대조한 뒤에만 문서별 E3를 만듭니다. 누락·변조·다른 session·이전 generation receipt와 주입 중 compaction을 fixture로 거부합니다. 실제 compaction 신호와 Codex/Claude 실행은 M3에 남습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md)과 [ADR-0007](./docs/adr/0007-provider-neutral-context-delivery.md)에 기록했습니다.
 
 ### M3: 공급자 어댑터
 
@@ -173,6 +173,7 @@ packages/
   project-storage/
   event-store-sqlite/
   context/
+  context-delivery/
   policy/
   adapter-contract/
   adapter-codex/
@@ -222,4 +223,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M2 provider-neutral context envelope 슬라이스**입니다. E2를 통과한 문서만 adapter context envelope의 inline 원문 또는 CAS URI로 조립하고, Role과 writing policy ID, 대상 turn, context generation을 같은 좌표에 묶습니다. Fake adapter contract fixture에서 envelope 문서 hash·byte count·scope와 수신 receipt를 대조한 뒤에만 E3를 만들며, 누락·변조된 문서, 다른 session receipt와 이전 generation을 거부합니다. 실제 Codex/Claude 실행은 M3에 남기고 이 단계에서는 공급자 중립 조립과 검증 경계만 구현합니다.
+다음 구현 작업은 **M2 managed context gate orchestration 슬라이스**입니다. Context preparation과 delivery에서 나온 E1/E2/E3를 append-only event store에 기록하고, 현재 generation과 필수 문서 집합을 `evaluateWriteContext`에 연결해 첫 파일 쓰기 전에 gate를 엽니다. 파일 변경, compaction/restart 또는 telemetry 기록 실패 시 E3를 무효화하고 변경 capability를 닫는 상태 전이를 fixture run으로 검증합니다. 실제 Codex/Claude 프로세스 실행과 compaction 신호 수집은 M3에 남깁니다.

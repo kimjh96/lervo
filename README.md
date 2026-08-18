@@ -2,7 +2,7 @@
 
 Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1 완료, M2 context preparation 첫 슬라이스 완료 (2026-08-18)
+현재 상태: M0·M1 완료, M2 context preparation·provider-neutral delivery 슬라이스 완료 (2026-08-18)
 
 ## 목표
 
@@ -26,6 +26,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [project storage bootstrap ADR](./docs/adr/0004-project-storage-bootstrap.md)
 - [전문 에이전트 공유 맥락과 handoff ADR](./docs/adr/0005-shared-context-and-role-handoff.md)
 - [결정적 context preparation ADR](./docs/adr/0006-deterministic-context-preparation.md)
+- [Provider-neutral context delivery와 E3 ADR](./docs/adr/0007-provider-neutral-context-delivery.md)
 
 ## 현재 구현
 
@@ -34,6 +35,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@roven/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@roven/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기와 E2 hash, snapshot 무효화 판정
+- `@roven/context-delivery`: E2 원문을 검증된 inline/CAS envelope로 조립하고 adapter receipt를 대조한 뒤에만 E3를 만드는 공급자 중립 경계
 - `@roven/project`: 관리 경로, project 설정과 원자적인 초기화 계획·적용
 - `@roven/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사

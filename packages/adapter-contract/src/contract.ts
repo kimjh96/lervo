@@ -1,5 +1,6 @@
 import {
   type AdapterStopRequest,
+  type ContextScope,
   validateSchema,
 } from "@roven/schemas";
 
@@ -55,6 +56,15 @@ function sameCoordinates(
     value.projectId === expected.projectId &&
     value.runId === expected.runId &&
     value.sessionId === expected.sessionId
+  );
+}
+
+function sameScope(left: ContextScope, right: ContextScope): boolean {
+  if (left.kind !== right.kind) return false;
+  if (left.kind === "full" || right.kind === "full") return true;
+  return (
+    left.sections.length === right.sections.length &&
+    left.sections.every((section) => right.sections.includes(section))
   );
 }
 
@@ -136,11 +146,19 @@ export async function evaluateAdapterContract(
   const expectedDocuments = new Map(
     fixture.contextEnvelope.documents.map((document) => [document.documentId, document]),
   );
+  const receivedDocumentIds = new Set<string>();
   const documentsMatch =
+    expectedDocuments.size === fixture.contextEnvelope.documents.length &&
     receipt.documents.length === expectedDocuments.size &&
     receipt.documents.every((document) => {
+      if (receivedDocumentIds.has(document.documentId)) return false;
+      receivedDocumentIds.add(document.documentId);
       const expected = expectedDocuments.get(document.documentId);
-      return expected?.contentHash === document.contentHash && document.status === "injected";
+      return (
+        expected?.contentHash === document.contentHash &&
+        sameScope(expected.scope, document.scope) &&
+        document.status === "injected"
+      );
     });
   const writingPolicyReceiptExists =
     receipt.writingPolicyDocumentId === null ||
@@ -159,6 +177,8 @@ export async function evaluateAdapterContract(
     receipt.targetTurnId !== fixture.contextEnvelope.targetTurnId ||
     receipt.contextGeneration !== fixture.contextEnvelope.contextGeneration ||
     receipt.controlledInput !== true ||
+    Date.parse(receipt.acceptedAt) < Date.parse(fixture.contextEnvelope.createdAt) ||
+    Date.parse(receipt.acceptedAt) < Date.parse(session.startedAt) ||
     !documentsMatch ||
     !writingPolicyReceiptExists
   ) {

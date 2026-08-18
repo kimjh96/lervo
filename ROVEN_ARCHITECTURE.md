@@ -101,6 +101,14 @@ M2 첫 슬라이스의 `@roven/context`는 선택과 읽기를 별도 단계로 
 
 E1 계획에는 원문이나 현재 content hash가 없습니다. Loader는 선택된 파일의 전체 bytes를 읽고 SHA-256과 byte count를 계산한 뒤에만 E2를 만듭니다. 저장소 root와 각 경로 구성 요소의 실제 파일 종류를 확인하고 심볼릭 링크를 따라가지 않습니다. 파일 descriptor를 연 전후의 inode, 크기와 변경 시각을 비교해 읽는 중 바뀐 파일도 E2로 인정하지 않습니다. 이 계층은 파일을 쓰거나 event를 저장하거나 adapter E3를 만들지 않습니다.
 
+### Context Delivery
+
+`@roven/context-delivery`는 router와 provider adapter 사이의 공급자 중립 경계입니다. `@roven/context`의 선택 정책을 바꾸지 않고, E2 체인과 현재 파일·publication snapshot을 다시 검증해 adapter `context_envelope`을 만듭니다. 짧고 손실 없이 UTF-8로 왕복되는 원문은 inline으로 전달하고, 크기 제한을 넘거나 binary인 원문은 `ArtifactStore`에 저장한 뒤 put 결과와 다시 읽은 bytes의 hash·크기를 확인한 CAS URI로 전달합니다.
+
+Delivery는 adapter 구현에 의존하지 않고 `(session, envelope) -> receipt` 함수 포트만 호출합니다. Receipt의 project/run/session/role/writing policy/provider session/turn/context generation과 정확한 문서 ID·hash·scope 집합을 envelope와 대조한 뒤에만 문서별 E3 evidence를 만듭니다. 문서별 evidence ID와 adapter가 반환한 묶음 receipt ID를 분리해 `adapterReceiptId`로 연결합니다. 같은 API를 Codex와 Claude adapter가 구현하므로 공급자별 주입 방식이 context 선택·증거 규격으로 새어 나오지 않습니다.
+
+Context generation은 호출자가 소유하는 단조 증가 값입니다. Delivery는 envelope 조립 전, adapter 호출 직전, receipt 수신 뒤에 현재 값을 확인합니다. Compaction이나 restart로 값이 바뀌면 이전 envelope receipt로 E3를 만들지 않습니다. 파일 snapshot도 조립 전과 adapter 호출 직전에 다시 확인합니다. 실제 compaction 탐지와 generation 증가는 M3 adapter/orchestrator 책임입니다.
+
 ### Shared Context Plane
 
 프로젝트 문서와 전문 에이전트가 발행한 결과는 같은 context router에서 찾을 수 있습니다. 에이전트 간 공유 원문은 등록된 문서로 남기고, `SharedContextPublication`이 문서 ID와 content hash, 생산 역할/run/session, 근거 event, 공개 범위, 민감도, 만료 시각과 대체 관계를 연결합니다. `audience.mode=project`인 일반 맥락은 프로젝트의 모든 역할이 읽을 수 있습니다. `audience.mode=roles`는 명시한 역할만 읽을 수 있으며 `restricted` 자료는 이 방식을 반드시 사용합니다.
@@ -254,6 +262,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 실제 Codex/Claude 공급자 어댑터는 M3 범위입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 실제 Codex/Claude 공급자 어댑터는 M3 범위입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

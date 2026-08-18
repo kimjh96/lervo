@@ -53,6 +53,7 @@ function evidence(): ContextEvidence[] {
       provider: "codex",
       providerSessionId: "provider-session-1",
       adapterId: "roven/codex",
+      adapterReceiptId: "ctx_adapter_01234567",
       envelopeId: "envelope-1",
       targetTurnId: "turn-1",
       contextGeneration: coordinates.contextGeneration,

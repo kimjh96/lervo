@@ -244,6 +244,51 @@ describe("adapter contract evidence integrity", () => {
     );
   });
 
+  it("rejects a receipt that changes document scope", async () => {
+    class ScopeChangingAdapter extends FixtureAdapter {
+      override async injectContext(
+        session: AdapterSession,
+        envelope: AdapterContextEnvelope,
+      ): Promise<AdapterContextReceipt> {
+        const receipt = await super.injectContext(session, envelope);
+        receipt.documents[0] = {
+          ...receipt.documents[0]!,
+          scope: { kind: "sections", sections: ["different"] },
+        };
+        return receipt;
+      }
+    }
+
+    const report = await evaluateAdapterContract(
+      new ScopeChangingAdapter("codex"),
+      fixture("codex"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "context_receipt_mismatch" }),
+    );
+  });
+
+  it("rejects duplicate receipt document IDs", async () => {
+    class DuplicateDocumentAdapter extends FixtureAdapter {
+      override async injectContext(
+        session: AdapterSession,
+        envelope: AdapterContextEnvelope,
+      ): Promise<AdapterContextReceipt> {
+        const receipt = await super.injectContext(session, envelope);
+        receipt.documents[1] = { ...receipt.documents[0]! };
+        return receipt;
+      }
+    }
+
+    const report = await evaluateAdapterContract(
+      new DuplicateDocumentAdapter("claude"),
+      fixture("claude"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "context_receipt_mismatch" }),
+    );
+  });
+
   it("rejects a Claude session that drops the selected writing policy", async () => {
     const report = await evaluateAdapterContract(
       new FixtureAdapter("claude", undefined, null),

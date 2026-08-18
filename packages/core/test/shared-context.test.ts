@@ -149,6 +149,7 @@ function recipientEvidence(): ContextEvidence[] {
       provider: "claude",
       providerSessionId: "provider-marketing-1",
       adapterId: "roven/claude",
+      adapterReceiptId: "ctx_adapter_marketing",
       envelopeId: "envelope-marketing-1",
       targetTurnId: "turn-marketing-1",
       contextGeneration: 1,

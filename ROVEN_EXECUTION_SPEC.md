@@ -160,6 +160,24 @@ Roven은 아래 상태를 분리합니다.
 
 문서가 변경되거나 context가 압축/재시작되면 관련 E2/E3 receipt는 무효가 되고 재적재합니다.
 
+### Provider-neutral envelope와 E3 생성
+
+`@roven/context-delivery`는 `LoadedContext`의 plan, 원문 bytes, E0~E2 evidence를 다시 대조합니다. Plan 밖 문서, 변경된 bytes/hash/byte count/scope/source revision, 중복 문서·receipt ID, 다른 project/run/session의 evidence, 이미 들어 있는 E3/E4는 계약 위반입니다. Session의 project/run/session/role 좌표가 E2와 같아야 하며 writing policy ID가 있으면 호출자가 지정한 정책 문서가 E2 문서 집합에 반드시 있어야 합니다.
+
+기본 전달은 64 KiB 이하이며 UTF-8 decode/encode가 원래 bytes와 같은 문서만 inline으로 둡니다. 그 밖의 문서는 CAS를 사용합니다. 강제 inline에서 손실 없는 UTF-8가 아니면 거부하고, CAS가 필요한데 `ArtifactStore`가 없으면 `artifact_storage_failed`로 거부합니다. CAS는 `put`이 반환한 URI·hash·byte count와 같은 URI를 다시 읽은 bytes를 모두 검증합니다. Envelope나 event에는 credential, raw prompt 또는 provider payload를 넣지 않으며 `context.injected` event에도 문서 본문을 저장하지 않습니다.
+
+주입 직전에는 파일과 shared publication snapshot을 다시 검사합니다. Context generation은 envelope 조립 전, adapter 호출 전, receipt 수신 뒤에 확인합니다. Receipt가 현재 generation, envelope/session 좌표, 대상 turn, role/writing policy ID, provider session과 정확한 문서 ID·hash·scope 집합을 모두 확인하고 `controlledInput=true`일 때만 문서별 E3를 만듭니다. E3의 `receiptId`는 문서별 evidence ID이고 `adapterReceiptId`는 adapter가 문서 묶음에 발급한 receipt ID입니다. Receipt의 문서 누락·중복·추가·hash/scope 변경 또는 writing 정책 문서 누락은 모두 E3 생성을 막습니다.
+
+이 슬라이스는 새 event type이나 event payload field를 추가하지 않습니다. 기존 `context.injected` payload의 `receiptId`는 문서 묶음에 대한 adapter receipt ID이며, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration`과 함께 기록할 수 있습니다. 문서별 E3 evidence는 자기 `receiptId`와 이 묶음의 `adapterReceiptId`를 별도로 가집니다. 원문, inline content, CAS bytes와 provider 원본 응답은 event에 넣지 않습니다.
+
+| delivery code | 상위 실패 의미 |
+|---|---|
+| `invalid_loaded_context`, `invalid_session`, `invalid_delivery_request`, `invalid_inline_content`, `invalid_context_receipt`, `invalid_context_evidence`, `receipt_id_conflict` | `contract_validation_failed` |
+| `context_snapshot_invalid`, `writing_policy_document_missing`, `context_receipt_mismatch`, `stale_context_generation`, `injection_failed` | `required_context_missing` |
+| `artifact_store_required`, `artifact_storage_failed` | `artifact_storage_failed` |
+
+오류에는 문서 ID와 기계용 reason만 포함하며 원문 bytes와 provider payload는 포함하지 않습니다. Adapter 호출 자체가 실패하면 원본 예외를 오류 cause로 보존하지 않고 `required_context_missing`으로 재주입이 필요한 상태를 나타냅니다. Capability matrix가 controlled injection을 `unsupported`로 선언한 경우는 이 포트를 호출하기 전에 orchestrator가 `provider_capability_unsupported`로 차단합니다. 어느 실패에서도 부분 E3 evidence를 반환하지 않습니다.
+
 ### 중앙 화면의 표현
 
 각 문서를 다음과 같이 보여줍니다.
