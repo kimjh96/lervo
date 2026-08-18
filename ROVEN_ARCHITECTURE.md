@@ -85,6 +85,10 @@ Bootstrap은 저장소 root, `.roven`, `.roven/state`가 실제 디렉터리인�
 
 요청을 실행 가능한 run으로 바꾸는 상태 머신입니다. 역할 선택, 컨텍스트 준비, 공급자 실행, 승인, 검증, 지식 후보 생성, 완료를 순서화합니다. 공급자 프로세스는 오케스트레이터가 발급한 run/session 식별자를 통해서만 관리 상태가 됩니다.
 
+M2의 `@roven/orchestrator` 첫 슬라이스는 context 준비와 delivery를 직접 순서화합니다. `awaiting_context → context_prepared → context_injected → write_authorized` 전이를 사용하며, 파일 변경이나 context 무효화 뒤에는 generation을 올리고 `awaiting_context`로 돌아갑니다. Prepare, inject와 write authorization은 같은 run에서 겹치지 않게 직렬화하지만 adapter 주입 중 compaction/restart 무효화 신호는 받을 수 있습니다. E1/E2 묶음과 각 E3·capability·변경/무효화 묶음은 공통 event store의 동기 transaction으로 기록하고 commit 뒤에만 메모리 상태를 전진시킵니다. 실제 SQLite fixture가 rollback과 hash chain을 검증합니다. 기록이나 redaction이 실패하면 `telemetry_failed`로 전환하고 pending permit를 폐기합니다.
+
+파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
+
 ### Context Router
 
 프롬프트의 유사도만으로 문서를 선택하지 않습니다. 다음 신호를 결합합니다.
@@ -122,6 +126,8 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 ### Policy & Approval Engine
 
 파일 쓰기, 셸 실행, 네트워크, 외부 메시지, 배포 같은 capability를 판정합니다. 정책은 역할·프로젝트·환경·위험도에 따라 `allow`, `deny`, `require_approval`을 반환합니다. 필수 문서 주입 증거도 변경 capability의 선행 조건입니다.
+
+현재 managed context gate는 파일 쓰기에 한해 Role 정책과 E3 선행 조건을 결합합니다. `require_approval`의 승인 원본 확인은 아직 구현하지 않았으므로 보수적으로 차단하며, 승인 수명주기는 이후 Policy Engine 슬라이스가 맡습니다.
 
 ### Provider Adapters
 

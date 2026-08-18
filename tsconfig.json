@@ -11,6 +11,7 @@
       "@roven/core": ["packages/core/src/index.ts"],
       "@roven/event-contract": ["packages/event-contract/src/index.ts"],
       "@roven/event-store-sqlite": ["packages/event-store-sqlite/src/index.ts"],
+      "@roven/orchestrator": ["packages/orchestrator/src/index.ts"],
       "@roven/project": ["packages/project/src/index.ts"],
       "@roven/project-storage": ["packages/project-storage/src/index.ts"],
       "@roven/schemas": ["packages/schemas/src/index.ts"],

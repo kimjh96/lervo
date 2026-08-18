@@ -54,7 +54,21 @@ requested
   -> completed | failed | cancelled
 ```
 
-파일 변경 capability는 `context_prepared` 이전에 열리지 않습니다. 필수 context receipt가 무효화되면 다시 준비 상태로 돌아갑니다.
+파일 변경 capability는 `context_injected`와 현재 필수 E3 판정 이전에 열리지 않습니다. 필수 context receipt가 무효화되면 다시 준비 상태로 돌아갑니다.
+
+M2 managed context gate의 세부 상태는 다음과 같습니다.
+
+```text
+awaiting_context
+  -> context_prepared
+  -> context_injected
+  -> write_authorized
+  -> awaiting_context
+
+any telemetry failure -> telemetry_failed
+```
+
+`write_authorized`는 실제 파일 변경이 아닙니다. 현재 generation, 정규화된 대상 상대 경로, 대상 digest와 허가 시점의 실제 before hash에 묶인 1회용 permit가 발급된 상태입니다. 다른 경로, 다른 generation 또는 이미 소비한 permit로 `file.changed`를 기록할 수 없습니다. 변경 뒤 저장소 파일을 안전하게 다시 읽은 실제 after hash도 일치해야 합니다. Role의 `filesystem.write`가 `deny`면 `capability.decided=deny`, `require_approval`이면 검증된 승인 원본이 아직 없으므로 `capability.decided=require_approval`을 기록하고 permit를 발급하지 않습니다.
 
 ## 예시 1: “DD 기능 개발 구현”
 
@@ -129,6 +143,16 @@ E1에는 선택 이유, rule ID, 필수 여부, scope와 정책 version만 있�
 | `publication_document_changed` | 같은 publication ID가 다른 document ID를 가리킵니다. |
 | `publication_content_changed` | Publication의 content hash가 E2와 다릅니다. |
 
+Orchestrator 상태 전이는 다음 runtime reason을 추가합니다.
+
+| reason | 의미 |
+|---|---|
+| `managed_file_changed` | 허가된 파일 변경을 기록해 현재 E3와 permit를 소비했습니다. |
+| `file_change_unverified` | Permit의 before hash, 보고된 after hash와 실제 저장소 상태를 일치시킬 수 없습니다. |
+| `context_compacted` | Provider가 현재 context를 압축했다는 관리 신호를 받았습니다. |
+| `session_restarted` | Managed provider session이 재시작되어 이전 주입을 재사용할 수 없습니다. |
+| `snapshot_validation_failed` | 쓰기 직전 snapshot을 안전하게 판정하지 못해 전체 필수 문서를 보수적으로 무효화했습니다. |
+
 이 슬라이스는 새 event type을 추가하지 않습니다. E1은 기존 `context.selected`, E2는 `document.loaded`, 위 사유는 `context.invalidated`에 대응합니다. Event payload에는 문서 본문을 넣지 않고 ID, hash, byte count, scope, source revision과 기계용 reason만 저장합니다.
 
 잘못된 path/rule, 중복 ID·경로, 다른 수신 Role의 handoff, 등록되지 않은 shared 문서와 유효하지 않은 evidence는 `contract_validation_failed`입니다. 문서 부재·안전하지 않은 경로·읽기 중 변경·handoff hash 불일치와 snapshot 무효화는 `required_context_missing`으로 쓰기 전에 다시 준비합니다. 오류와 event에는 원문 bytes, raw prompt, credential이나 provider payload를 넣지 않습니다.
@@ -179,6 +203,26 @@ Session의 project/run/session/role 좌표는 E2와 같아야 합니다. Writing
 | `artifact_store_required`, `artifact_storage_failed` | `artifact_storage_failed` |
 
 오류에는 문서 ID와 기계용 reason만 포함하며 원문 bytes와 provider payload는 포함하지 않습니다. Adapter 호출 자체가 실패하면 원본 예외를 오류 cause로 보존하지 않고 `required_context_missing`으로 재주입이 필요한 상태를 나타냅니다. Capability matrix가 controlled injection을 `unsupported`로 선언한 경우는 이 포트를 호출하기 전에 orchestrator가 `provider_capability_unsupported`로 차단합니다. 어느 실패에서도 부분 E3 evidence를 반환하지 않습니다.
+
+### Managed context telemetry와 쓰기 gate
+
+Orchestrator는 준비가 성공하면 모든 E1 `context.selected`와 E2 `document.loaded`를 한 transaction에 기록합니다. E3는 검증된 aggregate adapter receipt를 받은 뒤 `context.injected`로 기록합니다. 이 기록이 commit된 뒤에만 메모리 evidence를 전진시킵니다.
+
+| event | 이 슬라이스의 필수 payload |
+|---|---|
+| `context.selected` | `documentId`, `reasonCode`, `ruleId`, `required`, `scope` |
+| `document.loaded` | `documentId`, `contentHash`, `byteCount`, `scope`, `sourceRevision` |
+| `context.injected` | `receiptId`, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration` |
+| `capability.requested` | `capability=filesystem.write`, `targetDigest`, `risk` |
+| `capability.decided` | `capability`, `decision`, `policyRuleId=managed_context_e3`, `approvalId` |
+| `file.changed` | Permit와 실제 저장소 상태로 확인한 `path`, `beforeHash`, `afterHash`, `changeKind` |
+| `context.invalidated` | `documentIds`, 기계용 `reason`, 무효화된 `contextGeneration` |
+
+E1 하나에 선택 이유가 여러 개면 `context.selected`를 이유별로 보존합니다. `context.invalidated.contextGeneration`은 증가하기 전의 무효화 대상 generation이며, event commit 뒤 메모리 generation을 하나 올립니다. Snapshot invalidation reason이 여러 개면 reason별 event를 같은 transaction에 기록하고 generation은 한 번만 올립니다.
+
+Capability 요청과 결정, `file.changed`와 뒤따르는 `context.invalidated`도 각각 한 transaction입니다. 일부 append, event payload redaction 또는 저장 실패가 발생하면 transaction 전체를 되돌리고 `telemetry_failed`로 전환합니다. 이 상태에서는 새 permit를 발급하지 않으며 pending permit와 과거 E3를 사용할 수 없도록 generation을 올립니다. Hub/outbox는 이 로컬 gate의 선행 조건이 아닙니다.
+
+이 event에는 지침 본문, inline context, raw prompt, provider 응답과 credential을 저장하지 않습니다. 상대 경로, ID, hash, byte count, scope, 기계용 reason과 receipt 좌표만 원본 telemetry로 남깁니다. 파일 변경 기록 실패가 이미 일어난 filesystem mutation을 되돌렸다고 주장하지 않으며, run을 중단하고 이후 unmanaged change 탐지 대상이 되게 합니다.
 
 ### 중앙 화면의 표현
 
@@ -378,6 +422,8 @@ Roven은 문서를 세 유형으로 다룹니다.
 | `derived_index_failed` | 명시적 경로와 전문 검색으로 저하 운전합니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |
+| `capability_denied` | Role 또는 프로젝트 정책이 요청한 capability를 거부했습니다. 실행은 읽기 전용으로 계속할 수 있지만 해당 변경은 재시도하지 않습니다. |
+| `approval_required` | 검증된 승인 원본이 없어 변경 capability를 닫고 승인 대기 상태를 유지합니다. |
 | `contract_validation_failed` | project, role, skill, document 또는 adapter 계약이 유효하지 않으므로 run 시작과 변경 capability를 차단합니다. 파일을 수정한 뒤 새 검증으로 다시 시작해야 하며 자동 재시도하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |

@@ -8,7 +8,7 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "build": "pnpm --filter @roven/schemas build && pnpm --filter @roven/event-contract build && pnpm --filter @roven/storage-contract build && pnpm --filter @roven/core build && pnpm --filter @roven/context build && pnpm --filter @roven/adapter-contract build && pnpm --filter @roven/context-delivery build && pnpm --filter @roven/project build && pnpm --filter @roven/event-store-sqlite build && pnpm --filter @roven/cas build && pnpm --filter @roven/project-storage build && pnpm --filter @roven/cli build",
+    "build": "pnpm --filter @roven/schemas build && pnpm --filter @roven/event-contract build && pnpm --filter @roven/storage-contract build && pnpm --filter @roven/core build && pnpm --filter @roven/context build && pnpm --filter @roven/adapter-contract build && pnpm --filter @roven/context-delivery build && pnpm --filter @roven/orchestrator build && pnpm --filter @roven/project build && pnpm --filter @roven/event-store-sqlite build && pnpm --filter @roven/cas build && pnpm --filter @roven/project-storage build && pnpm --filter @roven/cli build",
     "check": "pnpm typecheck && pnpm test && pnpm build && pnpm docs:check",
     "docs:check": "node scripts/check-docs.mjs",
     "roven": "node apps/cli/dist/bin.js",

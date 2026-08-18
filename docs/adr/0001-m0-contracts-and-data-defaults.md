@@ -90,6 +90,8 @@ Role의 sensitive input 표시는 실제 값이 아니라 redaction 요구 metad
 | `derived_index_failed` | 명시적 경로로 계속 | 허용 | 가능 |
 | `required_context_missing` | context 준비 전 중단 | 거부 | 가능 |
 | `provider_capability_unsupported` | 정책이 낮은 assurance를 허용하지 않으면 중단 | 거부 | 불가 |
+| `capability_denied` | 읽기 전용으로 계속 가능 | 거부 | 불가 |
+| `approval_required` | 승인 대기 | 거부 | 승인 후 가능 |
 | `contract_validation_failed` | 시작 전 중단 | 거부 | 자동 재시도 불가 |
 | `writing_verification_failed` | 로컬 변경을 유지하고 공개 전 중단 | 허용 | 수정 후 가능 |
 | `artifact_storage_failed` | 필수 artifact 저장 또는 검증 실패 시 중단 | 거부 | 가능 |

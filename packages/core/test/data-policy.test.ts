@@ -47,6 +47,19 @@ describe("M0 data policy and failure semantics", () => {
     });
   });
 
+  it("keeps policy denials and pending approvals read-only", () => {
+    expect(failureDispositions.capability_denied).toEqual({
+      continueLocalRun: true,
+      allowMutation: false,
+      retryable: false,
+    });
+    expect(failureDispositions.approval_required).toEqual({
+      continueLocalRun: true,
+      allowMutation: false,
+      retryable: true,
+    });
+  });
+
   it("blocks publication when human-readable output fails its writing contract", () => {
     expect(failureDispositions.writing_verification_failed).toEqual({
       continueLocalRun: false,

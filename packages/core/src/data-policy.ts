@@ -33,6 +33,16 @@ export const failureDispositions = {
     allowMutation: false,
     retryable: false,
   },
+  capability_denied: {
+    continueLocalRun: true,
+    allowMutation: false,
+    retryable: false,
+  },
+  approval_required: {
+    continueLocalRun: true,
+    allowMutation: false,
+    retryable: true,
+  },
   contract_validation_failed: {
     continueLocalRun: false,
     allowMutation: false,

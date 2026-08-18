@@ -83,7 +83,7 @@
 - 문서 변경 후 오래된 receipt 재사용 불가
 - trace에 선택 이유, 정책 버전, hash, invalidation 표시
 
-구현 현황(2026-08-18): **Context preparation과 provider-neutral delivery 수직 슬라이스 완료.** `@roven/context`가 E0/E1 선택, 안전한 전체 bytes 읽기와 E2 체인 무결성을 소유합니다. `@roven/context-delivery`는 주입 직전 snapshot을 검증하고 교체 가능한 delivery policy와 좁은 artifact port로 inline/CAS envelope를 조립합니다. Writing policy는 ID·document ID·E2 hash와 schema-valid JSON 원문을 결속합니다. `@roven/adapter-contract`의 공통 의미 판정으로 시간, Role/writing policy, turn, provider session, generation과 정확한 문서 집합을 대조한 뒤에만 E3를 만듭니다. 실제 `FileSystemCas`, 정책 오연결, 과거 envelope, adapter 실패 원자성, 누락·변조·다른 session·이전 generation을 fixture로 검증했습니다. 실제 compaction 신호와 Codex/Claude 실행은 M3에 남습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md)과 [ADR-0007](./docs/adr/0007-provider-neutral-context-delivery.md)에 기록했습니다.
+구현 현황(2026-08-18): **M2 완료.** `@roven/context`가 E0/E1 선택, 안전한 전체 bytes 읽기와 E2 체인 무결성을 소유하고 `@roven/context-delivery`가 writing policy까지 결속한 provider-neutral E3를 만듭니다. `@roven/orchestrator`는 E1/E2/E3를 append-only event store에 원자적으로 기록하고, Role의 파일 쓰기 정책·현재 generation·필수 문서 E3를 경로별 1회용 permit에 연결합니다. 쓰기 직전 snapshot 변경, managed file change, compaction/restart와 telemetry transaction 실패가 capability를 닫는 전이를 실제 SQLite fixture로 검증했습니다. 실제 provider 신호 수집과 Codex/Claude 실행은 M3에 남습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md), [ADR-0007](./docs/adr/0007-provider-neutral-context-delivery.md), [ADR-0008](./docs/adr/0008-managed-context-gate-orchestration.md)에 기록했습니다.
 
 ### M3: 공급자 어댑터
 
@@ -174,6 +174,7 @@ packages/
   event-store-sqlite/
   context/
   context-delivery/
+  orchestrator/
   policy/
   adapter-contract/
   adapter-codex/
@@ -223,4 +224,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M2 managed context gate orchestration 슬라이스**입니다. Context preparation과 delivery에서 나온 E1/E2/E3를 append-only event store에 기록하고, 현재 generation과 필수 문서 집합을 `evaluateWriteContext`에 연결해 첫 파일 쓰기 전에 gate를 엽니다. 파일 변경, compaction/restart 또는 telemetry 기록 실패 시 E3를 무효화하고 변경 capability를 닫는 상태 전이를 fixture run으로 검증합니다. 실제 Codex/Claude 프로세스 실행과 compaction 신호 수집은 M3에 남깁니다.
+다음 구현 작업은 **M3 Codex managed adapter 첫 슬라이스**입니다. 공통 adapter contract 뒤에서 Codex process/session을 시작·종료하고 provider event를 중단 가능한 stream으로 정규화합니다. Controlled context injection과 실제 compaction/restart 신호를 `@roven/orchestrator`의 generation 전이에 연결하며, 지원하지 않거나 관측할 수 없는 telemetry는 `unknown/unsupported` 또는 `unmanaged`로 남깁니다. Claude adapter를 만들기 전에 같은 contract fixture로 Codex 경계와 실패 의미를 고정합니다.

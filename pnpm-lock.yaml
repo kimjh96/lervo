@@ -88,6 +88,31 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
+  packages/orchestrator:
+    dependencies:
+      '@roven/context':
+        specifier: workspace:*
+        version: link:../context
+      '@roven/context-delivery':
+        specifier: workspace:*
+        version: link:../context-delivery
+      '@roven/core':
+        specifier: workspace:*
+        version: link:../core
+      '@roven/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@roven/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+    devDependencies:
+      '@roven/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+
   packages/project:
     dependencies:
       '@roven/schemas':
