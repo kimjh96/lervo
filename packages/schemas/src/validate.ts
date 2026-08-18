@@ -2,6 +2,7 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 
 import { adapterContractMessageSchema } from "./adapter.js";
 import { contextEvidenceSchema } from "./context-evidence.js";
+import { documentManifestSchema } from "./document-manifest.js";
 import { documentRegistrySchema } from "./document-registry.js";
 import { eventEnvelopeSchema } from "./event.js";
 import { projectManifestSchema } from "./project.js";
@@ -30,6 +31,7 @@ const validators = {
   skill: ajv.compile(skillManifestSchema),
   skillLock: ajv.compile(skillLockSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
+  documentManifest: ajv.compile(documentManifestSchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
 } satisfies Record<string, ValidateFunction>;

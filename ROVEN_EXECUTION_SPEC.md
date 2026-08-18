@@ -14,11 +14,11 @@
 첫 슬라이스가 관리하는 경로는 다음과 같습니다.
 
 - `.roven/project.yaml`: stable project id, 생성 시각과 로컬 우선 데이터 기본값
-- `.roven/documents.yaml`: schema-valid 빈 문서 registry
+- `.roven/documents/`: document ID별 sidecar manifest를 둘 빈 디렉터리
 - `.roven/.gitignore`: `state/` 제외 규칙
 - `.roven/generated/`, `.roven/state/`, `.roven/knowledge/`: 이후 단계가 사용할 로컬 디렉터리
 
-기존 project/document 설정은 YAML 구문과 현재 JSON Schema를 통과할 때만 그대로 사용합니다. 일반 파일이 아닌 항목과 심볼릭 링크는 따라가지 않습니다. 충돌이 하나라도 있거나 계획을 만든 뒤 대상이 바뀌면 아무 파일도 만들기 전에 적용을 중단합니다. `README.md`, `AGENTS.md`, `CLAUDE.md`를 포함한 사용자 파일은 이 단계에서 수정하지 않습니다.
+기존 project/document 설정은 YAML 구문과 현재 JSON Schema를 통과할 때만 그대로 사용합니다. 새 형식은 `.roven/documents/<documentId>.yaml`을 각각 최대 64 KiB로 읽고 파일명과 ID, 대상 경로 소유권과 문서 관계를 검증합니다. 기존 `.roven/documents.yaml`이 단독으로 있으면 byte를 유지하고 읽기 호환만 제공하며 새 디렉터리와 함께 있으면 충돌로 중단합니다. 일반 파일이 아닌 항목과 심볼릭 링크는 따라가지 않습니다. 충돌이 하나라도 있거나 계획을 만든 뒤 대상이 바뀌면 아무 파일도 만들기 전에 적용을 중단합니다. `README.md`, `AGENTS.md`, `CLAUDE.md`를 포함한 사용자 파일은 이 단계에서 수정하지 않습니다.
 
 ## 로컬 storage 개방
 
@@ -433,7 +433,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 - shared context publication: 등록 문서와 hash, 생산 역할/run/session, 접근 범위, 민감도, 근거와 만료
 - handoff bundle: 보내고 받는 역할, 생산 context generation, 요청 digest, shared context와 evidence 좌표
 - skill manifest: 출처·publisher·version/hash, 역할, provider/runtime/tool 호환성, capability, 입출력 schema, trust와 enabled scope
-- document registry: 상대 경로, 책임자, 연결 경로, 검증 revision/date, review interval, 사용자/managed block/Roven 생성 파일 소유권
+- document manifest/legacy registry: 상대 경로, 책임자, 연결 경로, 검증 revision/date, review interval, 사용자/managed block/Roven 생성 파일 소유권과 분할 정책
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -492,6 +492,8 @@ Roven은 문서를 세 유형으로 다룹니다.
 - `observed`: Roven이 소유하지 않지만 수명주기를 점검하는 기존 문서
 
 `AGENTS.md`를 공통 canonical 진입점으로 쓰고 `CLAUDE.md`에는 해당 지침을 연결하는 얇은 호환 블록을 둘 수 있습니다. 프로젝트가 반대 방향을 선택해도 manifest에 명시하면 됩니다.
+
+새 문서 metadata는 `.roven/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Roven이 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Roven 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. 현재 loader는 marker 문자열까지 검증하지만 CommonMark 구조와 block 교체는 아직 구현하지 않았으므로 자동 수정 증거를 만들지 않습니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 정의합니다.
 
 노후화 판정 신호:
 

@@ -3,6 +3,7 @@ export * from "./common.js";
 export * from "./context-evidence.js";
 export * from "./context-semantics.js";
 export * from "./document-registry.js";
+export * from "./document-manifest.js";
 export * from "./event.js";
 export * from "./project.js";
 export * from "./role.js";

@@ -12,7 +12,7 @@
 포함:
 
 - TypeScript/Node.js monorepo와 CLI
-- `.roven/project.yaml`, policy 및 document registry schema
+- `.roven/project.yaml`, policy 및 분할 document manifest schema
 - SQLite event store, CAS, outbox interface
 - deterministic context router와 문서 E0~E3 receipt
 - 전문 에이전트가 함께 읽는 shared context publication과 역할 간 handoff bundle
@@ -105,7 +105,7 @@
 
 - 로컬/사용자/외부 스킬 discovery와 충돌 해석
 - `skills.lock`, trust/compatibility 판정, invocation event
-- document registry, managed block compiler, stale detector
+- 분할 document manifest, managed block compiler, stale detector
 - 자동 수정 patch/candidate 생성
 
 완료 조건:
@@ -116,6 +116,8 @@
 - managed block 밖 사용자 내용 무변경
 
 구현 현황(2026-08-19): **스킬 discovery와 lock 첫 슬라이스 완료.** `@roven/skills`가 요청된 프로젝트·사용자 후보의 패키지 전체 hash를 확인하고 pinned project, project, user 순서와 version으로 선택합니다. Provider, Role, runtime, platform, 도구와 허용 capability를 보수적으로 판정하며 선택과 탈락 사유를 독립 schema의 `.roven/skills.lock`에 원자적으로 기록합니다. `roven run --skill`은 `skill.resolved`를 실행 시작 event와 같은 transaction에 남기되 URI와 publisher 정보는 event에 넣지 않습니다. Provider에 실제 스킬을 호출하는 경로는 아직 없으므로 `skill.invoked`나 사용을 주장하지 않습니다. 원본 스킬과 유효하지 않은 기존 lock을 byte 단위로 보존하는 fixture를 포함합니다. 결정은 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 기록했습니다.
+
+구현 현황(2026-08-19): **분할 document manifest와 누적 금지 계약 완료.** 새 init은 중앙 `documents.yaml` 대신 빈 `.roven/documents/`를 만들고 document ID별 최대 64 KiB sidecar를 결정적으로 조립합니다. 사용자·managed block·Roven 전용 문서의 쓰기 범위, 크기, separate history와 topic split을 schema로 고정했습니다. 파일명/ID, 표준 marker, 관계, 대상 경로의 단일 소유권과 심볼릭 링크를 loader가 거부합니다. 기존 단일 registry는 자동 migration 없이 byte를 보존하고 읽기 호환만 제공합니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록했습니다.
 
 ### M5: 검증과 지식 후보
 
@@ -214,8 +216,9 @@ fixtures/
 - provider context compaction 탐지 가능 범위와 보수적 fallback
 - Git worktree별 Node/state 격리 규칙
 - event payload 기본 보존 기간과 원문 artifact 암호화
+- 단일 `events.sqlite`를 대체할 크기/시간 segment와 segment 간 hash 연결
 - 사용자 전역 스킬과 프로젝트 고정 스킬의 최종 우선순위
-- managed block 문법과 Markdown parser 선택
+- CommonMark parser와 managed block byte 보존 교체 알고리즘
 
 ## v0 이후 순서
 
@@ -228,4 +231,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 문서 수명주기의 stale detector 첫 슬라이스**입니다. `documents.yaml`의 `paths`, `verifiedRevision`, `verifiedAt`과 `reviewIntervalDays`를 현재 저장소 상태와 비교해 노후화 사유를 결정적으로 만들고 `document.stale.detected`에 비밀 없는 최소 근거만 남겨야 합니다. 이 단계에서는 문서를 자동 수정하지 않으며 사용자 작성 영역과 managed block 밖의 byte를 그대로 보존합니다.
+다음 구현 작업은 **M4 managed block parser와 byte 보존 compiler 첫 슬라이스**입니다. CommonMark 구조에서 code fence 안의 marker를 제외하고 표준 marker의 유일성·순서·비중첩을 확인해야 합니다. 교체 전 block hash와 전체 파일 snapshot을 다시 확인하고 block 밖 byte와 줄바꿈을 그대로 유지해야 합니다. 8 KiB를 넘는 결과는 쓰지 않고 새 topic document와 link candidate로 분리합니다. 실제 적용은 아직 하지 않고 patch candidate만 생성합니다.

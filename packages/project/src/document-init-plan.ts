@@ -1,0 +1,75 @@
+import { resolve } from "node:path";
+
+import type { DocumentRegistry } from "@roven/schemas";
+
+import { parseAndValidateYaml } from "./config.js";
+import { loadDocumentManifests } from "./document-storage.js";
+import { contentHash, readEntry } from "./filesystem.js";
+import { rovenRelativePaths } from "./layout.js";
+import type { InitOperation } from "./types.js";
+
+export async function planDocumentStorage(root: string): Promise<InitOperation[]> {
+  const documentsPath = rovenRelativePaths.documents;
+  const legacyPath = rovenRelativePaths.legacyDocumentRegistry;
+  const documentsEntry = await readEntry(resolve(root, documentsPath));
+  const legacyEntry = await readEntry(resolve(root, legacyPath));
+
+  if (documentsEntry.kind === "missing" && legacyEntry.kind === "missing") {
+    return [{ kind: "directory", path: documentsPath, action: "create" }];
+  }
+  if (documentsEntry.kind === "directory" && legacyEntry.kind === "missing") {
+    try {
+      await loadDocumentManifests(root);
+      return [{ kind: "directory", path: documentsPath, action: "unchanged" }];
+    } catch (error) {
+      return [{
+        kind: "directory",
+        path: documentsPath,
+        action: "conflict",
+        reason: error instanceof Error ? error.message : String(error),
+      }];
+    }
+  }
+  if (documentsEntry.kind === "missing" && legacyEntry.kind === "file") {
+    try {
+      parseAndValidateYaml<DocumentRegistry>("documentRegistry", legacyEntry.content);
+      return [{
+        kind: "file",
+        path: legacyPath,
+        action: "unchanged",
+        expectedContentHash: contentHash(legacyEntry.content),
+      }];
+    } catch (error) {
+      return [{
+        kind: "file",
+        path: legacyPath,
+        action: "conflict",
+        reason: error instanceof Error ? error.message : String(error),
+      }];
+    }
+  }
+
+  let documentsOperation: InitOperation;
+  if (documentsEntry.kind === "missing") {
+    documentsOperation = { kind: "directory", path: documentsPath, action: "create" };
+  } else if (documentsEntry.kind === "directory") {
+    documentsOperation = { kind: "directory", path: documentsPath, action: "unchanged" };
+  } else {
+    documentsOperation = {
+      kind: "directory",
+      path: documentsPath,
+      action: "conflict",
+      reason: `${documentsPath}은 실제 디렉터리여야 합니다. 기존 항목은 수정하지 않았습니다.`,
+    };
+  }
+  const operations: InitOperation[] = [documentsOperation];
+  if (legacyEntry.kind !== "missing") {
+    operations.push({
+      kind: "file",
+      path: legacyPath,
+      action: "conflict",
+      reason: `${documentsPath}와 ${legacyPath}을 함께 사용하지 않습니다. 기존 항목은 수정하지 않았습니다.`,
+    });
+  }
+  return operations;
+}

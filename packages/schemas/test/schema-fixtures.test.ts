@@ -16,6 +16,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-m0-governance.json`,
     `${name}-shared-context.json`,
     `${name}-writing.json`,
+    `${name}-document-format.json`,
   ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);
     return JSON.parse(readFileSync(fixtureUrl, "utf8")) as Fixture[];

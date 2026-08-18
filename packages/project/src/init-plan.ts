@@ -1,13 +1,13 @@
 import { resolve } from "node:path";
 
-import type { DocumentRegistry, ProjectManifest } from "@roven/schemas";
+import type { ProjectManifest } from "@roven/schemas";
 
 import {
-  createDefaultDocumentRegistry,
   createDefaultManifest,
   parseAndValidateYaml,
   serializeYaml,
 } from "./config.js";
+import { planDocumentStorage } from "./document-init-plan.js";
 import { contentHash, readEntry } from "./filesystem.js";
 import { rovenRelativePaths } from "./layout.js";
 import {
@@ -127,14 +127,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
   }
 
   operations.push(
-    await planManagedFile({
-      root,
-      path: rovenRelativePaths.documentRegistry,
-      desiredContent: serializeYaml(createDefaultDocumentRegistry()),
-      validateExisting: (content) => {
-        parseAndValidateYaml<DocumentRegistry>("documentRegistry", content);
-      },
-    }),
+    ...await planDocumentStorage(root),
     await planManagedFile({
       root,
       path: rovenRelativePaths.gitignore,

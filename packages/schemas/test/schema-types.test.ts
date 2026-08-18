@@ -2,6 +2,7 @@ import type {
   CapabilityDecision,
   DocumentRecord,
   DocumentRegistry,
+  DocumentManifest,
   HandoffBundle,
   RoleProfile,
   SharedContextPublication,
@@ -28,6 +29,17 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<DocumentRegistry["documents"]>().toMatchTypeOf<
       Record<string, DocumentRecord>
     >();
+  });
+
+  it("keeps document ownership and bounded content policy aligned", () => {
+    type GeneratedManifest = DocumentManifest & {
+      record: { ownership: { mode: "roven_generated" } };
+      contentPolicy: { mode: "roven_generated" };
+    };
+    expectTypeOf<GeneratedManifest["contentPolicy"]["historyMode"]>()
+      .toEqualTypeOf<"separate_documents">();
+    expectTypeOf<GeneratedManifest["contentPolicy"]["maxDocumentBytes"]>()
+      .toEqualTypeOf<65536>();
   });
 
   it("keeps shared context provenance and handoff coordinates explicit", () => {

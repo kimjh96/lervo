@@ -22,12 +22,13 @@
 
 ### 첫 슬라이스의 소유 범위
 
-- `.roven/project.yaml`과 `.roven/documents.yaml`은 현재 JSON Schema를 통과하는 내용만 만들거나 읽는다.
+- `.roven/project.yaml`과 당시의 `.roven/documents.yaml`은 현재 JSON Schema를 통과하는 내용만 만들거나 읽는다.
 - `.roven/.gitignore`는 새 파일일 때만 `state/` 규칙을 쓴다. 기존 파일은 수정하지 않는다.
 - `.roven/generated/`, `.roven/state/`, `.roven/knowledge/` 디렉터리를 준비한다.
 - 아직 독립 계약이 없는 `policy.yaml`과 `skills.lock`은 만들지 않는다.
 
 후속 결정: [ADR-0016](./0016-local-skill-resolution-and-lock.md)에서 `skills.lock` 계약을 추가했습니다. Lock은 provider·Role·runtime별 해석 결과이므로 init은 여전히 빈 lock을 만들지 않고 첫 스킬 해석이 기록을 소유합니다.
+후속 결정: [ADR-0017](./0017-sharded-document-manifests.md)에서 새 init의 문서 저장소를 빈 `.roven/documents/`와 문서별 sidecar manifest로 바꿨습니다. 기존 단일 registry는 자동 migration하지 않고 단독일 때만 읽습니다.
 - 저장소 루트의 `README.md`, `AGENTS.md`, `CLAUDE.md`와 다른 사용자 파일은 읽거나 수정하지 않는다.
 
 ### 기존 상태와 충돌

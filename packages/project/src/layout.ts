@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 export const rovenRelativePaths = {
   root: ".roven",
   projectManifest: ".roven/project.yaml",
-  documentRegistry: ".roven/documents.yaml",
+  documents: ".roven/documents",
+  legacyDocumentRegistry: ".roven/documents.yaml",
   gitignore: ".roven/.gitignore",
   generated: ".roven/generated",
   state: ".roven/state",
@@ -17,7 +18,8 @@ export interface RovenProjectPaths {
   repositoryRoot: string;
   rovenRoot: string;
   projectManifest: string;
-  documentRegistry: string;
+  documents: string;
+  legacyDocumentRegistry: string;
   gitignore: string;
   generated: string;
   state: string;
@@ -33,7 +35,8 @@ export function resolveProjectPaths(root: string): RovenProjectPaths {
     repositoryRoot,
     rovenRoot: resolve(repositoryRoot, rovenRelativePaths.root),
     projectManifest: resolve(repositoryRoot, rovenRelativePaths.projectManifest),
-    documentRegistry: resolve(repositoryRoot, rovenRelativePaths.documentRegistry),
+    documents: resolve(repositoryRoot, rovenRelativePaths.documents),
+    legacyDocumentRegistry: resolve(repositoryRoot, rovenRelativePaths.legacyDocumentRegistry),
     gitignore: resolve(repositoryRoot, rovenRelativePaths.gitignore),
     generated: resolve(repositoryRoot, rovenRelativePaths.generated),
     state: resolve(repositoryRoot, rovenRelativePaths.state),

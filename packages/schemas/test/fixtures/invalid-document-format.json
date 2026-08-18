@@ -1,0 +1,82 @@
+[
+  {
+    "name": "generated document cannot request append history",
+    "schema": "documentManifest",
+    "value": {
+      "schemaVersion": 1,
+      "documentId": "doc_generated_0001",
+      "record": {
+        "path": ".roven/generated/documents/project-context.md",
+        "kind": "generated",
+        "responsibleParty": { "kind": "roven", "id": "document-compiler" },
+        "connectedPaths": ["src"],
+        "verifiedRevision": "git:fixture",
+        "verifiedAt": "2026-08-19T00:00:00Z",
+        "reviewIntervalDays": 7,
+        "ownership": {
+          "mode": "roven_generated",
+          "userContentAllowed": false,
+          "manifestPath": ".roven/generated/manifests/doc_generated_0001.json",
+          "inputs": [{
+            "sourceId": "project-policy",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }]
+        }
+      },
+      "contentPolicy": {
+        "mode": "roven_generated",
+        "mediaType": "text/markdown; charset=utf-8",
+        "profileId": "project-context.ko-KR/v1",
+        "locale": "ko-KR",
+        "audience": "human",
+        "metadataPlacement": "sidecar",
+        "historyMode": "append_to_document",
+        "splitStrategy": "topic_documents",
+        "writeScope": "full_document_if_unmodified",
+        "maxDocumentBytes": 65536,
+        "maxTopLevelSections": 12,
+        "overflowAction": "split_and_link"
+      },
+      "relations": {
+        "supersedesDocumentIds": [],
+        "relatedDocumentIds": []
+      }
+    }
+  },
+  {
+    "name": "user-owned document cannot use automatic generated policy",
+    "schema": "documentManifest",
+    "value": {
+      "schemaVersion": 1,
+      "documentId": "doc_user_00000001",
+      "record": {
+        "path": "README.md",
+        "kind": "canonical",
+        "responsibleParty": { "kind": "user", "id": "owner" },
+        "connectedPaths": ["src"],
+        "verifiedRevision": "git:fixture",
+        "verifiedAt": "2026-08-19T00:00:00Z",
+        "reviewIntervalDays": 30,
+        "ownership": { "mode": "user" }
+      },
+      "contentPolicy": {
+        "mode": "roven_generated",
+        "mediaType": "text/markdown; charset=utf-8",
+        "profileId": "project-context.ko-KR/v1",
+        "locale": "ko-KR",
+        "audience": "human",
+        "metadataPlacement": "sidecar",
+        "historyMode": "separate_documents",
+        "splitStrategy": "topic_documents",
+        "writeScope": "full_document_if_unmodified",
+        "maxDocumentBytes": 65536,
+        "maxTopLevelSections": 12,
+        "overflowAction": "split_and_link"
+      },
+      "relations": {
+        "supersedesDocumentIds": [],
+        "relatedDocumentIds": []
+      }
+    }
+  }
+]

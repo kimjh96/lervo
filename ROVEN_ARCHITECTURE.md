@@ -62,7 +62,7 @@ flowchart LR
 .roven/
   project.yaml             # 안정적인 project id와 로컬 설정
   policy.yaml              # 역할, 도구, 승인, 필수 컨텍스트 정책
-  documents.yaml           # 관리 문서 수명주기 레지스트리
+  documents/               # document ID별 수명주기 sidecar manifest
   skills.lock              # 해석된 스킬 버전과 해시
   generated/               # provider별 생성 원본과 manifest
   state/                   # gitignore 대상: SQLite, CAS, outbox, lock
@@ -71,7 +71,7 @@ flowchart LR
 
 기존 프로젝트 구조를 강제로 이동하지 않습니다. 문서와 스킬 위치는 manifest에서 연결할 수 있습니다.
 
-M1 첫 슬라이스는 검증 계약이 있는 `project.yaml`, 빈 `documents.yaml`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 이제 독립 계약이 있지만 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.roven`은 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
+새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서별 manifest 파일이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.roven`은 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
 
 ### Project Storage Bootstrap
 
@@ -232,11 +232,11 @@ M4 첫 슬라이스의 `@roven/skills`는 명시적으로 요청한 ID만 프로
 
 ### Document Lifecycle
 
-`AGENTS.md`, `CLAUDE.md`, `README.md`를 포함한 관리 문서는 `documents.yaml`에 등록합니다. 각 항목은 책임자, 검증 revision/date, 연결 경로, review interval, 생성 정책을 가집니다.
+`AGENTS.md`, `CLAUDE.md`, `README.md`를 포함한 관리 문서는 `.roven/documents/<documentId>.yaml` sidecar에 각각 등록합니다. 각 manifest는 책임자, 검증 revision/date, 연결 경로, review interval, 생성 정책과 문서 관계를 가집니다. 별도 중앙 index 없이 디렉터리를 결정적 순서로 읽어 기존 in-memory registry를 조립합니다.
 
 자동 생성 시 managed block marker와 생성 입력 hash를 사용합니다. Roven은 블록 밖의 사용자 내용을 보존하며 다음 경우 PR/patch 후보를 만듭니다.
 
-M0 document registry는 document id를 key로 사용하고 소유권을 `user`, `managed_blocks`, `roven_generated`로 분리합니다. `managed_blocks`는 블록 밖을 항상 `preserve`하며, `roven_generated`는 사용자 내용이 없는 Roven 전용 파일에만 사용할 수 있습니다. 실제 marker 문법과 Markdown parser는 M4 전 ADR에서 별도로 확정합니다.
+Document manifest는 소유권을 `user`, `managed_blocks`, `roven_generated`로 분리합니다. 기계 metadata는 Markdown front matter가 아니라 sidecar에만 둡니다. 사용자 문서는 자동으로 쓰지 않고 32 KiB부터 분할을 권고합니다. Managed block은 8 KiB, Roven 전용 문서는 64 KiB와 최상위 section 12개로 제한하며 넘는 내용은 새 topic document로 분리하고 관계로 연결합니다. Marker 문자열, manifest filename/ID, 대상 경로의 단일 소유권과 문서 관계는 loader가 검증합니다. Code fence와 중첩을 판정하는 실제 Markdown parser는 다음 compiler 슬라이스에 남아 있으므로 아직 block을 수정하지 않습니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록합니다.
 
 - 연결 경로가 검증 revision 이후 변경됨
 - review interval 초과

@@ -79,7 +79,7 @@ const rovenGeneratedOwnershipSchema = {
   additionalProperties: false,
 } as const;
 
-const documentRecordSchema = {
+export const documentRecordSchema = {
   type: "object",
   properties: {
     path: repositoryRelativePathSchema,

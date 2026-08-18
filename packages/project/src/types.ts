@@ -34,6 +34,7 @@ export interface CreateInitPlanOptions {
 
 export type ProjectErrorCode =
   | "contract_invalid"
+  | "document_layout_conflict"
   | "init_conflict"
   | "invalid_yaml"
   | "not_initialized"
