@@ -28,6 +28,7 @@ export class ManagedContextState {
   private requiredDocumentsValue: RequiredContextDocument[] = [];
   private activePermit: FileWritePermit | undefined;
   private injectedProviderValue: string | undefined;
+  private injectedProviderSessionIdValue: string | undefined;
   private writePolicyValue: CapabilityDecision | undefined;
   private lastEventAt = Number.NEGATIVE_INFINITY;
 
@@ -49,6 +50,10 @@ export class ManagedContextState {
 
   get injectedProvider(): string | undefined {
     return this.injectedProviderValue;
+  }
+
+  get injectedProviderSessionId(): string | undefined {
+    return this.injectedProviderSessionIdValue;
   }
 
   get writePolicy(): CapabilityDecision | undefined {
@@ -133,6 +138,7 @@ export class ManagedContextState {
       }));
     this.activePermit = undefined;
     this.injectedProviderValue = undefined;
+    this.injectedProviderSessionIdValue = undefined;
     this.writePolicyValue = writePolicy;
     this.phaseValue = "context_prepared";
     this.observeEvent(snapshot.loadedAt);
@@ -141,6 +147,7 @@ export class ManagedContextState {
   setInjected(injected: InjectedContext): void {
     this.evidence = [...copy(injected.evidence)];
     this.injectedProviderValue = injected.receipt.provider;
+    this.injectedProviderSessionIdValue = injected.receipt.providerSessionId;
     this.phaseValue = "context_injected";
     this.observeEvent(injected.receipt.acceptedAt);
   }

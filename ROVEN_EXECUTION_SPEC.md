@@ -251,6 +251,31 @@ Capability 요청과 결정, `file.changed`와 뒤따르는 `context.invalidated
 
 공급자별로 얻을 수 있는 telemetry가 다르면 capability matrix에 공개합니다. 지원하지 않는 증거를 추정해서 채우지 않습니다.
 
+### Codex app-server 첫 슬라이스
+
+Codex adapter는 session마다 app-server stdio process 하나를 시작합니다. `initialize`와 `initialized` handshake 뒤 `thread/start` 응답의 thread ID를 provider session ID로 사용합니다. Context envelope의 inline/CAS bytes를 다시 읽어 byte count와 SHA-256을 확인하고, UTF-8로 손실 없이 변환되는 문서만 `thread/inject_items`의 developer message로 전달합니다. App-server가 성공 응답을 보낸 뒤에만 `controlledInput=true` receipt를 만들며, 같은 target turn의 receipt 후보가 없으면 `turn/start`를 호출하지 않습니다.
+
+Adapter normalized signal은 Roven append-only event가 아닙니다. 이름과 필수 payload는 다음과 같습니다.
+
+| signal | 필수 payload |
+|---|---|
+| `provider.session.started` | `adapterVersion` |
+| `provider.session.restarted` | `reason` |
+| `provider.session.stopped` | `status`이며 원인을 알 수 없으면 `unknown` |
+| `provider.context.compacted` | `providerTurnId`, `providerItemId` |
+| `provider.turn.started` | `providerTurnId` |
+| `provider.turn.completed` | `providerTurnId`, `status`, `durationMs` |
+| `provider.turn.failed` | `providerTurnId`, `failureCode`, `diagnosticDigest` |
+| `provider.tool.called` | `providerItemId`, `toolName`, `inputDigest`, `status`, `durationMs` |
+| `provider.command.executed` | `providerItemId`, `commandDigest`, 저장소 상대 `cwdRelative`, `status`, `exitCode`, `outputDigest`, `durationMs` |
+| `provider.file_change.reported` | `providerItemId`, 저장소 상대 `paths`, `changeKinds`, `status`, `diffDigest` |
+| `provider.usage.updated` | `providerTurnId`, token count들과 `contextWindow` |
+| `provider.error` | `failureCode`, `diagnosticDigest`, `retryable` |
+
+`provider.context.compacted`와 `provider.session.restarted`만 현재 generation 무효화 입력입니다. Orchestrator는 project/run/session/provider session 좌표를 확인하고, 처리 시각으로 `context.invalidated`를 기록한 뒤 generation을 올립니다. 이미 `awaiting_context`가 된 동일 신호는 다시 generation을 올리지 않습니다. `provider.file_change.reported`는 변경 후보일 뿐이며, 기존 permit와 실제 before/after bytes를 확인하는 별도 경로를 통과해야 `file.changed`가 됩니다.
+
+Raw task instructions와 context 원문은 로컬 app-server 입력에만 존재합니다. Normalized signal과 event store에는 raw prompt, 문서 본문, command, output, tool arguments, diff, 절대 경로와 provider 오류 본문을 넣지 않습니다. Protocol 오류는 `provider_protocol_failed`, process 종료는 `provider_process_failed`, 문서 bytes/hash/UTF-8 불일치는 `context_materialization_failed`로 adapter 호출을 실패시킵니다. 승인 요청과 동적 client tool 요청은 Policy Engine 연결 전에는 app-server transport에서 실행하지 않고 fail-closed로 거부합니다. Session resume도 공통 실행 계약이 생기기 전에는 capability matrix에서 `unsupported`입니다.
+
 ## 별도로 실행한 코딩 에이전트
 
 별도 Codex/Claude 프로세스가 파일을 수정하는 것 자체를 금지하지 않습니다. 다만 `roven run` 또는 등록된 hook/plugin을 거치지 않으면 Roven은 그 프로세스의 컨텍스트 주입과 도구 호출을 증명할 수 없습니다.

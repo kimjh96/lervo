@@ -1,0 +1,235 @@
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { createInterface } from "node:readline";
+
+import { AsyncQueue } from "./async-queue.js";
+import {
+  CodexAdapterError,
+  type CodexAppServerClient,
+  type CodexThread,
+  type CodexThreadStartOptions,
+  type CodexTurn,
+} from "./types.js";
+
+interface PendingRequest {
+  resolve(value: unknown): void;
+  reject(error: Error): void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
+export interface StdioClientOptions {
+  executable: string;
+  commandArguments?: readonly string[];
+  cwd: string;
+  requestTimeoutMs: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function requiredRecord(value: unknown): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new CodexAdapterError("provider_protocol_failed", "Codex 응답 형식이 올바르지 않습니다.");
+  }
+  return value;
+}
+
+function requiredString(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new CodexAdapterError("provider_protocol_failed", "Codex 응답 식별자가 없습니다.");
+  }
+  return value;
+}
+
+export class CodexStdioAppServerClient implements CodexAppServerClient {
+  private readonly notificationsQueue = new AsyncQueue<unknown>();
+  private readonly pending = new Map<number, PendingRequest>();
+  private nextRequestId = 1;
+  private closed = false;
+  private exited = false;
+
+  private constructor(
+    private readonly process: ChildProcessWithoutNullStreams,
+    private readonly requestTimeoutMs: number,
+  ) {
+    process.stderr.resume();
+    const lines = createInterface({ input: process.stdout, crlfDelay: Infinity });
+    lines.on("line", (line) => this.receiveLine(line));
+    process.once("error", () => this.failProcess(false));
+    process.once("exit", () => this.failProcess(true));
+  }
+
+  static async connect(options: StdioClientOptions): Promise<CodexStdioAppServerClient> {
+    const child = spawn(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
+      cwd: options.cwd,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const client = new CodexStdioAppServerClient(child, options.requestTimeoutMs);
+    try {
+      await client.request("initialize", {
+        clientInfo: { name: "roven", title: "Roven", version: "0.0.0" },
+        capabilities: null,
+      });
+      client.notify("initialized");
+      return client;
+    } catch (error) {
+      await client.close();
+      throw error;
+    }
+  }
+
+  async startThread(options: CodexThreadStartOptions): Promise<CodexThread> {
+    const result = requiredRecord(
+      await this.request("thread/start", {
+        cwd: options.cwd,
+        approvalPolicy: options.approvalPolicy,
+        sandbox: options.sandbox,
+        ...(options.model === undefined ? {} : { model: options.model }),
+      }),
+    );
+    const thread = requiredRecord(result.thread);
+    return { threadId: requiredString(thread.id) };
+  }
+
+  async injectItems(threadId: string, items: readonly unknown[]): Promise<void> {
+    await this.request("thread/inject_items", { threadId, items: structuredClone(items) });
+  }
+
+  async startTurn(threadId: string, instructions: string): Promise<CodexTurn> {
+    const result = requiredRecord(
+      await this.request("turn/start", {
+        threadId,
+        input: [{ type: "text", text: instructions }],
+      }),
+    );
+    const turn = requiredRecord(result.turn);
+    return { turnId: requiredString(turn.id) };
+  }
+
+  async interruptTurn(threadId: string, turnId: string): Promise<void> {
+    await this.request("turn/interrupt", { threadId, turnId });
+  }
+
+  async unsubscribe(threadId: string): Promise<void> {
+    await this.request("thread/unsubscribe", { threadId });
+  }
+
+  notifications(signal: AbortSignal): AsyncIterable<unknown> {
+    return this.notificationsQueue.iterate(signal);
+  }
+
+  async close(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    this.process.stdin.end();
+    if (this.exited) return;
+    this.process.kill("SIGTERM");
+    const exited = new Promise<void>((resolve) => this.process.once("exit", () => resolve()));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        exited,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, 1_000);
+        }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
+    if (!this.exited) this.process.kill("SIGKILL");
+  }
+
+  private request(method: string, params: unknown): Promise<unknown> {
+    if (this.closed || this.exited) {
+      return Promise.reject(
+        new CodexAdapterError("provider_process_failed", "Codex app-server가 종료되었습니다."),
+      );
+    }
+    const id = this.nextRequestId;
+    this.nextRequestId += 1;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(
+          new CodexAdapterError("provider_protocol_failed", "Codex app-server 응답 시간이 초과되었습니다."),
+        );
+      }, this.requestTimeoutMs);
+      this.pending.set(id, { resolve, reject, timer });
+      this.write({ method, id, params });
+    });
+  }
+
+  private notify(method: string): void {
+    this.write({ method });
+  }
+
+  private write(message: unknown): void {
+    this.process.stdin.write(`${JSON.stringify(message)}\n`);
+  }
+
+  private receiveLine(line: string): void {
+    let message: unknown;
+    try {
+      message = JSON.parse(line) as unknown;
+    } catch {
+      this.failProtocol();
+      return;
+    }
+    if (!isRecord(message)) {
+      this.failProtocol();
+      return;
+    }
+    if (typeof message.id === "number" && !Object.hasOwn(message, "method")) {
+      const pending = this.pending.get(message.id);
+      if (pending === undefined) return;
+      this.pending.delete(message.id);
+      clearTimeout(pending.timer);
+      if (Object.hasOwn(message, "error")) {
+        pending.reject(
+          new CodexAdapterError("provider_protocol_failed", "Codex app-server 요청이 거부되었습니다."),
+        );
+      } else {
+        pending.resolve(message.result);
+      }
+      return;
+    }
+    if (typeof message.method === "string") {
+      if (typeof message.id === "number") this.rejectServerRequest(message);
+      this.notificationsQueue.push(structuredClone(message));
+    }
+  }
+
+  private rejectServerRequest(message: Record<string, unknown>): void {
+    const id = message.id;
+    this.write({ id, error: { code: -32601, message: "Unsupported managed server request" } });
+  }
+
+  private failProtocol(): void {
+    const error = new CodexAdapterError(
+      "provider_protocol_failed",
+      "Codex app-server가 올바르지 않은 protocol message를 보냈습니다.",
+    );
+    this.rejectPending(error);
+    this.notificationsQueue.fail(error);
+  }
+
+  private failProcess(didExit: boolean): void {
+    if (this.exited) return;
+    this.exited = didExit;
+    const error = new CodexAdapterError(
+      "provider_process_failed",
+      "Codex app-server process가 종료되었습니다.",
+    );
+    this.rejectPending(error);
+    if (this.closed) this.notificationsQueue.end();
+    else this.notificationsQueue.fail(error);
+  }
+
+  private rejectPending(error: Error): void {
+    for (const request of this.pending.values()) {
+      clearTimeout(request.timer);
+      request.reject(error);
+    }
+    this.pending.clear();
+  }
+}

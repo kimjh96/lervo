@@ -7,6 +7,8 @@ import {
   type AdapterStartRequest,
   type AdapterStopRequest,
   type AdapterStopResult,
+  type AdapterTurn,
+  type AdapterTurnRequest,
 } from "@roven/schemas";
 import { describe, expect, it } from "vitest";
 
@@ -45,6 +47,24 @@ class FixtureAdapter implements ProviderAdapter {
     private readonly writingPolicyOverride: string | null | undefined = undefined,
   ) {
     this.descriptor = descriptor(provider);
+  }
+
+  async startTurn(
+    session: AdapterSession,
+    request: AdapterTurnRequest,
+  ): Promise<AdapterTurn> {
+    return {
+      kind: "turn",
+      schemaVersion: 1,
+      adapterId: this.descriptor.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      targetTurnId: request.targetTurnId,
+      providerTurnId: "provider-turn-1",
+      acceptedAt: "2026-08-18T00:00:02Z",
+    };
   }
 
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
@@ -109,9 +129,15 @@ class FixtureAdapter implements ProviderAdapter {
       runId: session.runId,
       sessionId: session.sessionId,
       providerSessionId: session.providerSessionId,
-      type: "tool.called",
+      type: "provider.tool.called",
       occurredAt: "2026-08-18T00:00:02Z",
-      payload: { toolName: "fixture" },
+      payload: {
+        providerItemId: "item-1",
+        toolName: "fixture",
+        inputDigest: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        status: "completed",
+        durationMs: 1,
+      },
     };
   }
 
@@ -180,11 +206,24 @@ function fixture(provider: string) {
     ],
     createdAt: "2026-08-18T00:00:01Z",
   };
+  const turnRequest: AdapterTurnRequest = {
+    kind: "turn_request",
+    schemaVersion: 1,
+    adapterId: `roven/${provider}`,
+    projectId: startRequest.projectId,
+    runId: startRequest.runId,
+    sessionId: startRequest.sessionId,
+    providerSessionId: `${provider}-session-1`,
+    targetTurnId: contextEnvelope.targetTurnId,
+    instructions: "fixture task",
+    requestedAt: "2026-08-18T00:00:02Z",
+  };
 
   return {
     expectedProvider: provider,
     startRequest,
     contextEnvelope,
+    turnRequest,
     stopReason: "completed" as const,
   };
 }

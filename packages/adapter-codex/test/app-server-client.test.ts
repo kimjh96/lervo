@@ -1,0 +1,41 @@
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { CodexStdioAppServerClient } from "../src/index.js";
+
+describe("Codex stdio app-server client", () => {
+  it("performs the initialize handshake and preserves the JSONL notification stream", async () => {
+    const client = await CodexStdioAppServerClient.connect({
+      executable: process.execPath,
+      commandArguments: [join(import.meta.dirname, "fixtures/fake-app-server.mjs")],
+      cwd: process.cwd(),
+      requestTimeoutMs: 1_000,
+    });
+    const thread = await client.startThread({
+      cwd: process.cwd(),
+      approvalPolicy: "never",
+      sandbox: "read-only",
+    });
+    await client.injectItems(thread.threadId, [
+      { type: "message", role: "developer", content: [{ type: "input_text", text: "context" }] },
+    ]);
+    const turn = await client.startTurn(thread.threadId, "fixture task");
+    const controller = new AbortController();
+    const iterator = client.notifications(controller.signal)[Symbol.asyncIterator]();
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false,
+      value: { method: "thread/started" },
+    });
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false,
+      value: { method: "turn/started" },
+    });
+    controller.abort();
+    await iterator.return?.();
+    expect(thread).toEqual({ threadId: "thread-stdio-1" });
+    expect(turn).toEqual({ turnId: "turn-stdio-1" });
+    await client.unsubscribe(thread.threadId);
+    await client.close();
+  });
+});

@@ -99,6 +99,8 @@
 - 제공되지 않는 telemetry는 `unknown/unsupported`로 남음
 - 관리 경로 밖 변경은 `unmanaged`로 탐지
 
+구현 현황(2026-08-18): **Codex managed adapter 첫 슬라이스 완료, M3 진행 중.** `@roven/adapter-codex`가 app-server stdio process의 initialize, thread/session, controlled context injection, target turn 시작, 중단과 종료를 관리합니다. Provider signal은 검증된 Roven event와 분리했으며 command/output/tool input/diff 원문 대신 digest와 저장소 상대 경로만 남깁니다. 완료된 Codex `contextCompaction` item은 session 좌표를 확인한 뒤 orchestrator generation을 무효화합니다. 실제 provider process protocol을 흉내 낸 JSONL fixture와 공통 adapter contract에서 lifecycle, 중단 가능한 stream, role/writing policy/hash 보존, context 변조 차단을 검증했습니다. Provider session resume와 승인·동적 도구 요청은 아직 `unsupported` 또는 fail-closed이고, Claude adapter와 두 공급자 acceptance fixture가 남았습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md)에 기록했습니다.
+
 ### M4: 스킬과 문서 수명주기
 
 - 로컬/사용자/외부 스킬 discovery와 충돌 해석
@@ -224,4 +226,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M3 Codex managed adapter 첫 슬라이스**입니다. 공통 adapter contract 뒤에서 Codex process/session을 시작·종료하고 provider event를 중단 가능한 stream으로 정규화합니다. Controlled context injection과 실제 compaction/restart 신호를 `@roven/orchestrator`의 generation 전이에 연결하며, 지원하지 않거나 관측할 수 없는 telemetry는 `unknown/unsupported` 또는 `unmanaged`로 남깁니다. Claude adapter를 만들기 전에 같은 contract fixture로 Codex 경계와 실패 의미를 고정합니다.
+다음 구현 작업은 **M3 Claude managed adapter 첫 슬라이스**입니다. Codex에서 고정한 provider signal과 turn 계약을 그대로 사용해 Claude process/session, controlled context injection, 중단 가능한 event stream과 종료 경계를 구현합니다. Claude에서 관측할 수 없는 compaction·usage·file telemetry는 추정하지 않고 capability matrix에 `unknown/unsupported`로 남기며, 두 adapter가 같은 role/writing policy/hash fixture와 공개 전 writing gate를 통과하는지 비교합니다.

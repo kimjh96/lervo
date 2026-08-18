@@ -4,7 +4,9 @@ import {
   type LoadedContext,
 } from "@roven/context";
 import { injectLoadedContext, type InjectedContext } from "@roven/context-delivery";
+import type { AdapterNormalizedEvent, AdapterSession } from "@roven/schemas";
 
+import { adapterInvalidationReason } from "./adapter-signals.js";
 import {
   injectedContextEventSpec,
   preparedContextEventSpecs,
@@ -174,6 +176,29 @@ export class ManagedContextRun {
       throw new ManagedContextError("invalid_state", "무효화할 managed context가 없습니다.");
     }
     this.invalidateAll(reason, this.state.timestamp(occurredAt));
+  }
+
+  handleAdapterEvent(
+    session: AdapterSession,
+    event: AdapterNormalizedEvent,
+    recordedAt: Date,
+  ): boolean {
+    this.state.assertOperational();
+    const reason = adapterInvalidationReason({
+      coordinates: this.options.coordinates,
+      session: copy(session),
+      event: copy(event),
+      injectedProviderSessionId: this.state.injectedProviderSessionId,
+    });
+    if (
+      reason === null ||
+      this.state.phase === "awaiting_context" ||
+      this.state.requiredDocumentIds.length === 0
+    ) {
+      return false;
+    }
+    this.invalidateAll(reason, this.state.timestamp(new Date(recordedAt.getTime())));
+    return true;
   }
 
   async authorizeFileWrite(input: FileWriteRequest): Promise<ManagedWriteDecision> {

@@ -20,6 +20,10 @@ export type AdapterContractViolationCode =
   | "context_envelope_mismatch"
   | "context_receipt_invalid"
   | "context_receipt_mismatch"
+  | "turn_request_invalid"
+  | "turn_request_mismatch"
+  | "turn_invalid"
+  | "turn_mismatch"
   | "normalized_event_invalid"
   | "normalized_event_mismatch"
   | "normalized_event_timeout"
@@ -139,6 +143,32 @@ export async function evaluateAdapterContract(
     violations.push({
       code: "context_receipt_mismatch",
       detail: receiptBinding.violations.map((item) => item.detail).join("; "),
+    });
+  }
+
+  addValidationViolation(violations, "turn_request_invalid", fixture.turnRequest);
+  if (
+    !sameCoordinates(fixture.turnRequest, session) ||
+    fixture.turnRequest.adapterId !== adapter.descriptor.adapterId ||
+    fixture.turnRequest.providerSessionId !== session.providerSessionId ||
+    fixture.turnRequest.targetTurnId !== fixture.contextEnvelope.targetTurnId
+  ) {
+    violations.push({
+      code: "turn_request_mismatch",
+      detail: "turn request is not bound to the session and injected target turn",
+    });
+  }
+  const turn = await adapter.startTurn(session, fixture.turnRequest);
+  addValidationViolation(violations, "turn_invalid", turn);
+  if (
+    !sameCoordinates(turn, session) ||
+    turn.adapterId !== adapter.descriptor.adapterId ||
+    turn.providerSessionId !== session.providerSessionId ||
+    turn.targetTurnId !== fixture.turnRequest.targetTurnId
+  ) {
+    violations.push({
+      code: "turn_mismatch",
+      detail: "adapter turn changed the managed coordinates or target turn",
     });
   }
 

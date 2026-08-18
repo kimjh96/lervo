@@ -21,6 +21,8 @@ const markdownDocuments = [
   "docs/adr/0005-shared-context-and-role-handoff.md",
   "docs/adr/0006-deterministic-context-preparation.md",
   "docs/adr/0007-provider-neutral-context-delivery.md",
+  "docs/adr/0008-managed-context-gate-orchestration.md",
+  "docs/adr/0009-codex-app-server-managed-adapter.md",
 ];
 
 const failures = [];

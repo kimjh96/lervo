@@ -7,6 +7,8 @@ import {
   type AdapterStartRequest,
   type AdapterStopRequest,
   type AdapterStopResult,
+  type AdapterTurn,
+  type AdapterTurnRequest,
 } from "@roven/schemas";
 
 export interface ProviderAdapter {
@@ -17,6 +19,7 @@ export interface ProviderAdapter {
     session: AdapterSession,
     envelope: AdapterContextEnvelope,
   ): Promise<AdapterContextReceipt>;
+  startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn>;
   events(session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent>;
   stop(session: AdapterSession, request: AdapterStopRequest): Promise<AdapterStopResult>;
 }
@@ -25,6 +28,7 @@ export interface AdapterContractFixture {
   expectedProvider: string;
   startRequest: AdapterStartRequest;
   contextEnvelope: AdapterContextEnvelope;
+  turnRequest: AdapterTurnRequest;
   stopReason: AdapterStopRequest["reason"];
   expectedEventCount?: number;
   eventTimeoutMs?: number;

@@ -24,6 +24,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/project
 
+  packages/adapter-codex:
+    dependencies:
+      '@roven/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/adapter-contract:
     dependencies:
       '@roven/schemas':

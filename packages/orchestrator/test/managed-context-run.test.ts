@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { ContextDeliveryError } from "@roven/context-delivery";
+import type { AdapterNormalizedEvent } from "@roven/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ManagedContextError } from "../src/index.js";
@@ -12,8 +13,11 @@ import {
   hash,
   injectFixtureContext,
   prepareFixtureContext,
+  projectId,
   receiptFor,
   role,
+  runId,
+  sessionId,
   targetDigest,
 } from "./fixture.js";
 
@@ -194,6 +198,81 @@ describe("managed context gate orchestration", () => {
       allowed: false,
       missing: [expect.objectContaining({ reason: "stale_context_generation" })],
     });
+    fixture.store.close();
+  });
+
+  it("accepts only a bound provider compaction signal as a generation transition", async () => {
+    const fixture = await createManagedFixture();
+    const run = fixture.createRun();
+    await prepareFixtureContext(run, fixture.root);
+    await injectFixtureContext(run, fixture.session);
+    const event: AdapterNormalizedEvent = {
+      kind: "normalized_event",
+      schemaVersion: 1,
+      eventId: "evt_compaction01",
+      projectId,
+      runId,
+      sessionId,
+      providerSessionId: fixture.session.providerSessionId,
+      type: "provider.context.compacted",
+      occurredAt: "2026-08-18T01:03:30Z",
+      payload: {
+        providerTurnId: "provider-turn-1",
+        providerItemId: "provider-compaction-1",
+      },
+    };
+
+    expect(
+      run.handleAdapterEvent(
+        fixture.session,
+        event,
+        new Date("2026-08-18T01:04:00Z"),
+      ),
+    ).toBe(true);
+    expect(run.snapshot()).toMatchObject({ phase: "awaiting_context", contextGeneration: 1 });
+    expect(
+      run.handleAdapterEvent(
+        fixture.session,
+        event,
+        new Date("2026-08-18T01:05:00Z"),
+      ),
+    ).toBe(false);
+    expect(run.snapshot().contextGeneration).toBe(1);
+    expect(fixture.store.list().at(-1)?.payload).toMatchObject({
+      reason: "context_compacted",
+      contextGeneration: 0,
+    });
+    fixture.store.close();
+  });
+
+  it("rejects adapter signals from another provider session", async () => {
+    const fixture = await createManagedFixture();
+    const run = fixture.createRun();
+    await prepareFixtureContext(run, fixture.root);
+    await injectFixtureContext(run, fixture.session);
+    const event: AdapterNormalizedEvent = {
+      kind: "normalized_event",
+      schemaVersion: 1,
+      eventId: "evt_compaction02",
+      projectId,
+      runId,
+      sessionId,
+      providerSessionId: "other-provider-session",
+      type: "provider.context.compacted",
+      occurredAt: "2026-08-18T01:03:30Z",
+      payload: {
+        providerTurnId: "provider-turn-2",
+        providerItemId: "provider-compaction-2",
+      },
+    };
+    expect(() =>
+      run.handleAdapterEvent(
+        fixture.session,
+        event,
+        new Date("2026-08-18T01:04:00Z"),
+      ),
+    ).toThrow(expect.objectContaining({ code: "context_contract_invalid" }));
+    expect(run.snapshot()).toMatchObject({ phase: "context_injected", contextGeneration: 0 });
     fixture.store.close();
   });
 
