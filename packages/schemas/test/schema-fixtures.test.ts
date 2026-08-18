@@ -11,7 +11,12 @@ interface Fixture {
 }
 
 function loadFixtures(name: "invalid" | "valid"): Fixture[] {
-  return [`${name}.json`, `${name}-m0-governance.json`, `${name}-writing.json`].flatMap((fileName) => {
+  return [
+    `${name}.json`,
+    `${name}-m0-governance.json`,
+    `${name}-shared-context.json`,
+    `${name}-writing.json`,
+  ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);
     return JSON.parse(readFileSync(fixtureUrl, "utf8")) as Fixture[];
   });

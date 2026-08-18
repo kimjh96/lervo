@@ -20,6 +20,8 @@ export const eventTypes = [
   "document.loaded",
   "context.injected",
   "context.invalidated",
+  "context.published",
+  "handoff.created",
   "adapter.started",
   "adapter.stopped",
   "capability.requested",

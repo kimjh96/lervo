@@ -1,0 +1,47 @@
+[
+  {
+    "name": "research finding published for every project role",
+    "schema": "sharedContext",
+    "value": {
+      "schemaVersion": 1,
+      "sharedContextId": "scx_research_finding",
+      "projectId": "prj_01234567",
+      "kind": "finding",
+      "documentId": "doc_research_finding",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceRevision": "working-tree:research-v1",
+      "producer": {
+        "kind": "agent",
+        "roleId": "researcher",
+        "runId": "run_research_01",
+        "sessionId": "ses_research_01"
+      },
+      "audience": { "mode": "project" },
+      "sensitivity": "normal",
+      "evidenceEventIds": ["evt_research_source"],
+      "publishedAt": "2026-08-18T01:00:00Z",
+      "expiresAt": null,
+      "supersedesSharedContextId": null
+    }
+  },
+  {
+    "name": "role handoff references shared context and evidence without raw task text",
+    "schema": "handoffBundle",
+    "value": {
+      "schemaVersion": 1,
+      "handoffId": "hnd_research_marketing",
+      "projectId": "prj_01234567",
+      "from": {
+        "roleId": "researcher",
+        "runId": "run_research_01",
+        "sessionId": "ses_research_01",
+        "contextGeneration": 2
+      },
+      "toRoleId": "marketer",
+      "requestDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sharedContextIds": ["scx_research_finding"],
+      "evidenceEventIds": ["evt_research_source"],
+      "createdAt": "2026-08-18T01:01:00Z"
+    }
+  }
+]

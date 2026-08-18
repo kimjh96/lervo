@@ -2,7 +2,9 @@ import type {
   CapabilityDecision,
   DocumentRecord,
   DocumentRegistry,
+  HandoffBundle,
   RoleProfile,
+  SharedContextPublication,
   SkillManifest,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
@@ -26,5 +28,18 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<DocumentRegistry["documents"]>().toMatchTypeOf<
       Record<string, DocumentRecord>
     >();
+  });
+
+  it("keeps shared context provenance and handoff coordinates explicit", () => {
+    type AgentPublication = SharedContextPublication & {
+      producer: { kind: "agent" };
+    };
+    expectTypeOf<AgentPublication["producer"]>().toMatchTypeOf<{
+      roleId: string;
+      runId: string;
+      sessionId: string;
+    }>();
+    expectTypeOf<HandoffBundle["from"]["contextGeneration"]>().toEqualTypeOf<number>();
+    expectTypeOf<RoleProfile["handoff"]["sharedContextRequired"]>().toEqualTypeOf<true>();
   });
 });

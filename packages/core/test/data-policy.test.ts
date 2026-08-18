@@ -104,4 +104,37 @@ describe("M0 data policy and failure semantics", () => {
       reason: "sensitive_key",
     });
   });
+
+  it("keeps shared context events digest-only", () => {
+    const published = sanitizeEventPayload("context.published", {
+      sharedContextId: "scx_research_finding",
+      documentId: "doc_research_finding",
+      contentHash: "sha256:abc",
+      producerRoleId: "researcher",
+      audienceMode: "project",
+      allowedRoleIds: [],
+      expiresAt: null,
+      documentBody: "공유 원문을 event에 복제하면 안 됩니다.",
+    });
+    const handoff = sanitizeEventPayload("handoff.created", {
+      handoffId: "hnd_research_marketing",
+      fromRoleId: "researcher",
+      toRoleId: "marketer",
+      sharedContextIds: ["scx_research_finding"],
+      evidenceEventIds: ["evt_research_source"],
+      requestDigest: "sha256:def",
+      rawPrompt: "이 요청 원문도 event에 남기면 안 됩니다.",
+    });
+
+    expect(published.payload).not.toHaveProperty("documentBody");
+    expect(published.redactions).toContainEqual({
+      path: "$.documentBody",
+      reason: "not_allowlisted",
+    });
+    expect(handoff.payload).not.toHaveProperty("rawPrompt");
+    expect(handoff.redactions).toContainEqual({
+      path: "$.rawPrompt",
+      reason: "not_allowlisted",
+    });
+  });
 });

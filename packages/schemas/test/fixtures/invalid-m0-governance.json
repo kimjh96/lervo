@@ -40,7 +40,8 @@
       },
       "handoff": {
         "allowedRoleIds": [],
-        "evidenceLinksRequired": true
+        "evidenceLinksRequired": true,
+        "sharedContextRequired": true
       }
     }
   },
@@ -86,7 +87,8 @@
       },
       "handoff": {
         "allowedRoleIds": [],
-        "evidenceLinksRequired": true
+        "evidenceLinksRequired": true,
+        "sharedContextRequired": true
       }
     }
   },

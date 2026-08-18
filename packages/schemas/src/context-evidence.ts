@@ -27,6 +27,7 @@ export const selectionReasonCodes = [
   "role_required",
   "parent_instruction",
   "explicit_link",
+  "handoff",
   "search_recommendation",
 ] as const;
 

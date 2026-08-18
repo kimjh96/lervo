@@ -15,6 +15,7 @@
 - `.roven/project.yaml`, policy 및 document registry schema
 - SQLite event store, CAS, outbox interface
 - deterministic context router와 문서 E0~E3 receipt
+- 전문 에이전트가 함께 읽는 shared context publication과 역할 간 handoff bundle
 - capability gate 및 unmanaged change 탐지
 - Codex/Claude adapter contract와 최소 어댑터
 - 스킬 discovery/lock/usage event
@@ -47,7 +48,7 @@
 - `selected`, `loaded`, `injected`, `referenced`가 코드에서 별도 상태
 - 사람 대상 산출물은 Role의 locale/writing policy와 필수 공개 전 검사에 연결
 
-구현 현황(2026-08-18): **M0 완료.** Project, event, context evidence, adapter, role, skill, document registry, writing policy/evaluation schema와 파생 타입을 구현했습니다. Valid/invalid fixture, E3 쓰기 게이트, Codex/Claude 공통 contract suite, 같은 writing 정책과 정책 문서의 E3 주입 증명, 결정적/별도 의미 검사 공개 게이트, capability/trust/문서 소유권 규칙, 개인정보 allowlist와 실패 처분을 테스트로 고정했습니다. 계약과 로컬 보존 기본값은 [ADR-0001](./docs/adr/0001-m0-contracts-and-data-defaults.md)에 기록했습니다.
+구현 현황(2026-08-18): **M0 완료, 공유 맥락 계약 보완 완료.** 기존 project, event, context evidence, adapter, role, skill, document registry와 writing 계약에 shared context publication과 handoff bundle을 추가했습니다. 일반 맥락의 프로젝트 전체 공개, 제한 맥락의 역할 allowlist, 생산자 좌표와 만료, 근거 event를 schema로 고정했습니다. 수신 역할이 생산 역할의 receipt를 상속하지 않고 자기 E1→E2→E3를 만들어야 쓰기 게이트가 열리는 동작을 테스트합니다. 기본 계약은 [ADR-0001](./docs/adr/0001-m0-contracts-and-data-defaults.md), 역할 간 공유 결정은 [ADR-0005](./docs/adr/0005-shared-context-and-role-handoff.md)에 기록했습니다.
 
 ### M1: 로컬 기반
 
@@ -67,6 +68,7 @@
 ### M2: 컨텍스트와 가드레일
 
 - 지침 계층 및 path 기반 context router
+- project 공개 또는 현재 Role에 허용된 shared context 탐색과 handoff 해석
 - 파일 full-read/hash와 E2 receipt
 - adapter context envelope와 E3 receipt
 - Role이 선택한 writing 정책 문서의 envelope 포함과 E3 receipt
@@ -76,6 +78,8 @@
 완료 조건:
 
 - 필수 문서를 읽지 않은 fixture run은 첫 쓰기 전에 실패
+- 연구자→마케터 fixture에서 shared context를 찾되 수신 run의 별도 E2/E3 없이는 쓰지 못함
+- 제한 맥락, 다른 project, 만료되거나 대체된 맥락을 handoff로 우회할 수 없음
 - 문서 변경 후 오래된 receipt 재사용 불가
 - trace에 선택 이유, 정책 버전, hash, invalidation 표시
 
@@ -191,6 +195,8 @@ fixtures/
 9. 기능 개발 중 생긴 버그를 부모 run과 evidence로 연결
 10. 민감정보 fixture가 event/Hub payload에 남지 않음
 11. Claude가 writing 정책을 누락하거나 바꾸면 계약 실패, 의미 검사를 실행하지 않으면 공개 실패
+12. 다른 역할의 shared context를 발견할 수 있지만 생산 역할의 receipt만으로 수신 역할의 쓰기 gate가 열리지 않음
+13. restricted context가 project 전체 공개나 허용되지 않은 역할 handoff로 유출되지 않음
 
 ## 선행 결정이 필요한 항목
 
@@ -214,4 +220,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M2 context preparation 첫 슬라이스**입니다. 문서 registry와 저장소 지침 계층, 예상 변경 경로의 `paths` 규칙으로 필수 문서를 결정하고, 선택 이유를 `context.selected` 근거로 만듭니다. 선택된 파일은 전체 bytes를 읽어 SHA-256과 byte count를 계산한 뒤에만 `document.loaded` 근거를 만들며, 파일이 바뀌면 이전 load를 무효화합니다. 이 단계에서는 provider 주입이나 E3 사용을 주장하지 않습니다. 사용자 문서는 읽기 전용으로 유지하고 `selected`와 `loaded`가 섞이지 않는 fixture를 먼저 고정합니다.
+다음 구현 작업은 **M2 context preparation 첫 슬라이스**입니다. 문서 registry, 저장소 지침 계층, 예상 변경 경로의 `paths` 규칙과 현재 Role이 읽을 수 있는 shared context/handoff로 필수 문서를 결정하고, 선택 이유를 `context.selected` 근거로 만듭니다. 선택된 파일은 전체 bytes를 읽어 SHA-256과 byte count를 계산한 뒤에만 `document.loaded` 근거를 만듭니다. 파일 변경, publication 만료나 대체가 발생하면 이전 load를 무효화합니다. 이 단계에서는 provider 주입이나 E3 사용을 주장하지 않습니다. 사용자 문서는 읽기 전용으로 유지하고 `selected`와 `loaded`, 생산자 receipt와 수신자 receipt가 섞이지 않는 fixture를 먼저 고정합니다.

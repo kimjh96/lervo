@@ -48,7 +48,8 @@
       },
       "handoff": {
         "allowedRoleIds": ["reviewer"],
-        "evidenceLinksRequired": true
+        "evidenceLinksRequired": true,
+        "sharedContextRequired": true
       }
     }
   },

@@ -81,6 +81,23 @@ requested
 
 새 대화에서 독립적으로 요청된 버그라면 관련 기능 run을 id, branch, issue, 변경 경로를 통해 탐색하되 연결 근거가 불충분하면 별도 run으로 유지합니다.
 
+## 역할 간 공유 맥락과 handoff
+
+전문 에이전트가 다른 역할에 넘길 내용은 먼저 등록된 문서 원본으로 발행합니다. `SharedContextPublication`은 원문을 복제하지 않고 다음 좌표를 가집니다.
+
+- `sharedContextId`, `projectId`, 맥락 종류
+- `documentId`, `contentHash`, `sourceRevision`
+- 생산 주체와, 에이전트가 생산했다면 `roleId`, `runId`, `sessionId`
+- `audience`: 프로젝트 전체 또는 허용 역할 목록
+- `sensitivity`: 일반 또는 제한
+- 근거 event ID, 발행 시각, 만료 시각, 대체한 shared context ID
+
+일반 맥락은 `audience.mode=project`로 발행해 프로젝트의 모든 역할이 발견하고 읽을 수 있습니다. 제한 맥락은 `audience.mode=roles`와 허용 역할 목록이 필요합니다. `restricted`를 프로젝트 전체에 공개하는 publication은 계약 오류입니다. 발행된 결과는 지식 후보일 수 있지만 발행만으로 검증된 지식이 되지 않습니다.
+
+역할을 넘길 때 `HandoffBundle`은 보내는 역할/run/session/context generation, 받는 역할, 요청 digest, shared context ID와 evidence event ID를 포함합니다. Raw 요청, 문서 본문, 내부 추론은 bundle에 넣지 않습니다. 보내는 Role이 수신 Role을 허용하지 않았거나, 다른 project의 맥락, 수신 Role이 읽을 수 없는 맥락, 존재하지 않는 맥락을 포함하면 `contract_validation_failed`로 handoff를 거부합니다. 아직 발행 시각이 되지 않았거나 만료·대체된 맥락은 `required_context_missing`으로 처리하고 현재 publication을 요구합니다.
+
+유효한 handoff도 읽기 증거를 양도하지 않습니다. 수신 에이전트는 각 shared context가 가리키는 문서를 `reasonCode=handoff`로 선택하고, 자기 run/session에서 현재 bytes를 읽어 E2를 만든 뒤, 자기 provider session에 전달해 E3를 만들어야 합니다. 생산 에이전트의 receipt를 복사하면 쓰기 게이트가 열리지 않습니다. 원문 hash가 바뀌거나 context가 압축·재시작되면 일반 문서와 같은 규칙으로 receipt를 무효화합니다.
+
 ## 문서 보장 수준
 
 Roven은 아래 상태를 분리합니다.
@@ -113,7 +130,7 @@ Roven은 아래 상태를 분리합니다.
 각 문서를 다음과 같이 보여줍니다.
 
 - 문서명과 revision/content hash
-- 선택 이유: 경로 일치, 역할 필수, 상위 지침, 명시 링크, 검색 추천
+- 선택 이유: 경로 일치, 역할 필수, 상위 지침, 명시 링크, 역할 handoff, 검색 추천
 - E0~E4 상태와 시각
 - 누락/무효화 원인
 - 이 문서가 보호하는 capability와 관련 변경 파일
@@ -174,6 +191,7 @@ Roven은 아래 상태를 분리합니다.
 
 - `run.requested`, `run.resolved`, `run.completed`, `run.failed`
 - `context.selected`, `document.loaded`, `context.injected`, `context.invalidated`
+- `context.published`, `handoff.created`
 - `adapter.started`, `adapter.stopped`
 - `capability.requested`, `capability.decided`
 - `tool.called`, `command.executed`, `file.changed`
@@ -183,6 +201,8 @@ Roven은 아래 상태를 분리합니다.
 - `unmanaged_change.detected`, `sync.acknowledged`
 
 M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. 키는 Unicode 호환 정규화 후 구분 기호와 대소문자를 제거해 검사하므로 `rawPrompt`, `access_token`, 전각 문자 변형도 같은 민감 키로 취급합니다. raw prompt, 문서 본문, authorization/cookie/credential/password/secret/token/API key/tool input 같은 민감 키는 중첩 객체에서도 event에 보존하지 않습니다. 순환 참조, 유한하지 않은 숫자, 일반 JSON 객체가 아닌 값은 정리된 것처럼 저장하지 않고 `redaction_failed`로 기록을 중단합니다. 파일 경로와 작업 디렉터리는 저장소 상대 경로만 허용합니다. 원문이 필요한 실행 경로는 event payload와 분리된 로컬 context envelope/CAS를 사용합니다.
+
+`context.published`에는 shared context/document ID, content hash, 생산 역할, 공개 방식과 허용 역할, 만료 시각만 저장합니다. `handoff.created`에는 handoff ID, 보내고 받는 역할, shared context/evidence event ID와 요청 digest만 저장합니다. 두 event 모두 문서 본문, raw prompt, 내부 추론과 provider payload를 허용하지 않습니다. 이 event를 기록하지 못하면 역할 간 공유가 성립했다고 주장하지 않고 `telemetry_recording_failed`로 실행을 중단합니다. `context.published`는 다른 역할이 읽었다는 뜻이 아니며, 수신 역할의 `document.loaded`와 `context.injected`가 별도로 필요합니다.
 
 ## 로컬 event store, outbox와 CAS
 
@@ -208,13 +228,15 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 
 ## M0 직렬화 계약
 
-현재 구현은 다음 아홉 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
+현재 구현은 다음 열한 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
 - context evidence: E0~E4별 필수 필드와 controlled E3 receipt
 - adapter message: descriptor, start/session, context envelope/receipt, normalized event, stop/result
 - role profile: 요청 유형, 필수 입력 schema, E3 context policy, 전체 capability matrix, 산출물·검증·handoff 계약
+- shared context publication: 등록 문서와 hash, 생산 역할/run/session, 접근 범위, 민감도, 근거와 만료
+- handoff bundle: 보내고 받는 역할, 생산 context generation, 요청 digest, shared context와 evidence 좌표
 - skill manifest: 출처·publisher·version/hash, 역할, provider/runtime/tool 호환성, capability, 입출력 schema, trust와 enabled scope
 - document registry: 상대 경로, 책임자, 연결 경로, 검증 revision/date, review interval, 사용자/managed block/Roven 생성 파일 소유권
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사

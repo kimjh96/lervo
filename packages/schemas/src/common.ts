@@ -45,6 +45,16 @@ export const receiptIdSchema = {
   pattern: "^ctx_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const sharedContextIdSchema = {
+  type: "string",
+  pattern: "^scx_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const handoffIdSchema = {
+  type: "string",
+  pattern: "^hnd_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
 export const writingPolicyIdSchema = {
   type: "string",
   pattern: "^writing_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",

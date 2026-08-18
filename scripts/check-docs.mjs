@@ -18,6 +18,7 @@ const markdownDocuments = [
   "docs/adr/0002-safe-project-initialization.md",
   "docs/adr/0003-local-event-store-and-cas.md",
   "docs/adr/0004-project-storage-bootstrap.md",
+  "docs/adr/0005-shared-context-and-role-handoff.md",
 ];
 
 const failures = [];

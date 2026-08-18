@@ -18,6 +18,23 @@ export const eventPayloadAllowlists = {
     "contextGeneration"
   ],
   "context.invalidated": ["documentIds", "reason", "contextGeneration"],
+  "context.published": [
+    "sharedContextId",
+    "documentId",
+    "contentHash",
+    "producerRoleId",
+    "audienceMode",
+    "allowedRoleIds",
+    "expiresAt"
+  ],
+  "handoff.created": [
+    "handoffId",
+    "fromRoleId",
+    "toRoleId",
+    "sharedContextIds",
+    "evidenceEventIds",
+    "requestDigest"
+  ],
   "adapter.started": ["adapterId", "adapterVersion", "providerSessionId", "capabilities"],
   "adapter.stopped": ["adapterId", "providerSessionId", "status"],
   "capability.requested": ["capability", "targetDigest", "risk"],

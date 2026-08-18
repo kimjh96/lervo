@@ -6,6 +6,7 @@ import { documentRegistrySchema } from "./document-registry.js";
 import { eventEnvelopeSchema } from "./event.js";
 import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
+import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { skillManifestSchema } from "./skill.js";
 import { writingContractSchema, writingEvaluationSchema } from "./writing.js";
 
@@ -23,6 +24,8 @@ const validators = {
   contextEvidence: ajv.compile(contextEvidenceSchema),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
+  sharedContext: ajv.compile(sharedContextPublicationSchema),
+  handoffBundle: ajv.compile(handoffBundleSchema),
   skill: ajv.compile(skillManifestSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
   writingContract: ajv.compile(writingContractSchema),
