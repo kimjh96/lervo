@@ -87,6 +87,10 @@ Bootstrap은 저장소 root, `.roven`, `.roven/state`가 실제 디렉터리인�
 
 M2의 `@roven/orchestrator` 첫 슬라이스는 context 준비와 delivery를 직접 순서화합니다. `awaiting_context → context_prepared → context_injected → write_authorized` 전이를 사용하며, 파일 변경이나 context 무효화 뒤에는 generation을 올리고 `awaiting_context`로 돌아갑니다. Prepare, inject와 write authorization은 같은 run에서 겹치지 않게 직렬화하지만 adapter 주입 중 compaction/restart 무효화 신호는 받을 수 있습니다. E1/E2 묶음과 각 E3·capability·변경/무효화 묶음은 공통 event store의 동기 transaction으로 기록하고 commit 뒤에만 메모리 상태를 전진시킵니다. 실제 SQLite fixture가 rollback과 hash chain을 검증합니다. 기록이나 redaction이 실패하면 `telemetry_failed`로 전환하고 pending permit를 폐기합니다.
 
+M3의 managed provider coordinator는 실행 전 snapshot, adapter 시작, context 준비·주입, target turn, 중단 가능한 signal stream, adapter 종료와 실행 후 snapshot을 한 수명주기로 묶습니다. Coordinator는 순서만 소유하고 context 상태 머신, provider signal monitor, adapter 계약·실패 판정과 repository snapshot을 별도 모듈에 맡깁니다. Codex/Claude 구현을 직접 알지 않고 공통 adapter 포트만 사용합니다. Compaction/restart는 terminal 결과와 별도로 generation을 즉시 무효화하며, terminal 전에 stream이 끝나거나 필수 telemetry가 기록되지 않으면 정상 완료를 만들지 않습니다.
+
+현재 provider process에는 Roven의 경로별 write permit를 요청하는 bridge가 없습니다. 따라서 이 수명주기의 provider 실행은 읽기 전용이며, 전후 snapshot에서 남은 변경은 모두 `unmanaged_change.detected`와 run 실패로 처리합니다. `.git`, `node_modules`, coordinator 자신의 `.roven/state`는 snapshot에서 제외하므로 그 경로의 불변성을 주장하지 않습니다. 최종 답변 원문도 공통 adapter 계약에 없으므로 결과 없는 읽기 전용 `roven run` CLI는 아직 공개하지 않습니다.
+
 파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 
 ### Context Router
@@ -149,6 +153,8 @@ Codex와 Claude의 실행 차이를 공통 계약으로 변환합니다.
 M3 Codex 첫 슬라이스는 `@roven/adapter-codex`가 Codex app-server stdio process를 session별로 격리합니다. 연결마다 `initialize`를 마친 뒤 `thread/start`로 provider session을 만들고, `thread/inject_items` 성공 응답을 받은 문서만 controlled E3 receipt 후보로 반환합니다. Role과 writing policy ID, 문서 ID·hash·scope와 원문은 developer 입력 한 묶음으로 전달되며, 이어지는 `turn/start`는 같은 target turn의 주입 기록이 있어야 호출할 수 있습니다. 취소 시 실행 중인 turn을 중단하고 thread 구독과 process를 닫습니다.
 
 M3 Claude 첫 슬라이스는 `@roven/adapter-claude`가 공식 Agent SDK process를 session별로 미리 시작합니다. Filesystem setting, 자동 skill과 외부 MCP를 불러오지 않고 권한 요청을 거부합니다. 검증된 문서 묶음은 `shouldQuery=false`인 synthetic user message로 넣으며, 같은 session·message ID·원문의 replay와 init을 확인한 뒤에만 controlled E3 receipt 후보를 반환합니다. 실제 task는 그 다음 `shouldQuery=true` message로 시작합니다. Roven context를 별도로 받지 않는 Claude 내부 Agent/Task는 기본 차단하고, 전문 에이전트마다 managed session과 envelope를 따로 만듭니다.
+
+Claude adapter의 tool 집합은 호출자가 좁힐 수 있습니다. 기본 preset은 adapter 기능 계약을 유지하고, 읽기 전용 수명주기는 `Read`, `Glob`, `Grep`처럼 명시한 도구만 제공할 수 있습니다. 공급자 설정과 공통 run 정책을 섞지 않도록 이 선택은 adapter option 뒤에 둡니다.
 
 Provider 관측 신호는 append-only Roven event와 다른 계약을 사용합니다. 예를 들어 Codex의 file change item은 `provider.file_change.reported`이며 실제 저장소 bytes를 검증한 `file.changed`가 아닙니다. Command, output, tool input과 diff 원문은 보존하지 않고 digest만 남깁니다. App-server의 완료된 `contextCompaction` item은 `provider.context.compacted`로 변환하고, orchestrator가 같은 run/session/provider session인지 확인한 뒤에만 `context.invalidated`와 generation 전이를 만듭니다. 같은 방식으로 재시작 신호를 받을 수 있지만, provider session resume 실행은 이 첫 슬라이스에서 `unsupported`입니다.
 
@@ -278,6 +284,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행 상태(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 두 adapter를 실제 `roven run` 수명주기에 연결하는 coordinator는 M3의 다음 범위입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행 수명주기(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M3의 다음 범위는 provider-neutral 결과 전달과 경로별 write permit bridge를 붙여 실제 `roven run` 수직 슬라이스를 여는 일입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

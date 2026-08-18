@@ -43,6 +43,7 @@ export const eventPayloadAllowlists = {
   "command.executed": [
     "commandDigest",
     "cwdRelative",
+    "status",
     "exitCode",
     "outputDigest",
     "durationMs"

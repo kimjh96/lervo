@@ -99,7 +99,7 @@
 - 제공되지 않는 telemetry는 `unknown/unsupported`로 남음
 - 관리 경로 밖 변경은 `unmanaged`로 탐지
 
-구현 현황(2026-08-18): **Codex·Claude managed adapter 첫 슬라이스 완료, M3 진행 중.** `@roven/adapter-codex`는 app-server의 thread/session, controlled context, turn, 중단과 종료를 관리합니다. `@roven/adapter-claude`는 Agent SDK session을 미리 시작하고 query 없는 context append의 init·정확한 replay를 확인한 뒤에만 receipt를 만듭니다. 두 adapter는 공통 materializer와 contract suite를 사용하며 실제 구현을 대상으로 같은 Role, writing policy ID·정책 문서와 문서 hash receipt를 비교합니다. Provider signal은 검증된 Roven event와 분리하고 원문 대신 digest를 남깁니다. Codex `contextCompaction`과 Claude `compact_boundary`는 같은 compaction signal이 되지만, Claude usage와 file change 의미는 확정할 수 없어 `unknown`입니다. 승인과 session resume은 아직 fail-closed 또는 `unsupported`입니다. 관리 경로 밖 변경 탐지와 두 adapter를 `roven run`에 연결하는 coordinator가 남았습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md)에 기록했습니다.
+구현 현황(2026-08-18): **Managed provider run 수명주기와 unmanaged 변경 탐지 완료, M3 진행 중.** Codex·Claude adapter의 session/context/turn/signal 계약 위에 provider-neutral coordinator를 추가했습니다. 실행 전 snapshot, adapter 시작, E1/E2/E3, target turn, 중단 가능한 signal, 종료와 실행 후 snapshot을 순서화합니다. 두 provider fixture가 주입 전 turn 금지, compaction generation 무효화, 취소·종료와 원문 없는 event를 같은 계약으로 통과합니다. `.git`, `node_modules`, `.roven/state`를 제외한 저장소 변경은 permit가 없는 한 `unmanaged_change.detected`와 run 실패가 되며 `file.changed`로 위장하지 않습니다. 현재 adapter process에는 경로별 write permit bridge가 없고 공통 계약이 최종 답변 원문도 전달하지 않으므로, 결과 없는 읽기 전용 `roven run` CLI는 공개하지 않았습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md)에 기록했습니다.
 
 ### M4: 스킬과 문서 수명주기
 
@@ -226,4 +226,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M3 managed run coordinator와 `roven run` 첫 수직 슬라이스**입니다. Provider 선택, session 시작, context 준비·주입, target turn 시작, 중단 가능한 signal 소비와 종료를 하나의 수명주기로 묶습니다. Compaction signal이 들어오면 기존 E3와 쓰기 permit를 즉시 닫고, 실행 전후 저장소 snapshot으로 adapter가 증명하지 못한 변경을 `unmanaged` 후보로 분리합니다. 첫 acceptance fixture는 같은 작은 작업을 Codex와 Claude 경로에 넣어 context gate가 열린 뒤에만 변경 단계로 진행하고 trace 좌표를 재구성해야 합니다.
+다음 구현 작업은 **M3 provider-neutral 결과 전달과 managed write bridge**입니다. 두 adapter가 최종 응답을 원문 event가 아닌 검증 가능한 local artifact로 전달하는 공통 계약을 먼저 정의하고, provider의 파일 변경 요청을 orchestrator의 경로별 1회용 permit와 before/after hash 확인에 연결합니다. 그 뒤에만 `roven run`을 공개해 같은 작은 작업을 Codex와 Claude 경로에서 실행하고, 사용자에게 결과를 보여주며 검증된 `file.changed`와 trace 좌표를 재구성합니다. Permit bridge를 우회한 변경은 계속 `unmanaged`로 실패해야 합니다.

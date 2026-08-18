@@ -286,6 +286,29 @@ SDK `compact_boundary`는 `provider.context.compacted`로 바꿉니다. Bash와 
 
 Provider가 다른 session ID를 보내거나 tool result와 turn result를 기존 ID에 연결할 수 없으면 정상 signal로 바꾸지 않습니다. SDK startup/stream/interrupt/close 실패는 `provider_process_failed`입니다. Raw task, context, model result와 provider 오류 본문은 normalized signal이나 event store에 복제하지 않습니다.
 
+## Managed provider run 수명주기
+
+`ManagedProviderRunCoordinator`는 provider-neutral adapter 하나를 받아 다음 단계를 직렬화합니다.
+
+1. `run.requested`와 `run.resolved` 기록
+2. 실행 전 repository snapshot
+3. adapter session 시작과 `adapter.started`
+4. 현재 snapshot revision을 기준으로 E1/E2 준비와 controlled E3 주입
+5. 같은 target turn 시작, 중단 가능한 normalized signal 소비
+6. 완료·실패·취소 사유로 adapter 종료와 `adapter.stopped`
+7. 실행 후 snapshot 비교
+8. `run.completed` 또는 `run.failed`
+
+Signal consumer는 context 상태 머신과 독립적으로 stream 종료와 terminal event를 판정합니다. `provider.context.compacted` 또는 session restart는 같은 좌표인지 확인한 뒤 즉시 현재 generation을 무효화합니다. Terminal event 전 stream 종료는 `provider_stream_failed`입니다. 호출자 취소는 `cancelled`이며 adapter가 active turn을 interrupt하고 process를 닫은 뒤에만 수명주기를 끝냅니다.
+
+Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `run.requested`는 `requestDigest`, `role`, `risk`, `run.resolved`는 `role`, `risk`, `policyVersion`을 필수로 가집니다. `adapter.started`는 adapter ID/version, provider session ID와 capability matrix를, `adapter.stopped`는 adapter ID, provider session ID와 종료 `status`를 가집니다. `tool.called`는 tool 이름, input digest, status와 duration만 남깁니다. `command.executed`는 command/output digest, 저장소 상대 cwd, `status`, exit code와 duration만 남기며 command와 output 원문은 허용하지 않습니다. `run.completed`와 `run.failed`는 각각 result/diagnostic digest를 사용하고 raw task나 provider result를 저장하지 않습니다.
+
+실행 전후 snapshot은 실제 repository root의 일반 파일 bytes와 symlink target을 SHA-256으로 묶습니다. `.git`, `node_modules`, `.roven/state`는 제외하며 제외 경로의 불변성을 증명하지 않습니다. 한 snapshot은 20,000개 항목, 일반 파일 256 MiB를 넘지 않습니다. Root가 실제 디렉터리가 아니거나 제한 초과, 읽는 중 변경과 안전한 읽기 실패는 `repository_snapshot_failed`입니다.
+
+현재 adapter process는 파일마다 Roven write permit를 요청하지 못합니다. 따라서 managed provider run은 Role의 `filesystem.write=deny`만 허용합니다. 다른 Role은 provider 시작 전에 `contract_validation_failed`로 거부합니다. 전후 snapshot의 정렬된 변경 경로가 하나라도 있으면 `unmanaged_change.detected`를 기록한 뒤 `unmanaged_change_detected`로 실패합니다. 이 event는 저장소 상대 `paths`, `beforeRevision`, `afterRevision`, `detectedAt`을 필수로 가지며 command, diff와 파일 bytes는 포함하지 않습니다. Adapter가 file change를 보고했더라도 검증된 permit가 없으면 `file.changed`로 바꾸지 않습니다.
+
+공통 adapter 계약은 현재 최종 model result 원문을 내보내지 않습니다. 따라서 결과를 표시하지 못하는 읽기 전용 `roven run`을 사용자 명령으로 공개하지 않습니다. Provider-neutral result artifact 전달과 경로별 permit/write bridge가 모두 연결된 뒤 CLI 수직 슬라이스를 엽니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md)에 정의합니다.
+
 ## 별도로 실행한 코딩 에이전트
 
 별도 Codex/Claude 프로세스가 파일을 수정하는 것 자체를 금지하지 않습니다. 다만 `roven run` 또는 등록된 hook/plugin을 거치지 않으면 Roven은 그 프로세스의 컨텍스트 주입과 도구 호출을 증명할 수 없습니다.
@@ -460,5 +483,9 @@ Roven은 문서를 세 유형으로 다룹니다.
 | `capability_denied` | Role 또는 프로젝트 정책이 요청한 capability를 거부했습니다. 실행은 읽기 전용으로 계속할 수 있지만 해당 변경은 재시도하지 않습니다. |
 | `approval_required` | 검증된 승인 원본이 없어 변경 capability를 닫고 승인 대기 상태를 유지합니다. |
 | `contract_validation_failed` | project, role, skill, document 또는 adapter 계약이 유효하지 않으므로 run 시작과 변경 capability를 차단합니다. 파일을 수정한 뒤 새 검증으로 다시 시작해야 하며 자동 재시도하지 않습니다. |
+| `repository_snapshot_failed` | 실행 전후 저장소 상태를 안전하게 비교할 수 없으므로 managed 완료와 변경 증명을 차단합니다. 안전하지 않은 경로·동시 변경·snapshot 제한을 해결한 뒤 새 run으로 시작합니다. |
+| `unmanaged_change_detected` | 현재 run의 검증된 write permit 밖에서 저장소 변경이 발견되었습니다. 변경을 `file.changed`로 승격하지 않고 run을 실패시키며, 사용자가 검토한 뒤 별도 managed run으로 가져올 수 있습니다. |
+| `provider_start_failed` / `provider_turn_failed` / `provider_stream_failed` / `provider_stop_failed` | 해당 provider 수명주기 단계가 정상 완료되지 않았습니다. 원문 오류는 event에 넣지 않고 code와 digest만 기록하며, start/stream/stop의 일시 실패만 정책상 재시도할 수 있습니다. |
+| `cancelled` | 호출자가 run을 중단했습니다. Active turn interrupt와 adapter 종료를 시도하고 정상 완료를 기록하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |

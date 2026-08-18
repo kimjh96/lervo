@@ -269,6 +269,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       permissionMode: this.options.permissionMode ?? "plan",
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
       createMessageId: this.createProviderMessageId,
+      ...(this.options.tools === undefined ? {} : { tools: [...this.options.tools] }),
     };
     if (this.options.clientFactory !== undefined) return this.options.clientFactory(clientOptions);
     return ClaudeSdkAgentClient.connect(clientOptions, this.options.sdkStartup);

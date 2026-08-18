@@ -11,6 +11,7 @@ export interface ClaudeAgentClientStartOptions {
   permissionMode: ClaudePermissionMode;
   requestTimeoutMs: number;
   createMessageId: () => string;
+  tools?: string[];
 }
 
 export interface ClaudeAgentClient {
@@ -31,6 +32,7 @@ export interface ClaudeAdapterOptions {
   executable?: string;
   permissionMode?: ClaudePermissionMode;
   requestTimeoutMs?: number;
+  tools?: string[];
   clientFactory?: ClaudeAgentClientFactory;
   sdkStartup?: typeof startup;
   resolveArtifact?: (uri: string) => Promise<Uint8Array>;

@@ -67,4 +67,26 @@ describe("event payload privacy boundary", () => {
       }),
     ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "unsupported_value" }));
   });
+
+  it("retains the normalized command status without retaining raw command text", () => {
+    const result = sanitizeEventPayload("command.executed", {
+      commandDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      cwdRelative: ".",
+      status: "completed",
+      exitCode: 0,
+      outputDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      durationMs: 15,
+      command: "cat .env",
+    });
+
+    expect(result.payload).toEqual({
+      commandDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      cwdRelative: ".",
+      status: "completed",
+      exitCode: 0,
+      outputDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      durationMs: 15,
+    });
+    expect(JSON.stringify(result.payload)).not.toContain("cat .env");
+  });
 });

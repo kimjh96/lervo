@@ -74,6 +74,17 @@ describe("Claude Agent SDK client", () => {
     expect(fake.state.warmClosed).toBe(true);
   });
 
+  it("lets a managed caller restrict Claude to an explicit read-only tool set", async () => {
+    const fake = fakeSdk();
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), tools: ["Read", "Glob", "Grep"] },
+      fake.sdkStartup,
+    );
+
+    expect(fake.state.startupParams?.options?.tools).toEqual(["Read", "Glob", "Grep"]);
+    await client.close();
+  });
+
   it("uses an isolated fail-closed SDK session and waits for exact input replays", async () => {
     const fake = fakeSdk();
     const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);

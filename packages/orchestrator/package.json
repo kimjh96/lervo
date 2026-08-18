@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@roven/adapter-contract": "workspace:*",
     "@roven/context": "workspace:*",
     "@roven/context-delivery": "workspace:*",
     "@roven/core": "workspace:*",

@@ -55,7 +55,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           strictMcpConfig: true,
           mcpServers: {},
           disallowedTools: ["Agent", "Task"],
-          tools: { type: "preset", preset: "claude_code" },
+          tools: options.tools ?? { type: "preset", preset: "claude_code" },
           includePartialMessages: false,
           canUseTool: async () => ({
             behavior: "deny" as const,

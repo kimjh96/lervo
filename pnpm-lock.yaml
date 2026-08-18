@@ -111,6 +111,9 @@ importers:
 
   packages/orchestrator:
     dependencies:
+      '@roven/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
       '@roven/context':
         specifier: workspace:*
         version: link:../context

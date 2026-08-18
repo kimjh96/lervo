@@ -1,0 +1,42 @@
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  captureRepositorySnapshot,
+  changedRepositoryPaths,
+} from "../src/index.js";
+
+const roots: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+describe("repository snapshot", () => {
+  it("detects content, creation and symlink changes while excluding runtime state", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "roven-snapshot-"));
+    roots.push(root);
+    await mkdir(resolve(root, ".roven/state"), { recursive: true });
+    await mkdir(resolve(root, "src"), { recursive: true });
+    await writeFile(resolve(root, "src/a.ts"), "before\n");
+    await writeFile(resolve(root, ".roven/state/events.sqlite"), "before state\n");
+    const before = await captureRepositorySnapshot(root);
+
+    await writeFile(resolve(root, "src/a.ts"), "after\n");
+    await writeFile(resolve(root, "src/b.ts"), "created\n");
+    await symlink("a.ts", resolve(root, "src/link.ts"));
+    await writeFile(resolve(root, ".roven/state/events.sqlite"), "after state\n");
+    const after = await captureRepositorySnapshot(root);
+
+    expect(changedRepositoryPaths(before, after)).toEqual([
+      "src/a.ts",
+      "src/b.ts",
+      "src/link.ts",
+    ]);
+    expect(Object.keys(after.files)).not.toContain(".roven/state/events.sqlite");
+    expect(before.revision).not.toBe(after.revision);
+  });
+});
