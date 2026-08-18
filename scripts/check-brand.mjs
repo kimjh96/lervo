@@ -28,6 +28,9 @@ const previousBrandAllowlist = new Set([
   "packages/project/src/layout.ts",
   "packages/project/test/project-init.test.ts",
 ]);
+const previousMarkerAllowlist = new Set([
+  "docs/adr/0021-commonmark-managed-block-parser.md",
+]);
 const brandCheckPath = "scripts/check-brand.mjs";
 
 for (const path of requiredDocuments) {
@@ -81,8 +84,12 @@ for (const path of trackedAndNewFiles) {
     failures.push(`${path}: 이전 제품 식별자가 남아 있습니다.`);
   }
   if (path !== brandCheckPath && content.includes("roven")) {
-    const withoutPreviousDirectory = content.replaceAll(".roven", "");
-    if (withoutPreviousDirectory.includes("roven") || !previousBrandAllowlist.has(path)) {
+    let withoutPreviousIdentity = content.replaceAll(".roven", "");
+    if (previousMarkerAllowlist.has(path)) {
+      withoutPreviousIdentity = withoutPreviousIdentity.replaceAll("<!-- roven:", "");
+    }
+    if (withoutPreviousIdentity.includes("roven") ||
+        (!previousBrandAllowlist.has(path) && !previousMarkerAllowlist.has(path))) {
       failures.push(`${path}: 허용되지 않은 이전 소문자 식별자가 남아 있습니다.`);
     }
   }

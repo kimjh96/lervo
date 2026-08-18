@@ -103,7 +103,7 @@ describe("document migration discovery", () => {
     expect(result.candidateArtifacts.map((artifact) => artifact.candidate.importer))
       .toEqual([
         { adapterId: "lervo_legacy_registry", version: "1.0.0" },
-        { adapterId: "markdown", version: "1.0.0" },
+        { adapterId: "markdown", version: "1.1.0" },
         { adapterId: "lervo_unknown", version: "1.0.0" },
       ]);
     expect(result.candidateArtifacts).toHaveLength(3);

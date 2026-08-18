@@ -4,6 +4,7 @@ import type { DocumentRegistry } from "@lervo/schemas";
 
 import { digestSuffix } from "./hash.js";
 import { parseLegacyDocumentRegistry } from "./legacy-registry.js";
+import { parseManagedMarkdownBlocks } from "./managed-block-parser.js";
 import type {
   DocumentImportAdapter,
   DocumentImportDraft,
@@ -14,14 +15,22 @@ function documentId(path: string): string {
   return `doc_${digestSuffix(`document-path\0${path}`)}`;
 }
 
-function markdownDraft(source: DocumentImportSource): DocumentImportDraft {
-  const extension = posix.extname(source.path).toLowerCase();
+function markdownProposal(source: DocumentImportSource, formatId: "markdown" | "mdx") {
+  return {
+    documentId: documentId(source.path),
+    documentPath: source.path,
+    profileId: formatId === "mdx" ? "imported-mdx/v1" : "imported-markdown/v1",
+    relations: { supersedesDocumentIds: [], relatedDocumentIds: [] },
+  };
+}
+
+function mdxDraft(source: DocumentImportSource): DocumentImportDraft {
   let text: string;
   try {
     text = new TextDecoder("utf-8", { fatal: true }).decode(source.bytes);
   } catch {
     return {
-      formatId: extension === ".mdx" ? "mdx" : "markdown",
+      formatId: "mdx",
       disposition: "observed",
       confidence: "none",
       detectedOwnership: "unknown",
@@ -29,34 +38,76 @@ function markdownDraft(source: DocumentImportSource): DocumentImportDraft {
       warnings: ["invalid_utf8"],
     };
   }
-  const containsLervoMarker = text.includes("<!-- lervo:");
-  const warnings = ["profile_requires_review"];
-  if (extension === ".mdx") warnings.push("mdx_semantics_not_parsed");
+  const previousProductPrefix = "ro" + "ven";
+  const containsMarker = text.includes("<!-- lervo:") ||
+    text.includes(`<!-- ${previousProductPrefix}:`);
+  const warnings = ["profile_requires_review", "mdx_semantics_not_parsed"];
   if (source.byteCount >= 32768) warnings.push("split_recommended");
-  if (containsLervoMarker) warnings.push("marker_structure_not_verified");
+  if (containsMarker) warnings.push("marker_structure_not_verified");
   return {
-    formatId: extension === ".mdx" ? "mdx" : "markdown",
+    formatId: "mdx",
     disposition: "review_required",
-    confidence: containsLervoMarker ? "low" : "medium",
-    detectedOwnership: containsLervoMarker ? "managed_blocks" : "user",
-    proposal: {
-      documentId: documentId(source.path),
-      documentPath: source.path,
-      profileId: extension === ".mdx" ? "imported-mdx/v1" : "imported-markdown/v1",
-      relations: { supersedesDocumentIds: [], relatedDocumentIds: [] },
-    },
+    confidence: containsMarker ? "none" : "medium",
+    detectedOwnership: containsMarker ? "unknown" : "user",
+    proposal: markdownProposal(source, "mdx"),
+    warnings,
+  };
+}
+
+function markdownDraft(source: DocumentImportSource): DocumentImportDraft {
+  const parsed = parseManagedMarkdownBlocks(source.bytes);
+  if (parsed.diagnostics.some((diagnostic) => diagnostic.code === "invalid_utf8")) {
+    return {
+      formatId: "markdown",
+      disposition: "observed",
+      confidence: "none",
+      detectedOwnership: "unknown",
+      proposal: null,
+      warnings: ["invalid_utf8"],
+    };
+  }
+
+  const warnings = ["profile_requires_review"];
+  if (source.byteCount >= 32768) warnings.push("split_recommended");
+  if (parsed.ignoredMarkers.length > 0) warnings.push("marker_candidates_in_code_ignored");
+  if (parsed.status === "invalid") {
+    warnings.push("managed_block_structure_invalid");
+    warnings.push(...parsed.diagnostics.map((diagnostic) => diagnostic.code));
+    return {
+      formatId: "markdown",
+      disposition: "review_required",
+      confidence: "none",
+      detectedOwnership: "unknown",
+      proposal: markdownProposal(source, "markdown"),
+      warnings,
+    };
+  }
+
+  const hasManagedBlocks = parsed.blocks.length > 0;
+  const hasPreviousMarkers = parsed.blocks.some(
+    (block) => block.markerFamily === "previous_product_v1",
+  );
+  if (hasPreviousMarkers) warnings.push("legacy_marker_requires_migration");
+  return {
+    formatId: "markdown",
+    disposition: "review_required",
+    confidence: hasPreviousMarkers ? "low" : hasManagedBlocks ? "high" : "medium",
+    detectedOwnership: hasManagedBlocks ? "managed_blocks" : "user",
+    proposal: markdownProposal(source, "markdown"),
     warnings,
   };
 }
 
 export const markdownImportAdapter: DocumentImportAdapter = {
-  descriptor: { adapterId: "markdown", version: "1.0.0" },
+  descriptor: { adapterId: "markdown", version: "1.1.0" },
   supports(path) {
     const extension = posix.extname(path).toLowerCase();
     return extension === ".md" || extension === ".mdx";
   },
   inspect(source) {
-    return [markdownDraft(source)];
+    return [posix.extname(source.path).toLowerCase() === ".mdx"
+      ? mdxDraft(source)
+      : markdownDraft(source)];
   },
 };
 

@@ -58,7 +58,7 @@ Managed block은 문서 전체가 아니라 선언된 block만 교체할 수 있
 <!-- lervo:end block=<blockId> -->
 ```
 
-같은 document manifest의 block ID와 입력 source ID는 중복될 수 없습니다. 실제 Markdown parser는 marker가 code fence 안에 있는지, 중첩되거나 여러 번 나타나는지 확인해야 하며 다음 compiler 슬라이스에서 구현합니다. 현재 schema와 loader가 marker 문자열과 소유권 일치만 검증하므로 아직 block을 안전하게 수정할 수 있다고 주장하지 않습니다.
+같은 document manifest의 block ID와 입력 source ID는 중복될 수 없습니다. CommonMark 구조와 정확한 UTF-8 byte 경계를 판정하는 읽기 전용 parser는 [ADR-0021](./0021-commonmark-managed-block-parser.md)에 정의합니다. Parser가 성공하더라도 patch candidate와 적용 계약이 구현되기 전에는 block을 안전하게 수정할 수 있다고 주장하지 않습니다.
 
 Lervo 전용 생성 문서는 64 KiB와 최상위 section 12개를 넘길 수 없습니다. 현재 파일 hash가 직전 생성 output과 같을 때만 전체 교체할 수 있고, 넘치는 내용은 `split_and_link`로 분리해야 합니다. 생성 입력 hash, output hash, generator와 policy version은 본문이 아니라 `.lervo/generated/manifests/`의 생성 manifest에 둡니다. 이 생성 manifest의 상세 schema와 원자적 compiler는 다음 슬라이스에서 확정합니다.
 

@@ -69,7 +69,7 @@ Structural dry-run은 `.lervo/documents.yaml`을 안정적으로 한 번 읽고 
 
 원본 보존 target은 `.lervo/archive/document-registries/sha256/<source-digest>.yaml`입니다. 이 파일은 다음 migration 내용을 append하는 문서가 아니라 특정 source bytes의 불변 사본입니다. Plan은 원본 경로의 처분을 `archive_then_remove`로 명시하지만 dry-run은 archive directory도 만들지 않습니다.
 
-Plan에는 새 `.lervo/documents` directory와 모든 sidecar target뿐 아니라 각 record가 가리키는 문서의 missing/file/unsafe snapshot도 포함합니다. 참조 문서는 structural apply가 수정하지 않지만, 승인자가 검토한 저장소 상태와 다른 문서 집합에 오래된 registry 분할을 적용하지 않기 위해 결속합니다. 참조 문서 부재는 review warning이고 안전한 snapshot을 만들 수 없는 문서는 `conflict`입니다. 중복 path·비정규 경로, 기존 sidecar layout과 다른 bytes의 archive target도 `conflict`입니다. Managed block과 Lervo 생성 소유권은 실제 본문 parser가 아직 없으므로 자동 확정하지 않고 review 대상으로 남깁니다.
+Plan에는 새 `.lervo/documents` directory와 모든 sidecar target뿐 아니라 각 record가 가리키는 문서의 missing/file/unsafe snapshot도 포함합니다. 참조 문서는 structural apply가 수정하지 않지만, 승인자가 검토한 저장소 상태와 다른 문서 집합에 오래된 registry 분할을 적용하지 않기 위해 결속합니다. 참조 문서 부재는 review warning이고 안전한 snapshot을 만들 수 없는 문서는 `conflict`입니다. 중복 path·비정규 legacy path, 기존 sidecar layout과 다른 bytes의 archive target도 `conflict`입니다. Structural registry 계획에는 아직 본문 parser 결과가 결속되지 않으므로 managed block과 Lervo 생성 소유권은 자동 확정하지 않고 review 대상으로 남깁니다.
 
 Structural apply는 plan의 모든 entry artifact를 정확히 한 번 승인 또는 제외하고, 승인 항목에는 원래 `DocumentRecord`를 보존한 최종 `DocumentManifest`를 요구합니다. Archive와 sidecar를 staging에서 먼저 완성한 뒤 `.lervo/.document-migration.lock`으로 loader를 닫습니다. Marker가 있는 동안 sidecar directory를 한 번에 공개하고 legacy 원본을 staging으로 비활성화합니다. 참조 문서와 공개 snapshot을 다시 확인하고 durable 완료 event를 기록한 뒤에만 marker를 제거합니다.
 
@@ -95,4 +95,4 @@ Event 이전 실패는 공개 sidecar directory를 hash로 확인해 staging으�
 - Init, import 판정, metadata 도입과 본문 변환의 권한 경계가 분리됩니다.
 - Dry-run 이후 바뀐 원본에 오래된 계획을 적용할 수 없습니다.
 - 형식 adapter 추가가 scanner와 compiler의 파일 시스템 권한을 넓히지 않습니다.
-- Managed block compiler는 실제 legacy 형식 계약을 입력으로 받아 구현됩니다.
+- Managed block parser가 표준·이전 marker를 구분하고 구조가 정상일 때만 byte 경계를 제공합니다. Compiler는 이 parser 계약을 입력으로 받아 구현됩니다.

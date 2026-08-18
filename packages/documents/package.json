@@ -17,6 +17,7 @@
   "dependencies": {
     "@lervo/project": "workspace:*",
     "@lervo/schemas": "workspace:*",
+    "mdast-util-from-markdown": "^2.0.3",
     "yaml": "^2.9.0"
   }
 }

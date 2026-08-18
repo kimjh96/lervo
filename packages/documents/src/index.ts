@@ -5,6 +5,8 @@ export * from "./integrity.js";
 export * from "./legacy-registry.js";
 export * from "./legacy-registry-apply.js";
 export * from "./legacy-registry-planner.js";
+export * from "./managed-block-parser.js";
+export * from "./managed-block-types.js";
 export * from "./planner.js";
 export * from "./scanner.js";
 export * from "./types.js";

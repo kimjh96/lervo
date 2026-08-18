@@ -537,7 +537,7 @@ Lervo는 문서를 세 유형으로 다룹니다.
 
 `AGENTS.md`를 공통 canonical 진입점으로 쓰고 `CLAUDE.md`에는 해당 지침을 연결하는 얇은 호환 블록을 둘 수 있습니다. 프로젝트가 반대 방향을 선택해도 manifest에 명시하면 됩니다.
 
-새 문서 metadata는 `.lervo/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Lervo가 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Lervo 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. 현재 loader는 marker 문자열까지 검증하지만 CommonMark 구조와 block 교체는 아직 구현하지 않았으므로 자동 수정 증거를 만들지 않습니다. 형식별 import/migration 계약을 먼저 구현한 뒤 parser와 compiler를 연결합니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)과 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
+새 문서 metadata는 `.lervo/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Lervo가 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Lervo 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. Markdown parser는 CommonMark HTML comment만 marker로 인정하고 code 안의 예시는 제외합니다. 성공할 때만 UTF-8 byte 단위 block/사용자 범위를 반환하며 중첩·중복·불완전·혼합 marker에서는 `invalid`로 닫힙니다. 이전 제품 marker는 migration 입력으로만 읽고 새 출력에 사용하지 않습니다. MDX는 아직 구조를 확정하지 않습니다. Parser는 파일이나 event를 쓰지 않으며 실제 block 교체 증거는 후속 patch candidate가 구현되기 전까지 만들지 않습니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md), [ADR-0018](./docs/adr/0018-existing-document-adoption.md)과 [ADR-0021](./docs/adr/0021-commonmark-managed-block-parser.md)에 정의합니다.
 
 노후화 판정 신호:
 
