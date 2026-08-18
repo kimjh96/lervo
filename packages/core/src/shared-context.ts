@@ -83,6 +83,7 @@ export function resolveHandoffContext(input: {
   );
   const supersededContextIds = new Set(
     input.publications
+      .filter((publication) => publication.projectId === input.handoff.projectId)
       .filter((publication) => Date.parse(publication.publishedAt) <= input.at.getTime())
       .map((publication) => publication.supersedesSharedContextId)
       .filter((sharedContextId): sharedContextId is string => sharedContextId !== null),

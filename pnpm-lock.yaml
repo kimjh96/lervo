@@ -36,6 +36,15 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
+  packages/context:
+    dependencies:
+      '@roven/core':
+        specifier: workspace:*
+        version: link:../core
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/core:
     dependencies:
       '@roven/event-contract':

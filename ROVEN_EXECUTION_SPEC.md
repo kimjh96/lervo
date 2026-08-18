@@ -98,6 +98,41 @@ requested
 
 유효한 handoff도 읽기 증거를 양도하지 않습니다. 수신 에이전트는 각 shared context가 가리키는 문서를 `reasonCode=handoff`로 선택하고, 자기 run/session에서 현재 bytes를 읽어 E2를 만든 뒤, 자기 provider session에 전달해 E3를 만들어야 합니다. 생산 에이전트의 receipt를 복사하면 쓰기 게이트가 열리지 않습니다. 원문 hash가 바뀌거나 context가 압축·재시작되면 일반 문서와 같은 규칙으로 receipt를 무효화합니다.
 
+## Context preparation 첫 슬라이스
+
+Context preparation은 E1 계획과 E2 적재를 분리합니다. 입력은 project/run/session/Role 좌표, document registry, 예상 변경 경로, Role rule별 문서 ID, shared context publication과 handoff, 정책 version과 source revision입니다. 이 단계는 provider를 실행하지 않으며 E3를 만들지 않습니다.
+
+선택 순서는 다음과 같습니다.
+
+1. 예상 변경 경로를 저장소 상대 경로로 정규화합니다. 절대 경로, `..`, NUL 문자를 거부합니다.
+2. Root `AGENTS.md`와 예상 경로의 상위 디렉터리에 있는 `AGENTS.md`를 root에서 가까운 순서로 발견합니다. 관련 없는 형제 디렉터리의 지침은 선택하지 않습니다.
+3. Document registry의 `connectedPaths`를 Node `path.matchesGlob` 규칙으로 예상 변경 경로와 비교합니다.
+4. Role의 `requiredDocumentRuleIds`를 built-in instruction rule 또는 호출자가 제공한 document rule map으로 해석합니다. 하나라도 해석할 수 없으면 중단합니다.
+5. 현재 project와 Role이 읽을 수 있는 shared context는 E0로 발견합니다. Handoff가 명시한 shared context만 `reasonCode=handoff`로 E1 필수 문서가 됩니다.
+
+같은 문서가 여러 규칙에 걸리면 문서는 한 번만 읽되 E1 선택 이유는 각각 보존합니다. 첫 슬라이스는 선택한 범위를 모두 `full`로 취급합니다. Registry에 없는 `AGENTS.md`는 정규화한 경로 hash로 안정된 document ID를 만들며, 일반 registry 문서와 shared context 원문은 등록된 ID를 사용합니다. 중복 문서 경로, shared context ID와 handoff ID는 계약 오류입니다.
+
+E1에는 선택 이유, rule ID, 필수 여부, scope와 정책 version만 있습니다. E2 loader는 plan이 현재 project/run/session의 E0/E1만 포함하고 모든 문서·선택 이유와 대응하는지 먼저 확인합니다. 다른 run의 receipt나 이미 만들어진 E2/E3를 넣은 plan은 `invalid_context_plan`으로 거부합니다. 그 뒤 각 파일을 전체 bytes로 읽고 SHA-256, byte count, source revision을 기록합니다. Handoff 문서는 publication의 hash와 현재 bytes가 일치해야 합니다. 한 문서라도 없거나 안전하지 않거나 읽는 중 바뀌거나 예상 hash와 다르면 적재 결과와 E2 묶음을 반환하지 않습니다. 사용자 문서를 수정하거나 timestamp를 갱신하지 않습니다.
+
+적재 뒤 snapshot 검사는 다음 사유를 `context.invalidated`의 reason으로 사용할 수 있습니다.
+
+| reason | 의미 |
+|---|---|
+| `content_changed` | 현재 파일 bytes의 hash가 E2와 다릅니다. |
+| `document_missing` | E2 원문 파일이 없어졌습니다. |
+| `document_unsafe` | 경로에 심볼릭 링크나 일반 파일이 아닌 항목이 생겼습니다. |
+| `publication_missing` | Handoff가 사용한 publication을 찾을 수 없습니다. |
+| `publication_not_yet_published` | 검사 시각에 아직 유효한 publication이 아닙니다. |
+| `publication_expired` | Publication 유효 기간이 끝났습니다. |
+| `publication_superseded` | 더 새 publication이 기존 ID를 대체했습니다. |
+| `publication_access_revoked` | 현재 Role이 더 이상 publication을 읽을 수 없습니다. |
+| `publication_document_changed` | 같은 publication ID가 다른 document ID를 가리킵니다. |
+| `publication_content_changed` | Publication의 content hash가 E2와 다릅니다. |
+
+이 슬라이스는 새 event type을 추가하지 않습니다. E1은 기존 `context.selected`, E2는 `document.loaded`, 위 사유는 `context.invalidated`에 대응합니다. Event payload에는 문서 본문을 넣지 않고 ID, hash, byte count, scope, source revision과 기계용 reason만 저장합니다.
+
+잘못된 path/rule, 중복 ID·경로, 다른 수신 Role의 handoff, 등록되지 않은 shared 문서와 유효하지 않은 evidence는 `contract_validation_failed`입니다. 문서 부재·안전하지 않은 경로·읽기 중 변경·handoff hash 불일치와 snapshot 무효화는 `required_context_missing`으로 쓰기 전에 다시 준비합니다. 오류와 event에는 원문 bytes, raw prompt, credential이나 provider payload를 넣지 않습니다.
+
 ## 문서 보장 수준
 
 Roven은 아래 상태를 분리합니다.

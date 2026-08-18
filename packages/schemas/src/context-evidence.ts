@@ -161,3 +161,4 @@ export const contextEvidenceSchema = {
 
 export type ContextEvidence = FromSchema<typeof contextEvidenceSchema>;
 export type ContextEvidenceState = (typeof contextEvidenceStates)[number];
+export type SelectionReasonCode = (typeof selectionReasonCodes)[number];

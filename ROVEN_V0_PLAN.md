@@ -83,6 +83,8 @@
 - 문서 변경 후 오래된 receipt 재사용 불가
 - trace에 선택 이유, 정책 버전, hash, invalidation 표시
 
+구현 현황(2026-08-18): **첫 번째 수직 슬라이스 완료.** `@roven/context`가 root·하위 `AGENTS.md` 계층, document registry의 `connectedPaths`, Role 필수 rule과 handoff를 결정적으로 합쳐 E0/E1을 만듭니다. 선택과 실제 읽기를 분리하고, 심볼릭 링크를 따라가지 않는 전체 bytes 읽기 뒤에만 SHA-256·byte count·source revision이 있는 E2를 만듭니다. 일반 shared context는 발견만 하고 handoff에 포함된 원문만 선택하며, 생산 run의 receipt를 수신 run에 복사하지 않습니다. 파일 변경, publication 만료·대체·접근 회수와 hash 불일치를 fixture로 검증했습니다. 이 단계는 E3를 만들지 않습니다. 결정은 [ADR-0006](./docs/adr/0006-deterministic-context-preparation.md)에 기록했습니다.
+
 ### M3: 공급자 어댑터
 
 - Codex adapter 구현
@@ -220,4 +222,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M2 context preparation 첫 슬라이스**입니다. 문서 registry, 저장소 지침 계층, 예상 변경 경로의 `paths` 규칙과 현재 Role이 읽을 수 있는 shared context/handoff로 필수 문서를 결정하고, 선택 이유를 `context.selected` 근거로 만듭니다. 선택된 파일은 전체 bytes를 읽어 SHA-256과 byte count를 계산한 뒤에만 `document.loaded` 근거를 만듭니다. 파일 변경, publication 만료나 대체가 발생하면 이전 load를 무효화합니다. 이 단계에서는 provider 주입이나 E3 사용을 주장하지 않습니다. 사용자 문서는 읽기 전용으로 유지하고 `selected`와 `loaded`, 생산자 receipt와 수신자 receipt가 섞이지 않는 fixture를 먼저 고정합니다.
+다음 구현 작업은 **M2 provider-neutral context envelope 슬라이스**입니다. E2를 통과한 문서만 adapter context envelope의 inline 원문 또는 CAS URI로 조립하고, Role과 writing policy ID, 대상 turn, context generation을 같은 좌표에 묶습니다. Fake adapter contract fixture에서 envelope 문서 hash·byte count·scope와 수신 receipt를 대조한 뒤에만 E3를 만들며, 누락·변조된 문서, 다른 session receipt와 이전 generation을 거부합니다. 실제 Codex/Claude 실행은 M3에 남기고 이 단계에서는 공급자 중립 조립과 검증 경계만 구현합니다.

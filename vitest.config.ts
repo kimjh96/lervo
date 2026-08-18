@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       "@roven/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),
       "@roven/cas": fromRoot("./packages/cas/src/index.ts"),
+      "@roven/context": fromRoot("./packages/context/src/index.ts"),
       "@roven/core": fromRoot("./packages/core/src/index.ts"),
       "@roven/event-contract": fromRoot("./packages/event-contract/src/index.ts"),
       "@roven/event-store-sqlite": fromRoot("./packages/event-store-sqlite/src/index.ts"),

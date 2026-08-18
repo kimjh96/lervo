@@ -336,6 +336,23 @@ describe("shared context and role handoff", () => {
     });
   });
 
+  it("ignores a superseding publication from another project", () => {
+    const otherProjectReplacement = publication({
+      sharedContextId: "scx_other_replacement",
+      projectId: "prj_99999999",
+      publishedAt: "2026-08-18T01:01:30Z",
+      supersedesSharedContextId: "scx_research_finding",
+    });
+    expect(
+      resolveHandoffContext({
+        handoff: handoff(),
+        producerRole: researcherRole(),
+        publications: [publication(), otherProjectReplacement],
+        at: new Date("2026-08-18T01:02:00Z"),
+      }),
+    ).toMatchObject({ allowed: true, violations: [] });
+  });
+
   it("does not resolve a context from another project", () => {
     expect(
       resolveHandoffContext({

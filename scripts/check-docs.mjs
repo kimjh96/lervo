@@ -19,6 +19,7 @@ const markdownDocuments = [
   "docs/adr/0003-local-event-store-and-cas.md",
   "docs/adr/0004-project-storage-bootstrap.md",
   "docs/adr/0005-shared-context-and-role-handoff.md",
+  "docs/adr/0006-deterministic-context-preparation.md",
 ];
 
 const failures = [];
