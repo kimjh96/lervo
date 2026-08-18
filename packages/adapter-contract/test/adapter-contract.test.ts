@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
@@ -8,6 +10,7 @@ import {
   type AdapterStopRequest,
   type AdapterStopResult,
   type AdapterTurn,
+  type AdapterTurnResult,
   type AdapterTurnRequest,
 } from "@roven/schemas";
 import { describe, expect, it } from "vitest";
@@ -140,6 +143,46 @@ class FixtureAdapter implements ProviderAdapter {
         durationMs: 1,
       },
     };
+    yield {
+      kind: "normalized_event",
+      schemaVersion: 1,
+      eventId: "evt_01234568",
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      type: "provider.turn.completed",
+      occurredAt: "2026-08-18T00:00:03Z",
+      payload: {
+        providerTurnId: "provider-turn-1",
+        status: "completed",
+        durationMs: 1,
+      },
+    };
+  }
+
+  async getTurnResult(
+    session: AdapterSession,
+    turn: AdapterTurn,
+  ): Promise<AdapterTurnResult> {
+    const content = "fixture result";
+    const bytes = Buffer.from(content, "utf8");
+    return {
+      kind: "turn_result",
+      schemaVersion: 1,
+      adapterId: this.descriptor.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      targetTurnId: turn.targetTurnId,
+      providerTurnId: turn.providerTurnId,
+      mediaType: "text/markdown; charset=utf-8",
+      content,
+      contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+      byteCount: bytes.byteLength,
+      producedAt: "2026-08-18T00:00:03Z",
+    };
   }
 
   async stop(
@@ -227,6 +270,8 @@ function fixture(provider: string) {
     contextEnvelope,
     turnRequest,
     stopReason: "completed" as const,
+    expectedResultContent: "fixture result",
+    expectedEventCount: 2,
   };
 }
 
@@ -238,6 +283,22 @@ describe.each(["codex", "claude"])("%s common adapter contract", (provider) => {
 });
 
 describe("adapter contract evidence integrity", () => {
+  it("rejects a turn result whose declared bytes do not match its content", async () => {
+    class InvalidResultAdapter extends FixtureAdapter {
+      override async getTurnResult(session: AdapterSession, turn: AdapterTurn) {
+        const result = await super.getTurnResult(session, turn);
+        return { ...result, byteCount: result.byteCount + 1 };
+      }
+    }
+    const report = await evaluateAdapterContract(
+      new InvalidResultAdapter("codex"),
+      fixture("codex"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "turn_result_mismatch" }),
+    );
+  });
+
   it("does not wait for a long-lived event stream to finish", async () => {
     class LongLivedAdapter extends FixtureAdapter {
       override async *events(

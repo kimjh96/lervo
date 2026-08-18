@@ -12,6 +12,7 @@ import type {
 
 export type ManagedProviderRunFailureCode =
   | "cancelled"
+  | "artifact_storage_failed"
   | "context_injection_failed"
   | "context_preparation_failed"
   | "contract_validation_failed"
@@ -19,6 +20,7 @@ export type ManagedProviderRunFailureCode =
   | "provider_stop_failed"
   | "provider_stream_failed"
   | "provider_turn_failed"
+  | "provider_result_failed"
   | "repository_snapshot_failed"
   | "telemetry_recording_failed"
   | "unmanaged_change_detected";
@@ -54,7 +56,7 @@ export class ManagedProviderRunError extends Error {
 
 export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
   adapter: ProviderAdapter;
-  artifactStore?: ContextArtifactPort;
+  artifactStore: ContextArtifactPort;
   captureSnapshot?: CaptureRepositorySnapshot;
   snapshotPolicy?: RepositorySnapshotPolicy;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
@@ -82,7 +84,16 @@ export interface ManagedProviderRunResult {
   session: AdapterSession;
   turn: AdapterTurn;
   terminalEventId: string;
+  resultArtifact: ManagedProviderResultArtifact;
   contextGeneration: number;
   beforeRevision: string;
   afterRevision: string;
+}
+
+export interface ManagedProviderResultArtifact {
+  artifactId: string;
+  uri: string;
+  mediaType: "text/markdown; charset=utf-8";
+  contentHash: string;
+  byteCount: number;
 }

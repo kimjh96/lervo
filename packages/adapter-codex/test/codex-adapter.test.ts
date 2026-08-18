@@ -111,6 +111,18 @@ class FakeCodexClient implements CodexAppServerClient {
         },
       },
       {
+        method: "item/completed",
+        params: {
+          threadId,
+          turnId: "codex-turn-1",
+          item: {
+            type: "agentMessage",
+            id: "message-1",
+            text: "super-secret-result",
+          },
+        },
+      },
+      {
         method: "turn/completed",
         params: {
           threadId,
@@ -148,11 +160,11 @@ class FakeCodexClient implements CodexAppServerClient {
 }
 
 function clock() {
-  let second = 1;
+  let value = Date.parse("2026-08-18T00:00:01Z");
   return () => {
-    const value = new Date(`2026-08-18T00:00:0${second}Z`);
-    second += 1;
-    return value;
+    const current = new Date(value);
+    value += 1_000;
+    return current;
   };
 }
 
@@ -259,7 +271,8 @@ describe("Codex managed adapter", () => {
       expectedProvider: "codex",
       ...fixture(),
       stopReason: "completed",
-      expectedEventCount: 2,
+      expectedEventCount: 7,
+      expectedResultContent: "super-secret-result",
     });
     expect(report).toEqual({ passed: true, violations: [] });
     expect(client.closed).toBe(true);
@@ -337,6 +350,7 @@ describe("Codex managed adapter", () => {
     expect(serialized).not.toContain("super-secret-command");
     expect(serialized).not.toContain("super-secret-output");
     expect(serialized).not.toContain("super-secret-diff");
+    expect(serialized).not.toContain("super-secret-result");
     expect(serialized).not.toContain('"/repo"');
     expect(values[3]!.type).not.toBe("file.changed");
   });

@@ -139,6 +139,9 @@ importers:
       '@roven/adapter-codex':
         specifier: workspace:*
         version: link:../adapter-codex
+      '@roven/cas':
+        specifier: workspace:*
+        version: link:../cas
       '@roven/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite

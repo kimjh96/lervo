@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
-import type { ProviderAdapter } from "@roven/adapter-contract";
+import { createAdapterTurnResult, type ProviderAdapter } from "@roven/adapter-contract";
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
@@ -12,6 +12,7 @@ import {
   type AdapterStopRequest,
   type AdapterStopResult,
   type AdapterTurn,
+  type AdapterTurnResult,
   type AdapterTurnRequest,
 } from "@roven/schemas";
 
@@ -28,6 +29,7 @@ import { buildManagedContextMessage } from "./context-message.js";
 import { ClaudeEventNormalizer } from "./normalize.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
+import { captureClaudeTurnResult } from "./turn-result.js";
 import {
   ClaudeAdapterError,
   type ClaudeAdapterOptions,
@@ -221,7 +223,23 @@ export class ClaudeAdapter implements ProviderAdapter {
     });
     try {
       for await (const raw of state.client.messages(signal)) {
-        for (const normalized of normalizer.normalize(raw)) {
+        const activeProviderTurnId = state.activeProviderTurnId;
+        const normalizedEvents = normalizer.normalize(raw);
+        if (normalizedEvents.some((event) => event.type === "provider.turn.completed")) {
+          const captured = captureClaudeTurnResult({
+            raw,
+            providerSessionId: session.providerSessionId,
+            activeProviderTurnId,
+            now: this.now,
+          });
+          if (captured !== null) {
+            state.turnResults.set(captured.providerTurnId, {
+              content: captured.content,
+              producedAt: captured.producedAt,
+            });
+          }
+        }
+        for (const normalized of normalizedEvents) {
           assertAdapterMessage(normalized, "Claude normalized event");
           if (
             normalized.type === "provider.turn.completed" ||
@@ -239,6 +257,33 @@ export class ClaudeAdapter implements ProviderAdapter {
       assertAdapterMessage(normalized, "Claude failure event");
       yield normalized;
     }
+  }
+
+  async getTurnResult(
+    session: AdapterSession,
+    turn: AdapterTurn,
+  ): Promise<AdapterTurnResult> {
+    const state = this.sessions.get(session);
+    assertAdapterMessage(turn, "Claude turn");
+    if (
+      turn.adapterId !== session.adapterId ||
+      turn.projectId !== session.projectId ||
+      turn.runId !== session.runId ||
+      turn.sessionId !== session.sessionId ||
+      turn.providerSessionId !== session.providerSessionId
+    ) {
+      throw new ClaudeAdapterError("session_mismatch", "Turn result 요청이 Claude session과 다릅니다.");
+    }
+    const captured = state.turnResults.get(turn.providerTurnId);
+    if (captured === undefined) {
+      throw new ClaudeAdapterError(
+        "provider_protocol_failed",
+        "완료된 Claude turn의 최종 결과가 없습니다.",
+      );
+    }
+    const result = createAdapterTurnResult({ session, turn, ...captured });
+    assertAdapterMessage(result, "Claude turn result");
+    return clone(result);
   }
 
   async stop(session: AdapterSession, request: AdapterStopRequest): Promise<AdapterStopResult> {

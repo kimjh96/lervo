@@ -26,6 +26,7 @@
   "devDependencies": {
     "@roven/adapter-claude": "workspace:*",
     "@roven/adapter-codex": "workspace:*",
+    "@roven/cas": "workspace:*",
     "@roven/event-store-sqlite": "workspace:*"
   }
 }

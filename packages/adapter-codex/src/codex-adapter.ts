@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import type { ProviderAdapter } from "@roven/adapter-contract";
+import { createAdapterTurnResult, type ProviderAdapter } from "@roven/adapter-contract";
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
@@ -11,6 +11,7 @@ import {
   type AdapterStopRequest,
   type AdapterStopResult,
   type AdapterTurn,
+  type AdapterTurnResult,
   type AdapterTurnRequest,
 } from "@roven/schemas";
 
@@ -27,6 +28,7 @@ import { CodexStdioAppServerClient } from "./app-server-client.js";
 import { buildManagedContextItems } from "./context-items.js";
 import { CodexEventNormalizer } from "./normalize.js";
 import { CodexSessionRegistry } from "./session-registry.js";
+import { captureCodexTurnResult } from "./turn-result.js";
 import {
   CodexAdapterError,
   type CodexAdapterOptions,
@@ -211,6 +213,17 @@ export class CodexAdapter implements ProviderAdapter {
     try {
       for await (const notification of state.client.notifications(signal)) {
         const normalized = normalizer.normalize(notification);
+        const captured = captureCodexTurnResult({
+          raw: notification,
+          providerSessionId: session.providerSessionId,
+          now: this.now,
+        });
+        if (captured !== null) {
+          state.turnResults.set(captured.providerTurnId, {
+            content: captured.content,
+            producedAt: captured.producedAt,
+          });
+        }
         if (normalized === null) continue;
         assertAdapterMessage(normalized, "Codex normalized event");
         if (
@@ -233,6 +246,33 @@ export class CodexAdapter implements ProviderAdapter {
       });
       if (normalized !== null) yield normalized;
     }
+  }
+
+  async getTurnResult(
+    session: AdapterSession,
+    turn: AdapterTurn,
+  ): Promise<AdapterTurnResult> {
+    const state = this.sessions.get(session);
+    assertAdapterMessage(turn, "Codex turn");
+    if (
+      turn.adapterId !== session.adapterId ||
+      turn.projectId !== session.projectId ||
+      turn.runId !== session.runId ||
+      turn.sessionId !== session.sessionId ||
+      turn.providerSessionId !== session.providerSessionId
+    ) {
+      throw new CodexAdapterError("session_mismatch", "Turn result 요청이 Codex session과 다릅니다.");
+    }
+    const captured = state.turnResults.get(turn.providerTurnId);
+    if (captured === undefined) {
+      throw new CodexAdapterError(
+        "provider_protocol_failed",
+        "완료된 Codex turn의 최종 결과가 없습니다.",
+      );
+    }
+    const result = createAdapterTurnResult({ session, turn, ...captured });
+    assertAdapterMessage(result, "Codex turn result");
+    return clone(result);
   }
 
   async stop(session: AdapterSession, request: AdapterStopRequest): Promise<AdapterStopResult> {

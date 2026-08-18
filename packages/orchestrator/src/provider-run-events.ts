@@ -9,6 +9,7 @@ import type {
 } from "@roven/schemas";
 
 import type { ManagedEventSpec } from "./telemetry.js";
+import type { ManagedProviderResultArtifact } from "./provider-run-types.js";
 
 const systemActor = { kind: "system" } as const;
 
@@ -132,7 +133,7 @@ export function unmanagedChangeSpec(input: {
 }
 
 export function runCompletedSpec(input: {
-  terminalEvent: AdapterNormalizedEvent;
+  resultArtifact: ManagedProviderResultArtifact;
   occurredAt: string;
 }): ManagedEventSpec {
   return {
@@ -140,12 +141,8 @@ export function runCompletedSpec(input: {
     occurredAt: input.occurredAt,
     actor: systemActor,
     payload: {
-      resultDigest: digest({
-        eventId: input.terminalEvent.eventId,
-        type: input.terminalEvent.type,
-        payload: input.terminalEvent.payload,
-      }),
-      artifactIds: [],
+      resultDigest: input.resultArtifact.contentHash,
+      artifactIds: [input.resultArtifact.artifactId],
       verificationStatus: "not_run",
     },
   };

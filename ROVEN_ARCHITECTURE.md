@@ -89,7 +89,9 @@ M2의 `@roven/orchestrator` 첫 슬라이스는 context 준비와 delivery를 �
 
 M3의 managed provider coordinator는 실행 전 snapshot, adapter 시작, context 준비·주입, target turn, 중단 가능한 signal stream, adapter 종료와 실행 후 snapshot을 한 수명주기로 묶습니다. Coordinator는 순서만 소유하고 context 상태 머신, provider signal monitor, adapter 계약, 단계별 deadline, 실패 원장, 종료 처리와 repository snapshot을 별도 모듈에 맡깁니다. Codex/Claude 구현을 직접 알지 않고 공통 adapter 포트만 사용합니다. Compaction/restart는 terminal 결과와 별도로 generation을 즉시 무효화하며, terminal 전에 stream이 끝나거나 필수 telemetry가 기록되지 않으면 정상 완료를 만들지 않습니다. 여러 실패가 겹치면 마지막 오류로 덮지 않고 안전한 code·phase를 모두 보존합니다.
 
-현재 provider process에는 Roven의 경로별 write permit를 요청하는 bridge가 없습니다. 따라서 이 수명주기의 provider 실행은 `executionMode=read_only`이며 Codex sandbox와 Claude permission/tool 구성까지 adapter에서 강제합니다. 전후 snapshot에서 남은 변경은 모두 `unmanaged_change.detected`와 run 실패로 처리합니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.roven/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다. 저장소별 제외·한도 정책을 주입할 수 있습니다. 최종 답변 원문도 공통 adapter 계약에 없으므로 결과 없는 읽기 전용 `roven run` CLI는 아직 공개하지 않습니다.
+현재 provider process에는 Roven의 경로별 write permit를 요청하는 bridge가 없습니다. 따라서 이 수명주기의 provider 실행은 `executionMode=read_only`이며 Codex sandbox와 Claude permission/tool 구성까지 adapter에서 강제합니다. 전후 snapshot에서 남은 변경은 모두 `unmanaged_change.detected`와 run 실패로 처리합니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.roven/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다. 저장소별 제외·한도 정책을 주입할 수 있습니다.
+
+최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않으며, managed write bridge가 없으므로 `roven run` CLI는 아직 공개하지 않습니다.
 
 파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 
@@ -284,6 +286,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행 수명주기(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M3의 다음 범위는 provider-neutral 결과 전달과 경로별 write permit bridge를 붙여 실제 `roven run` 수직 슬라이스를 여는 일입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행과 결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. M3의 다음 범위는 경로별 write permit bridge를 붙여 실제 `roven run` 수직 슬라이스를 여는 일입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

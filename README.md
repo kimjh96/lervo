@@ -2,7 +2,7 @@
 
 Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2 완료, M3 managed provider run의 실제 adapter 연결·읽기 전용 경계·실패 복구 완료 (2026-08-18)
+현재 상태: M0·M1·M2 완료, M3 managed provider run의 검증된 로컬 결과 artifact까지 완료 (2026-08-19)
 
 ## 목표
 
@@ -31,6 +31,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [Codex app-server managed adapter ADR](./docs/adr/0009-codex-app-server-managed-adapter.md)
 - [Claude Agent SDK managed adapter ADR](./docs/adr/0010-claude-agent-sdk-managed-adapter.md)
 - [Managed provider run 수명주기 ADR](./docs/adr/0011-managed-provider-run-lifecycle.md)
+- [Provider-neutral 결과 artifact ADR](./docs/adr/0012-provider-result-artifacts.md)
 
 ## 현재 구현
 
@@ -40,14 +41,14 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@roven/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
 - `@roven/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
-- `@roven/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 관리하고, provider session·turn·signal·취소·종료와 실행 전후 snapshot을 하나의 fail-closed run으로 묶는 상태 머신
+- `@roven/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 관리하고, provider 실행·snapshot·결과 검증과 CAS artifact 저장을 하나의 fail-closed run으로 묶는 상태 머신
 - `@roven/project`: 관리 경로, project 설정과 원자적인 초기화 계획·적용
 - `@roven/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
 - `@roven/adapter-contract`: Codex와 Claude가 같은 역할과 writing 정책을 받도록 강제하는 provider adapter interface, 공통 envelope/receipt 의미 판정과 contract suite
-- `@roven/adapter-codex`: Codex app-server stdio process와 thread/turn을 관리하고, 검증된 context를 통제 입력으로 주입하며 provider 신호를 원문 없는 공통 stream으로 변환하는 adapter
-- `@roven/adapter-claude`: Claude Agent SDK process/session을 관리하고, query 없는 context append의 정확한 replay 뒤에만 receipt를 만들며 관측 가능한 provider 신호만 정규화하는 adapter
+- `@roven/adapter-codex`: Codex app-server thread/turn과 controlled context를 관리하고, 원문 없는 signal stream과 별도의 검증 가능한 최종 결과를 제공하는 adapter
+- `@roven/adapter-claude`: Claude Agent SDK context replay를 검증하고, 관측 가능한 signal과 별도의 검증 가능한 최종 결과만 provider-neutral 계약으로 제공하는 adapter
 - `@roven/cli`: `roven init` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 

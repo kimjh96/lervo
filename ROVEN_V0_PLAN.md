@@ -99,7 +99,7 @@
 - 제공되지 않는 telemetry는 `unknown/unsupported`로 남음
 - 관리 경로 밖 변경은 `unmanaged`로 탐지
 
-구현 현황(2026-08-18): **Managed provider run 수명주기와 unmanaged 변경 탐지 완료, M3 진행 중.** Codex·Claude의 실제 adapter를 provider-neutral coordinator acceptance test에 연결했습니다. `executionMode=read_only`와 Codex sandbox, Claude plan/read-only tool 구성을 시작 경계에서 강제합니다. 실행 전 snapshot, E1/E2/E3, target turn, signal, 종료와 실행 후 snapshot을 단계별 deadline으로 순서화하고, 종료·telemetry·unmanaged 실패가 겹쳐도 원장에 모두 보존합니다. Snapshot 제외 경로와 한도는 정책으로 교체할 수 있으며 기본 `.git`, `node_modules`, `.roven/state` 밖 변경은 permit가 없는 한 `unmanaged_change.detected`와 run 실패가 됩니다. 현재 adapter process에는 경로별 write permit bridge가 없고 공통 계약이 최종 답변 원문도 전달하지 않으므로, 결과 없는 읽기 전용 `roven run` CLI는 공개하지 않았습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md)에 기록했습니다.
+구현 현황(2026-08-19): **Managed provider run의 검증된 로컬 결과 artifact까지 완료, M3 진행 중.** Codex·Claude 실제 adapter가 terminal event와 분리된 같은 `AdapterTurnResult` 계약을 구현합니다. Coordinator는 session/turn 좌표, UTF-8, 시각, 4 MiB 한도와 실제 hash·byte count를 검증하고, provider 종료와 snapshot 성공 뒤 CAS에 저장해 다시 읽은 bytes까지 대조합니다. `run.completed`에는 원문이나 URI 대신 content hash와 artifact ID만 남습니다. 결과 누락, 계약 불일치, CAS 변조는 각각 fail-closed 테스트로 검증했습니다. 읽기 전용 실행 경계와 unmanaged 변경 탐지는 유지되며, 경로별 write permit bridge가 없으므로 `roven run` CLI는 아직 공개하지 않았습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md)에 기록했습니다.
 
 ### M4: 스킬과 문서 수명주기
 
@@ -226,4 +226,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M3 provider-neutral 결과 전달과 managed write bridge**입니다. 두 adapter가 최종 응답을 원문 event가 아닌 검증 가능한 local artifact로 전달하는 공통 계약을 먼저 정의하고, provider의 파일 변경 요청을 orchestrator의 경로별 1회용 permit와 before/after hash 확인에 연결합니다. 그 뒤에만 `roven run`을 공개해 같은 작은 작업을 Codex와 Claude 경로에서 실행하고, 사용자에게 결과를 보여주며 검증된 `file.changed`와 trace 좌표를 재구성합니다. Permit bridge를 우회한 변경은 계속 `unmanaged`로 실패해야 합니다.
+다음 구현 작업은 **M3 managed write bridge**입니다. Provider의 파일 변경 요청을 orchestrator의 경로별 1회용 permit와 실제 before/after bytes 확인에 연결합니다. 그 뒤에만 `roven run`을 공개해 같은 작은 작업을 Codex와 Claude 경로에서 실행하고, 검증된 결과 artifact를 사용자에게 보여주며 `file.changed`와 trace 좌표를 재구성합니다. Permit bridge를 우회한 변경은 계속 `unmanaged`로 실패해야 합니다.

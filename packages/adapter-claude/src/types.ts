@@ -48,6 +48,7 @@ export interface ClaudeSessionState {
   client: ClaudeAgentClient;
   injectedTargetTurnIds: Set<string>;
   startedTargetTurnIds: Set<string>;
+  turnResults: Map<string, { content: string; producedAt: string }>;
   activeProviderTurnId?: string;
   eventStreamClaimed: boolean;
   stopped: boolean;

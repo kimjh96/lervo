@@ -6,6 +6,8 @@ export type ManagedProviderRunPhase =
   | "context_inject"
   | "turn_start"
   | "provider_turn"
+  | "result_collect"
+  | "result_store"
   | "provider_stream"
   | "adapter_stop"
   | "after_snapshot";

@@ -8,6 +8,7 @@ import {
   inspectContextReceiptBinding,
 } from "./context-binding.js";
 import { type AdapterContractFixture, type ProviderAdapter } from "./provider-adapter.js";
+import { inspectTurnResultBinding } from "./result-binding.js";
 
 export type AdapterContractViolationCode =
   | "descriptor_invalid"
@@ -24,6 +25,8 @@ export type AdapterContractViolationCode =
   | "turn_request_mismatch"
   | "turn_invalid"
   | "turn_mismatch"
+  | "turn_result_invalid"
+  | "turn_result_mismatch"
   | "normalized_event_invalid"
   | "normalized_event_mismatch"
   | "normalized_event_timeout"
@@ -219,6 +222,21 @@ export async function evaluateAdapterContract(
         if (cleanupTimer !== undefined) clearTimeout(cleanupTimer);
       }
     }
+  }
+
+  const turnResult = await adapter.getTurnResult(session, turn);
+  addValidationViolation(violations, "turn_result_invalid", turnResult);
+  const resultBinding = inspectTurnResultBinding({ session, turn, result: turnResult });
+  if (!resultBinding.passed || turnResult.content !== fixture.expectedResultContent) {
+    violations.push({
+      code: "turn_result_mismatch",
+      detail: [
+        ...resultBinding.violations.map((item) => item.detail),
+        ...(turnResult.content === fixture.expectedResultContent
+          ? []
+          : ["turn result content does not match the fixture"]),
+      ].join("; "),
+    });
   }
 
   const stopRequest: AdapterStopRequest = {

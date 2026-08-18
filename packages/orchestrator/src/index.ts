@@ -3,5 +3,6 @@ export * from "./managed-context-run.js";
 export * from "./managed-provider-run.js";
 export * from "./provider-run-deadline.js";
 export * from "./provider-run-types.js";
+export * from "./provider-result.js";
 export * from "./repository-snapshot.js";
 export * from "./types.js";

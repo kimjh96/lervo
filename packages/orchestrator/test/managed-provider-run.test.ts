@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ProviderAdapter } from "@roven/adapter-contract";
+import { FileSystemCas } from "@roven/cas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -13,6 +14,7 @@ import {
   failOnEventType,
   cleanupManagedFixtures,
   createManagedFixture,
+  MemoryArtifactStore,
   policyVersion,
   providerRunInput,
   projectId,
@@ -40,12 +42,16 @@ function coordinator(
   root: string,
   events: ManagedEventStore,
   deadlines?: ConstructorParameters<typeof ManagedProviderRunCoordinator>[0]["deadlines"],
+  artifactStore: ConstructorParameters<
+    typeof ManagedProviderRunCoordinator
+  >[0]["artifactStore"] = new MemoryArtifactStore(),
 ) {
   return new ManagedProviderRunCoordinator({
     adapter,
     coordinates: { projectId, runId, sessionId, roleId: role.roleId },
     policyVersion,
     events,
+    artifactStore,
     ...(deadlines === undefined ? {} : { deadlines }),
     now: clock(),
     createEventId: sequenceFactory("evt_managedrun"),
@@ -58,7 +64,14 @@ describe("managed provider run coordinator", () => {
     async (provider) => {
       const data = await createManagedFixture();
       const adapter = new FakeManagedAdapter(provider);
-      const result = await coordinator(adapter, data.root, data.store).run({
+      const artifactStore = new MemoryArtifactStore();
+      const result = await coordinator(
+        adapter,
+        data.root,
+        data.store,
+        undefined,
+        artifactStore,
+      ).run({
         ...providerRunInput(),
         repositoryRoot: data.root,
       });
@@ -69,7 +82,15 @@ describe("managed provider run coordinator", () => {
         beforeRevision: result.afterRevision,
       });
       expect(result.session.executionMode).toBe("read_only");
-      expect(adapter.calls).toEqual(["start", "injectContext", "startTurn", "stop"]);
+      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
+        .toBe("fixture provider result");
+      expect(adapter.calls).toEqual([
+        "start",
+        "injectContext",
+        "startTurn",
+        "getTurnResult",
+        "stop",
+      ]);
       expect(adapter.stopReason).toBe("completed");
       expect(data.store.list({ runId }).map((event) => event.type)).toEqual([
         "run.requested",
@@ -86,6 +107,11 @@ describe("managed provider run coordinator", () => {
       ]);
       const serialized = JSON.stringify(data.store.list({ runId }));
       expect(serialized).not.toContain("저장소를 읽고 결과를 설명합니다");
+      expect(serialized).not.toContain("fixture provider result");
+      expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+        resultDigest: result.resultArtifact.contentHash,
+        artifactIds: [result.resultArtifact.artifactId],
+      });
       expect(data.store.verifyIntegrity().valid).toBe(true);
       data.store.close();
     },
@@ -103,6 +129,23 @@ describe("managed provider run coordinator", () => {
     expect(
       data.store.list({ runId }).find((event) => event.type === "context.invalidated")?.payload,
     ).toMatchObject({ reason: "context_compacted", contextGeneration: 0 });
+    data.store.close();
+  });
+
+  it("stores the provider result in the real filesystem CAS", async () => {
+    const data = await createManagedFixture();
+    const artifacts = await FileSystemCas.open(resolve(data.root, ".roven/state/cas"));
+    const result = await coordinator(
+      new FakeManagedAdapter("codex"),
+      data.root,
+      data.store,
+      undefined,
+      artifacts,
+    ).run({ ...providerRunInput(), repositoryRoot: data.root });
+
+    expect(Buffer.from(await artifacts.get(result.resultArtifact.uri)).toString("utf8"))
+      .toBe("fixture provider result");
+    expect(result.beforeRevision).toBe(result.afterRevision);
     data.store.close();
   });
 
@@ -164,6 +207,7 @@ describe("managed provider run coordinator", () => {
       coordinates: { projectId, runId, sessionId, roleId: role.roleId },
       policyVersion,
       events,
+      artifactStore: new MemoryArtifactStore(),
       now: clock(),
       createEventId: sequenceFactory("evt_managedrun"),
     }).run({ ...providerRunInput(), repositoryRoot: data.root });
@@ -305,6 +349,49 @@ describe("managed provider run coordinator", () => {
 
     await expect(run).rejects.toMatchObject({ code: "provider_turn_failed" });
     expect(adapter.stopReason).toBe("failed");
+    data.store.close();
+  });
+
+  it("fails when a completed provider turn has no retrievable result", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude", { failResult: true });
+    const run = coordinator(adapter, data.root, data.store).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "provider_result_failed" });
+    expect(adapter.stopReason).toBe("failed");
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain("run.completed");
+    data.store.close();
+  });
+
+  it("fails when stored result bytes cannot be read back unchanged", async () => {
+    class CorruptingArtifactStore extends MemoryArtifactStore {
+      override async get(uri: string): Promise<Uint8Array> {
+        await super.get(uri);
+        return Buffer.from("corrupted result", "utf8");
+      }
+    }
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const run = coordinator(
+      adapter,
+      data.root,
+      data.store,
+      undefined,
+      new CorruptingArtifactStore(),
+    ).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "artifact_storage_failed" });
+    expect(adapter.stopReason).toBe("completed");
+    expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+      failureCode: "artifact_storage_failed",
+      retryable: true,
+    });
     data.store.close();
   });
 

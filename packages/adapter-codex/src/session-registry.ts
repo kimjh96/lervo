@@ -23,6 +23,7 @@ export class CodexSessionRegistry {
       client,
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
+      turnResults: new Map(),
       eventStreamClaimed: false,
       stopped: false,
     });

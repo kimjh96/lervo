@@ -2,6 +2,7 @@ import {
   type AdapterNormalizedEvent,
   type AdapterSession,
   type AdapterTurn,
+  type AdapterTurnResult,
   type AdapterTurnRequest,
 } from "@roven/schemas";
 
@@ -27,6 +28,7 @@ import {
 } from "./provider-run-deadline.js";
 import { RunFailureLedger } from "./provider-run-failures.js";
 import { finalizeProviderRun } from "./provider-run-finalizer.js";
+import { collectProviderResult, storeProviderResult } from "./provider-result.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import {
   ManagedProviderRunError,
@@ -91,6 +93,8 @@ interface ManagedProviderRunExecutionState {
   turn?: AdapterTurn;
   before?: RepositorySnapshot;
   after?: RepositorySnapshot;
+  turnResult?: AdapterTurnResult;
+  resultArtifact?: ManagedProviderRunResult["resultArtifact"];
 }
 
 export class ManagedProviderRunCoordinator {
@@ -196,9 +200,7 @@ export class ManagedProviderRunCoordinator {
         publications: input.context.publications,
         injectContext: (session, envelope) =>
           this.options.adapter.injectContext(session, envelope),
-        ...(this.options.artifactStore === undefined
-          ? {}
-          : { artifactStore: this.options.artifactStore }),
+        artifactStore: this.options.artifactStore,
         ...(input.createEnvelopeId === undefined
           ? {}
           : { createEnvelopeId: input.createEnvelopeId }),
@@ -245,6 +247,12 @@ export class ManagedProviderRunCoordinator {
           "Provider turn이 실패했습니다.",
         );
       }
+      phase = "result_collect";
+      state.turnResult = await collectProviderResult({
+        adapter: this.options.adapter,
+        session: state.session,
+        turn: state.turn,
+      });
     } catch (error) {
       failures.add(error, phase);
     }
@@ -264,6 +272,18 @@ export class ManagedProviderRunCoordinator {
     });
     if (after !== undefined) state.after = after;
 
+    if (failures.empty && state.turnResult !== undefined) {
+      phase = "result_store";
+      try {
+        state.resultArtifact = await storeProviderResult({
+          result: state.turnResult,
+          artifactStore: this.options.artifactStore,
+        });
+      } catch (error) {
+        failures.add(error, phase);
+      }
+    }
+
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
     if (resultError !== undefined && primaryFailure !== undefined) {
@@ -281,6 +301,7 @@ export class ManagedProviderRunCoordinator {
       terminal === undefined ||
       state.session === undefined ||
       state.turn === undefined ||
+      state.resultArtifact === undefined ||
       state.before === undefined ||
       state.after === undefined
     ) {
@@ -289,12 +310,15 @@ export class ManagedProviderRunCoordinator {
         "완료된 managed run의 필수 결과가 없습니다.",
       );
     }
-    this.append([runCompletedSpec({ terminalEvent: terminal, occurredAt: this.time() })]);
+    this.append([
+      runCompletedSpec({ resultArtifact: state.resultArtifact, occurredAt: this.time() }),
+    ]);
     return {
       status: "completed",
       session: copy(state.session),
       turn: copy(state.turn),
       terminalEventId: terminal.eventId,
+      resultArtifact: copy(state.resultArtifact),
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,
       afterRevision: state.after.revision,

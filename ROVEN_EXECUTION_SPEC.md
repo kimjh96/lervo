@@ -309,11 +309,19 @@ Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `
 
 Coordinator는 부작용 없는 snapshot 대기와 중단 경계가 있는 실행 단계에만 제한 시간을 둡니다. 기본값은 snapshot 30초, provider turn 10분, signal stream 정리 5초, adapter 종료 10초이며 호출자는 양의 정수 millisecond로 좁힐 수 있습니다. Adapter 시작·context 주입·turn 시작의 transport 제한은 실제 요청을 취소하거나 process를 닫을 수 있는 각 adapter가 책임집니다. 단순히 `Promise.race`로 상태 변경 작업을 버려 두고 종료됐다고 주장하지 않습니다. Coordinator 제한 시간도 대기를 끝내는 경계일 뿐이므로 stream abort와 adapter stop을 별도로 시도하고 확인하지 못한 종료는 실패로 남깁니다.
 
-실패는 마지막 오류로 덮어쓰지 않고 단계와 함께 모두 모읍니다. `run.failed.failureCode`는 개인정보 없는 결정적 우선순위인 telemetry, provider stop, unmanaged change, contract, snapshot, context, provider 실행, cancellation 순으로 대표 실패를 고릅니다. `diagnosticDigest`는 모든 `{code, phase, retryable}` 묶음으로 만들고 원문 예외는 저장하지 않습니다. 호출자 오류에는 같은 안전한 관련 실패와 정렬된 unmanaged 경로를 제공하므로 종료 실패와 저장소 변경을 동시에 잃지 않습니다.
+실패는 마지막 오류로 덮어쓰지 않고 단계와 함께 모두 모읍니다. `run.failed.failureCode`는 개인정보 없는 결정적 우선순위인 telemetry, artifact 저장, provider stop, unmanaged change, contract, snapshot, context, provider 실행, cancellation 순으로 대표 실패를 고릅니다. `diagnosticDigest`는 모든 `{code, phase, retryable}` 묶음으로 만들고 원문 예외는 저장하지 않습니다. 호출자 오류에는 같은 안전한 관련 실패와 정렬된 unmanaged 경로를 제공하므로 종료 실패와 저장소 변경을 동시에 잃지 않습니다.
 
 현재 adapter process는 파일마다 Roven write permit를 요청하지 못합니다. 따라서 managed provider run은 Role의 `filesystem.write=deny`만 허용합니다. 다른 Role은 provider 시작 전에 `contract_validation_failed`로 거부합니다. 전후 snapshot의 정렬된 변경 경로가 하나라도 있으면 `unmanaged_change.detected`를 기록한 뒤 `unmanaged_change_detected`로 실패합니다. 이 event는 저장소 상대 `paths`, `beforeRevision`, `afterRevision`, `detectedAt`을 필수로 가지며 command, diff와 파일 bytes는 포함하지 않습니다. Adapter가 file change를 보고했더라도 검증된 permit가 없으면 `file.changed`로 바꾸지 않습니다.
 
-공통 adapter 계약은 현재 최종 model result 원문을 내보내지 않습니다. 따라서 결과를 표시하지 못하는 읽기 전용 `roven run`을 사용자 명령으로 공개하지 않습니다. Provider-neutral result artifact 전달과 경로별 permit/write bridge가 모두 연결된 뒤 CLI 수직 슬라이스를 엽니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md)에 정의합니다.
+### Provider 결과 artifact
+
+Terminal 완료 signal은 실행 상태만 나타내며 결과 원문을 포함하지 않습니다. Coordinator는 같은 session과 turn으로 `getTurnResult`를 호출해 별도의 `AdapterTurnResult`를 받습니다. 필수 필드는 `adapterId`, project/run/session/provider session, target/provider turn ID, `mediaType=text/markdown; charset=utf-8`, `content`, `contentHash`, `byteCount`, `producedAt`입니다. 결과는 손실 없이 UTF-8로 왕복되어야 하고 1 byte 이상 4 MiB 이하여야 하며, 생산 시각은 turn 수락보다 빠를 수 없습니다. 실제 bytes의 SHA-256과 크기가 선언값과 다르면 `contract_validation_failed`입니다.
+
+Codex adapter는 같은 turn의 마지막 완료 `agentMessage.text`를 사용하고 Claude adapter는 성공 result message의 `result`를 사용합니다. 이 원문은 normalized signal로 바꾸지 않습니다. Terminal 뒤 결과가 없으면 `provider_result_failed`이며 adapter를 실패 사유로 종료하고 정상 결과를 만들지 않습니다.
+
+Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 bytes를 local artifact store에 씁니다. `put` 결과의 URI는 content hash에 해당하는 `roven-cas://sha256/<digest>`여야 하며 같은 URI를 다시 읽어 hash, byte count와 전체 bytes를 확인합니다. 실패는 `artifact_storage_failed`입니다. Artifact ID는 `art_<digest>`이고 `run.completed.resultDigest`에는 content hash, `artifactIds`에는 이 ID 하나만 기록합니다. Event에는 결과 원문과 URI를 넣지 않습니다. `ManagedProviderRunResult`의 URI는 호출자가 허가된 로컬 저장소에서 결과를 읽기 위한 좌표입니다.
+
+결과 artifact는 writing 정책, 의미 품질, 인용이나 E4 통과를 뜻하지 않습니다. 공개, Hub 업로드와 shared context 발행은 별도 정책과 검증이 필요합니다. 현재는 경로별 permit/write bridge가 없으므로 `roven run` 사용자 명령도 아직 공개하지 않습니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md)과 [ADR-0012](./docs/adr/0012-provider-result-artifacts.md)에 정의합니다.
 
 ## 별도로 실행한 코딩 에이전트
 
@@ -492,6 +500,7 @@ Roven은 문서를 세 유형으로 다룹니다.
 | `repository_snapshot_failed` | 실행 전후 저장소 상태를 안전하게 비교할 수 없으므로 managed 완료와 변경 증명을 차단합니다. 안전하지 않은 경로·동시 변경·snapshot 제한을 해결한 뒤 새 run으로 시작합니다. |
 | `unmanaged_change_detected` | 현재 run의 검증된 write permit 밖에서 저장소 변경이 발견되었습니다. 변경을 `file.changed`로 승격하지 않고 run을 실패시키며, 사용자가 검토한 뒤 별도 managed run으로 가져올 수 있습니다. |
 | `provider_start_failed` / `provider_turn_failed` / `provider_stream_failed` / `provider_stop_failed` | 해당 provider 수명주기 단계가 정상 완료되지 않았습니다. 원문 오류는 event에 넣지 않고 code와 digest만 기록하며, start/stream/stop의 일시 실패만 정책상 재시도할 수 있습니다. |
+| `provider_result_failed` | 완료 signal과 결속된 최종 결과를 얻지 못했습니다. 결과 artifact와 정상 완료를 만들지 않으며 자동 재시도하지 않습니다. |
 | `cancelled` | 호출자가 run을 중단했습니다. Active turn interrupt와 adapter 종료를 시도하고 정상 완료를 기록하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |

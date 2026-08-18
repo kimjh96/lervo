@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { SQLiteEventStore } from "@roven/event-store-sqlite";
+import type { ContextArtifactPort, ContextArtifactPutResult } from "@roven/context-delivery";
 import type {
   AdapterContextEnvelope,
   AdapterContextReceipt,
@@ -27,8 +28,26 @@ export const targetDigest =
 
 const temporaryRoots: string[] = [];
 
-export function hash(value: string): string {
+export function hash(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+export class MemoryArtifactStore implements ContextArtifactPort {
+  readonly objects = new Map<string, Uint8Array>();
+
+  async put(content: Uint8Array): Promise<ContextArtifactPutResult> {
+    const bytes = new Uint8Array(content);
+    const contentHash = hash(bytes);
+    const uri = `roven-cas://sha256/${contentHash.slice(7)}`;
+    this.objects.set(uri, bytes);
+    return { uri, contentHash, byteCount: bytes.byteLength };
+  }
+
+  async get(uri: string): Promise<Uint8Array> {
+    const bytes = this.objects.get(uri);
+    if (bytes === undefined) throw new Error("fixture artifact not found");
+    return new Uint8Array(bytes);
+  }
 }
 
 export function sequenceFactory(prefix: string): () => string {

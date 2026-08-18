@@ -8,7 +8,9 @@ import type {
   AdapterStartRequest,
   AdapterStopRequest,
   AdapterTurnRequest,
+  AdapterTurnResult,
 } from "@roven/schemas";
+import { createAdapterTurnResult } from "@roven/adapter-contract";
 
 import { projectId, runId, sessionId } from "./fixture.js";
 
@@ -40,6 +42,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
       failStop?: boolean;
       hangOnStop?: boolean;
       invalidStopCoordinates?: boolean;
+      failResult?: boolean;
     } = {},
   ) {
     this.descriptor = {
@@ -228,6 +231,20 @@ export class FakeManagedAdapter implements ProviderAdapter {
     }
   }
 
+  async getTurnResult(
+    session: AdapterSession,
+    turn: Awaited<ReturnType<FakeManagedAdapter["startTurn"]>>,
+  ): Promise<AdapterTurnResult> {
+    this.calls.push("getTurnResult");
+    if (this.options.failResult === true) throw new Error("fixture result failure");
+    return createAdapterTurnResult({
+      session,
+      turn,
+      content: "fixture provider result",
+      producedAt: "2026-08-18T01:10:00Z",
+    });
+  }
+
   async stop(_session: AdapterSession, request: AdapterStopRequest) {
     this.calls.push("stop");
     this.stopReason = request.reason;
@@ -248,5 +265,3 @@ export class FakeManagedAdapter implements ProviderAdapter {
     };
   }
 }
-
-

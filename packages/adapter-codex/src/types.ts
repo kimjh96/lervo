@@ -49,6 +49,7 @@ export interface CodexSessionState {
   client: CodexAppServerClient;
   injectedTargetTurnIds: Set<string>;
   startedTargetTurnIds: Set<string>;
+  turnResults: Map<string, { content: string; producedAt: string }>;
   activeProviderTurnId?: string;
   eventStreamClaimed: boolean;
   stopped: boolean;

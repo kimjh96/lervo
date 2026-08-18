@@ -161,8 +161,12 @@ class FakeClaudeClient implements ClaudeAgentClient {
 }
 
 function clock() {
-  let second = 1;
-  return () => new Date(`2026-08-18T00:00:0${second++}Z`);
+  let value = Date.parse("2026-08-18T00:00:01Z");
+  return () => {
+    const current = new Date(value);
+    value += 1_000;
+    return current;
+  };
 }
 
 function adapter(
@@ -273,7 +277,8 @@ describe("Claude managed adapter", () => {
       expectedProvider: "claude",
       ...fixture(),
       stopReason: "completed",
-      expectedEventCount: 2,
+      expectedEventCount: 6,
+      expectedResultContent: "super-secret-result",
     });
     expect(report).toEqual({ passed: true, violations: [] });
     expect(client.closed).toBe(true);

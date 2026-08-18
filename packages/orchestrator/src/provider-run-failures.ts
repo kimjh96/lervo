@@ -18,6 +18,7 @@ export interface RunFailure {
 
 const priority: Record<ManagedProviderRunFailureCode, number> = {
   telemetry_recording_failed: 100,
+  artifact_storage_failed: 95,
   provider_stop_failed: 90,
   unmanaged_change_detected: 80,
   contract_validation_failed: 70,
@@ -26,16 +27,43 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   context_preparation_failed: 50,
   provider_stream_failed: 40,
   provider_turn_failed: 40,
+  provider_result_failed: 40,
   provider_start_failed: 40,
   cancelled: 30,
 };
 
 function retryable(code: ManagedProviderRunFailureCode): boolean {
   return (
+    code === "artifact_storage_failed" ||
     code === "provider_start_failed" ||
     code === "provider_stream_failed" ||
     code === "provider_stop_failed"
   );
+}
+
+function failureCodeForPhase(
+  phase: ManagedProviderRunPhase,
+): ManagedProviderRunFailureCode {
+  switch (phase) {
+    case "adapter_start":
+      return "provider_start_failed";
+    case "turn_start":
+    case "provider_turn":
+      return "provider_turn_failed";
+    case "result_collect":
+      return "provider_result_failed";
+    case "result_store":
+      return "artifact_storage_failed";
+    case "provider_stream":
+      return "provider_stream_failed";
+    case "adapter_stop":
+      return "provider_stop_failed";
+    case "before_snapshot":
+    case "after_snapshot":
+      return "repository_snapshot_failed";
+    default:
+      return "contract_validation_failed";
+  }
 }
 
 export function classifyRunFailure(
@@ -106,18 +134,7 @@ export function classifyRunFailure(
       retryable: false,
     };
   }
-  const code: ManagedProviderRunFailureCode =
-    phase === "adapter_start"
-      ? "provider_start_failed"
-      : phase === "turn_start" || phase === "provider_turn"
-        ? "provider_turn_failed"
-        : phase === "provider_stream"
-          ? "provider_stream_failed"
-          : phase === "adapter_stop"
-            ? "provider_stop_failed"
-            : phase === "before_snapshot" || phase === "after_snapshot"
-              ? "repository_snapshot_failed"
-              : "contract_validation_failed";
+  const code = failureCodeForPhase(phase);
   return {
     error: new ManagedProviderRunError(code, "Managed provider run이 실패했습니다.", {
       cause: error,

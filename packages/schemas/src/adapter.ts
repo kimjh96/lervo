@@ -369,6 +369,43 @@ export const adapterTurnSchema = {
   additionalProperties: false,
 } as const;
 
+export const adapterTurnResultSchema = {
+  type: "object",
+  properties: {
+    kind: { const: "turn_result" },
+    schemaVersion: schemaVersionSchema,
+    adapterId: adapterIdSchema,
+    projectId: projectIdSchema,
+    runId: runIdSchema,
+    sessionId: sessionIdSchema,
+    providerSessionId: { type: "string", minLength: 1 },
+    targetTurnId: { type: "string", minLength: 1 },
+    providerTurnId: { type: "string", minLength: 1 },
+    mediaType: { const: "text/markdown; charset=utf-8" },
+    content: { type: "string", minLength: 1 },
+    contentHash: sha256Schema,
+    byteCount: { type: "integer", minimum: 1 },
+    producedAt: timestampSchema,
+  },
+  required: [
+    "kind",
+    "schemaVersion",
+    "adapterId",
+    "projectId",
+    "runId",
+    "sessionId",
+    "providerSessionId",
+    "targetTurnId",
+    "providerTurnId",
+    "mediaType",
+    "content",
+    "contentHash",
+    "byteCount",
+    "producedAt"
+  ],
+  additionalProperties: false,
+} as const;
+
 export const adapterNormalizedEventTypes = [
   "provider.session.started",
   "provider.session.restarted",
@@ -706,6 +743,7 @@ export const adapterContractMessageSchema = {
     adapterContextReceiptSchema,
     adapterTurnRequestSchema,
     adapterTurnSchema,
+    adapterTurnResultSchema,
     adapterNormalizedEventSchema,
     adapterStopRequestSchema,
     adapterStopResultSchema,
@@ -720,6 +758,7 @@ export type AdapterContextEnvelope = FromSchema<typeof adapterContextEnvelopeSch
 export type AdapterContextReceipt = FromSchema<typeof adapterContextReceiptSchema>;
 export type AdapterTurnRequest = FromSchema<typeof adapterTurnRequestSchema>;
 export type AdapterTurn = FromSchema<typeof adapterTurnSchema>;
+export type AdapterTurnResult = FromSchema<typeof adapterTurnResultSchema>;
 export type AdapterNormalizedEvent = FromSchema<typeof adapterNormalizedEventSchema>;
 export type AdapterNormalizedEventType = (typeof adapterNormalizedEventTypes)[number];
 export type AdapterStopRequest = FromSchema<typeof adapterStopRequestSchema>;

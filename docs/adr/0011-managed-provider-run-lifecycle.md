@@ -79,4 +79,4 @@ Event에는 raw task, context, provider result, command/output과 provider 오�
 - Codex와 Claude의 실제 adapter가 같은 coordinator acceptance fixture에서 context 주입 뒤에만 turn을 시작하고, 읽기 전용 실행 모드와 종료를 같은 의미로 처리합니다.
 - Provider가 직접 만든 변경은 capability 보고 여부와 무관하게 검증된 `file.changed`로 승격되지 않습니다.
 - Coordinator, context gate, signal monitor, contract/failure 판정과 snapshot 책임이 분리되어 provider와 정책 bridge를 독립적으로 확장할 수 있습니다.
-- `roven run` 공개는 최종 결과 전달 계약과 managed write bridge가 생길 때까지 미룹니다.
+- 최종 결과 전달 제한은 [ADR-0012](./0012-provider-result-artifacts.md)의 별도 결과 artifact 계약으로 해소했습니다. `roven run` 공개는 managed write bridge가 생길 때까지 미룹니다.

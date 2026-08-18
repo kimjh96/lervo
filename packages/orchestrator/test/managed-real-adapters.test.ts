@@ -10,6 +10,7 @@ import { ManagedProviderRunCoordinator } from "../src/index.js";
 import {
   cleanupManagedFixtures,
   createManagedFixture,
+  MemoryArtifactStore,
   policyVersion,
   projectId,
   providerRunInput,
@@ -71,6 +72,14 @@ class AcceptanceCodexClient implements CodexAppServerClient {
     appendQueue(
       this.notificationsList,
       { method: "turn/started", params: { threadId, turn: { id: "codex-turn-acceptance" } } },
+      {
+        method: "item/completed",
+        params: {
+          threadId,
+          turnId: "codex-turn-acceptance",
+          item: { type: "agentMessage", id: "message-acceptance", text: "완료" },
+        },
+      },
       {
         method: "turn/completed",
         params: {
@@ -140,6 +149,7 @@ describe("managed coordinator with production adapters", () => {
   it("runs Codex with the enforced read-only sandbox", async () => {
     const data = await createManagedFixture();
     const client = new AcceptanceCodexClient();
+    const artifactStore = new MemoryArtifactStore();
     const now = clock();
     const adapter = new CodexAdapter({
       repositoryRoot: data.root,
@@ -153,12 +163,16 @@ describe("managed coordinator with production adapters", () => {
       coordinates: { projectId, runId, sessionId, roleId: role.roleId },
       policyVersion,
       events: data.store,
+      artifactStore,
       now,
       createEventId: sequenceFactory("evt_run_acceptance"),
     }).run({ ...providerRunInput(), repositoryRoot: data.root });
 
     expect(result.status).toBe("completed");
     expect(result.session.executionMode).toBe("read_only");
+    expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
+      .toBe("완료");
+    expect(JSON.stringify(data.store.list({ runId }))).not.toContain("완료");
     expect(client.startOptions).toMatchObject({ sandbox: "read-only", approvalPolicy: "never" });
     expect(data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload)
       .toMatchObject({ executionMode: "read_only" });
@@ -168,6 +182,7 @@ describe("managed coordinator with production adapters", () => {
   it("runs Claude with plan mode and read-only tools", async () => {
     const data = await createManagedFixture();
     const client = new AcceptanceClaudeClient();
+    const artifactStore = new MemoryArtifactStore();
     let startOptions: ClaudeAgentClientStartOptions | undefined;
     const now = clock();
     const adapter = new ClaudeAdapter({
@@ -190,11 +205,15 @@ describe("managed coordinator with production adapters", () => {
       coordinates: { projectId, runId, sessionId, roleId: role.roleId },
       policyVersion,
       events: data.store,
+      artifactStore,
       now,
       createEventId: sequenceFactory("evt_run_acceptance"),
     }).run({ ...providerRunInput(), repositoryRoot: data.root });
 
     expect(result.status).toBe("completed");
+    expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
+      .toBe("완료");
+    expect(JSON.stringify(data.store.list({ runId }))).not.toContain("완료");
     expect(startOptions).toMatchObject({
       permissionMode: "plan",
       tools: ["Read", "Glob", "Grep"],
