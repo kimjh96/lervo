@@ -31,6 +31,28 @@ const migrations = [
     CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
       BEGIN SELECT RAISE(ABORT, 'events are append-only'); END;
   `,
+  `
+    CREATE TABLE outbox (
+      event_id TEXT NOT NULL REFERENCES events(event_id),
+      destination_id TEXT NOT NULL,
+      enqueued_at TEXT NOT NULL,
+      available_at TEXT NOT NULL,
+      attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+      lease_owner TEXT,
+      lease_started_at TEXT,
+      lease_expires_at TEXT,
+      acknowledged_at TEXT,
+      last_failure_code TEXT,
+      last_failed_at TEXT,
+      PRIMARY KEY (event_id, destination_id),
+      CHECK ((lease_owner IS NULL) = (lease_started_at IS NULL)),
+      CHECK ((lease_owner IS NULL) = (lease_expires_at IS NULL)),
+      CHECK (acknowledged_at IS NULL OR lease_owner IS NULL),
+      CHECK ((last_failure_code IS NULL) = (last_failed_at IS NULL))
+    ) STRICT;
+    CREATE INDEX outbox_ready
+      ON outbox (acknowledged_at, available_at, lease_expires_at, enqueued_at, event_id);
+  `,
 ] as const;
 
 export const storageSchemaVersion = migrations.length;

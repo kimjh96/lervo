@@ -163,13 +163,25 @@ Roven은 아래 상태를 분리합니다.
 
 M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. 키는 Unicode 호환 정규화 후 구분 기호와 대소문자를 제거해 검사하므로 `rawPrompt`, `access_token`, 전각 문자 변형도 같은 민감 키로 취급합니다. raw prompt, 문서 본문, authorization/cookie/credential/password/secret/token/API key/tool input 같은 민감 키는 중첩 객체에서도 event에 보존하지 않습니다. 순환 참조, 유한하지 않은 숫자, 일반 JSON 객체가 아닌 값은 정리된 것처럼 저장하지 않고 `redaction_failed`로 기록을 중단합니다. 파일 경로와 작업 디렉터리는 저장소 상대 경로만 허용합니다. 원문이 필요한 실행 경로는 event payload와 분리된 로컬 context envelope/CAS를 사용합니다.
 
-## 로컬 event store와 CAS
+## 로컬 event store, outbox와 CAS
 
 로컬 event store는 `.roven/state/events.sqlite`를 기본 경로로 사용하며 하나의 project id에 묶입니다. Event를 추가할 때 raw payload를 먼저 type별 allowlist와 민감 키 제거 규칙으로 정리합니다. 그 뒤 project 전체의 다음 `seq`, 직전 event hash, 현재 event hash를 한 SQLite transaction에서 계산하고 저장합니다. Schema는 `PRAGMA user_version` 기반 migration으로 올립니다. 공통 `transact` 경계는 동기 callback만 허용하고 실패 시 callback 안의 기록을 모두 되돌립니다. Outbox는 이 transaction을 확장해 event insert와 enqueue를 같은 commit에 넣습니다.
 
 Event hash는 `eventHash`를 제외한 envelope 전체를 대상으로 합니다. 객체 key를 정렬하고 배열 순서를 유지하는 결정적 JSON 직렬화를 사용합니다. 첫 event는 `seq=1`, `previousHash=null`이며 이후 event는 바로 앞 project event의 hash를 가리킵니다. 같은 event id가 다시 오면 정리된 내용이 같을 때만 기존 event를 반환합니다. 내용이 다르면 `event_id_conflict`로 거부합니다.
 
 SQLite는 WAL과 `synchronous=FULL`을 사용합니다. `UPDATE`와 `DELETE`는 trigger로 막습니다. Store를 열 때 database `quick_check`, schema, 연속된 seq, previous hash와 event hash를 다시 검증합니다. Event schema 위반, project 불일치, event id 충돌 또는 무결성 실패는 commit 전에 transaction을 되돌립니다. Event 기록이나 무결성 확인 실패는 상위 실행에서 `telemetry_recording_failed`로 처리하므로 변경 capability가 열리지 않습니다.
+
+Outbox는 변경 가능한 전송 상태이며 실행 증거 원본을 대신하지 않습니다. 필수 좌표는 `eventId`, `destinationId`, `enqueuedAt`, `availableAt`, `attemptCount`입니다. 모든 입력 시각은 timezone을 명시해야 하며 SQLite에는 UTC ISO 8601 형식으로 정규화해 저장합니다. 상태 의미는 다음과 같습니다.
+
+- `pending`: ack되지 않았고 현재 lease가 없습니다. `availableAt` 이후 가져갈 수 있습니다.
+- `leased`: `workerId`, `claimedAt`, `expiresAt`이 함께 있으며 해당 worker만 lease 유효 구간 안에서 ack 또는 재시도를 예약할 수 있습니다.
+- `acknowledged`: `acknowledgedAt`이 있으며 다시 배송하지 않습니다. 같은 ack 요청은 성공한 상태를 유지하는 no-op입니다.
+
+멱등 키는 `(eventId, destinationId)`입니다. 한 event를 여러 destination에 독립적으로 보낼 수 있지만 같은 destination에는 한 항목만 둡니다. Claim할 때 `attemptCount`가 증가하며, 만료된 lease는 다른 worker가 회수할 수 있습니다. 실패한 전송은 lease를 놓고 `lastFailureCode`, `lastFailedAt`, 새 `availableAt`만 기록합니다. Failure code는 64자 이하의 소문자 기계용 코드로 제한하며 HTTP 응답 본문, 예외 메시지, authorization 값과 provider payload는 저장하지 않습니다. 배송할 event는 이미 allowlist와 redaction을 통과한 envelope입니다.
+
+Event append와 enqueue, 또는 ack와 `sync.acknowledged` event 기록은 같은 동기 transaction에 넣을 수 있습니다. 둘 중 하나가 실패하면 모두 되돌립니다. Hub가 없거나 전송만 실패한 경우 기존 event 원본은 유지하고 로컬 run을 계속합니다. `invalid_outbox_request`는 호출 계약 위반, `outbox_not_found`는 존재하지 않는 event 또는 배송 좌표, `outbox_lease_conflict`는 다른 worker의 lease나 만료된 lease 사용을 뜻합니다. 이 세 오류의 상세 문자열은 event에 복제하지 않습니다. Outbox 무결성이나 외래 키 검사가 실패하면 store를 열지 않고 `telemetry_recording_failed`로 처리합니다.
+
+Ack된 outbox 행은 보존 정책의 기준 시각보다 오래된 항목만 제한된 개수로 삭제할 수 있습니다. 이 정리는 event와 hash chain을 삭제하지 않으며, pending 또는 leased 항목을 건드리지 않습니다.
 
 CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `roven-cas://sha256/<64 hex>`이며 원문은 `.roven/state/cas` 아래에만 둡니다. 큰 입력은 청크를 임시 파일에 쓰는 동안 hash와 byte count를 계산합니다. 생산자가 중간에 실패하면 임시 파일을 제거하고 object를 공개하지 않습니다. 새 object는 쓰기와 동기화를 끝낸 뒤 원자적인 hard link로 확정합니다. 같은 bytes는 기존 object를 재사용하고, 저장하거나 읽을 때 주소와 실제 bytes의 hash를 비교합니다. 유효한 주소가 없으면 `not_found`, bytes가 주소와 다르면 `corrupt_object`, 경로가 안전하지 않으면 `unsafe_path`입니다. `has`는 `not_found`만 `false`로 바꾸며 변조를 숨기지 않습니다. 세 경우 모두 상위 실행에서는 `artifact_storage_failed`로 처리합니다. 이 실패가 난 artifact에 의존하는 변경은 중단하며, 원문이나 비밀 값은 실패 event에 넣지 않고 digest와 오류 code만 기록합니다.
 

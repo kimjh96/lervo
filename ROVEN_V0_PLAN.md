@@ -62,7 +62,7 @@
 - Hub가 없어도 모든 로컬 상태 저장 및 조회 가능
 - 사용자 작성 문서 영역을 byte-level fixture로 보존
 
-구현 현황(2026-08-18): **outbox 직전 기반 정리 완료.** Project 초기화, event 규칙, 저장 interface와 SQLite 구현을 별도 패키지로 나눴습니다. 새 `.roven` 초기화는 임시 트리 전체를 만든 뒤 원자적으로 공개합니다. Event store는 versioned migration과 여러 작업을 묶는 동기 transaction 경계를 제공하며, 실패 시 전체를 되돌립니다. 민감 키 정규화, 순환·비정상 payload 거부, CAS의 부재와 변조 구분, 장기 adapter event stream 중단 계약을 실제 실패 fixture로 고정했습니다. M1에는 이 transaction을 확장하는 outbox enqueue/ack와 project storage 경로 연결이 남아 있습니다.
+구현 현황(2026-08-18): **세 번째 수직 슬라이스 완료.** Event와 outbox enqueue/ack를 같은 transaction에 묶었고, `(eventId, destinationId)` 멱등성, 안정된 claim 순서, worker lease, 만료 회수, 재시도 예약과 ack 보존 정리를 구현했습니다. Schema version 1에서 outbox가 포함된 version 2로 기존 event를 보존하며 migration합니다. 중복 enqueue/ack, 재시작, 두 connection의 lease 경쟁, ack 이후 transaction 실패, raw 오류 메시지 거부와 outbox 변조를 실제 SQLite fixture로 검증했습니다. M1에는 project storage 경로를 실행 진입점에 연결하는 작업이 남아 있습니다.
 
 ### M2: 컨텍스트와 가드레일
 
@@ -213,4 +213,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M1의 outbox interface와 멱등적인 enqueue/ack**입니다. Local event commit과 같은 transaction에서 동기화 대상을 outbox에 넣고, Hub가 없거나 전송이 실패해도 event 원본은 유지해야 합니다. 중복 ack, 재시작, 오래된 lease 회수와 전송 순서를 fixture로 검증한 뒤 project storage 경로에 연결합니다.
+다음 구현 작업은 **project storage bootstrap**입니다. 저장소 root에서 project manifest를 검증하고 공통 경로 계약으로 SQLite event/outbox와 CAS를 함께 열어, 이후 `roven run`이 임의 경로 조합 없이 같은 local storage를 사용하게 합니다. 부분 open 실패 시 이미 연 자원을 닫는 동작, 다른 project database 거부, 재시작과 Hub 비활성 기본값을 fixture로 검증합니다.

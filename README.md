@@ -22,16 +22,16 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [v0 구현 계획](./ROVEN_V0_PLAN.md)
 - [M0 계약과 데이터 기본값 ADR](./docs/adr/0001-m0-contracts-and-data-defaults.md)
 - [`roven init` 안전한 초기화 ADR](./docs/adr/0002-safe-project-initialization.md)
-- [로컬 event store와 CAS ADR](./docs/adr/0003-local-event-store-and-cas.md)
+- [로컬 event store, outbox와 CAS ADR](./docs/adr/0003-local-event-store-and-cas.md)
 
 ## 현재 구현
 
 - `@roven/schemas`: project, event, context evidence, adapter, role, skill, document registry, writing policy/evaluation JSON Schema와 파생 TypeScript 타입
 - `@roven/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, canonical JSON과 event hash 규칙
-- `@roven/storage-contract`: event transaction과 artifact 저장소의 공통 interface
+- `@roven/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@roven/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@roven/project`: 관리 경로, project 설정과 원자적인 초기화 계획·적용
-- `@roven/event-store-sqlite`: project별 WAL event store, versioned migration, 단조 증가 seq, append-only hash chain과 재시작 무결성 검사
+- `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
 - `@roven/adapter-contract`: Codex와 Claude가 같은 역할과 writing 정책을 받도록 강제하는 provider adapter interface와 contract suite
 - `@roven/cli`: `roven init` 명령 진입점

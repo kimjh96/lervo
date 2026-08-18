@@ -207,7 +207,7 @@ describe("SQLite append-only event store", () => {
     const store = await SQLiteEventStore.open({ path, projectId });
     store.close();
     const raw = new DatabaseSync(path);
-    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(1);
+    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(2);
     raw.close();
   });
 
