@@ -8,6 +8,7 @@ export * from "./document-migration-apply.js";
 export * from "./document-migration.js";
 export * from "./event.js";
 export * from "./legacy-registry-migration.js";
+export * from "./legacy-registry-migration-apply.js";
 export * from "./project.js";
 export * from "./role.js";
 export * from "./shared-context.js";

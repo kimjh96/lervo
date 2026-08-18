@@ -418,7 +418,7 @@ M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. �
 
 `context.published`에는 shared context/document ID, content hash, 생산 역할, 공개 방식과 허용 역할, 만료 시각만 저장합니다. `handoff.created`에는 handoff ID, 보내고 받는 역할, shared context/evidence event ID와 요청 digest만 저장합니다. 두 event 모두 문서 본문, raw prompt, 내부 추론과 provider payload를 허용하지 않습니다. 이 event를 기록하지 못하면 역할 간 공유가 성립했다고 주장하지 않고 `telemetry_recording_failed`로 실행을 중단합니다. `context.published`는 다른 역할이 읽었다는 뜻이 아니며, 수신 역할의 `document.loaded`와 `context.injected`가 별도로 필요합니다.
 
-`document.migration.applied`에는 plan/approval ID, 승인 digest, source/candidate artifact hash, 적용 전후 sidecar layout hash, 생성한 document ID/content hash와 적용 시각만 저장합니다. 승인자, source/document path, manifest와 문서 본문은 허용하지 않습니다. 이 event는 sidecar 생성 시도나 승인만 뜻하지 않고, 모든 파일 공개와 snapshot 재검증이 끝났음을 뜻합니다. Recorder가 event를 durable하게 기록하지 못하면 적용기가 이번 작업의 sidecar를 되돌리므로 event와 receipt 어느 쪽도 성공으로 만들지 않습니다.
+`document.migration.applied`에는 plan/approval ID, 승인 digest, 적용 전후 layout hash, 생성한 document ID/content hash와 적용 시각만 저장합니다. Metadata-only 적용은 source/candidate artifact hash를, legacy 구조 전환은 `migrationKind=legacy_registry_structural`, source registry·entry artifact·archive content hash를 추가합니다. 승인자, source/document/archive path, manifest와 문서 본문은 허용하지 않습니다. 이 event는 sidecar 생성 시도나 승인만 뜻하지 않고, 모든 파일 공개와 snapshot 재검증이 끝났음을 뜻합니다. Recorder가 event를 durable하게 기록하지 못하면 적용기가 이번 작업의 변경을 되돌리므로 event와 receipt 어느 쪽도 성공으로 만들지 않습니다.
 
 ## 로컬 event store, outbox와 CAS
 
@@ -444,7 +444,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 
 ## M0 직렬화 계약
 
-현재 구현은 다음 열여덟 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
+현재 구현은 다음 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
@@ -461,7 +461,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - document migration applied payload: 승인 digest, source/candidate artifact hash, 적용 전후 layout hash와 생성 sidecar hash
 - document migration apply receipt: 생성 sidecar 상대 경로, 건너뛴 candidate와 성공 event payload
 - legacy registry entry artifact: source registry hash, document ID와 축약하지 않은 기존 document record
-- legacy registry structural plan: 원본 보존·비활성화 처분, archive·manifest directory·sidecar target과 참조 문서 snapshot
+- legacy registry structural plan/apply: 원본 보존·비활성화 처분, archive·manifest directory·sidecar target과 참조 문서 snapshot, 항목별 승인, hash-only 완료 event와 local receipt
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -526,6 +526,8 @@ Dry-run은 파일이나 event를 쓰지 않습니다. Scanner가 stable source b
 Metadata-only apply 승인은 모든 candidate를 중복 없이 다루고, 승인된 항목마다 사람이 검토한 최종 manifest를 포함합니다. Apply는 plan ID, candidate artifact canonical bytes, source·target과 현재 manifest 집합을 다시 검증합니다. Sidecar를 staging에서 동기화하고 transaction marker로 부분 layout의 loader 사용을 차단한 뒤 전체를 공개합니다. 공개 뒤 snapshot이 승인 내용과 같을 때만 필수 `document.migration.applied` recorder를 호출합니다. Recorder가 commit 없이 실패하면 생성 파일을 hash로 확인해 되돌립니다. Event commit 뒤 marker 제거 실패 또는 안전한 rollback 실패는 정상 receipt를 만들지 않습니다. 기존 단일 `documents.yaml`이 있는 layout은 sidecar와 혼용하지 않고 별도 structural migration 전까지 `migration_conflict`로 거부합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
 
 Legacy registry structural dry-run은 기존 `documents.yaml` bytes와 각 `DocumentRecord`를 서로 다른 증거로 보존합니다. Registry 원본은 source hash 기반 archive target 하나에 대응하고, record는 document별 canonical JSON artifact가 됩니다. Plan은 `archive_then_remove` 처분, archive와 manifest directory snapshot, 모든 sidecar target, 참조 문서의 path/hash 또는 missing/unsafe 상태를 결속합니다. 기존 sidecar layout, archive bytes, 중복 document path, 비정규 legacy path와 안전하게 snapshot할 수 없는 참조 문서는 conflict입니다. Missing 참조 문서와 parser로 확인하지 않은 managed/generated ownership은 review warning입니다. Dry-run은 쓰기와 event를 만들지 않으며 현재 source bytes가 migration되었다고 주장하지 않습니다.
+
+Structural 승인은 plan의 모든 entry artifact를 정확히 한 번 다룹니다. `approve_sidecar`는 원래 `DocumentRecord`를 그대로 가진 최종 manifest를 요구하고 `skip`은 기계용 제외 사유를 요구합니다. Apply는 승인 시각과 plan·artifact hash, registry·참조 문서·archive·모든 target snapshot을 다시 검증합니다. Archive와 sidecar는 staging에서 먼저 동기화하고, `.lervo/.document-migration.lock`으로 loader를 닫은 뒤 sidecar directory 공개와 legacy 원본 비활성화를 수행합니다. 공개 snapshot이 승인과 같을 때만 hash-only `document.migration.applied`를 기록합니다. Event 이전 어느 단계든 실패하면 legacy bytes를 복원하고 이번 apply가 만든 archive·sidecar를 제거합니다. Rollback 대상이 외부에서 바뀌어 안전성을 확인할 수 없으면 marker를 남기고 `rollback_failed`, event 뒤 정리가 실패하면 `migration_finalization_failed`로 끝냅니다. 두 경우 모두 정상 receipt를 반환하지 않습니다.
 
 Lervo는 문서를 세 유형으로 다룹니다.
 

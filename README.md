@@ -43,7 +43,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반 migration 승인·적용 event·receipt, legacy registry 항목 artifact·구조 전환 계획, writing policy/evaluation JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
+- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, legacy registry 항목 artifact·구조 전환 계획, writing policy/evaluation JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
@@ -52,7 +52,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
 - `@lervo/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 provider 요청에 연결하고, 실제 변경 hash·snapshot·결과 artifact를 함께 검증하는 fail-closed 상태 머신
 - `@lervo/project`: 관리 경로, project 설정, 분할 document manifest/기존 registry 호환 loader와 원자적인 초기화 계획·적용
-- `@lervo/documents`: 제한된 root의 안전한 read-only scan, Markdown/MDX·기존 Lervo registry adapter, unknown 보존, 문서별 migration candidate artifact와 source hash 기반 dry-run plan, 검토된 manifest의 metadata-only sidecar 적용과 실패 시 rollback, 기존 단일 registry의 항목별 보존 artifact와 structural migration dry-run
+- `@lervo/documents`: 제한된 root의 안전한 read-only scan, Markdown/MDX·기존 Lervo registry adapter, unknown 보존, 문서별 migration candidate artifact와 source hash 기반 dry-run plan, 검토된 manifest의 metadata-only sidecar 적용, 기존 단일 registry의 항목별 보존 artifact와 승인 기반 원자적 structural migration. 두 적용 경로 모두 event 이전 실패를 rollback하고 안전성을 확인할 수 없으면 loader를 닫은 채 실패합니다.
 - `@lervo/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@lervo/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@lervo/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
@@ -62,7 +62,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter를 연결하는 한 파일 `lervo run` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-기존 저장소 문서를 수정하지 않고 탐색해 migration 후보와 hash-bound dry-run 계획을 만들고, 사람이 검토한 최종 manifest만 sidecar로 적용하는 작업까지 완료했습니다. 적용 전후 source·candidate·target·전체 manifest layout을 다시 확인하며 성공 event를 기록하지 못하면 생성한 sidecar를 되돌립니다. 기존 단일 `documents.yaml`은 새 sidecar와 혼용하지 않습니다. 이 registry의 원본 hash, 항목별 record artifact, 참조 문서 snapshot, content-addressed archive와 모든 sidecar target을 묶는 structural dry-run도 구현했습니다. 다음에는 같은 계획에 대한 승인과 전체 전환 apply를 구현합니다. 그 뒤 managed block parser/compiler를 연결합니다. Codex·Claude가 역할별로 검토하고 결론에 수렴하는 숙의 실행은 verification artifact가 준비된 M5에서 별도 공급자 세션과 구조화된 제안·반론·결정 계약으로 추가합니다.
+기존 저장소 문서를 수정하지 않고 탐색해 migration 후보와 hash-bound dry-run 계획을 만들고, 사람이 검토한 최종 manifest만 sidecar로 적용하는 작업까지 완료했습니다. 기존 단일 `documents.yaml`도 모든 항목을 승인 또는 제외한 뒤 원본 bytes를 content-addressed archive에 보존하고 분할 sidecar로 전환할 수 있습니다. 전환 중에는 transaction marker가 loader를 닫으며, 성공 event 이전 실패는 archive·sidecar와 legacy 원본을 전부 복원합니다. 복구 안전성을 증명할 수 없거나 event 이후 마무리가 실패하면 marker를 유지해 혼합 layout을 읽지 못하게 합니다. 다음에는 CommonMark와 legacy marker parser를 구현합니다. Codex·Claude가 역할별로 검토하고 결론에 수렴하는 숙의 실행은 verification artifact가 준비된 M5에서 별도 공급자 세션과 구조화된 제안·반론·결정 계약으로 추가합니다.
 
 ## 핵심 명제
 

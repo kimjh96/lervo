@@ -69,6 +69,7 @@ export const eventPayloadAllowlists = {
   "knowledge.candidate.created": ["candidateId", "claimDigest", "paths", "evidenceIds"],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [
+    "migrationKind",
     "planId",
     "approvalId",
     "approvalDigest",
@@ -76,6 +77,9 @@ export const eventPayloadAllowlists = {
     "afterLayoutHash",
     "sourceHashes",
     "candidateArtifactHashes",
+    "sourceRegistryHash",
+    "entryArtifactHashes",
+    "archiveContentHash",
     "sidecars",
     "appliedAt"
   ],

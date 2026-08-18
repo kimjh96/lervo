@@ -1,9 +1,13 @@
-import { constants } from "node:fs";
-import { link, mkdir, open, rm, unlink } from "node:fs/promises";
+import { link, mkdir, rm } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { absoluteRepositoryPath, readStableFile } from "./filesystem.js";
+import {
+  removeFileIfUnchanged,
+  syncDirectory,
+  writeDurableExclusive,
+} from "./durable-filesystem.js";
+import { absoluteRepositoryPath } from "./filesystem.js";
 import { sha256 } from "./hash.js";
 import {
   DocumentMigrationError,
@@ -11,47 +15,6 @@ import {
   type DurableDocumentMigrationEventRecorder,
 } from "./types.js";
 import type { PreparedMigrationSidecar } from "./apply-validation.js";
-
-async function writeDurableExclusive(path: string, bytes: Uint8Array): Promise<void> {
-  let handle;
-  try {
-    handle = await open(
-      path,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL |
-        (constants.O_NOFOLLOW ?? 0),
-      0o600,
-    );
-    await handle.writeFile(bytes);
-    await handle.sync();
-  } finally {
-    await handle?.close();
-  }
-}
-
-async function syncDirectory(path: string): Promise<void> {
-  const handle = await open(path, constants.O_RDONLY);
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-}
-
-async function removeIfUnchanged(input: {
-  root: string;
-  path: string;
-  contentHash: string;
-  maximumBytes: number;
-}): Promise<boolean> {
-  try {
-    const bytes = await readStableFile(input.root, input.path, input.maximumBytes);
-    if (sha256(bytes) !== input.contentHash) return false;
-    await unlink(absoluteRepositoryPath(input.root, input.path));
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function publishMigrationSidecars(input: {
   root: string;
@@ -101,7 +64,7 @@ export async function publishMigrationSidecars(input: {
     await input.eventRecorder.record(structuredClone(input.event));
     eventRecorded = true;
     phase = "finalize";
-    if (!await removeIfUnchanged({
+    if (!await removeFileIfUnchanged({
       root: input.root,
       path: markerRelative,
       contentHash: markerHash,
@@ -128,7 +91,7 @@ export async function publishMigrationSidecars(input: {
     }
     let rollbackSafe = true;
     for (const sidecar of [...created].reverse()) {
-      const removed = await removeIfUnchanged({
+      const removed = await removeFileIfUnchanged({
         root: input.root,
         path: sidecar.path,
         contentHash: sidecar.contentHash,
@@ -137,7 +100,7 @@ export async function publishMigrationSidecars(input: {
       rollbackSafe = removed && rollbackSafe;
     }
     if (markerCreated) {
-      const removed = await removeIfUnchanged({
+      const removed = await removeFileIfUnchanged({
         root: input.root,
         path: markerRelative,
         contentHash: markerHash,

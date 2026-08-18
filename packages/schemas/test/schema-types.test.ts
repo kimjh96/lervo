@@ -9,6 +9,8 @@ import type {
   DocumentMigrationPlan,
   HandoffBundle,
   LegacyRegistryEntryArtifact,
+  LegacyRegistryMigrationApplyReceipt,
+  LegacyRegistryMigrationApproval,
   LegacyRegistryMigrationPlan,
   RoleProfile,
   SharedContextPublication,
@@ -72,9 +74,16 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<LegacyRegistryMigrationPlan["source"]["deactivationAction"]>()
       .toEqualTypeOf<"archive_then_remove">();
     expectTypeOf<LegacyRegistryEntryArtifact["record"]>().toEqualTypeOf<DocumentRecord>();
+    type Approved = Extract<
+      LegacyRegistryMigrationApproval["decisions"][number],
+      { action: "approve_sidecar" }
+    >;
+    expectTypeOf<Approved["manifest"]>().toEqualTypeOf<DocumentManifest>();
+    expectTypeOf<LegacyRegistryMigrationApplyReceipt["eventPayload"]["migrationKind"]>()
+      .toEqualTypeOf<"legacy_registry_structural">();
   });
 
-  it("keeps shared context plervoance and handoff coordinates explicit", () => {
+  it("keeps shared context origin and handoff coordinates explicit", () => {
     type AgentPublication = SharedContextPublication & {
       producer: { kind: "agent" };
     };

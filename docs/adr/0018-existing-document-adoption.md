@@ -71,11 +71,13 @@ Structural dry-run은 `.lervo/documents.yaml`을 안정적으로 한 번 읽고 
 
 Plan에는 새 `.lervo/documents` directory와 모든 sidecar target뿐 아니라 각 record가 가리키는 문서의 missing/file/unsafe snapshot도 포함합니다. 참조 문서는 structural apply가 수정하지 않지만, 승인자가 검토한 저장소 상태와 다른 문서 집합에 오래된 registry 분할을 적용하지 않기 위해 결속합니다. 참조 문서 부재는 review warning이고 안전한 snapshot을 만들 수 없는 문서는 `conflict`입니다. 중복 path·비정규 경로, 기존 sidecar layout과 다른 bytes의 archive target도 `conflict`입니다. Managed block과 Lervo 생성 소유권은 실제 본문 parser가 아직 없으므로 자동 확정하지 않고 review 대상으로 남깁니다.
 
-현재 구현은 이 structural dry-run까지만 제공하며 승인, source 비활성화, archive·sidecar 쓰기와 완료 event를 만들지 않습니다. 후속 apply는 archive와 sidecar를 먼저 완성하고 transaction marker로 loader를 닫은 상태에서만 legacy 원본 경로를 제거해야 합니다. Event 기록 전 실패하면 archive 사본으로 legacy 경로를 복원할 수 있어야 하며, 이 순서와 failure injection fixture가 준비되기 전에는 구조 전환 완료를 주장하지 않습니다.
+Structural apply는 plan의 모든 entry artifact를 정확히 한 번 승인 또는 제외하고, 승인 항목에는 원래 `DocumentRecord`를 보존한 최종 `DocumentManifest`를 요구합니다. Archive와 sidecar를 staging에서 먼저 완성한 뒤 `.lervo/.document-migration.lock`으로 loader를 닫습니다. Marker가 있는 동안 sidecar directory를 한 번에 공개하고 legacy 원본을 staging으로 비활성화합니다. 참조 문서와 공개 snapshot을 다시 확인하고 durable 완료 event를 기록한 뒤에만 marker를 제거합니다.
+
+Event 이전 실패는 공개 sidecar directory를 hash로 확인해 staging으로 되돌리고 legacy 원본 bytes를 복원하며, 이번 apply가 만든 archive와 빈 directory를 제거합니다. 단계별 failure injection fixture가 staging, archive, marker, sidecar 공개, legacy 비활성화와 event 직전 실패를 검증합니다. 외부 변경 때문에 rollback 대상을 확인할 수 없으면 marker를 남긴 `rollback_failed`, event commit 뒤 정리가 실패하면 marker를 유지한 `migration_finalization_failed`로 끝내며 정상 receipt를 반환하지 않습니다.
 
 ### 상태, event와 실패 의미
 
-성공 event 이름은 `document.migration.applied`입니다. 필수 payload는 plan/approval ID, 승인 원본 digest, source와 candidate artifact hash 집합, 적용 전후 전체 sidecar layout hash, 생성한 document ID/content hash와 적용 시각입니다. 승인자 ID, source path, document path·본문, manifest 내용과 절대 경로는 event에 넣지 않습니다. 반환 receipt에는 로컬 사용을 위한 생성 sidecar 상대 경로와 건너뛴 candidate ID를 포함하지만 event payload와 같은 정보라고 주장하지 않습니다.
+성공 event 이름은 `document.migration.applied`입니다. 공통 payload는 plan/approval ID, 승인 원본 digest, 적용 전후 전체 layout hash, 생성한 document ID/content hash와 적용 시각입니다. Metadata-only 적용은 source와 candidate artifact hash 집합을 사용합니다. Legacy 구조 전환은 `migrationKind=legacy_registry_structural`, source registry hash, entry artifact hash 집합과 archive content hash를 사용합니다. 승인자 ID, source/archive/document path, document 본문, manifest 내용과 절대 경로는 event에 넣지 않습니다. 반환 receipt에는 로컬 사용을 위한 archive·비활성화 경로, 생성 sidecar 상대 경로와 제외한 document ID를 포함하지만 event payload와 같은 정보라고 주장하지 않습니다.
 
 - `review_required`: 형식은 읽었지만 소유권·profile·관계를 자동 확정할 신뢰도가 부족합니다. 원본을 유지하고 사람 결정을 기다립니다.
 - `plan_stale`: Plan 생성 뒤 source hash 또는 대상 layout이 바뀌었습니다. 어떤 sidecar도 쓰지 않고 다시 탐색합니다.

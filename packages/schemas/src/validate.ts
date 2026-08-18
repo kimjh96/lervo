@@ -19,6 +19,11 @@ import {
   legacyRegistryEntryArtifactSchema,
   legacyRegistryMigrationPlanSchema,
 } from "./legacy-registry-migration.js";
+import {
+  legacyRegistryMigrationAppliedEventPayloadSchema,
+  legacyRegistryMigrationApplyReceiptSchema,
+  legacyRegistryMigrationApprovalSchema,
+} from "./legacy-registry-migration-apply.js";
 import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -40,6 +45,13 @@ const validators = {
   event: ajv.compile(eventEnvelopeSchema),
   legacyRegistryEntryArtifact: ajv.compile(legacyRegistryEntryArtifactSchema),
   legacyRegistryMigrationPlan: ajv.compile(legacyRegistryMigrationPlanSchema),
+  legacyRegistryMigrationApproval: ajv.compile(legacyRegistryMigrationApprovalSchema),
+  legacyRegistryMigrationAppliedEventPayload: ajv.compile(
+    legacyRegistryMigrationAppliedEventPayloadSchema,
+  ),
+  legacyRegistryMigrationApplyReceipt: ajv.compile(
+    legacyRegistryMigrationApplyReceiptSchema,
+  ),
   contextEvidence: ajv.compile(contextEvidenceSchema),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),

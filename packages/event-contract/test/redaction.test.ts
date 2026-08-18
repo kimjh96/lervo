@@ -118,4 +118,34 @@ describe("event payload privacy boundary", () => {
     expect(result.payload).not.toHaveProperty("documentBody");
     expect(result.payload).toHaveProperty("approvalDigest");
   });
+
+  it("keeps structural migration coordinates without archive or source paths", () => {
+    const result = sanitizeEventPayload("document.migration.applied", {
+      migrationKind: "legacy_registry_structural",
+      planId: "migp_aaaaaaaaaaaaaaaa",
+      approvalId: "apr_legacy_000001",
+      approvalDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      sourceRegistryHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      entryArtifactHashes: [
+        "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      ],
+      archiveContentHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      beforeLayoutHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      afterLayoutHash: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      sidecars: [],
+      appliedAt: "2026-08-19T05:00:00Z",
+      archivePath: ".lervo/archive/private.yaml",
+      sourcePath: ".lervo/documents.yaml",
+      approverId: "private-reviewer",
+    });
+
+    expect(result.payload).toMatchObject({
+      migrationKind: "legacy_registry_structural",
+      sourceRegistryHash:
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    expect(result.payload).not.toHaveProperty("archivePath");
+    expect(result.payload).not.toHaveProperty("sourcePath");
+    expect(result.payload).not.toHaveProperty("approverId");
+  });
 });

@@ -81,6 +81,13 @@ async function documentStorageKind(root: string): Promise<{
       `${paths.lervoRoot}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
     );
   }
+  const migrationMarker = await readEntry(paths.documentMigrationMarker, 4096);
+  if (migrationMarker.kind !== "missing") {
+    throw new LervoProjectError(
+      "document_layout_conflict",
+      "문서 registry 구조 전환이 완료되지 않아 현재 layout을 읽을 수 없습니다.",
+    );
+  }
   return {
     documents: await readEntry(paths.documents),
     legacy: await readEntry(paths.legacyDocumentRegistry),

@@ -137,7 +137,9 @@
 
 구현 현황(2026-08-19): **기존 단일 registry structural migration dry-run 완료.** `.lervo/documents.yaml` 원본은 stable hash와 content-addressed archive target에 묶고, 최대 4,096개 `DocumentRecord`는 source registry hash를 포함한 독립 artifact로 분리합니다. Plan은 `archive_then_remove` 처분, 새 manifest directory와 모든 sidecar target, 각 record가 가리키는 문서의 file hash 또는 missing/unsafe 상태까지 결속합니다. Duplicate path, 안전하게 snapshot할 수 없는 참조 문서, 기존 sidecar layout과 archive 충돌은 conflict이며 managed/generated ownership과 missing 참조 문서는 review warning입니다. 원본 tree 무변경, 생성 시각과 무관한 결정성, source byte 변경 전파, 충돌과 unsafe source를 fixture로 검증했습니다.
 
-남은 구현 순서: **(1) structural plan의 최종 manifest 승인과 archive·legacy 비활성화·sidecar 전체 공개 apply → (2) CommonMark/legacy marker parser → (3) byte 보존 managed block patch candidate → (4) stale detector** 순입니다. 기존 registry를 그대로 둔 채 새 sidecar를 활성화하지 않습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
+구현 현황(2026-08-19): **Legacy structural migration 승인과 apply 완료.** 승인은 모든 entry artifact를 정확히 한 번 승인 또는 제외하고 승인 manifest가 원래 `DocumentRecord`를 보존하도록 검증합니다. Apply는 registry·참조 문서·archive·sidecar target을 다시 확인하고 staging에서 전체 출력을 완성합니다. Transaction marker 아래에서 sidecar directory를 공개하고 legacy 원본을 비활성화하며, hash-only 완료 event가 durable하게 기록된 뒤에만 새 layout을 활성화합니다. Event 이전 단계별 실패는 원본 layout으로 rollback하고, rollback 안전성을 확인할 수 없거나 event 뒤 마무리가 실패하면 marker를 남겨 loader를 닫습니다. 성공, 전체 제외, stale/변조 승인, event 실패, 여섯 pre-event checkpoint와 event 이후 fail-closed fixture를 검증했습니다.
+
+남은 구현 순서: **(1) CommonMark/legacy marker parser → (2) byte 보존 managed block patch candidate → (3) stale detector** 순입니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
 
 ### M5: 검증과 지식 후보
 
@@ -250,7 +252,6 @@ fixtures/
 - 단일 `events.sqlite`를 대체할 크기/시간 segment와 segment 간 hash 연결
 - 사용자 전역 스킬과 프로젝트 고정 스킬의 최종 우선순위
 - 첫 import adapter가 지원할 Markdown/MDX/AsciiDoc dialect와 custom adapter 등록 경계
-- Legacy structural migration 완료 event와 crash recovery marker의 최종 payload·복구 명령 경계
 - CommonMark/legacy marker parser와 managed block byte 보존 교체 알고리즘
 - 숙의 event 이름·payload allowlist와 역할별 provider 선택 정책 schema
 
@@ -265,4 +266,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 legacy structural migration 승인과 apply**입니다. 승인은 plan의 모든 entry artifact를 정확히 한 번 다루고 최종 `DocumentManifest`를 확정해야 합니다. Apply는 registry와 참조 문서, archive·manifest directory·sidecar target을 다시 검증한 뒤 archive 원본과 모든 sidecar를 먼저 완성해야 합니다. Transaction marker가 loader를 닫은 상태에서 legacy 원본 경로를 비활성화하고 성공 event를 기록한 뒤에만 새 layout을 활성화합니다. Event 이전 실패는 legacy 경로와 원본 bytes를 복원해야 하며, 단계별 failure injection으로 일부 archive·sidecar나 활성 layout이 남지 않는지 검증합니다.
+다음 구현 작업은 **M4 CommonMark와 legacy marker parser**입니다. Scanner가 확정한 bytes만 입력으로 받고 Markdown code fence와 HTML comment 위치를 구조적으로 판정해야 합니다. 표준 Lervo marker와 지원할 legacy marker를 구분해 block 경계, 중첩·중복·미완성 marker와 block 밖 byte 범위를 반환하되 이 단계에서는 파일을 수정하지 않습니다. Parser 계약과 실제 fixture가 준비된 뒤 byte 보존 managed block patch candidate를 연결합니다.

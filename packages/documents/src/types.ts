@@ -6,6 +6,9 @@ import type {
   DocumentMigrationCandidateArtifact,
   DocumentMigrationPlan,
   LegacyRegistryEntryArtifact,
+  LegacyRegistryMigrationAppliedEventPayload,
+  LegacyRegistryMigrationApplyReceipt,
+  LegacyRegistryMigrationApproval,
   LegacyRegistryMigrationPlan,
 } from "@lervo/schemas";
 
@@ -79,9 +82,41 @@ export interface DocumentMigrationAppliedEvent {
   payload: DocumentMigrationAppliedEventPayload;
 }
 
+export interface LegacyRegistryMigrationAppliedEvent {
+  type: "document.migration.applied";
+  payload: LegacyRegistryMigrationAppliedEventPayload;
+}
+
 export interface DurableDocumentMigrationEventRecorder {
   record(event: DocumentMigrationAppliedEvent): void | Promise<void>;
 }
+
+export interface DurableLegacyRegistryMigrationEventRecorder {
+  record(event: LegacyRegistryMigrationAppliedEvent): void | Promise<void>;
+}
+
+export type LegacyRegistryMigrationCheckpoint =
+  | "staged"
+  | "archive_published"
+  | "marker_published"
+  | "sidecars_published"
+  | "legacy_deactivated"
+  | "before_event"
+  | "event_recorded";
+
+export interface ApplyLegacyRegistryMigrationInput {
+  repositoryRoot: string;
+  plan: LegacyRegistryMigrationPlan;
+  entryArtifacts: readonly LegacyRegistryEntryArtifact[];
+  approval: LegacyRegistryMigrationApproval;
+  eventRecorder: DurableLegacyRegistryMigrationEventRecorder;
+  appliedAt?: string;
+  failureInjector?: (
+    checkpoint: LegacyRegistryMigrationCheckpoint,
+  ) => void | Promise<void>;
+}
+
+export type ApplyLegacyRegistryMigrationResult = LegacyRegistryMigrationApplyReceipt;
 
 export interface ApplyDocumentMigrationInput {
   repositoryRoot: string;

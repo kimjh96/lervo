@@ -66,5 +66,76 @@
       }],
       "warnings": ["legacy_content_policy_requires_review"]
     }
+  },
+  {
+    "name": "reviewed legacy registry structural migration approval",
+    "schema": "legacyRegistryMigrationApproval",
+    "value": {
+      "schemaVersion": 1,
+      "approvalId": "apr_legacy_000001",
+      "planId": "migp_aaaaaaaaaaaaaaaa",
+      "approvedAt": "2026-08-19T04:00:00Z",
+      "approver": { "kind": "user", "id": "reviewer" },
+      "decisions": [{
+        "documentId": "doc_readme_000001",
+        "artifactId": "art_aaaaaaaaaaaaaaaa",
+        "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "action": "skip",
+        "reasonCode": "excluded_by_reviewer"
+      }]
+    }
+  },
+  {
+    "name": "privacy bounded legacy structural migration event",
+    "schema": "legacyRegistryMigrationAppliedEventPayload",
+    "value": {
+      "migrationKind": "legacy_registry_structural",
+      "planId": "migp_aaaaaaaaaaaaaaaa",
+      "approvalId": "apr_legacy_000001",
+      "approvalDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "sourceRegistryHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "entryArtifactHashes": ["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      "archiveContentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "beforeLayoutHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "afterLayoutHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sidecars": [],
+      "appliedAt": "2026-08-19T05:00:00Z"
+    }
+  },
+  {
+    "name": "legacy structural migration apply receipt",
+    "schema": "legacyRegistryMigrationApplyReceipt",
+    "value": {
+      "schemaVersion": 1,
+      "receiptId": "lgar_aaaaaaaaaaaaaaaa",
+      "planId": "migp_aaaaaaaaaaaaaaaa",
+      "approvalId": "apr_legacy_000001",
+      "approvalDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "appliedAt": "2026-08-19T05:00:00Z",
+      "archive": {
+        "path": ".lervo/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "deactivatedSource": {
+        "path": ".lervo/documents.yaml",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "action": "removed"
+      },
+      "created": [],
+      "skippedDocumentIds": ["doc_readme_000001"],
+      "eventPayload": {
+        "migrationKind": "legacy_registry_structural",
+        "planId": "migp_aaaaaaaaaaaaaaaa",
+        "approvalId": "apr_legacy_000001",
+        "approvalDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sourceRegistryHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "entryArtifactHashes": ["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "archiveContentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "beforeLayoutHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "afterLayoutHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "sidecars": [],
+        "appliedAt": "2026-08-19T05:00:00Z"
+      }
+    }
   }
 ]
