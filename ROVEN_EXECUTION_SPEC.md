@@ -276,6 +276,16 @@ Adapter normalized signal은 Roven append-only event가 아닙니다. 이름과 
 
 Raw task instructions와 context 원문은 로컬 app-server 입력에만 존재합니다. Normalized signal과 event store에는 raw prompt, 문서 본문, command, output, tool arguments, diff, 절대 경로와 provider 오류 본문을 넣지 않습니다. Protocol 오류는 `provider_protocol_failed`, process 종료는 `provider_process_failed`, 문서 bytes/hash/UTF-8 불일치는 `context_materialization_failed`로 adapter 호출을 실패시킵니다. 승인 요청과 동적 client tool 요청은 Policy Engine 연결 전에는 app-server transport에서 실행하지 않고 fail-closed로 거부합니다. Session resume도 공통 실행 계약이 생기기 전에는 capability matrix에서 `unsupported`입니다.
 
+### Claude Agent SDK 첫 슬라이스
+
+Claude adapter는 `startup`으로 session process와 initialize handshake를 먼저 완료하고 호출자가 만든 UUID를 provider session ID로 사용합니다. 기본 permission mode는 `plan`입니다. Filesystem setting source, 자동 skill과 외부 MCP 설정을 불러오지 않으며 권한 요청은 모두 거부합니다. Roven이 주입한 context를 따로 받지 않는 내부 Agent/Task는 차단합니다. 여러 전문 에이전트가 필요하면 각각 managed session을 만들고 Role, writing policy와 현재 generation에 맞는 envelope를 주입합니다.
+
+Inline/CAS bytes 검증은 Codex와 같은 공통 materializer를 사용합니다. 검증된 문서 묶음을 `shouldQuery=false` synthetic user message로 보내고, 같은 session ID·message UUID·원문을 가진 SDK replay와 init을 확인한 뒤에만 receipt를 만듭니다. 실제 task는 `shouldQuery=true` message로 보내며 그 UUID가 provider turn ID입니다. Init과 replay를 받지 못하거나 replay 원문이 다르면 `provider_protocol_failed`로 중단합니다.
+
+SDK `compact_boundary`는 `provider.context.compacted`로 바꿉니다. Bash와 일반 tool은 tool use/result ID를 연결한 뒤 각각 `provider.command.executed`, `provider.tool.called`로 바꿉니다. Command, output, tool input과 result 원문은 저장하지 않고 digest만 남깁니다. Claude result가 공통 usage payload의 reasoning token을 제공하지 않으므로 `usage=unknown`이며 usage signal을 만들지 않습니다. File tool 결과만으로 created/modified를 확정할 수 없어 `fileChanges=unknown`이고 file change signal도 만들지 않습니다. Session resume은 `unsupported`입니다.
+
+Provider가 다른 session ID를 보내거나 tool result와 turn result를 기존 ID에 연결할 수 없으면 정상 signal로 바꾸지 않습니다. SDK startup/stream/interrupt/close 실패는 `provider_process_failed`입니다. Raw task, context, model result와 provider 오류 본문은 normalized signal이나 event store에 복제하지 않습니다.
+
 ## 별도로 실행한 코딩 에이전트
 
 별도 Codex/Claude 프로세스가 파일을 수정하는 것 자체를 금지하지 않습니다. 다만 `roven run` 또는 등록된 hook/plugin을 거치지 않으면 Roven은 그 프로세스의 컨텍스트 주입과 도구 호출을 증명할 수 없습니다.

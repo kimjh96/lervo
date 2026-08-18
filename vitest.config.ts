@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@roven/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),
+      "@roven/adapter-claude": fromRoot("./packages/adapter-claude/src/index.ts"),
+      "@roven/adapter-codex": fromRoot("./packages/adapter-codex/src/index.ts"),
       "@roven/cas": fromRoot("./packages/cas/src/index.ts"),
       "@roven/context": fromRoot("./packages/context/src/index.ts"),
       "@roven/core": fromRoot("./packages/core/src/index.ts"),

@@ -148,7 +148,11 @@ Codex와 Claude의 실행 차이를 공통 계약으로 변환합니다.
 
 M3 Codex 첫 슬라이스는 `@roven/adapter-codex`가 Codex app-server stdio process를 session별로 격리합니다. 연결마다 `initialize`를 마친 뒤 `thread/start`로 provider session을 만들고, `thread/inject_items` 성공 응답을 받은 문서만 controlled E3 receipt 후보로 반환합니다. Role과 writing policy ID, 문서 ID·hash·scope와 원문은 developer 입력 한 묶음으로 전달되며, 이어지는 `turn/start`는 같은 target turn의 주입 기록이 있어야 호출할 수 있습니다. 취소 시 실행 중인 turn을 중단하고 thread 구독과 process를 닫습니다.
 
+M3 Claude 첫 슬라이스는 `@roven/adapter-claude`가 공식 Agent SDK process를 session별로 미리 시작합니다. Filesystem setting, 자동 skill과 외부 MCP를 불러오지 않고 권한 요청을 거부합니다. 검증된 문서 묶음은 `shouldQuery=false`인 synthetic user message로 넣으며, 같은 session·message ID·원문의 replay와 init을 확인한 뒤에만 controlled E3 receipt 후보를 반환합니다. 실제 task는 그 다음 `shouldQuery=true` message로 시작합니다. Roven context를 별도로 받지 않는 Claude 내부 Agent/Task는 기본 차단하고, 전문 에이전트마다 managed session과 envelope를 따로 만듭니다.
+
 Provider 관측 신호는 append-only Roven event와 다른 계약을 사용합니다. 예를 들어 Codex의 file change item은 `provider.file_change.reported`이며 실제 저장소 bytes를 검증한 `file.changed`가 아닙니다. Command, output, tool input과 diff 원문은 보존하지 않고 digest만 남깁니다. App-server의 완료된 `contextCompaction` item은 `provider.context.compacted`로 변환하고, orchestrator가 같은 run/session/provider session인지 확인한 뒤에만 `context.invalidated`와 generation 전이를 만듭니다. 같은 방식으로 재시작 신호를 받을 수 있지만, provider session resume 실행은 이 첫 슬라이스에서 `unsupported`입니다.
+
+Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. Bash와 일반 tool result는 ID가 연결된 경우에만 command/tool signal로 만들고 원문은 digest로 바꿉니다. 현재 SDK usage에는 공통 계약의 reasoning token이 없고 file tool result만으로 생성/수정 종류를 확정할 수 없으므로 Claude의 `usage`와 `fileChanges`는 `unknown`입니다. 이 값들을 0이나 임의의 변경 종류로 채우지 않습니다.
 
 ### Verification Engine
 
@@ -274,6 +278,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행 상태(`orchestrator`), Codex 공급자 경계(`adapter-codex`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. Claude 공급자 어댑터는 M3의 다음 범위입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행 상태(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 두 adapter를 실제 `roven run` 수명주기에 연결하는 coordinator는 M3의 다음 범위입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

@@ -23,6 +23,7 @@ const markdownDocuments = [
   "docs/adr/0007-provider-neutral-context-delivery.md",
   "docs/adr/0008-managed-context-gate-orchestration.md",
   "docs/adr/0009-codex-app-server-managed-adapter.md",
+  "docs/adr/0010-claude-agent-sdk-managed-adapter.md",
 ];
 
 const failures = [];

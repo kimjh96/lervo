@@ -2,7 +2,7 @@
 
 Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2 완료, M3 Codex adapter 첫 슬라이스 완료 (2026-08-18)
+현재 상태: M0·M1·M2 완료, M3 Codex·Claude managed adapter 첫 슬라이스 완료 (2026-08-18)
 
 ## 목표
 
@@ -29,6 +29,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [Provider-neutral context delivery와 E3 ADR](./docs/adr/0007-provider-neutral-context-delivery.md)
 - [Managed context gate orchestration ADR](./docs/adr/0008-managed-context-gate-orchestration.md)
 - [Codex app-server managed adapter ADR](./docs/adr/0009-codex-app-server-managed-adapter.md)
+- [Claude Agent SDK managed adapter ADR](./docs/adr/0010-claude-agent-sdk-managed-adapter.md)
 
 ## 현재 구현
 
@@ -45,6 +46,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
 - `@roven/adapter-contract`: Codex와 Claude가 같은 역할과 writing 정책을 받도록 강제하는 provider adapter interface, 공통 envelope/receipt 의미 판정과 contract suite
 - `@roven/adapter-codex`: Codex app-server stdio process와 thread/turn을 관리하고, 검증된 context를 통제 입력으로 주입하며 provider 신호를 원문 없는 공통 stream으로 변환하는 adapter
+- `@roven/adapter-claude`: Claude Agent SDK process/session을 관리하고, query 없는 context append의 정확한 replay 뒤에만 receipt를 만들며 관측 가능한 provider 신호만 정규화하는 adapter
 - `@roven/cli`: `roven init` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
