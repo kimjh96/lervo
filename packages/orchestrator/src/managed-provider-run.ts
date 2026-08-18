@@ -14,6 +14,7 @@ import {
   runCompletedSpec,
   runFailedSpec,
   runRequestedSpecs,
+  skillResolvedSpecs,
 } from "./provider-run-events.js";
 import {
   assertAdapterMessage,
@@ -145,15 +146,16 @@ export class ManagedProviderRunCoordinator {
     let phase: ManagedProviderRunPhase = "request";
 
     const requestedAt = this.time();
-    this.append(
-      runRequestedSpecs({
+    this.append([
+      ...runRequestedSpecs({
         requestDigest: input.requestDigest,
         roleId: this.options.coordinates.roleId,
         risk: input.risk,
         policyVersion: this.options.policyVersion,
         occurredAt: requestedAt,
       }),
-    );
+      ...skillResolvedSpecs(input.resolvedSkills, requestedAt),
+    ]);
 
     try {
       phase = "before_snapshot";

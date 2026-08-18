@@ -19,6 +19,7 @@
     "@roven/orchestrator": "workspace:*",
     "@roven/project": "workspace:*",
     "@roven/project-storage": "workspace:*",
-    "@roven/schemas": "workspace:*"
+    "@roven/schemas": "workspace:*",
+    "@roven/skills": "workspace:*"
   }
 }

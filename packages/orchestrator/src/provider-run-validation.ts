@@ -33,13 +33,24 @@ export function validateManagedProviderRunInput(
   input: ManagedProviderRunInput,
   coordinates: ManagedProviderRunOptions["coordinates"],
 ): void {
+  const skillIds = input.resolvedSkills.map((skill) => skill.skillId);
+  const roleSkillIds = [...input.context.role.defaultSkills].sort();
+  const resolvedSkillIds = [...skillIds].sort();
   if (
     input.instructions.length === 0 ||
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
     input.context.role.roleId !== coordinates.roleId ||
     input.context.role.capabilities["filesystem.write"] === "require_approval" ||
-    input.context.expectedPaths.length === 0
+    input.context.expectedPaths.length === 0 ||
+    new Set(skillIds).size !== skillIds.length ||
+    roleSkillIds.length !== resolvedSkillIds.length ||
+    roleSkillIds.some((skillId, index) => skillId !== resolvedSkillIds[index]) ||
+    input.resolvedSkills.some((skill) =>
+      !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/.test(skill.skillId) ||
+      !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(skill.version) ||
+      !/^sha256:[a-f0-9]{64}$/.test(skill.contentHash)
+    )
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",

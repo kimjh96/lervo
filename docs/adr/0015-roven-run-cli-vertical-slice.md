@@ -14,10 +14,12 @@ Managed provider coordinator, project storage와 Codex/Claude adapter는 각각 
 첫 명령 형식은 다음과 같습니다.
 
 ```text
-roven run --provider <codex|claude> --path <relative-path> [--root <path>] [--risk <level>] [--json] <request>
+roven run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>
 ```
 
 `provider`, 저장소 상대 `path` 하나와 비어 있지 않은 작업 문장은 필수입니다. 경로는 storage나 provider를 열기 전에 공통 repository path 규칙으로 정규화합니다. 현재 명령은 정확히 한 파일을 변경하는 `managed_write`만 실행합니다. 여러 경로, 사람 승인 대기, 읽기 전용 선택과 provider별 추가 권한은 이 명령에 노출하지 않습니다.
+
+후속 [ADR-0016](./0016-local-skill-resolution-and-lock.md)에 따라 `--skill`을 반복해 해석할 스킬 ID를 명시할 수 있습니다. 이 옵션은 discovery와 lock만 수행하며 현재 CLI가 스킬을 호출하거나 사용했다는 뜻은 아닙니다.
 
 Project policy schema가 생기기 전까지 CLI는 고정된 `developer` Role을 사용합니다. 이 Role은 root `AGENTS.md`의 E3를 필수로 하고 파일 읽기·쓰기와 제한된 로컬 shell만 허용하며 network, 외부 메시지, deploy와 일반 data mutation을 거부합니다. 산출물 presentation은 `machine`, writing policy는 `null`입니다. 이 기본값은 사용자 policy를 읽은 것처럼 표시하지 않으며 policy schema가 구현되면 교체합니다.
 
@@ -26,10 +28,11 @@ Project policy schema가 생기기 전까지 CLI는 고정된 `developer` Role�
 CLI argument 처리와 출력은 `run-command`가, provider-neutral 실행 조합은 `managed-run` application service가 맡습니다. `main`은 명령 라우팅만 하고 기존 init 구현도 별도 모듈로 옮깁니다. Application service는 다음 순서를 소유합니다.
 
 1. Project storage를 열고 검증된 manifest와 document registry를 읽습니다.
-2. 선택한 provider adapter에 같은 artifact store의 read port를 연결합니다.
-3. Run/session/event/context ID와 고정 Role policy digest를 만들고 `ManagedProviderRunCoordinator`를 실행합니다.
-4. Coordinator가 검증해 CAS에 저장한 결과를 같은 artifact store에서 읽습니다.
-5. 성공과 실패 모두 project storage를 닫은 뒤 결과 또는 오류를 반환합니다.
+2. 요청한 스킬을 해석해 lock을 기록하고 선택 결과를 고정 Role에 결속합니다.
+3. 선택한 provider adapter에 같은 artifact store의 read port를 연결합니다.
+4. Run/session/event/context ID와 고정 Role policy digest를 만들고 `ManagedProviderRunCoordinator`를 실행합니다.
+5. Coordinator가 검증해 CAS에 저장한 결과를 같은 artifact store에서 읽습니다.
+6. 성공과 실패 모두 project storage를 닫은 뒤 결과 또는 오류를 반환합니다.
 
 실행 실패와 storage 종료 실패가 겹치면 `cleanup_failed`가 대표 CLI 오류가 되고 두 원인은 로컬 `AggregateError`에만 보존합니다. Provider 시작 실패 뒤에도 adapter와 storage가 닫혔는지 fixture에서 확인합니다. Application service의 storage, adapter와 ID factory는 좁은 dependency port로 교체할 수 있어 CLI 테스트가 실제 외부 provider process에 의존하지 않습니다.
 

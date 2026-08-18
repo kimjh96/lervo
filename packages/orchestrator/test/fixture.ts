@@ -166,6 +166,7 @@ export function providerRunInput() {
       createReceiptId: sequenceFactory("ctx_selected"),
     },
     writingPolicy: null,
+    resolvedSkills: [],
     createEnvelopeId: () => "envelope-provider-run-1",
     createEvidenceReceiptId: sequenceFactory("ctx_injected"),
   };

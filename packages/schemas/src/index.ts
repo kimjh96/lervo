@@ -8,5 +8,6 @@ export * from "./project.js";
 export * from "./role.js";
 export * from "./shared-context.js";
 export * from "./skill.js";
+export * from "./skill-lock.js";
 export * from "./validate.js";
 export * from "./writing.js";

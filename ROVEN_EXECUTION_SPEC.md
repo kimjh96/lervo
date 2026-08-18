@@ -465,6 +465,12 @@ Role의 `sensitive` 입력 필드는 입력값이 아니라 redaction 필요 여
 
 정확한 우선순위는 정책으로 바꿀 수 있지만 결과는 lock과 `skill.resolved`에 기록됩니다. 호환성은 provider 이름만 보지 않고 필요한 도구, filesystem/network 권한, 입력/출력 schema, 최소 runtime version으로 판정합니다.
 
+M4 첫 구현은 요청한 ID를 프로젝트 `.agents/skills`와 사용자 `~/.agents/skills`에서만 찾습니다. `pinned project`, `project`, `user` 순서로 고르고 같은 단계에서는 가장 높은 semantic version을 사용합니다. 같은 단계와 version의 hash가 충돌하면 선택하지 않습니다. Enabled scope, provider, Role, 최소 runtime version, platform, 알려진 도구와 Role이 `allow`한 capability를 모두 확인하며 알 수 없는 값이나 `require_approval`은 호환으로 올리지 않습니다. Input/output schema reference의 실제 조회는 invocation 구현 전까지 지원한다고 표시하지 않습니다.
+
+패키지 content hash는 최상위 `roven-skill.json`을 제외한 모든 일반 파일의 상대 경로, byte 수와 본문으로 계산합니다. 심볼릭 링크, 읽는 중 변경, 256개 파일 또는 16 MiB 초과는 `unsafe_skill_package`로 실행 전에 거부합니다. 원본 manifest와 본문은 수정하지 않습니다.
+
+`.roven/skills.lock`에는 실행 환경, 선택 항목, 탈락 항목과 사유 코드를 저장합니다. 기존 lock이 schema-invalid이거나 일반 파일이 아니면 덮어쓰지 않습니다. 같은 의미의 lock은 기존 생성 시각과 byte를 유지합니다. Lock은 해석 결과인 파생 상태이며 실행 증거가 아닙니다. 선택 항목의 `skill.resolved`는 `run.requested`, `run.resolved`와 같은 transaction에 기록되고 실패하면 provider를 시작하지 않습니다. Event에는 source kind만 넣고 URI, publisher/reviewer와 본문은 넣지 않습니다. 현재 스킬 호출 지점은 구현하지 않았으므로 `skill.invoked`와 `skill.completed`도 기록하지 않습니다.
+
 기록 내용:
 
 - 선택/탈락 후보와 이유
@@ -474,6 +480,8 @@ Role의 `sensitive` 입력 필드는 입력값이 아니라 redaction 필요 여
 - 성공/실패와 검증 결과
 
 스킬의 프롬프트 전체나 비밀 입력을 Hub로 기본 전송하지 않습니다.
+
+Discovery와 lock의 실패 코드는 `invalid_skill_request`, `invalid_skill_manifest`, `content_hash_mismatch`, `unsafe_skill_package`, `skill_not_found`, `no_compatible_skill`, `ambiguous_skill_selection`, `invalid_skill_lock`, `skill_lock_write_failed`, `unsupported_runtime_platform`입니다. 상세 오류나 event에는 절대 경로, 원문, publisher 정보와 비밀 입력을 복제하지 않습니다. 전체 결정은 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 기록합니다.
 
 ## 문서 생성과 노후화
 

@@ -14,6 +14,8 @@ import {
 } from "@roven/adapter-codex";
 import { applyInitPlan, createInitPlan } from "@roven/project";
 import { openProjectStorage } from "@roven/project-storage";
+import { validateSchema, type SkillManifest } from "@roven/schemas";
+import { hashSkillPackage } from "@roven/skills";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
@@ -247,6 +249,46 @@ async function createRepository(): Promise<string> {
   return root;
 }
 
+async function createProjectSkill(root: string): Promise<{
+  manifest: SkillManifest;
+  original: string;
+  path: string;
+}> {
+  const path = resolve(root, ".agents/skills/repository-testing");
+  await mkdir(path, { recursive: true });
+  const original = "# 저장소 테스트\n원본 스킬 문서입니다.\n";
+  await writeFile(resolve(path, "SKILL.md"), original);
+  const manifest: SkillManifest = {
+    schemaVersion: 1,
+    skillId: "repository/testing",
+    version: "1.2.0",
+    contentHash: await hashSkillPackage(path),
+    source: {
+      kind: "project",
+      uri: ".agents/skills/repository-testing",
+      publisher: { id: "local-fixture", name: "Local Fixture" },
+    },
+    supportedRoles: ["developer"],
+    compatibility: {
+      providers: { mode: "allowlist", providers: ["codex"] },
+      minimumRuntimeVersion: "0.1.0",
+      platforms: [process.platform as "darwin" | "linux" | "win32"],
+      requiredTools: ["shell"],
+      unknownIsCompatible: false,
+    },
+    requiredCapabilities: ["filesystem.read", "shell.execute"],
+    contracts: {
+      inputSchemaRef: "roven-schema://skill/input/v1",
+      outputSchemaRef: "roven-schema://skill/output/v1",
+    },
+    trust: { level: "untrusted", signatureStatus: "unsigned" },
+    enabledScope: { kind: "user" },
+    pinned: false,
+  };
+  await writeFile(resolve(path, "roven-skill.json"), `${JSON.stringify(manifest)}\n`);
+  return { manifest, original, path };
+}
+
 function identifierFactory(): (prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn") => string {
   let sequence = 0;
   return (prefix) => `${prefix}_cli${String(++sequence).padStart(8, "0")}`;
@@ -316,6 +358,84 @@ describe("roven run vertical slice", () => {
       expect(serialized).not.toContain("private fixture diff");
     },
   );
+
+  it("locks and records a resolved skill without claiming invocation", async () => {
+    const root = await createRepository();
+    const skill = await createProjectSkill(root);
+    const userSkillRoot = await mkdtemp(resolve(tmpdir(), "roven-user-skills-"));
+    temporaryRoots.push(userSkillRoot);
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      userSkillRoot,
+      now: () => new Date("2026-08-19T00:00:00Z"),
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({
+          repositoryRoot,
+          resolveArtifact,
+          clientFactory: async () => client,
+        }),
+    });
+    let output = "";
+    let errorOutput = "";
+    const exitCode = await runCli(
+      [
+        "run",
+        "--provider",
+        "codex",
+        "--path",
+        "src/result.ts",
+        "--skill",
+        skill.manifest.skillId,
+        "스킬을 해석해 작업합니다",
+      ],
+      {
+        cwd: root,
+        stdout: (message) => { output += message; },
+        stderr: (message) => { errorOutput += message; },
+      },
+      { executeManagedRun },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(errorOutput).toBe("");
+    expect(output).toContain("repository/testing@1.2.0 (project)");
+    expect(output).toContain("호출하거나 사용했다는 뜻이 아닙니다");
+    expect(await readFile(resolve(skill.path, "SKILL.md"), "utf8")).toBe(skill.original);
+    const lock: unknown = JSON.parse(await readFile(resolve(root, ".roven/skills.lock"), "utf8"));
+    expect(validateSchema("skillLock", lock).valid).toBe(true);
+    expect(lock).toMatchObject({
+      entries: [{
+        skillId: "repository/testing",
+        contentHash: skill.manifest.contentHash,
+        source: { kind: "project", uri: ".agents/skills/repository-testing" },
+      }],
+    });
+
+    const storage = await openProjectStorage(root);
+    const events = storage.events.list();
+    await storage.close();
+    const eventTypes = events.map((event) => event.type);
+    expect(eventTypes.slice(0, 4)).toEqual([
+      "run.requested",
+      "run.resolved",
+      "skill.resolved",
+      "adapter.started",
+    ]);
+    expect(eventTypes).not.toContain("skill.invoked");
+    expect(eventTypes).not.toContain("skill.completed");
+    const resolved = events.find((event) => event.type === "skill.resolved");
+    expect(resolved?.payload).toEqual({
+      skillId: "repository/testing",
+      source: "project",
+      version: "1.2.0",
+      contentHash: skill.manifest.contentHash,
+      trustStatus: "untrusted",
+    });
+    expect(JSON.stringify(resolved)).not.toContain("Local Fixture");
+    expect(JSON.stringify(resolved)).not.toContain(".agents/skills");
+  });
 
   it("closes project storage after a provider startup failure", async () => {
     const root = await createRepository();

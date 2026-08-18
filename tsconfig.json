@@ -17,6 +17,7 @@
       "@roven/project": ["packages/project/src/index.ts"],
       "@roven/project-storage": ["packages/project-storage/src/index.ts"],
       "@roven/schemas": ["packages/schemas/src/index.ts"],
+      "@roven/skills": ["packages/skills/src/index.ts"],
       "@roven/storage-contract": ["packages/storage-contract/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]

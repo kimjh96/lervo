@@ -44,6 +44,9 @@ importers:
       '@roven/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@roven/skills':
+        specifier: workspace:*
+        version: link:../../packages/skills
 
   packages/adapter-claude:
     dependencies:
@@ -202,6 +205,12 @@ importers:
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
+
+  packages/skills:
+    dependencies:
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/storage-contract:
     dependencies:

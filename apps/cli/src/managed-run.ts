@@ -16,6 +16,8 @@ import {
 } from "@roven/project-storage";
 import type { RoleProfile } from "@roven/schemas";
 
+import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
+
 export type RunProvider = "codex" | "claude";
 
 export interface ManagedRunRequest {
@@ -24,6 +26,7 @@ export interface ManagedRunRequest {
   expectedPath: string;
   instructions: string;
   risk: string;
+  skillIds?: readonly string[];
 }
 
 export interface ManagedRunOutcome {
@@ -36,6 +39,7 @@ export interface ManagedRunOutcome {
   managedChanges: ManagedFileChangeEvidence[];
   verificationStatus: "not_run";
   writingVerificationStatus: "not_run";
+  resolvedSkills: readonly ResolvedRunSkill[];
 }
 
 export interface ManagedRunDependencies {
@@ -46,6 +50,8 @@ export interface ManagedRunDependencies {
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
+  userSkillRoot?: string;
+  now?: () => Date;
 }
 
 export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedRunOutcome>;
@@ -61,7 +67,7 @@ export class ManagedRunCommandError extends Error {
   }
 }
 
-const developerRole: RoleProfile = {
+const developerRoleBase: RoleProfile = {
   schemaVersion: 1,
   roleId: "developer",
   name: "Developer",
@@ -101,11 +107,13 @@ const developerRole: RoleProfile = {
   },
 };
 
+function developerRole(skillIds: readonly string[]): RoleProfile {
+  return { ...structuredClone(developerRoleBase), defaultSkills: [...skillIds] };
+}
+
 function digest(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
-
-const policyVersion = digest(JSON.stringify(developerRole));
 
 const defaultDependencies: ManagedRunDependencies = {
   openStorage: openProjectStorage,
@@ -114,6 +122,7 @@ const defaultDependencies: ManagedRunDependencies = {
       ? new CodexAdapter({ repositoryRoot, resolveArtifact })
       : new ClaudeAdapter({ repositoryRoot, resolveArtifact }),
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
+  now: () => new Date(),
 };
 
 function decodeResult(bytes: Uint8Array): string {
@@ -134,6 +143,7 @@ export function createManagedRunExecutor(
   return async (request) => {
     const expectedPath = normalizeRepositoryPath(request.expectedPath);
     const instructions = request.instructions.trim();
+    const skillIds = [...new Set(request.skillIds ?? [])].sort();
     if (instructions.length === 0 || request.risk.trim().length === 0) {
       throw new TypeError("작업 문장과 위험도는 비어 있을 수 없습니다.");
     }
@@ -144,6 +154,19 @@ export function createManagedRunExecutor(
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
+      const role = developerRole(skillIds);
+      const resolvedSkills = await resolveRunSkills({
+        repositoryRoot: storage.paths.repositoryRoot,
+        projectId: storage.manifest.projectId,
+        provider: request.provider,
+        role,
+        skillIds,
+        ...(dependencies.userSkillRoot === undefined
+          ? {}
+          : { userSkillRoot: dependencies.userSkillRoot }),
+        generatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
+      });
+      const policyVersion = digest(JSON.stringify(role));
       const runId = dependencies.createId("run");
       const sessionId = dependencies.createId("ses");
       const adapter = dependencies.createAdapter({
@@ -159,7 +182,7 @@ export function createManagedRunExecutor(
           projectId: storage.manifest.projectId,
           runId,
           sessionId,
-          roleId: developerRole.roleId,
+          roleId: role.roleId,
         },
         policyVersion,
         createEventId: () => dependencies.createId("evt"),
@@ -172,7 +195,7 @@ export function createManagedRunExecutor(
         targetTurnId: dependencies.createId("turn"),
         context: {
           registry,
-          role: developerRole,
+          role,
           expectedPaths: [expectedPath],
           documentRules: {},
           publications: [],
@@ -180,6 +203,7 @@ export function createManagedRunExecutor(
           createReceiptId: () => dependencies.createId("ctx"),
         },
         writingPolicy: null,
+        resolvedSkills,
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
       });
@@ -196,6 +220,7 @@ export function createManagedRunExecutor(
         managedChanges: result.managedChanges,
         verificationStatus: "not_run",
         writingVerificationStatus: "not_run",
+        resolvedSkills,
       };
     } catch (error) {
       executionFailure = error;

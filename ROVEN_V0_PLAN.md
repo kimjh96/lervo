@@ -115,6 +115,8 @@
 - AGENTS/CLAUDE/README의 노후화 fixture를 검출
 - managed block 밖 사용자 내용 무변경
 
+구현 현황(2026-08-19): **스킬 discovery와 lock 첫 슬라이스 완료.** `@roven/skills`가 요청된 프로젝트·사용자 후보의 패키지 전체 hash를 확인하고 pinned project, project, user 순서와 version으로 선택합니다. Provider, Role, runtime, platform, 도구와 허용 capability를 보수적으로 판정하며 선택과 탈락 사유를 독립 schema의 `.roven/skills.lock`에 원자적으로 기록합니다. `roven run --skill`은 `skill.resolved`를 실행 시작 event와 같은 transaction에 남기되 URI와 publisher 정보는 event에 넣지 않습니다. Provider에 실제 스킬을 호출하는 경로는 아직 없으므로 `skill.invoked`나 사용을 주장하지 않습니다. 원본 스킬과 유효하지 않은 기존 lock을 byte 단위로 보존하는 fixture를 포함합니다. 결정은 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 기록했습니다.
+
 ### M5: 검증과 지식 후보
 
 - 프로젝트별 verification command와 결과 artifact
@@ -226,4 +228,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 스킬 discovery와 lock의 첫 슬라이스**입니다. 프로젝트 로컬과 사용자 전역 스킬 후보를 읽고, 출처·version·content hash·provider/runtime/tool compatibility를 결정적으로 해석해 `skills.lock`과 `skill.resolved`에 남겨야 합니다. 실제 호출 전에는 선택과 호출을 구분하고, 실행하지 않은 스킬을 사용했다고 기록하지 않아야 합니다. 기존 사용자 스킬 파일과 문서 영역은 수정하지 않습니다.
+다음 구현 작업은 **M4 문서 수명주기의 stale detector 첫 슬라이스**입니다. `documents.yaml`의 `paths`, `verifiedRevision`, `verifiedAt`과 `reviewIntervalDays`를 현재 저장소 상태와 비교해 노후화 사유를 결정적으로 만들고 `document.stale.detected`에 비밀 없는 최소 근거만 남겨야 합니다. 이 단계에서는 문서를 자동 수정하지 않으며 사용자 작성 영역과 managed block 밖의 byte를 그대로 보존합니다.

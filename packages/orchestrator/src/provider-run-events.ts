@@ -9,7 +9,10 @@ import type {
 } from "@roven/schemas";
 
 import type { ManagedEventSpec } from "./telemetry.js";
-import type { ManagedProviderResultArtifact } from "./provider-run-types.js";
+import type {
+  ManagedProviderResultArtifact,
+  ManagedResolvedSkill,
+} from "./provider-run-types.js";
 
 const systemActor = { kind: "system" } as const;
 
@@ -46,6 +49,24 @@ export function runRequestedSpecs(input: {
       },
     },
   ];
+}
+
+export function skillResolvedSpecs(
+  skills: readonly ManagedResolvedSkill[],
+  occurredAt: string,
+): ManagedEventSpec[] {
+  return skills.map((skill) => ({
+    type: "skill.resolved",
+    occurredAt,
+    actor: systemActor,
+    payload: {
+      skillId: skill.skillId,
+      source: skill.sourceKind,
+      version: skill.version,
+      contentHash: skill.contentHash,
+      trustStatus: skill.trustStatus,
+    },
+  }));
 }
 
 export function adapterStartedSpec(

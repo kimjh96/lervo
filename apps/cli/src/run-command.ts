@@ -5,7 +5,7 @@ import type { ManagedRunOutcome, RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const runUsage =
-  "  roven run --provider <codex|claude> --path <relative-path> [--root <path>] [--risk <level>] [--json] <request>";
+  "  roven run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>";
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -18,11 +18,19 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
   const changes = outcome.managedChanges
     .map((change) => `  ${change.changeKind}  ${change.path}`)
     .join("\n");
+  const skills = outcome.resolvedSkills.length === 0
+    ? "  없음"
+    : outcome.resolvedSkills
+      .map((skill) => `  ${skill.skillId}@${skill.version} (${skill.sourceKind})`)
+      .join("\n");
   return [
     `Managed run을 완료했습니다. provider: ${outcome.provider}`,
     `runId: ${outcome.runId}`,
     "검증된 변경:",
     changes,
+    "스킬 해석 결과:",
+    skills,
+    "이 기록은 스킬을 호출하거나 사용했다는 뜻이 아닙니다.",
     "기능 검증: 실행하지 않음",
     "Writing 공개 검증: 실행하지 않음",
     "",
@@ -47,6 +55,7 @@ export async function runManagedCommand(
         path: { type: "string" },
         root: { type: "string" },
         risk: { type: "string" },
+        skill: { type: "string", multiple: true },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -79,6 +88,7 @@ export async function runManagedCommand(
       expectedPath,
       instructions,
       risk: parsed.values.risk ?? "medium",
+      skillIds: parsed.values.skill ?? [],
     });
     io.stdout(
       parsed.values.json

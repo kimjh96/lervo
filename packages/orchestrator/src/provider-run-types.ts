@@ -82,9 +82,18 @@ export interface ManagedProviderRunInput {
     "repositoryRoot" | "sourceRevision" | "recordedAt"
   >;
   writingPolicy: ResolvedWritingPolicy | null;
+  resolvedSkills: readonly ManagedResolvedSkill[];
   signal?: AbortSignal;
   createEnvelopeId?: () => string;
   createEvidenceReceiptId?: () => string;
+}
+
+export interface ManagedResolvedSkill {
+  skillId: string;
+  version: string;
+  contentHash: string;
+  sourceKind: "project" | "user";
+  trustStatus: "untrusted" | "reviewed" | "verified";
 }
 
 export interface ManagedProviderRunResult {

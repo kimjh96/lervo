@@ -60,6 +60,35 @@ function coordinator(
 }
 
 describe("managed provider run coordinator", () => {
+  it("rolls back run start when skill resolution evidence cannot be recorded", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const input = providerRunInput();
+    await expect(coordinator(
+      adapter,
+      data.root,
+      failOnEventType(data.store, "skill.resolved"),
+    ).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: {
+        ...input.context,
+        role: { ...input.context.role, defaultSkills: ["repository/testing"] },
+      },
+      resolvedSkills: [{
+        skillId: "repository/testing",
+        version: "1.0.0",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        sourceKind: "project",
+        trustStatus: "untrusted",
+      }],
+    })).rejects.toMatchObject({ code: "telemetry_recording_failed" });
+
+    expect(data.store.list({ runId })).toEqual([]);
+    expect(adapter.calls).toEqual([]);
+    data.store.close();
+  });
+
   it.each(["codex", "claude"] as const)(
     "runs the %s lifecycle only after controlled context injection",
     async (provider) => {

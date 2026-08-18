@@ -10,6 +10,7 @@ export const rovenRelativePaths = {
   knowledge: ".roven/knowledge",
   eventDatabase: ".roven/state/events.sqlite",
   cas: ".roven/state/cas",
+  skillsLock: ".roven/skills.lock",
 } as const;
 
 export interface RovenProjectPaths {
@@ -23,6 +24,7 @@ export interface RovenProjectPaths {
   knowledge: string;
   eventDatabase: string;
   cas: string;
+  skillsLock: string;
 }
 
 export function resolveProjectPaths(root: string): RovenProjectPaths {
@@ -38,5 +40,6 @@ export function resolveProjectPaths(root: string): RovenProjectPaths {
     knowledge: resolve(repositoryRoot, rovenRelativePaths.knowledge),
     eventDatabase: resolve(repositoryRoot, rovenRelativePaths.eventDatabase),
     cas: resolve(repositoryRoot, rovenRelativePaths.cas),
+    skillsLock: resolve(repositoryRoot, rovenRelativePaths.skillsLock),
   };
 }

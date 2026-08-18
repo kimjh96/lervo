@@ -40,7 +40,7 @@ flowchart LR
 명령 상태:
 
 - `roven init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
-- `roven run --provider <provider> --path <path> <request>`: project storage와 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
+- `roven run --provider <provider> --path <path> [--skill <skill-id> ...] <request>`: project storage, 스킬 해석과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
 - `roven trace [run]`: 실행 근거와 이벤트 조회
 - `roven doctor`: 문서·스킬·어댑터·Hub 상태 진단
 - `roven docs check`: 문서 노후화 검사
@@ -71,7 +71,7 @@ flowchart LR
 
 기존 프로젝트 구조를 강제로 이동하지 않습니다. 문서와 스킬 위치는 manifest에서 연결할 수 있습니다.
 
-M1 첫 슬라이스는 검증 계약이 있는 `project.yaml`, 빈 `documents.yaml`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 아직 독립 schema가 없는 `policy.yaml`과 `skills.lock`은 임의 형식으로 만들지 않습니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.roven`은 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
+M1 첫 슬라이스는 검증 계약이 있는 `project.yaml`, 빈 `documents.yaml`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 이제 독립 계약이 있지만 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.roven`은 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
 
 ### Project Storage Bootstrap
 
@@ -225,6 +225,10 @@ RAG 결과는 반드시 원본 id와 content hash를 포함하며, 모델에 전
 사용자 로컬 스킬과 외부 스킬은 같은 계약으로 등록하되 출처와 신뢰도를 합치지 않습니다. 실행 시 실제 해석된 버전은 `skills.lock`과 run 이벤트에 남습니다.
 
 M0 skill 계약은 provider 호환성을 `any` 또는 명시적 allowlist로 표현하고, 확인할 수 없는 호환성을 지원으로 간주하지 않습니다. trust는 `untrusted`, 검토자와 검토 시각이 있는 `reviewed`, 유효한 서명까지 확인한 `verified`로 분리합니다. manifest에는 입력값이 아니라 입력/출력 schema reference와 필요한 capability만 저장합니다.
+
+M4 첫 슬라이스의 `@roven/skills`는 명시적으로 요청한 ID만 프로젝트 `.agents/skills`와 사용자 `~/.agents/skills`에서 찾습니다. 최상위 manifest를 제외한 패키지 전체의 일반 파일을 hash하고 심볼릭 링크와 읽는 중 변경을 거부합니다. `pinned project`, `project`, `user` 순서와 각 단계의 가장 높은 version으로 선택하며 provider, Role, runtime, platform, 도구와 허용 capability가 하나라도 맞지 않으면 후보를 올리지 않습니다. 결과와 탈락 사유는 schema-valid `.roven/skills.lock`에 기록합니다. 기존 lock이 유효하지 않으면 덮어쓰지 않습니다.
+
+선택 항목의 `skill.resolved`는 `run.requested`, `run.resolved`와 같은 event transaction에 기록하지만 source URI와 publisher/reviewer는 로컬 lock 밖으로 내보내지 않습니다. 현재는 provider에 스킬 내용을 넣거나 호출하지 않으므로 `skill.invoked`와 `skill.completed`는 만들지 않습니다. 자세한 경계는 [ADR-0016](./docs/adr/0016-local-skill-resolution-and-lock.md)에 정의합니다.
 
 ### Document Lifecycle
 

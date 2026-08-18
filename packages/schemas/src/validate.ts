@@ -8,6 +8,7 @@ import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { skillManifestSchema } from "./skill.js";
+import { skillLockSchema } from "./skill-lock.js";
 import { writingContractSchema, writingEvaluationSchema } from "./writing.js";
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -27,6 +28,7 @@ const validators = {
   sharedContext: ajv.compile(sharedContextPublicationSchema),
   handoffBundle: ajv.compile(handoffBundleSchema),
   skill: ajv.compile(skillManifestSchema),
+  skillLock: ajv.compile(skillLockSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
