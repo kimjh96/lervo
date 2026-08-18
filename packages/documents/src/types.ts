@@ -5,6 +5,8 @@ import type {
   DocumentMigrationCandidate,
   DocumentMigrationCandidateArtifact,
   DocumentMigrationPlan,
+  LegacyRegistryEntryArtifact,
+  LegacyRegistryMigrationPlan,
 } from "@roven/schemas";
 
 export interface DocumentScanLimits {
@@ -66,6 +68,12 @@ export interface DocumentMigrationDryRun {
   candidateArtifactBytes: ReadonlyMap<string, Uint8Array>;
 }
 
+export interface LegacyRegistryMigrationDryRun {
+  plan: LegacyRegistryMigrationPlan;
+  entryArtifacts: readonly LegacyRegistryEntryArtifact[];
+  entryArtifactBytes: ReadonlyMap<string, Uint8Array>;
+}
+
 export interface DocumentMigrationAppliedEvent {
   type: "document.migration.applied";
   payload: DocumentMigrationAppliedEventPayload;
@@ -90,6 +98,7 @@ export type DocumentMigrationErrorCode =
   | "ambiguous_import_adapter"
   | "invalid_adapter_contract"
   | "invalid_generated_at"
+  | "invalid_legacy_registry"
   | "invalid_approval"
   | "invalid_migration_artifact"
   | "invalid_scan_request"

@@ -1,9 +1,9 @@
 import { posix } from "node:path";
 
-import { validateSchema, type DocumentRegistry } from "@roven/schemas";
-import { parse } from "yaml";
+import type { DocumentRegistry } from "@roven/schemas";
 
 import { digestSuffix } from "./hash.js";
+import { parseLegacyDocumentRegistry } from "./legacy-registry.js";
 import type {
   DocumentImportAdapter,
   DocumentImportDraft,
@@ -107,17 +107,10 @@ export const legacyRegistryImportAdapter: DocumentImportAdapter = {
     return path === ".roven/documents.yaml";
   },
   inspect(source) {
-    let value: unknown;
-    try {
-      const text = new TextDecoder("utf-8", { fatal: true }).decode(source.bytes);
-      value = parse(text);
-    } catch {
+    const registry = parseLegacyDocumentRegistry(source.bytes);
+    if (registry === null) {
       return [invalidLegacyDraft("invalid_legacy_registry")];
     }
-    if (!validateSchema("documentRegistry", value).valid) {
-      return [invalidLegacyDraft("invalid_legacy_registry")];
-    }
-    const registry = value as DocumentRegistry;
     const ids = Object.keys(registry.documents).sort();
     if (ids.length === 0) return [invalidLegacyDraft("empty_legacy_registry")];
     return ids.map((id) => legacyDraft(source, id, registry));

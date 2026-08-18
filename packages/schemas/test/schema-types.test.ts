@@ -8,6 +8,8 @@ import type {
   DocumentMigrationCandidate,
   DocumentMigrationPlan,
   HandoffBundle,
+  LegacyRegistryEntryArtifact,
+  LegacyRegistryMigrationPlan,
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
@@ -63,6 +65,13 @@ describe("schema-derived TypeScript contracts", () => {
       .toEqualTypeOf<string>();
     expectTypeOf<DocumentMigrationApplyReceipt["eventPayload"]["afterLayoutHash"]>()
       .toEqualTypeOf<string>();
+  });
+
+  it("keeps legacy registry migration read-only and preserves each original record", () => {
+    expectTypeOf<LegacyRegistryMigrationPlan["writesAllowed"]>().toEqualTypeOf<false>();
+    expectTypeOf<LegacyRegistryMigrationPlan["source"]["deactivationAction"]>()
+      .toEqualTypeOf<"archive_then_remove">();
+    expectTypeOf<LegacyRegistryEntryArtifact["record"]>().toEqualTypeOf<DocumentRecord>();
   });
 
   it("keeps shared context provenance and handoff coordinates explicit", () => {

@@ -131,7 +131,9 @@
 
 구현 현황(2026-08-19): **검토된 metadata-only sidecar apply 완료.** 승인은 plan의 모든 candidate를 정확히 한 번 다루고 생성 항목에는 책임자·locale·검토 주기를 포함한 최종 manifest를 요구합니다. Apply는 plan ID와 candidate canonical bytes, source·target·기존 manifest 전체를 다시 검증합니다. Staging과 transaction marker로 부분 layout의 loader 사용을 차단하며 파일과 directory entry를 동기화합니다. 공개 뒤 snapshot이 승인 내용과 같고 privacy-bounded `document.migration.applied` event가 durable하게 기록된 경우에만 receipt를 반환합니다. Event 기록 실패 rollback, source/target 변경, 변조된 plan/artifact/승인과 legacy registry 혼용을 실제 fixture로 검증했습니다.
 
-남은 구현 순서: **(1) 기존 단일 registry의 byte 보존·비활성화와 sidecar 전체 공개를 하나의 승인에 묶는 structural migration → (2) CommonMark/legacy marker parser → (3) byte 보존 managed block patch candidate → (4) stale detector** 순입니다. 기존 registry를 그대로 둔 채 새 sidecar를 활성화하지 않습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
+구현 현황(2026-08-19): **기존 단일 registry structural migration dry-run 완료.** `.roven/documents.yaml` 원본은 stable hash와 content-addressed archive target에 묶고, 최대 4,096개 `DocumentRecord`는 source registry hash를 포함한 독립 artifact로 분리합니다. Plan은 `archive_then_remove` 처분, 새 manifest directory와 모든 sidecar target, 각 record가 가리키는 문서의 file hash 또는 missing/unsafe 상태까지 결속합니다. Duplicate path, 안전하게 snapshot할 수 없는 참조 문서, 기존 sidecar layout과 archive 충돌은 conflict이며 managed/generated ownership과 missing 참조 문서는 review warning입니다. 원본 tree 무변경, 생성 시각과 무관한 결정성, source byte 변경 전파, 충돌과 unsafe source를 fixture로 검증했습니다.
+
+남은 구현 순서: **(1) structural plan의 최종 manifest 승인과 archive·legacy 비활성화·sidecar 전체 공개 apply → (2) CommonMark/legacy marker parser → (3) byte 보존 managed block patch candidate → (4) stale detector** 순입니다. 기존 registry를 그대로 둔 채 새 sidecar를 활성화하지 않습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
 
 ### M5: 검증과 지식 후보
 
@@ -244,7 +246,7 @@ fixtures/
 - 단일 `events.sqlite`를 대체할 크기/시간 segment와 segment 간 hash 연결
 - 사용자 전역 스킬과 프로젝트 고정 스킬의 최종 우선순위
 - 첫 import adapter가 지원할 Markdown/MDX/AsciiDoc dialect와 custom adapter 등록 경계
-- 기존 단일 document registry의 보존 위치, 비활성화와 실패 복구를 묶는 structural migration 경계
+- Legacy structural migration 완료 event와 crash recovery marker의 최종 payload·복구 명령 경계
 - CommonMark/legacy marker parser와 managed block byte 보존 교체 알고리즘
 - 숙의 event 이름·payload allowlist와 역할별 provider 선택 정책 schema
 
@@ -259,4 +261,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 기존 단일 document registry의 structural migration 계약과 dry-run**입니다. `.roven/documents.yaml`의 원본 byte 보존 방식, 기존 경로 비활성화, 모든 분할 sidecar의 target snapshot과 rollback 경계를 하나의 승인 단위로 먼저 고정합니다. 기존 registry와 `.roven/documents/`가 함께 활성화되는 중간 상태는 loader가 계속 거부해야 합니다. Dry-run은 어떤 파일도 바꾸지 않으며, apply는 registry와 참조 문서 hash가 모두 같을 때만 전체 전환을 시도해야 합니다. 이 계약과 원본 무변경 fixture를 통과한 뒤 CommonMark/legacy marker parser로 진행합니다.
+다음 구현 작업은 **M4 legacy structural migration 승인과 apply**입니다. 승인은 plan의 모든 entry artifact를 정확히 한 번 다루고 최종 `DocumentManifest`를 확정해야 합니다. Apply는 registry와 참조 문서, archive·manifest directory·sidecar target을 다시 검증한 뒤 archive 원본과 모든 sidecar를 먼저 완성해야 합니다. Transaction marker가 loader를 닫은 상태에서 legacy 원본 경로를 비활성화하고 성공 event를 기록한 뒤에만 새 layout을 활성화합니다. Event 이전 실패는 legacy 경로와 원본 bytes를 복원해야 하며, 단계별 failure injection으로 일부 archive·sidecar나 활성 layout이 남지 않는지 검증합니다.

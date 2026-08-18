@@ -1,0 +1,44 @@
+[
+  {
+    "name": "legacy registry entry artifact requires the original record",
+    "schema": "legacyRegistryEntryArtifact",
+    "value": {
+      "schemaVersion": 1,
+      "artifactId": "art_aaaaaaaaaaaaaaaa",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "byteCount": 512,
+      "sourceRegistryHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "documentId": "doc_readme_000001"
+    }
+  },
+  {
+    "name": "legacy registry structural dry-run cannot allow writes",
+    "schema": "legacyRegistryMigrationPlan",
+    "value": {
+      "schemaVersion": 1,
+      "planId": "migp_aaaaaaaaaaaaaaaa",
+      "generatedAt": "2026-08-19T03:00:00Z",
+      "mode": "legacy_registry_structural_dry_run",
+      "writesAllowed": true,
+      "approvalStatus": "not_requested",
+      "outcome": "ready_for_review",
+      "source": {
+        "path": ".roven/documents.yaml",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "byteCount": 16,
+        "deactivationAction": "archive_then_remove"
+      },
+      "archiveTarget": {
+        "path": ".roven/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
+        "expected": { "kind": "missing" }
+      },
+      "manifestDirectory": {
+        "path": ".roven/documents",
+        "expected": { "kind": "missing" }
+      },
+      "referencedDocuments": [],
+      "entries": [],
+      "warnings": []
+    }
+  }
+]

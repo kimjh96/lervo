@@ -1,0 +1,70 @@
+[
+  {
+    "name": "legacy registry entry artifact",
+    "schema": "legacyRegistryEntryArtifact",
+    "value": {
+      "schemaVersion": 1,
+      "artifactId": "art_aaaaaaaaaaaaaaaa",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "byteCount": 512,
+      "sourceRegistryHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "documentId": "doc_readme_000001",
+      "record": {
+        "path": "README.md",
+        "kind": "canonical",
+        "responsibleParty": { "kind": "team", "id": "maintainers" },
+        "connectedPaths": ["src"],
+        "verifiedRevision": "git:legacy",
+        "verifiedAt": "2026-08-19T00:00:00Z",
+        "reviewIntervalDays": 30,
+        "ownership": { "mode": "user" }
+      }
+    }
+  },
+  {
+    "name": "legacy registry structural migration dry-run plan",
+    "schema": "legacyRegistryMigrationPlan",
+    "value": {
+      "schemaVersion": 1,
+      "planId": "migp_aaaaaaaaaaaaaaaa",
+      "generatedAt": "2026-08-19T03:00:00Z",
+      "mode": "legacy_registry_structural_dry_run",
+      "writesAllowed": false,
+      "approvalStatus": "not_requested",
+      "outcome": "review_required",
+      "source": {
+        "path": ".roven/documents.yaml",
+        "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "byteCount": 1024,
+        "deactivationAction": "archive_then_remove"
+      },
+      "archiveTarget": {
+        "path": ".roven/archive/document-registries/sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.yaml",
+        "expected": { "kind": "missing" }
+      },
+      "manifestDirectory": {
+        "path": ".roven/documents",
+        "expected": { "kind": "missing" }
+      },
+      "referencedDocuments": [{
+        "documentId": "doc_readme_000001",
+        "path": "README.md",
+        "snapshot": {
+          "kind": "file",
+          "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "byteCount": 128
+        }
+      }],
+      "entries": [{
+        "documentId": "doc_readme_000001",
+        "artifactId": "art_aaaaaaaaaaaaaaaa",
+        "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "target": {
+          "path": ".roven/documents/doc_readme_000001.yaml",
+          "expected": { "kind": "missing" }
+        }
+      }],
+      "warnings": ["legacy_content_policy_requires_review"]
+    }
+  }
+]

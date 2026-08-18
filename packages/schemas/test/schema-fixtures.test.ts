@@ -18,6 +18,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-writing.json`,
     `${name}-document-format.json`,
     `${name}-document-migration-apply.json`,
+    `${name}-legacy-registry-migration.json`,
   ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);
     return JSON.parse(readFileSync(fixtureUrl, "utf8")) as Fixture[];

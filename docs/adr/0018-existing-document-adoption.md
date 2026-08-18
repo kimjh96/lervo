@@ -18,10 +18,11 @@ Roven을 새 저장소에만 설치한다고 가정할 수 없습니다. 실제 
 1. 안전한 read-only scanner와 `DocumentImportAdapter` 공통 계약
 2. Source 문서별 `MigrationCandidate`와 hash-bound dry-run plan
 3. 사용자 승인과 분할 layout 대상 metadata-only sidecar apply
-4. 기존 단일 registry의 명시적 비활성화·분할 structural migration
-5. CommonMark와 legacy marker adapter/parser
-6. Byte 보존 managed block patch candidate
-7. Staleness detector와 구조 변경 후보
+4. 기존 단일 registry의 항목별 artifact와 structural migration dry-run
+5. 같은 계획의 명시적 승인과 원자적 비활성화·분할 apply
+6. CommonMark와 legacy marker adapter/parser
+7. Byte 보존 managed block patch candidate
+8. Staleness detector와 구조 변경 후보
 
 앞 단계의 계약 테스트와 원본 무변경 fixture를 통과하기 전에는 다음 단계가 사용자 문서를 수정하지 않습니다.
 
@@ -60,7 +61,17 @@ Dry-run은 어떤 파일도 만들거나 수정하지 않습니다. Apply 직전
 
 Sidecar는 격리된 staging directory에서 완성하고 파일을 동기화합니다. 공개 전 `.roven/documents/`에 transaction marker를 만들며 loader는 이 marker가 있는 부분 layout을 계약 위반으로 거부합니다. 승인된 sidecar를 모두 공개하고 전체 snapshot을 다시 확인한 뒤 `document.migration.applied` event를 영속합니다. Event recorder는 성공 반환 전에 event를 durable하게 commit하고, 실패 반환 시에는 commit하지 않는 port여야 합니다. Event 기록 전에 실패하면 이번 apply가 만든 파일을 content hash로 확인해 전부 되돌립니다. Event가 기록된 뒤 marker 제거에 실패하거나 rollback 안전성을 증명하지 못하면 정상 receipt를 반환하지 않고 fail-closed 상태를 남깁니다.
 
-기존 `.roven/documents.yaml`과 분할 sidecar directory는 동시에 활성화할 수 없습니다. 첫 metadata-only apply는 legacy registry가 있는 layout을 `migration_conflict`로 거부합니다. Registry byte의 보존 위치, 비활성화 동작과 새 sidecar 전체 공개를 하나의 승인에 묶는 structural migration은 다음 구현 단계에서 별도로 고정합니다.
+기존 `.roven/documents.yaml`과 분할 sidecar directory는 동시에 활성화할 수 없습니다. 첫 metadata-only apply는 legacy registry가 있는 layout을 `migration_conflict`로 거부합니다. Registry byte의 보존 위치와 비활성화 처분, 항목별 artifact와 새 sidecar 전체를 묶는 structural dry-run 계약은 아래와 같이 분리합니다.
+
+### Legacy registry는 불변 원본과 항목별 artifact로 나눈다
+
+Structural dry-run은 `.roven/documents.yaml`을 안정적으로 한 번 읽고 최대 4,096개 record를 document ID 순서로 분리합니다. 각 artifact는 source registry hash, document ID와 원래 `DocumentRecord` 전체를 포함합니다. 따라서 책임자, 연결 경로, 검증 revision·시각·주기와 소유권을 일반 import 제안으로 축약하지 않습니다. Artifact hash에는 source registry hash도 들어가므로 registry의 주석이나 직렬화가 달라져 원본 bytes가 바뀌면 모든 승인 좌표가 새로 만들어집니다.
+
+원본 보존 target은 `.roven/archive/document-registries/sha256/<source-digest>.yaml`입니다. 이 파일은 다음 migration 내용을 append하는 문서가 아니라 특정 source bytes의 불변 사본입니다. Plan은 원본 경로의 처분을 `archive_then_remove`로 명시하지만 dry-run은 archive directory도 만들지 않습니다.
+
+Plan에는 새 `.roven/documents` directory와 모든 sidecar target뿐 아니라 각 record가 가리키는 문서의 missing/file/unsafe snapshot도 포함합니다. 참조 문서는 structural apply가 수정하지 않지만, 승인자가 검토한 저장소 상태와 다른 문서 집합에 오래된 registry 분할을 적용하지 않기 위해 결속합니다. 참조 문서 부재는 review warning이고 안전한 snapshot을 만들 수 없는 문서는 `conflict`입니다. 중복 path·비정규 경로, 기존 sidecar layout과 다른 bytes의 archive target도 `conflict`입니다. Managed block과 Roven 생성 소유권은 실제 본문 parser가 아직 없으므로 자동 확정하지 않고 review 대상으로 남깁니다.
+
+현재 구현은 이 structural dry-run까지만 제공하며 승인, source 비활성화, archive·sidecar 쓰기와 완료 event를 만들지 않습니다. 후속 apply는 archive와 sidecar를 먼저 완성하고 transaction marker로 loader를 닫은 상태에서만 legacy 원본 경로를 제거해야 합니다. Event 기록 전 실패하면 archive 사본으로 legacy 경로를 복원할 수 있어야 하며, 이 순서와 failure injection fixture가 준비되기 전에는 구조 전환 완료를 주장하지 않습니다.
 
 ### 상태, event와 실패 의미
 
@@ -72,6 +83,7 @@ Sidecar는 격리된 staging directory에서 완성하고 파일을 동기화합
 - `unsupported_format`: 일치하는 adapter가 없습니다. 오류로 원본을 배제하지 않고 observed 후보와 경고를 반환합니다.
 - `unsafe_source`: 경로, 파일 종류, 크기 또는 읽기 안정성을 보장할 수 없습니다. 해당 scan을 실패시키고 원문을 읽은 것으로 주장하지 않습니다.
 - `invalid_approval` / `invalid_migration_artifact`: 승인 또는 hash-bound 계획·artifact 계약이 다릅니다. 쓰기 전에 거부합니다.
+- `invalid_legacy_registry`: 기존 registry YAML/schema 또는 항목 artifact·structural plan을 안전하게 만들 수 없습니다. 어떤 archive나 sidecar도 쓰지 않습니다.
 - `telemetry_recording_failed`: 성공 event를 기록하지 못했습니다. 생성한 sidecar를 되돌리고 완료를 주장하지 않습니다.
 - `migration_finalization_failed` / `rollback_failed`: event 이후 공개 marker 정리 또는 실패 전 파일 복구를 안전하게 끝내지 못했습니다. 자동 성공이나 부분 복구로 표시하지 않습니다.
 

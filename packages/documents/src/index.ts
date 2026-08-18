@@ -2,6 +2,8 @@ export * from "./adapters.js";
 export * from "./apply.js";
 export * from "./import.js";
 export * from "./integrity.js";
+export * from "./legacy-registry.js";
+export * from "./legacy-registry-planner.js";
 export * from "./planner.js";
 export * from "./scanner.js";
 export * from "./types.js";

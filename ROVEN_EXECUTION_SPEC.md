@@ -442,7 +442,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 
 ## M0 직렬화 계약
 
-현재 구현은 다음 열여섯 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
+현재 구현은 다음 열여덟 계약을 JSON Schema Draft 2020-12와 동일 원본에서 파생된 TypeScript 타입으로 제공합니다.
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
@@ -458,6 +458,8 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `r
 - document migration approval: approver 좌표, plan/candidate artifact hash와 candidate별 skip 또는 최종 manifest 결정
 - document migration applied payload: 승인 digest, source/candidate artifact hash, 적용 전후 layout hash와 생성 sidecar hash
 - document migration apply receipt: 생성 sidecar 상대 경로, 건너뛴 candidate와 성공 event payload
+- legacy registry entry artifact: source registry hash, document ID와 축약하지 않은 기존 document record
+- legacy registry structural plan: 원본 보존·비활성화 처분, archive·manifest directory·sidecar target과 참조 문서 snapshot
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
@@ -521,6 +523,8 @@ Dry-run은 파일이나 event를 쓰지 않습니다. Scanner가 stable source b
 
 Metadata-only apply 승인은 모든 candidate를 중복 없이 다루고, 승인된 항목마다 사람이 검토한 최종 manifest를 포함합니다. Apply는 plan ID, candidate artifact canonical bytes, source·target과 현재 manifest 집합을 다시 검증합니다. Sidecar를 staging에서 동기화하고 transaction marker로 부분 layout의 loader 사용을 차단한 뒤 전체를 공개합니다. 공개 뒤 snapshot이 승인 내용과 같을 때만 필수 `document.migration.applied` recorder를 호출합니다. Recorder가 commit 없이 실패하면 생성 파일을 hash로 확인해 되돌립니다. Event commit 뒤 marker 제거 실패 또는 안전한 rollback 실패는 정상 receipt를 만들지 않습니다. 기존 단일 `documents.yaml`이 있는 layout은 sidecar와 혼용하지 않고 별도 structural migration 전까지 `migration_conflict`로 거부합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
 
+Legacy registry structural dry-run은 기존 `documents.yaml` bytes와 각 `DocumentRecord`를 서로 다른 증거로 보존합니다. Registry 원본은 source hash 기반 archive target 하나에 대응하고, record는 document별 canonical JSON artifact가 됩니다. Plan은 `archive_then_remove` 처분, archive와 manifest directory snapshot, 모든 sidecar target, 참조 문서의 path/hash 또는 missing/unsafe 상태를 결속합니다. 기존 sidecar layout, archive bytes, 중복 document path, 비정규 legacy path와 안전하게 snapshot할 수 없는 참조 문서는 conflict입니다. Missing 참조 문서와 parser로 확인하지 않은 managed/generated ownership은 review warning입니다. Dry-run은 쓰기와 event를 만들지 않으며 현재 source bytes가 migration되었다고 주장하지 않습니다.
+
 Roven은 문서를 세 유형으로 다룹니다.
 
 - `canonical`: 사람이 검토하는 원본
@@ -576,6 +580,7 @@ Roven은 문서를 세 유형으로 다룹니다.
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |
 | `invalid_approval` / `invalid_migration_artifact` | Migration 승인, plan ID 또는 candidate artifact bytes/hash가 계약과 다릅니다. Sidecar를 쓰기 전에 전체 apply를 거부합니다. |
+| `invalid_legacy_registry` | 기존 `documents.yaml` 또는 항목별 artifact와 structural plan을 schema-valid하게 해석할 수 없습니다. 원본을 유지하고 archive·sidecar를 만들지 않습니다. |
 | `plan_stale` / `migration_conflict` | Dry-run 이후 source·target·manifest layout이 달라졌거나 기존 registry, ID, path, 관계가 충돌합니다. 부분 적용하지 않고 새 계획 또는 structural migration을 요구합니다. |
 | `migration_apply_failed` | Event 기록 전에 승인 sidecar 전체를 공개·검증하지 못했습니다. 이번 작업이 만든 파일을 되돌리고 새 apply에서 재검증합니다. |
 | `migration_finalization_failed` / `rollback_failed` | 성공 event 뒤 transaction marker를 제거하지 못했거나 실패한 apply의 생성 파일을 안전하게 되돌리지 못했습니다. 완료로 표시하지 않으며 marker와 현재 layout을 운영자가 확인해야 합니다. |
