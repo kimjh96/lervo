@@ -73,6 +73,14 @@ flowchart LR
 
 새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서별 manifest 파일이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.roven`은 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
 
+### Document Adoption & Migration
+
+기존 저장소 도입은 `roven init`과 분리된 명시적 작업입니다. 탐색기는 설정된 문서 root만 읽고 `.git`, 의존성 디렉터리와 `.roven/state`를 제외하며 파일 수·개별 크기·전체 byte 한도를 적용합니다. 심볼릭 링크를 따라가지 않고 원본을 수정하지 않은 채 경로, 형식, content hash, 탐지한 소유권, 제안 document ID/profile/관계, 신뢰도와 경고를 `MigrationCandidate`로 만듭니다. 후보는 큰 단일 보고서에 누적하지 않고 source document별 artifact로 분리하며 migration plan은 그 artifact ID와 hash만 연결합니다.
+
+형식 해석은 `DocumentImportAdapter` 뒤에 둡니다. Core scanner가 안전한 byte 읽기와 hash를 소유하고 adapter는 전달받은 byte에서 Markdown, MDX, AsciiDoc, 기존 Roven registry 또는 프로젝트 custom 형식의 metadata 후보만 반환합니다. Adapter는 파일 시스템 쓰기 권한을 받지 않습니다. 알 수 없는 형식과 낮은 신뢰도는 `observed` 후보로 남기고 관리 대상으로 자동 승격하지 않습니다.
+
+Dry-run 계획은 source path와 hash에 묶입니다. 승인 뒤 첫 적용도 기본적으로 `.roven/documents/<documentId>.yaml` sidecar만 만들고 원본 위치와 byte를 유지합니다. 적용 직전 source hash나 대상 layout이 바뀌면 전체 계획을 stale로 처리해 다시 탐색합니다. 본문 이동, 형식 변환, managed marker 삽입은 sidecar 도입과 다른 구조 변경 계획이며 별도 승인이 필요합니다. 따라서 CommonMark managed block parser/compiler는 이 import 계약과 legacy marker 해석 경계를 먼저 구현한 뒤에 착수합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
+
 ### Project Storage Bootstrap
 
 `@roven/project`는 설정과 관리 경로만 정의하고 SQLite나 CAS 구현을 알지 않습니다. `@roven/project-storage`가 두 저장 구현을 조합해 실행 진입점에 제공합니다. 저장소 root를 받으면 canonical 경로를 한 번 계산하고, `project.yaml`을 검증한 뒤 그 manifest의 project id로 `.roven/state/events.sqlite`를 엽니다. CAS는 같은 경로 계약의 `.roven/state/cas`를 사용합니다. 호출자가 임의의 project id나 서로 다른 저장 root를 섞을 수 없습니다.
@@ -132,6 +140,14 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 `HandoffBundle`은 보낸 역할과 받은 역할, 생산 당시 context generation, 요청 digest, 공유 맥락 ID와 근거 event ID만 전달합니다. 원문이나 prompt를 handoff metadata에 복제하지 않습니다. 수신 역할은 `handoff`를 선택 이유로 남기고 연결된 문서를 자기 run/session에서 다시 읽어 E2를 만들며, 공급자에 전달했을 때만 자기 E3를 만듭니다. 생산 역할의 E2/E3는 수신 역할에 상속되지 않습니다.
 
 공유 맥락은 자동으로 검증된 지식이 되지 않습니다. 원문 hash가 바뀌거나 만료되면 기존 handoff를 새 실행에 사용할 수 없고, 대체 publication이나 새 검증이 필요합니다. 발행과 handoff는 역할 간 발견 경로를 만들 뿐, 관련 없는 모든 원문을 매 turn에 넣으라는 뜻이 아닙니다.
+
+### Structured Deliberation
+
+숙의는 provider adapter의 부가 기능이 아니라 Run Orchestrator가 여러 독립 role session을 순서화하는 공급자 중립 workflow입니다. `proposal`, `objection`, `revision`, `verification`, `decision` 산출물은 CAS 원문과 schema-valid metadata로 분리합니다. 참여자는 앞 산출물을 shared context로 발견하되 자기 session에서 현재 hash를 다시 E2/E3로 만들어야 하며, 다른 참여자의 전체 대화나 내부 추론은 전달하지 않습니다. Codex와 Claude를 함께 배치할 수 있지만 같은 공급자 역할 두 개도 동일 계약을 따릅니다.
+
+`DeliberationPolicy`는 참여 역할, 각 역할에 사용할 provider 선택 규칙, 결정 책임자, 필수 검증, 최대 회차, 반론 해소 기준과 공개 조건을 고정합니다. 종료 상태는 `converged`, `no_consensus`, `failed`로 구분합니다. `converged`는 결정 책임자의 schema-valid decision, 필수 verification 통과와 차단 반론 0개가 모두 필요합니다. 최대 회차에 도달하거나 차단 반론이 남으면 `no_consensus`이고, provider·telemetry·artifact 계약 실패는 `failed`입니다. 두 상태 모두 임의의 승자를 선택하거나 verified 지식으로 승격하지 않습니다.
+
+숙의 metadata에는 deliberation/run/session/role 좌표, round, 입력·산출물 artifact ID와 hash, 반론 상태, 검증 상태와 종료 사유만 둡니다. Raw prompt, 내부 추론, provider payload와 문서 본문은 event나 handoff metadata에 넣지 않습니다. 이 기능은 shared context와 provider result artifact 위에 verification 결과 계약을 먼저 연결한 뒤 M5에서 구현합니다. 세부 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 정의합니다.
 
 ### Policy & Approval Engine
 

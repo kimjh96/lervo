@@ -31,6 +31,8 @@ const markdownDocuments = [
   "docs/adr/0015-roven-run-cli-vertical-slice.md",
   "docs/adr/0016-local-skill-resolution-and-lock.md",
   "docs/adr/0017-sharded-document-manifests.md",
+  "docs/adr/0018-existing-document-adoption.md",
+  "docs/adr/0019-provider-neutral-deliberation.md",
 ];
 
 const failures = [];

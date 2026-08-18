@@ -33,6 +33,8 @@ Loader는 파일명 byte 순서로 manifest를 읽고 기존 context router가 �
 
 기존 `.roven/documents.yaml`이 단독으로 있으면 현재 실행 경로는 기존 schema로 계속 읽습니다. `roven init`은 이를 자동 분할하거나 다시 쓰지 않습니다. 새 디렉터리와 기존 파일이 함께 있으면 어느 쪽도 선택하지 않고 충돌로 중단합니다. 문서별 manifest API와 이후 compiler는 명시적 migration 전까지 기존 단일 registry를 수정하지 않습니다.
 
+후속 결정: 기존 registry와 저장소 문서의 명시적 도입 순서, read-only 후보와 승인된 sidecar migration은 [ADR-0018](./0018-existing-document-adoption.md)에 정의합니다. Managed block parser/compiler는 그 import 계약 뒤에 구현합니다.
+
 ### 사람 본문과 기계 metadata를 분리한다
 
 문서 본문은 `text/markdown; charset=utf-8`이고 기계 metadata는 `.roven/documents/<documentId>.yaml` sidecar에 둡니다. 사용자 Markdown에 front matter를 요구하지 않습니다. Sidecar는 문서 record 외에 다음을 고정합니다.

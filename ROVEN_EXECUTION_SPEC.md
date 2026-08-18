@@ -112,6 +112,22 @@ any telemetry failure -> telemetry_failed
 
 유효한 handoff도 읽기 증거를 양도하지 않습니다. 수신 에이전트는 각 shared context가 가리키는 문서를 `reasonCode=handoff`로 선택하고, 자기 run/session에서 현재 bytes를 읽어 E2를 만든 뒤, 자기 provider session에 전달해 E3를 만들어야 합니다. 생산 에이전트의 receipt를 복사하면 쓰기 게이트가 열리지 않습니다. 원문 hash가 바뀌거나 context가 압축·재시작되면 일반 문서와 같은 규칙으로 receipt를 무효화합니다.
 
+## 역할·공급자 간 숙의
+
+숙의 run은 하나의 provider session을 길게 공유하지 않습니다. 제안자, 검토자, 검증자와 결정 책임자는 각각 RoleProfile과 managed provider session을 가지며, 동일한 필수 자료와 앞 단계 산출물도 자기 session에서 E2/E3를 다시 만듭니다. Provider는 역할별로 선택할 수 있어 Codex 제안과 Claude 검토 또는 그 반대 구성이 가능하지만, orchestrator와 artifact 계약은 provider 이름을 분기 기준으로 사용하지 않습니다.
+
+각 회차는 `proposal`, `objection`, `revision`, `verification`, `decision` 중 정책이 허용한 구조화된 artifact만 다음 역할에 공개합니다. Artifact metadata의 필수 좌표는 `deliberationId`, `runId`, `round`, `roleId`, `sessionId`, artifact 종류·ID·content hash, 근거 event ID와 이전 artifact ID입니다. 반론은 차단 여부와 대상 주장 ID를, verification은 suite ID와 상태를, decision은 채택한 주장 ID와 해소되지 않은 반론 ID를 추가로 가집니다. 원문은 CAS에 두고 event와 handoff에는 raw prompt, 내부 추론, 전체 대화, tool input과 provider payload를 넣지 않습니다.
+
+`DeliberationPolicy`는 참여 역할과 provider 선택 규칙, 결정 책임자, 최대 회차, 필수 verification suite, 차단 반론 해소 규칙과 공개 조건을 run 전에 고정합니다. 종료 상태의 의미와 필수 정보는 다음과 같습니다.
+
+| 상태 | 필수 정보와 의미 |
+|---|---|
+| `converged` | Decision artifact/hash, 결정 책임자, 통과한 verification과 차단 반론 0개. 이 조건을 모두 만족할 때만 공개 후보가 됩니다. |
+| `no_consensus` | 마지막 round, 미해결 반론 ID와 종료 사유. 최대 회차나 합의 기준 미충족이며 결론을 선택하거나 지식으로 승격하지 않습니다. |
+| `failed` | 실패 phase와 기계용 code, 마지막으로 확정된 artifact 좌표. Provider, telemetry, schema 또는 artifact 저장 실패이며 정상 합의로 표시하지 않습니다. |
+
+숙의 event 이름과 type별 payload allowlist는 runtime 구현 직전 schema ADR에서 확정합니다. 그 전에는 위 상태를 기존 `run.completed`로 기록하거나 공급자 자유 형식 출력만으로 합의를 주장하지 않습니다. 상세 오류에는 모델 응답 원문이나 credential을 넣지 않고 artifact hash와 짧은 실패 code만 허용합니다. 구현 순서와 경계는 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 정의합니다.
+
 ## Context preparation 첫 슬라이스
 
 Context preparation은 E1 계획과 E2 적재를 분리합니다. 입력은 project/run/session/Role 좌표, document registry, 예상 변경 경로, Role rule별 문서 ID, shared context publication과 handoff, 정책 version과 source revision입니다. 이 단계는 provider를 실행하지 않으며 E3를 만들지 않습니다.
@@ -485,6 +501,16 @@ Discovery와 lock의 실패 코드는 `invalid_skill_request`, `invalid_skill_ma
 
 ## 문서 생성과 노후화
 
+### 기존 문서 도입과 migration
+
+기존 저장소 문서는 managed block compiler보다 먼저 읽기 전용 import 절차를 거칩니다. Scanner는 사용자가 지정하거나 정책에 등록한 root만 탐색하고 source path, format, content hash, byte count를 확정합니다. 그 byte를 형식별 `DocumentImportAdapter`에 전달해 소유권, document ID, profile, 관계와 managed marker 후보를 얻습니다. Adapter는 원본 경로나 쓰기 port를 받지 않으며 탐색 결과의 신뢰도와 경고를 반드시 반환합니다.
+
+`MigrationCandidate`의 필수 필드는 source path/format/hash, 탐지한 소유권, 제안 document ID/profile/relations, confidence와 warnings입니다. Candidate는 source 문서별 artifact로 저장하고 `MigrationPlan`은 candidate artifact ID/hash, 대상 sidecar 경로, 예상 대상 부재 또는 hash, 승인 상태와 생성 시각을 가집니다. 본문과 절대 경로는 event payload에 넣지 않습니다. 여러 후보를 하나의 계속 커지는 Markdown/YAML 문서에 append하지 않습니다.
+
+기본 적용은 승인된 plan으로 새 sidecar를 만드는 metadata-only 작업입니다. Source byte와 위치, 사용자 front matter, 기존 marker는 유지합니다. Source hash나 target layout이 dry-run 이후 바뀌거나 ID·경로 소유권이 충돌하면 plan 전체를 `stale` 또는 `conflict`로 거부하고 일부만 적용하지 않습니다. 알 수 없는 형식과 낮은 신뢰도 후보는 `observed/review_required`로 남깁니다. 본문 이동·변환·marker 삽입은 별도 structural patch이며 명시적 승인과 byte 보존 검증 없이는 실행하지 않습니다.
+
+첫 구현은 새 event type을 만들거나 migration 완료를 주장하지 않고 read-only candidate와 dry-run plan까지만 제공합니다. 이후 apply event를 추가할 때는 candidate/plan hash, 승인 원본, before/after layout hash와 실패 처분을 type별 allowlist에 고정해야 합니다. 세부 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
+
 Roven은 문서를 세 유형으로 다룹니다.
 
 - `canonical`: 사람이 검토하는 원본
@@ -493,7 +519,7 @@ Roven은 문서를 세 유형으로 다룹니다.
 
 `AGENTS.md`를 공통 canonical 진입점으로 쓰고 `CLAUDE.md`에는 해당 지침을 연결하는 얇은 호환 블록을 둘 수 있습니다. 프로젝트가 반대 방향을 선택해도 manifest에 명시하면 됩니다.
 
-새 문서 metadata는 `.roven/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Roven이 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Roven 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. 현재 loader는 marker 문자열까지 검증하지만 CommonMark 구조와 block 교체는 아직 구현하지 않았으므로 자동 수정 증거를 만들지 않습니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 정의합니다.
+새 문서 metadata는 `.roven/documents/<documentId>.yaml` sidecar에 저장하고 Markdown 본문에는 front matter를 강제하지 않습니다. 이력은 `separate_documents`, 분할은 `topic_documents`만 허용합니다. 사용자 문서는 Roven이 수정하지 않고 32 KiB부터 분할을 권고합니다. Managed block은 표준 begin/end marker와 8 KiB 한도를 사용하며 넘으면 새 문서와 링크로 나눕니다. Roven 전용 문서는 64 KiB와 최상위 section 12개가 한도입니다. 현재 loader는 marker 문자열까지 검증하지만 CommonMark 구조와 block 교체는 아직 구현하지 않았으므로 자동 수정 증거를 만들지 않습니다. 형식별 import/migration 계약을 먼저 구현한 뒤 parser와 compiler를 연결합니다. 상세 계약은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)과 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 정의합니다.
 
 노후화 판정 신호:
 

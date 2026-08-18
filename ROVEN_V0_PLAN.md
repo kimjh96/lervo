@@ -19,10 +19,12 @@
 - capability gate 및 unmanaged change 탐지
 - Codex/Claude adapter contract와 최소 어댑터
 - 스킬 discovery/lock/usage event
+- 기존 저장소 문서의 형식별 read-only 탐색, migration dry-run과 승인된 sidecar 도입
 - `AGENTS.md`, `CLAUDE.md`, `README.md` managed block 및 staleness 검사
 - `roven trace` 텍스트/JSON 출력
 - fixture 저장소 기반 contract/acceptance test
 - 사람 대상 산출물의 provider 중립 writing 정책과 공개 전 평가
+- 역할별 독립 session과 구조화된 artifact를 사용하는 제한 회차 provider 중립 숙의
 
 제외:
 
@@ -105,13 +107,19 @@
 
 - 로컬/사용자/외부 스킬 discovery와 충돌 해석
 - `skills.lock`, trust/compatibility 판정, invocation event
-- 분할 document manifest, managed block compiler, stale detector
+- 분할 document manifest
+- 기존 Markdown/MDX/AsciiDoc/legacy/custom 문서의 read-only discovery와 `DocumentImportAdapter` 계약
+- source hash에 묶인 migration candidate/dry-run, 승인된 metadata-only sidecar 적용
+- import 계약을 사용하는 managed block parser/compiler와 stale detector
 - 자동 수정 patch/candidate 생성
 
 완료 조건:
 
 - 동일 id의 스킬 충돌이 결정적으로 해석되고 근거가 trace에 표시
 - 실제 사용한 스킬 버전/hash를 run에서 조회 가능
+- migration dry-run이 원본 byte를 바꾸지 않고 형식·소유권·관계 후보와 불확실성을 문서별로 표시
+- source hash나 대상 layout이 바뀌면 승인된 migration plan도 전체 stale/conflict로 거부
+- 알 수 없는 형식과 낮은 신뢰도 문서를 자동 관리 대상으로 승격하지 않음
 - AGENTS/CLAUDE/README의 노후화 fixture를 검출
 - managed block 밖 사용자 내용 무변경
 
@@ -119,10 +127,14 @@
 
 구현 현황(2026-08-19): **분할 document manifest와 누적 금지 계약 완료.** 새 init은 중앙 `documents.yaml` 대신 빈 `.roven/documents/`를 만들고 document ID별 최대 64 KiB sidecar를 결정적으로 조립합니다. 사용자·managed block·Roven 전용 문서의 쓰기 범위, 크기, separate history와 topic split을 schema로 고정했습니다. 파일명/ID, 표준 marker, 관계, 대상 경로의 단일 소유권과 심볼릭 링크를 loader가 거부합니다. 기존 단일 registry는 자동 migration 없이 byte를 보존하고 읽기 호환만 제공합니다. 결정은 [ADR-0017](./docs/adr/0017-sharded-document-manifests.md)에 기록했습니다.
 
+남은 구현 순서: **(1) 기존 문서 read-only scanner와 provider-neutral `DocumentImportAdapter` 계약 → (2) source hash에 묶인 문서별 migration candidate와 dry-run → (3) 명시적 승인 뒤 sidecar만 만드는 metadata-only apply → (4) 같은 import 경계를 사용하는 CommonMark/legacy marker parser → (5) byte 보존 managed block patch candidate → (6) stale detector** 순으로 진행합니다. Migration이 원본 구조를 이해하기 전에 parser/compiler가 Roven 표준 형식을 강제하지 않도록 순서를 바꿨습니다. 결정은 [ADR-0018](./docs/adr/0018-existing-document-adoption.md)에 기록했습니다.
+
 ### M5: 검증과 지식 후보
 
 - 프로젝트별 verification command와 결과 artifact
 - 사람 대상 산출물의 결정적 writing 검사와 생성 후 별도 의미 평가 실행
+- 구조화된 proposal/objection/revision/verification/decision artifact와 `DeliberationPolicy`
+- 역할별 독립 provider session을 순서화하는 제한 회차 숙의와 `converged`/`no_consensus`/`failed` 판정
 - observation/candidate 생성 및 paths/evidence 연결
 - 검증 revision 기반 stale 전이
 - `roven doctor`, `roven trace` 완성
@@ -132,7 +144,12 @@
 - 기능 작업과 버그 수정 acceptance scenario 통과
 - 실패한 검증을 성공으로 표시할 수 없음
 - 실행되지 않거나 실패한 필수 writing 검사가 있는 산출물은 공개할 수 없음
+- Codex와 Claude 참여자가 같은 shared context를 각 session에서 별도로 E2/E3 없이 재사용할 수 없음
+- 최대 회차 또는 차단 반론이 남은 숙의를 결론이나 verified 지식으로 표시할 수 없음
+- `converged`는 결정 책임자, 필수 verification 통과와 차단 반론 0개를 모두 증명
 - candidate에서 verified로의 전이가 정책과 evidence 없이는 거부됨
+
+구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
 
 ### M6: 최소 Hub 실증
 
@@ -207,6 +224,10 @@ fixtures/
 11. Claude가 writing 정책을 누락하거나 바꾸면 계약 실패, 의미 검사를 실행하지 않으면 공개 실패
 12. 다른 역할의 shared context를 발견할 수 있지만 생산 역할의 receipt만으로 수신 역할의 쓰기 gate가 열리지 않음
 13. restricted context가 project 전체 공개나 허용되지 않은 역할 handoff로 유출되지 않음
+14. 기존 문서 migration dry-run과 실패한 apply가 원본 byte를 변경하지 않음
+15. Migration 계획 뒤 source hash가 바뀌면 일부 sidecar도 적용하지 않고 재탐색을 요구
+16. 숙의 참여자마다 같은 근거의 별도 E2/E3가 필요하고 내부 추론이나 전체 대화가 handoff에 복제되지 않음
+17. 필수 검증 실패, 미해결 차단 반론 또는 최대 회차 도달을 `converged`로 기록하지 않음
 
 ## 선행 결정이 필요한 항목
 
@@ -218,17 +239,19 @@ fixtures/
 - event payload 기본 보존 기간과 원문 artifact 암호화
 - 단일 `events.sqlite`를 대체할 크기/시간 segment와 segment 간 hash 연결
 - 사용자 전역 스킬과 프로젝트 고정 스킬의 최종 우선순위
-- CommonMark parser와 managed block byte 보존 교체 알고리즘
+- 첫 import adapter가 지원할 Markdown/MDX/AsciiDoc dialect와 custom adapter 등록 경계
+- CommonMark/legacy marker parser와 managed block byte 보존 교체 알고리즘
+- 숙의 event 이름·payload allowlist와 역할별 provider 선택 정책 schema
 
 ## v0 이후 순서
 
 1. Hub trace UI와 정책 배포
 2. Slack/Discord command gateway와 승인 UX
-3. 연구자·마케터·디자이너 RoleProfile/평가 묶음
+3. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
 4. 명시적 관계 기반 지식 그래프 시각화
 5. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
 6. 조직 단위 비용·품질·가드레일 분석
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M4 managed block parser와 byte 보존 compiler 첫 슬라이스**입니다. CommonMark 구조에서 code fence 안의 marker를 제외하고 표준 marker의 유일성·순서·비중첩을 확인해야 합니다. 교체 전 block hash와 전체 파일 snapshot을 다시 확인하고 block 밖 byte와 줄바꿈을 그대로 유지해야 합니다. 8 KiB를 넘는 결과는 쓰지 않고 새 topic document와 link candidate로 분리합니다. 실제 적용은 아직 하지 않고 patch candidate만 생성합니다.
+다음 구현 작업은 **M4 기존 문서 도입을 위한 read-only discovery와 migration 계약 첫 슬라이스**입니다. Core scanner가 안전한 byte 읽기, source hash와 탐색 한도를 소유하고 `DocumentImportAdapter`에는 byte와 상대 경로만 전달합니다. 첫 fixture는 Markdown, 기존 Roven `documents.yaml`, 알 수 없는 형식을 포함하며 source 문서별 `MigrationCandidate`와 hash-bound dry-run plan을 만들되 원본과 `.roven/documents/`를 수정하지 않아야 합니다. Adapter 계약, 결정적 순서, 심볼릭 링크/읽는 중 변경 거부, 낮은 신뢰도 `review_required`, 단일 누적 보고서 금지를 먼저 검증합니다. Metadata-only apply와 managed block parser/compiler는 이 슬라이스 뒤에 각각 별도 작업으로 진행합니다.

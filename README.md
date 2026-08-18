@@ -37,6 +37,8 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [`roven run` 한 파일 CLI 수직 슬라이스 ADR](./docs/adr/0015-roven-run-cli-vertical-slice.md)
 - [로컬 스킬 해석과 실행별 lock ADR](./docs/adr/0016-local-skill-resolution-and-lock.md)
 - [분할 문서 manifest와 누적 금지 ADR](./docs/adr/0017-sharded-document-manifests.md)
+- [기존 문서 도입과 안전한 migration ADR](./docs/adr/0018-existing-document-adoption.md)
+- [공급자 중립 숙의와 명시적 수렴 ADR](./docs/adr/0019-provider-neutral-deliberation.md)
 
 ## 현재 구현
 
@@ -57,6 +59,8 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/adapter-claude`: Claude Agent SDK context replay를 검증하고 Write/Edit hook을 Roven의 1회용 permit에 연결하는 adapter
 - `@roven/cli`: 안전한 `roven init`과 project storage·context·provider adapter를 연결하는 한 파일 `roven run` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
+
+다음 구현은 기존 저장소 문서를 수정하지 않고 탐색해 migration 후보와 hash-bound dry-run 계획을 만드는 작업입니다. 이 계약과 형식별 import adapter를 먼저 고정한 뒤 managed block parser/compiler를 구현합니다. Codex·Claude가 역할별로 검토하고 결론에 수렴하는 숙의 실행은 verification artifact가 준비된 M5에서 별도 공급자 세션과 구조화된 제안·반론·결정 계약으로 추가합니다.
 
 ## 핵심 명제
 
