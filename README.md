@@ -2,7 +2,7 @@
 
 Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2 완료, M3 managed provider run의 한 파일 쓰기 브리지까지 완료 (2026-08-19)
+현재 상태: M0·M1·M2·M3 완료, `roven run` 한 파일 수직 슬라이스 완료 (2026-08-19)
 
 ## 목표
 
@@ -34,6 +34,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [Provider-neutral 결과 artifact ADR](./docs/adr/0012-provider-result-artifacts.md)
 - [Provider-neutral managed write bridge ADR](./docs/adr/0013-provider-neutral-managed-write-bridge.md)
 - [Managed adapter session 경계 강화 ADR](./docs/adr/0014-managed-adapter-session-hardening.md)
+- [`roven run` 한 파일 CLI 수직 슬라이스 ADR](./docs/adr/0015-roven-run-cli-vertical-slice.md)
 
 ## 현재 구현
 
@@ -51,7 +52,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/adapter-contract`: Codex와 Claude가 같은 역할·writing 정책·turn 수락·session 유효 기능·managed write 요청/결정/완료 계약을 따르도록 강제하는 provider adapter interface와 contract suite
 - `@roven/adapter-codex`: Codex app-server thread/turn과 controlled context를 관리하고 file-change 승인을 Roven의 1회용 permit에 연결하는 adapter
 - `@roven/adapter-claude`: Claude Agent SDK context replay를 검증하고 Write/Edit hook을 Roven의 1회용 permit에 연결하는 adapter
-- `@roven/cli`: `roven init` 명령 진입점
+- `@roven/cli`: 안전한 `roven init`과 project storage·context·provider adapter를 연결하는 한 파일 `roven run` 명령 진입점
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
 ## 핵심 명제
@@ -64,9 +65,9 @@ Roven은 모델 자체가 아니라 **에이전트가 일하는 환경과 계약
 pnpm build
 pnpm roven init --dry-run
 pnpm roven init
-roven run "DD 기능 개발"
+pnpm roven run --provider codex --path src/example.ts "DD 기능 개발"
 roven trace last
 roven doctor
 ```
 
-`roven init`은 현재 저장소의 로컬 패키지 명령으로 실행할 수 있습니다. `roven run`, `roven trace`, `roven doctor`는 아직 구현되지 않았습니다. 구체적인 범위와 완료 조건은 `ROVEN_V0_PLAN.md`에 정의합니다.
+`roven init`과 한 파일 `roven run`은 현재 저장소의 로컬 패키지 명령으로 실행할 수 있습니다. `roven run`은 project verification과 writing 공개 검사를 아직 실행하지 않으며 출력에 `실행하지 않음`으로 표시합니다. `roven trace`, `roven doctor`는 아직 구현되지 않았습니다. 구체적인 범위와 완료 조건은 `ROVEN_V0_PLAN.md`에 정의합니다.

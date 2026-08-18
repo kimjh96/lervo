@@ -40,7 +40,7 @@ flowchart LR
 명령 상태:
 
 - `roven init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
-- `roven run <request>`: 관리되는 에이전트 실행
+- `roven run --provider <provider> --path <path> <request>`: project storage와 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
 - `roven trace [run]`: 실행 근거와 이벤트 조회
 - `roven doctor`: 문서·스킬·어댑터·Hub 상태 진단
 - `roven docs check`: 문서 노후화 검사
@@ -93,7 +93,9 @@ Turn 시작은 adapter의 동기 수락 callback과 최종 반환값을 두 단�
 
 Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다. 공통 managed write bridge가 공급자의 파일 변경 요청을 M2의 경로별 1회용 permit에 연결하고, 완료 뒤 실제 파일 hash를 다시 읽어 `file.changed`와 context 무효화를 기록합니다. 첫 쓰기 슬라이스는 준비 때 선언한 예상 경로 중 정확히 한 파일만 허용합니다. 검증된 변경과 실행 전후 hash가 모두 맞는 경로만 managed로 빼며, 나머지는 `unmanaged_change.detected`와 run 실패로 남깁니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.roven/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다.
 
-최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `roven run` CLI는 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결하는 다음 수직 슬라이스입니다.
+최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `roven run` CLI가 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결합니다.
+
+현재 `roven run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator와 같은 CAS를 한 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 작업 문장과 위험도만 받습니다. 성공과 실패 모두 storage를 닫고, CAS에서 다시 읽은 결과와 검증된 한 파일 변경을 출력합니다. Project verification과 writing 의미 검사는 아직 실행하지 않으므로 두 상태를 `not_run`으로 명시합니다. 명령 파싱·출력, 실행 조합과 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
 
 파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 

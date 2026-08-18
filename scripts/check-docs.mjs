@@ -28,6 +28,7 @@ const markdownDocuments = [
   "docs/adr/0012-provider-result-artifacts.md",
   "docs/adr/0013-provider-neutral-managed-write-bridge.md",
   "docs/adr/0014-managed-adapter-session-hardening.md",
+  "docs/adr/0015-roven-run-cli-vertical-slice.md",
 ];
 
 const failures = [];

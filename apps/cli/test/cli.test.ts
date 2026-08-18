@@ -53,3 +53,29 @@ describe("roven init CLI", () => {
     expect(messages.join("")).toContain("이미 초기화된 프로젝트입니다.");
   });
 });
+
+describe("roven run CLI arguments", () => {
+  it("rejects an incomplete run command before opening a managed run", async () => {
+    const root = await temporaryRepository();
+    let called = false;
+    let errorOutput = "";
+    const exitCode = await runCli(
+      ["run", "--provider", "codex", "작업"],
+      {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (message) => { errorOutput += message; },
+      },
+      {
+        executeManagedRun: async () => {
+          called = true;
+          throw new Error("must not run");
+        },
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(called).toBe(false);
+    expect(errorOutput).toContain("provider, path와 작업 문장이 필요합니다");
+  });
+});

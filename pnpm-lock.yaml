@@ -20,9 +20,30 @@ importers:
 
   apps/cli:
     dependencies:
+      '@roven/adapter-claude':
+        specifier: workspace:*
+        version: link:../../packages/adapter-claude
+      '@roven/adapter-codex':
+        specifier: workspace:*
+        version: link:../../packages/adapter-codex
+      '@roven/adapter-contract':
+        specifier: workspace:*
+        version: link:../../packages/adapter-contract
+      '@roven/context':
+        specifier: workspace:*
+        version: link:../../packages/context
+      '@roven/orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
       '@roven/project':
         specifier: workspace:*
         version: link:../../packages/project
+      '@roven/project-storage':
+        specifier: workspace:*
+        version: link:../../packages/project-storage
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
 
   packages/adapter-claude:
     dependencies:

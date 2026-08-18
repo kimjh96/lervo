@@ -12,6 +12,13 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@roven/project": "workspace:*"
+    "@roven/adapter-contract": "workspace:*",
+    "@roven/adapter-claude": "workspace:*",
+    "@roven/adapter-codex": "workspace:*",
+    "@roven/context": "workspace:*",
+    "@roven/orchestrator": "workspace:*",
+    "@roven/project": "workspace:*",
+    "@roven/project-storage": "workspace:*",
+    "@roven/schemas": "workspace:*"
   }
 }

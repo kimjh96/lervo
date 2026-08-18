@@ -76,21 +76,25 @@ export function createDefaultDocumentRegistry(): DocumentRegistry {
   return { schemaVersion: 1, documents: {} };
 }
 
-export async function loadProjectManifest(root: string): Promise<ProjectManifest> {
-  const paths = resolveProjectPaths(root);
-  const rovenDirectory = await readEntry(paths.rovenRoot);
+async function assertRovenDirectory(path: string): Promise<void> {
+  const rovenDirectory = await readEntry(path);
   if (rovenDirectory.kind === "missing") {
     throw new RovenProjectError(
       "not_initialized",
-      `${paths.projectManifest}이 없습니다. 먼저 roven init을 실행하세요.`,
+      `${path}이 없습니다. 먼저 roven init을 실행하세요.`,
     );
   }
   if (rovenDirectory.kind !== "directory") {
     throw new RovenProjectError(
       "unsafe_path",
-      `${paths.rovenRoot}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
+      `${path}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
     );
   }
+}
+
+export async function loadProjectManifest(root: string): Promise<ProjectManifest> {
+  const paths = resolveProjectPaths(root);
+  await assertRovenDirectory(paths.rovenRoot);
   const entry = await readEntry(paths.projectManifest);
   if (entry.kind === "missing") {
     throw new RovenProjectError(
@@ -105,4 +109,23 @@ export async function loadProjectManifest(root: string): Promise<ProjectManifest
     );
   }
   return parseAndValidateYaml<ProjectManifest>("project", entry.content);
+}
+
+export async function loadDocumentRegistry(root: string): Promise<DocumentRegistry> {
+  const paths = resolveProjectPaths(root);
+  await assertRovenDirectory(paths.rovenRoot);
+  const entry = await readEntry(paths.documentRegistry);
+  if (entry.kind === "missing") {
+    throw new RovenProjectError(
+      "not_initialized",
+      `${paths.documentRegistry}이 없습니다. 먼저 roven init을 실행하세요.`,
+    );
+  }
+  if (entry.kind !== "file") {
+    throw new RovenProjectError(
+      "unsafe_path",
+      `${paths.documentRegistry}은 일반 파일이어야 하며 심볼릭 링크일 수 없습니다.`,
+    );
+  }
+  return parseAndValidateYaml<DocumentRegistry>("documentRegistry", entry.content);
 }

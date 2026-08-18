@@ -330,7 +330,22 @@ Codex adapter는 같은 turn의 마지막 완료 `agentMessage.text`를 사용�
 
 Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 bytes를 local artifact store에 씁니다. `put` 결과의 URI는 content hash에 해당하는 `roven-cas://sha256/<digest>`여야 하며 같은 URI를 다시 읽어 hash, byte count와 전체 bytes를 확인합니다. 실패는 `artifact_storage_failed`입니다. Artifact ID는 `art_<digest>`이고 `run.completed.resultDigest`에는 content hash, `artifactIds`에는 이 ID 하나만 기록합니다. Event에는 결과 원문과 URI를 넣지 않습니다. `ManagedProviderRunResult`의 URI는 호출자가 허가된 로컬 저장소에서 결과를 읽기 위한 좌표입니다.
 
-결과 artifact는 writing 정책, 의미 품질, 인용이나 E4 통과를 뜻하지 않습니다. 공개, Hub 업로드와 shared context 발행은 별도 정책과 검증이 필요합니다. `roven run` 사용자 명령은 이 provider run 계약과 local storage bootstrap을 연결한 뒤 공개합니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md)에 정의합니다.
+결과 artifact는 writing 정책, 의미 품질, 인용이나 E4 통과를 뜻하지 않습니다. 공개, Hub 업로드와 shared context 발행은 별도 정책과 검증이 필요합니다. `roven run` 사용자 명령은 이 provider run 계약과 local storage bootstrap을 연결해 로컬 결과를 표시합니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md)에 정의합니다.
+
+### `roven run` CLI 첫 슬라이스
+
+`roven run`은 초기화된 저장소에서 다음 입력만 받습니다.
+
+- `--provider`: `codex` 또는 `claude`
+- `--path`: 변경할 저장소 상대 경로 하나
+- 위치 인자: 비어 있지 않은 작업 문장
+- 선택 입력: repository root, 위험도와 JSON 출력
+
+경로는 storage와 provider를 열기 전에 공통 상대 경로 계약으로 정규화합니다. Application service는 project storage를 열고 manifest와 document registry를 검증한 뒤, 같은 artifact store를 context delivery, adapter CAS resolver와 provider result 저장에 사용합니다. 현재 고정 `developer` Role은 root `AGENTS.md`의 E3를 요구하고 한 파일 managed write만 허용합니다. Project policy schema가 아직 없으므로 이 Role을 사용자 설정에서 읽었다고 기록하지 않습니다.
+
+정상 결과는 검증된 변경 경로와 provider 결과를 로컬 stdout 또는 JSON으로 반환합니다. Raw 작업 문장과 결과는 event에 복제하지 않습니다. Project verification command와 writing 의미 검사는 아직 실행하지 않으므로 둘 다 `not_run`으로 표시하며 공개 승인이나 E4로 해석하지 않습니다.
+
+성공과 실패 모두 adapter 수명주기가 끝난 뒤 project storage를 닫습니다. 실행 실패와 storage 정리 실패가 겹치면 CLI는 `cleanup_failed`를 반환하고 두 로컬 원인을 cause로만 보존합니다. 새 event나 개인정보 필드는 추가하지 않습니다. 자세한 결정은 [ADR-0015](./docs/adr/0015-roven-run-cli-vertical-slice.md)에 정의합니다.
 
 ## 별도로 실행한 코딩 에이전트
 
