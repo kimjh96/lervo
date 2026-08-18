@@ -13,6 +13,7 @@ export default defineConfig({
       "@roven/event-contract": fromRoot("./packages/event-contract/src/index.ts"),
       "@roven/event-store-sqlite": fromRoot("./packages/event-store-sqlite/src/index.ts"),
       "@roven/project": fromRoot("./packages/project/src/index.ts"),
+      "@roven/project-storage": fromRoot("./packages/project-storage/src/index.ts"),
       "@roven/schemas": fromRoot("./packages/schemas/src/index.ts"),
       "@roven/storage-contract": fromRoot("./packages/storage-contract/src/index.ts"),
     },

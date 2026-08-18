@@ -62,7 +62,7 @@
 - Hub가 없어도 모든 로컬 상태 저장 및 조회 가능
 - 사용자 작성 문서 영역을 byte-level fixture로 보존
 
-구현 현황(2026-08-18): **세 번째 수직 슬라이스 완료.** Event와 outbox enqueue/ack를 같은 transaction에 묶었고, `(eventId, destinationId)` 멱등성, 안정된 claim 순서, worker lease, 만료 회수, 재시도 예약과 ack 보존 정리를 구현했습니다. Schema version 1에서 outbox가 포함된 version 2로 기존 event를 보존하며 migration합니다. 중복 enqueue/ack, 재시작, 두 connection의 lease 경쟁, ack 이후 transaction 실패, raw 오류 메시지 거부와 outbox 변조를 실제 SQLite fixture로 검증했습니다. M1에는 project storage 경로를 실행 진입점에 연결하는 작업이 남아 있습니다.
+구현 현황(2026-08-18): **M1 완료.** 안전한 `roven init`, project별 SQLite event/outbox와 CAS에 이어 project storage bootstrap을 구현했습니다. Bootstrap은 검증된 manifest와 canonical 경로만 사용하며, 다른 project database와 심볼릭 링크를 거부합니다. 부분 개방 시 이미 연 자원을 정리하고 정상 handle은 멱등적으로 닫힙니다. 실제 저장소 fixture에서 event와 artifact 재시작 복구, Hub 비활성 시 outbox 미생성, manifest/layout 오류의 무부작용을 검증했습니다. 결정은 [ADR-0004](./docs/adr/0004-project-storage-bootstrap.md)에 기록했습니다.
 
 ### M2: 컨텍스트와 가드레일
 
@@ -164,6 +164,7 @@ packages/
   storage-contract/
   core/
   project/
+  project-storage/
   event-store-sqlite/
   context/
   policy/
@@ -213,4 +214,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **project storage bootstrap**입니다. 저장소 root에서 project manifest를 검증하고 공통 경로 계약으로 SQLite event/outbox와 CAS를 함께 열어, 이후 `roven run`이 임의 경로 조합 없이 같은 local storage를 사용하게 합니다. 부분 open 실패 시 이미 연 자원을 닫는 동작, 다른 project database 거부, 재시작과 Hub 비활성 기본값을 fixture로 검증합니다.
+다음 구현 작업은 **M2 context preparation 첫 슬라이스**입니다. 문서 registry와 저장소 지침 계층, 예상 변경 경로의 `paths` 규칙으로 필수 문서를 결정하고, 선택 이유를 `context.selected` 근거로 만듭니다. 선택된 파일은 전체 bytes를 읽어 SHA-256과 byte count를 계산한 뒤에만 `document.loaded` 근거를 만들며, 파일이 바뀌면 이전 load를 무효화합니다. 이 단계에서는 provider 주입이나 E3 사용을 주장하지 않습니다. 사용자 문서는 읽기 전용으로 유지하고 `selected`와 `loaded`가 섞이지 않는 fixture를 먼저 고정합니다.

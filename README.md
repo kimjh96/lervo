@@ -2,7 +2,7 @@
 
 Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0 계약 고정 완료, M1 진행 중 (안전한 초기화와 로컬 저장 기반 완료, 2026-08-18)
+현재 상태: M0·M1 완료, M2 컨텍스트 준비 착수 예정 (2026-08-18)
 
 ## 목표
 
@@ -23,6 +23,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - [M0 계약과 데이터 기본값 ADR](./docs/adr/0001-m0-contracts-and-data-defaults.md)
 - [`roven init` 안전한 초기화 ADR](./docs/adr/0002-safe-project-initialization.md)
 - [로컬 event store, outbox와 CAS ADR](./docs/adr/0003-local-event-store-and-cas.md)
+- [project storage bootstrap ADR](./docs/adr/0004-project-storage-bootstrap.md)
 
 ## 현재 구현
 
@@ -31,6 +32,7 @@ Roven(로븐)은 저장소 안에서 독립적으로 동작하면서, 필요할 
 - `@roven/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@roven/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@roven/project`: 관리 경로, project 설정과 원자적인 초기화 계획·적용
+- `@roven/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@roven/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@roven/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
 - `@roven/adapter-contract`: Codex와 Claude가 같은 역할과 writing 정책을 받도록 강제하는 provider adapter interface와 contract suite

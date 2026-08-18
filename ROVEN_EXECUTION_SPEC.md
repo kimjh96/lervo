@@ -20,6 +20,27 @@
 
 기존 project/document 설정은 YAML 구문과 현재 JSON Schema를 통과할 때만 그대로 사용합니다. 일반 파일이 아닌 항목과 심볼릭 링크는 따라가지 않습니다. 충돌이 하나라도 있거나 계획을 만든 뒤 대상이 바뀌면 아무 파일도 만들기 전에 적용을 중단합니다. `README.md`, `AGENTS.md`, `CLAUDE.md`를 포함한 사용자 파일은 이 단계에서 수정하지 않습니다.
 
+## 로컬 storage 개방
+
+실행 진입점은 저장소 root에서 계산한 공통 경로로 event/outbox와 CAS를 함께 엽니다. 순서는 다음과 같습니다.
+
+1. 저장소 root가 실제 디렉터리인지 확인하고 심볼릭 링크를 거부합니다.
+2. `.roven/project.yaml`을 읽어 현재 schema로 검증합니다.
+3. `.roven`과 `.roven/state`, 이미 존재하는 CAS 구성 경로가 실제 디렉터리인지 확인하고 심볼릭 링크를 거부합니다.
+4. Manifest의 project id로 `.roven/state/events.sqlite`를 엽니다. 이미 다른 project에 묶인 database는 거부합니다.
+5. `.roven/state/cas`를 엽니다.
+
+Manifest가 유효하지 않으면 backend를 열지 않습니다. CAS를 여는 중 실패하면 앞서 연 event store를 닫고 실행 시작을 중단합니다. 정리까지 실패한 경우에는 원래 개방 실패와 정리 실패를 함께 원인으로 보존하며, 닫혔다고 기록하지 않습니다. 정상 handle의 `close`는 반복 호출해도 각 backend를 한 번만 닫습니다.
+
+Bootstrap 오류의 의미는 다음과 같습니다.
+
+| code | 의미와 처분 |
+|---|---|
+| `storage_layout_invalid` | 관리 경로가 없거나 실제 디렉터리가 아니거나 심볼릭 링크입니다. Backend를 열지 않고 `contract_validation_failed`로 run 시작을 막습니다. 경로를 고친 뒤 새로 검증하며 자동 재시도하지 않습니다. |
+| `cleanup_failed` | 일부 backend를 연 뒤 다음 단계와 자원 정리가 모두 실패했습니다. Run 시작을 중단하고 수동 진단이 필요합니다. 자원 종료 성공을 주장하지 않습니다. |
+
+이 오류는 새 실행 event나 상태를 추가하지 않습니다. 진단 문자열에는 관리 경로와 기계용 code만 허용하며 prompt, 문서 본문, credential이나 provider payload를 넣지 않습니다. Hub가 비활성인 경우에도 로컬 event와 artifact 저장은 그대로 사용할 수 있고, bootstrap이 outbox 항목을 자동으로 만들지 않습니다.
+
 ## 실행 상태 머신
 
 ```text

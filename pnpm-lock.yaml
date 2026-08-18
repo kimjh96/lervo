@@ -72,6 +72,24 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
 
+  packages/project-storage:
+    dependencies:
+      '@roven/cas':
+        specifier: workspace:*
+        version: link:../cas
+      '@roven/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+      '@roven/project':
+        specifier: workspace:*
+        version: link:../project
+      '@roven/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@roven/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+
   packages/schemas:
     dependencies:
       ajv:
