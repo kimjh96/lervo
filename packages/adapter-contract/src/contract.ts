@@ -1,0 +1,246 @@
+import {
+  type AdapterStopRequest,
+  validateSchema,
+} from "@roven/schemas";
+
+import { type AdapterContractFixture, type ProviderAdapter } from "./provider-adapter.js";
+
+export type AdapterContractViolationCode =
+  | "descriptor_invalid"
+  | "provider_mismatch"
+  | "start_request_invalid"
+  | "start_request_mismatch"
+  | "session_invalid"
+  | "session_mismatch"
+  | "context_envelope_invalid"
+  | "context_envelope_mismatch"
+  | "context_receipt_invalid"
+  | "context_receipt_mismatch"
+  | "normalized_event_invalid"
+  | "normalized_event_mismatch"
+  | "normalized_event_timeout"
+  | "stop_request_invalid"
+  | "stop_result_invalid"
+  | "stop_result_mismatch";
+
+export interface AdapterContractViolation {
+  code: AdapterContractViolationCode;
+  detail: string;
+}
+
+export interface AdapterContractReport {
+  passed: boolean;
+  violations: AdapterContractViolation[];
+}
+
+function addValidationViolation(
+  violations: AdapterContractViolation[],
+  code: AdapterContractViolationCode,
+  value: unknown,
+): void {
+  const result = validateSchema("adapter", value);
+  if (!result.valid) {
+    violations.push({
+      code,
+      detail: result.errors.map((error) => `${error.instancePath} ${error.message}`).join("; "),
+    });
+  }
+}
+
+function sameCoordinates(
+  value: { projectId: string; runId: string; sessionId: string },
+  expected: { projectId: string; runId: string; sessionId: string },
+): boolean {
+  return (
+    value.projectId === expected.projectId &&
+    value.runId === expected.runId &&
+    value.sessionId === expected.sessionId
+  );
+}
+
+async function nextWithTimeout<T>(
+  iterator: AsyncIterator<T>,
+  timeoutMs: number,
+): Promise<IteratorResult<T> | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      iterator.next(),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+export async function evaluateAdapterContract(
+  adapter: ProviderAdapter,
+  fixture: AdapterContractFixture,
+): Promise<AdapterContractReport> {
+  const violations: AdapterContractViolation[] = [];
+  addValidationViolation(violations, "descriptor_invalid", adapter.descriptor);
+
+  if (adapter.descriptor.provider !== fixture.expectedProvider) {
+    violations.push({
+      code: "provider_mismatch",
+      detail: `expected ${fixture.expectedProvider}, received ${adapter.descriptor.provider}`,
+    });
+  }
+  addValidationViolation(violations, "start_request_invalid", fixture.startRequest);
+  if (fixture.startRequest.adapterId !== adapter.descriptor.adapterId) {
+    violations.push({
+      code: "start_request_mismatch",
+      detail: "start request adapterId does not match the descriptor",
+    });
+  }
+
+  const session = await adapter.start(fixture.startRequest);
+  addValidationViolation(violations, "session_invalid", session);
+  if (
+    !sameCoordinates(session, fixture.startRequest) ||
+    session.adapterId !== adapter.descriptor.adapterId ||
+    session.provider !== adapter.descriptor.provider ||
+    session.roleId !== fixture.startRequest.roleId ||
+    session.writingPolicyId !== fixture.startRequest.writingPolicyId
+  ) {
+    violations.push({
+      code: "session_mismatch",
+      detail: "adapter session changed the managed coordinates or provider identity",
+    });
+  }
+  addValidationViolation(violations, "context_envelope_invalid", fixture.contextEnvelope);
+  const writingPolicyDocumentExists =
+    fixture.contextEnvelope.writingPolicyDocumentId === null ||
+    fixture.contextEnvelope.documents.some(
+      (document) => document.documentId === fixture.contextEnvelope.writingPolicyDocumentId,
+    );
+
+  if (
+    !sameCoordinates(fixture.contextEnvelope, session) ||
+    fixture.contextEnvelope.adapterId !== adapter.descriptor.adapterId ||
+    fixture.contextEnvelope.roleId !== session.roleId ||
+    fixture.contextEnvelope.writingPolicyId !== session.writingPolicyId ||
+    (session.writingPolicyId !== null && fixture.contextEnvelope.writingPolicyDocumentId === null) ||
+    !writingPolicyDocumentExists
+  ) {
+    violations.push({
+      code: "context_envelope_mismatch",
+      detail: "context envelope is not bound to the managed adapter session",
+    });
+  }
+
+  const receipt = await adapter.injectContext(session, fixture.contextEnvelope);
+  addValidationViolation(violations, "context_receipt_invalid", receipt);
+  const expectedDocuments = new Map(
+    fixture.contextEnvelope.documents.map((document) => [document.documentId, document]),
+  );
+  const documentsMatch =
+    receipt.documents.length === expectedDocuments.size &&
+    receipt.documents.every((document) => {
+      const expected = expectedDocuments.get(document.documentId);
+      return expected?.contentHash === document.contentHash && document.status === "injected";
+    });
+  const writingPolicyReceiptExists =
+    receipt.writingPolicyDocumentId === null ||
+    receipt.documents.some(
+      (document) => document.documentId === receipt.writingPolicyDocumentId,
+    );
+  if (
+    !sameCoordinates(receipt, session) ||
+    receipt.adapterId !== adapter.descriptor.adapterId ||
+    receipt.provider !== adapter.descriptor.provider ||
+    receipt.providerSessionId !== session.providerSessionId ||
+    receipt.roleId !== session.roleId ||
+    receipt.writingPolicyId !== session.writingPolicyId ||
+    receipt.writingPolicyDocumentId !== fixture.contextEnvelope.writingPolicyDocumentId ||
+    receipt.envelopeId !== fixture.contextEnvelope.envelopeId ||
+    receipt.targetTurnId !== fixture.contextEnvelope.targetTurnId ||
+    receipt.contextGeneration !== fixture.contextEnvelope.contextGeneration ||
+    receipt.controlledInput !== true ||
+    !documentsMatch ||
+    !writingPolicyReceiptExists
+  ) {
+    violations.push({
+      code: "context_receipt_mismatch",
+      detail: "context receipt does not prove the exact controlled envelope was injected",
+    });
+  }
+
+  const expectedEventCount = fixture.expectedEventCount ?? 1;
+  const eventTimeoutMs = fixture.eventTimeoutMs ?? 1_000;
+  if (!Number.isSafeInteger(expectedEventCount) || expectedEventCount < 1) {
+    throw new RangeError("expectedEventCount는 1 이상의 안전한 정수여야 합니다.");
+  }
+  if (!Number.isSafeInteger(eventTimeoutMs) || eventTimeoutMs < 1) {
+    throw new RangeError("eventTimeoutMs는 1 이상의 안전한 정수여야 합니다.");
+  }
+  const eventAbort = new AbortController();
+  const eventIterator = adapter.events(session, eventAbort.signal)[Symbol.asyncIterator]();
+  try {
+    for (let index = 0; index < expectedEventCount; index += 1) {
+      const next = await nextWithTimeout(eventIterator, eventTimeoutMs);
+      if (next === null || next.done) {
+        violations.push({
+          code: "normalized_event_timeout",
+          detail: `expected ${expectedEventCount} normalized events, received ${index}`,
+        });
+        break;
+      }
+      const event = next.value;
+      addValidationViolation(violations, "normalized_event_invalid", event);
+      if (!sameCoordinates(event, session) || event.providerSessionId !== session.providerSessionId) {
+        violations.push({
+          code: "normalized_event_mismatch",
+          detail: "normalized event is not bound to the managed adapter session",
+        });
+      }
+    }
+  } finally {
+    eventAbort.abort();
+    const cleanup = eventIterator.return?.();
+    if (cleanup !== undefined) {
+      const settledCleanup = Promise.resolve(cleanup).catch(() => undefined);
+      let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          settledCleanup,
+          new Promise<void>((resolve) => {
+            cleanupTimer = setTimeout(resolve, Math.min(eventTimeoutMs, 100));
+          }),
+        ]);
+      } finally {
+        if (cleanupTimer !== undefined) clearTimeout(cleanupTimer);
+      }
+    }
+  }
+
+  const stopRequest: AdapterStopRequest = {
+    kind: "stop_request",
+    schemaVersion: 1,
+    adapterId: adapter.descriptor.adapterId,
+    projectId: session.projectId,
+    runId: session.runId,
+    sessionId: session.sessionId,
+    providerSessionId: session.providerSessionId,
+    reason: fixture.stopReason,
+    requestedAt: "2026-08-18T00:00:03Z",
+  };
+  addValidationViolation(violations, "stop_request_invalid", stopRequest);
+  const stopResult = await adapter.stop(session, stopRequest);
+  addValidationViolation(violations, "stop_result_invalid", stopResult);
+  if (
+    !sameCoordinates(stopResult, session) ||
+    stopResult.adapterId !== adapter.descriptor.adapterId ||
+    stopResult.providerSessionId !== session.providerSessionId ||
+    stopResult.status !== stopRequest.reason
+  ) {
+    violations.push({
+      code: "stop_result_mismatch",
+      detail: "stop result is not bound to the managed session or requested reason",
+    });
+  }
+
+  return { passed: violations.length === 0, violations };
+}

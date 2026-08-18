@@ -1,0 +1,22 @@
+{
+  "name": "@roven/event-store-sqlite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@roven/event-contract": "workspace:*",
+    "@roven/schemas": "workspace:*",
+    "@roven/storage-contract": "workspace:*"
+  }
+}

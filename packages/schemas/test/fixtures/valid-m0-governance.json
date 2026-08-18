@@ -1,0 +1,172 @@
+[
+  {
+    "name": "developer role with explicit capability and output contracts",
+    "schema": "role",
+    "value": {
+      "schemaVersion": 1,
+      "roleId": "developer",
+      "name": "Developer",
+      "description": "Implements and verifies repository changes.",
+      "requestTypes": ["feature", "bugfix"],
+      "requiredInputs": [
+        {
+          "name": "request",
+          "schemaRef": "roven-schema://inputs/task-request/v1",
+          "required": true,
+          "sensitive": false
+        }
+      ],
+      "contextPolicy": {
+        "requiredDocumentRuleIds": ["repository.instructions", "path.instructions"],
+        "minimumAssurance": "E3",
+        "referencesRequired": false
+      },
+      "capabilities": {
+        "filesystem.read": "allow",
+        "filesystem.write": "allow",
+        "shell.execute": "allow",
+        "network.access": "require_approval",
+        "external.message": "deny",
+        "deploy": "require_approval",
+        "data.mutate": "require_approval"
+      },
+      "defaultSkills": ["repository/testing"],
+      "outputContract": {
+        "artifactKind": "change_summary",
+        "schemaRef": "roven-schema://outputs/change-summary/v1",
+        "pathTemplate": ".roven/artifacts/{runId}/change-summary.json",
+        "citationsRequired": false,
+        "presentation": {
+          "audience": "human",
+          "locale": "ko-KR",
+          "writingPolicyId": "writing_ko-kr-human"
+        }
+      },
+      "verification": {
+        "suiteIds": ["project.default"],
+        "failureDisposition": "fail_run"
+      },
+      "handoff": {
+        "allowedRoleIds": ["reviewer"],
+        "evidenceLinksRequired": true
+      }
+    }
+  },
+  {
+    "name": "reviewed project skill with conservative unknown handling",
+    "schema": "skill",
+    "value": {
+      "schemaVersion": 1,
+      "skillId": "repository/testing",
+      "version": "1.0.0",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": {
+        "kind": "project",
+        "uri": ".agents/skills/repository-testing",
+        "publisher": {
+          "id": "team_roven",
+          "name": "Roven maintainers"
+        }
+      },
+      "supportedRoles": ["developer"],
+      "compatibility": {
+        "providers": { "mode": "any" },
+        "minimumRuntimeVersion": "0.1.0",
+        "platforms": ["darwin", "linux", "win32"],
+        "requiredTools": ["shell"],
+        "unknownIsCompatible": false
+      },
+      "requiredCapabilities": ["filesystem.read", "shell.execute"],
+      "contracts": {
+        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
+        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+      },
+      "trust": {
+        "level": "reviewed",
+        "signatureStatus": "unsigned",
+        "reviewedBy": "team_roven",
+        "reviewedAt": "2026-08-18T00:00:00Z"
+      },
+      "enabledScope": {
+        "kind": "projects",
+        "projectIds": ["prj_01234567"]
+      },
+      "pinned": true
+    }
+  },
+  {
+    "name": "document registry with all ownership boundaries",
+    "schema": "documentRegistry",
+    "value": {
+      "schemaVersion": 1,
+      "documents": {
+        "doc_agents_root": {
+          "path": "AGENTS.md",
+          "kind": "canonical",
+          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "connectedPaths": ["**/*"],
+          "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": { "mode": "user" }
+        },
+        "doc_claude_compat": {
+          "path": "CLAUDE.md",
+          "kind": "generated",
+          "responsibleParty": { "kind": "roven", "id": "node" },
+          "connectedPaths": ["AGENTS.md"],
+          "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": {
+            "mode": "managed_blocks",
+            "outsideManagedBlocks": "preserve",
+            "blocks": [
+              {
+                "blockId": "canonical-link",
+                "startMarker": "<!-- roven managed start -->",
+                "endMarker": "<!-- roven managed end -->",
+                "inputs": [
+                  {
+                    "sourceId": "doc_agents_root",
+                    "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "doc_readme_main": {
+          "path": "README.md",
+          "kind": "observed",
+          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "connectedPaths": ["package.json"],
+          "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": { "mode": "user" }
+        },
+        "doc_generated_index": {
+          "path": ".roven/generated/provider-index.md",
+          "kind": "generated",
+          "responsibleParty": { "kind": "roven", "id": "node" },
+          "connectedPaths": ["AGENTS.md", "CLAUDE.md"],
+          "verifiedRevision": "3c0851371bb7330f1298319bcaa480175942e4d5",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": {
+            "mode": "roven_generated",
+            "userContentAllowed": false,
+            "manifestPath": ".roven/generated/provider-index.manifest.json",
+            "inputs": [
+              {
+                "sourceId": "doc_agents_root",
+                "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+]

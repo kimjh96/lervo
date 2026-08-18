@@ -1,0 +1,267 @@
+[
+  {
+    "name": "role cannot omit a dangerous capability decision",
+    "schema": "role",
+    "value": {
+      "schemaVersion": 1,
+      "roleId": "developer",
+      "name": "Developer",
+      "description": "Implements repository changes.",
+      "requestTypes": ["feature"],
+      "requiredInputs": [],
+      "contextPolicy": {
+        "requiredDocumentRuleIds": ["repository.instructions"],
+        "minimumAssurance": "E3",
+        "referencesRequired": false
+      },
+      "capabilities": {
+        "filesystem.read": "allow",
+        "filesystem.write": "allow",
+        "shell.execute": "allow",
+        "network.access": "require_approval",
+        "external.message": "deny",
+        "data.mutate": "require_approval"
+      },
+      "defaultSkills": [],
+      "outputContract": {
+        "artifactKind": "change_summary",
+        "schemaRef": "roven-schema://outputs/change-summary/v1",
+        "pathTemplate": ".roven/artifacts/{runId}/change-summary.json",
+        "citationsRequired": false,
+        "presentation": {
+          "audience": "human",
+          "locale": "ko-KR",
+          "writingPolicyId": "writing_ko-kr-human"
+        }
+      },
+      "verification": {
+        "suiteIds": ["project.default"],
+        "failureDisposition": "fail_run"
+      },
+      "handoff": {
+        "allowedRoleIds": [],
+        "evidenceLinksRequired": true
+      }
+    }
+  },
+  {
+    "name": "role output path cannot escape the repository",
+    "schema": "role",
+    "value": {
+      "schemaVersion": 1,
+      "roleId": "developer",
+      "name": "Developer",
+      "description": "Implements repository changes.",
+      "requestTypes": ["feature"],
+      "requiredInputs": [],
+      "contextPolicy": {
+        "requiredDocumentRuleIds": ["repository.instructions"],
+        "minimumAssurance": "E3",
+        "referencesRequired": false
+      },
+      "capabilities": {
+        "filesystem.read": "allow",
+        "filesystem.write": "allow",
+        "shell.execute": "allow",
+        "network.access": "deny",
+        "external.message": "deny",
+        "deploy": "deny",
+        "data.mutate": "deny"
+      },
+      "defaultSkills": [],
+      "outputContract": {
+        "artifactKind": "change_summary",
+        "schemaRef": "roven-schema://outputs/change-summary/v1",
+        "pathTemplate": "../outside.json",
+        "citationsRequired": false,
+        "presentation": {
+          "audience": "human",
+          "locale": "ko-KR",
+          "writingPolicyId": "writing_ko-kr-human"
+        }
+      },
+      "verification": {
+        "suiteIds": ["project.default"],
+        "failureDisposition": "fail_run"
+      },
+      "handoff": {
+        "allowedRoleIds": [],
+        "evidenceLinksRequired": true
+      }
+    }
+  },
+  {
+    "name": "reviewed skill requires reviewer evidence",
+    "schema": "skill",
+    "value": {
+      "schemaVersion": 1,
+      "skillId": "repository/testing",
+      "version": "1.0.0",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": {
+        "kind": "project",
+        "uri": ".agents/skills/repository-testing",
+        "publisher": { "id": "team_roven", "name": "Roven maintainers" }
+      },
+      "supportedRoles": ["developer"],
+      "compatibility": {
+        "providers": { "mode": "any" },
+        "minimumRuntimeVersion": "0.1.0",
+        "platforms": ["darwin"],
+        "requiredTools": [],
+        "unknownIsCompatible": false
+      },
+      "requiredCapabilities": [],
+      "contracts": {
+        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
+        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+      },
+      "trust": {
+        "level": "reviewed",
+        "signatureStatus": "unsigned"
+      },
+      "enabledScope": { "kind": "user" },
+      "pinned": false
+    }
+  },
+  {
+    "name": "verified skill requires a valid signature",
+    "schema": "skill",
+    "value": {
+      "schemaVersion": 1,
+      "skillId": "repository/testing",
+      "version": "1.0.0",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": {
+        "kind": "external",
+        "uri": "https://registry.example/skills/repository-testing",
+        "publisher": { "id": "publisher_example", "name": "Example" }
+      },
+      "supportedRoles": ["developer"],
+      "compatibility": {
+        "providers": { "mode": "allowlist", "providers": ["codex"] },
+        "minimumRuntimeVersion": "0.1.0",
+        "platforms": ["darwin"],
+        "requiredTools": [],
+        "unknownIsCompatible": false
+      },
+      "requiredCapabilities": [],
+      "contracts": {
+        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
+        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+      },
+      "trust": {
+        "level": "verified",
+        "signatureStatus": "unknown",
+        "reviewedBy": "team_roven",
+        "reviewedAt": "2026-08-18T00:00:00Z"
+      },
+      "enabledScope": { "kind": "disabled" },
+      "pinned": false
+    }
+  },
+  {
+    "name": "skill cannot treat unknown compatibility as supported",
+    "schema": "skill",
+    "value": {
+      "schemaVersion": 1,
+      "skillId": "repository/testing",
+      "version": "1.0.0",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": {
+        "kind": "user",
+        "uri": ".agents/skills/repository-testing",
+        "publisher": { "id": "local_user", "name": "Local user" }
+      },
+      "supportedRoles": ["developer"],
+      "compatibility": {
+        "providers": { "mode": "any" },
+        "minimumRuntimeVersion": "0.1.0",
+        "platforms": ["darwin"],
+        "requiredTools": [],
+        "unknownIsCompatible": true
+      },
+      "requiredCapabilities": [],
+      "contracts": {
+        "inputSchemaRef": "roven-schema://skills/testing-input/v1",
+        "outputSchemaRef": "roven-schema://skills/testing-output/v1"
+      },
+      "trust": { "level": "untrusted", "signatureStatus": "unknown" },
+      "enabledScope": { "kind": "user" },
+      "pinned": false
+    }
+  },
+  {
+    "name": "observed document cannot be Roven managed",
+    "schema": "documentRegistry",
+    "value": {
+      "schemaVersion": 1,
+      "documents": {
+        "doc_readme_main": {
+          "path": "README.md",
+          "kind": "observed",
+          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "connectedPaths": ["package.json"],
+          "verifiedRevision": "working-tree",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": {
+            "mode": "managed_blocks",
+            "outsideManagedBlocks": "preserve",
+            "blocks": [
+              {
+                "blockId": "readme",
+                "startMarker": "start",
+                "endMarker": "end",
+                "inputs": [
+                  {
+                    "sourceId": "project",
+                    "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "generated document cannot claim user ownership",
+    "schema": "documentRegistry",
+    "value": {
+      "schemaVersion": 1,
+      "documents": {
+        "doc_generated_main": {
+          "path": ".roven/generated/index.md",
+          "kind": "generated",
+          "responsibleParty": { "kind": "roven", "id": "node" },
+          "connectedPaths": ["AGENTS.md"],
+          "verifiedRevision": "working-tree",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": { "mode": "user" }
+        }
+      }
+    }
+  },
+  {
+    "name": "document registry rejects absolute paths",
+    "schema": "documentRegistry",
+    "value": {
+      "schemaVersion": 1,
+      "documents": {
+        "doc_agents_root": {
+          "path": "/tmp/AGENTS.md",
+          "kind": "canonical",
+          "responsibleParty": { "kind": "team", "id": "team_roven" },
+          "connectedPaths": ["**/*"],
+          "verifiedRevision": "working-tree",
+          "verifiedAt": "2026-08-18T00:00:00Z",
+          "reviewIntervalDays": 30,
+          "ownership": { "mode": "user" }
+        }
+      }
+    }
+  }
+]

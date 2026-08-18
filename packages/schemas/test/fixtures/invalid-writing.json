@@ -1,0 +1,100 @@
+[
+  {
+    "name": "writing policy cannot omit semantic prose review",
+    "schema": "writingContract",
+    "value": {
+      "schemaVersion": 1,
+      "writingPolicyId": "writing_ko-kr-human",
+      "locale": "ko-KR",
+      "surfaces": ["documentation"],
+      "audience": "mixed",
+      "informationOrder": {
+        "lead": "purpose_or_conclusion",
+        "then": ["reason", "next_action"]
+      },
+      "prose": {
+        "register": "polite",
+        "completeSentences": true,
+        "cohesiveParagraphs": true,
+        "oneMainFactPerSentence": true,
+        "avoidTranslationeseAndFragments": true
+      },
+      "terminology": {
+        "preserveMachineIdentifiers": true,
+        "explainInternalTermsAtFirstUse": true,
+        "preferConcreteVerbs": true,
+        "forbiddenVagueTerms": []
+      },
+      "actions": {
+        "abstractActors": "forbid",
+        "stateObjectAndActionDirectly": true,
+        "stateWhenNoActionIsNeeded": true
+      },
+      "evidence": {
+        "majorClaimsRequireEvidence": true,
+        "distinguishRunFromNotRun": true,
+        "keepRawLogsOutOfPrimaryProse": true
+      },
+      "verification": {
+        "deterministicChecks": ["forbid_em_dash"],
+        "semanticChecks": [],
+        "semanticEvaluationMode": "separate_pass",
+        "requiresPassedEvaluation": true,
+        "failureDisposition": "block_publication"
+      }
+    }
+  },
+  {
+    "name": "semantic evaluator must record a separate pass",
+    "schema": "writingEvaluation",
+    "value": {
+      "schemaVersion": 1,
+      "evaluationId": "wre_01234567",
+      "writingPolicyId": "writing_ko-kr-human",
+      "artifactId": "art_01234567",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "locale": "ko-KR",
+      "checkedAt": "2026-08-18T00:00:00Z",
+      "evaluators": [
+        { "kind": "model", "evaluatorId": "same-generation-review" }
+      ],
+      "checks": [
+        {
+          "checkId": "natural_ko-kr_prose",
+          "kind": "semantic",
+          "status": "passed",
+          "violationCount": 0,
+          "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "overallStatus": "passed"
+    }
+  },
+  {
+    "name": "writing evaluation cannot persist raw generated prose",
+    "schema": "writingEvaluation",
+    "value": {
+      "schemaVersion": 1,
+      "evaluationId": "wre_01234567",
+      "writingPolicyId": "writing_ko-kr-human",
+      "artifactId": "art_01234567",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "locale": "ko-KR",
+      "checkedAt": "2026-08-18T00:00:00Z",
+      "evaluators": [
+        { "kind": "deterministic", "evaluatorId": "roven-writing-lint-v1" }
+      ],
+      "checks": [
+        {
+          "checkId": "forbid_em_dash",
+          "kind": "deterministic",
+          "status": "passed",
+          "violationCount": 0,
+          "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "overallStatus": "passed",
+      "rawContent": "원문은 evaluation record에 저장하지 않습니다."
+    }
+  }
+]

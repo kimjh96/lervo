@@ -1,0 +1,162 @@
+import type { FromSchema } from "json-schema-to-ts";
+
+import {
+  documentIdSchema,
+  eventIdSchema,
+  projectIdSchema,
+  providerSchema,
+  receiptIdSchema,
+  runIdSchema,
+  scopeSchema,
+  sessionIdSchema,
+  sha256Schema,
+  timestampSchema,
+} from "./common.js";
+
+export const contextEvidenceStates = [
+  "discovered",
+  "selected",
+  "loaded",
+  "injected",
+  "referenced",
+] as const;
+
+export const selectionReasonCodes = [
+  "explicit_instruction",
+  "path_rule",
+  "role_required",
+  "parent_instruction",
+  "explicit_link",
+  "search_recommendation",
+] as const;
+
+const commonProperties = {
+  receiptId: receiptIdSchema,
+  projectId: projectIdSchema,
+  runId: runIdSchema,
+  sessionId: sessionIdSchema,
+  documentId: documentIdSchema,
+  recordedAt: timestampSchema,
+} as const;
+
+const commonRequired = [
+  "receiptId",
+  "projectId",
+  "runId",
+  "sessionId",
+  "documentId",
+  "state",
+  "recordedAt",
+] as const;
+
+export const contextEvidenceSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.roven.dev/v0/context-evidence.schema.json",
+  title: "Roven context evidence receipt",
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        ...commonProperties,
+        state: { const: "discovered" },
+        path: { type: "string", minLength: 1 },
+      },
+      required: [...commonRequired, "path"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ...commonProperties,
+        state: { const: "selected" },
+        required: { type: "boolean" },
+        scope: scopeSchema,
+        policyVersion: sha256Schema,
+        reasonCode: { type: "string", enum: selectionReasonCodes },
+        ruleId: { type: "string", minLength: 1 },
+      },
+      required: [
+        ...commonRequired,
+        "required",
+        "scope",
+        "policyVersion",
+        "reasonCode",
+        "ruleId"
+      ],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ...commonProperties,
+        state: { const: "loaded" },
+        scope: scopeSchema,
+        contentHash: sha256Schema,
+        byteCount: { type: "integer", minimum: 0 },
+        sourceRevision: { type: "string", minLength: 1 },
+      },
+      required: [
+        ...commonRequired,
+        "scope",
+        "contentHash",
+        "byteCount",
+        "sourceRevision"
+      ],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ...commonProperties,
+        state: { const: "injected" },
+        scope: scopeSchema,
+        contentHash: sha256Schema,
+        provider: providerSchema,
+        providerSessionId: { type: "string", minLength: 1 },
+        adapterId: { type: "string", minLength: 1 },
+        envelopeId: { type: "string", minLength: 1 },
+        targetTurnId: { type: "string", minLength: 1 },
+        contextGeneration: { type: "integer", minimum: 0 },
+        controlledInput: { const: true },
+      },
+      required: [
+        ...commonRequired,
+        "scope",
+        "contentHash",
+        "provider",
+        "providerSessionId",
+        "adapterId",
+        "envelopeId",
+        "targetTurnId",
+        "contextGeneration",
+        "controlledInput"
+      ],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ...commonProperties,
+        state: { const: "referenced" },
+        contentHash: sha256Schema,
+        sourceEventId: eventIdSchema,
+        referenceKind: {
+          type: "string",
+          enum: ["output_citation", "tool_decision", "verification"],
+        },
+        citation: { type: "string", minLength: 1, maxLength: 500 },
+      },
+      required: [
+        ...commonRequired,
+        "contentHash",
+        "sourceEventId",
+        "referenceKind",
+        "citation"
+      ],
+      additionalProperties: false,
+    },
+  ],
+} as const;
+
+export type ContextEvidence = FromSchema<typeof contextEvidenceSchema>;
+export type ContextEvidenceState = (typeof contextEvidenceStates)[number];

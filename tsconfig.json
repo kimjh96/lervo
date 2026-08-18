@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "paths": {
+      "@roven/adapter-contract": ["packages/adapter-contract/src/index.ts"],
+      "@roven/cas": ["packages/cas/src/index.ts"],
+      "@roven/core": ["packages/core/src/index.ts"],
+      "@roven/event-contract": ["packages/event-contract/src/index.ts"],
+      "@roven/event-store-sqlite": ["packages/event-store-sqlite/src/index.ts"],
+      "@roven/project": ["packages/project/src/index.ts"],
+      "@roven/schemas": ["packages/schemas/src/index.ts"],
+      "@roven/storage-contract": ["packages/storage-contract/src/index.ts"]
+    },
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "vitest.config.ts"]
+}

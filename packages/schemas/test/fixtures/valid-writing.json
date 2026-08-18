@@ -1,0 +1,104 @@
+[
+  {
+    "name": "Korean human-readable writing policy",
+    "schema": "writingContract",
+    "value": {
+      "schemaVersion": 1,
+      "writingPolicyId": "writing_ko-kr-human",
+      "locale": "ko-KR",
+      "surfaces": [
+        "readme",
+        "pull_request",
+        "issue",
+        "review_comment",
+        "status",
+        "chat",
+        "documentation"
+      ],
+      "audience": "mixed",
+      "informationOrder": {
+        "lead": "purpose_or_conclusion",
+        "then": ["reason", "change_or_result", "scope_and_impact", "next_action", "evidence"]
+      },
+      "prose": {
+        "register": "polite",
+        "completeSentences": true,
+        "cohesiveParagraphs": true,
+        "oneMainFactPerSentence": true,
+        "avoidTranslationeseAndFragments": true
+      },
+      "terminology": {
+        "preserveMachineIdentifiers": true,
+        "explainInternalTermsAtFirstUse": true,
+        "preferConcreteVerbs": true,
+        "forbiddenVagueTerms": ["퀵스타트", "간판", "발사", "봉인"]
+      },
+      "actions": {
+        "abstractActors": "forbid",
+        "stateObjectAndActionDirectly": true,
+        "stateWhenNoActionIsNeeded": true
+      },
+      "evidence": {
+        "majorClaimsRequireEvidence": true,
+        "distinguishRunFromNotRun": true,
+        "keepRawLogsOutOfPrimaryProse": true
+      },
+      "verification": {
+        "deterministicChecks": [
+          "forbid_em_dash",
+          "forbid_abstract_action_subject",
+          "no_empty_sections",
+          "forbid_vague_terms"
+        ],
+        "semanticChecks": [
+          {
+            "checkId": "natural_ko-kr_prose",
+            "requirement": "한국어 문장을 번역투나 명사 조각으로 나열하지 않고 앞뒤 문장이 자연스럽게 이어져야 합니다.",
+            "required": true
+          }
+        ],
+        "semanticEvaluationMode": "separate_pass",
+        "requiresPassedEvaluation": true,
+        "failureDisposition": "block_publication"
+      }
+    }
+  },
+  {
+    "name": "writing evaluation with deterministic and separate semantic passes",
+    "schema": "writingEvaluation",
+    "value": {
+      "schemaVersion": 1,
+      "evaluationId": "wre_01234567",
+      "writingPolicyId": "writing_ko-kr-human",
+      "artifactId": "art_01234567",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "locale": "ko-KR",
+      "checkedAt": "2026-08-18T00:00:00Z",
+      "evaluators": [
+        { "kind": "deterministic", "evaluatorId": "roven-writing-lint-v1" },
+        {
+          "kind": "model",
+          "evaluatorId": "roven-writing-review-v1",
+          "phase": "separate_pass"
+        }
+      ],
+      "checks": [
+        {
+          "checkId": "forbid_em_dash",
+          "kind": "deterministic",
+          "status": "passed",
+          "violationCount": 0,
+          "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "checkId": "natural_ko-kr_prose",
+          "kind": "semantic",
+          "status": "passed",
+          "violationCount": 0,
+          "evidenceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "overallStatus": "passed"
+    }
+  }
+]

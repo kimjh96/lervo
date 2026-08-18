@@ -1,0 +1,124 @@
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import { CasError, FileSystemCas } from "../src/index.js";
+
+const temporaryRoots: string[] = [];
+
+async function casRoot(): Promise<string> {
+  const root = await mkdtemp(resolve(tmpdir(), "roven-cas-"));
+  temporaryRoots.push(root);
+  return resolve(root, "state/cas");
+}
+
+function pathForUri(root: string, uri: string): string {
+  const hash = uri.slice("roven-cas://sha256/".length);
+  return resolve(root, "sha256", hash.slice(0, 2), hash.slice(2));
+}
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
+  );
+});
+
+describe("file system content-addressed storage", () => {
+  it("stores content by SHA-256 and deduplicates identical bytes", async () => {
+    const root = await casRoot();
+    const cas = await FileSystemCas.open(root);
+
+    const first = await cas.put("같은 원문");
+    const second = await cas.put(Buffer.from("같은 원문", "utf8"));
+
+    expect(first.created).toBe(true);
+    expect(second.created).toBe(false);
+    expect(second).toMatchObject({
+      uri: first.uri,
+      contentHash: first.contentHash,
+      byteCount: first.byteCount,
+    });
+    expect(Buffer.from(await cas.get(first.uri)).toString("utf8")).toBe("같은 원문");
+    expect(await readFile(pathForUri(root, first.uri), "utf8")).toBe("같은 원문");
+  });
+
+  it("reads a committed object after reopening", async () => {
+    const root = await casRoot();
+    const first = await FileSystemCas.open(root);
+    const stored = await first.put("재시작 뒤에도 읽습니다.");
+
+    const reopened = await FileSystemCas.open(root);
+    expect(Buffer.from(await reopened.get(stored.uri)).toString("utf8")).toBe(
+      "재시작 뒤에도 읽습니다.",
+    );
+  });
+
+  it("detects content that no longer matches its address", async () => {
+    const root = await casRoot();
+    const cas = await FileSystemCas.open(root);
+    const stored = await cas.put("원본");
+    await writeFile(pathForUri(root, stored.uri), "변조됨", "utf8");
+
+    await expect(cas.get(stored.uri)).rejects.toMatchObject({ code: "corrupt_object" });
+    await expect(cas.has(stored.uri)).rejects.toMatchObject({ code: "corrupt_object" });
+  });
+
+  it("returns false only when a valid address is absent", async () => {
+    const cas = await FileSystemCas.open(await casRoot());
+    await expect(
+      cas.has(`roven-cas://sha256/${"a".repeat(64)}`),
+    ).resolves.toBe(false);
+    await expect(cas.get(`roven-cas://sha256/${"a".repeat(64)}`)).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("commits one object when concurrent writers store identical bytes", async () => {
+    const cas = await FileSystemCas.open(await casRoot());
+    const results = await Promise.all(Array.from({ length: 8 }, () => cas.put("동시 저장")));
+    expect(results.filter((result) => result.created)).toHaveLength(1);
+    expect(new Set(results.map((result) => result.uri))).toHaveLength(1);
+  });
+
+  it("stores a chunked input without requiring one in-memory body", async () => {
+    const cas = await FileSystemCas.open(await casRoot());
+    const result = await cas.putStream(
+      (async function* () {
+        yield "큰 ";
+        yield Buffer.from("원문을 ", "utf8");
+        yield "나눠서 저장합니다.";
+      })(),
+    );
+
+    expect(result.byteCount).toBe(Buffer.byteLength("큰 원문을 나눠서 저장합니다."));
+    expect(Buffer.from(await cas.get(result.uri)).toString("utf8")).toBe(
+      "큰 원문을 나눠서 저장합니다.",
+    );
+  });
+
+  it("removes the temporary file when a chunked producer fails", async () => {
+    const root = await casRoot();
+    const cas = await FileSystemCas.open(root);
+    const failed = (async function* () {
+      yield "partial";
+      throw new Error("producer failed");
+    })();
+
+    await expect(cas.putStream(failed)).rejects.toThrow("producer failed");
+    expect(await readdir(resolve(root, ".tmp"))).toEqual([]);
+  });
+
+  it("rejects malformed addresses without resolving arbitrary paths", async () => {
+    const root = await casRoot();
+    const cas = await FileSystemCas.open(root);
+
+    await expect(cas.get("roven-cas://sha256/../../secret")).rejects.toBeInstanceOf(
+      CasError,
+    );
+    await expect(cas.get("roven-cas://sha256/../../secret")).rejects.toMatchObject({
+      code: "invalid_uri",
+    });
+  });
+});

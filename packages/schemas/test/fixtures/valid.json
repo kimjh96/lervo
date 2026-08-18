@@ -1,0 +1,179 @@
+[
+  {
+    "name": "project manifest with local-first defaults",
+    "schema": "project",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "name": "sample-repo",
+      "root": ".",
+      "createdAt": "2026-08-18T00:00:00Z",
+      "dataPolicy": {
+        "eventMetadataRetentionDays": 90,
+        "artifactRetentionDays": 30,
+        "persistRawPrompts": false,
+        "persistDocumentBodiesInEvents": false,
+        "hubSyncEnabled": false,
+        "eventPayloadMode": "allowlist"
+      }
+    }
+  },
+  {
+    "name": "first append-only event",
+    "schema": "event",
+    "value": {
+      "eventId": "evt_01234567",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "seq": 1,
+      "type": "run.requested",
+      "occurredAt": "2026-08-18T00:00:00Z",
+      "actor": { "kind": "user" },
+      "schemaVersion": 1,
+      "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "payload": { "requestDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      "previousHash": null,
+      "eventHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  },
+  {
+    "name": "discovered context evidence",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_90123456",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "discovered",
+      "recordedAt": "2026-08-18T00:00:00Z",
+      "path": "AGENTS.md"
+    }
+  },
+  {
+    "name": "selected context evidence",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_01234567",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "selected",
+      "recordedAt": "2026-08-18T00:00:00Z",
+      "required": true,
+      "scope": { "kind": "full" },
+      "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reasonCode": "explicit_instruction",
+      "ruleId": "root-agents"
+    }
+  },
+  {
+    "name": "loaded context evidence",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_12345678",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "loaded",
+      "recordedAt": "2026-08-18T00:00:01Z",
+      "scope": { "kind": "full" },
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "byteCount": 42,
+      "sourceRevision": "working-tree"
+    }
+  },
+  {
+    "name": "controlled injected context evidence",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_23456789",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "injected",
+      "recordedAt": "2026-08-18T00:00:02Z",
+      "scope": { "kind": "full" },
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "provider": "codex",
+      "providerSessionId": "provider-session-1",
+      "adapterId": "roven/codex",
+      "envelopeId": "envelope-1",
+      "targetTurnId": "turn-1",
+      "contextGeneration": 0,
+      "controlledInput": true
+    }
+  },
+  {
+    "name": "referenced context evidence",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_89012345",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "referenced",
+      "recordedAt": "2026-08-18T00:00:03Z",
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sourceEventId": "evt_01234567",
+      "referenceKind": "tool_decision",
+      "citation": "AGENTS.md repository invariant"
+    }
+  },
+  {
+    "name": "adapter descriptor with explicit capability support",
+    "schema": "adapter",
+    "value": {
+      "kind": "descriptor",
+      "schemaVersion": 1,
+      "adapterId": "roven/codex",
+      "adapterVersion": "0.0.0",
+      "provider": "codex",
+      "capabilities": {
+        "controlledContextInjection": "supported",
+        "toolCalls": "supported",
+        "commandExecution": "supported",
+        "fileChanges": "supported",
+        "contextCompaction": "unknown",
+        "sessionResume": "supported",
+        "usage": "unknown"
+      }
+    }
+  },
+  {
+    "name": "adapter context receipt for an exact envelope",
+    "schema": "adapter",
+    "value": {
+      "kind": "context_receipt",
+      "schemaVersion": 1,
+      "receiptId": "ctx_34567890",
+      "envelopeId": "envelope-1",
+      "adapterId": "roven/codex",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "roleId": "developer",
+      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyDocumentId": "doc_writing_policy",
+      "provider": "codex",
+      "providerSessionId": "provider-session-1",
+      "targetTurnId": "turn-1",
+      "contextGeneration": 0,
+      "controlledInput": true,
+      "documents": [
+        {
+          "documentId": "doc_01234567",
+          "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope": { "kind": "full" },
+          "status": "injected"
+        }
+      ],
+      "acceptedAt": "2026-08-18T00:00:02Z"
+    }
+  }
+]

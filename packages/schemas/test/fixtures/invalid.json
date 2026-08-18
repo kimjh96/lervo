@@ -1,0 +1,118 @@
+[
+  {
+    "name": "project manifest cannot silently add a secret",
+    "schema": "project",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "name": "sample-repo",
+      "root": ".",
+      "createdAt": "2026-08-18T00:00:00Z",
+      "dataPolicy": {
+        "eventMetadataRetentionDays": 90,
+        "artifactRetentionDays": 30,
+        "persistRawPrompts": false,
+        "persistDocumentBodiesInEvents": false,
+        "hubSyncEnabled": false,
+        "eventPayloadMode": "allowlist",
+        "apiToken": "secret"
+      }
+    }
+  },
+  {
+    "name": "non-first event requires previous hash",
+    "schema": "event",
+    "value": {
+      "eventId": "evt_01234567",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "seq": 2,
+      "type": "run.resolved",
+      "occurredAt": "2026-08-18T00:00:00Z",
+      "actor": { "kind": "system" },
+      "schemaVersion": 1,
+      "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "payload": {},
+      "previousHash": null,
+      "eventHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  },
+  {
+    "name": "agent event requires provider identity",
+    "schema": "event",
+    "value": {
+      "eventId": "evt_01234567",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "seq": 1,
+      "type": "adapter.started",
+      "occurredAt": "2026-08-18T00:00:00Z",
+      "actor": { "kind": "agent" },
+      "schemaVersion": 1,
+      "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "payload": {},
+      "previousHash": null,
+      "eventHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  },
+  {
+    "name": "selected evidence requires a reason code",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_01234567",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "selected",
+      "recordedAt": "2026-08-18T00:00:00Z",
+      "required": true,
+      "scope": { "kind": "full" },
+      "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ruleId": "root-agents"
+    }
+  },
+  {
+    "name": "injected evidence cannot claim uncontrolled input",
+    "schema": "contextEvidence",
+    "value": {
+      "receiptId": "ctx_23456789",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "documentId": "doc_01234567",
+      "state": "injected",
+      "recordedAt": "2026-08-18T00:00:02Z",
+      "scope": { "kind": "full" },
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "provider": "codex",
+      "providerSessionId": "provider-session-1",
+      "adapterId": "roven/codex",
+      "envelopeId": "envelope-1",
+      "targetTurnId": "turn-1",
+      "contextGeneration": 0,
+      "controlledInput": false
+    }
+  },
+  {
+    "name": "descriptor must disclose every capability",
+    "schema": "adapter",
+    "value": {
+      "kind": "descriptor",
+      "schemaVersion": 1,
+      "adapterId": "roven/codex",
+      "adapterVersion": "0.0.0",
+      "provider": "codex",
+      "capabilities": {
+        "controlledContextInjection": "supported",
+        "toolCalls": "supported",
+        "commandExecution": "supported",
+        "fileChanges": "supported",
+        "contextCompaction": "unknown",
+        "sessionResume": "supported"
+      }
+    }
+  }
+]

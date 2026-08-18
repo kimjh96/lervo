@@ -1,0 +1,17 @@
+{
+  "name": "@roven/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "roven": "./dist/bin.js"
+  },
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@roven/project": "workspace:*"
+  }
+}

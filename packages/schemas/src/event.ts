@@ -1,0 +1,140 @@
+import type { FromSchema } from "json-schema-to-ts";
+
+import {
+  eventIdSchema,
+  projectIdSchema,
+  providerSchema,
+  runIdSchema,
+  schemaVersionSchema,
+  sessionIdSchema,
+  sha256Schema,
+  timestampSchema,
+} from "./common.js";
+
+export const eventTypes = [
+  "run.requested",
+  "run.resolved",
+  "run.completed",
+  "run.failed",
+  "context.selected",
+  "document.loaded",
+  "context.injected",
+  "context.invalidated",
+  "adapter.started",
+  "adapter.stopped",
+  "capability.requested",
+  "capability.decided",
+  "tool.called",
+  "command.executed",
+  "file.changed",
+  "skill.resolved",
+  "skill.invoked",
+  "skill.completed",
+  "verification.started",
+  "verification.completed",
+  "knowledge.candidate.created",
+  "document.stale.detected",
+  "unmanaged_change.detected",
+  "sync.acknowledged",
+] as const;
+
+export const eventEnvelopeSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.roven.dev/v0/event.schema.json",
+  title: "Roven append-only event envelope",
+  type: "object",
+  properties: {
+    eventId: eventIdSchema,
+    projectId: projectIdSchema,
+    runId: runIdSchema,
+    sessionId: sessionIdSchema,
+    seq: {
+      type: "integer",
+      minimum: 1,
+    },
+    type: {
+      type: "string",
+      enum: eventTypes,
+    },
+    occurredAt: timestampSchema,
+    actor: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          enum: ["user", "agent", "system", "provider"],
+        },
+        provider: providerSchema,
+      },
+      required: ["kind"],
+      additionalProperties: false,
+    },
+    schemaVersion: schemaVersionSchema,
+    policyVersion: sha256Schema,
+    payload: {
+      type: "object",
+    },
+    previousHash: {
+      anyOf: [sha256Schema, { type: "null" }],
+    },
+    eventHash: sha256Schema,
+  },
+  required: [
+    "eventId",
+    "projectId",
+    "runId",
+    "sessionId",
+    "seq",
+    "type",
+    "occurredAt",
+    "actor",
+    "schemaVersion",
+    "policyVersion",
+    "payload",
+    "previousHash",
+    "eventHash"
+  ],
+  allOf: [
+    {
+      if: {
+        properties: { seq: { const: 1 } },
+        required: ["seq"],
+      },
+      then: {
+        properties: { previousHash: { type: "null" } },
+      },
+      else: {
+        properties: { previousHash: sha256Schema },
+      },
+    },
+    {
+      if: {
+        properties: {
+          actor: {
+            type: "object",
+            properties: {
+              kind: { enum: ["agent", "provider"] },
+            },
+            required: ["kind"],
+          },
+        },
+      },
+      then: {
+        properties: {
+          actor: {
+            type: "object",
+            properties: {
+              kind: { type: "string" },
+              provider: providerSchema,
+            },
+            required: ["kind", "provider"],
+          },
+        },
+      },
+    },
+  ],
+  additionalProperties: false,
+} as const;
+
+export type EventEnvelope = FromSchema<typeof eventEnvelopeSchema>;
+export type EventType = (typeof eventTypes)[number];
