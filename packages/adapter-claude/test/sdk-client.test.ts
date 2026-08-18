@@ -141,6 +141,98 @@ describe("Claude Agent SDK client", () => {
     await client.close();
   });
 
+  it("gates Write with the managed pre/post tool hooks", async () => {
+    const fake = fakeSdk();
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), permissionMode: "default", tools: ["Read", "Write", "Edit"] },
+      fake.sdkStartup,
+    );
+    const calls: string[] = [];
+    client.attachToolUseHandler({
+      authorize: async () => {
+        calls.push("authorize");
+        return true;
+      },
+      complete: async (_toolName, _input, _toolUseId, status) => {
+        calls.push(status);
+      },
+    });
+    const pre = fake.state.startupParams?.options?.hooks?.PreToolUse?.[0]?.hooks[0];
+    const post = fake.state.startupParams?.options?.hooks?.PostToolUse?.[0]?.hooks[0];
+    if (pre === undefined || post === undefined) throw new Error("managed hooks missing");
+    const base = {
+      session_id: SESSION_ID,
+      transcript_path: "/tmp/transcript.jsonl",
+      cwd: "/repo",
+      permission_mode: "default" as const,
+    };
+    const preResult = await pre(
+      {
+        ...base,
+        hook_event_name: "PreToolUse",
+        tool_name: "Write",
+        tool_input: { file_path: "/repo/src/a.ts", content: "secret" },
+        tool_use_id: "tool-write-1",
+      },
+      "tool-write-1",
+      { signal: new AbortController().signal },
+    );
+    await post(
+      {
+        ...base,
+        hook_event_name: "PostToolUse",
+        tool_name: "Write",
+        tool_input: { file_path: "/repo/src/a.ts", content: "secret" },
+        tool_response: { ok: true },
+        tool_use_id: "tool-write-1",
+      },
+      "tool-write-1",
+      { signal: new AbortController().signal },
+    );
+
+    expect(preResult).toMatchObject({
+      hookSpecificOutput: { permissionDecision: "allow" },
+    });
+    expect(calls).toEqual(["authorize", "completed"]);
+    await client.close();
+  });
+
+  it("preserves a managed bridge failure instead of relabeling it as a provider failure", async () => {
+    const fake = fakeSdk();
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), permissionMode: "default", tools: ["Read", "Write"] },
+      fake.sdkStartup,
+    );
+    const bridgeFailure = new Error("managed bridge failed");
+    client.attachToolUseHandler({
+      authorize: async () => {
+        throw bridgeFailure;
+      },
+      complete: async () => undefined,
+    });
+    const pre = fake.state.startupParams?.options?.hooks?.PreToolUse?.[0]?.hooks[0];
+    if (pre === undefined) throw new Error("managed pre hook missing");
+    const invocation = pre(
+      {
+        session_id: SESSION_ID,
+        transcript_path: "/tmp/transcript.jsonl",
+        cwd: "/repo",
+        permission_mode: "default",
+        hook_event_name: "PreToolUse",
+        tool_name: "Write",
+        tool_input: { file_path: "/repo/src/a.ts", content: "secret" },
+        tool_use_id: "tool-write-failed",
+      },
+      "tool-write-failed",
+      { signal: new AbortController().signal },
+    );
+
+    await expect(invocation).rejects.toBe(bridgeFailure);
+    const iterator = client.messages(new AbortController().signal)[Symbol.asyncIterator]();
+    await expect(iterator.next()).rejects.toBe(bridgeFailure);
+    await client.close();
+  });
+
   it("does not acknowledge controlled context when Claude replays different content", async () => {
     const fake = fakeSdk({ alterReplay: true });
     const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);

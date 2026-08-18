@@ -10,6 +10,7 @@ import {
   ClaudeAdapterError,
   type ClaudeAgentClient,
   type ClaudeAgentClientStartOptions,
+  type ClaudeToolUseHandler,
 } from "./types.js";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,6 +23,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
   private query: Query | undefined;
   private pump: Promise<void> | undefined;
   private closed = false;
+  private toolUseHandler: ClaudeToolUseHandler | undefined;
 
   private constructor(
     private readonly options: ClaudeAgentClientStartOptions,
@@ -38,6 +40,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
   ): Promise<ClaudeSdkAgentClient> {
     const abortController = new AbortController();
     let warm: WarmQuery;
+    let connected: ClaudeSdkAgentClient | undefined;
     try {
       warm = await sdkStartup({
         initializeTimeoutMs: options.requestTimeoutMs,
@@ -57,6 +60,92 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           disallowedTools: ["Agent", "Task"],
           tools: options.tools ?? { type: "preset", preset: "claude_code" },
           includePartialMessages: false,
+          hooks: {
+            PreToolUse: [
+              {
+                hooks: [
+                  async (input) => {
+                    if (
+                      input.hook_event_name !== "PreToolUse" ||
+                      (input.tool_name !== "Write" && input.tool_name !== "Edit")
+                    ) {
+                      return { continue: true };
+                    }
+                    let allowed = false;
+                    try {
+                      allowed =
+                        connected !== undefined &&
+                        connected.toolUseHandler !== undefined &&
+                        (await connected.toolUseHandler.authorize(
+                          input.tool_name,
+                          input.tool_input,
+                          input.tool_use_id,
+                        ));
+                    } catch (error) {
+                      connected?.failManagedWrite(error);
+                    }
+                    return {
+                      hookSpecificOutput: {
+                        hookEventName: "PreToolUse" as const,
+                        permissionDecision: allowed ? "allow" as const : "deny" as const,
+                        permissionDecisionReason: allowed
+                          ? "Roven managed write permit가 발급되었습니다."
+                          : "Roven managed write permit가 없습니다.",
+                      },
+                    };
+                  },
+                ],
+              },
+            ],
+            PostToolUse: [
+              {
+                hooks: [
+                  async (input) => {
+                    if (
+                      input.hook_event_name === "PostToolUse" &&
+                      (input.tool_name === "Write" || input.tool_name === "Edit")
+                    ) {
+                      try {
+                        await connected?.toolUseHandler?.complete(
+                          input.tool_name,
+                          input.tool_input,
+                          input.tool_use_id,
+                          "completed",
+                        );
+                      } catch (error) {
+                        connected?.failManagedWrite(error);
+                      }
+                    }
+                    return { continue: true };
+                  },
+                ],
+              },
+            ],
+            PostToolUseFailure: [
+              {
+                hooks: [
+                  async (input) => {
+                    if (
+                      input.hook_event_name === "PostToolUseFailure" &&
+                      (input.tool_name === "Write" || input.tool_name === "Edit")
+                    ) {
+                      try {
+                        await connected?.toolUseHandler?.complete(
+                          input.tool_name,
+                          input.tool_input,
+                          input.tool_use_id,
+                          "failed",
+                        );
+                      } catch (error) {
+                        connected?.failManagedWrite(error);
+                      }
+                    }
+                    return { continue: true };
+                  },
+                ],
+              },
+            ],
+          },
           canUseTool: async () => ({
             behavior: "deny" as const,
             message: "Roven approval bridge가 연결되지 않아 이 권한 요청을 거부했습니다.",
@@ -66,7 +155,27 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     } catch {
       throw new ClaudeAdapterError("provider_process_failed", "Claude Agent SDK를 시작하지 못했습니다.");
     }
-    return new ClaudeSdkAgentClient(options, warm, abortController);
+    connected = new ClaudeSdkAgentClient(options, warm, abortController);
+    return connected;
+  }
+
+  attachToolUseHandler(handler: ClaudeToolUseHandler): void {
+    if (this.toolUseHandler !== undefined) {
+      throw new ClaudeAdapterError("invalid_request", "Claude tool handler가 이미 연결되었습니다.");
+    }
+    this.toolUseHandler = handler;
+  }
+
+  private failManagedWrite(error: unknown): never {
+    const failure =
+      error instanceof Error
+        ? error
+        : new ClaudeAdapterError(
+            "provider_protocol_failed",
+            "Claude managed write bridge가 실패했습니다.",
+          );
+    this.output.fail(failure);
+    throw failure;
   }
 
   async appendContext(content: string): Promise<void> {

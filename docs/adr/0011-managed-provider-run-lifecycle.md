@@ -1,6 +1,6 @@
 # ADR-0011: Managed provider run 수명주기와 저장소 경계
 
-- 상태: 채택
+- 상태: 채택. 쓰기 경계는 ADR-0013으로 확장
 - 기준일: 2026-08-18
 
 ## 맥락
@@ -80,3 +80,7 @@ Event에는 raw task, context, provider result, command/output과 provider 오�
 - Provider가 직접 만든 변경은 capability 보고 여부와 무관하게 검증된 `file.changed`로 승격되지 않습니다.
 - Coordinator, context gate, signal monitor, contract/failure 판정과 snapshot 책임이 분리되어 provider와 정책 bridge를 독립적으로 확장할 수 있습니다.
 - 최종 결과 전달 제한은 [ADR-0012](./0012-provider-result-artifacts.md)의 별도 결과 artifact 계약으로 해소했습니다. `roven run` 공개는 managed write bridge가 생길 때까지 미룹니다.
+
+## 후속 결정
+
+경로별 write permit bridge의 부재와 읽기 전용 제한은 [ADR-0013](./0013-provider-neutral-managed-write-bridge.md)에서 해소했습니다. 기존 snapshot·unmanaged 판정은 그대로 유지하고, 검증된 managed 변경만 비교 대상에서 제외합니다.

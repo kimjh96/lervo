@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateAdapterContract,
   type ProviderAdapter,
+  type ProviderManagedWriteBridge,
 } from "../src/index.js";
 
 const contentHash = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -120,6 +121,11 @@ class FixtureAdapter implements ProviderAdapter {
       acceptedAt: "2026-08-18T00:00:02Z",
     };
   }
+
+  async attachManagedWriteBridge(
+    _session: AdapterSession,
+    _bridge: ProviderManagedWriteBridge,
+  ): Promise<void> {}
 
   async *events(
     session: AdapterSession,

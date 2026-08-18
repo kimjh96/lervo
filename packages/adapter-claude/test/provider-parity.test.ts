@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import {
   ClaudeAdapter,
   type ClaudeAgentClient,
+  type ClaudeToolUseHandler,
 } from "../src/index.js";
 
 function sha(value: string): string {
@@ -31,6 +32,7 @@ class ParityCodexClient implements CodexAppServerClient {
   async startTurn() {
     return { turnId: "codex-turn" };
   }
+  async respondFileChangeApproval() {}
   async interruptTurn() {}
   async unsubscribe() {}
   async *notifications(_signal: AbortSignal): AsyncIterable<unknown> {}
@@ -39,6 +41,7 @@ class ParityCodexClient implements CodexAppServerClient {
 
 class ParityClaudeClient implements ClaudeAgentClient {
   injected: string | undefined;
+  attachToolUseHandler(_handler: ClaudeToolUseHandler) {}
   async appendContext(content: string) {
     this.injected = content;
   }

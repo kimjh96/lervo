@@ -1,8 +1,14 @@
 import { createHash } from "node:crypto";
 
-import { evaluateAdapterContract } from "@roven/adapter-contract";
+import {
+  createManagedWriteDecision,
+  evaluateAdapterContract,
+  type ProviderManagedWriteBridge,
+} from "@roven/adapter-contract";
 import type {
   AdapterContextEnvelope,
+  AdapterManagedWriteCompletion,
+  AdapterManagedWriteRequest,
   AdapterSession,
   AdapterStartRequest,
   AdapterTurnRequest,
@@ -13,6 +19,7 @@ import {
   ClaudeAdapter,
   ClaudeAdapterError,
   type ClaudeAgentClient,
+  type ClaudeToolUseHandler,
 } from "../src/index.js";
 
 const PROVIDER_SESSION_ID = "11111111-1111-4111-8111-111111111111";
@@ -26,6 +33,11 @@ class FakeClaudeClient implements ClaudeAgentClient {
   readonly calls: Array<{ method: string; value: unknown }> = [];
   readonly messageList: unknown[] = [];
   closed = false;
+  toolUseHandler?: ClaudeToolUseHandler;
+
+  attachToolUseHandler(handler: ClaudeToolUseHandler) {
+    this.toolUseHandler = handler;
+  }
 
   async appendContext(content: string) {
     this.calls.push({ method: "appendContext", value: content });
@@ -284,6 +296,57 @@ describe("Claude managed adapter", () => {
     expect(client.closed).toBe(true);
   });
 
+  it("routes Write through the managed bridge without exposing tool content", async () => {
+    class RecordingBridge implements ProviderManagedWriteBridge {
+      requests: AdapterManagedWriteRequest[] = [];
+      completions: AdapterManagedWriteCompletion[] = [];
+      async authorize(request: AdapterManagedWriteRequest) {
+        this.requests.push(structuredClone(request));
+        return createManagedWriteDecision({
+          request,
+          decision: "allow",
+          reasonCode: "authorized",
+          decidedAt: new Date(Date.parse(request.requestedAt) + 1_000).toISOString(),
+        });
+      }
+      async complete(completion: AdapterManagedWriteCompletion) {
+        this.completions.push(structuredClone(completion));
+      }
+    }
+    const client = new FakeClaudeClient();
+    const instance = adapter(client);
+    const data = fixture();
+    const bridge = new RecordingBridge();
+    const session = await instance.start({ ...data.startRequest, executionMode: "managed_write" });
+    await instance.injectContext(session, data.contextEnvelope);
+    await instance.attachManagedWriteBridge(session, bridge);
+    await instance.startTurn(session, data.turnRequest);
+    const allowed = await client.toolUseHandler?.authorize(
+      "Write",
+      { file_path: "/repo/src/new.ts", content: "super-secret-file-content" },
+      "tool-write-1",
+    );
+    await client.toolUseHandler?.complete(
+      "Write",
+      { file_path: "/repo/src/new.ts", content: "super-secret-file-content" },
+      "tool-write-1",
+      "completed",
+    );
+
+    expect(allowed).toBe(true);
+    expect(bridge.requests).toEqual([
+      expect.objectContaining({
+        providerItemId: "tool-write-1",
+        path: "src/new.ts",
+        changeKind: "upsert",
+      }),
+    ]);
+    expect(bridge.completions).toEqual([
+      expect.objectContaining({ providerItemId: "tool-write-1", status: "completed" }),
+    ]);
+    expect(JSON.stringify(bridge.requests)).not.toContain("super-secret-file-content");
+  });
+
   it("appends all managed documents without a model query before starting the turn", async () => {
     const client = new FakeClaudeClient();
     const instance = adapter(client);
@@ -382,7 +445,7 @@ describe("Claude managed adapter", () => {
     expect(events.some((event) => event.type === "provider.file_change.reported")).toBe(false);
     expect(instance.descriptor.capabilities).toMatchObject({
       contextCompaction: "supported",
-      fileChanges: "unknown",
+      fileChanges: "supported",
       usage: "unknown",
     });
   });

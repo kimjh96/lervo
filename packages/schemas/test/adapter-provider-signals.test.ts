@@ -14,6 +14,27 @@ const base = {
 };
 
 describe("provider signal schema", () => {
+  it("accepts managed write coordinates without accepting raw file content", () => {
+    const request = {
+      kind: "managed_write_request",
+      schemaVersion: 1,
+      adapterId: "roven/codex",
+      projectId: "prj_provider001",
+      runId: "run_provider001",
+      sessionId: "ses_provider001",
+      providerSessionId: "provider-session-1",
+      targetTurnId: "turn-managed-1",
+      providerTurnId: "provider-turn-1",
+      providerItemId: "change-1",
+      path: "src/index.ts",
+      targetDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      changeKind: "modified",
+      requestedAt: "2026-08-18T00:00:01Z",
+    };
+    expect(validateSchema("adapter", request).valid).toBe(true);
+    expect(validateSchema("adapter", { ...request, content: "secret" }).valid).toBe(false);
+  });
+
   it("keeps a provider file report separate from a verified file.changed event", () => {
     expect(
       validateSchema("adapter", {

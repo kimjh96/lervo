@@ -78,6 +78,10 @@ export function validateWriteRequest(input: FileWriteRequest): string {
   }
 }
 
+export function normalizeExpectedWritePaths(paths: readonly string[]): string[] {
+  return [...new Set(paths.map((path) => normalizeRepositoryPath(path)))].sort();
+}
+
 export function validateFileChange(input: FileChangeRecord): string {
   let normalizedPath: string;
   try {

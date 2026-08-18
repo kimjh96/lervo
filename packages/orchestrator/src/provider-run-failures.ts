@@ -27,6 +27,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   context_preparation_failed: 50,
   provider_stream_failed: 40,
   provider_turn_failed: 40,
+  provider_write_failed: 40,
   provider_result_failed: 40,
   provider_start_failed: 40,
   cancelled: 30,
@@ -52,6 +53,8 @@ function failureCodeForPhase(
       return "provider_turn_failed";
     case "result_collect":
       return "provider_result_failed";
+    case "write_bridge":
+      return "provider_write_failed";
     case "result_store":
       return "artifact_storage_failed";
     case "provider_stream":

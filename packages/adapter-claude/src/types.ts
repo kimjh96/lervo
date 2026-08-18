@@ -1,7 +1,18 @@
 import type { startup } from "@anthropic-ai/claude-agent-sdk";
-import type { AdapterSession } from "@roven/schemas";
+import type { AdapterManagedWriteRequest, AdapterSession, AdapterTurn } from "@roven/schemas";
+import type { ProviderManagedWriteBridge } from "@roven/adapter-contract";
 
-export type ClaudePermissionMode = "plan" | "dontAsk";
+export type ClaudePermissionMode = "default" | "plan" | "dontAsk";
+
+export interface ClaudeToolUseHandler {
+  authorize(toolName: string, input: unknown, toolUseId: string): Promise<boolean>;
+  complete(
+    toolName: string,
+    input: unknown,
+    toolUseId: string,
+    status: "completed" | "failed",
+  ): Promise<void>;
+}
 
 export interface ClaudeAgentClientStartOptions {
   providerSessionId: string;
@@ -15,6 +26,7 @@ export interface ClaudeAgentClientStartOptions {
 }
 
 export interface ClaudeAgentClient {
+  attachToolUseHandler(handler: ClaudeToolUseHandler): void;
   appendContext(content: string): Promise<void>;
   startTurn(turnId: string, instructions: string): Promise<void>;
   interrupt(): Promise<void>;
@@ -49,6 +61,9 @@ export interface ClaudeSessionState {
   injectedTargetTurnIds: Set<string>;
   startedTargetTurnIds: Set<string>;
   turnResults: Map<string, { content: string; producedAt: string }>;
+  managedWriteBridge?: ProviderManagedWriteBridge;
+  activeTurn?: AdapterTurn;
+  approvedWrites: Map<string, AdapterManagedWriteRequest>;
   activeProviderTurnId?: string;
   eventStreamClaimed: boolean;
   stopped: boolean;

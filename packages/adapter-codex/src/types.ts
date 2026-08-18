@@ -1,4 +1,10 @@
-import type { AdapterNormalizedEvent, AdapterSession } from "@roven/schemas";
+import type {
+  AdapterManagedWriteRequest,
+  AdapterNormalizedEvent,
+  AdapterSession,
+} from "@roven/schemas";
+
+import type { CodexWriteProposal } from "./managed-write.js";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
@@ -22,6 +28,10 @@ export interface CodexAppServerClient {
   startThread(options: CodexThreadStartOptions): Promise<CodexThread>;
   injectItems(threadId: string, items: readonly unknown[]): Promise<void>;
   startTurn(threadId: string, instructions: string): Promise<CodexTurn>;
+  respondFileChangeApproval(
+    requestId: string | number,
+    decision: "accept" | "decline",
+  ): Promise<void>;
   interruptTurn(threadId: string, turnId: string): Promise<void>;
   unsubscribe(threadId: string): Promise<void>;
   notifications(signal: AbortSignal): AsyncIterable<unknown>;
@@ -50,6 +60,10 @@ export interface CodexSessionState {
   injectedTargetTurnIds: Set<string>;
   startedTargetTurnIds: Set<string>;
   turnResults: Map<string, { content: string; producedAt: string }>;
+  managedWriteBridge?: import("@roven/adapter-contract").ProviderManagedWriteBridge;
+  activeTurn?: import("@roven/schemas").AdapterTurn;
+  writeProposals: Map<string, CodexWriteProposal>;
+  approvedWrites: Map<string, AdapterManagedWriteRequest>;
   activeProviderTurnId?: string;
   eventStreamClaimed: boolean;
   stopped: boolean;

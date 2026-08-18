@@ -30,6 +30,7 @@ export class ManagedContextState {
   private injectedProviderValue: string | undefined;
   private injectedProviderSessionIdValue: string | undefined;
   private writePolicyValue: CapabilityDecision | undefined;
+  private expectedPathsValue: string[] = [];
   private lastEventAt = Number.NEGATIVE_INFINITY;
 
   constructor(initialGeneration: number) {
@@ -62,6 +63,10 @@ export class ManagedContextState {
 
   get requiredDocumentIds(): string[] {
     return this.requiredDocumentsValue.map((document) => document.documentId);
+  }
+
+  expectsPath(path: string): boolean {
+    return this.expectedPathsValue.includes(path);
   }
 
   loadedSnapshot(): LoadedContext | undefined {
@@ -124,6 +129,7 @@ export class ManagedContextState {
     loaded: LoadedContext,
     repositoryRoot: string,
     writePolicy: CapabilityDecision,
+    expectedPaths: readonly string[],
   ): void {
     const snapshot = copy(loaded);
     this.loadedValue = snapshot;
@@ -140,6 +146,7 @@ export class ManagedContextState {
     this.injectedProviderValue = undefined;
     this.injectedProviderSessionIdValue = undefined;
     this.writePolicyValue = writePolicy;
+    this.expectedPathsValue = [...expectedPaths];
     this.phaseValue = "context_prepared";
     this.observeEvent(snapshot.loadedAt);
   }

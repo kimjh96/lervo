@@ -1,8 +1,14 @@
 import { createHash } from "node:crypto";
 
-import { evaluateAdapterContract } from "@roven/adapter-contract";
+import {
+  createManagedWriteDecision,
+  evaluateAdapterContract,
+  type ProviderManagedWriteBridge,
+} from "@roven/adapter-contract";
 import type {
   AdapterContextEnvelope,
+  AdapterManagedWriteCompletion,
+  AdapterManagedWriteRequest,
   AdapterSession,
   AdapterStartRequest,
   AdapterTurnRequest,
@@ -14,6 +20,7 @@ import {
   CodexAdapterError,
   CodexEventNormalizer,
   type CodexAppServerClient,
+  type CodexServerRequestId,
   type CodexThreadStartOptions,
 } from "../src/index.js";
 
@@ -135,6 +142,13 @@ class FakeCodexClient implements CodexAppServerClient {
 
   async interruptTurn(threadId: string, turnId: string) {
     this.calls.push({ method: "interruptTurn", value: { threadId, turnId } });
+  }
+
+  async respondFileChangeApproval(
+    requestId: CodexServerRequestId,
+    decision: "accept" | "decline",
+  ) {
+    this.calls.push({ method: "respondFileChangeApproval", value: { requestId, decision } });
   }
 
   async unsubscribe(threadId: string) {
@@ -276,6 +290,99 @@ describe("Codex managed adapter", () => {
     });
     expect(report).toEqual({ passed: true, violations: [] });
     expect(client.closed).toBe(true);
+  });
+
+  it("binds a file-change server approval to the managed write bridge", async () => {
+    class RecordingBridge implements ProviderManagedWriteBridge {
+      requests: AdapterManagedWriteRequest[] = [];
+      completions: AdapterManagedWriteCompletion[] = [];
+      async authorize(request: AdapterManagedWriteRequest) {
+        this.requests.push(structuredClone(request));
+        return createManagedWriteDecision({
+          request,
+          decision: "allow",
+          reasonCode: "authorized",
+          decidedAt: new Date(Date.parse(request.requestedAt) + 1_000).toISOString(),
+        });
+      }
+      async complete(completion: AdapterManagedWriteCompletion) {
+        this.completions.push(structuredClone(completion));
+      }
+    }
+    const client = new FakeCodexClient();
+    const instance = adapter(client);
+    const data = fixture();
+    const bridge = new RecordingBridge();
+    const session = await instance.start({ ...data.startRequest, executionMode: "managed_write" });
+    await instance.injectContext(session, data.contextEnvelope);
+    await instance.attachManagedWriteBridge(session, bridge);
+    await instance.startTurn(session, data.turnRequest);
+    const change = {
+      path: "/repo/src/index.ts",
+      kind: { type: "update", move_path: null },
+      diff: "secret patch",
+    };
+    client.notificationsList.splice(
+      1,
+      client.notificationsList.length,
+      {
+        method: "item/started",
+        params: {
+          threadId: session.providerSessionId,
+          turnId: "codex-turn-1",
+          item: { type: "fileChange", id: "change-managed", status: "inProgress", changes: [change] },
+        },
+      },
+      {
+        id: 99,
+        method: "item/fileChange/requestApproval",
+        params: {
+          threadId: session.providerSessionId,
+          turnId: "codex-turn-1",
+          itemId: "change-managed",
+          startedAtMs: Date.parse("2026-08-18T00:00:03Z"),
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turnId: "codex-turn-1",
+          item: { type: "fileChange", id: "change-managed", status: "completed", changes: [change] },
+        },
+      },
+      {
+        method: "turn/completed",
+        params: {
+          threadId: session.providerSessionId,
+          turn: { id: "codex-turn-1", status: "completed", durationMs: 1 },
+        },
+      },
+    );
+    const controller = new AbortController();
+    const events = instance.events(session, controller.signal)[Symbol.asyncIterator]();
+    while (true) {
+      const next = await events.next();
+      if (next.done || next.value.type === "provider.turn.completed") break;
+    }
+    controller.abort();
+    await events.return?.();
+
+    expect(bridge.requests).toEqual([
+      expect.objectContaining({
+        providerItemId: "change-managed",
+        path: "src/index.ts",
+        changeKind: "modified",
+      }),
+    ]);
+    expect(bridge.completions).toEqual([
+      expect.objectContaining({ providerItemId: "change-managed", status: "completed" }),
+    ]);
+    expect(client.calls).toContainEqual({
+      method: "respondFileChangeApproval",
+      value: { requestId: 99, decision: "accept" },
+    });
+    expect(JSON.stringify(bridge.requests)).not.toContain("secret patch");
   });
 
   it("injects exact role, writing policy, hashes and document bytes before the turn", async () => {

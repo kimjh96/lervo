@@ -1,6 +1,11 @@
 import { resolve } from "node:path";
 
-import { createAdapterTurnResult, type ProviderAdapter } from "@roven/adapter-contract";
+import {
+  createAdapterTurnResult,
+  inspectManagedWriteDecisionBinding,
+  type ProviderAdapter,
+  type ProviderManagedWriteBridge,
+} from "@roven/adapter-contract";
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
@@ -28,6 +33,12 @@ import { CodexStdioAppServerClient } from "./app-server-client.js";
 import { buildManagedContextItems } from "./context-items.js";
 import { CodexEventNormalizer } from "./normalize.js";
 import { CodexSessionRegistry } from "./session-registry.js";
+import {
+  captureCodexWriteApproval,
+  captureCodexWriteCompletion,
+  captureCodexWriteProposal,
+  codexWriteApprovalRequestId,
+} from "./managed-write.js";
 import { captureCodexTurnResult } from "./turn-result.js";
 import {
   CodexAdapterError,
@@ -71,21 +82,27 @@ export class CodexAdapter implements ProviderAdapter {
     if (request.adapterId !== this.descriptor.adapterId) {
       throw new CodexAdapterError("session_mismatch", "Start request의 adapter ID가 Codex와 다릅니다.");
     }
+    const sandbox = this.options.sandbox ?? "read-only";
+    const approvalPolicy =
+      this.options.approvalPolicy ??
+      (request.executionMode === "managed_write" ? "on-request" : "never");
     if (
-      (this.options.sandbox ?? "read-only") !== "read-only" ||
-      (this.options.approvalPolicy ?? "never") !== "never"
+      sandbox !== "read-only" ||
+      (request.executionMode === "read_only"
+        ? approvalPolicy !== "never"
+        : approvalPolicy !== "on-request")
     ) {
       throw new CodexAdapterError(
         "invalid_request",
-        "읽기 전용 managed session에는 Codex read-only sandbox와 never approval이 필요합니다.",
+        "Codex managed session의 실행 모드와 sandbox·approval 설정이 다릅니다.",
       );
     }
     const client = await this.createClient();
     try {
       const thread = await client.startThread({
         cwd: this.repositoryRoot,
-        approvalPolicy: this.options.approvalPolicy ?? "never",
-        sandbox: this.options.sandbox ?? "read-only",
+        approvalPolicy,
+        sandbox,
         ...(this.options.model === undefined ? {} : { model: this.options.model }),
       });
       const session: AdapterSession = {
@@ -157,6 +174,17 @@ export class CodexAdapter implements ProviderAdapter {
     return clone(receipt);
   }
 
+  async attachManagedWriteBridge(
+    session: AdapterSession,
+    bridge: ProviderManagedWriteBridge,
+  ): Promise<void> {
+    const state = this.sessions.get(session);
+    if (state.managedWriteBridge !== undefined) {
+      throw new CodexAdapterError("invalid_request", "Managed write bridge가 이미 연결되었습니다.");
+    }
+    state.managedWriteBridge = bridge;
+  }
+
   async startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn> {
     const state = this.sessions.get(session);
     assertAdapterMessage(request, "Codex turn request");
@@ -191,6 +219,7 @@ export class CodexAdapter implements ProviderAdapter {
       acceptedAt: timestamp(this.now, "Codex turn 수락 시각", request.requestedAt),
     };
     assertAdapterMessage(turn, "Codex turn");
+    state.activeTurn = clone(turn);
     return clone(turn);
   }
 
@@ -211,7 +240,77 @@ export class CodexAdapter implements ProviderAdapter {
       createEventId: this.createEventId,
     });
     try {
-      for await (const notification of state.client.notifications(signal)) {
+      eventLoop: for await (const notification of state.client.notifications(signal)) {
+        const activeTurn = state.activeTurn;
+        if (activeTurn !== undefined) {
+          const proposal = captureCodexWriteProposal({
+            raw: notification,
+            repositoryRoot: this.repositoryRoot,
+            providerSessionId: session.providerSessionId,
+            providerTurnId: activeTurn.providerTurnId,
+          });
+          if (proposal !== null) {
+            state.writeProposals.set(proposal.providerItemId, proposal);
+          }
+          for (const candidate of state.writeProposals.values()) {
+            const approval = captureCodexWriteApproval({
+              raw: notification,
+              session,
+              turn: activeTurn,
+              proposal: candidate,
+              now: this.now,
+            });
+            if (approval === null) continue;
+            const decision =
+              state.managedWriteBridge === undefined
+                ? null
+                : await state.managedWriteBridge.authorize(approval.request);
+            if (decision !== null) {
+              assertAdapterMessage(decision, "Codex managed write decision");
+              const binding = inspectManagedWriteDecisionBinding({
+                request: approval.request,
+                decision,
+              });
+              if (!binding.passed) {
+                throw new CodexAdapterError(
+                  "provider_protocol_failed",
+                  "Managed write 결정이 Codex 요청과 다릅니다.",
+                );
+              }
+            }
+            const allowed = decision?.decision === "allow";
+            await state.client.respondFileChangeApproval(
+              approval.requestId,
+              allowed ? "accept" : "decline",
+            );
+            if (allowed) {
+              state.approvedWrites.set(candidate.providerItemId, approval.request);
+            }
+            state.writeProposals.delete(candidate.providerItemId);
+            continue eventLoop;
+          }
+          const unmatchedApproval = codexWriteApprovalRequestId(notification);
+          if (unmatchedApproval !== null) {
+            await state.client.respondFileChangeApproval(unmatchedApproval, "decline");
+            continue;
+          }
+          for (const request of state.approvedWrites.values()) {
+            const completion = captureCodexWriteCompletion({
+              raw: notification,
+              request,
+              now: this.now,
+            });
+            if (completion === null) continue;
+            if (state.managedWriteBridge === undefined) {
+              throw new CodexAdapterError(
+                "provider_protocol_failed",
+                "승인된 Codex 변경에 managed write bridge가 없습니다.",
+              );
+            }
+            await state.managedWriteBridge.complete(completion);
+            state.approvedWrites.delete(request.providerItemId);
+          }
+        }
         const normalized = normalizer.normalize(notification);
         const captured = captureCodexTurnResult({
           raw: notification,
@@ -231,11 +330,13 @@ export class CodexAdapter implements ProviderAdapter {
           normalized.type === "provider.turn.failed"
         ) {
           delete state.activeProviderTurnId;
+          delete state.activeTurn;
         }
         yield clone(normalized);
       }
     } catch (error) {
       if (signal.aborted) return;
+      if (!(error instanceof CodexAdapterError)) throw error;
       const normalized = normalizer.normalize({
         method: "error",
         params: {

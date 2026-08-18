@@ -24,6 +24,28 @@ import {
 afterEach(cleanupManagedFixtures);
 
 describe("managed context gate orchestration", () => {
+  it("does not issue a permit for a path outside the prepared task paths", async () => {
+    const fixture = await createManagedFixture();
+    const run = fixture.createRun();
+    await prepareFixtureContext(run, fixture.root);
+    await injectFixtureContext(run, fixture.session);
+
+    const decision = await run.authorizeFileWrite({
+      path: "src/unplanned.ts",
+      targetDigest,
+      risk: "low",
+      publications: [],
+      occurredAt: new Date("2026-08-18T01:04:00Z"),
+    });
+
+    expect(decision).toMatchObject({
+      allowed: false,
+      failure: "required_context_missing",
+    });
+    expect(run.snapshot().phase).toBe("context_injected");
+    fixture.store.close();
+  });
+
   it("records E1/E2/E3 before issuing one write permit and invalidates it after the change", async () => {
     const fixture = await createManagedFixture();
     const run = fixture.createRun();

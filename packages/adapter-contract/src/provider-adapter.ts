@@ -1,6 +1,9 @@
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
+  type AdapterManagedWriteCompletion,
+  type AdapterManagedWriteDecision,
+  type AdapterManagedWriteRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
   type AdapterSession,
@@ -12,6 +15,11 @@ import {
   type AdapterTurnRequest,
 } from "@roven/schemas";
 
+export interface ProviderManagedWriteBridge {
+  authorize(request: AdapterManagedWriteRequest): Promise<AdapterManagedWriteDecision>;
+  complete(completion: AdapterManagedWriteCompletion): Promise<void>;
+}
+
 export interface ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
 
@@ -20,6 +28,10 @@ export interface ProviderAdapter {
     session: AdapterSession,
     envelope: AdapterContextEnvelope,
   ): Promise<AdapterContextReceipt>;
+  attachManagedWriteBridge(
+    session: AdapterSession,
+    bridge: ProviderManagedWriteBridge,
+  ): Promise<void>;
   startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn>;
   events(session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent>;
   getTurnResult(session: AdapterSession, turn: AdapterTurn): Promise<AdapterTurnResult>;

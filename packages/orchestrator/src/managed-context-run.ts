@@ -24,8 +24,13 @@ import {
   type ManagedInjectContextInput,
   type ManagedPrepareContextInput,
   type ManagedWriteDecision,
+  type ManagedFileChangeEvidence,
 } from "./types.js";
-import { assertPreparedBinding, validateRunOptions } from "./validation.js";
+import {
+  assertPreparedBinding,
+  normalizeExpectedWritePaths,
+  validateRunOptions,
+} from "./validation.js";
 import { ManagedWriteController } from "./write-controller.js";
 
 function copy<T>(value: T): T {
@@ -121,6 +126,7 @@ export class ManagedContextRun {
       snapshot,
       input.repositoryRoot,
       input.role.capabilities["filesystem.write"],
+      normalizeExpectedWritePaths(input.expectedPaths),
     );
     return copy(snapshot);
   }
@@ -208,7 +214,7 @@ export class ManagedContextRun {
     );
   }
 
-  async recordFileChange(input: FileChangeRecord): Promise<void> {
+  async recordFileChange(input: FileChangeRecord): Promise<ManagedFileChangeEvidence> {
     return this.runExclusive("record_file_change", () =>
       this.writes.recordChange(copy(input)),
     );

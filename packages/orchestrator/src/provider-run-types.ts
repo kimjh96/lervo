@@ -4,7 +4,11 @@ import type { AdapterSession, AdapterTurn } from "@roven/schemas";
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
-import type { ManagedContextRunOptions, ManagedPrepareContextInput } from "./types.js";
+import type {
+  ManagedContextRunOptions,
+  ManagedFileChangeEvidence,
+  ManagedPrepareContextInput,
+} from "./types.js";
 import type {
   CaptureRepositorySnapshot,
   RepositorySnapshotPolicy,
@@ -20,6 +24,7 @@ export type ManagedProviderRunFailureCode =
   | "provider_stop_failed"
   | "provider_stream_failed"
   | "provider_turn_failed"
+  | "provider_write_failed"
   | "provider_result_failed"
   | "repository_snapshot_failed"
   | "telemetry_recording_failed"
@@ -85,6 +90,7 @@ export interface ManagedProviderRunResult {
   turn: AdapterTurn;
   terminalEventId: string;
   resultArtifact: ManagedProviderResultArtifact;
+  managedChanges: ManagedFileChangeEvidence[];
   contextGeneration: number;
   beforeRevision: string;
   afterRevision: string;

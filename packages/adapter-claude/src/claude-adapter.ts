@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
-import { createAdapterTurnResult, type ProviderAdapter } from "@roven/adapter-contract";
+import {
+  createAdapterTurnResult,
+  inspectManagedWriteDecisionBinding,
+  type ProviderAdapter,
+  type ProviderManagedWriteBridge,
+} from "@roven/adapter-contract";
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
@@ -27,6 +32,10 @@ import {
 } from "./adapter-validation.js";
 import { buildManagedContextMessage } from "./context-message.js";
 import { ClaudeEventNormalizer } from "./normalize.js";
+import {
+  createClaudeManagedWriteCompletion,
+  createClaudeManagedWriteRequest,
+} from "./managed-write.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
 import { captureClaudeTurnResult } from "./turn-result.js";
@@ -38,6 +47,7 @@ import {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const READ_ONLY_TOOLS = new Set(["Read", "Glob", "Grep"]);
+const MANAGED_WRITE_TOOLS = new Set(["Read", "Glob", "Grep", "Write", "Edit"]);
 
 export class ClaudeAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor = {
@@ -50,7 +60,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       controlledContextInjection: "supported",
       toolCalls: "supported",
       commandExecution: "supported",
-      fileChanges: "unknown",
+      fileChanges: "supported",
       contextCompaction: "supported",
       sessionResume: "unsupported",
       usage: "unknown",
@@ -64,8 +74,6 @@ export class ClaudeAdapter implements ProviderAdapter {
   private readonly createProviderSessionId: () => string;
   private readonly createProviderMessageId: () => string;
   private readonly sessions = new ClaudeSessionRegistry();
-  private readonly tools: readonly string[];
-  private readonly permissionMode: ClaudePermissionMode;
 
   constructor(private readonly options: ClaudeAdapterOptions) {
     this.repositoryRoot = resolve(options.repositoryRoot);
@@ -74,8 +82,6 @@ export class ClaudeAdapter implements ProviderAdapter {
     this.createReceiptId = options.createReceiptId ?? defaultReceiptId;
     this.createProviderSessionId = options.createProviderSessionId ?? randomUUID;
     this.createProviderMessageId = options.createProviderMessageId ?? randomUUID;
-    this.permissionMode = options.permissionMode ?? "plan";
-    this.tools = [...(options.tools ?? ["Read", "Glob", "Grep"])];
     assertAdapterMessage(this.descriptor, "Claude adapter descriptor");
   }
 
@@ -84,17 +90,30 @@ export class ClaudeAdapter implements ProviderAdapter {
     if (request.adapterId !== this.descriptor.adapterId) {
       throw new ClaudeAdapterError("session_mismatch", "Start request의 adapter ID가 Claude와 다릅니다.");
     }
+    const permissionMode =
+      this.options.permissionMode ??
+      (request.executionMode === "managed_write" ? "default" : "plan");
+    const tools = [
+      ...(this.options.tools ??
+        (request.executionMode === "managed_write"
+          ? MANAGED_WRITE_TOOLS
+          : READ_ONLY_TOOLS)),
+    ];
+    const allowedTools =
+      request.executionMode === "managed_write" ? MANAGED_WRITE_TOOLS : READ_ONLY_TOOLS;
     if (
-      this.permissionMode !== "plan" ||
-      this.tools.some((tool) => !READ_ONLY_TOOLS.has(tool))
+      (request.executionMode === "managed_write"
+        ? permissionMode !== "default"
+        : permissionMode !== "plan") ||
+      tools.some((tool) => !allowedTools.has(tool))
     ) {
       throw new ClaudeAdapterError(
         "invalid_request",
-        "읽기 전용 managed session에는 Claude plan mode와 읽기 전용 도구가 필요합니다.",
+        "Claude managed session의 실행 모드와 permission·tool 설정이 다릅니다.",
       );
     }
     const providerSessionId = this.uuid(this.createProviderSessionId(), "Claude provider session ID");
-    const client = await this.createClient(providerSessionId);
+    const client = await this.createClient(providerSessionId, permissionMode, tools);
     try {
       const session: AdapterSession = {
         kind: "session",
@@ -164,6 +183,59 @@ export class ClaudeAdapter implements ProviderAdapter {
     return clone(receipt);
   }
 
+  async attachManagedWriteBridge(
+    session: AdapterSession,
+    bridge: ProviderManagedWriteBridge,
+  ): Promise<void> {
+    const state = this.sessions.get(session);
+    if (state.managedWriteBridge !== undefined) {
+      throw new ClaudeAdapterError("invalid_request", "Managed write bridge가 이미 연결되었습니다.");
+    }
+    state.managedWriteBridge = bridge;
+    state.client.attachToolUseHandler({
+      authorize: async (toolName, toolInput, toolUseId) => {
+        if (state.activeTurn === undefined) {
+          throw new ClaudeAdapterError("provider_protocol_failed", "Turn 밖에서 write 도구를 요청했습니다.");
+        }
+        const request = createClaudeManagedWriteRequest({
+          session: state.session,
+          turn: state.activeTurn,
+          repositoryRoot: this.repositoryRoot,
+          toolName,
+          toolInput,
+          toolUseId,
+          requestedAt: this.now().toISOString(),
+        });
+        assertAdapterMessage(request, "Claude managed write request");
+        const decision = await bridge.authorize(request);
+        assertAdapterMessage(decision, "Claude managed write decision");
+        if (!inspectManagedWriteDecisionBinding({ request, decision }).passed) {
+          throw new ClaudeAdapterError(
+            "provider_protocol_failed",
+            "Managed write 결정이 Claude 요청과 다릅니다.",
+          );
+        }
+        if (decision.decision === "allow") {
+          state.approvedWrites.set(toolUseId, clone(request));
+          return true;
+        }
+        return false;
+      },
+      complete: async (_toolName, _toolInput, toolUseId, status) => {
+        const request = state.approvedWrites.get(toolUseId);
+        if (request === undefined) return;
+        await bridge.complete(
+          createClaudeManagedWriteCompletion({
+            request,
+            status,
+            completedAt: this.now().toISOString(),
+          }),
+        );
+        state.approvedWrites.delete(toolUseId);
+      },
+    });
+  }
+
   async startTurn(session: AdapterSession, request: AdapterTurnRequest): Promise<AdapterTurn> {
     const state = this.sessions.get(session);
     assertAdapterMessage(request, "Claude turn request");
@@ -184,13 +256,6 @@ export class ClaudeAdapter implements ProviderAdapter {
     }
     const providerTurnId = this.uuid(this.createProviderMessageId(), "Claude provider turn ID");
     state.activeProviderTurnId = providerTurnId;
-    try {
-      await state.client.startTurn(providerTurnId, request.instructions);
-    } catch (error) {
-      delete state.activeProviderTurnId;
-      throw error;
-    }
-    state.startedTargetTurnIds.add(request.targetTurnId);
     const turn: AdapterTurn = {
       kind: "turn",
       schemaVersion: 1,
@@ -204,6 +269,15 @@ export class ClaudeAdapter implements ProviderAdapter {
       acceptedAt: timestamp(this.now, "Claude turn 수락 시각", request.requestedAt),
     };
     assertAdapterMessage(turn, "Claude turn");
+    state.activeTurn = clone(turn);
+    try {
+      await state.client.startTurn(providerTurnId, request.instructions);
+    } catch (error) {
+      delete state.activeProviderTurnId;
+      delete state.activeTurn;
+      throw error;
+    }
+    state.startedTargetTurnIds.add(request.targetTurnId);
     return clone(turn);
   }
 
@@ -246,13 +320,15 @@ export class ClaudeAdapter implements ProviderAdapter {
             normalized.type === "provider.turn.failed"
           ) {
             delete state.activeProviderTurnId;
+            delete state.activeTurn;
           }
           yield clone(normalized);
         }
       }
     } catch (error) {
       if (signal.aborted) return;
-      const code = error instanceof ClaudeAdapterError ? error.code : "provider_process_failed";
+      if (!(error instanceof ClaudeAdapterError)) throw error;
+      const code = error.code;
       const normalized = normalizer.failure(code, { code });
       assertAdapterMessage(normalized, "Claude failure event");
       yield normalized;
@@ -324,16 +400,20 @@ export class ClaudeAdapter implements ProviderAdapter {
     return clone(result);
   }
 
-  private async createClient(providerSessionId: string) {
+  private async createClient(
+    providerSessionId: string,
+    permissionMode: ClaudePermissionMode,
+    tools: readonly string[],
+  ) {
     const clientOptions = {
       providerSessionId,
       cwd: this.repositoryRoot,
       ...(this.options.model === undefined ? {} : { model: this.options.model }),
       ...(this.options.executable === undefined ? {} : { executable: this.options.executable }),
-      permissionMode: this.permissionMode,
+      permissionMode,
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
       createMessageId: this.createProviderMessageId,
-      tools: [...this.tools],
+      tools: [...tools],
     };
     if (this.options.clientFactory !== undefined) return this.options.clientFactory(clientOptions);
     return ClaudeSdkAgentClient.connect(clientOptions, this.options.sdkStartup);

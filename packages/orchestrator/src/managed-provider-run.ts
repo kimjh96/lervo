@@ -29,6 +29,7 @@ import {
 import { RunFailureLedger } from "./provider-run-failures.js";
 import { finalizeProviderRun } from "./provider-run-finalizer.js";
 import { collectProviderResult, storeProviderResult } from "./provider-result.js";
+import { ManagedProviderWriteBridge } from "./provider-write-bridge.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import {
   ManagedProviderRunError,
@@ -95,6 +96,7 @@ interface ManagedProviderRunExecutionState {
   after?: RepositorySnapshot;
   turnResult?: AdapterTurnResult;
   resultArtifact?: ManagedProviderRunResult["resultArtifact"];
+  writeBridge?: ManagedProviderWriteBridge;
 }
 
 export class ManagedProviderRunCoordinator {
@@ -211,6 +213,21 @@ export class ManagedProviderRunCoordinator {
       });
       monitor.throwIfFailed();
 
+      phase = "write_bridge";
+      state.writeBridge = new ManagedProviderWriteBridge({
+        session: state.session,
+        currentTurn: () => state.turn,
+        context: this.context,
+        repositoryRoot: input.repositoryRoot,
+        risk: input.risk,
+        publications: input.context.publications,
+        now: () => this.date(),
+      });
+      await this.options.adapter.attachManagedWriteBridge(
+        state.session,
+        state.writeBridge,
+      );
+
       phase = "turn_start";
       const turnRequest: AdapterTurnRequest = {
         kind: "turn_request",
@@ -247,6 +264,7 @@ export class ManagedProviderRunCoordinator {
           "Provider turn이 실패했습니다.",
         );
       }
+      state.writeBridge.assertSettled(state.session.executionMode === "managed_write");
       phase = "result_collect";
       state.turnResult = await collectProviderResult({
         adapter: this.options.adapter,
@@ -267,6 +285,7 @@ export class ManagedProviderRunCoordinator {
       snapshotPolicy: this.snapshotPolicy,
       deadlines: this.deadlines,
       failures,
+      managedChanges: state.writeBridge?.evidence() ?? [],
       time: () => this.time(),
       append: (specs) => this.append(specs),
     });
@@ -319,6 +338,7 @@ export class ManagedProviderRunCoordinator {
       turn: copy(state.turn),
       terminalEventId: terminal.eventId,
       resultArtifact: copy(state.resultArtifact),
+      managedChanges: state.writeBridge?.evidence() ?? [],
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,
       afterRevision: state.after.revision,

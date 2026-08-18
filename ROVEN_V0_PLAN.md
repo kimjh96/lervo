@@ -1,7 +1,7 @@
 # Roven v0 구현 계획
 
 상태: `0.1-draft`  
-기준일: 2026-08-18
+기준일: 2026-08-19
 
 ## v0 목표
 
@@ -99,7 +99,7 @@
 - 제공되지 않는 telemetry는 `unknown/unsupported`로 남음
 - 관리 경로 밖 변경은 `unmanaged`로 탐지
 
-구현 현황(2026-08-19): **Managed provider run의 검증된 로컬 결과 artifact까지 완료, M3 진행 중.** Codex·Claude 실제 adapter가 terminal event와 분리된 같은 `AdapterTurnResult` 계약을 구현합니다. Coordinator는 session/turn 좌표, UTF-8, 시각, 4 MiB 한도와 실제 hash·byte count를 검증하고, provider 종료와 snapshot 성공 뒤 CAS에 저장해 다시 읽은 bytes까지 대조합니다. `run.completed`에는 원문이나 URI 대신 content hash와 artifact ID만 남습니다. 결과 누락, 계약 불일치, CAS 변조는 각각 fail-closed 테스트로 검증했습니다. 읽기 전용 실행 경계와 unmanaged 변경 탐지는 유지되며, 경로별 write permit bridge가 없으므로 `roven run` CLI는 아직 공개하지 않았습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md)에 기록했습니다.
+구현 현황(2026-08-19): **Provider-neutral 한 파일 managed write bridge까지 완료, M3 진행 중.** Codex의 file-change approval과 Claude의 Write/Edit hook을 같은 요청·결정·완료 계약으로 바꾸고, orchestrator의 예상 경로별 1회용 permit에 연결했습니다. 승인 직전 before hash, 완료 직후 after hash, 실행 전후 snapshot이 모두 맞아야 `file.changed`가 되며 추가 변경은 계속 `unmanaged`로 실패합니다. 메시지와 event에는 diff, 파일 bytes와 tool input을 남기지 않습니다. 두 실제 adapter를 같은 managed acceptance fixture로 검증했고 읽기 전용·결과 artifact 계약도 유지합니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md)에 기록했습니다.
 
 ### M4: 스킬과 문서 수명주기
 
@@ -226,4 +226,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M3 managed write bridge**입니다. Provider의 파일 변경 요청을 orchestrator의 경로별 1회용 permit와 실제 before/after bytes 확인에 연결합니다. 그 뒤에만 `roven run`을 공개해 같은 작은 작업을 Codex와 Claude 경로에서 실행하고, 검증된 결과 artifact를 사용자에게 보여주며 `file.changed`와 trace 좌표를 재구성합니다. Permit bridge를 우회한 변경은 계속 `unmanaged`로 실패해야 합니다.
+다음 구현 작업은 **`roven run` 한 파일 수직 슬라이스**입니다. CLI가 project storage를 열고 provider·작업·예상 경로를 받아 현재 coordinator를 실행한 뒤, 검증된 결과 artifact를 로컬에서 읽어 보여주도록 연결합니다. 같은 fixture 작업을 Codex와 Claude에서 통과시키고 `file.changed`, context invalidation, 결과 artifact와 실패 trace를 재구성해야 합니다. Writing 공개 게이트나 검증 명령을 실행하지 않은 결과는 그 상태를 명확히 표시합니다.

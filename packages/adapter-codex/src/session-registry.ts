@@ -24,6 +24,8 @@ export class CodexSessionRegistry {
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
+      writeProposals: new Map(),
+      approvedWrites: new Map(),
       eventStreamClaimed: false,
       stopped: false,
     });

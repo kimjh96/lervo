@@ -44,6 +44,7 @@ function requiredString(value: unknown): string {
 export class CodexStdioAppServerClient implements CodexAppServerClient {
   private readonly notificationsQueue = new AsyncQueue<unknown>();
   private readonly pending = new Map<number, PendingRequest>();
+  private readonly pendingFileApprovals = new Set<string | number>();
   private nextRequestId = 1;
   private closed = false;
   private exited = false;
@@ -104,6 +105,19 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     );
     const turn = requiredRecord(result.turn);
     return { turnId: requiredString(turn.id) };
+  }
+
+  async respondFileChangeApproval(
+    requestId: string | number,
+    decision: "accept" | "decline",
+  ): Promise<void> {
+    if (!this.pendingFileApprovals.delete(requestId)) {
+      throw new CodexAdapterError(
+        "provider_protocol_failed",
+        "Codex file change 승인 요청이 없거나 이미 처리되었습니다.",
+      );
+    }
+    this.write({ id: requestId, result: { decision } });
   }
 
   async interruptTurn(threadId: string, turnId: string): Promise<void> {
@@ -194,7 +208,14 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       return;
     }
     if (typeof message.method === "string") {
-      if (typeof message.id === "number") this.rejectServerRequest(message);
+      if (
+        message.method === "item/fileChange/requestApproval" &&
+        (typeof message.id === "number" || typeof message.id === "string")
+      ) {
+        this.pendingFileApprovals.add(message.id);
+      } else if (typeof message.id === "number" || typeof message.id === "string") {
+        this.rejectServerRequest(message);
+      }
       this.notificationsQueue.push(structuredClone(message));
     }
   }

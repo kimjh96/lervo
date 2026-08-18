@@ -22,6 +22,7 @@ import {
   runId,
   sequenceFactory,
   sessionId,
+  targetDigest,
 } from "./fixture.js";
 import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 
@@ -87,6 +88,7 @@ describe("managed provider run coordinator", () => {
       expect(adapter.calls).toEqual([
         "start",
         "injectContext",
+        "attachManagedWriteBridge",
         "startTurn",
         "getTurnResult",
         "stop",
@@ -116,6 +118,79 @@ describe("managed provider run coordinator", () => {
       data.store.close();
     },
   );
+
+  it("fails a write-capable run that produces no verified change", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const input = providerRunInput();
+    const run = coordinator(adapter, data.root, data.store).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: { ...input.context, role },
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "provider_write_failed" });
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain("run.completed");
+    data.store.close();
+  });
+
+  it("still fails when a verified change is accompanied by another filesystem mutation", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude", {
+      managedWrite: {
+        path: "src/result.ts",
+        targetDigest,
+        changeKind: "created",
+        apply: async () => {
+          await writeFile(resolve(data.root, "src/result.ts"), "managed\n");
+          await writeFile(resolve(data.root, "src/unmanaged.ts"), "unmanaged\n");
+        },
+      },
+    });
+    const input = providerRunInput();
+    const run = coordinator(adapter, data.root, data.store).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: { ...input.context, role },
+    });
+
+    await expect(run).rejects.toMatchObject({
+      code: "unmanaged_change_detected",
+      paths: ["src/unmanaged.ts"],
+    });
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "unmanaged_change.detected")?.payload,
+    ).toMatchObject({ paths: ["src/unmanaged.ts"] });
+    data.store.close();
+  });
+
+  it("fails when the provider reports a different change kind than the actual file state", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude", {
+      managedWrite: {
+        path: "src/result.ts",
+        targetDigest,
+        changeKind: "modified",
+        apply: () => writeFile(resolve(data.root, "src/result.ts"), "created instead\n"),
+      },
+    });
+    const input = providerRunInput();
+    const run = coordinator(adapter, data.root, data.store).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: { ...input.context, role },
+    });
+
+    await expect(run).rejects.toMatchObject({
+      code: "unmanaged_change_detected",
+      paths: ["src/result.ts"],
+      relatedFailures: expect.arrayContaining([
+        expect.objectContaining({ code: "provider_write_failed" }),
+      ]),
+    });
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain("file.changed");
+    data.store.close();
+  });
 
   it("invalidates E3 on provider compaction without pretending the turn failed", async () => {
     const data = await createManagedFixture();
@@ -217,24 +292,43 @@ describe("managed provider run coordinator", () => {
     data.store.close();
   });
 
-  it("rejects a write-capable role before recording or starting a provider", async () => {
-    const data = await createManagedFixture();
-    const adapter = new FakeManagedAdapter("codex");
-    const input = providerRunInput();
-    const run = coordinator(adapter, data.root, data.store).run({
-      ...input,
-      repositoryRoot: data.root,
-      context: {
-        ...input.context,
-        role,
-      },
-    });
+  it.each(["codex", "claude"] as const)(
+    "records one %s provider write only after permit and byte verification",
+    async (provider) => {
+      const data = await createManagedFixture();
+      const output = "export const managed = true;\n";
+      const adapter = new FakeManagedAdapter(provider, {
+        managedWrite: {
+          path: "src/result.ts",
+          targetDigest,
+          changeKind: "created",
+          apply: () => writeFile(resolve(data.root, "src/result.ts"), output),
+        },
+      });
+      const input = providerRunInput();
+      const result = await coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        context: { ...input.context, role },
+      });
 
-    await expect(run).rejects.toMatchObject({ code: "contract_validation_failed" });
-    expect(adapter.calls).toEqual([]);
-    expect(data.store.list({ runId })).toEqual([]);
-    data.store.close();
-  });
+      expect(result.session.executionMode).toBe("managed_write");
+      expect(result.contextGeneration).toBe(1);
+      expect(result.beforeRevision).not.toBe(result.afterRevision);
+      expect(result.managedChanges).toEqual([
+        expect.objectContaining({
+          path: "src/result.ts",
+          beforeHash: null,
+          changeKind: "created",
+        }),
+      ]);
+      const events = data.store.list({ runId });
+      expect(events.map((event) => event.type)).toContain("file.changed");
+      expect(events.map((event) => event.type)).not.toContain("unmanaged_change.detected");
+      expect(JSON.stringify(events)).not.toContain(output.trim());
+      data.store.close();
+    },
+  );
 
   it("rejects a terminal signal that belongs to another provider turn", async () => {
     const data = await createManagedFixture();

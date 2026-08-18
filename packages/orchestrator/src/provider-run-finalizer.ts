@@ -14,6 +14,7 @@ import {
 } from "./repository-snapshot.js";
 import type { ManagedEventSpec } from "./telemetry.js";
 import { ManagedProviderRunError } from "./provider-run-types.js";
+import type { ManagedFileChangeEvidence } from "./types.js";
 
 export interface FinalizeProviderRunInput {
   adapter: ProviderAdapter;
@@ -25,6 +26,7 @@ export interface FinalizeProviderRunInput {
   snapshotPolicy?: RepositorySnapshotPolicy;
   deadlines: ManagedProviderRunDeadlines;
   failures: RunFailureLedger;
+  managedChanges: readonly ManagedFileChangeEvidence[];
   time: () => string;
   append: (specs: ManagedEventSpec[]) => void;
 }
@@ -89,7 +91,36 @@ async function captureAfterSnapshot(
       failureCode: "repository_snapshot_failed",
       label: "실행 후 repository snapshot",
     });
-    const paths = changedRepositoryPaths(input.before, after);
+    const changedPaths = changedRepositoryPaths(input.before, after);
+    const verifiedManagedPaths = new Set<string>();
+    const invalidManagedPaths = new Set<string>();
+    for (const change of input.managedChanges) {
+      const beforeHash = input.before.files[change.path] ?? null;
+      const afterHash = after.files[change.path] ?? null;
+      if (
+        verifiedManagedPaths.has(change.path) ||
+        beforeHash !== change.beforeHash ||
+        afterHash !== change.afterHash ||
+        !changedPaths.includes(change.path)
+      ) {
+        invalidManagedPaths.add(change.path);
+      } else {
+        verifiedManagedPaths.add(change.path);
+      }
+    }
+    if (invalidManagedPaths.size > 0) {
+      input.failures.add(
+        new ManagedProviderRunError(
+          "provider_write_failed",
+          "검증된 provider 변경과 실행 전후 snapshot이 다릅니다.",
+          { paths: [...invalidManagedPaths].sort() },
+        ),
+        "after_snapshot",
+      );
+    }
+    const paths = changedPaths.filter(
+      (path) => !verifiedManagedPaths.has(path) || invalidManagedPaths.has(path),
+    );
     if (paths.length > 0) {
       input.append([
         unmanagedChangeSpec({

@@ -20,6 +20,7 @@ export class ClaudeSessionRegistry {
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
+      approvedWrites: new Map(),
       eventStreamClaimed: false,
       stopped: false,
     });

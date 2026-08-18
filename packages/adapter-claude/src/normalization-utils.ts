@@ -48,6 +48,11 @@ export function cwdRelative(root: string, value: unknown): string | null {
   return portable;
 }
 
+export function repositoryPath(root: string, value: unknown): string | null {
+  const path = cwdRelative(root, value);
+  return path === "." ? null : path;
+}
+
 export function toolResultBlocks(message: Record<string, unknown>): Record<string, unknown>[] {
   const content = asRecord(message.message)?.content;
   if (!Array.isArray(content)) return [];

@@ -1,7 +1,7 @@
 # Roven 실행 및 증거 규격
 
 상태: `0.1-draft`  
-기준일: 2026-08-18
+기준일: 2026-08-19
 
 ## 목적
 
@@ -274,15 +274,15 @@ Adapter normalized signal은 Roven append-only event가 아닙니다. 이름과 
 
 `provider.context.compacted`와 `provider.session.restarted`만 현재 generation 무효화 입력입니다. Orchestrator는 project/run/session/provider session 좌표를 확인하고, 처리 시각으로 `context.invalidated`를 기록한 뒤 generation을 올립니다. 이미 `awaiting_context`가 된 동일 신호는 다시 generation을 올리지 않습니다. `provider.file_change.reported`는 변경 후보일 뿐이며, 기존 permit와 실제 before/after bytes를 확인하는 별도 경로를 통과해야 `file.changed`가 됩니다.
 
-Raw task instructions와 context 원문은 로컬 app-server 입력에만 존재합니다. Normalized signal과 event store에는 raw prompt, 문서 본문, command, output, tool arguments, diff, 절대 경로와 provider 오류 본문을 넣지 않습니다. Protocol 오류는 `provider_protocol_failed`, process 종료는 `provider_process_failed`, 문서 bytes/hash/UTF-8 불일치는 `context_materialization_failed`로 adapter 호출을 실패시킵니다. 승인 요청과 동적 client tool 요청은 Policy Engine 연결 전에는 app-server transport에서 실행하지 않고 fail-closed로 거부합니다. Session resume도 공통 실행 계약이 생기기 전에는 capability matrix에서 `unsupported`입니다.
+Raw task instructions와 context 원문은 로컬 app-server 입력에만 존재합니다. Normalized signal과 event store에는 raw prompt, 문서 본문, command, output, tool arguments, diff, 절대 경로와 provider 오류 본문을 넣지 않습니다. Protocol 오류는 `provider_protocol_failed`, process 종료는 `provider_process_failed`, 문서 bytes/hash/UTF-8 불일치는 `context_materialization_failed`로 adapter 호출을 실패시킵니다. 읽기 전용은 `read-only` sandbox와 `never` approval을, managed write는 같은 sandbox와 `on-request` approval을 사용합니다. Managed write에서는 `item/started`의 단일 `fileChange`와 `item/fileChange/requestApproval`의 thread·turn·item 좌표를 연결해 bridge에 요청합니다. 명령 승인, 여러 파일, 이동과 저장소 밖 경로는 거부합니다. Session resume은 `unsupported`입니다.
 
 ### Claude Agent SDK 첫 슬라이스
 
-Claude adapter는 `startup`으로 session process와 initialize handshake를 먼저 완료하고 호출자가 만든 UUID를 provider session ID로 사용합니다. 기본 permission mode는 `plan`이고 기본 도구는 `Read`, `Glob`, `Grep`뿐입니다. Filesystem setting source, 자동 skill과 외부 MCP 설정을 불러오지 않으며 권한 요청은 모두 거부합니다. Roven이 주입한 context를 따로 받지 않는 내부 Agent/Task는 차단합니다. 여러 전문 에이전트가 필요하면 각각 managed session을 만들고 Role, writing policy와 현재 generation에 맞는 envelope를 주입합니다.
+Claude adapter는 `startup`으로 session process와 initialize handshake를 먼저 완료하고 호출자가 만든 UUID를 provider session ID로 사용합니다. 읽기 전용은 `plan` mode와 `Read`, `Glob`, `Grep`만 사용합니다. Managed write는 `default` mode에서 이 읽기 도구와 `Write`, `Edit`만 제공하며, PreToolUse와 PostToolUse 계열 hook을 공통 bridge에 연결합니다. Filesystem setting source, 자동 skill과 외부 MCP 설정을 불러오지 않고 Bash와 내부 Agent/Task를 차단합니다. 여러 전문 에이전트가 필요하면 각각 managed session을 만들고 Role, writing policy와 현재 generation에 맞는 envelope를 주입합니다.
 
 Inline/CAS bytes 검증은 Codex와 같은 공통 materializer를 사용합니다. 검증된 문서 묶음을 `shouldQuery=false` synthetic user message로 보내고, 같은 session ID·message UUID·원문을 가진 SDK replay와 init을 확인한 뒤에만 receipt를 만듭니다. 실제 task는 `shouldQuery=true` message로 보내며 그 UUID가 provider turn ID입니다. Init과 replay를 받지 못하거나 replay 원문이 다르면 `provider_protocol_failed`로 중단합니다.
 
-SDK `compact_boundary`는 `provider.context.compacted`로 바꿉니다. Bash와 일반 tool은 tool use/result ID를 연결한 뒤 각각 `provider.command.executed`, `provider.tool.called`로 바꿉니다. Command, output, tool input과 result 원문은 저장하지 않고 digest만 남깁니다. Claude result가 공통 usage payload의 reasoning token을 제공하지 않으므로 `usage=unknown`이며 usage signal을 만들지 않습니다. File tool 결과만으로 created/modified를 확정할 수 없어 `fileChanges=unknown`이고 file change signal도 만들지 않습니다. Session resume은 `unsupported`입니다.
+SDK `compact_boundary`는 `provider.context.compacted`로 바꿉니다. 일반 tool은 tool use/result ID를 연결한 뒤 `provider.tool.called`로 바꾸고 input과 result 원문은 저장하지 않습니다. Claude result가 공통 usage payload의 reasoning token을 제공하지 않으므로 `usage=unknown`이며 usage signal을 만들지 않습니다. Write/Edit도 file change signal을 추정하지 않습니다. 실행 전 요청과 실행 후 실제 hash를 bridge가 검증해 공통 `file.changed`를 만듭니다. Session resume은 `unsupported`입니다.
 
 Provider가 다른 session ID를 보내거나 tool result와 turn result를 기존 ID에 연결할 수 없으면 정상 signal로 바꾸지 않습니다. SDK startup/stream/interrupt/close 실패는 `provider_process_failed`입니다. Raw task, context, model result와 provider 오류 본문은 normalized signal이나 event store에 복제하지 않습니다.
 
@@ -294,14 +294,17 @@ Provider가 다른 session ID를 보내거나 tool result와 turn result를 기�
 2. 실행 전 repository snapshot
 3. adapter session 시작과 `adapter.started`
 4. 현재 snapshot revision을 기준으로 E1/E2 준비와 controlled E3 주입
-5. 같은 target turn 시작, 중단 가능한 normalized signal 소비
-6. 완료·실패·취소 사유로 adapter 종료와 `adapter.stopped`
-7. 실행 후 snapshot 비교
-8. `run.completed` 또는 `run.failed`
+5. managed write bridge 연결
+6. 같은 target turn 시작, 중단 가능한 normalized signal 소비
+7. 완료·실패·취소 사유로 adapter 종료와 `adapter.stopped`
+8. 실행 후 snapshot 비교
+9. `run.completed` 또는 `run.failed`
 
 Signal consumer는 context 상태 머신과 독립적으로 stream 종료와 terminal event를 판정합니다. `provider.context.compacted` 또는 session restart는 같은 좌표인지 확인한 뒤 즉시 현재 generation을 무효화합니다. Terminal event 전 stream 종료는 `provider_stream_failed`입니다. 호출자 취소는 `cancelled`이며 adapter에 active turn 중단과 process 종료를 요청합니다. 종료가 제한 시간 안에 확인되지 않으면 정상 종료를 주장하지 않고 `provider_stop_failed`도 함께 남깁니다.
 
-Coordinator가 만드는 `start_request`와 adapter가 돌려주는 `session`은 모두 `executionMode=read_only`를 필수로 가집니다. Role의 선언만 믿지 않고 Codex의 `read-only` sandbox·`never` approval과 Claude의 `plan` mode·`Read/Glob/Grep` 부분집합을 adapter 시작 전에 확인합니다. 값이 없거나 다르면 `contract_validation_failed`, 경계를 넓히는 provider 구성은 provider 호출 전에 `invalid_request`로 거부합니다. 실행 모드는 비밀정보가 아닌 고정된 정책 좌표이며 `adapter.started`에 기록합니다.
+Coordinator가 만드는 `start_request`와 adapter가 돌려주는 `session`은 같은 `executionMode`를 가져야 합니다. Role의 `filesystem.write=deny`는 `read_only`, `allow`는 `managed_write`가 되며, 검증된 승인 원본이 없는 `require_approval`은 시작 전에 거부합니다. Adapter는 Codex sandbox·approval과 Claude permission·tool 구성이 해당 모드의 허용 집합을 넓히지 않는지 확인합니다. 값이 없거나 좌표가 다르면 `contract_validation_failed`, 경계를 넓히는 provider 구성은 provider 호출 전에 `invalid_request`로 거부합니다. 실행 모드는 비밀정보가 아닌 정책 좌표이며 `adapter.started`에 기록합니다.
+
+Managed write bridge는 `managed_write_request`, `managed_write_decision`, `managed_write_completion` 세 메시지를 사용합니다. 공통 좌표는 `adapterId`, project/run/session/provider session, target/provider turn, provider item, 저장소 상대 `path`, `targetDigest`, `changeKind`입니다. 요청에는 `requestedAt`, 결정에는 `decision`, `reasonCode`, `decidedAt`, 완료에는 `status`, `completedAt`이 추가됩니다. 메시지는 schema와 현재 session·turn·시간 순서를 모두 통과해야 합니다. `targetDigest`는 provider 제안이나 tool input의 원문 없는 결속값이며, 파일 bytes·diff·tool input·절대 경로는 이 메시지나 event에 넣지 않습니다. 승인된 요청이 실패하거나 완료되지 않거나 실제 파일 상태가 요청 종류와 다르면 `provider_write_failed`입니다.
 
 Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `run.requested`는 `requestDigest`, `role`, `risk`, `run.resolved`는 `role`, `risk`, `policyVersion`을 필수로 가집니다. `adapter.started`는 adapter ID/version, provider session ID, `executionMode`와 capability matrix를, `adapter.stopped`는 adapter ID, provider session ID와 종료 `status`를 가집니다. `tool.called`는 tool 이름, input digest, status와 duration만 남깁니다. `command.executed`는 command/output digest, 저장소 상대 cwd, `status`, exit code와 duration만 남기며 command와 output 원문은 허용하지 않습니다. `run.completed`와 `run.failed`는 각각 result/diagnostic digest를 사용하고 raw task나 provider result를 저장하지 않습니다.
 
@@ -311,7 +314,7 @@ Coordinator는 부작용 없는 snapshot 대기와 중단 경계가 있는 실�
 
 실패는 마지막 오류로 덮어쓰지 않고 단계와 함께 모두 모읍니다. `run.failed.failureCode`는 개인정보 없는 결정적 우선순위인 telemetry, artifact 저장, provider stop, unmanaged change, contract, snapshot, context, provider 실행, cancellation 순으로 대표 실패를 고릅니다. `diagnosticDigest`는 모든 `{code, phase, retryable}` 묶음으로 만들고 원문 예외는 저장하지 않습니다. 호출자 오류에는 같은 안전한 관련 실패와 정렬된 unmanaged 경로를 제공하므로 종료 실패와 저장소 변경을 동시에 잃지 않습니다.
 
-현재 adapter process는 파일마다 Roven write permit를 요청하지 못합니다. 따라서 managed provider run은 Role의 `filesystem.write=deny`만 허용합니다. 다른 Role은 provider 시작 전에 `contract_validation_failed`로 거부합니다. 전후 snapshot의 정렬된 변경 경로가 하나라도 있으면 `unmanaged_change.detected`를 기록한 뒤 `unmanaged_change_detected`로 실패합니다. 이 event는 저장소 상대 `paths`, `beforeRevision`, `afterRevision`, `detectedAt`을 필수로 가지며 command, diff와 파일 bytes는 포함하지 않습니다. Adapter가 file change를 보고했더라도 검증된 permit가 없으면 `file.changed`로 바꾸지 않습니다.
+첫 managed write 수직 슬라이스는 context 준비 때 정규화한 `expectedPaths` 중 정확히 한 파일만 바꿀 수 있습니다. Bridge는 요청 직전에 현재 E3 generation과 Role 정책을 확인하고, 경로·target digest·실제 before hash에 묶인 1회용 permit를 발급합니다. 완료 뒤 파일을 다시 읽어 실제 after hash와 생성·수정·삭제 종류를 확인한 후에만 `file.changed`와 `context.invalidated`를 같은 transaction에 기록합니다. 그 즉시 permit와 E3가 무효화됩니다. 실행 후 snapshot에서 before/after hash가 증거와 정확히 맞는 경로만 managed 변경으로 제외합니다. 추가 변경, 중복 변경, permit 우회와 hash 불일치는 `unmanaged_change.detected` 또는 `provider_write_failed`로 run을 실패시키며 provider 보고만으로 `file.changed`를 만들지 않습니다.
 
 ### Provider 결과 artifact
 
@@ -321,7 +324,7 @@ Codex adapter는 같은 turn의 마지막 완료 `agentMessage.text`를 사용�
 
 Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 bytes를 local artifact store에 씁니다. `put` 결과의 URI는 content hash에 해당하는 `roven-cas://sha256/<digest>`여야 하며 같은 URI를 다시 읽어 hash, byte count와 전체 bytes를 확인합니다. 실패는 `artifact_storage_failed`입니다. Artifact ID는 `art_<digest>`이고 `run.completed.resultDigest`에는 content hash, `artifactIds`에는 이 ID 하나만 기록합니다. Event에는 결과 원문과 URI를 넣지 않습니다. `ManagedProviderRunResult`의 URI는 호출자가 허가된 로컬 저장소에서 결과를 읽기 위한 좌표입니다.
 
-결과 artifact는 writing 정책, 의미 품질, 인용이나 E4 통과를 뜻하지 않습니다. 공개, Hub 업로드와 shared context 발행은 별도 정책과 검증이 필요합니다. 현재는 경로별 permit/write bridge가 없으므로 `roven run` 사용자 명령도 아직 공개하지 않습니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md)과 [ADR-0012](./docs/adr/0012-provider-result-artifacts.md)에 정의합니다.
+결과 artifact는 writing 정책, 의미 품질, 인용이나 E4 통과를 뜻하지 않습니다. 공개, Hub 업로드와 shared context 발행은 별도 정책과 검증이 필요합니다. `roven run` 사용자 명령은 이 provider run 계약과 local storage bootstrap을 연결한 뒤 공개합니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md)에 정의합니다.
 
 ## 별도로 실행한 코딩 에이전트
 
@@ -501,6 +504,7 @@ Roven은 문서를 세 유형으로 다룹니다.
 | `unmanaged_change_detected` | 현재 run의 검증된 write permit 밖에서 저장소 변경이 발견되었습니다. 변경을 `file.changed`로 승격하지 않고 run을 실패시키며, 사용자가 검토한 뒤 별도 managed run으로 가져올 수 있습니다. |
 | `provider_start_failed` / `provider_turn_failed` / `provider_stream_failed` / `provider_stop_failed` | 해당 provider 수명주기 단계가 정상 완료되지 않았습니다. 원문 오류는 event에 넣지 않고 code와 digest만 기록하며, start/stream/stop의 일시 실패만 정책상 재시도할 수 있습니다. |
 | `provider_result_failed` | 완료 signal과 결속된 최종 결과를 얻지 못했습니다. 결과 artifact와 정상 완료를 만들지 않으며 자동 재시도하지 않습니다. |
+| `provider_write_failed` | 승인된 파일 변경이 완료되지 않았거나 요청 종류·실제 hash·최종 snapshot이 다릅니다. 검증된 `file.changed`와 정상 완료를 만들지 않으며 새 run에서 다시 context를 준비해야 합니다. |
 | `cancelled` | 호출자가 run을 중단했습니다. Active turn interrupt와 adapter 종료를 시도하고 정상 완료를 기록하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |

@@ -37,12 +37,12 @@ export function validateManagedProviderRunInput(
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
     input.context.role.roleId !== coordinates.roleId ||
-    input.context.role.capabilities["filesystem.write"] !== "deny" ||
+    input.context.role.capabilities["filesystem.write"] === "require_approval" ||
     input.context.expectedPaths.length === 0
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Managed run 요청의 task, 읽기 전용 role 또는 예상 경로가 유효하지 않습니다.",
+      "Managed run 요청의 task, 파일 쓰기 정책 또는 예상 경로가 유효하지 않습니다.",
     );
   }
   const writingPolicyId = expectedWritingPolicyId(input);
@@ -72,7 +72,10 @@ export function createAdapterStartRequest(input: {
     roleId: input.options.coordinates.roleId,
     writingPolicyId: expectedWritingPolicyId(input.run),
     requestDigest: input.run.requestDigest,
-    executionMode: "read_only",
+    executionMode:
+      input.run.context.role.capabilities["filesystem.write"] === "allow"
+        ? "managed_write"
+        : "read_only",
     requestedAt: input.requestedAt,
   };
   assertAdapterMessage(request, "Adapter start request");

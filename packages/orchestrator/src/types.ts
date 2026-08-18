@@ -107,6 +107,11 @@ export interface FileChangeRecord {
   occurredAt: Date;
 }
 
+export type ManagedFileChangeEvidence = Pick<
+  FileChangeRecord,
+  "path" | "beforeHash" | "afterHash" | "changeKind"
+>;
+
 export type ManagedContextErrorCode =
   | "context_contract_invalid"
   | "invalid_state"

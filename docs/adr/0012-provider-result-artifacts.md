@@ -41,4 +41,4 @@ Result 원문은 local adapter와 artifact store 사이에서만 이동합니다
 - Codex와 Claude가 같은 결과 schema와 CAS 무결성 검사를 통과합니다.
 - 실행 telemetry의 원문 비저장 원칙을 유지하면서 사용자가 읽을 수 있는 로컬 결과 원본을 얻습니다.
 - Writing 검증, shared context 발행과 CLI 출력이 provider별 raw payload 대신 같은 artifact 좌표를 사용할 수 있습니다.
-- `roven run` 공개에는 아직 경로별 managed write bridge와 공개 정책 연결이 필요합니다.
+- 경로별 managed write bridge는 [ADR-0013](./0013-provider-neutral-managed-write-bridge.md)에서 해소했습니다. `roven run` 공개에는 이 실행 계약을 CLI와 local storage bootstrap에 연결하는 작업이 남았습니다.

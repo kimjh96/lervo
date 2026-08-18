@@ -25,6 +25,31 @@ lines.on("line", (line) => {
   if (message.method === "turn/start") {
     send({ id: message.id, result: { turn: { id: "turn-stdio-1" } } });
     send({ method: "turn/started", params: { threadId: "thread-stdio-1", turn: { id: "turn-stdio-1" } } });
+    send({
+      method: "item/started",
+      params: {
+        threadId: "thread-stdio-1",
+        turnId: "turn-stdio-1",
+        item: { type: "fileChange", id: "change-stdio-1", status: "inProgress", changes: [] },
+      },
+    });
+    send({
+      id: "approval-stdio-1",
+      method: "item/fileChange/requestApproval",
+      params: {
+        threadId: "thread-stdio-1",
+        turnId: "turn-stdio-1",
+        itemId: "change-stdio-1",
+        startedAtMs: Date.now(),
+      },
+    });
+    return;
+  }
+  if (message.id === "approval-stdio-1" && message.result?.decision) {
+    send({
+      method: "serverRequest/resolved",
+      params: { threadId: "thread-stdio-1", requestId: "approval-stdio-1" },
+    });
     return;
   }
   if (message.method === "thread/unsubscribe" || message.method === "turn/interrupt") {

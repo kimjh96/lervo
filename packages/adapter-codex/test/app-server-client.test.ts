@@ -31,6 +31,19 @@ describe("Codex stdio app-server client", () => {
       done: false,
       value: { method: "turn/started" },
     });
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false,
+      value: { method: "item/started" },
+    });
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false,
+      value: { id: "approval-stdio-1", method: "item/fileChange/requestApproval" },
+    });
+    await client.respondFileChangeApproval("approval-stdio-1", "accept");
+    await expect(iterator.next()).resolves.toMatchObject({
+      done: false,
+      value: { method: "serverRequest/resolved" },
+    });
     controller.abort();
     await iterator.return?.();
     expect(thread).toEqual({ threadId: "thread-stdio-1" });

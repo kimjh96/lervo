@@ -26,6 +26,11 @@ const capabilitySupportSchema = {
   enum: ["supported", "unsupported", "unknown"],
 } as const;
 
+const adapterExecutionModeSchema = {
+  type: "string",
+  enum: ["read_only", "managed_write"],
+} as const;
+
 const capabilityMatrixSchema = {
   type: "object",
   properties: {
@@ -84,7 +89,7 @@ export const adapterStartRequestSchema = {
       anyOf: [writingPolicyIdSchema, { type: "null" }],
     },
     requestDigest: sha256Schema,
-    executionMode: { const: "read_only" },
+    executionMode: adapterExecutionModeSchema,
     requestedAt: timestampSchema,
   },
   required: [
@@ -118,7 +123,7 @@ export const adapterSessionSchema = {
     },
     provider: providerSchema,
     providerSessionId: { type: "string", minLength: 1 },
-    executionMode: { const: "read_only" },
+    executionMode: adapterExecutionModeSchema,
     startedAt: timestampSchema,
   },
   required: [
@@ -365,6 +370,102 @@ export const adapterTurnSchema = {
     "targetTurnId",
     "providerTurnId",
     "acceptedAt"
+  ],
+  additionalProperties: false,
+} as const;
+
+const adapterManagedWriteCoordinates = {
+  adapterId: adapterIdSchema,
+  projectId: projectIdSchema,
+  runId: runIdSchema,
+  sessionId: sessionIdSchema,
+  providerSessionId: { type: "string", minLength: 1 },
+  targetTurnId: { type: "string", minLength: 1 },
+  providerTurnId: { type: "string", minLength: 1 },
+  providerItemId: { type: "string", minLength: 1 },
+  path: repositoryRelativePathSchema,
+  targetDigest: sha256Schema,
+  changeKind: { type: "string", enum: ["created", "modified", "deleted", "upsert"] },
+} as const;
+
+const adapterManagedWriteCoordinateFields = [
+  "adapterId",
+  "projectId",
+  "runId",
+  "sessionId",
+  "providerSessionId",
+  "targetTurnId",
+  "providerTurnId",
+  "providerItemId",
+  "path",
+  "targetDigest",
+  "changeKind",
+] as const;
+
+export const adapterManagedWriteRequestSchema = {
+  type: "object",
+  properties: {
+    kind: { const: "managed_write_request" },
+    schemaVersion: schemaVersionSchema,
+    ...adapterManagedWriteCoordinates,
+    requestedAt: timestampSchema,
+  },
+  required: [
+    "kind",
+    "schemaVersion",
+    ...adapterManagedWriteCoordinateFields,
+    "requestedAt",
+  ],
+  additionalProperties: false,
+} as const;
+
+export const adapterManagedWriteDecisionSchema = {
+  type: "object",
+  properties: {
+    kind: { const: "managed_write_decision" },
+    schemaVersion: schemaVersionSchema,
+    ...adapterManagedWriteCoordinates,
+    decision: { type: "string", enum: ["allow", "deny"] },
+    reasonCode: {
+      type: "string",
+      enum: [
+        "authorized",
+        "approval_required",
+        "bridge_unavailable",
+        "capability_denied",
+        "invalid_request",
+        "required_context_missing",
+        "telemetry_recording_failed",
+      ],
+    },
+    decidedAt: timestampSchema,
+  },
+  required: [
+    "kind",
+    "schemaVersion",
+    ...adapterManagedWriteCoordinateFields,
+    "decision",
+    "reasonCode",
+    "decidedAt",
+  ],
+  additionalProperties: false,
+} as const;
+
+export const adapterManagedWriteCompletionSchema = {
+  type: "object",
+  properties: {
+    kind: { const: "managed_write_completion" },
+    schemaVersion: schemaVersionSchema,
+    ...adapterManagedWriteCoordinates,
+    status: { type: "string", enum: ["completed", "failed", "declined"] },
+    completedAt: timestampSchema,
+  },
+  required: [
+    "kind",
+    "schemaVersion",
+    ...adapterManagedWriteCoordinateFields,
+    "status",
+    "completedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -743,6 +844,9 @@ export const adapterContractMessageSchema = {
     adapterContextReceiptSchema,
     adapterTurnRequestSchema,
     adapterTurnSchema,
+    adapterManagedWriteRequestSchema,
+    adapterManagedWriteDecisionSchema,
+    adapterManagedWriteCompletionSchema,
     adapterTurnResultSchema,
     adapterNormalizedEventSchema,
     adapterStopRequestSchema,
@@ -758,6 +862,9 @@ export type AdapterContextEnvelope = FromSchema<typeof adapterContextEnvelopeSch
 export type AdapterContextReceipt = FromSchema<typeof adapterContextReceiptSchema>;
 export type AdapterTurnRequest = FromSchema<typeof adapterTurnRequestSchema>;
 export type AdapterTurn = FromSchema<typeof adapterTurnSchema>;
+export type AdapterManagedWriteRequest = FromSchema<typeof adapterManagedWriteRequestSchema>;
+export type AdapterManagedWriteDecision = FromSchema<typeof adapterManagedWriteDecisionSchema>;
+export type AdapterManagedWriteCompletion = FromSchema<typeof adapterManagedWriteCompletionSchema>;
 export type AdapterTurnResult = FromSchema<typeof adapterTurnResultSchema>;
 export type AdapterNormalizedEvent = FromSchema<typeof adapterNormalizedEventSchema>;
 export type AdapterNormalizedEventType = (typeof adapterNormalizedEventTypes)[number];

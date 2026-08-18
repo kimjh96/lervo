@@ -14,6 +14,7 @@ import {
   type FileWriteRequest,
   ManagedContextError,
   type ManagedContextInvalidationReason,
+  type ManagedFileChangeEvidence,
   type ManagedRunCoordinates,
   type ManagedWriteDecision,
 } from "./types.js";
@@ -83,7 +84,14 @@ export class ManagedWriteController {
     const normalizedPath = validateWriteRequest(input);
     const occurredAt = this.state.timestamp(input.occurredAt);
     await this.refreshContext(input, occurredAt);
-    const contextDecision = this.state.evaluateWriteContext(this.coordinates);
+    const contextDecision = this.state.expectsPath(normalizedPath)
+      ? this.state.evaluateWriteContext(this.coordinates)
+      : {
+          allowed: false as const,
+          assurance: null,
+          failure: "required_context_missing" as const,
+          missing: [],
+        };
     const writePolicy = this.state.writePolicy;
     const capabilityDecision =
       writePolicy === "deny" || writePolicy === "require_approval"
@@ -147,7 +155,7 @@ export class ManagedWriteController {
     return { allowed: true, assurance: "E3", missing: [], permit };
   }
 
-  async recordChange(input: FileChangeRecord): Promise<void> {
+  async recordChange(input: FileChangeRecord): Promise<ManagedFileChangeEvidence> {
     this.state.assertPhase("write_authorized");
     this.state.assertPermit(input.permit);
     const provider = this.state.injectedProvider;
@@ -195,5 +203,11 @@ export class ManagedWriteController {
       }),
     ]);
     this.state.invalidate(occurredAt);
+    return {
+      path: normalizedPath,
+      beforeHash: input.beforeHash,
+      afterHash: input.afterHash,
+      changeKind: input.changeKind,
+    };
   }
 }

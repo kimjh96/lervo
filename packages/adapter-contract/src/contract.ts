@@ -7,6 +7,7 @@ import {
   inspectContextEnvelopeBinding,
   inspectContextReceiptBinding,
 } from "./context-binding.js";
+import { createManagedWriteDecision } from "./managed-write-binding.js";
 import { type AdapterContractFixture, type ProviderAdapter } from "./provider-adapter.js";
 import { inspectTurnResultBinding } from "./result-binding.js";
 
@@ -149,6 +150,19 @@ export async function evaluateAdapterContract(
       detail: receiptBinding.violations.map((item) => item.detail).join("; "),
     });
   }
+
+  await adapter.attachManagedWriteBridge(session, {
+    authorize: async (request) =>
+      createManagedWriteDecision({
+        request,
+        decision: "deny",
+        reasonCode: "capability_denied",
+        decidedAt: request.requestedAt,
+      }),
+    complete: async () => {
+      throw new Error("읽기 전용 공통 계약 실행에서 managed write 완료를 보고할 수 없습니다.");
+    },
+  });
 
   addValidationViolation(violations, "turn_request_invalid", fixture.turnRequest);
   if (

@@ -1,4 +1,4 @@
-import type { ProviderAdapter } from "@roven/adapter-contract";
+import type { ProviderAdapter, ProviderManagedWriteBridge } from "@roven/adapter-contract";
 import type {
   AdapterContextEnvelope,
   AdapterContextReceipt,
@@ -10,7 +10,11 @@ import type {
   AdapterTurnRequest,
   AdapterTurnResult,
 } from "@roven/schemas";
-import { createAdapterTurnResult } from "@roven/adapter-contract";
+import {
+  createAdapterTurnResult,
+  createManagedWriteCompletion,
+  createManagedWriteRequest,
+} from "@roven/adapter-contract";
 
 import { projectId, runId, sessionId } from "./fixture.js";
 
@@ -23,6 +27,8 @@ export class FakeManagedAdapter implements ProviderAdapter {
   stopReason: AdapterStopRequest["reason"] | undefined;
   private session: AdapterSession | undefined;
   private turnId: string | undefined;
+  private turn: import("@roven/schemas").AdapterTurn | undefined;
+  private writeBridge: ProviderManagedWriteBridge | undefined;
   private releaseTurn!: () => void;
   private readonly turnStarted = new Promise<void>((resolve) => {
     this.releaseTurn = resolve;
@@ -43,6 +49,12 @@ export class FakeManagedAdapter implements ProviderAdapter {
       hangOnStop?: boolean;
       invalidStopCoordinates?: boolean;
       failResult?: boolean;
+      managedWrite?: {
+        path: string;
+        targetDigest: string;
+        changeKind: "created" | "modified" | "deleted" | "upsert";
+        apply(): Promise<void>;
+      };
     } = {},
   ) {
     this.descriptor = {
@@ -55,7 +67,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
         controlledContextInjection: "supported",
         toolCalls: "supported",
         commandExecution: "supported",
-        fileChanges: provider === "codex" ? "supported" : "unknown",
+        fileChanges: "supported",
         contextCompaction: "supported",
         sessionResume: "unsupported",
         usage: provider === "codex" ? "supported" : "unknown",
@@ -117,13 +129,21 @@ export class FakeManagedAdapter implements ProviderAdapter {
     };
   }
 
+  async attachManagedWriteBridge(
+    _session: AdapterSession,
+    bridge: ProviderManagedWriteBridge,
+  ): Promise<void> {
+    this.calls.push("attachManagedWriteBridge");
+    this.writeBridge = bridge;
+  }
+
   async startTurn(_session: AdapterSession, request: AdapterTurnRequest) {
     this.calls.push("startTurn");
     this.turnId = `${this.descriptor.provider}-turn-1`;
     await this.options.mutate?.();
     this.acceptTurn();
     this.releaseTurn();
-    return {
+    this.turn = {
       kind: "turn" as const,
       schemaVersion: 1 as const,
       adapterId: this.descriptor.adapterId,
@@ -135,6 +155,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
       providerTurnId: this.turnId,
       acceptedAt: request.requestedAt,
     };
+    return structuredClone(this.turn);
   }
 
   async *events(_session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent> {
@@ -164,6 +185,33 @@ export class FakeManagedAdapter implements ProviderAdapter {
       type: "provider.turn.started",
       payload: { providerTurnId: this.turnId as string },
     };
+    if (
+      this.options.managedWrite !== undefined &&
+      this.session !== undefined &&
+      this.turn !== undefined &&
+      this.writeBridge !== undefined
+    ) {
+      const request = createManagedWriteRequest({
+        session: this.session,
+        turn: this.turn,
+        providerItemId: `${this.descriptor.provider}-write-1`,
+        path: this.options.managedWrite.path,
+        targetDigest: this.options.managedWrite.targetDigest,
+        changeKind: this.options.managedWrite.changeKind,
+        requestedAt: "2026-08-18T01:09:00Z",
+      });
+      const decision = await this.writeBridge.authorize(request);
+      if (decision.decision === "allow") {
+        await this.options.managedWrite.apply();
+        await this.writeBridge.complete(
+          createManagedWriteCompletion({
+            request,
+            status: "completed",
+            completedAt: "2026-08-18T01:10:00Z",
+          }),
+        );
+      }
+    }
     if (this.options.compact === true) {
       yield {
         ...base(),

@@ -24,6 +24,9 @@ const markdownDocuments = [
   "docs/adr/0008-managed-context-gate-orchestration.md",
   "docs/adr/0009-codex-app-server-managed-adapter.md",
   "docs/adr/0010-claude-agent-sdk-managed-adapter.md",
+  "docs/adr/0011-managed-provider-run-lifecycle.md",
+  "docs/adr/0012-provider-result-artifacts.md",
+  "docs/adr/0013-provider-neutral-managed-write-bridge.md",
 ];
 
 const failures = [];

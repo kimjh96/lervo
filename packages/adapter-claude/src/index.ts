@@ -1,6 +1,7 @@
 export * from "./adapter-validation.js";
 export * from "./claude-adapter.js";
 export * from "./context-message.js";
+export * from "./managed-write.js";
 export * from "./normalize.js";
 export * from "./sdk-client.js";
 export * from "./types.js";

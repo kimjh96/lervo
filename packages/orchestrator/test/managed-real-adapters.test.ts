@@ -1,4 +1,12 @@
-import { ClaudeAdapter, type ClaudeAgentClient, type ClaudeAgentClientStartOptions } from "@roven/adapter-claude";
+import { writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+import {
+  ClaudeAdapter,
+  type ClaudeAgentClient,
+  type ClaudeAgentClientStartOptions,
+  type ClaudeToolUseHandler,
+} from "@roven/adapter-claude";
 import {
   CodexAdapter,
   type CodexAppServerClient,
@@ -61,6 +69,8 @@ class AcceptanceCodexClient implements CodexAppServerClient {
   ];
   startOptions?: CodexThreadStartOptions;
 
+  constructor(private readonly managedRoot?: string) {}
+
   async startThread(options: CodexThreadStartOptions) {
     this.startOptions = structuredClone(options);
     return { threadId: "codex-thread-acceptance" };
@@ -69,6 +79,40 @@ class AcceptanceCodexClient implements CodexAppServerClient {
   async injectItems() {}
 
   async startTurn(threadId: string) {
+    if (this.managedRoot !== undefined) {
+      appendQueue(
+        this.notificationsList,
+        { method: "turn/started", params: { threadId, turn: { id: "codex-turn-acceptance" } } },
+        {
+          method: "item/started",
+          params: {
+            threadId,
+            turnId: "codex-turn-acceptance",
+            item: {
+              type: "fileChange",
+              id: "codex-managed-change",
+              status: "inProgress",
+              changes: [{
+                path: resolve(this.managedRoot, "src/result.ts"),
+                kind: { type: "add" },
+                diff: "private patch",
+              }],
+            },
+          },
+        },
+        {
+          id: "codex-managed-approval",
+          method: "item/fileChange/requestApproval",
+          params: {
+            threadId,
+            turnId: "codex-turn-acceptance",
+            itemId: "codex-managed-change",
+            startedAtMs: Date.parse("2026-08-18T01:00:08Z"),
+          },
+        },
+      );
+      return { turnId: "codex-turn-acceptance" };
+    }
     appendQueue(
       this.notificationsList,
       { method: "turn/started", params: { threadId, turn: { id: "codex-turn-acceptance" } } },
@@ -92,6 +136,45 @@ class AcceptanceCodexClient implements CodexAppServerClient {
   }
 
   async interruptTurn() {}
+  async respondFileChangeApproval(_requestId: string | number, decision: "accept" | "decline") {
+    if (this.managedRoot === undefined || decision !== "accept") return;
+    await writeFile(resolve(this.managedRoot, "src/result.ts"), "export const managed = true;\n");
+    appendQueue(
+      this.notificationsList,
+      {
+        method: "item/completed",
+        params: {
+          threadId: "codex-thread-acceptance",
+          turnId: "codex-turn-acceptance",
+          item: {
+            type: "fileChange",
+            id: "codex-managed-change",
+            status: "completed",
+            changes: [{
+              path: resolve(this.managedRoot, "src/result.ts"),
+              kind: { type: "add" },
+              diff: "private patch",
+            }],
+          },
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          threadId: "codex-thread-acceptance",
+          turnId: "codex-turn-acceptance",
+          item: { type: "agentMessage", id: "message-acceptance", text: "완료" },
+        },
+      },
+      {
+        method: "turn/completed",
+        params: {
+          threadId: "codex-thread-acceptance",
+          turn: { id: "codex-turn-acceptance", status: "completed", durationMs: 1 },
+        },
+      },
+    );
+  }
   async unsubscribe() {}
   notifications(signal: AbortSignal) {
     return drainQueue(this.notificationsList, signal);
@@ -101,6 +184,13 @@ class AcceptanceCodexClient implements CodexAppServerClient {
 
 class AcceptanceClaudeClient implements ClaudeAgentClient {
   readonly messageList: unknown[] = [];
+  private toolUseHandler?: ClaudeToolUseHandler;
+
+  constructor(private readonly managedRoot?: string) {}
+
+  attachToolUseHandler(handler: ClaudeToolUseHandler) {
+    this.toolUseHandler = handler;
+  }
 
   async appendContext() {
     appendQueue(this.messageList, {
@@ -112,28 +202,50 @@ class AcceptanceClaudeClient implements ClaudeAgentClient {
   }
 
   async startTurn(turnId: string, instructions: string) {
-    appendQueue(
-      this.messageList,
-      {
-        type: "user",
-        isReplay: true,
-        shouldQuery: true,
-        uuid: turnId,
-        session_id: CLAUDE_SESSION_ID,
-        message: { role: "user", content: instructions },
-        parent_tool_use_id: null,
-      },
-      {
-        type: "result",
-        subtype: "success",
-        is_error: false,
-        user_message_uuid: turnId,
-        uuid: "44444444-4444-4444-8444-444444444444",
-        session_id: CLAUDE_SESSION_ID,
-        duration_ms: 1,
-        result: "완료",
-      },
-    );
+    const emitResult = () =>
+      appendQueue(
+        this.messageList,
+        {
+          type: "user",
+          isReplay: true,
+          shouldQuery: true,
+          uuid: turnId,
+          session_id: CLAUDE_SESSION_ID,
+          message: { role: "user", content: instructions },
+          parent_tool_use_id: null,
+        },
+        {
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          user_message_uuid: turnId,
+          uuid: "44444444-4444-4444-8444-444444444444",
+          session_id: CLAUDE_SESSION_ID,
+          duration_ms: 1,
+          result: "완료",
+        },
+      );
+    if (this.managedRoot !== undefined) {
+      const input = {
+        file_path: resolve(this.managedRoot, "src/result.ts"),
+        content: "export const managed = true;\n",
+      };
+      setTimeout(() => {
+        void (async () => {
+          const allowed = await this.toolUseHandler?.authorize(
+            "Write",
+            input,
+            "claude-managed-write",
+          );
+          if (allowed !== true) throw new Error("managed write denied");
+          await writeFile(input.file_path, input.content);
+          await this.toolUseHandler?.complete("Write", input, "claude-managed-write", "completed");
+          emitResult();
+        })();
+      }, 0);
+      return;
+    }
+    emitResult();
   }
 
   async interrupt() {}
@@ -220,6 +332,87 @@ describe("managed coordinator with production adapters", () => {
     });
     expect(data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload)
       .toMatchObject({ executionMode: "read_only" });
+    data.store.close();
+  });
+
+  it("applies a Codex file-change approval through the managed permit", async () => {
+    const data = await createManagedFixture();
+    const client = new AcceptanceCodexClient(data.root);
+    const input = providerRunInput();
+    const now = clock();
+    const result = await new ManagedProviderRunCoordinator({
+      adapter: new CodexAdapter({
+        repositoryRoot: data.root,
+        clientFactory: async () => client,
+        now,
+        createEventId: sequenceFactory("evt_codex_write"),
+        createReceiptId: sequenceFactory("ctx_codex_write"),
+      }),
+      coordinates: { projectId, runId, sessionId, roleId: role.roleId },
+      policyVersion,
+      events: data.store,
+      artifactStore: new MemoryArtifactStore(),
+      now,
+      createEventId: sequenceFactory("evt_run_write"),
+    }).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: { ...input.context, role },
+    });
+
+    expect(result.session.executionMode).toBe("managed_write");
+    expect(result.managedChanges).toEqual([
+      expect.objectContaining({ path: "src/result.ts", changeKind: "created" }),
+    ]);
+    expect(client.startOptions).toMatchObject({ sandbox: "read-only", approvalPolicy: "on-request" });
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain(
+      "unmanaged_change.detected",
+    );
+    data.store.close();
+  });
+
+  it("applies a Claude Write hook through the same managed permit", async () => {
+    const data = await createManagedFixture();
+    const client = new AcceptanceClaudeClient(data.root);
+    const input = providerRunInput();
+    let startOptions: ClaudeAgentClientStartOptions | undefined;
+    const now = clock();
+    const result = await new ManagedProviderRunCoordinator({
+      adapter: new ClaudeAdapter({
+        repositoryRoot: data.root,
+        clientFactory: async (options) => {
+          startOptions = options;
+          return client;
+        },
+        now,
+        createProviderSessionId: () => CLAUDE_SESSION_ID,
+        createProviderMessageId: () => CLAUDE_TURN_ID,
+        createEventId: sequenceFactory("evt_claude_write"),
+        createReceiptId: sequenceFactory("ctx_claude_write"),
+      }),
+      coordinates: { projectId, runId, sessionId, roleId: role.roleId },
+      policyVersion,
+      events: data.store,
+      artifactStore: new MemoryArtifactStore(),
+      now,
+      createEventId: sequenceFactory("evt_run_write"),
+    }).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: { ...input.context, role },
+    });
+
+    expect(result.session.executionMode).toBe("managed_write");
+    expect(result.managedChanges).toEqual([
+      expect.objectContaining({ path: "src/result.ts", changeKind: "created" }),
+    ]);
+    expect(startOptions).toMatchObject({
+      permissionMode: "default",
+      tools: ["Read", "Glob", "Grep", "Write", "Edit"],
+    });
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain(
+      "unmanaged_change.detected",
+    );
     data.store.close();
   });
 });
