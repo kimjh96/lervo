@@ -5,6 +5,10 @@ import {
   type HubSyncIntegrityReport,
   type HubSyncIntegrityStore,
   type HubSyncLifecycle,
+  type HubRemoteCommandDeliveryState,
+  type HubRemoteCommandEnqueueResult,
+  type HubRemoteCommandQueueInspectionStore,
+  type HubRemoteCommandQueueStore,
 } from "@lervo/hub-sync";
 import {
   type HubProjectTrace,
@@ -21,6 +25,11 @@ import {
   type OutboundEventBatch,
   type ProjectRegistrationRequest,
   type ProjectRegistrationResponse,
+  type RemoteCommandDeliveryAcknowledgement,
+  type RemoteCommandDeliveryConfirmation,
+  type RemoteCommandLease,
+  type RemoteCommandTarget,
+  type SignedRemoteCommand,
 } from "@lervo/schemas";
 
 import { ensureDatabasePath } from "./database-lifecycle.js";
@@ -29,6 +38,7 @@ import { HubEventInboxSQLiteRepository } from "./event-inbox-repository.js";
 import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
 import { HubRegistrationSQLiteRepository } from "./registration-repository.js";
+import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js";
 import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 
@@ -36,6 +46,8 @@ export class HubSyncSQLiteStore implements
   HubSyncCommandStore,
   HubSyncIntegrityStore,
   HubSyncLifecycle,
+  HubRemoteCommandQueueStore,
+  HubRemoteCommandQueueInspectionStore,
   HubTraceSource
 {
   readonly path: string;
@@ -43,6 +55,7 @@ export class HubSyncSQLiteStore implements
   private readonly auditRepository: HubAuditSQLiteRepository;
   private readonly eventInboxRepository: HubEventInboxSQLiteRepository;
   private readonly registrationRepository: HubRegistrationSQLiteRepository;
+  private readonly remoteCommandRepository: HubRemoteCommandSQLiteRepository;
   private readonly traceRepository: HubTraceSQLiteRepository;
   private readonly transactionRunner: SQLiteTransactionRunner;
 
@@ -51,6 +64,7 @@ export class HubSyncSQLiteStore implements
     this.auditRepository = new HubAuditSQLiteRepository(database);
     this.eventInboxRepository = new HubEventInboxSQLiteRepository(database);
     this.registrationRepository = new HubRegistrationSQLiteRepository(database);
+    this.remoteCommandRepository = new HubRemoteCommandSQLiteRepository(database);
     this.traceRepository = new HubTraceSQLiteRepository(database);
     this.transactionRunner = new SQLiteTransactionRunner(database);
   }
@@ -95,6 +109,42 @@ export class HubSyncSQLiteStore implements
     return this.transactionRunner.write(() => this.eventInboxRepository.accept(input));
   }
 
+  async enqueueRemoteCommand(input: {
+    destinationId: string;
+    envelope: SignedRemoteCommand;
+    queuedAt: string;
+  }): Promise<HubRemoteCommandEnqueueResult> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.remoteCommandRepository.enqueue(input));
+  }
+
+  async leaseRemoteCommands(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    leasedTo: string;
+    leasedAt: string;
+    leaseDurationMs: number;
+    limit: number;
+  }): Promise<RemoteCommandLease[]> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.remoteCommandRepository.lease(input));
+  }
+
+  async acknowledgeRemoteCommand(input: {
+    acknowledgement: RemoteCommandDeliveryAcknowledgement;
+    confirmedAt: string;
+  }): Promise<RemoteCommandDeliveryConfirmation> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.remoteCommandRepository.acknowledge(input));
+  }
+
+  async getRemoteCommandDelivery(
+    deliveryId: string,
+  ): Promise<HubRemoteCommandDeliveryState | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.remoteCommandRepository.get(deliveryId));
+  }
+
   async listProjects(
     query: ResolvedHubProjectTraceQuery,
   ): Promise<HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }>> {
@@ -135,6 +185,7 @@ export class HubSyncSQLiteStore implements
       }
       eventCount += state.events.length;
     }
+    this.remoteCommandRepository.auditAll();
     this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
     return { valid: true, projectCount: coordinates.length, eventCount };
   }
@@ -150,6 +201,8 @@ export class HubSyncSQLiteStore implements
       "hub_events_no_update",
       "hub_events_no_delete",
       "hub_projects_no_delete",
+      "hub_remote_commands_no_delete",
+      "hub_remote_commands_identity_immutable",
     ]);
     for (const row of this.database.prepare(
       "SELECT name FROM sqlite_schema WHERE type = 'trigger'",

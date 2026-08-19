@@ -706,7 +706,34 @@ Replay 내부 판정은 `available`, `in_progress`, `duplicate`, `idempotency_co
 
 안정적인 사전 실행 오류는 `invalid_command`, `trust_store_failed`, `unknown_signer`, `invalid_signature`, `signer_scope_denied`, `target_mismatch`, `command_not_yet_valid`, `command_expired`, `command_lifetime_exceeded`, `idempotency_conflict`, `nonce_replay`, `command_in_progress`, `policy_denied`, `policy_evaluation_failed`, `replay_store_failed`입니다. 오류와 receipt에는 request, credential, key bytes, policy reason 원문, loader/executor 예외를 넣지 않습니다. `keyId`, project 좌표, artifact 좌표와 hash는 계약 metadata이고 command transport·보존 정책의 적용을 받습니다.
 
-현재 제공하는 replay store는 최대 1,024개를 기본으로 하는 process-local fixture이며 capacity에서 fail-closed하고 eviction하지 않습니다. 재시작 후 replay 방지, durable offline queue, Hub delivery acknowledgement와 Node reconnect는 아직 보장하지 않습니다. 이번 단계는 새 event를 추가하지 않으며 receipt는 `run.completed`, event sync 또는 Hub 전달 완료를 대신하지 않습니다. 상세 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md)에 기록합니다.
+In-memory replay store는 단위 fixture에 남아 있고 실제 reconnect fixture는 project-bound SQLite adapter를 사용합니다. SQLite는 기본 1,024개, 구성상 최대 100,000개의 replay record를 보존하며 capacity에서 eviction하지 않고 fail-closed합니다. 이번 단계는 새 event를 추가하지 않으며 receipt는 `run.completed`, event sync 또는 Hub 전달 완료를 대신하지 않습니다. Receiver 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md), durable delivery 결정은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
+
+## Durable remote command delivery
+
+Hub queue는 project registration을 선행 조건으로 하며 destination, project ID와 identity hash가 같은 signed envelope만 받습니다. Delivery ID는 destination과 envelope 전체의 canonical hash입니다. 같은 delivery 재등록은 현재 queue 상태와 최초 queue 시각을 반환하지만, 같은 command ID에 다른 envelope이 있으면 conflict로 거부합니다. Hub queue 원본 상태는 `pending`, `leased`, `completed`, `rejected`, `expired`입니다.
+
+`RemoteCommandLease`의 필수 필드는 schema version, delivery·lease ID, 대상 Node ID, lease 시작·만료 시각과 signed envelope입니다. Lease duration은 1초 이상 5분 이하이고 한 pull은 기본 1개, 최대 16개입니다. Hub는 발급 시각이 오지 않은 pending command를 기다리고, 만료 시각을 지난 command는 `expired`로 바꾼 뒤 lease하지 않습니다. Offset이 있는 timestamp도 문자열로 비교하지 않고 epoch millisecond로 비교합니다. 만료된 lease는 terminal acknowledgement가 없을 때만 pending으로 돌아갑니다.
+
+`RemoteCommandDeliveryAcknowledgement`는 delivery·lease·command ID/hash, lease 안의 acknowledgement 시각과 다음 disposition 중 하나를 가집니다.
+
+- `completed`: 기존 `RemoteCommandExecutionReceipt` 전체를 포함합니다. Receipt의 command 좌표를 다시 검증합니다.
+- `rejected`: `invalid_command`, `unknown_signer`, `invalid_signature`, `signer_scope_denied`, `target_mismatch`, `command_expired`, `command_lifetime_exceeded`, `idempotency_conflict`, `nonce_replay` 중 하나만 가집니다.
+
+Hub는 현재 lease와 acknowledgement를 같은 transaction에서 확인하고 `completed` 또는 `rejected`로 commit한 뒤 confirmation을 반환합니다. Confirmation은 delivery·command ID, acknowledgement hash, disposition, `accepted|duplicate`와 commit 시각을 필수로 가집니다. Confirmation 시각은 acknowledgement보다 이르지 않아야 합니다. Terminal queue row의 identity, envelope, acknowledgement와 시각은 자동 삭제하지 않습니다.
+
+Node의 SQLite replay database는 open 시 project ID와 identity hash에 고정합니다. `commandHash`, `idempotencyKey`, `nonce`, 무작위 reservation ID와 optional terminal receipt만 저장합니다. Raw request, signed envelope, artifact reference와 provider 오류는 column이나 receipt에 넣지 않습니다. Terminal receipt가 있으면 재시작 뒤 같은 command를 `duplicate`로 반환합니다. Receipt 없는 durable reservation은 실행 여부를 추정하지 않고 계속 `in_progress`로 남깁니다.
+
+Reconnect worker는 transport가 실제 peer 인증 뒤 반환한 destination과 Hub identity hash를 구성값과 다시 비교합니다. Lease의 Node ID, project target과 유효 시각도 receiver 전에 확인합니다. Cycle 상태는 다음과 같습니다.
+
+- `offline`: pull 또는 Hub peer 검증이 끝나지 않았고 lease·executor를 시작하지 않았습니다.
+- `idle`: 인증된 pull이 완료됐지만 lease가 없습니다.
+- `processed`: 모든 lease의 terminal acknowledgement가 Hub에서 확인됐습니다. `executedCount`, `failedCount`, `duplicateCount`, `rejectedCount`를 별도로 셉니다.
+- `acknowledgement_pending`: Node terminal receipt 또는 rejection은 있지만 Hub confirmation을 받지 못했습니다. Lease 만료 뒤 같은 command가 다시 올 수 있습니다.
+- `local_deferred`: local policy, trust/replay 저장 또는 in-progress 상태 때문에 terminal acknowledgement를 만들지 않았습니다.
+
+Hub acknowledgement 전 연결이 끊기면 Node terminal receipt는 먼저 durable합니다. Lease 만료와 Hub·Node 재시작 뒤 같은 command를 받으면 receiver는 저장된 receipt를 반환하고 executor를 다시 호출하지 않습니다. Hub commit 뒤 response만 유실된 경우 Hub row는 이미 terminal이므로 다시 lease하지 않습니다. 이 fixture는 인증된 transport port의 계약을 검증하며 실제 HTTP/TLS endpoint나 daemon scheduler를 구현하지 않습니다.
+
+Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자체를 반환하지 않습니다. Node replay에는 envelope도 없습니다. Queue/reconnect 성공은 event sync, provider verification, writing 공개나 사람이 결과를 읽었다는 뜻이 아닙니다. 상세 상태와 장애 처분은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 
 ## 실패 의미
 
@@ -720,6 +747,9 @@ Replay 내부 판정은 `available`, `in_progress`, `duplicate`, `idempotency_co
 | `idempotency_conflict` / `nonce_replay` / `command_in_progress` | 다른 command가 같은 idempotency/nonce를 사용했거나 같은 command가 이미 처리 중입니다. Executor를 중복 호출하지 않으며 terminal receipt가 생긴 뒤 동일 command를 조회할 수 있습니다. |
 | `policy_denied` / `policy_evaluation_failed` | 로컬 정책이 거부됐거나 유효한 판정을 만들지 못했습니다. Reservation과 실행을 시작하지 않습니다. |
 | `trust_store_failed` / `replay_store_failed` | 신뢰 key 또는 replay 상태를 안전하게 읽고 저장하지 못했습니다. 실행 완료를 주장하지 않으며 운영 상태 확인 전 자동 실행 재시도를 하지 않습니다. |
+| `remote_command_registration_required` / `remote_command_identity_mismatch` / `remote_command_conflict` | Hub queue 대상의 registration·identity·command 원본이 맞지 않습니다. Pending delivery를 만들거나 기존 원본을 덮어쓰지 않습니다. |
+| `remote_command_ack_invalid` / `invalid_remote_command_acknowledgement` | Delivery·lease·command·receipt 또는 acknowledgement 시각이 현재 Hub 원본과 다릅니다. Terminal 상태를 commit하지 않습니다. |
+| `hub_unavailable` / `transport_authentication_failed` / `invalid_lease_response` / `invalid_delivery_confirmation` | Reconnect transport, Hub peer, lease 또는 confirmation을 신뢰할 수 없습니다. 새 executor를 열지 않거나 이미 durable한 Node receipt를 유지하고 lease 재전달을 기다립니다. |
 | `derived_index_failed` | 명시적 경로와 전문 검색으로 저하 운전합니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |

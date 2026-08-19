@@ -167,6 +167,130 @@ export const remoteCommandExecutionReceiptSchema = {
   ],
 } as const;
 
+const remoteCommandDeliveryCommonProperties = {
+  schemaVersion: schemaVersionSchema,
+  deliveryId: { type: "string", pattern: "^rcd_[a-f0-9]{64}$" },
+  leaseId: { type: "string", pattern: "^rcl_[A-Za-z0-9_-]{43}$" },
+  commandId: { type: "string", pattern: "^rcm_[a-f0-9]{64}$" },
+  commandHash: sha256Schema,
+} as const;
+
+export const remoteCommandLeaseSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/remote-command-lease.schema.json",
+  title: "Lervo durable remote command lease",
+  type: "object",
+  properties: {
+    schemaVersion: schemaVersionSchema,
+    deliveryId: remoteCommandDeliveryCommonProperties.deliveryId,
+    leaseId: remoteCommandDeliveryCommonProperties.leaseId,
+    leasedTo: {
+      type: "string",
+      pattern: "^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+    },
+    leasedAt: timestampSchema,
+    leaseExpiresAt: timestampSchema,
+    envelope: { $ref: signedRemoteCommandSchema.$id },
+  },
+  required: [
+    "schemaVersion",
+    "deliveryId",
+    "leaseId",
+    "leasedTo",
+    "leasedAt",
+    "leaseExpiresAt",
+    "envelope",
+  ],
+  additionalProperties: false,
+} as const;
+
+export const remoteCommandDeliveryAcknowledgementSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/remote-command-delivery-acknowledgement.schema.json",
+  title: "Lervo remote command delivery acknowledgement",
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        ...remoteCommandDeliveryCommonProperties,
+        acknowledgedAt: timestampSchema,
+        disposition: { type: "string", const: "completed" },
+        receipt: { $ref: remoteCommandExecutionReceiptSchema.$id },
+      },
+      required: [
+        "schemaVersion",
+        "deliveryId",
+        "leaseId",
+        "commandId",
+        "commandHash",
+        "acknowledgedAt",
+        "disposition",
+        "receipt",
+      ],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ...remoteCommandDeliveryCommonProperties,
+        acknowledgedAt: timestampSchema,
+        disposition: { type: "string", const: "rejected" },
+        rejectionCode: {
+          type: "string",
+          enum: [
+            "invalid_command",
+            "unknown_signer",
+            "invalid_signature",
+            "signer_scope_denied",
+            "target_mismatch",
+            "command_expired",
+            "command_lifetime_exceeded",
+            "idempotency_conflict",
+            "nonce_replay",
+          ],
+        },
+      },
+      required: [
+        "schemaVersion",
+        "deliveryId",
+        "leaseId",
+        "commandId",
+        "commandHash",
+        "acknowledgedAt",
+        "disposition",
+        "rejectionCode",
+      ],
+      additionalProperties: false,
+    },
+  ],
+} as const;
+
+export const remoteCommandDeliveryConfirmationSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/remote-command-delivery-confirmation.schema.json",
+  title: "Lervo durable remote command delivery confirmation",
+  type: "object",
+  properties: {
+    schemaVersion: schemaVersionSchema,
+    deliveryId: remoteCommandDeliveryCommonProperties.deliveryId,
+    commandId: remoteCommandDeliveryCommonProperties.commandId,
+    acknowledgementHash: sha256Schema,
+    status: { type: "string", enum: ["accepted", "duplicate"] },
+    disposition: { type: "string", enum: ["completed", "rejected"] },
+    confirmedAt: timestampSchema,
+  },
+  required: [
+    "schemaVersion",
+    "deliveryId",
+    "commandId",
+    "acknowledgementHash",
+    "status",
+    "disposition",
+    "confirmedAt",
+  ],
+  additionalProperties: false,
+} as const;
+
 export type RemoteCommandTarget = FromSchema<typeof remoteCommandTargetSchema>;
 export type RemoteCommandPayloadReference = FromSchema<
   typeof remoteCommandPayloadReferenceSchema
@@ -181,4 +305,15 @@ export type SignedRemoteCommand = FromSchema<
 >;
 export type RemoteCommandExecutionReceipt = FromSchema<
   typeof remoteCommandExecutionReceiptSchema
+>;
+export type RemoteCommandLease = FromSchema<
+  typeof remoteCommandLeaseSchema,
+  { references: [typeof remoteCommandSchema, typeof signedRemoteCommandSchema] }
+>;
+export type RemoteCommandDeliveryAcknowledgement = FromSchema<
+  typeof remoteCommandDeliveryAcknowledgementSchema,
+  { references: [typeof remoteCommandExecutionReceiptSchema] }
+>;
+export type RemoteCommandDeliveryConfirmation = FromSchema<
+  typeof remoteCommandDeliveryConfirmationSchema
 >;

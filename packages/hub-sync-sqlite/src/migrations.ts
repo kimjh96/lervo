@@ -132,6 +132,82 @@ const migrations = [
       'event_count', (SELECT CAST(COUNT(*) AS TEXT) FROM hub_events)
     );
   `,
+  `
+    CREATE TABLE hub_remote_commands (
+      delivery_id TEXT PRIMARY KEY,
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      command_id TEXT NOT NULL,
+      command_hash TEXT NOT NULL,
+      envelope_json TEXT NOT NULL,
+      queued_at TEXT NOT NULL,
+      queued_at_ms INTEGER NOT NULL CHECK (queued_at_ms >= 0),
+      issued_at TEXT NOT NULL,
+      issued_at_ms INTEGER NOT NULL CHECK (issued_at_ms >= 0),
+      expires_at TEXT NOT NULL,
+      expires_at_ms INTEGER NOT NULL CHECK (expires_at_ms >= 0),
+      status TEXT NOT NULL
+        CHECK (status IN ('pending', 'leased', 'completed', 'rejected', 'expired')),
+      attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+      lease_id TEXT,
+      lease_owner TEXT,
+      leased_at TEXT,
+      lease_expires_at TEXT,
+      lease_expires_at_ms INTEGER,
+      acknowledgement_json TEXT,
+      acknowledgement_hash TEXT,
+      terminal_at TEXT,
+      UNIQUE (destination_id, project_id, command_id),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id),
+      CHECK (
+        (status = 'pending' AND lease_id IS NULL AND lease_owner IS NULL
+          AND leased_at IS NULL AND lease_expires_at IS NULL
+          AND lease_expires_at_ms IS NULL
+          AND acknowledgement_json IS NULL AND acknowledgement_hash IS NULL
+          AND terminal_at IS NULL)
+        OR
+        (status = 'leased' AND lease_id IS NOT NULL AND lease_owner IS NOT NULL
+          AND leased_at IS NOT NULL AND lease_expires_at IS NOT NULL
+          AND lease_expires_at_ms IS NOT NULL
+          AND acknowledgement_json IS NULL AND acknowledgement_hash IS NULL
+          AND terminal_at IS NULL)
+        OR
+        (status IN ('completed', 'rejected') AND lease_id IS NULL AND lease_owner IS NULL
+          AND leased_at IS NULL AND lease_expires_at IS NULL
+          AND lease_expires_at_ms IS NULL
+          AND acknowledgement_json IS NOT NULL AND acknowledgement_hash IS NOT NULL
+          AND terminal_at IS NOT NULL)
+        OR
+        (status = 'expired' AND lease_id IS NULL AND lease_owner IS NULL
+          AND leased_at IS NULL AND lease_expires_at IS NULL
+          AND lease_expires_at_ms IS NULL
+          AND acknowledgement_json IS NULL AND acknowledgement_hash IS NULL
+          AND terminal_at IS NOT NULL)
+      )
+    ) STRICT;
+    CREATE INDEX hub_remote_commands_ready
+      ON hub_remote_commands (
+        destination_id, project_id, status, expires_at, queued_at, delivery_id
+      );
+    CREATE TRIGGER hub_remote_commands_no_delete BEFORE DELETE ON hub_remote_commands
+      BEGIN SELECT RAISE(ABORT, 'hub remote commands cannot be deleted'); END;
+    CREATE TRIGGER hub_remote_commands_identity_immutable
+      BEFORE UPDATE ON hub_remote_commands
+      WHEN OLD.delivery_id != NEW.delivery_id
+        OR OLD.destination_id != NEW.destination_id
+        OR OLD.project_id != NEW.project_id
+        OR OLD.command_id != NEW.command_id
+        OR OLD.command_hash != NEW.command_hash
+        OR OLD.envelope_json != NEW.envelope_json
+        OR OLD.queued_at != NEW.queued_at
+        OR OLD.queued_at_ms != NEW.queued_at_ms
+        OR OLD.issued_at != NEW.issued_at
+        OR OLD.issued_at_ms != NEW.issued_at_ms
+        OR OLD.expires_at != NEW.expires_at
+        OR OLD.expires_at_ms != NEW.expires_at_ms
+      BEGIN SELECT RAISE(ABORT, 'hub remote command identity is immutable'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

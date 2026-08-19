@@ -5,8 +5,13 @@ import { describe, expect, it } from "vitest";
 import {
   assertRemoteCommand,
   assertRemoteCommandExecutionReceipt,
+  assertRemoteCommandDeliveryConfirmation,
   calculateRemoteCommandHash,
+  calculateRemoteCommandDeliveryId,
+  createCompletedRemoteCommandAcknowledgement,
   createRemoteCommand,
+  createRemoteCommandDeliveryConfirmation,
+  createRemoteCommandLease,
   createSignedRemoteCommandEnvelope,
   remoteCommandSigningBytes,
 } from "../src/index.js";
@@ -100,5 +105,69 @@ describe("remote command contract", () => {
     })).toThrowError(expect.objectContaining({ code: "invalid_execution_receipt" }));
 
     expect(calculateRemoteCommandHash(command)).toMatch(/^sha256:[a-f0-9]{64}$/);
+  });
+
+  it("binds a durable lease, acknowledgement, and confirmation to one delivery", () => {
+    const command = createRemoteCommand(commandInput());
+    const { privateKey } = generateKeyPairSync("ed25519");
+    const signature = sign(null, remoteCommandSigningBytes({
+      command,
+      keyId: "key_hub_fixture",
+    }), privateKey);
+    const envelope = createSignedRemoteCommandEnvelope({
+      command,
+      keyId: "key_hub_fixture",
+      signature,
+    });
+    const destinationId = "hub:primary";
+    const lease = createRemoteCommandLease({
+      destinationId,
+      leaseId: `rcl_${Buffer.alloc(32, 4).toString("base64url")}`,
+      leasedTo: "node_remote_fixture",
+      leasedAt: "2026-08-19T00:01:00.000Z",
+      leaseExpiresAt: "2026-08-19T00:01:30.000Z",
+      envelope,
+    });
+    const acknowledgement = createCompletedRemoteCommandAcknowledgement({
+      destinationId,
+      lease,
+      acknowledgedAt: "2026-08-19T00:01:10.000Z",
+      receipt: {
+        schemaVersion: 1,
+        commandId: command.commandId,
+        commandHash: calculateRemoteCommandHash(command),
+        idempotencyKey: command.idempotencyKey,
+        processedAt: "2026-08-19T00:01:05.000Z",
+        outcome: "executed",
+        runId: "run_remote_fixture",
+      },
+    });
+    const confirmation = createRemoteCommandDeliveryConfirmation({
+      acknowledgement,
+      status: "accepted",
+      confirmedAt: "2026-08-19T00:01:11.000Z",
+    });
+
+    expect(lease.deliveryId).toBe(calculateRemoteCommandDeliveryId({
+      destinationId,
+      envelope,
+    }));
+    expect(confirmation).toMatchObject({
+      deliveryId: lease.deliveryId,
+      commandId: command.commandId,
+      disposition: "completed",
+      status: "accepted",
+    });
+    expect(() => assertRemoteCommandDeliveryConfirmation({
+      acknowledgement,
+      confirmation: { ...confirmation, commandId: `rcm_${"0".repeat(64)}` },
+    })).toThrowError(expect.objectContaining({ code: "invalid_delivery_confirmation" }));
+    if (acknowledgement.disposition !== "completed") throw new Error("unreachable fixture");
+    expect(() => createCompletedRemoteCommandAcknowledgement({
+      destinationId,
+      lease,
+      acknowledgedAt: "2026-08-19T00:01:31.000Z",
+      receipt: acknowledgement.receipt,
+    })).toThrowError(expect.objectContaining({ code: "invalid_delivery_acknowledgement" }));
   });
 });

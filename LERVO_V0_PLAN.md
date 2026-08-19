@@ -214,7 +214,7 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **서명된 원격 command protocol의 로컬 fixture 완료.** `@lervo/remote-command-contract`는 raw request 대신 bounded artifact 좌표를 가진 `managed_run`, canonical command ID/hash, project target과 Ed25519 envelope·terminal receipt를 고정합니다. `@lervo/remote-command`는 trust key scope, signature, receiver identity, replay, freshness, local policy, payload hash 순으로 실행 경계를 열고 atomic in-memory reservation 뒤에만 executor를 호출합니다. 위조 서명, 다른 project, 만료, 정책 거부, payload 변조, idempotency/nonce 충돌, terminal retry와 두 동시 요청을 실제 Ed25519 fixture로 확인했습니다. 현재 replay store는 process-local이므로 재시작 내구성이나 Hub delivery를 주장하지 않습니다. 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md)에 기록했습니다.
 
-다음 구현 순서: **offline command queue와 Node reconnect 전체 검증**입니다.
+구현 현황(2026-08-19): **offline command queue와 Node reconnect 전체 검증 완료.** Hub SQLite는 등록된 project identity에 결속된 signed envelope을 event inbox와 별도 queue에 저장하고 `pending`, `leased`, `completed`, `rejected`, `expired` 상태를 durable transaction으로 전이합니다. Node의 `@lervo/remote-command-sqlite`는 project-bound replay 좌표와 terminal receipt만 저장하며 reconnect worker가 인증된 transport port의 Hub·destination·lease 좌표를 다시 확인합니다. Hub 오프라인, 양쪽 database 재시작, acknowledgement commit 전 유실, 만료 command와 위조 signature를 통합 fixture로 검증했습니다. Receipt 재전달에서는 executor가 한 번만 호출됩니다. 실제 HTTP/TLS와 daemon scheduler는 이 fixture의 보장 범위가 아닙니다. 결정은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록했습니다.
 
 완료 조건:
 
@@ -231,6 +231,8 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 - 중복/역순 전송에도 일관된 read model
 - Node 오프라인 중 로컬 실행 후 재연결 동기화
 - trace에서 문서 선택 이유부터 verification까지 탐색
+
+M6 완료.
 
 ## 첫 번째 수직 슬라이스
 
@@ -317,7 +319,7 @@ fixtures/
 
 ## v0 이후 순서
 
-1. Hub trace UI와 정책 배포
+1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX
 2. Slack/Discord command gateway와 승인 UX
 3. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
 4. 명시적 관계 기반 지식 그래프 시각화
@@ -326,4 +328,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **offline command queue와 Node reconnect 전체 검증**입니다. Durable queue가 만료 command를 실행하지 않고, Node 연결 복구 뒤 유효한 command만 전달하며, 응답 유실·재시작에서도 같은 command receipt를 복구하는지 Hub와 Node 경계를 함께 검증합니다.
+현재 정의한 M0~M6 v0 범위는 완료했습니다. 다음 구현 작업은 **Hub 정책 배포와 `require_approval` 승인 수명주기**입니다. 서명된 정책 snapshot, project scope, 승인 원본·만료·철회와 local policy 우선순위를 먼저 계약으로 고정한 뒤 원격 command의 `policy_denied` 재평가와 연결합니다.

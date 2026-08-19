@@ -59,6 +59,9 @@ import {
 import { projectManifestSchema } from "./project.js";
 import {
   remoteCommandExecutionReceiptSchema,
+  remoteCommandDeliveryAcknowledgementSchema,
+  remoteCommandDeliveryConfirmationSchema,
+  remoteCommandLeaseSchema,
   remoteCommandSchema,
   signedRemoteCommandSchema,
 } from "./remote-command.js";
@@ -87,6 +90,8 @@ ajv.addSchema(documentManifestSchema);
 ajv.addSchema(eventEnvelopeSchema);
 ajv.addSchema(projectManifestSchema);
 ajv.addSchema(remoteCommandSchema);
+ajv.addSchema(signedRemoteCommandSchema);
+ajv.addSchema(remoteCommandExecutionReceiptSchema);
 
 const validators = {
   project: ajv.getSchema(projectManifestSchema.$id)!,
@@ -96,8 +101,13 @@ const validators = {
   outboundEventBatch: ajv.compile(outboundEventBatchSchema),
   eventSyncAcknowledgement: ajv.compile(eventSyncAcknowledgementSchema),
   remoteCommand: ajv.getSchema(remoteCommandSchema.$id)!,
-  signedRemoteCommand: ajv.compile(signedRemoteCommandSchema),
-  remoteCommandExecutionReceipt: ajv.compile(remoteCommandExecutionReceiptSchema),
+  signedRemoteCommand: ajv.getSchema(signedRemoteCommandSchema.$id)!,
+  remoteCommandExecutionReceipt: ajv.getSchema(remoteCommandExecutionReceiptSchema.$id)!,
+  remoteCommandLease: ajv.compile(remoteCommandLeaseSchema),
+  remoteCommandDeliveryAcknowledgement: ajv.compile(
+    remoteCommandDeliveryAcknowledgementSchema,
+  ),
+  remoteCommandDeliveryConfirmation: ajv.compile(remoteCommandDeliveryConfirmationSchema),
   legacyRegistryEntryArtifact: ajv.compile(legacyRegistryEntryArtifactSchema),
   legacyRegistryMigrationPlan: ajv.compile(legacyRegistryMigrationPlanSchema),
   legacyRegistryMigrationApproval: ajv.compile(legacyRegistryMigrationApprovalSchema),

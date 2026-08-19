@@ -1,3 +1,5 @@
+export * from "./delivery-transport.js";
+export * from "./delivery-worker.js";
 export * from "./ed25519.js";
 export * from "./errors.js";
 export * from "./receiver.js";

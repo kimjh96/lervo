@@ -45,4 +45,4 @@ Command, receipt와 replay coordinate에는 raw request, credential, private/pub
 
 ## 결과
 
-Node 실행 경계는 Hub, HTTP, Slack과 Codex/Claude 구현을 알지 않고도 서명과 로컬 권한, 중복 실행과 payload 무결성을 같은 순서로 적용할 수 있습니다. 현재 bounded replay store는 process-local fixture라 재시작 후 replay 방지와 offline queue를 보장하지 않습니다. 다음 작업은 durable command queue와 Node reconnect에서 만료·응답 유실·재시작을 함께 검증하는 것입니다.
+Node 실행 경계는 Hub, HTTP, Slack과 Codex/Claude 구현을 알지 않고도 서명과 로컬 권한, 중복 실행과 payload 무결성을 같은 순서로 적용할 수 있습니다. 이 ADR의 process-local fixture 뒤에 추가된 durable queue와 project-bound replay 결정은 [ADR-0042](./0042-durable-remote-command-delivery.md)에 기록합니다.

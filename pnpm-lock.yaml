@@ -244,6 +244,9 @@ importers:
 
   packages/hub-sync:
     dependencies:
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../remote-command-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -262,6 +265,9 @@ importers:
       '@lervo/hub-trace':
         specifier: workspace:*
         version: link:../hub-trace
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../remote-command-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -272,6 +278,12 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../remote-command
+      '@lervo/remote-command-sqlite':
+        specifier: workspace:*
+        version: link:../remote-command-sqlite
       '@lervo/sync':
         specifier: workspace:*
         version: link:../sync
@@ -391,6 +403,15 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/remote-command-sqlite:
+    dependencies:
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../remote-command
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

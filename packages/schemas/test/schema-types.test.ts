@@ -27,7 +27,10 @@ import type {
   OutboundEventBatch,
   ProjectRegistrationRequest,
   RemoteCommand,
+  RemoteCommandDeliveryAcknowledgement,
+  RemoteCommandDeliveryConfirmation,
   RemoteCommandExecutionReceipt,
+  RemoteCommandLease,
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
@@ -129,6 +132,15 @@ describe("schema-derived TypeScript contracts", () => {
     }>();
     expectTypeOf<RemoteCommandExecutionReceipt["outcome"]>()
       .toEqualTypeOf<"executed" | "failed">();
+  });
+
+  it("separates command lease, Node acknowledgement, and Hub confirmation states", () => {
+    expectTypeOf<RemoteCommandLease["envelope"]["command"]>()
+      .toEqualTypeOf<RemoteCommand>();
+    expectTypeOf<RemoteCommandDeliveryAcknowledgement["disposition"]>()
+      .toEqualTypeOf<"completed" | "rejected">();
+    expectTypeOf<RemoteCommandDeliveryConfirmation["status"]>()
+      .toEqualTypeOf<"accepted" | "duplicate">();
   });
 
   it("binds a writing publication permit to policy, evaluation, content, and surface", () => {

@@ -18,11 +18,14 @@
     "@lervo/event-contract": "workspace:*",
     "@lervo/hub-sync": "workspace:*",
     "@lervo/hub-trace": "workspace:*",
+    "@lervo/remote-command-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
   },
   "devDependencies": {
     "@lervo/event-store-sqlite": "workspace:*",
+    "@lervo/remote-command": "workspace:*",
+    "@lervo/remote-command-sqlite": "workspace:*",
     "@lervo/sync": "workspace:*"
   }
 }
