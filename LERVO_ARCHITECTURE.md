@@ -56,7 +56,9 @@ flowchart LR
 
 M6 sync 계약은 전체 project manifest와 안정적인 project identity를 분리해 등록하고, allowlist event만 연속 batch로 전달합니다. Hub는 역순 batch를 보관할 수 있지만 project hash chain의 빈 구간이 채워진 가장 높은 seq까지만 cursor를 공개합니다. `@lervo/sync-contract`는 저장과 network가 없는 순수 수락 계획만 계산합니다.
 
-`@lervo/sync`는 Node의 application 경계입니다. 매 cycle 등록을 확인한 뒤 현재 worker가 가진 destination별 outbox lease만 가져오고, hash chain이 이어지는 구간별 batch를 인증된 Hub transport port에 전달합니다. Peer 좌표와 durable ack 전체가 맞으면 해당 구간을 한 local transaction에서 ack하고, 응답 유실이나 검증 실패는 아직 ack하지 않은 lease만 공통 시각으로 재예약합니다. Transport 구현은 TLS·서명 등 실제 인증을 소유하며 core worker는 protocol을 알지 않습니다. Hub handler는 registration·event inbox·cursor를 durable transaction으로 저장한 뒤에만 응답해야 합니다.
+`@lervo/sync`는 Node의 application 경계입니다. 매 cycle 등록을 확인한 뒤 현재 worker가 가진 destination별 outbox lease만 가져오고, hash chain이 이어지는 구간별 batch를 인증된 Hub transport port에 전달합니다. Peer 좌표와 durable ack 전체가 맞으면 해당 구간을 한 local transaction에서 ack하고, 응답 유실이나 검증 실패는 아직 ack하지 않은 lease만 공통 시각으로 재예약합니다. Transport 구현은 TLS·서명 등 실제 인증을 소유하며 core worker는 protocol을 알지 않습니다.
+
+Hub 수신은 `@lervo/hub-sync`의 동기 transaction handler와 `@lervo/hub-sync-sqlite`의 durable adapter로 나뉩니다. Handler는 순수 reducer의 다음 state를 store transaction 안에서 저장하고 commit 뒤에만 응답을 반환합니다. SQLite는 `(destinationId, projectId)`별 registration, append-only event inbox와 cursor를 함께 보존하며 재시작 때 중복 좌표와 전체 chain을 다시 확인합니다. 이 경계는 HTTP route나 Node 인증을 구현하지 않으며 인증·권한을 마친 transport만 handler를 호출해야 합니다.
 
 ## 저장소 내부 구조
 

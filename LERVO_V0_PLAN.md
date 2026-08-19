@@ -204,7 +204,9 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **outbox delivery worker와 인증된 Hub transport port 연결 완료.** `@lervo/sync`는 registration을 먼저 확인한 뒤 현재 worker가 가진 destination lease만 가져와 연속 chain별 batch로 보냅니다. 인증된 peer 좌표와 durable ack 전체가 맞을 때만 batch 단위 local transaction으로 ack합니다. Hub 저장 뒤 응답이 유실되면 안전한 code와 시각으로 재예약하고 같은 batch ID를 다시 보내 duplicate ack로 복구합니다. Gap batch, 잘못된 peer·ack와 등록 장애는 실제 SQLite fixture로 확인했습니다. `sync.acknowledged` event는 재귀 배송을 피하기 위해 만들지 않습니다. 결정은 [ADR-0035](./docs/adr/0035-outbound-sync-worker.md)에 기록했습니다.
 
-다음 구현 순서: **Hub registration·event inbox·cursor의 durable 저장 adapter**입니다.
+구현 현황(2026-08-19): **Hub registration·event inbox·cursor의 durable 저장 adapter 완료.** `@lervo/hub-sync`는 reducer와 동기 transaction handler를 분리하고 `@lervo/hub-sync-sqlite`는 destination·project별 registration, append-only event inbox와 cursor를 한 commit에 저장합니다. 재시작, 두 project 격리, 역순·중복 batch, cursor update rollback과 실제 Node outbox의 응답 유실 복구를 SQLite로 확인했습니다. Handler는 HTTP나 인증 성공을 주장하지 않습니다. 결정은 [ADR-0036](./docs/adr/0036-durable-hub-sync-store.md)에 기록했습니다.
+
+다음 구현 순서: **project와 run을 분리하는 Hub trace read model**입니다.
 
 완료 조건:
 
@@ -241,6 +243,8 @@ packages/
   storage-contract/
   sync-contract/
   sync/
+  hub-sync/
+  hub-sync-sqlite/
   core/
   project/
   project-storage/
@@ -304,4 +308,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **Hub registration·event inbox·cursor의 durable 저장 adapter**입니다. 순수 receiver planner의 다음 state를 한 transaction에 저장한 뒤에만 응답을 만들고, 재시작·중복·역순 도착에서도 project별 cursor와 event 원본이 보존되는지 실제 SQLite fixture로 검증합니다.
+다음 구현 작업은 **project와 run을 분리하는 Hub trace read model**입니다. Durable inbox 원본을 바꾸지 않는 projection으로 project 목록, 연속 cursor와 buffered count, run별 event timeline을 만들고 중복·역순 도착과 재시작 뒤에도 같은 조회 결과가 나오는지 검증합니다.

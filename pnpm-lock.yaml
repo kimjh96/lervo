@@ -233,6 +233,37 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
+  packages/hub-sync:
+    dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../sync-contract
+
+  packages/hub-sync-sqlite:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../hub-sync
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../sync-contract
+    devDependencies:
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+      '@lervo/sync':
+        specifier: workspace:*
+        version: link:../sync
+
   packages/knowledge:
     dependencies:
       '@lervo/deliberation':

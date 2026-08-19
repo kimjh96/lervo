@@ -457,6 +457,16 @@ Cycle 상태는 `registration_deferred`, `idle`, `synchronized`, `retry_schedule
 
 Worker는 `sync.acknowledged` event를 만들지 않습니다. 같은 outbound 원본 chain에 delivery ack event를 추가하면 그 event가 다시 배송 대상이 되는 순환이 생깁니다. 별도 local-only stream 또는 sync 제외 규칙이 생기기 전에는 outbox row가 local delivery receipt이고, 이번 worker는 새 event나 이해·사용 주장을 추가하지 않습니다.
 
+### Hub sync durable receiver
+
+Hub handler는 schema-valid registration 또는 batch를 받은 뒤 `(destinationId, projectId)`로 현재 state를 같은 transaction에서 읽습니다. Registration ID만 조회 키로 사용하지 않으므로 생성 identity가 다른 재등록도 기존 project와 비교합니다. `sync-contract` reducer가 계산한 다음 registration, event inbox와 cursor를 저장한 뒤 store commit이 끝나야 response 또는 acknowledgement를 반환합니다. Callback이 Promise를 반환하면 rollback합니다.
+
+SQLite adapter의 `hub_projects`는 전체 registration request, 등록·갱신 시각과 cursor를 저장합니다. `hub_events`는 allowlist를 통과한 전체 event envelope와 중복 확인용 seq·ID·hash를 저장합니다. Event row는 update/delete할 수 없고 project row도 삭제할 수 없습니다. Manifest snapshot과 cursor 갱신, 새 event insert는 한 `BEGIN IMMEDIATE` transaction에 있으며 `WAL`, `synchronous=FULL`과 foreign key를 사용합니다. 저장 직후 같은 transaction에서 계획한 state와 다시 읽은 state가 다르면 rollback합니다.
+
+Gap 뒤 event는 durable inbox에 남지만 cursor는 앞 hash chain이 채워질 때까지 전진하지 않습니다. 같은 batch 재전송은 저장된 event 원본 전체가 같을 때만 `duplicate`이고, cursor update 실패는 같은 transaction의 event insert도 되돌립니다. Store 개방은 schema metadata, quick check, foreign key, append-only trigger, registration 중복 좌표와 project별 전체 event/cursor state를 확인합니다.
+
+Store 오류 code는 `closed`, `nested_transaction`, `transaction_async`, `integrity_failed`, `state_conflict`, `write_failed`입니다. 어느 오류도 registration 완료나 durable ack로 낮추지 않습니다. DB와 오류에는 sync 계약의 manifest와 allowlist event만 허용하며 repository 본문, prompt, 문서·스킬 본문, command output, authorization과 credential을 추가하지 않습니다. 이번 receiver는 HTTP, Node 인증·권한, trace projection과 새 telemetry event를 구현하지 않습니다.
+
 CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `lervo-cas://sha256/<64 hex>`이며 원문은 `.lervo/state/cas` 아래에만 둡니다. 큰 입력은 청크를 임시 파일에 쓰는 동안 hash와 byte count를 계산합니다. 생산자가 중간에 실패하면 임시 파일을 제거하고 object를 공개하지 않습니다. 새 object는 쓰기와 동기화를 끝낸 뒤 원자적인 hard link로 확정합니다. 같은 bytes는 기존 object를 재사용하고, 저장하거나 읽을 때 주소와 실제 bytes의 hash를 비교합니다. 유효한 주소가 없으면 `not_found`, bytes가 주소와 다르면 `corrupt_object`, 경로가 안전하지 않으면 `unsafe_path`입니다. `has`는 `not_found`만 `false`로 바꾸며 변조를 숨기지 않습니다. 세 경우 모두 상위 실행에서는 `artifact_storage_failed`로 처리합니다. 이 실패가 난 artifact에 의존하는 변경은 중단하며, 원문이나 비밀 값은 실패 event에 넣지 않고 digest와 오류 code만 기록합니다.
 
 ## M0 직렬화 계약
