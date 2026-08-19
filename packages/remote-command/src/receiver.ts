@@ -175,6 +175,16 @@ export class RemoteCommandReceiver {
     if (policyDecision?.status === "denied" && typeof policyDecision.reasonCode === "string") {
       throw new RemoteCommandRuntimeError("policy_denied", "remote command가 로컬 정책에서 거부되었습니다.");
     }
+    if (
+      policyDecision?.status === "approval_required" &&
+      typeof policyDecision.reasonCode === "string" &&
+      typeof policyDecision.capability === "string"
+    ) {
+      throw new RemoteCommandRuntimeError(
+        "approval_required",
+        "remote command 실행에 검증된 승인이 필요합니다.",
+      );
+    }
     if (policyDecision?.status !== "approved") {
       throw new RemoteCommandRuntimeError(
         "policy_evaluation_failed",
@@ -230,6 +240,10 @@ export class RemoteCommandReceiver {
         command: clone(command),
         request,
         authorizedAt: now,
+        policyAuthorization: {
+          policySnapshotId: policyDecision.policySnapshotId ?? null,
+          approvalIds: [...(policyDecision.approvalIds ?? [])].sort(),
+        },
       });
       receipt = {
         schemaVersion: 1,

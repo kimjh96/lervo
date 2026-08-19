@@ -1,5 +1,8 @@
 import type {
   CapabilityDecision,
+  PolicyApproval,
+  PolicyApprovalRevocation,
+  PolicySnapshot,
   DeliberationArtifactRecordedEventPayload,
   DeliberationCompletedEventPayload,
   DeliberationArtifact,
@@ -49,6 +52,13 @@ describe("schema-derived TypeScript contracts", () => {
       | { audience: "machine"; writingPolicyId: null }
       | { audience: "human" | "mixed"; locale: string; writingPolicyId: string }
     >();
+  });
+
+  it("derives policy deployment and approval lifecycle types from schemas", () => {
+    expectTypeOf<PolicySnapshot["rules"][number]["decision"]>()
+      .toEqualTypeOf<CapabilityDecision>();
+    expectTypeOf<PolicyApproval["snapshotId"]>().toEqualTypeOf<string>();
+    expectTypeOf<PolicyApprovalRevocation["approvalId"]>().toEqualTypeOf<string>();
   });
 
   it("keeps skill trust as a discriminated union", () => {

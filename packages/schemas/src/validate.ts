@@ -58,6 +58,14 @@ import {
 } from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
 import {
+  policyApprovalRevocationSchema,
+  policyApprovalSchema,
+  policySnapshotSchema,
+  signedPolicyApprovalRevocationSchema,
+  signedPolicyApprovalSchema,
+  signedPolicySnapshotSchema,
+} from "./policy.js";
+import {
   remoteCommandExecutionReceiptSchema,
   remoteCommandDeliveryAcknowledgementSchema,
   remoteCommandDeliveryConfirmationSchema,
@@ -89,12 +97,26 @@ ajv.addFormat("date-time", {
 ajv.addSchema(documentManifestSchema);
 ajv.addSchema(eventEnvelopeSchema);
 ajv.addSchema(projectManifestSchema);
+ajv.addSchema(policySnapshotSchema);
+ajv.addSchema(policyApprovalSchema);
+ajv.addSchema(policyApprovalRevocationSchema);
+ajv.addSchema(signedPolicySnapshotSchema);
+ajv.addSchema(signedPolicyApprovalSchema);
+ajv.addSchema(signedPolicyApprovalRevocationSchema);
 ajv.addSchema(remoteCommandSchema);
 ajv.addSchema(signedRemoteCommandSchema);
 ajv.addSchema(remoteCommandExecutionReceiptSchema);
 
 const validators = {
   project: ajv.getSchema(projectManifestSchema.$id)!,
+  policySnapshot: ajv.getSchema(policySnapshotSchema.$id)!,
+  signedPolicySnapshot: ajv.getSchema(signedPolicySnapshotSchema.$id)!,
+  policyApproval: ajv.getSchema(policyApprovalSchema.$id)!,
+  signedPolicyApproval: ajv.getSchema(signedPolicyApprovalSchema.$id)!,
+  policyApprovalRevocation: ajv.getSchema(policyApprovalRevocationSchema.$id)!,
+  signedPolicyApprovalRevocation: ajv.getSchema(
+    signedPolicyApprovalRevocationSchema.$id,
+  )!,
   event: ajv.getSchema(eventEnvelopeSchema.$id)!,
   projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),

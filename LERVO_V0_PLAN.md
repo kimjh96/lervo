@@ -319,7 +319,7 @@ fixtures/
 
 ## v0 이후 순서
 
-1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX
+1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX — 서명 snapshot·command-bound 승인/철회와 Node 재평가 1차 완료
 2. Slack/Discord command gateway와 승인 UX
 3. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
 4. 명시적 관계 기반 지식 그래프 시각화
@@ -328,4 +328,6 @@ fixtures/
 
 ## 다음 실행 작업
 
-현재 정의한 M0~M6 v0 범위는 완료했습니다. 다음 구현 작업은 **Hub 정책 배포와 `require_approval` 승인 수명주기**입니다. 서명된 정책 snapshot, project scope, 승인 원본·만료·철회와 local policy 우선순위를 먼저 계약으로 고정한 뒤 원격 command의 `policy_denied` 재평가와 연결합니다.
+현재 정의한 M0~M6 v0 범위는 완료했습니다. 후속 **Hub 정책 배포와 `require_approval` 승인 수명주기 1차**도 완료했습니다. `PolicySnapshot`, command·capability·snapshot-bound approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록했습니다.
+
+다음 구현 작업은 **검증된 approval evidence를 managed provider run의 `filesystem.write` permit에 결속**하는 것입니다. Coordinator가 snapshot·approval ID와 현재 command/run/경로/E3 좌표를 다시 확인하고 `capability.decided.approvalId`를 실제 승인 원본에 연결한 뒤에만 기존 1회용 permit를 발급해야 합니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 그 다음 transport 슬라이스로 분리합니다.

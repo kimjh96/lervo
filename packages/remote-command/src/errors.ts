@@ -13,6 +13,7 @@ export type RemoteCommandRuntimeErrorCode =
   | "nonce_replay"
   | "command_in_progress"
   | "policy_denied"
+  | "approval_required"
   | "policy_evaluation_failed"
   | "replay_store_failed";
 

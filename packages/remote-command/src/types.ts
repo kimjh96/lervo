@@ -21,8 +21,13 @@ export interface RemoteCommandTrustStore {
 }
 
 export type RemoteCommandPolicyDecision =
-  | { status: "approved" }
-  | { status: "denied"; reasonCode: string };
+  | {
+      status: "approved";
+      policySnapshotId?: string | null;
+      approvalIds?: string[];
+    }
+  | { status: "denied"; reasonCode: string }
+  | { status: "approval_required"; reasonCode: string; capability: string };
 
 export interface RemoteCommandPolicy {
   authorize(input: {
@@ -41,6 +46,10 @@ export interface RemoteCommandExecutor {
     command: RemoteCommand;
     request: string;
     authorizedAt: string;
+    policyAuthorization: {
+      policySnapshotId: string | null;
+      approvalIds: string[];
+    };
   }): Promise<{ runId: string; completedAt: string }>;
 }
 

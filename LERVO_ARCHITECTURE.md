@@ -74,6 +74,10 @@ Hub의 원격 command queue는 event inbox와 같은 SQLite database 안의 별�
 
 Node reconnect worker는 인증된 transport port에서 한 번에 기본 1개, 최대 16개의 lease를 받습니다. Hub peer와 destination, node ID, project target, lease 시각을 다시 확인한 뒤 기존 receiver를 호출합니다. Node의 `@lervo/remote-command-sqlite`는 project ID·identity hash에 고정된 별도 database에 command hash, idempotency key, nonce, reservation과 receipt만 저장합니다. Hub acknowledgement 전 연결이 끊기면 lease 만료 뒤 같은 command를 다시 받아 이 receipt를 `duplicate`로 복구하므로 executor는 다시 열리지 않습니다. 실행과 receipt 저장 사이의 crash로 durable reservation만 남은 경우에는 실행 여부를 추정하지 않고 `in_progress`로 fail-closed합니다. 실제 HTTP/TLS command endpoint는 transport port 뒤의 후속 구현입니다. 결정은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 
+정책 배포 1차 슬라이스는 `@lervo/policy-contract`, `@lervo/policy`, `@lervo/policy-sqlite`로 나뉩니다. Hub transport가 반환하는 snapshot·승인·철회 bundle은 body를 읽기 전에 인증된 destination·peer를 확인하고, 각 원본의 project scope, purpose별 Ed25519 signature와 bounded 개수를 검증한 뒤 한 SQLite transaction으로 적용합니다. Snapshot은 sequence와 이전 snapshot ID로 기존 Node 이력에 연속되어야 하며 승인과 철회는 append-only 원본입니다. 첫 연결은 현재 서명 snapshot을 bootstrap할 수 있지만 이후 과거 sequence나 끊긴 다음 snapshot은 거부합니다.
+
+원격 command 정책 평가기는 Role 기반 로컬 capability 결정과 현재 Hub rule 중 더 제한적인 값을 사용합니다. Hub `allow`는 로컬 `deny`나 `require_approval`을 완화하지 못합니다. 승인은 현재 snapshot ID/hash, command ID/hash, command signer key ID와 capability에 묶이고 발급 전·만료 후·철회 시각 이후에는 사용할 수 없습니다. 승인 대기는 replay reservation과 terminal Hub rejection을 만들지 않으므로 lease가 다시 전달될 때 같은 signed command를 재평가합니다. 평가 시 SQLite에 저장된 snapshot·승인·철회의 signature도 다시 검증합니다. 실제 Hub 정책 작성·durable source·HTTP route와 승인 evidence를 managed provider coordinator의 write permit까지 연결하는 작업은 이 슬라이스에 포함하지 않습니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+
 ## 저장소 내부 구조
 
 `lervo init`의 목표 구조입니다.
@@ -198,7 +202,9 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 
 파일 쓰기, 셸 실행, 네트워크, 외부 메시지, 배포 같은 capability를 판정합니다. 정책은 역할·프로젝트·환경·위험도에 따라 `allow`, `deny`, `require_approval`을 반환합니다. 필수 문서 주입 증거도 변경 capability의 선행 조건입니다.
 
-현재 managed context gate는 파일 쓰기에 한해 Role 정책과 E3 선행 조건을 결합합니다. `require_approval`의 승인 원본 확인은 아직 구현하지 않았으므로 보수적으로 차단하며, 승인 수명주기는 이후 Policy Engine 슬라이스가 맡습니다.
+원격 command 경계에는 서명된 Hub snapshot과 command-bound 승인·철회 수명주기가 구현되어 있습니다. 로컬과 Hub 판정은 제한도 `deny > require_approval > allow` 순서로 병합하며 현재 snapshot에 묶인 유효한 승인만 `require_approval`을 통과시킵니다. 승인자 식별 원문 대신 subject hash만 저장하고 정책 사유 원문은 저장하지 않습니다.
+
+Managed context gate 자체는 아직 Role의 `filesystem.write=require_approval`을 보수적으로 차단합니다. 원격 command executor에 전달되는 policy snapshot ID와 approval ID를 coordinator가 다시 검증해 기존 E3·경로·before hash permit에 결속하는 연결은 다음 슬라이스입니다.
 
 ### Provider Adapters
 
@@ -377,6 +383,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·reconnect(`remote-command`)와 project-bound replay 저장(`remote-command-sqlite`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·command queue·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 Hub 정책 배포와 `require_approval` 승인 수명주기입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `policy-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`, `policy`, `policy-sqlite`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·reconnect(`remote-command`)와 project-bound replay 저장(`remote-command-sqlite`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·command queue·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 검증된 approval evidence를 managed run의 파일 쓰기 permit에 결속하는 작업입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

@@ -362,6 +362,45 @@ importers:
         specifier: workspace:*
         version: link:../event-store-sqlite
 
+  packages/policy:
+    dependencies:
+      '@lervo/policy-contract':
+        specifier: workspace:*
+        version: link:../policy-contract
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../remote-command
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../remote-command-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/policy-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../remote-command-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/policy-sqlite:
+    dependencies:
+      '@lervo/policy':
+        specifier: workspace:*
+        version: link:../policy
+      '@lervo/policy-contract':
+        specifier: workspace:*
+        version: link:../policy-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/project:
     dependencies:
       '@lervo/schemas':

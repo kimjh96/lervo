@@ -696,7 +696,7 @@ Node receiver는 다음 순서를 바꾸지 않습니다.
 3. Signer에게 허용된 project ID·identity hash와 현재 receiver target이 command target과 정확히 같은지 확인합니다.
 4. Idempotency key와 nonce의 replay 상태를 조회합니다. 이미 terminal인 같은 command만 저장된 receipt로 복구합니다.
 5. 기본 5분, 구성 상한 15분의 command lifetime과 기본 30초, 상한 60초의 clock skew를 적용합니다.
-6. 로컬 정책이 role, provider, risk와 verification 요구를 승인한 경우에만 replay reservation을 원자적으로 만듭니다.
+6. 로컬·Hub 정책 병합 결과가 승인되고 필요한 command-bound approval이 유효한 경우에만 replay reservation을 원자적으로 만듭니다.
 7. 예약 뒤 artifact bytes를 읽고 byte 수, content hash와 strict UTF-8을 확인한 뒤 공급자 중립 executor를 호출합니다.
 8. Terminal receipt를 replay store에 완료한 뒤에만 `deliveryStatus=processed`를 반환합니다.
 
@@ -704,7 +704,7 @@ Node receiver는 다음 순서를 바꾸지 않습니다.
 
 Replay 내부 판정은 `available`, `in_progress`, `duplicate`, `idempotency_conflict`, `nonce_replay`를 구분합니다. 외부 처리 결과는 `processed`와 `duplicate`만 반환합니다. In-progress, 충돌, 만료, scope·signature·policy 거부와 저장 장애는 terminal receipt로 위장하지 않고 안정적인 runtime 오류가 됩니다. 특히 executor 뒤 receipt 저장이 실패하면 실행 여부를 되돌려 추정하지 않고 `replay_store_failed`로 닫습니다.
 
-안정적인 사전 실행 오류는 `invalid_command`, `trust_store_failed`, `unknown_signer`, `invalid_signature`, `signer_scope_denied`, `target_mismatch`, `command_not_yet_valid`, `command_expired`, `command_lifetime_exceeded`, `idempotency_conflict`, `nonce_replay`, `command_in_progress`, `policy_denied`, `policy_evaluation_failed`, `replay_store_failed`입니다. 오류와 receipt에는 request, credential, key bytes, policy reason 원문, loader/executor 예외를 넣지 않습니다. `keyId`, project 좌표, artifact 좌표와 hash는 계약 metadata이고 command transport·보존 정책의 적용을 받습니다.
+안정적인 사전 실행 오류는 `invalid_command`, `trust_store_failed`, `unknown_signer`, `invalid_signature`, `signer_scope_denied`, `target_mismatch`, `command_not_yet_valid`, `command_expired`, `command_lifetime_exceeded`, `idempotency_conflict`, `nonce_replay`, `command_in_progress`, `policy_denied`, `approval_required`, `policy_evaluation_failed`, `replay_store_failed`입니다. 오류와 receipt에는 request, credential, key bytes, policy reason 원문, loader/executor 예외를 넣지 않습니다. `keyId`, project 좌표, artifact 좌표와 hash는 계약 metadata이고 command transport·보존 정책의 적용을 받습니다.
 
 In-memory replay store는 단위 fixture에 남아 있고 실제 reconnect fixture는 project-bound SQLite adapter를 사용합니다. SQLite는 기본 1,024개, 구성상 최대 100,000개의 replay record를 보존하며 capacity에서 eviction하지 않고 fail-closed합니다. 이번 단계는 새 event를 추가하지 않으며 receipt는 `run.completed`, event sync 또는 Hub 전달 완료를 대신하지 않습니다. Receiver 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md), durable delivery 결정은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 
@@ -735,6 +735,20 @@ Hub acknowledgement 전 연결이 끊기면 Node terminal receipt는 먼저 dura
 
 Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자체를 반환하지 않습니다. Node replay에는 envelope도 없습니다. Queue/reconnect 성공은 event sync, provider verification, writing 공개나 사람이 결과를 읽었다는 뜻이 아닙니다. 상세 상태와 장애 처분은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 
+## 서명된 정책 배포와 승인 수명주기
+
+`PolicySnapshot`은 project ID·identity hash, sequence, 이전 snapshot ID, 발급·만료 시각과 1~256개의 rule을 가집니다. Rule 좌표는 role, risk, capability 조합이며 한 snapshot 안에서 중복할 수 없습니다. Decision은 `allow`, `deny`, `require_approval`입니다. Snapshot ID는 자신을 제외한 canonical 원본의 hash이고 snapshot hash는 완성 원본의 SHA-256입니다.
+
+`PolicyApproval`은 현재 snapshot ID/hash, command ID/hash, command signer key ID, capability, 승인자 subject hash, 발급·만료 시각에 결속됩니다. 승인 만료는 snapshot과 command 만료보다 늦을 수 없습니다. `PolicyApprovalRevocation`은 approval ID, 철회 시각과 `cancelled`, `superseded`, `security_policy_changed` 중 하나의 짧은 reason code만 가집니다. Snapshot, approval과 revocation은 각각 `lervo.policy.snapshot.v1`, `lervo.policy.approval.v1`, `lervo.policy.revocation.v1` domain으로 Ed25519 서명하며 trust key는 project scope와 허용 purpose를 함께 가져야 합니다.
+
+인증된 policy transport는 destination과 Hub peer identity를 먼저 확인합니다. 한 bundle은 snapshot 하나, approval 최대 64개와 revocation 최대 64개입니다. 모든 schema, canonical ID/hash, project scope, purpose와 signature를 저장 전에 검증합니다. Node SQLite는 project identity에 고정되며 snapshot·approval·revocation signed envelope을 서로 다른 append-only table에 보존합니다. 새 snapshot은 현재 sequence 바로 다음이며 `previousSnapshotId`가 현재 ID여야 합니다. 처음 연결한 비어 있는 Node는 서명된 현재 snapshot을 bootstrap할 수 있지만, 하나를 저장한 뒤에는 과거·gap snapshot으로 되돌아가지 않습니다. Bundle 전체는 한 transaction이므로 잘못된 승인 하나 때문에 snapshot만 부분 적용되지 않습니다.
+
+원격 command 평가 시 로컬 capability 결정과 일치하는 Hub rule 중 더 제한적인 결정을 사용합니다. 제한도는 `deny > require_approval > allow`입니다. 따라서 Hub 정책은 로컬 제한을 완화할 수 없고, 로컬 `deny`는 승인으로 우회할 수 없습니다. `require_approval`은 현재 snapshot과 정확한 command·capability에 묶인 승인이 평가 시각에 유효하고 아직 철회되지 않았을 때만 통과합니다. 저장 후 평가에서도 snapshot·approval·revocation signature를 trust store로 다시 확인합니다.
+
+승인 대기와 정책 거부는 replay reservation을 만들지 않습니다. `approval_required`는 terminal Hub rejection이 아니라 reconnect worker의 `local_deferred`이며 lease 만료 뒤 같은 signed command를 다시 평가할 수 있습니다. 승인되면 executor 입력에 policy snapshot ID와 정렬된 approval ID만 전달합니다. 이 좌표는 실행 승인을 뜻하지만 executor 실행, `run.completed`, E3나 파일 쓰기 permit를 대신하지 않습니다.
+
+Policy SQLite 원본에는 rule metadata, 서명 envelope, command/hash 좌표와 승인자 subject hash만 있습니다. Raw request, 승인자 식별 원문, 승인 사유, credential, provider payload와 오류 본문은 저장하지 않습니다. 이번 단계는 새 event를 추가하지 않습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint와 managed provider coordinator의 permit 연결은 후속 범위입니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+
 ## 실패 의미
 
 | code | 실패 의미 |
@@ -745,7 +759,9 @@ Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자�
 | `invalid_command` / `unknown_signer` / `invalid_signature` / `signer_scope_denied` / `target_mismatch` | 원격 command 계약, 신뢰 key, 서명 또는 project 좌표가 맞지 않습니다. 로컬 정책과 executor를 호출하지 않고 새 command를 요구합니다. |
 | `command_not_yet_valid` / `command_expired` / `command_lifetime_exceeded` | 로컬 clock과 허용된 skew·lifetime에서 command를 실행할 수 없습니다. 만료 command를 갱신된 서명 없이 재사용하지 않습니다. |
 | `idempotency_conflict` / `nonce_replay` / `command_in_progress` | 다른 command가 같은 idempotency/nonce를 사용했거나 같은 command가 이미 처리 중입니다. Executor를 중복 호출하지 않으며 terminal receipt가 생긴 뒤 동일 command를 조회할 수 있습니다. |
-| `policy_denied` / `policy_evaluation_failed` | 로컬 정책이 거부됐거나 유효한 판정을 만들지 못했습니다. Reservation과 실행을 시작하지 않습니다. |
+| `policy_denied` / `approval_required` / `policy_evaluation_failed` | 로컬·Hub 병합 정책이 거부됐거나 현재 command-bound 승인이 없거나 서명 원본으로 유효한 판정을 만들지 못했습니다. Reservation과 실행을 시작하지 않습니다. 승인은 같은 command를 lease 만료 뒤 다시 평가할 수 있지만 deny와 검증 실패를 승인으로 추정하지 않습니다. |
+| `invalid_policy_bundle` / `unknown_policy_signer` / `policy_signer_scope_denied` / `policy_signer_purpose_denied` / `invalid_policy_signature` | 정책 bundle의 계약, signer, project scope, purpose 또는 signature가 맞지 않습니다. Bundle 전체를 저장하지 않고 현재 정책을 유지합니다. |
+| `policy_store_failed` | 정책 원본 조회·연속 snapshot transaction 또는 저장 후 검증이 실패했습니다. 새 정책이나 승인을 적용했다고 주장하지 않고 원격 executor를 열지 않습니다. |
 | `trust_store_failed` / `replay_store_failed` | 신뢰 key 또는 replay 상태를 안전하게 읽고 저장하지 못했습니다. 실행 완료를 주장하지 않으며 운영 상태 확인 전 자동 실행 재시도를 하지 않습니다. |
 | `remote_command_registration_required` / `remote_command_identity_mismatch` / `remote_command_conflict` | Hub queue 대상의 registration·identity·command 원본이 맞지 않습니다. Pending delivery를 만들거나 기존 원본을 덮어쓰지 않습니다. |
 | `remote_command_ack_invalid` / `invalid_remote_command_acknowledgement` | Delivery·lease·command·receipt 또는 acknowledgement 시각이 현재 Hub 원본과 다릅니다. Terminal 상태를 commit하지 않습니다. |

@@ -59,4 +59,4 @@ Hub가 오프라인인 동안 command가 SQLite `pending`으로 남고 executor�
 
 ## 결과
 
-M6 로컬 fixture는 outbound event와 inbound command 양쪽에서 오프라인과 응답 유실을 durable 원본으로 복구합니다. 이는 transport port를 사용한 로컬 통합 검증이며 공개 command HTTP route, 실제 TLS peer 인증, daemon scheduling이나 multi-node 운영을 뜻하지 않습니다. 다음 범위는 Hub 정책 배포와 `require_approval` 승인 수명주기입니다.
+M6 로컬 fixture는 outbound event와 inbound command 양쪽에서 오프라인과 응답 유실을 durable 원본으로 복구합니다. 이는 transport port를 사용한 로컬 통합 검증이며 공개 command HTTP route, 실제 TLS peer 인증, daemon scheduling이나 multi-node 운영을 뜻하지 않습니다. 후속 정책 배포와 승인 수명주기 결정은 [ADR-0043](./0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
