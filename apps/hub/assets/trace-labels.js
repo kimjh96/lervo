@@ -1,0 +1,61 @@
+const eventLabels = {
+  "run.requested": "실행 요청",
+  "run.resolved": "실행 준비 완료",
+  "run.completed": "실행 완료",
+  "run.failed": "실행 실패",
+  "context.selected": "맥락 선택",
+  "document.loaded": "문서 읽기",
+  "context.injected": "맥락 전달",
+  "context.invalidated": "맥락 무효화",
+  "context.published": "공유 맥락 공개",
+  "handoff.created": "역할 간 전달",
+  "adapter.started": "공급자 연결 시작",
+  "adapter.stopped": "공급자 연결 종료",
+  "capability.requested": "권한 요청",
+  "capability.decided": "권한 결정",
+  "tool.called": "도구 호출",
+  "command.executed": "명령 실행",
+  "file.changed": "파일 변경",
+  "skill.resolved": "스킬 선택",
+  "skill.invoked": "스킬 호출",
+  "skill.completed": "스킬 완료",
+  "verification.started": "검증 시작",
+  "verification.completed": "검증 완료",
+  "deliberation.started": "토론 시작",
+  "deliberation.artifact.recorded": "토론 근거 기록",
+  "deliberation.completed": "토론 종료",
+  "knowledge.candidate.created": "지식 후보 생성",
+  "knowledge.candidate.reviewed": "지식 후보 검토",
+  "knowledge.verified": "지식 검증 완료",
+  "knowledge.stale.detected": "오래된 지식 감지",
+  "document.stale.detected": "오래된 문서 감지",
+  "document.migration.applied": "문서 이전 적용",
+  "unmanaged_change.detected": "관리 밖 변경 감지",
+  "sync.acknowledged": "동기화 확인",
+};
+
+const fieldLabels = {
+  documentId: "문서",
+  reasonCode: "선택 이유",
+  ruleId: "적용 규칙",
+  required: "필수 여부",
+  scope: "범위",
+  verificationId: "검증",
+  suiteId: "검증 묶음",
+  status: "상태",
+  nonPassedCommandIds: "통과하지 못한 명령",
+  role: "역할",
+  risk: "위험도",
+  requestDigest: "요청 근거",
+  resultArtifactId: "결과 산출물",
+  resultContentHash: "결과 해시",
+  repositoryRevision: "저장소 revision",
+};
+
+export function eventLabel(type) {
+  return eventLabels[type] ?? type;
+}
+
+export function fieldLabel(field) {
+  return fieldLabels[field] ?? field;
+}

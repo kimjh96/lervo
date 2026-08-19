@@ -59,6 +59,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [연속 이력과 buffered event를 구분하는 Hub trace read model ADR](./docs/adr/0037-hub-trace-read-model.md)
 - [이력 크기와 분리된 비동기 Hub 저장·조회 경계 ADR](./docs/adr/0038-bounded-async-hub-storage-and-trace.md)
 - [인증과 project scope를 먼저 적용하는 trace HTTP 경계 ADR](./docs/adr/0039-authenticated-project-scoped-trace-http.md)
+- [페이지를 누적하지 않는 read-only trace web view ADR](./docs/adr/0040-bounded-trace-web-view.md)
 
 ## 현재 구현
 
@@ -71,7 +72,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/hub-sync`: commit 뒤 resolve하는 비동기 registration·event batch command port. 전체 state와 저장 transaction callback은 공개하지 않음
 - `@lervo/hub-sync-sqlite`: destination·project별 registration, append-only event inbox와 연속 cursor를 batch·인접 event 기반 증분 transaction으로 저장하는 durable adapter. 시작 검사는 bounded check, 전체 chain은 명시적 audit로 분리
 - `@lervo/hub-trace`: 기본 50·최대 100개의 cursor page로 project, run과 event timeline을 읽는 파생 query 경계. Cursor 이하 `continuous`와 gap 뒤 `buffered` event를 구분하며 project 목록에는 event payload를 포함하지 않음
-- `@lervo/hub`: 구성된 bearer credential을 project scope에 결속하고 인증 뒤에만 bounded trace query를 호출하는 read-only HTTP adapter. 외부 cursor, 고정 오류 본문, no-store cache와 응답 byte 한도를 강제
+- `@lervo/hub`: 구성된 bearer credential을 project scope에 결속하고 인증 뒤에만 bounded trace query를 호출하는 read-only HTTP adapter. Project→run→event를 page 단위로 교체하는 `/trace` web view, 외부 cursor, 고정 오류, no-store와 응답 byte 한도를 함께 제공
 - `@lervo/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@lervo/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
 - `@lervo/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
@@ -95,7 +96,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 문서·스킬·provider 실행 환경을 분리해 점검하는 `doctor` application service 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증과 project scope를 먼저 적용하는 read-only HTTP API도 실제 Node server로 검증했습니다. Gap 뒤 event는 `buffered`로 분리되고 선택 reason부터 검증 결과까지 cursor page로 읽을 수 있습니다. 다음 작업은 이 API만 사용하는 최소 trace web view입니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Gap 뒤 event는 `연결 대기`로 분리되고 선택 이유부터 검증 결과까지 page를 누적하지 않고 탐색할 수 있습니다. 다음 작업은 서명된 원격 command protocol의 로컬 fixture입니다.
 
 ## 핵심 명제
 

@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json"
+    "build": "node --check assets/trace-api.js && node --check assets/trace-labels.js && node --check assets/trace-navigation.js && node --check assets/trace-pagination.js && node --check assets/trace-render.js && node --check assets/trace.js && tsc --project tsconfig.json"
   },
   "dependencies": {
     "@lervo/hub-trace": "workspace:*",

@@ -1,90 +1,22 @@
-import { type AddressInfo } from "node:net";
-
-import {
-  type HubProjectTraceSummary,
-  type HubTraceSource,
-} from "@lervo/hub-trace";
+import { type HubProjectTraceSummary } from "@lervo/hub-trace";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  ConfiguredBearerAuthenticator,
-  createHubTraceServer,
-  type HubBearerCredential,
-} from "../src/index.js";
-
-const token = "lervo-http-token-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const allowedProject: HubProjectTraceSummary = {
-  destinationId: "hub:primary",
-  projectId: "prj_allowed01",
-  projectName: "허용된 project",
-  registrationId: "hpr_" + "a".repeat(64),
-  projectIdentityHash: "sha256:" + "b".repeat(64),
-  projectManifestHash: "sha256:" + "c".repeat(64),
-  registeredAt: "2026-08-19T00:00:00.000Z",
-  updatedAt: "2026-08-19T00:00:00.000Z",
-  cursor: { seq: 0, eventHash: null },
-  storedEventCount: 0,
-  continuousEventCount: 0,
-  bufferedEventCount: 0,
-  runCount: 0,
-};
-const secondProject: HubProjectTraceSummary = {
-  ...allowedProject,
-  projectId: "prj_allowed02",
-  projectName: "두 번째 project",
-};
-const credentials: HubBearerCredential[] = [{
+  allowedProject,
+  closeHubTestServers,
+  credentials,
+  secondProject,
+  startHubTestServer,
   token,
-  principalId: "operator:http-test",
-  projects: [
-    { destinationId: allowedProject.destinationId, projectId: allowedProject.projectId },
-    { destinationId: secondProject.destinationId, projectId: secondProject.projectId },
-  ],
-}];
-const openServers: ReturnType<typeof createHubTraceServer>[] = [];
+  traceSource,
+} from "./http-fixture.js";
 
-function source(): HubTraceSource {
-  return {
-    listProjects: vi.fn(async (query) => query.after === undefined ? {
-      items: [allowedProject],
-      nextCursor: {
-        destinationId: allowedProject.destinationId,
-        projectId: allowedProject.projectId,
-      },
-    } : { items: [secondProject], nextCursor: null }),
-    getProject: vi.fn(async () => ({
-      project: allowedProject,
-      runs: { items: [], nextCursor: null },
-    })),
-    getRun: vi.fn(async () => null),
-  };
-}
-
-async function start(querySource: HubTraceSource, maxResponseBytes?: number): Promise<string> {
-  const server = createHubTraceServer({
-    authenticator: new ConfiguredBearerAuthenticator(credentials),
-    source: querySource,
-    ...(maxResponseBytes === undefined ? {} : { maxResponseBytes }),
-  });
-  openServers.push(server);
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address() as AddressInfo;
-  return `http://127.0.0.1:${address.port}`;
-}
-
-afterEach(async () => {
-  await Promise.all(openServers.splice(0).map((server) => new Promise<void>((resolve, reject) => {
-    server.close((error) => error === undefined ? resolve() : reject(error));
-  })));
-});
+afterEach(closeHubTestServers);
 
 describe("Hub trace HTTP API", () => {
   it("rejects missing and invalid credentials before any trace query", async () => {
-    const querySource = source();
-    const base = await start(querySource);
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
 
     const missing = await fetch(`${base}/v1/trace/projects`);
     expect(missing.status).toBe(401);
@@ -100,8 +32,8 @@ describe("Hub trace HTTP API", () => {
   });
 
   it("passes the authenticated project scope to the source and round-trips pagination", async () => {
-    const querySource = source();
-    const base = await start(querySource);
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
     const headers = { authorization: `Bearer ${token}` };
 
     const first = await fetch(`${base}/v1/trace/projects?limit=1`, { headers });
@@ -142,8 +74,8 @@ describe("Hub trace HTTP API", () => {
   });
 
   it("returns forbidden for an out-of-scope project without reading project data", async () => {
-    const querySource = source();
-    const base = await start(querySource);
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
     const response = await fetch(
       `${base}/v1/trace/projects/prj_forbid001?destinationId=hub%3Aprimary`,
       { headers: { authorization: `Bearer ${token}` } },
@@ -155,7 +87,7 @@ describe("Hub trace HTTP API", () => {
   });
 
   it("serves authorized project and run details through the bounded source queries", async () => {
-    const querySource = source();
+    const querySource = traceSource();
     vi.mocked(querySource.getRun).mockResolvedValue({
       project: { ...allowedProject, cursor: { seq: 0, eventHash: null } },
       run: {
@@ -197,7 +129,7 @@ describe("Hub trace HTTP API", () => {
         nextCursor: null,
       },
     });
-    const base = await start(querySource);
+    const base = await startHubTestServer(querySource);
     const headers = { authorization: `Bearer ${token}` };
 
     const projectResponse = await fetch(
@@ -231,8 +163,8 @@ describe("Hub trace HTTP API", () => {
   });
 
   it("rejects malformed queries and mismatched cursors before reading details", async () => {
-    const querySource = source();
-    const base = await start(querySource);
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
     const headers = { authorization: `Bearer ${token}` };
 
     const unknown = await fetch(`${base}/v1/trace/projects?unknown=1`, { headers });
@@ -248,8 +180,8 @@ describe("Hub trace HTTP API", () => {
   });
 
   it("uses fixed route and method errors without querying trace data", async () => {
-    const querySource = source();
-    const base = await start(querySource);
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
     const missing = await fetch(`${base}/v1/trace/unknown`);
     expect(missing.status).toBe(404);
     const method = await fetch(`${base}/v1/trace/projects`, { method: "POST" });
@@ -259,12 +191,12 @@ describe("Hub trace HTTP API", () => {
   });
 
   it("replaces an oversized authorized result with a bounded safe error", async () => {
-    const querySource = source();
+    const querySource = traceSource();
     vi.mocked(querySource.listProjects).mockResolvedValue({
       items: [{ ...allowedProject, projectName: "가".repeat(2_000) }],
       nextCursor: null,
     });
-    const base = await start(querySource, 1_024);
+    const base = await startHubTestServer(querySource, 1_024);
     const response = await fetch(`${base}/v1/trace/projects`, {
       headers: { authorization: `Bearer ${token}` },
     });

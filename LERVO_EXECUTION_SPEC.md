@@ -481,7 +481,15 @@ HTTP adapter는 `GET /v1/trace/projects`, `GET /v1/trace/projects/<projectId>`, 
 
 `HubRequestAuthenticator`는 authorization 값에서 principal과 허용 project 좌표를 반환합니다. 첫 adapter는 시작 구성의 32~4096자 visible ASCII bearer token digest를 process memory에서 대조합니다. Token 원문, digest와 principal ID는 응답에 넣지 않습니다. 이는 구성값 일치만 뜻하며 사용자 federation, JWT, 조직 역할이나 Node peer 인증을 주장하지 않습니다. 인증 실패는 이유를 나누지 않는 `unauthorized` 401, scope 밖은 project 존재 여부와 무관한 `forbidden` 403입니다. 권한 확인 뒤의 실제 부재만 `project_not_found`·`run_not_found` 404이며 저장 오류와 내부 예외는 상세를 숨긴 `internal_error` 500입니다.
 
-성공과 실패 JSON은 `schemaVersion: 1`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`를 사용합니다. 응답 기본 한도는 1 MiB, 구성 상한은 16 MiB이며 초과한 원본은 일부 전송하지 않고 `response_too_large`로 바꿉니다. 이 API는 read-only이고 새 event나 telemetry를 만들지 않으며 인증 성공을 context 이해·사용, 실행·sync 완료로 확대 해석하지 않습니다. HTML rendering은 다음 web adapter가 담당합니다.
+성공과 실패 JSON은 `schemaVersion: 1`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`를 사용합니다. 응답 기본 한도는 1 MiB, 구성 상한은 16 MiB이며 초과한 원본은 일부 전송하지 않고 `response_too_large`로 바꿉니다. 이 API는 read-only이고 새 event나 telemetry를 만들지 않으며 인증 성공을 context 이해·사용, 실행·sync 완료로 확대 해석하지 않습니다.
+
+### Hub trace read-only web view
+
+`GET /trace`는 project와 event가 없는 HTML shell이고 `/assets/`의 고정 JavaScript·CSS만 직접 제공합니다. Shell과 asset은 authenticator와 trace source를 호출하지 않습니다. 모든 web response는 no-store, same-origin resource policy, no-referrer, frame·MIME 차단과 same-origin script/style/connect만 허용하는 CSP를 사용합니다. Asset은 시작 시 고정 경로에서 각 256 KiB 이하인지 확인합니다. Query가 붙은 화면·asset과 body가 있는 GET은 400, 다른 method는 405입니다.
+
+사용자가 입력한 bearer token은 현재 page의 변수에서만 API header를 만드는 데 사용합니다. 입력 element는 요청 전에 비우고 URL, fragment, HTML, local/session storage와 cookie에 저장하지 않습니다. Fetch는 same-origin `/v1/trace`만 호출하고 cookie credential과 redirect를 허용하지 않습니다. 연결 해제, 401과 page 종료 때 token 참조와 화면을 비웁니다. Public shell에는 principal, project scope, source와 credential이 없습니다.
+
+Project, run과 event는 각각 20개짜리 현재 page 하나만 DOM에 표시합니다. 다음 page는 기존 목록을 교체하고 이전 이동용 cursor만 탭 메모리에 둡니다. Project page 변경은 run/event 선택을, run page 변경은 event 선택을 비웁니다. 이전 선택의 늦은 응답은 현재 pager와 다르면 반영하지 않으며 page 실패는 현재 cursor를 유지합니다. Event의 `continuous`는 `연속 이력`, `buffered`는 `연결 대기`로 문구와 색을 함께 표시합니다. Hub 문자열은 HTML이 아니라 text node로만 추가합니다. 결정은 [ADR-0040](./docs/adr/0040-bounded-trace-web-view.md)에 기록합니다.
 
 CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `lervo-cas://sha256/<64 hex>`이며 원문은 `.lervo/state/cas` 아래에만 둡니다. 큰 입력은 청크를 임시 파일에 쓰는 동안 hash와 byte count를 계산합니다. 생산자가 중간에 실패하면 임시 파일을 제거하고 object를 공개하지 않습니다. 새 object는 쓰기와 동기화를 끝낸 뒤 원자적인 hard link로 확정합니다. 같은 bytes는 기존 object를 재사용하고, 저장하거나 읽을 때 주소와 실제 bytes의 hash를 비교합니다. 유효한 주소가 없으면 `not_found`, bytes가 주소와 다르면 `corrupt_object`, 경로가 안전하지 않으면 `unsafe_path`입니다. `has`는 `not_found`만 `false`로 바꾸며 변조를 숨기지 않습니다. 세 경우 모두 상위 실행에서는 `artifact_storage_failed`로 처리합니다. 이 실패가 난 artifact에 의존하는 변경은 중단하며, 원문이나 비밀 값은 실패 event에 넣지 않고 digest와 오류 code만 기록합니다.
 

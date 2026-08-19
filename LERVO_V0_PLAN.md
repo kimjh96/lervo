@@ -210,7 +210,9 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **인증·project authorization을 먼저 결속한 read-only trace HTTP API 완료.** `@lervo/hub`는 구성된 bearer token을 principal·project scope에 연결하고 인증 뒤에만 project-scoped reader를 만듭니다. 목록 scope는 SQLite SQL에 전달하고 scope 밖 상세는 source 호출 전에 거부합니다. 세 GET route, 종류별 외부 cursor, 고정 오류, no-store와 응답 byte 한도를 실제 Node HTTP server로 검증했습니다. 결정은 [ADR-0039](./docs/adr/0039-authenticated-project-scoped-trace-http.md)에 기록했습니다.
 
-다음 구현 순서: **인증된 API만 사용하는 최소 read-only trace web view**입니다.
+구현 현황(2026-08-19): **인증된 API만 사용하는 최소 read-only trace web view 완료.** `/trace`는 데이터 없는 shell만 제공하고 입력 token은 현재 탭 메모리의 API header에만 사용합니다. Project, run과 event는 독립된 20개 cursor page로 교체하며 `continuous`와 `buffered`를 `연속 이력`과 `연결 대기`로 구분합니다. 고정 asset route, CSP·no-store, 무권한 source 격리와 cursor 이전·다음·실패 보존을 실제 HTTP와 pager fixture로 확인했습니다. 결정은 [ADR-0040](./docs/adr/0040-bounded-trace-web-view.md)에 기록했습니다.
+
+다음 구현 순서: **서명된 원격 command protocol의 로컬 fixture**입니다.
 
 완료 조건:
 
@@ -218,6 +220,7 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 - Project, run과 event 조회가 최대 100개 cursor page를 강제하고 목록 조회에 전체 event payload를 적재하지 않음
 - 인증되지 않은 요청과 scope 밖 project 요청이 trace source를 호출하지 않으며 목록 권한이 SQL query에 적용됨
 - 외부 cursor, 오류 본문, cache와 응답 byte 한도가 HTTP contract test로 고정됨
+- Web shell에 Hub data·credential 구성이 없고 project·run·event page가 이전 DOM에 누적되지 않음
 - Bounded 시작 검사와 명시적 전체 audit의 보장 범위를 혼용하지 않음
 - 두 fixture 프로젝트를 한 화면에서 분리 조회
 - 중복/역순 전송에도 일관된 read model
@@ -318,4 +321,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **인증된 API만 사용하는 최소 read-only trace web view**입니다. 화면은 project 목록, run 목록과 event page를 한 문서에 누적하지 않고 단계별로 탐색하며 `continuous`와 `buffered`를 분명히 표시합니다. Browser에 Hub source나 credential 목록을 넘기지 않고 현재 API의 bounded cursor와 고정 오류만 사용합니다.
+다음 구현 작업은 **서명된 원격 command protocol의 로컬 fixture**입니다. Command 원본, project scope, 짧은 만료 시각, nonce와 idempotency key를 공급자·transport 중립 계약으로 먼저 고정하고 서명 검증과 local policy 승인 전에는 Node 실행 경계를 열지 않습니다.
