@@ -1,28 +1,57 @@
 import { DatabaseSync } from "node:sqlite";
 
 import {
-  type HubProjectCoordinate,
+  type HubSyncCommandStore,
   type HubSyncIntegrityReport,
-  type HubSyncReadView,
-  type HubSyncStore,
-  type HubSyncTransaction,
+  type HubSyncIntegrityStore,
+  type HubSyncLifecycle,
 } from "@lervo/hub-sync";
+import {
+  type HubProjectTrace,
+  type HubProjectTraceSummary,
+  type HubRunTrace,
+  type HubTracePage,
+  type HubTraceSource,
+  type ResolvedHubProjectRunQuery,
+  type ResolvedHubProjectTraceQuery,
+  type ResolvedHubRunEventQuery,
+} from "@lervo/hub-trace";
+import {
+  type EventSyncAcknowledgement,
+  type OutboundEventBatch,
+  type ProjectRegistrationRequest,
+  type ProjectRegistrationResponse,
+} from "@lervo/schemas";
 
 import { ensureDatabasePath } from "./database-lifecycle.js";
+import { HubAuditSQLiteRepository } from "./audit-repository.js";
+import { HubEventInboxSQLiteRepository } from "./event-inbox-repository.js";
 import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
-import { HubSyncSQLiteRepository } from "./repository.js";
+import { HubRegistrationSQLiteRepository } from "./registration-repository.js";
+import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 
-export class HubSyncSQLiteStore implements HubSyncStore {
+export class HubSyncSQLiteStore implements
+  HubSyncCommandStore,
+  HubSyncIntegrityStore,
+  HubSyncLifecycle,
+  HubTraceSource
+{
   readonly path: string;
   private closed = false;
-  private readonly repository: HubSyncSQLiteRepository;
+  private readonly auditRepository: HubAuditSQLiteRepository;
+  private readonly eventInboxRepository: HubEventInboxSQLiteRepository;
+  private readonly registrationRepository: HubRegistrationSQLiteRepository;
+  private readonly traceRepository: HubTraceSQLiteRepository;
   private readonly transactionRunner: SQLiteTransactionRunner;
 
   private constructor(path: string, private readonly database: DatabaseSync) {
     this.path = path;
-    this.repository = new HubSyncSQLiteRepository(database);
+    this.auditRepository = new HubAuditSQLiteRepository(database);
+    this.eventInboxRepository = new HubEventInboxSQLiteRepository(database);
+    this.registrationRepository = new HubRegistrationSQLiteRepository(database);
+    this.traceRepository = new HubTraceSQLiteRepository(database);
     this.transactionRunner = new SQLiteTransactionRunner(database);
   }
 
@@ -36,7 +65,7 @@ export class HubSyncSQLiteStore implements HubSyncStore {
       configureDatabase(database);
       migrateDatabase(database);
       const store = new HubSyncSQLiteStore(path, database);
-      store.verifyIntegrity();
+      await store.checkIntegrity();
       return store;
     } catch (error) {
       database.close();
@@ -50,45 +79,71 @@ export class HubSyncSQLiteStore implements HubSyncStore {
     }
   }
 
-  transact<T>(work: (transaction: HubSyncTransaction) => T): T {
+  async registerProject(input: {
+    request: ProjectRegistrationRequest;
+    acceptedAt: string;
+  }): Promise<ProjectRegistrationResponse> {
     this.assertOpen();
-    return this.transactionRunner.write(() => work({
-      ...this.readView(),
-      saveProject: (state) => this.repository.saveProject(state),
-    }));
+    return this.transactionRunner.write(() => this.registrationRepository.register(input));
   }
 
-  read<T>(work: (view: HubSyncReadView) => T): T {
+  async acceptEventBatch(input: {
+    batch: OutboundEventBatch;
+    acknowledgedAt: string;
+  }): Promise<EventSyncAcknowledgement> {
     this.assertOpen();
-    return this.transactionRunner.read(() => work(this.readView()));
+    return this.transactionRunner.write(() => this.eventInboxRepository.accept(input));
   }
 
-  private readView(): HubSyncReadView {
-    return {
-      loadProject: (coordinate) => this.repository.loadProject(coordinate),
-      listProjectCoordinates: () => this.repository.listProjectCoordinates(),
-    };
+  async listProjects(
+    query: ResolvedHubProjectTraceQuery,
+  ): Promise<HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }>> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.traceRepository.listProjects(query));
   }
 
-  getProject(coordinate: HubProjectCoordinate) {
+  async getProject(query: ResolvedHubProjectRunQuery): Promise<HubProjectTrace | null> {
     this.assertOpen();
-    return this.repository.loadProject(coordinate);
+    return this.transactionRunner.read(() => this.traceRepository.getProject(query));
   }
 
-  listProjectCoordinates(): HubProjectCoordinate[] {
+  async getRun(query: ResolvedHubRunEventQuery): Promise<HubRunTrace | null> {
     this.assertOpen();
-    return this.repository.listProjectCoordinates();
+    return this.transactionRunner.read(() => this.traceRepository.getRun(query));
   }
 
-  verifyIntegrity(): HubSyncIntegrityReport {
+  async checkIntegrity(): Promise<HubSyncIntegrityReport> {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite quick_check가 실패했습니다.");
+    this.verifyDatabaseStructure();
+    const counts = this.auditRepository.healthCounts();
+    return { valid: true, ...counts };
+  }
+
+  async auditIntegrity(): Promise<HubSyncIntegrityReport> {
+    this.assertOpen();
+    this.verifyDatabaseStructure();
+    this.verifyFullDatabaseIntegrity();
+    const coordinates = this.auditRepository.listProjectCoordinates();
+    let eventCount = 0;
+    for (const coordinate of coordinates) {
+      const state = this.auditRepository.loadProject(coordinate);
+      if (state === null) {
+        throw new HubSyncStoreError(
+          "integrity_failed",
+          "Hub sync SQLite project index와 원본이 다릅니다.",
+        );
+      }
+      eventCount += state.events.length;
     }
-    if (this.database.prepare("PRAGMA foreign_key_check;").get() !== undefined) {
+    this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
+    return { valid: true, projectCount: coordinates.length, eventCount };
+  }
+
+  private verifyDatabaseStructure(): void {
+    if (this.database.prepare("PRAGMA foreign_keys;").get()?.foreign_keys !== 1) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite foreign key 검사가 실패했습니다.",
+        "Hub sync SQLite foreign key 강제가 비활성 상태입니다.",
       );
     }
     const requiredTriggers = new Set([
@@ -107,22 +162,21 @@ export class HubSyncSQLiteStore implements HubSyncStore {
         "Hub sync SQLite append-only trigger가 누락되었습니다.",
       );
     }
-    const coordinates = this.repository.listProjectCoordinates();
-    let eventCount = 0;
-    for (const coordinate of coordinates) {
-      const state = this.repository.loadProject(coordinate);
-      if (state === null) {
-        throw new HubSyncStoreError(
-          "integrity_failed",
-          "Hub sync SQLite project index와 원본이 다릅니다.",
-        );
-      }
-      eventCount += state.events.length;
-    }
-    return { valid: true, projectCount: coordinates.length, eventCount };
   }
 
-  journalMode(): string {
+  private verifyFullDatabaseIntegrity(): void {
+    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite quick_check가 실패했습니다.");
+    }
+    if (this.database.prepare("PRAGMA foreign_key_check;").get() !== undefined) {
+      throw new HubSyncStoreError(
+        "integrity_failed",
+        "Hub sync SQLite foreign key 검사가 실패했습니다.",
+      );
+    }
+  }
+
+  async journalMode(): Promise<string> {
     this.assertOpen();
     const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
     if (typeof mode !== "string") {
@@ -131,7 +185,7 @@ export class HubSyncSQLiteStore implements HubSyncStore {
     return mode;
   }
 
-  close(): void {
+  async close(): Promise<void> {
     if (!this.closed) {
       this.database.close();
       this.closed = true;

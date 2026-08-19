@@ -18,9 +18,5 @@
     "@lervo/hub-sync": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
-  },
-  "devDependencies": {
-    "@lervo/event-contract": "workspace:*",
-    "@lervo/hub-sync-sqlite": "workspace:*"
   }
 }

@@ -250,6 +250,9 @@ importers:
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync
+      '@lervo/hub-trace':
+        specifier: workspace:*
+        version: link:../hub-trace
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -275,13 +278,6 @@ importers:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../sync-contract
-    devDependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/hub-sync-sqlite':
-        specifier: workspace:*
-        version: link:../hub-sync-sqlite
 
   packages/knowledge:
     dependencies:

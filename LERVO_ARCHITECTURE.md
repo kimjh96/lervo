@@ -58,9 +58,9 @@ M6 sync 계약은 전체 project manifest와 안정적인 project identity를 �
 
 `@lervo/sync`는 Node의 application 경계입니다. 매 cycle 등록을 확인한 뒤 현재 worker가 가진 destination별 outbox lease만 가져오고, hash chain이 이어지는 구간별 batch를 인증된 Hub transport port에 전달합니다. Peer 좌표와 durable ack 전체가 맞으면 해당 구간을 한 local transaction에서 ack하고, 응답 유실이나 검증 실패는 아직 ack하지 않은 lease만 공통 시각으로 재예약합니다. Transport 구현은 TLS·서명 등 실제 인증을 소유하며 core worker는 protocol을 알지 않습니다.
 
-Hub 수신은 `@lervo/hub-sync`의 동기 transaction handler와 `@lervo/hub-sync-sqlite`의 durable adapter로 나뉩니다. Handler는 순수 reducer의 다음 state를 store transaction 안에서 저장하고 commit 뒤에만 응답을 반환합니다. SQLite는 `(destinationId, projectId)`별 registration, append-only event inbox와 cursor를 함께 보존하며 재시작 때 중복 좌표와 전체 chain을 다시 확인합니다. 이 경계는 HTTP route나 Node 인증을 구현하지 않으며 인증·권한을 마친 transport만 handler를 호출해야 합니다.
+Hub 수신은 `@lervo/hub-sync`의 비동기 command handler와 `@lervo/hub-sync-sqlite`의 durable adapter로 나뉩니다. Handler는 commit 뒤 resolve하는 `registerProject`·`acceptEventBatch`만 알고 transaction callback이나 전체 project state를 노출하지 않습니다. SQLite는 최대 100개 batch의 중복 좌표와 인접 hash만 읽어 새 event와 cursor를 한 commit에 저장합니다. Store 시작은 bounded 구조 검사만 하고 전체 chain 검증은 명시적 audit로 분리합니다. 이 경계는 HTTP route나 Node 인증을 구현하지 않으며 인증·권한을 마친 transport만 handler를 호출해야 합니다.
 
-`@lervo/hub-trace`는 같은 store의 동기 read snapshot에서 project summary와 run timeline을 만드는 파생 projection입니다. Project 목록은 ID·hash·cursor·count만 가지며 event payload를 포함하지 않습니다. Run 상세는 allowlist event 원본을 seq 순서로 보여주되 cursor 이하 `continuous`와 gap 뒤 `buffered`를 분리합니다. Projection은 원본을 쓰거나 별도 index를 원본으로 만들지 않으며 HTTP·인증·HTML rendering은 다음 adapter가 소유합니다.
+`@lervo/hub-trace`는 저장 구현과 분리된 bounded query port에서 project summary와 run timeline을 읽습니다. Project, run과 event는 기본 50·최대 100개의 안정적인 cursor page이며 source adapter가 각 결과를 한 read transaction에서 만듭니다. Project/run count와 session 좌표는 event 원본과 같은 commit에서 갱신하는 재생성 가능한 read index라서 목록 조회가 전체 event 이력을 다시 훑지 않습니다. Project 목록은 ID·hash·cursor·집계 count만 가지며 event payload를 포함하지 않습니다. Run 상세는 허용된 page의 allowlist event를 seq 순서로 보여주되 cursor 이하 `continuous`와 gap 뒤 `buffered`를 분리합니다. Projection은 원본을 쓰거나 별도 index를 원본이라고 주장하지 않으며 HTTP·인증·HTML rendering은 다음 adapter가 소유합니다. 결정은 [ADR-0038](./docs/adr/0038-bounded-async-hub-storage-and-trace.md)에 기록합니다.
 
 ## 저장소 내부 구조
 

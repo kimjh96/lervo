@@ -1,6 +1,6 @@
 # ADR-0036: 응답보다 먼저 commit하는 Hub sync 저장소
 
-- 상태: 채택
+- 상태: 일부 대체됨 — 비동기 command port와 증분 수락 경계는 [ADR-0038](./0038-bounded-async-hub-storage-and-trace.md)을 따름
 - 기준일: 2026-08-19
 
 ## 맥락

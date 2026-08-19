@@ -57,6 +57,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [인증된 peer와 lease에 결속된 outbound sync worker ADR](./docs/adr/0035-outbound-sync-worker.md)
 - [응답보다 먼저 commit하는 Hub sync 저장소 ADR](./docs/adr/0036-durable-hub-sync-store.md)
 - [연속 이력과 buffered event를 구분하는 Hub trace read model ADR](./docs/adr/0037-hub-trace-read-model.md)
+- [이력 크기와 분리된 비동기 Hub 저장·조회 경계 ADR](./docs/adr/0038-bounded-async-hub-storage-and-trace.md)
 
 ## 현재 구현
 
@@ -66,9 +67,9 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@lervo/sync-contract`: 전체 project manifest에 결속된 Hub 등록, allowlist event의 연속 batch, 역순 수락·중복 제거와 연속 cursor, durable ack 후보를 계산하는 저장·transport 독립 계약
 - `@lervo/sync`: project 등록을 먼저 확인하고 현재 worker의 local outbox lease만 연속 batch로 보내는 Node runtime. 인증된 destination·peer와 durable ack 전체가 맞을 때 batch 단위로 local ack하고, 응답 유실·인증 실패·잘못된 ack는 안전한 code와 시각으로 재예약
-- `@lervo/hub-sync`: registration과 event batch reducer를 동기 store transaction에 연결해 commit 뒤에만 응답을 반환하는 Hub application 경계
-- `@lervo/hub-sync-sqlite`: destination·project별 registration 원본, append-only event inbox와 연속 cursor를 한 SQLite transaction에 저장하고 재시작 때 전체 state를 재검증하는 durable adapter
-- `@lervo/hub-trace`: 한 read snapshot에서 project 요약과 run timeline을 만드는 파생 projection. Cursor 이하 `continuous`와 gap 뒤 `buffered` event를 구분하며 project 목록에는 event payload를 포함하지 않음
+- `@lervo/hub-sync`: commit 뒤 resolve하는 비동기 registration·event batch command port. 전체 state와 저장 transaction callback은 공개하지 않음
+- `@lervo/hub-sync-sqlite`: destination·project별 registration, append-only event inbox와 연속 cursor를 batch·인접 event 기반 증분 transaction으로 저장하는 durable adapter. 시작 검사는 bounded check, 전체 chain은 명시적 audit로 분리
+- `@lervo/hub-trace`: 기본 50·최대 100개의 cursor page로 project, run과 event timeline을 읽는 파생 query 경계. Cursor 이하 `continuous`와 gap 뒤 `buffered` event를 구분하며 project 목록에는 event payload를 포함하지 않음
 - `@lervo/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@lervo/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
 - `@lervo/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
@@ -92,7 +93,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 문서·스킬·provider 실행 환경을 분리해 점검하는 `doctor` application service 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, Hub durable SQLite 저장소와 project/run trace projection을 연결했습니다. Gap 뒤 event는 `buffered`로 분리되고 선택 reason부터 검증 결과까지 run timeline에서 읽을 수 있습니다. 다음 작업은 read-only HTTP API와 최소 trace web view입니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. Gap 뒤 event는 `buffered`로 분리되고 선택 reason부터 검증 결과까지 cursor page로 읽을 수 있습니다. 다음 작업은 인증·project authorization을 먼저 적용하는 read-only HTTP API입니다.
 
 ## 핵심 명제
 

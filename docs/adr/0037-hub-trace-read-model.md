@@ -1,6 +1,6 @@
 # ADR-0037: 연속 이력과 buffered event를 구분하는 Hub trace read model
 
-- 상태: 채택
+- 상태: 일부 대체됨 — bounded query와 pagination 경계는 [ADR-0038](./0038-bounded-async-hub-storage-and-trace.md)을 따름
 - 기준일: 2026-08-19
 
 ## 맥락

@@ -17,6 +17,7 @@
   "dependencies": {
     "@lervo/event-contract": "workspace:*",
     "@lervo/hub-sync": "workspace:*",
+    "@lervo/hub-trace": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
   },

@@ -4,8 +4,14 @@ import { resolve } from "node:path";
 
 import { computeEventHash } from "@lervo/event-contract";
 import {
+  handleOutboundEventBatch,
+  handleProjectRegistration,
+  type HubSyncCommandStore,
+} from "@lervo/hub-sync";
+import {
   defaultProjectDataPolicy,
   type EventEnvelope,
+  type EventType,
   type ProjectManifest,
 } from "@lervo/schemas";
 import {
@@ -56,22 +62,32 @@ export function registration(
   });
 }
 
-export function eventChain(projectId: string, count: number): EventEnvelope[] {
+export function eventChain(
+  projectId: string,
+  count: number,
+  override: (seq: number) => {
+    runId?: string;
+    sessionId?: string;
+    type?: EventType;
+    payload?: Record<string, unknown>;
+  } = () => ({}),
+): EventEnvelope[] {
   const events: EventEnvelope[] = [];
   let previousHash: string | null = null;
   for (let seq = 1; seq <= count; seq += 1) {
+    const item = override(seq);
     const withoutHash: Omit<EventEnvelope, "eventHash"> = {
       eventId: `evt_hub_${projectId.slice(4)}_${String(seq).padStart(2, "0")}`,
       projectId,
-      runId: `run_hub_${projectId.slice(4)}`,
-      sessionId: `ses_hub_${projectId.slice(4)}`,
+      runId: item.runId ?? `run_hub_${projectId.slice(4)}`,
+      sessionId: item.sessionId ?? `ses_hub_${projectId.slice(4)}`,
       seq,
-      type: "run.requested",
+      type: item.type ?? "run.requested",
       occurredAt: `2026-08-19T00:00:${String(seq).padStart(2, "0")}.000Z`,
       actor: { kind: "user" },
       schemaVersion: 1,
       policyVersion,
-      payload: {
+      payload: item.payload ?? {
         requestDigest: `sha256:${String(seq).padStart(64, "0")}`,
         role: "developer",
         risk: "low",
@@ -92,5 +108,30 @@ export function batch(
   return createOutboundEventBatch({
     registration: registration(project),
     events,
+  });
+}
+
+export async function registerStore(
+  store: HubSyncCommandStore,
+  project: ProjectManifest,
+  acceptedAt = "2026-08-19T02:00:00.000Z",
+) {
+  return handleProjectRegistration({
+    store,
+    request: registration(project, acceptedAt),
+    acceptedAt,
+  });
+}
+
+export async function acceptEvents(
+  store: HubSyncCommandStore,
+  project: ProjectManifest,
+  events: readonly EventEnvelope[],
+  acknowledgedAt = "2026-08-19T02:00:00.000Z",
+) {
+  return handleOutboundEventBatch({
+    store,
+    batch: batch(project, events),
+    acknowledgedAt,
   });
 }

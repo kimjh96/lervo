@@ -6,6 +6,7 @@ import {
   handleOutboundEventBatch,
   handleProjectRegistration,
 } from "@lervo/hub-sync";
+import { HubTraceReader } from "@lervo/hub-trace";
 import {
   type OutboundEventBatch,
   type ProjectRegistrationRequest,
@@ -55,7 +56,7 @@ class DirectHubTransport implements AuthenticatedHubTransport {
   }
 
   async registerProject(request: ProjectRegistrationRequest): Promise<unknown> {
-    return this.response(handleProjectRegistration({
+    return this.response(await handleProjectRegistration({
       store: this.hub,
       request,
       acceptedAt: request.requestedAt,
@@ -64,7 +65,7 @@ class DirectHubTransport implements AuthenticatedHubTransport {
 
   async sendEventBatch(batch: OutboundEventBatch): Promise<unknown> {
     this.batchCalls += 1;
-    const acknowledgement = handleOutboundEventBatch({
+    const acknowledgement = await handleOutboundEventBatch({
       store: this.hub,
       batch,
       acknowledgedAt: "2026-08-19T02:00:00.000Z",
@@ -134,9 +135,14 @@ describe("Node worker to durable Hub integration", () => {
       acknowledgedCount: 0,
       rescheduledCount: 2,
     });
-    expect(hub.getProject({ destinationId, projectId: project.projectId })).toMatchObject({
-      cursor: { seq: 2 },
-      events: [{ seq: 1 }, { seq: 2 }],
+    const trace = new HubTraceReader(hub);
+    await expect(trace.getRun({
+      destinationId,
+      projectId: project.projectId,
+      runId: "run_full_sync_01",
+    })).resolves.toMatchObject({
+      project: { cursor: { seq: 2 } },
+      events: { items: [{ event: { seq: 1 } }, { event: { seq: 2 } }] },
     });
     expect(local.listOutbox({ status: "pending" })).toHaveLength(2);
 
@@ -147,9 +153,13 @@ describe("Node worker to durable Hub integration", () => {
       cursor: { seq: 2 },
     });
     expect(local.listOutbox({ status: "acknowledged" })).toHaveLength(2);
-    expect(hub.verifyIntegrity()).toEqual({ valid: true, projectCount: 1, eventCount: 2 });
+    await expect(hub.auditIntegrity()).resolves.toEqual({
+      valid: true,
+      projectCount: 1,
+      eventCount: 2,
+    });
     expect(local.list()).toHaveLength(2);
     local.close();
-    hub.close();
+    await hub.close();
   });
 });

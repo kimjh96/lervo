@@ -20,6 +20,8 @@ export interface HubProjectTraceSummary extends HubProjectCoordinate {
 export interface HubRunTraceSummary {
   runId: string;
   sessionIds: string[];
+  sessionCount: number;
+  sessionIdsTruncated: boolean;
   firstSeq: number;
   lastSeq: number;
   firstOccurredAt: string;
@@ -29,9 +31,25 @@ export interface HubRunTraceSummary {
   bufferedEventCount: number;
 }
 
+export interface HubProjectTraceCursor extends HubProjectCoordinate {}
+
+export interface HubRunTraceCursor {
+  firstSeq: number;
+  runId: string;
+}
+
+export interface HubEventTraceCursor {
+  seq: number;
+}
+
+export interface HubTracePage<T, Cursor> {
+  items: T[];
+  nextCursor: Cursor | null;
+}
+
 export interface HubProjectTrace {
   project: HubProjectTraceSummary;
-  runs: HubRunTraceSummary[];
+  runs: HubTracePage<HubRunTraceSummary, HubRunTraceCursor>;
 }
 
 export interface HubRunTraceEvent {
@@ -42,5 +60,37 @@ export interface HubRunTraceEvent {
 export interface HubRunTrace {
   project: HubProjectTraceSummary;
   run: HubRunTraceSummary;
-  events: HubRunTraceEvent[];
+  events: HubTracePage<HubRunTraceEvent, HubEventTraceCursor>;
+}
+
+export interface HubProjectTraceQuery {
+  after?: HubProjectTraceCursor;
+  limit?: number;
+}
+
+export interface HubProjectRunQuery extends HubProjectCoordinate {
+  after?: HubRunTraceCursor;
+  limit?: number;
+}
+
+export interface HubRunEventQuery extends HubProjectCoordinate {
+  runId: string;
+  after?: HubEventTraceCursor;
+  limit?: number;
+}
+
+export interface ResolvedHubProjectTraceQuery {
+  after?: HubProjectTraceCursor;
+  limit: number;
+}
+
+export interface ResolvedHubProjectRunQuery extends HubProjectCoordinate {
+  after?: HubRunTraceCursor;
+  limit: number;
+}
+
+export interface ResolvedHubRunEventQuery extends HubProjectCoordinate {
+  runId: string;
+  after?: HubEventTraceCursor;
+  limit: number;
 }

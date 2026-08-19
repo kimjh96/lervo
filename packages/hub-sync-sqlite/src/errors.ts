@@ -3,7 +3,6 @@ export type HubSyncStoreErrorCode =
   | "integrity_failed"
   | "nested_transaction"
   | "read_failed"
-  | "state_conflict"
   | "transaction_async"
   | "write_failed";
 

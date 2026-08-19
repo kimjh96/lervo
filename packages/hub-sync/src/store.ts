@@ -1,4 +1,9 @@
-import { type ProjectSyncState } from "@lervo/sync-contract";
+import {
+  type EventSyncAcknowledgement,
+  type OutboundEventBatch,
+  type ProjectRegistrationRequest,
+  type ProjectRegistrationResponse,
+} from "@lervo/schemas";
 
 export interface HubProjectCoordinate {
   destinationId: string;
@@ -11,21 +16,25 @@ export interface HubSyncIntegrityReport {
   eventCount: number;
 }
 
-export interface HubSyncReadView {
-  loadProject(coordinate: HubProjectCoordinate): ProjectSyncState | null;
-  listProjectCoordinates(): HubProjectCoordinate[];
+/** Command-side application port. Implementations resolve only after commit. */
+export interface HubSyncCommandStore {
+  registerProject(input: {
+    request: ProjectRegistrationRequest;
+    acceptedAt: string;
+  }): Promise<ProjectRegistrationResponse>;
+
+  acceptEventBatch(input: {
+    batch: OutboundEventBatch;
+    acknowledgedAt: string;
+  }): Promise<EventSyncAcknowledgement>;
 }
 
-export interface HubSyncTransaction extends HubSyncReadView {
-  saveProject(state: ProjectSyncState): void;
+/** Operational checks are deliberately separate from the request path. */
+export interface HubSyncIntegrityStore {
+  checkIntegrity(): Promise<HubSyncIntegrityReport>;
+  auditIntegrity(): Promise<HubSyncIntegrityReport>;
 }
 
-/** The callback is synchronous so the response cannot escape before commit. */
-export interface HubSyncStore {
-  read<T>(work: (view: HubSyncReadView) => T): T;
-  transact<T>(work: (transaction: HubSyncTransaction) => T): T;
-  getProject(coordinate: HubProjectCoordinate): ProjectSyncState | null;
-  listProjectCoordinates(): HubProjectCoordinate[];
-  verifyIntegrity(): HubSyncIntegrityReport;
-  close(): void;
+export interface HubSyncLifecycle {
+  close(): Promise<void>;
 }

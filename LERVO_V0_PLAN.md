@@ -204,14 +204,17 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **outbox delivery worker와 인증된 Hub transport port 연결 완료.** `@lervo/sync`는 registration을 먼저 확인한 뒤 현재 worker가 가진 destination lease만 가져와 연속 chain별 batch로 보냅니다. 인증된 peer 좌표와 durable ack 전체가 맞을 때만 batch 단위 local transaction으로 ack합니다. Hub 저장 뒤 응답이 유실되면 안전한 code와 시각으로 재예약하고 같은 batch ID를 다시 보내 duplicate ack로 복구합니다. Gap batch, 잘못된 peer·ack와 등록 장애는 실제 SQLite fixture로 확인했습니다. `sync.acknowledged` event는 재귀 배송을 피하기 위해 만들지 않습니다. 결정은 [ADR-0035](./docs/adr/0035-outbound-sync-worker.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **Hub registration·event inbox·cursor의 durable 저장 adapter 완료.** `@lervo/hub-sync`는 reducer와 동기 transaction handler를 분리하고 `@lervo/hub-sync-sqlite`는 destination·project별 registration, append-only event inbox와 cursor를 한 commit에 저장합니다. 재시작, 두 project 격리, 역순·중복 batch, cursor update rollback과 실제 Node outbox의 응답 유실 복구를 SQLite로 확인했습니다. Handler는 HTTP나 인증 성공을 주장하지 않습니다. 결정은 [ADR-0036](./docs/adr/0036-durable-hub-sync-store.md)에 기록했습니다.
+구현 현황(2026-08-19): **Hub registration·event inbox·cursor의 durable 저장 adapter 완료.** `@lervo/hub-sync`는 commit 뒤 resolve하는 비동기 command port를 제공하고 `@lervo/hub-sync-sqlite`는 destination·project별 registration, append-only event inbox와 cursor를 batch·인접 원본 기반 증분 transaction으로 저장합니다. 재시작, 두 project 격리, 역순·중복 batch, cursor update rollback과 실제 Node outbox의 응답 유실 복구를 SQLite로 확인했습니다. 시작 검사는 bounded 구조 검사, 전체 chain은 명시적 audit입니다. Handler는 HTTP나 인증 성공을 주장하지 않습니다. 결정은 [ADR-0036](./docs/adr/0036-durable-hub-sync-store.md)과 [ADR-0038](./docs/adr/0038-bounded-async-hub-storage-and-trace.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **project와 run을 분리하는 Hub trace read model 완료.** `@lervo/hub-trace`는 한 SQLite read snapshot에서 payload 없는 project summary와 run별 timeline을 만듭니다. Cursor 이하 continuous event와 gap 뒤 buffered event를 count와 event 단위로 분리합니다. 두 project·여러 run/session, 역순 gap 해소, duplicate·재시작 결정성, 동시 registration snapshot과 선택 reason부터 verification까지 실제 event를 확인했습니다. 결정은 [ADR-0037](./docs/adr/0037-hub-trace-read-model.md)에 기록했습니다.
+구현 현황(2026-08-19): **project와 run을 분리하는 bounded Hub trace read model 완료.** `@lervo/hub-trace`는 storage-neutral query port에서 project, run과 event를 기본 50·최대 100개 cursor page로 읽습니다. SQLite source는 각 page와 summary를 한 read transaction에서 만들고 목록 집계에 전체 event state를 적재하지 않습니다. Cursor 이하 continuous event와 gap 뒤 buffered event를 count와 event 단위로 분리합니다. 두 project·여러 run/session pagination, 역순 gap 해소, duplicate·재시작, 선택 reason부터 verification까지 실제 event를 확인했습니다. 결정은 [ADR-0037](./docs/adr/0037-hub-trace-read-model.md)과 [ADR-0038](./docs/adr/0038-bounded-async-hub-storage-and-trace.md)에 기록했습니다.
 
-다음 구현 순서: **read-only trace HTTP API와 최소 web view**입니다.
+다음 구현 순서: **인증·project authorization을 먼저 결속한 read-only trace HTTP API와 최소 web view**입니다.
 
 완료 조건:
 
+- Hub command adapter가 commit 전 response를 resolve하지 않고 전체 project event state 없이 batch를 수락
+- Project, run과 event 조회가 최대 100개 cursor page를 강제하고 목록 조회에 전체 event payload를 적재하지 않음
+- Bounded 시작 검사와 명시적 전체 audit의 보장 범위를 혼용하지 않음
 - 두 fixture 프로젝트를 한 화면에서 분리 조회
 - 중복/역순 전송에도 일관된 read model
 - Node 오프라인 중 로컬 실행 후 재연결 동기화
@@ -311,4 +314,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **read-only trace HTTP API와 최소 web view**입니다. Hub trace projection만 읽는 route에서 project 목록, project별 run과 event timeline을 제공하고, buffered 상태를 화면에서도 숨기지 않으며 인증되지 않은 요청이 project 원본을 읽지 못하도록 경계를 먼저 고정합니다.
+다음 구현 작업은 **인증·project authorization을 먼저 결속한 read-only trace HTTP API와 최소 web view**입니다. Route는 bounded Hub trace query만 사용하고 외부 cursor를 검증하며, project 목록과 run/event page에서 buffered 상태를 숨기지 않습니다. 인증되지 않았거나 해당 project 권한이 없는 요청은 query port를 호출하기 전에 거부합니다.
