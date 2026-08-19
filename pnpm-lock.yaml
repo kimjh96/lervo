@@ -160,6 +160,12 @@ importers:
         specifier: workspace:*
         version: link:../writing-contract
     devDependencies:
+      '@lervo/adapter-claude':
+        specifier: workspace:*
+        version: link:../adapter-claude
+      '@lervo/adapter-codex':
+        specifier: workspace:*
+        version: link:../adapter-codex
       '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../adapter-contract

@@ -1,5 +1,6 @@
 import {
   deliberationPolicyHash,
+  policyAllowsProvider,
   validateDeliberationOutcome,
   validateDeliberationPolicy,
   type DeliberationVerificationEvidence,
@@ -111,6 +112,17 @@ export class DeliberationRuntime {
       return artifact;
     });
     const run = await input.executeManagedRun();
+    if (!policyAllowsProvider(
+      this.options.policy,
+      run.session.roleId,
+      run.session.provider,
+    )) {
+      throw new DeliberationRuntimeError(
+        "artifact_publication_failed",
+        "provider_not_allowed",
+        "Managed run의 역할과 공급자가 숙의 정책에서 허용되지 않습니다.",
+      );
+    }
     const providerSessionRole = this.providerSessionRoles.get(run.session.providerSessionId);
     if (providerSessionRole !== undefined && providerSessionRole !== run.session.roleId) {
       throw new DeliberationRuntimeError(

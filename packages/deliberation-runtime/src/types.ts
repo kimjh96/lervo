@@ -31,6 +31,7 @@ export type DeliberationRuntimeErrorReason =
   | "managed_run_event_missing"
   | "operation_in_progress"
   | "previous_artifact_not_loaded"
+  | "provider_not_allowed"
   | "provider_session_reused"
   | "publication_artifact_mismatch"
   | "publication_handoff_invalid"

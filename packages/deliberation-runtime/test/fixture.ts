@@ -228,40 +228,47 @@ export function passingEvaluator() {
   };
 }
 
-export const policy: DeliberationPolicy = {
-  schemaVersion: 1,
-  policyId: "deliberation_runtime-fixture",
-  projectId,
-  participants: [
-    {
-      roleId: "proposer",
-      responsibilities: ["proposer", "decision_owner"],
-      providerSelection: { mode: "fixed", provider: "codex" },
+export function policyWithProviders(
+  proposerProvider: "codex" | "claude",
+  reviewerProvider: "codex" | "claude",
+): DeliberationPolicy {
+  return {
+    schemaVersion: 1,
+    policyId: "deliberation_runtime-fixture",
+    projectId,
+    participants: [
+      {
+        roleId: "proposer",
+        responsibilities: ["proposer", "decision_owner"],
+        providerSelection: { mode: "fixed", provider: proposerProvider },
+      },
+      {
+        roleId: "reviewer",
+        responsibilities: ["reviewer", "verifier"],
+        providerSelection: { mode: "fixed", provider: reviewerProvider },
+      },
+    ],
+    decisionOwnerRoleId: "proposer",
+    maxRounds: 1,
+    requiredVerificationSuiteIds: ["fixture.required"],
+    convergence: {
+      requireIndependentReviewer: true,
+      requireIndependentSessions: true,
+      requireDecisionOwnerDecision: true,
+      requirePassedVerifications: true,
+      requireZeroUnresolvedBlockingObjections: true,
+      unresolvedBlockingDisposition: "no_consensus",
     },
-    {
-      roleId: "reviewer",
-      responsibilities: ["reviewer", "verifier"],
-      providerSelection: { mode: "fixed", provider: "codex" },
+    publication: {
+      surface: "chat",
+      writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+      writingPolicyHash: writingPolicyHash(defaultKoreanWritingContract),
+      requiresWritingPermit: true,
     },
-  ],
-  decisionOwnerRoleId: "proposer",
-  maxRounds: 1,
-  requiredVerificationSuiteIds: ["fixture.required"],
-  convergence: {
-    requireIndependentReviewer: true,
-    requireIndependentSessions: true,
-    requireDecisionOwnerDecision: true,
-    requirePassedVerifications: true,
-    requireZeroUnresolvedBlockingObjections: true,
-    unresolvedBlockingDisposition: "no_consensus",
-  },
-  publication: {
-    surface: "chat",
-    writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
-    writingPolicyHash: writingPolicyHash(defaultKoreanWritingContract),
-    requiresWritingPermit: true,
-  },
-};
+  };
+}
+
+export const policy = policyWithProviders("codex", "codex");
 
 export async function cleanupFixtures(): Promise<void> {
   await Promise.all(roots.splice(0).map((root) =>

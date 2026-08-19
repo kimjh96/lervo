@@ -62,4 +62,4 @@ Provider run이 완료된 뒤 숙의 artifact 검증이 실패하면 기존 `run
 
 ## 결과
 
-동일한 provider 이름은 역할 독립성의 증거로 사용하지 않습니다. 실제 context와 event 원본, provider session 격리, writing permit와 구조화 history가 함께 맞아야 숙의 artifact가 됩니다. 다음 단계는 같은 runtime 포트를 Codex와 Claude 교차 검토 fixture에 연결하는 것입니다.
+동일한 provider 이름은 역할 독립성의 증거로 사용하지 않습니다. 실제 context와 event 원본, provider session 격리, writing permit와 구조화 history가 함께 맞아야 숙의 artifact가 됩니다. 같은 runtime 포트의 Codex·Claude 교차 검토는 [ADR-0029](./0029-cross-provider-deliberation-runtime.md)에서 완료했습니다.

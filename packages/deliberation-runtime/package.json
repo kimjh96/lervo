@@ -24,6 +24,8 @@
     "@lervo/writing-contract": "workspace:*"
   },
   "devDependencies": {
+    "@lervo/adapter-claude": "workspace:*",
+    "@lervo/adapter-codex": "workspace:*",
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/cas": "workspace:*",
     "@lervo/core": "workspace:*",

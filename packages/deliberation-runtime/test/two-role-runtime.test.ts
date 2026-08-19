@@ -1,16 +1,6 @@
-import { writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
-
-import {
-  calculateDeliberationOutcomeId,
-  deliberationPolicyHash,
-} from "@lervo/deliberation";
 import { defaultKoreanWritingContract } from "@lervo/core";
 import type {
-  DeliberationOutcome,
   EventEnvelope,
-  HandoffBundle,
-  SharedContextPublication,
 } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -18,6 +8,10 @@ import {
   DeliberationRuntime,
   validateManagedRunContextEvidence,
 } from "../src/index.js";
+import {
+  materializeProposalContext,
+  noConsensusOutcome,
+} from "./deliberation-scenario.js";
 import {
   claimId,
   cleanupFixtures,
@@ -33,7 +27,6 @@ import {
   policyVersion,
   projectId,
   proposalDocumentId,
-  proposalPath,
   proposerRole,
   reviewerRole,
   sequence,
@@ -88,44 +81,12 @@ describe("same-provider independent role deliberation runtime", () => {
       semanticEvaluator: passingEvaluator(),
     });
 
-    await writeFile(resolve(fixture.root, proposalPath), proposal.content);
-    const publication: SharedContextPublication = {
-      schemaVersion: 1,
+    const { publication, handoff } = await materializeProposalContext({
+      root: fixture.root,
+      proposal,
       sharedContextId: "scx_deliberation_proposal",
-      projectId,
-      kind: "artifact_summary",
-      documentId: proposalDocumentId,
-      contentHash: proposal.artifact.content.contentHash,
-      sourceRevision: `artifact:${proposal.artifact.deliberationArtifactId}`,
-      producer: {
-        kind: "agent",
-        roleId: proposal.artifact.producer.roleId,
-        runId: proposal.artifact.producer.runId,
-        sessionId: proposal.artifact.producer.sessionId,
-      },
-      audience: { mode: "roles", roleIds: ["reviewer"] },
-      sensitivity: "normal",
-      evidenceEventIds: [proposal.recordedEvent.eventId],
-      publishedAt: proposal.artifact.createdAt,
-      expiresAt: null,
-      supersedesSharedContextId: null,
-    };
-    const handoff: HandoffBundle = {
-      schemaVersion: 1,
       handoffId: "hnd_proposal_reviewer",
-      projectId,
-      from: {
-        roleId: proposal.artifact.producer.roleId,
-        runId: proposal.artifact.producer.runId,
-        sessionId: proposal.artifact.producer.sessionId,
-        contextGeneration: proposal.artifact.inputContext.contextGeneration,
-      },
-      toRoleId: "reviewer",
-      requestDigest: hash("review-the-proposal"),
-      sharedContextIds: [publication.sharedContextId],
-      evidenceEventIds: [proposal.recordedEvent.eventId],
-      createdAt: proposal.artifact.createdAt,
-    };
+    });
     runtime.publishHandoff({
       artifactId: proposal.artifact.deliberationArtifactId,
       publication,
@@ -170,32 +131,12 @@ describe("same-provider independent role deliberation runtime", () => {
       semanticEvaluator: passingEvaluator(),
     });
 
-    const outcomeWithoutId = {
-      schemaVersion: 1 as const,
-      outcomeId: "dlo_0000000000000000",
-      deliberationId,
-      projectId,
-      policyId: policy.policyId,
-      policyHash: deliberationPolicyHash(policy),
-      status: "no_consensus" as const,
-      lastRound: 1,
-      artifactIds: [
-        proposal.artifact.deliberationArtifactId,
-        review.artifact.deliberationArtifactId,
-      ],
-      lastConfirmedArtifactId: review.artifact.deliberationArtifactId,
-      decisionArtifactId: null,
-      passedVerificationArtifactIds: [],
-      unresolvedBlockingObjectionIds: [objectionId],
-      noConsensusReason: "blocking_objections_unresolved" as const,
-      failure: null,
+    runtime.complete(noConsensusOutcome({
+      policy,
+      proposal,
+      review,
       completedAt: now().toISOString(),
-    };
-    const outcome = {
-      ...outcomeWithoutId,
-      outcomeId: calculateDeliberationOutcomeId(outcomeWithoutId as DeliberationOutcome),
-    } as DeliberationOutcome;
-    runtime.complete(outcome);
+    }));
 
     expect(proposal.artifact.producer).toMatchObject({
       provider: "codex",

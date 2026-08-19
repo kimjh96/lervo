@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4 완료, M5 동일 provider 두 역할 숙의 runtime fixture 완료 (2026-08-19)
+현재 상태: M0·M1·M2·M3·M4 완료, M5 Codex·Claude 교차 검토 fixture 완료 (2026-08-19)
 
 ## 목표
 
@@ -48,6 +48,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [구조화된 숙의 계약과 증거 기반 수렴 판정 ADR](./docs/adr/0026-structured-deliberation-contracts.md)
 - [숙의 runtime 전 계약 경계 정리 ADR](./docs/adr/0027-deliberation-boundary-hardening.md)
 - [동일 공급자 역할 격리와 숙의 runtime 증거 결속 ADR](./docs/adr/0028-same-provider-deliberation-runtime.md)
+- [Codex·Claude 교차 검토와 역할별 공급자 강제 ADR](./docs/adr/0029-cross-provider-deliberation-runtime.md)
 
 ## 현재 구현
 
@@ -76,7 +77,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter를 연결하는 한 파일 `lervo run` 명령 진입점. Provider 결과는 writing 공개 gate를 통과했을 때만 출력
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 계약과 동일 provider 두 역할 runtime fixture를 구현했습니다. `@lervo/deliberation-runtime`은 역할별 managed run의 E2/E3 receipt를 SQLite event 원본과 대조하고 writing permit를 다시 검증한 뒤에만 artifact를 기록합니다. 같은 Codex provider를 사용한 제안자와 검토자도 run·Lervo session·provider session과 receipt를 공유하지 않으며, 검토자는 제안 원문을 shared context로 다시 적재합니다. 다음 작업은 같은 runtime 경계에서 Codex와 Claude의 교차 검토를 검증하는 fixture입니다.
+M5의 project verification artifact, writing 공개 gate와 구조화 숙의 runtime을 구현했습니다. 실제 `CodexAdapter` 제안과 `ClaudeAdapter` 검토도 같은 `@lervo/deliberation-runtime`을 사용합니다. 검토자는 permit를 통과한 제안 원문을 별도 run·Lervo session·provider session에서 다시 E2/E3로 만들며, 공급자별 주입·종료 방식은 artifact와 event 의미를 바꾸지 않습니다. 역할에 배정되지 않은 공급자 결과는 writing 평가와 artifact 기록 전에 차단합니다. 다음 작업은 수렴 결과의 지식 candidate 생성과 `trace`/`doctor` 진단 연결입니다.
 
 ## 핵심 명제
 
