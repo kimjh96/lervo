@@ -25,7 +25,7 @@ Artifact 공통 metadata는 deliberation/project/policy 좌표, 회차, 생산 r
 
 ## Event 계약
 
-Runtime이 사용할 이름과 허용 payload를 미리 고정합니다. 이번 단계는 event를 발행하거나 저장하지 않습니다.
+Runtime이 사용할 이름과 허용 payload를 미리 고정합니다. [ADR-0027](./0027-deliberation-boundary-hardening.md)에서 각 payload의 필수 필드와 상태별 규칙을 JSON Schema로 추가했습니다. 이번 단계는 event를 발행하거나 저장하지 않습니다.
 
 | event | 허용 payload |
 |---|---|
@@ -42,6 +42,7 @@ Artifact에 receipt ID와 shared context ID가 있다는 사실만으로 실제 
 ## 관심사 분리
 
 - `@lervo/schemas`: 직렬화 형식과 파생 TypeScript 타입
+- `@lervo/verification-contract`, `@lervo/writing-contract`: 실행·CAS 없는 canonical 근거 검증
 - `@lervo/deliberation`: provider 중립 의미·무결성 판정
 - `@lervo/verification`: suite/result와 canonical result artifact 검증
 - `@lervo/writing`: artifact 원문의 공개 가능 여부와 permit 검증

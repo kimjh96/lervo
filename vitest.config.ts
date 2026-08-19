@@ -24,7 +24,10 @@ export default defineConfig({
       "@lervo/schemas": fromRoot("./packages/schemas/src/index.ts"),
       "@lervo/skills": fromRoot("./packages/skills/src/index.ts"),
       "@lervo/storage-contract": fromRoot("./packages/storage-contract/src/index.ts"),
+      "@lervo/verification": fromRoot("./packages/verification/src/index.ts"),
+      "@lervo/verification-contract": fromRoot("./packages/verification-contract/src/index.ts"),
       "@lervo/writing": fromRoot("./packages/writing/src/index.ts"),
+      "@lervo/writing-contract": fromRoot("./packages/writing-contract/src/index.ts"),
     },
   },
   test: {

@@ -1,5 +1,7 @@
 import type {
   CapabilityDecision,
+  DeliberationArtifactRecordedEventPayload,
+  DeliberationCompletedEventPayload,
   DeliberationArtifact,
   DeliberationOutcome,
   DeliberationPolicy,
@@ -110,6 +112,12 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<Converged["failure"]>().toEqualTypeOf<null>();
     expectTypeOf<DeliberationPolicy["convergence"]["requireIndependentSessions"]>()
       .toEqualTypeOf<true>();
+    type CompletedFailure = Extract<DeliberationCompletedEventPayload, { status: "failed" }>;
+    expectTypeOf<CompletedFailure["failurePhase"]>()
+      .toEqualTypeOf<"provider" | "context" | "telemetry" | "artifact" |
+        "writing" | "verification" | "contract">();
+    expectTypeOf<DeliberationArtifactRecordedEventPayload["kind"]>()
+      .toEqualTypeOf<"proposal" | "objection" | "revision" | "verification" | "decision">();
   });
 
   it("requires reviewed sidecars and returns a hash-only apply event payload", () => {

@@ -175,6 +175,8 @@ M4 완료.
 
 구현 현황(2026-08-19): **숙의 artifact와 policy schema 완료.** `@lervo/schemas`가 역할별 provider 정책, 다섯 구조화 artifact와 세 종료 결과를 고정하고 `@lervo/deliberation`이 policy·artifact·이력·실제 verification 근거·outcome 의미를 분리해 검증합니다. 최신 revision 직접 승인, 현재 claim digest를 대상으로 한 필수 suite, 결정 책임자의 마지막 decision과 미해결 차단 반론 0개가 모두 있어야 `converged`입니다. 역할 간 managed run/provider session/context receipt 재사용, 위조 검증 결과, 과거 claim 버전, writing permit 복사는 실패합니다. `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`의 hash 중심 allowlist도 고정했지만 아직 runtime에서 발행하지 않습니다. Receipt ID 자체는 실제 E2/E3를 증명하지 않으며 다음 fixture에서 원본과 대조합니다. 결정은 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 기록했습니다.
 
+구현 현황(2026-08-19): **숙의 runtime 전 계약 경계 정리 완료.** 숙의 event 세 종류는 allowlist 뒤 필수 필드와 상태별 null 규칙까지 schema로 검증합니다. `verification-contract`와 `writing-contract`가 실행·CAS 없는 canonical 검증을 소유해 deliberation이 전체 실행 패키지를 의존하지 않습니다. 이력 검증은 좌표·격리, 상태, 종류별 exhaustive 전이, 최종 분석으로 분리했고 오류는 상위 처분 code와 안정적인 reason을 함께 제공합니다. 테스트 fixture는 실제 verification/permit 생성과 시나리오를 분리하고 예상 outcome 좌표를 명시합니다. Workspace build는 수동 패키지 목록 대신 dependency-aware topological 실행을 사용합니다. 결정은 [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md)에 기록했습니다.
+
 다음 구현 순서: **단일 provider 두 역할 contract fixture**입니다.
 
 ### M6: 최소 Hub 실증

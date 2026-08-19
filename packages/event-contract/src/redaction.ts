@@ -1,4 +1,9 @@
-import type { EventType } from "@lervo/schemas";
+import {
+  validateSchema,
+  type DeliberationArtifactRecordedEventPayload,
+  type EventType,
+  type SchemaName,
+} from "@lervo/schemas";
 
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -132,6 +137,7 @@ const unsafeObjectKeys = new Set(["__proto__", "constructor", "prototype"]);
 
 export type RedactionErrorCode =
   | "cyclic_payload"
+  | "invalid_payload"
   | "non_finite_number"
   | "unsupported_value";
 
@@ -262,5 +268,31 @@ export function sanitizeEventPayload(
     sanitized[key] = sanitizeNested(value, path, redactions, ancestors);
   }
 
+  const schemaName = deliberationPayloadSchemas[type];
+  const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;
+  const invalidArtifactCoordinate = !invalidSchema && type === "deliberation.artifact.recorded" &&
+    !deliberationArtifactCoordinateMatches(
+      sanitized as unknown as DeliberationArtifactRecordedEventPayload,
+    );
+  if (invalidSchema || invalidArtifactCoordinate) {
+    throw new RedactionError(
+      "invalid_payload",
+      "$",
+      `${type} payload가 필수 좌표와 상태 계약을 충족하지 않습니다.`,
+    );
+  }
+
   return { payload: sanitized, redactions };
+}
+
+const deliberationPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "deliberation.started": "deliberationStartedEventPayload",
+  "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
+  "deliberation.completed": "deliberationCompletedEventPayload",
+};
+
+function deliberationArtifactCoordinateMatches(
+  payload: DeliberationArtifactRecordedEventPayload,
+): boolean {
+  return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
 }

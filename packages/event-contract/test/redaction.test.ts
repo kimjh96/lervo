@@ -176,4 +176,64 @@ describe("event payload privacy boundary", () => {
     });
     expect(JSON.stringify(result.payload)).not.toContain("private");
   });
+
+  it("rejects incomplete or status-inconsistent deliberation payloads", () => {
+    expect(() => sanitizeEventPayload("deliberation.started", {
+      deliberationId: "dlb_architecture_0001",
+      policyId: "deliberation_architecture-review",
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+
+    expect(() => sanitizeEventPayload("deliberation.completed", {
+      deliberationId: "dlb_architecture_0001",
+      outcomeId: "dlo_0123456789abcdef",
+      status: "converged",
+      lastRound: 2,
+      decisionArtifactId: null,
+      unresolvedBlockingObjectionIds: [],
+      failurePhase: null,
+      failureCode: null,
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+
+    expect(() => sanitizeEventPayload("deliberation.artifact.recorded", {
+      deliberationId: "dlb_architecture_0001",
+      deliberationArtifactId: "dla_0123456789abcdef",
+      kind: "proposal",
+      round: 1,
+      producerRoleId: "architect",
+      artifactId: "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      writingPermitId: "wpp_0123456789abcdef",
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+  });
+
+  it("accepts a complete failed deliberation payload without raw diagnostics", () => {
+    const result = sanitizeEventPayload("deliberation.completed", {
+      deliberationId: "dlb_architecture_0001",
+      outcomeId: "dlo_0123456789abcdef",
+      status: "failed",
+      lastRound: 2,
+      decisionArtifactId: null,
+      unresolvedBlockingObjectionIds: ["obj_architecture_0001"],
+      failurePhase: "verification",
+      failureCode: "result_contract_invalid",
+      diagnostic: "private stack",
+    });
+
+    expect(result.payload).toEqual({
+      deliberationId: "dlb_architecture_0001",
+      outcomeId: "dlo_0123456789abcdef",
+      status: "failed",
+      lastRound: 2,
+      decisionArtifactId: null,
+      unresolvedBlockingObjectionIds: ["obj_architecture_0001"],
+      failurePhase: "verification",
+      failureCode: "result_contract_invalid",
+    });
+  });
 });

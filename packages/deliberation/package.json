@@ -17,7 +17,7 @@
   "dependencies": {
     "@lervo/event-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
-    "@lervo/verification": "workspace:*",
-    "@lervo/writing": "workspace:*"
+    "@lervo/verification-contract": "workspace:*",
+    "@lervo/writing-contract": "workspace:*"
   }
 }

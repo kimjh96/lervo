@@ -1,7 +1,7 @@
 import {
   validateVerificationResult,
   verificationResultBytes,
-} from "@lervo/verification";
+} from "@lervo/verification-contract";
 
 import { deliberationSha256 } from "./integrity.js";
 import {
@@ -17,6 +17,7 @@ export function verificationEvidenceById(
     if (result.has(item.result.verificationId)) {
       throw new DeliberationError(
         "verification_evidence_invalid",
+        "verification_evidence_duplicate",
         "같은 verification ID의 근거가 중복되었습니다.",
       );
     }
@@ -25,6 +26,7 @@ export function verificationEvidenceById(
     } catch (error) {
       throw new DeliberationError(
         "verification_evidence_invalid",
+        "verification_result_invalid",
         "숙의에 연결한 verification result가 suite 계약과 다릅니다.",
         { cause: error },
       );
@@ -42,6 +44,7 @@ export function verificationEvidenceById(
     ) {
       throw new DeliberationError(
         "verification_evidence_invalid",
+        "verification_coordinate_mismatch",
         "Verification result artifact 좌표가 canonical 결과와 다릅니다.",
       );
     }

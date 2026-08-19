@@ -8,6 +8,7 @@ export function validateDeliberationPolicy(
   if (!validateSchema("deliberationPolicy", policy).valid) {
     throw new DeliberationError(
       "policy_contract_invalid",
+      "policy_schema_invalid",
       "숙의 정책이 schema를 통과하지 못했습니다.",
     );
   }
@@ -32,6 +33,7 @@ export function validateDeliberationPolicy(
   ) {
     throw new DeliberationError(
       "policy_contract_invalid",
+      "policy_role_assignment_invalid",
       "숙의 정책의 역할은 중복 없이 제안자, 독립 검토자, 검증자와 결정 책임자를 지정해야 합니다.",
     );
   }

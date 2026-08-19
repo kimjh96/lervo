@@ -3,6 +3,7 @@ export * from "./common.js";
 export * from "./context-evidence.js";
 export * from "./context-semantics.js";
 export * from "./deliberation-artifact.js";
+export * from "./deliberation-event.js";
 export * from "./deliberation-outcome.js";
 export * from "./deliberation-policy.js";
 export * from "./document-registry.js";

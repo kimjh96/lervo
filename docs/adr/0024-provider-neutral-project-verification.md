@@ -19,7 +19,7 @@ Suite는 순서가 고정된 최대 32개 명령을 가집니다. 각 명령은 
 
 ### 실행 결과와 원문을 분리한다
 
-`@lervo/verification`은 provider adapter 밖에서 같은 명령 계약을 실행합니다. 실행 전에 저장소 root와 모든 cwd가 실제 디렉터리이며 저장소 내부 symlink로 우회되지 않았는지 확인합니다. 같은 repository snapshot port로 요청 revision을 실행 직전 다시 확인하고, 모든 명령 뒤 revision도 같을 때만 결과를 만듭니다. Timeout, 취소와 output 한도 초과 시 process를 종료하고 성공으로 올리지 않습니다.
+`@lervo/verification-contract`는 suite/result canonical hash와 실행 없는 의미 검증을 소유합니다. `@lervo/verification`은 provider adapter 밖에서 같은 명령 계약을 실행합니다. 실행 전에 저장소 root와 모든 cwd가 실제 디렉터리이며 저장소 내부 symlink로 우회되지 않았는지 확인합니다. 같은 repository snapshot port로 요청 revision을 실행 직전 다시 확인하고, 모든 명령 뒤 revision도 같을 때만 결과를 만듭니다. Timeout, 취소와 output 한도 초과 시 process를 종료하고 성공으로 올리지 않습니다.
 
 stdout와 stderr는 명령별 독립 CAS artifact로 저장합니다. `VerificationResult`에는 원문 대신 artifact ID·URI·content hash·byte count만 넣습니다. 결과는 suite ID/hash, 실행 대상 repository snapshot hash, 전체 시간과 상태, 순서별 command digest·상태·exit code·시간·실패 사유에 결속합니다. 전체 result JSON도 CAS에 저장하고 다시 읽어 bytes를 확인합니다. Verification ID는 ID를 제외한 canonical 결과 내용에서 계산합니다.
 

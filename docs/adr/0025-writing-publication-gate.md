@@ -72,6 +72,7 @@ Permit ID는 ID를 제외한 canonical 내용의 SHA-256에서 계산합니다. 
 
 - `@lervo/core`: 기본 정책, 결정적 lint와 순수 gate 판정
 - `@lervo/schemas`: writing surface와 publication permit의 공개 구조
+- `@lervo/writing-contract`: policy/evaluation/permit canonical hash와 ID
 - `@lervo/writing`: artifact 무결성, 의미 평가 port, 평가 생성·검증, permit와 공개 읽기
 - `@lervo/cli`: 실행 조합, 사용자 출력과 종료 코드
 

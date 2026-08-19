@@ -6,7 +6,11 @@ import {
   deliberationPolicyHash,
 } from "./integrity.js";
 import { validateDeliberationPolicy } from "./policy-validation.js";
-import { DeliberationError, type ValidateDeliberationOutcomeInput } from "./types.js";
+import {
+  DeliberationError,
+  type DeliberationErrorReason,
+  type ValidateDeliberationOutcomeInput,
+} from "./types.js";
 
 function exactArray(actual: readonly string[], expected: readonly string[]): boolean {
   return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
@@ -19,6 +23,13 @@ function requiredVerificationsPassed(
   return required.every((suiteId) => passed.has(suiteId));
 }
 
+function outcomeInvalid(
+  reason: DeliberationErrorReason,
+  message: string,
+): never {
+  throw new DeliberationError("outcome_contract_invalid", reason, message);
+}
+
 export function validateDeliberationOutcome(
   input: ValidateDeliberationOutcomeInput,
 ): void {
@@ -26,6 +37,7 @@ export function validateDeliberationOutcome(
   if (!validateSchema("deliberationOutcome", input.outcome).valid) {
     throw new DeliberationError(
       "outcome_contract_invalid",
+      "outcome_schema_invalid",
       "숙의 종료 결과가 schema를 통과하지 못했습니다.",
     );
   }
@@ -57,6 +69,7 @@ export function validateDeliberationOutcome(
   ) {
     throw new DeliberationError(
       "outcome_contract_invalid",
+      "outcome_coordinate_mismatch",
       "숙의 종료 결과의 정책, artifact, 회차, 검증 또는 반론 좌표가 실제 이력과 다릅니다.",
     );
   }
@@ -74,14 +87,19 @@ export function validateDeliberationOutcome(
       });
     if (
       analysis.decision === null ||
-      outcome.decisionArtifactId !== analysis.decision.deliberationArtifactId ||
-      analysis.openBlockingObjectionIds.length !== 0 || !passedRequired ||
-      !analysis.independentReviewApproved || !adoptedClaimsVerified
-    ) {
-      throw new DeliberationError(
-        "outcome_contract_invalid",
-        "결정 책임자, 수정 뒤 독립 검토, 채택 주장 검증 또는 차단 반론 조건이 없어 converged로 기록할 수 없습니다.",
-      );
+      outcome.decisionArtifactId !== analysis.decision.deliberationArtifactId
+    ) outcomeInvalid("decision_missing", "결정 책임자의 마지막 decision이 없습니다.");
+    if (analysis.openBlockingObjectionIds.length !== 0) {
+      outcomeInvalid("blocking_objection_unresolved", "해소되지 않은 차단 반론이 있습니다.");
+    }
+    if (!passedRequired) {
+      outcomeInvalid("required_verification_missing", "필수 verification suite가 통과하지 않았습니다.");
+    }
+    if (!analysis.independentReviewApproved) {
+      outcomeInvalid("independent_review_missing", "최신 proposal 또는 revision의 독립 승인이 없습니다.");
+    }
+    if (!adoptedClaimsVerified) {
+      outcomeInvalid("adopted_claim_unverified", "채택한 현재 주장 버전이 모든 필수 suite에서 검증되지 않았습니다.");
     }
     return;
   }
@@ -89,6 +107,7 @@ export function validateDeliberationOutcome(
     if (analysis.decision !== null) {
       throw new DeliberationError(
         "outcome_contract_invalid",
+        "no_consensus_reason_mismatch",
         "Decision artifact가 있는 이력을 no_consensus로 기록할 수 없습니다.",
       );
     }
@@ -101,6 +120,7 @@ export function validateDeliberationOutcome(
     if (!reasonMatches) {
       throw new DeliberationError(
         "outcome_contract_invalid",
+        "no_consensus_reason_mismatch",
         "no_consensus 종료 사유가 실제 회차, 반론 또는 검증 상태와 다릅니다.",
       );
     }

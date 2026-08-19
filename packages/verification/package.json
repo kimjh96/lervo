@@ -18,6 +18,7 @@
     "@lervo/event-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
+    "@lervo/verification-contract": "workspace:*",
     "yaml": "^2.9.0"
   },
   "devDependencies": {

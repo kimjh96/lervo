@@ -129,12 +129,12 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-      '@lervo/verification':
+      '@lervo/verification-contract':
         specifier: workspace:*
-        version: link:../verification
-      '@lervo/writing':
+        version: link:../verification-contract
+      '@lervo/writing-contract':
         specifier: workspace:*
-        version: link:../writing
+        version: link:../writing-contract
 
   packages/documents:
     dependencies:
@@ -268,6 +268,9 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+      '@lervo/verification-contract':
+        specifier: workspace:*
+        version: link:../verification-contract
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -275,6 +278,15 @@ importers:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
+
+  packages/verification-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/writing:
     dependencies:
@@ -290,10 +302,22 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../writing-contract
     devDependencies:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
+
+  packages/writing-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
 packages:
 

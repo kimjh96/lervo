@@ -1,0 +1,40 @@
+[
+  {
+    "name": "deliberation started event requires every participant coordinate",
+    "schema": "deliberationStartedEventPayload",
+    "value": {
+      "deliberationId": "dlb_architecture_0001",
+      "policyId": "deliberation_architecture-review",
+      "policyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "maxRounds": 3
+    }
+  },
+  {
+    "name": "deliberation artifact event rejects unknown artifact kinds",
+    "schema": "deliberationArtifactRecordedEventPayload",
+    "value": {
+      "deliberationId": "dlb_architecture_0001",
+      "deliberationArtifactId": "dla_0123456789abcdef",
+      "kind": "free_form_chat",
+      "round": 2,
+      "producerRoleId": "architect",
+      "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "writingPermitId": "wpp_0123456789abcdef"
+    }
+  },
+  {
+    "name": "converged deliberation completed event requires a decision",
+    "schema": "deliberationCompletedEventPayload",
+    "value": {
+      "deliberationId": "dlb_architecture_0001",
+      "outcomeId": "dlo_0123456789abcdef",
+      "status": "converged",
+      "lastRound": 2,
+      "decisionArtifactId": null,
+      "unresolvedBlockingObjectionIds": [],
+      "failurePhase": null,
+      "failureCode": null
+    }
+  }
+]

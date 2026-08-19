@@ -16,6 +16,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-m0-governance.json`,
     `${name}-shared-context.json`,
     `${name}-deliberation.json`,
+    `${name}-deliberation-event.json`,
     `${name}-writing.json`,
     `${name}-writing-publication.json`,
     `${name}-document-format.json`,

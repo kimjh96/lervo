@@ -129,9 +129,9 @@ any telemetry failure -> telemetry_failed
 | `no_consensus` | 마지막 round, 미해결 반론 ID와 종료 사유. 최대 회차나 합의 기준 미충족이며 결론을 선택하거나 지식으로 승격하지 않습니다. |
 | `failed` | 실패 phase와 기계용 code, 마지막으로 확정된 artifact 좌표. Provider, telemetry, schema 또는 artifact 저장 실패이며 정상 합의로 표시하지 않습니다. |
 
-숙의 event는 `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`입니다. Started는 policy hash·참여 role·최대 회차, recorded는 artifact 종류·회차·생산 role·CAS hash·writing permit ID, completed는 outcome/status·마지막 회차·decision·미해결 차단 반론과 실패 phase/code만 허용합니다. Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input, credential과 상세 진단은 allowlist에 없으며 redaction fixture로 확인합니다. 현재 단계는 이름과 payload만 고정했고 runtime에서 발행하거나 저장하지 않습니다. 따라서 기존 `run.completed`나 공급자 자유 형식 출력으로 합의를 주장하지 않습니다.
+숙의 event는 `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`입니다. Started는 policy hash·참여 role·최대 회차, recorded는 artifact 종류·회차·생산 role·CAS hash·writing permit ID, completed는 outcome/status·마지막 회차·decision·미해결 차단 반론과 실패 phase/code만 허용합니다. Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input, credential과 상세 진단은 allowlist에 없습니다. Redaction 뒤 type별 payload schema가 필수 필드·ID·회차와 상태별 decision/failure null 규칙을 검사하며 실패하면 `invalid_payload`로 event 전체를 거부합니다. 현재 단계는 계약만 고정했고 runtime에서 발행하거나 저장하지 않습니다. 따라서 기존 `run.completed`나 공급자 자유 형식 출력으로 합의를 주장하지 않습니다.
 
-`@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/provider session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. Artifact의 receipt ID 존재만으로 실제 E2/E3를 증명하지 않으며 다음 runtime fixture가 context/event 원본과 대조합니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)와 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 정의합니다.
+`@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/provider session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. 상위 실패 처분 `code`와 원문 없는 세부 `reason`을 분리하며 좌표·역할 격리, 상태, 종류별 전이와 outcome 판정도 별도 모듈입니다. Artifact의 receipt ID 존재만으로 실제 E2/E3를 증명하지 않으며 다음 runtime fixture가 context/event 원본과 대조합니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md), [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)와 [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md)에 정의합니다.
 
 ## Context preparation 첫 슬라이스
 
@@ -417,7 +417,7 @@ Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 
 - `document.migration.applied`
 - `unmanaged_change.detected`, `sync.acknowledged`
 
-M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. 키는 Unicode 호환 정규화 후 구분 기호와 대소문자를 제거해 검사하므로 `rawPrompt`, `access_token`, 전각 문자 변형도 같은 민감 키로 취급합니다. raw prompt, 문서 본문, authorization/cookie/credential/password/secret/token/API key/tool input 같은 민감 키는 중첩 객체에서도 event에 보존하지 않습니다. 순환 참조, 유한하지 않은 숫자, 일반 JSON 객체가 아닌 값은 정리된 것처럼 저장하지 않고 `redaction_failed`로 기록을 중단합니다. 파일 경로와 작업 디렉터리는 저장소 상대 경로만 허용합니다. 원문이 필요한 실행 경로는 event payload와 분리된 로컬 context envelope/CAS를 사용합니다.
+M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. 키는 Unicode 호환 정규화 후 구분 기호와 대소문자를 제거해 검사하므로 `rawPrompt`, `access_token`, 전각 문자 변형도 같은 민감 키로 취급합니다. raw prompt, 문서 본문, authorization/cookie/credential/password/secret/token/API key/tool input 같은 민감 키는 중첩 객체에서도 event에 보존하지 않습니다. 순환 참조, 유한하지 않은 숫자, 일반 JSON 객체가 아닌 값은 정리된 것처럼 저장하지 않고 `redaction_failed`로 기록을 중단합니다. Type별 schema가 있는 payload의 `invalid_payload`도 같은 상위 처분으로 매핑해 event를 저장하지 않습니다. 파일 경로와 작업 디렉터리는 저장소 상대 경로만 허용합니다. 원문이 필요한 실행 경로는 event payload와 분리된 로컬 context envelope/CAS를 사용합니다.
 
 `context.published`에는 shared context/document ID, content hash, 생산 역할, 공개 방식과 허용 역할, 만료 시각만 저장합니다. `handoff.created`에는 handoff ID, 보내고 받는 역할, shared context/evidence event ID와 요청 digest만 저장합니다. 두 event 모두 문서 본문, raw prompt, 내부 추론과 provider payload를 허용하지 않습니다. 이 event를 기록하지 못하면 역할 간 공유가 성립했다고 주장하지 않고 `telemetry_recording_failed`로 실행을 중단합니다. `context.published`는 다른 역할이 읽었다는 뜻이 아니며, 수신 역할의 `document.loaded`와 `context.injected`가 별도로 필요합니다.
 
@@ -451,6 +451,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
+- deliberation event payload: started/recorded/completed별 필수 hash 좌표와 상태별 decision/failure 규칙
 - context evidence: E0~E4별 필수 필드와 controlled E3 receipt
 - adapter message: descriptor, start/session, context envelope/receipt, normalized event, stop/result
 - role profile: 요청 유형, 필수 입력 schema, E3 context policy, 전체 capability matrix, 산출물·검증·handoff 계약
