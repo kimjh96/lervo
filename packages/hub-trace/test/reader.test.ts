@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  HubProjectScopedTraceReader,
   HubTraceReader,
   type HubProjectTraceSummary,
   type HubTraceSource,
@@ -43,11 +44,18 @@ describe("Hub trace reader", () => {
       items: [project],
       nextCursor: null,
     });
-    expect(querySource.listProjects).toHaveBeenCalledWith({ limit: 50 });
+    expect(querySource.listProjects).toHaveBeenCalledWith({
+      scope: { mode: "all" },
+      limit: 50,
+    });
 
     const after = { destinationId: project.destinationId, projectId: project.projectId };
     await reader.listProjects({ after, limit: 10 });
-    expect(querySource.listProjects).toHaveBeenLastCalledWith({ after, limit: 10 });
+    expect(querySource.listProjects).toHaveBeenLastCalledWith({
+      scope: { mode: "all" },
+      after,
+      limit: 10,
+    });
   });
 
   it("rejects unbounded requests before reaching the source", async () => {
@@ -101,6 +109,66 @@ describe("Hub trace reader", () => {
       listProjects: vi.fn(async () => ({ items: oversized, nextCursor: null })),
     }));
     await expect(reader.listProjects({ limit: 1 })).rejects.toMatchObject({
+      code: "source_inconsistent",
+    });
+  });
+
+  it("passes only the normalized authorized project scope to the source", async () => {
+    const querySource = source();
+    const reader = new HubProjectScopedTraceReader(querySource, [
+      { destinationId: "hub:secondary", projectId: "prj_secondary" },
+      { destinationId: project.destinationId, projectId: project.projectId },
+      { destinationId: project.destinationId, projectId: project.projectId },
+    ]);
+
+    await reader.listProjects();
+
+    expect(querySource.listProjects).toHaveBeenCalledWith({
+      scope: {
+        mode: "projects",
+        projects: [
+          { destinationId: project.destinationId, projectId: project.projectId },
+          { destinationId: "hub:secondary", projectId: "prj_secondary" },
+        ],
+      },
+      limit: 50,
+    });
+  });
+
+  it("rejects a project outside the authorized scope before calling the source", async () => {
+    const querySource = source();
+    const reader = new HubProjectScopedTraceReader(querySource, [{
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+    }]);
+
+    await expect(reader.getProject({
+      destinationId: project.destinationId,
+      projectId: "prj_forbidden",
+    })).rejects.toMatchObject({ code: "project_forbidden" });
+    await expect(reader.getRun({
+      destinationId: project.destinationId,
+      projectId: "prj_forbidden",
+      runId: "run_forbidden",
+    })).rejects.toMatchObject({ code: "project_forbidden" });
+
+    expect(querySource.getProject).not.toHaveBeenCalled();
+    expect(querySource.getRun).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a scoped source returns an unauthorized project", async () => {
+    const querySource = source({
+      listProjects: vi.fn(async () => ({
+        items: [{ ...project, projectId: "prj_forbidden" }],
+        nextCursor: null,
+      })),
+    });
+    const reader = new HubProjectScopedTraceReader(querySource, [{
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+    }]);
+
+    await expect(reader.listProjects()).rejects.toMatchObject({
       code: "source_inconsistent",
     });
   });

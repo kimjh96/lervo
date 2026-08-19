@@ -8,6 +8,7 @@ import {
   type HubRunTraceEvent,
   type HubRunTraceSummary,
   type HubTracePage,
+  type HubTraceProjectScope,
   type ResolvedHubProjectRunQuery,
   type ResolvedHubProjectTraceQuery,
   type ResolvedHubRunEventQuery,
@@ -28,6 +29,20 @@ const PROJECT_COLUMNS = `
   project.registered_at, project.updated_at, project.cursor_seq, project.cursor_hash
 `;
 const MAX_SUMMARY_SESSION_IDS = 16;
+
+function projectScopeSql(scope: HubTraceProjectScope): {
+  clause: string;
+  parameters: string[];
+} {
+  if (scope.mode === "all") return { clause: "1 = 1", parameters: [] };
+  if (scope.projects.length === 0) return { clause: "0 = 1", parameters: [] };
+  return {
+    clause: scope.projects.map(() =>
+      "(project.destination_id = ? AND project.project_id = ?)"
+    ).join(" OR "),
+    parameters: scope.projects.flatMap(({ destinationId, projectId }) => [destinationId, projectId]),
+  };
+}
 
 function page<T, Cursor>(
   items: T[],
@@ -77,15 +92,18 @@ export class HubTraceSQLiteRepository {
     query: ResolvedHubProjectTraceQuery,
   ): HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }> {
     const after = query.after;
+    const scope = projectScopeSql(query.scope);
     const rows = this.database.prepare(`
       SELECT ${PROJECT_COLUMNS},
         project.stored_event_count, project.run_count
       FROM hub_projects AS project
-      WHERE (? IS NULL OR project.destination_id > ? OR
+      WHERE (${scope.clause})
+        AND (? IS NULL OR project.destination_id > ? OR
         (project.destination_id = ? AND project.project_id > ?))
       ORDER BY project.destination_id ASC, project.project_id ASC
       LIMIT ?
     `).all(
+      ...scope.parameters,
       after?.destinationId ?? null,
       after?.destinationId ?? null,
       after?.destinationId ?? null,
@@ -99,7 +117,7 @@ export class HubTraceSQLiteRepository {
   }
 
   getProject(query: ResolvedHubProjectRunQuery): HubProjectTrace | null {
-    const project = this.readProjectSummary(query.destinationId, query.projectId);
+    const project = this.readProjectSummary(query.scope, query.destinationId, query.projectId);
     if (project === null) return null;
     const afterFirstSeq = query.after?.firstSeq ?? null;
     const afterRunId = query.after?.runId ?? null;
@@ -130,7 +148,7 @@ export class HubTraceSQLiteRepository {
   }
 
   getRun(query: ResolvedHubRunEventQuery): HubRunTrace | null {
-    const project = this.readProjectSummary(query.destinationId, query.projectId);
+    const project = this.readProjectSummary(query.scope, query.destinationId, query.projectId);
     if (project === null) return null;
     const aggregate = this.database.prepare(`
       SELECT run_id, first_seq, last_seq, event_count, continuous_event_count
@@ -171,15 +189,18 @@ export class HubTraceSQLiteRepository {
   }
 
   private readProjectSummary(
+    scope: HubTraceProjectScope,
     destinationId: string,
     projectId: string,
   ): HubProjectTraceSummary | null {
+    const resolvedScope = projectScopeSql(scope);
     const row = this.database.prepare(`
       SELECT ${PROJECT_COLUMNS},
         project.stored_event_count, project.run_count
       FROM hub_projects AS project
       WHERE project.destination_id = ? AND project.project_id = ?
-    `).get(destinationId, projectId);
+        AND (${resolvedScope.clause})
+    `).get(destinationId, projectId, ...resolvedScope.parameters);
     return row === undefined ? null : projectSummary(row);
   }
 

@@ -17,6 +17,7 @@
       "@lervo/documents": ["packages/documents/src/index.ts"],
       "@lervo/event-contract": ["packages/event-contract/src/index.ts"],
       "@lervo/event-store-sqlite": ["packages/event-store-sqlite/src/index.ts"],
+      "@lervo/hub": ["apps/hub/src/index.ts"],
       "@lervo/hub-sync": ["packages/hub-sync/src/index.ts"],
       "@lervo/hub-sync-sqlite": ["packages/hub-sync-sqlite/src/index.ts"],
       "@lervo/hub-trace": ["packages/hub-trace/src/index.ts"],

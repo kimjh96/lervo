@@ -41,7 +41,10 @@ for (const path of retiredDocuments) {
 }
 
 const packagePaths = [
-  "apps/cli/package.json",
+  ...readdirSync(resolve(repositoryRoot, "apps"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `apps/${entry.name}/package.json`)
+    .filter((path) => existsSync(resolve(repositoryRoot, path))),
   ...readdirSync(resolve(repositoryRoot, "packages"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => `packages/${entry.name}/package.json`)

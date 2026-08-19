@@ -42,6 +42,10 @@ export interface HubEventTraceCursor {
   seq: number;
 }
 
+export type HubTraceProjectScope =
+  | { mode: "all" }
+  | { mode: "projects"; projects: HubProjectCoordinate[] };
+
 export interface HubTracePage<T, Cursor> {
   items: T[];
   nextCursor: Cursor | null;
@@ -80,16 +84,19 @@ export interface HubRunEventQuery extends HubProjectCoordinate {
 }
 
 export interface ResolvedHubProjectTraceQuery {
+  scope: HubTraceProjectScope;
   after?: HubProjectTraceCursor;
   limit: number;
 }
 
 export interface ResolvedHubProjectRunQuery extends HubProjectCoordinate {
+  scope: HubTraceProjectScope;
   after?: HubRunTraceCursor;
   limit: number;
 }
 
 export interface ResolvedHubRunEventQuery extends HubProjectCoordinate {
+  scope: HubTraceProjectScope;
   runId: string;
   after?: HubEventTraceCursor;
   limit: number;

@@ -1,4 +1,4 @@
-import { HubTraceReader } from "@lervo/hub-trace";
+import { HubProjectScopedTraceReader, HubTraceReader } from "@lervo/hub-trace";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { HubSyncSQLiteStore } from "../src/index.js";
@@ -15,6 +15,28 @@ import {
 afterEach(removeTemporaryRoots);
 
 describe("Hub trace SQLite query source", () => {
+  it("applies the authorized project scope inside the SQLite query", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const allowed = manifest("prj_hub_scope_01");
+    const forbidden = manifest("prj_hub_scope_02");
+    await registerStore(store, allowed);
+    await registerStore(store, forbidden);
+    const reader = new HubProjectScopedTraceReader(store, [{
+      destinationId,
+      projectId: allowed.projectId,
+    }]);
+
+    await expect(reader.listProjects()).resolves.toMatchObject({
+      items: [{ projectId: allowed.projectId }],
+      nextCursor: null,
+    });
+    await expect(reader.getProject({
+      destinationId,
+      projectId: forbidden.projectId,
+    })).rejects.toMatchObject({ code: "project_forbidden" });
+    await store.close();
+  });
+
   it("separates projects with stable cursor pages", async () => {
     const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
     const projects = [manifest("prj_hub_sync_01"), manifest("prj_hub_sync_02")];

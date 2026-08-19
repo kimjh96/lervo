@@ -63,6 +63,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/writing
 
+  apps/hub:
+    dependencies:
+      '@lervo/hub-trace':
+        specifier: workspace:*
+        version: link:../../packages/hub-trace
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+
   packages/adapter-claude:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':

@@ -1,5 +1,6 @@
 export type HubTraceErrorCode =
   | "invalid_query"
+  | "project_forbidden"
   | "project_not_found"
   | "run_not_found"
   | "source_inconsistent";
