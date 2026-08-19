@@ -1,0 +1,119 @@
+[
+  {
+    "name": "deliberation policy cannot relax unresolved blocking objections",
+    "schema": "deliberationPolicy",
+    "value": {
+      "schemaVersion": 1,
+      "policyId": "deliberation_architecture-review",
+      "projectId": "prj_01234567",
+      "participants": [
+        {
+          "roleId": "architect",
+          "responsibilities": ["proposer", "decision_owner"],
+          "providerSelection": { "mode": "fixed", "provider": "codex" }
+        },
+        {
+          "roleId": "reviewer",
+          "responsibilities": ["reviewer", "verifier"],
+          "providerSelection": { "mode": "fixed", "provider": "claude" }
+        }
+      ],
+      "decisionOwnerRoleId": "architect",
+      "maxRounds": 3,
+      "requiredVerificationSuiteIds": ["architecture.contract"],
+      "convergence": {
+        "requireIndependentReviewer": true,
+        "requireIndependentSessions": true,
+        "requireDecisionOwnerDecision": true,
+        "requirePassedVerifications": true,
+        "requireZeroUnresolvedBlockingObjections": false,
+        "unresolvedBlockingDisposition": "no_consensus"
+      },
+      "publication": {
+        "surface": "documentation",
+        "writingPolicyId": "writing_ko-kr-human",
+        "writingPolicyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requiresWritingPermit": true
+      }
+    }
+  },
+  {
+    "name": "deliberation artifact cannot persist raw provider prose in metadata",
+    "schema": "deliberationArtifact",
+    "value": {
+      "schemaVersion": 1,
+      "deliberationArtifactId": "dla_0123456789abcdef",
+      "deliberationId": "dlb_01234567",
+      "projectId": "prj_01234567",
+      "policyId": "deliberation_architecture-review",
+      "policyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "kind": "proposal",
+      "round": 1,
+      "producer": {
+        "roleId": "architect",
+        "runId": "run_01234567",
+        "sessionId": "ses_01234567",
+        "provider": "codex"
+      },
+      "content": {
+        "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "uri": "lervo-cas://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mediaType": "text/markdown; charset=utf-8",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "byteCount": 120
+      },
+      "inputContext": {
+        "contextGeneration": 0,
+        "sharedContextIds": [],
+        "loadedReceiptIds": ["ctx_01234567"],
+        "injectedReceiptIds": ["ctx_12345678"]
+      },
+      "previousArtifactIds": [],
+      "evidenceEventIds": ["evt_01234567"],
+      "writingPublicationPermit": {
+        "schemaVersion": 1,
+        "permitId": "wpp_0123456789abcdef",
+        "surface": "documentation",
+        "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "writingPolicyId": "writing_ko-kr-human",
+        "writingPolicyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluationId": "wre_01234567",
+        "evaluationHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "issuedAt": "2026-08-19T00:00:00Z"
+      },
+      "details": {
+        "claims": [
+          {
+            "claimId": "clm_01234567",
+            "claimDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ]
+      },
+      "createdAt": "2026-08-19T00:00:01Z",
+      "rawContent": "원문은 metadata에 넣지 않습니다."
+    }
+  },
+  {
+    "name": "converged outcome cannot list unresolved objections",
+    "schema": "deliberationOutcome",
+    "value": {
+      "schemaVersion": 1,
+      "outcomeId": "dlo_0123456789abcdef",
+      "deliberationId": "dlb_01234567",
+      "projectId": "prj_01234567",
+      "policyId": "deliberation_architecture-review",
+      "policyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": "converged",
+      "lastRound": 2,
+      "artifactIds": ["dla_0123456789abcdef"],
+      "lastConfirmedArtifactId": "dla_0123456789abcdef",
+      "decisionArtifactId": "dla_0123456789abcdef",
+      "passedVerificationArtifactIds": ["dla_abcdef0123456789"],
+      "unresolvedBlockingObjectionIds": ["obj_01234567"],
+      "noConsensusReason": null,
+      "failure": null,
+      "completedAt": "2026-08-19T00:00:02Z"
+    }
+  }
+]

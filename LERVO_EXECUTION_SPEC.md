@@ -119,17 +119,19 @@ any telemetry failure -> telemetry_failed
 
 숙의 run은 하나의 provider session을 길게 공유하지 않습니다. 제안자, 검토자, 검증자와 결정 책임자는 각각 RoleProfile과 managed provider session을 가지며, 동일한 필수 자료와 앞 단계 산출물도 자기 session에서 E2/E3를 다시 만듭니다. Provider는 역할별로 선택할 수 있어 Codex 제안과 Claude 검토 또는 그 반대 구성이 가능하지만, orchestrator와 artifact 계약은 provider 이름을 분기 기준으로 사용하지 않습니다.
 
-각 회차는 `proposal`, `objection`, `revision`, `verification`, `decision` 중 정책이 허용한 구조화된 artifact만 다음 역할에 공개합니다. Artifact metadata의 필수 좌표는 `deliberationId`, `runId`, `round`, `roleId`, `sessionId`, artifact 종류·ID·content hash, 근거 event ID와 이전 artifact ID입니다. 반론은 차단 여부와 대상 주장 ID를, verification은 suite ID와 상태를, decision은 채택한 주장 ID와 해소되지 않은 반론 ID를 추가로 가집니다. 원문은 CAS에 두고 event와 handoff에는 raw prompt, 내부 추론, 전체 대화, tool input과 provider payload를 넣지 않습니다.
+각 회차는 `proposal`, `objection`, `revision`, `verification`, `decision` 중 정책이 허용한 구조화된 artifact만 다음 역할에 공개합니다. Artifact metadata의 필수 좌표는 `deliberationId`, project/policy ID와 hash, `round`, 생산 role/run/session/provider, Markdown CAS 좌표, 역할 자신의 loaded/injected receipt ID, shared context ID, 근거 event ID, 이전 artifact ID와 content-bound writing permit입니다. 반론은 차단 여부와 대상 주장 ID를, verification은 실제 result artifact·suite·상태와 현재 claim ID/digest를, decision은 채택한 주장 ID와 실제 통과한 verification artifact 및 미해결 반론 ID를 추가로 가집니다. 원문은 CAS에 두고 event와 handoff에는 raw prompt, 내부 추론, 전체 대화, tool input과 provider payload를 넣지 않습니다.
 
 `DeliberationPolicy`는 참여 역할과 provider 선택 규칙, 결정 책임자, 최대 회차, 필수 verification suite, 차단 반론 해소 규칙과 공개 조건을 run 전에 고정합니다. 종료 상태의 의미와 필수 정보는 다음과 같습니다.
 
 | 상태 | 필수 정보와 의미 |
 |---|---|
-| `converged` | Decision artifact/hash, 결정 책임자, 통과한 verification과 차단 반론 0개. 이 조건을 모두 만족할 때만 공개 후보가 됩니다. |
+| `converged` | 최신 revision을 직접 참조한 독립 승인, 결정 책임자의 마지막 decision, 각 채택 claim의 현재 digest에 대한 모든 필수 verification 통과와 차단 반론 0개. 이 조건을 모두 만족할 때만 공개 후보가 됩니다. |
 | `no_consensus` | 마지막 round, 미해결 반론 ID와 종료 사유. 최대 회차나 합의 기준 미충족이며 결론을 선택하거나 지식으로 승격하지 않습니다. |
 | `failed` | 실패 phase와 기계용 code, 마지막으로 확정된 artifact 좌표. Provider, telemetry, schema 또는 artifact 저장 실패이며 정상 합의로 표시하지 않습니다. |
 
-숙의 event 이름과 type별 payload allowlist는 runtime 구현 직전 schema ADR에서 확정합니다. 그 전에는 위 상태를 기존 `run.completed`로 기록하거나 공급자 자유 형식 출력만으로 합의를 주장하지 않습니다. 상세 오류에는 모델 응답 원문이나 credential을 넣지 않고 artifact hash와 짧은 실패 code만 허용합니다. 구현 순서와 경계는 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 정의합니다.
+숙의 event는 `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`입니다. Started는 policy hash·참여 role·최대 회차, recorded는 artifact 종류·회차·생산 role·CAS hash·writing permit ID, completed는 outcome/status·마지막 회차·decision·미해결 차단 반론과 실패 phase/code만 허용합니다. Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input, credential과 상세 진단은 allowlist에 없으며 redaction fixture로 확인합니다. 현재 단계는 이름과 payload만 고정했고 runtime에서 발행하거나 저장하지 않습니다. 따라서 기존 `run.completed`나 공급자 자유 형식 출력으로 합의를 주장하지 않습니다.
+
+`@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/provider session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. Artifact의 receipt ID 존재만으로 실제 E2/E3를 증명하지 않으며 다음 runtime fixture가 context/event 원본과 대조합니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)와 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 정의합니다.
 
 ## Context preparation 첫 슬라이스
 
@@ -469,6 +471,9 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 - writing publication permit: 공개 surface, policy ID/hash, artifact ID/content hash와 evaluation ID/hash
+- deliberation policy: 참여 역할별 책임/provider 규칙, 결정 책임자, 최대 회차, 필수 verification suite와 writing 공개 조건
+- deliberation artifact: proposal/objection/revision/verification/decision의 CAS·role/session/context·writing permit와 종류별 증거 좌표
+- deliberation outcome: 실제 artifact 이력에 결속된 `converged`, `no_consensus`, `failed` 종료 상태
 
 E3 쓰기 게이트는 `selected`, 같은 hash의 `loaded`, 같은 context generation의 controlled `injected`가 모두 있어야 통과합니다. receipt 하나가 다른 단계를 대신할 수 없습니다. 구체적인 기본값은 [ADR-0001](./docs/adr/0001-m0-contracts-and-data-defaults.md)에 정의합니다.
 
@@ -618,6 +623,8 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 | `provider_write_failed` | 승인된 파일 변경이 완료되지 않았거나 요청 종류·실제 hash·최종 snapshot이 다릅니다. 검증된 `file.changed`와 정상 완료를 만들지 않으며 새 run에서 다시 context를 준비해야 합니다. |
 | `cancelled` | 호출자가 run을 중단했습니다. Active turn interrupt와 adapter 종료를 시도하고 정상 완료를 기록하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
+| `policy_contract_invalid` / `artifact_contract_invalid` / `history_contract_invalid` / `outcome_contract_invalid` | 숙의 정책, artifact 좌표, 역할별 이력 또는 종료 결과가 실제 상태와 다릅니다. `converged`를 만들지 않고 입력 계약을 고친 새 숙의로 시작합니다. |
+| `verification_evidence_invalid` | 숙의 verification metadata가 실제 suite/result 또는 canonical CAS artifact와 다르거나 사용되지 않은 근거를 포함합니다. 검증 통과와 수렴을 주장하지 않습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |
 | `invalid_approval` / `invalid_migration_artifact` | Migration 승인, plan ID 또는 candidate artifact bytes/hash가 계약과 다릅니다. Sidecar를 쓰기 전에 전체 apply를 거부합니다. |
 | `invalid_legacy_registry` | 기존 `documents.yaml` 또는 항목별 artifact와 structural plan을 schema-valid하게 해석할 수 없습니다. 원본을 유지하고 archive·sidecar를 만들지 않습니다. |

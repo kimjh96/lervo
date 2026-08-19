@@ -85,4 +85,4 @@ Core의 기존 단일 writing 모듈도 정책, lint, gate 파일로 나눴습�
 
 Provider 결과 artifact를 가진 코드가 실수로 바로 출력하던 경로가 CLI에서 제거됐습니다. 의미 평가를 실행하지 않은 상태를 자연스러운 한국어로 추정하지 않고, 통과 판정을 정확한 정책·평가·내용·surface에 묶어 재사용할 수 있습니다.
 
-다음 단계는 숙의 artifact와 policy schema입니다. Shared context와 숙의 runtime 공개 경로가 생기면 이 permit 검증기를 실제 publisher 앞에 연결하고, writing 평가 event가 필요할 때 별도 payload allowlist와 영속 순서를 결정합니다.
+숙의 artifact와 policy schema는 [ADR-0026](./0026-structured-deliberation-contracts.md)에서 permit를 필수 artifact 좌표로 연결했습니다. 다음 shared context·숙의 runtime fixture는 이 permit를 실제 publisher 앞에서 다시 검증하고, writing 평가 event가 필요할 때 별도 payload allowlist와 영속 순서를 결정합니다.

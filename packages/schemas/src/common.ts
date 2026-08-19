@@ -82,6 +82,37 @@ export const writingPublicationPermitIdSchema = {
   pattern: "^wpp_[a-f0-9]{16}$",
 } as const;
 
+export const deliberationIdSchema = {
+  type: "string",
+  pattern: "^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const deliberationPolicyIdSchema = {
+  type: "string",
+  pattern: "^deliberation_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+  maxLength: 150,
+} as const;
+
+export const deliberationArtifactIdSchema = {
+  type: "string",
+  pattern: "^dla_[a-f0-9]{16}$",
+} as const;
+
+export const deliberationOutcomeIdSchema = {
+  type: "string",
+  pattern: "^dlo_[a-f0-9]{16}$",
+} as const;
+
+export const deliberationClaimIdSchema = {
+  type: "string",
+  pattern: "^clm_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const deliberationObjectionIdSchema = {
+  type: "string",
+  pattern: "^obj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
 export const verificationIdSchema = {
   type: "string",
   pattern: "^ver_[a-f0-9]{16}$",

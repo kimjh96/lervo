@@ -2,6 +2,9 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 
 import { adapterContractMessageSchema } from "./adapter.js";
 import { contextEvidenceSchema } from "./context-evidence.js";
+import { deliberationArtifactSchema } from "./deliberation-artifact.js";
+import { deliberationOutcomeSchema } from "./deliberation-outcome.js";
+import { deliberationPolicySchema } from "./deliberation-policy.js";
 import { documentManifestSchema } from "./document-manifest.js";
 import {
   documentMigrationAppliedEventPayloadSchema,
@@ -61,6 +64,9 @@ const validators = {
     legacyRegistryMigrationApplyReceiptSchema,
   ),
   contextEvidence: ajv.compile(contextEvidenceSchema),
+  deliberationPolicy: ajv.compile(deliberationPolicySchema),
+  deliberationArtifact: ajv.compile(deliberationArtifactSchema),
+  deliberationOutcome: ajv.compile(deliberationOutcomeSchema),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
   sharedContext: ajv.compile(sharedContextPublicationSchema),

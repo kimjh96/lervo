@@ -1,5 +1,8 @@
 import type {
   CapabilityDecision,
+  DeliberationArtifact,
+  DeliberationOutcome,
+  DeliberationPolicy,
   DocumentRecord,
   DocumentRegistry,
   DocumentManifest,
@@ -94,6 +97,19 @@ describe("schema-derived TypeScript contracts", () => {
         "chat" | "documentation" | "commit" | "code_comment"
       >();
     expectTypeOf<WritingPublicationPermit["evaluationHash"]>().toEqualTypeOf<string>();
+  });
+
+  it("keeps deliberation artifacts and terminal outcomes discriminated", () => {
+    type Objection = Extract<DeliberationArtifact, { kind: "objection" }>;
+    type Converged = Extract<DeliberationOutcome, { status: "converged" }>;
+    expectTypeOf<Objection["details"]["reviewStatus"]>()
+      .toEqualTypeOf<"approved" | "changes_requested">();
+    type Verification = Extract<DeliberationArtifact, { kind: "verification" }>;
+    expectTypeOf<Verification["details"]["targetClaims"][number]>()
+      .toEqualTypeOf<{ claimId: string; claimDigest: string }>();
+    expectTypeOf<Converged["failure"]>().toEqualTypeOf<null>();
+    expectTypeOf<DeliberationPolicy["convergence"]["requireIndependentSessions"]>()
+      .toEqualTypeOf<true>();
   });
 
   it("requires reviewed sidecars and returns a hash-only apply event payload", () => {

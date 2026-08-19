@@ -10,10 +10,7 @@ import {
 } from "./common.js";
 import { writingSurfaces } from "./writing.js";
 
-export const writingPublicationPermitSchema = {
-  $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.lervo.dev/v0/writing-publication-permit.schema.json",
-  title: "Lervo content-bound writing publication permit",
+export const writingPublicationPermitValueSchema = {
   type: "object",
   properties: {
     schemaVersion: { type: "integer", const: 1 },
@@ -40,6 +37,13 @@ export const writingPublicationPermitSchema = {
     "issuedAt",
   ],
   additionalProperties: false,
+} as const;
+
+export const writingPublicationPermitSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/writing-publication-permit.schema.json",
+  title: "Lervo content-bound writing publication permit",
+  ...writingPublicationPermitValueSchema,
 } as const;
 
 export type WritingPublicationPermit = FromSchema<

@@ -173,7 +173,9 @@ M4 완료.
 
 구현 현황(2026-08-19): **Writing 공개 gate 완료.** `@lervo/writing`은 provider 결과 artifact의 CAS bytes와 좌표를 다시 확인하고, 결정적 검사와 생성 경로에서 분리된 의미 평가 port를 순서대로 실행합니다. 평가기는 필수 검사 전체를 정확히 한 번 반환해야 하며 누락, 중복, 예외와 미구성은 통과로 추정하지 않습니다. 평가 canonical JSON은 원문 없이 CAS에 저장하고 다시 확인합니다. 통과한 결과만 policy·evaluation·content·surface hash에 결속된 permit를 만들며, 재사용 시 모든 좌표를 다시 검증합니다. `lervo run`은 이 경계를 통과한 결과만 stdout/JSON에 포함합니다. 의미 평가기가 없는 기본 실행은 파일 변경과 `run.completed`를 유지하지만 원문을 숨기고 종료 코드 1을 반환합니다. 이 단계에서는 writing policy를 생성 전에 주입하지 않으므로 사후 평가만 증명합니다. 결정은 [ADR-0025](./docs/adr/0025-writing-publication-gate.md)에 기록했습니다.
 
-다음 구현 순서: **숙의 artifact와 policy schema**입니다.
+구현 현황(2026-08-19): **숙의 artifact와 policy schema 완료.** `@lervo/schemas`가 역할별 provider 정책, 다섯 구조화 artifact와 세 종료 결과를 고정하고 `@lervo/deliberation`이 policy·artifact·이력·실제 verification 근거·outcome 의미를 분리해 검증합니다. 최신 revision 직접 승인, 현재 claim digest를 대상으로 한 필수 suite, 결정 책임자의 마지막 decision과 미해결 차단 반론 0개가 모두 있어야 `converged`입니다. 역할 간 managed run/provider session/context receipt 재사용, 위조 검증 결과, 과거 claim 버전, writing permit 복사는 실패합니다. `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`의 hash 중심 allowlist도 고정했지만 아직 runtime에서 발행하지 않습니다. Receipt ID 자체는 실제 E2/E3를 증명하지 않으며 다음 fixture에서 원본과 대조합니다. 결정은 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 기록했습니다.
+
+다음 구현 순서: **단일 provider 두 역할 contract fixture**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -265,7 +267,7 @@ fixtures/
 - 사용자 전역 스킬과 프로젝트 고정 스킬의 최종 우선순위
 - 첫 import adapter가 지원할 Markdown/MDX/AsciiDoc dialect와 custom adapter 등록 경계
 - Managed block byte 보존 교체 알고리즘과 patch 승인 경계
-- 숙의 event 이름·payload allowlist와 역할별 provider 선택 정책 schema
+- 숙의 runtime event의 원자적 영속 순서와 중단 복구 규칙
 
 ## v0 이후 순서
 
@@ -278,4 +280,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M5 숙의 artifact와 policy schema**입니다. `proposal`, `objection`, `revision`, `verification`, `decision`의 좌표와 전이, `DeliberationPolicy`, `converged`·`no_consensus`·`failed`의 필수 증거를 먼저 고정합니다. 아직 runtime이 없는 shared context·숙의 publisher는 구현될 때 `@lervo/writing`의 permit 재검증 경계를 통과해야 합니다.
+다음 구현 작업은 **M5 단일 provider 두 역할 contract fixture**입니다. 같은 provider를 쓰는 제안자와 검토자가 별도 managed session과 자기 E2/E3를 만들고, 앞 artifact를 shared context로 다시 적재한 뒤 구조화된 이력과 event를 남기는 최소 orchestrator를 연결합니다. Runtime publisher는 `@lervo/writing` permit를 다시 검증하며, artifact의 receipt ID를 context/event store 원본과 대조하기 전에는 다음 역할에 공개하지 않습니다.

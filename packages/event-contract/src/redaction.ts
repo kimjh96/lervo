@@ -66,6 +66,33 @@ export const eventPayloadAllowlists = {
     "outputDigest",
     "artifactId"
   ],
+  "deliberation.started": [
+    "deliberationId",
+    "policyId",
+    "policyHash",
+    "participantRoleIds",
+    "maxRounds"
+  ],
+  "deliberation.artifact.recorded": [
+    "deliberationId",
+    "deliberationArtifactId",
+    "kind",
+    "round",
+    "producerRoleId",
+    "artifactId",
+    "contentHash",
+    "writingPermitId"
+  ],
+  "deliberation.completed": [
+    "deliberationId",
+    "outcomeId",
+    "status",
+    "lastRound",
+    "decisionArtifactId",
+    "unresolvedBlockingObjectionIds",
+    "failurePhase",
+    "failureCode"
+  ],
   "knowledge.candidate.created": ["candidateId", "claimDigest", "paths", "evidenceIds"],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [

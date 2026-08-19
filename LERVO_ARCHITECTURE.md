@@ -168,7 +168,9 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 
 `DeliberationPolicy`는 참여 역할, 각 역할에 사용할 provider 선택 규칙, 결정 책임자, 필수 검증, 최대 회차, 반론 해소 기준과 공개 조건을 고정합니다. 종료 상태는 `converged`, `no_consensus`, `failed`로 구분합니다. `converged`는 결정 책임자의 schema-valid decision, 필수 verification 통과와 차단 반론 0개가 모두 필요합니다. 최대 회차에 도달하거나 차단 반론이 남으면 `no_consensus`이고, provider·telemetry·artifact 계약 실패는 `failed`입니다. 두 상태 모두 임의의 승자를 선택하거나 verified 지식으로 승격하지 않습니다.
 
-숙의 metadata에는 deliberation/run/session/role 좌표, round, 입력·산출물 artifact ID와 hash, 반론 상태, 검증 상태와 종료 사유만 둡니다. Raw prompt, 내부 추론, provider payload와 문서 본문은 event나 handoff metadata에 넣지 않습니다. 이 기능은 shared context와 provider result artifact 위에 verification 결과 계약을 먼저 연결한 뒤 M5에서 구현합니다. 세부 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 정의합니다.
+`@lervo/deliberation`은 policy, artifact, 실제 verification 근거와 outcome을 provider 실행에서 분리해 검증합니다. 검증 artifact는 claim ID뿐 아니라 현재 claim digest에 묶이고, 최신 revision을 직접 참조한 독립 승인과 모든 필수 suite의 채택 claim 검증이 있어야 `converged`가 됩니다. 다른 역할의 managed run, provider session이나 context receipt를 재사용하면 이력 계약이 실패합니다.
+
+숙의 metadata에는 deliberation/run/session/role 좌표, round, 입력·산출물 artifact ID와 hash, 반론 상태, 검증 상태와 종료 사유만 둡니다. Raw prompt, 내부 추론, provider payload와 문서 본문은 event나 handoff metadata에 넣지 않습니다. 현재 schema의 receipt/shared context ID는 참조 좌표이며 실제 E2/E3 원본 대조와 event 영속은 다음 runtime fixture에 남습니다. 세부 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)와 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 정의합니다.
 
 ### Policy & Approval Engine
 
@@ -341,6 +343,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 숙의 artifact와 policy schema입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 동일 provider 두 역할의 숙의 runtime contract fixture입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

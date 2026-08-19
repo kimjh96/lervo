@@ -48,12 +48,12 @@ M5에서 다음 순서로 구현합니다.
 
 1. Project verification command와 provider-neutral result artifact — [ADR-0024](./0024-provider-neutral-project-verification.md)에서 완료
 2. Writing verification과 공개 gate — [ADR-0025](./0025-writing-publication-gate.md)에서 완료
-3. Deliberation artifact와 policy schema — 다음 작업
-4. 동일 provider의 두 역할 contract fixture
+3. Deliberation artifact와 policy schema — [ADR-0026](./0026-structured-deliberation-contracts.md)에서 완료
+4. 동일 provider의 두 역할 contract fixture — 다음 작업
 5. Codex·Claude 교차 검토 fixture
 6. Knowledge candidate와 trace/doctor 연결
 
-숙의 runtime event 이름과 type별 payload allowlist는 3단계 schema ADR에서 확정합니다. 그 전에는 자유 형식 provider 결과를 기존 `run.completed`에 넣어 합의로 표시하지 않습니다.
+숙의 runtime event 이름과 type별 payload allowlist는 [ADR-0026](./0026-structured-deliberation-contracts.md)에서 확정했습니다. 아직 runtime 영속은 구현하지 않았으므로 자유 형식 provider 결과를 기존 `run.completed`에 넣어 합의로 표시하지 않습니다.
 
 ## 결과
 

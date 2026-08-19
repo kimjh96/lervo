@@ -10,6 +10,7 @@
       "@lervo/cas": ["packages/cas/src/index.ts"],
       "@lervo/context": ["packages/context/src/index.ts"],
       "@lervo/context-delivery": ["packages/context-delivery/src/index.ts"],
+      "@lervo/deliberation": ["packages/deliberation/src/index.ts"],
       "@lervo/core": ["packages/core/src/index.ts"],
       "@lervo/documents": ["packages/documents/src/index.ts"],
       "@lervo/event-contract": ["packages/event-contract/src/index.ts"],

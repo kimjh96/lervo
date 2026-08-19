@@ -121,6 +121,21 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/deliberation:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/verification':
+        specifier: workspace:*
+        version: link:../verification
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
+
   packages/documents:
     dependencies:
       '@lervo/project':

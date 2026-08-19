@@ -148,4 +148,32 @@ describe("event payload privacy boundary", () => {
     expect(result.payload).not.toHaveProperty("sourcePath");
     expect(result.payload).not.toHaveProperty("approverId");
   });
+
+  it("keeps deliberation coordinates without artifact bodies or provider diagnostics", () => {
+    const result = sanitizeEventPayload("deliberation.artifact.recorded", {
+      deliberationId: "dlb_architecture_0001",
+      deliberationArtifactId: "dla_0123456789abcdef",
+      kind: "verification",
+      round: 2,
+      producerRoleId: "verifier",
+      artifactId: "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      writingPermitId: "wpp_0123456789abcdef",
+      rawContent: "private deliberation body",
+      providerResponse: "private provider response",
+      diagnostic: "private diagnostic",
+    });
+
+    expect(result.payload).toEqual({
+      deliberationId: "dlb_architecture_0001",
+      deliberationArtifactId: "dla_0123456789abcdef",
+      kind: "verification",
+      round: 2,
+      producerRoleId: "verifier",
+      artifactId: "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      writingPermitId: "wpp_0123456789abcdef",
+    });
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+  });
 });

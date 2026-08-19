@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4 완료, M5 숙의 계약 구현 전 (2026-08-19)
+현재 상태: M0·M1·M2·M3·M4 완료, M5 구조화 숙의 계약 완료 (2026-08-19)
 
 ## 목표
 
@@ -45,10 +45,11 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [증거 기반 문서 노후화 판정 ADR](./docs/adr/0023-evidence-based-document-staleness.md)
 - [공급자 중립 프로젝트 검증과 결과 artifact ADR](./docs/adr/0024-provider-neutral-project-verification.md)
 - [사람 대상 산출물 공개 gate와 content-bound permit ADR](./docs/adr/0025-writing-publication-gate.md)
+- [구조화된 숙의 계약과 증거 기반 수렴 판정 ADR](./docs/adr/0026-structured-deliberation-contracts.md)
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
+- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
@@ -60,6 +61,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/documents`: 제한된 root의 안전한 read-only scan, Markdown/MDX·기존 Lervo registry adapter, CommonMark 기반 managed block byte 경계 판정과 쓰기 권한 없는 byte 보존 patch candidate, 문서별 migration candidate artifact와 source hash 기반 dry-run plan, 검토된 manifest의 metadata-only sidecar 적용, 기존 단일 registry의 항목별 보존 artifact와 승인 기반 원자적 structural migration, revision snapshot·검토 주기·연결 경로·managed input hash의 증거 기반 stale 판정.
 - `@lervo/verification`: 분할 project suite loader, shell 없는 순차 명령 실행, timeout·취소·output 한도, 명령별 stdout/stderr CAS와 repository snapshot에 결속된 결과 artifact
 - `@lervo/writing`: provider 결과 artifact의 결정적 검사, 분리된 의미 평가 port, CAS evaluation과 policy·evaluation·content·surface에 결속된 공개 permit. Permit 재검증을 통과한 원문만 반환하는 공개 경계
+- `@lervo/deliberation`: 역할·provider 정책, 구조화된 proposal/objection/revision/verification/decision 이력, 실제 verification 근거와 명시적 종료 결과를 검증하는 provider 중립 경계
 - `@lervo/project-storage`: 검증된 project 설정과 공통 경로로 SQLite event/outbox와 CAS를 함께 여는 실행 진입점
 - `@lervo/event-store-sqlite`: project별 WAL event store, 원자적 outbox, versioned migration, append-only hash chain과 재시작 무결성 검사
 - `@lervo/cas`: SHA-256 주소를 사용하는 로컬 원문·artifact 저장소
@@ -69,7 +71,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter를 연결하는 한 파일 `lervo run` 명령 진입점. Provider 결과는 writing 공개 gate를 통과했을 때만 출력
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact와 writing 공개 gate를 구현했습니다. `lervo run`의 기능 검증은 아직 suite/event와 연결되지 않아 `실행하지 않음`으로 남습니다. 반면 provider 결과는 결정적 검사와 별도 의미 평가가 모두 통과하고, 평가 artifact와 내용 hash에 묶인 permit가 있어야 출력됩니다. 기본 CLI에는 의미 평가 provider를 아직 구성하지 않았으므로 실행 변경은 유지하되 결과 원문은 공개하지 않고 종료 코드 1을 반환합니다. 다음 작업은 숙의 artifact와 policy schema입니다.
+M5의 project verification artifact, writing 공개 gate와 구조화 숙의 계약을 구현했습니다. 숙의는 역할별 독립 session과 context receipt, content-bound writing permit, 현재 claim digest에 묶인 실제 verification 결과와 결정 책임자를 모두 확인해야 `converged`가 됩니다. 아직 숙의 runtime이나 event 영속은 없으므로 artifact의 receipt ID만으로 E2/E3를 증명하지 않습니다. 다음 작업은 같은 provider의 두 역할을 실제 context·event 원본에 연결하는 contract fixture입니다.
 
 ## 핵심 명제
 
