@@ -6,7 +6,9 @@ import {
   type KnowledgeCandidateReviewedEventPayload,
   type KnowledgeStaleDetectedEventPayload,
   type KnowledgeVerifiedEventPayload,
+  type RunCompletedEventPayload,
   type SchemaName,
+  type VerificationCompletedEventPayload,
 } from "@lervo/schemas";
 
 export type JsonPrimitive = boolean | number | string | null;
@@ -75,13 +77,16 @@ export const eventPayloadAllowlists = {
   "skill.resolved": ["skillId", "source", "version", "contentHash", "trustStatus"],
   "skill.invoked": ["skillId", "version", "inputDigest", "capabilities"],
   "skill.completed": ["skillId", "version", "status", "artifactIds", "outputDigest"],
-  "verification.started": ["verificationId", "commandDigest", "suite"],
+  "verification.started": ["suiteId", "suiteHash", "repositoryRevision"],
   "verification.completed": [
     "verificationId",
+    "suiteId",
+    "suiteHash",
+    "repositoryRevision",
     "status",
-    "exitCode",
-    "outputDigest",
-    "artifactId"
+    "resultArtifactId",
+    "resultContentHash",
+    "nonPassedCommandIds"
   ],
   "deliberation.started": [
     "deliberationId",
@@ -347,9 +352,18 @@ export function sanitizeEventPayload(
       sanitized as unknown as KnowledgeStaleDetectedEventPayload,
     ))
   );
+  const invalidVerificationCoordinate = !invalidSchema &&
+    type === "verification.completed" && !verificationCoordinateMatches(
+      sanitized as unknown as VerificationCompletedEventPayload,
+    );
+  const invalidRunCompletedCoordinate = !invalidSchema &&
+    type === "run.completed" && !runCompletedCoordinateMatches(
+      sanitized as unknown as RunCompletedEventPayload,
+    );
   if (
     invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate ||
-    invalidKnowledgeCoordinate
+    invalidKnowledgeCoordinate || invalidVerificationCoordinate ||
+    invalidRunCompletedCoordinate
   ) {
     throw new RedactionError(
       "invalid_payload",
@@ -362,6 +376,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "run.completed": "runCompletedEventPayload",
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
   "deliberation.completed": "deliberationCompletedEventPayload",
@@ -369,6 +384,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "knowledge.candidate.reviewed": "knowledgeCandidateReviewedEventPayload",
   "knowledge.verified": "knowledgeVerifiedEventPayload",
   "knowledge.stale.detected": "knowledgeStaleDetectedEventPayload",
+  "verification.started": "verificationStartedEventPayload",
+  "verification.completed": "verificationCompletedEventPayload",
 };
 
 function deliberationArtifactCoordinateMatches(
@@ -397,4 +414,17 @@ function verifiedCoordinateMatches(payload: KnowledgeVerifiedEventPayload): bool
 function staleCoordinateMatches(payload: KnowledgeStaleDetectedEventPayload): boolean {
   return payload.resultArtifactId ===
     `art_${payload.resultContentHash.slice("sha256:".length)}`;
+}
+
+function verificationCoordinateMatches(payload: VerificationCompletedEventPayload): boolean {
+  return payload.resultArtifactId ===
+    `art_${payload.resultContentHash.slice("sha256:".length)}`;
+}
+
+function runCompletedCoordinateMatches(payload: RunCompletedEventPayload): boolean {
+  const resultArtifactId = `art_${payload.resultDigest.slice("sha256:".length)}`;
+  return payload.artifactIds.includes(resultArtifactId) &&
+    (payload.verificationStatus === "not_run"
+      ? payload.artifactIds.length === 1
+      : payload.artifactIds.length >= 2);
 }

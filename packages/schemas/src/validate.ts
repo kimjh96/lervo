@@ -52,10 +52,15 @@ import {
 } from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
+import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
 import { verificationResultSchema, verificationSuiteSchema } from "./verification.js";
+import {
+  verificationCompletedEventPayloadSchema,
+  verificationStartedEventPayloadSchema,
+} from "./verification-event.js";
 import { writingContractSchema } from "./writing.js";
 import { writingEvaluationSchema } from "./writing-evaluation.js";
 import { writingPublicationPermitSchema } from "./writing-publication.js";
@@ -92,6 +97,7 @@ const validators = {
   deliberationCompletedEventPayload: ajv.compile(deliberationCompletedEventPayloadSchema),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
+  runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
   sharedContext: ajv.compile(sharedContextPublicationSchema),
   handoffBundle: ajv.compile(handoffBundleSchema),
   skill: ajv.compile(skillManifestSchema),
@@ -129,6 +135,10 @@ const validators = {
   writingPublicationPermit: ajv.compile(writingPublicationPermitSchema),
   verificationSuite: ajv.compile(verificationSuiteSchema),
   verificationResult: ajv.compile(verificationResultSchema),
+  verificationStartedEventPayload: ajv.compile(verificationStartedEventPayloadSchema),
+  verificationCompletedEventPayload: ajv.compile(
+    verificationCompletedEventPayloadSchema,
+  ),
 } satisfies Record<string, ValidateFunction>;
 
 export type SchemaName = keyof typeof validators;

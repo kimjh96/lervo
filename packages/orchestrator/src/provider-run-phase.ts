@@ -10,6 +10,7 @@ export type ManagedProviderRunPhase =
   | "provider_turn"
   | "result_collect"
   | "result_store"
+  | "project_verification"
   | "provider_stream"
   | "adapter_stop"
   | "after_snapshot";

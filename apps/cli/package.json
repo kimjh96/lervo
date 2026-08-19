@@ -23,6 +23,8 @@
     "@lervo/project-storage": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/skills": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/verification": "workspace:*",
     "@lervo/writing": "workspace:*"
   }
 }

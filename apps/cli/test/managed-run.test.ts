@@ -247,7 +247,33 @@ async function createRepository(): Promise<string> {
   );
   await mkdir(resolve(root, "src"));
   await writeFile(resolve(root, "AGENTS.md"), "선언된 파일 하나만 변경합니다.\n");
+  await writeVerificationSuite(root);
   return root;
+}
+
+async function writeVerificationSuite(
+  root: string,
+  script = "process.exit(require('node:fs').existsSync('src/result.ts') ? 0 : 1)",
+): Promise<void> {
+  await writeFile(
+    resolve(root, ".lervo/verifications/project.default.yaml"),
+    [
+      "schemaVersion: 1",
+      "suiteId: project.default",
+      "stopOnFailure: true",
+      "commands:",
+      "  - commandId: verify-result",
+      "    executable: node",
+      "    arguments:",
+      "      - -e",
+      `      - ${JSON.stringify(script)}`,
+      "    cwd: .",
+      "    timeoutMs: 10000",
+      "    maxOutputBytes: 4096",
+      "    environmentVariableNames: []",
+      "",
+    ].join("\n"),
+  );
 }
 
 async function createProjectSkill(root: string): Promise<{
@@ -345,7 +371,10 @@ describe("lervo run vertical slice", () => {
       let output = "";
       let errorOutput = "";
       const exitCode = await runCli(
-        ["run", "--provider", provider, "--path", "src/result.ts", "작은 파일을 구현합니다"],
+        [
+          "run", "--provider", provider, "--path", "src/result.ts",
+          "--verification", "project.default", "작은 파일을 구현합니다",
+        ],
         {
           cwd: root,
           stdout: (message) => { output += message; },
@@ -357,7 +386,8 @@ describe("lervo run vertical slice", () => {
       expect(exitCode).toBe(0);
       expect(errorOutput).toBe("");
       expect(output).toContain("CLI 작업 완료");
-      expect(output).toContain("기능 검증: 실행하지 않음");
+      expect(output).toContain("기능 검증: 통과");
+      expect(output).toContain("project.default: passed");
       expect(output).toContain("Writing 공개 검증: 통과");
       expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
         .toBe("export const cli = true;\n");
@@ -367,7 +397,11 @@ describe("lervo run vertical slice", () => {
       const events = storage.events.list();
       await storage.close();
       expect(events.map((event) => event.type)).toContain("file.changed");
+      expect(events.map((event) => event.type)).toContain("verification.started");
+      expect(events.map((event) => event.type)).toContain("verification.completed");
       expect(events.map((event) => event.type)).toContain("run.completed");
+      expect(events.find((event) => event.type === "run.completed")?.payload)
+        .toMatchObject({ verificationStatus: "passed" });
       const serialized = JSON.stringify(events);
       expect(serialized).not.toContain("작은 파일을 구현합니다");
       expect(serialized).not.toContain("CLI 작업 완료");
@@ -392,7 +426,10 @@ describe("lervo run vertical slice", () => {
     let output = "";
     let errorOutput = "";
     const exitCode = await runCli(
-      ["run", "--provider", "codex", "--path", "src/result.ts", "작은 파일을 구현합니다"],
+      [
+        "run", "--provider", "codex", "--path", "src/result.ts",
+        "--verification", "project.default", "작은 파일을 구현합니다",
+      ],
       {
         cwd: root,
         stdout: (message) => { output += message; },
@@ -443,6 +480,8 @@ describe("lervo run vertical slice", () => {
         "src/result.ts",
         "--skill",
         skill.manifest.skillId,
+        "--verification",
+        "project.default",
         "스킬을 해석해 작업합니다",
       ],
       {
@@ -523,9 +562,50 @@ describe("lervo run vertical slice", () => {
         expectedPath: "src/result.ts",
         instructions: "실패 fixture",
         risk: "medium",
+        verificationSuiteIds: ["project.default"],
       }),
     ).rejects.toMatchObject({ code: "provider_start_failed" });
     expect(closeCount).toBe(1);
     expect(client.closed).toBe(true);
+  });
+
+  it("records failed verification evidence and does not emit run.completed", async () => {
+    const root = await createRepository();
+    await writeVerificationSuite(root, "process.exit(7)");
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({
+          repositoryRoot,
+          resolveArtifact,
+          clientFactory: async () => client,
+        }),
+    });
+
+    await expect(executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      expectedPath: "src/result.ts",
+      instructions: "검증 실패 fixture",
+      risk: "medium",
+      verificationSuiteIds: ["project.default"],
+    })).rejects.toMatchObject({
+      code: "verification_failed",
+      message: expect.stringContaining("project.default"),
+    });
+
+    const storage = await openProjectStorage(root);
+    const events = storage.events.list();
+    await storage.close();
+    expect(events.map((event) => event.type)).toContain("verification.started");
+    expect(events.find((event) => event.type === "verification.completed")?.payload)
+      .toMatchObject({ status: "failed", nonPassedCommandIds: ["verify-result"] });
+    expect(events.find((event) => event.type === "run.failed")?.payload)
+      .toMatchObject({ failureCode: "verification_failed" });
+    expect(events.map((event) => event.type)).not.toContain("run.completed");
+    expect(JSON.stringify(events)).not.toContain("process.exit(7)");
   });
 });

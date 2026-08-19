@@ -33,6 +33,7 @@ import {
 import { RunFailureLedger } from "./provider-run-failures.js";
 import { finalizeProviderRun } from "./provider-run-finalizer.js";
 import { collectProviderResult, storeProviderResult } from "./provider-result.js";
+import { runRequiredProjectVerifications } from "./project-verification.js";
 import { ManagedProviderWriteBridge } from "./provider-write-bridge.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import {
@@ -100,6 +101,7 @@ interface ManagedProviderRunExecutionState {
   after?: RepositorySnapshot;
   turnResult?: AdapterTurnResult;
   resultArtifact?: ManagedProviderRunResult["resultArtifact"];
+  verifications: ManagedProviderRunResult["verifications"];
   contextEvidence?: readonly ContextEvidence[];
   writeBridge?: ManagedProviderWriteBridge;
 }
@@ -140,8 +142,8 @@ export class ManagedProviderRunCoordinator {
   }
 
   private async execute(input: ManagedProviderRunInput): Promise<ManagedProviderRunResult> {
-    validateManagedProviderRunInput(input, this.options.coordinates);
-    const state: ManagedProviderRunExecutionState = {};
+    validateManagedProviderRunInput(input, this.options);
+    const state: ManagedProviderRunExecutionState = { verifications: [] };
     let monitor: ProviderSignalMonitor | undefined;
     let terminal: AdapterNormalizedEvent | undefined;
     const failures = new RunFailureLedger();
@@ -350,6 +352,28 @@ export class ManagedProviderRunCoordinator {
       }
     }
 
+    if (
+      failures.empty && state.resultArtifact !== undefined && state.after !== undefined &&
+      input.verificationSuites !== undefined && this.options.projectVerifier !== undefined
+    ) {
+      phase = "project_verification";
+      try {
+        state.verifications = await runRequiredProjectVerifications({
+          suites: input.verificationSuites,
+          verifier: this.options.projectVerifier,
+          repositoryRoot: input.repositoryRoot,
+          repositoryRevision: state.after.revision,
+          artifactStore: this.options.artifactStore,
+          failureDisposition: input.context.role.verification.failureDisposition,
+          ...(input.signal === undefined ? {} : { signal: input.signal }),
+          time: () => this.time(),
+          append: (specs) => this.append(specs),
+        });
+      } catch (error) {
+        failures.add(error, phase);
+      }
+    }
+
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
     if (resultError !== undefined && primaryFailure !== undefined) {
@@ -377,9 +401,19 @@ export class ManagedProviderRunCoordinator {
         "완료된 managed run의 필수 결과가 없습니다.",
       );
     }
-    this.append([
-      runCompletedSpec({ resultArtifact: state.resultArtifact, occurredAt: this.time() }),
-    ]);
+    const verificationStatus = input.verificationSuites === undefined
+      ? "not_run" as const
+      : state.verifications.every((item) => item.result.status === "passed") &&
+          state.verifications.length === input.verificationSuites.length
+        ? "passed" as const
+        : "failed" as const;
+    this.append([runCompletedSpec({
+      resultArtifact: state.resultArtifact,
+      verificationStatus,
+      verificationArtifactIds: state.verifications.map((item) =>
+        item.resultArtifact.artifactId),
+      occurredAt: this.time(),
+    })]);
     return {
       status: "completed",
       session: copy(state.session),
@@ -391,6 +425,8 @@ export class ManagedProviderRunCoordinator {
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,
       afterRevision: state.after.revision,
+      verificationStatus,
+      verifications: copy(state.verifications),
     };
   }
 

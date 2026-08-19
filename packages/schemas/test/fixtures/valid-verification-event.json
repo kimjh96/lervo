@@ -1,0 +1,37 @@
+[
+  {
+    "name": "verification started event carries only suite and revision coordinates",
+    "schema": "verificationStartedEventPayload",
+    "value": {
+      "suiteId": "project.default",
+      "suiteHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  },
+  {
+    "name": "verification completed event binds result CAS and non-passed commands",
+    "schema": "verificationCompletedEventPayload",
+    "value": {
+      "verificationId": "ver_0123456789abcdef",
+      "suiteId": "project.default",
+      "suiteHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "failed",
+      "resultArtifactId": "art_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "resultContentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "nonPassedCommandIds": ["typecheck"]
+    }
+  },
+  {
+    "name": "run completed event distinguishes passed verification from not-run",
+    "schema": "runCompletedEventPayload",
+    "value": {
+      "resultDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "artifactIds": [
+        "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "art_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      ],
+      "verificationStatus": "passed"
+    }
+  }
+]

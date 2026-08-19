@@ -318,8 +318,9 @@ Provider가 다른 session ID를 보내거나 tool result와 turn result를 기�
 5. managed write bridge 연결
 6. 같은 target turn 시작, 중단 가능한 normalized signal 소비
 7. 완료·실패·취소 사유로 adapter 종료와 `adapter.stopped`
-8. 실행 후 snapshot 비교
-9. `run.completed` 또는 `run.failed`
+8. 실행 후 snapshot 비교와 provider 결과 CAS 검증
+9. 요청한 project verification suite 실행과 결과 CAS 재검증
+10. `run.completed` 또는 `run.failed`
 
 Signal consumer는 context 상태 머신과 독립적으로 stream 종료와 terminal event를 판정합니다. `provider.context.compacted` 또는 session restart는 같은 좌표인지 확인한 뒤 즉시 현재 generation을 무효화합니다. Terminal event 전 stream 종료는 `provider_stream_failed`입니다. 호출자 취소는 `cancelled`이며 adapter에 active turn 중단과 process 종료를 요청합니다. 종료가 제한 시간 안에 확인되지 않으면 정상 종료를 주장하지 않고 `provider_stop_failed`도 함께 남깁니다.
 
@@ -329,13 +330,13 @@ Coordinator가 만드는 `start_request`와 adapter가 돌려주는 `session`은
 
 Managed write bridge는 `managed_write_request`, `managed_write_decision`, `managed_write_completion` 세 메시지를 사용합니다. 공통 좌표는 `adapterId`, project/run/session/provider session, target/provider turn, provider item, 저장소 상대 `path`, `targetDigest`, `changeKind`입니다. 요청에는 `requestedAt`, 결정에는 `decision`, `reasonCode`, `decidedAt`, 완료에는 `status`, `completedAt`이 추가됩니다. 메시지는 schema와 현재 session·turn·시간 순서를 모두 통과해야 합니다. `targetDigest`는 provider 제안이나 tool input의 원문 없는 결속값이며, 파일 bytes·diff·tool input·절대 경로는 이 메시지나 event에 넣지 않습니다. 승인된 요청이 실패하거나 완료되지 않거나 실제 파일 상태가 요청 종류와 다르면 `provider_write_failed`입니다.
 
-Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `run.requested`는 `requestDigest`, `role`, `risk`, `run.resolved`는 `role`, `risk`, `policyVersion`을 필수로 가집니다. `adapter.started`는 adapter ID/version, provider session ID, `executionMode`와 capability matrix를, `adapter.stopped`는 adapter ID, provider session ID와 종료 `status`를 가집니다. `tool.called`는 tool 이름, input digest, status와 duration만 남깁니다. `command.executed`는 command/output digest, 저장소 상대 cwd, `status`, exit code와 duration만 남기며 command와 output 원문은 허용하지 않습니다. `run.completed`와 `run.failed`는 각각 result/diagnostic digest를 사용하고 raw task나 provider result를 저장하지 않습니다.
+Coordinator가 만드는 event payload는 기존 allowlist를 사용합니다. `run.requested`는 `requestDigest`, `role`, `risk`, `run.resolved`는 `role`, `risk`, `policyVersion`을 필수로 가집니다. `adapter.started`는 adapter ID/version, provider session ID, `executionMode`와 capability matrix를, `adapter.stopped`는 adapter ID, provider session ID와 종료 `status`를 가집니다. `tool.called`는 tool 이름, input digest, status와 duration만 남깁니다. `command.executed`는 command/output digest, 저장소 상대 cwd, `status`, exit code와 duration만 남기며 command와 output 원문은 허용하지 않습니다. `run.completed`는 provider 결과 digest, provider·verification artifact ID와 `passed`, `failed`, `not_run` 중 하나인 검증 상태를 가집니다. `run.failed`는 진단 digest를 사용합니다. 두 event 모두 raw task나 provider 결과를 저장하지 않습니다.
 
 실행 전후 snapshot은 실제 repository root의 일반 파일 bytes와 symlink target을 SHA-256으로 묶습니다. 기본 정책은 `.git`, `node_modules`, `.lervo/state`를 제외하고 20,000개 항목, 일반 파일 256 MiB로 제한합니다. 저장소별 정책으로 제외 경로와 한도를 바꿀 수 있지만, 제외한 경로의 불변성은 증명하지 않습니다. Root가 실제 디렉터리가 아니거나 정책이 유효하지 않거나 제한 초과, 읽는 중 변경과 안전한 읽기 실패는 `repository_snapshot_failed`입니다.
 
 Coordinator는 부작용 없는 snapshot 대기와 중단 경계가 있는 실행 단계에만 제한 시간을 둡니다. 기본값은 snapshot 30초, provider turn 10분, signal stream 정리 5초, adapter 종료 10초이며 호출자는 양의 정수 millisecond로 좁힐 수 있습니다. Adapter 시작·context 주입·turn 시작의 transport 제한은 실제 요청을 취소하거나 process를 닫을 수 있는 각 adapter가 책임집니다. 단순히 `Promise.race`로 상태 변경 작업을 버려 두고 종료됐다고 주장하지 않습니다. Coordinator 제한 시간도 대기를 끝내는 경계일 뿐이므로 stream abort와 adapter stop을 별도로 시도하고 확인하지 못한 종료는 실패로 남깁니다.
 
-실패는 마지막 오류로 덮어쓰지 않고 단계와 함께 모두 모읍니다. `run.failed.failureCode`는 개인정보 없는 결정적 우선순위인 telemetry, artifact 저장, provider stop, provider write, unmanaged change, contract, snapshot, context, provider 실행, cancellation 순으로 대표 실패를 고릅니다. Bridge에서 시작된 실패는 이후 snapshot 단계에서도 `provider_write` phase를 유지합니다. `diagnosticDigest`는 모든 `{code, phase, retryable}` 묶음으로 만들고 원문 예외는 저장하지 않습니다. 호출자 오류에는 같은 안전한 관련 실패와 정렬된 unmanaged 경로를 제공하므로 쓰기 실패, 종료 실패와 저장소 변경을 동시에 잃지 않습니다.
+실패는 마지막 오류로 덮어쓰지 않고 단계와 함께 모두 모읍니다. `run.failed.failureCode`는 개인정보 없는 결정적 우선순위인 telemetry, artifact 저장, provider stop, provider write, unmanaged change, project verification, contract, snapshot, context, provider 실행, cancellation 순으로 대표 실패를 고릅니다. Bridge에서 시작된 실패는 이후 snapshot 단계에서도 `provider_write` phase를 유지합니다. `diagnosticDigest`는 모든 `{code, phase, retryable}` 묶음으로 만들고 원문 예외는 저장하지 않습니다. 호출자 오류에는 같은 안전한 관련 실패와 정렬된 unmanaged 경로를 제공하므로 쓰기 실패, 종료 실패와 저장소 변경을 동시에 잃지 않습니다.
 
 첫 managed write 수직 슬라이스는 context 준비 때 정규화한 `expectedPaths` 중 정확히 한 파일만 바꿀 수 있습니다. Orchestrator의 `ManagedWritePlan`은 읽기 전용에서 검증 변경 `0..0`, managed write에서 `1..1`, 허용 경로와 변경 뒤 context 무효화를 선언합니다. Bridge는 계획과 현재 E3 generation, Role 정책을 확인하고 경로·target digest·실제 before hash에 묶인 1회용 permit를 발급합니다. 완료 뒤 파일을 다시 읽어 실제 after hash와 생성·수정·삭제 종류를 확인한 후에만 `file.changed`와 `context.invalidated`를 같은 transaction에 기록합니다. 그 즉시 permit와 E3가 무효화됩니다. 실행 후 snapshot에서 before/after hash가 증거와 정확히 맞는 경로만 managed 변경으로 제외합니다. 완료 누락, 추가·중복 변경, 허용 경로 밖 요청, permit 우회와 hash 불일치는 `contract_validation_failed`, `unmanaged_change_detected` 또는 `provider_write_failed`로 run을 실패시키며 provider 보고만으로 `file.changed`를 만들지 않습니다.
 
@@ -349,7 +350,7 @@ Terminal 완료 signal은 실행 상태만 나타내며 결과 원문을 포함�
 
 Codex adapter는 같은 turn의 마지막 완료 `agentMessage.text`를 사용하고 Claude adapter는 성공 result message의 `result`를 사용합니다. 이 원문은 normalized signal로 바꾸지 않습니다. Terminal 뒤 결과가 없으면 `provider_result_failed`이며 adapter를 실패 사유로 종료하고 정상 결과를 만들지 않습니다.
 
-Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 bytes를 local artifact store에 씁니다. `put` 결과의 URI는 content hash에 해당하는 `lervo-cas://sha256/<digest>`여야 하며 같은 URI를 다시 읽어 hash, byte count와 전체 bytes를 확인합니다. 실패는 `artifact_storage_failed`입니다. Artifact ID는 `art_<digest>`이고 `run.completed.resultDigest`에는 content hash, `artifactIds`에는 이 ID 하나만 기록합니다. Event에는 결과 원문과 URI를 넣지 않습니다. `ManagedProviderRunResult`의 URI는 호출자가 허가된 로컬 저장소에서 결과를 읽기 위한 좌표입니다.
+Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 bytes를 local artifact store에 씁니다. `put` 결과의 URI는 content hash에 해당하는 `lervo-cas://sha256/<digest>`여야 하며 같은 URI를 다시 읽어 hash, byte count와 전체 bytes를 확인합니다. 실패는 `artifact_storage_failed`입니다. Artifact ID는 `art_<digest>`이고 `run.completed.resultDigest`에는 provider 결과 content hash, `artifactIds`에는 provider 결과와 완료된 project verification 결과 ID를 기록합니다. Event에는 결과 원문과 URI를 넣지 않습니다. `ManagedProviderRunResult`의 URI는 호출자가 허가된 로컬 저장소에서 결과를 읽기 위한 좌표입니다.
 
 결과 artifact는 writing 정책, 의미 품질, 인용이나 E4 통과를 뜻하지 않습니다. 공개, Hub 업로드와 shared context 발행은 별도 정책과 검증이 필요합니다. `lervo run` 사용자 명령은 이 provider run 계약과 local storage bootstrap을 연결해 로컬 결과를 표시합니다. 자세한 결정은 [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md)에 정의합니다.
 
@@ -359,14 +360,15 @@ Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 
 
 - `--provider`: `codex` 또는 `claude`
 - `--path`: 변경할 저장소 상대 경로 하나
+- `--verification`: 실행할 suite ID. 한 개 이상, 최대 16개이며 중복할 수 없음
 - 위치 인자: 비어 있지 않은 작업 문장
-- 선택 입력: repository root, 위험도와 JSON 출력
+- 선택 입력: 추가 suite, skill, repository root, 위험도와 JSON 출력
 
 경로는 storage와 provider를 열기 전에 공통 상대 경로 계약으로 정규화합니다. Application service는 project storage를 열고 manifest와 document registry를 검증한 뒤, 같은 artifact store를 context delivery, adapter CAS resolver와 provider result 저장에 사용합니다. 현재 고정 `developer` Role은 root `AGENTS.md`의 E3를 요구하고 한 파일 managed write만 허용합니다. Project policy schema가 아직 없으므로 이 Role을 사용자 설정에서 읽었다고 기록하지 않습니다.
 
-정상 run은 검증된 변경 경로를 반환합니다. Project verification command는 아직 연결하지 않아 `not_run`으로 표시합니다. Provider 결과는 같은 CAS의 writing 공개 경계가 결정적 검사와 별도 의미 평가를 실행하고 content-bound permit를 만든 경우에만 stdout 또는 JSON에 포함합니다. 의미 평가기가 없거나 실패하면 변경과 `run.completed`는 유지하지만 결과 원문은 `null`로 두고 종료 코드 1을 반환합니다. Raw 작업 문장과 결과, 의미 평가기의 오류 본문은 event에 복제하지 않으며 writing 통과는 E4를 뜻하지 않습니다.
+CLI는 요청한 suite 원본을 provider 시작 전에 모두 읽고, provider가 끝난 뒤 같은 artifact store를 쓰는 검증 실행기를 coordinator에 주입합니다. 필수 suite가 모두 `passed`여야 정상 run과 종료 코드 0의 후보가 됩니다. 실패한 suite ID는 안전한 오류 문장에 포함하지만 command, arguments와 output은 출력하지 않습니다. Provider 결과는 같은 CAS의 writing 공개 경계가 결정적 검사와 별도 의미 평가를 실행하고 content-bound permit를 만든 경우에만 stdout 또는 JSON에 포함합니다. 의미 평가기가 없거나 실패하면 검증된 변경과 `run.completed`는 유지하지만 결과 원문은 `null`로 두고 종료 코드 1을 반환합니다. Raw 작업 문장과 결과, 검증 output, 의미 평가기의 오류 본문은 event에 복제하지 않으며 writing 통과는 E4를 뜻하지 않습니다.
 
-성공과 실패 모두 adapter 수명주기가 끝난 뒤 project storage를 닫습니다. 실행 실패와 storage 정리 실패가 겹치면 CLI는 `cleanup_failed`를 반환하고 두 로컬 원인을 cause로만 보존합니다. 새 event나 개인정보 필드는 추가하지 않습니다. 자세한 결정은 [ADR-0015](./docs/adr/0015-lervo-run-cli-vertical-slice.md)에 정의합니다.
+성공과 실패 모두 adapter 수명주기가 끝난 뒤 project storage를 닫습니다. 실행 실패와 storage 정리 실패가 겹치면 CLI는 `cleanup_failed`를 반환하고 두 로컬 원인을 cause로만 보존합니다. 자세한 결정은 [ADR-0015](./docs/adr/0015-lervo-run-cli-vertical-slice.md)와 [ADR-0032](./docs/adr/0032-managed-run-project-verification.md)에 정의합니다.
 
 ## 별도로 실행한 코딩 에이전트
 
@@ -490,7 +492,9 @@ Suite 원본은 `.lervo/verifications/<suiteId>.yaml`에 하나씩 둡니다. �
 
 전체 상태는 모든 명령이 exit code 0이면 `passed`, 명령 실패가 있으면 `failed`, 실행 전이나 중간에 취소되면 `cancelled`입니다. 의미 검증기는 suite hash, 명령 순서와 digest, 상태별 exit code·실패 사유, 시간 범위, artifact ID·URI와 result ID를 다시 계산합니다. 실패 결과의 최상위 상태만 `passed`로 바꾸거나 실행하지 않은 명령에 실행 증거를 붙이면 `result_contract_invalid`로 거부합니다.
 
-현재 단계는 suite loader, 실행기와 result artifact까지만 구현합니다. `lervo run`, `verification.started`, `verification.completed`에는 아직 연결하지 않았으므로 기존 CLI 출력의 project verification은 계속 `not_run`입니다. Result artifact만 존재하는 상태는 run 완료, writing 공개, E4 또는 verified 지식을 뜻하지 않습니다. 상세 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 정의합니다.
+`lervo run`은 요청한 suite를 provider 종료와 실행 후 snapshot 이후, `run.completed` 이전에 실행합니다. `verification.started`는 suite ID/hash와 repository revision을, `verification.completed`는 verification/suite ID, suite/repository/result hash, 상태, result artifact ID와 통과하지 못한 command ID만 기록합니다. Command text, arguments, output, 환경 변수와 절대 경로는 event에 넣지 않습니다. 완료 event의 artifact ID는 result content hash에서 다시 계산해 일치해야 합니다.
+
+모든 suite가 통과하면 `run.completed.verificationStatus=passed`입니다. 필수 suite가 `failed`이면 `verification.completed` 뒤 `run.failed.failureCode=verification_failed`를 기록하며 `run.completed`는 만들지 않습니다. 취소는 `cancelled`로 끝납니다. 검증 port가 예외를 내거나 schema·suite·revision·canonical result CAS가 다르면 정상 완료 event 없이 `verification_failed`입니다. 내부 coordinator를 검증 suite 없이 호출하는 호환 경로만 `not_run`을 유지하며 공개 CLI는 이 경로를 허용하지 않습니다. Result artifact만 존재하는 상태는 run 완료, writing 공개, E4 또는 verified 지식을 뜻하지 않습니다. 상세 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)와 [ADR-0032](./docs/adr/0032-managed-run-project-verification.md)에 정의합니다.
 
 ## 사람 대상 writing 계약
 
@@ -664,3 +668,4 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 | `repository_snapshot_failed` / `repository_snapshot_mismatch` | Snapshot을 안전하게 수집하지 못했거나 요청 revision과 실행 직전 상태가 다릅니다. 명령을 시작하지 않습니다. |
 | `repository_changed_during_verification` | 명령 실행 중 repository snapshot이 바뀌었습니다. 저장된 output만으로 정상 result를 만들지 않고 새 snapshot에서 다시 검증합니다. |
 | `result_contract_invalid` | Verification 결과의 상태, suite·command 결속 또는 artifact 좌표가 서로 다릅니다. 정상 verification result와 `passed` 상태를 공개하지 않습니다. |
+| `verification_failed` | 필수 suite가 실패했거나 검증 port의 결과 schema·suite·repository revision·canonical CAS 원본을 확인할 수 없습니다. `run.completed`를 만들지 않고 새 run에서 다시 검증합니다. |

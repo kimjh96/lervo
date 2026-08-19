@@ -169,7 +169,9 @@ M4 완료.
 
 구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 6단계의 candidate 생성과 로컬 증거 진단 첫 슬라이스까지 완료했습니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **Project verification command/result artifact 완료.** `lervo init`은 계속 누적되는 중앙 설정 대신 빈 `.lervo/verifications/`를 만들고, loader는 suite ID별 최대 64 KiB YAML을 안전하게 읽습니다. `@lervo/verification`은 shell 없이 최대 32개 명령을 순차 실행하며 timeout·취소·합산 output 한도와 첫 실패 뒤 `not_run`을 구분합니다. Stdout·stderr와 전체 result JSON은 각각 CAS에 저장하고 다시 확인합니다. 결과는 실행 전후 같은 snapshot port가 확인한 repository hash, suite hash, command digest·exit code·시간·artifact 좌표에 묶이며 의미 검증기가 전체 상태와 ID를 다시 계산합니다. 실패 결과의 상태만 `passed`로 바꾼 조작, snapshot 불일치·실행 중 변경, 미실행 명령, symlink cwd, timeout·과다 output과 CAS 불일치를 실제 subprocess fixture로 검증했습니다. 아직 `lervo run`과 verification event에는 연결하지 않아 CLI는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록했습니다.
+구현 현황(2026-08-19): **Project verification command/result artifact 완료.** `lervo init`은 계속 누적되는 중앙 설정 대신 빈 `.lervo/verifications/`를 만들고, loader는 suite ID별 최대 64 KiB YAML을 안전하게 읽습니다. `@lervo/verification`은 shell 없이 최대 32개 명령을 순차 실행하며 timeout·취소·합산 output 한도와 첫 실패 뒤 `not_run`을 구분합니다. Stdout·stderr와 전체 result JSON은 각각 CAS에 저장하고 다시 확인합니다. 결과는 실행 전후 같은 snapshot port가 확인한 repository hash, suite hash, command digest·exit code·시간·artifact 좌표에 묶이며 의미 검증기가 전체 상태와 ID를 다시 계산합니다. 실패 결과의 상태만 `passed`로 바꾼 조작, snapshot 불일치·실행 중 변경, 미실행 명령, symlink cwd, timeout·과다 output과 CAS 불일치를 실제 subprocess fixture로 검증했습니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록했습니다.
+
+구현 현황(2026-08-19): **`lervo run` project verification 연결 완료.** CLI는 한 개 이상, 최대 16개의 중복 없는 suite ID를 요구하고 provider 시작 전에 원본을 읽습니다. Provider 종료·실행 후 snapshot·결과 CAS 검증 다음에 같은 revision에서 suite를 실행하며, orchestrator는 주입된 공급자 중립 port의 result schema·suite·revision, canonical result CAS와 참조한 command output CAS를 다시 확인합니다. 시작·완료 event에는 suite/result/hash 좌표와 통과하지 못한 command ID만 남기고 command와 output 원문은 넣지 않습니다. 필수 suite 실패는 `verification_failed`와 `run.failed`로 끝나며 `run.completed`를 만들지 않습니다. 실제 subprocess 성공·실패와 위조·누락 CAS 거부를 함께 검증했습니다. 결정은 [ADR-0032](./docs/adr/0032-managed-run-project-verification.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **Writing 공개 gate 완료.** `@lervo/writing`은 provider 결과 artifact의 CAS bytes와 좌표를 다시 확인하고, 결정적 검사와 생성 경로에서 분리된 의미 평가 port를 순서대로 실행합니다. 평가기는 필수 검사 전체를 정확히 한 번 반환해야 하며 누락, 중복, 예외와 미구성은 통과로 추정하지 않습니다. 평가 canonical JSON은 원문 없이 CAS에 저장하고 다시 확인합니다. 통과한 결과만 policy·evaluation·content·surface hash에 결속된 permit를 만들며, 재사용 시 모든 좌표를 다시 검증합니다. `lervo run`은 이 경계를 통과한 결과만 stdout/JSON에 포함합니다. 의미 평가기가 없는 기본 실행은 파일 변경과 `run.completed`를 유지하지만 원문을 숨기고 종료 코드 1을 반환합니다. 이 단계에서는 writing policy를 생성 전에 주입하지 않으므로 사후 평가만 증명합니다. 결정은 [ADR-0025](./docs/adr/0025-writing-publication-gate.md)에 기록했습니다.
 
@@ -185,7 +187,7 @@ M4 완료.
 
 구현 현황(2026-08-19): **사람 검토 기반 verified 승격과 stale 전이 완료.** 검토와 승격을 별도 CAS/event 원본으로 나누고 정책이 허용한 사람 reviewer, 승인 결정, 같은 repository revision, 충돌 해소와 현재 path hash가 모두 확인될 때만 verified를 만듭니다. Reviewer ID는 로컬 승인 CAS에만 두고 event에는 넣지 않습니다. Verified path hash가 현재 snapshot과 같으면 전체 revision이 달라도 current이며, path 변경·부재 또는 review due 시각만 stale 근거가 됩니다. Current 판정은 event로 누적하지 않고 stale 결과만 CAS/event로 기록합니다. Doctor는 candidate, review, verified와 stale 연결을 각각 역검증합니다. 결정은 [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)에 기록했습니다.
 
-다음 구현 순서: **`lervo run` project verification 연결과 문서·스킬·provider 환경 doctor 확장**입니다.
+다음 구현 순서: **문서·스킬·provider 실행 환경 doctor 확장**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -290,4 +292,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **`lervo run` project verification 연결과 문서·스킬·provider 환경 doctor 확장**입니다. 현재 CLI에서 `not_run`인 project verification을 실제 suite/result artifact와 event에 연결하고, doctor는 확인하지 않은 환경을 정상으로 뭉뚱그리지 않도록 검사 범위를 항목별로 늘립니다.
+다음 구현 작업은 **문서·스킬·provider 실행 환경 doctor 확장**입니다. Doctor가 확인하지 않은 환경을 정상으로 뭉뚱그리지 않도록 검사 항목과 `healthy`, `unhealthy`, `unknown` 판정 근거를 분리합니다.

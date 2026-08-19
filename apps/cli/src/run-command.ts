@@ -5,7 +5,7 @@ import type { ManagedRunOutcome, RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const runUsage =
-  "  lervo run --provider <codex|claude> --path <relative-path> [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>";
+  "  lervo run --provider <codex|claude> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--skill <skill-id> ...] [--root <path>] [--risk <level>] [--json] <request>";
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -32,7 +32,15 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
     "스킬 해석 결과:",
     skills,
     "이 기록은 스킬을 호출하거나 사용했다는 뜻이 아닙니다.",
-    "기능 검증: 실행하지 않음",
+    `기능 검증: ${
+      outcome.verificationStatus === "passed"
+        ? "통과"
+        : outcome.verificationStatus === "failed"
+          ? "실패"
+          : "실행하지 않음"
+    }`,
+    ...outcome.verifications.map((verification) =>
+      `  ${verification.result.suiteId}: ${verification.result.status}`),
     `Writing 공개 검증: ${publication.status === "allowed" ? "통과" : "실패"}`,
   ];
   if (publication.status === "allowed") {
@@ -66,6 +74,7 @@ export async function runManagedCommand(
         root: { type: "string" },
         risk: { type: "string" },
         skill: { type: "string", multiple: true },
+        verification: { type: "string", multiple: true },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -82,12 +91,14 @@ export async function runManagedCommand(
   const provider = parsed.values.provider;
   const expectedPath = parsed.values.path;
   const instructions = parsed.positionals.join(" ").trim();
+  const verificationSuiteIds = parsed.values.verification ?? [];
   if (
     (provider !== "codex" && provider !== "claude") ||
     expectedPath === undefined ||
+    verificationSuiteIds.length === 0 ||
     instructions.length === 0
   ) {
-    io.stderr(`provider, path와 작업 문장이 필요합니다.\n${runUsage}\n`);
+    io.stderr(`provider, path, verification suite와 작업 문장이 필요합니다.\n${runUsage}\n`);
     return 1;
   }
 
@@ -99,13 +110,15 @@ export async function runManagedCommand(
       instructions,
       risk: parsed.values.risk ?? "medium",
       skillIds: parsed.values.skill ?? [],
+      verificationSuiteIds,
     });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(outcome, null, 2)}\n`
         : formatRunOutcome(outcome),
     );
-    return outcome.writingPublication.status === "allowed" ? 0 : 1;
+    return outcome.writingPublication.status === "allowed" &&
+      outcome.verificationStatus === "passed" ? 0 : 1;
   } catch (error) {
     const failure = {
       code: errorCode(error),

@@ -6,6 +6,30 @@ import {
 } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("binds run completion to provider and verification result artifacts", () => {
+    const completed = {
+      resultDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      artifactIds: [
+        "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      verificationStatus: "passed",
+    };
+    expect(sanitizeEventPayload("run.completed", completed).payload).toEqual(completed);
+    expect(() => sanitizeEventPayload("run.completed", {
+      ...completed,
+      artifactIds: completed.artifactIds.slice(1),
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+    expect(() => sanitizeEventPayload("run.completed", {
+      ...completed,
+      verificationStatus: "not_run",
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+  });
+
   it("removes separator, camelCase, and compatibility-form secret keys", () => {
     const result = sanitizeEventPayload("adapter.started", {
       adapterId: "lervo/codex",
@@ -315,6 +339,36 @@ describe("event payload privacy boundary", () => {
       verifiedRevision: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       knowledgeArtifactId: "art_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       knowledgeContentHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+  });
+
+  it("keeps verification result coordinates without commands or output", () => {
+    const started = sanitizeEventPayload("verification.started", {
+      suiteId: "project.default",
+      suiteHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      repositoryRevision: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      command: "private command",
+    });
+    expect(started.payload).not.toHaveProperty("command");
+
+    const completed = {
+      verificationId: "ver_0123456789abcdef",
+      suiteId: "project.default",
+      suiteHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      repositoryRevision: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      status: "passed",
+      resultArtifactId: "art_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      resultContentHash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      nonPassedCommandIds: [],
+      rawOutput: "private output",
+    };
+    expect(JSON.stringify(sanitizeEventPayload("verification.completed", completed).payload))
+      .not.toContain("private output");
+    expect(() => sanitizeEventPayload("verification.completed", {
+      ...completed,
+      resultArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
       code: "invalid_payload",
     }));

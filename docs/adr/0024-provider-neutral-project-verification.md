@@ -31,9 +31,9 @@ stdout와 stderr는 명령별 독립 CAS artifact로 저장합니다. `Verificat
 
 명령 상태는 `passed`, `failed`, `timed_out`, `output_limit_exceeded`, `execution_error`, `cancelled`, `not_run`을 구분합니다. 의미 검증기는 전체 상태를 명령 상태에서 다시 계산하고 suite hash·명령 순서·digest, exit code, 시간, artifact 좌표와 Verification ID가 맞는지 검사합니다. 따라서 실패한 결과의 최상위 상태만 `passed`로 바꾼 artifact는 거부됩니다.
 
-### 현재 실행 경계
+### 당시 실행 경계
 
-이번 단계는 suite loader, 실행기와 결과 artifact까지 제공합니다. 기존 `verification.started`·`verification.completed` event와 `lervo run`에는 아직 연결하지 않습니다. 따라서 현재 CLI의 project verification 상태는 계속 `not_run`이며 이 artifact가 존재한다는 사실만으로 run 완료, writing 공개 또는 지식 검증을 주장하지 않습니다. Orchestrator 결합 시 event 저장과 result artifact 공개의 순서를 별도로 결정합니다.
+이 ADR을 채택한 단계는 suite loader, 실행기와 결과 artifact까지만 제공했습니다. 당시에는 `verification.started`·`verification.completed` event와 `lervo run`에 연결하지 않았습니다. Result artifact가 존재한다는 사실만으로 run 완료, writing 공개 또는 지식 검증을 주장하지 않는 원칙은 그대로 유지합니다. 이후 orchestrator 결합과 event 순서는 [ADR-0032](./0032-managed-run-project-verification.md)에서 결정했습니다.
 
 ## 개인정보와 실패 의미
 

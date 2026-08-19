@@ -40,7 +40,7 @@ flowchart LR
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
-- `lervo run --provider <provider> --path <path> [--skill <skill-id> ...] <request>`: project storage, 스킬 해석과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
+- `lervo run --provider <provider> --path <path> --verification <suite-id> [--verification <suite-id> ...] [--skill <skill-id> ...] <request>`: project storage, 스킬 해석, 프로젝트 검증과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
 - `lervo trace [run]`: 실행 근거와 이벤트 조회
 - `lervo doctor`: 문서·스킬·어댑터·Hub 상태 진단
 - `lervo docs check`: 문서 노후화 검사
@@ -106,7 +106,9 @@ Bootstrap은 저장소 root, `.lervo`, `.lervo/state`가 실제 디렉터리인�
 
 Project verification은 provider가 작업 중 보고한 일반 command telemetry와 분리합니다. `.lervo/verifications/<suiteId>.yaml`의 각 파일이 독립 suite 원본이며 executable, arguments, 상대 cwd, timeout, output 한도와 전달할 환경 변수 이름을 고정합니다. `@lervo/verification` loader는 요청한 suite 파일 하나를 안정적으로 읽고, 실행기는 shell 없이 순서대로 명령을 실행합니다. 저장소 root와 모든 cwd는 명령 시작 전에 실제 경로로 검증합니다.
 
-첫 실패 뒤 남은 명령은 `not_run`으로 남깁니다. 명령별 stdout·stderr와 전체 result JSON은 서로 다른 local CAS artifact이고 metadata에는 hash 좌표만 둡니다. `VerificationResult`는 실행 직전과 직후에 같은 snapshot port가 확인한 repository hash와 suite hash에 결속되며 의미 검증기가 명령 순서·digest, exit code, 시간, artifact 좌표와 전체 상태를 다시 계산합니다. 실행 중 repository가 바뀌면 result를 만들지 않습니다. 이 패키지는 provider adapter, event store와 CLI를 알지 않습니다. 현재 `lervo run` 결합과 verification event 기록은 아직 구현하지 않아 CLI의 검증 상태는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록합니다.
+첫 실패 뒤 남은 명령은 `not_run`으로 남깁니다. 명령별 stdout·stderr와 전체 result JSON은 서로 다른 local CAS artifact이고 metadata에는 hash 좌표만 둡니다. `VerificationResult`는 실행 직전과 직후에 같은 snapshot port가 확인한 repository hash와 suite hash에 결속되며 의미 검증기가 명령 순서·digest, exit code, 시간, artifact 좌표와 전체 상태를 다시 계산합니다. 실행 중 repository가 바뀌면 result를 만들지 않습니다. 이 패키지는 provider adapter, event store와 CLI를 알지 않습니다.
+
+`lervo run`은 한 개 이상, 최대 16개의 suite ID를 명시적으로 받아 provider를 시작하기 전에 원본을 모두 읽습니다. Provider 종료, 실행 후 snapshot과 provider 결과 CAS 검증이 끝난 뒤 그 snapshot revision에서 suite를 ID 순서로 실행합니다. Orchestrator는 공급자 중립 검증 port만 호출하고 결과 schema·suite·revision, canonical result CAS와 참조한 command output CAS를 다시 확인합니다. 각 suite는 `verification.started`와 `verification.completed`로 남고 모든 필수 suite가 통과해야 `run.completed.verificationStatus=passed`가 됩니다. 실패나 취소, 위조된 결과는 `run.failed`로 끝나며 `run.completed`를 만들지 않습니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)와 [ADR-0032](./docs/adr/0032-managed-run-project-verification.md)에 기록합니다.
 
 ## 핵심 구성 요소
 
@@ -124,7 +126,7 @@ Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다.
 
 최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `lervo run` CLI가 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결합니다.
 
-현재 `lervo run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator와 같은 CAS를 한 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 작업 문장과 위험도만 받습니다. 성공과 실패 모두 storage를 닫습니다. Project verification은 아직 `not_run`입니다. Provider 결과는 `@lervo/writing`이 결정적 검사와 별도 의미 평가를 실행해 공개 permit를 만든 경우에만 출력하며, 기본 실행처럼 의미 평가기가 없으면 변경과 `run.completed`는 유지하되 원문은 숨기고 실패 상태로 종료합니다. 명령 파싱·출력, 실행 조합과 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
+현재 `lervo run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator, suite loader와 검증기를 같은 CAS 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 한 개 이상의 verification suite, 작업 문장과 위험도를 받습니다. 성공과 실패 모두 storage를 닫습니다. Provider 결과는 `@lervo/writing`이 결정적 검사와 별도 의미 평가를 실행해 공개 permit를 만든 경우에만 출력하며, 기본 실행처럼 의미 평가기가 없으면 검증된 변경과 `run.completed`는 유지하되 원문은 숨기고 실패 상태로 종료합니다. 명령 파싱·출력, 실행 조합, 검증 실행 어댑터와 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
 
 파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 
@@ -351,6 +353,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·진단(`diagnostics`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 `lervo run`의 project verification 연결과 문서·스킬·provider 환경 진단입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·진단(`diagnostics`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 문서·스킬·provider 실행 환경 진단입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

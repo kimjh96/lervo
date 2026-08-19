@@ -51,17 +51,18 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [Codex·Claude 교차 검토와 역할별 공급자 강제 ADR](./docs/adr/0029-cross-provider-deliberation-runtime.md)
 - [수렴 결과 기반 지식 candidate와 로컬 진단 ADR](./docs/adr/0030-evidence-bound-knowledge-candidates.md)
 - [사람 검토 기반 지식 승격과 stale 전이 ADR](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)
+- [`lervo run` 프로젝트 검증 연결 ADR](./docs/adr/0032-managed-run-project-verification.md)
 
 ## 현재 구현
 
 - `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome, 지식 promotion policy/review/verified/staleness JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
-- `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
+- `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 실행 완료·프로젝트 검증·숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@lervo/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@lervo/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
 - `@lervo/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
-- `@lervo/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 provider 요청에 연결하고, 실제 변경 hash·snapshot·결과 artifact를 함께 검증하는 fail-closed 상태 머신
+- `@lervo/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 provider 요청에 연결하고, 실제 변경 hash·snapshot·provider 결과·프로젝트 검증 결과 artifact를 함께 검증하는 fail-closed 상태 머신
 - `@lervo/project`: 관리 경로, project 설정, 분할 document manifest/기존 registry 호환 loader와 원자적인 초기화 계획·적용
 - `@lervo/documents`: 제한된 root의 안전한 read-only scan, Markdown/MDX·기존 Lervo registry adapter, CommonMark 기반 managed block byte 경계 판정과 쓰기 권한 없는 byte 보존 patch candidate, 문서별 migration candidate artifact와 source hash 기반 dry-run plan, 검토된 manifest의 metadata-only sidecar 적용, 기존 단일 registry의 항목별 보존 artifact와 승인 기반 원자적 structural migration, revision snapshot·검토 주기·연결 경로·managed input hash의 증거 기반 stale 판정.
 - `@lervo/verification-contract`: suite/result canonical hash와 ID, 실행·CAS에 독립적인 suite/result 의미 검증
@@ -78,10 +79,10 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/deliberation-runtime`: 역할별 managed run의 E2/E3·event 원본, writing permit, shared-context handoff와 구조화 artifact 기록을 연결하는 공급자 중립 숙의 runtime
 - `@lervo/knowledge`: converged 결과의 claim별 CAS candidate, 사람 review 승인 원본, 현재 revision·path hash에 묶인 verified 원본과 review interval·path 변경 기반 stale 판정을 분리하는 지식 수명주기 경계
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하는 로컬 진단 경계
-- `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter를 연결하는 한 파일 `lervo run` 명령 진입점. Provider 결과는 writing 공개 gate를 통과했을 때만 출력
+- `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 기능 검증이 통과하고 provider 결과가 writing 공개 gate를 통과했을 때만 성공으로 종료
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. `converged` outcome만 candidate가 되며, 정책이 허용한 사람 reviewer의 승인과 같은 repository revision의 현재 path hash가 있어야 `verified`로 승격됩니다. 저장소 revision이 달라져도 관련 path가 그대로면 current이며, 관련 path 변경·부재 또는 검토기한 도달만 stale 근거가 됩니다. `lervo doctor`는 candidate, review, verified와 stale 원본 연결을 나눠 점검합니다. 다음 작업은 `lervo run`에 실제 project verification을 연결하고 문서·스킬·provider 환경 진단을 확장하는 것입니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. `lervo run`은 provider가 끝난 뒤 같은 저장소 revision에서 요청한 verification suite를 실행하고, 검증 결과 원본과 event를 확인한 뒤에만 완료됩니다. `converged` outcome만 candidate가 되며, 정책이 허용한 사람 reviewer의 승인과 같은 repository revision의 현재 path hash가 있어야 `verified`로 승격됩니다. `lervo doctor`는 candidate, review, verified와 stale 원본 연결을 나눠 점검합니다. 다음 작업은 문서·스킬·provider 실행 환경 진단을 확장하는 것입니다.
 
 ## 핵심 명제
 
@@ -93,11 +94,11 @@ Lervo는 모델 자체가 아니라 **에이전트가 일하는 환경과 계약
 pnpm build
 pnpm lervo init --dry-run
 pnpm lervo init
-pnpm lervo run --provider codex --path src/example.ts "DD 기능 개발"
+pnpm lervo run --provider codex --path src/example.ts --verification project.default "DD 기능 개발"
 lervo trace last
 lervo doctor
 ```
 
-`lervo init`, 한 파일 `lervo run`, run별 `lervo trace`와 로컬 증거용 `lervo doctor`를 실행할 수 있습니다. `lervo run`의 project verification은 아직 `실행하지 않음`입니다. Writing 검사는 실행하지만 별도 의미 평가기가 구성되지 않은 기본 실행은 결과 원문을 숨깁니다. 현재 doctor는 project storage, event hash chain과 candidate·review·verified·stale 지식 증거를 점검하며 문서·스킬·provider 실행 환경 진단은 다음 슬라이스에서 확장합니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
+`lervo init`, 한 파일 `lervo run`, run별 `lervo trace`와 로컬 증거용 `lervo doctor`를 실행할 수 있습니다. `lervo run`은 `.lervo/verifications/<suite-id>.yaml`에 있는 suite를 `--verification`으로 하나 이상 명시해야 합니다. 모든 필수 suite가 통과하지 않으면 `run.completed`를 기록하지 않습니다. Writing 검사는 별도 의미 평가기가 구성되지 않은 기본 실행에서 결과 원문을 숨깁니다. 현재 doctor는 project storage, event hash chain과 candidate·review·verified·stale 지식 증거를 점검하며 문서·스킬·provider 실행 환경 진단은 다음 슬라이스에서 확장합니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
 
 이전 실험 버전이 만든 `.roven` 경로는 자동으로 읽거나 `.lervo`와 함께 사용하지 않습니다. `lervo init`은 두 관리 경로가 공존하는 상태를 만들지 않도록 초기화를 차단합니다. 기존 상태를 옮기는 작업은 event hash chain과 CAS 주소를 보존하는 별도 명칭 migration으로 다룹니다.

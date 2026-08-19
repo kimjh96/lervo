@@ -53,6 +53,12 @@ importers:
       '@lervo/skills':
         specifier: workspace:*
         version: link:../../packages/skills
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../../packages/storage-contract
+      '@lervo/verification':
+        specifier: workspace:*
+        version: link:../../packages/verification
       '@lervo/writing':
         specifier: workspace:*
         version: link:../../packages/writing
@@ -272,6 +278,9 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+      '@lervo/verification-contract':
+        specifier: workspace:*
+        version: link:../verification-contract
     devDependencies:
       '@lervo/adapter-claude':
         specifier: workspace:*

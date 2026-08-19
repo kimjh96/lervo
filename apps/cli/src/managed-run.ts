@@ -9,6 +9,7 @@ import {
   ManagedProviderRunCoordinator,
   type ManagedFileChangeEvidence,
   type ManagedProviderResultArtifact,
+  type ManagedProjectVerification,
 } from "@lervo/orchestrator";
 import { loadDocumentRegistry } from "@lervo/project";
 import {
@@ -23,6 +24,10 @@ import {
 
 import { createDeveloperRole } from "./developer-role.js";
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
+import {
+  prepareRunVerification,
+  type PreparedRunVerification,
+} from "./run-verification.js";
 
 export type RunProvider = "codex" | "claude";
 
@@ -33,6 +38,7 @@ export interface ManagedRunRequest {
   instructions: string;
   risk: string;
   skillIds?: readonly string[];
+  verificationSuiteIds: readonly string[];
 }
 
 export interface ManagedRunOutcome {
@@ -43,7 +49,8 @@ export interface ManagedRunOutcome {
   resultArtifact: ManagedProviderResultArtifact;
   writingPublication: WritingPublicationResult;
   managedChanges: ManagedFileChangeEvidence[];
-  verificationStatus: "not_run";
+  verificationStatus: "passed" | "failed" | "not_run";
+  verifications: readonly ManagedProjectVerification[];
   resolvedSkills: readonly ResolvedRunSkill[];
 }
 
@@ -58,6 +65,12 @@ export interface ManagedRunDependencies {
   userSkillRoot?: string;
   semanticEvaluator?: WritingSemanticEvaluator;
   now?: () => Date;
+  prepareVerification?(input: {
+    repositoryRoot: string;
+    suiteIds: readonly string[];
+    artifactStore: ProjectStorage["artifacts"];
+    now?: () => Date;
+  }): Promise<PreparedRunVerification>;
 }
 
 export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedRunOutcome>;
@@ -94,8 +107,17 @@ export function createManagedRunExecutor(
     const expectedPath = normalizeRepositoryPath(request.expectedPath);
     const instructions = request.instructions.trim();
     const skillIds = [...new Set(request.skillIds ?? [])].sort();
-    if (instructions.length === 0 || request.risk.trim().length === 0) {
-      throw new TypeError("작업 문장과 위험도는 비어 있을 수 없습니다.");
+    const verificationSuiteIds = [...request.verificationSuiteIds].sort();
+    if (
+      instructions.length === 0 || request.risk.trim().length === 0 ||
+      new Set(verificationSuiteIds).size !== verificationSuiteIds.length ||
+      verificationSuiteIds.length === 0 || verificationSuiteIds.length > 16 ||
+      verificationSuiteIds.some((suiteId) =>
+        !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(suiteId) || suiteId.length > 150)
+    ) {
+      throw new TypeError(
+        "작업 문장, 위험도와 중복되지 않은 1~16개의 verification suite가 필요합니다.",
+      );
     }
 
     let storage: ProjectStorage | undefined;
@@ -104,7 +126,15 @@ export function createManagedRunExecutor(
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
-      const role = createDeveloperRole(skillIds);
+      const role = createDeveloperRole(skillIds, verificationSuiteIds);
+      const verification = await (
+        dependencies.prepareVerification ?? prepareRunVerification
+      )({
+        repositoryRoot: storage.paths.repositoryRoot,
+        suiteIds: verificationSuiteIds,
+        artifactStore: storage.artifacts,
+        ...(dependencies.now === undefined ? {} : { now: dependencies.now }),
+      });
       const resolvedSkills = await resolveRunSkills({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
@@ -136,6 +166,7 @@ export function createManagedRunExecutor(
         },
         policyVersion,
         createEventId: () => dependencies.createId("evt"),
+        projectVerifier: verification.verifier,
       });
       const result = await coordinator.run({
         repositoryRoot: storage.paths.repositoryRoot,
@@ -154,6 +185,7 @@ export function createManagedRunExecutor(
         },
         writingPolicy: null,
         resolvedSkills,
+        verificationSuites: verification.suites,
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
       });
@@ -177,7 +209,8 @@ export function createManagedRunExecutor(
         resultArtifact: result.resultArtifact,
         writingPublication,
         managedChanges: result.managedChanges,
-        verificationStatus: "not_run",
+        verificationStatus: result.verificationStatus,
+        verifications: result.verifications,
         resolvedSkills,
       };
     } catch (error) {

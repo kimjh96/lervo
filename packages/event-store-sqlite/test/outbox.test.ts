@@ -32,8 +32,10 @@ function draft(index = 1, overrides: Partial<EventDraft> = {}): EventDraft {
     payload: {
       resultDigest:
         "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      artifactIds: [],
-      verificationStatus: "passed",
+      artifactIds: [
+        "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      verificationStatus: "not_run",
     },
     ...overrides,
   };

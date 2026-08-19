@@ -21,7 +21,8 @@
     "@lervo/core": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
-    "@lervo/storage-contract": "workspace:*"
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/verification-contract": "workspace:*"
   },
   "devDependencies": {
     "@lervo/adapter-claude": "workspace:*",

@@ -77,7 +77,7 @@ describe("lervo run CLI arguments", () => {
 
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
-    expect(errorOutput).toContain("provider, path와 작업 문장이 필요합니다");
+    expect(errorOutput).toContain("provider, path, verification suite와 작업 문장이 필요합니다");
   });
 });
 
@@ -116,7 +116,7 @@ describe("lervo local diagnostics CLI", () => {
       occurredAt: "2026-08-19T00:00:01Z",
       payload: {
         resultDigest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        artifactIds: [],
+        artifactIds: ["art_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"],
         verificationStatus: "not_run",
       },
     });

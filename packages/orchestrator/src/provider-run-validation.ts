@@ -31,7 +31,7 @@ function expectedWritingPolicyId(input: ManagedProviderRunInput): string | null 
 
 export function validateManagedProviderRunInput(
   input: ManagedProviderRunInput,
-  coordinates: ManagedProviderRunOptions["coordinates"],
+  options: Pick<ManagedProviderRunOptions, "coordinates" | "projectVerifier">,
 ): void {
   const skillIds = input.resolvedSkills.map((skill) => skill.skillId);
   const roleSkillIds = [...input.context.role.defaultSkills].sort();
@@ -40,7 +40,7 @@ export function validateManagedProviderRunInput(
     input.instructions.length === 0 ||
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
-    input.context.role.roleId !== coordinates.roleId ||
+    input.context.role.roleId !== options.coordinates.roleId ||
     input.context.role.capabilities["filesystem.write"] === "require_approval" ||
     input.context.expectedPaths.length === 0 ||
     new Set(skillIds).size !== skillIds.length ||
@@ -56,6 +56,25 @@ export function validateManagedProviderRunInput(
       "contract_validation_failed",
       "Managed run 요청의 task, 파일 쓰기 정책 또는 예상 경로가 유효하지 않습니다.",
     );
+  }
+  if (input.verificationSuites !== undefined) {
+    const suiteIds = input.verificationSuites.map((suite) => suite.suiteId);
+    const roleSuiteIds = [...input.context.role.verification.suiteIds].sort();
+    const requestedSuiteIds = [...suiteIds].sort();
+    if (
+      options.projectVerifier === undefined ||
+      input.verificationSuites.length === 0 ||
+      input.verificationSuites.length > 16 ||
+      new Set(suiteIds).size !== suiteIds.length ||
+      input.verificationSuites.some((suite) => !validateSchema("verificationSuite", suite).valid) ||
+      roleSuiteIds.length !== requestedSuiteIds.length ||
+      roleSuiteIds.some((suiteId, index) => suiteId !== requestedSuiteIds[index])
+    ) {
+      throw new ManagedProviderRunError(
+        "contract_validation_failed",
+        "Role과 project verification suite 입력이 다르거나 실행 port가 없습니다.",
+      );
+    }
   }
   const writingPolicyId = expectedWritingPolicyId(input);
   if (

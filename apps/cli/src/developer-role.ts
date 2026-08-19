@@ -30,7 +30,7 @@ const developerRoleBase: RoleProfile = {
     presentation: { audience: "machine", writingPolicyId: null },
   },
   verification: {
-    suiteIds: ["lervo.v0.not_run"],
+    suiteIds: ["project.default"],
     failureDisposition: "fail_run",
   },
   handoff: {
@@ -40,6 +40,12 @@ const developerRoleBase: RoleProfile = {
   },
 };
 
-export function createDeveloperRole(skillIds: readonly string[]): RoleProfile {
-  return { ...structuredClone(developerRoleBase), defaultSkills: [...skillIds] };
+export function createDeveloperRole(
+  skillIds: readonly string[],
+  verificationSuiteIds: readonly string[] = developerRoleBase.verification.suiteIds,
+): RoleProfile {
+  const role = structuredClone(developerRoleBase);
+  role.defaultSkills = [...skillIds];
+  role.verification.suiteIds = [...verificationSuiteIds];
+  return role;
 }

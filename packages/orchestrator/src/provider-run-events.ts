@@ -7,6 +7,8 @@ import type {
   AdapterSession,
   AdapterStopResult,
 } from "@lervo/schemas";
+import type { VerificationResult, VerificationSuite } from "@lervo/schemas";
+import { verificationSuiteHash } from "@lervo/verification-contract";
 
 import type { ManagedEventSpec } from "./telemetry.js";
 import type {
@@ -155,6 +157,8 @@ export function unmanagedChangeSpec(input: {
 
 export function runCompletedSpec(input: {
   resultArtifact: ManagedProviderResultArtifact;
+  verificationStatus: "passed" | "failed" | "not_run";
+  verificationArtifactIds: readonly string[];
   occurredAt: string;
 }): ManagedEventSpec {
   return {
@@ -163,8 +167,52 @@ export function runCompletedSpec(input: {
     actor: systemActor,
     payload: {
       resultDigest: input.resultArtifact.contentHash,
-      artifactIds: [input.resultArtifact.artifactId],
-      verificationStatus: "not_run",
+      artifactIds: [...new Set([
+        input.resultArtifact.artifactId,
+        ...input.verificationArtifactIds,
+      ])],
+      verificationStatus: input.verificationStatus,
+    },
+  };
+}
+
+export function verificationStartedSpec(input: {
+  suite: VerificationSuite;
+  repositoryRevision: string;
+  occurredAt: string;
+}): ManagedEventSpec {
+  return {
+    type: "verification.started",
+    occurredAt: input.occurredAt,
+    actor: systemActor,
+    payload: {
+      suiteId: input.suite.suiteId,
+      suiteHash: verificationSuiteHash(input.suite),
+      repositoryRevision: input.repositoryRevision,
+    },
+  };
+}
+
+export function verificationCompletedSpec(input: {
+  result: VerificationResult;
+  resultArtifactId: string;
+  resultContentHash: string;
+}): ManagedEventSpec {
+  return {
+    type: "verification.completed",
+    occurredAt: input.result.completedAt,
+    actor: systemActor,
+    payload: {
+      verificationId: input.result.verificationId,
+      suiteId: input.result.suiteId,
+      suiteHash: input.result.suiteHash,
+      repositoryRevision: input.result.repositoryRevision,
+      status: input.result.status,
+      resultArtifactId: input.resultArtifactId,
+      resultContentHash: input.resultContentHash,
+      nonPassedCommandIds: input.result.commands
+        .filter((command) => command.status !== "passed")
+        .map((command) => command.commandId),
     },
   };
 }

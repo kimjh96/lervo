@@ -1,6 +1,12 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
-import type { AdapterSession, AdapterTurn, ContextEvidence } from "@lervo/schemas";
+import type {
+  AdapterSession,
+  AdapterTurn,
+  ContextEvidence,
+  VerificationResult,
+  VerificationSuite,
+} from "@lervo/schemas";
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
@@ -27,6 +33,7 @@ export type ManagedProviderRunFailureCode =
   | "provider_write_failed"
   | "provider_result_failed"
   | "repository_snapshot_failed"
+  | "verification_failed"
   | "telemetry_recording_failed"
   | "unmanaged_change_detected";
 
@@ -69,6 +76,7 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
   snapshotPolicy?: RepositorySnapshotPolicy;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
   now?: () => Date;
+  projectVerifier?: ManagedProjectVerifier;
 }
 
 export interface ManagedProviderRunInput {
@@ -83,6 +91,7 @@ export interface ManagedProviderRunInput {
   >;
   writingPolicy: ResolvedWritingPolicy | null;
   resolvedSkills: readonly ManagedResolvedSkill[];
+  verificationSuites?: readonly VerificationSuite[];
   signal?: AbortSignal;
   createEnvelopeId?: () => string;
   createEvidenceReceiptId?: () => string;
@@ -107,6 +116,8 @@ export interface ManagedProviderRunResult {
   contextGeneration: number;
   beforeRevision: string;
   afterRevision: string;
+  verificationStatus: "passed" | "failed" | "not_run";
+  verifications: ManagedProjectVerification[];
 }
 
 export interface ManagedProviderResultArtifact {
@@ -115,4 +126,26 @@ export interface ManagedProviderResultArtifact {
   mediaType: "text/markdown; charset=utf-8";
   contentHash: string;
   byteCount: number;
+}
+
+export interface ManagedVerificationResultArtifact {
+  artifactId: string;
+  uri: string;
+  mediaType: "application/vnd.lervo.verification-result+json; charset=utf-8";
+  contentHash: string;
+  byteCount: number;
+}
+
+export interface ManagedProjectVerification {
+  result: VerificationResult;
+  resultArtifact: ManagedVerificationResultArtifact;
+}
+
+export interface ManagedProjectVerifier {
+  verify(input: {
+    suite: VerificationSuite;
+    repositoryRoot: string;
+    repositoryRevision: string;
+    signal?: AbortSignal;
+  }): Promise<ManagedProjectVerification>;
 }

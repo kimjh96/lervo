@@ -56,8 +56,10 @@ function eventDraft() {
     payload: {
       resultDigest:
         "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      artifactIds: [],
-      verificationStatus: "passed",
+      artifactIds: [
+        "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      ],
+      verificationStatus: "not_run",
     },
   };
 }

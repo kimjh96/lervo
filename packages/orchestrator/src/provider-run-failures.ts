@@ -22,6 +22,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   provider_stop_failed: 90,
   provider_write_failed: 85,
   unmanaged_change_detected: 80,
+  verification_failed: 75,
   contract_validation_failed: 70,
   repository_snapshot_failed: 60,
   context_injection_failed: 50,
@@ -58,6 +59,8 @@ function failureCodeForPhase(
       return "provider_write_failed";
     case "result_store":
       return "artifact_storage_failed";
+    case "project_verification":
+      return "verification_failed";
     case "provider_stream":
       return "provider_stream_failed";
     case "adapter_stop":

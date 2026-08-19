@@ -1,0 +1,35 @@
+[
+  {
+    "name": "verification started event rejects raw command text",
+    "schema": "verificationStartedEventPayload",
+    "value": {
+      "suiteId": "project.default",
+      "suiteHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "command": "private command"
+    }
+  },
+  {
+    "name": "verification completed event cannot call an unexecuted suite complete",
+    "schema": "verificationCompletedEventPayload",
+    "value": {
+      "verificationId": "ver_0123456789abcdef",
+      "suiteId": "project.default",
+      "suiteHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "not_run",
+      "resultArtifactId": "art_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "resultContentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "nonPassedCommandIds": []
+    }
+  },
+  {
+    "name": "run completed event requires at least one artifact coordinate",
+    "schema": "runCompletedEventPayload",
+    "value": {
+      "resultDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "artifactIds": [],
+      "verificationStatus": "passed"
+    }
+  }
+]
