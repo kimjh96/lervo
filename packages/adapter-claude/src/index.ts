@@ -3,6 +3,7 @@ export * from "./claude-adapter.js";
 export * from "./context-message.js";
 export * from "./managed-write.js";
 export * from "./normalize.js";
+export * from "./runtime-inspection.js";
 export * from "./sdk-client.js";
 export * from "./types.js";
 export * from "./turn-result.js";

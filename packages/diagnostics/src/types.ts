@@ -30,7 +30,16 @@ export type DoctorIssueCode =
   | "staleness_artifact_invalid"
   | "staleness_event_mismatch"
   | "staleness_verified_missing"
-  | "event_chain_invalid";
+  | "event_chain_invalid"
+  | "document_registry_invalid"
+  | "document_source_invalid"
+  | "skill_package_invalid"
+  | "skill_lock_missing"
+  | "skill_lock_invalid"
+  | "skill_lock_stale"
+  | "provider_executable_missing"
+  | "provider_probe_failed"
+  | "provider_platform_unsupported";
 
 export interface DoctorIssue {
   code: DoctorIssueCode;
@@ -44,14 +53,26 @@ export interface DoctorCheck {
     | "knowledge_candidates"
     | "knowledge_reviews"
     | "verified_knowledge"
-    | "knowledge_staleness";
-  status: "passed" | "failed";
+    | "knowledge_staleness"
+    | "document_registry"
+    | "document_sources"
+    | "skill_packages"
+    | "skill_lock"
+    | "provider_codex_runtime"
+    | "provider_claude_runtime";
+  status: "healthy" | "unhealthy" | "unknown";
   observedCount: number;
+  version?: string;
+}
+
+export interface DoctorInspection {
+  check: DoctorCheck;
+  issues: DoctorIssue[];
 }
 
 export interface DoctorReport {
   projectId: string;
-  status: "healthy" | "issues";
+  status: "healthy" | "unhealthy" | "unknown";
   checks: DoctorCheck[];
   issues: DoctorIssue[];
 }

@@ -3,14 +3,56 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import { inspectCandidate } from "./candidate-inspection.js";
 import { inspectKnowledgeReview } from "./review-inspection.js";
 import { inspectKnowledgeStaleness } from "./staleness-inspection.js";
-import type { DoctorIssue, DoctorReport } from "./types.js";
+import type {
+  DoctorCheck,
+  DoctorInspection,
+  DoctorIssue,
+  DoctorReport,
+} from "./types.js";
 import { inspectVerifiedKnowledge } from "./verified-inspection.js";
+
+const environmentCheckIds = [
+  "document_registry",
+  "document_sources",
+  "skill_packages",
+  "skill_lock",
+  "provider_codex_runtime",
+  "provider_claude_runtime",
+] as const satisfies readonly DoctorCheck["checkId"][];
+
+function assertEnvironmentInspections(inspections: readonly DoctorInspection[]): void {
+  const allowed = new Set<DoctorCheck["checkId"]>(environmentCheckIds);
+  const seen = new Set<DoctorCheck["checkId"]>();
+  for (const inspection of inspections) {
+    const { check, issues } = inspection;
+    if (!allowed.has(check.checkId) || seen.has(check.checkId)) {
+      throw new TypeError(`Doctor 환경 검사 ID가 유효하지 않습니다: ${check.checkId}`);
+    }
+    if (!Number.isSafeInteger(check.observedCount) || check.observedCount < 0) {
+      throw new TypeError(`Doctor 관측 개수가 유효하지 않습니다: ${check.checkId}`);
+    }
+    if (
+      (check.status === "healthy" && issues.length !== 0) ||
+      (check.status !== "healthy" && issues.length === 0) ||
+      (check.version !== undefined && check.status !== "healthy")
+    ) {
+      throw new TypeError(`Doctor 검사 상태와 근거가 일치하지 않습니다: ${check.checkId}`);
+    }
+    seen.add(check.checkId);
+  }
+  const missing = environmentCheckIds.filter((checkId) => !seen.has(checkId));
+  if (missing.length > 0) {
+    throw new TypeError(`Doctor 환경 검사가 누락되었습니다: ${missing.join(", ")}`);
+  }
+}
 
 export async function createDoctorReport(input: {
   projectId: string;
   events: EventStore;
   artifacts: ArtifactStore;
+  inspections: readonly DoctorInspection[];
 }): Promise<DoctorReport> {
+  assertEnvironmentInspections(input.inspections);
   const issues: DoctorIssue[] = [];
   let eventCount = 0;
   try {
@@ -48,36 +90,50 @@ export async function createDoctorReport(input: {
   const reviewFailed = reviewIssues.some((items) => items.length > 0);
   const verifiedFailed = verifiedIssues.some((items) => items.length > 0);
   const stalenessFailed = stalenessIssues.some((items) => items.length > 0);
+  const localChecks: DoctorReport["checks"] = [
+    {
+      checkId: "event_chain",
+      status: eventChainFailed ? "unhealthy" : "healthy",
+      observedCount: eventCount,
+    },
+    {
+      checkId: "knowledge_candidates",
+      status: candidateFailed ? "unhealthy" : "healthy",
+      observedCount: candidateEvents.length,
+    },
+    {
+      checkId: "knowledge_reviews",
+      status: reviewFailed ? "unhealthy" : "healthy",
+      observedCount: reviewEvents.length,
+    },
+    {
+      checkId: "verified_knowledge",
+      status: verifiedFailed ? "unhealthy" : "healthy",
+      observedCount: verifiedEvents.length,
+    },
+    {
+      checkId: "knowledge_staleness",
+      status: stalenessFailed ? "unhealthy" : "healthy",
+      observedCount: stalenessEvents.length,
+    },
+  ];
+  const inspections = input.inspections;
+  const checks = [...localChecks, ...inspections.map((inspection) => inspection.check)];
+  const duplicateCheck = checks.find((check, index) =>
+    checks.findIndex((candidate) => candidate.checkId === check.checkId) !== index);
+  if (duplicateCheck !== undefined) {
+    throw new TypeError(`Doctor 검사 ID가 중복되었습니다: ${duplicateCheck.checkId}`);
+  }
+  issues.push(...inspections.flatMap((inspection) => inspection.issues));
+  const status = checks.some((check) => check.status === "unhealthy")
+    ? "unhealthy"
+    : checks.some((check) => check.status === "unknown")
+      ? "unknown"
+      : "healthy";
   return {
     projectId: input.projectId,
-    status: issues.length === 0 ? "healthy" : "issues",
-    checks: [
-      {
-        checkId: "event_chain",
-        status: eventChainFailed ? "failed" : "passed",
-        observedCount: eventCount,
-      },
-      {
-        checkId: "knowledge_candidates",
-        status: candidateFailed ? "failed" : "passed",
-        observedCount: candidateEvents.length,
-      },
-      {
-        checkId: "knowledge_reviews",
-        status: reviewFailed ? "failed" : "passed",
-        observedCount: reviewEvents.length,
-      },
-      {
-        checkId: "verified_knowledge",
-        status: verifiedFailed ? "failed" : "passed",
-        observedCount: verifiedEvents.length,
-      },
-      {
-        checkId: "knowledge_staleness",
-        status: stalenessFailed ? "failed" : "passed",
-        observedCount: stalenessEvents.length,
-      },
-    ],
+    status,
+    checks,
     issues,
   };
 }

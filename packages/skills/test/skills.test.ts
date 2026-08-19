@@ -9,6 +9,7 @@ import {
   compareSemver,
   discoverSkillRoot,
   hashSkillPackage,
+  readSkillLock,
   resolveSkills,
   writeSkillLock,
 } from "../src/index.js";
@@ -247,7 +248,9 @@ describe("local skill resolution", () => {
       runtime: runtime(),
       generatedAt: "2026-08-19T00:00:00Z",
     }).lock;
+    await expect(readSkillLock(resolve(root, "missing.lock"))).resolves.toBeNull();
     await writeSkillLock(path, empty);
+    await expect(readSkillLock(path)).resolves.toEqual(empty);
     const second = await writeSkillLock(path, {
       ...empty,
       generatedAt: "2026-08-19T01:00:00Z",

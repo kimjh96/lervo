@@ -187,7 +187,11 @@ M4 완료.
 
 구현 현황(2026-08-19): **사람 검토 기반 verified 승격과 stale 전이 완료.** 검토와 승격을 별도 CAS/event 원본으로 나누고 정책이 허용한 사람 reviewer, 승인 결정, 같은 repository revision, 충돌 해소와 현재 path hash가 모두 확인될 때만 verified를 만듭니다. Reviewer ID는 로컬 승인 CAS에만 두고 event에는 넣지 않습니다. Verified path hash가 현재 snapshot과 같으면 전체 revision이 달라도 current이며, path 변경·부재 또는 review due 시각만 stale 근거가 됩니다. Current 판정은 event로 누적하지 않고 stale 결과만 CAS/event로 기록합니다. Doctor는 candidate, review, verified와 stale 연결을 각각 역검증합니다. 결정은 [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)에 기록했습니다.
 
-다음 구현 순서: **문서·스킬·provider 실행 환경 doctor 확장**입니다.
+구현 현황(2026-08-19): **문서·스킬·provider 실행 환경 doctor 확장 완료.** 문서 registry와 등록 원본, 프로젝트·사용자 스킬 package와 lock, Codex PATH 실행 파일과 Claude SDK bundled 실행 파일을 독립 항목으로 검사합니다. 결과는 `healthy`, `unhealthy`, `unknown`으로 나뉘며 모든 항목이 `healthy`일 때만 성공합니다. 스킬 lock은 기록된 runtime으로 공통 resolver를 다시 실행해 선택·탈락 전체를 비교하고, provider version probe는 인증·네트워크·실제 session 성공을 주장하지 않습니다. 결정은 [ADR-0033](./docs/adr/0033-bounded-environment-doctor.md)에 기록했습니다.
+
+M5 완료.
+
+다음 구현 순서: **M6 프로젝트 등록과 outbound event sync 계약**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -292,4 +296,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **문서·스킬·provider 실행 환경 doctor 확장**입니다. Doctor가 확인하지 않은 환경을 정상으로 뭉뚱그리지 않도록 검사 항목과 `healthy`, `unhealthy`, `unknown` 판정 근거를 분리합니다.
+다음 구현 작업은 **M6 프로젝트 등록과 outbound event sync 계약**입니다. 로컬 완료를 Hub 가용성과 분리한 채 project identity, 전송 envelope, cursor와 멱등 수락 의미를 먼저 고정합니다.

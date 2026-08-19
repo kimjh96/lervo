@@ -42,7 +42,7 @@ Candidate CAS 저장과 event transaction은 서로 다른 저장 경계입니�
 4. Evidence event의 존재와 converged 완료 상태
 5. Decision·verification artifact event와 decision CAS 원문
 
-현재 doctor는 이 로컬 증거 범위만 확인합니다. 문서 manifest, skill lock, provider 실행 파일과 Hub 연결 상태는 확인하지 않았으면 정상이라고 표시하지 않습니다.
+이 ADR에서 구현한 doctor의 첫 범위는 로컬 지식 증거입니다. 문서 manifest, skill lock과 provider 실행 파일 검사는 [ADR-0033](./0033-bounded-environment-doctor.md)에서 별도 항목으로 확장했습니다. Hub 연결 상태는 아직 검사하지 않으며 정상이라고 표시하지 않습니다.
 
 ## Event 필드와 개인정보
 

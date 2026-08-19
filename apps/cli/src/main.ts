@@ -1,6 +1,7 @@
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
+import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
@@ -14,7 +15,11 @@ ${traceUsage}
 ${doctorUsage}
 `;
 
-const defaultServices: CliServices = { executeManagedRun, openProjectStorage };
+const defaultServices: CliServices = {
+  executeManagedRun,
+  openProjectStorage,
+  inspectDoctorEnvironment,
+};
 
 export async function runCli(
   args: string[],

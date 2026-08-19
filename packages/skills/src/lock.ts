@@ -35,6 +35,30 @@ function assertLock(lock: SkillLock): void {
   }
 }
 
+export async function readSkillLock(path: string): Promise<SkillLock | null> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readExistingLock(path));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    if (error instanceof SkillResolutionError) throw error;
+    throw new SkillResolutionError(
+      "invalid_skill_lock",
+      "기존 skills.lock을 안전하게 읽지 못했습니다.",
+      { cause: error },
+    );
+  }
+  if (!validateSchema("skillLock", parsed).valid) {
+    throw new SkillResolutionError(
+      "invalid_skill_lock",
+      "기존 skills.lock이 schema 계약을 통과하지 못했습니다.",
+    );
+  }
+  const lock = parsed as SkillLock;
+  assertLock(lock);
+  return structuredClone(lock);
+}
+
 async function readExistingLock(path: string): Promise<string> {
   const before = await lstat(path);
   if (!before.isFile() || before.isSymbolicLink() || before.size > MAX_LOCK_BYTES) {
@@ -75,27 +99,8 @@ async function readExistingLock(path: string): Promise<string> {
 
 export async function writeSkillLock(path: string, next: SkillLock): Promise<SkillLock> {
   assertLock(next);
-  let current: SkillLock | undefined;
-  try {
-    const parsed: unknown = JSON.parse(await readExistingLock(path));
-    if (!validateSchema("skillLock", parsed).valid) {
-      throw new SkillResolutionError(
-        "invalid_skill_lock",
-        "기존 skills.lock이 schema 계약을 통과하지 못해 덮어쓰지 않았습니다.",
-      );
-    }
-    current = parsed as SkillLock;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      if (error instanceof SkillResolutionError) throw error;
-      throw new SkillResolutionError(
-        "invalid_skill_lock",
-        "기존 skills.lock을 안전하게 읽지 못해 덮어쓰지 않았습니다.",
-        { cause: error },
-      );
-    }
-  }
-  if (current !== undefined && stableLock(current) === stableLock(next)) return current;
+  const current = await readSkillLock(path);
+  if (current !== null && stableLock(current) === stableLock(next)) return current;
   const serialized = `${JSON.stringify(next, null, 2)}\n`;
   if (Buffer.byteLength(serialized) > MAX_LOCK_BYTES) {
     throw new SkillResolutionError(

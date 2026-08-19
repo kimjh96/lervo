@@ -6,7 +6,12 @@ import {
   reviewKnowledgeCandidate,
   verifiedKnowledgeBytes,
 } from "../src/index.js";
-import { createCandidateFixture, removeStores, sequence } from "./fixture.js";
+import {
+  createCandidateFixture,
+  healthyDoctorEnvironmentInspections,
+  removeStores,
+  sequence,
+} from "./fixture.js";
 import {
   approvedFixture,
   laterRevision,
@@ -167,8 +172,9 @@ describe("knowledge review and verified promotion", () => {
       projectId: fixture.created.candidate.projectId,
       events: fixture.storage.events,
       artifacts: fixture.storage.artifacts,
+      inspections: healthyDoctorEnvironmentInspections,
     })).resolves.toMatchObject({
-      status: "issues",
+      status: "unhealthy",
       issues: [{ code: "review_artifact_invalid" }],
     });
     fixture.storage.events.close();

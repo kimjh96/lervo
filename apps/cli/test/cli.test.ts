@@ -4,10 +4,31 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
+import type { DoctorInspection } from "@lervo/diagnostics";
 
 import { runCli } from "../src/main.js";
 
 const temporaryRoots: string[] = [];
+
+const healthyEnvironmentInspections: DoctorInspection[] = [
+  "document_registry",
+  "document_sources",
+  "skill_packages",
+  "skill_lock",
+  "provider_codex_runtime",
+  "provider_claude_runtime",
+].map((checkId) => ({
+  check: {
+    checkId: checkId as DoctorInspection["check"]["checkId"],
+    status: "healthy",
+    observedCount: checkId.startsWith("provider_") ? 1 : 0,
+  },
+  issues: [],
+}));
+
+const doctorServices = {
+  inspectDoctorEnvironment: async () => healthyEnvironmentInspections,
+};
 
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-"));
@@ -148,8 +169,8 @@ describe("lervo local diagnostics CLI", () => {
       cwd: root,
       stdout: (message) => { healthyOutput += message; },
       stderr: () => undefined,
-    })).toBe(0);
-    expect(healthyOutput).toContain("문제 없음");
+    }, doctorServices)).toBe(0);
+    expect(healthyOutput).toContain("확인한 항목 정상");
 
     const storage = await openProjectStorage(root);
     storage.events.append({
@@ -182,8 +203,39 @@ describe("lervo local diagnostics CLI", () => {
       cwd: root,
       stdout: (message) => { issueOutput += message; },
       stderr: () => undefined,
-    })).toBe(1);
+    }, doctorServices)).toBe(1);
     expect(issueOutput).toContain("candidate_artifact_invalid");
-    expect(issueOutput).toContain("확인 필요");
+    expect(issueOutput).toContain("문제 발견");
+  });
+
+  it("returns unknown instead of healthy when a provider runtime cannot be checked", async () => {
+    const root = await temporaryRepository();
+    expect(await runCli(["init"], {
+      cwd: root,
+      stdout: () => undefined,
+      stderr: () => undefined,
+    })).toBe(0);
+    const inspections = structuredClone(healthyEnvironmentInspections);
+    const codex = inspections.find((item) =>
+      item.check.checkId === "provider_codex_runtime")!;
+    codex.check.status = "unknown";
+    codex.check.observedCount = 0;
+    codex.issues.push({
+      code: "provider_executable_missing",
+      eventId: null,
+      message: "Codex 실행 파일을 찾지 못했습니다.",
+    });
+    let output = "";
+
+    expect(await runCli(["doctor"], {
+      cwd: root,
+      stdout: (message) => { output += message; },
+      stderr: () => undefined,
+    }, {
+      inspectDoctorEnvironment: async () => inspections,
+    })).toBe(1);
+    expect(output).toContain("확인 불가 항목 있음");
+    expect(output).toContain("확인 불가  Codex 실행 파일");
+    expect(output).toContain("provider_executable_missing");
   });
 });

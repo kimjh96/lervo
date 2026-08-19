@@ -14,6 +14,7 @@ import {
 } from "../src/index.js";
 import {
   createCandidateFixture,
+  healthyDoctorEnvironmentInspections,
   policyVersion,
   removeStores,
   sequence,
@@ -50,6 +51,13 @@ describe("knowledge candidate creation", () => {
       projectId: policy.projectId,
       events: storage.events,
       artifacts: storage.artifacts,
+      inspections: [],
+    })).rejects.toThrow("Doctor 환경 검사가 누락되었습니다");
+    await expect(createDoctorReport({
+      projectId: policy.projectId,
+      events: storage.events,
+      artifacts: storage.artifacts,
+      inspections: healthyDoctorEnvironmentInspections,
     })).resolves.toMatchObject({ status: "healthy", issues: [] });
 
     await expect(createKnowledgeCandidates({

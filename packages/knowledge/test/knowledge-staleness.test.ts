@@ -6,7 +6,11 @@ import {
   evaluateKnowledgeStaleness,
   recordKnowledgeStaleness,
 } from "../src/index.js";
-import { removeStores, sequence } from "./fixture.js";
+import {
+  healthyDoctorEnvironmentInspections,
+  removeStores,
+  sequence,
+} from "./fixture.js";
 import {
   changedHash,
   laterRevision,
@@ -70,11 +74,12 @@ describe("verified knowledge staleness", () => {
       projectId: fixture.promoted.knowledge.projectId,
       events: fixture.storage.events,
       artifacts: fixture.storage.artifacts,
+      inspections: healthyDoctorEnvironmentInspections,
     })).resolves.toMatchObject({
       status: "healthy",
       checks: expect.arrayContaining([
-        { checkId: "verified_knowledge", status: "passed", observedCount: 1 },
-        { checkId: "knowledge_staleness", status: "passed", observedCount: 1 },
+        { checkId: "verified_knowledge", status: "healthy", observedCount: 1 },
+        { checkId: "knowledge_staleness", status: "healthy", observedCount: 1 },
       ]),
       issues: [],
     });

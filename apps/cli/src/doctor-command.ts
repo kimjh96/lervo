@@ -14,14 +14,34 @@ function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string 
     case "knowledge_reviews": return "지식 검토 근거";
     case "verified_knowledge": return "검증된 지식 근거";
     case "knowledge_staleness": return "지식 노후화 근거";
+    case "document_registry": return "문서 registry";
+    case "document_sources": return "문서 원본 파일";
+    case "skill_packages": return "스킬 패키지";
+    case "skill_lock": return "스킬 해석 lock";
+    case "provider_codex_runtime": return "Codex 실행 파일";
+    case "provider_claude_runtime": return "Claude 실행 파일";
   }
+}
+
+function statusLabel(status: DoctorReport["checks"][number]["status"]): string {
+  if (status === "healthy") return "정상";
+  if (status === "unhealthy") return "문제";
+  return "확인 불가";
 }
 
 export function formatDoctorReport(report: DoctorReport): string {
   const lines = [
-    `Lervo 진단 결과: ${report.status === "healthy" ? "문제 없음" : "확인 필요"}`,
+    `Lervo 진단 결과: ${
+      report.status === "healthy"
+        ? "확인한 항목 정상"
+        : report.status === "unhealthy"
+          ? "문제 발견"
+          : "확인 불가 항목 있음"
+    }`,
     ...report.checks.map((check) =>
-      `  ${check.status === "passed" ? "통과" : "실패"}  ${checkLabel(check.checkId)} (${check.observedCount}개)`),
+      `  ${statusLabel(check.status)}  ${checkLabel(check.checkId)} (${check.observedCount}개)${
+        check.version === undefined ? "" : ` · ${check.version}`
+      }`),
   ];
   if (report.issues.length > 0) {
     lines.push(
@@ -36,7 +56,7 @@ export function formatDoctorReport(report: DoctorReport): string {
 export async function runDoctorCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "openProjectStorage">,
+  services: Pick<CliServices, "openProjectStorage" | "inspectDoctorEnvironment">,
 ): Promise<number> {
   let parsed;
   try {
@@ -63,10 +83,15 @@ export async function runDoctorCommand(
     storage = await services.openProjectStorage(
       resolve(io.cwd, parsed.values.root ?? "."),
     );
+    const inspections = await services.inspectDoctorEnvironment({
+      repositoryRoot: storage.paths.repositoryRoot,
+      projectId: storage.manifest.projectId,
+    });
     const report = await createDoctorReport({
       projectId: storage.manifest.projectId,
       events: storage.events,
       artifacts: storage.artifacts,
+      inspections,
     });
     io.stdout(parsed.values.json
       ? `${JSON.stringify(report, null, 2)}\n`

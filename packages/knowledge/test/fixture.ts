@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
+import type { DoctorInspection } from "@lervo/diagnostics";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { DeliberationArtifact, DeliberationOutcome, EventEnvelope } from "@lervo/schemas";
 
@@ -16,6 +17,22 @@ import { createKnowledgeCandidates } from "../src/index.js";
 export const policyVersion =
   "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 const roots: string[] = [];
+
+export const healthyDoctorEnvironmentInspections: DoctorInspection[] = [
+  "document_registry",
+  "document_sources",
+  "skill_packages",
+  "skill_lock",
+  "provider_codex_runtime",
+  "provider_claude_runtime",
+].map((checkId) => ({
+  check: {
+    checkId: checkId as DoctorInspection["check"]["checkId"],
+    status: "healthy",
+    observedCount: checkId.startsWith("provider_") ? 1 : 0,
+  },
+  issues: [],
+}));
 
 export function sequence(prefix: string): () => string {
   let value = 0;
