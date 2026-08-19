@@ -31,6 +31,11 @@ import {
   projectRegistrationResponseSchema,
 } from "./hub-sync.js";
 import {
+  hubPolicyApprovalWriteRequestSchema,
+  hubPolicyRevocationWriteRequestSchema,
+  hubPolicySnapshotWriteRequestSchema,
+} from "./hub-policy.js";
+import {
   legacyRegistryEntryArtifactSchema,
   legacyRegistryMigrationPlanSchema,
 } from "./legacy-registry-migration.js";
@@ -127,6 +132,9 @@ const validators = {
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),
   outboundEventBatch: ajv.compile(outboundEventBatchSchema),
   eventSyncAcknowledgement: ajv.compile(eventSyncAcknowledgementSchema),
+  hubPolicySnapshotWriteRequest: ajv.compile(hubPolicySnapshotWriteRequestSchema),
+  hubPolicyApprovalWriteRequest: ajv.compile(hubPolicyApprovalWriteRequestSchema),
+  hubPolicyRevocationWriteRequest: ajv.compile(hubPolicyRevocationWriteRequestSchema),
   remoteCommand: ajv.getSchema(remoteCommandSchema.$id)!,
   signedRemoteCommand: ajv.getSchema(signedRemoteCommandSchema.$id)!,
   remoteCommandExecutionReceipt: ajv.getSchema(remoteCommandExecutionReceiptSchema.$id)!,

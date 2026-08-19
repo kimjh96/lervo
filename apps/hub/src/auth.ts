@@ -17,7 +17,10 @@ const MAX_BEARER_TOKEN_LENGTH = 4_096;
 export interface HubAuthenticatedPrincipal {
   principalId: string;
   projects: HubProjectTraceCursor[];
+  permissions: HubPermission[];
 }
+
+export type HubPermission = "trace.read" | "policy.read" | "policy.write";
 
 export interface HubRequestAuthenticator {
   authenticate(authorization: string | undefined): Promise<HubAuthenticatedPrincipal | null>;
@@ -43,6 +46,16 @@ function validateCredential(credential: HubBearerCredential): void {
   if (!HUB_PRINCIPAL_ID_PATTERN.test(credential.principalId)) {
     throw new Error("Hub bearer credential principalId 형식이 유효하지 않습니다.");
   }
+  if (
+    !Array.isArray(credential.permissions) ||
+    credential.permissions.length < 1 ||
+    new Set(credential.permissions).size !== credential.permissions.length ||
+    !credential.permissions.every((permission) =>
+      (["trace.read", "policy.read", "policy.write"] as HubPermission[]).includes(permission)
+    )
+  ) {
+    throw new Error("Hub bearer credential permission이 유효하지 않습니다.");
+  }
   if (!Array.isArray(credential.projects) || credential.projects.length > HUB_TRACE_MAX_PROJECT_SCOPE) {
     throw new Error(`Hub bearer credential project는 ${HUB_TRACE_MAX_PROJECT_SCOPE}개 이하여야 합니다.`);
   }
@@ -61,6 +74,7 @@ function clonePrincipal(principal: HubAuthenticatedPrincipal): HubAuthenticatedP
   return {
     principalId: principal.principalId,
     projects: principal.projects.map((project) => ({ ...project })),
+    permissions: [...principal.permissions],
   };
 }
 

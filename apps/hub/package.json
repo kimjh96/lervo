@@ -15,7 +15,17 @@
     "build": "node --check assets/trace-api.js && node --check assets/trace-labels.js && node --check assets/trace-navigation.js && node --check assets/trace-pagination.js && node --check assets/trace-render.js && node --check assets/trace.js && tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/hub-policy": "workspace:*",
     "@lervo/hub-trace": "workspace:*",
     "@lervo/schemas": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/hub-sync": "workspace:*",
+    "@lervo/hub-sync-sqlite": "workspace:*",
+    "@lervo/policy": "workspace:*",
+    "@lervo/policy-sqlite": "workspace:*",
+    "@lervo/remote-command": "workspace:*",
+    "@lervo/remote-command-contract": "workspace:*",
+    "@lervo/sync-contract": "workspace:*"
   }
 }

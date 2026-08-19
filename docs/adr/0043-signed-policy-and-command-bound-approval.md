@@ -51,4 +51,4 @@ Policy SQLite에는 signed rule metadata, command/hash 좌표와 승인자 subje
 
 ## 결과와 후속 범위
 
-정책 배포와 승인 수명주기의 공급자·transport 중립 Node 수직 슬라이스가 생겼습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 아직 없고 transport fixture가 서명 bundle을 제공합니다. Managed provider coordinator 연결은 [ADR-0044](./0044-signed-approval-managed-write-permit.md)에서 완료했습니다.
+정책 배포와 승인 수명주기의 공급자·transport 중립 Node 수직 슬라이스가 생겼습니다. Managed provider coordinator 연결은 [ADR-0044](./0044-signed-approval-managed-write-permit.md), 실제 Hub 정책 작성·durable source·HTTP endpoint는 [ADR-0045](./0045-hub-policy-authoring-and-http-sync.md)에서 완료했습니다.

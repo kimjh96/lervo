@@ -9,11 +9,13 @@ describe("configured Hub bearer authentication", () => {
     const authenticator = new ConfiguredBearerAuthenticator([{
       token,
       principalId: "operator:test",
+      permissions: ["trace.read"],
       projects: [{ destinationId: "hub:primary", projectId: "prj_allowed01" }],
     }]);
 
     await expect(authenticator.authenticate(`Bearer ${token}`)).resolves.toEqual({
       principalId: "operator:test",
+      permissions: ["trace.read"],
       projects: [{ destinationId: "hub:primary", projectId: "prj_allowed01" }],
     });
     await expect(authenticator.authenticate("Bearer wrong-token-value-that-is-long-enough-0000"))
@@ -32,11 +34,13 @@ describe("configured Hub bearer authentication", () => {
     expect(() => new ConfiguredBearerAuthenticator([{
       token: "short",
       principalId: "operator:test",
+      permissions: ["trace.read"],
       projects: [],
     }])).toThrow("token 형식");
     expect(() => new ConfiguredBearerAuthenticator([{
       token,
       principalId: "operator:test",
+      permissions: ["trace.read"],
       projects: [{ destinationId: "hub:primary", projectId: "wrong" }],
     }])).toThrow("project 좌표");
   });

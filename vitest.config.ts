@@ -21,6 +21,7 @@ export default defineConfig({
       "@lervo/event-contract": fromRoot("./packages/event-contract/src/index.ts"),
       "@lervo/event-store-sqlite": fromRoot("./packages/event-store-sqlite/src/index.ts"),
       "@lervo/hub": fromRoot("./apps/hub/src/index.ts"),
+      "@lervo/hub-policy": fromRoot("./packages/hub-policy/src/index.ts"),
       "@lervo/hub-sync": fromRoot("./packages/hub-sync/src/index.ts"),
       "@lervo/hub-sync-sqlite": fromRoot("./packages/hub-sync-sqlite/src/index.ts"),
       "@lervo/hub-trace": fromRoot("./packages/hub-trace/src/index.ts"),

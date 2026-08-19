@@ -208,6 +208,69 @@ const migrations = [
         OR OLD.expires_at_ms != NEW.expires_at_ms
       BEGIN SELECT RAISE(ABORT, 'hub remote command identity is immutable'); END;
   `,
+  `
+    CREATE TABLE hub_policy_snapshots (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      sequence INTEGER NOT NULL CHECK (sequence >= 1),
+      snapshot_id TEXT NOT NULL,
+      envelope_json TEXT NOT NULL,
+      issued_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      published_at TEXT NOT NULL,
+      PRIMARY KEY (destination_id, project_id, sequence),
+      UNIQUE (destination_id, project_id, snapshot_id),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id)
+    ) STRICT;
+    CREATE INDEX hub_policy_snapshots_project_id
+      ON hub_policy_snapshots (destination_id, project_id, snapshot_id);
+
+    CREATE TABLE hub_policy_approvals (
+      approval_id TEXT NOT NULL,
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      snapshot_id TEXT NOT NULL,
+      command_id TEXT NOT NULL,
+      envelope_json TEXT NOT NULL,
+      published_at TEXT NOT NULL,
+      PRIMARY KEY (destination_id, project_id, approval_id),
+      FOREIGN KEY (destination_id, project_id, snapshot_id)
+        REFERENCES hub_policy_snapshots(destination_id, project_id, snapshot_id),
+      FOREIGN KEY (destination_id, project_id, command_id)
+        REFERENCES hub_remote_commands(destination_id, project_id, command_id)
+    ) STRICT;
+    CREATE INDEX hub_policy_approvals_snapshot
+      ON hub_policy_approvals (destination_id, project_id, snapshot_id, approval_id);
+
+    CREATE TABLE hub_policy_revocations (
+      revocation_id TEXT NOT NULL,
+      approval_id TEXT NOT NULL,
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      envelope_json TEXT NOT NULL,
+      published_at TEXT NOT NULL,
+      PRIMARY KEY (destination_id, project_id, revocation_id),
+      UNIQUE (destination_id, project_id, approval_id),
+      FOREIGN KEY (destination_id, project_id, approval_id)
+        REFERENCES hub_policy_approvals(destination_id, project_id, approval_id)
+    ) STRICT;
+    CREATE INDEX hub_policy_revocations_project
+      ON hub_policy_revocations (destination_id, project_id, revocation_id);
+
+    CREATE TRIGGER hub_policy_snapshots_no_update BEFORE UPDATE ON hub_policy_snapshots
+      BEGIN SELECT RAISE(ABORT, 'hub policy snapshots are append-only'); END;
+    CREATE TRIGGER hub_policy_snapshots_no_delete BEFORE DELETE ON hub_policy_snapshots
+      BEGIN SELECT RAISE(ABORT, 'hub policy snapshots are append-only'); END;
+    CREATE TRIGGER hub_policy_approvals_no_update BEFORE UPDATE ON hub_policy_approvals
+      BEGIN SELECT RAISE(ABORT, 'hub policy approvals are append-only'); END;
+    CREATE TRIGGER hub_policy_approvals_no_delete BEFORE DELETE ON hub_policy_approvals
+      BEGIN SELECT RAISE(ABORT, 'hub policy approvals are append-only'); END;
+    CREATE TRIGGER hub_policy_revocations_no_update BEFORE UPDATE ON hub_policy_revocations
+      BEGIN SELECT RAISE(ABORT, 'hub policy revocations are append-only'); END;
+    CREATE TRIGGER hub_policy_revocations_no_delete BEFORE DELETE ON hub_policy_revocations
+      BEGIN SELECT RAISE(ABORT, 'hub policy revocations are append-only'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

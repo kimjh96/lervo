@@ -1,6 +1,12 @@
 import { DatabaseSync } from "node:sqlite";
 
 import {
+  type HubPolicyBundle,
+  type HubPolicyCommandBinding,
+  type HubPolicyPublishResult,
+  type HubPolicySourceStore,
+} from "@lervo/hub-policy";
+import {
   type HubSyncCommandStore,
   type HubSyncIntegrityReport,
   type HubSyncIntegrityStore,
@@ -30,6 +36,9 @@ import {
   type RemoteCommandLease,
   type RemoteCommandTarget,
   type SignedRemoteCommand,
+  type SignedPolicyApproval,
+  type SignedPolicyApprovalRevocation,
+  type SignedPolicySnapshot,
 } from "@lervo/schemas";
 
 import { ensureDatabasePath } from "./database-lifecycle.js";
@@ -38,6 +47,7 @@ import { HubEventInboxSQLiteRepository } from "./event-inbox-repository.js";
 import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
 import { HubRegistrationSQLiteRepository } from "./registration-repository.js";
+import { HubPolicySQLiteRepository } from "./policy-repository.js";
 import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js";
 import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
@@ -48,7 +58,8 @@ export class HubSyncSQLiteStore implements
   HubSyncLifecycle,
   HubRemoteCommandQueueStore,
   HubRemoteCommandQueueInspectionStore,
-  HubTraceSource
+  HubTraceSource,
+  HubPolicySourceStore
 {
   readonly path: string;
   private closed = false;
@@ -56,6 +67,7 @@ export class HubSyncSQLiteStore implements
   private readonly eventInboxRepository: HubEventInboxSQLiteRepository;
   private readonly registrationRepository: HubRegistrationSQLiteRepository;
   private readonly remoteCommandRepository: HubRemoteCommandSQLiteRepository;
+  private readonly policyRepository: HubPolicySQLiteRepository;
   private readonly traceRepository: HubTraceSQLiteRepository;
   private readonly transactionRunner: SQLiteTransactionRunner;
 
@@ -65,6 +77,7 @@ export class HubSyncSQLiteStore implements
     this.eventInboxRepository = new HubEventInboxSQLiteRepository(database);
     this.registrationRepository = new HubRegistrationSQLiteRepository(database);
     this.remoteCommandRepository = new HubRemoteCommandSQLiteRepository(database);
+    this.policyRepository = new HubPolicySQLiteRepository(database);
     this.traceRepository = new HubTraceSQLiteRepository(database);
     this.transactionRunner = new SQLiteTransactionRunner(database);
   }
@@ -145,6 +158,74 @@ export class HubSyncSQLiteStore implements
     return this.transactionRunner.read(() => this.remoteCommandRepository.get(deliveryId));
   }
 
+  async getCurrentPolicySnapshot(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+  }): Promise<SignedPolicySnapshot | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() =>
+      this.policyRepository.currentSnapshot(input.destinationId, input.target));
+  }
+
+  async getPolicyCommand(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    commandId: string;
+  }): Promise<HubPolicyCommandBinding | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() =>
+      this.policyRepository.command(input.destinationId, input.target, input.commandId));
+  }
+
+  async getPolicyApproval(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    approvalId: string;
+  }): Promise<SignedPolicyApproval | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() =>
+      this.policyRepository.approval(input.destinationId, input.target, input.approvalId));
+  }
+
+  async publishPolicySnapshot(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    envelope: SignedPolicySnapshot;
+    publishedAt: string;
+  }): Promise<HubPolicyPublishResult> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.policyRepository.publishSnapshot(input));
+  }
+
+  async publishPolicyApproval(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    envelope: SignedPolicyApproval;
+    publishedAt: string;
+  }): Promise<HubPolicyPublishResult> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.policyRepository.publishApproval(input));
+  }
+
+  async publishPolicyRevocation(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    envelope: SignedPolicyApprovalRevocation;
+    publishedAt: string;
+  }): Promise<HubPolicyPublishResult> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.policyRepository.publishRevocation(input));
+  }
+
+  async pullPolicyBundle(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    currentSnapshotId: string | null;
+  }): Promise<HubPolicyBundle | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.policyRepository.pullBundle(input));
+  }
+
   async listProjects(
     query: ResolvedHubProjectTraceQuery,
   ): Promise<HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }>> {
@@ -186,6 +267,7 @@ export class HubSyncSQLiteStore implements
       eventCount += state.events.length;
     }
     this.remoteCommandRepository.auditAll();
+    this.policyRepository.auditAll();
     this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
     return { valid: true, projectCount: coordinates.length, eventCount };
   }
@@ -203,6 +285,12 @@ export class HubSyncSQLiteStore implements
       "hub_projects_no_delete",
       "hub_remote_commands_no_delete",
       "hub_remote_commands_identity_immutable",
+      "hub_policy_snapshots_no_update",
+      "hub_policy_snapshots_no_delete",
+      "hub_policy_approvals_no_update",
+      "hub_policy_approvals_no_delete",
+      "hub_policy_revocations_no_update",
+      "hub_policy_revocations_no_delete",
     ]);
     for (const row of this.database.prepare(
       "SELECT name FROM sqlite_schema WHERE type = 'trigger'",

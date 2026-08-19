@@ -13,6 +13,7 @@ export * from "./document-migration-apply.js";
 export * from "./document-migration.js";
 export * from "./event.js";
 export * from "./hub-sync.js";
+export * from "./hub-policy.js";
 export * from "./legacy-registry-migration.js";
 export * from "./legacy-registry-migration-apply.js";
 export * from "./knowledge.js";

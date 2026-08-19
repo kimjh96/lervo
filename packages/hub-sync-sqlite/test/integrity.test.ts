@@ -68,6 +68,15 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const previous = new DatabaseSync(path);
     previous.exec(`
+      DROP TRIGGER hub_policy_revocations_no_delete;
+      DROP TRIGGER hub_policy_revocations_no_update;
+      DROP TRIGGER hub_policy_approvals_no_delete;
+      DROP TRIGGER hub_policy_approvals_no_update;
+      DROP TRIGGER hub_policy_snapshots_no_delete;
+      DROP TRIGGER hub_policy_snapshots_no_update;
+      DROP TABLE hub_policy_revocations;
+      DROP TABLE hub_policy_approvals;
+      DROP TABLE hub_policy_snapshots;
       DROP TRIGGER hub_remote_commands_identity_immutable;
       DROP TRIGGER hub_remote_commands_no_delete;
       DROP TABLE hub_remote_commands;

@@ -216,6 +216,8 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **offline command queue와 Node reconnect 전체 검증 완료.** Hub SQLite는 등록된 project identity에 결속된 signed envelope을 event inbox와 별도 queue에 저장하고 `pending`, `leased`, `completed`, `rejected`, `expired` 상태를 durable transaction으로 전이합니다. Node의 `@lervo/remote-command-sqlite`는 project-bound replay 좌표와 terminal receipt만 저장하며 reconnect worker가 인증된 transport port의 Hub·destination·lease 좌표를 다시 확인합니다. Hub 오프라인, 양쪽 database 재시작, acknowledgement commit 전 유실, 만료 command와 위조 signature를 통합 fixture로 검증했습니다. Receipt 재전달에서는 executor가 한 번만 호출됩니다. 실제 HTTP/TLS와 daemon scheduler는 이 fixture의 보장 범위가 아닙니다. 결정은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록했습니다.
 
+후속 구현 현황(2026-08-19): **Hub 정책 작성·durable source·인증된 HTTP transport 완료.** Hub가 원본 시각과 project-scoped 승인자 hash를 만들고, 현재 snapshot과 durable command에 결속된 signed 원본을 append-only SQLite에 저장합니다. `policy.read`·`policy.write`와 project scope를 source보다 먼저 확인하며 Node transport는 HTTPS, Hub identity와 bounded 응답 좌표를 확인합니다. 결정은 [ADR-0045](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)에 기록했습니다.
+
 완료 조건:
 
 - Hub command adapter가 commit 전 response를 resolve하지 않고 전체 project event state 없이 batch를 수락
@@ -231,6 +233,10 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 - 중복/역순 전송에도 일관된 read model
 - Node 오프라인 중 로컬 실행 후 재연결 동기화
 - trace에서 문서 선택 이유부터 verification까지 탐색
+- Policy write가 client timestamp와 approver hash를 받지 않고 Hub clock·인증 principal에서 원본을 만듦
+- Hub policy 원본이 command 관계와 snapshot 연속성을 유지한 채 재시작 후 같은 signed bundle로 복구됨
+- Policy HTTP가 permission·project scope를 source보다 먼저 적용하고 request/response 상한과 고정 오류를 유지함
+- Node policy HTTP transport가 HTTPS를 기본으로 하고 Hub identity나 응답 좌표가 다르면 현재 정책을 유지함
 
 M6 완료.
 
@@ -328,8 +334,10 @@ fixtures/
 
 ## 다음 실행 작업
 
-현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결**을 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
+현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
 
 Coordinator는 provider 시작 전과 실제 쓰기 직전에 현재 signed 원본, command/run/provider/risk/suite와 승인 경로를 재검증합니다. E3·예상 경로·실제 before hash도 통과한 경우에만 `capability.decided.approvalId`와 policy snapshot ID가 묶인 기존 1회용 permit를 발급합니다. 실행 전 통과 뒤 철회·만료된 승인과 policy rule보다 넓은 승인 경로도 fixture로 차단했습니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)과 [ADR-0044](./docs/adr/0044-signed-approval-managed-write-permit.md)에 기록했습니다.
 
-다음 구현 작업은 **실제 Hub 정책 작성·durable source·인증된 HTTP transport**입니다. Node의 기존 transport port와 검증·SQLite 경계를 유지하면서 Hub가 snapshot·approval·revocation 원본을 안전하게 만들고 보존하며 project-scoped endpoint로 전달하는 최소 수직 슬라이스를 구현합니다.
+`@lervo/hub-policy`는 현재 head와 durable command 원본에 결속된 snapshot·approval·revocation을 작성하고, Hub SQLite는 세 signed 원본을 append-only table에 보존합니다. `@lervo/hub`는 `policy.read`·`policy.write`와 project scope를 source보다 먼저 확인하며 원본 시각은 Hub clock이 정합니다. Node HTTP transport는 HTTPS, bearer token, Hub identity header, 응답 좌표와 byte 상한을 확인합니다. Hub·Node 재시작, 순차 snapshot, 같은 head의 늦은 승인·철회, 권한 거부, 요청 상한, identity 불일치와 승인자 원문 비저장을 실제 HTTP fixture로 확인했습니다. 결정은 [ADR-0045](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)에 기록했습니다.
+
+다음 구현 작업은 **Slack/Discord command gateway와 승인 UX**입니다. 채널별 서명·webhook 검증을 adapter 뒤에 두고, 공통 command/approval application 경계가 현재 Hub project scope와 durable 원본을 사용하도록 먼저 좁은 수직 슬라이스를 설계합니다.

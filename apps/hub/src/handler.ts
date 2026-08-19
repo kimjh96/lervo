@@ -82,6 +82,10 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
         });
         return;
       }
+      if (!principal.permissions.includes("trace.read")) {
+        sendHubError(response, 403, "forbidden", maxResponseBytes);
+        return;
+      }
 
       let reader: HubProjectScopedTraceReader;
       try {

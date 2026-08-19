@@ -747,7 +747,26 @@ Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자�
 
 승인 대기와 정책 거부는 replay reservation을 만들지 않습니다. `approval_required`는 terminal Hub rejection이 아니라 reconnect worker의 `local_deferred`이며 lease 만료 뒤 같은 signed command를 다시 평가할 수 있습니다. 승인되면 executor 입력에 검증된 command 원본, signer key ID, policy snapshot ID와 정렬된 approval ID를 `ManagedRunApprovalAuthorization`으로 전달합니다. 이 값은 재검증 입력이며 executor 실행, `run.completed`, E3나 파일 쓰기 permit를 대신하지 않습니다.
 
-Policy SQLite 원본에는 rule metadata, 서명 envelope, command/hash 좌표, 승인 경로와 승인자 subject hash만 있습니다. Raw request, 승인자 식별 원문, 승인 사유, credential, provider payload와 오류 본문은 저장하지 않습니다. 이번 단계는 새 event를 추가하지 않습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 후속 범위입니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+Policy SQLite 원본에는 rule metadata, 서명 envelope, command/hash 좌표, 승인 경로와 승인자 subject hash만 있습니다. Raw request, 승인자 식별 원문, 승인 사유, credential, provider payload와 오류 본문은 저장하지 않습니다. 이 단계는 새 event를 추가하지 않습니다. Node 검증과 평가 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+
+## Hub 정책 작성과 HTTP 동기화
+
+`@lervo/hub-policy`는 HTTP와 SQLite를 모르는 작성 service입니다. Snapshot 작성은 durable source의 현재 head 다음 sequence와 이전 ID를 사용합니다. Approval 작성은 현재 head와 같은 Hub database의 remote command 원본·signer key ID를 사용해 command/hash·capability·경로를 결속합니다. Revocation은 저장된 approval 원본을 기준으로 만듭니다. 세 원본은 configured policy signer가 목적별로 서명한 뒤에만 source port로 발행합니다.
+
+Hub HTTP route는 다음과 같습니다.
+
+- `GET /v1/policy/projects/<projectId>/bundle`: `destinationId`, `projectIdentityHash`, 선택적인 `currentSnapshotId`를 받습니다.
+- `POST /v1/policy/projects/<projectId>/snapshots`: `schemaVersion`, `rules`, `expiresAt`을 받습니다.
+- `POST /v1/policy/projects/<projectId>/approvals`: `schemaVersion`, `commandId`, `capability`, `repositoryPaths`, `expiresAt`을 받습니다.
+- `POST /v1/policy/projects/<projectId>/revocations`: `schemaVersion`, `approvalId`, `reasonCode`를 받습니다.
+
+Bearer principal은 하나 이상의 `trace.read`, `policy.read`, `policy.write` permission과 최대 256개 destination/project scope를 가집니다. Route와 method를 확인한 뒤 인증·scope·permission을 body parsing과 policy source 호출보다 먼저 적용합니다. Write request가 `issuedAt`, `grantedAt`, `revokedAt`, `publishedAt`을 보내면 알 수 없는 필드로 거부합니다. Hub clock이 만든 같은 시각이 해당 원본 시각과 `publishedAt`이며 만료된 snapshot·approval은 새로 발행하지 않습니다. 승인자 principal ID는 `SHA-256(projectIdentityHash + NUL + principalId)`로 바꾸며 원문은 request body나 policy table에 넣지 않습니다.
+
+Hub SQLite migration은 snapshot, approval과 revocation을 별도 strict table로 추가합니다. Project registration, snapshot, remote command, approval 사이를 foreign key로 연결하고 세 원본의 update/delete를 trigger로 거부합니다. Snapshot ID 또는 sequence 충돌은 기존 원본을 덮어쓰지 않습니다. 같은 canonical 원본 재전송만 `duplicate`이고, approval은 현재 head와 기존 command에만 만들 수 있습니다. Source는 처음 연결한 Node에 최신 snapshot을, 알려진 과거 cursor에는 다음 sequence 하나를, 현재 head cursor에는 같은 snapshot의 최신 approval·revocation 묶음을 반환합니다. 알 수 없는 cursor는 자동 bootstrap하지 않습니다. 한 snapshot의 approval과 revocation은 각각 최대 64개입니다.
+
+모든 policy HTTP 응답은 `no-store`, 고정 오류 본문과 `x-lervo-hub-identity`를 사용합니다. Write body는 기본 256 KiB, 응답과 Node read는 기본 1 MiB이며 둘 다 상한을 둡니다. Node transport는 HTTPS URL만 기본 허용하고 URL credential·query·fragment를 거부합니다. Bearer 인증 뒤 status, Hub identity header, JSON content type, destination/project 좌표와 bounded UTF-8 JSON을 확인하며 기본 15초 뒤 요청을 중단합니다. HTTP와 내부 예외는 기존 `hub_unavailable`, identity 불일치는 `transport_authentication_failed`로 처리하여 현재 Node policy를 유지합니다. 평문 HTTP 허용 option은 test fixture 전용입니다.
+
+정책 HTTP 오류는 인증 없음 `401`, scope·permission 거부 `403`, 등록·command·approval 부재 `404`, schema·query 오류 `400`, 현재 head·identity·capacity 충돌 `409`, request 상한 초과 `413`입니다. 응답에는 credential, principal, 서명 key, request 원문이나 내부 예외를 넣지 않습니다. Hub 전체 audit는 모든 snapshot chain과 과거 approval-command-signer 관계, revocation 관계를 다시 검사합니다. 이 기능은 새 실행 event를 만들지 않으며 Hub 정책 작성 성공이 Node의 `loaded`, `injected`, `used` 또는 실행을 뜻하지 않습니다. 결정은 [ADR-0045](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)에 기록합니다.
 
 ## Managed run 승인 재검증
 

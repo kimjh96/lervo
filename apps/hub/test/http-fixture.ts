@@ -37,6 +37,7 @@ export const secondProject: HubProjectTraceSummary = {
 export const credentials: HubBearerCredential[] = [{
   token,
   principalId: "operator:http-test",
+  permissions: ["trace.read", "policy.read", "policy.write"],
   projects: [
     { destinationId: allowedProject.destinationId, projectId: allowedProject.projectId },
     { destinationId: secondProject.destinationId, projectId: secondProject.projectId },

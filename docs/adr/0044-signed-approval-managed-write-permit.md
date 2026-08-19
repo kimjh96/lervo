@@ -45,4 +45,4 @@ Provider coordinator fixture는 preflight와 실제 쓰기 직전 verifier가 �
 
 ## 결과와 후속 범위
 
-`require_approval`은 더 이상 미구현 상태를 뜻하지 않습니다. 검증 가능한 remote-command authorization이 있고 현재 E3·경로·파일 상태가 모두 맞을 때만 한 번의 managed write를 엽니다. 실제 Hub 정책 작성 UI/API, durable Hub source와 HTTP transport는 다음 슬라이스로 남깁니다.
+`require_approval`은 더 이상 미구현 상태를 뜻하지 않습니다. 검증 가능한 remote-command authorization이 있고 현재 E3·경로·파일 상태가 모두 맞을 때만 한 번의 managed write를 엽니다. 실제 Hub 정책 작성 API, durable Hub source와 HTTP transport는 [ADR-0045](./0045-hub-policy-authoring-and-http-sync.md)에서 연결했습니다. 사람용 정책 관리 UI와 채널 승인 UX는 후속 범위입니다.

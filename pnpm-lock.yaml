@@ -65,12 +65,37 @@ importers:
 
   apps/hub:
     dependencies:
+      '@lervo/hub-policy':
+        specifier: workspace:*
+        version: link:../../packages/hub-policy
       '@lervo/hub-trace':
         specifier: workspace:*
         version: link:../../packages/hub-trace
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+    devDependencies:
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../../packages/hub-sync
+      '@lervo/hub-sync-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/hub-sync-sqlite
+      '@lervo/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
+      '@lervo/policy-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/policy-sqlite
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../../packages/remote-command
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../../packages/remote-command-contract
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../../packages/sync-contract
 
   packages/adapter-claude:
     dependencies:
@@ -242,6 +267,15 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
+  packages/hub-policy:
+    dependencies:
+      '@lervo/policy-contract':
+        specifier: workspace:*
+        version: link:../policy-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/hub-sync:
     dependencies:
       '@lervo/remote-command-contract':
@@ -259,12 +293,18 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/hub-policy':
+        specifier: workspace:*
+        version: link:../hub-policy
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync
       '@lervo/hub-trace':
         specifier: workspace:*
         version: link:../hub-trace
+      '@lervo/policy-contract':
+        specifier: workspace:*
+        version: link:../policy-contract
       '@lervo/remote-command-contract':
         specifier: workspace:*
         version: link:../remote-command-contract
@@ -278,6 +318,9 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
+      '@lervo/policy':
+        specifier: workspace:*
+        version: link:../policy
       '@lervo/remote-command':
         specifier: workspace:*
         version: link:../remote-command
