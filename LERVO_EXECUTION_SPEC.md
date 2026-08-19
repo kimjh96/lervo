@@ -15,6 +15,7 @@
 
 - `.lervo/project.yaml`: stable project id, 생성 시각과 로컬 우선 데이터 기본값
 - `.lervo/documents/`: document ID별 sidecar manifest를 둘 빈 디렉터리
+- `.lervo/verifications/`: suite ID별 project 검증 명령을 둘 빈 디렉터리
 - `.lervo/.gitignore`: `state/` 제외 규칙
 - `.lervo/generated/`, `.lervo/state/`, `.lervo/knowledge/`: 이후 단계가 사용할 로컬 디렉터리
 
@@ -464,12 +465,25 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - legacy registry structural plan/apply: 원본 보존·비활성화 처분, archive·manifest directory·sidecar target과 참조 문서 snapshot, 항목별 승인, hash-only 완료 event와 local receipt
 - managed block patch candidate/artifact: source·기존 content·replacement·output hash, 원본/결과 byte range, review-only 처분과 byte 보존 검증 상수
 - document staleness result: 문서별 검증·현재 revision, 검토 기한, 경로·managed input 신호, `current`/`stale`/`unknown` 상태와 기계용 사유
+- verification suite/result: shell 없는 명령·인자·상대 cwd·실행 한도와 suite/repository snapshot에 결속된 명령별 상태·CAS output 좌표
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
 
 E3 쓰기 게이트는 `selected`, 같은 hash의 `loaded`, 같은 context generation의 controlled `injected`가 모두 있어야 통과합니다. receipt 하나가 다른 단계를 대신할 수 없습니다. 구체적인 기본값은 [ADR-0001](./docs/adr/0001-m0-contracts-and-data-defaults.md)에 정의합니다.
 
 Role의 `sensitive` 입력 필드는 입력값이 아니라 redaction 필요 여부만 선언합니다. Skill의 source URI, publisher/reviewer id와 document의 responsible party/path는 로컬 registry metadata이며 기본 event payload나 Hub 전송 대상이 아닙니다. Hub 동기화는 project policy에서 명시적으로 활성화하고 허용 필드를 정해야 합니다.
+
+## 프로젝트 검증
+
+Project verification은 provider가 작업 과정에서 보고한 `command.executed`와 별도입니다. Provider telemetry는 명령 실행을 관측했다는 뜻이고, 검증 통과는 프로젝트가 미리 정한 suite의 모든 명령을 현재 repository snapshot에서 실행했다는 뜻입니다.
+
+Suite 원본은 `.lervo/verifications/<suiteId>.yaml`에 하나씩 둡니다. 파일마다 최대 32개 명령을 순서대로 선언하고 각 명령은 command ID, executable, arguments, 저장소 상대 cwd, timeout, stdout·stderr 합산 한도와 전달할 환경 변수 이름을 가집니다. 자식 process에는 실행 파일 탐색용 `PATH`/`Path`와 명시한 변수만 전달하고 값은 결과에 기록하지 않습니다. Shell 문자열은 지원하지 않습니다. `stopOnFailure=true`만 허용하며 첫 실패, timeout, output 한도 초과, 실행 오류 또는 취소 뒤의 명령은 실행하지 않고 `not_run`으로 기록합니다.
+
+실행기는 시작 전에 저장소 root와 모든 cwd가 실제 디렉터리인지 확인하고 저장소 내부 symbolic link 우회를 거부합니다. 같은 snapshot port로 요청한 repository revision을 실행 직전 다시 확인하며 모든 명령 뒤에도 revision이 같아야 합니다. 시작 전 불일치는 명령을 실행하지 않고, 실행 중 변경은 output CAS가 남더라도 정상 result를 만들지 않습니다. 명령별 stdout와 stderr는 각각 local CAS에 저장한 뒤 다시 읽어 hash와 bytes를 확인합니다. `VerificationResult`에는 command text, argument, output과 환경 변수 값을 넣지 않고 command digest, exit code, 상태, 시간과 output artifact 좌표만 둡니다. 전체 결과는 suite ID/hash와 실행 대상 repository snapshot SHA-256에 묶고 canonical JSON으로 다시 CAS에 저장합니다.
+
+전체 상태는 모든 명령이 exit code 0이면 `passed`, 명령 실패가 있으면 `failed`, 실행 전이나 중간에 취소되면 `cancelled`입니다. 의미 검증기는 suite hash, 명령 순서와 digest, 상태별 exit code·실패 사유, 시간 범위, artifact ID·URI와 result ID를 다시 계산합니다. 실패 결과의 최상위 상태만 `passed`로 바꾸거나 실행하지 않은 명령에 실행 증거를 붙이면 `result_contract_invalid`로 거부합니다.
+
+현재 단계는 suite loader, 실행기와 result artifact까지만 구현합니다. `lervo run`, `verification.started`, `verification.completed`에는 아직 연결하지 않았으므로 기존 CLI 출력의 project verification은 계속 `not_run`입니다. Result artifact만 존재하는 상태는 run 완료, writing 공개, E4 또는 verified 지식을 뜻하지 않습니다. 상세 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 정의합니다.
 
 ## 사람 대상 writing 계약
 
@@ -602,3 +616,8 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 | `output_structure_invalid` / `candidate_contract_invalid` | 결과 Markdown의 구조·보존 조건 또는 candidate schema를 증명하지 못했습니다. 검토나 적용 가능한 결과로 공개하지 않습니다. |
 | `invalid_staleness_request` | Manifest, repository snapshot, 판정 시각 또는 managed input 관측이 일관된 노후화 근거가 아닙니다. 결과를 만들지 않고 입력을 다시 수집합니다. |
 | `staleness_contract_invalid` | 계산된 노후화 결과가 공개 schema를 통과하지 못했습니다. `current`, `stale`, `unknown` 어느 상태로도 보고하지 않습니다. |
+| `invalid_verification_suite` / `verification_suite_not_found` / `verification_layout_invalid` | Project verification suite를 유효하고 안전한 원본으로 읽지 못했습니다. 명령을 시작하지 않고 검증을 통과로 표시하지 않습니다. |
+| `invalid_verification_request` / `command_working_directory_invalid` | Repository snapshot, clock, root 또는 command cwd가 실행 계약에 맞지 않습니다. 전체 suite를 시작하지 않습니다. |
+| `repository_snapshot_failed` / `repository_snapshot_mismatch` | Snapshot을 안전하게 수집하지 못했거나 요청 revision과 실행 직전 상태가 다릅니다. 명령을 시작하지 않습니다. |
+| `repository_changed_during_verification` | 명령 실행 중 repository snapshot이 바뀌었습니다. 저장된 output만으로 정상 result를 만들지 않고 새 snapshot에서 다시 검증합니다. |
+| `result_contract_invalid` | Verification 결과의 상태, suite·command 결속 또는 artifact 좌표가 서로 다릅니다. 정상 verification result와 `passed` 상태를 공개하지 않습니다. |

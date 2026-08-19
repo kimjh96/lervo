@@ -21,6 +21,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-document-staleness.json`,
     `${name}-legacy-registry-migration.json`,
     `${name}-managed-block-patch.json`,
+    `${name}-verification.json`,
   ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);
     return JSON.parse(readFileSync(fixtureUrl, "utf8")) as Fixture[];

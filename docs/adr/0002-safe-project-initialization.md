@@ -28,7 +28,7 @@
 - 아직 독립 계약이 없는 `policy.yaml`과 `skills.lock`은 만들지 않는다.
 
 후속 결정: [ADR-0016](./0016-local-skill-resolution-and-lock.md)에서 `skills.lock` 계약을 추가했습니다. Lock은 provider·Role·runtime별 해석 결과이므로 init은 여전히 빈 lock을 만들지 않고 첫 스킬 해석이 기록을 소유합니다.
-후속 결정: [ADR-0017](./0017-sharded-document-manifests.md)에서 새 init의 문서 저장소를 빈 `.lervo/documents/`와 문서별 sidecar manifest로 바꿨습니다. 기존 단일 registry는 자동 migration하지 않고 단독일 때만 읽습니다.
+후속 결정: [ADR-0017](./0017-sharded-document-manifests.md)에서 새 init의 문서 저장소를 빈 `.lervo/documents/`와 문서별 sidecar manifest로 바꿨습니다. 기존 단일 registry는 자동 migration하지 않고 단독일 때만 읽습니다. [ADR-0024](./0024-provider-neutral-project-verification.md)는 suite별 설정을 둘 빈 `.lervo/verifications/`를 init 경로에 추가하며 기본 명령이나 결과는 만들지 않습니다.
 - 저장소 루트의 `README.md`, `AGENTS.md`, `CLAUDE.md`와 다른 사용자 파일은 읽거나 수정하지 않는다.
 
 ### 기존 상태와 충돌

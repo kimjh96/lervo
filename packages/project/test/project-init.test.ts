@@ -49,6 +49,7 @@ describe("Lervo project initialization", () => {
 
     const result = await applyInitPlan(plan);
     expect(result.created).toContain(".lervo/project.yaml");
+    expect(result.created).toContain(".lervo/verifications");
     expect(await loadProjectManifest(root)).toEqual(plan.projectManifest);
 
     const secondPlan = await createInitPlan({ root });
@@ -144,6 +145,23 @@ describe("Lervo project initialization", () => {
     await expect(readFile(resolve(root, ".lervo/project.yaml"), "utf8")).resolves.toBe(
       "schemaVersion: 1\nprojectId: invalid\n",
     );
+  });
+
+  it("preserves a conflicting verification suite path and blocks the whole init", async () => {
+    const root = await temporaryRepository();
+    await mkdir(resolve(root, ".lervo"));
+    await writeFile(resolve(root, ".lervo/verifications"), "user-owned bytes\n", "utf8");
+
+    const plan = await createInitPlan({ root, projectId: "prj_01234567" });
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({ path: ".lervo/verifications", action: "conflict" }),
+    );
+    await expect(applyInitPlan(plan)).rejects.toMatchObject({ code: "init_conflict" });
+    await expect(readFile(resolve(root, ".lervo/verifications"), "utf8"))
+      .resolves.toBe("user-owned bytes\n");
+    await expect(access(resolve(root, ".lervo/project.yaml"))).rejects.toThrow();
   });
 
   it("stops when a create target changes after planning", async () => {

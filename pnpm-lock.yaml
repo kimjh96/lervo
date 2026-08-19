@@ -236,6 +236,25 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/verification:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
+    devDependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+
 packages:
 
   '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.226':

@@ -1,0 +1,72 @@
+[
+  {
+    "name": "project verification suite with shell-free commands",
+    "schema": "verificationSuite",
+    "value": {
+      "schemaVersion": 1,
+      "suiteId": "project.check",
+      "stopOnFailure": true,
+      "commands": [
+        {
+          "commandId": "unit-tests",
+          "executable": "pnpm",
+          "arguments": ["test"],
+          "cwd": ".",
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576,
+          "environmentVariableNames": ["CI"]
+        }
+      ]
+    }
+  },
+  {
+    "name": "failed verification result with a skipped dependent command",
+    "schema": "verificationResult",
+    "value": {
+      "schemaVersion": 1,
+      "verificationId": "ver_aaaaaaaaaaaaaaaa",
+      "suiteId": "project.check",
+      "suiteHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "startedAt": "2026-08-19T00:00:00.000Z",
+      "completedAt": "2026-08-19T00:00:01.000Z",
+      "status": "failed",
+      "commands": [
+        {
+          "commandId": "unit-tests",
+          "commandDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "status": "failed",
+          "exitCode": 1,
+          "startedAt": "2026-08-19T00:00:00.000Z",
+          "completedAt": "2026-08-19T00:00:01.000Z",
+          "durationMs": 1000,
+          "stdoutArtifact": {
+            "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "uri": "lervo-cas://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byteCount": 20
+          },
+          "stderrArtifact": {
+            "artifactId": "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "uri": "lervo-cas://sha256/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "byteCount": 10
+          },
+          "failureCode": "nonzero_exit"
+        },
+        {
+          "commandId": "build",
+          "commandDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "status": "not_run",
+          "exitCode": null,
+          "startedAt": null,
+          "completedAt": null,
+          "durationMs": null,
+          "stdoutArtifact": null,
+          "stderrArtifact": null,
+          "failureCode": "blocked_by_previous_failure"
+        }
+      ]
+    }
+  }
+]

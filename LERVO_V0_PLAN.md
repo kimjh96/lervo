@@ -145,7 +145,7 @@
 
 구현 현황(2026-08-19): **증거 기반 document stale detector 완료.** Manifest의 검토 기한, 문서·연결 경로와 managed/generated input hash를 독립 `DocumentStalenessResult`로 계산합니다. Revision 문자열 차이만으로 stale을 주장하지 않고 검증 snapshot이 없거나 연결 범위·입력을 관측하지 못하면 `unknown`으로 남깁니다. 판정기는 파일·CAS·event를 쓰지 않으며 결과 ID는 canonical 내용에 결속됩니다. `AGENTS.md`, `CLAUDE.md`, `README.md` 경로 변경과 기한 경계, 변경·삭제·미관측 입력, snapshot 불일치를 fixture로 검증했습니다. 결정은 [ADR-0023](./docs/adr/0023-evidence-based-document-staleness.md)에 기록했습니다.
 
-M4 완료. 다음 구현 순서: **M5 verification command/result artifact**입니다.
+M4 완료.
 
 ### M5: 검증과 지식 후보
 
@@ -168,6 +168,10 @@ M4 완료. 다음 구현 순서: **M5 verification command/result artifact**입�
 - candidate에서 verified로의 전이가 정책과 evidence 없이는 거부됨
 
 구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
+
+구현 현황(2026-08-19): **Project verification command/result artifact 완료.** `lervo init`은 계속 누적되는 중앙 설정 대신 빈 `.lervo/verifications/`를 만들고, loader는 suite ID별 최대 64 KiB YAML을 안전하게 읽습니다. `@lervo/verification`은 shell 없이 최대 32개 명령을 순차 실행하며 timeout·취소·합산 output 한도와 첫 실패 뒤 `not_run`을 구분합니다. Stdout·stderr와 전체 result JSON은 각각 CAS에 저장하고 다시 확인합니다. 결과는 실행 전후 같은 snapshot port가 확인한 repository hash, suite hash, command digest·exit code·시간·artifact 좌표에 묶이며 의미 검증기가 전체 상태와 ID를 다시 계산합니다. 실패 결과의 상태만 `passed`로 바꾼 조작, snapshot 불일치·실행 중 변경, 미실행 명령, symlink cwd, timeout·과다 output과 CAS 불일치를 실제 subprocess fixture로 검증했습니다. 아직 `lervo run`과 verification event에는 연결하지 않아 CLI는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록했습니다.
+
+다음 구현 순서: **writing 공개 gate**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -272,4 +276,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M5 verification command/result artifact**입니다. 실행한 검증 명령, 종료 상태, 시간과 로그 artifact hash를 provider-neutral 결과로 고정하고, 실행하지 않았거나 실패한 검증을 성공으로 표시할 수 없게 해야 합니다. 이 결과는 이후 writing 공개 gate와 Codex·Claude 숙의가 같은 검증 근거를 참조하는 기반이 됩니다.
+다음 구현 작업은 **M5 writing 공개 gate**입니다. 기존 결정적 writing 검사와 분리된 의미 평가가 provider 결과 artifact의 정확한 ID·content hash에 결속됐는지 확인하고, 필수 검사가 실행되지 않았거나 실패한 사람 대상 산출물은 CLI·shared context·숙의 artifact의 공개 경계를 통과하지 못하게 해야 합니다.

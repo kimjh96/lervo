@@ -4,6 +4,7 @@ export const lervoRelativePaths = {
   root: ".lervo",
   projectManifest: ".lervo/project.yaml",
   documents: ".lervo/documents",
+  verifications: ".lervo/verifications",
   legacyDocumentRegistry: ".lervo/documents.yaml",
   documentMigrationMarker: ".lervo/.document-migration.lock",
   gitignore: ".lervo/.gitignore",
@@ -24,6 +25,7 @@ export interface LervoProjectPaths {
   lervoRoot: string;
   projectManifest: string;
   documents: string;
+  verifications: string;
   legacyDocumentRegistry: string;
   documentMigrationMarker: string;
   gitignore: string;
@@ -42,6 +44,7 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     lervoRoot: resolve(repositoryRoot, lervoRelativePaths.root),
     projectManifest: resolve(repositoryRoot, lervoRelativePaths.projectManifest),
     documents: resolve(repositoryRoot, lervoRelativePaths.documents),
+    verifications: resolve(repositoryRoot, lervoRelativePaths.verifications),
     legacyDocumentRegistry: resolve(repositoryRoot, lervoRelativePaths.legacyDocumentRegistry),
     documentMigrationMarker: resolve(repositoryRoot, lervoRelativePaths.documentMigrationMarker),
     gitignore: resolve(repositoryRoot, lervoRelativePaths.gitignore),

@@ -63,6 +63,7 @@ flowchart LR
   project.yaml             # 안정적인 project id와 로컬 설정
   policy.yaml              # 역할, 도구, 승인, 필수 컨텍스트 정책
   documents/               # document ID별 수명주기 sidecar manifest
+  verifications/           # suite ID별 project 검증 명령
   skills.lock              # 해석된 스킬 버전과 해시
   generated/               # provider별 생성 원본과 manifest
   state/                   # gitignore 대상: SQLite, CAS, outbox, lock
@@ -77,7 +78,7 @@ flowchart LR
 
 이전 실험 버전의 `.roven`은 `.lervo`와 함께 읽지 않습니다. `lervo init`은 저장소 root에서 이전 경로를 발견하면 어떤 새 파일도 만들지 않고 차단합니다. Event hash chain과 CAS URI는 원본 증거 좌표이므로 단순 문자열 치환이나 디렉터리 rename으로 migration되었다고 주장하지 않습니다. 명칭 migration은 원본 보존, 새 좌표 생성, 검증과 완료 event를 갖춘 별도 작업으로 구현합니다.
 
-새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서별 manifest 파일이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.lervo`는 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
+새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`와 `verifications/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서와 검증 suite는 각각 파일 목록이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.lervo`는 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
 
 ### Document Adoption & Migration
 
@@ -100,6 +101,12 @@ Structural apply 승인은 plan의 모든 항목을 중복 없이 정확히 한 
 `@lervo/project`는 설정과 관리 경로만 정의하고 SQLite나 CAS 구현을 알지 않습니다. `@lervo/project-storage`가 두 저장 구현을 조합해 실행 진입점에 제공합니다. 저장소 root를 받으면 canonical 경로를 한 번 계산하고, `project.yaml`을 검증한 뒤 그 manifest의 project id로 `.lervo/state/events.sqlite`를 엽니다. CAS는 같은 경로 계약의 `.lervo/state/cas`를 사용합니다. 호출자가 임의의 project id나 서로 다른 저장 root를 섞을 수 없습니다.
 
 Bootstrap은 저장소 root, `.lervo`, `.lervo/state`가 실제 디렉터리인지 확인하고 심볼릭 링크를 따라가지 않습니다. 이미 존재하는 CAS 구성 경로도 같은 규칙으로 확인합니다. Event store를 연 뒤 CAS를 열지 못하면 먼저 연 store를 닫습니다. 반환한 handle의 `close`는 여러 번 불러도 각 backend를 한 번만 닫습니다. Hub가 비활성인 manifest는 event 기록을 막지 않으며 outbox 항목을 자동으로 만들지 않습니다.
+
+### Project Verification
+
+Project verification은 provider가 작업 중 보고한 일반 command telemetry와 분리합니다. `.lervo/verifications/<suiteId>.yaml`의 각 파일이 독립 suite 원본이며 executable, arguments, 상대 cwd, timeout, output 한도와 전달할 환경 변수 이름을 고정합니다. `@lervo/verification` loader는 요청한 suite 파일 하나를 안정적으로 읽고, 실행기는 shell 없이 순서대로 명령을 실행합니다. 저장소 root와 모든 cwd는 명령 시작 전에 실제 경로로 검증합니다.
+
+첫 실패 뒤 남은 명령은 `not_run`으로 남깁니다. 명령별 stdout·stderr와 전체 result JSON은 서로 다른 local CAS artifact이고 metadata에는 hash 좌표만 둡니다. `VerificationResult`는 실행 직전과 직후에 같은 snapshot port가 확인한 repository hash와 suite hash에 결속되며 의미 검증기가 명령 순서·digest, exit code, 시간, artifact 좌표와 전체 상태를 다시 계산합니다. 실행 중 repository가 바뀌면 result를 만들지 않습니다. 이 패키지는 provider adapter, event store와 CLI를 알지 않습니다. 현재 `lervo run` 결합과 verification event 기록은 아직 구현하지 않아 CLI의 검증 상태는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록합니다.
 
 ## 핵심 구성 요소
 
@@ -330,6 +337,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 M5의 provider-neutral verification command/result artifact입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 검증 결과와 writing 평가를 실제 공개 시점에 강제하는 gate입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

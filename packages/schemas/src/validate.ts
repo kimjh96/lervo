@@ -34,6 +34,7 @@ import { roleProfileSchema } from "./role.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
+import { verificationResultSchema, verificationSuiteSchema } from "./verification.js";
 import { writingContractSchema, writingEvaluationSchema } from "./writing.js";
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -79,6 +80,8 @@ const validators = {
   managedBlockPatchCandidateArtifact: ajv.compile(managedBlockPatchCandidateArtifactSchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
+  verificationSuite: ajv.compile(verificationSuiteSchema),
+  verificationResult: ajv.compile(verificationResultSchema),
 } satisfies Record<string, ValidateFunction>;
 
 export type SchemaName = keyof typeof validators;

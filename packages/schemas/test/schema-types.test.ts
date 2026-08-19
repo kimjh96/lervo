@@ -17,6 +17,8 @@ import type {
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
+  VerificationResult,
+  VerificationSuite,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -72,6 +74,16 @@ describe("schema-derived TypeScript contracts", () => {
       .toEqualTypeOf<"current" | "stale" | "unknown">();
     expectTypeOf<DocumentStalenessResult["signals"]["managedInputs"]["status"]>()
       .toEqualTypeOf<"not_applicable" | "current" | "stale" | "unknown">();
+  });
+
+  it("keeps verification commands separate from observed command results", () => {
+    expectTypeOf<VerificationSuite["commands"][number]["executable"]>()
+      .toEqualTypeOf<string>();
+    expectTypeOf<VerificationResult["commands"][number]["status"]>()
+      .toEqualTypeOf<
+        "passed" | "failed" | "timed_out" | "output_limit_exceeded" |
+        "execution_error" | "cancelled" | "not_run"
+      >();
   });
 
   it("requires reviewed sidecars and returns a hash-only apply event payload", () => {

@@ -77,6 +77,23 @@ export const writingEvaluationIdSchema = {
   pattern: "^wre_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const verificationIdSchema = {
+  type: "string",
+  pattern: "^ver_[a-f0-9]{16}$",
+} as const;
+
+export const verificationSuiteIdSchema = {
+  type: "string",
+  pattern: "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+  maxLength: 150,
+} as const;
+
+export const verificationCommandIdSchema = {
+  type: "string",
+  pattern: "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+  maxLength: 150,
+} as const;
+
 export const localeSchema = {
   type: "string",
   pattern: "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-[A-Z]{2}|-[0-9]{3})?$",

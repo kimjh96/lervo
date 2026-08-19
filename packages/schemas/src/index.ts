@@ -17,4 +17,5 @@ export * from "./shared-context.js";
 export * from "./skill.js";
 export * from "./skill-lock.js";
 export * from "./validate.js";
+export * from "./verification.js";
 export * from "./writing.js";
