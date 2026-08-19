@@ -1,0 +1,79 @@
+import type { ProviderAdapter } from "@lervo/adapter-contract";
+import type { ContextHandoffInput, DocumentRuleMap } from "@lervo/context";
+import type { ResolvedWritingPolicy } from "@lervo/context-delivery";
+import type {
+  ConversationReplyCandidate,
+  ConversationResponder,
+} from "@lervo/interaction";
+import type { ManagedResolvedSkill } from "@lervo/orchestrator";
+import type {
+  ConversationInboundEvent,
+  ConversationParticipationDecision,
+  ConversationParticipationPolicy,
+  DocumentRegistry,
+  RoleProfile,
+  SharedContextPublication,
+  WritingContract,
+} from "@lervo/schemas";
+import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
+import type { WritingSemanticEvaluator } from "@lervo/writing";
+
+export interface ManagedConversationResponsePlan {
+  adapter: ProviderAdapter;
+  runId: string;
+  sessionId: string;
+  targetTurnId: string;
+  role: RoleProfile;
+  registry: DocumentRegistry;
+  expectedPaths?: readonly string[];
+  documentRules: DocumentRuleMap;
+  publications: readonly SharedContextPublication[];
+  handoffs: readonly ContextHandoffInput[];
+  writingPolicy: ResolvedWritingPolicy;
+  writingContract: WritingContract;
+  resolvedSkills: readonly ManagedResolvedSkill[];
+}
+
+export interface ManagedConversationResponseRequest {
+  event: ConversationInboundEvent;
+  policy: ConversationParticipationPolicy;
+  decision: ConversationParticipationDecision;
+}
+
+export interface ManagedConversationResponderOptions {
+  repositoryRoot: string;
+  projectId: string;
+  policyVersion: string;
+  events: EventStore;
+  artifactStore: ArtifactStore;
+  semanticEvaluator: WritingSemanticEvaluator;
+  resolvePlan(
+    input: ManagedConversationResponseRequest,
+  ): Promise<ManagedConversationResponsePlan> | ManagedConversationResponsePlan;
+  now?: () => Date;
+  createEventId?: () => string;
+}
+
+export type ConversationWritingContractResolver = (input: {
+  event: ConversationInboundEvent;
+  policy: ConversationParticipationPolicy;
+}) => Promise<WritingContract> | WritingContract;
+
+export class ManagedConversationResponseError extends Error {
+  constructor(
+    readonly code:
+      | "invalid_response_request"
+      | "message_artifact_invalid"
+      | "managed_run_invalid"
+      | "writing_publication_blocked",
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "ManagedConversationResponseError";
+  }
+}
+
+export type ManagedConversationResponderPort = ConversationResponder & {
+  respond(input: ManagedConversationResponseRequest): Promise<ConversationReplyCandidate>;
+};

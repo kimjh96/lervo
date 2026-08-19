@@ -36,12 +36,13 @@ export function validateManagedProviderRunInput(
   const skillIds = input.resolvedSkills.map((skill) => skill.skillId);
   const roleSkillIds = [...input.context.role.defaultSkills].sort();
   const resolvedSkillIds = [...skillIds].sort();
+  const writeDecision = input.context.role.capabilities["filesystem.write"];
   if (
     input.instructions.length === 0 ||
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
     input.context.role.roleId !== options.coordinates.roleId ||
-    input.context.expectedPaths.length === 0 ||
+    (writeDecision !== "deny" && input.context.expectedPaths.length === 0) ||
     new Set(skillIds).size !== skillIds.length ||
     roleSkillIds.length !== resolvedSkillIds.length ||
     roleSkillIds.some((skillId, index) => skillId !== resolvedSkillIds[index]) ||
@@ -56,7 +57,6 @@ export function validateManagedProviderRunInput(
       "Managed run 요청의 task, 파일 쓰기 정책 또는 예상 경로가 유효하지 않습니다.",
     );
   }
-  const writeDecision = input.context.role.capabilities["filesystem.write"];
   if (
     (writeDecision !== "require_approval" && input.approvalAuthorization !== undefined) ||
     (input.approvalAuthorization !== undefined &&

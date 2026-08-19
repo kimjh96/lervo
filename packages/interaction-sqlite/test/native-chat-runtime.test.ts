@@ -50,6 +50,45 @@ function publicationPermit(): WritingPublicationPermit {
   return { ...content, permitId: calculateWritingPublicationPermitId(content) };
 }
 
+function responseCandidate() {
+  return {
+    content: responseContent,
+    publicationPermit: publicationPermit(),
+    publicationEvidence: {
+      artifact: {
+        ...responseContent,
+        uri: `lervo-cas://sha256/${responseContent.contentHash.slice(7)}`,
+        mediaType: "text/markdown; charset=utf-8" as const,
+      },
+      evaluation: {
+        schemaVersion: 1 as const,
+        evaluationId: "wre_evaluate01",
+        writingPolicyId: "writing_korean_chat",
+        artifactId: responseContent.artifactId,
+        contentHash: responseContent.contentHash,
+        locale: "ko-KR",
+        checkedAt: "2026-08-20T00:00:02.000Z",
+        evaluators: [{ kind: "deterministic" as const, evaluatorId: "fixture" }],
+        checks: [{
+          checkId: "fixture",
+          kind: "deterministic" as const,
+          status: "passed" as const,
+          violationCount: 0,
+          evidenceDigest: null,
+        }],
+        overallStatus: "passed" as const,
+      },
+      evaluationArtifact: {
+        artifactId: "art_evaluation01",
+        uri: "lervo-cas://sha256/dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        mediaType: "application/vnd.lervo.writing-evaluation+json; charset=utf-8" as const,
+        contentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        byteCount: 10,
+      },
+    },
+  };
+}
+
 function participationPolicy(
   conversationIds = ["cnv_general01"],
   roleId = "role_reviewer",
@@ -105,10 +144,7 @@ describe("durable native chat interaction", () => {
     });
     const policy = participationPolicy();
     const relevance = vi.fn(async () => "relevant" as const);
-    const responder = vi.fn(async () => ({
-      content: responseContent,
-      publicationPermit: publicationPermit(),
-    }));
+    const responder = vi.fn(async () => responseCandidate());
     const verify = vi.fn(async ({ candidate }) => {
       expect(candidate.publicationPermit.surface).toBe("chat");
     });
@@ -224,7 +260,7 @@ describe("durable native chat interaction", () => {
       workerId: "interaction-worker",
       agentParticipantId: "ptc_agent001",
       store,
-      responder: { respond: async () => ({ content: responseContent, publicationPermit: publicationPermit() }) },
+      responder: { respond: async () => responseCandidate() },
       publicationVerifier: { verify: async () => undefined },
       clock: () => new Date("2026-08-20T00:00:02.000Z"),
     })).rejects.toMatchObject({ code: "invalid_interaction_request" });
@@ -256,10 +292,7 @@ describe("durable native chat interaction", () => {
       },
       occurredAt: "2026-08-20T00:00:01.000Z",
     });
-    const respond = vi.fn(async () => ({
-      content: responseContent,
-      publicationPermit: publicationPermit(),
-    }));
+    const respond = vi.fn(async () => responseCandidate());
     const common = {
       event,
       store,

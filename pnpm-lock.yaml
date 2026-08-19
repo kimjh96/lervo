@@ -176,6 +176,55 @@ importers:
         specifier: workspace:*
         version: link:../writing-contract
 
+  packages/conversation-responder:
+    dependencies:
+      '@lervo/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
+      '@lervo/context':
+        specifier: workspace:*
+        version: link:../context
+      '@lervo/context-delivery':
+        specifier: workspace:*
+        version: link:../context-delivery
+      '@lervo/interaction':
+        specifier: workspace:*
+        version: link:../interaction
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
+    devDependencies:
+      '@lervo/adapter-claude':
+        specifier: workspace:*
+        version: link:../adapter-claude
+      '@lervo/adapter-codex':
+        specifier: workspace:*
+        version: link:../adapter-codex
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+      '@lervo/interaction-sqlite':
+        specifier: workspace:*
+        version: link:../interaction-sqlite
+
   packages/core:
     dependencies:
       '@lervo/event-contract':
@@ -372,6 +421,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
 
   packages/interaction-sqlite:
     dependencies:

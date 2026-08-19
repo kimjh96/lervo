@@ -66,12 +66,14 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [서명 승인 원본을 managed write permit에 결속하는 ADR](./docs/adr/0044-signed-approval-managed-write-permit.md)
 - [Hub가 시각과 범위를 소유하는 정책 작성·동기화 ADR](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)
 - [플랫폼 중립 대화와 능동 참여 경계 ADR](./docs/adr/0046-platform-neutral-conversation-participation.md)
+- [역할별 managed 대화 응답과 공개 증거 ADR](./docs/adr/0047-managed-conversation-responder.md)
 
 ## 현재 구현
 
 - `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의와 지식 수명주기 JSON Schema 및 파생 TypeScript 타입
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
+- `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge
 - `@lervo/interaction-sqlite`: 재시작 가능한 inbox·decision·outbox lease와 되돌릴 수 없는 완료·전달 상태를 보존하는 append-only SQLite adapter. 대화 본문과 외부 식별자 원문은 저장하지 않음
 - `@lervo/adapter-native-chat`: 자체 채팅 서비스의 inbound mapping과 delivery port를 공통 conversation 계약에 연결하는 transport 독립 adapter
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록

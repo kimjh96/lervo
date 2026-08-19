@@ -355,6 +355,23 @@ describe("managed provider run coordinator", () => {
     },
   );
 
+  it("allows a read-only run to declare no write target paths", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const input = providerRunInput();
+
+    await expect(coordinator(adapter, data.root, data.store).run({
+      ...input,
+      repositoryRoot: data.root,
+      context: { ...input.context, expectedPaths: [] },
+    })).resolves.toMatchObject({
+      status: "completed",
+      session: { executionMode: "read_only" },
+      managedChanges: [],
+    });
+    data.store.close();
+  });
+
   it("fails a write-capable run that produces no verified change", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");

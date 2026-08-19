@@ -788,6 +788,16 @@ Durable 처리 단위는 source event ID와 role ID의 조합이며 처음 claim
 
 이 상태는 전역 실행 event나 shared context receipt가 아닙니다. 메시지를 관찰하거나 답해도 그 역할의 `loaded`, `injected`, `used`는 생기지 않습니다. 실제 responder가 Codex나 Claude를 실행하려면 message artifact와 필요한 공유 원본을 그 역할의 독립 session에서 E2/E3로 만들고, 재사용할 결과는 별도 shared context로 발행해야 합니다. 결정은 [ADR-0046](./docs/adr/0046-platform-neutral-conversation-participation.md)에 기록합니다.
 
+### Managed conversation responder
+
+`@lervo/conversation-responder`는 inbound 본문을 content hash에서 계산한 CAS URI로 읽고 byte count, SHA-256과 UTF-8을 다시 확인합니다. 본문은 문서 context evidence로 승격하지 않습니다. 대신 event ID, participation policy·decision ID, role ID와 message content hash로 `requestDigest`를 만들고 동일한 값의 `run.requested` 원본이 있는지 확인합니다.
+
+응답 RoleProfile은 `filesystem.write=deny`, `external.message=deny`, human 또는 mixed presentation과 `chat` surface writing policy를 가져야 합니다. 매 응답은 새 managed provider session에서 실행합니다. Provider 결과를 공개하기 전에 session·turn·role 좌표, 저장소 before/after revision 동일성, 변경 0건, 각 공유 원본의 E2/E3 receipt와 `document.loaded`·`context.injected`·`run.completed` 원본을 다시 검증합니다. 이 공통 검증은 숙의와 대화가 함께 사용하며 도메인별 이력 검사는 각 runtime이 추가합니다.
+
+Reply candidate는 본문 좌표와 permit뿐 아니라 writing evaluation 및 evaluation artifact 좌표를 함께 가집니다. 독립 publication verifier는 현재 conversation 정책에서 해석한 writing contract로 CAS 원문·평가 artifact·permit를 다시 읽고 확인합니다. 최대 65,536 bytes를 넘거나 `chat` writing 평가가 막힌 결과는 reply가 되지 않습니다. 변조·누락·정책 불일치는 `publication_verification_failed`로 inbox를 재예약하고 outbox를 만들지 않습니다.
+
+새 event type은 추가하지 않습니다. 기존 managed run event에는 원문 message, prompt, provider 응답, 외부 사용자·message ID와 내부 오류를 넣지 않습니다. Message 원문은 CAS, provider 결과와 writing 평가는 CAS, 실행 증거는 기존 run/context event, 전달 대기는 interaction DB가 각각 원본입니다. 결정은 [ADR-0047](./docs/adr/0047-managed-conversation-responder.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.

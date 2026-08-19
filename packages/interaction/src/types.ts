@@ -7,7 +7,12 @@ import type {
   ConversationParticipationDecision,
   ConversationParticipationPolicy,
   WritingPublicationPermit,
+  WritingEvaluation,
 } from "@lervo/schemas";
+import type {
+  WritingArtifactCoordinate,
+  WritingEvaluationArtifactCoordinate,
+} from "@lervo/writing";
 
 export interface ParticipationWindow {
   latestResponseAt: string | null;
@@ -100,6 +105,11 @@ export interface ConversationRelevanceEvaluator {
 export interface ConversationReplyCandidate {
   content: ConversationContentReference;
   publicationPermit: WritingPublicationPermit;
+  publicationEvidence: {
+    artifact: WritingArtifactCoordinate;
+    evaluation: WritingEvaluation;
+    evaluationArtifact: WritingEvaluationArtifactCoordinate;
+  };
 }
 
 export interface ConversationResponder {

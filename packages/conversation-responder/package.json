@@ -1,0 +1,36 @@
+{
+  "name": "@lervo/conversation-responder",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/adapter-contract": "workspace:*",
+    "@lervo/context": "workspace:*",
+    "@lervo/context-delivery": "workspace:*",
+    "@lervo/interaction": "workspace:*",
+    "@lervo/orchestrator": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/writing": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/adapter-claude": "workspace:*",
+    "@lervo/adapter-codex": "workspace:*",
+    "@lervo/cas": "workspace:*",
+    "@lervo/conversation-contract": "workspace:*",
+    "@lervo/core": "workspace:*",
+    "@lervo/event-store-sqlite": "workspace:*",
+    "@lervo/interaction-sqlite": "workspace:*"
+  }
+}

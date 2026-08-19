@@ -327,11 +327,12 @@ fixtures/
 
 1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX — 서명 snapshot·command-bound 승인/철회, Node 재평가와 managed write permit 연결 완료
 2. 플랫폼 중립 conversation 계약과 능동 참여 runtime — native chat adapter·durable inbox/outbox 첫 슬라이스 완료
-3. Managed conversation responder bridge와 Slack/Discord 인증 adapter
-4. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
-5. 명시적 관계 기반 지식 그래프 시각화
-6. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
-7. 조직 단위 비용·품질·가드레일 분석
+3. Managed conversation responder bridge — 완료
+4. Slack/Discord 인증 adapter
+5. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
+6. 명시적 관계 기반 지식 그래프 시각화
+7. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
+8. 조직 단위 비용·품질·가드레일 분석
 
 Conversation 첫 슬라이스 완료 조건:
 
@@ -352,4 +353,6 @@ Coordinator는 provider 시작 전과 실제 쓰기 직전에 현재 signed 원�
 
 플랫폼 중립 conversation 첫 슬라이스를 완료했습니다. `@lervo/conversation-contract`는 외부 플랫폼과 자체 채팅 서비스가 함께 쓰는 adapter capability, hash-only inbound, participation policy·decision과 writing permit-bound outbound를 정의합니다. `@lervo/interaction`은 mention·relevance·signal, actor, cooldown, rate와 automation depth를 구분하며 관련성을 확정하지 못하면 관찰만 합니다. `@lervo/interaction-sqlite`는 재시작 가능한 inbox·decision·outbox와 되돌릴 수 없는 완료·전달 상태를 보존합니다. Native adapter fixture에서 재시작 뒤 중복 responder 방지, 전송 실패 복구, raw platform key와 본문 비저장까지 확인했습니다. 결정은 [ADR-0046](./docs/adr/0046-platform-neutral-conversation-participation.md)에 기록했습니다.
 
-다음 구현 작업은 **managed conversation responder bridge**입니다. 선택된 message artifact와 역할에 허용된 최신 shared context를 자기 session에서 별도로 E2/E3로 만들고 Codex 또는 Claude의 managed read-only turn을 실행합니다. 그 결과를 실제 `chat` writing 평가로 검증한 경우에만 현재 responder port의 reply candidate로 반환합니다. 이 연결이 끝난 뒤 Slack·Discord adapter의 webhook 서명·인증·외부 participant mapping과 Hub command/approval application UX를 같은 conversation contract suite 위에 추가합니다.
+Managed conversation responder bridge를 완료했습니다. `@lervo/conversation-responder`는 message CAS 원본과 request digest를 결속하고, 역할별 독립 Codex·Claude 읽기 전용 session에서 허용된 shared context의 E2/E3와 원본 event를 다시 검증합니다. Provider 결과는 실제 `chat` writing 평가와 재검증 가능한 평가 artifact가 있어야 reply candidate가 됩니다. 변조된 공개 증거는 outbox 없이 bounded retry로 남습니다. 결정은 [ADR-0047](./docs/adr/0047-managed-conversation-responder.md)에 기록했습니다.
+
+다음 구현 작업은 **Slack·Discord 인증 conversation adapter**입니다. 플랫폼별 서명 시각·재전송 방지, 외부 participant·conversation·thread mapping과 bounded payload 검증을 transport 경계에 두고, 확인된 요청만 기존 conversation contract와 interaction runtime에 전달합니다. 이후 Hub command/approval application UX를 같은 대화 표면에 연결합니다.
