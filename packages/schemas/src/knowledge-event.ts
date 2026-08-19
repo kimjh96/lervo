@@ -6,8 +6,11 @@ import {
   deliberationOutcomeIdSchema,
   eventIdSchema,
   knowledgeCandidateIdSchema,
+  knowledgeReviewApprovalIdSchema,
+  knowledgeStalenessResultIdSchema,
   repositoryRelativePathSchema,
   sha256Schema,
+  verifiedKnowledgeIdSchema,
 } from "./common.js";
 
 export const knowledgeCandidateCreatedEventPayloadSchema = {
@@ -61,4 +64,139 @@ export const knowledgeCandidateCreatedEventPayloadSchema = {
 
 export type KnowledgeCandidateCreatedEventPayload = FromSchema<
   typeof knowledgeCandidateCreatedEventPayloadSchema
+>;
+
+export const knowledgeCandidateReviewedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/knowledge-candidate-reviewed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    candidateId: knowledgeCandidateIdSchema,
+    candidateContentHash: sha256Schema,
+    approvalId: knowledgeReviewApprovalIdSchema,
+    approvalArtifactId: artifactIdSchema,
+    approvalContentHash: sha256Schema,
+    decision: { type: "string", enum: ["approved", "rejected"] },
+    policyId: {
+      type: "string",
+      pattern: "^knowledge_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      maxLength: 150,
+    },
+    policyVersion: sha256Schema,
+    repositoryRevision: sha256Schema,
+    resolvedConflictCandidateIds: {
+      type: "array",
+      items: knowledgeCandidateIdSchema,
+      maxItems: 100,
+      uniqueItems: true,
+    },
+  },
+  required: [
+    "candidateId",
+    "candidateContentHash",
+    "approvalId",
+    "approvalArtifactId",
+    "approvalContentHash",
+    "decision",
+    "policyId",
+    "policyVersion",
+    "repositoryRevision",
+    "resolvedConflictCandidateIds",
+  ],
+  additionalProperties: false,
+} as const;
+
+export const knowledgeVerifiedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/knowledge-verified-event-payload.schema.json",
+  type: "object",
+  properties: {
+    knowledgeId: verifiedKnowledgeIdSchema,
+    candidateId: knowledgeCandidateIdSchema,
+    candidateContentHash: sha256Schema,
+    approvalId: knowledgeReviewApprovalIdSchema,
+    approvalContentHash: sha256Schema,
+    claimDigest: sha256Schema,
+    paths: {
+      type: "array",
+      items: { ...repositoryRelativePathSchema, maxLength: 500 },
+      minItems: 1,
+      maxItems: 100,
+      uniqueItems: true,
+    },
+    verifiedRevision: sha256Schema,
+    knowledgeArtifactId: artifactIdSchema,
+    knowledgeContentHash: sha256Schema,
+  },
+  required: [
+    "knowledgeId",
+    "candidateId",
+    "candidateContentHash",
+    "approvalId",
+    "approvalContentHash",
+    "claimDigest",
+    "paths",
+    "verifiedRevision",
+    "knowledgeArtifactId",
+    "knowledgeContentHash",
+  ],
+  additionalProperties: false,
+} as const;
+
+export const knowledgeStaleDetectedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/knowledge-stale-detected-event-payload.schema.json",
+  type: "object",
+  properties: {
+    knowledgeId: verifiedKnowledgeIdSchema,
+    resultId: knowledgeStalenessResultIdSchema,
+    verifiedRevision: sha256Schema,
+    currentRevision: sha256Schema,
+    reasons: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: ["review_interval_elapsed", "linked_path_changed", "linked_path_missing"],
+      },
+      minItems: 1,
+      maxItems: 3,
+      uniqueItems: true,
+    },
+    changedPaths: {
+      type: "array",
+      items: { ...repositoryRelativePathSchema, maxLength: 500 },
+      maxItems: 100,
+      uniqueItems: true,
+    },
+    missingPaths: {
+      type: "array",
+      items: { ...repositoryRelativePathSchema, maxLength: 500 },
+      maxItems: 100,
+      uniqueItems: true,
+    },
+    resultArtifactId: artifactIdSchema,
+    resultContentHash: sha256Schema,
+  },
+  required: [
+    "knowledgeId",
+    "resultId",
+    "verifiedRevision",
+    "currentRevision",
+    "reasons",
+    "changedPaths",
+    "missingPaths",
+    "resultArtifactId",
+    "resultContentHash",
+  ],
+  additionalProperties: false,
+} as const;
+
+export type KnowledgeCandidateReviewedEventPayload = FromSchema<
+  typeof knowledgeCandidateReviewedEventPayloadSchema
+>;
+export type KnowledgeVerifiedEventPayload = FromSchema<
+  typeof knowledgeVerifiedEventPayloadSchema
+>;
+export type KnowledgeStaleDetectedEventPayload = FromSchema<
+  typeof knowledgeStaleDetectedEventPayloadSchema
 >;

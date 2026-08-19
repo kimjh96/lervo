@@ -38,7 +38,18 @@ import {
   managedBlockPatchCandidateSchema,
 } from "./managed-block-patch.js";
 import { knowledgeCandidateSchema } from "./knowledge.js";
-import { knowledgeCandidateCreatedEventPayloadSchema } from "./knowledge-event.js";
+import {
+  knowledgeCandidateCreatedEventPayloadSchema,
+  knowledgeCandidateReviewedEventPayloadSchema,
+  knowledgeStaleDetectedEventPayloadSchema,
+  knowledgeVerifiedEventPayloadSchema,
+} from "./knowledge-event.js";
+import {
+  knowledgePromotionPolicySchema,
+  knowledgeReviewApprovalSchema,
+  knowledgeStalenessResultSchema,
+  verifiedKnowledgeSchema,
+} from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -99,8 +110,19 @@ const validators = {
   managedBlockPatchCandidate: ajv.compile(managedBlockPatchCandidateSchema),
   managedBlockPatchCandidateArtifact: ajv.compile(managedBlockPatchCandidateArtifactSchema),
   knowledgeCandidate: ajv.compile(knowledgeCandidateSchema),
+  knowledgePromotionPolicy: ajv.compile(knowledgePromotionPolicySchema),
+  knowledgeReviewApproval: ajv.compile(knowledgeReviewApprovalSchema),
+  verifiedKnowledge: ajv.compile(verifiedKnowledgeSchema),
+  knowledgeStalenessResult: ajv.compile(knowledgeStalenessResultSchema),
   knowledgeCandidateCreatedEventPayload: ajv.compile(
     knowledgeCandidateCreatedEventPayloadSchema,
+  ),
+  knowledgeCandidateReviewedEventPayload: ajv.compile(
+    knowledgeCandidateReviewedEventPayloadSchema,
+  ),
+  knowledgeVerifiedEventPayload: ajv.compile(knowledgeVerifiedEventPayloadSchema),
+  knowledgeStaleDetectedEventPayload: ajv.compile(
+    knowledgeStaleDetectedEventPayloadSchema,
   ),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),

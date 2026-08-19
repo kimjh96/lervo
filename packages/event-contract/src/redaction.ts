@@ -3,6 +3,9 @@ import {
   type DeliberationArtifactRecordedEventPayload,
   type EventType,
   type KnowledgeCandidateCreatedEventPayload,
+  type KnowledgeCandidateReviewedEventPayload,
+  type KnowledgeStaleDetectedEventPayload,
+  type KnowledgeVerifiedEventPayload,
   type SchemaName,
 } from "@lervo/schemas";
 
@@ -118,6 +121,41 @@ export const eventPayloadAllowlists = {
     "verifiedRevision",
     "candidateArtifactId",
     "candidateContentHash"
+  ],
+  "knowledge.candidate.reviewed": [
+    "candidateId",
+    "candidateContentHash",
+    "approvalId",
+    "approvalArtifactId",
+    "approvalContentHash",
+    "decision",
+    "policyId",
+    "policyVersion",
+    "repositoryRevision",
+    "resolvedConflictCandidateIds"
+  ],
+  "knowledge.verified": [
+    "knowledgeId",
+    "candidateId",
+    "candidateContentHash",
+    "approvalId",
+    "approvalContentHash",
+    "claimDigest",
+    "paths",
+    "verifiedRevision",
+    "knowledgeArtifactId",
+    "knowledgeContentHash"
+  ],
+  "knowledge.stale.detected": [
+    "knowledgeId",
+    "resultId",
+    "verifiedRevision",
+    "currentRevision",
+    "reasons",
+    "changedPaths",
+    "missingPaths",
+    "resultArtifactId",
+    "resultContentHash"
   ],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [
@@ -298,7 +336,21 @@ export function sanitizeEventPayload(
     !knowledgeCandidateCoordinateMatches(
       sanitized as unknown as KnowledgeCandidateCreatedEventPayload,
     );
-  if (invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate) {
+  const invalidKnowledgeCoordinate = !invalidSchema && (
+    (type === "knowledge.candidate.reviewed" && !reviewCoordinateMatches(
+      sanitized as unknown as KnowledgeCandidateReviewedEventPayload,
+    )) ||
+    (type === "knowledge.verified" && !verifiedCoordinateMatches(
+      sanitized as unknown as KnowledgeVerifiedEventPayload,
+    )) ||
+    (type === "knowledge.stale.detected" && !staleCoordinateMatches(
+      sanitized as unknown as KnowledgeStaleDetectedEventPayload,
+    ))
+  );
+  if (
+    invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate ||
+    invalidKnowledgeCoordinate
+  ) {
     throw new RedactionError(
       "invalid_payload",
       "$",
@@ -314,6 +366,9 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
   "deliberation.completed": "deliberationCompletedEventPayload",
   "knowledge.candidate.created": "knowledgeCandidateCreatedEventPayload",
+  "knowledge.candidate.reviewed": "knowledgeCandidateReviewedEventPayload",
+  "knowledge.verified": "knowledgeVerifiedEventPayload",
+  "knowledge.stale.detected": "knowledgeStaleDetectedEventPayload",
 };
 
 function deliberationArtifactCoordinateMatches(
@@ -327,4 +382,19 @@ function knowledgeCandidateCoordinateMatches(
 ): boolean {
   return payload.candidateArtifactId ===
     `art_${payload.candidateContentHash.slice("sha256:".length)}`;
+}
+
+function reviewCoordinateMatches(payload: KnowledgeCandidateReviewedEventPayload): boolean {
+  return payload.approvalArtifactId ===
+    `art_${payload.approvalContentHash.slice("sha256:".length)}`;
+}
+
+function verifiedCoordinateMatches(payload: KnowledgeVerifiedEventPayload): boolean {
+  return payload.knowledgeArtifactId ===
+    `art_${payload.knowledgeContentHash.slice("sha256:".length)}`;
+}
+
+function staleCoordinateMatches(payload: KnowledgeStaleDetectedEventPayload): boolean {
+  return payload.resultArtifactId ===
+    `art_${payload.resultContentHash.slice("sha256:".length)}`;
 }

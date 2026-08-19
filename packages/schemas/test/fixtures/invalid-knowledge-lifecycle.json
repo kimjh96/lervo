@@ -1,0 +1,75 @@
+[
+  {
+    "name": "knowledge promotion policy cannot replace human review with automation",
+    "schema": "knowledgePromotionPolicy",
+    "value": {
+      "schemaVersion": 1,
+      "policyId": "knowledge_human-review",
+      "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "allowedReviewerIds": ["reviewer@example.com"],
+      "requireHumanReviewer": false,
+      "requireResolvedConflicts": true
+    }
+  },
+  {
+    "name": "knowledge review approval rejects an agent reviewer kind",
+    "schema": "knowledgeReviewApproval",
+    "value": {
+      "schemaVersion": 1,
+      "approvalId": "knr_0123456789abcdef",
+      "projectId": "prj_knowledge_0001",
+      "candidateId": "knc_0123456789abcdef",
+      "candidateContentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "decision": "approved",
+      "reviewer": { "kind": "agent", "reviewerId": "agent_001" },
+      "policy": {
+        "schemaVersion": 1,
+        "policyId": "knowledge_human-review",
+        "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "allowedReviewerIds": ["agent_001"],
+        "requireHumanReviewer": true,
+        "requireResolvedConflicts": true
+      },
+      "repositoryRevision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "resolvedConflictCandidateIds": [],
+      "reviewedAt": "2026-08-19T01:00:00Z"
+    }
+  },
+  {
+    "name": "verified knowledge cannot omit every linked path",
+    "schema": "verifiedKnowledge",
+    "value": {
+      "schemaVersion": 1,
+      "knowledgeId": "knw_0123456789abcdef",
+      "projectId": "prj_knowledge_0001",
+      "status": "verified",
+      "candidate": {},
+      "approval": {},
+      "claim": {},
+      "paths": [],
+      "evidenceEventIds": [],
+      "verifiedRevision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "reviewIntervalDays": 30,
+      "verifiedAt": "2026-08-19T01:00:00Z"
+    }
+  },
+  {
+    "name": "knowledge staleness result rejects an invented state",
+    "schema": "knowledgeStalenessResult",
+    "value": {
+      "schemaVersion": 1,
+      "resultId": "kst_0123456789abcdef",
+      "projectId": "prj_knowledge_0001",
+      "knowledgeId": "knw_0123456789abcdef",
+      "evaluatedAt": "2026-08-20T01:00:00Z",
+      "status": "unknown",
+      "verifiedRevision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "currentRevision": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "signals": {
+        "reviewInterval": { "status": "current", "dueAt": "2026-09-18T01:00:00Z" },
+        "paths": { "status": "current", "changedPaths": [], "missingPaths": [] }
+      },
+      "reasons": []
+    }
+  }
+]

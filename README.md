@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4 완료, M5 증거 결속 지식 candidate와 로컬 trace/doctor 첫 슬라이스 완료 (2026-08-19)
+현재 상태: M0·M1·M2·M3·M4 완료, M5 사람 검토 기반 verified 지식과 stale 전이 완료 (2026-08-19)
 
 ## 목표
 
@@ -50,12 +50,13 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [동일 공급자 역할 격리와 숙의 runtime 증거 결속 ADR](./docs/adr/0028-same-provider-deliberation-runtime.md)
 - [Codex·Claude 교차 검토와 역할별 공급자 강제 ADR](./docs/adr/0029-cross-provider-deliberation-runtime.md)
 - [수렴 결과 기반 지식 candidate와 로컬 진단 ADR](./docs/adr/0030-evidence-bound-knowledge-candidates.md)
+- [사람 검토 기반 지식 승격과 stale 전이 ADR](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
+- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome, 지식 promotion policy/review/verified/staleness JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
-- `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 숙의 event의 allowlist 후 schema 검증, canonical JSON과 event hash 규칙
+- `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
 - `@lervo/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@lervo/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
@@ -75,12 +76,12 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/adapter-codex`: Codex app-server thread/turn과 controlled context를 관리하고 file-change 승인을 Lervo의 1회용 permit에 연결하는 adapter
 - `@lervo/adapter-claude`: Claude Agent SDK context replay를 검증하고 Write/Edit hook을 Lervo의 1회용 permit에 연결하는 adapter
 - `@lervo/deliberation-runtime`: 역할별 managed run의 E2/E3·event 원본, writing permit, shared-context handoff와 구조화 artifact 기록을 연결하는 공급자 중립 숙의 runtime
-- `@lervo/knowledge`: converged outcome, 현재 claim digest, decision 원문, verification revision과 event 원본을 다시 확인해 claim별 CAS candidate와 생성 event를 만드는 지식 후보 경계
-- `@lervo/diagnostics`: append-only event의 run별 trace와 지식 candidate의 CAS·outcome·decision·verification 결속을 읽기 전용으로 점검하는 로컬 진단 경계
+- `@lervo/knowledge`: converged 결과의 claim별 CAS candidate, 사람 review 승인 원본, 현재 revision·path hash에 묶인 verified 원본과 review interval·path 변경 기반 stale 판정을 분리하는 지식 수명주기 경계
+- `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하는 로컬 진단 경계
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter를 연결하는 한 파일 `lervo run` 명령 진입점. Provider 결과는 writing 공개 gate를 통과했을 때만 출력
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 candidate 생성 경계를 구현했습니다. `converged` outcome만 현재 claim, decision CAS 원문, verification revision과 실제 event에 결속된 candidate를 만들며 `no_consensus`와 `failed`는 후보를 만들지 않습니다. `lervo trace`는 run별 로컬 event를 텍스트/JSON으로 재구성하고 `lervo doctor`는 event hash chain과 candidate 증거가 끊기지 않았는지 확인합니다. 다음 작업은 candidate의 사람 검토·`verified` 승격과 revision 기반 stale 전이를 별도 원본 계약으로 구현하는 것입니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. `converged` outcome만 candidate가 되며, 정책이 허용한 사람 reviewer의 승인과 같은 repository revision의 현재 path hash가 있어야 `verified`로 승격됩니다. 저장소 revision이 달라져도 관련 path가 그대로면 current이며, 관련 path 변경·부재 또는 검토기한 도달만 stale 근거가 됩니다. `lervo doctor`는 candidate, review, verified와 stale 원본 연결을 나눠 점검합니다. 다음 작업은 `lervo run`에 실제 project verification을 연결하고 문서·스킬·provider 환경 진단을 확장하는 것입니다.
 
 ## 핵심 명제
 
@@ -97,6 +98,6 @@ lervo trace last
 lervo doctor
 ```
 
-`lervo init`, 한 파일 `lervo run`, run별 `lervo trace`와 로컬 증거용 `lervo doctor`를 실행할 수 있습니다. `lervo run`의 project verification은 아직 `실행하지 않음`입니다. Writing 검사는 실행하지만 별도 의미 평가기가 구성되지 않은 기본 실행은 결과 원문을 숨깁니다. 현재 doctor는 project storage, event hash chain과 지식 candidate 증거를 점검하며 문서·스킬·provider 실행 환경 진단은 다음 슬라이스에서 확장합니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
+`lervo init`, 한 파일 `lervo run`, run별 `lervo trace`와 로컬 증거용 `lervo doctor`를 실행할 수 있습니다. `lervo run`의 project verification은 아직 `실행하지 않음`입니다. Writing 검사는 실행하지만 별도 의미 평가기가 구성되지 않은 기본 실행은 결과 원문을 숨깁니다. 현재 doctor는 project storage, event hash chain과 candidate·review·verified·stale 지식 증거를 점검하며 문서·스킬·provider 실행 환경 진단은 다음 슬라이스에서 확장합니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
 
 이전 실험 버전이 만든 `.roven` 경로는 자동으로 읽거나 `.lervo`와 함께 사용하지 않습니다. `lervo init`은 두 관리 경로가 공존하는 상태를 만들지 않도록 초기화를 차단합니다. 기존 상태를 옮기는 작업은 event hash chain과 CAS 주소를 보존하는 별도 명칭 migration으로 다룹니다.

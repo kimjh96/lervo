@@ -19,12 +19,16 @@ import type {
   LegacyRegistryMigrationApproval,
   LegacyRegistryMigrationPlan,
   ManagedBlockPatchCandidate,
+  KnowledgePromotionPolicy,
+  KnowledgeReviewApproval,
+  KnowledgeStalenessResult,
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
   VerificationResult,
   VerificationSuite,
   WritingPublicationPermit,
+  VerifiedKnowledge,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -80,6 +84,15 @@ describe("schema-derived TypeScript contracts", () => {
       .toEqualTypeOf<"current" | "stale" | "unknown">();
     expectTypeOf<DocumentStalenessResult["signals"]["managedInputs"]["status"]>()
       .toEqualTypeOf<"not_applicable" | "current" | "stale" | "unknown">();
+  });
+
+  it("keeps knowledge review, verified evidence, and stale signals separate", () => {
+    expectTypeOf<KnowledgePromotionPolicy["requireHumanReviewer"]>().toEqualTypeOf<true>();
+    expectTypeOf<KnowledgeReviewApproval["decision"]>()
+      .toEqualTypeOf<"approved" | "rejected">();
+    expectTypeOf<VerifiedKnowledge["status"]>().toEqualTypeOf<"verified">();
+    expectTypeOf<KnowledgeStalenessResult["status"]>()
+      .toEqualTypeOf<"current" | "stale">();
   });
 
   it("keeps verification commands separate from observed command results", () => {

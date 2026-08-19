@@ -181,9 +181,11 @@ M4 완료.
 
 구현 현황(2026-08-19): **Codex·Claude 교차 검토 contract fixture 완료.** 실제 `CodexAdapter` 제안 결과를 공통 artifact와 shared context로 공개하고 실제 `ClaudeAdapter` 검토자가 별도 session에서 같은 원문 hash를 다시 적재·주입하는 전체 경로를 검증했습니다. 두 adapter의 context 표현, provider session ID 형식, turn과 종료 protocol 차이는 공통 receipt, artifact, event와 `no_consensus` 의미를 바꾸지 않습니다. 역할별 고정 provider와 다른 managed run은 writing 평가 전에 `artifact_publication_failed/provider_not_allowed`로 실패하며 artifact event를 만들지 않습니다. 결정은 [ADR-0029](./docs/adr/0029-cross-provider-deliberation-runtime.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **증거 결속 지식 candidate와 로컬 trace/doctor 첫 슬라이스 완료.** `@lervo/knowledge`는 전체 숙의 outcome과 history, 실제 verification evidence, 완료·artifact event와 decision CAS를 다시 검증하고 채택 claim별 path·revision·review interval을 가진 canonical candidate JSON을 CAS에 저장합니다. `knowledge.candidate.created`는 원문 없이 candidate/outcome/decision/verification/CAS hash 좌표만 기록합니다. `no_consensus`와 `failed`, 누락 event·path·CAS, 서로 다른 verification revision과 중복 candidate는 닫힌 상태로 거부합니다. `@lervo/diagnostics`와 CLI `trace`/`doctor`는 로컬 event와 candidate 증거를 읽기 전용으로 조회·역검증합니다. Candidate는 아직 `reviewed`나 `verified`가 아니며 문서·스킬·provider 환경 doctor 확장도 남아 있습니다. 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 기록했습니다.
+구현 현황(2026-08-19): **증거 결속 지식 candidate와 로컬 trace/doctor 첫 슬라이스 완료.** `@lervo/knowledge`는 전체 숙의 outcome과 history, 실제 verification evidence, 완료·artifact event와 decision CAS를 다시 검증하고 채택 claim별 path·revision·review interval을 가진 canonical candidate JSON을 CAS에 저장합니다. `knowledge.candidate.created`는 원문 없이 candidate/outcome/decision/verification/CAS hash 좌표만 기록합니다. `no_consensus`와 `failed`, 누락 event·path·CAS, 서로 다른 verification revision과 중복 candidate는 닫힌 상태로 거부합니다. 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 기록했습니다.
 
-다음 구현 순서: **candidate 검토·verified 승격과 revision 기반 stale 전이**입니다.
+구현 현황(2026-08-19): **사람 검토 기반 verified 승격과 stale 전이 완료.** 검토와 승격을 별도 CAS/event 원본으로 나누고 정책이 허용한 사람 reviewer, 승인 결정, 같은 repository revision, 충돌 해소와 현재 path hash가 모두 확인될 때만 verified를 만듭니다. Reviewer ID는 로컬 승인 CAS에만 두고 event에는 넣지 않습니다. Verified path hash가 현재 snapshot과 같으면 전체 revision이 달라도 current이며, path 변경·부재 또는 review due 시각만 stale 근거가 됩니다. Current 판정은 event로 누적하지 않고 stale 결과만 CAS/event로 기록합니다. Doctor는 candidate, review, verified와 stale 연결을 각각 역검증합니다. 결정은 [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)에 기록했습니다.
+
+다음 구현 순서: **`lervo run` project verification 연결과 문서·스킬·provider 환경 doctor 확장**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -288,4 +290,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M5 candidate 검토·`verified` 승격과 revision 기반 stale 전이**입니다. Candidate 원본을 자동 덮어쓰지 않고 reviewer 승인과 현재 repository revision을 별도 원본에 결속하며, 정책·evidence가 없거나 영향 path가 바뀐 경우 verified 또는 current로 표시하지 않게 합니다.
+다음 구현 작업은 **`lervo run` project verification 연결과 문서·스킬·provider 환경 doctor 확장**입니다. 현재 CLI에서 `not_run`인 project verification을 실제 suite/result artifact와 event에 연결하고, doctor는 확인하지 않은 환경을 정상으로 뭉뚱그리지 않도록 검사 범위를 항목별로 늘립니다.

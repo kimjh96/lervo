@@ -118,6 +118,21 @@ export const knowledgeCandidateIdSchema = {
   pattern: "^knc_[a-f0-9]{16}$",
 } as const;
 
+export const knowledgeReviewApprovalIdSchema = {
+  type: "string",
+  pattern: "^knr_[a-f0-9]{16}$",
+} as const;
+
+export const verifiedKnowledgeIdSchema = {
+  type: "string",
+  pattern: "^knw_[a-f0-9]{16}$",
+} as const;
+
+export const knowledgeStalenessResultIdSchema = {
+  type: "string",
+  pattern: "^kst_[a-f0-9]{16}$",
+} as const;
+
 export const verificationIdSchema = {
   type: "string",
   pattern: "^ver_[a-f0-9]{16}$",

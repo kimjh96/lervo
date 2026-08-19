@@ -20,6 +20,16 @@ export type DoctorIssueCode =
   | "candidate_event_mismatch"
   | "candidate_outcome_not_converged"
   | "candidate_verification_missing"
+  | "review_artifact_invalid"
+  | "review_candidate_missing"
+  | "review_event_mismatch"
+  | "verified_artifact_invalid"
+  | "verified_candidate_missing"
+  | "verified_event_mismatch"
+  | "verified_review_missing"
+  | "staleness_artifact_invalid"
+  | "staleness_event_mismatch"
+  | "staleness_verified_missing"
   | "event_chain_invalid";
 
 export interface DoctorIssue {
@@ -29,7 +39,12 @@ export interface DoctorIssue {
 }
 
 export interface DoctorCheck {
-  checkId: "event_chain" | "knowledge_candidates";
+  checkId:
+    | "event_chain"
+    | "knowledge_candidates"
+    | "knowledge_reviews"
+    | "verified_knowledge"
+    | "knowledge_staleness";
   status: "passed" | "failed";
   observedCount: number;
 }

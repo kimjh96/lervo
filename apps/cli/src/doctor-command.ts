@@ -8,7 +8,13 @@ import type { CliIo, CliServices } from "./types.js";
 export const doctorUsage = "  lervo doctor [--root <path>] [--json]";
 
 function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string {
-  return checkId === "event_chain" ? "이벤트 원본" : "지식 후보 근거";
+  switch (checkId) {
+    case "event_chain": return "이벤트 원본";
+    case "knowledge_candidates": return "지식 후보 근거";
+    case "knowledge_reviews": return "지식 검토 근거";
+    case "verified_knowledge": return "검증된 지식 근거";
+    case "knowledge_staleness": return "지식 노후화 근거";
+  }
 }
 
 export function formatDoctorReport(report: DoctorReport): string {

@@ -413,7 +413,7 @@ Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 
 - `tool.called`, `command.executed`, `file.changed`
 - `skill.resolved`, `skill.invoked`, `skill.completed`
 - `verification.started`, `verification.completed`
-- `knowledge.candidate.created`, `document.stale.detected`
+- `knowledge.candidate.created`, `knowledge.candidate.reviewed`, `knowledge.verified`, `knowledge.stale.detected`, `document.stale.detected`
 - `document.migration.applied`
 - `unmanaged_change.detected`, `sync.acknowledged`
 
@@ -608,7 +608,15 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 
 `knowledge.candidate.created`의 필수 payload는 `candidateId`, `claimDigest`, `paths`, `evidenceIds`, `sourceOutcomeId`, `decisionArtifactId`, `verificationArtifactIds`, `verifiedRevision`, `candidateArtifactId`, `candidateContentHash`입니다. Candidate 원문, claim/decision 본문, prompt, provider 응답, tool input과 credential은 event allowlist에 없습니다. Candidate artifact ID는 content hash에서 다시 계산하며 불일치 payload는 `invalid_payload`로 event 전체를 거부합니다. Candidate CAS 저장 뒤 event transaction이 실패하면 CAS object는 주소 기반 고아로 남을 수 있지만 생성 완료를 반환하지 않습니다.
 
-`lervo trace [last|run-id]`는 SQLite hash chain을 확인한 뒤 해당 run의 allowlist event만 순서대로 텍스트 또는 JSON으로 반환합니다. `lervo doctor`는 project storage와 event chain을 열고 candidate CAS schema/hash/ID, evidence event, converged outcome, decision·verification artifact event와 decision CAS 원문을 읽기 전용으로 역검증합니다. 끊어진 증거는 `healthy`로 표시하지 않고 종료 코드 1을 반환합니다. 현재 doctor는 문서·스킬·provider 설치 상태까지 정상이라고 주장하지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 기록합니다.
+`KnowledgePromotionPolicy`는 허용된 사람 reviewer ID와 충돌 해소 요구를 정하며, version은 version 필드를 뺀 canonical policy snapshot의 hash여야 합니다. `KnowledgeReviewApproval`은 candidate ID·hash, `approved` 또는 `rejected`, reviewer, 당시 policy snapshot, 검토 revision, 해소한 conflict candidate ID와 검토 시각을 가진 별도 CAS 원본입니다. Candidate CAS·생성 event·evidence event·decision CAS를 다시 확인하고 정책상 허용된 reviewer만 review 원본을 만들 수 있습니다. 검토 revision은 candidate의 검증 revision과 같아야 합니다.
+
+`knowledge.candidate.reviewed`의 필수 payload는 `candidateId`, `candidateContentHash`, `approvalId`, `approvalArtifactId`, `approvalContentHash`, `decision`, `policyId`, `policyVersion`, `repositoryRevision`, `resolvedConflictCandidateIds`입니다. Reviewer ID와 검토 원문은 event에 넣지 않습니다. 거절된 review는 reviewed 원본이지만 verified 근거가 아닙니다.
+
+Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 snapshot의 같은 revision, 충돌 해소와 모든 영향 path 존재를 다시 확인합니다. `VerifiedKnowledge`는 candidate와 approval CAS 좌표, claim, path별 기준 content hash, evidence event, verified revision, review interval과 verified 시각을 가진 항목별 CAS 원본입니다. `knowledge.verified`의 필수 payload는 `knowledgeId`, candidate/approval ID·hash, `claimDigest`, `paths`, `verifiedRevision`, knowledge artifact ID·hash입니다. Reviewer, claim/decision 본문과 파일 내용은 event에 넣지 않습니다.
+
+지식 stale 판정은 verified path의 기준 hash와 현재 전체 repository snapshot을 비교하고 review due 시각을 계산합니다. 전체 revision이 달라도 연결 path가 같으면 current입니다. 연결 path 변경·부재 또는 review interval 만료가 있으면 stale입니다. 결과의 상태, review/path 신호와 `review_interval_elapsed`, `linked_path_changed`, `linked_path_missing` 사유는 서로 일치해야 합니다. Current 결과는 event로 누적하지 않습니다. Stale 결과만 별도 CAS에 저장하고 `knowledge.stale.detected`에 knowledge/result ID, 검증·현재 revision, 사유, 변경·부재 path와 result artifact ID·hash를 기록합니다.
+
+`lervo trace [last|run-id]`는 SQLite hash chain을 확인한 뒤 해당 run의 allowlist event만 순서대로 텍스트 또는 JSON으로 반환합니다. `lervo doctor`는 project storage와 event chain을 열고 candidate, review, verified와 stale CAS schema/hash/ID 및 각 event 연결을 읽기 전용으로 역검증합니다. 끊어진 증거는 `healthy`로 표시하지 않고 종료 코드 1을 반환합니다. 현재 doctor는 문서·스킬·provider 설치 상태까지 정상이라고 주장하지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)과 [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)에 기록합니다.
 
 ## 실패 의미
 
@@ -635,6 +643,9 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 | `artifact_publication_failed/provider_not_allowed` | Managed run의 역할에 배정되지 않은 provider가 결과를 만들었습니다. 실행 사실은 남기되 writing 평가와 숙의 artifact 기록을 시작하지 않으며 provider 정책을 고친 새 역할 run이 필요합니다. |
 | `candidate_not_eligible/outcome_not_converged` | 숙의가 `no_consensus` 또는 `failed`로 끝났습니다. 지식 candidate와 생성 event를 만들지 않으며 임의 결론을 선택하지 않습니다. |
 | `candidate_evidence_invalid` / `candidate_contract_invalid` | Decision CAS, 현재 claim, verification revision, 완료·artifact event, 영향 path 또는 candidate schema가 실제 원본과 다릅니다. 후보를 기록하지 않고 누락된 원본을 복구하거나 새 숙의를 실행합니다. |
+| `review_contract_invalid` | 승격 정책, 사람 reviewer, 검토 revision, 충돌 해소 또는 승인 CAS 계약이 실제 candidate와 다릅니다. Reviewed 완료와 verified 승격을 주장하지 않습니다. |
+| `promotion_not_eligible` | 승인 결정, candidate·review event/CAS, 현재 repository revision 또는 영향 path가 승격 조건과 다릅니다. Verified 원본과 event를 만들지 않습니다. |
+| `staleness_contract_invalid` | Verified 원본, snapshot, stale 결과의 상태·신호·사유가 서로 맞지 않습니다. Current 또는 stale 상태 event를 주장하지 않습니다. |
 | `artifact_storage_failed` / `event_recording_failed` | Candidate CAS를 저장·재검증하지 못했거나 생성 event transaction이 실패했습니다. Candidate 생성 완료를 반환하지 않으며 event 없는 CAS object는 지식으로 간주하지 않습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |
 | `invalid_approval` / `invalid_migration_artifact` | Migration 승인, plan ID 또는 candidate artifact bytes/hash가 계약과 다릅니다. Sidecar를 쓰기 전에 전체 apply를 거부합니다. |

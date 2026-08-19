@@ -287,4 +287,36 @@ describe("event payload privacy boundary", () => {
       code: "invalid_payload",
     }));
   });
+
+  it("keeps review, verified, and stale coordinates without reviewer identity", () => {
+    const review = sanitizeEventPayload("knowledge.candidate.reviewed", {
+      candidateId: "knc_0123456789abcdef",
+      candidateContentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      approvalId: "knr_0123456789abcdef",
+      approvalArtifactId: "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      approvalContentHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      decision: "approved",
+      policyId: "knowledge_human-review",
+      policyVersion: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      repositoryRevision: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      resolvedConflictCandidateIds: [],
+      reviewerId: "private@example.com",
+    });
+    expect(JSON.stringify(review.payload)).not.toContain("private@example.com");
+
+    expect(() => sanitizeEventPayload("knowledge.verified", {
+      knowledgeId: "knw_0123456789abcdef",
+      candidateId: "knc_0123456789abcdef",
+      candidateContentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      approvalId: "knr_0123456789abcdef",
+      approvalContentHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      claimDigest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      paths: ["src/decision.ts"],
+      verifiedRevision: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      knowledgeArtifactId: "art_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      knowledgeContentHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+  });
 });

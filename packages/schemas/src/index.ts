@@ -16,6 +16,7 @@ export * from "./legacy-registry-migration.js";
 export * from "./legacy-registry-migration-apply.js";
 export * from "./knowledge.js";
 export * from "./knowledge-event.js";
+export * from "./knowledge-lifecycle.js";
 export * from "./managed-block-patch.js";
 export * from "./project.js";
 export * from "./role.js";
