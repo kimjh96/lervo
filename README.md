@@ -53,13 +53,15 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [사람 검토 기반 지식 승격과 stale 전이 ADR](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)
 - [`lervo run` 프로젝트 검증 연결 ADR](./docs/adr/0032-managed-run-project-verification.md)
 - [범위가 드러나는 로컬 환경 진단 ADR](./docs/adr/0033-bounded-environment-doctor.md)
+- [프로젝트 등록과 연속 cursor 기반 event sync 계약 ADR](./docs/adr/0034-project-registration-and-event-sync-contract.md)
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome, 지식 promotion policy/review/verified/staleness JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
+- `@lervo/schemas`: project, event, Hub project registration·event batch·ack, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome, 지식 promotion policy/review/verified/staleness JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 실행 완료·프로젝트 검증·숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
+- `@lervo/sync-contract`: 전체 project manifest에 결속된 Hub 등록, allowlist event의 연속 batch, 역순 수락·중복 제거와 연속 cursor, durable ack 후보를 계산하는 저장·transport 독립 계약
 - `@lervo/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
 - `@lervo/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
 - `@lervo/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
@@ -83,7 +85,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 문서·스킬·provider 실행 환경을 분리해 점검하는 `doctor` application service 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. `lervo run`은 provider가 끝난 뒤 같은 저장소 revision에서 요청한 verification suite를 실행하고, 검증 결과 원본과 event를 확인한 뒤에만 완료됩니다. `converged` outcome만 candidate가 되며, 정책이 허용한 사람 reviewer의 승인과 같은 repository revision의 현재 path hash가 있어야 `verified`로 승격됩니다. `lervo doctor`는 로컬 event·지식 증거, 문서 registry와 원본, 프로젝트·사용자 스킬과 lock, Codex·Claude 실행 파일을 따로 점검합니다. 다음 작업은 M6의 프로젝트 등록과 outbound event sync 계약입니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6 첫 슬라이스에서는 project manifest에 결속된 Hub 등록과 outbound event batch 계약을 추가했습니다. Hub는 batch를 역순으로 보관할 수 있지만 빈 구간이 채워지기 전에는 연속 cursor를 전진시키지 않습니다. 다음 작업은 이 계약을 기존 outbox lease와 인증된 transport port에 연결하는 Node sync worker입니다.
 
 ## 핵심 명제
 

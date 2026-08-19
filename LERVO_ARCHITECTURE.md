@@ -42,7 +42,7 @@ flowchart LR
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
 - `lervo run --provider <provider> --path <path> --verification <suite-id> [--verification <suite-id> ...] [--skill <skill-id> ...] <request>`: project storage, 스킬 해석, 프로젝트 검증과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
 - `lervo trace [run]`: 실행 근거와 이벤트 조회
-- `lervo doctor`: 문서·스킬·어댑터·Hub 상태 진단
+- `lervo doctor`: 문서·스킬·어댑터 로컬 상태 진단. Hub 연결 상태는 sync worker 구현 뒤 추가
 - `lervo docs check`: 문서 노후화 검사
 - `lervo hub connect`: 선택적 중앙 등록
 
@@ -53,6 +53,8 @@ flowchart LR
 ### Lervo Hub
 
 다중 프로젝트의 제어·조회 계층입니다. 프로젝트 등록, 정책 배포, 추적 시각화, 원격 명령, 채널 연동을 담당합니다. 저장소 파일 시스템을 직접 마운트하지 않고 Node가 내보낸 이벤트와 허용된 아티팩트만 저장합니다.
+
+M6 첫 계약은 전체 project manifest와 안정적인 project identity를 분리해 등록하고, allowlist event만 연속 batch로 전달합니다. Hub는 역순 batch를 보관할 수 있지만 project hash chain의 빈 구간이 채워진 가장 높은 seq까지만 cursor를 공개합니다. 현재 `@lervo/sync-contract`는 저장과 network가 없는 순수 수락 계획만 계산하며, 실제 응답은 Hub가 registration·event·cursor를 durable하게 저장한 뒤에만 전송해야 합니다.
 
 ## 저장소 내부 구조
 
@@ -231,6 +233,8 @@ Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. 일반
 
 Outbox 항목은 `pending`, `leased`, `acknowledged` 상태를 가집니다. Worker는 제한된 수의 준비된 항목을 안정된 순서로 가져가고 만료 시각이 있는 lease를 받습니다. 다른 worker는 유효한 lease를 가져갈 수 없으며, worker가 사라지면 만료 뒤 같은 항목을 다시 가져옵니다. 전송 실패는 원문 오류 대신 짧은 실패 코드와 다음 시도 시각만 남깁니다. Ack는 현재 lease 소유자만 할 수 있고 중복 ack는 상태를 바꾸지 않습니다. 보존 기간이 지난 ack 항목은 event 원본을 남긴 채 제한된 묶음으로 정리할 수 있습니다.
 
+`@lervo/sync-contract`는 outbox 저장과 분리되어 project registration, 1~100개의 연속 event batch와 Hub ack 의미를 정의합니다. Batch ID는 registration·destination·event 전체의 canonical hash이고, 각 event는 schema·hash·payload allowlist를 다시 통과해야 합니다. Hub 참조 reducer는 같은 event의 재전송을 duplicate로 처리하고 역순 event를 gap 뒤에 보관하지만, cursor는 seq 1부터 hash가 연속된 구간까지만 전진시킵니다. 순수 reducer가 만든 응답 후보만으로 outbox를 ack할 수 없으며 Hub의 durable transaction과 인증된 transport 확인이 선행되어야 합니다. 결정은 [ADR-0034](./docs/adr/0034-project-registration-and-event-sync-contract.md)에 정의합니다.
+
 CAS는 `.lervo/state/cas/sha256/<앞 2자리>/<나머지>`에 원문 bytes를 저장하고 `lervo-cas://sha256/<digest>`를 반환합니다. 큰 입력은 청크 단위로 임시 파일에 쓰면서 SHA-256을 계산하므로 전체 원문을 한 번에 메모리에 올릴 필요가 없습니다. 임시 파일을 동기화한 뒤 같은 파일 시스템의 hard link로 새 object를 확정합니다. 기존 object와 읽은 object는 모두 주소의 SHA-256과 다시 비교합니다. `has`는 주소가 없을 때만 `false`이며, 변조는 `corrupt_object`로 드러냅니다. 원문은 event payload에 복제하지 않습니다.
 
 ### Knowledge Lifecycle
@@ -353,6 +357,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 M6의 프로젝트 등록과 outbound event sync 계약입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 outbox delivery worker와 인증된 Hub transport port입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

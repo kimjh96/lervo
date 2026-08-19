@@ -191,7 +191,7 @@ M4 완료.
 
 M5 완료.
 
-다음 구현 순서: **M6 프로젝트 등록과 outbound event sync 계약**입니다.
+M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으로 전환했습니다.
 
 ### M6: 최소 Hub 실증
 
@@ -199,6 +199,10 @@ M5 완료.
 - 읽기 전용 trace web view
 - 서명된 원격 command protocol의 로컬 fixture
 - offline queue/reconnect 검증
+
+구현 현황(2026-08-19): **프로젝트 등록과 outbound event sync 계약 완료.** `@lervo/sync-contract`는 Hub sync가 명시적으로 활성화된 전체 project manifest에서 identity·manifest hash와 registration ID를 다시 계산합니다. 한 project의 allowlist event를 1~100개 연속 batch로 만들고 event·batch hash를 검증합니다. Hub 참조 reducer는 역순 batch를 gap 뒤에 보관하고 같은 원본 재전송을 duplicate로 처리하지만, cursor는 seq 1부터 hash가 연속된 구간까지만 전진시킵니다. Reducer는 저장이나 network 성공을 주장하지 않으며 실제 ack는 durable Hub transaction과 인증된 transport 이후에만 허용합니다. 결정은 [ADR-0034](./docs/adr/0034-project-registration-and-event-sync-contract.md)에 기록했습니다.
+
+다음 구현 순서: **outbox delivery worker와 인증된 Hub transport port 연결**입니다.
 
 완료 조건:
 
@@ -233,6 +237,7 @@ packages/
   schemas/
   event-contract/
   storage-contract/
+  sync-contract/
   core/
   project/
   project-storage/
@@ -296,4 +301,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M6 프로젝트 등록과 outbound event sync 계약**입니다. 로컬 완료를 Hub 가용성과 분리한 채 project identity, 전송 envelope, cursor와 멱등 수락 의미를 먼저 고정합니다.
+다음 구현 작업은 **outbox delivery worker와 인증된 Hub transport port 연결**입니다. 현재 lease가 가진 event만 batch로 보내고, durable ack 좌표가 모두 맞을 때만 outbox를 `acknowledged`로 전환하며 실패는 안전한 code와 재시도 시각만 남깁니다.

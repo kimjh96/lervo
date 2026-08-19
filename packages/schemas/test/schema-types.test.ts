@@ -13,6 +13,7 @@ import type {
   DocumentMigrationCandidate,
   DocumentMigrationPlan,
   DocumentStalenessResult,
+  EventEnvelope,
   HandoffBundle,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationApplyReceipt,
@@ -22,6 +23,9 @@ import type {
   KnowledgePromotionPolicy,
   KnowledgeReviewApproval,
   KnowledgeStalenessResult,
+  EventSyncAcknowledgement,
+  OutboundEventBatch,
+  ProjectRegistrationRequest,
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
@@ -103,6 +107,15 @@ describe("schema-derived TypeScript contracts", () => {
         "passed" | "failed" | "timed_out" | "output_limit_exceeded" |
         "execution_error" | "cancelled" | "not_run"
       >();
+  });
+
+  it("keeps Hub registration, event batches, and durable acknowledgements separate", () => {
+    expectTypeOf<ProjectRegistrationRequest["syncPolicy"]["artifactMode"]>()
+      .toEqualTypeOf<"none">();
+    expectTypeOf<OutboundEventBatch["events"][number]>()
+      .toEqualTypeOf<EventEnvelope>();
+    expectTypeOf<EventSyncAcknowledgement["status"]>()
+      .toEqualTypeOf<"accepted" | "duplicate">();
   });
 
   it("binds a writing publication permit to policy, evaluation, content, and surface", () => {

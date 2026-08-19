@@ -626,6 +626,16 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 Provider probe는 adapter가 정한 실행 파일에 shell 없이 `--version`만 호출합니다. 5초와 16 KiB로 제한하고 첫 ASCII 문장 최대 200자만 version으로 남깁니다. 이 성공은 인증, 네트워크, 모델 접근이나 실제 session 성공을 증명하지 않습니다. Issue에는 절대 경로, 문서·스킬 본문, publisher, credential, 환경 변수와 raw provider output을 넣지 않으며 doctor는 event를 만들지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md), [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)과 [ADR-0033](./docs/adr/0033-bounded-environment-doctor.md)에 기록합니다.
 
+## Hub 등록과 outbound event sync
+
+Project registration은 전체 `ProjectManifest`, `schemaVersion`·project ID·생성 시각에 결속된 identity hash, manifest hash, destination ID와 요청 시각을 가집니다. Manifest의 `hubSyncEnabled`가 true이고 event payload mode가 `allowlist`인 경우에만 만들 수 있습니다. 등록 상태는 `registered`, `updated`, `unchanged`이며 이름과 data policy 변경은 같은 identity의 갱신입니다. 같은 destination과 project 좌표에 다른 생성 identity를 자동 병합하지 않습니다.
+
+`OutboundEventBatch`는 하나의 registration·project·destination에 속한 event 1~100개를 seq와 hash chain 순서로 가집니다. 첫·마지막 seq, 앞 hash, head hash와 canonical batch ID를 중복 검증합니다. Event는 local schema와 hash를 다시 계산하고 payload allowlist가 어떤 field도 제거하지 않는 경우에만 포함합니다. Artifact와 원문은 이번 sync 계약에 포함하지 않습니다.
+
+Hub는 같은 canonical event 재전송을 duplicate로 수락할 수 있고 gap 뒤 event를 먼저 보관할 수 있습니다. Cursor는 `{seq: 0, eventHash: null}`에서 시작해 seq와 previous hash가 연속된 구간까지만 전진합니다. Ack는 batch의 event ID 전체, inserted·duplicate 개수, `accepted` 또는 `duplicate` 상태, 현재 cursor와 buffered event 개수를 포함합니다.
+
+공통 reducer는 Hub가 저장할 다음 state와 응답 후보만 계산하며 durable 저장이나 network 성공을 주장하지 않습니다. Hub handler는 registration·event inbox·cursor를 하나의 transaction으로 저장한 뒤 응답해야 합니다. Node는 구성된 destination의 인증된 transport 응답과 batch 좌표 전체를 검증한 뒤 현재 outbox lease를 ack합니다. 이 연결 전에는 `sync.acknowledged` event를 만들지 않습니다. 상세 상태, 개인정보 경계와 실패 의미는 [ADR-0034](./docs/adr/0034-project-registration-and-event-sync-contract.md)에 기록합니다.
+
 ## 실패 의미
 
 | code | 실패 의미 |

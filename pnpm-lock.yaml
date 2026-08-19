@@ -346,6 +346,15 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/sync-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/verification:
     dependencies:
       '@lervo/event-contract':

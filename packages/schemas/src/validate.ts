@@ -25,6 +25,12 @@ import { documentRegistrySchema } from "./document-registry.js";
 import { documentStalenessResultSchema } from "./document-staleness.js";
 import { eventEnvelopeSchema } from "./event.js";
 import {
+  eventSyncAcknowledgementSchema,
+  outboundEventBatchSchema,
+  projectRegistrationRequestSchema,
+  projectRegistrationResponseSchema,
+} from "./hub-sync.js";
+import {
   legacyRegistryEntryArtifactSchema,
   legacyRegistryMigrationPlanSchema,
 } from "./legacy-registry-migration.js";
@@ -73,10 +79,16 @@ ajv.addFormat("date-time", {
     !Number.isNaN(Date.parse(value)),
 });
 ajv.addSchema(documentManifestSchema);
+ajv.addSchema(eventEnvelopeSchema);
+ajv.addSchema(projectManifestSchema);
 
 const validators = {
-  project: ajv.compile(projectManifestSchema),
-  event: ajv.compile(eventEnvelopeSchema),
+  project: ajv.getSchema(projectManifestSchema.$id)!,
+  event: ajv.getSchema(eventEnvelopeSchema.$id)!,
+  projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),
+  projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),
+  outboundEventBatch: ajv.compile(outboundEventBatchSchema),
+  eventSyncAcknowledgement: ajv.compile(eventSyncAcknowledgementSchema),
   legacyRegistryEntryArtifact: ajv.compile(legacyRegistryEntryArtifactSchema),
   legacyRegistryMigrationPlan: ajv.compile(legacyRegistryMigrationPlanSchema),
   legacyRegistryMigrationApproval: ajv.compile(legacyRegistryMigrationApprovalSchema),
