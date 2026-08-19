@@ -11,7 +11,7 @@
 
 `@lervo/conversation-responder`를 interaction, provider adapter와 writing 계층 사이의 application bridge로 둡니다. Bridge는 message artifact의 bytes·hash·UTF-8을 확인하고 event·policy·decision·role·message hash에 묶인 managed request를 만듭니다. Message는 controlled turn 입력이지만 repository 문서가 아니므로 E2/E3라고 부르지 않습니다.
 
-응답 역할은 파일 쓰기와 provider의 직접 외부 메시지 전송을 거부해야 합니다. 각 응답은 새 provider session에서 실행하며, 역할에 허용된 문서와 shared context만 기존 context preparation과 adapter injection 계약으로 전달합니다. 실행 뒤 공통 검증기는 E2/E3 receipt, 원본 context event, run 완료 artifact, context generation과 공유 원본의 document/hash 결속을 다시 확인합니다. Read-only run은 예상 write path가 없어도 유효합니다.
+응답 역할은 파일 쓰기와 provider의 직접 외부 메시지 전송을 거부해야 합니다. 각 응답은 새 provider session에서 실행하며, 역할에 허용된 문서와 shared context만 기존 context preparation과 adapter injection 계약으로 전달합니다. Provider-session claim port가 같은 provider session 재사용을 막습니다. 기본 구현은 단일 process용이고 여러 runner는 durable indexed 구현을 주입합니다. 실행 뒤 공통 검증기는 E2/E3 receipt, 원본 context event, run 완료 artifact, context generation과 공유 원본의 document/hash 결속을 다시 확인합니다. Read-only run은 예상 write path가 없어도 유효합니다.
 
 Provider 결과는 `chat` surface writing 평가를 통과해야 합니다. Reply candidate는 결과 artifact, evaluation, evaluation artifact와 content-bound permit를 함께 전달합니다. 별도 verifier는 현재 정책에서 해석한 writing contract로 이 원본을 CAS에서 다시 읽습니다. 이 검증 전에는 durable outbox를 만들지 않습니다.
 

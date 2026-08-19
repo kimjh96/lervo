@@ -52,6 +52,18 @@ export interface ManagedConversationResponderOptions {
   ): Promise<ManagedConversationResponsePlan> | ManagedConversationResponsePlan;
   now?: () => Date;
   createEventId?: () => string;
+  providerSessions?: ManagedConversationProviderSessionPort;
+}
+
+export interface ManagedConversationProviderSessionPort {
+  claim(input: {
+    projectId: string;
+    provider: string;
+    providerSessionId: string;
+    runId: string;
+    sessionId: string;
+    roleId: string;
+  }): Promise<boolean>;
 }
 
 export type ConversationWritingContractResolver = (input: {

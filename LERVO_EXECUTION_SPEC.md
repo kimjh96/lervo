@@ -792,11 +792,21 @@ Durable 처리 단위는 source event ID와 role ID의 조합이며 처음 claim
 
 `@lervo/conversation-responder`는 inbound 본문을 content hash에서 계산한 CAS URI로 읽고 byte count, SHA-256과 UTF-8을 다시 확인합니다. 본문은 문서 context evidence로 승격하지 않습니다. 대신 event ID, participation policy·decision ID, role ID와 message content hash로 `requestDigest`를 만들고 동일한 값의 `run.requested` 원본이 있는지 확인합니다.
 
-응답 RoleProfile은 `filesystem.write=deny`, `external.message=deny`, human 또는 mixed presentation과 `chat` surface writing policy를 가져야 합니다. 매 응답은 새 managed provider session에서 실행합니다. Provider 결과를 공개하기 전에 session·turn·role 좌표, 저장소 before/after revision 동일성, 변경 0건, 각 공유 원본의 E2/E3 receipt와 `document.loaded`·`context.injected`·`run.completed` 원본을 다시 검증합니다. 이 공통 검증은 숙의와 대화가 함께 사용하며 도메인별 이력 검사는 각 runtime이 추가합니다.
+응답 RoleProfile은 `filesystem.write=deny`, `external.message=deny`, human 또는 mixed presentation과 `chat` surface writing policy를 가져야 합니다. 매 응답은 새 managed provider session에서 실행합니다. Provider-session claim port는 `(provider, providerSessionId)` 중복을 거부하며 기본 구현은 단일 process용입니다. 여러 runner는 같은 계약의 durable indexed 구현을 주입해야 합니다. Provider 결과를 공개하기 전에 session·turn·role 좌표, 저장소 before/after revision 동일성, 변경 0건, 각 공유 원본의 E2/E3 receipt와 `document.loaded`·`context.injected`·`run.completed` 원본을 다시 검증합니다. 이 공통 검증은 숙의와 대화가 함께 사용하며 도메인별 이력 검사는 각 runtime이 추가합니다.
 
 Reply candidate는 본문 좌표와 permit뿐 아니라 writing evaluation 및 evaluation artifact 좌표를 함께 가집니다. 독립 publication verifier는 현재 conversation 정책에서 해석한 writing contract로 CAS 원문·평가 artifact·permit를 다시 읽고 확인합니다. 최대 65,536 bytes를 넘거나 `chat` writing 평가가 막힌 결과는 reply가 되지 않습니다. 변조·누락·정책 불일치는 `publication_verification_failed`로 inbox를 재예약하고 outbox를 만들지 않습니다.
 
 새 event type은 추가하지 않습니다. 기존 managed run event에는 원문 message, prompt, provider 응답, 외부 사용자·message ID와 내부 오류를 넣지 않습니다. Message 원문은 CAS, provider 결과와 writing 평가는 CAS, 실행 증거는 기존 run/context event, 전달 대기는 interaction DB가 각각 원본입니다. 결정은 [ADR-0047](./docs/adr/0047-managed-conversation-responder.md)에 기록합니다.
+
+### Slack·Discord 인증 adapter
+
+Slack ingress는 body를 JSON으로 바꾸기 전에 기본 256 KiB, 최대 4 MiB 상한을 적용하고 raw bytes로 `v0:{timestamp}:{body}` HMAC-SHA256을 계산합니다. `X-Slack-Signature`는 constant-time으로 비교하며 local clock과 300초 넘게 차이 나는 요청을 거부합니다. 서명 뒤 `api_app_id`와 허용 team을 확인하고 새 message·app mention만 정규화합니다. `url_verification` challenge도 같은 서명을 통과해야 합니다. 공식 계약은 [Slack request verification](https://api.slack.com/docs/verifying-requests-from-slack)과 [Events API](https://api.slack.com/apis/connections/events-api)를 기준으로 합니다.
+
+Discord 일반 채팅 수신은 interaction endpoint 서명으로 대체하지 않습니다. Gateway transport port가 bot token으로 Identify한 뒤 Ready 또는 유효한 Resume 상태, heartbeat와 dispatch sequence를 확인합니다. Adapter는 이 port가 인증한 opcode 0 `MESSAGE_CREATE`만 처리하고 구성된 guild 또는 DM scope를 다시 확인합니다. Resume로 같은 message가 재전달돼도 guild·message ID에서 만든 canonical event ID가 같아 interaction inbox에서 중복 처리되지 않습니다. 공식 계약은 [Discord Gateway](https://docs.discord.com/developers/events/gateway)와 [Gateway events](https://docs.discord.com/developers/events/gateway-events)를 기준으로 합니다.
+
+두 adapter는 인증과 scope 확인 전에 identity mapping이나 CAS 저장을 호출하지 않습니다. Identity port만 외부 tenant·channel·participant 키를 보고 내부 project·conversation·thread·participant·role·automation 좌표를 반환합니다. Interaction DB와 normalized event에는 외부 ID 원문이 없으며 source identity는 hash뿐입니다. Mapping 저장소는 outbound ID와 외부 message key correlation을 receipt 반환 전에 durable·idempotent하게 기록해야 합니다.
+
+Delivery port는 Slack OAuth 또는 Discord bot token을 소유하고 같은 `outboundId` 재시도에 같은 외부 message ID를 반환해야 합니다. Slack 요청은 plain formatting을, Discord 요청은 2,000자 상한, `allowed_mentions=none`, enforced nonce 또는 durable lookup을 사용합니다. Discord Create Message 제약은 [공식 Message resource](https://docs.discord.com/developers/resources/message)를 기준으로 합니다. 인증·scope·payload 실패는 각각 `platform_authentication_failed`, `invalid_platform_payload`, `unsupported_platform_event`, mapping·CAS·전송 실패는 `identity_mapping_failed`, `artifact_storage_failed`, `platform_delivery_failed`로 fail-closed합니다. 새 전역 event와 interaction 상태는 추가하지 않습니다.
 
 ## Managed run 승인 재검증
 

@@ -124,6 +124,21 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/adapter-discord:
+    dependencies:
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/conversation-platform':
+        specifier: workspace:*
+        version: link:../conversation-platform
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+
   packages/adapter-native-chat:
     dependencies:
       '@lervo/conversation-contract':
@@ -132,6 +147,21 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+
+  packages/adapter-slack:
+    dependencies:
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/conversation-platform':
+        specifier: workspace:*
+        version: link:../conversation-platform
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
 
   packages/cas:
     dependencies:
@@ -172,6 +202,25 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../writing-contract
+
+  packages/conversation-platform:
+    dependencies:
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+    devDependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
       '@lervo/writing-contract':
         specifier: workspace:*
         version: link:../writing-contract
