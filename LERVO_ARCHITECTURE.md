@@ -60,6 +60,8 @@ M6 sync 계약은 전체 project manifest와 안정적인 project identity를 �
 
 Hub 수신은 `@lervo/hub-sync`의 동기 transaction handler와 `@lervo/hub-sync-sqlite`의 durable adapter로 나뉩니다. Handler는 순수 reducer의 다음 state를 store transaction 안에서 저장하고 commit 뒤에만 응답을 반환합니다. SQLite는 `(destinationId, projectId)`별 registration, append-only event inbox와 cursor를 함께 보존하며 재시작 때 중복 좌표와 전체 chain을 다시 확인합니다. 이 경계는 HTTP route나 Node 인증을 구현하지 않으며 인증·권한을 마친 transport만 handler를 호출해야 합니다.
 
+`@lervo/hub-trace`는 같은 store의 동기 read snapshot에서 project summary와 run timeline을 만드는 파생 projection입니다. Project 목록은 ID·hash·cursor·count만 가지며 event payload를 포함하지 않습니다. Run 상세는 allowlist event 원본을 seq 순서로 보여주되 cursor 이하 `continuous`와 gap 뒤 `buffered`를 분리합니다. Projection은 원본을 쓰거나 별도 index를 원본으로 만들지 않으며 HTTP·인증·HTML rendering은 다음 adapter가 소유합니다.
+
 ## 저장소 내부 구조
 
 `lervo init`의 목표 구조입니다.

@@ -206,7 +206,9 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **Hub registration·event inbox·cursor의 durable 저장 adapter 완료.** `@lervo/hub-sync`는 reducer와 동기 transaction handler를 분리하고 `@lervo/hub-sync-sqlite`는 destination·project별 registration, append-only event inbox와 cursor를 한 commit에 저장합니다. 재시작, 두 project 격리, 역순·중복 batch, cursor update rollback과 실제 Node outbox의 응답 유실 복구를 SQLite로 확인했습니다. Handler는 HTTP나 인증 성공을 주장하지 않습니다. 결정은 [ADR-0036](./docs/adr/0036-durable-hub-sync-store.md)에 기록했습니다.
 
-다음 구현 순서: **project와 run을 분리하는 Hub trace read model**입니다.
+구현 현황(2026-08-19): **project와 run을 분리하는 Hub trace read model 완료.** `@lervo/hub-trace`는 한 SQLite read snapshot에서 payload 없는 project summary와 run별 timeline을 만듭니다. Cursor 이하 continuous event와 gap 뒤 buffered event를 count와 event 단위로 분리합니다. 두 project·여러 run/session, 역순 gap 해소, duplicate·재시작 결정성, 동시 registration snapshot과 선택 reason부터 verification까지 실제 event를 확인했습니다. 결정은 [ADR-0037](./docs/adr/0037-hub-trace-read-model.md)에 기록했습니다.
+
+다음 구현 순서: **read-only trace HTTP API와 최소 web view**입니다.
 
 완료 조건:
 
@@ -245,6 +247,7 @@ packages/
   sync/
   hub-sync/
   hub-sync-sqlite/
+  hub-trace/
   core/
   project/
   project-storage/
@@ -308,4 +311,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **project와 run을 분리하는 Hub trace read model**입니다. Durable inbox 원본을 바꾸지 않는 projection으로 project 목록, 연속 cursor와 buffered count, run별 event timeline을 만들고 중복·역순 도착과 재시작 뒤에도 같은 조회 결과가 나오는지 검증합니다.
+다음 구현 작업은 **read-only trace HTTP API와 최소 web view**입니다. Hub trace projection만 읽는 route에서 project 목록, project별 run과 event timeline을 제공하고, buffered 상태를 화면에서도 숨기지 않으며 인증되지 않은 요청이 project 원본을 읽지 못하도록 경계를 먼저 고정합니다.

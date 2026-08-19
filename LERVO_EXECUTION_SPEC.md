@@ -465,7 +465,15 @@ SQLite adapter의 `hub_projects`는 전체 registration request, 등록·갱신 
 
 Gap 뒤 event는 durable inbox에 남지만 cursor는 앞 hash chain이 채워질 때까지 전진하지 않습니다. 같은 batch 재전송은 저장된 event 원본 전체가 같을 때만 `duplicate`이고, cursor update 실패는 같은 transaction의 event insert도 되돌립니다. Store 개방은 schema metadata, quick check, foreign key, append-only trigger, registration 중복 좌표와 project별 전체 event/cursor state를 확인합니다.
 
-Store 오류 code는 `closed`, `nested_transaction`, `transaction_async`, `integrity_failed`, `state_conflict`, `write_failed`입니다. 어느 오류도 registration 완료나 durable ack로 낮추지 않습니다. DB와 오류에는 sync 계약의 manifest와 allowlist event만 허용하며 repository 본문, prompt, 문서·스킬 본문, command output, authorization과 credential을 추가하지 않습니다. 이번 receiver는 HTTP, Node 인증·권한, trace projection과 새 telemetry event를 구현하지 않습니다.
+Store 오류 code는 `closed`, `nested_transaction`, `transaction_async`, `read_failed`, `integrity_failed`, `state_conflict`, `write_failed`입니다. 어느 오류도 registration 완료나 durable ack로 낮추지 않습니다. DB와 오류에는 sync 계약의 manifest와 allowlist event만 허용하며 repository 본문, prompt, 문서·스킬 본문, command output, authorization과 credential을 추가하지 않습니다. 이번 receiver는 HTTP, Node 인증·권한과 새 telemetry event를 구현하지 않습니다.
+
+### Hub trace read model
+
+Trace projection은 `HubSyncStore.read`의 한 동기 snapshot에서 만듭니다. Project coordinate 목록과 각 state는 같은 snapshot에 있어야 하며 다른 connection의 중간 commit을 한 결과에 섞지 않습니다. Project 목록은 destination·project·registration ID, project 이름, identity·manifest hash, 등록 시각, cursor, stored·continuous·buffered event count와 run count만 반환합니다. Event envelope와 payload, session ID는 project 목록에 넣지 않습니다.
+
+Project 상세는 run을 첫 seq 순서로 묶고 session ID, 첫·마지막 seq와 시각, 전체·continuous·buffered count를 반환합니다. Run 상세만 allowlist `EventEnvelope` 원본을 포함합니다. `seq <= cursor.seq`는 `continuous`, 그보다 큰 durable inbox event는 `buffered`입니다. Buffered event를 숨기거나 완료된 chain으로 표시하지 않으며 terminal event가 없거나 buffered라는 사실만으로 run 완료 여부를 추정하지 않습니다.
+
+Trace 오류는 `project_not_found`, `run_not_found`, `source_inconsistent`이고 store read 실패는 `read_failed`입니다. Not found를 빈 원본으로 바꾸지 않고 inconsistent snapshot의 일부 결과도 반환하지 않습니다. Projection은 저장 원본을 바꾸거나 별도 event를 만들지 않습니다. HTTP 노출, 사용자 인증, project authorization, pagination, cache와 HTML rendering은 이번 범위가 아닙니다.
 
 CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `lervo-cas://sha256/<64 hex>`이며 원문은 `.lervo/state/cas` 아래에만 둡니다. 큰 입력은 청크를 임시 파일에 쓰는 동안 hash와 byte count를 계산합니다. 생산자가 중간에 실패하면 임시 파일을 제거하고 object를 공개하지 않습니다. 새 object는 쓰기와 동기화를 끝낸 뒤 원자적인 hard link로 확정합니다. 같은 bytes는 기존 object를 재사용하고, 저장하거나 읽을 때 주소와 실제 bytes의 hash를 비교합니다. 유효한 주소가 없으면 `not_found`, bytes가 주소와 다르면 `corrupt_object`, 경로가 안전하지 않으면 `unsafe_path`입니다. `has`는 `not_found`만 `false`로 바꾸며 변조를 숨기지 않습니다. 세 경우 모두 상위 실행에서는 `artifact_storage_failed`로 처리합니다. 이 실패가 난 artifact에 의존하는 변경은 중단하며, 원문이나 비밀 값은 실패 event에 넣지 않고 digest와 오류 code만 기록합니다.
 

@@ -38,6 +38,7 @@ Store를 열 때 SQLite quick check, foreign key, append-only trigger와 모든 
 | `closed` | 닫힌 store 호출입니다. 응답을 만들지 않습니다. |
 | `nested_transaction` | 같은 connection의 중첩 transaction입니다. 내부 commit을 시작하지 않습니다. |
 | `transaction_async` | Callback이 Promise를 반환했습니다. Transaction을 rollback하고 응답을 반환하지 않습니다. |
+| `read_failed` | Read snapshot 시작·조회·commit 또는 rollback이 실패했습니다. 일부 조회 결과를 반환하지 않습니다. |
 | `integrity_failed` | Schema metadata, trigger, row 중복 좌표, event hash chain, cursor 또는 SQLite 검사가 유효하지 않습니다. Store를 정상 개방하거나 조회하지 않습니다. |
 | `state_conflict` | 기존 identity, cursor 또는 append-only event를 되돌리거나 바꾸려 했습니다. 기존 state를 유지합니다. |
 | `write_failed` | Transaction 시작, insert, cursor update, commit 또는 rollback이 실패했습니다. Durable ack를 반환하지 않습니다. |
@@ -52,4 +53,4 @@ Node의 실제 SQLite outbox와 Hub SQLite store를 한 흐름으로 연결한 f
 
 ## 결과
 
-Durable acceptance의 근거가 reducer의 메모리 계산이 아니라 실제 commit 경계까지 이어졌습니다. SQLite adapter는 protocol이나 화면을 소유하지 않으므로 다른 durable store도 같은 `HubSyncStore` contract를 구현할 수 있습니다. 다음 구현은 이 원본에서 project와 run을 분리해 읽는 Hub trace read model입니다.
+Durable acceptance의 근거가 reducer의 메모리 계산이 아니라 실제 commit 경계까지 이어졌습니다. SQLite adapter는 protocol이나 화면을 소유하지 않으므로 다른 durable store도 같은 `HubSyncStore` contract를 구현할 수 있습니다. Project와 run을 분리하는 조회 의미는 [ADR-0037](./0037-hub-trace-read-model.md)에서 이어집니다.

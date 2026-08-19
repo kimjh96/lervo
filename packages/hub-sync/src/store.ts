@@ -11,13 +11,18 @@ export interface HubSyncIntegrityReport {
   eventCount: number;
 }
 
-export interface HubSyncTransaction {
+export interface HubSyncReadView {
   loadProject(coordinate: HubProjectCoordinate): ProjectSyncState | null;
+  listProjectCoordinates(): HubProjectCoordinate[];
+}
+
+export interface HubSyncTransaction extends HubSyncReadView {
   saveProject(state: ProjectSyncState): void;
 }
 
 /** The callback is synchronous so the response cannot escape before commit. */
 export interface HubSyncStore {
+  read<T>(work: (view: HubSyncReadView) => T): T;
   transact<T>(work: (transaction: HubSyncTransaction) => T): T;
   getProject(coordinate: HubProjectCoordinate): ProjectSyncState | null;
   listProjectCoordinates(): HubProjectCoordinate[];

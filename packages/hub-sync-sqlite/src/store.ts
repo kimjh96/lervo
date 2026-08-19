@@ -3,6 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import {
   type HubProjectCoordinate,
   type HubSyncIntegrityReport,
+  type HubSyncReadView,
   type HubSyncStore,
   type HubSyncTransaction,
 } from "@lervo/hub-sync";
@@ -11,34 +12,18 @@ import { ensureDatabasePath } from "./database-lifecycle.js";
 import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
 import { HubSyncSQLiteRepository } from "./repository.js";
-
-function isThenable(value: unknown): value is PromiseLike<unknown> {
-  return (
-    (typeof value === "object" || typeof value === "function") &&
-    value !== null &&
-    "then" in value &&
-    typeof (value as { then?: unknown }).then === "function"
-  );
-}
-
-function sqliteFailure(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    typeof error.code === "string" &&
-    error.code.startsWith("ERR_SQLITE")
-  );
-}
+import { SQLiteTransactionRunner } from "./transaction-runner.js";
 
 export class HubSyncSQLiteStore implements HubSyncStore {
   readonly path: string;
   private closed = false;
-  private transactionActive = false;
   private readonly repository: HubSyncSQLiteRepository;
+  private readonly transactionRunner: SQLiteTransactionRunner;
 
   private constructor(path: string, private readonly database: DatabaseSync) {
     this.path = path;
     this.repository = new HubSyncSQLiteRepository(database);
+    this.transactionRunner = new SQLiteTransactionRunner(database);
   }
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
@@ -67,57 +52,22 @@ export class HubSyncSQLiteStore implements HubSyncStore {
 
   transact<T>(work: (transaction: HubSyncTransaction) => T): T {
     this.assertOpen();
-    if (this.transactionActive) {
-      throw new HubSyncStoreError(
-        "nested_transaction",
-        "중첩 Hub sync SQLite transaction은 지원하지 않습니다.",
-      );
-    }
-    try {
-      this.database.exec("BEGIN IMMEDIATE;");
-    } catch (error) {
-      throw new HubSyncStoreError(
-        "write_failed",
-        "Hub sync SQLite transaction을 시작하지 못했습니다.",
-        { cause: error },
-      );
-    }
-    this.transactionActive = true;
-    try {
-      const result = work({
-        loadProject: (coordinate) => this.repository.loadProject(coordinate),
-        saveProject: (state) => this.repository.saveProject(state),
-      });
-      if (isThenable(result)) {
-        void Promise.resolve(result).catch(() => undefined);
-        throw new HubSyncStoreError(
-          "transaction_async",
-          "Hub sync SQLite transaction callback은 동기 함수여야 합니다.",
-        );
-      }
-      this.database.exec("COMMIT;");
-      return result;
-    } catch (error) {
-      try {
-        this.database.exec("ROLLBACK;");
-      } catch (rollbackError) {
-        throw new HubSyncStoreError(
-          "write_failed",
-          "Hub sync SQLite transaction과 rollback이 모두 실패했습니다.",
-          { cause: new AggregateError([error, rollbackError]) },
-        );
-      }
-      if (sqliteFailure(error)) {
-        throw new HubSyncStoreError(
-          "write_failed",
-          "Hub sync SQLite transaction을 durable하게 저장하지 못했습니다.",
-          { cause: error },
-        );
-      }
-      throw error;
-    } finally {
-      this.transactionActive = false;
-    }
+    return this.transactionRunner.write(() => work({
+      ...this.readView(),
+      saveProject: (state) => this.repository.saveProject(state),
+    }));
+  }
+
+  read<T>(work: (view: HubSyncReadView) => T): T {
+    this.assertOpen();
+    return this.transactionRunner.read(() => work(this.readView()));
+  }
+
+  private readView(): HubSyncReadView {
+    return {
+      loadProject: (coordinate) => this.repository.loadProject(coordinate),
+      listProjectCoordinates: () => this.repository.listProjectCoordinates(),
+    };
   }
 
   getProject(coordinate: HubProjectCoordinate) {

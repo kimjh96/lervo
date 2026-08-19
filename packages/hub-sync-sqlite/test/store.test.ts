@@ -228,6 +228,8 @@ describe("Hub sync SQLite adapter", () => {
 
     expect(() => store.transact(async () => "not committed"))
       .toThrowError(expect.objectContaining({ code: "transaction_async" }));
+    expect(() => store.read(async () => "not read"))
+      .toThrowError(expect.objectContaining({ code: "transaction_async" }));
     expect(store.verifyIntegrity()).toEqual({ valid: true, projectCount: 0, eventCount: 0 });
     store.close();
   });
