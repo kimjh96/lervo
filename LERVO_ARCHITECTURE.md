@@ -245,6 +245,10 @@ observation -> candidate -> reviewed -> verified -> stale -> superseded
 - 외부 사실은 review interval과 출처를 가집니다.
 - 에이전트는 수정 제안을 만들 수 있지만 검증된 지식을 조용히 덮어쓰지 않습니다.
 
+`@lervo/knowledge`는 `converged` 숙의 outcome을 다시 검증하고 결정 책임자의 decision CAS 원문, 채택한 현재 claim digest, claim을 통과시킨 verification result와 repository revision, 실제 완료·artifact event를 결속합니다. 채택 claim마다 영향 path와 review interval을 가진 별도 candidate JSON을 CAS에 저장하며 하나의 계속 커지는 지식 파일에 append하지 않습니다. `no_consensus`와 `failed`는 candidate를 만들지 않습니다. Candidate는 검토 대상일 뿐 `reviewed`나 `verified`가 아니며 자동으로 `.lervo/knowledge`의 검증 문서를 덮어쓰지 않습니다.
+
+`@lervo/diagnostics`는 파생 인덱스 없이 append-only event와 CAS에서 run trace를 재구성하고 candidate의 outcome·decision·verification 근거를 역검증합니다. CLI의 `trace`와 `doctor`는 이 읽기 전용 경계를 사용합니다. 현재 doctor 범위는 project storage, event hash chain과 지식 candidate 증거이며 문서·스킬·provider 환경 점검은 이후 확장합니다. 세부 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 정의합니다.
+
 ### Search, Graph, RAG
 
 초기 원본 모델은 Markdown/OKF, Git revision, 명시적 링크, 실행 이벤트입니다. 여기서 세 가지 파생 뷰를 만듭니다.
@@ -343,6 +347,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 수렴 결과의 지식 candidate와 `trace`/`doctor` 연결입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 후보 생성(`knowledge`), 로컬 추적·진단(`diagnostics`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 candidate 검토·verified 승격과 revision 기반 stale 전이입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

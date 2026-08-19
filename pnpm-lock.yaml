@@ -35,6 +35,9 @@ importers:
       '@lervo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lervo/diagnostics':
+        specifier: workspace:*
+        version: link:../../packages/diagnostics
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
@@ -179,6 +182,18 @@ importers:
         specifier: workspace:*
         version: link:../event-store-sqlite
 
+  packages/diagnostics:
+    dependencies:
+      '@lervo/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+
   packages/documents:
     dependencies:
       '@lervo/project':
@@ -211,6 +226,28 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+
+  packages/knowledge:
+    dependencies:
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../deliberation
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+    devDependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
 
   packages/orchestrator:
     dependencies:

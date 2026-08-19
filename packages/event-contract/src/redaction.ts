@@ -2,6 +2,7 @@ import {
   validateSchema,
   type DeliberationArtifactRecordedEventPayload,
   type EventType,
+  type KnowledgeCandidateCreatedEventPayload,
   type SchemaName,
 } from "@lervo/schemas";
 
@@ -106,7 +107,18 @@ export const eventPayloadAllowlists = {
     "failurePhase",
     "failureCode"
   ],
-  "knowledge.candidate.created": ["candidateId", "claimDigest", "paths", "evidenceIds"],
+  "knowledge.candidate.created": [
+    "candidateId",
+    "claimDigest",
+    "paths",
+    "evidenceIds",
+    "sourceOutcomeId",
+    "decisionArtifactId",
+    "verificationArtifactIds",
+    "verifiedRevision",
+    "candidateArtifactId",
+    "candidateContentHash"
+  ],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [
     "migrationKind",
@@ -276,13 +288,17 @@ export function sanitizeEventPayload(
     sanitized[key] = sanitizeNested(value, path, redactions, ancestors);
   }
 
-  const schemaName = deliberationPayloadSchemas[type];
+  const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;
   const invalidArtifactCoordinate = !invalidSchema && type === "deliberation.artifact.recorded" &&
     !deliberationArtifactCoordinateMatches(
       sanitized as unknown as DeliberationArtifactRecordedEventPayload,
     );
-  if (invalidSchema || invalidArtifactCoordinate) {
+  const invalidCandidateCoordinate = !invalidSchema && type === "knowledge.candidate.created" &&
+    !knowledgeCandidateCoordinateMatches(
+      sanitized as unknown as KnowledgeCandidateCreatedEventPayload,
+    );
+  if (invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate) {
     throw new RedactionError(
       "invalid_payload",
       "$",
@@ -293,14 +309,22 @@ export function sanitizeEventPayload(
   return { payload: sanitized, redactions };
 }
 
-const deliberationPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
   "deliberation.completed": "deliberationCompletedEventPayload",
+  "knowledge.candidate.created": "knowledgeCandidateCreatedEventPayload",
 };
 
 function deliberationArtifactCoordinateMatches(
   payload: DeliberationArtifactRecordedEventPayload,
 ): boolean {
   return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
+}
+
+function knowledgeCandidateCoordinateMatches(
+  payload: KnowledgeCandidateCreatedEventPayload,
+): boolean {
+  return payload.candidateArtifactId ===
+    `art_${payload.candidateContentHash.slice("sha256:".length)}`;
 }

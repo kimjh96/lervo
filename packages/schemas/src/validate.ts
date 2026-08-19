@@ -37,6 +37,8 @@ import {
   managedBlockPatchCandidateArtifactSchema,
   managedBlockPatchCandidateSchema,
 } from "./managed-block-patch.js";
+import { knowledgeCandidateSchema } from "./knowledge.js";
+import { knowledgeCandidateCreatedEventPayloadSchema } from "./knowledge-event.js";
 import { projectManifestSchema } from "./project.js";
 import { roleProfileSchema } from "./role.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -96,6 +98,10 @@ const validators = {
   documentMigrationPlan: ajv.compile(documentMigrationPlanSchema),
   managedBlockPatchCandidate: ajv.compile(managedBlockPatchCandidateSchema),
   managedBlockPatchCandidateArtifact: ajv.compile(managedBlockPatchCandidateArtifactSchema),
+  knowledgeCandidate: ajv.compile(knowledgeCandidateSchema),
+  knowledgeCandidateCreatedEventPayload: ajv.compile(
+    knowledgeCandidateCreatedEventPayloadSchema,
+  ),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
   writingPublicationPermit: ajv.compile(writingPublicationPermitSchema),

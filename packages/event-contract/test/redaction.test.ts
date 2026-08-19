@@ -261,4 +261,30 @@ describe("event payload privacy boundary", () => {
       failureCode: "result_contract_invalid",
     });
   });
+
+  it("keeps knowledge evidence coordinates without claim or decision bodies", () => {
+    const result = sanitizeEventPayload("knowledge.candidate.created", {
+      candidateId: "knc_0123456789abcdef",
+      claimDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      paths: ["src/decision.ts"],
+      evidenceIds: ["evt_knowledge_0001"],
+      sourceOutcomeId: "dlo_0123456789abcdef",
+      decisionArtifactId: "dla_0123456789abcdef",
+      verificationArtifactIds: ["dla_1111111111111111"],
+      verifiedRevision: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      candidateArtifactId: "art_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      candidateContentHash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      rawContent: "private knowledge body",
+      providerResponse: "private provider response",
+    });
+
+    expect(result.payload.candidateId).toBe("knc_0123456789abcdef");
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(() => sanitizeEventPayload("knowledge.candidate.created", {
+      ...result.payload,
+      candidateArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
+      code: "invalid_payload",
+    }));
+  });
 });

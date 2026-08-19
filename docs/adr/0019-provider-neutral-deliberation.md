@@ -51,7 +51,7 @@ M5에서 다음 순서로 구현합니다.
 3. Deliberation artifact와 policy schema — [ADR-0026](./0026-structured-deliberation-contracts.md)에서 완료
 4. 동일 provider의 두 역할 contract fixture — [ADR-0028](./0028-same-provider-deliberation-runtime.md)에서 완료
 5. Codex·Claude 교차 검토 fixture — [ADR-0029](./0029-cross-provider-deliberation-runtime.md)에서 완료
-6. Knowledge candidate와 trace/doctor 연결 — 다음 작업
+6. Knowledge candidate와 trace/doctor 연결 — [ADR-0030](./0030-evidence-bound-knowledge-candidates.md)에서 첫 슬라이스 완료
 
 숙의 runtime event 이름과 type별 payload allowlist는 [ADR-0026](./0026-structured-deliberation-contracts.md)에서 확정했고 [ADR-0028](./0028-same-provider-deliberation-runtime.md)에서 첫 영속 경로를 연결했습니다. 실제 Codex·Claude 조합과 역할별 provider 강제는 [ADR-0029](./0029-cross-provider-deliberation-runtime.md)에서 검증했습니다. 자유 형식 provider 결과를 기존 `run.completed`에 넣은 사실만으로 합의로 표시하지 않습니다.
 

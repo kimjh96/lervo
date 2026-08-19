@@ -604,6 +604,12 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 
 에이전트의 한 번의 진술만으로 verified가 되지 않습니다. 코드/테스트로 결정적으로 확인되거나 정해진 reviewer/evaluation을 통과해야 합니다.
 
+현재 `@lervo/knowledge`의 숙의 기반 candidate는 채택 claim 하나마다 별도 JSON 원본을 만듭니다. 필수 좌표는 candidate/project ID, 현재 claim ID/digest, converged outcome과 decision artifact/content CAS, 영향 path, 실제 완료·decision·verification event ID, verification artifact/result ID·hash와 하나의 repository revision, review interval, 충돌 candidate ID와 생성 시각입니다. 전체 숙의 history와 verification 근거를 다시 검증하고 decision CAS bytes를 확인한 뒤 candidate canonical JSON을 CAS에 저장하고 다시 읽습니다. `no_consensus`, `failed`, 서로 다른 verification revision, 누락된 path/event/CAS 원본은 후보를 만들지 않습니다.
+
+`knowledge.candidate.created`의 필수 payload는 `candidateId`, `claimDigest`, `paths`, `evidenceIds`, `sourceOutcomeId`, `decisionArtifactId`, `verificationArtifactIds`, `verifiedRevision`, `candidateArtifactId`, `candidateContentHash`입니다. Candidate 원문, claim/decision 본문, prompt, provider 응답, tool input과 credential은 event allowlist에 없습니다. Candidate artifact ID는 content hash에서 다시 계산하며 불일치 payload는 `invalid_payload`로 event 전체를 거부합니다. Candidate CAS 저장 뒤 event transaction이 실패하면 CAS object는 주소 기반 고아로 남을 수 있지만 생성 완료를 반환하지 않습니다.
+
+`lervo trace [last|run-id]`는 SQLite hash chain을 확인한 뒤 해당 run의 allowlist event만 순서대로 텍스트 또는 JSON으로 반환합니다. `lervo doctor`는 project storage와 event chain을 열고 candidate CAS schema/hash/ID, evidence event, converged outcome, decision·verification artifact event와 decision CAS 원문을 읽기 전용으로 역검증합니다. 끊어진 증거는 `healthy`로 표시하지 않고 종료 코드 1을 반환합니다. 현재 doctor는 문서·스킬·provider 설치 상태까지 정상이라고 주장하지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 기록합니다.
+
 ## 실패 의미
 
 | code | 실패 의미 |
@@ -627,6 +633,9 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 | `policy_contract_invalid` / `artifact_contract_invalid` / `history_contract_invalid` / `outcome_contract_invalid` | 숙의 정책, artifact 좌표, 역할별 이력 또는 종료 결과가 실제 상태와 다릅니다. `converged`를 만들지 않고 입력 계약을 고친 새 숙의로 시작합니다. |
 | `verification_evidence_invalid` | 숙의 verification metadata가 실제 suite/result 또는 canonical CAS artifact와 다르거나 사용되지 않은 근거를 포함합니다. 검증 통과와 수렴을 주장하지 않습니다. |
 | `artifact_publication_failed/provider_not_allowed` | Managed run의 역할에 배정되지 않은 provider가 결과를 만들었습니다. 실행 사실은 남기되 writing 평가와 숙의 artifact 기록을 시작하지 않으며 provider 정책을 고친 새 역할 run이 필요합니다. |
+| `candidate_not_eligible/outcome_not_converged` | 숙의가 `no_consensus` 또는 `failed`로 끝났습니다. 지식 candidate와 생성 event를 만들지 않으며 임의 결론을 선택하지 않습니다. |
+| `candidate_evidence_invalid` / `candidate_contract_invalid` | Decision CAS, 현재 claim, verification revision, 완료·artifact event, 영향 path 또는 candidate schema가 실제 원본과 다릅니다. 후보를 기록하지 않고 누락된 원본을 복구하거나 새 숙의를 실행합니다. |
+| `artifact_storage_failed` / `event_recording_failed` | Candidate CAS를 저장·재검증하지 못했거나 생성 event transaction이 실패했습니다. Candidate 생성 완료를 반환하지 않으며 event 없는 CAS object는 지식으로 간주하지 않습니다. |
 | `artifact_storage_failed` | CAS object를 안전하게 저장하거나 hash로 검증할 수 없습니다. 해당 artifact에 의존하는 변경을 차단하고 원문 없이 code와 digest만 기록한 뒤 재시도할 수 있습니다. |
 | `invalid_approval` / `invalid_migration_artifact` | Migration 승인, plan ID 또는 candidate artifact bytes/hash가 계약과 다릅니다. Sidecar를 쓰기 전에 전체 apply를 거부합니다. |
 | `invalid_legacy_registry` | 기존 `documents.yaml` 또는 항목별 artifact와 structural plan을 schema-valid하게 해석할 수 없습니다. 원본을 유지하고 archive·sidecar를 만들지 않습니다. |

@@ -98,6 +98,7 @@ export function artifact(input: {
   const contentHash = deliberationSha256(
     `${input.kind}:${input.roleId}:${input.round}:${input.sequence}`,
   );
+  const content = `${input.kind}:${input.roleId}:${input.round}:${input.sequence}`;
   const digest = contentHash.slice(7);
   const issuedAt = `2026-08-19T00:00:${String(input.sequence * 2).padStart(2, "0")}Z`;
   const permitContent: Omit<WritingPublicationPermit, "permitId"> = {
@@ -134,7 +135,7 @@ export function artifact(input: {
       uri: `lervo-cas://sha256/${digest}`,
       mediaType: "text/markdown; charset=utf-8",
       contentHash,
-      byteCount: 100 + input.sequence,
+      byteCount: Buffer.byteLength(content),
     },
     inputContext: {
       contextGeneration: input.round - 1,

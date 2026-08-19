@@ -60,4 +60,4 @@ Provider 결과 본문, context message, 원시 payload, prompt, tool input, cre
 
 ## 결과
 
-Codex와 Claude의 실제 protocol 차이는 adapter 경계에 머물고, 역할 정책과 숙의 증거 의미는 공통 runtime이 강제합니다. 다음 단계는 `converged` 결과만 지식 candidate로 만들고 그 판단과 차단 사유를 `trace`와 `doctor`에서 확인할 수 있게 연결하는 것입니다.
+Codex와 Claude의 실제 protocol 차이는 adapter 경계에 머물고, 역할 정책과 숙의 증거 의미는 공통 runtime이 강제합니다. `converged` 결과의 지식 candidate와 로컬 `trace`/`doctor` 연결은 [ADR-0030](./0030-evidence-bound-knowledge-candidates.md)에서 구현했습니다.

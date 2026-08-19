@@ -113,6 +113,11 @@ export const deliberationObjectionIdSchema = {
   pattern: "^obj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const knowledgeCandidateIdSchema = {
+  type: "string",
+  pattern: "^knc_[a-f0-9]{16}$",
+} as const;
+
 export const verificationIdSchema = {
   type: "string",
   pattern: "^ver_[a-f0-9]{16}$",

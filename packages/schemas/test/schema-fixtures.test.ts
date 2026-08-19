@@ -23,6 +23,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-document-migration-apply.json`,
     `${name}-document-staleness.json`,
     `${name}-legacy-registry-migration.json`,
+    `${name}-knowledge.json`,
     `${name}-managed-block-patch.json`,
     `${name}-verification.json`,
   ].flatMap((fileName) => {

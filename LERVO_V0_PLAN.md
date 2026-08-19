@@ -167,7 +167,7 @@ M4 완료.
 - `converged`는 결정 책임자, 필수 verification 통과와 차단 반론 0개를 모두 증명
 - candidate에서 verified로의 전이가 정책과 evidence 없이는 거부됨
 
-구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 5단계까지 완료했습니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
+구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 6단계의 candidate 생성과 로컬 증거 진단 첫 슬라이스까지 완료했습니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **Project verification command/result artifact 완료.** `lervo init`은 계속 누적되는 중앙 설정 대신 빈 `.lervo/verifications/`를 만들고, loader는 suite ID별 최대 64 KiB YAML을 안전하게 읽습니다. `@lervo/verification`은 shell 없이 최대 32개 명령을 순차 실행하며 timeout·취소·합산 output 한도와 첫 실패 뒤 `not_run`을 구분합니다. Stdout·stderr와 전체 result JSON은 각각 CAS에 저장하고 다시 확인합니다. 결과는 실행 전후 같은 snapshot port가 확인한 repository hash, suite hash, command digest·exit code·시간·artifact 좌표에 묶이며 의미 검증기가 전체 상태와 ID를 다시 계산합니다. 실패 결과의 상태만 `passed`로 바꾼 조작, snapshot 불일치·실행 중 변경, 미실행 명령, symlink cwd, timeout·과다 output과 CAS 불일치를 실제 subprocess fixture로 검증했습니다. 아직 `lervo run`과 verification event에는 연결하지 않아 CLI는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록했습니다.
 
@@ -181,7 +181,9 @@ M4 완료.
 
 구현 현황(2026-08-19): **Codex·Claude 교차 검토 contract fixture 완료.** 실제 `CodexAdapter` 제안 결과를 공통 artifact와 shared context로 공개하고 실제 `ClaudeAdapter` 검토자가 별도 session에서 같은 원문 hash를 다시 적재·주입하는 전체 경로를 검증했습니다. 두 adapter의 context 표현, provider session ID 형식, turn과 종료 protocol 차이는 공통 receipt, artifact, event와 `no_consensus` 의미를 바꾸지 않습니다. 역할별 고정 provider와 다른 managed run은 writing 평가 전에 `artifact_publication_failed/provider_not_allowed`로 실패하며 artifact event를 만들지 않습니다. 결정은 [ADR-0029](./docs/adr/0029-cross-provider-deliberation-runtime.md)에 기록했습니다.
 
-다음 구현 순서: **지식 candidate와 trace/doctor 연결**입니다.
+구현 현황(2026-08-19): **증거 결속 지식 candidate와 로컬 trace/doctor 첫 슬라이스 완료.** `@lervo/knowledge`는 전체 숙의 outcome과 history, 실제 verification evidence, 완료·artifact event와 decision CAS를 다시 검증하고 채택 claim별 path·revision·review interval을 가진 canonical candidate JSON을 CAS에 저장합니다. `knowledge.candidate.created`는 원문 없이 candidate/outcome/decision/verification/CAS hash 좌표만 기록합니다. `no_consensus`와 `failed`, 누락 event·path·CAS, 서로 다른 verification revision과 중복 candidate는 닫힌 상태로 거부합니다. `@lervo/diagnostics`와 CLI `trace`/`doctor`는 로컬 event와 candidate 증거를 읽기 전용으로 조회·역검증합니다. Candidate는 아직 `reviewed`나 `verified`가 아니며 문서·스킬·provider 환경 doctor 확장도 남아 있습니다. 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 기록했습니다.
+
+다음 구현 순서: **candidate 검토·verified 승격과 revision 기반 stale 전이**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -286,4 +288,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M5 지식 candidate와 `trace`/`doctor` 연결**입니다. `converged` outcome만 검증 근거에 결속된 candidate를 만들 수 있게 하고, `no_consensus`와 `failed`는 승격하지 않으며, 사용자가 실행·숙의·공개 차단 원인을 원문 노출 없이 추적할 수 있게 합니다.
+다음 구현 작업은 **M5 candidate 검토·`verified` 승격과 revision 기반 stale 전이**입니다. Candidate 원본을 자동 덮어쓰지 않고 reviewer 승인과 현재 repository revision을 별도 원본에 결속하며, 정책·evidence가 없거나 영향 path가 바뀐 경우 verified 또는 current로 표시하지 않게 합니다.
