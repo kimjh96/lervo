@@ -1,7 +1,7 @@
 # Lervo v0 구현 계획
 
 상태: `0.1-draft`  
-기준일: 2026-08-19
+기준일: 2026-08-20
 
 ## v0 목표
 
@@ -326,11 +326,21 @@ fixtures/
 ## v0 이후 순서
 
 1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX — 서명 snapshot·command-bound 승인/철회, Node 재평가와 managed write permit 연결 완료
-2. Slack/Discord command gateway와 승인 UX
-3. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
-4. 명시적 관계 기반 지식 그래프 시각화
-5. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
-6. 조직 단위 비용·품질·가드레일 분석
+2. 플랫폼 중립 conversation 계약과 능동 참여 runtime — native chat adapter·durable inbox/outbox 첫 슬라이스 완료
+3. Managed conversation responder bridge와 Slack/Discord 인증 adapter
+4. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
+5. 명시적 관계 기반 지식 그래프 시각화
+6. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
+7. 조직 단위 비용·품질·가드레일 분석
+
+Conversation 첫 슬라이스 완료 조건:
+
+- 플랫폼명 없이 inbound, participation decision, verified outbound와 delivery receipt를 직렬화할 수 있음
+- 직접 mention이 없어도 확정된 relevance 또는 구독 signal에는 응답하고, 미확정 relevance·cooldown·rate·automation depth 초과에는 관찰만 함
+- Reply artifact와 canonical `chat` writing permit가 다르면 outbox를 만들지 않음
+- Source message와 role 조합마다 decision을 독립적으로 만들고 최초 policy를 고정하며, inbox decision과 outbox 생성이 원자적이고 재시작·정책 변경·lease 만료·전송 실패 뒤에도 responder와 delivery가 멱등적으로 복구됨
+- 자체 채팅 adapter가 공통 contract를 통과하고 interaction DB에 대화 본문, 외부 사용자·message·delivery ID 원문이 남지 않음
+- Conversation 관찰·응답을 shared context의 `loaded`, `injected`, `used`로 승격하지 않음
 
 ## 다음 실행 작업
 
@@ -340,4 +350,6 @@ Coordinator는 provider 시작 전과 실제 쓰기 직전에 현재 signed 원�
 
 `@lervo/hub-policy`는 현재 head와 durable command 원본에 결속된 snapshot·approval·revocation을 작성하고, Hub SQLite는 세 signed 원본을 append-only table에 보존합니다. `@lervo/hub`는 `policy.read`·`policy.write`와 project scope를 source보다 먼저 확인하며 원본 시각은 Hub clock이 정합니다. Node HTTP transport는 HTTPS, bearer token, Hub identity header, 응답 좌표와 byte 상한을 확인합니다. Hub·Node 재시작, 순차 snapshot, 같은 head의 늦은 승인·철회, 권한 거부, 요청 상한, identity 불일치와 승인자 원문 비저장을 실제 HTTP fixture로 확인했습니다. 결정은 [ADR-0045](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)에 기록했습니다.
 
-다음 구현 작업은 **Slack/Discord command gateway와 승인 UX**입니다. 채널별 서명·webhook 검증을 adapter 뒤에 두고, 공통 command/approval application 경계가 현재 Hub project scope와 durable 원본을 사용하도록 먼저 좁은 수직 슬라이스를 설계합니다.
+플랫폼 중립 conversation 첫 슬라이스를 완료했습니다. `@lervo/conversation-contract`는 외부 플랫폼과 자체 채팅 서비스가 함께 쓰는 adapter capability, hash-only inbound, participation policy·decision과 writing permit-bound outbound를 정의합니다. `@lervo/interaction`은 mention·relevance·signal, actor, cooldown, rate와 automation depth를 구분하며 관련성을 확정하지 못하면 관찰만 합니다. `@lervo/interaction-sqlite`는 재시작 가능한 inbox·decision·outbox와 되돌릴 수 없는 완료·전달 상태를 보존합니다. Native adapter fixture에서 재시작 뒤 중복 responder 방지, 전송 실패 복구, raw platform key와 본문 비저장까지 확인했습니다. 결정은 [ADR-0046](./docs/adr/0046-platform-neutral-conversation-participation.md)에 기록했습니다.
+
+다음 구현 작업은 **managed conversation responder bridge**입니다. 선택된 message artifact와 역할에 허용된 최신 shared context를 자기 session에서 별도로 E2/E3로 만들고 Codex 또는 Claude의 managed read-only turn을 실행합니다. 그 결과를 실제 `chat` writing 평가로 검증한 경우에만 현재 responder port의 reply candidate로 반환합니다. 이 연결이 끝난 뒤 Slack·Discord adapter의 webhook 서명·인증·외부 participant mapping과 Hub command/approval application UX를 같은 conversation contract suite 위에 추가합니다.

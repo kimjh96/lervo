@@ -1,0 +1,107 @@
+[
+  {
+    "name": "platform-neutral conversation adapter descriptor",
+    "schema": "conversationAdapterDescriptor",
+    "value": {
+      "schemaVersion": 1,
+      "integrationId": "itg_native001",
+      "adapterKind": "native",
+      "instanceIdentityHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "capabilities": ["messages.receive", "messages.send", "threads"]
+    }
+  },
+  {
+    "name": "normalized conversation message event",
+    "schema": "conversationInboundEvent",
+    "value": {
+      "schemaVersion": 1,
+      "eventId": "cve_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceEventKeyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target": {
+        "integrationId": "itg_native001",
+        "projectId": "prj_project01",
+        "conversationId": "cnv_general01",
+        "threadId": null
+      },
+      "kind": "message.created",
+      "actor": { "kind": "human", "participantId": "ptc_human001", "roleId": null },
+      "content": {
+        "artifactId": "art_message01",
+        "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "byteCount": 18,
+        "mediaType": "text/plain; charset=utf-8"
+      },
+      "mentions": { "roleIds": [], "participantIds": [] },
+      "replyToEventId": null,
+      "signalCode": null,
+      "automationDepth": 0,
+      "occurredAt": "2026-08-20T00:00:00.000Z"
+    }
+  },
+  {
+    "name": "proactive conversation participation policy",
+    "schema": "conversationParticipationPolicy",
+    "value": {
+      "schemaVersion": 1,
+      "policyId": "cpp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "projectId": "prj_project01",
+      "roleId": "role_reviewer",
+      "conversationIds": ["cnv_general01"],
+      "mode": "proactive",
+      "respondTo": ["human"],
+      "signalCodes": ["review.requested"],
+      "cooldownSeconds": 30,
+      "maxResponsesPerHour": 10,
+      "maxAutomationDepth": 2,
+      "createdAt": "2026-08-20T00:00:00.000Z"
+    }
+  },
+  {
+    "name": "verified conversation outbound message",
+    "schema": "conversationOutboundMessage",
+    "value": {
+      "schemaVersion": 1,
+      "outboundId": "cvo_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceEventId": "cve_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policyId": "cpp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target": {
+        "integrationId": "itg_native001",
+        "projectId": "prj_project01",
+        "conversationId": "cnv_general01",
+        "threadId": null
+      },
+      "actor": { "kind": "agent", "participantId": "ptc_agent001", "roleId": "role_reviewer" },
+      "content": {
+        "artifactId": "art_response1",
+        "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "byteCount": 21,
+        "mediaType": "text/plain; charset=utf-8"
+      },
+      "publicationPermit": {
+        "schemaVersion": 1,
+        "permitId": "wpp_aaaaaaaaaaaaaaaa",
+        "surface": "chat",
+        "artifactId": "art_response1",
+        "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "writingPolicyId": "writing_korean_chat",
+        "writingPolicyHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "evaluationId": "wre_evaluate01",
+        "evaluationHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "issuedAt": "2026-08-20T00:00:01.000Z"
+      },
+      "automationDepth": 1,
+      "createdAt": "2026-08-20T00:00:01.000Z"
+    }
+  },
+  {
+    "name": "hash-only conversation delivery receipt",
+    "schema": "conversationDeliveryReceipt",
+    "value": {
+      "schemaVersion": 1,
+      "outboundId": "cvo_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "integrationId": "itg_native001",
+      "deliveryKeyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "deliveredAt": "2026-08-20T00:00:02.000Z"
+    }
+  }
+]

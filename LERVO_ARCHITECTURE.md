@@ -1,13 +1,13 @@
 # Lervo 시스템 아키텍처
 
 상태: `0.1-draft`  
-기준일: 2026-08-19
+기준일: 2026-08-20
 
 ## 전체 구조
 
 ```mermaid
 flowchart LR
-    UI[CLI / Web / Slack / Discord] --> CP[Command Plane]
+    UI[CLI / Web / Conversation Adapters] --> CP[Command Plane]
     CP --> HUB[Lervo Hub]
     CP --> NODE[Lervo Node]
     HUB <-->|signed commands / event sync| NODE
@@ -245,6 +245,16 @@ Provider 관측 신호는 append-only Lervo event와 다른 계약을 사용합�
 
 Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. 일반 tool result는 ID가 연결된 경우에만 tool signal로 만들고 원문은 digest로 바꿉니다. 현재 SDK usage에는 공통 계약의 reasoning token이 없으므로 `usage`는 `unknown`입니다. Managed Write/Edit는 provider file-change signal을 추정하지 않고 bridge가 실제 before/after hash로 `file.changed`를 만듭니다.
 
+### Conversation Integration & Participation
+
+Slack, Discord와 자체 채팅은 공통 conversation adapter 뒤에 둡니다. Adapter는 외부 인증과 payload를 내부 integration·conversation·participant 좌표, 본문 artifact 참조와 hash-only source identity로 바꿉니다. 핵심 runtime은 플랫폼 이름, webhook 또는 transport를 알지 않습니다. Capability descriptor가 message 수신·전송, thread, 수정·삭제, reaction, streaming, typing, presence와 interactive action의 실제 지원 범위를 밝힙니다.
+
+`@lervo/interaction`은 정규화된 inbound마다 역할의 participation policy를 적용해 `observe`와 `respond`를 구분합니다. 직접 mention, 별도 evaluator가 확정한 relevance와 구독 signal만 응답 후보이며 actor, cooldown, 시간당 응답 수와 automation depth가 이를 제한합니다. 관련성 평가 실패는 응답으로 추정하지 않고 관찰로 닫습니다. Responder와 writing 검증은 주입된 port라서 Codex, Claude나 다른 생성기를 바꿔도 참여 의미가 바뀌지 않습니다.
+
+Reply는 `chat` surface의 content-bound writing permit를 통과해야 durable outbox에 들어갑니다. `@lervo/interaction-sqlite`는 source event와 role 조합마다 inbox를 두고 처음 선택한 policy ID, immutable decision과 outbox 생성을 한 transaction에 묶습니다. 따라서 여러 전문 역할은 같은 message를 독립적으로 판단하되, 재시작이나 정책 변경 뒤 이미 완료한 같은 역할의 responder는 다시 호출되지 않습니다. Inbox의 `completed`와 outbox의 `delivered`는 종단 상태입니다. Native chat adapter는 자체 서비스의 inbound mapping과 delivery port를 이 경계에 연결하며 특정 HTTP·WebSocket 구현은 소유하지 않습니다.
+
+대화 관찰과 응답은 shared context의 적재·주입 증거가 아닙니다. 실제 모델 responder는 message artifact와 현재 공유 원본을 자기 session에서 별도로 E2/E3로 만들어야 하며, 재사용할 결과는 `SharedContextPublication`으로 따로 발행합니다. 세부 결정은 [ADR-0046](./docs/adr/0046-platform-neutral-conversation-participation.md)에 기록합니다.
+
 ### Verification Engine
 
 테스트와 타입 검사뿐 아니라 사람이 읽는 산출물의 writing 계약도 검증합니다. 사람 대상 산출물은 Role이 지정한 언어와 writing 정책에 연결됩니다. 정책에는 독자, 정보 순서, 문장과 문단 원칙, 용어 설명, 행동 표현, 근거 제시 방법이 포함됩니다.
@@ -391,6 +401,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `policy-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`, `policy`, `policy-sqlite`, `hub-policy`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·reconnect(`remote-command`)와 project-bound replay 저장(`remote-command-sqlite`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·command queue·정책 source·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 Slack/Discord command gateway와 승인 UX입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 provider 실행과 conversation integration을 각각 공통 계약 뒤에 둡니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `policy-contract`, `adapter-contract`, `conversation-contract`, `verification-contract`, `writing-contract`), 정책(`core`, `policy`, `policy-sqlite`, `hub-policy`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·reconnect(`remote-command`)와 project-bound replay 저장(`remote-command-sqlite`), 공급자 경계(`adapter-codex`, `adapter-claude`), conversation 참여·전달(`interaction`, `interaction-sqlite`, `adapter-native-chat`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·command queue·정책 source·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 message artifact와 역할별 E2/E3를 실제 Codex·Claude session에 연결하는 conversation responder bridge입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

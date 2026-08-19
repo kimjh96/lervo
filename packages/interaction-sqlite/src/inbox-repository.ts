@@ -1,0 +1,249 @@
+import { randomBytes } from "node:crypto";
+import type { DatabaseSync } from "node:sqlite";
+
+import { canonicalJson } from "@lervo/event-contract";
+import type { ConversationInboundEvent } from "@lervo/schemas";
+
+import { inbound, text } from "./codec.js";
+import { InteractionSQLiteError } from "./errors.js";
+
+export type SQLiteInboxClaim =
+  | { status: "claimed"; leaseId: string; attemptCount: number }
+  | { status: "busy" }
+  | { status: "completed" };
+
+export interface SQLiteInboxCoordinate {
+  event: ConversationInboundEvent;
+  policyId: string;
+  roleId: string;
+  status: "pending" | "leased" | "completed";
+}
+
+function milliseconds(value: string, label: string): number {
+  const result = Date.parse(value);
+  if (!Number.isSafeInteger(result) || result < 0) {
+    throw new InteractionSQLiteError("integrity_failed", `${label} 시각이 유효하지 않습니다.`);
+  }
+  return result;
+}
+
+function failureCode(value: string): void {
+  if (!/^[a-z][a-z0-9_]{0,63}$/.test(value)) {
+    throw new InteractionSQLiteError("integrity_failed", "Interaction failure code가 유효하지 않습니다.");
+  }
+}
+
+function policyId(value: string): void {
+  if (!/^cpp_[a-f0-9]{64}$/.test(value)) {
+    throw new InteractionSQLiteError("integrity_failed", "Participation policy ID가 유효하지 않습니다.");
+  }
+}
+
+function roleId(value: string): void {
+  if (value.length > 100 || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(value)) {
+    throw new InteractionSQLiteError("integrity_failed", "Participation role ID가 유효하지 않습니다.");
+  }
+}
+
+export class ConversationInboxSQLiteRepository {
+  constructor(
+    private readonly database: DatabaseSync,
+    private readonly maxRecords: number,
+  ) {}
+
+  claim(input: {
+    event: ConversationInboundEvent;
+    policyId: string;
+    roleId: string;
+    workerId: string;
+    claimedAt: string;
+    leaseDurationMs: number;
+  }): SQLiteInboxClaim {
+    policyId(input.policyId);
+    roleId(input.roleId);
+    if (
+      !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(input.workerId) ||
+      !Number.isSafeInteger(input.leaseDurationMs) ||
+      input.leaseDurationMs < 1_000 || input.leaseDurationMs > 300_000
+    ) throw new InteractionSQLiteError("integrity_failed", "Conversation inbox lease 설정이 유효하지 않습니다.");
+    const claimedAtMs = milliseconds(input.claimedAt, "Conversation claim");
+    const row = this.database.prepare(
+      "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
+    ).get(input.event.eventId, input.roleId);
+    if (row === undefined) return this.insert(input, claimedAtMs);
+    const stored = inbound(row);
+    if (canonicalJson(stored) !== canonicalJson(input.event)) {
+      throw new InteractionSQLiteError("integrity_failed", "같은 conversation event ID에 다른 원본이 있습니다.");
+    }
+    if (row.status === "completed") return { status: "completed" };
+    if (text(row, "policy_id") !== input.policyId) {
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "진행 중인 conversation interaction의 participation policy가 바뀌었습니다.",
+      );
+    }
+    const availableAtMs = row.available_at_ms;
+    const leaseExpiresAtMs = row.lease_expires_at_ms;
+    if (
+      (row.status === "pending" && typeof availableAtMs === "number" && availableAtMs > claimedAtMs) ||
+      (row.status === "leased" && typeof leaseExpiresAtMs === "number" && leaseExpiresAtMs > claimedAtMs)
+    ) return { status: "busy" };
+    return this.acquire(input, claimedAtMs);
+  }
+
+  private insert(input: {
+    event: ConversationInboundEvent;
+    policyId: string;
+    roleId: string;
+    workerId: string;
+    leaseDurationMs: number;
+  }, claimedAtMs: number): SQLiteInboxClaim {
+    const count = this.database.prepare(
+      "SELECT COUNT(*) AS count FROM conversation_inbox",
+    ).get()?.count;
+    if (typeof count !== "number" || !Number.isSafeInteger(count)) {
+      throw new InteractionSQLiteError("integrity_failed", "Conversation inbox count가 유효하지 않습니다.");
+    }
+    if (count >= this.maxRecords) {
+      throw new InteractionSQLiteError("capacity_exceeded", "Conversation inbox capacity를 넘었습니다.");
+    }
+    const leaseId = `cil_${randomBytes(24).toString("base64url")}`;
+    this.database.prepare(`
+      INSERT INTO conversation_inbox (
+        event_id, policy_id, role_id, integration_id, project_id, conversation_id, event_json,
+        status, available_at_ms, attempt_count, lease_id, lease_owner,
+        lease_expires_at_ms, last_failure_code, last_failed_at_ms
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'leased', ?, 1, ?, ?, ?, NULL, NULL)
+    `).run(
+      input.event.eventId,
+      input.policyId,
+      input.roleId,
+      input.event.target.integrationId,
+      input.event.target.projectId,
+      input.event.target.conversationId,
+      canonicalJson(input.event),
+      claimedAtMs,
+      leaseId,
+      input.workerId,
+      claimedAtMs + input.leaseDurationMs,
+    );
+    return { status: "claimed", leaseId, attemptCount: 1 };
+  }
+
+  private acquire(input: {
+    event: ConversationInboundEvent;
+    roleId: string;
+    workerId: string;
+    leaseDurationMs: number;
+  }, claimedAtMs: number): SQLiteInboxClaim {
+    const leaseId = `cil_${randomBytes(24).toString("base64url")}`;
+    const updated = this.database.prepare(`
+      UPDATE conversation_inbox SET
+        status = 'leased', attempt_count = attempt_count + 1,
+        lease_id = ?, lease_owner = ?, lease_expires_at_ms = ?
+      WHERE event_id = ? AND role_id = ? AND status != 'completed'
+    `).run(
+      leaseId,
+      input.workerId,
+      claimedAtMs + input.leaseDurationMs,
+      input.event.eventId,
+      input.roleId,
+    );
+    if (updated.changes !== 1) {
+      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox lease를 획득하지 못했습니다.");
+    }
+    const attemptCount = this.database.prepare(
+      "SELECT attempt_count FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
+    ).get(input.event.eventId, input.roleId)?.attempt_count;
+    if (typeof attemptCount !== "number" || !Number.isSafeInteger(attemptCount)) {
+      throw new InteractionSQLiteError("integrity_failed", "Conversation attempt count가 유효하지 않습니다.");
+    }
+    return { status: "claimed", leaseId, attemptCount };
+  }
+
+  leasedEvent(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+  }): ConversationInboundEvent {
+    policyId(input.policyId);
+    roleId(input.roleId);
+    const row = this.database.prepare(
+      "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ? AND policy_id = ?",
+    ).get(input.eventId, input.roleId, input.policyId);
+    if (row === undefined || row.status !== "leased" || row.lease_id !== input.leaseId) {
+      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox lease가 다릅니다.");
+    }
+    return inbound(row);
+  }
+
+  complete(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+  }): void {
+    const updated = this.database.prepare(`
+      UPDATE conversation_inbox SET status = 'completed',
+        lease_id = NULL, lease_owner = NULL, lease_expires_at_ms = NULL
+      WHERE event_id = ? AND role_id = ? AND policy_id = ?
+        AND lease_id = ? AND status = 'leased'
+    `).run(input.eventId, input.roleId, input.policyId, input.leaseId);
+    if (updated.changes !== 1) {
+      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox 완료 상태를 저장하지 못했습니다.");
+    }
+  }
+
+  reschedule(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+    failedAt: string;
+    availableAt: string;
+    failureCode: string;
+  }): void {
+    policyId(input.policyId);
+    roleId(input.roleId);
+    const failedAtMs = milliseconds(input.failedAt, "Conversation failure");
+    const availableAtMs = milliseconds(input.availableAt, "Conversation retry");
+    failureCode(input.failureCode);
+    if (availableAtMs < failedAtMs) {
+      throw new InteractionSQLiteError("integrity_failed", "Conversation retry가 failure보다 빠릅니다.");
+    }
+    const result = this.database.prepare(`
+      UPDATE conversation_inbox SET status = 'pending', available_at_ms = ?,
+        lease_id = NULL, lease_owner = NULL, lease_expires_at_ms = NULL,
+        last_failure_code = ?, last_failed_at_ms = ?
+      WHERE event_id = ? AND role_id = ? AND policy_id = ?
+        AND lease_id = ? AND status = 'leased'
+    `).run(
+      availableAtMs,
+      input.failureCode,
+      failedAtMs,
+      input.eventId,
+      input.roleId,
+      input.policyId,
+      input.leaseId,
+    );
+    if (result.changes !== 1) {
+      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox retry lease가 다릅니다.");
+    }
+  }
+
+  auditAll(): SQLiteInboxCoordinate[] {
+    return this.database.prepare(
+      "SELECT * FROM conversation_inbox ORDER BY event_id, role_id",
+    ).all().map((row) => {
+      policyId(text(row, "policy_id"));
+      roleId(text(row, "role_id"));
+      return {
+        event: inbound(row),
+        policyId: text(row, "policy_id"),
+        roleId: text(row, "role_id"),
+        status: text(row, "status") as SQLiteInboxCoordinate["status"],
+      };
+    });
+  }
+}

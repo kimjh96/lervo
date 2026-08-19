@@ -29,6 +29,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-verification.json`,
     `${name}-verification-event.json`,
     `${name}-remote-command.json`,
+    `${name}-conversation.json`,
   ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);
     return JSON.parse(readFileSync(fixtureUrl, "utf8")) as Fixture[];

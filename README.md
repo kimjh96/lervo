@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, Hub 정책 작성·저장·HTTP 동기화 완료 (2026-08-19)
+현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화·능동 참여 runtime 첫 슬라이스 완료 (2026-08-20)
 
 ## 목표
 
@@ -12,7 +12,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - 작업 결과에서 재사용 가능한 지식을 후보로 만들고 검증 후 승격합니다.
 - `AGENTS.md`, `CLAUDE.md`, `README.md`와 사용자/외부 스킬의 노후화 및 사용 여부를 관리합니다.
 - 각 저장소는 오프라인에서도 동작하며, 선택적으로 Lervo Hub와 동기화합니다.
-- Slack, Discord 같은 채널에서 프로젝트 조회와 승인된 작업 실행을 요청할 수 있게 확장합니다.
+- Slack, Discord 같은 외부 플랫폼과 자체 채팅 서비스에서 같은 대화·명령 계약을 사용할 수 있게 확장합니다.
 
 ## 설계 문서
 
@@ -65,10 +65,15 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [로컬 제한을 완화하지 않는 서명 정책과 command-bound 승인 ADR](./docs/adr/0043-signed-policy-and-command-bound-approval.md)
 - [서명 승인 원본을 managed write permit에 결속하는 ADR](./docs/adr/0044-signed-approval-managed-write-permit.md)
 - [Hub가 시각과 범위를 소유하는 정책 작성·동기화 ADR](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)
+- [플랫폼 중립 대화와 능동 참여 경계 ADR](./docs/adr/0046-platform-neutral-conversation-participation.md)
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, Hub project registration·event batch·ack, context evidence, shared context/handoff, adapter, role, skill manifest/lock, 분할 document manifest와 기존 registry, 일반·legacy 구조 migration의 승인·적용 event·receipt, managed block patch candidate, document staleness result, verification suite/result, writing policy/evaluation/publication permit, 숙의 policy/artifact/outcome, 지식 promotion policy/review/verified/staleness JSON Schema와 파생 TypeScript 타입. Adapter 계약은 session/context, managed write와 provider 관측 event를 분리해 관리
+- `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의와 지식 수명주기 JSON Schema 및 파생 TypeScript 타입
+- `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
+- `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
+- `@lervo/interaction-sqlite`: 재시작 가능한 inbox·decision·outbox lease와 되돌릴 수 없는 완료·전달 상태를 보존하는 append-only SQLite adapter. 대화 본문과 외부 식별자 원문은 저장하지 않음
+- `@lervo/adapter-native-chat`: 자체 채팅 서비스의 inbound mapping과 delivery port를 공통 conversation 계약에 연결하는 transport 독립 adapter
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 실행 완료·프로젝트 검증·숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface

@@ -1,0 +1,343 @@
+import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
+import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
+import {
+  handleConversationEvent,
+  runConversationDeliveryCycle,
+} from "@lervo/interaction";
+import type { WritingPublicationPermit } from "@lervo/schemas";
+import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
+
+import { SQLiteConversationInteractionStore } from "../src/index.js";
+
+const roots: string[] = [];
+
+async function databasePath(): Promise<string> {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-interaction-"));
+  roots.push(root);
+  return resolve(root, "state/interaction.sqlite");
+}
+
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+const responseContent = {
+  artifactId: "art_response1",
+  contentHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  byteCount: 34,
+  mediaType: "text/plain; charset=utf-8" as const,
+};
+
+function publicationPermit(): WritingPublicationPermit {
+  const content: Omit<WritingPublicationPermit, "permitId"> = {
+    schemaVersion: 1,
+    surface: "chat",
+    artifactId: responseContent.artifactId,
+    contentHash: responseContent.contentHash,
+    writingPolicyId: "writing_korean_chat",
+    writingPolicyHash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    evaluationId: "wre_evaluate01",
+    evaluationHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    issuedAt: "2026-08-20T00:00:02.000Z",
+  };
+  return { ...content, permitId: calculateWritingPublicationPermitId(content) };
+}
+
+function participationPolicy(
+  conversationIds = ["cnv_general01"],
+  roleId = "role_reviewer",
+  cooldownSeconds = 0,
+) {
+  return createConversationParticipationPolicy({
+    projectId: "prj_project01",
+    roleId,
+    conversationIds,
+    mode: "relevant",
+    respondTo: ["human"],
+    signalCodes: ["review.requested"],
+    cooldownSeconds,
+    maxResponsesPerHour: 5,
+    maxAutomationDepth: 2,
+    createdAt: "2026-08-20T00:00:00.000Z",
+  });
+}
+
+describe("durable native chat interaction", () => {
+  it("recovers deduplication and delivery across restarts without storing raw platform data", async () => {
+    const path = await databasePath();
+    const rawSourceEventKey = "native/raw/message/private-42";
+    const rawDeliveryKey = "native/raw/delivery/private-77";
+    const rawBody = "이 원문은 아티팩트 저장소에만 있어야 합니다.";
+    let deliveryAttempts = 0;
+    const sent = vi.fn(async () => {
+      deliveryAttempts += 1;
+      if (deliveryAttempts === 1) throw new Error("temporary transport failure");
+      return { deliveryKey: rawDeliveryKey, deliveredAt: "2026-08-20T00:00:05.000Z" };
+    });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-service-private-instance",
+      delivery: { send: sent },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: rawSourceEventKey,
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_message01",
+        contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        byteCount: Buffer.byteLength(rawBody),
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    const policy = participationPolicy();
+    const relevance = vi.fn(async () => "relevant" as const);
+    const responder = vi.fn(async () => ({
+      content: responseContent,
+      publicationPermit: publicationPermit(),
+    }));
+    const verify = vi.fn(async ({ candidate }) => {
+      expect(candidate.publicationPermit.surface).toBe("chat");
+    });
+
+    const first = await SQLiteConversationInteractionStore.open({ path });
+    await expect(handleConversationEvent({
+      event,
+      policy,
+      workerId: "interaction-worker-1",
+      agentParticipantId: "ptc_agent001",
+      store: first,
+      responder: { respond: responder },
+      publicationVerifier: { verify },
+      relevanceEvaluator: { evaluate: relevance },
+      clock: () => new Date("2026-08-20T00:00:02.000Z"),
+    })).resolves.toMatchObject({
+      status: "completed",
+      decision: { action: "respond", reason: "relevant" },
+      outbound: { publicationPermit: { surface: "chat" } },
+    });
+    expect(first.auditIntegrity()).toEqual({
+      valid: true,
+      inboxCount: 1,
+      decisionCount: 1,
+      outboxCount: 1,
+    });
+    await first.close();
+
+    const reopened = await SQLiteConversationInteractionStore.open({ path });
+    await expect(handleConversationEvent({
+      event,
+      policy,
+      workerId: "interaction-worker-2",
+      agentParticipantId: "ptc_agent001",
+      store: reopened,
+      responder: { respond: responder },
+      publicationVerifier: { verify },
+      relevanceEvaluator: { evaluate: relevance },
+      clock: () => new Date("2026-08-20T00:00:03.000Z"),
+    })).resolves.toMatchObject({ status: "duplicate" });
+    expect(relevance).toHaveBeenCalledTimes(1);
+    expect(responder).toHaveBeenCalledTimes(1);
+    expect(verify).toHaveBeenCalledTimes(1);
+
+    await expect(runConversationDeliveryCycle({
+      adapter,
+      store: reopened,
+      workerId: "delivery-worker-1",
+      retryDelayMs: 1_000,
+      clock: () => new Date("2026-08-20T00:00:03.000Z"),
+    })).resolves.toEqual({
+      status: "processed",
+      deliveredCount: 0,
+      retryScheduledCount: 1,
+    });
+    await expect(runConversationDeliveryCycle({
+      adapter,
+      store: reopened,
+      workerId: "delivery-worker-2",
+      clock: () => new Date("2026-08-20T00:00:04.000Z"),
+    })).resolves.toEqual({
+      status: "processed",
+      deliveredCount: 1,
+      retryScheduledCount: 0,
+    });
+    expect(sent).toHaveBeenCalledTimes(2);
+    expect(reopened.auditIntegrity()).toMatchObject({ outboxCount: 1 });
+    await reopened.close();
+
+    const database = new DatabaseSync(path);
+    expect(() => database.prepare(
+      "UPDATE conversation_inbox SET status = 'pending' WHERE event_id = ?",
+    ).run(event.eventId)).toThrow(/lifecycle/);
+    expect(() => database.prepare(
+      "UPDATE conversation_outbox SET status = 'pending' WHERE source_event_id = ?",
+    ).run(event.eventId)).toThrow(/lifecycle/);
+    database.close();
+
+    const bytes = (await readFile(path)).toString("latin1");
+    expect(bytes).not.toContain(rawSourceEventKey);
+    expect(bytes).not.toContain(rawDeliveryKey);
+    expect(bytes).not.toContain(rawBody);
+  });
+
+  it("rejects out-of-scope work before it can enter the durable inbox", async () => {
+    const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: { send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }) },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "source-key",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_message01",
+        contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+
+    await expect(handleConversationEvent({
+      event,
+      policy: participationPolicy(["cnv_other001"]),
+      workerId: "interaction-worker",
+      agentParticipantId: "ptc_agent001",
+      store,
+      responder: { respond: async () => ({ content: responseContent, publicationPermit: publicationPermit() }) },
+      publicationVerifier: { verify: async () => undefined },
+      clock: () => new Date("2026-08-20T00:00:02.000Z"),
+    })).rejects.toMatchObject({ code: "invalid_interaction_request" });
+    expect(store.auditIntegrity()).toMatchObject({ inboxCount: 0 });
+    await store.close();
+  });
+
+  it("lets multiple roles decide on the same message independently", async () => {
+    const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: { send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }) },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "shared-message-key",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_message01",
+        contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    const respond = vi.fn(async () => ({
+      content: responseContent,
+      publicationPermit: publicationPermit(),
+    }));
+    const common = {
+      event,
+      store,
+      responder: { respond },
+      publicationVerifier: { verify: async () => undefined },
+      relevanceEvaluator: { evaluate: async () => "relevant" as const },
+      clock: () => new Date("2026-08-20T00:00:02.000Z"),
+    };
+
+    await expect(handleConversationEvent({
+      ...common,
+      policy: participationPolicy(["cnv_general01"], "role_reviewer"),
+      workerId: "reviewer-worker",
+      agentParticipantId: "ptc_agent001",
+    })).resolves.toMatchObject({ status: "completed", decision: { roleId: "role_reviewer" } });
+    await expect(handleConversationEvent({
+      ...common,
+      policy: participationPolicy(["cnv_general01"], "role_writer"),
+      workerId: "writer-worker",
+      agentParticipantId: "ptc_agent002",
+    })).resolves.toMatchObject({ status: "completed", decision: { roleId: "role_writer" } });
+    await expect(handleConversationEvent({
+      ...common,
+      policy: participationPolicy(["cnv_general01"], "role_reviewer", 30),
+      workerId: "reviewer-worker-after-policy-change",
+      agentParticipantId: "ptc_agent001",
+    })).resolves.toMatchObject({
+      status: "duplicate",
+      decision: { roleId: "role_reviewer", reason: "relevant" },
+    });
+    expect(respond).toHaveBeenCalledTimes(2);
+    expect(store.auditIntegrity()).toEqual({
+      valid: true,
+      inboxCount: 2,
+      decisionCount: 2,
+      outboxCount: 2,
+    });
+    await store.close();
+  });
+
+  it("keeps normalized inbound identity immutable at the database boundary", async () => {
+    const path = await databasePath();
+    const store = await SQLiteConversationInteractionStore.open({ path });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: { send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }) },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "source-key",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_message01",
+        contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    await store.claimInbound({
+      event,
+      policy: participationPolicy(),
+      workerId: "worker-1",
+      claimedAt: "2026-08-20T00:00:02.000Z",
+      leaseDurationMs: 30_000,
+    });
+    await store.close();
+
+    const database = new DatabaseSync(path);
+    expect(() => database.prepare(
+      "UPDATE conversation_inbox SET event_json = ? WHERE event_id = ?",
+    ).run("{}", event.eventId)).toThrow(/immutable/);
+    database.close();
+  });
+});

@@ -41,6 +41,11 @@ import type {
   VerificationSuite,
   WritingPublicationPermit,
   VerifiedKnowledge,
+  ConversationAdapterDescriptor,
+  ConversationInboundEvent,
+  ConversationParticipationDecision,
+  ConversationParticipationPolicy,
+  ConversationOutboundMessage,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -218,5 +223,16 @@ describe("schema-derived TypeScript contracts", () => {
     }>();
     expectTypeOf<HandoffBundle["from"]["contextGeneration"]>().toEqualTypeOf<number>();
     expectTypeOf<RoleProfile["handoff"]["sharedContextRequired"]>().toEqualTypeOf<true>();
+  });
+
+  it("keeps platform adapters, participation, and verified replies separate", () => {
+    expectTypeOf<ConversationAdapterDescriptor["adapterKind"]>().toEqualTypeOf<string>();
+    expectTypeOf<ConversationInboundEvent["sourceEventKeyHash"]>().toEqualTypeOf<string>();
+    expectTypeOf<ConversationParticipationPolicy["mode"]>()
+      .toEqualTypeOf<"mention_only" | "relevant" | "proactive" | "silent">();
+    expectTypeOf<ConversationParticipationDecision["action"]>()
+      .toEqualTypeOf<"observe" | "respond">();
+    expectTypeOf<ConversationOutboundMessage["publicationPermit"]["surface"]>()
+      .toEqualTypeOf<WritingPublicationPermit["surface"]>();
   });
 });

@@ -1,7 +1,7 @@
 # Lervo 실행 및 증거 규격
 
 상태: `0.1-draft`  
-기준일: 2026-08-19
+기준일: 2026-08-20
 
 ## 목적
 
@@ -503,6 +503,10 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - deliberation event payload: started/recorded/completed별 필수 hash 좌표와 상태별 decision/failure 규칙
 - context evidence: E0~E4별 필수 필드와 controlled E3 receipt
 - adapter message: descriptor, start/session, context envelope/receipt, normalized event, stop/result
+- conversation adapter: integration identity hash, 세부 capability와 플랫폼 중립 target
+- conversation inbound: hash-only source identity, actor·mention·thread·automation depth, 본문 artifact 좌표
+- conversation participation: 역할별 scope·mode·actor·signal·cooldown·rate·depth policy와 `observe`/`respond` decision
+- conversation outbound/delivery: `chat` writing permit에 결속된 reply artifact와 hash-only delivery receipt
 - role profile: 요청 유형, 필수 입력 schema, E3 context policy, 전체 capability matrix, 산출물·검증·handoff 계약
 - shared context publication: 등록 문서와 hash, 생산 역할/run/session, 접근 범위, 민감도, 근거와 만료
 - handoff bundle: 보내고 받는 역할, 생산 context generation, 요청 digest, shared context와 evidence 좌표
@@ -768,6 +772,22 @@ Hub SQLite migration은 snapshot, approval과 revocation을 별도 strict table�
 
 정책 HTTP 오류는 인증 없음 `401`, scope·permission 거부 `403`, 등록·command·approval 부재 `404`, schema·query 오류 `400`, 현재 head·identity·capacity 충돌 `409`, request 상한 초과 `413`입니다. 응답에는 credential, principal, 서명 key, request 원문이나 내부 예외를 넣지 않습니다. Hub 전체 audit는 모든 snapshot chain과 과거 approval-command-signer 관계, revocation 관계를 다시 검사합니다. 이 기능은 새 실행 event를 만들지 않으며 Hub 정책 작성 성공이 Node의 `loaded`, `injected`, `used` 또는 실행을 뜻하지 않습니다. 결정은 [ADR-0045](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)에 기록합니다.
 
+## 플랫폼 중립 대화와 능동 참여
+
+Conversation adapter는 Slack, Discord, 자체 채팅과 이후 플랫폼을 같은 내부 계약으로 바꿉니다. Descriptor 필수 필드는 schema version, integration ID, adapter kind, instance identity hash와 capability 집합입니다. Capability는 message 수신·전송, thread, 수정·삭제, reaction, streaming, typing, presence와 interactive action을 독립적으로 선언합니다.
+
+Inbound 필수 필드는 canonical event ID, source event key hash, integration·project·conversation·thread target, kind, Lervo participant·role actor, 본문 artifact ID/hash/byte count/media type, mention, reply event ID, signal code, automation depth와 발생 시각입니다. Message는 signal code가 없고 signal은 code가 있어야 합니다. 외부 message ID는 adapter 안에서 hash하며 본문과 외부 사용자 ID는 interaction DB에 넣지 않습니다.
+
+Participation policy는 project·role, 명시적인 conversation 목록, `mention_only`·`relevant`·`proactive`·`silent`, 허용 actor, 구독 signal, cooldown, 시간당 최대 응답 수, automation depth와 생성 시각을 가집니다. Decision은 source event·policy·role 좌표, `observe` 또는 `respond`, 제한된 reason, relevance 상태와 시각을 가집니다. 직접 mention, 확정된 relevance와 구독 signal만 응답할 수 있습니다. 관련성 평가가 없거나 실패하면 `unknown`과 `relevance_unavailable`로 관찰합니다.
+
+Responder가 만든 reply는 artifact 참조와 `chat` surface의 `WritingPublicationPermit`를 함께 가져야 합니다. Permit의 artifact ID와 content hash가 reply와 다르면 outbox를 만들지 않습니다. 따라서 adapter와 모델이 달라도 한국어 자연스러움, 문단 연결과 독자 이해 가능성을 포함한 기존 writing 공개 gate를 우회할 수 없습니다.
+
+Durable 처리 단위는 source event ID와 role ID의 조합이며 처음 claim한 participation policy ID를 원본에 고정합니다. 여러 역할은 같은 message에 각각 decision과 outbound를 가질 수 있고 한 역할의 완료가 다른 역할을 막지 않습니다. 완료 뒤 정책이 바뀌어도 같은 역할이 과거 message를 다시 처리하지 않으며, 완료 전 policy가 바뀐 retry는 기존 policy로 재개하도록 충돌로 닫습니다. Inbox 상태는 `pending`, `leased`, `completed`, outbox는 `pending`, `leased`, `delivered`입니다. Worker ID, lease ID·만료, attempt count, available time, 짧은 failure code와 failed time이 변경 가능한 전달 필드입니다. Decision과 outbound 생성은 inbox 완료와 한 transaction으로 commit합니다. `completed`와 `delivered`는 종단 상태이며 원본·결정·종단 상태의 update/delete는 trigger로 막습니다. 전체 audit는 canonical ID, 중복 좌표, decision/outbound 관계, receipt hash와 전달 시각을 다시 확인합니다.
+
+응답 생성 실패는 `response_generation_failed`, writing 검증 실패는 `publication_verification_failed`, adapter 예외는 `adapter_delivery_failed`, receipt 계약 불일치는 `invalid_delivery_receipt`로 재예약합니다. 저장 실패는 `interaction_store_failed`로 완료를 주장하지 않습니다. Relevance 실패는 시스템 실패가 아니라 응답하지 않는 결정입니다. Delivery receipt에는 외부 delivery key의 hash와 전달 시각만 남습니다.
+
+이 상태는 전역 실행 event나 shared context receipt가 아닙니다. 메시지를 관찰하거나 답해도 그 역할의 `loaded`, `injected`, `used`는 생기지 않습니다. 실제 responder가 Codex나 Claude를 실행하려면 message artifact와 필요한 공유 원본을 그 역할의 독립 session에서 E2/E3로 만들고, 재사용할 결과는 별도 shared context로 발행해야 합니다. 결정은 [ADR-0046](./docs/adr/0046-platform-neutral-conversation-participation.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.
@@ -783,6 +803,9 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `telemetry_recording_failed` | 변경 capability를 닫고 run을 중단합니다. Document migration에서는 성공 event를 commit하지 못한 것으로 보고 이번 apply가 만든 sidecar를 모두 되돌립니다. |
 | `redaction_failed` | 민감정보가 섞인 event를 생략해 진행하지 않고 변경 capability를 닫습니다. |
 | `hub_sync_failed` | 로컬 run은 계속하고 outbox에 보관합니다. |
+| `interaction_store_failed` | Inbox claim, decision commit 또는 outbox 상태를 durable하게 확정하지 못했습니다. 응답 완료나 전달 완료를 주장하지 않고 저장소를 진단합니다. |
+| `response_generation_failed` / `publication_verification_failed` | 응답 원문 생성 또는 `chat` writing 공개 검증이 끝나지 않았습니다. 원문 오류를 저장하지 않고 현재 inbox lease를 bounded retry로 되돌립니다. |
+| `adapter_delivery_failed` / `invalid_delivery_receipt` | 플랫폼 전송이 실패했거나 receipt 좌표가 다릅니다. `delivered`로 바꾸지 않고 outbox를 bounded retry로 되돌립니다. |
 | `invalid_command` / `unknown_signer` / `invalid_signature` / `signer_scope_denied` / `target_mismatch` | 원격 command 계약, 신뢰 key, 서명 또는 project 좌표가 맞지 않습니다. 로컬 정책과 executor를 호출하지 않고 새 command를 요구합니다. |
 | `command_not_yet_valid` / `command_expired` / `command_lifetime_exceeded` | 로컬 clock과 허용된 skew·lifetime에서 command를 실행할 수 없습니다. 만료 command를 갱신된 서명 없이 재사용하지 않습니다. |
 | `idempotency_conflict` / `nonce_replay` / `command_in_progress` | 다른 command가 같은 idempotency/nonce를 사용했거나 같은 command가 이미 처리 중입니다. Executor를 중복 호출하지 않으며 terminal receipt가 생긴 뒤 동일 command를 조회할 수 있습니다. |

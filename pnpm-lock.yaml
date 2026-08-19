@@ -124,6 +124,15 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/adapter-native-chat:
+    dependencies:
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/cas:
     dependencies:
       '@lervo/storage-contract':
@@ -154,6 +163,18 @@ importers:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
+
+  packages/conversation-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../writing-contract
 
   packages/core:
     dependencies:
@@ -342,6 +363,37 @@ importers:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../sync-contract
+
+  packages/interaction:
+    dependencies:
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/interaction-sqlite:
+    dependencies:
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/interaction':
+        specifier: workspace:*
+        version: link:../interaction
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+    devDependencies:
+      '@lervo/adapter-native-chat':
+        specifier: workspace:*
+        version: link:../adapter-native-chat
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../writing-contract
 
   packages/knowledge:
     dependencies:

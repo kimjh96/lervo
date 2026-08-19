@@ -61,6 +61,46 @@ export const handoffIdSchema = {
   pattern: "^hnd_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const integrationIdSchema = {
+  type: "string",
+  pattern: "^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const conversationIdSchema = {
+  type: "string",
+  pattern: "^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const conversationThreadIdSchema = {
+  type: "string",
+  pattern: "^thd_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const conversationParticipantIdSchema = {
+  type: "string",
+  pattern: "^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
+} as const;
+
+export const conversationEventIdSchema = {
+  type: "string",
+  pattern: "^cve_[a-f0-9]{64}$",
+} as const;
+
+export const conversationParticipationPolicyIdSchema = {
+  type: "string",
+  pattern: "^cpp_[a-f0-9]{64}$",
+} as const;
+
+export const conversationParticipationDecisionIdSchema = {
+  type: "string",
+  pattern: "^cpd_[a-f0-9]{64}$",
+} as const;
+
+export const conversationOutboundIdSchema = {
+  type: "string",
+  pattern: "^cvo_[a-f0-9]{64}$",
+} as const;
+
 export const writingPolicyIdSchema = {
   type: "string",
   pattern: "^writing_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",

@@ -1,0 +1,85 @@
+[
+  {
+    "name": "conversation event with raw source key",
+    "schema": "conversationInboundEvent",
+    "value": {
+      "schemaVersion": 1,
+      "eventId": "cve_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceEventKey": "native-message-secret",
+      "sourceEventKeyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target": {
+        "integrationId": "itg_native001",
+        "projectId": "prj_project01",
+        "conversationId": "cnv_general01",
+        "threadId": null
+      },
+      "kind": "message.created",
+      "actor": { "kind": "human", "participantId": "ptc_human001", "roleId": null },
+      "content": {
+        "artifactId": "art_message01",
+        "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "byteCount": 18,
+        "mediaType": "text/plain; charset=utf-8"
+      },
+      "mentions": { "roleIds": [], "participantIds": [] },
+      "replyToEventId": null,
+      "signalCode": null,
+      "automationDepth": 0,
+      "occurredAt": "2026-08-20T00:00:00.000Z"
+    }
+  },
+  {
+    "name": "conversation message carrying a signal code",
+    "schema": "conversationInboundEvent",
+    "value": {
+      "schemaVersion": 1,
+      "eventId": "cve_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceEventKeyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "target": {
+        "integrationId": "itg_native001",
+        "projectId": "prj_project01",
+        "conversationId": "cnv_general01",
+        "threadId": null
+      },
+      "kind": "message.created",
+      "actor": { "kind": "human", "participantId": "ptc_human001", "roleId": null },
+      "content": {
+        "artifactId": "art_message01",
+        "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "byteCount": 18,
+        "mediaType": "text/plain; charset=utf-8"
+      },
+      "mentions": { "roleIds": [], "participantIds": [] },
+      "replyToEventId": null,
+      "signalCode": "review.requested",
+      "automationDepth": 0,
+      "occurredAt": "2026-08-20T00:00:00.000Z"
+    }
+  },
+  {
+    "name": "conversation outbound without chat publication surface",
+    "schema": "conversationOutboundMessage",
+    "value": {
+      "schemaVersion": 1,
+      "outboundId": "cvo_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sourceEventId": "cve_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policyId": "cpp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target": {
+        "integrationId": "itg_native001",
+        "projectId": "prj_project01",
+        "conversationId": "cnv_general01",
+        "threadId": null
+      },
+      "actor": { "kind": "agent", "participantId": "ptc_agent001", "roleId": "role_reviewer" },
+      "content": {
+        "artifactId": "art_response1",
+        "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "byteCount": 21,
+        "mediaType": "text/plain; charset=utf-8"
+      },
+      "publicationPermit": null,
+      "automationDepth": 1,
+      "createdAt": "2026-08-20T00:00:01.000Z"
+    }
+  }
+]
