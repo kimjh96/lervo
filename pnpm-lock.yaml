@@ -32,6 +32,9 @@ importers:
       '@lervo/context':
         specifier: workspace:*
         version: link:../../packages/context
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
@@ -47,6 +50,9 @@ importers:
       '@lervo/skills':
         specifier: workspace:*
         version: link:../../packages/skills
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../../packages/writing
 
   packages/adapter-claude:
     dependencies:
@@ -250,6 +256,25 @@ importers:
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
+    devDependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+
+  packages/writing:
+    dependencies:
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
     devDependencies:
       '@lervo/cas':
         specifier: workspace:*

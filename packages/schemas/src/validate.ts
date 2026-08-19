@@ -35,7 +35,9 @@ import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-co
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
 import { verificationResultSchema, verificationSuiteSchema } from "./verification.js";
-import { writingContractSchema, writingEvaluationSchema } from "./writing.js";
+import { writingContractSchema } from "./writing.js";
+import { writingEvaluationSchema } from "./writing-evaluation.js";
+import { writingPublicationPermitSchema } from "./writing-publication.js";
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 ajv.addFormat("date-time", {
@@ -80,6 +82,7 @@ const validators = {
   managedBlockPatchCandidateArtifact: ajv.compile(managedBlockPatchCandidateArtifactSchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
+  writingPublicationPermit: ajv.compile(writingPublicationPermitSchema),
   verificationSuite: ajv.compile(verificationSuiteSchema),
   verificationResult: ajv.compile(verificationResultSchema),
 } satisfies Record<string, ValidateFunction>;

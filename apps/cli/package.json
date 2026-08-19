@@ -16,10 +16,12 @@
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
     "@lervo/context": "workspace:*",
+    "@lervo/core": "workspace:*",
     "@lervo/orchestrator": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
     "@lervo/schemas": "workspace:*",
-    "@lervo/skills": "workspace:*"
+    "@lervo/skills": "workspace:*",
+    "@lervo/writing": "workspace:*"
   }
 }

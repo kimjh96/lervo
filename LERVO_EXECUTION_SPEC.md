@@ -362,7 +362,7 @@ Provider 종료와 실행 후 snapshot까지 성공하면 coordinator가 결과 
 
 경로는 storage와 provider를 열기 전에 공통 상대 경로 계약으로 정규화합니다. Application service는 project storage를 열고 manifest와 document registry를 검증한 뒤, 같은 artifact store를 context delivery, adapter CAS resolver와 provider result 저장에 사용합니다. 현재 고정 `developer` Role은 root `AGENTS.md`의 E3를 요구하고 한 파일 managed write만 허용합니다. Project policy schema가 아직 없으므로 이 Role을 사용자 설정에서 읽었다고 기록하지 않습니다.
 
-정상 결과는 검증된 변경 경로와 provider 결과를 로컬 stdout 또는 JSON으로 반환합니다. Raw 작업 문장과 결과는 event에 복제하지 않습니다. Project verification command와 writing 의미 검사는 아직 실행하지 않으므로 둘 다 `not_run`으로 표시하며 공개 승인이나 E4로 해석하지 않습니다.
+정상 run은 검증된 변경 경로를 반환합니다. Project verification command는 아직 연결하지 않아 `not_run`으로 표시합니다. Provider 결과는 같은 CAS의 writing 공개 경계가 결정적 검사와 별도 의미 평가를 실행하고 content-bound permit를 만든 경우에만 stdout 또는 JSON에 포함합니다. 의미 평가기가 없거나 실패하면 변경과 `run.completed`는 유지하지만 결과 원문은 `null`로 두고 종료 코드 1을 반환합니다. Raw 작업 문장과 결과, 의미 평가기의 오류 본문은 event에 복제하지 않으며 writing 통과는 E4를 뜻하지 않습니다.
 
 성공과 실패 모두 adapter 수명주기가 끝난 뒤 project storage를 닫습니다. 실행 실패와 storage 정리 실패가 겹치면 CLI는 `cleanup_failed`를 반환하고 두 로컬 원인을 cause로만 보존합니다. 새 event나 개인정보 필드는 추가하지 않습니다. 자세한 결정은 [ADR-0015](./docs/adr/0015-lervo-run-cli-vertical-slice.md)에 정의합니다.
 
@@ -468,6 +468,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 - verification suite/result: shell 없는 명령·인자·상대 cwd·실행 한도와 suite/repository snapshot에 결속된 명령별 상태·CAS output 좌표
 - writing policy: 독자와 surface, 정보 순서, 문장·문단·용어·행동·근거 규칙, 필수 결정적/의미 검사
 - writing evaluation: artifact/content hash, 검사자와 별도 의미 검사 단계, 검사별 상태, 전체 공개 가능 상태
+- writing publication permit: 공개 surface, policy ID/hash, artifact ID/content hash와 evaluation ID/hash
 
 E3 쓰기 게이트는 `selected`, 같은 hash의 `loaded`, 같은 context generation의 controlled `injected`가 모두 있어야 통과합니다. receipt 하나가 다른 단계를 대신할 수 없습니다. 구체적인 기본값은 [ADR-0001](./docs/adr/0001-m0-contracts-and-data-defaults.md)에 정의합니다.
 
@@ -497,6 +498,19 @@ Suite 원본은 `.lervo/verifications/<suiteId>.yaml`에 하나씩 둡니다. �
 - 의미 검사: 한국어가 자연스러운지, 문단 맥락이 이어지는지, 독자가 이해할 말인지, 결과와 다음 행동이 구체적인지를 생성과 분리된 모델 또는 사람이 평가합니다.
 
 결정적 검사는 자연스러움을 증명하지 않습니다. 의미 검사가 실행되지 않은 상태도 통과로 보지 않습니다. 정책 ID, artifact ID, content hash, locale가 평가 대상과 다르거나 필수 검사 하나라도 실패하면 `writing_verification_failed`로 공개를 막습니다. 평가 기록에는 원문을 복제하지 않고 hash, 상태, 위반 수와 evidence digest만 저장합니다.
+
+`@lervo/writing`의 공개 판정 순서는 다음과 같습니다.
+
+1. Provider 결과 CAS bytes를 다시 읽고 media type, artifact ID·URI, content hash, byte count와 손실 없는 UTF-8을 확인합니다.
+2. 결정적 검사가 모두 통과한 경우에만 별도 `WritingSemanticEvaluator` port에 원문과 필수 의미 검사 요구를 전달합니다.
+3. 의미 평가기가 없거나 호출 실패, 중복·누락 검사, 모순된 상태를 반환하면 의미 검사 결과를 `not_run`으로 만들고 공개를 차단합니다. 평가기 예외 원문은 기록하지 않습니다.
+4. `WritingEvaluation`의 필수 검사 집합, 검사자 단계, 파생 전체 상태와 content-addressed evaluation ID를 검증하고 canonical JSON을 CAS에 저장한 뒤 다시 읽습니다.
+5. 모든 검사가 통과했을 때만 surface, policy ID/hash, artifact ID/content hash와 evaluation ID/hash에 결속된 `WritingPublicationPermit`를 만듭니다.
+6. 실제 원문을 읽는 경계는 permit, 현재 policy, 평가 JSON과 두 CAS artifact를 다시 검증합니다. 다른 surface·정책·평가·내용에는 permit를 재사용할 수 없습니다.
+
+공개 판정 상태는 `allowed`와 `blocked`입니다. 의미 평가 시도 상태는 `completed`, `not_run`, `failed`, `invalid`로 따로 남겨 실행하지 않은 검사를 실패 응답과 혼용하지 않습니다. `blocked`는 `failure=writing_verification_failed`, `permit=null`, `content=null`, 누락·실패한 check ID와 좌표 불일치 여부를 가집니다. `allowed`만 원문과 permit를 가집니다.
+
+평가 artifact에는 policy/artifact 좌표, 검사자 ID, 검사별 상태·위반 수·evidence digest와 시각만 저장합니다. 원문, prompt, provider payload와 의미 평가기의 오류 본문은 넣지 않습니다. 이번 단계는 새 event를 추가하지 않습니다. 따라서 평가 CAS나 permit가 존재해도 Hub 전송, shared context 발행, 다른 역할의 적재·주입 또는 E4를 뜻하지 않습니다. CLI는 이 공개 경계를 사용하지만 고정 `developer` Role의 `writingPolicy=null`은 그대로이므로, 생성 전에 정책 원문을 provider에게 주입했다고 주장하지 않습니다. 세부 결정은 [ADR-0025](./docs/adr/0025-writing-publication-gate.md)에 정의합니다.
 
 ## 스킬 해석과 사용 기록
 

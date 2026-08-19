@@ -23,7 +23,8 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
     : outcome.resolvedSkills
       .map((skill) => `  ${skill.skillId}@${skill.version} (${skill.sourceKind})`)
       .join("\n");
-  return [
+  const publication = outcome.writingPublication;
+  const lines = [
     `Managed run을 완료했습니다. provider: ${outcome.provider}`,
     `runId: ${outcome.runId}`,
     "검증된 변경:",
@@ -32,11 +33,20 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
     skills,
     "이 기록은 스킬을 호출하거나 사용했다는 뜻이 아닙니다.",
     "기능 검증: 실행하지 않음",
-    "Writing 공개 검증: 실행하지 않음",
-    "",
-    "Provider 결과:",
-    outcome.resultContent,
-  ].join("\n").concat("\n");
+    `Writing 공개 검증: ${publication.status === "allowed" ? "통과" : "실패"}`,
+  ];
+  if (publication.status === "allowed") {
+    lines.push("", "Provider 결과:", publication.content);
+  } else {
+    lines.push("Provider 결과는 공개하지 않았습니다.");
+    if (publication.failedChecks.length > 0) {
+      lines.push(`실패한 검사: ${publication.failedChecks.join(", ")}`);
+    }
+    if (publication.missingChecks.length > 0) {
+      lines.push(`완료되지 않은 검사: ${publication.missingChecks.join(", ")}`);
+    }
+  }
+  return lines.join("\n").concat("\n");
 }
 
 export async function runManagedCommand(
@@ -95,7 +105,7 @@ export async function runManagedCommand(
         ? `${JSON.stringify(outcome, null, 2)}\n`
         : formatRunOutcome(outcome),
     );
-    return 0;
+    return outcome.writingPublication.status === "allowed" ? 0 : 1;
   } catch (error) {
     const failure = {
       code: errorCode(error),

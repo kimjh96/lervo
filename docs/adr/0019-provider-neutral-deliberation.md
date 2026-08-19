@@ -46,9 +46,9 @@ Raw prompt, 내부 추론, 전체 대화, tool input과 provider payload는 arti
 
 M5에서 다음 순서로 구현합니다.
 
-1. Project verification command와 provider-neutral result artifact
-2. Writing verification과 공개 gate
-3. Deliberation artifact와 policy schema
+1. Project verification command와 provider-neutral result artifact — [ADR-0024](./0024-provider-neutral-project-verification.md)에서 완료
+2. Writing verification과 공개 gate — [ADR-0025](./0025-writing-publication-gate.md)에서 완료
+3. Deliberation artifact와 policy schema — 다음 작업
 4. 동일 provider의 두 역할 contract fixture
 5. Codex·Claude 교차 검토 fixture
 6. Knowledge candidate와 trace/doctor 연결

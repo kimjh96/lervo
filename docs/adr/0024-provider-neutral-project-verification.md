@@ -53,4 +53,4 @@ stdout와 stderr는 명령별 독립 CAS artifact로 저장합니다. `Verificat
 
 ## 결과
 
-Codex와 Claude가 어떤 명령을 실행했는지와 무관하게 같은 프로젝트 검증기를 사용할 수 있습니다. 실패·미실행·취소를 성공과 구분하고, 원문 로그를 event에 복제하지 않은 채 결과를 repository snapshot과 suite에 결속할 수 있습니다. 다음 단계의 writing 공개 gate와 숙의는 이 결과 계약을 공통 검증 근거로 사용합니다.
+Codex와 Claude가 어떤 명령을 실행했는지와 무관하게 같은 프로젝트 검증기를 사용할 수 있습니다. 실패·미실행·취소를 성공과 구분하고, 원문 로그를 event에 복제하지 않은 채 결과를 repository snapshot과 suite에 결속할 수 있습니다. Writing 공개 gate는 [ADR-0025](./0025-writing-publication-gate.md)에서 구현했으며, 다음 숙의 단계는 두 결과 계약을 공통 검증 근거로 사용합니다.

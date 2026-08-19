@@ -31,20 +31,20 @@ CLI argument 처리와 출력은 `run-command`가, provider-neutral 실행 조�
 2. 요청한 스킬을 해석해 lock을 기록하고 선택 결과를 고정 Role에 결속합니다.
 3. 선택한 provider adapter에 같은 artifact store의 read port를 연결합니다.
 4. Run/session/event/context ID와 고정 Role policy digest를 만들고 `ManagedProviderRunCoordinator`를 실행합니다.
-5. Coordinator가 검증해 CAS에 저장한 결과를 같은 artifact store에서 읽습니다.
+5. Coordinator가 검증해 CAS에 저장한 결과를 writing 공개 gate에 전달하고, permit가 생긴 경우에만 같은 artifact store에서 공개 원문을 읽습니다.
 6. 성공과 실패 모두 project storage를 닫은 뒤 결과 또는 오류를 반환합니다.
 
 실행 실패와 storage 종료 실패가 겹치면 `cleanup_failed`가 대표 CLI 오류가 되고 두 원인은 로컬 `AggregateError`에만 보존합니다. Provider 시작 실패 뒤에도 adapter와 storage가 닫혔는지 fixture에서 확인합니다. Application service의 storage, adapter와 ID factory는 좁은 dependency port로 교체할 수 있어 CLI 테스트가 실제 외부 provider process에 의존하지 않습니다.
 
 ### 출력과 증거
 
-성공 출력은 provider, run ID, 검증된 변경 경로, provider 결과와 두 검증 상태를 표시합니다. 현재 project verification과 writing 의미 검사를 실행하지 않으므로 각각 `실행하지 않음` 또는 `not_run`으로 표시합니다. 결과를 로컬 터미널에 보여주는 것은 공개 승인이나 E4를 뜻하지 않습니다.
+이 ADR의 첫 슬라이스는 provider, run ID, 검증된 변경 경로, provider 결과와 두 검증 상태를 표시했고 두 검사를 `not_run`으로 두었습니다. 후속 [ADR-0025](./0025-writing-publication-gate.md)는 project verification을 `not_run`으로 유지하면서 writing 평가와 공개 permit를 application service에 추가했습니다. 현재 provider 원문은 permit가 있을 때만 표시하며, 의미 평가가 없거나 실패하면 변경을 유지하되 원문을 숨기고 종료 코드 1을 반환합니다. Writing 통과도 E4를 뜻하지 않습니다.
 
-JSON 출력은 같은 로컬 결과와 artifact 좌표를 포함합니다. Raw request와 provider 결과는 기존 규칙대로 event에 넣지 않으며 각각 digest와 artifact ID만 남깁니다. 새 event type이나 payload field는 추가하지 않습니다. 직접 실행한 다른 provider process의 변경은 이 명령의 run으로 가져오지 않으며 계속 `unmanaged`입니다.
+JSON 출력은 artifact 좌표와 writing 공개 판정을 포함하며, 차단 상태의 `content`는 `null`입니다. Raw request와 provider 결과는 기존 규칙대로 event에 넣지 않으며 각각 digest와 artifact ID만 남깁니다. 새 event type이나 payload field는 추가하지 않습니다. 직접 실행한 다른 provider process의 변경은 이 명령의 run으로 가져오지 않으며 계속 `unmanaged`입니다.
 
 ## 결과
 
 - 사용자는 초기화된 저장소에서 Codex와 Claude의 동일한 한 파일 managed run을 실행할 수 있습니다.
 - CLI가 context 선택, permit, snapshot과 결과 저장 규칙을 복제하지 않고 기존 coordinator를 그대로 사용합니다.
-- 기능 검증과 writing 검증이 아직 없다는 상태를 성공으로 오인하지 않습니다.
+- 기능 검증은 계속 `not_run`으로 구분하고 writing 검증의 미실행·실패는 결과 공개 성공으로 오인하지 않습니다.
 - Codex/Claude fixture는 `AGENTS.md` E3, 한 파일 `file.changed`, 결과 CAS, 원문 비보존과 자원 정리를 전체 CLI 경로에서 검증합니다.

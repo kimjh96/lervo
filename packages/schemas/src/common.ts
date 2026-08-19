@@ -77,6 +77,11 @@ export const writingEvaluationIdSchema = {
   pattern: "^wre_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const writingPublicationPermitIdSchema = {
+  type: "string",
+  pattern: "^wpp_[a-f0-9]{16}$",
+} as const;
+
 export const verificationIdSchema = {
   type: "string",
   pattern: "^ver_[a-f0-9]{16}$",

@@ -16,6 +16,7 @@ import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import { validateSchema, type SkillManifest } from "@lervo/schemas";
 import { hashSkillPackage } from "@lervo/skills";
+import type { WritingSemanticEvaluator } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
@@ -294,6 +295,19 @@ function identifierFactory(): (prefix: "run" | "ses" | "evt" | "ctx" | "envelope
   return (prefix) => `${prefix}_cli${String(++sequence).padStart(8, "0")}`;
 }
 
+const passingSemanticEvaluator: WritingSemanticEvaluator = {
+  async evaluate(request) {
+    return {
+      evaluator: { kind: "model", evaluatorId: "fixture.cli-korean-review.v1" },
+      checks: request.checks.map((check) => ({
+        checkId: check.checkId,
+        status: "passed" as const,
+        violationCount: 0,
+      })),
+    };
+  },
+};
+
 afterEach(async () => {
   await Promise.all(
     temporaryRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
@@ -312,6 +326,7 @@ describe("lervo run vertical slice", () => {
       const executeManagedRun = createManagedRunExecutor({
         openStorage: openProjectStorage,
         createId: identifierFactory(),
+        semanticEvaluator: passingSemanticEvaluator,
         createAdapter: ({ repositoryRoot, resolveArtifact }) =>
           provider === "codex"
             ? new CodexAdapter({
@@ -343,6 +358,7 @@ describe("lervo run vertical slice", () => {
       expect(errorOutput).toBe("");
       expect(output).toContain("CLI 작업 완료");
       expect(output).toContain("기능 검증: 실행하지 않음");
+      expect(output).toContain("Writing 공개 검증: 통과");
       expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
         .toBe("export const cli = true;\n");
       expect(client.closed).toBe(true);
@@ -359,6 +375,44 @@ describe("lervo run vertical slice", () => {
     },
   );
 
+  it("keeps the completed change but hides provider prose when semantic review is unavailable", async () => {
+    const root = await createRepository();
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      now: () => new Date("2026-08-19T00:00:00Z"),
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({
+          repositoryRoot,
+          resolveArtifact,
+          clientFactory: async () => client,
+        }),
+    });
+    let output = "";
+    let errorOutput = "";
+    const exitCode = await runCli(
+      ["run", "--provider", "codex", "--path", "src/result.ts", "작은 파일을 구현합니다"],
+      {
+        cwd: root,
+        stdout: (message) => { output += message; },
+        stderr: (message) => { errorOutput += message; },
+      },
+      { executeManagedRun },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(errorOutput).toBe("");
+    expect(output).toContain("Writing 공개 검증: 실패");
+    expect(output).toContain("Provider 결과는 공개하지 않았습니다.");
+    expect(output).not.toContain("CLI 작업 완료");
+    expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
+      .toBe("export const cli = true;\n");
+    const storage = await openProjectStorage(root);
+    expect(storage.events.list().map((event) => event.type)).toContain("run.completed");
+    await storage.close();
+  });
+
   it("locks and records a resolved skill without claiming invocation", async () => {
     const root = await createRepository();
     const skill = await createProjectSkill(root);
@@ -368,6 +422,7 @@ describe("lervo run vertical slice", () => {
     const executeManagedRun = createManagedRunExecutor({
       openStorage: openProjectStorage,
       createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
       userSkillRoot,
       now: () => new Date("2026-08-19T00:00:00Z"),
       createAdapter: ({ repositoryRoot, resolveArtifact }) =>

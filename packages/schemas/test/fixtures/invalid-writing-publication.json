@@ -1,0 +1,33 @@
+[
+  {
+    "name": "writing publication permit requires evaluation binding",
+    "schema": "writingPublicationPermit",
+    "value": {
+      "schemaVersion": 1,
+      "permitId": "wpp_0123456789abcdef",
+      "surface": "chat",
+      "artifactId": "art_01234567",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluationId": "wre_01234567",
+      "issuedAt": "2026-08-19T00:00:00Z"
+    }
+  },
+  {
+    "name": "writing publication permit rejects unknown surface",
+    "schema": "writingPublicationPermit",
+    "value": {
+      "schemaVersion": 1,
+      "permitId": "wpp_0123456789abcdef",
+      "surface": "terminal_log",
+      "artifactId": "art_01234567",
+      "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evaluationId": "wre_01234567",
+      "evaluationHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "issuedAt": "2026-08-19T00:00:00Z"
+    }
+  }
+]

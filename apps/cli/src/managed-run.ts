@@ -4,6 +4,7 @@ import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
 import { normalizeRepositoryPath } from "@lervo/context";
+import { defaultKoreanWritingContract } from "@lervo/core";
 import {
   ManagedProviderRunCoordinator,
   type ManagedFileChangeEvidence,
@@ -14,8 +15,13 @@ import {
   openProjectStorage,
   type ProjectStorage,
 } from "@lervo/project-storage";
-import type { RoleProfile } from "@lervo/schemas";
+import {
+  evaluateWritingPublication,
+  type WritingPublicationResult,
+  type WritingSemanticEvaluator,
+} from "@lervo/writing";
 
+import { createDeveloperRole } from "./developer-role.js";
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
 
 export type RunProvider = "codex" | "claude";
@@ -35,10 +41,9 @@ export interface ManagedRunOutcome {
   runId: string;
   sessionId: string;
   resultArtifact: ManagedProviderResultArtifact;
-  resultContent: string;
+  writingPublication: WritingPublicationResult;
   managedChanges: ManagedFileChangeEvidence[];
   verificationStatus: "not_run";
-  writingVerificationStatus: "not_run";
   resolvedSkills: readonly ResolvedRunSkill[];
 }
 
@@ -51,6 +56,7 @@ export interface ManagedRunDependencies {
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
   userSkillRoot?: string;
+  semanticEvaluator?: WritingSemanticEvaluator;
   now?: () => Date;
 }
 
@@ -58,57 +64,13 @@ export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedR
 
 export class ManagedRunCommandError extends Error {
   constructor(
-    readonly code: "cleanup_failed" | "result_decode_failed",
+    readonly code: "cleanup_failed",
     message: string,
     options?: ErrorOptions,
   ) {
     super(message, options);
     this.name = "ManagedRunCommandError";
   }
-}
-
-const developerRoleBase: RoleProfile = {
-  schemaVersion: 1,
-  roleId: "developer",
-  name: "Developer",
-  description: "저장소 지침을 읽고 선언된 한 파일을 변경합니다.",
-  requestTypes: ["implementation"],
-  requiredInputs: [],
-  contextPolicy: {
-    requiredDocumentRuleIds: ["repository.instructions"],
-    minimumAssurance: "E3",
-    referencesRequired: true,
-  },
-  capabilities: {
-    "filesystem.read": "allow",
-    "filesystem.write": "allow",
-    "shell.execute": "allow",
-    "network.access": "deny",
-    "external.message": "deny",
-    deploy: "deny",
-    "data.mutate": "deny",
-  },
-  defaultSkills: [],
-  outputContract: {
-    artifactKind: "source_code",
-    schemaRef: "lervo-schema://run/source-code/v1",
-    pathTemplate: "{expectedPath}",
-    citationsRequired: false,
-    presentation: { audience: "machine", writingPolicyId: null },
-  },
-  verification: {
-    suiteIds: ["lervo.v0.not_run"],
-    failureDisposition: "fail_run",
-  },
-  handoff: {
-    allowedRoleIds: [],
-    evidenceLinksRequired: true,
-    sharedContextRequired: true,
-  },
-};
-
-function developerRole(skillIds: readonly string[]): RoleProfile {
-  return { ...structuredClone(developerRoleBase), defaultSkills: [...skillIds] };
 }
 
 function digest(value: string): string {
@@ -124,18 +86,6 @@ const defaultDependencies: ManagedRunDependencies = {
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
 };
-
-function decodeResult(bytes: Uint8Array): string {
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch (error) {
-    throw new ManagedRunCommandError(
-      "result_decode_failed",
-      "저장된 provider 결과를 UTF-8로 읽을 수 없습니다.",
-      { cause: error },
-    );
-  }
-}
 
 export function createManagedRunExecutor(
   dependencies: ManagedRunDependencies = defaultDependencies,
@@ -154,7 +104,7 @@ export function createManagedRunExecutor(
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
-      const role = developerRole(skillIds);
+      const role = createDeveloperRole(skillIds);
       const resolvedSkills = await resolveRunSkills({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
@@ -207,8 +157,17 @@ export function createManagedRunExecutor(
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
       });
-      const resultContent = decodeResult(
-        await storage.artifacts.get(result.resultArtifact.uri),
+      const writingPublication = await evaluateWritingPublication(
+        {
+          artifact: result.resultArtifact,
+          contract: defaultKoreanWritingContract,
+          surface: "chat",
+          artifactStore: storage.artifacts,
+          ...(dependencies.semanticEvaluator === undefined
+            ? {}
+            : { semanticEvaluator: dependencies.semanticEvaluator }),
+        },
+        dependencies.now === undefined ? {} : { now: dependencies.now },
       );
       outcome = {
         provider: request.provider,
@@ -216,10 +175,9 @@ export function createManagedRunExecutor(
         runId,
         sessionId,
         resultArtifact: result.resultArtifact,
-        resultContent,
+        writingPublication,
         managedChanges: result.managedChanges,
         verificationStatus: "not_run",
-        writingVerificationStatus: "not_run",
         resolvedSkills,
       };
     } catch (error) {

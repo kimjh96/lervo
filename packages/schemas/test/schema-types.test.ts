@@ -19,6 +19,7 @@ import type {
   SkillManifest,
   VerificationResult,
   VerificationSuite,
+  WritingPublicationPermit,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -84,6 +85,15 @@ describe("schema-derived TypeScript contracts", () => {
         "passed" | "failed" | "timed_out" | "output_limit_exceeded" |
         "execution_error" | "cancelled" | "not_run"
       >();
+  });
+
+  it("binds a writing publication permit to policy, evaluation, content, and surface", () => {
+    expectTypeOf<WritingPublicationPermit["surface"]>()
+      .toEqualTypeOf<
+        "readme" | "pull_request" | "issue" | "review_comment" | "status" |
+        "chat" | "documentation" | "commit" | "code_comment"
+      >();
+    expectTypeOf<WritingPublicationPermit["evaluationHash"]>().toEqualTypeOf<string>();
   });
 
   it("requires reviewed sidecars and returns a hash-only apply event payload", () => {

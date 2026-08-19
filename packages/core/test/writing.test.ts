@@ -81,11 +81,12 @@ describe("provider-neutral writing verification", () => {
     ).toMatchObject({
       allowed: false,
       failure: "writing_verification_failed",
-      failedChecks: [
+      missingChecks: expect.arrayContaining([
         "natural_ko-kr_prose",
         "plain_audience_language",
         "direct_result_and_action",
-      ],
+      ]),
+      failedChecks: [],
     });
   });
 

@@ -105,7 +105,7 @@
 - 제공되지 않는 telemetry는 `unknown/unsupported`로 남음
 - 관리 경로 밖 변경은 `unmanaged`로 탐지
 
-구현 현황(2026-08-19): **M3와 `lervo run` 한 파일 CLI 수직 슬라이스 완료.** Codex의 file-change approval과 Claude의 Write/Edit hook을 같은 요청·결정·완료 계약으로 바꾸고, orchestrator의 예상 경로별 1회용 permit에 연결했습니다. 승인 직전 before hash, 완료 직후 after hash, 실행 전후 snapshot이 모두 맞아야 `file.changed`가 되며 추가 변경은 계속 `unmanaged`로 실패합니다. Session은 실행 모드에서 실제 열린 기능을 별도로 기록하고, provider 도구 실행 전 turn 수락을 알리며, 종료 실패 때도 승인·결과 원문 상태를 폐기합니다. `lervo run`은 provider·예상 경로·작업 문장을 받아 검증된 project storage와 coordinator를 실행하고 결과 CAS를 로컬 출력으로 연결합니다. Codex와 Claude fixture가 같은 CLI 경로에서 `AGENTS.md` E3, 한 파일 변경, 결과 원문 비보존과 자원 정리를 통과합니다. 실행하지 않은 project verification과 writing 검사는 `not_run`으로 표시합니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md), [ADR-0014](./docs/adr/0014-managed-adapter-session-hardening.md), [ADR-0015](./docs/adr/0015-lervo-run-cli-vertical-slice.md)에 기록했습니다.
+구현 현황(2026-08-19): **M3와 `lervo run` 한 파일 CLI 수직 슬라이스 완료.** Codex의 file-change approval과 Claude의 Write/Edit hook을 같은 요청·결정·완료 계약으로 바꾸고, orchestrator의 예상 경로별 1회용 permit에 연결했습니다. 승인 직전 before hash, 완료 직후 after hash, 실행 전후 snapshot이 모두 맞아야 `file.changed`가 되며 추가 변경은 계속 `unmanaged`로 실패합니다. Session은 실행 모드에서 실제 열린 기능을 별도로 기록하고, provider 도구 실행 전 turn 수락을 알리며, 종료 실패 때도 승인·결과 원문 상태를 폐기합니다. `lervo run`은 provider·예상 경로·작업 문장을 받아 검증된 project storage와 coordinator를 실행하고 결과 CAS를 로컬 출력으로 연결했습니다. 이 단계 당시 실행하지 않은 두 검사는 `not_run`이었고, writing 공개 상태는 M5의 후속 gate에서 교체했습니다. 결정은 [ADR-0009](./docs/adr/0009-codex-app-server-managed-adapter.md), [ADR-0010](./docs/adr/0010-claude-agent-sdk-managed-adapter.md), [ADR-0011](./docs/adr/0011-managed-provider-run-lifecycle.md), [ADR-0012](./docs/adr/0012-provider-result-artifacts.md), [ADR-0013](./docs/adr/0013-provider-neutral-managed-write-bridge.md), [ADR-0014](./docs/adr/0014-managed-adapter-session-hardening.md), [ADR-0015](./docs/adr/0015-lervo-run-cli-vertical-slice.md)에 기록했습니다.
 
 ### M4: 스킬과 문서 수명주기
 
@@ -171,7 +171,9 @@ M4 완료.
 
 구현 현황(2026-08-19): **Project verification command/result artifact 완료.** `lervo init`은 계속 누적되는 중앙 설정 대신 빈 `.lervo/verifications/`를 만들고, loader는 suite ID별 최대 64 KiB YAML을 안전하게 읽습니다. `@lervo/verification`은 shell 없이 최대 32개 명령을 순차 실행하며 timeout·취소·합산 output 한도와 첫 실패 뒤 `not_run`을 구분합니다. Stdout·stderr와 전체 result JSON은 각각 CAS에 저장하고 다시 확인합니다. 결과는 실행 전후 같은 snapshot port가 확인한 repository hash, suite hash, command digest·exit code·시간·artifact 좌표에 묶이며 의미 검증기가 전체 상태와 ID를 다시 계산합니다. 실패 결과의 상태만 `passed`로 바꾼 조작, snapshot 불일치·실행 중 변경, 미실행 명령, symlink cwd, timeout·과다 output과 CAS 불일치를 실제 subprocess fixture로 검증했습니다. 아직 `lervo run`과 verification event에는 연결하지 않아 CLI는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록했습니다.
 
-다음 구현 순서: **writing 공개 gate**입니다.
+구현 현황(2026-08-19): **Writing 공개 gate 완료.** `@lervo/writing`은 provider 결과 artifact의 CAS bytes와 좌표를 다시 확인하고, 결정적 검사와 생성 경로에서 분리된 의미 평가 port를 순서대로 실행합니다. 평가기는 필수 검사 전체를 정확히 한 번 반환해야 하며 누락, 중복, 예외와 미구성은 통과로 추정하지 않습니다. 평가 canonical JSON은 원문 없이 CAS에 저장하고 다시 확인합니다. 통과한 결과만 policy·evaluation·content·surface hash에 결속된 permit를 만들며, 재사용 시 모든 좌표를 다시 검증합니다. `lervo run`은 이 경계를 통과한 결과만 stdout/JSON에 포함합니다. 의미 평가기가 없는 기본 실행은 파일 변경과 `run.completed`를 유지하지만 원문을 숨기고 종료 코드 1을 반환합니다. 이 단계에서는 writing policy를 생성 전에 주입하지 않으므로 사후 평가만 증명합니다. 결정은 [ADR-0025](./docs/adr/0025-writing-publication-gate.md)에 기록했습니다.
+
+다음 구현 순서: **숙의 artifact와 policy schema**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -276,4 +278,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M5 writing 공개 gate**입니다. 기존 결정적 writing 검사와 분리된 의미 평가가 provider 결과 artifact의 정확한 ID·content hash에 결속됐는지 확인하고, 필수 검사가 실행되지 않았거나 실패한 사람 대상 산출물은 CLI·shared context·숙의 artifact의 공개 경계를 통과하지 못하게 해야 합니다.
+다음 구현 작업은 **M5 숙의 artifact와 policy schema**입니다. `proposal`, `objection`, `revision`, `verification`, `decision`의 좌표와 전이, `DeliberationPolicy`, `converged`·`no_consensus`·`failed`의 필수 증거를 먼저 고정합니다. 아직 runtime이 없는 shared context·숙의 publisher는 구현될 때 `@lervo/writing`의 permit 재검증 경계를 통과해야 합니다.

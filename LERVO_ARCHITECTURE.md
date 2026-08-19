@@ -124,7 +124,7 @@ Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다.
 
 최종 답변은 normalized event가 아니라 별도의 `AdapterTurnResult`로 받습니다. Orchestrator가 session/turn 좌표, UTF-8, 4 MiB 한도, hash와 byte count를 검증하고 provider 종료와 snapshot 성공 뒤 로컬 CAS에 저장합니다. CAS를 다시 읽어 같은 bytes인지 확인한 뒤에만 `run.completed`에 content hash와 artifact ID를 기록합니다. 원문과 CAS URI는 event에 넣지 않습니다. 이 결과 artifact는 writing 검증이나 공개 승인을 뜻하지 않습니다. `lervo run` CLI가 이 실행 계약을 사용자 입력과 local storage bootstrap에 연결합니다.
 
-현재 `lervo run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator와 같은 CAS를 한 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 작업 문장과 위험도만 받습니다. 성공과 실패 모두 storage를 닫고, CAS에서 다시 읽은 결과와 검증된 한 파일 변경을 출력합니다. Project verification과 writing 의미 검사는 아직 실행하지 않으므로 두 상태를 `not_run`으로 명시합니다. 명령 파싱·출력, 실행 조합과 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
+현재 `lervo run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator와 같은 CAS를 한 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 작업 문장과 위험도만 받습니다. 성공과 실패 모두 storage를 닫습니다. Project verification은 아직 `not_run`입니다. Provider 결과는 `@lervo/writing`이 결정적 검사와 별도 의미 평가를 실행해 공개 permit를 만든 경우에만 출력하며, 기본 실행처럼 의미 평가기가 없으면 변경과 `run.completed`는 유지하되 원문은 숨기고 실패 상태로 종료합니다. 명령 파싱·출력, 실행 조합과 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
 
 파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 
@@ -212,6 +212,10 @@ Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. 일반
 테스트와 타입 검사뿐 아니라 사람이 읽는 산출물의 writing 계약도 검증합니다. 사람 대상 산출물은 Role이 지정한 언어와 writing 정책에 연결됩니다. 정책에는 독자, 정보 순서, 문장과 문단 원칙, 용어 설명, 행동 표현, 근거 제시 방법이 포함됩니다.
 
 명백한 금지 표현과 빈 섹션은 결정적 검사로 찾습니다. 한국어가 자연스럽고 문단 맥락이 이어지는지는 정규식 통과로 추정하지 않습니다. 생성과 분리된 모델 또는 사람의 의미 검사를 거쳐야 하며, 필수 검사 하나라도 실행되지 않았거나 실패하면 공개하지 않습니다. Codex와 Claude는 같은 정책과 같은 공개 게이트를 사용합니다.
+
+`@lervo/writing`은 provider adapter와 CLI 출력 형식을 알지 않습니다. 원문 artifact를 CAS에서 다시 읽어 ID·URI·hash·크기·UTF-8을 확인하고, 결정적 검사 뒤 좁은 `WritingSemanticEvaluator` port를 호출합니다. 의미 평가기가 없거나 예외를 내거나 필수 검사 집합과 다른 응답을 내면 의미 검사를 `not_run`으로 남기고 통과로 추정하지 않습니다. 평가 JSON은 원문 없이 CAS에 저장합니다.
+
+통과 시 만드는 `WritingPublicationPermit`는 surface, artifact ID/content hash, writing policy ID/hash와 evaluation ID/hash에 결속됩니다. `readPublishableWritingArtifact`는 policy, 평가, CAS bytes와 permit ID를 모두 다시 계산한 뒤에만 원문을 반환합니다. CLI가 이 경계를 사용하며, 아직 runtime이 없는 shared context·숙의 publisher도 이후 같은 경계를 사용해야 합니다. Writing 평가와 permit는 이번 단계에서 새 event로 기록하지 않으므로 다른 역할이 읽었거나 Hub에 공개됐다고 주장하지 않습니다. 결정은 [ADR-0025](./docs/adr/0025-writing-publication-gate.md)에 기록합니다.
 
 ### Evidence Recorder
 
@@ -337,6 +341,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 검증 결과와 writing 평가를 실제 공개 시점에 강제하는 gate입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `adapter-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`)으로 나뉩니다. 다음 범위는 숙의 artifact와 policy schema입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.
