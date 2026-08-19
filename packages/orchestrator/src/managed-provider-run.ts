@@ -4,6 +4,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
+  type ContextEvidence,
 } from "@lervo/schemas";
 
 import { ManagedContextRun } from "./managed-context-run.js";
@@ -99,6 +100,7 @@ interface ManagedProviderRunExecutionState {
   after?: RepositorySnapshot;
   turnResult?: AdapterTurnResult;
   resultArtifact?: ManagedProviderRunResult["resultArtifact"];
+  contextEvidence?: readonly ContextEvidence[];
   writeBridge?: ManagedProviderWriteBridge;
 }
 
@@ -200,7 +202,7 @@ export class ManagedProviderRunCoordinator {
       monitor.throwIfFailed();
 
       phase = "context_inject";
-      await this.context.injectContext({
+      const injected = await this.context.injectContext({
         session: state.session,
         writingPolicy: input.writingPolicy,
         targetTurnId: input.targetTurnId,
@@ -216,6 +218,7 @@ export class ManagedProviderRunCoordinator {
           : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
         now: () => this.date(),
       });
+      state.contextEvidence = copy(injected.evidence);
       monitor.throwIfFailed();
 
       phase = "write_bridge";
@@ -366,7 +369,8 @@ export class ManagedProviderRunCoordinator {
       state.turn === undefined ||
       state.resultArtifact === undefined ||
       state.before === undefined ||
-      state.after === undefined
+      state.after === undefined ||
+      state.contextEvidence === undefined
     ) {
       throw new ManagedProviderRunError(
         "contract_validation_failed",
@@ -382,6 +386,7 @@ export class ManagedProviderRunCoordinator {
       turn: copy(state.turn),
       terminalEventId: terminal.eventId,
       resultArtifact: copy(state.resultArtifact),
+      contextEvidence: copy(state.contextEvidence),
       managedChanges: state.writeBridge?.evidence() ?? [],
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,

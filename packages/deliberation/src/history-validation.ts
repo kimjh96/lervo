@@ -69,3 +69,11 @@ export function analyzeDeliberationHistory(input: {
     decision: state.decision,
   };
 }
+
+export function validateDeliberationHistory(input: {
+  policy: DeliberationPolicy;
+  artifacts: readonly DeliberationArtifact[];
+  verificationEvidence: readonly DeliberationVerificationEvidence[];
+}): void {
+  analyzeDeliberationHistory(input);
+}

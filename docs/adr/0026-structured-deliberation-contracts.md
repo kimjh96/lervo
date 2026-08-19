@@ -25,7 +25,7 @@ Artifact 공통 metadata는 deliberation/project/policy 좌표, 회차, 생산 r
 
 ## Event 계약
 
-Runtime이 사용할 이름과 허용 payload를 미리 고정합니다. [ADR-0027](./0027-deliberation-boundary-hardening.md)에서 각 payload의 필수 필드와 상태별 규칙을 JSON Schema로 추가했습니다. 이번 단계는 event를 발행하거나 저장하지 않습니다.
+Runtime이 사용할 이름과 허용 payload를 미리 고정합니다. [ADR-0027](./0027-deliberation-boundary-hardening.md)에서 각 payload의 필수 필드와 상태별 규칙을 JSON Schema로 추가했고, [ADR-0028](./0028-same-provider-deliberation-runtime.md)에서 첫 영속 경로를 연결했습니다.
 
 | event | 허용 payload |
 |---|---|
@@ -37,7 +37,7 @@ Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input
 
 ## 보장하지 않는 것
 
-Artifact에 receipt ID와 shared context ID가 있다는 사실만으로 실제 E2/E3 내용이나 publication 접근이 검증됐다고 주장하지 않습니다. 다음 runtime fixture가 context/event 저장소의 원본과 대조해야 합니다. Schema와 의미 검증 통과도 provider 실행, event 영속, 사람 대상 공개, Hub 전송이나 지식 승격을 뜻하지 않습니다.
+Artifact에 receipt ID와 shared context ID가 있다는 사실만으로 실제 E2/E3 내용이나 publication 접근이 검증됐다고 주장하지 않습니다. `@lervo/deliberation-runtime`이 context/event 저장소의 원본과 대조해야 합니다. Schema와 의미 검증 통과도 provider 실행, event 영속, 사람 대상 공개, Hub 전송이나 지식 승격을 뜻하지 않습니다.
 
 ## 관심사 분리
 

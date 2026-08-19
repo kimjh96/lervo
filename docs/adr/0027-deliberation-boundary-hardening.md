@@ -51,4 +51,4 @@ Artifact 종류는 영속 프로토콜이므로 임의 plugin registry로 열지
 
 ## 결과
 
-숙의 의미 계층이 실행기와 저장 구현에서 분리됐고, 다음 orchestrator가 의존해도 writing/verification 실행 패키지를 역으로 끌어오지 않습니다. 이력 검증의 종류별 변경 범위와 실패 진단이 작아졌으며, event 영속 전 필수 좌표를 검증할 수 있습니다. 다음 단계는 이 경계를 사용하는 단일 provider 두 역할 runtime contract fixture입니다.
+숙의 의미 계층이 실행기와 저장 구현에서 분리됐고, orchestrator가 의존해도 writing/verification 실행 패키지를 역으로 끌어오지 않습니다. 이력 검증의 종류별 변경 범위와 실패 진단이 작아졌으며, event 영속 전 필수 좌표를 검증할 수 있습니다. 이 경계를 사용하는 단일 provider 두 역할 runtime contract fixture는 [ADR-0028](./0028-same-provider-deliberation-runtime.md)에서 완료했습니다.

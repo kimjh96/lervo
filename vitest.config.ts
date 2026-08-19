@@ -14,6 +14,7 @@ export default defineConfig({
       "@lervo/context": fromRoot("./packages/context/src/index.ts"),
       "@lervo/context-delivery": fromRoot("./packages/context-delivery/src/index.ts"),
       "@lervo/deliberation": fromRoot("./packages/deliberation/src/index.ts"),
+      "@lervo/deliberation-runtime": fromRoot("./packages/deliberation-runtime/src/index.ts"),
       "@lervo/core": fromRoot("./packages/core/src/index.ts"),
       "@lervo/documents": fromRoot("./packages/documents/src/index.ts"),
       "@lervo/event-contract": fromRoot("./packages/event-contract/src/index.ts"),

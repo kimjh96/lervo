@@ -14,9 +14,17 @@ export const eventPayloadAllowlists = {
   "run.completed": ["resultDigest", "artifactIds", "verificationStatus"],
   "run.failed": ["failureCode", "retryable", "diagnosticDigest"],
   "context.selected": ["documentId", "reasonCode", "ruleId", "required", "scope"],
-  "document.loaded": ["documentId", "contentHash", "byteCount", "scope", "sourceRevision"],
+  "document.loaded": [
+    "evidenceReceiptId",
+    "documentId",
+    "contentHash",
+    "byteCount",
+    "scope",
+    "sourceRevision"
+  ],
   "context.injected": [
     "receiptId",
+    "evidenceReceiptIds",
     "envelopeId",
     "documentIds",
     "targetTurnId",

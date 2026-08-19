@@ -33,6 +33,7 @@ export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSp
         occurredAt: evidence.recordedAt,
         actor: systemActor,
         payload: {
+          evidenceReceiptId: evidence.receiptId,
           documentId: evidence.documentId,
           contentHash: evidence.contentHash,
           byteCount: evidence.byteCount,
@@ -51,6 +52,7 @@ export function injectedContextEventSpec(injected: InjectedContext): ManagedEven
     actor: { kind: "provider", provider: injected.receipt.provider },
     payload: {
       receiptId: injected.receipt.receiptId,
+      evidenceReceiptIds: injected.e3Evidence.map((evidence) => evidence.receiptId),
       envelopeId: injected.envelope.envelopeId,
       documentIds: injected.envelope.documents.map((document) => document.documentId),
       targetTurnId: injected.envelope.targetTurnId,

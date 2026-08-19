@@ -92,6 +92,31 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain("cat .env");
   });
 
+  it("keeps E2 and E3 evidence receipt coordinates without document content", () => {
+    const loaded = sanitizeEventPayload("document.loaded", {
+      evidenceReceiptId: "ctx_loaded_00000001",
+      documentId: "doc_context_00000001",
+      contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      byteCount: 42,
+      scope: { mode: "full" },
+      sourceRevision: "fixture-v1",
+      documentBody: "private body",
+    });
+    const injected = sanitizeEventPayload("context.injected", {
+      receiptId: "ctx_adapter_00000001",
+      evidenceReceiptIds: ["ctx_injected_000001"],
+      envelopeId: "env-context-1",
+      documentIds: ["doc_context_00000001"],
+      targetTurnId: "turn-context-1",
+      contextGeneration: 0,
+      rawContent: "private body",
+    });
+
+    expect(loaded.payload.evidenceReceiptId).toBe("ctx_loaded_00000001");
+    expect(injected.payload.evidenceReceiptIds).toEqual(["ctx_injected_000001"]);
+    expect(JSON.stringify([loaded.payload, injected.payload])).not.toContain("private body");
+  });
+
   it("keeps migration hashes but removes reviewer and source path details", () => {
     const result = sanitizeEventPayload("document.migration.applied", {
       planId: "migp_aaaaaaaaaaaaaaaa",

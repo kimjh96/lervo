@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4 완료, M5 구조화 숙의 계약 완료 (2026-08-19)
+현재 상태: M0·M1·M2·M3·M4 완료, M5 동일 provider 두 역할 숙의 runtime fixture 완료 (2026-08-19)
 
 ## 목표
 
@@ -47,6 +47,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [사람 대상 산출물 공개 gate와 content-bound permit ADR](./docs/adr/0025-writing-publication-gate.md)
 - [구조화된 숙의 계약과 증거 기반 수렴 판정 ADR](./docs/adr/0026-structured-deliberation-contracts.md)
 - [숙의 runtime 전 계약 경계 정리 ADR](./docs/adr/0027-deliberation-boundary-hardening.md)
+- [동일 공급자 역할 격리와 숙의 runtime 증거 결속 ADR](./docs/adr/0028-same-provider-deliberation-runtime.md)
 
 ## 현재 구현
 
@@ -71,10 +72,11 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/adapter-contract`: Codex와 Claude가 같은 역할·writing 정책·turn 수락·session 유효 기능·managed write 요청/결정/완료 계약을 따르도록 강제하는 provider adapter interface와 contract suite
 - `@lervo/adapter-codex`: Codex app-server thread/turn과 controlled context를 관리하고 file-change 승인을 Lervo의 1회용 permit에 연결하는 adapter
 - `@lervo/adapter-claude`: Claude Agent SDK context replay를 검증하고 Write/Edit hook을 Lervo의 1회용 permit에 연결하는 adapter
+- `@lervo/deliberation-runtime`: 역할별 managed run의 E2/E3·event 원본, writing permit, shared-context handoff와 구조화 artifact 기록을 연결하는 공급자 중립 숙의 runtime
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter를 연결하는 한 파일 `lervo run` 명령 진입점. Provider 결과는 writing 공개 gate를 통과했을 때만 출력
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate와 구조화 숙의 계약을 구현했습니다. 숙의 event payload는 allowlist 뒤 필수 필드와 상태별 규칙까지 검증하며, 숙의 의미 계층은 writing/verification 실행기 대신 순수 contract에만 의존합니다. 이력 검증은 좌표·상태·종류별 전이·종료 판정으로 나뉘고 실패 code와 세부 reason을 구분합니다. 아직 숙의 runtime이나 event 영속은 없으므로 artifact의 receipt ID만으로 E2/E3를 증명하지 않습니다. 다음 작업은 같은 provider의 두 역할을 실제 context·event 원본에 연결하는 contract fixture입니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 계약과 동일 provider 두 역할 runtime fixture를 구현했습니다. `@lervo/deliberation-runtime`은 역할별 managed run의 E2/E3 receipt를 SQLite event 원본과 대조하고 writing permit를 다시 검증한 뒤에만 artifact를 기록합니다. 같은 Codex provider를 사용한 제안자와 검토자도 run·Lervo session·provider session과 receipt를 공유하지 않으며, 검토자는 제안 원문을 shared context로 다시 적재합니다. 다음 작업은 같은 runtime 경계에서 Codex와 Claude의 교차 검토를 검증하는 fixture입니다.
 
 ## 핵심 명제
 

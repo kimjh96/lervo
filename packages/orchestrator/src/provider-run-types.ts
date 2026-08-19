@@ -1,6 +1,6 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
-import type { AdapterSession, AdapterTurn } from "@lervo/schemas";
+import type { AdapterSession, AdapterTurn, ContextEvidence } from "@lervo/schemas";
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
@@ -102,6 +102,7 @@ export interface ManagedProviderRunResult {
   turn: AdapterTurn;
   terminalEventId: string;
   resultArtifact: ManagedProviderResultArtifact;
+  contextEvidence: readonly ContextEvidence[];
   managedChanges: ManagedFileChangeEvidence[];
   contextGeneration: number;
   beforeRevision: string;

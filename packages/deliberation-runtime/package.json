@@ -1,0 +1,32 @@
+{
+  "name": "@lervo/deliberation-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/deliberation": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
+    "@lervo/orchestrator": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/writing": "workspace:*",
+    "@lervo/writing-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/adapter-contract": "workspace:*",
+    "@lervo/cas": "workspace:*",
+    "@lervo/core": "workspace:*",
+    "@lervo/event-store-sqlite": "workspace:*"
+  }
+}

@@ -129,9 +129,9 @@ any telemetry failure -> telemetry_failed
 | `no_consensus` | 마지막 round, 미해결 반론 ID와 종료 사유. 최대 회차나 합의 기준 미충족이며 결론을 선택하거나 지식으로 승격하지 않습니다. |
 | `failed` | 실패 phase와 기계용 code, 마지막으로 확정된 artifact 좌표. Provider, telemetry, schema 또는 artifact 저장 실패이며 정상 합의로 표시하지 않습니다. |
 
-숙의 event는 `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`입니다. Started는 policy hash·참여 role·최대 회차, recorded는 artifact 종류·회차·생산 role·CAS hash·writing permit ID, completed는 outcome/status·마지막 회차·decision·미해결 차단 반론과 실패 phase/code만 허용합니다. Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input, credential과 상세 진단은 allowlist에 없습니다. Redaction 뒤 type별 payload schema가 필수 필드·ID·회차와 상태별 decision/failure null 규칙을 검사하며 실패하면 `invalid_payload`로 event 전체를 거부합니다. 현재 단계는 계약만 고정했고 runtime에서 발행하거나 저장하지 않습니다. 따라서 기존 `run.completed`나 공급자 자유 형식 출력으로 합의를 주장하지 않습니다.
+숙의 event는 `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`입니다. Started는 policy hash·참여 role·최대 회차, recorded는 artifact 종류·회차·생산 role·CAS hash·writing permit ID, completed는 outcome/status·마지막 회차·decision·미해결 차단 반론과 실패 phase/code만 허용합니다. Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input, credential과 상세 진단은 allowlist에 없습니다. Redaction 뒤 type별 payload schema가 필수 필드·ID·회차와 상태별 decision/failure null 규칙을 검사하며 실패하면 `invalid_payload`로 event 전체를 거부합니다. Runtime은 이 세 event를 SQLite에 기록하지만 기존 `run.completed`나 공급자 자유 형식 출력만으로 합의를 주장하지 않습니다.
 
-`@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/provider session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. 상위 실패 처분 `code`와 원문 없는 세부 `reason`을 분리하며 좌표·역할 격리, 상태, 종류별 전이와 outcome 판정도 별도 모듈입니다. Artifact의 receipt ID 존재만으로 실제 E2/E3를 증명하지 않으며 다음 runtime fixture가 context/event 원본과 대조합니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md), [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)와 [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md)에 정의합니다.
+`@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. `@lervo/deliberation-runtime`은 `ManagedProviderRunResult`의 E2/E3 evidence를 같은 run의 event 원본과 대조하고 역할 간 provider session 재사용도 거부합니다. `document.loaded.evidenceReceiptId`는 문서별 E2를, `context.injected.evidenceReceiptIds`는 envelope에서 만든 문서별 E3를 뜻하며 기존 `context.injected.receiptId`는 adapter receipt 의미를 유지합니다. Runtime은 writing 평가와 permit 재검증, 이전 artifact의 shared-context 재적재, 현재 history 검증을 통과한 경우에만 artifact event를 기록합니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md), [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md), [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md)와 [ADR-0028](./docs/adr/0028-same-provider-deliberation-runtime.md)에 정의합니다.
 
 ## Context preparation 첫 슬라이스
 
@@ -215,7 +215,7 @@ Session의 project/run/session/role 좌표는 E2와 같아야 합니다. Writing
 
 파일과 shared publication snapshot은 envelope 조립 전, adapter 호출 직전과 receipt 수신 뒤에 검사합니다. Context generation도 envelope 조립 전, adapter 호출 전, receipt 수신 뒤에 확인합니다. Adapter에는 managed session/envelope의 격리된 복사본을 전달하고 검증용 snapshot을 별도로 보존합니다. `@lervo/adapter-contract`의 공통 의미 판정이 이 snapshot과 receipt의 현재 generation, 좌표와 시간, 대상 turn, role/writing policy ID, provider session과 정확한 문서 ID·hash·scope 집합을 확인합니다. Delivery와 Codex/Claude contract suite는 같은 판정 함수를 사용합니다. 모두 통과하고 `controlledInput=true`일 때만 문서별 E3를 만듭니다.
 
-이 슬라이스는 새 event type이나 event payload field를 추가하지 않습니다. 기존 `context.injected` payload의 `receiptId`는 문서 묶음에 대한 adapter receipt ID이며, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration`과 함께 기록할 수 있습니다. 문서별 E3 evidence는 자기 `receiptId`와 이 묶음의 `adapterReceiptId`를 별도로 가집니다. 원문, inline content, CAS bytes와 provider 원본 응답은 event에 넣지 않습니다.
+이 슬라이스는 새 event type을 추가하지 않습니다. 기존 `context.injected` payload의 `receiptId`는 문서 묶음에 대한 adapter receipt ID이며, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration`과 함께 기록합니다. 이후 숙의 runtime의 원본 대조를 위해 문서별 E3 evidence의 `receiptId` 목록을 `evidenceReceiptIds`로 추가했습니다. 문서별 E3 evidence는 자기 `receiptId`와 이 묶음의 `adapterReceiptId`를 별도로 유지합니다. 원문, inline content, CAS bytes와 provider 원본 응답은 event에 넣지 않습니다.
 
 | delivery code | 상위 실패 의미 |
 |---|---|
@@ -232,8 +232,8 @@ Orchestrator는 준비가 성공하면 모든 E1 `context.selected`와 E2 `docum
 | event | 이 슬라이스의 필수 payload |
 |---|---|
 | `context.selected` | `documentId`, `reasonCode`, `ruleId`, `required`, `scope` |
-| `document.loaded` | `documentId`, `contentHash`, `byteCount`, `scope`, `sourceRevision` |
-| `context.injected` | `receiptId`, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration` |
+| `document.loaded` | `evidenceReceiptId`, `documentId`, `contentHash`, `byteCount`, `scope`, `sourceRevision` |
+| `context.injected` | `receiptId`, `evidenceReceiptIds`, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration` |
 | `capability.requested` | `capability=filesystem.write`, `targetDigest`, `risk` |
 | `capability.decided` | `capability`, `decision`, `policyRuleId=managed_context_e3`, `approvalId` |
 | `file.changed` | Permit와 실제 저장소 상태로 확인한 `path`, `beforeHash`, `afterHash`, `changeKind` |

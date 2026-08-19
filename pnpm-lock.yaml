@@ -136,6 +136,43 @@ importers:
         specifier: workspace:*
         version: link:../writing-contract
 
+  packages/deliberation-runtime:
+    dependencies:
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../deliberation
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../writing-contract
+    devDependencies:
+      '@lervo/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../core
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+
   packages/documents:
     dependencies:
       '@lervo/project':

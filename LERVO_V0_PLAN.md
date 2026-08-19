@@ -167,17 +167,19 @@ M4 완료.
 - `converged`는 결정 책임자, 필수 verification 통과와 차단 반론 0개를 모두 증명
 - candidate에서 verified로의 전이가 정책과 evidence 없이는 거부됨
 
-구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
+구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 4단계까지 완료했습니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **Project verification command/result artifact 완료.** `lervo init`은 계속 누적되는 중앙 설정 대신 빈 `.lervo/verifications/`를 만들고, loader는 suite ID별 최대 64 KiB YAML을 안전하게 읽습니다. `@lervo/verification`은 shell 없이 최대 32개 명령을 순차 실행하며 timeout·취소·합산 output 한도와 첫 실패 뒤 `not_run`을 구분합니다. Stdout·stderr와 전체 result JSON은 각각 CAS에 저장하고 다시 확인합니다. 결과는 실행 전후 같은 snapshot port가 확인한 repository hash, suite hash, command digest·exit code·시간·artifact 좌표에 묶이며 의미 검증기가 전체 상태와 ID를 다시 계산합니다. 실패 결과의 상태만 `passed`로 바꾼 조작, snapshot 불일치·실행 중 변경, 미실행 명령, symlink cwd, timeout·과다 output과 CAS 불일치를 실제 subprocess fixture로 검증했습니다. 아직 `lervo run`과 verification event에는 연결하지 않아 CLI는 `not_run`을 유지합니다. 결정은 [ADR-0024](./docs/adr/0024-provider-neutral-project-verification.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **Writing 공개 gate 완료.** `@lervo/writing`은 provider 결과 artifact의 CAS bytes와 좌표를 다시 확인하고, 결정적 검사와 생성 경로에서 분리된 의미 평가 port를 순서대로 실행합니다. 평가기는 필수 검사 전체를 정확히 한 번 반환해야 하며 누락, 중복, 예외와 미구성은 통과로 추정하지 않습니다. 평가 canonical JSON은 원문 없이 CAS에 저장하고 다시 확인합니다. 통과한 결과만 policy·evaluation·content·surface hash에 결속된 permit를 만들며, 재사용 시 모든 좌표를 다시 검증합니다. `lervo run`은 이 경계를 통과한 결과만 stdout/JSON에 포함합니다. 의미 평가기가 없는 기본 실행은 파일 변경과 `run.completed`를 유지하지만 원문을 숨기고 종료 코드 1을 반환합니다. 이 단계에서는 writing policy를 생성 전에 주입하지 않으므로 사후 평가만 증명합니다. 결정은 [ADR-0025](./docs/adr/0025-writing-publication-gate.md)에 기록했습니다.
 
-구현 현황(2026-08-19): **숙의 artifact와 policy schema 완료.** `@lervo/schemas`가 역할별 provider 정책, 다섯 구조화 artifact와 세 종료 결과를 고정하고 `@lervo/deliberation`이 policy·artifact·이력·실제 verification 근거·outcome 의미를 분리해 검증합니다. 최신 revision 직접 승인, 현재 claim digest를 대상으로 한 필수 suite, 결정 책임자의 마지막 decision과 미해결 차단 반론 0개가 모두 있어야 `converged`입니다. 역할 간 managed run/provider session/context receipt 재사용, 위조 검증 결과, 과거 claim 버전, writing permit 복사는 실패합니다. `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`의 hash 중심 allowlist도 고정했지만 아직 runtime에서 발행하지 않습니다. Receipt ID 자체는 실제 E2/E3를 증명하지 않으며 다음 fixture에서 원본과 대조합니다. 결정은 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 기록했습니다.
+구현 현황(2026-08-19): **숙의 artifact와 policy schema 완료.** `@lervo/schemas`가 역할별 provider 정책, 다섯 구조화 artifact와 세 종료 결과를 고정하고 `@lervo/deliberation`이 policy·artifact·이력·실제 verification 근거·outcome 의미를 분리해 검증합니다. 최신 revision 직접 승인, 현재 claim digest를 대상으로 한 필수 suite, 결정 책임자의 마지막 decision과 미해결 차단 반론 0개가 모두 있어야 `converged`입니다. 역할 간 managed run·Lervo session·context receipt 재사용, 위조 검증 결과, 과거 claim 버전과 writing permit 복사는 실패합니다. `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`의 hash 중심 allowlist도 이 단계에서 고정했습니다. Runtime의 실제 event 발행, E2/E3 원본 대조와 provider session 격리는 이후 [ADR-0028](./docs/adr/0028-same-provider-deliberation-runtime.md)에서 완료했습니다. 결정은 [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **숙의 runtime 전 계약 경계 정리 완료.** 숙의 event 세 종류는 allowlist 뒤 필수 필드와 상태별 null 규칙까지 schema로 검증합니다. `verification-contract`와 `writing-contract`가 실행·CAS 없는 canonical 검증을 소유해 deliberation이 전체 실행 패키지를 의존하지 않습니다. 이력 검증은 좌표·격리, 상태, 종류별 exhaustive 전이, 최종 분석으로 분리했고 오류는 상위 처분 code와 안정적인 reason을 함께 제공합니다. 테스트 fixture는 실제 verification/permit 생성과 시나리오를 분리하고 예상 outcome 좌표를 명시합니다. Workspace build는 수동 패키지 목록 대신 dependency-aware topological 실행을 사용합니다. 결정은 [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md)에 기록했습니다.
 
-다음 구현 순서: **단일 provider 두 역할 contract fixture**입니다.
+구현 현황(2026-08-19): **단일 provider 두 역할 contract fixture 완료.** `@lervo/deliberation-runtime`은 역할별 managed run의 E2/E3 evidence를 실제 SQLite `document.loaded`·`context.injected`와 대조하고 `run.completed` result 좌표, writing 평가·permit와 현재 숙의 history를 다시 검증합니다. 같은 Codex provider의 제안자와 검토자가 별도 run·Lervo session·provider session·receipt를 사용하며, permit를 통과한 제안 원문을 shared context로 공개한 뒤 검토자 context loader가 같은 hash를 다시 적재·주입합니다. Artifact, publication과 handoff event에는 원문을 넣지 않습니다. Event에 없는 receipt를 주입하거나 다른 역할이 provider session을 재사용하면 artifact 기록 전에 실패합니다. 결정은 [ADR-0028](./docs/adr/0028-same-provider-deliberation-runtime.md)에 기록했습니다.
+
+다음 구현 순서: **Codex·Claude 교차 검토 contract fixture**입니다.
 
 ### M6: 최소 Hub 실증
 
@@ -282,4 +284,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **M5 단일 provider 두 역할 contract fixture**입니다. 같은 provider를 쓰는 제안자와 검토자가 별도 managed session과 자기 E2/E3를 만들고, 앞 artifact를 shared context로 다시 적재한 뒤 구조화된 이력과 event를 남기는 최소 orchestrator를 연결합니다. Runtime publisher는 `@lervo/writing` permit를 다시 검증하며, artifact의 receipt ID를 context/event store 원본과 대조하기 전에는 다음 역할에 공개하지 않습니다.
+다음 구현 작업은 **M5 Codex·Claude 교차 검토 contract fixture**입니다. 완료한 동일 provider runtime 경계를 그대로 사용해 제안자와 검토자에게 서로 다른 adapter를 배치하고, provider별 context 주입·session 종료 차이가 artifact, event와 convergence 의미를 바꾸지 않는지 검증합니다.
