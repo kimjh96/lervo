@@ -346,6 +346,22 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/sync:
+    dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../sync-contract
+    devDependencies:
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+
   packages/sync-contract:
     dependencies:
       '@lervo/event-contract':

@@ -441,9 +441,21 @@ Outbox는 변경 가능한 전송 상태이며 실행 증거 원본을 대신하
 
 멱등 키는 `(eventId, destinationId)`입니다. 한 event를 여러 destination에 독립적으로 보낼 수 있지만 같은 destination에는 한 항목만 둡니다. Claim할 때 `attemptCount`가 증가하며, 만료된 lease는 다른 worker가 회수할 수 있습니다. 실패한 전송은 lease를 놓고 `lastFailureCode`, `lastFailedAt`, 새 `availableAt`만 기록합니다. Failure code는 64자 이하의 소문자 기계용 코드로 제한하며 HTTP 응답 본문, 예외 메시지, authorization 값과 provider payload는 저장하지 않습니다. 배송할 event는 이미 allowlist와 redaction을 통과한 envelope입니다.
 
-Event append와 enqueue, 또는 ack와 `sync.acknowledged` event 기록은 같은 동기 transaction에 넣을 수 있습니다. 둘 중 하나가 실패하면 모두 되돌립니다. Hub가 없거나 전송만 실패한 경우 기존 event 원본은 유지하고 로컬 run을 계속합니다. `invalid_outbox_request`는 호출 계약 위반, `outbox_not_found`는 존재하지 않는 event 또는 배송 좌표, `outbox_lease_conflict`는 다른 worker의 lease나 만료된 lease 사용을 뜻합니다. 이 세 오류의 상세 문자열은 event에 복제하지 않습니다. Outbox 무결성이나 외래 키 검사가 실패하면 store를 열지 않고 `telemetry_recording_failed`로 처리합니다.
+Event append와 enqueue, 한 batch의 여러 ack 또는 여러 reschedule은 각각 같은 동기 transaction에 넣을 수 있습니다. 일부 항목만 바뀌면 transaction 전체를 되돌립니다. Hub가 없거나 전송만 실패한 경우 기존 event 원본은 유지하고 로컬 run을 계속합니다. `invalid_outbox_request`는 호출 계약 위반, `outbox_not_found`는 존재하지 않는 event 또는 배송 좌표, `outbox_lease_conflict`는 다른 worker의 lease나 만료된 lease 사용을 뜻합니다. 이 세 오류의 상세 문자열은 event에 복제하지 않습니다. Outbox 무결성이나 외래 키 검사가 실패하면 store를 열지 않고 `telemetry_recording_failed`로 처리합니다.
 
 Ack된 outbox 행은 보존 정책의 기준 시각보다 오래된 항목만 제한된 개수로 삭제할 수 있습니다. 이 정리는 event와 hash chain을 삭제하지 않으며, pending 또는 leased 항목을 건드리지 않습니다.
+
+### Outbound sync worker
+
+Worker는 cycle마다 project registration을 먼저 검증합니다. 등록 transport 실패, peer 불일치 또는 좌표가 다른 응답에서는 outbox를 claim하지 않습니다. 등록 성공 뒤에는 구성된 destination에서 현재 `workerId`가 lease한 항목만 최대 100개 가져옵니다. Lease event는 seq로 정렬하고 이전 hash가 이어지는 구간별로 batch를 만듭니다. Gap 뒤 event도 별도 batch로 보낼 수 있지만 Hub cursor는 앞 구간이 채워질 때까지 전진하지 않습니다.
+
+Transport port는 실제 TLS·서명 등으로 인증한 peer의 `destinationId`와 `peerIdentityHash`를 반환합니다. Worker는 body를 읽기 전에 두 좌표가 구성과 같은지 확인하고, registration 또는 ack schema와 요청 좌표를 다시 검증합니다. `EventSyncAcknowledgement`의 batch·registration·project·destination·event ID 전체, inserted/duplicate 개수가 맞아야 해당 batch lease를 한 transaction에서 ack합니다. Local `acknowledgedAt`은 Hub 응답 시각을 복사하지 않고 실제 local 전이 시각을 사용합니다.
+
+Hub가 저장한 뒤 응답만 유실된 경우 worker는 저장 여부를 추정하지 않습니다. 아직 local ack하지 않은 lease를 `pending`으로 되돌리고 같은 canonical batch ID로 재전송합니다. Hub의 `duplicate` ack가 요청 전체와 맞으면 local ack할 수 있습니다. 앞 batch만 완료된 뒤 실패하면 완료된 ack는 유지하고 현재와 뒤 batch만 재예약합니다.
+
+Cycle 상태는 `registration_deferred`, `idle`, `synchronized`, `retry_scheduled`입니다. 공통 count는 claim, local ack, reschedule과 local ack한 batch 개수를 뜻합니다. 등록 지연과 재시도 결과에는 `nextAttemptAt`이 필요합니다. Retry failure code는 `hub_unavailable`, `transport_authentication_failed`, `invalid_registration_response`, `invalid_sync_ack`, `local_batch_invalid`입니다. 호출 계약 오류 `invalid_worker_configuration`과 local transaction 오류 `outbox_update_failed`는 정상 cycle 결과로 낮추지 않습니다. Failure 상태에는 transport 예외·HTTP body·manifest·event payload·authorization·credential을 넣지 않습니다.
+
+Worker는 `sync.acknowledged` event를 만들지 않습니다. 같은 outbound 원본 chain에 delivery ack event를 추가하면 그 event가 다시 배송 대상이 되는 순환이 생깁니다. 별도 local-only stream 또는 sync 제외 규칙이 생기기 전에는 outbox row가 local delivery receipt이고, 이번 worker는 새 event나 이해·사용 주장을 추가하지 않습니다.
 
 CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `lervo-cas://sha256/<64 hex>`이며 원문은 `.lervo/state/cas` 아래에만 둡니다. 큰 입력은 청크를 임시 파일에 쓰는 동안 hash와 byte count를 계산합니다. 생산자가 중간에 실패하면 임시 파일을 제거하고 object를 공개하지 않습니다. 새 object는 쓰기와 동기화를 끝낸 뒤 원자적인 hard link로 확정합니다. 같은 bytes는 기존 object를 재사용하고, 저장하거나 읽을 때 주소와 실제 bytes의 hash를 비교합니다. 유효한 주소가 없으면 `not_found`, bytes가 주소와 다르면 `corrupt_object`, 경로가 안전하지 않으면 `unsafe_path`입니다. `has`는 `not_found`만 `false`로 바꾸며 변조를 숨기지 않습니다. 세 경우 모두 상위 실행에서는 `artifact_storage_failed`로 처리합니다. 이 실패가 난 artifact에 의존하는 변경은 중단하며, 원문이나 비밀 값은 실패 event에 넣지 않고 digest와 오류 code만 기록합니다.
 
@@ -453,6 +465,7 @@ CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `l
 
 - project manifest: stable project id, schema version, 생성 시각, 명시적 데이터 정책
 - event envelope: 단조 증가 seq, actor/provider, 정책 version, previous/event hash
+- project registration과 outbound sync: 전체 manifest identity, 연속 event batch, durable ack와 연속 cursor
 - deliberation event payload: started/recorded/completed별 필수 hash 좌표와 상태별 decision/failure 규칙
 - context evidence: E0~E4별 필수 필드와 controlled E3 receipt
 - adapter message: descriptor, start/session, context envelope/receipt, normalized event, stop/result

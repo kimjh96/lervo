@@ -61,7 +61,7 @@ Node는 batch 좌표와 event ID 전체가 일치하는 ack만 받아들입니�
 | `invalid_acknowledgement` | Ack가 batch의 좌표·event 전체·개수·상태를 증명하지 못합니다. 로컬 outbox lease를 ack하지 않습니다. |
 | `invalid_sync_state` | Hub에 보관된 registration, event 또는 cursor 원본이 서로 맞지 않습니다. 새 응답을 만들지 않습니다. |
 
-이번 변경은 새 local event를 추가하지 않습니다. 기존 `sync.acknowledged`는 실제 outbox worker와 durable Hub handler가 연결될 때 별도로 사용하며, 참조 reducer 실행만으로 기록하지 않습니다. 전송·수신 오류 문자열에는 manifest나 event payload를 복제하지 않고 위 기계용 code만 남깁니다.
+이번 변경은 새 local event를 추가하지 않습니다. `sync.acknowledged`를 같은 outbound 원본 chain에 추가하면 ack event 자체가 다시 동기화되는 순환이 생기므로 Node worker도 이 event를 기록하지 않습니다. 별도 local-only stream이나 sync 제외 규칙을 설계하기 전에는 outbox 상태가 local delivery receipt입니다. 전송·수신 오류 문자열에는 manifest나 event payload를 복제하지 않고 위 기계용 code만 남깁니다.
 
 ## 검증
 
@@ -69,4 +69,4 @@ Node는 batch 좌표와 event ID 전체가 일치하는 ack만 받아들입니�
 
 ## 결과
 
-로컬 event 원본과 outbox 수명주기는 Hub 가용성과 계속 분리됩니다. Hub는 역순 도착을 저장할 수 있지만 연속 chain이 확인되기 전에는 trace cursor를 전진시키지 않습니다. 다음 구현은 이 계약을 기존 outbox lease와 인증된 transport port에 연결하는 Node sync worker입니다.
+로컬 event 원본과 outbox 수명주기는 Hub 가용성과 계속 분리됩니다. Hub는 역순 도착을 저장할 수 있지만 연속 chain이 확인되기 전에는 trace cursor를 전진시키지 않습니다. 기존 outbox lease와 인증된 transport port의 연결은 [ADR-0035](./0035-outbound-sync-worker.md)에서 이어집니다.

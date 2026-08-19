@@ -1,0 +1,25 @@
+{
+  "name": "@lervo/sync",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/sync-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/event-store-sqlite": "workspace:*"
+  }
+}

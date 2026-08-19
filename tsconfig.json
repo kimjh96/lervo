@@ -24,6 +24,7 @@
       "@lervo/schemas": ["packages/schemas/src/index.ts"],
       "@lervo/skills": ["packages/skills/src/index.ts"],
       "@lervo/storage-contract": ["packages/storage-contract/src/index.ts"],
+      "@lervo/sync": ["packages/sync/src/index.ts"],
       "@lervo/sync-contract": ["packages/sync-contract/src/index.ts"],
       "@lervo/verification": ["packages/verification/src/index.ts"],
       "@lervo/verification-contract": ["packages/verification-contract/src/index.ts"],
