@@ -57,6 +57,11 @@ import {
   verifiedKnowledgeSchema,
 } from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
+import {
+  remoteCommandExecutionReceiptSchema,
+  remoteCommandSchema,
+  signedRemoteCommandSchema,
+} from "./remote-command.js";
 import { roleProfileSchema } from "./role.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -81,6 +86,7 @@ ajv.addFormat("date-time", {
 ajv.addSchema(documentManifestSchema);
 ajv.addSchema(eventEnvelopeSchema);
 ajv.addSchema(projectManifestSchema);
+ajv.addSchema(remoteCommandSchema);
 
 const validators = {
   project: ajv.getSchema(projectManifestSchema.$id)!,
@@ -89,6 +95,9 @@ const validators = {
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),
   outboundEventBatch: ajv.compile(outboundEventBatchSchema),
   eventSyncAcknowledgement: ajv.compile(eventSyncAcknowledgementSchema),
+  remoteCommand: ajv.getSchema(remoteCommandSchema.$id)!,
+  signedRemoteCommand: ajv.compile(signedRemoteCommandSchema),
+  remoteCommandExecutionReceipt: ajv.compile(remoteCommandExecutionReceiptSchema),
   legacyRegistryEntryArtifact: ajv.compile(legacyRegistryEntryArtifactSchema),
   legacyRegistryMigrationPlan: ajv.compile(legacyRegistryMigrationPlanSchema),
   legacyRegistryMigrationApproval: ajv.compile(legacyRegistryMigrationApprovalSchema),

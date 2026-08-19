@@ -212,7 +212,9 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 
 구현 현황(2026-08-19): **인증된 API만 사용하는 최소 read-only trace web view 완료.** `/trace`는 데이터 없는 shell만 제공하고 입력 token은 현재 탭 메모리의 API header에만 사용합니다. Project, run과 event는 독립된 20개 cursor page로 교체하며 `continuous`와 `buffered`를 `연속 이력`과 `연결 대기`로 구분합니다. 고정 asset route, CSP·no-store, 무권한 source 격리와 cursor 이전·다음·실패 보존을 실제 HTTP와 pager fixture로 확인했습니다. 결정은 [ADR-0040](./docs/adr/0040-bounded-trace-web-view.md)에 기록했습니다.
 
-다음 구현 순서: **서명된 원격 command protocol의 로컬 fixture**입니다.
+구현 현황(2026-08-19): **서명된 원격 command protocol의 로컬 fixture 완료.** `@lervo/remote-command-contract`는 raw request 대신 bounded artifact 좌표를 가진 `managed_run`, canonical command ID/hash, project target과 Ed25519 envelope·terminal receipt를 고정합니다. `@lervo/remote-command`는 trust key scope, signature, receiver identity, replay, freshness, local policy, payload hash 순으로 실행 경계를 열고 atomic in-memory reservation 뒤에만 executor를 호출합니다. 위조 서명, 다른 project, 만료, 정책 거부, payload 변조, idempotency/nonce 충돌, terminal retry와 두 동시 요청을 실제 Ed25519 fixture로 확인했습니다. 현재 replay store는 process-local이므로 재시작 내구성이나 Hub delivery를 주장하지 않습니다. 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md)에 기록했습니다.
+
+다음 구현 순서: **offline command queue와 Node reconnect 전체 검증**입니다.
 
 완료 조건:
 
@@ -222,6 +224,9 @@ M5 이후 구현은 **M6 프로젝트 등록과 outbound event sync 계약**으�
 - 외부 cursor, 오류 본문, cache와 응답 byte 한도가 HTTP contract test로 고정됨
 - Web shell에 Hub data·credential 구성이 없고 project·run·event page가 이전 DOM에 누적되지 않음
 - Bounded 시작 검사와 명시적 전체 audit의 보장 범위를 혼용하지 않음
+- 서명, signer project scope, receiver identity, freshness와 local policy를 통과하기 전에 원격 executor를 호출하지 않음
+- 같은 command의 동시·완료 후 재전송이 한 번만 실행되고 idempotency key 충돌과 nonce 재사용이 서로 구분됨
+- Raw request와 loader/executor 오류 원문이 command, replay 좌표와 receipt에 남지 않음
 - 두 fixture 프로젝트를 한 화면에서 분리 조회
 - 중복/역순 전송에도 일관된 read model
 - Node 오프라인 중 로컬 실행 후 재연결 동기화
@@ -321,4 +326,4 @@ fixtures/
 
 ## 다음 실행 작업
 
-다음 구현 작업은 **서명된 원격 command protocol의 로컬 fixture**입니다. Command 원본, project scope, 짧은 만료 시각, nonce와 idempotency key를 공급자·transport 중립 계약으로 먼저 고정하고 서명 검증과 local policy 승인 전에는 Node 실행 경계를 열지 않습니다.
+다음 구현 작업은 **offline command queue와 Node reconnect 전체 검증**입니다. Durable queue가 만료 command를 실행하지 않고, Node 연결 복구 뒤 유효한 command만 전달하며, 응답 유실·재시작에서도 같은 command receipt를 복구하는지 Hub와 Node 경계를 함께 검증합니다.

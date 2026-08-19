@@ -20,6 +20,7 @@ export * from "./knowledge-event.js";
 export * from "./knowledge-lifecycle.js";
 export * from "./managed-block-patch.js";
 export * from "./project.js";
+export * from "./remote-command.js";
 export * from "./role.js";
 export * from "./run-event.js";
 export * from "./shared-context.js";

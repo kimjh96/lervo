@@ -25,6 +25,8 @@
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
       "@lervo/project": ["packages/project/src/index.ts"],
       "@lervo/project-storage": ["packages/project-storage/src/index.ts"],
+      "@lervo/remote-command": ["packages/remote-command/src/index.ts"],
+      "@lervo/remote-command-contract": ["packages/remote-command-contract/src/index.ts"],
       "@lervo/schemas": ["packages/schemas/src/index.ts"],
       "@lervo/skills": ["packages/skills/src/index.ts"],
       "@lervo/storage-contract": ["packages/storage-contract/src/index.ts"],

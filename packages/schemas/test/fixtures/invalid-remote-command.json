@@ -1,0 +1,83 @@
+[
+  {
+    "name": "remote command cannot carry an inline raw request",
+    "schema": "remoteCommand",
+    "value": {
+      "schemaVersion": 1,
+      "commandId": "rcm_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "idempotencyKey": "idk_remote_command_01",
+      "nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "issuedAt": "2026-08-19T00:00:00.000Z",
+      "expiresAt": "2026-08-19T00:05:00.000Z",
+      "target": {
+        "projectId": "prj_remote_fixture",
+        "projectIdentityHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "action": {
+        "kind": "managed_run",
+        "roleId": "developer",
+        "provider": "codex",
+        "risk": "medium",
+        "verificationSuiteIds": ["repo.check"],
+        "rawRequest": "비밀 본문",
+        "request": {
+          "artifactId": "art_remote_request",
+          "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "byteCount": 42,
+          "mediaType": "text/plain; charset=utf-8"
+        }
+      }
+    }
+  },
+  {
+    "name": "signed remote command rejects a truncated signature",
+    "schema": "signedRemoteCommand",
+    "value": {
+      "schemaVersion": 1,
+      "command": {
+        "schemaVersion": 1,
+        "commandId": "rcm_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "idempotencyKey": "idk_remote_command_01",
+        "nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "issuedAt": "2026-08-19T00:00:00.000Z",
+        "expiresAt": "2026-08-19T00:05:00.000Z",
+        "target": {
+          "projectId": "prj_remote_fixture",
+          "projectIdentityHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "action": {
+          "kind": "managed_run",
+          "roleId": "developer",
+          "provider": "codex",
+          "risk": "medium",
+          "verificationSuiteIds": ["repo.check"],
+          "request": {
+            "artifactId": "art_remote_request",
+            "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "byteCount": 42,
+            "mediaType": "text/plain; charset=utf-8"
+          }
+        }
+      },
+      "signature": {
+        "algorithm": "ed25519",
+        "keyId": "key_hub_fixture",
+        "value": "too_short"
+      }
+    }
+  },
+  {
+    "name": "failed remote command receipt cannot claim a run id",
+    "schema": "remoteCommandExecutionReceipt",
+    "value": {
+      "schemaVersion": 1,
+      "commandId": "rcm_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "commandHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "idempotencyKey": "idk_remote_command_01",
+      "processedAt": "2026-08-19T00:01:00.000Z",
+      "outcome": "failed",
+      "failureCode": "execution_failed",
+      "runId": "run_remote_fixture"
+    }
+  }
+]

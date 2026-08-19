@@ -683,6 +683,31 @@ Hub는 같은 canonical event 재전송을 duplicate로 수락할 수 있고 gap
 
 공통 reducer는 Hub가 저장할 다음 state와 응답 후보만 계산하며 durable 저장이나 network 성공을 주장하지 않습니다. Hub handler는 registration·event inbox·cursor를 하나의 transaction으로 저장한 뒤 응답해야 합니다. Node는 구성된 destination의 인증된 transport 응답과 batch 좌표 전체를 검증한 뒤 현재 outbox lease를 ack합니다. 이 연결 전에는 `sync.acknowledged` event를 만들지 않습니다. 상세 상태, 개인정보 경계와 실패 의미는 [ADR-0034](./docs/adr/0034-project-registration-and-event-sync-contract.md)에 기록합니다.
 
+## 서명된 원격 command
+
+`RemoteCommand`는 `schemaVersion`, 파생 `commandId`, `idempotencyKey`, 32-byte base64url `nonce`, `issuedAt`, `expiresAt`, 대상 `projectId`·`projectIdentityHash`와 action을 필수로 가집니다. v0 action은 `managed_run` 하나이며 `roleId`, 공급자 중립 `provider`, `risk`, 1~16개의 중복 없는 `verificationSuiteIds`와 요청 artifact 좌표를 포함합니다. 요청 좌표는 `artifactId`, SHA-256 `contentHash`, 1~65,536의 `byteCount`, 고정 UTF-8 media type만 가지며 raw request는 command, receipt와 replay store에 넣지 않습니다.
+
+`commandId`는 자신을 제외한 command 전체의 canonical hash이고 `commandHash`는 완성된 command 전체의 SHA-256입니다. `SignedRemoteCommand`는 command와 `algorithm=ed25519`, `keyId`, 64-byte signature의 canonical base64url만 가집니다. 서명 message는 `lervo.remote-command.v1` domain, algorithm, key ID와 canonical command를 함께 포함합니다. 이 계약은 transport 인증이나 암호화를 대신하지 않으며 Hub HTTP route를 열지 않습니다.
+
+Node receiver는 다음 순서를 바꾸지 않습니다.
+
+1. Envelope schema, 파생 command ID와 발급·만료 관계를 확인합니다.
+2. 구성된 trust store에서 key를 찾고 서명을 확인합니다.
+3. Signer에게 허용된 project ID·identity hash와 현재 receiver target이 command target과 정확히 같은지 확인합니다.
+4. Idempotency key와 nonce의 replay 상태를 조회합니다. 이미 terminal인 같은 command만 저장된 receipt로 복구합니다.
+5. 기본 5분, 구성 상한 15분의 command lifetime과 기본 30초, 상한 60초의 clock skew를 적용합니다.
+6. 로컬 정책이 role, provider, risk와 verification 요구를 승인한 경우에만 replay reservation을 원자적으로 만듭니다.
+7. 예약 뒤 artifact bytes를 읽고 byte 수, content hash와 strict UTF-8을 확인한 뒤 공급자 중립 executor를 호출합니다.
+8. Terminal receipt를 replay store에 완료한 뒤에만 `deliveryStatus=processed`를 반환합니다.
+
+정책 거부는 reservation을 만들지 않아 같은 서명 command를 승인 뒤 다시 평가할 수 있습니다. Reservation 뒤 payload를 읽을 수 없거나 bytes가 다르거나 executor가 실패하면 각각 `payload_unavailable`, `payload_mismatch`, `execution_failed` receipt를 저장합니다. 이 receipt는 terminal이므로 동일 command 재전송은 `deliveryStatus=duplicate`로 같은 receipt를 반환하고 payload를 다시 읽거나 실행하지 않습니다. 성공 receipt만 `outcome=executed`와 `runId`를 가지며 실패 receipt는 `outcome=failed`와 고정 failure code만 가집니다. 두 receipt 모두 command ID/hash, idempotency key와 처리 시각을 가집니다.
+
+Replay 내부 판정은 `available`, `in_progress`, `duplicate`, `idempotency_conflict`, `nonce_replay`를 구분합니다. 외부 처리 결과는 `processed`와 `duplicate`만 반환합니다. In-progress, 충돌, 만료, scope·signature·policy 거부와 저장 장애는 terminal receipt로 위장하지 않고 안정적인 runtime 오류가 됩니다. 특히 executor 뒤 receipt 저장이 실패하면 실행 여부를 되돌려 추정하지 않고 `replay_store_failed`로 닫습니다.
+
+안정적인 사전 실행 오류는 `invalid_command`, `trust_store_failed`, `unknown_signer`, `invalid_signature`, `signer_scope_denied`, `target_mismatch`, `command_not_yet_valid`, `command_expired`, `command_lifetime_exceeded`, `idempotency_conflict`, `nonce_replay`, `command_in_progress`, `policy_denied`, `policy_evaluation_failed`, `replay_store_failed`입니다. 오류와 receipt에는 request, credential, key bytes, policy reason 원문, loader/executor 예외를 넣지 않습니다. `keyId`, project 좌표, artifact 좌표와 hash는 계약 metadata이고 command transport·보존 정책의 적용을 받습니다.
+
+현재 제공하는 replay store는 최대 1,024개를 기본으로 하는 process-local fixture이며 capacity에서 fail-closed하고 eviction하지 않습니다. 재시작 후 replay 방지, durable offline queue, Hub delivery acknowledgement와 Node reconnect는 아직 보장하지 않습니다. 이번 단계는 새 event를 추가하지 않으며 receipt는 `run.completed`, event sync 또는 Hub 전달 완료를 대신하지 않습니다. 상세 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md)에 기록합니다.
+
 ## 실패 의미
 
 | code | 실패 의미 |
@@ -690,6 +715,11 @@ Hub는 같은 canonical event 재전송을 duplicate로 수락할 수 있고 gap
 | `telemetry_recording_failed` | 변경 capability를 닫고 run을 중단합니다. Document migration에서는 성공 event를 commit하지 못한 것으로 보고 이번 apply가 만든 sidecar를 모두 되돌립니다. |
 | `redaction_failed` | 민감정보가 섞인 event를 생략해 진행하지 않고 변경 capability를 닫습니다. |
 | `hub_sync_failed` | 로컬 run은 계속하고 outbox에 보관합니다. |
+| `invalid_command` / `unknown_signer` / `invalid_signature` / `signer_scope_denied` / `target_mismatch` | 원격 command 계약, 신뢰 key, 서명 또는 project 좌표가 맞지 않습니다. 로컬 정책과 executor를 호출하지 않고 새 command를 요구합니다. |
+| `command_not_yet_valid` / `command_expired` / `command_lifetime_exceeded` | 로컬 clock과 허용된 skew·lifetime에서 command를 실행할 수 없습니다. 만료 command를 갱신된 서명 없이 재사용하지 않습니다. |
+| `idempotency_conflict` / `nonce_replay` / `command_in_progress` | 다른 command가 같은 idempotency/nonce를 사용했거나 같은 command가 이미 처리 중입니다. Executor를 중복 호출하지 않으며 terminal receipt가 생긴 뒤 동일 command를 조회할 수 있습니다. |
+| `policy_denied` / `policy_evaluation_failed` | 로컬 정책이 거부됐거나 유효한 판정을 만들지 못했습니다. Reservation과 실행을 시작하지 않습니다. |
+| `trust_store_failed` / `replay_store_failed` | 신뢰 key 또는 replay 상태를 안전하게 읽고 저장하지 못했습니다. 실행 완료를 주장하지 않으며 운영 상태 확인 전 자동 실행 재시도를 하지 않습니다. |
 | `derived_index_failed` | 명시적 경로와 전문 검색으로 저하 운전합니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |

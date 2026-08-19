@@ -26,6 +26,8 @@ import type {
   EventSyncAcknowledgement,
   OutboundEventBatch,
   ProjectRegistrationRequest,
+  RemoteCommand,
+  RemoteCommandExecutionReceipt,
   RoleProfile,
   SharedContextPublication,
   SkillManifest,
@@ -116,6 +118,17 @@ describe("schema-derived TypeScript contracts", () => {
       .toEqualTypeOf<EventEnvelope>();
     expectTypeOf<EventSyncAcknowledgement["status"]>()
       .toEqualTypeOf<"accepted" | "duplicate">();
+  });
+
+  it("keeps remote request content referenced and execution outcomes terminal", () => {
+    expectTypeOf<RemoteCommand["action"]["kind"]>().toEqualTypeOf<"managed_run">();
+    expectTypeOf<RemoteCommand["action"]["request"]>().toMatchTypeOf<{
+      artifactId: string;
+      contentHash: string;
+      byteCount: number;
+    }>();
+    expectTypeOf<RemoteCommandExecutionReceipt["outcome"]>()
+      .toEqualTypeOf<"executed" | "failed">();
   });
 
   it("binds a writing publication permit to policy, evaluation, content, and surface", () => {

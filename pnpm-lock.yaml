@@ -377,6 +377,24 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
+  packages/remote-command:
+    dependencies:
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../remote-command-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/remote-command-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/schemas:
     dependencies:
       ajv:

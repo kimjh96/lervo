@@ -28,6 +28,8 @@ export default defineConfig({
       "@lervo/orchestrator": fromRoot("./packages/orchestrator/src/index.ts"),
       "@lervo/project": fromRoot("./packages/project/src/index.ts"),
       "@lervo/project-storage": fromRoot("./packages/project-storage/src/index.ts"),
+      "@lervo/remote-command": fromRoot("./packages/remote-command/src/index.ts"),
+      "@lervo/remote-command-contract": fromRoot("./packages/remote-command-contract/src/index.ts"),
       "@lervo/schemas": fromRoot("./packages/schemas/src/index.ts"),
       "@lervo/skills": fromRoot("./packages/skills/src/index.ts"),
       "@lervo/storage-contract": fromRoot("./packages/storage-contract/src/index.ts"),

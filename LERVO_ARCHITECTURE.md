@@ -66,6 +66,10 @@ Hub 수신은 `@lervo/hub-sync`의 비동기 command handler와 `@lervo/hub-sync
 
 `/trace` web view는 데이터 없는 공개 shell과 고정 same-origin asset만 직접 제공합니다. 사용자가 입력한 token은 현재 탭 메모리에서 인증된 API 요청에만 쓰고 URL·storage·cookie에 두지 않습니다. Project, run과 event는 독립된 20개 page 영역이며 다음 page가 이전 DOM에 누적되지 않습니다. Project나 run 선택이 바뀌면 하위 영역을 비우고 늦게 끝난 이전 요청은 현재 pager와 다르면 반영하지 않습니다. Event의 continuous와 buffered는 각각 `연속 이력`, `연결 대기`로 표시합니다. 결정은 [ADR-0040](./docs/adr/0040-bounded-trace-web-view.md)에 기록합니다.
 
+원격 실행은 `@lervo/remote-command-contract`의 공급자·transport 중립 command와 `@lervo/remote-command`의 Node 수신 경계로 나뉩니다. Command에는 project ID와 project identity hash, 역할·공급자·위험·필수 verification suite, 짧은 발급·만료 시각, nonce와 idempotency key가 들어갑니다. 요청 본문은 넣지 않고 최대 64 KiB의 UTF-8 artifact ID·content hash·byte 수만 서명합니다. Canonical command와 key ID를 domain-separated Ed25519 message로 서명하므로 다른 key나 protocol 용도의 서명을 재사용할 수 없습니다.
+
+Node는 envelope schema와 파생 command ID, trust store의 key, 서명, signer project scope, receiver project identity를 먼저 확인합니다. 완료된 동일 command의 receipt 복구를 제외하면 freshness, 로컬 정책을 검사한 뒤 replay reservation을 원자적으로 만들고, 그 뒤에만 artifact를 읽어 hash·크기·UTF-8을 확인하고 공급자 중립 executor를 호출합니다. 정책 거부는 예약하지 않으므로 승인 뒤 같은 command를 다시 받을 수 있습니다. Payload 또는 실행 실패는 원문 없는 terminal receipt로 저장하며 같은 command를 다시 실행하지 않습니다. 현재 replay adapter는 process 재시작을 넘지 않는 bounded memory fixture이므로 durable queue, Node transport와 reconnect 보장은 다음 단계입니다. 결정은 [ADR-0041](./docs/adr/0041-signed-scoped-remote-command.md)에 기록합니다.
+
 ## 저장소 내부 구조
 
 `lervo init`의 목표 구조입니다.
@@ -341,7 +345,7 @@ sequenceDiagram
     U->>H: "shiflo의 OO 버그 수정"
     H->>H: identity, project, permission 확인
     H->>N: 서명된 command + idempotency key
-    N->>N: local policy / required context 판정
+    N->>N: signature / project scope / replay / local policy 판정
     N->>A: 관리되는 run 실행
     A-->>N: tool/file/verification events
     N-->>H: 순서화된 events + 허용된 artifacts
@@ -349,6 +353,8 @@ sequenceDiagram
 ```
 
 Node가 오프라인이면 명령은 만료 시간과 함께 대기합니다. 조회 요청은 동기화된 데이터의 최신 시점을 명시하고 응답하며, 최신 저장소 접근이 필요한 요청은 Node 연결 없이는 실행하지 않습니다.
+
+현재 로컬 fixture는 `deliveryStatus=processed|duplicate`와 `receipt.outcome=executed|failed`를 구분합니다. `executed`는 executor가 유효한 run ID를 반환하고 receipt 저장까지 끝났다는 뜻일 뿐, 이후 event sync나 Hub 응답 전달까지 성공했다는 뜻은 아닙니다. Replay 저장 실패 뒤 실제 executor 호출 여부를 안전하게 확정할 수 없으면 완료를 주장하지 않고 `replay_store_failed`로 닫습니다.
 
 ## 보안과 개인정보
 
@@ -367,6 +373,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 서명된 원격 command protocol의 로컬 fixture입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·replay·실행 순서(`remote-command`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 offline command queue와 reconnect 전체 검증입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.
