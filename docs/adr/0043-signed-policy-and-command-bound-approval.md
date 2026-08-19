@@ -16,7 +16,7 @@ Hub 정책이 로컬 보호를 완화하거나, 한 command의 승인을 다른 
 `@lervo/policy-contract`가 세 canonical 원본과 목적별 Ed25519 signing domain을 소유합니다.
 
 - `PolicySnapshot`: project ID·identity hash, sequence, 이전 snapshot ID, 발급·만료 시각과 role·risk·capability별 rule
-- `PolicyApproval`: 현재 snapshot ID/hash, command ID/hash, command signer key ID, capability, 승인자 subject hash와 발급·만료 시각
+- `PolicyApproval`: 현재 snapshot ID/hash, command ID/hash, command signer key ID, capability, 승인 저장소 상대 경로, 승인자 subject hash와 발급·만료 시각
 - `PolicyApprovalRevocation`: approval ID, 철회 시각과 bounded reason code
 
 각 ID는 자신을 제외한 canonical 원본에서 계산합니다. Snapshot rule 좌표와 ID는 중복할 수 없습니다. Approval 만료는 snapshot과 command 만료보다 늦을 수 없습니다. Snapshot, approval과 revocation signature는 `snapshot`, `approval`, `revocation` purpose가 허용된 project-scoped trust key로 각각 검증합니다. 한 purpose의 signature를 다른 purpose에 재사용할 수 없습니다.
@@ -33,7 +33,7 @@ Hub 정책이 로컬 보호를 완화하거나, 한 command의 승인을 다른 
 
 `require_approval`은 현재 snapshot과 정확한 command ID/hash·signer key ID·capability에 묶인 승인만 통과시킵니다. 발급 전, 만료 후 또는 철회 시각 이후 승인은 사용할 수 없습니다. SQLite에서 읽은 signed envelope은 평가 시 trust store로 다시 검증합니다. 구조나 signature가 손상된 원본을 단순한 승인 부재로 낮추지 않고 정책 평가 실패로 닫습니다.
 
-승인 대기에서는 remote replay reservation을 만들지 않고 Hub terminal rejection도 보내지 않습니다. Reconnect worker는 `local_deferred/approval_required`로 lease 만료를 기다립니다. 유효한 승인을 동기화한 뒤 같은 signed command가 다시 오면 정책을 재평가하고, executor에는 policy snapshot ID와 정렬된 approval ID만 전달합니다.
+승인 대기에서는 remote replay reservation을 만들지 않고 Hub terminal rejection도 보내지 않습니다. Reconnect worker는 `local_deferred/approval_required`로 lease 만료를 기다립니다. 유효한 승인을 동기화한 뒤 같은 signed command가 다시 오면 정책을 재평가하고, executor에는 재검증할 command와 signer, policy snapshot·approval 좌표를 전달합니다.
 
 ## 개인정보와 실패 의미
 
@@ -51,4 +51,4 @@ Policy SQLite에는 signed rule metadata, command/hash 좌표와 승인자 subje
 
 ## 결과와 후속 범위
 
-정책 배포와 승인 수명주기의 공급자·transport 중립 Node 수직 슬라이스가 생겼습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 아직 없고 transport fixture가 서명 bundle을 제공합니다. Managed provider coordinator도 아직 `filesystem.write=require_approval`을 차단합니다. 다음 단계는 executor에 전달된 승인 evidence를 현재 run, path, E3와 다시 결속해 기존 1회용 write permit를 여는 것입니다.
+정책 배포와 승인 수명주기의 공급자·transport 중립 Node 수직 슬라이스가 생겼습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 아직 없고 transport fixture가 서명 bundle을 제공합니다. Managed provider coordinator 연결은 [ADR-0044](./0044-signed-approval-managed-write-permit.md)에서 완료했습니다.

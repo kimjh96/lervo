@@ -63,6 +63,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [서명·프로젝트 범위·로컬 정책을 순서대로 닫는 원격 command ADR](./docs/adr/0041-signed-scoped-remote-command.md)
 - [재시작과 응답 유실을 견디는 durable command delivery ADR](./docs/adr/0042-durable-remote-command-delivery.md)
 - [로컬 제한을 완화하지 않는 서명 정책과 command-bound 승인 ADR](./docs/adr/0043-signed-policy-and-command-bound-approval.md)
+- [서명 승인 원본을 managed write permit에 결속하는 ADR](./docs/adr/0044-signed-approval-managed-write-permit.md)
 
 ## 현재 구현
 
@@ -107,7 +108,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 
 M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Ed25519 원격 command는 durable Hub queue, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Hub·Node 재시작과 acknowledgement 유실 뒤에도 저장된 receipt로 복구하며 executor를 다시 호출하지 않습니다. 이 reconnect 검증은 인증된 transport port를 사용한 로컬 fixture이고 실제 command HTTP/TLS endpoint는 아닙니다.
 
-후속 정책 1차 슬라이스는 순번·이전 ID가 있는 서명 정책 snapshot과 command-bound 승인·철회를 인증된 transport port에서 받아 별도 project-bound SQLite에 보존합니다. 원격 command는 로컬과 Hub 중 더 제한적인 판정을 사용하며 승인 대기에서는 replay reservation을 만들지 않아, 유효한 승인을 받은 같은 command를 다시 평가할 수 있습니다. 저장 후 평가 때도 서명을 다시 확인합니다. 실제 Hub 정책 작성·저장 HTTP 서비스와 이 승인 증거를 managed run의 파일 쓰기 permit까지 전달하는 연결은 다음 범위입니다.
+후속 정책 1차 슬라이스는 순번·이전 ID가 있는 서명 정책 snapshot과 command-bound 승인·철회를 인증된 transport port에서 받아 별도 project-bound SQLite에 보존합니다. 원격 command는 로컬과 Hub 중 더 제한적인 판정을 사용하며 승인 대기에서는 replay reservation을 만들지 않아, 유효한 승인을 받은 같은 command를 다시 평가할 수 있습니다. 승인된 `require_approval` 실행은 provider 시작 전과 실제 파일 쓰기 직전에 현재 signed 원본, command/run, verification suite와 승인 경로를 다시 확인합니다. E3와 실제 before hash까지 맞아야 approval ID가 묶인 1회용 permit를 발급합니다. 실제 Hub 정책 작성·저장 HTTP 서비스는 다음 범위입니다.
 
 ## 핵심 명제
 

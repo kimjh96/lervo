@@ -61,6 +61,7 @@ import {
   policyApprovalRevocationSchema,
   policyApprovalSchema,
   policySnapshotSchema,
+  managedRunApprovalAuthorizationSchema,
   signedPolicyApprovalRevocationSchema,
   signedPolicyApprovalSchema,
   signedPolicySnapshotSchema,
@@ -103,6 +104,7 @@ ajv.addSchema(policyApprovalRevocationSchema);
 ajv.addSchema(signedPolicySnapshotSchema);
 ajv.addSchema(signedPolicyApprovalSchema);
 ajv.addSchema(signedPolicyApprovalRevocationSchema);
+ajv.addSchema(managedRunApprovalAuthorizationSchema);
 ajv.addSchema(remoteCommandSchema);
 ajv.addSchema(signedRemoteCommandSchema);
 ajv.addSchema(remoteCommandExecutionReceiptSchema);
@@ -116,6 +118,9 @@ const validators = {
   policyApprovalRevocation: ajv.getSchema(policyApprovalRevocationSchema.$id)!,
   signedPolicyApprovalRevocation: ajv.getSchema(
     signedPolicyApprovalRevocationSchema.$id,
+  )!,
+  managedRunApprovalAuthorization: ajv.getSchema(
+    managedRunApprovalAuthorizationSchema.$id,
   )!,
   event: ajv.getSchema(eventEnvelopeSchema.$id)!,
   projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),

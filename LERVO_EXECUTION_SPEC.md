@@ -71,7 +71,7 @@ awaiting_context
 any telemetry failure -> telemetry_failed
 ```
 
-`write_authorized`는 실제 파일 변경이 아닙니다. 현재 generation, 정규화된 대상 상대 경로, 대상 digest와 허가 시점의 실제 before hash에 묶인 1회용 permit가 발급된 상태입니다. 다른 경로, 다른 generation 또는 이미 소비한 permit로 `file.changed`를 기록할 수 없습니다. 변경 뒤 저장소 파일을 안전하게 다시 읽은 실제 after hash도 일치해야 합니다. Role의 `filesystem.write`가 `deny`면 `capability.decided=deny`, `require_approval`이면 검증된 승인 원본이 아직 없으므로 `capability.decided=require_approval`을 기록하고 permit를 발급하지 않습니다.
+`write_authorized`는 실제 파일 변경이 아닙니다. 현재 generation, 정규화된 대상 상대 경로, 대상 digest, 허가 시점의 실제 before hash와 optional approval/snapshot ID에 묶인 1회용 permit가 발급된 상태입니다. 다른 경로, 다른 generation 또는 이미 소비한 permit로 `file.changed`를 기록할 수 없습니다. 변경 뒤 저장소 파일을 안전하게 다시 읽은 실제 after hash도 일치해야 합니다. Role의 `filesystem.write`가 `deny`면 `capability.decided=deny`입니다. `require_approval`은 현재 signed 원본을 provider 시작 전과 파일 요청 직전에 모두 검증한 경우만 `allow`와 permit를 만들며, 그 외에는 `capability.decided=require_approval`입니다.
 
 ## 예시 1: “DD 기능 개발 구현”
 
@@ -235,7 +235,7 @@ Orchestrator는 준비가 성공하면 모든 E1 `context.selected`와 E2 `docum
 | `document.loaded` | `evidenceReceiptId`, `documentId`, `contentHash`, `byteCount`, `scope`, `sourceRevision` |
 | `context.injected` | `receiptId`, `evidenceReceiptIds`, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration` |
 | `capability.requested` | `capability=filesystem.write`, `targetDigest`, `risk` |
-| `capability.decided` | `capability`, `decision`, `policyRuleId=managed_context_e3`, `approvalId` |
+| `capability.decided` | `capability`, `decision`, `policyRuleId=managed_context_e3\|managed_context_e3+signed_approval`, `approvalId` |
 | `file.changed` | Permit와 실제 저장소 상태로 확인한 `path`, `beforeHash`, `afterHash`, `changeKind` |
 | `context.invalidated` | `documentIds`, 기계용 `reason`, 무효화된 `contextGeneration` |
 
@@ -739,15 +739,23 @@ Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자�
 
 `PolicySnapshot`은 project ID·identity hash, sequence, 이전 snapshot ID, 발급·만료 시각과 1~256개의 rule을 가집니다. Rule 좌표는 role, risk, capability 조합이며 한 snapshot 안에서 중복할 수 없습니다. Decision은 `allow`, `deny`, `require_approval`입니다. Snapshot ID는 자신을 제외한 canonical 원본의 hash이고 snapshot hash는 완성 원본의 SHA-256입니다.
 
-`PolicyApproval`은 현재 snapshot ID/hash, command ID/hash, command signer key ID, capability, 승인자 subject hash, 발급·만료 시각에 결속됩니다. 승인 만료는 snapshot과 command 만료보다 늦을 수 없습니다. `PolicyApprovalRevocation`은 approval ID, 철회 시각과 `cancelled`, `superseded`, `security_policy_changed` 중 하나의 짧은 reason code만 가집니다. Snapshot, approval과 revocation은 각각 `lervo.policy.snapshot.v1`, `lervo.policy.approval.v1`, `lervo.policy.revocation.v1` domain으로 Ed25519 서명하며 trust key는 project scope와 허용 purpose를 함께 가져야 합니다.
+`PolicyApproval`은 현재 snapshot ID/hash, command ID/hash, command signer key ID, capability, 1~16개의 저장소 상대 경로, 승인자 subject hash, 발급·만료 시각에 결속됩니다. Snapshot rule에 같은 role·risk·capability의 경로 범위가 있으면 승인이 그 범위를 넓힐 수 없습니다. 승인 만료는 snapshot과 command 만료보다 늦을 수 없습니다. `PolicyApprovalRevocation`은 approval ID, 철회 시각과 `cancelled`, `superseded`, `security_policy_changed` 중 하나의 짧은 reason code만 가집니다. Snapshot, approval과 revocation은 각각 `lervo.policy.snapshot.v1`, `lervo.policy.approval.v1`, `lervo.policy.revocation.v1` domain으로 Ed25519 서명하며 trust key는 project scope와 허용 purpose를 함께 가져야 합니다.
 
 인증된 policy transport는 destination과 Hub peer identity를 먼저 확인합니다. 한 bundle은 snapshot 하나, approval 최대 64개와 revocation 최대 64개입니다. 모든 schema, canonical ID/hash, project scope, purpose와 signature를 저장 전에 검증합니다. Node SQLite는 project identity에 고정되며 snapshot·approval·revocation signed envelope을 서로 다른 append-only table에 보존합니다. 새 snapshot은 현재 sequence 바로 다음이며 `previousSnapshotId`가 현재 ID여야 합니다. 처음 연결한 비어 있는 Node는 서명된 현재 snapshot을 bootstrap할 수 있지만, 하나를 저장한 뒤에는 과거·gap snapshot으로 되돌아가지 않습니다. Bundle 전체는 한 transaction이므로 잘못된 승인 하나 때문에 snapshot만 부분 적용되지 않습니다.
 
 원격 command 평가 시 로컬 capability 결정과 일치하는 Hub rule 중 더 제한적인 결정을 사용합니다. 제한도는 `deny > require_approval > allow`입니다. 따라서 Hub 정책은 로컬 제한을 완화할 수 없고, 로컬 `deny`는 승인으로 우회할 수 없습니다. `require_approval`은 현재 snapshot과 정확한 command·capability에 묶인 승인이 평가 시각에 유효하고 아직 철회되지 않았을 때만 통과합니다. 저장 후 평가에서도 snapshot·approval·revocation signature를 trust store로 다시 확인합니다.
 
-승인 대기와 정책 거부는 replay reservation을 만들지 않습니다. `approval_required`는 terminal Hub rejection이 아니라 reconnect worker의 `local_deferred`이며 lease 만료 뒤 같은 signed command를 다시 평가할 수 있습니다. 승인되면 executor 입력에 policy snapshot ID와 정렬된 approval ID만 전달합니다. 이 좌표는 실행 승인을 뜻하지만 executor 실행, `run.completed`, E3나 파일 쓰기 permit를 대신하지 않습니다.
+승인 대기와 정책 거부는 replay reservation을 만들지 않습니다. `approval_required`는 terminal Hub rejection이 아니라 reconnect worker의 `local_deferred`이며 lease 만료 뒤 같은 signed command를 다시 평가할 수 있습니다. 승인되면 executor 입력에 검증된 command 원본, signer key ID, policy snapshot ID와 정렬된 approval ID를 `ManagedRunApprovalAuthorization`으로 전달합니다. 이 값은 재검증 입력이며 executor 실행, `run.completed`, E3나 파일 쓰기 permit를 대신하지 않습니다.
 
-Policy SQLite 원본에는 rule metadata, 서명 envelope, command/hash 좌표와 승인자 subject hash만 있습니다. Raw request, 승인자 식별 원문, 승인 사유, credential, provider payload와 오류 본문은 저장하지 않습니다. 이번 단계는 새 event를 추가하지 않습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint와 managed provider coordinator의 permit 연결은 후속 범위입니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+Policy SQLite 원본에는 rule metadata, 서명 envelope, command/hash 좌표, 승인 경로와 승인자 subject hash만 있습니다. Raw request, 승인자 식별 원문, 승인 사유, credential, provider payload와 오류 본문은 저장하지 않습니다. 이번 단계는 새 event를 추가하지 않습니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 후속 범위입니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+
+## Managed run 승인 재검증
+
+`filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.
+
+Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 보냅니다. Provider가 실제 파일 변경을 요청하면 managed write bridge는 정규화된 단일 요청 경로와 현재 시각을 더해 같은 verifier를 다시 호출합니다. 그 사이 snapshot 교체, 만료나 철회가 생기면 `capability.decided=require_approval`, `approvalId=null`을 기록하고 permit를 만들지 않습니다. 서명 원본 검증 예외도 fail-closed하며 provider write 실패로 run을 닫습니다.
+
+재검증 성공 뒤에도 current generation E3, expected path와 실제 before hash가 별도로 맞아야 합니다. 발급된 permit는 approval ID와 snapshot ID를 포함하고 한 변경 완료 뒤 소비됩니다. `capability.decided=allow`에는 `policyRuleId=managed_context_e3+signed_approval`과 실제 approval ID를 기록하되 command, signature, 승인자 정보와 원문은 event에 넣지 않습니다. 새 event type은 추가하지 않습니다. 상세 결정은 [ADR-0044](./docs/adr/0044-signed-approval-managed-write-permit.md)에 기록합니다.
 
 ## 실패 의미
 

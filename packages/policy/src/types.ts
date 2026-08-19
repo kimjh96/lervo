@@ -1,5 +1,6 @@
 import {
   type CapabilityDecision,
+  type ManagedRunApprovalAuthorization,
   type PolicyApproval,
   type RemoteCommand,
   type RemoteCommandTarget,
@@ -58,4 +59,36 @@ export interface LocalCommandCapabilityPolicy {
     capability: PolicyApproval["capability"];
     decision: CapabilityDecision;
   }>>;
+}
+
+export interface ManagedRunApprovalVerificationInput {
+  authorization: ManagedRunApprovalAuthorization;
+  projectId: string;
+  runId: string;
+  sessionId: string;
+  roleId: string;
+  provider: string;
+  risk: string;
+  requestDigest: string;
+  verificationSuiteIds: string[];
+  expectedPaths: string[];
+  requestedPath: string | null;
+  evaluatedAt: string;
+}
+
+export type ManagedRunApprovalVerificationResult =
+  | {
+      approved: true;
+      approvalId: string;
+      policySnapshotId: string;
+    }
+  | {
+      approved: false;
+      reasonCode: string;
+    };
+
+export interface ManagedRunApprovalVerifier {
+  verify(
+    input: ManagedRunApprovalVerificationInput,
+  ): Promise<ManagedRunApprovalVerificationResult>;
 }

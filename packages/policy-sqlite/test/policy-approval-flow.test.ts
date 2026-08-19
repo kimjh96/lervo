@@ -8,6 +8,7 @@ import {
   ConfiguredEd25519PolicyTrustStore,
   Ed25519PolicySigner,
   PolicyBackedRemoteCommandPolicy,
+  PolicyManagedRunApprovalVerifier,
   runPolicySyncCycle,
   type AuthenticatedPolicyHubTransport,
   type PolicyBundle,
@@ -24,7 +25,11 @@ import {
   RemoteCommandReceiver,
 } from "@lervo/remote-command";
 import { createRemoteCommand } from "@lervo/remote-command-contract";
-import { type CapabilityDecision, type RemoteCommand } from "@lervo/schemas";
+import {
+  type CapabilityDecision,
+  type ManagedRunApprovalAuthorization,
+  type RemoteCommand,
+} from "@lervo/schemas";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SQLitePolicyStateStore } from "../src/index.js";
@@ -107,6 +112,7 @@ function snapshot(input: { sequence?: number; previousSnapshotId?: string | null
       roleId: "developer",
       risk: "medium",
       capability: "filesystem.write",
+      repositoryPaths: ["src/result.ts"],
       decision: input.decision ?? "require_approval",
     }],
   });
@@ -223,6 +229,7 @@ describe("durable Hub policy and approval lifecycle", () => {
       command: remoteCommand,
       commandSignerKeyId: "key_remote_policy",
       capability: "filesystem.write",
+      repositoryPaths: ["src/result.ts"],
       approverSubjectHash: `sha256:${createHash("sha256").update(approverIdentity).digest("hex")}`,
       grantedAt: "2026-08-19T00:02:00.000Z",
       expiresAt: "2026-08-19T00:09:00.000Z",
@@ -266,9 +273,73 @@ describe("durable Hub policy and approval lifecycle", () => {
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0]?.[0]).toMatchObject({
       policyAuthorization: {
+        source: "remote_command",
+        commandSignerKeyId: "key_remote_policy",
         policySnapshotId: policySnapshot.snapshotId,
         approvalIds: [approval.approvalId],
       },
+    });
+
+    const authorization = execute.mock.calls[0]?.[0]
+      .policyAuthorization as ManagedRunApprovalAuthorization | null;
+    if (authorization === null) throw new Error("expected managed run approval evidence");
+    const verifier = new PolicyManagedRunApprovalVerifier({
+      store,
+      trustStore: configuredTrustStore,
+    });
+    const verificationInput = {
+      authorization,
+      projectId: target.projectId,
+      runId: "run_policy_approved",
+      sessionId: "ses_policy_approved",
+      roleId: remoteCommand.action.roleId,
+      provider: remoteCommand.action.provider,
+      risk: remoteCommand.action.risk,
+      requestDigest: remoteCommand.action.request.contentHash,
+      verificationSuiteIds: [...remoteCommand.action.verificationSuiteIds],
+      expectedPaths: ["src/result.ts"],
+      requestedPath: "src/result.ts",
+      evaluatedAt: clock.value,
+    };
+    await expect(verifier.verify(verificationInput)).resolves.toEqual({
+      approved: true,
+      approvalId: approval.approvalId,
+      policySnapshotId: policySnapshot.snapshotId,
+    });
+    await expect(verifier.verify({
+      ...verificationInput,
+      expectedPaths: ["src/unapproved.ts"],
+      requestedPath: "src/unapproved.ts",
+    })).resolves.toEqual({
+      approved: false,
+      reasonCode: "active_approval_missing",
+    });
+
+    const revocation = createPolicyApprovalRevocation({
+      approval,
+      revokedAt: "2026-08-19T00:04:00.000Z",
+      reasonCode: "cancelled",
+    });
+    transport.bundle = {
+      snapshot: signedSnapshot,
+      approvals: [signer.signApproval(approval)],
+      revocations: [signer.signRevocation(revocation)],
+    };
+    clock.value = "2026-08-19T00:04:00.000Z";
+    await sync({ store, transport, publicKey: policyKeys.publicKey, clock });
+    await expect(verifier.verify({
+      ...verificationInput,
+      evaluatedAt: clock.value,
+    })).resolves.toEqual({
+      approved: false,
+      reasonCode: "active_approval_missing",
+    });
+    await expect(verifier.verify({
+      ...verificationInput,
+      evaluatedAt: "2026-08-19T00:10:00.001Z",
+    })).resolves.toEqual({
+      approved: false,
+      reasonCode: "remote_command_not_current",
     });
     store.close();
 
@@ -288,6 +359,7 @@ describe("durable Hub policy and approval lifecycle", () => {
     const policySnapshot = snapshot();
     const remoteCommand = command(2, "idk_policy_approval_02");
     const approval = createPolicyApproval({
+      repositoryPaths: ["src/result.ts"],
       snapshot: policySnapshot,
       command: remoteCommand,
       commandSignerKeyId: "key_remote_policy",

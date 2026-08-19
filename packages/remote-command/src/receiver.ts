@@ -240,10 +240,9 @@ export class RemoteCommandReceiver {
         command: clone(command),
         request,
         authorizedAt: now,
-        policyAuthorization: {
-          policySnapshotId: policyDecision.policySnapshotId ?? null,
-          approvalIds: [...(policyDecision.approvalIds ?? [])].sort(),
-        },
+        policyAuthorization: policyDecision.authorization === undefined
+          ? null
+          : clone(policyDecision.authorization),
       });
       receipt = {
         schemaVersion: 1,

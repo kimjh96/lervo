@@ -319,7 +319,7 @@ fixtures/
 
 ## v0 이후 순서
 
-1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX — 서명 snapshot·command-bound 승인/철회와 Node 재평가 1차 완료
+1. Hub 정책 배포와 `require_approval` 승인 수명주기, 고급 trace 운영 UX — 서명 snapshot·command-bound 승인/철회, Node 재평가와 managed write permit 연결 완료
 2. Slack/Discord command gateway와 승인 UX
 3. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
 4. 명시적 관계 기반 지식 그래프 시각화
@@ -328,6 +328,8 @@ fixtures/
 
 ## 다음 실행 작업
 
-현재 정의한 M0~M6 v0 범위는 완료했습니다. 후속 **Hub 정책 배포와 `require_approval` 승인 수명주기 1차**도 완료했습니다. `PolicySnapshot`, command·capability·snapshot-bound approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록했습니다.
+현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결**을 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
 
-다음 구현 작업은 **검증된 approval evidence를 managed provider run의 `filesystem.write` permit에 결속**하는 것입니다. Coordinator가 snapshot·approval ID와 현재 command/run/경로/E3 좌표를 다시 확인하고 `capability.decided.approvalId`를 실제 승인 원본에 연결한 뒤에만 기존 1회용 permit를 발급해야 합니다. 실제 Hub 정책 작성·durable source·HTTP endpoint는 그 다음 transport 슬라이스로 분리합니다.
+Coordinator는 provider 시작 전과 실제 쓰기 직전에 현재 signed 원본, command/run/provider/risk/suite와 승인 경로를 재검증합니다. E3·예상 경로·실제 before hash도 통과한 경우에만 `capability.decided.approvalId`와 policy snapshot ID가 묶인 기존 1회용 permit를 발급합니다. 실행 전 통과 뒤 철회·만료된 승인과 policy rule보다 넓은 승인 경로도 fixture로 차단했습니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)과 [ADR-0044](./docs/adr/0044-signed-approval-managed-write-permit.md)에 기록했습니다.
+
+다음 구현 작업은 **실제 Hub 정책 작성·durable source·인증된 HTTP transport**입니다. Node의 기존 transport port와 검증·SQLite 경계를 유지하면서 Hub가 snapshot·approval·revocation 원본을 안전하게 만들고 보존하며 project-scoped endpoint로 전달하는 최소 수직 슬라이스를 구현합니다.

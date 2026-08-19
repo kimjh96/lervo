@@ -41,7 +41,6 @@ export function validateManagedProviderRunInput(
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
     input.context.role.roleId !== options.coordinates.roleId ||
-    input.context.role.capabilities["filesystem.write"] === "require_approval" ||
     input.context.expectedPaths.length === 0 ||
     new Set(skillIds).size !== skillIds.length ||
     roleSkillIds.length !== resolvedSkillIds.length ||
@@ -55,6 +54,17 @@ export function validateManagedProviderRunInput(
     throw new ManagedProviderRunError(
       "contract_validation_failed",
       "Managed run 요청의 task, 파일 쓰기 정책 또는 예상 경로가 유효하지 않습니다.",
+    );
+  }
+  const writeDecision = input.context.role.capabilities["filesystem.write"];
+  if (
+    (writeDecision !== "require_approval" && input.approvalAuthorization !== undefined) ||
+    (input.approvalAuthorization !== undefined &&
+      !validateSchema("managedRunApprovalAuthorization", input.approvalAuthorization).valid)
+  ) {
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      "파일 쓰기 정책과 signed approval authorization 입력이 일치하지 않습니다.",
     );
   }
   if (input.verificationSuites !== undefined) {
@@ -88,6 +98,59 @@ export function validateManagedProviderRunInput(
   }
 }
 
+export async function verifyManagedProviderRunApproval(input: {
+  run: ManagedProviderRunInput;
+  options: ManagedProviderRunOptions;
+  evaluatedAt: string;
+}): Promise<void> {
+  if (input.run.context.role.capabilities["filesystem.write"] !== "require_approval") {
+    return;
+  }
+  const authorization = input.run.approvalAuthorization;
+  const verifier = input.options.approvalVerifier;
+  if (authorization === undefined || verifier === undefined) {
+    throw new ManagedProviderRunError(
+      "approval_required",
+      "Managed write 실행에 signed approval authorization이 필요합니다.",
+    );
+  }
+  let result;
+  try {
+    result = await verifier.verify({
+      authorization,
+      ...input.options.coordinates,
+      provider: input.options.adapter.descriptor.provider,
+      risk: input.run.risk,
+      requestDigest: input.run.requestDigest,
+      verificationSuiteIds: [...input.run.context.role.verification.suiteIds],
+      expectedPaths: [...input.run.context.expectedPaths],
+      requestedPath: null,
+      evaluatedAt: input.evaluatedAt,
+    });
+  } catch (error) {
+    throw new ManagedProviderRunError(
+      "approval_required",
+      "Managed write approval 원본을 검증하지 못했습니다.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
+  if (!result.approved) {
+    throw new ManagedProviderRunError(
+      "approval_required",
+      `Managed write approval이 현재 실행에 유효하지 않습니다: ${result.reasonCode}`,
+    );
+  }
+  if (
+    result.policySnapshotId !== authorization.policySnapshotId ||
+    !authorization.approvalIds.includes(result.approvalId)
+  ) {
+    throw new ManagedProviderRunError(
+      "approval_required",
+      "Approval verifier 결과가 전달된 authorization 좌표와 다릅니다.",
+    );
+  }
+}
+
 export function createAdapterStartRequest(input: {
   run: ManagedProviderRunInput;
   options: ManagedProviderRunOptions;
@@ -104,7 +167,7 @@ export function createAdapterStartRequest(input: {
     writingPolicyId: expectedWritingPolicyId(input.run),
     requestDigest: input.run.requestDigest,
     executionMode:
-      input.run.context.role.capabilities["filesystem.write"] === "allow"
+      input.run.context.role.capabilities["filesystem.write"] !== "deny"
         ? "managed_write"
         : "read_only",
     requestedAt: input.requestedAt,

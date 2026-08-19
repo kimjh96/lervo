@@ -24,6 +24,7 @@ import {
   assertTerminalTurn,
   createAdapterStartRequest,
   validateManagedProviderRunInput,
+  verifyManagedProviderRunApproval,
 } from "./provider-run-validation.js";
 import {
   resolveManagedProviderRunDeadlines,
@@ -162,6 +163,13 @@ export class ManagedProviderRunCoordinator {
     ]);
 
     try {
+      phase = "approval_preflight";
+      await verifyManagedProviderRunApproval({
+        run: input,
+        options: this.options,
+        evaluatedAt: requestedAt,
+      });
+
       phase = "before_snapshot";
       state.before = await withinDeadline({
         operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
@@ -235,6 +243,11 @@ export class ManagedProviderRunCoordinator {
         plan: writePlan,
         repositoryRoot: input.repositoryRoot,
         risk: input.risk,
+        requestDigest: input.requestDigest,
+        verificationSuiteIds: input.context.role.verification.suiteIds,
+        ...(input.approvalAuthorization === undefined
+          ? {}
+          : { approvalAuthorization: input.approvalAuthorization }),
         publications: input.context.publications,
         now: () => this.date(),
       });

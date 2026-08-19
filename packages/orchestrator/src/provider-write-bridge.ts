@@ -10,6 +10,7 @@ import type {
   AdapterManagedWriteRequest,
   AdapterSession,
   AdapterTurn,
+  ManagedRunApprovalAuthorization,
   SharedContextPublication,
 } from "@lervo/schemas";
 import { validateSchema } from "@lervo/schemas";
@@ -95,6 +96,9 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
       plan: ManagedWritePlan;
       repositoryRoot: string;
       risk: string;
+      requestDigest: string;
+      verificationSuiteIds: readonly string[];
+      approvalAuthorization?: ManagedRunApprovalAuthorization;
       publications: readonly SharedContextPublication[];
       now: () => Date;
     },
@@ -133,6 +137,11 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
         path: request.path,
         targetDigest: request.targetDigest,
         risk: this.options.risk,
+        requestDigest: this.options.requestDigest,
+        verificationSuiteIds: this.options.verificationSuiteIds,
+        ...(this.options.approvalAuthorization === undefined
+          ? {}
+          : { approvalAuthorization: this.options.approvalAuthorization }),
         publications: this.options.publications,
         occurredAt: this.date(),
       });

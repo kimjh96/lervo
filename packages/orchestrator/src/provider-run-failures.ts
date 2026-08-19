@@ -23,6 +23,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   provider_write_failed: 85,
   unmanaged_change_detected: 80,
   verification_failed: 75,
+  approval_required: 72,
   contract_validation_failed: 70,
   repository_snapshot_failed: 60,
   context_injection_failed: 50,
@@ -49,6 +50,8 @@ function failureCodeForPhase(
   switch (phase) {
     case "adapter_start":
       return "provider_start_failed";
+    case "approval_preflight":
+      return "approval_required";
     case "turn_start":
     case "provider_turn":
       return "provider_turn_failed";

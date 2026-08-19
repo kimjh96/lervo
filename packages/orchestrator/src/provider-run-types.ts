@@ -4,6 +4,7 @@ import type {
   AdapterSession,
   AdapterTurn,
   ContextEvidence,
+  ManagedRunApprovalAuthorization,
   VerificationResult,
   VerificationSuite,
 } from "@lervo/schemas";
@@ -22,6 +23,7 @@ import type {
 
 export type ManagedProviderRunFailureCode =
   | "cancelled"
+  | "approval_required"
   | "artifact_storage_failed"
   | "context_injection_failed"
   | "context_preparation_failed"
@@ -95,6 +97,7 @@ export interface ManagedProviderRunInput {
   signal?: AbortSignal;
   createEnvelopeId?: () => string;
   createEvidenceReceiptId?: () => string;
+  approvalAuthorization?: ManagedRunApprovalAuthorization;
 }
 
 export interface ManagedResolvedSkill {

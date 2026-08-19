@@ -56,6 +56,7 @@ function snapshot() {
       roleId: "developer",
       risk: "medium",
       capability: "filesystem.write",
+      repositoryPaths: ["src/result.ts"],
       decision: "require_approval",
     }],
   });
@@ -66,6 +67,7 @@ describe("policy snapshot and approval contract", () => {
     const policy = snapshot();
     const remoteCommand = command();
     const approval = createPolicyApproval({
+      repositoryPaths: ["src/result.ts"],
       snapshot: policy,
       command: remoteCommand,
       commandSignerKeyId: "key_remote_contract",
@@ -97,6 +99,16 @@ describe("policy snapshot and approval contract", () => {
       snapshot: policy,
       command: remoteCommand,
       commandSignerKeyId: "key_remote_contract",
+    })).toThrow();
+    expect(() => createPolicyApproval({
+      snapshot: policy,
+      command: remoteCommand,
+      commandSignerKeyId: "key_remote_contract",
+      capability: "filesystem.write",
+      repositoryPaths: ["src/outside-policy.ts"],
+      approverSubjectHash: `sha256:${"b".repeat(64)}`,
+      grantedAt: "2026-08-19T00:01:00.000Z",
+      expiresAt: "2026-08-19T00:09:00.000Z",
     })).toThrow();
     expect(() => assertPolicyApproval({
       approval,

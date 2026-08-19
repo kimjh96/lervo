@@ -3,6 +3,7 @@ import {
   type RemoteCommandExecutionReceipt,
   type RemoteCommandPayloadReference,
   type RemoteCommandTarget,
+  type ManagedRunApprovalAuthorization,
   type SignedRemoteCommand,
 } from "@lervo/schemas";
 
@@ -25,6 +26,7 @@ export type RemoteCommandPolicyDecision =
       status: "approved";
       policySnapshotId?: string | null;
       approvalIds?: string[];
+      authorization?: ManagedRunApprovalAuthorization;
     }
   | { status: "denied"; reasonCode: string }
   | { status: "approval_required"; reasonCode: string; capability: string };
@@ -46,10 +48,7 @@ export interface RemoteCommandExecutor {
     command: RemoteCommand;
     request: string;
     authorizedAt: string;
-    policyAuthorization: {
-      policySnapshotId: string | null;
-      approvalIds: string[];
-    };
+    policyAuthorization: ManagedRunApprovalAuthorization | null;
   }): Promise<{ runId: string; completedAt: string }>;
 }
 

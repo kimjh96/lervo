@@ -7,6 +7,7 @@ import {
 import { calculateRemoteCommandHash } from "@lervo/remote-command-contract";
 import {
   type CapabilityDecision,
+  type ManagedRunApprovalAuthorization,
   type PolicyApproval,
   type RemoteCommand,
 } from "@lervo/schemas";
@@ -43,7 +44,12 @@ export class PolicyBackedRemoteCommandPolicy {
     signerKeyId: string;
     evaluatedAt: string;
   }): Promise<
-    | { status: "approved"; policySnapshotId: string | null; approvalIds: string[] }
+    | {
+        status: "approved";
+        policySnapshotId: string | null;
+        approvalIds: string[];
+        authorization?: ManagedRunApprovalAuthorization;
+      }
     | { status: "denied"; reasonCode: string }
     | { status: "approval_required"; reasonCode: string; capability: PolicyApproval["capability"] }
   > {
@@ -176,6 +182,18 @@ export class PolicyBackedRemoteCommandPolicy {
       status: "approved",
       policySnapshotId: snapshot?.snapshotId ?? null,
       approvalIds: approvalIds.sort(),
+      ...(snapshot !== null && approvalIds.length > 0
+        ? {
+            authorization: {
+              schemaVersion: 1 as const,
+              source: "remote_command" as const,
+              command: structuredClone(input.command),
+              commandSignerKeyId: input.signerKeyId,
+              policySnapshotId: snapshot.snapshotId,
+              approvalIds: approvalIds.sort(),
+            },
+          }
+        : {}),
     };
   }
 }

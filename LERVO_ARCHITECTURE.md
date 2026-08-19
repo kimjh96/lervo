@@ -76,7 +76,9 @@ Node reconnect worker는 인증된 transport port에서 한 번에 기본 1개, 
 
 정책 배포 1차 슬라이스는 `@lervo/policy-contract`, `@lervo/policy`, `@lervo/policy-sqlite`로 나뉩니다. Hub transport가 반환하는 snapshot·승인·철회 bundle은 body를 읽기 전에 인증된 destination·peer를 확인하고, 각 원본의 project scope, purpose별 Ed25519 signature와 bounded 개수를 검증한 뒤 한 SQLite transaction으로 적용합니다. Snapshot은 sequence와 이전 snapshot ID로 기존 Node 이력에 연속되어야 하며 승인과 철회는 append-only 원본입니다. 첫 연결은 현재 서명 snapshot을 bootstrap할 수 있지만 이후 과거 sequence나 끊긴 다음 snapshot은 거부합니다.
 
-원격 command 정책 평가기는 Role 기반 로컬 capability 결정과 현재 Hub rule 중 더 제한적인 값을 사용합니다. Hub `allow`는 로컬 `deny`나 `require_approval`을 완화하지 못합니다. 승인은 현재 snapshot ID/hash, command ID/hash, command signer key ID와 capability에 묶이고 발급 전·만료 후·철회 시각 이후에는 사용할 수 없습니다. 승인 대기는 replay reservation과 terminal Hub rejection을 만들지 않으므로 lease가 다시 전달될 때 같은 signed command를 재평가합니다. 평가 시 SQLite에 저장된 snapshot·승인·철회의 signature도 다시 검증합니다. 실제 Hub 정책 작성·durable source·HTTP route와 승인 evidence를 managed provider coordinator의 write permit까지 연결하는 작업은 이 슬라이스에 포함하지 않습니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)에 기록합니다.
+원격 command 정책 평가기는 Role 기반 로컬 capability 결정과 현재 Hub rule 중 더 제한적인 값을 사용합니다. Hub `allow`는 로컬 `deny`나 `require_approval`을 완화하지 못합니다. 승인은 현재 snapshot ID/hash, command ID/hash, command signer key ID, capability와 저장소 상대 경로에 묶이고 발급 전·만료 후·철회 시각 이후에는 사용할 수 없습니다. 승인 대기는 replay reservation과 terminal Hub rejection을 만들지 않으므로 lease가 다시 전달될 때 같은 signed command를 재평가합니다. 평가 시 SQLite에 저장된 snapshot·승인·철회의 signature도 다시 검증합니다.
+
+승인된 remote command는 재검증용 command·signer·snapshot·approval 좌표를 managed provider coordinator에 전달합니다. Coordinator는 provider 시작 전 전체 run과 예상 경로를, 실제 쓰기 직전에는 현재 요청 경로와 시각을 포함해 같은 signed 원본을 다시 확인합니다. `require_approval`은 이 두 검사와 E3·before hash가 모두 통과할 때만 approval ID와 snapshot ID가 묶인 기존 1회용 permit를 엽니다. 실제 Hub 정책 작성·durable source·HTTP route는 다음 범위입니다. 결정은 [ADR-0043](./docs/adr/0043-signed-policy-and-command-bound-approval.md)과 [ADR-0044](./docs/adr/0044-signed-approval-managed-write-permit.md)에 기록합니다.
 
 ## 저장소 내부 구조
 
@@ -152,7 +154,7 @@ Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다.
 
 현재 `lervo run` application service는 manifest와 document registry를 검증한 project storage, 선택한 provider adapter, coordinator, suite loader와 검증기를 같은 CAS 수명주기로 조합합니다. CLI는 provider, 저장소 상대 예상 경로 하나, 한 개 이상의 verification suite, 작업 문장과 위험도를 받습니다. 성공과 실패 모두 storage를 닫습니다. Provider 결과는 `@lervo/writing`이 결정적 검사와 별도 의미 평가를 실행해 공개 permit를 만든 경우에만 출력하며, 기본 실행처럼 의미 평가기가 없으면 검증된 변경과 `run.completed`는 유지하되 원문은 숨기고 실패 상태로 종료합니다. 명령 파싱·출력, 실행 조합, 검증 실행 어댑터와 init은 별도 모듈이며 `main`은 라우팅만 소유합니다.
 
-파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash와 generation에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
+파일 쓰기 permit는 Role의 `filesystem.write` 정책이 `allow`이거나 현재 signed 원본으로 재검증된 `require_approval`이고, 현재 generation의 모든 필수 문서가 `evaluateWriteContext`에서 E3를 통과할 때만 한 번 발급합니다. Permit는 정규화된 대상 경로, 대상 digest, 실제 before hash, generation과 optional approval/snapshot ID에 묶입니다. 변경 뒤 저장소 파일을 다시 안전하게 읽어 실제 after hash를 대조한 다음 `file.changed`와 `context.invalidated`를 같은 transaction에 넣고 permit와 E3를 즉시 무효화합니다. `deny`와 검증되지 않은 `require_approval`은 E3가 있어도 permit를 만들지 않습니다.
 
 ### Context Router
 
@@ -204,7 +206,7 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 
 원격 command 경계에는 서명된 Hub snapshot과 command-bound 승인·철회 수명주기가 구현되어 있습니다. 로컬과 Hub 판정은 제한도 `deny > require_approval > allow` 순서로 병합하며 현재 snapshot에 묶인 유효한 승인만 `require_approval`을 통과시킵니다. 승인자 식별 원문 대신 subject hash만 저장하고 정책 사유 원문은 저장하지 않습니다.
 
-Managed context gate 자체는 아직 Role의 `filesystem.write=require_approval`을 보수적으로 차단합니다. 원격 command executor에 전달되는 policy snapshot ID와 approval ID를 coordinator가 다시 검증해 기존 E3·경로·before hash permit에 결속하는 연결은 다음 슬라이스입니다.
+Managed context gate는 Role의 `filesystem.write=require_approval`을 remote-command authorization이 없는 로컬 실행에서는 계속 차단합니다. Authorization이 있으면 provider 시작 전과 파일 쓰기 직전에 project-bound policy store의 현재 snapshot·approval·revocation signature, command/run/provider/risk/suite와 승인 경로를 다시 검증합니다. Orchestrator는 verifier port만 알고 SQLite와 서명 구현은 `@lervo/policy` 뒤에 둡니다.
 
 ### Provider Adapters
 
@@ -383,6 +385,6 @@ M0 기본값은 event metadata 90일, 원문 artifact 30일 로컬 보존이며 
 - JSON Schema: manifest, event, adapter, role/skill, writing 계약을 검증합니다.
 - Markdown/OKF + Git: 사람이 검토 가능한 지식 원본으로 유지합니다.
 
-M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `policy-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`, `policy`, `policy-sqlite`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·reconnect(`remote-command`)와 project-bound replay 저장(`remote-command-sqlite`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·command queue·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 검증된 approval evidence를 managed run의 파일 쓰기 permit에 결속하는 작업입니다.
+M0에서는 JSON Schema Draft 2020-12 객체를 TypeScript 상수로 관리하고 같은 객체에서 정적 타입을 추론합니다. Adapter schema는 공통 session/context, managed write, provider 관측 event와 공통 원시 규격으로 분리하되 하나의 공개 contract union을 유지합니다. 현재 구현은 계약(`schemas`, `event-contract`, `storage-contract`, `sync-contract`, `remote-command-contract`, `policy-contract`, `adapter-contract`, `verification-contract`, `writing-contract`), 정책(`core`, `policy`, `policy-sqlite`), context preparation(`context`), provider-neutral E3 전달(`context-delivery`), managed 실행·쓰기 bridge·결과 artifact(`orchestrator`), 원격 명령 검증·reconnect(`remote-command`)와 project-bound replay 저장(`remote-command-sqlite`), 공급자 경계(`adapter-codex`, `adapter-claude`), project 초기화와 저장 조합(`project`, `project-storage`), 문서 도입·migration·managed block·stale 판정(`documents`), project 검증 실행·artifact(`verification`), writing 평가·공개 permit(`writing`), 숙의 의미 검증(`deliberation`), 숙의 실행·증거 결속(`deliberation-runtime`), 지식 candidate·review·verified·stale 수명주기(`knowledge`), 로컬 추적·환경 진단(`diagnostics`, `apps/cli`), Hub sync·command queue·trace·web view(`hub-sync`, `hub-sync-sqlite`, `hub-trace`, `apps/hub`), 저장 구현(`event-store-sqlite`, `cas`)과 명령 진입점(`apps/cli`, `apps/hub`)으로 나뉩니다. 다음 범위는 실제 Hub 정책 작성·durable source·HTTP transport입니다.
 
 이 선택은 v0의 학습 속도를 위한 것이며 공통 계약과 저장 형식으로 구현 언어 교체 가능성을 보존합니다.

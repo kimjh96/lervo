@@ -1,7 +1,10 @@
 import type { InjectLoadedContextInput } from "@lervo/context-delivery";
 import type { PrepareContextInput } from "@lervo/context";
 import type { WriteContextDecision } from "@lervo/core";
-import type { SharedContextPublication } from "@lervo/schemas";
+import type {
+  ManagedRunApprovalAuthorization,
+  SharedContextPublication,
+} from "@lervo/schemas";
 import type { EventStoreTransaction } from "@lervo/storage-contract";
 
 export interface ManagedEventStore {
@@ -21,6 +24,32 @@ export interface ManagedContextRunOptions {
   events: ManagedEventStore;
   initialContextGeneration?: number;
   createEventId?: () => string;
+  approvalVerifier?: ManagedCapabilityApprovalVerifier;
+}
+
+export interface ManagedCapabilityApprovalVerificationInput {
+  authorization: ManagedRunApprovalAuthorization;
+  projectId: string;
+  runId: string;
+  sessionId: string;
+  roleId: string;
+  provider: string;
+  risk: string;
+  requestDigest: string;
+  verificationSuiteIds: string[];
+  expectedPaths: string[];
+  requestedPath: string | null;
+  evaluatedAt: string;
+}
+
+export type ManagedCapabilityApprovalVerificationResult =
+  | { approved: true; approvalId: string; policySnapshotId: string }
+  | { approved: false; reasonCode: string };
+
+export interface ManagedCapabilityApprovalVerifier {
+  verify(
+    input: ManagedCapabilityApprovalVerificationInput,
+  ): Promise<ManagedCapabilityApprovalVerificationResult>;
 }
 
 export type ManagedContextPhase =
@@ -59,6 +88,9 @@ export interface FileWriteRequest {
   risk: string;
   publications: readonly SharedContextPublication[];
   occurredAt: Date;
+  requestDigest?: string;
+  verificationSuiteIds?: readonly string[];
+  approvalAuthorization?: ManagedRunApprovalAuthorization;
 }
 
 export interface FileWritePermit {
@@ -68,6 +100,8 @@ export interface FileWritePermit {
   targetDigest: string;
   expectedBeforeHash: string | null;
   authorizedAt: string;
+  approvalId: string | null;
+  policySnapshotId: string | null;
 }
 
 export type ManagedWriteDecision =
@@ -116,6 +150,7 @@ export type ManagedContextErrorCode =
   | "context_contract_invalid"
   | "invalid_state"
   | "file_snapshot_invalid"
+  | "approval_verification_failed"
   | "telemetry_recording_failed"
   | "write_permit_invalid";
 
@@ -123,6 +158,7 @@ const failureByErrorCode = {
   context_contract_invalid: "contract_validation_failed",
   invalid_state: "contract_validation_failed",
   file_snapshot_invalid: "required_context_missing",
+  approval_verification_failed: "approval_required",
   telemetry_recording_failed: "telemetry_recording_failed",
   write_permit_invalid: "required_context_missing",
 } as const;

@@ -14,6 +14,7 @@ import {
   type FileWriteRequest,
   ManagedContextError,
   type ManagedContextInvalidationReason,
+  type ManagedCapabilityApprovalVerifier,
   type ManagedFileChangeEvidence,
   type ManagedRunCoordinates,
   type ManagedWriteDecision,
@@ -32,6 +33,7 @@ export class ManagedWriteController {
     private readonly coordinates: ManagedRunCoordinates,
     private readonly append: AppendEvents,
     private readonly invalidateAll: InvalidateContext,
+    private readonly approvalVerifier?: ManagedCapabilityApprovalVerifier,
   ) {}
 
   private telemetryFailureDecision(): ManagedWriteDecision {
@@ -93,12 +95,58 @@ export class ManagedWriteController {
           missing: [],
         };
     const writePolicy = this.state.writePolicy;
-    const capabilityDecision =
-      writePolicy === "deny" || writePolicy === "require_approval"
-        ? writePolicy
-        : contextDecision.allowed
-          ? "allow"
-          : "deny";
+    let approval:
+      | { approvalId: string; policySnapshotId: string }
+      | undefined;
+    let capabilityDecision: "allow" | "deny" | "require_approval";
+    if (writePolicy === "deny") {
+      capabilityDecision = "deny" as const;
+    } else if (writePolicy === "require_approval") {
+      capabilityDecision = "require_approval" as const;
+      if (
+        contextDecision.allowed &&
+        input.approvalAuthorization !== undefined &&
+        input.requestDigest !== undefined &&
+        input.verificationSuiteIds !== undefined &&
+        this.approvalVerifier !== undefined &&
+        this.state.injectedProvider !== undefined
+      ) {
+        let result;
+        try {
+          result = await this.approvalVerifier.verify({
+            authorization: input.approvalAuthorization,
+            ...this.coordinates,
+            provider: this.state.injectedProvider,
+            risk: input.risk,
+            requestDigest: input.requestDigest,
+            verificationSuiteIds: [...input.verificationSuiteIds],
+            expectedPaths: this.state.expectedPaths,
+            requestedPath: normalizedPath,
+            evaluatedAt: occurredAt,
+          });
+        } catch {
+          throw new ManagedContextError(
+            "approval_verification_failed",
+            "파일 쓰기 직전 approval 원본 재검증에 실패했습니다.",
+          );
+        }
+        if (result.approved) {
+          if (
+            result.policySnapshotId !== input.approvalAuthorization.policySnapshotId ||
+            !input.approvalAuthorization.approvalIds.includes(result.approvalId)
+          ) {
+            throw new ManagedContextError(
+              "approval_verification_failed",
+              "Approval verifier 결과가 현재 authorization 좌표와 다릅니다.",
+            );
+          }
+          capabilityDecision = "allow";
+          approval = result;
+        }
+      }
+    } else {
+      capabilityDecision = contextDecision.allowed ? "allow" as const : "deny" as const;
+    }
     let expectedBeforeHash: string | null = null;
     if (capabilityDecision === "allow") {
       const repositoryRoot = this.state.repositoryRoot;
@@ -118,6 +166,10 @@ export class ManagedWriteController {
           risk: input.risk,
           occurredAt,
           decision: capabilityDecision,
+          approvalId: approval?.approvalId ?? null,
+          policyRuleId: approval === undefined
+            ? "managed_context_e3"
+            : "managed_context_e3+signed_approval",
         }),
       );
     } catch (error) {
@@ -126,12 +178,15 @@ export class ManagedWriteController {
       }
       throw error;
     }
-    if (writePolicy === "deny" || writePolicy === "require_approval") {
+    if (
+      writePolicy === "deny" ||
+      (writePolicy === "require_approval" && approval === undefined)
+    ) {
       this.state.observeEvent(occurredAt);
       return {
         allowed: false,
         assurance: contextDecision.assurance,
-        failure: writePolicy === "deny" ? "capability_denied" : "approval_required",
+        failure: capabilityDecision === "deny" ? "capability_denied" : "approval_required",
         missing: [],
       };
     }
@@ -151,6 +206,8 @@ export class ManagedWriteController {
       targetDigest: input.targetDigest,
       expectedBeforeHash,
       authorizedAt: occurredAt,
+      approvalId: approval?.approvalId ?? null,
+      policySnapshotId: approval?.policySnapshotId ?? null,
     });
     return { allowed: true, assurance: "E3", missing: [], permit };
   }

@@ -65,6 +65,10 @@ export class ManagedContextState {
     return this.requiredDocumentsValue.map((document) => document.documentId);
   }
 
+  get expectedPaths(): string[] {
+    return [...this.expectedPathsValue];
+  }
+
   expectsPath(path: string): boolean {
     return this.expectedPathsValue.includes(path);
   }
@@ -193,6 +197,8 @@ export class ManagedContextState {
     targetDigest: string;
     expectedBeforeHash: string | null;
     authorizedAt: string;
+    approvalId: string | null;
+    policySnapshotId: string | null;
   }): FileWritePermit {
     const permit = {
       ...input,
@@ -211,7 +217,9 @@ export class ManagedContextState {
       permit.contextGeneration !== this.generationValue ||
       permit.path !== this.activePermit.path ||
       permit.expectedBeforeHash !== this.activePermit.expectedBeforeHash ||
-      permit.targetDigest !== this.activePermit.targetDigest
+      permit.targetDigest !== this.activePermit.targetDigest ||
+      permit.approvalId !== this.activePermit.approvalId ||
+      permit.policySnapshotId !== this.activePermit.policySnapshotId
     ) {
       throw new ManagedContextError(
         "write_permit_invalid",

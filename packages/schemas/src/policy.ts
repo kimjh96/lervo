@@ -2,12 +2,13 @@ import type { FromSchema } from "json-schema-to-ts";
 
 import {
   capabilityNameSchema,
+  repositoryRelativePathSchema,
   roleIdSchema,
   schemaVersionSchema,
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import { remoteCommandTargetSchema } from "./remote-command.js";
+import { remoteCommandSchema, remoteCommandTargetSchema } from "./remote-command.js";
 
 const keyIdSchema = {
   type: "string",
@@ -35,6 +36,13 @@ export const policyRuleSchema = {
     roleId: roleIdSchema,
     risk: { type: "string", enum: ["low", "medium", "high"] },
     capability: capabilityNameSchema,
+    repositoryPaths: {
+      type: "array",
+      minItems: 1,
+      maxItems: 16,
+      uniqueItems: true,
+      items: repositoryRelativePathSchema,
+    },
     decision: {
       type: "string",
       enum: ["allow", "deny", "require_approval"],
@@ -111,6 +119,13 @@ export const policyApprovalSchema = {
     commandHash: sha256Schema,
     commandSignerKeyId: keyIdSchema,
     capability: capabilityNameSchema,
+    repositoryPaths: {
+      type: "array",
+      minItems: 1,
+      maxItems: 16,
+      uniqueItems: true,
+      items: repositoryRelativePathSchema,
+    },
     approverSubjectHash: sha256Schema,
     grantedAt: timestampSchema,
     expiresAt: timestampSchema,
@@ -125,6 +140,7 @@ export const policyApprovalSchema = {
     "commandHash",
     "commandSignerKeyId",
     "capability",
+    "repositoryPaths",
     "approverSubjectHash",
     "grantedAt",
     "expiresAt",
@@ -187,6 +203,36 @@ export const signedPolicyApprovalRevocationSchema = {
   additionalProperties: false,
 } as const;
 
+export const managedRunApprovalAuthorizationSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/managed-run-approval-authorization.schema.json",
+  title: "Lervo remote-command managed run approval authorization",
+  type: "object",
+  properties: {
+    schemaVersion: schemaVersionSchema,
+    source: { type: "string", const: "remote_command" },
+    command: { $ref: "https://schemas.lervo.dev/v0/remote-command.schema.json" },
+    commandSignerKeyId: keyIdSchema,
+    policySnapshotId: { type: "string", pattern: "^pol_[a-f0-9]{64}$" },
+    approvalIds: {
+      type: "array",
+      minItems: 1,
+      maxItems: 7,
+      uniqueItems: true,
+      items: { type: "string", pattern: "^apr_[a-f0-9]{64}$" },
+    },
+  },
+  required: [
+    "schemaVersion",
+    "source",
+    "command",
+    "commandSignerKeyId",
+    "policySnapshotId",
+    "approvalIds",
+  ],
+  additionalProperties: false,
+} as const;
+
 export type PolicyRule = FromSchema<typeof policyRuleSchema>;
 export type PolicySnapshot = FromSchema<typeof policySnapshotSchema>;
 export type SignedPolicySnapshot = FromSchema<
@@ -202,4 +248,8 @@ export type PolicyApprovalRevocation = FromSchema<typeof policyApprovalRevocatio
 export type SignedPolicyApprovalRevocation = FromSchema<
   typeof signedPolicyApprovalRevocationSchema,
   { references: [typeof policyApprovalRevocationSchema] }
+>;
+export type ManagedRunApprovalAuthorization = FromSchema<
+  typeof managedRunApprovalAuthorizationSchema,
+  { references: [typeof remoteCommandSchema] }
 >;

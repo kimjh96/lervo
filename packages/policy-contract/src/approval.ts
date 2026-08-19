@@ -23,6 +23,7 @@ export function createPolicyApproval(input: {
   command: RemoteCommand;
   commandSignerKeyId: string;
   capability: PolicyApproval["capability"];
+  repositoryPaths: string[];
   approverSubjectHash: string;
   grantedAt: string;
   expiresAt: string;
@@ -38,6 +39,7 @@ export function createPolicyApproval(input: {
     commandHash: calculateRemoteCommandHash(input.command),
     commandSignerKeyId: input.commandSignerKeyId,
     capability: input.capability,
+    repositoryPaths: [...input.repositoryPaths].sort(),
     approverSubjectHash: input.approverSubjectHash,
     grantedAt: input.grantedAt,
     expiresAt: input.expiresAt,
@@ -62,6 +64,7 @@ export function assertPolicyApproval(input: {
     throw new PolicyContractError("invalid_policy_approval", "policy approval 계약이 유효하지 않습니다.");
   }
   const { approvalId: _approvalId, ...content } = approval;
+  const sortedPaths = [...approval.repositoryPaths].sort();
   if (
     approval.approvalId !== `apr_${sha256(canonicalJson(content)).slice("sha256:".length)}` ||
     !sameTarget(approval.target, snapshot.target) ||
@@ -69,7 +72,8 @@ export function assertPolicyApproval(input: {
     approval.snapshotHash !== calculatePolicySnapshotHash(snapshot) ||
     Date.parse(approval.grantedAt) < Date.parse(snapshot.issuedAt) ||
     Date.parse(approval.expiresAt) <= Date.parse(approval.grantedAt) ||
-    Date.parse(approval.expiresAt) > Date.parse(snapshot.expiresAt)
+    Date.parse(approval.expiresAt) > Date.parse(snapshot.expiresAt) ||
+    approval.repositoryPaths.some((path, index) => path !== sortedPaths[index])
   ) {
     throw new PolicyContractError(
       "invalid_policy_approval",
@@ -77,14 +81,24 @@ export function assertPolicyApproval(input: {
     );
   }
   if (input.command !== undefined) {
-    assertRemoteCommand(input.command);
+    const command = input.command;
+    assertRemoteCommand(command);
+    const boundedRule = snapshot.rules.find((rule) =>
+      rule.roleId === command.action.roleId &&
+      rule.risk === command.action.risk &&
+      rule.capability === approval.capability
+    );
+    const boundedPaths = boundedRule?.repositoryPaths;
     if (
-      !sameTarget(approval.target, input.command.target) ||
-      approval.commandId !== input.command.commandId ||
-      approval.commandHash !== calculateRemoteCommandHash(input.command) ||
+      !sameTarget(approval.target, command.target) ||
+      approval.commandId !== command.commandId ||
+      approval.commandHash !== calculateRemoteCommandHash(command) ||
       (input.commandSignerKeyId !== undefined &&
         approval.commandSignerKeyId !== input.commandSignerKeyId) ||
-      Date.parse(approval.expiresAt) > Date.parse(input.command.expiresAt)
+      Date.parse(approval.grantedAt) < Date.parse(command.issuedAt) ||
+      Date.parse(approval.expiresAt) > Date.parse(command.expiresAt) ||
+      (boundedPaths !== undefined &&
+        approval.repositoryPaths.some((path) => !boundedPaths.includes(path)))
     ) {
       throw new PolicyContractError(
         "invalid_policy_approval",

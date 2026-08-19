@@ -75,6 +75,7 @@ export class ManagedContextRun {
       options.coordinates,
       (specs) => this.append(specs),
       (reason, occurredAt) => this.invalidateAll(reason, occurredAt),
+      options.approvalVerifier,
     );
   }
 

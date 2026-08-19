@@ -66,6 +66,8 @@ export function writeCapabilityEventSpecs(input: {
   risk: string;
   occurredAt: string;
   decision: CapabilityDecision;
+  approvalId?: string | null;
+  policyRuleId?: string;
 }): [ManagedEventSpec, ManagedEventSpec] {
   return [
     {
@@ -85,8 +87,8 @@ export function writeCapabilityEventSpecs(input: {
       payload: {
         capability: "filesystem.write",
         decision: input.decision,
-        policyRuleId: "managed_context_e3",
-        approvalId: null,
+        policyRuleId: input.policyRuleId ?? "managed_context_e3",
+        approvalId: input.approvalId ?? null,
       },
     },
   ];
