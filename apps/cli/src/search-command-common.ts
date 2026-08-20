@@ -17,6 +17,7 @@ export const searchUsage = `  lervo search <query> [--root <path>] [--limit <1-5
   lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>] [--root <path>] [--json]
   lervo search rollout action policy create --review-policy <policy-id> --action <keep|rollback> --operator <operator-id> --author <operator-id> [--engine-policy <policy-id>] [--root <path>] [--json]
   lervo search rollout action apply <rollout-review-id> --action <keep|rollback> --policy <action-policy-id> --operator <operator-id> [--root <path>] [--json]
+  lervo search rollout action status [--limit <1-50>] [--cursor <action-id>] [--root <path>] [--json]
   lervo search evaluate [--bundle <bundle-id>] [--root <path>] [--json]
   lervo search report [--root <path>] [--json]`;
 
@@ -28,4 +29,12 @@ export function searchErrorCode(error: unknown): string {
 
 export function searchArgumentError(error: unknown): string {
   return `${error instanceof Error ? error.message : String(error)}\n${searchUsage}\n`;
+}
+
+export function searchPageLimit(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  if (!/^[1-9][0-9]*$/.test(value)) throw new Error("limit은 1부터 50 사이의 정수여야 합니다.");
+  const limit = Number(value);
+  if (limit > 50) throw new Error("limit은 1부터 50 사이의 정수여야 합니다.");
+  return limit;
 }

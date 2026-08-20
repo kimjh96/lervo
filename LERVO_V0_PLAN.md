@@ -599,6 +599,18 @@ Hub command/approval 대화 UX 완료 조건:
 - 운영 resolver가 schema v3의 정책·검토·품질 원본을 재생성해 변조·누락을 fail-closed함
 - Query·문서 좌표·본문·provider 결과·credential을 저장하거나 event·Hub sync를 만들지 않음
 
+검색 rollout 조치 상태 조회 첫 슬라이스 완료 조건:
+
+- Keep acknowledgement와 action policy에 결속된 schema v3 rollback만 하나의 상태 page로 조합함
+- 조치 시각·ID 역순의 기본 20·최대 50개 page와 마지막 action ID cursor를 사용함
+- Pagination 전에 전체 acknowledgement와 선택 chain의 정책·검토·candidate review·품질 원본을 검증함
+- Page 밖의 끊어지거나 변조된 증거도 숨기지 않고 전체 조회를 실패시킴
+- 조회 시각의 대상 attempt·assessment로 현재 품질 snapshot을 만들고 input digest 변경을 구분함
+- 검토 대상 선택과 rollback 결과 전이의 현재·과거 관계를 별도로 표시함
+- 일반 schema v1·v2 rollback을 정책에 결속된 rollout 조치로 표시하지 않음
+- 빈 상태와 cursor page가 최신 조치를 자동 선택·승인·실행하지 않음
+- Query·digest·문서 좌표·본문·provider 결과·credential을 출력하거나 새 원본·event·Hub sync를 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -653,4 +665,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 rollout 조치 첫 슬라이스를 완료했습니다. 검토 정책과 분리한 action policy가 exact 조치·operator와 rollback용 engine policy를 고정합니다. 명시한 검토가 현재 선택이고 품질 입력이 그대로일 때만 keep acknowledgement 또는 schema v3 rollback을 게시하며, rollback 근거와 선택 전이는 파일 하나로 원자화했습니다. 운영 resolver는 모든 조치 원본을 다시 확인하고 변조된 digest를 fail-closed합니다. 결정은 [ADR-0068](./docs/adr/0068-explicit-search-rollout-actions.md)에 기록했습니다.
 
-다음 구현 작업은 keep acknowledgement와 schema v3 rollback을 검토·선택 관계에 맞춰 제한된 page로 보여 주는 **검색 rollout 조치 상태 조회**입니다. 조회는 최신 조치를 자동 선택하거나 새 rollback을 실행하지 않고, 끊어진 정책·검토·품질 근거가 있으면 일부 결과를 숨기지 않고 전체를 실패시킵니다.
+검색 rollout 조치 상태 조회 첫 슬라이스를 완료했습니다. Keep acknowledgement와 schema v3 rollback을 제한된 cursor page로 조합하고, 검토 대상과 rollback 결과 전이의 현재·과거 관계 및 현재 품질 입력 변경을 따로 표시합니다. Pagination 전에 모든 조치 원본을 검증하므로 숨겨진 과거 증거가 끊겨도 전체 조회를 실패시킵니다. 결정은 [ADR-0069](./docs/adr/0069-bounded-search-rollout-action-status.md)에 기록했습니다.
+
+다음 구현 작업은 명시한 rollout review·action policy·operator 조합이 현재 실행 가능한지 쓰기 없이 설명하는 **검색 rollout 조치 사전 점검**입니다. 점검은 최신 검토나 정책을 대신 고르지 않고, 현재 선택·품질 입력·판단 종류·operator 범위별 미충족 사유만 제한된 코드로 반환하며 acknowledgement나 rollback을 만들지 않습니다.

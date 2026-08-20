@@ -33,6 +33,8 @@ export * from "./rollout-quality-snapshot.js";
 export * from "./rollout-action.js";
 export * from "./rollout-action-policy.js";
 export * from "./rollout-action-types.js";
+export * from "./rollout-action-status.js";
+export * from "./rollout-action-status-types.js";
 export * from "./rollout-policy.js";
 export * from "./rollout-policy-types.js";
 export * from "./rollout-review.js";

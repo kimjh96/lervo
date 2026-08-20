@@ -704,6 +704,14 @@ Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lerv
 
 운영 resolver는 schema v3를 읽을 때 엔진·조치·검토 정책과 review, candidate review, 검토·조치 시각의 attempt·assessment를 다시 확인합니다. 근거가 없거나 snapshot·digest가 다르면 `engine_selection_unavailable`이며 baseline으로 대체하지 않습니다. 조치 정책 계약·acknowledgement 계약은 `invalid_rollout_action_policy`, `invalid_rollout_action`, 로컬 정책 형식·없음·읽기·쓰기는 `rollout_action_policy_invalid`, `rollout_action_policy_not_found`, `rollout_action_policy_read_failed`, `rollout_action_policy_write_failed`입니다. 원본에는 ID·digest·로컬 operator·시각만 두고 query·문서 좌표·provider 결과·credential을 넣거나 event·Hub sync를 만들지 않습니다. 결정은 [ADR-0068](./docs/adr/0068-explicit-search-rollout-actions.md)에 기록합니다.
 
+`lervo search rollout action status [--limit <1-50>] [--cursor <action-id>]`는 keep acknowledgement와 schema v3 rollback을 조치 시각·ID 역순으로 함께 조회합니다. 기본 limit은 20, 최대는 50이며 cursor는 현재 페이지 마지막 acknowledgement ID 또는 rollback activation ID입니다. 일반 schema v1·v2 rollback은 action policy에 결속된 조치가 아니므로 목록에 넣지 않습니다.
+
+조회기는 pagination 전에 최대 256개 acknowledgement와 최대 256개 선택 전이 전체를 검증합니다. Keep은 action·review policy, rollout review, candidate review, 조치 당시의 선택 head와 attempt·assessment snapshot을 다시 만들고 acknowledgement의 snapshot ID·input digest와 대조합니다. Schema v3 rollback은 선택 chain 검증 과정에서 같은 원본을 다시 확인합니다. 한 항목이라도 없거나 변조되면 요청 page 밖의 항목이어도 전체 조회를 실패시키며 일부 목록을 반환하지 않습니다.
+
+각 항목의 `reviewSelectionRelation`은 검토 대상이 현재 선택인지 과거 선택인지, `actionTransitionRelation`은 rollback 전이가 현재 선택인지 과거 선택인지를 나타냅니다. Keep에는 별도 전이가 없으므로 `not_applicable`입니다. 조회 시각에 다시 만든 품질 입력 digest가 조치 당시 digest와 같으면 `unchanged`, 다르면 `changed`입니다. 응답의 `actionSelection=not_performed`, `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`는 이 조회 자체가 아무 조치도 실행하지 않았다는 뜻입니다.
+
+입력·limit·cursor·조합 관계 오류는 `invalid_rollout_action_status`이고 원본 실패는 기존 정책·검토·선택·관측 오류로 전체 page를 닫습니다. 응답에는 로컬 operator·reviewer ID와 품질 집계가 포함될 수 있지만 query·digest, nonce, index·result-set hash, 문서 좌표·본문, prompt, provider 결과, credential과 receipt는 포함하지 않습니다. 파일·event·Hub 원본을 만들지 않습니다. 결정은 [ADR-0069](./docs/adr/0069-bounded-search-rollout-action-status.md)에 기록합니다.
+
 `lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>]`는 현재 선택과 저장된 rollout 검토를 검토 시각·ID 역순으로 조회합니다. 기본 limit은 20, 최대는 50이며 다음 cursor는 현재 페이지 마지막 review ID입니다. Cursor가 현재 검증된 원본에 없으면 다른 위치로 추정하지 않고 실패합니다. 전체 검토 원본은 기존 최대 256개 경계 안에서만 읽습니다.
 
 각 검토는 선택 chain의 전이·candidate·engine·adapter build·후보 review와 project를 다시 확인합니다. 정책에 결속된 v2는 정책 원본의 존재와 project 좌표도 확인하지만 기준 충족 여부는 상태 조회에서 다시 계산하지 않습니다. 검토 시각 이하의 대상 attempt·assessment로 기존 검토를 재생성하고, 조회 시각 이하의 전체 대상 입력으로 현재 품질 snapshot을 파생합니다. `qualityInputState`는 시각 때문에 달라질 수 있는 snapshot ID가 아니라 입력 ID 목록의 canonical digest가 같으면 `unchanged`, 다르면 `changed`입니다. 현재 전이와 같으면 `current_selection`, rollback·refresh 등으로 head가 바뀌었으면 `historical_selection`으로 표시합니다.

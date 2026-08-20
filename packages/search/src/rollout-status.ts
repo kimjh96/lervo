@@ -23,7 +23,7 @@ function compareNewest(left: SearchRolloutStatusEvidence, right: SearchRolloutSt
     : left.review.rolloutReviewId > right.review.rolloutReviewId ? -1 : 0;
 }
 
-function assertCurrentSelection(selection: SearchRolloutCurrentSelection): void {
+export function assertSearchRolloutCurrentSelection(selection: SearchRolloutCurrentSelection): void {
   assertSearchEngineIdentity(selection.engine, "invalid_rollout_status");
   if (!["implicit_baseline", "recorded_baseline", "candidate"].includes(selection.selectionState) ||
     !["not_applicable", "bound", "legacy_unbound"].includes(selection.buildEvidenceState)) {
@@ -73,7 +73,7 @@ export function createSearchRolloutStatusPage(input: {
     (input.cursor !== undefined && !SEARCH_ROLLOUT_REVIEW_PATTERN.test(input.cursor))) {
     throw new SearchError("invalid_rollout_status", "검색 rollout 상태 조회 입력이 유효하지 않습니다.");
   }
-  assertCurrentSelection(input.currentSelection);
+  assertSearchRolloutCurrentSelection(input.currentSelection);
   const seen = new Set<string>();
   const sorted = input.evidence.map((item) => {
     assertSearchRolloutReview(item.review);

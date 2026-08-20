@@ -1,4 +1,4 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanupSearchComparisonRepositories,
   command,
+  repository,
 } from "./search-evaluation-comparison-fixture.js";
 import { prepareSelectedSearchCandidate } from "./search-selected-candidate-fixture.js";
 
@@ -26,6 +27,21 @@ afterEach(async () => {
 });
 
 describe("search rollout action commands", () => {
+  it("shows an empty read-only action page before a rollout action exists", async () => {
+    const root = await repository();
+    const status = await command(root, ["search", "rollout", "action", "status", "--json"]);
+
+    expect(status.code, status.error).toBe(0);
+    expect(JSON.parse(status.output)).toMatchObject({
+      currentSelection: { selectionState: "implicit_baseline", selectionTransitionId: null },
+      actionCount: 0,
+      actions: [],
+      nextCursor: null,
+      actionSelection: "not_performed",
+      effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
+    });
+  });
+
   it("acknowledges an unchanged keep review and executes only a fresh rollback review", async () => {
     const { root, project, activation, policy: enginePolicy, registry } =
       await prepareSelectedSearchCandidate("researcher.rollout-action");
@@ -173,6 +189,76 @@ describe("search rollout action commands", () => {
     vi.useRealTimers();
     expect(repeated.code).toBe(1);
     expect(repeated.error).toContain("rollout_action_not_eligible");
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T10:11:00.000Z"));
+    const firstPage = await command(root, [
+      "search", "rollout", "action", "status", "--limit", "1", "--json",
+    ]);
+    vi.useRealTimers();
+    expect(firstPage.code, firstPage.error).toBe(0);
+    const firstStatus = JSON.parse(firstPage.output) as {
+      actionCount: number;
+      actions: Array<{
+        actionId: string;
+        action: string;
+        reviewSelectionRelation: string;
+        actionTransitionRelation: string;
+      }>;
+      nextCursor: string;
+      actionSelection: string;
+    };
+    expect(firstStatus).toMatchObject({
+      actionCount: 2,
+      actions: [{
+        actionId: rollback.activationId,
+        action: "execute_rollback",
+        reviewSelectionRelation: "historical_selection",
+        actionTransitionRelation: "current_selection",
+      }],
+      nextCursor: rollback.activationId,
+      actionSelection: "not_performed",
+    });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T10:11:00.000Z"));
+    const nextPage = await command(root, [
+      "search", "rollout", "action", "status", "--limit", "1",
+      "--cursor", firstStatus.nextCursor, "--json",
+    ]);
+    vi.useRealTimers();
+    expect(nextPage.code, nextPage.error).toBe(0);
+    expect(JSON.parse(nextPage.output)).toMatchObject({
+      actions: [{
+        action: "acknowledge_keep",
+        reviewSelectionRelation: "historical_selection",
+        actionTransitionRelation: "not_applicable",
+      }],
+      nextCursor: null,
+      effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
+    });
+
+    const acknowledgementDirectory = resolve(root, ".lervo/state/search/rollout-acknowledgements");
+    const acknowledgementName = (await readdir(acknowledgementDirectory))[0]!;
+    const acknowledgementPath = resolve(acknowledgementDirectory, acknowledgementName);
+    const forgedAcknowledgement = JSON.parse(await readFile(acknowledgementPath, "utf8")) as
+      Record<string, unknown> & { acknowledgementId: string; qualityInputDigest: string };
+    forgedAcknowledgement.qualityInputDigest = `sha256:${"f".repeat(64)}`;
+    const { schemaVersion: _ackSchema, acknowledgementId: _ackId, ...ackCore } = forgedAcknowledgement;
+    forgedAcknowledgement.acknowledgementId = contentId("srack", ackCore);
+    const forgedAcknowledgementPath = resolve(
+      acknowledgementDirectory,
+      `${forgedAcknowledgement.acknowledgementId}.json`,
+    );
+    await rename(acknowledgementPath, forgedAcknowledgementPath);
+    await writeFile(forgedAcknowledgementPath, `${JSON.stringify(forgedAcknowledgement)}\n`, "utf8");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T10:12:00.000Z"));
+    const hiddenBrokenEvidence = await command(root, [
+      "search", "rollout", "action", "status", "--limit", "1", "--json",
+    ]);
+    vi.useRealTimers();
+    expect(hiddenBrokenEvidence.code).toBe(1);
+    expect(hiddenBrokenEvidence.error).toContain("observation_invalid");
 
     const rollbackPath = resolve(
       root,

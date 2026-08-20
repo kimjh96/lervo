@@ -4,15 +4,9 @@ import { parseArgs } from "node:util";
 import { loadProjectManifest } from "@lervo/project";
 import { readLocalSearchRolloutStatus } from "@lervo/search-local";
 
-import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
+import { searchArgumentError, searchErrorCode, searchPageLimit } from "./search-command-common.js";
 import { formatSearchRolloutStatus } from "./search-rollout-format.js";
 import type { CliIo } from "./types.js";
-
-function pageLimit(value: string | undefined): number | undefined {
-  if (value === undefined) return undefined;
-  if (!/^[1-9][0-9]*$/.test(value)) throw new Error("limit은 1부터 50 사이의 정수여야 합니다.");
-  return Number(value);
-}
 
 export async function runSearchRolloutStatusCommand(args: string[], io: CliIo): Promise<number> {
   let parsed;
@@ -34,8 +28,7 @@ export async function runSearchRolloutStatusCommand(args: string[], io: CliIo): 
   }
   let limit: number | undefined;
   try {
-    limit = pageLimit(parsed.values.limit);
-    if (limit !== undefined && limit > 50) throw new Error("limit은 1부터 50 사이의 정수여야 합니다.");
+    limit = searchPageLimit(parsed.values.limit);
   } catch (error) {
     io.stderr(searchArgumentError(error));
     return 1;

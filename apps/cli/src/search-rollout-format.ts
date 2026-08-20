@@ -5,6 +5,7 @@ import type {
   SearchEngineRolloutRollback,
   SearchRolloutActionPolicy,
   SearchRolloutKeepAcknowledgement,
+  SearchRolloutActionStatusPage,
   SearchRolloutReviewPolicy,
   SearchRolloutStatusPage,
 } from "@lervo/search";
@@ -43,6 +44,32 @@ export function formatSearchRolloutActionResult(
       ` → ${result.selected.engine.id}-v${result.selected.engine.version}`,
     `  operator: ${result.operatorId} · 선택 전이 ${result.sequence}번`,
     "  검토·조치 정책·확인한 품질 입력이 이 rollback 전이에 함께 기록되었습니다.",
+  ].join("\n") + "\n";
+}
+
+export function formatSearchRolloutActionStatus(status: SearchRolloutActionStatusPage): string {
+  const selection = status.currentSelection.selectionState === "implicit_baseline"
+    ? "전이 없는 기본 lexical"
+    : status.currentSelection.selectionState === "recorded_baseline"
+      ? `기록된 baseline · ${status.currentSelection.selectionTransitionId}`
+      : `${status.currentSelection.engine.id}-v${status.currentSelection.engine.version}` +
+        ` · ${status.currentSelection.selectionTransitionId}`;
+  return [
+    "검색 rollout 조치 상태:",
+    `  현재 선택: ${selection}`,
+    `  조치 원본 ${status.actionCount}개 · 이번 페이지 ${status.actions.length}개`,
+    ...status.actions.flatMap((item) => [
+      `  ${item.actionId} · ${item.action === "acknowledge_keep" ? "후보 유지 확인" : "rollback 실행"}`,
+      `    검토 ${item.review.rolloutReviewId} · 품질 입력 ${
+        item.qualityInputState === "unchanged" ? "변경 없음" : "변경됨"}`,
+      `    검토 대상 ${item.reviewSelectionRelation === "current_selection" ? "현재 선택" : "과거 선택"}` +
+        (item.actionTransitionRelation === "not_applicable"
+          ? " · 별도 선택 전이 없음"
+          : ` · rollback 결과 ${
+            item.actionTransitionRelation === "current_selection" ? "현재 선택" : "과거 선택"}`),
+    ]),
+    status.nextCursor === null ? "  다음 페이지 없음" : `  다음 cursor: ${status.nextCursor}`,
+    "  이 조회는 조치를 자동 선택하거나 rollback·승인을 실행하지 않습니다.",
   ].join("\n") + "\n";
 }
 
