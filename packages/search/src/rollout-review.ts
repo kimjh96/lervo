@@ -1,4 +1,5 @@
 import { canonicalHash, contentId } from "./integrity.js";
+import { SEARCH_ROLLOUT_POLICY_PATTERN } from "./rollout-policy-types.js";
 import {
   assertSearchRolloutQualitySnapshot,
   assertSearchRolloutReviewTarget,
@@ -23,6 +24,7 @@ export function createSearchRolloutReview(input: {
   reviewerId: string;
   reviewedAt: Date;
   decision: SearchRolloutReviewDecision;
+  rolloutPolicyId?: string;
 }): SearchRolloutReview {
   if (!SOURCE_ID_PATTERN.test(input.reviewerId) || !searchRolloutReviewDecisions.includes(input.decision)) {
     throw new SearchError("invalid_rollout_review", "검색 rollout 검토 입력이 유효하지 않습니다.");
@@ -34,14 +36,13 @@ export function createSearchRolloutReview(input: {
     assessments: input.assessments,
     observedThrough: input.reviewedAt,
   });
-  const core = {
+  const common = {
     projectId: input.projectId,
     target: structuredClone(input.target),
     qualitySnapshot,
     reviewerId: input.reviewerId,
     reviewedAt: input.reviewedAt.toISOString(),
     decision: input.decision,
-    thresholdPolicyState: "not_defined" as const,
     effect: {
       selectionChange: "not_applied" as const,
       rollback: "not_executed" as const,
@@ -49,22 +50,45 @@ export function createSearchRolloutReview(input: {
     },
     embeddingDecision: "not_determined" as const,
   };
-  const review: SearchRolloutReview = {
-    schemaVersion: 1,
-    rolloutReviewId: contentId("srrv", core),
-    ...core,
-  };
+  if (input.rolloutPolicyId !== undefined && !SEARCH_ROLLOUT_POLICY_PATTERN.test(input.rolloutPolicyId)) {
+    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 정책 ID가 유효하지 않습니다.");
+  }
+  const review: SearchRolloutReview = input.rolloutPolicyId === undefined
+    ? {
+      schemaVersion: 1,
+      rolloutReviewId: contentId("srrv", { ...common, thresholdPolicyState: "not_defined" }),
+      ...common,
+      thresholdPolicyState: "not_defined",
+    }
+    : {
+      schemaVersion: 2,
+      rolloutReviewId: contentId("srrv", {
+        ...common,
+        rolloutPolicyId: input.rolloutPolicyId,
+        thresholdPolicyState: "bound",
+      }),
+      ...common,
+      rolloutPolicyId: input.rolloutPolicyId,
+      thresholdPolicyState: "bound",
+    };
   assertSearchRolloutReview(review);
   return review;
 }
 
 export function assertSearchRolloutReview(review: SearchRolloutReview): void {
-  if (review.schemaVersion !== 1 || !SEARCH_ROLLOUT_REVIEW_PATTERN.test(review.rolloutReviewId) ||
+  if (![1, 2].includes(review.schemaVersion) || !SEARCH_ROLLOUT_REVIEW_PATTERN.test(review.rolloutReviewId) ||
     !SOURCE_ID_PATTERN.test(review.projectId) || !SOURCE_ID_PATTERN.test(review.reviewerId) ||
-    !searchRolloutReviewDecisions.includes(review.decision) || review.thresholdPolicyState !== "not_defined" ||
+    !searchRolloutReviewDecisions.includes(review.decision) ||
     review.effect?.selectionChange !== "not_applied" || review.effect.rollback !== "not_executed" ||
     review.effect.approval !== "not_granted" || review.embeddingDecision !== "not_determined") {
     throw new SearchError("invalid_rollout_review", "검색 rollout 검토 계약이 유효하지 않습니다.");
+  }
+  if ((review.schemaVersion === 1 && review.thresholdPolicyState !== "not_defined") ||
+    (review.schemaVersion === 2 && review.thresholdPolicyState !== "bound")) {
+    throw new SearchError("invalid_rollout_review", "검색 rollout 검토의 정책 상태가 유효하지 않습니다.");
+  }
+  if (review.schemaVersion === 2 && !SEARCH_ROLLOUT_POLICY_PATTERN.test(review.rolloutPolicyId)) {
+    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 정책 좌표가 유효하지 않습니다.");
   }
   assertSearchRolloutReviewTarget(review.target);
   assertSearchRolloutQualitySnapshot(review.qualitySnapshot);
@@ -91,6 +115,7 @@ export function verifySearchRolloutReview(
     reviewerId: review.reviewerId,
     reviewedAt: new Date(review.reviewedAt),
     decision: review.decision,
+    ...(review.schemaVersion === 1 ? {} : { rolloutPolicyId: review.rolloutPolicyId }),
   });
   if (canonicalHash(recreated) !== canonicalHash(review)) {
     throw new SearchError("invalid_rollout_review", "검색 rollout 검토가 원본 품질 입력과 일치하지 않습니다.");

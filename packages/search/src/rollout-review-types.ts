@@ -29,8 +29,7 @@ export interface SearchRolloutQualitySnapshot {
   evidenceState: "failures_observed" | "insufficient_assessment" | "no_failures_observed";
 }
 
-export interface SearchRolloutReview {
-  schemaVersion: 1;
+interface SearchRolloutReviewBase {
   rolloutReviewId: string;
   projectId: string;
   target: SearchRolloutReviewTarget;
@@ -38,7 +37,6 @@ export interface SearchRolloutReview {
   reviewerId: string;
   reviewedAt: string;
   decision: SearchRolloutReviewDecision;
-  thresholdPolicyState: "not_defined";
   effect: {
     selectionChange: "not_applied";
     rollback: "not_executed";
@@ -46,3 +44,16 @@ export interface SearchRolloutReview {
   };
   embeddingDecision: "not_determined";
 }
+
+export interface LegacySearchRolloutReview extends SearchRolloutReviewBase {
+  schemaVersion: 1;
+  thresholdPolicyState: "not_defined";
+}
+
+export interface PolicyBoundSearchRolloutReview extends SearchRolloutReviewBase {
+  schemaVersion: 2;
+  rolloutPolicyId: string;
+  thresholdPolicyState: "bound";
+}
+
+export type SearchRolloutReview = LegacySearchRolloutReview | PolicyBoundSearchRolloutReview;

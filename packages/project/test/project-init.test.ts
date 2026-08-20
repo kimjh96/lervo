@@ -51,6 +51,7 @@ describe("Lervo project initialization", () => {
     expect(result.created).toContain(".lervo/project.yaml");
     expect(result.created).toContain(".lervo/verifications");
     expect(result.created).toContain(".lervo/search-engine-policies");
+    expect(result.created).toContain(".lervo/search-rollout-policies");
     expect(await loadProjectManifest(root)).toEqual(plan.projectManifest);
 
     const secondPlan = await createInitPlan({ root });

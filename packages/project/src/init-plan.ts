@@ -25,6 +25,7 @@ const managedDirectories = [
   lervoRelativePaths.knowledge,
   lervoRelativePaths.searchEvaluations,
   lervoRelativePaths.searchEnginePolicies,
+  lervoRelativePaths.searchRolloutPolicies,
   lervoRelativePaths.verifications,
 ] as const;
 

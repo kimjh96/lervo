@@ -27,7 +27,12 @@ export type SearchLocalErrorCode =
   | "observation_limit_exceeded"
   | "observation_read_failed"
   | "observation_write_failed"
-  | "rollout_review_not_eligible";
+  | "rollout_review_not_eligible"
+  | "rollout_review_not_found"
+  | "rollout_policy_invalid"
+  | "rollout_policy_not_found"
+  | "rollout_policy_read_failed"
+  | "rollout_policy_write_failed";
 
 export class SearchLocalError extends Error {
   constructor(readonly code: SearchLocalErrorCode, message: string, options?: ErrorOptions) {

@@ -7,6 +7,7 @@ import { reviewLocalSearchRollout } from "@lervo/search-local";
 
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
 import { formatSearchRolloutReview } from "./search-rollout-format.js";
+import { runSearchRolloutPolicyCommand } from "./search-rollout-policy-command.js";
 import { runSearchRolloutStatusCommand } from "./search-rollout-status-command.js";
 import type { CliIo } from "./types.js";
 
@@ -27,6 +28,7 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
         root: { type: "string" },
         decision: { type: "string" },
         reviewer: { type: "string" },
+        policy: { type: "string" },
         json: { type: "boolean" },
       },
     });
@@ -49,6 +51,7 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
       reviewerId: parsed.values.reviewer,
       reviewedAt: new Date(),
       decision,
+      ...(parsed.values.policy === undefined ? {} : { policyId: parsed.values.policy }),
     });
     io.stdout(parsed.values.json ? `${JSON.stringify(review, null, 2)}\n` : formatSearchRolloutReview(review));
     return 0;
@@ -62,7 +65,8 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
 
 export async function runSearchRolloutCommand(args: string[], io: CliIo): Promise<number> {
   if (args[0] === "review") return runSearchRolloutReviewCommand(args.slice(1), io);
+  if (args[0] === "policy") return runSearchRolloutPolicyCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchRolloutStatusCommand(args.slice(1), io);
-  io.stderr(`rollout 하위 명령은 review와 status를 지원합니다.\n${searchUsage}\n`);
+  io.stderr(`rollout 하위 명령은 policy, review와 status를 지원합니다.\n${searchUsage}\n`);
   return 1;
 }

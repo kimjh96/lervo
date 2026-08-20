@@ -14,6 +14,7 @@ import {
 
 import { loadStoredSearchCandidateReview } from "./evaluation-review-store.js";
 import { listStoredSearchRolloutReviews } from "./rollout-review-store.js";
+import { loadSearchRolloutReviewPolicy } from "./rollout-policy-files.js";
 import {
   loadVerifiedSearchSelectionQualityEvidence,
   type VerifiedSearchSelectionQualityEvidence,
@@ -111,6 +112,12 @@ export async function readLocalSearchRolloutStatus(input: {
     reviewId,
     await loadStoredSearchCandidateReview(input.repositoryRoot, reviewId),
   ] as const)));
+  const policyIds = new Set(reviews.flatMap((review) =>
+    review.schemaVersion === 2 ? [review.rolloutPolicyId] : []));
+  const rolloutPolicies = new Map(await Promise.all([...policyIds].map(async (policyId) => [
+    policyId,
+    await loadSearchRolloutReviewPolicy(input.repositoryRoot, policyId),
+  ] as const)));
   const selection = currentSelection(qualityEvidence.history, candidateReviews);
   const activations = new Map(qualityEvidence.history.map((activation) => [activation.activationId, activation]));
   const currentSnapshots = new Map<string, SearchRolloutQualitySnapshot>();
@@ -118,6 +125,9 @@ export async function readLocalSearchRolloutStatus(input: {
   for (const review of reviews) {
     if (review.projectId !== input.projectId) {
       throw new SearchLocalError("observation_invalid", "검색 rollout 검토의 project 좌표가 다릅니다.");
+    }
+    if (review.schemaVersion === 2 && rolloutPolicies.get(review.rolloutPolicyId)?.projectId !== input.projectId) {
+      throw new SearchLocalError("observation_invalid", "검색 rollout 검토 정책의 project 좌표가 다릅니다.");
     }
     const candidateReview = candidateReviews.get(review.target.candidateReviewId)!;
     assertReviewTarget(review, activations.get(review.target.selectionTransitionId), candidateReview);

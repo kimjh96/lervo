@@ -18,6 +18,7 @@
 - `.lervo/verifications/`: suite ID별 project 검증 명령을 둘 빈 디렉터리
 - `.lervo/search-evaluations/`: 검토한 검색 query와 기대 원본을 케이스별로 둘 빈 디렉터리
 - `.lervo/search-engine-policies/`: 검색 엔진 활성화 정책을 정책별로 둘 빈 디렉터리
+- `.lervo/search-rollout-policies/`: 검색 rollout 검토 정책을 정책별로 둘 빈 디렉터리
 - `.lervo/.gitignore`: `state/` 제외 규칙
 - `.lervo/generated/`, `.lervo/state/`, `.lervo/knowledge/`: 이후 단계가 사용할 로컬 디렉터리
 
@@ -682,15 +683,21 @@ Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lerv
 
 각 slice는 전체·평가·미평가·수락·실패와 controlled 실패 사유를 독립적으로 집계합니다. 미평가 시도는 수락이나 실패로 추정하지 않고, `no_failures_observed`도 rollout 성공을 뜻하지 않습니다. Report의 `rolloutDecision`, `rollbackDecision`, `embeddingDecision`은 표본 수와 결과에 관계없이 모두 `not_determined`입니다. Report는 파생 조회이며 선택 전이·정책·문서·attempt·assessment를 수정하거나 자동 rollback을 만들지 않습니다. Query·digest·문서 path·본문·prompt·provider 응답·credential은 출력 slice에 추가하지 않습니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)과 [ADR-0064](./docs/adr/0064-selection-bound-operational-search-quality.md)에 기록합니다.
 
-`lervo search rollout review <selection-transition-id> --decision <keep|rollback|more-assessments> --reviewer <reviewer-id>`는 현재 선택 head가 같은 build-bound 후보이고 해당 전이 attempt가 하나 이상 있을 때만 사람 검토 원본을 만듭니다. `keep`, `rollback`, `more-assessments`는 각각 `keep_candidate`, `rollback_recommended`, `more_assessments_required`로 기록합니다. 전체 선택 chain·정책·후보 review·comparison과 attempt·assessment 관계를 먼저 검증하며 과거 전이, baseline, legacy-unbound 후보와 시각 뒤 원본에서는 fail-closed합니다.
+`lervo search rollout review <selection-transition-id> --decision <keep|rollback|more-assessments> --reviewer <reviewer-id> [--policy <policy-id>]`는 현재 선택 head가 같은 build-bound 후보이고 해당 전이 attempt가 하나 이상 있을 때만 사람 검토 원본을 만듭니다. `keep`, `rollback`, `more-assessments`는 각각 `keep_candidate`, `rollback_recommended`, `more_assessments_required`로 기록합니다. 전체 선택 chain·정책·후보 review·comparison과 attempt·assessment 관계를 먼저 검증하며 과거 전이, baseline, legacy-unbound 후보와 시각 뒤 원본에서는 fail-closed합니다.
 
-`SearchRolloutQualitySnapshot`은 검토 시점의 대상 attempt·assessment ID를 각각 정렬한 목록의 canonical hash, 관측 종료 시각, 전체·평가·미평가·수락·실패와 실패 사유별 수를 내용 기반 ID에 묶습니다. ID 목록 자체와 query 좌표는 복제하지 않습니다. `SearchRolloutReview`는 이 snapshot, project, 선택 전이, candidate·engine·adapter build·후보 review, reviewer·시각과 명시적 판단을 별도 내용 기반 ID에 묶습니다. 최소 표본과 허용 실패 정책이 없으므로 `thresholdPolicyState=not_defined`이며 `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`, `embeddingDecision=not_determined`를 유지합니다.
+`SearchRolloutQualitySnapshot`은 검토 시점의 대상 attempt·assessment ID를 각각 정렬한 목록의 canonical hash, 관측 종료 시각, 전체·평가·미평가·수락·실패와 실패 사유별 수를 내용 기반 ID에 묶습니다. ID 목록 자체와 query 좌표는 복제하지 않습니다. `SearchRolloutReview`는 이 snapshot, project, 선택 전이, candidate·engine·adapter build·후보 review, reviewer·시각과 명시적 판단을 별도 내용 기반 ID에 묶습니다. 정책 없는 v1은 `thresholdPolicyState=not_defined`, 정책에 결속된 v2는 `thresholdPolicyState=bound`이며 둘 다 `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`, `embeddingDecision=not_determined`를 유지합니다.
 
 원본은 `.lervo/state/search/rollout-reviews/<rolloutReviewId>.json`에 최대 256개를 항목별 mode `0600` immutable 파일로 저장합니다. 이후 품질 원본이 추가돼도 기존 파일을 수정하지 않습니다. Raw query·digest, nonce, index·result-set hash, source 좌표·본문, prompt, provider 응답, credential과 verification receipt는 저장하지 않고 새 event와 Hub sync도 만들지 않습니다. 계약·snapshot 불일치는 `invalid_rollout_review`, 현재 후보·attempt·build 자격 부족은 `rollout_review_not_eligible`, 저장 실패는 기존 `observation_*`로 전체 작업을 실패시킵니다. 결정은 [ADR-0065](./docs/adr/0065-human-search-rollout-review.md)에 기록합니다.
 
+`lervo search rollout policy create`는 허용 reviewer·candidate, 후보 유지의 최소 평가·최대 실패 수와 롤백 권고의 최소 평가·최소 실패 수를 `SearchRolloutReviewPolicy`에 고정합니다. 작성자는 허용 reviewer여야 하고 유지 최대 실패 수는 롤백 최소 실패 수보다 작아야 합니다. 정책은 검토보다 먼저 만들어져야 하며 `.lervo/search-rollout-policies/<policyId>.yaml`에 최대 64 KiB, 전체 최대 32개, mode `0600` 불변 파일로 저장합니다.
+
+정책을 명시한 검토는 exact policy ID, project, reviewer, candidate와 사람이 고른 판단의 수치 기준을 파일 게시 전에 확인합니다. 미충족이면 `rollout_review_not_eligible`로 실패하며 판단을 바꾸거나 검토 파일을 만들지 않습니다. 기존 v1은 `legacy_unbound`, 다른 정책에 결속된 v2는 `different_policy`입니다. `lervo search rollout policy check <rollout-review-id> --policy <policy-id>`는 저장된 snapshot의 정책 충족 여부만 반환하고 이후 품질 입력 변경은 계산하지 않습니다. 결과의 `decisionSelection=not_performed`, `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`는 고정입니다.
+
+정책에는 project·reviewer·candidate·author ID, 기준과 시각만 허용합니다. Query·digest, 문서 좌표·본문, provider 결과, credential과 receipt는 넣지 않고 event나 Hub 원본을 만들지 않습니다. 정책 계약 오류는 `invalid_rollout_policy`, 로컬 형식·없음·읽기·쓰기는 `rollout_policy_invalid`, `rollout_policy_not_found`, `rollout_policy_read_failed`, `rollout_policy_write_failed`입니다. 판정 사유와 소급 금지 규칙은 [ADR-0067](./docs/adr/0067-policy-bound-search-rollout-review.md)에 기록합니다.
+
 `lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>]`는 현재 선택과 저장된 rollout 검토를 검토 시각·ID 역순으로 조회합니다. 기본 limit은 20, 최대는 50이며 다음 cursor는 현재 페이지 마지막 review ID입니다. Cursor가 현재 검증된 원본에 없으면 다른 위치로 추정하지 않고 실패합니다. 전체 검토 원본은 기존 최대 256개 경계 안에서만 읽습니다.
 
-각 검토는 선택 chain의 전이·candidate·engine·adapter build·후보 review와 project를 다시 확인합니다. 검토 시각 이하의 대상 attempt·assessment로 기존 검토를 재생성하고, 조회 시각 이하의 전체 대상 입력으로 현재 품질 snapshot을 파생합니다. `qualityInputState`는 시각 때문에 달라질 수 있는 snapshot ID가 아니라 입력 ID 목록의 canonical digest가 같으면 `unchanged`, 다르면 `changed`입니다. 현재 전이와 같으면 `current_selection`, rollback·refresh 등으로 head가 바뀌었으면 `historical_selection`으로 표시합니다.
+각 검토는 선택 chain의 전이·candidate·engine·adapter build·후보 review와 project를 다시 확인합니다. 정책에 결속된 v2는 정책 원본의 존재와 project 좌표도 확인하지만 기준 충족 여부는 상태 조회에서 다시 계산하지 않습니다. 검토 시각 이하의 대상 attempt·assessment로 기존 검토를 재생성하고, 조회 시각 이하의 전체 대상 입력으로 현재 품질 snapshot을 파생합니다. `qualityInputState`는 시각 때문에 달라질 수 있는 snapshot ID가 아니라 입력 ID 목록의 canonical digest가 같으면 `unchanged`, 다르면 `changed`입니다. 현재 전이와 같으면 `current_selection`, rollback·refresh 등으로 head가 바뀌었으면 `historical_selection`으로 표시합니다.
 
 상태 응답은 `reviewDecisionSelection=not_performed`, `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`를 유지합니다. 조회는 최신 검토를 선택하거나 정책 eligibility·새 판단을 계산하지 않습니다. Reviewer ID와 digest를 포함하므로 로컬 CLI에서만 반환하며 raw query·nonce, index·result-set hash, source 좌표·본문, prompt, provider 응답, credential과 receipt는 포함하지 않습니다. 파일·event·Hub 원본을 만들지 않습니다. 형식·limit·cursor 관계는 `invalid_rollout_status`, 원본 관계 실패는 기존 `observation_invalid`·`invalid_rollout_review`로 전체 페이지를 닫습니다. 결정은 [ADR-0066](./docs/adr/0066-bounded-search-rollout-review-status.md)에 기록합니다.
 

@@ -13,7 +13,7 @@
 
 검토 시점의 해당 전이 attempt와 assessment ID를 정렬해 `inputDigest`를 만들고, 전체·평가·미평가·수락·실패와 controlled 실패 사유를 `SearchRolloutQualitySnapshot`에 고정합니다. Snapshot과 검토는 각각 내용 기반 ID를 가집니다. 이후 attempt나 assessment가 추가되어도 기존 snapshot과 검토 파일을 수정하지 않습니다.
 
-최소 표본과 허용 실패 정책은 아직 정의하지 않았으므로 `thresholdPolicyState=not_defined`입니다. 세 판단은 사람이 명시한 검토 결과이며 수치에서 자동 도출한 eligibility나 승인이 아닙니다. 원본은 `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`를 항상 기록합니다. 롤백 권고를 실제 rollback으로 실행하거나 후보 유지 판단을 운영 승인으로 사용하려면 별도 정책과 명시적 명령이 필요합니다.
+이 ADR의 v1에는 최소 표본과 허용 실패 정책이 없으므로 `thresholdPolicyState=not_defined`입니다. 이후 정책 결속 v2는 [ADR-0067](./0067-policy-bound-search-rollout-review.md)에서 별도로 확장하며 v1을 소급 변경하지 않습니다. 세 판단은 사람이 명시한 검토 결과이며 수치에서 자동 도출한 승인이나 실행 지시가 아닙니다. 원본은 `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`를 항상 기록합니다. 롤백 권고를 실제 rollback으로 실행하거나 후보 유지 판단을 운영 승인으로 사용하려면 별도 정책과 명시적 명령이 필요합니다.
 
 로컬 조합은 전체 선택 chain과 품질 원본을 다시 검증하고 현재 head가 같은 후보 전이인지 확인합니다. Attempt가 없거나 baseline·과거 전이·legacy-unbound 후보이면 검토를 만들지 않습니다. 검토는 `.lervo/state/search/rollout-reviews/<rolloutReviewId>.json`에 최대 256개를 항목별 immutable mode `0600` 파일로 저장합니다. 한 파일에 이력을 누적하거나 event·Hub 원본으로 승격하지 않습니다.
 

@@ -575,6 +575,18 @@ Hub command/approval 대화 UX 완료 조건:
 - 조회가 선택 전이·rollback·approval·정책 eligibility와 새 원본을 만들지 않음
 - Query·문서 좌표·본문·provider 결과·credential을 출력하거나 event·Hub sync를 만들지 않음
 
+검색 rollout 검토 정책 첫 슬라이스 완료 조건:
+
+- 허용 reviewer·candidate와 유지·롤백 판단별 평가·실패 수 기준을 별도 내용 기반 정책에 고정함
+- 유지 최대 실패와 롤백 최소 실패 기준을 겹치지 않게 검증함
+- 정책을 검토보다 먼저 만들고 신규 v2 검토에 exact policy ID와 `bound` 상태를 결속함
+- 정책 미충족 검토를 기록하지 않고 다른 판단으로 자동 변경하지 않음
+- 기존 v1은 `legacy_unbound`, 다른 정책의 v2는 `different_policy`로 판정함
+- 저장 당시 snapshot 정책 확인과 현재 품질 입력 변경 상태 조회를 분리함
+- 정책을 최대 32개 항목별 immutable mode `0600` YAML로 저장하고 기존 엔진 정책 저장 계약을 보존함
+- 정책 판정이 결정 선택·승인·선택 유지·rollback을 실행하지 않음
+- Query·문서 좌표·본문·provider 결과·credential을 저장하거나 event·Hub sync를 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -625,4 +637,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 rollout 검토 상태 조회 첫 슬라이스를 완료했습니다. 현재 선택과 검토 원본을 제한된 cursor page로 보여 주고, 검토 당시 입력을 재검증한 뒤 현재 품질 입력 digest의 변경 여부를 표시합니다. Rollback 뒤에는 과거 선택으로 구분하며 최신 검토를 승인이나 적용 대상으로 선택하지 않습니다. 결정은 [ADR-0066](./docs/adr/0066-bounded-search-rollout-review-status.md)에 기록했습니다.
 
-다음 구현 작업은 최소 평가 수·허용 실패와 reviewer 범위를 별도 immutable 정책으로 명시하고 rollout 검토가 그 정책을 충족하는지만 판정하는 **검색 rollout 검토 정책 계약**입니다. 정책 판정도 실제 선택 유지나 rollback을 실행하지 않으며, 기준이 없는 기존 검토를 자동으로 재해석하지 않습니다.
+검색 rollout 검토 정책 첫 슬라이스를 완료했습니다. 허용 reviewer·candidate와 유지·rollback의 평가·실패 기준을 정책별 immutable YAML에 고정하고, 신규 검토만 정확한 정책 ID에 결속해 기준을 충족할 때 게시합니다. 기존 v1은 소급 해석하지 않으며 정책 확인은 저장 당시 snapshot만 판정하고 결정 선택·승인·선택 변경을 실행하지 않습니다. 결정은 [ADR-0067](./docs/adr/0067-policy-bound-search-rollout-review.md)에 기록했습니다.
+
+다음 구현 작업은 정책을 충족한 검토와 변경되지 않은 현재 품질 입력을 다시 확인한 뒤에도 별도 operator 권한과 명시적 명령 없이는 아무 조치도 만들지 않는 **검색 rollout 조치 계약**입니다. 후보 유지 확인과 rollback 실행을 구분하고, 기존 `engine rollback` 전이 계약을 재사용하되 검토 자체를 실행 권한으로 해석하지 않습니다.

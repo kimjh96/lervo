@@ -11,7 +11,9 @@ export const searchUsage = `  lervo search <query> [--root <path>] [--limit <1-5
   lervo search engine refresh <review-id> --policy <policy-id> --operator <operator-id> [--root <path>] [--json]
   lervo search engine rollback --policy <policy-id> --operator <operator-id> [--root <path>] [--json]
   lervo search engine status [--root <path>] [--json]
-  lervo search rollout review <selection-transition-id> --decision <keep|rollback|more-assessments> --reviewer <reviewer-id> [--root <path>] [--json]
+  lervo search rollout policy create --reviewer <reviewer-id> --author <reviewer-id> --candidate <candidate-id> [--keep-min-assessments <1-10000>] [--keep-max-failures <0-10000>] [--rollback-min-assessments <1-10000>] [--rollback-min-failures <1-10000>] [--root <path>] [--json]
+  lervo search rollout policy check <rollout-review-id> --policy <policy-id> [--root <path>] [--json]
+  lervo search rollout review <selection-transition-id> --decision <keep|rollback|more-assessments> --reviewer <reviewer-id> [--policy <policy-id>] [--root <path>] [--json]
   lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>] [--root <path>] [--json]
   lervo search evaluate [--bundle <bundle-id>] [--root <path>] [--json]
   lervo search report [--root <path>] [--json]`;

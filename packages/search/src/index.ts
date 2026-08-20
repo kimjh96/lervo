@@ -30,6 +30,8 @@ export * from "./recommendation.js";
 export * from "./report.js";
 export * from "./selection-quality-report.js";
 export * from "./rollout-quality-snapshot.js";
+export * from "./rollout-policy.js";
+export * from "./rollout-policy-types.js";
 export * from "./rollout-review.js";
 export * from "./rollout-review-types.js";
 export * from "./rollout-status.js";

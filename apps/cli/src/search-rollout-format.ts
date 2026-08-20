@@ -1,6 +1,8 @@
 import type {
   SearchRolloutReview,
   SearchRolloutReviewDecision,
+  SearchRolloutPolicyAssessment,
+  SearchRolloutReviewPolicy,
   SearchRolloutStatusPage,
 } from "@lervo/search";
 
@@ -14,11 +16,50 @@ export function formatSearchRolloutReview(review: SearchRolloutReview): string {
   const lines = [
     `검색 rollout 검토를 기록했습니다: ${review.rolloutReviewId}`,
     `  판단: ${decisionLabel(review.decision)}`,
+    `  기준 정책: ${review.schemaVersion === 2 ? review.rolloutPolicyId : "연결하지 않음 (기존 방식)"}`,
     `  근거: 시도 ${review.qualitySnapshot.totalAttempts} · 평가 ${review.qualitySnapshot.assessedAttempts}` +
       ` · 실패 ${review.qualitySnapshot.failedAttempts}`,
     "  이 기록은 승인이나 검색 엔진 변경을 실행하지 않습니다.",
   ];
   return `${lines.join("\n")}\n`;
+}
+
+export function formatSearchRolloutPolicy(policy: SearchRolloutReviewPolicy): string {
+  return [
+    `검색 rollout 검토 정책을 만들었습니다: ${policy.policyId}`,
+    `  허용 검토자 ${policy.allowedReviewerIds.length}명 · 후보 ${policy.allowedCandidateIds.join(", ")}`,
+    `  후보 유지: 평가 ${policy.rules.keepCandidate.minimumAssessedAttempts}개 이상` +
+      ` · 실패 ${policy.rules.keepCandidate.maximumFailedAttempts}개 이하`,
+    `  롤백 권고: 평가 ${policy.rules.rollbackRecommended.minimumAssessedAttempts}개 이상` +
+      ` · 실패 ${policy.rules.rollbackRecommended.minimumFailedAttempts}개 이상`,
+    `  파일: .lervo/search-rollout-policies/${policy.policyId}.yaml`,
+    "  이 정책은 검토 가능 여부만 판단하며 결정 선택이나 검색 엔진 변경을 하지 않습니다.",
+  ].join("\n") + "\n";
+}
+
+const failureLabels: Record<SearchRolloutPolicyAssessment["failureReasons"][number], string> = {
+  policy_not_bound: "검토에 정책이 연결되지 않음",
+  policy_mismatch: "검토에 연결된 정책이 다름",
+  policy_created_after_review: "정책이 검토 뒤에 만들어짐",
+  reviewer_not_allowed: "허용되지 않은 검토자",
+  candidate_not_allowed: "허용되지 않은 후보",
+  insufficient_assessed_attempts: "평가된 시도 수 부족",
+  too_many_failed_attempts: "허용 실패 수 초과",
+  too_few_failed_attempts: "롤백 권고에 필요한 실패 수 부족",
+};
+
+export function formatSearchRolloutPolicyAssessment(assessment: SearchRolloutPolicyAssessment): string {
+  const reasons = assessment.failureReasons.length === 0
+    ? "없음"
+    : assessment.failureReasons.map((reason) => failureLabels[reason]).join(", ");
+  return [
+    `검색 rollout 검토 정책 확인: ${assessment.rolloutReviewId}`,
+    `  정책 연결: ${assessment.policyBindingState === "bound" ? "일치" :
+      assessment.policyBindingState === "legacy_unbound" ? "연결되지 않은 기존 검토" : "다른 정책"}`,
+    `  기록된 판단: ${assessment.reviewDecisionEligibility === "eligible" ? "기준 충족" : "기준 미충족"}`,
+    `  미충족 사유: ${reasons}`,
+    "  이 확인은 판단을 대신 선택하거나 승인·롤백·검색 엔진 변경을 실행하지 않습니다.",
+  ].join("\n") + "\n";
 }
 
 export function formatSearchRolloutStatus(status: SearchRolloutStatusPage): string {

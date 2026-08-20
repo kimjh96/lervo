@@ -1,11 +1,13 @@
 import {
   createSearchRolloutReview,
+  evaluateSearchRolloutReviewPolicy,
   type SearchRolloutReview,
   type SearchRolloutReviewDecision,
 } from "@lervo/search";
 
 import { loadStoredSearchCandidateReview } from "./evaluation-review-store.js";
 import { recordSearchRolloutReview } from "./rollout-review-store.js";
+import { loadSearchRolloutReviewPolicy } from "./rollout-policy-files.js";
 import { loadVerifiedSearchSelectionQualityEvidence } from "./selection-quality-evidence.js";
 import { SearchLocalError } from "./types.js";
 
@@ -16,6 +18,7 @@ export async function reviewLocalSearchRollout(input: {
   reviewerId: string;
   reviewedAt: Date;
   decision: SearchRolloutReviewDecision;
+  policyId?: string;
 }): Promise<SearchRolloutReview> {
   const evidence = await loadVerifiedSearchSelectionQualityEvidence(input);
   const current = evidence.history.at(-1);
@@ -44,6 +47,9 @@ export async function reviewLocalSearchRollout(input: {
   }
   const attemptIds = new Set(attempts.map((attempt) => attempt.attemptId));
   const assessments = evidence.assessments.filter((assessment) => attemptIds.has(assessment.attemptId));
+  const rolloutPolicy = input.policyId === undefined
+    ? null
+    : await loadSearchRolloutReviewPolicy(input.repositoryRoot, input.policyId);
   const rolloutReview = createSearchRolloutReview({
     projectId: input.projectId,
     target: {
@@ -58,7 +64,17 @@ export async function reviewLocalSearchRollout(input: {
     reviewerId: input.reviewerId,
     reviewedAt: input.reviewedAt,
     decision: input.decision,
+    ...(rolloutPolicy === null ? {} : { rolloutPolicyId: rolloutPolicy.policyId }),
   });
+  if (rolloutPolicy !== null) {
+    const assessment = evaluateSearchRolloutReviewPolicy(rolloutPolicy, rolloutReview);
+    if (assessment.reviewDecisionEligibility !== "eligible") {
+      throw new SearchLocalError(
+        "rollout_review_not_eligible",
+        `검색 rollout 검토가 정책 기준을 충족하지 않습니다: ${assessment.failureReasons.join(", ")}`,
+      );
+    }
+  }
   await recordSearchRolloutReview(input.repositoryRoot, rolloutReview);
   return rolloutReview;
 }

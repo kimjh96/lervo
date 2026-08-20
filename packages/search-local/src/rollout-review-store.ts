@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import {
   assertSearchRolloutReview,
+  SEARCH_ROLLOUT_REVIEW_PATTERN,
   type SearchRolloutReview,
 } from "@lervo/search";
 
@@ -10,11 +11,39 @@ import {
   listObservations,
   prepareObservationSubdirectory,
   writeObservation,
+  readObservation,
 } from "./observation-files.js";
 import { SearchLocalError } from "./types.js";
 
 const MAX_ROLLOUT_REVIEWS = 256;
 const ROLLOUT_REVIEW_FILE = /^srrv_[a-f0-9]{24}\.json$/;
+
+export async function loadStoredSearchRolloutReview(
+  repositoryRoot: string,
+  rolloutReviewId: string,
+): Promise<SearchRolloutReview> {
+  if (!SEARCH_ROLLOUT_REVIEW_PATTERN.test(rolloutReviewId)) {
+    throw new SearchLocalError("rollout_review_not_found", "검색 rollout 검토 ID가 유효하지 않습니다.");
+  }
+  const directory = await existingObservationSubdirectory(repositoryRoot, "rollout-reviews");
+  if (directory === null) {
+    throw new SearchLocalError("rollout_review_not_found", "검색 rollout 검토 원본을 찾을 수 없습니다.");
+  }
+  try {
+    const review = await readObservation<SearchRolloutReview>(resolve(directory, `${rolloutReviewId}.json`));
+    assertSearchRolloutReview(review);
+    if (review.rolloutReviewId !== rolloutReviewId) {
+      throw new SearchLocalError("observation_invalid", "검색 rollout 검토 ID가 파일 좌표와 다릅니다.");
+    }
+    return review;
+  } catch (error) {
+    if (error instanceof SearchLocalError && error.code === "observation_read_failed" &&
+      (error.cause as NodeJS.ErrnoException | undefined)?.code === "ENOENT") {
+      throw new SearchLocalError("rollout_review_not_found", "검색 rollout 검토 원본을 찾을 수 없습니다.");
+    }
+    throw error;
+  }
+}
 
 export async function listStoredSearchRolloutReviews(repositoryRoot: string): Promise<SearchRolloutReview[]> {
   const directory = await existingObservationSubdirectory(repositoryRoot, "rollout-reviews");

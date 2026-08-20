@@ -11,7 +11,7 @@ Rollout 검토는 당시 품질 입력에 결속된 불변 원본이지만, 이�
 
 `SearchRolloutStatusPage` v1을 로컬의 read-only 파생 조회로 둡니다. 현재 선택을 `implicit_baseline`, `recorded_baseline`, `candidate`로 구분하고, rollout 검토를 검토 시각과 ID 역순으로 기본 20개·최대 50개만 반환합니다. 다음 페이지 cursor는 현재 페이지의 마지막 rollout review ID이며, 원본에서 찾을 수 없는 cursor는 실패합니다. 저장 원본 자체는 최대 256개라는 기존 경계를 유지합니다.
 
-조회 전 각 검토가 가리키는 선택 전이·candidate·engine·adapter build·후보 review를 전체 선택 chain에 다시 맞춥니다. 검토 시각까지 관측된 대상 attempt·assessment로 기존 검토 snapshot을 재생성해 원본 무결성을 확인합니다. 그 다음 조회 시각까지의 모든 대상 입력으로 현재 `SearchRolloutQualitySnapshot`을 파생합니다.
+조회 전 각 검토가 가리키는 선택 전이·candidate·engine·adapter build·후보 review를 전체 선택 chain에 다시 맞춥니다. 정책에 결속된 v2 검토는 정책 원본의 존재와 project 좌표도 확인하지만 기준 충족 여부는 이 조회에서 다시 판정하지 않습니다. 검토 시각까지 관측된 대상 attempt·assessment로 기존 검토 snapshot을 재생성해 원본 무결성을 확인합니다. 그 다음 조회 시각까지의 모든 대상 입력으로 현재 `SearchRolloutQualitySnapshot`을 파생합니다.
 
 `qualityInputState`는 두 snapshot ID가 아니라 `inputDigest`를 비교해 `unchanged` 또는 `changed`로 표시합니다. Snapshot ID에는 관측 종료 시각이 포함되므로 입력이 같아도 조회 시각이 다르면 ID가 달라질 수 있기 때문입니다. 현재 선택 전이와 같은 검토는 `current_selection`, 그 밖은 `historical_selection`입니다. Rollback 뒤에도 과거 검토와 현재 품질 입력을 조회할 수 있지만 검토의 판단과 효과 필드는 바꾸지 않습니다.
 

@@ -18,5 +18,7 @@ export * from "./store.js";
 export * from "./selection-quality-report.js";
 export * from "./rollout-review-runner.js";
 export * from "./rollout-review-store.js";
+export * from "./rollout-policy-files.js";
+export * from "./rollout-policy-assessment.js";
 export * from "./rollout-status-reader.js";
 export * from "./types.js";
