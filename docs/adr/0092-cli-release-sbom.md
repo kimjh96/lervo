@@ -30,7 +30,7 @@ Root application은 공개 package의 npm PURL, `dist/bin.js` SHA-256과 현재 
 - bundle digest
 - portable production dependency digest
 
-Component와 dependency node는 PURL 순으로 정렬합니다. 생성 시각과 `serialNumber`는 생략하고 document version은 1로 고정해 같은 manifest와 lockfile에서 같은 bytes를 만듭니다. Dependency license는 lockfile이 증명하지 않으므로 추정해서 넣지 않습니다.
+Component와 dependency node는 PURL 순으로 정렬합니다. 생성 시각과 임의 `serialNumber`는 넣지 않습니다. `actions/attest` SBOM mode와 호환되도록 serial을 제외한 canonical document digest를 URL namespace의 RFC 4122 UUID v5 name으로 사용합니다. 같은 release document 검사는 같은 serial을 만들고 inventory가 바뀌면 serial도 바뀝니다. Document version은 1로 고정합니다. Dependency license는 lockfile이 증명하지 않으므로 추정해서 넣지 않습니다.
 
 검사는 먼저 release manifest 자체를 검증합니다. 그 뒤 lockfile graph의 required 목록이 manifest의 portable closure와 같고, optional 목록이 승인된 native family 여덟 개와 같으며, root가 직접 dependency 목록과 같은지 확인합니다. 새 bundle 외부 package는 manifest v4의 검토 목록을 갱신하지 않으면 실패합니다. 마지막으로 committed SBOM의 metadata, component, dependency와 속성을 새로 만든 결과와 정확히 비교합니다.
 

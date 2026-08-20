@@ -863,7 +863,7 @@ CLI release SBOM 계약 완료 조건:
 - Metafile에서 찾은 workspace와 외부 bundle package를 설치 graph와 구분해 포함함
 - Lockfile package에는 SHA-512 integrity, root application에는 bundle SHA-256을 기록함
 - Root가 artifact·bundle·portable dependency digest에 결속됨
-- PURL 기반 component와 dependency node를 정렬하고 timestamp·임의 serial을 넣지 않음
+- PURL 기반 component와 dependency node를 정렬하고 timestamp·임의 serial 대신 canonical document 기반 UUID v5 serial을 재현함
 - 증명하지 못한 workspace 내부 관계는 `not-asserted`로 표시하고 dependency license를 추정하지 않음
 - 명시적 update만 SBOM 한 파일을 교체하고 기본 check와 release matrix는 source에서 같은 결과를 재생성함
 - 취약점 없음, 라이선스 준수, 서명·빌드 출처와 실행되지 않은 다른 platform 성공을 주장하지 않음
@@ -882,6 +882,21 @@ CLI release 출처 증명 경계 완료 조건:
 - GitHub control plane이 세 subject의 SLSA build provenance를 만들고 tarball의 SBOM attestation을 별도로 생성함
 - Action을 전체 commit SHA로 고정하고 release 파일·Sigstore bundle을 30일 workflow artifact로 함께 보존함
 - 로컬 성공을 원격 서명, npm 게시, 소비자 검증이나 특정 SLSA level로 주장하지 않음
+
+CLI release attestation 소비자 검증 완료 조건:
+
+- 절대 release directory, exact repository·tag·source commit을 소비자가 모두 명시함
+- Tag는 package version과 같고 source·signer digest는 같은 명시적 commit으로 고정함
+- GitHub Actions OIDC issuer와 workflow tag ref를 exact certificate identity로 검증함
+- GitHub-hosted runner와 bundle별 SLSA provenance·CycloneDX predicate type을 강제함
+- 암호·certificate·trusted root·transparency timestamp 검증은 GitHub 어댑터 뒤에 둠
+- Provenance의 세 subject basename·SHA-256 집합을 전달받은 release 파일과 정확히 대조함
+- SBOM attestation의 tarball subject와 signed predicate를 전달받은 SBOM과 대조함
+- 로컬 unsigned statement를 verifier 호출 전 신뢰 근거에서 제외함
+- 추가·누락·symlink·빈 파일·크기 초과 release set을 거부함
+- 검증 전후 release 파일·bundle·custom trusted root가 바뀌면 전체를 실패시킴
+- Tag CI가 생성 직후 같은 소비자 검증을 통과한 release set만 보존함
+- Fixture 성공을 실제 원격 서명·artifact 보존·npm 게시·source review·SLSA level로 주장하지 않음
 
 ## 다음 실행 작업
 
@@ -983,8 +998,10 @@ CLI package 사용 안내 계약을 완료했습니다. 저장소의 긴 README�
 
 CLI registry 게시 사전검증 계약을 완료했습니다. 외부 uplink와 credential이 없는 임시 Verdaccio에 검토된 tarball을 게시하고 metadata·integrity·dist-tag, package 좌표 설치와 local bin을 확인합니다. 같은 version의 재게시를 거부한 뒤 기존 integrity가 유지되는지도 다시 읽으며 이 검사를 Linux·macOS·Windows matrix에 추가했습니다. 외부 SDK dependency는 공개 registry나 cache를 사용할 수 있고 실제 npm 게시 성공은 주장하지 않습니다. 결정은 [ADR-0091](./docs/adr/0091-cli-registry-publish-preflight.md)에 기록했습니다.
 
-CLI release SBOM 계약을 완료했습니다. CycloneDX 1.7 sidecar는 release manifest v4의 bundle inventory와 pnpm lockfile production graph를 조합하고 root를 artifact·bundle·portable closure digest에 결속합니다. Dev dependency는 제외하고 native package 여덟 개는 optional로 구분하며, 생성 시각이나 serial 없이 현재 release 파일 하나만 교체합니다. Workspace 내부 관계와 dependency license는 증명하지 못하므로 추정하지 않습니다. 결정은 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
+CLI release SBOM 계약을 완료했습니다. CycloneDX 1.7 sidecar는 release manifest v4의 bundle inventory와 pnpm lockfile production graph를 조합하고 root를 artifact·bundle·portable closure digest에 결속합니다. Dev dependency는 제외하고 native package 여덟 개는 optional로 구분하며, 생성 시각이나 임의 serial 대신 document 내용에서 재현한 UUID v5 serial을 사용해 현재 release 파일 하나만 교체합니다. Workspace 내부 관계와 dependency license는 증명하지 못하므로 추정하지 않습니다. 결정은 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
 
 CLI release 출처 증명 경계를 완료했습니다. 실제 pack마다 tarball·manifest·SBOM digest를 가진 unsigned in-toto/SLSA statement를 임시로 만들고 로컬 builder가 서명을 주장하지 못하게 막습니다. 일반 matrix의 contents read 권한은 유지하며, 세 platform 성공 뒤 tag를 고른 수동 실행에서만 별도 GitHub job이 세 release 파일의 build provenance와 tarball의 SBOM attestation을 생성하도록 구성했습니다. 원격 job이 아직 실행되지 않았으므로 실제 서명 성공이나 SLSA level은 주장하지 않습니다. 결정은 [ADR-0093](./docs/adr/0093-cli-release-attestation-boundary.md)에 기록했습니다.
 
-다음 구현 작업은 signed bundle의 subject digest와 signer, repository·workflow·tag identity를 명시적 기대값과 대조하고 local unsigned statement를 신뢰 근거에서 제외하는 **CLI release attestation 소비자 검증 계약**입니다.
+CLI release attestation 소비자 검증 계약을 완료했습니다. 소비자가 지정한 repository·tag·source commit에 exact GitHub workflow certificate, source·signer digest와 hosted runner를 결속합니다. 외부 verifier가 통과한 뒤에도 provenance의 세 subject와 CycloneDX predicate를 전달받은 파일에 다시 대조하고, local unsigned statement와 검증 중 바뀐 파일 집합을 거부합니다. Tag job도 생성 직후 같은 경계를 통과한 결과만 보존합니다. 결정은 [ADR-0094](./docs/adr/0094-cli-release-attestation-consumer-verification.md)에 기록했습니다.
+
+다음 구현 작업은 검증된 release set과 exact package version·dist-tag·registry digest를 게시 승인에 결속하고 credential 없이 실행되는 기본 검사와 실제 publish 권한 경계를 나누는 **CLI release publication authorization 계약**입니다.

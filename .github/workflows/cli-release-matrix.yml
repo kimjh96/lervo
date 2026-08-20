@@ -101,6 +101,10 @@ jobs:
           mkdir "${RUNNER_TEMP}/lervo-release/attestations"
           cp "${{ steps.build-attestation.outputs.bundle-path }}" "${RUNNER_TEMP}/lervo-release/attestations/build-provenance.sigstore.json"
           cp "${{ steps.sbom-attestation.outputs.bundle-path }}" "${RUNNER_TEMP}/lervo-release/attestations/sbom.sigstore.json"
+      - name: Verify release attestations as a consumer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pnpm release:attestation:verify --release-directory "${RUNNER_TEMP}/lervo-release" --repository "${GITHUB_REPOSITORY}" --tag "${GITHUB_REF_NAME}" --source-digest "${GITHUB_SHA}"
       - name: Upload release files and signed bundles
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

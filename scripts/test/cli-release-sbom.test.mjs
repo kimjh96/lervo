@@ -126,7 +126,14 @@ describe("CLI release SBOM", () => {
     const root = sbom.metadata.component;
 
     assert.equal(sbom.specVersion, "1.7");
-    assert.equal(Object.hasOwn(sbom, "serialNumber"), false);
+    assert.match(
+      sbom.serialNumber,
+      /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+    );
+    assert.equal(
+      createCliReleaseSbom(releaseManifest, lockfile).serialNumber,
+      sbom.serialNumber,
+    );
     assert.equal(Object.hasOwn(sbom.metadata, "timestamp"), false);
     assert.equal(sbom.components.length, 11);
     assert.equal(
@@ -169,5 +176,14 @@ describe("CLI release SBOM", () => {
       () => validateCliReleaseSbom(sbom, releaseManifest, lockfile),
       { code: "release_sbom_nondeterministic_metadata" },
     );
+  });
+
+  it("changes the deterministic serial when the inventory bytes change", () => {
+    const { lockfile, releaseManifest, sdkCoordinate } = fixture();
+    const before = createCliReleaseSbom(releaseManifest, lockfile);
+    lockfile.packages[sdkCoordinate] = packageEntry(63);
+    const after = createCliReleaseSbom(releaseManifest, lockfile);
+
+    assert.notEqual(after.serialNumber, before.serialNumber);
   });
 });

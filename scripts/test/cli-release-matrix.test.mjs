@@ -101,5 +101,16 @@ describe("CLI release matrix workflow", () => {
       sbom.with["sbom-path"],
       "${{ runner.temp }}/lervo-release/release-sbom.cdx.json",
     );
+    const verify = job.steps.find(
+      ({ name }) => name === "Verify release attestations as a consumer",
+    );
+    assert.deepEqual(verify.env, { GH_TOKEN: "${{ github.token }}" });
+    assert.equal(
+      verify.run,
+      "pnpm release:attestation:verify --release-directory \"${RUNNER_TEMP}/lervo-release\" --repository \"${GITHUB_REPOSITORY}\" --tag \"${GITHUB_REF_NAME}\" --source-digest \"${GITHUB_SHA}\"",
+    );
+    assert.ok(job.steps.indexOf(verify) < job.steps.findIndex(
+      ({ name }) => name === "Upload release files and signed bundles",
+    ));
   });
 });

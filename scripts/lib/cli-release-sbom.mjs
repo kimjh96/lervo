@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 import {
   createPnpmProductionGraph,
@@ -14,6 +16,7 @@ const nativeSuffixes = [
   "win32-arm64",
   "win32-x64",
 ];
+const uuidUrlNamespace = Buffer.from("6ba7b8119dad11d180b400c04fd430c8", "hex");
 
 export class ReleaseSbomError extends Error {
   constructor(code, message) {
@@ -117,6 +120,20 @@ function rootComponent(releaseManifest) {
   };
 }
 
+export function releaseSbomSerialNumber(sbom) {
+  const contentDigest = createHash("sha256").update(canonicalJson(sbom)).digest("hex");
+  const bytes = createHash("sha1")
+    .update(uuidUrlNamespace)
+    .update(`urn:lervo:release-sbom:v1:${contentDigest}`)
+    .digest()
+    .subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `urn:uuid:${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
+    `${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function createCliReleaseSbom(releaseManifest, lockfile) {
   const graph = createPnpmProductionGraph(lockfile);
   assertSourceConsistency(releaseManifest, graph, lockfile);
@@ -156,7 +173,7 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
     })),
   ].sort((left, right) => left.ref.localeCompare(right.ref));
 
-  return {
+  const sbom = {
     $schema: "https://cyclonedx.org/schema/bom-1.7.schema.json",
     bomFormat: "CycloneDX",
     specVersion: "1.7",
@@ -175,6 +192,17 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
       { name: "lervo:release:workspace-relationships", value: "not-asserted" },
     ],
   };
+  return {
+    $schema: sbom.$schema,
+    bomFormat: sbom.bomFormat,
+    specVersion: sbom.specVersion,
+    serialNumber: releaseSbomSerialNumber(sbom),
+    version: sbom.version,
+    metadata: sbom.metadata,
+    components: sbom.components,
+    dependencies: sbom.dependencies,
+    properties: sbom.properties,
+  };
 }
 
 export function releaseSbomDifferences(expected, actual) {
@@ -183,6 +211,7 @@ export function releaseSbomDifferences(expected, actual) {
     "$schema",
     "bomFormat",
     "specVersion",
+    "serialNumber",
     "version",
     "metadata",
     "components",
@@ -198,7 +227,7 @@ export function validateCliReleaseSbom(sbom, releaseManifest, lockfile) {
   if (sbom === null || typeof sbom !== "object" || Array.isArray(sbom)) {
     fail("release_sbom_invalid", "CLI release SBOM 구조가 올바르지 않습니다.");
   }
-  if (Object.hasOwn(sbom, "serialNumber") || Object.hasOwn(sbom.metadata ?? {}, "timestamp")) {
+  if (Object.hasOwn(sbom.metadata ?? {}, "timestamp")) {
     fail("release_sbom_nondeterministic_metadata", "CLI release SBOM에 비결정적 metadata가 있습니다.");
   }
   const expected = createCliReleaseSbom(releaseManifest, lockfile);

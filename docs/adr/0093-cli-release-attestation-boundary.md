@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-21
 
+후속 결정: [ADR-0094](./0094-cli-release-attestation-consumer-verification.md)는 signed bundle을 exact GitHub identity와 source commit에 대조하고, verified subject·CycloneDX predicate를 전달받은 파일과 다시 결속합니다.
+
 ## 맥락
 
 Release manifest와 SBOM은 공개 파일과 구성요소를 검토 가능한 원본에 결속하지만, 실제 tarball이 어디에서 어떤 절차로 만들어졌는지는 증명하지 않습니다. Tarball, manifest와 SBOM을 함께 전달하더라도 서로 다른 실행 결과가 섞이지 않았다는 서명도 없습니다.
@@ -33,7 +35,7 @@ Release manifest와 SBOM은 공개 파일과 구성요소를 검토 가능한 �
 
 기존 Ubuntu·macOS·Windows matrix는 로컬 unsigned statement 검사까지 contents read 권한으로 실행합니다. 별도 `attested-cli` job은 세 matrix job이 모두 통과한 뒤, 사용자가 tag를 선택해 `workflow_dispatch`를 실행한 경우에만 시작합니다. 이 job에만 `id-token: write`, `attestations: write`, `artifact-metadata: write`를 부여합니다.
 
-서명 job은 Ubuntu에서 다시 build하고 manifest·SBOM·tag를 검증한 뒤 exact subject 세 개를 준비합니다. 로컬 predicate를 서명하지 않고 GitHub `actions/attest`가 workflow identity와 OIDC를 사용해 SLSA build provenance를 직접 생성하도록 합니다. 같은 tarball을 subject로 하고 CycloneDX 파일을 predicate로 사용하는 별도 SBOM attestation도 생성합니다. 두 Sigstore bundle과 세 release 파일은 30일 보존 workflow artifact로 함께 올립니다. Action은 전체 commit SHA로 고정합니다.
+서명 job은 Ubuntu에서 다시 build하고 manifest·SBOM·tag를 검증한 뒤 exact subject 세 개를 준비합니다. 로컬 predicate를 서명하지 않고 GitHub `actions/attest`가 workflow identity와 OIDC를 사용해 SLSA build provenance를 직접 생성하도록 합니다. 같은 tarball을 subject로 하고 CycloneDX 파일을 predicate로 사용하는 별도 SBOM attestation도 생성합니다. SBOM의 재현 가능한 UUID v5 serial은 고정한 action의 CycloneDX 입력 인식 조건을 충족합니다. 두 Sigstore bundle은 ADR-0094의 소비자 정책으로 즉시 검증한 뒤 세 release 파일과 함께 30일 보존 workflow artifact로 올립니다. Action은 전체 commit SHA로 고정합니다.
 
 Signed bundle은 GitHub가 실제 원격 job에서 생성한 뒤에만 존재합니다. 로컬 workflow 구조 검사나 unsigned statement 성공을 서명, GitHub 게시 또는 원격 build 성공으로 표현하지 않습니다. 새 runtime event, project 상태와 telemetry는 없습니다.
 
@@ -56,4 +58,4 @@ Signed bundle은 GitHub가 실제 원격 job에서 생성한 뒤에만 존재합
 
 로컬 검사는 실제 tarball digest를 보면서도 실행별 파일을 저장소에 누적하지 않습니다. CI의 높은 권한은 tag 서명 job에만 있고 일반 matrix와 pull request는 계속 contents read입니다. Tarball·manifest·SBOM은 하나의 GitHub 생성 provenance statement에서 같은 build output 집합으로 결속되고, tarball과 SBOM 관계는 별도 표준 SBOM attestation으로도 남습니다.
 
-이 계약은 workflow와 생성 경계를 구현한 것입니다. 아직 실행되지 않은 GitHub job의 서명 성공, artifact 보존, npm 게시, 서명 bundle의 소비자 검증이나 특정 SLSA level을 증명하지 않습니다. 실제 서명을 신뢰하려면 다음 단계에서 subject digest, signer, repository·workflow·tag identity를 소비자 정책으로 검증해야 합니다.
+이 계약은 workflow와 생성 경계를 구현한 것입니다. 아직 실행되지 않은 GitHub job의 서명 성공, artifact 보존, npm 게시나 특정 SLSA level을 증명하지 않습니다. Signed bundle의 소비자 검증은 후속 ADR-0094에서 구현합니다.

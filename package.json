@@ -20,6 +20,7 @@
     "release:attestation:check": "node scripts/check-cli-release-attestation.mjs",
     "release:attestation:local": "node scripts/check-cli-release-attestation.mjs --statement",
     "release:attestation:prepare": "node scripts/check-cli-release-attestation.mjs --prepare",
+    "release:attestation:verify": "node scripts/verify-cli-release-attestation.mjs",
     "smoke:built-cli": "node scripts/check-built-cli.mjs",
     "smoke:packed-cli": "node scripts/check-packed-cli.mjs",
     "smoke:registry-publish": "node scripts/check-registry-publish.mjs",
