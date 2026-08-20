@@ -27,7 +27,7 @@
 
 npm Trusted Publishing 어댑터는 별도 권한 경계입니다. GitHub-hosted Actions와 OIDC request 환경, Node 22.14.0 이상, npm 11.5.1 이상을 요구하고 `NODE_AUTH_TOKEN`, `NPM_TOKEN`과 npm auth config 환경 변수가 있으면 실행 전에 거부합니다. 저장소와 사용자 설정을 읽지 않도록 임시 빈 user·global npm config, cache와 작업 디렉터리를 만들고 성공·실패 뒤 제거합니다. Exact tarball에 registry·tag·public access와 lifecycle script 비실행을 명시해 `npm publish`하고, 공개 metadata의 integrity·shasum·dist-tag를 다시 읽어 receipt를 만듭니다. 오류 출력에는 token, OIDC request token, registry 응답이나 경로를 복사하지 않습니다.
 
-Tag attestation job은 서명 검증 뒤 임시 적격성 JSON을 만들고 release 파일과 함께 30일 workflow artifact로 보존합니다. 실제 `npm publish` 단계와 npm용 environment는 추가하지 않습니다. 확정 repository URL, package namespace 소유권과 npm Trusted Publisher 설정을 확인한 뒤에만 별도 environment 보호를 가진 게시 job이 이 port를 조합할 수 있습니다.
+Tag attestation job은 서명 검증 뒤 임시 적격성 JSON을 만들고 release 파일과 함께 30일 workflow artifact로 보존합니다. 실제 `npm publish` 단계와 npm용 environment는 추가하지 않습니다. 후속 readiness 정책은 일상적인 workflow를 staged publishing 전용으로 제한하므로 이 direct adapter는 현재 activation 대상이 아닙니다. 확정 repository URL, package namespace 소유권과 npm Trusted Publisher 설정을 확인하고 별도 게시 정책이 direct 방식을 명시한 경우에만 이 port를 조합할 수 있습니다.
 
 새 runtime event, project 상태와 telemetry는 추가하지 않습니다.
 

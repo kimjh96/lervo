@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -115,6 +115,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI release 출처 증명 경계 ADR](./docs/adr/0093-cli-release-attestation-boundary.md)
 - [CLI release attestation 소비자 검증 ADR](./docs/adr/0094-cli-release-attestation-consumer-verification.md)
 - [CLI release 게시 적격성과 권한 경계 ADR](./docs/adr/0095-cli-release-publication-authorization.md)
+- [CLI Trusted Publisher 준비 상태 ADR](./docs/adr/0096-cli-trusted-publisher-readiness.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -247,6 +248,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 전달받은 release directory는 `pnpm release:attestation:verify --release-directory <absolute-path> --repository <owner/repo> --tag <v-version> --source-digest <commit>`으로 검증합니다. GitHub CLI가 Sigstore signature·trusted root·transparency timestamp와 exact workflow certificate identity를 확인하고, Lervo는 provenance의 세 subject digest와 CycloneDX predicate를 실제 파일에 다시 대조합니다. Tag 이름뿐 아니라 source·signer commit을 고정하며 로컬 unsigned statement는 거부합니다. `--trusted-root <absolute-path>`를 주면 사전에 확보한 root로 offline 검증할 수 있습니다.
 
 검증된 release의 게시 좌표는 `pnpm release:publication:authorize --release-directory <absolute-path> --repository <owner/repo> --tag <v-version> --source-digest <commit> --dist-tag <latest|next> --output <new-absolute-path>`로 고정합니다. 출력은 exact package·version·dist-tag·npm registry와 tarball SHA-256, registry SHA-512 integrity·SHA-1 shasum을 서명 evidence에 묶은 실행별 `eligible` 문서입니다. npm credential이나 외부 쓰기는 사용하지 않으며 기존 출력도 덮어쓰지 않습니다. `eligible`은 사람 승인, npm scope 소유권이나 게시 성공이 아닙니다. 현재 workflow는 이 문서를 30일 artifact로 보존할 뿐 `npm publish`는 실행하지 않습니다.
+
+`pnpm release:publisher:readiness --repository <owner/repo>`는 package repository·라이선스·publish registry와 실제 게시 job 비활성 상태를 읽기 전용으로 점검합니다. `--online`을 명시해야 public npm package, `npm trust list`, GitHub `npm-release` reviewer·self-review·`v*` tag policy까지 확인합니다. 관측하지 못한 외부 상태는 `unknown`이며 전체 결과는 `blocked`입니다. Trust ID, reviewer identity와 외부 응답 원문은 출력하지 않습니다. 상시 publisher는 staged publishing 권한 하나만 허용하며 최초 package 게시, npm·GitHub 설정 변경과 실제 게시를 실행하지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

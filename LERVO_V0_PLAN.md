@@ -913,6 +913,23 @@ CLI release 게시 적격성과 권한 경계 완료 조건:
 - Tag job은 서명 검증 뒤 적격성 문서를 만들고 release artifact와 함께 제한된 기간만 보존함
 - Fixture와 workflow 구조 검사를 실제 원격 서명·npm 게시·사람 승인으로 주장하지 않음
 
+CLI Trusted Publisher readiness 완료 조건:
+
+- 기본 검사는 package manifest와 release workflow만 읽고 외부 요청을 실행하지 않음
+- `--online`을 명시한 경우에만 npm·GitHub 읽기 adapter를 호출함
+- Package identity가 public CLI, 확정 license, exact GitHub repository와 npm public registry를 요구함
+- Readiness 동안 실제 npm publish·stage publish와 `npm-release` job이 비활성인지 확인함
+- Public npm package 404를 인증 없이 구분하고 이 경우 npm client·credential을 호출하지 않음
+- 기존 package에만 npm 11.15.0 이상의 exact `npm trust list --json`을 사용함
+- Trust ID를 버리고 package 쓰기 권한과 provider·repository·workflow·environment·permission만 관측함
+- 상시 publisher는 direct publish 없이 `createStagedPackage` 하나만 허용함
+- GitHub `npm-release`에 required reviewer, self-review 금지와 exact `v*` tag policy 하나를 요구함
+- Reviewer·team·environment·policy ID와 외부 응답 원문을 readiness report에 넣지 않음
+- 각 검사를 `ready|blocked|unknown`으로 구분하고 unknown을 전체 ready로 올리지 않음
+- Report는 실행 시각 없이 canonical digest를 가지며 stdout에만 반환하고 원본을 누적하지 않음
+- 외부 인증·network·client 실패가 credential이나 원문 오류를 출력하지 않음
+- 검사와 fixture가 최초 게시·npm/GitHub 설정 변경·scope 소유권·원격 성공을 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1021,4 +1038,6 @@ CLI release attestation 소비자 검증 계약을 완료했습니다. 소비자
 
 CLI release 게시 적격성과 권한 경계 계약을 완료했습니다. 검증된 release set을 npm public registry의 exact package·version·dist-tag와 SHA-256·SHA-512 integrity·SHA-1 shasum에 결속하고 실행별 문서를 새 경로에만 만듭니다. 게시 실행 코어와 npm Trusted Publishing 어댑터를 분리했으며 장기 token·지원하지 않는 runtime·registry 결과 불일치를 거부합니다. 현재 저장소에는 확정 repository URL과 npm scope·Trusted Publisher 설정 근거가 없어 workflow는 실제 publish를 실행하지 않습니다. 결정은 [ADR-0095](./docs/adr/0095-cli-release-publication-authorization.md)에 기록했습니다.
 
-다음 구현 작업은 외부 설정을 추정하지 않으면서 package repository·npm namespace·Trusted Publisher·GitHub environment 보호 상태를 읽기 전용으로 판정하고 실제 게시 job 활성화 전 미충족 조건을 명확히 닫는 **CLI trusted publisher readiness 계약**입니다.
+CLI Trusted Publisher readiness 계약을 완료했습니다. 로컬 package identity와 실제 게시 job 비활성 상태를 기본으로 확인하고, 명시적 online 실행에서만 npm package·trust와 GitHub `npm-release` 보호를 읽습니다. 누락·실패는 unknown으로 닫고 trust ID·reviewer identity를 버립니다. Public `@lervo/cli`이 아직 없으므로 최초 게시 선행 조건을 별도 blocker로 표시하며 상시 publisher는 stage publish 권한 하나만 허용합니다. 결정은 [ADR-0096](./docs/adr/0096-cli-trusted-publisher-readiness.md)에 기록했습니다.
+
+다음 구현 작업은 확정 repository·license·scope owner 결정과 public package 부재를 한 번의 초기 게시 승인에 결속하고, 이후 staged-only 경로로 넘기는 **CLI first-publication bootstrap 계약**입니다.
