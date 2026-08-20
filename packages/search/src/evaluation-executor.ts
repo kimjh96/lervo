@@ -4,6 +4,7 @@ import {
   sameSearchEngine,
   type SearchEvaluationIndexPort,
 } from "./evaluation-engine.js";
+import { assertSearchEvaluationResponse } from "./evaluation-engine-contract.js";
 import { createSearchEvaluationResult } from "./evaluation-result.js";
 import { createSearchEvaluationRun } from "./evaluation-run.js";
 import {
@@ -32,6 +33,12 @@ export async function executeSearchEvaluation(input: {
   const results: SearchEvaluationResult[] = [];
   for (const evaluationCase of input.cases) {
     const response = await input.index.search(evaluationCase.query, SEARCH_MAX_RESULTS);
+    assertSearchEvaluationResponse({
+      response,
+      index: input.index,
+      query: evaluationCase.query,
+      limit: SEARCH_MAX_RESULTS,
+    });
     if (!sameSearchEngine(response.engine, input.index.engine) || response.indexId !== input.index.indexId ||
       response.requestedLimit !== SEARCH_MAX_RESULTS) {
       throw new SearchError("invalid_evaluation_engine", "검색 평가 응답이 요청한 엔진·index·순위 조건과 다릅니다.");

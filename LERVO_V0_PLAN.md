@@ -449,6 +449,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 관측 집계와 후보 채택 결정을 분리하고 `candidateDecision`, `embeddingDecision`을 `not_determined`로 유지함
 - 실제 후보 adapter와 CLI를 허위로 만들지 않으며 전체 비교 조합이 Hub와 새 실행 event 없이 로컬에서 완료됨
 
+첫 결정적 검색 후보 adapter와 명시적 등록 첫 슬라이스 완료 조건:
+
+- Baseline과 후보가 source 안전성·상한·canonical 정렬·corpus digest를 같은 공용 계약에서 사용함
+- 기존 `lexical-v1` index ID의 source identity 계산을 유지해 공용 corpus 추출만으로 과거 engine 의미를 바꾸지 않음
+- 공통 adapter 검사가 engine·index 좌표, 입력 비변경, corpus 역순과 반복 query의 동일 응답을 확인함
+- `bm25f-v1`를 별도 package에 두고 field 가중치·길이 정규화·빈도 포화·정수 희귀도 점수를 결정적으로 계산함
+- 부동소수 로그, 실행 시각, 입력 순서와 외부 서비스 없이 같은 index·순위·result-set hash를 반환함
+- 후보 ID와 engine 좌표가 중복되지 않는 최대 16개의 명시적 allowlist registry만 허용함
+- 미등록 후보와 현재 `lexical-v1` 후보 등록을 거부하고 path·module·URL·동적 코드를 해석하지 않음
+- CLI가 등록 후보 목록과 준비된 묶음의 `bm25f-v1` 비교를 제공하고 query·문서 path를 출력에 추가하지 않음
+- 비교 관측으로 후보를 자동 채택하거나 운영 search·managed context engine을 바꾸지 않음
+- 후보·임베딩 판단을 미결정으로 유지하고 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -481,4 +494,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 공급자 중립 검색 후보 비교 첫 슬라이스를 완료했습니다. 공통 engine port와 실행기는 같은 corpus·case·시각·순위 조건을 두 엔진에 공급하고, 준비 gate는 부족한 묶음에서 후보 호출 자체를 막습니다. 비교는 case 통과·실패 전이만 query 없는 별도 원본에 기록하며 score 우열, 후보 채택과 임베딩 필요성을 결정하지 않습니다. 결정은 [ADR-0057](./docs/adr/0057-provider-neutral-search-candidate-comparison.md)에 기록했습니다.
 
-다음 구현 작업은 이 port의 공통 계약 테스트를 통과하는 **첫 결정적 비임베딩 후보 adapter와 명시적 등록 경계**입니다. 후보를 이름 문자열이나 임의 코드로 로드하지 않고 allowlist registry에 engine ID·version으로 등록한 뒤, 준비된 묶음만 선택할 수 있는 로컬 CLI를 연결합니다. 비교 결과를 근거로 자동 채택하거나 managed context 엔진을 교체하는 일은 그 다음의 별도 검토 단계입니다.
+첫 결정적 검색 후보 adapter와 명시적 등록 첫 슬라이스를 완료했습니다. 공용 corpus·응답 계약과 재현성 검사가 baseline과 `bm25f-v1`의 입력·index·결과 경계를 맞추고, 정적 allowlist와 CLI는 등록된 후보만 준비된 묶음에서 비교합니다. `bm25f-v1`는 고정 정수 field 가중·길이·포화·희귀도 점수만 사용하며 운영 검색을 바꾸지 않습니다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 기록했습니다.
+
+다음 구현 작업은 비교 관측과 운영 채택 사이의 **명시적 후보 검토·승격 계약**입니다. Reviewer가 같은 bundle·candidate·corpus 계열의 비교 원본을 다시 확인하고 채택·기각·추가 표본 필요를 별도 immutable 결정으로 남기게 합니다. 이 결정과 필수 검증이 없으면 managed context 검색 engine을 바꾸지 않으며, 실제 engine 전환은 그 다음 작업으로 분리합니다.

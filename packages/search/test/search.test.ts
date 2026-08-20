@@ -6,7 +6,10 @@ import {
   createSearchQualityReport,
   createSearchRecommendationBatch,
   assertSearchRecommendationBatch,
+  contentId,
   LexicalSearchIndex,
+  prepareSearchCorpus,
+  SEARCH_ENGINE,
   type SearchSourceInput,
 } from "../src/index.js";
 
@@ -53,6 +56,10 @@ describe("deterministic lexical search baseline", () => {
     const reversed = new LexicalSearchIndex(sources().reverse());
 
     expect(reversed.indexId).toBe(forward.indexId);
+    expect(forward.indexId).toBe(contentId("sidx", {
+      engine: SEARCH_ENGINE,
+      sources: prepareSearchCorpus(sources()).indexSources,
+    }));
     expect(reversed.search("복구")).toEqual(forward.search("복구"));
   });
 

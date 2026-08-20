@@ -53,6 +53,9 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../../packages/search
+      '@lervo/search-adapter-bm25f':
+        specifier: workspace:*
+        version: link:../../packages/search-adapter-bm25f
       '@lervo/search-local':
         specifier: workspace:*
         version: link:../../packages/search-local
@@ -778,6 +781,12 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+
+  packages/search-adapter-bm25f:
+    dependencies:
+      '@lervo/search':
+        specifier: workspace:*
+        version: link:../search
 
   packages/search-local:
     dependencies:

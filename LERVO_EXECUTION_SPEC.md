@@ -717,6 +717,18 @@ Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫�
 
 두 엔진의 result·run은 기존 immutable 디렉터리에 먼저 게시하고 비교는 `.lervo/state/search/evaluation-comparisons/<comparisonId>.json`에 마지막으로 게시합니다. 저장 실패로 result나 run만 남으면 완료된 비교가 아닙니다. 비교 원본에는 query·문서 본문·path·prompt·provider 응답·credential을 넣지 않습니다. `invalid_evaluation_engine`은 engine·index·응답 좌표 위반, `invalid_evaluation_comparison`은 corpus·bundle·coverage·실행·집계 불일치입니다. 새 event와 Hub sync는 없고 실제 후보 adapter와 CLI 명령도 이번 범위에 포함하지 않습니다. 결정은 [ADR-0057](./docs/adr/0057-provider-neutral-search-candidate-comparison.md)에 기록합니다.
 
+## 결정적 `bm25f-v1` 후보와 명시적 등록
+
+`prepareSearchCorpus`는 baseline과 후보가 공유하는 최대 4,096개 source·각 131,072자·전체 16 MiB 문자 상한, source·path·label·본문 안전성, 중복 좌표 거부, source 좌표 정렬과 검색 projection digest를 소유합니다. 현재 `lexical-v1` index ID 계산은 기존 source identity 구조를 유지하므로 이 추출만으로 engine version이나 과거 index 의미를 바꾸지 않습니다.
+
+`verifySearchEvaluationEngineContract`는 adapter가 선언한 engine 좌표, 원본 입력 비변경, 역순 corpus의 같은 index ID, 같은 query의 반복 응답, query 좌표·50위 한도·rank·정수 score·matched field·source tie-break·result-set hash를 검사합니다. 검사는 query digest만 report하고 query를 원본으로 저장하지 않습니다. Adapter가 이 공통 계약을 통과해도 검색 품질이 좋거나 운영 채택 조건을 통과했다는 뜻은 아닙니다.
+
+`@lervo/search-adapter-bm25f`의 `bm25f-v1`은 title 12, path 8, label 10, text 2의 field 가중 term 빈도에 문서 길이 정규화와 빈도 포화를 적용합니다. Term 희귀도는 `(전체 문서 수 + 1) / (해당 term 문서 수 + 1)`을 1,000,000배 한 고정 정수로 계산합니다. 최종 score도 양의 안전한 정수이며 같은 score는 source 종류·ID로 정렬합니다. 이 방식은 외부 서비스·전문 검색 DB·임베딩을 사용하지 않으며 표준 BM25 구현과 동일하다고 주장하지 않습니다.
+
+`SearchEvaluationEngineRegistry`는 최대 16개의 명시적 `{candidateId, engine}`만 받고 후보 ID, engine ID·version 중복과 현재 `lexical-v1` 등록을 거부합니다. 현재 CLI 조합은 `bm25f-v1` 하나만 코드 allowlist에 둡니다. `lervo search candidates`는 이 공개 좌표만 반환하고 `lervo search compare <bundleId> --candidate bm25f-v1`가 기존 준비 gate와 로컬 비교 조합을 실행합니다. 등록되지 않은 값은 project 원본을 읽기 전에 `evaluation_candidate_not_registered`로 거부하며 경로·package·URL을 해석하거나 동적 코드를 로드하지 않습니다.
+
+CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 query 원문을 추가하지 않습니다. Text 출력도 case별 query·문서 path·score를 표시하지 않습니다. 비교 완료는 종료 코드 0이지만 `candidate_better_observed`도 채택 성공이 아닙니다. 운영 attempt·managed context는 계속 `lexical-v1`이고 `candidateDecision=not_determined`, `embeddingDecision=not_determined`를 유지합니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 기록합니다.
+
 ## 지식 승격 규칙
 
 지식 candidate는 최소한 다음을 포함합니다.

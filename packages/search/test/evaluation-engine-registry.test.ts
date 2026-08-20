@@ -1,0 +1,51 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  SearchEvaluationEngineRegistry,
+  SEARCH_ENGINE,
+  type SearchEvaluationEnginePort,
+} from "../src/index.js";
+
+function engine(id: string, version: number): SearchEvaluationEnginePort {
+  return {
+    engine: { id, version },
+    buildIndex() {
+      throw new Error("이 registry 테스트에서는 index를 만들지 않습니다.");
+    },
+  };
+}
+
+describe("search evaluation engine registry", () => {
+  it("resolves only explicit allowlist registrations in stable order", () => {
+    const alpha = engine("alpha", 1);
+    const beta = engine("beta", 2);
+    const registry = new SearchEvaluationEngineRegistry([
+      { candidateId: "beta-v2", engine: beta },
+      { candidateId: "alpha-v1", engine: alpha },
+    ]);
+
+    expect(registry.list()).toEqual([
+      { candidateId: "alpha-v1", engine: { id: "alpha", version: 1 } },
+      { candidateId: "beta-v2", engine: { id: "beta", version: 2 } },
+    ]);
+    expect(registry.resolve("beta-v2")).toBe(beta);
+    expect(() => registry.resolve("module:/tmp/candidate.js")).toThrow(/등록되지 않은/);
+  });
+
+  it("rejects duplicate candidate and engine coordinates", () => {
+    expect(() => new SearchEvaluationEngineRegistry([
+      { candidateId: "same-v1", engine: engine("alpha", 1) },
+      { candidateId: "same-v1", engine: engine("beta", 1) },
+    ])).toThrow(/중복/);
+    expect(() => new SearchEvaluationEngineRegistry([
+      { candidateId: "alpha-one", engine: engine("alpha", 1) },
+      { candidateId: "alpha-again", engine: engine("alpha", 1) },
+    ])).toThrow(/중복/);
+  });
+
+  it("does not register the production baseline as a candidate", () => {
+    expect(() => new SearchEvaluationEngineRegistry([
+      { candidateId: "baseline", engine: engine(SEARCH_ENGINE.id, SEARCH_ENGINE.version) },
+    ])).toThrow(/유효하지 않습니다/);
+  });
+});

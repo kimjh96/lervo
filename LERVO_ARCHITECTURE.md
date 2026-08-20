@@ -345,6 +345,8 @@ Managed context 연결은 search attempt를 포함한 `SearchRecommendationBatch
 
 후보 비교는 엔진 계약, 평가 실행기, 비교 판정과 로컬 조합을 분리한다. `SearchEvaluationEnginePort`는 engine ID·version에 결속된 index를 같은 `SearchSourceInput`으로 만들고 query별 `SearchResponse`를 돌려준다. 공통 실행기는 모든 엔진에 같은 활성 case, 평가 시각과 50위 조건을 적용한다. 비교기는 실제 corpus에서 현재 `lexical-v1` index와 corpus digest를 다시 계산하고 두 실행을 검증한 뒤 case별 통과·실패 전이만 대조한다. 엔진마다 의미가 다른 score 숫자는 서로 비교하지 않는다. 로컬 조합은 `ready` gate 뒤에만 후보 port를 호출하고 결과·run을 먼저, query 없는 comparison을 마지막에 별도 immutable 파일로 게시한다. 결정은 [ADR-0057](./docs/adr/0057-provider-neutral-search-candidate-comparison.md)에 정의한다.
 
+첫 후보는 별도 `@lervo/search-adapter-bm25f` 패키지의 `bm25f-v1`이다. `prepareSearchCorpus`가 baseline과 후보에 같은 source 상한·안전 검증·canonical 정렬·digest를 제공하고, 공통 adapter 검사는 순서를 뒤집어 만든 두 index와 반복 query 응답이 같은지 확인한다. 후보 점수는 title·path·label·text field 가중 빈도에 길이 정규화와 포화를 적용하고, 부동소수 로그 대신 정수 희귀도 비율을 써 runtime 수학 구현 차이를 피한다. CLI는 정적 allowlist registry의 `bm25f-v1`만 해석하며 파일 경로·module 이름·동적 import를 받지 않는다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 정의한다.
+
 ### Skill Registry
 
 스킬은 단순 프롬프트 파일이 아니라 다음 metadata를 가진 versioned package입니다.

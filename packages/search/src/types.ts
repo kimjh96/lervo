@@ -143,6 +143,7 @@ export type SearchErrorCode =
   | "invalid_evaluation_bundle"
   | "invalid_evaluation_coverage"
   | "evaluation_comparison_not_ready"
+  | "evaluation_candidate_not_registered"
   | "invalid_evaluation_comparison"
   | "invalid_evaluation_engine"
   | "invalid_evaluation_result"

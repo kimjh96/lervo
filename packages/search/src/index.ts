@@ -1,4 +1,5 @@
 export * from "./engine.js";
+export * from "./corpus.js";
 export * from "./evaluation-case.js";
 export * from "./evaluation-bundle.js";
 export * from "./evaluation-bundle-types.js";
@@ -6,6 +7,8 @@ export * from "./evaluation-coverage.js";
 export * from "./evaluation-comparison.js";
 export * from "./evaluation-comparison-types.js";
 export * from "./evaluation-engine.js";
+export * from "./evaluation-engine-contract.js";
+export * from "./evaluation-engine-registry.js";
 export * from "./evaluation-executor.js";
 export * from "./evaluation-result.js";
 export * from "./evaluation-run.js";

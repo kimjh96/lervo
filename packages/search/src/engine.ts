@@ -1,3 +1,4 @@
+import { prepareSearchCorpus, searchSourceKey } from "./corpus.js";
 import { canonicalHash, contentId } from "./integrity.js";
 import { identifySearchQuery, normalizeSearchText, searchTerms } from "./normalize.js";
 import {
@@ -8,18 +9,10 @@ import {
   type SearchResponse,
   type SearchSourceInput,
 } from "./types.js";
-import { assertSourceReference, assertText } from "./validation.js";
-
-const MAX_SOURCES = 4096;
-const MAX_TOTAL_CHARACTERS = 16 * 1024 * 1024;
 
 type FieldName = SearchHit["matchedFields"][number];
 interface IndexedField { name: FieldName; normalized: string; termFrequency: ReadonlyMap<string, number>; weight: number }
 interface IndexedSource { input: SearchSourceInput; fields: IndexedField[] }
-
-function sourceKey(source: SearchSourceInput): string {
-  return `${source.kind.length}:${source.kind}${source.sourceId}`;
-}
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -52,62 +45,18 @@ export class LexicalSearchIndex {
   private readonly sources: IndexedSource[];
 
   constructor(inputs: readonly SearchSourceInput[]) {
-    if (!Array.isArray(inputs) || inputs.length > MAX_SOURCES) {
-      throw new SearchError("corpus_limit_exceeded", "검색 source 수가 안전한 한도를 넘었습니다.");
-    }
-    const seen = new Set<string>();
-    let characters = 0;
-    this.sources = inputs.map((input) => {
-      assertSourceReference(input);
-      if (typeof input.text !== "string" || input.text.length < 1 || input.text.length > 131_072 ||
-        /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input.text)) {
-        throw new SearchError("corpus_invalid", "검색 source 본문 계약이 유효하지 않습니다.");
-      }
-      if (!Array.isArray(input.labels)) {
-        throw new SearchError("corpus_invalid", "검색 source label 계약이 유효하지 않습니다.");
-      }
-      const labels = input.labels as readonly unknown[];
-      if (labels.length > 32 || labels.some((label: unknown) => {
-        if (typeof label !== "string") return true;
-        try {
-          assertText(label, 200, "corpus_invalid");
-          return false;
-        } catch {
-          return true;
-        }
-      })) {
-        throw new SearchError("corpus_invalid", "검색 source label 계약이 유효하지 않습니다.");
-      }
-      const validLabels = labels as readonly string[];
-      if (input.title !== undefined) assertText(input.title, 500, "corpus_invalid");
-      const key = sourceKey(input);
-      if (seen.has(key)) throw new SearchError("corpus_invalid", "검색 source 종류와 ID 좌표가 중복되었습니다.");
-      seen.add(key);
-      characters += input.text.length + (input.title?.length ?? 0) + validLabels.join("").length;
-      if (characters > MAX_TOTAL_CHARACTERS) {
-        throw new SearchError("corpus_limit_exceeded", "검색 corpus 전체 크기가 안전한 한도를 넘었습니다.");
-      }
+    const corpus = prepareSearchCorpus(inputs);
+    this.sources = corpus.sources.map((input) => {
       const fields = [
         field("title", input.title ?? "", 12),
         field("path", input.path ?? "", 8),
-        ...validLabels.map((label) => field("label", label, 10)),
+        ...input.labels.map((label) => field("label", label, 10)),
         field("text", input.text, 2),
       ].filter((item): item is IndexedField => item !== null);
-      return { input: structuredClone(input), fields };
-    }).sort((left, right) => compareText(sourceKey(left.input), sourceKey(right.input)));
-    const sources = this.sources.map(({ input }) => ({
-      kind: input.kind,
-      sourceId: input.sourceId,
-      contentHash: input.contentHash,
-      ...(input.path === undefined ? {} : { path: input.path }),
-      searchProjectionHash: canonicalHash({
-        title: input.title ?? null,
-        labels: [...input.labels].sort(),
-        text: input.text,
-      }),
-    }));
-    this.corpusDigest = canonicalHash(sources);
-    this.indexId = contentId("sidx", { engine: SEARCH_ENGINE, sources });
+      return { input, fields };
+    });
+    this.corpusDigest = corpus.corpusDigest;
+    this.indexId = contentId("sidx", { engine: SEARCH_ENGINE, sources: corpus.indexSources });
   }
 
   search(query: string, limit = 10): SearchResponse {
@@ -124,7 +73,8 @@ export class LexicalSearchIndex {
         .sort() as SearchHit["matchedFields"];
       return { input, score, matchedFields };
     }).filter((item) => item.score > 0)
-      .sort((left, right) => right.score - left.score || compareText(sourceKey(left.input), sourceKey(right.input)))
+      .sort((left, right) => right.score - left.score ||
+        compareText(searchSourceKey(left.input), searchSourceKey(right.input)))
       .slice(0, limit);
     const hits: SearchHit[] = scored.map((item, index) => ({
       source: {

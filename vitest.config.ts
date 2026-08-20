@@ -50,6 +50,7 @@ export default defineConfig({
       "@lervo/remote-command-sqlite": fromRoot("./packages/remote-command-sqlite/src/index.ts"),
       "@lervo/roles": fromRoot("./packages/roles/src/index.ts"),
       "@lervo/search": fromRoot("./packages/search/src/index.ts"),
+      "@lervo/search-adapter-bm25f": fromRoot("./packages/search-adapter-bm25f/src/index.ts"),
       "@lervo/search-local": fromRoot("./packages/search-local/src/index.ts"),
       "@lervo/schemas": fromRoot("./packages/schemas/src/index.ts"),
       "@lervo/skills": fromRoot("./packages/skills/src/index.ts"),

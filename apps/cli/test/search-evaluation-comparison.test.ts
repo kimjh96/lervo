@@ -90,6 +90,40 @@ afterEach(async () => {
 });
 
 describe("local search evaluation candidate comparison", () => {
+  it("lists the allowlisted candidate and compares a ready bundle through the CLI", async () => {
+    const root = await repository();
+    const cases = [await reviewedCase(root, "작은 파일"), await reviewedCase(root, "검색 맥락")];
+    await bundle(root, "researcher.cli", 2, cases);
+
+    const listed = await command(root, ["search", "candidates", "--json"]);
+    expect(listed.code, listed.error).toBe(0);
+    expect(JSON.parse(listed.output)).toEqual({
+      candidates: [{ candidateId: "bm25f-v1", engine: { id: "bm25f", version: 1 } }],
+    });
+
+    const compared = await command(root, [
+      "search", "compare", "researcher.cli", "--candidate", "bm25f-v1", "--json",
+    ]);
+    expect(compared.code, compared.error).toBe(0);
+    expect(JSON.parse(compared.output)).toMatchObject({
+      comparison: {
+        bundleId: "researcher.cli",
+        baseline: { engine: { id: "lexical", version: 1 } },
+        candidate: { engine: { id: "bm25f", version: 1 } },
+        candidateDecision: "not_determined",
+        embeddingDecision: "not_determined",
+      },
+    });
+    expect(compared.output).not.toContain("검색 맥락");
+    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"))).toHaveLength(1);
+
+    const unknown = await command(root, [
+      "search", "compare", "researcher.cli", "--candidate", "module:/tmp/candidate.js",
+    ]);
+    expect(unknown.code).toBe(1);
+    expect(unknown.error).toContain("evaluation_candidate_not_registered");
+  });
+
   it("records two engine runs and publishes the query-free comparison last", async () => {
     const root = await repository();
     const cases = [await reviewedCase(root, "작은 파일"), await reviewedCase(root, "검색 맥락")];
@@ -142,6 +176,13 @@ describe("local search evaluation candidate comparison", () => {
     expect(await observationEntries(root)).not.toContain("evaluation-comparisons");
     expect(await observationEntries(root)).not.toContain("evaluation-runs");
     expect(await observationEntries(root)).not.toContain("evaluation-results");
+
+    const cliResult = await command(root, [
+      "search", "compare", "designer.review", "--candidate", "bm25f-v1",
+    ]);
+    expect(cliResult.code).toBe(1);
+    expect(cliResult.error).toContain("evaluation_comparison_not_ready");
+    expect(await observationEntries(root)).not.toContain("evaluation-comparisons");
   });
 
   it("publishes no evaluation artifacts when the candidate response breaks its index contract", async () => {

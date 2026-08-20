@@ -1,6 +1,7 @@
 import type {
   SearchEvaluationBundle,
   SearchEvaluationCase,
+  SearchEvaluationComparison,
   SearchEvaluationCoverage,
   SearchEvaluationRun,
 } from "@lervo/search";
@@ -39,6 +40,25 @@ export function formatSearchEvaluationCoverage(coverage: SearchEvaluationCoverag
     `  활성 ${coverage.activeCases}개 · 최소 ${coverage.minimumActiveCases}개 · 부족 ${coverage.shortfall}개`,
     `  표본 상태: ${coverage.sampleState === "sufficient" ? "충분" : "부족"}`,
     `  후보 비교 준비: ${coverage.comparisonReadiness === "ready" ? "가능" : "표본 부족"}`,
+    "  임베딩 도입 판단: 아직 결정하지 않음",
+  ].join("\n") + "\n";
+}
+
+export function formatSearchEvaluationComparison(comparison: SearchEvaluationComparison): string {
+  const outcomes = {
+    baseline_better_observed: "baseline 우세 관측",
+    candidate_better_observed: "후보 우세 관측",
+    mixed: "서로 다른 우세 관측",
+    no_difference_observed: "통과 여부 차이 없음",
+  } as const;
+  return [
+    `검색 후보 비교: ${comparison.comparisonId}`,
+    `  묶음 ${comparison.bundleId} · 케이스 ${comparison.totalCases}개`,
+    `  baseline ${comparison.baseline.engine.id}-v${comparison.baseline.engine.version}`,
+    `  후보 ${comparison.candidate.engine.id}-v${comparison.candidate.engine.version}`,
+    `  후보 승 ${comparison.candidateWins} · baseline 승 ${comparison.baselineWins} · 동률 ${comparison.ties}`,
+    `  관측 결과: ${outcomes[comparison.observedOutcome]}`,
+    "  후보 채택 판단: 아직 결정하지 않음",
     "  임베딩 도입 판단: 아직 결정하지 않음",
   ].join("\n") + "\n";
 }

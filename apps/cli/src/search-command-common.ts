@@ -3,6 +3,8 @@ export const searchUsage = `  lervo search <query> [--root <path>] [--limit <1-5
   lervo search case <attempt-id> --query <reviewed-query-or-managed-task> [--maximum-rank <1-50>] [--match <any|all>] [--root <path>] [--json]
   lervo search bundle create <bundle-id> --role <role-id> --task-type <task-type> --minimum-cases <1-64> [--case <case-id>] [--replace <old-case-id>:<new-case-id>] [--root <path>] [--json]
   lervo search bundle report [bundle-id] [--root <path>] [--json]
+  lervo search candidates [--json]
+  lervo search compare <bundle-id> --candidate <candidate-id> [--root <path>] [--json]
   lervo search evaluate [--bundle <bundle-id>] [--root <path>] [--json]
   lervo search report [--root <path>] [--json]`;
 
