@@ -5,6 +5,7 @@ export const searchUsage = `  lervo search <query> [--root <path>] [--limit <1-5
   lervo search bundle report [bundle-id] [--root <path>] [--json]
   lervo search candidates [--json]
   lervo search compare <bundle-id> --candidate <candidate-id> [--root <path>] [--json]
+  lervo search review <comparison-id> --decision <adopt|reject|more-samples> --reviewer <reviewer-id> [--root <path>] [--json]
   lervo search evaluate [--bundle <bundle-id>] [--root <path>] [--json]
   lervo search report [--root <path>] [--json]`;
 

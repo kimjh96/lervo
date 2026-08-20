@@ -24,7 +24,7 @@ import { contentId } from "./integrity.js";
 import { SEARCH_ENGINE, SearchError, type SearchSourceInput } from "./types.js";
 import { assertTimestamp, SHA256_PATTERN, SOURCE_ID_PATTERN } from "./validation.js";
 
-const COMPARISON_ID_PATTERN = /^secmp_[a-f0-9]{24}$/;
+export const SEARCH_EVALUATION_COMPARISON_PATTERN = /^secmp_[a-f0-9]{24}$/;
 
 export interface SearchEvaluationComparisonEvidence {
   bundle: SearchEvaluationBundle;
@@ -142,7 +142,7 @@ export function assertSearchEvaluationComparison(
   comparison: SearchEvaluationComparison,
   evidence?: SearchEvaluationComparisonEvidence,
 ): void {
-  if (comparison.schemaVersion !== 1 || !COMPARISON_ID_PATTERN.test(comparison.comparisonId) ||
+  if (comparison.schemaVersion !== 1 || !SEARCH_EVALUATION_COMPARISON_PATTERN.test(comparison.comparisonId) ||
     !SOURCE_ID_PATTERN.test(comparison.projectId) || !SEARCH_EVALUATION_BUNDLE_ID_PATTERN.test(comparison.bundleId) ||
     comparison.bundleId.length > 100 || !SHA256_PATTERN.test(comparison.bundleHash) ||
     !/^secov_[a-f0-9]{24}$/.test(comparison.coverageId) || !SHA256_PATTERN.test(comparison.corpusDigest) ||

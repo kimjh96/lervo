@@ -11,6 +11,8 @@ export * from "./evaluation-engine-contract.js";
 export * from "./evaluation-engine-registry.js";
 export * from "./evaluation-executor.js";
 export * from "./evaluation-result.js";
+export * from "./evaluation-review.js";
+export * from "./evaluation-review-types.js";
 export * from "./evaluation-run.js";
 export * from "./evaluation-types.js";
 export * from "./assessment.js";

@@ -41,8 +41,8 @@ async function safeDirectory(path: string, create: boolean): Promise<void> {
 }
 
 type ObservationDirectories = { attempts: string; assessments: string };
-type ObservationSubdirectory = "assessments" | "attempts" | "evaluation-comparisons" |
-  "evaluation-results" | "evaluation-runs";
+export type ObservationSubdirectory = "assessments" | "attempts" | "evaluation-comparisons" |
+  "evaluation-results" | "evaluation-reviews" | "evaluation-runs";
 
 async function observationPaths(repositoryRoot: string): Promise<{ state: string; root: string }> {
   try {
@@ -73,6 +73,34 @@ export async function prepareObservationSubdirectory(
   await safeDirectory(paths.root, true);
   const directory = resolve(paths.root, name);
   await safeDirectory(directory, true);
+  return directory;
+}
+
+export async function existingObservationSubdirectory(
+  repositoryRoot: string,
+  name: ObservationSubdirectory,
+): Promise<string | null> {
+  const paths = await observationPaths(repositoryRoot);
+  await safeDirectory(paths.state, false);
+  try {
+    await lstat(paths.root);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw new SearchLocalError("observation_read_failed", "검색 관측 경로를 확인하지 못했습니다.", {
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
+  await safeDirectory(paths.root, false);
+  const directory = resolve(paths.root, name);
+  try {
+    await lstat(directory);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw new SearchLocalError("observation_read_failed", "검색 관측 하위 경로를 확인하지 못했습니다.", {
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
+  await safeDirectory(directory, false);
   return directory;
 }
 

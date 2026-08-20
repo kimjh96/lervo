@@ -729,6 +729,18 @@ Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫�
 
 CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 query 원문을 추가하지 않습니다. Text 출력도 case별 query·문서 path·score를 표시하지 않습니다. 비교 완료는 종료 코드 0이지만 `candidate_better_observed`도 채택 성공이 아닙니다. 운영 attempt·managed context는 계속 `lexical-v1`이고 `candidateDecision=not_determined`, `embeddingDecision=not_determined`를 유지합니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 기록합니다.
 
+## 재현 검증을 거치는 검색 후보 검토
+
+`lervo search review <comparisonId> --decision <adopt|reject|more-samples> --reviewer <reviewerId>`는 저장된 비교를 운영 전환과 분리해 검토합니다. CLI는 비교에 기록된 engine 좌표를 정적 allowlist에서 해석합니다. 경로·package·URL과 동적 코드는 받지 않습니다.
+
+검토기는 먼저 지정한 comparison ID와 content-bound 내용을 확인합니다. 이어서 현재 case·bundle·coverage·등록 문서 corpus, baseline과 candidate run, run이 참조한 모든 result를 읽어 같은 project·bundle hash·coverage·corpus digest·case·평가 시각·engine·index·집계인지 다시 계산합니다. 원본 하나라도 없거나 현재 bundle·corpus가 비교 시점과 달라졌으면 검토를 만들지 않습니다.
+
+비교가 유효하면 현재 등록 후보를 비교 당시 corpus·활성 case·평가 시각으로 한 번 재실행합니다. 재실행 run ID가 기존 candidate run ID와 정확히 같아야 `candidateReplay=matched`입니다. 단순히 engine ID가 같거나 실행이 성공했다는 이유로 재현되었다고 표시하지 않습니다. 후보 승리가 하나 이상이고 baseline 승리가 0인 비교만 `adopt_candidate`를 허용하며, `reject_candidate`와 `more_samples_required`는 관측 결과와 별개의 사람 결정으로 남길 수 있습니다.
+
+`SearchCandidateReview`는 comparison·bundle·coverage·corpus, candidate ID·engine·원본 run과 replay run, reviewer·시각·결정, 전체 case와 승·패·동률, 확인 상태를 content-bound ID로 묶습니다. 결과는 `.lervo/state/search/evaluation-reviews/<reviewId>.json`에 mode `0600` 항목별 immutable 파일로 저장합니다. 같은 비교의 후속 검토도 기존 파일에 덧붙이거나 덮어쓰지 않습니다. Reviewer ID는 이 로컬 원본에만 두며 query·문서 본문·path·prompt·provider 응답·credential은 넣지 않습니다.
+
+`eligible_for_activation_review`는 다음 운영 활성화 검토에 올릴 수 있다는 뜻일 뿐 활성화가 아닙니다. 모든 검토는 `activationState=not_applied`, `embeddingDecision=not_determined`를 유지하며 운영 attempt·managed context는 계속 `lexical-v1`을 사용합니다. 새 event와 Hub sync는 없습니다. `evaluation_comparison_not_found`는 안전하게 읽을 지정 비교가 없다는 뜻이고, `invalid_candidate_review`는 검토 좌표·합계·재현 실행·content ID가 다르다는 뜻입니다. `candidate_review_not_eligible`은 후보 승리가 없거나 baseline 회귀가 있어 채택 검토 조건을 충족하지 못했다는 뜻입니다. 후보 등록·실행 실패는 기존 `evaluation_candidate_not_registered`, `evaluation_candidate_failed` 의미를 따릅니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록합니다.
+
 ## 지식 승격 규칙
 
 지식 candidate는 최소한 다음을 포함합니다.

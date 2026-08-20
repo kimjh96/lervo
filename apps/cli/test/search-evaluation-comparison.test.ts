@@ -1,15 +1,17 @@
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { loadProjectManifest } from "@lervo/project";
 import {
+  canonicalHash,
   contentId,
   LexicalSearchIndex,
   type SearchEngineIdentity,
   type SearchEvaluationEnginePort,
+  type SearchHit,
 } from "@lervo/search";
-import { runLocalSearchEvaluationComparison } from "@lervo/search-local";
+import { reviewLocalSearchCandidate, runLocalSearchEvaluationComparison } from "@lervo/search-local";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -81,6 +83,44 @@ function candidateEngine(onBuild: () => void, wrongIndex = false): SearchEvaluat
   };
 }
 
+function recoveringCandidateEngine(recoveredQuery: string, sourceId: string): SearchEvaluationEnginePort {
+  return {
+    engine: CANDIDATE_ENGINE,
+    async buildIndex(sources) {
+      const lexical = new LexicalSearchIndex(sources);
+      const indexId = contentId("sidx", { engine: CANDIDATE_ENGINE, corpusDigest: lexical.corpusDigest });
+      return {
+        engine: CANDIDATE_ENGINE,
+        indexId,
+        async search(query, limit) {
+          const response = lexical.search(query, limit);
+          if (query !== recoveredQuery) return { ...response, engine: CANDIDATE_ENGINE, indexId };
+          const source = sources.find((item) => item.sourceId === sourceId)!;
+          const hits: SearchHit[] = [{
+            source: { kind: source.kind, sourceId: source.sourceId, contentHash: source.contentHash },
+            rank: 1,
+            score: 1,
+            matchedFields: ["text"],
+          }];
+          return {
+            ...response,
+            engine: CANDIDATE_ENGINE,
+            indexId,
+            hits,
+            resultSetHash: canonicalHash(hits.map((hit) => ({
+              sourceKind: hit.source.kind,
+              sourceId: hit.source.sourceId,
+              contentHash: hit.source.contentHash,
+              rank: hit.rank,
+              score: hit.score,
+            }))),
+          };
+        },
+      };
+    },
+  };
+}
+
 async function observationEntries(root: string): Promise<string[]> {
   return readdir(resolve(root, ".lervo/state/search"));
 }
@@ -105,7 +145,10 @@ describe("local search evaluation candidate comparison", () => {
       "search", "compare", "researcher.cli", "--candidate", "bm25f-v1", "--json",
     ]);
     expect(compared.code, compared.error).toBe(0);
-    expect(JSON.parse(compared.output)).toMatchObject({
+    const comparisonOutput = JSON.parse(compared.output) as {
+      comparison: { comparisonId: string };
+    };
+    expect(comparisonOutput).toMatchObject({
       comparison: {
         bundleId: "researcher.cli",
         baseline: { engine: { id: "lexical", version: 1 } },
@@ -116,6 +159,31 @@ describe("local search evaluation candidate comparison", () => {
     });
     expect(compared.output).not.toContain("검색 맥락");
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"))).toHaveLength(1);
+
+    const reviewed = await command(root, [
+      "search", "review", comparisonOutput.comparison.comparisonId,
+      "--decision", "more-samples", "--reviewer", "reviewer_search", "--json",
+    ]);
+    expect(reviewed.code, reviewed.error).toBe(0);
+    expect(JSON.parse(reviewed.output)).toMatchObject({
+      comparisonId: comparisonOutput.comparison.comparisonId,
+      candidateId: "bm25f-v1",
+      decision: "more_samples_required",
+      verification: { comparisonIntegrity: "verified", candidateReplay: "matched" },
+      promotionReadiness: "more_evidence_required",
+      activationState: "not_applied",
+      embeddingDecision: "not_determined",
+    });
+    expect(reviewed.output).not.toContain("검색 맥락");
+    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toHaveLength(1);
+
+    const unsupportedAdoption = await command(root, [
+      "search", "review", comparisonOutput.comparison.comparisonId,
+      "--decision", "adopt", "--reviewer", "reviewer_search",
+    ]);
+    expect(unsupportedAdoption.code).toBe(1);
+    expect(unsupportedAdoption.error).toContain("candidate_review_not_eligible");
+    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toHaveLength(1);
 
     const unknown = await command(root, [
       "search", "compare", "researcher.cli", "--candidate", "module:/tmp/candidate.js",
@@ -202,5 +270,63 @@ describe("local search evaluation candidate comparison", () => {
     expect(await observationEntries(root)).not.toContain("evaluation-comparisons");
     expect(await observationEntries(root)).not.toContain("evaluation-runs");
     expect(await observationEntries(root)).not.toContain("evaluation-results");
+  });
+
+  it("reverifies the stored comparison, replays a winning candidate, and stores adoption without activation", async () => {
+    const root = await repository();
+    const cases = [await reviewedCase(root, "검색 맥락")];
+    await bundle(root, "researcher.recovery", 1, cases);
+    await writeFile(resolve(root, "docs/search-context.md"), "# 다른 문서\n\n평가 질의와 무관한 현재 내용입니다.\n");
+    const project = await loadProjectManifest(root);
+    const engine = recoveringCandidateEngine("검색 맥락", "doc_cli_search_context");
+    const compared = await runLocalSearchEvaluationComparison({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      bundleId: "researcher.recovery",
+      candidateEngine: engine,
+      evaluatedAt: new Date("2026-08-20T04:03:00.000Z"),
+    });
+    expect(compared.comparison).toMatchObject({ baselineWins: 0, candidateWins: 1, ties: 0 });
+
+    const review = await reviewLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      comparisonId: compared.comparison.comparisonId,
+      registration: { candidateId: "fixture-v1", engine },
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T05:00:00.000Z"),
+      decision: "adopt_candidate",
+    });
+
+    expect(review).toMatchObject({
+      decision: "adopt_candidate",
+      promotionReadiness: "eligible_for_activation_review",
+      verification: { comparisonIntegrity: "verified", candidateReplay: "matched" },
+      activationState: "not_applied",
+    });
+    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews")))
+      .toEqual([`${review.reviewId}.json`]);
+  });
+
+  it("does not publish a review when the current corpus no longer matches the comparison", async () => {
+    const root = await repository();
+    const cases = [await reviewedCase(root, "검색 맥락")];
+    await bundle(root, "researcher.changed-corpus", 1, cases);
+    const compared = await command(root, [
+      "search", "compare", "researcher.changed-corpus", "--candidate", "bm25f-v1", "--json",
+    ]);
+    expect(compared.code, compared.error).toBe(0);
+    const comparisonId = (JSON.parse(compared.output) as { comparison: { comparisonId: string } })
+      .comparison.comparisonId;
+    await writeFile(resolve(root, "docs/search-context.md"), "# 비교 뒤 바뀐 문서\n\n현재 corpus가 다릅니다.\n");
+
+    const reviewed = await command(root, [
+      "search", "review", comparisonId,
+      "--decision", "reject", "--reviewer", "reviewer_search",
+    ]);
+
+    expect(reviewed.code).toBe(1);
+    expect(reviewed.error).toContain("invalid_evaluation_comparison");
+    expect(await observationEntries(root)).not.toContain("evaluation-reviews");
   });
 });

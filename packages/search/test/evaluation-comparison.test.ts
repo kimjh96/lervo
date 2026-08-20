@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertSearchEvaluationComparison,
+  assertSearchCandidateReview,
   canonicalHash,
   contentId,
   createSearchAssessment,
@@ -10,6 +11,7 @@ import {
   createSearchEvaluationCase,
   createSearchEvaluationComparison,
   createSearchEvaluationCoverage,
+  createSearchCandidateReview,
   executeSearchEvaluation,
   identifySearchQuery,
   LexicalSearchIndex,
@@ -89,7 +91,7 @@ function candidateIndex(
   };
 }
 
-async function comparisonFixture(minimumActiveCases = 2) {
+async function comparisonFixture(minimumActiveCases = 2, recoverCandidate = true) {
   const recovered = reviewedCase("사과", "doc_compare_apple", "a", 1);
   const unchanged = reviewedCase("바나나", "doc_compare_banana", "b", 2);
   const cases = [recovered, unchanged];
@@ -110,7 +112,7 @@ async function comparisonFixture(minimumActiveCases = 2) {
   const evaluatedAt = new Date("2026-08-20T03:00:00.000Z");
   const baseline = await executeSearchEvaluation({ index: baselineIndex, cases, evaluatedAt });
   const candidate = await executeSearchEvaluation({
-    index: candidateIndex(corpus, "사과", "doc_compare_apple"),
+    index: candidateIndex(corpus, recoverCandidate ? "사과" : "__no_recovery__", "doc_compare_apple"),
     cases,
     evaluatedAt,
   });
@@ -154,5 +156,61 @@ describe("search evaluation candidate comparison", () => {
       ...evidence,
       corpus: evidence.corpus.map((source) => ({ ...source, text: `${source.text} 변경` })),
     })).toThrow(/엔진·project·시각·case 좌표/);
+  });
+
+  it("records an eligible review only after the candidate replay matches exactly", async () => {
+    const evidence = await comparisonFixture();
+    const comparison = createSearchEvaluationComparison({ evidence });
+    const review = createSearchCandidateReview({
+      comparison,
+      candidateId: "fixture-v1",
+      cases: evidence.cases,
+      replay: evidence.candidate,
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T04:00:00.000Z"),
+      decision: "adopt_candidate",
+    });
+
+    expect(review).toMatchObject({
+      totalCases: 2,
+      baselineWins: 0,
+      candidateWins: 1,
+      ties: 1,
+      verification: { comparisonIntegrity: "verified", candidateReplay: "matched" },
+      promotionReadiness: "eligible_for_activation_review",
+      activationState: "not_applied",
+      embeddingDecision: "not_determined",
+    });
+    expect(JSON.stringify(review)).not.toContain("사과");
+    expect(() => assertSearchCandidateReview({ ...review, totalCases: 3 })).toThrow();
+    expect(() => createSearchCandidateReview({
+      comparison,
+      candidateId: "fixture-v1",
+      cases: evidence.cases,
+      replay: evidence.baseline,
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T04:00:00.000Z"),
+      decision: "adopt_candidate",
+    })).toThrow(/replay 좌표/);
+  });
+
+  it("keeps rejection and more-sample decisions distinct and refuses unsupported adoption", async () => {
+    const evidence = await comparisonFixture(2, false);
+    const comparison = createSearchEvaluationComparison({ evidence });
+    const shared = {
+      comparison,
+      candidateId: "fixture-v1",
+      cases: evidence.cases,
+      replay: evidence.candidate,
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T04:01:00.000Z"),
+    };
+
+    expect(createSearchCandidateReview({ ...shared, decision: "reject_candidate" }))
+      .toMatchObject({ promotionReadiness: "rejected", activationState: "not_applied" });
+    expect(createSearchCandidateReview({ ...shared, decision: "more_samples_required" }))
+      .toMatchObject({ promotionReadiness: "more_evidence_required", activationState: "not_applied" });
+    expect(() => createSearchCandidateReview({ ...shared, decision: "adopt_candidate" }))
+      .toThrow(/채택 후보로 검토할 수 없습니다/);
   });
 });

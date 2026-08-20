@@ -4,6 +4,7 @@ import type {
   SearchEvaluationComparison,
   SearchEvaluationCoverage,
   SearchEvaluationRun,
+  SearchCandidateReview,
 } from "@lervo/search";
 
 export function formatSearchEvaluationCase(evaluationCase: SearchEvaluationCase): string {
@@ -59,6 +60,23 @@ export function formatSearchEvaluationComparison(comparison: SearchEvaluationCom
     `  후보 승 ${comparison.candidateWins} · baseline 승 ${comparison.baselineWins} · 동률 ${comparison.ties}`,
     `  관측 결과: ${outcomes[comparison.observedOutcome]}`,
     "  후보 채택 판단: 아직 결정하지 않음",
+    "  임베딩 도입 판단: 아직 결정하지 않음",
+  ].join("\n") + "\n";
+}
+
+export function formatSearchCandidateReview(review: SearchCandidateReview): string {
+  const decisions = {
+    adopt_candidate: "채택 후보",
+    reject_candidate: "기각",
+    more_samples_required: "표본 추가 필요",
+  } as const;
+  return [
+    `검색 후보 검토: ${review.reviewId}`,
+    `  비교 ${review.comparisonId} · 후보 ${review.candidateId}`,
+    `  결정: ${decisions[review.decision]}`,
+    `  후보 replay: ${review.verification.candidateReplay === "matched" ? "일치" : "불일치"}`,
+    `  다음 검토 상태: ${review.promotionReadiness}`,
+    "  실제 엔진 활성화: 적용하지 않음",
     "  임베딩 도입 판단: 아직 결정하지 않음",
   ].join("\n") + "\n";
 }

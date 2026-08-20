@@ -347,6 +347,8 @@ Managed context 연결은 search attempt를 포함한 `SearchRecommendationBatch
 
 첫 후보는 별도 `@lervo/search-adapter-bm25f` 패키지의 `bm25f-v1`이다. `prepareSearchCorpus`가 baseline과 후보에 같은 source 상한·안전 검증·canonical 정렬·digest를 제공하고, 공통 adapter 검사는 순서를 뒤집어 만든 두 index와 반복 query 응답이 같은지 확인한다. 후보 점수는 title·path·label·text field 가중 빈도에 길이 정규화와 포화를 적용하고, 부동소수 로그 대신 정수 희귀도 비율을 써 runtime 수학 구현 차이를 피한다. CLI는 정적 allowlist registry의 `bm25f-v1`만 해석하며 파일 경로·module 이름·동적 import를 받지 않는다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 정의한다.
 
+후보 검토는 비교 읽기, 후보 재실행, 순수 결정 생성과 immutable 저장을 분리한다. 읽기 adapter는 지정한 comparison뿐 아니라 현재 bundle·coverage·case·corpus, 두 run과 모든 result를 다시 확인한다. 정적 registry가 같은 engine 좌표를 해석한 뒤 후보를 비교 당시 시각·case·corpus로 한 번 재실행하고 run ID가 같을 때만 `adopt_candidate`, `reject_candidate`, `more_samples_required` 중 명시된 결정을 만든다. 채택 검토는 후보 승리가 하나 이상이고 baseline 승리가 없는 비교만 다음 활성화 검토 대상으로 표시한다. 검토는 `.lervo/state/search/evaluation-reviews/<reviewId>.json`에 항목별로 보존하며 운영 engine 선택, context 상태와 임베딩 판단은 바꾸지 않는다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 정의한다.
+
 ### Skill Registry
 
 스킬은 단순 프롬프트 파일이 아니라 다음 metadata를 가진 versioned package입니다.

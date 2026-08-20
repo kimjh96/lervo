@@ -144,6 +144,8 @@ export type SearchErrorCode =
   | "invalid_evaluation_coverage"
   | "evaluation_comparison_not_ready"
   | "evaluation_candidate_not_registered"
+  | "candidate_review_not_eligible"
+  | "invalid_candidate_review"
   | "invalid_evaluation_comparison"
   | "invalid_evaluation_engine"
   | "invalid_evaluation_result"

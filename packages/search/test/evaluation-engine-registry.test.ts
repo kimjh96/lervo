@@ -29,6 +29,7 @@ describe("search evaluation engine registry", () => {
       { candidateId: "beta-v2", engine: { id: "beta", version: 2 } },
     ]);
     expect(registry.resolve("beta-v2")).toBe(beta);
+    expect(registry.resolveEngine({ id: "alpha", version: 1 })).toEqual({ candidateId: "alpha-v1", engine: alpha });
     expect(() => registry.resolve("module:/tmp/candidate.js")).toThrow(/등록되지 않은/);
   });
 

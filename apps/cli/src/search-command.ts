@@ -7,6 +7,7 @@ import { searchUsage } from "./search-command-common.js";
 import { runSearchEvaluateCommand } from "./search-evaluate-command.js";
 import { runSearchQueryCommand } from "./search-query-command.js";
 import { runSearchReportCommand } from "./search-report-command.js";
+import { runSearchReviewCommand } from "./search-review-command.js";
 import type { CliIo } from "./types.js";
 
 export { searchUsage } from "./search-command-common.js";
@@ -20,6 +21,7 @@ export async function runSearchCommand(args: string[], io: CliIo): Promise<numbe
   if (args[0] === "bundle") return runSearchBundleCommand(args.slice(1), io);
   if (args[0] === "evaluate") return runSearchEvaluateCommand(args.slice(1), io);
   if (args[0] === "report") return runSearchReportCommand(args.slice(1), io);
+  if (args[0] === "review") return runSearchReviewCommand(args.slice(1), io);
   if (args[0] === "--help" || args[0] === "-h") {
     io.stdout(`${searchUsage}\n`);
     return 0;

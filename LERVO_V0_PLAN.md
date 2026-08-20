@@ -462,6 +462,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 비교 관측으로 후보를 자동 채택하거나 운영 search·managed context engine을 바꾸지 않음
 - 후보·임베딩 판단을 미결정으로 유지하고 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
 
+재현 검증을 거치는 검색 후보 검토 첫 슬라이스 완료 조건:
+
+- 비교 ID와 현재 bundle·coverage·case·corpus, 두 run과 모든 result를 검토 전에 다시 확인함
+- 비교의 engine 좌표로 정적 allowlist 후보만 해석하고 path·module·URL·동적 코드를 실행하지 않음
+- 후보를 비교 당시 corpus·활성 case·평가 시각으로 한 번 재실행하고 기존 candidate run ID와 정확히 같은지 확인함
+- 채택·기각·표본 추가 필요를 서로 다른 명시적 결정으로 보존하고 관측 결과에서 자동 결정을 만들지 않음
+- 후보 승리가 하나 이상이고 baseline 승리가 없는 비교만 채택 검토 대상으로 허용함
+- 검토 원본은 reviewer·결정·재현 좌표와 승·패·동률 합계를 content-bound ID에 묶어 항목별 immutable JSON으로 저장함
+- Reviewer ID는 로컬 검토 원본에만 두고 query·문서 path·본문·prompt·provider 응답·credential을 복제하지 않음
+- 검토 원본 게시 전 실패하면 부분 검토를 남기지 않고 기존 비교·run·result를 수정하지 않음
+- 모든 검토가 `activationState=not_applied`, `embeddingDecision=not_determined`를 유지하며 운영 engine을 바꾸지 않음
+- 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -496,4 +509,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 첫 결정적 검색 후보 adapter와 명시적 등록 첫 슬라이스를 완료했습니다. 공용 corpus·응답 계약과 재현성 검사가 baseline과 `bm25f-v1`의 입력·index·결과 경계를 맞추고, 정적 allowlist와 CLI는 등록된 후보만 준비된 묶음에서 비교합니다. `bm25f-v1`는 고정 정수 field 가중·길이·포화·희귀도 점수만 사용하며 운영 검색을 바꾸지 않습니다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 기록했습니다.
 
-다음 구현 작업은 비교 관측과 운영 채택 사이의 **명시적 후보 검토·승격 계약**입니다. Reviewer가 같은 bundle·candidate·corpus 계열의 비교 원본을 다시 확인하고 채택·기각·추가 표본 필요를 별도 immutable 결정으로 남기게 합니다. 이 결정과 필수 검증이 없으면 managed context 검색 engine을 바꾸지 않으며, 실제 engine 전환은 그 다음 작업으로 분리합니다.
+재현 검증을 거치는 검색 후보 검토 첫 슬라이스를 완료했습니다. 지정 comparison과 현재 bundle·coverage·case·corpus, 두 run·result를 다시 확인하고 등록 후보를 같은 시각과 입력으로 재실행해 run ID가 일치할 때만 채택·기각·표본 추가 필요 검토를 별도 immutable 원본으로 남깁니다. 채택 검토는 후보 승리가 있고 baseline 회귀가 없는 경우만 다음 활성화 검토 대상으로 표시하며 운영 검색과 임베딩 판단은 바꾸지 않습니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록했습니다.
+
+다음 구현 작업은 검토 원본과 운영 검색 사이의 **정책 결속 활성화·롤백 계약**입니다. 허용 reviewer, 현재 project 설정, 승인할 정확한 candidate engine과 비교·검토 좌표를 다시 확인한 뒤에만 운영 선택 원본을 만들고, 이전 engine으로 되돌릴 좌표를 함께 고정합니다. 실제 managed context가 그 선택 원본을 소비하는 연결은 활성화 계약과 검증 fixture를 먼저 갖춘 뒤 진행합니다.

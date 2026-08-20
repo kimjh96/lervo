@@ -52,4 +52,16 @@ export class SearchEvaluationEngineRegistry {
     }
     return engine;
   }
+
+  resolveEngine(identity: SearchEngineIdentity): SearchEvaluationEngineRegistration {
+    assertSearchEngineIdentity(identity);
+    const registration = this.registrations.find((item) => sameSearchEngine(item.engine, identity));
+    if (registration === undefined) {
+      throw new SearchError("evaluation_candidate_not_registered", "등록되지 않은 검색 후보 엔진입니다.");
+    }
+    return {
+      candidateId: registration.candidateId,
+      engine: this.engines.get(registration.candidateId)!,
+    };
+  }
 }
