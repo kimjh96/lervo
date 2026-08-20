@@ -5,6 +5,7 @@ import {
   createSearchCandidateReview,
   createSearchEngineActivationPolicy,
   createSearchEngineCandidateActivation,
+  createSearchEngineCandidateRefresh,
   createSearchEngineRollback,
   createSearchEvaluationComparison,
   contentId,
@@ -33,7 +34,7 @@ async function activationFixture() {
     authoredBy: "operator_search",
     createdAt: new Date("2026-08-20T05:00:00.000Z"),
   });
-  return { comparison, review, policy };
+  return { comparison, evidence, review, policy };
 }
 
 describe("search engine activation policy and rollback", () => {
@@ -142,8 +143,69 @@ describe("search engine activation policy and rollback", () => {
       }),
     })).toThrow(/정책을 충족하지 않습니다/);
     const activation = create();
-    expect(() => create({ previous: activation })).toThrow(/같은 검색 엔진/);
+    expect(() => create({ previous: activation })).toThrow(/refresh/);
     expect(() => assertSearchEngineActivation({ ...activation, sequence: 2 }, null)).toThrow();
     expect(() => assertSearchEngineActivation({ ...activation, projectId: "prj_other" }, activation)).toThrow();
+  });
+
+  it("refreshes only the selected candidate evidence and keeps baseline as the safe fallback", async () => {
+    const fixture = await activationFixture();
+    const activation = createSearchEngineCandidateActivation({
+      ...fixture,
+      previous: null,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T06:00:00.000Z"),
+    });
+    const refreshedReview = createSearchCandidateReview({
+      comparison: fixture.comparison,
+      candidateId: "fixture-v1",
+      cases: fixture.evidence.cases,
+      replay: fixture.evidence.candidate,
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T06:30:00.000Z"),
+      decision: "adopt_candidate",
+    });
+    const refresh = createSearchEngineCandidateRefresh({
+      policy: fixture.policy,
+      review: refreshedReview,
+      comparison: fixture.comparison,
+      previous: activation,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T07:00:00.000Z"),
+    });
+    const rollback = createSearchEngineRollback({
+      policy: fixture.policy,
+      previous: refresh,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T08:00:00.000Z"),
+    });
+
+    expect(refresh).toMatchObject({
+      sequence: 2,
+      previousActivationId: activation.activationId,
+      action: "refresh_candidate",
+      previousSelection: activation.selected,
+      selected: {
+        mode: "candidate",
+        candidateId: "fixture-v1",
+        reviewId: refreshedReview.reviewId,
+      },
+      fallbackSelection: { mode: "baseline" },
+      fallbackActivationId: null,
+    });
+    expect(rollback).toMatchObject({
+      action: "rollback",
+      previousActivationId: refresh.activationId,
+      selected: { mode: "baseline" },
+    });
+    expect(() => assertSearchEngineActivation(refresh, activation)).not.toThrow();
+    expect(() => createSearchEngineCandidateRefresh({
+      policy: fixture.policy,
+      review: fixture.review,
+      comparison: fixture.comparison,
+      previous: activation,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T07:00:00.000Z"),
+    })).toThrow(/같은 검토·비교 원본/);
   });
 });

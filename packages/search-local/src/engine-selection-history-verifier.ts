@@ -48,7 +48,7 @@ export async function verifySearchEngineSelectionHistory(input: {
       throw new SearchLocalError("engine_selection_unavailable", "검색 엔진 선택 정책이나 project 좌표가 없습니다.");
     }
     assertSearchEngineActivationOperator(policy, activation.operatorId);
-    if (activation.action === "activate_candidate") {
+    if (activation.action === "activate_candidate" || activation.action === "refresh_candidate") {
       const evidence = await loadActivationEvidence(input.repositoryRoot, activation.selected);
       assertSearchEngineActivationEvidence({
         policy,

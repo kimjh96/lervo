@@ -510,6 +510,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 상태 inspection이 기록된 선택과 현재 `ready`/`unavailable` 및 controlled failure code를 함께 반환함
 - 비교·검토 테스트와 운영 선택 수직 테스트를 별도 파일로 분리함
 
+선택된 검색 후보의 검증 원본 갱신 첫 슬라이스 완료 조건:
+
+- 현재 선택과 같은 candidate ID·engine에 새 comparison·review가 있을 때만 `refresh_candidate`를 허용함
+- 현재 후보의 새 증거를 일반 활성화로 기록하지 않고 refresh와 후보 변경 action을 구분함
+- 새 review·comparison과 현재 bundle·case·corpus·registry replay 및 정책을 전이 기록 직전에 다시 확인함
+- 같은 review·comparison 반복, 다른 후보로의 refresh, baseline 상태의 refresh를 거부함
+- 기존 선택을 수정하지 않고 이전 head에 결속된 별도 v2 immutable 전이로 새 증거를 기록함
+- Refresh의 fallback을 baseline으로 명시해 오래된 후보 증거로 자동 복귀하지 않음
+- Rollback runner와 순수 전이 생성기가 같은 fallback 해석 계약을 사용함
+- Refresh가 없거나 실패하면 fail-closed 상태를 유지하며 baseline 대체나 자동 rollback을 만들지 않음
+- 문서 변경 실패, 재평가·검토·refresh, 후보 운영 재개, baseline rollback을 하나의 로컬 수직 테스트로 확인함
+- Query·문서 path·본문·prompt·provider 응답·credential을 새 전이나 오류에 추가하지 않고 Hub와 새 event 없이 완료함
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -550,4 +563,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검증된 운영 검색 엔진 resolver와 fail-closed 소비 첫 슬라이스를 완료했습니다. 일반 검색과 managed context가 전체 선택 chain·정책·등록 engine·현재 corpus·후보 replay를 확인하는 같은 resolver를 사용하고, 검증 실패를 lexical baseline으로 숨기지 않습니다. Attempt·recommendation·추천 event는 실제 engine과 선택 전이 ID를 이어받으며 evaluation baseline은 `lexical-v1`에 고정됩니다. 결정은 [ADR-0061](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)에 기록했습니다.
 
-다음 구현 작업은 문서 corpus가 정상적으로 바뀐 뒤에도 같은 후보를 자동 신뢰하지 않고 다시 검토해 이어갈 수 있는 **후보 선택 refresh 전이와 운영 재검증 흐름**입니다. 현재 선택을 덮어쓰거나 같은 후보 no-op을 허용하지 않고, 새 comparison·review·정책 증거에 결속된 별도 immutable 전이로 갱신해야 합니다. Refresh가 없거나 실패하면 현재 fail-closed 상태를 유지하며 자동 rollback이나 baseline 대체를 만들지 않습니다.
+선택된 검색 후보의 검증 원본 갱신 첫 슬라이스를 완료했습니다. 문서 corpus가 달라진 후보는 계속 fail-closed로 두고, 새 비교·검토·정책과 현재 replay가 모두 맞을 때만 같은 후보의 새 증거를 `refresh_candidate` immutable 전이로 연결합니다. Refresh 뒤 운영 검색은 새 전이 ID를 사용하며 명시적인 rollback은 오래된 후보가 아니라 baseline으로 복구합니다. 결정은 [ADR-0062](./docs/adr/0062-selected-search-candidate-evidence-refresh.md)에 기록했습니다.
+
+다음 구현 작업은 정적 candidate 등록에 **adapter build identity와 검증 receipt**를 결속하는 흐름입니다. 같은 candidate ID·engine version이라도 실제 빌드가 바뀌는 경우를 구분하고, 현재 실행 adapter가 선택·비교 때 검증한 구현과 같은지 확인해야 합니다. Receipt는 원본 evidence에서 다시 만들 수 있는 파생 상태로 두며, 일치하지 않으면 기존 fail-closed 경계를 유지합니다.

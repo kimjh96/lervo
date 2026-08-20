@@ -8,6 +8,7 @@ import {
 } from "@lervo/search";
 import {
   activateLocalSearchCandidate,
+  refreshLocalSearchCandidate,
   recordSearchEngineActivationPolicy,
   reviewLocalSearchCandidate,
   runLocalOperationalSearch,
@@ -148,7 +149,62 @@ describe("operational search engine selection", () => {
       query: "검색 맥락",
       limit: 5,
     })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
-    await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
+
+    const refreshedComparison = await runLocalSearchEvaluationComparison({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      bundleId: "researcher.activation",
+      candidateEngine: engine,
+      evaluatedAt: new Date("2026-08-20T11:00:00.000Z"),
+    });
+    const refreshedReview = await reviewLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      comparisonId: refreshedComparison.comparison.comparisonId,
+      registration: { candidateId: "fixture-v1", engine },
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T11:30:00.000Z"),
+      decision: "adopt_candidate",
+    });
+    const unavailableRefresh = await command(root, [
+      "search", "engine", "refresh", refreshedReview.reviewId,
+      "--policy", policy.policyId, "--operator", "operator_search", "--json",
+    ]);
+    expect(unavailableRefresh.code).toBe(1);
+    expect(unavailableRefresh.error).toContain("evaluation_candidate_not_registered");
+    expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))))
+      .toEqual(["baseline.json"]);
+
+    const refresh = await refreshLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      reviewId: refreshedReview.reviewId,
+      policyId: policy.policyId,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T12:00:00.000Z"),
+      registry,
+    });
+    expect(refresh).toMatchObject({
+      action: "refresh_candidate",
+      previousActivationId: activation.activationId,
+      selected: {
+        mode: "candidate",
+        candidateId: "fixture-v1",
+        reviewId: refreshedReview.reviewId,
+      },
+      fallbackSelection: { mode: "baseline" },
+      fallbackActivationId: null,
+    });
+    await expect(runLocalOperationalSearch({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      registry,
+      query: "검색 맥락",
+      limit: 5,
+    })).resolves.toMatchObject({
+      selectionTransitionId: refresh.activationId,
+      response: { engine: CANDIDATE_ENGINE },
+    });
 
     const rolledBack = await command(root, [
       "search", "engine", "rollback", "--policy", policy.policyId,
@@ -157,12 +213,16 @@ describe("operational search engine selection", () => {
     expect(rolledBack.code, rolledBack.error).toBe(0);
     expect(JSON.parse(rolledBack.output)).toMatchObject({
       action: "rollback",
-      previousActivationId: activation.activationId,
+      previousActivationId: refresh.activationId,
       selected: { mode: "baseline", engine: { id: "lexical", version: 1 } },
       recordState: "selection_recorded",
     });
     expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))).sort())
-      .toEqual([`${activation.activationId}.json`, "baseline.json"].sort());
+      .toEqual([
+        `${activation.activationId}.json`,
+        `${refresh.activationId}.json`,
+        "baseline.json",
+      ].sort());
 
     const searched = await command(root, ["search", "검색 맥락", "--json"]);
     expect(searched.code, searched.error).toBe(0);

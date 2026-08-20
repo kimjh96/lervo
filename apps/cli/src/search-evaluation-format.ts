@@ -95,9 +95,14 @@ export function formatSearchEngineActivationPolicy(policy: SearchEngineActivatio
 }
 
 export function formatSearchEngineActivation(activation: SearchEngineActivation): string {
+  const action = {
+    activate_candidate: "후보 선택",
+    refresh_candidate: "후보 검증 원본 갱신",
+    rollback: "이전 선택으로 rollback",
+  } as const;
   return [
     `검색 엔진 선택 전이: ${activation.activationId}`,
-    `  순서 ${activation.sequence} · ${activation.action === "activate_candidate" ? "후보 선택" : "이전 선택으로 rollback"}`,
+    `  순서 ${activation.sequence} · ${action[activation.action]}`,
     `  ${activation.previousSelection.engine.id}-v${activation.previousSelection.engine.version}` +
       ` → ${activation.selected.engine.id}-v${activation.selected.engine.version}`,
     `  정책 ${activation.policyId} · operator ${activation.operatorId}`,

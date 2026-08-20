@@ -6,6 +6,7 @@ import type {
   SearchEngineActivation,
   SearchEngineActivationPolicy,
   SearchEngineCandidateActivation,
+  SearchEngineCandidateRefresh,
   SearchEngineRollback,
 } from "./engine-activation-types.js";
 import { assertSearchEngineActivation } from "./engine-activation-validation.js";
@@ -17,9 +18,10 @@ import {
 import type { SearchEvaluationComparison } from "./evaluation-comparison-types.js";
 import type { SearchCandidateReview } from "./evaluation-review-types.js";
 import { contentId } from "./integrity.js";
+import { sameSearchEngine } from "./evaluation-engine.js";
 import { SearchError } from "./types.js";
 
-function createTransition<T extends SearchEngineCandidateActivation | SearchEngineRollback>(
+function createTransition<T extends SearchEngineCandidateActivation | SearchEngineCandidateRefresh | SearchEngineRollback>(
   core: Omit<T, "schemaVersion" | "activationId">,
 ): T {
   const activation = {
@@ -60,6 +62,10 @@ export function createSearchEngineCandidateActivation(input: {
   }
   const previousSelection = input.previous?.selected ?? baselineSearchEngineSelection();
   const selected = candidateSearchEngineSelection(input.review);
+  if (previousSelection.mode === "candidate" && previousSelection.candidateId === selected.candidateId &&
+    sameSearchEngine(previousSelection.engine, selected.engine)) {
+    throw new SearchError("engine_activation_not_eligible", "같은 후보 엔진의 새 증거는 refresh로 기록해야 합니다.");
+  }
   if (sameSearchEngineSelection(previousSelection, selected)) {
     throw new SearchError("engine_activation_not_eligible", "현재 선택과 같은 검색 엔진은 다시 활성화하지 않습니다.");
   }
@@ -76,6 +82,47 @@ export function createSearchEngineCandidateActivation(input: {
     rollbackOfActivationId: null,
     fallbackSelection: structuredClone(previousSelection),
     fallbackActivationId: input.previous?.activationId ?? null,
+    recordState: "selection_recorded",
+    embeddingDecision: "not_determined",
+  });
+}
+
+export function createSearchEngineCandidateRefresh(input: {
+  policy: SearchEngineActivationPolicy;
+  review: SearchCandidateReview;
+  comparison: SearchEvaluationComparison;
+  previous: SearchEngineActivation;
+  operatorId: string;
+  decidedAt: Date;
+}): SearchEngineCandidateRefresh {
+  assertSearchEngineActivationOperator(input.policy, input.operatorId);
+  assertSearchEngineActivationEvidence(input);
+  assertSearchEngineActivation(input.previous);
+  if (input.previous.projectId !== input.policy.projectId || !Number.isFinite(input.decidedAt.getTime())) {
+    throw new SearchError("invalid_engine_activation", "검색 엔진 refresh 좌표가 유효하지 않습니다.");
+  }
+  const previousSelection = input.previous.selected;
+  const selected = candidateSearchEngineSelection(input.review);
+  if (previousSelection.mode !== "candidate" || previousSelection.candidateId !== selected.candidateId ||
+    !sameSearchEngine(previousSelection.engine, selected.engine)) {
+    throw new SearchError("engine_activation_not_eligible", "Refresh는 현재 선택과 같은 후보 엔진의 새 증거가 필요합니다.");
+  }
+  if (sameSearchEngineSelection(previousSelection, selected)) {
+    throw new SearchError("engine_activation_not_eligible", "현재 선택과 같은 검토·비교 원본은 refresh하지 않습니다.");
+  }
+  return createTransition<SearchEngineCandidateRefresh>({
+    projectId: input.policy.projectId,
+    sequence: input.previous.sequence + 1,
+    previousActivationId: input.previous.activationId,
+    action: "refresh_candidate",
+    policyId: input.policy.policyId,
+    operatorId: input.operatorId,
+    decidedAt: input.decidedAt.toISOString(),
+    previousSelection: structuredClone(previousSelection),
+    selected,
+    rollbackOfActivationId: null,
+    fallbackSelection: baselineSearchEngineSelection(),
+    fallbackActivationId: null,
     recordState: "selection_recorded",
     embeddingDecision: "not_determined",
   });

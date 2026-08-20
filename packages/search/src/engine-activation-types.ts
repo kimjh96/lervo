@@ -66,6 +66,13 @@ export interface SearchEngineCandidateActivation extends SearchEngineActivationV
   rollbackOfActivationId: null;
 }
 
+export interface SearchEngineCandidateRefresh extends SearchEngineActivationV2Base {
+  action: "refresh_candidate";
+  previousSelection: CandidateSearchEngineSelection;
+  selected: CandidateSearchEngineSelection;
+  rollbackOfActivationId: null;
+}
+
 export interface SearchEngineRollback extends SearchEngineActivationV2Base {
   action: "rollback";
   rollbackOfActivationId: string;
@@ -74,4 +81,5 @@ export interface SearchEngineRollback extends SearchEngineActivationV2Base {
 export type SearchEngineActivation =
   | LegacySearchEngineActivation
   | SearchEngineCandidateActivation
+  | SearchEngineCandidateRefresh
   | SearchEngineRollback;

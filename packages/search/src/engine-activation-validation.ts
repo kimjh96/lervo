@@ -1,5 +1,6 @@
 import type { SearchEngineActivation } from "./engine-activation-types.js";
 import { assertSearchEngineSelection, sameSearchEngineSelection } from "./engine-selection.js";
+import { sameSearchEngine } from "./evaluation-engine.js";
 import { contentId } from "./integrity.js";
 import { SearchError } from "./types.js";
 import { assertTimestamp, SOURCE_ID_PATTERN } from "./validation.js";
@@ -12,13 +13,14 @@ export function assertSearchEngineActivation(
 ): void {
   const legacy = activation.schemaVersion === 1;
   const current = activation.schemaVersion === 2;
+  const action = (activation as { action: string }).action;
   if ((!legacy && !current) || !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.activationId) ||
     !SOURCE_ID_PATTERN.test(activation.projectId) || !Number.isSafeInteger(activation.sequence) ||
     activation.sequence < 1 || (activation.previousActivationId !== null &&
       !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.previousActivationId)) ||
     (activation.rollbackOfActivationId !== null &&
       !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackOfActivationId)) ||
-    !["activate_candidate", "rollback"].includes(activation.action) ||
+    !["activate_candidate", "refresh_candidate", "rollback"].includes(activation.action) ||
     !/^sepol_[a-f0-9]{24}$/.test(activation.policyId) || !SOURCE_ID_PATTERN.test(activation.operatorId) ||
     activation.embeddingDecision !== "not_determined") {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 계약이 유효하지 않습니다.");
@@ -26,7 +28,7 @@ export function assertSearchEngineActivation(
   if (legacy) {
     const hasLegacyState = activation.applicationState === "not_connected" && activation.recordState === undefined;
     const hasInterimState = activation.recordState === "selection_recorded" && activation.applicationState === undefined;
-    if ((!hasLegacyState && !hasInterimState) ||
+    if (action === "refresh_candidate" || (!hasLegacyState && !hasInterimState) ||
       (activation.rollbackTargetActivationId !== null &&
         !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackTargetActivationId))) {
       throw new SearchError("invalid_engine_activation", "기존 검색 엔진 활성화 계약이 유효하지 않습니다.");
@@ -41,8 +43,10 @@ export function assertSearchEngineActivation(
   assertSearchEngineSelection(activation.selected);
   if (sameSearchEngineSelection(activation.previousSelection, activation.selected) ||
     (activation.sequence === 1) !== (activation.previousActivationId === null) ||
-    (activation.action === "activate_candidate" && (activation.selected.mode !== "candidate" ||
+    (["activate_candidate", "refresh_candidate"].includes(activation.action) &&
+      (activation.selected.mode !== "candidate" ||
       activation.rollbackOfActivationId !== null)) ||
+    (activation.action === "refresh_candidate" && activation.previousActivationId === null) ||
     (activation.action === "rollback" && activation.rollbackOfActivationId !== activation.previousActivationId)) {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 전이 관계가 유효하지 않습니다.");
   }
@@ -53,8 +57,17 @@ export function assertSearchEngineActivation(
   }
   if (current) {
     assertSearchEngineSelection(activation.fallbackSelection);
-    if (!sameSearchEngineSelection(activation.fallbackSelection, activation.previousSelection) ||
-      activation.fallbackActivationId !== activation.previousActivationId ||
+    const invalidRefresh = activation.action === "refresh_candidate" && (
+      activation.previousSelection.mode !== "candidate" || activation.selected.mode !== "candidate" ||
+      activation.previousSelection.candidateId !== activation.selected.candidateId ||
+      !sameSearchEngine(activation.previousSelection.engine, activation.selected.engine) ||
+      activation.fallbackSelection.mode !== "baseline" || activation.fallbackActivationId !== null
+    );
+    const invalidOther = activation.action !== "refresh_candidate" && (
+      !sameSearchEngineSelection(activation.fallbackSelection, activation.previousSelection) ||
+      activation.fallbackActivationId !== activation.previousActivationId
+    );
+    if (invalidRefresh || invalidOther ||
       (activation.action === "rollback" && activation.rollbackOfActivationId === null)) {
       throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 fallback 관계가 유효하지 않습니다.");
     }
@@ -71,6 +84,10 @@ export function assertSearchEngineActivation(
       (current && activation.action === "activate_candidate" &&
         (!sameSearchEngineSelection(activation.fallbackSelection, previous.selected) ||
           activation.fallbackActivationId !== previous.activationId)) ||
+      (current && activation.action === "refresh_candidate" &&
+        (previous.selected.mode !== "candidate" || activation.selected.mode !== "candidate" ||
+          previous.selected.candidateId !== activation.selected.candidateId ||
+          !sameSearchEngine(previous.selected.engine, activation.selected.engine))) ||
       (current && activation.action === "rollback" && (() => {
         const previousFallback = previous.schemaVersion === 2
           ? { selection: previous.fallbackSelection, activationId: previous.fallbackActivationId }

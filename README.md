@@ -80,6 +80,8 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [결정적 BM25F 검색 후보 ADR](./docs/adr/0058-deterministic-bm25f-search-candidate.md)
 - [재현 검증을 거치는 검색 후보 검토 ADR](./docs/adr/0059-replayed-search-candidate-review.md)
 - [정책에 결속된 검색 엔진 선택과 rollback ADR](./docs/adr/0060-policy-bound-search-engine-selection.md)
+- [Fail-closed 운영 검색 엔진 선택 해석 ADR](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)
+- [선택된 검색 후보의 검증 원본 갱신 ADR](./docs/adr/0062-selected-search-candidate-evidence-refresh.md)
 
 ## 현재 구현
 
@@ -169,6 +171,7 @@ lervo search compare backend-maintenance --candidate bm25f-v1
 lervo search review <comparison-id> --decision more-samples --reviewer reviewer-search
 lervo search engine policy create --reviewer reviewer-search --operator operator-search --author operator-search --candidate bm25f-v1
 lervo search engine activate <review-id> --policy <policy-id> --operator operator-search
+lervo search engine refresh <review-id> --policy <policy-id> --operator operator-search
 lervo search engine status
 lervo search engine rollback --policy <policy-id> --operator operator-search
 ```
@@ -179,6 +182,6 @@ lervo search engine rollback --policy <policy-id> --operator operator-search
 
 `search review`는 비교 ID, 검토자와 `adopt`, `reject`, `more-samples` 중 하나를 명시적으로 받습니다. 현재 bundle·case·corpus와 두 실행을 비교 원본에 다시 맞추고 후보를 같은 시각과 조건으로 재실행한 뒤에만 검토 파일을 따로 남깁니다. 채택 검토는 후보 승리가 있고 baseline 회귀가 없는 비교에서만 가능하지만, 이 상태도 운영 검색 활성화가 아닙니다.
 
-`search engine policy create`는 허용 reviewer·operator·candidate와 최소 후보 승리를 정책별 YAML로 만듭니다. `engine activate`는 현재 비교·검토·후보 replay와 정책을 모두 다시 확인한 뒤 이전 선택과 rollback 좌표를 별도 immutable 전이로 기록합니다. `engine rollback`도 기존 원본을 수정하지 않고 이전 선택으로 돌아가는 새 전이를 만듭니다. 일반 검색과 managed context는 같은 검증 resolver로 현재 선택을 소비합니다. 선택 chain·정책·후보 등록·현재 corpus와 replay 중 하나라도 맞지 않으면 lexical 결과로 조용히 대체하지 않고 실패합니다. `engine status`는 기록된 선택과 현재 `ready` 또는 `unavailable`을 분리해 보여 줍니다. 기존 v1 선택 파일과 선택 전이 ID가 없던 추천 event는 원본 ID·hash를 바꾸지 않고 계속 읽습니다. Evaluation baseline은 비교 기준인 `lexical-v1`을 유지합니다.
+`search engine policy create`는 허용 reviewer·operator·candidate와 최소 후보 승리를 정책별 YAML로 만듭니다. `engine activate`는 현재 비교·검토·후보 replay와 정책을 모두 다시 확인한 뒤 이전 선택과 rollback 좌표를 별도 immutable 전이로 기록합니다. 선택 뒤 문서가 달라지면 후보를 자동 신뢰하지 않습니다. 새 비교와 검토를 만든 다음 `engine refresh`로 같은 후보의 검증 원본을 새 전이에 연결해야 합니다. 이 갱신의 안전 fallback은 baseline이며, 실패하면 기존 fail-closed 상태를 유지합니다. `engine rollback`도 기존 원본을 수정하지 않고 전이에 명시된 fallback으로 돌아가는 새 전이를 만듭니다. 일반 검색과 managed context는 같은 검증 resolver로 현재 선택을 소비합니다. 선택 chain·정책·후보 등록·현재 corpus와 replay 중 하나라도 맞지 않으면 lexical 결과로 조용히 대체하지 않고 실패합니다. `engine status`는 기록된 선택과 현재 `ready` 또는 `unavailable`을 분리해 보여 줍니다. 기존 v1 선택 파일과 선택 전이 ID가 없던 추천 event는 원본 ID·hash를 바꾸지 않고 계속 읽습니다. Evaluation baseline은 비교 기준인 `lexical-v1`을 유지합니다.
 
 이전 실험 버전이 만든 `.roven` 경로는 자동으로 읽거나 `.lervo`와 함께 사용하지 않습니다. `lervo init`은 두 관리 경로가 공존하는 상태를 만들지 않도록 초기화를 차단합니다. 기존 상태를 옮기는 작업은 event hash chain과 CAS 주소를 보존하는 별도 명칭 migration으로 다룹니다.
