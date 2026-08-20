@@ -1,4 +1,5 @@
 import { createTraceApi, TraceApiError } from "/assets/trace-api.js";
+import { createKnowledgeGraphController } from "/assets/trace-graph-controller.js";
 import { loadFirstPage, moveCursorPage } from "/assets/trace-navigation.js";
 import { createCursorPager } from "/assets/trace-pagination.js";
 import {
@@ -41,6 +42,12 @@ const ui = {
   eventsPrevious: element("events-previous"),
   eventsNext: element("events-next"),
   eventsHelp: element("events-help"),
+  graphViewport: element("graph-viewport"),
+  graphState: element("graph-state"),
+  graphPage: element("graph-page"),
+  graphPrevious: element("graph-previous"),
+  graphNext: element("graph-next"),
+  graphHelp: element("graph-help"),
 };
 
 let bearerToken = "";
@@ -85,6 +92,7 @@ function clearRuns(message = "프로젝트를 선택하면 실행 목록을 확�
   emptyNavigation("runs");
   ui.runsHelp.textContent = "프로젝트를 선택하면 실행 목록을 확인할 수 있습니다.";
   clearEvents();
+  graph.clear();
 }
 
 function disconnect(message = "연결을 해제했습니다.", error = false) {
@@ -111,6 +119,19 @@ function handleRequestError(stateElement, error) {
   }
   setPaneState(stateElement, messageFor(error), true);
 }
+
+const graph = createKnowledgeGraphController({
+  api,
+  pageLimit: PAGE_LIMIT,
+  readProject: () => selectedProject,
+  onError: handleRequestError,
+  emptyNavigation,
+  ui: {
+    viewport: ui.graphViewport,
+    state: ui.graphState,
+    help: ui.graphHelp,
+  },
+});
 
 function applyProjectPage(result) {
   projects = Array.isArray(result.page.projects) ? result.page.projects : [];
@@ -159,6 +180,7 @@ async function selectProject(project) {
   renderProjects(ui.projectsList, projects, selectedProject, selectProject);
   clearEvents();
   ui.runsHelp.textContent = `${project.projectName}의 실행을 시간순으로 표시합니다.`;
+  void graph.selectFocus({ kind: "project", id: project.projectId });
   const pager = createCursorPager((cursor) => api.getProject(project, cursor, PAGE_LIMIT));
   runsPager = pager;
   await loadFirstPage({
@@ -204,6 +226,7 @@ async function selectRun(run) {
   emptyNavigation("events");
   renderRuns(ui.runsList, runs, selectedRunId, selectRun);
   ui.eventsHelp.textContent = `${run.runId}의 이벤트를 project 순서대로 표시합니다.`;
+  void graph.selectFocus({ kind: "run", id: run.runId });
   const project = selectedProject;
   const pager = createCursorPager((cursor) => api.getRun(project, run.runId, cursor, PAGE_LIMIT));
   eventsPager = pager;
@@ -267,6 +290,8 @@ ui.runsPrevious.addEventListener("click", () => void navigateRuns("previous"));
 ui.runsNext.addEventListener("click", () => void navigateRuns("next"));
 ui.eventsPrevious.addEventListener("click", () => void navigateEvents("previous"));
 ui.eventsNext.addEventListener("click", () => void navigateEvents("next"));
+ui.graphPrevious.addEventListener("click", () => void graph.navigate("previous"));
+ui.graphNext.addEventListener("click", () => void graph.navigate("next"));
 window.addEventListener("pagehide", () => {
   bearerToken = "";
   ui.token.value = "";
@@ -275,3 +300,4 @@ window.addEventListener("pagehide", () => {
 emptyNavigation("projects");
 emptyNavigation("runs");
 emptyNavigation("events");
+graph.clear();

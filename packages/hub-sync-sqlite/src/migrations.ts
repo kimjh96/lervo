@@ -271,6 +271,36 @@ const migrations = [
     CREATE TRIGGER hub_policy_revocations_no_delete BEFORE DELETE ON hub_policy_revocations
       BEGIN SELECT RAISE(ABORT, 'hub policy revocations are append-only'); END;
   `,
+  `
+    CREATE TABLE hub_knowledge_graph_relations (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      relation_id TEXT NOT NULL,
+      relation_type TEXT NOT NULL,
+      from_kind TEXT NOT NULL,
+      from_id TEXT NOT NULL,
+      to_kind TEXT NOT NULL,
+      to_id TEXT NOT NULL,
+      evidence_event_id TEXT NOT NULL,
+      evidence_event_type TEXT NOT NULL,
+      evidence_run_id TEXT NOT NULL,
+      evidence_seq INTEGER NOT NULL CHECK (evidence_seq >= 1),
+      PRIMARY KEY (destination_id, project_id, relation_id),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id),
+      FOREIGN KEY (destination_id, project_id, evidence_seq)
+        REFERENCES hub_events(destination_id, project_id, seq)
+    ) STRICT;
+    CREATE INDEX hub_knowledge_graph_from
+      ON hub_knowledge_graph_relations (
+        destination_id, project_id, from_kind, from_id, relation_id
+      );
+    CREATE INDEX hub_knowledge_graph_to
+      ON hub_knowledge_graph_relations (
+        destination_id, project_id, to_kind, to_id, relation_id
+      );
+    INSERT INTO hub_sync_meta (key, value) VALUES ('knowledge_graph_index_version', '0');
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

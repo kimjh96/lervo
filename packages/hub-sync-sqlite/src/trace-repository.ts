@@ -117,7 +117,7 @@ export class HubTraceSQLiteRepository {
   }
 
   getProject(query: ResolvedHubProjectRunQuery): HubProjectTrace | null {
-    const project = this.readProjectSummary(query.scope, query.destinationId, query.projectId);
+    const project = this.getProjectSummary(query.scope, query.destinationId, query.projectId);
     if (project === null) return null;
     const afterFirstSeq = query.after?.firstSeq ?? null;
     const afterRunId = query.after?.runId ?? null;
@@ -148,7 +148,7 @@ export class HubTraceSQLiteRepository {
   }
 
   getRun(query: ResolvedHubRunEventQuery): HubRunTrace | null {
-    const project = this.readProjectSummary(query.scope, query.destinationId, query.projectId);
+    const project = this.getProjectSummary(query.scope, query.destinationId, query.projectId);
     if (project === null) return null;
     const aggregate = this.database.prepare(`
       SELECT run_id, first_seq, last_seq, event_count, continuous_event_count
@@ -188,7 +188,7 @@ export class HubTraceSQLiteRepository {
     };
   }
 
-  private readProjectSummary(
+  getProjectSummary(
     scope: HubTraceProjectScope,
     destinationId: string,
     projectId: string,

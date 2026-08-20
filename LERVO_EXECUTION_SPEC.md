@@ -487,9 +487,13 @@ Project 상세는 run을 첫 seq 순서로 묶고 첫 등장 순서의 session I
 
 Project cursor는 destination·project ID, run cursor는 첫 seq·run ID, event cursor는 마지막 seq입니다. 잘못된 limit·cursor·좌표는 `invalid_query`, scope 밖 좌표는 `project_forbidden`, 원본 부재는 `project_not_found`와 `run_not_found`, source 불일치는 `source_inconsistent`, store read 실패는 `read_failed`입니다. Not found를 빈 원본으로 바꾸지 않고 inconsistent snapshot의 일부 결과도 반환하지 않습니다. `HubTraceSource`의 resolved query에는 `all` 또는 최대 256개 좌표의 `projects` scope가 필요합니다. Project-scoped reader는 scope 밖 상세를 source 호출 전에 거부하고 SQLite 목록 query는 scope를 SQL 조건으로 적용합니다. Projection은 저장 원본을 바꾸거나 별도 event를 만들지 않습니다. 결정은 [ADR-0038](./docs/adr/0038-bounded-async-hub-storage-and-trace.md)과 [ADR-0039](./docs/adr/0039-authenticated-project-scoped-trace-http.md)에 기록합니다.
 
+명시적 지식 그래프도 같은 source와 scope 경계를 사용한다. `@lervo/knowledge-graph`는 allowlist event에 있는 ID와 project 상대 경로만 controlled node·relation으로 투영한다. 각 relation은 `schemaVersion`, 결정적 `relationId`, `projectId`, type, from/to node와 이를 증명하는 event ID·type·run ID·seq를 필수로 가진다. 같은 canonical 관계가 반복되면 가장 이른 seq를 증거로 유지하며 문서 `selected`, `loaded`, `injected` 관계를 합치거나 `used`를 추정하지 않는다.
+
+SQLite 관계 테이블은 event와 같은 transaction에서 갱신하는 파생 인덱스다. Version 1 인덱스가 없으면 전체 event를 순서대로 읽어 한 transaction에서 다시 만들고, 명시적 전체 audit는 완전한 재투영 결과와 저장 관계를 대조한다. 관계 투영 실패는 event batch 전체를 rollback한다. Graph query는 하나의 focus node에 직접 닿는 관계를 relation ID 순서로 기본 50·최대 100개 반환한다. Cursor는 마지막 relation ID다. 관계가 없는 focus는 빈 page이고 focus 원본의 존재를 증명하지 않는다. 세부 결정은 [ADR-0052](./docs/adr/0052-rebuildable-explicit-knowledge-graph.md)에 기록한다.
+
 ### Hub trace read-only HTTP
 
-HTTP adapter는 `GET /v1/trace/projects`, `GET /v1/trace/projects/<projectId>`, `GET /v1/trace/projects/<projectId>/runs/<runId>`를 제공합니다. 상세 route는 `destinationId`가 필수이고 세 route는 선택적인 `limit`과 종류별 `cursor`만 받습니다. 중복·알 수 없는 query parameter, 잘못된 ID·limit·cursor와 body가 있는 GET은 query 전에 `invalid_request`로 거부합니다. Cursor는 version과 `project`·`run`·`event` 종류를 가진 canonical JSON의 base64url 표현이며 인증 수단이 아닙니다.
+HTTP adapter는 `GET /v1/trace/projects`, `GET /v1/trace/projects/<projectId>`, `GET /v1/trace/projects/<projectId>/runs/<runId>`와 `GET /v1/trace/projects/<projectId>/graph`를 제공합니다. 상세 route는 `destinationId`가 필수이고 공통으로 선택적인 `limit`과 종류별 `cursor`를 받습니다. Graph의 `focusKind`와 `focusId`는 함께 쓰거나 모두 생략해야 하며 생략하면 project node를 focus로 사용합니다. 중복·알 수 없는 query parameter, 잘못된 ID·limit·cursor와 body가 있는 GET은 query 전에 `invalid_request`로 거부합니다. Cursor는 version과 `project`·`run`·`event`·`graph` 종류를 가진 canonical JSON의 base64url 표현이며 인증 수단이 아닙니다.
 
 `HubRequestAuthenticator`는 authorization 값에서 principal과 허용 project 좌표를 반환합니다. 첫 adapter는 시작 구성의 32~4096자 visible ASCII bearer token digest를 process memory에서 대조합니다. Token 원문, digest와 principal ID는 응답에 넣지 않습니다. 이는 구성값 일치만 뜻하며 사용자 federation, JWT, 조직 역할이나 Node peer 인증을 주장하지 않습니다. 인증 실패는 이유를 나누지 않는 `unauthorized` 401, scope 밖은 project 존재 여부와 무관한 `forbidden` 403입니다. 권한 확인 뒤의 실제 부재만 `project_not_found`·`run_not_found` 404이며 저장 오류와 내부 예외는 상세를 숨긴 `internal_error` 500입니다.
 
@@ -502,6 +506,8 @@ HTTP adapter는 `GET /v1/trace/projects`, `GET /v1/trace/projects/<projectId>`, 
 사용자가 입력한 bearer token은 현재 page의 변수에서만 API header를 만드는 데 사용합니다. 입력 element는 요청 전에 비우고 URL, fragment, HTML, local/session storage와 cookie에 저장하지 않습니다. Fetch는 same-origin `/v1/trace`만 호출하고 cookie credential과 redirect를 허용하지 않습니다. 연결 해제, 401과 page 종료 때 token 참조와 화면을 비웁니다. Public shell에는 principal, project scope, source와 credential이 없습니다.
 
 Project, run과 event는 각각 20개짜리 현재 page 하나만 DOM에 표시합니다. 다음 page는 기존 목록을 교체하고 이전 이동용 cursor만 탭 메모리에 둡니다. Project page 변경은 run/event 선택을, run page 변경은 event 선택을 비웁니다. 이전 선택의 늦은 응답은 현재 pager와 다르면 반영하지 않으며 page 실패는 현재 cursor를 유지합니다. Event의 `continuous`는 `연속 이력`, `buffered`는 `연결 대기`로 문구와 색을 함께 표시합니다. Hub 문자열은 HTML이 아니라 text node로만 추가합니다. 결정은 [ADR-0040](./docs/adr/0040-bounded-trace-web-view.md)에 기록합니다.
+
+관계 화면은 선택한 project 또는 run을 focus로 삼아 20개짜리 현재 relation page만 SVG와 접근 가능한 목록에 표시한다. 이웃 node를 선택하면 해당 node를 새 focus로 조회하고 다음·이전 page는 기존 node와 relation DOM을 교체한다. 관계의 ID와 경로는 text node로만 추가하며 문서·artifact 본문, content hash, prompt, provider 응답과 내부 추론은 API와 화면에 포함하지 않는다. 그래프 상태와 cursor도 탭 메모리에만 둔다. 결정은 [ADR-0052](./docs/adr/0052-rebuildable-explicit-knowledge-graph.md)에 기록한다.
 
 CAS는 원문 bytes의 SHA-256으로 주소를 정합니다. 반환 형식은 `lervo-cas://sha256/<64 hex>`이며 원문은 `.lervo/state/cas` 아래에만 둡니다. 큰 입력은 청크를 임시 파일에 쓰는 동안 hash와 byte count를 계산합니다. 생산자가 중간에 실패하면 임시 파일을 제거하고 object를 공개하지 않습니다. 새 object는 쓰기와 동기화를 끝낸 뒤 원자적인 hard link로 확정합니다. 같은 bytes는 기존 object를 재사용하고, 저장하거나 읽을 때 주소와 실제 bytes의 hash를 비교합니다. 유효한 주소가 없으면 `not_found`, bytes가 주소와 다르면 `corrupt_object`, 경로가 안전하지 않으면 `unsafe_path`입니다. `has`는 `not_found`만 `false`로 바꾸며 변조를 숨기지 않습니다. 세 경우 모두 상위 실행에서는 `artifact_storage_failed`로 처리합니다. 이 실패가 난 artifact에 의존하는 변경은 중단하며, 원문이나 비밀 값은 실패 event에 넣지 않고 digest와 오류 code만 기록합니다.
 
@@ -879,6 +885,8 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `remote_command_ack_invalid` / `invalid_remote_command_acknowledgement` | Delivery·lease·command·receipt 또는 acknowledgement 시각이 현재 Hub 원본과 다릅니다. Terminal 상태를 commit하지 않습니다. |
 | `hub_unavailable` / `transport_authentication_failed` / `invalid_lease_response` / `invalid_delivery_confirmation` | Reconnect transport, Hub peer, lease 또는 confirmation을 신뢰할 수 없습니다. 새 executor를 열지 않거나 이미 durable한 Node receipt를 유지하고 lease 재전달을 기다립니다. |
 | `derived_index_failed` | 명시적 경로와 전문 검색으로 저하 운전합니다. |
+| `invalid_node` / `projection_invalid` | 그래프 focus·끝점 좌표가 유효하지 않거나 allowlist event의 명시적 좌표로 관계를 만들 수 없습니다. 조회를 시작하지 않거나 event batch 전체를 rollback하며 관계 인덱싱 완료를 주장하지 않습니다. |
+| `source_inconsistent` / `integrity_failed` | 그래프 source page의 project·focus·정렬·cursor·관계 ID가 다르거나 파생 테이블이 event 재투영 결과와 다릅니다. 일부 page를 반환하지 않고 재구축 또는 운영자 진단을 요구합니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |
 | `capability_denied` | Role 또는 프로젝트 정책이 요청한 capability를 거부했습니다. 실행은 읽기 전용으로 계속할 수 있지만 해당 변경은 재시도하지 않습니다. |

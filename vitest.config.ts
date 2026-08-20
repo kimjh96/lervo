@@ -38,6 +38,7 @@ export default defineConfig({
       "@lervo/interaction": fromRoot("./packages/interaction/src/index.ts"),
       "@lervo/interaction-sqlite": fromRoot("./packages/interaction-sqlite/src/index.ts"),
       "@lervo/knowledge": fromRoot("./packages/knowledge/src/index.ts"),
+      "@lervo/knowledge-graph": fromRoot("./packages/knowledge-graph/src/index.ts"),
       "@lervo/orchestrator": fromRoot("./packages/orchestrator/src/index.ts"),
       "@lervo/policy": fromRoot("./packages/policy/src/index.ts"),
       "@lervo/policy-contract": fromRoot("./packages/policy-contract/src/index.ts"),

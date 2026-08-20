@@ -1,0 +1,110 @@
+.graph-column {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.graph-viewport {
+  max-height: 38rem;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--panel-strong);
+}
+
+.knowledge-graph {
+  display: block;
+  width: 100%;
+  min-width: 48rem;
+  min-height: 12rem;
+}
+
+.graph-edge {
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+
+.graph-arrow {
+  fill: var(--line-strong);
+}
+
+.graph-edge-label {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.graph-node rect {
+  fill: var(--panel);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.graph-node:not(.focus) {
+  cursor: pointer;
+}
+
+.graph-node:not(.focus):focus rect,
+.graph-node:not(.focus):hover rect {
+  stroke-width: 3;
+}
+
+.graph-node.focus rect {
+  fill: var(--accent);
+}
+
+.graph-node-kind,
+.graph-node-id {
+  pointer-events: none;
+}
+
+.graph-node-kind {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.graph-node-id {
+  fill: var(--muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+}
+
+.graph-node.focus .graph-node-kind,
+.graph-node.focus .graph-node-id {
+  fill: white;
+}
+
+.graph-empty {
+  margin: 0;
+  padding: 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.graph-relation-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.8rem;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.graph-relation-button {
+  width: 100%;
+  min-height: 0;
+  padding: 0.55rem 0.7rem;
+  border-color: transparent;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.graph-relation-button:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--panel);
+  filter: none;
+}

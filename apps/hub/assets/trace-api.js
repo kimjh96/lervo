@@ -82,5 +82,15 @@ export function createTraceApi(readToken) {
         limit,
       })}`);
     },
+    getKnowledgeGraph(project, focus, cursor, limit) {
+      const projectId = encodeURIComponent(project.projectId);
+      return request(`/v1/trace/projects/${projectId}/graph${query({
+        destinationId: project.destinationId,
+        focusKind: focus.kind,
+        focusId: focus.id,
+        cursor,
+        limit,
+      })}`);
+    },
   };
 }

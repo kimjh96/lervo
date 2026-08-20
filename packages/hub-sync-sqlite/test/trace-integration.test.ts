@@ -1,4 +1,5 @@
 import { HubProjectScopedTraceReader, HubTraceReader } from "@lervo/hub-trace";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { HubSyncSQLiteStore } from "../src/index.js";
@@ -141,6 +142,132 @@ describe("Hub trace SQLite query source", () => {
       documentId: "doc_agents_01",
       reasonCode: "path_rule",
     });
+
+    const documentGraph = await reader.getKnowledgeGraph({
+      destinationId,
+      projectId: project.projectId,
+      focus: { kind: "document", id: "doc_agents_01" },
+    });
+    expect(documentGraph.relations.items).toEqual([
+      expect.objectContaining({
+        type: "selected_document",
+        from: { kind: "run", id: "run_hub_evidence_01" },
+      }),
+    ]);
+    const runGraphTypes: string[] = [];
+    let after: { relationId: string } | undefined;
+    do {
+      const page = await reader.getKnowledgeGraph({
+        destinationId,
+        projectId: project.projectId,
+        focus: { kind: "run", id: "run_hub_evidence_01" },
+        limit: 1,
+        ...(after === undefined ? {} : { after }),
+      });
+      runGraphTypes.push(...page.relations.items.map((relation) => relation.type));
+      after = page.relations.nextCursor ?? undefined;
+    } while (after !== undefined);
+    expect(runGraphTypes.sort()).toEqual([
+      "completed_verification", "contains_run", "selected_document",
+    ]);
+    await store.close();
+  });
+
+  it("rebuilds the disposable graph index from append-only events", async () => {
+    const path = await databasePath();
+    const project = manifest("prj_hub_graph_rebuild_01");
+    const store = await HubSyncSQLiteStore.open({ path });
+    await registerStore(store, project);
+    await acceptEvents(store, project, eventChain(project.projectId, 1, () => ({
+      type: "context.selected",
+      payload: {
+        documentId: "doc_graph_rebuild_01",
+        reasonCode: "path_rule",
+        ruleId: "rule_graph_rebuild_01",
+        required: true,
+        scope: "project",
+      },
+    })));
+    await store.close();
+
+    const raw = new DatabaseSync(path);
+    raw.exec(`
+      DELETE FROM hub_knowledge_graph_relations;
+      UPDATE hub_sync_meta SET value = '0' WHERE key = 'knowledge_graph_index_version';
+    `);
+    raw.close();
+
+    const reopened = await HubSyncSQLiteStore.open({ path });
+    const graph = await new HubTraceReader(reopened).getKnowledgeGraph({
+      destinationId,
+      projectId: project.projectId,
+      focus: { kind: "document", id: "doc_graph_rebuild_01" },
+    });
+    expect(graph.relations.items).toEqual([
+      expect.objectContaining({
+        type: "selected_document",
+        evidence: expect.objectContaining({ seq: 1 }),
+      }),
+    ]);
+    await reopened.close();
+  });
+
+  it("navigates a knowledge candidate back to explicit outcome, evidence and paths", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_hub_knowledge_graph_01");
+    const hash = `sha256:${"a".repeat(64)}`;
+    const events = eventChain(project.projectId, 2, (seq) => seq === 1 ? {
+      type: "deliberation.completed",
+      payload: {
+        deliberationId: "dlb_graph001",
+        outcomeId: "dlo_aaaaaaaaaaaaaaaa",
+        status: "converged",
+        lastRound: 1,
+        decisionArtifactId: "dla_aaaaaaaaaaaaaaaa",
+        unresolvedBlockingObjectionIds: [],
+        failurePhase: null,
+        failureCode: null,
+      },
+    } : {
+      type: "knowledge.candidate.created",
+      payload: {
+        candidateId: "knc_aaaaaaaaaaaaaaaa",
+        claimDigest: hash,
+        paths: ["src/knowledge-graph.ts"],
+        evidenceIds: ["evt_hub_hub_knowledge_graph_01_01"],
+        sourceOutcomeId: "dlo_aaaaaaaaaaaaaaaa",
+        decisionArtifactId: "dla_aaaaaaaaaaaaaaaa",
+        verificationArtifactIds: ["dla_bbbbbbbbbbbbbbbb"],
+        verifiedRevision: hash,
+        candidateArtifactId: `art_${"a".repeat(64)}`,
+        candidateContentHash: hash,
+      },
+    });
+    await registerStore(store, project);
+    await acceptEvents(store, project, events);
+
+    const graph = await new HubTraceReader(store).getKnowledgeGraph({
+      destinationId,
+      projectId: project.projectId,
+      focus: { kind: "knowledge_candidate", id: "knc_aaaaaaaaaaaaaaaa" },
+    });
+    expect(graph.relations.items.map((relation) => relation.type).sort()).toEqual([
+      "affects_path",
+      "cites_event",
+      "created_candidate",
+      "decision_artifact",
+      "derived_from",
+      "stored_as",
+      "verification_artifact",
+    ]);
+    const evidence = await new HubTraceReader(store).getKnowledgeGraph({
+      destinationId,
+      projectId: project.projectId,
+      focus: { kind: "event", id: events[0]!.eventId },
+    });
+    expect(evidence.relations.items).toEqual([
+      expect.objectContaining({ type: "cites_event" }),
+    ]);
     await store.close();
   });
 

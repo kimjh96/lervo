@@ -1,5 +1,6 @@
 import {
   type HubEventTraceCursor,
+  type HubKnowledgeGraphCursor,
   type HubProjectTraceCursor,
   type HubRunTraceCursor,
 } from "@lervo/hub-trace";
@@ -13,7 +14,7 @@ import {
 const MAX_CURSOR_LENGTH = 1_024;
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-type CursorKind = "project" | "run" | "event";
+type CursorKind = "project" | "run" | "event" | "graph";
 
 function encode(payload: Record<string, string | number>): string {
   return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
@@ -112,4 +113,17 @@ export function decodeEventCursor(value: string): HubEventTraceCursor {
     throw new Error("event cursor 형식이 유효하지 않습니다.");
   }
   return { seq: cursor.seq };
+}
+
+export function encodeKnowledgeGraphCursor(cursor: HubKnowledgeGraphCursor): string {
+  return encode({ v: 1, kind: "graph", relationId: cursor.relationId });
+}
+
+export function decodeKnowledgeGraphCursor(value: string): HubKnowledgeGraphCursor {
+  const cursor = decode(value, "graph");
+  if (!hasExactKeys(cursor, ["v", "kind", "relationId"]) ||
+    !nonEmptyText(cursor.relationId) || !/^kgr_[a-f0-9]{16}$/.test(cursor.relationId)) {
+    throw new Error("knowledge graph cursor 형식이 유효하지 않습니다.");
+  }
+  return { relationId: cursor.relationId };
 }

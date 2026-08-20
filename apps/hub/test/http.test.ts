@@ -1,4 +1,5 @@
 import { type HubProjectTraceSummary } from "@lervo/hub-trace";
+import { calculateKnowledgeGraphRelationId } from "@lervo/knowledge-graph";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -159,6 +160,79 @@ describe("Hub trace HTTP API", () => {
       projectId: "prj_allowed01",
       runId: "run_allowed01",
       limit: 50,
+    }));
+  });
+
+  it("serves only a bounded focused knowledge graph through the authorized source", async () => {
+    const querySource = traceSource();
+    const focus = { kind: "project" as const, id: allowedProject.projectId };
+    const target = { kind: "run" as const, id: "run_allowed01" };
+    const relationId = calculateKnowledgeGraphRelationId({
+      projectId: allowedProject.projectId,
+      type: "contains_run",
+      from: focus,
+      to: target,
+    });
+    vi.mocked(querySource.getKnowledgeGraph).mockResolvedValue({
+      project: allowedProject,
+      focus,
+      relations: {
+        items: [{
+          schemaVersion: 1,
+          relationId,
+          projectId: allowedProject.projectId,
+          type: "contains_run",
+          from: focus,
+          to: target,
+          evidence: {
+            eventId: "evt_allowed01",
+            eventType: "run.requested",
+            runId: target.id,
+            seq: 1,
+          },
+        }],
+        nextCursor: { relationId },
+      },
+    });
+    const base = await startHubTestServer(querySource);
+    const response = await fetch(
+      `${base}/v1/trace/projects/prj_allowed01/graph?destinationId=hub%3Aprimary&limit=1`,
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+
+    expect(response.status).toBe(200);
+    const body = await response.json() as {
+      focus: { kind: string; id: string };
+      nodes: Array<{ kind: string; id: string }>;
+      relations: Array<{ relationId: string; type: string }>;
+      nextCursor: string;
+    };
+    expect(body.focus).toEqual(focus);
+    expect(body.nodes).toEqual([focus, target]);
+    expect(body.relations).toEqual([{ relationId, type: "contains_run" }].map((item) =>
+      expect.objectContaining(item)));
+    expect(typeof body.nextCursor).toBe("string");
+    expect(querySource.getKnowledgeGraph).toHaveBeenCalledWith({
+      scope: { mode: "projects", projects: credentials[0]!.projects },
+      destinationId: allowedProject.destinationId,
+      projectId: allowedProject.projectId,
+      focus,
+      limit: 1,
+    });
+
+    vi.mocked(querySource.getKnowledgeGraph).mockResolvedValue({
+      project: allowedProject,
+      focus,
+      relations: { items: [], nextCursor: null },
+    });
+    const next = await fetch(
+      `${base}/v1/trace/projects/prj_allowed01/graph?destinationId=hub%3Aprimary&limit=1&cursor=${encodeURIComponent(body.nextCursor)}`,
+      { headers: { authorization: `Bearer ${token}` } },
+    );
+    expect(next.status).toBe(200);
+    expect(querySource.getKnowledgeGraph).toHaveBeenLastCalledWith(expect.objectContaining({
+      after: { relationId },
+      focus,
     }));
   });
 

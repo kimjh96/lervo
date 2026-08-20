@@ -1,12 +1,23 @@
 import { type IncomingMessage } from "node:http";
 
 import {
+  type HubKnowledgeGraphQuery,
   type HubProjectRunQuery,
   type HubProjectTraceQuery,
   type HubRunEventQuery,
 } from "@lervo/hub-trace";
+import {
+  assertKnowledgeGraphNode,
+  knowledgeGraphNodeKinds,
+  type KnowledgeGraphNodeKind,
+} from "@lervo/knowledge-graph";
 
-import { decodeEventCursor, decodeProjectCursor, decodeRunCursor } from "./cursor.js";
+import {
+  decodeEventCursor,
+  decodeKnowledgeGraphCursor,
+  decodeProjectCursor,
+  decodeRunCursor,
+} from "./cursor.js";
 import {
   HUB_DESTINATION_ID_PATTERN,
   HUB_PROJECT_ID_PATTERN,
@@ -16,6 +27,7 @@ import {
 export type HubTraceHttpRoute =
   | { kind: "projects" }
   | { kind: "project"; encodedProjectId: string }
+  | { kind: "graph"; encodedProjectId: string }
   | { kind: "run"; encodedProjectId: string; encodedRunId: string };
 
 export class InvalidHubHttpRequestError extends Error {}
@@ -31,6 +43,9 @@ export function matchHubTraceRoute(pathname: string): HubTraceHttpRoute | null {
   if (segments.length === 4) return { kind: "projects" };
   if (segments.length === 5 && segments[4] !== "") {
     return { kind: "project", encodedProjectId: segments[4]! };
+  }
+  if (segments.length === 6 && segments[4] !== "" && segments[5] === "graph") {
+    return { kind: "graph", encodedProjectId: segments[4]! };
   }
   if (segments.length === 7 && segments[4] !== "" && segments[5] === "runs" && segments[6] !== "") {
     return {
@@ -163,6 +178,36 @@ export function runEventQuery(
   return {
     ...projectCoordinate(route, parameters),
     runId: decodedId(route.encodedRunId, HUB_RUN_ID_PATTERN),
+    ...(requestedLimit === undefined ? {} : { limit: requestedLimit }),
+    ...(after === undefined ? {} : { after }),
+  };
+}
+
+export function knowledgeGraphQuery(
+  route: Extract<HubTraceHttpRoute, { kind: "graph" }>,
+  parameters: URLSearchParams,
+): HubKnowledgeGraphQuery {
+  assertQueryKeys(parameters, ["destinationId", "focusKind", "focusId", "limit", "cursor"]);
+  const coordinate = projectCoordinate(route, parameters);
+  const requestedKind = singleQueryValue(parameters, "focusKind");
+  const requestedId = singleQueryValue(parameters, "focusId");
+  if ((requestedKind === undefined) !== (requestedId === undefined)) {
+    throw new InvalidHubHttpRequestError();
+  }
+  const focus = requestedKind === undefined
+    ? { kind: "project" as const, id: coordinate.projectId }
+    : { kind: requestedKind as KnowledgeGraphNodeKind, id: requestedId! };
+  if (!knowledgeGraphNodeKinds.includes(focus.kind)) throw new InvalidHubHttpRequestError();
+  try {
+    assertKnowledgeGraphNode(focus);
+  } catch {
+    throw new InvalidHubHttpRequestError();
+  }
+  const requestedLimit = limit(parameters);
+  const after = decodedCursor(singleQueryValue(parameters, "cursor"), decodeKnowledgeGraphCursor);
+  return {
+    ...coordinate,
+    focus,
     ...(requestedLimit === undefined ? {} : { limit: requestedLimit }),
     ...(after === undefined ? {} : { after }),
   };

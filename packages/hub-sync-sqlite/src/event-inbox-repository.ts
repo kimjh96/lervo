@@ -18,6 +18,7 @@ import { HubSyncStoreError } from "./errors.js";
 import { loadProjectHead } from "./project-head.js";
 import { decodeStoredEvent } from "./row-codec.js";
 import { HubTraceIndexSQLiteWriter } from "./trace-index-writer.js";
+import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
 
 function sameEvent(left: EventEnvelope, right: EventEnvelope): boolean {
   return canonicalJson(left) === canonicalJson(right);
@@ -26,10 +27,12 @@ function sameEvent(left: EventEnvelope, right: EventEnvelope): boolean {
 export class HubEventInboxSQLiteRepository {
   private readonly cursor: HubCursorSQLiteRepository;
   private readonly traceIndex: HubTraceIndexSQLiteWriter;
+  private readonly knowledgeGraphIndex: KnowledgeGraphIndexSQLiteWriter;
 
   constructor(private readonly database: DatabaseSync) {
     this.cursor = new HubCursorSQLiteRepository(database);
     this.traceIndex = new HubTraceIndexSQLiteWriter(database);
+    this.knowledgeGraphIndex = new KnowledgeGraphIndexSQLiteWriter(database);
   }
 
   accept(input: {
@@ -73,6 +76,7 @@ export class HubEventInboxSQLiteRepository {
 
     const cursor = this.cursor.nextCursor(coordinate, head.cursor);
     const addedRunCount = this.traceIndex.addEvents(coordinate, newEvents);
+    this.knowledgeGraphIndex.addEvents(coordinate, newEvents);
     this.traceIndex.advanceContinuousCounts(coordinate, head.cursor.seq, cursor.seq);
     this.updateProjectHead(coordinate, cursor, newEvents.length, addedRunCount);
     this.incrementEventCount(newEvents.length);

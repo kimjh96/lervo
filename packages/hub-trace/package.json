@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/hub-sync": "workspace:*",
+    "@lervo/knowledge-graph": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
   }

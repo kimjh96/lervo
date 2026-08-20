@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/assets/trace-base.css">
     <link rel="stylesheet" href="/assets/trace-workspace.css">
     <link rel="stylesheet" href="/assets/trace-responsive.css">
+    <link rel="stylesheet" href="/assets/trace-graph.css">
     <script type="module" src="/assets/trace.js"></script>
   </head>
   <body>
@@ -86,6 +87,23 @@
         <nav class="pagination" aria-label="이벤트 페이지">
           <button id="events-previous" class="secondary" type="button" disabled>이전</button>
           <button id="events-next" class="secondary" type="button" disabled>다음</button>
+        </nav>
+      </section>
+
+      <section class="trace-column graph-column" aria-labelledby="graph-title">
+        <header class="column-header">
+          <div>
+            <p class="step">관계 보기</p>
+            <h2 id="graph-title">지식 그래프</h2>
+          </div>
+          <span id="graph-page" class="page-label"></span>
+        </header>
+        <p id="graph-help" class="column-help">프로젝트를 선택하면 명시적으로 기록된 관계를 확인할 수 있습니다.</p>
+        <div id="graph-state" class="pane-state" role="status"></div>
+        <div id="graph-viewport" class="graph-viewport"></div>
+        <nav class="pagination" aria-label="지식 그래프 관계 페이지">
+          <button id="graph-previous" class="secondary" type="button" disabled>이전</button>
+          <button id="graph-next" class="secondary" type="button" disabled>다음</button>
         </nav>
       </section>
     </main>

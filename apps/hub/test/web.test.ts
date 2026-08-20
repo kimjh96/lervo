@@ -27,6 +27,7 @@ describe("Hub trace web view", () => {
     expect(html).toContain("1단계");
     expect(html).toContain("2단계");
     expect(html).toContain("3단계");
+    expect(html).toContain("지식 그래프");
     expect(html).toContain('src="/assets/trace.js"');
     expect(html).not.toContain('name="token"');
     expect(html).not.toContain(token);
@@ -41,6 +42,8 @@ describe("Hub trace web view", () => {
     const paths = [
       "/assets/trace-api.js",
       "/assets/trace-labels.js",
+      "/assets/trace-graph.js",
+      "/assets/trace-graph-controller.js",
       "/assets/trace-navigation.js",
       "/assets/trace-pagination.js",
       "/assets/trace-render.js",
@@ -48,6 +51,7 @@ describe("Hub trace web view", () => {
       "/assets/trace-base.css",
       "/assets/trace-workspace.css",
       "/assets/trace-responsive.css",
+      "/assets/trace-graph.css",
     ];
     const contents = await Promise.all(paths.map(async (path) => {
       const response = await fetch(`${base}${path}`);
@@ -59,6 +63,9 @@ describe("Hub trace web view", () => {
     const combined = contents.join("\n");
 
     expect(combined).toContain("/v1/trace/projects");
+    expect(combined).toContain("/graph");
+    expect(combined).toContain("createElementNS");
+    expect(combined).toContain("replaceChildren");
     expect(combined).toContain("textContent");
     expect(combined).not.toContain("localStorage");
     expect(combined).not.toContain("sessionStorage");

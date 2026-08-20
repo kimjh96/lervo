@@ -35,6 +35,7 @@
       "@lervo/interaction": ["packages/interaction/src/index.ts"],
       "@lervo/interaction-sqlite": ["packages/interaction-sqlite/src/index.ts"],
       "@lervo/knowledge": ["packages/knowledge/src/index.ts"],
+      "@lervo/knowledge-graph": ["packages/knowledge-graph/src/index.ts"],
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
       "@lervo/policy": ["packages/policy/src/index.ts"],
       "@lervo/policy-contract": ["packages/policy-contract/src/index.ts"],

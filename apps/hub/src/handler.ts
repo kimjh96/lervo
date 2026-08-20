@@ -9,12 +9,14 @@ import {
 import { type HubRequestAuthenticator } from "./auth.js";
 import {
   encodeEventCursor,
+  encodeKnowledgeGraphCursor,
   encodeProjectCursor,
   encodeRunCursor,
 } from "./cursor.js";
 import {
   assertEmptyHubRequestBody,
   InvalidHubHttpRequestError,
+  knowledgeGraphQuery,
   matchHubTraceRoute,
   projectListQuery,
   projectRunQuery,
@@ -112,6 +114,32 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
           project: result.project,
           runs: result.runs.items,
           nextCursor: result.runs.nextCursor === null ? null : encodeRunCursor(result.runs.nextCursor),
+        }, maxResponseBytes);
+        return;
+      }
+
+      if (matchedRoute.kind === "graph") {
+        const result = await reader.getKnowledgeGraph(
+          knowledgeGraphQuery(matchedRoute, url.searchParams),
+        );
+        const nodes = new Map<string, typeof result.focus>();
+        const addNode = (node: typeof result.focus) => {
+          nodes.set(`${node.kind.length}:${node.kind}${node.id}`, structuredClone(node));
+        };
+        addNode(result.focus);
+        for (const relation of result.relations.items) {
+          addNode(relation.from);
+          addNode(relation.to);
+        }
+        sendHubJson(response, 200, {
+          schemaVersion: 1,
+          project: result.project,
+          focus: result.focus,
+          nodes: [...nodes.values()],
+          relations: result.relations.items,
+          nextCursor: result.relations.nextCursor === null
+            ? null
+            : encodeKnowledgeGraphCursor(result.relations.nextCursor),
         }, maxResponseBytes);
         return;
       }

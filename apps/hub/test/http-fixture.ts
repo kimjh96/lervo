@@ -60,6 +60,7 @@ export function traceSource(): HubTraceSource {
       runs: { items: [], nextCursor: null },
     })),
     getRun: vi.fn(async () => null),
+    getKnowledgeGraph: vi.fn(async () => null),
   };
 }
 

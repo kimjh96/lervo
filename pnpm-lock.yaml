@@ -89,6 +89,9 @@ importers:
       '@lervo/hub-trace':
         specifier: workspace:*
         version: link:../../packages/hub-trace
+      '@lervo/knowledge-graph':
+        specifier: workspace:*
+        version: link:../../packages/knowledge-graph
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -488,6 +491,9 @@ importers:
       '@lervo/hub-trace':
         specifier: workspace:*
         version: link:../hub-trace
+      '@lervo/knowledge-graph':
+        specifier: workspace:*
+        version: link:../knowledge-graph
       '@lervo/policy-contract':
         specifier: workspace:*
         version: link:../policy-contract
@@ -522,6 +528,9 @@ importers:
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync
+      '@lervo/knowledge-graph':
+        specifier: workspace:*
+        version: link:../knowledge-graph
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -584,6 +593,15 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
+
+  packages/knowledge-graph:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/orchestrator:
     dependencies:

@@ -1,4 +1,9 @@
 import {
+  assertKnowledgeGraphNode,
+} from "@lervo/knowledge-graph";
+import {
+  type HubKnowledgeGraphQuery,
+  type HubProjectKnowledgeGraph,
   type HubProjectRunQuery,
   type HubProjectTrace,
   type HubProjectTraceQuery,
@@ -9,9 +14,11 @@ import {
   type HubTraceProjectScope,
   type ResolvedHubProjectRunQuery,
   type ResolvedHubProjectTraceQuery,
+  type ResolvedHubKnowledgeGraphQuery,
   type ResolvedHubRunEventQuery,
 } from "./types.js";
 import { HubTraceError } from "./errors.js";
+import { assertKnowledgeGraphPage } from "./knowledge-graph-page.js";
 
 const DEFAULT_PAGE_LIMIT = 50;
 export const HUB_TRACE_MAX_PAGE_LIMIT = 100;
@@ -23,6 +30,9 @@ export interface HubTraceSource {
   ): Promise<HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }>>;
   getProject(query: ResolvedHubProjectRunQuery): Promise<HubProjectTrace | null>;
   getRun(query: ResolvedHubRunEventQuery): Promise<HubRunTrace | null>;
+  getKnowledgeGraph(
+    query: ResolvedHubKnowledgeGraphQuery,
+  ): Promise<HubProjectKnowledgeGraph | null>;
 }
 
 function resolvedLimit(limit: number | undefined): number {
@@ -188,6 +198,30 @@ class HubTraceQueryReader {
     ) {
       throw new HubTraceError("source_inconsistent", "Hub run trace 좌표가 요청과 다릅니다.");
     }
+    return clone(result);
+  }
+
+  async getKnowledgeGraph(query: HubKnowledgeGraphQuery): Promise<HubProjectKnowledgeGraph> {
+    assertProjectCoordinate(query);
+    this.assertAuthorized(query);
+    assertKnowledgeGraphNode(query.focus);
+    if (query.after !== undefined && !/^kgr_[a-f0-9]{16}$/.test(query.after.relationId)) {
+      throw new HubTraceError("invalid_query", "knowledge graph cursor가 유효하지 않습니다.");
+    }
+    const limit = resolvedLimit(query.limit);
+    const resolved: ResolvedHubKnowledgeGraphQuery = {
+      scope: clone(this.scope),
+      destinationId: query.destinationId,
+      projectId: query.projectId,
+      focus: clone(query.focus),
+      ...(query.after === undefined ? {} : { after: clone(query.after) }),
+      limit,
+    };
+    const result = await this.source.getKnowledgeGraph(resolved);
+    if (result === null) {
+      throw new HubTraceError("project_not_found", "요청한 Hub project trace가 없습니다.");
+    }
+    assertKnowledgeGraphPage({ query: resolved, result });
     return clone(result);
   }
 }

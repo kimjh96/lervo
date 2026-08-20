@@ -58,6 +58,31 @@ describe("Hub sync SQLite integrity lifecycle", () => {
     await reopened.close();
   });
 
+  it("audits and refuses to read graph evidence that differs from the source event", async () => {
+    const path = await databasePath();
+    const project = manifest("prj_hub_graph_audit_01");
+    const store = await HubSyncSQLiteStore.open({ path });
+    await registerStore(store, project);
+    await acceptEvents(store, project, eventChain(project.projectId, 1));
+    await store.close();
+
+    const tampered = new DatabaseSync(path);
+    tampered.prepare(`
+      UPDATE hub_knowledge_graph_relations
+      SET evidence_event_id = 'evt_graph_evidence_tampered'
+    `).run();
+    tampered.close();
+
+    const reopened = await HubSyncSQLiteStore.open({ path });
+    await expect(new HubTraceReader(reopened).getKnowledgeGraph({
+      destinationId: "hub:primary",
+      projectId: project.projectId,
+      focus: { kind: "project", id: project.projectId },
+    })).rejects.toMatchObject({ code: "integrity_failed" });
+    await expect(reopened.auditIntegrity()).rejects.toMatchObject({ code: "integrity_failed" });
+    await reopened.close();
+  });
+
   it("backfills bounded trace indexes when opening the previous schema", async () => {
     const path = await databasePath();
     const project = manifest("prj_hub_migrate_01");
@@ -68,6 +93,10 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const previous = new DatabaseSync(path);
     previous.exec(`
+      DROP INDEX hub_knowledge_graph_to;
+      DROP INDEX hub_knowledge_graph_from;
+      DROP TABLE hub_knowledge_graph_relations;
+      DELETE FROM hub_sync_meta WHERE key = 'knowledge_graph_index_version';
       DROP TRIGGER hub_policy_revocations_no_delete;
       DROP TRIGGER hub_policy_revocations_no_update;
       DROP TRIGGER hub_policy_approvals_no_delete;

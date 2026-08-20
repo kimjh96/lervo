@@ -1,4 +1,5 @@
 import { type HubProjectCoordinate } from "@lervo/hub-sync";
+import type { KnowledgeGraphNode, KnowledgeGraphRelation } from "@lervo/knowledge-graph";
 import { type EventEnvelope, type EventSyncCursor } from "@lervo/schemas";
 
 export type TraceChainPosition = "continuous" | "buffered";
@@ -42,6 +43,10 @@ export interface HubEventTraceCursor {
   seq: number;
 }
 
+export interface HubKnowledgeGraphCursor {
+  relationId: string;
+}
+
 export type HubTraceProjectScope =
   | { mode: "all" }
   | { mode: "projects"; projects: HubProjectCoordinate[] };
@@ -67,6 +72,12 @@ export interface HubRunTrace {
   events: HubTracePage<HubRunTraceEvent, HubEventTraceCursor>;
 }
 
+export interface HubProjectKnowledgeGraph {
+  project: HubProjectTraceSummary;
+  focus: KnowledgeGraphNode;
+  relations: HubTracePage<KnowledgeGraphRelation, HubKnowledgeGraphCursor>;
+}
+
 export interface HubProjectTraceQuery {
   after?: HubProjectTraceCursor;
   limit?: number;
@@ -80,6 +91,12 @@ export interface HubProjectRunQuery extends HubProjectCoordinate {
 export interface HubRunEventQuery extends HubProjectCoordinate {
   runId: string;
   after?: HubEventTraceCursor;
+  limit?: number;
+}
+
+export interface HubKnowledgeGraphQuery extends HubProjectCoordinate {
+  focus: KnowledgeGraphNode;
+  after?: HubKnowledgeGraphCursor;
   limit?: number;
 }
 
@@ -99,5 +116,12 @@ export interface ResolvedHubRunEventQuery extends HubProjectCoordinate {
   scope: HubTraceProjectScope;
   runId: string;
   after?: HubEventTraceCursor;
+  limit: number;
+}
+
+export interface ResolvedHubKnowledgeGraphQuery extends HubProjectCoordinate {
+  scope: HubTraceProjectScope;
+  focus: KnowledgeGraphNode;
+  after?: HubKnowledgeGraphCursor;
   limit: number;
 }

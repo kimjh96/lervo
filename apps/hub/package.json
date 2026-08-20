@@ -12,12 +12,13 @@
     }
   },
   "scripts": {
-    "build": "node --check assets/control-api.js && node --check assets/control-coordinates.js && node --check assets/control-render.js && node --check assets/control.js && node --check assets/trace-api.js && node --check assets/trace-labels.js && node --check assets/trace-navigation.js && node --check assets/trace-pagination.js && node --check assets/trace-render.js && node --check assets/trace.js && tsc --project tsconfig.json"
+    "build": "node --check assets/control-api.js && node --check assets/control-coordinates.js && node --check assets/control-render.js && node --check assets/control.js && node --check assets/trace-api.js && node --check assets/trace-graph-controller.js && node --check assets/trace-graph.js && node --check assets/trace-labels.js && node --check assets/trace-navigation.js && node --check assets/trace-pagination.js && node --check assets/trace-render.js && node --check assets/trace.js && tsc --project tsconfig.json"
   },
   "dependencies": {
     "@lervo/hub-control": "workspace:*",
     "@lervo/hub-policy": "workspace:*",
     "@lervo/hub-trace": "workspace:*",
+    "@lervo/knowledge-graph": "workspace:*",
     "@lervo/schemas": "workspace:*"
   },
   "devDependencies": {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { calculateKnowledgeGraphRelationId } from "@lervo/knowledge-graph";
 
 import {
   HubProjectScopedTraceReader,
@@ -31,6 +32,7 @@ function source(overrides: Partial<HubTraceSource> = {}): HubTraceSource {
       runs: { items: [], nextCursor: null },
     })),
     getRun: vi.fn(async () => null),
+    getKnowledgeGraph: vi.fn(async () => null),
     ...overrides,
   };
 }
@@ -171,5 +173,85 @@ describe("Hub trace reader", () => {
     await expect(reader.listProjects()).rejects.toMatchObject({
       code: "source_inconsistent",
     });
+  });
+
+  it("bounds a focused graph page and rejects unrelated source relations", async () => {
+    const focus = { kind: "project" as const, id: project.projectId };
+    const target = { kind: "run" as const, id: "run_graph_reader_01" };
+    const relation = {
+      schemaVersion: 1 as const,
+      relationId: calculateKnowledgeGraphRelationId({
+        projectId: project.projectId,
+        type: "contains_run",
+        from: focus,
+        to: target,
+      }),
+      projectId: project.projectId,
+      type: "contains_run" as const,
+      from: focus,
+      to: target,
+      evidence: {
+        eventId: "evt_graph_reader_01",
+        eventType: "run.requested" as const,
+        runId: target.id,
+        seq: 1,
+      },
+    };
+    const querySource = source({
+      getKnowledgeGraph: vi.fn(async () => ({
+        project,
+        focus,
+        relations: { items: [relation], nextCursor: null },
+      })),
+    });
+    const reader = new HubProjectScopedTraceReader(querySource, [{
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+    }]);
+
+    await expect(reader.getKnowledgeGraph({
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+      focus,
+      limit: 1,
+    })).resolves.toMatchObject({ relations: { items: [{ type: "contains_run" }] } });
+    expect(querySource.getKnowledgeGraph).toHaveBeenCalledWith({
+      scope: { mode: "projects", projects: [{
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+      }] },
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+      focus,
+      limit: 1,
+    });
+
+    vi.mocked(querySource.getKnowledgeGraph).mockResolvedValue({
+      project,
+      focus,
+      relations: {
+        items: [{ ...relation, from: { kind: "project", id: "prj_unrelated" } }],
+        nextCursor: null,
+      },
+    });
+    await expect(reader.getKnowledgeGraph({
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+      focus,
+    })).rejects.toMatchObject({ code: "source_inconsistent" });
+  });
+
+  it("rejects unauthorized graph focus before calling the source", async () => {
+    const querySource = source();
+    const reader = new HubProjectScopedTraceReader(querySource, [{
+      destinationId: project.destinationId,
+      projectId: project.projectId,
+    }]);
+    await expect(reader.getKnowledgeGraph({
+      destinationId: project.destinationId,
+      projectId: "prj_forbidden",
+      focus: { kind: "project", id: "prj_forbidden" },
+    })).rejects.toMatchObject({ code: "project_forbidden" });
+    expect(querySource.getKnowledgeGraph).not.toHaveBeenCalled();
   });
 });

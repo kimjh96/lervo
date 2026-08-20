@@ -17,6 +17,7 @@ import {
   type HubRemoteCommandQueueStore,
 } from "@lervo/hub-sync";
 import {
+  type HubProjectKnowledgeGraph,
   type HubProjectTrace,
   type HubProjectTraceSummary,
   type HubRunTrace,
@@ -24,6 +25,7 @@ import {
   type HubTraceSource,
   type ResolvedHubProjectRunQuery,
   type ResolvedHubProjectTraceQuery,
+  type ResolvedHubKnowledgeGraphQuery,
   type ResolvedHubRunEventQuery,
 } from "@lervo/hub-trace";
 import {
@@ -50,6 +52,8 @@ import { HubRegistrationSQLiteRepository } from "./registration-repository.js";
 import { HubPolicySQLiteRepository } from "./policy-repository.js";
 import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js";
 import { HubTraceSQLiteRepository } from "./trace-repository.js";
+import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
+import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 
 export class HubSyncSQLiteStore implements
@@ -69,6 +73,8 @@ export class HubSyncSQLiteStore implements
   private readonly remoteCommandRepository: HubRemoteCommandSQLiteRepository;
   private readonly policyRepository: HubPolicySQLiteRepository;
   private readonly traceRepository: HubTraceSQLiteRepository;
+  private readonly knowledgeGraphIndex: KnowledgeGraphIndexSQLiteWriter;
+  private readonly knowledgeGraphRepository: HubKnowledgeGraphSQLiteRepository;
   private readonly transactionRunner: SQLiteTransactionRunner;
 
   private constructor(path: string, private readonly database: DatabaseSync) {
@@ -79,6 +85,8 @@ export class HubSyncSQLiteStore implements
     this.remoteCommandRepository = new HubRemoteCommandSQLiteRepository(database);
     this.policyRepository = new HubPolicySQLiteRepository(database);
     this.traceRepository = new HubTraceSQLiteRepository(database);
+    this.knowledgeGraphIndex = new KnowledgeGraphIndexSQLiteWriter(database);
+    this.knowledgeGraphRepository = new HubKnowledgeGraphSQLiteRepository(database);
     this.transactionRunner = new SQLiteTransactionRunner(database);
   }
 
@@ -91,6 +99,7 @@ export class HubSyncSQLiteStore implements
     try {
       configureDatabase(database);
       migrateDatabase(database);
+      new KnowledgeGraphIndexSQLiteWriter(database).rebuildIfRequired();
       const store = new HubSyncSQLiteStore(path, database);
       await store.checkIntegrity();
       return store;
@@ -243,6 +252,20 @@ export class HubSyncSQLiteStore implements
     return this.transactionRunner.read(() => this.traceRepository.getRun(query));
   }
 
+  async getKnowledgeGraph(
+    query: ResolvedHubKnowledgeGraphQuery,
+  ): Promise<HubProjectKnowledgeGraph | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => {
+      const project = this.traceRepository.getProjectSummary(
+        query.scope,
+        query.destinationId,
+        query.projectId,
+      );
+      return project === null ? null : this.knowledgeGraphRepository.get(query, project);
+    });
+  }
+
   async checkIntegrity(): Promise<HubSyncIntegrityReport> {
     this.assertOpen();
     this.verifyDatabaseStructure();
@@ -265,6 +288,7 @@ export class HubSyncSQLiteStore implements
         );
       }
       eventCount += state.events.length;
+      this.knowledgeGraphIndex.assertMatchesEvents(coordinate, state.events);
     }
     this.remoteCommandRepository.auditAll();
     this.policyRepository.auditAll();

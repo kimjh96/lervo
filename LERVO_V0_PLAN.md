@@ -332,8 +332,8 @@ fixtures/
 5. Conversation 배포 조합과 durable identity/delivery replay — 완료
 6. Hub command/approval 대화 UX — 완료
 7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장 — 완료
-8. 명시적 관계 기반 지식 그래프 시각화
-9. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
+8. 명시적 관계 기반 지식 그래프 시각화 — 완료
+9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단
 10. 조직 단위 비용·품질·가드레일 분석
 
 Conversation 첫 슬라이스 완료 조건:
@@ -373,6 +373,17 @@ Hub command/approval 대화 UX 완료 조건:
 - 고위험 workflow가 서로 다른 제안·결정, 검토, 검증 역할과 모든 verification suite를 기존 provider-neutral 숙의 정책에 결속함
 - 평가 결과와 workflow를 실행 event, shared context, E2/E3 또는 수렴 증거로 과장하지 않음
 
+명시적 지식 그래프 완료 조건:
+
+- Provider·Hub·저장 구현을 모르는 projector가 allowlist event의 명시적 ID와 project 상대 경로만 controlled relation으로 만듦
+- 문서 `selected`, `loaded`, `injected`를 구분하고 event가 증명하지 않은 `used`, 의미적 관련성과 인과관계를 만들지 않음
+- Relation ID가 project·종류·두 끝점에 안정적으로 결속되고, 관계 종류별 허용 방향을 검증하며, 각 관계가 원본 event ID·type·run·seq를 증거로 가짐
+- SQLite 관계 인덱스가 event와 같은 transaction에서 갱신되며 삭제·version 변경 뒤 원본 event만으로 재구축되고 전체 audit에서 변조·누락을 찾음
+- 인증과 project scope를 source보다 먼저 적용하고 focus 인접 관계만 기본 50·최대 100개의 안정된 cursor page로 반환함
+- `/trace`가 현재 20개 relation page만 SVG와 접근 가능한 목록에 표시하고 focus·page 전환 때 기존 DOM을 교체함
+- 관계 저장·응답·화면에 문서·artifact 본문, content hash, prompt, provider 응답, 내부 추론과 credential을 넣지 않음
+- 그래프 조회와 화면 동작을 새 event, context 이해·사용, 실행 또는 지식 검증으로 기록하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -393,4 +404,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 연구자·마케터·디자이너 전문 역할 계약을 완료했습니다. `@lervo/roles`는 역할별 입력·E3 문서·capability·산출물·verification·handoff와 평가 묶음을 결속합니다. 평가 결과는 생산 run과 대상 artifact CAS 좌표, 별도 의미 평가 run, check별 evidence와 파생 상태를 검증하며 같은 bytes를 다시 확인한 경우만 역할 공개 경계를 통과합니다. 고위험 workflow는 서로 다른 제안·결정, 검토, 검증 역할과 전체 suite를 기존 provider-neutral 숙의 정책에 묶습니다. 역할 평가는 writing permit나 실제 숙의 실행을 대신하지 않습니다. 결정은 [ADR-0051](./docs/adr/0051-evidence-bound-multi-discipline-roles.md)에 기록했습니다.
 
-다음 구현 작업은 원본 문서와 실행 증거의 명시적 관계를 읽는 지식 그래프 query 계약과, 페이지를 누적하지 않는 bounded 시각화 첫 슬라이스입니다.
+명시적 관계 기반 지식 그래프 첫 슬라이스를 완료했습니다. `@lervo/knowledge-graph`는 allowlist event에 실제로 있는 ID와 경로만 안정된 relation과 증거 좌표로 투영합니다. Hub SQLite는 파생 관계를 event transaction에서 증분 반영하고 version 변경 시 event에서 다시 만들며 전체 audit로 변조·누락을 대조합니다. 인증된 graph API와 `/trace`는 focus에 직접 닿는 현재 page만 반환·표시하고 문서 본문, content hash, prompt와 내부 추론을 다루지 않습니다. 결정은 [ADR-0052](./docs/adr/0052-rebuildable-explicit-knowledge-graph.md)에 기록했습니다.
+
+다음 구현 작업은 임베딩을 먼저 추가하는 일이 아닙니다. 현재 명시적 경로와 전문 검색이 어떤 질의에서 실패하는지 원본 좌표와 개인정보 경계를 지키며 관측하는 계약, 그리고 재현 가능한 전문 검색 baseline을 먼저 만듭니다. 측정된 실패가 의미 검색으로 실제 개선되는 경우에만 임베딩/RAG의 도입 범위와 평가 기준을 결정합니다.
