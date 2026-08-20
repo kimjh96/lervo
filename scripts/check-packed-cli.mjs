@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import { basename, relative, resolve } from "node:path";
 
 import { readJson, repositoryRoot, runPnpm } from "./lib/installed-cli.mjs";
+import { verifyInstalledClaudeNativeRuntime } from "./lib/claude-native-runtime.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
@@ -143,7 +144,9 @@ async function main() {
     const tarballPath = await packCli(archiveRoot, cliManifest.version);
     await installTarball(consumerRoot, tarballPath);
     await verifyInstalledPackage(consumerRoot, cliManifest.version);
+    const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
     await verifyConsumerCommands(consumerRoot, cliManifest.version);
+    console.log(`Claude native runtime 확인: ${nativeRuntime.packageName}`);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

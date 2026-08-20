@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 소비자 설치 계약 완료 (2026-08-20)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사 구성 완료 (2026-08-20)
 
 ## 목표
 
@@ -108,6 +108,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [Canonical CLI release artifact manifest ADR](./docs/adr/0086-canonical-cli-release-artifact-manifest.md)
 - [단일 bundle CLI 배포 단위 ADR](./docs/adr/0087-single-bundle-cli-deployment-unit.md)
 - [Packed CLI 소비자 설치 계약 ADR](./docs/adr/0088-packed-cli-consumer-installation.md)
+- [CLI 다중 플랫폼 배포 matrix 계약 ADR](./docs/adr/0089-cli-multi-platform-release-matrix.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -166,7 +167,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과와 저장소 독립 trace capability report를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
-- `@lervo/cli`: package manifest에서 버전을 읽는 `lervo --version`, 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 개발 시 workspace 경계를 유지하고 배포 시 내부 package 24개와 Ajv·YAML을 `dist/bin.js` 하나로 묶음. Bundle 밖 import는 Claude Agent SDK 하나이며 SDK가 요구하는 세 peer도 검증한 버전으로 고정함
+- `@lervo/cli`: package manifest에서 버전을 읽는 `lervo --version`, 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 개발 시 workspace 경계를 유지하고 배포 시 내부 package 24개와 Ajv·YAML을 `dist/bin.js` 하나로 묶음. Bundle 밖 import는 Claude Agent SDK 하나이며 SDK가 요구하는 세 peer도 검증한 버전으로 고정함. Tarball smoke가 현재 OS·CPU의 native package와 실행 파일을 확인함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
 
 M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Ed25519 원격 command는 durable Hub queue, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Hub·Node 재시작과 acknowledgement 유실 뒤에도 저장된 receipt로 복구하며 executor를 다시 호출하지 않습니다. 이 reconnect 검증은 인증된 transport port를 사용한 로컬 fixture이고 실제 command HTTP/TLS endpoint는 아닙니다.
@@ -229,7 +230,9 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 
 `pnpm release:manifest:check`는 CLI archive를 단일 `dist/bin.js`와 package manifest로 제한합니다. Bundle에 들어간 workspace package, 유일하게 외부에 둔 Claude Agent SDK, 파일 SHA-256과 production dependency closure가 승인된 `apps/cli/release-artifact-manifest.json` v2와 같은지 확인합니다. Release 내용을 의도적으로 바꿀 때만 `pnpm release:manifest:update`로 이 한 파일을 통째로 갱신하고 diff를 검토합니다. Tarball 생성 metadata는 checksum에 넣지 않으며 이 검사는 registry 게시나 서명을 대신하지 않습니다.
 
-`pnpm smoke:packed-cli`는 실제 tarball을 만든 뒤 빈 임시 프로젝트에 일반 소비자 방식으로 설치합니다. 공개 파일 두 개, Node `>=22.13`, 정확한 SDK·peer 버전, private Lervo 패키지 부재와 생성된 `lervo` 명령을 확인하고 version·capability·초기화를 실행합니다. 첫 설치는 외부 dependency가 로컬 저장소에 없으면 registry를 사용할 수 있지만, 설치 뒤의 CLI 실행에는 registry나 provider 연결이 필요하지 않습니다.
+`pnpm smoke:packed-cli`는 실제 tarball을 만든 뒤 빈 임시 프로젝트에 일반 소비자 방식으로 설치합니다. 공개 파일 두 개, Node `>=22.13`, 정확한 SDK·peer 버전, private Lervo 패키지 부재와 생성된 `lervo` 명령을 확인합니다. 현재 OS·CPU에 맞는 Claude native package가 하나만 설치됐는지 확인하고 그 안의 실행 파일로 version을 읽은 뒤 CLI version·capability·초기화도 실행합니다. 첫 설치는 외부 dependency가 로컬 저장소에 없으면 registry를 사용할 수 있지만, 설치 뒤의 CLI 실행에는 registry나 provider 연결이 필요하지 않습니다.
+
+`.github/workflows/cli-release-matrix.yml`은 같은 release manifest와 packed smoke를 Ubuntu, macOS와 Windows에서 실행하도록 구성합니다. Action은 전체 commit SHA로 고정하고 repository 권한은 contents read만 사용합니다. 로컬 테스트는 workflow 구조가 바뀌지 않았음을 확인하지만 세 운영체제의 성공을 대신하지 않습니다. 각 platform의 실제 결과는 GitHub Actions job이 실행된 뒤에만 근거로 사용할 수 있습니다.
 
 `lervo init`, 한 파일 `lervo run`, run별 `lervo trace`, 로컬 증거용 `lervo doctor`와 등록 문서 대상 `lervo search`를 실행할 수 있습니다. 0.1.0의 인자 없는 trace는 최대 50개 event의 bounded page를 경고 없이 반환합니다. 전체 `TraceReport` v1에 의존하는 자동화는 `--full`을 명시해야 하며 자세한 변경 방법은 [migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)에 있습니다. 검색 query는 원문 없이 digest만 attempt에 남고 품질은 별도 `lervo search assess`를 실행한 경우에만 집계됩니다. 검토한 attempt는 `search case`로 케이스별 YAML에 승격하고 `search evaluate`로 현재 `lexical-v1`을 같은 입력에 반복 실행할 수 있습니다. 역할·작업 유형별 평가 묶음은 활성 케이스, 대체 관계와 최소 표본을 별도 `.bundle.yaml`에 두며 `bundle report`로 비교 가능한 표본인지 확인합니다. 표본이 부족한 묶음도 현재 엔진 평가 결과는 남길 수 있지만 비교 준비 완료나 임베딩 필요성으로 해석하지 않습니다. 케이스 YAML에는 검토한 검색 문장이 들어가므로 비밀정보가 없는지 커밋 전에 확인해야 하며, 묶음·실행 결과와 report에는 문장을 복제하지 않습니다. Managed run은 작업 문장을 bounded 검색어로 투영하고 등록 문서 결과를 최대 5개 추천하며, `top_ranked-v1`이 고른 최대 3개만 별도 선택 근거로 E1에 넣습니다. 실행 결과의 attempt ID로 품질을 나중에 평가할 수 있으며 자동 선택이나 실행 성공 자체는 수락 평가가 아닙니다. `lervo run`은 `.lervo/verifications/<suite-id>.yaml`에 있는 suite를 `--verification`으로 하나 이상 명시해야 합니다. 모든 필수 suite가 통과하지 않으면 `run.completed`를 기록하지 않습니다. Writing 검사는 별도 의미 평가기가 구성되지 않은 기본 실행에서 결과 원문을 숨깁니다. Doctor는 각 검사 범위를 `healthy`, `unhealthy`, `unknown`으로 나누며 모든 항목이 `healthy`일 때만 성공합니다. `knowledge`, `documents`, `skills`, `providers`, `search` 제한 범위는 필요한 저장소와 probe만 실제로 열고 출력과 JSON에 범위를 표시합니다. JSON에는 `schemaVersion: 1`이 있으며 reader는 미지원 버전과 손상된 v1을 구분하고 선택 필드 추가만 이전 consumer와 호환되는 변경으로 봅니다. 종료 코드 0은 선택한 범위 정상일 뿐 프로젝트 전체 정상을 뜻하지 않습니다. 검색은 엔진 선택, 세 종류의 정책, rollout 검토와 조치를 따로 검사하며 선행 원본을 확인할 수 없으면 뒤의 범위를 `unknown`으로 둡니다. 문제가 있으면 고정된 issue code에서 파생한 한국어 다음 확인 안내를 보여 주며, 오류 원문을 복사하거나 자동 수정·상태 변경을 실행하지 않습니다. Provider version 확인은 실행 파일 증거일 뿐 인증, 네트워크나 실제 provider session 성공을 뜻하지 않습니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
 

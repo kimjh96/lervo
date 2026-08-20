@@ -1,0 +1,44 @@
+name: CLI release matrix
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-release-matrix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packed-cli:
+    name: Packed CLI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build release artifact
+        run: pnpm build
+      - name: Verify release manifest
+        run: pnpm release:manifest:check
+      - name: Install packed CLI as a consumer
+        run: pnpm smoke:packed-cli

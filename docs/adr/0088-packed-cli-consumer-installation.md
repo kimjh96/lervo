@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0089](./0089-cli-multi-platform-release-matrix.md)은 packed smoke에 현재 platform의 Claude native 실행 파일 검사를 추가하고 같은 검사를 Linux·macOS·Windows에 배치합니다.
+
 ## 맥락
 
 임시 `pnpm deploy`는 빌드한 CLI와 저장소 lockfile의 dependency 조합을 확인합니다. `pnpm pack --dry-run`은 archive에 들어갈 파일을 알려 줍니다. 하지만 둘 다 실제 tarball을 빈 프로젝트에 설치했을 때 package manifest가 어떻게 바뀌는지, local bin이 생기는지, 그 명령이 실행되는지는 보여 주지 못합니다.

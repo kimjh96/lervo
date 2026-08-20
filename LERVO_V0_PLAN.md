@@ -806,9 +806,25 @@ Packed CLI 소비자 설치 계약 완료 조건:
 - Packed manifest에 `workspace:` 좌표나 CLI 자체의 install lifecycle script가 남지 않음
 - 소비자 `node_modules/@lervo`에 CLI 외의 private package가 남지 않음
 - 생성된 local `lervo` 명령으로 version·capability·초기화를 실행함
+- 현재 OS·CPU와 Linux libc에 맞는 Claude native package가 하나만 설치됐는지 확인함
+- Native manifest의 name·version·OS·CPU와 실행 파일의 `--version`을 확인함
 - 첫 설치가 cache miss에서도 항상 offline이라고 주장하지 않고 설치 뒤 명령은 registry·Hub·provider 없이 실행함
 - 성공·실패 모두 임시 archive, consumer project와 초기화 상태를 제거함
 - npm registry 게시·다운로드, 다른 OS의 native SDK와 모든 transitive version 고정을 증명했다고 주장하지 않음
+
+CLI 다중 플랫폼 배포 matrix 계약 완료 조건:
+
+- Packed smoke의 native package 선택 검사가 운영 adapter와 독립된 계산을 사용함
+- macOS·Windows의 arm64/x64, Linux glibc·musl과 미지원 조합을 단위 테스트로 고정함
+- Pull request, main push와 수동 실행에 Ubuntu·macOS·Windows job을 구성함
+- 각 OS job을 `fail-fast: false`, 20분 상한으로 독립 실행함
+- Repository 권한은 contents read뿐이고 checkout credential을 남기지 않음
+- Node 22.13.0과 package manifest의 pnpm version을 사용함
+- 외부 setup action을 전체 commit SHA로 고정함
+- Frozen install, 전체 build, release manifest, packed consumer smoke를 순서대로 실행함
+- Workflow YAML 계약 테스트가 trigger·OS·권한·action·Node·명령 drift를 거부함
+- 로컬 성공을 아직 실행하지 않은 Linux·Windows의 성공으로 표현하지 않음
+- 실패한 OS job을 다른 OS의 성공으로 덮지 않고 새 runtime event·telemetry를 만들지 않음
 
 ## 다음 실행 작업
 
@@ -904,4 +920,6 @@ Canonical CLI release artifact manifest v2 검사를 완료했습니다. Archive
 
 Packed CLI 소비자 설치 계약을 완료했습니다. 실제 tarball을 빈 임시 프로젝트에 설치하고 공개 파일, Node version, 정확한 SDK·peer dependency, private package 부재와 local bin을 확인합니다. 생성된 명령으로 version·capability·초기화를 실행하며 첫 설치의 cache miss를 오프라인 성공으로 과장하지 않습니다. 결정은 [ADR-0088](./docs/adr/0088-packed-cli-consumer-installation.md)에 기록했습니다.
 
-다음 구현 작업은 현재 운영체제 한 곳의 tarball 검사에서 벗어나 Linux·macOS·Windows의 bin과 Claude native package family를 같은 기준으로 확인하는 **CLI 다중 플랫폼 배포 matrix 계약**입니다.
+CLI 다중 플랫폼 배포 matrix 계약을 구성했습니다. Packed smoke는 현재 platform의 Claude native package가 하나만 설치됐는지 확인하고 실제 실행 파일의 version을 읽습니다. Ubuntu·macOS·Windows job은 같은 release manifest와 tarball 소비자 검사를 독립 실행하며 workflow 자체의 권한·action SHA·Node·명령도 로컬 계약 테스트로 고정합니다. 현재 로컬에서는 macOS arm64만 실행됐고 Linux·Windows 성공은 원격 job이 끝나기 전까지 주장하지 않습니다. 결정은 [ADR-0089](./docs/adr/0089-cli-multi-platform-release-matrix.md)에 기록했습니다.
+
+다음 구현 작업은 공개 npm package에 필요한 짧은 설치·첫 실행 안내와 package metadata를 release archive에 포함하되 저장소의 긴 README를 복제하지 않는 **CLI package 사용 안내 계약**입니다.
