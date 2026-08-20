@@ -125,6 +125,7 @@ export async function createCliReleaseManifest(
     private: cliManifest.private,
     access: cliManifest.publishConfig?.access,
     type: cliManifest.type,
+    node: cliManifest.engines?.node,
     bin: cliManifest.bin?.lervo?.replace(/^\.\//, ""),
     files: cliManifest.files,
   };

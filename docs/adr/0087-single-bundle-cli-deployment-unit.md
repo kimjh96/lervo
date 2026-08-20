@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0088](./0088-packed-cli-consumer-installation.md)은 Claude Agent SDK의 peer 세 개도 정확한 직접 dependency로 고정합니다. Bundle 밖 import가 Claude Agent SDK 하나라는 결정은 유지합니다.
+
 ## 맥락
 
 CLI 실행 경로는 24개의 private `@lervo/*` workspace 패키지를 사용합니다. 이 패키지를 모두 따로 게시하면 사용자는 내부 구현 단위까지 설치해야 합니다. 한 번의 CLI 출시에 여러 패키지 버전과 게시 순서도 맞춰야 합니다. 반대로 저장소의 모듈 경계를 없애면 관심사 분리와 독립적인 계약 테스트가 약해집니다.

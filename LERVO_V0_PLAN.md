@@ -763,7 +763,7 @@ Trace bounded-default 0.1.0 release 전환 완료 조건:
 - `lervo --version`이 project storage 없이 CLI package manifest의 semantic version을 한 줄로 반환함
 - 전체 build 뒤 CLI와 외부 production dependency closure만 임시 deploy로 조립함
 - 저장소 밖 cwd에서 설치본 `dist/bin.js`를 실행하고 저장소에서 별도로 빌드한 diagnostics·project-storage로 결과와 fixture 호환성을 확인함
-- 설치 manifest와 `node_modules`에 private `@lervo/*` package가 없고 직접 dependency가 Claude Agent SDK 하나인지 확인함
+- 설치 manifest와 `node_modules`에 private `@lervo/*` package가 없고 직접 dependency가 Claude Agent SDK와 정확히 고정한 peer 세 개인지 확인함
 - 루트·source CLI·설치 manifest version과 `bin.lervo` 좌표가 같지 않으면 실패함
 - 설치본 capability가 기본 page와 빈 deprecation을, 실제 기본 trace가 status 없는 page v1을 반환함
 - 설치본의 명시적 `--full`이 같은 합성 event를 가진 completed full v1을 반환함
@@ -789,12 +789,26 @@ Canonical CLI release artifact manifest v2 완료 조건:
 
 - 개발·타입 검사에서는 기존 workspace package 경계와 project 관계를 유지함
 - 공개 archive에는 내부 package 24개와 Ajv·YAML runtime을 하나의 ESM `dist/bin.js`로 묶음
-- 플랫폼별 native executable을 해석하는 Claude Agent SDK만 bundle 밖의 production dependency로 유지함
+- 플랫폼별 native executable을 해석하는 Claude Agent SDK만 bundle 밖 import로 유지함
+- 공개 package는 Claude Agent SDK와 검증한 peer 세 개를 정확한 production dependency로 제공함
 - CLI package를 public으로 표시하고 private workspace package를 따로 게시하지 않음
 - Bundle metadata에 예상하지 않은 외부 import가 생기거나 production deploy에 `@lervo/*`가 남으면 실패함
 - 설치본에서 version·capability·초기화·기본 page·명시적 full 수직 경계를 실행함
 - CommonJS 기반 dependency가 ESM bundle에서도 동작하도록 Node `createRequire` 호환층을 고정함
 - 새 runtime event·project 상태·telemetry를 추가하지 않음
+
+Packed CLI 소비자 설치 계약 완료 조건:
+
+- Dry-run 목록이 아니라 `pnpm pack`이 만든 실제 tarball을 사용함
+- Package manifest만 있는 빈 임시 소비자 project에 tarball을 일반 dependency로 설치함
+- Pack report와 설치 package가 `package.json`·`dist/bin.js` 두 공개 파일만 가지는지 확인함
+- Public identity, Node `>=22.13`, bin 좌표, shebang과 정확한 SDK·peer dependency를 확인함
+- Packed manifest에 `workspace:` 좌표나 CLI 자체의 install lifecycle script가 남지 않음
+- 소비자 `node_modules/@lervo`에 CLI 외의 private package가 남지 않음
+- 생성된 local `lervo` 명령으로 version·capability·초기화를 실행함
+- 첫 설치가 cache miss에서도 항상 offline이라고 주장하지 않고 설치 뒤 명령은 registry·Hub·provider 없이 실행함
+- 성공·실패 모두 임시 archive, consumer project와 초기화 상태를 제거함
+- npm registry 게시·다운로드, 다른 OS의 native SDK와 모든 transitive version 고정을 증명했다고 주장하지 않음
 
 ## 다음 실행 작업
 
@@ -886,6 +900,8 @@ Trace bounded-default 0.1.0 release 전환을 완료했습니다. 인자 없는 
 
 Canonical CLI release artifact manifest v2 검사를 완료했습니다. Archive는 단일 bundle과 package manifest만 허용하며 bundle에 포함된 workspace package·외부 import, 파일 SHA-256, 공개 package identity, 직접 dependency와 portable production closure를 하나의 교체형 manifest에 결속합니다. Tar metadata와 platform 전용 native package 이름은 portable digest에서 분리하고 기본 검사는 원본을 쓰지 않습니다. 결정은 [ADR-0086](./docs/adr/0086-canonical-cli-release-artifact-manifest.md)과 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)에 기록했습니다.
 
-단일 bundle CLI 배포 단위 계약을 완료했습니다. 내부 runtime package 24개와 Ajv·YAML은 `dist/bin.js`에 들어가고 Claude Agent SDK만 외부 production dependency로 남습니다. 공개 archive는 package manifest를 포함해 2개 파일이며, manifest v2와 설치 smoke가 bundle 경계와 private workspace dependency 부재를 함께 확인합니다. 결정은 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)에 기록했습니다.
+단일 bundle CLI 배포 단위 계약을 완료했습니다. 내부 runtime package 24개와 Ajv·YAML은 `dist/bin.js`에 들어가고 bundle 밖 import는 Claude Agent SDK 하나입니다. 공개 archive는 package manifest를 포함해 2개 파일이며, manifest v2와 설치 smoke가 bundle 경계와 private workspace dependency 부재를 함께 확인합니다. 결정은 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)에 기록했습니다.
 
-다음 구현 작업은 `pnpm deploy`가 아니라 실제 `pnpm pack` tarball을 빈 소비자 project에 설치해 bin shim·package content·offline 실행을 확인하는 **packed CLI 소비자 설치 계약**입니다.
+Packed CLI 소비자 설치 계약을 완료했습니다. 실제 tarball을 빈 임시 프로젝트에 설치하고 공개 파일, Node version, 정확한 SDK·peer dependency, private package 부재와 local bin을 확인합니다. 생성된 명령으로 version·capability·초기화를 실행하며 첫 설치의 cache miss를 오프라인 성공으로 과장하지 않습니다. 결정은 [ADR-0088](./docs/adr/0088-packed-cli-consumer-installation.md)에 기록했습니다.
+
+다음 구현 작업은 현재 운영체제 한 곳의 tarball 검사에서 벗어나 Linux·macOS·Windows의 bin과 Claude native package family를 같은 기준으로 확인하는 **CLI 다중 플랫폼 배포 matrix 계약**입니다.

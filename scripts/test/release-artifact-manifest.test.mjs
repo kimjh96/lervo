@@ -14,10 +14,16 @@ function fixture() {
     private: false,
     access: "public",
     type: "module",
+    node: ">=22.13",
     bin: "dist/bin.js",
     files: ["dist/bin.js"],
   };
-  const directDependencies = ["@anthropic-ai/claude-agent-sdk@0.3.226"];
+  const directDependencies = [
+    "@anthropic-ai/claude-agent-sdk@0.3.226",
+    "@anthropic-ai/sdk@0.117.1",
+    "@modelcontextprotocol/sdk@1.30.0",
+    "zod@4.4.3",
+  ];
   const bundleFields = {
     entry: "apps/cli/src/bin.ts",
     output: "dist/bin.js",
@@ -74,6 +80,24 @@ describe("release artifact manifest", () => {
     assert.throws(
       () => validateReleaseArtifactManifest(manifest),
       { code: "release_artifact_archive_invalid" },
+    );
+  });
+
+  it("rejects a public CLI without the supported Node range", () => {
+    const manifest = fixture();
+    manifest.artifact.node = ">=20";
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_identity_invalid" },
+    );
+  });
+
+  it("rejects an incomplete Claude SDK peer set", () => {
+    const manifest = fixture();
+    manifest.directDependencies.splice(1, 1);
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_dependencies_invalid" },
     );
   });
 

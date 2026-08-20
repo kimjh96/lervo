@@ -6,13 +6,17 @@
     "private": false,
     "access": "public",
     "type": "module",
+    "node": ">=22.13",
     "bin": "dist/bin.js",
     "files": [
       "dist/bin.js"
     ]
   },
   "directDependencies": [
-    "@anthropic-ai/claude-agent-sdk@0.3.226"
+    "@anthropic-ai/claude-agent-sdk@0.3.226",
+    "@anthropic-ai/sdk@0.117.1",
+    "@modelcontextprotocol/sdk@1.30.0",
+    "zod@4.4.3"
   ],
   "bundle": {
     "entry": "apps/cli/src/bin.ts",
@@ -173,5 +177,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:6c94149e7664845e45b8e769d6dc1bfa41b6e243da44f260988e2aaf1d43409c"
+  "artifactDigest": "sha256:4b4f927ea9e5a3fe35435d5b490c7fcd5c0b0f66a0ab26603cfd3399cd58fba7"
 }

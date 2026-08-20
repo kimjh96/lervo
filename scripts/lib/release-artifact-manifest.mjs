@@ -44,6 +44,7 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.private !== false ||
     artifact.access !== "public" ||
     artifact.type !== "module" ||
+    artifact.node !== ">=22.13" ||
     artifact.bin !== "dist/bin.js" ||
     canonicalJson(artifact.files) !== canonicalJson(["dist/bin.js"])
   ) {
@@ -52,8 +53,17 @@ export function validateReleaseArtifactManifest(manifest) {
   if (
     !Array.isArray(manifest.directDependencies) ||
     !isSortedUnique(manifest.directDependencies) ||
-    manifest.directDependencies.length !== 1 ||
-    !/^@anthropic-ai\/claude-agent-sdk@\d+\.\d+\.\d+$/.test(manifest.directDependencies[0])
+    manifest.directDependencies.some((value) =>
+      typeof value !== "string" || !/@\d+\.\d+\.\d+$/.test(value)
+    ) ||
+    canonicalJson(manifest.directDependencies.map((value) =>
+      value.slice(0, value.lastIndexOf("@"))
+    )) !== canonicalJson([
+      "@anthropic-ai/claude-agent-sdk",
+      "@anthropic-ai/sdk",
+      "@modelcontextprotocol/sdk",
+      "zod",
+    ])
   ) {
     fail("release_artifact_dependencies_invalid", "직접 dependency 좌표가 올바르지 않습니다.");
   }
