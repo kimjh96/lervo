@@ -323,6 +323,8 @@ Stale 판정은 verified 시점의 path hash를 현재 전체 snapshot과 비교
 
 Trace capability 조회는 실행 trace 조회와 분리합니다. `@lervo/diagnostics`가 실제 trace 생성기·reader·cursor 상수에서 versioned report를 만들고, CLI는 project storage를 열기 전에 JSON을 반환합니다. 기본·지원 mode와 deprecation 관계는 [ADR-0082](./docs/adr/0082-machine-readable-trace-capabilities.md)에 정의합니다.
 
+기본 mode 전환 검증은 production 분기나 가짜 version flag가 아니라 CLI contract fixture가 담당합니다. 기본 page보다 event가 하나 많은 합성 run 하나에서 암묵적 full, 명시적 full과 두 cursor page를 같은 reader로 확인하며 실제 전환 전후 기대값 변경은 fixture와 capability 계약을 함께 수정해야 합니다. 결정은 [ADR-0083](./docs/adr/0083-trace-default-transition-fixture.md)에 정의합니다.
+
 ### Search, Graph, RAG
 
 초기 원본 모델은 Markdown/OKF, Git revision, 명시적 링크, 실행 이벤트입니다. 여기서 세 가지 파생 뷰를 만듭니다.

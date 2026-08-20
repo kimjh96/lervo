@@ -102,6 +102,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [공통 diagnostics report 호환성 읽기 경계 ADR](./docs/adr/0080-shared-diagnostics-report-compatibility.md)
 - [기본 trace output mode 전환 계약 ADR](./docs/adr/0081-trace-output-mode-deprecation.md)
 - [기계가 읽는 trace capability report ADR](./docs/adr/0082-machine-readable-trace-capabilities.md)
+- [trace 기본값 전환 호환성 fixture ADR](./docs/adr/0083-trace-default-transition-fixture.md)
 
 ## 현재 구현
 

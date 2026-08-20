@@ -739,6 +739,16 @@ Machine-readable trace capability report 완료 조건:
 - Reader가 미지원 version과 구조·관계 손상을 구분하고 입력 원문을 오류에 포함하지 않음
 - 조회가 event, 파일, project 설정이나 현재 기본 mode를 만들거나 변경하지 않음
 
+Trace default transition compatibility fixture 완료 조건:
+
+- 기본 page보다 하나 많은 51개 합성 event로 full과 bounded page를 같은 run에서 구분함
+- 현재 암묵적 JSON이 full v1이고 deprecation code가 정확히 한 번 stderr에 나오는지 고정함
+- 명시적 `--full`이 암묵적 full과 같은 report를 경고 없이 반환하는지 고정함
+- Capability가 선언한 기본 page 크기로 첫 page를 만들고 cursor page까지 seq 중복·누락 없이 읽음
+- Full과 page 결과를 각각 기존 compatibility reader로 검증하고 page에 전체 status가 없음을 확인함
+- Fixture가 production version·기본 mode·event schema나 사용자 project를 바꾸지 않음
+- 0.1.0 전환 시 fixture, capability report와 migration 문서를 한 변경에서 갱신하도록 조건을 명시함
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -821,4 +831,6 @@ Trace output mode deprecation 계약 첫 슬라이스를 완료했습니다. 0.0
 
 Machine-readable trace capability report를 완료했습니다. `lervo trace --capabilities`는 저장소를 열지 않고 현재 기본·지원 mode, report version, 실제 page/full/cursor 상한과 구조화된 deprecation을 v1 JSON으로 반환합니다. Reader는 mode 참조와 상한 관계를 검증하며 오류에 입력 원문을 복사하지 않습니다. 결정은 [ADR-0082](./docs/adr/0082-machine-readable-trace-capabilities.md)에 기록했습니다.
 
-다음 구현 작업은 0.1.0 기본 mode 전환 전에 기존 암묵적 full consumer와 새 page consumer를 각각 재현하고 migration 조건을 자동 검증하는 **trace default transition compatibility fixture**입니다. 이 fixture 자체는 package version이나 현재 기본 mode를 바꾸지 않습니다.
+Trace default transition compatibility fixture를 완료했습니다. 기본 page보다 하나 많은 합성 run에서 현재 암묵적 full, 명시적 full과 두 bounded cursor page를 실제 CLI와 report reader로 재현합니다. 경고 횟수, full stdout equality와 seq 연속성 중 하나라도 달라지면 CI가 실패하며 production version이나 기본 mode는 바꾸지 않습니다. 결정은 [ADR-0083](./docs/adr/0083-trace-default-transition-fixture.md)에 기록했습니다.
+
+다음 구현 작업은 0.1.0에서 인자 없는 trace를 bounded page로 전환할 때 package version, capability default/deprecation, help와 migration 안내를 원자적으로 맞추는 **trace bounded-default release transition**입니다.
