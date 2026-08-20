@@ -42,3 +42,5 @@ jobs:
         run: pnpm release:manifest:check
       - name: Install packed CLI as a consumer
         run: pnpm smoke:packed-cli
+      - name: Publish and install through an isolated registry
+        run: pnpm smoke:registry-publish

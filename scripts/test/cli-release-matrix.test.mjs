@@ -55,6 +55,7 @@ describe("CLI release matrix workflow", () => {
       "pnpm build",
       "pnpm release:manifest:check",
       "pnpm smoke:packed-cli",
+      "pnpm smoke:registry-publish",
     ]);
   });
 });

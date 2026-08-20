@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0091](./0091-cli-registry-publish-preflight.md)은 이 package README와 metadata가 실제 registry publish·좌표 설치 뒤에도 보존되는지 사전검사합니다.
+
 ## 맥락
 
 공개 `@lervo/cli` tarball에는 실행 bundle과 package manifest만 있었습니다. 설치한 사용자는 npm package 화면이나 로컬 설치본에서 준비 조건과 첫 명령을 확인할 수 없고, 저장소의 루트 README는 구현 현황과 90개의 ADR 링크까지 포함해 설치 안내로 사용하기에는 너무 깁니다.

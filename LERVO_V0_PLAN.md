@@ -839,6 +839,21 @@ CLI package 사용 안내 계약 완료 조건:
 - 안내 변경이 runtime event·project 상태·telemetry를 추가하지 않음
 - Registry 게시·다운로드나 문서에 나온 provider 실행 성공을 증명했다고 주장하지 않음
 
+CLI registry 게시 사전검증 계약 완료 조건:
+
+- 검토된 packed tarball과 같은 파일을 임시 registry에 게시함
+- Registry는 loopback 임의 port, 임시 storage와 외부 uplink 없는 설정으로 실행함
+- 모든 package read와 `@lervo/*` publish만 익명으로 허용하고 unpublish와 다른 package 게시를 거부함
+- 상속된 registry·proxy·npm token과 사용자 설정을 제거하고 fixture 전용 설정·cache를 사용함
+- 첫 게시를 `preflight` tag로 요청하고 실제 `preflight`·`latest` 결과를 version과 함께 확인함
+- Registry metadata의 name·version·license와 SHA-512 tarball integrity를 확인함
+- 새 소비자가 tarball path가 아닌 `@lervo/cli@<version>` 좌표를 exact dependency로 설치함
+- 설치된 local bin의 `lervo --version`을 실행함
+- 같은 version 재게시를 `[E409] 409 Conflict`로 거부하고 기존 metadata integrity가 바뀌지 않았는지 다시 확인함
+- 기본 실패가 고정 code·문장만 출력하고 성공·실패 모두 server·storage·archive·consumer·설정을 제거함
+- Linux·macOS·Windows release matrix에서 같은 사전검사를 실행하도록 고정함
+- 외부 SDK dependency의 공개 registry/cache 사용, 실제 npm 권한·게시·출처 증명과 offline 설치를 증명했다고 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -937,4 +952,6 @@ CLI 다중 플랫폼 배포 matrix 계약을 구성했습니다. Packed smoke는
 
 CLI package 사용 안내 계약을 완료했습니다. 저장소의 긴 README를 복제하지 않고 4 KiB 이하 안내서가 Node 준비, 전역 설치, 첫 초기화, dry-run과 help만 설명합니다. 설명·검색어·현재 `UNLICENSED` 상태와 README hash를 release manifest v3에 결속하고 실제 deploy와 tarball 설치본에서 다시 확인합니다. 정해지지 않은 저장소 URL은 만들지 않았습니다. 결정은 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
 
-다음 구현 작업은 로컬 tarball이 아니라 격리된 registry에서 게시·설치 흐름, 배포 tag와 이미 존재하는 version 거부를 확인하되 실제 npm 배포나 credential을 사용하지 않는 **CLI registry 게시 사전검증 계약**입니다.
+CLI registry 게시 사전검증 계약을 완료했습니다. 외부 uplink와 credential이 없는 임시 Verdaccio에 검토된 tarball을 게시하고 metadata·integrity·dist-tag, package 좌표 설치와 local bin을 확인합니다. 같은 version의 재게시를 거부한 뒤 기존 integrity가 유지되는지도 다시 읽으며 이 검사를 Linux·macOS·Windows matrix에 추가했습니다. 외부 SDK dependency는 공개 registry나 cache를 사용할 수 있고 실제 npm 게시 성공은 주장하지 않습니다. 결정은 [ADR-0091](./docs/adr/0091-cli-registry-publish-preflight.md)에 기록했습니다.
+
+다음 구현 작업은 release manifest의 production closure를 표준 형식으로 내보내고 bundle·package identity에 결속하되 실행별 파일을 누적하지 않는 **CLI release SBOM 계약**입니다.

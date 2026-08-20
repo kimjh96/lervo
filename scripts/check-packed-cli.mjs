@@ -9,10 +9,11 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, relative, resolve } from "node:path";
+import { resolve } from "node:path";
 
 import { readJson, repositoryRoot, runPnpm } from "./lib/installed-cli.mjs";
 import { verifyInstalledClaudeNativeRuntime } from "./lib/claude-native-runtime.mjs";
+import { packCliArtifact } from "./lib/packed-cli-artifact.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
@@ -29,28 +30,6 @@ async function collectFiles(directory, prefix = "") {
     }
   }
   return paths.sort();
-}
-
-async function packCli(archiveRoot, expectedVersion) {
-  const { stdout } = await runPnpm([
-    "--filter",
-    "@lervo/cli",
-    "pack",
-    "--pack-destination",
-    archiveRoot,
-    "--json",
-  ]);
-  const report = JSON.parse(stdout);
-  assert.equal(report.name, "@lervo/cli");
-  assert.equal(report.version, expectedVersion);
-  assert.deepEqual(
-    report.files.map(({ path }) => path).sort(),
-    ["README.md", "dist/bin.js", "package.json"],
-  );
-  assert.equal(basename(report.filename), `lervo-cli-${expectedVersion}.tgz`);
-  assert.equal(relative(archiveRoot, report.filename), basename(report.filename));
-  await access(report.filename);
-  return report.filename;
 }
 
 async function installTarball(consumerRoot, tarballPath) {
@@ -173,7 +152,7 @@ async function main() {
     const archiveRoot = resolve(fixtureRoot, "archive");
     const consumerRoot = resolve(fixtureRoot, "consumer");
     await Promise.all([mkdir(archiveRoot), mkdir(consumerRoot)]);
-    const tarballPath = await packCli(archiveRoot, cliManifest.version);
+    const tarballPath = await packCliArtifact(archiveRoot, cliManifest.version);
     await installTarball(consumerRoot, tarballPath);
     await verifyInstalledPackage(consumerRoot, cliManifest.version);
     await verifyPackageGuide(consumerRoot);
