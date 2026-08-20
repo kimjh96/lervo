@@ -42,7 +42,7 @@ async function safeDirectory(path: string, create: boolean): Promise<void> {
 
 type ObservationDirectories = { attempts: string; assessments: string };
 export type ObservationSubdirectory = "assessments" | "attempts" | "evaluation-comparisons" |
-  "engine-selections" | "evaluation-results" | "evaluation-reviews" | "evaluation-runs";
+  "engine-selections" | "evaluation-results" | "evaluation-reviews" | "evaluation-runs" | "rollout-reviews";
 
 async function observationPaths(repositoryRoot: string): Promise<{ state: string; root: string }> {
   try {

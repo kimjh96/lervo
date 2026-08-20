@@ -682,6 +682,12 @@ Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lerv
 
 각 slice는 전체·평가·미평가·수락·실패와 controlled 실패 사유를 독립적으로 집계합니다. 미평가 시도는 수락이나 실패로 추정하지 않고, `no_failures_observed`도 rollout 성공을 뜻하지 않습니다. Report의 `rolloutDecision`, `rollbackDecision`, `embeddingDecision`은 표본 수와 결과에 관계없이 모두 `not_determined`입니다. Report는 파생 조회이며 선택 전이·정책·문서·attempt·assessment를 수정하거나 자동 rollback을 만들지 않습니다. Query·digest·문서 path·본문·prompt·provider 응답·credential은 출력 slice에 추가하지 않습니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)과 [ADR-0064](./docs/adr/0064-selection-bound-operational-search-quality.md)에 기록합니다.
 
+`lervo search rollout review <selection-transition-id> --decision <keep|rollback|more-assessments> --reviewer <reviewer-id>`는 현재 선택 head가 같은 build-bound 후보이고 해당 전이 attempt가 하나 이상 있을 때만 사람 검토 원본을 만듭니다. `keep`, `rollback`, `more-assessments`는 각각 `keep_candidate`, `rollback_recommended`, `more_assessments_required`로 기록합니다. 전체 선택 chain·정책·후보 review·comparison과 attempt·assessment 관계를 먼저 검증하며 과거 전이, baseline, legacy-unbound 후보와 시각 뒤 원본에서는 fail-closed합니다.
+
+`SearchRolloutQualitySnapshot`은 검토 시점의 대상 attempt·assessment ID를 각각 정렬한 목록의 canonical hash, 관측 종료 시각, 전체·평가·미평가·수락·실패와 실패 사유별 수를 내용 기반 ID에 묶습니다. ID 목록 자체와 query 좌표는 복제하지 않습니다. `SearchRolloutReview`는 이 snapshot, project, 선택 전이, candidate·engine·adapter build·후보 review, reviewer·시각과 명시적 판단을 별도 내용 기반 ID에 묶습니다. 최소 표본과 허용 실패 정책이 없으므로 `thresholdPolicyState=not_defined`이며 `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`, `embeddingDecision=not_determined`를 유지합니다.
+
+원본은 `.lervo/state/search/rollout-reviews/<rolloutReviewId>.json`에 최대 256개를 항목별 mode `0600` immutable 파일로 저장합니다. 이후 품질 원본이 추가돼도 기존 파일을 수정하지 않습니다. Raw query·digest, nonce, index·result-set hash, source 좌표·본문, prompt, provider 응답, credential과 verification receipt는 저장하지 않고 새 event와 Hub sync도 만들지 않습니다. 계약·snapshot 불일치는 `invalid_rollout_review`, 현재 후보·attempt·build 자격 부족은 `rollout_review_not_eligible`, 저장 실패는 기존 `observation_*`로 전체 작업을 실패시킵니다. 결정은 [ADR-0065](./docs/adr/0065-human-search-rollout-review.md)에 기록합니다.
+
 ## 검색 추천과 managed context 연결
 
 `SearchRecommendationBatch`는 검증된 `SearchAttempt`, 추천 한도와 `top_ranked-v1` 정책을 하나의 content-bound ID로 묶습니다. 첫 정책은 document hit만 최대 5개 추천하고 순위가 앞선 최대 3개를 선택합니다. 각 추천은 attempt·engine·index·result-set, document ID·검색 당시 content hash·rank·score에 결속됩니다. Skill과 verified knowledge는 해당 원본의 E2 loader 계약이 생기기 전까지 제외합니다. Batch를 다시 검증할 때 추천 순서나 선택 ID가 하나라도 달라지면 전체를 거부합니다.

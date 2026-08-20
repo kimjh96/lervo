@@ -549,6 +549,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 누락된 선택 전이, engine 불일치나 검증할 수 없는 정책·review·comparison chain에서 일부 report를 반환하지 않음
 - Query·digest·문서 좌표·receipt를 출력 slice에 추가하거나 새 파일·event·Hub 원본을 만들지 않음
 
+사람의 검색 rollout 검토 첫 슬라이스 완료 조건:
+
+- 현재 선택된 build-bound 후보 전이와 하나 이상의 실제 attempt만 검토 대상으로 허용함
+- 선택 전이·candidate·engine·adapter build·후보 review와 reviewer·검토 시각을 내용 기반 원본에 결속함
+- 검토 시점의 대상 attempt·assessment ID 목록 hash와 전체·평가·미평가·수락·실패 집계를 별도 snapshot ID로 고정함
+- `keep_candidate`, `rollback_recommended`, `more_assessments_required`를 사람의 명시적 판단으로만 기록함
+- 명시적 정책 없이 최소 표본·허용 실패 기준이나 판단 eligibility를 계산하지 않음
+- 검토에 `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`를 고정함
+- 검토 뒤 attempt·assessment가 추가돼도 기존 snapshot과 검토 파일을 수정하지 않음
+- 최대 256개 검토를 항목별 immutable mode `0600` 파일로 보존하고 한 파일에 이력을 누적하지 않음
+- Rollback 뒤 기존 검토를 보존하되 과거 전이에 새 검토를 만들지 않음
+- Query·digest·문서 좌표·본문·provider 결과·credential을 저장하거나 새 event·Hub 원본을 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -595,4 +608,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 선택에 결속된 운영 검색 품질 관측 첫 슬라이스를 완료했습니다. 기존 전체 합계와 함께 전이 없는 baseline, build-bound candidate와 rollback baseline을 선택 전이별 slice로 분리합니다. Build ID는 attempt에 복제하지 않고 검증된 review에서 파생하며 평가되지 않은 시도는 미평가로 남습니다. 수락·실패 관측과 관계없이 rollout·rollback·embedding 판단은 모두 미결정이고 report는 선택 상태를 바꾸지 않습니다. 결정은 [ADR-0064](./docs/adr/0064-selection-bound-operational-search-quality.md)에 기록했습니다.
 
-다음 구현 작업은 이 관측을 사람이 검토해 `keep_candidate`, `rollback_recommended`, `more_assessments_required` 중 하나를 별도 immutable 원본으로 남기는 **검색 rollout 검토 계약**입니다. 검토는 선택 전이·build·report 입력 snapshot과 reviewer에 결속하되 실제 rollback을 실행하거나 승인으로 위장하지 않아야 합니다. 최소 표본과 허용 실패 기준은 명시적 정책 없이는 추정하지 않습니다.
+사람의 검색 rollout 검토 첫 슬라이스를 완료했습니다. 현재 build-bound 후보 전이의 attempt·assessment 입력 hash와 집계를 시점 snapshot으로 고정하고, reviewer의 후보 유지·롤백 권고·추가 평가 필요 판단을 별도 immutable 원본으로 남깁니다. 기준 정책이 없으므로 표본과 실패 수치에서 판단을 추정하지 않으며 검토는 선택 변경·rollback·승인을 실행하지 않습니다. 결정은 [ADR-0065](./docs/adr/0065-human-search-rollout-review.md)에 기록했습니다.
+
+다음 구현 작업은 rollout 검토 원본을 현재 선택과 함께 bounded하게 조회하고, 이후 추가된 품질 원본으로 snapshot이 달라졌는지 표시하는 **검색 rollout 검토 상태 조회 계약**입니다. 조회는 과거 판단을 다시 계산하거나 최신 검토를 자동 승인으로 선택하지 않으며, 실제 선택 변경은 계속 별도 명령으로만 수행합니다.

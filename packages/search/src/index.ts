@@ -29,5 +29,8 @@ export * from "./normalize.js";
 export * from "./recommendation.js";
 export * from "./report.js";
 export * from "./selection-quality-report.js";
+export * from "./rollout-quality-snapshot.js";
+export * from "./rollout-review.js";
+export * from "./rollout-review-types.js";
 export * from "./types.js";
 export * from "./validation.js";

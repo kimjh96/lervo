@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택 전이 첫 슬라이스 완료 (2026-08-20)
+현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·사람의 rollout 검토 첫 슬라이스 완료 (2026-08-20)
 
 ## 목표
 
@@ -84,6 +84,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [선택된 검색 후보의 검증 원본 갱신 ADR](./docs/adr/0062-selected-search-candidate-evidence-refresh.md)
 - [검색 adapter build identity와 재생성 가능한 검증 receipt ADR](./docs/adr/0063-search-adapter-build-identity-and-replay-receipt.md)
 - [선택에 결속된 운영 검색 품질 관측 ADR](./docs/adr/0064-selection-bound-operational-search-quality.md)
+- [사람의 검색 rollout 검토와 실행 경계 ADR](./docs/adr/0065-human-search-rollout-review.md)
 
 ## 현재 구현
 
@@ -137,9 +138,9 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/deliberation-runtime`: 역할별 managed run의 E2/E3·event 원본, writing permit, shared-context handoff와 구조화 artifact 기록을 연결하는 공급자 중립 숙의 runtime
 - `@lervo/knowledge`: converged 결과의 claim별 CAS candidate, 사람 review 승인 원본, 현재 revision·path hash에 묶인 verified 원본과 review interval·path 변경 기반 stale 판정을 분리하는 지식 수명주기 경계
 - `@lervo/knowledge-graph`: allowlist event의 명시적 ID·경로만 provider·저장소와 무관하게 안정된 node·relation·evidence로 투영하는 재생성 가능한 파생 경계
-- `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음, 명시적 품질 평가와 준비된 표본의 후보 비교·검토·정책 기반 선택 전이 계약을 제공하는 공급자 중립 경계
+- `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음, 명시적 품질 평가와 준비된 표본의 후보 비교·검토·정책 기반 선택 전이·사람의 rollout 검토 계약을 제공하는 공급자 중립 경계
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
-- `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하는 adapter
+- `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 검토를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고 항목별 `healthy`·`unhealthy`·`unknown` 결과를 조합하는 로컬 진단 경계
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 문서·스킬·provider 실행 환경을 분리하는 `doctor`와 로컬 `search`·명시적 `assess`·품질 `report` 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
@@ -175,6 +176,7 @@ lervo search engine policy create --reviewer reviewer-search --operator operator
 lervo search engine activate <review-id> --policy <policy-id> --operator operator-search
 lervo search engine refresh <review-id> --policy <policy-id> --operator operator-search
 lervo search engine status
+lervo search rollout review <selection-transition-id> --decision more-assessments --reviewer reviewer-search
 lervo search engine rollback --policy <policy-id> --operator operator-search
 ```
 
@@ -185,6 +187,8 @@ lervo search engine rollback --policy <policy-id> --operator operator-search
 `search review`는 비교 ID, 검토자와 `adopt`, `reject`, `more-samples` 중 하나를 명시적으로 받습니다. 현재 bundle·case·corpus와 두 실행을 비교 원본에 다시 맞추고, 비교에 기록된 것과 같은 adapter build로 후보를 같은 시각과 조건에서 재실행한 뒤에만 검토 파일을 따로 남깁니다. 채택 검토는 후보 승리가 있고 baseline 회귀가 없는 비교에서만 가능하지만, 이 상태도 운영 검색 활성화가 아닙니다.
 
 `search report`는 전체 시도·평가·실패 집계와 함께 선택 전이별 관측을 보여 줍니다. 전이 없는 기본 lexical, 후보 선택과 rollback baseline을 분리하고 후보는 immutable review에서 adapter build ID를 다시 찾습니다. Attempt나 assessment에 build·receipt를 복제하지 않으며, 평가되지 않은 시도는 그대로 미평가로 남깁니다. 수락만 관측되거나 실패가 있어도 rollout·rollback과 임베딩 판단은 자동으로 만들지 않습니다.
+
+`search rollout review`는 현재 선택된 후보 전이의 관측을 사람이 `keep`, `rollback`, `more-assessments` 중 하나로 검토해 별도 파일로 남깁니다. 당시 attempt·assessment 입력과 집계를 snapshot으로 고정하지만 최소 표본이나 허용 실패 기준을 추정하지 않습니다. `rollback`은 롤백 권고일 뿐 실제 `engine rollback`을 실행하지 않고, 어떤 판단도 승인으로 사용하지 않습니다.
 
 `search engine policy create`는 허용 reviewer·operator·candidate와 최소 후보 승리를 정책별 YAML로 만듭니다. `engine activate`는 현재 비교·검토·후보 replay와 정책을 모두 다시 확인한 뒤 이전 선택과 rollback 좌표를 별도 immutable 전이로 기록합니다. 선택 뒤 문서가 달라지면 후보를 자동 신뢰하지 않습니다. 새 비교와 검토를 만든 다음 `engine refresh`로 같은 후보의 검증 원본을 새 전이에 연결해야 합니다. 이 갱신의 안전 fallback은 baseline이며, 실패하면 기존 fail-closed 상태를 유지합니다. `engine rollback`도 기존 원본을 수정하지 않고 전이에 명시된 fallback으로 돌아가는 새 전이를 만듭니다. 일반 검색과 managed context는 같은 검증 resolver로 현재 선택을 소비합니다. 선택 chain·정책·후보 등록·adapter build·현재 corpus와 replay 중 하나라도 맞지 않으면 lexical 결과로 조용히 대체하지 않고 실패합니다. 성공한 후보 검증은 원본에서 다시 만들 수 있는 receipt ID로 상태에 표시되며 별도 원본 파일로 쌓이지 않습니다. 이 receipt는 replay 검증 좌표일 뿐 검색 실행, 결과 사용이나 품질을 뜻하지 않습니다. 기존 v1 비교·검토·선택 파일과 선택 전이 ID가 없던 추천 event는 원본 ID·hash를 바꾸지 않고 계속 읽습니다. Evaluation baseline은 비교 기준인 `lexical-v1`을 유지합니다.
 

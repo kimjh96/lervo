@@ -1,0 +1,46 @@
+import { resolve } from "node:path";
+
+import {
+  assertSearchRolloutReview,
+  type SearchRolloutReview,
+} from "@lervo/search";
+
+import {
+  existingObservationSubdirectory,
+  listObservations,
+  prepareObservationSubdirectory,
+  writeObservation,
+} from "./observation-files.js";
+import { SearchLocalError } from "./types.js";
+
+const MAX_ROLLOUT_REVIEWS = 256;
+const ROLLOUT_REVIEW_FILE = /^srrv_[a-f0-9]{24}\.json$/;
+
+export async function listStoredSearchRolloutReviews(repositoryRoot: string): Promise<SearchRolloutReview[]> {
+  const directory = await existingObservationSubdirectory(repositoryRoot, "rollout-reviews");
+  if (directory === null) return [];
+  const reviews = await listObservations<SearchRolloutReview>({
+    path: directory,
+    pattern: ROLLOUT_REVIEW_FILE,
+    assertValue: assertSearchRolloutReview,
+    expectedFileName: (review) => `${review.rolloutReviewId}.json`,
+  });
+  if (reviews.length > MAX_ROLLOUT_REVIEWS) {
+    throw new SearchLocalError("observation_limit_exceeded", "검색 rollout 검토 원본이 256개를 넘었습니다.");
+  }
+  return reviews;
+}
+
+export async function recordSearchRolloutReview(
+  repositoryRoot: string,
+  review: SearchRolloutReview,
+): Promise<void> {
+  assertSearchRolloutReview(review);
+  const existing = await listStoredSearchRolloutReviews(repositoryRoot);
+  if (existing.length >= MAX_ROLLOUT_REVIEWS &&
+    !existing.some((item) => item.rolloutReviewId === review.rolloutReviewId)) {
+    throw new SearchLocalError("observation_limit_exceeded", "검색 rollout 검토 원본이 256개를 넘었습니다.");
+  }
+  const directory = await prepareObservationSubdirectory(repositoryRoot, "rollout-reviews");
+  await writeObservation(resolve(directory, `${review.rolloutReviewId}.json`), review);
+}
