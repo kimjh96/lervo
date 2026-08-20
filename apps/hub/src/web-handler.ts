@@ -28,6 +28,12 @@ interface HubWebAsset {
 
 const assetDefinitions = [
   ["/trace", "trace.html", "text/html; charset=utf-8"],
+  ["/control", "control.html", "text/html; charset=utf-8"],
+  ["/assets/control.css", "control.css", "text/css; charset=utf-8"],
+  ["/assets/control-api.js", "control-api.js", "text/javascript; charset=utf-8"],
+  ["/assets/control-coordinates.js", "control-coordinates.js", "text/javascript; charset=utf-8"],
+  ["/assets/control.js", "control.js", "text/javascript; charset=utf-8"],
+  ["/assets/control-render.js", "control-render.js", "text/javascript; charset=utf-8"],
   ["/assets/trace-base.css", "trace-base.css", "text/css; charset=utf-8"],
   ["/assets/trace-workspace.css", "trace-workspace.css", "text/css; charset=utf-8"],
   ["/assets/trace-responsive.css", "trace-responsive.css", "text/css; charset=utf-8"],
@@ -68,7 +74,7 @@ function send(
   response.end(body);
 }
 
-export function createHubTraceWebHandler() {
+export function createHubWebHandler() {
   const assets = loadAssets();
 
   return function handleHubTraceWebRequest(
@@ -99,3 +105,5 @@ export function createHubTraceWebHandler() {
     return true;
   };
 }
+
+export const createHubTraceWebHandler = createHubWebHandler;

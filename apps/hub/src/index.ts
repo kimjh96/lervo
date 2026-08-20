@@ -1,4 +1,6 @@
 export * from "./auth.js";
+export * from "./control-handler.js";
+export * from "./control-request.js";
 export * from "./cursor.js";
 export * from "./handler.js";
 export * from "./identifiers.js";

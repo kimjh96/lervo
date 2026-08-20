@@ -125,8 +125,12 @@ export function createHubPolicyHttpHandler(options: HubPolicyHttpHandlerOptions)
       const inScope = principal.projects.some((project) =>
         project.destinationId === query.destinationId && project.projectId === route.projectId
       );
-      const permission = route.kind === "bundle" ? "policy.read" : "policy.write";
-      if (!inScope || !principal.permissions.includes(permission)) {
+      const permitted = route.kind === "bundle"
+        ? principal.permissions.includes("policy.read")
+        : route.kind === "snapshots"
+          ? principal.permissions.includes("policy.write")
+          : principal.permissions.includes("approval.write") || principal.permissions.includes("policy.write");
+      if (!inScope || !permitted) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
         return;
       }

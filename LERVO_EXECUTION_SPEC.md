@@ -812,6 +812,32 @@ Delivery port는 Slack OAuth 또는 Discord bot token을 소유합니다. API �
 
 `apps/conversation`은 CAS, mapping/replay SQLite, Slack signed ingress·OAuth delivery와 Discord Gateway authentication port·bot-token delivery를 application 경계에서 조합합니다. Discord Gateway WebSocket의 Identify, Resume, heartbeat와 reconnect driver 자체는 아직 제공하지 않으며 인증 port 주입이 필요합니다. 인증·scope·payload 실패는 각각 `platform_authentication_failed`, `invalid_platform_payload`, `unsupported_platform_event`, mapping·CAS·전송 실패는 `identity_mapping_failed`, `artifact_storage_failed`, `platform_delivery_failed`로 fail-closed합니다. `unknown` delivery도 `platform_delivery_failed`이며 receipt와 `delivered` 상태를 만들지 않습니다. 새 전역 event와 interaction 상태는 추가하지 않습니다. 결정은 [ADR-0049](./docs/adr/0049-durable-conversation-deployment.md)에 기록합니다.
 
+### 대화 command 조회와 별도 Hub 승인
+
+Conversation control responder는 본문 artifact를 다시 확인하고 아래 두 형식만 처리합니다.
+
+- `/lervo command <rcd_delivery_id>`: command와 현재 승인 상태를 조회합니다.
+- `/lervo approval <rcd_delivery_id>`: 같은 상태와 별도 Hub 검토 주소를 반환합니다.
+
+자연어 요청, reaction, interactive action과 모델 분류 결과는 이 명령을 대신하지 않습니다. Project·participant마다 Hub principal·destination과 `command.read`·`approval.review` binding을 구성합니다. Human actor와 binding이 정확히 맞아야 조회하며, 응답은 `chat` writing 평가·permit를 통과한 새 Markdown CAS artifact입니다. 응답 원문은 interaction outbox를 통해서만 플랫폼 adapter로 전달하고 responder가 직접 Slack, Discord나 자체 채팅 transport를 호출하지 않습니다.
+
+Approval 검토 주소는 `destinationId`, `projectId`, `deliveryId`, `reviewGrant`를 URL fragment에 둡니다. Grant는 HMAC-SHA256으로 principal과 세 좌표, 만료 시각에 결속되고 principal 원문을 포함하지 않습니다. 기본 TTL은 600초, 구성 상한은 3,600초입니다. Browser는 fragment를 읽은 즉시 `history.replaceState`로 주소에서 제거합니다. `GET /v1/control/projects/<projectId>/commands/<deliveryId>?destinationId=...`는 bearer project scope와 `command.read`, `x-lervo-control-review`가 같은 bearer principal에 결속됐는지 확인한 뒤에만 source를 읽습니다.
+
+Review 응답의 필수 필드는 schema version, destination/project와 project identity hash, delivery ID·command ID·상태·시도 횟수·queue/만료/terminal 시각, role·provider·risk·verification suite·발급/만료 시각, 현재 snapshot ID·최대 승인 만료·철회 이력 여부, capability·repository path별 approval ID와 검사 시각입니다. Browser UI는 approval ID를 표시하지 않습니다. Request artifact·본문, command hash·signature, approver subject hash·principal, policy signature와 내부 오류는 응답에 없습니다.
+
+Approval 파생 상태는 다음과 같습니다.
+
+- `unavailable`: 현재 policy snapshot을 확인할 수 없습니다.
+- `denied`: 같은 role·risk rule 중 deny가 있습니다.
+- `not_required`: require-approval rule이 없습니다.
+- `approval_required`: 필요한 범위에 유효한 승인이 없습니다.
+- `partially_approved`: 필요한 범위 중 일부만 유효합니다.
+- `approved`: 필요한 모든 범위에 현재 유효한 승인이 있습니다.
+
+이 상태와 `hadRevokedApproval`은 command·snapshot·approval·revocation 원본에서 계산하는 read model이며 새 저장 상태나 실행 event가 아닙니다. `/control` shell에는 데이터와 credential이 없고 token은 현재 탭 메모리에만 둡니다. 실제 승인 버튼은 기존 `POST /v1/policy/projects/<projectId>/approvals`를 호출합니다. 따라서 review grant는 승인 capability가 아니며, 재인증 bearer가 같은 project scope와 `approval.write` 또는 기존 `policy.write`를 가질 때만 Hub clock과 signer가 기존 command-bound approval 원본을 만듭니다.
+
+대화 경계 실패는 `control_command_invalid`, `control_access_denied`, `control_source_failed`, `message_artifact_invalid`, `writing_publication_blocked`입니다. HTTP의 잘못된 좌표는 `400`, 인증 없음은 `401`, scope·permission·principal/grant 불일치는 `403`, command 부재는 `404`, source 불일치는 `500`입니다. 오류에는 token, grant, principal, request artifact, command 원본과 내부 예외를 넣지 않습니다. 이 기능은 새 전역 event를 추가하지 않으며 상태 조회·링크 발급·승인 작성이 Node 실행, `loaded`, `injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.

@@ -82,3 +82,36 @@ describe("Hub trace web view", () => {
     expect(querySource.listProjects).not.toHaveBeenCalled();
   });
 });
+
+describe("Hub command control web view", () => {
+  it("serves a data-free reauthentication shell with memory-only credentials", async () => {
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
+    const page = await fetch(`${base}/control`);
+    const html = await page.text();
+    const scriptPaths = [
+      "/assets/control-api.js",
+      "/assets/control-coordinates.js",
+      "/assets/control-render.js",
+      "/assets/control.js",
+    ];
+    const scriptResponses = await Promise.all(scriptPaths.map((path) => fetch(`${base}${path}`)));
+    const scripts = await Promise.all(scriptResponses.map((response) => response.text()));
+    const script = scripts.join("\n");
+
+    expect(page.status).toBe(200);
+    expect(page.headers.get("cache-control")).toBe("no-store");
+    expect(html).toContain("대화 메시지나 반응만으로 승인이 만들어지지 않습니다.");
+    expect(html).toContain('src="/assets/control.js"');
+    expect(html).not.toContain(token);
+    expect(scriptResponses.every((response) => response.status === 200)).toBe(true);
+    expect(script).toContain("x-lervo-control-review");
+    expect(script.match(/x-lervo-control-review/g)).toHaveLength(1);
+    expect(script).toContain("/v1/policy/projects/");
+    expect(script).toContain("history.replaceState");
+    expect(script).not.toContain("localStorage");
+    expect(script).not.toContain("sessionStorage");
+    expect(script).not.toContain("innerHTML");
+    expect(querySource.listProjects).not.toHaveBeenCalled();
+  });
+});

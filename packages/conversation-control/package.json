@@ -1,0 +1,29 @@
+{
+  "name": "@lervo/conversation-control",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/hub-control": "workspace:*",
+    "@lervo/interaction": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/writing": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/cas": "workspace:*",
+    "@lervo/conversation-contract": "workspace:*",
+    "@lervo/core": "workspace:*"
+  }
+}

@@ -330,7 +330,7 @@ fixtures/
 3. Managed conversation responder bridge — 완료
 4. Slack/Discord 인증 adapter — 완료
 5. Conversation 배포 조합과 durable identity/delivery replay — 완료
-6. Hub command/approval 대화 UX
+6. Hub command/approval 대화 UX — 완료
 7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
 8. 명시적 관계 기반 지식 그래프 시각화
 9. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
@@ -354,6 +354,16 @@ Conversation 배포 조합 완료 조건:
 - 확인하지 못한 전송은 자동 재발송하지 않고 receipt와 interaction `delivered`를 만들지 않음
 - Discord Gateway driver가 주입되지 않은 상태를 실제 Gateway 배포 완료로 표시하지 않음
 
+Hub command/approval 대화 UX 완료 조건:
+
+- 자연어와 reaction을 승인 명령으로 해석하지 않고 명시적 `/lervo command`, `/lervo approval`만 처리함
+- 대화 participant와 Hub principal·project·destination binding이 없으면 command source를 읽지 않음
+- 짧게 만료되는 review grant가 같은 principal과 command 좌표에 결속되며 다른 bearer·command와 만료 뒤 재사용되지 않음
+- 대화 응답은 승인 미생성을 명시하고 `chat` writing 검증을 통과하며 플랫폼 transport를 직접 호출하지 않음
+- `/control`은 token을 탭 메모리에만 두고 별도 bearer 인증과 `approval.write` 뒤에만 기존 signed approval을 만듦
+- Review 응답과 오류에 request artifact, command hash·signature, approver subject hash, principal, token과 grant가 노출되지 않음
+- 실제 SQLite·HTTP fixture가 승인 없음, 일부 승인, 전체 승인과 철회 뒤 상태를 원본에서 다시 계산함
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -370,4 +380,6 @@ Slack·Discord 인증 conversation adapter를 완료했습니다. 공통 `@lervo
 
 Conversation 배포 조합을 완료했습니다. `@lervo/conversation-platform-sqlite`는 외부 주소·participant·thread의 가역 mapping, inbound/outbound correlation과 delivery replay를 interaction DB 밖에 보존합니다. `apps/conversation`은 이 저장소와 CAS, Slack OAuth Web API, Discord bot-token REST transport와 인증된 Gateway port를 조합합니다. 재시작 뒤 답글과 automation depth가 복원되며 확인하지 못한 API 응답은 `unknown`으로 남겨 자동 재전송하지 않습니다. 실제 Discord Gateway WebSocket driver와 `unknown` 운영자 reconciliation은 완료로 주장하지 않습니다. 결정은 [ADR-0049](./docs/adr/0049-durable-conversation-deployment.md)에 기록했습니다.
 
-다음 구현 작업은 Hub command/approval을 같은 대화 표면에서 조회하고 요청하되, 대화 actor와 Hub principal을 명시적으로 결속하고 승인 원본을 채팅 반응만으로 추정하지 않는 UX입니다.
+Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-control`은 명시적 command만 처리하고 project·participant를 Hub principal에 결속합니다. 짧게 만료되는 HMAC review grant는 같은 principal로 재인증한 `/control` 조회에만 쓰이며 승인 권한이 아닙니다. 실제 signed approval은 별도 bearer의 `approval.write`와 기존 Hub policy 작성 경계를 통과해야 생깁니다. 대화 응답 writing gate, grant principal·command·만료 결속, SQLite approval 없음·일부·전체·철회 전이를 실제 HTTP fixture로 확인했습니다. 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록했습니다.
+
+다음 구현 작업은 연구자·마케터·디자이너 RoleProfile과 평가 묶음을 기존 provider-neutral 실행·writing·숙의 계약에 연결하고, 고위험 요청의 필수 교차 검토 정책을 확장하는 일입니다.

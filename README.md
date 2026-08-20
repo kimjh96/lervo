@@ -69,6 +69,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [역할별 managed 대화 응답과 공개 증거 ADR](./docs/adr/0047-managed-conversation-responder.md)
 - [Slack·Discord 인증 대화 adapter 경계 ADR](./docs/adr/0048-authenticated-platform-conversation-adapters.md)
 - [재시작 가능한 대화 배포 조합 ADR](./docs/adr/0049-durable-conversation-deployment.md)
+- [principal에 결속된 대화 command 검토와 별도 승인 ADR](./docs/adr/0050-principal-bound-conversation-command-review.md)
 
 ## 현재 구현
 
@@ -76,6 +77,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
 - `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge
+- `@lervo/conversation-control`: 명시적 command만 해석하고 대화 participant를 Hub principal에 결속한 뒤, writing 검증된 상태·승인 검토 응답을 만드는 플랫폼 중립 responder. 채팅에서 approval 원본을 만들지 않음
 - `@lervo/interaction-sqlite`: 재시작 가능한 inbox·decision·outbox lease와 되돌릴 수 없는 완료·전달 상태를 보존하는 append-only SQLite adapter. 대화 본문과 외부 식별자 원문은 저장하지 않음
 - `@lervo/adapter-native-chat`: 자체 채팅 서비스의 inbound mapping과 delivery port를 공통 conversation 계약에 연결하는 transport 독립 adapter
 - `@lervo/conversation-platform`: 외부 식별자 mapping, CAS 본문 저장·복원, descriptor와 delivery receipt를 Slack·Discord가 공유하는 플랫폼 경계
@@ -91,7 +93,8 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/hub-sync`: commit 뒤 resolve하는 registration·event batch와 원격 command enqueue·lease·acknowledgement application port. 전체 state와 저장 transaction callback은 공개하지 않음
 - `@lervo/hub-sync-sqlite`: destination·project별 registration, append-only event inbox·연속 cursor, 원격 command queue와 정책 snapshot·승인·철회 원본을 durable transaction으로 저장하는 adapter. 정책 원본은 별도 repository에서 command 원본 관계와 연속 snapshot chain을 감사함
 - `@lervo/hub-trace`: 기본 50·최대 100개의 cursor page로 project, run과 event timeline을 읽는 파생 query 경계. Cursor 이하 `continuous`와 gap 뒤 `buffered` event를 구분하며 project 목록에는 event payload를 포함하지 않음
-- `@lervo/hub`: bearer credential을 `trace.read`, `policy.read`, `policy.write`와 project scope에 결속하는 HTTP adapter. Bounded trace와 `/trace` web view에 더해 Hub 시각으로 정책 원본을 작성하고 순차 bundle을 제공하며, 고정 오류·no-store·요청/응답 byte 한도와 Hub identity header를 적용
+- `@lervo/hub-control`: durable command와 현재 signed policy 원본에서 민감정보 없는 승인 검토 view와 principal·command·만료 시각에 결속된 HMAC review grant를 만드는 경계
+- `@lervo/hub`: bearer credential을 `trace.read`, `policy.read`, `policy.write`, `command.read`, `approval.write`와 project scope에 결속하는 HTTP adapter. Bounded trace와 `/trace`, 재인증 `/control` web view에 더해 Hub 시각으로 정책 원본을 작성하고 순차 bundle을 제공하며, 고정 오류·no-store·요청/응답 byte 한도와 Hub identity header를 적용
 - `@lervo/remote-command-contract`: 원문 대신 bounded artifact 좌표를 가진 `managed_run` command, canonical command ID/hash, Ed25519 서명 envelope와 terminal execution receipt를 정의하는 transport·실행 중립 계약
 - `@lervo/remote-command`: 신뢰 key의 project scope, 서명, receiver identity, 짧은 유효 기간, nonce/idempotency replay, 로컬 정책과 payload hash를 실행 전에 확인하는 Node 수신 경계. 인증된 Hub transport port에서 lease를 pull하고 terminal acknowledgement를 보내는 reconnect worker 포함
 - `@lervo/remote-command-sqlite`: project ID·identity hash에 고정된 Node replay 좌표와 terminal receipt를 보존하는 bounded SQLite adapter. Raw request와 command envelope은 저장하지 않음

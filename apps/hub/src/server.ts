@@ -1,11 +1,15 @@
 import { createServer, type Server } from "node:http";
 
+import {
+  createHubControlHttpHandler,
+  type HubControlHttpHandlerOptions,
+} from "./control-handler.js";
 import { createHubTraceHttpHandler, type HubTraceHttpHandlerOptions } from "./handler.js";
 import {
   createHubPolicyHttpHandler,
   type HubPolicyHttpHandlerOptions,
 } from "./policy-handler.js";
-import { createHubTraceWebHandler } from "./web-handler.js";
+import { createHubWebHandler } from "./web-handler.js";
 
 export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Server {
   return createHubServer({ trace: options });
@@ -14,15 +18,21 @@ export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Serve
 export function createHubServer(options: {
   trace: HubTraceHttpHandlerOptions;
   policy?: HubPolicyHttpHandlerOptions;
+  control?: HubControlHttpHandlerOptions;
 }): Server {
   const traceHandler = createHubTraceHttpHandler(options.trace);
   const policyHandler = options.policy === undefined
     ? undefined
     : createHubPolicyHttpHandler(options.policy);
-  const webHandler = createHubTraceWebHandler();
+  const controlHandler = options.control === undefined
+    ? undefined
+    : createHubControlHttpHandler(options.control);
+  const webHandler = createHubWebHandler();
   return createServer((request, response) => {
     if (webHandler(request, response)) return;
-    if (request.url?.startsWith("/v1/policy/") && policyHandler !== undefined) {
+    if (request.url?.startsWith("/v1/control/") && controlHandler !== undefined) {
+      void controlHandler(request, response);
+    } else if (request.url?.startsWith("/v1/policy/") && policyHandler !== undefined) {
       void policyHandler(request, response);
     } else {
       void traceHandler(request, response);

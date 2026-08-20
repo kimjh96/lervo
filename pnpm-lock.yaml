@@ -80,6 +80,9 @@ importers:
 
   apps/hub:
     dependencies:
+      '@lervo/hub-control':
+        specifier: workspace:*
+        version: link:../../packages/hub-control
       '@lervo/hub-policy':
         specifier: workspace:*
         version: link:../../packages/hub-policy
@@ -220,6 +223,34 @@ importers:
       '@lervo/writing-contract':
         specifier: workspace:*
         version: link:../writing-contract
+
+  packages/conversation-control:
+    dependencies:
+      '@lervo/hub-control':
+        specifier: workspace:*
+        version: link:../hub-control
+      '@lervo/interaction':
+        specifier: workspace:*
+        version: link:../interaction
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
+    devDependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../conversation-contract
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/conversation-platform:
     dependencies:
@@ -409,6 +440,18 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+
+  packages/hub-control:
+    dependencies:
+      '@lervo/hub-policy':
+        specifier: workspace:*
+        version: link:../hub-policy
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../hub-sync
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/hub-policy:
     dependencies:

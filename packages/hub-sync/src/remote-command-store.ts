@@ -23,6 +23,7 @@ export interface HubRemoteCommandEnqueueResult {
 
 export interface HubRemoteCommandDeliveryState {
   deliveryId: string;
+  destinationId: string;
   commandId: string;
   commandHash: string;
   target: RemoteCommandTarget;

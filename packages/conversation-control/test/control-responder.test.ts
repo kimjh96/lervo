@@ -1,0 +1,214 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
+import { FileSystemCas } from "@lervo/cas";
+import {
+  createConversationInboundEvent,
+  createConversationParticipationDecision,
+  createConversationParticipationPolicy,
+  hashConversationSourceEventKey,
+} from "@lervo/conversation-contract";
+import { defaultKoreanWritingContract } from "@lervo/core";
+import { HubControlReviewGrants, type HubCommandReview } from "@lervo/hub-control";
+import type { WritingSemanticEvaluator } from "@lervo/writing";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import {
+  ConfiguredConversationHubControl,
+  ConversationControlResponder,
+  parseConversationControlCommand,
+} from "../src/index.js";
+
+const roots: string[] = [];
+const deliveryId = `rcd_${"a".repeat(64)}`;
+
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+function review(): HubCommandReview {
+  return {
+    schemaVersion: 1,
+    destinationId: "hub:primary",
+    projectId: "prj_control01",
+    projectIdentityHash: `sha256:${"b".repeat(64)}`,
+    delivery: {
+      deliveryId,
+      commandId: `rcm_${"c".repeat(64)}`,
+      status: "pending",
+      attemptCount: 0,
+      queuedAt: "2026-08-20T00:00:00.000Z",
+      expiresAt: "2026-08-20T01:00:00.000Z",
+      terminalAt: null,
+    },
+    command: {
+      roleId: "developer",
+      provider: "codex",
+      risk: "medium",
+      verificationSuiteIds: ["repo.check"],
+      issuedAt: "2026-08-20T00:00:00.000Z",
+      expiresAt: "2026-08-20T01:00:00.000Z",
+    },
+    approval: {
+      state: "approval_required",
+      snapshotId: `pols_${"d".repeat(64)}`,
+      maximumExpiresAt: "2026-08-20T00:50:00.000Z",
+      hadRevokedApproval: false,
+      options: [{ capability: "filesystem.write", repositoryPaths: ["src/result.ts"], approvalId: null }],
+    },
+    inspectedAt: "2026-08-20T00:05:00.000Z",
+  };
+}
+
+function evaluator(): WritingSemanticEvaluator {
+  return {
+    async evaluate(request) {
+      return {
+        evaluator: { kind: "model", evaluatorId: "fixture.control-writing.v1" },
+        checks: request.checks.map((check) => ({
+          checkId: check.checkId,
+          status: "passed" as const,
+          violationCount: 0,
+        })),
+      };
+    },
+  };
+}
+
+async function fixtureMessage(content: string) {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-control-"));
+  roots.push(root);
+  const artifacts = await FileSystemCas.open(root);
+  const stored = await artifacts.put(content);
+  return {
+    artifacts,
+    event: createConversationInboundEvent({
+      sourceEventKeyHash: hashConversationSourceEventKey("native/control-message-1"),
+      target: {
+        integrationId: "itg_native001",
+        projectId: "prj_control01",
+        conversationId: "cnv_control01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_control_message",
+        contentHash: stored.contentHash,
+        byteCount: stored.byteCount,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      mentions: { roleIds: [], participantIds: [] },
+      replyToEventId: null,
+      signalCode: null,
+      automationDepth: 0,
+      occurredAt: "2026-08-20T00:04:00.000Z",
+    }),
+  };
+}
+
+describe("conversation command control", () => {
+  it("accepts only an explicit deterministic command", () => {
+    expect(parseConversationControlCommand(`/lervo approval ${deliveryId}`)).toEqual({
+      operation: "approval_review",
+      deliveryId,
+    });
+    expect(parseConversationControlCommand(`이 command ${deliveryId} 승인해줘`)).toBeNull();
+    expect(parseConversationControlCommand(`/lervo approve ${deliveryId}`)).toBeNull();
+  });
+
+  it("publishes a writing-gated review reply without creating an approval", async () => {
+    const { artifacts, event } = await fixtureMessage(`/lervo approval ${deliveryId}`);
+    const inspect = vi.fn(async () => ({
+      review: review(),
+      reviewUrl: `https://hub.example/control#destinationId=hub%3Aprimary&projectId=prj_control01&deliveryId=${deliveryId}&reviewGrant=hcrg_1787184900_${"e".repeat(64)}`,
+    }));
+    const responder = new ConversationControlResponder({
+      artifactStore: artifacts,
+      control: { inspect },
+      writingContract: defaultKoreanWritingContract,
+      semanticEvaluator: evaluator(),
+      now: () => new Date("2026-08-20T00:05:00.000Z"),
+    });
+
+    const policy = createConversationParticipationPolicy({
+      projectId: "prj_control01",
+      roleId: "reviewer",
+      conversationIds: ["cnv_control01"],
+      mode: "relevant",
+      respondTo: ["human"],
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 10,
+      maxAutomationDepth: 2,
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+    const decision = createConversationParticipationDecision({
+      event,
+      policy,
+      action: "respond",
+      reason: "relevant",
+      relevance: "relevant",
+      decidedAt: "2026-08-20T00:04:30.000Z",
+    });
+    const candidate = await responder.respond({
+      event,
+      policy,
+      decision,
+    });
+    const body = Buffer.from(await artifacts.get(
+      `lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`,
+    )).toString("utf8");
+
+    expect(inspect).toHaveBeenCalledOnce();
+    expect(body).toContain("이 대화에서는 승인이 생성되지 않았습니다.");
+    expect(body).toContain("Hub 화면에서 다시 인증");
+    expect(body).not.toContain("operator:reviewer");
+    expect(candidate.publicationEvidence.evaluation.overallStatus).toBe("passed");
+    expect(candidate.publicationPermit.surface).toBe("chat");
+  });
+
+  it("uses the actor binding to issue a grant that only the same Hub principal can use", async () => {
+    const grants = new HubControlReviewGrants(Buffer.alloc(32, 3), { ttlSeconds: 600 });
+    const inspect = vi.fn(async () => review());
+    const control = new ConfiguredConversationHubControl({
+      reader: { inspect } as never,
+      reviewGrants: grants,
+      reviewBaseUrl: "https://hub.example/control",
+      bindings: [{
+        projectId: "prj_control01",
+        participantId: "ptc_human001",
+        principalId: "operator:reviewer",
+        destinationId: "hub:primary",
+        permissions: ["command.read", "approval.review"],
+      }],
+    });
+    const { event } = await fixtureMessage(`/lervo approval ${deliveryId}`);
+    const result = await control.inspect({
+      event,
+      operation: "approval_review",
+      deliveryId,
+      inspectedAt: "2026-08-20T00:05:00.000Z",
+    });
+    const fragment = new URLSearchParams(new URL(result.reviewUrl!).hash.slice(1));
+    const grant = fragment.get("reviewGrant")!;
+
+    expect(grants.verify({
+      grant,
+      principalId: "operator:reviewer",
+      destinationId: "hub:primary",
+      projectId: "prj_control01",
+      deliveryId,
+      verifiedAt: "2026-08-20T00:06:00.000Z",
+    })).toBe(true);
+    expect(grants.verify({
+      grant,
+      principalId: "operator:someone-else",
+      destinationId: "hub:primary",
+      projectId: "prj_control01",
+      deliveryId,
+      verifiedAt: "2026-08-20T00:06:00.000Z",
+    })).toBe(false);
+  });
+});

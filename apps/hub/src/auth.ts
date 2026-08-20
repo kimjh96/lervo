@@ -20,7 +20,12 @@ export interface HubAuthenticatedPrincipal {
   permissions: HubPermission[];
 }
 
-export type HubPermission = "trace.read" | "policy.read" | "policy.write";
+export type HubPermission =
+  | "trace.read"
+  | "policy.read"
+  | "policy.write"
+  | "command.read"
+  | "approval.write";
 
 export interface HubRequestAuthenticator {
   authenticate(authorization: string | undefined): Promise<HubAuthenticatedPrincipal | null>;
@@ -51,7 +56,13 @@ function validateCredential(credential: HubBearerCredential): void {
     credential.permissions.length < 1 ||
     new Set(credential.permissions).size !== credential.permissions.length ||
     !credential.permissions.every((permission) =>
-      (["trace.read", "policy.read", "policy.write"] as HubPermission[]).includes(permission)
+      ([
+        "trace.read",
+        "policy.read",
+        "policy.write",
+        "command.read",
+        "approval.write",
+      ] as HubPermission[]).includes(permission)
     )
   ) {
     throw new Error("Hub bearer credential permission이 유효하지 않습니다.");

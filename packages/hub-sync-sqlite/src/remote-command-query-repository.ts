@@ -57,6 +57,7 @@ export class HubRemoteCommandQuerySQLiteRepository {
     }
     return {
       deliveryId: stringField(row, "delivery_id"),
+      destinationId,
       commandId: stringField(row, "command_id"),
       commandHash: stringField(row, "command_hash"),
       target: structuredClone(envelope.command.target),
