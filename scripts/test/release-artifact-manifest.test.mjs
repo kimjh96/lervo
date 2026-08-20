@@ -31,6 +31,13 @@ function fixture() {
     entry: "apps/cli/src/bin.ts",
     output: "dist/bin.js",
     workspacePackages: ["@lervo/core@0.1.0"],
+    externalPackages: [
+      "ajv@8.20.0",
+      "fast-deep-equal@3.1.3",
+      "fast-uri@3.1.5",
+      "json-schema-traverse@1.0.0",
+      "yaml@2.9.0",
+    ],
     externalImports: ["@anthropic-ai/claude-agent-sdk"],
   };
   const bundle = { ...bundleFields, bundleDigest: canonicalDigest(bundleFields) };
@@ -49,7 +56,7 @@ function fixture() {
   const portable = ["@anthropic-ai/claude-agent-sdk@0.3.226", "yaml@2.9.0"];
   const platformSpecificFamilies = [{ prefix: "native-", version: "1.0.0" }];
   const manifest = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     artifact,
     directDependencies,
     bundle,
@@ -163,9 +170,19 @@ describe("release artifact manifest", () => {
       entry: manifest.bundle.entry,
       output: manifest.bundle.output,
       workspacePackages: manifest.bundle.workspacePackages,
+      externalPackages: manifest.bundle.externalPackages,
       externalImports: manifest.bundle.externalImports,
     };
     manifest.bundle.bundleDigest = canonicalDigest(bundleFields);
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_bundle_invalid" },
+    );
+  });
+
+  it("rejects an unreviewed bundled external package", () => {
+    const manifest = fixture();
+    manifest.bundle.externalPackages.push("new-package@1.0.0");
     assert.throws(
       () => validateReleaseArtifactManifest(manifest),
       { code: "release_artifact_bundle_invalid" },

@@ -771,12 +771,12 @@ Trace bounded-default 0.1.0 release 전환 완료 조건:
 - `pnpm check`가 build 뒤 smoke를 실행하고 성공·실패 모두 임시 설치와 project를 제거함
 - Registry 게시·다운로드, 전역 shell shim과 provider 실행을 검증했다고 주장하지 않음
 
-Canonical CLI release artifact manifest v2 완료 조건:
+Canonical CLI release artifact manifest v4 완료 조건:
 
 - CLI archive가 `dist/bin.js`, 짧은 package README와 package manifest만 포함하고 다른 JavaScript·선언 파일, source·test·설정·build cache를 거부함
 - Bundle 파일의 path·byte 수·SHA-256과 canonical content digest를 고정함
 - 공개 package identity와 정확한 직접 production dependency를 manifest에 결속함
-- 실제 bundle metadata에서 workspace package 좌표와 외부 import를 추출해 별도 digest로 고정함
+- 실제 bundle metadata에서 workspace·외부 package 좌표와 bundle 밖 import를 추출해 별도 digest로 고정함
 - 임시 production deploy의 portable dependency closure를 정렬·중복 제거하고 별도 digest로 고정함
 - OS·CPU 제한 package는 portable 목록과 섞지 않고 name prefix·정확한 version family로 제한함
 - Tar header·생성 시각·임시 경로·symlink와 현재 platform 이름을 checksum 입력에서 제외함
@@ -821,7 +821,7 @@ CLI 다중 플랫폼 배포 matrix 계약 완료 조건:
 - Repository 권한은 contents read뿐이고 checkout credential을 남기지 않음
 - Node 22.13.0과 package manifest의 pnpm version을 사용함
 - 외부 setup action을 전체 commit SHA로 고정함
-- Frozen install, 전체 build, release manifest, packed consumer smoke를 순서대로 실행함
+- Frozen install, 전체 build, release manifest, SBOM, packed consumer smoke를 순서대로 실행함
 - Workflow YAML 계약 테스트가 trigger·OS·권한·action·Node·명령 drift를 거부함
 - 로컬 성공을 아직 실행하지 않은 Linux·Windows의 성공으로 표현하지 않음
 - 실패한 OS job을 다른 OS의 성공으로 덮지 않고 새 runtime event·telemetry를 만들지 않음
@@ -833,7 +833,7 @@ CLI package 사용 안내 계약 완료 조건:
 - 프로젝트 초기화와 기본 조회가 Hub 없이 가능하고 provider 실행에는 별도 구성이 필요함을 구분함
 - Package manifest의 설명·검색어와 현재 라이선스 상태를 명시함
 - 정해지지 않은 repository·homepage·bugs URL을 추정해 넣지 않음
-- Release manifest v3가 metadata와 README hash를 artifact digest에 결속함
+- Release manifest v4가 metadata와 README hash를 artifact digest에 결속함
 - 실제 tarball과 임시 production deploy 양쪽에 README가 들어갔는지 확인함
 - Packed smoke가 안내서 크기·구조·필수 명령과 설치 manifest metadata를 검사함
 - 안내 변경이 runtime event·project 상태·telemetry를 추가하지 않음
@@ -853,6 +853,20 @@ CLI registry 게시 사전검증 계약 완료 조건:
 - 기본 실패가 고정 code·문장만 출력하고 성공·실패 모두 server·storage·archive·consumer·설정을 제거함
 - Linux·macOS·Windows release matrix에서 같은 사전검사를 실행하도록 고정함
 - 외부 SDK dependency의 공개 registry/cache 사용, 실제 npm 권한·게시·출처 증명과 offline 설치를 증명했다고 주장하지 않음
+
+CLI release SBOM 계약 완료 조건:
+
+- CycloneDX 1.7 JSON 한 파일을 현재 release의 교체형 sidecar로 관리하고 npm archive에는 넣지 않음
+- `apps/cli` lockfile importer의 production dependency와 optional dependency만 순회하고 dev dependency를 제외함
+- Required portable closure와 직접 dependency가 release manifest와 정확히 같은지 확인함
+- 운영체제별 Claude native package 여덟 개를 같은 결과의 optional component로 기록함
+- Metafile에서 찾은 workspace와 외부 bundle package를 설치 graph와 구분해 포함함
+- Lockfile package에는 SHA-512 integrity, root application에는 bundle SHA-256을 기록함
+- Root가 artifact·bundle·portable dependency digest에 결속됨
+- PURL 기반 component와 dependency node를 정렬하고 timestamp·임의 serial을 넣지 않음
+- 증명하지 못한 workspace 내부 관계는 `not-asserted`로 표시하고 dependency license를 추정하지 않음
+- 명시적 update만 SBOM 한 파일을 교체하고 기본 check와 release matrix는 source에서 같은 결과를 재생성함
+- 취약점 없음, 라이선스 준수, 서명·빌드 출처와 실행되지 않은 다른 platform 성공을 주장하지 않음
 
 ## 다음 실행 작업
 
@@ -942,16 +956,18 @@ Trace bounded-default 0.1.0 release 전환을 완료했습니다. 인자 없는 
 
 설치된 CLI 0.1.0 smoke fixture를 완료했습니다. CLI version은 배포 manifest를 단일 원본으로 사용하고, 전체 build 뒤 임시 production deploy의 실제 `dist/bin.js`로 capability·기본 page·명시적 full을 검증합니다. 단일 bundle 전환 뒤에는 별도로 빌드한 diagnostics reader와 project-storage writer가 설치본과 같은 합성 project를 해석해 모듈 계약 호환성을 확인합니다. 51-event 경계 fixture는 중복하지 않으며 registry 게시나 provider 실행은 주장하지 않습니다. 결정은 [ADR-0085](./docs/adr/0085-installed-cli-smoke-boundary.md)와 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)에 기록했습니다.
 
-Canonical CLI release artifact manifest v3 검사를 완료했습니다. Archive는 단일 bundle, 짧은 package README와 package manifest만 허용하며 bundle에 포함된 workspace package·외부 import, 공개 파일 SHA-256, package metadata, 직접 dependency와 portable production closure를 하나의 교체형 manifest에 결속합니다. Tar metadata와 platform 전용 native package 이름은 portable digest에서 분리하고 기본 검사는 원본을 쓰지 않습니다. 결정은 [ADR-0086](./docs/adr/0086-canonical-cli-release-artifact-manifest.md), [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)과 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
+Canonical CLI release artifact manifest v4 검사를 완료했습니다. Archive는 단일 bundle, 짧은 package README와 package manifest만 허용하며 bundle에 포함된 workspace·외부 package와 bundle 밖 import, 공개 파일 SHA-256, package metadata, 직접 dependency와 portable production closure를 하나의 교체형 manifest에 결속합니다. Tar metadata와 platform 전용 native package 이름은 portable digest에서 분리하고 기본 검사는 원본을 쓰지 않습니다. 결정은 [ADR-0086](./docs/adr/0086-canonical-cli-release-artifact-manifest.md), [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md), [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)과 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
 
-단일 bundle CLI 배포 단위 계약을 완료했습니다. 내부 runtime package 24개와 Ajv·YAML은 `dist/bin.js`에 들어가고 bundle 밖 import는 Claude Agent SDK 하나입니다. 공개 archive는 package README와 manifest를 포함해 3개 파일이며, manifest v3와 설치 smoke가 bundle 경계와 private workspace dependency 부재를 함께 확인합니다. 결정은 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)과 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
+단일 bundle CLI 배포 단위 계약을 완료했습니다. 내부 runtime package 24개와 Ajv·YAML은 `dist/bin.js`에 들어가고 bundle 밖 import는 Claude Agent SDK 하나입니다. 공개 archive는 package README와 manifest를 포함해 3개 파일이며, manifest v4와 설치 smoke가 bundle 경계와 private workspace dependency 부재를 함께 확인합니다. 결정은 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md), [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)과 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
 
 Packed CLI 소비자 설치 계약을 완료했습니다. 실제 tarball을 빈 임시 프로젝트에 설치하고 공개 파일, Node version, 정확한 SDK·peer dependency, private package 부재와 local bin을 확인합니다. 생성된 명령으로 version·capability·초기화를 실행하며 첫 설치의 cache miss를 오프라인 성공으로 과장하지 않습니다. 결정은 [ADR-0088](./docs/adr/0088-packed-cli-consumer-installation.md)에 기록했습니다.
 
 CLI 다중 플랫폼 배포 matrix 계약을 구성했습니다. Packed smoke는 현재 platform의 Claude native package가 하나만 설치됐는지 확인하고 실제 실행 파일의 version을 읽습니다. Ubuntu·macOS·Windows job은 같은 release manifest와 tarball 소비자 검사를 독립 실행하며 workflow 자체의 권한·action SHA·Node·명령도 로컬 계약 테스트로 고정합니다. 현재 로컬에서는 macOS arm64만 실행됐고 Linux·Windows 성공은 원격 job이 끝나기 전까지 주장하지 않습니다. 결정은 [ADR-0089](./docs/adr/0089-cli-multi-platform-release-matrix.md)에 기록했습니다.
 
-CLI package 사용 안내 계약을 완료했습니다. 저장소의 긴 README를 복제하지 않고 4 KiB 이하 안내서가 Node 준비, 전역 설치, 첫 초기화, dry-run과 help만 설명합니다. 설명·검색어·현재 `UNLICENSED` 상태와 README hash를 release manifest v3에 결속하고 실제 deploy와 tarball 설치본에서 다시 확인합니다. 정해지지 않은 저장소 URL은 만들지 않았습니다. 결정은 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
+CLI package 사용 안내 계약을 완료했습니다. 저장소의 긴 README를 복제하지 않고 4 KiB 이하 안내서가 Node 준비, 전역 설치, 첫 초기화, dry-run과 help만 설명합니다. 설명·검색어·현재 `UNLICENSED` 상태와 README hash를 release manifest v4에 결속하고 실제 deploy와 tarball 설치본에서 다시 확인합니다. 정해지지 않은 저장소 URL은 만들지 않았습니다. 결정은 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
 
 CLI registry 게시 사전검증 계약을 완료했습니다. 외부 uplink와 credential이 없는 임시 Verdaccio에 검토된 tarball을 게시하고 metadata·integrity·dist-tag, package 좌표 설치와 local bin을 확인합니다. 같은 version의 재게시를 거부한 뒤 기존 integrity가 유지되는지도 다시 읽으며 이 검사를 Linux·macOS·Windows matrix에 추가했습니다. 외부 SDK dependency는 공개 registry나 cache를 사용할 수 있고 실제 npm 게시 성공은 주장하지 않습니다. 결정은 [ADR-0091](./docs/adr/0091-cli-registry-publish-preflight.md)에 기록했습니다.
 
-다음 구현 작업은 release manifest의 production closure를 표준 형식으로 내보내고 bundle·package identity에 결속하되 실행별 파일을 누적하지 않는 **CLI release SBOM 계약**입니다.
+CLI release SBOM 계약을 완료했습니다. CycloneDX 1.7 sidecar는 release manifest v4의 bundle inventory와 pnpm lockfile production graph를 조합하고 root를 artifact·bundle·portable closure digest에 결속합니다. Dev dependency는 제외하고 native package 여덟 개는 optional로 구분하며, 생성 시각이나 serial 없이 현재 release 파일 하나만 교체합니다. Workspace 내부 관계와 dependency license는 증명하지 못하므로 추정하지 않습니다. 결정은 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
+
+다음 구현 작업은 tarball·release manifest·SBOM의 digest를 하나의 표준 statement에 결속하고 로컬의 unsigned 결과와 CI 서명 가능 경계를 구분하는 **CLI release 출처 증명 계약**입니다.

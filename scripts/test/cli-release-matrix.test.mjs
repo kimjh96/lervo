@@ -54,6 +54,7 @@ describe("CLI release matrix workflow", () => {
       "pnpm install --frozen-lockfile",
       "pnpm build",
       "pnpm release:manifest:check",
+      "pnpm release:sbom:check",
       "pnpm smoke:packed-cli",
       "pnpm smoke:registry-publish",
     ]);

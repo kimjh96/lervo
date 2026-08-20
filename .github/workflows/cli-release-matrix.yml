@@ -40,6 +40,8 @@ jobs:
         run: pnpm build
       - name: Verify release manifest
         run: pnpm release:manifest:check
+      - name: Verify release SBOM
+        run: pnpm release:sbom:check
       - name: Install packed CLI as a consumer
         run: pnpm smoke:packed-cli
       - name: Publish and install through an isolated registry

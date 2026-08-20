@@ -37,7 +37,7 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const { artifact, archive, bundle, dependencies } = manifest;
   if (
-    manifest.schemaVersion !== 3 ||
+    manifest.schemaVersion !== 4 ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -82,12 +82,20 @@ export function validateReleaseArtifactManifest(manifest) {
     entry: bundle?.entry,
     output: bundle?.output,
     workspacePackages: bundle?.workspacePackages,
+    externalPackages: bundle?.externalPackages,
     externalImports: bundle?.externalImports,
   };
   if (
     bundle?.entry !== "apps/cli/src/bin.ts" ||
     bundle.output !== "dist/bin.js" ||
     !workspacePackagesValid ||
+    canonicalJson(bundle.externalPackages) !== canonicalJson([
+      "ajv@8.20.0",
+      "fast-deep-equal@3.1.3",
+      "fast-uri@3.1.5",
+      "json-schema-traverse@1.0.0",
+      "yaml@2.9.0",
+    ]) ||
     canonicalJson(bundle.externalImports) !== canonicalJson(["@anthropic-ai/claude-agent-sdk"]) ||
     bundle.bundleDigest !== canonicalDigest(bundleFields)
   ) {

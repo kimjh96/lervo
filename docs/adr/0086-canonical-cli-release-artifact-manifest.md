@@ -3,7 +3,7 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
-후속 결정: [ADR-0087](./0087-single-bundle-cli-deployment-unit.md)이 단일 bundle 배포를 채택하면서 release manifest는 schema version 2가 되었습니다. [ADR-0090](./0090-cli-package-usage-guide.md)은 짧은 package README와 metadata를 결속한 schema version 3으로 확장합니다. 아래 version 1 결정은 bundle 전환 전 archive 계약의 기록으로 남깁니다.
+후속 결정: [ADR-0087](./0087-single-bundle-cli-deployment-unit.md)이 단일 bundle 배포를 채택하면서 release manifest는 schema version 2가 되었습니다. [ADR-0090](./0090-cli-package-usage-guide.md)은 짧은 package README와 metadata를 결속한 schema version 3으로 확장합니다. [ADR-0092](./0092-cli-release-sbom.md)는 bundle 외부 package 인벤토리를 추가한 schema version 4를 SBOM source로 사용합니다. 아래 version 1 결정은 bundle 전환 전 archive 계약의 기록으로 남깁니다.
 
 ## 맥락
 

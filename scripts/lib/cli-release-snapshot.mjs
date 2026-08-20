@@ -76,6 +76,16 @@ function externalPackageName(specifier) {
   return specifier.split("/", 1)[0];
 }
 
+function bundledPackageRoot(path) {
+  const parts = path.split("/");
+  const nodeModulesIndex = parts.lastIndexOf("node_modules");
+  if (nodeModulesIndex < 0 || nodeModulesIndex === parts.length - 1) return null;
+  const packageEnd = parts[nodeModulesIndex + 1].startsWith("@")
+    ? nodeModulesIndex + 3
+    : nodeModulesIndex + 2;
+  return parts.slice(0, packageEnd).join("/");
+}
+
 async function createBundleSnapshot() {
   const metafile = await readJson(bundleMetafilePath);
   const output = metafile.outputs?.[bundleOutputPath];
@@ -95,6 +105,13 @@ async function createBundleSnapshot() {
     const manifest = await readJson(resolve(repositoryRoot, "packages", directory, "package.json"));
     return `${manifest.name}@${manifest.version}`;
   }))).sort();
+  const externalPackageRoots = [...new Set(
+    Object.keys(metafile.inputs ?? {}).map(bundledPackageRoot).filter(Boolean),
+  )].sort();
+  const externalPackages = (await Promise.all(externalPackageRoots.map(async (packageRoot) => {
+    const manifest = await readJson(resolve(repositoryRoot, packageRoot, "package.json"));
+    return `${manifest.name}@${manifest.version}`;
+  }))).sort();
   const externalImports = [...new Set(
     output.imports
       .filter(({ external, path }) => external && !builtinModuleNames.has(path))
@@ -104,6 +121,7 @@ async function createBundleSnapshot() {
     entry: "apps/cli/src/bin.ts",
     output: "dist/bin.js",
     workspacePackages,
+    externalPackages,
     externalImports,
   };
   return { ...bundle, bundleDigest: canonicalDigest(bundle) };
@@ -142,7 +160,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     artifact,
     directDependencies,
     bundle,

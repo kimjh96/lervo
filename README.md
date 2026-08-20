@@ -111,6 +111,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 다중 플랫폼 배포 matrix 계약 ADR](./docs/adr/0089-cli-multi-platform-release-matrix.md)
 - [CLI 패키지 사용 안내 계약 ADR](./docs/adr/0090-cli-package-usage-guide.md)
 - [CLI registry 게시 사전검증 계약 ADR](./docs/adr/0091-cli-registry-publish-preflight.md)
+- [CLI release SBOM 계약 ADR](./docs/adr/0092-cli-release-sbom.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -169,8 +170,8 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과와 저장소 독립 trace capability report를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
-- `@lervo/cli`: package manifest에서 버전을 읽는 `lervo --version`, 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 개발 시 workspace 경계를 유지하고 배포 시 내부 package 24개와 Ajv·YAML을 `dist/bin.js` 하나로 묶음. Bundle 밖 import는 Claude Agent SDK 하나이며 SDK가 요구하는 세 peer도 검증한 버전으로 고정함. 짧은 package README와 검색 metadata를 제공하고 tarball smoke가 안내 내용, 현재 OS·CPU의 native package와 실행 파일을 확인함
-- `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
+- `@lervo/cli`: package manifest에서 버전을 읽는 `lervo --version`, 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 개발 시 workspace 경계를 유지하고 배포 시 내부 package 24개와 Ajv·YAML을 `dist/bin.js` 하나로 묶음. Bundle 밖 import는 Claude Agent SDK 하나이며 SDK가 요구하는 세 peer도 검증한 버전으로 고정함. 짧은 package README와 검색 metadata를 제공하고 tarball smoke가 안내 내용, 현재 OS·CPU의 native package와 실행 파일을 확인함. 현재 release manifest와 lockfile에서 교체형 CycloneDX 1.7 SBOM을 재생성함
+- `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest와 SBOM, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
 
 M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Ed25519 원격 command는 durable Hub queue, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Hub·Node 재시작과 acknowledgement 유실 뒤에도 저장된 receipt로 복구하며 executor를 다시 호출하지 않습니다. 이 reconnect 검증은 인증된 transport port를 사용한 로컬 fixture이고 실제 command HTTP/TLS endpoint는 아닙니다.
 
@@ -230,11 +231,13 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 
 `lervo --version`은 CLI package manifest의 정식 version을 한 줄로 반환합니다. `pnpm smoke:built-cli`는 내부 `@lervo/*` package가 없는 임시 production deploy를 만든 뒤 설치본의 version, capability, 기본 page와 명시적 full을 검증합니다. 합성 trace는 저장소에서 빌드한 호환성 reader와 fixture writer로 독립 검증합니다. 이는 로컬 배포 조합 검사이며 npm registry 게시나 외부 provider 실행 성공을 뜻하지 않습니다.
 
-`pnpm release:manifest:check`는 CLI archive를 `dist/bin.js`, 짧은 package README와 package manifest로 제한합니다. Bundle에 들어간 workspace package, 유일하게 외부에 둔 Claude Agent SDK, 공개 metadata, 파일 SHA-256과 production dependency closure가 승인된 `apps/cli/release-artifact-manifest.json` v3와 같은지 확인합니다. Release 내용을 의도적으로 바꿀 때만 `pnpm release:manifest:update`로 이 한 파일을 통째로 갱신하고 diff를 검토합니다. Tarball 생성 metadata는 checksum에 넣지 않으며 이 검사는 registry 게시나 서명을 대신하지 않습니다.
+`pnpm release:manifest:check`는 CLI archive를 `dist/bin.js`, 짧은 package README와 package manifest로 제한합니다. Bundle에 들어간 workspace·외부 package, 유일하게 bundle 밖에 둔 Claude Agent SDK, 공개 metadata, 파일 SHA-256과 production dependency closure가 승인된 `apps/cli/release-artifact-manifest.json` v4와 같은지 확인합니다. Release 내용을 의도적으로 바꿀 때만 `pnpm release:manifest:update`로 이 한 파일을 통째로 갱신하고 diff를 검토합니다. Tarball 생성 metadata는 checksum에 넣지 않으며 이 검사는 registry 게시나 서명을 대신하지 않습니다.
+
+`pnpm release:sbom:check`는 release manifest와 pnpm lockfile에서 현재 CLI의 CycloneDX 1.7 SBOM을 다시 만들고 `apps/cli/release-sbom.cdx.json`과 비교합니다. Production graph, optional native package, bundle에 들어간 workspace·외부 package와 각 lockfile integrity를 구분해 기록합니다. 생성 시각이나 serial을 넣지 않으며 의도적으로 바꿀 때만 `pnpm release:sbom:update`로 현재 release 파일 하나를 교체합니다. 이 인벤토리는 취약점 없음, dependency 라이선스 준수나 서명을 뜻하지 않습니다.
 
 `pnpm smoke:packed-cli`는 실제 tarball을 만든 뒤 빈 임시 프로젝트에 일반 소비자 방식으로 설치합니다. 공개 파일 세 개, Node `>=22.13`, 설명·검색어·라이선스, 정확한 SDK·peer 버전, private Lervo 패키지 부재와 생성된 `lervo` 명령을 확인합니다. Package README가 4 KiB 이하이며 설치·첫 실행·dry-run과 Hub 비의존성을 실제 명령에 맞게 안내하는지도 검사합니다. 현재 OS·CPU에 맞는 Claude native package가 하나만 설치됐는지 확인하고 그 안의 실행 파일로 version을 읽은 뒤 CLI version·capability·초기화도 실행합니다. 첫 설치는 외부 dependency가 로컬 저장소에 없으면 registry를 사용할 수 있지만, 설치 뒤의 CLI 실행에는 registry나 provider 연결이 필요하지 않습니다.
 
-`.github/workflows/cli-release-matrix.yml`은 같은 release manifest와 packed smoke를 Ubuntu, macOS와 Windows에서 실행하도록 구성합니다. Action은 전체 commit SHA로 고정하고 repository 권한은 contents read만 사용합니다. 로컬 테스트는 workflow 구조가 바뀌지 않았음을 확인하지만 세 운영체제의 성공을 대신하지 않습니다. 각 platform의 실제 결과는 GitHub Actions job이 실행된 뒤에만 근거로 사용할 수 있습니다.
+`.github/workflows/cli-release-matrix.yml`은 같은 release manifest·SBOM과 packed smoke를 Ubuntu, macOS와 Windows에서 실행하도록 구성합니다. Action은 전체 commit SHA로 고정하고 repository 권한은 contents read만 사용합니다. 로컬 테스트는 workflow 구조가 바뀌지 않았음을 확인하지만 세 운영체제의 성공을 대신하지 않습니다. 각 platform의 실제 결과는 GitHub Actions job이 실행된 뒤에만 근거로 사용할 수 있습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

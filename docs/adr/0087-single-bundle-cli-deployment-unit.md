@@ -3,7 +3,7 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
-후속 결정: [ADR-0088](./0088-packed-cli-consumer-installation.md)은 Claude Agent SDK의 peer 세 개도 정확한 직접 dependency로 고정합니다. [ADR-0090](./0090-cli-package-usage-guide.md)은 bundle 경계를 바꾸지 않고 짧은 package README를 공개 archive에 추가합니다.
+후속 결정: [ADR-0088](./0088-packed-cli-consumer-installation.md)은 Claude Agent SDK의 peer 세 개도 정확한 직접 dependency로 고정합니다. [ADR-0090](./0090-cli-package-usage-guide.md)은 bundle 경계를 바꾸지 않고 짧은 package README를 공개 archive에 추가합니다. [ADR-0092](./0092-cli-release-sbom.md)는 metafile에서 외부 bundle package도 추출해 표준 SBOM 인벤토리에 포함합니다.
 
 ## 맥락
 
