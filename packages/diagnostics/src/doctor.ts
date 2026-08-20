@@ -1,5 +1,10 @@
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 
+import {
+  doctorReportSchemaVersion,
+  readDoctorReport,
+} from "./doctor-report-contract.js";
+import { environmentDoctorCheckIdsForScope } from "./doctor-scope-contract.js";
 import { inspectDoctorKnowledge } from "./knowledge-doctor-inspection.js";
 import { createDoctorRecoveryGuidance } from "./recovery-guidance.js";
 import type {
@@ -9,40 +14,12 @@ import type {
   DoctorReport,
   DoctorScope,
 } from "./types.js";
-const inspectionCheckIdsByScope = {
-  all: [
-    "document_registry",
-    "document_sources",
-    "skill_packages",
-    "skill_lock",
-    "provider_codex_runtime",
-    "provider_claude_runtime",
-    "search_engine_selection",
-    "search_rollout_policies",
-    "search_rollout_reviews",
-    "search_rollout_actions",
-  ],
-  knowledge: [],
-  documents: ["document_registry", "document_sources"],
-  skills: ["skill_packages", "skill_lock"],
-  providers: ["provider_codex_runtime", "provider_claude_runtime"],
-  search: [
-    "search_engine_selection",
-    "search_rollout_policies",
-    "search_rollout_reviews",
-    "search_rollout_actions",
-  ],
-} as const satisfies Record<DoctorScope, readonly DoctorCheck["checkId"][]>;
-
-function requiredInspectionIds(scope: DoctorScope): readonly DoctorCheck["checkId"][] {
-  return inspectionCheckIdsByScope[scope];
-}
 
 function assertEnvironmentInspections(
   inspections: readonly DoctorInspection[],
   scope: DoctorScope,
 ): void {
-  const required = requiredInspectionIds(scope);
+  const required = environmentDoctorCheckIdsForScope(scope);
   const allowed = new Set<DoctorCheck["checkId"]>(required);
   const seen = new Set<DoctorCheck["checkId"]>();
   for (const inspection of inspections) {
@@ -99,12 +76,13 @@ export async function createDoctorReport(input: CreateDoctorReportInput): Promis
     : checks.some((check) => check.status === "unknown")
       ? "unknown"
       : "healthy";
-  return {
+  return readDoctorReport({
+    schemaVersion: doctorReportSchemaVersion,
     projectId: input.projectId,
     scope,
     status,
     checks,
     issues,
     recoveryGuidance: createDoctorRecoveryGuidance(issues),
-  };
+  });
 }

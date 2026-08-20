@@ -13,6 +13,7 @@ export * from "./deliberation-outcome.js";
 export * from "./deliberation-policy.js";
 export * from "./document-registry.js";
 export * from "./document-staleness.js";
+export * from "./doctor-report.js";
 export * from "./document-manifest.js";
 export * from "./document-migration-apply.js";
 export * from "./document-migration.js";

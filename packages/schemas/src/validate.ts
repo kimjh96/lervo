@@ -34,6 +34,7 @@ import {
 } from "./document-migration.js";
 import { documentRegistrySchema } from "./document-registry.js";
 import { documentStalenessResultSchema } from "./document-staleness.js";
+import { doctorReportSchema } from "./doctor-report.js";
 import { eventEnvelopeSchema } from "./event.js";
 import {
   eventSyncAcknowledgementSchema,
@@ -197,6 +198,7 @@ const validators = {
   skillLock: ajv.compile(skillLockSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
   documentStalenessResult: ajv.compile(documentStalenessResultSchema),
+  doctorReport: ajv.compile(doctorReportSchema),
   documentManifest: ajv.getSchema(documentManifestSchema.$id)!,
   documentMigrationApproval: ajv.compile(documentMigrationApprovalSchema),
   documentMigrationAppliedEventPayload: ajv.compile(

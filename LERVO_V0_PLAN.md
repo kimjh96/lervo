@@ -664,6 +664,16 @@ Doctor 범위 확장 첫 슬라이스 완료 조건:
 - 선택 범위의 `unhealthy`·`unknown`이 종료 코드 1과 기존 복구 안내로 이어짐
 - 파일·event·Hub 원본을 만들거나 진단 대상 상태를 전진시키지 않음
 
+Doctor report 호환성 계약 첫 슬라이스 완료 조건:
+
+- JSON에 `schemaVersion: 1`과 기존 report 필드를 모두 필수로 두고 JSON Schema와 TypeScript 타입을 같은 원본에서 파생함
+- 정상 v1과 report·하위 항목의 선택 필드 추가를 이전 reader가 받아들임
+- 기존 필드 삭제·타입 변경·controlled value 변경을 v1 호환으로 처리하지 않음
+- 미지원 정수 버전은 `doctor_report_schema_unsupported`, 손상된 v1은 `doctor_report_invalid`로 구분함
+- Scope와 check 집합, 전체 status와 check 상태, recovery guidance와 issue 투영이 다르면 report를 거부함
+- 검증 오류에 입력 원문, ID, 경로, 문서·provider 내용이나 credential을 복사하지 않음
+- 정상·추가 필드·미지원 버전·손상 구조와 실제 CLI JSON을 fixture·계약 테스트로 고정함
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -730,4 +740,6 @@ Doctor 복구 안내 첫 슬라이스를 완료했습니다. 모든 현재 issue
 
 Doctor 범위 확장 첫 슬라이스를 완료했습니다. `knowledge`, `documents`, `skills`, `providers`, `search`가 각자의 허용 검사와 의존성만 실행합니다. 지식은 project storage·CAS만 열고 나머지 제한 범위는 event store·CAS를 열지 않습니다. 텍스트와 JSON은 실제 범위를 표시하고 선택 범위의 `unknown`·`unhealthy`만 종료 코드와 복구 안내에 반영합니다. 결정은 [ADR-0074](./docs/adr/0074-doctor-scope-execution-plans.md)에 기록했습니다.
 
-다음 구현 작업은 자동화가 doctor JSON 변경을 안전하게 감지할 수 있도록 하는 **doctor report schema version과 호환성 계약**입니다. 필드 추가·상태·scope·action code 변경 규칙과 이전 consumer의 실패 의미를 명시하고 fixture로 고정해야 합니다.
+Doctor report 호환성 계약 첫 슬라이스를 완료했습니다. CLI JSON은 `schemaVersion: 1`을 필수로 내보내며 schema와 정적 타입은 한 원본에서 파생됩니다. Reader는 선택 필드 추가를 허용하지만 미지원 버전, 필수 구조 손상과 scope/check·status·recovery guidance 의미 불일치를 구분해 거부합니다. 검증 오류는 입력 내용을 복사하지 않습니다. 결정은 [ADR-0075](./docs/adr/0075-versioned-doctor-report-contract.md)에 기록했습니다.
+
+다음 구현 작업은 같은 자동화 안전성을 run 추적에도 적용하는 **trace report schema version과 호환성 계약**입니다. Trace의 event 배열이 기존 event schema와 hash-chain 검증을 통과했는지, run/status/시각 집계와 실제 event가 일치하는지, 미지원 버전과 손상된 같은 버전을 어떻게 구분하는지 fixture로 고정해야 합니다.

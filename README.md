@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·doctor 범위 실행 첫 슬라이스 완료 (2026-08-20)
+현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor 자동화 계약 완료 (2026-08-20)
 
 ## 목표
 
@@ -94,10 +94,11 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [실행 범위가 명시된 doctor 조회 ADR](./docs/adr/0072-explicitly-scoped-doctor.md)
 - [자동 수정 없는 doctor 복구 안내 ADR](./docs/adr/0073-bounded-doctor-recovery-guidance.md)
 - [의존성을 분리한 doctor 범위 실행 계획 ADR](./docs/adr/0074-doctor-scope-execution-plans.md)
+- [버전이 있는 doctor report 호환성 계약 ADR](./docs/adr/0075-versioned-doctor-report-contract.md)
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의와 지식 수명주기 JSON Schema 및 파생 TypeScript 타입
+- `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의·지식 수명주기와 doctor report JSON Schema 및 파생 TypeScript 타입
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
 - `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge
@@ -150,7 +151,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음, 명시적 품질 평가와 준비된 표본의 후보 비교·검토·정책 기반 선택 전이·rollout 검토·조치·상태 조회와 사전 점검 계약을 제공하는 공급자 중립 경계
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
-- `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 `healthy`·`unhealthy`·`unknown` 결과를 조합하는 로컬 진단 경계
+- `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 지식·문서·스킬·provider·검색을 필요한 의존성만 열어 따로 진단하고 문제별 다음 확인을 볼 수 있는 `doctor`, 로컬 `search`·명시적 `assess`·품질 `report` 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
 
@@ -203,7 +204,7 @@ lervo search rollout action status --limit 20
 lervo search engine rollback --policy <policy-id> --operator operator_search
 ```
 
-`lervo init`, 한 파일 `lervo run`, run별 `lervo trace`, 로컬 증거용 `lervo doctor`와 등록 문서 대상 `lervo search`를 실행할 수 있습니다. 검색 query는 원문 없이 digest만 attempt에 남고 품질은 별도 `lervo search assess`를 실행한 경우에만 집계됩니다. 검토한 attempt는 `search case`로 케이스별 YAML에 승격하고 `search evaluate`로 현재 `lexical-v1`을 같은 입력에 반복 실행할 수 있습니다. 역할·작업 유형별 평가 묶음은 활성 케이스, 대체 관계와 최소 표본을 별도 `.bundle.yaml`에 두며 `bundle report`로 비교 가능한 표본인지 확인합니다. 표본이 부족한 묶음도 현재 엔진 평가 결과는 남길 수 있지만 비교 준비 완료나 임베딩 필요성으로 해석하지 않습니다. 케이스 YAML에는 검토한 검색 문장이 들어가므로 비밀정보가 없는지 커밋 전에 확인해야 하며, 묶음·실행 결과와 report에는 문장을 복제하지 않습니다. Managed run은 작업 문장을 bounded 검색어로 투영하고 등록 문서 결과를 최대 5개 추천하며, `top_ranked-v1`이 고른 최대 3개만 별도 선택 근거로 E1에 넣습니다. 실행 결과의 attempt ID로 품질을 나중에 평가할 수 있으며 자동 선택이나 실행 성공 자체는 수락 평가가 아닙니다. `lervo run`은 `.lervo/verifications/<suite-id>.yaml`에 있는 suite를 `--verification`으로 하나 이상 명시해야 합니다. 모든 필수 suite가 통과하지 않으면 `run.completed`를 기록하지 않습니다. Writing 검사는 별도 의미 평가기가 구성되지 않은 기본 실행에서 결과 원문을 숨깁니다. Doctor는 각 검사 범위를 `healthy`, `unhealthy`, `unknown`으로 나누며 모든 항목이 `healthy`일 때만 성공합니다. `knowledge`, `documents`, `skills`, `providers`, `search` 제한 범위는 필요한 저장소와 probe만 실제로 열고 출력과 JSON에 범위를 표시합니다. 종료 코드 0은 선택한 범위 정상일 뿐 프로젝트 전체 정상을 뜻하지 않습니다. 검색은 엔진 선택, 세 종류의 정책, rollout 검토와 조치를 따로 검사하며 선행 원본을 확인할 수 없으면 뒤의 범위를 `unknown`으로 둡니다. 문제가 있으면 고정된 issue code에서 파생한 한국어 다음 확인 안내를 보여 주며, 오류 원문을 복사하거나 자동 수정·상태 변경을 실행하지 않습니다. Provider version 확인은 실행 파일 증거일 뿐 인증, 네트워크나 실제 session 성공을 뜻하지 않습니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
+`lervo init`, 한 파일 `lervo run`, run별 `lervo trace`, 로컬 증거용 `lervo doctor`와 등록 문서 대상 `lervo search`를 실행할 수 있습니다. 검색 query는 원문 없이 digest만 attempt에 남고 품질은 별도 `lervo search assess`를 실행한 경우에만 집계됩니다. 검토한 attempt는 `search case`로 케이스별 YAML에 승격하고 `search evaluate`로 현재 `lexical-v1`을 같은 입력에 반복 실행할 수 있습니다. 역할·작업 유형별 평가 묶음은 활성 케이스, 대체 관계와 최소 표본을 별도 `.bundle.yaml`에 두며 `bundle report`로 비교 가능한 표본인지 확인합니다. 표본이 부족한 묶음도 현재 엔진 평가 결과는 남길 수 있지만 비교 준비 완료나 임베딩 필요성으로 해석하지 않습니다. 케이스 YAML에는 검토한 검색 문장이 들어가므로 비밀정보가 없는지 커밋 전에 확인해야 하며, 묶음·실행 결과와 report에는 문장을 복제하지 않습니다. Managed run은 작업 문장을 bounded 검색어로 투영하고 등록 문서 결과를 최대 5개 추천하며, `top_ranked-v1`이 고른 최대 3개만 별도 선택 근거로 E1에 넣습니다. 실행 결과의 attempt ID로 품질을 나중에 평가할 수 있으며 자동 선택이나 실행 성공 자체는 수락 평가가 아닙니다. `lervo run`은 `.lervo/verifications/<suite-id>.yaml`에 있는 suite를 `--verification`으로 하나 이상 명시해야 합니다. 모든 필수 suite가 통과하지 않으면 `run.completed`를 기록하지 않습니다. Writing 검사는 별도 의미 평가기가 구성되지 않은 기본 실행에서 결과 원문을 숨깁니다. Doctor는 각 검사 범위를 `healthy`, `unhealthy`, `unknown`으로 나누며 모든 항목이 `healthy`일 때만 성공합니다. `knowledge`, `documents`, `skills`, `providers`, `search` 제한 범위는 필요한 저장소와 probe만 실제로 열고 출력과 JSON에 범위를 표시합니다. JSON에는 `schemaVersion: 1`이 있으며 reader는 미지원 버전과 손상된 v1을 구분하고 선택 필드 추가만 이전 consumer와 호환되는 변경으로 봅니다. 종료 코드 0은 선택한 범위 정상일 뿐 프로젝트 전체 정상을 뜻하지 않습니다. 검색은 엔진 선택, 세 종류의 정책, rollout 검토와 조치를 따로 검사하며 선행 원본을 확인할 수 없으면 뒤의 범위를 `unknown`으로 둡니다. 문제가 있으면 고정된 issue code에서 파생한 한국어 다음 확인 안내를 보여 주며, 오류 원문을 복사하거나 자동 수정·상태 변경을 실행하지 않습니다. Provider version 확인은 실행 파일 증거일 뿐 인증, 네트워크나 실제 session 성공을 뜻하지 않습니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
 
 첫 평가 후보 `bm25f-v1`와 로컬 비교 명령을 사용할 수 있습니다. `search candidates`는 빌드에 명시적으로 포함된 allowlist와 각 adapter build ID만 보여 주며, `search compare`는 표본이 충분한 묶음에서만 같은 corpus와 순위 조건으로 현재 `lexical-v1`을 비교합니다. Module path나 임의 코드를 후보로 실행하지 않습니다. 비교 결과는 관측일 뿐 운영 검색 엔진을 바꾸거나 후보 채택·임베딩 필요성을 결정하지 않습니다.
 

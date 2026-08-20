@@ -168,6 +168,7 @@ describe("lervo doctor command", () => {
       inspectDoctorEnvironment: async () => inspections,
     })).toBe(1);
     expect(JSON.parse(jsonOutput)).toMatchObject({
+      schemaVersion: 1,
       recoveryGuidance: [{
         issueCode: "search_rollout_action_invalid",
         actionCode: "inspect_search_action",

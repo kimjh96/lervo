@@ -857,6 +857,10 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 `DoctorReport.scope`는 선택한 여섯 범위 중 하나이고 JSON에 항상 포함됩니다. 모든 제한 범위 텍스트는 프로젝트 전체 상태가 아니라는 설명을 함께 출력합니다. 종료 코드 0은 선택한 범위의 검사가 모두 `healthy`라는 의미만 가지며 제외한 항목을 정상으로 주장하지 않습니다. 지원하지 않는 scope는 project 원본을 열기 전에 실패합니다. 최초 검색 범위 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md), 전체 실행 계획은 [ADR-0074](./docs/adr/0074-doctor-scope-execution-plans.md)에 기록합니다.
 
+Doctor JSON은 `schemaVersion=1`, `projectId`, `scope`, `status`, `checks`, `issues`, `recoveryGuidance`를 필수로 가집니다. Draft 2020-12 schema가 각 하위 항목의 필수 필드와 controlled value를 검사하고 diagnostics reader가 scope별 정확한 check 집합, 중복 없는 check ID, check에서 계산한 전체 status와 issue에서 투영한 recovery guidance가 일치하는지 추가로 확인합니다. Schema와 정적 `DoctorReport` 타입은 같은 원본에서 파생합니다.
+
+V1 object와 각 하위 object의 새 선택 필드는 허용합니다. 기존 필드 삭제, 필수 필드 추가, 타입 변경, `scope`·status·check ID·issue code·action code 같은 controlled value 추가나 의미 변경은 v1 호환 변경이 아니며 새 schema version이 필요합니다. Reader는 1이 아닌 정수 버전을 `doctor_report_schema_unsupported`, 버전 누락·잘못된 구조·필드 간 의미 불일치를 `doctor_report_invalid`로 실패시킵니다. 오류에는 입력 JSON, issue 문장, ID, 경로, provider 원문이나 credential을 복사하지 않습니다. 결정은 [ADR-0075](./docs/adr/0075-versioned-doctor-report-contract.md)에 기록합니다.
+
 `DoctorReport.recoveryGuidance`는 issue가 없으면 빈 배열이고, 있으면 서로 다른 issue code마다 첫 등장 순서의 안내를 하나씩 가집니다. 각 안내의 필수 필드는 `issueCode`, controlled `actionCode`, 고정된 한국어 `message`, `actionState=not_performed`입니다. 같은 issue code가 여러 event에서 반복되어도 안내를 누적하지 않으며 서로 다른 issue code를 action code 하나로 합쳐 원인을 숨기지 않습니다.
 
 안내는 issue message나 event ID를 입력으로 사용하지 않는 compile-time 전체 매핑에서만 파생합니다. 새 issue code는 안내 매핑 없이는 타입 검사를 통과하지 못합니다. Project·원본 ID, digest, 절대·상대 경로, 문서·스킬 본문, provider 원문, credential과 내부 오류는 안내에 포함하지 않습니다. 텍스트와 JSON 모두 자동 수정·명령 실행·승인·상태 변경을 주장하지 않으며 파일·event·Hub 원본을 만들지 않습니다. 결정은 [ADR-0073](./docs/adr/0073-bounded-doctor-recovery-guidance.md)에 기록합니다.

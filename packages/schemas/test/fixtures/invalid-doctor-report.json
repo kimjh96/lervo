@@ -1,0 +1,33 @@
+[
+  {
+    "name": "doctor report without schema version",
+    "schema": "doctorReport",
+    "value": {
+      "projectId": "prj_01234567",
+      "scope": "search",
+      "status": "healthy",
+      "checks": [],
+      "issues": [],
+      "recoveryGuidance": []
+    }
+  },
+  {
+    "name": "doctor report with unknown check identifier",
+    "schema": "doctorReport",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "scope": "search",
+      "status": "healthy",
+      "checks": [
+        {
+          "checkId": "future_search_check",
+          "status": "healthy",
+          "observedCount": 1
+        }
+      ],
+      "issues": [],
+      "recoveryGuidance": []
+    }
+  }
+]
