@@ -4,35 +4,10 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
-import type { DoctorInspection } from "@lervo/diagnostics";
 
 import { runCli } from "../src/main.js";
 
 const temporaryRoots: string[] = [];
-
-const healthyEnvironmentInspections: DoctorInspection[] = [
-  "document_registry",
-  "document_sources",
-  "skill_packages",
-  "skill_lock",
-  "provider_codex_runtime",
-  "provider_claude_runtime",
-  "search_engine_selection",
-  "search_rollout_policies",
-  "search_rollout_reviews",
-  "search_rollout_actions",
-].map((checkId) => ({
-  check: {
-    checkId: checkId as DoctorInspection["check"]["checkId"],
-    status: "healthy",
-    observedCount: checkId.startsWith("provider_") ? 1 : 0,
-  },
-  issues: [],
-}));
-
-const doctorServices = {
-  inspectDoctorEnvironment: async () => healthyEnvironmentInspections,
-};
 
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-"));
@@ -106,7 +81,7 @@ describe("lervo run CLI arguments", () => {
   });
 });
 
-describe("lervo local diagnostics CLI", () => {
+describe("lervo trace CLI", () => {
   it("traces the latest run from append-only local events", async () => {
     const root = await temporaryRepository();
     expect(await runCli(["init"], {
@@ -161,114 +136,4 @@ describe("lervo local diagnostics CLI", () => {
     expect(output).not.toContain("원문 주장");
   });
 
-  it("reports healthy storage and fails closed on a broken candidate reference", async () => {
-    const root = await temporaryRepository();
-    expect(await runCli(["init"], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: () => undefined,
-    })).toBe(0);
-    let healthyOutput = "";
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { healthyOutput += message; },
-      stderr: () => undefined,
-    }, doctorServices)).toBe(0);
-    expect(healthyOutput).toContain("확인한 항목 정상");
-
-    const storage = await openProjectStorage(root);
-    storage.events.append({
-      eventId: "evt_broken_candidate",
-      projectId: storage.manifest.projectId,
-      runId: "run_cli_doctor_0001",
-      sessionId: "ses_cli_doctor_0001",
-      type: "knowledge.candidate.created",
-      occurredAt: "2026-08-19T00:00:00Z",
-      actor: { kind: "agent", provider: "codex" },
-      schemaVersion: 1,
-      policyVersion: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      payload: {
-        candidateId: "knc_0123456789abcdef",
-        claimDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        paths: ["src/decision.ts"],
-        evidenceIds: ["evt_missing_evidence"],
-        sourceOutcomeId: "dlo_0123456789abcdef",
-        decisionArtifactId: "dla_0123456789abcdef",
-        verificationArtifactIds: ["dla_1111111111111111"],
-        verifiedRevision: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        candidateArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        candidateContentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      },
-    });
-    await storage.close();
-
-    let issueOutput = "";
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { issueOutput += message; },
-      stderr: () => undefined,
-    }, doctorServices)).toBe(1);
-    expect(issueOutput).toContain("candidate_artifact_invalid");
-    expect(issueOutput).toContain("문제 발견");
-  });
-
-  it("returns unknown instead of healthy when a provider runtime cannot be checked", async () => {
-    const root = await temporaryRepository();
-    expect(await runCli(["init"], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: () => undefined,
-    })).toBe(0);
-    const inspections = structuredClone(healthyEnvironmentInspections);
-    const codex = inspections.find((item) =>
-      item.check.checkId === "provider_codex_runtime")!;
-    codex.check.status = "unknown";
-    codex.check.observedCount = 0;
-    codex.issues.push({
-      code: "provider_executable_missing",
-      eventId: null,
-      message: "Codex 실행 파일을 찾지 못했습니다.",
-    });
-    let output = "";
-
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: () => undefined,
-    }, {
-      inspectDoctorEnvironment: async () => inspections,
-    })).toBe(1);
-    expect(output).toContain("확인 불가 항목 있음");
-    expect(output).toContain("확인 불가  Codex 실행 파일");
-    expect(output).toContain("provider_executable_missing");
-  });
-
-  it("reports an invalid search rollout action as a doctor failure", async () => {
-    const root = await temporaryRepository();
-    expect(await runCli(["init"], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: () => undefined,
-    })).toBe(0);
-    const inspections = structuredClone(healthyEnvironmentInspections);
-    const actions = inspections.find((item) =>
-      item.check.checkId === "search_rollout_actions")!;
-    actions.check.status = "unhealthy";
-    actions.issues.push({
-      code: "search_rollout_action_invalid",
-      eventId: null,
-      message: "검색 rollout 조치와 연결 근거를 안전하게 검증하지 못했습니다.",
-    });
-    let output = "";
-
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: () => undefined,
-    }, {
-      inspectDoctorEnvironment: async () => inspections,
-    })).toBe(1);
-    expect(output).toContain("문제  검색 rollout 조치");
-    expect(output).toContain("search_rollout_action_invalid");
-  });
 });

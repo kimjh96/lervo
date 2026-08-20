@@ -1,7 +1,7 @@
 import type { ProviderRuntimeInspection } from "@lervo/adapter-contract";
 import { inspectClaudeRuntime } from "@lervo/adapter-claude";
 import { inspectCodexRuntime } from "@lervo/adapter-codex";
-import type { DoctorInspection } from "@lervo/diagnostics";
+import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
 
 import { inspectDoctorDocuments } from "./doctor-document-inspection.js";
 import { inspectDoctorProvider } from "./doctor-provider-inspection.js";
@@ -17,9 +17,16 @@ export interface DoctorEnvironmentOptions {
 }
 
 export async function inspectDoctorEnvironment(
-  input: { repositoryRoot: string; projectId: string },
+  input: { repositoryRoot: string; projectId: string; scope?: DoctorScope },
   options: DoctorEnvironmentOptions = {},
 ): Promise<DoctorInspection[]> {
+  const searchInput = {
+    repositoryRoot: input.repositoryRoot,
+    projectId: input.projectId,
+    registry: searchCandidateRegistry,
+    observedAt: options.observedAt ?? new Date(),
+  };
+  if (input.scope === "search") return inspectDoctorSearch(searchInput);
   const [documents, skills, codex, claude, search] = await Promise.all([
     inspectDoctorDocuments(input.repositoryRoot),
     inspectDoctorSkills({
@@ -29,11 +36,7 @@ export async function inspectDoctorEnvironment(
     }),
     (options.inspectCodex ?? inspectCodexRuntime)(),
     (options.inspectClaude ?? inspectClaudeRuntime)(),
-    inspectDoctorSearch({
-      ...input,
-      registry: searchCandidateRegistry,
-      observedAt: options.observedAt ?? new Date(),
-    }),
+    inspectDoctorSearch(searchInput),
   ]);
   return [
     ...documents,

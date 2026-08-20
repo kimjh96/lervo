@@ -8,6 +8,7 @@ import type {
   DoctorInspection,
   DoctorIssue,
   DoctorReport,
+  DoctorScope,
 } from "./types.js";
 import { inspectVerifiedKnowledge } from "./verified-inspection.js";
 
@@ -24,8 +25,23 @@ const environmentCheckIds = [
   "search_rollout_actions",
 ] as const satisfies readonly DoctorCheck["checkId"][];
 
-function assertEnvironmentInspections(inspections: readonly DoctorInspection[]): void {
-  const allowed = new Set<DoctorCheck["checkId"]>(environmentCheckIds);
+const searchCheckIds = [
+  "search_engine_selection",
+  "search_rollout_policies",
+  "search_rollout_reviews",
+  "search_rollout_actions",
+] as const satisfies readonly DoctorCheck["checkId"][];
+
+function requiredInspectionIds(scope: DoctorScope): readonly DoctorCheck["checkId"][] {
+  return scope === "search" ? searchCheckIds : environmentCheckIds;
+}
+
+function assertEnvironmentInspections(
+  inspections: readonly DoctorInspection[],
+  scope: DoctorScope,
+): void {
+  const required = requiredInspectionIds(scope);
+  const allowed = new Set<DoctorCheck["checkId"]>(required);
   const seen = new Set<DoctorCheck["checkId"]>();
   for (const inspection of inspections) {
     const { check, issues } = inspection;
@@ -44,83 +60,83 @@ function assertEnvironmentInspections(inspections: readonly DoctorInspection[]):
     }
     seen.add(check.checkId);
   }
-  const missing = environmentCheckIds.filter((checkId) => !seen.has(checkId));
+  const missing = required.filter((checkId) => !seen.has(checkId));
   if (missing.length > 0) {
     throw new TypeError(`Doctor 환경 검사가 누락되었습니다: ${missing.join(", ")}`);
   }
 }
 
-export async function createDoctorReport(input: {
+type CreateDoctorReportInput = {
   projectId: string;
-  events: EventStore;
-  artifacts: ArtifactStore;
   inspections: readonly DoctorInspection[];
-}): Promise<DoctorReport> {
-  assertEnvironmentInspections(input.inspections);
+} & (
+  | { scope: "search" }
+  | { scope?: "all"; events: EventStore; artifacts: ArtifactStore }
+);
+
+export async function createDoctorReport(input: CreateDoctorReportInput): Promise<DoctorReport> {
+  const scope = input.scope ?? "all";
+  assertEnvironmentInspections(input.inspections, scope);
   const issues: DoctorIssue[] = [];
-  let eventCount = 0;
-  try {
-    eventCount = input.events.verifyIntegrity().eventCount;
-  } catch {
-    issues.push({
-      code: "event_chain_invalid",
-      eventId: null,
-      message: "로컬 event hash chain이 유효하지 않습니다.",
-    });
+  const localChecks: DoctorReport["checks"] = [];
+  if (input.scope !== "search") {
+    let eventCount = 0;
+    try {
+      eventCount = input.events.verifyIntegrity().eventCount;
+    } catch {
+      issues.push({
+        code: "event_chain_invalid",
+        eventId: null,
+        message: "로컬 event hash chain이 유효하지 않습니다.",
+      });
+    }
+    const events = input.events.list();
+    const candidateEvents = events.filter((event) => event.type === "knowledge.candidate.created");
+    const candidateIssues = await Promise.all(candidateEvents.map((event) =>
+      inspectCandidate({ event, events, artifacts: input.artifacts })));
+    issues.push(...candidateIssues.flat());
+    const reviewEvents = events.filter((event) => event.type === "knowledge.candidate.reviewed");
+    const reviewIssues = await Promise.all(reviewEvents.map((event) =>
+      inspectKnowledgeReview({ event, events, artifacts: input.artifacts })));
+    issues.push(...reviewIssues.flat());
+    const verifiedEvents = events.filter((event) => event.type === "knowledge.verified");
+    const verifiedIssues = await Promise.all(verifiedEvents.map((event) =>
+      inspectVerifiedKnowledge({ event, events, artifacts: input.artifacts })));
+    issues.push(...verifiedIssues.flat());
+    const stalenessEvents = events.filter((event) => event.type === "knowledge.stale.detected");
+    const stalenessIssues = await Promise.all(stalenessEvents.map((event) =>
+      inspectKnowledgeStaleness({ event, events, artifacts: input.artifacts })));
+    issues.push(...stalenessIssues.flat());
+    localChecks.push(
+      {
+        checkId: "event_chain",
+        status: issues.some((item) => item.code === "event_chain_invalid")
+          ? "unhealthy"
+          : "healthy",
+        observedCount: eventCount,
+      },
+      {
+        checkId: "knowledge_candidates",
+        status: candidateIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
+        observedCount: candidateEvents.length,
+      },
+      {
+        checkId: "knowledge_reviews",
+        status: reviewIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
+        observedCount: reviewEvents.length,
+      },
+      {
+        checkId: "verified_knowledge",
+        status: verifiedIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
+        observedCount: verifiedEvents.length,
+      },
+      {
+        checkId: "knowledge_staleness",
+        status: stalenessIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
+        observedCount: stalenessEvents.length,
+      },
+    );
   }
-  const events = input.events.list();
-  const candidateEvents = events.filter((event) => event.type === "knowledge.candidate.created");
-  const candidateIssues = await Promise.all(candidateEvents.map((event) =>
-    inspectCandidate({
-      event,
-      events,
-      artifacts: input.artifacts,
-    })));
-  issues.push(...candidateIssues.flat());
-  const reviewEvents = events.filter((event) => event.type === "knowledge.candidate.reviewed");
-  const reviewIssues = await Promise.all(reviewEvents.map((event) =>
-    inspectKnowledgeReview({ event, events, artifacts: input.artifacts })));
-  issues.push(...reviewIssues.flat());
-  const verifiedEvents = events.filter((event) => event.type === "knowledge.verified");
-  const verifiedIssues = await Promise.all(verifiedEvents.map((event) =>
-    inspectVerifiedKnowledge({ event, events, artifacts: input.artifacts })));
-  issues.push(...verifiedIssues.flat());
-  const stalenessEvents = events.filter((event) => event.type === "knowledge.stale.detected");
-  const stalenessIssues = await Promise.all(stalenessEvents.map((event) =>
-    inspectKnowledgeStaleness({ event, events, artifacts: input.artifacts })));
-  issues.push(...stalenessIssues.flat());
-  const eventChainFailed = issues.some((item) => item.code === "event_chain_invalid");
-  const candidateFailed = candidateIssues.some((items) => items.length > 0);
-  const reviewFailed = reviewIssues.some((items) => items.length > 0);
-  const verifiedFailed = verifiedIssues.some((items) => items.length > 0);
-  const stalenessFailed = stalenessIssues.some((items) => items.length > 0);
-  const localChecks: DoctorReport["checks"] = [
-    {
-      checkId: "event_chain",
-      status: eventChainFailed ? "unhealthy" : "healthy",
-      observedCount: eventCount,
-    },
-    {
-      checkId: "knowledge_candidates",
-      status: candidateFailed ? "unhealthy" : "healthy",
-      observedCount: candidateEvents.length,
-    },
-    {
-      checkId: "knowledge_reviews",
-      status: reviewFailed ? "unhealthy" : "healthy",
-      observedCount: reviewEvents.length,
-    },
-    {
-      checkId: "verified_knowledge",
-      status: verifiedFailed ? "unhealthy" : "healthy",
-      observedCount: verifiedEvents.length,
-    },
-    {
-      checkId: "knowledge_staleness",
-      status: stalenessFailed ? "unhealthy" : "healthy",
-      observedCount: stalenessEvents.length,
-    },
-  ];
   const inspections = input.inspections;
   const checks = [...localChecks, ...inspections.map((inspection) => inspection.check)];
   const duplicateCheck = checks.find((check, index) =>
@@ -136,6 +152,7 @@ export async function createDoctorReport(input: {
       : "healthy";
   return {
     projectId: input.projectId,
+    scope,
     status,
     checks,
     issues,

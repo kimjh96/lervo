@@ -2,6 +2,8 @@ import type { EventEnvelope } from "@lervo/schemas";
 
 export type TraceSelector = "last" | string;
 
+export type DoctorScope = "all" | "search";
+
 export interface TraceReport {
   projectId: string;
   runId: string;
@@ -82,6 +84,7 @@ export interface DoctorInspection {
 
 export interface DoctorReport {
   projectId: string;
+  scope: DoctorScope;
   status: "healthy" | "unhealthy" | "unknown";
   checks: DoctorCheck[];
   issues: DoctorIssue[];

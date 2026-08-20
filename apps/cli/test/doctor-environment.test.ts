@@ -136,6 +136,33 @@ describe("doctor project environment inspection", () => {
       .toMatchObject({ version: "claude fixture 1.0.0", observedCount: 1 });
   });
 
+  it("runs only search inspectors for the search scope", async () => {
+    const { root, userSkillRoot } = await repository();
+    let providerCalls = 0;
+    const result = await inspectDoctorEnvironment(
+      { repositoryRoot: root, projectId, scope: "search" },
+      {
+        userSkillRoot,
+        inspectCodex: async () => {
+          providerCalls += 1;
+          return available("codex");
+        },
+        inspectClaude: async () => {
+          providerCalls += 1;
+          return available("claude");
+        },
+      },
+    );
+
+    expect(providerCalls).toBe(0);
+    expect(result.map((item) => item.check.checkId)).toEqual([
+      "search_engine_selection",
+      "search_rollout_policies",
+      "search_rollout_reviews",
+      "search_rollout_actions",
+    ]);
+  });
+
   it("does not call a missing registered document source healthy", async () => {
     const { root, userSkillRoot } = await repository();
     const manifest = missingDocumentManifest();

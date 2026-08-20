@@ -851,6 +851,10 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 각 검사는 `healthy`, `unhealthy`, `unknown` 중 하나입니다. 계약을 끝까지 확인한 항목만 `healthy`이고, 손상·누락·stale 원본을 직접 확인하면 `unhealthy`입니다. 선행 원본이나 실행 환경이 없거나 안전한 probe가 끝나지 않으면 `unknown`입니다. 전체 판정은 `unhealthy`, `unknown`, `healthy` 순서로 우선하며 모든 항목이 `healthy`일 때만 종료 코드 0입니다.
 
+`lervo doctor [--scope <all|search>]`의 기본 범위는 `all`입니다. `search`는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`만 실행하며 전체 실행 뒤 결과를 필터링하지 않습니다. Search 범위는 project manifest만 직접 읽고 event store·CAS, 문서·스킬 전용 검사와 provider runtime probe를 열거나 호출하지 않습니다. 운영 검색 corpus 검증에 필요한 등록 문서 읽기는 검색 검사 내부 계약입니다.
+
+`DoctorReport.scope`는 `all` 또는 `search`이고 JSON에 항상 포함됩니다. 검색 범위 텍스트는 프로젝트 전체 상태가 아니라는 설명을 함께 출력합니다. 검색 범위 종료 코드 0은 네 검색 항목이 모두 `healthy`라는 의미만 가지며 제외한 항목을 정상으로 주장하지 않습니다. 지원하지 않는 scope는 project 원본을 열기 전에 실패합니다. 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md)에 기록합니다.
+
 Provider probe는 adapter가 정한 실행 파일에 shell 없이 `--version`만 호출합니다. 5초와 16 KiB로 제한하고 첫 ASCII 문장 최대 200자만 version으로 남깁니다. 이 성공은 인증, 네트워크, 모델 접근이나 실제 session 성공을 증명하지 않습니다. Issue에는 절대 경로, 문서·스킬 본문, 검색 query·digest·원본 ID, publisher, credential, 환경 변수와 raw provider output을 넣지 않으며 doctor는 event를 만들지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md), [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md), [ADR-0033](./docs/adr/0033-bounded-environment-doctor.md)과 [ADR-0071](./docs/adr/0071-search-rollout-operational-doctor.md)에 기록합니다.
 
 ## Hub 등록과 outbound event sync

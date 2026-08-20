@@ -1,4 +1,4 @@
-import type { DoctorInspection } from "@lervo/diagnostics";
+import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
 import type { ProjectStorage } from "@lervo/project-storage";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
@@ -15,6 +15,7 @@ export interface CliServices {
   inspectDoctorEnvironment(input: {
     repositoryRoot: string;
     projectId: string;
+    scope?: DoctorScope;
   }): Promise<DoctorInspection[]>;
 }
 

@@ -633,6 +633,16 @@ Hub command/approval 대화 UX 완료 조건:
 - Query·digest·원본 ID·문서 좌표·본문·provider 결과·credential·내부 오류 원문을 issue에 넣지 않음
 - 조회 중 검색 파일·event·Hub 원본을 만들거나 선택·검토·조치 상태를 전진시키지 않음
 
+범위가 명시된 doctor 조회 첫 슬라이스 완료 조건:
+
+- 기본 `all`과 명시적 `search`를 구분하고 지원하지 않는 범위는 project 원본을 열기 전에 거부함
+- 검색 범위에서 검색 엔진 선택·정책·검토·조치 네 검사기만 실제로 실행함
+- 검색 범위에서 event store·CAS와 문서·스킬 전용 검사, Codex·Claude runtime probe를 열거나 호출하지 않음
+- 텍스트는 제한 조회가 프로젝트 전체 상태가 아님을 설명하고 JSON은 `scope: search`와 실제 검사만 반환함
+- 검색 범위 종료 코드 0을 제외한 범위의 정상이나 프로젝트 전체 정상으로 해석하지 않음
+- 전체 검사 결과를 사후 필터링하거나 제외한 검사를 관측 수 0의 정상으로 채우지 않음
+- 새 파일·event·Hub 원본을 만들거나 검색 상태를 전진시키지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -693,4 +703,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 rollout 운영 진단 첫 슬라이스를 완료했습니다. 검색 엔진 선택, 세 종류의 정책, rollout 검토와 조치를 네 doctor 항목으로 분리하고 기존 운영 resolver와 bounded 상태 조회의 전체 원본 검증을 재사용합니다. 정상적인 빈 저장소는 관측 수 0의 정상이고, 직접 확인한 손상은 `unhealthy`, 선행 손상 때문에 판정할 수 없는 하위 범위는 `unknown`입니다. 진단은 검색 상태를 바꾸거나 query·digest·원본 ID를 노출하지 않습니다. 결정은 [ADR-0071](./docs/adr/0071-search-rollout-operational-doctor.md)에 기록했습니다.
 
-다음 구현 작업은 전체 진단과 검색만의 진단을 혼동하지 않으면서 필요한 검사기만 실행하는 **범위가 명시된 doctor 조회**입니다. `--scope search` 같은 제한 조회는 제외한 항목을 정상으로 간주하지 않고, 출력과 JSON에 제한된 범위를 명시해야 합니다.
+범위가 명시된 doctor 조회 첫 슬라이스를 완료했습니다. 기본 `all`과 `--scope search`를 구분하고 검색 범위에서는 네 검색 검사만 실행합니다. Event store·CAS와 provider probe를 열지 않으며 텍스트는 프로젝트 전체 상태가 아님을 설명하고 JSON은 `scope`와 실제 검사만 반환합니다. 제한 범위의 종료 코드 0은 그 범위에만 적용됩니다. 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md)에 기록했습니다.
+
+다음 구현 작업은 자동 수정 없이 문제별 안전한 다음 행동을 알려 주는 **doctor 복구 안내 계약**입니다. 안내는 고정된 issue code에서 파생하고, 존재하지 않는 원본 ID·경로나 비밀정보를 추측하지 않으며, 상태 변경 명령을 자동 실행하지 않아야 합니다.
