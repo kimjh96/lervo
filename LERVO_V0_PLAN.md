@@ -536,6 +536,19 @@ Hub command/approval 대화 UX 완료 조건:
 - Receipt를 검색 실행, 결과 사용, 품질이나 모델 이해 증거로 해석하지 않음
 - Build·receipt와 오류에 query·문서 path·본문·prompt·provider 응답·credential을 추가하지 않음
 
+선택에 결속된 운영 검색 품질 관측 첫 슬라이스 완료 조건:
+
+- 기존 전체 attempt·assessment 집계를 유지하면서 nullable 선택 전이 ID별 파생 slice를 제공함
+- 전이 없는 lexical, candidate activation·refresh와 baseline rollback을 서로 다른 상태로 구분함
+- Candidate build ID를 attempt·assessment에 복제하지 않고 검증된 activation→review 원본에서 다시 찾음
+- V2 build-bound 후보, v1 legacy-unbound 후보와 build가 해당되지 않는 baseline을 구분함
+- 각 slice가 전체·평가·미평가·수락·실패와 controlled 실패 사유를 독립적으로 집계함
+- 미평가 attempt, 빈 결과, 추천·context 선택·provider 실행·verification 성공을 assessment로 추정하지 않음
+- `no_failures_observed`를 표본 충분성이나 rollout 성공으로 해석하지 않음
+- Rollout·rollback·embedding 판단을 모두 `not_determined`로 유지하고 자동 선택 변경을 만들지 않음
+- 누락된 선택 전이, engine 불일치나 검증할 수 없는 정책·review·comparison chain에서 일부 report를 반환하지 않음
+- Query·digest·문서 좌표·receipt를 출력 slice에 추가하거나 새 파일·event·Hub 원본을 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -580,4 +593,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 adapter build identity와 재생성 가능한 검증 receipt 첫 슬라이스를 완료했습니다. 신규 비교·검토는 engine version과 별도의 adapter build ID를 원본에 결속하고, review·activation·refresh·운영 resolver는 현재 registry가 같은 build인지 후보 호출 전에 확인합니다. 성공한 v2 replay의 receipt는 원본 좌표에서 같은 ID로 다시 만들며 별도 파일이나 event로 쌓지 않습니다. 기존 v1 원본은 수정하지 않고 읽되 새 선택 증거로 승격하지 않습니다. 결정은 [ADR-0063](./docs/adr/0063-search-adapter-build-identity-and-replay-receipt.md)에 기록했습니다.
 
-다음 구현 작업은 실제 운영 `SearchAssessment`를 선택 전이와 adapter build별로 분리해 보는 **선택 결속 검색 품질 report**입니다. 평가되지 않은 attempt와 명시적 accepted·failed 판정을 구분하고, 표본이 충분하지 않으면 rollout 성공이나 rollback 필요성을 자동 판단하지 않아야 합니다. Report는 관측만 제공하며 선택 전이·정책·문서를 수정하거나 자동 rollback을 만들지 않습니다.
+선택에 결속된 운영 검색 품질 관측 첫 슬라이스를 완료했습니다. 기존 전체 합계와 함께 전이 없는 baseline, build-bound candidate와 rollback baseline을 선택 전이별 slice로 분리합니다. Build ID는 attempt에 복제하지 않고 검증된 review에서 파생하며 평가되지 않은 시도는 미평가로 남습니다. 수락·실패 관측과 관계없이 rollout·rollback·embedding 판단은 모두 미결정이고 report는 선택 상태를 바꾸지 않습니다. 결정은 [ADR-0064](./docs/adr/0064-selection-bound-operational-search-quality.md)에 기록했습니다.
+
+다음 구현 작업은 이 관측을 사람이 검토해 `keep_candidate`, `rollback_recommended`, `more_assessments_required` 중 하나를 별도 immutable 원본으로 남기는 **검색 rollout 검토 계약**입니다. 검토는 선택 전이·build·report 입력 snapshot과 reviewer에 결속하되 실제 rollback을 실행하거나 승인으로 위장하지 않아야 합니다. 최소 표본과 허용 실패 기준은 명시적 정책 없이는 추정하지 않습니다.

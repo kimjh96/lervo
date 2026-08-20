@@ -83,6 +83,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [Fail-closed 운영 검색 엔진 선택 해석 ADR](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)
 - [선택된 검색 후보의 검증 원본 갱신 ADR](./docs/adr/0062-selected-search-candidate-evidence-refresh.md)
 - [검색 adapter build identity와 재생성 가능한 검증 receipt ADR](./docs/adr/0063-search-adapter-build-identity-and-replay-receipt.md)
+- [선택에 결속된 운영 검색 품질 관측 ADR](./docs/adr/0064-selection-bound-operational-search-quality.md)
 
 ## 현재 구현
 
@@ -182,6 +183,8 @@ lervo search engine rollback --policy <policy-id> --operator operator-search
 첫 평가 후보 `bm25f-v1`와 로컬 비교 명령을 사용할 수 있습니다. `search candidates`는 빌드에 명시적으로 포함된 allowlist와 각 adapter build ID만 보여 주며, `search compare`는 표본이 충분한 묶음에서만 같은 corpus와 순위 조건으로 현재 `lexical-v1`을 비교합니다. Module path나 임의 코드를 후보로 실행하지 않습니다. 비교 결과는 관측일 뿐 운영 검색 엔진을 바꾸거나 후보 채택·임베딩 필요성을 결정하지 않습니다.
 
 `search review`는 비교 ID, 검토자와 `adopt`, `reject`, `more-samples` 중 하나를 명시적으로 받습니다. 현재 bundle·case·corpus와 두 실행을 비교 원본에 다시 맞추고, 비교에 기록된 것과 같은 adapter build로 후보를 같은 시각과 조건에서 재실행한 뒤에만 검토 파일을 따로 남깁니다. 채택 검토는 후보 승리가 있고 baseline 회귀가 없는 비교에서만 가능하지만, 이 상태도 운영 검색 활성화가 아닙니다.
+
+`search report`는 전체 시도·평가·실패 집계와 함께 선택 전이별 관측을 보여 줍니다. 전이 없는 기본 lexical, 후보 선택과 rollback baseline을 분리하고 후보는 immutable review에서 adapter build ID를 다시 찾습니다. Attempt나 assessment에 build·receipt를 복제하지 않으며, 평가되지 않은 시도는 그대로 미평가로 남깁니다. 수락만 관측되거나 실패가 있어도 rollout·rollback과 임베딩 판단은 자동으로 만들지 않습니다.
 
 `search engine policy create`는 허용 reviewer·operator·candidate와 최소 후보 승리를 정책별 YAML로 만듭니다. `engine activate`는 현재 비교·검토·후보 replay와 정책을 모두 다시 확인한 뒤 이전 선택과 rollback 좌표를 별도 immutable 전이로 기록합니다. 선택 뒤 문서가 달라지면 후보를 자동 신뢰하지 않습니다. 새 비교와 검토를 만든 다음 `engine refresh`로 같은 후보의 검증 원본을 새 전이에 연결해야 합니다. 이 갱신의 안전 fallback은 baseline이며, 실패하면 기존 fail-closed 상태를 유지합니다. `engine rollback`도 기존 원본을 수정하지 않고 전이에 명시된 fallback으로 돌아가는 새 전이를 만듭니다. 일반 검색과 managed context는 같은 검증 resolver로 현재 선택을 소비합니다. 선택 chain·정책·후보 등록·adapter build·현재 corpus와 replay 중 하나라도 맞지 않으면 lexical 결과로 조용히 대체하지 않고 실패합니다. 성공한 후보 검증은 원본에서 다시 만들 수 있는 receipt ID로 상태에 표시되며 별도 원본 파일로 쌓이지 않습니다. 이 receipt는 replay 검증 좌표일 뿐 검색 실행, 결과 사용이나 품질을 뜻하지 않습니다. 기존 v1 비교·검토·선택 파일과 선택 전이 ID가 없던 추천 event는 원본 ID·hash를 바꾸지 않고 계속 읽습니다. Evaluation baseline은 비교 기준인 `lexical-v1`을 유지합니다.
 

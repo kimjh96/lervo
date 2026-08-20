@@ -4,6 +4,7 @@ import {
   createSearchAssessment,
   createSearchAttempt,
   createSearchQualityReport,
+  createSearchSelectionQualityReport,
   createSearchRecommendationBatch,
   assertSearchRecommendationBatch,
   contentId,
@@ -161,6 +162,117 @@ describe("deterministic lexical search baseline", () => {
       evidenceState: "failures_observed",
       embeddingDecision: "not_determined",
     });
+  });
+
+  it("separates assessed quality by selection transition and adapter build without deciding rollout", () => {
+    const baselineAttempt = createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:00.000Z"),
+      nonce: "9".repeat(32),
+      response: new LexicalSearchIndex(sources()).search("복구"),
+    });
+    const selectionTransitionId = `seact_${"b".repeat(24)}`;
+    const candidateAttempt = createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:01.000Z"),
+      nonce: "a".repeat(32),
+      response: {
+        ...new LexicalSearchIndex(sources()).search("문서"),
+        engine: { id: "fixture_candidate", version: 1 },
+      },
+      selectionTransitionId,
+    });
+    const assessment = createSearchAssessment({
+      attempt: candidateAttempt,
+      assessedAt: new Date("2026-08-20T04:01:00.000Z"),
+      assessor: "human",
+      outcome: "accepted",
+      selectedSources: [{
+        sourceKind: candidateAttempt.hits[0]!.sourceKind,
+        sourceId: candidateAttempt.hits[0]!.sourceId,
+      }],
+    });
+    const adapterBuildId = contentId("sebuild", { adapter: "fixture_candidate", revision: 1 });
+    const report = createSearchSelectionQualityReport({
+      attempts: [baselineAttempt, candidateAttempt],
+      assessments: [assessment],
+      coordinates: [{
+        selectionTransitionId: null,
+        engine: SEARCH_ENGINE,
+        selectionState: "implicit_baseline",
+        adapterBuildId: null,
+        buildEvidenceState: "not_applicable",
+      }, {
+        selectionTransitionId,
+        engine: candidateAttempt.engine,
+        selectionState: "candidate",
+        adapterBuildId,
+        buildEvidenceState: "bound",
+      }],
+    });
+
+    expect(report).toMatchObject({
+      schemaVersion: 2,
+      totalAttempts: 2,
+      assessedAttempts: 1,
+      rolloutDecision: "not_determined",
+      rollbackDecision: "not_determined",
+      embeddingDecision: "not_determined",
+      selections: [{
+        selectionState: "implicit_baseline",
+        totalAttempts: 1,
+        assessedAttempts: 0,
+        evidenceState: "insufficient_assessment",
+      }, {
+        selectionTransitionId,
+        adapterBuildId,
+        totalAttempts: 1,
+        acceptedAttempts: 1,
+        evidenceState: "no_failures_observed",
+      }],
+    });
+    expect(() => createSearchSelectionQualityReport({
+      attempts: [candidateAttempt],
+      assessments: [assessment],
+      coordinates: [],
+    })).toThrow(/품질 좌표가 없습니다/);
+    expect(createSearchSelectionQualityReport({
+      attempts: [candidateAttempt],
+      assessments: [assessment],
+      coordinates: [{
+        selectionTransitionId,
+        engine: candidateAttempt.engine,
+        selectionState: "candidate",
+        adapterBuildId: null,
+        buildEvidenceState: "legacy_unbound",
+      }],
+    }).selections[0]).toMatchObject({
+      buildEvidenceState: "legacy_unbound",
+      adapterBuildId: null,
+      acceptedAttempts: 1,
+    });
+    expect(() => createSearchSelectionQualityReport({
+      attempts: [candidateAttempt],
+      assessments: [assessment],
+      coordinates: [{
+        selectionTransitionId,
+        engine: { id: "different_candidate", version: 1 },
+        selectionState: "candidate",
+        adapterBuildId,
+        buildEvidenceState: "bound",
+      }],
+    })).toThrow(/engine 품질 좌표가 없습니다/);
+    expect(() => createSearchSelectionQualityReport({
+      attempts: [],
+      assessments: [],
+      coordinates: [{
+        selectionTransitionId: null,
+        engine: SEARCH_ENGINE,
+        selectionState: "implicit_baseline",
+        adapterBuildId: null,
+        buildEvidenceState: "not_applicable",
+      }],
+    })).toThrow(/검색 시도 없는 선택 품질 좌표/);
   });
 
   it("rejects an unsafe repository path and an unbounded query", () => {

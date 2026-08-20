@@ -105,6 +105,31 @@ export interface SearchQualityReport {
   embeddingDecision: "not_determined";
 }
 
+export interface SearchSelectionQualityCoordinate {
+  selectionTransitionId: string | null;
+  engine: SearchEngineIdentity;
+  selectionState: "implicit_baseline" | "recorded_baseline" | "candidate";
+  adapterBuildId: string | null;
+  buildEvidenceState: "not_applicable" | "bound" | "legacy_unbound";
+}
+
+export interface SearchSelectionQualitySlice extends SearchSelectionQualityCoordinate {
+  totalAttempts: number;
+  assessedAttempts: number;
+  unassessedAttempts: number;
+  acceptedAttempts: number;
+  failedAttempts: number;
+  failuresByReason: Record<SearchFailureReason, number>;
+  evidenceState: "failures_observed" | "insufficient_assessment" | "no_failures_observed";
+}
+
+export interface SearchSelectionQualityReport extends Omit<SearchQualityReport, "schemaVersion"> {
+  schemaVersion: 2;
+  selections: SearchSelectionQualitySlice[];
+  rolloutDecision: "not_determined";
+  rollbackDecision: "not_determined";
+}
+
 export interface SearchRecommendation {
   schemaVersion: 1;
   recommendationId: string;
