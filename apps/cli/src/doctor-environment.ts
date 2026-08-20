@@ -20,20 +20,33 @@ export async function inspectDoctorEnvironment(
   input: { repositoryRoot: string; projectId: string; scope?: DoctorScope },
   options: DoctorEnvironmentOptions = {},
 ): Promise<DoctorInspection[]> {
+  const scope = input.scope ?? "all";
   const searchInput = {
     repositoryRoot: input.repositoryRoot,
     projectId: input.projectId,
     registry: searchCandidateRegistry,
     observedAt: options.observedAt ?? new Date(),
   };
-  if (input.scope === "search") return inspectDoctorSearch(searchInput);
+  const inspectSkills = () => inspectDoctorSkills({
+    repositoryRoot: input.repositoryRoot,
+    projectId: input.projectId,
+    ...(options.userSkillRoot === undefined ? {} : { userSkillRoot: options.userSkillRoot }),
+  });
+  const inspectProviders = async (): Promise<DoctorInspection[]> => {
+    const [codex, claude] = await Promise.all([
+      (options.inspectCodex ?? inspectCodexRuntime)(),
+      (options.inspectClaude ?? inspectClaudeRuntime)(),
+    ]);
+    return [inspectDoctorProvider(codex), inspectDoctorProvider(claude)];
+  };
+  if (scope === "knowledge") return [];
+  if (scope === "documents") return inspectDoctorDocuments(input.repositoryRoot);
+  if (scope === "skills") return inspectSkills();
+  if (scope === "providers") return inspectProviders();
+  if (scope === "search") return inspectDoctorSearch(searchInput);
   const [documents, skills, codex, claude, search] = await Promise.all([
     inspectDoctorDocuments(input.repositoryRoot),
-    inspectDoctorSkills({
-      repositoryRoot: input.repositoryRoot,
-      projectId: input.projectId,
-      ...(options.userSkillRoot === undefined ? {} : { userSkillRoot: options.userSkillRoot }),
-    }),
+    inspectSkills(),
     (options.inspectCodex ?? inspectCodexRuntime)(),
     (options.inspectClaude ?? inspectClaudeRuntime)(),
     inspectDoctorSearch(searchInput),

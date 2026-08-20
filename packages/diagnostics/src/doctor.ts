@@ -1,8 +1,6 @@
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 
-import { inspectCandidate } from "./candidate-inspection.js";
-import { inspectKnowledgeReview } from "./review-inspection.js";
-import { inspectKnowledgeStaleness } from "./staleness-inspection.js";
+import { inspectDoctorKnowledge } from "./knowledge-doctor-inspection.js";
 import { createDoctorRecoveryGuidance } from "./recovery-guidance.js";
 import type {
   DoctorCheck,
@@ -11,30 +9,33 @@ import type {
   DoctorReport,
   DoctorScope,
 } from "./types.js";
-import { inspectVerifiedKnowledge } from "./verified-inspection.js";
-
-const environmentCheckIds = [
-  "document_registry",
-  "document_sources",
-  "skill_packages",
-  "skill_lock",
-  "provider_codex_runtime",
-  "provider_claude_runtime",
-  "search_engine_selection",
-  "search_rollout_policies",
-  "search_rollout_reviews",
-  "search_rollout_actions",
-] as const satisfies readonly DoctorCheck["checkId"][];
-
-const searchCheckIds = [
-  "search_engine_selection",
-  "search_rollout_policies",
-  "search_rollout_reviews",
-  "search_rollout_actions",
-] as const satisfies readonly DoctorCheck["checkId"][];
+const inspectionCheckIdsByScope = {
+  all: [
+    "document_registry",
+    "document_sources",
+    "skill_packages",
+    "skill_lock",
+    "provider_codex_runtime",
+    "provider_claude_runtime",
+    "search_engine_selection",
+    "search_rollout_policies",
+    "search_rollout_reviews",
+    "search_rollout_actions",
+  ],
+  knowledge: [],
+  documents: ["document_registry", "document_sources"],
+  skills: ["skill_packages", "skill_lock"],
+  providers: ["provider_codex_runtime", "provider_claude_runtime"],
+  search: [
+    "search_engine_selection",
+    "search_rollout_policies",
+    "search_rollout_reviews",
+    "search_rollout_actions",
+  ],
+} as const satisfies Record<DoctorScope, readonly DoctorCheck["checkId"][]>;
 
 function requiredInspectionIds(scope: DoctorScope): readonly DoctorCheck["checkId"][] {
-  return scope === "search" ? searchCheckIds : environmentCheckIds;
+  return inspectionCheckIdsByScope[scope];
 }
 
 function assertEnvironmentInspections(
@@ -71,8 +72,8 @@ type CreateDoctorReportInput = {
   projectId: string;
   inspections: readonly DoctorInspection[];
 } & (
-  | { scope: "search" }
-  | { scope?: "all"; events: EventStore; artifacts: ArtifactStore }
+  | { scope?: "all" | "knowledge"; events: EventStore; artifacts: ArtifactStore }
+  | { scope: "documents" | "skills" | "providers" | "search" }
 );
 
 export async function createDoctorReport(input: CreateDoctorReportInput): Promise<DoctorReport> {
@@ -80,63 +81,10 @@ export async function createDoctorReport(input: CreateDoctorReportInput): Promis
   assertEnvironmentInspections(input.inspections, scope);
   const issues: DoctorIssue[] = [];
   const localChecks: DoctorReport["checks"] = [];
-  if (input.scope !== "search") {
-    let eventCount = 0;
-    try {
-      eventCount = input.events.verifyIntegrity().eventCount;
-    } catch {
-      issues.push({
-        code: "event_chain_invalid",
-        eventId: null,
-        message: "로컬 event hash chain이 유효하지 않습니다.",
-      });
-    }
-    const events = input.events.list();
-    const candidateEvents = events.filter((event) => event.type === "knowledge.candidate.created");
-    const candidateIssues = await Promise.all(candidateEvents.map((event) =>
-      inspectCandidate({ event, events, artifacts: input.artifacts })));
-    issues.push(...candidateIssues.flat());
-    const reviewEvents = events.filter((event) => event.type === "knowledge.candidate.reviewed");
-    const reviewIssues = await Promise.all(reviewEvents.map((event) =>
-      inspectKnowledgeReview({ event, events, artifacts: input.artifacts })));
-    issues.push(...reviewIssues.flat());
-    const verifiedEvents = events.filter((event) => event.type === "knowledge.verified");
-    const verifiedIssues = await Promise.all(verifiedEvents.map((event) =>
-      inspectVerifiedKnowledge({ event, events, artifacts: input.artifacts })));
-    issues.push(...verifiedIssues.flat());
-    const stalenessEvents = events.filter((event) => event.type === "knowledge.stale.detected");
-    const stalenessIssues = await Promise.all(stalenessEvents.map((event) =>
-      inspectKnowledgeStaleness({ event, events, artifacts: input.artifacts })));
-    issues.push(...stalenessIssues.flat());
-    localChecks.push(
-      {
-        checkId: "event_chain",
-        status: issues.some((item) => item.code === "event_chain_invalid")
-          ? "unhealthy"
-          : "healthy",
-        observedCount: eventCount,
-      },
-      {
-        checkId: "knowledge_candidates",
-        status: candidateIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
-        observedCount: candidateEvents.length,
-      },
-      {
-        checkId: "knowledge_reviews",
-        status: reviewIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
-        observedCount: reviewEvents.length,
-      },
-      {
-        checkId: "verified_knowledge",
-        status: verifiedIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
-        observedCount: verifiedEvents.length,
-      },
-      {
-        checkId: "knowledge_staleness",
-        status: stalenessIssues.some((items) => items.length > 0) ? "unhealthy" : "healthy",
-        observedCount: stalenessEvents.length,
-      },
-    );
+  if (input.scope === undefined || input.scope === "all" || input.scope === "knowledge") {
+    const knowledge = await inspectDoctorKnowledge(input);
+    localChecks.push(...knowledge.checks);
+    issues.push(...knowledge.issues);
   }
   const inspections = input.inspections;
   const checks = [...localChecks, ...inspections.map((inspection) => inspection.check)];

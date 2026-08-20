@@ -8,15 +8,16 @@ import {
 } from "@lervo/diagnostics";
 import { loadProjectManifest } from "@lervo/project";
 
+import {
+  doctorScopeLabel,
+  doctorScopeUsesProjectStorage,
+  doctorScopeValues,
+  parseDoctorScope,
+} from "./doctor-scope.js";
 import type { CliIo, CliServices } from "./types.js";
 
-export const doctorUsage = "  lervo doctor [--root <path>] [--scope <all|search>] [--json]";
-
-function parseDoctorScope(value: string | undefined): DoctorScope {
-  if (value === undefined || value === "all") return "all";
-  if (value === "search") return value;
-  throw new TypeError(`지원하지 않는 doctor 범위입니다: ${value}`);
-}
+export const doctorUsage =
+  `  lervo doctor [--root <path>] [--scope <${doctorScopeValues.join("|")}>] [--json]`;
 
 function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string {
   switch (checkId) {
@@ -45,19 +46,20 @@ function statusLabel(status: DoctorReport["checks"][number]["status"]): string {
 }
 
 export function formatDoctorReport(report: DoctorReport): string {
-  const scopeLabel = report.scope === "search"
-    ? "Lervo 검색 범위 진단 결과"
-    : "Lervo 진단 결과";
+  const limitedScopeLabel = doctorScopeLabel(report.scope);
+  const reportLabel = report.scope === "all"
+    ? "Lervo 진단 결과"
+    : `Lervo ${limitedScopeLabel} 범위 진단 결과`;
   const lines = [
-    `${scopeLabel}: ${
+    `${reportLabel}: ${
       report.status === "healthy"
         ? "확인한 항목 정상"
         : report.status === "unhealthy"
           ? "문제 발견"
           : "확인 불가 항목 있음"
     }`,
-    ...(report.scope === "search"
-      ? ["  범위 제한: 검색 항목만 확인했으며 프로젝트 전체 상태를 뜻하지 않습니다."]
+    ...(report.scope !== "all"
+      ? [`  범위 제한: ${limitedScopeLabel} 항목만 확인했으며 프로젝트 전체 상태를 뜻하지 않습니다.`]
       : []),
     ...report.checks.map((check) =>
       `  ${statusLabel(check.status)}  ${checkLabel(check.checkId)} (${check.observedCount}개)${
@@ -118,7 +120,7 @@ export async function runDoctorCommand(
   try {
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     let report: DoctorReport;
-    if (scope === "search") {
+    if (!doctorScopeUsesProjectStorage(scope)) {
       const manifest = await loadProjectManifest(repositoryRoot);
       const inspections = await services.inspectDoctorEnvironment({
         repositoryRoot,
@@ -132,11 +134,13 @@ export async function runDoctorCommand(
       });
     } else {
       storage = await services.openProjectStorage(repositoryRoot);
-      const inspections = await services.inspectDoctorEnvironment({
-        repositoryRoot: storage.paths.repositoryRoot,
-        projectId: storage.manifest.projectId,
-        scope,
-      });
+      const inspections = scope === "knowledge"
+        ? []
+        : await services.inspectDoctorEnvironment({
+          repositoryRoot: storage.paths.repositoryRoot,
+          projectId: storage.manifest.projectId,
+          scope,
+        });
       report = await createDoctorReport({
         projectId: storage.manifest.projectId,
         events: storage.events,

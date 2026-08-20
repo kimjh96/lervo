@@ -851,9 +851,11 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 각 검사는 `healthy`, `unhealthy`, `unknown` 중 하나입니다. 계약을 끝까지 확인한 항목만 `healthy`이고, 손상·누락·stale 원본을 직접 확인하면 `unhealthy`입니다. 선행 원본이나 실행 환경이 없거나 안전한 probe가 끝나지 않으면 `unknown`입니다. 전체 판정은 `unhealthy`, `unknown`, `healthy` 순서로 우선하며 모든 항목이 `healthy`일 때만 종료 코드 0입니다.
 
-`lervo doctor [--scope <all|search>]`의 기본 범위는 `all`입니다. `search`는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`만 실행하며 전체 실행 뒤 결과를 필터링하지 않습니다. Search 범위는 project manifest만 직접 읽고 event store·CAS, 문서·스킬 전용 검사와 provider runtime probe를 열거나 호출하지 않습니다. 운영 검색 corpus 검증에 필요한 등록 문서 읽기는 검색 검사 내부 계약입니다.
+`lervo doctor [--scope <all|knowledge|documents|skills|providers|search>]`의 기본 범위는 `all`입니다. 제한 범위는 전체 실행 뒤 결과를 필터링하지 않고 다음 검사만 실행합니다. `knowledge`는 event chain·candidate·review·verified·staleness, `documents`는 registry·source, `skills`는 package·lock, `providers`는 Codex·Claude runtime, `search`는 engine selection·rollout policy·review·action입니다.
 
-`DoctorReport.scope`는 `all` 또는 `search`이고 JSON에 항상 포함됩니다. 검색 범위 텍스트는 프로젝트 전체 상태가 아니라는 설명을 함께 출력합니다. 검색 범위 종료 코드 0은 네 검색 항목이 모두 `healthy`라는 의미만 가지며 제외한 항목을 정상으로 주장하지 않습니다. 지원하지 않는 scope는 project 원본을 열기 전에 실패합니다. 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md)에 기록합니다.
+`knowledge`는 project storage와 CAS만 열고 환경 검사 application service를 호출하지 않습니다. 다른 제한 범위는 project manifest만 먼저 확인하고 event store와 CAS를 열지 않습니다. Documents는 등록 문서, skills는 프로젝트·사용자 스킬과 lock, providers는 두 version probe, search는 검색 정책·상태와 등록 corpus만 추가로 읽습니다. 검색 corpus 검증에 필요한 등록 문서 읽기는 검색 검사 내부 계약이며 documents check를 결과에 추가하지 않습니다. Scope별 허용 검사 ID가 누락·중복되거나 다른 범위 결과가 섞이면 report를 만들지 않습니다.
+
+`DoctorReport.scope`는 선택한 여섯 범위 중 하나이고 JSON에 항상 포함됩니다. 모든 제한 범위 텍스트는 프로젝트 전체 상태가 아니라는 설명을 함께 출력합니다. 종료 코드 0은 선택한 범위의 검사가 모두 `healthy`라는 의미만 가지며 제외한 항목을 정상으로 주장하지 않습니다. 지원하지 않는 scope는 project 원본을 열기 전에 실패합니다. 최초 검색 범위 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md), 전체 실행 계획은 [ADR-0074](./docs/adr/0074-doctor-scope-execution-plans.md)에 기록합니다.
 
 `DoctorReport.recoveryGuidance`는 issue가 없으면 빈 배열이고, 있으면 서로 다른 issue code마다 첫 등장 순서의 안내를 하나씩 가집니다. 각 안내의 필수 필드는 `issueCode`, controlled `actionCode`, 고정된 한국어 `message`, `actionState=not_performed`입니다. 같은 issue code가 여러 event에서 반복되어도 안내를 누적하지 않으며 서로 다른 issue code를 action code 하나로 합쳐 원인을 숨기지 않습니다.
 

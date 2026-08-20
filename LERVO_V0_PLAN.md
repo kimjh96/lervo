@@ -653,6 +653,17 @@ Doctor 복구 안내 첫 슬라이스 완료 조건:
 - 안내가 복구 성공·원인 확정·승인·실행 보장을 주장하지 않음
 - 자동 수정이나 명령을 실행하지 않고 파일·event·Hub 원본 및 선택·검토·조치 상태를 바꾸지 않음
 
+Doctor 범위 확장 첫 슬라이스 완료 조건:
+
+- `all`, `knowledge`, `documents`, `skills`, `providers`, `search`를 명시적으로 지원함
+- 지식 범위는 event chain과 지식 수명주기 검사만 실행하고 project storage·CAS 외의 환경 검사기를 호출하지 않음
+- 문서·스킬·provider·검색 범위는 project manifest로 project를 확인하되 event store와 CAS를 열지 않음
+- 문서는 등록 정보·원본, 스킬은 package·lock, provider는 두 runtime probe, 검색은 선택·정책·검토·조치만 실행함
+- Scope별 허용 검사 ID의 누락·중복·다른 범위 혼입을 report 생성 전에 거부함
+- 텍스트와 JSON의 scope·checks가 실제 실행 범위와 같고 제한 조회 성공을 프로젝트 전체 정상으로 표시하지 않음
+- 선택 범위의 `unhealthy`·`unknown`이 종료 코드 1과 기존 복구 안내로 이어짐
+- 파일·event·Hub 원본을 만들거나 진단 대상 상태를 전진시키지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -717,4 +728,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 Doctor 복구 안내 첫 슬라이스를 완료했습니다. 모든 현재 issue code는 controlled action code와 고정된 한국어 안내에 전체 매핑되며, 같은 code의 반복은 한 번만 표시합니다. 안내는 오류 문장·event ID·경로를 복사하지 않고 `actionState=not_performed`를 유지하며 텍스트도 자동 수정이나 상태 변경을 실행하지 않았음을 밝힙니다. 결정은 [ADR-0073](./docs/adr/0073-bounded-doctor-recovery-guidance.md)에 기록했습니다.
 
-다음 구현 작업은 검색 외에도 지식·문서·스킬·provider를 필요한 검사기만 실행할 수 있게 하는 **doctor 범위 확장**입니다. 각 범위는 실제 의존 storage와 probe만 열고, 제한 조회 성공을 프로젝트 전체 정상으로 표시하지 않아야 합니다.
+Doctor 범위 확장 첫 슬라이스를 완료했습니다. `knowledge`, `documents`, `skills`, `providers`, `search`가 각자의 허용 검사와 의존성만 실행합니다. 지식은 project storage·CAS만 열고 나머지 제한 범위는 event store·CAS를 열지 않습니다. 텍스트와 JSON은 실제 범위를 표시하고 선택 범위의 `unknown`·`unhealthy`만 종료 코드와 복구 안내에 반영합니다. 결정은 [ADR-0074](./docs/adr/0074-doctor-scope-execution-plans.md)에 기록했습니다.
+
+다음 구현 작업은 자동화가 doctor JSON 변경을 안전하게 감지할 수 있도록 하는 **doctor report schema version과 호환성 계약**입니다. 필드 추가·상태·scope·action code 변경 규칙과 이전 consumer의 실패 의미를 명시하고 fixture로 고정해야 합니다.

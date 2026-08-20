@@ -2,7 +2,13 @@ import type { EventEnvelope } from "@lervo/schemas";
 
 export type TraceSelector = "last" | string;
 
-export type DoctorScope = "all" | "search";
+export type DoctorScope =
+  | "all"
+  | "knowledge"
+  | "documents"
+  | "skills"
+  | "providers"
+  | "search";
 
 export interface TraceReport {
   projectId: string;

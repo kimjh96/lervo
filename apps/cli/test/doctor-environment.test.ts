@@ -136,11 +136,26 @@ describe("doctor project environment inspection", () => {
       .toMatchObject({ version: "claude fixture 1.0.0", observedCount: 1 });
   });
 
-  it("runs only search inspectors for the search scope", async () => {
+  it.each([
+    ["knowledge", [], 0],
+    ["documents", ["document_registry", "document_sources"], 0],
+    ["skills", ["skill_packages", "skill_lock"], 0],
+    ["providers", ["provider_codex_runtime", "provider_claude_runtime"], 2],
+    ["search", [
+      "search_engine_selection",
+      "search_rollout_policies",
+      "search_rollout_reviews",
+      "search_rollout_actions",
+    ], 0],
+  ] as const)("runs only %s inspectors for a limited scope", async (
+    scope,
+    expectedCheckIds,
+    expectedProviderCalls,
+  ) => {
     const { root, userSkillRoot } = await repository();
     let providerCalls = 0;
     const result = await inspectDoctorEnvironment(
-      { repositoryRoot: root, projectId, scope: "search" },
+      { repositoryRoot: root, projectId, scope },
       {
         userSkillRoot,
         inspectCodex: async () => {
@@ -154,13 +169,8 @@ describe("doctor project environment inspection", () => {
       },
     );
 
-    expect(providerCalls).toBe(0);
-    expect(result.map((item) => item.check.checkId)).toEqual([
-      "search_engine_selection",
-      "search_rollout_policies",
-      "search_rollout_reviews",
-      "search_rollout_actions",
-    ]);
+    expect(providerCalls).toBe(expectedProviderCalls);
+    expect(result.map((item) => item.check.checkId)).toEqual(expectedCheckIds);
   });
 
   it("does not call a missing registered document source healthy", async () => {
