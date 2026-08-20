@@ -184,6 +184,9 @@ export type SearchErrorCode =
   | "invalid_recommendation"
   | "invalid_rollout_review"
   | "invalid_rollout_policy"
+  | "invalid_rollout_action"
+  | "invalid_rollout_action_policy"
+  | "rollout_action_not_eligible"
   | "invalid_rollout_status";
 
 export class SearchError extends Error {

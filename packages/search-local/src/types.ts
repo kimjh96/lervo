@@ -32,7 +32,12 @@ export type SearchLocalErrorCode =
   | "rollout_policy_invalid"
   | "rollout_policy_not_found"
   | "rollout_policy_read_failed"
-  | "rollout_policy_write_failed";
+  | "rollout_policy_write_failed"
+  | "rollout_action_not_eligible"
+  | "rollout_action_policy_invalid"
+  | "rollout_action_policy_not_found"
+  | "rollout_action_policy_read_failed"
+  | "rollout_action_policy_write_failed";
 
 export class SearchLocalError extends Error {
   constructor(readonly code: SearchLocalErrorCode, message: string, options?: ErrorOptions) {

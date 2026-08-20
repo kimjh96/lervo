@@ -16,6 +16,7 @@ export const lervoRelativePaths = {
   searchEvaluations: ".lervo/search-evaluations",
   searchEnginePolicies: ".lervo/search-engine-policies",
   searchRolloutPolicies: ".lervo/search-rollout-policies",
+  searchRolloutActionPolicies: ".lervo/search-rollout-action-policies",
   searchObservations: ".lervo/state/search",
   skillsLock: ".lervo/skills.lock",
 } as const;
@@ -41,6 +42,7 @@ export interface LervoProjectPaths {
   searchEvaluations: string;
   searchEnginePolicies: string;
   searchRolloutPolicies: string;
+  searchRolloutActionPolicies: string;
   searchObservations: string;
   skillsLock: string;
 }
@@ -64,6 +66,7 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),
     searchEnginePolicies: resolve(repositoryRoot, lervoRelativePaths.searchEnginePolicies),
     searchRolloutPolicies: resolve(repositoryRoot, lervoRelativePaths.searchRolloutPolicies),
+    searchRolloutActionPolicies: resolve(repositoryRoot, lervoRelativePaths.searchRolloutActionPolicies),
     searchObservations: resolve(repositoryRoot, lervoRelativePaths.searchObservations),
     skillsLock: resolve(repositoryRoot, lervoRelativePaths.skillsLock),
   };

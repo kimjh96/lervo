@@ -5,6 +5,7 @@ import {
   searchEngineActivationFallback,
   type SearchCandidateEngineResolver,
   type SearchEngineActivation,
+  type SearchEngineRolloutActionEvidence,
 } from "@lervo/search";
 
 import {
@@ -91,6 +92,8 @@ export async function rollbackLocalSearchCandidate(input: {
   operatorId: string;
   decidedAt: Date;
   registry: SearchCandidateEngineResolver;
+  expectedPreviousActivationId?: string;
+  rolloutAction?: SearchEngineRolloutActionEvidence;
 }): Promise<SearchEngineActivation> {
   const [policy, previous] = await Promise.all([
     loadSearchEngineActivationPolicy(input.repositoryRoot, input.policyId),
@@ -101,6 +104,10 @@ export async function rollbackLocalSearchCandidate(input: {
   }
   if (previous === null || previous.projectId !== input.projectId) {
     throw new SearchLocalError("engine_activation_not_found", "되돌릴 검색 엔진 선택이 없습니다.");
+  }
+  if (input.expectedPreviousActivationId !== undefined &&
+    previous.activationId !== input.expectedPreviousActivationId) {
+    throw new SearchLocalError("rollout_action_not_eligible", "검토한 검색 후보가 더 이상 현재 선택이 아닙니다.");
   }
   const rollbackTarget = searchEngineActivationFallback(previous).selection;
   const targetEvidence = rollbackTarget.mode === "candidate"
@@ -119,6 +126,7 @@ export async function rollbackLocalSearchCandidate(input: {
       : { targetReview: targetEvidence.review, targetComparison: targetEvidence.comparison }),
     operatorId: input.operatorId,
     decidedAt: input.decidedAt,
+    ...(input.rolloutAction === undefined ? {} : { rolloutAction: input.rolloutAction }),
   });
   await recordSearchEngineActivation(input.repositoryRoot, activation);
   return activation;

@@ -98,6 +98,7 @@ Hub 정책 작성은 `@lervo/hub-policy` application 경계와 `HubPolicySourceS
   search-evaluations/      # 검색 평가 case와 bundle별 원본
   search-engine-policies/  # 검색 엔진 활성화 정책별 원본
   search-rollout-policies/ # 검색 rollout 검토 정책별 원본
+  search-rollout-action-policies/ # 검색 rollout 조치 정책별 원본
   generated/               # provider별 생성 원본과 manifest
   state/                   # gitignore 대상: SQLite, CAS, outbox, lock
   knowledge/               # 검증된 프로젝트 지식 또는 기존 지식 경로 연결
@@ -111,7 +112,7 @@ Hub 정책 작성은 `@lervo/hub-policy` application 경계와 `HubPolicySourceS
 
 이전 실험 버전의 `.roven`은 `.lervo`와 함께 읽지 않습니다. `lervo init`은 저장소 root에서 이전 경로를 발견하면 어떤 새 파일도 만들지 않고 차단합니다. Event hash chain과 CAS URI는 원본 증거 좌표이므로 단순 문자열 치환이나 디렉터리 rename으로 migration되었다고 주장하지 않습니다. 명칭 migration은 원본 보존, 새 좌표 생성, 검증과 완료 event를 갖춘 별도 작업으로 구현합니다.
 
-새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `verifications/`, `search-evaluations/`, `search-engine-policies/`, `search-rollout-policies/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서, 검증 suite, 검색 평가 케이스와 두 검색 정책은 각각 파일 목록이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. 일반 `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.lervo`는 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
+새 프로젝트의 init은 검증 계약이 있는 `project.yaml`, 빈 `documents/`, `verifications/`, `search-evaluations/`, `search-engine-policies/`, `search-rollout-policies/`, `search-rollout-action-policies/`, `.gitignore`와 `generated/`, `state/`, `knowledge/` 디렉터리만 만듭니다. 문서, 검증 suite, 검색 평가 케이스와 세 검색 정책은 각각 파일 목록이 directory index를 이루며 중앙 registry 파일은 만들지 않습니다. 기존 `documents.yaml`이 단독으로 있으면 byte를 유지한 채 읽기 호환만 제공하고 새 디렉터리와 혼용하거나 자동 migration하지 않습니다. 일반 `policy.yaml`은 아직 독립 schema가 없어 만들지 않습니다. `skills.lock`은 provider·Role·runtime별 해석 결과이므로 init에서 빈 파일을 만들지 않고 첫 해석 시 기록합니다. 초기화 계획은 `create`, `unchanged`, `conflict`를 구분하며 dry-run에 사용한 같은 계획만 적용합니다. 기존 파일이 유효하면 바이트를 유지하고, 계약 위반이나 심볼릭 링크가 있으면 다른 파일도 만들기 전에 전체 적용을 중단합니다. 새 `.lervo`는 임시 트리를 완성한 뒤 한 번의 rename으로 공개하며, 적용 도중 실패하면 임시 트리를 제거합니다.
 
 ### Document Adoption & Migration
 
@@ -341,6 +342,8 @@ Hub SQLite는 관계를 event와 같은 transaction에서 증분 투영하되 �
 사람의 rollout 검토는 파생 report와 선택 전이에서 분리한 `SearchRolloutReview` 원본이다. 현재 build-bound 후보 전이의 attempt·assessment ID 목록 hash와 집계를 검토 시각의 snapshot으로 고정하고, reviewer가 후보 유지·롤백 권고·추가 평가 필요 중 하나를 명시한다. 기존 v1은 기준 정책이 없으므로 수치에서 판단을 계산하지 않으며 모든 검토 원본은 승인이나 선택 변경 권한을 갖지 않는다. `.lervo/state/search/rollout-reviews`에 항목별 immutable 파일로 두고 실제 rollback은 기존 명시적 전이 명령만 만든다. 결정은 [ADR-0065](./docs/adr/0065-human-search-rollout-review.md)에 정의한다.
 
 Rollout 검토 정책은 엔진 활성화 정책과 별도인 `SearchRolloutReviewPolicy` 원본이다. 허용 reviewer·candidate와 후보 유지·롤백 권고의 평가·실패 수 기준을 `.lervo/search-rollout-policies/<policyId>.yaml`에 항목별로 고정한다. 신규 검토만 정확한 정책 ID와 `bound` 상태를 결속하며 기준 미충족 시 다른 판단을 고르지 않고 게시를 거부한다. 기존 v1 검토는 `legacy_unbound`로 남긴다. 정책 판정은 저장 당시 snapshot만 검사하고 현재 입력 변경, 결정 선택, 승인과 선택 전이는 다루지 않는다. 결정은 [ADR-0067](./docs/adr/0067-policy-bound-search-rollout-review.md)에 정의한다.
+
+Rollout 조치는 검토 정책과 별도인 action policy, 현재 선택·품질 재검증과 원본 게시로 나뉜다. 후보 유지 확인은 선택을 바꾸지 않는 항목별 acknowledgement이고, rollback은 조치 정책·검토·quality digest를 기존 엔진 선택 전이에 함께 결속한 schema v3이다. 따라서 rollback과 근거 사이에 부분 저장이 없으며 선택 chain을 소비할 때 모든 조치 원본을 다시 검증한다. 조치 정책은 `.lervo/search-rollout-action-policies`에, acknowledgement는 `.lervo/state/search/rollout-acknowledgements`에 항목별로 둔다. 결정은 [ADR-0068](./docs/adr/0068-explicit-search-rollout-actions.md)에 정의한다.
 
 Rollout 상태 조회는 현재 선택과 과거 검토를 기본 20·최대 50개의 안정된 페이지로 조합한다. 검토 시각까지의 입력으로 과거 snapshot을 재검증하고 조회 시각의 입력으로 현재 snapshot을 파생한다. 두 snapshot의 시각 결속 ID가 아니라 attempt·assessment 집합의 digest를 비교해 입력 변경만 표시한다. 최신 판단을 선택하거나 선택 전이·승인·rollback을 만들지 않으며 새 파일·event·Hub 원본도 없다. 결정은 [ADR-0066](./docs/adr/0066-bounded-search-rollout-review-status.md)에 정의한다.
 

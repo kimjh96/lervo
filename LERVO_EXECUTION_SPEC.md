@@ -19,6 +19,7 @@
 - `.lervo/search-evaluations/`: 검토한 검색 query와 기대 원본을 케이스별로 둘 빈 디렉터리
 - `.lervo/search-engine-policies/`: 검색 엔진 활성화 정책을 정책별로 둘 빈 디렉터리
 - `.lervo/search-rollout-policies/`: 검색 rollout 검토 정책을 정책별로 둘 빈 디렉터리
+- `.lervo/search-rollout-action-policies/`: 검색 rollout 조치 정책을 정책별로 둘 빈 디렉터리
 - `.lervo/.gitignore`: `state/` 제외 규칙
 - `.lervo/generated/`, `.lervo/state/`, `.lervo/knowledge/`: 이후 단계가 사용할 로컬 디렉터리
 
@@ -695,6 +696,14 @@ Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lerv
 
 정책에는 project·reviewer·candidate·author ID, 기준과 시각만 허용합니다. Query·digest, 문서 좌표·본문, provider 결과, credential과 receipt는 넣지 않고 event나 Hub 원본을 만들지 않습니다. 정책 계약 오류는 `invalid_rollout_policy`, 로컬 형식·없음·읽기·쓰기는 `rollout_policy_invalid`, `rollout_policy_not_found`, `rollout_policy_read_failed`, `rollout_policy_write_failed`입니다. 판정 사유와 소급 금지 규칙은 [ADR-0067](./docs/adr/0067-policy-bound-search-rollout-review.md)에 기록합니다.
 
+`lervo search rollout action policy create`는 exact 검토 정책, `keep` 또는 `rollback` 한 조치와 허용 operator를 별도 `SearchRolloutActionPolicy`로 만듭니다. Rollback 조치만 exact engine policy가 필수이며 action operator는 그 정책의 허용 범위를 넓힐 수 없습니다. 정책은 `.lervo/search-rollout-action-policies/<actionPolicyId>.yaml`에 최대 64 KiB, 전체 최대 32개, mode `0600` 불변 파일로 둡니다.
+
+`lervo search rollout action apply <rollout-review-id> --action <keep|rollback> --policy <action-policy-id> --operator <operator-id>`는 명시한 검토만 사용합니다. 검토가 정책에 결속된 v2이고 판단 기준을 충족하는지, action policy·operator·판단 종류가 맞는지, 검토 대상 전이가 현재 head인지, 조치 시각의 quality input digest가 검토 snapshot과 같은지를 모두 다시 확인합니다. `more_assessments_required`, 과거 선택, 변경된 입력과 허용되지 않은 operator는 `rollout_action_not_eligible`로 실패합니다.
+
+`keep`은 `.lervo/state/search/rollout-acknowledgements/<acknowledgementId>.json`에 최대 256개의 항목별 mode `0600` 원본을 만들고 `acknowledgement_recorded`만 주장합니다. 선택 변경·rollback·approval은 각각 `not_applied`, `not_executed`, `not_granted`입니다. `rollback`은 별도 receipt를 만들지 않고 action·review policy, rollout review와 조치 시각의 snapshot·input digest를 schema v3 engine rollback 전이에 함께 넣어 previous-head CAS로 한 번만 게시합니다.
+
+운영 resolver는 schema v3를 읽을 때 엔진·조치·검토 정책과 review, candidate review, 검토·조치 시각의 attempt·assessment를 다시 확인합니다. 근거가 없거나 snapshot·digest가 다르면 `engine_selection_unavailable`이며 baseline으로 대체하지 않습니다. 조치 정책 계약·acknowledgement 계약은 `invalid_rollout_action_policy`, `invalid_rollout_action`, 로컬 정책 형식·없음·읽기·쓰기는 `rollout_action_policy_invalid`, `rollout_action_policy_not_found`, `rollout_action_policy_read_failed`, `rollout_action_policy_write_failed`입니다. 원본에는 ID·digest·로컬 operator·시각만 두고 query·문서 좌표·provider 결과·credential을 넣거나 event·Hub sync를 만들지 않습니다. 결정은 [ADR-0068](./docs/adr/0068-explicit-search-rollout-actions.md)에 기록합니다.
+
 `lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>]`는 현재 선택과 저장된 rollout 검토를 검토 시각·ID 역순으로 조회합니다. 기본 limit은 20, 최대는 50이며 다음 cursor는 현재 페이지 마지막 review ID입니다. Cursor가 현재 검증된 원본에 없으면 다른 위치로 추정하지 않고 실패합니다. 전체 검토 원본은 기존 최대 256개 경계 안에서만 읽습니다.
 
 각 검토는 선택 chain의 전이·candidate·engine·adapter build·후보 review와 project를 다시 확인합니다. 정책에 결속된 v2는 정책 원본의 존재와 project 좌표도 확인하지만 기준 충족 여부는 상태 조회에서 다시 계산하지 않습니다. 검토 시각 이하의 대상 attempt·assessment로 기존 검토를 재생성하고, 조회 시각 이하의 전체 대상 입력으로 현재 품질 snapshot을 파생합니다. `qualityInputState`는 시각 때문에 달라질 수 있는 snapshot ID가 아니라 입력 ID 목록의 canonical digest가 같으면 `unchanged`, 다르면 `changed`입니다. 현재 전이와 같으면 `current_selection`, rollback·refresh 등으로 head가 바뀌었으면 `historical_selection`으로 표시합니다.
@@ -771,7 +780,7 @@ CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 
 
 `lervo search engine activate <reviewId> --policy <policyId> --operator <operatorId>`는 정책과 검토 원본만 보고 선택을 만들지 않습니다. 현재 bundle·coverage·case·corpus, comparison의 두 run·result와 v2 adapter build ID를 다시 확인하고 정적 registry의 후보를 비교 당시 시각·입력으로 재실행합니다. 같은 review ID가 다시 만들어져야 하며, review가 `adopt_candidate`, 허용 reviewer·candidate, 최소 후보 승리와 baseline 무회귀를 모두 만족해야 합니다. Operator도 정책 allowlist에 있어야 합니다.
 
-`SearchEngineActivation`은 연속 sequence, 이전 activation, 이전·새 선택, policy·operator·시각과 rollback 좌표를 content-bound ID로 묶습니다. 신규 v2 전이는 다음 rollback에 사용할 `fallbackSelection`과 그 activation 좌표를 명시해 action별 nullable 필드 추론을 줄입니다. 후보 선택은 review·comparison 좌표를 포함하고 baseline 선택에는 이 좌표를 넣지 않습니다. Reader는 기존 `applicationState=not_connected` v1과 직전 `recordState=selection_recorded` v1을 ID나 파일을 고치지 않고 읽으며 새 전이만 v2로 기록합니다. 첫 전이는 `.lervo/state/search/engine-selections/baseline.json`, 다음 전이는 `<previousActivationId>.json`에 게시합니다. 파일명이 이전 head를 열쇠로 사용하므로 같은 head에서 동시에 다른 전이를 게시하면 하나만 성공합니다. 최대 256개 전이를 읽어 단일 chain인지 모두 확인하며 한 파일에 이력을 누적하지 않습니다.
+`SearchEngineActivation`은 연속 sequence, 이전 activation, 이전·새 선택, policy·operator·시각과 rollback 좌표를 content-bound ID로 묶습니다. V2 전이는 다음 rollback에 사용할 `fallbackSelection`과 그 activation 좌표를 명시해 action별 nullable 필드 추론을 줄입니다. Rollout 조치가 아닌 활성화·refresh·rollback은 v2이고, 검토에 결속된 rollback만 같은 fallback 계약에 rollout 근거를 더한 v3입니다. 후보 선택은 review·comparison 좌표를 포함하고 baseline 선택에는 이 좌표를 넣지 않습니다. Reader는 기존 `applicationState=not_connected` v1과 직전 `recordState=selection_recorded` v1을 ID나 파일을 고치지 않고 읽습니다. 첫 전이는 `.lervo/state/search/engine-selections/baseline.json`, 다음 전이는 `<previousActivationId>.json`에 게시합니다. 파일명이 이전 head를 열쇠로 사용하므로 같은 head에서 동시에 다른 전이를 게시하면 하나만 성공합니다. 최대 256개 전이를 읽어 단일 chain인지 모두 확인하며 한 파일에 이력을 누적하지 않습니다.
 
 `lervo search engine refresh <reviewId> --policy <policyId> --operator <operatorId>`는 현재 선택이 후보일 때만 사용할 수 있습니다. 새 review와 comparison을 현재 corpus에서 다시 재현하고 정책을 확인한 뒤, 같은 candidate ID와 engine에 새 증거 좌표를 연결하는 `refresh_candidate` 전이를 만듭니다. 다른 후보로 바꾸거나 같은 review·comparison을 반복하는 요청은 거부합니다. 일반 `activate_candidate`도 현재와 같은 후보의 새 증거를 받지 않으며 명시적인 refresh를 요구합니다. Refresh 전이의 fallback은 baseline과 null activation 좌표로 고정합니다. 갱신 실패는 현재 선택을 고치거나 baseline으로 자동 전환하지 않습니다.
 

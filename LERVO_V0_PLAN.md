@@ -587,6 +587,18 @@ Hub command/approval 대화 UX 완료 조건:
 - 정책 판정이 결정 선택·승인·선택 유지·rollback을 실행하지 않음
 - Query·문서 좌표·본문·provider 결과·credential을 저장하거나 event·Hub sync를 만들지 않음
 
+검색 rollout 조치 첫 슬라이스 완료 조건:
+
+- 검토 정책과 별도인 action policy가 한 조치와 허용 operator만 고정함
+- Rollback operator를 exact engine policy 범위와 교차 확인하고 keep에는 엔진 권한을 부여하지 않음
+- 명시한 rollout review ID만 사용하고 판단 종류·현재 선택 head·현재 quality input digest를 다시 확인함
+- 입력이 추가되거나 과거 선택이 된 검토, `more_assessments_required`와 허용되지 않은 operator를 거부함
+- 후보 유지 확인을 선택 변경·rollback·approval 없는 항목별 immutable acknowledgement로 기록함
+- Rollback 근거와 엔진 선택 전이를 별도 파일로 나누지 않고 schema v3 원본 하나로 게시함
+- 기존 schema v1·v2 선택 전이를 수정하지 않고 같은 previous-head CAS와 fallback 계약을 재사용함
+- 운영 resolver가 schema v3의 정책·검토·품질 원본을 재생성해 변조·누락을 fail-closed함
+- Query·문서 좌표·본문·provider 결과·credential을 저장하거나 event·Hub sync를 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -639,4 +651,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 rollout 검토 정책 첫 슬라이스를 완료했습니다. 허용 reviewer·candidate와 유지·rollback의 평가·실패 기준을 정책별 immutable YAML에 고정하고, 신규 검토만 정확한 정책 ID에 결속해 기준을 충족할 때 게시합니다. 기존 v1은 소급 해석하지 않으며 정책 확인은 저장 당시 snapshot만 판정하고 결정 선택·승인·선택 변경을 실행하지 않습니다. 결정은 [ADR-0067](./docs/adr/0067-policy-bound-search-rollout-review.md)에 기록했습니다.
 
-다음 구현 작업은 정책을 충족한 검토와 변경되지 않은 현재 품질 입력을 다시 확인한 뒤에도 별도 operator 권한과 명시적 명령 없이는 아무 조치도 만들지 않는 **검색 rollout 조치 계약**입니다. 후보 유지 확인과 rollback 실행을 구분하고, 기존 `engine rollback` 전이 계약을 재사용하되 검토 자체를 실행 권한으로 해석하지 않습니다.
+검색 rollout 조치 첫 슬라이스를 완료했습니다. 검토 정책과 분리한 action policy가 exact 조치·operator와 rollback용 engine policy를 고정합니다. 명시한 검토가 현재 선택이고 품질 입력이 그대로일 때만 keep acknowledgement 또는 schema v3 rollback을 게시하며, rollback 근거와 선택 전이는 파일 하나로 원자화했습니다. 운영 resolver는 모든 조치 원본을 다시 확인하고 변조된 digest를 fail-closed합니다. 결정은 [ADR-0068](./docs/adr/0068-explicit-search-rollout-actions.md)에 기록했습니다.
+
+다음 구현 작업은 keep acknowledgement와 schema v3 rollback을 검토·선택 관계에 맞춰 제한된 page로 보여 주는 **검색 rollout 조치 상태 조회**입니다. 조회는 최신 조치를 자동 선택하거나 새 rollback을 실행하지 않고, 끊어진 정책·검토·품질 근거가 있으면 일부 결과를 숨기지 않고 전체를 실패시킵니다.

@@ -2,6 +2,9 @@ import type {
   SearchRolloutReview,
   SearchRolloutReviewDecision,
   SearchRolloutPolicyAssessment,
+  SearchEngineRolloutRollback,
+  SearchRolloutActionPolicy,
+  SearchRolloutKeepAcknowledgement,
   SearchRolloutReviewPolicy,
   SearchRolloutStatusPage,
 } from "@lervo/search";
@@ -10,6 +13,37 @@ function decisionLabel(decision: SearchRolloutReviewDecision): string {
   if (decision === "keep_candidate") return "후보 유지";
   if (decision === "rollback_recommended") return "롤백 권고";
   return "추가 평가 필요";
+}
+
+export function formatSearchRolloutActionPolicy(policy: SearchRolloutActionPolicy): string {
+  return [
+    `검색 rollout 조치 정책을 만들었습니다: ${policy.actionPolicyId}`,
+    `  조치: ${policy.action === "acknowledge_keep" ? "후보 유지 확인" : "rollback 실행"}`,
+    `  허용 operator ${policy.allowedOperatorIds.length}명 · 검토 정책 ${policy.rolloutPolicyId}`,
+    `  엔진 정책: ${policy.engineActivationPolicyId ?? "사용하지 않음"}`,
+    `  파일: .lervo/search-rollout-action-policies/${policy.actionPolicyId}.yaml`,
+  ].join("\n") + "\n";
+}
+
+export function formatSearchRolloutActionResult(
+  result: SearchRolloutKeepAcknowledgement | SearchEngineRolloutRollback,
+): string {
+  if (result.schemaVersion === 1) {
+    return [
+      `검색 후보 유지 확인을 기록했습니다: ${result.acknowledgementId}`,
+      `  rollout 검토: ${result.rolloutReviewId}`,
+      `  operator: ${result.operatorId}`,
+      "  현재 검색 엔진 선택은 바꾸지 않았으며 승인으로 사용하지 않습니다.",
+    ].join("\n") + "\n";
+  }
+  return [
+    `검색 rollout rollback을 기록했습니다: ${result.activationId}`,
+    `  rollout 검토: ${result.rolloutAction.rolloutReviewId}`,
+    `  ${result.previousSelection.engine.id}-v${result.previousSelection.engine.version}` +
+      ` → ${result.selected.engine.id}-v${result.selected.engine.version}`,
+    `  operator: ${result.operatorId} · 선택 전이 ${result.sequence}번`,
+    "  검토·조치 정책·확인한 품질 입력이 이 rollback 전이에 함께 기록되었습니다.",
+  ].join("\n") + "\n";
 }
 
 export function formatSearchRolloutReview(review: SearchRolloutReview): string {

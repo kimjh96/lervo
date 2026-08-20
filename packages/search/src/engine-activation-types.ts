@@ -78,8 +78,22 @@ export interface SearchEngineRollback extends SearchEngineActivationV2Base {
   rollbackOfActivationId: string;
 }
 
+export interface SearchEngineRolloutActionEvidence {
+  actionPolicyId: string;
+  rolloutPolicyId: string;
+  rolloutReviewId: string;
+  qualitySnapshotId: string;
+  qualityInputDigest: string;
+}
+
+export interface SearchEngineRolloutRollback extends Omit<SearchEngineRollback, "schemaVersion"> {
+  schemaVersion: 3;
+  rolloutAction: SearchEngineRolloutActionEvidence;
+}
+
 export type SearchEngineActivation =
   | LegacySearchEngineActivation
   | SearchEngineCandidateActivation
   | SearchEngineCandidateRefresh
-  | SearchEngineRollback;
+  | SearchEngineRollback
+  | SearchEngineRolloutRollback;

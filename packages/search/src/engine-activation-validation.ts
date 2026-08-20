@@ -2,6 +2,10 @@ import type { SearchEngineActivation } from "./engine-activation-types.js";
 import { assertSearchEngineSelection, sameSearchEngineSelection } from "./engine-selection.js";
 import { sameSearchEngine } from "./evaluation-engine.js";
 import { contentId } from "./integrity.js";
+import { SEARCH_ROLLOUT_ACTION_POLICY_PATTERN } from "./rollout-action-types.js";
+import { SEARCH_ROLLOUT_POLICY_PATTERN } from "./rollout-policy-types.js";
+import { SEARCH_ROLLOUT_SNAPSHOT_PATTERN } from "./rollout-quality-snapshot.js";
+import { SEARCH_ROLLOUT_REVIEW_PATTERN } from "./rollout-review.js";
 import { SearchError } from "./types.js";
 import { assertTimestamp, SOURCE_ID_PATTERN } from "./validation.js";
 
@@ -12,7 +16,7 @@ export function assertSearchEngineActivation(
   previous?: SearchEngineActivation | null,
 ): void {
   const legacy = activation.schemaVersion === 1;
-  const current = activation.schemaVersion === 2;
+  const current = activation.schemaVersion === 2 || activation.schemaVersion === 3;
   const action = (activation as { action: string }).action;
   if ((!legacy && !current) || !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.activationId) ||
     !SOURCE_ID_PATTERN.test(activation.projectId) || !Number.isSafeInteger(activation.sequence) ||
@@ -24,6 +28,17 @@ export function assertSearchEngineActivation(
     !/^sepol_[a-f0-9]{24}$/.test(activation.policyId) || !SOURCE_ID_PATTERN.test(activation.operatorId) ||
     activation.embeddingDecision !== "not_determined") {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 계약이 유효하지 않습니다.");
+  }
+  if (activation.schemaVersion === 3 && (activation.action !== "rollback" ||
+    !SEARCH_ROLLOUT_ACTION_POLICY_PATTERN.test(activation.rolloutAction?.actionPolicyId) ||
+    !SEARCH_ROLLOUT_POLICY_PATTERN.test(activation.rolloutAction.rolloutPolicyId) ||
+    !SEARCH_ROLLOUT_REVIEW_PATTERN.test(activation.rolloutAction.rolloutReviewId) ||
+    !SEARCH_ROLLOUT_SNAPSHOT_PATTERN.test(activation.rolloutAction.qualitySnapshotId) ||
+    !/^sha256:[a-f0-9]{64}$/.test(activation.rolloutAction.qualityInputDigest))) {
+    throw new SearchError("invalid_engine_activation", "검색 rollout rollback 근거가 유효하지 않습니다.");
+  }
+  if (activation.schemaVersion !== 3 && "rolloutAction" in activation) {
+    throw new SearchError("invalid_engine_activation", "기존 검색 엔진 전이에 rollout 조치 근거가 있습니다.");
   }
   if (legacy) {
     const hasLegacyState = activation.applicationState === "not_connected" && activation.recordState === undefined;
@@ -89,7 +104,7 @@ export function assertSearchEngineActivation(
           previous.selected.candidateId !== activation.selected.candidateId ||
           !sameSearchEngine(previous.selected.engine, activation.selected.engine))) ||
       (current && activation.action === "rollback" && (() => {
-        const previousFallback = previous.schemaVersion === 2
+        const previousFallback = previous.schemaVersion !== 1
           ? { selection: previous.fallbackSelection, activationId: previous.fallbackActivationId }
           : { selection: previous.previousSelection, activationId: previous.previousActivationId };
         return !sameSearchEngineSelection(activation.selected, previousFallback.selection) ||

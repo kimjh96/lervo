@@ -25,7 +25,7 @@
 
 `SearchAttempt`는 실제 engine과 nullable `selectionTransitionId`를 가집니다. 후보 attempt에는 전이 ID가 필수입니다. 전이 없는 baseline은 null이고 rollback으로 돌아온 baseline은 rollback 전이 ID를 기록합니다. Recommendation과 `context.recommended`도 같은 ID를 이어받습니다. 이 좌표는 선택을 소비한 검색 응답을 증명할 뿐 결과가 `selected`, `loaded`, `injected`, `used`됐거나 모델이 이해했다는 뜻이 아닙니다.
 
-신규 선택 전이는 schema v2와 `recordState=selection_recorded`, 명시적 fallback 선택을 가집니다. Reader는 기존 `applicationState=not_connected` v1과 직전 `recordState` v1을 content ID와 파일을 바꾸지 않고 허용합니다. `engine status` inspection은 기록된 선택을 항상 분리해 보여 주고 같은 resolver로 현재 index까지 검증하면 `ready`, 검증할 수 없으면 controlled failure code와 `unavailable`을 반환합니다. 어느 상태도 실제 query 실행을 뜻하지 않습니다.
+일반 신규 선택 전이는 schema v2와 `recordState=selection_recorded`, 명시적 fallback 선택을 가집니다. Rollout 검토에 결속된 rollback schema v3는 [ADR-0068](./0068-explicit-search-rollout-actions.md)의 근거를 추가하되 같은 선택·fallback 계약을 사용합니다. Reader는 기존 `applicationState=not_connected` v1과 직전 `recordState` v1을 content ID와 파일을 바꾸지 않고 허용합니다. `engine status` inspection은 기록된 선택을 항상 분리해 보여 주고 같은 resolver로 현재 index까지 검증하면 `ready`, 검증할 수 없으면 controlled failure code와 `unavailable`을 반환합니다. 어느 상태도 실제 query 실행을 뜻하지 않습니다.
 
 ## 개인정보와 저장
 

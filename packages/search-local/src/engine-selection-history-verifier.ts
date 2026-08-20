@@ -8,11 +8,15 @@ import {
   type SearchEngineActivationPolicy,
   type SearchEngineSelection,
   type SearchEvaluationComparison,
+  type SearchAssessment,
+  type SearchAttempt,
 } from "@lervo/search";
 
 import { loadSearchEngineActivationPolicies } from "./engine-policy-files.js";
 import { loadStoredSearchEvaluationComparison } from "./evaluation-comparison-reader.js";
 import { loadStoredSearchCandidateReview } from "./evaluation-review-store.js";
+import { verifySearchRolloutRollbackEvidence } from "./rollout-action-evidence.js";
+import { LocalSearchObservationStore } from "./store.js";
 import { SearchLocalError } from "./types.js";
 
 interface ActivationEvidence {
@@ -38,9 +42,20 @@ export async function verifySearchEngineSelectionHistory(input: {
   repositoryRoot: string;
   projectId: string;
   history: readonly SearchEngineActivation[];
+  attempts?: readonly SearchAttempt[];
+  assessments?: readonly SearchAssessment[];
 }): Promise<void> {
   const policies = await loadSearchEngineActivationPolicies(input.repositoryRoot);
   const policiesById = new Map(policies.map((policy) => [policy.policyId, policy]));
+  let attempts = input.attempts;
+  let assessments = input.assessments;
+  if (input.history.some((activation) => activation.schemaVersion === 3) &&
+    (attempts === undefined || assessments === undefined)) {
+    const store = await LocalSearchObservationStore.openExisting(input.repositoryRoot);
+    [attempts, assessments] = store === null
+      ? [[], []]
+      : await Promise.all([store.listAttempts(), store.listAssessments()]);
+  }
   let previous: SearchEngineActivation | null = null;
   for (const activation of input.history) {
     const policy: SearchEngineActivationPolicy | undefined = policiesById.get(activation.policyId);
@@ -74,6 +89,16 @@ export async function verifySearchEngineSelectionHistory(input: {
         if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
           throw new SearchLocalError("observation_invalid", "Rollback 선택이 검토·비교 원본과 다릅니다.");
         }
+      }
+      if (activation.schemaVersion === 3) {
+        await verifySearchRolloutRollbackEvidence({
+          repositoryRoot: input.repositoryRoot,
+          projectId: input.projectId,
+          activation,
+          previous,
+          attempts: attempts!,
+          assessments: assessments!,
+        });
       }
     }
     previous = activation;

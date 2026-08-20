@@ -8,6 +8,8 @@ import type {
   SearchEngineCandidateActivation,
   SearchEngineCandidateRefresh,
   SearchEngineRollback,
+  SearchEngineRolloutActionEvidence,
+  SearchEngineRolloutRollback,
 } from "./engine-activation-types.js";
 import { assertSearchEngineActivation } from "./engine-activation-validation.js";
 import {
@@ -33,10 +35,22 @@ function createTransition<T extends SearchEngineCandidateActivation | SearchEngi
   return activation;
 }
 
+function createRolloutRollbackTransition(
+  core: Omit<SearchEngineRolloutRollback, "schemaVersion" | "activationId">,
+): SearchEngineRolloutRollback {
+  const activation: SearchEngineRolloutRollback = {
+    schemaVersion: 3,
+    activationId: contentId("seact", core),
+    ...core,
+  };
+  assertSearchEngineActivation(activation);
+  return activation;
+}
+
 export function searchEngineActivationFallback(
   activation: SearchEngineActivation,
 ): { selection: SearchEngineActivation["selected"]; activationId: string | null } {
-  return activation.schemaVersion === 2
+  return activation.schemaVersion !== 1
     ? { selection: activation.fallbackSelection, activationId: activation.fallbackActivationId }
     : { selection: activation.previousSelection, activationId: activation.previousActivationId };
 }
@@ -134,14 +148,24 @@ export function createSearchEngineCandidateRefresh(input: {
   });
 }
 
-export function createSearchEngineRollback(input: {
+interface CreateSearchEngineRollbackInput {
   policy: SearchEngineActivationPolicy;
   previous: SearchEngineActivation;
   targetReview?: SearchCandidateReview;
   targetComparison?: SearchEvaluationComparison;
   operatorId: string;
   decidedAt: Date;
-}): SearchEngineRollback {
+}
+
+export function createSearchEngineRollback(
+  input: CreateSearchEngineRollbackInput & { rolloutAction: SearchEngineRolloutActionEvidence },
+): SearchEngineRolloutRollback;
+export function createSearchEngineRollback(
+  input: CreateSearchEngineRollbackInput,
+): SearchEngineRollback;
+export function createSearchEngineRollback(
+  input: CreateSearchEngineRollbackInput & { rolloutAction?: SearchEngineRolloutActionEvidence | undefined },
+): SearchEngineRollback | SearchEngineRolloutRollback {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivation(input.previous);
   if (input.previous.projectId !== input.policy.projectId || !Number.isFinite(input.decidedAt.getTime())) {
@@ -164,7 +188,7 @@ export function createSearchEngineRollback(input: {
   } else if (input.targetReview !== undefined || input.targetComparison !== undefined) {
     throw new SearchError("invalid_engine_activation", "Baseline rollback에는 후보 검토 원본을 사용하지 않습니다.");
   }
-  return createTransition({
+  const core: Omit<SearchEngineRollback, "schemaVersion" | "activationId"> = {
     projectId: input.policy.projectId,
     sequence: input.previous.sequence + 1,
     previousActivationId: input.previous.activationId,
@@ -179,5 +203,8 @@ export function createSearchEngineRollback(input: {
     fallbackActivationId: input.previous.activationId,
     recordState: "selection_recorded",
     embeddingDecision: "not_determined",
-  });
+  };
+  return input.rolloutAction === undefined
+    ? createTransition<SearchEngineRollback>(core)
+    : createRolloutRollbackTransition({ ...core, rolloutAction: structuredClone(input.rolloutAction) });
 }

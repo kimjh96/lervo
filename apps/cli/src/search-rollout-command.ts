@@ -6,6 +6,7 @@ import { type SearchRolloutReviewDecision } from "@lervo/search";
 import { reviewLocalSearchRollout } from "@lervo/search-local";
 
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
+import { runSearchRolloutActionCommand } from "./search-rollout-action-command.js";
 import { formatSearchRolloutReview } from "./search-rollout-format.js";
 import { runSearchRolloutPolicyCommand } from "./search-rollout-policy-command.js";
 import { runSearchRolloutStatusCommand } from "./search-rollout-status-command.js";
@@ -64,9 +65,10 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
 }
 
 export async function runSearchRolloutCommand(args: string[], io: CliIo): Promise<number> {
+  if (args[0] === "action") return runSearchRolloutActionCommand(args.slice(1), io);
   if (args[0] === "review") return runSearchRolloutReviewCommand(args.slice(1), io);
   if (args[0] === "policy") return runSearchRolloutPolicyCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchRolloutStatusCommand(args.slice(1), io);
-  io.stderr(`rollout 하위 명령은 policy, review와 status를 지원합니다.\n${searchUsage}\n`);
+  io.stderr(`rollout 하위 명령은 policy, review, status와 action을 지원합니다.\n${searchUsage}\n`);
   return 1;
 }

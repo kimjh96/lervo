@@ -41,6 +41,8 @@ export async function loadVerifiedSearchSelectionQualityEvidence(input: {
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,
       history,
+      attempts,
+      assessments,
     });
   }
   const activations = new Map(history.map((activation) => [activation.activationId, activation]));
