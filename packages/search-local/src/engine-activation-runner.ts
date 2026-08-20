@@ -85,7 +85,7 @@ export async function refreshLocalSearchCandidate(input: {
   return refresh;
 }
 
-export async function rollbackLocalSearchCandidate(input: {
+async function prepareLocalSearchCandidateRollback(input: {
   repositoryRoot: string;
   projectId: string;
   policyId: string;
@@ -118,7 +118,7 @@ export async function rollbackLocalSearchCandidate(input: {
       registry: input.registry,
     })
     : undefined;
-  const activation = createSearchEngineRollback({
+  return createSearchEngineRollback({
     policy,
     previous,
     ...(targetEvidence === undefined
@@ -128,6 +128,18 @@ export async function rollbackLocalSearchCandidate(input: {
     decidedAt: input.decidedAt,
     ...(input.rolloutAction === undefined ? {} : { rolloutAction: input.rolloutAction }),
   });
+}
+
+export async function verifyLocalSearchCandidateRollbackReadiness(
+  input: Parameters<typeof prepareLocalSearchCandidateRollback>[0],
+): Promise<void> {
+  await prepareLocalSearchCandidateRollback(input);
+}
+
+export async function rollbackLocalSearchCandidate(
+  input: Parameters<typeof prepareLocalSearchCandidateRollback>[0],
+): Promise<SearchEngineActivation> {
+  const activation = await prepareLocalSearchCandidateRollback(input);
   await recordSearchEngineActivation(input.repositoryRoot, activation);
   return activation;
 }

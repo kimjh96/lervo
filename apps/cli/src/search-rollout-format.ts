@@ -4,6 +4,7 @@ import type {
   SearchRolloutPolicyAssessment,
   SearchEngineRolloutRollback,
   SearchRolloutActionPolicy,
+  SearchRolloutActionPreflight,
   SearchRolloutKeepAcknowledgement,
   SearchRolloutActionStatusPage,
   SearchRolloutReviewPolicy,
@@ -70,6 +71,34 @@ export function formatSearchRolloutActionStatus(status: SearchRolloutActionStatu
     ]),
     status.nextCursor === null ? "  다음 페이지 없음" : `  다음 cursor: ${status.nextCursor}`,
     "  이 조회는 조치를 자동 선택하거나 rollback·승인을 실행하지 않습니다.",
+  ].join("\n") + "\n";
+}
+
+const preflightFailureLabels: Record<SearchRolloutActionPreflight["failureReasons"][number], string> = {
+  requested_action_mismatch: "요청한 조치와 정책의 조치가 다름",
+  action_policy_not_active: "조치 정책이 아직 유효하지 않음",
+  review_not_active: "검토 시각이 아직 지나지 않음",
+  review_policy_not_bound: "검토에 정책이 연결되지 않음",
+  review_policy_mismatch: "검토에 연결된 정책이 다름",
+  review_decision_mismatch: "검토 판단이 요청한 조치와 다름",
+  review_policy_not_eligible: "검토 판단이 정책 기준을 충족하지 않음",
+  operator_not_allowed: "조치 정책이 operator를 허용하지 않음",
+  engine_operator_not_allowed: "엔진 정책이 operator를 허용하지 않음",
+  selection_not_current: "검토 대상이 현재 선택이 아님",
+  quality_input_changed: "검토 뒤 품질 입력이 변경됨",
+};
+
+export function formatSearchRolloutActionPreflight(result: SearchRolloutActionPreflight): string {
+  const reasons = result.failureReasons.length === 0
+    ? "없음"
+    : result.failureReasons.map((reason) => preflightFailureLabels[reason]).join(", ");
+  return [
+    `검색 rollout 조치 사전 점검: ${result.rolloutReviewId}`,
+    `  요청 조치: ${result.requestedAction === "acknowledge_keep" ? "후보 유지 확인" : "rollback 실행"}`,
+    `  실행 가능: ${result.eligibility === "eligible" ? "예" : "아니요"}`,
+    `  품질 입력: ${result.qualityInputState === "unchanged" ? "변경 없음" : "변경됨"}`,
+    `  미충족 사유: ${reasons}`,
+    "  이 점검은 후보 유지 확인, 선택 변경, rollback이나 승인을 실행하지 않습니다.",
   ].join("\n") + "\n";
 }
 

@@ -19,6 +19,7 @@ import {
   formatSearchRolloutActionPolicy,
   formatSearchRolloutActionResult,
 } from "./search-rollout-format.js";
+import { runSearchRolloutActionCheckCommand } from "./search-rollout-action-check-command.js";
 import { runSearchRolloutActionStatusCommand } from "./search-rollout-action-status-command.js";
 import type { CliIo } from "./types.js";
 
@@ -141,7 +142,8 @@ async function runApply(args: string[], io: CliIo): Promise<number> {
 export async function runSearchRolloutActionCommand(args: string[], io: CliIo): Promise<number> {
   if (args[0] === "policy" && args[1] === "create") return runPolicyCreate(args.slice(2), io);
   if (args[0] === "apply") return runApply(args.slice(1), io);
+  if (args[0] === "check") return runSearchRolloutActionCheckCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchRolloutActionStatusCommand(args.slice(1), io);
-  io.stderr(`검색 rollout 조치는 policy create, apply 또는 status를 명시해야 합니다.\n${searchUsage}\n`);
+  io.stderr(`검색 rollout 조치는 policy create, apply, check 또는 status를 명시해야 합니다.\n${searchUsage}\n`);
   return 1;
 }

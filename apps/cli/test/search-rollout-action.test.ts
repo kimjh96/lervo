@@ -87,6 +87,36 @@ describe("search rollout action commands", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:04:00.000Z"));
+    const searchStateBeforeCheck = await readdir(resolve(root, ".lervo/state/search"));
+    const deniedCheck = await command(root, [
+      "search", "rollout", "action", "check", keepReview.rolloutReviewId,
+      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
+      "--operator", "operator_other", "--json",
+    ]);
+    const eligibleCheck = await command(root, [
+      "search", "rollout", "action", "check", keepReview.rolloutReviewId,
+      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
+      "--operator", "operator_search", "--json",
+    ]);
+    expect(deniedCheck.code, deniedCheck.error).toBe(0);
+    expect(JSON.parse(deniedCheck.output)).toMatchObject({
+      eligibility: "ineligible",
+      failureReasons: ["operator_not_allowed"],
+      actionSelection: "not_performed",
+    });
+    expect(eligibleCheck.code, eligibleCheck.error).toBe(0);
+    expect(JSON.parse(eligibleCheck.output)).toMatchObject({
+      eligibility: "eligible",
+      failureReasons: [],
+      effect: {
+        acknowledgement: "not_recorded",
+        selectionChange: "not_applied",
+        rollback: "not_executed",
+        approval: "not_granted",
+      },
+    });
+    expect(await readdir(resolve(root, ".lervo/state/search"))).toEqual(searchStateBeforeCheck);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
     const unauthorized = await command(root, [
       "search", "rollout", "action", "apply", keepReview.rolloutReviewId,
       "--action", "keep", "--policy", keepPolicy.actionPolicyId,
@@ -136,6 +166,11 @@ describe("search rollout action commands", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:07:00.000Z"));
+    const staleCheck = await command(root, [
+      "search", "rollout", "action", "check", keepReview.rolloutReviewId,
+      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
+      "--operator", "operator_search", "--json",
+    ]);
     const staleKeep = await command(root, [
       "search", "rollout", "action", "apply", keepReview.rolloutReviewId,
       "--action", "keep", "--policy", keepPolicy.actionPolicyId,
@@ -148,17 +183,38 @@ describe("search rollout action commands", () => {
       "--policy", rolloutPolicy.policyId, "--json",
     ]);
     vi.setSystemTime(new Date("2026-08-20T10:09:00.000Z"));
+    const rollbackReviewId = (JSON.parse(rollbackReviewResult.output) as { rolloutReviewId: string }).rolloutReviewId;
+    const rollbackCheck = await command(root, [
+      "search", "rollout", "action", "check", rollbackReviewId,
+      "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
+      "--operator", "operator_search", "--json",
+    ]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
     const rolledBack = await command(root, [
       "search", "rollout", "action", "apply",
-      (JSON.parse(rollbackReviewResult.output) as { rolloutReviewId: string }).rolloutReviewId,
+      rollbackReviewId,
       "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
       "--operator", "operator_search", "--json",
     ]);
     vi.useRealTimers();
 
+    expect(staleCheck.code, staleCheck.error).toBe(0);
+    expect(JSON.parse(staleCheck.output)).toMatchObject({
+      eligibility: "ineligible",
+      failureReasons: ["quality_input_changed"],
+      qualityInputState: "changed",
+    });
     expect(staleKeep.code).toBe(1);
     expect(staleKeep.error).toContain("rollout_action_not_eligible");
     expect(rollbackReviewResult.code, rollbackReviewResult.error).toBe(0);
+    expect(rollbackCheck.code, rollbackCheck.error).toBe(0);
+    expect(JSON.parse(rollbackCheck.output)).toMatchObject({
+      eligibility: "eligible",
+      failureReasons: [],
+      requestedAction: "execute_rollback",
+      engineActivationPolicyId: enginePolicy.policyId,
+      effect: { acknowledgement: "not_recorded", rollback: "not_executed" },
+    });
     expect(rolledBack.code, rolledBack.error).toBe(0);
     const rollback = JSON.parse(rolledBack.output) as {
       schemaVersion: number;
@@ -181,12 +237,22 @@ describe("search rollout action commands", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:10:00.000Z"));
+    const repeatedCheck = await command(root, [
+      "search", "rollout", "action", "check", rollback.rolloutAction.rolloutReviewId,
+      "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
+      "--operator", "operator_search", "--json",
+    ]);
     const repeated = await command(root, [
       "search", "rollout", "action", "apply", rollback.rolloutAction.rolloutReviewId,
       "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
       "--operator", "operator_search", "--json",
     ]);
     vi.useRealTimers();
+    expect(repeatedCheck.code, repeatedCheck.error).toBe(0);
+    expect(JSON.parse(repeatedCheck.output)).toMatchObject({
+      eligibility: "ineligible",
+      failureReasons: ["selection_not_current"],
+    });
     expect(repeated.code).toBe(1);
     expect(repeated.error).toContain("rollout_action_not_eligible");
 

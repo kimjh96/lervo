@@ -2,7 +2,7 @@ import {
   assertSearchEngineActivationPolicy,
 } from "./engine-activation-policy.js";
 import { SEARCH_ENGINE_ACTIVATION_POLICY_PATTERN } from "./engine-activation-policy.js";
-import { contentId } from "./integrity.js";
+import { canonicalHash, contentId } from "./integrity.js";
 import { assertSearchRolloutReviewPolicy } from "./rollout-policy.js";
 import { SEARCH_ROLLOUT_POLICY_PATTERN } from "./rollout-policy-types.js";
 import {
@@ -88,5 +88,25 @@ export function assertSearchRolloutActionPolicy(policy: SearchRolloutActionPolic
   const { schemaVersion: _schema, actionPolicyId: _id, ...core } = policy;
   if (contentId("srapol", core) !== policy.actionPolicyId) {
     throw new SearchError("invalid_rollout_action_policy", "검색 rollout 조치 정책 ID가 실제 내용과 다릅니다.");
+  }
+}
+
+export function verifySearchRolloutActionPolicySources(
+  policy: SearchRolloutActionPolicy,
+  sources: SearchRolloutActionPolicySources,
+): void {
+  assertSearchRolloutActionPolicy(policy);
+  const recreated = createSearchRolloutActionPolicy({
+    ...sources,
+    action: policy.action,
+    allowedOperatorIds: policy.allowedOperatorIds,
+    authoredBy: policy.authoredBy,
+    createdAt: new Date(policy.createdAt),
+  });
+  if (canonicalHash(recreated) !== canonicalHash(policy)) {
+    throw new SearchError(
+      "invalid_rollout_action_policy",
+      "검색 rollout 조치 정책이 검토·엔진 정책 원본과 일치하지 않습니다.",
+    );
   }
 }

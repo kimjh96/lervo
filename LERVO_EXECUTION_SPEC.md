@@ -712,6 +712,14 @@ Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lerv
 
 입력·limit·cursor·조합 관계 오류는 `invalid_rollout_action_status`이고 원본 실패는 기존 정책·검토·선택·관측 오류로 전체 page를 닫습니다. 응답에는 로컬 operator·reviewer ID와 품질 집계가 포함될 수 있지만 query·digest, nonce, index·result-set hash, 문서 좌표·본문, prompt, provider 결과, credential과 receipt는 포함하지 않습니다. 파일·event·Hub 원본을 만들지 않습니다. 결정은 [ADR-0069](./docs/adr/0069-bounded-search-rollout-action-status.md)에 기록합니다.
 
+`lervo search rollout action check <rollout-review-id> --action <keep|rollback> --policy <action-policy-id> --operator <operator-id>`는 명시한 조합의 현재 실행 가능 조건을 쓰기 없이 점검합니다. Action policy와 exact review·engine policy 원본을 재생성해 결속을 확인하고, 검토 시각의 품질 원본과 조회 시각의 현재 snapshot을 다시 만듭니다. 최신 검토·정책·조치를 대신 고르지 않습니다.
+
+`failureReasons`는 `requested_action_mismatch`, `action_policy_not_active`, `review_not_active`, `review_policy_not_bound`, `review_policy_mismatch`, `review_decision_mismatch`, `review_policy_not_eligible`, `operator_not_allowed`, `engine_operator_not_allowed`, `selection_not_current`, `quality_input_changed`만 허용하며 이 순서로 반환합니다. 하나라도 있으면 `ineligible`, 없으면 `eligible`입니다. Rollback이 eligible이면 실제 적용과 같은 읽기 전용 준비 경계가 현재 engine policy, previous head와 fallback 후보 원본·현재 adapter build 재현까지 확인합니다.
+
+`eligible`은 `checkedAt` 시점의 설명이며 승인, 예약이나 실행 보장이 아닙니다. 실제 `apply`는 current head와 품질 입력을 다시 확인하고 previous-head CAS를 사용합니다. 점검 결과는 `actionSelection=not_performed`, `acknowledgement=not_recorded`, `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`를 유지하며 파일·event·Hub 원본을 만들지 않습니다.
+
+점검 입력 계약 오류는 `invalid_rollout_action_preflight`입니다. 정책·검토·선택·품질·후보 재현 원본이 없거나 변조된 경우에는 `ineligible`로 숨기지 않고 기존 구체 오류로 전체 점검을 실패시킵니다. 응답은 로컬 operator와 정책·검토·선택 ID를 포함하지만 query·digest, snapshot·attempt·assessment ID, nonce, 문서 좌표·본문, provider 결과, credential과 receipt는 포함하지 않습니다. 결정은 [ADR-0070](./docs/adr/0070-read-only-search-rollout-action-preflight.md)에 기록합니다.
+
 `lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>]`는 현재 선택과 저장된 rollout 검토를 검토 시각·ID 역순으로 조회합니다. 기본 limit은 20, 최대는 50이며 다음 cursor는 현재 페이지 마지막 review ID입니다. Cursor가 현재 검증된 원본에 없으면 다른 위치로 추정하지 않고 실패합니다. 전체 검토 원본은 기존 최대 256개 경계 안에서만 읽습니다.
 
 각 검토는 선택 chain의 전이·candidate·engine·adapter build·후보 review와 project를 다시 확인합니다. 정책에 결속된 v2는 정책 원본의 존재와 project 좌표도 확인하지만 기준 충족 여부는 상태 조회에서 다시 계산하지 않습니다. 검토 시각 이하의 대상 attempt·assessment로 기존 검토를 재생성하고, 조회 시각 이하의 전체 대상 입력으로 현재 품질 snapshot을 파생합니다. `qualityInputState`는 시각 때문에 달라질 수 있는 snapshot ID가 아니라 입력 ID 목록의 canonical digest가 같으면 `unchanged`, 다르면 `changed`입니다. 현재 전이와 같으면 `current_selection`, rollback·refresh 등으로 head가 바뀌었으면 `historical_selection`으로 표시합니다.

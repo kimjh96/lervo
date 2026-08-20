@@ -611,6 +611,18 @@ Hub command/approval 대화 UX 완료 조건:
 - 빈 상태와 cursor page가 최신 조치를 자동 선택·승인·실행하지 않음
 - Query·digest·문서 좌표·본문·provider 결과·credential을 출력하거나 새 원본·event·Hub sync를 만들지 않음
 
+검색 rollout 조치 사전 점검 첫 슬라이스 완료 조건:
+
+- Rollout review·action policy·요청 조치·operator를 모두 명시하고 최신 원본을 자동 선택하지 않음
+- 실제 apply와 같은 코어 eligibility 판정으로 판단·정책·operator·현재 선택·품질 입력을 확인함
+- 미충족 조건을 고정된 사유와 순서로 반환하고 다른 조치나 operator를 추천하지 않음
+- Rollback이 eligible이면 실제 게시 직전과 같은 engine policy·head·fallback 후보 재현을 읽기 전용으로 검증함
+- 원본 누락·변조·재현 실패를 ineligible로 완화하지 않고 점검 전체를 실패시킴
+- Eligible 결과를 승인·예약·실행 보장으로 사용하지 않고 apply가 모든 조건을 다시 검사함
+- 점검 전후 acknowledgement와 engine selection 파일 집합이 바뀌지 않음
+- Query·digest·품질 원본 ID·문서 좌표·본문·provider 결과·credential을 출력하지 않음
+- 새 파일·event·Hub sync를 만들지 않고 action·selection·rollback·approval 상태를 전진시키지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -667,4 +679,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 rollout 조치 상태 조회 첫 슬라이스를 완료했습니다. Keep acknowledgement와 schema v3 rollback을 제한된 cursor page로 조합하고, 검토 대상과 rollback 결과 전이의 현재·과거 관계 및 현재 품질 입력 변경을 따로 표시합니다. Pagination 전에 모든 조치 원본을 검증하므로 숨겨진 과거 증거가 끊겨도 전체 조회를 실패시킵니다. 결정은 [ADR-0069](./docs/adr/0069-bounded-search-rollout-action-status.md)에 기록했습니다.
 
-다음 구현 작업은 명시한 rollout review·action policy·operator 조합이 현재 실행 가능한지 쓰기 없이 설명하는 **검색 rollout 조치 사전 점검**입니다. 점검은 최신 검토나 정책을 대신 고르지 않고, 현재 선택·품질 입력·판단 종류·operator 범위별 미충족 사유만 제한된 코드로 반환하며 acknowledgement나 rollback을 만들지 않습니다.
+검색 rollout 조치 사전 점검 첫 슬라이스를 완료했습니다. 명시한 review·action policy·조치·operator의 현재 조건을 실제 apply와 같은 코어 판정으로 설명하고, eligible rollback은 게시 직전과 같은 engine policy·head·fallback 재현까지 읽기 전용으로 확인합니다. 점검은 승인이나 예약이 아니며 apply가 모든 조건을 다시 확인합니다. 결정은 [ADR-0070](./docs/adr/0070-read-only-search-rollout-action-preflight.md)에 기록했습니다.
+
+다음 구현 작업은 검색 엔진 선택·rollout 정책·검토·조치 원본을 기존 `lervo doctor`에 연결하는 **검색 rollout 운영 진단**입니다. 진단은 각 범위를 `healthy`·`unhealthy`·`unknown`으로 구분하고 손상 근거를 성공으로 숨기지 않으며, 상태 조회나 조치 실행을 대신하지 않습니다.

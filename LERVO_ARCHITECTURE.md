@@ -347,6 +347,8 @@ Rollout 조치는 검토 정책과 별도인 action policy, 현재 선택·품�
 
 Rollout 조치 상태 조회는 keep acknowledgement와 schema v3 rollback만 파생 목록으로 조합한다. 조치 시각·ID 역순의 기본 20·최대 50개 page를 만들지만 pagination 전에 모든 acknowledgement와 전체 선택 chain의 정책·검토·품질 원본을 검증한다. 검토 대상 전이와 rollback 결과 전이의 현재·과거 관계를 분리하며 일반 rollback을 정책 결속 조치처럼 표시하지 않는다. 파일·event·선택을 만들지 않는 이 경계는 [ADR-0069](./docs/adr/0069-bounded-search-rollout-action-status.md)에 정의한다.
 
+Rollout 조치 사전 점검은 공통 eligibility 판정과 로컬 실행 준비 검증을 조합하는 읽기 전용 application 경계다. 명시한 검토·action policy·operator·조치만 평가하고, rollback은 실제 게시 직전과 같은 engine policy·head·fallback 재현까지 확인한다. 제한된 미충족 사유를 반환하지만 원본 손상을 실행 불가 상태로 완화하지 않으며 아무 전이도 예약하거나 노출하지 않는다. 결정은 [ADR-0070](./docs/adr/0070-read-only-search-rollout-action-preflight.md)에 정의한다.
+
 Rollout 상태 조회는 현재 선택과 과거 검토를 기본 20·최대 50개의 안정된 페이지로 조합한다. 검토 시각까지의 입력으로 과거 snapshot을 재검증하고 조회 시각의 입력으로 현재 snapshot을 파생한다. 두 snapshot의 시각 결속 ID가 아니라 attempt·assessment 집합의 digest를 비교해 입력 변경만 표시한다. 최신 판단을 선택하거나 선택 전이·승인·rollback을 만들지 않으며 새 파일·event·Hub 원본도 없다. 결정은 [ADR-0066](./docs/adr/0066-bounded-search-rollout-review-status.md)에 정의한다.
 
 Managed context 연결은 search attempt를 포함한 `SearchRecommendationBatch`와 context 입력 port로 분리한다. Batch는 document hit 최대 5개와 `top_ranked-v1`이 선택한 최대 3개를 ID·hash로 결속한다. Context router는 모든 hit에 `recommended` evidence를 만들지만 선택된 recommendation만 `search_recommendation` E1과 검색 당시 content hash 기대값을 얻는다. 선택되지 않은 hit는 E2/E3 대상이 아니다. Orchestrator는 추천, 선택, 실제 적재와 provider 주입 event를 각각 기록하며 query·경로·본문은 추천 event에서 제외한다. 로컬 CLI는 provider 시작 전에 attempt를 저장하고 결과에 assessment용 attempt ID를 돌려준다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)에 정의한다.

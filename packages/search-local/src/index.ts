@@ -21,6 +21,7 @@ export * from "./rollout-review-store.js";
 export * from "./rollout-review-state.js";
 export * from "./rollout-action-policy-files.js";
 export * from "./rollout-action-runner.js";
+export * from "./rollout-action-preflight.js";
 export * from "./rollout-action-evidence.js";
 export * from "./rollout-acknowledgement-evidence.js";
 export * from "./rollout-action-status-reader.js";

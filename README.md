@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·rollout 조치 상태 조회 첫 슬라이스 완료 (2026-08-20)
+현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·rollout 조치 사전 점검 첫 슬라이스 완료 (2026-08-20)
 
 ## 목표
 
@@ -89,6 +89,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [정책에 결속된 검색 rollout 검토 ADR](./docs/adr/0067-policy-bound-search-rollout-review.md)
 - [명시적 검색 rollout 조치와 원자적 rollback ADR](./docs/adr/0068-explicit-search-rollout-actions.md)
 - [제한된 검색 rollout 조치 상태 조회 ADR](./docs/adr/0069-bounded-search-rollout-action-status.md)
+- [쓰기 없는 검색 rollout 조치 사전 점검 ADR](./docs/adr/0070-read-only-search-rollout-action-preflight.md)
 
 ## 현재 구현
 
@@ -142,9 +143,9 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/deliberation-runtime`: 역할별 managed run의 E2/E3·event 원본, writing permit, shared-context handoff와 구조화 artifact 기록을 연결하는 공급자 중립 숙의 runtime
 - `@lervo/knowledge`: converged 결과의 claim별 CAS candidate, 사람 review 승인 원본, 현재 revision·path hash에 묶인 verified 원본과 review interval·path 변경 기반 stale 판정을 분리하는 지식 수명주기 경계
 - `@lervo/knowledge-graph`: allowlist event의 명시적 ID·경로만 provider·저장소와 무관하게 안정된 node·relation·evidence로 투영하는 재생성 가능한 파생 경계
-- `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음, 명시적 품질 평가와 준비된 표본의 후보 비교·검토·정책 기반 선택 전이·rollout 검토·조치 및 제한된 상태 page 계약을 제공하는 공급자 중립 경계
+- `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음, 명시적 품질 평가와 준비된 표본의 후보 비교·검토·정책 기반 선택 전이·rollout 검토·조치·상태 조회와 사전 점검 계약을 제공하는 공급자 중립 경계
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
-- `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 전체 근거를 확인한 조치 상태를 읽는 adapter
+- `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고 항목별 `healthy`·`unhealthy`·`unknown` 결과를 조합하는 로컬 진단 경계
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 문서·스킬·provider 실행 환경을 분리하는 `doctor`와 로컬 `search`·명시적 `assess`·품질 `report` 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
@@ -186,6 +187,7 @@ lervo search rollout policy check <rollout-review-id> --policy <policy-id>
 lervo search rollout status --limit 20
 lervo search rollout action policy create --review-policy <policy-id> --action keep --operator operator_search --author operator_search
 lervo search rollout action apply <rollout-review-id> --action keep --policy <action-policy-id> --operator operator_search
+lervo search rollout action check <rollout-review-id> --action keep --policy <action-policy-id> --operator operator_search
 lervo search rollout action policy create --review-policy <policy-id> --action rollback --engine-policy <engine-policy-id> --operator operator_search --author operator_search
 lervo search rollout action apply <rollout-review-id> --action rollback --policy <action-policy-id> --operator operator_search
 lervo search rollout action status --limit 20
@@ -207,6 +209,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `search rollout action policy create`는 검토 정책과 분리된 operator 범위를 `keep` 또는 `rollback` 한 조치에만 부여합니다. `action apply`는 명시한 검토가 현재 선택이고 품질 입력이 그대로인지 다시 확인합니다. `keep`은 선택을 바꾸지 않는 확인 원본만 남기고, `rollback`은 검토·조치 정책과 quality digest를 기존 엔진 rollback 전이에 함께 기록합니다. 근거가 달라지거나 누락되면 운영 검색을 fail-closed하며 검토 자체를 실행 권한으로 사용하지 않습니다.
 
 `search rollout action status`는 keep 확인과 정책에 따라 실행한 rollback을 기본 20개·최대 50개 페이지로 함께 보여 줍니다. 검토 대상과 rollback 결과가 현재 선택인지 과거 선택인지 따로 표시하고, 조회 시점에 품질 입력이 달라졌는지도 확인합니다. 페이지 밖의 정책·검토·품질 증거라도 깨져 있으면 일부 목록을 정상처럼 보여 주지 않고 전체 조회를 실패시킵니다. 이 조회는 조치를 선택하거나 실행하지 않습니다.
+
+`search rollout action check`는 명시한 검토·action policy·operator와 요청 조치가 현재 맞는지 쓰기 없이 설명합니다. 판단 종류, 정책 기준, operator 범위, 현재 선택과 품질 입력의 미충족 사유만 제한된 코드로 보여 줍니다. Rollback이 가능하다고 나온 경우에도 실제 게시 직전의 엔진·fallback 재현을 읽기 전용으로 확인할 뿐 승인이나 실행 예약을 만들지 않으며, `action apply`가 모든 조건을 다시 검사합니다.
 
 `search rollout status`는 현재 선택과 rollout 검토를 기본 20개·최대 50개 페이지로 보여 줍니다. 검토 당시 입력을 다시 확인한 뒤 현재 attempt·assessment 입력 digest가 같은지 `변경 없음`과 `변경됨`으로 구분합니다. Rollback 뒤에는 검토를 과거 선택으로 표시하며, 최신 검토를 자동 선택하거나 승인·rollback으로 적용하지 않습니다.
 

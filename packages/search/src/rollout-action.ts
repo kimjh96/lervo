@@ -1,7 +1,7 @@
 import { SEARCH_ENGINE_ACTIVATION_PATTERN } from "./engine-activation-validation.js";
 import { contentId } from "./integrity.js";
+import { searchRolloutActionEligibilityFailureReasons } from "./rollout-action-eligibility.js";
 import { assertSearchRolloutActionPolicy } from "./rollout-action-policy.js";
-import { evaluateSearchRolloutReviewPolicy } from "./rollout-policy.js";
 import { SEARCH_ROLLOUT_POLICY_PATTERN } from "./rollout-policy-types.js";
 import {
   assertSearchRolloutQualitySnapshot,
@@ -31,21 +31,21 @@ export function assertSearchRolloutActionEligibility(input: {
   assertSearchRolloutActionPolicy(input.actionPolicy);
   assertSearchRolloutReview(input.review);
   assertSearchRolloutQualitySnapshot(input.currentQualitySnapshot);
-  const policyAssessment = evaluateSearchRolloutReviewPolicy(input.rolloutPolicy, input.review);
-  const expectedDecision = input.actionPolicy.action === "acknowledge_keep"
-    ? "keep_candidate"
-    : "rollback_recommended";
   if (!SOURCE_ID_PATTERN.test(input.operatorId) || !Number.isFinite(input.actedAt.getTime()) ||
     input.actionPolicy.projectId !== input.review.projectId ||
     input.actionPolicy.rolloutPolicyId !== input.rolloutPolicy.policyId ||
-    !input.actionPolicy.allowedOperatorIds.includes(input.operatorId) ||
-    Date.parse(input.actionPolicy.createdAt) > input.actedAt.getTime() ||
-    Date.parse(input.review.reviewedAt) > input.actedAt.getTime() ||
-    input.review.schemaVersion !== 2 || input.review.rolloutPolicyId !== input.rolloutPolicy.policyId ||
-    input.review.decision !== expectedDecision || policyAssessment.reviewDecisionEligibility !== "eligible" ||
-    input.currentSelectionTransitionId !== input.review.target.selectionTransitionId ||
-    input.currentQualitySnapshot.observedThrough !== input.actedAt.toISOString() ||
-    input.currentQualitySnapshot.inputDigest !== input.review.qualitySnapshot.inputDigest) {
+    input.currentQualitySnapshot.observedThrough !== input.actedAt.toISOString()) {
+    throw new SearchError(
+      "rollout_action_not_eligible",
+      "검색 rollout 검토·정책·operator·현재 품질 입력이 요청한 조치 조건을 충족하지 않습니다.",
+    );
+  }
+  const failureReasons = searchRolloutActionEligibilityFailureReasons({
+    ...input,
+    requestedAction: input.actionPolicy.action,
+    checkedAt: input.actedAt,
+  });
+  if (failureReasons.length > 0) {
     throw new SearchError(
       "rollout_action_not_eligible",
       "검색 rollout 검토·정책·operator·현재 품질 입력이 요청한 조치 조건을 충족하지 않습니다.",

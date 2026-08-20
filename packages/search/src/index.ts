@@ -32,6 +32,8 @@ export * from "./selection-quality-report.js";
 export * from "./rollout-quality-snapshot.js";
 export * from "./rollout-action.js";
 export * from "./rollout-action-policy.js";
+export * from "./rollout-action-preflight.js";
+export * from "./rollout-action-preflight-types.js";
 export * from "./rollout-action-types.js";
 export * from "./rollout-action-status.js";
 export * from "./rollout-action-status-types.js";
