@@ -55,8 +55,51 @@ describe("CLI release matrix workflow", () => {
       "pnpm build",
       "pnpm release:manifest:check",
       "pnpm release:sbom:check",
+      "pnpm release:attestation:check",
       "pnpm smoke:packed-cli",
       "pnpm smoke:registry-publish",
     ]);
+  });
+
+  it("signs exact release subjects only for a manually selected tag", async () => {
+    const workflow = await readWorkflow();
+    const job = workflow.jobs["attested-cli"];
+    assert.equal(
+      job.if,
+      "github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'",
+    );
+    assert.equal(job.needs, "packed-cli");
+    assert.equal(job["runs-on"], "ubuntu-latest");
+    assert.deepEqual(job.permissions, {
+      contents: "read",
+      "id-token": "write",
+      attestations: "write",
+      "artifact-metadata": "write",
+    });
+    assert.deepEqual(job.steps.map(({ uses }) => uses).filter(Boolean), [
+      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
+      "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
+      "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
+      "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    ]);
+    const prepare = job.steps.find(({ name }) => name === "Prepare exact release subjects");
+    assert.equal(
+      prepare.run,
+      "pnpm release:attestation:prepare \"${RUNNER_TEMP}/lervo-release\" --expected-tag \"${GITHUB_REF_NAME}\"",
+    );
+    const provenance = job.steps.find(({ id }) => id === "build-attestation");
+    assert.deepEqual(provenance.with["subject-path"].trim().split("\n"), [
+      "${{ runner.temp }}/lervo-release/*.tgz",
+      "${{ runner.temp }}/lervo-release/release-artifact-manifest.json",
+      "${{ runner.temp }}/lervo-release/release-sbom.cdx.json",
+    ]);
+    const sbom = job.steps.find(({ id }) => id === "sbom-attestation");
+    assert.equal(sbom.with["subject-path"], "${{ runner.temp }}/lervo-release/*.tgz");
+    assert.equal(
+      sbom.with["sbom-path"],
+      "${{ runner.temp }}/lervo-release/release-sbom.cdx.json",
+    );
   });
 });

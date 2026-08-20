@@ -92,8 +92,11 @@ for (const path of trackedAndNewFiles) {
   if (path !== brandCheckPath && /Roven|ROVEN|@roven/.test(content)) {
     failures.push(`${path}: 이전 제품 식별자가 남아 있습니다.`);
   }
-  if (path !== brandCheckPath && content.includes("roven")) {
-    let withoutPreviousIdentity = content.replaceAll(".roven", "");
+  const withoutStandardTerms = content
+    .replaceAll("provenance", "")
+    .replaceAll("Provenance", "");
+  if (path !== brandCheckPath && withoutStandardTerms.includes("roven")) {
+    let withoutPreviousIdentity = withoutStandardTerms.replaceAll(".roven", "");
     if (previousMarkerAllowlist.has(path)) {
       withoutPreviousIdentity = withoutPreviousIdentity.replaceAll("<!-- roven:", "");
     }

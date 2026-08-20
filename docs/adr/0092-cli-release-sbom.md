@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0093](./0093-cli-release-attestation-boundary.md)은 실제 tarball과 이 SBOM을 같은 release subject 집합에 결속하고, tag CI에서 tarball을 대상으로 별도 SBOM attestation도 생성합니다.
+
 ## 맥락
 
 Release artifact manifest는 공개 파일과 production dependency closure를 Lervo 내부 형식으로 고정합니다. 이 원본만으로는 일반 SBOM 도구가 구성요소와 dependency graph를 바로 읽을 수 없습니다. 단일 bundle 안의 workspace package와 외부 package도 설치 목록에 나타나지 않으므로 lockfile만 변환하면 실제 배포물 일부가 빠집니다.

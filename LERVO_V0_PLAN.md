@@ -821,7 +821,7 @@ CLI 다중 플랫폼 배포 matrix 계약 완료 조건:
 - Repository 권한은 contents read뿐이고 checkout credential을 남기지 않음
 - Node 22.13.0과 package manifest의 pnpm version을 사용함
 - 외부 setup action을 전체 commit SHA로 고정함
-- Frozen install, 전체 build, release manifest, SBOM, packed consumer smoke를 순서대로 실행함
+- Frozen install, 전체 build, release manifest, SBOM, unsigned statement, packed consumer smoke를 순서대로 실행함
 - Workflow YAML 계약 테스트가 trigger·OS·권한·action·Node·명령 drift를 거부함
 - 로컬 성공을 아직 실행하지 않은 Linux·Windows의 성공으로 표현하지 않음
 - 실패한 OS job을 다른 OS의 성공으로 덮지 않고 새 runtime event·telemetry를 만들지 않음
@@ -867,6 +867,21 @@ CLI release SBOM 계약 완료 조건:
 - 증명하지 못한 workspace 내부 관계는 `not-asserted`로 표시하고 dependency license를 추정하지 않음
 - 명시적 update만 SBOM 한 파일을 교체하고 기본 check와 release matrix는 source에서 같은 결과를 재생성함
 - 취약점 없음, 라이선스 준수, 서명·빌드 출처와 실행되지 않은 다른 platform 성공을 주장하지 않음
+
+CLI release 출처 증명 경계 완료 조건:
+
+- 실제 tarball, release manifest와 SBOM을 in-toto Statement v1의 SHA-256 subject 세 개로 결속함
+- Local predicate는 SLSA provenance v1의 필수 build definition과 builder를 가지되 builder ID에 unsigned 상태를 명시함
+- Package manifest·README·bundle·release manifest·SBOM·lockfile만 bounded assembly dependency로 기록함
+- 로컬 statement에 signature·DSSE payload·실행 시각을 넣지 않고 서명 attestation으로 표현하지 않음
+- 실제 pack마다 임시 statement를 만들고 검증 뒤 제거해 실행별 파일을 저장소에 누적하지 않음
+- Prepare는 기존 경로를 덮어쓰지 않고 새 절대 경로에 세 release subject만 복사함
+- CI tag가 `v<package-version>`과 다르면 서명 대상을 만들지 않음
+- 일반 matrix는 contents read만 유지하고 세 platform 모두 unsigned statement까지 검사함
+- 세 platform 성공 뒤 수동 tag 실행에서만 별도 job에 OIDC·attestation·artifact metadata 쓰기 권한을 부여함
+- GitHub control plane이 세 subject의 SLSA build provenance를 만들고 tarball의 SBOM attestation을 별도로 생성함
+- Action을 전체 commit SHA로 고정하고 release 파일·Sigstore bundle을 30일 workflow artifact로 함께 보존함
+- 로컬 성공을 원격 서명, npm 게시, 소비자 검증이나 특정 SLSA level로 주장하지 않음
 
 ## 다음 실행 작업
 
@@ -970,4 +985,6 @@ CLI registry 게시 사전검증 계약을 완료했습니다. 외부 uplink와 
 
 CLI release SBOM 계약을 완료했습니다. CycloneDX 1.7 sidecar는 release manifest v4의 bundle inventory와 pnpm lockfile production graph를 조합하고 root를 artifact·bundle·portable closure digest에 결속합니다. Dev dependency는 제외하고 native package 여덟 개는 optional로 구분하며, 생성 시각이나 serial 없이 현재 release 파일 하나만 교체합니다. Workspace 내부 관계와 dependency license는 증명하지 못하므로 추정하지 않습니다. 결정은 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
 
-다음 구현 작업은 tarball·release manifest·SBOM의 digest를 하나의 표준 statement에 결속하고 로컬의 unsigned 결과와 CI 서명 가능 경계를 구분하는 **CLI release 출처 증명 계약**입니다.
+CLI release 출처 증명 경계를 완료했습니다. 실제 pack마다 tarball·manifest·SBOM digest를 가진 unsigned in-toto/SLSA statement를 임시로 만들고 로컬 builder가 서명을 주장하지 못하게 막습니다. 일반 matrix의 contents read 권한은 유지하며, 세 platform 성공 뒤 tag를 고른 수동 실행에서만 별도 GitHub job이 세 release 파일의 build provenance와 tarball의 SBOM attestation을 생성하도록 구성했습니다. 원격 job이 아직 실행되지 않았으므로 실제 서명 성공이나 SLSA level은 주장하지 않습니다. 결정은 [ADR-0093](./docs/adr/0093-cli-release-attestation-boundary.md)에 기록했습니다.
+
+다음 구현 작업은 signed bundle의 subject digest와 signer, repository·workflow·tag identity를 명시적 기대값과 대조하고 local unsigned statement를 신뢰 근거에서 제외하는 **CLI release attestation 소비자 검증 계약**입니다.

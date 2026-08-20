@@ -42,7 +42,69 @@ jobs:
         run: pnpm release:manifest:check
       - name: Verify release SBOM
         run: pnpm release:sbom:check
+      - name: Verify local release statement
+        run: pnpm release:attestation:check
       - name: Install packed CLI as a consumer
         run: pnpm smoke:packed-cli
       - name: Publish and install through an isolated registry
         run: pnpm smoke:registry-publish
+
+  attested-cli:
+    name: Attested CLI release
+    if: github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'
+    needs: packed-cli
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build release artifact
+        run: pnpm build
+      - name: Verify release manifest
+        run: pnpm release:manifest:check
+      - name: Verify release SBOM
+        run: pnpm release:sbom:check
+      - name: Prepare exact release subjects
+        run: pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release" --expected-tag "${GITHUB_REF_NAME}"
+      - name: Attest build provenance
+        id: build-attestation
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: |
+            ${{ runner.temp }}/lervo-release/*.tgz
+            ${{ runner.temp }}/lervo-release/release-artifact-manifest.json
+            ${{ runner.temp }}/lervo-release/release-sbom.cdx.json
+      - name: Attest the tarball SBOM
+        id: sbom-attestation
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: ${{ runner.temp }}/lervo-release/*.tgz
+          sbom-path: ${{ runner.temp }}/lervo-release/release-sbom.cdx.json
+      - name: Collect signed bundles
+        run: |
+          mkdir "${RUNNER_TEMP}/lervo-release/attestations"
+          cp "${{ steps.build-attestation.outputs.bundle-path }}" "${RUNNER_TEMP}/lervo-release/attestations/build-provenance.sigstore.json"
+          cp "${{ steps.sbom-attestation.outputs.bundle-path }}" "${RUNNER_TEMP}/lervo-release/attestations/sbom.sigstore.json"
+      - name: Upload release files and signed bundles
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-cli-${{ github.ref_name }}
+          path: ${{ runner.temp }}/lervo-release
+          if-no-files-found: error
+          retention-days: 30
