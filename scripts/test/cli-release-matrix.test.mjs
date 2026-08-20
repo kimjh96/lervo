@@ -109,8 +109,22 @@ describe("CLI release matrix workflow", () => {
       verify.run,
       "pnpm release:attestation:verify --release-directory \"${RUNNER_TEMP}/lervo-release\" --repository \"${GITHUB_REPOSITORY}\" --tag \"${GITHUB_REF_NAME}\" --source-digest \"${GITHUB_SHA}\"",
     );
-    assert.ok(job.steps.indexOf(verify) < job.steps.findIndex(
-      ({ name }) => name === "Upload release files and signed bundles",
-    ));
+    const authorize = job.steps.find(
+      ({ name }) => name === "Authorize exact npm publication coordinates",
+    );
+    assert.deepEqual(authorize.env, { GH_TOKEN: "${{ github.token }}" });
+    assert.equal(
+      authorize.run,
+      "pnpm release:publication:authorize --release-directory \"${RUNNER_TEMP}/lervo-release\" --repository \"${GITHUB_REPOSITORY}\" --tag \"${GITHUB_REF_NAME}\" --source-digest \"${GITHUB_SHA}\" --dist-tag latest --output \"${RUNNER_TEMP}/lervo-publication-authorization.json\"",
+    );
+    const upload = job.steps.find(
+      ({ name }) => name === "Upload release files, signed bundles, and publication authorization",
+    );
+    assert.ok(job.steps.indexOf(verify) < job.steps.indexOf(authorize));
+    assert.ok(job.steps.indexOf(authorize) < job.steps.indexOf(upload));
+    assert.deepEqual(upload.with.path.trim().split("\n"), [
+      "${{ runner.temp }}/lervo-release",
+      "${{ runner.temp }}/lervo-publication-authorization.json",
+    ]);
   });
 });
