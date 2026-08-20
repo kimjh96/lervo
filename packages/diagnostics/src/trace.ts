@@ -1,5 +1,6 @@
 import type { EventStore } from "@lervo/storage-contract";
 
+import { readTraceReport, traceReportSchemaVersion } from "./trace-report-contract.js";
 import { DiagnosticsError, type TraceReport, type TraceSelector } from "./types.js";
 
 export function createTraceReport(input: {
@@ -27,7 +28,8 @@ export function createTraceReport(input: {
     : types.has("run.completed") || types.has("deliberation.completed")
       ? "completed"
       : "incomplete";
-  return {
+  return readTraceReport({
+    schemaVersion: traceReportSchemaVersion,
     projectId: input.projectId,
     runId,
     status,
@@ -36,5 +38,5 @@ export function createTraceReport(input: {
     lastOccurredAt: events.at(-1)!.occurredAt,
     sessionIds: [...new Set(events.map((event) => event.sessionId))],
     events,
-  };
+  });
 }

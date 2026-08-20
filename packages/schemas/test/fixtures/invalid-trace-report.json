@@ -1,0 +1,39 @@
+[
+  {
+    "name": "trace report without schema version",
+    "schema": "traceReport",
+    "value": {
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "status": "incomplete",
+      "integrity": {
+        "valid": true,
+        "eventCount": 1,
+        "headHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "firstOccurredAt": "2026-08-20T00:00:00Z",
+      "lastOccurredAt": "2026-08-20T00:00:00Z",
+      "sessionIds": ["ses_01234567"],
+      "events": []
+    }
+  },
+  {
+    "name": "trace report with an invalid integrity claim",
+    "schema": "traceReport",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "status": "incomplete",
+      "integrity": {
+        "valid": false,
+        "eventCount": 0,
+        "headHash": null
+      },
+      "firstOccurredAt": "2026-08-20T00:00:00Z",
+      "lastOccurredAt": "2026-08-20T00:00:00Z",
+      "sessionIds": [],
+      "events": []
+    }
+  }
+]

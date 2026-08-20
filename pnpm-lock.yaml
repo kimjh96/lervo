@@ -413,6 +413,9 @@ importers:
 
   packages/diagnostics:
     dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/knowledge':
         specifier: workspace:*
         version: link:../knowledge

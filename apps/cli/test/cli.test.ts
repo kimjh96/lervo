@@ -134,6 +134,18 @@ describe("lervo trace CLI", () => {
     expect(output).toContain("run.requested");
     expect(output).toContain("run.completed");
     expect(output).not.toContain("원문 주장");
+
+    let jsonOutput = "";
+    expect(await runCli(["trace", "last", "--json"], {
+      cwd: root,
+      stdout: (message) => { jsonOutput += message; },
+      stderr: () => undefined,
+    })).toBe(0);
+    expect(JSON.parse(jsonOutput)).toMatchObject({
+      schemaVersion: 1,
+      runId: "run_cli_trace_0001",
+      status: "completed",
+    });
   });
 
 });

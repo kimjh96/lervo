@@ -1,0 +1,82 @@
+[
+  {
+    "name": "trace report v1",
+    "schema": "traceReport",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "status": "incomplete",
+      "integrity": {
+        "valid": true,
+        "eventCount": 1,
+        "headHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "firstOccurredAt": "2026-08-20T00:00:00Z",
+      "lastOccurredAt": "2026-08-20T00:00:00Z",
+      "sessionIds": ["ses_01234567"],
+      "events": [
+        {
+          "eventId": "evt_01234567",
+          "projectId": "prj_01234567",
+          "runId": "run_01234567",
+          "sessionId": "ses_01234567",
+          "seq": 1,
+          "type": "run.requested",
+          "occurredAt": "2026-08-20T00:00:00Z",
+          "actor": { "kind": "system" },
+          "schemaVersion": 1,
+          "policyVersion": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "payload": {
+            "requestDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "role": "developer",
+            "risk": "low"
+          },
+          "previousHash": null,
+          "eventHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
+    }
+  },
+  {
+    "name": "trace report v1 with additive report fields",
+    "schema": "traceReport",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "status": "incomplete",
+      "integrity": {
+        "valid": true,
+        "eventCount": 1,
+        "headHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "algorithm": "sha256"
+      },
+      "firstOccurredAt": "2026-08-20T00:00:00Z",
+      "lastOccurredAt": "2026-08-20T00:00:00Z",
+      "sessionIds": ["ses_01234567"],
+      "events": [
+        {
+          "eventId": "evt_01234567",
+          "projectId": "prj_01234567",
+          "runId": "run_01234567",
+          "sessionId": "ses_01234567",
+          "seq": 1,
+          "type": "run.requested",
+          "occurredAt": "2026-08-20T00:00:00Z",
+          "actor": { "kind": "system" },
+          "schemaVersion": 1,
+          "policyVersion": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "payload": {
+            "requestDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "role": "developer",
+            "risk": "low"
+          },
+          "previousHash": null,
+          "eventHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "generatedBy": "future-lervo"
+    }
+  }
+]

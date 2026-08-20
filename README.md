@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor 자동화 계약 완료 (2026-08-20)
+현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·trace 자동화 계약 완료 (2026-08-20)
 
 ## 목표
 
@@ -95,10 +95,11 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [자동 수정 없는 doctor 복구 안내 ADR](./docs/adr/0073-bounded-doctor-recovery-guidance.md)
 - [의존성을 분리한 doctor 범위 실행 계획 ADR](./docs/adr/0074-doctor-scope-execution-plans.md)
 - [버전이 있는 doctor report 호환성 계약 ADR](./docs/adr/0075-versioned-doctor-report-contract.md)
+- [버전이 있는 trace report 호환성 계약 ADR](./docs/adr/0076-versioned-trace-report-contract.md)
 
 ## 현재 구현
 
-- `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의·지식 수명주기와 doctor report JSON Schema 및 파생 TypeScript 타입
+- `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의·지식 수명주기와 doctor·trace report JSON Schema 및 파생 TypeScript 타입
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
 - `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge

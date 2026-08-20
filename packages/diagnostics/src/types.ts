@@ -1,7 +1,6 @@
 import type {
   DoctorCheck,
   DoctorIssue,
-  EventEnvelope,
 } from "@lervo/schemas";
 
 export type {
@@ -12,20 +11,10 @@ export type {
   DoctorRecoveryGuidance,
   DoctorReport,
   DoctorScope,
+  TraceReport,
 } from "@lervo/schemas";
 
 export type TraceSelector = "last" | string;
-
-export interface TraceReport {
-  projectId: string;
-  runId: string;
-  status: "completed" | "failed" | "incomplete";
-  integrity: { valid: true; eventCount: number; headHash: string | null };
-  firstOccurredAt: string;
-  lastOccurredAt: string;
-  sessionIds: string[];
-  events: EventEnvelope[];
-}
 
 export interface DoctorInspection {
   check: DoctorCheck;
