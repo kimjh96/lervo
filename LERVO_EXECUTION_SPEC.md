@@ -748,7 +748,7 @@ CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 
 
 `lervo search engine activate <reviewId> --policy <policyId> --operator <operatorId>`는 정책과 검토 원본만 보고 선택을 만들지 않습니다. 현재 bundle·coverage·case·corpus, comparison의 두 run·result를 다시 확인하고 정적 registry의 후보를 비교 당시 시각·입력으로 재실행합니다. 같은 review ID가 다시 만들어져야 하며, review가 `adopt_candidate`, 허용 reviewer·candidate, 최소 후보 승리와 baseline 무회귀를 모두 만족해야 합니다. Operator도 정책 allowlist에 있어야 합니다.
 
-`SearchEngineActivation`은 연속 sequence, 이전 activation, 이전·새 선택, policy·operator·시각과 rollback 좌표를 content-bound ID로 묶습니다. 후보 선택은 review·comparison 좌표를 포함하고 baseline 선택에는 이 좌표를 넣지 않습니다. 첫 전이는 `.lervo/state/search/engine-selections/baseline.json`, 다음 전이는 `<previousActivationId>.json`에 게시합니다. 파일명이 이전 head를 열쇠로 사용하므로 같은 head에서 동시에 다른 전이를 게시하면 하나만 성공합니다. 최대 256개 전이를 읽어 단일 chain인지 모두 확인하며 한 파일에 이력을 누적하지 않습니다.
+`SearchEngineActivation`은 연속 sequence, 이전 activation, 이전·새 선택, policy·operator·시각과 rollback 좌표를 content-bound ID로 묶습니다. 신규 v2 전이는 다음 rollback에 사용할 `fallbackSelection`과 그 activation 좌표를 명시해 action별 nullable 필드 추론을 줄입니다. 후보 선택은 review·comparison 좌표를 포함하고 baseline 선택에는 이 좌표를 넣지 않습니다. Reader는 기존 `applicationState=not_connected` v1과 직전 `recordState=selection_recorded` v1을 ID나 파일을 고치지 않고 읽으며 새 전이만 v2로 기록합니다. 첫 전이는 `.lervo/state/search/engine-selections/baseline.json`, 다음 전이는 `<previousActivationId>.json`에 게시합니다. 파일명이 이전 head를 열쇠로 사용하므로 같은 head에서 동시에 다른 전이를 게시하면 하나만 성공합니다. 최대 256개 전이를 읽어 단일 chain인지 모두 확인하며 한 파일에 이력을 누적하지 않습니다.
 
 `lervo search engine rollback`은 현재 전이의 `previousSelection`으로 돌아가는 새 전이를 만듭니다. 대상이 이전 후보면 그 후보의 review·comparison과 현재 corpus를 다시 확인하고 replay도 다시 맞춰야 합니다. 대상이 baseline이면 후보 원본을 요구하지 않습니다. 정책이 허용하지 않는 operator나 후보로는 rollback하지 않습니다. 기존 정책·검토·비교·전이 파일을 수정하거나 삭제하지 않습니다.
 
@@ -758,11 +758,13 @@ CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 
 
 ## 검증된 운영 검색 엔진 resolver
 
-일반 `lervo search`, managed context 준비와 `engine status`는 `@lervo/search-local`의 같은 resolver를 사용합니다. 선택 전이가 없으면 현재 등록 corpus로 `lexical-v1` index를 만듭니다. 전이가 있으면 최대 256개 chain을 순서대로 읽고 각 전이를 저장된 정책·review·comparison으로 다시 생성해 ID를 확인합니다. 현재 선택이 후보면 정적 registry의 engine으로 현재 corpus와 review replay를 다시 검증하고 비교에 기록된 candidate index ID와 같은 index만 사용합니다. 후보가 등록되지 않았거나 정책·원본·현재 corpus·replay·index 중 하나라도 다르면 baseline으로 낮추지 않습니다.
+일반 `lervo search`, managed context 준비와 `engine status`는 `@lervo/search-local`의 같은 resolver·inspection 경계를 사용합니다. 선택 전이가 없으면 현재 등록 corpus로 `lexical-v1` index를 만듭니다. 전이가 있으면 최대 256개 chain을 순서대로 읽고 schema version별 구조·hash·연결 관계와 저장된 정책·review·comparison을 확인합니다. 현재 생성 함수를 과거 전이에 다시 적용하지 않습니다. 현재 선택이 후보면 좁은 candidate resolver port로 engine을 해석하고 현재 corpus와 review replay를 다시 검증합니다. Replay에 사용한 index가 비교에 기록된 candidate index ID와 같을 때 그 동일 인스턴스를 운영 검색에 사용합니다. 후보가 등록되지 않았거나 정책·원본·현재 corpus·replay·index 중 하나라도 다르면 baseline으로 낮추지 않습니다.
 
 현재 선택이 baseline인 rollback 전이는 과거 후보의 현재 replay를 요구하지 않습니다. 따라서 후보 adapter나 현재 corpus가 달라져 후보를 쓸 수 없어도 명시적 rollback 뒤에는 현재 corpus의 baseline으로 복구할 수 있습니다. Evaluation 실행과 candidate comparison의 baseline은 운영 선택을 읽지 않고 계속 `lexical-v1`을 사용합니다.
 
-Resolver가 반환한 engine·index 응답은 공통 `SearchResponse` 계약으로 다시 검증합니다. 일반 검색과 managed context attempt는 실제 engine과 선택 전이 ID를 기록하고 recommendation과 `context.recommended`가 같은 nullable ID를 이어받습니다. 전이가 없는 baseline은 null, rollback으로 선택된 baseline은 rollback 전이 ID입니다. `engine status`의 `resolverState=ready`는 선택 chain과 현재 index를 검증했다는 뜻일 뿐 검색이 실행되거나 결과가 `selected`, `loaded`, `injected`, `used`됐다는 뜻이 아닙니다.
+Resolver가 반환한 engine·index 응답은 공통 `SearchResponse` 계약으로 다시 검증합니다. 일반 검색과 managed context attempt는 실제 engine과 선택 전이 ID를 기록하고 recommendation과 `context.recommended`가 같은 nullable ID를 이어받습니다. 전이가 없는 baseline은 null, rollback으로 선택된 baseline은 rollback 전이 ID입니다. `engine status`는 기록된 선택을 `resolverState`와 분리해 반환합니다. `ready`는 선택 chain과 현재 index 검증 완료, `unavailable`은 controlled `failureCode`와 함께 현재 소비 불가를 뜻합니다. 어느 쪽도 검색 실행이나 결과가 `selected`, `loaded`, `injected`, `used`됐다는 뜻이 아닙니다.
+
+과거 `context.recommended` event에는 선택 전이 ID가 없습니다. Event reader와 sync validator는 이 payload를 그대로 허용하며 null을 삽입하거나 event hash를 다시 계산하지 않습니다. 신규 managed recommendation evidence는 `selectionTransitionId`를 필수로 만들고 writer가 그대로 event에 복제합니다. 이 하위 호환 경계는 legacy event를 신규 telemetry로 위장하지 않습니다.
 
 `engine_selection_unavailable`은 전이가 있는 선택의 정책·chain·review·comparison·registry·현재 corpus·replay·index·응답을 안전하게 검증하거나 실행하지 못했다는 뜻입니다. 일반 검색은 attempt를 만들지 않고 managed context는 recommendation·context event와 provider 시작 전에 중단합니다. 전이가 없는 baseline의 corpus 읽기 오류는 기존 `corpus_read_failed`를 유지합니다. 오류와 attempt·recommendation·event에는 raw query, 문서 path·본문, prompt, provider 응답과 credential을 추가하지 않습니다. 결정은 [ADR-0061](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)에 기록합니다.
 

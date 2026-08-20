@@ -7,6 +7,8 @@ import {
   createSearchEngineCandidateActivation,
   createSearchEngineRollback,
   createSearchEvaluationComparison,
+  contentId,
+  type LegacySearchEngineActivation,
 } from "../src/index.js";
 import { comparisonFixture } from "./evaluation-comparison-fixture.js";
 
@@ -56,7 +58,8 @@ describe("search engine activation policy and rollback", () => {
       action: "activate_candidate",
       previousSelection: { mode: "baseline", engine: { id: "lexical", version: 1 } },
       selected: { mode: "candidate", candidateId: "fixture-v1", reviewId: fixture.review.reviewId },
-      rollbackTargetActivationId: null,
+      fallbackSelection: { mode: "baseline" },
+      fallbackActivationId: null,
       recordState: "selection_recorded",
       embeddingDecision: "not_determined",
     });
@@ -66,11 +69,43 @@ describe("search engine activation policy and rollback", () => {
       action: "rollback",
       selected: { mode: "baseline", engine: { id: "lexical", version: 1 } },
       rollbackOfActivationId: activation.activationId,
-      rollbackTargetActivationId: null,
+      fallbackSelection: activation.selected,
+      fallbackActivationId: activation.activationId,
       recordState: "selection_recorded",
     });
     expect(() => assertSearchEngineActivation(rollback, activation)).not.toThrow();
     expect(JSON.stringify([activation, rollback])).not.toContain("사과");
+
+    const {
+      schemaVersion: _schemaVersion,
+      activationId: _activationId,
+      fallbackSelection: _fallbackSelection,
+      fallbackActivationId: _fallbackActivationId,
+      recordState: _recordState,
+      ...legacyCore
+    } = activation;
+    const legacyContent = {
+      ...legacyCore,
+      rollbackTargetActivationId: null,
+      applicationState: "not_connected" as const,
+    };
+    const legacy: LegacySearchEngineActivation = {
+      schemaVersion: 1,
+      activationId: contentId("seact", legacyContent),
+      ...legacyContent,
+    };
+    expect(() => assertSearchEngineActivation(legacy)).not.toThrow();
+    const interimContent = {
+      ...legacyCore,
+      rollbackTargetActivationId: null,
+      recordState: "selection_recorded" as const,
+    };
+    const interim: LegacySearchEngineActivation = {
+      schemaVersion: 1,
+      activationId: contentId("seact", interimContent),
+      ...interimContent,
+    };
+    expect(() => assertSearchEngineActivation(interim)).not.toThrow();
   });
 
   it("rejects unauthorized, under-threshold, repeated, and broken-chain activation", async () => {

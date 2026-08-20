@@ -1,8 +1,8 @@
 import {
   createSearchEngineCandidateActivation,
   createSearchEngineRollback,
+  type SearchCandidateEngineResolver,
   type SearchEngineActivation,
-  type SearchEvaluationEngineRegistry,
 } from "@lervo/search";
 
 import {
@@ -20,7 +20,7 @@ export async function activateLocalSearchCandidate(input: {
   policyId: string;
   operatorId: string;
   decidedAt: Date;
-  registry: SearchEvaluationEngineRegistry;
+  registry: SearchCandidateEngineResolver;
 }): Promise<SearchEngineActivation> {
   const policy = await loadSearchEngineActivationPolicy(input.repositoryRoot, input.policyId);
   if (policy.projectId !== input.projectId) {
@@ -51,7 +51,7 @@ export async function rollbackLocalSearchCandidate(input: {
   policyId: string;
   operatorId: string;
   decidedAt: Date;
-  registry: SearchEvaluationEngineRegistry;
+  registry: SearchCandidateEngineResolver;
 }): Promise<SearchEngineActivation> {
   const [policy, previous] = await Promise.all([
     loadSearchEngineActivationPolicy(input.repositoryRoot, input.policyId),

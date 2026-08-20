@@ -6,8 +6,9 @@ import {
   SEARCH_MAX_RESULTS,
   SearchError,
   sameSearchEngine,
+  type SearchCandidateEngineResolver,
   type SearchEngineSelection,
-  type SearchEvaluationEngineRegistry,
+  type SearchEngineActivation,
   type SearchIndexPort,
   type SearchResponse,
 } from "@lervo/search";
@@ -31,12 +32,21 @@ export interface OperationalSearchResult {
   response: SearchResponse;
 }
 
-export async function resolveOperationalSearchEngine(input: {
+export interface OperationalSearchEngineInspection {
+  selection: SearchEngineSelection;
+  selectionTransitionId: string | null;
+  transitions: number;
+  resolverState: "ready" | "unavailable";
+  failureCode: string | null;
+}
+
+async function resolveOperationalSearchEngineFromHistory(input: {
   repositoryRoot: string;
   projectId: string;
-  registry: SearchEvaluationEngineRegistry;
+  registry: SearchCandidateEngineResolver;
+  history: readonly SearchEngineActivation[];
 }): Promise<ResolvedOperationalSearchEngine> {
-  const history = await loadSearchEngineActivationHistory(input.repositoryRoot);
+  const history = input.history;
   const current = history.at(-1) ?? null;
   if (current === null) {
     return {
@@ -70,7 +80,7 @@ export async function resolveOperationalSearchEngine(input: {
       reviewId: selection.reviewId!,
       registry: input.registry,
     });
-    const index = await evidence.engine.buildIndex(evidence.corpus);
+    const index = evidence.index;
     if (!sameSearchEngine(index.engine, selection.engine) || index.indexId !== evidence.comparison.candidate.indexId) {
       throw new SearchLocalError("engine_selection_unavailable", "선택된 검색 엔진의 현재 index가 검증된 비교 원본과 다릅니다.");
     }
@@ -83,10 +93,46 @@ export async function resolveOperationalSearchEngine(input: {
   }
 }
 
+export async function resolveOperationalSearchEngine(input: {
+  repositoryRoot: string;
+  projectId: string;
+  registry: SearchCandidateEngineResolver;
+}): Promise<ResolvedOperationalSearchEngine> {
+  return resolveOperationalSearchEngineFromHistory({
+    ...input,
+    history: await loadSearchEngineActivationHistory(input.repositoryRoot),
+  });
+}
+
+export async function inspectOperationalSearchEngine(input: {
+  repositoryRoot: string;
+  projectId: string;
+  registry: SearchCandidateEngineResolver;
+}): Promise<OperationalSearchEngineInspection> {
+  const history = await loadSearchEngineActivationHistory(input.repositoryRoot);
+  const current = history.at(-1) ?? null;
+  const recorded = {
+    selection: structuredClone(current?.selected ?? baselineSearchEngineSelection()),
+    selectionTransitionId: current?.activationId ?? null,
+    transitions: history.length,
+  };
+  try {
+    await resolveOperationalSearchEngineFromHistory({ ...input, history });
+    return { ...recorded, resolverState: "ready", failureCode: null };
+  } catch (error) {
+    return {
+      ...recorded,
+      resolverState: "unavailable",
+      failureCode: typeof error === "object" && error !== null && "code" in error &&
+        typeof error.code === "string" ? error.code : "engine_selection_unavailable",
+    };
+  }
+}
+
 export async function runLocalOperationalSearch(input: {
   repositoryRoot: string;
   projectId: string;
-  registry: SearchEvaluationEngineRegistry;
+  registry: SearchCandidateEngineResolver;
   query: string;
   limit: number;
 }): Promise<OperationalSearchResult> {

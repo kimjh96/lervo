@@ -10,18 +10,31 @@ export function assertSearchEngineActivation(
   activation: SearchEngineActivation,
   previous?: SearchEngineActivation | null,
 ): void {
-  if (activation.schemaVersion !== 1 || !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.activationId) ||
+  const legacy = activation.schemaVersion === 1;
+  const current = activation.schemaVersion === 2;
+  if ((!legacy && !current) || !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.activationId) ||
     !SOURCE_ID_PATTERN.test(activation.projectId) || !Number.isSafeInteger(activation.sequence) ||
     activation.sequence < 1 || (activation.previousActivationId !== null &&
       !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.previousActivationId)) ||
     (activation.rollbackOfActivationId !== null &&
       !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackOfActivationId)) ||
-    (activation.rollbackTargetActivationId !== null &&
-      !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackTargetActivationId)) ||
     !["activate_candidate", "rollback"].includes(activation.action) ||
     !/^sepol_[a-f0-9]{24}$/.test(activation.policyId) || !SOURCE_ID_PATTERN.test(activation.operatorId) ||
-    activation.recordState !== "selection_recorded" || activation.embeddingDecision !== "not_determined") {
+    activation.embeddingDecision !== "not_determined") {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 계약이 유효하지 않습니다.");
+  }
+  if (legacy) {
+    const hasLegacyState = activation.applicationState === "not_connected" && activation.recordState === undefined;
+    const hasInterimState = activation.recordState === "selection_recorded" && activation.applicationState === undefined;
+    if ((!hasLegacyState && !hasInterimState) ||
+      (activation.rollbackTargetActivationId !== null &&
+        !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackTargetActivationId))) {
+      throw new SearchError("invalid_engine_activation", "기존 검색 엔진 활성화 계약이 유효하지 않습니다.");
+    }
+  } else if ((activation.fallbackActivationId !== null &&
+    !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.fallbackActivationId)) ||
+    activation.recordState !== "selection_recorded") {
+    throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 fallback 계약이 유효하지 않습니다.");
   }
   assertTimestamp(activation.decidedAt, "invalid_engine_activation");
   assertSearchEngineSelection(activation.previousSelection);
@@ -29,11 +42,22 @@ export function assertSearchEngineActivation(
   if (sameSearchEngineSelection(activation.previousSelection, activation.selected) ||
     (activation.sequence === 1) !== (activation.previousActivationId === null) ||
     (activation.action === "activate_candidate" && (activation.selected.mode !== "candidate" ||
-      activation.rollbackOfActivationId !== null ||
-      activation.rollbackTargetActivationId !== activation.previousActivationId)) ||
-    (activation.action === "rollback" && (activation.rollbackOfActivationId !== activation.previousActivationId ||
-      activation.rollbackTargetActivationId === activation.previousActivationId))) {
+      activation.rollbackOfActivationId !== null)) ||
+    (activation.action === "rollback" && activation.rollbackOfActivationId !== activation.previousActivationId)) {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 전이 관계가 유효하지 않습니다.");
+  }
+  if (legacy && ((activation.action === "activate_candidate" &&
+    activation.rollbackTargetActivationId !== activation.previousActivationId) ||
+    (activation.action === "rollback" && activation.rollbackTargetActivationId === activation.previousActivationId))) {
+    throw new SearchError("invalid_engine_activation", "기존 검색 엔진 활성화 전이 관계가 유효하지 않습니다.");
+  }
+  if (current) {
+    assertSearchEngineSelection(activation.fallbackSelection);
+    if (!sameSearchEngineSelection(activation.fallbackSelection, activation.previousSelection) ||
+      activation.fallbackActivationId !== activation.previousActivationId ||
+      (activation.action === "rollback" && activation.rollbackOfActivationId === null)) {
+      throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 fallback 관계가 유효하지 않습니다.");
+    }
   }
   if (previous !== undefined) {
     const invalidRoot = previous === null && activation.sequence !== 1;
@@ -41,9 +65,20 @@ export function assertSearchEngineActivation(
       activation.projectId !== previous.projectId || activation.sequence !== previous.sequence + 1 ||
       activation.previousActivationId !== previous.activationId ||
       !sameSearchEngineSelection(activation.previousSelection, previous.selected) ||
-      (activation.action === "rollback" &&
+      (legacy && activation.action === "rollback" &&
         (!sameSearchEngineSelection(activation.selected, previous.previousSelection) ||
-          activation.rollbackTargetActivationId !== previous.previousActivationId))
+          activation.rollbackTargetActivationId !== previous.previousActivationId)) ||
+      (current && activation.action === "activate_candidate" &&
+        (!sameSearchEngineSelection(activation.fallbackSelection, previous.selected) ||
+          activation.fallbackActivationId !== previous.activationId)) ||
+      (current && activation.action === "rollback" && (() => {
+        const previousFallback = previous.schemaVersion === 2
+          ? { selection: previous.fallbackSelection, activationId: previous.fallbackActivationId }
+          : { selection: previous.previousSelection, activationId: previous.previousActivationId };
+        return !sameSearchEngineSelection(activation.selected, previousFallback.selection) ||
+          !sameSearchEngineSelection(activation.fallbackSelection, previous.selected) ||
+          activation.fallbackActivationId !== previous.activationId;
+      })())
     );
     if (invalidRoot || invalidContinuation) {
       throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 chain이 이전 원본과 다릅니다.");

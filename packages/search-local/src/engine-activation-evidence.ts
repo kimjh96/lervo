@@ -2,9 +2,10 @@ import {
   createSearchCandidateReview,
   sameSearchEngine,
   type SearchCandidateReview,
+  type SearchCandidateEngineResolver,
   type SearchEnginePort,
   type SearchEvaluationComparison,
-  type SearchEvaluationEngineRegistry,
+  type SearchIndexPort,
   type SearchSourceInput,
 } from "@lervo/search";
 
@@ -17,6 +18,7 @@ export interface VerifiedSearchCandidateActivationEvidence {
   review: SearchCandidateReview;
   comparison: SearchEvaluationComparison;
   engine: SearchEnginePort;
+  index: SearchIndexPort;
   corpus: readonly SearchSourceInput[];
 }
 
@@ -24,7 +26,7 @@ export async function verifySearchCandidateActivationEvidence(input: {
   repositoryRoot: string;
   projectId: string;
   reviewId: string;
-  registry: SearchEvaluationEngineRegistry;
+  registry: SearchCandidateEngineResolver;
 }): Promise<VerifiedSearchCandidateActivationEvidence> {
   const review = await loadStoredSearchCandidateReview(input.repositoryRoot, input.reviewId);
   if (review.projectId !== input.projectId) {
@@ -61,6 +63,7 @@ export async function verifySearchCandidateActivationEvidence(input: {
     review,
     comparison: loaded.comparison,
     engine,
+    index: replay.index,
     corpus: structuredClone(loaded.evidence.corpus),
   };
 }

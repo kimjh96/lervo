@@ -13,7 +13,7 @@
 
 ### 공통 engine 계약과 resolver
 
-평가용 engine·index port를 공급자 중립 `SearchEnginePort`와 `SearchIndexPort`로 일반화하고 기존 평가 이름은 호환 alias로 유지합니다. 일반 검색, managed context와 상태 조회는 `@lervo/search-local`의 같은 resolver를 사용합니다.
+평가용 engine·index port를 공급자 중립 `SearchEnginePort`와 `SearchIndexPort`로 일반화하고 기존 평가 이름은 호환 alias로 유지합니다. 운영 조합은 구체 registry class가 아니라 candidate ID를 engine port로 해석하는 좁은 port에 의존합니다. 일반 검색, managed context와 상태 조회는 `@lervo/search-local`의 같은 resolver·inspection 경계를 사용합니다.
 
 선택 전이가 없으면 resolver는 현재 등록 corpus에서 `lexical-v1` index를 만듭니다. 전이가 있으면 전체 append-only chain을 읽고 각 전이를 당시 정책·review·comparison으로 재생성해 content ID와 project 좌표를 확인합니다. 현재 선택이 후보면 정적 registry의 engine으로 현재 corpus, comparison과 review replay를 다시 검증하고 comparison에 결속된 candidate index ID와 같은 index만 반환합니다.
 
@@ -25,11 +25,13 @@
 
 `SearchAttempt`는 실제 engine과 nullable `selectionTransitionId`를 가집니다. 후보 attempt에는 전이 ID가 필수입니다. 전이 없는 baseline은 null이고 rollback으로 돌아온 baseline은 rollback 전이 ID를 기록합니다. Recommendation과 `context.recommended`도 같은 ID를 이어받습니다. 이 좌표는 선택을 소비한 검색 응답을 증명할 뿐 결과가 `selected`, `loaded`, `injected`, `used`됐거나 모델이 이해했다는 뜻이 아닙니다.
 
-선택 전이는 실제 적용 상태를 영구 필드로 주장하지 않고 `recordState=selection_recorded`만 가집니다. `engine status`는 같은 resolver로 현재 index까지 검증한 경우에만 `resolverState=ready`를 반환합니다. `ready`도 실제 query 실행을 뜻하지 않습니다.
+신규 선택 전이는 schema v2와 `recordState=selection_recorded`, 명시적 fallback 선택을 가집니다. Reader는 기존 `applicationState=not_connected` v1과 직전 `recordState` v1을 content ID와 파일을 바꾸지 않고 허용합니다. `engine status` inspection은 기록된 선택을 항상 분리해 보여 주고 같은 resolver로 현재 index까지 검증하면 `ready`, 검증할 수 없으면 controlled failure code와 `unavailable`을 반환합니다. 어느 상태도 실제 query 실행을 뜻하지 않습니다.
 
 ## 개인정보와 저장
 
 새 event와 Hub 원본 종류는 없습니다. 기존 attempt는 항목별 mode `0600` 로컬 원본이며 `context.recommended`는 기존 managed event 수명주기를 따릅니다. 선택 전이 ID와 공개 engine 좌표는 허용하지만 raw query, query digest, 문서 path·본문, prompt, provider 응답과 credential을 추천 event에 추가하지 않습니다. Resolver 오류도 원본 내용을 복제하지 않습니다.
+
+선택 전이 ID가 생기기 전의 `context.recommended` event는 필드가 없는 payload와 기존 hash를 그대로 허용합니다. Reader나 sync가 null을 삽입해 과거 event를 다시 쓰지 않습니다. 신규 recommendation evidence와 writer만 전이 ID를 필수로 생성합니다.
 
 ## 검증
 

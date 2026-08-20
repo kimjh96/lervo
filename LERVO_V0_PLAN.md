@@ -503,6 +503,12 @@ Hub command/approval 대화 UX 완료 조건:
 - 선택 ID와 engine 좌표 외에 query·문서 path·본문·prompt·provider 응답·credential을 event나 오류에 추가하지 않음
 - 평가 case와 result를 배열 위치가 아닌 `caseId`로 결합해 ID 순서 변화에도 원본 관계를 검증함
 - 후보 적용, 미등록 후보 fail-closed, 선택 뒤 corpus 변경 실패와 rollback baseline 복구를 실제 로컬 수직 테스트로 확인함
+- 기존 `applicationState` v1과 직전 `recordState` v1 선택 원본을 수정하지 않고 읽고 신규 전이만 명시적 v2로 기록함
+- 과거 추천 event를 선택 전이 ID 없이 hash 그대로 재동기화하고 신규 recommendation evidence만 전이 ID를 필수로 가짐
+- 후보 replay에 사용한 index를 다시 만들지 않고 동일 인스턴스로 운영 응답을 생성함
+- 운영 조합이 구체 registry class 대신 candidate ID 해석 port에 의존함
+- 상태 inspection이 기록된 선택과 현재 `ready`/`unavailable` 및 controlled failure code를 함께 반환함
+- 비교·검토 테스트와 운영 선택 수직 테스트를 별도 파일로 분리함
 
 ## 다음 실행 작업
 

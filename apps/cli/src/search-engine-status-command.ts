@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { loadProjectManifest } from "@lervo/project";
-import { resolveOperationalSearchEngine } from "@lervo/search-local";
+import { inspectOperationalSearchEngine } from "@lervo/search-local";
 
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { searchArgumentError, searchErrorCode } from "./search-command-common.js";
@@ -25,19 +25,13 @@ export async function runSearchEngineStatusCommand(args: string[], io: CliIo): P
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   try {
     const manifest = await loadProjectManifest(root);
-    const resolved = await resolveOperationalSearchEngine({
+    const status = await inspectOperationalSearchEngine({
       repositoryRoot: root,
       projectId: manifest.projectId,
       registry: searchCandidateRegistry,
     });
-    const status = {
-      selection: resolved.selection,
-      selectionTransitionId: resolved.selectionTransitionId,
-      transitions: resolved.transitionCount,
-      resolverState: "ready" as const,
-    };
     io.stdout(parsed.values.json ? `${JSON.stringify(status, null, 2)}\n` : formatSearchEngineStatus(status));
-    return 0;
+    return status.resolverState === "ready" ? 0 : 1;
   } catch (error) {
     io.stderr(`검색 엔진 선택 상태를 읽지 못했습니다. (${searchErrorCode(error)}) ${
       error instanceof Error ? error.message : "알 수 없는 오류입니다."

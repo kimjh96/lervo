@@ -2,6 +2,7 @@ import {
   assertSearchEngineIdentity,
   sameSearchEngine,
   type SearchEvaluationEnginePort,
+  type SearchEnginePort,
 } from "./evaluation-engine.js";
 import { SEARCH_ENGINE, SearchError, type SearchEngineIdentity } from "./types.js";
 
@@ -18,7 +19,11 @@ export interface SearchEvaluationEngineRegistrationInfo {
   engine: SearchEngineIdentity;
 }
 
-export class SearchEvaluationEngineRegistry {
+export interface SearchCandidateEngineResolver {
+  resolve(candidateId: string): SearchEnginePort;
+}
+
+export class SearchEvaluationEngineRegistry implements SearchCandidateEngineResolver {
   private readonly engines = new Map<string, SearchEvaluationEnginePort>();
   private readonly registrations: SearchEvaluationEngineRegistrationInfo[];
 

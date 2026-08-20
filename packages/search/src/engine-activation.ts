@@ -5,6 +5,8 @@ import {
 import type {
   SearchEngineActivation,
   SearchEngineActivationPolicy,
+  SearchEngineCandidateActivation,
+  SearchEngineRollback,
 } from "./engine-activation-types.js";
 import { assertSearchEngineActivation } from "./engine-activation-validation.js";
 import {
@@ -17,14 +19,24 @@ import type { SearchCandidateReview } from "./evaluation-review-types.js";
 import { contentId } from "./integrity.js";
 import { SearchError } from "./types.js";
 
-function createTransition(core: Omit<SearchEngineActivation, "schemaVersion" | "activationId">): SearchEngineActivation {
-  const activation: SearchEngineActivation = {
-    schemaVersion: 1,
+function createTransition<T extends SearchEngineCandidateActivation | SearchEngineRollback>(
+  core: Omit<T, "schemaVersion" | "activationId">,
+): T {
+  const activation = {
+    schemaVersion: 2,
     activationId: contentId("seact", core),
     ...core,
-  };
+  } as T;
   assertSearchEngineActivation(activation);
   return activation;
+}
+
+export function searchEngineActivationFallback(
+  activation: SearchEngineActivation,
+): { selection: SearchEngineActivation["selected"]; activationId: string | null } {
+  return activation.schemaVersion === 2
+    ? { selection: activation.fallbackSelection, activationId: activation.fallbackActivationId }
+    : { selection: activation.previousSelection, activationId: activation.previousActivationId };
 }
 
 export function createSearchEngineCandidateActivation(input: {
@@ -34,7 +46,7 @@ export function createSearchEngineCandidateActivation(input: {
   previous: SearchEngineActivation | null;
   operatorId: string;
   decidedAt: Date;
-}): SearchEngineActivation {
+}): SearchEngineCandidateActivation {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivationEvidence(input);
   if (!Number.isFinite(input.decidedAt.getTime())) {
@@ -62,7 +74,8 @@ export function createSearchEngineCandidateActivation(input: {
     previousSelection: structuredClone(previousSelection),
     selected,
     rollbackOfActivationId: null,
-    rollbackTargetActivationId: input.previous?.activationId ?? null,
+    fallbackSelection: structuredClone(previousSelection),
+    fallbackActivationId: input.previous?.activationId ?? null,
     recordState: "selection_recorded",
     embeddingDecision: "not_determined",
   });
@@ -75,13 +88,14 @@ export function createSearchEngineRollback(input: {
   targetComparison?: SearchEvaluationComparison;
   operatorId: string;
   decidedAt: Date;
-}): SearchEngineActivation {
+}): SearchEngineRollback {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivation(input.previous);
   if (input.previous.projectId !== input.policy.projectId || !Number.isFinite(input.decidedAt.getTime())) {
     throw new SearchError("invalid_engine_activation", "검색 엔진 rollback 좌표가 유효하지 않습니다.");
   }
-  const selected = input.previous.previousSelection;
+  const fallback = searchEngineActivationFallback(input.previous);
+  const selected = fallback.selection;
   if (selected.mode === "candidate") {
     if (input.targetReview === undefined || input.targetComparison === undefined) {
       throw new SearchError("engine_activation_not_eligible", "이전 후보로 돌아가려면 원래 검토·비교 원본이 필요합니다.");
@@ -108,7 +122,8 @@ export function createSearchEngineRollback(input: {
     previousSelection: structuredClone(input.previous.selected),
     selected: structuredClone(selected),
     rollbackOfActivationId: input.previous.activationId,
-    rollbackTargetActivationId: input.previous.previousActivationId,
+    fallbackSelection: structuredClone(input.previous.selected),
+    fallbackActivationId: input.previous.activationId,
     recordState: "selection_recorded",
     embeddingDecision: "not_determined",
   });

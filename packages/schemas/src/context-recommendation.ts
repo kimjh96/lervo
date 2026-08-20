@@ -41,13 +41,18 @@ export const contextRecommendationRequired = [
   "selectionMaximum",
 ] as const;
 
+const legacyContextRecommendationEventRequired = contextRecommendationRequired.filter(
+  (field): field is Exclude<(typeof contextRecommendationRequired)[number], "selectionTransitionId"> =>
+    field !== "selectionTransitionId",
+);
+
 export const contextRecommendationEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/context-recommendation-event-payload.schema.json",
   title: "Lervo context recommendation event payload",
   type: "object",
   properties: { ...contextRecommendationProperties, documentId: documentIdSchema },
-  required: [...contextRecommendationRequired, "documentId"],
+  required: [...legacyContextRecommendationEventRequired, "documentId"],
   additionalProperties: false,
 } as const;
 

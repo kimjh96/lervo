@@ -170,6 +170,9 @@ describe("event payload privacy boundary", () => {
     const { sourceAttemptId: _missing, ...incomplete } = recommendation;
     expect(() => sanitizeEventPayload("context.recommended", incomplete))
       .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    const { selectionTransitionId: _legacyMissing, ...legacyRecommendation } = recommendation;
+    expect(sanitizeEventPayload("context.recommended", legacyRecommendation).payload)
+      .toEqual(legacyRecommendation);
   });
 
   it("keeps migration hashes but removes reviewer and source path details", () => {

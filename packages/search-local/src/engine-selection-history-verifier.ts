@@ -1,6 +1,8 @@
 import {
-  createSearchEngineCandidateActivation,
-  createSearchEngineRollback,
+  assertSearchEngineActivationEvidence,
+  assertSearchEngineActivationOperator,
+  candidateSearchEngineSelection,
+  sameSearchEngineSelection,
   type SearchCandidateReview,
   type SearchEngineActivation,
   type SearchEngineActivationPolicy,
@@ -45,17 +47,17 @@ export async function verifySearchEngineSelectionHistory(input: {
     if (policy === undefined || policy.projectId !== input.projectId || activation.projectId !== input.projectId) {
       throw new SearchLocalError("engine_selection_unavailable", "검색 엔진 선택 정책이나 project 좌표가 없습니다.");
     }
-    let recreated: SearchEngineActivation;
+    assertSearchEngineActivationOperator(policy, activation.operatorId);
     if (activation.action === "activate_candidate") {
       const evidence = await loadActivationEvidence(input.repositoryRoot, activation.selected);
-      recreated = createSearchEngineCandidateActivation({
+      assertSearchEngineActivationEvidence({
         policy,
         review: evidence.review,
         comparison: evidence.comparison,
-        previous,
-        operatorId: activation.operatorId,
-        decidedAt: new Date(activation.decidedAt),
       });
+      if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
+        throw new SearchLocalError("observation_invalid", "검색 엔진 선택이 검토·비교 원본과 다릅니다.");
+      }
     } else {
       if (previous === null) {
         throw new SearchLocalError("observation_invalid", "첫 검색 엔진 선택 전이는 rollback일 수 없습니다.");
@@ -63,19 +65,16 @@ export async function verifySearchEngineSelectionHistory(input: {
       const evidence = activation.selected.mode === "candidate"
         ? await loadActivationEvidence(input.repositoryRoot, activation.selected)
         : undefined;
-      recreated = createSearchEngineRollback({
-        policy,
-        previous,
-        ...(evidence === undefined ? {} : {
-          targetReview: evidence.review,
-          targetComparison: evidence.comparison,
-        }),
-        operatorId: activation.operatorId,
-        decidedAt: new Date(activation.decidedAt),
-      });
-    }
-    if (recreated.activationId !== activation.activationId) {
-      throw new SearchLocalError("observation_invalid", "검색 엔진 선택 전이가 현재 정책·원본과 재현되지 않습니다.");
+      if (evidence !== undefined) {
+        assertSearchEngineActivationEvidence({
+          policy,
+          review: evidence.review,
+          comparison: evidence.comparison,
+        });
+        if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
+          throw new SearchLocalError("observation_invalid", "Rollback 선택이 검토·비교 원본과 다릅니다.");
+        }
+      }
     }
     previous = activation;
   }

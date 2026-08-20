@@ -13,28 +13,65 @@ export interface SearchEngineActivationPolicy {
   createdAt: string;
 }
 
-export interface SearchEngineSelection {
-  mode: "baseline" | "candidate";
-  candidateId: string | null;
+export interface BaselineSearchEngineSelection {
+  mode: "baseline";
+  candidateId: null;
   engine: SearchEngineIdentity;
-  reviewId: string | null;
-  comparisonId: string | null;
+  reviewId: null;
+  comparisonId: null;
 }
 
-export interface SearchEngineActivation {
-  schemaVersion: 1;
+export interface CandidateSearchEngineSelection {
+  mode: "candidate";
+  candidateId: string;
+  engine: SearchEngineIdentity;
+  reviewId: string;
+  comparisonId: string;
+}
+
+export type SearchEngineSelection = BaselineSearchEngineSelection | CandidateSearchEngineSelection;
+
+interface SearchEngineActivationBase {
   activationId: string;
   projectId: string;
   sequence: number;
   previousActivationId: string | null;
-  action: "activate_candidate" | "rollback";
   policyId: string;
   operatorId: string;
   decidedAt: string;
   previousSelection: SearchEngineSelection;
   selected: SearchEngineSelection;
   rollbackOfActivationId: string | null;
-  rollbackTargetActivationId: string | null;
-  recordState: "selection_recorded";
   embeddingDecision: "not_determined";
 }
+
+export interface LegacySearchEngineActivation extends SearchEngineActivationBase {
+  schemaVersion: 1;
+  action: "activate_candidate" | "rollback";
+  rollbackTargetActivationId: string | null;
+  applicationState?: "not_connected";
+  recordState?: "selection_recorded";
+}
+
+interface SearchEngineActivationV2Base extends SearchEngineActivationBase {
+  schemaVersion: 2;
+  recordState: "selection_recorded";
+  fallbackSelection: SearchEngineSelection;
+  fallbackActivationId: string | null;
+}
+
+export interface SearchEngineCandidateActivation extends SearchEngineActivationV2Base {
+  action: "activate_candidate";
+  selected: CandidateSearchEngineSelection;
+  rollbackOfActivationId: null;
+}
+
+export interface SearchEngineRollback extends SearchEngineActivationV2Base {
+  action: "rollback";
+  rollbackOfActivationId: string;
+}
+
+export type SearchEngineActivation =
+  | LegacySearchEngineActivation
+  | SearchEngineCandidateActivation
+  | SearchEngineRollback;

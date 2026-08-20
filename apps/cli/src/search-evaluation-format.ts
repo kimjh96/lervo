@@ -110,11 +110,12 @@ export function formatSearchEngineStatus(status: {
   selection: SearchEngineSelection;
   selectionTransitionId: string | null;
   transitions: number;
-  resolverState: "ready";
+  resolverState: "ready" | "unavailable";
+  failureCode: string | null;
 }): string {
   return [
     `검색 엔진 선택 원본: ${status.selection.engine.id}-v${status.selection.engine.version}`,
     `  선택 전이: ${status.selectionTransitionId ?? "없음"} · 전체 ${status.transitions}개`,
-    "  검색 resolver: 검증 완료",
+    `  검색 resolver: ${status.resolverState === "ready" ? "검증 완료" : `사용 불가 (${status.failureCode})`}`,
   ].join("\n") + "\n";
 }

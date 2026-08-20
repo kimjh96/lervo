@@ -1,4 +1,8 @@
-import type { SearchEngineSelection } from "./engine-activation-types.js";
+import type {
+  BaselineSearchEngineSelection,
+  CandidateSearchEngineSelection,
+  SearchEngineSelection,
+} from "./engine-activation-types.js";
 import { SEARCH_CANDIDATE_ID_PATTERN } from "./evaluation-engine-registry.js";
 import { SEARCH_EVALUATION_COMPARISON_PATTERN } from "./evaluation-comparison.js";
 import { SEARCH_CANDIDATE_REVIEW_PATTERN } from "./evaluation-review.js";
@@ -6,7 +10,7 @@ import type { SearchCandidateReview } from "./evaluation-review-types.js";
 import { assertSearchEngineIdentity, sameSearchEngine } from "./evaluation-engine.js";
 import { SEARCH_ENGINE, SearchError } from "./types.js";
 
-export function baselineSearchEngineSelection(): SearchEngineSelection {
+export function baselineSearchEngineSelection(): BaselineSearchEngineSelection {
   return {
     mode: "baseline",
     candidateId: null,
@@ -16,7 +20,7 @@ export function baselineSearchEngineSelection(): SearchEngineSelection {
   };
 }
 
-export function candidateSearchEngineSelection(review: SearchCandidateReview): SearchEngineSelection {
+export function candidateSearchEngineSelection(review: SearchCandidateReview): CandidateSearchEngineSelection {
   return {
     mode: "candidate",
     candidateId: review.candidateId,

@@ -4,8 +4,8 @@ import {
   createSearchAttempt,
   createSearchRecommendationBatch,
   normalizeSearchText,
+  type SearchCandidateEngineResolver,
   type SearchAttempt,
-  type SearchEvaluationEngineRegistry,
   type SearchRecommendationBatch,
 } from "@lervo/search";
 import {
@@ -56,7 +56,7 @@ export async function prepareManagedSearchContext(input: {
   fallbackQuery: string;
   observedAt: Date;
   nonce?: string;
-  registry?: SearchEvaluationEngineRegistry;
+  registry?: SearchCandidateEngineResolver;
 }): Promise<PreparedManagedSearchContext> {
   const operational = await runLocalOperationalSearch({
     repositoryRoot: input.repositoryRoot,

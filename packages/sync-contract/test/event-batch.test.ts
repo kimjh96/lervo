@@ -52,4 +52,35 @@ describe("outbound event batch contract", () => {
       events: [unsafe],
     })).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
   });
+
+  it("keeps a hash-valid legacy recommendation event syncable without rewriting its payload", () => {
+    const project = manifest();
+    const request = registration(project);
+    const source = eventChain(project.projectId, 1)[0]!;
+    const { eventHash: _eventHash, ...sourceWithoutHash } = source;
+    const withoutHash: Omit<EventEnvelope, "eventHash"> = {
+      ...sourceWithoutHash,
+      type: "context.recommended",
+      payload: {
+        recommendationId: `srec_${"a".repeat(24)}`,
+        batchId: `srb_${"b".repeat(24)}`,
+        sourceAttemptId: `sat_${"c".repeat(24)}`,
+        engineId: "lexical",
+        engineVersion: 1,
+        indexId: `sidx_${"d".repeat(24)}`,
+        resultSetHash: `sha256:${"e".repeat(64)}`,
+        documentId: "doc_sync_context_01",
+        sourceContentHash: `sha256:${"f".repeat(64)}`,
+        rank: 1,
+        score: 12,
+        selectionPolicyId: "top_ranked",
+        selectionPolicyVersion: 1,
+        selectionMaximum: 3,
+      },
+    };
+    const legacy: EventEnvelope = { ...withoutHash, eventHash: computeEventHash(withoutHash) };
+
+    const batch = createOutboundEventBatch({ registration: request, events: [legacy] });
+    expect(batch.events[0]!.payload).not.toHaveProperty("selectionTransitionId");
+  });
 });
