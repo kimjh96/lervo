@@ -2,8 +2,10 @@ import {
   createSearchCandidateReview,
   sameSearchEngine,
   type SearchCandidateReview,
+  type SearchEnginePort,
   type SearchEvaluationComparison,
   type SearchEvaluationEngineRegistry,
+  type SearchSourceInput,
 } from "@lervo/search";
 
 import { executeLocalSearchCandidate } from "./evaluation-candidate-executor.js";
@@ -14,6 +16,8 @@ import { SearchLocalError } from "./types.js";
 export interface VerifiedSearchCandidateActivationEvidence {
   review: SearchCandidateReview;
   comparison: SearchEvaluationComparison;
+  engine: SearchEnginePort;
+  corpus: readonly SearchSourceInput[];
 }
 
 export async function verifySearchCandidateActivationEvidence(input: {
@@ -53,5 +57,10 @@ export async function verifySearchCandidateActivationEvidence(input: {
   if (recreated.reviewId !== review.reviewId) {
     throw new SearchLocalError("observation_invalid", "검색 후보 검토가 현재 원본과 재현 결과에 맞지 않습니다.");
   }
-  return { review, comparison: loaded.comparison };
+  return {
+    review,
+    comparison: loaded.comparison,
+    engine,
+    corpus: structuredClone(loaded.evidence.corpus),
+  };
 }

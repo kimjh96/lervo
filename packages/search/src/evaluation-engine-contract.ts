@@ -4,7 +4,7 @@ import {
   SEARCH_INDEX_ID_PATTERN,
   sameSearchEngine,
   type SearchEvaluationEnginePort,
-  type SearchEvaluationIndexPort,
+  type SearchIndexPort,
 } from "./evaluation-engine.js";
 import { canonicalHash } from "./integrity.js";
 import { identifySearchQuery } from "./normalize.js";
@@ -23,9 +23,9 @@ function hitKey(hit: SearchHit): string {
   return searchSourceKey(hit.source);
 }
 
-export function assertSearchEvaluationResponse(input: {
+export function assertSearchResponse(input: {
   response: SearchResponse;
-  index: Pick<SearchEvaluationIndexPort, "engine" | "indexId">;
+  index: Pick<SearchIndexPort, "engine" | "indexId">;
   query: string;
   limit: number;
 }): void {
@@ -76,6 +76,8 @@ export function assertSearchEvaluationResponse(input: {
     throw new SearchError("invalid_evaluation_engine", "검색 평가 응답 result-set hash가 실제 hit와 다릅니다.");
   }
 }
+
+export const assertSearchEvaluationResponse = assertSearchResponse;
 
 export interface SearchEvaluationEngineContractReport {
   engine: { id: string; version: number };

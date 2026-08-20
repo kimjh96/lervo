@@ -148,6 +148,7 @@ describe("event payload privacy boundary", () => {
       sourceAttemptId: "sat_cccccccccccccccccccccccc",
       engineId: "lexical",
       engineVersion: 1,
+      selectionTransitionId: null,
       indexId: "sidx_dddddddddddddddddddddddd",
       resultSetHash: `sha256:${"e".repeat(64)}`,
       documentId: "doc_context_00000001",

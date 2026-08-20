@@ -105,6 +105,7 @@ export function recordSearchRecommendationEvidence(input: {
       sourceAttemptId: recommendation.sourceAttemptId,
       engineId: recommendation.engine.id,
       engineVersion: recommendation.engine.version,
+      selectionTransitionId: recommendation.selectionTransitionId,
       indexId: recommendation.indexId,
       resultSetHash: recommendation.resultSetHash,
       sourceContentHash: recommendation.sourceContentHash,

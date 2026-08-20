@@ -90,6 +90,35 @@ describe("deterministic lexical search baseline", () => {
     expect(attempt.hits[0]).not.toHaveProperty("path");
   });
 
+  it("binds candidate attempts and recommendations to the selection transition", () => {
+    const response = {
+      ...new LexicalSearchIndex(sources()).search("문서 복구"),
+      engine: { id: "fixture_candidate", version: 1 },
+    };
+    const selectionTransitionId = `seact_${"a".repeat(24)}`;
+    const attempt = createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:00.000Z"),
+      nonce: "7".repeat(32),
+      response,
+      selectionTransitionId,
+    });
+    const batch = createSearchRecommendationBatch({
+      attempt,
+      recommendationLimit: 2,
+      maximumSelections: 1,
+    });
+
+    expect(attempt).toMatchObject({ engine: response.engine, selectionTransitionId });
+    expect(batch.recommendations[0]).toMatchObject({ engine: response.engine, selectionTransitionId });
+    expect(() => createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:00.000Z"),
+      nonce: "8".repeat(32),
+      response,
+    })).toThrow(/선택 전이 ID/);
+  });
+
   it("requires explicit assessment and never turns failures into an embedding decision", () => {
     const acceptedResponse = new LexicalSearchIndex(sources()).search("복구");
     const acceptedAttempt = createSearchAttempt({

@@ -438,7 +438,7 @@ Hub command/approval 대화 UX 완료 조건:
 
 공급자 중립 검색 후보 비교 첫 슬라이스 완료 조건:
 
-- 평가 결과·run의 engine 좌표를 일반화하되 운영 attempt·managed context 추천은 현재 `lexical-v1`에 고정함
+- 평가 결과·run의 engine 좌표를 일반화하되 이 비교 단계만으로 운영 attempt·managed context 추천을 바꾸지 않음
 - 후보 engine·index·search port와 공통 평가 실행기를 파일 시스템·Hub·구체 adapter에서 분리함
 - `ready`가 아닌 묶음은 corpus 로드와 후보 index 생성을 시작하기 전에 닫고 비교 artifact를 만들지 않음
 - 준비된 묶음은 baseline과 후보에 같은 corpus source, 활성 case, 평가 시각과 50위 조건을 공급함
@@ -487,8 +487,22 @@ Hub command/approval 대화 UX 완료 조건:
 - Rollback을 기존 전이 수정이 아닌 이전 선택으로 돌아가는 새 immutable 전이로 기록함
 - 이전 후보로 rollback할 때 해당 review·comparison·현재 corpus와 후보 replay를 다시 확인함
 - 정책과 전이에 query·문서 path·본문·prompt·provider 응답·credential을 넣지 않음
-- 모든 선택이 `applicationState=not_connected`, `embeddingDecision=not_determined`를 유지하고 운영 검색을 바꾸지 않음
+- 모든 전이가 `recordState=selection_recorded`, `embeddingDecision=not_determined`만 주장하고 활성화 명령 자체를 실제 검색 실행으로 표시하지 않음
 - 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
+검증된 운영 검색 엔진 resolver와 fail-closed 소비 첫 슬라이스 완료 조건:
+
+- 평가용 engine·index port를 공급자 중립 공통 계약으로 일반화하고 기존 평가 조합과 adapter 계약을 유지함
+- 선택 전이가 없으면 현재 corpus의 `lexical-v1`, 전이가 있으면 전체 정책·선택 chain을 재현하는 하나의 resolver를 사용함
+- 현재 후보 선택은 현재 corpus·comparison·review replay·registry·candidate index를 다시 확인한 경우에만 반환함
+- 일반 `lervo search`, managed context와 `engine status`가 같은 resolver를 사용하고 evaluation baseline은 `lexical-v1`에 고정함
+- 후보 선택을 사용할 수 없을 때 baseline으로 낮추지 않고 `engine_selection_unavailable`로 attempt·추천·provider 시작 전에 중단함
+- 전이가 없는 baseline의 corpus 오류는 기존 `corpus_read_failed`를 유지하고 rollback baseline은 과거 후보 replay 없이 복구함
+- Attempt·recommendation·`context.recommended`가 실제 engine과 nullable 선택 전이 ID를 이어받고 후보 attempt는 전이 ID 없이 만들 수 없음
+- `engine status`는 같은 resolver가 현재 index까지 확인한 경우에만 `resolverState=ready`를 표시하고 실제 query 실행으로 해석하지 않음
+- 선택 ID와 engine 좌표 외에 query·문서 path·본문·prompt·provider 응답·credential을 event나 오류에 추가하지 않음
+- 평가 case와 result를 배열 위치가 아닌 `caseId`로 결합해 ID 순서 변화에도 원본 관계를 검증함
+- 후보 적용, 미등록 후보 fail-closed, 선택 뒤 corpus 변경 실패와 rollback baseline 복구를 실제 로컬 수직 테스트로 확인함
 
 ## 다음 실행 작업
 
@@ -526,6 +540,8 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 재현 검증을 거치는 검색 후보 검토 첫 슬라이스를 완료했습니다. 지정 comparison과 현재 bundle·coverage·case·corpus, 두 run·result를 다시 확인하고 등록 후보를 같은 시각과 입력으로 재실행해 run ID가 일치할 때만 채택·기각·표본 추가 필요 검토를 별도 immutable 원본으로 남깁니다. 채택 검토는 후보 승리가 있고 baseline 회귀가 없는 경우만 다음 활성화 검토 대상으로 표시하며 운영 검색과 임베딩 판단은 바꾸지 않습니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록했습니다.
 
-정책에 결속된 검색 엔진 선택·rollback 첫 슬라이스를 완료했습니다. Project별 정책이 허용 reviewer·operator·candidate와 최소 개선 기준을 고정하고, 활성화 직전에 비교 전체와 후보 replay를 다시 확인합니다. 선택과 rollback은 이전 head를 열쇠로 한 별도 immutable 전이 chain에 남아 동시 분기와 덮어쓰기를 막습니다. 상태는 `not_connected`이며 실제 검색은 계속 `lexical-v1`입니다. 결정은 [ADR-0060](./docs/adr/0060-policy-bound-search-engine-selection.md)에 기록했습니다.
+정책에 결속된 검색 엔진 선택·rollback 첫 슬라이스를 완료했습니다. Project별 정책이 허용 reviewer·operator·candidate와 최소 개선 기준을 고정하고, 활성화 직전에 비교 전체와 후보 replay를 다시 확인합니다. 선택과 rollback은 이전 head를 열쇠로 한 별도 immutable 전이 chain에 남아 동시 분기와 덮어쓰기를 막습니다. 전이는 선택 기록만 주장하고 실제 소비는 별도 attempt가 증명합니다. 결정은 [ADR-0060](./docs/adr/0060-policy-bound-search-engine-selection.md)에 기록했습니다.
 
-다음 구현 작업은 이 선택 원본을 실제 검색에 적용하는 **검증된 engine resolver와 fail-closed 소비 경계**입니다. 일반 검색과 managed context가 같은 resolver를 사용하되, 정책·전이 chain·등록 engine·현재 corpus를 읽지 못하거나 선택 후보를 만들지 못하면 조용히 baseline으로 가장하지 않고 명시적으로 실패해야 합니다. Evaluation baseline은 비교 기준을 유지하기 위해 계속 `lexical-v1`에 고정합니다.
+검증된 운영 검색 엔진 resolver와 fail-closed 소비 첫 슬라이스를 완료했습니다. 일반 검색과 managed context가 전체 선택 chain·정책·등록 engine·현재 corpus·후보 replay를 확인하는 같은 resolver를 사용하고, 검증 실패를 lexical baseline으로 숨기지 않습니다. Attempt·recommendation·추천 event는 실제 engine과 선택 전이 ID를 이어받으며 evaluation baseline은 `lexical-v1`에 고정됩니다. 결정은 [ADR-0061](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)에 기록했습니다.
+
+다음 구현 작업은 문서 corpus가 정상적으로 바뀐 뒤에도 같은 후보를 자동 신뢰하지 않고 다시 검토해 이어갈 수 있는 **후보 선택 refresh 전이와 운영 재검증 흐름**입니다. 현재 선택을 덮어쓰거나 같은 후보 no-op을 허용하지 않고, 새 comparison·review·정책 증거에 결속된 별도 immutable 전이로 갱신해야 합니다. Refresh가 없거나 실패하면 현재 fail-closed 상태를 유지하며 자동 rollback이나 baseline 대체를 만들지 않습니다.

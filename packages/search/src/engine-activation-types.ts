@@ -35,6 +35,6 @@ export interface SearchEngineActivation {
   selected: SearchEngineSelection;
   rollbackOfActivationId: string | null;
   rollbackTargetActivationId: string | null;
-  applicationState: "not_connected";
+  recordState: "selection_recorded";
   embeddingDecision: "not_determined";
 }

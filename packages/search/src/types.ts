@@ -55,7 +55,8 @@ export interface SearchAttempt {
   projectId: string;
   observedAt: string;
   nonce: string;
-  engine: typeof SEARCH_ENGINE;
+  engine: SearchEngineIdentity;
+  selectionTransitionId: string | null;
   indexId: string;
   queryDigest: string;
   queryCharacterCount: number;
@@ -109,7 +110,8 @@ export interface SearchRecommendation {
   recommendationId: string;
   batchId: string;
   sourceAttemptId: string;
-  engine: typeof SEARCH_ENGINE;
+  engine: SearchEngineIdentity;
+  selectionTransitionId: string | null;
   indexId: string;
   resultSetHash: string;
   sourceKind: "document";

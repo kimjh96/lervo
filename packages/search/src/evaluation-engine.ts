@@ -4,16 +4,19 @@ import { SearchError, type SearchErrorCode } from "./types.js";
 export const SEARCH_ENGINE_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
 export const SEARCH_INDEX_ID_PATTERN = /^sidx_[a-f0-9]{24}$/;
 
-export interface SearchEvaluationIndexPort {
+export interface SearchIndexPort {
   readonly engine: SearchEngineIdentity;
   readonly indexId: string;
   search(query: string, limit: number): SearchResponse | Promise<SearchResponse>;
 }
 
-export interface SearchEvaluationEnginePort {
+export interface SearchEnginePort {
   readonly engine: SearchEngineIdentity;
-  buildIndex(sources: readonly SearchSourceInput[]): SearchEvaluationIndexPort | Promise<SearchEvaluationIndexPort>;
+  buildIndex(sources: readonly SearchSourceInput[]): SearchIndexPort | Promise<SearchIndexPort>;
 }
+
+export type SearchEvaluationIndexPort = SearchIndexPort;
+export type SearchEvaluationEnginePort = SearchEnginePort;
 
 export function assertSearchEngineIdentity(
   engine: SearchEngineIdentity,

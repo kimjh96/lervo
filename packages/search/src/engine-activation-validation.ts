@@ -20,7 +20,7 @@ export function assertSearchEngineActivation(
       !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackTargetActivationId)) ||
     !["activate_candidate", "rollback"].includes(activation.action) ||
     !/^sepol_[a-f0-9]{24}$/.test(activation.policyId) || !SOURCE_ID_PATTERN.test(activation.operatorId) ||
-    activation.applicationState !== "not_connected" || activation.embeddingDecision !== "not_determined") {
+    activation.recordState !== "selection_recorded" || activation.embeddingDecision !== "not_determined") {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 계약이 유효하지 않습니다.");
   }
   assertTimestamp(activation.decidedAt, "invalid_engine_activation");

@@ -63,7 +63,7 @@ export function createSearchEngineCandidateActivation(input: {
     selected,
     rollbackOfActivationId: null,
     rollbackTargetActivationId: input.previous?.activationId ?? null,
-    applicationState: "not_connected",
+    recordState: "selection_recorded",
     embeddingDecision: "not_determined",
   });
 }
@@ -109,7 +109,7 @@ export function createSearchEngineRollback(input: {
     selected: structuredClone(selected),
     rollbackOfActivationId: input.previous.activationId,
     rollbackTargetActivationId: input.previous.previousActivationId,
-    applicationState: "not_connected",
+    recordState: "selection_recorded",
     embeddingDecision: "not_determined",
   });
 }

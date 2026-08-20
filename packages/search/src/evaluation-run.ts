@@ -30,6 +30,26 @@ function emptyFailureCounts(): SearchEvaluationRun["failuresByReason"] {
   };
 }
 
+function pairCasesAndResults(
+  cases: readonly SearchEvaluationCase[],
+  results: readonly SearchEvaluationResult[],
+): Array<{ evaluationCase: SearchEvaluationCase; result: SearchEvaluationResult }> {
+  const resultsByCaseId = new Map(results.map((result) => [result.caseId, result]));
+  if (resultsByCaseId.size !== results.length) {
+    throw new SearchError("invalid_evaluation_run", "검색 평가 실행 결과의 case가 중복되었습니다.");
+  }
+  const pairs = cases.map((evaluationCase) => ({
+    evaluationCase,
+    result: resultsByCaseId.get(evaluationCase.caseId),
+  }));
+  if (pairs.some((pair) => pair.result === undefined)) {
+    throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 케이스·결과 좌표가 다릅니다.");
+  }
+  return pairs
+    .map((pair) => ({ evaluationCase: pair.evaluationCase, result: pair.result! }))
+    .sort((left, right) => compareText(left.evaluationCase.caseId, right.evaluationCase.caseId));
+}
+
 export function createSearchEvaluationRun(input: {
   projectId: string;
   evaluatedAt: Date;
@@ -40,10 +60,7 @@ export function createSearchEvaluationRun(input: {
     input.results.length !== input.cases.length) {
     throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 케이스·결과 수가 유효하지 않습니다.");
   }
-  const pairs = input.cases.map((evaluationCase, index) => ({
-    evaluationCase,
-    result: input.results[index]!,
-  })).sort((left, right) => compareText(left.evaluationCase.caseId, right.evaluationCase.caseId));
+  const pairs = pairCasesAndResults(input.cases, input.results);
   for (const pair of pairs) {
     assertSearchEvaluationCase(pair.evaluationCase);
     assertSearchEvaluationResult(pair.result, pair.evaluationCase);
@@ -122,20 +139,19 @@ export function assertSearchEvaluationRun(
     if (cases.length !== results.length) {
       throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 케이스와 결과 수가 다릅니다.");
     }
-    const pairs = cases.map((evaluationCase, index) => ({ evaluationCase, result: results[index] }))
-      .sort((left, right) => compareText(left.evaluationCase.caseId, right.evaluationCase.caseId));
-    if (pairs.length !== run.totalCases || pairs.some(({ result }) => result === undefined)) {
+    const pairs = pairCasesAndResults(cases, results);
+    if (pairs.length !== run.totalCases) {
       throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 원본 수가 다릅니다.");
     }
     for (const { evaluationCase, result } of pairs) {
       assertSearchEvaluationCase(evaluationCase);
-      assertSearchEvaluationResult(result!, evaluationCase);
+      assertSearchEvaluationResult(result, evaluationCase);
     }
     const expected = createSearchEvaluationRun({
       projectId: run.projectId,
       evaluatedAt: new Date(run.evaluatedAt),
       cases: pairs.map(({ evaluationCase }) => evaluationCase),
-      results: pairs.map(({ result }) => result!),
+      results: pairs.map(({ result }) => result),
     });
     if (expected.runId !== run.runId) {
       throw new SearchError("invalid_evaluation_run", "검색 평가 실행이 케이스·결과 원본과 다릅니다.");

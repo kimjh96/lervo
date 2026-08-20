@@ -57,7 +57,7 @@ describe("search engine activation policy and rollback", () => {
       previousSelection: { mode: "baseline", engine: { id: "lexical", version: 1 } },
       selected: { mode: "candidate", candidateId: "fixture-v1", reviewId: fixture.review.reviewId },
       rollbackTargetActivationId: null,
-      applicationState: "not_connected",
+      recordState: "selection_recorded",
       embeddingDecision: "not_determined",
     });
     expect(rollback).toMatchObject({
@@ -67,7 +67,7 @@ describe("search engine activation policy and rollback", () => {
       selected: { mode: "baseline", engine: { id: "lexical", version: 1 } },
       rollbackOfActivationId: activation.activationId,
       rollbackTargetActivationId: null,
-      applicationState: "not_connected",
+      recordState: "selection_recorded",
     });
     expect(() => assertSearchEngineActivation(rollback, activation)).not.toThrow();
     expect(JSON.stringify([activation, rollback])).not.toContain("사과");

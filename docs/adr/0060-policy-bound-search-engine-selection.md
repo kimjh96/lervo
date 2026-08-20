@@ -1,6 +1,6 @@
 # ADR-0060: 정책에 결속된 검색 엔진 선택과 rollback
 
-- 상태: 채택
+- 상태: 채택 (`applicationState`와 미연결 범위는 ADR-0061로 대체)
 - 날짜: 2026-08-20
 
 ## 배경
@@ -35,7 +35,7 @@ Rollback은 현재 전이의 이전 선택을 새 선택으로 삼는 별도 전
 
 정책에는 reviewer·operator ID가 들어가며 Git 검토 대상입니다. Credential, 개인 비밀값이나 저장소 공개 범위에 맞지 않는 식별자를 쓰지 않습니다. 전이의 operator ID는 gitignore 대상 로컬 state에만 둡니다. Query·문서 path·본문, prompt, provider 응답과 credential은 정책·전이에 넣지 않습니다.
 
-새 event와 Hub sync는 없습니다. 모든 전이는 `applicationState=not_connected`, `embeddingDecision=not_determined`입니다. `engine activate`는 선택 원본 게시이지 실제 검색 적용 완료가 아닙니다. 일반 검색, 평가 baseline과 managed context는 계속 `lexical-v1`을 사용합니다.
+새 event와 Hub sync는 없습니다. 이 결정 당시 전이는 `applicationState=not_connected`, `embeddingDecision=not_determined`였고 일반 검색과 managed context는 `lexical-v1`을 사용했습니다. 이후 ADR-0061이 전이를 `recordState=selection_recorded`로 바꾸고 운영 소비 경계를 연결했습니다. `engine activate` 자체가 검색 실행 완료를 뜻하지 않는 원칙은 유지합니다.
 
 ## 실패 의미
 
@@ -60,4 +60,4 @@ Rollback은 현재 전이의 이전 선택을 새 선택으로 삼는 별도 전
 - Rollback이 새 전이로 baseline 또는 검증된 이전 후보를 선택함
 - 같은 이전 head의 다른 전이를 immutable 저장에서 거부함
 - 정책과 전이에 query·문서 원문·path가 없음
-- 상태 조회와 실제 검색에서 `not_connected`와 계속 사용되는 `lexical-v1`을 확인함
+- 이 단계의 상태 조회와 실제 검색에서 미연결 상태를 확인함. 후속 운영 연결 검증은 ADR-0061이 담당함

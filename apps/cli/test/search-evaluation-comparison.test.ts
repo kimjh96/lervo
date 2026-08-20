@@ -17,11 +17,13 @@ import {
   activateLocalSearchCandidate,
   recordSearchEngineActivationPolicy,
   reviewLocalSearchCandidate,
+  runLocalOperationalSearch,
   runLocalSearchEvaluationComparison,
 } from "@lervo/search-local";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { prepareManagedSearchContext } from "../src/managed-search-context.js";
 import { registerSearchContextDocument } from "./search-context-fixture.js";
 
 const roots: string[] = [];
@@ -214,7 +216,7 @@ describe("local search evaluation candidate comparison", () => {
       },
       selectionTransitionId: null,
       transitions: 0,
-      applicationState: "not_connected",
+      resolverState: "ready",
     });
 
     const unsupportedAdoption = await command(root, [
@@ -348,7 +350,7 @@ describe("local search evaluation candidate comparison", () => {
       .toEqual([`${review.reviewId}.json`]);
   });
 
-  it("records a verified candidate selection and rolls it back without changing the live search", async () => {
+  it("uses a verified selection, fails closed when unavailable, and restores baseline on rollback", async () => {
     const root = await repository();
     const cases = [await reviewedCase(root, "검색 맥락")];
     await bundle(root, "researcher.activation", 1, cases);
@@ -407,12 +409,54 @@ describe("local search evaluation candidate comparison", () => {
 
     expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
     const selected = await command(root, ["search", "engine", "status", "--json"]);
-    expect(JSON.parse(selected.output)).toMatchObject({
+    expect(selected.code).toBe(1);
+    expect(selected.error).toContain("engine_selection_unavailable");
+    expect(selected.output).toBe("");
+
+    const operational = await runLocalOperationalSearch({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      registry,
+      query: "검색 맥락",
+      limit: 5,
+    });
+    expect(operational).toMatchObject({
       selection: { mode: "candidate", candidateId: "fixture-v1" },
       selectionTransitionId: activation.activationId,
-      transitions: 1,
-      applicationState: "not_connected",
+      response: { engine: CANDIDATE_ENGINE },
     });
+    const managed = await prepareManagedSearchContext({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      query: "검색 맥락",
+      fallbackQuery: "docs/search-context.md",
+      observedAt: new Date("2026-08-20T10:01:00.000Z"),
+      nonce: "a".repeat(32),
+      registry,
+    });
+    expect(managed.attempt).toMatchObject({
+      engine: CANDIDATE_ENGINE,
+      selectionTransitionId: activation.activationId,
+    });
+    expect(managed.recommendationBatch.recommendations[0]).toMatchObject({
+      engine: CANDIDATE_ENGINE,
+      selectionTransitionId: activation.activationId,
+    });
+
+    const unavailable = await command(root, ["search", "검색 맥락", "--json"]);
+    expect(unavailable.code).toBe(1);
+    expect(unavailable.error).toContain("engine_selection_unavailable");
+    expect(unavailable.output).toBe("");
+
+    await writeFile(resolve(root, "docs/search-context.md"), "# 다시 변경됨\n\n선택 뒤 corpus 변경입니다.\n");
+    await expect(runLocalOperationalSearch({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      registry,
+      query: "검색 맥락",
+      limit: 5,
+    })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
+    await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
 
     const rolledBack = await command(root, [
       "search", "engine", "rollback", "--policy", policy.policyId,
@@ -423,14 +467,17 @@ describe("local search evaluation candidate comparison", () => {
       action: "rollback",
       previousActivationId: activation.activationId,
       selected: { mode: "baseline", engine: { id: "lexical", version: 1 } },
-      applicationState: "not_connected",
+      recordState: "selection_recorded",
     });
     expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))).sort())
       .toEqual([`${activation.activationId}.json`, "baseline.json"].sort());
 
     const searched = await command(root, ["search", "검색 맥락", "--json"]);
     expect(searched.code, searched.error).toBe(0);
-    expect(JSON.parse(searched.output)).toMatchObject({ engine: { id: "lexical", version: 1 } });
+    expect(JSON.parse(searched.output)).toMatchObject({
+      engine: { id: "lexical", version: 1 },
+      selectionTransitionId: (JSON.parse(rolledBack.output) as { activationId: string }).activationId,
+    });
   });
 
   it("does not publish a review when the current corpus no longer matches the comparison", async () => {

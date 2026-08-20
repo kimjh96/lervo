@@ -3,9 +3,10 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { loadProjectManifest } from "@lervo/project";
-import { createSearchAttempt, LexicalSearchIndex } from "@lervo/search";
-import { loadRegisteredDocumentCorpus, LocalSearchObservationStore } from "@lervo/search-local";
+import { createSearchAttempt } from "@lervo/search";
+import { LocalSearchObservationStore, runLocalOperationalSearch } from "@lervo/search-local";
 
+import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
 import { formatSearchResponse } from "./search-format.js";
 import type { CliIo } from "./types.js";
@@ -33,24 +34,30 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   try {
-    const [manifest, corpus] = await Promise.all([
-      loadProjectManifest(root),
-      loadRegisteredDocumentCorpus(root),
-    ]);
-    const response = new LexicalSearchIndex(corpus).search(
-      parsed.positionals[0]!,
-      parsed.values.limit === undefined ? 10 : Number(parsed.values.limit),
-    );
+    const manifest = await loadProjectManifest(root);
+    const operational = await runLocalOperationalSearch({
+      repositoryRoot: root,
+      projectId: manifest.projectId,
+      registry: searchCandidateRegistry,
+      query: parsed.positionals[0]!,
+      limit: parsed.values.limit === undefined ? 10 : Number(parsed.values.limit),
+    });
+    const response = operational.response;
     const attempt = createSearchAttempt({
       projectId: manifest.projectId,
       observedAt: new Date(),
       nonce: randomBytes(16).toString("hex"),
       response,
+      selectionTransitionId: operational.selectionTransitionId,
     });
     const store = await LocalSearchObservationStore.open(root);
     await store.recordAttempt(attempt);
     io.stdout(parsed.values.json
-      ? `${JSON.stringify({ ...response, attemptId: attempt.attemptId }, null, 2)}\n`
+      ? `${JSON.stringify({
+        ...response,
+        selectionTransitionId: operational.selectionTransitionId,
+        attemptId: attempt.attemptId,
+      }, null, 2)}\n`
       : formatSearchResponse(response, attempt.attemptId));
     return 0;
   } catch (error) {

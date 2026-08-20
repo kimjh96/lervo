@@ -101,7 +101,7 @@ export function formatSearchEngineActivation(activation: SearchEngineActivation)
     `  ${activation.previousSelection.engine.id}-v${activation.previousSelection.engine.version}` +
       ` → ${activation.selected.engine.id}-v${activation.selected.engine.version}`,
     `  정책 ${activation.policyId} · operator ${activation.operatorId}`,
-    "  실제 검색 연결: 아직 적용하지 않음",
+    "  선택 기록: 저장됨",
     "  임베딩 도입 판단: 아직 결정하지 않음",
   ].join("\n") + "\n";
 }
@@ -110,11 +110,11 @@ export function formatSearchEngineStatus(status: {
   selection: SearchEngineSelection;
   selectionTransitionId: string | null;
   transitions: number;
-  applicationState: "not_connected";
+  resolverState: "ready";
 }): string {
   return [
     `검색 엔진 선택 원본: ${status.selection.engine.id}-v${status.selection.engine.version}`,
     `  선택 전이: ${status.selectionTransitionId ?? "없음"} · 전체 ${status.transitions}개`,
-    "  실제 검색 연결: 아직 적용하지 않음",
+    "  검색 resolver: 검증 완료",
   ].join("\n") + "\n";
 }

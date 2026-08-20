@@ -3,16 +3,18 @@ import { randomBytes } from "node:crypto";
 import {
   createSearchAttempt,
   createSearchRecommendationBatch,
-  LexicalSearchIndex,
   normalizeSearchText,
   type SearchAttempt,
+  type SearchEvaluationEngineRegistry,
   type SearchRecommendationBatch,
 } from "@lervo/search";
 import {
-  loadRegisteredDocumentCorpus,
   LocalSearchObservationStore,
+  runLocalOperationalSearch,
 } from "@lervo/search-local";
 import type { ContextEvidence } from "@lervo/schemas";
+
+import { searchCandidateRegistry } from "./search-candidate-registry.js";
 
 export interface ManagedSearchContextSummary {
   attemptId: string;
@@ -54,15 +56,22 @@ export async function prepareManagedSearchContext(input: {
   fallbackQuery: string;
   observedAt: Date;
   nonce?: string;
+  registry?: SearchEvaluationEngineRegistry;
 }): Promise<PreparedManagedSearchContext> {
-  const response = new LexicalSearchIndex(
-    await loadRegisteredDocumentCorpus(input.repositoryRoot),
-  ).search(managedSearchQuery(input.query, input.fallbackQuery), 5);
+  const operational = await runLocalOperationalSearch({
+    repositoryRoot: input.repositoryRoot,
+    projectId: input.projectId,
+    registry: input.registry ?? searchCandidateRegistry,
+    query: managedSearchQuery(input.query, input.fallbackQuery),
+    limit: 5,
+  });
+  const response = operational.response;
   const attempt = createSearchAttempt({
     projectId: input.projectId,
     observedAt: input.observedAt,
     nonce: input.nonce ?? randomBytes(16).toString("hex"),
     response,
+    selectionTransitionId: operational.selectionTransitionId,
   });
   const store = await LocalSearchObservationStore.open(input.repositoryRoot);
   await store.recordAttempt(attempt);

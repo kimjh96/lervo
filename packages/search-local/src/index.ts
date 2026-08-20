@@ -3,6 +3,7 @@ export * from "./engine-activation-store.js";
 export * from "./engine-activation-evidence.js";
 export * from "./engine-activation-runner.js";
 export * from "./engine-policy-files.js";
+export * from "./operational-engine-resolver.js";
 export * from "./evaluation-case-files.js";
 export * from "./evaluation-bundle-files.js";
 export * from "./evaluation-candidate-executor.js";

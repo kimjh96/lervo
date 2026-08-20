@@ -15,6 +15,7 @@ export function recommendedContextEventSpecs(loaded: LoadedContext): ManagedEven
         sourceAttemptId: evidence.sourceAttemptId,
         engineId: evidence.engineId,
         engineVersion: evidence.engineVersion,
+        selectionTransitionId: evidence.selectionTransitionId,
         indexId: evidence.indexId,
         resultSetHash: evidence.resultSetHash,
         documentId: evidence.documentId,

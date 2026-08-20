@@ -7,6 +7,7 @@ import {
   type SearchAttempt,
   type SearchResponse,
 } from "./types.js";
+import { assertSearchEngineIdentity, sameSearchEngine } from "./evaluation-engine.js";
 import { assertTimestamp, SHA256_PATTERN, SOURCE_ID_PATTERN } from "./validation.js";
 
 export const SEARCH_ATTEMPT_PATTERN = /^sat_[a-f0-9]{24}$/;
@@ -22,15 +23,22 @@ export function createSearchAttempt(input: {
   observedAt: Date;
   nonce: string;
   response: SearchResponse;
+  selectionTransitionId?: string | null;
 }): SearchAttempt {
-  if (input.response.engine.id !== SEARCH_ENGINE.id || input.response.engine.version !== SEARCH_ENGINE.version) {
-    throw new SearchError("invalid_attempt", "운영 검색 시도는 현재 lexical-v1 응답에서만 만들 수 있습니다.");
+  assertSearchEngineIdentity(input.response.engine, "invalid_attempt");
+  const selectionTransitionId = input.selectionTransitionId ?? null;
+  if (selectionTransitionId !== null && !/^seact_[a-f0-9]{24}$/.test(selectionTransitionId)) {
+    throw new SearchError("invalid_attempt", "검색 엔진 선택 전이 ID가 유효하지 않습니다.");
+  }
+  if (!sameSearchEngine(input.response.engine, SEARCH_ENGINE) && selectionTransitionId === null) {
+    throw new SearchError("invalid_attempt", "후보 검색 엔진 시도에는 선택 전이 ID가 필요합니다.");
   }
   const core = {
     projectId: input.projectId,
     observedAt: input.observedAt.toISOString(),
     nonce: input.nonce,
-    engine: SEARCH_ENGINE,
+    engine: { ...input.response.engine },
+    selectionTransitionId,
     indexId: input.response.indexId,
     queryDigest: input.response.queryDigest,
     queryCharacterCount: input.response.queryCharacterCount,
@@ -53,7 +61,7 @@ export function createSearchAttempt(input: {
 export function assertSearchAttempt(attempt: SearchAttempt): void {
   if (attempt.schemaVersion !== 1 || !SEARCH_ATTEMPT_PATTERN.test(attempt.attemptId) ||
     !SOURCE_ID_PATTERN.test(attempt.projectId) || !NONCE_PATTERN.test(attempt.nonce) ||
-    attempt.engine?.id !== SEARCH_ENGINE.id || attempt.engine?.version !== SEARCH_ENGINE.version ||
+    (attempt.selectionTransitionId !== null && !/^seact_[a-f0-9]{24}$/.test(attempt.selectionTransitionId)) ||
     !INDEX_PATTERN.test(attempt.indexId) || !SHA256_PATTERN.test(attempt.queryDigest) ||
     !SHA256_PATTERN.test(attempt.resultSetHash) ||
     !Number.isSafeInteger(attempt.queryCharacterCount) || attempt.queryCharacterCount < 1 || attempt.queryCharacterCount > 500 ||
@@ -61,6 +69,10 @@ export function assertSearchAttempt(attempt: SearchAttempt): void {
     !Number.isSafeInteger(attempt.requestedLimit) || attempt.requestedLimit < 1 || attempt.requestedLimit > SEARCH_MAX_RESULTS ||
     !Array.isArray(attempt.hits) || attempt.hits.length > attempt.requestedLimit) {
     throw new SearchError("invalid_attempt", "검색 시도 계약이 유효하지 않습니다.");
+  }
+  assertSearchEngineIdentity(attempt.engine, "invalid_attempt");
+  if (!sameSearchEngine(attempt.engine, SEARCH_ENGINE) && attempt.selectionTransitionId === null) {
+    throw new SearchError("invalid_attempt", "후보 검색 엔진 시도에는 선택 전이 ID가 필요합니다.");
   }
   assertTimestamp(attempt.observedAt, "invalid_attempt");
   for (const [index, hit] of attempt.hits.entries()) {

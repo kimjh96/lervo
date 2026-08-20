@@ -19,6 +19,7 @@ export type SearchLocalErrorCode =
   | "engine_policy_not_found"
   | "engine_policy_read_failed"
   | "engine_policy_write_failed"
+  | "engine_selection_unavailable"
   | "evaluation_not_found"
   | "observation_conflict"
   | "observation_invalid"

@@ -32,6 +32,7 @@ function buildBatch(input: {
     .map((hit) => ({
       sourceAttemptId: input.attempt.attemptId,
       engine: input.attempt.engine,
+      selectionTransitionId: input.attempt.selectionTransitionId,
       indexId: input.attempt.indexId,
       resultSetHash: input.attempt.resultSetHash,
       sourceKind: "document" as const,

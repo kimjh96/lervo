@@ -246,7 +246,7 @@ Orchestrator는 준비가 성공하면 모든 검색 추천 `context.recommended
 
 | event | 이 슬라이스의 필수 payload |
 |---|---|
-| `context.recommended` | recommendation·batch·attempt·engine·index·result-set·document·content hash·rank·score·selection policy 좌표 |
+| `context.recommended` | recommendation·batch·attempt·engine·nullable selection transition·index·result-set·document·content hash·rank·score·selection policy 좌표 |
 | `context.selected` | `documentId`, `reasonCode`, `ruleId`, `required`, `scope` |
 | `document.loaded` | `evidenceReceiptId`, `documentId`, `contentHash`, `byteCount`, `scope`, `sourceRevision` |
 | `context.injected` | `receiptId`, `evidenceReceiptIds`, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration` |
@@ -674,7 +674,7 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 
 로컬 corpus는 최대 4,096개 문서, 문서당 128 KiB, 전체 16 MiB입니다. Query는 최대 500자·32개 term이고 결과는 최대 50개입니다. 등록 원본 하나라도 missing, unsafe, 동시 변경, invalid UTF-8, empty 또는 크기 초과이면 일부 문서만으로 검색하지 않습니다. 결과에는 source 좌표·hash, rank·score와 일치 field만 있고 본문은 없습니다. Search hit는 추천 후보이며 context `selected`, `loaded`, `injected`, `used`와 검증된 지식이 아닙니다.
 
-`SearchAttempt`는 project ID, 관측 시각·nonce, `lexical-v1`·index ID, raw query 대신 digest·문자 수·term 수, 요청 limit, result-set hash와 path 없는 bounded hit 좌표를 갖습니다. `SearchAssessment`는 같은 project와 attempt에 결속된 사람 또는 독립 verification의 명시적 판정입니다. `accepted`는 실제 반환된 source 종류·ID 좌표가 하나 이상 필요하고 `failed`는 `no_results`, `expected_source_missing`, `low_rank`, `results_not_relevant`, `insufficient_context` 중 하나를 필수로 가집니다. 실제 결과가 있으면 `no_results`를 쓸 수 없습니다. 선택·기대 원본은 종류와 ID를 함께 저장해 서로 다른 원본 종류의 같은 ID를 혼동하지 않습니다. 결과 수, 클릭이나 모델 자체 판단으로 assessment를 만들지 않습니다.
+`SearchAttempt`는 project ID, 관측 시각·nonce, 실제 engine·index ID, nullable 선택 전이 ID, raw query 대신 digest·문자 수·term 수, 요청 limit, result-set hash와 path 없는 bounded hit 좌표를 갖습니다. 후보 engine attempt에는 선택 전이 ID가 필수이며, 전이가 없는 기본 baseline은 null이고 rollback으로 선택된 baseline은 해당 전이 ID를 가집니다. 이 ID는 어떤 선택에서 응답이 나왔는지를 증명할 뿐 모델이 결과를 이해하거나 사용했다는 뜻이 아닙니다. `SearchAssessment`는 같은 project와 attempt에 결속된 사람 또는 독립 verification의 명시적 판정입니다. `accepted`는 실제 반환된 source 종류·ID 좌표가 하나 이상 필요하고 `failed`는 `no_results`, `expected_source_missing`, `low_rank`, `results_not_relevant`, `insufficient_context` 중 하나를 필수로 가집니다. 실제 결과가 있으면 `no_results`를 쓸 수 없습니다. 선택·기대 원본은 종류와 ID를 함께 저장해 서로 다른 원본 종류의 같은 ID를 혼동하지 않습니다. 결과 수, 클릭이나 모델 자체 판단으로 assessment를 만들지 않습니다.
 
 Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lervo/state/search/assessments/<attemptId>.json`의 독립된 mode `0600` 원본입니다. 같은 ID를 덮어쓰거나 한 파일에 append하지 않습니다. Report는 최대 10,000개 원본의 ID·hash·project·시간·결과 관계를 모두 다시 확인하고 전체·평가·미평가·수락·실패 및 사유별 수만 반환합니다. 상태는 `insufficient_assessment`, `no_failures_observed`, `failures_observed`이고 임베딩 판단은 항상 `not_determined`입니다. 새 실행 event와 Hub sync는 추가하지 않습니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)에 기록합니다.
 
@@ -686,7 +686,7 @@ Context preparation은 최대 8개 batch·전체 50개 추천을 별도 입력�
 
 Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫자 단어 최대 32개·500자로 투영해 등록 문서를 검색하고 attempt를 mode `0600` 로컬 원본에 기록합니다. 검색 가능한 작업 단어가 없을 때만 예상 경로를 보조 질의로 사용합니다. Attempt query digest와 크기는 전체 작업 원문이 아니라 이 bounded 투영을 뜻합니다. 결과가 없으면 빈 attempt를 남긴 채 기존 지침·path·role 선택으로 계속합니다. 실행 결과에는 assessment에 쓸 attempt ID, 추천·선택 수와 선택된 document ID를 표시합니다. 자동 선택, E2/E3, provider 실행과 검증 성공은 검색 품질의 `accepted` assessment가 아니며 기존 명시적 `lervo search assess`만 품질 집계에 들어갑니다.
 
-새 `context.recommended` event의 필수 payload는 recommendation·batch·source attempt ID, engine ID/version, index ID, result-set hash, document ID·source content hash, rank·score, selection policy ID/version·maximum입니다. Raw query와 digest, document path·title·label·본문, prompt, provider 응답과 credential은 허용하지 않습니다. Search attempt 파일은 Hub sync 대상이 아니지만 `context.recommended`는 managed run의 append-only 실행 원본이므로 Hub가 활성화된 프로젝트에서 다른 allowlist event와 같은 sync 경계를 따릅니다. 이 event는 `context.selected`, `document.loaded`, `context.injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)에 기록합니다.
+새 `context.recommended` event의 필수 payload는 recommendation·batch·source attempt ID, engine ID/version, nullable 선택 전이 ID, index ID, result-set hash, document ID·source content hash, rank·score, selection policy ID/version·maximum입니다. Raw query와 digest, document path·title·label·본문, prompt, provider 응답과 credential은 허용하지 않습니다. Search attempt 파일은 Hub sync 대상이 아니지만 `context.recommended`는 managed run의 append-only 실행 원본이므로 Hub가 활성화된 프로젝트에서 다른 allowlist event와 같은 sync 경계를 따릅니다. 이 event는 `context.selected`, `document.loaded`, `context.injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)와 [ADR-0061](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)에 기록합니다.
 
 ## 검토된 검색 평가 케이스와 반복 측정
 
@@ -710,7 +710,7 @@ Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫�
 
 ## 공급자 중립 검색 후보 비교
 
-`SearchEvaluationEnginePort`는 64자 이하의 안정된 engine ID, 양의 정수 version과 `buildIndex(sources)`를 제공합니다. 만들어진 index는 같은 engine 좌표와 content-bound `sidx_` ID를 가지며 `search(query, 50)` 응답도 그 좌표를 유지해야 합니다. 공통 실행기는 1~256개 케이스에 같은 평가 시각과 50위 조건을 적용하고 응답의 query digest·크기, index·engine과 결과 hash를 케이스별로 다시 확인합니다. 운영 attempt와 managed context 추천은 계속 현재 `lexical-v1`만 허용하며 이 일반화로 후보 결과를 운영 검색처럼 위장하지 않습니다.
+`SearchEnginePort`는 64자 이하의 안정된 engine ID, 양의 정수 version과 `buildIndex(sources)`를 제공하고 평가와 운영 조합이 같은 공급자 중립 계약을 사용합니다. 만들어진 index는 같은 engine 좌표와 content-bound `sidx_` ID를 가지며 `search(query, 50)` 응답도 그 좌표를 유지해야 합니다. 공통 평가 실행기는 1~256개 케이스에 같은 평가 시각과 50위 조건을 적용하고 응답의 query digest·크기, index·engine과 결과 hash를 케이스별로 다시 확인합니다. 후보 결과는 정책에 결속된 선택 전이 없이 운영 attempt로 만들 수 없습니다.
 
 로컬 비교 조합은 먼저 케이스·묶음·coverage를 읽습니다. `comparisonReadiness`가 `ready`가 아니면 corpus를 읽거나 후보 `buildIndex`를 호출하지 않고 `evaluation_comparison_not_ready`로 종료합니다. 준비된 경우 등록 Markdown corpus를 한 번 읽어 현재 `lexical-v1`과 후보 port에 같은 source 입력을 공급합니다. 후보에게 같은 입력을 제공했다는 port 호출은 증명하지만 후보 내부에서 실제로 어떻게 사용했는지는 추정하지 않습니다. Candidate가 baseline과 같은 engine 좌표를 쓰거나 index·응답 계약을 어기거나 실행에 실패하면 `evaluation_candidate_failed`이며 비교 원본을 만들지 않습니다.
 
@@ -728,7 +728,7 @@ Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫�
 
 `SearchEvaluationEngineRegistry`는 최대 16개의 명시적 `{candidateId, engine}`만 받고 후보 ID, engine ID·version 중복과 현재 `lexical-v1` 등록을 거부합니다. 현재 CLI 조합은 `bm25f-v1` 하나만 코드 allowlist에 둡니다. `lervo search candidates`는 이 공개 좌표만 반환하고 `lervo search compare <bundleId> --candidate bm25f-v1`가 기존 준비 gate와 로컬 비교 조합을 실행합니다. 등록되지 않은 값은 project 원본을 읽기 전에 `evaluation_candidate_not_registered`로 거부하며 경로·package·URL을 해석하거나 동적 코드를 로드하지 않습니다.
 
-CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 query 원문을 추가하지 않습니다. Text 출력도 case별 query·문서 path·score를 표시하지 않습니다. 비교 완료는 종료 코드 0이지만 `candidate_better_observed`도 채택 성공이 아닙니다. 운영 attempt·managed context는 계속 `lexical-v1`이고 `candidateDecision=not_determined`, `embeddingDecision=not_determined`를 유지합니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 기록합니다.
+CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 query 원문을 추가하지 않습니다. Text 출력도 case별 query·문서 path·score를 표시하지 않습니다. 비교 완료는 종료 코드 0이지만 `candidate_better_observed`도 채택 성공이 아닙니다. 이 비교 단계만으로 운영 attempt·managed context를 바꾸지 않으며 `candidateDecision=not_determined`, `embeddingDecision=not_determined`를 유지합니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0058](./docs/adr/0058-deterministic-bm25f-search-candidate.md)에 기록합니다.
 
 ## 재현 검증을 거치는 검색 후보 검토
 
@@ -740,7 +740,7 @@ CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 
 
 `SearchCandidateReview`는 comparison·bundle·coverage·corpus, candidate ID·engine·원본 run과 replay run, reviewer·시각·결정, 전체 case와 승·패·동률, 확인 상태를 content-bound ID로 묶습니다. 결과는 `.lervo/state/search/evaluation-reviews/<reviewId>.json`에 mode `0600` 항목별 immutable 파일로 저장합니다. 같은 비교의 후속 검토도 기존 파일에 덧붙이거나 덮어쓰지 않습니다. Reviewer ID는 이 로컬 원본에만 두며 query·문서 본문·path·prompt·provider 응답·credential은 넣지 않습니다.
 
-`eligible_for_activation_review`는 다음 운영 활성화 검토에 올릴 수 있다는 뜻일 뿐 활성화가 아닙니다. 모든 검토는 `activationState=not_applied`, `embeddingDecision=not_determined`를 유지하며 운영 attempt·managed context는 계속 `lexical-v1`을 사용합니다. 새 event와 Hub sync는 없습니다. `evaluation_comparison_not_found`는 안전하게 읽을 지정 비교가 없다는 뜻이고, `invalid_candidate_review`는 검토 좌표·합계·재현 실행·content ID가 다르다는 뜻입니다. `candidate_review_not_eligible`은 후보 승리가 없거나 baseline 회귀가 있어 채택 검토 조건을 충족하지 못했다는 뜻입니다. 후보 등록·실행 실패는 기존 `evaluation_candidate_not_registered`, `evaluation_candidate_failed` 의미를 따릅니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록합니다.
+`eligible_for_activation_review`는 다음 운영 활성화 검토에 올릴 수 있다는 뜻일 뿐 활성화가 아닙니다. 모든 검토는 `activationState=not_applied`, `embeddingDecision=not_determined`를 유지하며 검토만으로 운영 attempt·managed context를 바꾸지 않습니다. 새 event와 Hub sync는 없습니다. `evaluation_comparison_not_found`는 안전하게 읽을 지정 비교가 없다는 뜻이고, `invalid_candidate_review`는 검토 좌표·합계·재현 실행·content ID가 다르다는 뜻입니다. `candidate_review_not_eligible`은 후보 승리가 없거나 baseline 회귀가 있어 채택 검토 조건을 충족하지 못했다는 뜻입니다. 후보 등록·실행 실패는 기존 `evaluation_candidate_not_registered`, `evaluation_candidate_failed` 의미를 따릅니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록합니다.
 
 ## 정책에 결속된 검색 엔진 선택과 rollback
 
@@ -752,9 +752,19 @@ CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 
 
 `lervo search engine rollback`은 현재 전이의 `previousSelection`으로 돌아가는 새 전이를 만듭니다. 대상이 이전 후보면 그 후보의 review·comparison과 현재 corpus를 다시 확인하고 replay도 다시 맞춰야 합니다. 대상이 baseline이면 후보 원본을 요구하지 않습니다. 정책이 허용하지 않는 operator나 후보로는 rollback하지 않습니다. 기존 정책·검토·비교·전이 파일을 수정하거나 삭제하지 않습니다.
 
-`engine activate`라는 명령 이름은 선택 전이를 기록한다는 뜻이며 실제 검색 적용 완료를 뜻하지 않습니다. 이번 단계의 모든 전이와 `engine status`는 `applicationState=not_connected`, `embeddingDecision=not_determined`입니다. 일반 `lervo search`, evaluation baseline, managed context recommendation은 계속 `lexical-v1`을 직접 사용합니다. Query·문서 본문·path·prompt·provider 응답·credential은 정책과 전이에 넣지 않습니다. Operator ID는 gitignore 대상 로컬 전이에만 있고 새 event와 Hub sync는 없습니다.
+`engine activate`라는 명령 이름은 선택 전이를 기록한다는 뜻이며 검색이 실제 실행됐다는 뜻이 아닙니다. 모든 전이는 `recordState=selection_recorded`, `embeddingDecision=not_determined`만 보존합니다. Query·문서 본문·path·prompt·provider 응답·credential은 정책과 전이에 넣지 않습니다. Operator ID는 gitignore 대상 로컬 전이에만 있고 새 event와 Hub sync는 없습니다.
 
 `invalid_engine_activation_policy`는 정책 ID·허용 목록·작성자·시각·한도가 유효하지 않다는 뜻입니다. `engine_policy_not_found`, `engine_policy_invalid`, `engine_policy_read_failed`, `engine_policy_write_failed`는 각각 정책 부재, 파일 계약 위반, 안전한 읽기 실패, immutable 게시 실패입니다. `candidate_review_not_found`는 지정한 검토 원본이 없다는 뜻입니다. `engine_activation_not_eligible`은 reviewer·operator·candidate·표본 기준·재현 또는 현재 선택이 정책과 맞지 않는다는 뜻이고 `invalid_engine_activation`은 전이·rollback·chain 좌표가 잘못됐다는 뜻입니다. `engine_activation_conflict`는 같은 이전 head에서 다른 전이가 먼저 게시됐다는 뜻이며 새 head를 읽어 다시 검토해야 합니다. `engine_activation_not_found`는 rollback할 현재 선택이 없다는 뜻입니다. 결정은 [ADR-0060](./docs/adr/0060-policy-bound-search-engine-selection.md)에 기록합니다.
+
+## 검증된 운영 검색 엔진 resolver
+
+일반 `lervo search`, managed context 준비와 `engine status`는 `@lervo/search-local`의 같은 resolver를 사용합니다. 선택 전이가 없으면 현재 등록 corpus로 `lexical-v1` index를 만듭니다. 전이가 있으면 최대 256개 chain을 순서대로 읽고 각 전이를 저장된 정책·review·comparison으로 다시 생성해 ID를 확인합니다. 현재 선택이 후보면 정적 registry의 engine으로 현재 corpus와 review replay를 다시 검증하고 비교에 기록된 candidate index ID와 같은 index만 사용합니다. 후보가 등록되지 않았거나 정책·원본·현재 corpus·replay·index 중 하나라도 다르면 baseline으로 낮추지 않습니다.
+
+현재 선택이 baseline인 rollback 전이는 과거 후보의 현재 replay를 요구하지 않습니다. 따라서 후보 adapter나 현재 corpus가 달라져 후보를 쓸 수 없어도 명시적 rollback 뒤에는 현재 corpus의 baseline으로 복구할 수 있습니다. Evaluation 실행과 candidate comparison의 baseline은 운영 선택을 읽지 않고 계속 `lexical-v1`을 사용합니다.
+
+Resolver가 반환한 engine·index 응답은 공통 `SearchResponse` 계약으로 다시 검증합니다. 일반 검색과 managed context attempt는 실제 engine과 선택 전이 ID를 기록하고 recommendation과 `context.recommended`가 같은 nullable ID를 이어받습니다. 전이가 없는 baseline은 null, rollback으로 선택된 baseline은 rollback 전이 ID입니다. `engine status`의 `resolverState=ready`는 선택 chain과 현재 index를 검증했다는 뜻일 뿐 검색이 실행되거나 결과가 `selected`, `loaded`, `injected`, `used`됐다는 뜻이 아닙니다.
+
+`engine_selection_unavailable`은 전이가 있는 선택의 정책·chain·review·comparison·registry·현재 corpus·replay·index·응답을 안전하게 검증하거나 실행하지 못했다는 뜻입니다. 일반 검색은 attempt를 만들지 않고 managed context는 recommendation·context event와 provider 시작 전에 중단합니다. 전이가 없는 baseline의 corpus 읽기 오류는 기존 `corpus_read_failed`를 유지합니다. 오류와 attempt·recommendation·event에는 raw query, 문서 path·본문, prompt, provider 응답과 credential을 추가하지 않습니다. 결정은 [ADR-0061](./docs/adr/0061-fail-closed-operational-search-engine-resolution.md)에 기록합니다.
 
 ## 지식 승격 규칙
 
@@ -984,6 +994,7 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `invalid_attempt` / `invalid_assessment` / `observation_conflict` | 검색 관측의 ID·hash·project·시간·결과 관계가 다르거나 한 attempt에 서로 다른 평가가 있습니다. 기존 원본을 유지하고 일부 평가만 집계하지 않습니다. |
 | `observation_invalid` / `observation_read_failed` / `observation_write_failed` / `observation_limit_exceeded` | 검색 관측 경로·파일·저장 또는 bounded 전체 조회를 신뢰할 수 없습니다. 검색·평가 기록이나 품질 report 완료를 주장하지 않습니다. |
 | `invalid_recommendation` / `invalid_search_recommendation` | 추천 묶음의 attempt·ID·순위·정책·선택 또는 현재 project·registry 관계가 다릅니다. Context plan과 추천 event를 만들지 않습니다. |
+| `engine_selection_unavailable` | 선택 chain·정책·검토·비교·registry·현재 corpus·replay·index 또는 응답을 안전하게 소비하지 못했습니다. Baseline으로 낮추거나 attempt·추천을 만들지 않습니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |
 | `capability_denied` | Role 또는 프로젝트 정책이 요청한 capability를 거부했습니다. 실행은 읽기 전용으로 계속할 수 있지만 해당 변경은 재시도하지 않습니다. |
