@@ -475,6 +475,21 @@ Hub command/approval 대화 UX 완료 조건:
 - 모든 검토가 `activationState=not_applied`, `embeddingDecision=not_determined`를 유지하며 운영 engine을 바꾸지 않음
 - 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
 
+정책에 결속된 검색 엔진 선택·rollback 첫 슬라이스 완료 조건:
+
+- Project, 허용 reviewer·operator·candidate, 최소 후보 승리와 baseline 무회귀를 content-bound 정책에 고정함
+- 정책을 한 파일에 누적하지 않고 `.lervo/search-engine-policies`의 정책별 YAML로 보존함
+- 정책 작성 CLI가 정적 allowlist 후보만 허용하고 path·module·URL·동적 코드를 해석하지 않음
+- 활성화 직전에 현재 bundle·coverage·case·corpus, comparison·run·result와 candidate replay를 다시 확인함
+- 채택 review와 정책상 허용 reviewer·operator·candidate·표본 기준이 모두 맞아야 선택 전이를 만듦
+- 선택 전이가 이전 activation, 이전·새 engine, review·comparison, policy·operator와 rollback 대상을 content-bound ID로 고정함
+- 이전 activation을 파일 열쇠로 써 같은 head에서 서로 다른 두 전이가 갈라지지 않게 함
+- Rollback을 기존 전이 수정이 아닌 이전 선택으로 돌아가는 새 immutable 전이로 기록함
+- 이전 후보로 rollback할 때 해당 review·comparison·현재 corpus와 후보 replay를 다시 확인함
+- 정책과 전이에 query·문서 path·본문·prompt·provider 응답·credential을 넣지 않음
+- 모든 선택이 `applicationState=not_connected`, `embeddingDecision=not_determined`를 유지하고 운영 검색을 바꾸지 않음
+- 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -511,4 +526,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 재현 검증을 거치는 검색 후보 검토 첫 슬라이스를 완료했습니다. 지정 comparison과 현재 bundle·coverage·case·corpus, 두 run·result를 다시 확인하고 등록 후보를 같은 시각과 입력으로 재실행해 run ID가 일치할 때만 채택·기각·표본 추가 필요 검토를 별도 immutable 원본으로 남깁니다. 채택 검토는 후보 승리가 있고 baseline 회귀가 없는 경우만 다음 활성화 검토 대상으로 표시하며 운영 검색과 임베딩 판단은 바꾸지 않습니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록했습니다.
 
-다음 구현 작업은 검토 원본과 운영 검색 사이의 **정책 결속 활성화·롤백 계약**입니다. 허용 reviewer, 현재 project 설정, 승인할 정확한 candidate engine과 비교·검토 좌표를 다시 확인한 뒤에만 운영 선택 원본을 만들고, 이전 engine으로 되돌릴 좌표를 함께 고정합니다. 실제 managed context가 그 선택 원본을 소비하는 연결은 활성화 계약과 검증 fixture를 먼저 갖춘 뒤 진행합니다.
+정책에 결속된 검색 엔진 선택·rollback 첫 슬라이스를 완료했습니다. Project별 정책이 허용 reviewer·operator·candidate와 최소 개선 기준을 고정하고, 활성화 직전에 비교 전체와 후보 replay를 다시 확인합니다. 선택과 rollback은 이전 head를 열쇠로 한 별도 immutable 전이 chain에 남아 동시 분기와 덮어쓰기를 막습니다. 상태는 `not_connected`이며 실제 검색은 계속 `lexical-v1`입니다. 결정은 [ADR-0060](./docs/adr/0060-policy-bound-search-engine-selection.md)에 기록했습니다.
+
+다음 구현 작업은 이 선택 원본을 실제 검색에 적용하는 **검증된 engine resolver와 fail-closed 소비 경계**입니다. 일반 검색과 managed context가 같은 resolver를 사용하되, 정책·전이 chain·등록 engine·현재 corpus를 읽지 못하거나 선택 후보를 만들지 못하면 조용히 baseline으로 가장하지 않고 명시적으로 실패해야 합니다. Evaluation baseline은 비교 기준을 유지하기 위해 계속 `lexical-v1`에 고정합니다.

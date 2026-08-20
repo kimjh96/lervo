@@ -17,6 +17,7 @@
 - `.lervo/documents/`: document ID별 sidecar manifest를 둘 빈 디렉터리
 - `.lervo/verifications/`: suite ID별 project 검증 명령을 둘 빈 디렉터리
 - `.lervo/search-evaluations/`: 검토한 검색 query와 기대 원본을 케이스별로 둘 빈 디렉터리
+- `.lervo/search-engine-policies/`: 검색 엔진 활성화 정책을 정책별로 둘 빈 디렉터리
 - `.lervo/.gitignore`: `state/` 제외 규칙
 - `.lervo/generated/`, `.lervo/state/`, `.lervo/knowledge/`: 이후 단계가 사용할 로컬 디렉터리
 
@@ -740,6 +741,20 @@ CLI JSON은 comparison과 두 run만 반환하고 result의 query digest 외에 
 `SearchCandidateReview`는 comparison·bundle·coverage·corpus, candidate ID·engine·원본 run과 replay run, reviewer·시각·결정, 전체 case와 승·패·동률, 확인 상태를 content-bound ID로 묶습니다. 결과는 `.lervo/state/search/evaluation-reviews/<reviewId>.json`에 mode `0600` 항목별 immutable 파일로 저장합니다. 같은 비교의 후속 검토도 기존 파일에 덧붙이거나 덮어쓰지 않습니다. Reviewer ID는 이 로컬 원본에만 두며 query·문서 본문·path·prompt·provider 응답·credential은 넣지 않습니다.
 
 `eligible_for_activation_review`는 다음 운영 활성화 검토에 올릴 수 있다는 뜻일 뿐 활성화가 아닙니다. 모든 검토는 `activationState=not_applied`, `embeddingDecision=not_determined`를 유지하며 운영 attempt·managed context는 계속 `lexical-v1`을 사용합니다. 새 event와 Hub sync는 없습니다. `evaluation_comparison_not_found`는 안전하게 읽을 지정 비교가 없다는 뜻이고, `invalid_candidate_review`는 검토 좌표·합계·재현 실행·content ID가 다르다는 뜻입니다. `candidate_review_not_eligible`은 후보 승리가 없거나 baseline 회귀가 있어 채택 검토 조건을 충족하지 못했다는 뜻입니다. 후보 등록·실행 실패는 기존 `evaluation_candidate_not_registered`, `evaluation_candidate_failed` 의미를 따릅니다. 결정은 [ADR-0059](./docs/adr/0059-replayed-search-candidate-review.md)에 기록합니다.
+
+## 정책에 결속된 검색 엔진 선택과 rollback
+
+`lervo search engine policy create`는 project, 허용 reviewer·operator·candidate, 최소 후보 승리 1~64개와 baseline 승리 허용값 0을 content-bound 정책으로 만듭니다. 작성자는 허용 operator에 포함되어야 합니다. 후보는 CLI 정적 allowlist에 등록된 ID만 받을 수 있습니다. 정책은 `.lervo/search-engine-policies/<policyId>.yaml`에 mode `0600` 파일로 하나씩 저장하며 최대 32개입니다. 이 디렉터리는 project 설정 원본이므로 Git 검토 대상입니다. Reviewer·operator ID도 파일에 남으므로 credential이나 개인 비밀값을 ID로 쓰지 않고 저장소 공개 범위에 맞는 식별자를 사용해야 합니다.
+
+`lervo search engine activate <reviewId> --policy <policyId> --operator <operatorId>`는 정책과 검토 원본만 보고 선택을 만들지 않습니다. 현재 bundle·coverage·case·corpus, comparison의 두 run·result를 다시 확인하고 정적 registry의 후보를 비교 당시 시각·입력으로 재실행합니다. 같은 review ID가 다시 만들어져야 하며, review가 `adopt_candidate`, 허용 reviewer·candidate, 최소 후보 승리와 baseline 무회귀를 모두 만족해야 합니다. Operator도 정책 allowlist에 있어야 합니다.
+
+`SearchEngineActivation`은 연속 sequence, 이전 activation, 이전·새 선택, policy·operator·시각과 rollback 좌표를 content-bound ID로 묶습니다. 후보 선택은 review·comparison 좌표를 포함하고 baseline 선택에는 이 좌표를 넣지 않습니다. 첫 전이는 `.lervo/state/search/engine-selections/baseline.json`, 다음 전이는 `<previousActivationId>.json`에 게시합니다. 파일명이 이전 head를 열쇠로 사용하므로 같은 head에서 동시에 다른 전이를 게시하면 하나만 성공합니다. 최대 256개 전이를 읽어 단일 chain인지 모두 확인하며 한 파일에 이력을 누적하지 않습니다.
+
+`lervo search engine rollback`은 현재 전이의 `previousSelection`으로 돌아가는 새 전이를 만듭니다. 대상이 이전 후보면 그 후보의 review·comparison과 현재 corpus를 다시 확인하고 replay도 다시 맞춰야 합니다. 대상이 baseline이면 후보 원본을 요구하지 않습니다. 정책이 허용하지 않는 operator나 후보로는 rollback하지 않습니다. 기존 정책·검토·비교·전이 파일을 수정하거나 삭제하지 않습니다.
+
+`engine activate`라는 명령 이름은 선택 전이를 기록한다는 뜻이며 실제 검색 적용 완료를 뜻하지 않습니다. 이번 단계의 모든 전이와 `engine status`는 `applicationState=not_connected`, `embeddingDecision=not_determined`입니다. 일반 `lervo search`, evaluation baseline, managed context recommendation은 계속 `lexical-v1`을 직접 사용합니다. Query·문서 본문·path·prompt·provider 응답·credential은 정책과 전이에 넣지 않습니다. Operator ID는 gitignore 대상 로컬 전이에만 있고 새 event와 Hub sync는 없습니다.
+
+`invalid_engine_activation_policy`는 정책 ID·허용 목록·작성자·시각·한도가 유효하지 않다는 뜻입니다. `engine_policy_not_found`, `engine_policy_invalid`, `engine_policy_read_failed`, `engine_policy_write_failed`는 각각 정책 부재, 파일 계약 위반, 안전한 읽기 실패, immutable 게시 실패입니다. `candidate_review_not_found`는 지정한 검토 원본이 없다는 뜻입니다. `engine_activation_not_eligible`은 reviewer·operator·candidate·표본 기준·재현 또는 현재 선택이 정책과 맞지 않는다는 뜻이고 `invalid_engine_activation`은 전이·rollback·chain 좌표가 잘못됐다는 뜻입니다. `engine_activation_conflict`는 같은 이전 head에서 다른 전이가 먼저 게시됐다는 뜻이며 새 head를 읽어 다시 검토해야 합니다. `engine_activation_not_found`는 rollback할 현재 선택이 없다는 뜻입니다. 결정은 [ADR-0060](./docs/adr/0060-policy-bound-search-engine-selection.md)에 기록합니다.
 
 ## 지식 승격 규칙
 

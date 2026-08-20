@@ -6,12 +6,19 @@ import { loadProjectManifest } from "@lervo/project";
 import {
   canonicalHash,
   contentId,
+  createSearchEngineActivationPolicy,
   LexicalSearchIndex,
+  SearchEvaluationEngineRegistry,
   type SearchEngineIdentity,
   type SearchEvaluationEnginePort,
   type SearchHit,
 } from "@lervo/search";
-import { reviewLocalSearchCandidate, runLocalSearchEvaluationComparison } from "@lervo/search-local";
+import {
+  activateLocalSearchCandidate,
+  recordSearchEngineActivationPolicy,
+  reviewLocalSearchCandidate,
+  runLocalSearchEvaluationComparison,
+} from "@lervo/search-local";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -165,7 +172,8 @@ describe("local search evaluation candidate comparison", () => {
       "--decision", "more-samples", "--reviewer", "reviewer_search", "--json",
     ]);
     expect(reviewed.code, reviewed.error).toBe(0);
-    expect(JSON.parse(reviewed.output)).toMatchObject({
+    const reviewOutput = JSON.parse(reviewed.output) as { reviewId: string };
+    expect(reviewOutput).toMatchObject({
       comparisonId: comparisonOutput.comparison.comparisonId,
       candidateId: "bm25f-v1",
       decision: "more_samples_required",
@@ -176,6 +184,38 @@ describe("local search evaluation candidate comparison", () => {
     });
     expect(reviewed.output).not.toContain("검색 맥락");
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toHaveLength(1);
+
+    const policyCreated = await command(root, [
+      "search", "engine", "policy", "create",
+      "--reviewer", "reviewer_search", "--operator", "operator_search",
+      "--author", "operator_search", "--candidate", "bm25f-v1", "--json",
+    ]);
+    expect(policyCreated.code, policyCreated.error).toBe(0);
+    const policyId = (JSON.parse(policyCreated.output) as { policyId: string }).policyId;
+    expect(await readdir(resolve(root, ".lervo/search-engine-policies"))).toEqual([`${policyId}.yaml`]);
+
+    const ineligibleActivation = await command(root, [
+      "search", "engine", "activate", reviewOutput.reviewId,
+      "--policy", policyId, "--operator", "operator_search",
+    ]);
+    expect(ineligibleActivation.code).toBe(1);
+    expect(ineligibleActivation.error).toContain("engine_activation_not_eligible");
+    expect(await observationEntries(root)).not.toContain("engine-selections");
+
+    const status = await command(root, ["search", "engine", "status", "--json"]);
+    expect(status.code, status.error).toBe(0);
+    expect(JSON.parse(status.output)).toEqual({
+      selection: {
+        mode: "baseline",
+        candidateId: null,
+        engine: { id: "lexical", version: 1 },
+        reviewId: null,
+        comparisonId: null,
+      },
+      selectionTransitionId: null,
+      transitions: 0,
+      applicationState: "not_connected",
+    });
 
     const unsupportedAdoption = await command(root, [
       "search", "review", comparisonOutput.comparison.comparisonId,
@@ -306,6 +346,91 @@ describe("local search evaluation candidate comparison", () => {
     });
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews")))
       .toEqual([`${review.reviewId}.json`]);
+  });
+
+  it("records a verified candidate selection and rolls it back without changing the live search", async () => {
+    const root = await repository();
+    const cases = [await reviewedCase(root, "검색 맥락")];
+    await bundle(root, "researcher.activation", 1, cases);
+    const comparedDocument = "# 다른 문서\n\n평가 질의와 무관한 현재 내용입니다.\n";
+    await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
+    const project = await loadProjectManifest(root);
+    const engine = recoveringCandidateEngine("검색 맥락", "doc_cli_search_context");
+    const registry = new SearchEvaluationEngineRegistry([{ candidateId: "fixture-v1", engine }]);
+    const compared = await runLocalSearchEvaluationComparison({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      bundleId: "researcher.activation",
+      candidateEngine: engine,
+      evaluatedAt: new Date("2026-08-20T08:00:00.000Z"),
+    });
+    const review = await reviewLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      comparisonId: compared.comparison.comparisonId,
+      registration: { candidateId: "fixture-v1", engine },
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T09:00:00.000Z"),
+      decision: "adopt_candidate",
+    });
+    const policy = createSearchEngineActivationPolicy({
+      projectId: project.projectId,
+      allowedReviewerIds: ["reviewer_search"],
+      allowedOperatorIds: ["operator_search"],
+      allowedCandidateIds: ["fixture-v1"],
+      minimumCandidateWins: 1,
+      authoredBy: "operator_search",
+      createdAt: new Date("2026-08-20T09:30:00.000Z"),
+    });
+    await recordSearchEngineActivationPolicy(root, policy);
+    await writeFile(resolve(root, "docs/search-context.md"), "# 검토 뒤 변경\n\n현재 corpus가 달라졌습니다.\n");
+    await expect(activateLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      reviewId: review.reviewId,
+      policyId: policy.policyId,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T09:59:00.000Z"),
+      registry,
+    })).rejects.toMatchObject({ code: "invalid_evaluation_comparison" });
+    expect(await observationEntries(root)).not.toContain("engine-selections");
+    await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
+    const activation = await activateLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      reviewId: review.reviewId,
+      policyId: policy.policyId,
+      operatorId: "operator_search",
+      decidedAt: new Date("2026-08-20T10:00:00.000Z"),
+      registry,
+    });
+
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
+    const selected = await command(root, ["search", "engine", "status", "--json"]);
+    expect(JSON.parse(selected.output)).toMatchObject({
+      selection: { mode: "candidate", candidateId: "fixture-v1" },
+      selectionTransitionId: activation.activationId,
+      transitions: 1,
+      applicationState: "not_connected",
+    });
+
+    const rolledBack = await command(root, [
+      "search", "engine", "rollback", "--policy", policy.policyId,
+      "--operator", "operator_search", "--json",
+    ]);
+    expect(rolledBack.code, rolledBack.error).toBe(0);
+    expect(JSON.parse(rolledBack.output)).toMatchObject({
+      action: "rollback",
+      previousActivationId: activation.activationId,
+      selected: { mode: "baseline", engine: { id: "lexical", version: 1 } },
+      applicationState: "not_connected",
+    });
+    expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))).sort())
+      .toEqual([`${activation.activationId}.json`, "baseline.json"].sort());
+
+    const searched = await command(root, ["search", "검색 맥락", "--json"]);
+    expect(searched.code, searched.error).toBe(0);
+    expect(JSON.parse(searched.output)).toMatchObject({ engine: { id: "lexical", version: 1 } });
   });
 
   it("does not publish a review when the current corpus no longer matches the comparison", async () => {

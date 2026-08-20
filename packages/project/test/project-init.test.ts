@@ -50,6 +50,7 @@ describe("Lervo project initialization", () => {
     const result = await applyInitPlan(plan);
     expect(result.created).toContain(".lervo/project.yaml");
     expect(result.created).toContain(".lervo/verifications");
+    expect(result.created).toContain(".lervo/search-engine-policies");
     expect(await loadProjectManifest(root)).toEqual(plan.projectManifest);
 
     const secondPlan = await createInitPlan({ root });

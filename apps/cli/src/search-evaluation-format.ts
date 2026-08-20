@@ -5,6 +5,9 @@ import type {
   SearchEvaluationCoverage,
   SearchEvaluationRun,
   SearchCandidateReview,
+  SearchEngineActivation,
+  SearchEngineActivationPolicy,
+  SearchEngineSelection,
 } from "@lervo/search";
 
 export function formatSearchEvaluationCase(evaluationCase: SearchEvaluationCase): string {
@@ -78,5 +81,40 @@ export function formatSearchCandidateReview(review: SearchCandidateReview): stri
     `  다음 검토 상태: ${review.promotionReadiness}`,
     "  실제 엔진 활성화: 적용하지 않음",
     "  임베딩 도입 판단: 아직 결정하지 않음",
+  ].join("\n") + "\n";
+}
+
+export function formatSearchEngineActivationPolicy(policy: SearchEngineActivationPolicy): string {
+  return [
+    `검색 엔진 활성화 정책: ${policy.policyId}`,
+    `  reviewer ${policy.allowedReviewerIds.length}명 · operator ${policy.allowedOperatorIds.length}명`,
+    `  허용 후보: ${policy.allowedCandidateIds.join(", ")}`,
+    `  최소 후보 승 ${policy.minimumCandidateWins} · 허용 baseline 승 0`,
+    `  파일: .lervo/search-engine-policies/${policy.policyId}.yaml`,
+  ].join("\n") + "\n";
+}
+
+export function formatSearchEngineActivation(activation: SearchEngineActivation): string {
+  return [
+    `검색 엔진 선택 전이: ${activation.activationId}`,
+    `  순서 ${activation.sequence} · ${activation.action === "activate_candidate" ? "후보 선택" : "이전 선택으로 rollback"}`,
+    `  ${activation.previousSelection.engine.id}-v${activation.previousSelection.engine.version}` +
+      ` → ${activation.selected.engine.id}-v${activation.selected.engine.version}`,
+    `  정책 ${activation.policyId} · operator ${activation.operatorId}`,
+    "  실제 검색 연결: 아직 적용하지 않음",
+    "  임베딩 도입 판단: 아직 결정하지 않음",
+  ].join("\n") + "\n";
+}
+
+export function formatSearchEngineStatus(status: {
+  selection: SearchEngineSelection;
+  selectionTransitionId: string | null;
+  transitions: number;
+  applicationState: "not_connected";
+}): string {
+  return [
+    `검색 엔진 선택 원본: ${status.selection.engine.id}-v${status.selection.engine.version}`,
+    `  선택 전이: ${status.selectionTransitionId ?? "없음"} · 전체 ${status.transitions}개`,
+    "  실제 검색 연결: 아직 적용하지 않음",
   ].join("\n") + "\n";
 }

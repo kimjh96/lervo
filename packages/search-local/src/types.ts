@@ -1,4 +1,5 @@
 export type SearchLocalErrorCode =
+  | "candidate_review_not_found"
   | "corpus_limit_exceeded"
   | "corpus_read_failed"
   | "evaluation_case_invalid"
@@ -12,6 +13,12 @@ export type SearchLocalErrorCode =
   | "evaluation_candidate_failed"
   | "evaluation_comparison_not_ready"
   | "evaluation_comparison_not_found"
+  | "engine_activation_conflict"
+  | "engine_activation_not_found"
+  | "engine_policy_invalid"
+  | "engine_policy_not_found"
+  | "engine_policy_read_failed"
+  | "engine_policy_write_failed"
   | "evaluation_not_found"
   | "observation_conflict"
   | "observation_invalid"

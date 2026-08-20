@@ -14,6 +14,7 @@ export const lervoRelativePaths = {
   eventDatabase: ".lervo/state/events.sqlite",
   cas: ".lervo/state/cas",
   searchEvaluations: ".lervo/search-evaluations",
+  searchEnginePolicies: ".lervo/search-engine-policies",
   searchObservations: ".lervo/state/search",
   skillsLock: ".lervo/skills.lock",
 } as const;
@@ -37,6 +38,7 @@ export interface LervoProjectPaths {
   eventDatabase: string;
   cas: string;
   searchEvaluations: string;
+  searchEnginePolicies: string;
   searchObservations: string;
   skillsLock: string;
 }
@@ -58,6 +60,7 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     eventDatabase: resolve(repositoryRoot, lervoRelativePaths.eventDatabase),
     cas: resolve(repositoryRoot, lervoRelativePaths.cas),
     searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),
+    searchEnginePolicies: resolve(repositoryRoot, lervoRelativePaths.searchEnginePolicies),
     searchObservations: resolve(repositoryRoot, lervoRelativePaths.searchObservations),
     skillsLock: resolve(repositoryRoot, lervoRelativePaths.skillsLock),
   };
