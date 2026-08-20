@@ -31,4 +31,4 @@ Delivery port가 OAuth 또는 bot-token API 호출을 소유합니다. 두 port�
 
 ## 결과와 후속 범위
 
-Slack, Discord와 자체 채팅이 같은 participation·responder·writing·outbox 계약으로 수렴합니다. 실제 deployment는 credential transport와 durable identity mapping 구현을 application entrypoint에 조합해야 하며, adapter core는 token이나 WebSocket 수명주기를 직접 소유하지 않습니다.
+Slack, Discord와 자체 채팅이 같은 participation·responder·writing·outbox 계약으로 수렴합니다. Credential transport와 durable identity mapping의 application 조합은 [ADR-0049](./0049-durable-conversation-deployment.md)에서 이어집니다. Adapter core는 token이나 WebSocket 수명주기를 직접 소유하지 않습니다.

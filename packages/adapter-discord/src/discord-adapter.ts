@@ -121,9 +121,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       content: parsed.content,
       artifactStore: this.options.artifactStore,
     });
-    return {
-      status: "accepted",
-      event: createConversationInboundEvent({
+    const event = createConversationInboundEvent({
         sourceEventKeyHash: hashConversationSourceEventKey(
           `${parsed.guildId ?? "dm"}:${parsed.messageId}`,
         ),
@@ -141,7 +139,27 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         signalCode: null,
         automationDepth: identity.automationDepth,
         occurredAt: parsed.occurredAt,
-      }),
+      });
+    try {
+      await this.options.identity.recordInbound({
+        platform: "discord",
+        integrationId: this.descriptor.integrationId,
+        tenantKey: parsed.guildId ?? "dm",
+        conversationKey: parsed.channelId,
+        externalMessageKey: parsed.messageId,
+        eventId: event.eventId,
+        automationDepth: event.automationDepth,
+      });
+    } catch (error) {
+      throw new ConversationPlatformError(
+        "identity_mapping_failed",
+        "Discord 메시지와 Lervo event 연결을 저장하지 못했습니다.",
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
+    return {
+      status: "accepted",
+      event,
     };
   }
 

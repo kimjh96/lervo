@@ -329,10 +329,12 @@ fixtures/
 2. 플랫폼 중립 conversation 계약과 능동 참여 runtime — native chat adapter·durable inbox/outbox 첫 슬라이스 완료
 3. Managed conversation responder bridge — 완료
 4. Slack/Discord 인증 adapter — 완료
-5. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
-6. 명시적 관계 기반 지식 그래프 시각화
-7. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
-8. 조직 단위 비용·품질·가드레일 분석
+5. Conversation 배포 조합과 durable identity/delivery replay — 완료
+6. Hub command/approval 대화 UX
+7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
+8. 명시적 관계 기반 지식 그래프 시각화
+9. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
+10. 조직 단위 비용·품질·가드레일 분석
 
 Conversation 첫 슬라이스 완료 조건:
 
@@ -342,6 +344,15 @@ Conversation 첫 슬라이스 완료 조건:
 - Source message와 role 조합마다 decision을 독립적으로 만들고 최초 policy를 고정하며, inbox decision과 outbox 생성이 원자적이고 재시작·정책 변경·lease 만료·전송 실패 뒤에도 responder와 delivery가 멱등적으로 복구됨
 - 자체 채팅 adapter가 공통 contract를 통과하고 interaction DB에 대화 본문, 외부 사용자·message·delivery ID 원문이 남지 않음
 - Conversation 관찰·응답을 shared context의 `loaded`, `injected`, `used`로 승격하지 않음
+
+Conversation 배포 조합 완료 조건:
+
+- 현재 배포 설정에 있는 external conversation·participant binding만 활성 mapping으로 사용하고 제거된 설정을 재시작 뒤 수신 범위로 되살리지 않음
+- Inbound canonical event와 outbound source event의 외부 주소를 receipt 전에 기록하고 재시작 뒤 thread·reply·automation depth를 복원함
+- OAuth·bot credential은 저장하지 않으며 raw 외부 ID는 mode `0600`의 전용 mapping DB 밖으로 복제하지 않음
+- 전송 전 request hash를 예약하고 성공, 명시적 거부, 응답 유실을 각각 `delivered`, `rejected`, `unknown`으로 구분함
+- 확인하지 못한 전송은 자동 재발송하지 않고 receipt와 interaction `delivered`를 만들지 않음
+- Discord Gateway driver가 주입되지 않은 상태를 실제 Gateway 배포 완료로 표시하지 않음
 
 ## 다음 실행 작업
 
@@ -357,4 +368,6 @@ Managed conversation responder bridge를 완료했습니다. `@lervo/conversatio
 
 Slack·Discord 인증 conversation adapter를 완료했습니다. 공통 `@lervo/conversation-platform`이 외부 identity mapping, CAS 본문과 delivery correlation 경계를 소유합니다. Slack adapter는 raw body HMAC, 5분 시각과 app/team scope를 확인하고, Discord adapter는 인증된 Gateway session의 `MESSAGE_CREATE`와 guild/DM scope만 받습니다. Resume·HTTP 재전송은 같은 canonical event ID로 수렴하고 outbound port는 restart 뒤에도 같은 `outboundId`를 같은 외부 message ID로 수렴시켜야 합니다. 결정은 [ADR-0048](./docs/adr/0048-authenticated-platform-conversation-adapters.md)에 기록했습니다.
 
-다음 구현 작업은 실제 배포 application entrypoint에서 credential transport와 durable identity mapping 구성을 조합하고, Hub command/approval UX를 같은 대화 표면에 연결하는 일입니다.
+Conversation 배포 조합을 완료했습니다. `@lervo/conversation-platform-sqlite`는 외부 주소·participant·thread의 가역 mapping, inbound/outbound correlation과 delivery replay를 interaction DB 밖에 보존합니다. `apps/conversation`은 이 저장소와 CAS, Slack OAuth Web API, Discord bot-token REST transport와 인증된 Gateway port를 조합합니다. 재시작 뒤 답글과 automation depth가 복원되며 확인하지 못한 API 응답은 `unknown`으로 남겨 자동 재전송하지 않습니다. 실제 Discord Gateway WebSocket driver와 `unknown` 운영자 reconciliation은 완료로 주장하지 않습니다. 결정은 [ADR-0049](./docs/adr/0049-durable-conversation-deployment.md)에 기록했습니다.
+
+다음 구현 작업은 Hub command/approval을 같은 대화 표면에서 조회하고 요청하되, 대화 actor와 Hub principal을 명시적으로 결속하고 승인 원본을 채팅 반응만으로 추정하지 않는 UX입니다.

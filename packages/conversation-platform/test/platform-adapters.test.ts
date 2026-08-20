@@ -71,11 +71,13 @@ function identityPort() {
           threadKey: null,
           replyToMessageKey: "323456789012345678",
         });
+  const recordInbound = vi.fn(async () => undefined);
   const record = vi.fn(async () => undefined);
   return {
-    port: { mapInbound: inbound, mapOutbound: outbound, recordOutbound: record },
+    port: { mapInbound: inbound, mapOutbound: outbound, recordInbound, recordOutbound: record },
     inbound,
     outbound,
+    recordInbound,
     record,
   };
 }
@@ -192,6 +194,12 @@ describe("authenticated platform conversation adapters", () => {
       participantKey: "user:U123",
       mentionedParticipantKeys: ["user:U999"],
     }));
+    expect(identity.recordInbound).toHaveBeenCalledWith(expect.objectContaining({
+      tenantKey: "T123",
+      conversationKey: "C123",
+      externalMessageKey: `${timestamp}.000001`,
+      eventId: accepted.event.eventId,
+    }));
 
     const replay = await adapter.receive(slackRequest(body, timestamp, secret));
     expect(replay).toMatchObject({ status: "accepted", event: { eventId: accepted.event.eventId } });
@@ -204,6 +212,9 @@ describe("authenticated platform conversation adapters", () => {
       format: "plain",
     }));
     expect(identity.record).toHaveBeenCalledWith(expect.objectContaining({
+      tenantKey: "T123",
+      conversationKey: "C123",
+      sourceEventId: message.sourceEventId,
       externalMessageKey: "1710000001.000200",
       automationDepth: 1,
     }));

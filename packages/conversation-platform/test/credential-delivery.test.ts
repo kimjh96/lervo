@@ -1,0 +1,208 @@
+import { DiscordRestDelivery } from "@lervo/adapter-discord";
+import { SlackWebApiDelivery } from "@lervo/adapter-slack";
+import type {
+  ConversationPlatformDeliveryReplayPort,
+  PlatformDeliveryReplayDecision,
+} from "@lervo/conversation-platform";
+import { describe, expect, it, vi } from "vitest";
+
+type Begin = Parameters<ConversationPlatformDeliveryReplayPort["begin"]>[0];
+type Complete = Parameters<ConversationPlatformDeliveryReplayPort["complete"]>[0];
+
+class MemoryReplay implements ConversationPlatformDeliveryReplayPort {
+  private readonly records = new Map<string, {
+    hash: string;
+    status: "sending" | "unknown" | "rejected" | "delivered";
+    externalMessageKey?: string;
+    deliveredAt?: string;
+  }>();
+
+  async begin(input: Begin): Promise<PlatformDeliveryReplayDecision> {
+    const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
+    const current = this.records.get(key);
+    if (current === undefined) {
+      this.records.set(key, { hash: input.requestHash, status: "sending" });
+      return { status: "reserved" };
+    }
+    if (current.hash !== input.requestHash) return { status: "conflict" };
+    if (current.status === "unknown" || current.status === "sending") return { status: "unknown" };
+    if (current.status === "rejected") return { status: "rejected" };
+    return {
+      status: "delivered",
+      externalMessageKey: current.externalMessageKey!,
+      deliveredAt: current.deliveredAt!,
+    };
+  }
+
+  async complete(input: Complete): Promise<void> {
+    const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
+    this.records.set(key, {
+      hash: input.requestHash,
+      status: "delivered",
+      externalMessageKey: input.externalMessageKey,
+      deliveredAt: input.deliveredAt,
+    });
+  }
+
+  async markUnknown(input: Parameters<ConversationPlatformDeliveryReplayPort["markUnknown"]>[0]):
+    Promise<void> {
+    const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
+    this.records.set(key, { hash: input.requestHash, status: "unknown" });
+  }
+
+  async markRejected(input: Parameters<ConversationPlatformDeliveryReplayPort["markRejected"]>[0]):
+    Promise<void> {
+    const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
+    this.records.set(key, { hash: input.requestHash, status: "rejected" });
+  }
+}
+
+const outboundId = `cvo_${"a".repeat(64)}`;
+const at = "2026-08-20T01:00:00.000Z";
+
+describe("credential-backed platform delivery", () => {
+  it("uses Slack OAuth without active markup and replays one confirmed message", async () => {
+    const replay = new MemoryReplay();
+    const request = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({ authorization: `Bearer xoxb-${"s".repeat(40)}` });
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      expect(body).toMatchObject({
+        channel: "C123",
+        text: "검토 &lt;@U123&gt; &amp; 확인",
+        mrkdwn: false,
+        thread_ts: "1710000000.000100",
+        reply_broadcast: false,
+      });
+      return new Response(JSON.stringify({ ok: true, channel: "C123", ts: "1710000001.000100" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const delivery = new SlackWebApiDelivery({
+      integrationId: "itg_slack001",
+      botToken: `xoxb-${"s".repeat(40)}`,
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      teamId: "T123",
+      channelId: "C123",
+      threadTs: "1710000000.000100",
+      replyToTs: "1710000000.000100",
+      text: "검토 <@U123> & 확인",
+      automationDepth: 1,
+      format: "plain" as const,
+    };
+    await expect(delivery.send(input)).resolves.toEqual({
+      messageTs: "1710000001.000100",
+      deliveredAt: at,
+    });
+    await expect(delivery.send(input)).resolves.toEqual({
+      messageTs: "1710000001.000100",
+      deliveredAt: at,
+    });
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("sends Discord with an enforced nonce and disables all mention parsing", async () => {
+    const replay = new MemoryReplay();
+    const request = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(init?.headers).toMatchObject({ authorization: `Bot ${"d".repeat(40)}` });
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      expect(body).toMatchObject({
+        content: "<@123>를 직접 호출하지 않습니다.",
+        enforce_nonce: true,
+        allowed_mentions: { parse: [], replied_user: false },
+        message_reference: { message_id: "323456789012345678", fail_if_not_exists: false },
+      });
+      expect(typeof body.nonce).toBe("string");
+      expect((body.nonce as string).length).toBeLessThanOrEqual(25);
+      return new Response(JSON.stringify({
+        id: "423456789012345678",
+        channel_id: "223456789012345678",
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    const delivery = new DiscordRestDelivery({
+      integrationId: "itg_discord01",
+      botToken: "d".repeat(40),
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      replyToMessageId: "323456789012345678",
+      content: "<@123>를 직접 호출하지 않습니다.",
+      automationDepth: 1,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
+    };
+    await expect(delivery.send(input)).resolves.toEqual({
+      messageId: "423456789012345678",
+      deliveredAt: at,
+    });
+    await delivery.send(input);
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("does not resend when the first API result is ambiguous", async () => {
+    const replay = new MemoryReplay();
+    const request = vi.fn(async () => { throw new Error("connection reset after write"); });
+    const credential = `xoxb-${"private".repeat(8)}`;
+    const delivery = new SlackWebApiDelivery({
+      integrationId: "itg_slack001",
+      botToken: credential,
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      teamId: "T123",
+      channelId: "C123",
+      threadTs: null,
+      replyToTs: null,
+      text: "응답 유실 검사",
+      automationDepth: 1,
+      format: "plain" as const,
+    };
+    await expect(delivery.send(input)).rejects.toMatchObject({ code: "platform_delivery_failed" });
+    await expect(delivery.send(input)).rejects.toThrow("운영자 확인이 필요합니다");
+    expect(request).toHaveBeenCalledOnce();
+    try { await delivery.send(input); } catch (error) {
+      expect(String(error)).not.toContain(credential);
+    }
+  });
+
+  it("keeps an explicit Slack rejection distinct from an unknown response", async () => {
+    const replay = new MemoryReplay();
+    const request = vi.fn(async () => new Response(JSON.stringify({
+      ok: false,
+      error: "channel_not_found",
+    }), { status: 200, headers: { "content-type": "application/json" } }));
+    const delivery = new SlackWebApiDelivery({
+      integrationId: "itg_slack001",
+      botToken: `xoxb-${"s".repeat(40)}`,
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      teamId: "T123",
+      channelId: "C404",
+      threadTs: null,
+      replyToTs: null,
+      text: "거부 상태 검사",
+      automationDepth: 1,
+      format: "plain" as const,
+    };
+    await expect(delivery.send(input)).rejects.toThrow("전송을 거부했습니다");
+    await expect(delivery.send(input)).rejects.toThrow("전송을 거부했습니다");
+    expect(request).toHaveBeenCalledOnce();
+  });
+});

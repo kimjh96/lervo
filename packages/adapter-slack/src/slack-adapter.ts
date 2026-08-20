@@ -107,9 +107,7 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
       content: parsed.text,
       artifactStore: this.options.artifactStore,
     });
-    return {
-      status: "accepted",
-      event: createConversationInboundEvent({
+    const event = createConversationInboundEvent({
         sourceEventKeyHash: hashConversationSourceEventKey(`${parsed.teamId}:${parsed.eventId}`),
         target: {
           integrationId: this.descriptor.integrationId,
@@ -125,7 +123,27 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
         signalCode: null,
         automationDepth: identity.automationDepth,
         occurredAt: parsed.occurredAt,
-      }),
+      });
+    try {
+      await this.options.identity.recordInbound({
+        platform: "slack",
+        integrationId: this.descriptor.integrationId,
+        tenantKey: parsed.teamId,
+        conversationKey: parsed.channelId,
+        externalMessageKey: parsed.messageTs,
+        eventId: event.eventId,
+        automationDepth: event.automationDepth,
+      });
+    } catch (error) {
+      throw new ConversationPlatformError(
+        "identity_mapping_failed",
+        "Slack 메시지와 Lervo event 연결을 저장하지 못했습니다.",
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
+    return {
+      status: "accepted",
+      event,
     };
   }
 

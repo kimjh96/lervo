@@ -48,7 +48,10 @@ export async function deliverSlackConversationMessage(input: {
     await input.identity.recordOutbound({
       platform: "slack",
       integrationId: input.descriptor.integrationId,
+      tenantKey: address.tenantKey,
+      conversationKey: address.conversationKey,
       outboundId: input.message.outboundId,
+      sourceEventId: input.message.sourceEventId,
       externalMessageKey: delivered.messageTs,
       automationDepth: input.message.automationDepth,
     });

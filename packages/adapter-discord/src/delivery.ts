@@ -54,7 +54,10 @@ export async function deliverDiscordConversationMessage(input: {
     await input.identity.recordOutbound({
       platform: "discord",
       integrationId: input.descriptor.integrationId,
+      tenantKey: address.tenantKey,
+      conversationKey: address.conversationKey,
       outboundId: input.message.outboundId,
+      sourceEventId: input.message.sourceEventId,
       externalMessageKey: delivered.messageId,
       automationDepth: input.message.automationDepth,
     });

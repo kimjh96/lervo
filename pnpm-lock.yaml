@@ -63,6 +63,21 @@ importers:
         specifier: workspace:*
         version: link:../../packages/writing
 
+  apps/conversation:
+    dependencies:
+      '@lervo/adapter-discord':
+        specifier: workspace:*
+        version: link:../../packages/adapter-discord
+      '@lervo/adapter-slack':
+        specifier: workspace:*
+        version: link:../../packages/adapter-slack
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../../packages/cas
+      '@lervo/conversation-platform-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/conversation-platform-sqlite
+
   apps/hub:
     dependencies:
       '@lervo/hub-policy':
@@ -224,6 +239,15 @@ importers:
       '@lervo/writing-contract':
         specifier: workspace:*
         version: link:../writing-contract
+
+  packages/conversation-platform-sqlite:
+    dependencies:
+      '@lervo/conversation-platform':
+        specifier: workspace:*
+        version: link:../conversation-platform
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/conversation-responder:
     dependencies:
