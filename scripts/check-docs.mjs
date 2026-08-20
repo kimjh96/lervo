@@ -15,12 +15,19 @@ const adrDocuments = (await readdir(resolve(repositoryRoot, "docs/adr"), {
   .filter((entry) => entry.isFile() && /^\d{4}-.+\.md$/.test(entry.name))
   .map((entry) => `docs/adr/${entry.name}`)
   .sort();
+const migrationDocuments = (await readdir(resolve(repositoryRoot, "docs/migrations"), {
+  withFileTypes: true,
+}))
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+  .map((entry) => `docs/migrations/${entry.name}`)
+  .sort();
 const markdownDocuments = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
   ...lifecycleDocuments,
   ...adrDocuments,
+  ...migrationDocuments,
 ];
 
 const failures = [];

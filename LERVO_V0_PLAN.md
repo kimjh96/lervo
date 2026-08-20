@@ -742,12 +742,21 @@ Machine-readable trace capability report 완료 조건:
 Trace default transition compatibility fixture 완료 조건:
 
 - 기본 page보다 하나 많은 51개 합성 event로 full과 bounded page를 같은 run에서 구분함
-- 현재 암묵적 JSON이 full v1이고 deprecation code가 정확히 한 번 stderr에 나오는지 고정함
-- 명시적 `--full`이 암묵적 full과 같은 report를 경고 없이 반환하는지 고정함
+- 0.1.0 기본 JSON이 첫 50개의 page v1이고 stderr가 비어 있는지 고정함
+- 명시적 `--full`이 51개 전체의 full v1을 경고 없이 반환하는지 고정함
 - Capability가 선언한 기본 page 크기로 첫 page를 만들고 cursor page까지 seq 중복·누락 없이 읽음
 - Full과 page 결과를 각각 기존 compatibility reader로 검증하고 page에 전체 status가 없음을 확인함
 - Fixture가 production version·기본 mode·event schema나 사용자 project를 바꾸지 않음
-- 0.1.0 전환 시 fixture, capability report와 migration 문서를 한 변경에서 갱신하도록 조건을 명시함
+
+Trace bounded-default 0.1.0 release 전환 완료 조건:
+
+- 인자 없는 text·JSON trace가 기본 50개 `TracePageReport`를 경고 없이 반환함
+- 전체 `TraceReport` v1과 1,000개 상한은 명시적 `--full`에서 유지함
+- Capability default를 `page`, 유일한 `explicit=false` mode를 page, deprecations를 빈 목록으로 갱신함
+- Reader가 유일한 비명시 mode와 default의 일치를 검증함
+- 루트와 55개 private workspace package version을 모두 0.1.0으로 맞추고 검사로 drift를 거부함
+- Help와 별도 migration 문서가 기본 page, `--full`, cursor stale 의미를 설명함
+- 이전 report schema, event 원본과 project 상태를 변경하지 않음
 
 ## 다음 실행 작업
 
@@ -827,10 +836,12 @@ Trace page event type filter 첫 슬라이스를 완료했습니다. Allowlist �
 
 Diagnostics report compatibility 경계 정리를 완료했습니다. 세 report reader는 공통 version·schema·의미 검증 순서를 사용하되 각 code와 의미 검증을 독립적으로 유지합니다. Trace CLI는 옵션·format·실행 조합으로 나뉘고 요청 모드는 타입 수준에서 배타적입니다. 결정은 [ADR-0080](./docs/adr/0080-shared-diagnostics-report-compatibility.md)에 기록했습니다.
 
-Trace output mode deprecation 계약 첫 슬라이스를 완료했습니다. 0.0.x의 암묵적 full은 기존 stdout을 유지하면서 controlled 경고를 내고, `--full`은 경고 없이 같은 v1을 고정합니다. Bounded 기본값 활성화는 0.1.0 별도 변경으로 남겼습니다. 결정은 [ADR-0081](./docs/adr/0081-trace-output-mode-deprecation.md)에 기록했습니다.
+Trace output mode deprecation 계약 첫 슬라이스를 완료했습니다. 0.0.x의 암묵적 full은 기존 stdout을 유지하면서 controlled 경고를 내고, `--full`은 경고 없이 같은 v1을 고정했습니다. 이 단계에서 분리했던 bounded 기본값 전환은 이후 0.1.0의 ADR-0084에서 완료했습니다. 결정은 [ADR-0081](./docs/adr/0081-trace-output-mode-deprecation.md)에 기록했습니다.
 
 Machine-readable trace capability report를 완료했습니다. `lervo trace --capabilities`는 저장소를 열지 않고 현재 기본·지원 mode, report version, 실제 page/full/cursor 상한과 구조화된 deprecation을 v1 JSON으로 반환합니다. Reader는 mode 참조와 상한 관계를 검증하며 오류에 입력 원문을 복사하지 않습니다. 결정은 [ADR-0082](./docs/adr/0082-machine-readable-trace-capabilities.md)에 기록했습니다.
 
-Trace default transition compatibility fixture를 완료했습니다. 기본 page보다 하나 많은 합성 run에서 현재 암묵적 full, 명시적 full과 두 bounded cursor page를 실제 CLI와 report reader로 재현합니다. 경고 횟수, full stdout equality와 seq 연속성 중 하나라도 달라지면 CI가 실패하며 production version이나 기본 mode는 바꾸지 않습니다. 결정은 [ADR-0083](./docs/adr/0083-trace-default-transition-fixture.md)에 기록했습니다.
+Trace default transition compatibility fixture를 완료했습니다. 기본 page보다 하나 많은 합성 run에서 0.1.0 기본 page, 명시적 full과 두 bounded cursor page를 실제 CLI와 report reader로 재현합니다. 기본 stderr, full/page event 경계와 seq 연속성 중 하나라도 달라지면 CI가 실패합니다. 결정은 [ADR-0083](./docs/adr/0083-trace-default-transition-fixture.md)에 기록했습니다.
 
-다음 구현 작업은 0.1.0에서 인자 없는 trace를 bounded page로 전환할 때 package version, capability default/deprecation, help와 migration 안내를 원자적으로 맞추는 **trace bounded-default release transition**입니다.
+Trace bounded-default 0.1.0 release 전환을 완료했습니다. 인자 없는 trace는 기본 50개 page를 반환하고 전체 v1은 `--full`에서 유지합니다. Capability와 전환 fixture, help, 별도 migration 안내를 현재 동작에 맞췄으며 루트와 55개 workspace package version을 0.1.0으로 함께 올렸습니다. 결정은 [ADR-0084](./docs/adr/0084-trace-bounded-default-release.md)에 기록했습니다.
+
+다음 구현 작업은 source test뿐 아니라 설치 가능한 CLI build에서 version과 bounded trace 기본값을 검증하는 **packaged CLI 0.1.0 smoke fixture**입니다.

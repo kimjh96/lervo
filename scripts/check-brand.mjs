@@ -52,6 +52,9 @@ const packagePaths = [
 ];
 const rootPackage = JSON.parse(readFileSync(resolve(repositoryRoot, "package.json"), "utf8"));
 if (rootPackage.name !== "lervo") failures.push("root package 이름은 lervo여야 합니다.");
+if (!/^\d+\.\d+\.\d+$/.test(rootPackage.version ?? "")) {
+  failures.push("root package version은 정식 semantic version이어야 합니다.");
+}
 if (rootPackage.scripts?.lervo !== "node apps/cli/dist/bin.js") {
   failures.push("root package의 lervo CLI script가 예상 경로와 다릅니다.");
 }
@@ -60,6 +63,9 @@ for (const path of packagePaths) {
   const manifest = JSON.parse(readFileSync(resolve(repositoryRoot, path), "utf8"));
   if (typeof manifest.name !== "string" || !manifest.name.startsWith("@lervo/")) {
     failures.push(`${path}: package 이름이 @lervo scope가 아닙니다.`);
+  }
+  if (manifest.version !== rootPackage.version) {
+    failures.push(`${path}: package version이 root ${rootPackage.version}와 다릅니다.`);
   }
 }
 

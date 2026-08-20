@@ -107,20 +107,14 @@ describe("lervo trace CLI", () => {
     expect(JSON.parse(output)).toMatchObject({
       schemaVersion: 1,
       capability: "trace",
-      defaultMode: "implicit_full",
+      defaultMode: "page",
       limits: {
         defaultPageSize: 50,
         maximumPageSize: 100,
         maximumFullEventCount: 1000,
         maximumCursorBytes: 2048,
       },
-      deprecations: [{
-        code: "trace_implicit_full_deprecated",
-        mode: "implicit_full",
-        replacementMode: "full",
-        changesIn: "0.1.0",
-        nextDefaultMode: "page",
-      }],
+      deprecations: [],
     });
 
     let explicitJsonOutput = "";
@@ -184,34 +178,34 @@ describe("lervo trace CLI", () => {
     await storage.close();
 
     let output = "";
-    let warningOutput = "";
+    let defaultErrors = "";
     const code = await runCli(["trace", "last"], {
       cwd: root,
       stdout: (message) => { output += message; },
-      stderr: (message) => { warningOutput += message; },
+      stderr: (message) => { defaultErrors += message; },
     });
 
     expect(code).toBe(0);
-    expect(output).toContain("실행 추적 결과: run_cli_trace_0001");
+    expect(output).toContain("실행 추적 페이지: run_cli_trace_0001");
     expect(output).toContain("run.requested");
     expect(output).toContain("run.completed");
     expect(output).not.toContain("원문 주장");
-    expect(warningOutput).toContain("trace_implicit_full_deprecated");
-    expect(warningOutput).not.toContain("run_cli_trace_0001");
+    expect(defaultErrors).toBe("");
 
     let jsonOutput = "";
-    let jsonWarningOutput = "";
+    let jsonErrors = "";
     expect(await runCli(["trace", "last", "--json"], {
       cwd: root,
       stdout: (message) => { jsonOutput += message; },
-      stderr: (message) => { jsonWarningOutput += message; },
+      stderr: (message) => { jsonErrors += message; },
     })).toBe(0);
     expect(JSON.parse(jsonOutput)).toMatchObject({
       schemaVersion: 1,
       runId: "run_cli_trace_0001",
-      status: "completed",
+      page: { returnedCount: 2, hasMore: false },
     });
-    expect(jsonWarningOutput).toContain("trace_implicit_full_deprecated");
+    expect(JSON.parse(jsonOutput)).not.toHaveProperty("status");
+    expect(jsonErrors).toBe("");
 
     let explicitFullOutput = "";
     let explicitFullErrors = "";
@@ -220,7 +214,12 @@ describe("lervo trace CLI", () => {
       stdout: (message) => { explicitFullOutput += message; },
       stderr: (message) => { explicitFullErrors += message; },
     })).toBe(0);
-    expect(JSON.parse(explicitFullOutput)).toEqual(JSON.parse(jsonOutput));
+    expect(JSON.parse(explicitFullOutput)).toMatchObject({
+      schemaVersion: 1,
+      runId: "run_cli_trace_0001",
+      status: "completed",
+    });
+    expect(JSON.parse(explicitFullOutput).events).toEqual(JSON.parse(jsonOutput).events);
     expect(explicitFullErrors).toBe("");
 
     let firstPageOutput = "";

@@ -1,16 +1,15 @@
 import { parseArgs } from "node:util";
 
 import {
+  defaultTracePageSize,
   maximumTracePageSize,
-  traceImplicitFullDeprecationCode,
 } from "@lervo/diagnostics";
 import { eventTypes, type EventType } from "@lervo/schemas";
 
-export const traceUsage =
-  `  lervo trace [last|run-id] [--root <path>] [--json] [--full | --page-size <1-${maximumTracePageSize}>] [--event-type <type>...] | --cursor <cursor> | --capabilities`;
-
-export const traceImplicitFullDeprecationWarning =
-  `경고 (${traceImplicitFullDeprecationCode}): 암묵적 전체 trace 출력은 0.1.0에서 bounded page로 바뀔 예정입니다. 현재 전체 v1 report가 필요하면 --full을 지정하세요.`;
+export const traceUsage = `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}>] [--event-type <type>...] [--full]
+  lervo trace --cursor <cursor> [--root <path>] [--json]
+  lervo trace --capabilities [--json]
+  기본 출력은 최대 ${defaultTracePageSize}개의 bounded page이며 전체 v1 report는 --full로 요청합니다.`;
 
 const knownEventTypes = new Set<string>(eventTypes);
 
@@ -18,8 +17,7 @@ export type TraceCommandRequest =
   | { kind: "capabilities" }
   | { kind: "cursor"; cursor: string }
   | { kind: "first_page"; selector: string; limit?: number; eventTypes?: EventType[] }
-  | { kind: "full"; selector: string }
-  | { kind: "implicit_full"; selector: string };
+  | { kind: "full"; selector: string };
 
 export type TraceCommandOptions =
   | { help: true }
@@ -98,10 +96,10 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
   if (parsed.values.full === true && paged) {
     throw new TypeError("full은 page-size나 event-type과 함께 지정할 수 없습니다.");
   }
-  if (!paged) {
+  if (parsed.values.full === true) {
     return {
       ...common,
-      request: { kind: parsed.values.full === true ? "full" : "implicit_full", selector },
+      request: { kind: "full", selector },
     };
   }
   return {

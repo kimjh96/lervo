@@ -5,16 +5,8 @@
     "value": {
       "schemaVersion": 1,
       "capability": "trace",
-      "defaultMode": "implicit_full",
+      "defaultMode": "page",
       "modes": [
-        {
-          "mode": "implicit_full",
-          "explicit": false,
-          "reportKind": "full",
-          "reportSchemaVersion": 1,
-          "eventTypeFilter": false,
-          "cursorContinuation": false
-        },
         {
           "mode": "full",
           "explicit": true,
@@ -25,7 +17,7 @@
         },
         {
           "mode": "page",
-          "explicit": true,
+          "explicit": false,
           "reportKind": "page",
           "reportSchemaVersion": 1,
           "eventTypeFilter": true,
@@ -46,15 +38,7 @@
         "maximumFullEventCount": 1000,
         "maximumCursorBytes": 2048
       },
-      "deprecations": [
-        {
-          "code": "trace_implicit_full_deprecated",
-          "mode": "implicit_full",
-          "replacementMode": "full",
-          "changesIn": "0.1.0",
-          "nextDefaultMode": "page"
-        }
-      ]
+      "deprecations": []
     }
   }
 ]

@@ -7,7 +7,6 @@ import { traceReportSchemaVersion } from "./trace-report-contract.js";
 import { readVersionedReport } from "./report-compatibility.js";
 
 export const traceCapabilitiesReportSchemaVersion = 1 as const;
-export const traceImplicitFullDeprecationCode = "trace_implicit_full_deprecated" as const;
 
 export type TraceCapabilitiesReportCompatibilityErrorCode =
   | "trace_capabilities_report_invalid"
@@ -26,9 +25,12 @@ export class TraceCapabilitiesReportCompatibilityError extends Error {
 function semanticsAreValid(report: TraceCapabilitiesReport): boolean {
   const modes = new Map(report.modes.map((mode) => [mode.mode, mode]));
   const defaultMode = modes.get(report.defaultMode);
+  const implicitModes = report.modes.filter(({ explicit }) => !explicit);
   const deprecationCodes = new Set(report.deprecations.map(({ code }) => code));
   return modes.size === report.modes.length &&
     defaultMode !== undefined &&
+    implicitModes.length === 1 &&
+    implicitModes[0]!.mode === report.defaultMode &&
     report.limits.defaultPageSize <= report.limits.maximumPageSize &&
     deprecationCodes.size === report.deprecations.length &&
     report.deprecations.every((deprecation) =>
@@ -59,16 +61,8 @@ export function createTraceCapabilitiesReport(): TraceCapabilitiesReport {
   return readTraceCapabilitiesReport({
     schemaVersion: traceCapabilitiesReportSchemaVersion,
     capability: "trace",
-    defaultMode: "implicit_full",
+    defaultMode: "page",
     modes: [
-      {
-        mode: "implicit_full",
-        explicit: false,
-        reportKind: "full",
-        reportSchemaVersion: traceReportSchemaVersion,
-        eventTypeFilter: false,
-        cursorContinuation: false,
-      },
       {
         mode: "full",
         explicit: true,
@@ -79,7 +73,7 @@ export function createTraceCapabilitiesReport(): TraceCapabilitiesReport {
       },
       {
         mode: "page",
-        explicit: true,
+        explicit: false,
         reportKind: "page",
         reportSchemaVersion: tracePageReportSchemaVersion,
         eventTypeFilter: true,
@@ -100,14 +94,6 @@ export function createTraceCapabilitiesReport(): TraceCapabilitiesReport {
       maximumFullEventCount: maximumTraceReportEvents,
       maximumCursorBytes: maximumTraceCursorBytes,
     },
-    deprecations: [
-      {
-        code: traceImplicitFullDeprecationCode,
-        mode: "implicit_full",
-        replacementMode: "full",
-        changesIn: "0.1.0",
-        nextDefaultMode: "page",
-      },
-    ],
+    deprecations: [],
   });
 }

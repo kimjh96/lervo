@@ -2,6 +2,7 @@
 
 - 상태: 승인
 - 날짜: 2026-08-20
+- 후속 결정: [ADR-0084](./0084-trace-bounded-default-release.md)에서 현재 기본값을 `page`로 갱신
 
 ## 맥락
 

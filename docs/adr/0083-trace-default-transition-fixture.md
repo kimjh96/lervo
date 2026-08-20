@@ -2,6 +2,7 @@
 
 - 상태: 승인
 - 날짜: 2026-08-20
+- 후속 결정: [ADR-0084](./0084-trace-bounded-default-release.md)에서 fixture를 0.1.0 기대값으로 전환
 
 ## 맥락
 

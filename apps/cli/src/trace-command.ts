@@ -9,7 +9,6 @@ import {
 import { formatTracePageReport, formatTraceReport } from "./trace-format.js";
 import {
   parseTraceCommandOptions,
-  traceImplicitFullDeprecationWarning,
   traceUsage,
 } from "./trace-options.js";
 import type { CliIo, CliServices } from "./types.js";
@@ -39,15 +38,12 @@ export async function runTraceCommand(
     storage = await services.openProjectStorage(
       resolve(io.cwd, options.root ?? "."),
     );
-    if (options.request.kind === "full" || options.request.kind === "implicit_full") {
+    if (options.request.kind === "full") {
       const report = createTraceReport({
         projectId: storage.manifest.projectId,
         events: storage.events,
         selector: options.request.selector,
       });
-      if (options.request.kind === "implicit_full") {
-        io.stderr(`${traceImplicitFullDeprecationWarning}\n`);
-      }
       io.stdout(options.json ? `${JSON.stringify(report, null, 2)}\n` : formatTraceReport(report));
     } else {
       const report = options.request.kind === "cursor"
@@ -86,6 +82,5 @@ export async function runTraceCommand(
 export {
   formatTracePageReport,
   formatTraceReport,
-  traceImplicitFullDeprecationWarning,
   traceUsage,
 };

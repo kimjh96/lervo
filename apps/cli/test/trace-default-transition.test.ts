@@ -21,33 +21,29 @@ describe("trace default transition compatibility", () => {
     if (fixture !== undefined) await fixture.dispose();
   });
 
-  it("keeps the current implicit full consumer compatible and provides an explicit migration", async () => {
+  it("uses a bounded default while preserving explicit full consumers", async () => {
     const capabilityResult = await fixture.trace(["--capabilities"]);
     expect(capabilityResult.exitCode).toBe(0);
     expect(capabilityResult.stderr).toBe("");
     const capabilities = readTraceCapabilitiesReport(JSON.parse(capabilityResult.stdout));
     expect(capabilities).toMatchObject({
-      defaultMode: "implicit_full",
-      deprecations: [{
-        code: "trace_implicit_full_deprecated",
-        mode: "implicit_full",
-        replacementMode: "full",
-        changesIn: "0.1.0",
-        nextDefaultMode: "page",
-      }],
+      defaultMode: "page",
+      deprecations: [],
     });
 
-    const implicit = await fixture.trace(["last", "--json"]);
-    expect(implicit.exitCode).toBe(0);
-    expect(implicit.stderr.match(/trace_implicit_full_deprecated/g)).toHaveLength(1);
-    expect(implicit.stderr).not.toContain(fixture.runId);
-    const implicitReport = readTraceReport(JSON.parse(implicit.stdout));
-    expect(implicitReport.events).toHaveLength(fixture.eventCount);
+    const defaultResult = await fixture.trace(["last", "--json"]);
+    expect(defaultResult.exitCode).toBe(0);
+    expect(defaultResult.stderr).toBe("");
+    const defaultPage = readTracePageReport(JSON.parse(defaultResult.stdout));
+    expect(defaultPage.events).toHaveLength(capabilities.limits.defaultPageSize);
+    expect(defaultPage.page.hasMore).toBe(true);
 
     const explicit = await fixture.trace(["last", "--full", "--json"]);
     expect(explicit.exitCode).toBe(0);
     expect(explicit.stderr).toBe("");
-    expect(readTraceReport(JSON.parse(explicit.stdout))).toEqual(implicitReport);
+    const fullReport = readTraceReport(JSON.parse(explicit.stdout));
+    expect(fullReport.events).toHaveLength(fixture.eventCount);
+    expect(fullReport.events.slice(0, defaultPage.events.length)).toEqual(defaultPage.events);
   });
 
   it("lets a bounded consumer use the declared page size without losing cursor continuity", async () => {
@@ -55,7 +51,7 @@ describe("trace default transition compatibility", () => {
     const capabilities = readTraceCapabilitiesReport(JSON.parse(capabilityResult.stdout));
     const pageMode = capabilities.modes.find(({ mode }) => mode === "page");
     expect(pageMode).toMatchObject({
-      explicit: true,
+      explicit: false,
       reportKind: "page",
       reportSchemaVersion: 1,
       eventTypeFilter: true,

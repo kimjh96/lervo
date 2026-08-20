@@ -11,7 +11,7 @@ describe("trace command options", () => {
     expect(parseTraceCommandOptions(["run_01234567", "--json"])).toMatchObject({
       help: false,
       json: true,
-      request: { kind: "implicit_full", selector: "run_01234567" },
+      request: { kind: "first_page", selector: "run_01234567" },
     });
     expect(parseTraceCommandOptions([
       "last",
