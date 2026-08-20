@@ -562,6 +562,19 @@ Hub command/approval 대화 UX 완료 조건:
 - Rollback 뒤 기존 검토를 보존하되 과거 전이에 새 검토를 만들지 않음
 - Query·digest·문서 좌표·본문·provider 결과·credential을 저장하거나 새 event·Hub 원본을 만들지 않음
 
+검색 rollout 검토 상태 조회 첫 슬라이스 완료 조건:
+
+- 현재 선택을 전이 없는 baseline·기록된 baseline·build-bound 또는 legacy 후보로 구분함
+- Rollout 검토를 검토 시각·ID 역순의 기본 20·최대 50개 페이지로 제한함
+- 다음 page cursor를 현재 page 마지막 review ID에 결속하고 알 수 없는 cursor를 거부함
+- 각 검토의 선택 전이·candidate·engine·build·후보 review와 검토 당시 품질 입력을 다시 검증함
+- 조회 시각의 대상 attempt·assessment로 현재 품질 snapshot을 파생함
+- Snapshot ID가 아니라 attempt·assessment 입력 digest로 `unchanged`와 `changed`를 구분함
+- 현재 선택과 같은 검토는 `current_selection`, rollback·refresh 전이는 `historical_selection`으로 구분함
+- 최신 검토나 특정 판단을 자동 선택·승인·적용하지 않음
+- 조회가 선택 전이·rollback·approval·정책 eligibility와 새 원본을 만들지 않음
+- Query·문서 좌표·본문·provider 결과·credential을 출력하거나 event·Hub sync를 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -610,4 +623,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 사람의 검색 rollout 검토 첫 슬라이스를 완료했습니다. 현재 build-bound 후보 전이의 attempt·assessment 입력 hash와 집계를 시점 snapshot으로 고정하고, reviewer의 후보 유지·롤백 권고·추가 평가 필요 판단을 별도 immutable 원본으로 남깁니다. 기준 정책이 없으므로 표본과 실패 수치에서 판단을 추정하지 않으며 검토는 선택 변경·rollback·승인을 실행하지 않습니다. 결정은 [ADR-0065](./docs/adr/0065-human-search-rollout-review.md)에 기록했습니다.
 
-다음 구현 작업은 rollout 검토 원본을 현재 선택과 함께 bounded하게 조회하고, 이후 추가된 품질 원본으로 snapshot이 달라졌는지 표시하는 **검색 rollout 검토 상태 조회 계약**입니다. 조회는 과거 판단을 다시 계산하거나 최신 검토를 자동 승인으로 선택하지 않으며, 실제 선택 변경은 계속 별도 명령으로만 수행합니다.
+검색 rollout 검토 상태 조회 첫 슬라이스를 완료했습니다. 현재 선택과 검토 원본을 제한된 cursor page로 보여 주고, 검토 당시 입력을 재검증한 뒤 현재 품질 입력 digest의 변경 여부를 표시합니다. Rollback 뒤에는 과거 선택으로 구분하며 최신 검토를 승인이나 적용 대상으로 선택하지 않습니다. 결정은 [ADR-0066](./docs/adr/0066-bounded-search-rollout-review-status.md)에 기록했습니다.
+
+다음 구현 작업은 최소 평가 수·허용 실패와 reviewer 범위를 별도 immutable 정책으로 명시하고 rollout 검토가 그 정책을 충족하는지만 판정하는 **검색 rollout 검토 정책 계약**입니다. 정책 판정도 실제 선택 유지나 rollback을 실행하지 않으며, 기준이 없는 기존 검토를 자동으로 재해석하지 않습니다.

@@ -688,6 +688,12 @@ Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lerv
 
 원본은 `.lervo/state/search/rollout-reviews/<rolloutReviewId>.json`에 최대 256개를 항목별 mode `0600` immutable 파일로 저장합니다. 이후 품질 원본이 추가돼도 기존 파일을 수정하지 않습니다. Raw query·digest, nonce, index·result-set hash, source 좌표·본문, prompt, provider 응답, credential과 verification receipt는 저장하지 않고 새 event와 Hub sync도 만들지 않습니다. 계약·snapshot 불일치는 `invalid_rollout_review`, 현재 후보·attempt·build 자격 부족은 `rollout_review_not_eligible`, 저장 실패는 기존 `observation_*`로 전체 작업을 실패시킵니다. 결정은 [ADR-0065](./docs/adr/0065-human-search-rollout-review.md)에 기록합니다.
 
+`lervo search rollout status [--limit <1-50>] [--cursor <rollout-review-id>]`는 현재 선택과 저장된 rollout 검토를 검토 시각·ID 역순으로 조회합니다. 기본 limit은 20, 최대는 50이며 다음 cursor는 현재 페이지 마지막 review ID입니다. Cursor가 현재 검증된 원본에 없으면 다른 위치로 추정하지 않고 실패합니다. 전체 검토 원본은 기존 최대 256개 경계 안에서만 읽습니다.
+
+각 검토는 선택 chain의 전이·candidate·engine·adapter build·후보 review와 project를 다시 확인합니다. 검토 시각 이하의 대상 attempt·assessment로 기존 검토를 재생성하고, 조회 시각 이하의 전체 대상 입력으로 현재 품질 snapshot을 파생합니다. `qualityInputState`는 시각 때문에 달라질 수 있는 snapshot ID가 아니라 입력 ID 목록의 canonical digest가 같으면 `unchanged`, 다르면 `changed`입니다. 현재 전이와 같으면 `current_selection`, rollback·refresh 등으로 head가 바뀌었으면 `historical_selection`으로 표시합니다.
+
+상태 응답은 `reviewDecisionSelection=not_performed`, `selectionChange=not_applied`, `rollback=not_executed`, `approval=not_granted`를 유지합니다. 조회는 최신 검토를 선택하거나 정책 eligibility·새 판단을 계산하지 않습니다. Reviewer ID와 digest를 포함하므로 로컬 CLI에서만 반환하며 raw query·nonce, index·result-set hash, source 좌표·본문, prompt, provider 응답, credential과 receipt는 포함하지 않습니다. 파일·event·Hub 원본을 만들지 않습니다. 형식·limit·cursor 관계는 `invalid_rollout_status`, 원본 관계 실패는 기존 `observation_invalid`·`invalid_rollout_review`로 전체 페이지를 닫습니다. 결정은 [ADR-0066](./docs/adr/0066-bounded-search-rollout-review-status.md)에 기록합니다.
+
 ## 검색 추천과 managed context 연결
 
 `SearchRecommendationBatch`는 검증된 `SearchAttempt`, 추천 한도와 `top_ranked-v1` 정책을 하나의 content-bound ID로 묶습니다. 첫 정책은 document hit만 최대 5개 추천하고 순위가 앞선 최대 3개를 선택합니다. 각 추천은 attempt·engine·index·result-set, document ID·검색 당시 content hash·rank·score에 결속됩니다. Skill과 verified knowledge는 해당 원본의 E2 loader 계약이 생기기 전까지 제외합니다. Batch를 다시 검증할 때 추천 순서나 선택 ID가 하나라도 달라지면 전체를 거부합니다.

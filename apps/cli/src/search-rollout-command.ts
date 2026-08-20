@@ -2,13 +2,12 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { loadProjectManifest } from "@lervo/project";
-import {
-  type SearchRolloutReview,
-  type SearchRolloutReviewDecision,
-} from "@lervo/search";
+import { type SearchRolloutReviewDecision } from "@lervo/search";
 import { reviewLocalSearchRollout } from "@lervo/search-local";
 
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
+import { formatSearchRolloutReview } from "./search-rollout-format.js";
+import { runSearchRolloutStatusCommand } from "./search-rollout-status-command.js";
 import type { CliIo } from "./types.js";
 
 const DECISIONS: Record<string, SearchRolloutReviewDecision> = {
@@ -16,23 +15,6 @@ const DECISIONS: Record<string, SearchRolloutReviewDecision> = {
   rollback: "rollback_recommended",
   "more-assessments": "more_assessments_required",
 };
-
-function decisionLabel(decision: SearchRolloutReviewDecision): string {
-  if (decision === "keep_candidate") return "후보 유지";
-  if (decision === "rollback_recommended") return "롤백 권고";
-  return "추가 평가 필요";
-}
-
-function formatSearchRolloutReview(review: SearchRolloutReview): string {
-  const lines = [
-    `검색 rollout 검토를 기록했습니다: ${review.rolloutReviewId}`,
-    `  판단: ${decisionLabel(review.decision)}`,
-    `  근거: 시도 ${review.qualitySnapshot.totalAttempts} · 평가 ${review.qualitySnapshot.assessedAttempts}` +
-      ` · 실패 ${review.qualitySnapshot.failedAttempts}`,
-    "  이 기록은 승인이나 검색 엔진 변경을 실행하지 않습니다.",
-  ];
-  return `${lines.join("\n")}\n`;
-}
 
 async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise<number> {
   let parsed;
@@ -80,6 +62,7 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
 
 export async function runSearchRolloutCommand(args: string[], io: CliIo): Promise<number> {
   if (args[0] === "review") return runSearchRolloutReviewCommand(args.slice(1), io);
-  io.stderr(`rollout 하위 명령은 review만 지원합니다.\n${searchUsage}\n`);
+  if (args[0] === "status") return runSearchRolloutStatusCommand(args.slice(1), io);
+  io.stderr(`rollout 하위 명령은 review와 status를 지원합니다.\n${searchUsage}\n`);
   return 1;
 }

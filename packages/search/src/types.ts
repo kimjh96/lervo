@@ -182,7 +182,8 @@ export type SearchErrorCode =
   | "invalid_evaluation_run"
   | "invalid_query"
   | "invalid_recommendation"
-  | "invalid_rollout_review";
+  | "invalid_rollout_review"
+  | "invalid_rollout_status";
 
 export class SearchError extends Error {
   constructor(readonly code: SearchErrorCode, message: string, options?: ErrorOptions) {

@@ -32,5 +32,7 @@ export * from "./selection-quality-report.js";
 export * from "./rollout-quality-snapshot.js";
 export * from "./rollout-review.js";
 export * from "./rollout-review-types.js";
+export * from "./rollout-status.js";
+export * from "./rollout-status-types.js";
 export * from "./types.js";
 export * from "./validation.js";
