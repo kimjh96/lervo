@@ -37,16 +37,23 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const { artifact, archive, bundle, dependencies } = manifest;
   if (
-    manifest.schemaVersion !== 2 ||
+    manifest.schemaVersion !== 3 ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
+    artifact.description !== "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI" ||
+    canonicalJson(artifact.keywords) !== canonicalJson([
+      "ai-agents",
+      "local-first",
+      "orchestration",
+    ]) ||
+    artifact.license !== "UNLICENSED" ||
     artifact.private !== false ||
     artifact.access !== "public" ||
     artifact.type !== "module" ||
     artifact.node !== ">=22.13" ||
     artifact.bin !== "dist/bin.js" ||
-    canonicalJson(artifact.files) !== canonicalJson(["dist/bin.js"])
+    canonicalJson(artifact.files) !== canonicalJson(["README.md", "dist/bin.js"])
   ) {
     fail("release_artifact_identity_invalid", "Release artifact identity가 올바르지 않습니다.");
   }
@@ -87,12 +94,12 @@ export function validateReleaseArtifactManifest(manifest) {
     fail("release_artifact_bundle_invalid", "CLI bundle 경계가 올바르지 않습니다.");
   }
   const archiveFilesValid = Array.isArray(archive?.files) &&
-    archive.files.length === 1 &&
+    archive.files.length === 2 &&
     archive.files.every((entry) =>
       entry !== null &&
       typeof entry === "object" &&
       typeof entry.path === "string" &&
-      entry.path === "dist/bin.js" &&
+      (entry.path === "README.md" || entry.path === "dist/bin.js") &&
       Number.isSafeInteger(entry.size) &&
       entry.size >= 0 &&
       typeof entry.sha256 === "string" &&
@@ -103,6 +110,8 @@ export function validateReleaseArtifactManifest(manifest) {
     archive.rootFiles.length !== 1 ||
     archive.rootFiles[0] !== "package.json" ||
     !archiveFilesValid ||
+    canonicalJson(archive.files.map((entry) => entry.path)) !==
+      canonicalJson(["README.md", "dist/bin.js"]) ||
     !isSortedUnique(archive.files.map((entry) => entry.path)) ||
     archive.fileCount !== archive.files.length + archive.rootFiles.length ||
     archive.contentDigest !== canonicalDigest(archive.files)

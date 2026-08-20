@@ -1,14 +1,22 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.1.0",
+    "description": "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+    "keywords": [
+      "ai-agents",
+      "local-first",
+      "orchestration"
+    ],
+    "license": "UNLICENSED",
     "private": false,
     "access": "public",
     "type": "module",
     "node": ">=22.13",
     "bin": "dist/bin.js",
     "files": [
+      "README.md",
       "dist/bin.js"
     ]
   },
@@ -58,13 +66,18 @@
     ],
     "files": [
       {
+        "path": "README.md",
+        "size": 788,
+        "sha256": "sha256:a851c552994db936c8232e7185a6b53935836bf30088040f515addac8caa2926"
+      },
+      {
         "path": "dist/bin.js",
         "size": 1604680,
         "sha256": "sha256:ddc5d06bb02869fee01010706141f7974def58a898a24482a08e25e1028ff24f"
       }
     ],
-    "fileCount": 2,
-    "contentDigest": "sha256:514f4091ea02f137a0c3ce0422b026fcf10f7acc9840ca59e6f4cb00c04a7b62"
+    "fileCount": 3,
+    "contentDigest": "sha256:4569cbdfca4a1b940d3adfeb4eba53ce858a12951592ad736beaec02f591bc21"
   },
   "dependencies": {
     "portable": [
@@ -177,5 +190,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:4b4f927ea9e5a3fe35435d5b490c7fcd5c0b0f66a0ab26603cfd3399cd58fba7"
+  "artifactDigest": "sha256:0905f9cb90e8d9dd20675981ce12c6fda757737cbc16d0e5dac28deac30233ea"
 }

@@ -1,6 +1,13 @@
 {
   "name": "@lervo/cli",
   "version": "0.1.0",
+  "description": "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+  "keywords": [
+    "ai-agents",
+    "local-first",
+    "orchestration"
+  ],
+  "license": "UNLICENSED",
   "private": false,
   "type": "module",
   "engines": {
@@ -10,6 +17,7 @@
     "lervo": "./dist/bin.js"
   },
   "files": [
+    "README.md",
     "dist/bin.js"
   ],
   "publishConfig": {

@@ -11,12 +11,15 @@ function fixture() {
   const artifact = {
     name: "@lervo/cli",
     version: "0.1.0",
+    description: "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+    keywords: ["ai-agents", "local-first", "orchestration"],
+    license: "UNLICENSED",
     private: false,
     access: "public",
     type: "module",
     node: ">=22.13",
     bin: "dist/bin.js",
-    files: ["dist/bin.js"],
+    files: ["README.md", "dist/bin.js"],
   };
   const directDependencies = [
     "@anthropic-ai/claude-agent-sdk@0.3.226",
@@ -31,22 +34,29 @@ function fixture() {
     externalImports: ["@anthropic-ai/claude-agent-sdk"],
   };
   const bundle = { ...bundleFields, bundleDigest: canonicalDigest(bundleFields) };
-  const files = [{
-    path: "dist/bin.js",
-    size: 10,
-    sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  }];
+  const files = [
+    {
+      path: "README.md",
+      size: 20,
+      sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    },
+    {
+      path: "dist/bin.js",
+      size: 10,
+      sha256: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    },
+  ];
   const portable = ["@anthropic-ai/claude-agent-sdk@0.3.226", "yaml@2.9.0"];
   const platformSpecificFamilies = [{ prefix: "native-", version: "1.0.0" }];
   const manifest = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     artifact,
     directDependencies,
     bundle,
     archive: {
       rootFiles: ["package.json"],
       files,
-      fileCount: 2,
+      fileCount: 3,
       contentDigest: canonicalDigest(files),
     },
     dependencies: {
@@ -89,6 +99,24 @@ describe("release artifact manifest", () => {
     assert.throws(
       () => validateReleaseArtifactManifest(manifest),
       { code: "release_artifact_identity_invalid" },
+    );
+  });
+
+  it("rejects incomplete public package metadata", () => {
+    const manifest = fixture();
+    manifest.artifact.keywords.pop();
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_identity_invalid" },
+    );
+  });
+
+  it("rejects an archive without the package guide", () => {
+    const manifest = fixture();
+    manifest.archive.files.shift();
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_archive_invalid" },
     );
   });
 

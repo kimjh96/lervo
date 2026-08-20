@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
@@ -26,10 +26,16 @@ async function readExpectedVersion() {
 async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedVersion) {
   const deployedManifest = await readJson(resolve(deploymentRoot, "package.json"));
   assert.equal(deployedManifest.version, expectedVersion);
+  assert.equal(
+    deployedManifest.description,
+    "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+  );
+  assert.deepEqual(deployedManifest.keywords, ["ai-agents", "local-first", "orchestration"]);
+  assert.equal(deployedManifest.license, "UNLICENSED");
   assert.equal(deployedManifest.private, false);
   assert.deepEqual(deployedManifest.engines, { node: ">=22.13" });
   assert.deepEqual(deployedManifest.bin, { lervo: "./dist/bin.js" });
-  assert.deepEqual(deployedManifest.files, ["dist/bin.js"]);
+  assert.deepEqual(deployedManifest.files, ["README.md", "dist/bin.js"]);
   assert.deepEqual(Object.keys(deployedManifest.dependencies).sort(), [
     "@anthropic-ai/claude-agent-sdk",
     "@anthropic-ai/sdk",
@@ -47,6 +53,9 @@ async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, ex
     access(resolve(deploymentRoot, "node_modules/@lervo")),
     { code: "ENOENT" },
   );
+  const guide = await readFile(resolve(deploymentRoot, "README.md"), "utf8");
+  assert.equal(guide.includes("npm install --global @lervo/cli"), true);
+  assert.equal(guide.includes("lervo init --name my-project"), true);
 
   const version = await runInstalledCli(cliEntry, ["--version"], projectRoot);
   assert.equal(version.stdout, `lervo ${expectedVersion}\n`);

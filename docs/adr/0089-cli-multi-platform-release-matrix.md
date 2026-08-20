@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0090](./0090-cli-package-usage-guide.md)은 같은 matrix가 검사하는 tarball에 package README와 공개 metadata 계약을 추가합니다.
+
 ## 맥락
 
 Packed CLI smoke는 실제 tarball과 local bin을 검증하지만 실행한 운영체제의 결과만 보여 줍니다. Claude Agent SDK는 OS, CPU와 Linux libc에 따라 다른 optional package를 설치합니다. macOS 한 곳의 성공으로 Linux나 Windows package 이름, 실행 권한과 bin 동작까지 성공했다고 볼 수 없습니다.

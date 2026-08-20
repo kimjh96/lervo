@@ -45,7 +45,7 @@ async function packCli(archiveRoot, expectedVersion) {
   assert.equal(report.version, expectedVersion);
   assert.deepEqual(
     report.files.map(({ path }) => path).sort(),
-    ["dist/bin.js", "package.json"],
+    ["README.md", "dist/bin.js", "package.json"],
   );
   assert.equal(basename(report.filename), `lervo-cli-${expectedVersion}.tgz`);
   assert.equal(relative(archiveRoot, report.filename), basename(report.filename));
@@ -79,10 +79,16 @@ async function verifyInstalledPackage(consumerRoot, expectedVersion) {
   const manifest = await readJson(resolve(packageRoot, "package.json"));
   assert.equal(manifest.name, "@lervo/cli");
   assert.equal(manifest.version, expectedVersion);
+  assert.equal(
+    manifest.description,
+    "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+  );
+  assert.deepEqual(manifest.keywords, ["ai-agents", "local-first", "orchestration"]);
+  assert.equal(manifest.license, "UNLICENSED");
   assert.equal(manifest.private, false);
   assert.deepEqual(manifest.engines, { node: ">=22.13" });
   assert.deepEqual(manifest.bin, { lervo: "./dist/bin.js" });
-  assert.deepEqual(manifest.files, ["dist/bin.js"]);
+  assert.deepEqual(manifest.files, ["README.md", "dist/bin.js"]);
   assert.deepEqual(manifest.dependencies, {
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
     "@anthropic-ai/sdk": "0.117.1",
@@ -98,7 +104,10 @@ async function verifyInstalledPackage(consumerRoot, expectedVersion) {
     ),
     false,
   );
-  assert.deepEqual(await collectFiles(packageRoot), ["dist/bin.js", "package.json"]);
+  assert.deepEqual(
+    await collectFiles(packageRoot),
+    ["README.md", "dist/bin.js", "package.json"],
+  );
   assert.deepEqual(
     (await readdir(resolve(consumerRoot, "node_modules/@lervo"))).sort(),
     ["cli"],
@@ -108,6 +117,29 @@ async function verifyInstalledPackage(consumerRoot, expectedVersion) {
   assert.equal(entry.startsWith("#!/usr/bin/env node\n"), true);
   const shimName = process.platform === "win32" ? "lervo.CMD" : "lervo";
   await access(resolve(consumerRoot, "node_modules/.bin", shimName));
+}
+
+async function verifyPackageGuide(consumerRoot) {
+  const guide = await readFile(
+    resolve(consumerRoot, "node_modules/@lervo/cli/README.md"),
+    "utf8",
+  );
+  assert.ok(Buffer.byteLength(guide, "utf8") <= 4 * 1024);
+  assert.equal(guide.startsWith("# @lervo/cli\n"), true);
+  assert.deepEqual(
+    [...guide.matchAll(/^## (.+)$/gmu)].map((match) => match[1]),
+    ["준비", "설치", "첫 실행"],
+  );
+  for (const requiredText of [
+    "Node.js 22.13 이상",
+    "npm install --global @lervo/cli",
+    "lervo init --name my-project",
+    "lervo init --dry-run --name my-project",
+    "lervo --help",
+    "Hub 연결 없이",
+  ]) {
+    assert.equal(guide.includes(requiredText), true);
+  }
 }
 
 async function runConsumerCli(consumerRoot, args) {
@@ -144,6 +176,7 @@ async function main() {
     const tarballPath = await packCli(archiveRoot, cliManifest.version);
     await installTarball(consumerRoot, tarballPath);
     await verifyInstalledPackage(consumerRoot, cliManifest.version);
+    await verifyPackageGuide(consumerRoot);
     const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
     await verifyConsumerCommands(consumerRoot, cliManifest.version);
     console.log(`Claude native runtime 확인: ${nativeRuntime.packageName}`);

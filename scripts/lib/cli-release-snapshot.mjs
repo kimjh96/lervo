@@ -14,6 +14,7 @@ const cliRoot = resolve(repositoryRoot, "apps/cli");
 const cliManifestPath = resolve(cliRoot, "package.json");
 const bundleMetafilePath = resolve(cliRoot, "dist/bin.metafile.json");
 const bundleOutputPath = "apps/cli/dist/bin.js";
+const publicContentPaths = new Set(["README.md", "dist/bin.js"]);
 const builtinModuleNames = new Set([
   ...builtinModules,
   ...builtinModules.map((name) => `node:${name}`),
@@ -47,7 +48,7 @@ async function createArchiveSnapshot(paths) {
   const files = [];
   for (const path of paths) {
     if (path === "package.json") continue;
-    if (path !== "dist/bin.js") {
+    if (!publicContentPaths.has(path)) {
       throw new ReleaseArtifactManifestError(
         "release_artifact_file_unexpected",
         "Release archive에 허용되지 않은 파일이 있습니다.",
@@ -122,6 +123,9 @@ export async function createCliReleaseManifest(
   const artifact = {
     name: cliManifest.name,
     version: cliManifest.version,
+    description: cliManifest.description,
+    keywords: cliManifest.keywords,
+    license: cliManifest.license,
     private: cliManifest.private,
     access: cliManifest.publishConfig?.access,
     type: cliManifest.type,
@@ -138,7 +142,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     artifact,
     directDependencies,
     bundle,

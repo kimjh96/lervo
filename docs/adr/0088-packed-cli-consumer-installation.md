@@ -3,7 +3,7 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
-후속 결정: [ADR-0089](./0089-cli-multi-platform-release-matrix.md)은 packed smoke에 현재 platform의 Claude native 실행 파일 검사를 추가하고 같은 검사를 Linux·macOS·Windows에 배치합니다.
+후속 결정: [ADR-0089](./0089-cli-multi-platform-release-matrix.md)은 packed smoke에 현재 platform의 Claude native 실행 파일 검사를 추가하고 같은 검사를 Linux·macOS·Windows에 배치합니다. [ADR-0090](./0090-cli-package-usage-guide.md)은 tarball의 공개 파일을 세 개로 늘리고 package README와 metadata 검사를 추가합니다.
 
 ## 맥락
 

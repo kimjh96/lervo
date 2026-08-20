@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0090](./0090-cli-package-usage-guide.md)은 production deploy 검사에 package README와 공개 metadata 확인을 추가합니다.
+
 후속 결정: [ADR-0087](./0087-single-bundle-cli-deployment-unit.md)부터 CLI 내부 모듈은 설치하지 않고 하나의 bundle로 배포합니다. 설치본 실행과 별도로 빌드한 reader·fixture writer를 조합하는 현재 smoke 경계는 ADR-0087이 정합니다.
 
 ## 맥락
