@@ -1,17 +1,21 @@
 import { parseArgs } from "node:util";
 
-import { maximumTracePageSize } from "@lervo/diagnostics";
+import {
+  maximumTracePageSize,
+  traceImplicitFullDeprecationCode,
+} from "@lervo/diagnostics";
 import { eventTypes, type EventType } from "@lervo/schemas";
 
 export const traceUsage =
-  `  lervo trace [last|run-id] [--root <path>] [--json] [--full | --page-size <1-${maximumTracePageSize}>] [--event-type <type>...] | --cursor <cursor>`;
+  `  lervo trace [last|run-id] [--root <path>] [--json] [--full | --page-size <1-${maximumTracePageSize}>] [--event-type <type>...] | --cursor <cursor> | --capabilities`;
 
 export const traceImplicitFullDeprecationWarning =
-  "경고 (trace_implicit_full_deprecated): 암묵적 전체 trace 출력은 0.1.0에서 bounded page로 바뀔 예정입니다. 현재 전체 v1 report가 필요하면 --full을 지정하세요.";
+  `경고 (${traceImplicitFullDeprecationCode}): 암묵적 전체 trace 출력은 0.1.0에서 bounded page로 바뀔 예정입니다. 현재 전체 v1 report가 필요하면 --full을 지정하세요.`;
 
 const knownEventTypes = new Set<string>(eventTypes);
 
 export type TraceCommandRequest =
+  | { kind: "capabilities" }
   | { kind: "cursor"; cursor: string }
   | { kind: "first_page"; selector: string; limit?: number; eventTypes?: EventType[] }
   | { kind: "full"; selector: string }
@@ -41,6 +45,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
       "page-size": { type: "string" },
       cursor: { type: "string" },
       full: { type: "boolean" },
+      capabilities: { type: "boolean" },
       "event-type": { type: "string", multiple: true },
       help: { type: "boolean", short: "h" },
     },
@@ -50,6 +55,18 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
     throw new TypeError("run ID는 하나만 지정할 수 있습니다.");
   }
   const requestedEventTypes = parsed.values["event-type"];
+  if (parsed.values.capabilities === true && (
+    parsed.positionals.length > 0 ||
+    parsed.values.root !== undefined ||
+    parsed.values.cursor !== undefined ||
+    parsed.values.full === true ||
+    parsed.values["page-size"] !== undefined ||
+    requestedEventTypes !== undefined
+  )) {
+    throw new TypeError(
+      "capabilities는 run ID, root, cursor, full, page-size, event-type과 함께 지정할 수 없습니다.",
+    );
+  }
   if (parsed.values.cursor !== undefined && (
     parsed.positionals.length > 0 ||
     parsed.values.full === true ||
@@ -70,6 +87,9 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
     json: parsed.values.json ?? false,
     ...(parsed.values.root === undefined ? {} : { root: parsed.values.root }),
   };
+  if (parsed.values.capabilities === true) {
+    return { ...common, request: { kind: "capabilities" } };
+  }
   if (parsed.values.cursor !== undefined) {
     return { ...common, request: { kind: "cursor", cursor: parsed.values.cursor } };
   }

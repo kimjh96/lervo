@@ -25,6 +25,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-doctor-report.json`,
     `${name}-trace-report.json`,
     `${name}-trace-page-report.json`,
+    `${name}-trace-capabilities-report.json`,
     `${name}-legacy-registry-migration.json`,
     `${name}-knowledge.json`,
     `${name}-knowledge-lifecycle.json`,

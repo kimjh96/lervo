@@ -13,6 +13,7 @@ export type {
   DoctorScope,
   TracePageReport,
   TraceReport,
+  TraceCapabilitiesReport,
 } from "@lervo/schemas";
 
 export type TraceSelector = "last" | string;

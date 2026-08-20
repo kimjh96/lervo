@@ -38,6 +38,7 @@ export * from "./skill.js";
 export * from "./skill-lock.js";
 export * from "./trace-report.js";
 export * from "./trace-page-report.js";
+export * from "./trace-capabilities-report.js";
 export * from "./validate.js";
 export * from "./verification.js";
 export * from "./verification-event.js";

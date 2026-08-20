@@ -49,10 +49,20 @@ import type {
   ConversationParticipationDecision,
   ConversationParticipationPolicy,
   ConversationOutboundMessage,
+  TraceCapabilitiesReport,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
 describe("schema-derived TypeScript contracts", () => {
+  it("keeps trace capability modes and deprecations machine-readable", () => {
+    expectTypeOf<TraceCapabilitiesReport["defaultMode"]>()
+      .toEqualTypeOf<"implicit_full" | "full" | "page" | "cursor">();
+    expectTypeOf<TraceCapabilitiesReport["modes"][number]["reportKind"]>()
+      .toEqualTypeOf<"full" | "page">();
+    expectTypeOf<TraceCapabilitiesReport["deprecations"][number]["code"]>()
+      .toEqualTypeOf<string>();
+  });
+
   it("keeps every role capability decision explicit", () => {
     expectTypeOf<RoleProfile["capabilities"]["deploy"]>().toEqualTypeOf<CapabilityDecision>();
     expectTypeOf<RoleProfile["contextPolicy"]["minimumAssurance"]>().toEqualTypeOf<"E3">();

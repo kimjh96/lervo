@@ -82,6 +82,67 @@ describe("lervo run CLI arguments", () => {
 });
 
 describe("lervo trace CLI", () => {
+  it("reports machine-readable capabilities without opening project storage", async () => {
+    let output = "";
+    let errors = "";
+    let storageOpened = false;
+    const exitCode = await runCli(
+      ["trace", "--capabilities"],
+      {
+        cwd: "/missing/repository/is-not-required",
+        stdout: (message) => { output += message; },
+        stderr: (message) => { errors += message; },
+      },
+      {
+        openProjectStorage: async () => {
+          storageOpened = true;
+          throw new Error("storage must not open");
+        },
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(storageOpened).toBe(false);
+    expect(errors).toBe("");
+    expect(JSON.parse(output)).toMatchObject({
+      schemaVersion: 1,
+      capability: "trace",
+      defaultMode: "implicit_full",
+      limits: {
+        defaultPageSize: 50,
+        maximumPageSize: 100,
+        maximumFullEventCount: 1000,
+        maximumCursorBytes: 2048,
+      },
+      deprecations: [{
+        code: "trace_implicit_full_deprecated",
+        mode: "implicit_full",
+        replacementMode: "full",
+        changesIn: "0.1.0",
+        nextDefaultMode: "page",
+      }],
+    });
+
+    let explicitJsonOutput = "";
+    expect(await runCli(
+      ["trace", "--capabilities", "--json"],
+      {
+        cwd: "/missing/repository/is-not-required",
+        stdout: (message) => { explicitJsonOutput += message; },
+        stderr: (message) => { errors += message; },
+      },
+      {
+        openProjectStorage: async () => {
+          storageOpened = true;
+          throw new Error("storage must not open");
+        },
+      },
+    )).toBe(0);
+    expect(JSON.parse(explicitJsonOutput)).toEqual(JSON.parse(output));
+    expect(storageOpened).toBe(false);
+    expect(errors).toBe("");
+  });
+
   it("traces the latest run from append-only local events", async () => {
     const root = await temporaryRepository();
     expect(await runCli(["init"], {

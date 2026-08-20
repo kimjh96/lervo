@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 
 import {
+  createTraceCapabilitiesReport,
   createTracePage,
   createTraceReport,
 } from "@lervo/diagnostics";
@@ -27,6 +28,10 @@ export async function runTraceCommand(
   }
   if (options.help) {
     io.stdout(`${traceUsage}\n`);
+    return 0;
+  }
+  if (options.request.kind === "capabilities") {
+    io.stdout(`${JSON.stringify(createTraceCapabilitiesReport(), null, 2)}\n`);
     return 0;
   }
   let storage;

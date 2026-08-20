@@ -729,6 +729,16 @@ Trace output mode deprecation 계약 첫 슬라이스 완료 조건:
 - 경고에 project/run/event ID, payload, 경로나 credential을 넣지 않음
 - Bounded page 기본 전환을 0.1.0 별도 변경으로 두고 현재 코드에서 자동 활성화하지 않음
 
+Machine-readable trace capability report 완료 조건:
+
+- `lervo trace --capabilities`가 project storage 없이 versioned JSON만 반환함
+- 현재 기본 mode와 implicit/full/page/cursor의 명시성, report 종류·schema version을 구조화함
+- 기본·최대 page 크기, 전체 report event 상한과 cursor byte 상한을 실제 구현 상수에서 가져옴
+- deprecation code, 대상·대체 mode, 변경 version과 다음 기본 mode를 사람용 문장 없이 제공함
+- Capability mode가 다른 trace 조회 옵션과 섞이면 storage open 전에 거부함
+- Reader가 미지원 version과 구조·관계 손상을 구분하고 입력 원문을 오류에 포함하지 않음
+- 조회가 event, 파일, project 설정이나 현재 기본 mode를 만들거나 변경하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -809,4 +819,6 @@ Diagnostics report compatibility 경계 정리를 완료했습니다. 세 report
 
 Trace output mode deprecation 계약 첫 슬라이스를 완료했습니다. 0.0.x의 암묵적 full은 기존 stdout을 유지하면서 controlled 경고를 내고, `--full`은 경고 없이 같은 v1을 고정합니다. Bounded 기본값 활성화는 0.1.0 별도 변경으로 남겼습니다. 결정은 [ADR-0081](./docs/adr/0081-trace-output-mode-deprecation.md)에 기록했습니다.
 
-다음 구현 작업은 외부 자동화가 사람용 help나 stderr 문장을 파싱하지 않고 현재 trace 기본값·지원 mode·상한·deprecation code를 알 수 있도록 하는 **machine-readable trace capability report**입니다.
+Machine-readable trace capability report를 완료했습니다. `lervo trace --capabilities`는 저장소를 열지 않고 현재 기본·지원 mode, report version, 실제 page/full/cursor 상한과 구조화된 deprecation을 v1 JSON으로 반환합니다. Reader는 mode 참조와 상한 관계를 검증하며 오류에 입력 원문을 복사하지 않습니다. 결정은 [ADR-0082](./docs/adr/0082-machine-readable-trace-capabilities.md)에 기록했습니다.
+
+다음 구현 작업은 0.1.0 기본 mode 전환 전에 기존 암묵적 full consumer와 새 page consumer를 각각 재현하고 migration 조건을 자동 검증하는 **trace default transition compatibility fixture**입니다. 이 fixture 자체는 package version이나 현재 기본 mode를 바꾸지 않습니다.

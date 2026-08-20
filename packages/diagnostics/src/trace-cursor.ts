@@ -19,6 +19,7 @@ const idPattern = /^(?:prj|run)_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/;
 const hashPattern = /^sha256:[a-f0-9]{64}$/;
 const cursorPattern = /^trc_([A-Za-z0-9_-]+)\.([a-f0-9]{64})$/;
 const eventTypeSet = new Set<string>(eventTypes);
+export const maximumTraceCursorBytes = 2048;
 
 function digest(encoded: string): string {
   return createHash("sha256").update(encoded).digest("hex");
@@ -52,7 +53,7 @@ export function createTraceCursor(payload: TraceCursorPayload): string {
 }
 
 export function decodeTraceCursor(cursor: string): TraceCursorPayload | null {
-  if (cursor.length > 2048) return null;
+  if (Buffer.byteLength(cursor, "utf8") > maximumTraceCursorBytes) return null;
   const match = cursorPattern.exec(cursor);
   if (match === null || digest(match[1]!) !== match[2]) return null;
   try {

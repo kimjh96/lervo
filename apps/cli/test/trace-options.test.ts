@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { parseTraceCommandOptions } from "../src/trace-options.js";
 
 describe("trace command options", () => {
-  it("parses full, filtered page, and cursor requests as separate modes", () => {
+  it("parses capabilities, full, filtered page, and cursor requests as separate modes", () => {
+    expect(parseTraceCommandOptions(["--capabilities"])).toMatchObject({
+      help: false,
+      request: { kind: "capabilities" },
+    });
     expect(parseTraceCommandOptions(["run_01234567", "--json"])).toMatchObject({
       help: false,
       json: true,
@@ -34,6 +38,9 @@ describe("trace command options", () => {
   it.each([
     [["one", "two"], "run ID는 하나만"],
     [["last", "--cursor", "trc_fixture"], "cursor는 run ID"],
+    [["last", "--capabilities"], "capabilities는 run ID"],
+    [["--capabilities", "--root", "."], "capabilities는 run ID"],
+    [["--capabilities", "--page-size", "10"], "capabilities는 run ID"],
     [["--full", "--page-size", "10"], "full은 page-size"],
     [["--full", "--event-type", "run.failed"], "full은 page-size"],
     [["--page-size", "0"], "page-size는 1 이상"],

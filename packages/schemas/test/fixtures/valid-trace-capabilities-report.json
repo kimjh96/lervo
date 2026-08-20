@@ -1,0 +1,60 @@
+[
+  {
+    "name": "trace capabilities report v1",
+    "schema": "traceCapabilitiesReport",
+    "value": {
+      "schemaVersion": 1,
+      "capability": "trace",
+      "defaultMode": "implicit_full",
+      "modes": [
+        {
+          "mode": "implicit_full",
+          "explicit": false,
+          "reportKind": "full",
+          "reportSchemaVersion": 1,
+          "eventTypeFilter": false,
+          "cursorContinuation": false
+        },
+        {
+          "mode": "full",
+          "explicit": true,
+          "reportKind": "full",
+          "reportSchemaVersion": 1,
+          "eventTypeFilter": false,
+          "cursorContinuation": false
+        },
+        {
+          "mode": "page",
+          "explicit": true,
+          "reportKind": "page",
+          "reportSchemaVersion": 1,
+          "eventTypeFilter": true,
+          "cursorContinuation": true
+        },
+        {
+          "mode": "cursor",
+          "explicit": true,
+          "reportKind": "page",
+          "reportSchemaVersion": 1,
+          "eventTypeFilter": false,
+          "cursorContinuation": true
+        }
+      ],
+      "limits": {
+        "defaultPageSize": 50,
+        "maximumPageSize": 100,
+        "maximumFullEventCount": 1000,
+        "maximumCursorBytes": 2048
+      },
+      "deprecations": [
+        {
+          "code": "trace_implicit_full_deprecated",
+          "mode": "implicit_full",
+          "replacementMode": "full",
+          "changesIn": "0.1.0",
+          "nextDefaultMode": "page"
+        }
+      ]
+    }
+  }
+]

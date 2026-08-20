@@ -1,0 +1,28 @@
+[
+  {
+    "name": "trace capabilities limits must be positive integers",
+    "schema": "traceCapabilitiesReport",
+    "value": {
+      "schemaVersion": 1,
+      "capability": "trace",
+      "defaultMode": "page",
+      "modes": [
+        {
+          "mode": "page",
+          "explicit": true,
+          "reportKind": "page",
+          "reportSchemaVersion": 1,
+          "eventTypeFilter": true,
+          "cursorContinuation": true
+        }
+      ],
+      "limits": {
+        "defaultPageSize": 0,
+        "maximumPageSize": 100,
+        "maximumFullEventCount": 1000,
+        "maximumCursorBytes": 2048
+      },
+      "deprecations": []
+    }
+  }
+]
