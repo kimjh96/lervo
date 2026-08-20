@@ -865,6 +865,10 @@ Trace 기본값 전환 fixture는 합성 project의 같은 run에 51개 allowlis
 
 Fixture의 ID, digest와 시각은 고정된 합성 값이며 사용자 저장소나 payload를 복사하지 않습니다. Setup, report reader, 기본 stderr, full/page event 경계나 cursor continuity 중 하나라도 다르면 테스트를 실패시키며 부분 성공을 기록하지 않습니다. Fixture는 runtime mode, package version, event schema와 사용자 project를 변경하는 production 기능이 아닙니다. 결정은 [ADR-0083](./docs/adr/0083-trace-default-transition-fixture.md)에 기록합니다.
 
+`lervo --version`과 `-v`는 project storage나 provider를 열지 않고 CLI package와 함께 배포된 manifest의 semantic version을 `lervo <version>` 한 줄로 반환합니다. Version을 읽거나 검증하지 못하면 manifest 내용이나 경로를 복사하지 않고 `cli_version_unavailable`로 실패합니다. Version 뒤의 추가 인자는 실행하지 않습니다.
+
+전체 검사의 CLI smoke는 build 뒤 `@lervo/cli`와 production workspace dependency closure를 임시 deploy로 조립하고 저장소 밖 cwd에서 설치본의 `dist/bin.js`를 실행합니다. 설치 manifest와 version 출력, trace capability, 초기화한 합성 project의 기본 page와 명시적 full을 설치본의 diagnostics·storage 모듈로 다시 읽습니다. 50/51 page와 cursor 경계는 기존 전환 fixture가 맡고 설치 smoke는 두 event로 package 연결만 검증합니다. 이 검사는 새 telemetry를 만들지 않으며 registry 게시, 전역 shell shim, provider 인증이나 managed run 성공을 주장하지 않습니다. 결정은 [ADR-0085](./docs/adr/0085-installed-cli-smoke-boundary.md)에 기록합니다.
+
 검색 진단 ID는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`입니다. 선택은 운영 resolver와 같은 전체 chain 검증을 사용하고, 정책은 engine·rollout review·action policy의 project 좌표와 결속을 확인합니다. 검토와 조치는 기존 bounded 상태 조회기의 전체 원본 검증을 사용합니다. 정상적으로 비어 있는 범위는 관측 수 0의 `healthy`입니다.
 
 선택이나 정책이 `unhealthy`이면 검토는 `search_rollout_review_unavailable`의 `unknown`이고 조치도 `search_rollout_action_unavailable`의 `unknown`입니다. 검토가 `unhealthy`이면 조치는 `unknown`입니다. 직접 확인한 선택·정책·검토·조치 손상은 각각 `search_engine_selection_invalid`, `search_rollout_policy_invalid`, `search_rollout_review_invalid`, `search_rollout_action_invalid`의 `unhealthy`입니다. 진단은 상태 조회·사전 점검·승인·조치 실행을 대신하지 않고 검색 파일, event와 Hub 원본을 만들지 않습니다.

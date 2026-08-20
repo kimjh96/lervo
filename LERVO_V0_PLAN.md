@@ -758,6 +758,18 @@ Trace bounded-default 0.1.0 release 전환 완료 조건:
 - Help와 별도 migration 문서가 기본 page, `--full`, cursor stale 의미를 설명함
 - 이전 report schema, event 원본과 project 상태를 변경하지 않음
 
+설치된 CLI 0.1.0 smoke fixture 완료 조건:
+
+- `lervo --version`이 project storage 없이 CLI package manifest의 semantic version을 한 줄로 반환함
+- 전체 build 뒤 CLI와 production workspace dependency closure를 임시 deploy로 조립함
+- 저장소 밖 cwd에서 설치본 `dist/bin.js`와 설치본 diagnostics·project-storage만 사용함
+- 루트·source CLI·설치 manifest version과 `bin.lervo` 좌표가 같지 않으면 실패함
+- 설치본 capability가 기본 page와 빈 deprecation을, 실제 기본 trace가 status 없는 page v1을 반환함
+- 설치본의 명시적 `--full`이 같은 합성 event를 가진 completed full v1을 반환함
+- 기존 51-event fixture와 책임을 중복하지 않고 package 연결용 두 event만 사용함
+- `pnpm check`가 build 뒤 smoke를 실행하고 성공·실패 모두 임시 설치와 project를 제거함
+- Registry 게시·다운로드, 전역 shell shim과 provider 실행을 검증했다고 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -844,4 +856,6 @@ Trace default transition compatibility fixture를 완료했습니다. 기본 pag
 
 Trace bounded-default 0.1.0 release 전환을 완료했습니다. 인자 없는 trace는 기본 50개 page를 반환하고 전체 v1은 `--full`에서 유지합니다. Capability와 전환 fixture, help, 별도 migration 안내를 현재 동작에 맞췄으며 루트와 55개 workspace package version을 0.1.0으로 함께 올렸습니다. 결정은 [ADR-0084](./docs/adr/0084-trace-bounded-default-release.md)에 기록했습니다.
 
-다음 구현 작업은 source test뿐 아니라 설치 가능한 CLI build에서 version과 bounded trace 기본값을 검증하는 **packaged CLI 0.1.0 smoke fixture**입니다.
+설치된 CLI 0.1.0 smoke fixture를 완료했습니다. CLI version은 배포 manifest를 단일 원본으로 사용하고, 전체 build 뒤 임시 production deploy의 실제 `dist/bin.js`와 설치된 runtime dependency로 capability·기본 page·명시적 full을 검증합니다. 51-event 경계 fixture는 중복하지 않으며 registry 게시나 provider 실행은 주장하지 않습니다. 결정은 [ADR-0085](./docs/adr/0085-installed-cli-smoke-boundary.md)에 기록했습니다.
+
+다음 구현 작업은 CLI 배포 archive의 포함 파일, production dependency closure와 checksum을 고정하는 **release artifact manifest 검사**입니다.

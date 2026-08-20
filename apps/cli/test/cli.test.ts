@@ -21,6 +21,43 @@ afterEach(async () => {
   );
 });
 
+describe("lervo CLI identity", () => {
+  it("reports the CLI package version without opening project storage", async () => {
+    let output = "";
+    let errors = "";
+    let storageOpened = false;
+    const exitCode = await runCli(
+      ["--version"],
+      {
+        cwd: "/missing/repository/is-not-required",
+        stdout: (message) => { output += message; },
+        stderr: (message) => { errors += message; },
+      },
+      {
+        openProjectStorage: async () => {
+          storageOpened = true;
+          throw new Error("storage must not open");
+        },
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(output).toMatch(/^lervo \d+\.\d+\.\d+\n$/);
+    expect(errors).toBe("");
+    expect(storageOpened).toBe(false);
+  });
+
+  it("rejects extra version arguments", async () => {
+    let errors = "";
+    expect(await runCli(["--version", "extra"], {
+      cwd: process.cwd(),
+      stdout: () => undefined,
+      stderr: (message) => { errors += message; },
+    })).toBe(1);
+    expect(errors).toContain("다른 인자를 함께 사용할 수 없습니다");
+  });
+});
+
 describe("lervo init CLI", () => {
   it("prints the exact creation plan without mutating on dry-run", async () => {
     const root = await temporaryRepository();

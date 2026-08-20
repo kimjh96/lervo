@@ -8,8 +8,10 @@ import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
+import { runVersionCommand, versionUsage } from "./version-command.js";
 
 const usage = `사용법:
+${versionUsage}
 ${initUsage}
 ${runUsage}
 ${traceUsage}
@@ -33,6 +35,9 @@ export async function runCli(
   if (command === "--help" || command === "-h" || command === undefined) {
     io.stdout(usage);
     return command === undefined ? 1 : 0;
+  }
+  if (command === "--version" || command === "-v") {
+    return runVersionCommand(args.slice(1), io);
   }
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
