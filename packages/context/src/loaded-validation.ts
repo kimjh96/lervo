@@ -13,7 +13,7 @@ import {
   type LoadedContext,
 } from "./types.js";
 
-type PlanEvidence = Extract<ContextEvidence, { state: "discovered" | "selected" }>;
+type PlanEvidence = Extract<ContextEvidence, { state: "discovered" | "recommended" | "selected" }>;
 type LoadedEvidence = Extract<ContextEvidence, { state: "loaded" }>;
 
 function invalid(message: string, cause?: unknown): never {
@@ -66,6 +66,16 @@ function planEvidenceEqual(
   }
   if (left.state === "discovered" && right.state === "discovered") {
     return left.path === right.path;
+  }
+  if (left.state === "recommended" && right.state === "recommended") {
+    return left.recommendationId === right.recommendationId &&
+      left.batchId === right.batchId && left.sourceAttemptId === right.sourceAttemptId &&
+      left.engineId === right.engineId && left.engineVersion === right.engineVersion &&
+      left.indexId === right.indexId && left.resultSetHash === right.resultSetHash &&
+      left.sourceContentHash === right.sourceContentHash && left.rank === right.rank &&
+      left.score === right.score && left.selectionPolicyId === right.selectionPolicyId &&
+      left.selectionPolicyVersion === right.selectionPolicyVersion &&
+      left.selectionMaximum === right.selectionMaximum;
   }
   return (
     left.state === "selected" &&
@@ -158,11 +168,12 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
   }
 
   if (loaded.evidence.length !== loaded.plan.evidence.length + loaded.documents.length) {
-    invalid("LoadedContext evidence 수가 E0/E1/E2 체인과 다릅니다.");
+    invalid("LoadedContext evidence 수가 discovery/recommendation/E1/E2 체인과 다릅니다.");
   }
   for (const evidence of loaded.plan.evidence) {
-    if (evidence.state !== "discovered" && evidence.state !== "selected") {
-      invalid(`Context plan에는 E0/E1 evidence만 포함할 수 있습니다: ${evidence.receiptId}`);
+    if (evidence.state !== "discovered" && evidence.state !== "recommended" &&
+      evidence.state !== "selected") {
+      invalid(`Context plan에는 discovery·recommendation·E1 evidence만 포함할 수 있습니다: ${evidence.receiptId}`);
     }
     if (!planEvidenceEqual(evidence, evidenceById.get(evidence.receiptId))) {
       invalid(`Context plan evidence가 변경되었습니다: ${evidence.receiptId}`);

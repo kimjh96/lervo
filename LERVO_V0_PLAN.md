@@ -333,7 +333,7 @@ fixtures/
 6. Hub command/approval 대화 UX — 완료
 7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장 — 완료
 8. 명시적 관계 기반 지식 그래프 시각화 — 완료
-9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1` 첫 슬라이스 완료, 도입 판단 보류
+9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1`·managed context 추천 연결 첫 슬라이스 완료, 도입 판단 보류
 10. 조직 단위 비용·품질·가드레일 분석
 
 Conversation 첫 슬라이스 완료 조건:
@@ -397,6 +397,19 @@ Hub command/approval 대화 UX 완료 조건:
 - Report는 미평가를 분리하고 실패 사유를 집계하지만 `embeddingDecision=not_determined`를 유지함
 - 로컬 query·assessment·report가 Hub와 새 실행 event 없이 완료됨
 
+검색 추천과 managed context 연결 첫 슬라이스 완료 조건:
+
+- Search attempt와 document hit 최대 5개, `top_ranked-v1`의 최대 3개 선택을 content-bound recommendation·batch ID로 결속함
+- Context input이 최대 8개 batch·전체 50개 추천을 받고 project·시각·registry·중복·원본 attempt 관계를 모두 검증함
+- 모든 입력 hit는 `recommended` evidence를 갖지만 policy가 선택한 recommendation ID만 `search_recommendation` E1이 됨
+- 선택되지 않은 추천은 plan 필수 문서, E2·E3와 쓰기 gate에 포함하지 않음
+- 선택된 추천의 검색 당시 content hash와 현재 bytes가 다르면 다른 선택 이유와 섞어 부분 적재하지 않음
+- `context.recommended`, `context.selected`, `document.loaded`, `context.injected`를 각각 별도 evidence·event로 보존하고 `used`를 추정하지 않음
+- 추천 event에는 query·digest·path·title·label·본문·prompt·provider 응답을 넣지 않고 필수 ID·hash·rank·score·policy 좌표만 허용함
+- 로컬 managed run이 provider 시작 전 attempt를 저장하고 결과의 attempt·선택 document ID로 별도 명시적 assessment를 받을 수 있음
+- 긴 작업 문장은 최대 32개 단어·500자로 결정적으로 투영하고 검색 가능 단어가 없을 때만 예상 경로를 사용해 보조 검색 한도 때문에 run을 깨뜨리지 않음
+- 자동 선택, run·verification 성공이나 결과 수로 검색 품질 assessment와 임베딩 필요성을 만들지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -421,4 +434,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 결정적 어휘 검색과 명시적 실패 관측 첫 슬라이스를 완료했습니다. `@lervo/search`는 등록 원본 hash에 결속된 `lexical-v1` index와 순위를 재현하고 `@lervo/search-local`은 안전하게 읽은 로컬 문서와 query 원문 없는 attempt·별도 assessment를 연결합니다. `lervo search`, `search assess`, `search report`는 빈 결과를 자동 실패로 만들지 않고 명시적으로 평가된 사유만 집계하며 임베딩 판단을 미결정으로 유지합니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)에 기록했습니다.
 
-다음 구현 작업은 검색 hit를 곧바로 필수 context로 주입하는 일이 아닙니다. Managed context preparation이 bounded 검색 추천을 입력으로 받을 수 있는 별도 port와 `search_recommendation` 선택 근거를 연결하고, 추천됨·선택됨·로드됨·주입됨을 각각 증명하도록 수직 슬라이스를 확장합니다. 그 과정에서 실제 run의 검색 평가를 축적한 뒤에만 lexical baseline과 의미 검색 후보를 같은 검증 묶음으로 비교합니다.
+검색 추천과 managed context 연결 첫 슬라이스를 완료했습니다. Search attempt를 포함한 bounded recommendation batch가 document hit와 `top_ranked-v1` 선택을 다시 검증하고, context preparation은 모든 추천과 실제 선택·적재·주입을 서로 다른 evidence와 event로 남깁니다. 로컬 managed run은 provider를 시작하기 전에 attempt를 기록하고 결과에 별도 assessment용 ID를 표시합니다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)에 기록했습니다.
+
+다음 구현 작업은 자동 선택 수를 늘리거나 임베딩을 붙이는 일이 아닙니다. 실제 managed run의 attempt에 사람 또는 독립 verification의 기대 원본·수락·실패 사유를 연결해 대표 평가 묶음을 만들고, 동일한 평가 입력으로 현재 lexical baseline을 반복 측정하는 경계를 먼저 추가합니다. 충분한 평가가 쌓인 뒤에만 다른 검색 후보를 같은 기준으로 비교합니다.

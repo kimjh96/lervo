@@ -1,7 +1,7 @@
 import type { DocumentRegistry } from "@lervo/schemas";
 
 import { repositoryFileExists } from "./filesystem.js";
-import { documentIdForPath, instructionPathsFor } from "./paths.js";
+import { compareCanonicalText, documentIdForPath, instructionPathsFor } from "./paths.js";
 import {
   type ContextDocumentCandidate,
   ContextPreparationError,
@@ -31,7 +31,7 @@ export function candidatesFromRegistry(
   registry: DocumentRegistry,
 ): ContextDocumentCandidate[] {
   return [...registryCandidates(registry).values()].sort((left, right) =>
-    left.path.localeCompare(right.path),
+    compareCanonicalText(left.path, right.path),
   );
 }
 

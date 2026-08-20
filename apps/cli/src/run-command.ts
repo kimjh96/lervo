@@ -24,6 +24,11 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
       .map((skill) => `  ${skill.skillId}@${skill.version} (${skill.sourceKind})`)
       .join("\n");
   const publication = outcome.writingPublication;
+  const acceptedAssessment = outcome.searchContext.selectedDocumentIds.length === 0
+    ? null
+    : `lervo search assess ${outcome.searchContext.attemptId} --outcome accepted ${
+      outcome.searchContext.selectedDocumentIds.map((id) => `--selected document:${id}`).join(" ")
+    }`;
   const lines = [
     `Managed run을 완료했습니다. provider: ${outcome.provider}`,
     `runId: ${outcome.runId}`,
@@ -32,6 +37,16 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
     "스킬 해석 결과:",
     skills,
     "이 기록은 스킬을 호출하거나 사용했다는 뜻이 아닙니다.",
+    `검색 맥락: ${outcome.searchContext.attemptId} · 추천 ${
+      outcome.searchContext.recommendedDocuments
+    }개 · 선택 ${
+      outcome.searchContext.selectedDocuments
+    }개`,
+    "선택된 검색 추천만 이후 적재·주입 대상으로 처리합니다.",
+    `검색에서 선택한 문서: ${outcome.searchContext.selectedDocumentIds.join(", ") || "없음"}`,
+    acceptedAssessment === null
+      ? `검색 결과를 확인한 뒤 평가하려면: lervo search assess ${outcome.searchContext.attemptId} --outcome failed --reason <reason>`
+      : `수락으로 평가하려면: ${acceptedAssessment}`,
     `기능 검증: ${
       outcome.verificationStatus === "passed"
         ? "통과"

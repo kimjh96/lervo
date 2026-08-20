@@ -6,6 +6,7 @@ import {
   type ContextSelectionReason,
   type PlannedContextDocument,
 } from "./types.js";
+import { compareCanonicalText } from "./paths.js";
 
 const reasonOrder: Record<SelectionReasonCode, number> = {
   explicit_instruction: 0,
@@ -77,7 +78,7 @@ export class ContextSelectionAccumulator {
 
   discoveries(): ContextDocumentCandidate[] {
     return [...this.discovered.values()].sort((left, right) =>
-      left.path.localeCompare(right.path),
+      compareCanonicalText(left.path, right.path),
     );
   }
 
@@ -92,7 +93,7 @@ export class ContextSelectionAccumulator {
           reasons: [...document.reasons].sort(
             (left, right) =>
               reasonOrder[left.reasonCode] - reasonOrder[right.reasonCode] ||
-              left.ruleId.localeCompare(right.ruleId),
+              compareCanonicalText(left.ruleId, right.ruleId),
           ),
           sharedContextIds: [...document.sharedContextIds].sort(),
         };
@@ -100,6 +101,6 @@ export class ContextSelectionAccumulator {
           ? common
           : { ...common, expectedContentHash: document.expectedContentHash };
       })
-      .sort((left, right) => left.path.localeCompare(right.path));
+      .sort((left, right) => compareCanonicalText(left.path, right.path));
   }
 }

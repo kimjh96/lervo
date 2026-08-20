@@ -4,6 +4,8 @@ import {
   createSearchAssessment,
   createSearchAttempt,
   createSearchQualityReport,
+  createSearchRecommendationBatch,
+  assertSearchRecommendationBatch,
   LexicalSearchIndex,
   type SearchSourceInput,
 } from "../src/index.js";
@@ -164,5 +166,27 @@ describe("deterministic lexical search baseline", () => {
       outcome: "accepted",
       selectedSources: [{ sourceKind: "skill", sourceId: attempt.hits[0]!.sourceId }],
     })).toThrow(/대상 시도/);
+  });
+
+  it("creates a bounded recommendation batch and keeps selection distinct", () => {
+    const attempt = createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:00.000Z"),
+      nonce: "6".repeat(32),
+      response: new LexicalSearchIndex(sources()).search("문서 복구"),
+    });
+    const batch = createSearchRecommendationBatch({
+      attempt,
+      recommendationLimit: 2,
+      maximumSelections: 1,
+    });
+
+    expect(batch.recommendations).toHaveLength(2);
+    expect(batch.selectedRecommendationIds).toEqual([batch.recommendations[0]!.recommendationId]);
+    expect(JSON.stringify(batch.recommendations)).not.toContain("문서 복구");
+    expect(() => assertSearchRecommendationBatch({
+      ...batch,
+      selectedRecommendationIds: [batch.recommendations[1]!.recommendationId],
+    })).toThrow(/원본 검색 시도/);
   });
 });

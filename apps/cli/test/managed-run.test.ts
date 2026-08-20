@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -21,6 +21,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
 import { runCli } from "../src/main.js";
+import { registerSearchContextDocument } from "./search-context-fixture.js";
 
 const CLAUDE_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CLAUDE_TURN_ID = "22222222-2222-4222-8222-222222222222";
@@ -345,6 +346,7 @@ describe("lervo run vertical slice", () => {
     "runs one managed %s change through project storage and the production adapter",
     async (provider) => {
       const root = await createRepository();
+      await registerSearchContextDocument(root);
       const client =
         provider === "codex"
           ? new ManagedCodexClient(root)
@@ -389,6 +391,9 @@ describe("lervo run vertical slice", () => {
       expect(output).toContain("기능 검증: 통과");
       expect(output).toContain("project.default: passed");
       expect(output).toContain("Writing 공개 검증: 통과");
+      expect(output).toContain("추천 1개 · 선택 1개");
+      expect(output).toContain("검색에서 선택한 문서: doc_cli_search_context");
+      expect(output).toContain("--selected document:doc_cli_search_context");
       expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
         .toBe("export const cli = true;\n");
       expect(client.closed).toBe(true);
@@ -400,12 +405,28 @@ describe("lervo run vertical slice", () => {
       expect(events.map((event) => event.type)).toContain("verification.started");
       expect(events.map((event) => event.type)).toContain("verification.completed");
       expect(events.map((event) => event.type)).toContain("run.completed");
+      const recommendation = events.find((event) => event.type === "context.recommended");
+      expect(recommendation?.payload).toMatchObject({
+        documentId: "doc_cli_search_context",
+        selectionPolicyId: "top_ranked",
+      });
       expect(events.find((event) => event.type === "run.completed")?.payload)
         .toMatchObject({ verificationStatus: "passed" });
       const serialized = JSON.stringify(events);
       expect(serialized).not.toContain("작은 파일을 구현합니다");
       expect(serialized).not.toContain("CLI 작업 완료");
       expect(serialized).not.toContain("private fixture diff");
+      expect(serialized).not.toContain("docs/search-context.md");
+      const sourceAttemptId = recommendation?.payload.sourceAttemptId as string;
+      const searchAttempt = await readFile(
+        resolve(root, ".lervo/state/search/attempts", `${sourceAttemptId}.json`),
+        "utf8",
+      );
+      expect(searchAttempt).not.toContain("작은 파일을 구현합니다");
+      expect(searchAttempt).not.toContain("docs/search-context.md");
+      await expect(access(
+        resolve(root, ".lervo/state/search/assessments", `${sourceAttemptId}.json`),
+      )).rejects.toThrow();
     },
   );
 

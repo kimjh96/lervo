@@ -43,6 +43,35 @@ function validateDocumentEvidence(
   }
 }
 
+function validateRecommendationEvidence(plan: ContextPlan): void {
+  const recommendedEvidence = plan.evidence.filter((item) => item.state === "recommended");
+  const recommendations = new Map(
+    recommendedEvidence.map((item) => [item.recommendationId, item]),
+  );
+  if (recommendations.size !== recommendedEvidence.length) {
+    invalid("Context plan에 중복 검색 추천 evidence가 있습니다.");
+  }
+  for (const recommendation of recommendations.values()) {
+    const discovered = plan.evidence.some(
+      (item) => item.state === "discovered" && item.documentId === recommendation.documentId,
+    );
+    if (!discovered) invalid(`검색 추천 문서의 E0 discovery가 없습니다: ${recommendation.documentId}`);
+  }
+  for (const document of plan.documents) {
+    for (const reason of document.reasons) {
+      if (reason.reasonCode !== "search_recommendation") continue;
+      const prefix = "search_recommendation:";
+      const recommendation = reason.ruleId.startsWith(prefix)
+        ? recommendations.get(reason.ruleId.slice(prefix.length))
+        : undefined;
+      if (recommendation === undefined || recommendation.documentId !== document.documentId ||
+        recommendation.sourceContentHash !== document.expectedContentHash) {
+        invalid(`검색 추천 선택 근거가 plan 문서와 다릅니다: ${document.documentId}`);
+      }
+    }
+  }
+}
+
 export function validateContextPlanForLoading(plan: ContextPlan): void {
   const documentIds = new Set<string>();
   const paths = new Set<string>();
@@ -58,8 +87,9 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
   }
 
   for (const evidence of plan.evidence) {
-    if (evidence.state !== "discovered" && evidence.state !== "selected") {
-      invalid(`Context plan에는 E0/E1 evidence만 포함할 수 있습니다: ${evidence.receiptId}`);
+    if (evidence.state !== "discovered" && evidence.state !== "recommended" &&
+      evidence.state !== "selected") {
+      invalid(`Context plan에는 discovery·recommendation·E1 evidence만 포함할 수 있습니다: ${evidence.receiptId}`);
     }
     if (
       evidence.projectId !== plan.coordinates.projectId ||
@@ -92,4 +122,5 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
   for (const document of plan.documents) {
     validateDocumentEvidence(plan, document, plan.evidence);
   }
+  validateRecommendationEvidence(plan);
 }

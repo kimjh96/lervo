@@ -7,6 +7,7 @@ import type {
   SelectionReasonCode,
   SharedContextPublication,
 } from "@lervo/schemas";
+import type { SearchRecommendationBatch } from "@lervo/search";
 
 export interface ContextRunCoordinates {
   projectId: string;
@@ -60,6 +61,7 @@ export interface CreateContextPlanInput {
   instructionDocuments: readonly ContextDocumentCandidate[];
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
+  recommendationBatches?: readonly SearchRecommendationBatch[];
   policyVersion: string;
   recordedAt: Date;
   createReceiptId?: () => string;
@@ -126,6 +128,7 @@ export type ContextPreparationErrorCode =
   | "invalid_loaded_context"
   | "invalid_context_plan"
   | "invalid_path_rule"
+  | "invalid_search_recommendation"
   | "receipt_id_conflict"
   | "required_rule_unresolved"
   | "shared_context_document_missing"

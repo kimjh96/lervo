@@ -12,9 +12,14 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
+import {
+  contextRecommendationProperties,
+  contextRecommendationRequired,
+} from "./context-recommendation.js";
 
 export const contextEvidenceStates = [
   "discovered",
+  "recommended",
   "selected",
   "loaded",
   "injected",
@@ -63,6 +68,16 @@ export const contextEvidenceSchema = {
         path: { type: "string", minLength: 1 },
       },
       required: [...commonRequired, "path"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        ...commonProperties,
+        ...contextRecommendationProperties,
+        state: { const: "recommended" },
+      },
+      required: [...commonRequired, ...contextRecommendationRequired],
       additionalProperties: false,
     },
     {

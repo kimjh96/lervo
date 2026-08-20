@@ -141,6 +141,36 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify([loaded.payload, injected.payload])).not.toContain("private body");
   });
 
+  it("keeps bounded search recommendation evidence without query or source path", () => {
+    const recommendation = {
+      recommendationId: "srec_aaaaaaaaaaaaaaaaaaaaaaaa",
+      batchId: "srb_bbbbbbbbbbbbbbbbbbbbbbbb",
+      sourceAttemptId: "sat_cccccccccccccccccccccccc",
+      engineId: "lexical",
+      engineVersion: 1,
+      indexId: "sidx_dddddddddddddddddddddddd",
+      resultSetHash: `sha256:${"e".repeat(64)}`,
+      documentId: "doc_context_00000001",
+      sourceContentHash: `sha256:${"f".repeat(64)}`,
+      rank: 1,
+      score: 12,
+      selectionPolicyId: "top_ranked",
+      selectionPolicyVersion: 1,
+      selectionMaximum: 3,
+    };
+    const result = sanitizeEventPayload("context.recommended", {
+      ...recommendation,
+      rawQuery: "private query",
+      sourcePath: "private/path.md",
+    });
+
+    expect(result.payload).toEqual(recommendation);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    const { sourceAttemptId: _missing, ...incomplete } = recommendation;
+    expect(() => sanitizeEventPayload("context.recommended", incomplete))
+      .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("keeps migration hashes but removes reviewer and source path details", () => {
     const result = sanitizeEventPayload("document.migration.applied", {
       planId: "migp_aaaaaaaaaaaaaaaa",

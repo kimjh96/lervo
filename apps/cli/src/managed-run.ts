@@ -23,6 +23,11 @@ import {
 } from "@lervo/writing";
 
 import { createDeveloperRole } from "./developer-role.js";
+import {
+  prepareManagedSearchContext,
+  summarizeManagedSearchContext,
+  type ManagedSearchContextSummary,
+} from "./managed-search-context.js";
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
 import {
   prepareRunVerification,
@@ -52,6 +57,7 @@ export interface ManagedRunOutcome {
   verificationStatus: "passed" | "failed" | "not_run";
   verifications: readonly ManagedProjectVerification[];
   resolvedSkills: readonly ResolvedRunSkill[];
+  searchContext: ManagedSearchContextSummary;
 }
 
 export interface ManagedRunDependencies {
@@ -65,6 +71,7 @@ export interface ManagedRunDependencies {
   userSkillRoot?: string;
   semanticEvaluator?: WritingSemanticEvaluator;
   now?: () => Date;
+  createSearchNonce?: () => string;
   prepareVerification?(input: {
     repositoryRoot: string;
     suiteIds: readonly string[];
@@ -149,6 +156,16 @@ export function createManagedRunExecutor(
       const policyVersion = digest(JSON.stringify(role));
       const runId = dependencies.createId("run");
       const sessionId = dependencies.createId("ses");
+      const searchContext = await prepareManagedSearchContext({
+        repositoryRoot: storage.paths.repositoryRoot,
+        projectId: storage.manifest.projectId,
+        observedAt: dependencies.now?.() ?? new Date(),
+        query: instructions,
+        fallbackQuery: expectedPath,
+        ...(dependencies.createSearchNonce === undefined
+          ? {}
+          : { nonce: dependencies.createSearchNonce() }),
+      });
       const adapter = dependencies.createAdapter({
         provider: request.provider,
         repositoryRoot: storage.paths.repositoryRoot,
@@ -181,6 +198,7 @@ export function createManagedRunExecutor(
           documentRules: {},
           publications: [],
           handoffs: [],
+          recommendationBatches: [searchContext.recommendationBatch],
           createReceiptId: () => dependencies.createId("ctx"),
         },
         writingPolicy: null,
@@ -212,6 +230,10 @@ export function createManagedRunExecutor(
         verificationStatus: result.verificationStatus,
         verifications: result.verifications,
         resolvedSkills,
+        searchContext: summarizeManagedSearchContext(
+          searchContext.attempt.attemptId,
+          result.contextEvidence,
+        ),
       };
     } catch (error) {
       executionFailure = error;

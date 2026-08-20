@@ -3,6 +3,10 @@ import { isAbsolute, posix, resolve, win32 } from "node:path";
 
 import { ContextPreparationError } from "./types.js";
 
+export function compareCanonicalText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export function normalizeRepositoryPath(path: string): string {
   const normalizedSeparators = path.replaceAll("\\", "/");
   if (
@@ -48,6 +52,6 @@ export function instructionPathsFor(expectedPaths: readonly string[]): string[] 
   }
   return [...paths].sort((left, right) => {
     const depth = left.split("/").length - right.split("/").length;
-    return depth === 0 ? left.localeCompare(right) : depth;
+    return depth === 0 ? compareCanonicalText(left, right) : depth;
   });
 }

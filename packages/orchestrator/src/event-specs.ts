@@ -5,10 +5,12 @@ import type { CapabilityDecision } from "@lervo/schemas";
 
 import type { FileChangeRecord } from "./types.js";
 import type { ManagedEventSpec } from "./telemetry.js";
+import { recommendedContextEventSpecs } from "./recommendation-event-spec.js";
 
 const systemActor = { kind: "system" } as const;
 
 export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSpec[] {
+  const recommended = recommendedContextEventSpecs(loaded);
   const selected = loaded.plan.evidence
     .filter((evidence) => evidence.state === "selected")
     .map(
@@ -42,7 +44,7 @@ export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSp
         },
       }),
     );
-  return [...selected, ...loadedEvents];
+  return [...recommended, ...selected, ...loadedEvents];
 }
 
 export function injectedContextEventSpec(injected: InjectedContext): ManagedEventSpec {

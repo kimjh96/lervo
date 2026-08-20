@@ -12,6 +12,10 @@ import { candidatesFromRegistry } from "./discovery.js";
 import { ContextEvidenceCollector, defaultReceiptId } from "./evidence.js";
 import { normalizeRepositoryPath } from "./paths.js";
 import {
+  applySearchRecommendationBatches,
+  recordSearchRecommendationEvidence,
+} from "./recommendations.js";
+import {
   type ContextDocumentCandidate,
   type ContextPlan,
   ContextPreparationError,
@@ -176,6 +180,14 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     }
   }
 
+  const recommendations = applySearchRecommendationBatches({
+    batches: input.recommendationBatches ?? [],
+    coordinates: input.coordinates,
+    recordedAt: input.recordedAt,
+    candidates,
+    accumulator,
+  });
+
   const documents = accumulator.documents();
   const createReceiptId = input.createReceiptId ?? defaultReceiptId;
   const evidence = new ContextEvidenceCollector();
@@ -192,6 +204,13 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
       path: candidate.path,
     });
   }
+  recordSearchRecommendationEvidence({
+    applied: recommendations,
+    coordinates: input.coordinates,
+    recordedAt,
+    createReceiptId,
+    evidence,
+  });
   for (const document of documents) {
     for (const reason of document.reasons) {
       evidence.add({

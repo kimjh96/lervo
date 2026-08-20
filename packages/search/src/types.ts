@@ -99,13 +99,43 @@ export interface SearchQualityReport {
   embeddingDecision: "not_determined";
 }
 
+export interface SearchRecommendation {
+  schemaVersion: 1;
+  recommendationId: string;
+  batchId: string;
+  sourceAttemptId: string;
+  engine: typeof SEARCH_ENGINE;
+  indexId: string;
+  resultSetHash: string;
+  sourceKind: "document";
+  documentId: string;
+  sourceContentHash: string;
+  rank: number;
+  score: number;
+}
+
+export interface SearchRecommendationBatch {
+  schemaVersion: 1;
+  batchId: string;
+  attempt: SearchAttempt;
+  recommendationLimit: number;
+  selectionPolicy: {
+    id: "top_ranked";
+    version: 1;
+    maximumSelections: number;
+  };
+  recommendations: SearchRecommendation[];
+  selectedRecommendationIds: string[];
+}
+
 export type SearchErrorCode =
   | "assessment_conflict"
   | "corpus_invalid"
   | "corpus_limit_exceeded"
   | "invalid_assessment"
   | "invalid_attempt"
-  | "invalid_query";
+  | "invalid_query"
+  | "invalid_recommendation";
 
 export class SearchError extends Error {
   constructor(readonly code: SearchErrorCode, message: string, options?: ErrorOptions) {

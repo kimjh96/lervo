@@ -18,6 +18,9 @@ export async function prepareContext(input: PrepareContextInput): Promise<Loaded
     instructionDocuments,
     publications: input.publications,
     handoffs: input.handoffs,
+    ...(input.recommendationBatches === undefined
+      ? {}
+      : { recommendationBatches: input.recommendationBatches }),
     policyVersion: input.policyVersion,
     recordedAt: input.recordedAt,
     ...(input.createReceiptId === undefined

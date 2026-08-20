@@ -204,6 +204,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      '@lervo/search':
+        specifier: workspace:*
+        version: link:../search
 
   packages/context-delivery:
     dependencies:

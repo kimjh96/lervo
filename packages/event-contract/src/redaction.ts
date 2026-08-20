@@ -19,6 +19,22 @@ export const eventPayloadAllowlists = {
   "run.resolved": ["role", "risk", "policyVersion"],
   "run.completed": ["resultDigest", "artifactIds", "verificationStatus"],
   "run.failed": ["failureCode", "retryable", "diagnosticDigest"],
+  "context.recommended": [
+    "recommendationId",
+    "batchId",
+    "sourceAttemptId",
+    "engineId",
+    "engineVersion",
+    "indexId",
+    "resultSetHash",
+    "documentId",
+    "sourceContentHash",
+    "rank",
+    "score",
+    "selectionPolicyId",
+    "selectionPolicyVersion",
+    "selectionMaximum"
+  ],
   "context.selected": ["documentId", "reasonCode", "ruleId", "required", "scope"],
   "document.loaded": [
     "evidenceReceiptId",
@@ -376,6 +392,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "context.recommended": "contextRecommendationEventPayload",
   "run.completed": "runCompletedEventPayload",
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",

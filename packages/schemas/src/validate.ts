@@ -2,6 +2,7 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 
 import { adapterContractMessageSchema } from "./adapter.js";
 import { contextEvidenceSchema } from "./context-evidence.js";
+import { contextRecommendationEventPayloadSchema } from "./context-recommendation.js";
 import { conversationAdapterDescriptorSchema } from "./conversation.js";
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
@@ -169,6 +170,7 @@ const validators = {
     legacyRegistryMigrationApplyReceiptSchema,
   ),
   contextEvidence: ajv.compile(contextEvidenceSchema),
+  contextRecommendationEventPayload: ajv.compile(contextRecommendationEventPayloadSchema),
   conversationAdapterDescriptor: ajv.compile(conversationAdapterDescriptorSchema),
   conversationInboundEvent: ajv.compile(conversationInboundEventSchema),
   conversationParticipationPolicy: ajv.compile(conversationParticipationPolicySchema),

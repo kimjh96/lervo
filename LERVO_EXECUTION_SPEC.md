@@ -159,7 +159,7 @@ Context preparation은 E1 계획과 E2 적재를 분리합니다. 입력은 proj
 
 같은 문서가 여러 규칙에 걸리면 문서는 한 번만 읽되 E1 선택 이유는 각각 보존합니다. 첫 슬라이스는 선택한 범위를 모두 `full`로 취급합니다. Registry에 없는 `AGENTS.md`는 정규화한 경로 hash로 안정된 document ID를 만들며, 일반 registry 문서와 shared context 원문은 등록된 ID를 사용합니다. 중복 문서 경로, shared context ID와 handoff ID는 계약 오류입니다.
 
-E1에는 선택 이유, rule ID, 필수 여부, scope와 정책 version만 있습니다. E2 loader는 plan이 현재 project/run/session의 E0/E1만 포함하고 모든 문서·선택 이유와 대응하는지 먼저 확인합니다. 다른 run의 receipt나 이미 만들어진 E2/E3를 넣은 plan은 `invalid_context_plan`으로 거부합니다. 그 뒤 각 파일을 전체 bytes로 읽고 SHA-256, byte count, source revision을 기록합니다. Handoff 문서는 publication의 hash와 현재 bytes가 일치해야 합니다. 한 문서라도 없거나 안전하지 않거나 읽는 중 바뀌거나 예상 hash와 다르면 적재 결과와 E2 묶음을 반환하지 않습니다. 사용자 문서를 수정하거나 timestamp를 갱신하지 않습니다.
+E1에는 선택 이유, rule ID, 필수 여부, scope와 정책 version만 있습니다. E2 loader는 plan이 현재 project/run/session의 discovery·recommendation·E1만 포함하고 모든 문서·선택 이유와 대응하는지 먼저 확인합니다. 다른 run의 receipt나 이미 만들어진 E2/E3를 넣은 plan은 `invalid_context_plan`으로 거부합니다. 그 뒤 각 파일을 전체 bytes로 읽고 SHA-256, byte count, source revision을 기록합니다. Handoff 문서는 publication의 hash와 현재 bytes가 일치해야 합니다. 한 문서라도 없거나 안전하지 않거나 읽는 중 바뀌거나 예상 hash와 다르면 적재 결과와 E2 묶음을 반환하지 않습니다. 사용자 문서를 수정하거나 timestamp를 갱신하지 않습니다.
 
 적재 뒤 snapshot 검사는 다음 사유를 `context.invalidated`의 reason으로 사용할 수 있습니다.
 
@@ -197,6 +197,7 @@ Lervo는 아래 상태를 분리합니다.
 | 수준 | 상태 | 증거 | 의미 |
 |---|---|---|---|
 | E0 | discovered | 경로와 metadata | 문서의 존재를 발견함 |
+| 보조 | recommended | 검색 attempt·index·순위·정책 좌표 | 선택 후보로 추천됐지만 아직 E1은 아님 |
 | E1 | selected | reason code, rule/policy version | 이번 작업에 필요하다고 판정함 |
 | E2 | loaded | content hash, byte count, timestamp | 현재 원문 바이트를 실제로 읽음 |
 | E3 | injected | adapter receipt, target turn/session | 모델 입력 컨텍스트에 전달함 |
@@ -239,10 +240,11 @@ Session의 project/run/session/role 좌표는 E2와 같아야 합니다. Writing
 
 ### Managed context telemetry와 쓰기 gate
 
-Orchestrator는 준비가 성공하면 모든 E1 `context.selected`와 E2 `document.loaded`를 한 transaction에 기록합니다. E3는 검증된 aggregate adapter receipt를 받은 뒤 `context.injected`로 기록합니다. 이 기록이 commit된 뒤에만 메모리 evidence를 전진시킵니다.
+Orchestrator는 준비가 성공하면 모든 검색 추천 `context.recommended`, E1 `context.selected`와 E2 `document.loaded`를 한 transaction에 기록합니다. E3는 검증된 aggregate adapter receipt를 받은 뒤 `context.injected`로 기록합니다. 이 기록이 commit된 뒤에만 메모리 evidence를 전진시킵니다.
 
 | event | 이 슬라이스의 필수 payload |
 |---|---|
+| `context.recommended` | recommendation·batch·attempt·engine·index·result-set·document·content hash·rank·score·selection policy 좌표 |
 | `context.selected` | `documentId`, `reasonCode`, `ruleId`, `required`, `scope` |
 | `document.loaded` | `evidenceReceiptId`, `documentId`, `contentHash`, `byteCount`, `scope`, `sourceRevision` |
 | `context.injected` | `receiptId`, `evidenceReceiptIds`, `envelopeId`, `documentIds`, `targetTurnId`, `contextGeneration` |
@@ -263,7 +265,7 @@ Capability 요청과 결정, `file.changed`와 뒤따르는 `context.invalidated
 
 - 문서명과 revision/content hash
 - 선택 이유: 경로 일치, 역할 필수, 상위 지침, 명시 링크, 역할 handoff, 검색 추천
-- E0~E4 상태와 시각
+- E0~E4와 별도 recommended 상태·시각
 - 누락/무효화 원인
 - 이 문서가 보호하는 capability와 관련 변경 파일
 
@@ -420,7 +422,7 @@ CLI는 요청한 suite 원본을 provider 시작 전에 모두 읽고, provider�
 초기 event type:
 
 - `run.requested`, `run.resolved`, `run.completed`, `run.failed`
-- `context.selected`, `document.loaded`, `context.injected`, `context.invalidated`
+- `context.recommended`, `context.selected`, `document.loaded`, `context.injected`, `context.invalidated`
 - `context.published`, `handoff.created`
 - `adapter.started`, `adapter.stopped`
 - `capability.requested`, `capability.decided`
@@ -674,6 +676,16 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 
 Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lervo/state/search/assessments/<attemptId>.json`의 독립된 mode `0600` 원본입니다. 같은 ID를 덮어쓰거나 한 파일에 append하지 않습니다. Report는 최대 10,000개 원본의 ID·hash·project·시간·결과 관계를 모두 다시 확인하고 전체·평가·미평가·수락·실패 및 사유별 수만 반환합니다. 상태는 `insufficient_assessment`, `no_failures_observed`, `failures_observed`이고 임베딩 판단은 항상 `not_determined`입니다. 새 실행 event와 Hub sync는 추가하지 않습니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)에 기록합니다.
 
+## 검색 추천과 managed context 연결
+
+`SearchRecommendationBatch`는 검증된 `SearchAttempt`, 추천 한도와 `top_ranked-v1` 정책을 하나의 content-bound ID로 묶습니다. 첫 정책은 document hit만 최대 5개 추천하고 순위가 앞선 최대 3개를 선택합니다. 각 추천은 attempt·engine·index·result-set, document ID·검색 당시 content hash·rank·score에 결속됩니다. Skill과 verified knowledge는 해당 원본의 E2 loader 계약이 생기기 전까지 제외합니다. Batch를 다시 검증할 때 추천 순서나 선택 ID가 하나라도 달라지면 전체를 거부합니다.
+
+Context preparation은 최대 8개 batch·전체 50개 추천을 별도 입력으로 받습니다. 모든 추천에 `state=recommended` evidence를 만들고, policy의 `selectedRecommendationIds`에 있는 항목만 `reasonCode=search_recommendation`, `ruleId=search_recommendation:<recommendationId>` E1으로 만듭니다. 선택되지 않은 추천은 plan의 필수 문서가 아니며 E2·E3를 만들지 않습니다. 선택된 문서의 현재 bytes가 검색 당시 content hash와 다르면 다른 선택 이유가 함께 있어도 부분 context를 반환하지 않습니다.
+
+Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫자 단어 최대 32개·500자로 투영해 등록 문서를 검색하고 attempt를 mode `0600` 로컬 원본에 기록합니다. 검색 가능한 작업 단어가 없을 때만 예상 경로를 보조 질의로 사용합니다. Attempt query digest와 크기는 전체 작업 원문이 아니라 이 bounded 투영을 뜻합니다. 결과가 없으면 빈 attempt를 남긴 채 기존 지침·path·role 선택으로 계속합니다. 실행 결과에는 assessment에 쓸 attempt ID, 추천·선택 수와 선택된 document ID를 표시합니다. 자동 선택, E2/E3, provider 실행과 검증 성공은 검색 품질의 `accepted` assessment가 아니며 기존 명시적 `lervo search assess`만 품질 집계에 들어갑니다.
+
+새 `context.recommended` event의 필수 payload는 recommendation·batch·source attempt ID, engine ID/version, index ID, result-set hash, document ID·source content hash, rank·score, selection policy ID/version·maximum입니다. Raw query와 digest, document path·title·label·본문, prompt, provider 응답과 credential은 허용하지 않습니다. Search attempt 파일은 Hub sync 대상이 아니지만 `context.recommended`는 managed run의 append-only 실행 원본이므로 Hub가 활성화된 프로젝트에서 다른 allowlist event와 같은 sync 경계를 따릅니다. 이 event는 `context.selected`, `document.loaded`, `context.injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)에 기록합니다.
+
 ## 지식 승격 규칙
 
 지식 candidate는 최소한 다음을 포함합니다.
@@ -901,6 +913,7 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `corpus_read_failed` | 등록 문서 하나 이상을 안전하고 완전하게 읽지 못했습니다. 누락 문서를 숨긴 검색 결과를 반환하거나 attempt를 기록하지 않습니다. |
 | `invalid_attempt` / `invalid_assessment` / `observation_conflict` | 검색 관측의 ID·hash·project·시간·결과 관계가 다르거나 한 attempt에 서로 다른 평가가 있습니다. 기존 원본을 유지하고 일부 평가만 집계하지 않습니다. |
 | `observation_invalid` / `observation_read_failed` / `observation_write_failed` / `observation_limit_exceeded` | 검색 관측 경로·파일·저장 또는 bounded 전체 조회를 신뢰할 수 없습니다. 검색·평가 기록이나 품질 report 완료를 주장하지 않습니다. |
+| `invalid_recommendation` / `invalid_search_recommendation` | 추천 묶음의 attempt·ID·순위·정책·선택 또는 현재 project·registry 관계가 다릅니다. Context plan과 추천 event를 만들지 않습니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |
 | `capability_denied` | Role 또는 프로젝트 정책이 요청한 capability를 거부했습니다. 실행은 읽기 전용으로 계속할 수 있지만 해당 변경은 재시도하지 않습니다. |

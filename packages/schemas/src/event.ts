@@ -16,6 +16,7 @@ export const eventTypes = [
   "run.resolved",
   "run.completed",
   "run.failed",
+  "context.recommended",
   "context.selected",
   "document.loaded",
   "context.injected",

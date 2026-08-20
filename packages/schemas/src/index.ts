@@ -1,6 +1,7 @@
 export * from "./adapter.js";
 export * from "./common.js";
 export * from "./context-evidence.js";
+export * from "./context-recommendation.js";
 export * from "./context-semantics.js";
 export * from "./conversation.js";
 export * from "./conversation-event.js";
