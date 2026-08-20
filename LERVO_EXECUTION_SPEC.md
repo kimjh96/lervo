@@ -98,6 +98,18 @@ any telemetry failure -> telemetry_failed
 
 새 대화에서 독립적으로 요청된 버그라면 관련 기능 run을 id, branch, issue, 변경 경로를 통해 탐색하되 연결 근거가 불충분하면 별도 run으로 유지합니다.
 
+## 전문 역할 평가와 공개
+
+Researcher, marketer와 designer는 이름만 다른 prompt가 아니라 RoleProfile과 역할별 `RoleEvaluationBundle`의 조합입니다. Profile은 입력 schema, 필수 E3 문서, 모든 capability, 산출물 schema와 경로, 한국어 writing 정책, project verification suite와 handoff 규칙을 선언합니다. Bundle은 profile hash와 output schema를 다시 묶고 각 check의 category, 방법, 요구 문장, verification suite 좌표와 evidence 필수 여부를 고정합니다.
+
+평가 방법은 `deterministic`, `separate_semantic`, `project_verification`입니다. 역할 평가 결과의 필수 필드는 result/bundle/role ID, bundle/profile hash, 생산 run ID, 대상 artifact ID·content hash·byte 수·media type, 평가 시각, check별 method·상태·평가기 ID·평가 run/role·evidence artifact 좌표와 전체 상태입니다. 별도 의미 검사는 생산 run과 다른 evaluator run과 role 좌표를 가져야 하고 다른 두 방법은 이 좌표가 `null`이어야 합니다. Check를 실행했으면 evidence가 하나 이상 필요하고 `not_run`이면 evidence를 넣지 않습니다.
+
+전체 상태는 실패 check가 하나라도 있으면 `failed`, 실패는 없지만 `not_run`이 있으면 `incomplete`, 모든 필수 check가 실행되고 통과했을 때만 `passed`입니다. 공개 판정은 profile·bundle·result ID와 상태를 다시 계산하고 같은 artifact ID/content hash만 허용합니다. 원문 반환 직전 local CAS bytes의 크기, hash와 strict UTF-8도 다시 확인합니다. 이 역할 평가는 내용·형식의 역할별 조건을 판정할 뿐 기존 writing 평가와 `WritingPublicationPermit`를 대체하지 않습니다.
+
+고위험 workflow는 서로 다른 제안·결정 책임자, 검토자와 검증자 세 역할을 요구합니다. 각 role binding은 profile hash, evaluation bundle ID/hash와 숙의 책임을 포함하고, 내장된 기존 `DeliberationPolicy`는 역할별 provider 선택, 전체 verification suite, 독립 reviewer/session, 최대 5회, 통과 검증, 차단 반론 0개와 writing 공개 조건을 고정합니다. Codex와 Claude를 교차 배치하거나 같은 provider의 독립 session을 사용할 수 있지만 provider 조합만으로 수렴을 주장하지 않습니다.
+
+역할 평가 결과에는 산출물·근거 원문, URL, raw prompt, 내부 추론, provider payload와 평가기 오류 본문을 넣지 않습니다. 평가기 ID와 역할/run은 사람이 식별되는 외부 계정 대신 기계용 좌표를 사용합니다. 새 전역 event는 추가하지 않으므로 결과나 workflow만으로 실행, 공유, E2/E3, writing 공개, 숙의 시작 또는 수렴을 주장하지 않습니다. 상세 결정은 [ADR-0051](./docs/adr/0051-evidence-bound-multi-discipline-roles.md)에 정의합니다.
+
 ## 역할 간 공유 맥락과 handoff
 
 전문 에이전트가 다른 역할에 넘길 내용은 먼저 등록된 문서 원본으로 발행합니다. `SharedContextPublication`은 원문을 복제하지 않고 다음 좌표를 가집니다.
@@ -879,6 +891,9 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `provider_write_failed` | 승인된 파일 변경이 완료되지 않았거나 요청 종류·실제 hash·최종 snapshot이 다릅니다. 검증된 `file.changed`와 정상 완료를 만들지 않으며 새 run에서 다시 context를 준비해야 합니다. |
 | `cancelled` | 호출자가 run을 중단했습니다. Active turn interrupt와 adapter 종료를 시도하고 정상 완료를 기록하지 않습니다. |
 | `writing_verification_failed` | 사람 대상 산출물의 정책 좌표가 다르거나 필수 결정적/의미 검사가 누락 또는 실패했습니다. 로컬 run의 변경은 유지하지만 공개를 막고, 산출물을 고친 뒤 다시 평가할 수 있습니다. |
+| `role_profile_invalid` / `evaluation_bundle_invalid` | 전문 역할 profile, output schema, verification suite 또는 평가 check 결속이 유효하지 않습니다. 역할 실행과 평가를 시작하지 않고 정의를 고친 뒤 다시 검증합니다. |
+| `evaluation_result_invalid` / `role_publication_blocked` | 평가 check·생산/평가 run·evidence·파생 상태가 다르거나 평가 대상과 CAS 원본이 일치하지 않습니다. 역할 산출물 원문을 공개하지 않습니다. |
+| `high_risk_workflow_invalid` | 고위험 workflow의 역할 분리, profile/evaluation hash, provider 정책, 필수 suite 또는 회차가 맞지 않습니다. 숙의를 시작하거나 교차 검토 완료를 주장하지 않습니다. |
 | `policy_contract_invalid` / `artifact_contract_invalid` / `history_contract_invalid` / `outcome_contract_invalid` | 숙의 정책, artifact 좌표, 역할별 이력 또는 종료 결과가 실제 상태와 다릅니다. `converged`를 만들지 않고 입력 계약을 고친 새 숙의로 시작합니다. |
 | `verification_evidence_invalid` | 숙의 verification metadata가 실제 suite/result 또는 canonical CAS artifact와 다르거나 사용되지 않은 근거를 포함합니다. 검증 통과와 수렴을 주장하지 않습니다. |
 | `artifact_publication_failed/provider_not_allowed` | Managed run의 역할에 배정되지 않은 provider가 결과를 만들었습니다. 실행 사실은 남기되 writing 평가와 숙의 artifact 기록을 시작하지 않으며 provider 정책을 고친 새 역할 run이 필요합니다. |

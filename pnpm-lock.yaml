@@ -718,6 +718,25 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/roles:
+    dependencies:
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../deliberation
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+    devDependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../cas
+
   packages/schemas:
     dependencies:
       ajv:

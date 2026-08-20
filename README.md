@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime과 Slack·Discord 배포 조합 첫 슬라이스 완료 (2026-08-20)
+현재 상태: M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime과 증거 결속 전문 역할 계약 첫 슬라이스 완료 (2026-08-20)
 
 ## 목표
 
@@ -70,6 +70,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [Slack·Discord 인증 대화 adapter 경계 ADR](./docs/adr/0048-authenticated-platform-conversation-adapters.md)
 - [재시작 가능한 대화 배포 조합 ADR](./docs/adr/0049-durable-conversation-deployment.md)
 - [principal에 결속된 대화 command 검토와 별도 승인 ADR](./docs/adr/0050-principal-bound-conversation-command-review.md)
+- [증거에 결속된 전문 역할과 고위험 교차 검토 ADR](./docs/adr/0051-evidence-bound-multi-discipline-roles.md)
 
 ## 현재 구현
 
@@ -103,6 +104,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/policy`: 인증된 Hub transport에서 bounded 정책 bundle을 검증하는 sync 경계, HTTPS 기본·Hub identity 확인을 강제하는 Node HTTP transport와 로컬·Hub 중 더 제한적인 결정을 적용하는 원격 command 정책 평가기
 - `@lervo/policy-sqlite`: 연속 정책 snapshot과 승인·철회 서명 원본을 project별 append-only SQLite에 보존하고 command별 bounded 조회를 제공하는 Node adapter
 - `@lervo/core`: E0~E4 assurance, 필수 E3 쓰기 게이트, 역할 간 shared context 접근·handoff 판정, 한국어 writing 검사와 공개 게이트, 실패 처분
+- `@lervo/roles`: researcher·marketer·designer RoleProfile, 역할별 평가 묶음과 결과 무결성, CAS 원문 공개 판정 및 기존 숙의 계약에 결속된 고위험 교차 검토 workflow
 - `@lervo/context`: `AGENTS.md` 계층·path·Role·handoff 기반 E1 선택, 안전한 전체 파일 읽기, E2 무결성 검증과 snapshot 무효화 판정
 - `@lervo/context-delivery`: 검증된 E2와 schema-valid writing policy binding을 inline/CAS envelope로 조립하고 공통 adapter receipt 판정 뒤에만 E3를 만드는 공급자 중립 경계
 - `@lervo/orchestrator`: E1/E2/E3와 1회용 파일 쓰기 permit를 provider 요청에 연결하고, 실제 변경 hash·snapshot·provider 결과·프로젝트 검증 결과 artifact를 함께 검증하는 fail-closed 상태 머신

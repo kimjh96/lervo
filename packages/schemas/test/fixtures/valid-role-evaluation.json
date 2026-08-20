@@ -1,0 +1,133 @@
+[
+  {
+    "name": "role evaluation bundle",
+    "schema": "roleEvaluationBundle",
+    "value": {
+      "schemaVersion": 1,
+      "bundleId": "reb_aaaaaaaaaaaaaaaa",
+      "roleId": "researcher",
+      "roleProfileHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "outputSchemaRef": "lervo-schema://roles/research-brief/v1",
+      "checks": [
+        {
+          "checkId": "research.artifact-schema",
+          "category": "artifact_schema",
+          "method": "project_verification",
+          "requirement": "산출물 schema를 확인합니다.",
+          "verificationSuiteId": "role.research.artifact",
+          "evidenceRequired": true
+        }
+      ],
+      "publicationRequiresPassedEvaluation": true,
+      "highRiskDisposition": "deliberation_required"
+    }
+  },
+  {
+    "name": "role evaluation result",
+    "schema": "roleEvaluationResult",
+    "value": {
+      "schemaVersion": 1,
+      "resultId": "rer_bbbbbbbbbbbbbbbb",
+      "bundleId": "reb_aaaaaaaaaaaaaaaa",
+      "bundleHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "roleId": "researcher",
+      "roleProfileHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "producerRunId": "run_researcher_0001",
+      "artifactId": "art_research_result",
+      "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "byteCount": 32,
+      "mediaType": "text/markdown; charset=utf-8",
+      "evaluatedAt": "2026-08-20T01:00:00.000Z",
+      "checks": [
+        {
+          "checkId": "research.artifact-schema",
+          "method": "project_verification",
+          "status": "passed",
+          "evaluatorId": "project-verification.v1",
+          "evaluatorRunId": null,
+          "evaluatorRoleId": null,
+          "evidence": [
+            {
+              "artifactId": "art_verification_result",
+              "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          ]
+        }
+      ],
+      "overallStatus": "passed"
+    }
+  },
+  {
+    "name": "high risk role workflow",
+    "schema": "highRiskRoleWorkflow",
+    "value": {
+      "schemaVersion": 1,
+      "workflowId": "hrw_cccccccccccccccc",
+      "projectId": "prj_role_workflow_01",
+      "risk": "high",
+      "primaryRoleId": "marketer",
+      "roleBindings": [
+        {
+          "roleId": "marketer",
+          "roleProfileHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evaluationBundleId": "reb_aaaaaaaaaaaaaaaa",
+          "evaluationBundleHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "responsibilities": ["proposer", "decision_owner"]
+        },
+        {
+          "roleId": "researcher",
+          "roleProfileHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evaluationBundleId": "reb_bbbbbbbbbbbbbbbb",
+          "evaluationBundleHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "responsibilities": ["reviewer"]
+        },
+        {
+          "roleId": "designer",
+          "roleProfileHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "evaluationBundleId": "reb_cccccccccccccccc",
+          "evaluationBundleHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "responsibilities": ["verifier"]
+        }
+      ],
+      "deliberationPolicy": {
+        "schemaVersion": 1,
+        "policyId": "deliberation_high-risk-marketer",
+        "projectId": "prj_role_workflow_01",
+        "participants": [
+          {
+            "roleId": "marketer",
+            "responsibilities": ["proposer", "decision_owner"],
+            "providerSelection": { "mode": "fixed", "provider": "codex" }
+          },
+          {
+            "roleId": "researcher",
+            "responsibilities": ["reviewer"],
+            "providerSelection": { "mode": "fixed", "provider": "claude" }
+          },
+          {
+            "roleId": "designer",
+            "responsibilities": ["verifier"],
+            "providerSelection": { "mode": "allowlist", "providers": ["codex", "claude"] }
+          }
+        ],
+        "decisionOwnerRoleId": "marketer",
+        "maxRounds": 3,
+        "requiredVerificationSuiteIds": ["role.marketing.artifact"],
+        "convergence": {
+          "requireIndependentReviewer": true,
+          "requireIndependentSessions": true,
+          "requireDecisionOwnerDecision": true,
+          "requirePassedVerifications": true,
+          "requireZeroUnresolvedBlockingObjections": true,
+          "unresolvedBlockingDisposition": "no_consensus"
+        },
+        "publication": {
+          "surface": "documentation",
+          "writingPolicyId": "writing_ko-kr-human",
+          "writingPolicyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresWritingPermit": true
+        }
+      }
+    }
+  }
+]

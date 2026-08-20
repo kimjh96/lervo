@@ -35,6 +35,9 @@ import type {
   RemoteCommandExecutionReceipt,
   RemoteCommandLease,
   RoleProfile,
+  RoleEvaluationBundle,
+  RoleEvaluationResult,
+  HighRiskRoleWorkflow,
   SharedContextPublication,
   SkillManifest,
   VerificationResult,
@@ -57,6 +60,16 @@ describe("schema-derived TypeScript contracts", () => {
       | { audience: "machine"; writingPolicyId: null }
       | { audience: "human" | "mixed"; locale: string; writingPolicyId: string }
     >();
+  });
+
+  it("separates role evaluation configuration, evidence result and high-risk workflow", () => {
+    expectTypeOf<RoleEvaluationBundle["highRiskDisposition"]>()
+      .toEqualTypeOf<"deliberation_required">();
+    expectTypeOf<RoleEvaluationResult["overallStatus"]>()
+      .toEqualTypeOf<"passed" | "failed" | "incomplete">();
+    expectTypeOf<HighRiskRoleWorkflow["risk"]>().toEqualTypeOf<"high">();
+    expectTypeOf<HighRiskRoleWorkflow["deliberationPolicy"]>()
+      .toEqualTypeOf<DeliberationPolicy>();
   });
 
   it("derives policy deployment and approval lifecycle types from schemas", () => {

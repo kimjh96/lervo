@@ -90,6 +90,11 @@ import {
   signedRemoteCommandSchema,
 } from "./remote-command.js";
 import { roleProfileSchema } from "./role.js";
+import {
+  roleEvaluationBundleSchema,
+  roleEvaluationResultSchema,
+} from "./role-evaluation.js";
+import { highRiskRoleWorkflowSchema } from "./high-risk-role-workflow.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { skillManifestSchema } from "./skill.js";
@@ -123,6 +128,7 @@ ajv.addSchema(managedRunApprovalAuthorizationSchema);
 ajv.addSchema(remoteCommandSchema);
 ajv.addSchema(signedRemoteCommandSchema);
 ajv.addSchema(remoteCommandExecutionReceiptSchema);
+ajv.addSchema(deliberationPolicySchema);
 
 const validators = {
   project: ajv.getSchema(projectManifestSchema.$id)!,
@@ -169,7 +175,7 @@ const validators = {
   conversationParticipationDecision: ajv.compile(conversationParticipationDecisionSchema),
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
-  deliberationPolicy: ajv.compile(deliberationPolicySchema),
+  deliberationPolicy: ajv.getSchema(deliberationPolicySchema.$id)!,
   deliberationArtifact: ajv.compile(deliberationArtifactSchema),
   deliberationOutcome: ajv.compile(deliberationOutcomeSchema),
   deliberationStartedEventPayload: ajv.compile(deliberationStartedEventPayloadSchema),
@@ -179,6 +185,9 @@ const validators = {
   deliberationCompletedEventPayload: ajv.compile(deliberationCompletedEventPayloadSchema),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
+  roleEvaluationBundle: ajv.compile(roleEvaluationBundleSchema),
+  roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
+  highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
   sharedContext: ajv.compile(sharedContextPublicationSchema),
   handoffBundle: ajv.compile(handoffBundleSchema),

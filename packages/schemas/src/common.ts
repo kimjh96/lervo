@@ -122,6 +122,21 @@ export const writingPublicationPermitIdSchema = {
   pattern: "^wpp_[a-f0-9]{16}$",
 } as const;
 
+export const roleEvaluationBundleIdSchema = {
+  type: "string",
+  pattern: "^reb_[a-f0-9]{16}$",
+} as const;
+
+export const roleEvaluationResultIdSchema = {
+  type: "string",
+  pattern: "^rer_[a-f0-9]{16}$",
+} as const;
+
+export const highRiskRoleWorkflowIdSchema = {
+  type: "string",
+  pattern: "^hrw_[a-f0-9]{16}$",
+} as const;
+
 export const deliberationIdSchema = {
   type: "string",
   pattern: "^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",

@@ -331,7 +331,7 @@ fixtures/
 4. Slack/Discord 인증 adapter — 완료
 5. Conversation 배포 조합과 durable identity/delivery replay — 완료
 6. Hub command/approval 대화 UX — 완료
-7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장
+7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장 — 완료
 8. 명시적 관계 기반 지식 그래프 시각화
 9. 실제 검색 실패 데이터를 바탕으로 임베딩/RAG 도입
 10. 조직 단위 비용·품질·가드레일 분석
@@ -364,6 +364,15 @@ Hub command/approval 대화 UX 완료 조건:
 - Review 응답과 오류에 request artifact, command hash·signature, approver subject hash, principal, token과 grant가 노출되지 않음
 - 실제 SQLite·HTTP fixture가 승인 없음, 일부 승인, 전체 승인과 철회 뒤 상태를 원본에서 다시 계산함
 
+전문 역할 계약 완료 조건:
+
+- Researcher·marketer·designer가 서로 다른 입력, capability, 필수 E3 문서, 산출물 schema, verification suite와 handoff 계약을 가짐
+- 역할별 평가 묶음이 profile/output schema hash에 결속되고 deterministic·별도 의미·project verification을 구분함
+- 평가 결과가 생산 run과 artifact CAS 좌표에 결속되며 누락, 실패와 통과를 혼용하지 않고 같은 생산 run의 의미 평가를 거부함
+- 모든 역할 평가를 통과한 같은 CAS bytes만 반환하고 사람 대상 공개에는 기존 writing permit가 별도로 필요함
+- 고위험 workflow가 서로 다른 제안·결정, 검토, 검증 역할과 모든 verification suite를 기존 provider-neutral 숙의 정책에 결속함
+- 평가 결과와 workflow를 실행 event, shared context, E2/E3 또는 수렴 증거로 과장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -382,4 +391,6 @@ Conversation 배포 조합을 완료했습니다. `@lervo/conversation-platform-
 
 Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-control`은 명시적 command만 처리하고 project·participant를 Hub principal에 결속합니다. 짧게 만료되는 HMAC review grant는 같은 principal로 재인증한 `/control` 조회에만 쓰이며 승인 권한이 아닙니다. 실제 signed approval은 별도 bearer의 `approval.write`와 기존 Hub policy 작성 경계를 통과해야 생깁니다. 대화 응답 writing gate, grant principal·command·만료 결속, SQLite approval 없음·일부·전체·철회 전이를 실제 HTTP fixture로 확인했습니다. 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록했습니다.
 
-다음 구현 작업은 연구자·마케터·디자이너 RoleProfile과 평가 묶음을 기존 provider-neutral 실행·writing·숙의 계약에 연결하고, 고위험 요청의 필수 교차 검토 정책을 확장하는 일입니다.
+연구자·마케터·디자이너 전문 역할 계약을 완료했습니다. `@lervo/roles`는 역할별 입력·E3 문서·capability·산출물·verification·handoff와 평가 묶음을 결속합니다. 평가 결과는 생산 run과 대상 artifact CAS 좌표, 별도 의미 평가 run, check별 evidence와 파생 상태를 검증하며 같은 bytes를 다시 확인한 경우만 역할 공개 경계를 통과합니다. 고위험 workflow는 서로 다른 제안·결정, 검토, 검증 역할과 전체 suite를 기존 provider-neutral 숙의 정책에 묶습니다. 역할 평가는 writing permit나 실제 숙의 실행을 대신하지 않습니다. 결정은 [ADR-0051](./docs/adr/0051-evidence-bound-multi-discipline-roles.md)에 기록했습니다.
+
+다음 구현 작업은 원본 문서와 실행 증거의 명시적 관계를 읽는 지식 그래프 query 계약과, 페이지를 누적하지 않는 bounded 시각화 첫 슬라이스입니다.
