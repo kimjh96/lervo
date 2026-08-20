@@ -25,7 +25,11 @@ export function assertText(value: unknown, maximum: number, code: "corpus_invali
   return value;
 }
 
-export function assertTimestamp(value: string, code: "invalid_assessment" | "invalid_attempt"): void {
+export function assertTimestamp(
+  value: string,
+  code: "invalid_assessment" | "invalid_attempt" | "invalid_evaluation_case" |
+    "invalid_evaluation_result" | "invalid_evaluation_run",
+): void {
   if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) {
     throw new SearchError(code, "검색 관측 시각이 canonical ISO 형식이 아닙니다.");
   }

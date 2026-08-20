@@ -13,6 +13,7 @@ export const lervoRelativePaths = {
   knowledge: ".lervo/knowledge",
   eventDatabase: ".lervo/state/events.sqlite",
   cas: ".lervo/state/cas",
+  searchEvaluations: ".lervo/search-evaluations",
   searchObservations: ".lervo/state/search",
   skillsLock: ".lervo/skills.lock",
 } as const;
@@ -35,6 +36,7 @@ export interface LervoProjectPaths {
   knowledge: string;
   eventDatabase: string;
   cas: string;
+  searchEvaluations: string;
   searchObservations: string;
   skillsLock: string;
 }
@@ -55,6 +57,7 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     knowledge: resolve(repositoryRoot, lervoRelativePaths.knowledge),
     eventDatabase: resolve(repositoryRoot, lervoRelativePaths.eventDatabase),
     cas: resolve(repositoryRoot, lervoRelativePaths.cas),
+    searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),
     searchObservations: resolve(repositoryRoot, lervoRelativePaths.searchObservations),
     skillsLock: resolve(repositoryRoot, lervoRelativePaths.skillsLock),
   };

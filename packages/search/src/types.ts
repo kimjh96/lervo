@@ -134,6 +134,9 @@ export type SearchErrorCode =
   | "corpus_limit_exceeded"
   | "invalid_assessment"
   | "invalid_attempt"
+  | "invalid_evaluation_case"
+  | "invalid_evaluation_result"
+  | "invalid_evaluation_run"
   | "invalid_query"
   | "invalid_recommendation";
 

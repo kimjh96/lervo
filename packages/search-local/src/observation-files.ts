@@ -41,6 +41,7 @@ async function safeDirectory(path: string, create: boolean): Promise<void> {
 }
 
 type ObservationDirectories = { attempts: string; assessments: string };
+type ObservationSubdirectory = "assessments" | "attempts" | "evaluation-results" | "evaluation-runs";
 
 async function observationPaths(repositoryRoot: string): Promise<{ state: string; root: string }> {
   try {
@@ -55,14 +56,23 @@ async function observationPaths(repositoryRoot: string): Promise<{ state: string
 }
 
 export async function prepareObservationDirectories(repositoryRoot: string): Promise<ObservationDirectories> {
+  const [attempts, assessments] = await Promise.all([
+    prepareObservationSubdirectory(repositoryRoot, "attempts"),
+    prepareObservationSubdirectory(repositoryRoot, "assessments"),
+  ]);
+  return { attempts, assessments };
+}
+
+export async function prepareObservationSubdirectory(
+  repositoryRoot: string,
+  name: ObservationSubdirectory,
+): Promise<string> {
   const paths = await observationPaths(repositoryRoot);
   await safeDirectory(paths.state, false);
   await safeDirectory(paths.root, true);
-  const attempts = resolve(paths.root, "attempts");
-  const assessments = resolve(paths.root, "assessments");
-  await safeDirectory(attempts, true);
-  await safeDirectory(assessments, true);
-  return { attempts, assessments };
+  const directory = resolve(paths.root, name);
+  await safeDirectory(directory, true);
+  return directory;
 }
 
 export async function existingObservationDirectories(

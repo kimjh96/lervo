@@ -56,6 +56,16 @@ export class LocalSearchObservationStore {
     await writeObservation(resolve(this.assessmentsPath, `${assessment.attemptId}.json`), assessment);
   }
 
+  async readAssessment(attemptId: string): Promise<SearchAssessment> {
+    const attempt = await this.readAttempt(attemptId);
+    const assessment = await readObservation<SearchAssessment>(resolve(this.assessmentsPath, `${attemptId}.json`));
+    assertSearchAssessment(assessment, attempt);
+    if (assessment.attemptId !== attemptId) {
+      throw new SearchLocalError("observation_invalid", "검색 평가 파일명과 대상 시도 ID가 다릅니다.");
+    }
+    return assessment;
+  }
+
   async listAttempts(): Promise<SearchAttempt[]> {
     return listObservations({
       path: this.attemptsPath,

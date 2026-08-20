@@ -333,7 +333,7 @@ fixtures/
 6. Hub command/approval 대화 UX — 완료
 7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장 — 완료
 8. 명시적 관계 기반 지식 그래프 시각화 — 완료
-9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1`·managed context 추천 연결 첫 슬라이스 완료, 도입 판단 보류
+9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1`·managed context 추천·검토된 반복 평가 첫 슬라이스 완료, 도입 판단 보류
 10. 조직 단위 비용·품질·가드레일 분석
 
 Conversation 첫 슬라이스 완료 조건:
@@ -410,6 +410,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 긴 작업 문장은 최대 32개 단어·500자로 결정적으로 투영하고 검색 가능 단어가 없을 때만 예상 경로를 사용해 보조 검색 한도 때문에 run을 깨뜨리지 않음
 - 자동 선택, run·verification 성공이나 결과 수로 검색 품질 assessment와 임베딩 필요성을 만들지 않음
 
+검토된 검색 평가 케이스와 반복 측정 첫 슬라이스 완료 조건:
+
+- 사람 또는 독립 verification의 기존 assessment와 query digest·크기가 모두 맞아야 재사용 케이스를 만듦
+- Assessment에서 기대하거나 수락하지 않은 source를 자동 정답으로 만들지 않고, 실패 평가에 기대 원본이 없으면 승격을 거부함
+- Query 원문은 최대 256개 케이스별 mode `0600` YAML에만 두고 result·run·event·Hub payload에 복제하지 않음
+- 케이스의 원본 attempt·assessment, 기준 index·result-set·기대 source 순위와 `any`/`all`·최대 허용 순위를 content-bound ID로 결속함
+- 현재 등록 Markdown을 완전하게 읽어 하나의 `lexical-v1` index에서 모든 케이스를 반복하고, 기대 source별 현재 순위를 보존함
+- 통과·`no_results`·`expected_source_missing`·`low_rank`와 기준 대비 개선·유지·회귀를 결정적으로 계산함
+- Result와 run을 항목별 immutable JSON으로 나누고 result가 모두 검증된 뒤 run을 마지막에 게시함
+- 케이스 하나라도 unsafe·변조·다른 project이면 일부 평가나 run을 만들지 않음
+- 반복 평가 실패와 회귀가 있어도 context 상태, verification 통과나 임베딩 필요성을 만들지 않고 `embeddingDecision=not_determined`를 유지함
+- 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -436,4 +449,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 추천과 managed context 연결 첫 슬라이스를 완료했습니다. Search attempt를 포함한 bounded recommendation batch가 document hit와 `top_ranked-v1` 선택을 다시 검증하고, context preparation은 모든 추천과 실제 선택·적재·주입을 서로 다른 evidence와 event로 남깁니다. 로컬 managed run은 provider를 시작하기 전에 attempt를 기록하고 결과에 별도 assessment용 ID를 표시합니다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)에 기록했습니다.
 
-다음 구현 작업은 자동 선택 수를 늘리거나 임베딩을 붙이는 일이 아닙니다. 실제 managed run의 attempt에 사람 또는 독립 verification의 기대 원본·수락·실패 사유를 연결해 대표 평가 묶음을 만들고, 동일한 평가 입력으로 현재 lexical baseline을 반복 측정하는 경계를 먼저 추가합니다. 충분한 평가가 쌓인 뒤에만 다른 검색 후보를 같은 기준으로 비교합니다.
+검토된 검색 평가 케이스와 반복 측정 첫 슬라이스를 완료했습니다. 기존 attempt·assessment와 일치하는 query, 평가자가 기대하거나 수락한 source만 케이스별 YAML로 승격합니다. 현재 `lexical-v1` 실행은 query 없는 result·run 원본으로 분리되고 검토 시점 대비 개선·회귀를 계산하지만 임베딩 판단은 미결정으로 둡니다. 결정은 [ADR-0055](./docs/adr/0055-reviewed-search-evaluation-cases.md)에 기록했습니다.
+
+다음 구현 작업은 다른 검색 엔진을 바로 추가하는 일이 아닙니다. 실제 managed run에서 역할·작업 유형별 대표 케이스를 축적할 때 활성 케이스 선택, 대체 관계와 최소 표본을 작은 평가 묶음별로 선언하고, 현재 표본이 비교 판단에 충분한지 별도 상태로 계산하는 운영 경계를 먼저 추가합니다. 충분성이 확인된 묶음에만 이후 검색 후보를 같은 입력·같은 순위 조건으로 비교합니다.

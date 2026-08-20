@@ -1,6 +1,11 @@
 export type SearchLocalErrorCode =
   | "corpus_limit_exceeded"
   | "corpus_read_failed"
+  | "evaluation_case_invalid"
+  | "evaluation_case_limit_exceeded"
+  | "evaluation_case_read_failed"
+  | "evaluation_case_write_failed"
+  | "evaluation_not_found"
   | "observation_conflict"
   | "observation_invalid"
   | "observation_limit_exceeded"

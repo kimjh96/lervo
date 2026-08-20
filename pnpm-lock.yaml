@@ -793,6 +793,9 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../search
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   packages/skills:
     dependencies:

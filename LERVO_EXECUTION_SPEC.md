@@ -16,6 +16,7 @@
 - `.lervo/project.yaml`: stable project id, 생성 시각과 로컬 우선 데이터 기본값
 - `.lervo/documents/`: document ID별 sidecar manifest를 둘 빈 디렉터리
 - `.lervo/verifications/`: suite ID별 project 검증 명령을 둘 빈 디렉터리
+- `.lervo/search-evaluations/`: 검토한 검색 query와 기대 원본을 케이스별로 둘 빈 디렉터리
 - `.lervo/.gitignore`: `state/` 제외 규칙
 - `.lervo/generated/`, `.lervo/state/`, `.lervo/knowledge/`: 이후 단계가 사용할 로컬 디렉터리
 
@@ -685,6 +686,16 @@ Context preparation은 최대 8개 batch·전체 50개 추천을 별도 입력�
 Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫자 단어 최대 32개·500자로 투영해 등록 문서를 검색하고 attempt를 mode `0600` 로컬 원본에 기록합니다. 검색 가능한 작업 단어가 없을 때만 예상 경로를 보조 질의로 사용합니다. Attempt query digest와 크기는 전체 작업 원문이 아니라 이 bounded 투영을 뜻합니다. 결과가 없으면 빈 attempt를 남긴 채 기존 지침·path·role 선택으로 계속합니다. 실행 결과에는 assessment에 쓸 attempt ID, 추천·선택 수와 선택된 document ID를 표시합니다. 자동 선택, E2/E3, provider 실행과 검증 성공은 검색 품질의 `accepted` assessment가 아니며 기존 명시적 `lervo search assess`만 품질 집계에 들어갑니다.
 
 새 `context.recommended` event의 필수 payload는 recommendation·batch·source attempt ID, engine ID/version, index ID, result-set hash, document ID·source content hash, rank·score, selection policy ID/version·maximum입니다. Raw query와 digest, document path·title·label·본문, prompt, provider 응답과 credential은 허용하지 않습니다. Search attempt 파일은 Hub sync 대상이 아니지만 `context.recommended`는 managed run의 append-only 실행 원본이므로 Hub가 활성화된 프로젝트에서 다른 allowlist event와 같은 sync 경계를 따릅니다. 이 event는 `context.selected`, `document.loaded`, `context.injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0054](./docs/adr/0054-search-recommendation-managed-context-boundary.md)에 기록합니다.
+
+## 검토된 검색 평가 케이스와 반복 측정
+
+`lervo search case`는 이미 저장된 attempt와 하나의 사람 또는 독립 verification assessment를 다시 검증한 뒤에만 재사용 케이스를 만듭니다. Query는 digest·문자 수·term 수가 attempt와 모두 같아야 합니다. CLI는 standalone query를 먼저 대조하고, 다르면 같은 managed 작업 투영을 한 번 대조합니다. 기대 원본은 assessment의 `expectedSources`, 그것이 없으면 수락된 `selectedSources`에서만 가져옵니다. 실패 assessment에 기대 원본이 없으면 결과 수나 모델 판단으로 정답을 만들지 않고 거부합니다.
+
+`SearchEvaluationCase`는 project·query 좌표, `any` 또는 `all`, 원본 attempt의 요청 한도를 넘지 않는 허용 최대 순위, 기대 source 종류·ID, 원본 attempt·assessment ID와 평가자·수락/실패·controlled 사유, 기준 index·result-set과 당시 기대 source 순위를 content-bound case ID로 묶습니다. `.lervo/search-evaluations/<caseId>.yaml`에 최대 256개를 케이스별 mode `0600` 파일로 보존합니다. 이 YAML은 반복 검색에 필요한 검토 query 원문을 의도적으로 가지므로 사용자가 비밀정보가 없는지 확인하고 저장소 공개 범위를 정해야 합니다. 자동 생성 event, telemetry 또는 Hub payload에는 복제하지 않습니다.
+
+`lervo search evaluate`는 등록된 Markdown corpus를 한 번 완전하게 읽고 현재 `lexical-v1` index에서 각 케이스를 최대 50개 결과로 실행합니다. Result는 path 없는 bounded hit 좌표와 result-set hash, 기대 source별 현재 rank, `passed`/`failed`, `no_results`·`expected_source_missing`·`low_rank`, 검토 시점 기준 대비 `improved`·`unchanged`·`regressed`를 기록합니다. Run은 같은 evaluated 시각·project·index에 속한 최대 256개 case/result ID와 통과·실패·개선·회귀 수만 집계합니다. 결과는 `.lervo/state/search/evaluation-results/<resultId>.json`, 실행은 `evaluation-runs/<runId>.json`에 각각 immutable mode `0600` 파일로 저장하고 query를 넣지 않습니다. Result를 먼저 게시하고 마지막에 run을 게시하므로 저장 실패 시 고아 result가 남을 수 있지만 완성된 run으로 보이지 않습니다.
+
+케이스·결과·run은 ID, canonical hash, project·시각·engine·index, 정렬 순서와 집계를 다시 계산합니다. 케이스 하나라도 unsafe·변조·다른 project이면 corpus를 평가하거나 일부 run을 게시하지 않습니다. 현재 실행이 실패를 관측해도 `embeddingDecision=not_determined`를 유지하며 다른 검색 엔진, context 선택, `selected`·`loaded`·`injected`·`used`, verification 통과와 임베딩 필요성을 만들지 않습니다. 이번 단계에는 새 event와 Hub sync가 없습니다. 결정은 [ADR-0055](./docs/adr/0055-reviewed-search-evaluation-cases.md)에 기록합니다.
 
 ## 지식 승격 규칙
 

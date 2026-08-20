@@ -1,5 +1,5 @@
-import { canonicalHash, contentId, sha256 } from "./integrity.js";
-import { normalizeSearchText, searchTerms } from "./normalize.js";
+import { canonicalHash, contentId } from "./integrity.js";
+import { identifySearchQuery, normalizeSearchText, searchTerms } from "./normalize.js";
 import {
   SEARCH_ENGINE,
   SEARCH_MAX_RESULTS,
@@ -114,6 +114,7 @@ export class LexicalSearchIndex {
       throw new SearchError("invalid_query", `검색 결과 한도는 1 이상 ${SEARCH_MAX_RESULTS} 이하여야 합니다.`);
     }
     const terms = [...new Set(searchTerms(query, "invalid_query"))];
+    const queryIdentity = identifySearchQuery(query);
     const phrase = normalizeSearchText(query);
     const scored = this.sources.map(({ input, fields }) => {
       const fieldScores = fields.map((item) => ({ item, score: scoreField(item, terms, phrase) }));
@@ -146,9 +147,7 @@ export class LexicalSearchIndex {
       schemaVersion: 1,
       engine: SEARCH_ENGINE,
       indexId: this.indexId,
-      queryDigest: sha256(phrase),
-      queryCharacterCount: [...query].length,
-      queryTermCount: terms.length,
+      ...queryIdentity,
       requestedLimit: limit,
       hits,
       resultSetHash: canonicalHash(resultCore),
