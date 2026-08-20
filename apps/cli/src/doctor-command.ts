@@ -71,6 +71,13 @@ export function formatDoctorReport(report: DoctorReport): string {
         `  ${item.code}${item.eventId === null ? "" : ` · ${item.eventId}`}: ${item.message}`),
     );
   }
+  if (report.recoveryGuidance.length > 0) {
+    lines.push(
+      "다음 확인:",
+      ...report.recoveryGuidance.map((item) => `  ${item.actionCode}: ${item.message}`),
+      "  자동 수정이나 상태 변경은 실행하지 않았습니다.",
+    );
+  }
   return `${lines.join("\n")}\n`;
 }
 

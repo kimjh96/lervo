@@ -643,6 +643,16 @@ Hub command/approval 대화 UX 완료 조건:
 - 전체 검사 결과를 사후 필터링하거나 제외한 검사를 관측 수 0의 정상으로 채우지 않음
 - 새 파일·event·Hub 원본을 만들거나 검색 상태를 전진시키지 않음
 
+Doctor 복구 안내 첫 슬라이스 완료 조건:
+
+- 모든 현재 doctor issue code를 고정된 action code와 사람이 읽는 한국어 안내에 compile-time 전체 매핑함
+- 안내를 자유 형식 오류 문장이나 event ID가 아니라 issue code에서만 파생함
+- 같은 issue code가 반복되면 첫 등장 순서를 유지한 안내 하나만 반환하고 서로 다른 issue code는 숨기지 않음
+- Issue가 없으면 빈 안내 배열을 반환하고, JSON에는 `issueCode`·`actionCode`·`message`·`actionState=not_performed`, 텍스트에는 action code·한국어 안내·미실행 설명을 제공함
+- Project·원본 ID, digest, 경로, 문서·스킬 본문, provider 원문, credential과 내부 오류를 안내에 복사하거나 추측하지 않음
+- 안내가 복구 성공·원인 확정·승인·실행 보장을 주장하지 않음
+- 자동 수정이나 명령을 실행하지 않고 파일·event·Hub 원본 및 선택·검토·조치 상태를 바꾸지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -705,4 +715,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 범위가 명시된 doctor 조회 첫 슬라이스를 완료했습니다. 기본 `all`과 `--scope search`를 구분하고 검색 범위에서는 네 검색 검사만 실행합니다. Event store·CAS와 provider probe를 열지 않으며 텍스트는 프로젝트 전체 상태가 아님을 설명하고 JSON은 `scope`와 실제 검사만 반환합니다. 제한 범위의 종료 코드 0은 그 범위에만 적용됩니다. 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md)에 기록했습니다.
 
-다음 구현 작업은 자동 수정 없이 문제별 안전한 다음 행동을 알려 주는 **doctor 복구 안내 계약**입니다. 안내는 고정된 issue code에서 파생하고, 존재하지 않는 원본 ID·경로나 비밀정보를 추측하지 않으며, 상태 변경 명령을 자동 실행하지 않아야 합니다.
+Doctor 복구 안내 첫 슬라이스를 완료했습니다. 모든 현재 issue code는 controlled action code와 고정된 한국어 안내에 전체 매핑되며, 같은 code의 반복은 한 번만 표시합니다. 안내는 오류 문장·event ID·경로를 복사하지 않고 `actionState=not_performed`를 유지하며 텍스트도 자동 수정이나 상태 변경을 실행하지 않았음을 밝힙니다. 결정은 [ADR-0073](./docs/adr/0073-bounded-doctor-recovery-guidance.md)에 기록했습니다.
+
+다음 구현 작업은 검색 외에도 지식·문서·스킬·provider를 필요한 검사기만 실행할 수 있게 하는 **doctor 범위 확장**입니다. 각 범위는 실제 의존 storage와 probe만 열고, 제한 조회 성공을 프로젝트 전체 정상으로 표시하지 않아야 합니다.

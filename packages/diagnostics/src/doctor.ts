@@ -3,6 +3,7 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import { inspectCandidate } from "./candidate-inspection.js";
 import { inspectKnowledgeReview } from "./review-inspection.js";
 import { inspectKnowledgeStaleness } from "./staleness-inspection.js";
+import { createDoctorRecoveryGuidance } from "./recovery-guidance.js";
 import type {
   DoctorCheck,
   DoctorInspection,
@@ -156,5 +157,6 @@ export async function createDoctorReport(input: CreateDoctorReportInput): Promis
     status,
     checks,
     issues,
+    recoveryGuidance: createDoctorRecoveryGuidance(issues),
   };
 }

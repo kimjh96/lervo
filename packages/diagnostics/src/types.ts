@@ -82,12 +82,39 @@ export interface DoctorInspection {
   issues: DoctorIssue[];
 }
 
+export type DoctorRecoveryActionCode =
+  | "inspect_event_history"
+  | "inspect_knowledge_candidate"
+  | "inspect_knowledge_review"
+  | "inspect_verified_knowledge"
+  | "inspect_knowledge_staleness"
+  | "inspect_document_registry"
+  | "inspect_document_source"
+  | "inspect_skill_package"
+  | "refresh_skill_lock"
+  | "check_provider_executable"
+  | "check_provider_platform"
+  | "inspect_search_selection"
+  | "inspect_search_policy"
+  | "inspect_search_review"
+  | "resolve_search_review_prerequisites"
+  | "inspect_search_action"
+  | "resolve_search_action_prerequisites";
+
+export interface DoctorRecoveryGuidance {
+  issueCode: DoctorIssueCode;
+  actionCode: DoctorRecoveryActionCode;
+  message: string;
+  actionState: "not_performed";
+}
+
 export interface DoctorReport {
   projectId: string;
   scope: DoctorScope;
   status: "healthy" | "unhealthy" | "unknown";
   checks: DoctorCheck[];
   issues: DoctorIssue[];
+  recoveryGuidance: DoctorRecoveryGuidance[];
 }
 
 export class DiagnosticsError extends Error {

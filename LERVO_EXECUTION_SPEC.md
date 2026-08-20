@@ -855,6 +855,10 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 `DoctorReport.scope`는 `all` 또는 `search`이고 JSON에 항상 포함됩니다. 검색 범위 텍스트는 프로젝트 전체 상태가 아니라는 설명을 함께 출력합니다. 검색 범위 종료 코드 0은 네 검색 항목이 모두 `healthy`라는 의미만 가지며 제외한 항목을 정상으로 주장하지 않습니다. 지원하지 않는 scope는 project 원본을 열기 전에 실패합니다. 결정은 [ADR-0072](./docs/adr/0072-explicitly-scoped-doctor.md)에 기록합니다.
 
+`DoctorReport.recoveryGuidance`는 issue가 없으면 빈 배열이고, 있으면 서로 다른 issue code마다 첫 등장 순서의 안내를 하나씩 가집니다. 각 안내의 필수 필드는 `issueCode`, controlled `actionCode`, 고정된 한국어 `message`, `actionState=not_performed`입니다. 같은 issue code가 여러 event에서 반복되어도 안내를 누적하지 않으며 서로 다른 issue code를 action code 하나로 합쳐 원인을 숨기지 않습니다.
+
+안내는 issue message나 event ID를 입력으로 사용하지 않는 compile-time 전체 매핑에서만 파생합니다. 새 issue code는 안내 매핑 없이는 타입 검사를 통과하지 못합니다. Project·원본 ID, digest, 절대·상대 경로, 문서·스킬 본문, provider 원문, credential과 내부 오류는 안내에 포함하지 않습니다. 텍스트와 JSON 모두 자동 수정·명령 실행·승인·상태 변경을 주장하지 않으며 파일·event·Hub 원본을 만들지 않습니다. 결정은 [ADR-0073](./docs/adr/0073-bounded-doctor-recovery-guidance.md)에 기록합니다.
+
 Provider probe는 adapter가 정한 실행 파일에 shell 없이 `--version`만 호출합니다. 5초와 16 KiB로 제한하고 첫 ASCII 문장 최대 200자만 version으로 남깁니다. 이 성공은 인증, 네트워크, 모델 접근이나 실제 session 성공을 증명하지 않습니다. Issue에는 절대 경로, 문서·스킬 본문, 검색 query·digest·원본 ID, publisher, credential, 환경 변수와 raw provider output을 넣지 않으며 doctor는 event를 만들지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md), [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md), [ADR-0033](./docs/adr/0033-bounded-environment-doctor.md)과 [ADR-0071](./docs/adr/0071-search-rollout-operational-doctor.md)에 기록합니다.
 
 ## Hub 등록과 outbound event sync

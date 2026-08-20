@@ -92,6 +92,7 @@ describe("lervo doctor command", () => {
       stderr: () => undefined,
     }, doctorServices)).toBe(0);
     expect(healthyOutput).toContain("확인한 항목 정상");
+    expect(healthyOutput).not.toContain("다음 확인:");
 
     await appendBrokenKnowledgeCandidate(root);
     let issueOutput = "";
@@ -154,6 +155,25 @@ describe("lervo doctor command", () => {
     })).toBe(1);
     expect(output).toContain("문제  검색 rollout 조치");
     expect(output).toContain("search_rollout_action_invalid");
+    expect(output).toContain("다음 확인:");
+    expect(output).toContain("inspect_search_action");
+    expect(output).toContain("자동 수정이나 상태 변경은 실행하지 않았습니다");
+
+    let jsonOutput = "";
+    expect(await runCli(["doctor", "--json"], {
+      cwd: root,
+      stdout: (message) => { jsonOutput += message; },
+      stderr: () => undefined,
+    }, {
+      inspectDoctorEnvironment: async () => inspections,
+    })).toBe(1);
+    expect(JSON.parse(jsonOutput)).toMatchObject({
+      recoveryGuidance: [{
+        issueCode: "search_rollout_action_invalid",
+        actionCode: "inspect_search_action",
+        actionState: "not_performed",
+      }],
+    });
   });
 
   it("runs only search diagnostics and declares the limited scope in text and JSON", async () => {
