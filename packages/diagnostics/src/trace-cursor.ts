@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "@lervo/event-contract";
+import { eventTypes, type EventType } from "@lervo/schemas";
 
 export interface TraceCursorPayload {
   schemaVersion: 1;
@@ -11,11 +12,13 @@ export interface TraceCursorPayload {
   afterSeq: number;
   afterEventHash: string;
   limit: number;
+  eventTypes?: EventType[];
 }
 
 const idPattern = /^(?:prj|run)_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/;
 const hashPattern = /^sha256:[a-f0-9]{64}$/;
 const cursorPattern = /^trc_([A-Za-z0-9_-]+)\.([a-f0-9]{64})$/;
+const eventTypeSet = new Set<string>(eventTypes);
 
 function digest(encoded: string): string {
   return createHash("sha256").update(encoded).digest("hex");
@@ -32,7 +35,15 @@ function isTraceCursorPayload(value: unknown): value is TraceCursorPayload {
     Number.isSafeInteger(payload.afterSeq) && payload.afterSeq! >= 1 &&
     typeof payload.afterEventHash === "string" && hashPattern.test(payload.afterEventHash) &&
     Number.isSafeInteger(payload.limit) && payload.limit! >= 1 && payload.limit! <= 100 &&
-    Object.keys(payload).length === 8;
+    (payload.eventTypes === undefined || (
+      Array.isArray(payload.eventTypes) &&
+      payload.eventTypes.length >= 1 &&
+      new Set(payload.eventTypes).size === payload.eventTypes.length &&
+      payload.eventTypes.every((eventType) => eventTypeSet.has(eventType)) &&
+      payload.eventTypes.every((eventType, index) =>
+        index === 0 || payload.eventTypes![index - 1]! < eventType)
+    )) &&
+    Object.keys(payload).length === (payload.eventTypes === undefined ? 8 : 9);
 }
 
 export function createTraceCursor(payload: TraceCursorPayload): string {

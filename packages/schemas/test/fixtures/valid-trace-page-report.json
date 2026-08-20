@@ -19,6 +19,9 @@
         "hasMore": true,
         "nextCursor": "trc_abc.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
+      "filter": {
+        "eventTypes": ["run.requested"]
+      },
       "events": [
         {
           "eventId": "evt_01234567",

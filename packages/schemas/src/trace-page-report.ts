@@ -2,6 +2,7 @@ import type { FromSchema } from "json-schema-to-ts";
 
 import { projectIdSchema, runIdSchema, sha256Schema } from "./common.js";
 import { eventEnvelopeSchema } from "./event.js";
+import { eventTypes } from "./event.js";
 
 export const tracePageReportSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -45,6 +46,19 @@ export const tracePageReportSchema = {
         "hasMore",
         "nextCursor",
       ],
+      additionalProperties: true,
+    },
+    filter: {
+      type: "object",
+      properties: {
+        eventTypes: {
+          type: "array",
+          minItems: 1,
+          uniqueItems: true,
+          items: { type: "string", enum: eventTypes },
+        },
+      },
+      required: ["eventTypes"],
       additionalProperties: true,
     },
     events: {

@@ -28,6 +28,7 @@ export class DiagnosticsError extends Error {
       | "trace_cursor_invalid"
       | "trace_cursor_stale"
       | "trace_empty"
+      | "trace_filter_empty"
       | "trace_result_too_large"
       | "trace_run_not_found",
     message: string,

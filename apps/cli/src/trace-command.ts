@@ -8,11 +8,13 @@ import {
   type TracePageReport,
   type TraceReport,
 } from "@lervo/diagnostics";
+import { eventTypes, type EventType } from "@lervo/schemas";
 
 import type { CliIo, CliServices } from "./types.js";
 
 export const traceUsage =
-  `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}> | --cursor <cursor>]`;
+  `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}>] [--event-type <type>...] | --cursor <cursor>`;
+const knownEventTypes = new Set<string>(eventTypes);
 
 function formatPayload(payload: Record<string, unknown>): string {
   return Object.entries(payload)
@@ -42,6 +44,9 @@ export function formatTracePageReport(report: TracePageReport): string {
     `실행 추적 페이지: ${report.runId}`,
     `Event 범위: seq ${first.seq} ~ ${last.seq} (${report.page.returnedCount}개)`,
     `고정한 원본: 전체 ${report.integrity.eventCount}개 · ${report.integrity.headHash}`,
+    ...(report.filter === undefined
+      ? []
+      : [`Event type 조건: ${report.filter.eventTypes.join(", ")}`]),
     "기록:",
     ...report.events.map((event) =>
       `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`),
@@ -77,6 +82,7 @@ export async function runTraceCommand(
         json: { type: "boolean" },
         "page-size": { type: "string" },
         cursor: { type: "string" },
+        "event-type": { type: "string", multiple: true },
         help: { type: "boolean", short: "h" },
       },
     });
@@ -93,9 +99,19 @@ export async function runTraceCommand(
     return 1;
   }
   if (parsed.values.cursor !== undefined && (
-    parsed.positionals.length > 0 || parsed.values["page-size"] !== undefined
+    parsed.positionals.length > 0 ||
+    parsed.values["page-size"] !== undefined ||
+    parsed.values["event-type"] !== undefined
   )) {
     io.stderr(`cursor는 run ID나 page-size와 함께 지정할 수 없습니다.\n${traceUsage}\n`);
+    return 1;
+  }
+  const requestedEventTypes = parsed.values["event-type"];
+  if (requestedEventTypes !== undefined && (
+    new Set(requestedEventTypes).size !== requestedEventTypes.length ||
+    requestedEventTypes.some((eventType) => !knownEventTypes.has(eventType))
+  )) {
+    io.stderr(`event-type은 지원하는 값을 중복 없이 지정해야 합니다.\n${traceUsage}\n`);
     return 1;
   }
   let storage;
@@ -103,19 +119,25 @@ export async function runTraceCommand(
     storage = await services.openProjectStorage(
       resolve(io.cwd, parsed.values.root ?? "."),
     );
-    const paged = parsed.values.cursor !== undefined || parsed.values["page-size"] !== undefined;
+    const paged = parsed.values.cursor !== undefined ||
+      parsed.values["page-size"] !== undefined || requestedEventTypes !== undefined;
     const report = parsed.values.cursor !== undefined
       ? createTracePage({
           projectId: storage.manifest.projectId,
           events: storage.events,
           cursor: parsed.values.cursor,
         })
-      : parsed.values["page-size"] !== undefined
+      : paged
         ? createTracePage({
             projectId: storage.manifest.projectId,
             events: storage.events,
             selector: parsed.positionals[0] ?? "last",
-            limit: parsePageSize(parsed.values["page-size"]),
+            ...(parsed.values["page-size"] === undefined
+              ? {}
+              : { limit: parsePageSize(parsed.values["page-size"]) }),
+            ...(requestedEventTypes === undefined
+              ? {}
+              : { eventTypes: requestedEventTypes as EventType[] }),
           })
         : createTraceReport({
             projectId: storage.manifest.projectId,

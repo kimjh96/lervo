@@ -25,16 +25,22 @@ async function storeWithEvents(count: number): Promise<SQLiteEventStore> {
       projectId,
       runId: "run_trace_page_01",
       sessionId: "ses_trace_page_01",
-      type: "run.requested",
+      type: index % 2 === 0 ? "run.failed" : "run.requested",
       occurredAt: `2026-08-20T00:00:0${index}Z`,
       actor: { kind: "system" },
       schemaVersion: 1,
       policyVersion: `sha256:${"a".repeat(64)}`,
-      payload: {
-        requestDigest: `sha256:${"b".repeat(64)}`,
-        role: "developer",
-        risk: "low",
-      },
+      payload: index % 2 === 0
+        ? {
+            failureCode: "fixture_failure",
+            retryable: false,
+            diagnosticDigest: `sha256:${"c".repeat(64)}`,
+          }
+        : {
+            requestDigest: `sha256:${"b".repeat(64)}`,
+            role: "developer",
+            risk: "low",
+          },
     });
   }
   return store;
@@ -99,6 +105,36 @@ describe("snapshot-bound local trace pages", () => {
       ...page,
       page: { ...page.page, returnedCount: 2 },
     })).toThrowError(expect.objectContaining({ code: "trace_page_report_invalid" }));
+    store.close();
+  });
+
+  it("binds an event type filter into every cursor page", async () => {
+    const store = await storeWithEvents(5);
+    const first = createTracePage({
+      projectId,
+      events: store,
+      selector: "last",
+      limit: 1,
+      eventTypes: ["run.failed"],
+    });
+    expect(first.events.map((event) => event.seq)).toEqual([2]);
+    expect(first.filter).toEqual({ eventTypes: ["run.failed"] });
+
+    const second = createTracePage({ projectId, events: store, cursor: first.page.nextCursor! });
+    expect(second.events.map((event) => event.seq)).toEqual([4]);
+    expect(second.filter).toEqual(first.filter);
+    expect(second.page.hasMore).toBe(false);
+    store.close();
+  });
+
+  it("distinguishes no filter matches from a missing run", async () => {
+    const store = await storeWithEvents(3);
+    expect(() => createTracePage({
+      projectId,
+      events: store,
+      selector: "last",
+      eventTypes: ["run.completed"],
+    })).toThrowError(expect.objectContaining({ code: "trace_filter_empty" }));
     store.close();
   });
 });

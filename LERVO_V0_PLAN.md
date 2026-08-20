@@ -701,6 +701,15 @@ Snapshot-bound local trace page 첫 슬라이스 완료 조건:
 - Event schema·allowlist·hash, 순서·연속 link, 반환 수와 다음 cursor 의미를 reader가 다시 확인함
 - Cursor를 인증이나 접근 권한으로 사용하지 않고 조회 중 원본을 변경하지 않음
 
+Trace page event type filter 첫 슬라이스 완료 조건:
+
+- 기존 allowlist event type만 중복 없이 받고 실제 조건을 report와 텍스트에 표시함
+- 정렬된 조건을 cursor에 결속하고 다음 page에서 조건 재지정을 받지 않음
+- 최대 1,000개 source batch를 순회하되 일치 event는 page 상한+1개만 보관함
+- 반환 event가 모두 조건에 속하고 report와 cursor 조건이 같은지 reader가 검증함
+- Run 존재·일치 결과 없음과 run 부재를 `trace_filter_empty`, `trace_run_not_found`로 구분함
+- Filtered page를 전체 run event 부재나 전체 상태로 표현하지 않고 원본을 변경하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -775,4 +784,6 @@ Bounded trace 원본 조회 첫 슬라이스를 완료했습니다. `last`는 �
 
 Snapshot-bound local trace page 첫 슬라이스를 완료했습니다. 기존 전체 report와 별도인 page report가 최대 100개 event만 반환하고 cursor를 project/run, integrity head와 마지막 event에 결속합니다. Page 사이 append, cursor 손상과 page 의미 불일치를 닫힌 상태로 거부합니다. 결정은 [ADR-0078](./docs/adr/0078-snapshot-bound-local-trace-pages.md)에 기록했습니다.
 
-다음 구현 작업은 큰 run에서 운영자가 필요한 기록만 좁힐 수 있도록 하는 **trace event type filter 계약**입니다. Filter는 page cursor와 snapshot에 결속되고, 필터된 결과를 전체 run이나 event 부재로 오해하지 않도록 실제 조회 조건과 관측 수를 report에 명시해야 합니다.
+Trace page event type filter 첫 슬라이스를 완료했습니다. Allowlist 조건을 report·텍스트와 cursor에 함께 고정하고 bounded batch scan으로 일치 event만 page화합니다. 조건에 맞는 기록 없음과 run 부재를 구분하며 filtered page를 전체 run 상태로 표현하지 않습니다. 결정은 [ADR-0079](./docs/adr/0079-explicit-trace-page-event-filter.md)에 기록했습니다.
+
+다음 구현 작업은 이번 trace·doctor 자동화 계약에서 반복된 version 판별과 오류 처리를 공통화하는 **diagnostics report compatibility boundary 정리**입니다. Report별 의미 검증은 분리해 유지하되 버전 추출·미지원/손상 오류 분류와 비밀정보 비노출 규칙의 중복을 제거해야 합니다.
