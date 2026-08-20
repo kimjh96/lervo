@@ -123,10 +123,11 @@ describe("lervo trace CLI", () => {
     await storage.close();
 
     let output = "";
+    let warningOutput = "";
     const code = await runCli(["trace", "last"], {
       cwd: root,
       stdout: (message) => { output += message; },
-      stderr: () => undefined,
+      stderr: (message) => { warningOutput += message; },
     });
 
     expect(code).toBe(0);
@@ -134,28 +135,44 @@ describe("lervo trace CLI", () => {
     expect(output).toContain("run.requested");
     expect(output).toContain("run.completed");
     expect(output).not.toContain("원문 주장");
+    expect(warningOutput).toContain("trace_implicit_full_deprecated");
+    expect(warningOutput).not.toContain("run_cli_trace_0001");
 
     let jsonOutput = "";
+    let jsonWarningOutput = "";
     expect(await runCli(["trace", "last", "--json"], {
       cwd: root,
       stdout: (message) => { jsonOutput += message; },
-      stderr: () => undefined,
+      stderr: (message) => { jsonWarningOutput += message; },
     })).toBe(0);
     expect(JSON.parse(jsonOutput)).toMatchObject({
       schemaVersion: 1,
       runId: "run_cli_trace_0001",
       status: "completed",
     });
+    expect(jsonWarningOutput).toContain("trace_implicit_full_deprecated");
+
+    let explicitFullOutput = "";
+    let explicitFullErrors = "";
+    expect(await runCli(["trace", "last", "--full", "--json"], {
+      cwd: root,
+      stdout: (message) => { explicitFullOutput += message; },
+      stderr: (message) => { explicitFullErrors += message; },
+    })).toBe(0);
+    expect(JSON.parse(explicitFullOutput)).toEqual(JSON.parse(jsonOutput));
+    expect(explicitFullErrors).toBe("");
 
     let firstPageOutput = "";
+    let firstPageErrors = "";
     expect(await runCli(["trace", "last", "--page-size", "1", "--json"], {
       cwd: root,
       stdout: (message) => { firstPageOutput += message; },
-      stderr: () => undefined,
+      stderr: (message) => { firstPageErrors += message; },
     })).toBe(0);
     const firstPage = JSON.parse(firstPageOutput);
     expect(firstPage.events.map((event: { seq: number }) => event.seq)).toEqual([1]);
     expect(firstPage.page.hasMore).toBe(true);
+    expect(firstPageErrors).toBe("");
 
     let secondPageOutput = "";
     expect(await runCli(["trace", "--cursor", firstPage.page.nextCursor, "--json"], {

@@ -7,7 +7,7 @@ describe("trace command options", () => {
     expect(parseTraceCommandOptions(["run_01234567", "--json"])).toMatchObject({
       help: false,
       json: true,
-      request: { kind: "full", selector: "run_01234567" },
+      request: { kind: "implicit_full", selector: "run_01234567" },
     });
     expect(parseTraceCommandOptions([
       "last",
@@ -26,11 +26,16 @@ describe("trace command options", () => {
     expect(parseTraceCommandOptions(["--cursor", "trc_fixture"])).toMatchObject({
       request: { kind: "cursor", cursor: "trc_fixture" },
     });
+    expect(parseTraceCommandOptions(["last", "--full", "--json"])).toMatchObject({
+      request: { kind: "full", selector: "last" },
+    });
   });
 
   it.each([
     [["one", "two"], "run ID는 하나만"],
     [["last", "--cursor", "trc_fixture"], "cursor는 run ID"],
+    [["--full", "--page-size", "10"], "full은 page-size"],
+    [["--full", "--event-type", "run.failed"], "full은 page-size"],
     [["--page-size", "0"], "page-size는 1 이상"],
     [["--event-type", "unknown.event"], "event-type은 지원하는 값"],
     [["--event-type", "run.failed", "--event-type", "run.failed"], "중복 없이"],

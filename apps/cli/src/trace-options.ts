@@ -4,14 +4,18 @@ import { maximumTracePageSize } from "@lervo/diagnostics";
 import { eventTypes, type EventType } from "@lervo/schemas";
 
 export const traceUsage =
-  `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}>] [--event-type <type>...] | --cursor <cursor>`;
+  `  lervo trace [last|run-id] [--root <path>] [--json] [--full | --page-size <1-${maximumTracePageSize}>] [--event-type <type>...] | --cursor <cursor>`;
+
+export const traceImplicitFullDeprecationWarning =
+  "경고 (trace_implicit_full_deprecated): 암묵적 전체 trace 출력은 0.1.0에서 bounded page로 바뀔 예정입니다. 현재 전체 v1 report가 필요하면 --full을 지정하세요.";
 
 const knownEventTypes = new Set<string>(eventTypes);
 
 export type TraceCommandRequest =
   | { kind: "cursor"; cursor: string }
   | { kind: "first_page"; selector: string; limit?: number; eventTypes?: EventType[] }
-  | { kind: "full"; selector: string };
+  | { kind: "full"; selector: string }
+  | { kind: "implicit_full"; selector: string };
 
 export type TraceCommandOptions =
   | { help: true }
@@ -36,6 +40,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
       json: { type: "boolean" },
       "page-size": { type: "string" },
       cursor: { type: "string" },
+      full: { type: "boolean" },
       "event-type": { type: "string", multiple: true },
       help: { type: "boolean", short: "h" },
     },
@@ -47,10 +52,11 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
   const requestedEventTypes = parsed.values["event-type"];
   if (parsed.values.cursor !== undefined && (
     parsed.positionals.length > 0 ||
+    parsed.values.full === true ||
     parsed.values["page-size"] !== undefined ||
     requestedEventTypes !== undefined
   )) {
-    throw new TypeError("cursor는 run ID, page-size, event-type과 함께 지정할 수 없습니다.");
+    throw new TypeError("cursor는 run ID, full, page-size, event-type과 함께 지정할 수 없습니다.");
   }
   if (requestedEventTypes !== undefined && (
     new Set(requestedEventTypes).size !== requestedEventTypes.length ||
@@ -69,7 +75,15 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
   }
   const selector = parsed.positionals[0] ?? "last";
   const paged = parsed.values["page-size"] !== undefined || requestedEventTypes !== undefined;
-  if (!paged) return { ...common, request: { kind: "full", selector } };
+  if (parsed.values.full === true && paged) {
+    throw new TypeError("full은 page-size나 event-type과 함께 지정할 수 없습니다.");
+  }
+  if (!paged) {
+    return {
+      ...common,
+      request: { kind: parsed.values.full === true ? "full" : "implicit_full", selector },
+    };
+  }
   return {
     ...common,
     request: {

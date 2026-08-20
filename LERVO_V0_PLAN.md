@@ -719,6 +719,16 @@ Diagnostics report compatibility 경계 정리 완료 조건:
 - 전체·첫 page·cursor page 요청을 배타적인 타입으로 만들고 잘못된 조합을 storage open 전에 거부함
 - 기존 report fixture와 CLI 출력·오류 회귀 테스트가 그대로 통과함
 
+Trace output mode deprecation 계약 첫 슬라이스 완료 조건:
+
+- 암묵적 전체 출력과 명시적 `--full`을 서로 다른 요청 모드로 구분함
+- 0.0.x의 암묵적 전체 stdout·종료 코드는 유지하고 성공 뒤 controlled stderr 경고만 한 번 출력함
+- `--full`은 같은 v1 report를 경고 없이 반환함
+- Full·page·filter·cursor 모순을 project storage open 전에 거부함
+- Page·cursor mode와 실패한 전체 조회에는 deprecation 경고를 내지 않음
+- 경고에 project/run/event ID, payload, 경로나 credential을 넣지 않음
+- Bounded page 기본 전환을 0.1.0 별도 변경으로 두고 현재 코드에서 자동 활성화하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -797,4 +807,6 @@ Trace page event type filter 첫 슬라이스를 완료했습니다. Allowlist �
 
 Diagnostics report compatibility 경계 정리를 완료했습니다. 세 report reader는 공통 version·schema·의미 검증 순서를 사용하되 각 code와 의미 검증을 독립적으로 유지합니다. Trace CLI는 옵션·format·실행 조합으로 나뉘고 요청 모드는 타입 수준에서 배타적입니다. 결정은 [ADR-0080](./docs/adr/0080-shared-diagnostics-report-compatibility.md)에 기록했습니다.
 
-다음 구현 작업은 기존 무제한 형식의 기본 `lervo trace`를 장기적으로 bounded page 기본값으로 옮길 수 있도록 하는 **trace output mode deprecation 계약**입니다. 기존 JSON consumer를 조용히 깨지 않고 경고·명시적 `--full`·전환 시점을 정의해야 합니다.
+Trace output mode deprecation 계약 첫 슬라이스를 완료했습니다. 0.0.x의 암묵적 full은 기존 stdout을 유지하면서 controlled 경고를 내고, `--full`은 경고 없이 같은 v1을 고정합니다. Bounded 기본값 활성화는 0.1.0 별도 변경으로 남겼습니다. 결정은 [ADR-0081](./docs/adr/0081-trace-output-mode-deprecation.md)에 기록했습니다.
+
+다음 구현 작업은 외부 자동화가 사람용 help나 stderr 문장을 파싱하지 않고 현재 trace 기본값·지원 mode·상한·deprecation code를 알 수 있도록 하는 **machine-readable trace capability report**입니다.

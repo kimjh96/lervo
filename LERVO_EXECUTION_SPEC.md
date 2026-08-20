@@ -855,6 +855,8 @@ Trace의 `last`는 제한 없는 `list()` 결과를 최신으로 해석하지 �
 
 Doctor, trace와 trace page reader는 공통 compatibility 경계에서 정수 version, JSON Schema, report별 의미 검증 순서로 읽습니다. 공통 경계는 입력값을 오류 메시지에 넣지 않으며 report별 error class와 기계용 code를 바꾸지 않습니다. Trace CLI의 옵션 해석, 사람용 format과 storage 수명주기 조합은 서로 다른 모듈이 소유합니다. 결정은 [ADR-0080](./docs/adr/0080-shared-diagnostics-report-compatibility.md)에 기록합니다.
 
+0.0.x의 `lervo trace [last|run-id]`는 기존 전체 `TraceReport` v1 stdout과 종료 코드를 유지하되 성공 뒤 stderr에 `trace_implicit_full_deprecated` 경고를 한 번 출력합니다. `--full`은 같은 전체 report를 경고 없이 명시적으로 요청합니다. `--full`과 page-size·event-type·cursor의 조합은 storage를 열기 전에 실패합니다. Page·cursor mode와 실패한 전체 조회에는 deprecation 경고를 출력하지 않습니다. 경고에는 project/run/event 좌표나 payload를 넣지 않습니다. 인자 없는 기본값을 page size 50으로 바꾸는 시점은 0.1.0의 별도 구현으로 예약하며 현재 코드가 자동 전환하지 않습니다. 결정은 [ADR-0081](./docs/adr/0081-trace-output-mode-deprecation.md)에 기록합니다.
+
 검색 진단 ID는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`입니다. 선택은 운영 resolver와 같은 전체 chain 검증을 사용하고, 정책은 engine·rollout review·action policy의 project 좌표와 결속을 확인합니다. 검토와 조치는 기존 bounded 상태 조회기의 전체 원본 검증을 사용합니다. 정상적으로 비어 있는 범위는 관측 수 0의 `healthy`입니다.
 
 선택이나 정책이 `unhealthy`이면 검토는 `search_rollout_review_unavailable`의 `unknown`이고 조치도 `search_rollout_action_unavailable`의 `unknown`입니다. 검토가 `unhealthy`이면 조치는 `unknown`입니다. 직접 확인한 선택·정책·검토·조치 손상은 각각 `search_engine_selection_invalid`, `search_rollout_policy_invalid`, `search_rollout_review_invalid`, `search_rollout_action_invalid`의 `unhealthy`입니다. 진단은 상태 조회·사전 점검·승인·조치 실행을 대신하지 않고 검색 파일, event와 Hub 원본을 만들지 않습니다.
