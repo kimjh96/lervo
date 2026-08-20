@@ -333,7 +333,7 @@ fixtures/
 6. Hub command/approval 대화 UX — 완료
 7. 연구자·마케터·디자이너 RoleProfile/평가 묶음과 고위험 숙의 정책 확장 — 완료
 8. 명시적 관계 기반 지식 그래프 시각화 — 완료
-9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단
+9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1` 첫 슬라이스 완료, 도입 판단 보류
 10. 조직 단위 비용·품질·가드레일 분석
 
 Conversation 첫 슬라이스 완료 조건:
@@ -384,6 +384,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 관계 저장·응답·화면에 문서·artifact 본문, content hash, prompt, provider 응답, 내부 추론과 credential을 넣지 않음
 - 그래프 조회와 화면 동작을 새 event, context 이해·사용, 실행 또는 지식 검증으로 기록하지 않음
 
+검색 baseline과 실패 관측 첫 슬라이스 완료 조건:
+
+- 등록된 Markdown 원본의 content hash·실제 검색 field 투영 digest와 engine version에서 매번 재생성 가능한 provider·저장소 중립 `lexical-v1` index를 만듦
+- Unicode 정규화·field별 고정 가중치·source ID tie-break로 corpus 입력 순서와 시각에 무관한 순위를 반환함
+- 문서 하나라도 missing·unsafe·동시 변경·invalid UTF-8·empty·크기 초과이면 일부 corpus로 검색하지 않음
+- Query 500자·32 term, source 4,096개·각 128 KiB·전체 16 MiB, 결과 50개의 상한을 강제함
+- Attempt에는 query digest·크기, index·result-set hash와 path 없는 bounded source 좌표만 두고 raw query·term·문서 본문을 저장하지 않음
+- 결과가 0개이거나 클릭됐다는 사실로 품질을 추정하지 않고 사람 또는 독립 verification의 별도 assessment만 성공·controlled 실패로 집계함
+- Attempt와 assessment를 각각 독립된 immutable 파일로 저장하고 project·ID·hash·시간·결과 관계를 report 전에 모두 다시 검증함
+- Search hit를 context `selected`, `loaded`, `injected`, `used`, 검증된 지식 또는 임베딩 필요성으로 승격하지 않음
+- Report는 미평가를 분리하고 실패 사유를 집계하지만 `embeddingDecision=not_determined`를 유지함
+- 로컬 query·assessment·report가 Hub와 새 실행 event 없이 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -406,4 +419,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 명시적 관계 기반 지식 그래프 첫 슬라이스를 완료했습니다. `@lervo/knowledge-graph`는 allowlist event에 실제로 있는 ID와 경로만 안정된 relation과 증거 좌표로 투영합니다. Hub SQLite는 파생 관계를 event transaction에서 증분 반영하고 version 변경 시 event에서 다시 만들며 전체 audit로 변조·누락을 대조합니다. 인증된 graph API와 `/trace`는 focus에 직접 닿는 현재 page만 반환·표시하고 문서 본문, content hash, prompt와 내부 추론을 다루지 않습니다. 결정은 [ADR-0052](./docs/adr/0052-rebuildable-explicit-knowledge-graph.md)에 기록했습니다.
 
-다음 구현 작업은 임베딩을 먼저 추가하는 일이 아닙니다. 현재 명시적 경로와 전문 검색이 어떤 질의에서 실패하는지 원본 좌표와 개인정보 경계를 지키며 관측하는 계약, 그리고 재현 가능한 전문 검색 baseline을 먼저 만듭니다. 측정된 실패가 의미 검색으로 실제 개선되는 경우에만 임베딩/RAG의 도입 범위와 평가 기준을 결정합니다.
+결정적 어휘 검색과 명시적 실패 관측 첫 슬라이스를 완료했습니다. `@lervo/search`는 등록 원본 hash에 결속된 `lexical-v1` index와 순위를 재현하고 `@lervo/search-local`은 안전하게 읽은 로컬 문서와 query 원문 없는 attempt·별도 assessment를 연결합니다. `lervo search`, `search assess`, `search report`는 빈 결과를 자동 실패로 만들지 않고 명시적으로 평가된 사유만 집계하며 임베딩 판단을 미결정으로 유지합니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)에 기록했습니다.
+
+다음 구현 작업은 검색 hit를 곧바로 필수 context로 주입하는 일이 아닙니다. Managed context preparation이 bounded 검색 추천을 입력으로 받을 수 있는 별도 port와 `search_recommendation` 선택 근거를 연결하고, 추천됨·선택됨·로드됨·주입됨을 각각 증명하도록 수직 슬라이스를 확장합니다. 그 과정에서 실제 run의 검색 평가를 축적한 뒤에만 lexical baseline과 의미 검색 후보를 같은 검증 묶음으로 비교합니다.

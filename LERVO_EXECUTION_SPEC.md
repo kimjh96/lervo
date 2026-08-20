@@ -664,6 +664,16 @@ Managed block patch candidate는 source path/hash/byte count, parser version, �
 
 자동 수정은 patch/candidate로 생성하고, managed block 이외의 변경에는 사용자 또는 정책상 승인된 reviewer가 필요합니다.
 
+## 검색 baseline과 실패 관측
+
+`@lervo/search`의 `lexical-v1`은 provider·파일 시스템·Hub를 모르는 결정적 검색기입니다. Source는 controlled kind, source ID, content hash, 선택적인 저장소 상대 경로와 검색 중에만 쓰는 title·label·text를 가집니다. 첫 `@lervo/search-local` 조합은 document registry에 등록된 Markdown만 읽고 NFKC Unicode term, field별 고정 정수 가중치와 source ID tie-break로 매 요청의 메모리 index를 다시 만듭니다. Index ID는 engine version, 정렬된 source ID·path·content hash와 title·label·text 투영 digest에 결속됩니다.
+
+로컬 corpus는 최대 4,096개 문서, 문서당 128 KiB, 전체 16 MiB입니다. Query는 최대 500자·32개 term이고 결과는 최대 50개입니다. 등록 원본 하나라도 missing, unsafe, 동시 변경, invalid UTF-8, empty 또는 크기 초과이면 일부 문서만으로 검색하지 않습니다. 결과에는 source 좌표·hash, rank·score와 일치 field만 있고 본문은 없습니다. Search hit는 추천 후보이며 context `selected`, `loaded`, `injected`, `used`와 검증된 지식이 아닙니다.
+
+`SearchAttempt`는 project ID, 관측 시각·nonce, `lexical-v1`·index ID, raw query 대신 digest·문자 수·term 수, 요청 limit, result-set hash와 path 없는 bounded hit 좌표를 갖습니다. `SearchAssessment`는 같은 project와 attempt에 결속된 사람 또는 독립 verification의 명시적 판정입니다. `accepted`는 실제 반환된 source 종류·ID 좌표가 하나 이상 필요하고 `failed`는 `no_results`, `expected_source_missing`, `low_rank`, `results_not_relevant`, `insufficient_context` 중 하나를 필수로 가집니다. 실제 결과가 있으면 `no_results`를 쓸 수 없습니다. 선택·기대 원본은 종류와 ID를 함께 저장해 서로 다른 원본 종류의 같은 ID를 혼동하지 않습니다. 결과 수, 클릭이나 모델 자체 판단으로 assessment를 만들지 않습니다.
+
+Attempt와 assessment는 `.lervo/state/search/attempts/<attemptId>.json`, `.lervo/state/search/assessments/<attemptId>.json`의 독립된 mode `0600` 원본입니다. 같은 ID를 덮어쓰거나 한 파일에 append하지 않습니다. Report는 최대 10,000개 원본의 ID·hash·project·시간·결과 관계를 모두 다시 확인하고 전체·평가·미평가·수락·실패 및 사유별 수만 반환합니다. 상태는 `insufficient_assessment`, `no_failures_observed`, `failures_observed`이고 임베딩 판단은 항상 `not_determined`입니다. 새 실행 event와 Hub sync는 추가하지 않습니다. 결정은 [ADR-0053](./docs/adr/0053-deterministic-lexical-search-observations.md)에 기록합니다.
+
 ## 지식 승격 규칙
 
 지식 candidate는 최소한 다음을 포함합니다.
@@ -887,6 +897,10 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `derived_index_failed` | 명시적 경로와 전문 검색으로 저하 운전합니다. |
 | `invalid_node` / `projection_invalid` | 그래프 focus·끝점 좌표가 유효하지 않거나 allowlist event의 명시적 좌표로 관계를 만들 수 없습니다. 조회를 시작하지 않거나 event batch 전체를 rollback하며 관계 인덱싱 완료를 주장하지 않습니다. |
 | `source_inconsistent` / `integrity_failed` | 그래프 source page의 project·focus·정렬·cursor·관계 ID가 다르거나 파생 테이블이 event 재투영 결과와 다릅니다. 일부 page를 반환하지 않고 재구축 또는 운영자 진단을 요구합니다. |
+| `invalid_query` / `corpus_invalid` / `corpus_limit_exceeded` | 검색 query·source 또는 corpus 한도가 계약 밖입니다. 부분 index와 search attempt를 만들지 않습니다. |
+| `corpus_read_failed` | 등록 문서 하나 이상을 안전하고 완전하게 읽지 못했습니다. 누락 문서를 숨긴 검색 결과를 반환하거나 attempt를 기록하지 않습니다. |
+| `invalid_attempt` / `invalid_assessment` / `observation_conflict` | 검색 관측의 ID·hash·project·시간·결과 관계가 다르거나 한 attempt에 서로 다른 평가가 있습니다. 기존 원본을 유지하고 일부 평가만 집계하지 않습니다. |
+| `observation_invalid` / `observation_read_failed` / `observation_write_failed` / `observation_limit_exceeded` | 검색 관측 경로·파일·저장 또는 bounded 전체 조회를 신뢰할 수 없습니다. 검색·평가 기록이나 품질 report 완료를 주장하지 않습니다. |
 | `required_context_missing` | 필수 문서 부재, hash/scope 불일치, 오래된 context generation을 포함하며 쓰기 전에 중단합니다. |
 | `provider_capability_unsupported` | capability matrix에 따른 낮은 assurance를 명시하거나 정책상 차단합니다. |
 | `capability_denied` | Role 또는 프로젝트 정책이 요청한 capability를 거부했습니다. 실행은 읽기 전용으로 계속할 수 있지만 해당 변경은 재시도하지 않습니다. |

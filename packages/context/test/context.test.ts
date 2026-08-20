@@ -28,6 +28,7 @@ import {
   documentIdForPath,
   loadContextPlan,
   prepareContext,
+  readRepositoryFile,
   validateContextSnapshot,
 } from "../src/index.js";
 
@@ -775,5 +776,15 @@ describe("context preparation", () => {
       documentIdForPath("packages\\api\\AGENTS.md"),
     );
     expect(documentIdForPath("packages/api/AGENTS.md")).toMatch(/^doc_path_[a-f0-9]{24}$/);
+  });
+
+  it("enforces the byte bound while reading a repository file", async () => {
+    const root = await temporaryDirectory();
+    await writeFile(resolve(root, "bounded.md"), "12345");
+
+    await expect(readRepositoryFile(root, "bounded.md", 4)).rejects.toMatchObject({
+      code: "document_read_failed",
+    });
+    await expect(readRepositoryFile(root, "bounded.md", 5)).resolves.toEqual(Buffer.from("12345"));
   });
 });

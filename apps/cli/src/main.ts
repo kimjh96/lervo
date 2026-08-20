@@ -5,6 +5,7 @@ import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
+import { runSearchCommand, searchUsage } from "./search-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 
@@ -12,6 +13,7 @@ const usage = `사용법:
 ${initUsage}
 ${runUsage}
 ${traceUsage}
+${searchUsage}
 ${doctorUsage}
 `;
 
@@ -35,6 +37,7 @@ export async function runCli(
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);
+  if (command === "search") return runSearchCommand(args.slice(1), io);
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
   io.stderr(`알 수 없는 명령입니다: ${command}\n${usage}`);
   return 1;
@@ -44,5 +47,6 @@ export { formatInitPlan } from "./init-command.js";
 export { createManagedRunExecutor, executeManagedRun } from "./managed-run.js";
 export { formatRunOutcome } from "./run-command.js";
 export { formatTraceReport } from "./trace-command.js";
+export { formatSearchQualityReport } from "./search-command.js";
 export { formatDoctorReport } from "./doctor-command.js";
 export type { CliIo, CliServiceOverrides, CliServices } from "./types.js";

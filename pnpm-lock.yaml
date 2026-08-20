@@ -50,6 +50,12 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@lervo/search':
+        specifier: workspace:*
+        version: link:../../packages/search
+      '@lervo/search-local':
+        specifier: workspace:*
+        version: link:../../packages/search-local
       '@lervo/skills':
         specifier: workspace:*
         version: link:../../packages/skills
@@ -763,6 +769,27 @@ importers:
       json-schema-to-ts:
         specifier: ^3.1.1
         version: 3.1.1
+
+  packages/search:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+
+  packages/search-local:
+    dependencies:
+      '@lervo/context':
+        specifier: workspace:*
+        version: link:../context
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/project':
+        specifier: workspace:*
+        version: link:../project
+      '@lervo/search':
+        specifier: workspace:*
+        version: link:../search
 
   packages/skills:
     dependencies:

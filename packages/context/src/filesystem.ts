@@ -111,7 +111,14 @@ export async function repositoryFileExists(root: string, path: string): Promise<
   return (await inspectPath(root, path)).kind === "file";
 }
 
-export async function readRepositoryFile(root: string, path: string): Promise<Uint8Array> {
+export async function readRepositoryFile(
+  root: string,
+  path: string,
+  maximumBytes = Number.MAX_SAFE_INTEGER,
+): Promise<Uint8Array> {
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+    throw new ContextPreparationError("document_read_failed", "문서 byte 상한이 유효하지 않습니다.");
+  }
   const inspected = await inspectPath(root, path);
   const normalized = normalizeRepositoryPath(path);
   if (inspected.kind === "missing") {
@@ -128,19 +135,32 @@ export async function readRepositoryFile(root: string, path: string): Promise<Ui
       constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0),
     );
     const beforeStats = await handle.stat({ bigint: true });
-    if (!beforeStats.isFile()) {
+    if (!beforeStats.isFile() || beforeStats.size > BigInt(maximumBytes)) {
       throw new ContextPreparationError(
-        "unsafe_document_path",
-        `선택한 문서는 실제 파일이어야 합니다: ${normalized}`,
+        beforeStats.isFile() ? "document_read_failed" : "unsafe_document_path",
+        beforeStats.isFile()
+          ? `선택한 문서가 byte 상한을 넘었습니다: ${normalized}`
+          : `선택한 문서는 실제 파일이어야 합니다: ${normalized}`,
       );
     }
     const before = identity(beforeStats);
-    const bytes = await handle.readFile();
+    let bytes: Uint8Array;
+    let boundedBytesRead: number | undefined;
+    if (maximumBytes === Number.MAX_SAFE_INTEGER) {
+      bytes = await handle.readFile();
+    } else {
+      const buffer = Buffer.alloc(Number(beforeStats.size) + 1);
+      const result = await handle.read(buffer, 0, buffer.length, 0);
+      boundedBytesRead = result.bytesRead;
+      bytes = buffer.subarray(0, result.bytesRead);
+    }
     const after = identity(await handle.stat({ bigint: true }));
     const pathStats = await lstat(inspected.absolutePath, { bigint: true });
     const resolvedPath = await realpath(inspected.absolutePath);
     if (
       !sameIdentity(before, after) ||
+      (boundedBytesRead !== undefined && boundedBytesRead !== Number(before.size)) ||
+      after.size > BigInt(maximumBytes) ||
       pathStats.isSymbolicLink() ||
       pathStats.dev !== after.dev ||
       pathStats.ino !== after.ino ||

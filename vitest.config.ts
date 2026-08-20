@@ -49,6 +49,8 @@ export default defineConfig({
       "@lervo/remote-command-contract": fromRoot("./packages/remote-command-contract/src/index.ts"),
       "@lervo/remote-command-sqlite": fromRoot("./packages/remote-command-sqlite/src/index.ts"),
       "@lervo/roles": fromRoot("./packages/roles/src/index.ts"),
+      "@lervo/search": fromRoot("./packages/search/src/index.ts"),
+      "@lervo/search-local": fromRoot("./packages/search-local/src/index.ts"),
       "@lervo/schemas": fromRoot("./packages/schemas/src/index.ts"),
       "@lervo/skills": fromRoot("./packages/skills/src/index.ts"),
       "@lervo/storage-contract": fromRoot("./packages/storage-contract/src/index.ts"),
