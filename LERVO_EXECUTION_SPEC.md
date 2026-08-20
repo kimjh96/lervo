@@ -707,6 +707,16 @@ Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫�
 
 핵심 오류 `invalid_evaluation_bundle`은 묶음 좌표·hash·정렬·참조·대체 관계·표본 중복이 유효하지 않다는 뜻이고 `invalid_evaluation_coverage`는 파생 ID·집계·상태가 원본과 다르다는 뜻입니다. 로컬 오류 `evaluation_bundle_invalid`, `evaluation_bundle_limit_exceeded`, `evaluation_bundle_read_failed`, `evaluation_bundle_write_failed`는 각각 파일 계약 위반, 개수 상한, 안전한 읽기 실패, immutable 게시 실패를 뜻합니다. 표본 부족은 파일 오류가 아니며 검색 실패, 임베딩 필요 또는 품질 판정으로 승격하지 않습니다. 묶음과 coverage에는 query·문서 본문·path·prompt·provider 응답·credential을 넣지 않고 `embeddingDecision=not_determined`를 유지합니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0056](./docs/adr/0056-search-evaluation-sample-bundles.md)에 기록합니다.
 
+## 공급자 중립 검색 후보 비교
+
+`SearchEvaluationEnginePort`는 64자 이하의 안정된 engine ID, 양의 정수 version과 `buildIndex(sources)`를 제공합니다. 만들어진 index는 같은 engine 좌표와 content-bound `sidx_` ID를 가지며 `search(query, 50)` 응답도 그 좌표를 유지해야 합니다. 공통 실행기는 1~256개 케이스에 같은 평가 시각과 50위 조건을 적용하고 응답의 query digest·크기, index·engine과 결과 hash를 케이스별로 다시 확인합니다. 운영 attempt와 managed context 추천은 계속 현재 `lexical-v1`만 허용하며 이 일반화로 후보 결과를 운영 검색처럼 위장하지 않습니다.
+
+로컬 비교 조합은 먼저 케이스·묶음·coverage를 읽습니다. `comparisonReadiness`가 `ready`가 아니면 corpus를 읽거나 후보 `buildIndex`를 호출하지 않고 `evaluation_comparison_not_ready`로 종료합니다. 준비된 경우 등록 Markdown corpus를 한 번 읽어 현재 `lexical-v1`과 후보 port에 같은 source 입력을 공급합니다. 후보에게 같은 입력을 제공했다는 port 호출은 증명하지만 후보 내부에서 실제로 어떻게 사용했는지는 추정하지 않습니다. Candidate가 baseline과 같은 engine 좌표를 쓰거나 index·응답 계약을 어기거나 실행에 실패하면 `evaluation_candidate_failed`이며 비교 원본을 만들지 않습니다.
+
+`SearchEvaluationComparison`은 bundle·coverage, 실제 corpus에서 다시 계산한 digest, 같은 시각의 baseline·candidate engine/index/run과 case별 result ID를 결속합니다. 같은 case에서 baseline 실패·candidate 통과면 `candidate_win`, 반대면 `baseline_win`, 둘의 통과 여부가 같으면 `tie`입니다. Score 크기, 같은 통과 안의 순위 차이와 서로 다른 실패 사유는 엔진 간 공통 척도로 가정하지 않습니다. 집계 상태는 `candidate_better_observed`, `baseline_better_observed`, `mixed`, `no_difference_observed`이고 어느 상태도 채택 결정이 아닙니다. `candidateDecision`과 `embeddingDecision`은 모두 `not_determined`입니다.
+
+두 엔진의 result·run은 기존 immutable 디렉터리에 먼저 게시하고 비교는 `.lervo/state/search/evaluation-comparisons/<comparisonId>.json`에 마지막으로 게시합니다. 저장 실패로 result나 run만 남으면 완료된 비교가 아닙니다. 비교 원본에는 query·문서 본문·path·prompt·provider 응답·credential을 넣지 않습니다. `invalid_evaluation_engine`은 engine·index·응답 좌표 위반, `invalid_evaluation_comparison`은 corpus·bundle·coverage·실행·집계 불일치입니다. 새 event와 Hub sync는 없고 실제 후보 adapter와 CLI 명령도 이번 범위에 포함하지 않습니다. 결정은 [ADR-0057](./docs/adr/0057-provider-neutral-search-candidate-comparison.md)에 기록합니다.
+
 ## 지식 승격 규칙
 
 지식 candidate는 최소한 다음을 포함합니다.

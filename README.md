@@ -127,8 +127,8 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/deliberation-runtime`: 역할별 managed run의 E2/E3·event 원본, writing permit, shared-context handoff와 구조화 artifact 기록을 연결하는 공급자 중립 숙의 runtime
 - `@lervo/knowledge`: converged 결과의 claim별 CAS candidate, 사람 review 승인 원본, 현재 revision·path hash에 묶인 verified 원본과 review interval·path 변경 기반 stale 판정을 분리하는 지식 수명주기 경계
 - `@lervo/knowledge-graph`: allowlist event의 명시적 ID·경로만 provider·저장소와 무관하게 안정된 node·relation·evidence로 투영하는 재생성 가능한 파생 경계
-- `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음과 명시적 품질 평가·실패 집계를 제공하는 공급자 중립 경계
-- `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하는 adapter
+- `@lervo/search`: 등록 원본의 content hash에 결속된 재생성 가능한 `lexical-v1` 색인·순위, query 원문 없는 시도·bounded 추천 묶음, 명시적 품질 평가와 준비된 표본의 후보 비교 계약을 제공하는 공급자 중립 경계
+- `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고 항목별 `healthy`·`unhealthy`·`unknown` 결과를 조합하는 로컬 진단 경계
 - `@lervo/cli`: 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 문서·스킬·provider 실행 환경을 분리하는 `doctor`와 로컬 `search`·명시적 `assess`·품질 `report` 포함
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, 문서 수명주기 기본 검사
@@ -160,5 +160,7 @@ lervo search evaluate --bundle backend-maintenance
 ```
 
 `lervo init`, 한 파일 `lervo run`, run별 `lervo trace`, 로컬 증거용 `lervo doctor`와 등록 문서 대상 `lervo search`를 실행할 수 있습니다. 검색 query는 원문 없이 digest만 attempt에 남고 품질은 별도 `lervo search assess`를 실행한 경우에만 집계됩니다. 검토한 attempt는 `search case`로 케이스별 YAML에 승격하고 `search evaluate`로 현재 `lexical-v1`을 같은 입력에 반복 실행할 수 있습니다. 역할·작업 유형별 평가 묶음은 활성 케이스, 대체 관계와 최소 표본을 별도 `.bundle.yaml`에 두며 `bundle report`로 비교 가능한 표본인지 확인합니다. 표본이 부족한 묶음도 현재 엔진 평가 결과는 남길 수 있지만 비교 준비 완료나 임베딩 필요성으로 해석하지 않습니다. 케이스 YAML에는 검토한 검색 문장이 들어가므로 비밀정보가 없는지 커밋 전에 확인해야 하며, 묶음·실행 결과와 report에는 문장을 복제하지 않습니다. Managed run은 작업 문장을 bounded 검색어로 투영하고 등록 문서 결과를 최대 5개 추천하며, `top_ranked-v1`이 고른 최대 3개만 별도 선택 근거로 E1에 넣습니다. 실행 결과의 attempt ID로 품질을 나중에 평가할 수 있으며 자동 선택이나 실행 성공 자체는 수락 평가가 아닙니다. `lervo run`은 `.lervo/verifications/<suite-id>.yaml`에 있는 suite를 `--verification`으로 하나 이상 명시해야 합니다. 모든 필수 suite가 통과하지 않으면 `run.completed`를 기록하지 않습니다. Writing 검사는 별도 의미 평가기가 구성되지 않은 기본 실행에서 결과 원문을 숨깁니다. Doctor는 각 검사 범위를 `healthy`, `unhealthy`, `unknown`으로 나누며 모든 항목이 `healthy`일 때만 성공합니다. Provider version 확인은 실행 파일 증거일 뿐 인증, 네트워크나 실제 session 성공을 뜻하지 않습니다. 구체적인 범위와 완료 조건은 `LERVO_V0_PLAN.md`에 정의합니다.
+
+후보 검색 비교 port는 구현되어 있지만 실제 후보 엔진 adapter와 사용자용 비교 명령은 아직 없습니다. 등록되지 않은 엔진 이름이나 임의 코드를 CLI에서 실행하지 않으며, 다음 단계에서 공통 계약을 통과한 adapter만 명시적으로 연결합니다.
 
 이전 실험 버전이 만든 `.roven` 경로는 자동으로 읽거나 `.lervo`와 함께 사용하지 않습니다. `lervo init`은 두 관리 경로가 공존하는 상태를 만들지 않도록 초기화를 차단합니다. 기존 상태를 옮기는 작업은 event hash chain과 CAS 주소를 보존하는 별도 명칭 migration으로 다룹니다.

@@ -9,6 +9,8 @@ export type SearchLocalErrorCode =
   | "evaluation_bundle_limit_exceeded"
   | "evaluation_bundle_read_failed"
   | "evaluation_bundle_write_failed"
+  | "evaluation_candidate_failed"
+  | "evaluation_comparison_not_ready"
   | "evaluation_not_found"
   | "observation_conflict"
   | "observation_invalid"

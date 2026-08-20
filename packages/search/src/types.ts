@@ -1,6 +1,11 @@
 export const SEARCH_ENGINE = { id: "lexical", version: 1 } as const;
 export const SEARCH_MAX_RESULTS = 50;
 
+export interface SearchEngineIdentity {
+  id: string;
+  version: number;
+}
+
 export const searchSourceKinds = ["document", "skill", "verified_knowledge"] as const;
 export type SearchSourceKind = (typeof searchSourceKinds)[number];
 
@@ -26,7 +31,7 @@ export interface SearchHit {
 
 export interface SearchResponse {
   schemaVersion: 1;
-  engine: typeof SEARCH_ENGINE;
+  engine: SearchEngineIdentity;
   indexId: string;
   queryDigest: string;
   queryCharacterCount: number;
@@ -137,6 +142,9 @@ export type SearchErrorCode =
   | "invalid_evaluation_case"
   | "invalid_evaluation_bundle"
   | "invalid_evaluation_coverage"
+  | "evaluation_comparison_not_ready"
+  | "invalid_evaluation_comparison"
+  | "invalid_evaluation_engine"
   | "invalid_evaluation_result"
   | "invalid_evaluation_run"
   | "invalid_query"

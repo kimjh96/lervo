@@ -14,7 +14,12 @@ import {
 import { assertSearchEvaluationCase } from "./evaluation-case.js";
 import { assertSearchEvaluationResult } from "./evaluation-result.js";
 import { contentId } from "./integrity.js";
-import { SEARCH_ENGINE, SearchError } from "./types.js";
+import {
+  assertSearchEngineIdentity,
+  SEARCH_INDEX_ID_PATTERN,
+  sameSearchEngine,
+} from "./evaluation-engine.js";
+import { SearchError } from "./types.js";
 import { assertTimestamp, SOURCE_ID_PATTERN } from "./validation.js";
 
 function emptyFailureCounts(): SearchEvaluationRun["failuresByReason"] {
@@ -44,7 +49,8 @@ export function createSearchEvaluationRun(input: {
     assertSearchEvaluationResult(pair.result, pair.evaluationCase);
     if (pair.evaluationCase.projectId !== input.projectId || pair.result.projectId !== input.projectId ||
       pair.result.evaluatedAt !== input.evaluatedAt.toISOString() ||
-      pair.result.indexId !== pairs[0]!.result.indexId) {
+      pair.result.indexId !== pairs[0]!.result.indexId ||
+      !sameSearchEngine(pair.result.engine, pairs[0]!.result.engine)) {
       throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 project·시각·index 좌표가 다릅니다.");
     }
   }
@@ -56,7 +62,7 @@ export function createSearchEvaluationRun(input: {
   const core = {
     projectId: input.projectId,
     evaluatedAt: input.evaluatedAt.toISOString(),
-    engine: SEARCH_ENGINE,
+    engine: { ...pairs[0]!.result.engine },
     indexId: pairs[0]!.result.indexId,
     caseIds: pairs.map(({ evaluationCase }) => evaluationCase.caseId),
     resultIds: pairs.map(({ result }) => result.resultId),
@@ -84,8 +90,7 @@ export function assertSearchEvaluationRun(
   results?: readonly SearchEvaluationResult[],
 ): void {
   if (run.schemaVersion !== 1 || !SEARCH_EVALUATION_RUN_PATTERN.test(run.runId) ||
-    !SOURCE_ID_PATTERN.test(run.projectId) || run.engine?.id !== SEARCH_ENGINE.id ||
-    run.engine?.version !== SEARCH_ENGINE.version || !/^sidx_[a-f0-9]{24}$/.test(run.indexId) ||
+    !SOURCE_ID_PATTERN.test(run.projectId) || !SEARCH_INDEX_ID_PATTERN.test(run.indexId) ||
     !Array.isArray(run.caseIds) || !Array.isArray(run.resultIds) || run.caseIds.length < 1 ||
     run.caseIds.length > SEARCH_EVALUATION_MAX_CASES || run.resultIds.length !== run.caseIds.length ||
     run.caseIds.some((id) => !SEARCH_EVALUATION_CASE_PATTERN.test(id)) ||
@@ -108,6 +113,7 @@ export function assertSearchEvaluationRun(
     searchEvaluationFailureReasons.reduce((sum, reason) => sum + run.failuresByReason[reason], 0) !== run.failedCases) {
     throw new SearchError("invalid_evaluation_run", "검색 평가 실행 계약이 유효하지 않습니다.");
   }
+  assertSearchEngineIdentity(run.engine, "invalid_evaluation_run");
   assertTimestamp(run.evaluatedAt, "invalid_evaluation_run");
   if ((cases === undefined) !== (results === undefined)) {
     throw new SearchError("invalid_evaluation_run", "검색 평가 실행 검증에는 케이스와 결과가 함께 필요합니다.");

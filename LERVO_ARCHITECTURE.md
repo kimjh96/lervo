@@ -343,6 +343,8 @@ Managed context 연결은 search attempt를 포함한 `SearchRecommendationBatch
 
 평가 표본 운영은 역할·작업 유형마다 하나의 작은 `SearchEvaluationBundle` 원본으로 분리한다. 묶음은 활성 케이스, 최소 표본 수와 이전 케이스가 어느 활성 케이스로 대체됐는지만 가지며 query를 복제하지 않는다. 모든 대체 경로는 순환 없이 활성 케이스로 끝나야 하고, 같은 query의 활성 케이스를 여러 표본으로 세지 않는다. `SearchEvaluationCoverage`는 현재 묶음과 케이스에서 다시 계산하는 파생 상태다. 표본이 최소 수에 못 미치면 `insufficient_sample`, 충족하면 `ready`이지만 어느 상태도 검색 품질·임베딩 도입·context 사용을 뜻하지 않는다. 결정은 [ADR-0056](./docs/adr/0056-search-evaluation-sample-bundles.md)에 정의한다.
 
+후보 비교는 엔진 계약, 평가 실행기, 비교 판정과 로컬 조합을 분리한다. `SearchEvaluationEnginePort`는 engine ID·version에 결속된 index를 같은 `SearchSourceInput`으로 만들고 query별 `SearchResponse`를 돌려준다. 공통 실행기는 모든 엔진에 같은 활성 case, 평가 시각과 50위 조건을 적용한다. 비교기는 실제 corpus에서 현재 `lexical-v1` index와 corpus digest를 다시 계산하고 두 실행을 검증한 뒤 case별 통과·실패 전이만 대조한다. 엔진마다 의미가 다른 score 숫자는 서로 비교하지 않는다. 로컬 조합은 `ready` gate 뒤에만 후보 port를 호출하고 결과·run을 먼저, query 없는 comparison을 마지막에 별도 immutable 파일로 게시한다. 결정은 [ADR-0057](./docs/adr/0057-provider-neutral-search-candidate-comparison.md)에 정의한다.
+
 ### Skill Registry
 
 스킬은 단순 프롬프트 파일이 아니라 다음 metadata를 가진 versioned package입니다.

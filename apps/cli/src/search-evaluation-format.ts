@@ -17,7 +17,7 @@ export function formatSearchEvaluationCase(evaluationCase: SearchEvaluationCase)
 export function formatSearchEvaluationRun(run: SearchEvaluationRun): string {
   return [
     `검색 반복 평가: ${run.runId}`,
-    `  lexical-v1 · 케이스 ${run.totalCases}개`,
+    `  ${run.engine.id}-v${run.engine.version} · 케이스 ${run.totalCases}개`,
     `  통과 ${run.passedCases} · 실패 ${run.failedCases}`,
     `  회귀 ${run.regressions} · 개선 ${run.improvements}`,
     "  임베딩 도입 판단: 아직 결정하지 않음",

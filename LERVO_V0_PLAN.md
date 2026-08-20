@@ -436,6 +436,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 충분성 상태가 검색 품질, context 상태, verification 통과나 임베딩 필요성을 만들지 않고 `embeddingDecision=not_determined`를 유지함
 - 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
 
+공급자 중립 검색 후보 비교 첫 슬라이스 완료 조건:
+
+- 평가 결과·run의 engine 좌표를 일반화하되 운영 attempt·managed context 추천은 현재 `lexical-v1`에 고정함
+- 후보 engine·index·search port와 공통 평가 실행기를 파일 시스템·Hub·구체 adapter에서 분리함
+- `ready`가 아닌 묶음은 corpus 로드와 후보 index 생성을 시작하기 전에 닫고 비교 artifact를 만들지 않음
+- 준비된 묶음은 baseline과 후보에 같은 corpus source, 활성 case, 평가 시각과 50위 조건을 공급함
+- 실제 corpus digest와 현재 `lexical-v1` index를 비교 검증 시 다시 계산해 baseline 실행을 원본 입력에 결속함
+- 엔진별 score 숫자를 비교하지 않고 동일 순위 조건의 통과·실패 전이만 case별 승·패·동률로 계산함
+- 후보 계약 실패 때 baseline result·run도 완료된 비교처럼 게시하지 않음
+- 두 엔진 result·run을 먼저 게시하고 query 없는 comparison을 항목별 immutable JSON으로 마지막에 게시함
+- 관측 집계와 후보 채택 결정을 분리하고 `candidateDecision`, `embeddingDecision`을 `not_determined`로 유지함
+- 실제 후보 adapter와 CLI를 허위로 만들지 않으며 전체 비교 조합이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -466,4 +479,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 평가 묶음과 표본 충분성 첫 슬라이스를 완료했습니다. 역할·작업 유형별 작은 묶음이 활성 case, 대체 관계와 최소 표본을 선언하고, 현재 고유 query 표본이 비교에 충분한지 별도 coverage로 계산합니다. 부족한 표본도 baseline 관측은 남길 수 있지만 비교 준비 완료나 임베딩 필요성으로 승격하지 않습니다. 결정은 [ADR-0056](./docs/adr/0056-search-evaluation-sample-bundles.md)에 기록했습니다.
 
-다음 구현 작업은 구체적인 검색 엔진을 추가하기 전에 **후보 비교 계약과 준비 gate**를 분리하는 일입니다. 같은 묶음·같은 corpus·같은 순위 조건으로 baseline과 후보 결과를 대조하는 공급자 중립 port를 만들고, `comparisonReadiness=ready`가 아닌 묶음은 비교 artifact를 만들지 않게 합니다. 실제 후보 엔진 adapter와 채택 판단은 이 계약 뒤의 별도 작업입니다.
+공급자 중립 검색 후보 비교 첫 슬라이스를 완료했습니다. 공통 engine port와 실행기는 같은 corpus·case·시각·순위 조건을 두 엔진에 공급하고, 준비 gate는 부족한 묶음에서 후보 호출 자체를 막습니다. 비교는 case 통과·실패 전이만 query 없는 별도 원본에 기록하며 score 우열, 후보 채택과 임베딩 필요성을 결정하지 않습니다. 결정은 [ADR-0057](./docs/adr/0057-provider-neutral-search-candidate-comparison.md)에 기록했습니다.
+
+다음 구현 작업은 이 port의 공통 계약 테스트를 통과하는 **첫 결정적 비임베딩 후보 adapter와 명시적 등록 경계**입니다. 후보를 이름 문자열이나 임의 코드로 로드하지 않고 allowlist registry에 engine ID·version으로 등록한 뒤, 준비된 묶음만 선택할 수 있는 로컬 CLI를 연결합니다. 비교 결과를 근거로 자동 채택하거나 managed context 엔진을 교체하는 일은 그 다음의 별도 검토 단계입니다.

@@ -23,11 +23,14 @@ export function createSearchAttempt(input: {
   nonce: string;
   response: SearchResponse;
 }): SearchAttempt {
+  if (input.response.engine.id !== SEARCH_ENGINE.id || input.response.engine.version !== SEARCH_ENGINE.version) {
+    throw new SearchError("invalid_attempt", "운영 검색 시도는 현재 lexical-v1 응답에서만 만들 수 있습니다.");
+  }
   const core = {
     projectId: input.projectId,
     observedAt: input.observedAt.toISOString(),
     nonce: input.nonce,
-    engine: input.response.engine,
+    engine: SEARCH_ENGINE,
     indexId: input.response.indexId,
     queryDigest: input.response.queryDigest,
     queryCharacterCount: input.response.queryCharacterCount,

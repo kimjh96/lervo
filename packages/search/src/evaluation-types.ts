@@ -2,6 +2,7 @@ import type {
   SearchAssessmentSource,
   SearchAttemptHit,
   SearchFailureReason,
+  SearchEngineIdentity,
   SearchSourceKind,
 } from "./types.js";
 
@@ -58,7 +59,7 @@ export interface SearchEvaluationResult {
   caseId: string;
   projectId: string;
   evaluatedAt: string;
-  engine: { id: "lexical"; version: 1 };
+  engine: SearchEngineIdentity;
   indexId: string;
   queryDigest: string;
   requestedLimit: number;
@@ -77,7 +78,7 @@ export interface SearchEvaluationRun {
   runId: string;
   projectId: string;
   evaluatedAt: string;
-  engine: { id: "lexical"; version: 1 };
+  engine: SearchEngineIdentity;
   indexId: string;
   caseIds: string[];
   resultIds: string[];

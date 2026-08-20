@@ -46,6 +46,8 @@ function scoreField(indexed: IndexedField, queryTerms: readonly string[], phrase
 }
 
 export class LexicalSearchIndex {
+  readonly engine = SEARCH_ENGINE;
+  readonly corpusDigest: string;
   readonly indexId: string;
   private readonly sources: IndexedSource[];
 
@@ -93,20 +95,19 @@ export class LexicalSearchIndex {
       ].filter((item): item is IndexedField => item !== null);
       return { input: structuredClone(input), fields };
     }).sort((left, right) => compareText(sourceKey(left.input), sourceKey(right.input)));
-    this.indexId = contentId("sidx", {
-      engine: SEARCH_ENGINE,
-      sources: this.sources.map(({ input }) => ({
-        kind: input.kind,
-        sourceId: input.sourceId,
-        contentHash: input.contentHash,
-        ...(input.path === undefined ? {} : { path: input.path }),
-        searchProjectionHash: canonicalHash({
-          title: input.title ?? null,
-          labels: [...input.labels].sort(),
-          text: input.text,
-        }),
-      })),
-    });
+    const sources = this.sources.map(({ input }) => ({
+      kind: input.kind,
+      sourceId: input.sourceId,
+      contentHash: input.contentHash,
+      ...(input.path === undefined ? {} : { path: input.path }),
+      searchProjectionHash: canonicalHash({
+        title: input.title ?? null,
+        labels: [...input.labels].sort(),
+        text: input.text,
+      }),
+    }));
+    this.corpusDigest = canonicalHash(sources);
+    this.indexId = contentId("sidx", { engine: SEARCH_ENGINE, sources });
   }
 
   search(query: string, limit = 10): SearchResponse {

@@ -13,8 +13,11 @@ import {
 } from "./evaluation-types.js";
 import { canonicalHash, contentId } from "./integrity.js";
 import {
+  assertSearchEngineIdentity,
+  SEARCH_INDEX_ID_PATTERN,
+} from "./evaluation-engine.js";
+import {
   searchSourceKinds,
-  SEARCH_ENGINE,
   SEARCH_MAX_RESULTS,
   SearchError,
   type SearchResponse,
@@ -91,8 +94,7 @@ export function assertSearchEvaluationResult(
 ): void {
   if (result.schemaVersion !== 1 || !SEARCH_EVALUATION_RESULT_PATTERN.test(result.resultId) ||
     !SEARCH_EVALUATION_CASE_PATTERN.test(result.caseId) || !SOURCE_ID_PATTERN.test(result.projectId) ||
-    result.engine?.id !== SEARCH_ENGINE.id || result.engine?.version !== SEARCH_ENGINE.version ||
-    !/^sidx_[a-f0-9]{24}$/.test(result.indexId) || !SHA256_PATTERN.test(result.queryDigest) ||
+    !SEARCH_INDEX_ID_PATTERN.test(result.indexId) || !SHA256_PATTERN.test(result.queryDigest) ||
     !Number.isSafeInteger(result.requestedLimit) || result.requestedLimit < 1 ||
     result.requestedLimit > SEARCH_MAX_RESULTS || !Number.isSafeInteger(result.returnedHits) ||
     result.returnedHits < 0 || result.returnedHits > result.requestedLimit || !SHA256_PATTERN.test(result.resultSetHash) ||
@@ -108,6 +110,7 @@ export function assertSearchEvaluationResult(
     !Array.isArray(result.hits) || result.hits.length !== result.returnedHits) {
     throw new SearchError("invalid_evaluation_result", "검색 평가 결과 계약이 유효하지 않습니다.");
   }
+  assertSearchEngineIdentity(result.engine, "invalid_evaluation_result");
   assertTimestamp(result.evaluatedAt, "invalid_evaluation_result");
   for (const [index, hit] of result.hits.entries()) {
     if (!searchSourceKinds.includes(hit.sourceKind) || !SOURCE_ID_PATTERN.test(hit.sourceId) ||

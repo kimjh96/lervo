@@ -1,4 +1,4 @@
-import { searchSourceKinds, SearchError, type SearchSourceReference } from "./types.js";
+import { searchSourceKinds, SearchError, type SearchErrorCode, type SearchSourceReference } from "./types.js";
 
 export const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 export const SOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
@@ -27,8 +27,7 @@ export function assertText(value: unknown, maximum: number, code: "corpus_invali
 
 export function assertTimestamp(
   value: string,
-  code: "invalid_assessment" | "invalid_attempt" | "invalid_evaluation_case" |
-    "invalid_evaluation_result" | "invalid_evaluation_run",
+  code: SearchErrorCode,
 ): void {
   if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) {
     throw new SearchError(code, "검색 관측 시각이 canonical ISO 형식이 아닙니다.");
