@@ -25,7 +25,7 @@ npm은 `npm trust list <package> --json`으로 Trusted Publisher를 읽을 수 �
 
 로컬 package는 `@lervo/cli`, public access, 확정된 라이선스, `git+https://github.com/<owner/repo>.git`의 exact repository와 npm public registry 고정이 필요합니다. `UNLICENSED`, repository 누락·불일치, registry 미고정과 provenance 비활성은 모두 blocker입니다. Workflow는 readiness 동안 실제 `npm publish`, `npm stage publish` 또는 `npm-release` environment job이 없는 비활성 상태여야 합니다. Readiness는 게시 job을 만들거나 활성화하지 않습니다.
 
-npm 어댑터는 먼저 인증 없는 public registry GET으로 package 존재 여부를 확인합니다. 404이면 npm client나 credential을 호출하지 않고 `package_missing`을 반환합니다. Package가 있을 때만 npm 11.15.0 이상에서 exact public registry의 `npm trust list @lervo/cli --json`을 실행합니다. 성공은 package 존재와 호출자의 쓰기 권한을 확인한 것으로 판정합니다. Trust ID와 응답의 다른 필드는 버리고 GitHub provider, repository, workflow filename, environment와 permission만 보존합니다.
+npm 어댑터는 먼저 인증 없는 public registry GET으로 공개 package가 보이는지 확인합니다. 404이면 npm client나 credential을 호출하지 않고 `public_package_not_found`를 반환합니다. 이 상태는 private package 부재를 증명하지 않으며 npm access는 blocked, trust는 관측하지 않은 `unknown`으로 둡니다. Package가 공개적으로 보일 때만 npm 11.15.0 이상에서 exact public registry의 `npm trust list @lervo/cli --json`을 실행합니다. 성공은 package 존재와 호출자의 쓰기 권한을 확인한 것으로 판정합니다. Trust ID와 응답의 다른 필드는 버리고 GitHub provider, repository, workflow filename, environment와 permission만 보존합니다.
 
 상시 publisher는 `cli-release-matrix.yml`, `npm-release`와 `createStagedPackage` 하나에 정확히 결속되어야 합니다. Direct `createPackage` 또는 두 권한을 함께 가진 설정은 최소 권한 기준을 통과하지 않습니다. Staged package는 npm maintainer가 별도 2FA로 검토·승인하기 전에는 공개되지 않습니다. 기존 direct npm 어댑터는 공급자 capability로 남지만 readiness 기본 정책의 workflow activation 대상으로 사용할 수 없습니다.
 
@@ -35,6 +35,6 @@ GitHub 어댑터는 environment와 deployment branch policy GET만 호출합니�
 
 ## 결과
 
-현재 저장소는 repository·라이선스·publish registry가 미확정이라 로컬 검사만으로 `blocked`입니다. 온라인 검사를 실행하지 않으면 세 외부 검사는 `unknown`입니다. Public registry의 package 부재를 관측하면 최초 게시 필요와 Trusted Publisher 선행 설정 불가를 서로 다른 blocker로 표시합니다.
+현재 저장소는 repository·라이선스·publish registry가 미확정이라 로컬 검사만으로 `blocked`입니다. 온라인 검사를 실행하지 않으면 세 외부 검사는 `unknown`입니다. Public registry에서 package가 보이지 않으면 공개 상태를 blocker로, 실행하지 않은 Trusted Publisher 확인을 `unknown`으로 표시합니다.
 
 테스트는 완전히 준비된 합성 상태만 `ready`로 만들고, 넓은 npm 권한, self-review, 잘못된 tag policy, 이미 활성화된 게시 job, 관측 누락·실패와 public package 부재를 닫힌 상태로 확인합니다. 실제 npm·GitHub 인증 상태, scope 소유권, environment 설정과 원격 게시 성공은 테스트가 증명하지 않습니다.

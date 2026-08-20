@@ -116,10 +116,10 @@ function inspectNpmObservation(observation, repository) {
     ];
   }
   if (observation.package !== "@lervo/cli") fail();
-  if (observation.state === "package_missing") {
+  if (observation.state === "public_package_not_found") {
     return [
-      check("npm_package_access", ["npm_package_bootstrap_required"]),
-      check("npm_trusted_publisher", ["npm_publisher_requires_existing_package"]),
+      check("npm_package_access", ["npm_public_package_not_visible"]),
+      unknownCheck("npm_trusted_publisher", "npm_trust_not_observed"),
     ];
   }
   const access = check("npm_package_access", [], { access: "write_confirmed" });

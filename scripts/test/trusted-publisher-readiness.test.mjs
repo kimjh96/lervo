@@ -99,7 +99,7 @@ describe("trusted publisher readiness contract", () => {
     ]);
   });
 
-  it("keeps the first-publication prerequisite separate from GitHub readiness", () => {
+  it("keeps public package absence separate from unobserved npm trust", () => {
     const report = createTrustedPublisherReadinessReport({
       repository,
       packageManifest: readyPackageManifest(),
@@ -107,15 +107,16 @@ describe("trusted publisher readiness contract", () => {
       npmObservation: {
         schemaVersion: 1,
         source: "npm_trust",
-        state: "package_missing",
+        state: "public_package_not_found",
         package: "@lervo/cli",
       },
       githubObservation: githubObservation(),
     });
-    assert.deepEqual(report.checks[2].reasons, ["npm_package_bootstrap_required"]);
+    assert.deepEqual(report.checks[2].reasons, ["npm_public_package_not_visible"]);
     assert.deepEqual(report.checks[3].reasons, [
-      "npm_publisher_requires_existing_package",
+      "npm_trust_not_observed",
     ]);
+    assert.equal(report.checks[3].status, "unknown");
     assert.equal(report.checks[4].status, "ready");
   });
 
@@ -239,7 +240,7 @@ describe("npm trust observer", () => {
     assert.equal(calls, 1);
   });
 
-  it("reports the first-publication prerequisite without requesting npm credentials", async () => {
+  it("reports a public 404 without requesting npm credentials", async () => {
     let calls = 0;
     const observation = await observeNpmTrustedPublisher({
       request: async () => ({ ok: false, status: 404 }),
@@ -251,7 +252,7 @@ describe("npm trust observer", () => {
     assert.deepEqual(observation, {
       schemaVersion: 1,
       source: "npm_trust",
-      state: "package_missing",
+      state: "public_package_not_found",
       package: "@lervo/cli",
     });
     assert.equal(calls, 0);

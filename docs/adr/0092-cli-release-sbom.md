@@ -18,7 +18,7 @@ SBOM 생성 때 설치 명령을 다시 실행하면 registry와 현재 운영�
 인벤토리는 두 재생성 가능한 source를 조합합니다.
 
 - `pnpm-lock.yaml`의 `apps/cli` importer에서 시작한 production dependency graph
-- esbuild metafile에서 release manifest v4에 결속한 workspace package와 외부 bundle package
+- esbuild metafile에서 release manifest v5에 결속한 workspace package와 외부 bundle package
 
 Lockfile graph는 direct production dependency에서 `dependencies`와 `optionalDependencies`만 순회합니다. `devDependencies`는 포함하지 않습니다. 일반 production node는 `required`, 운영체제별 Claude native package 여덟 개는 `optional` scope로 기록합니다. 모든 lockfile component에는 SHA-512 integrity를 16진수로 변환해 넣습니다.
 
@@ -32,7 +32,7 @@ Root application은 공개 package의 npm PURL, `dist/bin.js` SHA-256과 현재 
 
 Component와 dependency node는 PURL 순으로 정렬합니다. 생성 시각과 임의 `serialNumber`는 넣지 않습니다. `actions/attest` SBOM mode와 호환되도록 serial을 제외한 canonical document digest를 URL namespace의 RFC 4122 UUID v5 name으로 사용합니다. 같은 release document 검사는 같은 serial을 만들고 inventory가 바뀌면 serial도 바뀝니다. Document version은 1로 고정합니다. Dependency license는 lockfile이 증명하지 않으므로 추정해서 넣지 않습니다.
 
-검사는 먼저 release manifest 자체를 검증합니다. 그 뒤 lockfile graph의 required 목록이 manifest의 portable closure와 같고, optional 목록이 승인된 native family 여덟 개와 같으며, root가 직접 dependency 목록과 같은지 확인합니다. 새 bundle 외부 package는 manifest v4의 검토 목록을 갱신하지 않으면 실패합니다. 마지막으로 committed SBOM의 metadata, component, dependency와 속성을 새로 만든 결과와 정확히 비교합니다.
+검사는 먼저 release manifest 자체를 검증합니다. 그 뒤 lockfile graph의 required 목록이 manifest의 portable closure와 같고, optional 목록이 승인된 native family 여덟 개와 같으며, root가 직접 dependency 목록과 같은지 확인합니다. 새 bundle 외부 package는 manifest v5의 검토 목록을 갱신하지 않으면 실패합니다. 마지막으로 committed SBOM의 metadata, component, dependency와 속성을 새로 만든 결과와 정확히 비교합니다.
 
 현재 생성 결과는 CycloneDX 1.7 공식 JSON Schema로 별도 검증했습니다. CI의 기본 검사는 원격 schema를 내려받지 않고 위의 고정 생성 결과와 source 일치성을 검사하므로 network 없이 완료됩니다. 새 runtime event, project 상태와 telemetry는 추가하지 않습니다.
 

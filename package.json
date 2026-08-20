@@ -23,6 +23,7 @@
     "release:attestation:verify": "node scripts/verify-cli-release-attestation.mjs",
     "release:publication:authorize": "node scripts/authorize-cli-release-publication.mjs",
     "release:publisher:readiness": "node scripts/check-cli-trusted-publisher-readiness.mjs",
+    "release:bootstrap:authorize": "node scripts/authorize-cli-first-publication-bootstrap.mjs",
     "smoke:built-cli": "node scripts/check-built-cli.mjs",
     "smoke:packed-cli": "node scripts/check-packed-cli.mjs",
     "smoke:registry-publish": "node scripts/check-registry-publish.mjs",

@@ -771,11 +771,11 @@ Trace bounded-default 0.1.0 release 전환 완료 조건:
 - `pnpm check`가 build 뒤 smoke를 실행하고 성공·실패 모두 임시 설치와 project를 제거함
 - Registry 게시·다운로드, 전역 shell shim과 provider 실행을 검증했다고 주장하지 않음
 
-Canonical CLI release artifact manifest v4 완료 조건:
+Canonical CLI release artifact manifest v5 완료 조건:
 
 - CLI archive가 `dist/bin.js`, 짧은 package README와 package manifest만 포함하고 다른 JavaScript·선언 파일, source·test·설정·build cache를 거부함
 - Bundle 파일의 path·byte 수·SHA-256과 canonical content digest를 고정함
-- 공개 package identity와 정확한 직접 production dependency를 manifest에 결속함
+- 공개 package identity, repository·publish registry·provenance 설정과 정확한 직접 production dependency를 manifest에 결속함
 - 실제 bundle metadata에서 workspace·외부 package 좌표와 bundle 밖 import를 추출해 별도 digest로 고정함
 - 임시 production deploy의 portable dependency closure를 정렬·중복 제거하고 별도 digest로 고정함
 - OS·CPU 제한 package는 portable 목록과 섞지 않고 name prefix·정확한 version family로 제한함
@@ -833,7 +833,7 @@ CLI package 사용 안내 계약 완료 조건:
 - 프로젝트 초기화와 기본 조회가 Hub 없이 가능하고 provider 실행에는 별도 구성이 필요함을 구분함
 - Package manifest의 설명·검색어와 현재 라이선스 상태를 명시함
 - 정해지지 않은 repository·homepage·bugs URL을 추정해 넣지 않음
-- Release manifest v4가 metadata와 README hash를 artifact digest에 결속함
+- Release manifest v5가 metadata와 README hash를 artifact digest에 결속함
 - 실제 tarball과 임시 production deploy 양쪽에 README가 들어갔는지 확인함
 - Packed smoke가 안내서 크기·구조·필수 명령과 설치 manifest metadata를 검사함
 - 안내 변경이 runtime event·project 상태·telemetry를 추가하지 않음
@@ -919,7 +919,7 @@ CLI Trusted Publisher readiness 완료 조건:
 - `--online`을 명시한 경우에만 npm·GitHub 읽기 adapter를 호출함
 - Package identity가 public CLI, 확정 license, exact GitHub repository와 npm public registry를 요구함
 - Readiness 동안 실제 npm publish·stage publish와 `npm-release` job이 비활성인지 확인함
-- Public npm package 404를 인증 없이 구분하고 이 경우 npm client·credential을 호출하지 않음
+- Public npm package 404를 인증 없이 구분하고 private package 부재로 해석하지 않으며 npm client·credential을 호출하지 않음
 - 기존 package에만 npm 11.15.0 이상의 exact `npm trust list --json`을 사용함
 - Trust ID를 버리고 package 쓰기 권한과 provider·repository·workflow·environment·permission만 관측함
 - 상시 publisher는 direct publish 없이 `createStagedPackage` 하나만 허용함
@@ -929,6 +929,24 @@ CLI Trusted Publisher readiness 완료 조건:
 - Report는 실행 시각 없이 canonical digest를 가지며 stdout에만 반환하고 원본을 누적하지 않음
 - 외부 인증·network·client 실패가 credential이나 원문 오류를 출력하지 않음
 - 검사와 fixture가 최초 게시·npm/GitHub 설정 변경·scope 소유권·원격 성공을 주장하지 않음
+
+CLI first-publication bootstrap 완료 조건:
+
+- Release manifest v5가 repository·publish registry·provenance 설정을 실제 package manifest에서 결속함
+- 미확정 identity는 `null`·`UNLICENSED`로 보존하되 bootstrap 준비 완료로 해석하지 않음
+- 검증된 publication authorization, exact tarball, release manifest와 현재 package manifest를 다시 확인함
+- 별도 approval이 repository·license·scope owner와 publication authorization digest를 정확히 고정함
+- Approval이 license, package 이름 가용성, scope control, direct publish 1회와 stage-only 전환을 모두 확인함
+- 승인자 원문을 결과에 복제하지 않고 approval ID와 canonical digest만 결속함
+- Approval은 최대 24시간, public registry 404 관측은 최대 10분만 유효함
+- 인증 없는 404를 `not_found`로 두고 private package 부재나 scope 소유권으로 승격하지 않음
+- `--online` 없이는 registry를 읽거나 bootstrap authorization을 만들지 않음
+- Public package가 보이거나 관측할 수 없으면 bootstrap을 fail-closed함
+- 결과가 수동 2FA 실행 1회, 직전 package 재확인과 재사용 금지를 명시함
+- 최초 게시 뒤 `npm-release`·exact workflow·stage publish 권한 하나로 전환할 의무를 결속함
+- npm credential·실제 publish·Trusted Publisher·GitHub 설정 변경을 실행하지 않음
+- Output은 새 절대 경로에만 쓰고 원본 변경 경쟁과 기존 output 덮어쓰기를 거부함
+- Fixture가 사람 신원 인증·npm 권한·비공개 package 부재·최초 게시 성공을 주장하지 않음
 
 ## 다음 실행 작업
 
@@ -1018,19 +1036,19 @@ Trace bounded-default 0.1.0 release 전환을 완료했습니다. 인자 없는 
 
 설치된 CLI 0.1.0 smoke fixture를 완료했습니다. CLI version은 배포 manifest를 단일 원본으로 사용하고, 전체 build 뒤 임시 production deploy의 실제 `dist/bin.js`로 capability·기본 page·명시적 full을 검증합니다. 단일 bundle 전환 뒤에는 별도로 빌드한 diagnostics reader와 project-storage writer가 설치본과 같은 합성 project를 해석해 모듈 계약 호환성을 확인합니다. 51-event 경계 fixture는 중복하지 않으며 registry 게시나 provider 실행은 주장하지 않습니다. 결정은 [ADR-0085](./docs/adr/0085-installed-cli-smoke-boundary.md)와 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md)에 기록했습니다.
 
-Canonical CLI release artifact manifest v4 검사를 완료했습니다. Archive는 단일 bundle, 짧은 package README와 package manifest만 허용하며 bundle에 포함된 workspace·외부 package와 bundle 밖 import, 공개 파일 SHA-256, package metadata, 직접 dependency와 portable production closure를 하나의 교체형 manifest에 결속합니다. Tar metadata와 platform 전용 native package 이름은 portable digest에서 분리하고 기본 검사는 원본을 쓰지 않습니다. 결정은 [ADR-0086](./docs/adr/0086-canonical-cli-release-artifact-manifest.md), [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md), [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)과 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
+Canonical CLI release artifact manifest v5 검사를 완료했습니다. Archive는 단일 bundle, 짧은 package README와 package manifest만 허용하며 bundle에 포함된 workspace·외부 package와 bundle 밖 import, 공개 파일 SHA-256, package metadata·repository·publish registry·provenance 설정, 직접 dependency와 portable production closure를 하나의 교체형 manifest에 결속합니다. Tar metadata와 platform 전용 native package 이름은 portable digest에서 분리하고 기본 검사는 원본을 쓰지 않습니다. 결정은 [ADR-0086](./docs/adr/0086-canonical-cli-release-artifact-manifest.md), [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md), [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md), [ADR-0092](./docs/adr/0092-cli-release-sbom.md)과 [ADR-0097](./docs/adr/0097-cli-first-publication-bootstrap.md)에 기록했습니다.
 
-단일 bundle CLI 배포 단위 계약을 완료했습니다. 내부 runtime package 24개와 Ajv·YAML은 `dist/bin.js`에 들어가고 bundle 밖 import는 Claude Agent SDK 하나입니다. 공개 archive는 package README와 manifest를 포함해 3개 파일이며, manifest v4와 설치 smoke가 bundle 경계와 private workspace dependency 부재를 함께 확인합니다. 결정은 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md), [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)과 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
+단일 bundle CLI 배포 단위 계약을 완료했습니다. 내부 runtime package 24개와 Ajv·YAML은 `dist/bin.js`에 들어가고 bundle 밖 import는 Claude Agent SDK 하나입니다. 공개 archive는 package README와 manifest를 포함해 3개 파일이며, manifest v5와 설치 smoke가 bundle 경계와 private workspace dependency 부재를 함께 확인합니다. 결정은 [ADR-0087](./docs/adr/0087-single-bundle-cli-deployment-unit.md), [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)과 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
 
 Packed CLI 소비자 설치 계약을 완료했습니다. 실제 tarball을 빈 임시 프로젝트에 설치하고 공개 파일, Node version, 정확한 SDK·peer dependency, private package 부재와 local bin을 확인합니다. 생성된 명령으로 version·capability·초기화를 실행하며 첫 설치의 cache miss를 오프라인 성공으로 과장하지 않습니다. 결정은 [ADR-0088](./docs/adr/0088-packed-cli-consumer-installation.md)에 기록했습니다.
 
 CLI 다중 플랫폼 배포 matrix 계약을 구성했습니다. Packed smoke는 현재 platform의 Claude native package가 하나만 설치됐는지 확인하고 실제 실행 파일의 version을 읽습니다. Ubuntu·macOS·Windows job은 같은 release manifest와 tarball 소비자 검사를 독립 실행하며 workflow 자체의 권한·action SHA·Node·명령도 로컬 계약 테스트로 고정합니다. 현재 로컬에서는 macOS arm64만 실행됐고 Linux·Windows 성공은 원격 job이 끝나기 전까지 주장하지 않습니다. 결정은 [ADR-0089](./docs/adr/0089-cli-multi-platform-release-matrix.md)에 기록했습니다.
 
-CLI package 사용 안내 계약을 완료했습니다. 저장소의 긴 README를 복제하지 않고 4 KiB 이하 안내서가 Node 준비, 전역 설치, 첫 초기화, dry-run과 help만 설명합니다. 설명·검색어·현재 `UNLICENSED` 상태와 README hash를 release manifest v4에 결속하고 실제 deploy와 tarball 설치본에서 다시 확인합니다. 정해지지 않은 저장소 URL은 만들지 않았습니다. 결정은 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
+CLI package 사용 안내 계약을 완료했습니다. 저장소의 긴 README를 복제하지 않고 4 KiB 이하 안내서가 Node 준비, 전역 설치, 첫 초기화, dry-run과 help만 설명합니다. 설명·검색어·현재 `UNLICENSED` 상태와 README hash를 release manifest v5에 결속하고 실제 deploy와 tarball 설치본에서 다시 확인합니다. 정해지지 않은 저장소 URL은 만들지 않았습니다. 결정은 [ADR-0090](./docs/adr/0090-cli-package-usage-guide.md)에 기록했습니다.
 
 CLI registry 게시 사전검증 계약을 완료했습니다. 외부 uplink와 credential이 없는 임시 Verdaccio에 검토된 tarball을 게시하고 metadata·integrity·dist-tag, package 좌표 설치와 local bin을 확인합니다. 같은 version의 재게시를 거부한 뒤 기존 integrity가 유지되는지도 다시 읽으며 이 검사를 Linux·macOS·Windows matrix에 추가했습니다. 외부 SDK dependency는 공개 registry나 cache를 사용할 수 있고 실제 npm 게시 성공은 주장하지 않습니다. 결정은 [ADR-0091](./docs/adr/0091-cli-registry-publish-preflight.md)에 기록했습니다.
 
-CLI release SBOM 계약을 완료했습니다. CycloneDX 1.7 sidecar는 release manifest v4의 bundle inventory와 pnpm lockfile production graph를 조합하고 root를 artifact·bundle·portable closure digest에 결속합니다. Dev dependency는 제외하고 native package 여덟 개는 optional로 구분하며, 생성 시각이나 임의 serial 대신 document 내용에서 재현한 UUID v5 serial을 사용해 현재 release 파일 하나만 교체합니다. Workspace 내부 관계와 dependency license는 증명하지 못하므로 추정하지 않습니다. 결정은 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
+CLI release SBOM 계약을 완료했습니다. CycloneDX 1.7 sidecar는 release manifest v5의 bundle inventory와 pnpm lockfile production graph를 조합하고 root를 artifact·bundle·portable closure digest에 결속합니다. Dev dependency는 제외하고 native package 여덟 개는 optional로 구분하며, 생성 시각이나 임의 serial 대신 document 내용에서 재현한 UUID v5 serial을 사용해 현재 release 파일 하나만 교체합니다. Workspace 내부 관계와 dependency license는 증명하지 못하므로 추정하지 않습니다. 결정은 [ADR-0092](./docs/adr/0092-cli-release-sbom.md)에 기록했습니다.
 
 CLI release 출처 증명 경계를 완료했습니다. 실제 pack마다 tarball·manifest·SBOM digest를 가진 unsigned in-toto/SLSA statement를 임시로 만들고 로컬 builder가 서명을 주장하지 못하게 막습니다. 일반 matrix의 contents read 권한은 유지하며, 세 platform 성공 뒤 tag를 고른 수동 실행에서만 별도 GitHub job이 세 release 파일의 build provenance와 tarball의 SBOM attestation을 생성하도록 구성했습니다. 원격 job이 아직 실행되지 않았으므로 실제 서명 성공이나 SLSA level은 주장하지 않습니다. 결정은 [ADR-0093](./docs/adr/0093-cli-release-attestation-boundary.md)에 기록했습니다.
 
@@ -1040,4 +1058,6 @@ CLI release 게시 적격성과 권한 경계 계약을 완료했습니다. 검�
 
 CLI Trusted Publisher readiness 계약을 완료했습니다. 로컬 package identity와 실제 게시 job 비활성 상태를 기본으로 확인하고, 명시적 online 실행에서만 npm package·trust와 GitHub `npm-release` 보호를 읽습니다. 누락·실패는 unknown으로 닫고 trust ID·reviewer identity를 버립니다. Public `@lervo/cli`이 아직 없으므로 최초 게시 선행 조건을 별도 blocker로 표시하며 상시 publisher는 stage publish 권한 하나만 허용합니다. 결정은 [ADR-0096](./docs/adr/0096-cli-trusted-publisher-readiness.md)에 기록했습니다.
 
-다음 구현 작업은 확정 repository·license·scope owner 결정과 public package 부재를 한 번의 초기 게시 승인에 결속하고, 이후 staged-only 경로로 넘기는 **CLI first-publication bootstrap 계약**입니다.
+CLI first-publication bootstrap 계약을 완료했습니다. Release manifest v5가 repository·publish registry·provenance 설정을 tarball release identity에 추가로 묶고, 별도 사람 approval과 공개 npm 404를 검증된 release에 결속합니다. 404는 public package가 보이지 않는다는 사실로만 표현하며 결과는 최대 10분, 수동 2FA 직접 게시 1회에만 유효합니다. 실제 publish와 외부 설정 변경은 실행하지 않았습니다. 결정은 [ADR-0097](./docs/adr/0097-cli-first-publication-bootstrap.md)에 기록했습니다.
+
+다음 구현 작업은 bootstrap authorization을 실제 게시 직전 다시 검증하고, 수동 2FA 게시 결과를 exact registry receipt로 확인한 뒤 bootstrap을 소진 상태로 만들며 stage-only 설정 전환이 끝나기 전에는 일반 release를 열지 않는 **CLI first-publication execution·transition receipt 계약**입니다.

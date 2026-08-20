@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
 const semanticVersionPattern = /^\d+\.\d+\.\d+$/;
+const repositoryPattern = /^git\+https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.git$/u;
+const npmPublicRegistry = "https://registry.npmjs.org/";
 
 export class ReleaseArtifactManifestError extends Error {
   constructor(code, message) {
@@ -37,7 +39,7 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const { artifact, archive, bundle, dependencies } = manifest;
   if (
-    manifest.schemaVersion !== 4 ||
+    manifest.schemaVersion !== 5 ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -47,7 +49,12 @@ export function validateReleaseArtifactManifest(manifest) {
       "local-first",
       "orchestration",
     ]) ||
-    artifact.license !== "UNLICENSED" ||
+    typeof artifact.license !== "string" ||
+    artifact.license.length < 1 || artifact.license.length > 128 ||
+    (artifact.repository !== null &&
+      (!repositoryPattern.test(artifact.repository) || artifact.repository.includes(".."))) ||
+    (artifact.registry !== null && artifact.registry !== npmPublicRegistry) ||
+    (artifact.provenance !== null && artifact.provenance !== true) ||
     artifact.private !== false ||
     artifact.access !== "public" ||
     artifact.type !== "module" ||

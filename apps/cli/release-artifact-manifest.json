@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.1.0",
@@ -10,6 +10,9 @@
       "orchestration"
     ],
     "license": "UNLICENSED",
+    "repository": null,
+    "registry": null,
+    "provenance": null,
     "private": false,
     "access": "public",
     "type": "module",
@@ -197,5 +200,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:e1c51c08a0ba694ef9a2b52cab62212b08c2a7249db06000d81dff1be4682084"
+  "artifactDigest": "sha256:2aa1a7da578e0a610fb08348c357b4c536a0be9c9e6dbeb4410916948cb03a56"
 }

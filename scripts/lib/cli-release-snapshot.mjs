@@ -144,6 +144,9 @@ export async function createCliReleaseManifest(
     description: cliManifest.description,
     keywords: cliManifest.keywords,
     license: cliManifest.license,
+    repository: cliManifest.repository?.url ?? null,
+    registry: cliManifest.publishConfig?.registry ?? null,
+    provenance: cliManifest.publishConfig?.provenance ?? null,
     private: cliManifest.private,
     access: cliManifest.publishConfig?.access,
     type: cliManifest.type,
@@ -160,7 +163,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     artifact,
     directDependencies,
     bundle,

@@ -25,7 +25,7 @@ function fixture() {
   return {
     tarballName: "lervo-cli-0.1.0.tgz",
     tarballContents: Buffer.from("packed-cli"),
-    releaseManifestContents: Buffer.from('{"schemaVersion":4}\n'),
+    releaseManifestContents: Buffer.from('{"schemaVersion":5}\n'),
     releaseSbomContents: Buffer.from('{"bomFormat":"CycloneDX"}\n'),
     packageManifestContents: Buffer.from('{"name":"@lervo/cli"}\n'),
     packageReadmeContents: Buffer.from("# @lervo/cli\n"),

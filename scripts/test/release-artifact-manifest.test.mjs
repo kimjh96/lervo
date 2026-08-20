@@ -14,6 +14,9 @@ function fixture() {
     description: "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
     keywords: ["ai-agents", "local-first", "orchestration"],
     license: "UNLICENSED",
+    repository: null,
+    registry: null,
+    provenance: null,
     private: false,
     access: "public",
     type: "module",
@@ -56,7 +59,7 @@ function fixture() {
   const portable = ["@anthropic-ai/claude-agent-sdk@0.3.226", "yaml@2.9.0"];
   const platformSpecificFamilies = [{ prefix: "native-", version: "1.0.0" }];
   const manifest = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     artifact,
     directDependencies,
     bundle,

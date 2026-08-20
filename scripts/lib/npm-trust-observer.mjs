@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
+import { observeNpmPublicPackage } from "./npm-public-package-observer.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -29,31 +30,18 @@ export async function observeNpmTrustedPublisher({
   npmCommand = "npm",
   environment = process.env,
   request = globalThis.fetch,
+  observePackage = observeNpmPublicPackage,
 } = {}) {
-  let packageResponse;
-  try {
-    packageResponse = await request("https://registry.npmjs.org/%40lervo%2Fcli", {
-      headers: { accept: "application/json" },
-      redirect: "error",
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch {
-    return unavailable("registry_unavailable");
-  }
-  try {
-    await packageResponse.body?.cancel();
-  } catch {
-    return unavailable("registry_unavailable");
-  }
-  if (packageResponse.status === 404) {
+  const packageObservation = await observePackage({ request });
+  if (packageObservation.state === "not_found") {
     return {
       schemaVersion: 1,
       source: "npm_trust",
-      state: "package_missing",
+      state: "public_package_not_found",
       package: "@lervo/cli",
     };
   }
-  if (!packageResponse.ok) return unavailable("registry_unavailable");
+  if (packageObservation.state !== "existing") return unavailable("registry_unavailable");
   const options = {
     encoding: "utf8",
     maxBuffer: 1024 * 1024,
