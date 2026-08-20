@@ -847,6 +847,8 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 Trace report와 integrity의 새 선택 필드는 v1 reader가 허용하지만 event envelope는 자체 schema 계약을 그대로 따릅니다. 기존 필드 삭제·필수 필드 추가·타입 또는 status 의미 변경은 새 report version이 필요합니다. 미지원 정수 버전은 `trace_report_schema_unsupported`, 구조·hash·allowlist·집계 불일치는 `trace_report_invalid`로 거부하며 오류에 입력 JSON이나 payload를 복사하지 않습니다. 결정은 [ADR-0076](./docs/adr/0076-versioned-trace-report-contract.md)에 기록합니다. `lervo doctor`는 project storage와 event chain을 열고 candidate, review, verified와 stale CAS schema/hash/ID 및 각 event 연결을 읽기 전용으로 역검증합니다. 이어서 문서 registry와 등록 원본, 프로젝트·사용자 스킬 package와 실행별 lock, Codex와 Claude 실행 파일, 검색 엔진 선택·rollout 정책·검토·조치를 서로 다른 항목으로 검사합니다.
 
+Trace의 `last`는 제한 없는 `list()` 결과를 최신으로 해석하지 않고 project 전역 마지막 event 하나를 조회합니다. Integrity 검사는 seq 순서의 SQLite row를 iterator로 읽어 전체 배열을 만들지 않습니다. 완전한 v1 report는 run당 최대 1,000개 event이며 1,001번째가 있으면 `trace_result_too_large`로 실패하고 앞부분을 완전한 실행처럼 반환하지 않습니다. 결정은 [ADR-0077](./docs/adr/0077-bounded-trace-source-reads.md)에 기록합니다.
+
 검색 진단 ID는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`입니다. 선택은 운영 resolver와 같은 전체 chain 검증을 사용하고, 정책은 engine·rollout review·action policy의 project 좌표와 결속을 확인합니다. 검토와 조치는 기존 bounded 상태 조회기의 전체 원본 검증을 사용합니다. 정상적으로 비어 있는 범위는 관측 수 0의 `healthy`입니다.
 
 선택이나 정책이 `unhealthy`이면 검토는 `search_rollout_review_unavailable`의 `unknown`이고 조치도 `search_rollout_action_unavailable`의 `unknown`입니다. 검토가 `unhealthy`이면 조치는 `unknown`입니다. 직접 확인한 선택·정책·검토·조치 손상은 각각 `search_engine_selection_invalid`, `search_rollout_policy_invalid`, `search_rollout_review_invalid`, `search_rollout_action_invalid`의 `unhealthy`입니다. 진단은 상태 조회·사전 점검·승인·조치 실행을 대신하지 않고 검색 파일, event와 Hub 원본을 만들지 않습니다.

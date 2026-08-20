@@ -106,6 +106,13 @@ export class SQLiteEventRepository {
     return row ? rowToEvent(row) : null;
   }
 
+  latest(): EventEnvelope | null {
+    const row = this.database
+      .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1")
+      .get(this.projectId);
+    return row ? rowToEvent(row) : null;
+  }
+
   list(options: ListEventsOptions = {}): EventEnvelope[] {
     const afterSeq = options.afterSeq ?? 0;
     const limit = options.limit ?? 100;
@@ -130,13 +137,15 @@ export class SQLiteEventRepository {
   }
 
   verifyIntegrity(): EventChainReport {
-    const events = this.database
-      .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
-      .all(this.projectId)
-      .map(rowToEvent);
     let previousHash: string | null = null;
-    for (const [index, event] of events.entries()) {
-      if (event.seq !== index + 1 || event.previousHash !== previousHash) {
+    let eventCount = 0;
+    const rows = this.database
+      .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
+      .iterate(this.projectId);
+    for (const row of rows) {
+      const event = rowToEvent(row);
+      eventCount += 1;
+      if (event.seq !== eventCount || event.previousHash !== previousHash) {
         throw new EventStoreError(
           "integrity_failed",
           `event chain 좌표가 ${event.eventId}에서 끊겼습니다.`,
@@ -150,6 +159,6 @@ export class SQLiteEventRepository {
       }
       previousHash = event.eventHash;
     }
-    return { valid: true, eventCount: events.length, headHash: previousHash };
+    return { valid: true, eventCount, headHash: previousHash };
   }
 }

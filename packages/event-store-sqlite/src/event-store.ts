@@ -152,6 +152,11 @@ export class SQLiteEventStore implements OutboxStore {
     return this.events.get(eventId);
   }
 
+  latest() {
+    this.assertOpen();
+    return this.events.latest();
+  }
+
   list(options: ListEventsOptions = {}) {
     this.assertOpen();
     return this.events.list(options);

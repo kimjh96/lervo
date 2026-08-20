@@ -96,6 +96,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [의존성을 분리한 doctor 범위 실행 계획 ADR](./docs/adr/0074-doctor-scope-execution-plans.md)
 - [버전이 있는 doctor report 호환성 계약 ADR](./docs/adr/0075-versioned-doctor-report-contract.md)
 - [버전이 있는 trace report 호환성 계약 ADR](./docs/adr/0076-versioned-trace-report-contract.md)
+- [잘림을 숨기지 않는 bounded trace 원본 조회 ADR](./docs/adr/0077-bounded-trace-source-reads.md)
 
 ## 현재 구현
 

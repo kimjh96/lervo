@@ -23,7 +23,7 @@ export interface DoctorInspection {
 
 export class DiagnosticsError extends Error {
   constructor(
-    readonly code: "trace_empty" | "trace_run_not_found",
+    readonly code: "trace_empty" | "trace_result_too_large" | "trace_run_not_found",
     message: string,
   ) {
     super(message);

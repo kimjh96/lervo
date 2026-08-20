@@ -113,6 +113,7 @@ export interface EventStore<TTransaction extends EventStoreTransaction = EventSt
   append(draft: EventDraft): AppendEventResult;
   transact<T>(work: (transaction: TTransaction) => T): T;
   get(eventId: string): EventEnvelope | null;
+  latest(): EventEnvelope | null;
   list(options?: ListEventsOptions): EventEnvelope[];
   verifyIntegrity(): EventChainReport;
   close(): void;

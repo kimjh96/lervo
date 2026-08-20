@@ -683,6 +683,14 @@ Trace report 호환성 계약 첫 슬라이스 완료 조건:
 - 미지원 버전과 손상된 v1을 서로 다른 code로 거부하고 검증 오류에 입력 내용을 복사하지 않음
 - 정상·선택 필드 추가·미지원 버전·구조·hash·allowlist·집계 손상을 fixture와 CLI JSON 테스트로 고정함
 
+Bounded trace 원본 조회 첫 슬라이스 완료 조건:
+
+- `last`를 기본 100개 list page가 아니라 project 전역 head event에서 결정함
+- 전체 event chain을 SQLite row iterator로 검증하고 전체 배열을 만들지 않음
+- 완전한 report가 1,000개를 넘으면 `trace_result_too_large`로 실패하고 일부 성공을 반환하지 않음
+- 100개를 넘긴 project의 실제 최신 run 선택과 1,001개 단일 run 실패를 회귀 테스트로 고정함
+- 조회 중 event, 파일, CAS나 Hub 원본을 만들거나 변경하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -753,4 +761,6 @@ Doctor report 호환성 계약 첫 슬라이스를 완료했습니다. CLI JSON�
 
 Trace report 호환성 계약 첫 슬라이스를 완료했습니다. CLI JSON은 `schemaVersion: 1`을 포함하고 reader는 event별 schema·allowlist·hash와 run/status/시각/session 집계를 다시 확인합니다. 선택된 run 조각만으로 생략된 전역 chain을 증명하지 않으며 미지원 버전과 손상된 v1을 구분합니다. 결정은 [ADR-0076](./docs/adr/0076-versioned-trace-report-contract.md)에 기록했습니다.
 
-다음 구현 작업은 오래 실행된 run에서도 CLI와 자동화가 event 전체를 한 번에 메모리에 올리지 않도록 하는 **bounded local trace pagination**입니다. Cursor가 project·run·integrity head와 결속되고 page 사이의 누락·중복·stale snapshot을 구분하며 기본 출력도 명시적 상한을 가져야 합니다.
+Bounded trace 원본 조회 첫 슬라이스를 완료했습니다. `last`는 전역 head를 직접 읽고 integrity는 SQLite iterator로 확인합니다. 100개 기본 list page를 전체로 오해하지 않으며 완전한 report가 1,000개를 넘으면 일부 결과 대신 명시적으로 실패합니다. 결정은 [ADR-0077](./docs/adr/0077-bounded-trace-source-reads.md)에 기록했습니다.
+
+다음 구현 작업은 큰 run을 안전하게 나누어 읽는 **snapshot-bound local trace cursor pagination**입니다. Cursor가 project·run·integrity head와 결속되고 page 사이 누락·중복·stale snapshot을 구분해야 합니다.

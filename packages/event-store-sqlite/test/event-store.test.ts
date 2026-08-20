@@ -69,6 +69,7 @@ describe("SQLite append-only event store", () => {
     expect(first.event.previousHash).toBeNull();
     expect(second.event.seq).toBe(2);
     expect(second.event.previousHash).toBe(first.event.eventHash);
+    expect(store.latest()).toEqual(second.event);
     const { eventHash: _eventHash, ...secondWithoutHash } = second.event;
     expect(second.event.eventHash).toBe(computeEventHash(secondWithoutHash));
     expect(store.verifyIntegrity()).toEqual({
