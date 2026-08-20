@@ -1,4 +1,5 @@
 import {
+  assertSearchAdapterBuildId,
   assertSearchEngineIdentity,
   executeSearchEvaluation,
   sameSearchEngine,
@@ -24,6 +25,7 @@ export async function executeLocalSearchCandidate(input: {
 }): Promise<LocalSearchCandidateExecution> {
   try {
     assertSearchEngineIdentity(input.engine.engine);
+    assertSearchAdapterBuildId(input.engine.adapterBuildId);
     if (sameSearchEngine(input.engine.engine, SEARCH_ENGINE)) {
       throw new Error("후보 엔진은 현재 lexical-v1과 다른 좌표여야 합니다.");
     }

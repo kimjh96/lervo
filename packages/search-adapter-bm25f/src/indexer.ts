@@ -16,6 +16,14 @@ import {
 } from "@lervo/search";
 
 export const BM25F_SEARCH_ENGINE = { id: "bm25f", version: 1 } as const;
+// 실행 동작이나 runtime 의존성이 달라지면 새 비교 전에 반드시 올립니다.
+const BM25F_ADAPTER_IMPLEMENTATION_REVISION = 1;
+export const BM25F_ADAPTER_BUILD_ID = contentId("sebuild", {
+  package: "@lervo/search-adapter-bm25f",
+  implementationRevision: BM25F_ADAPTER_IMPLEMENTATION_REVISION,
+  engine: BM25F_SEARCH_ENGINE,
+  scoring: "bm25f-fixed-v1",
+});
 
 type FieldName = SearchHit["matchedFields"][number];
 
@@ -148,5 +156,6 @@ export class Bm25fSearchIndex implements SearchEvaluationIndexPort {
 
 export const bm25fSearchEvaluationEngine: SearchEvaluationEnginePort = {
   engine: BM25F_SEARCH_ENGINE,
+  adapterBuildId: BM25F_ADAPTER_BUILD_ID,
   buildIndex: (sources) => new Bm25fSearchIndex(sources),
 };

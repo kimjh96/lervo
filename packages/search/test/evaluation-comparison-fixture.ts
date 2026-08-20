@@ -19,6 +19,10 @@ import {
 const CONTENT_HASH = `sha256:${"a".repeat(64)}`;
 const CURRENT_HASH = `sha256:${"b".repeat(64)}`;
 const CANDIDATE_ENGINE: SearchEngineIdentity = { id: "fixture_candidate", version: 1 };
+export const CANDIDATE_ADAPTER_BUILD_ID = contentId("sebuild", {
+  adapter: "fixture_candidate",
+  revision: 1,
+});
 
 function reviewedCase(query: string, sourceId: string, nonce: string, minute: number): SearchEvaluationCase {
   const source: SearchSourceInput = {
@@ -109,5 +113,13 @@ export async function comparisonFixture(minimumActiveCases = 2, recoverCandidate
     cases,
     evaluatedAt,
   });
-  return { bundle, coverage, cases, corpus, baseline, candidate };
+  return {
+    bundle,
+    coverage,
+    cases,
+    corpus,
+    baseline,
+    candidate,
+    candidateAdapterBuildId: CANDIDATE_ADAPTER_BUILD_ID,
+  };
 }

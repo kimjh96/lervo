@@ -7,6 +7,7 @@ import {
   SearchError,
   sameSearchEngine,
   type SearchCandidateEngineResolver,
+  type SearchCandidateVerificationReceipt,
   type SearchEngineSelection,
   type SearchEngineActivation,
   type SearchIndexPort,
@@ -24,12 +25,14 @@ export interface ResolvedOperationalSearchEngine {
   selectionTransitionId: string | null;
   transitionCount: number;
   index: SearchIndexPort;
+  verificationReceipt: SearchCandidateVerificationReceipt | null;
 }
 
 export interface OperationalSearchResult {
   selection: SearchEngineSelection;
   selectionTransitionId: string | null;
   response: SearchResponse;
+  verificationReceiptId: string | null;
 }
 
 export interface OperationalSearchEngineInspection {
@@ -38,6 +41,7 @@ export interface OperationalSearchEngineInspection {
   transitions: number;
   resolverState: "ready" | "unavailable";
   failureCode: string | null;
+  verificationReceiptId: string | null;
 }
 
 async function resolveOperationalSearchEngineFromHistory(input: {
@@ -54,6 +58,7 @@ async function resolveOperationalSearchEngineFromHistory(input: {
       selectionTransitionId: null,
       transitionCount: 0,
       index: new LexicalSearchIndex(await loadRegisteredDocumentCorpus(input.repositoryRoot)),
+      verificationReceipt: null,
     };
   }
   try {
@@ -71,6 +76,7 @@ async function resolveOperationalSearchEngineFromHistory(input: {
       selectionTransitionId: current.activationId,
       transitionCount: history.length,
       index: new LexicalSearchIndex(await loadRegisteredDocumentCorpus(input.repositoryRoot)),
+      verificationReceipt: null,
     };
   }
   try {
@@ -84,7 +90,13 @@ async function resolveOperationalSearchEngineFromHistory(input: {
     if (!sameSearchEngine(index.engine, selection.engine) || index.indexId !== evidence.comparison.candidate.indexId) {
       throw new SearchLocalError("engine_selection_unavailable", "선택된 검색 엔진의 현재 index가 검증된 비교 원본과 다릅니다.");
     }
-    return { selection, selectionTransitionId: current.activationId, transitionCount: history.length, index };
+    return {
+      selection,
+      selectionTransitionId: current.activationId,
+      transitionCount: history.length,
+      index,
+      verificationReceipt: evidence.verificationReceipt,
+    };
   } catch (error) {
     if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable") throw error;
     throw new SearchLocalError("engine_selection_unavailable", "현재 후보 검색 엔진 선택을 안전하게 사용할 수 없습니다.", {
@@ -117,14 +129,20 @@ export async function inspectOperationalSearchEngine(input: {
     transitions: history.length,
   };
   try {
-    await resolveOperationalSearchEngineFromHistory({ ...input, history });
-    return { ...recorded, resolverState: "ready", failureCode: null };
+    const resolved = await resolveOperationalSearchEngineFromHistory({ ...input, history });
+    return {
+      ...recorded,
+      resolverState: "ready",
+      failureCode: null,
+      verificationReceiptId: resolved.verificationReceipt?.receiptId ?? null,
+    };
   } catch (error) {
     return {
       ...recorded,
       resolverState: "unavailable",
       failureCode: typeof error === "object" && error !== null && "code" in error &&
         typeof error.code === "string" ? error.code : "engine_selection_unavailable",
+      verificationReceiptId: null,
     };
   }
 }
@@ -148,6 +166,7 @@ export async function runLocalOperationalSearch(input: {
       selection: structuredClone(resolved.selection),
       selectionTransitionId: resolved.selectionTransitionId,
       response,
+      verificationReceiptId: resolved.verificationReceipt?.receiptId ?? null,
     };
   } catch (error) {
     throw new SearchLocalError("engine_selection_unavailable", "선택된 검색 엔진이 유효한 응답을 만들지 못했습니다.", {

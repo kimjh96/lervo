@@ -3,12 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   SearchEvaluationEngineRegistry,
   SEARCH_ENGINE,
+  contentId,
   type SearchEvaluationEnginePort,
 } from "../src/index.js";
 
 function engine(id: string, version: number): SearchEvaluationEnginePort {
   return {
     engine: { id, version },
+    adapterBuildId: contentId("sebuild", { id, version }),
     buildIndex() {
       throw new Error("이 registry 테스트에서는 index를 만들지 않습니다.");
     },
@@ -25,8 +27,8 @@ describe("search evaluation engine registry", () => {
     ]);
 
     expect(registry.list()).toEqual([
-      { candidateId: "alpha-v1", engine: { id: "alpha", version: 1 } },
-      { candidateId: "beta-v2", engine: { id: "beta", version: 2 } },
+      { candidateId: "alpha-v1", engine: { id: "alpha", version: 1 }, adapterBuildId: alpha.adapterBuildId },
+      { candidateId: "beta-v2", engine: { id: "beta", version: 2 }, adapterBuildId: beta.adapterBuildId },
     ]);
     expect(registry.resolve("beta-v2")).toBe(beta);
     expect(registry.resolveEngine({ id: "alpha", version: 1 })).toEqual({ candidateId: "alpha-v1", engine: alpha });
@@ -41,6 +43,14 @@ describe("search evaluation engine registry", () => {
     expect(() => new SearchEvaluationEngineRegistry([
       { candidateId: "alpha-one", engine: engine("alpha", 1) },
       { candidateId: "alpha-again", engine: engine("alpha", 1) },
+    ])).toThrow(/중복/);
+    const alpha = engine("alpha", 1);
+    expect(() => new SearchEvaluationEngineRegistry([
+      { candidateId: "alpha-one", engine: alpha },
+      {
+        candidateId: "beta-one",
+        engine: { ...engine("beta", 1), adapterBuildId: alpha.adapterBuildId },
+      },
     ])).toThrow(/중복/);
   });
 

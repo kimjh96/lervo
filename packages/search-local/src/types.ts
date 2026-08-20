@@ -11,6 +11,7 @@ export type SearchLocalErrorCode =
   | "evaluation_bundle_read_failed"
   | "evaluation_bundle_write_failed"
   | "evaluation_candidate_failed"
+  | "evaluation_candidate_build_mismatch"
   | "evaluation_comparison_not_ready"
   | "evaluation_comparison_not_found"
   | "engine_activation_conflict"

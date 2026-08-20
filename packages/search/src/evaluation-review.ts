@@ -5,12 +5,16 @@ import {
 } from "./evaluation-comparison.js";
 import type { SearchEvaluationComparison } from "./evaluation-comparison-types.js";
 import { SEARCH_CANDIDATE_ID_PATTERN } from "./evaluation-engine-registry.js";
-import { assertSearchEngineIdentity, sameSearchEngine } from "./evaluation-engine.js";
+import { assertSearchAdapterBuildId, assertSearchEngineIdentity, sameSearchEngine } from "./evaluation-engine.js";
 import type { SearchEvaluationExecution } from "./evaluation-executor.js";
 import { SEARCH_EVALUATION_RUN_PATTERN } from "./evaluation-common.js";
 import { assertSearchEvaluationRun } from "./evaluation-run.js";
 import type { SearchEvaluationCase } from "./evaluation-types.js";
-import type { SearchCandidateReview, SearchCandidateReviewDecision } from "./evaluation-review-types.js";
+import type {
+  CurrentSearchCandidateReview,
+  SearchCandidateReview,
+  SearchCandidateReviewDecision,
+} from "./evaluation-review-types.js";
 import { contentId } from "./integrity.js";
 import { SearchError } from "./types.js";
 import { assertTimestamp, SHA256_PATTERN, SOURCE_ID_PATTERN } from "./validation.js";
@@ -35,16 +39,20 @@ export function createSearchCandidateReview(input: {
   candidateId: string;
   cases: readonly SearchEvaluationCase[];
   replay: SearchEvaluationExecution;
+  candidateAdapterBuildId: string;
   reviewerId: string;
   reviewedAt: Date;
   decision: SearchCandidateReviewDecision;
-}): SearchCandidateReview {
+}): CurrentSearchCandidateReview {
   assertSearchEvaluationComparison(input.comparison);
   assertSearchEvaluationRun(input.replay.run, input.cases, input.replay.results);
+  assertSearchAdapterBuildId(input.candidateAdapterBuildId, "invalid_candidate_review");
   if (!Number.isFinite(input.reviewedAt.getTime())) {
     throw new SearchError("invalid_candidate_review", "검색 후보 검토 시각이 유효하지 않습니다.");
   }
-  if (!SEARCH_CANDIDATE_ID_PATTERN.test(input.candidateId) || input.candidateId.length > 64 ||
+  if (input.comparison.schemaVersion !== 2 ||
+    input.comparison.candidateAdapterBuildId !== input.candidateAdapterBuildId ||
+    !SEARCH_CANDIDATE_ID_PATTERN.test(input.candidateId) || input.candidateId.length > 64 ||
     !SOURCE_ID_PATTERN.test(input.reviewerId) || input.replay.run.runId !== input.comparison.candidate.runId ||
     input.replay.run.indexId !== input.comparison.candidate.indexId ||
     !sameSearchEngine(input.replay.run.engine, input.comparison.candidate.engine) ||
@@ -70,6 +78,7 @@ export function createSearchCandidateReview(input: {
     corpusDigest: input.comparison.corpusDigest,
     candidateId: input.candidateId,
     candidate: { ...input.comparison.candidate.engine },
+    candidateAdapterBuildId: input.candidateAdapterBuildId,
     candidateRunId: input.comparison.candidate.runId,
     replayRunId: input.replay.run.runId,
     reviewerId: input.reviewerId,
@@ -88,8 +97,8 @@ export function createSearchCandidateReview(input: {
     activationState: "not_applied" as const,
     embeddingDecision: "not_determined" as const,
   };
-  const review: SearchCandidateReview = {
-    schemaVersion: 1,
+  const review: CurrentSearchCandidateReview = {
+    schemaVersion: 2,
     reviewId: contentId("scrv", core),
     ...core,
   };
@@ -98,7 +107,7 @@ export function createSearchCandidateReview(input: {
 }
 
 export function assertSearchCandidateReview(review: SearchCandidateReview): void {
-  if (review.schemaVersion !== 1 || !SEARCH_CANDIDATE_REVIEW_PATTERN.test(review.reviewId) ||
+  if (![1, 2].includes(review.schemaVersion) || !SEARCH_CANDIDATE_REVIEW_PATTERN.test(review.reviewId) ||
     !SOURCE_ID_PATTERN.test(review.projectId) || !SEARCH_EVALUATION_BUNDLE_ID_PATTERN.test(review.bundleId) ||
     review.bundleId.length > 100 || !SHA256_PATTERN.test(review.bundleHash) ||
     !/^secov_[a-f0-9]{24}$/.test(review.coverageId) ||
@@ -121,6 +130,9 @@ export function assertSearchCandidateReview(review: SearchCandidateReview): void
     throw new SearchError("invalid_candidate_review", "검색 후보 검토 계약이 유효하지 않습니다.");
   }
   assertSearchEngineIdentity(review.candidate, "invalid_candidate_review");
+  if (review.schemaVersion === 2) {
+    assertSearchAdapterBuildId(review.candidateAdapterBuildId, "invalid_candidate_review");
+  }
   assertTimestamp(review.reviewedAt, "invalid_candidate_review");
   if (review.observedOutcome !== observedOutcome(review.baselineWins, review.candidateWins)) {
     throw new SearchError("invalid_candidate_review", "검색 후보 검토의 관측 집계가 유효하지 않습니다.");

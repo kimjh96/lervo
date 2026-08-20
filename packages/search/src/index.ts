@@ -1,4 +1,5 @@
 export * from "./engine.js";
+export * from "./candidate-verification-receipt.js";
 export * from "./engine-activation.js";
 export * from "./engine-activation-eligibility.js";
 export * from "./engine-activation-policy.js";

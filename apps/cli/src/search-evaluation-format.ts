@@ -117,10 +117,12 @@ export function formatSearchEngineStatus(status: {
   transitions: number;
   resolverState: "ready" | "unavailable";
   failureCode: string | null;
+  verificationReceiptId: string | null;
 }): string {
   return [
     `검색 엔진 선택 원본: ${status.selection.engine.id}-v${status.selection.engine.version}`,
     `  선택 전이: ${status.selectionTransitionId ?? "없음"} · 전체 ${status.transitions}개`,
     `  검색 resolver: ${status.resolverState === "ready" ? "검증 완료" : `사용 불가 (${status.failureCode})`}`,
+    `  후보 검증 receipt: ${status.verificationReceiptId ?? "없음"}`,
   ].join("\n") + "\n";
 }

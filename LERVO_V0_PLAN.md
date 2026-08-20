@@ -523,6 +523,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 문서 변경 실패, 재평가·검토·refresh, 후보 운영 재개, baseline rollback을 하나의 로컬 수직 테스트로 확인함
 - Query·문서 path·본문·prompt·provider 응답·credential을 새 전이나 오류에 추가하지 않고 Hub와 새 event 없이 완료함
 
+검색 adapter build identity와 재생성 가능한 검증 receipt 첫 슬라이스 완료 조건:
+
+- 공통 engine port와 정적 registry가 candidate·engine 좌표와 별도의 content-bound adapter build ID를 요구함
+- Candidate ID, engine 좌표와 build ID 중복을 모두 거부하고 path·module·URL·동적 코드를 허용하지 않음
+- 신규 comparison·review만 schema v2 build ID를 content ID에 결속하고 v1 원본은 수정 없이 읽음
+- V1 비교·검토에서 새 review·activation·refresh를 만들지 않고 현재 build의 새 평가 원본을 요구함
+- Review·activation·refresh·운영 resolver가 저장 build와 현재 registry를 후보 호출 전에 확인함
+- 같은 candidate·engine과 같은 결과를 내더라도 build ID가 다르면 명시적으로 실패하고 baseline으로 낮추지 않음
+- 성공한 v2 replay가 project·candidate·build·comparison·review·corpus·run·index에서 같은 receipt ID를 재생성함
+- Receipt를 별도 파일·event·Hub 원본으로 쌓지 않고 status와 운영 검색 결과에 nullable ID만 반환함
+- Receipt를 검색 실행, 결과 사용, 품질이나 모델 이해 증거로 해석하지 않음
+- Build·receipt와 오류에 query·문서 path·본문·prompt·provider 응답·credential을 추가하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -565,4 +578,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 선택된 검색 후보의 검증 원본 갱신 첫 슬라이스를 완료했습니다. 문서 corpus가 달라진 후보는 계속 fail-closed로 두고, 새 비교·검토·정책과 현재 replay가 모두 맞을 때만 같은 후보의 새 증거를 `refresh_candidate` immutable 전이로 연결합니다. Refresh 뒤 운영 검색은 새 전이 ID를 사용하며 명시적인 rollback은 오래된 후보가 아니라 baseline으로 복구합니다. 결정은 [ADR-0062](./docs/adr/0062-selected-search-candidate-evidence-refresh.md)에 기록했습니다.
 
-다음 구현 작업은 정적 candidate 등록에 **adapter build identity와 검증 receipt**를 결속하는 흐름입니다. 같은 candidate ID·engine version이라도 실제 빌드가 바뀌는 경우를 구분하고, 현재 실행 adapter가 선택·비교 때 검증한 구현과 같은지 확인해야 합니다. Receipt는 원본 evidence에서 다시 만들 수 있는 파생 상태로 두며, 일치하지 않으면 기존 fail-closed 경계를 유지합니다.
+검색 adapter build identity와 재생성 가능한 검증 receipt 첫 슬라이스를 완료했습니다. 신규 비교·검토는 engine version과 별도의 adapter build ID를 원본에 결속하고, review·activation·refresh·운영 resolver는 현재 registry가 같은 build인지 후보 호출 전에 확인합니다. 성공한 v2 replay의 receipt는 원본 좌표에서 같은 ID로 다시 만들며 별도 파일이나 event로 쌓지 않습니다. 기존 v1 원본은 수정하지 않고 읽되 새 선택 증거로 승격하지 않습니다. 결정은 [ADR-0063](./docs/adr/0063-search-adapter-build-identity-and-replay-receipt.md)에 기록했습니다.
+
+다음 구현 작업은 실제 운영 `SearchAssessment`를 선택 전이와 adapter build별로 분리해 보는 **선택 결속 검색 품질 report**입니다. 평가되지 않은 attempt와 명시적 accepted·failed 판정을 구분하고, 표본이 충분하지 않으면 rollout 성공이나 rollback 필요성을 자동 판단하지 않아야 합니다. Report는 관측만 제공하며 선택 전이·정책·문서를 수정하거나 자동 rollback을 만들지 않습니다.

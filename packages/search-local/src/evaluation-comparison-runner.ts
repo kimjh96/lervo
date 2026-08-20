@@ -51,7 +51,10 @@ export async function runLocalSearchEvaluationComparison(input: {
     evaluatedAt: input.evaluatedAt,
   });
   const evidence = { bundle, coverage, cases: availableCases, corpus, baseline, candidate };
-  const comparison = createSearchEvaluationComparison({ evidence });
+  const comparison = createSearchEvaluationComparison({
+    evidence,
+    candidateAdapterBuildId: input.candidateEngine.adapterBuildId,
+  });
 
   const [evaluationStore, comparisonStore] = await Promise.all([
     LocalSearchEvaluationStore.open(input.repositoryRoot),

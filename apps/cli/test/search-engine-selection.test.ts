@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import { loadProjectManifest } from "@lervo/project";
 import {
+  contentId,
   createSearchEngineActivationPolicy,
   SearchEvaluationEngineRegistry,
 } from "@lervo/search";
@@ -116,8 +117,26 @@ describe("operational search engine selection", () => {
       selection: { mode: "candidate", candidateId: "fixture-v1" },
       selectionTransitionId: activation.activationId,
       response: { engine: CANDIDATE_ENGINE },
+      verificationReceiptId: expect.stringMatching(/^sevrf_[a-f0-9]{24}$/),
     });
     expect(candidateBuilds).toBe(buildsBeforeOperationalSearch + 1);
+    expect(await observationEntries(root)).not.toContain("engine-verifications");
+    const buildsBeforeMismatch = candidateBuilds;
+    const changedBuildRegistry = new SearchEvaluationEngineRegistry([{
+      candidateId: "fixture-v1",
+      engine: {
+        ...engine,
+        adapterBuildId: contentId("sebuild", { adapter: "fixture_candidate", revision: 2 }),
+      },
+    }]);
+    await expect(runLocalOperationalSearch({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      registry: changedBuildRegistry,
+      query: "검색 맥락",
+      limit: 5,
+    })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
+    expect(candidateBuilds).toBe(buildsBeforeMismatch);
     const managed = await prepareManagedSearchContext({
       repositoryRoot: root,
       projectId: project.projectId,
@@ -204,6 +223,7 @@ describe("operational search engine selection", () => {
     })).resolves.toMatchObject({
       selectionTransitionId: refresh.activationId,
       response: { engine: CANDIDATE_ENGINE },
+      verificationReceiptId: expect.stringMatching(/^sevrf_[a-f0-9]{24}$/),
     });
 
     const rolledBack = await command(root, [

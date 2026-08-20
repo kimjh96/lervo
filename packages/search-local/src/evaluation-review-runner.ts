@@ -28,6 +28,13 @@ export async function reviewLocalSearchCandidate(input: {
   if (!sameSearchEngine(input.registration.engine.engine, loaded.comparison.candidate.engine)) {
     throw new SearchLocalError("evaluation_candidate_failed", "비교 원본의 후보가 현재 등록된 엔진과 다릅니다.");
   }
+  if (loaded.comparison.schemaVersion !== 2 ||
+    loaded.comparison.candidateAdapterBuildId !== input.registration.engine.adapterBuildId) {
+    throw new SearchLocalError(
+      "evaluation_candidate_build_mismatch",
+      "비교 원본의 adapter build가 현재 등록된 구현과 다릅니다.",
+    );
+  }
   const replay = await executeLocalSearchCandidate({
     engine: input.registration.engine,
     corpus: loaded.evidence.corpus,
@@ -39,6 +46,7 @@ export async function reviewLocalSearchCandidate(input: {
     candidateId: input.registration.candidateId,
     cases: loaded.activeCases,
     replay,
+    candidateAdapterBuildId: input.registration.engine.adapterBuildId,
     reviewerId: input.reviewerId,
     reviewedAt: input.reviewedAt,
     decision: input.decision,

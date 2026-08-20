@@ -17,6 +17,10 @@ import { registerSearchContextDocument } from "./search-context-fixture.js";
 
 const roots: string[] = [];
 export const CANDIDATE_ENGINE: SearchEngineIdentity = { id: "fixture_candidate", version: 1 };
+export const CANDIDATE_ADAPTER_BUILD_ID = contentId("sebuild", {
+  adapter: "fixture_candidate",
+  revision: 1,
+});
 
 export async function command(root: string, args: string[]): Promise<{ code: number; output: string; error: string }> {
   let output = "";
@@ -62,6 +66,7 @@ export async function bundle(root: string, id: string, minimum: number, caseIds:
 export function candidateEngine(onBuild: () => void, wrongIndex = false): SearchEvaluationEnginePort {
   return {
     engine: CANDIDATE_ENGINE,
+    adapterBuildId: CANDIDATE_ADAPTER_BUILD_ID,
     async buildIndex(sources) {
       onBuild();
       const lexical = new LexicalSearchIndex(sources);
@@ -88,6 +93,7 @@ export function recoveringCandidateEngine(
 ): SearchEvaluationEnginePort {
   return {
     engine: CANDIDATE_ENGINE,
+    adapterBuildId: CANDIDATE_ADAPTER_BUILD_ID,
     async buildIndex(sources) {
       onBuild();
       const lexical = new LexicalSearchIndex(sources);

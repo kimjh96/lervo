@@ -5,8 +5,7 @@ export type SearchCandidateReviewDecision =
   | "reject_candidate"
   | "more_samples_required";
 
-export interface SearchCandidateReview {
-  schemaVersion: 1;
+interface SearchCandidateReviewBase {
   reviewId: string;
   projectId: string;
   bundleId: string;
@@ -35,3 +34,14 @@ export interface SearchCandidateReview {
   activationState: "not_applied";
   embeddingDecision: "not_determined";
 }
+
+export interface LegacySearchCandidateReview extends SearchCandidateReviewBase {
+  schemaVersion: 1;
+}
+
+export interface CurrentSearchCandidateReview extends SearchCandidateReviewBase {
+  schemaVersion: 2;
+  candidateAdapterBuildId: string;
+}
+
+export type SearchCandidateReview = LegacySearchCandidateReview | CurrentSearchCandidateReview;

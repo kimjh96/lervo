@@ -1,5 +1,6 @@
 import { searchSourceKey } from "./corpus.js";
 import {
+  assertSearchAdapterBuildId,
   assertSearchEngineIdentity,
   SEARCH_INDEX_ID_PATTERN,
   sameSearchEngine,
@@ -81,6 +82,7 @@ export const assertSearchEvaluationResponse = assertSearchResponse;
 
 export interface SearchEvaluationEngineContractReport {
   engine: { id: string; version: number };
+  adapterBuildId: string;
   indexId: string;
   checkedQueries: number;
   queryDigests: string[];
@@ -92,6 +94,7 @@ export async function verifySearchEvaluationEngineContract(input: {
   queries: readonly string[];
 }): Promise<SearchEvaluationEngineContractReport> {
   assertSearchEngineIdentity(input.engine.engine);
+  assertSearchAdapterBuildId(input.engine.adapterBuildId);
   if (!Array.isArray(input.queries) || input.queries.length < 1 || input.queries.length > 8) {
     throw new SearchError("invalid_evaluation_engine", "검색 평가 엔진 계약 query 수가 유효하지 않습니다.");
   }
@@ -116,6 +119,7 @@ export async function verifySearchEvaluationEngineContract(input: {
   }
   return {
     engine: { ...input.engine.engine },
+    adapterBuildId: input.engine.adapterBuildId,
     indexId: first.indexId,
     checkedQueries: input.queries.length,
     queryDigests,

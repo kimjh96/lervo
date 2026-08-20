@@ -4,9 +4,12 @@ import {
   type SearchEvaluationComparison,
   type SearchEvaluationCaseComparison,
   type SearchEvaluationComparisonRunReference,
+  type CurrentSearchEvaluationComparison,
+  type LegacySearchEvaluationComparison,
 } from "./evaluation-comparison-types.js";
 import { assertSearchEvaluationCoverage } from "./evaluation-coverage.js";
 import {
+  assertSearchAdapterBuildId,
   assertSearchEngineIdentity,
   SEARCH_INDEX_ID_PATTERN,
   sameSearchEngine,
@@ -63,10 +66,10 @@ function resultMap(results: readonly SearchEvaluationResult[]): Map<string, Sear
   return byCase;
 }
 
-export function createSearchEvaluationComparison(input: {
-  evidence: SearchEvaluationComparisonEvidence;
-}): SearchEvaluationComparison {
-  const { bundle, coverage, cases, baseline, candidate } = input.evidence;
+type SearchEvaluationComparisonCore = Omit<LegacySearchEvaluationComparison, "schemaVersion" | "comparisonId">;
+
+function comparisonCore(evidence: SearchEvaluationComparisonEvidence): SearchEvaluationComparisonCore {
+  const { bundle, coverage, cases, baseline, candidate } = evidence;
   assertSearchEvaluationBundle(bundle, cases);
   assertSearchEvaluationCoverage(coverage, bundle, cases);
   if (coverage.comparisonReadiness !== "ready") {
@@ -76,7 +79,7 @@ export function createSearchEvaluationComparison(input: {
   const activeCases = coverage.activeCaseIds.map((caseId) => casesById.get(caseId)!);
   assertSearchEvaluationRun(baseline.run, activeCases, baseline.results);
   assertSearchEvaluationRun(candidate.run, activeCases, candidate.results);
-  const baselineIndex = new LexicalSearchIndex(input.evidence.corpus);
+  const baselineIndex = new LexicalSearchIndex(evidence.corpus);
   if (!sameSearchEngine(baseline.run.engine, SEARCH_ENGINE) || sameSearchEngine(candidate.run.engine, SEARCH_ENGINE) ||
     baseline.run.indexId !== baselineIndex.indexId || baseline.run.indexId === candidate.run.indexId ||
     baseline.run.projectId !== bundle.projectId || candidate.run.projectId !== bundle.projectId ||
@@ -103,7 +106,7 @@ export function createSearchEvaluationComparison(input: {
   });
   const baselineWins = comparisons.filter((item) => item.outcome === "baseline_win").length;
   const candidateWins = comparisons.filter((item) => item.outcome === "candidate_win").length;
-  const core = {
+  return {
     projectId: bundle.projectId,
     bundleId: bundle.bundleId,
     bundleHash: bundle.bundleHash,
@@ -121,8 +124,19 @@ export function createSearchEvaluationComparison(input: {
     candidateDecision: "not_determined" as const,
     embeddingDecision: "not_determined" as const,
   };
-  const comparison: SearchEvaluationComparison = {
-    schemaVersion: 1,
+}
+
+export function createSearchEvaluationComparison(input: {
+  evidence: SearchEvaluationComparisonEvidence;
+  candidateAdapterBuildId: string;
+}): CurrentSearchEvaluationComparison {
+  assertSearchAdapterBuildId(input.candidateAdapterBuildId, "invalid_evaluation_comparison");
+  const core = {
+    ...comparisonCore(input.evidence),
+    candidateAdapterBuildId: input.candidateAdapterBuildId,
+  };
+  const comparison: CurrentSearchEvaluationComparison = {
+    schemaVersion: 2,
     comparisonId: contentId("secmp", core),
     ...core,
   };
@@ -142,7 +156,8 @@ export function assertSearchEvaluationComparison(
   comparison: SearchEvaluationComparison,
   evidence?: SearchEvaluationComparisonEvidence,
 ): void {
-  if (comparison.schemaVersion !== 1 || !SEARCH_EVALUATION_COMPARISON_PATTERN.test(comparison.comparisonId) ||
+  if (![1, 2].includes(comparison.schemaVersion) ||
+    !SEARCH_EVALUATION_COMPARISON_PATTERN.test(comparison.comparisonId) ||
     !SOURCE_ID_PATTERN.test(comparison.projectId) || !SEARCH_EVALUATION_BUNDLE_ID_PATTERN.test(comparison.bundleId) ||
     comparison.bundleId.length > 100 || !SHA256_PATTERN.test(comparison.bundleHash) ||
     !/^secov_[a-f0-9]{24}$/.test(comparison.coverageId) || !SHA256_PATTERN.test(comparison.corpusDigest) ||
@@ -167,13 +182,19 @@ export function assertSearchEvaluationComparison(
   assertTimestamp(comparison.evaluatedAt, "invalid_evaluation_comparison");
   assertRunReference(comparison.baseline);
   assertRunReference(comparison.candidate);
+  if (comparison.schemaVersion === 2) {
+    assertSearchAdapterBuildId(comparison.candidateAdapterBuildId, "invalid_evaluation_comparison");
+  }
   if (!sameSearchEngine(comparison.baseline.engine, SEARCH_ENGINE) ||
     sameSearchEngine(comparison.candidate.engine, SEARCH_ENGINE)) {
     throw new SearchError("invalid_evaluation_comparison", "Baseline과 후보 검색 엔진 좌표가 유효하지 않습니다.");
   }
   if (evidence !== undefined) {
-    const expected = createSearchEvaluationComparison({ evidence });
-    if (expected.comparisonId !== comparison.comparisonId) {
+    const expectedCore = comparisonCore(evidence);
+    const expectedId = comparison.schemaVersion === 2
+      ? contentId("secmp", { ...expectedCore, candidateAdapterBuildId: comparison.candidateAdapterBuildId })
+      : contentId("secmp", expectedCore);
+    if (expectedId !== comparison.comparisonId) {
       throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교가 원본 실행과 다릅니다.");
     }
     return;

@@ -51,6 +51,9 @@ export function createSearchEngineCandidateActivation(input: {
 }): SearchEngineCandidateActivation {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivationEvidence(input);
+  if (input.review.schemaVersion !== 2 || input.comparison.schemaVersion !== 2) {
+    throw new SearchError("engine_activation_not_eligible", "새 검색 엔진 선택에는 adapter build가 결속된 검토가 필요합니다.");
+  }
   if (!Number.isFinite(input.decidedAt.getTime())) {
     throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 시각이 유효하지 않습니다.");
   }
@@ -97,6 +100,9 @@ export function createSearchEngineCandidateRefresh(input: {
 }): SearchEngineCandidateRefresh {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivationEvidence(input);
+  if (input.review.schemaVersion !== 2 || input.comparison.schemaVersion !== 2) {
+    throw new SearchError("engine_activation_not_eligible", "검색 후보 refresh에는 adapter build가 결속된 검토가 필요합니다.");
+  }
   assertSearchEngineActivation(input.previous);
   if (input.previous.projectId !== input.policy.projectId || !Number.isFinite(input.decidedAt.getTime())) {
     throw new SearchError("invalid_engine_activation", "검색 엔진 refresh 좌표가 유효하지 않습니다.");

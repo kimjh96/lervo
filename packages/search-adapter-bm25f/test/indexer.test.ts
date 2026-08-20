@@ -5,7 +5,12 @@ import {
   type SearchSourceInput,
 } from "@lervo/search";
 
-import { BM25F_SEARCH_ENGINE, Bm25fSearchIndex, bm25fSearchEvaluationEngine } from "../src/index.js";
+import {
+  BM25F_ADAPTER_BUILD_ID,
+  BM25F_SEARCH_ENGINE,
+  Bm25fSearchIndex,
+  bm25fSearchEvaluationEngine,
+} from "../src/index.js";
 
 const HASH_A = `sha256:${"a".repeat(64)}`;
 const HASH_B = `sha256:${"b".repeat(64)}`;
@@ -39,6 +44,7 @@ describe("bm25f search evaluation adapter", () => {
       queries: ["검색", "고유근거"],
     })).resolves.toMatchObject({
       engine: BM25F_SEARCH_ENGINE,
+      adapterBuildId: BM25F_ADAPTER_BUILD_ID,
       checkedQueries: 2,
     });
   });

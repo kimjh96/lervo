@@ -21,7 +21,8 @@ export async function runSearchCandidatesCommand(args: string[], io: CliIo): Pro
     ? `${JSON.stringify({ candidates }, null, 2)}\n`
     : [
       "등록된 검색 후보:",
-      ...candidates.map((item) => `  ${item.candidateId} · ${item.engine.id}-v${item.engine.version}`),
+      ...candidates.map((item) =>
+        `  ${item.candidateId} · ${item.engine.id}-v${item.engine.version} · build ${item.adapterBuildId}`),
     ].join("\n") + "\n");
   return 0;
 }

@@ -1,4 +1,5 @@
 import {
+  assertSearchAdapterBuildId,
   assertSearchEngineIdentity,
   sameSearchEngine,
   type SearchEvaluationEnginePort,
@@ -17,6 +18,7 @@ export interface SearchEvaluationEngineRegistration {
 export interface SearchEvaluationEngineRegistrationInfo {
   candidateId: string;
   engine: SearchEngineIdentity;
+  adapterBuildId: string;
 }
 
 export interface SearchCandidateEngineResolver {
@@ -33,16 +35,20 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
       throw new SearchError("invalid_evaluation_engine", "등록할 검색 후보 엔진 수가 유효하지 않습니다.");
     }
     const coordinates = new Set<string>();
+    const adapterBuildIds = new Set<string>();
     this.registrations = registrations.map(({ candidateId, engine }) => {
       assertSearchEngineIdentity(engine.engine);
+      assertSearchAdapterBuildId(engine.adapterBuildId);
       const coordinate = `${engine.engine.id}:${engine.engine.version}`;
       if (!SEARCH_CANDIDATE_ID_PATTERN.test(candidateId) || candidateId.length > 64 ||
-        this.engines.has(candidateId) || coordinates.has(coordinate) || sameSearchEngine(engine.engine, SEARCH_ENGINE)) {
+        this.engines.has(candidateId) || coordinates.has(coordinate) || adapterBuildIds.has(engine.adapterBuildId) ||
+        sameSearchEngine(engine.engine, SEARCH_ENGINE)) {
         throw new SearchError("invalid_evaluation_engine", "검색 후보 ID·engine 좌표가 중복되었거나 유효하지 않습니다.");
       }
       this.engines.set(candidateId, engine);
       coordinates.add(coordinate);
-      return { candidateId, engine: { ...engine.engine } };
+      adapterBuildIds.add(engine.adapterBuildId);
+      return { candidateId, engine: { ...engine.engine }, adapterBuildId: engine.adapterBuildId };
     }).sort((left, right) => left.candidateId < right.candidateId ? -1 : left.candidateId > right.candidateId ? 1 : 0);
   }
 

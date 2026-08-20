@@ -3,6 +3,7 @@ import { SearchError, type SearchErrorCode } from "./types.js";
 
 export const SEARCH_ENGINE_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/;
 export const SEARCH_INDEX_ID_PATTERN = /^sidx_[a-f0-9]{24}$/;
+export const SEARCH_ADAPTER_BUILD_ID_PATTERN = /^sebuild_[a-f0-9]{24}$/;
 
 export interface SearchIndexPort {
   readonly engine: SearchEngineIdentity;
@@ -12,6 +13,7 @@ export interface SearchIndexPort {
 
 export interface SearchEnginePort {
   readonly engine: SearchEngineIdentity;
+  readonly adapterBuildId: string;
   buildIndex(sources: readonly SearchSourceInput[]): SearchIndexPort | Promise<SearchIndexPort>;
 }
 
@@ -30,4 +32,13 @@ export function assertSearchEngineIdentity(
 
 export function sameSearchEngine(left: SearchEngineIdentity, right: SearchEngineIdentity): boolean {
   return left.id === right.id && left.version === right.version;
+}
+
+export function assertSearchAdapterBuildId(
+  adapterBuildId: string,
+  errorCode: SearchErrorCode = "invalid_evaluation_engine",
+): void {
+  if (!SEARCH_ADAPTER_BUILD_ID_PATTERN.test(adapterBuildId)) {
+    throw new SearchError(errorCode, "검색 adapter build ID가 유효하지 않습니다.");
+  }
 }

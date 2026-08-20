@@ -56,6 +56,7 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
       ? `${JSON.stringify({
         ...response,
         selectionTransitionId: operational.selectionTransitionId,
+        verificationReceiptId: operational.verificationReceiptId,
         attemptId: attempt.attemptId,
       }, null, 2)}\n`
       : formatSearchResponse(response, attempt.attemptId));

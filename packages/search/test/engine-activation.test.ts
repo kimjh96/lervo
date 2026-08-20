@@ -15,12 +15,16 @@ import { comparisonFixture } from "./evaluation-comparison-fixture.js";
 
 async function activationFixture() {
   const evidence = await comparisonFixture();
-  const comparison = createSearchEvaluationComparison({ evidence });
+  const comparison = createSearchEvaluationComparison({
+    evidence,
+    candidateAdapterBuildId: evidence.candidateAdapterBuildId,
+  });
   const review = createSearchCandidateReview({
     comparison,
     candidateId: "fixture-v1",
     cases: evidence.cases,
     replay: evidence.candidate,
+    candidateAdapterBuildId: evidence.candidateAdapterBuildId,
     reviewerId: "reviewer_search",
     reviewedAt: new Date("2026-08-20T04:00:00.000Z"),
     decision: "adopt_candidate",
@@ -161,6 +165,7 @@ describe("search engine activation policy and rollback", () => {
       candidateId: "fixture-v1",
       cases: fixture.evidence.cases,
       replay: fixture.evidence.candidate,
+      candidateAdapterBuildId: fixture.evidence.candidateAdapterBuildId,
       reviewerId: "reviewer_search",
       reviewedAt: new Date("2026-08-20T06:30:00.000Z"),
       decision: "adopt_candidate",

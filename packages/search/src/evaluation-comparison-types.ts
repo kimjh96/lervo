@@ -15,8 +15,7 @@ export interface SearchEvaluationComparisonRunReference {
   runId: string;
 }
 
-export interface SearchEvaluationComparison {
-  schemaVersion: 1;
+interface SearchEvaluationComparisonBase {
   comparisonId: string;
   projectId: string;
   bundleId: string;
@@ -39,3 +38,14 @@ export interface SearchEvaluationComparison {
   candidateDecision: "not_determined";
   embeddingDecision: "not_determined";
 }
+
+export interface LegacySearchEvaluationComparison extends SearchEvaluationComparisonBase {
+  schemaVersion: 1;
+}
+
+export interface CurrentSearchEvaluationComparison extends SearchEvaluationComparisonBase {
+  schemaVersion: 2;
+  candidateAdapterBuildId: string;
+}
+
+export type SearchEvaluationComparison = LegacySearchEvaluationComparison | CurrentSearchEvaluationComparison;

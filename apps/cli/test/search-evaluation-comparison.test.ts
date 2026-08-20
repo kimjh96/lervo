@@ -2,6 +2,7 @@ import { readdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { loadProjectManifest } from "@lervo/project";
+import { contentId } from "@lervo/search";
 import {
   reviewLocalSearchCandidate,
   runLocalSearchEvaluationComparison,
@@ -30,7 +31,11 @@ describe("local search evaluation candidate comparison", () => {
     const listed = await command(root, ["search", "candidates", "--json"]);
     expect(listed.code, listed.error).toBe(0);
     expect(JSON.parse(listed.output)).toEqual({
-      candidates: [{ candidateId: "bm25f-v1", engine: { id: "bm25f", version: 1 } }],
+      candidates: [{
+        candidateId: "bm25f-v1",
+        engine: { id: "bm25f", version: 1 },
+        adapterBuildId: expect.stringMatching(/^sebuild_[a-f0-9]{24}$/),
+      }],
     });
 
     const compared = await command(root, [
@@ -45,6 +50,7 @@ describe("local search evaluation candidate comparison", () => {
         bundleId: "researcher.cli",
         baseline: { engine: { id: "lexical", version: 1 } },
         candidate: { engine: { id: "bm25f", version: 1 } },
+        candidateAdapterBuildId: expect.stringMatching(/^sebuild_[a-f0-9]{24}$/),
         candidateDecision: "not_determined",
         embeddingDecision: "not_determined",
       },
@@ -101,6 +107,7 @@ describe("local search evaluation candidate comparison", () => {
       transitions: 0,
       resolverState: "ready",
       failureCode: null,
+      verificationReceiptId: null,
     });
 
     const unsupportedAdoption = await command(root, [
@@ -213,6 +220,22 @@ describe("local search evaluation candidate comparison", () => {
       evaluatedAt: new Date("2026-08-20T04:03:00.000Z"),
     });
     expect(compared.comparison).toMatchObject({ baselineWins: 0, candidateWins: 1, ties: 0 });
+
+    await expect(reviewLocalSearchCandidate({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      comparisonId: compared.comparison.comparisonId,
+      registration: {
+        candidateId: "fixture-v1",
+        engine: {
+          ...engine,
+          adapterBuildId: contentId("sebuild", { adapter: "fixture_candidate", revision: 2 }),
+        },
+      },
+      reviewerId: "reviewer_search",
+      reviewedAt: new Date("2026-08-20T04:30:00.000Z"),
+      decision: "adopt_candidate",
+    })).rejects.toMatchObject({ code: "evaluation_candidate_build_mismatch" });
 
     const review = await reviewLocalSearchCandidate({
       repositoryRoot: root,

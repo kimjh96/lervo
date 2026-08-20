@@ -27,6 +27,9 @@ export function assertSearchEngineActivationEvidence(input: {
   assertSearchEvaluationComparison(input.comparison);
   if (input.review.projectId !== input.policy.projectId || input.comparison.projectId !== input.policy.projectId ||
     input.review.comparisonId !== input.comparison.comparisonId ||
+    input.review.schemaVersion !== input.comparison.schemaVersion ||
+    (input.review.schemaVersion === 2 && input.comparison.schemaVersion === 2 &&
+      input.review.candidateAdapterBuildId !== input.comparison.candidateAdapterBuildId) ||
     !sameSearchEngine(input.review.candidate, input.comparison.candidate.engine) ||
     input.review.candidateRunId !== input.comparison.candidate.runId ||
     input.review.bundleId !== input.comparison.bundleId || input.review.bundleHash !== input.comparison.bundleHash ||
