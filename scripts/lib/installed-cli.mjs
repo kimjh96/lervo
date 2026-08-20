@@ -46,8 +46,8 @@ export async function deployBuiltCli(target) {
   ]);
 }
 
-export async function importInstalledPackage(deploymentRoot, packageName) {
+export async function importBuiltWorkspacePackage(packageName) {
   return import(pathToFileURL(
-    resolve(deploymentRoot, `node_modules/@lervo/${packageName}/dist/index.js`),
+    resolve(repositoryRoot, `packages/${packageName}/dist/index.js`),
   ).href);
 }

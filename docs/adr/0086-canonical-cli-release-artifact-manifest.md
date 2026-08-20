@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0087](./0087-single-bundle-cli-deployment-unit.md)이 단일 bundle 배포를 채택하면서 현재 release manifest는 schema version 2가 되었습니다. 아래 version 1 결정은 bundle 전환 전 archive 계약의 기록으로 남깁니다.
+
 ## 맥락
 
 설치 smoke는 production dependency를 조립한 CLI가 실행되는지 확인하지만, release archive에 어떤 파일이 들어가는지와 dependency closure가 의도적으로 바뀌었는지는 고정하지 않았습니다. 실제 CLI pack 결과에는 `src`, `test`, `tsconfig`와 build cache까지 178개 항목이 포함되어 있었습니다. 실행에 필요하지 않은 파일을 배포하면 archive가 커지고 내부 fixture와 source가 공개 경계에 섞입니다.

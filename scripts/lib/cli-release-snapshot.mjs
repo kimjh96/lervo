@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { builtinModules } from "node:module";
 import { resolve } from "node:path";
 
 import {
@@ -11,6 +12,12 @@ import { readJson, repositoryRoot, runPnpm } from "./installed-cli.mjs";
 
 const cliRoot = resolve(repositoryRoot, "apps/cli");
 const cliManifestPath = resolve(cliRoot, "package.json");
+const bundleMetafilePath = resolve(cliRoot, "dist/bin.metafile.json");
+const bundleOutputPath = "apps/cli/dist/bin.js";
+const builtinModuleNames = new Set([
+  ...builtinModules,
+  ...builtinModules.map((name) => `node:${name}`),
+]);
 
 async function readPackFileList() {
   const { stdout } = await runPnpm([
@@ -40,7 +47,7 @@ async function createArchiveSnapshot(paths) {
   const files = [];
   for (const path of paths) {
     if (path === "package.json") continue;
-    if (!/^dist\/.+\.(?:js|d\.ts)$/.test(path)) {
+    if (path !== "dist/bin.js") {
       throw new ReleaseArtifactManifestError(
         "release_artifact_file_unexpected",
         "Release archive에 허용되지 않은 파일이 있습니다.",
@@ -57,18 +64,48 @@ async function createArchiveSnapshot(paths) {
   };
 }
 
-async function directDependencyCoordinates(cliManifest) {
-  const coordinates = [];
-  for (const [name, requestedVersion] of Object.entries(cliManifest.dependencies ?? {})) {
-    if (!requestedVersion.startsWith("workspace:")) {
-      coordinates.push(`${name}@${requestedVersion}`);
-      continue;
-    }
-    const packageDirectory = name.slice("@lervo/".length);
-    const manifest = await readJson(resolve(repositoryRoot, "packages", packageDirectory, "package.json"));
-    coordinates.push(`${name}@${manifest.version}`);
+function directDependencyCoordinates(cliManifest) {
+  return Object.entries(cliManifest.dependencies ?? {})
+    .map(([name, requestedVersion]) => `${name}@${requestedVersion}`)
+    .sort();
+}
+
+function externalPackageName(specifier) {
+  if (specifier.startsWith("@")) return specifier.split("/").slice(0, 2).join("/");
+  return specifier.split("/", 1)[0];
+}
+
+async function createBundleSnapshot() {
+  const metafile = await readJson(bundleMetafilePath);
+  const output = metafile.outputs?.[bundleOutputPath];
+  if (!output || !Array.isArray(output.imports)) {
+    throw new ReleaseArtifactManifestError(
+      "release_artifact_bundle_metadata_invalid",
+      "CLI bundle metadata에서 실행 출력을 찾지 못했습니다.",
+    );
   }
-  return coordinates.sort();
+
+  const packageDirectories = [...new Set(
+    Object.keys(metafile.inputs ?? {})
+      .map((path) => path.match(/^packages\/([^/]+)\/dist\//)?.[1])
+      .filter(Boolean),
+  )].sort();
+  const workspacePackages = (await Promise.all(packageDirectories.map(async (directory) => {
+    const manifest = await readJson(resolve(repositoryRoot, "packages", directory, "package.json"));
+    return `${manifest.name}@${manifest.version}`;
+  }))).sort();
+  const externalImports = [...new Set(
+    output.imports
+      .filter(({ external, path }) => external && !builtinModuleNames.has(path))
+      .map(({ path }) => externalPackageName(path)),
+  )].sort();
+  const bundle = {
+    entry: "apps/cli/src/bin.ts",
+    output: "dist/bin.js",
+    workspacePackages,
+    externalImports,
+  };
+  return { ...bundle, bundleDigest: canonicalDigest(bundle) };
 }
 
 export async function createCliReleaseManifest(
@@ -76,22 +113,22 @@ export async function createCliReleaseManifest(
   expectedFamilies,
   updateMode,
 ) {
-  const [cliManifest, archivePaths, installedPackages] = await Promise.all([
+  const [cliManifest, archivePaths, installedPackages, bundle] = await Promise.all([
     readJson(cliManifestPath),
     readPackFileList(),
     collectInstalledPackages(resolve(deploymentRoot, "node_modules")),
+    createBundleSnapshot(),
   ]);
   const artifact = {
     name: cliManifest.name,
     version: cliManifest.version,
     private: cliManifest.private,
+    access: cliManifest.publishConfig?.access,
     type: cliManifest.type,
     bin: cliManifest.bin?.lervo?.replace(/^\.\//, ""),
-    main: cliManifest.main?.replace(/^\.\//, ""),
-    types: cliManifest.types?.replace(/^\.\//, ""),
     files: cliManifest.files,
   };
-  const directDependencies = await directDependencyCoordinates(cliManifest);
+  const directDependencies = directDependencyCoordinates(cliManifest);
   const archive = await createArchiveSnapshot(archivePaths);
   const classified = classifyDependencies(installedPackages, expectedFamilies, updateMode);
   const dependencies = {
@@ -100,14 +137,16 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     artifact,
     directDependencies,
+    bundle,
     archive,
     dependencies,
     artifactDigest: canonicalDigest({
       artifact,
       directDependencies,
+      bundleDigest: bundle.bundleDigest,
       archiveContentDigest: archive.contentDigest,
       portableDependenciesDigest: dependencies.portableDigest,
       platformSpecificFamilies: dependencies.platformSpecificFamilies,

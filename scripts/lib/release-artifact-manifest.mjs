@@ -35,35 +35,54 @@ export function validateReleaseArtifactManifest(manifest) {
   if (manifest === null || typeof manifest !== "object" || Array.isArray(manifest)) {
     fail("release_artifact_manifest_invalid", "Release artifact manifest 구조가 올바르지 않습니다.");
   }
-  const { artifact, archive, dependencies } = manifest;
+  const { artifact, archive, bundle, dependencies } = manifest;
   if (
-    manifest.schemaVersion !== 1 ||
+    manifest.schemaVersion !== 2 ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
-    artifact.private !== true ||
+    artifact.private !== false ||
+    artifact.access !== "public" ||
     artifact.type !== "module" ||
     artifact.bin !== "dist/bin.js" ||
-    artifact.main !== "dist/main.js" ||
-    artifact.types !== "dist/main.d.ts" ||
-    canonicalJson(artifact.files) !== canonicalJson(["dist/**/*.js", "dist/**/*.d.ts"])
+    canonicalJson(artifact.files) !== canonicalJson(["dist/bin.js"])
   ) {
     fail("release_artifact_identity_invalid", "Release artifact identity가 올바르지 않습니다.");
   }
   if (
     !Array.isArray(manifest.directDependencies) ||
     !isSortedUnique(manifest.directDependencies) ||
-    manifest.directDependencies.some((value) => typeof value !== "string")
+    manifest.directDependencies.length !== 1 ||
+    !/^@anthropic-ai\/claude-agent-sdk@\d+\.\d+\.\d+$/.test(manifest.directDependencies[0])
   ) {
     fail("release_artifact_dependencies_invalid", "직접 dependency 좌표가 올바르지 않습니다.");
   }
+  const workspacePackagesValid = Array.isArray(bundle?.workspacePackages) &&
+    bundle.workspacePackages.length > 0 &&
+    isSortedUnique(bundle.workspacePackages) &&
+    bundle.workspacePackages.every((value) => /^@lervo\/[a-z0-9-]+@\d+\.\d+\.\d+$/.test(value));
+  const bundleFields = {
+    entry: bundle?.entry,
+    output: bundle?.output,
+    workspacePackages: bundle?.workspacePackages,
+    externalImports: bundle?.externalImports,
+  };
+  if (
+    bundle?.entry !== "apps/cli/src/bin.ts" ||
+    bundle.output !== "dist/bin.js" ||
+    !workspacePackagesValid ||
+    canonicalJson(bundle.externalImports) !== canonicalJson(["@anthropic-ai/claude-agent-sdk"]) ||
+    bundle.bundleDigest !== canonicalDigest(bundleFields)
+  ) {
+    fail("release_artifact_bundle_invalid", "CLI bundle 경계가 올바르지 않습니다.");
+  }
   const archiveFilesValid = Array.isArray(archive?.files) &&
-    archive.files.length > 0 &&
+    archive.files.length === 1 &&
     archive.files.every((entry) =>
       entry !== null &&
       typeof entry === "object" &&
       typeof entry.path === "string" &&
-      /^dist\/.+\.(?:js|d\.ts)$/.test(entry.path) &&
+      entry.path === "dist/bin.js" &&
       Number.isSafeInteger(entry.size) &&
       entry.size >= 0 &&
       typeof entry.sha256 === "string" &&
@@ -94,6 +113,7 @@ export function validateReleaseArtifactManifest(manifest) {
     dependencies.portable.length === 0 ||
     !isSortedUnique(dependencies.portable) ||
     dependencies.portable.some((value) => typeof value !== "string") ||
+    dependencies.portable.some((value) => value.startsWith("@lervo/")) ||
     dependencies.portableDigest !== canonicalDigest(dependencies.portable) ||
     !platformFamiliesValid ||
     !isSortedUnique(dependencies.platformSpecificFamilies.map((family) =>
@@ -105,6 +125,7 @@ export function validateReleaseArtifactManifest(manifest) {
   const expectedArtifactDigest = canonicalDigest({
     artifact,
     directDependencies: manifest.directDependencies,
+    bundleDigest: bundle.bundleDigest,
     archiveContentDigest: archive.contentDigest,
     portableDependenciesDigest: dependencies.portableDigest,
     platformSpecificFamilies: dependencies.platformSpecificFamilies,
@@ -120,6 +141,7 @@ export function releaseArtifactDifferences(expected, actual) {
   for (const field of [
     "artifact",
     "directDependencies",
+    "bundle",
     "archive",
     "dependencies",
     "artifactDigest",

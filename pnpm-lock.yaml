@@ -20,6 +20,10 @@ importers:
 
   apps/cli:
     dependencies:
+      '@anthropic-ai/claude-agent-sdk':
+        specifier: 0.3.226
+        version: 0.3.226(@anthropic-ai/sdk@0.117.1(zod@4.4.3))(@modelcontextprotocol/sdk@1.30.0(zod@4.4.3))(zod@4.4.3)
+    devDependencies:
       '@lervo/adapter-claude':
         specifier: workspace:*
         version: link:../../packages/adapter-claude
@@ -71,6 +75,9 @@ importers:
       '@lervo/writing':
         specifier: workspace:*
         version: link:../../packages/writing
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
 
   apps/conversation:
     dependencies:

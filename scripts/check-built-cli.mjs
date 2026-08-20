@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
   deployBuiltCli,
-  importInstalledPackage,
+  importBuiltWorkspacePackage,
   readJson,
   repositoryRoot,
   runInstalledCli,
@@ -26,7 +26,20 @@ async function readExpectedVersion() {
 async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedVersion) {
   const deployedManifest = await readJson(resolve(deploymentRoot, "package.json"));
   assert.equal(deployedManifest.version, expectedVersion);
+  assert.equal(deployedManifest.private, false);
   assert.deepEqual(deployedManifest.bin, { lervo: "./dist/bin.js" });
+  assert.deepEqual(deployedManifest.files, ["dist/bin.js"]);
+  assert.deepEqual(Object.keys(deployedManifest.dependencies), [
+    "@anthropic-ai/claude-agent-sdk",
+  ]);
+  assert.match(
+    deployedManifest.dependencies["@anthropic-ai/claude-agent-sdk"],
+    /^0\.3\.226(?:\(|$)/,
+  );
+  await assert.rejects(
+    access(resolve(deploymentRoot, "node_modules/@lervo")),
+    { code: "ENOENT" },
+  );
 
   const version = await runInstalledCli(cliEntry, ["--version"], projectRoot);
   assert.equal(version.stdout, `lervo ${expectedVersion}\n`);
@@ -130,8 +143,8 @@ async function main() {
 
     const cliEntry = resolve(deploymentRoot, "dist/bin.js");
     const [diagnostics, { openProjectStorage }] = await Promise.all([
-      importInstalledPackage(deploymentRoot, "diagnostics"),
-      importInstalledPackage(deploymentRoot, "project-storage"),
+      importBuiltWorkspacePackage("diagnostics"),
+      importBuiltWorkspacePackage("project-storage"),
     ]);
     await verifyInstalledIdentity(
       cliEntry,

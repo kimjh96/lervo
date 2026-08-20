@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-20
 
+후속 결정: [ADR-0087](./0087-single-bundle-cli-deployment-unit.md)부터 CLI 내부 모듈은 설치하지 않고 하나의 bundle로 배포합니다. 설치본 실행과 별도로 빌드한 reader·fixture writer를 조합하는 현재 smoke 경계는 ADR-0087이 정합니다.
+
 ## 맥락
 
 Source 단위 테스트와 workspace build가 통과해도 CLI package version, `bin` 경로, 빌드 산출물과 runtime workspace 의존성이 실제 배포 조합에서 맞는지는 별개의 문제입니다. 특히 0.1.0 trace 기본값 전환은 source fixture만 통과하고 설치본이 오래된 `dist`나 잘못된 package 조합을 실행하면 사용자 경계에서 다시 깨질 수 있습니다.

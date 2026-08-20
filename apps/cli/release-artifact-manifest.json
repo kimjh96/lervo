@@ -1,562 +1,23 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.1.0",
-    "private": true,
+    "private": false,
+    "access": "public",
     "type": "module",
     "bin": "dist/bin.js",
-    "main": "dist/main.js",
-    "types": "dist/main.d.ts",
     "files": [
-      "dist/**/*.js",
-      "dist/**/*.d.ts"
+      "dist/bin.js"
     ]
   },
   "directDependencies": [
-    "@lervo/adapter-claude@0.1.0",
-    "@lervo/adapter-codex@0.1.0",
-    "@lervo/adapter-contract@0.1.0",
-    "@lervo/context@0.1.0",
-    "@lervo/core@0.1.0",
-    "@lervo/diagnostics@0.1.0",
-    "@lervo/orchestrator@0.1.0",
-    "@lervo/project-storage@0.1.0",
-    "@lervo/project@0.1.0",
-    "@lervo/schemas@0.1.0",
-    "@lervo/search-adapter-bm25f@0.1.0",
-    "@lervo/search-local@0.1.0",
-    "@lervo/search@0.1.0",
-    "@lervo/skills@0.1.0",
-    "@lervo/storage-contract@0.1.0",
-    "@lervo/verification@0.1.0",
-    "@lervo/writing@0.1.0"
+    "@anthropic-ai/claude-agent-sdk@0.3.226"
   ],
-  "archive": {
-    "rootFiles": [
-      "package.json"
-    ],
-    "files": [
-      {
-        "path": "dist/bin.d.ts",
-        "size": 31,
-        "sha256": "sha256:43e818adf60173644896298637f47b01d5819b17eda46eaa32d0c7d64724d012"
-      },
-      {
-        "path": "dist/bin.js",
-        "size": 253,
-        "sha256": "sha256:ada1ed680a3a9f322f4cfe80a2e5596824f18860478142d68158527112d3cc2e"
-      },
-      {
-        "path": "dist/developer-role.d.ts",
-        "size": 180,
-        "sha256": "sha256:e2ac7a3f1e6bc291457d498c904eb1a036018957c5f83321bb4fabc316e0d1e9"
-      },
-      {
-        "path": "dist/developer-role.js",
-        "size": 1469,
-        "sha256": "sha256:20082b773ce147eea5dae554ab33d6bc39f39d74e3ca99a7fecb2a2d7c6325a6"
-      },
-      {
-        "path": "dist/doctor-command.d.ts",
-        "size": 392,
-        "sha256": "sha256:2fa648e2f7de5f57c71d52ccc6fcd6b3becd74f5d93f630486c9595a26e8e591"
-      },
-      {
-        "path": "dist/doctor-command.js",
-        "size": 5768,
-        "sha256": "sha256:5566e19037edafde0a02894fe16b27b1a26c09ca1771d264d76969c5493b2659"
-      },
-      {
-        "path": "dist/doctor-document-inspection.d.ts",
-        "size": 161,
-        "sha256": "sha256:09c982dbbad37163e54e18fa1e60fc890cbc3febaa8edf655e2bbf3a2aabde8a"
-      },
-      {
-        "path": "dist/doctor-document-inspection.js",
-        "size": 1476,
-        "sha256": "sha256:e41105452705ffe389424bb9bd3ae2a94503f011be3901966f7707c0f8582a6f"
-      },
-      {
-        "path": "dist/doctor-environment.d.ts",
-        "size": 570,
-        "sha256": "sha256:67b1b95c4561e77b69ecc5c85de8832ca24948af409c607521ccc7189589a54f"
-      },
-      {
-        "path": "dist/doctor-environment.js",
-        "size": 2184,
-        "sha256": "sha256:d2d7c19bae770d0106eef7bea9d3b36e0e0a5d9aa77cb99e8a2995ef24de7e3f"
-      },
-      {
-        "path": "dist/doctor-inspection-result.d.ts",
-        "size": 382,
-        "sha256": "sha256:0dd8c2ac350111d17b5358b252b342a43ab9642b96a6e66d2d4931f142f9828d"
-      },
-      {
-        "path": "dist/doctor-inspection-result.js",
-        "size": 374,
-        "sha256": "sha256:17075b43c454ddd4f9376ce446af5044bfbb2a83dab240c94571e75f945bcbd8"
-      },
-      {
-        "path": "dist/doctor-provider-inspection.d.ts",
-        "size": 234,
-        "sha256": "sha256:9cf10cedb451d844c4acf772dff0827f4b720396248272d2b06dcdf1aee9435d"
-      },
-      {
-        "path": "dist/doctor-provider-inspection.js",
-        "size": 1177,
-        "sha256": "sha256:c1167453754e34585277a968b4f7ee380a106b06d832413b8e998c8bde8111c1"
-      },
-      {
-        "path": "dist/doctor-scope.d.ts",
-        "size": 451,
-        "sha256": "sha256:8c672e31dbe18cc49646d2ae6dc448f0435d8e5af6548f0de15d0aca340e387d"
-      },
-      {
-        "path": "dist/doctor-scope.js",
-        "size": 820,
-        "sha256": "sha256:b35272a29ea0be3bf267398bed64215968014173dd224acb634644567f88f875"
-      },
-      {
-        "path": "dist/doctor-search-inspection.d.ts",
-        "size": 332,
-        "sha256": "sha256:bc2d74a681848f1c8e38d7d0a69a2373fea94a84dfbe0469b88167bba2bd60ef"
-      },
-      {
-        "path": "dist/doctor-search-inspection.js",
-        "size": 5030,
-        "sha256": "sha256:0fe637c29f1b735f3de24c70d107abbe8097d0a413ef5867e16955ac410cc4c9"
-      },
-      {
-        "path": "dist/doctor-skill-inspection.d.ts",
-        "size": 225,
-        "sha256": "sha256:b83559e843d3fd44b4e80fb277ef6e033797e064ded16da4ca95b42c5319d7ba"
-      },
-      {
-        "path": "dist/doctor-skill-inspection.js",
-        "size": 3514,
-        "sha256": "sha256:95ea1a7781a589635db34a5a30fb48463b08d75b263cd5fd44cdaa27fc351c08"
-      },
-      {
-        "path": "dist/init-command.d.ts",
-        "size": 339,
-        "sha256": "sha256:824a59416839f9bde016b00616ffccb16b03bec393cb998373f9a36a1807c29e"
-      },
-      {
-        "path": "dist/init-command.js",
-        "size": 2996,
-        "sha256": "sha256:ecd45c069c6adc01233de9f39f5c84465dd8392d02ea8c6a555988a3e44abaef"
-      },
-      {
-        "path": "dist/main.d.ts",
-        "size": 640,
-        "sha256": "sha256:5f03c0fea755dc27f7ff45cdbee0b7c12ff0d89a8c7c4d2222908915850c55ad"
-      },
-      {
-        "path": "dist/main.js",
-        "size": 2140,
-        "sha256": "sha256:c8396471ca6c4f3a7397025ba0f67e4d1880e827e73c4434536f861543d53800"
-      },
-      {
-        "path": "dist/managed-run.d.ts",
-        "size": 2511,
-        "sha256": "sha256:f37313c287e8ad9ca0928b232063810a36cc9733134584a96ffeb4140a205065"
-      },
-      {
-        "path": "dist/managed-run.js",
-        "size": 8375,
-        "sha256": "sha256:6f51823fd4ed135144282dea36d1b6171e2eebdca97a771ba58d7f112b967e2b"
-      },
-      {
-        "path": "dist/managed-search-context.d.ts",
-        "size": 997,
-        "sha256": "sha256:b973ae30fdc27c82140d23407d33235d35d96469df801119f972dc44824d2454"
-      },
-      {
-        "path": "dist/managed-search-context.js",
-        "size": 2749,
-        "sha256": "sha256:a5afd70c6cfc11d1f690e3957f036716f06aa8f56f85d1a3c3e3bdb5d6afe030"
-      },
-      {
-        "path": "dist/run-command.d.ts",
-        "size": 532,
-        "sha256": "sha256:de39c8b90ff07aec7921c5b73e174c83f31ae8ff69c363ab31fb8c6d684cfacd"
-      },
-      {
-        "path": "dist/run-command.js",
-        "size": 5588,
-        "sha256": "sha256:7d0ee74bd8049753c9324d3560e5d0522f85773f1a1764b60076a900fbd1334a"
-      },
-      {
-        "path": "dist/run-skills.d.ts",
-        "size": 492,
-        "sha256": "sha256:2c0066916eb634093126b40761d1db36bcf1898229c599788738523d8725fc21"
-      },
-      {
-        "path": "dist/run-skills.js",
-        "size": 2599,
-        "sha256": "sha256:ff66a39d92523eb7634027978931bb303739f745b386fedf12fe05505831bc25"
-      },
-      {
-        "path": "dist/run-verification.d.ts",
-        "size": 549,
-        "sha256": "sha256:14bac5661f552175d32bc246bc560d5c845d3ce68e69ca441d05ccec16f1408e"
-      },
-      {
-        "path": "dist/run-verification.js",
-        "size": 915,
-        "sha256": "sha256:764cdd877041a13f8f9d9b5f8d050b282e9e1a183327fcf239779c272456641e"
-      },
-      {
-        "path": "dist/search-assessment-command.d.ts",
-        "size": 137,
-        "sha256": "sha256:3f47e570b7288bb67a2829d276304de775146e37bf789f00634a0597abb38bf7"
-      },
-      {
-        "path": "dist/search-assessment-command.js",
-        "size": 3462,
-        "sha256": "sha256:bf7510684f75e40ee5ace93d2d069b12af0a91862c7eb1246664a312b9e2832f"
-      },
-      {
-        "path": "dist/search-bundle-command.d.ts",
-        "size": 133,
-        "sha256": "sha256:c5c07a932a3ccca9005ddf4d176c76fa39a527874df1fac44c7768f7756792bd"
-      },
-      {
-        "path": "dist/search-bundle-command.js",
-        "size": 573,
-        "sha256": "sha256:ea34946890dfac3c29224ef98e0aa08554a5825cb04d874b4af63fa05588b640"
-      },
-      {
-        "path": "dist/search-bundle-create-command.d.ts",
-        "size": 139,
-        "sha256": "sha256:afb6ac3668a1ed823125b424c26cb16cb28a76b1c576c25fc198e1e84ba4caa0"
-      },
-      {
-        "path": "dist/search-bundle-create-command.js",
-        "size": 3186,
-        "sha256": "sha256:ad445b1b8c9d75a62c215ce6b1084bf5806eb9508828a89d0896dc6ce1dfce29"
-      },
-      {
-        "path": "dist/search-bundle-report-command.d.ts",
-        "size": 139,
-        "sha256": "sha256:7758418fcc7eaa3f2ed5b222bf0c18ba7dd4d1d35268591ae441d07b8b44cf1b"
-      },
-      {
-        "path": "dist/search-bundle-report-command.js",
-        "size": 2356,
-        "sha256": "sha256:a2699f481182bf4bedc62d8a83a73799e13b5235c7b24e84b2532c9268f0ecd8"
-      },
-      {
-        "path": "dist/search-candidate-registry.d.ts",
-        "size": 142,
-        "sha256": "sha256:f68584c420af288282c0b45856abceacaa5f4ae6531b2b9d07eaa6bbf47fad04"
-      },
-      {
-        "path": "dist/search-candidate-registry.js",
-        "size": 289,
-        "sha256": "sha256:9e40b6765b36b284c9bb1c78dfcdcd18ab698d7b25f24eaf3908e98bbc30981a"
-      },
-      {
-        "path": "dist/search-candidates-command.d.ts",
-        "size": 137,
-        "sha256": "sha256:d56c30b8cab5469fa82ced1a83b33d30963d542e347ffed68d8796ecb6d5e293"
-      },
-      {
-        "path": "dist/search-candidates-command.js",
-        "size": 1047,
-        "sha256": "sha256:5e768e4d0c00955de23b0a3a83283080369730001593811f1422147635cb07fd"
-      },
-      {
-        "path": "dist/search-case-command.d.ts",
-        "size": 131,
-        "sha256": "sha256:40946269eb5d2b8253682ddbc24007df315b1df84d7cc1b9d9be7a3cdc265f84"
-      },
-      {
-        "path": "dist/search-case-command.js",
-        "size": 4154,
-        "sha256": "sha256:d6dc9d38df5600431dbb392d7a87c16bdb3e3bb70ef32375421df4707ec345a8"
-      },
-      {
-        "path": "dist/search-command-common.d.ts",
-        "size": 3144,
-        "sha256": "sha256:ec43df247060f2a111d281d667ed6a5243a0643986715609a62a6aeb92f9c38b"
-      },
-      {
-        "path": "dist/search-command-common.js",
-        "size": 3534,
-        "sha256": "sha256:afb1989733e7ca1271f72ce6b381c76526a130021c164866e65bc9209627b032"
-      },
-      {
-        "path": "dist/search-command.d.ts",
-        "size": 249,
-        "sha256": "sha256:8298dcdf5bad74155de26084d5929158f6a992acf83acc919f85fb3ae2714492"
-      },
-      {
-        "path": "dist/search-command.js",
-        "size": 2065,
-        "sha256": "sha256:15ac49e9be0b40117c478d0b54359b0f92f5a22d28b1fa7fc479d8eeb39117b0"
-      },
-      {
-        "path": "dist/search-compare-command.d.ts",
-        "size": 134,
-        "sha256": "sha256:f79cad5fe9c4f8ca2b78da512401383a855ff7020d7d4956115dde59aedc2881"
-      },
-      {
-        "path": "dist/search-compare-command.js",
-        "size": 2181,
-        "sha256": "sha256:0744393a108e0fcddc70d0ed916ac9ed9ddf29cc3b543031df828498f93aaad8"
-      },
-      {
-        "path": "dist/search-engine-activate-command.d.ts",
-        "size": 141,
-        "sha256": "sha256:b2489531a39210920899a232de088b6e4864d338c6cfd90657454cc4e651a0b6"
-      },
-      {
-        "path": "dist/search-engine-activate-command.js",
-        "size": 2123,
-        "sha256": "sha256:01f44276c67503e6d32edf98c12816b35484f4f820187a165e127d239654c3f7"
-      },
-      {
-        "path": "dist/search-engine-command.d.ts",
-        "size": 133,
-        "sha256": "sha256:40fd20d3ae8f62914d8c75c2d716d186ce2bd26ff2e260ec0758fca364a607e2"
-      },
-      {
-        "path": "dist/search-engine-command.js",
-        "size": 1163,
-        "sha256": "sha256:a989f456692025dac417e8a7054892cbbac0d289a301e035b03cf8f2e8aa241f"
-      },
-      {
-        "path": "dist/search-engine-policy-command.d.ts",
-        "size": 139,
-        "sha256": "sha256:ce2f4b1d510cd99a3080144ba217121d6d76bc6937ae784df2f7f7c1509b83bb"
-      },
-      {
-        "path": "dist/search-engine-policy-command.js",
-        "size": 3017,
-        "sha256": "sha256:43b1a1c353373e4fdcde0cafa20597f19cbcde4d4da75a0dbd65a84c056d665c"
-      },
-      {
-        "path": "dist/search-engine-refresh-command.d.ts",
-        "size": 140,
-        "sha256": "sha256:cc9dcf2530322e8ec3752fa3a182cc08dda605b41f358cc3b61cf33f7df1354a"
-      },
-      {
-        "path": "dist/search-engine-refresh-command.js",
-        "size": 2130,
-        "sha256": "sha256:2633cca9a1dd6c66910fd1178d7cf0f32bccbd6190d8a220b996f2522071d62a"
-      },
-      {
-        "path": "dist/search-engine-rollback-command.d.ts",
-        "size": 141,
-        "sha256": "sha256:82678cd414da8eba27f6ff6a5233a9a51dbfdc7fba740f992c055bb1b3473d43"
-      },
-      {
-        "path": "dist/search-engine-rollback-command.js",
-        "size": 2027,
-        "sha256": "sha256:0ef152392567d1851c9f2b622c2f3c59b3624b572b832755a6972eb1277223f6"
-      },
-      {
-        "path": "dist/search-engine-status-command.d.ts",
-        "size": 139,
-        "sha256": "sha256:b2ba8ee473f1ef5cdc8f1bcf7c720057476a4e674f968976b10c782dfda0d3b6"
-      },
-      {
-        "path": "dist/search-engine-status-command.js",
-        "size": 1553,
-        "sha256": "sha256:af13a02a3be8bcc4f48477565d6090e97df8e05b3425afcbf0cf6734bf35902c"
-      },
-      {
-        "path": "dist/search-evaluate-command.d.ts",
-        "size": 135,
-        "sha256": "sha256:3ee82e82d123d957c24107d51e6bb15a10937567b9766d3a92e855b28bf823f8"
-      },
-      {
-        "path": "dist/search-evaluate-command.js",
-        "size": 2680,
-        "sha256": "sha256:23a97f992aafeb022ca9ad2535417996c75f3f2e24fcd5bba42047fd39746689"
-      },
-      {
-        "path": "dist/search-evaluation-format.d.ts",
-        "size": 1331,
-        "sha256": "sha256:4048c99770cdb2684559d1b6726e8138d73a8f000488811dd3b05f5754e7978b"
-      },
-      {
-        "path": "dist/search-evaluation-format.js",
-        "size": 5542,
-        "sha256": "sha256:e9cf7cde09302d075b4ffd11e35cf3134520e13e6c8960e2e7f028feaa3c4283"
-      },
-      {
-        "path": "dist/search-format.d.ts",
-        "size": 393,
-        "sha256": "sha256:3399cc2fd22b07ea6e5cb8ad17039a9bc6b6072a5795bb8fb687192982216dcd"
-      },
-      {
-        "path": "dist/search-format.js",
-        "size": 3321,
-        "sha256": "sha256:fa23ebe273cce1a77717e6b4c735f071262fb134304c4deb7a7cd3ec60086568"
-      },
-      {
-        "path": "dist/search-query-command.d.ts",
-        "size": 132,
-        "sha256": "sha256:2f569a91cca2d7290402d99565a46be0cc223c86046d7b64c7b47108e69fa1cf"
-      },
-      {
-        "path": "dist/search-query-command.js",
-        "size": 2699,
-        "sha256": "sha256:60937d288ba9dd816c45516d08b19ade45d5246627c8d42f5c2688368acbac35"
-      },
-      {
-        "path": "dist/search-report-command.d.ts",
-        "size": 133,
-        "sha256": "sha256:df66dcc2fc53c1077cfddbc9e1383af4fef6b104832d958869a325d442e6c0a2"
-      },
-      {
-        "path": "dist/search-report-command.js",
-        "size": 1570,
-        "sha256": "sha256:c2602ec42b69706d9569dd463962fac2b8062acc9f5d0964e4d735cf57a6f5e2"
-      },
-      {
-        "path": "dist/search-review-command.d.ts",
-        "size": 133,
-        "sha256": "sha256:0c0ead26abf199df80d6347c08a7f310e682b9d81c1971d2bb399fb1cb9ac3cc"
-      },
-      {
-        "path": "dist/search-review-command.js",
-        "size": 2634,
-        "sha256": "sha256:756c1453bdccee34273b7d1a69b5161b5a7b755ca44ebb2371b7e1d5e05ed7a4"
-      },
-      {
-        "path": "dist/search-rollout-action-check-command.d.ts",
-        "size": 145,
-        "sha256": "sha256:8ab20709e3b436f35ea9ee68febc15dc5628eef09a763e48b0e4c1c3f7a40900"
-      },
-      {
-        "path": "dist/search-rollout-action-check-command.js",
-        "size": 2464,
-        "sha256": "sha256:e6ff0eb548ea75ce9ec264d03d8aa1503e8d5d197869e319011c20c69e29ee69"
-      },
-      {
-        "path": "dist/search-rollout-action-command.d.ts",
-        "size": 140,
-        "sha256": "sha256:4e8813e869daf92e19426ffe4bfa71d7ddc6ebd6688ba6975ec4fd214ceef153"
-      },
-      {
-        "path": "dist/search-rollout-action-command.js",
-        "size": 6186,
-        "sha256": "sha256:24ba7522635fa60a51d7b1ab66f7ab50d094729235a815e22ae6bd802b404a7d"
-      },
-      {
-        "path": "dist/search-rollout-action-status-command.d.ts",
-        "size": 146,
-        "sha256": "sha256:0ed3e63f9a948b36ea898c76b91db60cc7eb6ecb0ff9f4c51772fc77210b23a7"
-      },
-      {
-        "path": "dist/search-rollout-action-status-command.js",
-        "size": 1958,
-        "sha256": "sha256:7939e13e5f2e9cf9c2ebb20d1a6996d0fa33e0ef55a7fb9b2f64522f4c60fe92"
-      },
-      {
-        "path": "dist/search-rollout-command.d.ts",
-        "size": 134,
-        "sha256": "sha256:795ecc06a71db140f8befecede7b5edf77c122051176a5898b17a26beec3e269"
-      },
-      {
-        "path": "dist/search-rollout-command.js",
-        "size": 3163,
-        "sha256": "sha256:69ec6cebfe1d732f38496e312f0df06c5dc35be3c42babf8c2f1529470acdd32"
-      },
-      {
-        "path": "dist/search-rollout-format.d.ts",
-        "size": 1125,
-        "sha256": "sha256:311d7a12bfb33557109f3d89c11f0b2bf0a2b4dcfa395e5309d0b4905ce6f4cf"
-      },
-      {
-        "path": "dist/search-rollout-format.js",
-        "size": 9663,
-        "sha256": "sha256:be1dba65cd22421a32b6042b0797197f6b5e503d6f0b9706fa310c5fcbf5014f"
-      },
-      {
-        "path": "dist/search-rollout-policy-command.d.ts",
-        "size": 140,
-        "sha256": "sha256:1ee7b9d50377d18a9a75d66f23fae37578d849ab82f060a1764ab360a8cb2dc3"
-      },
-      {
-        "path": "dist/search-rollout-policy-command.js",
-        "size": 5466,
-        "sha256": "sha256:e77768fd9638e682a15d1218553becb79ff58451a72282387f00bf06026ae6aa"
-      },
-      {
-        "path": "dist/search-rollout-status-command.d.ts",
-        "size": 140,
-        "sha256": "sha256:209b8d751f1036a5ab7ba76c9d8e031c8625dabd98e787ed2aed8e7f7414dd64"
-      },
-      {
-        "path": "dist/search-rollout-status-command.js",
-        "size": 1903,
-        "sha256": "sha256:05c6c91b66b9d9cf974219afadc985d8f5730ce57562b5f5459e21203c4ec3c6"
-      },
-      {
-        "path": "dist/trace-command.d.ts",
-        "size": 383,
-        "sha256": "sha256:113a6396bf53f1ceb1789eda4a46ac68f0692f323ed6febda73bcd52e92276f2"
-      },
-      {
-        "path": "dist/trace-command.js",
-        "size": 2714,
-        "sha256": "sha256:654f7720db1ec0960a3d93e32910e39596cd95aa141399e333e43ea7da7a270b"
-      },
-      {
-        "path": "dist/trace-format.d.ts",
-        "size": 224,
-        "sha256": "sha256:37bdb02b04c67e8122e9de2db2f9d450943fcc96c6926e4a3df032894714c660"
-      },
-      {
-        "path": "dist/trace-format.js",
-        "size": 1655,
-        "sha256": "sha256:eb05416650dee4e72e9c1ae3cf0f16467a1a60d1ab5f0cf219dd832aceb13b69"
-      },
-      {
-        "path": "dist/trace-options.d.ts",
-        "size": 950,
-        "sha256": "sha256:84a95dc7daf43d1c6d0b78580b0912dd40309208e892cfc52d251531154e72d0"
-      },
-      {
-        "path": "dist/trace-options.js",
-        "size": 4161,
-        "sha256": "sha256:ee3d26ce3158a0498afe4ba1bd29d098d09baa8c3d18bbe1e2dad6aebadd1206"
-      },
-      {
-        "path": "dist/types.d.ts",
-        "size": 673,
-        "sha256": "sha256:c292468c54c9993deee8190d1e3167ab6e3fa81f2f6ce308e4655934146a76cd"
-      },
-      {
-        "path": "dist/types.js",
-        "size": 11,
-        "sha256": "sha256:8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
-      },
-      {
-        "path": "dist/version-command.d.ts",
-        "size": 176,
-        "sha256": "sha256:3cd7d8f9c65094583ab971f7b276a09a307c86736d4647398090a51075323b13"
-      },
-      {
-        "path": "dist/version-command.js",
-        "size": 883,
-        "sha256": "sha256:fa683cf5cf2276f72f279bf43c3c46760d240bf2168b6042edfea16a97afae4f"
-      }
-    ],
-    "fileCount": 103,
-    "contentDigest": "sha256:7ecbda5eb941af889ae9d0f3f96c554146c8038bea98a0c10a9e346673bf3a8e"
-  },
-  "dependencies": {
-    "portable": [
-      "@anthropic-ai/claude-agent-sdk@0.3.226",
-      "@anthropic-ai/sdk@0.117.1",
-      "@babel/runtime@7.29.7",
-      "@hono/node-server@2.1.1",
+  "bundle": {
+    "entry": "apps/cli/src/bin.ts",
+    "output": "dist/bin.js",
+    "workspacePackages": [
       "@lervo/adapter-claude@0.1.0",
       "@lervo/adapter-codex@0.1.0",
       "@lervo/adapter-contract@0.1.0",
@@ -577,11 +38,36 @@
       "@lervo/search-local@0.1.0",
       "@lervo/search@0.1.0",
       "@lervo/skills@0.1.0",
-      "@lervo/storage-contract@0.1.0",
       "@lervo/verification-contract@0.1.0",
       "@lervo/verification@0.1.0",
       "@lervo/writing-contract@0.1.0",
-      "@lervo/writing@0.1.0",
+      "@lervo/writing@0.1.0"
+    ],
+    "externalImports": [
+      "@anthropic-ai/claude-agent-sdk"
+    ],
+    "bundleDigest": "sha256:f68a2e96bad27f67f0ee981923905ef3331ac5fb3fa78ed8753a0ab51aa30d89"
+  },
+  "archive": {
+    "rootFiles": [
+      "package.json"
+    ],
+    "files": [
+      {
+        "path": "dist/bin.js",
+        "size": 1604680,
+        "sha256": "sha256:ddc5d06bb02869fee01010706141f7974def58a898a24482a08e25e1028ff24f"
+      }
+    ],
+    "fileCount": 2,
+    "contentDigest": "sha256:514f4091ea02f137a0c3ce0422b026fcf10f7acc9840ca59e6f4cb00c04a7b62"
+  },
+  "dependencies": {
+    "portable": [
+      "@anthropic-ai/claude-agent-sdk@0.3.226",
+      "@anthropic-ai/sdk@0.117.1",
+      "@babel/runtime@7.29.7",
+      "@hono/node-server@2.1.1",
       "@modelcontextprotocol/sdk@1.30.0",
       "@stablelib/base64@1.0.1",
       "accepts@2.0.0",
@@ -676,11 +162,10 @@
       "vary@1.1.2",
       "which@2.0.2",
       "wrappy@1.0.2",
-      "yaml@2.9.0",
       "zod-to-json-schema@3.25.2",
       "zod@4.4.3"
     ],
-    "portableDigest": "sha256:e01f19298fe0cb544b1534a0b243da6b4e9b67494d0512e3a5143a198bfd902c",
+    "portableDigest": "sha256:bcd2a352264aa53105656264d8a55c9427563d5f6361f455a2b59a449fa4563c",
     "platformSpecificFamilies": [
       {
         "prefix": "@anthropic-ai/claude-agent-sdk-",
@@ -688,5 +173,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:e0030b0289b7174e9f0a5ccc3d7563bbdb9310bbc630805b9b0fe5396fba285b"
+  "artifactDigest": "sha256:6c94149e7664845e45b8e769d6dc1bfa41b6e243da44f260988e2aaf1d43409c"
 }

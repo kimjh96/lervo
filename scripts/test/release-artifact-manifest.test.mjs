@@ -11,25 +11,32 @@ function fixture() {
   const artifact = {
     name: "@lervo/cli",
     version: "0.1.0",
-    private: true,
+    private: false,
+    access: "public",
     type: "module",
     bin: "dist/bin.js",
-    main: "dist/main.js",
-    types: "dist/main.d.ts",
-    files: ["dist/**/*.js", "dist/**/*.d.ts"],
+    files: ["dist/bin.js"],
   };
-  const directDependencies = ["@lervo/core@0.1.0", "yaml@2.9.0"];
+  const directDependencies = ["@anthropic-ai/claude-agent-sdk@0.3.226"];
+  const bundleFields = {
+    entry: "apps/cli/src/bin.ts",
+    output: "dist/bin.js",
+    workspacePackages: ["@lervo/core@0.1.0"],
+    externalImports: ["@anthropic-ai/claude-agent-sdk"],
+  };
+  const bundle = { ...bundleFields, bundleDigest: canonicalDigest(bundleFields) };
   const files = [{
     path: "dist/bin.js",
     size: 10,
     sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   }];
-  const portable = ["@lervo/core@0.1.0", "yaml@2.9.0"];
+  const portable = ["@anthropic-ai/claude-agent-sdk@0.3.226", "yaml@2.9.0"];
   const platformSpecificFamilies = [{ prefix: "native-", version: "1.0.0" }];
   const manifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     artifact,
     directDependencies,
+    bundle,
     archive: {
       rootFiles: ["package.json"],
       files,
@@ -47,6 +54,7 @@ function fixture() {
     artifactDigest: canonicalDigest({
       artifact,
       directDependencies,
+      bundleDigest: bundle.bundleDigest,
       archiveContentDigest: manifest.archive.contentDigest,
       portableDependenciesDigest: manifest.dependencies.portableDigest,
       platformSpecificFamilies,
@@ -75,6 +83,40 @@ describe("release artifact manifest", () => {
     assert.throws(
       () => validateReleaseArtifactManifest(manifest),
       { code: "release_artifact_closure_invalid" },
+    );
+  });
+
+  it("rejects a private workspace package in the installed closure", () => {
+    const manifest = fixture();
+    manifest.dependencies.portable[0] = "@lervo/core@0.1.0";
+    manifest.dependencies.portableDigest = canonicalDigest(manifest.dependencies.portable);
+    manifest.artifactDigest = canonicalDigest({
+      artifact: manifest.artifact,
+      directDependencies: manifest.directDependencies,
+      bundleDigest: manifest.bundle.bundleDigest,
+      archiveContentDigest: manifest.archive.contentDigest,
+      portableDependenciesDigest: manifest.dependencies.portableDigest,
+      platformSpecificFamilies: manifest.dependencies.platformSpecificFamilies,
+    });
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_closure_invalid" },
+    );
+  });
+
+  it("rejects a new external bundle import", () => {
+    const manifest = fixture();
+    manifest.bundle.externalImports.push("yaml");
+    const bundleFields = {
+      entry: manifest.bundle.entry,
+      output: manifest.bundle.output,
+      workspacePackages: manifest.bundle.workspacePackages,
+      externalImports: manifest.bundle.externalImports,
+    };
+    manifest.bundle.bundleDigest = canonicalDigest(bundleFields);
+    assert.throws(
+      () => validateReleaseArtifactManifest(manifest),
+      { code: "release_artifact_bundle_invalid" },
     );
   });
 
