@@ -1,53 +1,17 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-import { promisify } from "node:util";
+import {
+  deployBuiltCli,
+  importInstalledPackage,
+  readJson,
+  repositoryRoot,
+  runInstalledCli,
+} from "./lib/installed-cli.mjs";
 
-const execFileAsync = promisify(execFile);
-const repositoryRoot = resolve(import.meta.dirname, "..");
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 const rootManifestPath = resolve(repositoryRoot, "package.json");
-
-async function readJson(path) {
-  return JSON.parse(await readFile(path, "utf8"));
-}
-
-async function runInstalledCli(cliEntry, args, cwd) {
-  const { stdout, stderr } = await execFileAsync(
-    process.execPath,
-    [cliEntry, ...args],
-    { cwd, encoding: "utf8", maxBuffer: 1024 * 1024 },
-  );
-  return { stdout, stderr };
-}
-
-async function deployBuiltCli(target) {
-  const args = [
-    "--offline",
-    "--config.inject-workspace-packages=true",
-    "--filter",
-    "@lervo/cli",
-    "deploy",
-    "--prod",
-    target,
-  ];
-  if (process.env.npm_execpath) {
-    await execFileAsync(process.execPath, [process.env.npm_execpath, ...args], {
-      cwd: repositoryRoot,
-      encoding: "utf8",
-      maxBuffer: 10 * 1024 * 1024,
-    });
-    return;
-  }
-  await execFileAsync("pnpm", args, {
-    cwd: repositoryRoot,
-    encoding: "utf8",
-    maxBuffer: 10 * 1024 * 1024,
-  });
-}
 
 async function readExpectedVersion() {
   const [rootManifest, cliManifest] = await Promise.all([
@@ -57,12 +21,6 @@ async function readExpectedVersion() {
   assert.equal(cliManifest.version, rootManifest.version);
   assert.deepEqual(cliManifest.bin, { lervo: "./dist/bin.js" });
   return rootManifest.version;
-}
-
-async function importInstalledPackage(deploymentRoot, packageName) {
-  return import(pathToFileURL(
-    resolve(deploymentRoot, `node_modules/@lervo/${packageName}/dist/index.js`),
-  ).href);
 }
 
 async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedVersion) {

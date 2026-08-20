@@ -770,6 +770,19 @@ Trace bounded-default 0.1.0 release 전환 완료 조건:
 - `pnpm check`가 build 뒤 smoke를 실행하고 성공·실패 모두 임시 설치와 project를 제거함
 - Registry 게시·다운로드, 전역 shell shim과 provider 실행을 검증했다고 주장하지 않음
 
+Canonical CLI release artifact manifest 완료 조건:
+
+- CLI archive가 dist JavaScript·선언 파일과 package manifest만 포함하고 source·test·설정·build cache를 거부함
+- 각 dist 파일의 정렬된 path·byte 수·SHA-256과 전체 canonical content digest를 고정함
+- Package identity, 공개 file pattern과 workspace version으로 정규화한 직접 dependency를 manifest에 결속함
+- 임시 production deploy의 portable dependency closure를 정렬·중복 제거하고 별도 digest로 고정함
+- OS·CPU 제한 package는 portable 목록과 섞지 않고 name prefix·정확한 version family로 제한함
+- Tar header·생성 시각·임시 경로·symlink와 현재 platform 이름을 checksum 입력에서 제외함
+- Manifest 자체 digest를 실제 artifact와 비교하기 전에 검증하고 변경 section만 오류로 표시함
+- 파일 변경·dependency 누락·stale digest·오류 출력 경계를 회귀 테스트로 검증함
+- 명시적 update만 bounded manifest 한 파일을 교체하고 기본 check는 원본을 쓰지 않음
+- 서명·SBOM·registry 게시와 모든 platform 실행을 검증했다고 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -858,4 +871,6 @@ Trace bounded-default 0.1.0 release 전환을 완료했습니다. 인자 없는 
 
 설치된 CLI 0.1.0 smoke fixture를 완료했습니다. CLI version은 배포 manifest를 단일 원본으로 사용하고, 전체 build 뒤 임시 production deploy의 실제 `dist/bin.js`와 설치된 runtime dependency로 capability·기본 page·명시적 full을 검증합니다. 51-event 경계 fixture는 중복하지 않으며 registry 게시나 provider 실행은 주장하지 않습니다. 결정은 [ADR-0085](./docs/adr/0085-installed-cli-smoke-boundary.md)에 기록했습니다.
 
-다음 구현 작업은 CLI 배포 archive의 포함 파일, production dependency closure와 checksum을 고정하는 **release artifact manifest 검사**입니다.
+Canonical CLI release artifact manifest 검사를 완료했습니다. Archive는 dist JavaScript·선언 파일과 package manifest만 허용하며 파일별 SHA-256, package identity, 직접 dependency와 portable production closure를 하나의 교체형 manifest에 결속합니다. Tar metadata와 platform 전용 native package 이름은 portable digest에서 분리하고 기본 검사는 원본을 쓰지 않습니다. 결정은 [ADR-0086](./docs/adr/0086-canonical-cli-release-artifact-manifest.md)에 기록했습니다.
+
+다음 구현 작업은 CLI가 참조하는 private workspace package를 함께 게시할지 단일 실행 bundle로 만들지 결정하고 검증하는 **CLI 배포 단위 계약**입니다.
