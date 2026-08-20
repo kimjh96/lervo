@@ -25,6 +25,10 @@ export const healthyDoctorEnvironmentInspections: DoctorInspection[] = [
   "skill_lock",
   "provider_codex_runtime",
   "provider_claude_runtime",
+  "search_engine_selection",
+  "search_rollout_policies",
+  "search_rollout_reviews",
+  "search_rollout_actions",
 ].map((checkId) => ({
   check: {
     checkId: checkId as DoctorInspection["check"]["checkId"],

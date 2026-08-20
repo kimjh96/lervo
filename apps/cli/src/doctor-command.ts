@@ -20,6 +20,10 @@ function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string 
     case "skill_lock": return "스킬 해석 lock";
     case "provider_codex_runtime": return "Codex 실행 파일";
     case "provider_claude_runtime": return "Claude 실행 파일";
+    case "search_engine_selection": return "검색 엔진 선택";
+    case "search_rollout_policies": return "검색 rollout 정책";
+    case "search_rollout_reviews": return "검색 rollout 검토";
+    case "search_rollout_actions": return "검색 rollout 조치";
   }
 }
 

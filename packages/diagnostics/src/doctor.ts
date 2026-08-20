@@ -18,6 +18,10 @@ const environmentCheckIds = [
   "skill_lock",
   "provider_codex_runtime",
   "provider_claude_runtime",
+  "search_engine_selection",
+  "search_rollout_policies",
+  "search_rollout_reviews",
+  "search_rollout_actions",
 ] as const satisfies readonly DoctorCheck["checkId"][];
 
 function assertEnvironmentInspections(inspections: readonly DoctorInspection[]): void {

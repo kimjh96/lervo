@@ -130,8 +130,8 @@ describe("doctor project environment inspection", () => {
     const { root, userSkillRoot } = await repository();
     const result = await inspect(root, userSkillRoot);
 
-    expect(result).toHaveLength(6);
-    expect(result.map((item) => item.check.status)).toEqual(Array(6).fill("healthy"));
+    expect(result).toHaveLength(10);
+    expect(result.map((item) => item.check.status)).toEqual(Array(10).fill("healthy"));
     expect(result.find((item) => item.check.checkId === "provider_claude_runtime")?.check)
       .toMatchObject({ version: "claude fixture 1.0.0", observedCount: 1 });
   });

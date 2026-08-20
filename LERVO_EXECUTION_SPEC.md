@@ -843,11 +843,15 @@ Verified 승격은 승인 결정, 현재 정책, candidate·approval·현재 sna
 
 지식 stale 판정은 verified path의 기준 hash와 현재 전체 repository snapshot을 비교하고 review due 시각을 계산합니다. 전체 revision이 달라도 연결 path가 같으면 current입니다. 연결 path 변경·부재 또는 review interval 만료가 있으면 stale입니다. 결과의 상태, review/path 신호와 `review_interval_elapsed`, `linked_path_changed`, `linked_path_missing` 사유는 서로 일치해야 합니다. Current 결과는 event로 누적하지 않습니다. Stale 결과만 별도 CAS에 저장하고 `knowledge.stale.detected`에 knowledge/result ID, 검증·현재 revision, 사유, 변경·부재 path와 result artifact ID·hash를 기록합니다.
 
-`lervo trace [last|run-id]`는 SQLite hash chain을 확인한 뒤 해당 run의 allowlist event만 순서대로 텍스트 또는 JSON으로 반환합니다. `lervo doctor`는 project storage와 event chain을 열고 candidate, review, verified와 stale CAS schema/hash/ID 및 각 event 연결을 읽기 전용으로 역검증합니다. 이어서 문서 registry와 등록 원본, 프로젝트·사용자 스킬 package와 실행별 lock, Codex와 Claude 실행 파일을 서로 다른 항목으로 검사합니다.
+`lervo trace [last|run-id]`는 SQLite hash chain을 확인한 뒤 해당 run의 allowlist event만 순서대로 텍스트 또는 JSON으로 반환합니다. `lervo doctor`는 project storage와 event chain을 열고 candidate, review, verified와 stale CAS schema/hash/ID 및 각 event 연결을 읽기 전용으로 역검증합니다. 이어서 문서 registry와 등록 원본, 프로젝트·사용자 스킬 package와 실행별 lock, Codex와 Claude 실행 파일, 검색 엔진 선택·rollout 정책·검토·조치를 서로 다른 항목으로 검사합니다.
+
+검색 진단 ID는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`입니다. 선택은 운영 resolver와 같은 전체 chain 검증을 사용하고, 정책은 engine·rollout review·action policy의 project 좌표와 결속을 확인합니다. 검토와 조치는 기존 bounded 상태 조회기의 전체 원본 검증을 사용합니다. 정상적으로 비어 있는 범위는 관측 수 0의 `healthy`입니다.
+
+선택이나 정책이 `unhealthy`이면 검토는 `search_rollout_review_unavailable`의 `unknown`이고 조치도 `search_rollout_action_unavailable`의 `unknown`입니다. 검토가 `unhealthy`이면 조치는 `unknown`입니다. 직접 확인한 선택·정책·검토·조치 손상은 각각 `search_engine_selection_invalid`, `search_rollout_policy_invalid`, `search_rollout_review_invalid`, `search_rollout_action_invalid`의 `unhealthy`입니다. 진단은 상태 조회·사전 점검·승인·조치 실행을 대신하지 않고 검색 파일, event와 Hub 원본을 만들지 않습니다.
 
 각 검사는 `healthy`, `unhealthy`, `unknown` 중 하나입니다. 계약을 끝까지 확인한 항목만 `healthy`이고, 손상·누락·stale 원본을 직접 확인하면 `unhealthy`입니다. 선행 원본이나 실행 환경이 없거나 안전한 probe가 끝나지 않으면 `unknown`입니다. 전체 판정은 `unhealthy`, `unknown`, `healthy` 순서로 우선하며 모든 항목이 `healthy`일 때만 종료 코드 0입니다.
 
-Provider probe는 adapter가 정한 실행 파일에 shell 없이 `--version`만 호출합니다. 5초와 16 KiB로 제한하고 첫 ASCII 문장 최대 200자만 version으로 남깁니다. 이 성공은 인증, 네트워크, 모델 접근이나 실제 session 성공을 증명하지 않습니다. Issue에는 절대 경로, 문서·스킬 본문, publisher, credential, 환경 변수와 raw provider output을 넣지 않으며 doctor는 event를 만들지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md), [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md)과 [ADR-0033](./docs/adr/0033-bounded-environment-doctor.md)에 기록합니다.
+Provider probe는 adapter가 정한 실행 파일에 shell 없이 `--version`만 호출합니다. 5초와 16 KiB로 제한하고 첫 ASCII 문장 최대 200자만 version으로 남깁니다. 이 성공은 인증, 네트워크, 모델 접근이나 실제 session 성공을 증명하지 않습니다. Issue에는 절대 경로, 문서·스킬 본문, 검색 query·digest·원본 ID, publisher, credential, 환경 변수와 raw provider output을 넣지 않으며 doctor는 event를 만들지 않습니다. 상세 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md), [ADR-0031](./docs/adr/0031-reviewed-verified-knowledge-lifecycle.md), [ADR-0033](./docs/adr/0033-bounded-environment-doctor.md)과 [ADR-0071](./docs/adr/0071-search-rollout-operational-doctor.md)에 기록합니다.
 
 ## Hub 등록과 outbound event sync
 

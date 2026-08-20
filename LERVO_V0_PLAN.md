@@ -623,6 +623,16 @@ Hub command/approval 대화 UX 완료 조건:
 - Query·digest·품질 원본 ID·문서 좌표·본문·provider 결과·credential을 출력하지 않음
 - 새 파일·event·Hub sync를 만들지 않고 action·selection·rollback·approval 상태를 전진시키지 않음
 
+검색 rollout 운영 진단 첫 슬라이스 완료 조건:
+
+- 검색 엔진 선택, engine·rollout review·action 정책, rollout 검토와 조치를 독립된 doctor 항목으로 표시함
+- 선택은 운영 resolver와 같은 전체 chain·후보 replay를, 검토와 조치는 기존 bounded 상태 조회의 전체 원본 검증을 재사용함
+- 정상적으로 비어 있는 범위는 관측 수 0의 `healthy`로, 직접 확인한 손상은 `unhealthy`로 구분함
+- 선택·정책 손상 뒤의 검토와 조치, 검토 손상 뒤의 조치를 `unknown`으로 두고 정상이라고 추측하지 않음
+- 한 검색 항목이라도 `unhealthy` 또는 `unknown`이면 전체 doctor 종료 코드가 0이 아님
+- Query·digest·원본 ID·문서 좌표·본문·provider 결과·credential·내부 오류 원문을 issue에 넣지 않음
+- 조회 중 검색 파일·event·Hub 원본을 만들거나 선택·검토·조치 상태를 전진시키지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -681,4 +691,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검색 rollout 조치 사전 점검 첫 슬라이스를 완료했습니다. 명시한 review·action policy·조치·operator의 현재 조건을 실제 apply와 같은 코어 판정으로 설명하고, eligible rollback은 게시 직전과 같은 engine policy·head·fallback 재현까지 읽기 전용으로 확인합니다. 점검은 승인이나 예약이 아니며 apply가 모든 조건을 다시 확인합니다. 결정은 [ADR-0070](./docs/adr/0070-read-only-search-rollout-action-preflight.md)에 기록했습니다.
 
-다음 구현 작업은 검색 엔진 선택·rollout 정책·검토·조치 원본을 기존 `lervo doctor`에 연결하는 **검색 rollout 운영 진단**입니다. 진단은 각 범위를 `healthy`·`unhealthy`·`unknown`으로 구분하고 손상 근거를 성공으로 숨기지 않으며, 상태 조회나 조치 실행을 대신하지 않습니다.
+검색 rollout 운영 진단 첫 슬라이스를 완료했습니다. 검색 엔진 선택, 세 종류의 정책, rollout 검토와 조치를 네 doctor 항목으로 분리하고 기존 운영 resolver와 bounded 상태 조회의 전체 원본 검증을 재사용합니다. 정상적인 빈 저장소는 관측 수 0의 정상이고, 직접 확인한 손상은 `unhealthy`, 선행 손상 때문에 판정할 수 없는 하위 범위는 `unknown`입니다. 진단은 검색 상태를 바꾸거나 query·digest·원본 ID를 노출하지 않습니다. 결정은 [ADR-0071](./docs/adr/0071-search-rollout-operational-doctor.md)에 기록했습니다.
+
+다음 구현 작업은 전체 진단과 검색만의 진단을 혼동하지 않으면서 필요한 검사기만 실행하는 **범위가 명시된 doctor 조회**입니다. `--scope search` 같은 제한 조회는 제외한 항목을 정상으로 간주하지 않고, 출력과 JSON에 제한된 범위를 명시해야 합니다.

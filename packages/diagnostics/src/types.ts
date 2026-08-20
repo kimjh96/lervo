@@ -39,7 +39,13 @@ export type DoctorIssueCode =
   | "skill_lock_stale"
   | "provider_executable_missing"
   | "provider_probe_failed"
-  | "provider_platform_unsupported";
+  | "provider_platform_unsupported"
+  | "search_engine_selection_invalid"
+  | "search_rollout_policy_invalid"
+  | "search_rollout_review_invalid"
+  | "search_rollout_review_unavailable"
+  | "search_rollout_action_invalid"
+  | "search_rollout_action_unavailable";
 
 export interface DoctorIssue {
   code: DoctorIssueCode;
@@ -59,7 +65,11 @@ export interface DoctorCheck {
     | "skill_packages"
     | "skill_lock"
     | "provider_codex_runtime"
-    | "provider_claude_runtime";
+    | "provider_claude_runtime"
+    | "search_engine_selection"
+    | "search_rollout_policies"
+    | "search_rollout_reviews"
+    | "search_rollout_actions";
   status: "healthy" | "unhealthy" | "unknown";
   observedCount: number;
   version?: string;

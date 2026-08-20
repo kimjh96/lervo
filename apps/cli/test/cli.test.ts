@@ -17,6 +17,10 @@ const healthyEnvironmentInspections: DoctorInspection[] = [
   "skill_lock",
   "provider_codex_runtime",
   "provider_claude_runtime",
+  "search_engine_selection",
+  "search_rollout_policies",
+  "search_rollout_reviews",
+  "search_rollout_actions",
 ].map((checkId) => ({
   check: {
     checkId: checkId as DoctorInspection["check"]["checkId"],
@@ -237,5 +241,34 @@ describe("lervo local diagnostics CLI", () => {
     expect(output).toContain("확인 불가 항목 있음");
     expect(output).toContain("확인 불가  Codex 실행 파일");
     expect(output).toContain("provider_executable_missing");
+  });
+
+  it("reports an invalid search rollout action as a doctor failure", async () => {
+    const root = await temporaryRepository();
+    expect(await runCli(["init"], {
+      cwd: root,
+      stdout: () => undefined,
+      stderr: () => undefined,
+    })).toBe(0);
+    const inspections = structuredClone(healthyEnvironmentInspections);
+    const actions = inspections.find((item) =>
+      item.check.checkId === "search_rollout_actions")!;
+    actions.check.status = "unhealthy";
+    actions.issues.push({
+      code: "search_rollout_action_invalid",
+      eventId: null,
+      message: "검색 rollout 조치와 연결 근거를 안전하게 검증하지 못했습니다.",
+    });
+    let output = "";
+
+    expect(await runCli(["doctor"], {
+      cwd: root,
+      stdout: (message) => { output += message; },
+      stderr: () => undefined,
+    }, {
+      inspectDoctorEnvironment: async () => inspections,
+    })).toBe(1);
+    expect(output).toContain("문제  검색 rollout 조치");
+    expect(output).toContain("search_rollout_action_invalid");
   });
 });
