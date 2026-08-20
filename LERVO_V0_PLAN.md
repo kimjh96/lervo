@@ -710,6 +710,15 @@ Trace page event type filter 첫 슬라이스 완료 조건:
 - Run 존재·일치 결과 없음과 run 부재를 `trace_filter_empty`, `trace_run_not_found`로 구분함
 - Filtered page를 전체 run event 부재나 전체 상태로 표현하지 않고 원본을 변경하지 않음
 
+Diagnostics report compatibility 경계 정리 완료 조건:
+
+- Doctor, trace, trace page의 version 추출·schema 검증·의미 검증 순서를 한 공통 reader로 관리함
+- Report별 error class·code와 의미 검증기는 독립 모듈에 유지함
+- 공통 오류 생성이 입력 JSON, payload, ID, 경로나 credential을 받지 않음
+- Trace CLI의 옵션 해석, 사람용 formatter와 storage 수명주기 조합을 별도 모듈로 분리함
+- 전체·첫 page·cursor page 요청을 배타적인 타입으로 만들고 잘못된 조합을 storage open 전에 거부함
+- 기존 report fixture와 CLI 출력·오류 회귀 테스트가 그대로 통과함
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -786,4 +795,6 @@ Snapshot-bound local trace page 첫 슬라이스를 완료했습니다. 기존 �
 
 Trace page event type filter 첫 슬라이스를 완료했습니다. Allowlist 조건을 report·텍스트와 cursor에 함께 고정하고 bounded batch scan으로 일치 event만 page화합니다. 조건에 맞는 기록 없음과 run 부재를 구분하며 filtered page를 전체 run 상태로 표현하지 않습니다. 결정은 [ADR-0079](./docs/adr/0079-explicit-trace-page-event-filter.md)에 기록했습니다.
 
-다음 구현 작업은 이번 trace·doctor 자동화 계약에서 반복된 version 판별과 오류 처리를 공통화하는 **diagnostics report compatibility boundary 정리**입니다. Report별 의미 검증은 분리해 유지하되 버전 추출·미지원/손상 오류 분류와 비밀정보 비노출 규칙의 중복을 제거해야 합니다.
+Diagnostics report compatibility 경계 정리를 완료했습니다. 세 report reader는 공통 version·schema·의미 검증 순서를 사용하되 각 code와 의미 검증을 독립적으로 유지합니다. Trace CLI는 옵션·format·실행 조합으로 나뉘고 요청 모드는 타입 수준에서 배타적입니다. 결정은 [ADR-0080](./docs/adr/0080-shared-diagnostics-report-compatibility.md)에 기록했습니다.
+
+다음 구현 작업은 기존 무제한 형식의 기본 `lervo trace`를 장기적으로 bounded page 기본값으로 옮길 수 있도록 하는 **trace output mode deprecation 계약**입니다. 기존 JSON consumer를 조용히 깨지 않고 경고·명시적 `--full`·전환 시점을 정의해야 합니다.

@@ -99,6 +99,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [잘림을 숨기지 않는 bounded trace 원본 조회 ADR](./docs/adr/0077-bounded-trace-source-reads.md)
 - [Snapshot에 묶인 local trace cursor page ADR](./docs/adr/0078-snapshot-bound-local-trace-pages.md)
 - [조건이 드러나는 trace page event type filter ADR](./docs/adr/0079-explicit-trace-page-event-filter.md)
+- [공통 diagnostics report 호환성 읽기 경계 ADR](./docs/adr/0080-shared-diagnostics-report-compatibility.md)
 
 ## 현재 구현
 

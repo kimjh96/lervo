@@ -1,5 +1,4 @@
-import { validateSchema } from "@lervo/schemas";
-
+import { readVersionedReport } from "./report-compatibility.js";
 import { decodeTraceCursor } from "./trace-cursor.js";
 import { areTraceEventsValid } from "./trace-report-semantics.js";
 import type { TracePageReport } from "./types.js";
@@ -66,35 +65,19 @@ function pageSemanticsAreValid(report: TracePageReport): boolean {
 }
 
 export function readTracePageReport(value: unknown): TracePageReport {
-  const schemaVersion = typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as { schemaVersion?: unknown }).schemaVersion
-    : undefined;
-  if (
-    typeof schemaVersion === "number" &&
-    Number.isInteger(schemaVersion) &&
-    schemaVersion !== tracePageReportSchemaVersion
-  ) {
-    throw new TracePageReportCompatibilityError(
-      "trace_page_report_schema_unsupported",
-      `지원하지 않는 trace page report schemaVersion입니다: ${String(schemaVersion)}`,
-    );
-  }
-  const validation = validateSchema("tracePageReport", value);
-  if (!validation.valid) {
-    throw new TracePageReportCompatibilityError(
-      "trace_page_report_invalid",
-      "trace page report v1의 필수 구조가 올바르지 않습니다.",
-    );
-  }
-  const report = value as TracePageReport;
-  if (
-    !areTraceEventsValid(report.events, report.projectId, report.runId) ||
-    !pageSemanticsAreValid(report)
-  ) {
-    throw new TracePageReportCompatibilityError(
-      "trace_page_report_invalid",
-      "trace page report v1의 필수 의미가 서로 일치하지 않습니다.",
-    );
-  }
-  return report;
+  return readVersionedReport<TracePageReport>({
+    value,
+    schemaName: "tracePageReport",
+    schemaVersion: tracePageReportSchemaVersion,
+    reportName: "trace page report",
+    semantics: (report) =>
+      areTraceEventsValid(report.events, report.projectId, report.runId) &&
+      pageSemanticsAreValid(report),
+    error: (failure, message) => new TracePageReportCompatibilityError(
+      failure === "unsupported_version"
+        ? "trace_page_report_schema_unsupported"
+        : "trace_page_report_invalid",
+      message,
+    ),
+  });
 }
