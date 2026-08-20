@@ -341,6 +341,8 @@ Managed context 연결은 search attempt를 포함한 `SearchRecommendationBatch
 
 재사용 평가는 검토한 attempt·assessment를 `SearchEvaluationCase`로 명시적으로 승격하는 단계와 현재 index를 실행하는 단계를 분리한다. 케이스는 평가자가 기대하거나 수락한 source만 정답으로 삼고 query digest·크기가 원본 attempt와 같아야 한다. 케이스별 YAML만 검토한 query를 가지며, 실행 result와 run report는 case ID·index·순위·controlled 실패·기준 대비 개선/회귀만 보존한다. `@lervo/search`가 순수 판정과 무결성을, `@lervo/search-local`이 안전한 YAML·JSON 수명주기와 현재 등록 문서 조합을 소유한다. 새 event나 Hub sync, context 상태와 임베딩 판단은 만들지 않는다. 결정은 [ADR-0055](./docs/adr/0055-reviewed-search-evaluation-cases.md)에 정의한다.
 
+평가 표본 운영은 역할·작업 유형마다 하나의 작은 `SearchEvaluationBundle` 원본으로 분리한다. 묶음은 활성 케이스, 최소 표본 수와 이전 케이스가 어느 활성 케이스로 대체됐는지만 가지며 query를 복제하지 않는다. 모든 대체 경로는 순환 없이 활성 케이스로 끝나야 하고, 같은 query의 활성 케이스를 여러 표본으로 세지 않는다. `SearchEvaluationCoverage`는 현재 묶음과 케이스에서 다시 계산하는 파생 상태다. 표본이 최소 수에 못 미치면 `insufficient_sample`, 충족하면 `ready`이지만 어느 상태도 검색 품질·임베딩 도입·context 사용을 뜻하지 않는다. 결정은 [ADR-0056](./docs/adr/0056-search-evaluation-sample-bundles.md)에 정의한다.
+
 ### Skill Registry
 
 스킬은 단순 프롬프트 파일이 아니라 다음 metadata를 가진 versioned package입니다.

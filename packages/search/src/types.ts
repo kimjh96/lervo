@@ -135,6 +135,8 @@ export type SearchErrorCode =
   | "invalid_assessment"
   | "invalid_attempt"
   | "invalid_evaluation_case"
+  | "invalid_evaluation_bundle"
+  | "invalid_evaluation_coverage"
   | "invalid_evaluation_result"
   | "invalid_evaluation_run"
   | "invalid_query"

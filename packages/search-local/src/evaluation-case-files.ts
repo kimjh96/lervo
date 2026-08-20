@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { link, lstat, mkdir, open, readdir, realpath, unlink } from "node:fs/promises";
+import { link, lstat, open, readdir, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { resolveProjectPaths } from "@lervo/project";
 import {
   assertSearchEvaluationCase,
   SEARCH_EVALUATION_MAX_CASES,
@@ -11,44 +10,17 @@ import {
 } from "@lervo/search";
 import { parse, stringify } from "yaml";
 
+import {
+  SEARCH_EVALUATION_BUNDLE_FILE,
+  SEARCH_EVALUATION_CASE_FILE,
+  searchEvaluationDirectory,
+} from "./evaluation-file-common.js";
 import { SearchLocalError } from "./types.js";
 
-const CASE_FILE = /^(sec_[a-f0-9]{24})\.yaml$/;
 const MAX_CASE_BYTES = 64 * 1024;
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
-}
-
-async function evaluationDirectory(repositoryRoot: string, create: boolean): Promise<string | null> {
-  try {
-    const canonicalRoot = await realpath(repositoryRoot);
-    const paths = resolveProjectPaths(canonicalRoot);
-    const lervo = await lstat(paths.lervoRoot);
-    if (!lervo.isDirectory() || lervo.isSymbolicLink() || await realpath(paths.lervoRoot) !== paths.lervoRoot) {
-      throw new Error("unsafe lervo root");
-    }
-    if (create) await mkdir(paths.searchEvaluations, { mode: 0o700 }).catch((error) => {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    });
-    else {
-      try {
-        await lstat(paths.searchEvaluations);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-        throw error;
-      }
-    }
-    const stats = await lstat(paths.searchEvaluations);
-    if (!stats.isDirectory() || stats.isSymbolicLink() ||
-      await realpath(paths.searchEvaluations) !== paths.searchEvaluations) throw new Error("unsafe case directory");
-    return paths.searchEvaluations;
-  } catch (error) {
-    if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("evaluation_case_read_failed", "검색 평가 케이스 디렉터리를 확인하지 못했습니다.", {
-      cause: error instanceof Error ? error : undefined,
-    });
-  }
 }
 
 async function readCase(path: string): Promise<SearchEvaluationCase> {
@@ -79,7 +51,12 @@ async function readCase(path: string): Promise<SearchEvaluationCase> {
 }
 
 export async function loadSearchEvaluationCases(repositoryRoot: string): Promise<SearchEvaluationCase[]> {
-  const directory = await evaluationDirectory(repositoryRoot, false);
+  const directory = await searchEvaluationDirectory({
+    repositoryRoot,
+    create: false,
+    errorCode: "evaluation_case_read_failed",
+    subject: "검색 평가 케이스",
+  });
   if (directory === null) return [];
   let entries;
   try {
@@ -89,12 +66,14 @@ export async function loadSearchEvaluationCases(repositoryRoot: string): Promise
       cause: error instanceof Error ? error : undefined,
     });
   }
-  if (entries.length > SEARCH_EVALUATION_MAX_CASES) {
+  const caseEntries = entries.filter((entry) => SEARCH_EVALUATION_CASE_FILE.test(entry.name));
+  if (caseEntries.length > SEARCH_EVALUATION_MAX_CASES) {
     throw new SearchLocalError("evaluation_case_limit_exceeded", "검색 평가 케이스 수가 256개를 넘었습니다.");
   }
   const cases: SearchEvaluationCase[] = [];
   for (const entry of entries.sort((left, right) => compareText(left.name, right.name))) {
-    const match = CASE_FILE.exec(entry.name);
+    const match = SEARCH_EVALUATION_CASE_FILE.exec(entry.name);
+    if (SEARCH_EVALUATION_BUNDLE_FILE.test(entry.name) && entry.isFile() && !entry.isSymbolicLink()) continue;
     if (!entry.isFile() || entry.isSymbolicLink() || match === null) {
       throw new SearchLocalError("evaluation_case_invalid", "검색 평가 케이스 디렉터리에 계약 밖 항목이 있습니다.");
     }
@@ -112,7 +91,12 @@ export async function recordSearchEvaluationCase(
   evaluationCase: SearchEvaluationCase,
 ): Promise<void> {
   assertSearchEvaluationCase(evaluationCase);
-  const directory = (await evaluationDirectory(repositoryRoot, true))!;
+  const directory = (await searchEvaluationDirectory({
+    repositoryRoot,
+    create: true,
+    errorCode: "evaluation_case_read_failed",
+    subject: "검색 평가 케이스",
+  }))!;
   const path = resolve(directory, `${evaluationCase.caseId}.yaml`);
   const staging = resolve(dirname(path), `.pending-${randomUUID()}`);
   const serialized = stringify(evaluationCase, { lineWidth: 0 });

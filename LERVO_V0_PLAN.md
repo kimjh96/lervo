@@ -423,6 +423,19 @@ Hub command/approval 대화 UX 완료 조건:
 - 반복 평가 실패와 회귀가 있어도 context 상태, verification 통과나 임베딩 필요성을 만들지 않고 `embeddingDecision=not_determined`를 유지함
 - 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
 
+검색 평가 묶음과 표본 충분성 첫 슬라이스 완료 조건:
+
+- 역할·작업 유형별 활성 case, 최소 표본과 대체 관계를 query 없는 작은 묶음 원본으로 분리함
+- 최대 32개 묶음, 묶음당 활성 64개·대체 192개를 강제하고 같은 역할·작업 유형의 중복 묶음을 거부함
+- 대체된 case와 활성 case의 중복, 끝나지 않는 대체 관계와 순환을 거부함
+- 같은 query의 활성 case를 여러 표본으로 계산하지 않고 모든 참조 case의 project·무결성을 확인함
+- 묶음마다 별도 `.bundle.yaml`을 만들며 기존 묶음과 사용자 케이스를 자동 덮어쓰거나 한 파일에 이력을 누적하지 않음
+- 표본 상태 `sufficient`·`insufficient`와 비교 준비 상태 `ready`·`insufficient_sample`을 원본에서 결정적으로 다시 계산함
+- 표본이 부족한 묶음은 report와 현재 baseline 실행에서 종료 코드 1로 드러내되 관측 result·run을 품질 비교로 위장하지 않음
+- `--bundle` 평가는 선언된 활성 case만 실행하고 묶음·coverage·result·run에 query를 복제하지 않음
+- 충분성 상태가 검색 품질, context 상태, verification 통과나 임베딩 필요성을 만들지 않고 `embeddingDecision=not_determined`를 유지함
+- 전체 흐름이 Hub와 새 실행 event 없이 로컬에서 완료됨
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -451,4 +464,6 @@ Hub command/approval 대화 UX를 완료했습니다. `@lervo/conversation-contr
 
 검토된 검색 평가 케이스와 반복 측정 첫 슬라이스를 완료했습니다. 기존 attempt·assessment와 일치하는 query, 평가자가 기대하거나 수락한 source만 케이스별 YAML로 승격합니다. 현재 `lexical-v1` 실행은 query 없는 result·run 원본으로 분리되고 검토 시점 대비 개선·회귀를 계산하지만 임베딩 판단은 미결정으로 둡니다. 결정은 [ADR-0055](./docs/adr/0055-reviewed-search-evaluation-cases.md)에 기록했습니다.
 
-다음 구현 작업은 다른 검색 엔진을 바로 추가하는 일이 아닙니다. 실제 managed run에서 역할·작업 유형별 대표 케이스를 축적할 때 활성 케이스 선택, 대체 관계와 최소 표본을 작은 평가 묶음별로 선언하고, 현재 표본이 비교 판단에 충분한지 별도 상태로 계산하는 운영 경계를 먼저 추가합니다. 충분성이 확인된 묶음에만 이후 검색 후보를 같은 입력·같은 순위 조건으로 비교합니다.
+검색 평가 묶음과 표본 충분성 첫 슬라이스를 완료했습니다. 역할·작업 유형별 작은 묶음이 활성 case, 대체 관계와 최소 표본을 선언하고, 현재 고유 query 표본이 비교에 충분한지 별도 coverage로 계산합니다. 부족한 표본도 baseline 관측은 남길 수 있지만 비교 준비 완료나 임베딩 필요성으로 승격하지 않습니다. 결정은 [ADR-0056](./docs/adr/0056-search-evaluation-sample-bundles.md)에 기록했습니다.
+
+다음 구현 작업은 구체적인 검색 엔진을 추가하기 전에 **후보 비교 계약과 준비 gate**를 분리하는 일입니다. 같은 묶음·같은 corpus·같은 순위 조건으로 baseline과 후보 결과를 대조하는 공급자 중립 port를 만들고, `comparisonReadiness=ready`가 아닌 묶음은 비교 artifact를 만들지 않게 합니다. 실제 후보 엔진 adapter와 채택 판단은 이 계약 뒤의 별도 작업입니다.

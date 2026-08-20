@@ -1,4 +1,9 @@
-import type { SearchEvaluationCase, SearchEvaluationRun } from "@lervo/search";
+import type {
+  SearchEvaluationBundle,
+  SearchEvaluationCase,
+  SearchEvaluationCoverage,
+  SearchEvaluationRun,
+} from "@lervo/search";
 
 export function formatSearchEvaluationCase(evaluationCase: SearchEvaluationCase): string {
   return [
@@ -15,6 +20,25 @@ export function formatSearchEvaluationRun(run: SearchEvaluationRun): string {
     `  lexical-v1 · 케이스 ${run.totalCases}개`,
     `  통과 ${run.passedCases} · 실패 ${run.failedCases}`,
     `  회귀 ${run.regressions} · 개선 ${run.improvements}`,
+    "  임베딩 도입 판단: 아직 결정하지 않음",
+  ].join("\n") + "\n";
+}
+
+export function formatSearchEvaluationBundle(bundle: SearchEvaluationBundle): string {
+  return [
+    `검색 평가 묶음을 만들었습니다: ${bundle.bundleId}`,
+    `  범위 ${bundle.scope.roleId} / ${bundle.scope.taskType}`,
+    `  활성 case ${bundle.activeCaseIds.length}개 · 최소 표본 ${bundle.minimumActiveCases}개`,
+    `  파일: .lervo/search-evaluations/${bundle.bundleId}.bundle.yaml`,
+  ].join("\n") + "\n";
+}
+
+export function formatSearchEvaluationCoverage(coverage: SearchEvaluationCoverage): string {
+  return [
+    `검색 평가 표본: ${coverage.bundleId} · ${coverage.scope.roleId} / ${coverage.scope.taskType}`,
+    `  활성 ${coverage.activeCases}개 · 최소 ${coverage.minimumActiveCases}개 · 부족 ${coverage.shortfall}개`,
+    `  표본 상태: ${coverage.sampleState === "sufficient" ? "충분" : "부족"}`,
+    `  후보 비교 준비: ${coverage.comparisonReadiness === "ready" ? "가능" : "표본 부족"}`,
     "  임베딩 도입 판단: 아직 결정하지 않음",
   ].join("\n") + "\n";
 }

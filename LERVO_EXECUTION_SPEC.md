@@ -697,6 +697,16 @@ Managed `lervo run`은 provider 시작 전에 작업 문장을 NFKC 문자·숫�
 
 케이스·결과·run은 ID, canonical hash, project·시각·engine·index, 정렬 순서와 집계를 다시 계산합니다. 케이스 하나라도 unsafe·변조·다른 project이면 corpus를 평가하거나 일부 run을 게시하지 않습니다. 현재 실행이 실패를 관측해도 `embeddingDecision=not_determined`를 유지하며 다른 검색 엔진, context 선택, `selected`·`loaded`·`injected`·`used`, verification 통과와 임베딩 필요성을 만들지 않습니다. 이번 단계에는 새 event와 Hub sync가 없습니다. 결정은 [ADR-0055](./docs/adr/0055-reviewed-search-evaluation-cases.md)에 기록합니다.
 
+## 검색 평가 묶음과 표본 충분성
+
+`SearchEvaluationBundle`은 하나의 project와 `roleId`·`taskType` 범위, 최소 활성 표본 1~64개, 정렬된 활성 case ID와 최대 192개의 대체 관계를 묶습니다. 같은 project에서 같은 역할·작업 유형의 묶음은 하나만 허용하며 전체 묶음은 최대 32개입니다. 대체된 case는 활성 목록에 함께 둘 수 없고, 모든 대체 경로는 순환 없이 현재 활성 case로 끝나야 합니다. 활성 case의 query digest가 같으면 같은 표본을 늘려 센 것으로 보고 전체 묶음을 거부합니다.
+
+원본은 `.lervo/search-evaluations/<bundleId>.bundle.yaml`에 묶음별로 둡니다. `lervo search bundle create`는 기존 파일을 자동 덮어쓰지 않으며 CLI가 새로 게시한 파일은 mode `0600`입니다. 케이스와 묶음은 같은 디렉터리를 쓰지만 파일명 계약으로 구분하고, 알 수 없는 파일·심볼릭 링크·읽는 중 변경·project 불일치·같은 범위의 중복 묶음이 하나라도 있으면 일부만 읽지 않습니다. 묶음을 고칠 때에는 하나의 긴 이력 파일에 내용을 덧붙이지 않고 작은 YAML을 version control에서 명시적으로 교체합니다.
+
+`SearchEvaluationCoverage`는 묶음 원본과 현재 케이스에서 매번 만드는 query 없는 파생 결과입니다. 활성 표본 수가 최소값 이상이면 `sampleState=sufficient`, `comparisonReadiness=ready`이고 부족하면 `sampleState=insufficient`, `comparisonReadiness=insufficient_sample`입니다. `lervo search bundle report`는 부족한 묶음을 정상적으로 표시하되 종료 코드 1을 반환합니다. `lervo search evaluate --bundle <id>`는 그 묶음의 활성 케이스만 현재 `lexical-v1`으로 실행합니다. 표본이 부족해도 현재 상태를 관측할 result와 run은 보존하지만 종료 코드 1을 반환하며, 후보 엔진 비교는 아직 실행하지 않습니다.
+
+핵심 오류 `invalid_evaluation_bundle`은 묶음 좌표·hash·정렬·참조·대체 관계·표본 중복이 유효하지 않다는 뜻이고 `invalid_evaluation_coverage`는 파생 ID·집계·상태가 원본과 다르다는 뜻입니다. 로컬 오류 `evaluation_bundle_invalid`, `evaluation_bundle_limit_exceeded`, `evaluation_bundle_read_failed`, `evaluation_bundle_write_failed`는 각각 파일 계약 위반, 개수 상한, 안전한 읽기 실패, immutable 게시 실패를 뜻합니다. 표본 부족은 파일 오류가 아니며 검색 실패, 임베딩 필요 또는 품질 판정으로 승격하지 않습니다. 묶음과 coverage에는 query·문서 본문·path·prompt·provider 응답·credential을 넣지 않고 `embeddingDecision=not_determined`를 유지합니다. 새 event와 Hub sync는 없습니다. 결정은 [ADR-0056](./docs/adr/0056-search-evaluation-sample-bundles.md)에 기록합니다.
+
 ## 지식 승격 규칙
 
 지식 candidate는 최소한 다음을 포함합니다.
