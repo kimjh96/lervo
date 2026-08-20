@@ -102,6 +102,7 @@ import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-co
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
 import { traceReportSchema } from "./trace-report.js";
+import { tracePageReportSchema } from "./trace-page-report.js";
 import { verificationResultSchema, verificationSuiteSchema } from "./verification.js";
 import {
   verificationCompletedEventPayloadSchema,
@@ -198,6 +199,7 @@ const validators = {
   skill: ajv.compile(skillManifestSchema),
   skillLock: ajv.compile(skillLockSchema),
   traceReport: ajv.compile(traceReportSchema),
+  tracePageReport: ajv.compile(tracePageReportSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
   documentStalenessResult: ajv.compile(documentStalenessResultSchema),
   doctorReport: ajv.compile(doctorReportSchema),

@@ -849,6 +849,8 @@ Trace report와 integrity의 새 선택 필드는 v1 reader가 허용하지만 e
 
 Trace의 `last`는 제한 없는 `list()` 결과를 최신으로 해석하지 않고 project 전역 마지막 event 하나를 조회합니다. Integrity 검사는 seq 순서의 SQLite row를 iterator로 읽어 전체 배열을 만들지 않습니다. 완전한 v1 report는 run당 최대 1,000개 event이며 1,001번째가 있으면 `trace_result_too_large`로 실패하고 앞부분을 완전한 실행처럼 반환하지 않습니다. 결정은 [ADR-0077](./docs/adr/0077-bounded-trace-source-reads.md)에 기록합니다.
 
+`lervo trace [last|run-id] --page-size <1..100>`은 첫 `TracePageReport` v1을, `lervo trace --cursor <cursor>`는 같은 snapshot의 다음 page를 반환합니다. Page report는 전체 run status·시각·session 집계를 주장하지 않으며 project/run, integrity snapshot, `afterSeq`, `afterEventHash`, limit·반환 수·`hasMore`·다음 cursor와 event만 가집니다. Cursor는 project/run, integrity count/head, 마지막 event 좌표와 limit의 canonical checksum이며 인증·권한 증명이 아닙니다. 원본 head가 달라지면 `trace_cursor_stale`, 형식·checksum·좌표가 틀리면 `trace_cursor_invalid`입니다. 결정은 [ADR-0078](./docs/adr/0078-snapshot-bound-local-trace-pages.md)에 기록합니다.
+
 검색 진단 ID는 `search_engine_selection`, `search_rollout_policies`, `search_rollout_reviews`, `search_rollout_actions`입니다. 선택은 운영 resolver와 같은 전체 chain 검증을 사용하고, 정책은 engine·rollout review·action policy의 project 좌표와 결속을 확인합니다. 검토와 조치는 기존 bounded 상태 조회기의 전체 원본 검증을 사용합니다. 정상적으로 비어 있는 범위는 관측 수 0의 `healthy`입니다.
 
 선택이나 정책이 `unhealthy`이면 검토는 `search_rollout_review_unavailable`의 `unknown`이고 조치도 `search_rollout_action_unavailable`의 `unknown`입니다. 검토가 `unhealthy`이면 조치는 `unknown`입니다. 직접 확인한 선택·정책·검토·조치 손상은 각각 `search_engine_selection_invalid`, `search_rollout_policy_invalid`, `search_rollout_review_invalid`, `search_rollout_action_invalid`의 `unhealthy`입니다. 진단은 상태 조회·사전 점검·승인·조치 실행을 대신하지 않고 검색 파일, event와 Hub 원본을 만들지 않습니다.

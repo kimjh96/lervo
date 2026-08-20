@@ -691,6 +691,16 @@ Bounded trace 원본 조회 첫 슬라이스 완료 조건:
 - 100개를 넘긴 project의 실제 최신 run 선택과 1,001개 단일 run 실패를 회귀 테스트로 고정함
 - 조회 중 event, 파일, CAS나 Hub 원본을 만들거나 변경하지 않음
 
+Snapshot-bound local trace page 첫 슬라이스 완료 조건:
+
+- 기존 전체 `TraceReport` 의미를 바꾸지 않고 별도 `TracePageReport` v1을 사용함
+- 첫 page는 1~100개 명시적 상한, 다음 page는 응답 cursor만 받음
+- Cursor를 project/run, integrity count/head, 마지막 event seq/hash와 page 크기에 결속함
+- Page 사이 append는 `trace_cursor_stale`, 손상·모순 cursor는 `trace_cursor_invalid`로 실패함
+- Page가 전체 run status·시각·session을 주장하지 않고 event·page 좌표만 반환함
+- Event schema·allowlist·hash, 순서·연속 link, 반환 수와 다음 cursor 의미를 reader가 다시 확인함
+- Cursor를 인증이나 접근 권한으로 사용하지 않고 조회 중 원본을 변경하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -763,4 +773,6 @@ Trace report 호환성 계약 첫 슬라이스를 완료했습니다. CLI JSON�
 
 Bounded trace 원본 조회 첫 슬라이스를 완료했습니다. `last`는 전역 head를 직접 읽고 integrity는 SQLite iterator로 확인합니다. 100개 기본 list page를 전체로 오해하지 않으며 완전한 report가 1,000개를 넘으면 일부 결과 대신 명시적으로 실패합니다. 결정은 [ADR-0077](./docs/adr/0077-bounded-trace-source-reads.md)에 기록했습니다.
 
-다음 구현 작업은 큰 run을 안전하게 나누어 읽는 **snapshot-bound local trace cursor pagination**입니다. Cursor가 project·run·integrity head와 결속되고 page 사이 누락·중복·stale snapshot을 구분해야 합니다.
+Snapshot-bound local trace page 첫 슬라이스를 완료했습니다. 기존 전체 report와 별도인 page report가 최대 100개 event만 반환하고 cursor를 project/run, integrity head와 마지막 event에 결속합니다. Page 사이 append, cursor 손상과 page 의미 불일치를 닫힌 상태로 거부합니다. 결정은 [ADR-0078](./docs/adr/0078-snapshot-bound-local-trace-pages.md)에 기록했습니다.
+
+다음 구현 작업은 큰 run에서 운영자가 필요한 기록만 좁힐 수 있도록 하는 **trace event type filter 계약**입니다. Filter는 page cursor와 snapshot에 결속되고, 필터된 결과를 전체 run이나 event 부재로 오해하지 않도록 실제 조회 조건과 관측 수를 report에 명시해야 합니다.

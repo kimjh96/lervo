@@ -146,6 +146,26 @@ describe("lervo trace CLI", () => {
       runId: "run_cli_trace_0001",
       status: "completed",
     });
+
+    let firstPageOutput = "";
+    expect(await runCli(["trace", "last", "--page-size", "1", "--json"], {
+      cwd: root,
+      stdout: (message) => { firstPageOutput += message; },
+      stderr: () => undefined,
+    })).toBe(0);
+    const firstPage = JSON.parse(firstPageOutput);
+    expect(firstPage.events.map((event: { seq: number }) => event.seq)).toEqual([1]);
+    expect(firstPage.page.hasMore).toBe(true);
+
+    let secondPageOutput = "";
+    expect(await runCli(["trace", "--cursor", firstPage.page.nextCursor, "--json"], {
+      cwd: root,
+      stdout: (message) => { secondPageOutput += message; },
+      stderr: () => undefined,
+    })).toBe(0);
+    const secondPage = JSON.parse(secondPageOutput);
+    expect(secondPage.events.map((event: { seq: number }) => event.seq)).toEqual([2]);
+    expect(secondPage.page.hasMore).toBe(false);
   });
 
 });

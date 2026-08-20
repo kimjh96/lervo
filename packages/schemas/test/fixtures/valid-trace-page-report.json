@@ -1,0 +1,41 @@
+[
+  {
+    "name": "bounded trace page report v1",
+    "schema": "tracePageReport",
+    "value": {
+      "schemaVersion": 1,
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "integrity": {
+        "valid": true,
+        "eventCount": 2,
+        "headHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "page": {
+        "afterSeq": 0,
+        "afterEventHash": null,
+        "limit": 1,
+        "returnedCount": 1,
+        "hasMore": true,
+        "nextCursor": "trc_abc.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "events": [
+        {
+          "eventId": "evt_01234567",
+          "projectId": "prj_01234567",
+          "runId": "run_01234567",
+          "sessionId": "ses_01234567",
+          "seq": 1,
+          "type": "run.requested",
+          "occurredAt": "2026-08-20T00:00:00Z",
+          "actor": { "kind": "system" },
+          "schemaVersion": 1,
+          "policyVersion": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "payload": {},
+          "previousHash": null,
+          "eventHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
+    }
+  }
+]

@@ -1,12 +1,18 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { createTraceReport, type TraceReport } from "@lervo/diagnostics";
+import {
+  createTracePage,
+  createTraceReport,
+  maximumTracePageSize,
+  type TracePageReport,
+  type TraceReport,
+} from "@lervo/diagnostics";
 
 import type { CliIo, CliServices } from "./types.js";
 
 export const traceUsage =
-  "  lervo trace [last|run-id] [--root <path>] [--json]";
+  `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}> | --cursor <cursor>]`;
 
 function formatPayload(payload: Record<string, unknown>): string {
   return Object.entries(payload)
@@ -29,6 +35,32 @@ export function formatTraceReport(report: TraceReport): string {
   return `${lines.join("\n")}\n`;
 }
 
+export function formatTracePageReport(report: TracePageReport): string {
+  const first = report.events[0]!;
+  const last = report.events.at(-1)!;
+  const lines = [
+    `실행 추적 페이지: ${report.runId}`,
+    `Event 범위: seq ${first.seq} ~ ${last.seq} (${report.page.returnedCount}개)`,
+    `고정한 원본: 전체 ${report.integrity.eventCount}개 · ${report.integrity.headHash}`,
+    "기록:",
+    ...report.events.map((event) =>
+      `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`),
+    report.page.nextCursor === null
+      ? "다음 페이지: 없음"
+      : `다음 cursor: ${report.page.nextCursor}`,
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+function parsePageSize(value: string): number {
+  if (!/^\d+$/.test(value)) throw new RangeError("page-size는 정수여야 합니다.");
+  const pageSize = Number(value);
+  if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > maximumTracePageSize) {
+    throw new RangeError(`page-size는 1 이상 ${maximumTracePageSize} 이하여야 합니다.`);
+  }
+  return pageSize;
+}
+
 export async function runTraceCommand(
   args: string[],
   io: CliIo,
@@ -43,6 +75,8 @@ export async function runTraceCommand(
       options: {
         root: { type: "string" },
         json: { type: "boolean" },
+        "page-size": { type: "string" },
+        cursor: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
     });
@@ -58,19 +92,41 @@ export async function runTraceCommand(
     io.stderr(`run ID는 하나만 지정할 수 있습니다.\n${traceUsage}\n`);
     return 1;
   }
+  if (parsed.values.cursor !== undefined && (
+    parsed.positionals.length > 0 || parsed.values["page-size"] !== undefined
+  )) {
+    io.stderr(`cursor는 run ID나 page-size와 함께 지정할 수 없습니다.\n${traceUsage}\n`);
+    return 1;
+  }
   let storage;
   try {
     storage = await services.openProjectStorage(
       resolve(io.cwd, parsed.values.root ?? "."),
     );
-    const report = createTraceReport({
-      projectId: storage.manifest.projectId,
-      events: storage.events,
-      selector: parsed.positionals[0] ?? "last",
-    });
+    const paged = parsed.values.cursor !== undefined || parsed.values["page-size"] !== undefined;
+    const report = parsed.values.cursor !== undefined
+      ? createTracePage({
+          projectId: storage.manifest.projectId,
+          events: storage.events,
+          cursor: parsed.values.cursor,
+        })
+      : parsed.values["page-size"] !== undefined
+        ? createTracePage({
+            projectId: storage.manifest.projectId,
+            events: storage.events,
+            selector: parsed.positionals[0] ?? "last",
+            limit: parsePageSize(parsed.values["page-size"]),
+          })
+        : createTraceReport({
+            projectId: storage.manifest.projectId,
+            events: storage.events,
+            selector: parsed.positionals[0] ?? "last",
+          });
     io.stdout(parsed.values.json
       ? `${JSON.stringify(report, null, 2)}\n`
-      : formatTraceReport(report));
+      : paged
+        ? formatTracePageReport(report as TracePageReport)
+        : formatTraceReport(report as TraceReport));
     return 0;
   } catch (error) {
     const code = typeof (error as { code?: unknown })?.code === "string"

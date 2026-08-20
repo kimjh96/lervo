@@ -97,6 +97,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [버전이 있는 doctor report 호환성 계약 ADR](./docs/adr/0075-versioned-doctor-report-contract.md)
 - [버전이 있는 trace report 호환성 계약 ADR](./docs/adr/0076-versioned-trace-report-contract.md)
 - [잘림을 숨기지 않는 bounded trace 원본 조회 ADR](./docs/adr/0077-bounded-trace-source-reads.md)
+- [Snapshot에 묶인 local trace cursor page ADR](./docs/adr/0078-snapshot-bound-local-trace-pages.md)
 
 ## 현재 구현
 
@@ -179,6 +180,7 @@ lervo doctor --scope documents
 lervo doctor --scope skills
 lervo doctor --scope providers
 lervo doctor --scope search
+lervo trace last --page-size 50 --json
 lervo search "문서 수명주기"
 lervo search report
 lervo search case <attempt-id> --query "검토한 검색 문장"

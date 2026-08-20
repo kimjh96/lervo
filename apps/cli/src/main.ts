@@ -46,7 +46,7 @@ export async function runCli(
 export { formatInitPlan } from "./init-command.js";
 export { createManagedRunExecutor, executeManagedRun } from "./managed-run.js";
 export { formatRunOutcome } from "./run-command.js";
-export { formatTraceReport } from "./trace-command.js";
+export { formatTracePageReport, formatTraceReport } from "./trace-command.js";
 export { formatSearchQualityReport } from "./search-command.js";
 export { formatDoctorReport } from "./doctor-command.js";
 export type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
