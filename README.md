@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령·stage-only workflow 후보 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -136,6 +136,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 reconciliation resolution ADR](./docs/adr/0114-cli-first-publication-reconciliation-resolution.md)
 - [CLI 최초 공개 게시 transition evidence union ADR](./docs/adr/0115-cli-first-publication-transition-evidence-union.md)
 - [CLI 최초 공개 게시 transition 완료 명령 ADR](./docs/adr/0116-cli-first-publication-transition-completion-command.md)
+- [CLI 최초 공개 게시 stage-only workflow 후보 ADR](./docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -304,6 +305,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `pnpm release:bootstrap:external-evidence --receipt <절대 경로> --post-apply-report <절대 경로> --publication-authorization <절대 경로> --license-approval <절대 경로> --scope-confirmation <절대 경로> --first-publication-approval <절대 경로> --online [--json]`은 서로 분리된 짧은 문서와 public npm 관측을 하나의 읽기 전용 report에 결속합니다. 저장한 post-apply report를 현재 원본에서 온라인 관측 전후 두 번 다시 계산하고, license 승인·scope control 확인·전체 최초 게시 승인이 같은 package·repository·license·scope와 release를 가리키는지 확인합니다. 결과는 `evidence_bound`이지만 `not_armed`이며 actor 신원, 실제 npm scope 권한, 비공개 package 부재, receipt 발급 진위와 release artifact bytes를 증명하거나 다시 검증하지 않습니다. 입력과 저장소 파일을 바꾸거나 승인·activation·게시를 실행하지 않습니다.
 
 최초 게시 뒤에는 `pnpm release:bootstrap:transition`이 정상 execution receipt 또는 검토된 reconciliation resolution 중 정확히 한 경로를 받습니다. 명시적 `--online`에서 public npm의 exact release, npm Trusted Publisher와 GitHub `npm-release` 환경을 함께 확인하고, bounded workflow snapshot과 모든 증거 원본이 관측 뒤에도 같을 때만 새 절대 output에 transition receipt v2를 기록합니다. 준비되지 않은 외부 control, 혼합 증거, 원본 변경과 기존 output은 실패하며 예약·unknown terminal·workflow·npm·GitHub 설정이나 runtime telemetry를 바꾸지 않습니다. 전체 인자는 [ADR-0116](./docs/adr/0116-cli-first-publication-transition-completion-command.md)에 기록합니다.
+
+`pnpm release:bootstrap:workflow-candidate [--json|--workflow-yaml]`은 비활성 release workflow에 exact `publish-cli` job 하나를 추가할 검토용 후보입니다. YAML 전체를 다시 쓰지 않고 `jobs` mapping의 byte 경계에 고정 block만 삽입하며 원본의 다른 bytes와 뒤쪽 최상위 block을 보존합니다. 후보는 package manifest에 exact `release:publication:stage` script가 있어야만 만들어지므로 현재 저장소에서는 `first_publication_workflow_activation_stage_command_missing`으로 차단됩니다. 명령은 원본 workflow·package manifest·외부 설정·게시 상태를 바꾸지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

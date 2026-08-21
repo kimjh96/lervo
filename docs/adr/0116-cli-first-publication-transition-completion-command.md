@@ -39,3 +39,5 @@ Writer는 self-contained receipt 구조와 digest를 다시 확인한 뒤 새 �
 두 evidence 경로는 같은 CLI 완료 경계를 사용하지만 출처는 receipt에 그대로 남습니다. Online 관측 중 source가 바뀌거나 외부 control이 불완전하면 새 파일이 생기지 않고, reconciled unknown 저장 상태도 변경되지 않습니다.
 
 Fixture는 두 실제 source 경로, 세 observer 실행, source 경쟁, blocked control, offline 선행 거부, bounded workflow, 기존 output 보존, 혼합·부분·중복·상대 인자와 권한 상향 재해시를 검증합니다. 실제 npm 게시, 2FA, workflow·npm·GitHub 설정 변경이나 원격 workflow 성공은 주장하지 않습니다.
+
+> 후속 결정: [ADR-0117](./0117-cli-first-publication-stage-only-workflow-candidate.md)은 비활성 workflow에 추가할 exact `publish-cli` job을 byte-preserving 검토 후보로 만듭니다. Stage publication command가 없으면 후보를 만들지 않으며 적용이나 외부 설정 변경은 여전히 하지 않습니다.

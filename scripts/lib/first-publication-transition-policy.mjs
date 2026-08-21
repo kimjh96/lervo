@@ -44,7 +44,7 @@ function check(id, reasons) {
   return { id, status: reasons.length === 0 ? "ready" : "blocked", reasons };
 }
 
-function inspectWorkflow(workflow) {
+export function inspectFirstPublicationStageOnlyWorkflow(workflow) {
   const reasons = [];
   const job = workflow?.jobs?.["publish-cli"];
   if (job === null || typeof job !== "object" || Array.isArray(job)) {
@@ -155,7 +155,7 @@ export function createFirstPublicationTransitionReport({
   const checks = [
     check("exact_public_release",
       publicRelease.outcome === "published" ? [] : publicReleaseReasons),
-    inspectWorkflow(workflow),
+    inspectFirstPublicationStageOnlyWorkflow(workflow),
     inspectNpm(npmObservation, bootstrap.identity.repository),
     inspectGitHub(githubObservation, bootstrap.identity.repository),
   ];

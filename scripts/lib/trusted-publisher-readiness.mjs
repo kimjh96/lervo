@@ -79,7 +79,7 @@ function workflowStrings(value, output = []) {
   return output;
 }
 
-function inspectInactiveWorkflow(workflow) {
+export function inspectTrustedPublisherInactiveWorkflow(workflow) {
   const jobs = workflow?.jobs;
   const strings = workflowStrings(jobs);
   const hasPublishCommand = strings.some((value) =>
@@ -188,7 +188,7 @@ export function createTrustedPublisherReadinessReport({
   ) fail();
   const checks = [
     inspectPackage(packageManifest, repository),
-    inspectInactiveWorkflow(workflow),
+    inspectTrustedPublisherInactiveWorkflow(workflow),
     ...inspectNpmObservation(npmObservation, repository),
     inspectGitHubObservation(githubObservation, repository),
   ];

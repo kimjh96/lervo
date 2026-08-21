@@ -28,6 +28,7 @@
     "release:bootstrap:reconcile": "node scripts/check-cli-first-publication-reconciliation.mjs",
     "release:bootstrap:resolve": "node scripts/resolve-cli-first-publication-reconciliation.mjs",
     "release:bootstrap:transition": "node scripts/complete-cli-first-publication-transition.mjs",
+    "release:bootstrap:workflow-candidate": "node scripts/show-cli-first-publication-workflow-activation-candidate.mjs",
     "release:bootstrap:plan": "node scripts/show-cli-first-publication-execution-plan.mjs",
     "release:bootstrap:arm": "node scripts/authorize-cli-first-publication-arming.mjs",
     "release:bootstrap:blockers": "node scripts/show-cli-first-publication-activation-blockers.mjs",

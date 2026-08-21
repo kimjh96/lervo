@@ -1021,6 +1021,21 @@ CLI first-publication transition completion command 완료 조건:
 - 게시·workflow·npm·GitHub 설정과 reservation·terminal을 바꾸지 않음
 - Actor·reviewer·trust ID·credential·외부 원문과 새 telemetry를 기록하지 않음
 
+CLI first-publication stage-only workflow activation candidate 완료 조건:
+
+- 현재 workflow·root package manifest를 bounded regular-file snapshot으로 읽음
+- Exact stage publication package script가 없으면 실행 불가능한 후보를 만들지 않음
+- Publish command·`npm-release`·`publish-cli`가 없는 source와 `attested-cli` producer만 받음
+- YAML 전체를 재직렬화하지 않고 최상위 `jobs` byte 경계에 job 하나만 삽입함
+- 기존 workflow의 앞뒤 bytes와 뒤쪽 top-level block을 그대로 보존함
+- 새 job이 수동 tag·attestation 의존·GitHub-hosted runner·최소 OIDC 권한만 사용함
+- 모든 action을 commit SHA로 고정하고 exact release artifact만 같은 run에서 내려받음
+- Frozen install 뒤 Lervo stage command 하나만 실행하고 direct publish·registry token을 거부함
+- 결과를 다시 parse해 기존 의미 보존과 공용 stage-only 정책 ready를 확인함
+- Candidate metadata와 exact YAML bytes를 분리하고 둘 다 쓰기 권한을 갖지 않음
+- Source 변경·기존 활성화·stale metadata·권한 상향 재해시·output 변조를 거부함
+- 원본·외부 설정·게시 상태와 runtime event·project state·telemetry를 바꾸지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1251,4 +1266,6 @@ CLI first-publication transition evidence union을 완료했습니다. Execution
 
 CLI first-publication transition completion command를 완료했습니다. 두 evidence 경로를 인자부터 분리하고 공통 계약·증거·workflow와 resolution의 unknown 저장 snapshot을 bounded하게 읽습니다. Public npm·npm trust·GitHub environment를 같은 online 수명주기에서 관측한 뒤 모든 source를 다시 확인하며, 네 검사가 ready인 경우에만 새 transition receipt v2를 `wx`로 씁니다. 게시·외부 설정·reservation·terminal·telemetry는 바꾸지 않습니다. 결정은 [ADR-0116](./docs/adr/0116-cli-first-publication-transition-completion-command.md)에 기록했습니다.
 
-다음 구현 작업은 현재 비활성 release workflow에 exact stage-only `publish-cli` job을 검토 가능한 별도 산출물로 제안하되 원본을 쓰지 않는 **CLI first-publication stage-only workflow activation candidate boundary**입니다.
+CLI first-publication stage-only workflow activation candidate 경계를 완료했습니다. YAML AST는 `jobs` mapping의 byte 경계만 찾고 exact `publish-cli` block을 삽입해 기존 bytes와 다른 top-level block을 보존합니다. 결과 workflow를 다시 parse해 공용 stage-only 정책을 통과시키며 metadata와 exact YAML을 분리합니다. Package manifest에 실제 stage command가 없으면 후보를 만들지 않으므로 현재 저장소 호출은 명시적으로 차단되고 원본·외부 설정·게시 상태를 바꾸지 않습니다. 결정은 [ADR-0117](./docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md)에 기록했습니다.
+
+다음 구현 작업은 검증된 release directory와 publication authorization을 bounded snapshot으로 읽고 GitHub OIDC Trusted Publisher adapter만 호출하는 **CLI stage publication command boundary**입니다. 실제 외부 쓰기 명령이므로 환경·입력·receipt·불명확한 결과와 재실행 금지 의미를 먼저 고정합니다.
