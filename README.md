@@ -161,6 +161,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [대화 queue와 managed 숙의 실행 결속 ADR](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)
 - [대화 숙의 queue와 프로젝트 원본 대조 ADR](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)
 - [명시적 대화 숙의 재개와 별도 durable queue ADR](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)
+- [숙의 진단 snapshot 고정·bounded event 조회 ADR](./docs/adr/0142-snapshot-bounded-deliberation-event-scan.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현

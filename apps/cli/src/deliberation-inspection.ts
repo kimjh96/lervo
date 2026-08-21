@@ -2,13 +2,16 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import {
+  readDeliberationEventSnapshot,
+} from "./deliberation-event-snapshot.js";
+import {
   DeliberationCheckpointError,
   readApprovedDeliberationCheckpoint,
   type ApprovedDeliberationCheckpoint,
 } from "./deliberation-checkpoint.js";
 import { inspectDeliberationLease } from "./deliberation-lease.js";
 
-export const maximumDeliberationTraceEvents = 1_000;
+export { maximumDeliberationTraceEvents } from "./deliberation-event-snapshot.js";
 
 export interface DeliberationInspectionReport {
   schemaVersion: 1;
@@ -30,19 +33,6 @@ export interface DeliberationInspectionReport {
   events: EventEnvelope[];
 }
 
-function allEvents(storage: ProjectStorage): EventEnvelope[] {
-  const events: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (true) {
-    const page = storage.events.list({ afterSeq, limit: 1_000 });
-    events.push(...page);
-    if (page.length < 1_000) return events;
-    const next = page.at(-1)!.seq;
-    if (next <= afterSeq) throw new Error("숙의 진단 event cursor가 전진하지 않습니다.");
-    afterSeq = next;
-  }
-}
-
 export async function inspectManagedDeliberation(input: {
   storage: ProjectStorage;
   deliberationId: string;
@@ -54,18 +44,6 @@ export async function inspectManagedDeliberation(input: {
   if (!integrity.valid) {
     throw Object.assign(new Error("숙의 event hash chain이 유효하지 않습니다."), {
       code: "deliberation_history_invalid",
-    });
-  }
-  const events = allEvents(input.storage);
-  const started = events.filter((event) => event.type === "deliberation.started" &&
-    event.payload.deliberationId === input.deliberationId);
-  const artifacts = events.filter((event) => event.type === "deliberation.artifact.recorded" &&
-    event.payload.deliberationId === input.deliberationId);
-  const completed = events.filter((event) => event.type === "deliberation.completed" &&
-    event.payload.deliberationId === input.deliberationId);
-  if (started.length === 0 && artifacts.length === 0 && completed.length === 0) {
-    throw Object.assign(new Error("요청한 숙의 ID의 event가 없습니다."), {
-      code: "deliberation_not_found",
     });
   }
   let checkpoint: DeliberationInspectionReport["checkpoint"] = "missing";
@@ -87,18 +65,18 @@ export async function inspectManagedDeliberation(input: {
     ...checkpointValue.runtime.handoffs.map((item) => item.eventId),
     ...checkpointValue.runtime.artifacts.flatMap((artifact) => artifact.evidenceEventIds),
   ];
-  const checkpointEventIdSet = new Set(checkpointEventIds);
-  const relatedRunIds = new Set([
-    ...started.map((event) => event.runId),
-    ...artifacts.map((event) => event.runId),
-    ...completed.map((event) => event.runId),
-    ...checkpointValue?.runtime.artifacts.map((artifact) => artifact.producer.runId) ?? [],
-    ...events.filter((event) => checkpointEventIdSet.has(event.eventId)).map((event) => event.runId),
-  ]);
-  const traceEvents = events.filter((event) => relatedRunIds.has(event.runId));
-  if (traceEvents.length > maximumDeliberationTraceEvents) {
-    throw Object.assign(new Error("숙의 추적 event가 1,000개를 넘었습니다."), {
-      code: "deliberation_trace_too_large",
+  const { started, artifacts, completed, traceEvents } = readDeliberationEventSnapshot({
+    events: input.storage.events,
+    eventCount: integrity.eventCount,
+    deliberationId: input.deliberationId,
+    checkpointEventIds: new Set(checkpointEventIds),
+    checkpointRunIds: new Set(
+      checkpointValue?.runtime.artifacts.map((artifact) => artifact.producer.runId) ?? [],
+    ),
+  });
+  if (started.length === 0 && artifacts.length === 0 && completed.length === 0) {
+    throw Object.assign(new Error("요청한 숙의 ID의 event가 없습니다."), {
+      code: "deliberation_not_found",
     });
   }
   let lease: DeliberationInspectionReport["lease"] = "missing";
