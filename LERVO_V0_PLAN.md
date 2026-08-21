@@ -1245,6 +1245,20 @@ CLI stage approval transition integration 완료 조건:
 - Transition receipt는 source record·workflow·npm·GitHub 설정·runtime state를 바꾸지 않음
 - 세 provenance가 같은 bootstrap consumed·stage-only·direct publish forbidden 의미로만 수렴함
 
+CLI first-publication stage evidence bundle manifest 완료 조건:
+
+- Stage review·decision·authorization·attempt·terminal·reconciliation 전체를 공용 validator로 재계산함
+- Manifest에는 원본 본문 대신 다섯 상대 좌표와 여섯 canonical digest만 기록함
+- Manifest 기준 디렉터리 밖의 source, 절대 경로·`.`·`..`·backslash·NUL 좌표를 거부함
+- Manifest를 canonical JSON 16 KiB, owner-only 새 파일 하나로 제한함
+- 기존 source와 result store를 복사·이동·수정하거나 한 파일에 이력을 누적하지 않음
+- Source 변경과 redigested path traversal을 bundle digest만으로 숨기지 못함
+- Manifest 생성 전후 source snapshot을 대조하고 기존 output을 덮어쓰지 않음
+- Transition이 기존 다섯 인자 또는 bundle 하나만 받고 혼합·부분 입력을 거부함
+- Bundle 소비도 모든 참조 원본을 다시 열어 계약과 digest를 검증함
+- Online 관측 뒤 manifest·원본·result snapshot을 모두 다시 확인함
+- Bundle 자체에 게시·재시도·전환·freshness 권한이나 새 telemetry를 부여하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1503,4 +1517,6 @@ CLI npm stage approval reconciliation evidence boundary를 완료했습니다. S
 
 CLI stage approval transition integration boundary를 완료했습니다. Confirmed reconciliation과 다섯 stage approval 원본을 새 union member로 재검증하고 publication authorization·source·artifact를 원래 authorization·bootstrap에 직접 결속합니다. 기존 네 transition gate를 우회 없이 재사용하며 direct arming provenance를 섞지 않습니다. 기존 두 member는 receipt v2를 유지하고 stage member만 v3로 분리합니다. 결정은 [ADR-0130](./docs/adr/0130-cli-stage-approval-transition-integration.md)에 기록했습니다.
 
-다음 구현 후보는 긴 stage operator 인자 집합을 한 번 검증된 bounded manifest로 묶되 원본 문서를 복제하지 않는 **first-publication stage evidence bundle manifest boundary**입니다. 현재 개별 문서가 원본이고 manifest는 digest·상대 좌표만 가진 파생 편의 계층이어야 합니다.
+CLI first-publication stage evidence bundle manifest boundary를 완료했습니다. Stage approval의 여섯 원본을 공용 evidence-set validator로 다시 계산한 뒤 manifest 디렉터리 안의 다섯 상대 좌표와 canonical digest만 16 KiB owner-only 문서로 기록합니다. Transition은 기존 다섯 인자 또는 bundle 하나를 상호 배타적으로 받고, bundle 사용 때도 모든 원본과 manifest를 online 관측 뒤 다시 확인합니다. 결정은 [ADR-0131](./docs/adr/0131-cli-stage-evidence-bundle-manifest.md)에 기록했습니다.
+
+다음 구현 후보는 저장된 stage bundle과 transition receipt를 읽어 현재 원본의 완전성·완료 provenance·남은 수동 조치를 쓰기 없이 설명하는 **first-publication completion inspection boundary**입니다.

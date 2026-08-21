@@ -10,6 +10,8 @@ import {
   completeCliFirstPublicationTransition,
   writeFirstPublicationTransitionReceipt,
 } from "../lib/cli-first-publication-transition.mjs";
+import { createCliFirstPublicationStageEvidenceBundle } from
+  "../lib/cli-first-publication-stage-evidence-bundle.mjs";
 import { createFirstPublicationStageApprovalReconciliationReport } from
   "../lib/first-publication-stage-approval-reconciliation.mjs";
 import { createFileFirstPublicationReservationStore } from
@@ -120,6 +122,7 @@ async function stageApprovalCommandFixture() {
     bootstrapPath: resolve(stage.root, "bootstrap.json"),
     workflowPath: resolve(stage.root, "workflow.yml"),
     reconciliationPath: resolve(stage.root, "stage-approval-reconciliation.json"),
+    bundlePath: resolve(stage.root, "stage-evidence-bundle.json"),
     outputPath: resolve(stage.root, "transition.json"),
   };
   const canonical = (value) => `${JSON.stringify(value, null, 2)}\n`;
@@ -129,6 +132,15 @@ async function stageApprovalCommandFixture() {
     writeFile(paths.workflowPath, canonical(stageOnlyWorkflow())),
     writeFile(paths.reconciliationPath, canonical(reconciliationReport)),
   ]);
+  await createCliFirstPublicationStageEvidenceBundle({
+    stageReviewReportPath: stage.stageReviewReportPath,
+    decisionPath: stage.decisionPath,
+    authorizationPath: stage.authorizationPath,
+    resultDirectory: stage.resultDirectory,
+    reconciliationReportPath: paths.reconciliationPath,
+    outputPath: paths.bundlePath,
+    write: true,
+  });
   return { stage, source, reconciliationReport, paths };
 }
 
@@ -162,6 +174,40 @@ describe("first-publication transition completion command", () => {
         prepared.paths.outputPath,
         "utf8",
       )).status, "completed");
+    } finally {
+      await rm(prepared.stage.root, { recursive: true, force: true });
+    }
+  });
+
+  it("completes from one stage evidence bundle and rechecks the manifest", async () => {
+    const prepared = await stageApprovalCommandFixture();
+    try {
+      const options = {
+        online: true,
+        evidenceType: "stage_approval_reconciliation",
+        publicationAuthorizationPath: prepared.paths.publicationAuthorizationPath,
+        bootstrapPath: prepared.paths.bootstrapPath,
+        workflowPath: prepared.paths.workflowPath,
+        stageApprovalBundlePath: prepared.paths.bundlePath,
+      };
+      const receipt = await completeCliFirstPublicationTransition(options, {
+        observePublicRelease: async () => matchingPublicObservation(prepared.source),
+        observeNpm: async () => matchingNpmObservation(),
+        observeGitHub: async () => matchingGitHubObservation(),
+        clock: () => "2026-08-21T10:21:00Z",
+      });
+      assert.equal(receipt.schemaVersion, 3);
+      assert.equal(receipt.publicationEvidence.type, "stage_approval_reconciliation");
+
+      await assert.rejects(completeCliFirstPublicationTransition(options, {
+        observePublicRelease: async () => matchingPublicObservation(prepared.source),
+        observeNpm: async () => {
+          await writeFile(prepared.paths.bundlePath, "{}\n");
+          return matchingNpmObservation();
+        },
+        observeGitHub: async () => matchingGitHubObservation(),
+        clock: () => "2026-08-21T10:21:00Z",
+      }), { code: "release_attestation_release_set_changed" });
     } finally {
       await rm(prepared.stage.root, { recursive: true, force: true });
     }
@@ -363,6 +409,8 @@ describe("first-publication transition completion command", () => {
       "--stage-approval-result-directory", "/stage-result",
       "--stage-approval-reconciliation", "/stage-reconciliation.json",
     ];
+    const stageCommon = common.filter((value) => value !== "--arming-authorization" &&
+      value !== "/arming.json");
     for (const args of [
       [...common, "--execution-receipt", "/execution.json"],
       [...common, "--online", "--execution-receipt", "/execution.json", ...resolution],
@@ -370,8 +418,11 @@ describe("first-publication transition completion command", () => {
       [...common, "--online", "--execution-receipt", "execution.json"],
       [...common, "--online", "--online", "--execution-receipt", "/execution.json"],
       [...common, "--online", "--execution-receipt", "/execution.json", ...stageApproval],
-      [...common.filter((value) => value !== "--arming-authorization" &&
-        value !== "/arming.json"), "--online", ...stageApproval.slice(0, -2)],
+      [...stageCommon, "--online", ...stageApproval.slice(0, -2)],
+      [...stageCommon, "--online", ...stageApproval,
+        "--stage-approval-bundle", "/stage-bundle.json"],
+      [...stageCommon, "--online", "--stage-approval-bundle", "stage-bundle.json"],
+      [...common, "--online", "--stage-approval-bundle", "/stage-bundle.json"],
     ]) {
       const result = spawnSync(process.execPath, [
         "scripts/complete-cli-first-publication-transition.mjs",

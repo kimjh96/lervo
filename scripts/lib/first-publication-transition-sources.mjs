@@ -13,11 +13,10 @@ import { validateFirstPublicationExecutionReceipt } from
   "./first-publication-execution-receipt.mjs";
 import { readFirstPublicationResolutionSources } from
   "./first-publication-resolution-sources.mjs";
-import { readFirstPublicationStageApprovalReconciliationSources } from
-  "./first-publication-stage-approval-reconciliation-sources.mjs";
-import {
-  validateFirstPublicationStageApprovalReconciliationReportDocument,
-} from "./first-publication-stage-approval-reconciliation.mjs";
+import { readFirstPublicationStageEvidenceBundleSources } from
+  "./first-publication-stage-evidence-bundle-sources.mjs";
+import { readFirstPublicationStageEvidenceSetSources } from
+  "./first-publication-stage-evidence-set-sources.mjs";
 import { validateFirstPublicationResolutionDocument } from
   "./first-publication-resolution.mjs";
 import { resolveFirstPublicationTransitionEvidence } from
@@ -135,25 +134,25 @@ async function readResolutionSources(options, dependencies) {
 }
 
 async function readStageApprovalSources(options, dependencies) {
-  const stageOptions = {
-    stageReviewReportPath: options.stageApprovalReviewPath,
-    decisionPath: options.stageApprovalDecisionPath,
-    authorizationPath: options.stageApprovalAuthorizationPath,
-    resultDirectory: options.stageApprovalResultDirectory,
-  };
-  if (!isAbsolute(options?.stageApprovalReconciliationPath ?? "")) fail();
-  const [contracts, stageSources, reportSnapshot] = await Promise.all([
+  const readStageSources = options.stageApprovalBundlePath === undefined
+    ? readFirstPublicationStageEvidenceSetSources
+    : readFirstPublicationStageEvidenceBundleSources;
+  const stageInput = options.stageApprovalBundlePath === undefined
+    ? {
+        stageReviewReportPath: options.stageApprovalReviewPath,
+        decisionPath: options.stageApprovalDecisionPath,
+        authorizationPath: options.stageApprovalAuthorizationPath,
+        resultDirectory: options.stageApprovalResultDirectory,
+        reconciliationReportPath: options.stageApprovalReconciliationPath,
+      }
+    : options.stageApprovalBundlePath;
+  const [contracts, stageSources] = await Promise.all([
     readFirstPublicationContractFiles(options),
-    readFirstPublicationStageApprovalReconciliationSources(stageOptions, dependencies),
-    readSnapshot(options.stageApprovalReconciliationPath, 128 * 1024),
+    readStageSources(stageInput, dependencies),
   ]);
-  const reconciliationReport =
-    validateFirstPublicationStageApprovalReconciliationReportDocument(
-      parseJson(reportSnapshot.contents),
-    );
   const publicationEvidence = {
     type: "stage_approval_reconciliation",
-    reconciliationReport,
+    reconciliationReport: stageSources.reconciliationReport,
     stageReviewReport: stageSources.stageReviewReport,
     decision: stageSources.decision,
     authorization: stageSources.authorization,
@@ -168,7 +167,6 @@ async function readStageApprovalSources(options, dependencies) {
       await Promise.all([
         contracts.assertUnchanged(),
         stageSources.assertUnchanged(),
-        assertReleaseFilesUnchanged([reportSnapshot]),
       ]);
     },
   };

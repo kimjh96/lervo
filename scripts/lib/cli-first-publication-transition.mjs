@@ -42,23 +42,27 @@ function validOptions(options) {
     options.stageApprovalResultDirectory,
     options.stageApprovalReconciliationPath,
   ];
+  const stageBundle = options.stageApprovalBundlePath;
   if (options.evidenceType === "execution_receipt") {
     return isAbsolute(options.armingAuthorizationPath ?? "") &&
       isAbsolute(options.executionReceiptPath ?? "") &&
       resolutionValues.every((value) => value === undefined) &&
-      stageValues.every((value) => value === undefined);
+      stageValues.every((value) => value === undefined) && stageBundle === undefined;
   }
   if (options.evidenceType === "reconciliation_resolution") {
     return isAbsolute(options.armingAuthorizationPath ?? "") &&
       options.executionReceiptPath === undefined &&
       resolutionValues.every((value) => isAbsolute(value ?? "")) &&
-      stageValues.every((value) => value === undefined);
+      stageValues.every((value) => value === undefined) && stageBundle === undefined;
   }
   return options.evidenceType === "stage_approval_reconciliation" &&
     options.armingAuthorizationPath === undefined &&
     options.executionReceiptPath === undefined &&
     resolutionValues.every((value) => value === undefined) &&
-    stageValues.every((value) => isAbsolute(value ?? ""));
+    ((stageValues.every((value) => isAbsolute(value ?? "")) &&
+      stageBundle === undefined) ||
+      (stageValues.every((value) => value === undefined) &&
+        isAbsolute(stageBundle ?? "")));
 }
 
 export async function completeCliFirstPublicationTransition(options, dependencies = {}) {

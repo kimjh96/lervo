@@ -2,20 +2,8 @@ import { validateFirstPublicationExecutionReceipt } from
   "./first-publication-execution-receipt.mjs";
 import { validateFirstPublicationResolution } from
   "./first-publication-resolution.mjs";
-import { validateFirstPublicationStageApprovalAuthorization } from
-  "./first-publication-stage-approval-authorization.mjs";
-import { validateFirstPublicationStageApprovalDecision } from
-  "./first-publication-stage-approval-decision.mjs";
-import {
-  bindFirstPublicationStageApprovalTerminal,
-  validateFirstPublicationStageApprovalAttempt,
-} from "./first-publication-stage-approval-records.mjs";
-import {
-  validateFirstPublicationStageApprovalReconciliationReport,
-  validateFirstPublicationStageApprovalReconciliationReportDocument,
-} from "./first-publication-stage-approval-reconciliation.mjs";
-import { validateFirstPublicationStageReviewReportDocument } from
-  "./first-publication-stage-review-report.mjs";
+import { validateFirstPublicationStageApprovalEvidenceSet } from
+  "./first-publication-stage-approval-evidence-set.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 import { validateReleasePublicationAuthorization } from
@@ -81,42 +69,14 @@ export function resolveFirstPublicationTransitionEvidence(publicationEvidence, s
       attempt,
       terminal,
     } = publicationEvidence;
-    validateFirstPublicationStageReviewReportDocument(stageReviewReport);
-    validateFirstPublicationStageApprovalDecision(decision);
-    validateFirstPublicationStageApprovalAuthorization(authorization, {
+    validateFirstPublicationStageApprovalEvidenceSet({
+      reconciliationReport,
       stageReviewReport,
       decision,
-      authorizedAt: authorization?.validity?.authorizedAt,
+      authorization,
+      attempt,
+      terminal,
     });
-    validateFirstPublicationStageApprovalAttempt(attempt);
-    bindFirstPublicationStageApprovalTerminal(terminal, attempt);
-    validateFirstPublicationStageApprovalReconciliationReportDocument(
-      reconciliationReport,
-    );
-    validateFirstPublicationStageApprovalReconciliationReport(
-      reconciliationReport,
-      {
-        stageReviewReport,
-        authorization,
-        attempt,
-        terminal,
-        observation: {
-          schemaVersion: 1,
-          source: "npm_stage_approval_reconciliation",
-          state: "observed",
-          registry: reconciliationReport.npm.registry,
-          package: reconciliationReport.target.package,
-          version: reconciliationReport.target.version,
-          distTag: reconciliationReport.binding.stage.distTag,
-          publicRelease: reconciliationReport.npm.publicRelease,
-          stage: reconciliationReport.npm.approvalStage,
-          stageListStability: reconciliationReport.npm.stageListStability,
-          userConfig: reconciliationReport.npm.userConfig,
-          temporaryFiles: reconciliationReport.npm.temporaryFiles,
-        },
-        observedAt: reconciliationReport.npm.observedAt,
-      },
-    );
     const bootstrap = sources.bootstrap;
     const releaseAuthorization = validateReleasePublicationAuthorization(
       sources.publicationAuthorization,

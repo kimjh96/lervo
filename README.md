@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령·stage-only workflow 후보·stage 게시 명령·workflow 활성화 허가와 복구 transaction·사후 검증·원격 source·branch/tag 도달 가능성·workflow 실행·stage 결과 artifact·staged package 검토 증거 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령·stage-only workflow 후보·stage 게시 명령·workflow 활성화 허가와 복구 transaction·사후 검증·원격 source·branch/tag 도달 가능성·workflow 실행·stage 결과 artifact·staged package 검토·사람 승인·불변 실행 기록·공개 결과 대조·transition 통합·stage 증거 bundle 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -150,6 +150,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI interactive npm stage 승인 실행 ADR](./docs/adr/0128-cli-interactive-npm-stage-approval-execution.md)
 - [CLI npm stage 승인 결과 대조 증거 ADR](./docs/adr/0129-cli-npm-stage-approval-reconciliation-evidence.md)
 - [CLI stage 승인 transition 통합 ADR](./docs/adr/0130-cli-stage-approval-transition-integration.md)
+- [CLI stage 증거 bundle manifest ADR](./docs/adr/0131-cli-stage-evidence-bundle-manifest.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -319,7 +320,7 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 
 `pnpm release:bootstrap:external-evidence --receipt <절대 경로> --post-apply-report <절대 경로> --publication-authorization <절대 경로> --license-approval <절대 경로> --scope-confirmation <절대 경로> --first-publication-approval <절대 경로> --online [--json]`은 서로 분리된 짧은 문서와 public npm 관측을 하나의 읽기 전용 report에 결속합니다. 저장한 post-apply report를 현재 원본에서 온라인 관측 전후 두 번 다시 계산하고, license 승인·scope control 확인·전체 최초 게시 승인이 같은 package·repository·license·scope와 release를 가리키는지 확인합니다. 결과는 `evidence_bound`이지만 `not_armed`이며 actor 신원, 실제 npm scope 권한, 비공개 package 부재, receipt 발급 진위와 release artifact bytes를 증명하거나 다시 검증하지 않습니다. 입력과 저장소 파일을 바꾸거나 승인·activation·게시를 실행하지 않습니다.
 
-최초 게시 뒤에는 `pnpm release:bootstrap:transition`이 정상 execution receipt, 검토된 direct-publication reconciliation resolution 또는 `public_release_confirmed` stage approval reconciliation 중 정확히 한 경로를 받습니다. Stage 경로는 기존 공통 인자와 `--stage-approval-review`, `--stage-approval-decision`, `--stage-approval-authorization`, `--stage-approval-result-directory`, `--stage-approval-reconciliation`을 사용하며 direct arming 입력을 섞지 않습니다. 명시적 `--online`에서 public npm exact release, npm Trusted Publisher와 GitHub `npm-release` 환경을 함께 다시 확인하고 모든 원본이 그대로일 때만 새 output을 기록합니다. 기존 두 경로는 receipt v2를 유지하고 새 stage provenance는 v3를 사용합니다. 준비되지 않은 control, 혼합 증거, 원본 변경과 기존 output은 실패하며 저장 기록·workflow·외부 설정·runtime telemetry를 바꾸지 않습니다.
+최초 게시 뒤에는 `pnpm release:bootstrap:transition`이 정상 execution receipt, 검토된 direct-publication reconciliation resolution 또는 `public_release_confirmed` stage approval reconciliation 중 정확히 한 경로를 받습니다. Stage 경로는 기존 다섯 source 인자 또는 `--stage-approval-bundle <절대 경로>` 하나를 사용하며 둘을 섞거나 direct arming 입력을 넣지 않습니다. Bundle도 내부 원본을 다시 열어 digest·계약·관측 뒤 불변성을 같은 방식으로 확인합니다. 명시적 `--online`에서 public npm exact release, npm Trusted Publisher와 GitHub `npm-release` 환경을 함께 다시 확인하고 모든 원본이 그대로일 때만 새 output을 기록합니다. 기존 두 경로는 receipt v2를 유지하고 새 stage provenance는 v3를 사용합니다. 준비되지 않은 control, 혼합 증거, 원본 변경과 기존 output은 실패하며 저장 기록·workflow·외부 설정·runtime telemetry를 바꾸지 않습니다.
 
 `pnpm release:bootstrap:workflow-candidate [--json|--workflow-yaml]`은 비활성 release workflow에 exact `publish-cli` job 하나를 추가할 검토용 후보입니다. YAML 전체를 다시 쓰지 않고 `jobs` mapping의 byte 경계에 고정 block만 삽입하며 원본의 다른 bytes와 뒤쪽 최상위 block을 보존합니다. 후보는 package manifest의 exact `release:publication:stage` script를 확인하고, 원본 workflow·package manifest·외부 설정·게시 상태를 바꾸지 않습니다.
 
@@ -344,6 +345,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 Fresh authorization을 실제로 소비할 때만 `pnpm release:bootstrap:stage-approve --repository <owner/repo> --source-commit <commit> --release-tag <tag> --run-id <id> --attempt <n> --stage-review-report <절대 경로> --decision <절대 경로> --authorization <절대 경로> --npm-user-config <절대 경로> --result-directory <새 절대 경로> --online --write [--json]`을 대화형 terminal에서 실행합니다. 명령은 exact stage를 list·view로 재확인하고 immutable attempt를 먼저 저장한 뒤 `npm stage approve`를 한 번만 호출합니다. npm의 2FA 입력은 terminal에서 직접 처리하며 Lervo 문서에는 저장하지 않습니다. Exit code 0도 공개 증명은 아니므로 terminal은 별도 public registry 검증을 요구하고 재시도를 금지합니다.
 
 승인 시도 뒤에는 `pnpm release:bootstrap:stage-approve-reconcile --repository <owner/repo> --source-commit <commit> --release-tag <tag> --run-id <id> --attempt <n> --stage-review-report <절대 경로> --decision <절대 경로> --authorization <절대 경로> --npm-user-config <절대 경로> --result-directory <절대 경로> --online [--json]`으로 결과를 읽기 전용 대조합니다. Public npm의 exact version integrity·shasum과 dist-tag, 인증된 stage list에서 승인 대상 stage가 사라졌는지를 함께 확인합니다. 둘 다 맞아야 `public_release_confirmed`이며, 결과가 다르거나 registry가 불안정하면 `unknown`입니다. 어떤 결과도 자동 재시도나 transition 완료 권한이 아닙니다.
+
+`pnpm release:bootstrap:stage-evidence-bundle --stage-review-report <절대 경로> --decision <절대 경로> --authorization <절대 경로> --result-directory <절대 경로> --reconciliation-report <절대 경로> --output <새 절대 경로> --write [--json]`은 다섯 stage source를 전체 재검증한 뒤 16 KiB 이하의 짧은 manifest를 만듭니다. Manifest는 자기 디렉터리 안의 안전한 상대 경로와 여섯 원본 digest만 가지며 문서 본문·절대 경로·게시 상태를 복제하지 않습니다. 원본이 바뀌면 bundle도 사용할 수 없고 manifest 자체에는 게시·재시도·전환 권한이 없습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

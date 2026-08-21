@@ -41,6 +41,7 @@
     "release:bootstrap:stage-approve-authorize": "node scripts/authorize-cli-first-publication-stage-approval.mjs",
     "release:bootstrap:stage-approve": "node scripts/approve-cli-first-publication-stage.mjs",
     "release:bootstrap:stage-approve-reconcile": "node scripts/reconcile-cli-first-publication-stage-approval.mjs",
+    "release:bootstrap:stage-evidence-bundle": "node scripts/create-cli-first-publication-stage-evidence-bundle.mjs",
     "release:bootstrap:plan": "node scripts/show-cli-first-publication-execution-plan.mjs",
     "release:bootstrap:arm": "node scripts/authorize-cli-first-publication-arming.mjs",
     "release:bootstrap:blockers": "node scripts/show-cli-first-publication-activation-blockers.mjs",
