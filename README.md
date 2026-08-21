@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령 완료 (2026-08-21)
 
 ## 목표
 
@@ -135,6 +135,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 불명확한 결과 대조 ADR](./docs/adr/0113-cli-first-publication-unknown-outcome-reconciliation.md)
 - [CLI 최초 공개 게시 reconciliation resolution ADR](./docs/adr/0114-cli-first-publication-reconciliation-resolution.md)
 - [CLI 최초 공개 게시 transition evidence union ADR](./docs/adr/0115-cli-first-publication-transition-evidence-union.md)
+- [CLI 최초 공개 게시 transition 완료 명령 ADR](./docs/adr/0116-cli-first-publication-transition-completion-command.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -272,7 +273,7 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 
 `pnpm release:bootstrap:authorize --release-directory <absolute-path> --publication-authorization <absolute-path> --external-evidence <absolute-path> --output <new-absolute-path> --online`은 external evidence report v1을 exact release bytes·package identity와 새 public npm 404 관측에 다시 결속해 bootstrap v2를 만듭니다. Bootstrap은 license·scope·최초 게시 승인 문서를 다시 직접 해석하지 않으며 evidence report와 그 안의 post-apply·receipt·세 사람 문서 digest를 보존합니다. 유효기간은 evidence report 만료와 새 관측 뒤 10분 중 더 이른 시각입니다. v1 bootstrap과 예전 `--approval` 입력은 명시적으로 거부합니다. 결과는 수동 2FA 게시 준비물이며 재사용할 수 없고, private package 부재·실제 npm scope 권한·actor 신원을 증명하지 않습니다. Credential, 실제 게시, Trusted Publisher·GitHub 설정 변경도 실행하지 않습니다.
 
-최초 게시 실행 코어는 유효한 arming authorization을 실행 시작과 예약 직전에 다시 확인하고, public package 부재를 재관측한 뒤 authorization digest에 결속된 durable 예약을 확보해야 exact tarball publisher port를 호출합니다. 호출 뒤 결과를 확인하지 못하면 `publication_unknown`으로 닫고 같은 bootstrap의 재시도를 금지하며, 성공해도 `published_transition_pending`일 뿐입니다. 별도 전환 코어는 정상 execution receipt와 reviewed reconciliation resolution을 서로 다른 증거로 검증합니다. 두 경로 모두 exact public release, stage-only workflow, exact npm `createStagedPackage` trust와 self-review를 막은 GitHub `npm-release` 보호가 같은 관측 묶음에서 ready여야 bootstrap을 `consumed`로 완료합니다. 실제 2FA 게시 CLI·전환 CLI·외부 설정·workflow publish job은 없습니다.
+최초 게시 실행 코어는 유효한 arming authorization을 실행 시작과 예약 직전에 다시 확인하고, public package 부재를 재관측한 뒤 authorization digest에 결속된 durable 예약을 확보해야 exact tarball publisher port를 호출합니다. 호출 뒤 결과를 확인하지 못하면 `publication_unknown`으로 닫고 같은 bootstrap의 재시도를 금지하며, 성공해도 `published_transition_pending`일 뿐입니다. 별도 전환 코어는 정상 execution receipt와 reviewed reconciliation resolution을 서로 다른 증거로 검증합니다. 두 경로 모두 exact public release, stage-only workflow, exact npm `createStagedPackage` trust와 self-review를 막은 GitHub `npm-release` 보호가 같은 관측 묶음에서 ready여야 bootstrap을 `consumed`로 완료합니다. 전환 완료 명령은 준비된 control을 읽기만 하며, 실제 2FA 게시 CLI와 외부 설정·workflow publish job 구성은 아직 없습니다.
 
 `pnpm release:bootstrap:reconcile --publication-authorization <절대 경로> --bootstrap <절대 경로> --arming-authorization <절대 경로> --reservation-root <절대 경로> --online [--json]`은 `publication_unknown`으로 끝난 exact 예약만 public npm의 대상 version metadata와 dist-tag에 대조합니다. 두 값이 승인된 release와 모두 일치할 때 `published`, 둘 다 보이지 않을 때 `not_observed`, 일부만 보이거나 digest가 다르고 registry를 읽지 못하면 `unknown`입니다. 어느 결과도 자동 재시도나 게시 완료 전환 권한이 아니며 명령은 기존 예약·terminal·외부 설정을 바꾸거나 결과 파일을 남기지 않습니다.
 
@@ -301,6 +302,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 저장한 apply receipt가 있으면 `pnpm release:bootstrap:metadata-verify --receipt <absolute-path> [--json]`로 현재 package manifest·release manifest·SBOM·lockfile을 다시 읽습니다. 현재 세 결과가 receipt의 after binding과 같은지, production generator로 다시 만든 release manifest 및 SBOM이 일관적인지, 로컬 metadata 차단 항목이 해소됐는지 확인합니다. Pending transaction이 있으면 source를 읽기 전에 막고 검증 중 생긴 transaction도 반환 전에 다시 막습니다. Receipt의 서명이나 발급 주체, license 승인·public npm 이름·scope control·최초 게시 승인은 증명하지 않으며 파일 수정·온라인 관측·활성화·게시를 실행하지 않습니다.
 
 `pnpm release:bootstrap:external-evidence --receipt <절대 경로> --post-apply-report <절대 경로> --publication-authorization <절대 경로> --license-approval <절대 경로> --scope-confirmation <절대 경로> --first-publication-approval <절대 경로> --online [--json]`은 서로 분리된 짧은 문서와 public npm 관측을 하나의 읽기 전용 report에 결속합니다. 저장한 post-apply report를 현재 원본에서 온라인 관측 전후 두 번 다시 계산하고, license 승인·scope control 확인·전체 최초 게시 승인이 같은 package·repository·license·scope와 release를 가리키는지 확인합니다. 결과는 `evidence_bound`이지만 `not_armed`이며 actor 신원, 실제 npm scope 권한, 비공개 package 부재, receipt 발급 진위와 release artifact bytes를 증명하거나 다시 검증하지 않습니다. 입력과 저장소 파일을 바꾸거나 승인·activation·게시를 실행하지 않습니다.
+
+최초 게시 뒤에는 `pnpm release:bootstrap:transition`이 정상 execution receipt 또는 검토된 reconciliation resolution 중 정확히 한 경로를 받습니다. 명시적 `--online`에서 public npm의 exact release, npm Trusted Publisher와 GitHub `npm-release` 환경을 함께 확인하고, bounded workflow snapshot과 모든 증거 원본이 관측 뒤에도 같을 때만 새 절대 output에 transition receipt v2를 기록합니다. 준비되지 않은 외부 control, 혼합 증거, 원본 변경과 기존 output은 실패하며 예약·unknown terminal·workflow·npm·GitHub 설정이나 runtime telemetry를 바꾸지 않습니다. 전체 인자는 [ADR-0116](./docs/adr/0116-cli-first-publication-transition-completion-command.md)에 기록합니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

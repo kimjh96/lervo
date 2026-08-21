@@ -4,8 +4,12 @@ import { validateFirstPublicationBootstrapAuthorization } from
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { createFirstPublicationTransitionReport } from
   "./first-publication-transition-policy.mjs";
+import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
+const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
+const registryIntegrityPattern = /^sha512-[A-Za-z0-9+/]+={0,2}$/u;
+const registryShasumPattern = /^[a-f0-9]{40}$/u;
 
 function fail(code = "first_publication_transition_receipt_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -23,6 +27,18 @@ function body(receipt) {
     publicRelease: receipt.publicRelease,
     transition: receipt.transition,
   };
+}
+
+function exactKeys(value, keys) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+}
+
+function timestamp(value) {
+  if (typeof value !== "string" || !timestampPattern.test(value)) fail();
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) fail();
+  return milliseconds;
 }
 
 export function createFirstPublicationTransitionReceipt({
@@ -86,15 +102,7 @@ export function validateFirstPublicationTransitionReceipt(
   },
 ) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  const receiptBody = body(receipt ?? {});
-  if (
-    receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
-    canonicalJson(Object.keys(receipt).sort()) !==
-      canonicalJson([...Object.keys(receiptBody), "transitionReceiptDigest"].sort()) ||
-    receipt.schemaVersion !== 2 || receipt.status !== "completed" ||
-    !digestPattern.test(receipt.transitionReceiptDigest ?? "") ||
-    receipt.transitionReceiptDigest !== canonicalDigest(receiptBody)
-  ) fail();
+  validateFirstPublicationTransitionReceiptDocument(receipt);
   const expected = createFirstPublicationTransitionReceipt({
     bootstrap,
     armingAuthorization,
@@ -107,5 +115,53 @@ export function validateFirstPublicationTransitionReceipt(
     completedAt: receipt?.transition?.completedAt,
   });
   if (canonicalJson(receipt) !== canonicalJson(expected)) fail();
+  return receipt;
+}
+
+export function validateFirstPublicationTransitionReceiptDocument(receipt) {
+  const receiptBody = body(receipt ?? {});
+  const evidence = receipt?.publicationEvidence;
+  const publicRelease = receipt?.publicRelease;
+  const transition = receipt?.transition;
+  if (
+    receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
+    canonicalJson(Object.keys(receipt).sort()) !==
+      canonicalJson([...Object.keys(receiptBody), "transitionReceiptDigest"].sort()) ||
+    receipt.schemaVersion !== 2 || receipt.status !== "completed" ||
+    !exactKeys(receipt.bootstrap, ["state", "bootstrapDigest"]) ||
+    receipt.bootstrap.state !== "consumed" ||
+    !digestPattern.test(receipt.bootstrap.bootstrapDigest ?? "") ||
+    !exactKeys(evidence, ["type", "digest", "evidenceAt", "basis"]) ||
+    !["execution_receipt", "reconciliation_resolution"].includes(evidence.type) ||
+    !digestPattern.test(evidence.digest ?? "") ||
+    (evidence.type === "execution_receipt" &&
+      evidence.basis !== "publisher_receipt_verified") ||
+    (evidence.type === "reconciliation_resolution" &&
+      evidence.basis !== "public_registry_reconciliation_reviewed") ||
+    !exactKeys(publicRelease, ["observedAt", "target", "artifact"]) ||
+    !exactKeys(publicRelease.target, ["registry", "package", "version", "distTag", "access"]) ||
+    publicRelease.target.registry !== npmPublicRegistry ||
+    publicRelease.target.package !== "@lervo/cli" ||
+    !/^\d+\.\d+\.\d+$/u.test(publicRelease.target.version ?? "") ||
+    !["latest", "next"].includes(publicRelease.target.distTag) ||
+    publicRelease.target.access !== "public" ||
+    !exactKeys(publicRelease.artifact, ["registryIntegrity", "registryShasum"]) ||
+    !registryIntegrityPattern.test(publicRelease.artifact.registryIntegrity ?? "") ||
+    !registryShasumPattern.test(publicRelease.artifact.registryShasum ?? "") ||
+    !exactKeys(transition, [
+      "completedAt", "reportDigest", "mode", "workflow", "environment", "permission",
+      "directPublish",
+    ]) ||
+    !digestPattern.test(transition.reportDigest ?? "") ||
+    transition.mode !== "trusted_publisher_stage_only" ||
+    transition.workflow !== "cli-release-matrix.yml" ||
+    transition.environment !== "npm-release" ||
+    transition.permission !== "createStagedPackage" ||
+    transition.directPublish !== "forbidden" ||
+    timestamp(publicRelease.observedAt) < timestamp(evidence.evidenceAt) ||
+    transition.completedAt !== publicRelease.observedAt ||
+    !digestPattern.test(receipt.transitionReceiptDigest ?? "") ||
+    receipt.transitionReceiptDigest !== canonicalDigest(receiptBody)
+  ) fail();
   return receipt;
 }

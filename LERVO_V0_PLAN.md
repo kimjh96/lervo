@@ -1006,6 +1006,21 @@ CLI first-publication transition evidence union 완료 조건:
 - Provider identity·credential·외부 응답 원문과 새 telemetry를 만들지 않음
 - 코어가 network freshness나 source snapshot을 직접 보장한다고 주장하지 않음
 
+CLI first-publication transition completion command 완료 조건:
+
+- Execution receipt 또는 reconciliation resolution source 전체 중 정확히 한 경로만 받음
+- 공통 계약·증거 JSON은 64 KiB, workflow YAML은 256 KiB 이하 regular-file snapshot으로 읽음
+- Resolution 경로의 immutable unknown reservation snapshot을 읽되 만들거나 바꾸지 않음
+- `--online`과 모든 절대 경로를 source·observer보다 먼저 확인함
+- Public npm·npm trust·GitHub environment를 같은 online 수명주기에서 관측함
+- 네 transition 검사를 같은 완료 시각으로 다시 계산하고 blocked·unknown을 실패로 닫음
+- 관측 뒤 모든 source bytes·workflow·저장 snapshot이 그대로인지 다시 확인함
+- 성공한 경우에만 새 절대 output을 `wx`로 만들고 기존 output을 덮어쓰지 않음
+- Receipt v2가 evidence type·digest·basis와 exact public release를 보존함
+- Source 변경, 혼합 evidence, 권한 상향 재해시와 legacy receipt를 fixture로 거부함
+- 게시·workflow·npm·GitHub 설정과 reservation·terminal을 바꾸지 않음
+- Actor·reviewer·trust ID·credential·외부 원문과 새 telemetry를 기록하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1234,4 +1249,6 @@ CLI first-publication reconciliation resolution boundary를 완료했습니다. 
 
 CLI first-publication transition evidence union을 완료했습니다. Execution receipt와 reconciliation resolution을 exact-key tagged union으로 검증하고 type·digest·evidence 시각·basis를 보존합니다. Reconciliation과 transition이 공용 public-release 정책을 사용하며, 두 경로 모두 exact public release·stage-only workflow·npm trust·GitHub environment 네 검사를 통과해야 transition receipt v2의 같은 completed·bootstrap consumed 의미로 수렴합니다. Resolution을 execution receipt로 바꾸거나 provenance를 숨기지 않으며 legacy v1 receipt는 거부합니다. 결정은 [ADR-0115](./docs/adr/0115-cli-first-publication-transition-evidence-union.md)에 기록했습니다.
 
-다음 구현 작업은 transition evidence source 파일과 workflow snapshot을 bounded하게 읽고, public npm·npm trust·GitHub environment를 같은 online 수명주기에서 관측한 뒤 새 transition receipt만 쓰는 **CLI first-publication transition completion command boundary**입니다.
+CLI first-publication transition completion command를 완료했습니다. 두 evidence 경로를 인자부터 분리하고 공통 계약·증거·workflow와 resolution의 unknown 저장 snapshot을 bounded하게 읽습니다. Public npm·npm trust·GitHub environment를 같은 online 수명주기에서 관측한 뒤 모든 source를 다시 확인하며, 네 검사가 ready인 경우에만 새 transition receipt v2를 `wx`로 씁니다. 게시·외부 설정·reservation·terminal·telemetry는 바꾸지 않습니다. 결정은 [ADR-0116](./docs/adr/0116-cli-first-publication-transition-completion-command.md)에 기록했습니다.
+
+다음 구현 작업은 현재 비활성 release workflow에 exact stage-only `publish-cli` job을 검토 가능한 별도 산출물로 제안하되 원본을 쓰지 않는 **CLI first-publication stage-only workflow activation candidate boundary**입니다.

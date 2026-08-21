@@ -51,7 +51,9 @@ Transition receipt v2는 두 경로에서 공통으로 다음을 기록합니다
 
 오류에는 actor·credential·reviewer·trust ID·외부 응답 원문을 넣지 않습니다. `first_publication_transition_evidence_invalid`는 union type·field 조합이 잘못됐다는 뜻이고 `first_publication_public_release_observation_invalid`는 공용 관측 schema가 잘못됐다는 뜻입니다. 기존 transition input·not ready·receipt 오류는 유지합니다.
 
-현재 구현은 provider-neutral 순수 코어와 fixture입니다. 호출자가 같은 전환 수명주기의 workflow·public npm·npm trust·GitHub 관측을 전달해야 하며, 코어가 network freshness나 source snapshot을 직접 보장한다고 주장하지 않습니다. 이를 연결하는 CLI, 외부 설정 변경과 workflow 활성화는 아직 없습니다. 새 runtime event·project 상태·telemetry도 만들지 않습니다.
+이 결정 단계의 구현은 provider-neutral 순수 코어와 fixture입니다. 호출자가 같은 전환 수명주기의 workflow·public npm·npm trust·GitHub 관측을 전달해야 하며, 코어가 network freshness나 source snapshot을 직접 보장한다고 주장하지 않습니다. 이 단계에는 이를 연결하는 CLI, 외부 설정 변경과 workflow 활성화가 없었고 새 runtime event·project 상태·telemetry도 만들지 않았습니다.
+
+> 후속 결정: [ADR-0116](./0116-cli-first-publication-transition-completion-command.md)은 이 코어에 bounded source reader, 세 online observer와 immutable receipt writer를 연결합니다. 외부 설정 변경과 workflow 활성화는 여전히 포함하지 않습니다.
 
 ## 결과
 
