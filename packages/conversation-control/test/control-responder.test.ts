@@ -323,6 +323,7 @@ describe("conversation command control", () => {
     expect(start).toHaveBeenCalledWith({
       projectId: "prj_control01",
       principalId: "operator:reviewer",
+      sourceEventId: event.eventId,
       policyId: "deliberation_product-review",
       topic: "배포 구조를 검토합니다.",
       requestedAt: "2026-08-20T00:05:00.000Z",

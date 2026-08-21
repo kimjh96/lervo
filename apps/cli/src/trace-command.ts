@@ -12,6 +12,11 @@ import {
   traceUsage,
 } from "./trace-options.js";
 import type { CliIo, CliServices } from "./types.js";
+import {
+  formatDeliberationTrace,
+  inspectManagedDeliberation,
+  maximumDeliberationTraceEvents,
+} from "./deliberation-inspection.js";
 
 export async function runTraceCommand(
   args: string[],
@@ -30,7 +35,15 @@ export async function runTraceCommand(
     return 0;
   }
   if (options.request.kind === "capabilities") {
-    io.stdout(`${JSON.stringify(createTraceCapabilitiesReport(), null, 2)}\n`);
+    io.stdout(`${JSON.stringify({
+      ...createTraceCapabilitiesReport(),
+      deliberationDiagnostics: {
+        supported: true,
+        reportSchemaVersion: 1,
+        maximumEventCount: maximumDeliberationTraceEvents,
+        selector: "deliberation-id",
+      },
+    }, null, 2)}\n`);
     return 0;
   }
   let storage;
@@ -38,7 +51,15 @@ export async function runTraceCommand(
     storage = await services.openProjectStorage(
       resolve(io.cwd, options.root ?? "."),
     );
-    if (options.request.kind === "full") {
+    if (options.request.kind === "deliberation") {
+      const report = await inspectManagedDeliberation({
+        storage,
+        deliberationId: options.request.deliberationId,
+      });
+      io.stdout(options.json
+        ? `${JSON.stringify(report, null, 2)}\n`
+        : formatDeliberationTrace(report));
+    } else if (options.request.kind === "full") {
       const report = createTraceReport({
         projectId: storage.manifest.projectId,
         events: storage.events,

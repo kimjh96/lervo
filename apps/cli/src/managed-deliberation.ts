@@ -19,6 +19,10 @@ import {
 } from "./deliberation-contract.js";
 import { executeDeliberationRounds } from "./deliberation-rounds.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
+import {
+  acquireDeliberationLease,
+  releaseDeliberationLease,
+} from "./deliberation-lease.js";
 import { resumeManagedDeliberationWithStorage } from "./managed-deliberation-resume.js";
 import {
   createInlineDeliberationExecutionPlan,
@@ -262,6 +266,7 @@ async function executeWithStorage(
     dependencies.runner,
   );
   let completed = false;
+  let leaseOwnerId: string | null = null;
   let openBlockingObjections: string[] = [];
   runtime.start();
   try {
@@ -283,6 +288,14 @@ async function executeWithStorage(
       completed = true;
       return rounds.result;
     }
+    leaseOwnerId = dependencies.createId("dlw");
+    await acquireDeliberationLease({
+      stateRoot: storage.paths.state,
+      deliberationId,
+      ownerId: leaseOwnerId,
+      acquiredAt: dependencies.now().toISOString(),
+      recoverStale: false,
+    });
     await writeApprovedDeliberationCheckpoint({
       stateRoot: storage.paths.state,
       checkpoint: {
@@ -318,6 +331,12 @@ async function executeWithStorage(
       now: dependencies.now,
     });
     completed = true;
+    await releaseDeliberationLease({
+      stateRoot: storage.paths.state,
+      deliberationId,
+      ownerId: leaseOwnerId,
+    });
+    leaseOwnerId = null;
     return result;
   } catch (error) {
     if (!completed && !(error instanceof DeliberationProcessInterruptedError)) {
@@ -332,6 +351,17 @@ async function executeWithStorage(
         }));
       } catch {
         // 원래 실패를 유지합니다. 불완전한 이력을 완료로 위장하지 않습니다.
+      }
+    }
+    if (leaseOwnerId !== null) {
+      try {
+        await releaseDeliberationLease({
+          stateRoot: storage.paths.state,
+          deliberationId,
+          ownerId: leaseOwnerId,
+        });
+      } catch {
+        // 원래 실행 실패를 유지합니다. 남은 lease는 다음 재개에서 보수적으로 판정합니다.
       }
     }
     throw error;

@@ -14,6 +14,9 @@ import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import { createFailedOutcome } from "./deliberation-contract.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
 import {
+  withDeliberationLease,
+} from "./deliberation-lease.js";
+import {
   createInlineDeliberationExecutionPlan,
   createStoredDeliberationExecutionPlan,
 } from "./deliberation-roles.js";
@@ -86,129 +89,139 @@ export async function resumeManagedDeliberationWithStorage(
     stateRoot: storage.paths.state,
     deliberationId: request.resumeDeliberationId,
   });
-  const originalRequest = {
-    repositoryRoot: storage.paths.repositoryRoot,
-    ...checkpoint.request,
-  } as InlineManagedDeliberationRequest | StoredManagedDeliberationRequest;
-  const plan = await restorePlan(originalRequest, storage);
-  const policy = plan.policy;
-  if (deliberationPolicyHash(policy) !== checkpoint.policyHash) {
-    throw new Error("숙의 재개 checkpoint 뒤 policy가 바뀌었습니다.");
-  }
-  const checkpointHandoffIds = new Set(checkpoint.runtime.handoffs.map((item) => item.handoffId));
-  const contextHandoffIds = new Set(checkpoint.workspace.contexts.map((item) =>
-    item.handoff.handoffId));
-  if (
-    contextHandoffIds.size !== checkpoint.workspace.contexts.length ||
-    contextHandoffIds.size !== checkpointHandoffIds.size ||
-    [...checkpointHandoffIds].some((handoffId) => !contextHandoffIds.has(handoffId))
-  ) throw new Error("숙의 재개 checkpoint의 workspace handoff가 runtime과 다릅니다.");
-  for (const context of checkpoint.workspace.contexts) {
-    const runtimePublication = checkpoint.runtime.publications.find((item) =>
-      item.publication.sharedContextId === context.publication.sharedContextId);
-    const runtimeHandoff = checkpoint.runtime.handoffs.find((item) =>
-      item.handoffId === context.handoff.handoffId);
-    const handoffEvent = runtimeHandoff === undefined
-      ? null
-      : storage.events.get(runtimeHandoff.eventId);
-    const participant = plan.participants.find((item) =>
-      item.role.roleId === context.producerRole.roleId);
-    if (
-      runtimePublication === undefined ||
-      JSON.stringify(runtimePublication.publication) !== JSON.stringify(context.publication) ||
-      handoffEvent?.type !== "handoff.created" ||
-      handoffEvent.payload.fromRoleId !== context.handoff.from.roleId ||
-      handoffEvent.payload.toRoleId !== context.handoff.toRoleId ||
-      JSON.stringify(handoffEvent.payload.sharedContextIds) !==
-        JSON.stringify(context.handoff.sharedContextIds) ||
-      participant === undefined ||
-      JSON.stringify(participant.role) !== JSON.stringify(context.producerRole)
-    ) throw new Error("숙의 재개 checkpoint의 공개 맥락 원본이 서로 다릅니다.");
-  }
-  const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
-  const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
-  const workspace = await DeliberationWorkspace.resume({
-    repositoryRoot: storage.paths.repositoryRoot,
+  const leaseOwnerId = dependencies.createId("dlw");
+  return withDeliberationLease({
     stateRoot: storage.paths.state,
-    deliberationId: checkpoint.deliberationId,
-    registry,
-    participantRoleIds: recipientRoleIds,
-    snapshot: checkpoint.workspace,
-  });
-  const runtime = new DeliberationRuntime({
-    deliberationId: checkpoint.deliberationId,
-    policy,
-    policyVersion: checkpoint.policyHash,
-    coordinates: checkpoint.runtimeCoordinates,
-    events: storage.events,
-    artifactStore: storage.artifacts,
-    now: dependencies.now,
-    createEventId: () => dependencies.createId("evt"),
-    resumeSnapshot: checkpoint.runtime,
-  });
-  const runner = new ManagedDeliberationRunner(
-    storage,
-    workspace,
-    checkpoint.policyHash,
-    policy.requiredVerificationSuiteIds[0]!,
-    dependencies.runner,
-  );
-  const latestClaimArtifact = await restoreTurnResult({
-    snapshot: checkpoint.runtime,
-    artifactId: checkpoint.latestClaimArtifactId,
-    storage,
-  });
-  const approvedReviews = await Promise.all(checkpoint.approvedReviewArtifactIds.map(
-    (artifactId) => restoreTurnResult({ snapshot: checkpoint.runtime, artifactId, storage }),
-  ));
-  const claim = latestClaimArtifact.artifact;
-  const claimValues = claim.kind === "proposal" || claim.kind === "revision"
-    ? claim.details.claims
-    : [];
-  const approvedRoleIds = approvedReviews.map((review) => review.artifact.producer.roleId);
-  const expectedReviewerRoleIds = plan.reviewers.map((reviewer) => reviewer.role.roleId);
-  if (
-    !claimValues.some((item) => item.claimId === checkpoint.currentClaim.claimId &&
-      item.claimDigest === checkpoint.currentClaim.claimDigest) ||
-    approvedReviews.length !== expectedReviewerRoleIds.length ||
-    new Set(approvedRoleIds).size !== expectedReviewerRoleIds.length ||
-    expectedReviewerRoleIds.some((roleId) => !approvedRoleIds.includes(roleId)) ||
-    approvedReviews.some((review) =>
-      review.artifact.kind !== "objection" ||
-      review.artifact.round !== claim.round ||
-      review.artifact.details.reviewStatus !== "approved" ||
-      !review.artifact.previousArtifactIds.includes(claim.deliberationArtifactId))
-  ) throw new Error("숙의 재개 checkpoint가 최신 claim의 전체 승인을 가리키지 않습니다.");
-  try {
-    return await completeApprovedDeliberation({
-      request: originalRequest,
-      plan,
-      deliberationId: checkpoint.deliberationId,
-      policy,
-      runtime,
-      runner,
-      workspace,
-      proposer: plan.proposer,
-      verifier: plan.verifier,
-      approvedReviews,
-      recipientRoleIds,
-      latestClaimArtifact,
-      currentClaim: checkpoint.currentClaim,
-      now: dependencies.now,
-    });
-  } catch (error) {
-    try {
-      runtime.complete(createFailedOutcome({
+    deliberationId: request.resumeDeliberationId,
+    ownerId: leaseOwnerId,
+    acquiredAt: dependencies.now().toISOString(),
+    recoverStale: true,
+    work: async () => {
+      const originalRequest = {
+        repositoryRoot: storage.paths.repositoryRoot,
+        ...checkpoint.request,
+      } as InlineManagedDeliberationRequest | StoredManagedDeliberationRequest;
+      const plan = await restorePlan(originalRequest, storage);
+      const policy = plan.policy;
+      if (deliberationPolicyHash(policy) !== checkpoint.policyHash) {
+        throw new Error("숙의 재개 checkpoint 뒤 policy가 바뀌었습니다.");
+      }
+      const checkpointHandoffIds = new Set(checkpoint.runtime.handoffs.map((item) => item.handoffId));
+      const contextHandoffIds = new Set(checkpoint.workspace.contexts.map((item) =>
+        item.handoff.handoffId));
+      if (
+        contextHandoffIds.size !== checkpoint.workspace.contexts.length ||
+        contextHandoffIds.size !== checkpointHandoffIds.size ||
+        [...checkpointHandoffIds].some((handoffId) => !contextHandoffIds.has(handoffId))
+      ) throw new Error("숙의 재개 checkpoint의 workspace handoff가 runtime과 다릅니다.");
+      for (const context of checkpoint.workspace.contexts) {
+        const runtimePublication = checkpoint.runtime.publications.find((item) =>
+          item.publication.sharedContextId === context.publication.sharedContextId);
+        const runtimeHandoff = checkpoint.runtime.handoffs.find((item) =>
+          item.handoffId === context.handoff.handoffId);
+        const handoffEvent = runtimeHandoff === undefined
+          ? null
+          : storage.events.get(runtimeHandoff.eventId);
+        const participant = plan.participants.find((item) =>
+          item.role.roleId === context.producerRole.roleId);
+        if (
+          runtimePublication === undefined ||
+          JSON.stringify(runtimePublication.publication) !== JSON.stringify(context.publication) ||
+          handoffEvent?.type !== "handoff.created" ||
+          handoffEvent.payload.fromRoleId !== context.handoff.from.roleId ||
+          handoffEvent.payload.toRoleId !== context.handoff.toRoleId ||
+          JSON.stringify(handoffEvent.payload.sharedContextIds) !==
+            JSON.stringify(context.handoff.sharedContextIds) ||
+          participant === undefined ||
+          JSON.stringify(participant.role) !== JSON.stringify(context.producerRole)
+        ) throw new Error("숙의 재개 checkpoint의 공개 맥락 원본이 서로 다릅니다.");
+      }
+      const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
+      const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
+      const workspace = await DeliberationWorkspace.resume({
+        repositoryRoot: storage.paths.repositoryRoot,
+        stateRoot: storage.paths.state,
+        deliberationId: checkpoint.deliberationId,
+        registry,
+        participantRoleIds: recipientRoleIds,
+        snapshot: checkpoint.workspace,
+      });
+      const runtime = new DeliberationRuntime({
         deliberationId: checkpoint.deliberationId,
         policy,
-        history: runtime.history(),
-        completedAt: dependencies.now().toISOString(),
-        unresolvedBlockingObjectionIds: [],
-        code: failureCode(error),
-      }));
-    } catch {
-      // 원래 실패를 유지하고 불완전한 이력을 완료로 위장하지 않습니다.
-    }
-    throw error;
-  }
+        policyVersion: checkpoint.policyHash,
+        coordinates: checkpoint.runtimeCoordinates,
+        events: storage.events,
+        artifactStore: storage.artifacts,
+        now: dependencies.now,
+        createEventId: () => dependencies.createId("evt"),
+        resumeSnapshot: checkpoint.runtime,
+      });
+      const runner = new ManagedDeliberationRunner(
+        storage,
+        workspace,
+        checkpoint.policyHash,
+        policy.requiredVerificationSuiteIds[0]!,
+        dependencies.runner,
+      );
+      const latestClaimArtifact = await restoreTurnResult({
+        snapshot: checkpoint.runtime,
+        artifactId: checkpoint.latestClaimArtifactId,
+        storage,
+      });
+      const approvedReviews = await Promise.all(checkpoint.approvedReviewArtifactIds.map(
+        (artifactId) => restoreTurnResult({ snapshot: checkpoint.runtime, artifactId, storage }),
+      ));
+      const claim = latestClaimArtifact.artifact;
+      const claimValues = claim.kind === "proposal" || claim.kind === "revision"
+        ? claim.details.claims
+        : [];
+      const approvedRoleIds = approvedReviews.map((review) => review.artifact.producer.roleId);
+      const expectedReviewerRoleIds = plan.reviewers.map((reviewer) => reviewer.role.roleId);
+      if (
+        !claimValues.some((item) => item.claimId === checkpoint.currentClaim.claimId &&
+          item.claimDigest === checkpoint.currentClaim.claimDigest) ||
+        approvedReviews.length !== expectedReviewerRoleIds.length ||
+        new Set(approvedRoleIds).size !== expectedReviewerRoleIds.length ||
+        expectedReviewerRoleIds.some((roleId) => !approvedRoleIds.includes(roleId)) ||
+        approvedReviews.some((review) =>
+          review.artifact.kind !== "objection" ||
+          review.artifact.round !== claim.round ||
+          review.artifact.details.reviewStatus !== "approved" ||
+          !review.artifact.previousArtifactIds.includes(claim.deliberationArtifactId))
+      ) throw new Error("숙의 재개 checkpoint가 최신 claim의 전체 승인을 가리키지 않습니다.");
+      try {
+        return await completeApprovedDeliberation({
+          request: originalRequest,
+          plan,
+          deliberationId: checkpoint.deliberationId,
+          policy,
+          runtime,
+          runner,
+          workspace,
+          proposer: plan.proposer,
+          verifier: plan.verifier,
+          approvedReviews,
+          recipientRoleIds,
+          latestClaimArtifact,
+          currentClaim: checkpoint.currentClaim,
+          now: dependencies.now,
+        });
+      } catch (error) {
+        try {
+          runtime.complete(createFailedOutcome({
+            deliberationId: checkpoint.deliberationId,
+            policy,
+            history: runtime.history(),
+            completedAt: dependencies.now().toISOString(),
+            unresolvedBlockingObjectionIds: [],
+            code: failureCode(error),
+          }));
+        } catch {
+          // 원래 실패를 유지하고 불완전한 이력을 완료로 위장하지 않습니다.
+        }
+        throw error;
+      }
+    },
+  });
 }

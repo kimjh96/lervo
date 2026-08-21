@@ -30,6 +30,9 @@ describe("trace command options", () => {
     expect(parseTraceCommandOptions(["--cursor", "trc_fixture"])).toMatchObject({
       request: { kind: "cursor", cursor: "trc_fixture" },
     });
+    expect(parseTraceCommandOptions(["--deliberation", "dlb_chat0001"])).toMatchObject({
+      request: { kind: "deliberation", deliberationId: "dlb_chat0001" },
+    });
     expect(parseTraceCommandOptions(["last", "--full", "--json"])).toMatchObject({
       request: { kind: "full", selector: "last" },
     });
@@ -43,6 +46,7 @@ describe("trace command options", () => {
     [["--capabilities", "--page-size", "10"], "capabilities는 run ID"],
     [["--full", "--page-size", "10"], "full은 page-size"],
     [["--full", "--event-type", "run.failed"], "full은 page-size"],
+    [["last", "--deliberation", "dlb_chat0001"], "deliberation은 run ID"],
     [["--page-size", "0"], "page-size는 1 이상"],
     [["--event-type", "unknown.event"], "event-type은 지원하는 값"],
     [["--event-type", "run.failed", "--event-type", "run.failed"], "중복 없이"],

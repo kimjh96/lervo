@@ -13,6 +13,7 @@ export type ParsedConversationControlCommand =
 
 export type ConversationDeliberationStatus =
   | "running"
+  | "unknown"
   | "interrupted"
   | "converged"
   | "no_consensus"

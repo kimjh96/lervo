@@ -167,6 +167,10 @@ Loader는 project 실제 경로의 `.lervo/deliberations`가 symlink가 아닌 �
 
 `--resume <deliberation-id>`는 새 숙의를 시작하지 않고 모든 reviewer가 승인한 최신 checkpoint에서만 이어갑니다. Checkpoint는 policy hash, 원래 요청, runtime 좌표, artifact·verification evidence·provider session 역할, recorded/publication/handoff event ID, generated 문서와 current claim을 포함합니다. 쓰기 전에 형식을 검증하고 1 MiB 이하 owner-only 일반 파일을 `O_NOFOLLOW`로 exclusive-create합니다. 재개는 policy, event 전체의 숙의 artifact 집합, 완료 event 부재, CAS hash·byte 수, workspace 경로·hash와 writing contract를 다시 확인합니다. 재개 성공 뒤 verification과 decision은 새 managed session으로 실행하지만 proposal과 승인 review는 다시 실행하지 않습니다. Checkpoint 자체는 문서를 loaded/injected/used했다는 증거가 아니며 주제 원문을 event에 복사하지 않습니다. 결정은 [ADR-0135](./docs/adr/0135-approved-deliberation-resume-boundary.md)에 기록합니다.
 
+Checkpoint 작성 전부터 종료까지 4 KiB 이하 owner-only `active.json` lease를 exclusive-create합니다. Lease는 숙의·owner·process ID와 획득 시각만 가지며 자기 process와 owner가 일치할 때만 제거합니다. 재개는 살아 있거나 생존 판정이 모호한 process를 `deliberation_in_progress`로 차단합니다. 죽은 process lease는 새 owner의 고유 stale 좌표로 이동한 뒤 새 active lease를 exclusive-create하며 경쟁에서 진 process는 실행하지 않습니다.
+
+`deliberate status`, `trace --deliberation`, `doctor --deliberation`은 event chain과 시작·artifact·완료 관계, checkpoint 형식과 lease 생존을 읽기 전용으로 확인합니다. 승인 전 완료되지 않은 이력은 실행 중과 crash를 구분할 원본이 없어 `incomplete`이며, 승인 checkpoint와 비활성 lease가 있어도 `candidate`만 표시합니다. 실제 재개 적격성은 `--resume`의 전체 policy·event·CAS·workspace 재검증 뒤에만 확정됩니다. Trace는 artifact 생산 run과 checkpoint evidence가 가리키는 run을 최대 1,000 event로 제한합니다. 기존 doctor/trace v1 report를 바꾸지 않고 숙의 진단 report v1을 별도로 사용합니다. 결정은 [ADR-0137](./docs/adr/0137-deliberation-liveness-and-diagnostics.md)에 기록합니다.
+
 `@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. `@lervo/deliberation-runtime`은 `ManagedProviderRunResult`의 E2/E3 evidence를 같은 run의 event 원본과 대조하고 역할 간 provider session 재사용도 거부합니다. `document.loaded.evidenceReceiptId`는 문서별 E2를, `context.injected.evidenceReceiptIds`는 envelope에서 만든 문서별 E3를 뜻하며 기존 `context.injected.receiptId`는 adapter receipt 의미를 유지합니다. Runtime은 역할별 provider 정책을 managed run 직후 확인하며, 허용되지 않은 provider면 writing 평가 전에 `artifact_publication_failed/provider_not_allowed`로 중단합니다. 허용된 결과도 writing 평가와 permit 재검증, 이전 artifact의 shared-context 재적재, 현재 history 검증을 통과한 경우에만 artifact event를 기록합니다. Codex의 developer message 주입과 Claude의 context replay처럼 provider별 표현은 adapter 내부에만 남고 공통 receipt·artifact·event 의미는 바뀌지 않습니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md), [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md), [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md), [ADR-0028](./docs/adr/0028-same-provider-deliberation-runtime.md)과 [ADR-0029](./docs/adr/0029-cross-provider-deliberation-runtime.md)에 정의합니다.
 
 ## Context preparation 첫 슬라이스
@@ -1352,7 +1356,9 @@ Approval 파생 상태는 다음과 같습니다.
 
 Conversation responder는 `/lervo deliberate start <policy-id> -- <topic>`과 `/lervo deliberate status <deliberation-id>`만 숙의 명령으로 처리합니다. 본문은 4,096자 이하이며 start는 `.lervo/deliberations`에 대응하는 policy ID와 빈 값이 아닌 주제를 요구합니다. 자연어 요청, reaction, mention과 모델 분류 결과는 시작 권한이 아닙니다.
 
-Project·human participant는 principal과 `deliberation.start` 또는 `deliberation.read`에 결속됩니다. 권한을 확인한 플랫폼 중립 port만 backend에 project·principal·policy/topic 또는 deliberation ID·시각을 전달합니다. Backend 결과는 `running`, `interrupted`, `converged`, `no_consensus`, `failed`, 0~10,000의 artifact 수와 상태에 맞는 `wait`, `resume`, `none`만 허용합니다. Status 응답의 숙의 ID는 요청 ID와 같아야 합니다.
+Project·human participant는 principal과 `deliberation.start` 또는 `deliberation.read`에 결속됩니다. 권한을 확인한 플랫폼 중립 port만 backend에 project·principal·policy/topic 또는 deliberation ID·시각을 전달합니다. Backend 결과는 `running`, `unknown`, `interrupted`, `converged`, `no_consensus`, `failed`, 0~10,000의 artifact 수와 상태에 맞는 `wait`, `resume`, `none`만 허용합니다. Status 응답의 숙의 ID는 요청 ID와 같아야 합니다.
+
+Start backend는 canonical source event ID를 함께 받고 `(projectId, sourceEventId)`를 durable idempotency key로 사용해야 합니다. Interaction inbox lease가 끝나거나 worker가 재시작돼 responder가 다시 호출돼도 같은 숙의를 반환해야 하며 장시간 실행을 중복 시작하면 안 됩니다. 공통 responder는 특정 queue 구현을 소유하지 않으므로 이 보장이 없는 backend는 배포에 연결하지 않습니다.
 
 응답은 Hub command 응답과 같은 `chat` writing gate·CAS·interaction outbox를 사용합니다. Responder는 Slack, Discord나 자체 채팅 transport를 직접 호출하지 않으며 backend의 동기 실행, durable queue 또는 로컬 상태 저장 방식을 규정하지 않습니다. Backend가 없거나 좌표가 다르면 `deliberation_source_failed`로 닫습니다. 새 event·승인·숙의 완료 상태를 만들지 않고 명령 수신만으로 E2/E3나 사용을 주장하지 않습니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록합니다.
 
@@ -1410,6 +1416,7 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `high_risk_workflow_invalid` | 고위험 workflow의 역할 분리, profile/evaluation hash, provider 정책, 필수 suite 또는 회차가 맞지 않습니다. 숙의를 시작하거나 교차 검토 완료를 주장하지 않습니다. |
 | `policy_contract_invalid` / `artifact_contract_invalid` / `history_contract_invalid` / `outcome_contract_invalid` | 숙의 정책, artifact 좌표, 역할별 이력 또는 종료 결과가 실제 상태와 다릅니다. `converged`를 만들지 않고 입력 계약을 고친 새 숙의로 시작합니다. |
 | `deliberation_checkpoint_not_found` / `deliberation_checkpoint_invalid` / `deliberation_checkpoint_exists` / `runtime_snapshot_invalid` | 승인 checkpoint가 없거나 형식·정책·event·CAS·workspace와 다르거나 기존 checkpoint를 덮어쓰려 했습니다. 제안·검토를 임의로 재사용하지 않고 재개를 중단합니다. |
+| `deliberation_in_progress` / `deliberation_lease_invalid` | 다른 process가 승인 뒤 단계를 실행 중이거나 lease를 안전하게 읽고 인계할 수 없습니다. 동시 재개하지 않고 현재 process 종료와 owner-only lease 원본을 확인합니다. |
 | `verification_evidence_invalid` | 숙의 verification metadata가 실제 suite/result 또는 canonical CAS artifact와 다르거나 사용되지 않은 근거를 포함합니다. 검증 통과와 수렴을 주장하지 않습니다. |
 | `artifact_publication_failed/provider_not_allowed` | Managed run의 역할에 배정되지 않은 provider가 결과를 만들었습니다. 실행 사실은 남기되 writing 평가와 숙의 artifact 기록을 시작하지 않으며 provider 정책을 고친 새 역할 run이 필요합니다. |
 | `candidate_not_eligible/outcome_not_converged` | 숙의가 `no_consensus` 또는 `failed`로 끝났습니다. 지식 candidate와 생성 event를 만들지 않으며 임의 결론을 선택하지 않습니다. |

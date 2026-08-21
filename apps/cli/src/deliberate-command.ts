@@ -6,11 +6,58 @@ import type {
 } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
+import {
+  formatDeliberationInspection,
+  inspectManagedDeliberation,
+} from "./deliberation-inspection.js";
 
 export const deliberateUsage =
   "  lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] [--root <path>] [--json] <topic>\n" +
   "  lervo deliberate --policy <deliberation-policy-id> [--root <path>] [--json] <topic>\n" +
-  "  lervo deliberate --resume <deliberation-id> [--root <path>] [--json]";
+  "  lervo deliberate --resume <deliberation-id> [--root <path>] [--json]\n" +
+  "  lervo deliberate status <deliberation-id> [--root <path>] [--json]";
+
+async function runDeliberationStatusCommand(
+  args: string[],
+  io: CliIo,
+  services: CliServices,
+): Promise<number> {
+  let parsed;
+  try {
+    parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: true,
+      options: {
+        root: { type: "string" },
+        json: { type: "boolean" },
+      },
+    });
+    if (parsed.positionals.length !== 1) throw new Error("숙의 ID 하나가 필요합니다.");
+  } catch (error) {
+    io.stderr(`${error instanceof Error ? error.message : String(error)}\n${deliberateUsage}\n`);
+    return 1;
+  }
+  let storage;
+  try {
+    storage = await services.openProjectStorage(resolve(io.cwd, parsed.values.root ?? "."));
+    const report = await inspectManagedDeliberation({
+      storage,
+      deliberationId: parsed.positionals[0]!,
+    });
+    io.stdout(parsed.values.json
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : formatDeliberationInspection(report));
+    return report.sourceStatus === "consistent" ? 0 : 1;
+  } catch (error) {
+    io.stderr(`숙의 상태를 조회하지 못했습니다. (${errorCode(error)}) ${
+      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    }\n`);
+    return 1;
+  } finally {
+    await storage?.close().catch(() => undefined);
+  }
+}
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -54,6 +101,9 @@ export async function runDeliberateCommand(
   io: CliIo,
   services: CliServices,
 ): Promise<number> {
+  if (args[0] === "status") {
+    return runDeliberationStatusCommand(args.slice(1), io, services);
+  }
   let parsed;
   try {
     parsed = parseArgs({

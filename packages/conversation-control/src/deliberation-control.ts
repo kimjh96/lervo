@@ -12,6 +12,7 @@ export interface ConversationDeliberationBackend {
   start(input: {
     projectId: string;
     principalId: string;
+    sourceEventId: string;
     policyId: string;
     topic: string;
     requestedAt: string;
@@ -62,6 +63,7 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
     return this.options.backend.start({
       projectId: binding.projectId,
       principalId: binding.principalId,
+      sourceEventId: input.event.eventId,
       policyId: input.policyId,
       topic: input.topic,
       requestedAt: input.requestedAt,

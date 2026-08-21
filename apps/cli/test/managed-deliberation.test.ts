@@ -29,6 +29,8 @@ import {
   DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
 import type { RunProvider } from "../src/managed-run.js";
+import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
+import { runCli } from "../src/main.js";
 import { prepareRunVerification } from "../src/run-verification.js";
 import { parseSemanticEvaluation } from "../src/managed-deliberation-runner.js";
 
@@ -427,13 +429,37 @@ describe("managed CLI deliberation", () => {
       prepareVerification: prepareRunVerification,
     };
     let deliberationId = "";
+    let concurrentResumeBlocked = false;
     const interrupted = createManagedDeliberationExecutor({
       openStorage: openProjectStorage,
       createId: nextId,
       now,
       runner,
-      afterApprovedCheckpoint: (id) => {
+      afterApprovedCheckpoint: async (id) => {
         deliberationId = id;
+        const inspecting = await openProjectStorage(root);
+        const active = await inspectManagedDeliberation({
+          storage: inspecting,
+          deliberationId: id,
+        });
+        expect(active).toMatchObject({
+          phase: "running_after_approval",
+          lease: "active",
+          resume: "blocked_running",
+        });
+        await inspecting.close();
+        const contender = createManagedDeliberationExecutor({
+          openStorage: openProjectStorage,
+          createId: nextId,
+          now,
+          runner,
+        });
+        try {
+          await contender({ repositoryRoot: root, resumeDeliberationId: id });
+        } catch (error) {
+          concurrentResumeBlocked = (error as { code?: unknown }).code ===
+            "deliberation_in_progress";
+        }
         throw new DeliberationProcessInterruptedError("fixture interruption");
       },
     });
@@ -445,13 +471,46 @@ describe("managed CLI deliberation", () => {
       verificationSuiteIds: ["project.default"],
       topic: "승인된 검토 다음 단계에서 중단된 숙의를 재개합니다.",
     })).rejects.toThrow("fixture interruption");
+    expect(concurrentResumeBlocked).toBe(true);
 
     const before = await openProjectStorage(root);
     const beforeEvents = before.events.list({ limit: 1000 });
     expect(beforeEvents.filter((event) => event.type === "deliberation.artifact.recorded"))
       .toHaveLength(2);
     expect(beforeEvents.some((event) => event.type === "deliberation.completed")).toBe(false);
+    expect(await inspectManagedDeliberation({ storage: before, deliberationId })).toMatchObject({
+      sourceStatus: "consistent",
+      phase: "interrupted_after_approval",
+      checkpoint: "readable",
+      lease: "missing",
+      resume: "candidate",
+    });
     await before.close();
+
+    let traceOutput = "";
+    expect(await runCli(["trace", "--deliberation", deliberationId], {
+      cwd: root,
+      stdout: (message) => { traceOutput += message; },
+      stderr: () => undefined,
+    })).toBe(0);
+    expect(traceOutput).toContain("승인 뒤 재개 가능 후보");
+    expect(traceOutput).toContain("deliberation.artifact.recorded");
+
+    let doctorOutput = "";
+    expect(await runCli(["doctor", "--deliberation", deliberationId], {
+      cwd: root,
+      stdout: (message) => { doctorOutput += message; },
+      stderr: () => undefined,
+    })).toBe(0);
+    expect(doctorOutput).toContain("실제 재개 시 전체 원본 재검증 필요");
+
+    let statusOutput = "";
+    expect(await runCli(["deliberate", "status", deliberationId], {
+      cwd: root,
+      stdout: (message) => { statusOutput += message; },
+      stderr: () => undefined,
+    })).toBe(0);
+    expect(statusOutput).toContain("승인 뒤 재개 가능 후보");
 
     const resumed = createManagedDeliberationExecutor({
       openStorage: openProjectStorage,
@@ -471,6 +530,12 @@ describe("managed CLI deliberation", () => {
     expect(events.filter((event) => event.type === "verification.completed")).toHaveLength(1);
     expect(events.filter((event) => event.type === "deliberation.completed")).toHaveLength(1);
     expect(after.events.verifyIntegrity().valid).toBe(true);
+    expect(await inspectManagedDeliberation({ storage: after, deliberationId })).toMatchObject({
+      sourceStatus: "consistent",
+      phase: "completed",
+      completionStatus: "converged",
+      resume: "completed",
+    });
     await after.close();
 
     await expect(resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId }))

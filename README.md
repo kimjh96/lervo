@@ -156,6 +156,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [분할 정책 기반 다중 역할 숙의 CLI ADR](./docs/adr/0134-sharded-multi-role-deliberation-policy.md)
 - [승인된 숙의 경계에서만 재개하는 ADR](./docs/adr/0135-approved-deliberation-resume-boundary.md)
 - [플랫폼 중립 대화 숙의 제어 ADR](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)
+- [숙의 실행 lease와 ID 기반 진단 ADR](./docs/adr/0137-deliberation-liveness-and-diagnostics.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -224,6 +225,8 @@ M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runti
 `lervo deliberate --policy deliberation_product-review <주제>`는 `.lervo/deliberations/deliberation_product-review.yaml`을 읽습니다. 정책은 제안·결정 역할 하나, 한 명 이상의 독립 검토 역할과 별도 검증 역할을 최대 16개 참여자로 구성하고 각 역할의 Codex·Claude provider, 이름, 관점, 최대 5회와 필수 suite를 고정합니다. 두 provider가 모두 참여해야 하며 모든 검토자가 같은 최신 제안을 승인한 뒤 별도 검증 역할이 실제 suite를 실행해야 수렴합니다. 산출물 하나는 한 번 공개하지만 모든 참여자에게 역할별 handoff와 다음 session의 E2/E3를 따로 요구합니다.
 
 검토 승인이 끝난 뒤 프로세스가 중단되면 `lervo deliberate --resume <숙의 ID>`로 검증과 결정 단계만 이어갈 수 있습니다. 재개 전에 현재 policy, append-only event, CAS 원문, 분할 workspace 문서를 체크포인트와 다시 대조합니다. 이미 완료됐거나 승인 경계 뒤 이력이 달라진 숙의는 재개하지 않습니다.
+
+`lervo deliberate status <숙의 ID>`, `lervo trace --deliberation <숙의 ID>`, `lervo doctor --deliberation <숙의 ID>`는 여러 역할 run에 걸친 숙의 상태를 읽기 전용으로 보여 줍니다. 승인 뒤 살아 있는 process가 있으면 재개를 차단하고, 죽은 process나 관리된 중단만 재개 후보로 표시합니다. 후보 표시는 실행 권한이나 성공 보장이 아니며 실제 `--resume`이 전체 원본을 다시 확인합니다.
 
 정책 수직 슬라이스는 순번·이전 ID가 있는 서명 snapshot과 command-bound 승인·철회를 Hub에서 작성해 append-only SQLite에 보존합니다. 인증·permission·project scope를 통과한 HTTP 요청만 원본을 만들며 발급·승인·철회 시각은 클라이언트가 아니라 Hub가 정합니다. Node는 HTTPS를 기본으로 하는 transport에서 Hub identity와 응답 좌표를 확인하고 다음 snapshot 또는 현재 snapshot의 늦게 추가된 승인·철회를 동기화합니다. 원격 command는 로컬과 Hub 중 더 제한적인 판정을 사용하고, 승인된 `require_approval` 실행도 provider 시작 전과 실제 파일 쓰기 직전에 다시 검증합니다. 이 기능은 Hub가 없어도 완료되는 기존 로컬 실행 경로를 바꾸지 않습니다.
 

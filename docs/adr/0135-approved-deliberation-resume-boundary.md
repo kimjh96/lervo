@@ -22,6 +22,8 @@ Lervo는 최신 claim을 모든 검토자가 승인한 뒤, 검증을 시작하�
 
 하나라도 다르거나 승인 경계 뒤 숙의 artifact가 이미 추가됐으면 재개하지 않습니다. 검증과 결정만 새 managed session으로 실행하며 제안·검토 artifact를 다시 만들지 않습니다. 재개 뒤 실패는 가능한 경우 `failed` outcome으로 닫고, 이미 완료된 숙의는 다시 재개하지 않습니다.
 
+승인 checkpoint부터 종료까지 별도 process lease를 소유합니다. 살아 있는 lease가 있으면 재개하지 않으며 죽은 process의 lease만 원자적으로 인계합니다. 상세한 생존·경쟁 판정은 [ADR-0137](./0137-deliberation-liveness-and-diagnostics.md)에 기록합니다.
+
 새 event 종류는 추가하지 않습니다. 체크포인트는 복구용 로컬 원본이며 `selected`, `loaded`, `injected`, `used` 증거가 아닙니다. 주제 원문이 포함되므로 파일과 디렉터리는 소유자 전용 권한으로 만들고 최대 1 MiB 일반 파일만 no-follow로 읽습니다.
 
 ## 결과

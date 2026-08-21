@@ -15,9 +15,14 @@ import {
   parseDoctorScope,
 } from "./doctor-scope.js";
 import type { CliIo, CliServices } from "./types.js";
+import {
+  formatDeliberationInspection,
+  inspectManagedDeliberation,
+} from "./deliberation-inspection.js";
 
 export const doctorUsage =
-  `  lervo doctor [--root <path>] [--scope <${doctorScopeValues.join("|")}>] [--json]`;
+  `  lervo doctor [--root <path>] [--scope <${doctorScopeValues.join("|")}>] [--json]\n` +
+  "  lervo doctor --deliberation <deliberation-id> [--root <path>] [--json]";
 
 function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string {
   switch (checkId) {
@@ -97,6 +102,7 @@ export async function runDoctorCommand(
       options: {
         root: { type: "string" },
         scope: { type: "string" },
+        deliberation: { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -109,6 +115,10 @@ export async function runDoctorCommand(
     io.stdout(`${doctorUsage}\n`);
     return 0;
   }
+  if (parsed.values.deliberation !== undefined && parsed.values.scope !== undefined) {
+    io.stderr(`deliberation과 scope는 함께 지정할 수 없습니다.\n${doctorUsage}\n`);
+    return 1;
+  }
   let scope: DoctorScope;
   try {
     scope = parseDoctorScope(parsed.values.scope);
@@ -119,6 +129,17 @@ export async function runDoctorCommand(
   let storage;
   try {
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    if (parsed.values.deliberation !== undefined) {
+      storage = await services.openProjectStorage(repositoryRoot);
+      const inspection = await inspectManagedDeliberation({
+        storage,
+        deliberationId: parsed.values.deliberation,
+      });
+      io.stdout(parsed.values.json
+        ? `${JSON.stringify(inspection, null, 2)}\n`
+        : formatDeliberationInspection(inspection));
+      return inspection.sourceStatus === "consistent" ? 0 : 1;
+    }
     let report: DoctorReport;
     if (!doctorScopeUsesProjectStorage(scope)) {
       const manifest = await loadProjectManifest(repositoryRoot);

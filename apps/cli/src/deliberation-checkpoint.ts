@@ -119,7 +119,18 @@ export async function writeApprovedDeliberationCheckpoint(input: {
   const path = checkpointPath(input.stateRoot, input.checkpoint.deliberationId);
   validateCheckpoint(input.checkpoint, input.checkpoint.deliberationId);
   const directory = dirname(path);
-  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const deliberationRoot = await lstat(dirname(directory));
+  if (!deliberationRoot.isDirectory() || deliberationRoot.isSymbolicLink()) {
+    throw new DeliberationCheckpointError(
+      "deliberation_checkpoint_invalid",
+      "숙의 실행 디렉터리가 안전하지 않습니다.",
+    );
+  }
+  try {
+    await mkdir(directory, { mode: 0o700 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  }
   const directoryStats = await lstat(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
     throw new DeliberationCheckpointError(

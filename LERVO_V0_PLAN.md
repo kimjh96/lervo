@@ -1553,4 +1553,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 플랫폼 중립 대화 숙의 제어를 완료했습니다. 명시적인 저장 policy 시작과 숙의 ID 상태 조회만 해석하고, project·human participant를 principal의 시작·조회 권한에 결속합니다. Slack·Discord·자체 채팅이 같은 responder와 숙의 port를 사용하며 결과는 writing gate와 interaction outbox를 거칩니다. 자연어는 실행으로 추정하지 않고 backend가 없거나 상태 좌표가 다르면 실패합니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록했습니다.
 
+숙의 실행 lease와 ID 기반 진단을 완료했습니다. 승인 checkpoint부터 종료까지 process lease가 동시 재개를 차단하고 죽은 process의 lease만 경쟁 없이 인계합니다. `deliberate status`, `trace --deliberation`, `doctor --deliberation`은 event·checkpoint·lease를 읽어 활성 실행, 승인 뒤 중단 후보, 완료와 증명할 수 없는 승인 전 불완전 상태를 구분합니다. 대화 상태 backend도 같은 구분을 반환해야 하며 `unknown`을 완료나 중단으로 추정하지 않습니다. 결정은 [ADR-0137](./docs/adr/0137-deliberation-liveness-and-diagnostics.md)에 기록했습니다.
+
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.
