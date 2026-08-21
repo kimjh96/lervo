@@ -6,6 +6,7 @@ import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
 } from "./release-attestation-file-set.mjs";
+import { sha256 } from "./release-artifact-manifest.mjs";
 
 const maximumSourceBytes = 1024 * 1024;
 
@@ -42,6 +43,18 @@ export async function readFirstPublicationActivationSources({
   return {
     packageManifest,
     releaseManifest: parseJson(releaseContents),
+    sourceSnapshots: {
+      packageManifest: {
+        contents: packageContents,
+        byteCount: packageContents.length,
+        sha256: sha256(packageContents),
+      },
+      releaseManifest: {
+        contents: releaseContents,
+        byteCount: releaseContents.length,
+        sha256: sha256(releaseContents),
+      },
+    },
     assertUnchanged: () => assertReleaseFilesUnchanged([
       {
         path: packageManifestPath,

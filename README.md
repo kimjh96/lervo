@@ -125,6 +125,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 실행 계획 조회 명령 ADR](./docs/adr/0103-cli-first-publication-execution-plan-command.md)
 - [CLI 최초 공개 게시 활성화 차단 보고서 ADR](./docs/adr/0104-cli-first-publication-activation-blocker-report.md)
 - [CLI 최초 공개 게시 metadata 결정과 비쓰기 변경 preview ADR](./docs/adr/0105-cli-first-publication-metadata-preview.md)
+- [CLI 최초 공개 게시 package metadata patch 후보 ADR](./docs/adr/0106-cli-first-publication-package-metadata-candidate.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -275,6 +276,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `pnpm release:bootstrap:blockers [--json]`는 현재 CLI package manifest와 release manifest만 읽어 로컬에서 고칠 수 있는 항목과 외부에서 확인·승인해야 하는 항목을 나눠 보여 줍니다. 현재는 저장소·라이선스·public registry·provenance 설정이 로컬 차단 항목이고, public npm 이름 확인·`@lervo` scope 관리 권한·별도 최초 게시 승인은 외부 요구사항입니다. 이 보고서는 항상 advisory-only이고 activation은 `not_implemented`이며 온라인 확인·승인 생성·파일 수정·게시를 실행하지 않습니다.
 
 `pnpm release:bootstrap:metadata-preview --repository <owner/repository> --license <license> --scope-owner-kind <organization|user> --scope-owner-name lervo [--json]`은 명시한 metadata 선택을 현재 manifest와 비교합니다. Package manifest에 필요한 네 필드의 `set` 연산만 보여 주고, 생성 파일인 release manifest는 직접 수정하지 않고 재생성 필요 여부만 표시합니다. 이 선택은 라이선스 승인, npm scope 권한 확인이나 게시 승인이 아니며 명령은 어떤 파일도 바꾸지 않습니다.
+
+`pnpm release:bootstrap:metadata-candidate --repository <owner/repository> --license <license> --scope-owner-kind <organization|user> --scope-owner-name lervo [--json]`은 같은 선택과 현재 원본에 묶인 exact `package.json` 후보를 만들되 쓰지 않습니다. `--json`은 검토용 candidate metadata만, `pnpm --silent ... --package-json`은 digest에 결속된 정확한 결과 바이트만 stdout에 보냅니다. 후보는 `review_required`, `writesAllowed=false`이고 release manifest 재생성·승인·활성화·게시를 실행하지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

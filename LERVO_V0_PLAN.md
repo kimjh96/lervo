@@ -1169,4 +1169,6 @@ CLI first-publication activation blocker report를 완료했습니다. 현재 pa
 
 CLI first-publication metadata decision과 비쓰기 patch preview를 완료했습니다. 명시한 repository·license·scope owner를 승인 없는 선택으로 결속하고 package manifest의 네 필드 변경만 계산합니다. Release manifest는 직접 patch하지 않고 재생성 필요만 표시하며 원본 파일·외부 상태·승인·activation을 바꾸지 않습니다. 결정은 [ADR-0105](./docs/adr/0105-cli-first-publication-metadata-preview.md)에 기록했습니다.
 
-다음 구현 작업은 preview와 source digest에 결속된 exact `package.json` 결과 bytes를 만들되 쓰지 않는 **CLI first-publication package metadata patch candidate**입니다. 실제 적용은 candidate 재검증과 별도 content-bound permit 뒤로 유지합니다.
+CLI first-publication package metadata patch candidate를 완료했습니다. 현재 source bytes와 preview에 결속된 exact `package.json` 결과를 만들고 다른 필드 보존, 포맷과 output digest를 재검증합니다. Candidate metadata와 결과 bytes를 분리하며 상태는 `review_required`, 쓰기 권한은 false입니다. 원본·release manifest·승인·activation·게시를 바꾸지 않습니다. 결정은 [ADR-0106](./docs/adr/0106-cli-first-publication-package-metadata-candidate.md)에 기록했습니다.
+
+다음 구현 작업은 candidate digest·source SHA-256·output SHA-256과 명시적 사람 결정을 묶되 쓰지 않는 **CLI first-publication package metadata apply permit**입니다. 실제 적용 명령은 permit 재검증, 원본 compare-and-swap과 atomic replace를 별도 단계로 유지합니다.

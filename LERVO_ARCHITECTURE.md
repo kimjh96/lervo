@@ -51,6 +51,8 @@ Activation blocker report는 고정된 CLI package manifest와 release manifest�
 
 Metadata preview는 인자에서 만든 비권한 decision, 같은 두 manifest snapshot과 별도 patch 계산 정책을 결합합니다. Decision validator는 repository·license·scope owner 형식과 `preview_only` 의미를 소유합니다. Patch 정책은 source package manifest의 네 허용 필드만 비교하고 현재 원문 대신 `missing|different`를 남깁니다. Report 코어는 release manifest 직접 patch를 금지하고 재생성 요구만 투영합니다. 조정기, formatter와 process adapter에는 파일 쓰기·승인·online·publisher port가 없습니다.
 
+Package metadata candidate는 source byte snapshot, preview와 결과 직렬화를 분리합니다. 결과 생성기는 저장소의 정확한 JSON 포맷을 확인한 뒤 네 허용 필드만 반영하고 다른 JSON 값을 대조합니다. Candidate 코어는 source·manifest·decision·preview·output digest와 비쓰기 처분을 묶고 reader는 metadata와 별도로 전달된 결과 bytes까지 다시 계산합니다. CLI 조정기는 source 변경을 마지막에 검사하며 formatter, JSON metadata와 exact package bytes 출력 mode를 분리합니다. 파일 writer와 release generator는 이 경계에 없습니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

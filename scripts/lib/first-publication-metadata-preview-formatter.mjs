@@ -1,14 +1,5 @@
-const changeMessages = {
-  repository: (value) => `GitHub 저장소를 ${value.url}로 설정합니다.`,
-  license: (value) => `라이선스를 ${value}로 설정합니다.`,
-  "publishConfig.registry": (value) => `npm 게시 registry를 ${value}로 고정합니다.`,
-  "publishConfig.provenance": () => "npm provenance를 명시적으로 켭니다.",
-};
-
-const currentStateMessages = {
-  missing: "현재 값이 없습니다.",
-  different: "현재 값이 선택과 다릅니다.",
-};
+import { formatFirstPublicationMetadataChange } from
+  "./first-publication-metadata-change-formatter.mjs";
 
 const requirementMessages = {
   license_approval: "선택한 라이선스의 공개 배포 적합성을 별도로 승인해야 합니다.",
@@ -33,9 +24,7 @@ export function formatFirstPublicationMetadataPreview(preview) {
     lines.push("- 필요한 변경이 없습니다.");
   } else {
     for (const change of preview.packageManifestChanges) {
-      const message = changeMessages[change.field]?.(change.value) ??
-        `${change.field} 값을 설정합니다.`;
-      lines.push(`- ${message} ${currentStateMessages[change.currentState]}`);
+      lines.push(`- ${formatFirstPublicationMetadataChange(change, { currentState: true })}`);
     }
   }
   lines.push("", "release manifest:");

@@ -40,8 +40,14 @@ export async function createActivationSourceFiles(sources) {
     releaseManifestPath: resolve(root, "release-manifest.json"),
   };
   await Promise.all([
-    writeFile(paths.packageManifestPath, JSON.stringify(resolvedSources.packageManifest)),
-    writeFile(paths.releaseManifestPath, JSON.stringify(resolvedSources.releaseManifest)),
+    writeFile(
+      paths.packageManifestPath,
+      `${JSON.stringify(resolvedSources.packageManifest, null, 2)}\n`,
+    ),
+    writeFile(
+      paths.releaseManifestPath,
+      `${JSON.stringify(resolvedSources.releaseManifest, null, 2)}\n`,
+    ),
   ]);
   return { root, paths, sources: resolvedSources };
 }
