@@ -7,6 +7,8 @@ import {
 } from "./first-publication-stage-only-policy.mjs";
 import { validateFirstPublicationWorkflowActivationReceiptDocument } from
   "./first-publication-workflow-activation-receipt.mjs";
+import { validateFirstPublicationWorkflowActivationPostApplyReportDocument } from
+  "./first-publication-workflow-activation-post-apply-report.mjs";
 import { canonicalDigest, canonicalJson, sha256 } from
   "./release-artifact-manifest.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
@@ -132,7 +134,7 @@ function reportBody(input) {
     },
     observedAt: input.observedAt,
     localActivation: "stage_only_workflow_present",
-    checks,
+    checks: checks.map(({ id }) => ({ id, status: "ready" })),
     limitations: {
       receiptAuthenticity: "not_verified",
       reviewedCandidateProvenance: "receipt_binding_only",
@@ -157,6 +159,7 @@ export function createFirstPublicationWorkflowActivationPostApplyReport(input) {
 }
 
 export function validateFirstPublicationWorkflowActivationPostApplyReport(report, input) {
+  validateFirstPublicationWorkflowActivationPostApplyReportDocument(report);
   let expected;
   try {
     expected = createFirstPublicationWorkflowActivationPostApplyReport(input);

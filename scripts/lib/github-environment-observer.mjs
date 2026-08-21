@@ -1,12 +1,8 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
+import { defaultGitHubCliExecute, getGitHubApiJson } from "./github-read-only-api.mjs";
 import {
   trustedPublisherEnvironment,
   validateReadinessRepository,
 } from "./trusted-publisher-readiness.mjs";
-
-const execFileAsync = promisify(execFile);
 
 function unavailable(reason) {
   return {
@@ -17,40 +13,16 @@ function unavailable(reason) {
   };
 }
 
-async function getJson(execute, path, environment) {
-  const { stdout } = await execute("gh", [
-    "api",
-    "--method",
-    "GET",
-    "--header",
-    "Accept: application/vnd.github+json",
-    "--header",
-    "X-GitHub-Api-Version: 2026-03-10",
-    path,
-  ], {
-    encoding: "utf8",
-    maxBuffer: 2 * 1024 * 1024,
-    timeout: 30_000,
-    env: {
-      ...environment,
-      GH_PAGER: "cat",
-      GH_PROMPT_DISABLED: "1",
-      NO_COLOR: "1",
-    },
-  });
-  return JSON.parse(stdout);
-}
-
 export async function observeGitHubPublisherEnvironment({
   repository,
-  execute = execFileAsync,
+  execute = defaultGitHubCliExecute,
   environment = process.env,
 } = {}) {
   validateReadinessRepository(repository);
   const root = `repos/${repository}/environments/${trustedPublisherEnvironment}`;
   let environmentResponse;
   try {
-    environmentResponse = await getJson(execute, root, environment);
+    environmentResponse = await getGitHubApiJson(execute, root, environment);
   } catch {
     return unavailable("authentication_or_environment_unavailable");
   }
@@ -61,7 +33,7 @@ export async function observeGitHubPublisherEnvironment({
   ) return unavailable("response_invalid");
   let policyResponse;
   try {
-    policyResponse = await getJson(
+    policyResponse = await getGitHubApiJson(
       execute,
       `${root}/deployment-branch-policies?per_page=100&page=1`,
       environment,

@@ -1087,6 +1087,22 @@ CLI stage-only workflow activation post-apply verification 완료 조건:
 - Redigest 권한 상향, current mismatch, action SHA 변경, control 약화와 transaction race를 검증함
 - 현재 production workflow 적용·원격 배포·실행·npm stage·2FA·공개를 주장하지 않음
 
+CLI stage-only workflow remote deployment evidence 완료 조건:
+
+- Standalone post-apply report reader가 exact key·고정 한계·효과·시각·digest를 독립 검증함
+- Current workflow·저장 report를 각 상한의 regular-file snapshot으로 읽고 canonical 형식을 요구함
+- 시작과 report 직전에 activation transaction 부재를 확인하고 남은 transaction을 추정·정리하지 않음
+- Repository·40자 source commit·고정 workflow path를 인증된 GitHub GET 하나에 결속함
+- Remote file의 base64·path·blob SHA·1~256 KiB size를 제한하고 credential·원문을 버림
+- Remote와 current workflow의 byte count·SHA-256·전체 bytes가 모두 같아야 함
+- Local과 remote workflow가 같은 공용 stage-only 정책 전체를 각각 통과해야 함
+- 원격 관측 뒤 workflow·저장 report source race를 거부함
+- Report가 exact commit의 같은 source 존재만 evidence-bound로 표현함
+- Default branch·release tag 도달 가능성과 workflow 실행·stage·2FA·공개를 별도 미검증으로 유지함
+- 파일·GitHub 설정·workflow dispatch·publication·runtime event·project state·telemetry를 바꾸지 않음
+- Exact GET, 응답 상한, 무쓰기, repository·commit·bytes 불일치, redigest 상향과 transaction race를 검증함
+- 현재 production workflow 적용·원격 배포·GitHub 실제 관측·실행·npm stage·2FA·공개를 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1325,4 +1341,6 @@ CLI stage-only workflow activation permit·transaction boundary를 완료했습�
 
 CLI stage-only workflow activation post-apply verification boundary를 완료했습니다. Standalone receipt reader와 bounded current source, 시작·종료 transaction inspector를 apply writer와 분리했습니다. Stage command·package identity와 action SHA·option·step 순서 전체를 공용 stage-only 정책으로 검사하고 npm·GitHub control을 새로 관측한 뒤 source를 재확인합니다. Report는 local source와 관측 시점 control만 verified로 제한하고 receipt authenticity·candidate 전체 provenance·GitHub 원격 배포·실행·stage·공개를 미검증으로 남깁니다. 결정은 [ADR-0120](./docs/adr/0120-cli-stage-only-workflow-post-apply-verification.md)에 기록했습니다.
 
-다음 구현 작업은 local post-apply report와 GitHub의 exact source commit에 있는 workflow bytes를 결속하는 **CLI stage-only workflow remote deployment evidence boundary**입니다. 인증된 read-only observer, commit·repository·workflow path binding과 source race를 먼저 고정하고 workflow 실행이나 npm stage 결과는 별도 증거로 유지합니다.
+CLI stage-only workflow remote deployment evidence boundary를 완료했습니다. GitHub GET observer, bounded local source, byte·stage 정책, standalone report와 CLI 조정기를 분리하고 exact repository·40자 commit·고정 workflow path의 원격 파일을 current post-apply report·workflow bytes에 결속했습니다. Evidence는 해당 commit에 같은 stage-only source가 있음을 뜻할 뿐 default branch·release tag 도달 가능성, workflow 실행·stage·공개는 별도로 남깁니다. 결정은 [ADR-0121](./docs/adr/0121-cli-stage-only-workflow-remote-deployment-evidence.md)에 기록했습니다.
+
+다음 구현 작업은 exact source commit이 저장소의 기본 브랜치와 의도한 `v*` release tag에서 도달 가능한지 읽기 전용으로 결속하는 **CLI stage-only workflow branch·tag reachability evidence boundary**입니다. 움직이는 ref와 commit ancestry, annotated tag 해석을 분리하고 workflow 실행이나 npm stage 결과는 계속 별도 증거로 유지합니다.

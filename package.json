@@ -33,6 +33,7 @@
     "release:bootstrap:workflow-permit": "node scripts/authorize-cli-first-publication-workflow-activation.mjs",
     "release:bootstrap:workflow-apply": "node scripts/apply-cli-first-publication-workflow-activation.mjs",
     "release:bootstrap:workflow-verify": "node scripts/verify-cli-first-publication-workflow-activation-post-apply.mjs",
+    "release:bootstrap:workflow-remote-evidence": "node scripts/show-cli-first-publication-workflow-remote-deployment-evidence.mjs",
     "release:bootstrap:plan": "node scripts/show-cli-first-publication-execution-plan.mjs",
     "release:bootstrap:arm": "node scripts/authorize-cli-first-publication-arming.mjs",
     "release:bootstrap:blockers": "node scripts/show-cli-first-publication-activation-blockers.mjs",

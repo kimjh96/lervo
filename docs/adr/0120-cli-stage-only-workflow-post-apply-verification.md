@@ -73,4 +73,4 @@ Side effect는 files·workflow unchanged, npm·GitHub settings observed-not-chan
 
 Fixture는 무쓰기 성공, receipt 효과·report 한계의 redigest 권한 상향, current bytes 불일치, action SHA 변경을 receipt와 함께 다시 digest한 경우, fresh control 약화, online source race, 시작 전·관측 중 pending transaction과 CLI 인자 분리를 검증합니다. 현재 production workflow에는 stage job을 적용하지 않았고 원격 배포·실행, npm stage·2FA·공개도 수행하지 않았습니다.
 
-다음 단계는 local report와 GitHub의 exact source commit에 있는 workflow bytes를 결속하는 원격 workflow 배포 증거 경계입니다.
+후속 원격 workflow 배포 증거 경계는 [ADR-0121](./0121-cli-stage-only-workflow-remote-deployment-evidence.md)에 기록합니다.
