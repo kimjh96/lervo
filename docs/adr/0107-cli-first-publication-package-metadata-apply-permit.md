@@ -14,7 +14,7 @@ ADR-0106의 candidate는 현재 `package.json` 원본과 exact 결과 바이트�
 저장소 명령을 추가합니다.
 
 ```text
-pnpm release:bootstrap:metadata-permit \
+pnpm --silent release:bootstrap:metadata-permit \
   --repository <owner/repository> \
   --license <license> \
   --scope-owner-kind <organization|user> \
@@ -23,7 +23,7 @@ pnpm release:bootstrap:metadata-permit \
   --reviewed-source-sha256 <sha256:...> \
   --reviewed-output-sha256 <sha256:...> \
   --confirm-reviewed-candidate \
-  [--json]
+  --json
 ```
 
 사용자는 먼저 candidate의 JSON metadata와 별도 `--package-json` 결과를 검토해야 합니다. Permit 명령에는 검토한 candidate digest, package source SHA-256과 output SHA-256을 모두 다시 제출하고 `--confirm-reviewed-candidate`를 명시합니다. 이 확인은 사람의 진술이며 검토 행위나 검토자 신원을 시스템이 독립적으로 증명한다는 뜻이 아닙니다.
@@ -43,7 +43,7 @@ Permit은 다음을 결속합니다.
 
 `source_compare_and_swap`은 durable 소비 기록이나 영구적인 단일 사용 증명이 아닙니다. 이후 적용기가 현재 source SHA-256을 다시 검사해야 하며, source가 바뀌면 permit을 사용할 수 없습니다. 원본을 과거 bytes로 되돌린 경우까지 막는 durable replay store는 이 permit이 제공하지 않습니다.
 
-기본 사람용 출력은 선택한 비민감 metadata, 조건부 권한과 실제로 하지 않은 작업을 자연스러운 한국어로 설명하고 digest·경로는 보여 주지 않습니다. `--json`은 canonical digest가 붙은 permit만 stdout에 출력합니다. 기존의 다른 값과 package 본문은 permit에 복사하지 않습니다. 사용자가 shell redirect로 JSON을 저장할 수 있지만 명령 자체는 결과 파일을 만들거나 덮어쓰지 않습니다.
+기본 사람용 출력은 선택한 비민감 metadata, 조건부 권한과 실제로 하지 않은 작업을 자연스러운 한국어로 설명하고 digest·경로는 보여 주지 않습니다. `--json`은 canonical digest가 붙은 permit만 stdout에 출력합니다. `pnpm` 실행 안내를 제외한 exact JSON을 저장하려면 `pnpm --silent ... --json > permit.json`으로 실행합니다. 기존의 다른 값과 package 본문은 permit에 복사하지 않습니다. 사용자가 shell redirect로 JSON을 저장할 수 있지만 명령 자체는 결과 파일을 만들거나 덮어쓰지 않습니다.
 
 명령에는 filesystem writer, release generator, online observer, reservation·publisher port가 없습니다. Package·release manifest, 승인·activation·게시 상태, runtime event·project 상태·telemetry를 바꾸지 않습니다.
 

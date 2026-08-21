@@ -25,6 +25,23 @@ export function canonicalDigest(value) {
   return sha256(canonicalJson(value));
 }
 
+export function releaseArtifactDigest({
+  artifact,
+  directDependencies,
+  bundle,
+  archive,
+  dependencies,
+}) {
+  return canonicalDigest({
+    artifact,
+    directDependencies,
+    bundleDigest: bundle.bundleDigest,
+    archiveContentDigest: archive.contentDigest,
+    portableDependenciesDigest: dependencies.portableDigest,
+    platformSpecificFamilies: dependencies.platformSpecificFamilies,
+  });
+}
+
 function isSortedUnique(values) {
   return values.every((value, index) => index === 0 || values[index - 1] < value);
 }
@@ -156,14 +173,7 @@ export function validateReleaseArtifactManifest(manifest) {
   ) {
     fail("release_artifact_closure_invalid", "Production dependency closure가 올바르지 않습니다.");
   }
-  const expectedArtifactDigest = canonicalDigest({
-    artifact,
-    directDependencies: manifest.directDependencies,
-    bundleDigest: bundle.bundleDigest,
-    archiveContentDigest: archive.contentDigest,
-    portableDependenciesDigest: dependencies.portableDigest,
-    platformSpecificFamilies: dependencies.platformSpecificFamilies,
-  });
+  const expectedArtifactDigest = releaseArtifactDigest(manifest);
   if (!digestPattern.test(manifest.artifactDigest) || manifest.artifactDigest !== expectedArtifactDigest) {
     fail("release_artifact_digest_invalid", "Release artifact digest가 올바르지 않습니다.");
   }

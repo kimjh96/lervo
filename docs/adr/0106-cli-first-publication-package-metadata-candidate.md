@@ -14,12 +14,12 @@ ADR-0105의 preview는 바꿀 필드와 새 값은 보여 주지만 실제 `pack
 저장소 명령을 추가합니다.
 
 ```text
-pnpm release:bootstrap:metadata-candidate \
+pnpm --silent release:bootstrap:metadata-candidate \
   --repository <owner/repository> \
   --license <license> \
   --scope-owner-kind <organization|user> \
   --scope-owner-name lervo \
-  [--json]
+  --json
 
 pnpm --silent release:bootstrap:metadata-candidate \
   --repository <owner/repository> \
@@ -29,7 +29,7 @@ pnpm --silent release:bootstrap:metadata-candidate \
   --package-json
 ```
 
-두 출력 mode는 함께 사용할 수 없습니다. 기본 사람용 출력은 변경 내용과 검토 경계를 설명합니다. `--json`은 candidate metadata만 출력하고 결과 파일 본문은 넣지 않습니다. `--package-json`은 후보가 결속한 정확한 UTF-8 결과 바이트만 stdout에 출력합니다. Package manager의 실행 안내가 stdout에 섞이지 않도록 이 mode를 `pnpm`으로 부를 때는 `--silent`가 필요합니다.
+두 출력 mode는 함께 사용할 수 없습니다. 기본 사람용 출력은 변경 내용과 검토 경계를 설명합니다. `--json`은 candidate metadata만 출력하고 결과 파일 본문은 넣지 않습니다. `--package-json`은 후보가 결속한 정확한 UTF-8 결과 바이트만 stdout에 출력합니다. Package manager의 실행 안내가 stdout에 섞이지 않도록 기계가 읽을 두 mode를 `pnpm`으로 부를 때는 `--silent`가 필요합니다.
 
 조정기는 ADR-0105와 같은 decision과 preview를 현재 package·release manifest snapshot에서 다시 만듭니다. Package source byte count·SHA-256, 두 manifest의 의미 digest, decision·preview digest를 candidate에 결속합니다. Candidate는 `status=review_required`, `writesAllowed=false`이며 다음 네 `set`만 허용합니다.
 

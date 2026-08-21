@@ -53,17 +53,19 @@ async function installTarball(consumerRoot, tarballPath) {
   );
 }
 
-async function verifyInstalledPackage(consumerRoot, expectedVersion) {
+async function verifyInstalledPackage(consumerRoot, expectedManifest) {
   const packageRoot = resolve(consumerRoot, "node_modules/@lervo/cli");
   const manifest = await readJson(resolve(packageRoot, "package.json"));
   assert.equal(manifest.name, "@lervo/cli");
-  assert.equal(manifest.version, expectedVersion);
+  assert.equal(manifest.version, expectedManifest.version);
   assert.equal(
     manifest.description,
     "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
   );
   assert.deepEqual(manifest.keywords, ["ai-agents", "local-first", "orchestration"]);
-  assert.equal(manifest.license, "UNLICENSED");
+  assert.equal(manifest.license, expectedManifest.license);
+  assert.deepEqual(manifest.repository, expectedManifest.repository);
+  assert.deepEqual(manifest.publishConfig, expectedManifest.publishConfig);
   assert.equal(manifest.private, false);
   assert.deepEqual(manifest.engines, { node: ">=22.13" });
   assert.deepEqual(manifest.bin, { lervo: "./dist/bin.js" });
@@ -154,7 +156,7 @@ async function main() {
     await Promise.all([mkdir(archiveRoot), mkdir(consumerRoot)]);
     const tarballPath = await packCliArtifact(archiveRoot, cliManifest.version);
     await installTarball(consumerRoot, tarballPath);
-    await verifyInstalledPackage(consumerRoot, cliManifest.version);
+    await verifyInstalledPackage(consumerRoot, cliManifest);
     await verifyPackageGuide(consumerRoot);
     const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
     await verifyConsumerCommands(consumerRoot, cliManifest.version);

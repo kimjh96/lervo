@@ -53,16 +53,16 @@ async function viewJson(args, registryUrl, environment, cwd) {
   return JSON.parse(stdout);
 }
 
-async function verifyPublishedMetadata(version, registryUrl, environment, cwd) {
+async function verifyPublishedMetadata(manifest, registryUrl, environment, cwd) {
   const metadata = await viewJson(
-    ["view", `@lervo/cli@${version}`],
+    ["view", `@lervo/cli@${manifest.version}`],
     registryUrl,
     environment,
     cwd,
   );
   assert.equal(metadata.name, "@lervo/cli");
-  assert.equal(metadata.version, version);
-  assert.equal(metadata.license, "UNLICENSED");
+  assert.equal(metadata.version, manifest.version);
+  assert.equal(metadata.license, manifest.license);
   assert.equal(typeof metadata.dist?.integrity, "string");
   assert.match(metadata.dist.integrity, /^sha512-[A-Za-z0-9+/]+={0,2}$/u);
   return metadata.dist.integrity;
@@ -139,7 +139,7 @@ async function main() {
 
     await publishCli(tarballPath, registry.url, environment);
     const integrity = await verifyPublishedMetadata(
-      cliManifest.version,
+      cliManifest,
       registry.url,
       environment,
       archiveRoot,
@@ -159,7 +159,7 @@ async function main() {
     await expectPublishConflict(tarballPath, registry.url, environment);
     assert.equal(
       await verifyPublishedMetadata(
-        cliManifest.version,
+        cliManifest,
         registry.url,
         environment,
         archiveRoot,

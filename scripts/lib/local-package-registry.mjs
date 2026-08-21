@@ -62,6 +62,7 @@ export function isolatedRegistryEnvironment(
     NPM_CONFIG_AUDIT: "false",
     NPM_CONFIG_CACHE: cachePath,
     NPM_CONFIG_FUND: "false",
+    npm_config_provenance: "false",
     NPM_CONFIG_USERCONFIG: userConfigPath,
   };
 }

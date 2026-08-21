@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import {
   canonicalDigest,
+  releaseArtifactDigest,
   ReleaseArtifactManifestError,
   sha256,
 } from "./release-artifact-manifest.mjs";
@@ -131,9 +132,12 @@ export async function createCliReleaseManifest(
   deploymentRoot,
   expectedFamilies,
   updateMode,
+  options = {},
 ) {
   const [cliManifest, archivePaths, installedPackages, bundle] = await Promise.all([
-    readJson(cliManifestPath),
+    options.cliManifest === undefined
+      ? readJson(cliManifestPath)
+      : Promise.resolve(structuredClone(options.cliManifest)),
     readPackFileList(),
     collectInstalledPackages(resolve(deploymentRoot, "node_modules")),
     createBundleSnapshot(),
@@ -169,13 +173,12 @@ export async function createCliReleaseManifest(
     bundle,
     archive,
     dependencies,
-    artifactDigest: canonicalDigest({
+    artifactDigest: releaseArtifactDigest({
       artifact,
       directDependencies,
-      bundleDigest: bundle.bundleDigest,
-      archiveContentDigest: archive.contentDigest,
-      portableDependenciesDigest: dependencies.portableDigest,
-      platformSpecificFamilies: dependencies.platformSpecificFamilies,
+      bundle,
+      archive,
+      dependencies,
     }),
   };
 }

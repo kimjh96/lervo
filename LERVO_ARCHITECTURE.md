@@ -55,6 +55,8 @@ Package metadata candidate는 source byte snapshot, preview와 결과 직렬화�
 
 Package metadata apply permit은 candidate 생성·검증 경계를 재사용하고 사람에게서 되돌려 받은 candidate·source·output digest를 별도 review 입력으로 검증합니다. Permit 코어는 조건부 package 교체와 release manifest 재생성 권한만 표현하고 조정기는 전체 source가 끝까지 같은지 확인합니다. Permit formatter와 process adapter에는 writer·generator가 없으며 실제 apply transaction은 permit 재검증, compare-and-swap, 생성 원본 일관성 및 rollback을 별도 경계로 가져야 합니다.
 
+Package metadata apply transaction은 source reader, production release generator override, derived release 검증, canonical plan·receipt, staged writer와 journal recovery로 나뉩니다. Package·release manifest·SBOM 결과를 모두 사전 생성하고 metadata 외 release section 불변을 검사한 뒤에만 writer를 엽니다. Writer는 세 target과 read-only permit·lockfile을 compare-and-swap하고 mode를 보존합니다. 동기 실패는 역순 rollback하고 프로세스 중단은 fixed journal과 명시적 recovery로 처분합니다. 일반 filesystem의 다중 경로 완전 원자성을 주장하지 않으며 journal이 남은 동안 새 apply를 fail-closed합니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

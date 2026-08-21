@@ -1,0 +1,140 @@
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from
+  "../../lib/cli-first-publication-package-metadata-candidate.mjs";
+import { readFirstPublicationActivationSources } from
+  "../../lib/first-publication-activation-sources.mjs";
+import {
+  readFirstPublicationPackageMetadataApplySources,
+} from "../../lib/first-publication-package-metadata-apply-sources.mjs";
+import { createFirstPublicationMetadataDecision } from
+  "../../lib/first-publication-metadata-decision.mjs";
+import { createFirstPublicationPackageMetadataApplyPermit } from
+  "../../lib/first-publication-package-metadata-apply-permit.mjs";
+import {
+  createFirstPublicationPackageMetadataDerivedRelease,
+  parseFirstPublicationPackageMetadataLockfile,
+} from "../../lib/first-publication-package-metadata-derived-release.mjs";
+import { createFirstPublicationPackageMetadataApplyPlan } from
+  "../../lib/first-publication-package-metadata-apply-transaction.mjs";
+import { releaseArtifactDigest } from "../../lib/release-artifact-manifest.mjs";
+import {
+  activationRepository,
+  activationRepositoryRoot,
+  createActivationSourceFiles,
+} from "./first-publication-activation.mjs";
+
+function decision() {
+  return createFirstPublicationMetadataDecision({
+    repository: activationRepository,
+    license: "Apache-2.0",
+    scopeOwnerKind: "organization",
+    scopeOwnerName: "lervo",
+  });
+}
+
+function reviewFor(candidateResult) {
+  return {
+    actorKind: "human_operator",
+    confirmation: "reviewed_exact_candidate",
+    candidateDigest: candidateResult.candidate.candidateDigest,
+    packageSourceSha256: candidateResult.candidate.sources.packageSourceSha256,
+    outputSha256: candidateResult.candidate.output.sha256,
+  };
+}
+
+function generatedManifest(current, candidateResult) {
+  const output = JSON.parse(candidateResult.outputBytes.toString("utf8"));
+  const generated = structuredClone(current);
+  generated.artifact.repository = output.repository.url;
+  generated.artifact.license = output.license;
+  generated.artifact.registry = output.publishConfig.registry;
+  generated.artifact.provenance = output.publishConfig.provenance;
+  generated.artifactDigest = releaseArtifactDigest(generated);
+  return generated;
+}
+
+export async function createMetadataApplyFixture() {
+  const prepared = await createActivationSourceFiles();
+  const paths = {
+    ...prepared.paths,
+    releaseSbomPath: resolve(prepared.root, "release-sbom.cdx.json"),
+    lockfilePath: resolve(prepared.root, "pnpm-lock.yaml"),
+  };
+  const permitPath = resolve(prepared.root, "permit.json");
+  const transactionRoot = resolve(prepared.root, ".metadata-apply-transaction");
+  await Promise.all([
+    readFile(resolve(activationRepositoryRoot, "apps/cli/release-sbom.cdx.json"))
+      .then((contents) => writeFile(paths.releaseSbomPath, contents)),
+    readFile(resolve(activationRepositoryRoot, "pnpm-lock.yaml"))
+      .then((contents) => writeFile(paths.lockfilePath, contents)),
+  ]);
+  const selected = decision();
+  const activationSources = await readFirstPublicationActivationSources(paths);
+  const candidateEvidence = await createValidatedFirstPublicationPackageMetadataCandidateEvidence(
+    selected,
+    activationSources,
+  );
+  const review = reviewFor(candidateEvidence.candidateResult);
+  const permitInput = { ...candidateEvidence, decision: selected, review };
+  const permit = createFirstPublicationPackageMetadataApplyPermit(permitInput);
+  await writeFile(permitPath, `${JSON.stringify(permit, null, 2)}\n`);
+  const sources = await readFirstPublicationPackageMetadataApplySources(paths, permitPath);
+  const lockfile = parseFirstPublicationPackageMetadataLockfile(
+    sources.sourceSnapshots.lockfile.contents,
+  );
+  const derivedRelease = createFirstPublicationPackageMetadataDerivedRelease({
+    currentReleaseManifest: sources.releaseManifest,
+    currentReleaseSbom: sources.releaseSbom,
+    lockfile,
+    candidateResult: candidateEvidence.candidateResult,
+    generatedReleaseManifest: generatedManifest(
+      sources.releaseManifest,
+      candidateEvidence.candidateResult,
+    ),
+  });
+  const planInput = {
+    permit,
+    permitInput,
+    derivedRelease,
+    sourceSnapshots: sources.sourceSnapshots,
+  };
+  const planResult = createFirstPublicationPackageMetadataApplyPlan(planInput);
+  const targets = {
+    packageManifest: paths.packageManifestPath,
+    releaseManifest: paths.releaseManifestPath,
+    releaseSbom: paths.releaseSbomPath,
+  };
+  return {
+    ...prepared,
+    paths,
+    permitPath,
+    transactionRoot,
+    selected,
+    permit,
+    sources,
+    candidateEvidence,
+    lockfile,
+    derivedRelease,
+    planInput,
+    planResult,
+    targets,
+  };
+}
+
+export function applyFilesystemInput(fixture) {
+  return {
+    transactionRoot: fixture.transactionRoot,
+    plan: fixture.planResult.plan,
+    files: fixture.planResult.plan.files.map((binding) => ({
+      path: fixture.targets[binding.id],
+      binding,
+      outputBytes: fixture.planResult.outputBytes[binding.id],
+    })),
+    readOnlyFiles: fixture.planResult.plan.readOnlySources.map((binding) => ({
+      path: binding.id === "lockfile" ? fixture.paths.lockfilePath : fixture.permitPath,
+      binding: { before: binding },
+    })),
+  };
+}

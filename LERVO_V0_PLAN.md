@@ -1173,4 +1173,6 @@ CLI first-publication package metadata patch candidate를 완료했습니다. �
 
 CLI first-publication package metadata apply permit을 완료했습니다. 사용자가 검토한 candidate·source·output digest와 명시적 확인을 현재 원본에서 다시 만든 후보에 대조하고, package 교체는 source가 같을 때만 허용하며 release manifest 직접 patch는 금지합니다. 사람 진술을 독립적인 검토 증명으로 과장하지 않고 원본·상태·event를 쓰지 않습니다. 결정은 [ADR-0107](./docs/adr/0107-cli-first-publication-package-metadata-apply-permit.md)에 기록했습니다.
 
-다음 구현 작업은 permit 재검증, package source compare-and-swap, 생성 원본의 일관된 재생성과 실패 rollback을 먼저 고정하는 **CLI first-publication package metadata apply transaction**입니다. 실제 writer는 이 transaction의 atomicity와 실패 처분을 테스트로 증명한 뒤에만 엽니다.
+CLI first-publication package metadata apply transaction을 완료했습니다. Permit·candidate를 current source에서 다시 검증하고 production generator로 release manifest와 SBOM을 사전 생성합니다. 세 target과 permit·lockfile compare-and-swap, mode-preserving staged replace, 7개 checkpoint의 all-file rollback과 pre-commit·committed interruption recovery를 구현했습니다. 일반 filesystem의 완전한 다중 경로 원자성을 과장하지 않으며 실제 current metadata에는 적용하지 않았습니다. 결정은 [ADR-0108](./docs/adr/0108-cli-first-publication-package-metadata-apply-transaction.md)에 기록했습니다.
+
+다음 구현 작업은 transaction 결과 원본을 다시 읽어 local blocker 해소와 release 원본 일관성을 확인하되 license 승인·public package 이름·npm scope control을 계속 별도 required로 남기는 **CLI first-publication metadata post-apply verification**입니다.

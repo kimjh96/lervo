@@ -13,25 +13,28 @@ import {
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 const rootManifestPath = resolve(repositoryRoot, "package.json");
 
-async function readExpectedVersion() {
+async function readExpectedManifest() {
   const [rootManifest, cliManifest] = await Promise.all([
     readJson(rootManifestPath),
     readJson(cliManifestPath),
   ]);
   assert.equal(cliManifest.version, rootManifest.version);
   assert.deepEqual(cliManifest.bin, { lervo: "./dist/bin.js" });
-  return rootManifest.version;
+  return cliManifest;
 }
 
-async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedVersion) {
+async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedManifest) {
   const deployedManifest = await readJson(resolve(deploymentRoot, "package.json"));
-  assert.equal(deployedManifest.version, expectedVersion);
+  assert.equal(deployedManifest.name, expectedManifest.name);
+  assert.equal(deployedManifest.version, expectedManifest.version);
   assert.equal(
     deployedManifest.description,
     "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
   );
   assert.deepEqual(deployedManifest.keywords, ["ai-agents", "local-first", "orchestration"]);
-  assert.equal(deployedManifest.license, "UNLICENSED");
+  assert.equal(deployedManifest.license, expectedManifest.license);
+  assert.deepEqual(deployedManifest.repository, expectedManifest.repository);
+  assert.deepEqual(deployedManifest.publishConfig, expectedManifest.publishConfig);
   assert.equal(deployedManifest.private, false);
   assert.deepEqual(deployedManifest.engines, { node: ">=22.13" });
   assert.deepEqual(deployedManifest.bin, { lervo: "./dist/bin.js" });
@@ -58,7 +61,7 @@ async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, ex
   assert.equal(guide.includes("lervo init --name my-project"), true);
 
   const version = await runInstalledCli(cliEntry, ["--version"], projectRoot);
-  assert.equal(version.stdout, `lervo ${expectedVersion}\n`);
+  assert.equal(version.stdout, `lervo ${expectedManifest.version}\n`);
   assert.equal(version.stderr, "");
 }
 
@@ -148,7 +151,7 @@ async function verifyTraceModes(cliEntry, projectRoot, diagnostics) {
 }
 
 async function main() {
-  const expectedVersion = await readExpectedVersion();
+  const expectedManifest = await readExpectedManifest();
 
   const fixtureRoot = await mkdtemp(resolve(tmpdir(), "lervo-installed-cli-"));
   try {
@@ -166,7 +169,7 @@ async function main() {
       cliEntry,
       deploymentRoot,
       projectRoot,
-      expectedVersion,
+      expectedManifest,
     );
     await verifyTraceCapabilities(cliEntry, projectRoot, diagnostics);
     await createTraceFixture(cliEntry, projectRoot, openProjectStorage);
@@ -175,7 +178,7 @@ async function main() {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 
-  console.log(`설치된 Lervo CLI smoke 검사 통과 (${expectedVersion})`);
+  console.log(`설치된 Lervo CLI smoke 검사 통과 (${expectedManifest.version})`);
 }
 
 await main();

@@ -30,6 +30,7 @@
     "release:bootstrap:metadata-preview": "node scripts/show-cli-first-publication-metadata-preview.mjs",
     "release:bootstrap:metadata-candidate": "node scripts/show-cli-first-publication-package-metadata-candidate.mjs",
     "release:bootstrap:metadata-permit": "node scripts/show-cli-first-publication-package-metadata-apply-permit.mjs",
+    "release:bootstrap:metadata-apply": "node scripts/apply-cli-first-publication-package-metadata.mjs",
     "smoke:built-cli": "node scripts/check-built-cli.mjs",
     "smoke:packed-cli": "node scripts/check-packed-cli.mjs",
     "smoke:registry-publish": "node scripts/check-registry-publish.mjs",
