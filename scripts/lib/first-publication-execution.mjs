@@ -50,7 +50,13 @@ async function abortBeforePublication(store, reservation) {
 
 export async function executeFirstPublicationBootstrap(
   { bootstrap, publicationAuthorization, releaseDirectory },
-  { reservationStore, observePackage, publish, clock = () => new Date().toISOString() },
+  {
+    reservationStore,
+    observePackage,
+    preparePublish,
+    publish,
+    clock = () => new Date().toISOString(),
+  },
 ) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
   const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
@@ -58,11 +64,13 @@ export async function executeFirstPublicationBootstrap(
     authorization.authorizationDigest !== bootstrap.release.publicationAuthorizationDigest ||
     typeof releaseDirectory !== "string" || !isAbsolute(releaseDirectory) ||
     typeof observePackage !== "function" || typeof publish !== "function" ||
+    (preparePublish !== undefined && typeof preparePublish !== "function") ||
     typeof reservationStore?.reserve !== "function" ||
     typeof reservationStore.complete !== "function" ||
     typeof reservationStore.abort !== "function" ||
     typeof reservationStore.markUnknown !== "function"
   ) fail("first_publication_execution_input_invalid");
+  if (preparePublish !== undefined) await preparePublish();
   const observation = await observePackage();
   if (
     observation?.schemaVersion !== 1 || observation.source !== "npm_public_registry" ||

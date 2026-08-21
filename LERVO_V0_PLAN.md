@@ -961,6 +961,19 @@ CLI first-publication 실행·전환 영수증 완료 조건:
 - 예약·실행 영수증·전환 정책·완료 영수증과 외부 port 조정 책임이 분리됨
 - Fixture가 실제 npm 게시, 2FA, trust·GitHub 설정이나 원격 workflow 성공을 주장하지 않음
 
+CLI first-publication durable 저장·대화형 adapter 완료 조건:
+
+- 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
+- 예약 directory·문서를 owner-only 권한으로 만들고 symlink·과대·손상·좌표 불일치를 거부함
+- 부분 예약 directory도 자동 복구나 재게시로 추정하지 않고 같은 bootstrap을 차단함
+- Terminal은 한 번만 기록하며 published를 뒤늦은 unknown이 덮어쓰지 못함
+- 대화형 준비를 public 재관측·예약 전에 두어 사용자 거부가 게시 결과 불명으로 기록되지 않음
+- 세 TTY, 비CI, 환경 credential 부재, 지원 npm과 `auth-and-writes` profile을 확인함
+- Exact package-version 사전 확인과 publish 뒤 2FA challenge 완료 확인을 분리함
+- OTP·token·npm 출력·profile·사용자 식별 정보를 인자·영수증·저장 문서에 넣지 않음
+- 사람의 2FA 완료 확인을 npm proof 또는 bypass token 부재 증거로 표현하지 않음
+- Fixture가 실제 npm 인증·2FA·게시·package 생성이나 user config 안전성을 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1075,4 +1088,6 @@ CLI first-publication bootstrap 계약을 완료했습니다. Release manifest v
 
 CLI first-publication 실행·전환 영수증 계약을 완료했습니다. Durable 예약 뒤에만 publisher port를 호출하고 게시 전 중단과 호출 후 결과 불명을 구분합니다. Exact registry receipt와 완료 저장 뒤에도 상태는 transition pending이며, stage-only workflow·npm trust·GitHub 보호 환경이 모두 맞아야 bootstrap을 consumed로 완료합니다. 구현은 provider-neutral 코어와 fixture이고 실제 publish·외부 설정·workflow 활성화는 하지 않았습니다. 결정은 [ADR-0098](./docs/adr/0098-cli-first-publication-execution-transition-receipts.md)에 기록했습니다.
 
-다음 구현 작업은 예약 상태를 실행별 파일에 원자적으로 보존하고 수동 TTY·2FA·명시적 실행 동의를 요구하는 **CLI first-publication durable store·interactive publisher adapter 계약**입니다. 실제 package identity와 권한이 확정되기 전에는 외부 게시를 실행하지 않습니다.
+CLI first-publication durable 저장·대화형 adapter 계약을 완료했습니다. 예약별 owner-only 문서 두 개가 재시작·중복·부분 생성을 fail-closed로 보존하고 published terminal을 뒤늦은 unknown이 덮지 못하게 합니다. npm adapter는 TTY·비CI·환경 credential 부재·`auth-and-writes`와 사전·사후 사람 확인을 요구하되 2FA 확인을 npm proof로 과장하지 않습니다. 실제 publish를 여는 CLI는 만들지 않았습니다. 결정은 [ADR-0099](./docs/adr/0099-cli-first-publication-durable-interactive-adapter.md)에 기록했습니다.
+
+다음 구현 작업은 입력·상태 경로와 npm 준비 조건을 읽기 전용으로 조합하고 외부 쓰기 없이 실행 가능 여부를 설명하는 **CLI first-publication execution preflight report 계약**입니다. 실제 실행 명령은 이 report와 package identity·권한 결정 뒤에만 검토합니다.

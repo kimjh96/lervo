@@ -1,0 +1,203 @@
+import { execFile, spawn } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { isAbsolute, resolve } from "node:path";
+import { promisify } from "node:util";
+
+import { canonicalJson } from "./release-artifact-manifest.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from
+  "./first-publication-bootstrap-reader.mjs";
+import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
+
+const minimumNpmVersion = [11, 5, 1];
+const execFileAsync = promisify(execFile);
+
+function fail(code, message = "npm 최초 게시 대화형 실행 조건이 올바르지 않습니다.") {
+  throw new FirstPublicationBootstrapError(code, message);
+}
+
+function version(value) {
+  return /^(\d+)\.(\d+)\.(\d+)(?:-.+)?$/u.exec(value.trim())?.slice(1).map(Number);
+}
+
+function supported(actual) {
+  if (!actual) return false;
+  for (let index = 0; index < minimumNpmVersion.length; index += 1) {
+    if (actual[index] > minimumNpmVersion[index]) return true;
+    if (actual[index] < minimumNpmVersion[index]) return false;
+  }
+  return true;
+}
+
+function containsInjectedCredential(environment) {
+  return Object.entries(environment).some(([name, value]) => {
+    if (typeof value !== "string" || value.length === 0) return false;
+    const normalized = name.toLowerCase();
+    return ["npm_token", "node_auth_token", "pnpm_token"].includes(normalized) ||
+      (normalized.startsWith("npm_config_") &&
+        ["auth", "otp", "token"].some((part) => normalized.includes(part)));
+  });
+}
+
+function withoutNpmConfiguration(environment) {
+  return Object.fromEntries(Object.entries(environment).filter(
+    ([name]) => !name.toLowerCase().startsWith("npm_config_"),
+  ));
+}
+
+function runWithTty(command, args, options) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, { ...options, stdio: "inherit" });
+    child.once("error", reject);
+    child.once("exit", (code, signal) => {
+      if (code === 0 && signal === null) resolvePromise();
+      else reject(new Error("interactive command failed"));
+    });
+  });
+}
+
+async function jsonCommand(execute, command, args, options) {
+  try {
+    const { stdout } = await execute(command, args, {
+      ...options,
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+    });
+    return JSON.parse(stdout);
+  } catch {
+    fail("npm_interactive_first_publication_observation_failed");
+  }
+}
+
+export async function prepareNpmInteractiveFirstPublisher({
+  bootstrap,
+  userConfigPath,
+}, {
+  execute = execFileAsync,
+  confirm,
+  runInteractive = runWithTty,
+  environment = process.env,
+  npmCommand = "npm",
+  stdinIsTTY = process.stdin.isTTY === true,
+  stdoutIsTTY = process.stdout.isTTY === true,
+  stderrIsTTY = process.stderr.isTTY === true,
+} = {}) {
+  validateFirstPublicationBootstrapAuthorization(bootstrap);
+  if (
+    typeof execute !== "function" || typeof confirm !== "function" ||
+    typeof runInteractive !== "function" || typeof userConfigPath !== "string" ||
+    !isAbsolute(userConfigPath) || !stdinIsTTY || !stdoutIsTTY || !stderrIsTTY ||
+    environment.CI === "true" || environment.GITHUB_ACTIONS === "true" ||
+    containsInjectedCredential(environment)
+  ) fail("npm_interactive_first_publication_preflight_failed");
+  const temporaryRoot = await mkdtemp(resolve(tmpdir(), "lervo-first-publish-"));
+  const globalConfigPath = resolve(temporaryRoot, "global.npmrc");
+  await writeFile(globalConfigPath, "", { encoding: "utf8", mode: 0o600 });
+  const commandOptions = {
+    cwd: temporaryRoot,
+    env: {
+      ...withoutNpmConfiguration(environment),
+      NPM_CONFIG_CACHE: resolve(temporaryRoot, "cache"),
+      NPM_CONFIG_GLOBALCONFIG: globalConfigPath,
+      NPM_CONFIG_USERCONFIG: userConfigPath,
+      NO_COLOR: "1",
+    },
+  };
+  let attempted = false;
+  let prepared = false;
+  try {
+    let npmVersion;
+    try {
+      npmVersion = await execute(npmCommand, ["--version"], {
+        ...commandOptions,
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024,
+      });
+    } catch {
+      fail("npm_interactive_first_publication_client_invalid");
+    }
+    if (!supported(version(npmVersion.stdout))) {
+      fail("npm_interactive_first_publication_client_invalid");
+    }
+    const profile = await jsonCommand(execute, npmCommand, [
+      "profile", "get", "--registry", bootstrap.target.registry, "--json",
+    ], commandOptions);
+    if (profile?.tfa?.mode !== "auth-and-writes" || profile.tfa.pending === true) {
+      fail("npm_interactive_first_publication_2fa_not_ready");
+    }
+    const phrase = `${bootstrap.target.package}@${bootstrap.target.version}을 ` +
+      "대화형 2FA로 한 번 게시하고 bypass token은 사용하지 않습니다";
+    if (await confirm({ phase: "before_publication", phrase }) !== phrase) {
+      fail("npm_interactive_first_publication_not_confirmed");
+    }
+    prepared = true;
+  } catch (error) {
+    await rm(temporaryRoot, { recursive: true, force: true });
+    if (error instanceof FirstPublicationBootstrapError) throw error;
+    fail("npm_interactive_first_publication_preflight_failed");
+  }
+
+  return {
+    async publish({ target, artifact, tarballPath }) {
+      if (!prepared || attempted || !isAbsolute(tarballPath ?? "") ||
+          canonicalJson(target) !== canonicalJson(bootstrap.target) ||
+          canonicalJson(artifact) !== canonicalJson(bootstrap.release.artifact)) {
+        fail("npm_interactive_first_publication_request_invalid");
+      }
+      attempted = true;
+      try {
+        await runInteractive(npmCommand, [
+          "publish",
+          tarballPath,
+          "--registry",
+          target.registry,
+          "--tag",
+          target.distTag,
+          "--access",
+          target.access,
+          "--ignore-scripts",
+        ], commandOptions);
+      } catch {
+        fail("npm_interactive_first_publication_failed");
+      }
+      let secondFactorConfirmation;
+      try {
+        secondFactorConfirmation = await confirm({
+          phase: "second_factor_attestation",
+          phrase: "2FA 확인을 완료했습니다",
+        });
+      } catch {
+        fail("npm_interactive_first_publication_2fa_unconfirmed");
+      }
+      if (secondFactorConfirmation !== "2FA 확인을 완료했습니다") {
+        fail("npm_interactive_first_publication_2fa_unconfirmed");
+      }
+      const coordinate = `${target.package}@${target.version}`;
+      const [metadata, tags] = await Promise.all([
+        jsonCommand(execute, npmCommand, [
+          "view", coordinate, "dist", "--registry", target.registry, "--json",
+        ], commandOptions),
+        jsonCommand(execute, npmCommand, [
+          "view", target.package, "dist-tags", "--registry", target.registry, "--json",
+        ], commandOptions),
+      ]);
+      if (
+        metadata?.integrity !== artifact.registryIntegrity ||
+        metadata.shasum !== artifact.registryShasum ||
+        tags?.[target.distTag] !== target.version
+      ) fail("npm_interactive_first_publication_verification_failed");
+      return {
+        registry: target.registry,
+        package: target.package,
+        version: target.version,
+        distTag: target.distTag,
+        registryIntegrity: metadata.integrity,
+        registryShasum: metadata.shasum,
+      };
+    },
+    async close() {
+      prepared = false;
+      await rm(temporaryRoot, { recursive: true, force: true });
+    },
+  };
+}
