@@ -991,6 +991,21 @@ CLI first-publication reconciliation resolution 완료 조건:
 - 권한 상향을 넣고 redigest한 resolution을 self-contained reader가 거부함
 - 새 runtime event·project 상태·telemetry를 만들지 않음
 
+CLI first-publication transition evidence union 완료 조건:
+
+- Execution receipt와 reconciliation resolution을 exact-key tagged union으로 구분함
+- 각 member를 원래 bootstrap·arming·publication authorization과 type별 source에 다시 검증함
+- Type·digest·evidence 시각·basis를 보존하고 resolution을 execution receipt로 변환하지 않음
+- 두 member 필드를 섞거나 일부 source를 생략한 입력을 fail-closed함
+- Reconciliation과 transition이 같은 public version·integrity·shasum·dist-tag 정책을 공유함
+- 두 증거 경로 모두 exact public release fresh 입력을 별도 필수 검사로 요구함
+- Stage-only workflow·npm trust·GitHub environment 정책을 두 경로에 동일 적용함
+- Transition report·receipt v2가 evidence provenance를 보존함
+- 두 경로 모두 bootstrap consumed·stage-only·direct publish forbidden으로만 수렴함
+- Legacy transition receipt v1과 redigested evidence authority를 거부함
+- Provider identity·credential·외부 응답 원문과 새 telemetry를 만들지 않음
+- 코어가 network freshness나 source snapshot을 직접 보장한다고 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1217,4 +1232,6 @@ CLI first-publication unknown outcome reconciliation report를 완료했습니�
 
 CLI first-publication reconciliation resolution boundary를 완료했습니다. Serialized report를 현재 unknown 원본에 다시 결속하고 fresh public npm 관측도 exact `published`일 때만, report 관측부터 최대 10분인 사람 decision과 함께 별도 immutable resolution을 만듭니다. 결과는 `transition_review_eligible`이지만 execution receipt·2FA proof를 복구하거나 transition completion·retry를 허가하지 않습니다. 기존 reservation·terminal은 바꾸지 않고 새 절대 output만 `wx`로 만듭니다. 결정은 [ADR-0114](./docs/adr/0114-cli-first-publication-reconciliation-resolution.md)에 기록했습니다.
 
-다음 구현 작업은 정상 execution receipt와 reconciliation resolution을 서로 다른 증거 유형으로 유지하면서, 둘 중 어느 경로에서도 stage-only workflow·npm trust·GitHub environment와 exact public release를 fresh 확인한 뒤 같은 완료 의미로 수렴하는 **CLI first-publication transition evidence union**입니다.
+CLI first-publication transition evidence union을 완료했습니다. Execution receipt와 reconciliation resolution을 exact-key tagged union으로 검증하고 type·digest·evidence 시각·basis를 보존합니다. Reconciliation과 transition이 공용 public-release 정책을 사용하며, 두 경로 모두 exact public release·stage-only workflow·npm trust·GitHub environment 네 검사를 통과해야 transition receipt v2의 같은 completed·bootstrap consumed 의미로 수렴합니다. Resolution을 execution receipt로 바꾸거나 provenance를 숨기지 않으며 legacy v1 receipt는 거부합니다. 결정은 [ADR-0115](./docs/adr/0115-cli-first-publication-transition-evidence-union.md)에 기록했습니다.
+
+다음 구현 작업은 transition evidence source 파일과 workflow snapshot을 bounded하게 읽고, public npm·npm trust·GitHub environment를 같은 online 수명주기에서 관측한 뒤 새 transition receipt만 쓰는 **CLI first-publication transition completion command boundary**입니다.

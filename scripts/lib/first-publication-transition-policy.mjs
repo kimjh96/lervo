@@ -1,9 +1,11 @@
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
-import { validateFirstPublicationExecutionReceipt } from
-  "./first-publication-execution-receipt.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
+import { inspectFirstPublicationPublicRelease } from
+  "./first-publication-public-release-policy.mjs";
+import { resolveFirstPublicationTransitionEvidence } from
+  "./first-publication-transition-evidence.mjs";
 
 export const stageOnlyPublicationCommand =
   "pnpm release:publication:stage --release-directory \"${RUNNER_TEMP}/lervo-release\" " +
@@ -127,30 +129,41 @@ export function createFirstPublicationTransitionReport({
   bootstrap,
   armingAuthorization,
   publicationAuthorization,
-  executionReceipt,
+  publicationEvidence,
+  publicReleaseObservation,
   workflow,
   npmObservation,
   githubObservation,
   observedAt,
 }) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationExecutionReceipt(executionReceipt, {
+  const evidence = resolveFirstPublicationTransitionEvidence(publicationEvidence, {
     bootstrap,
     armingAuthorization,
     publicationAuthorization,
   });
   if (workflow === null || typeof workflow !== "object" || Array.isArray(workflow)) fail();
-  if (timestamp(observedAt) < timestamp(executionReceipt.publication.publishedAt)) fail();
+  if (timestamp(observedAt) < timestamp(evidence.evidenceAt)) fail();
+  const publicRelease = inspectFirstPublicationPublicRelease({
+    observation: publicReleaseObservation,
+    target: bootstrap.target,
+    artifact: bootstrap.release.artifact,
+  });
+  const publicReleaseReasons = [...new Set(
+    publicRelease.checks.flatMap(({ reasons }) => reasons),
+  )];
   const checks = [
+    check("exact_public_release",
+      publicRelease.outcome === "published" ? [] : publicReleaseReasons),
     inspectWorkflow(workflow),
     inspectNpm(npmObservation, bootstrap.identity.repository),
     inspectGitHub(githubObservation, bootstrap.identity.repository),
   ];
   const body = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: checks.every(({ status }) => status === "ready") ? "ready" : "blocked",
     bootstrapDigest: bootstrap.bootstrapDigest,
-    executionReceiptDigest: executionReceipt.executionReceiptDigest,
+    publicationEvidence: evidence,
     observedAt,
     checks,
   };

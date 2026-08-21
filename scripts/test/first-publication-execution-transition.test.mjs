@@ -136,7 +136,24 @@ function transitionInput(executed) {
     bootstrap: executed.bootstrap,
     armingAuthorization: executed.armingAuthorization,
     publicationAuthorization: executed.publicationAuthorization,
-    executionReceipt: executed.receipt,
+    publicationEvidence: {
+      type: "execution_receipt",
+      executionReceipt: executed.receipt,
+    },
+    publicReleaseObservation: {
+      schemaVersion: 1,
+      source: "npm_public_registry_reconciliation",
+      state: "observed",
+      package: executed.bootstrap.target.package,
+      version: executed.bootstrap.target.version,
+      distTag: executed.bootstrap.target.distTag,
+      versionMetadata: {
+        state: "found",
+        registryIntegrity: executed.artifact.registryIntegrity,
+        registryShasum: executed.artifact.registryShasum,
+      },
+      distTagValue: { state: "found", version: executed.bootstrap.target.version },
+    },
     workflow: activeWorkflow(),
     npmObservation: {
       schemaVersion: 1,
@@ -332,14 +349,17 @@ describe("first-publication stage-only transition", () => {
     });
     assert.equal(report.status, "ready");
     assert.equal(receipt.status, "completed");
+    assert.equal(receipt.schemaVersion, 2);
     assert.equal(receipt.bootstrap.state, "consumed");
+    assert.equal(receipt.publicationEvidence.type, "execution_receipt");
     assert.equal(receipt.transition.directPublish, "forbidden");
     assert.equal(
       validateFirstPublicationTransitionReceipt(receipt, {
         bootstrap: input.bootstrap,
         armingAuthorization: input.armingAuthorization,
         publicationAuthorization: input.publicationAuthorization,
-        executionReceipt: input.executionReceipt,
+        publicationEvidence: input.publicationEvidence,
+        publicReleaseObservation: input.publicReleaseObservation,
         workflow: input.workflow,
         npmObservation: input.npmObservation,
         githubObservation: input.githubObservation,
@@ -353,7 +373,7 @@ describe("first-publication stage-only transition", () => {
     const broadNpm = transitionInput(executed);
     broadNpm.npmObservation.permissions = ["createPackage", "createStagedPackage"];
     assert.deepEqual(
-      createFirstPublicationTransitionReport(broadNpm).checks[1].reasons,
+      createFirstPublicationTransitionReport(broadNpm).checks[2].reasons,
       ["npm_publisher_permission_mismatch"],
     );
     assert.throws(
@@ -367,14 +387,14 @@ describe("first-publication stage-only transition", () => {
     const direct = transitionInput(executed);
     direct.workflow.jobs["publish-cli"].steps.push({ run: "npm publish package.tgz" });
     assert.ok(
-      createFirstPublicationTransitionReport(direct).checks[0].reasons
+      createFirstPublicationTransitionReport(direct).checks[1].reasons
         .includes("direct_publish_command_present"),
     );
 
     const selfReview = transitionInput(executed);
     selfReview.githubObservation.preventSelfReview = false;
     assert.deepEqual(
-      createFirstPublicationTransitionReport(selfReview).checks[2].reasons,
+      createFirstPublicationTransitionReport(selfReview).checks[3].reasons,
       ["github_self_review_allowed"],
     );
   });
@@ -394,7 +414,8 @@ describe("first-publication stage-only transition", () => {
         bootstrap: input.bootstrap,
         armingAuthorization: input.armingAuthorization,
         publicationAuthorization: input.publicationAuthorization,
-        executionReceipt: input.executionReceipt,
+        publicationEvidence: input.publicationEvidence,
+        publicReleaseObservation: input.publicReleaseObservation,
         workflow: input.workflow,
         npmObservation: input.npmObservation,
         githubObservation: input.githubObservation,

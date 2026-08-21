@@ -5,6 +5,8 @@
 
 > 후속 결정: [ADR-0114](./0114-cli-first-publication-reconciliation-resolution.md)는 reviewed report를 현재 원본에 다시 결속하고 fresh public 관측과 사람 결정을 요구하는 별도 resolution을 추가했습니다.
 
+> 후속 결정: [ADR-0115](./0115-cli-first-publication-transition-evidence-union.md)는 reconciliation과 transition이 같은 public release 판정 정책을 사용하게 했습니다.
+
 ## 맥락
 
 Publisher 호출 뒤 연결 오류, receipt 불일치나 terminal 완료 저장 실패가 생기면 로컬에서는 게시 성공 여부를 알 수 없습니다. 실행 코어는 이 경우 durable reservation을 남기고 `publication_unknown`, `retry=forbidden`으로 닫습니다. 이를 실패로 추정해 다시 게시하면 중복 시도가 되고, package 이름만 보인다는 이유로 성공으로 추정하면 다른 artifact나 잘못된 dist-tag를 승인할 수 있습니다.

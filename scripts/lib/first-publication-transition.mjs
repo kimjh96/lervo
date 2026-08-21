@@ -1,19 +1,11 @@
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
-import { validateFirstPublicationExecutionReceipt } from
-  "./first-publication-execution-receipt.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { createFirstPublicationTransitionReport } from
   "./first-publication-transition-policy.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
-const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
-const readyChecks = [
-  { id: "stage_only_workflow", status: "ready", reasons: [] },
-  { id: "npm_trusted_publisher", status: "ready", reasons: [] },
-  { id: "github_environment", status: "ready", reasons: [] },
-];
 
 function fail(code = "first_publication_transition_receipt_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -27,69 +19,52 @@ function body(receipt) {
     schemaVersion: receipt.schemaVersion,
     status: receipt.status,
     bootstrap: receipt.bootstrap,
-    executionReceiptDigest: receipt.executionReceiptDigest,
-    publication: receipt.publication,
+    publicationEvidence: receipt.publicationEvidence,
+    publicRelease: receipt.publicRelease,
     transition: receipt.transition,
   };
-}
-
-function validateReadyReport(report, bootstrap, executionReceipt) {
-  if (
-    report?.schemaVersion !== 1 || report.status !== "ready" ||
-    report.bootstrapDigest !== bootstrap.bootstrapDigest ||
-    report.executionReceiptDigest !== executionReceipt.executionReceiptDigest ||
-    !digestPattern.test(report.transitionReportDigest ?? "") ||
-    report.transitionReportDigest !== canonicalDigest({
-      schemaVersion: report.schemaVersion,
-      status: report.status,
-      bootstrapDigest: report.bootstrapDigest,
-      executionReceiptDigest: report.executionReceiptDigest,
-      observedAt: report.observedAt,
-      checks: report.checks,
-    }) ||
-    canonicalJson(report.checks) !== canonicalJson(readyChecks) ||
-    typeof report.observedAt !== "string" || !timestampPattern.test(report.observedAt) ||
-    !Number.isFinite(Date.parse(report.observedAt)) ||
-    Date.parse(report.observedAt) < Date.parse(executionReceipt.publication.publishedAt)
-  ) fail("first_publication_transition_not_ready");
 }
 
 export function createFirstPublicationTransitionReceipt({
   bootstrap,
   armingAuthorization,
   publicationAuthorization,
-  executionReceipt,
+  publicationEvidence,
+  publicReleaseObservation,
   workflow,
   npmObservation,
   githubObservation,
   completedAt,
 }) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationExecutionReceipt(executionReceipt, {
-    bootstrap,
-    armingAuthorization,
-    publicationAuthorization,
-  });
   const transitionReport = createFirstPublicationTransitionReport({
     bootstrap,
     armingAuthorization,
     publicationAuthorization,
-    executionReceipt,
+    publicationEvidence,
+    publicReleaseObservation,
     workflow,
     npmObservation,
     githubObservation,
     observedAt: completedAt,
   });
-  validateReadyReport(transitionReport, bootstrap, executionReceipt);
+  if (transitionReport.status !== "ready") fail("first_publication_transition_not_ready");
   const receiptBody = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "completed",
     bootstrap: {
       state: "consumed",
       bootstrapDigest: bootstrap.bootstrapDigest,
     },
-    executionReceiptDigest: executionReceipt.executionReceiptDigest,
-    publication: structuredClone(executionReceipt.publication),
+    publicationEvidence: structuredClone(transitionReport.publicationEvidence),
+    publicRelease: {
+      observedAt: transitionReport.observedAt,
+      target: structuredClone(bootstrap.target),
+      artifact: {
+        registryIntegrity: bootstrap.release.artifact.registryIntegrity,
+        registryShasum: bootstrap.release.artifact.registryShasum,
+      },
+    },
     transition: {
       completedAt: transitionReport.observedAt,
       reportDigest: transitionReport.transitionReportDigest,
@@ -106,22 +81,17 @@ export function createFirstPublicationTransitionReceipt({
 export function validateFirstPublicationTransitionReceipt(
   receipt,
   {
-    bootstrap, armingAuthorization, publicationAuthorization, executionReceipt,
-    workflow, npmObservation, githubObservation,
+    bootstrap, armingAuthorization, publicationAuthorization, publicationEvidence,
+    publicReleaseObservation, workflow, npmObservation, githubObservation,
   },
 ) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationExecutionReceipt(executionReceipt, {
-    bootstrap,
-    armingAuthorization,
-    publicationAuthorization,
-  });
   const receiptBody = body(receipt ?? {});
   if (
     receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
     canonicalJson(Object.keys(receipt).sort()) !==
       canonicalJson([...Object.keys(receiptBody), "transitionReceiptDigest"].sort()) ||
-    receipt.schemaVersion !== 1 || receipt.status !== "completed" ||
+    receipt.schemaVersion !== 2 || receipt.status !== "completed" ||
     !digestPattern.test(receipt.transitionReceiptDigest ?? "") ||
     receipt.transitionReceiptDigest !== canonicalDigest(receiptBody)
   ) fail();
@@ -129,7 +99,8 @@ export function validateFirstPublicationTransitionReceipt(
     bootstrap,
     armingAuthorization,
     publicationAuthorization,
-    executionReceipt,
+    publicationEvidence,
+    publicReleaseObservation,
     workflow,
     npmObservation,
     githubObservation,

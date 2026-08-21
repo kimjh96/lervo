@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-21
 
+> 후속 결정: [ADR-0115](./0115-cli-first-publication-transition-evidence-union.md)는 resolution을 별도 evidence member로 소비해 정상 execution receipt와 같은 stage-only 완료 정책에 연결합니다.
+
 ## 맥락
 
 ADR-0113의 reconciliation report가 `published`여도 이는 public npm에서 exact artifact와 dist-tag를 관측했다는 뜻뿐입니다. 원래 publisher receipt, 2FA proof와 실행 영수증을 복구하지 않으며 immutable terminal은 계속 `publication_unknown`입니다. Report 필드와 digest만 다시 계산해 이를 실행 성공으로 바꾸거나 terminal을 덮어쓰면 증거의 출처와 한계를 잃습니다.
