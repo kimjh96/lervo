@@ -4,9 +4,9 @@ import { createFileFirstPublicationReservationStore } from
   "./file-first-publication-reservation-store.mjs";
 import { createFirstPublicationArtifactObservation } from
   "./first-publication-artifact-observer.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
+import { readFirstPublicationContractFiles } from
+  "./first-publication-contract-files.mjs";
 import { inspectFirstPublicationPreflight } from
   "./first-publication-preflight-inspector.mjs";
 import { validateFirstPublicationPreflightReport } from
@@ -19,10 +19,6 @@ import {
   readRegularReleaseFile,
   releaseVerificationMaximumSizes,
 } from "./release-attestation-file-set.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
-
-const maximumInputBytes = 64 * 1024;
 
 function fail(code = "first_publication_preflight_input_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -31,23 +27,9 @@ function fail(code = "first_publication_preflight_input_invalid") {
   );
 }
 
-function parseJson(contents) {
-  try {
-    return JSON.parse(contents.toString("utf8"));
-  } catch {
-    fail();
-  }
-}
-
 async function readPreflightSources(options) {
-  const [authorizationContents, bootstrapContents] = await Promise.all([
-    readRegularReleaseFile(options.publicationAuthorizationPath, maximumInputBytes),
-    readRegularReleaseFile(options.bootstrapPath, maximumInputBytes),
-  ]);
-  const publicationAuthorization = validateReleasePublicationAuthorization(
-    parseJson(authorizationContents),
-  );
-  const bootstrap = validateFirstPublicationBootstrapAuthorization(parseJson(bootstrapContents));
+  const contracts = await readFirstPublicationContractFiles(options);
+  const { publicationAuthorization, bootstrap } = contracts;
   const tarballPath = resolve(options.releaseDirectory, publicationAuthorization.artifact.file);
   const tarballContents = await readRegularReleaseFile(
     tarballPath,
@@ -57,23 +39,14 @@ async function readPreflightSources(options) {
     publicationAuthorization,
     bootstrap,
     tarballContents,
-    assertUnchanged: () => assertReleaseFilesUnchanged([
-      {
-        path: options.publicationAuthorizationPath,
-        contents: authorizationContents,
-        maximumSize: maximumInputBytes,
-      },
-      {
-        path: options.bootstrapPath,
-        contents: bootstrapContents,
-        maximumSize: maximumInputBytes,
-      },
-      {
+    assertUnchanged: async () => {
+      await contracts.assertUnchanged();
+      await assertReleaseFilesUnchanged([{
         path: tarballPath,
         contents: tarballContents,
         maximumSize: releaseVerificationMaximumSizes.tarball,
-      },
-    ]),
+      }]);
+    },
   };
 }
 

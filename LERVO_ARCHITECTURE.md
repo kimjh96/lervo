@@ -45,6 +45,8 @@ Preflight command adapter는 절대 입력 경로와 명시적 online 경계를 
 
 최초 게시 execution plan 코어는 실행 adapter를 호출하지 않고 현재 실행 순서·사람 확인·취소 처분을 canonical 문서로 투영합니다. 확인 문구는 npm adapter와 공통 모듈이 소유하고 plan reader는 bootstrap·authorization에서 전체 문서를 다시 계산합니다. Plan은 항상 `not_armed`, `activation=not_implemented`이며 preflight·예약·publisher port를 갖지 않습니다.
 
+Execution plan command adapter는 절대 경로의 publication authorization과 bootstrap을 제한된 regular-file snapshot으로 읽고, plan 생성 뒤 두 파일이 그대로인지 확인합니다. 한국어 formatter와 JSON 직렬화는 파일 읽기·계획 정책에서 분리합니다. 이 조정기에는 tarball·registry·reservation·publisher port가 없으며 결과 파일도 만들지 않습니다. 따라서 exit code 0은 정적 계획을 출력했다는 뜻이고 실행 준비나 arming 상태를 나타내지 않습니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

@@ -58,6 +58,6 @@ Plan에는 승인자 identity, profile, user config, credential, npm 출력·오
 
 ## 결과
 
-Plan은 운영자가 위험 경계를 검토하는 정적이고 결정적인 문서이며 실행 permission, freshness proof, reservation이나 2FA proof가 아닙니다. 생성 API와 reader만 있고 이를 출력하거나 arming하는 CLI command는 없습니다.
+Plan은 운영자가 위험 경계를 검토하는 정적이고 결정적인 문서이며 실행 permission, freshness proof, reservation이나 2FA proof가 아닙니다. 이 결정은 생성 API와 reader까지만 정의했습니다. 후속 [ADR-0103](./0103-cli-first-publication-execution-plan-command.md)은 이를 출력하되 arming하지 않는 명령을 추가합니다.
 
 Fixture는 정확한 8단계, 세 취소 경계, preflight 재검증 의무, 두 확인 문구의 실제 adapter 공유, 다른 authorization, redigest activation 위조와 개인정보·과장된 proof 비저장을 검증합니다. 기존 실행 fixture의 예약 전 거부, 예약 뒤 abort와 게시 시작 뒤 unknown 의미는 바뀌지 않습니다.

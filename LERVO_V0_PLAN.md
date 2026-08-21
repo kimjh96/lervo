@@ -1009,6 +1009,16 @@ CLI first-publication execution plan/arming 경계 완료 조건:
 - Plan 생성이 prompt·online 관측·예약·게시·외부 설정을 실행하지 않음
 - Fixture가 2FA·bypass token 부재·freshness·게시 성공이나 권한을 주장하지 않음
 
+CLI first-publication execution plan command 완료 조건:
+
+- Publication authorization과 bootstrap의 절대 경로만 요구하고 online 인자를 허용하지 않음
+- 두 입력을 bounded regular-file snapshot으로 읽고 plan 검증 뒤 변경되면 출력하지 않음
+- Human·JSON 출력이 같은 canonical plan을 사용하고 정상 조회는 exit code 0임
+- Human 출력이 실행 순서, 확인 문구, 취소 처분과 실제로 하지 않은 작업을 자연스러운 문장으로 설명함
+- 명령 조정기에 tarball·registry·npm profile·reservation·publisher port가 없음
+- 경로·승인자·profile·credential·외부 출력 원문과 결과 파일을 남기지 않음
+- Fixture가 성공 exit code를 준비 완료·arming·게시 권한으로 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1131,4 +1141,6 @@ CLI first-publication preflight command를 완료했습니다. 절대 입력·�
 
 CLI first-publication execution plan/arming 경계를 완료했습니다. 실제 실행 순서와 세 취소 처분, 두 사람 확인을 exact release에 결속하되 상태는 `not_armed`, activation은 `not_implemented`로 고정했습니다. Plan reader는 원본에서 전체를 재계산하며 생성 과정은 prompt·관측·예약·게시를 실행하지 않습니다. 결정은 [ADR-0102](./docs/adr/0102-cli-first-publication-execution-plan.md)에 기록했습니다.
 
-다음 구현 작업은 이 정적 계획을 실제 입력 파일에서 읽어 한국어·JSON으로 보여 주되 arming이나 online 관측을 하지 않는 **CLI first-publication execution plan command**입니다. 실제 npm 게시 command 활성화는 package identity·license·scope owner와 별도 명시적 승인 뒤에만 검토합니다.
+CLI first-publication execution plan command를 완료했습니다. 절대 경로의 publication authorization과 bootstrap을 bounded snapshot으로 읽고 같은 canonical plan을 한국어·JSON으로 stdout에만 보여 줍니다. 계획 조회 성공은 준비 완료나 권한이 아니며 online 관측·사람 확인·예약·활성화·게시를 실행하지 않습니다. 결정은 [ADR-0103](./docs/adr/0103-cli-first-publication-execution-plan-command.md)에 기록했습니다.
+
+다음 구현 작업은 현재 package identity·repository·license와 외부에서만 확인 가능한 scope owner·명시적 승인 항목을 구분해 보여 주는 **CLI first-publication activation blocker report**입니다. 이 report도 결정을 추정하거나 arming하지 않으며, 실제 npm 게시 command 활성화는 미해결 항목에 대한 별도 명시적 승인 뒤에만 검토합니다.
