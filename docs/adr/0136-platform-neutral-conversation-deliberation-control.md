@@ -1,5 +1,7 @@
 # ADR-0136: 플랫폼 중립 대화 숙의 제어
 
+> 후속 결정: [ADR-0141](./0141-explicit-durable-conversation-deliberation-resume.md)은 명시적 재개 명령과 별도 권한·durable queue를 추가했습니다. 아래 내용은 최초 시작·조회 경계의 기록입니다.
+
 - 상태: 채택
 - 날짜: 2026-08-21
 

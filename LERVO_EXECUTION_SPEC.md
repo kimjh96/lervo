@@ -1352,7 +1352,7 @@ Approval 파생 상태는 다음과 같습니다.
 
 대화 경계 실패는 `control_command_invalid`, `control_access_denied`, `control_source_failed`, `deliberation_source_failed`, `message_artifact_invalid`, `writing_publication_blocked`입니다. HTTP의 잘못된 좌표는 `400`, 인증 없음은 `401`, scope·permission·principal/grant 불일치는 `403`, command 부재는 `404`, source 불일치는 `500`입니다. 오류에는 token, grant, principal, request artifact, command 원본과 내부 예외를 넣지 않습니다. 이 기능은 새 전역 event를 추가하지 않으며 상태 조회·링크 발급·승인 작성이 Node 실행, `loaded`, `injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록합니다.
 
-### 대화 숙의 시작과 상태 조회
+### 대화 숙의 시작·재개와 상태 조회
 
 Conversation responder는 `/lervo deliberate start <policy-id> -- <topic>`, `/lervo deliberate resume <deliberation-id>`와 `/lervo deliberate status <deliberation-id>`만 숙의 명령으로 처리합니다. 본문은 4,096자 이하이며 start는 `.lervo/deliberations`에 대응하는 policy ID와 빈 값이 아닌 주제를 요구합니다. 자연어 요청, reaction, mention과 모델 분류 결과는 시작·재개 권한이 아닙니다.
 
