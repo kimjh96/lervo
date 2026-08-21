@@ -1576,4 +1576,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 불확실한 대화 숙의의 프로젝트 원본 대조를 완료했습니다. 공급자 중립 조정기는 `uncertain` job만 source port로 보내고 project·숙의·request hash compare-and-set 뒤에만 queue 요약을 복구합니다. 현재 managed source는 실제 event hash chain, 완료 이력, 승인 checkpoint와 process lease를 검사합니다. 완료와 활성 lease가 없는 승인 후 중단만 증명하며 진행 중·승인 전 불완전·불일치 상태는 계속 `unknown`입니다. Schema v1 queue의 무손실 v2 migration, 완료·중단·진행 중·불완전 fixture와 실제 managed 실행 뒤 queue 복구를 검증했습니다. 자동 재실행과 자동 재개는 추가하지 않았습니다. 결정은 [ADR-0140](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)에 기록했습니다.
 
+명시적 대화 숙의 durable 재개를 완료했습니다. `/lervo deliberate resume <id>`와 별도 principal 권한을 추가하고, start queue의 `interrupted/resume` 요약을 확인한 요청만 owner-only `deliberation-resumes.sqlite`에 저장합니다. 같은 event 재처리는 멱등이고 한 숙의의 다른 재개 요청은 충돌로 닫습니다. Start와 resume queue는 공통 lease worker를 쓰되 요청·DB·failure code와 대조 의미를 분리합니다. 실제 승인 checkpoint 뒤 중단된 네 역할 숙의를 resume queue와 expected-project managed adapter로 재개해 완료했으며 재시작, 만료 lease, 중복 요청과 terminal-only 대조를 검증했습니다. 결정은 [ADR-0141](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)에 기록했습니다.
+
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

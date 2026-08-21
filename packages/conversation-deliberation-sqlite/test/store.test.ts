@@ -189,7 +189,11 @@ describe("durable conversation deliberation queue", () => {
     store.close();
   });
 
-  it("does not settle a worker result that still claims to be running", async () => {
+  it.each([
+    { status: "running" as const, nextAction: "wait" as const },
+    { status: "unknown" as const, nextAction: "none" as const },
+    { status: "interrupted" as const, nextAction: "resume" as const },
+  ])("does not settle a non-terminal worker result: $status", async ({ status, nextAction }) => {
     const { store } = await open();
     const backend = new QueuedConversationDeliberationBackend(store);
     const started = await backend.start(request());
@@ -198,9 +202,9 @@ describe("durable conversation deliberation queue", () => {
       executor: {
         execute: async () => ({
           deliberationId: started.deliberationId,
-          status: "running",
+          status,
           artifactCount: 1,
-          nextAction: "wait",
+          nextAction,
         }),
       },
       workerId: "conversation-worker-1",

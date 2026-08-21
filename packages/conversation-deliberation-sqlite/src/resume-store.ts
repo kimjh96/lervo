@@ -1,0 +1,289 @@
+import { DatabaseSync } from "node:sqlite";
+
+import {
+  type ConversationDeliberationResumeJobFailureCode,
+  type ConversationDeliberationResumeJobStore,
+} from "@lervo/conversation-control";
+
+import {
+  configureConversationDeliberationDatabase,
+  prepareConversationDeliberationDatabasePath,
+  restrictConversationDeliberationDatabase,
+} from "./database.js";
+import { ConversationDeliberationSQLiteError } from "./errors.js";
+import {
+  claimConversationDeliberationJob,
+  markConversationDeliberationJobUncertain,
+  renewConversationDeliberationJob,
+  settleConversationDeliberationJob,
+  type LeaseStoreConfiguration,
+} from "./lease-store.js";
+import { reconcileConversationDeliberationRecord } from "./reconciliation.js";
+import { migrateConversationDeliberationResumeDatabase } from "./resume-database.js";
+import { decodeConversationDeliberationResumeJob } from "./resume-row-codec.js";
+import { assertConversationDeliberationLookup, conversationDeliberationMilliseconds } from "./row-codec.js";
+
+const leaseConfiguration: LeaseStoreConfiguration<
+  ReturnType<typeof decodeConversationDeliberationResumeJob>,
+  ConversationDeliberationResumeJobFailureCode
+> = {
+  table: "conversation_deliberation_resume_jobs",
+  leasePrefix: "cdr",
+  expiredFailureCode: "resume_worker_lease_expired",
+  label: "Conversation 숙의 재개 queue",
+  decode: decodeConversationDeliberationResumeJob,
+};
+
+export class SQLiteConversationDeliberationResumeJobStore
+implements ConversationDeliberationResumeJobStore {
+  readonly path: string;
+  private closed = false;
+
+  private constructor(
+    path: string,
+    private readonly database: DatabaseSync,
+    private readonly maxRecords: number,
+  ) {
+    this.path = path;
+  }
+
+  static async open(options: {
+    path: string;
+    maxRecords?: number;
+  }): Promise<SQLiteConversationDeliberationResumeJobStore> {
+    const maxRecords = options.maxRecords ?? 10_000;
+    if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || maxRecords > 100_000) {
+      throw new ConversationDeliberationSQLiteError(
+        "integrity_failed",
+        "Conversation 숙의 재개 queue maxRecords가 유효하지 않습니다.",
+      );
+    }
+    const path = await prepareConversationDeliberationDatabasePath(options.path);
+    const database = new DatabaseSync(path, {
+      enableForeignKeyConstraints: true,
+      allowExtension: false,
+    });
+    try {
+      await restrictConversationDeliberationDatabase(path);
+      configureConversationDeliberationDatabase(database);
+      migrateConversationDeliberationResumeDatabase(database);
+      const store = new SQLiteConversationDeliberationResumeJobStore(path, database, maxRecords);
+      store.checkIntegrity();
+      return store;
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+  }
+
+  async enqueue(input: Parameters<ConversationDeliberationResumeJobStore["enqueue"]>[0]) {
+    this.assertOpen();
+    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "숙의 재개 요청");
+    const candidate = decodeConversationDeliberationResumeJob({
+      project_id: input.projectId,
+      source_event_id: input.sourceEventId,
+      deliberation_id: input.deliberationId,
+      request_hash: input.requestHash,
+      principal_hash: input.principalHash,
+      requested_at: input.requestedAt,
+      requested_at_ms: requestedAtMs,
+      state: "queued",
+      attempt_count: 0,
+      lease_id: null,
+      lease_owner: null,
+      lease_expires_at: null,
+      lease_expires_at_ms: null,
+      summary_json: null,
+      failure_code: null,
+      terminal_at: null,
+      reconciliation_json: null,
+    });
+    this.database.exec("BEGIN IMMEDIATE;");
+    try {
+      const sameEvent = this.database.prepare(`
+        SELECT * FROM conversation_deliberation_resume_jobs
+        WHERE project_id = ? AND source_event_id = ?
+      `).get(input.projectId, input.sourceEventId);
+      if (sameEvent !== undefined) {
+        const existing = decodeConversationDeliberationResumeJob(sameEvent);
+        if (existing.requestHash !== input.requestHash ||
+          existing.deliberationId !== input.deliberationId) {
+          throw new ConversationDeliberationSQLiteError(
+            "deliberation_resume_conflict",
+            "같은 Conversation event가 다른 숙의 재개 요청에 사용되었습니다.",
+          );
+        }
+        this.database.exec("COMMIT;");
+        return existing;
+      }
+      const sameDeliberation = this.database.prepare(`
+        SELECT 1 FROM conversation_deliberation_resume_jobs
+        WHERE project_id = ? AND deliberation_id = ?
+      `).get(input.projectId, input.deliberationId);
+      if (sameDeliberation !== undefined) {
+        throw new ConversationDeliberationSQLiteError(
+          "deliberation_resume_conflict",
+          "이 숙의에는 이미 별도 재개 요청이 있습니다.",
+        );
+      }
+      const count = this.database.prepare(
+        "SELECT COUNT(*) AS count FROM conversation_deliberation_resume_jobs",
+      ).get()?.count;
+      if (typeof count !== "number" || !Number.isSafeInteger(count)) {
+        throw new ConversationDeliberationSQLiteError(
+          "integrity_failed",
+          "Conversation 숙의 재개 queue count가 유효하지 않습니다.",
+        );
+      }
+      if (count >= this.maxRecords) {
+        throw new ConversationDeliberationSQLiteError(
+          "capacity_exceeded",
+          "Conversation 숙의 재개 queue capacity를 초과했습니다.",
+        );
+      }
+      this.database.prepare(`
+        INSERT INTO conversation_deliberation_resume_jobs (
+          project_id, source_event_id, deliberation_id, request_hash, principal_hash,
+          requested_at, requested_at_ms, state, attempt_count, lease_id, lease_owner,
+          lease_expires_at, lease_expires_at_ms, summary_json, failure_code,
+          terminal_at, reconciliation_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+      `).run(
+        candidate.projectId,
+        candidate.sourceEventId,
+        candidate.deliberationId,
+        candidate.requestHash,
+        candidate.principalHash,
+        candidate.requestedAt,
+        requestedAtMs,
+      );
+      this.database.exec("COMMIT;");
+      return candidate;
+    } catch (error) {
+      this.rollback(error);
+    }
+  }
+
+  async inspect(input: Parameters<ConversationDeliberationResumeJobStore["inspect"]>[0]) {
+    this.assertOpen();
+    assertConversationDeliberationLookup(input);
+    const row = this.database.prepare(`
+      SELECT * FROM conversation_deliberation_resume_jobs
+      WHERE project_id = ? AND deliberation_id = ?
+    `).get(input.projectId, input.deliberationId);
+    return row === undefined ? null : decodeConversationDeliberationResumeJob(row);
+  }
+
+  async claim(input: Parameters<ConversationDeliberationResumeJobStore["claim"]>[0]) {
+    this.assertOpen();
+    return claimConversationDeliberationJob({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
+  }
+
+  async renew(input: Parameters<ConversationDeliberationResumeJobStore["renew"]>[0]) {
+    this.assertOpen();
+    renewConversationDeliberationJob({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
+  }
+
+  async settle(input: Parameters<ConversationDeliberationResumeJobStore["settle"]>[0]) {
+    this.assertOpen();
+    settleConversationDeliberationJob({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
+  }
+
+  async markUncertain(input: Parameters<ConversationDeliberationResumeJobStore["markUncertain"]>[0]) {
+    this.assertOpen();
+    markConversationDeliberationJobUncertain({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
+  }
+
+  async reconcile(input: Parameters<ConversationDeliberationResumeJobStore["reconcile"]>[0]) {
+    this.assertOpen();
+    if (input.summary.status === "interrupted" || input.summary.status === "unknown") {
+      throw new ConversationDeliberationSQLiteError(
+        "integrity_failed",
+        "Conversation 숙의 재개 queue 대조 결과가 종료 상태가 아닙니다.",
+      );
+    }
+    reconcileConversationDeliberationRecord(this.database, input, {
+      table: "conversation_deliberation_resume_jobs",
+      decode: decodeConversationDeliberationResumeJob,
+    });
+  }
+
+  checkIntegrity(): void {
+    this.assertOpen();
+    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
+      throw new ConversationDeliberationSQLiteError(
+        "integrity_failed",
+        "Conversation 숙의 재개 queue quick_check가 실패했습니다.",
+      );
+    }
+    const required = new Set([
+      "conversation_deliberation_resume_job_identity_immutable",
+      "conversation_deliberation_resume_job_lifecycle",
+      "conversation_deliberation_resume_job_no_delete",
+      "conversation_deliberation_resume_jobs_active_lease",
+    ]);
+    for (const row of this.database.prepare(
+      "SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')",
+    ).all()) {
+      if (typeof row.name === "string") required.delete(row.name);
+    }
+    if (required.size > 0) throw new ConversationDeliberationSQLiteError(
+      "integrity_failed",
+      "Conversation 숙의 재개 queue 보호 schema가 누락되었습니다.",
+    );
+    const rows = this.database.prepare("SELECT * FROM conversation_deliberation_resume_jobs").all();
+    if (rows.length > this.maxRecords) throw new ConversationDeliberationSQLiteError(
+      "capacity_exceeded",
+      "Conversation 숙의 재개 queue capacity를 초과했습니다.",
+    );
+    rows.forEach(decodeConversationDeliberationResumeJob);
+  }
+
+  close(): void {
+    if (this.closed) return;
+    this.database.close();
+    this.closed = true;
+  }
+
+  private assertOpen(): void {
+    if (this.closed) throw new ConversationDeliberationSQLiteError(
+      "closed",
+      "닫힌 Conversation 숙의 재개 queue입니다.",
+    );
+  }
+
+  private rollback(error: unknown): never {
+    try {
+      this.database.exec("ROLLBACK;");
+    } catch (rollbackError) {
+      throw new ConversationDeliberationSQLiteError(
+        "write_failed",
+        "Conversation 숙의 재개 queue transaction과 rollback이 실패했습니다.",
+        { cause: new AggregateError([error, rollbackError]) },
+      );
+    }
+    if (error instanceof ConversationDeliberationSQLiteError) throw error;
+    throw new ConversationDeliberationSQLiteError(
+      "write_failed",
+      "Conversation 숙의 재개 queue transaction이 실패했습니다.",
+      { cause: error },
+    );
+  }
+
+}

@@ -2,6 +2,8 @@ import type { DatabaseSync } from "node:sqlite";
 
 import {
   conversationDeliberationPatterns,
+  type ConversationDeliberationReconciliationRecord,
+  type ConversationDeliberationReconciliationTarget,
   type ConversationDeliberationJobStore,
 } from "@lervo/conversation-control";
 
@@ -14,6 +16,10 @@ import {
 } from "./row-codec.js";
 
 type ReconciliationInput = Parameters<ConversationDeliberationJobStore["reconcile"]>[0];
+type ReconciliationDatabaseJob = ConversationDeliberationReconciliationTarget & {
+  failureCode: string | null;
+  reconciliation: ConversationDeliberationReconciliationRecord<string> | null;
+};
 
 function sameSummary(
   left: NonNullable<ReturnType<typeof decodeConversationDeliberationSummary>>,
@@ -41,9 +47,13 @@ function rollback(database: DatabaseSync, error: unknown): never {
   );
 }
 
-export function reconcileConversationDeliberationJob(
+export function reconcileConversationDeliberationRecord(
   database: DatabaseSync,
   input: ReconciliationInput,
+  options: {
+    table: "conversation_deliberation_jobs" | "conversation_deliberation_resume_jobs";
+    decode(row: Record<string, unknown>): ReconciliationDatabaseJob;
+  },
 ): void {
   assertConversationDeliberationLookup(input);
   if (!conversationDeliberationPatterns.reconciliationSourceKind.test(input.sourceKind) ||
@@ -67,7 +77,7 @@ export function reconcileConversationDeliberationJob(
   database.exec("BEGIN IMMEDIATE;");
   try {
     const row = database.prepare(`
-      SELECT * FROM conversation_deliberation_jobs
+      SELECT * FROM ${options.table}
       WHERE project_id = ? AND deliberation_id = ? AND request_hash = ?
     `).get(input.projectId, input.deliberationId, input.requestHash);
     if (row === undefined) {
@@ -76,7 +86,7 @@ export function reconcileConversationDeliberationJob(
         "Conversation 숙의 queue 대조 대상이 다릅니다.",
       );
     }
-    const job = decodeConversationDeliberationJob(row);
+    const job = options.decode(row);
     if (
       job.state === "settled" && job.reconciliation !== null && job.summary !== null &&
       sameSummary(job.summary, input.summary)
@@ -107,7 +117,7 @@ export function reconcileConversationDeliberationJob(
       reconciledAt: input.reconciledAt,
     });
     const updated = database.prepare(`
-      UPDATE conversation_deliberation_jobs SET
+      UPDATE ${options.table} SET
         state = 'settled', summary_json = ?, failure_code = NULL,
         terminal_at = ?, reconciliation_json = ?
       WHERE project_id = ? AND deliberation_id = ? AND request_hash = ?
@@ -130,4 +140,14 @@ export function reconcileConversationDeliberationJob(
   } catch (error) {
     rollback(database, error);
   }
+}
+
+export function reconcileConversationDeliberationJob(
+  database: DatabaseSync,
+  input: ReconciliationInput,
+): void {
+  reconcileConversationDeliberationRecord(database, input, {
+    table: "conversation_deliberation_jobs",
+    decode: decodeConversationDeliberationJob,
+  });
 }

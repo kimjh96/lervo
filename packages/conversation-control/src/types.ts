@@ -9,6 +9,7 @@ export type ConversationControlOperation = "command_status" | "approval_review";
 export type ParsedConversationControlCommand =
   | { operation: ConversationControlOperation; deliveryId: string }
   | { operation: "deliberation_start"; policyId: string; topic: string }
+  | { operation: "deliberation_resume"; deliberationId: string }
   | { operation: "deliberation_status"; deliberationId: string };
 
 export type ConversationDeliberationStatus =
@@ -31,6 +32,11 @@ export interface ConversationDeliberationPort {
     event: ConversationInboundEvent;
     policyId: string;
     topic: string;
+    requestedAt: string;
+  }): Promise<ConversationDeliberationSummary>;
+  resume(input: {
+    event: ConversationInboundEvent;
+    deliberationId: string;
     requestedAt: string;
   }): Promise<ConversationDeliberationSummary>;
   inspect(input: {

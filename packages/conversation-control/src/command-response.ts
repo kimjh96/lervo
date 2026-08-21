@@ -61,10 +61,15 @@ function deliberationStatusLabel(status: ConversationDeliberationSummary["status
   } as const)[status];
 }
 
-function renderDeliberation(summary: ConversationDeliberationSummary, started: boolean): string {
+function renderDeliberation(
+  summary: ConversationDeliberationSummary,
+  request: "start" | "resume" | null,
+): string {
   const lines = [
-    started
+    request === "start"
       ? `숙의 ${summary.deliberationId} 요청을 처리했습니다.`
+      : request === "resume"
+        ? `숙의 ${summary.deliberationId} 재개 요청을 처리했습니다.`
       : `숙의 ${summary.deliberationId}은 현재 ${deliberationStatusLabel(summary.status)} 상태입니다.`,
     `기록된 산출물은 ${summary.artifactCount}개입니다.`,
   ];
@@ -124,6 +129,12 @@ export async function createConversationControlResponse(input: {
           topic: input.command.topic,
           requestedAt: input.at,
         })
+      : input.command.operation === "deliberation_resume"
+        ? await input.options.deliberations.resume({
+            event: input.event,
+            deliberationId: input.command.deliberationId,
+            requestedAt: input.at,
+          })
       : await input.options.deliberations.inspect({
           event: input.event,
           deliberationId: input.command.deliberationId,
@@ -131,16 +142,22 @@ export async function createConversationControlResponse(input: {
         });
     assertDeliberationSummary(
       summary,
-      input.command.operation === "deliberation_status"
+      input.command.operation === "deliberation_status" ||
+        input.command.operation === "deliberation_resume"
         ? input.command.deliberationId
         : undefined,
     );
-    return renderDeliberation(summary, input.command.operation === "deliberation_start");
+    return renderDeliberation(
+      summary,
+      input.command.operation === "deliberation_start"
+        ? "start"
+        : input.command.operation === "deliberation_resume" ? "resume" : null,
+    );
   } catch (error) {
     if (error instanceof ConversationControlError) throw error;
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "숙의를 시작하거나 상태를 조회하지 못했습니다.",
+      "숙의를 시작·재개하거나 상태를 조회하지 못했습니다.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

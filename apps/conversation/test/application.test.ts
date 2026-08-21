@@ -113,6 +113,24 @@ describe("conversation deployment composition", () => {
     })).rejects.toThrow("integration");
   });
 
+  it("rejects a resume permission without a resume executor", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-resume-config-"));
+    roots.push(root);
+    await expect(openConversationApplication({
+      ...options(root),
+      deliberations: {
+        bindings: [{
+          projectId: "prj_platform01",
+          participantId: "ptc_platform01",
+          principalId: "operator:reviewer",
+          permissions: ["deliberation.resume"] as const,
+        }],
+        executor: { execute: async () => { throw new Error("호출되지 않아야 합니다."); } },
+        workerId: "conversation-worker-1",
+      },
+    })).rejects.toThrow("resume executor");
+  });
+
   it("keeps a deliberation command durable across application restarts", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-deliberation-"));
     roots.push(root);
@@ -175,7 +193,7 @@ describe("conversation deployment composition", () => {
     application.close();
   });
 
-  it("reconciles an uncertain job only through the configured source", async () => {
+  it("reconciles an interruption and runs its durable resume queue", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-reconcile-"));
     roots.push(root);
     const inspect = vi.fn(async (input: { job: { deliberationId: string } }) => ({
@@ -184,9 +202,9 @@ describe("conversation deployment composition", () => {
       evidenceHash: `sha256:${"e".repeat(64)}`,
       summary: {
         deliberationId: input.job.deliberationId,
-        status: "no_consensus" as const,
+        status: "interrupted" as const,
         artifactCount: 3,
-        nextAction: "none" as const,
+        nextAction: "resume" as const,
       },
     }));
     const application = await openConversationApplication({
@@ -196,9 +214,21 @@ describe("conversation deployment composition", () => {
           projectId: "prj_platform01",
           participantId: "ptc_platform01",
           principalId: "operator:reviewer",
-          permissions: ["deliberation.start", "deliberation.read"] as const,
+          permissions: [
+            "deliberation.start",
+            "deliberation.resume",
+            "deliberation.read",
+          ] as const,
         }],
         executor: { execute: async () => { throw new Error("결과를 알 수 없습니다."); } },
+        resumeExecutor: {
+          execute: async (job) => ({
+            deliberationId: job.deliberationId,
+            status: "converged",
+            artifactCount: 5,
+            nextAction: "none",
+          }),
+        },
         reconciliationSource: { inspect },
         workerId: "conversation-worker-1",
       },
@@ -228,14 +258,34 @@ describe("conversation deployment composition", () => {
       deliberationId: started.deliberationId,
     })).resolves.toMatchObject({
       status: "reconciled",
-      summary: { status: "no_consensus", artifactCount: 3 },
+      summary: { status: "interrupted", artifactCount: 3 },
     });
     expect(inspect).toHaveBeenCalledOnce();
     await expect(application.deliberations.inspect({
       event: received.event,
       deliberationId: started.deliberationId,
       inspectedAt: now.toISOString(),
-    })).resolves.toMatchObject({ status: "no_consensus", artifactCount: 3 });
+    })).resolves.toMatchObject({ status: "interrupted", artifactCount: 3 });
+    const resumeEvent = await adapter.receive(signed(event({
+      id: "Ev-reconciliation-2",
+      ts: "1787191201.000300",
+    })));
+    if (resumeEvent.status !== "accepted") throw new Error("재개 event가 수신되지 않았습니다.");
+    await expect(application.deliberations.resume({
+      event: resumeEvent.event,
+      deliberationId: started.deliberationId,
+      requestedAt: now.toISOString(),
+    })).resolves.toMatchObject({ status: "running", nextAction: "wait" });
+    await expect(application.runDeliberationResumeWorkerCycle()).resolves.toMatchObject({
+      status: "settled",
+      deliberationId: started.deliberationId,
+      summary: { status: "converged", artifactCount: 5 },
+    });
+    await expect(application.deliberations.inspect({
+      event: resumeEvent.event,
+      deliberationId: started.deliberationId,
+      inspectedAt: now.toISOString(),
+    })).resolves.toMatchObject({ status: "converged", artifactCount: 5 });
     application.close();
   });
 });

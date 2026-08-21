@@ -4,6 +4,7 @@ export class ConversationDeliberationSQLiteError extends Error {
       | "capacity_exceeded"
       | "closed"
       | "deliberation_request_conflict"
+      | "deliberation_resume_conflict"
       | "integrity_failed"
       | "lease_mismatch"
       | "write_failed",

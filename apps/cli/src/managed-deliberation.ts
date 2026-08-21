@@ -103,7 +103,7 @@ export type ExecuteManagedDeliberation = (
 export interface AssignedManagedDeliberationRequest {
   deliberationId: string;
   expectedProjectId: string;
-  request: StartManagedDeliberationRequest;
+  request: ManagedDeliberationRequest;
 }
 
 export type ExecuteAssignedManagedDeliberation = (
@@ -213,10 +213,21 @@ export function createAssignedManagedDeliberationExecutor(
       );
     }
     assertRequest(assignment.request);
+    if (
+      "resumeDeliberationId" in assignment.request &&
+      assignment.request.resumeDeliberationId !== assignment.deliberationId
+    ) {
+      throw new ManagedDeliberationError(
+        "deliberation_request_invalid",
+        "할당된 숙의 ID와 재개할 숙의 ID가 다릅니다.",
+      );
+    }
     return executeManagedDeliberationLifecycle({
       request: assignment.request,
       dependencies,
-      assignedDeliberationId: assignment.deliberationId,
+      ...("resumeDeliberationId" in assignment.request
+        ? {}
+        : { assignedDeliberationId: assignment.deliberationId }),
       expectedProjectId: assignment.expectedProjectId,
       executeWithStorage,
     });

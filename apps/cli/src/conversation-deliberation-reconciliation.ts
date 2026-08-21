@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type {
-  ConversationDeliberationJob,
+  ConversationDeliberationReconciliationTarget,
   ConversationDeliberationReconciliationReason,
   ConversationDeliberationReconciliationSourcePort,
 } from "@lervo/conversation-control";
@@ -26,7 +26,7 @@ type ReconciliationSourceResult = Awaited<ReturnType<
 >>;
 
 export function interpretManagedDeliberationInspection(input: {
-  job: Readonly<Pick<ConversationDeliberationJob, "projectId" | "deliberationId">>;
+  job: Readonly<ConversationDeliberationReconciliationTarget>;
   inspectedAt: string;
   report: DeliberationInspectionReport;
 }): ReconciliationSourceResult {
@@ -58,6 +58,7 @@ export function interpretManagedDeliberationInspection(input: {
   }
   if (
     report.phase === "interrupted_after_approval" &&
+    job.operation === "start" &&
     report.resume === "candidate" && report.checkpoint === "readable" &&
     report.lease !== "active"
   ) {

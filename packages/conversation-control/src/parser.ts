@@ -2,6 +2,7 @@ import type { ParsedConversationControlCommand } from "./types.js";
 
 const CONTROL_COMMAND = /^\/lervo[ \t]+(command|approval)[ \t]+(rcd_[a-f0-9]{64})[ \t]*$/u;
 const DELIBERATION_STATUS = /^\/lervo[ \t]+deliberate[ \t]+status[ \t]+(dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63})[ \t]*$/u;
+const DELIBERATION_RESUME = /^\/lervo[ \t]+deliberate[ \t]+resume[ \t]+(dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63})[ \t]*$/u;
 const DELIBERATION_START = /^\/lervo[ \t]+deliberate[ \t]+start[ \t]+(deliberation_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)[ \t]+--[ \t]+([^\0]+?)\s*$/u;
 
 export function parseConversationControlCommand(
@@ -18,6 +19,10 @@ export function parseConversationControlCommand(
   const status = DELIBERATION_STATUS.exec(content);
   if (status !== null) {
     return { operation: "deliberation_status", deliberationId: status[1]! };
+  }
+  const resume = DELIBERATION_RESUME.exec(content);
+  if (resume !== null) {
+    return { operation: "deliberation_resume", deliberationId: resume[1]! };
   }
   const start = DELIBERATION_START.exec(content);
   if (start === null || start[2]!.trim().length === 0) return null;

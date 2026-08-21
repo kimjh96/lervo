@@ -11,15 +11,28 @@ export type ConversationDeliberationJobFailureCode =
   | "worker_lease_expired"
   | "deliberation_execution_uncertain";
 
-export interface ConversationDeliberationJobReconciliation {
+export interface ConversationDeliberationReconciliationRecord<TFailureCode extends string> {
   sourceKind: string;
   evidenceHash: string;
-  priorFailureCode: ConversationDeliberationJobFailureCode;
+  priorFailureCode: TFailureCode;
   uncertainAt: string;
   reconciledAt: string;
 }
 
+export type ConversationDeliberationJobReconciliation =
+  ConversationDeliberationReconciliationRecord<ConversationDeliberationJobFailureCode>;
+
+export interface ConversationDeliberationReconciliationTarget {
+  operation: "start" | "resume";
+  projectId: string;
+  deliberationId: string;
+  requestHash: string;
+  state: ConversationDeliberationJobState;
+  summary: ConversationDeliberationSummary | null;
+}
+
 export interface ConversationDeliberationJob {
+  operation: "start";
   projectId: string;
   sourceEventId: string;
   deliberationId: string;
@@ -41,9 +54,26 @@ export interface ConversationDeliberationJobLease {
   job: ConversationDeliberationJob;
 }
 
-export interface ConversationDeliberationJobStore {
+export interface ConversationDeliberationReconciliationStore {
+  inspect(input: {
+    projectId: string;
+    deliberationId: string;
+  }): Promise<ConversationDeliberationReconciliationTarget | null>;
+  reconcile(input: {
+    projectId: string;
+    deliberationId: string;
+    requestHash: string;
+    sourceKind: string;
+    evidenceHash: string;
+    reconciledAt: string;
+    summary: ConversationDeliberationSummary;
+  }): Promise<void>;
+}
+
+export interface ConversationDeliberationJobStore extends ConversationDeliberationReconciliationStore {
   enqueue(input: Omit<ConversationDeliberationJob,
-    "state" | "attemptCount" | "leaseExpiresAt" | "summary" | "failureCode" | "reconciliation">
+    "operation" | "state" | "attemptCount" | "leaseExpiresAt" | "summary" | "failureCode" |
+    "reconciliation">
   ): Promise<ConversationDeliberationJob>;
   inspect(input: {
     projectId: string;
@@ -71,15 +101,6 @@ export interface ConversationDeliberationJobStore {
     leaseId: string;
     failedAt: string;
     failureCode: ConversationDeliberationJobFailureCode;
-  }): Promise<void>;
-  reconcile(input: {
-    projectId: string;
-    deliberationId: string;
-    requestHash: string;
-    sourceKind: string;
-    evidenceHash: string;
-    reconciledAt: string;
-    summary: ConversationDeliberationSummary;
   }): Promise<void>;
 }
 

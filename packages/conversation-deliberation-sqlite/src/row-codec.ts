@@ -236,6 +236,7 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
     );
   }
   return {
+    operation: "start",
     projectId,
     sourceEventId,
     deliberationId,

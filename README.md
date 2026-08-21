@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 사용자용 Codex·Claude 교차 숙의 CLI와 플랫폼 중립 대화 runtime·durable 숙의 queue·managed 실행과 원본 대조 연결·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·최초 게시 완료 기록 점검 경계 완료 (2026-08-22)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 사용자용 Codex·Claude 교차 숙의 CLI와 플랫폼 중립 대화 runtime·durable 숙의 시작/재개 queue·managed 실행과 원본 대조 연결·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·최초 게시 완료 기록 점검 경계 완료 (2026-08-22)
 
 ## 목표
 
@@ -160,6 +160,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [대화 숙의 durable queue와 fail-closed worker ADR](./docs/adr/0138-durable-conversation-deliberation-queue.md)
 - [대화 queue와 managed 숙의 실행 결속 ADR](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)
 - [대화 숙의 queue와 프로젝트 원본 대조 ADR](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)
+- [명시적 대화 숙의 재개와 별도 durable queue ADR](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -168,15 +169,15 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
 - `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge
-- `@lervo/conversation-control`: 명시적 command만 해석하고 대화 participant를 principal과 권한에 결속한 뒤, writing 검증된 Hub 상태·승인 검토와 숙의 시작·상태 응답을 만드는 플랫폼 중립 responder. 채팅에서 approval 원본을 만들거나 자연어를 실행 명령으로 추정하지 않음
-- `@lervo/conversation-deliberation-sqlite`: 대화 숙의 시작을 source event에 멱등 결속하고 queue·worker lease·종료·불확실 상태와 원본 대조 요약을 별도 owner-only SQLite에 보존하는 adapter
+- `@lervo/conversation-control`: 명시적 command만 해석하고 대화 participant를 principal과 권한에 결속한 뒤, writing 검증된 Hub 상태·승인 검토와 숙의 시작·재개·상태 응답을 만드는 플랫폼 중립 responder. 채팅에서 approval 원본을 만들거나 자연어를 실행 명령으로 추정하지 않음
+- `@lervo/conversation-deliberation-sqlite`: 대화 숙의 시작과 명시적 재개를 각각 source event에 멱등 결속하고 queue·worker lease·종료·불확실 상태와 원본 대조 요약을 분리된 owner-only SQLite에 보존하는 adapter
 - `@lervo/interaction-sqlite`: 재시작 가능한 inbox·decision·outbox lease와 되돌릴 수 없는 완료·전달 상태를 보존하는 append-only SQLite adapter. 대화 본문과 외부 식별자 원문은 저장하지 않음
 - `@lervo/adapter-native-chat`: 자체 채팅 서비스의 inbound mapping과 delivery port를 공통 conversation 계약에 연결하는 transport 독립 adapter
 - `@lervo/conversation-platform`: 외부 식별자 mapping, CAS 본문 저장·복원, descriptor와 delivery receipt를 Slack·Discord가 공유하는 플랫폼 경계
 - `@lervo/conversation-platform-sqlite`: 외부 주소·participant·thread의 가역 mapping, inbound/outbound correlation과 전송 결과 재생을 interaction DB 밖에 보존하는 SQLite adapter
 - `@lervo/adapter-slack`: raw body HMAC·5분 시각·app/team scope를 확인하는 Events API ingress와 OAuth delivery port를 공통 conversation 계약에 연결하는 adapter
 - `@lervo/adapter-discord`: 인증된 Gateway session의 `MESSAGE_CREATE`와 bot-token·멱등 delivery port를 공통 conversation 계약에 연결하는 adapter
-- `@lervo/conversation-app`: CAS, durable platform 상태와 숙의 queue, Slack OAuth와 Discord bot-token transport를 배포 설정으로 조합하는 application entrypoint. 숙의 실행기·원본 대조기와 Discord Gateway driver는 각각 provider-neutral port로 주입
+- `@lervo/conversation-app`: CAS, durable platform 상태와 숙의 시작·재개 queue, Slack OAuth와 Discord bot-token transport를 배포 설정으로 조합하는 application entrypoint. 숙의 실행기·원본 대조기와 Discord Gateway driver는 각각 provider-neutral port로 주입
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 실행 완료·프로젝트 검증·숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface

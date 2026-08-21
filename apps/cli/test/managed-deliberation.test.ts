@@ -11,9 +11,13 @@ import { defaultKoreanWritingContract } from "@lervo/core";
 import {
   QueuedConversationDeliberationBackend,
   reconcileConversationDeliberation,
+  runConversationDeliberationResumeWorkerCycle,
   runConversationDeliberationWorkerCycle,
 } from "@lervo/conversation-control";
-import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
+import {
+  SQLiteConversationDeliberationJobStore,
+  SQLiteConversationDeliberationResumeJobStore,
+} from "@lervo/conversation-deliberation-sqlite";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import type {
@@ -36,6 +40,7 @@ import {
   DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
 import { createManagedConversationDeliberationExecutionAdapter } from "../src/conversation-deliberation-executor.js";
+import { createManagedConversationDeliberationResumeExecutionAdapter } from "../src/conversation-deliberation-resume-executor.js";
 import { createManagedConversationDeliberationReconciliationSource } from "../src/conversation-deliberation-reconciliation.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
@@ -521,13 +526,54 @@ describe("managed CLI deliberation", () => {
     })).toBe(0);
     expect(statusOutput).toContain("승인 뒤 재개 가능 후보");
 
-    const resumed = createManagedDeliberationExecutor({
+    const resumeDependencies = {
       openStorage: openProjectStorage,
       createId: nextId,
       now,
       runner,
+    };
+    const mismatchedResume = createManagedConversationDeliberationResumeExecutionAdapter({
+      projects: [{ projectId: "prj_wrongproject1", repositoryRoot: root }],
+      executeAssignedResume: createAssignedManagedDeliberationExecutor(resumeDependencies),
     });
-    const result = await resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId });
+    await expect(mismatchedResume.execute({
+      operation: "resume",
+      projectId: "prj_wrongproject1",
+      sourceEventId: `cve_${"6".repeat(64)}`,
+      deliberationId,
+      requestHash: `sha256:${"5".repeat(64)}`,
+      principalHash: `sha256:${"4".repeat(64)}`,
+      requestedAt: now().toISOString(),
+      state: "leased",
+      attemptCount: 1,
+      leaseExpiresAt: now().toISOString(),
+      summary: null,
+      failureCode: null,
+      reconciliation: null,
+    })).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
+    const resumeQueue = await SQLiteConversationDeliberationResumeJobStore.open({
+      path: resolve(root, ".lervo/state/conversation-deliberation-resumes.sqlite"),
+    });
+    await resumeQueue.enqueue({
+      projectId: "prj_cli_deliberation",
+      sourceEventId: `cve_${"9".repeat(64)}`,
+      deliberationId,
+      requestHash: `sha256:${"8".repeat(64)}`,
+      principalHash: `sha256:${"7".repeat(64)}`,
+      requestedAt: now().toISOString(),
+    });
+    const resumeAdapter = createManagedConversationDeliberationResumeExecutionAdapter({
+      projects: [{ projectId: "prj_cli_deliberation", repositoryRoot: root }],
+      executeAssignedResume: createAssignedManagedDeliberationExecutor(resumeDependencies),
+    });
+    const resumedCycle = await runConversationDeliberationResumeWorkerCycle({
+      store: resumeQueue,
+      executor: resumeAdapter,
+      workerId: "managed-conversation-resume-worker",
+      now,
+    });
+    if (resumedCycle.status !== "settled") throw new Error("대화 숙의 재개 queue가 종료되지 않았습니다.");
+    const result = resumedCycle.summary;
 
     expect(result).toMatchObject({ deliberationId, status: "converged", artifactCount: 4 });
     expect(queues).toEqual({ codex: [], claude: [] });
@@ -546,7 +592,9 @@ describe("managed CLI deliberation", () => {
       resume: "completed",
     });
     await after.close();
+    resumeQueue.close();
 
+    const resumed = createManagedDeliberationExecutor(resumeDependencies);
     await expect(resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId }))
       .rejects.toThrow("snapshot");
   });
@@ -713,6 +761,7 @@ describe("managed CLI deliberation", () => {
       executeAssigned: executor,
     });
     await expect(mismatchedProject.execute({
+      operation: "start",
       projectId: "prj_wrongproject1",
       sourceEventId: `cve_${"d".repeat(64)}`,
       deliberationId: `dlb_${"e".repeat(32)}`,

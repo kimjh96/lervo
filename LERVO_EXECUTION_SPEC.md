@@ -1354,9 +1354,9 @@ Approval 파생 상태는 다음과 같습니다.
 
 ### 대화 숙의 시작과 상태 조회
 
-Conversation responder는 `/lervo deliberate start <policy-id> -- <topic>`과 `/lervo deliberate status <deliberation-id>`만 숙의 명령으로 처리합니다. 본문은 4,096자 이하이며 start는 `.lervo/deliberations`에 대응하는 policy ID와 빈 값이 아닌 주제를 요구합니다. 자연어 요청, reaction, mention과 모델 분류 결과는 시작 권한이 아닙니다.
+Conversation responder는 `/lervo deliberate start <policy-id> -- <topic>`, `/lervo deliberate resume <deliberation-id>`와 `/lervo deliberate status <deliberation-id>`만 숙의 명령으로 처리합니다. 본문은 4,096자 이하이며 start는 `.lervo/deliberations`에 대응하는 policy ID와 빈 값이 아닌 주제를 요구합니다. 자연어 요청, reaction, mention과 모델 분류 결과는 시작·재개 권한이 아닙니다.
 
-Project·human participant는 principal과 `deliberation.start` 또는 `deliberation.read`에 결속됩니다. 권한을 확인한 플랫폼 중립 port만 backend에 project·principal·policy/topic 또는 deliberation ID·시각을 전달합니다. Backend 결과는 `running`, `unknown`, `interrupted`, `converged`, `no_consensus`, `failed`, 0~10,000의 artifact 수와 상태에 맞는 `wait`, `resume`, `none`만 허용합니다. Status 응답의 숙의 ID는 요청 ID와 같아야 합니다.
+Project·human participant는 principal과 `deliberation.start`, `deliberation.resume` 또는 `deliberation.read`에 각각 결속됩니다. 권한을 확인한 플랫폼 중립 port만 backend에 project·principal·policy/topic 또는 deliberation ID·시각을 전달합니다. Backend 결과는 `running`, `unknown`, `interrupted`, `converged`, `no_consensus`, `failed`, 0~10,000의 artifact 수와 상태에 맞는 `wait`, `resume`, `none`만 허용합니다. Status와 resume 응답의 숙의 ID는 요청 ID와 같아야 합니다.
 
 Start backend는 canonical source event ID를 함께 받고 `(projectId, sourceEventId)`를 durable idempotency key로 사용해야 합니다. Interaction inbox lease가 끝나거나 worker가 재시작돼 responder가 다시 호출돼도 같은 숙의를 반환해야 하며 장시간 실행을 중복 시작하면 안 됩니다. 공통 responder는 특정 queue 구현을 소유하지 않으므로 이 보장이 없는 backend는 배포에 연결하지 않습니다.
 
@@ -1391,6 +1391,20 @@ CLI managed 숙의 연결은 일반 `ExecuteManagedDeliberation`과 별도인 `E
 
 대조 결과의 `settled`는 queue read model이 정리되었다는 뜻이며 숙의 완료 event가 아닙니다. `interrupted`는 명시적 재개 후보일 뿐입니다. Application은 source가 구성된 경우에만 대조 entrypoint를 제공하고 대조 과정에서 worker, provider, 재실행 또는 재개를 호출하지 않습니다. 결정은 [ADR-0140](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)에 기록합니다.
 
+#### 대화 숙의 durable 재개 queue
+
+Resume backend는 start queue의 현재 검증된 요약이 정확히 `interrupted/resume`인 경우에만 요청을 받습니다. 필수 입력은 project ID, canonical source event ID, 기존 숙의 ID, principal과 요청 시각입니다. Principal은 SHA-256 hash로 바꾸며 topic과 policy는 저장하지 않습니다. `(projectId, sourceEventId)`의 같은 요청은 최초 시각과 기존 상태를 반환하고, 같은 `(projectId, deliberationId)`의 다른 resume event는 `deliberation_resume_conflict`입니다.
+
+`@lervo/conversation-deliberation-sqlite`는 resume job을 mode `0600`인 별도 `deliberation-resumes.sqlite`에 둡니다. 필드는 project·source event·숙의·request/principal hash, 최초 요청 시각, 상태·시도 횟수·lease, 종료 요약 또는 안전한 failure code와 선택적 대조 좌표입니다. Platform 사용자·message ID, topic, policy, provider 응답·오류와 checkpoint 원문은 저장하지 않습니다. `(projectId, deliberationId)`당 resume job은 하나이며 delete와 identity 변경을 trigger로 막습니다.
+
+Resume job 상태와 lease 범위는 start queue와 같습니다. 만료 lease는 `resume_worker_lease_expired`, executor 또는 결과 commit 불명확은 `deliberation_resume_execution_uncertain`의 `uncertain`으로 닫고 자동 재실행하지 않습니다. Resume job이 존재하면 상태 조회에서 start job보다 우선합니다. Queue 대기·유효 lease는 `running`, 불확실 상태는 `unknown`, 저장된 종료 요약은 실제 상태를 반환합니다.
+
+공통 worker는 start와 resume store의 같은 lease·heartbeat·종료 계약을 실행합니다. Executor 성공으로 저장할 수 있는 것은 `converged|no_consensus|failed`뿐입니다. `running|unknown|interrupted`는 외부 효과가 끝났다고 볼 수 없어 `uncertain`으로 닫습니다. Resume worker는 별도 executor와 worker ID를 사용하고 application scheduler가 명시적으로 한 cycle씩 호출합니다.
+
+내부 assigned managed executor는 start와 resume 요청을 모두 받되, start에만 queue 숙의 ID를 새 workspace ID로 할당합니다. Resume은 assignment와 요청의 숙의 ID가 같아야 하며 기대 project manifest를 먼저 확인한 뒤 기존 checkpoint 재개 application을 호출합니다. 일반 CLI의 공개 ID 입력은 넓히지 않습니다.
+
+대조 target의 `operation`은 `start|resume`입니다. Start의 불확실 실행에는 승인 checkpoint와 비활성 lease가 `interrupted`를 확인할 수 있습니다. Resume의 불확실 실행에는 같은 checkpoint가 결과 증거가 아니므로 `history_incomplete`를 유지하고, 일관된 완료 event가 있을 때만 resume queue를 종료 요약으로 바꿉니다. 결정은 [ADR-0141](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.
@@ -1408,7 +1422,8 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `hub_sync_failed` | 로컬 run은 계속하고 outbox에 보관합니다. |
 | `interaction_store_failed` | Inbox claim, decision commit 또는 outbox 상태를 durable하게 확정하지 못했습니다. 응답 완료나 전달 완료를 주장하지 않고 저장소를 진단합니다. |
 | `response_generation_failed` / `publication_verification_failed` | 응답 원문 생성 또는 `chat` writing 공개 검증이 끝나지 않았습니다. 원문 오류를 저장하지 않고 현재 inbox lease를 bounded retry로 되돌립니다. |
-| `deliberation_request_conflict` / `worker_lease_expired` / `deliberation_execution_uncertain` | 같은 대화 event가 다른 숙의 요청에 쓰였거나 숙의 실행의 외부 효과를 증명할 수 없습니다. 기존 job을 덮거나 자동 재실행하지 않고 상태 조회를 `unknown`으로 제한합니다. |
+| `deliberation_request_conflict` / `worker_lease_expired` / `deliberation_execution_uncertain` | 같은 대화 event가 다른 숙의 요청에 쓰였거나 숙의 시작 실행의 외부 효과를 증명할 수 없습니다. 기존 job을 덮거나 자동 재실행하지 않고 상태 조회를 `unknown`으로 제한합니다. |
+| `deliberation_resume_conflict` / `resume_worker_lease_expired` / `deliberation_resume_execution_uncertain` | 같은 숙의의 다른 재개 요청이 이미 있거나 재개 실행 결과를 증명할 수 없습니다. 원래 start job과 checkpoint를 바꾸거나 재개를 자동 반복하지 않고 상태 조회를 `unknown`으로 제한합니다. |
 | `deliberation_job_invalid` / `deliberation_project_not_configured` / `deliberation_project_mismatch` | Queue job, project binding 또는 실제 repository manifest가 일치하지 않습니다. Workspace와 provider를 시작하지 않고 queue worker가 불확실 상태로 닫습니다. |
 | `adapter_delivery_failed` / `invalid_delivery_receipt` | 플랫폼 전송이 실패했거나 receipt 좌표가 다릅니다. `delivered`로 바꾸지 않고 outbox를 bounded retry로 되돌립니다. |
 | `invalid_command` / `unknown_signer` / `invalid_signature` / `signer_scope_denied` / `target_mismatch` | 원격 command 계약, 신뢰 key, 서명 또는 project 좌표가 맞지 않습니다. 로컬 정책과 executor를 호출하지 않고 새 command를 요구합니다. |

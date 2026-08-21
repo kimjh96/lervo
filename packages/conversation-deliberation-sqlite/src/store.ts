@@ -1,7 +1,7 @@
-import { randomBytes } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
 import {
+  type ConversationDeliberationJobFailureCode,
   type ConversationDeliberationJobStore,
 } from "@lervo/conversation-control";
 
@@ -13,12 +13,29 @@ import {
 } from "./database.js";
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 import {
+  claimConversationDeliberationJob,
+  markConversationDeliberationJobUncertain,
+  renewConversationDeliberationJob,
+  settleConversationDeliberationJob,
+  type LeaseStoreConfiguration,
+} from "./lease-store.js";
+import {
   assertConversationDeliberationLookup,
   conversationDeliberationMilliseconds,
   decodeConversationDeliberationJob,
-  decodeConversationDeliberationSummary,
 } from "./row-codec.js";
 import { reconcileConversationDeliberationJob } from "./reconciliation.js";
+
+const leaseConfiguration: LeaseStoreConfiguration<
+  ReturnType<typeof decodeConversationDeliberationJob>,
+  ConversationDeliberationJobFailureCode
+> = {
+  table: "conversation_deliberation_jobs",
+  leasePrefix: "cdl",
+  expiredFailureCode: "worker_lease_expired",
+  label: "Conversation 숙의 queue",
+  decode: decodeConversationDeliberationJob,
+};
 
 export class SQLiteConversationDeliberationJobStore implements ConversationDeliberationJobStore {
   readonly path: string;
@@ -158,156 +175,38 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
 
   async claim(input: Parameters<ConversationDeliberationJobStore["claim"]>[0]) {
     this.assertOpen();
-    const claimedAtMs = conversationDeliberationMilliseconds(input.claimedAt, "숙의 claim");
-    if (
-      !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u.test(input.workerId) ||
-      !Number.isSafeInteger(input.leaseDurationMs) ||
-      input.leaseDurationMs < 10_000 || input.leaseDurationMs > 60 * 60_000
-    ) {
-      throw new ConversationDeliberationSQLiteError(
-        "integrity_failed",
-        "Conversation 숙의 queue lease 설정이 유효하지 않습니다.",
-      );
-    }
-    this.database.exec("BEGIN IMMEDIATE;");
-    try {
-      this.database.prepare(`
-        UPDATE conversation_deliberation_jobs SET
-          state = 'uncertain', lease_id = NULL, lease_owner = NULL,
-          lease_expires_at = NULL, lease_expires_at_ms = NULL,
-          failure_code = 'worker_lease_expired', terminal_at = ?
-        WHERE state = 'leased' AND lease_expires_at_ms <= ?
-      `).run(input.claimedAt, claimedAtMs);
-      const row = this.database.prepare(`
-        SELECT * FROM conversation_deliberation_jobs
-        WHERE state = 'queued' AND requested_at_ms <= ?
-        ORDER BY requested_at_ms ASC, deliberation_id ASC LIMIT 1
-      `).get(claimedAtMs);
-      if (row === undefined) {
-        this.database.exec("COMMIT;");
-        return null;
-      }
-      const job = decodeConversationDeliberationJob(row);
-      const leaseId = `cdl_${randomBytes(24).toString("base64url")}`;
-      const leaseExpiresAt = new Date(claimedAtMs + input.leaseDurationMs).toISOString();
-      const updated = this.database.prepare(`
-        UPDATE conversation_deliberation_jobs SET
-          state = 'leased', attempt_count = attempt_count + 1,
-          lease_id = ?, lease_owner = ?, lease_expires_at = ?, lease_expires_at_ms = ?
-        WHERE project_id = ? AND source_event_id = ? AND state = 'queued'
-      `).run(
-        leaseId,
-        input.workerId,
-        leaseExpiresAt,
-        claimedAtMs + input.leaseDurationMs,
-        job.projectId,
-        job.sourceEventId,
-      );
-      if (updated.changes !== 1) {
-        throw new ConversationDeliberationSQLiteError(
-          "lease_mismatch",
-          "Conversation 숙의 queue lease를 획득하지 못했습니다.",
-        );
-      }
-      const leased = this.database.prepare(`
-        SELECT * FROM conversation_deliberation_jobs WHERE deliberation_id = ?
-      `).get(job.deliberationId);
-      this.database.exec("COMMIT;");
-      return { leaseId, job: decodeConversationDeliberationJob(leased!) };
-    } catch (error) {
-      this.rollback(error);
-    }
+    return claimConversationDeliberationJob({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
   }
 
   async renew(input: Parameters<ConversationDeliberationJobStore["renew"]>[0]) {
     this.assertOpen();
-    const renewedAtMs = conversationDeliberationMilliseconds(input.renewedAt, "숙의 lease 갱신");
-    if (
-      !Number.isSafeInteger(input.leaseDurationMs) ||
-      input.leaseDurationMs < 10_000 || input.leaseDurationMs > 60 * 60_000
-    ) {
-      throw new ConversationDeliberationSQLiteError(
-        "integrity_failed",
-        "Conversation 숙의 queue 갱신 lease 설정이 유효하지 않습니다.",
-      );
-    }
-    const expiresAtMs = renewedAtMs + input.leaseDurationMs;
-    try {
-      const result = this.database.prepare(`
-        UPDATE conversation_deliberation_jobs SET
-          lease_expires_at = ?, lease_expires_at_ms = ?
-        WHERE deliberation_id = ? AND state = 'leased' AND lease_id = ?
-          AND lease_expires_at_ms > ?
-      `).run(
-        new Date(expiresAtMs).toISOString(),
-        expiresAtMs,
-        input.deliberationId,
-        input.leaseId,
-        renewedAtMs,
-      );
-      if (result.changes !== 1) {
-        throw new ConversationDeliberationSQLiteError(
-          "lease_mismatch",
-          "Conversation 숙의 queue lease를 갱신하지 못했습니다.",
-        );
-      }
-    } catch (error) {
-      this.writeError(error, "Conversation 숙의 queue lease 갱신을 저장하지 못했습니다.");
-    }
+    renewConversationDeliberationJob({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
   }
 
   async settle(input: Parameters<ConversationDeliberationJobStore["settle"]>[0]) {
     this.assertOpen();
-    const settledAtMs = conversationDeliberationMilliseconds(input.settledAt, "숙의 종료");
-    const encoded = JSON.stringify(input.summary);
-    decodeConversationDeliberationSummary(encoded, input.deliberationId);
-    try {
-      const result = this.database.prepare(`
-        UPDATE conversation_deliberation_jobs SET
-          state = 'settled', lease_id = NULL, lease_owner = NULL,
-          lease_expires_at = NULL, lease_expires_at_ms = NULL,
-          summary_json = ?, terminal_at = ?
-        WHERE deliberation_id = ? AND state = 'leased' AND lease_id = ?
-          AND requested_at_ms <= ?
-      `).run(encoded, input.settledAt, input.deliberationId, input.leaseId, settledAtMs);
-      if (result.changes !== 1) {
-        throw new ConversationDeliberationSQLiteError(
-          "lease_mismatch",
-          "Conversation 숙의 queue 종료 lease가 다릅니다.",
-        );
-      }
-    } catch (error) {
-      this.writeError(error, "Conversation 숙의 queue 종료 결과를 저장하지 못했습니다.");
-    }
+    settleConversationDeliberationJob({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
   }
 
   async markUncertain(input: Parameters<ConversationDeliberationJobStore["markUncertain"]>[0]) {
     this.assertOpen();
-    const failedAtMs = conversationDeliberationMilliseconds(input.failedAt, "숙의 실패");
-    try {
-      const result = this.database.prepare(`
-        UPDATE conversation_deliberation_jobs SET
-          state = 'uncertain', lease_id = NULL, lease_owner = NULL,
-          lease_expires_at = NULL, lease_expires_at_ms = NULL,
-          failure_code = ?, terminal_at = ?
-        WHERE deliberation_id = ? AND state = 'leased' AND lease_id = ?
-          AND requested_at_ms <= ?
-      `).run(
-        input.failureCode,
-        input.failedAt,
-        input.deliberationId,
-        input.leaseId,
-        failedAtMs,
-      );
-      if (result.changes !== 1) {
-        throw new ConversationDeliberationSQLiteError(
-          "lease_mismatch",
-          "Conversation 숙의 queue 불확실 상태 lease가 다릅니다.",
-        );
-      }
-    } catch (error) {
-      this.writeError(error, "Conversation 숙의 queue 불확실 상태를 저장하지 못했습니다.");
-    }
+    markConversationDeliberationJobUncertain({
+      database: this.database,
+      ...input,
+      configuration: leaseConfiguration,
+    });
   }
 
   async reconcile(input: Parameters<ConversationDeliberationJobStore["reconcile"]>[0]) {
@@ -383,8 +282,4 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
     );
   }
 
-  private writeError(error: unknown, message: string): never {
-    if (error instanceof ConversationDeliberationSQLiteError) throw error;
-    throw new ConversationDeliberationSQLiteError("write_failed", message, { cause: error });
-  }
 }

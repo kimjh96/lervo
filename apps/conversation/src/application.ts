@@ -13,9 +13,14 @@ import {
   ConfiguredConversationDeliberationControl,
   QueuedConversationDeliberationBackend,
   reconcileConversationDeliberation,
+  runConversationDeliberationResumeWorkerCycle,
   runConversationDeliberationWorkerCycle,
+  type ConversationDeliberationReconciliationStore,
 } from "@lervo/conversation-control";
-import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
+import {
+  SQLiteConversationDeliberationJobStore,
+  SQLiteConversationDeliberationResumeJobStore,
+} from "@lervo/conversation-deliberation-sqlite";
 import { SQLiteConversationPlatformStore } from "@lervo/conversation-platform-sqlite";
 
 import type { ConversationApplication, ConversationApplicationOptions } from "./types.js";
@@ -54,11 +59,19 @@ export async function openConversationApplication(
     ...(options.threads === undefined ? {} : { threads: options.threads }),
   });
   let deliberationStore: SQLiteConversationDeliberationJobStore | null = null;
+  let resumeStore: SQLiteConversationDeliberationResumeJobStore | null = null;
   try {
     const deliberationOptions = options.deliberations;
     if (deliberationOptions !== undefined) {
       if (deliberationOptions.bindings.length === 0) {
         throw new Error("Conversation 숙의 배포에는 principal binding이 하나 이상 필요합니다.");
+      }
+      if (
+        deliberationOptions.bindings.some((binding) =>
+          binding.permissions.includes("deliberation.resume")) &&
+        deliberationOptions.resumeExecutor === undefined
+      ) {
+        throw new Error("Conversation 숙의 재개 권한에는 resume executor가 필요합니다.");
       }
       deliberationStore = await SQLiteConversationDeliberationJobStore.open({
         path: resolve(options.dataDirectory, "deliberations.sqlite"),
@@ -66,11 +79,22 @@ export async function openConversationApplication(
           maxRecords: deliberationOptions.maxRecords,
         }),
       });
+      if (deliberationOptions.resumeExecutor !== undefined) {
+        resumeStore = await SQLiteConversationDeliberationResumeJobStore.open({
+          path: resolve(options.dataDirectory, "deliberation-resumes.sqlite"),
+          ...(deliberationOptions.maxRecords === undefined ? {} : {
+            maxRecords: deliberationOptions.maxRecords,
+          }),
+        });
+      }
     }
     const deliberations = deliberationOptions === undefined || deliberationStore === null
       ? null
       : new ConfiguredConversationDeliberationControl({
-          backend: new QueuedConversationDeliberationBackend(deliberationStore),
+          backend: new QueuedConversationDeliberationBackend(
+            deliberationStore,
+            resumeStore ?? undefined,
+          ),
           bindings: deliberationOptions.bindings,
         });
     const reconciliation = deliberationOptions?.reconciliationSource === undefined ||
@@ -149,21 +173,44 @@ export async function openConversationApplication(
           }),
         });
       },
+      runDeliberationResumeWorkerCycle: async () => {
+        if (
+          deliberationOptions?.resumeExecutor === undefined || resumeStore === null
+        ) return { status: "idle" };
+        return runConversationDeliberationResumeWorkerCycle({
+          store: resumeStore,
+          executor: deliberationOptions.resumeExecutor,
+          workerId: deliberationOptions.resumeWorkerId ??
+            `${deliberationOptions.workerId.slice(0, 120)}:resume`,
+          ...(options.now === undefined ? {} : { now: options.now }),
+          ...(deliberationOptions.leaseDurationMs === undefined ? {} : {
+            leaseDurationMs: deliberationOptions.leaseDurationMs,
+          }),
+        });
+      },
       reconcileDeliberation: reconciliation === null
         ? null
-        : async (input) => reconcileConversationDeliberation({
-            store: reconciliation.store,
-            source: reconciliation.source,
-            projectId: input.projectId,
-            deliberationId: input.deliberationId,
-            ...(options.now === undefined ? {} : { now: options.now }),
-          }),
+        : async (input) => {
+            let store: ConversationDeliberationReconciliationStore = reconciliation.store;
+            if (resumeStore !== null && await resumeStore.inspect(input) !== null) {
+              store = resumeStore;
+            }
+            return reconcileConversationDeliberation({
+              store,
+              source: reconciliation.source,
+              projectId: input.projectId,
+              deliberationId: input.deliberationId,
+              ...(options.now === undefined ? {} : { now: options.now }),
+            });
+          },
       close: () => {
+        resumeStore?.close();
         deliberationStore?.close();
         store.close();
       },
     };
   } catch (error) {
+    resumeStore?.close();
     deliberationStore?.close();
     store.close();
     throw error;

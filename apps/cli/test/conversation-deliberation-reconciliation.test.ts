@@ -31,9 +31,19 @@ function report(
   };
 }
 
-function interpret(value: DeliberationInspectionReport) {
+function interpret(
+  value: DeliberationInspectionReport,
+  operation: "start" | "resume" = "start",
+) {
   return interpretManagedDeliberationInspection({
-    job: { projectId, deliberationId },
+    job: {
+      operation,
+      projectId,
+      deliberationId,
+      requestHash: `sha256:${"1".repeat(64)}`,
+      state: "uncertain",
+      summary: null,
+    },
     inspectedAt: "2026-08-22T00:02:00.000Z",
     report: value,
   });
@@ -41,14 +51,15 @@ function interpret(value: DeliberationInspectionReport) {
 
 describe("managed conversation deliberation reconciliation mapping", () => {
   it("proves an approved interruption as a resume candidate without resuming it", () => {
-    expect(interpret(report({
+    const interrupted = report({
       phase: "interrupted_after_approval",
       completionStatus: null,
       artifactCount: 2,
       checkpoint: "readable",
       lease: "stale",
       resume: "candidate",
-    }))).toEqual({
+    });
+    expect(interpret(interrupted)).toEqual({
       status: "confirmed",
       sourceKind: "managed_deliberation_inspection_v1",
       evidenceHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
@@ -59,6 +70,8 @@ describe("managed conversation deliberation reconciliation mapping", () => {
         nextAction: "resume",
       },
     });
+    expect(interpret(interrupted, "resume"))
+      .toEqual({ status: "not_confirmed", reason: "history_incomplete" });
   });
 
   it("does not infer an outcome while a lease is active", () => {

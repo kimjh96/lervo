@@ -5,7 +5,7 @@ export interface ConversationDeliberationPrincipalBinding {
   projectId: string;
   participantId: string;
   principalId: string;
-  permissions: readonly ("deliberation.start" | "deliberation.read")[];
+  permissions: readonly ("deliberation.start" | "deliberation.resume" | "deliberation.read")[];
 }
 
 export interface ConversationDeliberationBackend {
@@ -15,6 +15,13 @@ export interface ConversationDeliberationBackend {
     sourceEventId: string;
     policyId: string;
     topic: string;
+    requestedAt: string;
+  }): Promise<ConversationDeliberationSummary>;
+  resume(input: {
+    projectId: string;
+    principalId: string;
+    sourceEventId: string;
+    deliberationId: string;
     requestedAt: string;
   }): Promise<ConversationDeliberationSummary>;
   inspect(input: {
@@ -29,6 +36,12 @@ function key(projectId: string, participantId: string): string {
   return `${projectId}\0${participantId}`;
 }
 
+const deliberationPermissions = new Set([
+  "deliberation.start",
+  "deliberation.resume",
+  "deliberation.read",
+]);
+
 export class ConfiguredConversationDeliberationControl implements ConversationDeliberationPort {
   private readonly bindings = new Map<string, ConversationDeliberationPrincipalBinding>();
 
@@ -42,7 +55,8 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
         !/^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(binding.participantId) ||
         !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(binding.principalId) ||
         binding.permissions.length === 0 ||
-        new Set(binding.permissions).size !== binding.permissions.length
+        new Set(binding.permissions).size !== binding.permissions.length ||
+        binding.permissions.some((permission) => !deliberationPermissions.has(permission))
       ) throw new ConversationControlError(
         "control_command_invalid",
         "Conversation 숙의 principal binding이 유효하지 않습니다.",
@@ -80,14 +94,25 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
     });
   }
 
+  async resume(input: Parameters<ConversationDeliberationPort["resume"]>[0]) {
+    const binding = this.authorize(input.event, "deliberation.resume");
+    return this.options.backend.resume({
+      projectId: binding.projectId,
+      principalId: binding.principalId,
+      sourceEventId: input.event.eventId,
+      deliberationId: input.deliberationId,
+      requestedAt: input.requestedAt,
+    });
+  }
+
   private authorize(
     event: Parameters<ConversationDeliberationPort["start"]>[0]["event"],
-    permission: "deliberation.start" | "deliberation.read",
+    permission: "deliberation.start" | "deliberation.resume" | "deliberation.read",
   ): ConversationDeliberationPrincipalBinding {
     if (event.actor.kind !== "human") {
       throw new ConversationControlError(
         "control_access_denied",
-        "사람 participant만 숙의를 시작하거나 조회할 수 있습니다.",
+        "사람 participant만 숙의를 시작·재개하거나 조회할 수 있습니다.",
       );
     }
     const binding = this.bindings.get(key(event.target.projectId, event.actor.participantId));

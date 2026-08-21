@@ -128,6 +128,10 @@ describe("conversation command control", () => {
       operation: "deliberation_status",
       deliberationId: "dlb_chat0001",
     });
+    expect(parseConversationControlCommand("/lervo deliberate resume dlb_chat0001")).toEqual({
+      operation: "deliberation_resume",
+      deliberationId: "dlb_chat0001",
+    });
     expect(parseConversationControlCommand("Lervo끼리 배포 구조를 토론해 줘")).toBeNull();
   });
 
@@ -150,7 +154,7 @@ describe("conversation command control", () => {
     const responder = new ConversationControlResponder({
       artifactStore: artifacts,
       control: { inspect: async () => ({ review: review(), reviewUrl: null }) },
-      deliberations: { start, inspect },
+      deliberations: { start, resume: vi.fn(), inspect },
       writingContract: defaultKoreanWritingContract,
       semanticEvaluator: evaluator(),
       now: () => new Date("2026-08-20T00:05:00.000Z"),
@@ -292,21 +296,29 @@ describe("conversation command control", () => {
       artifactCount: 0,
       nextAction: "wait" as const,
     }));
+    const resume = vi.fn(async () => ({
+      deliberationId: "dlb_chat0001",
+      status: "running" as const,
+      artifactCount: 0,
+      nextAction: "wait" as const,
+    }));
+    const backend = {
+      start,
+      resume,
+      inspect: async () => ({
+        deliberationId: "dlb_chat0001",
+        status: "running" as const,
+        artifactCount: 0,
+        nextAction: "wait" as const,
+      }),
+    };
     const control = new ConfiguredConversationDeliberationControl({
-      backend: {
-        start,
-        inspect: async () => ({
-          deliberationId: "dlb_chat0001",
-          status: "running",
-          artifactCount: 0,
-          nextAction: "wait",
-        }),
-      },
+      backend,
       bindings: [{
         projectId: "prj_control01",
         participantId: "ptc_human001",
         principalId: "operator:reviewer",
-        permissions: ["deliberation.start", "deliberation.read"],
+        permissions: ["deliberation.start", "deliberation.resume", "deliberation.read"],
       }],
     });
     const { event } = await fixtureMessage(
@@ -328,5 +340,26 @@ describe("conversation command control", () => {
       topic: "배포 구조를 검토합니다.",
       requestedAt: "2026-08-20T00:05:00.000Z",
     });
+    await control.resume({
+      event,
+      deliberationId: "dlb_chat0001",
+      requestedAt: "2026-08-20T00:06:00.000Z",
+    });
+    expect(resume).toHaveBeenCalledWith({
+      projectId: "prj_control01",
+      principalId: "operator:reviewer",
+      sourceEventId: event.eventId,
+      deliberationId: "dlb_chat0001",
+      requestedAt: "2026-08-20T00:06:00.000Z",
+    });
+    expect(() => new ConfiguredConversationDeliberationControl({
+      backend,
+      bindings: [{
+        projectId: "prj_control01",
+        participantId: "ptc_human001",
+        principalId: "operator:reviewer",
+        permissions: ["deliberation.delete" as never],
+      }],
+    })).toThrow("binding");
   });
 });

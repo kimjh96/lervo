@@ -1,8 +1,8 @@
 import {
   assertConversationDeliberationSummary,
   conversationDeliberationPatterns,
-  type ConversationDeliberationJob,
-  type ConversationDeliberationJobStore,
+  type ConversationDeliberationReconciliationStore,
+  type ConversationDeliberationReconciliationTarget,
 } from "./deliberation-job.js";
 import type { ConversationDeliberationSummary } from "./types.js";
 import { ConversationControlError } from "./types.js";
@@ -15,7 +15,7 @@ export type ConversationDeliberationReconciliationReason =
 
 export interface ConversationDeliberationReconciliationSourcePort {
   inspect(input: {
-    job: Readonly<ConversationDeliberationJob>;
+    job: Readonly<ConversationDeliberationReconciliationTarget>;
     inspectedAt: string;
   }): Promise<
     | {
@@ -35,7 +35,7 @@ export type ConversationDeliberationReconciliationResult =
   | { status: "reconciled"; summary: ConversationDeliberationSummary };
 
 export async function reconcileConversationDeliberation(input: {
-  store: ConversationDeliberationJobStore;
+  store: ConversationDeliberationReconciliationStore;
   source: ConversationDeliberationReconciliationSourcePort;
   projectId: string;
   deliberationId: string;
