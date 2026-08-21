@@ -43,7 +43,7 @@ function unknownCheck(id, reason) {
   return { id, status: "unknown", reasons: [reason] };
 }
 
-function inspectPackage(manifest, repository) {
+export function inspectTrustedPublisherPackage(manifest, repository) {
   const reasons = [];
   if (
     manifest?.name !== "@lervo/cli" ||
@@ -187,7 +187,7 @@ export function createTrustedPublisherReadinessReport({
     workflow === null || typeof workflow !== "object"
   ) fail();
   const checks = [
-    inspectPackage(packageManifest, repository),
+    inspectTrustedPublisherPackage(packageManifest, repository),
     inspectTrustedPublisherInactiveWorkflow(workflow),
     ...inspectNpmObservation(npmObservation, repository),
     inspectGitHubObservation(githubObservation, repository),

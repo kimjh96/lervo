@@ -8,7 +8,7 @@ import { firstPublicationResolutionConfirmations } from
   "../../lib/first-publication-resolution-decision.mjs";
 import { createFirstPublicationResolution } from
   "../../lib/first-publication-resolution.mjs";
-import { stageOnlyPublicationCommand, stageResultUploadStep } from
+import { stageOnlyWorkflowSteps } from
   "../../lib/first-publication-transition-policy.mjs";
 import { canonicalDigest } from "../../lib/release-artifact-manifest.mjs";
 import {
@@ -69,11 +69,7 @@ export function firstPublicationStageOnlyWorkflow() {
         "runs-on": "ubuntu-latest",
         environment: "npm-release",
         permissions: { contents: "read", "id-token": "write" },
-        steps: [
-          { run: "pnpm install --frozen-lockfile" },
-          { run: stageOnlyPublicationCommand },
-          structuredClone(stageResultUploadStep),
-        ],
+        steps: structuredClone(stageOnlyWorkflowSteps),
       },
     },
   };

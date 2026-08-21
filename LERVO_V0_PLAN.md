@@ -1070,6 +1070,23 @@ CLI stage-only workflow activation permit·transaction 완료 조건:
 - Fixture가 control 변경·source race·mode·rollback·중단 phase·CLI 권한 분리를 검증함
 - 현재 production workflow 적용, workflow 실행, npm stage·2FA 승인·package 공개를 주장하지 않음
 
+CLI stage-only workflow activation post-apply verification 완료 조건:
+
+- Standalone reader가 receipt exact key·고정 처분·시각 순서·digest를 독립 검증함
+- Receipt 자기 일관성을 발급 주체·서명·실제 transaction 증거로 과장하지 않음
+- Root·CLI package, workflow와 receipt를 각 상한의 regular-file snapshot으로 읽음
+- Canonical JSON, UTF-8 LF YAML, 중복 key·parse warning과 current workflow mismatch를 거부함
+- 검증 시작과 report 직전에 transaction 부재를 읽고 pending·unsafe 좌표를 정리 없이 차단함
+- Root의 exact stage command와 CLI package identity를 현재 source에서 다시 확인함
+- Stage job의 action SHA·option·step 순서 전체를 candidate·transition과 같은 정책으로 검사함
+- npm stage trust와 GitHub reviewer·self-review·tag 보호를 online에서 새로 관측함
+- 외부 관측 뒤 네 source bytes를 다시 읽어 source race를 거부함
+- Report가 local source와 관측 시점 external controls만 verified로 제한함
+- Receipt authenticity·candidate provenance·remote deployment·실행·stage·공개 한계를 고정함
+- 파일·workflow·외부 설정·publication·runtime event·project state·telemetry를 바꾸지 않음
+- Redigest 권한 상향, current mismatch, action SHA 변경, control 약화와 transaction race를 검증함
+- 현재 production workflow 적용·원격 배포·실행·npm stage·2FA·공개를 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1306,4 +1323,6 @@ CLI stage publication command boundary를 완료했습니다. Exact release·aut
 
 CLI stage-only workflow activation permit·transaction boundary를 완료했습니다. Exact candidate를 검토한 짧은 사람 decision과 fresh npm·GitHub ready report를 최대 5분 permit에 결속합니다. Apply는 외부 control과 root·CLI package·workflow·decision·permit source를 첫 쓰기 전에 다시 확인하며, mode-preserving compare-and-swap journal이 동기 실패 rollback과 중단 뒤 pre-commit rollback·committed cleanup을 구분합니다. Receipt는 exact workflow 적용과 외부 설정 무변경·게시 미시도만 기록합니다. 현재 production workflow에는 적용하지 않았습니다. 결정은 [ADR-0119](./docs/adr/0119-cli-stage-only-workflow-activation-permit-transaction.md)에 기록했습니다.
 
-다음 구현 작업은 apply receipt, current exact workflow와 fresh external controls를 독립적으로 다시 읽는 **CLI stage-only workflow activation post-apply verification boundary**입니다. 적용 코어와 검증 코어를 분리하고 pending transaction, receipt 진위가 아닌 구조적 결속, workflow 실행·stage 접수·게시 미증명을 명시합니다.
+CLI stage-only workflow activation post-apply verification boundary를 완료했습니다. Standalone receipt reader와 bounded current source, 시작·종료 transaction inspector를 apply writer와 분리했습니다. Stage command·package identity와 action SHA·option·step 순서 전체를 공용 stage-only 정책으로 검사하고 npm·GitHub control을 새로 관측한 뒤 source를 재확인합니다. Report는 local source와 관측 시점 control만 verified로 제한하고 receipt authenticity·candidate 전체 provenance·GitHub 원격 배포·실행·stage·공개를 미검증으로 남깁니다. 결정은 [ADR-0120](./docs/adr/0120-cli-stage-only-workflow-post-apply-verification.md)에 기록했습니다.
+
+다음 구현 작업은 local post-apply report와 GitHub의 exact source commit에 있는 workflow bytes를 결속하는 **CLI stage-only workflow remote deployment evidence boundary**입니다. 인증된 read-only observer, commit·repository·workflow path binding과 source race를 먼저 고정하고 workflow 실행이나 npm stage 결과는 별도 증거로 유지합니다.

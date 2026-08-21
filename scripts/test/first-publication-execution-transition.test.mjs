@@ -12,8 +12,7 @@ import { validateFirstPublicationExecutionReceipt } from
   "../lib/first-publication-execution-receipt.mjs";
 import {
   createFirstPublicationTransitionReport,
-  stageOnlyPublicationCommand,
-  stageResultUploadStep,
+  stageOnlyWorkflowSteps,
 } from "../lib/first-publication-transition-policy.mjs";
 import {
   createFirstPublicationTransitionReceipt,
@@ -122,12 +121,7 @@ function activeWorkflow() {
         "runs-on": "ubuntu-latest",
         environment: "npm-release",
         permissions: { contents: "read", "id-token": "write" },
-        steps: [
-          { name: "Download exact release", uses: "actions/download-artifact@digest" },
-          { name: "Install dependencies", run: "pnpm install --frozen-lockfile" },
-          { name: "Stage exact CLI package", run: stageOnlyPublicationCommand },
-          structuredClone(stageResultUploadStep),
-        ],
+        steps: structuredClone(stageOnlyWorkflowSteps),
       },
     },
   };

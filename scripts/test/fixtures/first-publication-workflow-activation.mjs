@@ -4,6 +4,10 @@ import { resolve } from "node:path";
 
 import { parse } from "yaml";
 
+import { applyCliFirstPublicationWorkflowActivation } from
+  "../../lib/cli-first-publication-workflow-activation-apply.mjs";
+import { authorizeCliFirstPublicationWorkflowActivation } from
+  "../../lib/cli-first-publication-workflow-activation-permit.mjs";
 import { createFirstPublicationWorkflowActivationDecision } from
   "../../lib/first-publication-workflow-activation-decision.mjs";
 import { createFirstPublicationWorkflowActivationCandidate } from
@@ -107,4 +111,46 @@ export async function createWorkflowActivationFixture() {
     candidateResult,
     workflowContents,
   };
+}
+
+function sequence(...values) {
+  return () => values.shift();
+}
+
+export async function createAppliedWorkflowActivationFixture() {
+  const fixture = await createWorkflowActivationFixture();
+  const transactionRoot = resolve(
+    fixture.root,
+    ".github/.workflow-activation-transaction",
+  );
+  await authorizeCliFirstPublicationWorkflowActivation({
+    repository: workflowActivationRepository,
+    decisionPath: fixture.decisionPath,
+    outputPath: fixture.permitPath,
+    online: true,
+  }, {
+    paths: fixture.paths,
+    observeNpm: async () => readyWorkflowActivationNpmObservation(),
+    observeGitHub: async () => readyWorkflowActivationGitHubObservation(),
+    clock: sequence("2026-08-21T10:01:00Z", "2026-08-21T10:02:00Z"),
+  });
+  const receipt = await applyCliFirstPublicationWorkflowActivation({
+    repository: workflowActivationRepository,
+    decisionPath: fixture.decisionPath,
+    permitPath: fixture.permitPath,
+    online: true,
+  }, {
+    paths: fixture.paths,
+    transactionRoot,
+    observeNpm: async () => readyWorkflowActivationNpmObservation(),
+    observeGitHub: async () => readyWorkflowActivationGitHubObservation(),
+    clock: sequence(
+      "2026-08-21T10:03:00Z",
+      "2026-08-21T10:04:00Z",
+      "2026-08-21T10:05:00Z",
+    ),
+  });
+  const receiptPath = resolve(fixture.root, "workflow-activation-receipt.json");
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+  return { ...fixture, receipt, receiptPath, transactionRoot };
 }

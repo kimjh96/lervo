@@ -55,3 +55,5 @@ Decision·permit·journal·receipt에는 actor identity, reviewer, trust ID, cre
 후보 생성, 사람 검토, 외부 control 확인, 쓰기 권한과 파일 교체가 한 함수나 문서에 합쳐지지 않습니다. 외부 보호가 permit 뒤 달라지거나 source가 관측 중 바뀌면 첫 workflow write 전에 멈춥니다. File 교체 중 중단돼도 원본 rollback과 committed cleanup을 명시적으로 구분합니다.
 
 Fixture는 exact decision binding과 만료, broad npm permission·self-review 차단, permit 무쓰기, apply 전 두 번째 online 관측, source race, mode 보존, 동기 rollback, 두 pre-commit 중단 복구, committed cleanup과 CLI 인자 분리를 임시 workflow에서 검증합니다. 현재 저장소 workflow에는 후보를 적용하지 않았고 npm·GitHub 설정과 package 게시도 변경하지 않았습니다.
+
+> 후속 결정: [ADR-0120](./0120-cli-stage-only-workflow-post-apply-verification.md)은 receipt와 current workflow를 독립적으로 대조하고 exact stage job 전체와 fresh npm·GitHub control을 읽기 전용으로 다시 검증합니다.

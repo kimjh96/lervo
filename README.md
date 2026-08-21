@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령·stage-only workflow 후보·stage 게시 명령·workflow 활성화 허가와 복구 transaction 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령·stage-only workflow 후보·stage 게시 명령·workflow 활성화 허가와 복구 transaction·사후 검증 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -139,6 +139,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 stage-only workflow 후보 ADR](./docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md)
 - [CLI stage 게시 명령 경계 ADR](./docs/adr/0118-cli-stage-publication-command-boundary.md)
 - [CLI stage-only workflow 활성화 허가와 transaction ADR](./docs/adr/0119-cli-stage-only-workflow-activation-permit-transaction.md)
+- [CLI stage-only workflow 사후 검증 ADR](./docs/adr/0120-cli-stage-only-workflow-post-apply-verification.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -315,6 +316,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 검토한 candidate에 대한 최대 10분의 사람 decision이 있으면 `pnpm release:bootstrap:workflow-permit --repository <owner/repo> --decision <절대 경로> --output <새 절대 경로> --online`으로 최대 5분의 적용 permit을 만들 수 있습니다. 현재 source가 비활성이고 npm의 exact stage trust와 GitHub `npm-release` reviewer·self-review·`v*` 보호가 모두 ready여야 하며, 명령은 이를 읽을 뿐 workflow나 외부 설정을 바꾸지 않습니다.
 
 `pnpm release:bootstrap:workflow-apply --repository <owner/repo> --decision <절대 경로> --permit <절대 경로> --online --write [--json]`은 외부 control과 모든 source를 다시 확인한 뒤 exact workflow 한 파일만 mode를 보존해 교체합니다. Compare-and-swap journal은 중단 전 원본 rollback과 commit 뒤 cleanup을 구분하며, 남은 transaction은 `pnpm release:bootstrap:workflow-apply --recover`로만 복구합니다. 성공 receipt도 stage job 활성화만 뜻하고 workflow 실행·npm stage 접수·2FA 승인·package 공개는 주장하지 않습니다. 현재 저장소의 production workflow에는 이 적용을 실행하지 않았습니다.
+
+`pnpm release:bootstrap:workflow-verify --repository <owner/repo> --receipt <절대 경로> --online [--json]`은 pending transaction이 없는지 확인하고 receipt 결과와 current workflow bytes, stage command와 action SHA·옵션 전체를 대조합니다. npm stage trust와 GitHub 보호도 새로 읽으며 관측 중 source 변경을 거부합니다. 성공은 local stage-only 구성과 관측 시점의 외부 control이 맞다는 뜻입니다. Receipt 발급 주체, GitHub 원격 배포·workflow 실행, npm stage 접수·2FA 승인·package 공개는 확인하지 않고 어떤 상태도 바꾸지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

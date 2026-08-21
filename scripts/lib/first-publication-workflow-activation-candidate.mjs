@@ -1,8 +1,10 @@
 import { isMap, parseDocument } from "yaml";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { inspectFirstPublicationStageOnlyWorkflow } from
-  "./first-publication-transition-policy.mjs";
+import {
+  inspectFirstPublicationStageOnlyWorkflow,
+  stagePublicationPackageScript,
+} from "./first-publication-stage-only-policy.mjs";
 import {
   canonicalDigest,
   canonicalJson,
@@ -11,8 +13,7 @@ import {
 import { inspectTrustedPublisherInactiveWorkflow } from
   "./trusted-publisher-readiness.mjs";
 
-export const stagePublicationPackageScript =
-  "node scripts/stage-cli-release-publication.mjs";
+export { stagePublicationPackageScript };
 
 export const stageOnlyWorkflowJobYaml = `  publish-cli:
     name: Stage CLI publication

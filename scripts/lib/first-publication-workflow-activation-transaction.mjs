@@ -1,6 +1,8 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { validateFirstPublicationWorkflowActivationPermit } from
   "./first-publication-workflow-activation-permit.mjs";
+import { validateFirstPublicationWorkflowActivationReceiptDocument } from
+  "./first-publication-workflow-activation-receipt.mjs";
 import { canonicalDigest, canonicalJson, sha256 } from
   "./release-artifact-manifest.mjs";
 
@@ -123,6 +125,7 @@ export function createFirstPublicationWorkflowActivationReceipt(plan, appliedAt)
 }
 
 export function validateFirstPublicationWorkflowActivationReceipt(receipt, plan) {
+  validateFirstPublicationWorkflowActivationReceiptDocument(receipt);
   const expected = createFirstPublicationWorkflowActivationReceipt(plan, receipt?.appliedAt);
   if (canonicalJson(receipt) !== canonicalJson(expected)) {
     fail("first_publication_workflow_activation_receipt_invalid");

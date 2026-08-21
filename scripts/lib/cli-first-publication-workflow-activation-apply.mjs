@@ -1,5 +1,3 @@
-import { resolve } from "node:path";
-
 import { observeGitHubPublisherEnvironment } from "./github-environment-observer.mjs";
 import { observeNpmTrustedPublisher } from "./npm-trust-observer.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
@@ -29,17 +27,13 @@ import {
   validateFirstPublicationWorkflowActivationPlan,
   validateFirstPublicationWorkflowActivationReceipt,
 } from "./first-publication-workflow-activation-transaction.mjs";
+import { firstPublicationWorkflowActivationTransactionRoot } from
+  "./first-publication-workflow-activation-transaction-state.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import { repositoryRoot } from "./installed-cli.mjs";
 import {
   createTrustedPublisherReadinessReport,
   validateReadinessRepository,
 } from "./trusted-publisher-readiness.mjs";
-
-export const firstPublicationWorkflowActivationTransactionRoot = resolve(
-  repositoryRoot,
-  ".github/.lervo-workflow-activation-transaction",
-);
 
 function fail(code, message) {
   throw new FirstPublicationBootstrapError(code, message);
