@@ -1175,6 +1175,19 @@ CLI npm staged package review evidence 완료 조건:
 - 중복·누락 stage, list/view 불일치, tarball mismatch, metadata·user config·source race와 ambient credential을 검증함
 - 현재 실제 npm stage 조회·download·approve·reject·2FA·공개를 수행했다고 주장하지 않음
 
+CLI npm stage approval authorization 완료 조건:
+
+- Stage review report와 사람 decision을 각각 bounded canonical source로 읽고 끝에 다시 확인함
+- Decision을 exact review digest·stage ID digest·package·version과 다섯 확인 문구에 결속함
+- Decision 수명을 최대 10분으로 제한하고 review 이전·만료·binding 불일치를 거부함
+- Authorization을 fresh review와 decision에서 재계산하고 최대 5분으로 제한함
+- 권한을 interactive 2FA `npm_stage_approve_once` 하나로 제한함
+- Reject·direct publish와 시도 뒤 reconciliation 없는 retry를 명시적으로 금지함
+- Actor identity·stage ID 원문·OTP·credential을 decision과 authorization에 넣지 않음
+- 새 output 하나만 owner-only·exclusive-create로 쓰고 source를 덮어쓰지 않음
+- Network·npm client·approve·reject·publication·runtime state를 호출하거나 변경하지 않음
+- Stale review, expired decision·authorization, mismatched binding, redigest 권한 상향, source race와 기존 output을 검증함
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1423,4 +1436,6 @@ CLI npm stage result artifact evidence boundary를 완료했습니다. Exact art
 
 CLI npm staged package review evidence boundary를 완료했습니다. 인증된 `stage list/view/download/view`를 격리 실행해 exact package·version의 유일한 stage, 안정적인 metadata와 downloaded tarball의 세 digest를 stage result evidence에 결속합니다. Stage ID는 digest만 남기고 actor·계정·credential·npm 원문·임시 tarball을 폐기하며 `approve`·`reject`·2FA·공개 전이는 실행하지 않습니다. 결정은 [ADR-0125](./docs/adr/0125-cli-npm-staged-package-review-evidence.md)에 기록했습니다.
 
-다음 구현 작업은 fresh staged package review evidence와 짧게 유효한 명시적 사람 결정을 exact stage에 결속하되 아직 npm을 변경하지 않는 **CLI npm stage approval authorization boundary**입니다. 승인 주체 원문과 2FA 값을 결과에서 제거하고 실제 `stage approve` 실행·불명확한 결과 처분은 그 다음 별도 경계로 유지합니다.
+CLI npm stage approval authorization boundary를 완료했습니다. Fresh staged package review와 최대 10분의 canonical 사람 decision을 exact review·비식별 stage·package·version에 결속하고 최대 5분의 one-shot interactive approve 권한만 새 파일로 만듭니다. Actor identity·stage ID 원문·OTP를 보존하지 않고 npm 호출·approve·reject·공개 확인은 실행하지 않습니다. 결정은 [ADR-0126](./docs/adr/0126-cli-npm-stage-approval-authorization.md)에 기록했습니다.
+
+다음 구현 작업은 승인 외부 호출 전에 immutable attempt를 저장하고 결과를 별도 terminal로 한 번만 닫는 **CLI npm stage approval durable record boundary**입니다. 실제 npm adapter는 아직 연결하지 않고, 부분 기록·중복·symlink·blind retry를 먼저 차단합니다.
