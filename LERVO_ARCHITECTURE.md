@@ -49,6 +49,8 @@ Execution plan command adapter는 절대 경로의 publication authorization과 
 
 Activation blocker report는 고정된 CLI package manifest와 release manifest의 bounded snapshot만 읽습니다. 로컬 metadata 정책은 package identity, repository, license와 registry·provenance를 네 검사로 나누고, report 코어는 그 결과에 온라인 package 이름 확인, npm scope 관리 확인과 별도 승인 요구를 결합합니다. Source reader, 정책, report 재계산, 한국어 formatter와 process 인자 처리는 서로 분리합니다. Registry·approval·patch·publisher port가 없으므로 로컬 검사가 모두 통과해도 arming되지 않습니다.
 
+Metadata preview는 인자에서 만든 비권한 decision, 같은 두 manifest snapshot과 별도 patch 계산 정책을 결합합니다. Decision validator는 repository·license·scope owner 형식과 `preview_only` 의미를 소유합니다. Patch 정책은 source package manifest의 네 허용 필드만 비교하고 현재 원문 대신 `missing|different`를 남깁니다. Report 코어는 release manifest 직접 patch를 금지하고 재생성 요구만 투영합니다. 조정기, formatter와 process adapter에는 파일 쓰기·승인·online·publisher port가 없습니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

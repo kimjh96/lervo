@@ -1030,6 +1030,17 @@ CLI first-publication activation blocker report 완료 조건:
 - Online observer, approval writer, patch·reservation·publisher port와 결과 파일을 갖지 않음
 - Fixture가 외부 사실, 승인·arming·게시 성공이나 파일 변경을 주장하지 않음
 
+CLI first-publication metadata decision·비쓰기 preview 완료 조건:
+
+- Repository·license·scope owner 선택을 preview-only decision digest에 결속함
+- Decision이 license 승인·scope control·package availability나 게시 승인이 아님을 고정함
+- Package manifest의 네 허용 필드 set만 계산하고 현재 다른 원문을 출력하지 않음
+- 생성 원본인 release manifest 직접 patch를 금지하고 재생성 필요만 표시함
+- Package identity·version·공개 access 문제를 metadata patch 범위로 조용히 고치지 않음
+- 로컬 변경이 없어도 외부 확인·승인과 activation 미구현 상태를 유지함
+- Human·JSON 출력이 같은 canonical preview를 사용하고 정상 조회는 exit code 0임
+- Snapshot 변경, redigest 권한 위조, 입력 원문 노출과 파일 쓰기를 fixture로 거부함
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1156,4 +1167,6 @@ CLI first-publication execution plan command를 완료했습니다. 절대 경�
 
 CLI first-publication activation blocker report를 완료했습니다. 현재 package·release manifest의 identity, repository, license와 registry·provenance를 로컬 검사로 나누고 public npm 이름, scope 관리와 최초 게시 승인을 외부 요구사항으로 분리했습니다. 로컬 검사가 모두 통과해도 report는 blocked, activation은 not implemented이며 온라인 관측·승인·파일 변경·게시를 실행하지 않습니다. 결정은 [ADR-0104](./docs/adr/0104-cli-first-publication-activation-blocker-report.md)에 기록했습니다.
 
-다음 구현 작업은 repository·license·npm scope owner를 명시적으로 입력받아 현재 차단 항목에 어떤 변경이 필요한지만 계산하는 **CLI first-publication metadata decision과 비쓰기 patch preview 계약**입니다. 실제 파일 적용, approval 생성과 게시 활성화는 별도 경계로 유지합니다.
+CLI first-publication metadata decision과 비쓰기 patch preview를 완료했습니다. 명시한 repository·license·scope owner를 승인 없는 선택으로 결속하고 package manifest의 네 필드 변경만 계산합니다. Release manifest는 직접 patch하지 않고 재생성 필요만 표시하며 원본 파일·외부 상태·승인·activation을 바꾸지 않습니다. 결정은 [ADR-0105](./docs/adr/0105-cli-first-publication-metadata-preview.md)에 기록했습니다.
+
+다음 구현 작업은 preview와 source digest에 결속된 exact `package.json` 결과 bytes를 만들되 쓰지 않는 **CLI first-publication package metadata patch candidate**입니다. 실제 적용은 candidate 재검증과 별도 content-bound permit 뒤로 유지합니다.

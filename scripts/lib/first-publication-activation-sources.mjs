@@ -1,12 +1,18 @@
-import { isAbsolute } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
+import { repositoryRoot } from "./installed-cli.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
 } from "./release-attestation-file-set.mjs";
 
 const maximumSourceBytes = 1024 * 1024;
+
+export const firstPublicationActivationSourcePaths = Object.freeze({
+  packageManifestPath: resolve(repositoryRoot, "apps/cli/package.json"),
+  releaseManifestPath: resolve(repositoryRoot, "apps/cli/release-artifact-manifest.json"),
+});
 
 function fail() {
   throw new FirstPublicationBootstrapError(

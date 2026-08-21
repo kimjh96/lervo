@@ -27,6 +27,7 @@
     "release:bootstrap:preflight": "node scripts/check-cli-first-publication-preflight.mjs",
     "release:bootstrap:plan": "node scripts/show-cli-first-publication-execution-plan.mjs",
     "release:bootstrap:blockers": "node scripts/show-cli-first-publication-activation-blockers.mjs",
+    "release:bootstrap:metadata-preview": "node scripts/show-cli-first-publication-metadata-preview.mjs",
     "smoke:built-cli": "node scripts/check-built-cli.mjs",
     "smoke:packed-cli": "node scripts/check-packed-cli.mjs",
     "smoke:registry-publish": "node scripts/check-registry-publish.mjs",
