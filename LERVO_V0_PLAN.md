@@ -1121,6 +1121,24 @@ CLI stage-only workflow ref reachability evidence 완료 조건:
 - Source package mismatch, lightweight·nested annotated tag, 비조상, 다른 tag commit, ref 이동·깊이 상한·redigest를 검증함
 - 현재 production workflow 적용·원격 배포·GitHub 실제 관측·실행·npm stage·2FA·공개를 주장하지 않음
 
+CLI stage-only workflow execution evidence 완료 조건:
+
+- 저장한 reachability evidence를 최대 64 KiB canonical regular-file snapshot으로 읽고 standalone 계약을 검증함
+- Repository·source commit·release tag를 upstream target에 대조하고 운영자가 run ID·attempt를 명시함
+- Exact workflow metadata·current run·exact attempt·attempt jobs·run artifact metadata만 인증된 GET으로 읽음
+- Job·artifact 응답은 최대 100개 한 page의 total count와 실제 배열 길이가 같아야 함
+- Current run과 exact attempt를 대조하고 관측 끝에 current run을 다시 읽어 rerun·attempt race를 거부함
+- Workflow ID·path·active state, `workflow_dispatch`, exact tag·source SHA를 결속함
+- `Stage CLI publication` job과 exact stage·result upload step이 모두 terminal success여야 함
+- Run-attempt 전용 artifact metadata가 유일·비만료이고 exact run·source·SHA-256에 결속돼야 함
+- Actor·triggering actor·runner·label·credential·외부 응답 원문을 report에 넣지 않음
+- GitHub 관측 뒤 reachability source race를 거부함
+- Report는 exact attempt 실행과 artifact metadata만 evidence-bound로 표현함
+- Upstream 진위·이후 rerun·artifact 내용·npm stage 접수·2FA·공개를 별도 미검증으로 유지함
+- 파일·GitHub 설정·dispatch·rerun·artifact download·publication·runtime state를 바꾸지 않음
+- Historical attempt, rerun race, 실패 step, 중복 artifact, 부분 page, redigest 권한 상향을 검증함
+- 현재 production workflow 적용·원격 실행·artifact download·npm stage·2FA·공개를 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1363,4 +1381,6 @@ CLI stage-only workflow remote deployment evidence boundary를 완료했습니�
 
 CLI stage-only workflow ref reachability evidence boundary를 완료했습니다. Exact remote evidence와 source commit의 CLI package bytes·version을 current package·release tag에 묶고, GitHub default branch merge-base와 lightweight·bounded annotated tag를 읽기 전용으로 판정합니다. Repository·branch·tag ref를 관측 끝에 다시 읽어 움직이는 ref를 차단하며 report는 관측 시점 관계만 표현합니다. 결정은 [ADR-0122](./docs/adr/0122-cli-stage-only-workflow-ref-reachability-evidence.md)에 기록했습니다.
 
-다음 구현 작업은 exact workflow path·source commit·release tag에 해당하는 GitHub Actions run과 terminal job 결과를 읽기 전용으로 결속하는 **CLI stage-only workflow execution evidence boundary**입니다. Run 선택·재실행·attempt와 artifact 좌표를 명시적으로 구분하고 npm stage 접수·2FA·공개 결과는 계속 별도 증거로 유지합니다.
+CLI stage-only workflow execution evidence boundary를 완료했습니다. 운영자가 고른 run ID·attempt를 exact workflow·tag·source에 결속하고, current run과 attempt를 앞뒤로 대조해 historical attempt와 rerun race를 닫습니다. Terminal workflow·stage job·두 핵심 step과 유일한 run-attempt artifact metadata를 확인하되 artifact 내용과 npm 결과는 승격하지 않습니다. 결정은 [ADR-0123](./docs/adr/0123-cli-stage-only-workflow-execution-evidence.md)에 기록했습니다.
+
+다음 구현 작업은 저장된 run-attempt artifact를 bounded download로 가져와 내부 terminal stage 결과 문서와 exact package·version·source·attempt를 검증하는 **CLI npm stage result evidence boundary**입니다. Artifact metadata와 downloaded bytes·terminal record를 구분하고 GitHub job success를 npm stage 접수나 2FA 승인으로 대신 사용하지 않습니다.
