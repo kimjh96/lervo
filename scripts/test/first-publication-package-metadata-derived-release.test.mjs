@@ -8,9 +8,14 @@ import {
   generateFirstPublicationPackageMetadataDerivedRelease,
 } from
   "../lib/first-publication-package-metadata-derived-release.mjs";
+import { generateFirstPublicationPackageMetadataPostApplyRelease } from
+  "../lib/first-publication-package-metadata-post-apply-release.mjs";
 import { canonicalDigest, releaseArtifactDigest } from
   "../lib/release-artifact-manifest.mjs";
-import { createMetadataApplyFixture } from "./fixtures/first-publication-metadata-apply.mjs";
+import {
+  applyMetadataFixture,
+  createMetadataApplyFixture,
+} from "./fixtures/first-publication-metadata-apply.mjs";
 
 describe("first-publication package metadata derived release", () => {
   it("uses the production release generator without changing repository sources", async () => {
@@ -27,6 +32,22 @@ describe("first-publication package metadata derived release", () => {
         fixture.derivedRelease.outputBytes.releaseManifest);
       assert.deepEqual(generated.outputBytes.releaseSbom,
         fixture.derivedRelease.outputBytes.releaseSbom);
+      assert.deepEqual(await readFile(fixture.paths.packageManifestPath), before);
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  it("reproduces an applied release manifest with the production generator", async () => {
+    const fixture = await createMetadataApplyFixture();
+    try {
+      await applyMetadataFixture(fixture);
+      const before = await readFile(fixture.paths.packageManifestPath);
+      const generated = await generateFirstPublicationPackageMetadataPostApplyRelease({
+        packageManifest: fixture.derivedRelease.packageManifest,
+        releaseManifest: fixture.derivedRelease.releaseManifest,
+      });
+      assert.deepEqual(generated, fixture.derivedRelease.releaseManifest);
       assert.deepEqual(await readFile(fixture.paths.packageManifestPath), before);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });

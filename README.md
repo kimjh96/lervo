@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction과 arming 비활성 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증과 arming 비활성 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -128,6 +128,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 package metadata patch 후보 ADR](./docs/adr/0106-cli-first-publication-package-metadata-candidate.md)
 - [CLI 최초 공개 게시 package metadata 적용 허가 ADR](./docs/adr/0107-cli-first-publication-package-metadata-apply-permit.md)
 - [CLI 최초 공개 게시 package metadata 적용 transaction ADR](./docs/adr/0108-cli-first-publication-package-metadata-apply-transaction.md)
+- [CLI 최초 공개 게시 package metadata 사후 검증 ADR](./docs/adr/0109-cli-first-publication-package-metadata-post-apply-verification.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -284,6 +285,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `pnpm release:bootstrap:metadata-permit`은 같은 metadata 인자와 검토한 candidate·source·output digest, `--confirm-reviewed-candidate`를 모두 요구합니다. 현재 원본에서 후보와 결과를 다시 계산해 모두 같을 때만 `apply_permitted` JSON을 stdout에 만들며, 이는 source compare-and-swap 조건의 로컬 package metadata 권한입니다. 사람의 검토 진술을 독립적인 검토 증명으로 과장하지 않고 이 명령 자체는 어떤 파일도 바꾸지 않습니다. 자세한 인자는 [ADR-0107](./docs/adr/0107-cli-first-publication-package-metadata-apply-permit.md)에 있습니다.
 
 검토한 permit 파일이 있을 때만 `pnpm release:bootstrap:metadata-apply --permit <absolute-path> --write [--json]`로 package manifest, production generator의 release manifest와 새 SBOM을 함께 적용합니다. 모든 결과를 먼저 만들고 source compare-and-swap 뒤 staged replace하며 동기 실패는 세 파일을 모두 복구합니다. 프로세스가 중단되면 새 apply를 막고 `pnpm release:bootstrap:metadata-apply --recover`로 pre-commit 원본 복원 또는 committed cleanup을 명시적으로 완료합니다. 이는 전원 손실 순간까지 세 경로가 동시에 바뀌는 완전한 filesystem 원자성을 주장하지 않으며 실제 현재 metadata에는 아직 실행하지 않았습니다.
+
+저장한 apply receipt가 있으면 `pnpm release:bootstrap:metadata-verify --receipt <absolute-path> [--json]`로 현재 package manifest·release manifest·SBOM·lockfile을 다시 읽습니다. 현재 세 결과가 receipt의 after binding과 같은지, production generator로 다시 만든 release manifest 및 SBOM이 일관적인지, 로컬 metadata 차단 항목이 해소됐는지 확인합니다. Pending transaction이 있으면 source를 읽기 전에 막고 검증 중 생긴 transaction도 반환 전에 다시 막습니다. Receipt의 서명이나 발급 주체, license 승인·public npm 이름·scope control·최초 게시 승인은 증명하지 않으며 파일 수정·온라인 관측·활성화·게시를 실행하지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

@@ -1,5 +1,3 @@
-import { resolve } from "node:path";
-
 import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from
   "./cli-first-publication-package-metadata-candidate.mjs";
 import {
@@ -25,12 +23,11 @@ import {
   validateFirstPublicationPackageMetadataApplyReceipt,
 } from "./first-publication-package-metadata-apply-transaction.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import { repositoryRoot } from "./installed-cli.mjs";
+import { firstPublicationPackageMetadataTransactionRoot } from
+  "./first-publication-package-metadata-transaction-state.mjs";
 
-export const firstPublicationPackageMetadataTransactionRoot = resolve(
-  repositoryRoot,
-  "apps/cli/.lervo-metadata-apply-transaction",
-);
+export { firstPublicationPackageMetadataTransactionRoot } from
+  "./first-publication-package-metadata-transaction-state.mjs";
 
 function decisionFromPermit(permit) {
   return createFirstPublicationMetadataDecision({

@@ -57,6 +57,8 @@ Package metadata apply permit은 candidate 생성·검증 경계를 재사용하
 
 Package metadata apply transaction은 source reader, production release generator override, derived release 검증, canonical plan·receipt, staged writer와 journal recovery로 나뉩니다. Package·release manifest·SBOM 결과를 모두 사전 생성하고 metadata 외 release section 불변을 검사한 뒤에만 writer를 엽니다. Writer는 세 target과 read-only permit·lockfile을 compare-and-swap하고 mode를 보존합니다. 동기 실패는 역순 rollback하고 프로세스 중단은 fixed journal과 명시적 recovery로 처분합니다. 일반 filesystem의 다중 경로 완전 원자성을 주장하지 않으며 journal이 남은 동안 새 apply를 fail-closed합니다.
 
+Package metadata post-apply verification은 독립 receipt reader, 공통 bounded source snapshot, 읽기 전용 transaction inspector, production release 재생성 adapter와 순수 report 정책으로 나뉩니다. Inspector는 transaction directory를 만들거나 정리하지 않고 시작·종료에 모두 `clear`인지 확인합니다. Report는 현재 세 output bytes를 receipt의 after binding에 대조하고, package manifest override로 production release manifest를 다시 만든 뒤 현재 SBOM을 같은 lockfile에 검증합니다. 로컬 metadata check가 모두 ready여도 activation은 구현되지 않은 상태이며 receipt 발급 진위와 license 승인·public npm 이름·scope control·최초 게시 승인은 외부 evidence로 남깁니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

@@ -16,8 +16,12 @@ import {
   createFirstPublicationPackageMetadataDerivedRelease,
   parseFirstPublicationPackageMetadataLockfile,
 } from "../../lib/first-publication-package-metadata-derived-release.mjs";
-import { createFirstPublicationPackageMetadataApplyPlan } from
-  "../../lib/first-publication-package-metadata-apply-transaction.mjs";
+import {
+  createFirstPublicationPackageMetadataApplyPlan,
+  createFirstPublicationPackageMetadataApplyReceipt,
+} from "../../lib/first-publication-package-metadata-apply-transaction.mjs";
+import { applyFirstPublicationPackageMetadataFiles } from
+  "../../lib/first-publication-package-metadata-apply-filesystem.mjs";
 import { releaseArtifactDigest } from "../../lib/release-artifact-manifest.mjs";
 import {
   activationRepository,
@@ -137,4 +141,12 @@ export function applyFilesystemInput(fixture) {
       binding: { before: binding },
     })),
   };
+}
+
+export async function applyMetadataFixture(fixture) {
+  await applyFirstPublicationPackageMetadataFiles(applyFilesystemInput(fixture));
+  const receipt = createFirstPublicationPackageMetadataApplyReceipt(fixture.planResult.plan);
+  const receiptPath = resolve(fixture.root, "apply-receipt.json");
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+  return { receipt, receiptPath };
 }

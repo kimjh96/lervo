@@ -1175,4 +1175,6 @@ CLI first-publication package metadata apply permit을 완료했습니다. 사�
 
 CLI first-publication package metadata apply transaction을 완료했습니다. Permit·candidate를 current source에서 다시 검증하고 production generator로 release manifest와 SBOM을 사전 생성합니다. 세 target과 permit·lockfile compare-and-swap, mode-preserving staged replace, 7개 checkpoint의 all-file rollback과 pre-commit·committed interruption recovery를 구현했습니다. 일반 filesystem의 완전한 다중 경로 원자성을 과장하지 않으며 실제 current metadata에는 적용하지 않았습니다. 결정은 [ADR-0108](./docs/adr/0108-cli-first-publication-package-metadata-apply-transaction.md)에 기록했습니다.
 
-다음 구현 작업은 transaction 결과 원본을 다시 읽어 local blocker 해소와 release 원본 일관성을 확인하되 license 승인·public package 이름·npm scope control을 계속 별도 required로 남기는 **CLI first-publication metadata post-apply verification**입니다.
+CLI first-publication package metadata post-apply verification을 완료했습니다. 독립 receipt 검증, 시작·종료의 읽기 전용 pending transaction 확인, current output의 after binding 대조, production release manifest 재생성과 SBOM 검증으로 로컬 결과 일관성을 확인합니다. Local metadata check가 모두 ready여도 receipt 진위와 license 승인·public package 이름·npm scope control·최초 게시 승인은 별도 required이며 파일·외부 상태·activation·게시를 바꾸지 않습니다. 결정은 [ADR-0109](./docs/adr/0109-cli-first-publication-package-metadata-post-apply-verification.md)에 기록했습니다.
+
+다음 구현 작업은 post-apply report와 license decision, public package availability 관측, npm scope control 확인과 first-publication approval을 서로 다른 원본으로 검증·결속하되 아직 activation을 열지 않는 **CLI first-publication external requirement evidence report**입니다.

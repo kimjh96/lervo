@@ -4,6 +4,11 @@ import { validateFirstPublicationPackageMetadataApplyPermit } from
 import { canonicalDigest, canonicalJson, sha256 } from
   "./release-artifact-manifest.mjs";
 
+export {
+  createFirstPublicationPackageMetadataApplyReceipt,
+  validateFirstPublicationPackageMetadataApplyReceipt,
+} from "./first-publication-package-metadata-apply-receipt.mjs";
+
 const relativePaths = Object.freeze({
   packageManifest: "apps/cli/package.json",
   releaseManifest: "apps/cli/release-artifact-manifest.json",
@@ -123,41 +128,4 @@ export function validateFirstPublicationPackageMetadataApplyPlan(result, input) 
     )
   ) fail();
   return result;
-}
-
-export function createFirstPublicationPackageMetadataApplyReceipt(plan) {
-  const body = {
-    schemaVersion: 1,
-    status: "applied",
-    transactionType: plan.transactionType,
-    planDigest: plan.planDigest,
-    permitDigest: plan.permitDigest,
-    candidateDigest: plan.candidateDigest,
-    files: structuredClone(plan.files),
-    transaction: {
-      journal: "removed",
-      rollback: "not_required",
-      recovery: "not_required",
-    },
-    effects: {
-      packageMetadata: "changed",
-      releaseManifest: "regenerated",
-      releaseSbom: "regenerated",
-      approval: "not_changed",
-      activation: "not_changed",
-      publication: "not_attempted",
-    },
-  };
-  return { ...body, receiptDigest: canonicalDigest(body) };
-}
-
-export function validateFirstPublicationPackageMetadataApplyReceipt(receipt, plan) {
-  let expected;
-  try {
-    expected = createFirstPublicationPackageMetadataApplyReceipt(plan);
-  } catch {
-    fail();
-  }
-  if (canonicalJson(receipt) !== canonicalJson(expected)) fail();
-  return receipt;
 }
