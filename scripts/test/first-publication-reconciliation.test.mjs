@@ -6,6 +6,10 @@ import {
   createFirstPublicationReconciliationReport,
   validateFirstPublicationReconciliationReport,
 } from "../lib/first-publication-reconciliation.mjs";
+import {
+  validateFirstPublicationReconciliationReportDocument,
+  validateFirstPublicationReconciliationReportSources,
+} from "../lib/first-publication-reconciliation-reader.mjs";
 import { createFirstPublicationReservation } from
   "../lib/first-publication-reservation.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
@@ -63,6 +67,8 @@ describe("first-publication unknown outcome reconciliation", () => {
     assert.ok(report.limitations.includes("no_automatic_retry_authority"));
     assert.ok(report.limitations.includes("does_not_complete_transition"));
     validateFirstPublicationReconciliationReport(report, input);
+    validateFirstPublicationReconciliationReportDocument(report);
+    validateFirstPublicationReconciliationReportSources(report, input);
   });
 
   it("distinguishes a version and target tag that are both not observed", () => {
@@ -76,6 +82,7 @@ describe("first-publication unknown outcome reconciliation", () => {
       "not_observed", "not_observed",
     ]);
     assert.equal(report.disposition.terminal, "unchanged");
+    validateFirstPublicationReconciliationReportDocument(report);
   });
 
   it.each([
@@ -111,6 +118,7 @@ describe("first-publication unknown outcome reconciliation", () => {
     assert.deepEqual(report.checks.flatMap(({ reasons }) => reasons), [
       "registry_unavailable", "registry_unavailable",
     ]);
+    validateFirstPublicationReconciliationReportDocument(report);
   });
 
   it("requires the exact unknown terminal and an observation after reservation", () => {

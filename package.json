@@ -26,6 +26,7 @@
     "release:bootstrap:authorize": "node scripts/authorize-cli-first-publication-bootstrap.mjs",
     "release:bootstrap:preflight": "node scripts/check-cli-first-publication-preflight.mjs",
     "release:bootstrap:reconcile": "node scripts/check-cli-first-publication-reconciliation.mjs",
+    "release:bootstrap:resolve": "node scripts/resolve-cli-first-publication-reconciliation.mjs",
     "release:bootstrap:plan": "node scripts/show-cli-first-publication-execution-plan.mjs",
     "release:bootstrap:arm": "node scripts/authorize-cli-first-publication-arming.mjs",
     "release:bootstrap:blockers": "node scripts/show-cli-first-publication-activation-blockers.mjs",

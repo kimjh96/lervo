@@ -43,6 +43,8 @@ flowchart LR
 
 최초 게시 reconciliation은 실행과 분리된 읽기 경계입니다. Source reader가 exact bootstrap·arming·publication authorization과 immutable `publication_unknown` terminal을 다시 결속하고, 익명 npm observer는 대상 version metadata와 dist-tag 응답만 각각 256 KiB로 제한해 정규화합니다. 순수 정책은 두 관측이 exact release와 모두 일치할 때만 `published`, 둘 다 미관측이면 `not_observed`, 나머지는 `unknown`으로 판정합니다. 조정기는 관측 전후 계약 bytes와 저장 snapshot을 대조하며 저장 adapter의 `inspect`는 누락 root를 만들지 않습니다. 보고서는 stdout에만 있고 어떤 결과도 terminal 변경·자동 재시도·전환 완료 권한이 아닙니다.
 
+Reconciliation resolution은 report reader, 사람 decision 정책, resolution 계약, source snapshot과 online 조정기를 다시 분리합니다. Reader는 serialized report의 schema·digest·허용된 check 조합과 현재 unknown 원본 결속을 확인하되 report만으로 외부 사실을 승격하지 않습니다. 조정기는 public npm을 새로 관측해 두 번째 `published` report를 만들고 report 관측부터 최대 10분인 exact 사람 decision을 확인한 뒤 새 output만 `wx`로 씁니다. Resolution은 `transition_review_eligible`까지만 표현하고 execution receipt·transition completion·retry 권한을 명시적으로 부정하며 기존 reservation directory에는 쓰지 않습니다.
+
 최초 게시의 읽기 전용 preflight inspector는 bootstrap·artifact·public package·예약·npm 준비 관측을 별도 report로 조합하며 예약 root나 실행 상태를 만들지 않습니다. Report reader는 원래 관측값으로 결과를 재계산하고 `ready`를 실행 permit로 취급하지 않습니다. 대화형 npm adapter와 report는 TTY·client·2FA 판정을 같은 순수 정책으로 공유하고, 실제 adapter만 사람 확인과 publish를 소유합니다.
 
 Preflight command adapter는 절대 입력 경로와 명시적 online 경계를 확인한 뒤 inspector에 읽기 port만 조립합니다. npm profile 조회는 임시 cache·빈 global config와 명시된 user config에서 실행하고 임시 상태를 제거합니다. 입력 파일 snapshot은 외부 관측 뒤 다시 대조하며 사람용 formatter와 JSON 직렬화는 관측·정책에서 분리합니다.

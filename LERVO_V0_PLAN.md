@@ -976,6 +976,21 @@ CLI first-publication 불명확한 결과 대조 완료 조건:
 - Human·JSON이 같은 canonical report를 stdout에만 반환함
 - 새 runtime event·project 상태·telemetry를 만들지 않음
 
+CLI first-publication reconciliation resolution 완료 조건:
+
+- Serialized reconciliation report의 schema·digest·허용된 check 조합과 현재 source binding을 재검증함
+- Reviewed report와 fresh public npm 관측이 모두 exact `published`일 때만 resolution을 만듦
+- 사람 decision이 exact report·bootstrap·reservation·unknown terminal을 고정함
+- Decision 전체 수명을 reviewed report 관측부터 최대 10분으로 제한함
+- Actor 원문을 resolution에 복사하지 않음
+- `transition_review_eligible`을 execution receipt나 transition completion으로 표현하지 않음
+- `retry=forbidden`과 immutable `publication_unknown` terminal을 그대로 보존함
+- 후속 전환에서 public release·workflow·npm trust·GitHub environment fresh 확인을 요구함
+- Report·decision·계약·저장 snapshot을 online 재관측 전후 대조함
+- 새 절대 output만 `wx`로 만들고 reservation directory·외부 설정을 바꾸지 않음
+- 권한 상향을 넣고 redigest한 resolution을 self-contained reader가 거부함
+- 새 runtime event·project 상태·telemetry를 만들지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1200,4 +1215,6 @@ CLI first-publication arming authorization boundary를 완료했습니다. Canon
 
 CLI first-publication unknown outcome reconciliation report를 완료했습니다. Exact reservation v2와 immutable `publication_unknown` terminal을 원본으로 두고, public npm의 대상 version integrity·shasum과 dist-tag를 bounded anonymous observer로 읽습니다. 두 관측이 exact release와 모두 일치할 때만 `published`, 둘 다 보이지 않을 때 `not_observed`, 부분 일치·digest 불일치·registry 실패는 `unknown`으로 남깁니다. Contract와 저장 snapshot은 관측 전후 다시 확인하며 stdout report 외 파일·예약·terminal·게시·외부 설정을 바꾸지 않습니다. 어느 결과도 자동 재시도나 전환 완료 권한이 아닙니다. 결정은 [ADR-0113](./docs/adr/0113-cli-first-publication-unknown-outcome-reconciliation.md)에 기록했습니다.
 
-다음 구현 작업은 `published` reconciliation report를 execution receipt로 가장하거나 기존 terminal을 덮어쓰지 않고, 별도 immutable 문서에서 사람 검토와 exact report를 결속해 후속 전환 가능 여부를 결정하는 **CLI first-publication reconciliation resolution boundary**입니다.
+CLI first-publication reconciliation resolution boundary를 완료했습니다. Serialized report를 현재 unknown 원본에 다시 결속하고 fresh public npm 관측도 exact `published`일 때만, report 관측부터 최대 10분인 사람 decision과 함께 별도 immutable resolution을 만듭니다. 결과는 `transition_review_eligible`이지만 execution receipt·2FA proof를 복구하거나 transition completion·retry를 허가하지 않습니다. 기존 reservation·terminal은 바꾸지 않고 새 절대 output만 `wx`로 만듭니다. 결정은 [ADR-0114](./docs/adr/0114-cli-first-publication-reconciliation-resolution.md)에 기록했습니다.
+
+다음 구현 작업은 정상 execution receipt와 reconciliation resolution을 서로 다른 증거 유형으로 유지하면서, 둘 중 어느 경로에서도 stage-only workflow·npm trust·GitHub environment와 exact public release를 fresh 확인한 뒤 같은 완료 의미로 수렴하는 **CLI first-publication transition evidence union**입니다.
