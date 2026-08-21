@@ -54,6 +54,12 @@ importers:
       '@lervo/context':
         specifier: workspace:*
         version: link:../../packages/context
+      '@lervo/conversation-control':
+        specifier: workspace:*
+        version: link:../../packages/conversation-control
+      '@lervo/conversation-deliberation-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/conversation-deliberation-sqlite
       '@lervo/core':
         specifier: workspace:*
         version: link:../../packages/core

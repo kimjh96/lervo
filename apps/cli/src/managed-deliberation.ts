@@ -34,7 +34,11 @@ import {
   ManagedDeliberationRunner,
   type ManagedDeliberationRunnerDependencies,
 } from "./managed-deliberation-runner.js";
+import { ManagedDeliberationError } from "./managed-deliberation-errors.js";
+import { executeManagedDeliberationLifecycle } from "./managed-deliberation-lifecycle.js";
 import type { RunProvider } from "./managed-run.js";
+
+export { ManagedDeliberationError } from "./managed-deliberation-errors.js";
 
 interface ManagedDeliberationRequestBase {
   repositoryRoot: string;
@@ -96,6 +100,16 @@ export type ExecuteManagedDeliberation = (
   request: ManagedDeliberationRequest,
 ) => Promise<ManagedDeliberationOutcome>;
 
+export interface AssignedManagedDeliberationRequest {
+  deliberationId: string;
+  expectedProjectId: string;
+  request: StartManagedDeliberationRequest;
+}
+
+export type ExecuteAssignedManagedDeliberation = (
+  assignment: AssignedManagedDeliberationRequest,
+) => Promise<ManagedDeliberationOutcome>;
+
 export interface ManagedDeliberationDependencies {
   openStorage(root: string): Promise<ProjectStorage>;
   createId(prefix: string): string;
@@ -109,17 +123,6 @@ const defaultDependencies: ManagedDeliberationDependencies = {
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
 };
-
-export class ManagedDeliberationError extends Error {
-  constructor(
-    readonly code: "deliberation_cleanup_failed" | "deliberation_request_invalid",
-    message: string,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = "ManagedDeliberationError";
-  }
-}
 
 export class DeliberationProcessInterruptedError extends Error {
   constructor(message = "숙의 process가 승인 checkpoint 뒤에 중단되었습니다.") {
@@ -185,40 +188,38 @@ async function resolveExecutionPlan(
 
 export function createManagedDeliberationExecutor(
   dependencies: ManagedDeliberationDependencies = defaultDependencies,
-) {
-  return async (request: ManagedDeliberationRequest): Promise<ManagedDeliberationOutcome> => {
+): ExecuteManagedDeliberation {
+  return async (request) => {
     assertRequest(request);
-    let storage: ProjectStorage | undefined;
-    let executionFailure: unknown;
-    let result: ManagedDeliberationOutcome | undefined;
-    try {
-      storage = await dependencies.openStorage(request.repositoryRoot);
-      result = await executeWithStorage(request, storage, dependencies);
-    } catch (error) {
-      executionFailure = error;
-    }
-    let cleanupFailure: unknown;
-    if (storage !== undefined) {
-      try {
-        await storage.close();
-      } catch (error) {
-        cleanupFailure = error;
-      }
-    }
-    if (cleanupFailure !== undefined) {
+    return executeManagedDeliberationLifecycle({
+      request,
+      dependencies,
+      executeWithStorage,
+    });
+  };
+}
+
+export function createAssignedManagedDeliberationExecutor(
+  dependencies: ManagedDeliberationDependencies = defaultDependencies,
+): ExecuteAssignedManagedDeliberation {
+  return async (assignment) => {
+    if (
+      !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(assignment.deliberationId) ||
+      !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(assignment.expectedProjectId)
+    ) {
       throw new ManagedDeliberationError(
-        "deliberation_cleanup_failed",
-        executionFailure === undefined
-          ? "숙의 뒤 project storage를 닫지 못했습니다."
-          : "숙의 실패 뒤 project storage도 닫지 못했습니다.",
-        { cause: executionFailure === undefined
-          ? cleanupFailure
-          : new AggregateError([executionFailure, cleanupFailure]) },
+        "deliberation_request_invalid",
+        "할당된 숙의 ID가 유효하지 않습니다.",
       );
     }
-    if (executionFailure !== undefined) throw executionFailure;
-    if (result === undefined) throw new Error("숙의 결과가 없습니다.");
-    return result;
+    assertRequest(assignment.request);
+    return executeManagedDeliberationLifecycle({
+      request: assignment.request,
+      dependencies,
+      assignedDeliberationId: assignment.deliberationId,
+      expectedProjectId: assignment.expectedProjectId,
+      executeWithStorage,
+    });
   };
 }
 
@@ -226,14 +227,21 @@ async function executeWithStorage(
   request: ManagedDeliberationRequest,
   storage: ProjectStorage,
   dependencies: ManagedDeliberationDependencies,
+  assignedDeliberationId?: string,
 ): Promise<ManagedDeliberationOutcome> {
   if ("resumeDeliberationId" in request) {
+    if (assignedDeliberationId !== undefined) {
+      throw new ManagedDeliberationError(
+        "deliberation_request_invalid",
+        "재개 요청에는 새 숙의 ID를 할당할 수 없습니다.",
+      );
+    }
     return resumeManagedDeliberationWithStorage(request, storage, dependencies);
   }
   const plan = await resolveExecutionPlan(request, storage);
   const policy = plan.policy;
   const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
-  const deliberationId = dependencies.createId("dlb");
+  const deliberationId = assignedDeliberationId ?? dependencies.createId("dlb");
   const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
   const workspace = await DeliberationWorkspace.create({
     repositoryRoot: storage.paths.repositoryRoot,

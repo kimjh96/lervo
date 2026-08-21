@@ -8,6 +8,11 @@ import {
   type ProviderManagedWriteBridge,
 } from "@lervo/adapter-contract";
 import { defaultKoreanWritingContract } from "@lervo/core";
+import {
+  QueuedConversationDeliberationBackend,
+  runConversationDeliberationWorkerCycle,
+} from "@lervo/conversation-control";
+import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import type {
@@ -25,9 +30,11 @@ import type {
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  createAssignedManagedDeliberationExecutor,
   createManagedDeliberationExecutor,
   DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
+import { createManagedConversationDeliberationExecutionAdapter } from "../src/conversation-deliberation-executor.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
 import { runCli } from "../src/main.js";
@@ -564,7 +571,7 @@ describe("managed CLI deliberation", () => {
     };
     const nextId = sequence();
     const now = clock();
-    const executor = createManagedDeliberationExecutor({
+    const executor = createAssignedManagedDeliberationExecutor({
       openStorage: openProjectStorage,
       createId: nextId,
       now,
@@ -581,20 +588,34 @@ describe("managed CLI deliberation", () => {
       },
     });
 
-    const result = await executor({
-      repositoryRoot: root,
+    const adapter = createManagedConversationDeliberationExecutionAdapter({
+      projects: [{ projectId: "prj_cli_deliberation", repositoryRoot: root }],
+      executeAssigned: executor,
+    });
+    const queue = await SQLiteConversationDeliberationJobStore.open({
+      path: resolve(root, ".lervo/state/conversation-deliberations.sqlite"),
+    });
+    const backend = new QueuedConversationDeliberationBackend(queue);
+    const started = await backend.start({
+      projectId: "prj_cli_deliberation",
+      principalId: "operator:reviewer",
+      sourceEventId: `cve_${"a".repeat(64)}`,
       policyId: "deliberation_product-review",
       topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+      requestedAt: "2026-08-21T00:00:00.000Z",
     });
+    const cycle = await runConversationDeliberationWorkerCycle({
+      store: queue,
+      executor: adapter,
+      workerId: "managed-conversation-worker",
+      now,
+    });
+    if (cycle.status !== "settled") throw new Error("대화 숙의 queue가 종료되지 않았습니다.");
+    const result = cycle.summary;
 
+    expect(result.deliberationId).toBe(started.deliberationId);
     expect(result.status).toBe("converged");
     expect(result.artifactCount).toBe(5);
-    expect(result.participants.map((participant) => participant.roleId)).toEqual([
-      "product-planner",
-      "maintainability-reviewer",
-      "evidence-reviewer",
-      "project-verifier",
-    ]);
     expect(queues).toEqual({ codex: [], claude: [] });
     const storage = await openProjectStorage(root);
     const events = storage.events.list({ limit: 1000 });
@@ -604,10 +625,78 @@ describe("managed CLI deliberation", () => {
     const sessions = events
       .filter((event) => event.type === "adapter.started")
       .map((event) => event.payload.providerSessionId);
+    expect(new Set(events.flatMap((event) => event.type === "run.requested" &&
+      event.payload.role !== "deliberation-writing-evaluator"
+      ? [event.payload.role]
+      : []))).toEqual(new Set([
+      "product-planner",
+      "maintainability-reviewer",
+      "evidence-reviewer",
+      "project-verifier",
+    ]));
     expect(sessions).toHaveLength(10);
     expect(new Set(sessions).size).toBe(10);
     expect(storage.events.verifyIntegrity().valid).toBe(true);
     await storage.close();
+    await expect(backend.start({
+      projectId: "prj_cli_deliberation",
+      principalId: "operator:reviewer",
+      sourceEventId: `cve_${"a".repeat(64)}`,
+      policyId: "deliberation_product-review",
+      topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+      requestedAt: "2026-08-21T00:00:00.000Z",
+    })).resolves.toMatchObject({
+      deliberationId: started.deliberationId,
+      status: "converged",
+    });
+    queue.close();
+    const replacementQueue = await SQLiteConversationDeliberationJobStore.open({
+      path: resolve(root, ".lervo/state/replacement-conversation-deliberations.sqlite"),
+    });
+    const replacementBackend = new QueuedConversationDeliberationBackend(replacementQueue);
+    const replacement = await replacementBackend.start({
+      projectId: "prj_cli_deliberation",
+      principalId: "operator:reviewer",
+      sourceEventId: `cve_${"a".repeat(64)}`,
+      policyId: "deliberation_product-review",
+      topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+      requestedAt: "2026-08-21T00:00:00.000Z",
+    });
+    expect(replacement.deliberationId).toBe(started.deliberationId);
+    await expect(runConversationDeliberationWorkerCycle({
+      store: replacementQueue,
+      executor: adapter,
+      workerId: "replacement-managed-worker",
+      now,
+    })).resolves.toMatchObject({
+      status: "uncertain",
+      deliberationId: started.deliberationId,
+    });
+    replacementQueue.close();
+    const unchanged = await openProjectStorage(root);
+    expect(unchanged.events.list({ limit: 1000 })
+      .filter((event) => event.type === "deliberation.started")).toHaveLength(1);
+    expect(unchanged.events.verifyIntegrity().valid).toBe(true);
+    await unchanged.close();
+    const mismatchedProject = createManagedConversationDeliberationExecutionAdapter({
+      projects: [{ projectId: "prj_wrongproject1", repositoryRoot: root }],
+      executeAssigned: executor,
+    });
+    await expect(mismatchedProject.execute({
+      projectId: "prj_wrongproject1",
+      sourceEventId: `cve_${"d".repeat(64)}`,
+      deliberationId: `dlb_${"e".repeat(32)}`,
+      requestHash: `sha256:${"f".repeat(64)}`,
+      principalHash: `sha256:${"1".repeat(64)}`,
+      policyId: "deliberation_product-review",
+      topic: "잘못 연결된 저장소에서는 provider를 시작하지 않습니다.",
+      requestedAt: "2026-08-21T00:11:00.000Z",
+      state: "leased",
+      attemptCount: 1,
+      leaseExpiresAt: "2026-08-21T00:16:00.000Z",
+      summary: null,
+      failureCode: null,
+    })).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
   });
 
   it("stops as no_consensus after the second blocking review", async () => {

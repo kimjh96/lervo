@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 사용자용 Codex·Claude 교차 숙의 CLI와 플랫폼 중립 대화 runtime·durable 숙의 queue·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·최초 게시 완료 기록 점검 경계 완료 (2026-08-22)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 사용자용 Codex·Claude 교차 숙의 CLI와 플랫폼 중립 대화 runtime·durable 숙의 queue와 managed 실행 연결·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·최초 게시 완료 기록 점검 경계 완료 (2026-08-22)
 
 ## 목표
 
@@ -158,6 +158,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [플랫폼 중립 대화 숙의 제어 ADR](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)
 - [숙의 실행 lease와 ID 기반 진단 ADR](./docs/adr/0137-deliberation-liveness-and-diagnostics.md)
 - [대화 숙의 durable queue와 fail-closed worker ADR](./docs/adr/0138-durable-conversation-deliberation-queue.md)
+- [대화 queue와 managed 숙의 실행 결속 ADR](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -217,7 +218,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과와 저장소 독립 trace capability report를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
-- `@lervo/cli`: `lervo --version`, 안전한 `lervo init`, 한 파일 managed 실행인 `lervo run`, 서로 다른 Codex·Claude 역할을 연결하고 승인 경계에서 안전하게 재개하는 `lervo deliberate` 명령 진입점. 숙의는 역할별 독립 session, 공개된 shared context의 역할별 E2/E3, writing 검사와 실제 project verification을 거쳐야 수렴함. 개발 시 workspace 경계를 유지하고 배포 시 내부 package와 Ajv·YAML을 `dist/bin.js` 하나로 묶음
+- `@lervo/cli`: `lervo --version`, 안전한 `lervo init`, 한 파일 managed 실행인 `lervo run`, 서로 다른 Codex·Claude 역할을 연결하고 승인 경계에서 안전하게 재개하는 `lervo deliberate` 명령 진입점. 내부 대화 adapter는 queue가 할당한 숙의 ID와 기대 project를 기존 managed 실행기에 결속하지만 CLI 사용자가 ID를 지정할 수는 없음. 숙의는 역할별 독립 session, 공개된 shared context의 역할별 E2/E3, writing 검사와 실제 project verification을 거쳐야 수렴함. 개발 시 workspace 경계를 유지하고 배포 시 내부 package와 Ajv·YAML을 `dist/bin.js` 하나로 묶음
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest·SBOM과 로컬 unsigned statement, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
 
 M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Ed25519 원격 command는 durable Hub queue, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Hub·Node 재시작과 acknowledgement 유실 뒤에도 저장된 receipt로 복구하며 executor를 다시 호출하지 않습니다. 이 reconnect 검증은 인증된 transport port를 사용한 로컬 fixture이고 실제 command HTTP/TLS endpoint는 아닙니다.

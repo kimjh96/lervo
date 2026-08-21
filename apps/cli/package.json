@@ -37,6 +37,8 @@
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
     "@lervo/context": "workspace:*",
+    "@lervo/conversation-control": "workspace:*",
+    "@lervo/conversation-deliberation-sqlite": "workspace:*",
     "@lervo/core": "workspace:*",
     "@lervo/deliberation": "workspace:*",
     "@lervo/deliberation-runtime": "workspace:*",

@@ -344,6 +344,7 @@ fixtures/
 9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1`·managed context 추천·검토된 반복 평가 첫 슬라이스 완료, 도입 판단 보류
 10. 조직 단위 비용·품질·가드레일 분석
 11. 대화 숙의 durable queue와 fail-closed worker — 완료
+12. Queue 할당 ID와 실제 managed 다중 역할 숙의 실행 결속 — 완료
 
 Conversation 첫 슬라이스 완료 조건:
 
@@ -382,6 +383,9 @@ Hub command/approval 대화 UX 완료 조건:
 - 실행 중 process 종료나 executor 예외처럼 외부 효과를 증명할 수 없는 job은 `unknown`으로 남고 자동 재실행되지 않음
 - Queue가 provider, CLI와 platform transport를 알지 않고 배포가 공급자 중립 실행 port를 주입함
 - Queue 예약·lease·요약을 전역 숙의 event, 완료 증거 또는 `selected`, `loaded`, `injected`, `used`로 승격하지 않음
+- Queue 할당 ID는 일반 CLI 입력과 분리된 내부 실행 경계에서만 사용하고 실제 workspace·숙의 event ID와 일치함
+- Queue project와 repository manifest를 provider 시작 전에 대조하며 불일치하면 실행 원본을 만들지 않음
+- Managed 결과에서 숙의 ID·상태·산출물 수만 queue로 반환하고 최종 본문이나 provider 결과를 복제하지 않음
 
 전문 역할 계약 완료 조건:
 
@@ -1567,5 +1571,7 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 숙의 실행 lease와 ID 기반 진단을 완료했습니다. 승인 checkpoint부터 종료까지 process lease가 동시 재개를 차단하고 죽은 process의 lease만 경쟁 없이 인계합니다. `deliberate status`, `trace --deliberation`, `doctor --deliberation`은 event·checkpoint·lease를 읽어 활성 실행, 승인 뒤 중단 후보, 완료와 증명할 수 없는 승인 전 불완전 상태를 구분합니다. 대화 상태 backend도 같은 구분을 반환해야 하며 `unknown`을 완료나 중단으로 추정하지 않습니다. 결정은 [ADR-0137](./docs/adr/0137-deliberation-liveness-and-diagnostics.md)에 기록했습니다.
 
 대화 숙의 durable queue를 완료했습니다. `(projectId, sourceEventId)`를 멱등 키로 쓰는 결정적 숙의 ID와 owner-only SQLite job을 추가하고, conversation app이 platform adapter와 분리된 queue control·한 cycle worker를 조합합니다. 실행 결과 저장 전 외부 효과를 확인할 수 없게 되면 lease를 재사용하지 않고 `uncertain`·대화 `unknown`으로 닫습니다. Principal 원문과 provider 오류는 저장하지 않으며 실행기는 공급자 중립 port로 주입합니다. 결정은 [ADR-0138](./docs/adr/0138-durable-conversation-deliberation-queue.md)에 기록했습니다.
+
+대화 queue와 실제 managed 숙의 실행 결속을 완료했습니다. 내부 assigned executor만 queue의 결정적 숙의 ID와 기대 project를 받고, project binding adapter가 실제 repository manifest를 provider 시작 전에 대조합니다. 같은 ID가 workspace와 숙의 event에 사용되며 성공 뒤에는 상태와 산출물 수만 queue 요약으로 돌아갑니다. 일반 CLI에서 ID를 지정하는 경로와 최종 본문 복제는 추가하지 않았습니다. 결정은 [ADR-0139](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)에 기록했습니다.
 
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

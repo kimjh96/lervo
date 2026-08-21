@@ -1377,6 +1377,10 @@ Start backend는 canonical source event ID를 함께 받고 `(projectId, sourceE
 
 실제 숙의 실행은 `ConversationDeliberationExecutionPort` 뒤에 있고 queue, SQLite와 platform adapter는 Codex·Claude 또는 CLI 구현을 import하지 않습니다. `apps/conversation`은 binding, 실행 port와 worker ID가 주어졌을 때만 queue control을 열고 호출자가 scheduler에서 한 cycle씩 실행하게 합니다. Queue 예약·lease·결과 요약은 새 전역 event가 아니며 `selected`, `loaded`, `injected`, `used` 중 어떤 상태도 만들지 않습니다. 결정은 [ADR-0138](./docs/adr/0138-durable-conversation-deliberation-queue.md)에 기록합니다.
 
+CLI managed 숙의 연결은 일반 `ExecuteManagedDeliberation`과 별도인 `ExecuteAssignedManagedDeliberation`만 queue 할당 ID를 받습니다. 할당 요청의 필수 필드는 신뢰된 `deliberationId`, `expectedProjectId`와 저장 policy 기반 시작 요청입니다. Storage를 연 직후 manifest project가 기대 project와 다르면 `deliberation_project_mismatch`로 닫고 execution plan, workspace, runtime과 provider를 시작하지 않습니다. 일반 CLI parser와 `ExecuteManagedDeliberation`에는 할당 ID 입력이 없습니다.
+
+`createManagedConversationDeliberationExecutionAdapter`는 구성된 project ID를 절대 repository root에 일대일로 결속하고 `leased` job만 변환합니다. Job의 결정적 숙의 ID, policy ID와 4,096자 이하 주제를 assigned executor에 전달합니다. Managed 결과의 숙의 ID와 0~10,000 산출물 수가 같을 때만 `converged` 또는 `no_consensus` 요약을 반환합니다. `finalContent`, 참여자 목록, provider 응답과 내부 오류 원문은 queue 결과에 복제하지 않습니다. 실행 예외와 좌표 불일치는 worker의 기존 `deliberation_execution_uncertain` 처분을 사용합니다. 결정은 [ADR-0139](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.
@@ -1395,6 +1399,7 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `interaction_store_failed` | Inbox claim, decision commit 또는 outbox 상태를 durable하게 확정하지 못했습니다. 응답 완료나 전달 완료를 주장하지 않고 저장소를 진단합니다. |
 | `response_generation_failed` / `publication_verification_failed` | 응답 원문 생성 또는 `chat` writing 공개 검증이 끝나지 않았습니다. 원문 오류를 저장하지 않고 현재 inbox lease를 bounded retry로 되돌립니다. |
 | `deliberation_request_conflict` / `worker_lease_expired` / `deliberation_execution_uncertain` | 같은 대화 event가 다른 숙의 요청에 쓰였거나 숙의 실행의 외부 효과를 증명할 수 없습니다. 기존 job을 덮거나 자동 재실행하지 않고 상태 조회를 `unknown`으로 제한합니다. |
+| `deliberation_job_invalid` / `deliberation_project_not_configured` / `deliberation_project_mismatch` | Queue job, project binding 또는 실제 repository manifest가 일치하지 않습니다. Workspace와 provider를 시작하지 않고 queue worker가 불확실 상태로 닫습니다. |
 | `adapter_delivery_failed` / `invalid_delivery_receipt` | 플랫폼 전송이 실패했거나 receipt 좌표가 다릅니다. `delivered`로 바꾸지 않고 outbox를 bounded retry로 되돌립니다. |
 | `invalid_command` / `unknown_signer` / `invalid_signature` / `signer_scope_denied` / `target_mismatch` | 원격 command 계약, 신뢰 key, 서명 또는 project 좌표가 맞지 않습니다. 로컬 정책과 executor를 호출하지 않고 새 command를 요구합니다. |
 | `command_not_yet_valid` / `command_expired` / `command_lifetime_exceeded` | 로컬 clock과 허용된 skew·lifetime에서 command를 실행할 수 없습니다. 만료 command를 갱신된 서명 없이 재사용하지 않습니다. |
