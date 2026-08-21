@@ -143,6 +143,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI stage-only workflow 원격 배포 증거 ADR](./docs/adr/0121-cli-stage-only-workflow-remote-deployment-evidence.md)
 - [CLI stage-only workflow ref 도달 가능성 증거 ADR](./docs/adr/0122-cli-stage-only-workflow-ref-reachability-evidence.md)
 - [CLI stage-only workflow 실행 증거 ADR](./docs/adr/0123-cli-stage-only-workflow-execution-evidence.md)
+- [CLI npm stage 결과 artifact 증거 ADR](./docs/adr/0124-cli-npm-stage-result-artifact-evidence.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -327,6 +328,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 저장한 remote evidence가 있으면 `pnpm release:bootstrap:workflow-reachability --repository <owner/repo> --source-commit <40자 소문자 commit SHA> --release-tag <vMAJOR.MINOR.PATCH> --remote-evidence-report <절대 경로> --online [--json]`으로 source commit이 현재 기본 브랜치에 포함되고 release tag가 같은 commit을 가리키는지 확인할 수 있습니다. Source commit의 CLI package bytes와 tag version도 현재 검증된 package에 대조합니다. Lightweight·annotated tag를 구분하고 관측 끝에 branch·tag ref를 다시 읽습니다. 성공은 관측 시점의 ref 관계일 뿐 이후 불변성, workflow 실행·stage·공개를 뜻하지 않으며 어떤 ref도 바꾸지 않습니다.
 
 저장한 reachability evidence와 운영자가 고른 run 좌표가 있으면 `pnpm release:bootstrap:workflow-execution --repository <owner/repo> --source-commit <40자 소문자 commit SHA> --release-tag <vMAJOR.MINOR.PATCH> --run-id <양의 정수> --attempt <양의 정수> --reachability-report <절대 경로> --online [--json]`으로 exact workflow 실행을 읽기 전용으로 확인할 수 있습니다. 명시한 attempt가 현재 최신 attempt이고 run·`Stage CLI publication` job·stage와 결과 upload step이 성공으로 끝났으며 run-attempt 전용 artifact metadata가 하나인지 앞뒤로 재확인합니다. 성공은 GitHub Actions의 실행·artifact metadata 증거일 뿐 artifact 내용, npm stage 접수·2FA 승인이나 package 공개를 뜻하지 않으며 dispatch·rerun·download·게시를 실행하지 않습니다.
+
+저장한 workflow execution evidence가 있으면 `pnpm release:bootstrap:stage-result-evidence --repository <owner/repo> --source-commit <40자 소문자 commit SHA> --release-tag <vMAJOR.MINOR.PATCH> --run-id <양의 정수> --attempt <양의 정수> --workflow-execution-report <절대 경로> --online [--json]`으로 exact artifact를 최대 1 MiB까지 읽기 전용으로 다운로드할 수 있습니다. Artifact metadata를 앞뒤로 대조하고 ZIP 전체 digest, 정확히 두 개인 canonical `attempt.json`·`terminal.json`, package·version과 `npm_cli_exit_zero` 결과를 검증합니다. 성공은 npm CLI가 stage 요청을 exit code 0으로 마쳤다고 기록한 증거이며 registry의 독립 접수, stage ID·tarball 검토, 2FA 승인이나 공개 상태를 뜻하지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

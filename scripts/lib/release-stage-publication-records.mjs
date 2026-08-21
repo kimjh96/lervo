@@ -6,6 +6,9 @@ import {
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
+const sha1Pattern = /^[a-f0-9]{40}$/u;
+const sha256Pattern = /^[a-f0-9]{64}$/u;
+const sha512IntegrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 
 function fail(code = "release_stage_publication_record_invalid") {
   throw new ReleasePublicationAuthorizationError(
@@ -28,6 +31,20 @@ function bodyWithoutDigest(record, digestName) {
   const body = structuredClone(record);
   delete body[digestName];
   return body;
+}
+
+function validateStageCoordinates(target, artifact) {
+  if (
+    !exactKeys(target, ["registry", "package", "version", "distTag", "access"]) ||
+    target.registry !== "https://registry.npmjs.org/" ||
+    target.package !== "@lervo/cli" || !/^\d+\.\d+\.\d+$/u.test(target.version ?? "") ||
+    !["latest", "next"].includes(target.distTag) || target.access !== "public" ||
+    !exactKeys(artifact, ["file", "sha256", "registryIntegrity", "registryShasum"]) ||
+    artifact.file !== `lervo-cli-${target.version}.tgz` ||
+    !sha256Pattern.test(artifact.sha256 ?? "") ||
+    !sha512IntegrityPattern.test(artifact.registryIntegrity ?? "") ||
+    !sha1Pattern.test(artifact.registryShasum ?? "")
+  ) fail("release_stage_publication_record_invalid");
 }
 
 export function validateReleaseStageReceipt(receipt, authorization) {
@@ -72,6 +89,7 @@ export function validateReleaseStageAttempt(attempt) {
     !digestPattern.test(attempt.attemptDigest ?? "") ||
     attempt.attemptDigest !== canonicalDigest(bodyWithoutDigest(attempt, "attemptDigest"))
   ) fail("release_stage_publication_attempt_invalid");
+  validateStageCoordinates(attempt.target, attempt.artifact);
   return attempt;
 }
 
@@ -154,4 +172,24 @@ export function validateReleaseStageTerminal(terminal) {
     terminal.terminalDigest !== canonicalDigest(bodyWithoutDigest(terminal, "terminalDigest"))
   ) fail("release_stage_publication_terminal_invalid");
   return terminal;
+}
+
+export function validateReleaseStageResultRecords({ attempt, terminal }) {
+  validateReleaseStageAttempt(attempt);
+  validateReleaseStageTerminal(terminal);
+  if (
+    terminal.attemptDigest !== attempt.attemptDigest ||
+    terminal.authorizationDigest !== attempt.authorizationDigest ||
+    Date.parse(terminal.completedAt) < Date.parse(attempt.reservedAt) ||
+    terminal.state !== "staged" ||
+    !exactKeys(terminal.receipt, [
+      "schemaVersion", "status", "operation", "target", "artifact", "evidence",
+    ]) || terminal.receipt.schemaVersion !== 1 ||
+    terminal.receipt.status !== "stage_submission_accepted" ||
+    terminal.receipt.operation !== "npm_stage_publish" ||
+    terminal.receipt.evidence !== "npm_cli_exit_zero" ||
+    canonicalJson(terminal.receipt.target) !== canonicalJson(attempt.target) ||
+    canonicalJson(terminal.receipt.artifact) !== canonicalJson(attempt.artifact)
+  ) fail("release_stage_publication_result_invalid");
+  return { attempt, terminal };
 }

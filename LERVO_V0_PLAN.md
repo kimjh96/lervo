@@ -1139,6 +1139,26 @@ CLI stage-only workflow execution evidence 완료 조건:
 - Historical attempt, rerun race, 실패 step, 중복 artifact, 부분 page, redigest 권한 상향을 검증함
 - 현재 production workflow 적용·원격 실행·artifact download·npm stage·2FA·공개를 주장하지 않음
 
+CLI npm stage result artifact evidence 완료 조건:
+
+- 저장한 workflow execution evidence를 최대 128 KiB canonical snapshot으로 읽고 standalone 계약을 검증함
+- Repository·source·tag·run ID·attempt를 upstream target과 대조함
+- Exact artifact metadata를 앞뒤로 읽고 그 사이 같은 artifact ID의 ZIP만 GET함
+- Metadata size가 1 MiB를 넘으면 download 전에 거부하고 binary 응답을 파일에 쓰지 않음
+- Downloaded byte count·SHA-256을 exact artifact metadata에 대조함
+- Single-disk non-ZIP64, stored·deflate와 bounded data descriptor만 허용함
+- Exact `attempt.json`·`terminal.json` 두 regular-file entry만 최대 128 KiB로 해제함
+- Path traversal·duplicate·symlink·gap·overlap·CRC·size·header·canonical JSON 손상을 거부함
+- Stage attempt·terminal digest, authorization·target·artifact·시각·retry를 독립 검증함
+- Terminal은 `staged`와 exact `npm_cli_exit_zero` receipt만 허용함
+- Stage package·version을 workflow execution target에 결속함
+- Report는 npm CLI exit-zero 기록만 evidence-bound로 표현함
+- Upstream·authorization 진위, registry 독립 접수, stage ID·tarball, 2FA·공개를 별도 미검증으로 유지함
+- Actor·stage ID·credential·redirect URL·GitHub/npm 원문을 report에 넣지 않음
+- 파일·GitHub 설정·dispatch·rerun·publication·runtime state를 바꾸지 않음
+- Digest mismatch, ZIP 공격, unknown terminal, 다른 version, metadata race, source race, redigest 상향을 검증함
+- 현재 production workflow 실행·실제 artifact download·npm stage·review·2FA·공개를 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1383,4 +1403,6 @@ CLI stage-only workflow ref reachability evidence boundary를 완료했습니다
 
 CLI stage-only workflow execution evidence boundary를 완료했습니다. 운영자가 고른 run ID·attempt를 exact workflow·tag·source에 결속하고, current run과 attempt를 앞뒤로 대조해 historical attempt와 rerun race를 닫습니다. Terminal workflow·stage job·두 핵심 step과 유일한 run-attempt artifact metadata를 확인하되 artifact 내용과 npm 결과는 승격하지 않습니다. 결정은 [ADR-0123](./docs/adr/0123-cli-stage-only-workflow-execution-evidence.md)에 기록했습니다.
 
-다음 구현 작업은 저장된 run-attempt artifact를 bounded download로 가져와 내부 terminal stage 결과 문서와 exact package·version·source·attempt를 검증하는 **CLI npm stage result evidence boundary**입니다. Artifact metadata와 downloaded bytes·terminal record를 구분하고 GitHub job success를 npm stage 접수나 2FA 승인으로 대신 사용하지 않습니다.
+CLI npm stage result artifact evidence boundary를 완료했습니다. Exact artifact metadata를 앞뒤로 대조하며 최대 1 MiB ZIP을 메모리에만 받고, archive digest와 두 canonical stage record의 구조·digest·좌표를 검증합니다. 결과는 `npm_cli_exit_zero` 기록으로 제한하고 registry 독립 접수·stage ID·tarball·2FA·공개를 별도 경계로 유지합니다. 결정은 [ADR-0124](./docs/adr/0124-cli-npm-stage-result-artifact-evidence.md)에 기록했습니다.
+
+다음 구현 작업은 인증된 `npm stage list/view/download` 관측으로 exact package·version의 유일한 stage ID와 registry metadata·downloaded tarball digest를 stage result evidence에 결속하는 **CLI npm staged package review evidence boundary**입니다. 조회 credential과 stage ID를 report에서 비식별화하고 `stage approve`·2FA·공개 전이를 실행하지 않습니다.
