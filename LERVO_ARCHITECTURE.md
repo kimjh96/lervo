@@ -53,6 +53,8 @@ Metadata preview는 인자에서 만든 비권한 decision, 같은 두 manifest 
 
 Package metadata candidate는 source byte snapshot, preview와 결과 직렬화를 분리합니다. 결과 생성기는 저장소의 정확한 JSON 포맷을 확인한 뒤 네 허용 필드만 반영하고 다른 JSON 값을 대조합니다. Candidate 코어는 source·manifest·decision·preview·output digest와 비쓰기 처분을 묶고 reader는 metadata와 별도로 전달된 결과 bytes까지 다시 계산합니다. CLI 조정기는 source 변경을 마지막에 검사하며 formatter, JSON metadata와 exact package bytes 출력 mode를 분리합니다. 파일 writer와 release generator는 이 경계에 없습니다.
 
+Package metadata apply permit은 candidate 생성·검증 경계를 재사용하고 사람에게서 되돌려 받은 candidate·source·output digest를 별도 review 입력으로 검증합니다. Permit 코어는 조건부 package 교체와 release manifest 재생성 권한만 표현하고 조정기는 전체 source가 끝까지 같은지 확인합니다. Permit formatter와 process adapter에는 writer·generator가 없으며 실제 apply transaction은 permit 재검증, compare-and-swap, 생성 원본 일관성 및 rollback을 별도 경계로 가져야 합니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

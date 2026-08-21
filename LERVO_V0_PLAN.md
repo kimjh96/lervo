@@ -1171,4 +1171,6 @@ CLI first-publication metadata decision과 비쓰기 patch preview를 완료했�
 
 CLI first-publication package metadata patch candidate를 완료했습니다. 현재 source bytes와 preview에 결속된 exact `package.json` 결과를 만들고 다른 필드 보존, 포맷과 output digest를 재검증합니다. Candidate metadata와 결과 bytes를 분리하며 상태는 `review_required`, 쓰기 권한은 false입니다. 원본·release manifest·승인·activation·게시를 바꾸지 않습니다. 결정은 [ADR-0106](./docs/adr/0106-cli-first-publication-package-metadata-candidate.md)에 기록했습니다.
 
-다음 구현 작업은 candidate digest·source SHA-256·output SHA-256과 명시적 사람 결정을 묶되 쓰지 않는 **CLI first-publication package metadata apply permit**입니다. 실제 적용 명령은 permit 재검증, 원본 compare-and-swap과 atomic replace를 별도 단계로 유지합니다.
+CLI first-publication package metadata apply permit을 완료했습니다. 사용자가 검토한 candidate·source·output digest와 명시적 확인을 현재 원본에서 다시 만든 후보에 대조하고, package 교체는 source가 같을 때만 허용하며 release manifest 직접 patch는 금지합니다. 사람 진술을 독립적인 검토 증명으로 과장하지 않고 원본·상태·event를 쓰지 않습니다. 결정은 [ADR-0107](./docs/adr/0107-cli-first-publication-package-metadata-apply-permit.md)에 기록했습니다.
+
+다음 구현 작업은 permit 재검증, package source compare-and-swap, 생성 원본의 일관된 재생성과 실패 rollback을 먼저 고정하는 **CLI first-publication package metadata apply transaction**입니다. 실제 writer는 이 transaction의 atomicity와 실패 처분을 테스트로 증명한 뒤에만 엽니다.
