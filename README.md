@@ -146,6 +146,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI npm stage 결과 artifact 증거 ADR](./docs/adr/0124-cli-npm-stage-result-artifact-evidence.md)
 - [CLI npm staged package 검토 증거 ADR](./docs/adr/0125-cli-npm-staged-package-review-evidence.md)
 - [CLI npm stage 승인 권한 ADR](./docs/adr/0126-cli-npm-stage-approval-authorization.md)
+- [CLI npm stage 승인 durable 기록 ADR](./docs/adr/0127-cli-npm-stage-approval-durable-records.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현

@@ -48,6 +48,8 @@ function authorizationBody({ stageReviewReport, decision, authorizedAt }) {
     binding: {
       stageReviewEvidenceDigest: stageReviewReport.evidenceDigest,
       stageIdDigest: stageReviewReport.npm.stage.idDigest,
+      registry: stageReviewReport.npm.registry,
+      distTag: stageReviewReport.npm.stage.distTag,
       artifact: structuredClone(stageReviewReport.npm.tarball),
     },
     decision: {

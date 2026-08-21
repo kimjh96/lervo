@@ -1188,6 +1188,19 @@ CLI npm stage approval authorization 완료 조건:
 - Network·npm client·approve·reject·publication·runtime state를 호출하거나 변경하지 않음
 - Stale review, expired decision·authorization, mismatched binding, redigest 권한 상향, source race와 기존 output을 검증함
 
+CLI npm stage approval durable record 완료 조건:
+
+- 승인 외부 호출 전에 immutable attempt를 별도 문서로 durable 저장할 수 있음
+- Attempt를 authorization·target·비식별 stage·artifact·시각과 retry 금지에 결속함
+- Success·unknown·pre-call abort terminal을 exact-key tagged state로 분리함
+- CLI exit-zero 성공도 public availability를 주장하지 않고 별도 registry 검증을 요구함
+- 호출 뒤 unknown은 blind retry를 금지하고 authenticated reconciliation을 요구함
+- Result directory·두 record를 owner-only, exclusive-create와 fsync로 보존함
+- Existing·partial·symlink·unsafe permission·과대·손상 record를 missing으로 바꾸지 않음
+- Terminal 덮어쓰기와 다른 attempt·authorization·receipt binding을 거부함
+- Stage publish와 approval의 공통 filesystem 원리는 재사용하되 record 정책·오류는 분리함
+- 실제 npm client·approve·2FA·public observation은 아직 호출하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1438,4 +1451,6 @@ CLI npm staged package review evidence boundary를 완료했습니다. 인증된
 
 CLI npm stage approval authorization boundary를 완료했습니다. Fresh staged package review와 최대 10분의 canonical 사람 decision을 exact review·비식별 stage·package·version에 결속하고 최대 5분의 one-shot interactive approve 권한만 새 파일로 만듭니다. Actor identity·stage ID 원문·OTP를 보존하지 않고 npm 호출·approve·reject·공개 확인은 실행하지 않습니다. 결정은 [ADR-0126](./docs/adr/0126-cli-npm-stage-approval-authorization.md)에 기록했습니다.
 
-다음 구현 작업은 승인 외부 호출 전에 immutable attempt를 저장하고 결과를 별도 terminal로 한 번만 닫는 **CLI npm stage approval durable record boundary**입니다. 실제 npm adapter는 아직 연결하지 않고, 부분 기록·중복·symlink·blind retry를 먼저 차단합니다.
+CLI npm stage approval durable record boundary를 완료했습니다. Authorization·target·비식별 stage·artifact를 외부 호출 전 immutable attempt에 고정하고 CLI exit-zero·unknown·pre-call abort를 별도 terminal 하나로 닫습니다. 공용 immutable attempt filesystem adapter를 추출해 기존 stage publish 저장에도 적용했으며 owner-only·exclusive-create·fsync·fail-closed 의미를 유지했습니다. 결정은 [ADR-0127](./docs/adr/0127-cli-npm-stage-approval-durable-records.md)에 기록했습니다.
+
+다음 구현 작업은 fresh authorization과 exact stage를 다시 확인한 뒤 대화형 terminal에서 `npm stage approve`를 한 번만 호출하고 durable record를 위 상태로 닫는 **CLI interactive npm stage approval execution boundary**입니다.
