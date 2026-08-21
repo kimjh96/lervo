@@ -12,18 +12,20 @@ export async function inspectFirstPublicationPreflight({
   reservationStore,
   observePackage,
   observeNpm,
+  observeArtifact = observeFirstPublicationArtifact,
   clock = () => new Date().toISOString(),
 }) {
   if (
     typeof reservationStore?.observe !== "function" ||
     typeof observePackage !== "function" ||
     typeof observeNpm !== "function" ||
+    typeof observeArtifact !== "function" ||
     typeof clock !== "function"
   ) throw new TypeError("first-publication preflight inspector ports are invalid");
   const reservationId = firstPublicationReservationId(bootstrap);
   const [artifactObservation, packageObservation, reservationObservation, npmObservation] =
     await Promise.all([
-      observeFirstPublicationArtifact({ publicationAuthorization, releaseDirectory }),
+      observeArtifact({ publicationAuthorization, releaseDirectory }),
       observePackage(),
       reservationStore.observe(reservationId).catch(() => ({
         schemaVersion: 1,

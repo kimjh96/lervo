@@ -41,6 +41,8 @@ flowchart LR
 
 최초 게시의 읽기 전용 preflight inspector는 bootstrap·artifact·public package·예약·npm 준비 관측을 별도 report로 조합하며 예약 root나 실행 상태를 만들지 않습니다. Report reader는 원래 관측값으로 결과를 재계산하고 `ready`를 실행 permit로 취급하지 않습니다. 대화형 npm adapter와 report는 TTY·client·2FA 판정을 같은 순수 정책으로 공유하고, 실제 adapter만 사람 확인과 publish를 소유합니다.
 
+Preflight command adapter는 절대 입력 경로와 명시적 online 경계를 확인한 뒤 inspector에 읽기 port만 조립합니다. npm profile 조회는 임시 cache·빈 global config와 명시된 user config에서 실행하고 임시 상태를 제거합니다. 입력 파일 snapshot은 외부 관측 뒤 다시 대조하며 사람용 formatter와 JSON 직렬화는 관측·정책에서 분리합니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

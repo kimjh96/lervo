@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 읽기 전용 사전 점검 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 읽기 전용 사전 점검 명령 완료 (2026-08-21)
 
 ## 목표
 
@@ -120,6 +120,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 실행·전환 영수증 ADR](./docs/adr/0098-cli-first-publication-execution-transition-receipts.md)
 - [CLI 최초 공개 게시 durable 저장·대화형 adapter ADR](./docs/adr/0099-cli-first-publication-durable-interactive-adapter.md)
 - [CLI 최초 공개 게시 읽기 전용 사전 점검 보고서 ADR](./docs/adr/0100-cli-first-publication-read-only-preflight-report.md)
+- [CLI 최초 공개 게시 사전 점검 명령 ADR](./docs/adr/0101-cli-first-publication-preflight-command.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -261,7 +262,9 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 
 최초 게시 예약의 파일 adapter는 예약별 directory에 immutable `reservation.json`과 terminal 하나만 두며 재시작 뒤 중복 실행을 닫습니다. npm 대화형 adapter는 TTY·비CI·환경 credential 부재, `auth-and-writes` profile과 exact 사전 확인을 거친 뒤 direct publish를 현재 terminal에 연결합니다. 게시 뒤 2FA challenge 완료 확인은 사람 진술이며 npm이 발급한 proof로 표현하지 않습니다. 이 adapter를 여는 CLI 명령은 아직 없으므로 실제 npm 게시 경로는 비활성입니다.
 
-최초 게시 사전 점검 report는 bootstrap 유효성, exact tarball, public package 부재, 예약 저장 상태와 npm 대화형 준비 상태를 `ready`, `blocked`, `unknown`으로 나눕니다. 조회는 예약 root를 만들지 않고 게시·예약·외부 설정을 실행하지 않습니다. `ready`도 실행 허가가 아니므로 실제 실행은 package 부재 재관측, durable 예약과 사람 확인을 생략할 수 없습니다. Profile·사용자명·설정 경로·token·OTP와 외부 출력 원문은 report에 넣지 않습니다. 이 report를 출력하는 CLI 명령은 아직 없습니다.
+최초 게시 사전 점검 report는 bootstrap 유효성, exact tarball, public package 부재, 예약 저장 상태와 npm 대화형 준비 상태를 `ready`, `blocked`, `unknown`으로 나눕니다. 조회는 예약 root를 만들지 않고 게시·예약·외부 설정을 실행하지 않습니다. `ready`도 실행 허가가 아니므로 실제 실행은 package 부재 재관측, durable 예약과 사람 확인을 생략할 수 없습니다. Profile·사용자명·설정 경로·token·OTP와 외부 출력 원문은 report에 넣지 않습니다.
+
+`pnpm release:bootstrap:preflight --release-directory <absolute-path> --publication-authorization <absolute-path> --bootstrap <absolute-path> --reservation-root <absolute-path> --user-config <absolute-path> --online [--json]`은 이 report를 실제 릴리스 파일·예약 저장소·npm 계정 확인에 연결합니다. 입력 파일은 확인 전후 내용이 같은지 대조하고, npm은 임시 캐시와 빈 전역 설정에서 읽은 뒤 모두 제거합니다. 기본 출력은 한국어 설명, `--json`은 report v1이며 준비됐을 때만 종료 코드 0입니다. 명령은 결과 문서, 예약, 패키지 게시나 외부 설정을 만들지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

@@ -985,6 +985,18 @@ CLI first-publication 읽기 전용 preflight report 완료 조건:
 - Profile·사용자명·설정 경로·환경 변수 이름·값·token·OTP·외부 출력 원문을 기록하지 않음
 - Fixture가 실행 허가, npm 권한·2FA·bypass token 부재·게시 성공을 주장하지 않음
 
+CLI first-publication preflight command 완료 조건:
+
+- Release·authorization·bootstrap·reservation root·user config의 절대 경로와 `--online`을 요구함
+- Online 경계가 없으면 입력 파일과 외부 observer를 열기 전에 거부함
+- Authorization·bootstrap·tarball snapshot을 관측 전후 대조하고 변경 시 report를 출력하지 않음
+- 예약 저장소에는 observe만 전달하며 부재한 root를 만들지 않음
+- 환경 credential·non-TTY·CI이면 npm client를 실행하지 않음
+- npm version·profile만 임시 cache·빈 global config에서 읽고 user config를 바꾸지 않음
+- Human·JSON 출력이 같은 report를 사용하고 ready만 exit code 0임
+- 경로·profile·사용자명·credential·npm 출력·오류 원문과 report 파일을 남기지 않음
+- Fixture가 실제 예약·2FA·게시·외부 설정 변경이나 실행 허가를 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1103,4 +1115,6 @@ CLI first-publication durable 저장·대화형 adapter 계약을 완료했습�
 
 CLI first-publication 읽기 전용 preflight report 계약을 완료했습니다. Bootstrap 유효성, exact artifact, public package, durable 예약과 npm 대화형 준비를 독립적으로 조합하고 unknown을 포함한 비ready를 전체 blocked로 닫습니다. 예약 root·게시·외부 설정을 만들지 않으며 reader는 원래 관측값으로 결과를 다시 계산합니다. `ready`는 실행 허가나 2FA 증거가 아닙니다. 결정은 [ADR-0100](./docs/adr/0100-cli-first-publication-read-only-preflight-report.md)에 기록했습니다.
 
-다음 구현 작업은 이 계약을 실제 입력 경로와 명시적 online 관측에 연결해 JSON·사람용 출력을 제공하는 **CLI first-publication preflight command**입니다. 이 명령도 예약·게시·외부 설정을 만들지 않으며 실제 실행 명령은 별도 검토합니다.
+CLI first-publication preflight command를 완료했습니다. 절대 입력·상태 경로와 `--online`을 먼저 확인하고, release snapshot·public registry·예약 조회·격리된 npm profile 관측을 report에 연결합니다. Human·JSON 출력은 같은 report를 사용하고 ready만 성공하며 예약 root·결과 문서·게시·외부 설정을 만들지 않습니다. 결정은 [ADR-0101](./docs/adr/0101-cli-first-publication-preflight-command.md)에 기록했습니다.
+
+다음 구현 작업은 실제 게시 권한을 열지 않은 채 실행 직전 재검증·사람 확인·예약 생성 순서와 취소 가능 지점을 보여 주는 **CLI first-publication execution plan/arming 계약**입니다. 실제 npm 게시 command 활성화는 package identity·license·scope owner와 별도 명시적 승인 뒤에만 검토합니다.

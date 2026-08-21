@@ -32,6 +32,14 @@ export async function observeFirstPublicationArtifact({
       reason: "artifact_unavailable",
     };
   }
+  return createFirstPublicationArtifactObservation(authorization, contents);
+}
+
+export function createFirstPublicationArtifactObservation(publicationAuthorization, contents) {
+  const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
+  if (!Buffer.isBuffer(contents)) {
+    throw new TypeError("first-publication artifact contents are invalid");
+  }
   const artifact = createReleasePublicationArtifact(
     authorization.artifact.file,
     authorization.target.version,

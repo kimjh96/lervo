@@ -3,6 +3,7 @@ const reasons = new Set([
   "terminal_not_interactive",
   "automation_environment_detected",
   "registry_credential_in_environment",
+  "npm_client_unavailable",
   "npm_client_unsupported",
   "npm_profile_unavailable",
   "npm_write_2fa_not_ready",
@@ -61,15 +62,23 @@ export function createNpmInteractiveFirstPublicationObservation({
   const found = npmInteractiveFirstPublicationEnvironmentReasons({
     environment, stdinIsTTY, stdoutIsTTY, stderrIsTTY,
   });
-  if (!clientObserved || !isSupportedNpmInteractiveClient(npmVersion)) {
-    found.push("npm_client_unsupported");
-  }
+  if (!clientObserved) found.push("npm_client_unavailable");
+  else if (!isSupportedNpmInteractiveClient(npmVersion)) found.push("npm_client_unsupported");
   if (!profileObserved) found.push("npm_profile_unavailable");
   else if (profile?.tfa?.mode !== "auth-and-writes" || profile.tfa.pending === true) {
     found.push("npm_write_2fa_not_ready");
   }
-  const state = found.includes("npm_profile_unavailable") ? "unavailable" :
-    found.length === 0 ? "ready" : "blocked";
+  return createNpmInteractiveFirstPublicationObservationFromReasons(found);
+}
+
+export function createNpmInteractiveFirstPublicationObservationFromReasons(found) {
+  if (!Array.isArray(found) || found.some((reason) => !reasons.has(reason)) ||
+      new Set(found).size !== found.length) {
+    throw new TypeError("npm interactive first-publication reasons are invalid");
+  }
+  const state = found.some((reason) => [
+    "npm_client_unavailable", "npm_profile_unavailable",
+  ].includes(reason)) ? "unavailable" : found.length === 0 ? "ready" : "blocked";
   return {
     schemaVersion: 1,
     source: "npm_interactive_first_publication",
@@ -87,7 +96,9 @@ export function validateNpmInteractiveFirstPublicationObservation(observation) {
     observation.reasons.some((reason) => !reasons.has(reason)) ||
     new Set(observation.reasons).size !== observation.reasons.length ||
     (observation.state === "ready") !== (observation.reasons.length === 0) ||
-    (observation.state === "unavailable") !== observation.reasons.includes("npm_profile_unavailable") ||
+    (observation.state === "unavailable") !== observation.reasons.some((reason) => [
+      "npm_client_unavailable", "npm_profile_unavailable",
+    ].includes(reason)) ||
     Object.keys(observation).length !== 4
   ) throw new TypeError("npm interactive first-publication observation is invalid");
   return observation;
