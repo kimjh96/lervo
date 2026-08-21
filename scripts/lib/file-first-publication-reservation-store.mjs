@@ -87,6 +87,16 @@ async function readTerminal(path, reservation) {
   );
 }
 
+async function pathExists(path) {
+  try {
+    await lstat(path);
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
 export function createFileFirstPublicationReservationStore({ rootDirectory }) {
   if (typeof rootDirectory !== "string" || !isAbsolute(rootDirectory)) {
     fail("first_publication_store_input_invalid");
@@ -126,6 +136,57 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
   }
 
   return {
+    async observe(reservationId) {
+      if (!reservationIdPattern.test(reservationId ?? "")) {
+        fail("first_publication_store_input_invalid");
+      }
+      if (!await pathExists(rootDirectory)) {
+        return {
+          schemaVersion: 1,
+          source: "first_publication_reservation_store",
+          state: "missing",
+          reservationId,
+        };
+      }
+      await ensureDirectory(rootDirectory);
+      const directory = resolve(rootDirectory, reservationId);
+      if (!await pathExists(directory)) {
+        return {
+          schemaVersion: 1,
+          source: "first_publication_reservation_store",
+          state: "missing",
+          reservationId,
+        };
+      }
+      await ensureDirectory(directory);
+      const reservation = validateStoredFirstPublicationReservation(
+        await readRecord(resolve(directory, "reservation.json")),
+      );
+      if (reservation.reservationId !== reservationId) {
+        fail("first_publication_reservation_conflict");
+      }
+      const terminalPath = resolve(directory, "terminal.json");
+      if (!await pathExists(terminalPath)) {
+        return {
+          schemaVersion: 1,
+          source: "first_publication_reservation_store",
+          state: "reserved",
+          reservationId,
+          bootstrapDigest: reservation.bootstrapDigest,
+          reservationDigest: reservation.reservationDigest,
+        };
+      }
+      const terminal = await readTerminal(terminalPath, reservation);
+      return {
+        schemaVersion: 1,
+        source: "first_publication_reservation_store",
+        state: "terminal",
+        reservationId,
+        bootstrapDigest: reservation.bootstrapDigest,
+        reservationDigest: reservation.reservationDigest,
+        terminalState: terminal.state,
+      };
+    },
     async reserve(reservation) {
       validateStoredFirstPublicationReservation(reservation);
       await ensureDirectory(rootDirectory, true);

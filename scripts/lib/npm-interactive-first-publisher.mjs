@@ -8,35 +8,16 @@ import { canonicalJson } from "./release-artifact-manifest.mjs";
 import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
+import {
+  createNpmInteractiveFirstPublicationObservation,
+  isSupportedNpmInteractiveClient,
+  npmInteractiveFirstPublicationEnvironmentReasons,
+} from "./npm-interactive-first-publication-policy.mjs";
 
-const minimumNpmVersion = [11, 5, 1];
 const execFileAsync = promisify(execFile);
 
 function fail(code, message = "npm 최초 게시 대화형 실행 조건이 올바르지 않습니다.") {
   throw new FirstPublicationBootstrapError(code, message);
-}
-
-function version(value) {
-  return /^(\d+)\.(\d+)\.(\d+)(?:-.+)?$/u.exec(value.trim())?.slice(1).map(Number);
-}
-
-function supported(actual) {
-  if (!actual) return false;
-  for (let index = 0; index < minimumNpmVersion.length; index += 1) {
-    if (actual[index] > minimumNpmVersion[index]) return true;
-    if (actual[index] < minimumNpmVersion[index]) return false;
-  }
-  return true;
-}
-
-function containsInjectedCredential(environment) {
-  return Object.entries(environment).some(([name, value]) => {
-    if (typeof value !== "string" || value.length === 0) return false;
-    const normalized = name.toLowerCase();
-    return ["npm_token", "node_auth_token", "pnpm_token"].includes(normalized) ||
-      (normalized.startsWith("npm_config_") &&
-        ["auth", "otp", "token"].some((part) => normalized.includes(part)));
-  });
 }
 
 function withoutNpmConfiguration(environment) {
@@ -86,9 +67,10 @@ export async function prepareNpmInteractiveFirstPublisher({
   if (
     typeof execute !== "function" || typeof confirm !== "function" ||
     typeof runInteractive !== "function" || typeof userConfigPath !== "string" ||
-    !isAbsolute(userConfigPath) || !stdinIsTTY || !stdoutIsTTY || !stderrIsTTY ||
-    environment.CI === "true" || environment.GITHUB_ACTIONS === "true" ||
-    containsInjectedCredential(environment)
+    !isAbsolute(userConfigPath) ||
+    npmInteractiveFirstPublicationEnvironmentReasons({
+      environment, stdinIsTTY, stdoutIsTTY, stderrIsTTY,
+    }).length > 0
   ) fail("npm_interactive_first_publication_preflight_failed");
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "lervo-first-publish-"));
   const globalConfigPath = resolve(temporaryRoot, "global.npmrc");
@@ -116,13 +98,24 @@ export async function prepareNpmInteractiveFirstPublisher({
     } catch {
       fail("npm_interactive_first_publication_client_invalid");
     }
-    if (!supported(version(npmVersion.stdout))) {
+    if (!isSupportedNpmInteractiveClient(npmVersion.stdout)) {
       fail("npm_interactive_first_publication_client_invalid");
     }
     const profile = await jsonCommand(execute, npmCommand, [
       "profile", "get", "--registry", bootstrap.target.registry, "--json",
     ], commandOptions);
-    if (profile?.tfa?.mode !== "auth-and-writes" || profile.tfa.pending === true) {
+    const observation = createNpmInteractiveFirstPublicationObservation({
+      npmVersion: npmVersion.stdout,
+      profile,
+      environment,
+      stdinIsTTY,
+      stdoutIsTTY,
+      stderrIsTTY,
+    });
+    if (observation.reasons.includes("npm_client_unsupported")) {
+      fail("npm_interactive_first_publication_client_invalid");
+    }
+    if (observation.reasons.includes("npm_write_2fa_not_ready")) {
       fail("npm_interactive_first_publication_2fa_not_ready");
     }
     const phrase = `${bootstrap.target.package}@${bootstrap.target.version}을 ` +

@@ -30,7 +30,7 @@ export function createFirstPublicationReservation(bootstrap, reservedAt) {
   ) fail("first_publication_bootstrap_expired");
   const body = {
     schemaVersion: 1,
-    reservationId: `fpr_${bootstrap.bootstrapDigest.slice("sha256:".length, 31)}`,
+    reservationId: firstPublicationReservationId(bootstrap),
     state: "reserved",
     bootstrapDigest: bootstrap.bootstrapDigest,
     publicationAuthorizationDigest: bootstrap.release.publicationAuthorizationDigest,
@@ -38,6 +38,11 @@ export function createFirstPublicationReservation(bootstrap, reservedAt) {
     reservedAt,
   };
   return { ...body, reservationDigest: canonicalDigest(body) };
+}
+
+export function firstPublicationReservationId(bootstrap) {
+  validateFirstPublicationBootstrapAuthorization(bootstrap);
+  return `fpr_${bootstrap.bootstrapDigest.slice("sha256:".length, 31)}`;
 }
 
 export function validateFirstPublicationReservation(reservation, bootstrap) {

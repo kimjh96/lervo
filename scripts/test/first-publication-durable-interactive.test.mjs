@@ -130,6 +130,15 @@ describe("file first-publication reservation store", () => {
         reservation,
         terminal: completion(reservation),
       });
+      assert.deepEqual(await reopened.observe(reservation.reservationId), {
+        schemaVersion: 1,
+        source: "first_publication_reservation_store",
+        state: "terminal",
+        reservationId: reservation.reservationId,
+        bootstrapDigest: reservation.bootstrapDigest,
+        reservationDigest: reservation.reservationDigest,
+        terminalState: "published",
+      });
       assert.equal(
         (await stat(resolve(stateRoot, reservation.reservationId, "reservation.json"))).mode & 0o777,
         0o600,
