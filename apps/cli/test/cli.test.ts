@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { runCli } from "../src/main.js";
+import type { ManagedDeliberationOutcome } from "../src/managed-deliberation.js";
 
 const temporaryRoots: string[] = [];
 
@@ -115,6 +116,75 @@ describe("lervo run CLI arguments", () => {
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
     expect(errorOutput).toContain("provider, path, verification suite와 작업 문장이 필요합니다");
+  });
+});
+
+describe("lervo deliberate CLI", () => {
+  it("requires two different providers before starting a deliberation", async () => {
+    let called = false;
+    let errors = "";
+    const exitCode = await runCli(
+      ["deliberate", "--proposer", "codex", "--reviewer", "codex",
+        "--verification", "project.default", "주제"],
+      {
+        cwd: process.cwd(),
+        stdout: () => undefined,
+        stderr: (message) => { errors += message; },
+      },
+      {
+        executeManagedDeliberation: async () => {
+          called = true;
+          throw new Error("must not run");
+        },
+      },
+    );
+    expect(exitCode).toBe(1);
+    expect(called).toBe(false);
+    expect(errors).toContain("서로 다른 proposer·reviewer");
+  });
+
+  it("prints a converged result without exposing evidence digests", async () => {
+    let output = "";
+    const outcome: ManagedDeliberationOutcome = {
+      deliberationId: "dlb_cli_result_0001",
+      status: "converged",
+      artifactCount: 4,
+      finalContent: "독립 검토와 실제 검증을 거친 결론입니다.",
+      providers: { proposer: "codex", reviewer: "claude" },
+      outcome: {
+        schemaVersion: 1,
+        outcomeId: "dlo_0000000000000001",
+        deliberationId: "dlb_cli_result_0001",
+        projectId: "prj_cli_result_0001",
+        policyId: "deliberation_cli.two-provider-v1",
+        policyHash: `sha256:${"1".repeat(64)}`,
+        status: "converged",
+        lastRound: 1,
+        artifactIds: ["dla_0000000000000001"],
+        lastConfirmedArtifactId: "dla_0000000000000001",
+        decisionArtifactId: "dla_0000000000000001",
+        passedVerificationArtifactIds: ["dla_0000000000000002"],
+        unresolvedBlockingObjectionIds: [],
+        noConsensusReason: null,
+        failure: null,
+        completedAt: "2026-08-21T00:00:00.000Z",
+      },
+    };
+    const exitCode = await runCli(
+      ["deliberate", "--proposer", "codex", "--reviewer", "claude",
+        "--verification", "project.default", "검토할 주제"],
+      {
+        cwd: process.cwd(),
+        stdout: (message) => { output += message; },
+        stderr: () => undefined,
+      },
+      { executeManagedDeliberation: async () => outcome },
+    );
+    expect(exitCode).toBe(0);
+    expect(output).toContain("숙의가 결론에 도달했습니다");
+    expect(output).toContain(outcome.finalContent);
+    expect(output).not.toContain("sha256:");
+    expect(output).not.toContain("dlb_cli_result_0001");
   });
 });
 

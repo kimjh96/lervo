@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조·resolution·transition evidence union·전환 완료 명령·stage-only workflow 후보·stage 게시 명령·workflow 활성화 허가와 복구 transaction·사후 검증·원격 source·branch/tag 도달 가능성·workflow 실행·stage 결과 artifact·staged package 검토·사람 승인·불변 실행 기록·공개 결과 대조·transition 통합·stage 증거 bundle·완료 기록 점검 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 사용자용 Codex·Claude 교차 숙의 CLI와 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·최초 게시 완료 기록 점검 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -152,6 +152,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI stage 승인 transition 통합 ADR](./docs/adr/0130-cli-stage-approval-transition-integration.md)
 - [CLI stage 증거 bundle manifest ADR](./docs/adr/0131-cli-stage-evidence-bundle-manifest.md)
 - [CLI 최초 게시 완료 기록 점검 ADR](./docs/adr/0132-cli-first-publication-completion-inspection.md)
+- [사용자용 Codex·Claude 교차 숙의 CLI ADR](./docs/adr/0133-cli-two-provider-deliberation.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -210,10 +211,12 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과와 저장소 독립 trace capability report를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
-- `@lervo/cli`: package manifest에서 버전을 읽는 `lervo --version`, 안전한 `lervo init`과 project storage·context·provider adapter·명시적으로 고른 verification suite를 연결하는 한 파일 `lervo run` 명령 진입점. 개발 시 workspace 경계를 유지하고 배포 시 내부 package 24개와 Ajv·YAML을 `dist/bin.js` 하나로 묶음. Bundle 밖 import는 Claude Agent SDK 하나이며 SDK가 요구하는 세 peer도 검증한 버전으로 고정함. 짧은 package README와 검색 metadata를 제공하고 tarball smoke가 안내 내용, 현재 OS·CPU의 native package와 실행 파일을 확인함. 현재 release manifest와 lockfile에서 교체형 CycloneDX 1.7 SBOM을 재생성함
+- `@lervo/cli`: `lervo --version`, 안전한 `lervo init`, 한 파일 managed 실행인 `lervo run`, 서로 다른 Codex·Claude 역할을 연결하는 `lervo deliberate` 명령 진입점. 숙의는 역할별 독립 session, 공개된 shared context의 역할별 E2/E3, writing 검사와 실제 project verification을 거쳐야 수렴함. 개발 시 workspace 경계를 유지하고 배포 시 내부 package와 Ajv·YAML을 `dist/bin.js` 하나로 묶음
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest·SBOM과 로컬 unsigned statement, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
 
 M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Ed25519 원격 command는 durable Hub queue, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Hub·Node 재시작과 acknowledgement 유실 뒤에도 저장된 receipt로 복구하며 executor를 다시 호출하지 않습니다. 이 reconnect 검증은 인증된 transport port를 사용한 로컬 fixture이고 실제 command HTTP/TLS endpoint는 아닙니다.
+
+`lervo deliberate --proposer codex --reviewer claude --verification <suite-id> <주제>`는 서로 다른 두 공급자를 제안·결정 역할과 독립 검토·검증 역할에 고정합니다. 검토자는 `판정: 승인` 또는 `판정: 수정 필요`를 명시해야 하며 자유로운 동의 표현은 승인으로 해석하지 않습니다. 최대 두 회차 안에 승인되지 않거나 필수 검증이 통과하지 않으면 `no_consensus`로 끝나고 결정이나 검증된 지식으로 올리지 않습니다. 사람용 출력에는 내부 ID·digest·경로를 숨기며, `--json`은 자동화용 증거 좌표를 반환합니다. 실행 문서는 `.lervo/state/deliberations/<숙의 ID>/` 아래에서 writing 정책·산출물·의미 평가 요청별 파일로 분리합니다.
 
 정책 수직 슬라이스는 순번·이전 ID가 있는 서명 snapshot과 command-bound 승인·철회를 Hub에서 작성해 append-only SQLite에 보존합니다. 인증·permission·project scope를 통과한 HTTP 요청만 원본을 만들며 발급·승인·철회 시각은 클라이언트가 아니라 Hub가 정합니다. Node는 HTTPS를 기본으로 하는 transport에서 Hub identity와 응답 좌표를 확인하고 다음 snapshot 또는 현재 snapshot의 늦게 추가된 승인·철회를 동기화합니다. 원격 command는 로컬과 Hub 중 더 제한적인 판정을 사용하고, 승인된 `require_approval` 실행도 provider 시작 전과 실제 파일 쓰기 직전에 다시 검증합니다. 이 기능은 Hub가 없어도 완료되는 기존 로컬 실행 경로를 바꾸지 않습니다.
 

@@ -1,9 +1,11 @@
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
+import { deliberateUsage, runDeliberateCommand } from "./deliberate-command.js";
 import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { executeManagedRun } from "./managed-run.js";
+import { executeManagedDeliberation } from "./managed-deliberation.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
@@ -14,6 +16,7 @@ const usage = `사용법:
 ${versionUsage}
 ${initUsage}
 ${runUsage}
+${deliberateUsage}
 ${traceUsage}
 ${searchUsage}
 ${doctorUsage}
@@ -21,6 +24,7 @@ ${doctorUsage}
 
 const defaultServices: CliServices = {
   executeManagedRun,
+  executeManagedDeliberation,
   openProjectStorage,
   inspectDoctorEnvironment,
 };
@@ -41,6 +45,7 @@ export async function runCli(
   }
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
+  if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);
   if (command === "search") return runSearchCommand(args.slice(1), io);
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
@@ -50,6 +55,11 @@ export async function runCli(
 
 export { formatInitPlan } from "./init-command.js";
 export { createManagedRunExecutor, executeManagedRun } from "./managed-run.js";
+export {
+  createManagedDeliberationExecutor,
+  executeManagedDeliberation,
+} from "./managed-deliberation.js";
+export { formatDeliberationOutcome } from "./deliberate-command.js";
 export { formatRunOutcome } from "./run-command.js";
 export { formatTracePageReport, formatTraceReport } from "./trace-command.js";
 export { formatSearchQualityReport } from "./search-command.js";

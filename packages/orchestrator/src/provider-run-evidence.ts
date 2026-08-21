@@ -99,12 +99,34 @@ export function validateManagedProviderRunEvidence(input: {
   }
 
   const completed = input.events.filter((event) => event.type === "run.completed");
+  const expectedArtifactIds = [...new Set([
+    run.resultArtifact.artifactId,
+    ...run.verifications.map((item) => item.resultArtifact.artifactId),
+  ])];
   if (
     completed.length !== 1 ||
     completed[0]!.payload.resultDigest !== run.resultArtifact.contentHash ||
-    !sameStringArray(completed[0]!.payload.artifactIds, [run.resultArtifact.artifactId])
+    completed[0]!.payload.verificationStatus !== run.verificationStatus ||
+    !sameStringArray(completed[0]!.payload.artifactIds, expectedArtifactIds)
   ) fail("Managed run 완료 event가 result artifact와 다릅니다.");
   eventIds.push(completed[0]!.eventId);
+
+  for (const verification of run.verifications) {
+    const event = input.events.find((candidate) =>
+      candidate.type === "verification.completed" &&
+      candidate.payload.verificationId === verification.result.verificationId,
+    );
+    if (
+      event === undefined ||
+      event.payload.suiteId !== verification.result.suiteId ||
+      event.payload.suiteHash !== verification.result.suiteHash ||
+      event.payload.repositoryRevision !== verification.result.repositoryRevision ||
+      event.payload.status !== verification.result.status ||
+      event.payload.resultArtifactId !== verification.resultArtifact.artifactId ||
+      event.payload.resultContentHash !== verification.resultArtifact.contentHash
+    ) fail("Managed run verification 결과와 완료 event가 다릅니다.");
+    eventIds.push(event.eventId);
+  }
 
   const generations = new Set(injected.map((evidence) => evidence.contextGeneration));
   if (generations.size !== 1 || !generations.has(run.contextGeneration)) {

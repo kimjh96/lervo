@@ -165,6 +165,10 @@ M4 완료.
 - Codex와 Claude 참여자가 같은 shared context를 각 session에서 별도로 E2/E3 없이 재사용할 수 없음
 - 최대 회차 또는 차단 반론이 남은 숙의를 결론이나 verified 지식으로 표시할 수 없음
 - `converged`는 결정 책임자, 필수 verification 통과와 차단 반론 0개를 모두 증명
+- 사용자용 교차 숙의는 서로 다른 provider, 역할별 새 session과 수신 역할별 handoff·E2/E3를 강제함
+- 자유로운 동의 표현을 승인으로 해석하지 않고, 명시적 검토 판정과 실제 project verification 원본을 함께 요구함
+- 사람용 산출물은 생산 provider와 분리된 의미 평가와 writing permit 없이는 공개할 수 없음
+- 실행 문서와 평가 요청은 문서별 원본으로 나누고 한 파일에 계속 덧붙이지 않음
 - candidate에서 verified로의 전이가 정책과 evidence 없이는 거부됨
 
 구현 순서: **(1) verification command/result artifact → (2) writing 공개 gate → (3) 숙의 artifact와 policy schema → (4) 단일 provider 두 역할 fixture → (5) Codex·Claude 교차 검토 fixture → (6) 지식 candidate와 trace/doctor 연결** 순입니다. 6단계의 candidate 생성과 로컬 증거 진단 첫 슬라이스까지 완료했습니다. 숙의 구현은 shared context, provider result artifact와 verification 결과가 모두 준비된 뒤 시작하며, provider별 자유 형식 대화를 합의로 해석하지 않습니다. 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md)에 기록했습니다.
@@ -182,6 +186,8 @@ M4 완료.
 구현 현황(2026-08-19): **단일 provider 두 역할 contract fixture 완료.** `@lervo/deliberation-runtime`은 역할별 managed run의 E2/E3 evidence를 실제 SQLite `document.loaded`·`context.injected`와 대조하고 `run.completed` result 좌표, writing 평가·permit와 현재 숙의 history를 다시 검증합니다. 같은 Codex provider의 제안자와 검토자가 별도 run·Lervo session·provider session·receipt를 사용하며, permit를 통과한 제안 원문을 shared context로 공개한 뒤 검토자 context loader가 같은 hash를 다시 적재·주입합니다. Artifact, publication과 handoff event에는 원문을 넣지 않습니다. Event에 없는 receipt를 주입하거나 다른 역할이 provider session을 재사용하면 artifact 기록 전에 실패합니다. 결정은 [ADR-0028](./docs/adr/0028-same-provider-deliberation-runtime.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **Codex·Claude 교차 검토 contract fixture 완료.** 실제 `CodexAdapter` 제안 결과를 공통 artifact와 shared context로 공개하고 실제 `ClaudeAdapter` 검토자가 별도 session에서 같은 원문 hash를 다시 적재·주입하는 전체 경로를 검증했습니다. 두 adapter의 context 표현, provider session ID 형식, turn과 종료 protocol 차이는 공통 receipt, artifact, event와 `no_consensus` 의미를 바꾸지 않습니다. 역할별 고정 provider와 다른 managed run은 writing 평가 전에 `artifact_publication_failed/provider_not_allowed`로 실패하며 artifact event를 만들지 않습니다. 결정은 [ADR-0029](./docs/adr/0029-cross-provider-deliberation-runtime.md)에 기록했습니다.
+
+구현 현황(2026-08-21): **사용자용 Codex·Claude 교차 숙의 CLI 완료.** `lervo deliberate`는 서로 다른 제안·결정 provider와 검토·검증 provider, 필수 suite와 주제를 받아 최대 두 회차를 실행합니다. 각 turn과 writing 의미 평가는 새 managed session이며, 하나의 공개 원문에는 publication 하나와 역할별 handoff를 따로 기록합니다. 검토 첫 줄의 명시적 판정만 해석하고, 승인 뒤 실제 suite 실행과 완료 event의 verification artifact 전체를 대조합니다. 실패는 `failed`, 미합의와 검증 실패는 `no_consensus`로 닫습니다. 실행별 writing 정책·산출물·평가 요청은 `.lervo/state/deliberations/<id>/` 아래 별도 문서로 둡니다. 결정은 [ADR-0133](./docs/adr/0133-cli-two-provider-deliberation.md)에 기록했습니다.
 
 구현 현황(2026-08-19): **증거 결속 지식 candidate와 로컬 trace/doctor 첫 슬라이스 완료.** `@lervo/knowledge`는 전체 숙의 outcome과 history, 실제 verification evidence, 완료·artifact event와 decision CAS를 다시 검증하고 채택 claim별 path·revision·review interval을 가진 canonical candidate JSON을 CAS에 저장합니다. `knowledge.candidate.created`는 원문 없이 candidate/outcome/decision/verification/CAS hash 좌표만 기록합니다. `no_consensus`와 `failed`, 누락 event·path·CAS, 서로 다른 verification revision과 중복 candidate는 닫힌 상태로 거부합니다. 결정은 [ADR-0030](./docs/adr/0030-evidence-bound-knowledge-candidates.md)에 기록했습니다.
 
@@ -1536,5 +1542,7 @@ CLI stage approval transition integration boundary를 완료했습니다. Confir
 CLI first-publication stage evidence bundle manifest boundary를 완료했습니다. Stage approval의 여섯 원본을 공용 evidence-set validator로 다시 계산한 뒤 manifest 디렉터리 안의 다섯 상대 좌표와 canonical digest만 16 KiB owner-only 문서로 기록합니다. Transition은 기존 다섯 인자 또는 bundle 하나를 상호 배타적으로 받고, bundle 사용 때도 모든 원본과 manifest를 online 관측 뒤 다시 확인합니다. 결정은 [ADR-0131](./docs/adr/0131-cli-stage-evidence-bundle-manifest.md)에 기록했습니다.
 
 CLI first-publication completion inspection boundary를 완료했습니다. Stage bundle의 manifest와 여섯 원본, canonical transition receipt를 다시 읽고 stage reconciliation·공개 target·artifact·완료 의미를 직접 결속합니다. 저장된 최초 게시 transition 범위의 남은 수동 조치는 없다고 설명하되 현재 npm·GitHub 외부 상태와 receipt signer는 확인하지 않았음을 같은 report에 고정합니다. 결정은 [ADR-0132](./docs/adr/0132-cli-first-publication-completion-inspection.md)에 기록했습니다.
+
+사용자용 Codex·Claude 교차 숙의 CLI를 완료했습니다. 두 provider를 서로 다른 역할에 고정하고 역할별 managed session, 수신 역할별 E2/E3, 반대 provider의 writing 의미 평가, 명시적 검토 판정과 실제 project verification을 기존 숙의 event·artifact 계약에 연결했습니다. 한 shared context는 한 번만 공개하면서 역할별 handoff는 독립적으로 남기며, 미합의와 계약 실패를 수렴으로 올리지 않습니다. 결정은 [ADR-0133](./docs/adr/0133-cli-two-provider-deliberation.md)에 기록했습니다.
 
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

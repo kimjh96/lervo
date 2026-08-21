@@ -2,6 +2,7 @@ import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
 import type { ProjectStorage } from "@lervo/project-storage";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
+import type { ExecuteManagedDeliberation } from "./managed-deliberation.js";
 
 export interface CliIo {
   cwd: string;
@@ -11,6 +12,7 @@ export interface CliIo {
 
 export interface CliServices {
   executeManagedRun: ExecuteManagedRun;
+  executeManagedDeliberation: ExecuteManagedDeliberation;
   openProjectStorage(root: string): Promise<ProjectStorage>;
   inspectDoctorEnvironment(input: {
     repositoryRoot: string;

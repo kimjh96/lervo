@@ -105,6 +105,7 @@ First-publication external evidence는 license approval, npm scope control confi
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
 - `lervo run --provider <provider> --path <path> --verification <suite-id> [--verification <suite-id> ...] [--skill <skill-id> ...] <request>`: project storage, 스킬 해석, 프로젝트 검증과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
+- `lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] <topic>`: 서로 다른 두 provider를 역할별 독립 session에 고정하고 writing·검증 증거를 구조화된 숙의 runtime에 연결하는 사용자 명령
 - `lervo trace [run]`: 실행 근거와 이벤트 조회
 - `lervo doctor`: 문서·스킬·어댑터 로컬 상태 진단. Hub 연결 상태는 실제 transport와 연결 설정 구현 뒤 추가
 - `lervo docs check`: 문서 노후화 검사
@@ -275,6 +276,10 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 숙의는 provider adapter의 부가 기능이 아니라 Run Orchestrator가 여러 독립 role session을 순서화하는 공급자 중립 workflow입니다. `proposal`, `objection`, `revision`, `verification`, `decision` 산출물은 CAS 원문과 schema-valid metadata로 분리합니다. 참여자는 앞 산출물을 shared context로 발견하되 자기 session에서 현재 hash를 다시 E2/E3로 만들어야 하며, 다른 참여자의 전체 대화나 내부 추론은 전달하지 않습니다. Codex와 Claude를 함께 배치할 수 있지만 같은 공급자 역할 두 개도 동일 계약을 따릅니다.
 
 `DeliberationPolicy`는 참여 역할, 각 역할에 사용할 provider 선택 규칙, 결정 책임자, 필수 검증, 최대 회차, 반론 해소 기준과 공개 조건을 고정합니다. 종료 상태는 `converged`, `no_consensus`, `failed`로 구분합니다. `converged`는 결정 책임자의 schema-valid decision, 필수 verification 통과와 차단 반론 0개가 모두 필요합니다. 최대 회차에 도달하거나 차단 반론이 남으면 `no_consensus`이고, provider·telemetry·artifact 계약 실패는 `failed`입니다. 두 상태 모두 임의의 승자를 선택하거나 verified 지식으로 승격하지 않습니다.
+
+사용자용 `lervo deliberate` application은 명령 파싱, 역할·policy 조립, prompt, 산출물 계약, turn 기록, 수렴, provider 실행과 workspace 저장을 별도 모듈로 둡니다. 제안자와 검토자는 서로 다른 Codex·Claude provider와 매번 새 managed session을 사용합니다. 공개된 산출물 하나에는 `context.published` 하나만 만들되 두 역할이 받는 handoff와 E2/E3는 각각 따로 만듭니다. 이는 두 모델이 숨겨진 대화나 내부 추론 전체를 공유했다는 뜻이 아니라, 같은 원문 hash의 공개 문서를 각자의 session에 실제로 적재·주입했다는 뜻입니다.
+
+모든 사람용 산출물은 생산 provider가 아닌 반대 provider의 별도 평가 session에서 한국어 writing 계약을 검사합니다. 평가 응답은 추가 필드나 누락을 허용하지 않는 정확한 JSON이어야 하며 실패를 통과로 추정하지 않습니다. 검토 승인 뒤에는 명시된 project verification suite를 실제로 실행하고 `verification.completed`와 `run.completed`의 suite·revision·result artifact·상태를 함께 대조합니다. 실행별 문서는 `.lervo/state/deliberations/<id>/` 아래 writing policy, artifact, 평가 요청별 디렉터리로 원자적으로 게시하여 한 파일에 계속 덧붙이지 않습니다. 결정은 [ADR-0133](./docs/adr/0133-cli-two-provider-deliberation.md)에 기록합니다.
 
 `@lervo/deliberation`은 policy, artifact, 실제 verification 근거와 outcome을 provider 실행에서 분리해 검증합니다. 이력 좌표·역할 격리, mutable 상태, 종류별 artifact 전이와 최종 분석도 별도 모듈입니다. 검증 artifact는 claim ID뿐 아니라 현재 claim digest에 묶이고, 최신 revision을 직접 참조한 독립 승인과 모든 필수 suite의 채택 claim 검증이 있어야 `converged`가 됩니다. 의미 계층은 다른 역할의 managed run, Lervo session이나 context receipt 재사용을 거부하고, 실행 계층은 provider session 재사용까지 추가로 거부합니다.
 

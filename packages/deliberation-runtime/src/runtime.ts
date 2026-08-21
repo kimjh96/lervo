@@ -9,6 +9,8 @@ import {
   type DeliberationArtifact,
   type DeliberationArtifactKind,
   type DeliberationOutcome,
+  type EventEnvelope,
+  type SharedContextPublication,
 } from "@lervo/schemas";
 
 import { publishDeliberationArtifact } from "./artifact-publication.js";
@@ -35,7 +37,11 @@ export class DeliberationRuntime {
   private readonly verificationEvidence: DeliberationVerificationEvidence[] = [];
   private readonly recordedEvents = new Map<string, string>();
   private readonly providerSessionRoles = new Map<string, string>();
-  private readonly publishedArtifactIds = new Set<string>();
+  private readonly publishedArtifacts = new Map<string, {
+    publication: SharedContextPublication;
+    event: EventEnvelope;
+  }>();
+  private readonly publishedHandoffIds = new Set<string>();
   private turnRunning = false;
   private started = false;
   private completed = false;
@@ -185,13 +191,14 @@ export class DeliberationRuntime {
     this.assertStarted();
     this.assertNotCompleted();
     this.assertIdle();
-    if (this.publishedArtifactIds.has(input.artifactId)) {
+    if (this.publishedHandoffIds.has(input.handoff.handoffId)) {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
-        "artifact_already_published",
-        "같은 숙의 artifact의 shared context를 두 번 공개할 수 없습니다.",
+        "handoff_already_published",
+        "같은 숙의 handoff를 두 번 기록할 수 없습니다.",
       );
     }
+    const recordedPublication = this.publishedArtifacts.get(input.artifactId);
     const result = publishDeliberationHandoff({
       request: input,
       artifact: this.artifacts.find((candidate) =>
@@ -199,8 +206,15 @@ export class DeliberationRuntime {
       artifactEventId: this.recordedEvents.get(input.artifactId),
       policy: this.options.policy,
       recorder: this.recorder,
+      ...(recordedPublication === undefined ? {} : { recordedPublication }),
     });
-    this.publishedArtifactIds.add(input.artifactId);
+    if (recordedPublication === undefined) {
+      this.publishedArtifacts.set(input.artifactId, {
+        publication: clone(result.publication),
+        event: clone(result.publishedEvent),
+      });
+    }
+    this.publishedHandoffIds.add(input.handoff.handoffId);
     return result;
   }
 

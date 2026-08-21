@@ -46,7 +46,7 @@ export async function materializeProposalContext(input: {
       runId: input.proposal.artifact.producer.runId,
       sessionId: input.proposal.artifact.producer.sessionId,
     },
-    audience: { mode: "roles", roleIds: ["reviewer"] },
+    audience: { mode: "roles", roleIds: ["proposer", "reviewer"] },
     sensitivity: "normal",
     evidenceEventIds: [input.proposal.recordedEvent.eventId],
     publishedAt: input.proposal.artifact.createdAt,

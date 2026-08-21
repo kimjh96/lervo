@@ -1,4 +1,9 @@
-import type { DeliberationArtifact, DeliberationPolicy } from "@lervo/schemas";
+import type {
+  DeliberationArtifact,
+  DeliberationPolicy,
+  EventEnvelope,
+  SharedContextPublication,
+} from "@lervo/schemas";
 import { validateSchema } from "@lervo/schemas";
 
 import type { DeliberationEventRecorder } from "./event-recorder.js";
@@ -18,6 +23,10 @@ export function publishDeliberationHandoff(input: {
   artifactEventId: string | undefined;
   policy: DeliberationPolicy;
   recorder: DeliberationEventRecorder;
+  recordedPublication?: {
+    publication: SharedContextPublication;
+    event: EventEnvelope;
+  };
 }): PublishedDeliberationHandoff {
   const { publication, handoff } = input.request;
   const artifact = input.artifact;
@@ -63,8 +72,17 @@ export function publishDeliberationHandoff(input: {
     runId: artifact.producer.runId,
     sessionId: artifact.producer.sessionId,
   };
-  const [publishedEvent, handoffEvent] = input.recorder.appendMany([
-    {
+  if (
+    input.recordedPublication !== undefined &&
+    JSON.stringify(input.recordedPublication.publication) !== JSON.stringify(publication)
+  ) {
+    throw new DeliberationRuntimeError(
+      "artifact_publication_failed",
+      "publication_artifact_mismatch",
+      "이미 공개한 숙의 artifact의 shared context 좌표를 바꿀 수 없습니다.",
+    );
+  }
+  const publicationSpec = {
       type: "context.published",
       coordinates,
       occurredAt: publication.publishedAt,
@@ -80,8 +98,8 @@ export function publishDeliberationHandoff(input: {
           : [],
         expiresAt: publication.expiresAt,
       },
-    },
-    {
+    } as const;
+  const handoffSpec = {
       type: "handoff.created",
       coordinates,
       occurredAt: handoff.createdAt,
@@ -94,8 +112,14 @@ export function publishDeliberationHandoff(input: {
         evidenceEventIds: handoff.evidenceEventIds,
         requestDigest: handoff.requestDigest,
       },
-    },
-  ]);
+    } as const;
+  const recorded = input.recordedPublication === undefined
+    ? input.recorder.appendMany([publicationSpec, handoffSpec])
+    : input.recorder.appendMany([handoffSpec]);
+  const publishedEvent = input.recordedPublication?.event ?? recorded[0]!;
+  const handoffEvent = input.recordedPublication === undefined
+    ? recorded[1]!
+    : recorded[0]!;
   return {
     publication: clone(publication),
     handoff: clone(handoff),

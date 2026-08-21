@@ -57,6 +57,12 @@ importers:
       '@lervo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../../packages/deliberation
+      '@lervo/deliberation-runtime':
+        specifier: workspace:*
+        version: link:../../packages/deliberation-runtime
       '@lervo/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
@@ -93,6 +99,9 @@ importers:
       '@lervo/writing':
         specifier: workspace:*
         version: link:../../packages/writing
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../../packages/writing-contract
       esbuild:
         specifier: 0.28.2
         version: 0.28.2

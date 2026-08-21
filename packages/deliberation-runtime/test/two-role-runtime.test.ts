@@ -92,6 +92,24 @@ describe("same-provider independent role deliberation runtime", () => {
       publication,
       handoff,
     });
+    const proposerHandoff = {
+      ...structuredClone(handoff),
+      handoffId: "hnd_proposal_proposer",
+      toRoleId: "proposer",
+    };
+    runtime.publishHandoff({
+      artifactId: proposal.artifact.deliberationArtifactId,
+      publication,
+      handoff: proposerHandoff,
+    });
+    expect(() => runtime.publishHandoff({
+      artifactId: proposal.artifact.deliberationArtifactId,
+      publication,
+      handoff: proposerHandoff,
+    })).toThrowError(expect.objectContaining({
+      code: "runtime_state_invalid",
+      reason: "handoff_already_published",
+    }));
 
     const reviewerAdapter = new FixtureProviderAdapter(
       "codex-session-reviewer",
@@ -183,6 +201,8 @@ describe("same-provider independent role deliberation runtime", () => {
       "handoff.created",
       "deliberation.completed",
     ]));
+    expect(events.filter((event) => event.type === "context.published")).toHaveLength(1);
+    expect(events.filter((event) => event.type === "handoff.created")).toHaveLength(2);
     expect(JSON.stringify(events)).not.toContain(proposal.content);
     expect(JSON.stringify(events)).not.toContain(review.content);
     expect(fixture.events.verifyIntegrity().valid).toBe(true);

@@ -147,6 +147,18 @@ Researcher, marketer와 designer는 이름만 다른 prompt가 아니라 RolePro
 
 숙의 event는 `deliberation.started`, `deliberation.artifact.recorded`, `deliberation.completed`입니다. Started는 policy hash·참여 role·최대 회차, recorded는 artifact 종류·회차·생산 role·CAS hash·writing permit ID, completed는 outcome/status·마지막 회차·decision·미해결 차단 반론과 실패 phase/code만 허용합니다. Raw prompt, artifact 본문, provider 응답·payload, 내부 추론, tool input, credential과 상세 진단은 allowlist에 없습니다. Redaction 뒤 type별 payload schema가 필수 필드·ID·회차와 상태별 decision/failure null 규칙을 검사하며 실패하면 `invalid_payload`로 event 전체를 거부합니다. Runtime은 이 세 event를 SQLite에 기록하지만 기존 `run.completed`나 공급자 자유 형식 출력만으로 합의를 주장하지 않습니다.
 
+### `lervo deliberate` 사용자 숙의 계약
+
+명령은 서로 다른 `--proposer`와 `--reviewer`, 한 개 이상 16개 이하의 중복 없는 `--verification`, 20,000자 이하 주제를 요구합니다. 두 역할은 고정 provider와 독립 Lervo/provider session을 사용하며 최대 회차는 2입니다. 검토 응답 첫 줄은 정확히 `판정: 승인` 또는 `판정: 수정 필요`여야 합니다. 그 밖의 동의 표현이나 모호한 문장은 승인으로 해석하지 않고 계약 실패로 닫습니다.
+
+산출물을 기록할 때 producer run의 `run.completed` 결과와 모든 `verification.completed` 원본을 대조합니다. 결과 artifact뿐 아니라 검증 result artifact 전체가 완료 event에 있어야 하며 suite ID/hash, repository revision, verification ID/status와 result artifact 좌표가 모두 같아야 합니다. 승인된 최신 claim에 대해 명시된 project suite를 실제 실행한 뒤에만 verification·decision artifact를 만들 수 있습니다. 검증 실패는 `no_consensus`, provider·writing·event·artifact 계약 실패는 `failed`이며 어느 쪽도 결정이나 verified 지식으로 올리지 않습니다.
+
+각 사람용 산출물은 생산 provider와 반대인 provider의 새 managed session에서 writing 의미 평가를 받습니다. 평가 요청은 별도 E2/E3 문서이며 응답은 요청한 검사 순서와 개수를 그대로 가진 JSON 한 객체만 허용합니다. Markdown code fence, 추가·누락·중복 검사, `passed`와 violation 수의 모순은 공개 실패입니다. 이 평가는 provider가 산출물을 이해하거나 사실상 사용했다는 주장이 아니라, 해당 원문 hash에 대한 공개 적격성 판정입니다.
+
+공개한 산출물마다 `context.published`는 한 번 기록하고 proposer·reviewer handoff는 각 수신 역할별로 기록합니다. 수신 역할은 다음 managed run에서 자기 E2/E3를 새로 만들어야 하며 생산 역할의 receipt를 재사용할 수 없습니다. Event에는 원문, prompt, 내부 추론, 절대 경로와 provider payload를 넣지 않습니다. `.lervo/state/deliberations/<id>/`에는 writing policy, 산출물과 의미 평가 요청을 문서별 짧은 manifest와 `0600` 파일로 분리하고 기존 파일에 덧붙이지 않습니다.
+
+사람용 출력은 ID·digest·경로를 노출하지 않습니다. `--json`은 자동화용 구조화 결과입니다. 종료 코드는 수렴 0, `no_consensus` 2, 실행·계약 실패 1입니다. 이 명령은 기존 event를 사용하며 새 event 종류를 추가하지 않고, prompt에 스킬을 선택·적재·주입하거나 사용했다고 기록하지 않습니다. 결정은 [ADR-0133](./docs/adr/0133-cli-two-provider-deliberation.md)에 기록합니다.
+
 `@lervo/deliberation`은 schema-valid metadata를 실제 verification result artifact와 대조하고 역할 간 managed run/session/context receipt 재사용, 최신 수정 승인 누락, 과거 claim digest 검증과 outcome 위장을 거부합니다. `@lervo/deliberation-runtime`은 `ManagedProviderRunResult`의 E2/E3 evidence를 같은 run의 event 원본과 대조하고 역할 간 provider session 재사용도 거부합니다. `document.loaded.evidenceReceiptId`는 문서별 E2를, `context.injected.evidenceReceiptIds`는 envelope에서 만든 문서별 E3를 뜻하며 기존 `context.injected.receiptId`는 adapter receipt 의미를 유지합니다. Runtime은 역할별 provider 정책을 managed run 직후 확인하며, 허용되지 않은 provider면 writing 평가 전에 `artifact_publication_failed/provider_not_allowed`로 중단합니다. 허용된 결과도 writing 평가와 permit 재검증, 이전 artifact의 shared-context 재적재, 현재 history 검증을 통과한 경우에만 artifact event를 기록합니다. Codex의 developer message 주입과 Claude의 context replay처럼 provider별 표현은 adapter 내부에만 남고 공통 receipt·artifact·event 의미는 바뀌지 않습니다. 상세 결정은 [ADR-0019](./docs/adr/0019-provider-neutral-deliberation.md), [ADR-0026](./docs/adr/0026-structured-deliberation-contracts.md), [ADR-0027](./docs/adr/0027-deliberation-boundary-hardening.md), [ADR-0028](./docs/adr/0028-same-provider-deliberation-runtime.md)과 [ADR-0029](./docs/adr/0029-cross-provider-deliberation-runtime.md)에 정의합니다.
 
 ## Context preparation 첫 슬라이스
