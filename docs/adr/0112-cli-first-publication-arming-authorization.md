@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-21
 
+> 후속 결정: [ADR-0113](./0113-cli-first-publication-unknown-outcome-reconciliation.md)은 arming에 결속된 unknown terminal의 외부 결과를 자동 재시도 없이 다시 관측합니다.
+
 ## 맥락
 
 Bootstrap v2는 외부 요구와 exact release를 결속하지만 사람에게 실제 실행 시도를 승인받은 문서가 아닙니다. Execution plan은 위험 순서와 취소 처분을 설명하지만 의도적으로 `not_armed`이고, read-only preflight의 `ready`도 실행 permit가 아닙니다. 이 셋 중 하나만으로 실행 코어를 호출할 수 있으면 문서의 비권한성 설명과 실제 경계가 어긋납니다.

@@ -5,6 +5,8 @@
 
 > 후속 결정: [ADR-0112](./0112-cli-first-publication-arming-authorization.md)는 durable reservation v2에 arming authorization digest를 추가했습니다.
 
+> 후속 결정: [ADR-0113](./0113-cli-first-publication-unknown-outcome-reconciliation.md)은 저장 adapter의 `inspect`를 비생성 읽기로 좁히고 immutable unknown terminal을 대조 원본으로 사용합니다.
+
 ## 맥락
 
 ADR-0098의 실행 코어는 게시 전에 durable 예약을 요구하지만 저장 구현은 port로만 남아 있었습니다. Process-local 저장은 재시작이나 응답 유실 뒤 같은 bootstrap을 다시 게시할 수 있어 일회성 경계를 지키지 못합니다.

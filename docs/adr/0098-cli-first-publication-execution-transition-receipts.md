@@ -5,6 +5,8 @@
 
 > 후속 결정: [ADR-0112](./0112-cli-first-publication-arming-authorization.md)는 실행 전에 arming authorization을 필수화하고 reservation·execution receipt를 v2로 올렸습니다.
 
+> 후속 결정: [ADR-0113](./0113-cli-first-publication-unknown-outcome-reconciliation.md)은 `publication_unknown` terminal을 바꾸지 않고 public npm에서 결과를 다시 읽는 보고서를 추가했습니다.
+
 ## 맥락
 
 Bootstrap authorization만으로는 실제 게시가 한 번만 시도됐는지, npm 응답을 잃은 뒤 안전하게 재시도할 수 있는지, 게시 뒤 상시 경로가 stage-only로 좁아졌는지 알 수 없습니다. 외부 게시 호출은 로컬 저장과 원자적으로 묶을 수 없으므로 단순한 성공·실패 boolean은 중복 게시 위험을 숨깁니다.

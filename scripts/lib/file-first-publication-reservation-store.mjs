@@ -224,8 +224,10 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
       if (!reservationIdPattern.test(reservationId ?? "")) {
         fail("first_publication_store_input_invalid");
       }
-      await ensureDirectory(rootDirectory, true);
+      if (!await pathExists(rootDirectory)) fail("first_publication_store_missing");
+      await ensureDirectory(rootDirectory);
       const directory = resolve(rootDirectory, reservationId);
+      if (!await pathExists(directory)) fail("first_publication_store_missing");
       await ensureDirectory(directory);
       const reservation = validateStoredFirstPublicationReservation(
         await readRecord(resolve(directory, "reservation.json")),

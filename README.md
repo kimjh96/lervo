@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서·metadata 후보·적용 허가·복구 가능한 적용 transaction·적용 결과 사후 검증·외부 요구사항 증거 결속·bootstrap v2·일회성 arming authorization·불명확한 게시 결과 대조 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -132,6 +132,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 외부 요구사항 증거 보고서 ADR](./docs/adr/0110-cli-first-publication-external-requirement-evidence-report.md)
 - [CLI 최초 공개 게시 bootstrap v2 증거 결속 ADR](./docs/adr/0111-cli-first-publication-bootstrap-v2-evidence-integration.md)
 - [CLI 최초 공개 게시 일회성 arming authorization ADR](./docs/adr/0112-cli-first-publication-arming-authorization.md)
+- [CLI 최초 공개 게시 불명확한 결과 대조 ADR](./docs/adr/0113-cli-first-publication-unknown-outcome-reconciliation.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -270,6 +271,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `pnpm release:bootstrap:authorize --release-directory <absolute-path> --publication-authorization <absolute-path> --external-evidence <absolute-path> --output <new-absolute-path> --online`은 external evidence report v1을 exact release bytes·package identity와 새 public npm 404 관측에 다시 결속해 bootstrap v2를 만듭니다. Bootstrap은 license·scope·최초 게시 승인 문서를 다시 직접 해석하지 않으며 evidence report와 그 안의 post-apply·receipt·세 사람 문서 digest를 보존합니다. 유효기간은 evidence report 만료와 새 관측 뒤 10분 중 더 이른 시각입니다. v1 bootstrap과 예전 `--approval` 입력은 명시적으로 거부합니다. 결과는 수동 2FA 게시 준비물이며 재사용할 수 없고, private package 부재·실제 npm scope 권한·actor 신원을 증명하지 않습니다. Credential, 실제 게시, Trusted Publisher·GitHub 설정 변경도 실행하지 않습니다.
 
 최초 게시 실행 코어는 유효한 arming authorization을 실행 시작과 예약 직전에 다시 확인하고, public package 부재를 재관측한 뒤 authorization digest에 결속된 durable 예약을 확보해야 exact tarball publisher port를 호출합니다. 호출 뒤 결과를 확인하지 못하면 `publication_unknown`으로 닫고 같은 bootstrap의 재시도를 금지하며, 성공해도 `published_transition_pending`일 뿐입니다. 별도 전환 코어가 stage-only workflow, exact npm `createStagedPackage` trust와 self-review를 막은 GitHub `npm-release` 보호를 모두 확인한 뒤에만 bootstrap을 `consumed`로 완료합니다. 실제 2FA 게시 CLI·외부 설정·workflow publish job은 없습니다.
+
+`pnpm release:bootstrap:reconcile --publication-authorization <절대 경로> --bootstrap <절대 경로> --arming-authorization <절대 경로> --reservation-root <절대 경로> --online [--json]`은 `publication_unknown`으로 끝난 exact 예약만 public npm의 대상 version metadata와 dist-tag에 대조합니다. 두 값이 승인된 release와 모두 일치할 때 `published`, 둘 다 보이지 않을 때 `not_observed`, 일부만 보이거나 digest가 다르고 registry를 읽지 못하면 `unknown`입니다. 어느 결과도 자동 재시도나 게시 완료 전환 권한이 아니며 명령은 기존 예약·terminal·외부 설정을 바꾸거나 결과 파일을 남기지 않습니다.
 
 최초 게시 예약의 파일 adapter는 예약별 directory에 immutable `reservation.json`과 terminal 하나만 두며 재시작 뒤 중복 실행을 닫습니다. npm 대화형 adapter는 TTY·비CI·환경 credential 부재, `auth-and-writes` profile과 exact 사전 확인을 거친 뒤 direct publish를 현재 terminal에 연결합니다. 게시 뒤 2FA challenge 완료 확인은 사람 진술이며 npm이 발급한 proof로 표현하지 않습니다. 이 adapter를 여는 CLI 명령은 아직 없으므로 실제 npm 게시 경로는 비활성입니다.
 

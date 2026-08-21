@@ -961,6 +961,21 @@ CLI first-publication 실행·전환 영수증 완료 조건:
 - 예약·실행 영수증·전환 정책·완료 영수증과 외부 port 조정 책임이 분리됨
 - Fixture가 실제 npm 게시, 2FA, trust·GitHub 설정이나 원격 workflow 성공을 주장하지 않음
 
+CLI first-publication 불명확한 결과 대조 완료 조건:
+
+- Reservation v2와 exact `publication_unknown`, `retry=forbidden` terminal만 입력으로 받음
+- Public npm의 대상 version integrity·shasum과 dist-tag를 서로 독립적으로 관측함
+- Exact release와 두 관측이 모두 일치할 때만 `published`로 판정함
+- Version과 대상 dist-tag가 모두 보이지 않을 때만 `not_observed`로 판정함
+- 부분 일치·digest 불일치·registry 실패를 `unknown`으로 유지함
+- `not_observed`도 자동 재시도나 새 bootstrap 사용 권한으로 해석하지 않음
+- `published`도 execution receipt·2FA proof·전환 완료로 승격하지 않음
+- Contract bytes와 immutable 저장 snapshot을 online 관측 전후 대조함
+- 누락된 reservation root를 만들지 않고 예약·terminal·외부 설정을 바꾸지 않음
+- Registry 응답을 bounded read하고 다른 digest·tag·오류 원문을 report에 넣지 않음
+- Human·JSON이 같은 canonical report를 stdout에만 반환함
+- 새 runtime event·project 상태·telemetry를 만들지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1183,4 +1198,6 @@ CLI first-publication bootstrap v2 evidence integration을 완료했습니다. B
 
 CLI first-publication arming authorization boundary를 완료했습니다. Canonical 사람 decision을 exact bootstrap·publication authorization·재계산한 execution plan에 최대 5분 결속하고 actor 원문을 결과에서 제거합니다. 실행 코어는 authorization을 시작과 public 재관측 뒤 다시 확인하며 reservation·execution receipt v2가 authorization digest를 보존합니다. 같은 bootstrap 재arming은 같은 reservation ID를 사용해 one-shot 소비를 우회하지 못합니다. 발급 명령은 source snapshot과 새 output만 다루고 online 관측·prompt·예약·게시·외부 설정을 실행하지 않으며 publisher CLI도 열지 않았습니다. 결정은 [ADR-0112](./docs/adr/0112-cli-first-publication-arming-authorization.md)에 기록했습니다.
 
-다음 구현 작업은 publisher 호출 뒤 `publication_unknown`으로 닫힌 terminal을 자동 재시도하지 않고 public npm metadata·dist-tag와 exact release digest에서 `published|not_observed|unknown`을 구분하는 읽기 전용 **CLI first-publication unknown outcome reconciliation report**입니다.
+CLI first-publication unknown outcome reconciliation report를 완료했습니다. Exact reservation v2와 immutable `publication_unknown` terminal을 원본으로 두고, public npm의 대상 version integrity·shasum과 dist-tag를 bounded anonymous observer로 읽습니다. 두 관측이 exact release와 모두 일치할 때만 `published`, 둘 다 보이지 않을 때 `not_observed`, 부분 일치·digest 불일치·registry 실패는 `unknown`으로 남깁니다. Contract와 저장 snapshot은 관측 전후 다시 확인하며 stdout report 외 파일·예약·terminal·게시·외부 설정을 바꾸지 않습니다. 어느 결과도 자동 재시도나 전환 완료 권한이 아닙니다. 결정은 [ADR-0113](./docs/adr/0113-cli-first-publication-unknown-outcome-reconciliation.md)에 기록했습니다.
+
+다음 구현 작업은 `published` reconciliation report를 execution receipt로 가장하거나 기존 terminal을 덮어쓰지 않고, 별도 immutable 문서에서 사람 검토와 exact report를 결속해 후속 전환 가능 여부를 결정하는 **CLI first-publication reconciliation resolution boundary**입니다.
