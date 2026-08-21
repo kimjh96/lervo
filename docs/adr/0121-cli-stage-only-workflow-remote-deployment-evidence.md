@@ -75,4 +75,4 @@ Side effect는 files·GitHub settings unchanged, workflow dispatch·publication 
 
 GitHub API·source reader·순수 결속 정책·standalone report·CLI 조정기·formatter를 분리했습니다. Fixture는 exact GET 좌표, base64·size·path 상한, 무쓰기 성공, repository·commit·bytes 불일치, redigest 권한 상향, action SHA 변경, 관측 중 source 변경, 시작 전·관측 중 transaction과 CLI 권한 분리를 검증합니다.
 
-현재 production workflow에는 stage job을 적용하거나 원격 배포하지 않았고 GitHub API 실제 호출, workflow 실행, npm stage·2FA·공개도 수행하지 않았습니다. 다음 단계는 이 source commit이 저장소의 기본 브랜치와 의도한 release tag에서 도달 가능한지 별도 증거로 결속하는 경계입니다.
+현재 production workflow에는 stage job을 적용하거나 원격 배포하지 않았고 GitHub API 실제 호출, workflow 실행, npm stage·2FA·공개도 수행하지 않았습니다. 후속 ref 도달 가능성 증거 경계는 [ADR-0122](./0122-cli-stage-only-workflow-ref-reachability-evidence.md)에 기록합니다.

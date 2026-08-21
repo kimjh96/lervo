@@ -1103,6 +1103,24 @@ CLI stage-only workflow remote deployment evidence 완료 조건:
 - Exact GET, 응답 상한, 무쓰기, repository·commit·bytes 불일치, redigest 상향과 transaction race를 검증함
 - 현재 production workflow 적용·원격 배포·GitHub 실제 관측·실행·npm stage·2FA·공개를 주장하지 않음
 
+CLI stage-only workflow ref reachability evidence 완료 조건:
+
+- 저장한 remote evidence와 current CLI package를 bounded canonical JSON snapshot으로 읽음
+- Standalone upstream reader가 exact source binding·한계·효과·시각·digest를 검증함
+- Repository·source commit을 upstream target과 대조하고 tag를 exact package version에 결속함
+- Exact source commit의 bounded CLI package bytes를 current canonical package snapshot과 대조함
+- GitHub repository metadata·default branch ref·release tag ref와 exact SHA compare만 GET함
+- Lightweight tag와 최대 5단계 annotated tag chain을 구분하고 tag metadata 원문을 버림
+- Exact source commit이 default head의 조상이거나 같은지 merge-base로 판정함
+- Release tag가 역참조 뒤 exact source commit을 가리켜야 함
+- 관측 끝에 repository·branch·tag ref를 다시 읽어 움직이는 ref를 거부함
+- GitHub 관측 뒤 upstream report·package source race를 거부함
+- Report가 관측 시점 default-branch 조상·exact-tag 관계만 evidence-bound로 표현함
+- Upstream 진위·ref 사후 불변성·workflow 실행·stage·2FA·공개를 별도 미검증으로 유지함
+- 파일·GitHub 설정·Git ref·workflow dispatch·publication·runtime state를 바꾸지 않음
+- Source package mismatch, lightweight·nested annotated tag, 비조상, 다른 tag commit, ref 이동·깊이 상한·redigest를 검증함
+- 현재 production workflow 적용·원격 배포·GitHub 실제 관측·실행·npm stage·2FA·공개를 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1343,4 +1361,6 @@ CLI stage-only workflow activation post-apply verification boundary를 완료했
 
 CLI stage-only workflow remote deployment evidence boundary를 완료했습니다. GitHub GET observer, bounded local source, byte·stage 정책, standalone report와 CLI 조정기를 분리하고 exact repository·40자 commit·고정 workflow path의 원격 파일을 current post-apply report·workflow bytes에 결속했습니다. Evidence는 해당 commit에 같은 stage-only source가 있음을 뜻할 뿐 default branch·release tag 도달 가능성, workflow 실행·stage·공개는 별도로 남깁니다. 결정은 [ADR-0121](./docs/adr/0121-cli-stage-only-workflow-remote-deployment-evidence.md)에 기록했습니다.
 
-다음 구현 작업은 exact source commit이 저장소의 기본 브랜치와 의도한 `v*` release tag에서 도달 가능한지 읽기 전용으로 결속하는 **CLI stage-only workflow branch·tag reachability evidence boundary**입니다. 움직이는 ref와 commit ancestry, annotated tag 해석을 분리하고 workflow 실행이나 npm stage 결과는 계속 별도 증거로 유지합니다.
+CLI stage-only workflow ref reachability evidence boundary를 완료했습니다. Exact remote evidence와 source commit의 CLI package bytes·version을 current package·release tag에 묶고, GitHub default branch merge-base와 lightweight·bounded annotated tag를 읽기 전용으로 판정합니다. Repository·branch·tag ref를 관측 끝에 다시 읽어 움직이는 ref를 차단하며 report는 관측 시점 관계만 표현합니다. 결정은 [ADR-0122](./docs/adr/0122-cli-stage-only-workflow-ref-reachability-evidence.md)에 기록했습니다.
+
+다음 구현 작업은 exact workflow path·source commit·release tag에 해당하는 GitHub Actions run과 terminal job 결과를 읽기 전용으로 결속하는 **CLI stage-only workflow execution evidence boundary**입니다. Run 선택·재실행·attempt와 artifact 좌표를 명시적으로 구분하고 npm stage 접수·2FA·공개 결과는 계속 별도 증거로 유지합니다.

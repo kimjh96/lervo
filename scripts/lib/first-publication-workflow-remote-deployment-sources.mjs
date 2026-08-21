@@ -2,10 +2,13 @@ import { isAbsolute, resolve } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import {
+  createBoundedReleaseSourceSnapshot,
+  parseCanonicalReleaseJson,
+} from "./bounded-release-json-source.mjs";
+import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
 } from "./release-attestation-file-set.mjs";
-import { sha256 } from "./release-artifact-manifest.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
 import { maximumRemoteWorkflowBytes } from
   "./first-publication-workflow-remote-source-contract.mjs";
@@ -21,30 +24,6 @@ function fail() {
     "first_publication_workflow_remote_deployment_source_invalid",
     "CLI stage-only workflow 원격 배포 증거 원본이 올바르지 않습니다.",
   );
-}
-
-function snapshot(path, contents, maximumSize) {
-  return {
-    path,
-    contents,
-    maximumSize,
-    byteCount: contents.length,
-    sha256: sha256(contents),
-  };
-}
-
-function parseCanonicalReport(contents) {
-  let report;
-  try {
-    report = JSON.parse(contents.toString("utf8"));
-  } catch {
-    fail();
-  }
-  if (
-    report === null || typeof report !== "object" || Array.isArray(report) ||
-    !contents.equals(Buffer.from(`${JSON.stringify(report, null, 2)}\n`))
-  ) fail();
-  return report;
 }
 
 export async function readFirstPublicationWorkflowRemoteDeploymentSources(
@@ -65,18 +44,24 @@ export async function readFirstPublicationWorkflowRemoteDeploymentSources(
   } catch {
     fail();
   }
-  const workflowSnapshot = snapshot(
+  const workflowSnapshot = createBoundedReleaseSourceSnapshot(
     paths.workflowPath,
     workflowContents,
     maximumRemoteWorkflowBytes,
   );
-  const reportSnapshot = snapshot(
+  const reportSnapshot = createBoundedReleaseSourceSnapshot(
     postApplyReportPath,
     reportContents,
     maximumReportBytes,
   );
+  let postApplyReport;
+  try {
+    postApplyReport = parseCanonicalReleaseJson(reportContents);
+  } catch {
+    fail();
+  }
   return {
-    postApplyReport: parseCanonicalReport(reportContents),
+    postApplyReport,
     workflowSnapshot,
     reportSnapshot,
     assertUnchanged: () => assertReleaseFilesUnchanged([
