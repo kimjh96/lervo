@@ -1216,6 +1216,21 @@ CLI interactive npm stage approval execution 완료 조건:
 - Reject·direct publish fallback·runtime state·telemetry를 만들지 않음
 - 실제 production npm stage approve·2FA·공개를 fixture 성공으로 주장하지 않음
 
+CLI npm stage approval reconciliation evidence 완료 조건:
+
+- Success·unknown terminal 모두 exact attempt·authorization·review 원본에 다시 결속함
+- Public version metadata와 dist-tag를 기존 bounded anonymous observer로 새로 읽음
+- 인증된 stage list를 public 관측 앞뒤로 읽고 전체 normalized set 변경을 거부함
+- Exact version stage를 absent·present·replacement·ambiguous로 구분함
+- Public integrity·shasum·dist-tag와 승인 대상 stage 부재가 모두 맞을 때만 공개를 확인함
+- Public 미관측과 exact stage 잔존을 approval not confirmed로 구분하되 retry를 허가하지 않음
+- 불일치·부분 관측·registry 실패·stage set 이상은 unknown으로 유지함
+- Stage ID·actor·credential·npm 원문을 observation·report·오류에 넣지 않음
+- User config·source files·attempt·terminal을 관측 뒤 재확인함
+- 임시 files를 제거하고 approve·reject·publication·terminal 변경을 실행하지 않음
+- Standalone report가 redigest outcome 상향을 거부함
+- 실제 production public package와 stage 상태를 fixture로 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1470,4 +1485,6 @@ CLI npm stage approval durable record boundary를 완료했습니다. Authorizat
 
 CLI interactive npm stage approval execution boundary를 완료했습니다. Exact review·decision·authorization을 재계산하고 TTY·client·user config와 current stage를 격리 확인한 뒤 attempt가 durable한 경우에만 `npm stage approve`를 한 번 호출합니다. Raw stage ID는 adapter closure와 redacted child stream 밖으로 내보내지 않고 OTP·npm 원문은 저장하지 않습니다. 성공도 public availability를 주장하지 않으며 unknown과 blind retry를 fail-closed합니다. 결정은 [ADR-0128](./docs/adr/0128-cli-interactive-npm-stage-approval-execution.md)에 기록했습니다.
 
-다음 구현 작업은 success·unknown terminal 모두에서 public npm의 exact version·dist-tag·tarball digest를 새로 관측하고 stage의 잔존 여부와 함께 결과를 판정하는 **CLI npm stage approval reconciliation evidence boundary**입니다. 이 경계는 terminal을 바꾸거나 approve를 재시도하지 않습니다.
+CLI npm stage approval reconciliation evidence boundary를 완료했습니다. Success·unknown terminal을 같은 immutable source로 읽고 public exact version·dist-tag 관측 사이의 authenticated stage list가 안정적인지 확인합니다. Exact public digest·tag와 승인 대상 stage 부재가 함께 맞을 때만 공개를 확인하고 나머지는 not-confirmed·unknown으로 제한하며 retry·transition 권한을 만들지 않습니다. 결정은 [ADR-0129](./docs/adr/0129-cli-npm-stage-approval-reconciliation-evidence.md)에 기록했습니다.
+
+다음 구현 작업은 `public_release_confirmed` stage approval evidence를 기존 transition evidence tagged union에 새 provenance member로 추가하고 transition completion CLI가 같은 public release·workflow·npm trust·GitHub environment gate를 재사용하게 하는 **stage approval transition integration boundary**입니다.

@@ -37,15 +37,19 @@ function parseJson(stdout) {
 }
 
 export function parseNpmStageList(stdout, version) {
-  const response = parseJson(stdout);
-  if (!Array.isArray(response) || response.length > maximumStageCount) {
-    throw new TypeError("npm stage list response is invalid");
-  }
-  const stages = response.map(normalizeStage);
+  const stages = parseNpmStageListResponse(stdout);
   const matches = stages.filter((stage) => stage.version === version);
   if (matches.length === 0) return { state: "unavailable", reason: "stage_not_found" };
   if (matches.length !== 1) return { state: "unavailable", reason: "stage_ambiguous" };
   return { state: "selected", stage: matches[0] };
+}
+
+export function parseNpmStageListResponse(stdout) {
+  const response = parseJson(stdout);
+  if (!Array.isArray(response) || response.length > maximumStageCount) {
+    throw new TypeError("npm stage list response is invalid");
+  }
+  return response.map(normalizeStage);
 }
 
 export function parseNpmStageView(stdout) {

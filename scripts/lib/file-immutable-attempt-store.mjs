@@ -99,6 +99,14 @@ export function createFileImmutableAttemptStore({
   }
 
   return {
+    async inspect() {
+      const attempt = await existingAttempt();
+      const terminal = bindTerminal(await existingTerminal(), attempt);
+      return {
+        attempt: structuredClone(attempt),
+        terminal: structuredClone(terminal),
+      };
+    },
     async reserve(attempt) {
       validateAttempt(attempt);
       try {
