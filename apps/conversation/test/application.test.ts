@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { openConversationApplication } from "../src/index.js";
 
@@ -111,5 +111,67 @@ describe("conversation deployment composition", () => {
       ...options(root),
       slack: [],
     })).rejects.toThrow("integration");
+  });
+
+  it("keeps a deliberation command durable across application restarts", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-deliberation-"));
+    roots.push(root);
+    const execute = vi.fn(async (job: { deliberationId: string }) => ({
+      deliberationId: job.deliberationId,
+      status: "no_consensus" as const,
+      artifactCount: 4,
+      nextAction: "none" as const,
+    }));
+    const configured = {
+      ...options(root),
+      deliberations: {
+        bindings: [{
+          projectId: "prj_platform01",
+          participantId: "ptc_platform01",
+          principalId: "operator:reviewer",
+          permissions: ["deliberation.start", "deliberation.read"] as const,
+        }],
+        executor: { execute },
+        workerId: "conversation-worker-1",
+      },
+    };
+    let application = await openConversationApplication(configured);
+    const adapter = application.slackAdapters.get("itg_slack001");
+    if (adapter === undefined || application.deliberations === null) {
+      throw new Error("Conversation 숙의 배포가 누락되었습니다.");
+    }
+    const received = await adapter.receive(signed(event({
+      id: "Ev-deliberation-1",
+      ts: "1787191200.000200",
+    })));
+    if (received.status !== "accepted") throw new Error("숙의 event가 수신되지 않았습니다.");
+    const first = await application.deliberations.start({
+      event: received.event,
+      policyId: "deliberation_product-review",
+      topic: "배포 구조를 검토합니다.",
+      requestedAt: "2026-08-20T02:00:00.000Z",
+    });
+    application.close();
+
+    application = await openConversationApplication(configured);
+    if (application.deliberations === null) throw new Error("숙의 control이 복원되지 않았습니다.");
+    const duplicate = await application.deliberations.start({
+      event: received.event,
+      policyId: "deliberation_product-review",
+      topic: "배포 구조를 검토합니다.",
+      requestedAt: "2026-08-20T02:00:01.000Z",
+    });
+    expect(duplicate.deliberationId).toBe(first.deliberationId);
+    await expect(application.runDeliberationWorkerCycle()).resolves.toMatchObject({
+      status: "settled",
+      deliberationId: first.deliberationId,
+    });
+    expect(execute).toHaveBeenCalledOnce();
+    await expect(application.deliberations.inspect({
+      event: received.event,
+      deliberationId: first.deliberationId,
+      inspectedAt: "2026-08-20T02:03:00.000Z",
+    })).resolves.toMatchObject({ status: "no_consensus", artifactCount: 4 });
+    application.close();
   });
 });

@@ -4,6 +4,12 @@ import type {
 } from "@lervo/adapter-discord";
 import type { SlackConversationAdapter } from "@lervo/adapter-slack";
 import type {
+  ConversationDeliberationExecutionPort,
+  ConversationDeliberationPort,
+  ConversationDeliberationPrincipalBinding,
+  ConversationDeliberationWorkerCycleResult,
+} from "@lervo/conversation-control";
+import type {
   ConversationPlatformConversationBinding,
   ConversationPlatformParticipantBinding,
   ConversationPlatformThreadBinding,
@@ -38,6 +44,13 @@ export interface ConversationApplicationOptions {
   threads?: readonly ConversationPlatformThreadBinding[];
   slack?: readonly SlackConversationDeployment[];
   discord?: readonly DiscordConversationDeployment[];
+  deliberations?: {
+    bindings: readonly ConversationDeliberationPrincipalBinding[];
+    executor: ConversationDeliberationExecutionPort;
+    workerId: string;
+    leaseDurationMs?: number;
+    maxRecords?: number;
+  };
   now?: () => Date;
   fetch?: typeof globalThis.fetch;
 }
@@ -45,5 +58,7 @@ export interface ConversationApplicationOptions {
 export interface ConversationApplication {
   slackAdapters: ReadonlyMap<string, SlackConversationAdapter>;
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;
+  deliberations: ConversationDeliberationPort | null;
+  runDeliberationWorkerCycle(): Promise<ConversationDeliberationWorkerCycleResult>;
   close(): void;
 }

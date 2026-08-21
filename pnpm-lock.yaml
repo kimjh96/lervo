@@ -120,6 +120,12 @@ importers:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../../packages/cas
+      '@lervo/conversation-control':
+        specifier: workspace:*
+        version: link:../../packages/conversation-control
+      '@lervo/conversation-deliberation-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/conversation-deliberation-sqlite
       '@lervo/conversation-platform-sqlite':
         specifier: workspace:*
         version: link:../../packages/conversation-platform-sqlite
@@ -303,6 +309,12 @@ importers:
       '@lervo/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/conversation-deliberation-sqlite:
+    dependencies:
+      '@lervo/conversation-control':
+        specifier: workspace:*
+        version: link:../conversation-control
 
   packages/conversation-platform:
     dependencies:

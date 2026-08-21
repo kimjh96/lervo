@@ -343,6 +343,7 @@ fixtures/
 8. 명시적 관계 기반 지식 그래프 시각화 — 완료
 9. 실제 검색 실패 관측과 전문 검색 baseline, 측정 결과에 따른 임베딩/RAG 도입 판단 — 관측·`lexical-v1`·managed context 추천·검토된 반복 평가 첫 슬라이스 완료, 도입 판단 보류
 10. 조직 단위 비용·품질·가드레일 분석
+11. 대화 숙의 durable queue와 fail-closed worker — 완료
 
 Conversation 첫 슬라이스 완료 조건:
 
@@ -371,6 +372,16 @@ Hub command/approval 대화 UX 완료 조건:
 - `/control`은 token을 탭 메모리에만 두고 별도 bearer 인증과 `approval.write` 뒤에만 기존 signed approval을 만듦
 - Review 응답과 오류에 request artifact, command hash·signature, approver subject hash, principal, token과 grant가 노출되지 않음
 - 실제 SQLite·HTTP fixture가 승인 없음, 일부 승인, 전체 승인과 철회 뒤 상태를 원본에서 다시 계산함
+
+대화 숙의 durable queue 완료 조건:
+
+- `(projectId, sourceEventId)`가 같은 재요청은 process와 application 재시작 뒤에도 같은 숙의 ID를 반환하고 다른 principal·policy·topic 요청은 기존 record를 덮지 않음
+- Platform adapter와 responder는 장시간 숙의 실행을 직접 호출하지 않고 별도 queue에 빠르게 예약함
+- Job identity, principal hash, 실행 입력과 `queued`, `leased`, `settled`, `uncertain` 전이가 mode `0600`의 별도 SQLite에 보존됨
+- 한 worker만 job lease를 얻으며 실행 port의 결과가 숙의 ID·상태·산출물 수 규칙과 다르면 종료로 저장하지 않음
+- 실행 중 process 종료나 executor 예외처럼 외부 효과를 증명할 수 없는 job은 `unknown`으로 남고 자동 재실행되지 않음
+- Queue가 provider, CLI와 platform transport를 알지 않고 배포가 공급자 중립 실행 port를 주입함
+- Queue 예약·lease·요약을 전역 숙의 event, 완료 증거 또는 `selected`, `loaded`, `injected`, `used`로 승격하지 않음
 
 전문 역할 계약 완료 조건:
 
@@ -1554,5 +1565,7 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 플랫폼 중립 대화 숙의 제어를 완료했습니다. 명시적인 저장 policy 시작과 숙의 ID 상태 조회만 해석하고, project·human participant를 principal의 시작·조회 권한에 결속합니다. Slack·Discord·자체 채팅이 같은 responder와 숙의 port를 사용하며 결과는 writing gate와 interaction outbox를 거칩니다. 자연어는 실행으로 추정하지 않고 backend가 없거나 상태 좌표가 다르면 실패합니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록했습니다.
 
 숙의 실행 lease와 ID 기반 진단을 완료했습니다. 승인 checkpoint부터 종료까지 process lease가 동시 재개를 차단하고 죽은 process의 lease만 경쟁 없이 인계합니다. `deliberate status`, `trace --deliberation`, `doctor --deliberation`은 event·checkpoint·lease를 읽어 활성 실행, 승인 뒤 중단 후보, 완료와 증명할 수 없는 승인 전 불완전 상태를 구분합니다. 대화 상태 backend도 같은 구분을 반환해야 하며 `unknown`을 완료나 중단으로 추정하지 않습니다. 결정은 [ADR-0137](./docs/adr/0137-deliberation-liveness-and-diagnostics.md)에 기록했습니다.
+
+대화 숙의 durable queue를 완료했습니다. `(projectId, sourceEventId)`를 멱등 키로 쓰는 결정적 숙의 ID와 owner-only SQLite job을 추가하고, conversation app이 platform adapter와 분리된 queue control·한 cycle worker를 조합합니다. 실행 결과 저장 전 외부 효과를 확인할 수 없게 되면 lease를 재사용하지 않고 `uncertain`·대화 `unknown`으로 닫습니다. Principal 원문과 provider 오류는 저장하지 않으며 실행기는 공급자 중립 port로 주입합니다. 결정은 [ADR-0138](./docs/adr/0138-durable-conversation-deliberation-queue.md)에 기록했습니다.
 
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

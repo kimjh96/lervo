@@ -1362,6 +1362,21 @@ Start backend는 canonical source event ID를 함께 받고 `(projectId, sourceE
 
 응답은 Hub command 응답과 같은 `chat` writing gate·CAS·interaction outbox를 사용합니다. Responder는 Slack, Discord나 자체 채팅 transport를 직접 호출하지 않으며 backend의 동기 실행, durable queue 또는 로컬 상태 저장 방식을 규정하지 않습니다. Backend가 없거나 좌표가 다르면 `deliberation_source_failed`로 닫습니다. 새 event·승인·숙의 완료 상태를 만들지 않고 명령 수신만으로 E2/E3나 사용을 주장하지 않습니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록합니다.
 
+#### 대화 숙의 durable queue
+
+`apps/conversation`의 실제 비동기 backend는 `@lervo/conversation-deliberation-sqlite`를 별도 `deliberations.sqlite`로 엽니다. 파일은 mode `0600`이며 외부 주소·credential이 있는 `platform.sqlite`, 본문 CAS, interaction inbox/outbox와 섞지 않습니다. 저장하는 job 필드는 project ID, canonical source event ID, 결정적 숙의 ID, request hash, principal hash, policy ID, 실행에 필요한 4,096자 이하 주제, 최초 요청 시각, 상태, 시도 횟수, lease 좌표, 검증된 결과 요약 또는 안전한 failure code입니다. Principal 원문, platform 사용자·message ID, credential, provider 오류 원문은 저장하지 않습니다. 주제는 실행 입력이므로 owner-only DB에 평문으로 남으며 운영 배포가 해당 DB의 보존 기간을 정해야 합니다.
+
+같은 `(projectId, sourceEventId)`의 재요청은 principal·policy·topic을 포함한 request hash가 같을 때 기존 job과 숙의 ID를 반환합니다. 재시도 때 달라질 수 있는 요청 시각은 멱등성 hash에서 제외하고 최초 값만 보존합니다. 같은 키의 다른 요청은 `deliberation_request_conflict`이고 기존 record를 바꾸지 않습니다. Job과 결과는 delete trigger, immutable identity trigger와 다음 상태 전이로 보호합니다.
+
+- `queued`: 실행 port에 전달되지 않은 durable 요청입니다.
+- `leased`: 한 worker가 실행 port에 전달한 요청입니다. `leaseId`, owner와 만료 시각이 필수입니다.
+- `settled`: 같은 숙의 ID의 검증된 요약을 저장했습니다. 전역 `deliberation.completed` 증거를 대신하지 않습니다.
+- `uncertain`: 실행 port가 예외를 냈거나 lease가 만료되어 외부 실행 여부를 증명할 수 없습니다.
+
+허용 전이는 `queued → leased → settled|uncertain`과 같은 owner·lease ID의 만료 연장뿐입니다. Worker cycle은 기본 5분, 허용 범위 10초~1시간 lease로 한 job만 가져가고 lease 기간의 3분의 1마다 heartbeat로 연장합니다. 최초 요청 시각이 아직 오지 않은 job은 claim하지 않습니다. 만료된 `leased` job은 다시 `queued`로 돌리지 않고 `worker_lease_expired`의 `uncertain`으로 바꿉니다. 실행 결과 저장이 실패했거나 실행기가 예외를 내면 `deliberation_execution_uncertain`으로 닫으며 자동 재실행하지 않습니다. Queue 조회는 `queued`와 유효한 lease를 `running`, `uncertain`과 만료 lease를 `unknown`, 저장된 결과를 해당 숙의 상태로 반환합니다. `unknown`은 완료·실패·재개 가능을 뜻하지 않습니다.
+
+실제 숙의 실행은 `ConversationDeliberationExecutionPort` 뒤에 있고 queue, SQLite와 platform adapter는 Codex·Claude 또는 CLI 구현을 import하지 않습니다. `apps/conversation`은 binding, 실행 port와 worker ID가 주어졌을 때만 queue control을 열고 호출자가 scheduler에서 한 cycle씩 실행하게 합니다. Queue 예약·lease·결과 요약은 새 전역 event가 아니며 `selected`, `loaded`, `injected`, `used` 중 어떤 상태도 만들지 않습니다. 결정은 [ADR-0138](./docs/adr/0138-durable-conversation-deliberation-queue.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.
@@ -1379,6 +1394,7 @@ Preflight를 통과한 경우에만 `executionMode=managed_write`를 adapter에 
 | `hub_sync_failed` | 로컬 run은 계속하고 outbox에 보관합니다. |
 | `interaction_store_failed` | Inbox claim, decision commit 또는 outbox 상태를 durable하게 확정하지 못했습니다. 응답 완료나 전달 완료를 주장하지 않고 저장소를 진단합니다. |
 | `response_generation_failed` / `publication_verification_failed` | 응답 원문 생성 또는 `chat` writing 공개 검증이 끝나지 않았습니다. 원문 오류를 저장하지 않고 현재 inbox lease를 bounded retry로 되돌립니다. |
+| `deliberation_request_conflict` / `worker_lease_expired` / `deliberation_execution_uncertain` | 같은 대화 event가 다른 숙의 요청에 쓰였거나 숙의 실행의 외부 효과를 증명할 수 없습니다. 기존 job을 덮거나 자동 재실행하지 않고 상태 조회를 `unknown`으로 제한합니다. |
 | `adapter_delivery_failed` / `invalid_delivery_receipt` | 플랫폼 전송이 실패했거나 receipt 좌표가 다릅니다. `delivered`로 바꾸지 않고 outbox를 bounded retry로 되돌립니다. |
 | `invalid_command` / `unknown_signer` / `invalid_signature` / `signer_scope_denied` / `target_mismatch` | 원격 command 계약, 신뢰 key, 서명 또는 project 좌표가 맞지 않습니다. 로컬 정책과 executor를 호출하지 않고 새 command를 요구합니다. |
 | `command_not_yet_valid` / `command_expired` / `command_lifetime_exceeded` | 로컬 clock과 허용된 skew·lifetime에서 command를 실행할 수 없습니다. 만료 command를 갱신된 서명 없이 재사용하지 않습니다. |

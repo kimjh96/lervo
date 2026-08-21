@@ -18,6 +18,7 @@ export default defineConfig({
       "@lervo/context-delivery": fromRoot("./packages/context-delivery/src/index.ts"),
       "@lervo/conversation-contract": fromRoot("./packages/conversation-contract/src/index.ts"),
       "@lervo/conversation-control": fromRoot("./packages/conversation-control/src/index.ts"),
+      "@lervo/conversation-deliberation-sqlite": fromRoot("./packages/conversation-deliberation-sqlite/src/index.ts"),
       "@lervo/conversation-platform": fromRoot("./packages/conversation-platform/src/index.ts"),
       "@lervo/conversation-platform-sqlite": fromRoot("./packages/conversation-platform-sqlite/src/index.ts"),
       "@lervo/conversation-responder": fromRoot("./packages/conversation-responder/src/index.ts"),

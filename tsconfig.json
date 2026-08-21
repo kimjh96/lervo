@@ -15,6 +15,7 @@
       "@lervo/context-delivery": ["packages/context-delivery/src/index.ts"],
       "@lervo/conversation-contract": ["packages/conversation-contract/src/index.ts"],
       "@lervo/conversation-control": ["packages/conversation-control/src/index.ts"],
+      "@lervo/conversation-deliberation-sqlite": ["packages/conversation-deliberation-sqlite/src/index.ts"],
       "@lervo/conversation-platform": ["packages/conversation-platform/src/index.ts"],
       "@lervo/conversation-platform-sqlite": ["packages/conversation-platform-sqlite/src/index.ts"],
       "@lervo/conversation-responder": ["packages/conversation-responder/src/index.ts"],

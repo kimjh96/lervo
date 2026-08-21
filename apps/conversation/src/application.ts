@@ -9,6 +9,12 @@ import {
   SlackWebApiDelivery,
 } from "@lervo/adapter-slack";
 import { FileSystemCas } from "@lervo/cas";
+import {
+  ConfiguredConversationDeliberationControl,
+  QueuedConversationDeliberationBackend,
+  runConversationDeliberationWorkerCycle,
+} from "@lervo/conversation-control";
+import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
 import { SQLiteConversationPlatformStore } from "@lervo/conversation-platform-sqlite";
 
 import type { ConversationApplication, ConversationApplicationOptions } from "./types.js";
@@ -46,7 +52,26 @@ export async function openConversationApplication(
     participants: options.participants,
     ...(options.threads === undefined ? {} : { threads: options.threads }),
   });
+  let deliberationStore: SQLiteConversationDeliberationJobStore | null = null;
   try {
+    const deliberationOptions = options.deliberations;
+    if (deliberationOptions !== undefined) {
+      if (deliberationOptions.bindings.length === 0) {
+        throw new Error("Conversation 숙의 배포에는 principal binding이 하나 이상 필요합니다.");
+      }
+      deliberationStore = await SQLiteConversationDeliberationJobStore.open({
+        path: resolve(options.dataDirectory, "deliberations.sqlite"),
+        ...(deliberationOptions.maxRecords === undefined ? {} : {
+          maxRecords: deliberationOptions.maxRecords,
+        }),
+      });
+    }
+    const deliberations = deliberationOptions === undefined || deliberationStore === null
+      ? null
+      : new ConfiguredConversationDeliberationControl({
+          backend: new QueuedConversationDeliberationBackend(deliberationStore),
+          bindings: deliberationOptions.bindings,
+        });
     const slackAdapters = new Map((options.slack ?? []).map((deployment) => {
       const delivery = new SlackWebApiDelivery({
         integrationId: deployment.integrationId,
@@ -101,9 +126,28 @@ export async function openConversationApplication(
     return {
       slackAdapters,
       discordAdapters,
-      close: () => store.close(),
+      deliberations,
+      runDeliberationWorkerCycle: async () => {
+        if (deliberationOptions === undefined || deliberationStore === null) {
+          return { status: "idle" };
+        }
+        return runConversationDeliberationWorkerCycle({
+          store: deliberationStore,
+          executor: deliberationOptions.executor,
+          workerId: deliberationOptions.workerId,
+          ...(options.now === undefined ? {} : { now: options.now }),
+          ...(deliberationOptions.leaseDurationMs === undefined ? {} : {
+            leaseDurationMs: deliberationOptions.leaseDurationMs,
+          }),
+        });
+      },
+      close: () => {
+        deliberationStore?.close();
+        store.close();
+      },
     };
   } catch (error) {
+    deliberationStore?.close();
     store.close();
     throw error;
   }
