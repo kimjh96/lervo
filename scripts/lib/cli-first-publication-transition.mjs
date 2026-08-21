@@ -27,7 +27,6 @@ function validOptions(options) {
   const common = options?.online === true &&
     isAbsolute(options.publicationAuthorizationPath ?? "") &&
     isAbsolute(options.bootstrapPath ?? "") &&
-    isAbsolute(options.armingAuthorizationPath ?? "") &&
     isAbsolute(options.workflowPath ?? "");
   if (!common) return false;
   const resolutionValues = [
@@ -36,16 +35,30 @@ function validOptions(options) {
     options.decisionPath,
     options.resolutionPath,
   ];
+  const stageValues = [
+    options.stageApprovalReviewPath,
+    options.stageApprovalDecisionPath,
+    options.stageApprovalAuthorizationPath,
+    options.stageApprovalResultDirectory,
+    options.stageApprovalReconciliationPath,
+  ];
   if (options.evidenceType === "execution_receipt") {
-    return isAbsolute(options.executionReceiptPath ?? "") &&
-      resolutionValues.every((value) => value === undefined);
+    return isAbsolute(options.armingAuthorizationPath ?? "") &&
+      isAbsolute(options.executionReceiptPath ?? "") &&
+      resolutionValues.every((value) => value === undefined) &&
+      stageValues.every((value) => value === undefined);
   }
-  return options.evidenceType === "reconciliation_resolution" &&
+  if (options.evidenceType === "reconciliation_resolution") {
+    return isAbsolute(options.armingAuthorizationPath ?? "") &&
+      options.executionReceiptPath === undefined &&
+      resolutionValues.every((value) => isAbsolute(value ?? "")) &&
+      stageValues.every((value) => value === undefined);
+  }
+  return options.evidenceType === "stage_approval_reconciliation" &&
+    options.armingAuthorizationPath === undefined &&
     options.executionReceiptPath === undefined &&
-    isAbsolute(options.reservationRoot ?? "") &&
-    isAbsolute(options.reconciliationReportPath ?? "") &&
-    isAbsolute(options.decisionPath ?? "") &&
-    isAbsolute(options.resolutionPath ?? "");
+    resolutionValues.every((value) => value === undefined) &&
+    stageValues.every((value) => isAbsolute(value ?? ""));
 }
 
 export async function completeCliFirstPublicationTransition(options, dependencies = {}) {

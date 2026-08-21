@@ -48,7 +48,7 @@ export function createFirstPublicationStageReviewReport({
   observedAt,
 }) {
   const body = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "evidence_bound",
     evidenceType: "first_publication_npm_staged_package_review",
     target: structuredClone(stageResultReport.target),
@@ -57,6 +57,7 @@ export function createFirstPublicationStageReviewReport({
       stageResultObservedAt: stageResultReport.github.observedAt,
       workflowExecutionEvidenceDigest:
         stageResultReport.upstream.workflowExecutionEvidenceDigest,
+      publicationAuthorizationDigest: stageResultReport.stage.authorizationDigest,
     },
     npm: {
       observedAt,
@@ -144,20 +145,28 @@ export function validateFirstPublicationStageReviewReportDocument(report) {
     /^[a-f0-9]{64}$/u.test(tarball.sha256 ?? "") &&
     integrityPattern.test(tarball.registryIntegrity ?? "") &&
     sha1Pattern.test(tarball.registryShasum ?? "") && tarball.registryShasum === stage?.shasum;
+  const validUpstream = exactKeys(report?.upstream, report?.schemaVersion === 2
+    ? [
+        "stageResultEvidenceDigest", "stageResultObservedAt",
+        "workflowExecutionEvidenceDigest", "publicationAuthorizationDigest",
+      ]
+    : [
+        "stageResultEvidenceDigest", "stageResultObservedAt",
+        "workflowExecutionEvidenceDigest",
+      ]) && digestPattern.test(report?.upstream?.stageResultEvidenceDigest ?? "") &&
+    digestPattern.test(report?.upstream?.workflowExecutionEvidenceDigest ?? "") &&
+    (report?.schemaVersion === 1 ||
+      digestPattern.test(report?.upstream?.publicationAuthorizationDigest ?? "")) &&
+    validTimestamp(report?.upstream?.stageResultObservedAt);
   if (
     !exactKeys(report, [
       "schemaVersion", "status", "evidenceType", "target", "upstream", "npm",
       "checks", "review", "limitations", "sideEffects", "evidenceDigest",
-    ]) || report.schemaVersion !== 1 || report.status !== "evidence_bound" ||
+    ]) || ![1, 2].includes(report.schemaVersion) || report.status !== "evidence_bound" ||
     report.evidenceType !== "first_publication_npm_staged_package_review" ||
     report.review !== "exact_staged_package_and_tarball_observed" ||
     !validTarget ||
-    !exactKeys(report.upstream, [
-      "stageResultEvidenceDigest", "stageResultObservedAt",
-      "workflowExecutionEvidenceDigest",
-    ]) || !digestPattern.test(report.upstream.stageResultEvidenceDigest ?? "") ||
-    !digestPattern.test(report.upstream.workflowExecutionEvidenceDigest ?? "") ||
-    !validTimestamp(report.upstream.stageResultObservedAt) ||
+    !validUpstream ||
     !exactKeys(npm, [
       "observedAt", "registry", "stage", "tarball", "metadataStability",
       "userConfig", "temporaryFiles",

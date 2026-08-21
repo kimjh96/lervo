@@ -66,7 +66,8 @@ export function createFirstPublicationTransitionReceipt({
   });
   if (transitionReport.status !== "ready") fail("first_publication_transition_not_ready");
   const receiptBody = {
-    schemaVersion: 2,
+    schemaVersion: transitionReport.publicationEvidence.type ===
+        "stage_approval_reconciliation" ? 3 : 2,
     status: "completed",
     bootstrap: {
       state: "consumed",
@@ -127,17 +128,23 @@ export function validateFirstPublicationTransitionReceiptDocument(receipt) {
     receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
     canonicalJson(Object.keys(receipt).sort()) !==
       canonicalJson([...Object.keys(receiptBody), "transitionReceiptDigest"].sort()) ||
-    receipt.schemaVersion !== 2 || receipt.status !== "completed" ||
+    ![2, 3].includes(receipt.schemaVersion) || receipt.status !== "completed" ||
     !exactKeys(receipt.bootstrap, ["state", "bootstrapDigest"]) ||
     receipt.bootstrap.state !== "consumed" ||
     !digestPattern.test(receipt.bootstrap.bootstrapDigest ?? "") ||
     !exactKeys(evidence, ["type", "digest", "evidenceAt", "basis"]) ||
-    !["execution_receipt", "reconciliation_resolution"].includes(evidence.type) ||
+    ![
+      "execution_receipt", "reconciliation_resolution", "stage_approval_reconciliation",
+    ].includes(evidence.type) ||
+    (receipt.schemaVersion === 3) !==
+      (evidence.type === "stage_approval_reconciliation") ||
     !digestPattern.test(evidence.digest ?? "") ||
     (evidence.type === "execution_receipt" &&
       evidence.basis !== "publisher_receipt_verified") ||
     (evidence.type === "reconciliation_resolution" &&
       evidence.basis !== "public_registry_reconciliation_reviewed") ||
+    (evidence.type === "stage_approval_reconciliation" &&
+      evidence.basis !== "npm_stage_approval_reconciliation_verified") ||
     !exactKeys(publicRelease, ["observedAt", "target", "artifact"]) ||
     !exactKeys(publicRelease.target, ["registry", "package", "version", "distTag", "access"]) ||
     publicRelease.target.registry !== npmPublicRegistry ||

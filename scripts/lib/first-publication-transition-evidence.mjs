@@ -2,8 +2,24 @@ import { validateFirstPublicationExecutionReceipt } from
   "./first-publication-execution-receipt.mjs";
 import { validateFirstPublicationResolution } from
   "./first-publication-resolution.mjs";
+import { validateFirstPublicationStageApprovalAuthorization } from
+  "./first-publication-stage-approval-authorization.mjs";
+import { validateFirstPublicationStageApprovalDecision } from
+  "./first-publication-stage-approval-decision.mjs";
+import {
+  bindFirstPublicationStageApprovalTerminal,
+  validateFirstPublicationStageApprovalAttempt,
+} from "./first-publication-stage-approval-records.mjs";
+import {
+  validateFirstPublicationStageApprovalReconciliationReport,
+  validateFirstPublicationStageApprovalReconciliationReportDocument,
+} from "./first-publication-stage-approval-reconciliation.mjs";
+import { validateFirstPublicationStageReviewReportDocument } from
+  "./first-publication-stage-review-report.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
+import { validateReleasePublicationAuthorization } from
+  "./release-publication-authorization.mjs";
 
 function fail() {
   throw new FirstPublicationBootstrapError(
@@ -48,6 +64,85 @@ export function resolveFirstPublicationTransitionEvidence(publicationEvidence, s
       digest: publicationEvidence.resolution.resolutionDigest,
       evidenceAt: publicationEvidence.resolution.resolvedAt,
       basis: "public_registry_reconciliation_reviewed",
+    };
+  }
+  if (
+    publicationEvidence?.type === "stage_approval_reconciliation" &&
+    exactKeys(publicationEvidence, [
+      "type", "reconciliationReport", "stageReviewReport", "decision",
+      "authorization", "attempt", "terminal",
+    ])
+  ) {
+    const {
+      reconciliationReport,
+      stageReviewReport,
+      decision,
+      authorization,
+      attempt,
+      terminal,
+    } = publicationEvidence;
+    validateFirstPublicationStageReviewReportDocument(stageReviewReport);
+    validateFirstPublicationStageApprovalDecision(decision);
+    validateFirstPublicationStageApprovalAuthorization(authorization, {
+      stageReviewReport,
+      decision,
+      authorizedAt: authorization?.validity?.authorizedAt,
+    });
+    validateFirstPublicationStageApprovalAttempt(attempt);
+    bindFirstPublicationStageApprovalTerminal(terminal, attempt);
+    validateFirstPublicationStageApprovalReconciliationReportDocument(
+      reconciliationReport,
+    );
+    validateFirstPublicationStageApprovalReconciliationReport(
+      reconciliationReport,
+      {
+        stageReviewReport,
+        authorization,
+        attempt,
+        terminal,
+        observation: {
+          schemaVersion: 1,
+          source: "npm_stage_approval_reconciliation",
+          state: "observed",
+          registry: reconciliationReport.npm.registry,
+          package: reconciliationReport.target.package,
+          version: reconciliationReport.target.version,
+          distTag: reconciliationReport.binding.stage.distTag,
+          publicRelease: reconciliationReport.npm.publicRelease,
+          stage: reconciliationReport.npm.approvalStage,
+          stageListStability: reconciliationReport.npm.stageListStability,
+          userConfig: reconciliationReport.npm.userConfig,
+          temporaryFiles: reconciliationReport.npm.temporaryFiles,
+        },
+        observedAt: reconciliationReport.npm.observedAt,
+      },
+    );
+    const bootstrap = sources.bootstrap;
+    const releaseAuthorization = validateReleasePublicationAuthorization(
+      sources.publicationAuthorization,
+    );
+    const stageArtifact = reconciliationReport.binding.artifact;
+    if (
+      reconciliationReport.outcome !== "public_release_confirmed" ||
+      stageReviewReport.upstream.publicationAuthorizationDigest !==
+        releaseAuthorization.authorizationDigest ||
+      bootstrap.release.publicationAuthorizationDigest !==
+        releaseAuthorization.authorizationDigest ||
+      stageReviewReport.target.repository !== bootstrap.identity.repository ||
+      stageReviewReport.target.sourceCommit !== bootstrap.release.sourceDigest ||
+      stageReviewReport.target.package !== bootstrap.target.package ||
+      stageReviewReport.target.version !== bootstrap.target.version ||
+      authorization.binding.registry !== bootstrap.target.registry ||
+      authorization.binding.distTag !== bootstrap.target.distTag ||
+      stageArtifact.sha256 !== bootstrap.release.artifact.sha256 ||
+      stageArtifact.registryIntegrity !== bootstrap.release.artifact.registryIntegrity ||
+      stageArtifact.registryShasum !== bootstrap.release.artifact.registryShasum
+    ) fail();
+    return {
+      type: "stage_approval_reconciliation",
+      digest: reconciliationReport.evidenceDigest,
+      evidenceAt: reconciliationReport.npm.observedAt,
+      basis: "npm_stage_approval_reconciliation_verified",
     };
   }
   fail();

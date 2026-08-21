@@ -13,6 +13,11 @@ import { validateFirstPublicationExecutionReceipt } from
   "./first-publication-execution-receipt.mjs";
 import { readFirstPublicationResolutionSources } from
   "./first-publication-resolution-sources.mjs";
+import { readFirstPublicationStageApprovalReconciliationSources } from
+  "./first-publication-stage-approval-reconciliation-sources.mjs";
+import {
+  validateFirstPublicationStageApprovalReconciliationReportDocument,
+} from "./first-publication-stage-approval-reconciliation.mjs";
 import { validateFirstPublicationResolutionDocument } from
   "./first-publication-resolution.mjs";
 import { resolveFirstPublicationTransitionEvidence } from
@@ -129,16 +134,60 @@ async function readResolutionSources(options, dependencies) {
   };
 }
 
+async function readStageApprovalSources(options, dependencies) {
+  const stageOptions = {
+    stageReviewReportPath: options.stageApprovalReviewPath,
+    decisionPath: options.stageApprovalDecisionPath,
+    authorizationPath: options.stageApprovalAuthorizationPath,
+    resultDirectory: options.stageApprovalResultDirectory,
+  };
+  if (!isAbsolute(options?.stageApprovalReconciliationPath ?? "")) fail();
+  const [contracts, stageSources, reportSnapshot] = await Promise.all([
+    readFirstPublicationContractFiles(options),
+    readFirstPublicationStageApprovalReconciliationSources(stageOptions, dependencies),
+    readSnapshot(options.stageApprovalReconciliationPath, 128 * 1024),
+  ]);
+  const reconciliationReport =
+    validateFirstPublicationStageApprovalReconciliationReportDocument(
+      parseJson(reportSnapshot.contents),
+    );
+  const publicationEvidence = {
+    type: "stage_approval_reconciliation",
+    reconciliationReport,
+    stageReviewReport: stageSources.stageReviewReport,
+    decision: stageSources.decision,
+    authorization: stageSources.authorization,
+    attempt: stageSources.attempt,
+    terminal: stageSources.terminal,
+  };
+  resolveFirstPublicationTransitionEvidence(publicationEvidence, contracts);
+  return {
+    ...contracts,
+    publicationEvidence,
+    assertUnchanged: async () => {
+      await Promise.all([
+        contracts.assertUnchanged(),
+        stageSources.assertUnchanged(),
+        assertReleaseFilesUnchanged([reportSnapshot]),
+      ]);
+    },
+  };
+}
+
 export async function readFirstPublicationTransitionSources(options, dependencies = {}) {
   if (
-    !["execution_receipt", "reconciliation_resolution"].includes(options?.evidenceType) ||
+    ![
+      "execution_receipt", "reconciliation_resolution", "stage_approval_reconciliation",
+    ].includes(options?.evidenceType) ||
     !isAbsolute(options?.publicationAuthorizationPath ?? "") ||
     !isAbsolute(options?.bootstrapPath ?? "")
   ) fail();
   const [sources, workflowSource] = await Promise.all([
     options.evidenceType === "execution_receipt"
       ? readExecutionSources(options)
-      : readResolutionSources(options, dependencies),
+      : options.evidenceType === "reconciliation_resolution"
+        ? readResolutionSources(options, dependencies)
+        : readStageApprovalSources(options, dependencies),
     readWorkflow(options.workflowPath),
   ]);
   return {

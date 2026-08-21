@@ -59,6 +59,16 @@ describe("first-publication stage approval authorization", () => {
     const fixture = await createFirstPublicationStageReviewFixture();
     try {
       const humanDecision = decision(fixture.stageReviewReport);
+      const legacy = structuredClone(fixture.stageReviewReport);
+      legacy.schemaVersion = 1;
+      delete legacy.upstream.publicationAuthorizationDigest;
+      const { evidenceDigest: _legacyDigest, ...legacyBody } = legacy;
+      legacy.evidenceDigest = canonicalDigest(legacyBody);
+      assert.throws(() => createFirstPublicationStageApprovalAuthorization({
+        stageReviewReport: legacy,
+        decision: decision(legacy),
+        authorizedAt: "2026-08-21T10:16:30Z",
+      }), { code: "first_publication_stage_approval_review_mismatch" });
       assert.throws(() => createFirstPublicationStageApprovalAuthorization({
         stageReviewReport: fixture.stageReviewReport,
         decision: humanDecision,

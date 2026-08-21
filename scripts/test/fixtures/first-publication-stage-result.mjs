@@ -40,7 +40,10 @@ export function createStageResultArchive({
   entryNames = ["attempt.json", "terminal.json"],
   version = "0.1.0",
 } = {}) {
-  const authorization = createFirstPublicationFixture({ version }).publicationAuthorization;
+  const authorization = createFirstPublicationFixture({
+    version,
+    sourceDigest: workflowRemoteSourceCommit,
+  }).publicationAuthorization;
   const attempt = createReleaseStageAttempt({
     authorization,
     reservedAt: "2026-08-21T10:10:35Z",

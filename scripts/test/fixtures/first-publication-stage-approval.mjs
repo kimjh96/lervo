@@ -8,6 +8,7 @@ import { createFirstPublicationStageReviewFixture } from
 
 export async function createFirstPublicationStageApprovalFixture() {
   const value = await createFirstPublicationStageReviewFixture();
+  const publicationAuthorization = value.authorization;
   const decision = createFirstPublicationStageApprovalDecision({
     decisionId: "nsa_0123456789abcdef01234567",
     stageReviewEvidenceDigest: value.stageReviewReport.evidenceDigest,
@@ -25,5 +26,11 @@ export async function createFirstPublicationStageApprovalFixture() {
   const authorization = createFirstPublicationStageApprovalAuthorization(
     authorizationInput,
   );
-  return { ...value, decision, authorizationInput, authorization };
+  return {
+    ...value,
+    publicationAuthorization,
+    decision,
+    authorizationInput,
+    authorization,
+  };
 }

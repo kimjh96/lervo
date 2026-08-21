@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { rm } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
@@ -9,8 +10,18 @@ import { createFirstPublicationTransitionReport } from
 import {
   createFirstPublicationTransitionReceipt,
   validateFirstPublicationTransitionReceipt,
+  validateFirstPublicationTransitionReceiptDocument,
 } from "../lib/first-publication-transition.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
+import { createFirstPublicationStageApprovalReconciliationReport } from
+  "../lib/first-publication-stage-approval-reconciliation.mjs";
+import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
+import {
+  createFirstPublicationStageApprovalReconciliationFixture,
+  matchingStageApprovalReconciliationObservation,
+} from "./fixtures/first-publication-stage-approval-reconciliation.mjs";
+import { workflowRemoteSourceCommit } from
+  "./fixtures/first-publication-workflow-remote-deployment.mjs";
 import {
   createFirstPublicationTransitionControls as controls,
   createFirstPublicationTransitionFixture as evidenceFixture,
@@ -18,6 +29,59 @@ import {
 } from "./fixtures/first-publication-transition.mjs";
 
 describe("first-publication transition evidence union", () => {
+  it("accepts only confirmed stage approval reconciliation as a distinct provenance", async () => {
+    const stage = await createFirstPublicationStageApprovalReconciliationFixture();
+    try {
+      const source = createFirstPublicationFixture({
+        sourceDigest: workflowRemoteSourceCommit,
+      });
+      assert.equal(
+        source.publicationAuthorization.authorizationDigest,
+        stage.publicationAuthorization.authorizationDigest,
+      );
+      const reconciliationReport =
+        createFirstPublicationStageApprovalReconciliationReport({
+          stageReviewReport: stage.stageReviewReport,
+          authorization: stage.authorization,
+          attempt: stage.attempt,
+          terminal: stage.terminal,
+          observation: matchingStageApprovalReconciliationObservation(stage),
+          observedAt: "2026-08-21T10:20:00Z",
+        });
+      const publicationEvidence = {
+        type: "stage_approval_reconciliation",
+        reconciliationReport,
+        stageReviewReport: stage.stageReviewReport,
+        decision: stage.decision,
+        authorization: stage.authorization,
+        attempt: stage.attempt,
+        terminal: stage.terminal,
+      };
+      const controlsInput = {
+        ...controls(source, publicationEvidence),
+        armingAuthorization: undefined,
+        observedAt: "2026-08-21T10:21:00Z",
+      };
+      const receipt = createFirstPublicationTransitionReceipt({
+        ...controlsInput,
+        completedAt: controlsInput.observedAt,
+      });
+      assert.equal(receipt.schemaVersion, 3);
+      assert.equal(receipt.publicationEvidence.type, "stage_approval_reconciliation");
+      assert.equal(receipt.publicationEvidence.basis,
+        "npm_stage_approval_reconciliation_verified");
+      validateFirstPublicationTransitionReceipt(receipt, controlsInput);
+
+      const unconfirmed = structuredClone(publicationEvidence);
+      unconfirmed.reconciliationReport.outcome = "approval_not_confirmed";
+      const { evidenceDigest: _digest, ...body } = unconfirmed.reconciliationReport;
+      unconfirmed.reconciliationReport.evidenceDigest = canonicalDigest(body);
+      assert.throws(() => resolveFirstPublicationTransitionEvidence(unconfirmed, source));
+    } finally {
+      await rm(stage.root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps evidence provenance distinct while converging on one completion meaning", () => {
     const source = evidenceFixture();
     const executionInput = controls(source, source.executionEvidence);
@@ -127,6 +191,14 @@ describe("first-publication transition evidence union", () => {
     const { transitionReceiptDigest: _old, ...body } = promoted;
     promoted.transitionReceiptDigest = canonicalDigest(body);
     assert.throws(() => validateFirstPublicationTransitionReceipt(promoted, input), {
+      code: "first_publication_transition_receipt_invalid",
+    });
+
+    const wrongVersion = structuredClone(receipt);
+    wrongVersion.schemaVersion = 3;
+    const { transitionReceiptDigest: _v2, ...wrongVersionBody } = wrongVersion;
+    wrongVersion.transitionReceiptDigest = canonicalDigest(wrongVersionBody);
+    assert.throws(() => validateFirstPublicationTransitionReceiptDocument(wrongVersion), {
       code: "first_publication_transition_receipt_invalid",
     });
   });

@@ -1231,6 +1231,20 @@ CLI npm stage approval reconciliation evidence 완료 조건:
 - Standalone report가 redigest outcome 상향을 거부함
 - 실제 production public package와 stage 상태를 fixture로 주장하지 않음
 
+CLI stage approval transition integration 완료 조건:
+
+- Transition evidence union에 exact-key stage approval reconciliation member를 추가함
+- Confirmed reconciliation report와 review·decision·authorization·attempt·terminal 전체를 재계산함
+- Stage review가 보존한 publication authorization digest를 원래 publication authorization에 직접 결속함
+- Repository·source commit·package·version·registry·dist-tag·artifact를 bootstrap에 대조함
+- Direct arming provenance를 stage approval 경로에 섞거나 요구하지 않음
+- 기존 exact public release·stage-only workflow·npm trust·GitHub environment 네 gate를 그대로 재사용함
+- Stage evidence도 fresh public release를 transition 시점에 다시 관측함
+- Existing execution·resolution receipt v2 의미를 유지하고 stage member는 v3로 분리함
+- V2 stage member, mixed·partial source, unconfirmed·redigested report와 source race를 거부함
+- Transition receipt는 source record·workflow·npm·GitHub 설정·runtime state를 바꾸지 않음
+- 세 provenance가 같은 bootstrap consumed·stage-only·direct publish forbidden 의미로만 수렴함
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1487,4 +1501,6 @@ CLI interactive npm stage approval execution boundary를 완료했습니다. Exa
 
 CLI npm stage approval reconciliation evidence boundary를 완료했습니다. Success·unknown terminal을 같은 immutable source로 읽고 public exact version·dist-tag 관측 사이의 authenticated stage list가 안정적인지 확인합니다. Exact public digest·tag와 승인 대상 stage 부재가 함께 맞을 때만 공개를 확인하고 나머지는 not-confirmed·unknown으로 제한하며 retry·transition 권한을 만들지 않습니다. 결정은 [ADR-0129](./docs/adr/0129-cli-npm-stage-approval-reconciliation-evidence.md)에 기록했습니다.
 
-다음 구현 작업은 `public_release_confirmed` stage approval evidence를 기존 transition evidence tagged union에 새 provenance member로 추가하고 transition completion CLI가 같은 public release·workflow·npm trust·GitHub environment gate를 재사용하게 하는 **stage approval transition integration boundary**입니다.
+CLI stage approval transition integration boundary를 완료했습니다. Confirmed reconciliation과 다섯 stage approval 원본을 새 union member로 재검증하고 publication authorization·source·artifact를 원래 authorization·bootstrap에 직접 결속합니다. 기존 네 transition gate를 우회 없이 재사용하며 direct arming provenance를 섞지 않습니다. 기존 두 member는 receipt v2를 유지하고 stage member만 v3로 분리합니다. 결정은 [ADR-0130](./docs/adr/0130-cli-stage-approval-transition-integration.md)에 기록했습니다.
+
+다음 구현 후보는 긴 stage operator 인자 집합을 한 번 검증된 bounded manifest로 묶되 원본 문서를 복제하지 않는 **first-publication stage evidence bundle manifest boundary**입니다. 현재 개별 문서가 원본이고 manifest는 digest·상대 좌표만 가진 파생 편의 계층이어야 합니다.

@@ -23,6 +23,9 @@ function milliseconds(value) {
 
 function authorizationBody({ stageReviewReport, decision, authorizedAt }) {
   validateFirstPublicationStageReviewReportDocument(stageReviewReport);
+  if (stageReviewReport.schemaVersion !== 2) {
+    fail("first_publication_stage_approval_review_mismatch");
+  }
   validateFirstPublicationStageApprovalDecision(decision, { checkedAt: authorizedAt });
   const observedAt = milliseconds(stageReviewReport.npm.observedAt);
   const authorized = milliseconds(authorizedAt);

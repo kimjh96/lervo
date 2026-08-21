@@ -21,6 +21,7 @@ export function createFirstPublicationFixture({
   approvalId = "apr_fixture1",
   armingDecisionId = "arm_fixture1",
   version = "0.1.0",
+  sourceDigest = "a".repeat(40),
 } = {}) {
   const artifact = createReleasePublicationArtifact(
     `lervo-cli-${version}.tgz`,
@@ -34,7 +35,7 @@ export function createFirstPublicationFixture({
       repository: firstPublicationRepository,
       workflow: ".github/workflows/cli-release-matrix.yml",
       tag: `v${version}`,
-      sourceDigest: "a".repeat(40),
+      sourceDigest,
       subjects: [
         { name: artifact.file, digest: { sha256: artifact.sha256 } },
         { name: "release-artifact-manifest.json", digest: { sha256: "b".repeat(64) } },

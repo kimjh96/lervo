@@ -13,7 +13,9 @@ import { parseFirstPublicationStageReviewArguments } from
   "../lib/first-publication-stage-review-cli-arguments.mjs";
 import { formatFirstPublicationStageReviewEvidence } from
   "../lib/first-publication-stage-review-formatter.mjs";
-import { sha256 } from "../lib/release-artifact-manifest.mjs";
+import { validateFirstPublicationStageReviewReportDocument } from
+  "../lib/first-publication-stage-review-report.mjs";
+import { canonicalDigest, sha256 } from "../lib/release-artifact-manifest.mjs";
 import {
   createFirstPublicationStageResultFixture,
   matchingStageResultObservation,
@@ -101,6 +103,7 @@ describe("first-publication staged package review command", () => {
     try {
       const before = await readFile(value.stageResultReportPath);
       const report = await createEvidence(value);
+      assert.equal(report.schemaVersion, 2);
       assert.equal(report.review, "exact_staged_package_and_tarball_observed");
       assert.equal(report.limitations.twoFactorApproval, "not_observed");
       assert.equal(report.sideEffects.stageApprove, "not_attempted");
@@ -108,6 +111,13 @@ describe("first-publication staged package review command", () => {
       assert.deepEqual(await readFile(value.stageResultReportPath), before);
       assert.match(formatFirstPublicationStageReviewEvidence(report),
         /approve·reject는 수행하지 않음/u);
+
+      const legacy = structuredClone(report);
+      legacy.schemaVersion = 1;
+      delete legacy.upstream.publicationAuthorizationDigest;
+      const { evidenceDigest: _digest, ...legacyBody } = legacy;
+      legacy.evidenceDigest = canonicalDigest(legacyBody);
+      assert.equal(validateFirstPublicationStageReviewReportDocument(legacy), legacy);
     } finally {
       await rm(value.root, { recursive: true, force: true });
     }
