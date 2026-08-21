@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 bootstrap 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행·전환 영수증 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -117,6 +117,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI release 게시 적격성과 권한 경계 ADR](./docs/adr/0095-cli-release-publication-authorization.md)
 - [CLI Trusted Publisher 준비 상태 ADR](./docs/adr/0096-cli-trusted-publisher-readiness.md)
 - [CLI 최초 공개 게시 bootstrap ADR](./docs/adr/0097-cli-first-publication-bootstrap.md)
+- [CLI 최초 공개 게시 실행·전환 영수증 ADR](./docs/adr/0098-cli-first-publication-execution-transition-receipts.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -253,6 +254,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `pnpm release:publisher:readiness --repository <owner/repo>`는 package repository·라이선스·publish registry와 실제 게시 job 비활성 상태를 읽기 전용으로 점검합니다. `--online`을 명시해야 public npm package, `npm trust list`, GitHub `npm-release` reviewer·self-review·`v*` tag policy까지 확인합니다. 관측하지 못한 외부 상태는 `unknown`이며 전체 결과는 `blocked`입니다. Trust ID, reviewer identity와 외부 응답 원문은 출력하지 않습니다. 상시 publisher는 staged publishing 권한 하나만 허용하며 최초 package 게시, npm·GitHub 설정 변경과 실제 게시를 실행하지 않습니다.
 
 `pnpm release:bootstrap:authorize --release-directory <absolute-path> --publication-authorization <absolute-path> --approval <absolute-path> --output <new-absolute-path> --online`은 최초 게시 approval을 exact release·package identity와 public npm 404 관측에 결속합니다. Approval은 repository·license·`@lervo` scope owner, publication authorization digest와 license·이름 가용성·scope control·직접 게시 1회·stage-only 전환 확인을 모두 가져야 합니다. 결과는 10분 이내의 수동 2FA 게시 준비물이며 재사용할 수 없습니다. 승인자 원문은 결과에 넣지 않습니다. 이 명령은 private package 부재나 npm 권한을 증명하지 않고 credential, 실제 게시, Trusted Publisher·GitHub 설정 변경도 실행하지 않습니다.
+
+최초 게시 실행 코어는 public package 부재를 다시 확인하고 durable 예약을 확보한 뒤에만 exact tarball publisher port를 호출합니다. 호출 뒤 결과를 확인하지 못하면 `publication_unknown`으로 닫고 같은 bootstrap의 재시도를 금지하며, 성공해도 `published_transition_pending`일 뿐입니다. 별도 전환 코어가 stage-only workflow, exact npm `createStagedPackage` trust와 self-review를 막은 GitHub `npm-release` 보호를 모두 확인한 뒤에만 bootstrap을 `consumed`로 완료합니다. 현재는 provider-neutral 계약과 fixture만 있으며 실제 저장 adapter·2FA 게시 명령·외부 설정·workflow publish job은 없습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

@@ -948,6 +948,19 @@ CLI first-publication bootstrap 완료 조건:
 - Output은 새 절대 경로에만 쓰고 원본 변경 경쟁과 기존 output 덮어쓰기를 거부함
 - Fixture가 사람 신원 인증·npm 권한·비공개 package 부재·최초 게시 성공을 주장하지 않음
 
+CLI first-publication 실행·전환 영수증 완료 조건:
+
+- Public package 부재 재확인과 durable 예약이 publisher port보다 먼저 실행됨
+- 예약·publication authorization·artifact와 exact registry receipt가 canonical digest로 결속됨
+- 게시 전 중단은 `aborted_before_publication`, 게시 호출 뒤 불명확한 결과는 `publication_unknown`으로 구분됨
+- 게시 호출 뒤 오류나 완료 저장 불확실성에는 같은 bootstrap 재시도를 금지함
+- 성공한 최초 게시도 stage-only 전환 전에는 `published_transition_pending`으로 남음
+- Workflow·npm trust·GitHub environment 세 독립 검사가 모두 ready일 때만 bootstrap을 consumed로 완료함
+- Stage job은 exact Lervo stage 명령과 최소 OIDC 권한만 가지며 direct publish·장기 registry credential을 거부함
+- npm trust는 `createStagedPackage` 하나, GitHub environment는 reviewer·self-review 금지·exact `v*`를 요구함
+- 예약·실행 영수증·전환 정책·완료 영수증과 외부 port 조정 책임이 분리됨
+- Fixture가 실제 npm 게시, 2FA, trust·GitHub 설정이나 원격 workflow 성공을 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1060,4 +1073,6 @@ CLI Trusted Publisher readiness 계약을 완료했습니다. 로컬 package ide
 
 CLI first-publication bootstrap 계약을 완료했습니다. Release manifest v5가 repository·publish registry·provenance 설정을 tarball release identity에 추가로 묶고, 별도 사람 approval과 공개 npm 404를 검증된 release에 결속합니다. 404는 public package가 보이지 않는다는 사실로만 표현하며 결과는 최대 10분, 수동 2FA 직접 게시 1회에만 유효합니다. 실제 publish와 외부 설정 변경은 실행하지 않았습니다. 결정은 [ADR-0097](./docs/adr/0097-cli-first-publication-bootstrap.md)에 기록했습니다.
 
-다음 구현 작업은 bootstrap authorization을 실제 게시 직전 다시 검증하고, 수동 2FA 게시 결과를 exact registry receipt로 확인한 뒤 bootstrap을 소진 상태로 만들며 stage-only 설정 전환이 끝나기 전에는 일반 release를 열지 않는 **CLI first-publication execution·transition receipt 계약**입니다.
+CLI first-publication 실행·전환 영수증 계약을 완료했습니다. Durable 예약 뒤에만 publisher port를 호출하고 게시 전 중단과 호출 후 결과 불명을 구분합니다. Exact registry receipt와 완료 저장 뒤에도 상태는 transition pending이며, stage-only workflow·npm trust·GitHub 보호 환경이 모두 맞아야 bootstrap을 consumed로 완료합니다. 구현은 provider-neutral 코어와 fixture이고 실제 publish·외부 설정·workflow 활성화는 하지 않았습니다. 결정은 [ADR-0098](./docs/adr/0098-cli-first-publication-execution-transition-receipts.md)에 기록했습니다.
+
+다음 구현 작업은 예약 상태를 실행별 파일에 원자적으로 보존하고 수동 TTY·2FA·명시적 실행 동의를 요구하는 **CLI first-publication durable store·interactive publisher adapter 계약**입니다. 실제 package identity와 권한이 확정되기 전에는 외부 게시를 실행하지 않습니다.
