@@ -1259,6 +1259,22 @@ CLI first-publication stage evidence bundle manifest 완료 조건:
 - Online 관측 뒤 manifest·원본·result snapshot을 모두 다시 확인함
 - Bundle 자체에 게시·재시도·전환·freshness 권한이나 새 telemetry를 부여하지 않음
 
+CLI first-publication completion inspection 완료 조건:
+
+- Stage bundle의 manifest와 여섯 참조 원본을 현재 bytes에서 다시 검증함
+- Canonical transition receipt v3의 standalone schema·digest·고정 완료 의미를 확인함
+- Receipt stage evidence digest·시각을 bundle reconciliation report에 직접 결속함
+- Receipt의 registry·package·version·dist-tag·integrity·shasum을 approval attempt에 대조함
+- Bootstrap consumed·stage-only·direct publish forbidden 완료 의미를 유지함
+- Bootstrap·publication authorization 원본은 재적재하지 않았음을 명시함
+- 남은 수동 조치가 없다는 범위를 저장된 최초 게시 transition으로 제한함
+- 현재 public registry·workflow·npm trust·GitHub environment 미재관측을 명시함
+- Receipt signer를 확인하지 않고 로컬 canonical 기록 검증으로만 표현함
+- Report 생성 뒤 bundle·receipt·모든 참조 원본의 source race를 거부함
+- Human output에 digest·경로·actor·credential을 표시하지 않음
+- Output 파일·network·외부 설정·게시·runtime state·telemetry를 만들거나 바꾸지 않음
+- Redigested receipt evidence와 외부 상태 verified 상향을 standalone reader가 거부함
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1519,4 +1535,6 @@ CLI stage approval transition integration boundary를 완료했습니다. Confir
 
 CLI first-publication stage evidence bundle manifest boundary를 완료했습니다. Stage approval의 여섯 원본을 공용 evidence-set validator로 다시 계산한 뒤 manifest 디렉터리 안의 다섯 상대 좌표와 canonical digest만 16 KiB owner-only 문서로 기록합니다. Transition은 기존 다섯 인자 또는 bundle 하나를 상호 배타적으로 받고, bundle 사용 때도 모든 원본과 manifest를 online 관측 뒤 다시 확인합니다. 결정은 [ADR-0131](./docs/adr/0131-cli-stage-evidence-bundle-manifest.md)에 기록했습니다.
 
-다음 구현 후보는 저장된 stage bundle과 transition receipt를 읽어 현재 원본의 완전성·완료 provenance·남은 수동 조치를 쓰기 없이 설명하는 **first-publication completion inspection boundary**입니다.
+CLI first-publication completion inspection boundary를 완료했습니다. Stage bundle의 manifest와 여섯 원본, canonical transition receipt를 다시 읽고 stage reconciliation·공개 target·artifact·완료 의미를 직접 결속합니다. 저장된 최초 게시 transition 범위의 남은 수동 조치는 없다고 설명하되 현재 npm·GitHub 외부 상태와 receipt signer는 확인하지 않았음을 같은 report에 고정합니다. 결정은 [ADR-0132](./docs/adr/0132-cli-first-publication-completion-inspection.md)에 기록했습니다.
+
+현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.
