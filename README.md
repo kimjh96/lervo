@@ -147,6 +147,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI npm staged package 검토 증거 ADR](./docs/adr/0125-cli-npm-staged-package-review-evidence.md)
 - [CLI npm stage 승인 권한 ADR](./docs/adr/0126-cli-npm-stage-approval-authorization.md)
 - [CLI npm stage 승인 durable 기록 ADR](./docs/adr/0127-cli-npm-stage-approval-durable-records.md)
+- [CLI interactive npm stage 승인 실행 ADR](./docs/adr/0128-cli-interactive-npm-stage-approval-execution.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -337,6 +338,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 저장한 stage result evidence와 별도의 npm user config가 있으면 `pnpm release:bootstrap:stage-review-evidence --repository <owner/repo> --source-commit <40자 소문자 commit SHA> --release-tag <vMAJOR.MINOR.PATCH> --run-id <양의 정수> --attempt <양의 정수> --stage-result-report <절대 경로> --npm-user-config <절대 경로> --online [--json]`으로 exact staged package를 읽기 전용으로 검토할 수 있습니다. 인증된 `stage list`에서 같은 package·version의 항목이 하나인지 확인하고 `view`, 임시 directory의 `download`, `view` 재확인으로 metadata와 tarball digest를 이전 stage 결과에 결속합니다. Stage ID는 digest만 남기고 actor·계정·credential·npm 원문은 버립니다. 성공은 사람의 검토 승인, 2FA 완료나 공개 배포가 아니며 `approve`·`reject`를 호출하지 않습니다.
 
 검토한 stage review report와 canonical 사람 decision이 있으면 `pnpm release:bootstrap:stage-approve-authorize --repository <owner/repo> --source-commit <commit> --release-tag <tag> --run-id <id> --attempt <n> --stage-review-report <절대 경로> --decision <절대 경로> --output <새 절대 경로> --write [--json]`으로 최대 5분의 승인 권한을 만들 수 있습니다. Decision은 report 관측 뒤 최대 10분 안에 작성되어 exact review digest·stage ID digest·package·version과 다섯 확인 문구를 가져야 합니다. 권한은 대화형 2FA `stage approve` 1회만 허용하며 이 명령 자체는 npm을 호출하거나 approve·reject·공개 확인을 수행하지 않습니다.
+
+Fresh authorization을 실제로 소비할 때만 `pnpm release:bootstrap:stage-approve --repository <owner/repo> --source-commit <commit> --release-tag <tag> --run-id <id> --attempt <n> --stage-review-report <절대 경로> --decision <절대 경로> --authorization <절대 경로> --npm-user-config <절대 경로> --result-directory <새 절대 경로> --online --write [--json]`을 대화형 terminal에서 실행합니다. 명령은 exact stage를 list·view로 재확인하고 immutable attempt를 먼저 저장한 뒤 `npm stage approve`를 한 번만 호출합니다. npm의 2FA 입력은 terminal에서 직접 처리하며 Lervo 문서에는 저장하지 않습니다. Exit code 0도 공개 증명은 아니므로 terminal은 별도 public registry 검증을 요구하고 재시도를 금지합니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

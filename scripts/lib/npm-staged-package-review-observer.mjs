@@ -9,8 +9,11 @@ import {
   readRegularReleaseFile,
   releaseVerificationMaximumSizes,
 } from "./release-attestation-file-set.mjs";
-import { containsNpmCredential } from
-  "./npm-interactive-first-publication-policy.mjs";
+import {
+  isSupportedNpmStageClient,
+  npmStageEnvironmentReasons,
+  withoutNpmConfiguration,
+} from "./npm-stage-client-policy.mjs";
 import {
   parseNpmStageList,
   parseNpmStageView,
@@ -24,7 +27,6 @@ import {
 
 const executeFile = promisify(execFile);
 const maximumUserConfigBytes = 64 * 1024;
-const minimumNpmVersion = [11, 15, 0];
 
 function unavailable(reason) {
   return {
@@ -33,24 +35,6 @@ function unavailable(reason) {
     state: "unavailable",
     reason,
   };
-}
-
-function supported(value) {
-  const match = /^(\d+)\.(\d+)\.(\d+)(?:-.+)?$/u.exec(value?.trim() ?? "");
-  if (!match) return false;
-  const actual = match.slice(1).map(Number);
-  for (let index = 0; index < minimumNpmVersion.length; index += 1) {
-    if (actual[index] !== minimumNpmVersion[index]) {
-      return actual[index] > minimumNpmVersion[index];
-    }
-  }
-  return true;
-}
-
-function cleanEnvironment(environment) {
-  return Object.fromEntries(Object.entries(environment).filter(
-    ([name]) => !name.toLowerCase().startsWith("npm_config_"),
-  ));
 }
 
 function matchingArtifact(actual, expected) {
@@ -76,7 +60,9 @@ export async function observeNpmStagedPackageReview({
     expectedArtifact?.file !== `lervo-cli-${version}.tgz` ||
     !isAbsolute(userConfigPath ?? "") || typeof execute !== "function"
   ) throw new TypeError("npm staged package review observer input is invalid");
-  if (containsNpmCredential(environment)) return unavailable("environment_invalid");
+  if (npmStageEnvironmentReasons({ environment }).length > 0) {
+    return unavailable("environment_invalid");
+  }
 
   let userConfigContents;
   try {
@@ -102,7 +88,7 @@ export async function observeNpmStagedPackageReview({
       maxBuffer: 256 * 1024,
       timeout: 30_000,
       env: {
-        ...cleanEnvironment(environment),
+        ...withoutNpmConfiguration(environment),
         NPM_CONFIG_CACHE: resolve(temporaryRoot, "cache"),
         NPM_CONFIG_GLOBALCONFIG: globalConfigPath,
         NPM_CONFIG_USERCONFIG: userConfigPath,
@@ -116,7 +102,9 @@ export async function observeNpmStagedPackageReview({
     } catch {
       result = unavailable("npm_client_unavailable");
     }
-    if (!result && !supported(npmVersion)) result = unavailable("npm_client_unsupported");
+    if (!result && !isSupportedNpmStageClient(npmVersion)) {
+      result = unavailable("npm_client_unsupported");
+    }
 
     let selected;
     if (!result) {

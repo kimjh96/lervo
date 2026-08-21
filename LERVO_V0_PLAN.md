@@ -1201,6 +1201,21 @@ CLI npm stage approval durable record 완료 조건:
 - Stage publish와 approval의 공통 filesystem 원리는 재사용하되 record 정책·오류는 분리함
 - 실제 npm client·approve·2FA·public observation은 아직 호출하지 않음
 
+CLI interactive npm stage approval execution 완료 조건:
+
+- Exact review·decision·authorization source를 재계산하고 실행 전후 bytes를 확인함
+- 세 TTY·비CI·ambient credential 부재와 npm 11.15 이상을 approve 전에 요구함
+- 명시한 user config·임시 cache·빈 global config로 npm client를 격리함
+- List·view로 exact stage ID digest·createdAt·tag·shasum을 review에 다시 대조함
+- Raw stage ID를 provider closure 안에 유지하고 report·record·오류에 넣지 않음
+- Attempt가 durable해진 뒤 view·source·authorization을 다시 확인하고 approve를 한 번 호출함
+- OTP는 npm interactive stdin에서 직접 처리하고 Lervo 인자·문서·출력 원문에 보존하지 않음
+- npm terminal output의 raw stage ID를 streaming redaction하고 원문을 수집하지 않음
+- Exit zero도 공개를 주장하지 않고 별도 public registry verification을 요구함
+- Pre-call 실패는 abort, post-call 불명확성은 unknown으로 닫고 blind retry를 금지함
+- Reject·direct publish fallback·runtime state·telemetry를 만들지 않음
+- 실제 production npm stage approve·2FA·공개를 fixture 성공으로 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1453,4 +1468,6 @@ CLI npm stage approval authorization boundary를 완료했습니다. Fresh stage
 
 CLI npm stage approval durable record boundary를 완료했습니다. Authorization·target·비식별 stage·artifact를 외부 호출 전 immutable attempt에 고정하고 CLI exit-zero·unknown·pre-call abort를 별도 terminal 하나로 닫습니다. 공용 immutable attempt filesystem adapter를 추출해 기존 stage publish 저장에도 적용했으며 owner-only·exclusive-create·fsync·fail-closed 의미를 유지했습니다. 결정은 [ADR-0127](./docs/adr/0127-cli-npm-stage-approval-durable-records.md)에 기록했습니다.
 
-다음 구현 작업은 fresh authorization과 exact stage를 다시 확인한 뒤 대화형 terminal에서 `npm stage approve`를 한 번만 호출하고 durable record를 위 상태로 닫는 **CLI interactive npm stage approval execution boundary**입니다.
+CLI interactive npm stage approval execution boundary를 완료했습니다. Exact review·decision·authorization을 재계산하고 TTY·client·user config와 current stage를 격리 확인한 뒤 attempt가 durable한 경우에만 `npm stage approve`를 한 번 호출합니다. Raw stage ID는 adapter closure와 redacted child stream 밖으로 내보내지 않고 OTP·npm 원문은 저장하지 않습니다. 성공도 public availability를 주장하지 않으며 unknown과 blind retry를 fail-closed합니다. 결정은 [ADR-0128](./docs/adr/0128-cli-interactive-npm-stage-approval-execution.md)에 기록했습니다.
+
+다음 구현 작업은 success·unknown terminal 모두에서 public npm의 exact version·dist-tag·tarball digest를 새로 관측하고 stage의 잔존 여부와 함께 결과를 판정하는 **CLI npm stage approval reconciliation evidence boundary**입니다. 이 경계는 terminal을 바꾸거나 approve를 재시도하지 않습니다.
