@@ -1051,6 +1051,25 @@ CLI stage publication command boundary 완료 조건:
 - Credential·OIDC 값·외부 출력·경로·actor를 기록하지 않고 runtime telemetry를 만들지 않음
 - Fixture가 실제 npm stage·2FA 승인·공개·workflow 적용이나 외부 설정 변경을 주장하지 않음
 
+CLI stage-only workflow activation permit·transaction 완료 조건:
+
+- 최대 10분의 사람 decision이 exact candidate metadata·workflow output과 두 source digest를 결속함
+- Decision 확인은 stage-only 활성화·direct publish 금지·별도 2FA·apply 시 fresh control 재확인을 명시함
+- Permit command가 root·CLI package, workflow와 decision을 bounded regular-file snapshot으로 다시 읽음
+- Local identity·비활성 workflow·npm package access·exact stage trust·GitHub 보호가 모두 ready여야 함
+- Permit은 최대 5분이고 decision·candidate·세 source/output·normalized readiness를 canonical하게 결속함
+- Permit 생성은 workflow·외부 설정·게시·runtime 상태를 바꾸지 않고 새 owner-only output만 만듦
+- Apply가 `--online --write`를 함께 요구하고 첫 workflow write 전에 외부 control을 다시 관측함
+- 새 readiness가 permit report와 같고 모든 source bytes가 관측 뒤에도 같은 경우만 plan을 만듦
+- Plan이 workflow before/after와 root·CLI package·decision·permit read-only binding을 모두 포함함
+- 단일 workflow transaction이 compare-and-swap, mode 보존, durable journal과 directory sync를 수행함
+- 동기 실패는 commit 전에 원본으로 rollback하고 중단은 명시적 recovery 없이는 자동 추정하지 않음
+- Recovery가 pre-commit rollback과 committed cleanup을 구분하고 live owner·손상 journal을 거부함
+- Receipt가 exact applied bytes와 외부 설정 무변경·게시 미시도만 기록함
+- Actor·reviewer·trust ID·credential·OIDC·외부 원문·절대 경로와 새 telemetry를 기록하지 않음
+- Fixture가 control 변경·source race·mode·rollback·중단 phase·CLI 권한 분리를 검증함
+- 현재 production workflow 적용, workflow 실행, npm stage·2FA 승인·package 공개를 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1285,4 +1304,6 @@ CLI first-publication stage-only workflow activation candidate 경계를 완료�
 
 CLI stage publication command boundary를 완료했습니다. Exact release·authorization snapshot을 source reader가 다시 결속하고 GitHub-hosted OIDC·Node·pinned npm 검사를 예약 전에 수행합니다. Stage 전용 adapter는 `npm stage publish`만 한 번 호출하며 외부 호출 전 `attempt.json`, 호출 뒤 terminal을 owner-only 실행 directory에 따로 보존합니다. 성공은 공개가 아닌 2FA 검토 대기 접수이고 호출 뒤 오류·검증 불일치·terminal 저장 실패는 `stage_outcome_unknown`, retry forbidden으로 닫습니다. Workflow 후보도 result directory를 run-attempt별 artifact로 수집합니다. 실제 npm stage·2FA 승인·workflow 적용·외부 설정 변경은 실행하지 않았습니다. 결정은 [ADR-0118](./docs/adr/0118-cli-stage-publication-command-boundary.md)에 기록했습니다.
 
-다음 구현 작업은 검토한 candidate digest와 exact workflow output에 명시적 사람 결정을 결속한 뒤 current source를 compare-and-swap으로 적용하는 **CLI stage-only workflow activation permit·transaction boundary**입니다. Candidate 생성과 적용 권한을 계속 분리하고, 원본 변경·부분 적용·중단 복구·mode 보존을 먼저 고정합니다.
+CLI stage-only workflow activation permit·transaction boundary를 완료했습니다. Exact candidate를 검토한 짧은 사람 decision과 fresh npm·GitHub ready report를 최대 5분 permit에 결속합니다. Apply는 외부 control과 root·CLI package·workflow·decision·permit source를 첫 쓰기 전에 다시 확인하며, mode-preserving compare-and-swap journal이 동기 실패 rollback과 중단 뒤 pre-commit rollback·committed cleanup을 구분합니다. Receipt는 exact workflow 적용과 외부 설정 무변경·게시 미시도만 기록합니다. 현재 production workflow에는 적용하지 않았습니다. 결정은 [ADR-0119](./docs/adr/0119-cli-stage-only-workflow-activation-permit-transaction.md)에 기록했습니다.
+
+다음 구현 작업은 apply receipt, current exact workflow와 fresh external controls를 독립적으로 다시 읽는 **CLI stage-only workflow activation post-apply verification boundary**입니다. 적용 코어와 검증 코어를 분리하고 pending transaction, receipt 진위가 아닌 구조적 결속, workflow 실행·stage 접수·게시 미증명을 명시합니다.

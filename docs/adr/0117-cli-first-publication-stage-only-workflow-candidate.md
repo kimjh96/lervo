@@ -48,3 +48,5 @@ Workflow 후보는 한 job 이외의 source bytes를 바꾸지 않고, 뒤에 �
 Fixture는 exact 삽입과 앞뒤 bytes 보존, 뒤쪽 top-level block, 공용 stage-only ready, stage command 부재, 기존·직접 publish, attested producer 부재, stale snapshot, CRLF, write authority 재해시, output 변조, 생성 중 source 변경, bounded source와 출력 mode 분리를 검증합니다. 실제 workflow 적용, stage command 실행, npm·GitHub 설정과 package 게시는 주장하지 않습니다.
 
 > 후속 결정: [ADR-0118](./0118-cli-stage-publication-command-boundary.md)은 exact stage command, 외부 호출 전 attempt와 terminal 기록, 불명확한 결과의 재실행 금지, workflow result artifact를 구현합니다. Candidate는 이제 현재 저장소에서도 생성되지만 자동 적용되지는 않습니다.
+
+> 후속 결정: [ADR-0119](./0119-cli-stage-only-workflow-activation-permit-transaction.md)는 검토한 candidate와 fresh 외부 control을 permit에 묶고, apply 직전 재확인 뒤 recovery 가능한 단일 workflow transaction으로만 적용합니다.

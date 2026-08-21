@@ -46,3 +46,5 @@ Workflow 후보는 Node 22.14, frozen install 뒤 이 명령을 호출합니다.
 Stage-only 자동화가 기존 direct `npm publish` adapter를 잘못 재사용하지 않습니다. 외부 쓰기 전후의 local 기록 순서와 불명확한 결과의 재실행 금지가 파일로 남고, 성공도 2FA 승인 전 공개 완료로 과장되지 않습니다.
 
 Fixture는 exact `npm stage publish` 인자, npm·Node·OIDC·credential gate, one-shot adapter, 격리 파일 제거, bounded release subject 대조, 외부 호출 전 attempt 존재, 세 terminal 상태, owner-only 권한, 결과 directory 재사용 차단, CLI 인자와 workflow result upload를 검증합니다. 실제 npm stage, 2FA 승인, package 공개, workflow 적용이나 외부 설정 변경은 테스트가 주장하지 않습니다.
+
+> 후속 결정: [ADR-0119](./0119-cli-stage-only-workflow-activation-permit-transaction.md)는 stage command가 있는 exact workflow 후보를 사람 결정과 fresh npm·GitHub control에 결속하고, apply 직전 재확인과 복구 journal을 통과한 경우에만 source workflow 한 파일에 적용합니다.
