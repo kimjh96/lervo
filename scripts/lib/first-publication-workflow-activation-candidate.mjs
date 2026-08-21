@@ -31,7 +31,7 @@ export const stageOnlyWorkflowJobYaml = `  publish-cli:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 22.13.0
+          node-version: 22.14.0
           package-manager-cache: false
       - name: Set up pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9
@@ -43,7 +43,15 @@ export const stageOnlyWorkflowJobYaml = `  publish-cli:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Stage exact CLI package
-        run: pnpm release:publication:stage --release-directory "\${RUNNER_TEMP}/lervo-release" --publication-authorization "\${RUNNER_TEMP}/lervo-publication-authorization.json"
+        run: pnpm release:publication:stage --release-directory "\${RUNNER_TEMP}/lervo-release" --publication-authorization "\${RUNNER_TEMP}/lervo-publication-authorization.json" --result-directory "\${RUNNER_TEMP}/lervo-stage-publication"
+      - name: Upload stage publication result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lervo-cli-stage-\${{ github.ref_name }}-\${{ github.run_attempt }}
+          path: \${{ runner.temp }}/lervo-stage-publication
+          if-no-files-found: warn
+          retention-days: 30
 `;
 
 function fail(code = "first_publication_workflow_activation_candidate_invalid") {

@@ -8,7 +8,7 @@ import { firstPublicationResolutionConfirmations } from
   "../../lib/first-publication-resolution-decision.mjs";
 import { createFirstPublicationResolution } from
   "../../lib/first-publication-resolution.mjs";
-import { stageOnlyPublicationCommand } from
+import { stageOnlyPublicationCommand, stageResultUploadStep } from
   "../../lib/first-publication-transition-policy.mjs";
 import { canonicalDigest } from "../../lib/release-artifact-manifest.mjs";
 import {
@@ -72,6 +72,7 @@ export function firstPublicationStageOnlyWorkflow() {
         steps: [
           { run: "pnpm install --frozen-lockfile" },
           { run: stageOnlyPublicationCommand },
+          structuredClone(stageResultUploadStep),
         ],
       },
     },

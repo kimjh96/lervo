@@ -21,7 +21,7 @@ Package manifest에는 다음 exact script가 먼저 있어야 합니다.
 release:publication:stage = node scripts/stage-cli-release-publication.mjs
 ```
 
-없으면 `first_publication_workflow_activation_stage_command_missing`으로 실패하고 candidate bytes를 내보내지 않습니다. 현재 저장소는 이 상태입니다. 이는 다음 stage command 구현 전까지 실행 불가능한 workflow를 검토 대상으로 만들지 않기 위한 차단입니다.
+없으면 `first_publication_workflow_activation_stage_command_missing`으로 실패하고 candidate bytes를 내보내지 않습니다. 이는 stage command가 없는 실행 불가능한 workflow를 검토 대상으로 만들지 않기 위한 차단입니다.
 
 Source workflow는 아직 publish command, `npm-release` environment와 `publish-cli` job이 없어야 하며 `attested-cli` job은 존재해야 합니다. YAML AST는 최상위 `jobs` mapping의 끝 byte offset만 제공합니다. 생성기는 그 위치에 고정 `publish-cli` block 하나를 삽입하고 다른 source bytes는 복사합니다. 따라서 `jobs` 뒤의 다른 최상위 block도 그대로 남습니다.
 
@@ -30,9 +30,10 @@ Source workflow는 아직 publish command, `npm-release` environment와 `publish
 - 수동 tag 조건과 `attested-cli` 의존성
 - GitHub-hosted Ubuntu와 `npm-release` environment
 - `contents:read`, `id-token:write`
-- commit SHA에 고정된 checkout, Node, pnpm, artifact download action
+- commit SHA에 고정된 checkout, Node, pnpm, artifact download·upload action
 - 같은 workflow run의 exact `lervo-cli-${{ github.ref_name }}` artifact를 runner temp로 복원
 - frozen install과 exact `release:publication:stage` 실행
+- stage 실행 기록 directory를 `if: always()`로 run-attempt별 artifact에 보존
 
 Download action은 공식 `actions/download-artifact` v4.3.0 commit `d3f86a106a0bac45b974a628896c90dbdf5c8093`에 고정합니다. 장기 registry credential, `npm publish`, `npm stage publish`와 다른 run·repository artifact 권한은 넣지 않습니다.
 
@@ -45,3 +46,5 @@ Candidate는 `review_required`, `writesAllowed=false`입니다. 명령에는 fil
 Workflow 후보는 한 job 이외의 source bytes를 바꾸지 않고, 뒤에 다른 top-level 설정이 추가되어도 올바른 mapping에 들어갑니다. 실행 명령이 없거나 source가 이미 활성화됐으면 후보가 생기지 않습니다.
 
 Fixture는 exact 삽입과 앞뒤 bytes 보존, 뒤쪽 top-level block, 공용 stage-only ready, stage command 부재, 기존·직접 publish, attested producer 부재, stale snapshot, CRLF, write authority 재해시, output 변조, 생성 중 source 변경, bounded source와 출력 mode 분리를 검증합니다. 실제 workflow 적용, stage command 실행, npm·GitHub 설정과 package 게시는 주장하지 않습니다.
+
+> 후속 결정: [ADR-0118](./0118-cli-stage-publication-command-boundary.md)은 exact stage command, 외부 호출 전 attempt와 terminal 기록, 불명확한 결과의 재실행 금지, workflow result artifact를 구현합니다. Candidate는 이제 현재 저장소에서도 생성되지만 자동 적용되지는 않습니다.

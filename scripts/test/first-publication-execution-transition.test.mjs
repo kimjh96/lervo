@@ -13,6 +13,7 @@ import { validateFirstPublicationExecutionReceipt } from
 import {
   createFirstPublicationTransitionReport,
   stageOnlyPublicationCommand,
+  stageResultUploadStep,
 } from "../lib/first-publication-transition-policy.mjs";
 import {
   createFirstPublicationTransitionReceipt,
@@ -125,6 +126,7 @@ function activeWorkflow() {
           { name: "Download exact release", uses: "actions/download-artifact@digest" },
           { name: "Install dependencies", run: "pnpm install --frozen-lockfile" },
           { name: "Stage exact CLI package", run: stageOnlyPublicationCommand },
+          structuredClone(stageResultUploadStep),
         ],
       },
     },
@@ -389,6 +391,15 @@ describe("first-publication stage-only transition", () => {
     assert.ok(
       createFirstPublicationTransitionReport(direct).checks[1].reasons
         .includes("direct_publish_command_present"),
+    );
+
+    const missingResult = transitionInput(executed);
+    missingResult.workflow.jobs["publish-cli"].steps =
+      missingResult.workflow.jobs["publish-cli"].steps.filter(({ name }) =>
+        name !== "Upload stage publication result");
+    assert.ok(
+      createFirstPublicationTransitionReport(missingResult).checks[1].reasons
+        .includes("stage_result_upload_invalid"),
     );
 
     const selfReview = transitionInput(executed);

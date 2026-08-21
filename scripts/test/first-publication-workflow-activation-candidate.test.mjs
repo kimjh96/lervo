@@ -68,11 +68,24 @@ describe("first-publication stage-only workflow activation candidate", () => {
       "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
       "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
       "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+      "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
     ]);
     const download = job.steps.find(({ name }) => name === "Download exact release files");
     assert.deepEqual(download.with, {
       name: "lervo-cli-${{ github.ref_name }}",
       path: "${{ runner.temp }}",
+    });
+    assert.equal(
+      job.steps.find(({ name }) => name === "Set up Node").with["node-version"],
+      "22.14.0",
+    );
+    const upload = job.steps.find(({ name }) => name === "Upload stage publication result");
+    assert.equal(upload.if, "always()");
+    assert.deepEqual(upload.with, {
+      name: "lervo-cli-stage-${{ github.ref_name }}-${{ github.run_attempt }}",
+      path: "${{ runner.temp }}/lervo-stage-publication",
+      "if-no-files-found": "warn",
+      "retention-days": 30,
     });
   });
 

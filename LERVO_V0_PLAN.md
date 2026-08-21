@@ -1036,6 +1036,21 @@ CLI first-publication stage-only workflow activation candidate 완료 조건:
 - Source 변경·기존 활성화·stale metadata·권한 상향 재해시·output 변조를 거부함
 - 원본·외부 설정·게시 상태와 runtime event·project state·telemetry를 바꾸지 않음
 
+CLI stage publication command boundary 완료 조건:
+
+- Publication authorization과 exact release directory를 bounded regular-file snapshot으로 읽음
+- Manifest·SBOM 계약, 세 release subject digest와 tarball registry digest를 실제 bytes에 대조함
+- GitHub-hosted OIDC, Node 22.14 이상, 장기 registry credential 부재를 외부 호출 전에 확인함
+- npm 11.15 이상 stage 전용 adapter가 exact `npm stage publish`를 한 번만 호출함
+- Direct publish adapter와 stage adapter는 client 격리만 공유하고 command·receipt 의미를 분리함
+- 외부 호출 전 owner-only `attempt.json`, 호출 뒤 immutable `terminal.json`을 별도 파일로 기록함
+- `staged|aborted_before_stage|stage_outcome_unknown`과 각 retry·2FA 검토 의미를 구분함
+- 호출 뒤 불명확한 결과와 attempt-only 상태는 blind retry를 금지하고 사람 대조를 요구함
+- 성공을 공개 완료로 표현하지 않고 CLI exit-zero stage 접수 evidence로만 제한함
+- Workflow 후보가 결과 directory를 `if: always()` run-attempt별 artifact로 보존함
+- Credential·OIDC 값·외부 출력·경로·actor를 기록하지 않고 runtime telemetry를 만들지 않음
+- Fixture가 실제 npm stage·2FA 승인·공개·workflow 적용이나 외부 설정 변경을 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1266,6 +1281,8 @@ CLI first-publication transition evidence union을 완료했습니다. Execution
 
 CLI first-publication transition completion command를 완료했습니다. 두 evidence 경로를 인자부터 분리하고 공통 계약·증거·workflow와 resolution의 unknown 저장 snapshot을 bounded하게 읽습니다. Public npm·npm trust·GitHub environment를 같은 online 수명주기에서 관측한 뒤 모든 source를 다시 확인하며, 네 검사가 ready인 경우에만 새 transition receipt v2를 `wx`로 씁니다. 게시·외부 설정·reservation·terminal·telemetry는 바꾸지 않습니다. 결정은 [ADR-0116](./docs/adr/0116-cli-first-publication-transition-completion-command.md)에 기록했습니다.
 
-CLI first-publication stage-only workflow activation candidate 경계를 완료했습니다. YAML AST는 `jobs` mapping의 byte 경계만 찾고 exact `publish-cli` block을 삽입해 기존 bytes와 다른 top-level block을 보존합니다. 결과 workflow를 다시 parse해 공용 stage-only 정책을 통과시키며 metadata와 exact YAML을 분리합니다. Package manifest에 실제 stage command가 없으면 후보를 만들지 않으므로 현재 저장소 호출은 명시적으로 차단되고 원본·외부 설정·게시 상태를 바꾸지 않습니다. 결정은 [ADR-0117](./docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md)에 기록했습니다.
+CLI first-publication stage-only workflow activation candidate 경계를 완료했습니다. YAML AST는 `jobs` mapping의 byte 경계만 찾고 exact `publish-cli` block을 삽입해 기존 bytes와 다른 top-level block을 보존합니다. 결과 workflow를 다시 parse해 공용 stage-only 정책을 통과시키며 metadata와 exact YAML을 분리합니다. Package manifest에 실제 stage command가 없으면 후보를 만들지 않고 원본·외부 설정·게시 상태를 바꾸지 않습니다. 결정은 [ADR-0117](./docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md)에 기록했습니다.
 
-다음 구현 작업은 검증된 release directory와 publication authorization을 bounded snapshot으로 읽고 GitHub OIDC Trusted Publisher adapter만 호출하는 **CLI stage publication command boundary**입니다. 실제 외부 쓰기 명령이므로 환경·입력·receipt·불명확한 결과와 재실행 금지 의미를 먼저 고정합니다.
+CLI stage publication command boundary를 완료했습니다. Exact release·authorization snapshot을 source reader가 다시 결속하고 GitHub-hosted OIDC·Node·pinned npm 검사를 예약 전에 수행합니다. Stage 전용 adapter는 `npm stage publish`만 한 번 호출하며 외부 호출 전 `attempt.json`, 호출 뒤 terminal을 owner-only 실행 directory에 따로 보존합니다. 성공은 공개가 아닌 2FA 검토 대기 접수이고 호출 뒤 오류·검증 불일치·terminal 저장 실패는 `stage_outcome_unknown`, retry forbidden으로 닫습니다. Workflow 후보도 result directory를 run-attempt별 artifact로 수집합니다. 실제 npm stage·2FA 승인·workflow 적용·외부 설정 변경은 실행하지 않았습니다. 결정은 [ADR-0118](./docs/adr/0118-cli-stage-publication-command-boundary.md)에 기록했습니다.
+
+다음 구현 작업은 검토한 candidate digest와 exact workflow output에 명시적 사람 결정을 결속한 뒤 current source를 compare-and-swap으로 적용하는 **CLI stage-only workflow activation permit·transaction boundary**입니다. Candidate 생성과 적용 권한을 계속 분리하고, 원본 변경·부분 적용·중단 복구·mode 보존을 먼저 고정합니다.

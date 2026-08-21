@@ -79,15 +79,14 @@ describe("first-publication workflow activation candidate command", () => {
     }
   });
 
-  it("reports the current missing stage command without candidate output", () => {
+  it("builds a candidate from the current stage command without writing it", () => {
     const result = spawnSync(process.execPath, [command, "--json"], {
       cwd: repositoryRoot,
       encoding: "utf8",
     });
-    assert.equal(result.status, 1);
-    assert.equal(result.stdout, "");
-    assert.match(result.stderr,
-      /^first_publication_workflow_activation_stage_command_missing:/u);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).status, "review_required");
+    assert.equal(result.stderr, "");
   });
 
   it("rejects an oversized workflow before candidate generation", async () => {

@@ -9,11 +9,23 @@ import { resolveFirstPublicationTransitionEvidence } from
 
 export const stageOnlyPublicationCommand =
   "pnpm release:publication:stage --release-directory \"${RUNNER_TEMP}/lervo-release\" " +
-  "--publication-authorization \"${RUNNER_TEMP}/lervo-publication-authorization.json\"";
+  "--publication-authorization \"${RUNNER_TEMP}/lervo-publication-authorization.json\" " +
+  "--result-directory \"${RUNNER_TEMP}/lervo-stage-publication\"";
 export const stageOnlyRunCommands = [
   "pnpm install --frozen-lockfile",
   stageOnlyPublicationCommand,
 ];
+export const stageResultUploadStep = Object.freeze({
+  name: "Upload stage publication result",
+  if: "always()",
+  uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+  with: {
+    name: "lervo-cli-stage-${{ github.ref_name }}-${{ github.run_attempt }}",
+    path: "${{ runner.temp }}/lervo-stage-publication",
+    "if-no-files-found": "warn",
+    "retention-days": 30,
+  },
+});
 
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
 
@@ -66,6 +78,12 @@ export function inspectFirstPublicationStageOnlyWorkflow(workflow) {
     : [];
   if (canonicalJson(runs) !== canonicalJson(stageOnlyRunCommands)) {
     reasons.push("stage_command_invalid");
+  }
+  const resultUpload = Array.isArray(job.steps)
+    ? job.steps.find(({ name }) => name === "Upload stage publication result")
+    : undefined;
+  if (canonicalJson(resultUpload) !== canonicalJson(stageResultUploadStep)) {
+    reasons.push("stage_result_upload_invalid");
   }
   const jobStrings = strings(job);
   if (jobStrings.some((value) =>
