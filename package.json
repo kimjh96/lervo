@@ -37,6 +37,7 @@
     "release:bootstrap:workflow-reachability": "node scripts/show-cli-first-publication-workflow-reachability-evidence.mjs",
     "release:bootstrap:workflow-execution": "node scripts/show-cli-first-publication-workflow-execution-evidence.mjs",
     "release:bootstrap:stage-result-evidence": "node scripts/show-cli-first-publication-stage-result-evidence.mjs",
+    "release:bootstrap:stage-review-evidence": "node scripts/show-cli-first-publication-stage-review-evidence.mjs",
     "release:bootstrap:plan": "node scripts/show-cli-first-publication-execution-plan.mjs",
     "release:bootstrap:arm": "node scripts/authorize-cli-first-publication-arming.mjs",
     "release:bootstrap:blockers": "node scripts/show-cli-first-publication-activation-blockers.mjs",

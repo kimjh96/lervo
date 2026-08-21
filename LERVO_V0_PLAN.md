@@ -1159,6 +1159,22 @@ CLI npm stage result artifact evidence 완료 조건:
 - Digest mismatch, ZIP 공격, unknown terminal, 다른 version, metadata race, source race, redigest 상향을 검증함
 - 현재 production workflow 실행·실제 artifact download·npm stage·review·2FA·공개를 주장하지 않음
 
+CLI npm staged package review evidence 완료 조건:
+
+- 저장한 stage result evidence를 최대 128 KiB canonical snapshot으로 읽고 standalone 계약을 검증함
+- 명시한 npm user config만 최대 64 KiB로 읽고 관측 뒤 bytes를 재확인함
+- 환경 credential을 거부하고 임시 cache·빈 global config·download directory로 npm 실행을 격리함
+- npm 11.15.0 이상에서 `stage list/view/download/view`만 순서대로 실행함
+- Exact package·version의 stage가 하나이고 list와 두 view metadata가 같아야 함
+- Download directory의 exact regular tarball 하나를 64 MiB로 제한함
+- Tarball SHA-256·SHA-512 integrity·SHA-1 shasum을 stage result artifact와 stage metadata에 결속함
+- Stage ID는 digest만 남기고 actor·계정·credential·npm 원문과 임시 tarball을 폐기함
+- Report는 exact staged package와 tarball의 관측만 evidence-bound로 표현함
+- 인증 주체, 사람 검토 결정, 2FA 승인·공개와 관측 뒤 불변성을 별도 미검증으로 유지함
+- `stage approve|reject`, publication, source·npm 설정·runtime state 변경을 실행하지 않음
+- 중복·누락 stage, list/view 불일치, tarball mismatch, metadata·user config·source race와 ambient credential을 검증함
+- 현재 실제 npm stage 조회·download·approve·reject·2FA·공개를 수행했다고 주장하지 않음
+
 CLI first-publication durable 저장·대화형 adapter 완료 조건:
 
 - 예약마다 immutable reservation과 terminal 문서를 분리하고 한 파일에 실행 이력을 누적하지 않음
@@ -1405,4 +1421,6 @@ CLI stage-only workflow execution evidence boundary를 완료했습니다. 운�
 
 CLI npm stage result artifact evidence boundary를 완료했습니다. Exact artifact metadata를 앞뒤로 대조하며 최대 1 MiB ZIP을 메모리에만 받고, archive digest와 두 canonical stage record의 구조·digest·좌표를 검증합니다. 결과는 `npm_cli_exit_zero` 기록으로 제한하고 registry 독립 접수·stage ID·tarball·2FA·공개를 별도 경계로 유지합니다. 결정은 [ADR-0124](./docs/adr/0124-cli-npm-stage-result-artifact-evidence.md)에 기록했습니다.
 
-다음 구현 작업은 인증된 `npm stage list/view/download` 관측으로 exact package·version의 유일한 stage ID와 registry metadata·downloaded tarball digest를 stage result evidence에 결속하는 **CLI npm staged package review evidence boundary**입니다. 조회 credential과 stage ID를 report에서 비식별화하고 `stage approve`·2FA·공개 전이를 실행하지 않습니다.
+CLI npm staged package review evidence boundary를 완료했습니다. 인증된 `stage list/view/download/view`를 격리 실행해 exact package·version의 유일한 stage, 안정적인 metadata와 downloaded tarball의 세 digest를 stage result evidence에 결속합니다. Stage ID는 digest만 남기고 actor·계정·credential·npm 원문·임시 tarball을 폐기하며 `approve`·`reject`·2FA·공개 전이는 실행하지 않습니다. 결정은 [ADR-0125](./docs/adr/0125-cli-npm-staged-package-review-evidence.md)에 기록했습니다.
+
+다음 구현 작업은 fresh staged package review evidence와 짧게 유효한 명시적 사람 결정을 exact stage에 결속하되 아직 npm을 변경하지 않는 **CLI npm stage approval authorization boundary**입니다. 승인 주체 원문과 2FA 값을 결과에서 제거하고 실제 `stage approve` 실행·불명확한 결과 처분은 그 다음 별도 경계로 유지합니다.
