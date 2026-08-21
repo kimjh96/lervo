@@ -22,6 +22,7 @@ export function reviewDetails(input: {
   content: string;
   contentHash: string;
   claimId: string;
+  roleId: string;
 }): Extract<DeliberationArtifact, { kind: "objection" }>["details"] {
   const firstLine = input.content.split(/\r?\n/u).find((line) => line.trim().length > 0)?.trim();
   if (firstLine === "판정: 승인") {
@@ -33,7 +34,7 @@ export function reviewDetails(input: {
   return {
     reviewStatus: "changes_requested",
     objections: [{
-      objectionId: coordinate("obj", input.contentHash),
+      objectionId: coordinate("obj", `${input.roleId}:${input.contentHash}`),
       objectionDigest: input.contentHash,
       targetClaimIds: [input.claimId],
       blocking: true,

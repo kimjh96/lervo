@@ -7,15 +7,16 @@ import {
 import { defaultKoreanWritingContract } from "@lervo/core";
 import type { DeliberationArtifact, DeliberationOutcome, RoleProfile } from "@lervo/schemas";
 
-import { deliberationRoleIds } from "./deliberation-roles.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type {
   ManagedDeliberationRunResult,
   ManagedDeliberationRunner,
 } from "./managed-deliberation-runner.js";
 import type {
+  DeliberationExecutionPlan,
+} from "./deliberation-roles.js";
+import type {
   ManagedDeliberationOutcome,
-  ManagedDeliberationRequest,
 } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
 
@@ -35,6 +36,7 @@ export async function recordDeliberationTurn<K extends DeliberationArtifact["kin
   details: DeliberationArtifactDetails<K>;
   previousArtifactIds: readonly string[];
   verificationEvidence?: DeliberationVerificationEvidence;
+  recipientRoleIds: readonly string[];
 }): Promise<DeliberationTurnResult> {
   const turn = await input.runtime.executeTurn<K>({
     kind: input.kind,
@@ -53,7 +55,7 @@ export async function recordDeliberationTurn<K extends DeliberationArtifact["kin
     turn,
     producerRole: input.producerRole,
   });
-  for (const roleId of [deliberationRoleIds.proposer, deliberationRoleIds.reviewer]) {
+  for (const roleId of input.recipientRoleIds) {
     const handoff = context.handoffFor(roleId);
     input.runtime.publishHandoff({
       artifactId: turn.artifact.deliberationArtifactId,
@@ -70,7 +72,7 @@ export async function recordDeliberationTurn<K extends DeliberationArtifact["kin
 }
 
 export function presentDeliberationOutcome(
-  request: ManagedDeliberationRequest,
+  plan: DeliberationExecutionPlan,
   outcome: DeliberationOutcome,
   history: readonly DeliberationArtifact[],
   finalContent: string,
@@ -85,8 +87,14 @@ export function presentDeliberationOutcome(
     artifactCount: history.length,
     finalContent,
     providers: {
-      proposer: request.proposerProvider,
-      reviewer: request.reviewerProvider,
+      proposer: plan.proposer.provider,
+      reviewer: plan.reviewers[0]!.provider,
     },
+    participants: plan.participants.map((participant) => ({
+      roleId: participant.role.roleId,
+      name: participant.role.name,
+      provider: participant.provider,
+      responsibilities: [...participant.responsibilities],
+    })),
   };
 }

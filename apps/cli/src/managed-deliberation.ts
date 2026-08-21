@@ -1,50 +1,53 @@
 import { randomUUID } from "node:crypto";
 
-import {
-  deliberationPolicyHash,
-} from "@lervo/deliberation";
+import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
   DeliberationRuntime,
-  type DeliberationTurnResult,
 } from "@lervo/deliberation-runtime";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
-import type { DeliberationOutcome } from "@lervo/schemas";
+import type { DeliberationOutcome, DeliberationResponsibility } from "@lervo/schemas";
 
+import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import {
   createFailedOutcome,
-  createNoConsensusOutcome,
-  initialClaimId,
-  reviewDetails,
 } from "./deliberation-contract.js";
+import { executeDeliberationRounds } from "./deliberation-rounds.js";
+import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
 import {
-  proposalPrompt,
-  revisionPrompt,
-  reviewPrompt,
-} from "./deliberation-prompts.js";
-import {
-  createCliDeliberationPolicy,
-  createDeliberationParticipantRole,
+  createInlineDeliberationExecutionPlan,
+  createStoredDeliberationExecutionPlan,
+  type DeliberationExecutionPlan,
 } from "./deliberation-roles.js";
-import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import { DeliberationWorkspace } from "./deliberation-workspace.js";
-import {
-  presentDeliberationOutcome,
-  recordDeliberationTurn,
-} from "./deliberation-turn.js";
 import {
   ManagedDeliberationRunner,
   type ManagedDeliberationRunnerDependencies,
 } from "./managed-deliberation-runner.js";
 import type { RunProvider } from "./managed-run.js";
 
-export interface ManagedDeliberationRequest {
+interface ManagedDeliberationRequestBase {
   repositoryRoot: string;
+  topic: string;
+}
+
+export interface InlineManagedDeliberationRequest extends ManagedDeliberationRequestBase {
   proposerProvider: RunProvider;
   reviewerProvider: RunProvider;
   verificationSuiteIds: readonly string[];
-  topic: string;
+  policyId?: never;
 }
+
+export interface StoredManagedDeliberationRequest extends ManagedDeliberationRequestBase {
+  policyId: string;
+  proposerProvider?: never;
+  reviewerProvider?: never;
+  verificationSuiteIds?: never;
+}
+
+export type ManagedDeliberationRequest =
+  | InlineManagedDeliberationRequest
+  | StoredManagedDeliberationRequest;
 
 export interface ManagedDeliberationOutcome {
   deliberationId: string;
@@ -56,6 +59,12 @@ export interface ManagedDeliberationOutcome {
     proposer: RunProvider;
     reviewer: RunProvider;
   };
+  participants: Array<{
+    roleId: string;
+    name: string;
+    provider: RunProvider;
+    responsibilities: DeliberationResponsibility[];
+  }>;
 }
 
 export type ExecuteManagedDeliberation = (
@@ -86,18 +95,21 @@ export class ManagedDeliberationError extends Error {
   }
 }
 
+function validSuites(suites: readonly string[]): boolean {
+  return suites.length > 0 && suites.length <= 16 &&
+    new Set(suites).size === suites.length && suites.every((suiteId) =>
+      suiteId.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(suiteId));
+}
+
 function assertRequest(request: ManagedDeliberationRequest): void {
-  const suites = [...request.verificationSuiteIds];
-  if (
-    request.proposerProvider === request.reviewerProvider ||
-    request.topic.trim().length === 0 || request.topic.length > 20_000 ||
-    suites.length === 0 || suites.length > 16 || new Set(suites).size !== suites.length ||
-    suites.some((suiteId) =>
-      suiteId.length > 150 || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(suiteId))
-  ) {
+  const topicIsValid = request.topic.trim().length > 0 && request.topic.length <= 20_000;
+  const stored = typeof request.policyId === "string";
+  const inlineValid = !stored && request.proposerProvider !== request.reviewerProvider &&
+    validSuites(request.verificationSuiteIds);
+  if (!topicIsValid || (!stored && !inlineValid)) {
     throw new ManagedDeliberationError(
       "deliberation_request_invalid",
-      "서로 다른 Codex·Claude 역할, 작업 주제와 중복되지 않은 verification suite가 필요합니다.",
+      "유효한 작업 주제와 저장된 policy 또는 서로 다른 Codex·Claude 역할 및 verification suite가 필요합니다.",
     );
   }
 }
@@ -105,6 +117,28 @@ function assertRequest(request: ManagedDeliberationRequest): void {
 function errorCode(error: unknown): string {
   const value = (error as { code?: unknown } | null)?.code;
   return typeof value === "string" ? value : "deliberation_failed";
+}
+
+async function resolveExecutionPlan(
+  request: ManagedDeliberationRequest,
+  storage: ProjectStorage,
+): Promise<DeliberationExecutionPlan> {
+  if (typeof request.policyId === "string") {
+    const source = await loadDeliberationWorkflowSource(
+      storage.paths.repositoryRoot,
+      request.policyId,
+    );
+    return createStoredDeliberationExecutionPlan({
+      projectId: storage.manifest.projectId,
+      source,
+    });
+  }
+  return createInlineDeliberationExecutionPlan({
+    projectId: storage.manifest.projectId,
+    proposerProvider: request.proposerProvider,
+    reviewerProvider: request.reviewerProvider,
+    verificationSuiteIds: request.verificationSuiteIds,
+  });
 }
 
 export function createManagedDeliberationExecutor(
@@ -151,6 +185,9 @@ async function executeWithStorage(
   storage: ProjectStorage,
   dependencies: ManagedDeliberationDependencies,
 ): Promise<ManagedDeliberationOutcome> {
+  const plan = await resolveExecutionPlan(request, storage);
+  const policy = plan.policy;
+  const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
   const deliberationId = dependencies.createId("dlb");
   const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
   const workspace = await DeliberationWorkspace.create({
@@ -159,20 +196,7 @@ async function executeWithStorage(
     deliberationId,
     registry,
     createdAt: dependencies.now().toISOString(),
-  });
-  const policy = createCliDeliberationPolicy({
-    projectId: storage.manifest.projectId,
-    proposerProvider: request.proposerProvider,
-    reviewerProvider: request.reviewerProvider,
-    verificationSuiteIds: request.verificationSuiteIds,
-  });
-  const proposerRole = createDeliberationParticipantRole({
-    kind: "proposer",
-    verificationSuiteIds: request.verificationSuiteIds,
-  });
-  const reviewerRole = createDeliberationParticipantRole({
-    kind: "reviewer",
-    verificationSuiteIds: request.verificationSuiteIds,
+    participantRoleIds: recipientRoleIds,
   });
   const runtime = new DeliberationRuntime({
     deliberationId,
@@ -192,125 +216,45 @@ async function executeWithStorage(
     storage,
     workspace,
     deliberationPolicyHash(policy),
-    request.verificationSuiteIds[0]!,
+    policy.requiredVerificationSuiteIds[0]!,
     dependencies.runner,
   );
   let completed = false;
   let openBlockingObjections: string[] = [];
   runtime.start();
   try {
-    const proposalRun = await runner.execute({
-      provider: request.proposerProvider,
-      role: proposerRole,
-      instructions: proposalPrompt(request.topic.trim()),
-      documentRules: { "writing.policy": [workspace.writingPolicyDocumentId] },
-    });
-    const claimId = initialClaimId(deliberationId);
-    let currentClaim = {
-      claimId,
-      claimDigest: proposalRun.run.resultArtifact.contentHash,
-    };
-    let latestClaimArtifact = await recordDeliberationTurn({
+    const rounds = await executeDeliberationRounds({
+      request,
+      plan,
+      policy,
+      deliberationId,
       runtime,
       runner,
       workspace,
-      producerRole: proposerRole,
-      provider: request.proposerProvider,
-      run: proposalRun,
-      kind: "proposal",
-      round: 1,
-      details: { claims: [currentClaim] },
-      previousArtifactIds: [],
+      recipientRoleIds,
+      now: dependencies.now,
+      setOpenBlockingObjectionIds: (ids) => {
+        openBlockingObjections = [...ids];
+      },
     });
-    let approvedReview: DeliberationTurnResult | undefined;
-
-    for (let round = 1; round <= policy.maxRounds; round += 1) {
-      const reviewRun = await runner.execute({
-        provider: request.reviewerProvider,
-        role: reviewerRole,
-        instructions: reviewPrompt(request.topic.trim(), round),
-        documentRules: { "writing.policy": [workspace.writingPolicyDocumentId] },
-      });
-      const details = reviewDetails({
-        content: reviewRun.content,
-        contentHash: reviewRun.run.resultArtifact.contentHash,
-        claimId,
-      });
-      const review = await recordDeliberationTurn({
-        runtime,
-        runner,
-        workspace,
-        producerRole: reviewerRole,
-        provider: request.reviewerProvider,
-        run: reviewRun,
-        kind: "objection",
-        round,
-        details,
-        previousArtifactIds: [latestClaimArtifact.artifact.deliberationArtifactId],
-      });
-      openBlockingObjections = details.objections.map((item) => item.objectionId);
-      if (details.reviewStatus === "approved") {
-        approvedReview = review;
-        openBlockingObjections = [];
-        break;
-      }
-      if (round === policy.maxRounds) {
-        const outcome = createNoConsensusOutcome({
-          deliberationId,
-          policy,
-          history: runtime.history(),
-          completedAt: dependencies.now().toISOString(),
-          reason: "blocking_objections_unresolved",
-          unresolvedBlockingObjectionIds: openBlockingObjections,
-        });
-        runtime.complete(outcome);
-        completed = true;
-        return presentDeliberationOutcome(request, outcome, runtime.history(), review.content);
-      }
-      const revisionRun = await runner.execute({
-        provider: request.proposerProvider,
-        role: proposerRole,
-        instructions: revisionPrompt(request.topic.trim()),
-        documentRules: { "writing.policy": [workspace.writingPolicyDocumentId] },
-      });
-      currentClaim = {
-        claimId,
-        claimDigest: revisionRun.run.resultArtifact.contentHash,
-      };
-      latestClaimArtifact = await recordDeliberationTurn({
-        runtime,
-        runner,
-        workspace,
-        producerRole: proposerRole,
-        provider: request.proposerProvider,
-        run: revisionRun,
-        kind: "revision",
-        round: round + 1,
-        details: {
-          revisesArtifactId: latestClaimArtifact.artifact.deliberationArtifactId,
-          claims: [currentClaim],
-          resolvesObjectionIds: openBlockingObjections,
-        },
-        previousArtifactIds: [
-          latestClaimArtifact.artifact.deliberationArtifactId,
-          review.artifact.deliberationArtifactId,
-        ],
-      });
-      openBlockingObjections = [];
+    if (rounds.status === "no_consensus") {
+      completed = true;
+      return rounds.result;
     }
-
-    if (approvedReview === undefined) throw new Error("승인 검토 결과가 없습니다.");
     const result = await completeApprovedDeliberation({
       request,
+      plan,
       deliberationId,
       policy,
       runtime,
       runner,
       workspace,
-      proposerRole,
-      approvedReview,
-      latestClaimArtifact,
-      currentClaim,
+      proposer: plan.proposer,
+      verifier: plan.verifier,
+      approvedReviews: rounds.approvedReviews,
+      recipientRoleIds,
+      latestClaimArtifact: rounds.latestClaimArtifact,
+      currentClaim: rounds.currentClaim,
       now: dependencies.now,
     });
     completed = true;

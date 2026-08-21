@@ -11,6 +11,7 @@ export * from "./deliberation-artifact.js";
 export * from "./deliberation-event.js";
 export * from "./deliberation-outcome.js";
 export * from "./deliberation-policy.js";
+export * from "./deliberation-workflow.js";
 export * from "./document-registry.js";
 export * from "./document-staleness.js";
 export * from "./doctor-report.js";

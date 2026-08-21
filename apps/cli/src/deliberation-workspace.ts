@@ -12,8 +12,6 @@ import type {
   SharedContextPublication,
 } from "@lervo/schemas";
 
-import { deliberationRoleIds } from "./deliberation-roles.js";
-
 interface PublishedContext {
   publication: SharedContextPublication;
   handoff: HandoffBundle;
@@ -45,6 +43,7 @@ export class DeliberationWorkspace {
     private readonly repositoryRoot: string,
     private readonly deliberationRoot: string,
     private readonly createdAt: string,
+    private readonly participantRoleIds: readonly string[],
     registry: DocumentRegistry,
     readonly writingPolicyDocumentId: string,
     readonly writingPolicyContentHash: string,
@@ -58,6 +57,7 @@ export class DeliberationWorkspace {
     deliberationId: string;
     registry: DocumentRegistry;
     createdAt: string;
+    participantRoleIds: readonly string[];
   }): Promise<DeliberationWorkspace> {
     const parent = resolve(input.stateRoot, "deliberations");
     const root = resolve(parent, input.deliberationId);
@@ -69,6 +69,7 @@ export class DeliberationWorkspace {
       input.repositoryRoot,
       root,
       input.createdAt,
+      [...input.participantRoleIds],
       input.registry,
       writingPolicyDocumentId,
       sha256(writingBytes),
@@ -152,7 +153,7 @@ export class DeliberationWorkspace {
       },
       audience: {
         mode: "roles",
-        roleIds: [deliberationRoleIds.proposer, deliberationRoleIds.reviewer],
+        roleIds: [...this.participantRoleIds],
       },
       sensitivity: "normal",
       evidenceEventIds: [input.turn.recordedEvent.eventId],

@@ -28,6 +28,7 @@ const managedDirectories = [
   lervoRelativePaths.searchRolloutPolicies,
   lervoRelativePaths.searchRolloutActionPolicies,
   lervoRelativePaths.verifications,
+  lervoRelativePaths.deliberations,
 ] as const;
 
 async function planDirectory(root: string, path: string): Promise<InitOperation> {

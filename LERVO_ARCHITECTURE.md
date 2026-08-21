@@ -106,6 +106,7 @@ First-publication external evidence는 license approval, npm scope control confi
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
 - `lervo run --provider <provider> --path <path> --verification <suite-id> [--verification <suite-id> ...] [--skill <skill-id> ...] <request>`: project storage, 스킬 해석, 프로젝트 검증과 managed provider coordinator를 연결하는 한 파일 실행 구현 완료
 - `lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] <topic>`: 서로 다른 두 provider를 역할별 독립 session에 고정하고 writing·검증 증거를 구조화된 숙의 runtime에 연결하는 사용자 명령
+- `lervo deliberate --policy <deliberation-policy-id> <topic>`: 분할 YAML 원본에서 최대 16개 역할과 provider·책임·회차·검증을 읽어 다중 검토와 별도 검증 역할을 실행하는 사용자 명령
 - `lervo trace [run]`: 실행 근거와 이벤트 조회
 - `lervo doctor`: 문서·스킬·어댑터 로컬 상태 진단. Hub 연결 상태는 실제 transport와 연결 설정 구현 뒤 추가
 - `lervo docs check`: 문서 노후화 검사
@@ -280,6 +281,8 @@ Context generation은 호출자가 소유하는 단조 증가 값입니다. Deli
 사용자용 `lervo deliberate` application은 명령 파싱, 역할·policy 조립, prompt, 산출물 계약, turn 기록, 수렴, provider 실행과 workspace 저장을 별도 모듈로 둡니다. 제안자와 검토자는 서로 다른 Codex·Claude provider와 매번 새 managed session을 사용합니다. 공개된 산출물 하나에는 `context.published` 하나만 만들되 두 역할이 받는 handoff와 E2/E3는 각각 따로 만듭니다. 이는 두 모델이 숨겨진 대화나 내부 추론 전체를 공유했다는 뜻이 아니라, 같은 원문 hash의 공개 문서를 각자의 session에 실제로 적재·주입했다는 뜻입니다.
 
 모든 사람용 산출물은 생산 provider가 아닌 반대 provider의 별도 평가 session에서 한국어 writing 계약을 검사합니다. 평가 응답은 추가 필드나 누락을 허용하지 않는 정확한 JSON이어야 하며 실패를 통과로 추정하지 않습니다. 검토 승인 뒤에는 명시된 project verification suite를 실제로 실행하고 `verification.completed`와 `run.completed`의 suite·revision·result artifact·상태를 함께 대조합니다. 실행별 문서는 `.lervo/state/deliberations/<id>/` 아래 writing policy, artifact, 평가 요청별 디렉터리로 원자적으로 게시하여 한 파일에 계속 덧붙이지 않습니다. 결정은 [ADR-0133](./docs/adr/0133-cli-two-provider-deliberation.md)에 기록합니다.
+
+다중 역할 정책은 `.lervo/deliberations/<policy-id>.yaml`에 하나씩 두고 실행 event나 산출물을 정책 파일에 누적하지 않습니다. Source loader는 실제 디렉터리와 64 KiB 이하 일반 파일을 no-follow로 읽고 읽는 동안 좌표가 바뀌면 실패합니다. 사용자 원본에는 역할 ID·이름·관점, Codex·Claude provider, 책임, 최대 회차와 필수 suite만 둡니다. Project ID와 writing 계약 hash는 검증된 실행 원본에서 조립합니다. Application은 source loader, 실행 plan 조립, 제안·다중 검토·수정 회차, 검증·결정, workspace를 분리합니다. 저장 정책은 제안·결정 역할 하나, 한 명 이상의 검토자, 검토자와 다른 검증자와 두 provider 참여를 요구합니다. 모든 검토자가 최신 claim을 승인해야 검증으로 넘어갑니다. 결정은 [ADR-0134](./docs/adr/0134-sharded-multi-role-deliberation-policy.md)에 기록합니다.
 
 `@lervo/deliberation`은 policy, artifact, 실제 verification 근거와 outcome을 provider 실행에서 분리해 검증합니다. 이력 좌표·역할 격리, mutable 상태, 종류별 artifact 전이와 최종 분석도 별도 모듈입니다. 검증 artifact는 claim ID뿐 아니라 현재 claim digest에 묶이고, 최신 revision을 직접 참조한 독립 승인과 모든 필수 suite의 채택 claim 검증이 있어야 `converged`가 됩니다. 의미 계층은 다른 역할의 managed run, Lervo session이나 context receipt 재사용을 거부하고, 실행 계층은 provider session 재사용까지 추가로 거부합니다.
 

@@ -140,7 +140,46 @@ describe("lervo deliberate CLI", () => {
     );
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
-    expect(errors).toContain("서로 다른 proposer·reviewer");
+    expect(errors).toContain("저장된 policy 하나");
+  });
+
+  it("accepts a stored policy without inline role arguments", async () => {
+    let request: unknown;
+    const exitCode = await runCli(
+      ["deliberate", "--policy", "deliberation_product-review", "검토 주제"],
+      {
+        cwd: "/work/repository",
+        stdout: () => undefined,
+        stderr: () => undefined,
+      },
+      {
+        executeManagedDeliberation: async (input) => {
+          request = input;
+          throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
+        },
+      },
+    );
+    expect(exitCode).toBe(1);
+    expect(request).toEqual({
+      repositoryRoot: "/work/repository",
+      policyId: "deliberation_product-review",
+      topic: "검토 주제",
+    });
+  });
+
+  it("does not mix a stored policy with inline providers", async () => {
+    let called = false;
+    const exitCode = await runCli(
+      ["deliberate", "--policy", "deliberation_product-review",
+        "--proposer", "codex", "검토 주제"],
+      { cwd: process.cwd(), stdout: () => undefined, stderr: () => undefined },
+      { executeManagedDeliberation: async () => {
+        called = true;
+        throw new Error("must not run");
+      } },
+    );
+    expect(exitCode).toBe(1);
+    expect(called).toBe(false);
   });
 
   it("prints a converged result without exposing evidence digests", async () => {
@@ -151,6 +190,17 @@ describe("lervo deliberate CLI", () => {
       artifactCount: 4,
       finalContent: "독립 검토와 실제 검증을 거친 결론입니다.",
       providers: { proposer: "codex", reviewer: "claude" },
+      participants: [{
+        roleId: "deliberation-proposer",
+        name: "제안·결정 역할",
+        provider: "codex",
+        responsibilities: ["proposer", "decision_owner"],
+      }, {
+        roleId: "deliberation-reviewer",
+        name: "독립 검토·검증 역할",
+        provider: "claude",
+        responsibilities: ["reviewer", "verifier"],
+      }],
       outcome: {
         schemaVersion: 1,
         outcomeId: "dlo_0000000000000001",

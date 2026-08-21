@@ -21,6 +21,7 @@ import {
 } from "./deliberation-event.js";
 import { deliberationOutcomeSchema } from "./deliberation-outcome.js";
 import { deliberationPolicySchema } from "./deliberation-policy.js";
+import { deliberationWorkflowSourceSchema } from "./deliberation-workflow.js";
 import { documentManifestSchema } from "./document-manifest.js";
 import {
   documentMigrationAppliedEventPayloadSchema,
@@ -182,6 +183,7 @@ const validators = {
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   deliberationPolicy: ajv.getSchema(deliberationPolicySchema.$id)!,
+  deliberationWorkflowSource: ajv.compile(deliberationWorkflowSourceSchema),
   deliberationArtifact: ajv.compile(deliberationArtifactSchema),
   deliberationOutcome: ajv.compile(deliberationOutcomeSchema),
   deliberationStartedEventPayload: ajv.compile(deliberationStartedEventPayloadSchema),

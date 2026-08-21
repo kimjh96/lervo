@@ -252,6 +252,41 @@ async function repository(): Promise<string> {
   return root;
 }
 
+async function writeFourRolePolicy(root: string): Promise<void> {
+  await writeFile(
+    resolve(root, ".lervo/deliberations/deliberation_product-review.yaml"),
+    [
+      "schemaVersion: 1",
+      "policyId: deliberation_product-review",
+      "maxRounds: 2",
+      "requiredVerificationSuiteIds:",
+      "  - project.default",
+      "participants:",
+      "  - roleId: product-planner",
+      "    name: 제품 기획자",
+      "    description: 사용자 가치와 적용 범위를 중심으로 제안을 작성합니다.",
+      "    provider: codex",
+      "    responsibilities: [proposer, decision_owner]",
+      "  - roleId: maintainability-reviewer",
+      "    name: 유지보수 검토자",
+      "    description: 관심사 분리와 장기 변경 비용을 독립적으로 검토합니다.",
+      "    provider: claude",
+      "    responsibilities: [reviewer]",
+      "  - roleId: evidence-reviewer",
+      "    name: 증거 검토자",
+      "    description: 주장과 저장소 근거의 연결이 충분한지 독립적으로 검토합니다.",
+      "    provider: codex",
+      "    responsibilities: [reviewer]",
+      "  - roleId: project-verifier",
+      "    name: 프로젝트 검증자",
+      "    description: 실제 검증 결과와 결론의 범위를 확인합니다.",
+      "    provider: claude",
+      "    responsibilities: [verifier]",
+      "",
+    ].join("\n"),
+  );
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -354,6 +389,74 @@ describe("managed CLI deliberation", () => {
       resolve(root, ".lervo/state/deliberations", deliberationRoots[0]!),
     );
     expect(entries.filter((entry) => entry.startsWith("artifact-"))).toHaveLength(4);
+  });
+
+  it("runs every role in a stored four-role policy with separate context evidence", async () => {
+    const root = await repository();
+    await writeFourRolePolicy(root);
+    const pass = semanticPass();
+    const queues: Record<RunProvider, string[]> = {
+      codex: [
+        "제안은 사용자 가치와 적용 범위를 먼저 정하고 각 검토 근거를 별도 기록으로 연결하는 것입니다.",
+        pass,
+        "판정: 승인\n\n저장소 근거와 주장의 연결이 분명하며 현재 범위에서 추가로 차단할 문제는 없습니다.",
+        pass,
+        "결론은 네 역할의 독립 세션과 실제 검증 결과를 함께 보존하는 방식입니다. 적용 범위도 명확합니다.",
+      ],
+      claude: [
+        pass,
+        "판정: 승인\n\n관심사가 역할과 실행 단계별로 나뉘어 있으며 장기 변경 비용을 키우는 차단 문제는 없습니다.",
+        pass,
+        "프로젝트 검증은 실제 명령 결과와 현재 저장소 revision에 연결됩니다. 통과 범위 밖의 사실은 주장하지 않습니다.",
+        pass,
+      ],
+    };
+    const nextId = sequence();
+    const now = clock();
+    const executor = createManagedDeliberationExecutor({
+      openStorage: openProjectStorage,
+      createId: nextId,
+      now,
+      runner: {
+        createAdapter: ({ provider }) => new FixtureDeliberationAdapter(
+          provider,
+          `provider-session-${nextId("session")}`,
+          queues[provider].shift() ?? "",
+          nextId("ctx"),
+        ),
+        createId: nextId,
+        now,
+        prepareVerification: prepareRunVerification,
+      },
+    });
+
+    const result = await executor({
+      repositoryRoot: root,
+      policyId: "deliberation_product-review",
+      topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+    });
+
+    expect(result.status).toBe("converged");
+    expect(result.artifactCount).toBe(5);
+    expect(result.participants.map((participant) => participant.roleId)).toEqual([
+      "product-planner",
+      "maintainability-reviewer",
+      "evidence-reviewer",
+      "project-verifier",
+    ]);
+    expect(queues).toEqual({ codex: [], claude: [] });
+    const storage = await openProjectStorage(root);
+    const events = storage.events.list({ limit: 1000 });
+    expect(events.filter((event) => event.type === "context.published")).toHaveLength(5);
+    expect(events.filter((event) => event.type === "handoff.created")).toHaveLength(20);
+    expect(events.filter((event) => event.type === "verification.completed")).toHaveLength(1);
+    const sessions = events
+      .filter((event) => event.type === "adapter.started")
+      .map((event) => event.payload.providerSessionId);
+    expect(sessions).toHaveLength(10);
+    expect(new Set(sessions).size).toBe(10);
+    expect(storage.events.verifyIntegrity().valid).toBe(true);
+    await storage.close();
   });
 
   it("stops as no_consensus after the second blocking review", async () => {

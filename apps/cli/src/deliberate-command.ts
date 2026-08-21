@@ -8,7 +8,8 @@ import type { RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const deliberateUsage =
-  "  lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] [--root <path>] [--json] <topic>";
+  "  lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] [--root <path>] [--json] <topic>\n" +
+  "  lervo deliberate --policy <deliberation-policy-id> [--root <path>] [--json] <topic>";
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -28,8 +29,8 @@ export function formatDeliberationOutcome(outcome: ManagedDeliberationOutcome): 
   const lines = outcome.status === "converged"
     ? [
       "숙의가 결론에 도달했습니다.",
-      `- 제안·결정: ${outcome.providers.proposer}`,
-      `- 독립 검토·검증: ${outcome.providers.reviewer}`,
+      ...outcome.participants.map((participant) =>
+        `- ${participant.name}: ${participant.provider}`),
       `- 기록한 산출물: ${outcome.artifactCount}개`,
       "",
       "최종 결정:",
@@ -62,6 +63,7 @@ export async function runDeliberateCommand(
         proposer: { type: "string" },
         reviewer: { type: "string" },
         verification: { type: "string", multiple: true },
+        policy: { type: "string" },
         root: { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
@@ -78,25 +80,32 @@ export async function runDeliberateCommand(
   const proposer = parsed.values.proposer;
   const reviewer = parsed.values.reviewer;
   const verificationSuiteIds = parsed.values.verification ?? [];
+  const policyId = parsed.values.policy;
   const topic = parsed.positionals.join(" ").trim();
-  if (
+  const storedPolicyMode = policyId !== undefined;
+  const inlineMode =
     (proposer !== "codex" && proposer !== "claude") ||
     (reviewer !== "codex" && reviewer !== "claude") ||
-    proposer === reviewer || verificationSuiteIds.length === 0 || topic.length === 0
-  ) {
+    proposer === reviewer || verificationSuiteIds.length === 0;
+  if (topic.length === 0 || (storedPolicyMode
+    ? proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
+    : inlineMode)) {
     io.stderr(
-      `서로 다른 proposer·reviewer, verification suite와 숙의 주제가 필요합니다.\n${deliberateUsage}\n`,
+      `저장된 policy 하나 또는 서로 다른 proposer·reviewer와 verification suite, 숙의 주제가 필요합니다.\n${deliberateUsage}\n`,
     );
     return 1;
   }
   try {
-    const outcome = await services.executeManagedDeliberation({
-      repositoryRoot: resolve(io.cwd, parsed.values.root ?? "."),
-      proposerProvider: proposer as RunProvider,
-      reviewerProvider: reviewer as RunProvider,
-      verificationSuiteIds,
-      topic,
-    });
+    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    const outcome = await services.executeManagedDeliberation(storedPolicyMode
+      ? { repositoryRoot, policyId, topic }
+      : {
+        repositoryRoot,
+        proposerProvider: proposer as RunProvider,
+        reviewerProvider: reviewer as RunProvider,
+        verificationSuiteIds,
+        topic,
+      });
     io.stdout(parsed.values.json
       ? `${JSON.stringify(outcome, null, 2)}\n`
       : formatDeliberationOutcome(outcome));

@@ -53,6 +53,7 @@
     "@lervo/verification": "workspace:*",
     "@lervo/writing": "workspace:*",
     "@lervo/writing-contract": "workspace:*",
+    "yaml": "2.9.0",
     "esbuild": "0.28.2"
   }
 }

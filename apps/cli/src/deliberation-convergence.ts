@@ -3,7 +3,7 @@ import {
   DeliberationRuntime,
   type DeliberationTurnResult,
 } from "@lervo/deliberation-runtime";
-import type { DeliberationPolicy, RoleProfile } from "@lervo/schemas";
+import type { DeliberationPolicy } from "@lervo/schemas";
 
 import {
   createConvergedOutcome,
@@ -13,9 +13,9 @@ import {
   decisionPrompt,
   verificationPrompt,
 } from "./deliberation-prompts.js";
-import {
-  createDeliberationParticipantRole,
-  deliberationRoleIds,
+import type {
+  DeliberationExecutionPlan,
+  DeliberationParticipant,
 } from "./deliberation-roles.js";
 import {
   presentDeliberationOutcome,
@@ -35,28 +35,31 @@ interface CurrentClaim {
 
 export async function completeApprovedDeliberation(input: {
   request: ManagedDeliberationRequest;
+  plan: DeliberationExecutionPlan;
   deliberationId: string;
   policy: DeliberationPolicy;
   runtime: DeliberationRuntime;
   runner: ManagedDeliberationRunner;
   workspace: DeliberationWorkspace;
-  proposerRole: RoleProfile;
-  approvedReview: DeliberationTurnResult;
+  proposer: DeliberationParticipant;
+  verifier: DeliberationParticipant;
+  approvedReviews: readonly DeliberationTurnResult[];
+  recipientRoleIds: readonly string[];
   latestClaimArtifact: DeliberationTurnResult;
   currentClaim: CurrentClaim;
   now(): Date;
 }): Promise<ManagedDeliberationOutcome> {
   const verificationTurns: DeliberationTurnResult[] = [];
   let allPassed = true;
-  for (const suiteId of input.request.verificationSuiteIds) {
-    const verificationRole = createDeliberationParticipantRole({
-      kind: "reviewer",
-      verificationSuiteIds: [suiteId],
-    });
+  for (const suiteId of input.policy.requiredVerificationSuiteIds) {
     const verificationRun = await input.runner.execute({
-      provider: input.request.reviewerProvider,
-      role: verificationRole,
-      instructions: verificationPrompt(input.request.topic.trim(), suiteId),
+      provider: input.verifier.provider,
+      role: input.verifier.role,
+      instructions: verificationPrompt(
+        input.request.topic.trim(),
+        suiteId,
+        input.verifier.role,
+      ),
       documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
       verificationSuiteId: suiteId,
     });
@@ -76,11 +79,11 @@ export async function completeApprovedDeliberation(input: {
       runtime: input.runtime,
       runner: input.runner,
       workspace: input.workspace,
-      producerRole: verificationRole,
-      provider: input.request.reviewerProvider,
+      producerRole: input.verifier.role,
+      provider: input.verifier.provider,
       run: verificationRun,
       kind: "verification",
-      round: input.approvedReview.artifact.round,
+      round: input.approvedReviews.at(-1)!.artifact.round,
       details: {
         verificationId: verification.result.verificationId,
         suiteId,
@@ -91,9 +94,10 @@ export async function completeApprovedDeliberation(input: {
       },
       previousArtifactIds: [
         input.latestClaimArtifact.artifact.deliberationArtifactId,
-        input.approvedReview.artifact.deliberationArtifactId,
+        ...input.approvedReviews.map((review) => review.artifact.deliberationArtifactId),
       ],
       verificationEvidence: evidence,
+      recipientRoleIds: input.recipientRoleIds,
     });
     verificationTurns.push(turn);
     allPassed &&= verification.result.status === "passed";
@@ -109,30 +113,30 @@ export async function completeApprovedDeliberation(input: {
     });
     input.runtime.complete(outcome);
     return presentDeliberationOutcome(
-      input.request,
+      input.plan,
       outcome,
       input.runtime.history(),
-      verificationTurns.at(-1)?.content ?? input.approvedReview.content,
+      verificationTurns.at(-1)?.content ?? input.approvedReviews.at(-1)!.content,
     );
   }
 
   const decisionRun = await input.runner.execute({
-    provider: input.request.proposerProvider,
-    role: input.proposerRole,
-    instructions: decisionPrompt(input.request.topic.trim()),
+    provider: input.proposer.provider,
+    role: input.proposer.role,
+    instructions: decisionPrompt(input.request.topic.trim(), input.proposer.role),
     documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
   });
   const decision = await recordDeliberationTurn({
     runtime: input.runtime,
     runner: input.runner,
     workspace: input.workspace,
-    producerRole: input.proposerRole,
-    provider: input.request.proposerProvider,
+    producerRole: input.proposer.role,
+    provider: input.proposer.provider,
     run: decisionRun,
     kind: "decision",
-    round: input.approvedReview.artifact.round,
+    round: input.approvedReviews.at(-1)!.artifact.round,
     details: {
-      decisionOwnerRoleId: deliberationRoleIds.proposer,
+      decisionOwnerRoleId: input.proposer.role.roleId,
       adoptedClaimIds: [input.currentClaim.claimId],
       verificationArtifactIds: verificationTurns.map((turn) =>
         turn.artifact.deliberationArtifactId),
@@ -140,9 +144,10 @@ export async function completeApprovedDeliberation(input: {
     },
     previousArtifactIds: [
       input.latestClaimArtifact.artifact.deliberationArtifactId,
-      input.approvedReview.artifact.deliberationArtifactId,
+      ...input.approvedReviews.map((review) => review.artifact.deliberationArtifactId),
       ...verificationTurns.map((turn) => turn.artifact.deliberationArtifactId),
     ],
+    recipientRoleIds: input.recipientRoleIds,
   });
   const outcome = createConvergedOutcome({
     deliberationId: input.deliberationId,
@@ -153,7 +158,7 @@ export async function completeApprovedDeliberation(input: {
   });
   input.runtime.complete(outcome);
   return presentDeliberationOutcome(
-    input.request,
+    input.plan,
     outcome,
     input.runtime.history(),
     decision.content,
