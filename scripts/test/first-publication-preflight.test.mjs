@@ -90,10 +90,12 @@ describe("first-publication preflight report", () => {
 
   it("fails closed for expired, existing, unavailable, and reserved evidence", () => {
     const source = fixture();
-    const reservation = createFirstPublicationReservation(
-      source.bootstrap,
-      "2026-08-21T03:01:00Z",
-    );
+    const reservation = createFirstPublicationReservation({
+      bootstrap: source.bootstrap,
+      armingAuthorization: source.armingAuthorization,
+      publicationAuthorization: source.publicationAuthorization,
+      reservedAt: "2026-08-21T03:01:00Z",
+    });
     const report = createFirstPublicationPreflightReport(reportInput(source, {
       checkedAt: "2026-08-21T03:10:00Z",
       packageObservation: {

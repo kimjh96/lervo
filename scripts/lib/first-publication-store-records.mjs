@@ -22,14 +22,16 @@ export function validateStoredFirstPublicationReservation(record) {
     reservationId: record?.reservationId,
     state: record?.state,
     bootstrapDigest: record?.bootstrapDigest,
+    armingAuthorizationDigest: record?.armingAuthorizationDigest,
     publicationAuthorizationDigest: record?.publicationAuthorizationDigest,
     artifactSha256: record?.artifactSha256,
     reservedAt: record?.reservedAt,
   };
   if (
     !exactKeys(record, [...Object.keys(body), "reservationDigest"]) ||
-    record.schemaVersion !== 1 || !reservationIdPattern.test(record.reservationId ?? "") ||
+    record.schemaVersion !== 2 || !reservationIdPattern.test(record.reservationId ?? "") ||
     record.state !== "reserved" || !digestPattern.test(record.bootstrapDigest ?? "") ||
+    !digestPattern.test(record.armingAuthorizationDigest ?? "") ||
     !digestPattern.test(record.publicationAuthorizationDigest ?? "") ||
     !/^[a-f0-9]{64}$/u.test(record.artifactSha256 ?? "") ||
     !digestPattern.test(record.reservationDigest ?? "") ||

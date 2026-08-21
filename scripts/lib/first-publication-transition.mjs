@@ -56,6 +56,8 @@ function validateReadyReport(report, bootstrap, executionReceipt) {
 
 export function createFirstPublicationTransitionReceipt({
   bootstrap,
+  armingAuthorization,
+  publicationAuthorization,
   executionReceipt,
   workflow,
   npmObservation,
@@ -63,9 +65,15 @@ export function createFirstPublicationTransitionReceipt({
   completedAt,
 }) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationExecutionReceipt(executionReceipt, bootstrap);
+  validateFirstPublicationExecutionReceipt(executionReceipt, {
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
+  });
   const transitionReport = createFirstPublicationTransitionReport({
     bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
     executionReceipt,
     workflow,
     npmObservation,
@@ -97,10 +105,17 @@ export function createFirstPublicationTransitionReceipt({
 
 export function validateFirstPublicationTransitionReceipt(
   receipt,
-  { bootstrap, executionReceipt, workflow, npmObservation, githubObservation },
+  {
+    bootstrap, armingAuthorization, publicationAuthorization, executionReceipt,
+    workflow, npmObservation, githubObservation,
+  },
 ) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationExecutionReceipt(executionReceipt, bootstrap);
+  validateFirstPublicationExecutionReceipt(executionReceipt, {
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
+  });
   const receiptBody = body(receipt ?? {});
   if (
     receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
@@ -112,6 +127,8 @@ export function validateFirstPublicationTransitionReceipt(
   ) fail();
   const expected = createFirstPublicationTransitionReceipt({
     bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
     executionReceipt,
     workflow,
     npmObservation,

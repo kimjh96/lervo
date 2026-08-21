@@ -25,9 +25,19 @@ function fixture() {
   });
   return {
     artifact: source.artifact,
+    armingAuthorization: source.armingAuthorization,
     bootstrap: source.bootstrap,
     publicationAuthorization: source.publicationAuthorization,
   };
+}
+
+function reservation(source = fixture()) {
+  return createFirstPublicationReservation({
+    bootstrap: source.bootstrap,
+    armingAuthorization: source.armingAuthorization,
+    publicationAuthorization: source.publicationAuthorization,
+    reservedAt: "2026-08-21T03:01:00Z",
+  });
 }
 
 function completion(reservation) {
@@ -44,33 +54,30 @@ describe("file first-publication reservation store", () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-reservation-store-"));
     try {
       const stateRoot = resolve(root, "reservations");
-      const reservation = createFirstPublicationReservation(
-        fixture().bootstrap,
-        "2026-08-21T03:01:00Z",
-      );
+      const reserved = reservation();
       const store = createFileFirstPublicationReservationStore({ rootDirectory: stateRoot });
-      await store.reserve(reservation);
-      await store.complete(completion(reservation));
+      await store.reserve(reserved);
+      await store.complete(completion(reserved));
       const reopened = createFileFirstPublicationReservationStore({ rootDirectory: stateRoot });
-      assert.deepEqual(await reopened.inspect(reservation.reservationId), {
-        reservation,
-        terminal: completion(reservation),
+      assert.deepEqual(await reopened.inspect(reserved.reservationId), {
+        reservation: reserved,
+        terminal: completion(reserved),
       });
-      assert.deepEqual(await reopened.observe(reservation.reservationId), {
+      assert.deepEqual(await reopened.observe(reserved.reservationId), {
         schemaVersion: 1,
         source: "first_publication_reservation_store",
         state: "terminal",
-        reservationId: reservation.reservationId,
-        bootstrapDigest: reservation.bootstrapDigest,
-        reservationDigest: reservation.reservationDigest,
+        reservationId: reserved.reservationId,
+        bootstrapDigest: reserved.bootstrapDigest,
+        reservationDigest: reserved.reservationDigest,
         terminalState: "published",
       });
       assert.equal(
-        (await stat(resolve(stateRoot, reservation.reservationId, "reservation.json"))).mode & 0o777,
+        (await stat(resolve(stateRoot, reserved.reservationId, "reservation.json"))).mode & 0o777,
         0o600,
       );
       assert.equal(
-        (await stat(resolve(stateRoot, reservation.reservationId, "terminal.json"))).mode & 0o777,
+        (await stat(resolve(stateRoot, reserved.reservationId, "terminal.json"))).mode & 0o777,
         0o600,
       );
     } finally {
@@ -81,22 +88,19 @@ describe("file first-publication reservation store", () => {
   it("refuses duplicate reservation and a second terminal transition", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-reservation-store-"));
     try {
-      const reservation = createFirstPublicationReservation(
-        fixture().bootstrap,
-        "2026-08-21T03:01:00Z",
-      );
+      const reserved = reservation();
       const store = createFileFirstPublicationReservationStore({ rootDirectory: root });
-      await store.reserve(reservation);
-      await assert.rejects(store.reserve(reservation), {
+      await store.reserve(reserved);
+      await assert.rejects(store.reserve(reserved), {
         code: "first_publication_already_reserved",
       });
       await store.abort({
-        reservationId: reservation.reservationId,
-        reservationDigest: reservation.reservationDigest,
+        reservationId: reserved.reservationId,
+        reservationDigest: reserved.reservationDigest,
         state: "aborted_before_publication",
         retry: "new_bootstrap_required",
       });
-      await assert.rejects(store.complete(completion(reservation)), {
+      await assert.rejects(store.complete(completion(reserved)), {
         code: "first_publication_already_terminal",
       });
     } finally {
@@ -107,24 +111,21 @@ describe("file first-publication reservation store", () => {
   it("does not replace a confirmed published terminal with unknown", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-reservation-store-"));
     try {
-      const reservation = createFirstPublicationReservation(
-        fixture().bootstrap,
-        "2026-08-21T03:01:00Z",
-      );
+      const reserved = reservation();
       const store = createFileFirstPublicationReservationStore({ rootDirectory: root });
-      await store.reserve(reservation);
-      await store.complete(completion(reservation));
+      await store.reserve(reserved);
+      await store.complete(completion(reserved));
       const result = await store.markUnknown({
-        reservationId: reservation.reservationId,
-        reservationDigest: reservation.reservationDigest,
+        reservationId: reserved.reservationId,
+        reservationDigest: reserved.reservationDigest,
         state: "publication_unknown",
         retry: "forbidden",
       });
-      assert.deepEqual(result, completion(reservation));
+      assert.deepEqual(result, completion(reserved));
       const stored = JSON.parse(await readFile(
-        resolve(root, reservation.reservationId, "terminal.json"),
+        resolve(root, reserved.reservationId, "terminal.json"),
       ));
-      assert.deepEqual(stored.record, completion(reservation));
+      assert.deepEqual(stored.record, completion(reserved));
       assert.match(stored.recordDigest, /^sha256:[a-f0-9]{64}$/u);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -134,23 +135,20 @@ describe("file first-publication reservation store", () => {
   it("detects terminal edits even when the edited state is structurally valid", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-reservation-store-"));
     try {
-      const reservation = createFirstPublicationReservation(
-        fixture().bootstrap,
-        "2026-08-21T03:01:00Z",
-      );
+      const reserved = reservation();
       const store = createFileFirstPublicationReservationStore({ rootDirectory: root });
-      await store.reserve(reservation);
-      await store.complete(completion(reservation));
-      const terminalPath = resolve(root, reservation.reservationId, "terminal.json");
+      await store.reserve(reserved);
+      await store.complete(completion(reserved));
+      const terminalPath = resolve(root, reserved.reservationId, "terminal.json");
       const stored = JSON.parse(await readFile(terminalPath, "utf8"));
       stored.record = {
-        reservationId: reservation.reservationId,
-        reservationDigest: reservation.reservationDigest,
+        reservationId: reserved.reservationId,
+        reservationDigest: reserved.reservationDigest,
         state: "publication_unknown",
         retry: "forbidden",
       };
       await writeFile(terminalPath, `${JSON.stringify(stored)}\n`, { mode: 0o600 });
-      await assert.rejects(store.inspect(reservation.reservationId), {
+      await assert.rejects(store.inspect(reserved.reservationId), {
         code: "first_publication_store_corrupt",
       });
     } finally {
@@ -161,13 +159,10 @@ describe("file first-publication reservation store", () => {
   it("fails closed on a poisoned partial reservation or symlink root", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-reservation-store-"));
     try {
-      const reservation = createFirstPublicationReservation(
-        fixture().bootstrap,
-        "2026-08-21T03:01:00Z",
-      );
-      await mkdir(resolve(root, reservation.reservationId));
+      const reserved = reservation();
+      await mkdir(resolve(root, reserved.reservationId));
       const store = createFileFirstPublicationReservationStore({ rootDirectory: root });
-      await assert.rejects(store.reserve(reservation), {
+      await assert.rejects(store.reserve(reserved), {
         code: "first_publication_already_reserved",
       });
 
@@ -176,7 +171,7 @@ describe("file first-publication reservation store", () => {
       await mkdir(target);
       await symlink(target, linked);
       const unsafe = createFileFirstPublicationReservationStore({ rootDirectory: linked });
-      await assert.rejects(unsafe.reserve(reservation), {
+      await assert.rejects(unsafe.reserve(reserved), {
         code: "first_publication_store_unsafe",
       });
 
@@ -184,7 +179,7 @@ describe("file first-publication reservation store", () => {
       await mkdir(broad, { mode: 0o700 });
       await chmod(broad, 0o755);
       const broadStore = createFileFirstPublicationReservationStore({ rootDirectory: broad });
-      await assert.rejects(broadStore.reserve(reservation), {
+      await assert.rejects(broadStore.reserve(reserved), {
         code: "first_publication_store_unsafe",
       });
     } finally {
@@ -221,6 +216,7 @@ describe("npm interactive first publisher", () => {
     let temporaryRoot;
     const session = await prepareNpmInteractiveFirstPublisher({
       bootstrap: source.bootstrap,
+      armingAuthorization: source.armingAuthorization,
       userConfigPath: "/home/release/.npmrc",
     }, {
       execute: successfulExecute(source, calls),
@@ -311,6 +307,7 @@ describe("npm interactive first publisher", () => {
     let downstreamCalls = 0;
     await assert.rejects(executeFirstPublicationBootstrap({
       bootstrap: source.bootstrap,
+      armingAuthorization: source.armingAuthorization,
       publicationAuthorization: source.publicationAuthorization,
       releaseDirectory: "/release",
     }, {
@@ -323,6 +320,7 @@ describe("npm interactive first publisher", () => {
         markUnknown: async () => {},
       },
       publish: async () => { downstreamCalls += 1; },
+      clock: () => "2026-08-21T03:01:00Z",
     }), { message: "operator declined" });
     assert.equal(downstreamCalls, 0);
   });

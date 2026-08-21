@@ -8,6 +8,8 @@ import { createFirstPublicationReservation } from
 import { executeAuthorizedReleasePublication } from "./release-publication-executor.mjs";
 import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationArmingAuthorization } from
+  "./first-publication-arming-authorization.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { validateReleasePublicationAuthorization } from
   "./release-publication-authorization.mjs";
@@ -49,7 +51,7 @@ async function abortBeforePublication(store, reservation) {
 }
 
 export async function executeFirstPublicationBootstrap(
-  { bootstrap, publicationAuthorization, releaseDirectory },
+  { bootstrap, armingAuthorization, publicationAuthorization, releaseDirectory },
   {
     reservationStore,
     observePackage,
@@ -70,13 +72,29 @@ export async function executeFirstPublicationBootstrap(
     typeof reservationStore.abort !== "function" ||
     typeof reservationStore.markUnknown !== "function"
   ) fail("first_publication_execution_input_invalid");
+  validateFirstPublicationArmingAuthorization(armingAuthorization, {
+    bootstrap,
+    publicationAuthorization: authorization,
+    checkedAt: clock(),
+  });
   if (preparePublish !== undefined) await preparePublish();
   const observation = await observePackage();
   if (
     observation?.schemaVersion !== 1 || observation.source !== "npm_public_registry" ||
     observation.state !== "not_found" || observation.package !== bootstrap.target.package
   ) fail("first_publication_package_not_available");
-  const reservation = createFirstPublicationReservation(bootstrap, clock());
+  const reservedAt = clock();
+  validateFirstPublicationArmingAuthorization(armingAuthorization, {
+    bootstrap,
+    publicationAuthorization: authorization,
+    checkedAt: reservedAt,
+  });
+  const reservation = createFirstPublicationReservation({
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization: authorization,
+    reservedAt,
+  });
   try {
     if (canonicalJson(await reservationStore.reserve(reservation)) !== canonicalJson(reservation)) {
       fail("first_publication_reservation_invalid");
@@ -111,6 +129,8 @@ export async function executeFirstPublicationBootstrap(
   try {
     const receipt = createFirstPublicationExecutionReceipt({
       bootstrap,
+      armingAuthorization,
+      publicationAuthorization: authorization,
       reservation,
       publicationReport,
       publishedAt: clock(),

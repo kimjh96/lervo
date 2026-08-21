@@ -14,6 +14,14 @@ const sideEffects = {
   externalSettings: "not_changed",
 };
 
+export const firstPublicationExecutionFreshChecks = Object.freeze([
+  "bootstrap_freshness",
+  "interactive_npm_readiness",
+  "public_package_absence",
+  "reservation_availability",
+  "release_artifact_integrity",
+]);
+
 export const firstPublicationExecutionSteps = Object.freeze([
   {
     sequence: 1,
@@ -133,13 +141,7 @@ export function createFirstPublicationExecutionPlan({
     artifactSha256: bootstrap.release.artifact.sha256,
     preflight: {
       priorReportIsPermit: false,
-      requiredAtExecution: [
-        "bootstrap_freshness",
-        "interactive_npm_readiness",
-        "public_package_absence",
-        "reservation_availability",
-        "release_artifact_integrity",
-      ],
+      requiredAtExecution: [...firstPublicationExecutionFreshChecks],
     },
     confirmations: firstPublicationOperatorConfirmations(bootstrap),
     steps: structuredClone(firstPublicationExecutionSteps),

@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-21
 
+> 후속 결정: plan 자체는 계속 `not_armed`입니다. [ADR-0112](./0112-cli-first-publication-arming-authorization.md)는 exact plan을 검토한 별도 사람 decision에서만 짧은 arming authorization을 만듭니다.
+
 ## 맥락
 
 ADR-0101의 사전 점검은 현재 준비 상태를 설명하지만 실행 허가가 아닙니다. 실제 실행 코어에는 사람 확인, public package 재확인, durable 예약, 게시 호출과 결과 저장이 순서대로 존재합니다. 이 순서를 운영자가 알기 쉬운 형태로 고정하지 않으면 예약 이후에도 단순 취소가 가능하다고 오해하거나, 게시 호출 뒤 실패를 안전하게 재시도할 수 있다고 오해할 수 있습니다.

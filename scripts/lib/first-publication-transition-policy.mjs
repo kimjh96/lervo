@@ -125,6 +125,8 @@ function inspectGitHub(observation, repository) {
 
 export function createFirstPublicationTransitionReport({
   bootstrap,
+  armingAuthorization,
+  publicationAuthorization,
   executionReceipt,
   workflow,
   npmObservation,
@@ -132,7 +134,11 @@ export function createFirstPublicationTransitionReport({
   observedAt,
 }) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationExecutionReceipt(executionReceipt, bootstrap);
+  validateFirstPublicationExecutionReceipt(executionReceipt, {
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
+  });
   if (workflow === null || typeof workflow !== "object" || Array.isArray(workflow)) fail();
   if (timestamp(observedAt) < timestamp(executionReceipt.publication.publishedAt)) fail();
   const checks = [

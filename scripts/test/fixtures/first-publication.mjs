@@ -1,5 +1,11 @@
 import { createFirstPublicationBootstrapAuthorization } from
   "../../lib/first-publication-bootstrap-authorization.mjs";
+import { createFirstPublicationArmingAuthorization } from
+  "../../lib/first-publication-arming-authorization.mjs";
+import { firstPublicationArmingConfirmations } from
+  "../../lib/first-publication-arming-decision.mjs";
+import { createFirstPublicationExecutionPlan } from
+  "../../lib/first-publication-execution-plan.mjs";
 import { createFirstPublicationExternalEvidenceReport } from
   "../../lib/first-publication-external-evidence-report.mjs";
 import {
@@ -13,6 +19,7 @@ export const firstPublicationRepository = "lervo-dev/lervo";
 export function createFirstPublicationFixture({
   tarballContents = Buffer.from("first-publication-fixture-tarball"),
   approvalId = "apr_fixture1",
+  armingDecisionId = "arm_fixture1",
   version = "0.1.0",
 } = {}) {
   const artifact = createReleasePublicationArtifact(
@@ -149,11 +156,40 @@ export function createFirstPublicationFixture({
     packageObservation,
     observedAt: "2026-08-21T03:00:00Z",
   });
+  const executionPlan = createFirstPublicationExecutionPlan({
+    bootstrap,
+    publicationAuthorization,
+  });
+  const armingDecision = {
+    schemaVersion: 1,
+    decisionId: armingDecisionId,
+    decision: "authorize_first_publication_once",
+    decidedAt: "2026-08-21T03:00:15Z",
+    expiresAt: "2026-08-21T03:05:15Z",
+    actor: { kind: "user", id: "release-operator@example.invalid" },
+    target: {
+      package: bootstrap.target.package,
+      version: bootstrap.target.version,
+      bootstrapDigest: bootstrap.bootstrapDigest,
+      publicationAuthorizationDigest: publicationAuthorization.authorizationDigest,
+      executionPlanDigest: executionPlan.executionPlanDigest,
+    },
+    confirmations: [...firstPublicationArmingConfirmations],
+  };
+  const armingAuthorization = createFirstPublicationArmingAuthorization({
+    bootstrap,
+    publicationAuthorization,
+    decision: armingDecision,
+    armedAt: "2026-08-21T03:00:30Z",
+  });
   return {
     approval,
+    armingAuthorization,
+    armingDecision,
     artifact,
     bootstrap,
     externalEvidenceReport,
+    executionPlan,
     licenseApproval,
     packageManifest,
     packageObservation,

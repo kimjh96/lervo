@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-21
 
+> 후속 결정: [ADR-0112](./0112-cli-first-publication-arming-authorization.md)는 bootstrap v2와 exact execution plan에 결속된 짧은 arming authorization을 추가했습니다. 실제 publisher CLI는 계속 없습니다.
+
 ## 맥락
 
 Bootstrap v1은 first-publication approval 한 문서에서 license, npm 이름 가용성, scope control과 전체 게시 결정을 직접 해석했습니다. ADR-0110은 이 요구를 license approval, scope confirmation, 전체 approval과 public npm 관측으로 분리하고 하나의 external evidence report에 결속했습니다. 두 경계가 같은 사람 문서를 따로 해석하면 검증 규칙과 만료 의미가 달라질 수 있습니다.

@@ -28,6 +28,7 @@ function body(receipt) {
     schemaVersion: receipt.schemaVersion,
     status: receipt.status,
     bootstrapDigest: receipt.bootstrapDigest,
+    armingAuthorizationDigest: receipt.armingAuthorizationDigest,
     reservation: receipt.reservation,
     publication: receipt.publication,
     transition: receipt.transition,
@@ -36,12 +37,18 @@ function body(receipt) {
 
 export function createFirstPublicationExecutionReceipt({
   bootstrap,
+  armingAuthorization,
+  publicationAuthorization,
   reservation,
   publicationReport,
   publishedAt,
 }) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  validateFirstPublicationReservation(reservation, bootstrap);
+  validateFirstPublicationReservation(reservation, {
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
+  });
   if (
     timestamp(publishedAt) < timestamp(reservation.reservedAt) ||
     publicationReport?.schemaVersion !== 1 || publicationReport.status !== "published" ||
@@ -56,12 +63,14 @@ export function createFirstPublicationExecutionReceipt({
     })
   ) fail();
   const receiptBody = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: "published_transition_pending",
     bootstrapDigest: bootstrap.bootstrapDigest,
+    armingAuthorizationDigest: armingAuthorization.armingAuthorizationDigest,
     reservation: {
       reservationId: reservation.reservationId,
       reservationDigest: reservation.reservationDigest,
+      armingAuthorizationDigest: reservation.armingAuthorizationDigest,
       reservedAt: reservation.reservedAt,
     },
     publication: {
@@ -77,33 +86,45 @@ export function createFirstPublicationExecutionReceipt({
   return { ...receiptBody, executionReceiptDigest: canonicalDigest(receiptBody) };
 }
 
-export function validateFirstPublicationExecutionReceipt(receipt, bootstrap) {
+export function validateFirstPublicationExecutionReceipt(receipt, {
+  bootstrap,
+  armingAuthorization,
+  publicationAuthorization,
+}) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
   const receiptBody = body(receipt ?? {});
   if (
     receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
     canonicalJson(Object.keys(receipt).sort()) !==
       canonicalJson([...Object.keys(receiptBody), "executionReceiptDigest"].sort()) ||
-    receipt.schemaVersion !== 1 || receipt.status !== "published_transition_pending" ||
+    receipt.schemaVersion !== 2 || receipt.status !== "published_transition_pending" ||
     receipt.bootstrapDigest !== bootstrap.bootstrapDigest ||
+    receipt.armingAuthorizationDigest !== armingAuthorization?.armingAuthorizationDigest ||
     !digestPattern.test(receipt.executionReceiptDigest ?? "") ||
     receipt.executionReceiptDigest !== canonicalDigest(receiptBody) ||
     receipt.transition?.state !== "pending" ||
     canonicalJson(receipt.transition.required) !== canonicalJson(bootstrap.transition)
   ) fail();
   const reservation = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     reservationId: receipt.reservation?.reservationId,
     state: "reserved",
     bootstrapDigest: bootstrap.bootstrapDigest,
+    armingAuthorizationDigest: receipt.reservation?.armingAuthorizationDigest,
     publicationAuthorizationDigest: bootstrap.release.publicationAuthorizationDigest,
     artifactSha256: bootstrap.release.artifact.sha256,
     reservedAt: receipt.reservation?.reservedAt,
     reservationDigest: receipt.reservation?.reservationDigest,
   };
-  validateFirstPublicationReservation(reservation, bootstrap);
+  validateFirstPublicationReservation(reservation, {
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
+  });
   createFirstPublicationExecutionReceipt({
     bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
     reservation,
     publicationReport: {
       schemaVersion: 1,

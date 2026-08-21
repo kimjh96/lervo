@@ -32,6 +32,7 @@ function fixture() {
   const source = createFirstPublicationFixture({ tarballContents });
   return {
     publicationAuthorization: source.publicationAuthorization,
+    armingAuthorization: source.armingAuthorization,
     bootstrap: source.bootstrap,
     artifact: source.artifact,
   };
@@ -76,6 +77,7 @@ async function executeFixture({ storeOverrides, publish, contents = tarballConte
   try {
     const receipt = await executeFirstPublicationBootstrap({
       bootstrap: source.bootstrap,
+      armingAuthorization: source.armingAuthorization,
       publicationAuthorization: source.publicationAuthorization,
       releaseDirectory,
     }, {
@@ -96,7 +98,11 @@ async function executeFixture({ storeOverrides, publish, contents = tarballConte
         };
       }),
       clock: (() => {
-        const values = ["2026-08-21T03:01:00Z", "2026-08-21T03:02:00Z"];
+        const values = [
+          "2026-08-21T03:00:45Z",
+          "2026-08-21T03:01:00Z",
+          "2026-08-21T03:02:00Z",
+        ];
         return () => values.shift();
       })(),
     });
@@ -128,6 +134,8 @@ function activeWorkflow() {
 function transitionInput(executed) {
   return {
     bootstrap: executed.bootstrap,
+    armingAuthorization: executed.armingAuthorization,
+    publicationAuthorization: executed.publicationAuthorization,
     executionReceipt: executed.receipt,
     workflow: activeWorkflow(),
     npmObservation: {
@@ -160,11 +168,32 @@ describe("first-publication execution", () => {
     const executed = await executeFixture();
     assert.deepEqual(executed.events, ["observe", "reserve", "publish", "complete"]);
     assert.equal(executed.receipt.status, "published_transition_pending");
+    assert.equal(executed.receipt.schemaVersion, 2);
+    assert.equal(
+      executed.receipt.armingAuthorizationDigest,
+      executed.armingAuthorization.armingAuthorizationDigest,
+    );
     assert.equal(executed.receipt.transition.state, "pending");
     assert.equal(
-      validateFirstPublicationExecutionReceipt(executed.receipt, executed.bootstrap),
+      validateFirstPublicationExecutionReceipt(executed.receipt, {
+        bootstrap: executed.bootstrap,
+        armingAuthorization: executed.armingAuthorization,
+        publicationAuthorization: executed.publicationAuthorization,
+      }),
       executed.receipt,
     );
+
+    const legacy = structuredClone(executed.receipt);
+    legacy.schemaVersion = 1;
+    delete legacy.armingAuthorizationDigest;
+    delete legacy.reservation.armingAuthorizationDigest;
+    const { executionReceiptDigest: _legacyDigest, ...legacyBody } = legacy;
+    legacy.executionReceiptDigest = canonicalDigest(legacyBody);
+    assert.throws(() => validateFirstPublicationExecutionReceipt(legacy, {
+      bootstrap: executed.bootstrap,
+      armingAuthorization: executed.armingAuthorization,
+      publicationAuthorization: executed.publicationAuthorization,
+    }), { code: "first_publication_execution_receipt_invalid" });
   });
 
   it("does not reserve or publish when package absence is not confirmed", async () => {
@@ -173,6 +202,7 @@ describe("first-publication execution", () => {
     await assert.rejects(
       executeFirstPublicationBootstrap({
         bootstrap: source.bootstrap,
+        armingAuthorization: source.armingAuthorization,
         publicationAuthorization: source.publicationAuthorization,
         releaseDirectory: "/release",
       }, {
@@ -186,6 +216,7 @@ describe("first-publication execution", () => {
           package: "@lervo/cli",
         }),
         publish: async () => { writes += 1; },
+        clock: () => "2026-08-21T03:01:00Z",
       }),
       { code: "first_publication_package_not_available" },
     );
@@ -306,6 +337,8 @@ describe("first-publication stage-only transition", () => {
     assert.equal(
       validateFirstPublicationTransitionReceipt(receipt, {
         bootstrap: input.bootstrap,
+        armingAuthorization: input.armingAuthorization,
+        publicationAuthorization: input.publicationAuthorization,
         executionReceipt: input.executionReceipt,
         workflow: input.workflow,
         npmObservation: input.npmObservation,
@@ -359,6 +392,8 @@ describe("first-publication stage-only transition", () => {
     assert.throws(
       () => validateFirstPublicationTransitionReceipt(receipt, {
         bootstrap: input.bootstrap,
+        armingAuthorization: input.armingAuthorization,
+        publicationAuthorization: input.publicationAuthorization,
         executionReceipt: input.executionReceipt,
         workflow: input.workflow,
         npmObservation: input.npmObservation,
