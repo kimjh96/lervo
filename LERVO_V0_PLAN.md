@@ -1549,4 +1549,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 분할 정책 기반 다중 역할 숙의 CLI를 완료했습니다. 정책별 YAML은 실행 원본과 분리되며 최대 16개 역할의 관점·provider·책임과 검증을 선언합니다. Source loader, plan 조립, 회차 진행, 검증·결정과 runtime workspace를 나눴고 4개 역할이 산출물 5개를 공유할 때 publication 5개와 역할별 handoff 20개, 서로 다른 managed session 10개가 생기는 수직 fixture를 검증했습니다. 결정은 [ADR-0134](./docs/adr/0134-sharded-multi-role-deliberation-policy.md)에 기록했습니다.
 
+승인된 숙의 재개 경계를 완료했습니다. 모든 reviewer가 최신 claim을 승인한 뒤 검증 전 checkpoint를 한 번만 기록하고, `--resume`은 현재 policy·event·CAS·분할 workspace·provider session 역할을 다시 대조한 뒤 검증과 결정만 이어갑니다. 제안·검토를 중복 실행하지 않는 중단·재개 fixture와 완료 숙의 재개 거부를 검증했습니다. 결정은 [ADR-0135](./docs/adr/0135-approved-deliberation-resume-boundary.md)에 기록했습니다.
+
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

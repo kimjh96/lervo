@@ -39,6 +39,7 @@ export type DeliberationRuntimeErrorReason =
   | "receipt_event_mismatch"
   | "runtime_already_completed"
   | "runtime_not_started"
+  | "runtime_snapshot_invalid"
   | "runtime_started_twice"
   | "shared_context_invalid"
   | "writing_policy_mismatch"
@@ -71,6 +72,24 @@ export interface DeliberationRuntimeOptions {
   artifactStore: ArtifactStore;
   now?: () => Date;
   createEventId?: () => string;
+  resumeSnapshot?: DeliberationRuntimeSnapshot;
+}
+
+export interface DeliberationRuntimeSnapshot {
+  schemaVersion: 1;
+  deliberationId: string;
+  policyHash: string;
+  startedEventId: string;
+  artifacts: DeliberationArtifact[];
+  verificationEvidence: DeliberationVerificationEvidence[];
+  providerSessionRoles: Array<{ providerSessionId: string; roleId: string }>;
+  recordedEvents: Array<{ artifactId: string; eventId: string }>;
+  publications: Array<{
+    artifactId: string;
+    publication: SharedContextPublication;
+    eventId: string;
+  }>;
+  handoffs: Array<{ handoffId: string; eventId: string }>;
 }
 
 export interface ExecuteDeliberationTurnInput<K extends DeliberationArtifactKind> {

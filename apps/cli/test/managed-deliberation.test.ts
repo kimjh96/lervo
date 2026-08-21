@@ -26,6 +26,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createManagedDeliberationExecutor,
+  DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { prepareRunVerification } from "../src/run-verification.js";
@@ -389,6 +390,91 @@ describe("managed CLI deliberation", () => {
       resolve(root, ".lervo/state/deliberations", deliberationRoots[0]!),
     );
     expect(entries.filter((entry) => entry.startsWith("artifact-"))).toHaveLength(4);
+  });
+
+  it("resumes from the immutable approved boundary without repeating proposal or review", async () => {
+    const root = await repository();
+    const pass = semanticPass();
+    const queues: Record<RunProvider, string[]> = {
+      codex: [
+        "제안은 승인된 검토까지 원본과 실행 증거를 보존하고, 그 경계에서만 안전하게 재개하는 방식입니다.",
+        pass,
+        pass,
+        "결론은 승인 경계를 다시 검증한 뒤 검증과 결정 단계만 이어가는 것입니다.",
+      ],
+      claude: [
+        pass,
+        "판정: 승인\n\n승인 이전 산출물과 이벤트를 다시 확인하므로 중복 실행 없이 이어갈 수 있습니다.",
+        "프로젝트 검증은 재개 뒤 실제 명령으로 새로 실행했으며 현재 저장소에서 통과했습니다.",
+        pass,
+      ],
+    };
+    const nextId = sequence();
+    const now = clock();
+    const runner = {
+      createAdapter: ({ provider }: { provider: RunProvider }) => {
+        const content = queues[provider].shift();
+        if (content === undefined) throw new Error(`${provider} fixture 응답이 없습니다.`);
+        return new FixtureDeliberationAdapter(
+          provider,
+          `provider-session-${nextId("session")}`,
+          content,
+          nextId("ctx"),
+        );
+      },
+      createId: nextId,
+      now,
+      prepareVerification: prepareRunVerification,
+    };
+    let deliberationId = "";
+    const interrupted = createManagedDeliberationExecutor({
+      openStorage: openProjectStorage,
+      createId: nextId,
+      now,
+      runner,
+      afterApprovedCheckpoint: (id) => {
+        deliberationId = id;
+        throw new DeliberationProcessInterruptedError("fixture interruption");
+      },
+    });
+
+    await expect(interrupted({
+      repositoryRoot: root,
+      proposerProvider: "codex",
+      reviewerProvider: "claude",
+      verificationSuiteIds: ["project.default"],
+      topic: "승인된 검토 다음 단계에서 중단된 숙의를 재개합니다.",
+    })).rejects.toThrow("fixture interruption");
+
+    const before = await openProjectStorage(root);
+    const beforeEvents = before.events.list({ limit: 1000 });
+    expect(beforeEvents.filter((event) => event.type === "deliberation.artifact.recorded"))
+      .toHaveLength(2);
+    expect(beforeEvents.some((event) => event.type === "deliberation.completed")).toBe(false);
+    await before.close();
+
+    const resumed = createManagedDeliberationExecutor({
+      openStorage: openProjectStorage,
+      createId: nextId,
+      now,
+      runner,
+    });
+    const result = await resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId });
+
+    expect(result).toMatchObject({ deliberationId, status: "converged", artifactCount: 4 });
+    expect(queues).toEqual({ codex: [], claude: [] });
+    const after = await openProjectStorage(root);
+    const events = after.events.list({ limit: 1000 });
+    expect(events.filter((event) => event.type === "deliberation.started")).toHaveLength(1);
+    expect(events.filter((event) => event.type === "deliberation.artifact.recorded"))
+      .toHaveLength(4);
+    expect(events.filter((event) => event.type === "verification.completed")).toHaveLength(1);
+    expect(events.filter((event) => event.type === "deliberation.completed")).toHaveLength(1);
+    expect(after.events.verifyIntegrity().valid).toBe(true);
+    await after.close();
+
+    await expect(resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId }))
+      .rejects.toThrow("snapshot");
   });
 
   it("runs every role in a stored four-role policy with separate context evidence", async () => {

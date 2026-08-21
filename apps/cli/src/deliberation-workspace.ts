@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
 import { defaultKoreanWritingContract } from "@lervo/core";
@@ -12,10 +12,20 @@ import type {
   SharedContextPublication,
 } from "@lervo/schemas";
 
-interface PublishedContext {
+export interface PublishedContext {
   publication: SharedContextPublication;
   handoff: HandoffBundle;
   producerRole: RoleProfile;
+}
+
+export interface DeliberationWorkspaceSnapshot {
+  schemaVersion: 1;
+  createdAt: string;
+  participantRoleIds: string[];
+  writingPolicyDocumentId: string;
+  writingPolicyContentHash: string;
+  generatedDocuments: Record<string, DocumentRecord>;
+  contexts: PublishedContext[];
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -38,6 +48,7 @@ export class DeliberationWorkspace {
   private readonly documents: Record<string, DocumentRecord>;
   private readonly contexts: PublishedContext[] = [];
   private readonly publicationsById = new Map<string, SharedContextPublication>();
+  private readonly generatedDocumentIds = new Set<string>();
 
   private constructor(
     private readonly repositoryRoot: string,
@@ -82,6 +93,71 @@ export class DeliberationWorkspace {
       sourceId: `writing-contract:${defaultKoreanWritingContract.writingPolicyId}`,
     });
     return workspace;
+  }
+
+  static async resume(input: {
+    repositoryRoot: string;
+    stateRoot: string;
+    deliberationId: string;
+    registry: DocumentRegistry;
+    participantRoleIds: readonly string[];
+    snapshot: DeliberationWorkspaceSnapshot;
+  }): Promise<DeliberationWorkspace> {
+    const root = resolve(input.stateRoot, "deliberations", input.deliberationId);
+    const stats = await lstat(root);
+    if (input.snapshot.schemaVersion !== 1 || !stats.isDirectory() || stats.isSymbolicLink() ||
+      JSON.stringify(input.participantRoleIds) !==
+        JSON.stringify(input.snapshot.participantRoleIds)) {
+      throw new Error("숙의 workspace snapshot의 디렉터리나 참여 역할이 다릅니다.");
+    }
+    const workspace = new DeliberationWorkspace(
+      input.repositoryRoot,
+      root,
+      input.snapshot.createdAt,
+      [...input.participantRoleIds],
+      input.registry,
+      input.snapshot.writingPolicyDocumentId,
+      input.snapshot.writingPolicyContentHash,
+    );
+    const expectedPrefix = `${repositoryPath(input.repositoryRoot, root)}/`;
+    for (const [documentId, record] of Object.entries(input.snapshot.generatedDocuments)) {
+      const path = resolve(input.repositoryRoot, record.path);
+      const relativePath = repositoryPath(input.repositoryRoot, path);
+      const file = await lstat(path);
+      if (
+        !file.isFile() || file.isSymbolicLink() || relativePath !== record.path ||
+        !relativePath.startsWith(expectedPrefix) || record.kind !== "generated" ||
+        record.ownership.mode !== "lervo_generated"
+      ) {
+        throw new Error("숙의 workspace의 생성 문서 경로가 안전하지 않습니다.");
+      }
+      const bytes = await readFile(path);
+      if (sha256(bytes) !== record.verifiedRevision) {
+        throw new Error("숙의 workspace의 생성 문서 원문이 snapshot과 다릅니다.");
+      }
+      workspace.documents[documentId] = structuredClone(record);
+      workspace.generatedDocumentIds.add(documentId);
+    }
+    const writingRecord = workspace.documents[input.snapshot.writingPolicyDocumentId];
+    if (
+      writingRecord === undefined ||
+      writingRecord.verifiedRevision !== input.snapshot.writingPolicyContentHash
+    ) throw new Error("숙의 workspace의 writing contract 원본이 snapshot과 다릅니다.");
+    for (const context of input.snapshot.contexts) workspace.rememberContext(context);
+    return workspace;
+  }
+
+  snapshot(): DeliberationWorkspaceSnapshot {
+    return {
+      schemaVersion: 1,
+      createdAt: this.createdAt,
+      participantRoleIds: [...this.participantRoleIds],
+      writingPolicyDocumentId: this.writingPolicyDocumentId,
+      writingPolicyContentHash: this.writingPolicyContentHash,
+      generatedDocuments: Object.fromEntries([...this.generatedDocumentIds].map((documentId) =>
+        [documentId, structuredClone(this.documents[documentId]!) ])),
+      contexts: structuredClone(this.contexts),
+    };
   }
 
   registry(): DocumentRegistry {
@@ -230,6 +306,7 @@ export class DeliberationWorkspace {
     }
     const finalContentPath = resolve(finalDirectory, input.filename);
     const manifestPath = resolve(finalDirectory, "manifest.json");
+    this.generatedDocumentIds.add(input.documentId);
     return {
       path: repositoryPath(this.repositoryRoot, finalContentPath),
       kind: "generated",

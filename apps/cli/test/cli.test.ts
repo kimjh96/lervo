@@ -140,7 +140,7 @@ describe("lervo deliberate CLI", () => {
     );
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
-    expect(errors).toContain("저장된 policy 하나");
+    expect(errors).toContain("재개 ID 하나");
   });
 
   it("accepts a stored policy without inline role arguments", async () => {
@@ -180,6 +180,23 @@ describe("lervo deliberate CLI", () => {
     );
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
+  });
+
+  it("accepts a resume ID without a topic or role arguments", async () => {
+    let request: unknown;
+    const exitCode = await runCli(
+      ["deliberate", "--resume", "dlb_12345678"],
+      { cwd: "/work/repository", stdout: () => undefined, stderr: () => undefined },
+      { executeManagedDeliberation: async (input) => {
+        request = input;
+        throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
+      } },
+    );
+    expect(exitCode).toBe(1);
+    expect(request).toEqual({
+      repositoryRoot: "/work/repository",
+      resumeDeliberationId: "dlb_12345678",
+    });
   });
 
   it("prints a converged result without exposing evidence digests", async () => {

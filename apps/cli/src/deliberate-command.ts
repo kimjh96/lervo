@@ -9,7 +9,8 @@ import type { CliIo, CliServices } from "./types.js";
 
 export const deliberateUsage =
   "  lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] [--root <path>] [--json] <topic>\n" +
-  "  lervo deliberate --policy <deliberation-policy-id> [--root <path>] [--json] <topic>";
+  "  lervo deliberate --policy <deliberation-policy-id> [--root <path>] [--json] <topic>\n" +
+  "  lervo deliberate --resume <deliberation-id> [--root <path>] [--json]";
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -64,6 +65,7 @@ export async function runDeliberateCommand(
         reviewer: { type: "string" },
         verification: { type: "string", multiple: true },
         policy: { type: "string" },
+        resume: { type: "string" },
         root: { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
@@ -81,31 +83,39 @@ export async function runDeliberateCommand(
   const reviewer = parsed.values.reviewer;
   const verificationSuiteIds = parsed.values.verification ?? [];
   const policyId = parsed.values.policy;
+  const resumeDeliberationId = parsed.values.resume;
   const topic = parsed.positionals.join(" ").trim();
   const storedPolicyMode = policyId !== undefined;
+  const resumeMode = resumeDeliberationId !== undefined;
   const inlineMode =
     (proposer !== "codex" && proposer !== "claude") ||
     (reviewer !== "codex" && reviewer !== "claude") ||
     proposer === reviewer || verificationSuiteIds.length === 0;
-  if (topic.length === 0 || (storedPolicyMode
-    ? proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
-    : inlineMode)) {
+  const invalidMode = resumeMode
+    ? topic.length > 0 || storedPolicyMode || proposer !== undefined || reviewer !== undefined ||
+      verificationSuiteIds.length > 0
+    : topic.length === 0 || (storedPolicyMode
+      ? proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
+      : inlineMode);
+  if (invalidMode) {
     io.stderr(
-      `저장된 policy 하나 또는 서로 다른 proposer·reviewer와 verification suite, 숙의 주제가 필요합니다.\n${deliberateUsage}\n`,
+      `재개 ID 하나, 저장된 policy와 주제, 또는 서로 다른 proposer·reviewer와 verification suite 및 주제가 필요합니다.\n${deliberateUsage}\n`,
     );
     return 1;
   }
   try {
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-    const outcome = await services.executeManagedDeliberation(storedPolicyMode
-      ? { repositoryRoot, policyId, topic }
-      : {
+    const outcome = await services.executeManagedDeliberation(resumeMode
+      ? { repositoryRoot, resumeDeliberationId }
+      : storedPolicyMode
+        ? { repositoryRoot, policyId, topic }
+        : {
         repositoryRoot,
         proposerProvider: proposer as RunProvider,
         reviewerProvider: reviewer as RunProvider,
         verificationSuiteIds,
         topic,
-      });
+        });
     io.stdout(parsed.values.json
       ? `${JSON.stringify(outcome, null, 2)}\n`
       : formatDeliberationOutcome(outcome));

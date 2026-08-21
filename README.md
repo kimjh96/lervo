@@ -154,6 +154,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 게시 완료 기록 점검 ADR](./docs/adr/0132-cli-first-publication-completion-inspection.md)
 - [사용자용 Codex·Claude 교차 숙의 CLI ADR](./docs/adr/0133-cli-two-provider-deliberation.md)
 - [분할 정책 기반 다중 역할 숙의 CLI ADR](./docs/adr/0134-sharded-multi-role-deliberation-policy.md)
+- [승인된 숙의 경계에서만 재개하는 ADR](./docs/adr/0135-approved-deliberation-resume-boundary.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -212,7 +213,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search-adapter-bm25f`: 공용 corpus·응답 계약을 따르는 결정적 field 가중치·길이 정규화·포화·정수 희귀도 기반 `bm25f-v1` 평가 후보
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과와 저장소 독립 trace capability report를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
-- `@lervo/cli`: `lervo --version`, 안전한 `lervo init`, 한 파일 managed 실행인 `lervo run`, 서로 다른 Codex·Claude 역할을 연결하는 `lervo deliberate` 명령 진입점. 숙의는 역할별 독립 session, 공개된 shared context의 역할별 E2/E3, writing 검사와 실제 project verification을 거쳐야 수렴함. 개발 시 workspace 경계를 유지하고 배포 시 내부 package와 Ajv·YAML을 `dist/bin.js` 하나로 묶음
+- `@lervo/cli`: `lervo --version`, 안전한 `lervo init`, 한 파일 managed 실행인 `lervo run`, 서로 다른 Codex·Claude 역할을 연결하고 승인 경계에서 안전하게 재개하는 `lervo deliberate` 명령 진입점. 숙의는 역할별 독립 session, 공개된 shared context의 역할별 E2/E3, writing 검사와 실제 project verification을 거쳐야 수렴함. 개발 시 workspace 경계를 유지하고 배포 시 내부 package와 Ajv·YAML을 `dist/bin.js` 하나로 묶음
 - `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest·SBOM과 로컬 unsigned statement, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
 
 M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. 인증된 HTTP API와 이 API만 사용하는 `/trace` web view도 실제 Node server로 검증했습니다. Ed25519 원격 command는 durable Hub queue, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Hub·Node 재시작과 acknowledgement 유실 뒤에도 저장된 receipt로 복구하며 executor를 다시 호출하지 않습니다. 이 reconnect 검증은 인증된 transport port를 사용한 로컬 fixture이고 실제 command HTTP/TLS endpoint는 아닙니다.
@@ -220,6 +221,8 @@ M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runti
 `lervo deliberate --proposer codex --reviewer claude --verification <suite-id> <주제>`는 서로 다른 두 공급자를 제안·결정 역할과 독립 검토·검증 역할에 고정합니다. 검토자는 `판정: 승인` 또는 `판정: 수정 필요`를 명시해야 하며 자유로운 동의 표현은 승인으로 해석하지 않습니다. 최대 두 회차 안에 승인되지 않거나 필수 검증이 통과하지 않으면 `no_consensus`로 끝나고 결정이나 검증된 지식으로 올리지 않습니다. 사람용 출력에는 내부 ID·digest·경로를 숨기며, `--json`은 자동화용 증거 좌표를 반환합니다. 실행 문서는 `.lervo/state/deliberations/<숙의 ID>/` 아래에서 writing 정책·산출물·의미 평가 요청별 파일로 분리합니다.
 
 `lervo deliberate --policy deliberation_product-review <주제>`는 `.lervo/deliberations/deliberation_product-review.yaml`을 읽습니다. 정책은 제안·결정 역할 하나, 한 명 이상의 독립 검토 역할과 별도 검증 역할을 최대 16개 참여자로 구성하고 각 역할의 Codex·Claude provider, 이름, 관점, 최대 5회와 필수 suite를 고정합니다. 두 provider가 모두 참여해야 하며 모든 검토자가 같은 최신 제안을 승인한 뒤 별도 검증 역할이 실제 suite를 실행해야 수렴합니다. 산출물 하나는 한 번 공개하지만 모든 참여자에게 역할별 handoff와 다음 session의 E2/E3를 따로 요구합니다.
+
+검토 승인이 끝난 뒤 프로세스가 중단되면 `lervo deliberate --resume <숙의 ID>`로 검증과 결정 단계만 이어갈 수 있습니다. 재개 전에 현재 policy, append-only event, CAS 원문, 분할 workspace 문서를 체크포인트와 다시 대조합니다. 이미 완료됐거나 승인 경계 뒤 이력이 달라진 숙의는 재개하지 않습니다.
 
 정책 수직 슬라이스는 순번·이전 ID가 있는 서명 snapshot과 command-bound 승인·철회를 Hub에서 작성해 append-only SQLite에 보존합니다. 인증·permission·project scope를 통과한 HTTP 요청만 원본을 만들며 발급·승인·철회 시각은 클라이언트가 아니라 Hub가 정합니다. Node는 HTTPS를 기본으로 하는 transport에서 Hub identity와 응답 좌표를 확인하고 다음 snapshot 또는 현재 snapshot의 늦게 추가된 승인·철회를 동기화합니다. 원격 command는 로컬과 Hub 중 더 제한적인 판정을 사용하고, 승인된 `require_approval` 실행도 provider 시작 전과 실제 파일 쓰기 직전에 다시 검증합니다. 이 기능은 Hub가 없어도 완료되는 기존 로컬 실행 경로를 바꾸지 않습니다.
 

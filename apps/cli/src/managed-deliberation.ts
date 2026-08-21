@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
   DeliberationRuntime,
+  type DeliberationRuntimeCoordinates,
 } from "@lervo/deliberation-runtime";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
@@ -10,10 +11,15 @@ import type { DeliberationOutcome, DeliberationResponsibility } from "@lervo/sch
 
 import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import {
+  writeApprovedDeliberationCheckpoint,
+  type ApprovedDeliberationCheckpoint,
+} from "./deliberation-checkpoint.js";
+import {
   createFailedOutcome,
 } from "./deliberation-contract.js";
 import { executeDeliberationRounds } from "./deliberation-rounds.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
+import { resumeManagedDeliberationWithStorage } from "./managed-deliberation-resume.js";
 import {
   createInlineDeliberationExecutionPlan,
   createStoredDeliberationExecutionPlan,
@@ -45,7 +51,22 @@ export interface StoredManagedDeliberationRequest extends ManagedDeliberationReq
   verificationSuiteIds?: never;
 }
 
+export interface ResumeManagedDeliberationRequest {
+  repositoryRoot: string;
+  resumeDeliberationId: string;
+  topic?: never;
+  policyId?: never;
+  proposerProvider?: never;
+  reviewerProvider?: never;
+  verificationSuiteIds?: never;
+}
+
 export type ManagedDeliberationRequest =
+  | InlineManagedDeliberationRequest
+  | StoredManagedDeliberationRequest
+  | ResumeManagedDeliberationRequest;
+
+export type StartManagedDeliberationRequest =
   | InlineManagedDeliberationRequest
   | StoredManagedDeliberationRequest;
 
@@ -76,6 +97,7 @@ export interface ManagedDeliberationDependencies {
   createId(prefix: string): string;
   now(): Date;
   runner?: ManagedDeliberationRunnerDependencies;
+  afterApprovedCheckpoint?(deliberationId: string): Promise<void> | void;
 }
 
 const defaultDependencies: ManagedDeliberationDependencies = {
@@ -95,6 +117,13 @@ export class ManagedDeliberationError extends Error {
   }
 }
 
+export class DeliberationProcessInterruptedError extends Error {
+  constructor(message = "숙의 process가 승인 checkpoint 뒤에 중단되었습니다.") {
+    super(message);
+    this.name = "DeliberationProcessInterruptedError";
+  }
+}
+
 function validSuites(suites: readonly string[]): boolean {
   return suites.length > 0 && suites.length <= 16 &&
     new Set(suites).size === suites.length && suites.every((suiteId) =>
@@ -102,6 +131,15 @@ function validSuites(suites: readonly string[]): boolean {
 }
 
 function assertRequest(request: ManagedDeliberationRequest): void {
+  if ("resumeDeliberationId" in request) {
+    if (!/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(request.resumeDeliberationId)) {
+      throw new ManagedDeliberationError(
+        "deliberation_request_invalid",
+        "재개할 숙의 ID가 유효하지 않습니다.",
+      );
+    }
+    return;
+  }
   const topicIsValid = request.topic.trim().length > 0 && request.topic.length <= 20_000;
   const stored = typeof request.policyId === "string";
   const inlineValid = !stored && request.proposerProvider !== request.reviewerProvider &&
@@ -120,7 +158,7 @@ function errorCode(error: unknown): string {
 }
 
 async function resolveExecutionPlan(
-  request: ManagedDeliberationRequest,
+  request: StartManagedDeliberationRequest,
   storage: ProjectStorage,
 ): Promise<DeliberationExecutionPlan> {
   if (typeof request.policyId === "string") {
@@ -185,6 +223,9 @@ async function executeWithStorage(
   storage: ProjectStorage,
   dependencies: ManagedDeliberationDependencies,
 ): Promise<ManagedDeliberationOutcome> {
+  if ("resumeDeliberationId" in request) {
+    return resumeManagedDeliberationWithStorage(request, storage, dependencies);
+  }
   const plan = await resolveExecutionPlan(request, storage);
   const policy = plan.policy;
   const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
@@ -198,15 +239,16 @@ async function executeWithStorage(
     createdAt: dependencies.now().toISOString(),
     participantRoleIds: recipientRoleIds,
   });
+  const runtimeCoordinates: DeliberationRuntimeCoordinates = {
+    projectId: storage.manifest.projectId,
+    runId: dependencies.createId("run"),
+    sessionId: dependencies.createId("ses"),
+  };
   const runtime = new DeliberationRuntime({
     deliberationId,
     policy,
     policyVersion: deliberationPolicyHash(policy),
-    coordinates: {
-      projectId: storage.manifest.projectId,
-      runId: dependencies.createId("run"),
-      sessionId: dependencies.createId("ses"),
-    },
+    coordinates: runtimeCoordinates,
     events: storage.events,
     artifactStore: storage.artifacts,
     now: dependencies.now,
@@ -241,6 +283,24 @@ async function executeWithStorage(
       completed = true;
       return rounds.result;
     }
+    await writeApprovedDeliberationCheckpoint({
+      stateRoot: storage.paths.state,
+      checkpoint: {
+        schemaVersion: 1,
+        deliberationId,
+        policyHash: deliberationPolicyHash(policy),
+        request: checkpointRequest(request),
+        runtimeCoordinates,
+        runtime: runtime.snapshot(),
+        workspace: workspace.snapshot(),
+        latestClaimArtifactId: rounds.latestClaimArtifact.artifact.deliberationArtifactId,
+        approvedReviewArtifactIds: rounds.approvedReviews.map((review) =>
+          review.artifact.deliberationArtifactId),
+        currentClaim: rounds.currentClaim,
+        createdAt: dependencies.now().toISOString(),
+      },
+    });
+    await dependencies.afterApprovedCheckpoint?.(deliberationId);
     const result = await completeApprovedDeliberation({
       request,
       plan,
@@ -260,7 +320,7 @@ async function executeWithStorage(
     completed = true;
     return result;
   } catch (error) {
-    if (!completed) {
+    if (!completed && !(error instanceof DeliberationProcessInterruptedError)) {
       try {
         runtime.complete(createFailedOutcome({
           deliberationId,
@@ -276,6 +336,20 @@ async function executeWithStorage(
     }
     throw error;
   }
+}
+
+function checkpointRequest(
+  request: StartManagedDeliberationRequest,
+): ApprovedDeliberationCheckpoint["request"] {
+  if (typeof request.policyId === "string") {
+    return { policyId: request.policyId, topic: request.topic };
+  }
+  return {
+    proposerProvider: request.proposerProvider,
+    reviewerProvider: request.reviewerProvider,
+    verificationSuiteIds: [...request.verificationSuiteIds],
+    topic: request.topic,
+  };
 }
 
 export const executeManagedDeliberation = createManagedDeliberationExecutor();

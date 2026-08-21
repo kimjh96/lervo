@@ -22,7 +22,7 @@ import {
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type {
   ManagedDeliberationOutcome,
-  ManagedDeliberationRequest,
+  StartManagedDeliberationRequest,
 } from "./managed-deliberation.js";
 import type { ManagedDeliberationRunner } from "./managed-deliberation-runner.js";
 
@@ -44,7 +44,7 @@ export type DeliberationRoundsResult =
   | UnresolvedDeliberationRounds;
 
 export async function executeDeliberationRounds(input: {
-  request: ManagedDeliberationRequest;
+  request: StartManagedDeliberationRequest;
   plan: DeliberationExecutionPlan;
   policy: DeliberationPolicy;
   deliberationId: string;
