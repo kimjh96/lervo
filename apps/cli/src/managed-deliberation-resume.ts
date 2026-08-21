@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { deliberationPolicyHash } from "@lervo/deliberation";
+import { defaultKoreanWritingContract } from "@lervo/core";
 import {
   DeliberationRuntime,
   type DeliberationRuntimeSnapshot,
@@ -145,6 +146,7 @@ export async function resumeManagedDeliberationWithStorage(
         registry,
         participantRoleIds: recipientRoleIds,
         snapshot: checkpoint.workspace,
+        writingContract: dependencies.writingContract ?? defaultKoreanWritingContract,
       });
       const runtime = new DeliberationRuntime({
         deliberationId: checkpoint.deliberationId,

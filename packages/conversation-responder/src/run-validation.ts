@@ -1,22 +1,13 @@
 import {
   validateManagedProviderRunEvidence,
   type ManagedProviderRunResult,
-} from "@lervo/orchestrator";
-import type { EventEnvelope, SharedContextPublication } from "@lervo/schemas";
-import type { EventStore } from "@lervo/storage-contract";
+} from "@lervo/execution-contract";
+import type { SharedContextPublication } from "@lervo/schemas";
+import { collectRunEventsBounded, type EventStore } from "@lervo/storage-contract";
 
 import { ManagedConversationResponseError } from "./types.js";
 
-function eventsForRun(store: EventStore, runId: string): EventEnvelope[] {
-  const events: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (true) {
-    const page = store.list({ runId, afterSeq, limit: 1_000 });
-    events.push(...page);
-    if (page.length < 1_000) return events;
-    afterSeq = page.at(-1)!.seq;
-  }
-}
+const maximumConversationManagedRunEvents = 2_000;
 
 export function validateConversationManagedRun(input: {
   run: ManagedProviderRunResult;
@@ -39,7 +30,20 @@ export function validateConversationManagedRun(input: {
       "대화 응답 managed run이 읽기 전용 역할과 결과 좌표를 지키지 않았습니다.",
     );
   }
-  const runEvents = eventsForRun(input.events, run.session.runId);
+  let runEvents;
+  try {
+    runEvents = collectRunEventsBounded({
+      events: input.events,
+      runId: run.session.runId,
+      maximumEvents: maximumConversationManagedRunEvents,
+    });
+  } catch (error) {
+    throw new ManagedConversationResponseError(
+      "managed_run_invalid",
+      "대화 응답 managed run event 범위를 확인하지 못했습니다.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
   const requested = runEvents.filter((event) => event.type === "run.requested");
   if (
     requested.length !== 1 ||

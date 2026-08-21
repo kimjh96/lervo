@@ -50,6 +50,7 @@ function coordinator(
     typeof ManagedProviderRunCoordinator
   >[0]["artifactStore"] = new MemoryArtifactStore(),
   approvalVerifier?: ManagedCapabilityApprovalVerifier,
+  maximumProviderSignals?: number,
 ) {
   return new ManagedProviderRunCoordinator({
     adapter,
@@ -61,6 +62,7 @@ function coordinator(
     now: clock(),
     createEventId: sequenceFactory("evt_managedrun"),
     ...(approvalVerifier === undefined ? {} : { approvalVerifier }),
+    ...(maximumProviderSignals === undefined ? {} : { maximumProviderSignals }),
   });
 }
 
@@ -672,6 +674,30 @@ describe("managed provider run coordinator", () => {
     expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
       failureCode: "provider_stream_failed",
       retryable: true,
+    });
+    data.store.close();
+  });
+
+  it("fails closed before persisting signals beyond the configured provider bound", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex", { extraToolEvents: 3 });
+    const run = coordinator(
+      adapter,
+      data.root,
+      data.store,
+      undefined,
+      undefined,
+      undefined,
+      4,
+    ).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "provider_stream_failed" });
+    expect(adapter.stopReason).toBe("failed");
+    expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+      failureCode: "provider_stream_failed",
     });
     data.store.close();
   });

@@ -3,13 +3,10 @@ import { DatabaseSync } from "node:sqlite";
 import {
   type ConversationDeliberationJobFailureCode,
   type ConversationDeliberationJobStore,
-} from "@lervo/conversation-control";
+} from "@lervo/conversation-deliberation-contract";
 
 import {
-  configureConversationDeliberationDatabase,
   migrateConversationDeliberationDatabase,
-  prepareConversationDeliberationDatabasePath,
-  restrictConversationDeliberationDatabase,
 } from "./database.js";
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 import {
@@ -25,6 +22,12 @@ import {
   decodeConversationDeliberationJob,
 } from "./row-codec.js";
 import { reconcileConversationDeliberationJob } from "./reconciliation.js";
+import {
+  checkConversationDeliberationQueueIntegrity,
+  openConversationDeliberationQueueDatabase,
+  resolveConversationDeliberationMaximumRecords,
+  rollbackConversationDeliberationQueueTransaction,
+} from "./store-core.js";
 
 const leaseConfiguration: LeaseStoreConfiguration<
   ReturnType<typeof decodeConversationDeliberationJob>,
@@ -53,22 +56,15 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
     path: string;
     maxRecords?: number;
   }): Promise<SQLiteConversationDeliberationJobStore> {
-    const maxRecords = options.maxRecords ?? 10_000;
-    if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || maxRecords > 100_000) {
-      throw new ConversationDeliberationSQLiteError(
-        "integrity_failed",
-        "Conversation 숙의 queue maxRecords가 유효하지 않습니다.",
-      );
-    }
-    const path = await prepareConversationDeliberationDatabasePath(options.path);
-    const database = new DatabaseSync(path, {
-      enableForeignKeyConstraints: true,
-      allowExtension: false,
+    const maxRecords = resolveConversationDeliberationMaximumRecords(
+      options.maxRecords,
+      leaseConfiguration.label,
+    );
+    const { path, database } = await openConversationDeliberationQueueDatabase({
+      path: options.path,
+      migrate: migrateConversationDeliberationDatabase,
     });
     try {
-      await restrictConversationDeliberationDatabase(path);
-      configureConversationDeliberationDatabase(database);
-      migrateConversationDeliberationDatabase(database);
       const store = new SQLiteConversationDeliberationJobStore(path, database, maxRecords);
       store.checkIntegrity();
       return store;
@@ -216,37 +212,19 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
 
   checkIntegrity(): void {
     this.assertOpen();
-    if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new ConversationDeliberationSQLiteError(
-        "integrity_failed",
-        "Conversation 숙의 queue quick_check가 실패했습니다.",
-      );
-    }
-    const required = new Set([
-      "conversation_deliberation_job_identity_immutable",
-      "conversation_deliberation_job_lifecycle",
-      "conversation_deliberation_job_no_delete",
-      "conversation_deliberation_jobs_active_lease",
-    ]);
-    for (const row of this.database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')",
-    ).all()) {
-      if (typeof row.name === "string") required.delete(row.name);
-    }
-    if (required.size > 0) {
-      throw new ConversationDeliberationSQLiteError(
-        "integrity_failed",
-        "Conversation 숙의 queue 보호 schema가 누락되었습니다.",
-      );
-    }
-    const rows = this.database.prepare("SELECT * FROM conversation_deliberation_jobs").all();
-    if (rows.length > this.maxRecords) {
-      throw new ConversationDeliberationSQLiteError(
-        "capacity_exceeded",
-        "Conversation 숙의 queue capacity를 초과했습니다.",
-      );
-    }
-    rows.forEach(decodeConversationDeliberationJob);
+    checkConversationDeliberationQueueIntegrity({
+      database: this.database,
+      table: leaseConfiguration.table,
+      requiredSchema: [
+        "conversation_deliberation_job_identity_immutable",
+        "conversation_deliberation_job_lifecycle",
+        "conversation_deliberation_job_no_delete",
+        "conversation_deliberation_jobs_active_lease",
+      ],
+      maximumRecords: this.maxRecords,
+      label: leaseConfiguration.label,
+      decode: decodeConversationDeliberationJob,
+    });
   }
 
   close(): void {
@@ -265,20 +243,10 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
   }
 
   private rollback(error: unknown): never {
-    try {
-      this.database.exec("ROLLBACK;");
-    } catch (rollbackError) {
-      throw new ConversationDeliberationSQLiteError(
-        "write_failed",
-        "Conversation 숙의 queue transaction과 rollback이 실패했습니다.",
-        { cause: new AggregateError([error, rollbackError]) },
-      );
-    }
-    if (error instanceof ConversationDeliberationSQLiteError) throw error;
-    throw new ConversationDeliberationSQLiteError(
-      "write_failed",
-      "Conversation 숙의 queue transaction이 실패했습니다.",
-      { cause: error },
+    rollbackConversationDeliberationQueueTransaction(
+      this.database,
+      error,
+      leaseConfiguration.label,
     );
   }
 

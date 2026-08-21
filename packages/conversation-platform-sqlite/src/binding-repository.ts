@@ -162,7 +162,7 @@ export class ConversationPlatformBindingRepository {
   }
 
   mapOutbound(input: {
-    platform: "slack" | "discord";
+    platform: import("@lervo/conversation-platform").ConversationPlatformKind;
     integrationId: string;
     target: ConversationTarget;
     actor: ConversationOutboundMessage["actor"];

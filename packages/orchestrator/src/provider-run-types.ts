@@ -1,11 +1,11 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
 import type {
-  AdapterSession,
-  AdapterTurn,
-  ContextEvidence,
+  ManagedProjectVerification,
+  ManagedProviderRunResult,
+} from "@lervo/execution-contract";
+import type {
   ManagedRunApprovalAuthorization,
-  VerificationResult,
   VerificationSuite,
 } from "@lervo/schemas";
 
@@ -13,13 +13,19 @@ import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import type {
   ManagedContextRunOptions,
-  ManagedFileChangeEvidence,
   ManagedPrepareContextInput,
 } from "./types.js";
 import type {
   CaptureRepositorySnapshot,
   RepositorySnapshotPolicy,
 } from "./repository-snapshot.js";
+
+export type {
+  ManagedProjectVerification,
+  ManagedProviderResultArtifact,
+  ManagedProviderRunResult,
+  ManagedVerificationResultArtifact,
+} from "@lervo/execution-contract";
 
 export type ManagedProviderRunFailureCode =
   | "cancelled"
@@ -77,6 +83,7 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
   captureSnapshot?: CaptureRepositorySnapshot;
   snapshotPolicy?: RepositorySnapshotPolicy;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
+  maximumProviderSignals?: number;
   now?: () => Date;
   projectVerifier?: ManagedProjectVerifier;
 }
@@ -106,42 +113,6 @@ export interface ManagedResolvedSkill {
   contentHash: string;
   sourceKind: "project" | "user";
   trustStatus: "untrusted" | "reviewed" | "verified";
-}
-
-export interface ManagedProviderRunResult {
-  status: "completed";
-  session: AdapterSession;
-  turn: AdapterTurn;
-  terminalEventId: string;
-  resultArtifact: ManagedProviderResultArtifact;
-  contextEvidence: readonly ContextEvidence[];
-  managedChanges: ManagedFileChangeEvidence[];
-  contextGeneration: number;
-  beforeRevision: string;
-  afterRevision: string;
-  verificationStatus: "passed" | "failed" | "not_run";
-  verifications: ManagedProjectVerification[];
-}
-
-export interface ManagedProviderResultArtifact {
-  artifactId: string;
-  uri: string;
-  mediaType: "text/markdown; charset=utf-8";
-  contentHash: string;
-  byteCount: number;
-}
-
-export interface ManagedVerificationResultArtifact {
-  artifactId: string;
-  uri: string;
-  mediaType: "application/vnd.lervo.verification-result+json; charset=utf-8";
-  contentHash: string;
-  byteCount: number;
-}
-
-export interface ManagedProjectVerification {
-  result: VerificationResult;
-  resultArtifact: ManagedVerificationResultArtifact;
 }
 
 export interface ManagedProjectVerifier {

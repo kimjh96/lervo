@@ -129,15 +129,28 @@ importers:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../../packages/cas
+      '@lervo/conversation-contract':
+        specifier: workspace:*
+        version: link:../../packages/conversation-contract
       '@lervo/conversation-control':
         specifier: workspace:*
         version: link:../../packages/conversation-control
       '@lervo/conversation-deliberation-sqlite':
         specifier: workspace:*
         version: link:../../packages/conversation-deliberation-sqlite
+      '@lervo/conversation-platform':
+        specifier: workspace:*
+        version: link:../../packages/conversation-platform
       '@lervo/conversation-platform-sqlite':
         specifier: workspace:*
         version: link:../../packages/conversation-platform-sqlite
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../../packages/storage-contract
+    devDependencies:
+      '@lervo/adapter-native-chat':
+        specifier: workspace:*
+        version: link:../../packages/adapter-native-chat
 
   apps/hub:
     dependencies:
@@ -293,6 +306,9 @@ importers:
 
   packages/conversation-control:
     dependencies:
+      '@lervo/conversation-deliberation-contract':
+        specifier: workspace:*
+        version: link:../conversation-deliberation-contract
       '@lervo/hub-control':
         specifier: workspace:*
         version: link:../hub-control
@@ -319,8 +335,14 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/conversation-deliberation-contract: {}
+
   packages/conversation-deliberation-sqlite:
     dependencies:
+      '@lervo/conversation-deliberation-contract':
+        specifier: workspace:*
+        version: link:../conversation-deliberation-contract
+    devDependencies:
       '@lervo/conversation-control':
         specifier: workspace:*
         version: link:../conversation-control
@@ -364,12 +386,12 @@ importers:
       '@lervo/context-delivery':
         specifier: workspace:*
         version: link:../context-delivery
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/interaction':
         specifier: workspace:*
         version: link:../interaction
-      '@lervo/orchestrator':
-        specifier: workspace:*
-        version: link:../orchestrator
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -401,6 +423,9 @@ importers:
       '@lervo/interaction-sqlite':
         specifier: workspace:*
         version: link:../interaction-sqlite
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
 
   packages/core:
     dependencies:
@@ -434,9 +459,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-      '@lervo/orchestrator':
+      '@lervo/execution-contract':
         specifier: workspace:*
-        version: link:../orchestrator
+        version: link:../execution-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -468,6 +493,9 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
 
   packages/diagnostics:
     dependencies:
@@ -516,6 +544,12 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+
+  packages/execution-contract:
+    dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/hub-control:
     dependencies:
@@ -693,6 +727,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

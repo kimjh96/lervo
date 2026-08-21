@@ -1,5 +1,9 @@
 import type { EventEnvelope } from "@lervo/schemas";
-import type { EventStore } from "@lervo/storage-contract";
+import {
+  EventReadError,
+  visitEventSnapshot,
+  type EventStore,
+} from "@lervo/storage-contract";
 
 export const maximumDeliberationTraceEvents = 1_000;
 
@@ -15,21 +19,19 @@ function scanSnapshot(input: {
   eventCount: number;
   visit(event: EventEnvelope): void;
 }): void {
-  let afterSeq = 0;
-  while (afterSeq < input.eventCount) {
-    const page = input.events.list({
-      afterSeq,
-      limit: Math.min(1_000, input.eventCount - afterSeq),
+  try {
+    visitEventSnapshot({
+      events: input.events,
+      throughSeq: input.eventCount,
+      visit: input.visit,
     });
-    const snapshotPage = page.filter((event) => event.seq <= input.eventCount);
-    const next = snapshotPage.at(-1)?.seq;
-    if (next === undefined || next <= afterSeq || next > input.eventCount) {
-      throw Object.assign(new Error("숙의 진단 event snapshot을 끝까지 읽지 못했습니다."), {
-        code: "deliberation_history_invalid",
-      });
-    }
-    snapshotPage.forEach(input.visit);
-    afterSeq = next;
+  } catch (error) {
+    if (!(error instanceof EventReadError)) throw error;
+    throw Object.assign(new Error("숙의 진단 event snapshot을 끝까지 읽지 못했습니다.", {
+      cause: error,
+    }), {
+      code: "deliberation_history_invalid",
+    });
   }
 }
 

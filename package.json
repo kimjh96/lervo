@@ -9,8 +9,9 @@
   },
   "scripts": {
     "brand:check": "node scripts/check-brand.mjs",
+    "architecture:check": "node scripts/check-package-boundaries.mjs",
     "build": "pnpm -r --sort --workspace-concurrency=1 run build",
-    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm release:manifest:check && pnpm release:sbom:check && pnpm release:attestation:check && pnpm smoke:built-cli && pnpm smoke:packed-cli && pnpm smoke:registry-publish && pnpm docs:check && pnpm brand:check",
+    "check": "pnpm architecture:check && pnpm typecheck && pnpm test && pnpm build && pnpm release:manifest:check && pnpm release:sbom:check && pnpm release:attestation:check && pnpm smoke:built-cli && pnpm smoke:packed-cli && pnpm smoke:registry-publish && pnpm docs:check && pnpm brand:check",
     "docs:check": "node scripts/check-docs.mjs",
     "lervo": "node apps/cli/dist/bin.js",
     "release:manifest:check": "node scripts/check-cli-release-artifact.mjs",

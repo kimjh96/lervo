@@ -3,7 +3,7 @@ import {
   type ConversationDeliberationResumeJob,
   type ConversationDeliberationResumeJobFailureCode,
   type ConversationDeliberationResumeJobReconciliation,
-} from "@lervo/conversation-control";
+} from "@lervo/conversation-deliberation-contract";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 import {

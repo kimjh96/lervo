@@ -3,6 +3,15 @@ import type { ConversationResponder } from "@lervo/interaction";
 import type { ConversationInboundEvent, WritingContract } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import type { WritingSemanticEvaluator } from "@lervo/writing";
+import type {
+  ConversationDeliberationStatus,
+  ConversationDeliberationSummary,
+} from "@lervo/conversation-deliberation-contract";
+
+export type {
+  ConversationDeliberationStatus,
+  ConversationDeliberationSummary,
+} from "@lervo/conversation-deliberation-contract";
 
 export type ConversationControlOperation = "command_status" | "approval_review";
 
@@ -11,21 +20,6 @@ export type ParsedConversationControlCommand =
   | { operation: "deliberation_start"; policyId: string; topic: string }
   | { operation: "deliberation_resume"; deliberationId: string }
   | { operation: "deliberation_status"; deliberationId: string };
-
-export type ConversationDeliberationStatus =
-  | "running"
-  | "unknown"
-  | "interrupted"
-  | "converged"
-  | "no_consensus"
-  | "failed";
-
-export interface ConversationDeliberationSummary {
-  deliberationId: string;
-  status: ConversationDeliberationStatus;
-  artifactCount: number;
-  nextAction: "wait" | "resume" | "none";
-}
 
 export interface ConversationDeliberationPort {
   start(input: {

@@ -1,3 +1,4 @@
+export * from "@lervo/conversation-deliberation-contract";
 export * from "./parser.js";
 export * from "./deliberation-control.js";
 export * from "./deliberation-job.js";

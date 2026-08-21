@@ -1,6 +1,7 @@
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -52,6 +53,119 @@ afterEach(async () => {
 });
 
 describe("SQLite conversation platform state", () => {
+  it("migrates version 1 Slack bindings before accepting extensible platform kinds", async () => {
+    const path = await databasePath();
+    const legacy = new DatabaseSync(path);
+    legacy.exec(`
+      CREATE TABLE conversation_bindings (
+        platform TEXT NOT NULL CHECK (platform IN ('slack', 'discord')),
+        integration_id TEXT NOT NULL, tenant_key TEXT NOT NULL, conversation_key TEXT NOT NULL,
+        project_id TEXT NOT NULL, conversation_id TEXT NOT NULL,
+        PRIMARY KEY (platform, integration_id, tenant_key, conversation_key),
+        UNIQUE (platform, integration_id, project_id, conversation_id)
+      ) STRICT;
+      CREATE TABLE participant_bindings (
+        platform TEXT NOT NULL CHECK (platform IN ('slack', 'discord')),
+        integration_id TEXT NOT NULL, tenant_key TEXT NOT NULL, participant_key TEXT NOT NULL,
+        actor_kind TEXT NOT NULL CHECK (actor_kind IN ('human', 'agent', 'system')),
+        participant_id TEXT NOT NULL, role_id TEXT,
+        PRIMARY KEY (platform, integration_id, tenant_key, participant_key),
+        CHECK ((actor_kind = 'agent' AND role_id IS NOT NULL)
+          OR (actor_kind != 'agent' AND role_id IS NULL))
+      ) STRICT;
+      CREATE TABLE thread_bindings (
+        platform TEXT NOT NULL, integration_id TEXT NOT NULL, tenant_key TEXT NOT NULL,
+        conversation_key TEXT NOT NULL, thread_key TEXT NOT NULL, thread_id TEXT NOT NULL,
+        PRIMARY KEY (platform, integration_id, tenant_key, conversation_key, thread_key),
+        UNIQUE (platform, integration_id, thread_id),
+        FOREIGN KEY (platform, integration_id, tenant_key, conversation_key)
+          REFERENCES conversation_bindings(platform, integration_id, tenant_key, conversation_key)
+      ) STRICT;
+      CREATE TABLE message_correlations (
+        platform TEXT NOT NULL, integration_id TEXT NOT NULL, tenant_key TEXT NOT NULL,
+        conversation_key TEXT NOT NULL, external_message_key TEXT NOT NULL,
+        reply_event_id TEXT NOT NULL, observed_event_id TEXT, outbound_id TEXT UNIQUE,
+        automation_depth INTEGER NOT NULL CHECK (automation_depth BETWEEN 0 AND 8),
+        PRIMARY KEY (platform, integration_id, tenant_key, conversation_key, external_message_key),
+        FOREIGN KEY (platform, integration_id, tenant_key, conversation_key)
+          REFERENCES conversation_bindings(platform, integration_id, tenant_key, conversation_key)
+      ) STRICT;
+      CREATE TABLE delivery_replay (
+        platform TEXT NOT NULL CHECK (platform IN ('slack', 'discord')),
+        integration_id TEXT NOT NULL, outbound_id TEXT NOT NULL, request_hash TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('sending', 'unknown', 'rejected', 'delivered')),
+        attempted_at TEXT NOT NULL, external_message_key TEXT, delivered_at TEXT,
+        PRIMARY KEY (platform, integration_id, outbound_id),
+        CHECK ((status = 'delivered' AND external_message_key IS NOT NULL AND delivered_at IS NOT NULL)
+          OR (status != 'delivered' AND external_message_key IS NULL AND delivered_at IS NULL))
+      ) STRICT;
+      CREATE TRIGGER delivery_replay_identity_immutable BEFORE UPDATE ON delivery_replay
+        WHEN OLD.platform != NEW.platform OR OLD.integration_id != NEW.integration_id
+          OR OLD.outbound_id != NEW.outbound_id OR OLD.request_hash != NEW.request_hash
+          OR OLD.status = 'delivered'
+        BEGIN SELECT RAISE(ABORT, 'delivery replay identity is immutable'); END;
+      PRAGMA user_version = 1;
+    `);
+    legacy.close();
+
+    const store = await SQLiteConversationPlatformStore.open(options(path));
+    await expect(store.mapInbound({
+      platform: "slack",
+      integrationId,
+      tenantKey: "T123",
+      conversationKey: "C123",
+      threadKey: null,
+      sourceMessageKey: "legacy-message-1",
+      replyToMessageKey: null,
+      participantKey: "user:U123",
+      mentionedParticipantKeys: [],
+      actorKindHint: "human",
+    })).resolves.toMatchObject({ projectId: "prj_platform01" });
+    store.close();
+    const migrated = new DatabaseSync(path, { readOnly: true });
+    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(2);
+    migrated.close();
+  });
+
+  it("persists a registered third-party platform kind without core code changes", async () => {
+    const path = await databasePath();
+    const store = await SQLiteConversationPlatformStore.open({
+      path,
+      conversations: [{
+        platform: "teams",
+        integrationId: "itg_platform02",
+        tenantKey: "tenant-1",
+        conversationKey: "channel-1",
+        projectId: "prj_platform01",
+        conversationId: "cnv_platform01",
+      }],
+      participants: [{
+        platform: "teams",
+        integrationId: "itg_platform02",
+        tenantKey: "tenant-1",
+        participantKey: "user-1",
+        actor: { kind: "human", participantId: "ptc_platform01", roleId: null },
+      }],
+    });
+
+    await expect(store.mapInbound({
+      platform: "teams",
+      integrationId: "itg_platform02",
+      tenantKey: "tenant-1",
+      conversationKey: "channel-1",
+      threadKey: null,
+      sourceMessageKey: "message-1",
+      replyToMessageKey: null,
+      participantKey: "user-1",
+      mentionedParticipantKeys: [],
+      actorKindHint: "human",
+    })).resolves.toMatchObject({
+      projectId: "prj_platform01",
+      conversationId: "cnv_platform01",
+    });
+    store.close();
+  });
+
   it("restores thread, reply and automation correlation after restart", async () => {
     const path = await databasePath();
     let store = await SQLiteConversationPlatformStore.open(options(path));

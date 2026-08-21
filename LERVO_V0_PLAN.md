@@ -1,7 +1,7 @@
 # Lervo v0 구현 계획
 
 상태: `0.1-draft`  
-기준일: 2026-08-20
+기준일: 2026-08-22
 
 ## v0 목표
 
@@ -1579,5 +1579,7 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 명시적 대화 숙의 durable 재개를 완료했습니다. `/lervo deliberate resume <id>`와 별도 principal 권한을 추가하고, start queue의 `interrupted/resume` 요약을 확인한 요청만 owner-only `deliberation-resumes.sqlite`에 저장합니다. 같은 event 재처리는 멱등이고 한 숙의의 다른 재개 요청은 충돌로 닫습니다. Start와 resume queue는 공통 lease worker를 쓰되 요청·DB·failure code와 대조 의미를 분리합니다. 실제 승인 checkpoint 뒤 중단된 네 역할 숙의를 resume queue와 expected-project managed adapter로 재개해 완료했으며 재시작, 만료 lease, 중복 요청과 terminal-only 대조를 검증했습니다. 결정은 [ADR-0141](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)에 기록했습니다.
 
 숙의 진단의 event 조회를 snapshot-bound·bounded scan으로 보완했습니다. 무결성 검사 시점의 event count 뒤에 추가된 event를 현재 판정에서 제외하고, 1,000개 page의 첫 순회에는 대상·checkpoint 관련 run 좌표만, 두 번째 순회에는 최대 1,000개의 실제 trace만 보관합니다. 2,500개가 넘는 무관 event와 snapshot 뒤 append fixture, 대상·결과 상한 초과를 검증하며 기존 report와 failure code는 바꾸지 않았습니다. 결정은 [ADR-0142](./docs/adr/0142-snapshot-bounded-deliberation-event-scan.md)에 기록했습니다.
+
+실행 증거와 대화 조립 경계 보완을 완료했습니다. Run event는 기본 list 크기와 무관하게 최대 2,000개까지 page로 읽고 provider signal은 기본 500개·절대 최대 10,000개로 닫았습니다. 숙의 resume은 project event 전체를 배열에 적재하지 않습니다. Conversation app은 Slack·Discord 내장 factory와 native·외부 factory가 공존하는 registry를 사용하고 platform SQLite v1을 행 손실 없이 범용 kind의 v2로 올립니다. Queue·managed 실행 증거 계약을 각각 하위 package로 분리하고 공통 queue open·streaming integrity·rollback과 production dependency 검사를 추가했습니다. CLI workspace writing contract도 composition root에서 주입하고 파일 materialization을 상태 조립에서 분리했습니다. Runtime snapshot 검증·복원과 managed 실행 결과 마감도 각 실행 본체에서 분리했습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록했습니다.
 
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

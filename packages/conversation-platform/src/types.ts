@@ -4,7 +4,8 @@ import type {
   ConversationTarget,
 } from "@lervo/schemas";
 
-export type ConversationPlatformKind = "slack" | "discord";
+/** A validated lower-case adapter kind such as slack, discord, teams, or mattermost. */
+export type ConversationPlatformKind = string;
 
 export interface PlatformInboundIdentityRequest {
   platform: ConversationPlatformKind;

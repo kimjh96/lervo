@@ -1,7 +1,7 @@
 import {
   validateManagedProviderRunEvidence,
   type ManagedProviderRunResult,
-} from "@lervo/orchestrator";
+} from "@lervo/execution-contract";
 import type {
   DeliberationArtifact,
   EventEnvelope,

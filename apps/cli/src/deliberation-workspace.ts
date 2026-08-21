@@ -1,8 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { lstat, mkdir, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
-import { defaultKoreanWritingContract } from "@lervo/core";
 import type { DeliberationTurnResult } from "@lervo/deliberation-runtime";
 import type {
   DocumentRecord,
@@ -10,7 +9,14 @@ import type {
   HandoffBundle,
   RoleProfile,
   SharedContextPublication,
+  WritingContract,
 } from "@lervo/schemas";
+
+import {
+  deliberationContentHash,
+  materializeDeliberationDocument,
+  repositoryRelativePath,
+} from "./deliberation-document-materializer.js";
 
 export interface PublishedContext {
   publication: SharedContextPublication;
@@ -28,20 +34,8 @@ export interface DeliberationWorkspaceSnapshot {
   contexts: PublishedContext[];
 }
 
-function sha256(value: string | Uint8Array): string {
-  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
-}
-
 function shortHash(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 16);
-}
-
-function repositoryPath(root: string, path: string): string {
-  const value = relative(root, path).split(sep).join("/");
-  if (value.length === 0 || value.startsWith("../") || value === "..") {
-    throw new Error("숙의 runtime 문서 경로가 저장소 밖을 가리킵니다.");
-  }
-  return value;
 }
 
 export class DeliberationWorkspace {
@@ -58,6 +52,7 @@ export class DeliberationWorkspace {
     registry: DocumentRegistry,
     readonly writingPolicyDocumentId: string,
     readonly writingPolicyContentHash: string,
+    readonly writingContract: WritingContract,
   ) {
     this.documents = structuredClone(registry.documents);
   }
@@ -69,12 +64,13 @@ export class DeliberationWorkspace {
     registry: DocumentRegistry;
     createdAt: string;
     participantRoleIds: readonly string[];
+    writingContract: WritingContract;
   }): Promise<DeliberationWorkspace> {
     const parent = resolve(input.stateRoot, "deliberations");
     const root = resolve(parent, input.deliberationId);
     await mkdir(parent, { recursive: true, mode: 0o700 });
     await mkdir(root, { mode: 0o700 });
-    const writingBytes = `${JSON.stringify(defaultKoreanWritingContract, null, 2)}\n`;
+    const writingBytes = `${JSON.stringify(input.writingContract, null, 2)}\n`;
     const writingPolicyDocumentId = `doc_writing_${shortHash(input.deliberationId)}`;
     const workspace = new DeliberationWorkspace(
       input.repositoryRoot,
@@ -83,14 +79,15 @@ export class DeliberationWorkspace {
       [...input.participantRoleIds],
       input.registry,
       writingPolicyDocumentId,
-      sha256(writingBytes),
+      deliberationContentHash(writingBytes),
+      structuredClone(input.writingContract),
     );
     workspace.documents[writingPolicyDocumentId] = await workspace.materializeDocument({
       documentId: writingPolicyDocumentId,
       directoryName: "writing-policy",
       filename: "content.json",
       content: writingBytes,
-      sourceId: `writing-contract:${defaultKoreanWritingContract.writingPolicyId}`,
+      sourceId: `writing-contract:${input.writingContract.writingPolicyId}`,
     });
     return workspace;
   }
@@ -102,6 +99,7 @@ export class DeliberationWorkspace {
     registry: DocumentRegistry;
     participantRoleIds: readonly string[];
     snapshot: DeliberationWorkspaceSnapshot;
+    writingContract: WritingContract;
   }): Promise<DeliberationWorkspace> {
     const root = resolve(input.stateRoot, "deliberations", input.deliberationId);
     const stats = await lstat(root);
@@ -118,11 +116,12 @@ export class DeliberationWorkspace {
       input.registry,
       input.snapshot.writingPolicyDocumentId,
       input.snapshot.writingPolicyContentHash,
+      structuredClone(input.writingContract),
     );
-    const expectedPrefix = `${repositoryPath(input.repositoryRoot, root)}/`;
+    const expectedPrefix = `${repositoryRelativePath(input.repositoryRoot, root)}/`;
     for (const [documentId, record] of Object.entries(input.snapshot.generatedDocuments)) {
       const path = resolve(input.repositoryRoot, record.path);
-      const relativePath = repositoryPath(input.repositoryRoot, path);
+      const relativePath = repositoryRelativePath(input.repositoryRoot, path);
       const file = await lstat(path);
       if (
         !file.isFile() || file.isSymbolicLink() || relativePath !== record.path ||
@@ -132,7 +131,7 @@ export class DeliberationWorkspace {
         throw new Error("숙의 workspace의 생성 문서 경로가 안전하지 않습니다.");
       }
       const bytes = await readFile(path);
-      if (sha256(bytes) !== record.verifiedRevision) {
+      if (deliberationContentHash(bytes) !== record.verifiedRevision) {
         throw new Error("숙의 workspace의 생성 문서 원문이 snapshot과 다릅니다.");
       }
       workspace.documents[documentId] = structuredClone(record);
@@ -141,7 +140,9 @@ export class DeliberationWorkspace {
     const writingRecord = workspace.documents[input.snapshot.writingPolicyDocumentId];
     if (
       writingRecord === undefined ||
-      writingRecord.verifiedRevision !== input.snapshot.writingPolicyContentHash
+      writingRecord.verifiedRevision !== input.snapshot.writingPolicyContentHash ||
+      deliberationContentHash(`${JSON.stringify(input.writingContract, null, 2)}\n`) !==
+        input.snapshot.writingPolicyContentHash
     ) throw new Error("숙의 workspace의 writing contract 원본이 snapshot과 다릅니다.");
     for (const context of input.snapshot.contexts) workspace.rememberContext(context);
     return workspace;
@@ -201,7 +202,7 @@ export class DeliberationWorkspace {
     handoffFor: (roleId: string) => HandoffBundle;
   }> {
     const artifact = input.turn.artifact;
-    if (sha256(input.turn.content) !== artifact.content.contentHash) {
+    if (deliberationContentHash(input.turn.content) !== artifact.content.contentHash) {
       throw new Error("숙의 artifact 원문이 기록된 content hash와 다릅니다.");
     }
     const suffix = artifact.deliberationArtifactId.slice(4);
@@ -250,7 +251,7 @@ export class DeliberationWorkspace {
           contextGeneration: artifact.inputContext.contextGeneration,
         },
         toRoleId: roleId,
-        requestDigest: sha256(
+        requestDigest: deliberationContentHash(
           `${artifact.deliberationArtifactId}:${roleId}:${publication.sharedContextId}`,
         ),
         sharedContextIds: [publication.sharedContextId],
@@ -268,7 +269,7 @@ export class DeliberationWorkspace {
       directoryName: `evaluation-${token.slice(0, 16)}`,
       filename: "request.json",
       content,
-      sourceId: `writing-evaluation:${sha256(content)}`,
+      sourceId: `writing-evaluation:${deliberationContentHash(content)}`,
     });
     return documentId;
   }
@@ -280,47 +281,13 @@ export class DeliberationWorkspace {
     content: string;
     sourceId: string;
   }): Promise<DocumentRecord> {
-    const temporary = await mkdtemp(resolve(this.deliberationRoot, ".document-"));
-    const finalDirectory = resolve(this.deliberationRoot, input.directoryName);
-    const contentPath = resolve(temporary, input.filename);
-    const digest = sha256(input.content);
-    const manifest = {
-      schemaVersion: 1,
-      documentId: input.documentId,
-      contentHash: digest,
-      sourceId: input.sourceId,
-    };
-    try {
-      await Promise.all([
-        writeFile(contentPath, input.content, { flag: "wx", mode: 0o600 }),
-        writeFile(
-          resolve(temporary, "manifest.json"),
-          `${JSON.stringify(manifest, null, 2)}\n`,
-          { flag: "wx", mode: 0o600 },
-        ),
-      ]);
-      await rename(temporary, finalDirectory);
-    } catch (error) {
-      await rm(temporary, { recursive: true, force: true }).catch(() => undefined);
-      throw error;
-    }
-    const finalContentPath = resolve(finalDirectory, input.filename);
-    const manifestPath = resolve(finalDirectory, "manifest.json");
+    const record = await materializeDeliberationDocument({
+      repositoryRoot: this.repositoryRoot,
+      deliberationRoot: this.deliberationRoot,
+      createdAt: this.createdAt,
+      ...input,
+    });
     this.generatedDocumentIds.add(input.documentId);
-    return {
-      path: repositoryPath(this.repositoryRoot, finalContentPath),
-      kind: "generated",
-      responsibleParty: { kind: "lervo", id: "lervo-deliberation-runtime" },
-      connectedPaths: [repositoryPath(this.repositoryRoot, finalContentPath)],
-      verifiedRevision: digest,
-      verifiedAt: this.createdAt,
-      reviewIntervalDays: 1,
-      ownership: {
-        mode: "lervo_generated",
-        userContentAllowed: false,
-        manifestPath: repositoryPath(this.repositoryRoot, manifestPath),
-        inputs: [{ sourceId: input.sourceId, contentHash: digest }],
-      },
-    };
+    return record;
   }
 }

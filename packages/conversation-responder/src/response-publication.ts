@@ -1,5 +1,5 @@
 import type { ConversationReplyCandidate } from "@lervo/interaction";
-import type { ManagedProviderRunResult } from "@lervo/orchestrator";
+import type { ManagedProviderRunResult } from "@lervo/execution-contract";
 import type { WritingContract } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {

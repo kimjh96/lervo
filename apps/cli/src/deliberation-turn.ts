@@ -4,7 +4,6 @@ import {
   DeliberationRuntime,
   type DeliberationTurnResult,
 } from "@lervo/deliberation-runtime";
-import { defaultKoreanWritingContract } from "@lervo/core";
 import type { DeliberationArtifact, DeliberationOutcome, RoleProfile } from "@lervo/schemas";
 
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
@@ -45,7 +44,7 @@ export async function recordDeliberationTurn<K extends DeliberationArtifact["kin
     previousArtifactIds: input.previousArtifactIds,
     sharedContextPublications: input.workspace.publications(),
     executeManagedRun: async () => input.run.run,
-    writingContract: defaultKoreanWritingContract,
+    writingContract: input.workspace.writingContract,
     semanticEvaluator: input.runner.semanticEvaluator(opposite(input.provider)),
     ...(input.verificationEvidence === undefined
       ? {}

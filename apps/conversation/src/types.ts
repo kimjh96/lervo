@@ -3,6 +3,7 @@ import type {
   DiscordGatewayAuthenticationPort,
 } from "@lervo/adapter-discord";
 import type { SlackConversationAdapter } from "@lervo/adapter-slack";
+import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type {
   ConversationDeliberationExecutionPort,
   ConversationDeliberationPort,
@@ -18,6 +19,8 @@ import type {
   ConversationPlatformParticipantBinding,
   ConversationPlatformThreadBinding,
 } from "@lervo/conversation-platform-sqlite";
+
+import type { ConversationIntegrationDeployment } from "./integration.js";
 
 interface PlatformCredentialTransportOptions {
   requestTimeoutMs?: number;
@@ -48,6 +51,7 @@ export interface ConversationApplicationOptions {
   threads?: readonly ConversationPlatformThreadBinding[];
   slack?: readonly SlackConversationDeployment[];
   discord?: readonly DiscordConversationDeployment[];
+  integrations?: readonly ConversationIntegrationDeployment[];
   deliberations?: {
     bindings: readonly ConversationDeliberationPrincipalBinding[];
     executor: ConversationDeliberationExecutionPort;
@@ -63,6 +67,7 @@ export interface ConversationApplicationOptions {
 }
 
 export interface ConversationApplication {
+  adapters: ReadonlyMap<string, ConversationAdapter>;
   slackAdapters: ReadonlyMap<string, SlackConversationAdapter>;
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;
   deliberations: ConversationDeliberationPort | null;

@@ -36,6 +36,54 @@ import { FixtureProviderAdapter } from "./fixture-provider-adapter.js";
 afterEach(cleanupFixtures);
 
 describe("same-provider independent role deliberation runtime", () => {
+  it("records an artifact when run completion is beyond the event store default page", async () => {
+    const fixture = await createRuntimeFixture();
+    const now = clock();
+    const runtime = new DeliberationRuntime({
+      deliberationId,
+      policy,
+      policyVersion,
+      coordinates: {
+        projectId,
+        runId: "run_deliberation_control",
+        sessionId: "ses_deliberation_control",
+      },
+      events: fixture.events,
+      artifactStore: fixture.artifacts,
+      now,
+      createEventId: sequence("evt_deliberation"),
+    });
+    runtime.start();
+    const adapter = new FixtureProviderAdapter(
+      "codex-session-proposer",
+      "페이지 기본값과 관계없이 실행 완료 원본을 확인합니다.",
+      120,
+    );
+    const proposal = await runtime.executeTurn({
+      kind: "proposal",
+      round: 1,
+      details: { claims: [{ claimId, claimDigest: hash("bounded-run-events") }] },
+      previousArtifactIds: [],
+      sharedContextPublications: [],
+      executeManagedRun: () => coordinator({
+        fixture,
+        adapter,
+        role: proposerRole,
+        runId: "run_proposer_many_events",
+        sessionId: "ses_proposer_many_events",
+        now,
+      }).run(managedInput({ root: fixture.root, role: proposerRole })),
+      writingContract: defaultKoreanWritingContract,
+      semanticEvaluator: passingEvaluator(),
+    });
+
+    const runEvents = fixture.events.list({ runId: "run_proposer_many_events", limit: 1_000 });
+    expect(runEvents.length).toBeGreaterThan(100);
+    expect(runEvents.findIndex((event) => event.type === "run.completed")).toBeGreaterThan(99);
+    expect(proposal.artifact.producer.runId).toBe("run_proposer_many_events");
+    fixture.events.close();
+  });
+
   it("re-loads the proposal in a separate Codex session before recording the review", async () => {
     const fixture = await createRuntimeFixture();
     const now = clock();

@@ -10,6 +10,23 @@ export interface ProviderSignalMonitor {
   throwIfFailed(): void;
 }
 
+export const defaultMaximumProviderSignals = 500;
+export const absoluteMaximumProviderSignals = 10_000;
+
+function resolveMaximumProviderSignals(value: number | undefined): number {
+  const resolved = value ?? defaultMaximumProviderSignals;
+  if (
+    !Number.isSafeInteger(resolved) || resolved < 1 ||
+    resolved > absoluteMaximumProviderSignals
+  ) {
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      `maximumProviderSignals는 1 이상 ${absoluteMaximumProviderSignals} 이하여야 합니다.`,
+    );
+  }
+  return resolved;
+}
+
 function isTerminal(event: AdapterNormalizedEvent): boolean {
   return event.type === "provider.turn.completed" || event.type === "provider.turn.failed";
 }
@@ -18,12 +35,15 @@ export function startProviderSignalMonitor(input: {
   adapter: ProviderAdapter;
   session: AdapterSession;
   onEvent: (event: AdapterNormalizedEvent) => void;
+  maximumEvents?: number;
 }): ProviderSignalMonitor {
+  const maximumEvents = resolveMaximumProviderSignals(input.maximumEvents);
   const controller = new AbortController();
   let resolveTerminal!: (event: AdapterNormalizedEvent) => void;
   let rejectTerminal!: (error: Error) => void;
   let settled = false;
   let failure: Error | undefined;
+  let observedEvents = 0;
   const terminal = new Promise<AdapterNormalizedEvent>((resolve, reject) => {
     resolveTerminal = resolve;
     rejectTerminal = reject;
@@ -33,6 +53,13 @@ export function startProviderSignalMonitor(input: {
   const done = (async () => {
     try {
       for await (const event of input.adapter.events(input.session, controller.signal)) {
+        observedEvents += 1;
+        if (observedEvents > maximumEvents) {
+          throw new ManagedProviderRunError(
+            "provider_stream_failed",
+            `Provider signal이 허용된 ${maximumEvents}개를 넘었습니다.`,
+          );
+        }
         try {
           input.onEvent(event);
         } catch (error) {

@@ -45,6 +45,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
       terminalTurnId?: string;
       postTerminalMismatch?: boolean;
       streamFailure?: boolean;
+      extraToolEvents?: number;
       failStop?: boolean;
       hangOnStop?: boolean;
       invalidStopCoordinates?: boolean;
@@ -255,6 +256,20 @@ export class FakeManagedAdapter implements ProviderAdapter {
         durationMs: 2,
       },
     };
+    for (let index = 0; index < (this.options.extraToolEvents ?? 0); index += 1) {
+      yield {
+        ...base(),
+        eventId: `evt_${this.descriptor.provider}extra${String(index).padStart(5, "0")}`,
+        type: "provider.tool.called",
+        payload: {
+          providerItemId: `extra-tool-${index}`,
+          toolName: "Read",
+          inputDigest: requestDigest,
+          status: "completed",
+          durationMs: 1,
+        },
+      };
+    }
     yield {
       ...base(),
       eventId: `evt_${this.descriptor.provider}cmd001`,

@@ -45,6 +45,7 @@
       "@lervo/diagnostics@0.1.0",
       "@lervo/event-contract@0.1.0",
       "@lervo/event-store-sqlite@0.1.0",
+      "@lervo/execution-contract@0.1.0",
       "@lervo/knowledge@0.1.0",
       "@lervo/orchestrator@0.1.0",
       "@lervo/project-storage@0.1.0",
@@ -54,6 +55,7 @@
       "@lervo/search-local@0.1.0",
       "@lervo/search@0.1.0",
       "@lervo/skills@0.1.0",
+      "@lervo/storage-contract@0.1.0",
       "@lervo/verification-contract@0.1.0",
       "@lervo/verification@0.1.0",
       "@lervo/writing-contract@0.1.0",
@@ -69,7 +71,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:b3df9c626504d0d4a8483921defc1d2fa41a1f35b311076d36db279228fa9c00"
+    "bundleDigest": "sha256:c1b6cd268fa426605749edc546cc4de5df9876e7310d67962d33fbaa4f6ec5e5"
   },
   "archive": {
     "rootFiles": [
@@ -83,12 +85,12 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 1769690,
-        "sha256": "sha256:9e6c4fcc85a16760aac7d9820bf3e03b8eea306e2d8b3ff1cf31183a436a5b96"
+        "size": 1776258,
+        "sha256": "sha256:6edeb33818a84a29d7c7079ebf3cdeff25107d3d799aff024737074e900d6642"
       }
     ],
     "fileCount": 3,
-    "contentDigest": "sha256:f360896560fc2b384111dae7ba2bd4aedd0cd3b26feed2c049223abfedf0280f"
+    "contentDigest": "sha256:30dd6df8050c66ed875bc355c8df7157da3fb0262cdf8eb48b12717414243679"
   },
   "dependencies": {
     "portable": [
@@ -201,5 +203,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:319b382cd5ac1bb0b94682e4b86b61b5992259ddc40c6ca72ceb10e8e0181025"
+  "artifactDigest": "sha256:64c59266a3bccf353f826af97e5798ae0e49cd672d31324765a143ad5ae3550d"
 }

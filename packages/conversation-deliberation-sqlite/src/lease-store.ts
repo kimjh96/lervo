@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 import {
   conversationDeliberationPatterns,
   type ConversationDeliberationSummary,
-} from "@lervo/conversation-control";
+} from "@lervo/conversation-deliberation-contract";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 import {

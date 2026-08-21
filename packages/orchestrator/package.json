@@ -20,6 +20,7 @@
     "@lervo/context-delivery": "workspace:*",
     "@lervo/core": "workspace:*",
     "@lervo/event-contract": "workspace:*",
+    "@lervo/execution-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
     "@lervo/verification-contract": "workspace:*"

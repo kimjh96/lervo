@@ -1,7 +1,7 @@
 # Lervo 시스템 아키텍처
 
 상태: `0.1-draft`  
-기준일: 2026-08-20
+기준일: 2026-08-22
 
 ## 전체 구조
 
@@ -220,6 +220,8 @@ M2의 `@lervo/orchestrator` 첫 슬라이스는 context 준비와 delivery를 �
 
 M3의 managed provider coordinator는 실행 전 snapshot, adapter 시작, context 준비·주입, target turn, 중단 가능한 signal stream, adapter 종료와 실행 후 snapshot을 한 수명주기로 묶습니다. Coordinator는 순서만 소유하고 context 상태 머신, provider signal monitor, adapter 계약, 단계별 deadline, 실패 원장, 종료 처리와 repository snapshot을 별도 모듈에 맡깁니다. Codex/Claude 구현을 직접 알지 않고 공통 adapter 포트만 사용합니다. Compaction/restart는 terminal 결과와 별도로 generation을 즉시 무효화하며, terminal 전에 stream이 끝나거나 필수 telemetry가 기록되지 않으면 정상 완료를 만들지 않습니다. 여러 실패가 겹치면 마지막 오류로 덮지 않고 안전한 code·phase를 모두 보존합니다.
 
+Provider signal은 기본 500개·절대 최대 10,000개이고 초과 signal은 기록하지 않은 채 `provider_stream_failed`로 닫습니다. `@lervo/execution-contract`가 managed 결과와 E2/E3·완료 증거 검증을 소유하므로 숙의 runtime은 상위 orchestrator 구현에 의존하지 않습니다. Run event는 기본 list page를 전체로 간주하지 않고 명시적 최대 2,000개까지 순방향으로 읽습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록합니다.
+
 Turn 시작은 adapter의 동기 수락 callback과 최종 반환값을 두 단계로 확인합니다. Callback에서 schema와 session·target turn 좌표를 검증한 뒤에만 provider tool 요청이 참조할 현재 turn을 공개합니다. 쓰기 범위는 별도 `ManagedWritePlan`이 실행 모드, 허용 경로, 최소·최대 검증 변경 수와 변경 뒤 context 처분으로 표현합니다. 현재 계획은 읽기 전용 `0..0`, managed write `1..1`이고, bridge는 provider 종류를 모른 채 이 계획을 집행합니다.
 
 Provider run은 `read_only`와 `managed_write` 실행 모드를 구분합니다. 공통 managed write bridge가 공급자의 파일 변경 요청을 M2의 경로별 1회용 permit에 연결하고, 완료 뒤 실제 파일 hash를 다시 읽어 `file.changed`와 context 무효화를 기록합니다. 첫 쓰기 슬라이스는 준비 때 선언한 예상 경로 중 정확히 한 파일만 허용합니다. 검증된 변경과 실행 전후 hash가 모두 맞는 경로만 managed로 빼며, 나머지는 `unmanaged_change.detected`와 run 실패로 남깁니다. 기본 snapshot 정책은 `.git`, `node_modules`, coordinator 자신의 `.lervo/state`를 제외하므로 그 경로의 불변성을 주장하지 않습니다.
@@ -333,6 +335,8 @@ Claude의 `compact_boundary`도 같은 compaction signal로 바꿉니다. 일반
 
 ### Conversation Integration & Participation
 
+`apps/conversation`은 범용 integration registry를 composition root로 사용합니다. Slack·Discord는 credential transport를 감싼 내장 factory이고 native·외부 adapter는 같은 registry에 등록합니다. Canonical 좌표를 직접 받는 자체 채팅은 external mapping 없이 등록할 수 있고, mapping이 필요한 새 플랫폼 kind는 앱 본체 변경 없이 공통 identity/replay port를 사용합니다. `@lervo/conversation-platform-sqlite` schema v2는 기존 v1 Slack·Discord 행을 보존하면서 검증된 범용 platform kind를 허용합니다.
+
 Slack, Discord와 자체 채팅은 공통 conversation adapter 뒤에 둡니다. Adapter는 외부 인증과 payload를 내부 integration·conversation·participant 좌표, 본문 artifact 참조와 hash-only source identity로 바꿉니다. 핵심 runtime은 플랫폼 이름, webhook 또는 transport를 알지 않습니다. Capability descriptor가 message 수신·전송, thread, 수정·삭제, reaction, streaming, typing, presence와 interactive action의 실제 지원 범위를 밝힙니다.
 
 `@lervo/conversation-platform`은 두 외부 adapter가 공유하는 작은 경계만 소유합니다. Identity port가 tenant·channel·thread·participant의 외부 키를 내부 좌표로 양방향 변환하고 inbound event와 outbound correlation을 durable하게 기록합니다. `@lervo/conversation-platform-sqlite`는 이 가역 매핑과 전송 재생 상태를 interaction DB와 분리하며, `apps/conversation`이 CAS·저장소·credential transport·adapter를 배포 단위로 조합합니다. 본문은 인증과 scope 확인 뒤 CAS에 저장하며 interaction DB에는 외부 ID와 원문을 넣지 않습니다. Slack adapter는 raw HTTP bytes의 HMAC-SHA256, 요청 시각 ±5분, app·team scope를 직접 확인합니다. Discord의 일반 메시지는 서명 webhook이 아니라 Gateway dispatch이므로, adapter는 Identify/Ready 또는 Resume와 heartbeat·sequence를 소유한 인증 port가 확인한 `MESSAGE_CREATE`만 받습니다.
@@ -352,6 +356,8 @@ Reply는 `chat` surface의 content-bound writing permit를 통과해야 durable 
 같은 responder는 명시적인 `/lervo deliberate start <policy-id> -- <topic>`, `/lervo deliberate resume <id>`와 `/lervo deliberate status <id>`를 공급자·플랫폼 중립 숙의 port로 보냅니다. Project·human participant는 별도 principal과 `deliberation.start`·`deliberation.resume`·`deliberation.read` 권한에 결속됩니다. Port는 정규화된 conversation event만 받고 Slack·Discord 주소나 credential을 알지 않으며, backend가 로컬 실행기 또는 durable queue를 선택합니다. 반환 상태는 진행·재개 대기·수렴·미합의·실패를 구분하고 responder가 임의로 완료를 추정하지 않습니다. 최초 시작·조회 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md), 재개 확장은 [ADR-0141](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)에 기록합니다.
 
 실제 대화 배포는 `QueuedConversationDeliberationBackend`와 `@lervo/conversation-deliberation-sqlite`를 사용합니다. 시작은 `(projectId, sourceEventId)`를 기본키로 예약하고 project·source event에서 결정적으로 만든 숙의 ID를 즉시 반환합니다. Principal은 SHA-256 hash만 저장하며 policy ID, 실행에 필요한 주제와 최초 요청 시각은 mode `0600`인 `deliberations.sqlite`에 둡니다. 이 DB는 외부 주소를 가진 platform DB와 interaction inbox/outbox에서 분리합니다.
+
+Job·summary·lease·대조 port는 하위 `@lervo/conversation-deliberation-contract`가 소유합니다. SQLite adapter는 상위 `conversation-control`을 알지 않으며 시작·재개 store는 공통 open, row iterator 무결성 검사와 rollback만 공유하고 enqueue·종료 대조 정책은 분리합니다. Production dependency cycle과 금지된 역방향 의존은 CI architecture 검사로 차단합니다.
 
 Queue의 `queued`, `leased`, `settled`, `uncertain`은 전역 숙의 event의 상태가 아닌 로컬 배포 작업 상태입니다. 한 cycle worker가 한 job을 lease하고 공급자 중립 실행 port에 넘깁니다. 실행 결과와 queue commit 사이에 process가 죽으면 외부 효과를 알 수 없으므로 만료 lease를 다시 실행하지 않고 `uncertain`으로 닫습니다. 이때 대화 조회는 `unknown`을 반환하며 완료나 안전한 재개로 추정하지 않습니다. 실행 port 구현과 scheduler는 app 바깥에서 주입하고, queue 예약 자체를 `loaded`, `injected`, `used` 또는 숙의 완료 증거로 사용하지 않습니다. 결정은 [ADR-0138](./docs/adr/0138-durable-conversation-deliberation-queue.md)에 기록합니다.
 

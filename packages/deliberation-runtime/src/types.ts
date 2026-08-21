@@ -1,4 +1,4 @@
-import type { ManagedProviderRunResult } from "@lervo/orchestrator";
+import type { ManagedProviderRunResult } from "@lervo/execution-contract";
 import type {
   DeliberationArtifact,
   DeliberationArtifactKind,

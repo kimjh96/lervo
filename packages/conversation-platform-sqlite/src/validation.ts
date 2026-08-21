@@ -15,7 +15,7 @@ const patterns = {
 } as const;
 
 export function assertPlatform(value: string): asserts value is ConversationPlatformKind {
-  if (value !== "slack" && value !== "discord") invalid("platform");
+  if (!/^[a-z][a-z0-9_-]{0,63}$/.test(value)) invalid("platform");
 }
 
 export function assertExternal(value: string, label: string): void {

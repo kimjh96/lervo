@@ -195,6 +195,9 @@ export class ManagedProviderRunCoordinator {
       monitor = startProviderSignalMonitor({
         adapter: this.options.adapter,
         session: state.session,
+        ...(this.options.maximumProviderSignals === undefined
+          ? {}
+          : { maximumEvents: this.options.maximumProviderSignals }),
         onEvent: (event) => {
           this.context.handleAdapterEvent(state.session!, event, this.date());
           const spec = providerSignalSpec(event, state.session!.provider, this.time());
@@ -353,40 +356,52 @@ export class ManagedProviderRunCoordinator {
     });
     if (after !== undefined) state.after = after;
 
+    await this.persistOutputs(input, state, failures);
+    return this.complete(input, state, terminal, failures);
+  }
+
+  private async persistOutputs(
+    input: ManagedProviderRunInput,
+    state: ManagedProviderRunExecutionState,
+    failures: RunFailureLedger,
+  ): Promise<void> {
     if (failures.empty && state.turnResult !== undefined) {
-      phase = "result_store";
       try {
         state.resultArtifact = await storeProviderResult({
           result: state.turnResult,
           artifactStore: this.options.artifactStore,
         });
       } catch (error) {
-        failures.add(error, phase);
+        failures.add(error, "result_store");
       }
     }
-
     if (
-      failures.empty && state.resultArtifact !== undefined && state.after !== undefined &&
-      input.verificationSuites !== undefined && this.options.projectVerifier !== undefined
-    ) {
-      phase = "project_verification";
-      try {
-        state.verifications = await runRequiredProjectVerifications({
-          suites: input.verificationSuites,
-          verifier: this.options.projectVerifier,
-          repositoryRoot: input.repositoryRoot,
-          repositoryRevision: state.after.revision,
-          artifactStore: this.options.artifactStore,
-          failureDisposition: input.context.role.verification.failureDisposition,
-          ...(input.signal === undefined ? {} : { signal: input.signal }),
-          time: () => this.time(),
-          append: (specs) => this.append(specs),
-        });
-      } catch (error) {
-        failures.add(error, phase);
-      }
+      !failures.empty || state.resultArtifact === undefined || state.after === undefined ||
+      input.verificationSuites === undefined || this.options.projectVerifier === undefined
+    ) return;
+    try {
+      state.verifications = await runRequiredProjectVerifications({
+        suites: input.verificationSuites,
+        verifier: this.options.projectVerifier,
+        repositoryRoot: input.repositoryRoot,
+        repositoryRevision: state.after.revision,
+        artifactStore: this.options.artifactStore,
+        failureDisposition: input.context.role.verification.failureDisposition,
+        ...(input.signal === undefined ? {} : { signal: input.signal }),
+        time: () => this.time(),
+        append: (specs) => this.append(specs),
+      });
+    } catch (error) {
+      failures.add(error, "project_verification");
     }
+  }
 
+  private complete(
+    input: ManagedProviderRunInput,
+    state: ManagedProviderRunExecutionState,
+    terminal: AdapterNormalizedEvent | undefined,
+    failures: RunFailureLedger,
+  ): ManagedProviderRunResult {
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
     if (resultError !== undefined && primaryFailure !== undefined) {

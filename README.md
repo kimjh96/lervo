@@ -162,26 +162,29 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [대화 숙의 queue와 프로젝트 원본 대조 ADR](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)
 - [명시적 대화 숙의 재개와 별도 durable queue ADR](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)
 - [숙의 진단 snapshot 고정·bounded event 조회 ADR](./docs/adr/0142-snapshot-bounded-deliberation-event-scan.md)
+- [실행 증거와 대화 조립 경계 강화 ADR](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
 
 - `@lervo/schemas`: project, event, Hub sync, context evidence, shared context/handoff, provider와 conversation adapter, 역할, skill, document, verification, writing, 숙의·지식 수명주기와 doctor·trace·trace capability report JSON Schema 및 파생 TypeScript 타입
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
+- `@lervo/conversation-deliberation-contract`: 대화 숙의 시작·재개 job, lease, 요약과 원본 대조 port를 control과 저장 adapter가 함께 사용하는 하위 계약
+- `@lervo/execution-contract`: managed provider 결과와 E2/E3·완료 event 증거 검증을 orchestrator·숙의·대화가 함께 사용하는 공급자 중립 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
 - `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge
 - `@lervo/conversation-control`: 명시적 command만 해석하고 대화 participant를 principal과 권한에 결속한 뒤, writing 검증된 Hub 상태·승인 검토와 숙의 시작·재개·상태 응답을 만드는 플랫폼 중립 responder. 채팅에서 approval 원본을 만들거나 자연어를 실행 명령으로 추정하지 않음
 - `@lervo/conversation-deliberation-sqlite`: 대화 숙의 시작과 명시적 재개를 각각 source event에 멱등 결속하고 queue·worker lease·종료·불확실 상태와 원본 대조 요약을 분리된 owner-only SQLite에 보존하는 adapter
 - `@lervo/interaction-sqlite`: 재시작 가능한 inbox·decision·outbox lease와 되돌릴 수 없는 완료·전달 상태를 보존하는 append-only SQLite adapter. 대화 본문과 외부 식별자 원문은 저장하지 않음
 - `@lervo/adapter-native-chat`: 자체 채팅 서비스의 inbound mapping과 delivery port를 공통 conversation 계약에 연결하는 transport 독립 adapter
-- `@lervo/conversation-platform`: 외부 식별자 mapping, CAS 본문 저장·복원, descriptor와 delivery receipt를 Slack·Discord가 공유하는 플랫폼 경계
-- `@lervo/conversation-platform-sqlite`: 외부 주소·participant·thread의 가역 mapping, inbound/outbound correlation과 전송 결과 재생을 interaction DB 밖에 보존하는 SQLite adapter
+- `@lervo/conversation-platform`: 외부 식별자 mapping, CAS 본문 저장·복원, descriptor와 delivery receipt를 검증된 범용 platform kind가 공유하는 플랫폼 경계
+- `@lervo/conversation-platform-sqlite`: 외부 주소·participant·thread의 가역 mapping, inbound/outbound correlation과 전송 결과 재생을 interaction DB 밖에 보존하며 v1 Slack·Discord 행을 범용 kind의 v2로 이관하는 SQLite adapter
 - `@lervo/adapter-slack`: raw body HMAC·5분 시각·app/team scope를 확인하는 Events API ingress와 OAuth delivery port를 공통 conversation 계약에 연결하는 adapter
 - `@lervo/adapter-discord`: 인증된 Gateway session의 `MESSAGE_CREATE`와 bot-token·멱등 delivery port를 공통 conversation 계약에 연결하는 adapter
-- `@lervo/conversation-app`: CAS, durable platform 상태와 숙의 시작·재개 queue, Slack OAuth와 Discord bot-token transport를 배포 설정으로 조합하는 application entrypoint. 숙의 실행기·원본 대조기와 Discord Gateway driver는 각각 provider-neutral port로 주입
+- `@lervo/conversation-app`: CAS, durable platform 상태와 숙의 시작·재개 queue를 범용 integration registry로 조합하는 application entrypoint. Slack OAuth·Discord bot-token은 내장 factory이고 native·외부 adapter, 숙의 실행기·원본 대조기와 Gateway driver는 provider-neutral port로 주입
 - `@lervo/skills`: 프로젝트·사용자 스킬 패키지의 안전한 discovery와 전체 내용 hash, 보수적 호환성 판정, 결정적 우선순위와 원자적 `skills.lock` 기록
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 실행 완료·프로젝트 검증·숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
-- `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface
+- `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface 및 snapshot visitor·명시적 상한 run event reader
 - `@lervo/sync-contract`: 전체 project manifest에 결속된 Hub 등록, allowlist event의 연속 batch, 역순 수락·중복 제거와 연속 cursor, durable ack 후보를 계산하는 저장·transport 독립 계약
 - `@lervo/sync`: project 등록을 먼저 확인하고 현재 worker의 local outbox lease만 연속 batch로 보내는 Node runtime. 인증된 destination·peer와 durable ack 전체가 맞을 때 batch 단위로 local ack하고, 응답 유실·인증 실패·잘못된 ack는 안전한 code와 시각으로 재예약
 - `@lervo/hub-sync`: commit 뒤 resolve하는 registration·event batch와 원격 command enqueue·lease·acknowledgement application port. 전체 state와 저장 transaction callback은 공개하지 않음

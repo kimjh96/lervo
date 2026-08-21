@@ -18,8 +18,8 @@
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/context": "workspace:*",
     "@lervo/context-delivery": "workspace:*",
+    "@lervo/execution-contract": "workspace:*",
     "@lervo/interaction": "workspace:*",
-    "@lervo/orchestrator": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
     "@lervo/writing": "workspace:*"
@@ -31,6 +31,7 @@
     "@lervo/conversation-contract": "workspace:*",
     "@lervo/core": "workspace:*",
     "@lervo/event-store-sqlite": "workspace:*",
-    "@lervo/interaction-sqlite": "workspace:*"
+    "@lervo/interaction-sqlite": "workspace:*",
+    "@lervo/orchestrator": "workspace:*"
   }
 }

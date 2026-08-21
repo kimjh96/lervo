@@ -4,7 +4,7 @@ import {
   type ConversationDeliberationJobFailureCode,
   type ConversationDeliberationJobReconciliation,
   type ConversationDeliberationSummary,
-} from "@lervo/conversation-control";
+} from "@lervo/conversation-deliberation-contract";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 

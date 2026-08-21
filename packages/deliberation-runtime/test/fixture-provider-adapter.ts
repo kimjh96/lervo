@@ -43,6 +43,7 @@ export class FixtureProviderAdapter implements ProviderAdapter {
   constructor(
     private readonly providerSessionId: string,
     private readonly content: string,
+    private readonly extraToolEvents = 0,
   ) {}
 
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
@@ -129,6 +130,26 @@ export class FixtureProviderAdapter implements ProviderAdapter {
         signal.addEventListener("abort", () => resolve(), { once: true })),
     ]);
     if (signal.aborted || this.turn === undefined) return;
+    for (let index = 0; index < this.extraToolEvents; index += 1) {
+      yield {
+        kind: "normalized_event",
+        schemaVersion: 1,
+        eventId: `evt_provider_${session.roleId}_extra_${String(index).padStart(4, "0")}`,
+        projectId: session.projectId,
+        runId: session.runId,
+        sessionId: session.sessionId,
+        providerSessionId: session.providerSessionId,
+        type: "provider.tool.called",
+        occurredAt: this.turn.acceptedAt,
+        payload: {
+          providerItemId: `extra-tool-${index}`,
+          toolName: "Read",
+          inputDigest: `sha256:${"a".repeat(64)}`,
+          status: "completed",
+          durationMs: 1,
+        },
+      };
+    }
     yield {
       kind: "normalized_event",
       schemaVersion: 1,

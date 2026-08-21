@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { defaultKoreanWritingContract } from "@lervo/core";
 import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
   DeliberationRuntime,
@@ -7,7 +8,11 @@ import {
 } from "@lervo/deliberation-runtime";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
-import type { DeliberationOutcome, DeliberationResponsibility } from "@lervo/schemas";
+import type {
+  DeliberationOutcome,
+  DeliberationResponsibility,
+  WritingContract,
+} from "@lervo/schemas";
 
 import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import {
@@ -114,6 +119,7 @@ export interface ManagedDeliberationDependencies {
   openStorage(root: string): Promise<ProjectStorage>;
   createId(prefix: string): string;
   now(): Date;
+  writingContract?: WritingContract;
   runner?: ManagedDeliberationRunnerDependencies;
   afterApprovedCheckpoint?(deliberationId: string): Promise<void> | void;
 }
@@ -261,6 +267,7 @@ async function executeWithStorage(
     registry,
     createdAt: dependencies.now().toISOString(),
     participantRoleIds: recipientRoleIds,
+    writingContract: dependencies.writingContract ?? defaultKoreanWritingContract,
   });
   const runtimeCoordinates: DeliberationRuntimeCoordinates = {
     projectId: storage.manifest.projectId,

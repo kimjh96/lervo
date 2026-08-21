@@ -1,14 +1,12 @@
 import { resolve } from "node:path";
 
-import {
-  DiscordConversationAdapter,
-  DiscordRestDelivery,
-} from "@lervo/adapter-discord";
-import {
-  SlackConversationAdapter,
-  SlackWebApiDelivery,
-} from "@lervo/adapter-slack";
+import { DiscordConversationAdapter } from "@lervo/adapter-discord";
+import { SlackConversationAdapter } from "@lervo/adapter-slack";
 import { FileSystemCas } from "@lervo/cas";
+import {
+  assertConversationAdapterDescriptor,
+  type ConversationAdapter,
+} from "@lervo/conversation-contract";
 import {
   ConfiguredConversationDeliberationControl,
   QueuedConversationDeliberationBackend,
@@ -23,25 +21,27 @@ import {
 } from "@lervo/conversation-deliberation-sqlite";
 import { SQLiteConversationPlatformStore } from "@lervo/conversation-platform-sqlite";
 
+import { configuredConversationIntegrations } from "./built-in-integrations.js";
 import type { ConversationApplication, ConversationApplicationOptions } from "./types.js";
 
-function uniqueIntegrations(options: ConversationApplicationOptions): void {
-  const deployments = [
-    ...(options.slack ?? []).map((item) => ({ id: item.integrationId, platform: "slack" as const })),
-    ...(options.discord ?? []).map((item) => ({ id: item.integrationId, platform: "discord" as const })),
-  ];
-  const identifiers = deployments.map((item) => item.id);
+function uniqueIntegrations(
+  options: ConversationApplicationOptions,
+  deployments: ReturnType<typeof configuredConversationIntegrations>,
+): void {
+  const identifiers = deployments.map((item) => item.integrationId);
   if (identifiers.length === 0 || new Set(identifiers).size !== identifiers.length) {
     throw new Error("Conversation deployment에는 서로 다른 integration이 하나 이상 필요합니다.");
   }
-  const configured = new Map(deployments.map((item) => [item.id, item.platform]));
+  const configured = new Map(deployments.map((item) => [item.integrationId, item.platform]));
   if ([...options.conversations, ...options.participants, ...(options.threads ?? [])]
     .some((binding) => configured.get(binding.integrationId) !== binding.platform)) {
     throw new Error("Conversation binding이 배포되지 않은 integration을 가리킵니다.");
   }
   for (const deployment of deployments) {
-    if (!options.conversations.some((binding) => binding.integrationId === deployment.id) ||
-      !options.participants.some((binding) => binding.integrationId === deployment.id)) {
+    if (deployment.platform !== null && (
+      !options.conversations.some((binding) => binding.integrationId === deployment.integrationId) ||
+      !options.participants.some((binding) => binding.integrationId === deployment.integrationId)
+    )) {
       throw new Error("배포된 conversation integration에는 주소와 participant binding이 필요합니다.");
     }
   }
@@ -50,7 +50,8 @@ function uniqueIntegrations(options: ConversationApplicationOptions): void {
 export async function openConversationApplication(
   options: ConversationApplicationOptions,
 ): Promise<ConversationApplication> {
-  uniqueIntegrations(options);
+  const integrationDeployments = configuredConversationIntegrations(options);
+  uniqueIntegrations(options, integrationDeployments);
   const artifactStore = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
   const store = await SQLiteConversationPlatformStore.open({
     path: resolve(options.dataDirectory, "platform.sqlite"),
@@ -104,58 +105,31 @@ export async function openConversationApplication(
           source: deliberationOptions.reconciliationSource,
           store: deliberationStore,
         };
-    const slackAdapters = new Map((options.slack ?? []).map((deployment) => {
-      const delivery = new SlackWebApiDelivery({
-        integrationId: deployment.integrationId,
-        botToken: deployment.botToken,
-        replay: store,
+    const adapters = new Map<string, ConversationAdapter>();
+    for (const deployment of integrationDeployments) {
+      const adapter = await deployment.create({
+        artifactStore,
+        identity: store,
+        deliveryReplay: store,
         ...(options.now === undefined ? {} : { now: options.now }),
         ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-        ...(deployment.requestTimeoutMs === undefined ? {} : {
-          requestTimeoutMs: deployment.requestTimeoutMs,
-        }),
-        ...(deployment.maxResponseBytes === undefined ? {} : {
-          maxResponseBytes: deployment.maxResponseBytes,
-        }),
       });
-      return [deployment.integrationId, new SlackConversationAdapter({
-        integrationId: deployment.integrationId,
-        apiAppId: deployment.apiAppId,
-        allowedTeamIds: deployment.allowedTeamIds,
-        signingSecret: deployment.signingSecret,
-        identity: store,
-        artifactStore,
-        delivery,
-        ...(options.now === undefined ? {} : { now: options.now }),
-      })] as const;
-    }));
-    const discordAdapters = new Map((options.discord ?? []).map((deployment) => {
-      const delivery = new DiscordRestDelivery({
-        integrationId: deployment.integrationId,
-        botToken: deployment.botToken,
-        replay: store,
-        ...(options.now === undefined ? {} : { now: options.now }),
-        ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-        ...(deployment.requestTimeoutMs === undefined ? {} : {
-          requestTimeoutMs: deployment.requestTimeoutMs,
-        }),
-        ...(deployment.maxResponseBytes === undefined ? {} : {
-          maxResponseBytes: deployment.maxResponseBytes,
-        }),
-      });
-      return [deployment.integrationId, new DiscordConversationAdapter({
-        integrationId: deployment.integrationId,
-        applicationId: deployment.applicationId,
-        allowedGuildIds: deployment.allowedGuildIds,
-        allowDirectMessages: deployment.allowDirectMessages,
-        gatewayAuthentication: deployment.gatewayAuthentication,
-        identity: store,
-        artifactStore,
-        delivery,
-        ...(options.now === undefined ? {} : { now: options.now }),
-      })] as const;
-    }));
+      assertConversationAdapterDescriptor(adapter.descriptor);
+      if (adapter.descriptor.integrationId !== deployment.integrationId) {
+        throw new Error("Conversation adapter descriptor가 deployment integration과 다릅니다.");
+      }
+      adapters.set(deployment.integrationId, adapter);
+    }
+    const slackAdapters = new Map([...adapters].filter(
+      (entry): entry is [string, SlackConversationAdapter] =>
+        entry[1] instanceof SlackConversationAdapter,
+    ));
+    const discordAdapters = new Map([...adapters].filter(
+      (entry): entry is [string, DiscordConversationAdapter] =>
+        entry[1] instanceof DiscordConversationAdapter,
+    ));
     return {
+      adapters,
       slackAdapters,
       discordAdapters,
       deliberations,

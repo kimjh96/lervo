@@ -1,7 +1,7 @@
 # Lervo 실행 및 증거 규격
 
 상태: `0.1-draft`  
-기준일: 2026-08-20
+기준일: 2026-08-22
 
 ## 목적
 
@@ -267,6 +267,8 @@ Session의 project/run/session/role 좌표는 E2와 같아야 합니다. Writing
 오류에는 문서 ID와 기계용 reason만 포함하며 원문 bytes와 provider payload는 포함하지 않습니다. Adapter 호출 자체가 실패하면 원본 예외를 오류 cause로 보존하지 않고 `required_context_missing`으로 재주입이 필요한 상태를 나타냅니다. Capability matrix가 controlled injection을 `unsupported`로 선언한 경우는 이 포트를 호출하기 전에 orchestrator가 `provider_capability_unsupported`로 차단합니다. 어느 실패에서도 부분 E3 evidence를 반환하지 않습니다.
 
 ### Managed context telemetry와 쓰기 gate
+
+한 managed run의 provider signal은 기본 500개이며 구성값은 1~10,000개만 허용합니다. 상한을 넘은 signal은 `onEvent`와 telemetry에 전달하지 않고 stream을 중단해 `provider_stream_failed`로 기록합니다. Run 증거 reader는 `runId`가 같은 event를 sequence 순으로 최대 2,000개까지 page로 읽고, 초과·sequence 역행·다른 run 반환을 계약 실패로 닫습니다. 따라서 event store의 기본 100개 page를 전체 run으로 해석하지 않습니다. 숙의 snapshot 복원은 시작 시점의 project head까지만 streaming 방문하며 전체 project event 배열을 만들지 않습니다. 이 경계는 새 event type이나 payload를 만들지 않고 오류에도 provider signal 원문을 포함하지 않습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록합니다.
 
 Orchestrator는 준비가 성공하면 모든 검색 추천 `context.recommended`, E1 `context.selected`와 E2 `document.loaded`를 한 transaction에 기록합니다. E3는 검증된 aggregate adapter receipt를 받은 뒤 `context.injected`로 기록합니다. 이 기록이 commit된 뒤에만 메모리 evidence를 전진시킵니다.
 
@@ -1288,6 +1290,8 @@ Hub SQLite migration은 snapshot, approval과 revocation을 별도 strict table�
 
 ## 플랫폼 중립 대화와 능동 참여
 
+Conversation application은 `ConversationIntegrationDeployment` 목록을 검증한 뒤 각 factory에 공통 CAS, external identity와 delivery replay port만 전달합니다. Factory의 descriptor integration ID는 deployment와 같아야 합니다. `platform=null`인 native deployment는 canonical Lervo 좌표를 직접 사용하므로 external conversation·participant binding을 요구하지 않습니다. Platform 값이 있는 deployment는 같은 integration/platform의 conversation·participant binding이 모두 있어야 합니다. Platform kind는 `^[a-z][a-z0-9_-]{0,63}$`만 허용하고 SQLite v1의 Slack·Discord 원본은 schema v2 migration에서 값과 관계를 보존합니다.
+
 Conversation adapter는 Slack, Discord, 자체 채팅과 이후 플랫폼을 같은 내부 계약으로 바꿉니다. Descriptor 필수 필드는 schema version, integration ID, adapter kind, instance identity hash와 capability 집합입니다. Capability는 message 수신·전송, thread, 수정·삭제, reaction, streaming, typing, presence와 interactive action을 독립적으로 선언합니다.
 
 Inbound 필수 필드는 canonical event ID, source event key hash, integration·project·conversation·thread target, kind, Lervo participant·role actor, 본문 artifact ID/hash/byte count/media type, mention, reply event ID, signal code, automation depth와 발생 시각입니다. Message는 signal code가 없고 signal은 code가 있어야 합니다. 외부 message ID는 adapter 안에서 hash하며 본문과 외부 사용자 ID는 interaction DB에 넣지 않습니다.
@@ -1363,6 +1367,8 @@ Start backend는 canonical source event ID를 함께 받고 `(projectId, sourceE
 응답은 Hub command 응답과 같은 `chat` writing gate·CAS·interaction outbox를 사용합니다. Responder는 Slack, Discord나 자체 채팅 transport를 직접 호출하지 않으며 backend의 동기 실행, durable queue 또는 로컬 상태 저장 방식을 규정하지 않습니다. Backend가 없거나 좌표가 다르면 `deliberation_source_failed`로 닫습니다. 새 event·승인·숙의 완료 상태를 만들지 않고 명령 수신만으로 E2/E3나 사용을 주장하지 않습니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록합니다.
 
 #### 대화 숙의 durable queue
+
+Queue job·summary·lease·대조 port는 `@lervo/conversation-deliberation-contract`가 소유하고 control과 SQLite adapter가 같은 하위 계약에 의존합니다. SQLite adapter는 control responder·Hub·writing을 import하지 않습니다. 시작 시 quick check와 보호 schema를 확인한 뒤 최대 record 수 안에서 행을 iterator로 하나씩 decode하므로 전체 queue를 배열로 적재하지 않습니다. 시작·재개 store는 open·rollback·이 검사를 공유하고 요청 멱등성 및 terminal reconciliation 정책은 분리합니다.
 
 `apps/conversation`의 실제 비동기 backend는 `@lervo/conversation-deliberation-sqlite`를 별도 `deliberations.sqlite`로 엽니다. 파일은 mode `0600`이며 외부 주소·credential이 있는 `platform.sqlite`, 본문 CAS, interaction inbox/outbox와 섞지 않습니다. 저장하는 job 필드는 project ID, canonical source event ID, 결정적 숙의 ID, request hash, principal hash, policy ID, 실행에 필요한 4,096자 이하 주제, 최초 요청 시각, 상태, 시도 횟수, lease 좌표, 검증된 결과 요약 또는 안전한 failure code입니다. Principal 원문, platform 사용자·message ID, credential, provider 오류 원문은 저장하지 않습니다. 주제는 실행 입력이므로 owner-only DB에 평문으로 남으며 운영 배포가 해당 DB의 보존 기간을 정해야 합니다.
 

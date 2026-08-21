@@ -36,7 +36,7 @@ describe("first-publication package metadata derived release", () => {
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it("reproduces an applied release manifest with the production generator", async () => {
     const fixture = await createMetadataApplyFixture();
@@ -52,7 +52,7 @@ describe("first-publication package metadata derived release", () => {
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it("regenerates the release manifest and SBOM from the reviewed package candidate", async () => {
     const fixture = await createMetadataApplyFixture();

@@ -1,6 +1,8 @@
 import { type EventDraft, type RedactionRecord } from "@lervo/event-contract";
 import { type EventEnvelope } from "@lervo/schemas";
 
+export * from "./event-reader.js";
+
 export interface AppendEventResult {
   event: EventEnvelope;
   inserted: boolean;

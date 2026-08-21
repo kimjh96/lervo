@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { openConversationApplication } from "../src/index.js";
@@ -75,6 +76,53 @@ afterEach(async () => {
 });
 
 describe("conversation deployment composition", () => {
+  it("registers a canonical native chat adapter without platform-specific app changes", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-native-"));
+    roots.push(root);
+    const native = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "internal-chat-production",
+      delivery: {
+        send: async () => ({
+          deliveryKey: "native-message-1",
+          deliveredAt: "2026-08-20T02:00:01.000Z",
+        }),
+      },
+    });
+    const application = await openConversationApplication({
+      dataDirectory: root,
+      conversations: [],
+      participants: [],
+      integrations: [{
+        integrationId: "itg_native001",
+        platform: null,
+        create: () => native,
+      }],
+    });
+
+    expect(application.adapters.get("itg_native001")).toBe(native);
+    expect(application.slackAdapters).toHaveLength(0);
+    expect(application.discordAdapters).toHaveLength(0);
+    expect(native.normalizeInbound({
+      sourceEventKey: "native-event-1",
+      target: {
+        projectId: "prj_platform01",
+        conversationId: "cnv_platform01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_platform01", roleId: null },
+      content: {
+        artifactId: "art_native_message_01",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 12,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: now.toISOString(),
+    }).target.integrationId).toBe("itg_native001");
+    application.close();
+  });
+
   it("restores a platform reply link through the application entrypoint", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-"));
     roots.push(root);

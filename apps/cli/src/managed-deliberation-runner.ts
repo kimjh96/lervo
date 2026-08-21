@@ -3,7 +3,6 @@ import { createHash, randomUUID } from "node:crypto";
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
-import { defaultKoreanWritingContract } from "@lervo/core";
 import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { RoleProfile, VerificationSuite } from "@lervo/schemas";
@@ -127,7 +126,7 @@ export class ManagedDeliberationRunner {
       },
       writingPolicy: humanPresentation
         ? {
-          writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+          writingPolicyId: this.workspace.writingContract.writingPolicyId,
           documentId: this.workspace.writingPolicyDocumentId,
           contentHash: this.workspace.writingPolicyContentHash,
         }

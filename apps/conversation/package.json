@@ -18,8 +18,14 @@
     "@lervo/adapter-discord": "workspace:*",
     "@lervo/adapter-slack": "workspace:*",
     "@lervo/cas": "workspace:*",
+    "@lervo/conversation-contract": "workspace:*",
     "@lervo/conversation-control": "workspace:*",
     "@lervo/conversation-deliberation-sqlite": "workspace:*",
-    "@lervo/conversation-platform-sqlite": "workspace:*"
+    "@lervo/conversation-platform": "workspace:*",
+    "@lervo/conversation-platform-sqlite": "workspace:*",
+    "@lervo/storage-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/adapter-native-chat": "workspace:*"
   }
 }
