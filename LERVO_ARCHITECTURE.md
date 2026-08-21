@@ -220,7 +220,7 @@ M2의 `@lervo/orchestrator` 첫 슬라이스는 context 준비와 delivery를 �
 
 M3의 managed provider coordinator는 실행 전 snapshot, adapter 시작, context 준비·주입, target turn, 중단 가능한 signal stream, adapter 종료와 실행 후 snapshot을 한 수명주기로 묶습니다. Coordinator는 순서만 소유하고 context 상태 머신, provider signal monitor, adapter 계약, 단계별 deadline, 실패 원장, 종료 처리와 repository snapshot을 별도 모듈에 맡깁니다. Codex/Claude 구현을 직접 알지 않고 공통 adapter 포트만 사용합니다. Compaction/restart는 terminal 결과와 별도로 generation을 즉시 무효화하며, terminal 전에 stream이 끝나거나 필수 telemetry가 기록되지 않으면 정상 완료를 만들지 않습니다. 여러 실패가 겹치면 마지막 오류로 덮지 않고 안전한 code·phase를 모두 보존합니다.
 
-Provider signal은 기본 500개·절대 최대 10,000개이고 초과 signal은 기록하지 않은 채 `provider_stream_failed`로 닫습니다. `@lervo/execution-contract`가 managed 결과와 E2/E3·완료 증거 검증을 소유하므로 숙의 runtime은 상위 orchestrator 구현에 의존하지 않습니다. Run event는 기본 list page를 전체로 간주하지 않고 명시적 최대 2,000개까지 순방향으로 읽습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록합니다.
+Provider signal은 기본 500개·절대 최대 10,000개이고 구성 오류는 adapter 시작 전에 거부하며 초과 signal은 기록하지 않은 채 `provider_stream_failed`로 닫습니다. `@lervo/execution-contract`가 managed 결과, 공통 2,000개 run-event 상한과 E2/E3·완료 증거 검증을 소유하므로 숙의 runtime은 상위 orchestrator 구현에 의존하지 않습니다. Run event는 기본 list page를 전체로 간주하지 않고 이 상한까지 순방향으로 읽습니다. Package 경계 검사는 cycle뿐 아니라 package→app, contract→구현과 금지된 transitive 의존을 막습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록합니다.
 
 Turn 시작은 adapter의 동기 수락 callback과 최종 반환값을 두 단계로 확인합니다. Callback에서 schema와 session·target turn 좌표를 검증한 뒤에만 provider tool 요청이 참조할 현재 turn을 공개합니다. 쓰기 범위는 별도 `ManagedWritePlan`이 실행 모드, 허용 경로, 최소·최대 검증 변경 수와 변경 뒤 context 처분으로 표현합니다. 현재 계획은 읽기 전용 `0..0`, managed write `1..1`이고, bridge는 provider 종류를 모른 채 이 계획을 집행합니다.
 

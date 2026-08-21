@@ -10,12 +10,17 @@ for (const parent of ["apps", "packages"]) {
 }
 
 const manifests = new Map();
+const failures = [];
 for (const file of packageFiles) {
   const manifest = JSON.parse(await readFile(file, "utf8"));
-  manifests.set(manifest.name, { file, dependencies: Object.keys(manifest.dependencies ?? {}) });
+  if (manifests.has(manifest.name)) failures.push(`duplicate package name: ${manifest.name}`);
+  manifests.set(manifest.name, {
+    file,
+    layer: file.includes("/apps/") ? "app" : "package",
+    dependencies: Object.keys(manifest.dependencies ?? {}),
+  });
 }
 
-const failures = [];
 const visiting = new Set();
 const visited = new Set();
 function visit(name, path = []) {
@@ -34,14 +39,37 @@ function visit(name, path = []) {
 }
 for (const name of manifests.keys()) visit(name);
 
+for (const [name, manifest] of manifests) {
+  for (const dependency of manifest.dependencies) {
+    const target = manifests.get(dependency);
+    if (manifest.layer === "package" && target?.layer === "app") {
+      failures.push(`${name} package must not depend on ${dependency} app`);
+    }
+    if (
+      name.endsWith("-contract") && target !== undefined &&
+      dependency !== "@lervo/schemas" && !dependency.endsWith("-contract")
+    ) failures.push(`${name} contract must not depend on ${dependency} implementation`);
+  }
+}
+
+function dependsOn(name, target, seen = new Set()) {
+  if (name === target) return true;
+  if (seen.has(name)) return false;
+  seen.add(name);
+  return (manifests.get(name)?.dependencies ?? [])
+    .filter((dependency) => manifests.has(dependency))
+    .some((dependency) => dependsOn(dependency, target, seen));
+}
+
 const forbidden = new Map([
   ["@lervo/conversation-deliberation-sqlite", new Set(["@lervo/conversation-control"])],
   ["@lervo/deliberation-runtime", new Set(["@lervo/orchestrator"])],
 ]);
 for (const [name, dependencies] of forbidden) {
-  const actual = manifests.get(name)?.dependencies ?? [];
   for (const dependency of dependencies) {
-    if (actual.includes(dependency)) failures.push(`${name} must not depend on ${dependency}`);
+    if (dependsOn(name, dependency)) {
+      failures.push(`${name} must not transitively depend on ${dependency}`);
+    }
   }
 }
 

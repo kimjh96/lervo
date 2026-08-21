@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
 import type { DocumentRecord } from "@lervo/schemas";
@@ -16,6 +16,15 @@ export function repositoryRelativePath(root: string, path: string): string {
   return value;
 }
 
+function safePathSegment(value: string, label: string): string {
+  if (
+    value.length === 0 || value === "." || value === ".." ||
+    value.includes("/") || value.includes("\\") ||
+    /[\u0000-\u001f\u007f]/u.test(value)
+  ) throw new Error(`${label}이 안전한 단일 경로 이름이 아닙니다.`);
+  return value;
+}
+
 export async function materializeDeliberationDocument(input: {
   repositoryRoot: string;
   deliberationRoot: string;
@@ -26,9 +35,16 @@ export async function materializeDeliberationDocument(input: {
   content: string;
   sourceId: string;
 }): Promise<DocumentRecord> {
+  repositoryRelativePath(input.repositoryRoot, input.deliberationRoot);
+  const rootStats = await lstat(input.deliberationRoot);
+  if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
+    throw new Error("숙의 runtime 문서 루트가 안전한 디렉터리가 아닙니다.");
+  }
+  const directoryName = safePathSegment(input.directoryName, "숙의 문서 디렉터리 이름");
+  const filename = safePathSegment(input.filename, "숙의 문서 파일 이름");
   const temporary = await mkdtemp(resolve(input.deliberationRoot, ".document-"));
-  const finalDirectory = resolve(input.deliberationRoot, input.directoryName);
-  const contentPath = resolve(temporary, input.filename);
+  const finalDirectory = resolve(input.deliberationRoot, directoryName);
+  const contentPath = resolve(temporary, filename);
   const digest = deliberationContentHash(input.content);
   const manifest = {
     schemaVersion: 1,
@@ -50,7 +66,7 @@ export async function materializeDeliberationDocument(input: {
     await rm(temporary, { recursive: true, force: true }).catch(() => undefined);
     throw error;
   }
-  const finalContentPath = resolve(finalDirectory, input.filename);
+  const finalContentPath = resolve(finalDirectory, filename);
   const manifestPath = resolve(finalDirectory, "manifest.json");
   return {
     path: repositoryRelativePath(input.repositoryRoot, finalContentPath),

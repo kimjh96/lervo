@@ -5,6 +5,7 @@ import {
   validateDeliberationPolicy,
   type DeliberationVerificationEvidence,
 } from "@lervo/deliberation";
+import { maximumManagedRunEvidenceEvents } from "@lervo/execution-contract";
 import {
   type DeliberationArtifact,
   type DeliberationArtifactKind,
@@ -32,8 +33,6 @@ import {
 function clone<T>(value: T): T {
   return structuredClone(value);
 }
-
-const maximumManagedRunEvidenceEvents = 2_000;
 
 export class DeliberationRuntime {
   private readonly recorder: DeliberationEventRecorder;

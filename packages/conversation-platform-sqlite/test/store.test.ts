@@ -104,6 +104,27 @@ describe("SQLite conversation platform state", () => {
           OR OLD.outbound_id != NEW.outbound_id OR OLD.request_hash != NEW.request_hash
           OR OLD.status = 'delivered'
         BEGIN SELECT RAISE(ABORT, 'delivery replay identity is immutable'); END;
+      INSERT INTO conversation_bindings VALUES (
+        'slack', '${integrationId}', 'T123', 'C123', 'prj_platform01', 'cnv_platform01'
+      );
+      INSERT INTO participant_bindings VALUES (
+        'slack', '${integrationId}', 'T123', 'user:U123', 'human', 'ptc_platform01', NULL
+      );
+      INSERT INTO participant_bindings VALUES (
+        'slack', '${integrationId}', 'T123', 'bot:B123', 'agent', 'ptc_platform02', 'reviewer'
+      );
+      INSERT INTO thread_bindings VALUES (
+        'slack', '${integrationId}', 'T123', 'C123', 'legacy-thread',
+        'thd_legacy_thread_01'
+      );
+      INSERT INTO message_correlations VALUES (
+        'slack', '${integrationId}', 'T123', 'C123', 'legacy-message-1',
+        '${eventId}', NULL, NULL, 2
+      );
+      INSERT INTO delivery_replay VALUES (
+        'slack', '${integrationId}', '${outboundId}', '${requestHash}', 'delivered',
+        '2026-08-20T01:59:00.000Z', 'legacy-delivery-1', '2026-08-20T02:00:00.000Z'
+      );
       PRAGMA user_version = 1;
     `);
     legacy.close();
@@ -114,16 +135,30 @@ describe("SQLite conversation platform state", () => {
       integrationId,
       tenantKey: "T123",
       conversationKey: "C123",
-      threadKey: null,
+      threadKey: "legacy-thread",
       sourceMessageKey: "legacy-message-1",
       replyToMessageKey: null,
       participantKey: "user:U123",
       mentionedParticipantKeys: [],
       actorKindHint: "human",
-    })).resolves.toMatchObject({ projectId: "prj_platform01" });
+    })).resolves.toMatchObject({
+      projectId: "prj_platform01",
+      threadId: "thd_legacy_thread_01",
+      automationDepth: 2,
+    });
     store.close();
     const migrated = new DatabaseSync(path, { readOnly: true });
     expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(2);
+    expect(migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings")
+      .get()?.count).toBe(1);
+    expect(migrated.prepare("SELECT COUNT(*) AS count FROM participant_bindings")
+      .get()?.count).toBe(2);
+    expect(migrated.prepare("SELECT thread_id FROM thread_bindings").get()?.thread_id)
+      .toBe("thd_legacy_thread_01");
+    expect(migrated.prepare("SELECT automation_depth FROM message_correlations")
+      .get()?.automation_depth).toBe(2);
+    expect(migrated.prepare("SELECT status, external_message_key FROM delivery_replay").get())
+      .toEqual({ status: "delivered", external_message_key: "legacy-delivery-1" });
     migrated.close();
   });
 

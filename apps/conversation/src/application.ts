@@ -115,8 +115,12 @@ export async function openConversationApplication(
         ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
       });
       assertConversationAdapterDescriptor(adapter.descriptor);
-      if (adapter.descriptor.integrationId !== deployment.integrationId) {
-        throw new Error("Conversation adapter descriptor가 deployment integration과 다릅니다.");
+      if (
+        adapter.descriptor.integrationId !== deployment.integrationId ||
+        (deployment.platform !== null &&
+          adapter.descriptor.adapterKind !== deployment.platform)
+      ) {
+        throw new Error("Conversation adapter descriptor가 deployment 좌표와 다릅니다.");
       }
       adapters.set(deployment.integrationId, adapter);
     }

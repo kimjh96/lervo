@@ -1,4 +1,5 @@
 import {
+  maximumManagedRunEvidenceEvents,
   validateManagedProviderRunEvidence,
   type ManagedProviderRunResult,
 } from "@lervo/execution-contract";
@@ -6,8 +7,6 @@ import type { SharedContextPublication } from "@lervo/schemas";
 import { collectRunEventsBounded, type EventStore } from "@lervo/storage-contract";
 
 import { ManagedConversationResponseError } from "./types.js";
-
-const maximumConversationManagedRunEvents = 2_000;
 
 export function validateConversationManagedRun(input: {
   run: ManagedProviderRunResult;
@@ -35,7 +34,7 @@ export function validateConversationManagedRun(input: {
     runEvents = collectRunEventsBounded({
       events: input.events,
       runId: run.session.runId,
-      maximumEvents: maximumConversationManagedRunEvents,
+      maximumEvents: maximumManagedRunEvidenceEvents,
     });
   } catch (error) {
     throw new ManagedConversationResponseError(

@@ -3,6 +3,7 @@ import {
   validateDeliberationHistory,
   type DeliberationVerificationEvidence,
 } from "@lervo/deliberation";
+import { maximumManagedRunEvidenceEvents } from "@lervo/execution-contract";
 import type {
   DeliberationArtifact,
   EventEnvelope,
@@ -15,8 +16,6 @@ import {
   type DeliberationRuntimeOptions,
   type DeliberationRuntimeSnapshot,
 } from "./types.js";
-
-const maximumManagedRunEvidenceEvents = 2_000;
 
 function invalid(): never {
   throw new DeliberationRuntimeError(
@@ -39,7 +38,7 @@ export interface RestoredDeliberationRuntimeState {
   handoffs: Map<string, string>;
 }
 
-export function restoreDeliberationRuntimeSnapshot(input: {
+function restoreDeliberationRuntimeSnapshotUnchecked(input: {
   snapshot: DeliberationRuntimeSnapshot;
   options: Pick<DeliberationRuntimeOptions, "deliberationId" | "events" | "policy">;
 }): RestoredDeliberationRuntimeState {
@@ -181,4 +180,23 @@ export function restoreDeliberationRuntimeSnapshot(input: {
     publications,
     handoffs: new Map(snapshot.handoffs.map((item) => [item.handoffId, item.eventId])),
   };
+}
+
+export function restoreDeliberationRuntimeSnapshot(input: {
+  snapshot: DeliberationRuntimeSnapshot;
+  options: Pick<DeliberationRuntimeOptions, "deliberationId" | "events" | "policy">;
+}): RestoredDeliberationRuntimeState {
+  try {
+    return restoreDeliberationRuntimeSnapshotUnchecked(input);
+  } catch (error) {
+    if (error instanceof DeliberationRuntimeError && error.reason === "runtime_snapshot_invalid") {
+      throw error;
+    }
+    throw new DeliberationRuntimeError(
+      "runtime_state_invalid",
+      "runtime_snapshot_invalid",
+      "숙의 runtime snapshot이 현재 policy 또는 event 원본과 다릅니다.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
 }

@@ -44,6 +44,7 @@ import {
   type ManagedProviderRunResult,
 } from "./provider-run-types.js";
 import {
+  resolveMaximumProviderSignals,
   startProviderSignalMonitor,
   type ProviderSignalMonitor,
 } from "./provider-signal-monitor.js";
@@ -114,6 +115,7 @@ export class ManagedProviderRunCoordinator {
   private readonly captureSnapshot: NonNullable<ManagedProviderRunOptions["captureSnapshot"]>;
   private readonly snapshotPolicy: RepositorySnapshotPolicy;
   private readonly deadlines: ManagedProviderRunDeadlines;
+  private readonly maximumProviderSignals: number;
   private running = false;
 
   constructor(private readonly options: ManagedProviderRunOptions) {
@@ -128,6 +130,7 @@ export class ManagedProviderRunCoordinator {
     this.captureSnapshot = options.captureSnapshot ?? captureRepositorySnapshot;
     this.snapshotPolicy = resolveRepositorySnapshotPolicy(options.snapshotPolicy);
     this.deadlines = resolveManagedProviderRunDeadlines(options.deadlines);
+    this.maximumProviderSignals = resolveMaximumProviderSignals(options.maximumProviderSignals);
     assertAdapterMessage(options.adapter.descriptor, "Adapter descriptor");
   }
 
@@ -195,9 +198,7 @@ export class ManagedProviderRunCoordinator {
       monitor = startProviderSignalMonitor({
         adapter: this.options.adapter,
         session: state.session,
-        ...(this.options.maximumProviderSignals === undefined
-          ? {}
-          : { maximumEvents: this.options.maximumProviderSignals }),
+        maximumEvents: this.maximumProviderSignals,
         onEvent: (event) => {
           this.context.handleAdapterEvent(state.session!, event, this.date());
           const spec = providerSignalSpec(event, state.session!.provider, this.time());

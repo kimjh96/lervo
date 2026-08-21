@@ -13,7 +13,7 @@ export interface ProviderSignalMonitor {
 export const defaultMaximumProviderSignals = 500;
 export const absoluteMaximumProviderSignals = 10_000;
 
-function resolveMaximumProviderSignals(value: number | undefined): number {
+export function resolveMaximumProviderSignals(value: number | undefined): number {
   const resolved = value ?? defaultMaximumProviderSignals;
   if (
     !Number.isSafeInteger(resolved) || resolved < 1 ||

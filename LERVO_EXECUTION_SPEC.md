@@ -268,7 +268,7 @@ Session의 project/run/session/role 좌표는 E2와 같아야 합니다. Writing
 
 ### Managed context telemetry와 쓰기 gate
 
-한 managed run의 provider signal은 기본 500개이며 구성값은 1~10,000개만 허용합니다. 상한을 넘은 signal은 `onEvent`와 telemetry에 전달하지 않고 stream을 중단해 `provider_stream_failed`로 기록합니다. Run 증거 reader는 `runId`가 같은 event를 sequence 순으로 최대 2,000개까지 page로 읽고, 초과·sequence 역행·다른 run 반환을 계약 실패로 닫습니다. 따라서 event store의 기본 100개 page를 전체 run으로 해석하지 않습니다. 숙의 snapshot 복원은 시작 시점의 project head까지만 streaming 방문하며 전체 project event 배열을 만들지 않습니다. 이 경계는 새 event type이나 payload를 만들지 않고 오류에도 provider signal 원문을 포함하지 않습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록합니다.
+한 managed run의 provider signal은 기본 500개이며 구성값은 1~10,000개만 허용합니다. 구성 오류는 telemetry나 provider session을 만들기 전에 거부합니다. 상한을 넘은 signal은 `onEvent`와 telemetry에 전달하지 않고 stream을 중단해 `provider_stream_failed`로 기록합니다. Run 증거 reader는 `@lervo/execution-contract`의 단일 상한에 따라 `runId`가 같은 event를 sequence 순으로 최대 2,000개까지 page로 읽고, 초과·sequence 역행·다른 run 반환을 계약 실패로 닫습니다. 따라서 event store의 기본 100개 page를 전체 run으로 해석하지 않습니다. 숙의 snapshot 복원은 시작 시점의 project head까지만 streaming 방문하며 전체 project event 배열을 만들지 않고, 손상된 중첩 값과 저장소 오류를 `runtime_snapshot_invalid`로 정규화합니다. 이 경계는 새 event type이나 payload를 만들지 않고 오류에도 provider signal 원문을 포함하지 않습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록합니다.
 
 Orchestrator는 준비가 성공하면 모든 검색 추천 `context.recommended`, E1 `context.selected`와 E2 `document.loaded`를 한 transaction에 기록합니다. E3는 검증된 aggregate adapter receipt를 받은 뒤 `context.injected`로 기록합니다. 이 기록이 commit된 뒤에만 메모리 evidence를 전진시킵니다.
 
@@ -1290,7 +1290,7 @@ Hub SQLite migration은 snapshot, approval과 revocation을 별도 strict table�
 
 ## 플랫폼 중립 대화와 능동 참여
 
-Conversation application은 `ConversationIntegrationDeployment` 목록을 검증한 뒤 각 factory에 공통 CAS, external identity와 delivery replay port만 전달합니다. Factory의 descriptor integration ID는 deployment와 같아야 합니다. `platform=null`인 native deployment는 canonical Lervo 좌표를 직접 사용하므로 external conversation·participant binding을 요구하지 않습니다. Platform 값이 있는 deployment는 같은 integration/platform의 conversation·participant binding이 모두 있어야 합니다. Platform kind는 `^[a-z][a-z0-9_-]{0,63}$`만 허용하고 SQLite v1의 Slack·Discord 원본은 schema v2 migration에서 값과 관계를 보존합니다.
+Conversation application은 `ConversationIntegrationDeployment` 목록을 검증한 뒤 각 factory에 공통 CAS, external identity와 delivery replay port만 전달합니다. Factory의 descriptor integration ID는 deployment와 같아야 하며, external platform deployment는 descriptor adapter kind도 platform과 같아야 합니다. `platform=null`인 native deployment는 canonical Lervo 좌표를 직접 사용하므로 external conversation·participant binding을 요구하지 않습니다. Platform 값이 있는 deployment는 같은 integration/platform의 conversation·participant binding이 모두 있어야 합니다. Platform kind는 `^[a-z][a-z0-9_-]{0,63}$`만 허용하고 SQLite v1의 Slack·Discord 원본은 schema v2 migration에서 다섯 테이블의 값과 관계를 보존합니다.
 
 Conversation adapter는 Slack, Discord, 자체 채팅과 이후 플랫폼을 같은 내부 계약으로 바꿉니다. Descriptor 필수 필드는 schema version, integration ID, adapter kind, instance identity hash와 capability 집합입니다. Capability는 message 수신·전송, thread, 수정·삭제, reaction, streaming, typing, presence와 interactive action을 독립적으로 선언합니다.
 

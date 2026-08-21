@@ -123,6 +123,44 @@ describe("conversation deployment composition", () => {
     application.close();
   });
 
+  it("rejects an external adapter whose kind differs from its platform binding", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-kind-"));
+    roots.push(root);
+    const mismatched = new NativeChatConversationAdapter({
+      integrationId: "itg_teams001",
+      instanceIdentity: "wrong-adapter-kind",
+      delivery: {
+        send: async () => ({
+          deliveryKey: "unused",
+          deliveredAt: "2026-08-20T02:00:01.000Z",
+        }),
+      },
+    });
+    await expect(openConversationApplication({
+      dataDirectory: root,
+      conversations: [{
+        platform: "teams",
+        integrationId: "itg_teams001",
+        tenantKey: "tenant-1",
+        conversationKey: "channel-1",
+        projectId: "prj_platform01",
+        conversationId: "cnv_platform01",
+      }],
+      participants: [{
+        platform: "teams",
+        integrationId: "itg_teams001",
+        tenantKey: "tenant-1",
+        participantKey: "user-1",
+        actor: { kind: "human", participantId: "ptc_platform01", roleId: null },
+      }],
+      integrations: [{
+        integrationId: "itg_teams001",
+        platform: "teams",
+        create: () => mismatched,
+      }],
+    })).rejects.toThrow("deployment 좌표");
+  });
+
   it("restores a platform reply link through the application entrypoint", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-"));
     roots.push(root);
