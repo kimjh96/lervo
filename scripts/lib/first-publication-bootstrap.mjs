@@ -134,6 +134,16 @@ function validateApproval(approval, authorization, observedAt) {
   ) fail("first_publication_approval_expired");
 }
 
+export function validateFirstPublicationApproval({
+  approval,
+  publicationAuthorization,
+  checkedAt,
+}) {
+  const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
+  validateApproval(approval, authorization, timestamp(checkedAt));
+  return approval;
+}
+
 function validatePackageObservation(observation) {
   if (
     observation?.schemaVersion !== 1 ||

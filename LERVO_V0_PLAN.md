@@ -1177,4 +1177,6 @@ CLI first-publication package metadata apply transaction을 완료했습니다. 
 
 CLI first-publication package metadata post-apply verification을 완료했습니다. 독립 receipt 검증, 시작·종료의 읽기 전용 pending transaction 확인, current output의 after binding 대조, production release manifest 재생성과 SBOM 검증으로 로컬 결과 일관성을 확인합니다. Local metadata check가 모두 ready여도 receipt 진위와 license 승인·public package 이름·npm scope control·최초 게시 승인은 별도 required이며 파일·외부 상태·activation·게시를 바꾸지 않습니다. 결정은 [ADR-0109](./docs/adr/0109-cli-first-publication-package-metadata-post-apply-verification.md)에 기록했습니다.
 
-다음 구현 작업은 post-apply report와 license decision, public package availability 관측, npm scope control 확인과 first-publication approval을 서로 다른 원본으로 검증·결속하되 아직 activation을 열지 않는 **CLI first-publication external requirement evidence report**입니다.
+CLI first-publication external requirement evidence report를 완료했습니다. License approval, 24시간 이하 npm scope control confirmation과 기존 first-publication approval을 서로 다른 canonical 문서로 읽고, public npm 404 관측과 현재 source에서 관측 전후 재계산한 post-apply report에 결속합니다. 결과는 `evidence_bound`이지만 `not_armed`이며 actor 신원·실제 npm scope 권한·비공개 package 부재·receipt 진위와 release artifact bytes를 증명하지 않습니다. 입력 파일·승인·activation·게시를 바꾸지 않습니다. 결정은 [ADR-0110](./docs/adr/0110-cli-first-publication-external-requirement-evidence-report.md)에 기록했습니다.
+
+다음 구현 작업은 기존 bootstrap authorization이 중복된 사람 확인을 직접 해석하지 않고 external evidence report를 필수 원본으로 받아 exact release와 fresh public package 관측을 다시 검증하도록 전환하는 **CLI first-publication bootstrap v2 evidence integration**입니다.

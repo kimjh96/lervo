@@ -59,6 +59,8 @@ Package metadata apply transaction은 source reader, production release generato
 
 Package metadata post-apply verification은 독립 receipt reader, 공통 bounded source snapshot, 읽기 전용 transaction inspector, production release 재생성 adapter와 순수 report 정책으로 나뉩니다. Inspector는 transaction directory를 만들거나 정리하지 않고 시작·종료에 모두 `clear`인지 확인합니다. Report는 현재 세 output bytes를 receipt의 after binding에 대조하고, package manifest override로 production release manifest를 다시 만든 뒤 현재 SBOM을 같은 lockfile에 검증합니다. 로컬 metadata check가 모두 ready여도 activation은 구현되지 않은 상태이며 receipt 발급 진위와 license 승인·public npm 이름·scope control·최초 게시 승인은 외부 evidence로 남깁니다.
 
+First-publication external evidence는 license approval, npm scope control confirmation과 전체 first-publication approval을 각각의 bounded 문서로 유지하고 public package availability만 인증 없는 npm observer에서 가져옵니다. 문서 validator는 actor 원문을 입력 경계 밖으로 내보내지 않고, 교차 원본 정책은 post-apply target·report digest, publication authorization과 세 사람 문서의 target을 대조합니다. 조정기는 저장한 post-apply report를 온라인 관측 전후 current source에서 재계산하고, source reader는 다섯 입력 문서가 끝까지 같은지 확인합니다. Report projection과 한국어 formatter는 관측·writer를 갖지 않으며 결과가 bound여도 arming·activation·publication은 열리지 않습니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료

@@ -36,6 +36,34 @@ export function createFirstPublicationFixture({
     distTag: "latest",
     artifact,
   });
+  const approval = {
+    schemaVersion: 1,
+    approvalId,
+    decision: "approve_first_publication",
+    approvedAt: "2026-08-21T02:55:00Z",
+    expiresAt: "2026-08-21T04:00:00Z",
+    approver: { kind: "user", id: "release-owner@example.invalid" },
+    target: {
+      package: "@lervo/cli",
+      repository: firstPublicationRepository,
+      license: "Apache-2.0",
+      scopeOwner: { kind: "organization", name: "lervo" },
+      publicationAuthorizationDigest: publicationAuthorization.authorizationDigest,
+    },
+    confirmations: [
+      "license_approved",
+      "one_time_direct_publish_approved",
+      "package_name_availability_confirmed",
+      "scope_control_confirmed",
+      "stage_only_transition_required",
+    ],
+  };
+  const packageObservation = {
+    schemaVersion: 1,
+    source: "npm_public_registry",
+    state: "not_found",
+    package: "@lervo/cli",
+  };
   const bootstrap = createFirstPublicationBootstrapAuthorization({
     publicationAuthorization,
     packageManifest: {
@@ -61,35 +89,16 @@ export function createFirstPublicationFixture({
         access: "public",
       },
     },
-    approval: {
-      schemaVersion: 1,
-      approvalId,
-      decision: "approve_first_publication",
-      approvedAt: "2026-08-21T02:55:00Z",
-      expiresAt: "2026-08-21T04:00:00Z",
-      approver: { kind: "user", id: "release-owner@example.invalid" },
-      target: {
-        package: "@lervo/cli",
-        repository: firstPublicationRepository,
-        license: "Apache-2.0",
-        scopeOwner: { kind: "organization", name: "lervo" },
-        publicationAuthorizationDigest: publicationAuthorization.authorizationDigest,
-      },
-      confirmations: [
-        "license_approved",
-        "one_time_direct_publish_approved",
-        "package_name_availability_confirmed",
-        "scope_control_confirmed",
-        "stage_only_transition_required",
-      ],
-    },
-    packageObservation: {
-      schemaVersion: 1,
-      source: "npm_public_registry",
-      state: "not_found",
-      package: "@lervo/cli",
-    },
+    approval,
+    packageObservation,
     observedAt: "2026-08-21T03:00:00Z",
   });
-  return { artifact, bootstrap, publicationAuthorization, tarballContents };
+  return {
+    approval,
+    artifact,
+    bootstrap,
+    packageObservation,
+    publicationAuthorization,
+    tarballContents,
+  };
 }
