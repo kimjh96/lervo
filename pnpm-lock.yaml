@@ -72,6 +72,9 @@ importers:
       '@lervo/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../../packages/event-contract
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator

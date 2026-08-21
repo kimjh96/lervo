@@ -1574,4 +1574,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 대화 queue와 실제 managed 숙의 실행 결속을 완료했습니다. 내부 assigned executor만 queue의 결정적 숙의 ID와 기대 project를 받고, project binding adapter가 실제 repository manifest를 provider 시작 전에 대조합니다. 같은 ID가 workspace와 숙의 event에 사용되며 성공 뒤에는 상태와 산출물 수만 queue 요약으로 돌아갑니다. 일반 CLI에서 ID를 지정하는 경로와 최종 본문 복제는 추가하지 않았습니다. 결정은 [ADR-0139](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)에 기록했습니다.
 
+불확실한 대화 숙의의 프로젝트 원본 대조를 완료했습니다. 공급자 중립 조정기는 `uncertain` job만 source port로 보내고 project·숙의·request hash compare-and-set 뒤에만 queue 요약을 복구합니다. 현재 managed source는 실제 event hash chain, 완료 이력, 승인 checkpoint와 process lease를 검사합니다. 완료와 활성 lease가 없는 승인 후 중단만 증명하며 진행 중·승인 전 불완전·불일치 상태는 계속 `unknown`입니다. Schema v1 queue의 무손실 v2 migration, 완료·중단·진행 중·불완전 fixture와 실제 managed 실행 뒤 queue 복구를 검증했습니다. 자동 재실행과 자동 재개는 추가하지 않았습니다. 결정은 [ADR-0140](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)에 기록했습니다.
+
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

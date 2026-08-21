@@ -12,6 +12,7 @@ import { FileSystemCas } from "@lervo/cas";
 import {
   ConfiguredConversationDeliberationControl,
   QueuedConversationDeliberationBackend,
+  reconcileConversationDeliberation,
   runConversationDeliberationWorkerCycle,
 } from "@lervo/conversation-control";
 import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
@@ -72,6 +73,13 @@ export async function openConversationApplication(
           backend: new QueuedConversationDeliberationBackend(deliberationStore),
           bindings: deliberationOptions.bindings,
         });
+    const reconciliation = deliberationOptions?.reconciliationSource === undefined ||
+      deliberationStore === null
+      ? null
+      : {
+          source: deliberationOptions.reconciliationSource,
+          store: deliberationStore,
+        };
     const slackAdapters = new Map((options.slack ?? []).map((deployment) => {
       const delivery = new SlackWebApiDelivery({
         integrationId: deployment.integrationId,
@@ -141,6 +149,15 @@ export async function openConversationApplication(
           }),
         });
       },
+      reconcileDeliberation: reconciliation === null
+        ? null
+        : async (input) => reconcileConversationDeliberation({
+            store: reconciliation.store,
+            source: reconciliation.source,
+            projectId: input.projectId,
+            deliberationId: input.deliberationId,
+            ...(options.now === undefined ? {} : { now: options.now }),
+          }),
       close: () => {
         deliberationStore?.close();
         store.close();

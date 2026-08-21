@@ -2,7 +2,6 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-
 import {
   QueuedConversationDeliberationBackend,
   runConversationDeliberationWorkerCycle,
@@ -215,4 +214,5 @@ describe("durable conversation deliberation queue", () => {
     })).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
     store.close();
   });
+
 });

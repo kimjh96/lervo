@@ -10,6 +10,7 @@ import {
 import { defaultKoreanWritingContract } from "@lervo/core";
 import {
   QueuedConversationDeliberationBackend,
+  reconcileConversationDeliberation,
   runConversationDeliberationWorkerCycle,
 } from "@lervo/conversation-control";
 import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
@@ -35,6 +36,7 @@ import {
   DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
 import { createManagedConversationDeliberationExecutionAdapter } from "../src/conversation-deliberation-executor.js";
+import { createManagedConversationDeliberationReconciliationSource } from "../src/conversation-deliberation-reconciliation.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
 import { runCli } from "../src/main.js";
@@ -672,6 +674,34 @@ describe("managed CLI deliberation", () => {
       status: "uncertain",
       deliberationId: started.deliberationId,
     });
+    const reconciled = await reconcileConversationDeliberation({
+      store: replacementQueue,
+      source: createManagedConversationDeliberationReconciliationSource({
+        projects: [{ projectId: "prj_cli_deliberation", repositoryRoot: root }],
+      }),
+      projectId: "prj_cli_deliberation",
+      deliberationId: replacement.deliberationId,
+      now,
+    });
+    expect(reconciled).toMatchObject({
+      status: "reconciled",
+      summary: {
+        deliberationId: started.deliberationId,
+        status: "converged",
+        artifactCount: 5,
+      },
+    });
+    await expect(replacementQueue.inspect({
+      projectId: "prj_cli_deliberation",
+      deliberationId: replacement.deliberationId,
+    })).resolves.toMatchObject({
+      state: "settled",
+      failureCode: null,
+      reconciliation: {
+        sourceKind: "managed_deliberation_inspection_v1",
+        priorFailureCode: "deliberation_execution_uncertain",
+      },
+    });
     replacementQueue.close();
     const unchanged = await openProjectStorage(root);
     expect(unchanged.events.list({ limit: 1000 })
@@ -696,6 +726,7 @@ describe("managed CLI deliberation", () => {
       leaseExpiresAt: "2026-08-21T00:16:00.000Z",
       summary: null,
       failureCode: null,
+      reconciliation: null,
     })).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
   });
 

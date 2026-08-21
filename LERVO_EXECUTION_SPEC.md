@@ -1381,6 +1381,16 @@ CLI managed 숙의 연결은 일반 `ExecuteManagedDeliberation`과 별도인 `E
 
 `createManagedConversationDeliberationExecutionAdapter`는 구성된 project ID를 절대 repository root에 일대일로 결속하고 `leased` job만 변환합니다. Job의 결정적 숙의 ID, policy ID와 4,096자 이하 주제를 assigned executor에 전달합니다. Managed 결과의 숙의 ID와 0~10,000 산출물 수가 같을 때만 `converged` 또는 `no_consensus` 요약을 반환합니다. `finalContent`, 참여자 목록, provider 응답과 내부 오류 원문은 queue 결과에 복제하지 않습니다. 실행 예외와 좌표 불일치는 worker의 기존 `deliberation_execution_uncertain` 처분을 사용합니다. 결정은 [ADR-0139](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)에 기록합니다.
 
+#### 불확실한 대화 숙의 원본 대조
+
+대조 입력의 필수 좌표는 project ID와 숙의 ID입니다. 현재 job이 없으면 `not_found`, `uncertain`이 아니면 source를 읽지 않고 `not_uncertain`과 현재 요약을 반환합니다. `uncertain`이면 구성된 `ConversationDeliberationReconciliationSourcePort`가 같은 job과 검사 시각을 받아 원본을 읽습니다. `confirmed` 응답은 최대 64자의 source kind, `sha256:` evidence hash와 ID가 같은 `interrupted|converged|no_consensus|failed` 요약을 가져야 합니다. `running`과 `unknown`은 대조 성공으로 저장할 수 없습니다.
+
+현재 `managed_deliberation_inspection_v1` source는 구성된 project root의 manifest, 전체 event hash chain, 해당 숙의 event 관계, 승인 checkpoint와 process lease를 검사합니다. 일관된 완료 event는 그 종료 상태를, 읽을 수 있는 승인 checkpoint와 비활성 lease는 `interrupted/resume`을 증명합니다. 활성 lease는 `active_execution`, 승인 전 불완전 이력은 `history_incomplete`, 불일치와 부재는 각각 `source_inconsistent`, `source_not_found`이며 queue를 바꾸지 않습니다.
+
+성공 전이는 `(projectId, deliberationId, requestHash)`가 같은 `uncertain → settled`만 허용합니다. Schema v2의 대조 필수 필드는 source kind, 검사 report의 canonical hash, 이전 `worker_lease_expired|deliberation_execution_uncertain`, 불확실 상태 시각과 대조 시각입니다. 대조 시각은 불확실 시각보다 빠를 수 없고 queue `terminalAt`과 같아야 합니다. 같은 종료 요약의 동시 저장은 먼저 기록한 대조를 유지합니다. 원본 report, event, checkpoint, provider payload와 오류 원문은 queue에 복제하지 않습니다.
+
+대조 결과의 `settled`는 queue read model이 정리되었다는 뜻이며 숙의 완료 event가 아닙니다. `interrupted`는 명시적 재개 후보일 뿐입니다. Application은 source가 구성된 경우에만 대조 entrypoint를 제공하고 대조 과정에서 worker, provider, 재실행 또는 재개를 호출하지 않습니다. 결정은 [ADR-0140](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)에 기록합니다.
+
 ## Managed run 승인 재검증
 
 `filesystem.write=require_approval` managed run은 `ManagedRunApprovalAuthorization`과 `ManagedCapabilityApprovalVerifier`가 함께 있어야 합니다. Coordinator preflight는 adapter를 시작하기 전에 authorization schema, project/run/session/role, provider, risk, request digest, verification suite와 전체 expected path를 확인합니다. Policy verifier는 current snapshot ID와 유효 기간, snapshot·approval·revocation signature, command/hash·signer binding, 승인 기간·철회와 승인 경로를 project-bound store 원본으로 다시 판정합니다.

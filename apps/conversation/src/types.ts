@@ -7,6 +7,8 @@ import type {
   ConversationDeliberationExecutionPort,
   ConversationDeliberationPort,
   ConversationDeliberationPrincipalBinding,
+  ConversationDeliberationReconciliationResult,
+  ConversationDeliberationReconciliationSourcePort,
   ConversationDeliberationWorkerCycleResult,
 } from "@lervo/conversation-control";
 import type {
@@ -47,6 +49,7 @@ export interface ConversationApplicationOptions {
   deliberations?: {
     bindings: readonly ConversationDeliberationPrincipalBinding[];
     executor: ConversationDeliberationExecutionPort;
+    reconciliationSource?: ConversationDeliberationReconciliationSourcePort;
     workerId: string;
     leaseDurationMs?: number;
     maxRecords?: number;
@@ -60,5 +63,9 @@ export interface ConversationApplication {
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;
   deliberations: ConversationDeliberationPort | null;
   runDeliberationWorkerCycle(): Promise<ConversationDeliberationWorkerCycleResult>;
+  reconcileDeliberation: ((input: {
+    projectId: string;
+    deliberationId: string;
+  }) => Promise<ConversationDeliberationReconciliationResult>) | null;
   close(): void;
 }

@@ -11,6 +11,14 @@ export type ConversationDeliberationJobFailureCode =
   | "worker_lease_expired"
   | "deliberation_execution_uncertain";
 
+export interface ConversationDeliberationJobReconciliation {
+  sourceKind: string;
+  evidenceHash: string;
+  priorFailureCode: ConversationDeliberationJobFailureCode;
+  uncertainAt: string;
+  reconciledAt: string;
+}
+
 export interface ConversationDeliberationJob {
   projectId: string;
   sourceEventId: string;
@@ -25,6 +33,7 @@ export interface ConversationDeliberationJob {
   leaseExpiresAt: string | null;
   summary: ConversationDeliberationSummary | null;
   failureCode: ConversationDeliberationJobFailureCode | null;
+  reconciliation: ConversationDeliberationJobReconciliation | null;
 }
 
 export interface ConversationDeliberationJobLease {
@@ -34,7 +43,7 @@ export interface ConversationDeliberationJobLease {
 
 export interface ConversationDeliberationJobStore {
   enqueue(input: Omit<ConversationDeliberationJob,
-    "state" | "attemptCount" | "leaseExpiresAt" | "summary" | "failureCode">
+    "state" | "attemptCount" | "leaseExpiresAt" | "summary" | "failureCode" | "reconciliation">
   ): Promise<ConversationDeliberationJob>;
   inspect(input: {
     projectId: string;
@@ -63,6 +72,15 @@ export interface ConversationDeliberationJobStore {
     failedAt: string;
     failureCode: ConversationDeliberationJobFailureCode;
   }): Promise<void>;
+  reconcile(input: {
+    projectId: string;
+    deliberationId: string;
+    requestHash: string;
+    sourceKind: string;
+    evidenceHash: string;
+    reconciledAt: string;
+    summary: ConversationDeliberationSummary;
+  }): Promise<void>;
 }
 
 export interface ConversationDeliberationExecutionPort {
@@ -75,6 +93,7 @@ export const conversationDeliberationPatterns = {
   deliberationId: /^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
   policyId: /^deliberation_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u,
   workerId: /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u,
+  reconciliationSourceKind: /^(?=.{1,64}$)[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/u,
 } as const;
 
 export function conversationDeliberationTimestamp(value: string, label: string): number {

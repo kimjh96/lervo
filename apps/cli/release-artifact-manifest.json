@@ -83,12 +83,12 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 1767672,
-        "sha256": "sha256:d6df7390665b2c48b1ebcab94f341cf2d8478e9306558d18f157f12b00392e04"
+        "size": 1767898,
+        "sha256": "sha256:2508fc20382daa8d48130ed5e6320233027b064230dadab7c916808060bb4e99"
       }
     ],
     "fileCount": 3,
-    "contentDigest": "sha256:813896719a97bfde1b9c76912d4407d8684a20a61edd85cad0dfa9b9e8d91173"
+    "contentDigest": "sha256:b660d1fbf137990685aa9a19fbc8e1f609a43df30124ac80b7df6e3b3ea97f15"
   },
   "dependencies": {
     "portable": [
@@ -201,5 +201,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:c1f790c072ed5ce54af6066b252241cac26b3a069baf8aaae190ddfa8c1724c7"
+  "artifactDigest": "sha256:56617afb61decd9ccd2a1c52e8a4dfa26b00faca8b6e2f93a87d2136a8a60964"
 }

@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 
-export const conversationDeliberationSQLiteSchemaVersion = 1;
+export const conversationDeliberationSQLiteSchemaVersion = 2;
 
 export async function prepareConversationDeliberationDatabasePath(path: string): Promise<string> {
   const absolute = resolve(path);
@@ -42,7 +42,7 @@ export function migrateConversationDeliberationDatabase(database: DatabaseSync):
   database.exec("BEGIN IMMEDIATE;");
   try {
     const version = database.prepare("PRAGMA user_version;").get()?.user_version;
-    if (version !== 0 && version !== conversationDeliberationSQLiteSchemaVersion) {
+    if (version !== 0 && version !== 1 && version !== conversationDeliberationSQLiteSchemaVersion) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
         "지원하지 않는 Conversation 숙의 queue schema입니다.",
@@ -69,17 +69,20 @@ export function migrateConversationDeliberationDatabase(database: DatabaseSync):
           summary_json TEXT,
           failure_code TEXT,
           terminal_at TEXT,
+          reconciliation_json TEXT,
           PRIMARY KEY (project_id, source_event_id),
           CHECK (
             (state = 'queued' AND attempt_count = 0 AND lease_id IS NULL
               AND lease_owner IS NULL AND lease_expires_at IS NULL
               AND lease_expires_at_ms IS NULL AND summary_json IS NULL
-              AND failure_code IS NULL AND terminal_at IS NULL)
+              AND failure_code IS NULL AND terminal_at IS NULL
+              AND reconciliation_json IS NULL)
             OR
             (state = 'leased' AND attempt_count > 0 AND lease_id IS NOT NULL
               AND lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL
               AND lease_expires_at_ms IS NOT NULL AND summary_json IS NULL
-              AND failure_code IS NULL AND terminal_at IS NULL)
+              AND failure_code IS NULL AND terminal_at IS NULL
+              AND reconciliation_json IS NULL)
             OR
             (state = 'settled' AND attempt_count > 0 AND lease_id IS NULL
               AND lease_owner IS NULL AND lease_expires_at IS NULL
@@ -89,7 +92,8 @@ export function migrateConversationDeliberationDatabase(database: DatabaseSync):
             (state = 'uncertain' AND attempt_count > 0 AND lease_id IS NULL
               AND lease_owner IS NULL AND lease_expires_at IS NULL
               AND lease_expires_at_ms IS NULL AND summary_json IS NULL
-              AND failure_code IS NOT NULL AND terminal_at IS NOT NULL)
+              AND failure_code IS NOT NULL AND terminal_at IS NOT NULL
+              AND reconciliation_json IS NULL)
           )
         ) STRICT;
         CREATE INDEX conversation_deliberation_jobs_claim
@@ -119,14 +123,59 @@ export function migrateConversationDeliberationDatabase(database: DatabaseSync):
               AND NEW.lease_expires_at_ms > OLD.lease_expires_at_ms
               AND OLD.summary_json IS NEW.summary_json
               AND OLD.failure_code IS NEW.failure_code
-              AND OLD.terminal_at IS NEW.terminal_at)
-            OR (OLD.state = 'leased' AND NEW.state IN ('settled', 'uncertain'))
+              AND OLD.terminal_at IS NEW.terminal_at
+              AND OLD.reconciliation_json IS NEW.reconciliation_json)
+            OR (OLD.state = 'leased' AND NEW.state IN ('settled', 'uncertain')
+              AND OLD.reconciliation_json IS NEW.reconciliation_json)
+            OR (OLD.state = 'uncertain' AND NEW.state = 'settled'
+              AND OLD.attempt_count = NEW.attempt_count
+              AND OLD.lease_id IS NEW.lease_id
+              AND OLD.lease_owner IS NEW.lease_owner
+              AND OLD.lease_expires_at IS NEW.lease_expires_at
+              AND OLD.lease_expires_at_ms IS NEW.lease_expires_at_ms
+              AND OLD.summary_json IS NULL AND NEW.summary_json IS NOT NULL
+              AND OLD.failure_code IS NOT NULL AND NEW.failure_code IS NULL
+              AND OLD.reconciliation_json IS NULL AND NEW.reconciliation_json IS NOT NULL)
           )
           BEGIN SELECT RAISE(ABORT, 'conversation deliberation job lifecycle is invalid'); END;
         CREATE TRIGGER conversation_deliberation_job_no_delete
           BEFORE DELETE ON conversation_deliberation_jobs
           BEGIN SELECT RAISE(ABORT, 'conversation deliberation job cannot be deleted'); END;
-        PRAGMA user_version = 1;
+        PRAGMA user_version = 2;
+      `);
+    }
+    if (version === 1) {
+      database.exec(`
+        ALTER TABLE conversation_deliberation_jobs ADD COLUMN reconciliation_json TEXT;
+        DROP TRIGGER conversation_deliberation_job_lifecycle;
+        CREATE TRIGGER conversation_deliberation_job_lifecycle
+          BEFORE UPDATE ON conversation_deliberation_jobs
+          WHEN NOT (
+            (OLD.state = 'queued' AND NEW.state = 'leased'
+              AND OLD.reconciliation_json IS NEW.reconciliation_json)
+            OR (OLD.state = 'leased' AND NEW.state = 'leased'
+              AND OLD.attempt_count = NEW.attempt_count
+              AND OLD.lease_id = NEW.lease_id
+              AND OLD.lease_owner = NEW.lease_owner
+              AND NEW.lease_expires_at_ms > OLD.lease_expires_at_ms
+              AND OLD.summary_json IS NEW.summary_json
+              AND OLD.failure_code IS NEW.failure_code
+              AND OLD.terminal_at IS NEW.terminal_at
+              AND OLD.reconciliation_json IS NEW.reconciliation_json)
+            OR (OLD.state = 'leased' AND NEW.state IN ('settled', 'uncertain')
+              AND OLD.reconciliation_json IS NEW.reconciliation_json)
+            OR (OLD.state = 'uncertain' AND NEW.state = 'settled'
+              AND OLD.attempt_count = NEW.attempt_count
+              AND OLD.lease_id IS NEW.lease_id
+              AND OLD.lease_owner IS NEW.lease_owner
+              AND OLD.lease_expires_at IS NEW.lease_expires_at
+              AND OLD.lease_expires_at_ms IS NEW.lease_expires_at_ms
+              AND OLD.summary_json IS NULL AND NEW.summary_json IS NOT NULL
+              AND OLD.failure_code IS NOT NULL AND NEW.failure_code IS NULL
+              AND OLD.reconciliation_json IS NULL AND NEW.reconciliation_json IS NOT NULL)
+          )
+          BEGIN SELECT RAISE(ABORT, 'conversation deliberation job lifecycle is invalid'); END;
+        PRAGMA user_version = 2;
       `);
     }
     database.exec("COMMIT;");

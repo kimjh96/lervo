@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
-import type {
-  ConversationDeliberationJobStore,
+import {
+  type ConversationDeliberationJobStore,
 } from "@lervo/conversation-control";
 
 import {
@@ -18,6 +18,7 @@ import {
   decodeConversationDeliberationJob,
   decodeConversationDeliberationSummary,
 } from "./row-codec.js";
+import { reconcileConversationDeliberationJob } from "./reconciliation.js";
 
 export class SQLiteConversationDeliberationJobStore implements ConversationDeliberationJobStore {
   readonly path: string;
@@ -82,6 +83,7 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
       summary_json: null,
       failure_code: null,
       terminal_at: null,
+      reconciliation_json: null,
     });
     this.database.exec("BEGIN IMMEDIATE;");
     try {
@@ -123,9 +125,9 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
           project_id, source_event_id, deliberation_id, request_hash, principal_hash,
           policy_id, topic, requested_at, requested_at_ms, state, attempt_count,
           lease_id, lease_owner, lease_expires_at, lease_expires_at_ms,
-          summary_json, failure_code, terminal_at
+          summary_json, failure_code, terminal_at, reconciliation_json
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0,
-          NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+          NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
       `).run(
         candidate.projectId,
         candidate.sourceEventId,
@@ -306,6 +308,11 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
     } catch (error) {
       this.writeError(error, "Conversation 숙의 queue 불확실 상태를 저장하지 못했습니다.");
     }
+  }
+
+  async reconcile(input: Parameters<ConversationDeliberationJobStore["reconcile"]>[0]) {
+    this.assertOpen();
+    reconcileConversationDeliberationJob(this.database, input);
   }
 
   checkIntegrity(): void {

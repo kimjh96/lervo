@@ -50,7 +50,12 @@ export async function inspectManagedDeliberation(input: {
   if (!/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(input.deliberationId)) {
     throw new TypeError("진단할 숙의 ID가 유효하지 않습니다.");
   }
-  input.storage.events.verifyIntegrity();
+  const integrity = input.storage.events.verifyIntegrity();
+  if (!integrity.valid) {
+    throw Object.assign(new Error("숙의 event hash chain이 유효하지 않습니다."), {
+      code: "deliberation_history_invalid",
+    });
+  }
   const events = allEvents(input.storage);
   const started = events.filter((event) => event.type === "deliberation.started" &&
     event.payload.deliberationId === input.deliberationId);

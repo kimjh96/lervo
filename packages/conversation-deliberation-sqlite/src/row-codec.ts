@@ -1,7 +1,9 @@
-import type {
-  ConversationDeliberationJob,
-  ConversationDeliberationJobFailureCode,
-  ConversationDeliberationSummary,
+import {
+  conversationDeliberationPatterns,
+  type ConversationDeliberationJob,
+  type ConversationDeliberationJobFailureCode,
+  type ConversationDeliberationJobReconciliation,
+  type ConversationDeliberationSummary,
 } from "@lervo/conversation-control";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
@@ -119,6 +121,52 @@ export function assertConversationDeliberationLookup(input: {
   }
 }
 
+function decodeReconciliation(
+  value: string | null,
+  requestedAtMs: number,
+): ConversationDeliberationJobReconciliation | null {
+  if (value === null) return null;
+  let decoded: unknown;
+  try {
+    decoded = JSON.parse(value);
+  } catch (error) {
+    throw new ConversationDeliberationSQLiteError(
+      "integrity_failed",
+      "Conversation 숙의 queue 대조 JSON이 유효하지 않습니다.",
+      { cause: error },
+    );
+  }
+  const item = decoded as Partial<ConversationDeliberationJobReconciliation> & {
+    schemaVersion?: unknown;
+  };
+  const uncertainAtMs = typeof item.uncertainAt === "string"
+    ? conversationDeliberationMilliseconds(item.uncertainAt, "숙의 불확실")
+    : -1;
+  const reconciledAtMs = typeof item.reconciledAt === "string"
+    ? conversationDeliberationMilliseconds(item.reconciledAt, "숙의 대조")
+    : -1;
+  if (
+    item.schemaVersion !== 1 || typeof item.sourceKind !== "string" ||
+    !conversationDeliberationPatterns.reconciliationSourceKind.test(item.sourceKind) ||
+    typeof item.evidenceHash !== "string" || !hashPattern.test(item.evidenceHash) ||
+    (item.priorFailureCode !== "worker_lease_expired" &&
+      item.priorFailureCode !== "deliberation_execution_uncertain") ||
+    uncertainAtMs < requestedAtMs || reconciledAtMs < uncertainAtMs
+  ) {
+    throw new ConversationDeliberationSQLiteError(
+      "integrity_failed",
+      "Conversation 숙의 queue 대조 좌표가 유효하지 않습니다.",
+    );
+  }
+  return {
+    sourceKind: item.sourceKind,
+    evidenceHash: item.evidenceHash,
+    priorFailureCode: item.priorFailureCode,
+    uncertainAt: item.uncertainAt!,
+    reconciledAt: item.reconciledAt!,
+  };
+}
+
 export function decodeConversationDeliberationJob(row: Row): ConversationDeliberationJob {
   const projectId = text(row, "project_id");
   const sourceEventId = text(row, "source_event_id");
@@ -137,6 +185,10 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
   const terminalAt = nullableText(row, "terminal_at");
   const failureCode = nullableText(row, "failure_code") as ConversationDeliberationJobFailureCode | null;
   const requestedAtMs = integer(row, "requested_at_ms");
+  const reconciliation = decodeReconciliation(
+    nullableText(row, "reconciliation_json"),
+    requestedAtMs,
+  );
   if (
     !projectIdPattern.test(projectId) || !eventIdPattern.test(sourceEventId) ||
     !deliberationIdPattern.test(deliberationId) || !hashPattern.test(requestHash) ||
@@ -147,7 +199,8 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
     (leaseId !== null && !/^cdl_[A-Za-z0-9_-]{32}$/u.test(leaseId)) ||
     (leaseOwner !== null && !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u.test(leaseOwner)) ||
     (failureCode !== null && failureCode !== "worker_lease_expired" &&
-      failureCode !== "deliberation_execution_uncertain")
+      failureCode !== "deliberation_execution_uncertain") ||
+    (reconciliation !== null && state !== "settled")
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
@@ -176,6 +229,12 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
       "Conversation 숙의 queue 종료가 요청보다 빠릅니다.",
     );
   }
+  if (reconciliation !== null && terminalAt !== reconciliation.reconciledAt) {
+    throw new ConversationDeliberationSQLiteError(
+      "integrity_failed",
+      "Conversation 숙의 queue 대조 시각과 종료 시각이 다릅니다.",
+    );
+  }
   return {
     projectId,
     sourceEventId,
@@ -190,5 +249,6 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
     leaseExpiresAt,
     summary: decodeConversationDeliberationSummary(nullableText(row, "summary_json"), deliberationId),
     failureCode,
+    reconciliation,
   };
 }

@@ -357,6 +357,8 @@ Queue의 `queued`, `leased`, `settled`, `uncertain`은 전역 숙의 event의 �
 
 CLI application의 내부 `createAssignedManagedDeliberationExecutor`는 일반 CLI 요청과 분리된 신뢰 경계에서만 queue의 숙의 ID와 기대 project ID를 받습니다. Project binding adapter는 queue project를 절대 repository root로 바꾸고 storage를 연 뒤 manifest project가 기대값과 같은지 provider 시작 전에 확인합니다. 기존 managed 숙의 runtime은 이 ID로 workspace와 `deliberation.started`를 만들며 성공 결과에서는 상태와 산출물 수만 queue로 돌려주고 최종 본문·참여자 내부 결과를 복제하지 않습니다. 일반 `lervo deliberate` 명령은 계속 자체 ID만 만들고 사용자 지정 ID를 받지 않습니다. 결정은 [ADR-0139](./docs/adr/0139-conversation-queue-managed-deliberation-binding.md)에 기록합니다.
 
+`uncertain` job의 원본 대조는 queue 실행과 분리된 읽기 전용 port입니다. 공통 조정기는 project·숙의·request hash가 그대로인 job만 compare-and-set하며 source 종류를 CLI에 고정하지 않습니다. 현재 managed source는 project event hash chain, 숙의 이력, 승인 checkpoint와 process lease를 검사합니다. 일관된 완료 또는 활성 lease가 없는 승인 후 중단만 짧은 queue 요약으로 복구하고, 활성 실행·승인 전 불완전 이력·원본 불일치는 계속 `unknown`으로 둡니다. 대조는 provider, 자동 재실행이나 자동 재개를 호출하지 않으며 source report 원문 대신 종류·hash·시각과 이전 failure code만 queue에 남깁니다. 결정은 [ADR-0140](./docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md)에 기록합니다.
+
 `@lervo/hub-control`은 durable command queue와 현재 signed policy bundle에서 민감 원본을 제외한 review view를 계산합니다. `/control`은 token을 현재 탭 메모리에만 보관하고 fragment를 즉시 지우며, 같은 principal로 다시 인증해야 review API를 읽을 수 있습니다. Grant 자체는 승인 권한이 아닙니다. 실제 승인은 `approval.write`를 가진 bearer가 기존 Hub policy HTTP endpoint를 호출할 때만 signed approval 원본으로 생깁니다. 세부 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록합니다.
 
 ### Verification Engine

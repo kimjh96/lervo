@@ -1,5 +1,3 @@
-import { isAbsolute, resolve } from "node:path";
-
 import type {
   ConversationDeliberationExecutionPort,
   ConversationDeliberationJob,
@@ -10,60 +8,27 @@ import {
   createAssignedManagedDeliberationExecutor,
   type ExecuteAssignedManagedDeliberation,
 } from "./managed-deliberation.js";
+import {
+  ManagedConversationDeliberationExecutionError,
+  ManagedConversationDeliberationProjects,
+  type ManagedConversationDeliberationProjectBinding,
+} from "./conversation-deliberation-projects.js";
 
-export interface ManagedConversationDeliberationProjectBinding {
-  projectId: string;
-  repositoryRoot: string;
-}
-
-export class ManagedConversationDeliberationExecutionError extends Error {
-  constructor(
-    readonly code: "deliberation_job_invalid" | "deliberation_project_not_configured",
-    message: string,
-  ) {
-    super(message);
-    this.name = "ManagedConversationDeliberationExecutionError";
-  }
-}
+export {
+  ManagedConversationDeliberationExecutionError,
+  type ManagedConversationDeliberationProjectBinding,
+} from "./conversation-deliberation-projects.js";
 
 export function createManagedConversationDeliberationExecutionAdapter(options: {
   projects: readonly ManagedConversationDeliberationProjectBinding[];
   executeAssigned?: ExecuteAssignedManagedDeliberation;
 }): ConversationDeliberationExecutionPort {
-  const projects = new Map<string, string>();
-  const repositoryRoots = new Set<string>();
-  for (const binding of options.projects) {
-    const repositoryRoot = resolve(binding.repositoryRoot);
-    if (
-      !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(binding.projectId) ||
-      !isAbsolute(binding.repositoryRoot) || binding.repositoryRoot.includes("\0") ||
-      projects.has(binding.projectId) || repositoryRoots.has(repositoryRoot)
-    ) {
-      throw new ManagedConversationDeliberationExecutionError(
-        "deliberation_job_invalid",
-        "대화 숙의 project binding이 유효하지 않습니다.",
-      );
-    }
-    projects.set(binding.projectId, repositoryRoot);
-    repositoryRoots.add(repositoryRoot);
-  }
-  if (projects.size === 0) {
-    throw new ManagedConversationDeliberationExecutionError(
-      "deliberation_job_invalid",
-      "대화 숙의 project binding이 하나 이상 필요합니다.",
-    );
-  }
+  const projects = new ManagedConversationDeliberationProjects(options.projects);
   const executeAssigned = options.executeAssigned ?? createAssignedManagedDeliberationExecutor();
 
   return {
     async execute(job: Readonly<ConversationDeliberationJob>): Promise<ConversationDeliberationSummary> {
-      const repositoryRoot = projects.get(job.projectId);
-      if (repositoryRoot === undefined) {
-        throw new ManagedConversationDeliberationExecutionError(
-          "deliberation_project_not_configured",
-          "대화 숙의 project에 연결된 저장소가 없습니다.",
-        );
-      }
+      const repositoryRoot = projects.require(job.projectId);
       if (
         job.state !== "leased" ||
         !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(job.deliberationId) ||

@@ -174,4 +174,68 @@ describe("conversation deployment composition", () => {
     })).resolves.toMatchObject({ status: "no_consensus", artifactCount: 4 });
     application.close();
   });
+
+  it("reconciles an uncertain job only through the configured source", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-reconcile-"));
+    roots.push(root);
+    const inspect = vi.fn(async (input: { job: { deliberationId: string } }) => ({
+      status: "confirmed" as const,
+      sourceKind: "managed_deliberation_inspection_v1" as const,
+      evidenceHash: `sha256:${"e".repeat(64)}`,
+      summary: {
+        deliberationId: input.job.deliberationId,
+        status: "no_consensus" as const,
+        artifactCount: 3,
+        nextAction: "none" as const,
+      },
+    }));
+    const application = await openConversationApplication({
+      ...options(root),
+      deliberations: {
+        bindings: [{
+          projectId: "prj_platform01",
+          participantId: "ptc_platform01",
+          principalId: "operator:reviewer",
+          permissions: ["deliberation.start", "deliberation.read"] as const,
+        }],
+        executor: { execute: async () => { throw new Error("결과를 알 수 없습니다."); } },
+        reconciliationSource: { inspect },
+        workerId: "conversation-worker-1",
+      },
+    });
+    const adapter = application.slackAdapters.get("itg_slack001");
+    if (
+      adapter === undefined || application.deliberations === null ||
+      application.reconcileDeliberation === null
+    ) throw new Error("Conversation 숙의 대조 배포가 누락되었습니다.");
+    const received = await adapter.receive(signed(event({
+      id: "Ev-reconciliation-1",
+      ts: "1787191200.000300",
+    })));
+    if (received.status !== "accepted") throw new Error("숙의 event가 수신되지 않았습니다.");
+    const started = await application.deliberations.start({
+      event: received.event,
+      policyId: "deliberation_product-review",
+      topic: "불확실한 실행 결과를 원본과 대조합니다.",
+      requestedAt: now.toISOString(),
+    });
+    await expect(application.runDeliberationWorkerCycle()).resolves.toMatchObject({
+      status: "uncertain",
+      deliberationId: started.deliberationId,
+    });
+    await expect(application.reconcileDeliberation({
+      projectId: "prj_platform01",
+      deliberationId: started.deliberationId,
+    })).resolves.toMatchObject({
+      status: "reconciled",
+      summary: { status: "no_consensus", artifactCount: 3 },
+    });
+    expect(inspect).toHaveBeenCalledOnce();
+    await expect(application.deliberations.inspect({
+      event: received.event,
+      deliberationId: started.deliberationId,
+      inspectedAt: now.toISOString(),
+    })).resolves.toMatchObject({ status: "no_consensus", artifactCount: 3 });
+    application.close();
+  });
 });
