@@ -9,7 +9,11 @@ import {
 } from "@lervo/writing";
 
 import { parseConversationControlCommand } from "./parser.js";
-import type { ConversationControlResponderOptions } from "./types.js";
+import type {
+  ConversationControlResponderOptions,
+  ConversationDeliberationSummary,
+  ParsedConversationControlCommand,
+} from "./types.js";
 import { ConversationControlError } from "./types.js";
 
 function timestamp(now: () => Date): string {
@@ -80,6 +84,101 @@ function render(input: Awaited<ReturnType<ConversationControlResponderOptions["c
   return lines.join("\n\n");
 }
 
+function deliberationStatusLabel(status: ConversationDeliberationSummary["status"]): string {
+  return ({
+    running: "진행 중",
+    interrupted: "재개 대기",
+    converged: "결론 도달",
+    no_consensus: "합의 없음",
+    failed: "실패",
+  } as const)[status];
+}
+
+function renderDeliberation(summary: ConversationDeliberationSummary, started: boolean): string {
+  const lines = [
+    started
+      ? `숙의 ${summary.deliberationId} 요청을 처리했습니다.`
+      : `숙의 ${summary.deliberationId}은 현재 ${deliberationStatusLabel(summary.status)} 상태입니다.`,
+    `기록된 산출물은 ${summary.artifactCount}개입니다.`,
+  ];
+  if (summary.nextAction === "wait") lines.push("현재 작업이 끝날 때까지 기다려 주세요.");
+  if (summary.nextAction === "resume") {
+    lines.push("재개 권한이 있는 실행 경로에서 승인된 경계부터 이어갈 수 있습니다.");
+  }
+  return lines.join("\n\n");
+}
+
+function assertDeliberationSummary(
+  summary: ConversationDeliberationSummary,
+  expectedId?: string,
+): void {
+  const nextActionMatches = summary.status === "running"
+    ? summary.nextAction === "wait"
+    : summary.status === "interrupted"
+      ? summary.nextAction === "resume"
+      : summary.nextAction === "none";
+  if (
+    !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(summary.deliberationId) ||
+    (expectedId !== undefined && summary.deliberationId !== expectedId) ||
+    !Number.isSafeInteger(summary.artifactCount) || summary.artifactCount < 0 ||
+    summary.artifactCount > 10_000 || !nextActionMatches
+  ) {
+    throw new ConversationControlError(
+      "deliberation_source_failed",
+      "숙의 서비스가 유효하지 않은 상태를 반환했습니다.",
+    );
+  }
+}
+
+async function executeCommand(
+  options: ConversationControlResponderOptions,
+  event: ConversationInboundEvent,
+  command: ParsedConversationControlCommand,
+  at: string,
+): Promise<string> {
+  if ("deliveryId" in command) {
+    const controlled = await options.control.inspect({
+      event,
+      operation: command.operation,
+      deliveryId: command.deliveryId,
+      inspectedAt: at,
+    });
+    return render(controlled, command.operation === "approval_review");
+  }
+  if (options.deliberations === undefined) {
+    throw new ConversationControlError(
+      "deliberation_source_failed",
+      "이 배포에는 숙의 서비스가 연결되지 않았습니다.",
+    );
+  }
+  try {
+    const summary = command.operation === "deliberation_start"
+      ? await options.deliberations.start({
+          event,
+          policyId: command.policyId,
+          topic: command.topic,
+          requestedAt: at,
+        })
+      : await options.deliberations.inspect({
+          event,
+          deliberationId: command.deliberationId,
+          inspectedAt: at,
+        });
+    assertDeliberationSummary(
+      summary,
+      command.operation === "deliberation_status" ? command.deliberationId : undefined,
+    );
+    return renderDeliberation(summary, command.operation === "deliberation_start");
+  } catch (error) {
+    if (error instanceof ConversationControlError) throw error;
+    throw new ConversationControlError(
+      "deliberation_source_failed",
+      "숙의를 시작하거나 상태를 조회하지 못했습니다.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
+}
+
 async function storeWriting(options: ConversationControlResponderOptions,
   content: string): Promise<WritingArtifactCoordinate> {
   const bytes = Buffer.from(content, "utf8");
@@ -110,15 +209,9 @@ export class ConversationControlResponder {
       );
     }
     const inspectedAt = timestamp(this.now);
-    const controlled = await this.options.control.inspect({
-      event: input.event,
-      operation: parsed.operation,
-      deliveryId: parsed.deliveryId,
-      inspectedAt,
-    });
     const artifact = await storeWriting(
       this.options,
-      render(controlled, parsed.operation === "approval_review"),
+      await executeCommand(this.options, input.event, parsed, inspectedAt),
     );
     const publication = await evaluateWritingPublication({
       artifact,

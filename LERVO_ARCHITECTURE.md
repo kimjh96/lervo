@@ -347,6 +347,8 @@ Reply는 `chat` surface의 content-bound writing permit를 통과해야 durable 
 
 `@lervo/conversation-control`은 플랫폼 adapter와 분리된 결정적 command responder입니다. 정확한 `/lervo command <delivery-id>`와 `/lervo approval <delivery-id>`만 해석하고 자연어, reaction이나 모델 추론으로 승인 의도를 만들지 않습니다. Project·participant binding은 Hub principal과 destination·조회 권한을 고정하며, 승인 검토 링크에는 principal·project·delivery와 짧은 만료 시각을 HMAC으로 결속한 grant만 fragment에 둡니다. 응답은 기존 `chat` writing gate와 interaction outbox를 통과하므로 Slack, Discord와 자체 채팅이 같은 계약을 사용합니다.
 
+같은 responder는 명시적인 `/lervo deliberate start <policy-id> -- <topic>`과 `/lervo deliberate status <id>`를 공급자·플랫폼 중립 숙의 port로 보냅니다. Project·human participant는 별도 principal과 `deliberation.start`·`deliberation.read` 권한에 결속됩니다. Port는 정규화된 conversation event만 받고 Slack·Discord 주소나 credential을 알지 않으며, backend가 로컬 실행기 또는 durable queue를 선택합니다. 반환 상태는 진행·재개 대기·수렴·미합의·실패를 구분하고 responder가 임의로 완료를 추정하지 않습니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록합니다.
+
 `@lervo/hub-control`은 durable command queue와 현재 signed policy bundle에서 민감 원본을 제외한 review view를 계산합니다. `/control`은 token을 현재 탭 메모리에만 보관하고 fragment를 즉시 지우며, 같은 principal로 다시 인증해야 review API를 읽을 수 있습니다. Grant 자체는 승인 권한이 아닙니다. 실제 승인은 `approval.write`를 가진 bearer가 기존 Hub policy HTTP endpoint를 호출할 때만 signed approval 원본으로 생깁니다. 세부 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록합니다.
 
 ### Verification Engine

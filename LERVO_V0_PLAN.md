@@ -1551,4 +1551,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 승인된 숙의 재개 경계를 완료했습니다. 모든 reviewer가 최신 claim을 승인한 뒤 검증 전 checkpoint를 한 번만 기록하고, `--resume`은 현재 policy·event·CAS·분할 workspace·provider session 역할을 다시 대조한 뒤 검증과 결정만 이어갑니다. 제안·검토를 중복 실행하지 않는 중단·재개 fixture와 완료 숙의 재개 거부를 검증했습니다. 결정은 [ADR-0135](./docs/adr/0135-approved-deliberation-resume-boundary.md)에 기록했습니다.
 
+플랫폼 중립 대화 숙의 제어를 완료했습니다. 명시적인 저장 policy 시작과 숙의 ID 상태 조회만 해석하고, project·human participant를 principal의 시작·조회 권한에 결속합니다. Slack·Discord·자체 채팅이 같은 responder와 숙의 port를 사용하며 결과는 writing gate와 interaction outbox를 거칩니다. 자연어는 실행으로 추정하지 않고 backend가 없거나 상태 좌표가 다르면 실패합니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록했습니다.
+
 현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

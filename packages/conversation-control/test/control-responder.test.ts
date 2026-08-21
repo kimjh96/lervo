@@ -15,6 +15,7 @@ import type { WritingSemanticEvaluator } from "@lervo/writing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ConfiguredConversationDeliberationControl,
   ConfiguredConversationHubControl,
   ConversationControlResponder,
   parseConversationControlCommand,
@@ -116,6 +117,78 @@ describe("conversation command control", () => {
     });
     expect(parseConversationControlCommand(`이 command ${deliveryId} 승인해줘`)).toBeNull();
     expect(parseConversationControlCommand(`/lervo approve ${deliveryId}`)).toBeNull();
+    expect(parseConversationControlCommand(
+      "/lervo deliberate start deliberation_product-review -- 배포 구조를 검토합니다.",
+    )).toEqual({
+      operation: "deliberation_start",
+      policyId: "deliberation_product-review",
+      topic: "배포 구조를 검토합니다.",
+    });
+    expect(parseConversationControlCommand("/lervo deliberate status dlb_chat0001")).toEqual({
+      operation: "deliberation_status",
+      deliberationId: "dlb_chat0001",
+    });
+    expect(parseConversationControlCommand("Lervo끼리 배포 구조를 토론해 줘")).toBeNull();
+  });
+
+  it("routes deliberation start and status through one platform-neutral port", async () => {
+    const { artifacts, event } = await fixtureMessage(
+      "/lervo deliberate start deliberation_product-review -- 배포 구조를 검토합니다.",
+    );
+    const start = vi.fn(async () => ({
+      deliberationId: "dlb_chat0001",
+      status: "running" as const,
+      artifactCount: 0,
+      nextAction: "wait" as const,
+    }));
+    const inspect = vi.fn(async () => ({
+      deliberationId: "dlb_chat0001",
+      status: "interrupted" as const,
+      artifactCount: 3,
+      nextAction: "resume" as const,
+    }));
+    const responder = new ConversationControlResponder({
+      artifactStore: artifacts,
+      control: { inspect: async () => ({ review: review(), reviewUrl: null }) },
+      deliberations: { start, inspect },
+      writingContract: defaultKoreanWritingContract,
+      semanticEvaluator: evaluator(),
+      now: () => new Date("2026-08-20T00:05:00.000Z"),
+    });
+    const policy = createConversationParticipationPolicy({
+      projectId: "prj_control01",
+      roleId: "reviewer",
+      conversationIds: ["cnv_control01"],
+      mode: "relevant",
+      respondTo: ["human"],
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 10,
+      maxAutomationDepth: 2,
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+    const decision = createConversationParticipationDecision({
+      event,
+      policy,
+      action: "respond",
+      reason: "relevant",
+      relevance: "relevant",
+      decidedAt: "2026-08-20T00:04:30.000Z",
+    });
+    const candidate = await responder.respond({ event, policy, decision });
+    const body = Buffer.from(await artifacts.get(
+      `lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`,
+    )).toString("utf8");
+
+    expect(start).toHaveBeenCalledWith({
+      event,
+      policyId: "deliberation_product-review",
+      topic: "배포 구조를 검토합니다.",
+      requestedAt: "2026-08-20T00:05:00.000Z",
+    });
+    expect(inspect).not.toHaveBeenCalled();
+    expect(body).toContain("숙의 dlb_chat0001 요청을 처리했습니다.");
+    expect(body).toContain("기다려 주세요");
   });
 
   it("publishes a writing-gated review reply without creating an approval", async () => {
@@ -210,5 +283,49 @@ describe("conversation command control", () => {
       deliveryId,
       verifiedAt: "2026-08-20T00:06:00.000Z",
     })).toBe(false);
+  });
+
+  it("binds deliberation operations to the human project principal", async () => {
+    const start = vi.fn(async () => ({
+      deliberationId: "dlb_chat0001",
+      status: "running" as const,
+      artifactCount: 0,
+      nextAction: "wait" as const,
+    }));
+    const control = new ConfiguredConversationDeliberationControl({
+      backend: {
+        start,
+        inspect: async () => ({
+          deliberationId: "dlb_chat0001",
+          status: "running",
+          artifactCount: 0,
+          nextAction: "wait",
+        }),
+      },
+      bindings: [{
+        projectId: "prj_control01",
+        participantId: "ptc_human001",
+        principalId: "operator:reviewer",
+        permissions: ["deliberation.start", "deliberation.read"],
+      }],
+    });
+    const { event } = await fixtureMessage(
+      "/lervo deliberate start deliberation_product-review -- 배포 구조를 검토합니다.",
+    );
+
+    await control.start({
+      event,
+      policyId: "deliberation_product-review",
+      topic: "배포 구조를 검토합니다.",
+      requestedAt: "2026-08-20T00:05:00.000Z",
+    });
+
+    expect(start).toHaveBeenCalledWith({
+      projectId: "prj_control01",
+      principalId: "operator:reviewer",
+      policyId: "deliberation_product-review",
+      topic: "배포 구조를 검토합니다.",
+      requestedAt: "2026-08-20T00:05:00.000Z",
+    });
   });
 });

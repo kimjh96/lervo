@@ -1346,7 +1346,15 @@ Approval 파생 상태는 다음과 같습니다.
 
 이 상태와 `hadRevokedApproval`은 command·snapshot·approval·revocation 원본에서 계산하는 read model이며 새 저장 상태나 실행 event가 아닙니다. `/control` shell에는 데이터와 credential이 없고 token은 현재 탭 메모리에만 둡니다. 실제 승인 버튼은 기존 `POST /v1/policy/projects/<projectId>/approvals`를 호출합니다. 따라서 review grant는 승인 capability가 아니며, 재인증 bearer가 같은 project scope와 `approval.write` 또는 기존 `policy.write`를 가질 때만 Hub clock과 signer가 기존 command-bound approval 원본을 만듭니다.
 
-대화 경계 실패는 `control_command_invalid`, `control_access_denied`, `control_source_failed`, `message_artifact_invalid`, `writing_publication_blocked`입니다. HTTP의 잘못된 좌표는 `400`, 인증 없음은 `401`, scope·permission·principal/grant 불일치는 `403`, command 부재는 `404`, source 불일치는 `500`입니다. 오류에는 token, grant, principal, request artifact, command 원본과 내부 예외를 넣지 않습니다. 이 기능은 새 전역 event를 추가하지 않으며 상태 조회·링크 발급·승인 작성이 Node 실행, `loaded`, `injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록합니다.
+대화 경계 실패는 `control_command_invalid`, `control_access_denied`, `control_source_failed`, `deliberation_source_failed`, `message_artifact_invalid`, `writing_publication_blocked`입니다. HTTP의 잘못된 좌표는 `400`, 인증 없음은 `401`, scope·permission·principal/grant 불일치는 `403`, command 부재는 `404`, source 불일치는 `500`입니다. 오류에는 token, grant, principal, request artifact, command 원본과 내부 예외를 넣지 않습니다. 이 기능은 새 전역 event를 추가하지 않으며 상태 조회·링크 발급·승인 작성이 Node 실행, `loaded`, `injected` 또는 `used`를 뜻하지 않습니다. 결정은 [ADR-0050](./docs/adr/0050-principal-bound-conversation-command-review.md)에 기록합니다.
+
+### 대화 숙의 시작과 상태 조회
+
+Conversation responder는 `/lervo deliberate start <policy-id> -- <topic>`과 `/lervo deliberate status <deliberation-id>`만 숙의 명령으로 처리합니다. 본문은 4,096자 이하이며 start는 `.lervo/deliberations`에 대응하는 policy ID와 빈 값이 아닌 주제를 요구합니다. 자연어 요청, reaction, mention과 모델 분류 결과는 시작 권한이 아닙니다.
+
+Project·human participant는 principal과 `deliberation.start` 또는 `deliberation.read`에 결속됩니다. 권한을 확인한 플랫폼 중립 port만 backend에 project·principal·policy/topic 또는 deliberation ID·시각을 전달합니다. Backend 결과는 `running`, `interrupted`, `converged`, `no_consensus`, `failed`, 0~10,000의 artifact 수와 상태에 맞는 `wait`, `resume`, `none`만 허용합니다. Status 응답의 숙의 ID는 요청 ID와 같아야 합니다.
+
+응답은 Hub command 응답과 같은 `chat` writing gate·CAS·interaction outbox를 사용합니다. Responder는 Slack, Discord나 자체 채팅 transport를 직접 호출하지 않으며 backend의 동기 실행, durable queue 또는 로컬 상태 저장 방식을 규정하지 않습니다. Backend가 없거나 좌표가 다르면 `deliberation_source_failed`로 닫습니다. 새 event·승인·숙의 완료 상태를 만들지 않고 명령 수신만으로 E2/E3나 사용을 주장하지 않습니다. 결정은 [ADR-0136](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)에 기록합니다.
 
 ## Managed run 승인 재검증
 

@@ -155,6 +155,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [사용자용 Codex·Claude 교차 숙의 CLI ADR](./docs/adr/0133-cli-two-provider-deliberation.md)
 - [분할 정책 기반 다중 역할 숙의 CLI ADR](./docs/adr/0134-sharded-multi-role-deliberation-policy.md)
 - [승인된 숙의 경계에서만 재개하는 ADR](./docs/adr/0135-approved-deliberation-resume-boundary.md)
+- [플랫폼 중립 대화 숙의 제어 ADR](./docs/adr/0136-platform-neutral-conversation-deliberation-control.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -163,7 +164,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/conversation-contract`: 플랫폼 공통 inbound artifact 좌표, adapter capability, 참여 policy·decision, writing permit에 묶인 outbound와 hash-only delivery receipt의 canonical 계약
 - `@lervo/interaction`: mention·relevance·signal·cooldown·rate·automation depth를 구분하는 능동 참여와 responder·writing 검증·delivery port를 연결하는 플랫폼 중립 runtime
 - `@lervo/conversation-responder`: message artifact를 확인하고 역할별 E2/E3 공통 맥락을 실제 Codex·Claude 읽기 전용 session에 주입한 뒤, 재검증 가능한 `chat` writing 증거가 있는 reply만 반환하는 managed bridge
-- `@lervo/conversation-control`: 명시적 command만 해석하고 대화 participant를 Hub principal에 결속한 뒤, writing 검증된 상태·승인 검토 응답을 만드는 플랫폼 중립 responder. 채팅에서 approval 원본을 만들지 않음
+- `@lervo/conversation-control`: 명시적 command만 해석하고 대화 participant를 principal과 권한에 결속한 뒤, writing 검증된 Hub 상태·승인 검토와 숙의 시작·상태 응답을 만드는 플랫폼 중립 responder. 채팅에서 approval 원본을 만들거나 자연어를 실행 명령으로 추정하지 않음
 - `@lervo/interaction-sqlite`: 재시작 가능한 inbox·decision·outbox lease와 되돌릴 수 없는 완료·전달 상태를 보존하는 append-only SQLite adapter. 대화 본문과 외부 식별자 원문은 저장하지 않음
 - `@lervo/adapter-native-chat`: 자체 채팅 서비스의 inbound mapping과 delivery port를 공통 conversation 계약에 연결하는 transport 독립 adapter
 - `@lervo/conversation-platform`: 외부 식별자 mapping, CAS 본문 저장·복원, descriptor와 delivery receipt를 Slack·Discord가 공유하는 플랫폼 경계
