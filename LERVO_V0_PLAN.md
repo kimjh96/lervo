@@ -1179,4 +1179,6 @@ CLI first-publication package metadata post-apply verification을 완료했습�
 
 CLI first-publication external requirement evidence report를 완료했습니다. License approval, 24시간 이하 npm scope control confirmation과 기존 first-publication approval을 서로 다른 canonical 문서로 읽고, public npm 404 관측과 현재 source에서 관측 전후 재계산한 post-apply report에 결속합니다. 결과는 `evidence_bound`이지만 `not_armed`이며 actor 신원·실제 npm scope 권한·비공개 package 부재·receipt 진위와 release artifact bytes를 증명하지 않습니다. 입력 파일·승인·activation·게시를 바꾸지 않습니다. 결정은 [ADR-0110](./docs/adr/0110-cli-first-publication-external-requirement-evidence-report.md)에 기록했습니다.
 
-다음 구현 작업은 기존 bootstrap authorization이 중복된 사람 확인을 직접 해석하지 않고 external evidence report를 필수 원본으로 받아 exact release와 fresh public package 관측을 다시 검증하도록 전환하는 **CLI first-publication bootstrap v2 evidence integration**입니다.
+CLI first-publication bootstrap v2 evidence integration을 완료했습니다. Bootstrap은 external evidence report v1의 schema·digest·한계·유효기간을 독립적으로 읽고 exact publication authorization·tarball·package identity에 대조한 뒤 public npm 404를 새로 관측합니다. 결과는 report와 여섯 digest, fresh 관측 만료를 결속하며 사람 문서를 다시 해석하지 않습니다. V1 bootstrap과 예전 `--approval` 입력은 명시적으로 거부하고 하위 preflight·plan·reservation·execution은 공통 target·release 계약을 유지한 채 v2 reader를 통과해야 합니다. 실제 arming·게시·외부 설정 변경은 열지 않았습니다. 결정은 [ADR-0111](./docs/adr/0111-cli-first-publication-bootstrap-v2-evidence-integration.md)에 기록했습니다.
+
+다음 구현 작업은 bootstrap·execution plan·read-only preflight를 실행 허가로 오해하지 않도록 별도 사람 의사결정과 exact bootstrap을 짧은 수명의 one-shot 문서에 결속하되 publisher CLI는 열지 않는 **CLI first-publication arming authorization boundary**입니다.

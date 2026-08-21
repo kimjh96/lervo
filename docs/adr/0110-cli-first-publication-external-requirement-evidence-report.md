@@ -87,7 +87,7 @@ Observer는 404만 `public_package_not_found`로 받습니다. 2xx는 이름을 
 External evidence report v1은 다음을 결속합니다.
 
 - `status=evidence_bound`, `activation=not_implemented`, `arming=not_armed`
-- package·version·repository·license·public registry target
+- package·version·repository·license·public registry·scope owner target
 - post-apply report와 receipt digest
 - publication authorization, artifact SHA-256과 source digest
 - license approval, scope confirmation과 first-publication approval의 ID·canonical digest·시각
@@ -128,4 +128,4 @@ Actor ID는 입력 검증에만 사용하고 report에 복사하지 않습니다
 
 Fixture는 네 독립 요구 결속, actor 비노출, license·scope의 다른 report binding, scope 만료, 이미 존재하는 package, 서로 다른 target, activation 상향 위조를 거부합니다. Command 검사는 local 오류의 online 이전 차단, 관측 전후 post-apply 재검증, 관측 중 source 변경과 입력 무변경을 확인합니다.
 
-다음 단계는 기존 bootstrap authorization이 중복된 사람 확인을 직접 해석하지 않고 이 external evidence report를 필수 원본으로 받아 exact release와 fresh public package 상태를 다시 검증하도록 전환하는 bootstrap v2 evidence integration입니다.
+후속 [ADR-0111](./0111-cli-first-publication-bootstrap-v2-evidence-integration.md)은 이 report를 bootstrap의 필수 원본으로 연결했습니다. Bootstrap은 사람 문서를 다시 해석하지 않고 report schema·digest·한계·유효기간과 exact release 결속을 확인한 뒤 public package 부재를 새로 관측합니다.

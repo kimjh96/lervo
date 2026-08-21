@@ -4,9 +4,11 @@ import { isAbsolute, resolve } from "node:path";
 
 import {
   createFirstPublicationBootstrapAuthorization,
-  FirstPublicationBootstrapError,
   validateFirstPublicationBootstrapLocalInputs,
-} from "./first-publication-bootstrap.mjs";
+} from "./first-publication-bootstrap-authorization.mjs";
+import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
+import { validateFirstPublicationExternalEvidenceReportDocument } from
+  "./first-publication-external-evidence-reader.mjs";
 import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
@@ -45,7 +47,7 @@ async function readCliFirstPublicationBootstrapSources(options) {
     packageManifest: packageManifestPath,
     releaseManifest: resolve(options.releaseDirectory, "release-artifact-manifest.json"),
     publicationAuthorization: options.publicationAuthorizationPath,
-    approval: options.approvalPath,
+    externalEvidence: options.externalEvidencePath,
   };
   const snapshots = await Promise.all([
     readRegularReleaseFile(paths.packageManifest, inputMaximumSize),
@@ -54,16 +56,18 @@ async function readCliFirstPublicationBootstrapSources(options) {
       releaseVerificationMaximumSizes.document,
     ),
     readRegularReleaseFile(paths.publicationAuthorization, inputMaximumSize),
-    readRegularReleaseFile(paths.approval, inputMaximumSize),
+    readRegularReleaseFile(paths.externalEvidence, inputMaximumSize),
   ]);
-  const [packageContents, releaseManifestContents, authorizationContents, approvalContents] =
+  const [packageContents, releaseManifestContents, authorizationContents, evidenceContents] =
     snapshots;
   const packageManifest = parseJson(packageContents);
   const releaseManifest = validateReleaseArtifactManifest(parseJson(releaseManifestContents));
   const publicationAuthorization = validateReleasePublicationAuthorization(
     parseJson(authorizationContents),
   );
-  const approval = parseJson(approvalContents);
+  const externalEvidenceReport = validateFirstPublicationExternalEvidenceReportDocument(
+    parseJson(evidenceContents),
+  );
   const tarballPath = resolve(
     options.releaseDirectory,
     publicationAuthorization.artifact.file,
@@ -91,7 +95,7 @@ async function readCliFirstPublicationBootstrapSources(options) {
     packageManifest,
     releaseManifest,
     publicationAuthorization,
-    approval,
+    externalEvidenceReport,
     assertUnchanged: () => assertReleaseFilesUnchanged([
       { path: paths.packageManifest, contents: packageContents, maximumSize: inputMaximumSize },
       {
@@ -104,7 +108,11 @@ async function readCliFirstPublicationBootstrapSources(options) {
         contents: authorizationContents,
         maximumSize: inputMaximumSize,
       },
-      { path: paths.approval, contents: approvalContents, maximumSize: inputMaximumSize },
+      {
+        path: paths.externalEvidence,
+        contents: evidenceContents,
+        maximumSize: inputMaximumSize,
+      },
       {
         path: tarballPath,
         contents: tarballContents,
@@ -119,7 +127,7 @@ export async function authorizeCliFirstPublicationBootstrap(options, dependencie
     options?.online !== true ||
     !isAbsolute(options.releaseDirectory ?? "") ||
     !isAbsolute(options.publicationAuthorizationPath ?? "") ||
-    !isAbsolute(options.approvalPath ?? "")
+    !isAbsolute(options.externalEvidencePath ?? "")
   ) fail(options?.online === true ? undefined : "first_publication_online_required");
   const readSources = dependencies.readSources ?? readCliFirstPublicationBootstrapSources;
   const observePackage = dependencies.observeNpmPublicPackage ?? observeNpmPublicPackage;

@@ -1,7 +1,6 @@
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import {
   FirstPublicationBootstrapError,
-  firstPublicationApprovalMaximumLifetimeMs,
   firstPublicationExecution,
   firstPublicationRegistryObservationLifetimeMs,
   firstPublicationTransition,
@@ -9,7 +8,6 @@ import {
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
-const approvalIdPattern = /^apr_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 const sha1Pattern = /^[a-f0-9]{40}$/u;
 const sha512IntegrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
@@ -20,6 +18,13 @@ function invalid() {
   throw new FirstPublicationBootstrapError(
     "first_publication_bootstrap_invalid",
     "CLI 최초 게시 bootstrap 입력이 올바르지 않습니다.",
+  );
+}
+
+function unsupported() {
+  throw new FirstPublicationBootstrapError(
+    "first_publication_bootstrap_schema_unsupported",
+    "지원하지 않는 CLI 최초 게시 bootstrap 형식입니다.",
   );
 }
 
@@ -44,7 +49,7 @@ function bootstrapBody(bootstrap) {
     target: bootstrap.target,
     identity: bootstrap.identity,
     release: bootstrap.release,
-    approval: bootstrap.approval,
+    evidence: bootstrap.evidence,
     registryObservation: bootstrap.registryObservation,
     execution: bootstrap.execution,
     transition: bootstrap.transition,
@@ -53,14 +58,15 @@ function bootstrapBody(bootstrap) {
 
 export function validateFirstPublicationBootstrapAuthorization(bootstrap) {
   if (bootstrap === null || typeof bootstrap !== "object" || Array.isArray(bootstrap)) invalid();
+  if (bootstrap.schemaVersion !== 2) unsupported();
   const observedAt = timestamp(bootstrap.registryObservation?.observedAt);
   const validUntil = timestamp(bootstrap.registryObservation?.validUntil);
-  const approvedAt = timestamp(bootstrap.approval?.approvedAt);
-  const expiresAt = timestamp(bootstrap.approval?.expiresAt);
+  const evidenceCheckedAt = timestamp(bootstrap.evidence?.checkedAt);
+  const evidenceValidUntil = timestamp(bootstrap.evidence?.validUntil);
   const body = bootstrapBody(bootstrap);
   if (
     !exactKeys(bootstrap, [...Object.keys(body), "bootstrapDigest"]) ||
-    bootstrap.schemaVersion !== 1 || bootstrap.status !== "bootstrap_authorized" ||
+    bootstrap.status !== "bootstrap_authorized" ||
     !digestPattern.test(bootstrap.bootstrapDigest ?? "") ||
     bootstrap.bootstrapDigest !== canonicalDigest(body) ||
     !exactKeys(bootstrap.target, ["registry", "package", "version", "distTag", "access"]) ||
@@ -84,14 +90,23 @@ export function validateFirstPublicationBootstrapAuthorization(bootstrap) {
     !sha1Pattern.test(bootstrap.release.artifact.registryShasum ?? "") ||
     bootstrap.release.tag !== `v${bootstrap.target.version}` ||
     !sourceDigestPattern.test(bootstrap.release.sourceDigest ?? "") ||
-    !exactKeys(bootstrap.approval, ["approvalId", "approvalDigest", "approvedAt", "expiresAt"]) ||
-    !approvalIdPattern.test(bootstrap.approval.approvalId ?? "") ||
-    !digestPattern.test(bootstrap.approval.approvalDigest ?? "") ||
+    !exactKeys(bootstrap.evidence, [
+      "externalEvidenceReportDigest", "postApplyReportDigest", "receiptDigest",
+      "licenseApprovalDigest", "scopeConfirmationDigest", "firstPublicationApprovalDigest",
+      "checkedAt", "validUntil",
+    ]) ||
+    !digestPattern.test(bootstrap.evidence.externalEvidenceReportDigest ?? "") ||
+    !digestPattern.test(bootstrap.evidence.postApplyReportDigest ?? "") ||
+    !digestPattern.test(bootstrap.evidence.receiptDigest ?? "") ||
+    !digestPattern.test(bootstrap.evidence.licenseApprovalDigest ?? "") ||
+    !digestPattern.test(bootstrap.evidence.scopeConfirmationDigest ?? "") ||
+    !digestPattern.test(bootstrap.evidence.firstPublicationApprovalDigest ?? "") ||
     !exactKeys(bootstrap.registryObservation, ["state", "observedAt", "validUntil"]) ||
     bootstrap.registryObservation.state !== "public_package_not_found" ||
-    approvedAt > observedAt || observedAt >= validUntil || validUntil > expiresAt ||
+    evidenceCheckedAt > observedAt || evidenceCheckedAt >= evidenceValidUntil ||
+    observedAt >= validUntil || observedAt >= evidenceValidUntil ||
+    validUntil > evidenceValidUntil ||
     validUntil - observedAt > firstPublicationRegistryObservationLifetimeMs ||
-    expiresAt - approvedAt > firstPublicationApprovalMaximumLifetimeMs ||
     canonicalJson(bootstrap.execution) !== canonicalJson(firstPublicationExecution) ||
     canonicalJson(bootstrap.transition) !== canonicalJson(firstPublicationTransition)
   ) invalid();

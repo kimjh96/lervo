@@ -12,108 +12,32 @@ import {
   "../lib/cli-first-publication-bootstrap.mjs";
 import {
   createFirstPublicationBootstrapAuthorization,
-} from "../lib/first-publication-bootstrap.mjs";
+} from "../lib/first-publication-bootstrap-authorization.mjs";
 import { validateFirstPublicationBootstrapAuthorization } from
   "../lib/first-publication-bootstrap-reader.mjs";
 import { observeNpmPublicPackage } from "../lib/npm-public-package-observer.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
-import {
-  createReleasePublicationArtifact,
-  createReleasePublicationAuthorization,
-  npmPublicRegistry,
-} from "../lib/release-publication-authorization.mjs";
+import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
-const repository = "lervo-dev/lervo";
 const observedAt = "2026-08-21T03:00:00Z";
 
 function fixture() {
-  const version = "0.1.0";
-  const artifact = createReleasePublicationArtifact(
-    `lervo-cli-${version}.tgz`,
-    version,
-    Buffer.from("first-publication-tarball"),
-  );
-  const publicationAuthorization = createReleasePublicationAuthorization({
-    verification: {
-      schemaVersion: 1,
-      status: "verified",
-      repository,
-      workflow: ".github/workflows/cli-release-matrix.yml",
-      tag: `v${version}`,
-      sourceDigest: "a".repeat(40),
-      subjects: [
-        { name: artifact.file, digest: { sha256: artifact.sha256 } },
-        { name: "release-artifact-manifest.json", digest: { sha256: "b".repeat(64) } },
-        { name: "release-sbom.cdx.json", digest: { sha256: "c".repeat(64) } },
-      ],
-    },
-    version,
-    distTag: "latest",
-    artifact,
-  });
-  const packageManifest = {
-    name: "@lervo/cli",
-    version,
-    license: "Apache-2.0",
-    private: false,
-    repository: {
-      type: "git",
-      url: `git+https://github.com/${repository}.git`,
-    },
-    publishConfig: {
-      access: "public",
-      registry: npmPublicRegistry,
-      provenance: true,
-    },
-  };
-  const releaseManifest = {
-    artifact: {
-      name: "@lervo/cli",
-      version,
-      license: "Apache-2.0",
-      repository: `git+https://github.com/${repository}.git`,
-      registry: npmPublicRegistry,
-      provenance: true,
-      private: false,
-      access: "public",
-    },
-  };
-  const approval = {
-    schemaVersion: 1,
-    approvalId: "apr_release1",
-    decision: "approve_first_publication",
-    approvedAt: "2026-08-21T02:55:00Z",
-    expiresAt: "2026-08-21T04:00:00Z",
-    approver: { kind: "user", id: "release-owner@example.invalid" },
-    target: {
-      package: "@lervo/cli",
-      repository,
-      license: "Apache-2.0",
-      scopeOwner: { kind: "organization", name: "lervo" },
-      publicationAuthorizationDigest: publicationAuthorization.authorizationDigest,
-    },
-    confirmations: [
-      "license_approved",
-      "one_time_direct_publish_approved",
-      "package_name_availability_confirmed",
-      "scope_control_confirmed",
-      "stage_only_transition_required",
-    ],
-  };
+  const source = createFirstPublicationFixture();
   return {
-    publicationAuthorization,
-    packageManifest,
-    releaseManifest,
-    approval,
-    packageObservation: {
-      schemaVersion: 1,
-      source: "npm_public_registry",
-      state: "not_found",
-      package: "@lervo/cli",
-    },
+    publicationAuthorization: structuredClone(source.publicationAuthorization),
+    packageManifest: structuredClone(source.packageManifest),
+    releaseManifest: structuredClone(source.releaseManifest),
+    externalEvidenceReport: structuredClone(source.externalEvidenceReport),
+    packageObservation: structuredClone(source.packageObservation),
+    approval: structuredClone(source.approval),
     observedAt,
   };
+}
+
+function redigestEvidenceReport(report) {
+  const { evidenceReportDigest: _oldDigest, ...body } = report;
+  report.evidenceReportDigest = canonicalDigest(body);
 }
 
 describe("first-publication bootstrap contract", () => {
@@ -122,8 +46,13 @@ describe("first-publication bootstrap contract", () => {
     const first = createFirstPublicationBootstrapAuthorization(input);
     const second = createFirstPublicationBootstrapAuthorization(input);
     assert.equal(first.status, "bootstrap_authorized");
+    assert.equal(first.schemaVersion, 2);
     assert.equal(first.bootstrapDigest, second.bootstrapDigest);
-    assert.equal(first.registryObservation.validUntil, "2026-08-21T03:10:00.000Z");
+    assert.equal(first.registryObservation.validUntil, "2026-08-21T03:09:00.000Z");
+    assert.equal(
+      first.evidence.externalEvidenceReportDigest,
+      input.externalEvidenceReport.evidenceReportDigest,
+    );
     assert.deepEqual(first.execution, {
       mode: "manual_interactive_once",
       requiresFreshPackageAbsenceCheck: true,
@@ -141,7 +70,7 @@ describe("first-publication bootstrap contract", () => {
     assert.equal(validateFirstPublicationBootstrapAuthorization(first), first);
   });
 
-  it("rejects unresolved package identity and an approval for another release", () => {
+  it("rejects unresolved package identity and an evidence report for another release", () => {
     const unresolved = fixture();
     unresolved.packageManifest.license = "UNLICENSED";
     assert.throws(
@@ -149,25 +78,37 @@ describe("first-publication bootstrap contract", () => {
       { code: "first_publication_identity_unresolved" },
     );
     const mismatched = fixture();
-    mismatched.approval.target.publicationAuthorizationDigest = `sha256:${"d".repeat(64)}`;
+    mismatched.externalEvidenceReport.release.publicationAuthorizationDigest =
+      `sha256:${"f".repeat(64)}`;
+    redigestEvidenceReport(mismatched.externalEvidenceReport);
     assert.throws(
       () => createFirstPublicationBootstrapAuthorization(mismatched),
-      { code: "first_publication_approval_invalid" },
+      { code: "first_publication_external_evidence_target_mismatch" },
     );
   });
 
-  it("rejects an expired approval and a package that appeared before authorization", () => {
+  it("rejects expired evidence and a package that appeared before authorization", () => {
     const expired = fixture();
-    expired.approval.expiresAt = observedAt;
+    expired.externalEvidenceReport.validity.validUntil = observedAt;
+    redigestEvidenceReport(expired.externalEvidenceReport);
     assert.throws(
       () => createFirstPublicationBootstrapAuthorization(expired),
-      { code: "first_publication_approval_expired" },
+      { code: "first_publication_external_evidence_expired" },
     );
     const existing = fixture();
     existing.packageObservation.state = "existing";
     assert.throws(
       () => createFirstPublicationBootstrapAuthorization(existing),
       { code: "first_publication_package_not_missing" },
+    );
+  });
+
+  it("rejects legacy v1 bootstrap documents instead of silently bypassing evidence", () => {
+    const bootstrap = createFirstPublicationBootstrapAuthorization(fixture());
+    bootstrap.schemaVersion = 1;
+    assert.throws(
+      () => validateFirstPublicationBootstrapAuthorization(bootstrap),
+      { code: "first_publication_bootstrap_schema_unsupported" },
     );
   });
 
@@ -198,9 +139,10 @@ describe("first-publication bootstrap contract", () => {
     }
   });
 
-  it("requires an explicit online boundary before reading release inputs", () => {
+  it("rejects the legacy --approval input before reading release sources", () => {
     const result = spawnSync(process.execPath, [
       "scripts/authorize-cli-first-publication-bootstrap.mjs",
+      "--online",
       "--release-directory", "/tmp/release",
       "--publication-authorization", "/tmp/publication.json",
       "--approval", "/tmp/approval.json",
@@ -208,6 +150,25 @@ describe("first-publication bootstrap contract", () => {
     ], { cwd: repositoryRoot, encoding: "utf8" });
     assert.equal(result.status, 1);
     assert.match(result.stderr, /^first_publication_bootstrap_arguments_invalid:/u);
+  });
+
+  it("requires an explicit online boundary before reading release inputs", async () => {
+    let sourceReads = 0;
+    await assert.rejects(
+      authorizeCliFirstPublicationBootstrap({
+        online: false,
+        releaseDirectory: "/release",
+        publicationAuthorizationPath: "/authorization.json",
+        externalEvidencePath: "/external-evidence.json",
+      }, {
+        readSources: async () => {
+          sourceReads += 1;
+          return fixture();
+        },
+      }),
+      { code: "first_publication_online_required" },
+    );
+    assert.equal(sourceReads, 0);
   });
 
   it("rejects unresolved local inputs before calling the registry observer", async () => {
@@ -220,7 +181,7 @@ describe("first-publication bootstrap contract", () => {
         online: true,
         releaseDirectory: "/release",
         publicationAuthorizationPath: "/authorization.json",
-        approvalPath: "/approval.json",
+        externalEvidencePath: "/external-evidence.json",
       }, {
         readSources: async () => sources,
         observeNpmPublicPackage: async () => {
@@ -242,7 +203,7 @@ describe("first-publication bootstrap contract", () => {
       online: true,
       releaseDirectory: "/release",
       publicationAuthorizationPath: "/authorization.json",
-      approvalPath: "/approval.json",
+      externalEvidencePath: "/external-evidence.json",
     }, {
       readSources: async () => sources,
       observeNpmPublicPackage: async () => sources.packageObservation,

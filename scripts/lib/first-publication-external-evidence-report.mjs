@@ -38,7 +38,10 @@ function reportBody(input) {
     status: "evidence_bound",
     activation: "not_implemented",
     arming: "not_armed",
-    target: structuredClone(input.postApplyReport.target),
+    target: {
+      ...structuredClone(input.postApplyReport.target),
+      scopeOwner: structuredClone(input.scopeConfirmation.target.scopeOwner),
+    },
     validity: {
       checkedAt: input.observedAt,
       validUntil,

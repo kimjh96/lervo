@@ -3,6 +3,8 @@
 - 상태: 승인
 - 날짜: 2026-08-21
 
+> 후속 결정: bootstrap 입력과 결과 schema는 [ADR-0111](./0111-cli-first-publication-bootstrap-v2-evidence-integration.md)에서 external evidence report 기반 v2로 교체했습니다. 이 문서는 v1의 역사적 경계를 설명합니다.
+
 ## 맥락
 
 `@lervo/cli`은 public npm registry에서 인증 없이 조회했을 때 404입니다. 이 응답은 공개 package가 보이지 않는다는 사실만 뜻하며, 같은 이름의 비공개 package 부재나 `@lervo` scope 소유권을 증명하지 않습니다. npm staged publishing은 이미 존재하는 package에만 사용할 수 있고 Trusted Publisher도 package 설정에서 구성하므로 최초 게시에는 별도 경계가 필요합니다.

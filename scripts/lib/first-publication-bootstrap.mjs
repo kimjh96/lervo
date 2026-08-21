@@ -1,12 +1,9 @@
-import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
-import {
-  npmPublicRegistry,
-  validateReleasePublicationAuthorization,
-} from "./release-publication-authorization.mjs";
+import { canonicalJson } from "./release-artifact-manifest.mjs";
+import { validateReleasePublicationAuthorization } from
+  "./release-publication-authorization.mjs";
 import {
   trustedPublisherEnvironment,
   trustedPublisherWorkflow,
-  validateReadinessRepository,
 } from "./trusted-publisher-readiness.mjs";
 
 export const firstPublicationApprovalMaximumLifetimeMs = 24 * 60 * 60 * 1000;
@@ -64,41 +61,6 @@ function timestamp(value) {
   return milliseconds;
 }
 
-function repository(value) {
-  try {
-    return validateReadinessRepository(value);
-  } catch {
-    fail();
-  }
-}
-
-function validateIdentity(manifest, releaseManifest, approval, authorization) {
-  const approvedRepository = repository(approval.target.repository);
-  const expectedRepository = `git+https://github.com/${approvedRepository}.git`;
-  if (
-    manifest?.name !== "@lervo/cli" ||
-    manifest.version !== authorization.target.version ||
-    manifest.private !== false ||
-    manifest.license !== approval.target.license ||
-    manifest.license === "UNLICENSED" ||
-    manifest.repository?.type !== "git" ||
-    manifest.repository.url !== expectedRepository ||
-    manifest.publishConfig?.access !== "public" ||
-    manifest.publishConfig.registry !== npmPublicRegistry ||
-    manifest.publishConfig.provenance === false ||
-    authorization.release.repository !== approvedRepository ||
-    releaseManifest?.artifact?.name !== manifest.name ||
-    releaseManifest.artifact.version !== manifest.version ||
-    releaseManifest.artifact.license !== manifest.license ||
-    releaseManifest.artifact.repository !== expectedRepository ||
-    releaseManifest.artifact.registry !== npmPublicRegistry ||
-    releaseManifest.artifact.provenance === false ||
-    releaseManifest.artifact.private !== false ||
-    releaseManifest.artifact.access !== "public"
-  ) fail("first_publication_identity_unresolved");
-  return approvedRepository;
-}
-
 function validateApproval(approval, authorization, observedAt) {
   if (
     !exactKeys(approval, [
@@ -142,91 +104,4 @@ export function validateFirstPublicationApproval({
   const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
   validateApproval(approval, authorization, timestamp(checkedAt));
   return approval;
-}
-
-function validatePackageObservation(observation) {
-  if (
-    observation?.schemaVersion !== 1 ||
-    observation.source !== "npm_public_registry" ||
-    observation.package !== "@lervo/cli"
-  ) fail();
-  if (observation.state === "unavailable") {
-    fail("first_publication_package_observation_unavailable");
-  }
-  if (observation.state === "existing") {
-    fail("first_publication_package_not_missing");
-  }
-  if (
-    !exactKeys(observation, ["schemaVersion", "source", "state", "package"]) ||
-    observation.state !== "not_found" ||
-    observation.package !== "@lervo/cli"
-  ) fail("first_publication_package_not_missing");
-}
-
-export function createFirstPublicationBootstrapAuthorization({
-  publicationAuthorization,
-  packageManifest,
-  releaseManifest,
-  approval,
-  packageObservation,
-  observedAt,
-}) {
-  const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
-  const observedMilliseconds = timestamp(observedAt);
-  validateApproval(approval, authorization, observedMilliseconds);
-  validatePackageObservation(packageObservation);
-  const repository = validateIdentity(
-    packageManifest,
-    releaseManifest,
-    approval,
-    authorization,
-  );
-  const validUntil = new Date(Math.min(
-    Date.parse(approval.expiresAt),
-    observedMilliseconds + firstPublicationRegistryObservationLifetimeMs,
-  )).toISOString();
-  const body = {
-    schemaVersion: 1,
-    status: "bootstrap_authorized",
-    target: structuredClone(authorization.target),
-    identity: {
-      repository,
-      license: approval.target.license,
-      scopeOwner: structuredClone(approval.target.scopeOwner),
-    },
-    release: {
-      publicationAuthorizationDigest: authorization.authorizationDigest,
-      artifact: structuredClone(authorization.artifact),
-      tag: authorization.release.tag,
-      sourceDigest: authorization.release.sourceDigest,
-    },
-    approval: {
-      approvalId: approval.approvalId,
-      approvalDigest: canonicalDigest(approval),
-      approvedAt: approval.approvedAt,
-      expiresAt: approval.expiresAt,
-    },
-    registryObservation: {
-      state: "public_package_not_found",
-      observedAt,
-      validUntil,
-    },
-    execution: structuredClone(firstPublicationExecution),
-    transition: structuredClone(firstPublicationTransition),
-  };
-  return { ...body, bootstrapDigest: canonicalDigest(body) };
-}
-
-export function validateFirstPublicationBootstrapLocalInputs({
-  publicationAuthorization,
-  packageManifest,
-  releaseManifest,
-  approval,
-  checkedAt,
-}) {
-  const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
-  const checkedMilliseconds = timestamp(checkedAt);
-  validateApproval(approval, authorization, checkedMilliseconds);
-  validateIdentity(packageManifest, releaseManifest, approval, authorization);
-  return authorization;
 }

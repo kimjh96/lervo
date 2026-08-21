@@ -28,7 +28,7 @@ function parseArguments(args) {
     if (![
       "--release-directory",
       "--publication-authorization",
-      "--approval",
+      "--external-evidence",
       "--output",
     ].includes(name) || values.has(name) || index + 1 >= args.length) failArguments();
     values.set(name, args[index + 1]);
@@ -37,7 +37,7 @@ function parseArguments(args) {
   const required = [
     "--release-directory",
     "--publication-authorization",
-    "--approval",
+    "--external-evidence",
     "--output",
   ];
   if (!online || required.some((name) => !isAbsolute(values.get(name) ?? ""))) {
@@ -48,7 +48,7 @@ function parseArguments(args) {
       online,
       releaseDirectory: values.get("--release-directory"),
       publicationAuthorizationPath: values.get("--publication-authorization"),
-      approvalPath: values.get("--approval"),
+      externalEvidencePath: values.get("--external-evidence"),
     },
     outputPath: values.get("--output"),
   };

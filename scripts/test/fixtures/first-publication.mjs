@@ -1,5 +1,7 @@
 import { createFirstPublicationBootstrapAuthorization } from
-  "../../lib/first-publication-bootstrap.mjs";
+  "../../lib/first-publication-bootstrap-authorization.mjs";
+import { createFirstPublicationExternalEvidenceReport } from
+  "../../lib/first-publication-external-evidence-report.mjs";
 import {
   createReleasePublicationArtifact,
   createReleasePublicationAuthorization,
@@ -64,32 +66,86 @@ export function createFirstPublicationFixture({
     state: "not_found",
     package: "@lervo/cli",
   };
-  const bootstrap = createFirstPublicationBootstrapAuthorization({
+  const postApplyReport = {
+    status: "verified",
+    activation: "not_implemented",
+    target: {
+      package: "@lervo/cli",
+      version,
+      repository: firstPublicationRepository,
+      license: "Apache-2.0",
+      registry: npmPublicRegistry,
+    },
+    reportDigest: `sha256:${"d".repeat(64)}`,
+    receipt: { receiptDigest: `sha256:${"e".repeat(64)}` },
+  };
+  const licenseApproval = {
+    schemaVersion: 1,
+    evidenceType: "first_publication_license_approval",
+    approvalId: "lic_fixture1",
+    decision: "approve_public_distribution_license",
+    approvedAt: "2026-08-21T02:30:00Z",
+    approver: { kind: "user", id: "legal-owner@example.invalid" },
+    target: {
+      package: "@lervo/cli",
+      repository: firstPublicationRepository,
+      license: "Apache-2.0",
+      postApplyReportDigest: postApplyReport.reportDigest,
+    },
+    basis: "operator_attestation",
+  };
+  const scopeConfirmation = {
+    schemaVersion: 1,
+    evidenceType: "first_publication_npm_scope_control_confirmation",
+    confirmationId: "scp_fixture1",
+    decision: "confirm_npm_scope_control",
+    confirmedAt: "2026-08-21T02:45:00Z",
+    expiresAt: "2026-08-21T04:00:00Z",
+    confirmer: { kind: "user", id: "npm-owner@example.invalid" },
+    target: {
+      package: "@lervo/cli",
+      scopeOwner: { kind: "organization", name: "lervo" },
+      postApplyReportDigest: postApplyReport.reportDigest,
+    },
+    basis: "operator_attestation",
+  };
+  const externalEvidenceReport = createFirstPublicationExternalEvidenceReport({
+    postApplyReport,
     publicationAuthorization,
-    packageManifest: {
+    licenseApproval,
+    scopeConfirmation,
+    firstPublicationApproval: approval,
+    packageObservation,
+    observedAt: "2026-08-21T02:59:00Z",
+  });
+  const packageManifest = {
+    name: "@lervo/cli",
+    version,
+    license: "Apache-2.0",
+    private: false,
+    repository: {
+      type: "git",
+      url: `git+https://github.com/${firstPublicationRepository}.git`,
+    },
+    publishConfig: { access: "public", registry: npmPublicRegistry, provenance: true },
+  };
+  const releaseManifest = {
+    artifact: {
       name: "@lervo/cli",
       version,
       license: "Apache-2.0",
+      repository: `git+https://github.com/${firstPublicationRepository}.git`,
+      registry: npmPublicRegistry,
+      provenance: true,
       private: false,
-      repository: {
-        type: "git",
-        url: `git+https://github.com/${firstPublicationRepository}.git`,
-      },
-      publishConfig: { access: "public", registry: npmPublicRegistry, provenance: true },
+      access: "public",
     },
-    releaseManifest: {
-      artifact: {
-        name: "@lervo/cli",
-        version,
-        license: "Apache-2.0",
-        repository: `git+https://github.com/${firstPublicationRepository}.git`,
-        registry: npmPublicRegistry,
-        provenance: true,
-        private: false,
-        access: "public",
-      },
-    },
-    approval,
+  };
+  const bootstrap = createFirstPublicationBootstrapAuthorization({
+    publicationAuthorization,
+    packageManifest,
+    releaseManifest,
+    externalEvidenceReport,
     packageObservation,
     observedAt: "2026-08-21T03:00:00Z",
   });
@@ -97,8 +153,14 @@ export function createFirstPublicationFixture({
     approval,
     artifact,
     bootstrap,
+    externalEvidenceReport,
+    licenseApproval,
+    packageManifest,
     packageObservation,
+    postApplyReport,
     publicationAuthorization,
+    releaseManifest,
+    scopeConfirmation,
     tarballContents,
   };
 }

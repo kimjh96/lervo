@@ -7,6 +7,8 @@ import {
   createFirstPublicationExternalEvidenceReport,
   validateFirstPublicationExternalEvidenceReport,
 } from "../lib/first-publication-external-evidence-report.mjs";
+import { validateFirstPublicationExternalEvidenceReportDocument } from
+  "../lib/first-publication-external-evidence-reader.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
 import { createExternalEvidenceFixture } from
   "./fixtures/first-publication-external-evidence.mjs";
@@ -27,6 +29,7 @@ describe("first-publication external requirement evidence report", () => {
       assert.equal(report.status, "evidence_bound");
       assert.equal(report.activation, "not_implemented");
       assert.equal(report.arming, "not_armed");
+      assert.deepEqual(report.target.scopeOwner, { kind: "organization", name: "lervo" });
       assert.equal(report.evidence.publicPackageAvailability.validUntil,
         "2026-08-21T03:10:00.000Z");
       assert.equal(report.validity.validUntil, "2026-08-21T03:10:00.000Z");
@@ -39,6 +42,7 @@ describe("first-publication external requirement evidence report", () => {
       assert.equal(report.limitations.scopeControlAuthority, "not_registry_verified");
       assert.equal(JSON.stringify(report).includes("legal-owner@example.invalid"), false);
       assert.equal(JSON.stringify(report).includes("npm-owner@example.invalid"), false);
+      assert.equal(validateFirstPublicationExternalEvidenceReportDocument(report), report);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -115,6 +119,24 @@ describe("first-publication external requirement evidence report", () => {
       forged.evidenceReportDigest = canonicalDigest(body);
       assert.throws(
         () => validateFirstPublicationExternalEvidenceReport(forged, input),
+        { code: "first_publication_external_evidence_report_invalid" },
+      );
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a redigested report that weakens its declared limitations", async () => {
+    const fixture = await createExternalEvidenceFixture();
+    try {
+      const forged = structuredClone(
+        createFirstPublicationExternalEvidenceReport(reportInput(fixture)),
+      );
+      forged.limitations.releaseArtifact = "verified";
+      const { evidenceReportDigest: _discarded, ...body } = forged;
+      forged.evidenceReportDigest = canonicalDigest(body);
+      assert.throws(
+        () => validateFirstPublicationExternalEvidenceReportDocument(forged),
         { code: "first_publication_external_evidence_report_invalid" },
       );
     } finally {
