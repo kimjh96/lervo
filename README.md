@@ -2,7 +2,7 @@
 
 Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요할 때 중앙에서 여러 프로젝트와 AI 에이전트를 관리할 수 있는 로컬 우선(local-first) 에이전트 운영 체계입니다.
 
-현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획과 arming 비활성 경계 완료 (2026-08-21)
+현재 상태: 0.1.0, M0·M1·M2·M3·M4·M5·M6 완료, 플랫폼 중립 대화 runtime·증거 결속 전문 역할·명시적 지식 그래프·검색 평가와 정책 기반 엔진 선택·버전이 있는 doctor·bounded trace 자동화 계약·단일 bundle·packed CLI 다중 플랫폼 검사·패키지 사용 안내·registry 게시 사전검증·SBOM·release 출처 증명·소비자 검증·게시 적격성·Trusted Publisher readiness·최초 게시 실행 계획·활성화 차단 보고서와 arming 비활성 경계 완료 (2026-08-21)
 
 ## 목표
 
@@ -123,6 +123,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [CLI 최초 공개 게시 사전 점검 명령 ADR](./docs/adr/0101-cli-first-publication-preflight-command.md)
 - [CLI 최초 공개 게시 실행 계획과 arming 비활성 경계 ADR](./docs/adr/0102-cli-first-publication-execution-plan.md)
 - [CLI 최초 공개 게시 실행 계획 조회 명령 ADR](./docs/adr/0103-cli-first-publication-execution-plan-command.md)
+- [CLI 최초 공개 게시 활성화 차단 보고서 ADR](./docs/adr/0104-cli-first-publication-activation-blocker-report.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -269,6 +270,8 @@ lervo search engine rollback --policy <policy-id> --operator operator_search
 `pnpm release:bootstrap:preflight --release-directory <absolute-path> --publication-authorization <absolute-path> --bootstrap <absolute-path> --reservation-root <absolute-path> --user-config <absolute-path> --online [--json]`은 이 report를 실제 릴리스 파일·예약 저장소·npm 계정 확인에 연결합니다. 입력 파일은 확인 전후 내용이 같은지 대조하고, npm은 임시 캐시와 빈 전역 설정에서 읽은 뒤 모두 제거합니다. 기본 출력은 한국어 설명, `--json`은 report v1이며 준비됐을 때만 종료 코드 0입니다. 명령은 결과 문서, 예약, 패키지 게시나 외부 설정을 만들지 않습니다.
 
 최초 게시 execution plan은 실행 입력 확인부터 terminal 저장까지 8단계와 예약 전·예약 후·게시 시작 후의 서로 다른 취소 처분을 고정합니다. 상태는 `not_armed`, 활성화는 `not_implemented`이며 이전 preflight를 실행 허가로 사용하지 않습니다. `pnpm release:bootstrap:plan --publication-authorization <절대 경로> --bootstrap <절대 경로> [--json]`은 두 계약 파일에서 이 계획을 다시 만들어 stdout에만 보여 줍니다. 명령 성공은 계획을 정상적으로 읽었다는 뜻일 뿐 게시 준비나 실행 권한을 뜻하지 않으며, 온라인 확인·사람 확인 요청·예약·게시를 실행하지 않습니다.
+
+`pnpm release:bootstrap:blockers [--json]`는 현재 CLI package manifest와 release manifest만 읽어 로컬에서 고칠 수 있는 항목과 외부에서 확인·승인해야 하는 항목을 나눠 보여 줍니다. 현재는 저장소·라이선스·public registry·provenance 설정이 로컬 차단 항목이고, public npm 이름 확인·`@lervo` scope 관리 권한·별도 최초 게시 승인은 외부 요구사항입니다. 이 보고서는 항상 advisory-only이고 activation은 `not_implemented`이며 온라인 확인·승인 생성·파일 수정·게시를 실행하지 않습니다.
 
 `pnpm smoke:registry-publish`는 외부 uplink와 credential이 없는 임시 Verdaccio에 실제 tarball을 `preflight` tag로 게시합니다. Registry metadata와 SHA-512 integrity, dist-tag, package 좌표 설치와 local bin을 확인하고 같은 version의 두 번째 게시가 거부된 뒤에도 기존 integrity가 같은지 다시 읽습니다. 소비자 설정은 `@lervo` scope만 임시 registry로 보내며 외부 SDK dependency는 공개 registry나 package cache를 사용할 수 있습니다. 따라서 이 검사는 실제 npm 게시 권한·package 소유권, 완전한 offline 설치나 원격 registry 성공을 뜻하지 않습니다.
 

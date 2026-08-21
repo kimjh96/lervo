@@ -1019,6 +1019,17 @@ CLI first-publication execution plan command 완료 조건:
 - 경로·승인자·profile·credential·외부 출력 원문과 결과 파일을 남기지 않음
 - Fixture가 성공 exit code를 준비 완료·arming·게시 권한으로 주장하지 않음
 
+CLI first-publication activation blocker report 완료 조건:
+
+- 고정된 package manifest와 release manifest만 bounded regular-file snapshot으로 읽음
+- Package identity, repository, license와 registry·provenance를 독립 local check로 구분함
+- Public package 이름, npm scope 관리와 최초 게시 승인을 local check와 다른 external requirement로 유지함
+- Local check가 모두 ready여도 report는 blocked, activation은 not implemented로 유지함
+- Reader가 두 manifest에서 전체 report를 재계산하고 조회 중 원본 변경을 거부함
+- Human·JSON 출력이 같은 report를 사용하며 정상 조회는 exit code 0이지만 status는 blocked임
+- Online observer, approval writer, patch·reservation·publisher port와 결과 파일을 갖지 않음
+- Fixture가 외부 사실, 승인·arming·게시 성공이나 파일 변경을 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1143,4 +1154,6 @@ CLI first-publication execution plan/arming 경계를 완료했습니다. 실제
 
 CLI first-publication execution plan command를 완료했습니다. 절대 경로의 publication authorization과 bootstrap을 bounded snapshot으로 읽고 같은 canonical plan을 한국어·JSON으로 stdout에만 보여 줍니다. 계획 조회 성공은 준비 완료나 권한이 아니며 online 관측·사람 확인·예약·활성화·게시를 실행하지 않습니다. 결정은 [ADR-0103](./docs/adr/0103-cli-first-publication-execution-plan-command.md)에 기록했습니다.
 
-다음 구현 작업은 현재 package identity·repository·license와 외부에서만 확인 가능한 scope owner·명시적 승인 항목을 구분해 보여 주는 **CLI first-publication activation blocker report**입니다. 이 report도 결정을 추정하거나 arming하지 않으며, 실제 npm 게시 command 활성화는 미해결 항목에 대한 별도 명시적 승인 뒤에만 검토합니다.
+CLI first-publication activation blocker report를 완료했습니다. 현재 package·release manifest의 identity, repository, license와 registry·provenance를 로컬 검사로 나누고 public npm 이름, scope 관리와 최초 게시 승인을 외부 요구사항으로 분리했습니다. 로컬 검사가 모두 통과해도 report는 blocked, activation은 not implemented이며 온라인 관측·승인·파일 변경·게시를 실행하지 않습니다. 결정은 [ADR-0104](./docs/adr/0104-cli-first-publication-activation-blocker-report.md)에 기록했습니다.
+
+다음 구현 작업은 repository·license·npm scope owner를 명시적으로 입력받아 현재 차단 항목에 어떤 변경이 필요한지만 계산하는 **CLI first-publication metadata decision과 비쓰기 patch preview 계약**입니다. 실제 파일 적용, approval 생성과 게시 활성화는 별도 경계로 유지합니다.

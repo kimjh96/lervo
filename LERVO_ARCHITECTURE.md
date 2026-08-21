@@ -47,6 +47,8 @@ Preflight command adapter는 절대 입력 경로와 명시적 online 경계를 
 
 Execution plan command adapter는 절대 경로의 publication authorization과 bootstrap을 제한된 regular-file snapshot으로 읽고, plan 생성 뒤 두 파일이 그대로인지 확인합니다. 한국어 formatter와 JSON 직렬화는 파일 읽기·계획 정책에서 분리합니다. 이 조정기에는 tarball·registry·reservation·publisher port가 없으며 결과 파일도 만들지 않습니다. 따라서 exit code 0은 정적 계획을 출력했다는 뜻이고 실행 준비나 arming 상태를 나타내지 않습니다.
 
+Activation blocker report는 고정된 CLI package manifest와 release manifest의 bounded snapshot만 읽습니다. 로컬 metadata 정책은 package identity, repository, license와 registry·provenance를 네 검사로 나누고, report 코어는 그 결과에 온라인 package 이름 확인, npm scope 관리 확인과 별도 승인 요구를 결합합니다. Source reader, 정책, report 재계산, 한국어 formatter와 process 인자 처리는 서로 분리합니다. Registry·approval·patch·publisher port가 없으므로 로컬 검사가 모두 통과해도 arming되지 않습니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
