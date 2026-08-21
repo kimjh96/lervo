@@ -997,6 +997,18 @@ CLI first-publication preflight command 완료 조건:
 - 경로·profile·사용자명·credential·npm 출력·오류 원문과 report 파일을 남기지 않음
 - Fixture가 실제 예약·2FA·게시·외부 설정 변경이나 실행 허가를 주장하지 않음
 
+CLI first-publication execution plan/arming 경계 완료 조건:
+
+- Exact bootstrap·publication authorization·target·artifact에 결정적으로 결속됨
+- 상태를 `not_armed`, 활성화를 `not_implemented`로 고정하고 실행 permission을 만들지 않음
+- Prior preflight를 permit로 사용하지 않고 실행 시 다섯 조건을 다시 확인하도록 명시함
+- 입력 검증부터 terminal 저장까지 실제 실행과 같은 8단계 순서를 고정함
+- 예약 전, 예약 뒤 게시 전, 게시 시작 뒤 취소 처분을 서로 다르게 명시함
+- 두 사람 확인 문구를 실제 npm adapter와 공유하고 각 거부 결과를 구분함
+- Reader가 원본에서 전체 plan을 다시 계산해 redigest activation 위조를 거부함
+- Plan 생성이 prompt·online 관측·예약·게시·외부 설정을 실행하지 않음
+- Fixture가 2FA·bypass token 부재·freshness·게시 성공이나 권한을 주장하지 않음
+
 ## 다음 실행 작업
 
 현재 정의한 M0~M6 v0 범위와 후속 **Hub 정책 배포·`require_approval` managed write 연결 및 Hub 정책 HTTP 수직 슬라이스**를 완료했습니다. `PolicySnapshot`, command·capability·snapshot·경로에 묶인 approval과 별도 revocation을 purpose별로 서명하고, 인증된 Hub transport에서 검증한 bounded bundle을 project-bound SQLite에 원자적으로 저장합니다. 로컬·Hub 중 더 제한적인 결정을 적용하며 승인 대기 command는 reservation 없이 재평가됩니다. 저장 후 signature 재검증, Node 재시작, 승인 만료·철회, local deny 우선, 잘못된 purpose와 snapshot rollback을 fixture로 확인했습니다.
@@ -1117,4 +1129,6 @@ CLI first-publication 읽기 전용 preflight report 계약을 완료했습니�
 
 CLI first-publication preflight command를 완료했습니다. 절대 입력·상태 경로와 `--online`을 먼저 확인하고, release snapshot·public registry·예약 조회·격리된 npm profile 관측을 report에 연결합니다. Human·JSON 출력은 같은 report를 사용하고 ready만 성공하며 예약 root·결과 문서·게시·외부 설정을 만들지 않습니다. 결정은 [ADR-0101](./docs/adr/0101-cli-first-publication-preflight-command.md)에 기록했습니다.
 
-다음 구현 작업은 실제 게시 권한을 열지 않은 채 실행 직전 재검증·사람 확인·예약 생성 순서와 취소 가능 지점을 보여 주는 **CLI first-publication execution plan/arming 계약**입니다. 실제 npm 게시 command 활성화는 package identity·license·scope owner와 별도 명시적 승인 뒤에만 검토합니다.
+CLI first-publication execution plan/arming 경계를 완료했습니다. 실제 실행 순서와 세 취소 처분, 두 사람 확인을 exact release에 결속하되 상태는 `not_armed`, activation은 `not_implemented`로 고정했습니다. Plan reader는 원본에서 전체를 재계산하며 생성 과정은 prompt·관측·예약·게시를 실행하지 않습니다. 결정은 [ADR-0102](./docs/adr/0102-cli-first-publication-execution-plan.md)에 기록했습니다.
+
+다음 구현 작업은 이 정적 계획을 실제 입력 파일에서 읽어 한국어·JSON으로 보여 주되 arming이나 online 관측을 하지 않는 **CLI first-publication execution plan command**입니다. 실제 npm 게시 command 활성화는 package identity·license·scope owner와 별도 명시적 승인 뒤에만 검토합니다.

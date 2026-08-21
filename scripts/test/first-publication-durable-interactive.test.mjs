@@ -12,6 +12,8 @@ import { createFirstPublicationBootstrapAuthorization } from
   "../lib/first-publication-bootstrap.mjs";
 import { executeFirstPublicationBootstrap } from
   "../lib/first-publication-execution.mjs";
+import { createFirstPublicationExecutionPlan } from
+  "../lib/first-publication-execution-plan.mjs";
 import { createFirstPublicationReservation } from
   "../lib/first-publication-reservation.mjs";
 import { prepareNpmInteractiveFirstPublisher } from
@@ -335,6 +337,13 @@ describe("npm interactive first publisher", () => {
       "before_publication",
       "second_factor_attestation",
     ]);
+    assert.deepEqual(
+      confirmations.map(({ phrase }) => phrase),
+      createFirstPublicationExecutionPlan({
+        bootstrap: source.bootstrap,
+        publicationAuthorization: source.publicationAuthorization,
+      }).confirmations.map(({ phrase }) => phrase),
+    );
     await session.close();
     await assert.rejects(lstat(temporaryRoot), { code: "ENOENT" });
   });

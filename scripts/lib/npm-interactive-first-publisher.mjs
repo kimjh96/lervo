@@ -9,6 +9,10 @@ import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import {
+  firstPublicationIntentPhrase,
+  firstPublicationSecondFactorPhrase,
+} from "./first-publication-operator-confirmations.mjs";
+import {
   createNpmInteractiveFirstPublicationObservation,
   isSupportedNpmInteractiveClient,
   npmInteractiveFirstPublicationEnvironmentReasons,
@@ -118,8 +122,7 @@ export async function prepareNpmInteractiveFirstPublisher({
     if (observation.reasons.includes("npm_write_2fa_not_ready")) {
       fail("npm_interactive_first_publication_2fa_not_ready");
     }
-    const phrase = `${bootstrap.target.package}@${bootstrap.target.version}을 ` +
-      "대화형 2FA로 한 번 게시하고 bypass token은 사용하지 않습니다";
+    const phrase = firstPublicationIntentPhrase(bootstrap);
     if (await confirm({ phase: "before_publication", phrase }) !== phrase) {
       fail("npm_interactive_first_publication_not_confirmed");
     }
@@ -157,12 +160,12 @@ export async function prepareNpmInteractiveFirstPublisher({
       try {
         secondFactorConfirmation = await confirm({
           phase: "second_factor_attestation",
-          phrase: "2FA 확인을 완료했습니다",
+          phrase: firstPublicationSecondFactorPhrase,
         });
       } catch {
         fail("npm_interactive_first_publication_2fa_unconfirmed");
       }
-      if (secondFactorConfirmation !== "2FA 확인을 완료했습니다") {
+      if (secondFactorConfirmation !== firstPublicationSecondFactorPhrase) {
         fail("npm_interactive_first_publication_2fa_unconfirmed");
       }
       const coordinate = `${target.package}@${target.version}`;

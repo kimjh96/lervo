@@ -43,6 +43,8 @@ flowchart LR
 
 Preflight command adapter는 절대 입력 경로와 명시적 online 경계를 확인한 뒤 inspector에 읽기 port만 조립합니다. npm profile 조회는 임시 cache·빈 global config와 명시된 user config에서 실행하고 임시 상태를 제거합니다. 입력 파일 snapshot은 외부 관측 뒤 다시 대조하며 사람용 formatter와 JSON 직렬화는 관측·정책에서 분리합니다.
 
+최초 게시 execution plan 코어는 실행 adapter를 호출하지 않고 현재 실행 순서·사람 확인·취소 처분을 canonical 문서로 투영합니다. 확인 문구는 npm adapter와 공통 모듈이 소유하고 plan reader는 bootstrap·authorization에서 전체 문서를 다시 계산합니다. Plan은 항상 `not_armed`, `activation=not_implemented`이며 preflight·예약·publisher port를 갖지 않습니다.
+
 명령 상태:
 
 - `lervo init`: 저장소 탐지 및 안전한 초기 설정. project identity 첫 슬라이스 구현 완료
