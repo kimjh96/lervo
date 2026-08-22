@@ -39,7 +39,7 @@
 
 ### 제품 식별자 전환
 
-구현 현황(2026-08-19): **Lervo 명칭 통일 완료.** 제품명, CLI, `.lervo` 관리 경로, `@lervo` package scope, schema/CAS URI, adapter ID, managed marker와 스킬 manifest 이름을 하나의 식별자로 맞췄습니다. 저장소가 아직 `0.0.0`인 동안 별도 호환 CLI와 이중 package scope는 두지 않습니다. 이전 `.roven`이 있으면 새 초기화를 무부작용으로 차단하며, 원본 event hash chain과 CAS 주소를 보존하는 명시적 명칭 migration은 후속 작업으로 남깁니다. 결정은 [ADR-0020](./docs/adr/0020-lervo-product-identity.md)에 기록했습니다.
+구현 현황(2026-08-19): **Lervo 명칭 통일 완료.** 제품명, CLI, `.lervo` 관리 경로, `@lervo` package scope, schema/CAS URI, adapter ID, managed marker와 스킬 manifest 이름을 하나의 식별자로 맞췄습니다. 저장소가 아직 `0.0.0`인 동안 별도 호환 CLI와 이중 package scope는 두지 않습니다. 이전 `.roven`이 있으면 새 초기화를 무부작용으로 차단합니다. 당시 후속으로 남긴 원본 event hash chain과 CAS 주소 보존 migration은 2026-08-22에 [ADR-0144](./docs/adr/0144-explicit-project-identity-migration.md)의 명시적 CLI로 완료했습니다. 식별자 통일 결정은 [ADR-0020](./docs/adr/0020-lervo-product-identity.md)에 기록했습니다.
 
 ### M0: 계약 고정
 
@@ -1582,4 +1582,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 실행 증거와 대화 조립 경계 보완을 완료했습니다. Run event는 단일 계약 상한으로 기본 list 크기와 무관하게 최대 2,000개까지 page로 읽고 provider signal은 adapter 시작 전 구성 검증과 기본 500개·절대 최대 10,000개로 닫았습니다. 숙의 resume은 project event 전체를 배열에 적재하지 않고 모든 손상 snapshot 실패를 통제된 code로 정규화합니다. Conversation app은 Slack·Discord 내장 factory와 native·외부 factory가 공존하는 registry를 사용하며 platform과 adapter kind를 결속하고 platform SQLite v1의 실제 기존 행과 관계를 보존해 범용 kind의 v2로 올립니다. Queue·managed 실행 증거 계약을 각각 하위 package로 분리하고 공통 queue open·streaming integrity·rollback과 cycle·package→app·contract→구현·금지 transitive dependency 검사를 추가했습니다. CLI workspace writing contract도 composition root에서 주입하고 파일 materialization을 상태 조립에서 분리했으며 traversal을 생성기 경계에서 차단합니다. Runtime snapshot 검증·복원과 managed 실행 결과 마감도 각 실행 본체에서 분리했습니다. Event reader와 새 실패 경계는 직접 계약 fixture로 검증하고 대형 provider·숙의 테스트를 책임별 suite로 나눴습니다. 결정은 [ADR-0143](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)에 기록했습니다.
 
-현재 문서에 확정된 최초 게시 구현 작업은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.
+제품 명칭 migration 수직 경계를 완료했습니다. `lervo migrate identity`는 기본적으로 원본을 바꾸지 않는 content-bound plan만 만들고 같은 plan ID를 명시한 적용만 허용합니다. 임시 복사본 기반 event chain 검사, CAS 전체 object 검증, 실행 중 DB와 두 root 공존 차단, 원자적 root rename과 완료 event 연결을 구현했습니다. 현재 문서 metadata는 유지하고 이전 marker·ownership metadata는 사용자 문서를 수정하지 않은 채 source tree hash별 archive로 보존한 뒤 활성 registry를 비웁니다. 계획 뒤 byte 변경, 깨진 CAS, 기존 event prefix 보존, 새 디렉터리 보충과 문서 metadata archive fixture를 검증했습니다. 결정은 [ADR-0144](./docs/adr/0144-explicit-project-identity-migration.md)에 기록했습니다.
+
+현재 문서에 확정된 최초 게시 구현 작업과 제품 명칭 migration은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

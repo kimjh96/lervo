@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   computeEventHash,
+  inspectExistingEventStore,
   type EventDraft,
   SQLiteEventStore,
 } from "../src/index.js";
@@ -210,6 +211,25 @@ describe("SQLite append-only event store", () => {
     const raw = new DatabaseSync(path);
     expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(2);
     raw.close();
+  });
+
+  it("inspects an existing chain through a temporary copy without touching the source", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    const event = store.append(draft()).event;
+    store.close();
+    const before = await readFile(path);
+
+    await expect(inspectExistingEventStore({ path, projectId })).resolves.toEqual({
+      eventCount: 1,
+      headHash: event.eventHash,
+      storageSchemaVersion: 2,
+      requiresSchemaMigration: false,
+    });
+
+    expect(await readFile(path)).toEqual(before);
+    await expect(access(`${path}-wal`)).rejects.toThrow();
+    await expect(access(`${path}-shm`)).rejects.toThrow();
   });
 
   it("recovers the committed chain after close and reopen", async () => {

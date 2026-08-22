@@ -232,6 +232,35 @@ describe("event payload privacy boundary", () => {
     expect(result.payload).not.toHaveProperty("approverId");
   });
 
+  it("keeps identity migration proof without repository or document details", () => {
+    const result = sanitizeEventPayload("project.identity.migrated", {
+      planId: "idm_0123456789abcdef0123456789abcdef",
+      sourceTreeHash: `sha256:${"a".repeat(64)}`,
+      preservedEventCount: 12,
+      preservedEventHeadHash: `sha256:${"b".repeat(64)}`,
+      verifiedCasObjectCount: 4,
+      documentDisposition: "archive_previous_metadata",
+      migratedAt: "2026-08-22T05:00:00Z",
+      repositoryRoot: "/private/project",
+      documentPaths: ["README.md"],
+      documentBody: "private body",
+    });
+
+    expect(result.payload).toEqual({
+      planId: "idm_0123456789abcdef0123456789abcdef",
+      sourceTreeHash: `sha256:${"a".repeat(64)}`,
+      preservedEventCount: 12,
+      preservedEventHeadHash: `sha256:${"b".repeat(64)}`,
+      verifiedCasObjectCount: 4,
+      documentDisposition: "archive_previous_metadata",
+      migratedAt: "2026-08-22T05:00:00Z",
+    });
+    expect(() => sanitizeEventPayload("project.identity.migrated", {
+      ...result.payload,
+      preservedEventHeadHash: null,
+    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("keeps deliberation coordinates without artifact bodies or provider diagnostics", () => {
     const result = sanitizeEventPayload("deliberation.artifact.recorded", {
       deliberationId: "dlb_architecture_0001",

@@ -27,6 +27,16 @@
 
 저장소 root에 이전 실험 버전의 `.roven` 경로가 있으면 `lervo init`은 `.lervo` 생성 계획을 `blocked`로 반환합니다. 이전 경로의 종류나 내용과 관계없이 자동 이동·수정·삭제하지 않으며 두 관리 경로를 함께 활성화하지 않습니다. 전환에는 event hash chain과 CAS 주소의 원본성을 보존하는 별도 명칭 migration이 필요합니다.
 
+### 제품 명칭 migration
+
+`lervo migrate identity`는 인자 없이 적용하지 않습니다. 기본 출력인 `IdentityMigrationPlan` v1은 절대 repository root, source/target 관리 경로, project ID, 전체 source tree hash·파일 수·byte 수, event 수·기존 head hash·storage schema, 검증한 CAS object 수, 현재 디렉터리 보충 목록, 문서 metadata 처분과 blocker를 결속합니다. Plan ID는 이 전체 내용의 canonical digest에서 만들며 시각을 포함하지 않습니다. 파일 수는 100,000개, 전체 크기는 64 GiB, CAS object는 100,000개가 상한입니다.
+
+Dry-run은 source SQLite를 임시 디렉터리에 복사해 읽으므로 원본 DB에 WAL·SHM이나 metadata를 만들지 않습니다. 원본 DB에 WAL·SHM·journal이 이미 있으면 실행 중이거나 정리되지 않은 것으로 보고 중단합니다. Project binding, schema version, SQLite quick/foreign-key check와 모든 event의 seq·previous hash·event hash를 확인합니다. CAS는 허용된 `sha256/<2>/<62>` object와 빈 `.tmp`만 받고 각 파일명을 실제 content hash와 대조합니다. 원본과 대상 root가 함께 있거나 source 안에 심볼릭 링크·특수 파일·지원하지 않는 문서 metadata가 있으면 계획은 `blocked`입니다.
+
+적용은 `--apply <planId>`가 현재 다시 만든 plan ID와 같을 때만 진행합니다. Root rename, 빠진 현재 디렉터리 생성, 필요한 문서 metadata archive, 완료 event 순서로 실행합니다. 현재 문서 계약을 통과하는 metadata는 유지합니다. 알려진 이전 managed marker·ownership metadata는 `.lervo/archive/identity/<sourceDigest>/`에 byte 그대로 보존하고 빈 활성 document directory를 만듭니다. 사용자 Markdown은 수정하지 않으며 별도 document migration 승인 전에는 archive가 활성 registry라는 뜻이 아닙니다.
+
+완료 전 실패는 이번 적용이 만든 경로와 SQLite 보조 파일을 확인해 제거하고 원래 root로 rename합니다. 복구 자체가 실패하면 `finalization_failed`이며 두 root를 직접 확인해야 합니다. `project.identity.migrated`가 commit된 뒤에는 이전 event prefix와 새 완료 event가 연결됐는지 다시 검사합니다. Commit 뒤 실패는 event를 지우거나 source로 되돌리지 않습니다. 세부 결정은 [ADR-0144](./docs/adr/0144-explicit-project-identity-migration.md)에 정의합니다.
+
 ## 로컬 storage 개방
 
 실행 진입점은 저장소 root에서 계산한 공통 경로로 event/outbox와 CAS를 함께 엽니다. 순서는 다음과 같습니다.
@@ -461,6 +471,7 @@ CLI는 요청한 suite 원본을 provider 시작 전에 모두 읽고, provider�
 - `verification.started`, `verification.completed`
 - `knowledge.candidate.created`, `knowledge.candidate.reviewed`, `knowledge.verified`, `knowledge.stale.detected`, `document.stale.detected`
 - `document.migration.applied`
+- `project.identity.migrated`
 - `unmanaged_change.detected`, `sync.acknowledged`
 
 M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. 키는 Unicode 호환 정규화 후 구분 기호와 대소문자를 제거해 검사하므로 `rawPrompt`, `access_token`, 전각 문자 변형도 같은 민감 키로 취급합니다. raw prompt, 문서 본문, authorization/cookie/credential/password/secret/token/API key/tool input 같은 민감 키는 중첩 객체에서도 event에 보존하지 않습니다. 순환 참조, 유한하지 않은 숫자, 일반 JSON 객체가 아닌 값은 정리된 것처럼 저장하지 않고 `redaction_failed`로 기록을 중단합니다. Type별 schema가 있는 payload의 `invalid_payload`도 같은 상위 처분으로 매핑해 event를 저장하지 않습니다. 파일 경로와 작업 디렉터리는 저장소 상대 경로만 허용합니다. 원문이 필요한 실행 경로는 event payload와 분리된 로컬 context envelope/CAS를 사용합니다.
@@ -468,6 +479,8 @@ M0 구현에서 모든 event payload는 type별 allowlist를 통과합니다. �
 `context.published`에는 shared context/document ID, content hash, 생산 역할, 공개 방식과 허용 역할, 만료 시각만 저장합니다. `handoff.created`에는 handoff ID, 보내고 받는 역할, shared context/evidence event ID와 요청 digest만 저장합니다. 두 event 모두 문서 본문, raw prompt, 내부 추론과 provider payload를 허용하지 않습니다. 이 event를 기록하지 못하면 역할 간 공유가 성립했다고 주장하지 않고 `telemetry_recording_failed`로 실행을 중단합니다. `context.published`는 다른 역할이 읽었다는 뜻이 아니며, 수신 역할의 `document.loaded`와 `context.injected`가 별도로 필요합니다.
 
 `document.migration.applied`에는 plan/approval ID, 승인 digest, 적용 전후 layout hash, 생성한 document ID/content hash와 적용 시각만 저장합니다. Metadata-only 적용은 source/candidate artifact hash를, legacy 구조 전환은 `migrationKind=legacy_registry_structural`, source registry·entry artifact·archive content hash를 추가합니다. 승인자, source/document/archive path, manifest와 문서 본문은 허용하지 않습니다. 이 event는 sidecar 생성 시도나 승인만 뜻하지 않고, 모든 파일 공개와 snapshot 재검증이 끝났음을 뜻합니다. Recorder가 event를 durable하게 기록하지 못하면 적용기가 이번 작업의 변경을 되돌리므로 event와 receipt 어느 쪽도 성공으로 만들지 않습니다.
+
+`project.identity.migrated`에는 plan ID, 전체 source tree hash, 보존한 event 수와 기존 head hash, 검증한 CAS object 수, 문서 metadata 처분과 적용 시각만 저장합니다. Repository path, 파일명 목록, 문서·artifact 본문, 사용자나 승인자 식별자, credential과 provider payload는 허용하지 않습니다. 실패 event는 만들지 않습니다. 완료 event 전 실패는 원래 root로 복구하거나 `finalization_failed`가 되며, 완료 event 뒤 실패는 성공 receipt를 반환하지 않지만 이미 기록한 event와 현재 root를 되돌리지 않습니다.
 
 ## 로컬 event store, outbox와 CAS
 

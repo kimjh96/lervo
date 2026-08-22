@@ -6,6 +6,7 @@ import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { executeManagedDeliberation } from "./managed-deliberation.js";
+import { migrateUsage, runMigrateCommand } from "./migrate-command.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
@@ -15,6 +16,7 @@ import { runVersionCommand, versionUsage } from "./version-command.js";
 const usage = `사용법:
 ${versionUsage}
 ${initUsage}
+${migrateUsage}
 ${runUsage}
 ${deliberateUsage}
 ${traceUsage}
@@ -44,6 +46,7 @@ export async function runCli(
     return runVersionCommand(args.slice(1), io);
   }
   if (command === "init") return runInitCommand(args.slice(1), io);
+  if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);
@@ -54,6 +57,7 @@ export async function runCli(
 }
 
 export { formatInitPlan } from "./init-command.js";
+export { formatIdentityMigrationPlan } from "./migrate-command.js";
 export { createManagedRunExecutor, executeManagedRun } from "./managed-run.js";
 export {
   createManagedDeliberationExecutor,

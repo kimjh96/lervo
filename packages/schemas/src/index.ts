@@ -30,6 +30,7 @@ export * from "./knowledge-lifecycle.js";
 export * from "./managed-block-patch.js";
 export * from "./policy.js";
 export * from "./project.js";
+export * from "./project-identity-migration.js";
 export * from "./remote-command.js";
 export * from "./role.js";
 export * from "./role-evaluation.js";

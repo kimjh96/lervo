@@ -44,6 +44,7 @@
     "@lervo/deliberation-runtime": "workspace:*",
     "@lervo/diagnostics": "workspace:*",
     "@lervo/event-contract": "workspace:*",
+    "@lervo/identity-migration": "workspace:*",
     "@lervo/orchestrator": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",

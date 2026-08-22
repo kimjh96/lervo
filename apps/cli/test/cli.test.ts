@@ -93,6 +93,26 @@ describe("lervo init CLI", () => {
   });
 });
 
+describe("lervo migrate identity CLI", () => {
+  it("keeps a missing previous state read-only and explains the blocker", async () => {
+    const root = await temporaryRepository();
+    let output = "";
+    let errors = "";
+
+    const exitCode = await runCli(["migrate", "identity"], {
+      cwd: root,
+      stdout: (message) => { output += message; },
+      stderr: (message) => { errors += message; },
+    });
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain("계획 상태: 적용 불가");
+    expect(output).toContain("이전 관리 경로가 없습니다");
+    expect(errors).toBe("");
+    await expect(access(resolve(root, ".lervo"))).rejects.toThrow();
+  });
+});
+
 describe("lervo run CLI arguments", () => {
   it("rejects an incomplete run command before opening a managed run", async () => {
     const root = await temporaryRepository();

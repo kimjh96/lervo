@@ -27,6 +27,10 @@ const previousBrandAllowlist = new Set([
   "docs/adr/0020-lervo-product-identity.md",
   "packages/project/src/layout.ts",
   "packages/project/test/project-init.test.ts",
+  "packages/identity-migration/src/plan.ts",
+  "packages/identity-migration/src/types.ts",
+  "packages/identity-migration/test/identity-migration.test.ts",
+  "docs/adr/0144-explicit-project-identity-migration.md",
 ]);
 const previousMarkerAllowlist = new Set([
   "docs/adr/0021-commonmark-managed-block-parser.md",

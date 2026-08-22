@@ -44,6 +44,7 @@ export const eventTypes = [
   "knowledge.stale.detected",
   "document.stale.detected",
   "document.migration.applied",
+  "project.identity.migrated",
   "unmanaged_change.detected",
   "sync.acknowledged",
 ] as const;

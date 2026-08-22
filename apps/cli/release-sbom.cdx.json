@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:0585c76c-02c5-5fdb-b822-0f60984af8c7",
+  "serialNumber": "urn:uuid:a180ac74-654a-5af5-b40b-a0f7cfdb0568",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "bb27d1dc3b476cd5957fc84bcf3dcb144a61292893e82f8f5f664315e7899557"
+          "content": "dd2dc9e76751c60c977a190eb16e8c4223f116f64aed90e11ec5c3af49905a70"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:ee527bc629248ae1414d0035144e0136c8345ac7b6dfa382d263110ca88231e0"
+          "value": "sha256:026c0132df032e675ac74a8c56ee274a9d4d11583d8dc043167d9217585dd083"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:c1b6cd268fa426605749edc546cc4de5df9876e7310d67962d33fbaa4f6ec5e5"
+          "value": "sha256:ecf6aa5e6bf2ad08e728f38121b56995bafd7fd2068fa95a4c04f1368a5facfd"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -495,6 +495,21 @@
       "name": "execution-contract",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/execution-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/identity-migration@0.1.0",
+      "group": "@lervo",
+      "name": "identity-migration",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/identity-migration@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -2761,6 +2776,7 @@
         "pkg:npm/%40lervo/event-contract@0.1.0",
         "pkg:npm/%40lervo/event-store-sqlite@0.1.0",
         "pkg:npm/%40lervo/execution-contract@0.1.0",
+        "pkg:npm/%40lervo/identity-migration@0.1.0",
         "pkg:npm/%40lervo/knowledge@0.1.0",
         "pkg:npm/%40lervo/orchestrator@0.1.0",
         "pkg:npm/%40lervo/project-storage@0.1.0",

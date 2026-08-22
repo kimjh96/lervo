@@ -195,6 +195,15 @@ export const eventPayloadAllowlists = {
     "sidecars",
     "appliedAt"
   ],
+  "project.identity.migrated": [
+    "planId",
+    "sourceTreeHash",
+    "preservedEventCount",
+    "preservedEventHeadHash",
+    "verifiedCasObjectCount",
+    "documentDisposition",
+    "migratedAt"
+  ],
   "unmanaged_change.detected": ["paths", "beforeRevision", "afterRevision", "detectedAt"],
   "sync.acknowledged": ["eventIds", "hubId", "acknowledgedAt"],
 } as const satisfies Record<EventType, readonly string[]>;
@@ -404,6 +413,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "knowledge.stale.detected": "knowledgeStaleDetectedEventPayload",
   "verification.started": "verificationStartedEventPayload",
   "verification.completed": "verificationCompletedEventPayload",
+  "project.identity.migrated": "projectIdentityMigratedEventPayload",
 };
 
 function deliberationArtifactCoordinateMatches(

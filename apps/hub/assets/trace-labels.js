@@ -31,6 +31,7 @@ const eventLabels = {
   "knowledge.stale.detected": "오래된 지식 감지",
   "document.stale.detected": "오래된 문서 감지",
   "document.migration.applied": "문서 이전 적용",
+  "project.identity.migrated": "프로젝트 명칭 이전 완료",
   "unmanaged_change.detected": "관리 밖 변경 감지",
   "sync.acknowledged": "동기화 확인",
 };

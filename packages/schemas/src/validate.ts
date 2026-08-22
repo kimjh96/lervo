@@ -75,6 +75,7 @@ import {
   verifiedKnowledgeSchema,
 } from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
+import { projectIdentityMigratedEventPayloadSchema } from "./project-identity-migration.js";
 import {
   policyApprovalRevocationSchema,
   policyApprovalSchema,
@@ -138,6 +139,9 @@ ajv.addSchema(deliberationPolicySchema);
 
 const validators = {
   project: ajv.getSchema(projectManifestSchema.$id)!,
+  projectIdentityMigratedEventPayload: ajv.compile(
+    projectIdentityMigratedEventPayloadSchema,
+  ),
   policySnapshot: ajv.getSchema(policySnapshotSchema.$id)!,
   signedPolicySnapshot: ajv.getSchema(signedPolicySnapshotSchema.$id)!,
   policyApproval: ajv.getSchema(policyApprovalSchema.$id)!,

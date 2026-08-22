@@ -75,6 +75,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../../packages/event-contract
+      '@lervo/identity-migration':
+        specifier: workspace:*
+        version: link:../../packages/identity-migration
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
@@ -644,6 +647,24 @@ importers:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../sync-contract
+
+  packages/identity-migration:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../event-store-sqlite
+      '@lervo/project':
+        specifier: workspace:*
+        version: link:../project
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   packages/interaction:
     dependencies:
