@@ -83,6 +83,44 @@ describe("Hub sync SQLite integrity lifecycle", () => {
     await reopened.close();
   });
 
+  it("backfills completed artifact cleanup records from schema version 8", async () => {
+    const path = await databasePath();
+    const store = await HubSyncSQLiteStore.open({ path });
+    const claim = await store.claimOrphanArtifact({
+      workerId: "gc:migration",
+      artifactUri: `lervo-cas://sha256/${"a".repeat(64)}`,
+      observedModifiedAt: "2026-08-20T00:00:00.000Z",
+      claimedAt: "2026-08-22T00:00:00.000Z",
+      leaseDurationMs: 60_000,
+    });
+    await store.completeArtifactPurge({
+      claimId: claim!.claimId,
+      workerId: claim!.workerId,
+      completedAt: "2026-08-22T00:00:01.000Z",
+    });
+    await store.close();
+
+    const previous = new DatabaseSync(path);
+    previous.exec(`
+      DROP TRIGGER hub_remote_command_artifact_cleanup_runtime_no_delete;
+      DROP TABLE hub_remote_command_artifact_cleanup_runtime;
+      DROP INDEX hub_remote_command_artifact_gc_completion_uri;
+      ALTER TABLE hub_remote_command_artifact_gc_completions DROP COLUMN completion_status;
+      PRAGMA user_version = 8;
+      UPDATE hub_sync_meta SET value = '8' WHERE key = 'storage_schema_version';
+    `);
+    previous.close();
+
+    const migrated = await HubSyncSQLiteStore.open({ path });
+    const inspection = new DatabaseSync(path, { readOnly: true });
+    expect(inspection.prepare(`
+      SELECT completion_status FROM hub_remote_command_artifact_gc_completions
+    `).get()).toEqual({ completion_status: "completed" });
+    inspection.close();
+    await expect(migrated.auditIntegrity()).resolves.toMatchObject({ valid: true });
+    await migrated.close();
+  });
+
   it("backfills bounded trace indexes when opening the previous schema", async () => {
     const path = await databasePath();
     const project = manifest("prj_hub_migrate_01");
@@ -106,6 +144,8 @@ describe("Hub sync SQLite integrity lifecycle", () => {
       DROP TABLE hub_policy_revocations;
       DROP TABLE hub_policy_approvals;
       DROP TABLE hub_policy_snapshots;
+      DROP TRIGGER hub_remote_command_artifact_cleanup_runtime_no_delete;
+      DROP TABLE hub_remote_command_artifact_cleanup_runtime;
       DROP TRIGGER hub_remote_command_artifact_gc_completions_no_delete;
       DROP TRIGGER hub_remote_command_artifact_gc_completions_no_update;
       DROP TABLE hub_remote_command_artifact_gc_completions;

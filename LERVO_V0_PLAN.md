@@ -1614,4 +1614,25 @@ Command artifact 수명주기 완료 조건:
 - 실제 임시 CAS·SQLite, 공유 참조·재시작·경합·실패 fixture와 전체 문서 수명주기 검사를 통과함
 - 실제 사용자 CAS 삭제, scheduler 설치, production TLS·credential 구성을 완료로 주장하지 않음
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달과 command artifact 수명주기 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. 설치된 Node daemon, production TLS·credential 조합과 cleanup scheduler는 후속 제품 작업입니다.
+Command artifact cleanup runtime을 완료했습니다. SQLite singleton이 scheduler lease·next cycle·inventory cursor와 안전한 마지막 count를 durable하게 보존하고, 공급자 중립 loop가 정기·continuation·실패 retry를 직렬로 실행합니다. 공유 URI는 claim당 delivery 100개만 purge하고 `partial` completion으로 이어갑니다. 선택적 Hub server lifecycle은 listening 뒤 시작하고 close에서 wait·새 cycle을 중단하며 settled 뒤 store를 닫을 수 있습니다. 결정은 [ADR-0148](./docs/adr/0148-durable-command-artifact-cleanup-runtime.md)에 기록했습니다.
+
+Command artifact cleanup runtime 완료 조건:
+
+- 같은 SQLite를 쓰는 여러 worker 중 exact lease 하나만 cycle을 얻음
+- Lease 만료와 database 재시작 뒤 같은 durable inventory cursor에서 인계함
+- Next cycle·lease·last cycle 시각을 문자열과 epoch index로 함께 검증함
+- 정기·continuation·실패 retry 간격과 runtime lease에 명시적 상한이 있음
+- Retention cutoff와 실제 object completion·release 시각을 분리함
+- 한 cycle의 artifact claim은 최대 100개, 한 claim의 delivery purge는 최대 100개임
+- `partial` completion 뒤 다음 cycle이 already-missing object를 멱등하게 이어서 정리함
+- Batch 사이 만료 authorship과 신규 commit을 막고 접근 불가능한 CAS orphan은 다음 batch에서 회수함
+- 최종 batch 이후 새 작성만 독립 retention으로 재개함
+- Runtime row에는 CAS cursor·비밀 아닌 worker lease·시각·count·고정 failure code만 저장함
+- HTTP server가 listening 전에는 시작하지 않고 close 뒤 새 cycle을 만들지 않음
+- 조합 root가 lifecycle settled를 기다린 뒤 storage를 닫을 수 있음
+- Cleanup fatal callback에 내부 오류·path·URI·원문을 전달하지 않음
+- Scheduler 상태를 command 실행·전달·사용이나 runtime event로 승격하지 않음
+- 실제 SQLite 재시작·worker 경쟁·실패·101개 공유 참조·HTTP server 종료 fixture를 통과함
+- 실제 사용자 CAS, production process signal·TLS·credential·service manager를 완료로 주장하지 않음
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달과 command artifact 수명주기·scheduler 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. 실제 Hub 배포 entrypoint, 설치된 Node daemon, production TLS·credential 조합과 process supervisor는 후속 제품 작업입니다.

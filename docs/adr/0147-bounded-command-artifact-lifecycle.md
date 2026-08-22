@@ -3,6 +3,8 @@
 - 상태: 채택
 - 기준일: 2026-08-22
 
+후속 결정: [ADR-0148](./0148-durable-command-artifact-cleanup-runtime.md)은 cycle의 durable cursor·singleton scheduler와 Hub server 시작·종료 결속을 구현하고, 공유 delivery purge도 claim당 100개로 제한합니다.
+
 ## 맥락
 
 Hub command의 요청 원문은 owner-only CAS에 분리했지만 물리 정리 기능이 없었습니다. Database commit 전에 프로세스가 멈추면 참조 없는 object가 남고, 여러 command가 같은 내용 주소를 공유하므로 한 command의 만료만 보고 지우면 아직 보존 중인 원문도 함께 사라집니다. 작성과 정리가 동시에 일어나는 경합, CAS 삭제와 SQLite 완료 기록 사이의 중단도 안전하게 복구해야 합니다.

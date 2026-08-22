@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { type DatabaseSync } from "node:sqlite";
 
 import {
+  HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT,
   HubCommandError,
   type HubCommandArtifactPurgeClaim,
   type HubCommandArtifactPurgeKind,
@@ -52,7 +53,7 @@ function parseKind(value: string): HubCommandArtifactPurgeKind {
   return value;
 }
 
-function deliveryIds(database: DatabaseSync, artifactUri: string): string[] {
+function boundedDeliveryIds(database: DatabaseSync, artifactUri: string): string[] {
   return database.prepare(`
     SELECT authorship.delivery_id
     FROM hub_remote_command_authorships AS authorship
@@ -60,10 +61,25 @@ function deliveryIds(database: DatabaseSync, artifactUri: string): string[] {
       ON purge.delivery_id = authorship.delivery_id
     WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
     ORDER BY authorship.delivery_id
-  `).all(artifactUri).map((row) => stringField(row, "delivery_id"));
+    LIMIT ?
+  `).all(
+    artifactUri,
+    HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT + 1,
+  ).map((row) => stringField(row, "delivery_id"));
 }
 
-function parseClaim(database: DatabaseSync, row: SQLiteRow): HubCommandArtifactPurgeClaim {
+function hasUnpurgedReference(database: DatabaseSync, artifactUri: string): boolean {
+  return database.prepare(`
+    SELECT 1
+    FROM hub_remote_command_authorships AS authorship
+    LEFT JOIN hub_remote_command_artifact_purges AS purge
+      ON purge.delivery_id = authorship.delivery_id
+    WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
+    LIMIT 1
+  `).get(artifactUri) !== undefined;
+}
+
+function parseClaim(row: SQLiteRow): HubCommandArtifactPurgeClaim {
   const artifactUri = stringField(row, "artifact_uri");
   return {
     claimId: stringField(row, "claim_id"),
@@ -72,7 +88,6 @@ function parseClaim(database: DatabaseSync, row: SQLiteRow): HubCommandArtifactP
     workerId: stringField(row, "worker_id"),
     claimedAt: stringField(row, "claimed_at"),
     leaseExpiresAt: stringField(row, "lease_expires_at"),
-    deliveryIds: deliveryIds(database, artifactUri),
   };
 }
 
@@ -126,7 +141,6 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         workerId: input.workerId,
         claimedAt: input.claimedAt,
         leaseExpiresAt: window.leaseExpiresAt,
-        deliveryIds: deliveryIds(this.database, artifactUri),
       });
     }
     return claims;
@@ -154,7 +168,7 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
     const active = this.database.prepare(`
       SELECT claim_id FROM hub_remote_command_artifact_gc_claims WHERE artifact_uri = ?
     `).get(input.artifactUri);
-    if (active !== undefined || deliveryIds(this.database, input.artifactUri).length !== 0) return null;
+    if (active !== undefined || hasUnpurgedReference(this.database, input.artifactUri)) return null;
     const id = claimId();
     this.database.prepare(`
       INSERT INTO hub_remote_command_artifact_gc_claims (
@@ -173,35 +187,39 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
       workerId: input.workerId,
       claimedAt: input.claimedAt,
       leaseExpiresAt: window.leaseExpiresAt,
-      deliveryIds: [],
     };
   }
 
   complete(input: { claimId: string; workerId: string; completedAt: string }): {
-    status: "completed" | "duplicate";
+    status: "completed" | "partial" | "duplicate";
     kind: HubCommandArtifactPurgeKind;
     purgedDeliveryCount: number;
+    continuationRecommended: boolean;
   } {
     validateWorker(input.workerId);
     const completedAtMs = remoteCommandTimestamp(input.completedAt, "artifact completedAt");
     const prior = this.database.prepare(`
-      SELECT kind, purged_delivery_count
+      SELECT kind, completion_status, purged_delivery_count
       FROM hub_remote_command_artifact_gc_completions WHERE claim_id = ? AND worker_id = ?
     `).get(input.claimId, input.workerId);
     if (prior !== undefined) return {
       status: "duplicate",
       kind: parseKind(stringField(prior, "kind")),
       purgedDeliveryCount: integerField(prior, "purged_delivery_count"),
+      continuationRecommended: stringField(prior, "completion_status") === "partial",
     };
     const row = this.database.prepare(`
       SELECT * FROM hub_remote_command_artifact_gc_claims
-      WHERE claim_id = ? AND worker_id = ? AND lease_expires_at_ms >= ?
-    `).get(input.claimId, input.workerId, completedAtMs);
+      WHERE claim_id = ? AND worker_id = ?
+        AND claimed_at_ms <= ? AND lease_expires_at_ms >= ?
+    `).get(input.claimId, input.workerId, completedAtMs, completedAtMs);
     if (row === undefined) {
       throw new HubCommandError("artifact_cleanup_conflict", "artifact cleanup claim이 없거나 만료됐습니다.");
     }
-    const claim = parseClaim(this.database, row);
-    const ids = deliveryIds(this.database, claim.artifactUri);
+    const claim = parseClaim(row);
+    const ids = boundedDeliveryIds(this.database, claim.artifactUri);
+    let completionStatus: "completed" | "partial" = "completed";
+    let purgedIds = ids;
     if (claim.kind === "expired") {
       const blocked = this.database.prepare(`
         SELECT COUNT(*) AS count
@@ -217,28 +235,55 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
       if (integerField(blocked!, "count") !== 0 || ids.length === 0) {
         throw new HubCommandError("artifact_cleanup_conflict", "artifact 보존 조건이 정리 중에 바뀌었습니다.");
       }
+      if (ids.length > HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT) {
+        completionStatus = "partial";
+        purgedIds = ids.slice(0, HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT);
+      }
+      const pendingSince = this.database.prepare(`
+        SELECT MAX(partial.completed_at_ms) AS pending_since
+        FROM hub_remote_command_artifact_gc_completions AS partial
+        WHERE partial.artifact_uri = ? AND partial.completion_status = 'partial'
+          AND NOT EXISTS (
+            SELECT 1 FROM hub_remote_command_artifact_gc_completions AS completed
+            WHERE completed.artifact_uri = partial.artifact_uri
+              AND completed.completion_status = 'completed'
+              AND completed.completed_at_ms >= partial.completed_at_ms
+          )
+      `).get(claim.artifactUri)?.pending_since;
+      if (
+        completionStatus === "completed" && typeof pendingSince === "number" &&
+        completedAtMs < pendingSince
+      ) throw new HubCommandError("artifact_cleanup_conflict", "artifact partial cleanup 시각이 역행했습니다.");
       const insert = this.database.prepare(`
         INSERT INTO hub_remote_command_artifact_purges (
           delivery_id, artifact_uri, claim_id, purged_at, purged_at_ms
         ) VALUES (?, ?, ?, ?, ?)
       `);
-      for (const id of ids) insert.run(id, claim.artifactUri, claim.claimId, input.completedAt, completedAtMs);
-    } else if (ids.length !== 0) {
+      for (const id of purgedIds) {
+        insert.run(id, claim.artifactUri, claim.claimId, input.completedAt, completedAtMs);
+      }
+    } else if (hasUnpurgedReference(this.database, claim.artifactUri)) {
       throw new HubCommandError("artifact_cleanup_conflict", "orphan artifact에 새 작성 참조가 생겼습니다.");
     }
     this.database.prepare(`
       INSERT INTO hub_remote_command_artifact_gc_completions (
-        claim_id, kind, artifact_uri, worker_id, purged_delivery_count,
+        claim_id, kind, completion_status, artifact_uri, worker_id, purged_delivery_count,
         completed_at, completed_at_ms
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      claim.claimId, claim.kind, claim.artifactUri, claim.workerId, ids.length,
+      claim.claimId, claim.kind, completionStatus, claim.artifactUri, claim.workerId,
+      purgedIds.length,
       input.completedAt, completedAtMs,
     );
     this.database.prepare(
       "DELETE FROM hub_remote_command_artifact_gc_claims WHERE claim_id = ?",
     ).run(claim.claimId);
-    return { status: "completed", kind: claim.kind, purgedDeliveryCount: ids.length };
+    return {
+      status: completionStatus,
+      kind: claim.kind,
+      purgedDeliveryCount: purgedIds.length,
+      continuationRecommended: completionStatus === "partial",
+    };
   }
 
   release(input: { claimId: string; workerId: string; releasedAt: string }): void {

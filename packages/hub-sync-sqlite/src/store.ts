@@ -2,6 +2,11 @@ import { DatabaseSync } from "node:sqlite";
 
 import {
   type HubCommandArtifactLifecycleRepository,
+  type HubCommandArtifactCleanupScheduleStore,
+  type HubCommandArtifactCleanupCycleClaimInput,
+  type HubCommandArtifactCleanupCycleCompletion,
+  type HubCommandArtifactCleanupCycleFailure,
+  type HubCommandArtifactCleanupScheduleClaim,
   type HubCommandArtifactPurgeClaim,
   type HubCommandAuthoringStore,
   type HubCommandAuthorshipRecord,
@@ -55,6 +60,8 @@ import { HubAuditSQLiteRepository } from "./audit-repository.js";
 import { HubCommandAuthorshipSQLiteRepository } from "./command-authorship-repository.js";
 import { auditCommandArtifactLifecycle } from "./command-artifact-lifecycle-audit.js";
 import { HubCommandArtifactLifecycleSQLiteRepository } from "./command-artifact-lifecycle-repository.js";
+import { HubCommandArtifactCleanupRuntimeSQLiteRepository } from "./command-artifact-cleanup-runtime-repository.js";
+import { auditCommandArtifactCleanupRuntime } from "./command-artifact-cleanup-runtime-audit.js";
 import { HubEventInboxSQLiteRepository } from "./event-inbox-repository.js";
 import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
@@ -75,13 +82,16 @@ export class HubSyncSQLiteStore implements
   HubTraceSource,
   HubPolicySourceStore,
   HubCommandAuthoringStore,
-  HubCommandArtifactLifecycleRepository
+  HubCommandArtifactLifecycleRepository,
+  HubCommandArtifactCleanupScheduleStore
 {
   readonly path: string;
   private closed = false;
   private readonly auditRepository: HubAuditSQLiteRepository;
   private readonly commandAuthorshipRepository: HubCommandAuthorshipSQLiteRepository;
   private readonly commandArtifactLifecycleRepository: HubCommandArtifactLifecycleSQLiteRepository;
+  private readonly commandArtifactCleanupRuntimeRepository:
+    HubCommandArtifactCleanupRuntimeSQLiteRepository;
   private readonly eventInboxRepository: HubEventInboxSQLiteRepository;
   private readonly registrationRepository: HubRegistrationSQLiteRepository;
   private readonly remoteCommandRepository: HubRemoteCommandSQLiteRepository;
@@ -97,6 +107,8 @@ export class HubSyncSQLiteStore implements
     this.commandAuthorshipRepository = new HubCommandAuthorshipSQLiteRepository(database);
     this.commandArtifactLifecycleRepository =
       new HubCommandArtifactLifecycleSQLiteRepository(database);
+    this.commandArtifactCleanupRuntimeRepository =
+      new HubCommandArtifactCleanupRuntimeSQLiteRepository(database);
     this.eventInboxRepository = new HubEventInboxSQLiteRepository(database);
     this.registrationRepository = new HubRegistrationSQLiteRepository(database);
     this.remoteCommandRepository = new HubRemoteCommandSQLiteRepository(database);
@@ -217,9 +229,10 @@ export class HubSyncSQLiteStore implements
     workerId: string;
     completedAt: string;
   }): Promise<{
-    status: "completed" | "duplicate";
+    status: "completed" | "partial" | "duplicate";
     kind: "expired" | "orphan";
     purgedDeliveryCount: number;
+    continuationRecommended: boolean;
   }> {
     this.assertOpen();
     return this.transactionRunner.write(() =>
@@ -233,6 +246,26 @@ export class HubSyncSQLiteStore implements
   }): Promise<void> {
     this.assertOpen();
     this.transactionRunner.write(() => this.commandArtifactLifecycleRepository.release(input));
+  }
+
+  async claimArtifactCleanupCycle(
+    input: HubCommandArtifactCleanupCycleClaimInput,
+  ): Promise<HubCommandArtifactCleanupScheduleClaim> {
+    this.assertOpen();
+    return this.transactionRunner.write(() =>
+      this.commandArtifactCleanupRuntimeRepository.claim(input));
+  }
+
+  async completeArtifactCleanupCycle(
+    input: HubCommandArtifactCleanupCycleCompletion,
+  ): Promise<void> {
+    this.assertOpen();
+    this.transactionRunner.write(() => this.commandArtifactCleanupRuntimeRepository.complete(input));
+  }
+
+  async failArtifactCleanupCycle(input: HubCommandArtifactCleanupCycleFailure): Promise<void> {
+    this.assertOpen();
+    this.transactionRunner.write(() => this.commandArtifactCleanupRuntimeRepository.fail(input));
   }
 
   async leaseRemoteCommands(input: {
@@ -367,6 +400,7 @@ export class HubSyncSQLiteStore implements
   async checkIntegrity(): Promise<HubSyncIntegrityReport> {
     this.assertOpen();
     this.verifyDatabaseStructure();
+    auditCommandArtifactCleanupRuntime(this.database);
     const counts = this.auditRepository.healthCounts();
     return { valid: true, ...counts };
   }
@@ -391,6 +425,7 @@ export class HubSyncSQLiteStore implements
     this.remoteCommandRepository.auditAll();
     this.commandAuthorshipRepository.auditAll();
     auditCommandArtifactLifecycle(this.database);
+    auditCommandArtifactCleanupRuntime(this.database);
     this.policyRepository.auditAll();
     this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
     return { valid: true, projectCount: coordinates.length, eventCount };
@@ -417,6 +452,7 @@ export class HubSyncSQLiteStore implements
       "hub_remote_command_artifact_purges_no_delete",
       "hub_remote_command_artifact_gc_completions_no_update",
       "hub_remote_command_artifact_gc_completions_no_delete",
+      "hub_remote_command_artifact_cleanup_runtime_no_delete",
       "hub_policy_snapshots_no_update",
       "hub_policy_snapshots_no_delete",
       "hub_policy_approvals_no_update",

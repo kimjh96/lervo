@@ -54,6 +54,8 @@ export interface HubCommandAuthorshipRecord {
 
 export type HubCommandArtifactPurgeKind = "expired" | "orphan";
 
+export const HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT = 100;
+
 export interface HubCommandArtifactPurgeClaim {
   claimId: string;
   kind: HubCommandArtifactPurgeKind;
@@ -61,7 +63,6 @@ export interface HubCommandArtifactPurgeClaim {
   workerId: string;
   claimedAt: string;
   leaseExpiresAt: string;
-  deliveryIds: string[];
 }
 
 export interface HubCommandArtifactLifecycleRepository {
@@ -85,9 +86,10 @@ export interface HubCommandArtifactLifecycleRepository {
     workerId: string;
     completedAt: string;
   }): Promise<{
-    status: "completed" | "duplicate";
+    status: "completed" | "partial" | "duplicate";
     kind: HubCommandArtifactPurgeKind;
     purgedDeliveryCount: number;
+    continuationRecommended: boolean;
   }>;
 
   releaseArtifactPurgeClaim(input: {
@@ -95,6 +97,62 @@ export interface HubCommandArtifactLifecycleRepository {
     workerId: string;
     releasedAt: string;
   }): Promise<void>;
+}
+
+export interface HubCommandArtifactCleanupCounts {
+  claimedCount: number;
+  deletedCount: number;
+  alreadyMissingCount: number;
+  purgedDeliveryCount: number;
+  orphanPurgedCount: number;
+  failureCount: number;
+  continuationRecommended: boolean;
+}
+
+export interface HubCommandArtifactCleanupCycleClaimInput {
+  workerId: string;
+  claimedAt: string;
+  leaseDurationMs: number;
+}
+
+export type HubCommandArtifactCleanupScheduleClaim =
+  | {
+    status: "claimed";
+    leaseId: string;
+    inventoryCursor: string | null;
+    leaseExpiresAt: string;
+  }
+  | {
+    status: "waiting";
+    reason: "not_due" | "leased";
+    nextAttemptAt: string;
+  };
+
+export interface HubCommandArtifactCleanupCycleCompletion
+  extends HubCommandArtifactCleanupCounts {
+  workerId: string;
+  leaseId: string;
+  completedAt: string;
+  nextCycleAt: string;
+  inventoryCursor: string | null;
+}
+
+export interface HubCommandArtifactCleanupCycleFailure {
+  workerId: string;
+  leaseId: string;
+  failedAt: string;
+  nextCycleAt: string;
+  failureCode: "artifact_cleanup_cycle_failed";
+}
+
+export interface HubCommandArtifactCleanupScheduleStore {
+  claimArtifactCleanupCycle(
+    input: HubCommandArtifactCleanupCycleClaimInput,
+  ): Promise<HubCommandArtifactCleanupScheduleClaim>;
+  completeArtifactCleanupCycle(
+    input: HubCommandArtifactCleanupCycleCompletion,
+  ): Promise<void>;
+  failArtifactCleanupCycle(input: HubCommandArtifactCleanupCycleFailure): Promise<void>;
 }
 
 export interface HubCommandAuthoringStore {

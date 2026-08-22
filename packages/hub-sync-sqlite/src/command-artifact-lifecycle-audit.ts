@@ -1,6 +1,9 @@
 import { type DatabaseSync } from "node:sqlite";
 
-import { HubCommandError } from "@lervo/hub-command";
+import {
+  HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT,
+  HubCommandError,
+} from "@lervo/hub-command";
 
 import { integerField, stringField } from "./row-codec.js";
 import { remoteCommandTimestamp } from "./remote-command-row.js";
@@ -47,11 +50,15 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
     GROUP BY completion.claim_id
     HAVING
       (completion.kind = 'orphan' AND (
+        completion.completion_status <> 'completed' OR
         COUNT(purge.delivery_id) <> 0 OR completion.purged_delivery_count <> 0
       )) OR
       (completion.kind = 'expired' AND (
         COUNT(purge.delivery_id) = 0 OR
-        COUNT(purge.delivery_id) <> completion.purged_delivery_count
+        COUNT(purge.delivery_id) <> completion.purged_delivery_count OR
+        completion.purged_delivery_count > ${HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT} OR
+        (completion.completion_status = 'partial' AND
+          completion.purged_delivery_count <> ${HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT})
       ))
     LIMIT 1
   `).get();
@@ -93,18 +100,21 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
   }
 
   for (const row of database.prepare(`
-    SELECT claim_id, artifact_uri, worker_id, completed_at, completed_at_ms
+    SELECT claim_id, artifact_uri, worker_id, completed_at, completed_at_ms,
+      completion_status
     FROM hub_remote_command_artifact_gc_completions
     UNION ALL
     SELECT claim_id, artifact_uri, '' AS worker_id, purged_at AS completed_at,
-      purged_at_ms AS completed_at_ms
+      purged_at_ms AS completed_at_ms, 'completed' AS completion_status
     FROM hub_remote_command_artifact_purges
   `).all()) {
     const workerId = stringField(row, "worker_id");
+    const completionStatus = stringField(row, "completion_status");
     if (
       !/^hcg_[A-Za-z0-9_-]{32}$/u.test(stringField(row, "claim_id")) ||
       !URI_PATTERN.test(stringField(row, "artifact_uri")) ||
       (workerId !== "" && !WORKER_PATTERN.test(workerId)) ||
+      !["completed", "partial"].includes(completionStatus) ||
       remoteCommandTimestamp(stringField(row, "completed_at"), "artifact lifecycle timestamp") !==
         integerField(row, "completed_at_ms")
     ) throw new HubCommandError("artifact_integrity_failed", "artifact 정리 완료 원본이 유효하지 않습니다.");

@@ -3,17 +3,12 @@ import type {
   HubCommandArtifactLifecycleRepository,
   HubCommandArtifactLifecycleStore,
   HubCommandArtifactPurgeClaim,
+  HubCommandArtifactCleanupCounts,
 } from "./types.js";
 
 const WORKER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 
-export interface HubCommandArtifactCleanupResult {
-  claimedCount: number;
-  deletedCount: number;
-  alreadyMissingCount: number;
-  purgedDeliveryCount: number;
-  orphanPurgedCount: number;
-  failureCount: number;
+export interface HubCommandArtifactCleanupResult extends HubCommandArtifactCleanupCounts {
   nextInventoryCursor: string | null;
 }
 
@@ -50,26 +45,36 @@ async function purgeClaim(input: {
   repository: HubCommandArtifactLifecycleRepository;
   artifacts: HubCommandArtifactLifecycleStore;
   claim: HubCommandArtifactPurgeClaim;
-  completedAt: string;
-}): Promise<{ deleted: boolean; purgedDeliveryCount: number; orphanPurged: boolean }> {
+  now: () => string;
+}): Promise<{
+  deleted: boolean;
+  purgedDeliveryCount: number;
+  orphanPurged: boolean;
+  continuationRecommended: boolean;
+}> {
   try {
     const deletion = await input.artifacts.deleteObject(input.claim.artifactUri);
+    const completedAt = input.now();
+    timestamp(completedAt, "artifact completedAt");
     const completed = await input.repository.completeArtifactPurge({
       claimId: input.claim.claimId,
       workerId: input.claim.workerId,
-      completedAt: input.completedAt,
+      completedAt,
     });
     return {
       deleted: deletion.deleted,
       purgedDeliveryCount: completed.purgedDeliveryCount,
       orphanPurged: input.claim.kind === "orphan" && completed.status === "completed",
+      continuationRecommended: completed.continuationRecommended,
     };
   } catch (error) {
     try {
+      const releasedAt = input.now();
+      timestamp(releasedAt, "artifact releasedAt");
       await input.repository.releaseArtifactPurgeClaim({
         claimId: input.claim.claimId,
         workerId: input.claim.workerId,
-        releasedAt: input.completedAt,
+        releasedAt,
       });
     } catch {
       // An expired or already completed claim is recovered idempotently by a later cycle.
@@ -89,11 +94,13 @@ export async function cleanupHubCommandArtifacts(input: {
   limit?: number;
   inventoryCursor?: string;
   maximumScannedObjects?: number;
+  now?: () => string;
 }): Promise<HubCommandArtifactCleanupResult> {
   const leaseDurationMs = input.leaseDurationMs ?? 60_000;
   const orphanGraceMs = input.orphanGraceMs ?? 24 * 60 * 60_000;
   const limit = input.limit ?? 100;
   const cleanedAtMs = validateInput({ ...input, leaseDurationMs, orphanGraceMs, limit });
+  const now = input.now ?? (() => input.cleanedAt);
   const result: HubCommandArtifactCleanupResult = {
     claimedCount: 0,
     deletedCount: 0,
@@ -102,6 +109,7 @@ export async function cleanupHubCommandArtifacts(input: {
     orphanPurgedCount: 0,
     failureCount: 0,
     nextInventoryCursor: null,
+    continuationRecommended: false,
   };
   const expired = await input.repository.claimExpiredArtifacts({
     workerId: input.workerId,
@@ -116,17 +124,21 @@ export async function cleanupHubCommandArtifacts(input: {
         repository: input.repository,
         artifacts: input.artifacts,
         claim,
-        completedAt: input.cleanedAt,
+        now,
       });
       purged.deleted ? result.deletedCount += 1 : result.alreadyMissingCount += 1;
       result.purgedDeliveryCount += purged.purgedDeliveryCount;
+      if (purged.continuationRecommended) result.continuationRecommended = true;
     } catch {
       result.failureCount += 1;
     }
   }
 
   const remaining = limit - expired.length;
-  if (remaining === 0) return result;
+  if (remaining === 0) {
+    result.continuationRecommended = true;
+    return result;
+  }
   const inventory = await input.artifacts.listObjects({
     ...(input.inventoryCursor === undefined ? {} : { after: input.inventoryCursor }),
     limit: remaining,
@@ -135,6 +147,7 @@ export async function cleanupHubCommandArtifacts(input: {
     }),
   });
   result.nextInventoryCursor = inventory.nextCursor;
+  result.continuationRecommended ||= inventory.nextCursor !== null;
   for (const item of inventory.items) {
     if (timestamp(item.modifiedAt, "artifact modifiedAt") > cleanedAtMs - orphanGraceMs) continue;
     let claim: HubCommandArtifactPurgeClaim | null;
@@ -157,14 +170,16 @@ export async function cleanupHubCommandArtifacts(input: {
         repository: input.repository,
         artifacts: input.artifacts,
         claim,
-        completedAt: input.cleanedAt,
+        now,
       });
       purged.deleted ? result.deletedCount += 1 : result.alreadyMissingCount += 1;
       result.purgedDeliveryCount += purged.purgedDeliveryCount;
       if (purged.orphanPurged) result.orphanPurgedCount += 1;
+      if (purged.continuationRecommended) result.continuationRecommended = true;
     } catch {
       result.failureCount += 1;
     }
   }
+  if (result.failureCount > 0) result.continuationRecommended = true;
   return result;
 }

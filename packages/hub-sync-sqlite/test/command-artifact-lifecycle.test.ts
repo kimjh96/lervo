@@ -78,9 +78,6 @@ describe("Hub command artifact lifecycle", () => {
       kind: "expired",
       artifactUri: first.record.artifactUri,
     });
-    expect(claim!.deliveryIds.sort()).toEqual(
-      [first.record.deliveryId, second.record.deliveryId].sort(),
-    );
     await expect(artifacts.deleteObject(claim!.artifactUri)).resolves.toEqual({ deleted: true });
     await store.close();
     store = await HubSyncSQLiteStore.open({ path });
@@ -93,6 +90,7 @@ describe("Hub command artifact lifecycle", () => {
       status: "completed",
       kind: "expired",
       purgedDeliveryCount: 2,
+      continuationRecommended: false,
     });
     await expect(store.completeArtifactPurge({
       claimId: claim!.claimId,
@@ -225,6 +223,135 @@ describe("Hub command artifact lifecycle", () => {
     });
     await expect(authorHubCommand(authoring)).resolves.toMatchObject({ status: "created" });
     await expect(artifacts.has(raced.uri)).resolves.toBe(true);
+    await store.close();
+  });
+
+  it("purges heavily shared references in bounded batches", async () => {
+    const path = await databasePath();
+    const project = manifest("prj_artifact_lifecycle_03");
+    const target = {
+      projectId: project.projectId,
+      projectIdentityHash: calculateProjectIdentityHash(project),
+    };
+    const store = await HubSyncSQLiteStore.open({ path });
+    await registerStore(store, project);
+    const artifacts = await OwnerOnlyFileSystemCas.open(`${path}.command-cas`);
+    const signer = new Ed25519RemoteCommandSigner(
+      "key_artifact_lifecycle_03",
+      generateKeyPairSync("ed25519").privateKey,
+    );
+    for (let index = 0; index < 101; index += 1) {
+      await authorHubCommand({
+        store,
+        artifacts,
+        signer,
+        destinationId: "hub:primary",
+        target,
+        principalId: "operator:artifact-lifecycle",
+        authoredAt: "2026-08-22T00:00:00.000Z",
+        artifactRetentionMs: 1_000,
+        nonce: () => Buffer.alloc(32, index + 1).toString("base64url"),
+        request: {
+          idempotencyKey: `idk_bounded_refs_${String(index).padStart(3, "0")}`,
+          lifetimeMs: 1_000,
+          roleId: "developer",
+          provider: "codex",
+          risk: "low",
+          verificationSuiteIds: ["repo.check"],
+          request: "100개 단위로 정리하는 공유 원문",
+        },
+      });
+    }
+    const [first] = await store.claimExpiredArtifacts({
+      workerId: "gc:bounded",
+      claimedAt: "2026-08-22T00:00:01.000Z",
+      leaseDurationMs: 60_000,
+      limit: 1,
+    });
+    expect(first).toBeDefined();
+    await artifacts.deleteObject(first!.artifactUri);
+    await expect(store.completeArtifactPurge({
+      claimId: first!.claimId,
+      workerId: first!.workerId,
+      completedAt: "2026-08-22T00:00:01.100Z",
+    })).resolves.toEqual({
+      status: "partial",
+      kind: "expired",
+      purgedDeliveryCount: 100,
+      continuationRecommended: true,
+    });
+    const inspection = new DatabaseSync(path, { readOnly: true });
+    const remaining = inspection.prepare(`
+      SELECT authorship.idempotency_key
+      FROM hub_remote_command_authorships AS authorship
+      LEFT JOIN hub_remote_command_artifact_purges AS purge
+        ON purge.delivery_id = authorship.delivery_id
+      WHERE purge.delivery_id IS NULL
+    `).get() as { idempotency_key: string };
+    inspection.close();
+    await expect(store.findAuthorship({
+      destinationId: "hub:primary",
+      target,
+      idempotencyKey: remaining.idempotency_key,
+    })).resolves.toMatchObject({ artifactLifecycleStatus: "cleanup_claimed" });
+    await expect(authorHubCommand({
+      store,
+      artifacts,
+      signer,
+      destinationId: "hub:primary",
+      target,
+      principalId: "operator:artifact-lifecycle",
+      authoredAt: "2026-08-22T00:00:01.150Z",
+      nonce: () => Buffer.alloc(32, 102).toString("base64url"),
+      request: {
+        idempotencyKey: "idk_bounded_refs_blocked",
+        lifetimeMs: 1_000,
+        roleId: "developer",
+        provider: "codex",
+        risk: "low",
+        verificationSuiteIds: ["repo.check"],
+        request: "100개 단위로 정리하는 공유 원문",
+      },
+    })).rejects.toMatchObject({ code: "artifact_cleanup_conflict" });
+
+    const [second] = await store.claimExpiredArtifacts({
+      workerId: "gc:bounded",
+      claimedAt: "2026-08-22T00:00:01.200Z",
+      leaseDurationMs: 60_000,
+      limit: 1,
+    });
+    expect(second).toBeDefined();
+    await expect(artifacts.deleteObject(second!.artifactUri)).resolves.toEqual({ deleted: true });
+    await expect(store.completeArtifactPurge({
+      claimId: second!.claimId,
+      workerId: second!.workerId,
+      completedAt: "2026-08-22T00:00:01.300Z",
+    })).resolves.toEqual({
+      status: "completed",
+      kind: "expired",
+      purgedDeliveryCount: 1,
+      continuationRecommended: false,
+    });
+    await expect(authorHubCommand({
+      store,
+      artifacts,
+      signer,
+      destinationId: "hub:primary",
+      target,
+      principalId: "operator:artifact-lifecycle",
+      authoredAt: "2026-08-22T00:00:02.000Z",
+      nonce: () => Buffer.alloc(32, 103).toString("base64url"),
+      request: {
+        idempotencyKey: "idk_bounded_refs_after",
+        lifetimeMs: 1_000,
+        roleId: "developer",
+        provider: "codex",
+        risk: "low",
+        verificationSuiteIds: ["repo.check"],
+        request: "100개 단위로 정리하는 공유 원문",
+      },
+    })).resolves.toMatchObject({ status: "created" });
+    await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await store.close();
   });
 });

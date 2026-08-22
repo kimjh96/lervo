@@ -16,6 +16,18 @@ import { integerField, stringField, type SQLiteRow } from "./row-codec.js";
 import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js";
 import { remoteCommandTimestamp } from "./remote-command-row.js";
 
+const UNRESOLVED_PARTIAL_CLEANUP_SQL = `EXISTS (
+  SELECT 1 FROM hub_remote_command_artifact_gc_completions AS partial
+  WHERE partial.artifact_uri = authorship.artifact_uri
+    AND partial.completion_status = 'partial'
+    AND NOT EXISTS (
+      SELECT 1 FROM hub_remote_command_artifact_gc_completions AS completed
+      WHERE completed.artifact_uri = partial.artifact_uri
+        AND completed.completion_status = 'completed'
+        AND completed.completed_at_ms >= partial.completed_at_ms
+    )
+)`;
+
 function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
   let envelope: unknown;
   try {
@@ -91,7 +103,8 @@ export class HubCommandAuthorshipSQLiteRepository {
       SELECT authorship.*, command.envelope_json, command.queued_at, retention.retain_until,
         CASE
           WHEN purge.delivery_id IS NOT NULL THEN 'purged'
-          WHEN claim.claim_id IS NOT NULL THEN 'cleanup_claimed'
+          WHEN claim.claim_id IS NOT NULL OR ${UNRESOLVED_PARTIAL_CLEANUP_SQL}
+            THEN 'cleanup_claimed'
           ELSE 'retained'
         END AS artifact_lifecycle_status
       FROM hub_remote_command_authorships AS authorship
@@ -137,9 +150,19 @@ export class HubCommandAuthorshipSQLiteRepository {
       WHERE artifact_uri = ? AND lease_expires_at_ms <= ?
     `).run(input.artifactUri, queuedAtMs);
     if (this.database.prepare(`
-      SELECT claim_id FROM hub_remote_command_artifact_gc_claims
+      SELECT 1 FROM hub_remote_command_artifact_gc_claims
       WHERE artifact_uri = ? AND lease_expires_at_ms > ?
-    `).get(input.artifactUri, queuedAtMs) !== undefined) {
+      UNION ALL
+      SELECT 1 FROM hub_remote_command_artifact_gc_completions AS partial
+      WHERE partial.artifact_uri = ? AND partial.completion_status = 'partial'
+        AND NOT EXISTS (
+          SELECT 1 FROM hub_remote_command_artifact_gc_completions AS completed
+          WHERE completed.artifact_uri = partial.artifact_uri
+            AND completed.completion_status = 'completed'
+            AND completed.completed_at_ms >= partial.completed_at_ms
+        )
+      LIMIT 1
+    `).get(input.artifactUri, queuedAtMs, input.artifactUri) !== undefined) {
       throw new HubCommandError(
         "artifact_cleanup_conflict",
         "같은 artifact가 정리 중입니다. 잠시 뒤 같은 요청으로 다시 시도하세요.",
@@ -231,7 +254,8 @@ export class HubCommandAuthorshipSQLiteRepository {
       SELECT authorship.*, command.envelope_json, command.queued_at, retention.retain_until,
         CASE
           WHEN purge.delivery_id IS NOT NULL THEN 'purged'
-          WHEN claim.claim_id IS NOT NULL THEN 'cleanup_claimed'
+          WHEN claim.claim_id IS NOT NULL OR ${UNRESOLVED_PARTIAL_CLEANUP_SQL}
+            THEN 'cleanup_claimed'
           ELSE 'retained'
         END AS artifact_lifecycle_status
       FROM hub_remote_command_authorships AS authorship

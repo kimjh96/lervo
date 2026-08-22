@@ -406,6 +406,87 @@ const migrations = [
       BEFORE DELETE ON hub_remote_command_artifact_gc_completions
       BEGIN SELECT RAISE(ABORT, 'hub remote command artifact completions are append-only'); END;
   `,
+  `
+    ALTER TABLE hub_remote_command_artifact_gc_completions
+      ADD COLUMN completion_status TEXT NOT NULL DEFAULT 'completed'
+      CHECK (completion_status IN ('completed', 'partial'));
+    CREATE INDEX hub_remote_command_artifact_gc_completion_uri
+      ON hub_remote_command_artifact_gc_completions (
+        artifact_uri, completion_status, completed_at_ms
+      );
+
+    CREATE TABLE hub_remote_command_artifact_cleanup_runtime (
+      runtime_key TEXT PRIMARY KEY CHECK (runtime_key = 'command_artifact_cleanup'),
+      inventory_cursor TEXT,
+      next_cycle_at TEXT NOT NULL,
+      next_cycle_at_ms INTEGER NOT NULL CHECK (next_cycle_at_ms >= 0),
+      lease_id TEXT,
+      lease_owner TEXT,
+      lease_claimed_at TEXT,
+      lease_claimed_at_ms INTEGER,
+      lease_expires_at TEXT,
+      lease_expires_at_ms INTEGER,
+      cycle_count INTEGER NOT NULL CHECK (cycle_count >= 0),
+      last_cycle_at TEXT,
+      last_cycle_at_ms INTEGER,
+      last_status TEXT CHECK (last_status IS NULL OR last_status IN ('completed', 'failed')),
+      last_failure_code TEXT CHECK (
+        last_failure_code IS NULL OR last_failure_code = 'artifact_cleanup_cycle_failed'
+      ),
+      last_claimed_count INTEGER CHECK (last_claimed_count IS NULL OR last_claimed_count >= 0),
+      last_deleted_count INTEGER CHECK (last_deleted_count IS NULL OR last_deleted_count >= 0),
+      last_already_missing_count INTEGER CHECK (
+        last_already_missing_count IS NULL OR last_already_missing_count >= 0
+      ),
+      last_purged_delivery_count INTEGER CHECK (
+        last_purged_delivery_count IS NULL OR last_purged_delivery_count >= 0
+      ),
+      last_orphan_purged_count INTEGER CHECK (
+        last_orphan_purged_count IS NULL OR last_orphan_purged_count >= 0
+      ),
+      last_failure_count INTEGER CHECK (last_failure_count IS NULL OR last_failure_count >= 0),
+      last_continuation_recommended INTEGER CHECK (
+        last_continuation_recommended IS NULL OR last_continuation_recommended IN (0, 1)
+      ),
+      CHECK (
+        (lease_id IS NULL AND lease_owner IS NULL AND lease_claimed_at IS NULL AND
+          lease_claimed_at_ms IS NULL AND lease_expires_at IS NULL AND
+          lease_expires_at_ms IS NULL) OR
+        (lease_id IS NOT NULL AND lease_owner IS NOT NULL AND lease_claimed_at IS NOT NULL AND
+          lease_claimed_at_ms IS NOT NULL AND lease_expires_at IS NOT NULL AND
+          lease_expires_at_ms > lease_claimed_at_ms)
+      ),
+      CHECK (
+        (last_status IS NULL AND cycle_count = 0 AND last_cycle_at IS NULL AND
+          last_cycle_at_ms IS NULL AND last_failure_code IS NULL AND
+          last_claimed_count IS NULL AND last_deleted_count IS NULL AND
+          last_already_missing_count IS NULL AND last_purged_delivery_count IS NULL AND
+          last_orphan_purged_count IS NULL AND last_failure_count IS NULL AND
+          last_continuation_recommended IS NULL) OR
+        (last_status = 'failed' AND cycle_count > 0 AND last_cycle_at IS NOT NULL AND
+          last_cycle_at_ms IS NOT NULL AND
+          last_failure_code = 'artifact_cleanup_cycle_failed' AND
+          last_claimed_count IS NULL AND last_deleted_count IS NULL AND
+          last_already_missing_count IS NULL AND last_purged_delivery_count IS NULL AND
+          last_orphan_purged_count IS NULL AND last_failure_count IS NULL AND
+          last_continuation_recommended IS NULL) OR
+        (last_status = 'completed' AND cycle_count > 0 AND last_cycle_at IS NOT NULL AND
+          last_cycle_at_ms IS NOT NULL AND last_failure_code IS NULL AND
+          last_claimed_count IS NOT NULL AND last_deleted_count IS NOT NULL AND
+          last_already_missing_count IS NOT NULL AND last_purged_delivery_count IS NOT NULL AND
+          last_orphan_purged_count IS NOT NULL AND last_failure_count IS NOT NULL AND
+          last_continuation_recommended IS NOT NULL AND
+          last_purged_delivery_count <=
+            (last_deleted_count + last_already_missing_count) * 100)
+      )
+    ) STRICT;
+    INSERT INTO hub_remote_command_artifact_cleanup_runtime (
+      runtime_key, inventory_cursor, next_cycle_at, next_cycle_at_ms, cycle_count
+    ) VALUES ('command_artifact_cleanup', NULL, '1970-01-01T00:00:00.000Z', 0, 0);
+    CREATE TRIGGER hub_remote_command_artifact_cleanup_runtime_no_delete
+      BEFORE DELETE ON hub_remote_command_artifact_cleanup_runtime
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact cleanup runtime cannot be deleted'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

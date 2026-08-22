@@ -1,5 +1,7 @@
 import { createServer, type Server } from "node:http";
 
+import { type HubCommandArtifactCleanupLoopOptions } from "@lervo/hub-command";
+
 import {
   createHubControlHttpHandler,
   type HubControlHttpHandlerOptions,
@@ -14,17 +16,23 @@ import {
   type HubPolicyHttpHandlerOptions,
 } from "./policy-handler.js";
 import { createHubWebHandler } from "./web-handler.js";
+import {
+  attachHubArtifactCleanupLifecycle,
+  type HubArtifactCleanupLifecycle,
+} from "./artifact-cleanup-lifecycle.js";
+
+export interface HubServerOptions {
+  trace: HubTraceHttpHandlerOptions;
+  policy?: HubPolicyHttpHandlerOptions;
+  control?: HubControlHttpHandlerOptions;
+  commands?: HubRemoteCommandHttpHandlerOptions;
+}
 
 export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Server {
   return createHubServer({ trace: options });
 }
 
-export function createHubServer(options: {
-  trace: HubTraceHttpHandlerOptions;
-  policy?: HubPolicyHttpHandlerOptions;
-  control?: HubControlHttpHandlerOptions;
-  commands?: HubRemoteCommandHttpHandlerOptions;
-}): Server {
+export function createHubServer(options: HubServerOptions): Server {
   const traceHandler = createHubTraceHttpHandler(options.trace);
   const policyHandler = options.policy === undefined
     ? undefined
@@ -48,4 +56,23 @@ export function createHubServer(options: {
       void traceHandler(request, response);
     }
   });
+}
+
+export function createHubServerWithArtifactCleanup(options: HubServerOptions & {
+  artifactCleanup: Omit<HubCommandArtifactCleanupLoopOptions, "signal">;
+  onArtifactCleanupFailure?: (
+    failureCode: "artifact_cleanup_runtime_failed",
+  ) => void | Promise<void>;
+}): { server: Server; artifactCleanup: HubArtifactCleanupLifecycle } {
+  const server = createHubServer(options);
+  return {
+    server,
+    artifactCleanup: attachHubArtifactCleanupLifecycle({
+      server,
+      runtime: options.artifactCleanup,
+      ...(options.onArtifactCleanupFailure === undefined ? {} : {
+        onFailure: options.onArtifactCleanupFailure,
+      }),
+    }),
+  };
 }
