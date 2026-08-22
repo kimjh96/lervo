@@ -7,6 +7,8 @@ import { resolve } from "node:path";
 const roots: string[] = [];
 
 export const runtimeToken = "hub-runtime-test-token-aaaaaaaaaaaaaaaaaaaaaaaa";
+export const runtimeDestinationId = "hub:runtime-test";
+export const runtimeProjectId = "prj_runtime_test_01";
 
 export async function temporaryRoot(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-hub-runtime-"));
@@ -66,6 +68,7 @@ export async function runtimeConfigFixture(root: string, port: number): Promise<
       principalId: "operator:runtime-test",
       permissions: [
         "trace.read",
+        "sync.write",
         "policy.read",
         "policy.write",
         "command.read",
@@ -73,7 +76,7 @@ export async function runtimeConfigFixture(root: string, port: number): Promise<
         "command.delivery",
         "approval.write",
       ],
-      projects: [],
+      projects: [{ destinationId: runtimeDestinationId, projectId: runtimeProjectId }],
     }],
     signing: {
       policy: { keyId: "key_runtime_policy_01", privateKeyPath: "policy.pem" },

@@ -198,6 +198,11 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
       let deployment!: DefaultHubRuntimeDeployment;
       const composed = createHubServerWithArtifactCleanup({
         trace: { authenticator, source: store },
+        sync: {
+          authenticator,
+          store,
+          hubIdentityHash: config.identity.hubIdentityHash,
+        },
         policy: {
           authenticator,
           store,

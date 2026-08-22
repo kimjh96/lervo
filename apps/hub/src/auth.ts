@@ -22,6 +22,7 @@ export interface HubAuthenticatedPrincipal {
 
 export type HubPermission =
   | "trace.read"
+  | "sync.write"
   | "policy.read"
   | "policy.write"
   | "command.read"
@@ -60,6 +61,7 @@ function validateCredential(credential: HubBearerCredential): void {
     !credential.permissions.every((permission) =>
       ([
         "trace.read",
+        "sync.write",
         "policy.read",
         "policy.write",
         "command.read",

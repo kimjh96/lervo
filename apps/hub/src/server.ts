@@ -20,12 +20,14 @@ import {
   attachHubArtifactCleanupLifecycle,
   type HubArtifactCleanupLifecycle,
 } from "./artifact-cleanup-lifecycle.js";
+import { createHubSyncHttpHandler, type HubSyncHttpHandlerOptions } from "./sync-handler.js";
 
 export interface HubServerOptions {
   trace: HubTraceHttpHandlerOptions;
   policy?: HubPolicyHttpHandlerOptions;
   control?: HubControlHttpHandlerOptions;
   commands?: HubRemoteCommandHttpHandlerOptions;
+  sync?: HubSyncHttpHandlerOptions;
 }
 
 export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Server {
@@ -43,10 +45,15 @@ export function createHubServer(options: HubServerOptions): Server {
   const commandHandler = options.commands === undefined
     ? undefined
     : createHubRemoteCommandHttpHandler(options.commands);
+  const syncHandler = options.sync === undefined
+    ? undefined
+    : createHubSyncHttpHandler(options.sync);
   const webHandler = createHubWebHandler();
   return createServer((request, response) => {
     if (webHandler(request, response)) return;
-    if (request.url?.startsWith("/v1/commands/") && commandHandler !== undefined) {
+    if (request.url?.startsWith("/v1/sync/") && syncHandler !== undefined) {
+      void syncHandler(request, response);
+    } else if (request.url?.startsWith("/v1/commands/") && commandHandler !== undefined) {
       void commandHandler(request, response);
     } else if (request.url?.startsWith("/v1/control/") && controlHandler !== undefined) {
       void controlHandler(request, response);

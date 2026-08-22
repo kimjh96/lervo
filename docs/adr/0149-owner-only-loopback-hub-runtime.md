@@ -88,4 +88,4 @@ Bearer token과 개인키를 구성 안에서 자동 생성하지 않습니다. 
 
 ## 결과와 후속 범위
 
-Hub 기능을 한 process로 안전하게 시작하고 멈출 수 있는 첫 실행 진입점이 생겼습니다. 다음 배포 작업은 TLS 종료 방식과 인증서 수명주기, credential·키 회전, 설치 서비스와 상태 확인을 별도 계약으로 정해야 합니다. Hub 등록·event 수신 HTTP 경계와 설치 가능한 Lervo Node daemon도 별도 제품 작업입니다.
+Hub 기능을 한 process로 안전하게 시작하고 멈출 수 있는 첫 실행 진입점이 생겼습니다. Hub 등록·event 수신 HTTP 경계는 [ADR-0150](./0150-authenticated-project-scoped-hub-sync-http.md)에서 이어집니다. 다음 배포 작업은 TLS 종료 방식과 인증서 수명주기, credential·키 회전, 설치 서비스와 상태 확인을 별도 계약으로 정해야 합니다. 설치 가능한 Lervo Node daemon도 별도 제품 작업입니다.

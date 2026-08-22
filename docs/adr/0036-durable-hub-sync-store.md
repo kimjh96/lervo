@@ -53,4 +53,4 @@ Node의 실제 SQLite outbox와 Hub SQLite store를 한 흐름으로 연결한 f
 
 ## 결과
 
-Durable acceptance의 근거가 reducer의 메모리 계산이 아니라 실제 commit 경계까지 이어졌습니다. SQLite adapter는 protocol이나 화면을 소유하지 않으므로 다른 durable store도 같은 `HubSyncStore` contract를 구현할 수 있습니다. Project와 run을 분리하는 조회 의미는 [ADR-0037](./0037-hub-trace-read-model.md)에서 이어집니다.
+Durable acceptance의 근거가 reducer의 메모리 계산이 아니라 실제 commit 경계까지 이어졌습니다. SQLite adapter는 protocol이나 화면을 소유하지 않으므로 다른 durable store도 같은 `HubSyncStore` contract를 구현할 수 있습니다. Project와 run을 분리하는 조회 의미는 [ADR-0037](./0037-hub-trace-read-model.md), 인증된 실제 HTTP 수신은 [ADR-0150](./0150-authenticated-project-scoped-hub-sync-http.md)에서 이어집니다.

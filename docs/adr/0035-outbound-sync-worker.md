@@ -58,4 +58,4 @@ Outbox에는 위 retry code와 시각만 남깁니다. Transport 예외, HTTP bo
 
 ## 결과
 
-Core worker는 저장소, transport와 clock port만 사용하며 실제 protocol과 스케줄러를 소유하지 않습니다. Local run은 Hub 가용성과 계속 분리되고, reconnect는 추정이 아니라 deterministic batch와 duplicate ack로 복구됩니다. Hub의 registration·event inbox·cursor commit 경계는 [ADR-0036](./0036-durable-hub-sync-store.md)에서 이어집니다.
+Core worker는 저장소, transport와 clock port만 사용하며 실제 protocol과 스케줄러를 소유하지 않습니다. Local run은 Hub 가용성과 계속 분리되고, reconnect는 추정이 아니라 deterministic batch와 duplicate ack로 복구됩니다. Hub의 registration·event inbox·cursor commit 경계는 [ADR-0036](./0036-durable-hub-sync-store.md), 실제 인증 HTTP transport는 [ADR-0150](./0150-authenticated-project-scoped-hub-sync-http.md)에서 이어집니다.

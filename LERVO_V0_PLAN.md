@@ -1655,4 +1655,23 @@ Hub runtime 완료 조건:
 - 실제 임시 키·SQLite·CAS·HTTP 요청·SIGTERM·재개방 무결성 fixture를 통과함
 - Production TLS, secret manager, credential hot reload, process supervisor를 완료로 주장하지 않음
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler와 loopback Hub 실행 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 설치된 Hub·Node daemon과 process supervisor는 후속 제품 작업입니다.
+프로젝트 범위 Hub sync HTTP를 완료했습니다. Node의 HTTPS 기본 transport가 등록과 event batch를 bounded JSON으로 보내고, Hub는 `sync.write`와 destination·project 범위를 body보다 먼저 확인한 뒤 기존 application·SQLite commit 경계에 전달합니다. 실제 Node event SQLite와 Hub SQLite 사이에서 commit된 acknowledgement 유실, 같은 batch 재전송과 duplicate 복구를 검증했습니다. 결정은 [ADR-0150](./docs/adr/0150-authenticated-project-scoped-hub-sync-http.md)에 기록했습니다.
+
+Hub sync HTTP 완료 조건:
+
+- 등록과 event batch route가 공통 sync 계약을 그대로 사용함
+- `sync.write` permission과 destination·project 범위를 body 읽기 전에 확인함
+- URL identity, body 좌표와 다시 계산한 registration ID가 모두 맞아야 저장소를 호출함
+- 요청 기본 4 MiB·응답 기본 1 MiB와 각각 16 MiB 절대 상한을 적용함
+- Node transport는 운영에서 HTTPS, redirect 거부, timeout과 Hub identity 선검사를 강제함
+- 생성 시 검증한 credential·project 좌표를 내부에 복사해 호출자 변경의 영향을 받지 않음
+- Hub application handler와 SQLite adapter에 HTTP·credential 책임을 넣지 않음
+- Hub 소유 시각과 durable commit 뒤에만 등록 응답·acknowledgement를 보냄
+- 응답이 유실돼도 같은 batch 재전송과 duplicate ack로 local outbox를 완료함
+- HTTP·transport 실패는 기존 고정 worker code로만 저장하고 원문 오류·credential을 남기지 않음
+- 새 event나 문서 `loaded`·`injected`·`used` 상태를 만들지 않음
+- 실제 `lervo-hub` runtime route가 종료 뒤 재개방한 SQLite registration 원본을 보존함
+- Hub가 없는 local-first 실행 경로를 바꾸지 않음
+- Production TLS·인증서 회전과 설치된 Node daemon을 완료로 주장하지 않음
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler, loopback Hub 실행과 프로젝트 sync HTTP 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 설치된 Hub·Node daemon과 process supervisor는 후속 제품 작업입니다.

@@ -24,5 +24,8 @@
     "@lervo/hub-sync-sqlite": "workspace:*",
     "@lervo/policy": "workspace:*",
     "@lervo/remote-command": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/sync-contract": "workspace:*"
   }
 }

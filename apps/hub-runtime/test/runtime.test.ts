@@ -3,6 +3,7 @@ import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
+import { createProjectRegistrationRequest } from "@lervo/sync-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -14,6 +15,8 @@ import {
   availablePort,
   removeTemporaryRoots,
   runtimeConfigFixture,
+  runtimeDestinationId,
+  runtimeProjectId,
   runtimeToken,
   temporaryRoot,
 } from "./fixture.js";
@@ -47,6 +50,46 @@ describe("Hub runtime deployment entrypoint", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ schemaVersion: 1, projects: [] });
 
+    const registration = createProjectRegistrationRequest({
+      destinationId: runtimeDestinationId,
+      requestedAt: "2026-08-22T00:00:00.000Z",
+      manifest: {
+        schemaVersion: 1,
+        projectId: runtimeProjectId,
+        name: "runtime-sync",
+        root: ".",
+        createdAt: "2026-08-22T00:00:00.000Z",
+        dataPolicy: {
+          eventMetadataRetentionDays: 90,
+          artifactRetentionDays: 30,
+          persistRawPrompts: false,
+          persistDocumentBodiesInEvents: false,
+          hubSyncEnabled: true,
+          eventPayloadMode: "allowlist",
+        },
+      },
+    });
+    const syncEndpoint = new URL(
+      `/v1/sync/projects/${runtimeProjectId}/registration`,
+      `http://127.0.0.1:${port}`,
+    );
+    syncEndpoint.searchParams.set("destinationId", runtimeDestinationId);
+    syncEndpoint.searchParams.set("projectIdentityHash", registration.projectIdentityHash);
+    const syncResponse = await fetch(syncEndpoint, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${runtimeToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(registration),
+    });
+    expect(syncResponse.status).toBe(201);
+    await expect(syncResponse.json()).resolves.toMatchObject({
+      status: "registered",
+      destinationId: runtimeDestinationId,
+      projectId: runtimeProjectId,
+    });
+
     signals.emit("SIGTERM");
     await expect(running).resolves.toBe(0);
     expect(stdout).toEqual([`Lervo Hub가 127.0.0.1:${port}에서 시작됐습니다.\n`]);
@@ -54,7 +97,10 @@ describe("Hub runtime deployment entrypoint", () => {
     await expect(fetch(`http://127.0.0.1:${port}/v1/trace/projects`)).rejects.toThrow();
 
     const reopened = await HubSyncSQLiteStore.open({ path: fixture.databasePath });
-    await expect(reopened.auditIntegrity()).resolves.toMatchObject({ valid: true });
+    await expect(reopened.auditIntegrity()).resolves.toMatchObject({
+      valid: true,
+      projectCount: 1,
+    });
     await reopened.close();
   });
 

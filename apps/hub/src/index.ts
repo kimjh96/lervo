@@ -13,4 +13,6 @@ export * from "./policy-request.js";
 export * from "./request.js";
 export * from "./response.js";
 export * from "./server.js";
+export * from "./sync-handler.js";
+export * from "./sync-request.js";
 export * from "./web-handler.js";

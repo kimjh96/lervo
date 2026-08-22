@@ -522,7 +522,22 @@ SQLite adapter의 `hub_projects`는 전체 registration request, 등록·갱신 
 
 Batch 수락은 최대 100개 event 각각의 seq·ID 좌표와 저장된 바로 앞뒤 hash만 읽습니다. Gap 뒤 event는 durable inbox에 남지만 cursor는 index query가 찾은 첫 gap 전까지만 전진합니다. 같은 batch 재전송은 저장된 event 원본 전체가 같을 때만 `duplicate`이고, cursor update 실패는 같은 transaction의 event insert도 되돌립니다. Store 개방과 `checkIntegrity`는 schema metadata, foreign key 강제 설정, append-only trigger와 transaction에서 유지한 global count만 확인합니다. SQLite quick check·foreign key 원본 검사와 project별 전체 event/cursor·파생 index 검증은 요청 경로 밖의 명시적 `auditIntegrity`가 담당합니다.
 
-Store 오류 code는 `closed`, `nested_transaction`, `transaction_async`, `read_failed`, `integrity_failed`, `write_failed`입니다. `transaction_async`는 SQLite 내부 runner의 방어 오류이며 공개 callback 계약이 아닙니다. 어느 오류도 registration 완료나 durable ack로 낮추지 않습니다. DB와 오류에는 sync 계약의 manifest와 allowlist event만 허용하며 repository 본문, prompt, 문서·스킬 본문, command output, authorization과 credential을 추가하지 않습니다. 이번 receiver는 HTTP, Node 인증·권한과 새 telemetry event를 구현하지 않습니다.
+Store 오류 code는 `closed`, `nested_transaction`, `transaction_async`, `read_failed`, `integrity_failed`, `write_failed`입니다. `transaction_async`는 SQLite 내부 runner의 방어 오류이며 공개 callback 계약이 아닙니다. 어느 오류도 registration 완료나 durable ack로 낮추지 않습니다. DB와 오류에는 sync 계약의 manifest와 allowlist event만 허용하며 repository 본문, prompt, 문서·스킬 본문, command output, authorization과 credential을 추가하지 않습니다. 새 telemetry event를 만들지 않습니다.
+
+### Hub sync 인증 HTTP
+
+Hub는 아래 두 write route를 제공합니다. 두 route 모두 `destinationId`와 `projectIdentityHash` query가 정확히 한 번 필요하며 다른 query는 허용하지 않습니다.
+
+- `POST /v1/sync/projects/<projectId>/registration`
+- `POST /v1/sync/projects/<projectId>/event-batches`
+
+Hub는 URL과 authorization header를 먼저 검사합니다. Bearer principal에 `sync.write`가 있고 `(destinationId, projectId)`가 허용 범위에 있어야만 JSON body를 읽습니다. 요청 body는 기본 4 MiB, 구성 가능 상한 16 MiB이며 UTF-8 JSON과 해당 schema를 만족해야 합니다. URL의 destination·project·identity, 본문의 같은 좌표와 `destinationId + projectIdentityHash`에서 다시 계산한 registration ID 중 하나라도 다르면 저장소를 호출하지 않습니다. 수락 시각은 클라이언트가 아니라 Hub clock이 정합니다.
+
+등록은 최초 `201`, 갱신·변경 없음은 `200`, event acknowledgement는 `200`입니다. Application handler가 durable commit을 마친 뒤에만 응답합니다. 성공과 실패 응답은 기본 1 MiB, 구성 상한 16 MiB이고 `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `x-lervo-hub-identity`를 포함합니다. 잘못된 형식은 `400 invalid_request`, 인증 없음은 `401 unauthorized`, 범위·권한 부족은 `403 forbidden`, identity·registration·event chain 충돌은 `409 conflict`, body 초과는 `413 request_too_large`, 저장·내부 실패는 상세가 없는 `500 internal_error`입니다.
+
+Node의 `AuthenticatedHubHttpTransport`는 credential·query·fragment가 없는 HTTPS base URL만 운영에서 허용합니다. 평문 HTTP는 로컬 fixture가 명시적으로 켠 경우에만 쓸 수 있습니다. Bearer token, destination, project ID·identity와 기대 Hub identity를 생성 시 복사해 고정하며, 이후 호출자가 원래 설정 객체를 바꿔도 요청이 달라지지 않습니다. 요청은 기본 4 MiB, 응답은 기본 1 MiB, 각각 최대 16 MiB이고 기본 timeout은 15초입니다. Redirect는 따르지 않습니다. 기대한 status와 Hub identity header를 먼저 확인한 뒤에만 bounded UTF-8 JSON body를 worker에 넘깁니다.
+
+HTTPS와 identity header 검사는 배포한 endpoint와 기대 identity가 맞는지 확인하는 전송 경계입니다. Header만으로 TLS 인증이나 Hub 서명을 대신했다고 주장하지 않습니다. 현재 `lervo-hub`는 loopback 평문 server이므로 외부 Node는 같은 호스트의 TLS 종료 계층을 거쳐야 합니다. HTTP 오류·timeout·응답 유실은 worker에서 `hub_unavailable`, identity 불일치는 `transport_authentication_failed`, schema·좌표가 틀린 등록과 acknowledgement는 각각 `invalid_registration_response`, `invalid_sync_ack`로 처리합니다. Outbox에는 이 고정 code와 시각만 남기고 URL, authorization, response body와 내부 예외는 저장하지 않습니다. 결정은 [ADR-0150](./docs/adr/0150-authenticated-project-scoped-hub-sync-http.md)에 기록합니다.
 
 ### Hub trace read model
 

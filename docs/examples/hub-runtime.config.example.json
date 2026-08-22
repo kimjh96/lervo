@@ -16,7 +16,8 @@
       "token": "REPLACE_WITH_AT_LEAST_32_PRINTABLE_CHARACTERS",
       "principalId": "operator:replace-me",
       "permissions": [
-        "trace.read"
+        "trace.read",
+        "sync.write"
       ],
       "projects": []
     }
