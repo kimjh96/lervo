@@ -25,6 +25,7 @@ export type HubPermission =
   | "policy.read"
   | "policy.write"
   | "command.read"
+  | "command.delivery"
   | "approval.write";
 
 export interface HubRequestAuthenticator {
@@ -61,6 +62,7 @@ function validateCredential(credential: HubBearerCredential): void {
         "policy.read",
         "policy.write",
         "command.read",
+        "command.delivery",
         "approval.write",
       ] as HubPermission[]).includes(permission)
     )

@@ -2,6 +2,8 @@ export * from "./delivery-transport.js";
 export * from "./delivery-worker.js";
 export * from "./ed25519.js";
 export * from "./errors.js";
+export * from "./http-transport.js";
+export * from "./polling-runtime.js";
 export * from "./receiver.js";
 export * from "./replay-store.js";
 export * from "./types.js";

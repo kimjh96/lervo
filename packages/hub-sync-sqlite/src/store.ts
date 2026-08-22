@@ -153,6 +153,9 @@ export class HubSyncSQLiteStore implements
   }
 
   async acknowledgeRemoteCommand(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    leasedTo: string;
     acknowledgement: RemoteCommandDeliveryAcknowledgement;
     confirmedAt: string;
   }): Promise<RemoteCommandDeliveryConfirmation> {

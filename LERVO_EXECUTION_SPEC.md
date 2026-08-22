@@ -1264,7 +1264,11 @@ Reconnect worker는 transport가 실제 peer 인증 뒤 반환한 destination과
 - `acknowledgement_pending`: Node terminal receipt 또는 rejection은 있지만 Hub confirmation을 받지 못했습니다. Lease 만료 뒤 같은 command가 다시 올 수 있습니다.
 - `local_deferred`: local policy, trust/replay 저장 또는 in-progress 상태 때문에 terminal acknowledgement를 만들지 않았습니다.
 
-Hub acknowledgement 전 연결이 끊기면 Node terminal receipt는 먼저 durable합니다. Lease 만료와 Hub·Node 재시작 뒤 같은 command를 받으면 receiver는 저장된 receipt를 반환하고 executor를 다시 호출하지 않습니다. Hub commit 뒤 response만 유실된 경우 Hub row는 이미 terminal이므로 다시 lease하지 않습니다. 이 fixture는 인증된 transport port의 계약을 검증하며 실제 HTTP/TLS endpoint나 daemon scheduler를 구현하지 않습니다.
+Hub acknowledgement 전 연결이 끊기면 Node terminal receipt는 먼저 durable합니다. Lease 만료와 Hub·Node 재시작 뒤 같은 command를 받으면 receiver는 저장된 receipt를 반환하고 executor를 다시 호출하지 않습니다. Hub commit 뒤 response만 유실된 경우 Hub row는 이미 terminal이므로 다시 lease하지 않습니다.
+
+실제 HTTP delivery는 project별 lease와 acknowledgement POST route를 사용합니다. Hub는 bearer의 `command.delivery`, destination·project scope와 `principalId === nodeId`를 body 전에 확인하고 lease·confirmation 시각을 자기 clock에서 만듭니다. Queue acknowledgement port도 destination, project identity와 lease Node를 받아 현재 registration·lease와 transaction 안에서 대조합니다. Node transport는 구성된 destination·Node·project 이외의 요청을 network 전에 거부하고 HTTPS, Hub identity header, JSON content type, 기본 1 MiB response와 15초 timeout을 강제합니다. 평문 HTTP는 test option에서만 허용합니다.
+
+반복 lifecycle은 cycle을 직렬로 실행하고 `idle`에는 bounded poll interval, `offline`·`acknowledgement_pending`·`local_deferred`에는 결과의 `nextAttemptAt`을 적용합니다. 중단 신호 뒤에는 새 cycle을 시작하지 않습니다. 이는 HTTP 전달과 scheduler lifecycle의 구현이며 설치된 daemon, process supervisor나 production TLS termination 완료를 뜻하지 않습니다. 상세 결정은 [ADR-0145](./docs/adr/0145-authenticated-remote-command-http-delivery.md)에 기록합니다.
 
 Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자체를 반환하지 않습니다. Node replay에는 envelope도 없습니다. Queue/reconnect 성공은 event sync, provider verification, writing 공개나 사람이 결과를 읽었다는 뜻이 아닙니다. 상세 상태와 장애 처분은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 

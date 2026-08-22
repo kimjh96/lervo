@@ -34,7 +34,10 @@ export interface HubRemoteCommandDeliveryState {
   terminalAt: string | null;
 }
 
-/** Command delivery state is committed before any method resolves. */
+/**
+ * Command delivery state is committed before any method resolves. Domain
+ * conflicts use HubRemoteCommandStoreError; storage failures remain internal.
+ */
 export interface HubRemoteCommandQueueStore {
   enqueueRemoteCommand(input: {
     destinationId: string;
@@ -52,6 +55,9 @@ export interface HubRemoteCommandQueueStore {
   }): Promise<RemoteCommandLease[]>;
 
   acknowledgeRemoteCommand(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    leasedTo: string;
     acknowledgement: RemoteCommandDeliveryAcknowledgement;
     confirmedAt: string;
   }): Promise<RemoteCommandDeliveryConfirmation>;

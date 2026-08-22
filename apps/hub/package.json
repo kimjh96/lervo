@@ -17,17 +17,18 @@
   "dependencies": {
     "@lervo/hub-control": "workspace:*",
     "@lervo/hub-policy": "workspace:*",
+    "@lervo/hub-sync": "workspace:*",
     "@lervo/hub-trace": "workspace:*",
     "@lervo/knowledge-graph": "workspace:*",
     "@lervo/schemas": "workspace:*"
   },
   "devDependencies": {
-    "@lervo/hub-sync": "workspace:*",
     "@lervo/hub-sync-sqlite": "workspace:*",
     "@lervo/policy": "workspace:*",
     "@lervo/policy-sqlite": "workspace:*",
     "@lervo/remote-command": "workspace:*",
     "@lervo/remote-command-contract": "workspace:*",
+    "@lervo/remote-command-sqlite": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
   }
 }

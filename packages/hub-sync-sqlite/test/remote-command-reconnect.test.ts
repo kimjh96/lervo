@@ -45,6 +45,7 @@ class MutableClock {
 class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTransport {
   offline = false;
   loseNextAcknowledgementBeforeCommit = false;
+  private target: RemoteCommandTarget | null = null;
 
   constructor(
     public hub: HubSyncSQLiteStore,
@@ -66,6 +67,7 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
     AuthenticatedRemoteCommandHubTransport["pullRemoteCommands"]
   >[0]): Promise<unknown> {
     if (this.offline) throw new Error("fixture Hub offline");
+    this.target = structuredClone(input.target);
     return this.response(await handleRemoteCommandLease({
       store: this.hub,
       destinationId: input.destinationId,
@@ -84,8 +86,12 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
       this.loseNextAcknowledgementBeforeCommit = false;
       throw new Error("fixture acknowledgement response lost before commit");
     }
+    if (this.target === null) throw new Error("fixture target missing");
     return this.response(await handleRemoteCommandAcknowledgement({
       store: this.hub,
+      destinationId,
+      target: this.target,
+      leasedTo: nodeId,
       acknowledgement,
       confirmedAt: this.clock.value,
     }));

@@ -5,6 +5,7 @@ import { canonicalJson } from "@lervo/event-contract";
 import {
   type HubRemoteCommandDeliveryState,
   type HubRemoteCommandEnqueueResult,
+  HubRemoteCommandStoreError,
 } from "@lervo/hub-sync";
 import {
   assertRemoteCommandDeliveryAcknowledgement,
@@ -54,13 +55,13 @@ export class HubRemoteCommandSQLiteRepository {
       WHERE destination_id = ? AND project_id = ?
     `).get(input.destinationId, command.target.projectId);
     if (registration === undefined) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
         "remote command target project가 Hub에 등록되지 않았습니다.",
       );
     }
     if (stringField(registration, "identity_hash") !== command.target.projectIdentityHash) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_identity_mismatch",
         "remote command target identity가 Hub registration과 다릅니다.",
       );
@@ -69,7 +70,7 @@ export class HubRemoteCommandSQLiteRepository {
     const issuedAtMs = remoteCommandTimestamp(command.issuedAt, "issuedAt");
     const expiresAtMs = remoteCommandTimestamp(command.expiresAt, "expiresAt");
     if (queuedAtMs >= expiresAtMs) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_conflict",
         "만료된 remote command는 Hub queue에 저장할 수 없습니다.",
       );
@@ -97,7 +98,7 @@ export class HubRemoteCommandSQLiteRepository {
         stringField(existing[0]!, "delivery_id") !== deliveryId ||
         stringField(existing[0]!, "envelope_json") !== canonicalJson(input.envelope)
       ) {
-        throw new HubSyncStoreError(
+        throw new HubRemoteCommandStoreError(
           "remote_command_conflict",
           "같은 remote command 좌표에 다른 envelope이 이미 있습니다.",
         );
@@ -154,13 +155,13 @@ export class HubRemoteCommandSQLiteRepository {
       WHERE destination_id = ? AND project_id = ?
     `).get(input.destinationId, input.target.projectId);
     if (registration === undefined) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
         "remote command lease project가 Hub에 등록되지 않았습니다.",
       );
     }
     if (stringField(registration, "identity_hash") !== input.target.projectIdentityHash) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_identity_mismatch",
         "remote command lease identity가 Hub registration과 다릅니다.",
       );
@@ -228,26 +229,46 @@ export class HubRemoteCommandSQLiteRepository {
   }
 
   acknowledge(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    leasedTo: string;
     acknowledgement: RemoteCommandDeliveryAcknowledgement;
     confirmedAt: string;
   }): RemoteCommandDeliveryConfirmation {
     const acknowledgementHash = calculateRemoteCommandAcknowledgementHash(input.acknowledgement);
     const row = this.database.prepare(`
-      SELECT delivery_id, destination_id, command_id, command_hash, envelope_json,
-        status, lease_id, lease_owner, leased_at, lease_expires_at,
-        acknowledgement_hash
-      FROM hub_remote_commands WHERE delivery_id = ?
+      SELECT command.delivery_id, command.destination_id, command.project_id,
+        command.command_id, command.command_hash, command.envelope_json,
+        command.status, command.lease_id, command.lease_owner, command.leased_at,
+        command.lease_expires_at, command.acknowledgement_hash,
+        project.identity_hash AS project_identity_hash
+      FROM hub_remote_commands AS command
+      INNER JOIN hub_projects AS project
+        ON project.destination_id = command.destination_id
+        AND project.project_id = command.project_id
+      WHERE command.delivery_id = ?
     `).get(input.acknowledgement.deliveryId);
     if (row === undefined) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
         "remote command acknowledgement 대상이 없습니다.",
       );
     }
     const status = parseRemoteCommandQueueStatus(stringField(row, "status"));
+    if (
+      stringField(row, "destination_id") !== input.destinationId ||
+      stringField(row, "project_id") !== input.target.projectId ||
+      stringField(row, "project_identity_hash") !== input.target.projectIdentityHash ||
+      (status === "leased" && nullableStringField(row, "lease_owner") !== input.leasedTo)
+    ) {
+      throw new HubRemoteCommandStoreError(
+        "remote_command_ack_invalid",
+        "remote command acknowledgement scope가 현재 lease와 다릅니다.",
+      );
+    }
     if (status === "completed" || status === "rejected") {
       if (nullableStringField(row, "acknowledgement_hash") !== acknowledgementHash) {
-        throw new HubSyncStoreError(
+        throw new HubRemoteCommandStoreError(
           "remote_command_ack_invalid",
           "terminal remote command에 다른 acknowledgement가 도착했습니다.",
         );
@@ -264,7 +285,7 @@ export class HubRemoteCommandSQLiteRepository {
       stringField(row, "command_id") !== input.acknowledgement.commandId ||
       stringField(row, "command_hash") !== input.acknowledgement.commandHash
     ) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
         "remote command acknowledgement가 현재 lease와 다릅니다.",
       );
@@ -284,7 +305,7 @@ export class HubRemoteCommandSQLiteRepository {
         acknowledgement: input.acknowledgement,
       });
     } catch (error) {
-      throw new HubSyncStoreError(
+      throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
         "remote command acknowledgement 계약이 현재 lease와 다릅니다.",
         { cause: error },

@@ -345,6 +345,16 @@ fixtures/
 10. 조직 단위 비용·품질·가드레일 분석
 11. 대화 숙의 durable queue와 fail-closed worker — 완료
 12. Queue 할당 ID와 실제 managed 다중 역할 숙의 실행 결속 — 완료
+13. 인증된 원격 command HTTP 전달과 반복 실행 lifecycle — 완료
+
+원격 command HTTP 전달 완료 조건:
+
+- Hub가 bearer의 `command.delivery`, destination·project scope와 Node ID를 body·queue 호출보다 먼저 확인함
+- Lease·confirmation 시각을 Hub clock이 정하고 acknowledgement 저장이 destination·project identity·lease Node를 다시 대조함
+- Node transport가 HTTPS, Hub identity, content type, 요청 timeout과 bounded response를 강제함
+- HTTP acknowledgement 유실과 Hub·Node SQLite 재시작 뒤에도 executor가 한 번만 호출됨
+- Polling lifecycle이 cycle을 겹치지 않고 idle·retry 시각과 중단 신호를 구분함
+- 새 event나 queue 상태를 만들지 않고 Hub 없는 로컬 실행 경로를 바꾸지 않음
 
 Conversation 첫 슬라이스 완료 조건:
 
@@ -1584,4 +1594,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 제품 명칭 migration 수직 경계를 완료했습니다. `lervo migrate identity`는 기본적으로 원본을 바꾸지 않는 content-bound plan만 만들고 같은 plan ID를 명시한 적용만 허용합니다. 임시 복사본 기반 event chain 검사, CAS 전체 object 검증, 실행 중 DB와 두 root 공존 차단, 원자적 root rename과 완료 event 연결을 구현했습니다. 현재 문서 metadata는 유지하고 이전 marker·ownership metadata는 사용자 문서를 수정하지 않은 채 source tree hash별 archive로 보존한 뒤 활성 registry를 비웁니다. 계획 뒤 byte 변경, 깨진 CAS, 기존 event prefix 보존, 새 디렉터리 보충과 문서 metadata archive fixture를 검증했습니다. 결정은 [ADR-0144](./docs/adr/0144-explicit-project-identity-migration.md)에 기록했습니다.
 
-현재 문서에 확정된 최초 게시 구현 작업과 제품 명칭 migration은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.
+인증된 원격 command HTTP 전달과 반복 실행 lifecycle을 완료했습니다. Hub는 `command.delivery` principal을 destination·project·Node에 묶고 자기 시각으로 lease와 confirmation을 만들며, acknowledgement 저장도 같은 범위를 다시 검사합니다. Node transport는 HTTPS·Hub identity·bounded JSON·timeout을 강제하고 polling은 cycle과 retry를 직렬화합니다. 실제 HTTP와 양쪽 SQLite 재시작에서 acknowledgement 유실 뒤 executor가 한 번만 호출되는지 확인했습니다. 결정은 [ADR-0145](./docs/adr/0145-authenticated-remote-command-http-delivery.md)에 기록했습니다.
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration과 원격 command HTTP 전달은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.

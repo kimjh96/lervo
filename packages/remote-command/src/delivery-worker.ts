@@ -222,6 +222,7 @@ export async function runRemoteCommandReconnectCycle(
 
   let leases: RemoteCommandLease[];
   try {
+    const received = timestamp(clock);
     const body = authenticatedRemoteCommandBody({
       response,
       destinationId: options.destinationId,
@@ -233,7 +234,7 @@ export async function runRemoteCommandReconnectCycle(
       nodeId: options.nodeId,
       target: options.target,
       limit: configuration.limit,
-      nowMs: requested.milliseconds,
+      nowMs: received.milliseconds,
     });
   } catch (error) {
     if (!(error instanceof RemoteCommandDeliveryError)) throw error;

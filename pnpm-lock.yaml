@@ -163,6 +163,9 @@ importers:
       '@lervo/hub-policy':
         specifier: workspace:*
         version: link:../../packages/hub-policy
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../../packages/hub-sync
       '@lervo/hub-trace':
         specifier: workspace:*
         version: link:../../packages/hub-trace
@@ -173,9 +176,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
     devDependencies:
-      '@lervo/hub-sync':
-        specifier: workspace:*
-        version: link:../../packages/hub-sync
       '@lervo/hub-sync-sqlite':
         specifier: workspace:*
         version: link:../../packages/hub-sync-sqlite
@@ -191,6 +191,9 @@ importers:
       '@lervo/remote-command-contract':
         specifier: workspace:*
         version: link:../../packages/remote-command-contract
+      '@lervo/remote-command-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/remote-command-sqlite
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../../packages/sync-contract

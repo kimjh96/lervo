@@ -164,6 +164,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [명시적 대화 숙의 재개와 별도 durable queue ADR](./docs/adr/0141-explicit-durable-conversation-deliberation-resume.md)
 - [숙의 진단 snapshot 고정·bounded event 조회 ADR](./docs/adr/0142-snapshot-bounded-deliberation-event-scan.md)
 - [실행 증거와 대화 조립 경계 강화 ADR](./docs/adr/0143-execution-and-conversation-boundary-hardening.md)
+- [Node 범위에 결속된 원격 command HTTP 전달 ADR](./docs/adr/0145-authenticated-remote-command-http-delivery.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -192,9 +193,9 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/hub-sync-sqlite`: destination·project별 registration, append-only event inbox·연속 cursor, 원격 command queue와 정책 snapshot·승인·철회 원본을 durable transaction으로 저장하는 adapter. 정책 원본은 별도 repository에서 command 원본 관계와 연속 snapshot chain을 감사하며 명시적 관계 인덱스는 event에서 재구축함
 - `@lervo/hub-trace`: 기본 50·최대 100개의 cursor page로 project, run, event timeline과 focus 인접 관계를 읽는 파생 query 경계. Cursor 이하 `continuous`와 gap 뒤 `buffered` event를 구분하며 project 목록에는 event payload를 포함하지 않음
 - `@lervo/hub-control`: durable command와 현재 signed policy 원본에서 민감정보 없는 승인 검토 view와 principal·command·만료 시각에 결속된 HMAC review grant를 만드는 경계
-- `@lervo/hub`: bearer credential을 `trace.read`, `policy.read`, `policy.write`, `command.read`, `approval.write`와 project scope에 결속하는 HTTP adapter. Bounded trace·명시적 관계 그래프와 `/trace`, 재인증 `/control` web view에 더해 Hub 시각으로 정책 원본을 작성하고 순차 bundle을 제공하며, 고정 오류·no-store·요청/응답 byte 한도와 Hub identity header를 적용
+- `@lervo/hub`: bearer credential을 `trace.read`, `policy.read`, `policy.write`, `command.read`, `command.delivery`, `approval.write`와 project scope에 결속하는 HTTP adapter. Bounded trace·명시적 관계 그래프와 `/trace`, 재인증 `/control` web view, 정책 작성·동기화와 Node-bound command lease·acknowledgement에 고정 오류·no-store·요청/응답 byte 한도와 Hub identity header를 적용
 - `@lervo/remote-command-contract`: 원문 대신 bounded artifact 좌표를 가진 `managed_run` command, canonical command ID/hash, Ed25519 서명 envelope와 terminal execution receipt를 정의하는 transport·실행 중립 계약
-- `@lervo/remote-command`: 신뢰 key의 project scope, 서명, receiver identity, 짧은 유효 기간, nonce/idempotency replay, 로컬 정책과 payload hash를 실행 전에 확인하는 Node 수신 경계. 인증된 Hub transport port에서 lease를 pull하고 terminal acknowledgement를 보내는 reconnect worker 포함
+- `@lervo/remote-command`: 신뢰 key의 project scope, 서명, receiver identity, 짧은 유효 기간, nonce/idempotency replay, 로컬 정책과 payload hash를 실행 전에 확인하는 Node 수신 경계. HTTPS·Hub identity·bounded response를 강제하는 transport, lease·terminal acknowledgement reconnect worker와 직렬 polling lifecycle 포함
 - `@lervo/remote-command-sqlite`: project ID·identity hash에 고정된 Node replay 좌표와 terminal receipt를 보존하는 bounded SQLite adapter. Raw request와 command envelope은 저장하지 않음
 - `@lervo/policy-contract`: project-bound 정책 snapshot, command·capability·snapshot에 결속된 승인과 별도 철회 원본의 canonical ID/hash 및 목적별 Ed25519 서명 계약
 - `@lervo/hub-policy`: 현재 Hub head와 durable remote command를 사용해 snapshot·승인·철회 서명 원본을 만드는 저장·HTTP 중립 application 경계. 승인자 principal 원문 대신 project-scoped subject hash를 사용

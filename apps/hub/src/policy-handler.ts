@@ -19,9 +19,11 @@ import {
 import type { HubRequestAuthenticator } from "./auth.js";
 import {
   HubHttpRequestTooLargeError,
+  readBoundedJsonBody,
+} from "./body.js";
+import {
   matchHubPolicyRoute,
   policyQuery,
-  readBoundedJsonBody,
 } from "./policy-request.js";
 import {
   assertEmptyHubRequestBody,

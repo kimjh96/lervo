@@ -134,9 +134,20 @@ export async function handleRemoteCommandLease(input: {
 
 export async function handleRemoteCommandAcknowledgement(input: {
   store: HubRemoteCommandQueueStore;
+  destinationId: string;
+  target: RemoteCommandTarget;
+  leasedTo: string;
   acknowledgement: RemoteCommandDeliveryAcknowledgement;
   confirmedAt: string;
 }) {
+  assertDestination(input.destinationId, "invalid_remote_command_acknowledgement");
+  assertTarget(input.target);
+  if (!NODE_PATTERN.test(input.leasedTo)) {
+    throw new HubRemoteCommandRequestError(
+      "invalid_remote_command_acknowledgement",
+      "remote command acknowledgement node가 유효하지 않습니다.",
+    );
+  }
   timestamp(
     input.confirmedAt,
     "remote command confirmedAt",
@@ -149,6 +160,9 @@ export async function handleRemoteCommandAcknowledgement(input: {
     );
   }
   return input.store.acknowledgeRemoteCommand({
+    destinationId: input.destinationId,
+    target: structuredClone(input.target),
+    leasedTo: input.leasedTo,
     acknowledgement: structuredClone(input.acknowledgement),
     confirmedAt: input.confirmedAt,
   });
