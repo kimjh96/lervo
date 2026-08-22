@@ -37,7 +37,7 @@ export async function availablePort(): Promise<number> {
   return address.port;
 }
 
-async function ownerFile(path: string, value: string): Promise<void> {
+export async function ownerFile(path: string, value: string): Promise<void> {
   await writeFile(path, value, { mode: 0o600 });
   await chmod(path, 0o600);
 }

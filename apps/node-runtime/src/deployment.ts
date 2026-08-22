@@ -20,6 +20,11 @@ import {
   createNodeRuntimeDeployment,
   type NodeRuntimeDeployment,
 } from "./lifecycle.js";
+import {
+  openNodeRemoteControlRuntime,
+  type NodeRemoteCommandPorts,
+  type NodeRemoteControlRuntime,
+} from "./control-runtime.js";
 
 const MAX_BEARER_TOKEN_FILE_BYTES = 4_098;
 
@@ -28,6 +33,7 @@ export interface NodeRuntimeOpenPorts {
   wait?: OutboundSyncPollingWaitPort;
   nowMilliseconds?: () => number;
   onCycle?: (result: SyncCycleResult) => void | Promise<void>;
+  remoteCommands?: NodeRemoteCommandPorts;
 }
 
 function normalizedToken(value: string): string {
@@ -58,6 +64,7 @@ export async function openNodeRuntime(
   ports: NodeRuntimeOpenPorts = {},
 ): Promise<NodeRuntimeDeployment> {
   let store: SQLiteEventStore | undefined;
+  let remoteControl: NodeRemoteControlRuntime | undefined;
   try {
     const validated = parseNodeRuntimeConfig(config, process.cwd());
     await assertRepositoryRoot(validated.repositoryRoot);
@@ -82,15 +89,31 @@ export async function openNodeRuntime(
     }
     const bearerToken = normalizedToken(tokenText);
     store = await SQLiteEventStore.open({ path: paths.eventDatabase, projectId: manifest.projectId });
+    const target = {
+      projectId: manifest.projectId,
+      projectIdentityHash: calculateProjectIdentityHash(manifest),
+    };
+    if ((validated.remoteCommands === undefined) !== (ports.remoteCommands === undefined)) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "원격 제어 구성과 실행기·로컬 정책 port는 함께 제공해야 합니다.",
+      );
+    }
+    if (validated.remoteCommands !== undefined && ports.remoteCommands !== undefined) {
+      remoteControl = await openNodeRemoteControlRuntime({
+        config: validated,
+        token: bearerToken,
+        target,
+        stateDirectory: paths.state,
+        ports: ports.remoteCommands,
+      });
+    }
     const transportOptions: SyncHttpTransportOptions = {
       baseUrl: validated.hub.baseUrl,
       bearerToken,
       expectedHubIdentityHash: validated.hub.hubIdentityHash,
       destinationId: validated.hub.destinationId,
-      target: {
-        projectId: manifest.projectId,
-        projectIdentityHash: calculateProjectIdentityHash(manifest),
-      },
+      target,
       ...(validated.sync.requestTimeoutMs === undefined ? {} : {
         requestTimeoutMs: validated.sync.requestTimeoutMs,
       }),
@@ -129,9 +152,24 @@ export async function openNodeRuntime(
       ...(ports.wait === undefined ? {} : { wait: ports.wait }),
       ...(ports.nowMilliseconds === undefined ? {} : { nowMilliseconds: ports.nowMilliseconds }),
       ...(ports.onCycle === undefined ? {} : { onCycle: ports.onCycle }),
-    }));
+    }), remoteControl ?? null);
   } catch (error) {
-    store?.close();
+    const cleanupErrors: unknown[] = [];
+    try {
+      remoteControl?.close();
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
+    try {
+      store?.close();
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
+    if (cleanupErrors.length > 0) {
+      throw new NodeRuntimeError("startup_failed", "Node runtime 시작 실패 뒤 저장소를 닫지 못했습니다.", {
+        cause: new AggregateError([error, ...cleanupErrors]),
+      });
+    }
     if (error instanceof NodeRuntimeError) throw error;
     throw new NodeRuntimeError("startup_failed", "Node runtime 구성을 열지 못했습니다.", {
       cause: error,

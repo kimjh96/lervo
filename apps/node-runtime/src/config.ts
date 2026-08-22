@@ -3,49 +3,22 @@ import { dirname, resolve } from "node:path";
 import { readOwnerOnlyText, RuntimeSecurityError } from "@lervo/runtime-security";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
+import {
+  configRecord,
+  configText,
+  exactConfigKeys,
+  optionalConfigInteger,
+} from "./config-values.js";
 import { NodeRuntimeError } from "./errors.js";
+import { parseRemoteCommandConfig } from "./remote-command-config.js";
 
 const MAX_CONFIG_BYTES = 1_048_576;
 const DESTINATION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const WORKER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 
-function record(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new NodeRuntimeError("invalid_config", `${label}은 object여야 합니다.`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function exact(value: Record<string, unknown>, keys: readonly string[], label: string): void {
-  if (Object.keys(value).some((key) => !keys.includes(key))) {
-    throw new NodeRuntimeError("invalid_config", `${label}에 알 수 없는 필드가 있습니다.`);
-  }
-}
-
-function text(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.length < 1 || value.length > 4_096 || value.includes("\0")) {
-    throw new NodeRuntimeError("invalid_config", `${label}이 유효하지 않습니다.`);
-  }
-  return value;
-}
-
-function optionalInteger(
-  source: Record<string, unknown>,
-  key: string,
-  minimum: number,
-  maximum: number,
-): number | undefined {
-  const value = source[key];
-  if (value === undefined) return undefined;
-  if (!Number.isSafeInteger(value) || (value as number) < minimum || (value as number) > maximum) {
-    throw new NodeRuntimeError("invalid_config", `sync.${key}가 유효하지 않습니다.`);
-  }
-  return value as number;
-}
-
 function httpsUrl(value: unknown): string {
-  const raw = text(value, "hub.baseUrl");
+  const raw = configText(value, "hub.baseUrl");
   let url: URL;
   try {
     url = new URL(raw);
@@ -67,20 +40,20 @@ function httpsUrl(value: unknown): string {
 }
 
 export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): NodeRuntimeConfig {
-  const source = record(value, "Node runtime config");
-  exact(source, ["schemaVersion", "repositoryRoot", "hub", "sync"], "Node runtime config");
+  const source = configRecord(value, "Node runtime config");
+  exactConfigKeys(source, ["schemaVersion", "repositoryRoot", "hub", "sync", "remoteCommands"], "Node runtime config");
   if (source.schemaVersion !== 1) {
     throw new NodeRuntimeError("invalid_config", "Node runtime config schemaVersion은 1이어야 합니다.");
   }
-  const hub = record(source.hub, "hub");
-  exact(hub, ["baseUrl", "bearerTokenFile", "destinationId", "hubIdentityHash"], "hub");
-  const destinationId = text(hub.destinationId, "hub.destinationId");
-  const hubIdentityHash = text(hub.hubIdentityHash, "hub.hubIdentityHash");
+  const hub = configRecord(source.hub, "hub");
+  exactConfigKeys(hub, ["baseUrl", "bearerTokenFile", "destinationId", "hubIdentityHash"], "hub");
+  const destinationId = configText(hub.destinationId, "hub.destinationId");
+  const hubIdentityHash = configText(hub.hubIdentityHash, "hub.hubIdentityHash");
   if (!DESTINATION_PATTERN.test(destinationId) || !HASH_PATTERN.test(hubIdentityHash)) {
     throw new NodeRuntimeError("invalid_config", "Hub destination 또는 identity가 유효하지 않습니다.");
   }
-  const sync = record(source.sync, "sync");
-  exact(sync, [
+  const sync = configRecord(source.sync, "sync");
+  exactConfigKeys(sync, [
     "workerId",
     "idlePollIntervalMs",
     "leaseDurationMs",
@@ -90,23 +63,28 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     "maxRequestBytes",
     "maxResponseBytes",
   ], "sync");
-  const workerId = text(sync.workerId, "sync.workerId");
+  const workerId = configText(sync.workerId, "sync.workerId");
   if (!WORKER_PATTERN.test(workerId)) {
     throw new NodeRuntimeError("invalid_config", "sync.workerId가 유효하지 않습니다.");
   }
-  const idlePollIntervalMs = optionalInteger(sync, "idlePollIntervalMs", 100, 60 * 60_000);
-  const leaseDurationMs = optionalInteger(sync, "leaseDurationMs", 1, 86_400_000);
-  const retryDelayMs = optionalInteger(sync, "retryDelayMs", 1, 86_400_000);
-  const batchLimit = optionalInteger(sync, "batchLimit", 1, 100);
-  const requestTimeoutMs = optionalInteger(sync, "requestTimeoutMs", 10, 300_000);
-  const maxRequestBytes = optionalInteger(sync, "maxRequestBytes", 1_024, 16_777_216);
-  const maxResponseBytes = optionalInteger(sync, "maxResponseBytes", 1_024, 16_777_216);
+  const integer = (key: string, minimum: number, maximum: number) =>
+    optionalConfigInteger(sync, key, minimum, maximum, "sync");
+  const idlePollIntervalMs = integer("idlePollIntervalMs", 100, 60 * 60_000);
+  const leaseDurationMs = integer("leaseDurationMs", 1, 86_400_000);
+  const retryDelayMs = integer("retryDelayMs", 1, 86_400_000);
+  const batchLimit = integer("batchLimit", 1, 100);
+  const requestTimeoutMs = integer("requestTimeoutMs", 10, 300_000);
+  const maxRequestBytes = integer("maxRequestBytes", 1_024, 16_777_216);
+  const maxResponseBytes = integer("maxResponseBytes", 1_024, 16_777_216);
+  const remoteCommands = source.remoteCommands === undefined
+    ? undefined
+    : parseRemoteCommandConfig(source.remoteCommands, baseDirectory);
   return {
     schemaVersion: 1,
-    repositoryRoot: resolve(baseDirectory, text(source.repositoryRoot, "repositoryRoot")),
+    repositoryRoot: resolve(baseDirectory, configText(source.repositoryRoot, "repositoryRoot")),
     hub: {
       baseUrl: httpsUrl(hub.baseUrl),
-      bearerTokenFile: resolve(baseDirectory, text(hub.bearerTokenFile, "hub.bearerTokenFile")),
+      bearerTokenFile: resolve(baseDirectory, configText(hub.bearerTokenFile, "hub.bearerTokenFile")),
       destinationId,
       hubIdentityHash,
     },
@@ -120,6 +98,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
       ...(maxRequestBytes === undefined ? {} : { maxRequestBytes }),
       ...(maxResponseBytes === undefined ? {} : { maxResponseBytes }),
     },
+    ...(remoteCommands === undefined ? {} : { remoteCommands }),
   };
 }
 

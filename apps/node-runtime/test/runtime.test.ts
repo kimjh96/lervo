@@ -1,18 +1,33 @@
 import { EventEmitter } from "node:events";
+import { createHash, generateKeyPairSync } from "node:crypto";
+import { mkdir } from "node:fs/promises";
 import type { Server } from "node:http";
+import { resolve } from "node:path";
 
 import { ConfiguredBearerAuthenticator, createHubServer } from "@lervo/hub";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
+import { Ed25519PolicySigner } from "@lervo/policy";
+import { createPolicySnapshot } from "@lervo/policy-contract";
+import { loadProjectManifest } from "@lervo/project";
+import { Ed25519RemoteCommandSigner } from "@lervo/remote-command";
+import {
+  createRemoteCommand,
+  createRemoteCommandDeliveryConfirmation,
+  createRemoteCommandLease,
+} from "@lervo/remote-command-contract";
+import { type RemoteCommandDeliveryAcknowledgement } from "@lervo/schemas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import {
   AuthenticatedHubHttpTransport,
   type SyncHttpTransportOptions,
 } from "@lervo/sync";
-import { afterEach, describe, expect, it } from "vitest";
+import { calculateProjectIdentityHash } from "@lervo/sync-contract";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   loadNodeRuntimeConfig,
   openNodeRuntime,
+  parseNodeRuntimeConfig,
   runNodeRuntimeCli,
   type NodeRuntimeDeployment,
 } from "../src/index.js";
@@ -23,6 +38,7 @@ import {
   nodeRuntimeHubIdentityHash,
   nodeRuntimeProjectId,
   nodeRuntimeToken,
+  ownerFile,
   removeTemporaryRoots,
   temporaryRoot,
 } from "./fixture.js";
@@ -171,5 +187,196 @@ describe("installed Node sync runtime", () => {
     });
     expect(reopened.listOutbox({ status: "pending" })).toHaveLength(1);
     reopened.close();
+  });
+
+  it("syncs signed policy before commands and does not execute again after restart", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const commandKeys = generateKeyPairSync("ed25519");
+    const policyKeys = generateKeyPairSync("ed25519");
+    const keyDirectory = resolve(root, "keys");
+    await mkdir(keyDirectory, { mode: 0o700 });
+    await ownerFile(resolve(keyDirectory, "command.pem"), String(commandKeys.publicKey.export({
+      type: "spki",
+      format: "pem",
+    })));
+    await ownerFile(resolve(keyDirectory, "policy.pem"), String(policyKeys.publicKey.export({
+      type: "spki",
+      format: "pem",
+    })));
+    const configured = structuredClone(fixture.value);
+    configured.remoteCommands = {
+      nodeId: "node_runtime_control_01",
+      commandKeys: [{ keyId: "key_command_runtime_01", publicKeyFile: "keys/command.pem" }],
+      policyKeys: [{
+        keyId: "key_policy_runtime_01",
+        publicKeyFile: "keys/policy.pem",
+        purposes: ["snapshot", "approval", "revocation"],
+      }],
+      idlePollIntervalMs: 100,
+      retryDelayMs: 1_000,
+      maxLifetimeMs: 15 * 60_000,
+    };
+    const config = parseNodeRuntimeConfig(configured, root);
+    const manifest = await loadProjectManifest(fixture.repositoryRoot);
+    const target = {
+      projectId: manifest.projectId,
+      projectIdentityHash: calculateProjectIdentityHash(manifest),
+    };
+    const request = "재시작 뒤에도 한 번만 실행해 주세요.";
+    const requestBytes = new TextEncoder().encode(request);
+    const commandSigner = new Ed25519RemoteCommandSigner(
+      "key_command_runtime_01",
+      commandKeys.privateKey,
+    );
+    const envelope = commandSigner.sign(createRemoteCommand({
+      idempotencyKey: "idk_node_runtime_control_01",
+      nonce: Buffer.alloc(32, 4).toString("base64url"),
+      issuedAt: "2026-08-22T00:00:00.000Z",
+      expiresAt: "2026-08-22T00:10:00.000Z",
+      target,
+      action: {
+        kind: "managed_run",
+        roleId: "developer",
+        provider: "codex",
+        risk: "medium",
+        verificationSuiteIds: ["repo.check"],
+        request: {
+          artifactId: "art_node_runtime_control_01",
+          contentHash: `sha256:${createHash("sha256").update(requestBytes).digest("hex")}`,
+          byteCount: requestBytes.byteLength,
+          mediaType: "text/plain; charset=utf-8",
+        },
+      },
+    }));
+    const policySigner = new Ed25519PolicySigner("key_policy_runtime_01", policyKeys.privateKey);
+    const bundle = {
+      snapshot: policySigner.signSnapshot(createPolicySnapshot({
+        target,
+        sequence: 1,
+        previousSnapshotId: null,
+        issuedAt: "2026-08-22T00:00:00.000Z",
+        expiresAt: "2026-08-22T01:00:00.000Z",
+        rules: [{
+          ruleId: "polr_node_runtime_control_01",
+          roleId: "developer",
+          risk: "medium",
+          capability: "filesystem.write",
+          repositoryPaths: ["src/result.ts"],
+          decision: "allow",
+        }],
+      })),
+      approvals: [],
+      revocations: [],
+    };
+    const clock = { value: "2026-08-22T00:01:00.000Z", now() { return this.value; } };
+    let loseAcknowledgement = true;
+    let leaseSequence = 0;
+    const executor = vi.fn(async () => ({
+      runId: "run_node_runtime_control_01",
+      completedAt: clock.value,
+    }));
+    const remotePorts = () => ({
+      executor: { execute: executor },
+      localPolicy: {
+        resolve: async () => [{ capability: "filesystem.write" as const, decision: "allow" as const }],
+      },
+      clock,
+      createPolicyTransport: () => ({
+        pullPolicyBundle: async (input: { destinationId: string }) => ({
+          authentication: {
+            status: "verified" as const,
+            destinationId: input.destinationId,
+            peerIdentityHash: nodeRuntimeHubIdentityHash,
+          },
+          body: bundle,
+        }),
+      }),
+      createCommandTransport: () => ({
+        pullRemoteCommands: async (input: {
+          destinationId: string;
+          nodeId: string;
+        }) => {
+          leaseSequence += 1;
+          const leasedAt = clock.value;
+          const lease = createRemoteCommandLease({
+            destinationId: input.destinationId,
+            leaseId: `rcl_${Buffer.alloc(32, leaseSequence).toString("base64url")}`,
+            leasedTo: input.nodeId,
+            leasedAt,
+            leaseExpiresAt: new Date(Date.parse(leasedAt) + 30_000).toISOString(),
+            envelope,
+          });
+          return {
+            authentication: {
+              status: "verified" as const,
+              destinationId: input.destinationId,
+              peerIdentityHash: nodeRuntimeHubIdentityHash,
+            },
+            body: [lease],
+          };
+        },
+        acknowledgeRemoteCommand: async (acknowledgement: RemoteCommandDeliveryAcknowledgement) => {
+          if (loseAcknowledgement) {
+            loseAcknowledgement = false;
+            throw new Error("fixture acknowledgement lost");
+          }
+          return {
+            authentication: {
+              status: "verified" as const,
+              destinationId: nodeRuntimeDestinationId,
+              peerIdentityHash: nodeRuntimeHubIdentityHash,
+            },
+            body: createRemoteCommandDeliveryConfirmation({
+              acknowledgement,
+              status: "accepted",
+              confirmedAt: clock.value,
+            }),
+          };
+        },
+      }),
+      createPayloadLoader: () => ({ load: async () => requestBytes }),
+    });
+
+    let first!: NodeRuntimeDeployment;
+    first = await openNodeRuntime(config, {
+      createTransport: localHttpTransport,
+      remoteCommands: {
+        ...remotePorts(),
+        onCycle: () => { queueMicrotask(() => { void first.close(); }); },
+      },
+    });
+    deployments.push(first);
+    await first.start();
+    await expect(first.closed).resolves.toMatchObject({
+      status: "stopped",
+      remoteControl: {
+        lastCycle: { command: { status: "acknowledgement_pending" } },
+      },
+    });
+    expect(executor).toHaveBeenCalledTimes(1);
+    expect(executor).toHaveBeenCalledWith(expect.objectContaining({ request }));
+
+    clock.value = "2026-08-22T00:01:31.000Z";
+    let second!: NodeRuntimeDeployment;
+    second = await openNodeRuntime(config, {
+      createTransport: localHttpTransport,
+      remoteCommands: {
+        ...remotePorts(),
+        onCycle: () => { queueMicrotask(() => { void second.close(); }); },
+      },
+    });
+    deployments.push(second);
+    await second.start();
+    await expect(second.closed).resolves.toMatchObject({
+      status: "stopped",
+      remoteControl: {
+        lastCycle: {
+          policy: { status: "duplicate" },
+          command: { status: "processed", duplicateCount: 1, executedCount: 0 },
+        },
+      },
+    });
+    expect(executor).toHaveBeenCalledTimes(1);
   });
 });

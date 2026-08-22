@@ -19,13 +19,20 @@
   },
   "dependencies": {
     "@lervo/event-store-sqlite": "workspace:*",
+    "@lervo/policy": "workspace:*",
+    "@lervo/policy-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",
+    "@lervo/remote-command": "workspace:*",
+    "@lervo/remote-command-sqlite": "workspace:*",
     "@lervo/runtime-security": "workspace:*",
+    "@lervo/schemas": "workspace:*",
     "@lervo/sync": "workspace:*",
     "@lervo/sync-contract": "workspace:*"
   },
   "devDependencies": {
     "@lervo/hub": "workspace:*",
-    "@lervo/hub-sync-sqlite": "workspace:*"
+    "@lervo/hub-sync-sqlite": "workspace:*",
+    "@lervo/policy-contract": "workspace:*",
+    "@lervo/remote-command-contract": "workspace:*"
   }
 }

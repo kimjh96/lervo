@@ -243,12 +243,27 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../../packages/event-store-sqlite
+      '@lervo/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
+      '@lervo/policy-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/policy-sqlite
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../../packages/remote-command
+      '@lervo/remote-command-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/remote-command-sqlite
       '@lervo/runtime-security':
         specifier: workspace:*
         version: link:../../packages/runtime-security
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@lervo/sync':
         specifier: workspace:*
         version: link:../../packages/sync
@@ -262,6 +277,12 @@ importers:
       '@lervo/hub-sync-sqlite':
         specifier: workspace:*
         version: link:../../packages/hub-sync-sqlite
+      '@lervo/policy-contract':
+        specifier: workspace:*
+        version: link:../../packages/policy-contract
+      '@lervo/remote-command-contract':
+        specifier: workspace:*
+        version: link:../../packages/remote-command-contract
 
   packages/adapter-claude:
     dependencies:

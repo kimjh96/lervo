@@ -168,6 +168,8 @@ Hub 정책 작성은 `@lervo/hub-policy` application 경계와 `HubPolicySourceS
 
 `@lervo/hub`는 bearer principal의 `policy.read`·`policy.write`와 destination/project scope를 source 호출 전에 확인합니다. 정책 write body는 기본 256 KiB, 모든 응답은 기본 1 MiB·`no-store`이며 고정 오류만 반환합니다. Node의 `AuthenticatedPolicyHttpTransport`는 credential이 없는 HTTPS URL을 기본으로 강제하고 bearer token, 요청 좌표와 `x-lervo-hub-identity`를 확인한 뒤 bounded JSON만 policy sync port로 넘깁니다. 요청은 기본 15초 뒤 중단하며 평문 HTTP는 로컬 fixture에서 명시적으로만 허용합니다. 자세한 결정은 [ADR-0045](./docs/adr/0045-hub-policy-authoring-and-http-sync.md)에 기록합니다.
 
+`@lervo/node-runtime`의 선택적 원격 제어 조합은 매 cycle에서 policy sync를 먼저 끝내고 인증·검증이 끝난 경우에만 command lease를 요청합니다. Policy·replay SQLite와 trust key 로딩은 별도 조립 모듈이 소유하며 outbound event sync worker에는 들어가지 않습니다. Config의 `remoteCommands`만으로는 기능이 열리지 않고 같은 open 호출에 공급자 중립 executor와 로컬 capability policy가 모두 있어야 합니다. 기본 CLI는 실행기를 추정하지 않습니다. 두 loop는 같은 중단 신호를 공유하되 각각 직렬 cycle을 유지합니다. 결정은 [ADR-0152](./docs/adr/0152-fail-closed-node-remote-control-runtime.md)에 기록합니다.
+
 ## 저장소 내부 구조
 
 `lervo init`의 목표 구조입니다.

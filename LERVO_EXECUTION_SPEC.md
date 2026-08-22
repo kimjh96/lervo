@@ -526,6 +526,18 @@ Worker는 `sync.acknowledged` event를 만들지 않습니다. 같은 outbound �
 
 새 event나 별도 scheduler 원장을 만들지 않습니다. 마지막 cycle 결과는 process memory에만 있고 durable retry 근거는 기존 outbox의 `availableAt`, lease와 고정 failure code입니다. Process가 재시작되면 event store가 이를 다시 읽습니다. 이 runtime의 시작·등록·전송을 문서 `loaded`, `injected`, `used`나 원격 command 실행으로 해석하지 않습니다. 결정은 [ADR-0151](./docs/adr/0151-restartable-node-outbound-sync-runtime.md)에 기록합니다.
 
+### Node remote control runtime
+
+`remoteCommands`가 있는 Node config는 Node ID, 1~256개의 command public key와 1~256개의 policy public key, policy key별 `snapshot|approval|revocation` purpose, poll·lease·retry·batch, HTTP 응답·시간과 command lifetime·clock skew 상한을 가집니다. Key ID와 purpose는 중복될 수 없고 상대 public key 경로는 config 파일 위치에서 해석합니다. Public key는 최대 64 KiB owner-only UTF-8 일반 파일의 Ed25519 SPKI여야 합니다. 시작 때 읽은 command·policy key scope는 현재 manifest의 project ID·identity에만 고정합니다. Config와 key 변경은 전체 재시작으로 적용합니다.
+
+구성의 존재는 실행 권한이 아닙니다. `openNodeRuntime`에 `RemoteCommandExecutor`와 `LocalCommandCapabilityPolicy`가 함께 주입된 경우에만 policy·command transport를 만들며, 구성과 port 중 한쪽만 있으면 network 전에 `invalid_config`로 실패합니다. 기본 `lervo-node` CLI는 provider 실행기를 선택하지 않으므로 원격 제어 구성을 단독으로 실행하지 않습니다.
+
+한 remote control cycle은 `runPolicySyncCycle`을 먼저 호출합니다. `hub_unavailable|transport_authentication_failed`이면 memory 상태 `policy_unavailable`을 반환하고 command pull을 호출하지 않습니다. `unchanged|applied|duplicate` 뒤에만 한 reconnect cycle을 실행하며 결과를 memory 상태 `command_checked`에 둡니다. 서명, snapshot chain, key scope, policy·replay SQLite 무결성 오류는 retry 가능한 transport offline으로 바꾸지 않고 loop를 실패시킵니다. Policy offline retry는 기본 5초, command idle poll은 기본 2초이며 각각 1시간 상한입니다. Cycle은 겹치지 않고 Abort 뒤 새 cycle을 만들지 않습니다.
+
+Policy 원본은 `.lervo/state/policy.sqlite`, replay reservation·receipt는 `.lervo/state/remote-command-replay.sqlite`에 project-bound로 저장합니다. 첫 실행이 terminal receipt를 저장한 뒤 Hub acknowledgement를 잃어도 재시작한 receiver는 같은 command를 duplicate로 돌려 executor를 다시 호출하지 않습니다. Receipt 없는 reservation은 기존대로 `in_progress`에서 닫힙니다. Raw request, signed envelope, provider 오류와 credential을 두 database나 memory cycle 결과에 추가하지 않습니다.
+
+Outbound sync와 remote control loop는 한 process에서 같은 AbortSignal을 공유하지만 서로의 network cycle을 직렬화하지 않습니다. 어느 loop든 fatal이면 새 cycle을 모두 막고 진행 중인 bounded cycle을 기다린 뒤 remote command replay store, policy store, event store를 닫습니다. 원격 제어 fatal의 공개 failure code는 `remote_control_runtime_failed`입니다. Policy 동기화는 command 실행이나 문서 사용 증거가 아닙니다. 자세한 결정은 [ADR-0152](./docs/adr/0152-fail-closed-node-remote-control-runtime.md)에 기록합니다.
+
 ### Hub sync durable receiver
 
 Hub handler는 schema-valid registration 또는 batch의 복사본을 비동기 command port에 전달합니다. Port는 `(destinationId, projectId)` registration 또는 event batch를 durable하게 commit한 뒤에만 response 또는 acknowledgement로 resolve해야 합니다. 공개 계약에는 transaction callback과 전체 `ProjectSyncState` 읽기·쓰기가 없습니다. `sync-contract`의 전체 state reducer는 중복·역순·cursor 의미를 검증하는 참조 구현으로 남고 운영 adapter는 같은 결과를 증분 저장으로 만들 수 있습니다.

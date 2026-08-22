@@ -71,4 +71,43 @@ describe("Node runtime configuration", () => {
       }),
     })).rejects.toMatchObject({ code: "project_invalid" });
   });
+
+  it("parses scoped trust key files and requires explicit command execution ports", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const configured = structuredClone(fixture.value);
+    configured.remoteCommands = {
+      nodeId: "node_runtime_control_01",
+      commandKeys: [{ keyId: "key_command_runtime_01", publicKeyFile: "keys/command.pem" }],
+      policyKeys: [{
+        keyId: "key_policy_runtime_01",
+        publicKeyFile: "keys/policy.pem",
+        purposes: ["snapshot", "approval", "revocation"],
+      }],
+      idlePollIntervalMs: 100,
+      retryDelayMs: 1_000,
+    };
+    expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
+      remoteCommands: {
+        nodeId: "node_runtime_control_01",
+        commandKeys: [{ publicKeyFile: `${root}/keys/command.pem` }],
+        policyKeys: [{ publicKeyFile: `${root}/keys/policy.pem` }],
+      },
+    });
+    await expect(openNodeRuntime(parseNodeRuntimeConfig(configured, root), {
+      createTransport: () => ({
+        registerProject: async () => ({}),
+        sendEventBatch: async () => ({}),
+      }),
+    })).rejects.toMatchObject({ code: "invalid_config" });
+
+    const duplicate = structuredClone(configured);
+    (duplicate.remoteCommands as Record<string, unknown>).commandKeys = [
+      { keyId: "key_command_runtime_01", publicKeyFile: "keys/one.pem" },
+      { keyId: "key_command_runtime_01", publicKeyFile: "keys/two.pem" },
+    ];
+    expect(() => parseNodeRuntimeConfig(duplicate, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+  });
 });

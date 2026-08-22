@@ -17,4 +17,24 @@ export interface NodeRuntimeConfig {
     maxRequestBytes?: number;
     maxResponseBytes?: number;
   };
+  remoteCommands?: {
+    nodeId: string;
+    commandKeys: Array<{
+      keyId: string;
+      publicKeyFile: string;
+    }>;
+    policyKeys: Array<{
+      keyId: string;
+      publicKeyFile: string;
+      purposes: Array<"snapshot" | "approval" | "revocation">;
+    }>;
+    idlePollIntervalMs?: number;
+    leaseDurationMs?: number;
+    retryDelayMs?: number;
+    limit?: number;
+    requestTimeoutMs?: number;
+    maxResponseBytes?: number;
+    maxLifetimeMs?: number;
+    clockSkewMs?: number;
+  };
 }

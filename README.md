@@ -171,6 +171,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [Owner-only 구성과 loopback 실행을 강제하는 Hub runtime ADR](./docs/adr/0149-owner-only-loopback-hub-runtime.md)
 - [프로젝트 범위에 결속된 Hub sync HTTP ADR](./docs/adr/0150-authenticated-project-scoped-hub-sync-http.md)
 - [재시작 가능한 Node outbound sync runtime ADR](./docs/adr/0151-restartable-node-outbound-sync-runtime.md)
+- [정책을 먼저 확인하는 Node 원격 제어 runtime ADR](./docs/adr/0152-fail-closed-node-remote-control-runtime.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현

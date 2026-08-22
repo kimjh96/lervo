@@ -1,4 +1,6 @@
 export * from "./cli.js";
+export * from "./control-loop.js";
+export type { NodeRemoteCommandPorts, NodeRemoteControlRuntime } from "./control-runtime.js";
 export * from "./config-types.js";
 export * from "./config.js";
 export * from "./deployment.js";

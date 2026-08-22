@@ -1695,4 +1695,24 @@ Node outbound sync runtime 완료 조건:
 - Hub가 없거나 Node runtime이 꺼져도 local-first CLI 실행을 바꾸지 않음
 - 원격 command·정책 조합, hot reload, OS service와 production TLS를 완료로 주장하지 않음
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler, loopback Hub 실행, 프로젝트 sync HTTP와 Node outbound sync runtime 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 원격 command·정책을 포함한 Node runtime 확장, OS service 설치와 process supervisor는 후속 제품 작업입니다.
+정책을 먼저 확인하는 Node 원격 제어 runtime을 완료했습니다. 선택적 `remoteCommands` 구성은 owner-only Ed25519 public key와 bounded polling 좌표만 가지며, 공급자 중립 executor와 로컬 capability policy가 같은 open 호출에 명시된 경우에만 활성화됩니다. 매 cycle은 signed policy sync 뒤 command reconnect를 실행하고 acknowledgement 유실·process 재시작 뒤 replay SQLite의 terminal receipt로 중복 실행을 막습니다. 결정은 [ADR-0152](./docs/adr/0152-fail-closed-node-remote-control-runtime.md)에 기록했습니다.
+
+Node 원격 제어 runtime 완료 조건:
+
+- Policy sync가 offline이거나 peer 인증이 끝나지 않으면 command lease를 요청하지 않음
+- Snapshot·승인·철회의 signature·scope·연속성 실패를 transport offline으로 낮추지 않음
+- Policy와 command cycle이 직렬이며 Abort 뒤 새 cycle을 시작하지 않음
+- Config와 executor·local policy port 중 한쪽만 있으면 network 전에 실패함
+- Command·policy public key는 owner-only 파일이고 현재 project scope에 고정됨
+- Key ID·purpose 중복, 알 수 없는 config 필드와 모든 polling·HTTP·receiver 상한을 거부함
+- Policy와 replay SQLite는 event store와 분리되고 각각 project identity에 고정됨
+- Acknowledgement 유실·process 재시작 뒤 terminal receipt로 executor 재호출을 막음
+- Receipt 없는 reservation은 실행 여부를 추정하지 않고 `in_progress`로 유지함
+- 한 loop의 fatal이 모든 새 cycle을 막고 bounded cycle 뒤 store를 닫음
+- Runtime memory 상태와 고정 failure code에 credential·path·payload·내부 오류를 넣지 않음
+- 새 event나 durable scheduler 원장, 문서 사용 상태를 만들지 않음
+- 기본 CLI가 provider executor를 임의로 선택하거나 구성만으로 실행 권한을 열지 않음
+- Hub가 없거나 원격 제어가 꺼져도 기존 local-first CLI 실행을 바꾸지 않음
+- 내장 managed provider host, hot reload, OS service와 production TLS를 완료로 주장하지 않음
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler, loopback Hub 실행, 프로젝트 sync HTTP, Node outbound sync와 fail-closed 원격 제어 조합 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 실제 managed provider executor를 포함한 Node host, OS service 설치와 process supervisor는 후속 제품 작업입니다.
