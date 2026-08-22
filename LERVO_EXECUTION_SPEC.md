@@ -1270,6 +1270,16 @@ Hub acknowledgement 전 연결이 끊기면 Node terminal receipt는 먼저 dura
 
 반복 lifecycle은 cycle을 직렬로 실행하고 `idle`에는 bounded poll interval, `offline`·`acknowledgement_pending`·`local_deferred`에는 결과의 `nextAttemptAt`을 적용합니다. 중단 신호 뒤에는 새 cycle을 시작하지 않습니다. 이는 HTTP 전달과 scheduler lifecycle의 구현이며 설치된 daemon, process supervisor나 production TLS termination 완료를 뜻하지 않습니다. 상세 결정은 [ADR-0145](./docs/adr/0145-authenticated-remote-command-http-delivery.md)에 기록합니다.
 
+### Hub command 작성과 request artifact 전달
+
+`POST /v1/commands/projects/<projectId>/submissions`는 destination ID와 project identity hash query, schema version, idempotency key, 1초 이상 5분 이하 lifetime, role ID, 공급자 중립 provider ID, risk, 1~16개의 verification suite ID와 1~65,536 byte UTF-8 request를 받습니다. `issuedAt`, `expiresAt`, nonce, artifact ID·hash·크기와 signature는 client 입력이 아니며 Hub clock, content hash와 configured signer가 만듭니다. Bearer의 `command.write`와 destination/project scope를 body 전에 확인합니다.
+
+작성 결과의 필수 필드는 schema version, `created|duplicate`, destination, target, delivery ID, 최초 queue 시각과 signed envelope입니다. 같은 destination·project·idempotency key에서 lifetime·action·request reference를 포함한 submission hash가 같으면 exact 최초 원본을 반환하고 하나라도 다르면 conflict입니다. 작성자 principal은 project identity와 함께 SHA-256으로 바꾼 subject hash만 authorship metadata에 저장합니다. Raw request는 owner-only command CAS에만 있고 Hub SQLite, queue·event·receipt·오류에는 없습니다. Artifact put 뒤 authorship metadata와 queue row는 한 SQLite transaction으로 commit합니다.
+
+`GET /v1/commands/projects/<projectId>/artifacts/<artifactId>`는 destination, project identity와 Node ID query를 받습니다. `command.delivery`, scope와 `principalId === nodeId`를 확인한 뒤 같은 artifact를 가리키는 command가 현재 그 Node에 lease되어 있고 lease가 지나지 않은 경우에만 UTF-8 bytes를 반환합니다. 응답 필수 header는 Hub identity, artifact ID, content hash, exact content length, fixed media type과 `no-store`입니다. Node loader는 HTTPS를 기본으로 하고 이 좌표·byte 상한·hash·strict UTF-8을 모두 검증합니다.
+
+작성 `created|duplicate`는 queue의 새 상태나 실행 event가 아닙니다. 인증 없음 `401`, permission·scope·Node 불일치 `403`, 현재 lease artifact 부재 `404`, 잘못된 request `400`, idempotency·identity 충돌 `409`, request 상한 초과 `413`, CAS 저장·읽기·무결성 실패 `500`으로 처리합니다. 고정 오류에는 원문, principal, credential, artifact URI와 내부 예외를 넣지 않습니다. Filesystem owner-only mode는 directory `0700`, object `0600`이며 암호화가 아닙니다. 만료 뒤 HTTP 접근은 닫히지만 자동 물리 삭제는 아직 없으므로 운영 배포는 command 전용 CAS에 raw artifact 기본 30일 이내 정리를 적용해야 합니다. 결정은 [ADR-0146](./docs/adr/0146-hub-command-authoring-and-artifact-delivery.md)에 기록합니다.
+
 Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자체를 반환하지 않습니다. Node replay에는 envelope도 없습니다. Queue/reconnect 성공은 event sync, provider verification, writing 공개나 사람이 결과를 읽었다는 뜻이 아닙니다. 상세 상태와 장애 처분은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 
 ## 서명된 정책 배포와 승인 수명주기

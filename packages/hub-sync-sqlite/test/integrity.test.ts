@@ -106,6 +106,9 @@ describe("Hub sync SQLite integrity lifecycle", () => {
       DROP TABLE hub_policy_revocations;
       DROP TABLE hub_policy_approvals;
       DROP TABLE hub_policy_snapshots;
+      DROP TRIGGER hub_remote_command_authorships_no_delete;
+      DROP TRIGGER hub_remote_command_authorships_no_update;
+      DROP TABLE hub_remote_command_authorships;
       DROP TRIGGER hub_remote_commands_identity_immutable;
       DROP TRIGGER hub_remote_commands_no_delete;
       DROP TABLE hub_remote_commands;

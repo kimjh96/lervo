@@ -301,6 +301,33 @@ const migrations = [
       );
     INSERT INTO hub_sync_meta (key, value) VALUES ('knowledge_graph_index_version', '0');
   `,
+  `
+    CREATE TABLE hub_remote_command_authorships (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      submission_hash TEXT NOT NULL,
+      author_subject_hash TEXT NOT NULL,
+      delivery_id TEXT NOT NULL UNIQUE,
+      artifact_id TEXT NOT NULL,
+      artifact_uri TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      byte_count INTEGER NOT NULL CHECK (byte_count BETWEEN 1 AND 65536),
+      media_type TEXT NOT NULL CHECK (media_type = 'text/plain; charset=utf-8'),
+      PRIMARY KEY (destination_id, project_id, idempotency_key),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id),
+      FOREIGN KEY (delivery_id) REFERENCES hub_remote_commands(delivery_id)
+    ) STRICT;
+    CREATE INDEX hub_remote_command_artifacts
+      ON hub_remote_command_authorships (destination_id, project_id, artifact_id);
+    CREATE TRIGGER hub_remote_command_authorships_no_update
+      BEFORE UPDATE ON hub_remote_command_authorships
+      BEGIN SELECT RAISE(ABORT, 'hub remote command authorships are append-only'); END;
+    CREATE TRIGGER hub_remote_command_authorships_no_delete
+      BEFORE DELETE ON hub_remote_command_authorships
+      BEGIN SELECT RAISE(ABORT, 'hub remote command authorships are append-only'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

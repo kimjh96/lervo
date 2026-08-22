@@ -1,22 +1,22 @@
-import { createHash, generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
-import {
-  handleProjectRegistration,
-  handleRemoteCommandEnqueue,
-} from "@lervo/hub-sync";
+import { OwnerOnlyFileSystemCas } from "@lervo/cas";
+import type { HubCommandArtifactStore, HubCommandSigner } from "@lervo/hub-command";
+import { handleProjectRegistration } from "@lervo/hub-sync";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import {
   AuthenticatedRemoteCommandHttpTransport,
+  AuthenticatedRemoteCommandHttpPayloadLoader,
   ConfiguredEd25519RemoteCommandTrustStore,
   Ed25519RemoteCommandSigner,
   RemoteCommandReceiver,
   runRemoteCommandReconnectCycle,
 } from "@lervo/remote-command";
-import { createRemoteCommand } from "@lervo/remote-command-contract";
 import { SQLiteRemoteCommandReplayStore } from "@lervo/remote-command-sqlite";
 import { defaultProjectDataPolicy, type ProjectManifest } from "@lervo/schemas";
 import {
@@ -35,6 +35,7 @@ const nodeId = "node_command_http_01";
 const hubIdentityHash = `sha256:${"7".repeat(64)}`;
 const nodeToken = "hub-command-node-token-aaaaaaaaaaaaaaaaaaaaaaaa";
 const observerToken = "hub-command-observer-token-bbbbbbbbbbbbbbbbbbbbb";
+const writerToken = "hub-command-writer-token-cccccccccccccccccccccc";
 const requestText = "HTTP로 전달된 작업을 한 번만 실행해 주세요.";
 const requestBytes = new TextEncoder().encode(requestText);
 
@@ -82,6 +83,12 @@ function authenticator(projectId: string): ConfiguredBearerAuthenticator {
       permissions: ["command.read"],
       projects: [{ destinationId, projectId }],
     },
+    {
+      token: writerToken,
+      principalId: "operator:command-writer",
+      permissions: ["command.write"],
+      projects: [{ destinationId, projectId }],
+    },
   ]);
 }
 
@@ -89,6 +96,7 @@ async function start(
   store: HubSyncSQLiteStore,
   clock: MutableClock,
   maxRequestBytes?: number,
+  authoring?: { artifacts: HubCommandArtifactStore; signer: HubCommandSigner },
 ): Promise<string> {
   const server = createHubServer({
     trace: { authenticator: authenticator(project().projectId), source: traceSource() },
@@ -97,6 +105,9 @@ async function start(
       store,
       hubIdentityHash,
       now: () => clock.date(),
+      ...(authoring === undefined ? {} : {
+        authoring: { store, artifacts: authoring.artifacts, signer: authoring.signer },
+      }),
       ...(maxRequestBytes === undefined ? {} : { maxRequestBytes }),
     },
   });
@@ -127,27 +138,6 @@ describe("authenticated remote command HTTP delivery", () => {
     };
     const keys = generateKeyPairSync("ed25519");
     const signer = new Ed25519RemoteCommandSigner("key_command_http_01", keys.privateKey);
-    const command = createRemoteCommand({
-      idempotencyKey: "idk_command_http_once_01",
-      nonce: Buffer.alloc(32, 4).toString("base64url"),
-      issuedAt: "2026-08-19T00:00:00.000Z",
-      expiresAt: "2026-08-19T00:05:00.000Z",
-      target,
-      action: {
-        kind: "managed_run",
-        roleId: "developer",
-        provider: "codex",
-        risk: "medium",
-        verificationSuiteIds: ["repo.check"],
-        request: {
-          artifactId: "art_command_http_request",
-          contentHash: `sha256:${createHash("sha256").update(requestBytes).digest("hex")}`,
-          byteCount: requestBytes.byteLength,
-          mediaType: "text/plain; charset=utf-8",
-        },
-      },
-    });
-    const envelope = signer.sign(command);
     const hubPath = resolve(root, "hub.sqlite");
     let hub = await HubSyncSQLiteStore.open({ path: hubPath });
     await handleProjectRegistration({
@@ -159,14 +149,62 @@ describe("authenticated remote command HTTP delivery", () => {
       }),
       acceptedAt: "2026-08-19T00:00:00.000Z",
     });
-    const queued = await handleRemoteCommandEnqueue({
-      store: hub,
-      destinationId,
-      envelope,
-      queuedAt: "2026-08-19T00:00:01.000Z",
-    });
     const clock = new MutableClock("2026-08-19T00:01:00.000Z");
-    let baseUrl = await start(hub, clock);
+    const artifacts = await OwnerOnlyFileSystemCas.open(resolve(root, "command-artifacts"));
+    let baseUrl = await start(hub, clock, undefined, { artifacts, signer });
+    const submissionUrl = new URL(`v1/commands/projects/${manifest.projectId}/submissions`, baseUrl);
+    submissionUrl.searchParams.set("destinationId", destinationId);
+    submissionUrl.searchParams.set("projectIdentityHash", target.projectIdentityHash);
+    const submissionBody = {
+      schemaVersion: 1,
+      idempotencyKey: "idk_command_http_once_01",
+      lifetimeMs: 300_000,
+      roleId: "developer",
+      provider: "codex",
+      risk: "medium",
+      verificationSuiteIds: ["repo.check"],
+      request: requestText,
+    };
+    const submit = (body: unknown) => fetch(submissionUrl, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${writerToken}`,
+        "content-type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify(body),
+    });
+    const firstSubmission = await submit(submissionBody);
+    expect(firstSubmission.status).toBe(201);
+    const firstSubmissionBody = await firstSubmission.json() as {
+      deliveryId: string;
+      envelope: { command: { commandId: string } };
+    };
+    const duplicateSubmission = await submit(submissionBody);
+    expect(duplicateSubmission.status).toBe(200);
+    const duplicateSubmissionBody = await duplicateSubmission.json() as typeof firstSubmissionBody & {
+      status: string;
+    };
+    expect(duplicateSubmissionBody).toMatchObject({
+      status: "duplicate",
+      deliveryId: firstSubmissionBody.deliveryId,
+      envelope: firstSubmissionBody.envelope,
+    });
+    await expect(submit({ ...submissionBody, request: "다른 요청" }).then((response) => response.status))
+      .resolves.toBe(409);
+    const queued = { deliveryId: firstSubmissionBody.deliveryId };
+    const inspection = new DatabaseSync(hubPath, { readOnly: true });
+    const storedCoordinates = inspection.prepare(`
+      SELECT authorship.*, command.envelope_json
+      FROM hub_remote_command_authorships AS authorship
+      JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
+    `).get();
+    inspection.close();
+    expect(JSON.stringify(storedCoordinates)).not.toContain(requestText);
+    expect(storedCoordinates).toMatchObject({
+      idempotency_key: submissionBody.idempotencyKey,
+      author_subject_hash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      artifact_uri: expect.stringMatching(/^lervo-cas:\/\/sha256\/[a-f0-9]{64}$/),
+    });
     let dropAcknowledgement = true;
     const lossyFetch: typeof fetch = async (input, init) => {
       const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
@@ -191,7 +229,15 @@ describe("authenticated remote command HTTP delivery", () => {
       }]),
       replayStore: replay,
       policy: { authorize: async () => ({ status: "approved" }) },
-      payloadLoader: { load: async () => requestBytes },
+      payloadLoader: new AuthenticatedRemoteCommandHttpPayloadLoader({
+        baseUrl,
+        bearerToken: nodeToken,
+        expectedHubIdentityHash: hubIdentityHash,
+        destinationId,
+        nodeId,
+        target,
+        allowInsecureHttpForTests: true,
+      }),
       executor: { execute: executor },
       clock,
     });
@@ -235,7 +281,7 @@ describe("authenticated remote command HTTP delivery", () => {
     clock.value = "2026-08-19T00:01:31.000Z";
     hub = await HubSyncSQLiteStore.open({ path: hubPath });
     replay = await SQLiteRemoteCommandReplayStore.open({ path: replayPath, target });
-    baseUrl = await start(hub, clock);
+    baseUrl = await start(hub, clock, undefined, { artifacts, signer });
 
     await expect(runRemoteCommandReconnectCycle(worker(makeTransport()))).resolves.toMatchObject({
       status: "processed",
@@ -270,10 +316,16 @@ describe("authenticated remote command HTTP delivery", () => {
       }),
       acceptedAt: "2026-08-19T00:00:00.000Z",
     });
+    const artifacts = await OwnerOnlyFileSystemCas.open(resolve(root, "bounded-command-artifacts"));
+    const signer = new Ed25519RemoteCommandSigner(
+      "key_command_http_02",
+      generateKeyPairSync("ed25519").privateKey,
+    );
     const baseUrl = await start(
       hub,
       new MutableClock("2026-08-19T00:01:00.000Z"),
       1_024,
+      { artifacts, signer },
     );
     const url = new URL(`v1/commands/projects/${manifest.projectId}/leases`, baseUrl);
     url.searchParams.set("destinationId", destinationId);
@@ -288,6 +340,31 @@ describe("authenticated remote command HTTP delivery", () => {
 
     await expect(request(observerToken, oversized).then((response) => response.status)).resolves.toBe(403);
     await expect(request(nodeToken, oversized).then((response) => response.status)).resolves.toBe(413);
+
+    const submissionUrl = new URL(`v1/commands/projects/${manifest.projectId}/submissions`, baseUrl);
+    submissionUrl.searchParams.set("destinationId", destinationId);
+    submissionUrl.searchParams.set("projectIdentityHash", target.projectIdentityHash);
+    const submitOversized = (credential: string) => fetch(submissionUrl, {
+      method: "POST",
+      headers: { authorization: `Bearer ${credential}`, "content-type": "application/json" },
+      body: oversized,
+    });
+    await expect(submitOversized(observerToken).then((response) => response.status)).resolves.toBe(403);
+    await expect(submitOversized(writerToken).then((response) => response.status)).resolves.toBe(413);
+
+    const artifactUrl = new URL(
+      `v1/commands/projects/${manifest.projectId}/artifacts/art_${"a".repeat(64)}`,
+      baseUrl,
+    );
+    artifactUrl.searchParams.set("destinationId", destinationId);
+    artifactUrl.searchParams.set("projectIdentityHash", target.projectIdentityHash);
+    artifactUrl.searchParams.set("nodeId", nodeId);
+    await expect(fetch(artifactUrl, {
+      headers: { authorization: `Bearer ${observerToken}` },
+    }).then((response) => response.status)).resolves.toBe(403);
+    await expect(fetch(artifactUrl, {
+      headers: { authorization: `Bearer ${nodeToken}` },
+    }).then((response) => response.status)).resolves.toBe(404);
     const wrongNode = new URL(url);
     wrongNode.searchParams.set("nodeId", "node_command_http_02");
     await expect(fetch(wrongNode, {

@@ -1,5 +1,6 @@
 export * from "./auth.js";
 export * from "./command-handler.js";
+export * from "./command-authoring-handler.js";
 export * from "./command-request.js";
 export * from "./control-handler.js";
 export * from "./control-request.js";

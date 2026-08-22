@@ -1,10 +1,10 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { CasError, FileSystemCas } from "../src/index.js";
+import { CasError, FileSystemCas, OwnerOnlyFileSystemCas } from "../src/index.js";
 
 const temporaryRoots: string[] = [];
 
@@ -53,6 +53,15 @@ describe("file system content-addressed storage", () => {
     expect(Buffer.from(await reopened.get(stored.uri)).toString("utf8")).toBe(
       "재시작 뒤에도 읽습니다.",
     );
+  });
+
+  it("can restrict a sensitive CAS root and its objects to the owner", async () => {
+    const root = await casRoot();
+    const cas = await OwnerOnlyFileSystemCas.open(root);
+    const stored = await cas.put("외부로 노출하지 않는 요청 원문");
+
+    expect((await stat(root)).mode & 0o777).toBe(0o700);
+    expect((await stat(pathForUri(root, stored.uri))).mode & 0o777).toBe(0o600);
   });
 
   it("detects content that no longer matches its address", async () => {

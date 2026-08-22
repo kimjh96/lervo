@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/hub-control": "workspace:*",
+    "@lervo/hub-command": "workspace:*",
     "@lervo/hub-policy": "workspace:*",
     "@lervo/hub-sync": "workspace:*",
     "@lervo/hub-trace": "workspace:*",
@@ -23,6 +24,7 @@
     "@lervo/schemas": "workspace:*"
   },
   "devDependencies": {
+    "@lervo/cas": "workspace:*",
     "@lervo/hub-sync-sqlite": "workspace:*",
     "@lervo/policy": "workspace:*",
     "@lervo/policy-sqlite": "workspace:*",

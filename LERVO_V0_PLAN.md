@@ -1596,4 +1596,6 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 인증된 원격 command HTTP 전달과 반복 실행 lifecycle을 완료했습니다. Hub는 `command.delivery` principal을 destination·project·Node에 묶고 자기 시각으로 lease와 confirmation을 만들며, acknowledgement 저장도 같은 범위를 다시 검사합니다. Node transport는 HTTPS·Hub identity·bounded JSON·timeout을 강제하고 polling은 cycle과 retry를 직렬화합니다. 실제 HTTP와 양쪽 SQLite 재시작에서 acknowledgement 유실 뒤 executor가 한 번만 호출되는지 확인했습니다. 결정은 [ADR-0145](./docs/adr/0145-authenticated-remote-command-http-delivery.md)에 기록했습니다.
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration과 원격 command HTTP 전달은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다.
+Hub 원격 command 작성과 실제 request artifact 전달을 완료했습니다. 플랫폼 중립 작성 경계가 Hub 소유 시각·nonce·서명과 durable idempotency를 적용하고, owner-only CAS metadata와 queue를 한 SQLite transaction으로 연결합니다. `command.write` submission과 현재 Node lease에만 열리는 artifact GET, HTTPS·Hub identity·길이·hash·UTF-8을 검증하는 Node loader를 실제 HTTP에 연결했습니다. 동일 submission 재시도와 변경 충돌, 권한 선검사, 양쪽 SQLite 재시작·acknowledgement 유실 뒤 exact-once executor를 검증했습니다. 자동 CAS GC·orphan 회수는 완료로 주장하지 않습니다. 결정은 [ADR-0146](./docs/adr/0146-hub-command-authoring-and-artifact-delivery.md)에 기록했습니다.
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. 설치된 Node daemon, production TLS·credential 조합과 command CAS 자동 수명주기는 후속 제품 작업입니다.

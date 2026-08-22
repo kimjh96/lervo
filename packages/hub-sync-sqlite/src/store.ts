@@ -1,6 +1,10 @@
 import { DatabaseSync } from "node:sqlite";
 
 import {
+  type HubCommandAuthoringStore,
+  type HubCommandAuthorshipRecord,
+} from "@lervo/hub-command";
+import {
   type HubPolicyBundle,
   type HubPolicyCommandBinding,
   type HubPolicyPublishResult,
@@ -36,6 +40,7 @@ import {
   type RemoteCommandDeliveryAcknowledgement,
   type RemoteCommandDeliveryConfirmation,
   type RemoteCommandLease,
+  type RemoteCommandPayloadReference,
   type RemoteCommandTarget,
   type SignedRemoteCommand,
   type SignedPolicyApproval,
@@ -45,6 +50,7 @@ import {
 
 import { ensureDatabasePath } from "./database-lifecycle.js";
 import { HubAuditSQLiteRepository } from "./audit-repository.js";
+import { HubCommandAuthorshipSQLiteRepository } from "./command-authorship-repository.js";
 import { HubEventInboxSQLiteRepository } from "./event-inbox-repository.js";
 import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
@@ -63,11 +69,13 @@ export class HubSyncSQLiteStore implements
   HubRemoteCommandQueueStore,
   HubRemoteCommandQueueInspectionStore,
   HubTraceSource,
-  HubPolicySourceStore
+  HubPolicySourceStore,
+  HubCommandAuthoringStore
 {
   readonly path: string;
   private closed = false;
   private readonly auditRepository: HubAuditSQLiteRepository;
+  private readonly commandAuthorshipRepository: HubCommandAuthorshipSQLiteRepository;
   private readonly eventInboxRepository: HubEventInboxSQLiteRepository;
   private readonly registrationRepository: HubRegistrationSQLiteRepository;
   private readonly remoteCommandRepository: HubRemoteCommandSQLiteRepository;
@@ -80,6 +88,7 @@ export class HubSyncSQLiteStore implements
   private constructor(path: string, private readonly database: DatabaseSync) {
     this.path = path;
     this.auditRepository = new HubAuditSQLiteRepository(database);
+    this.commandAuthorshipRepository = new HubCommandAuthorshipSQLiteRepository(database);
     this.eventInboxRepository = new HubEventInboxSQLiteRepository(database);
     this.registrationRepository = new HubRegistrationSQLiteRepository(database);
     this.remoteCommandRepository = new HubRemoteCommandSQLiteRepository(database);
@@ -138,6 +147,38 @@ export class HubSyncSQLiteStore implements
   }): Promise<HubRemoteCommandEnqueueResult> {
     this.assertOpen();
     return this.transactionRunner.write(() => this.remoteCommandRepository.enqueue(input));
+  }
+
+  async findAuthorship(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    idempotencyKey: string;
+  }): Promise<HubCommandAuthorshipRecord | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.commandAuthorshipRepository.find(input));
+  }
+
+  async commitAuthorship(input: HubCommandAuthorshipRecord): Promise<{
+    status: "created" | "duplicate";
+    record: HubCommandAuthorshipRecord;
+  }> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.commandAuthorshipRepository.commit(input));
+  }
+
+  async findLeasedArtifact(input: {
+    destinationId: string;
+    target: RemoteCommandTarget;
+    nodeId: string;
+    artifactId: string;
+    requestedAt: string;
+  }): Promise<{
+    uri: string;
+    reference: RemoteCommandPayloadReference;
+  } | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() =>
+      this.commandAuthorshipRepository.findLeasedArtifact(input));
   }
 
   async leaseRemoteCommands(input: {
@@ -294,6 +335,7 @@ export class HubSyncSQLiteStore implements
       this.knowledgeGraphIndex.assertMatchesEvents(coordinate, state.events);
     }
     this.remoteCommandRepository.auditAll();
+    this.commandAuthorshipRepository.auditAll();
     this.policyRepository.auditAll();
     this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
     return { valid: true, projectCount: coordinates.length, eventCount };
@@ -312,6 +354,8 @@ export class HubSyncSQLiteStore implements
       "hub_projects_no_delete",
       "hub_remote_commands_no_delete",
       "hub_remote_commands_identity_immutable",
+      "hub_remote_command_authorships_no_update",
+      "hub_remote_command_authorships_no_delete",
       "hub_policy_snapshots_no_update",
       "hub_policy_snapshots_no_delete",
       "hub_policy_approvals_no_update",

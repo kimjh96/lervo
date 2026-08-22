@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/event-contract": "workspace:*",
+    "@lervo/hub-command": "workspace:*",
     "@lervo/hub-sync": "workspace:*",
     "@lervo/hub-policy": "workspace:*",
     "@lervo/hub-trace": "workspace:*",
@@ -26,6 +27,7 @@
     "@lervo/sync-contract": "workspace:*"
   },
   "devDependencies": {
+    "@lervo/cas": "workspace:*",
     "@lervo/event-store-sqlite": "workspace:*",
     "@lervo/policy": "workspace:*",
     "@lervo/remote-command": "workspace:*",

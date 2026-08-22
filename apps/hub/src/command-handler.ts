@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import { HubCommandError } from "@lervo/hub-command";
 import {
   classifyHubRemoteCommandFailure,
   handleRemoteCommandAcknowledgement,
@@ -14,7 +15,13 @@ import {
 import type { HubRequestAuthenticator } from "./auth.js";
 import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
 import {
+  handleHubCommandArtifactDownload,
+  handleHubCommandSubmission,
+  type HubCommandAuthoringHttpOptions,
+} from "./command-authoring-handler.js";
+import {
   matchHubRemoteCommandRoute,
+  remoteCommandAuthoringQuery,
   remoteCommandLeaseBody,
   remoteCommandQuery,
 } from "./command-request.js";
@@ -30,6 +37,7 @@ export interface HubRemoteCommandHttpHandlerOptions {
   now?: () => Date;
   maxRequestBytes?: number;
   maxResponseBytes?: number;
+  authoring?: HubCommandAuthoringHttpOptions;
 }
 
 function requestLimit(value: number | undefined): number {
@@ -66,10 +74,11 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
         sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
         return;
       }
-      if (request.method !== "POST") {
+      const expectedMethod = route.kind === "artifacts" ? "GET" : "POST";
+      if (request.method !== expectedMethod) {
         sendHubError(response, 405, "method_not_allowed", maxResponseBytes, {
           ...identityHeaders,
-          allow: "POST",
+          allow: expectedMethod,
         });
         return;
       }
@@ -81,6 +90,37 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
         });
         return;
       }
+      if (route.kind === "submissions") {
+        const query = remoteCommandAuthoringQuery(url.searchParams);
+        const inScope = principal.projects.some((project) =>
+          project.destinationId === query.destinationId && project.projectId === route.projectId
+        );
+        if (!inScope || !principal.permissions.includes("command.write")) {
+          sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
+          return;
+        }
+        if (options.authoring === undefined) {
+          sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
+          return;
+        }
+        await handleHubCommandSubmission({
+          request,
+          response,
+          authoring: options.authoring,
+          destinationId: query.destinationId,
+          target: {
+            projectId: route.projectId,
+            projectIdentityHash: query.projectIdentityHash,
+          },
+          principalId: principal.principalId,
+          authoredAt: currentTime(now),
+          maxRequestBytes,
+          maxResponseBytes,
+          identityHeaders,
+        });
+        return;
+      }
+
       const query = remoteCommandQuery(url.searchParams);
       const inScope = principal.projects.some((project) =>
         project.destinationId === query.destinationId && project.projectId === route.projectId
@@ -96,6 +136,24 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
         projectId: route.projectId,
         projectIdentityHash: query.projectIdentityHash,
       };
+      if (route.kind === "artifacts") {
+        if (options.authoring === undefined) {
+          sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
+          return;
+        }
+        await handleHubCommandArtifactDownload({
+          response,
+          authoring: options.authoring,
+          destinationId: query.destinationId,
+          target,
+          nodeId: query.nodeId,
+          artifactId: route.artifactId!,
+          requestedAt: currentTime(now),
+          maxResponseBytes,
+          identityHeaders,
+        });
+        return;
+      }
       const body = await readBoundedJsonBody(request, maxRequestBytes);
       const at = currentTime(now);
       if (route.kind === "leases") {
@@ -143,6 +201,16 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
       }
       if (error instanceof InvalidHubHttpRequestError) {
         sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
+        return;
+      }
+      if (error instanceof HubCommandError) {
+        if (error.code === "invalid_request") {
+          sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
+        } else if (error.code === "idempotency_conflict") {
+          sendHubError(response, 409, "conflict", maxResponseBytes, identityHeaders);
+        } else {
+          sendHubError(response, 500, "internal_error", maxResponseBytes, identityHeaders);
+        }
         return;
       }
       const failure = classifyHubRemoteCommandFailure(error);
