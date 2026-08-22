@@ -1,4 +1,4 @@
-import { chmod, lstat, mkdir } from "node:fs/promises";
+import { chmod, lstat, mkdir, open, opendir, stat, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ArtifactPutResult, ArtifactStore } from "@lervo/storage-contract";
@@ -55,5 +55,82 @@ export class OwnerOnlyFileSystemCas implements ArtifactStore {
 
   has(uri: string): Promise<boolean> {
     return this.delegate.has(uri);
+  }
+
+  async listObjects(options: {
+    after?: string;
+    limit?: number;
+    maximumScannedObjects?: number;
+  } = {}): Promise<{
+    items: Array<{ uri: string; byteCount: number; modifiedAt: string }>;
+    nextCursor: string | null;
+  }> {
+    const limit = options.limit ?? 100;
+    const maximumScannedObjects = options.maximumScannedObjects ?? 100_000;
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000 ||
+      !Number.isSafeInteger(maximumScannedObjects) || maximumScannedObjects < limit ||
+      maximumScannedObjects > 1_000_000) {
+      throw new CasError("capacity_exceeded", "CAS inventory 조회 상한이 유효하지 않습니다.");
+    }
+    const afterHash = options.after === undefined ? "" : URI_PATTERN.exec(options.after)?.[1];
+    if (afterHash === undefined) throw new CasError("invalid_uri", "CAS inventory cursor가 유효하지 않습니다.");
+    const selected: string[] = [];
+    let scanned = 0;
+    const root = await opendir(resolve(this.root, "sha256"));
+    for await (const prefixEntry of root) {
+      if (!/^[a-f0-9]{2}$/.test(prefixEntry.name) || !prefixEntry.isDirectory()) {
+        throw new CasError("unsafe_path", "CAS inventory prefix가 안전한 실제 디렉터리가 아닙니다.");
+      }
+      const directory = await opendir(resolve(this.root, "sha256", prefixEntry.name));
+      for await (const objectEntry of directory) {
+        scanned += 1;
+        if (scanned > maximumScannedObjects) {
+          throw new CasError("capacity_exceeded", "CAS inventory가 허용된 scan 상한을 넘었습니다.");
+        }
+        const hash = `${prefixEntry.name}${objectEntry.name}`;
+        if (!/^[a-f0-9]{64}$/.test(hash) || !objectEntry.isFile()) {
+          throw new CasError("unsafe_path", "CAS inventory object가 안전한 일반 파일이 아닙니다.");
+        }
+        if (hash <= afterHash) continue;
+        selected.push(hash);
+        selected.sort();
+        if (selected.length > limit + 1) selected.pop();
+      }
+    }
+    const page = selected.slice(0, limit);
+    const items = await Promise.all(page.map(async (hash) => {
+      const uri = `lervo-cas://sha256/${hash}`;
+      const bytes = await this.delegate.get(uri);
+      const metadata = await stat(resolve(this.root, "sha256", hash.slice(0, 2), hash.slice(2)));
+      return { uri, byteCount: bytes.byteLength, modifiedAt: metadata.mtime.toISOString() };
+    }));
+    return {
+      items,
+      nextCursor: selected.length > limit ? items.at(-1)!.uri : null,
+    };
+  }
+
+  async deleteObject(uri: string): Promise<{ deleted: boolean }> {
+    const hash = URI_PATTERN.exec(uri)?.[1];
+    if (hash === undefined) throw new CasError("invalid_uri", "삭제할 CAS URI가 유효하지 않습니다.");
+    const prefix = resolve(this.root, "sha256", hash.slice(0, 2));
+    const path = resolve(prefix, hash.slice(2));
+    try {
+      const metadata = await lstat(path);
+      if (!metadata.isFile() || metadata.isSymbolicLink()) {
+        throw new CasError("unsafe_path", "삭제할 CAS object가 안전한 일반 파일이 아닙니다.");
+      }
+      await unlink(path);
+      const directory = await open(prefix, "r");
+      try {
+        await directory.sync();
+      } finally {
+        await directory.close();
+      }
+      return { deleted: true };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return { deleted: false };
+      throw error;
+    }
   }
 }

@@ -21,6 +21,8 @@ import type {
   HubCommandSigner,
 } from "./types.js";
 
+export const DEFAULT_HUB_COMMAND_ARTIFACT_RETENTION_MS = 30 * 24 * 60 * 60_000;
+
 function sameSubmission(record: HubCommandAuthorshipRecord, submissionHash: string) {
   if (record.submissionHash !== submissionHash) {
     throw new HubCommandError(
@@ -68,11 +70,24 @@ export async function authorHubCommand(input: {
   principalId: string;
   authoredAt: string;
   request: AuthorHubCommandRequest;
+  artifactRetentionMs?: number;
   nonce?: () => string;
 }): Promise<{ status: "created" | "duplicate"; record: HubCommandAuthorshipRecord }> {
   const bytes = new TextEncoder().encode(input.request.request);
   const authorSubjectHash = validateHubCommandAuthoringInput({ ...input, bytes });
   const authoredAtMs = Date.parse(input.authoredAt);
+  const artifactRetentionMs = input.artifactRetentionMs ??
+    DEFAULT_HUB_COMMAND_ARTIFACT_RETENTION_MS;
+  if (
+    !Number.isSafeInteger(artifactRetentionMs) ||
+    artifactRetentionMs < input.request.lifetimeMs ||
+    artifactRetentionMs > DEFAULT_HUB_COMMAND_ARTIFACT_RETENTION_MS
+  ) {
+    throw new HubCommandError(
+      "invalid_request",
+      "Hub command artifact 보존 기간이 command 수명보다 짧거나 허용 상한을 넘습니다.",
+    );
+  }
   const contentHash = hashHubCommandValue(bytes);
   const reference: RemoteCommandPayloadReference = {
     artifactId: calculateHubCommandArtifactId({
@@ -103,12 +118,14 @@ export async function authorHubCommand(input: {
   const existing = await input.store.findAuthorship(coordinate);
   if (existing !== null) {
     const duplicate = sameSubmission(existing, submissionHash);
-    await storeAndVerifyArtifact({
-      artifacts: input.artifacts,
-      bytes,
-      contentHash,
-      expectedUri: existing.artifactUri,
-    });
+    if (existing.artifactLifecycleStatus === "retained") {
+      await storeAndVerifyArtifact({
+        artifacts: input.artifacts,
+        bytes,
+        contentHash,
+        expectedUri: existing.artifactUri,
+      });
+    }
     return duplicate;
   }
   const artifactUri = await storeAndVerifyArtifact({
@@ -142,6 +159,8 @@ export async function authorHubCommand(input: {
     submissionHash,
     authorSubjectHash,
     artifactUri,
+    artifactRetainUntil: new Date(authoredAtMs + artifactRetentionMs).toISOString(),
+    artifactLifecycleStatus: "retained",
     envelope,
     deliveryId: calculateRemoteCommandDeliveryId({
       destinationId: input.destinationId,
@@ -152,13 +171,24 @@ export async function authorHubCommand(input: {
   const committed = await input.store.commitAuthorship(record);
   if (committed.status === "duplicate") {
     const duplicate = sameSubmission(committed.record, submissionHash);
-    await storeAndVerifyArtifact({
-      artifacts: input.artifacts,
-      bytes,
-      contentHash,
-      expectedUri: committed.record.artifactUri,
-    });
+    if (committed.record.artifactLifecycleStatus === "retained") {
+      await storeAndVerifyArtifact({
+        artifacts: input.artifacts,
+        bytes,
+        contentHash,
+        expectedUri: committed.record.artifactUri,
+      });
+    }
     return duplicate;
   }
+  // A cleanup worker may have deleted the just-written CAS object before the
+  // SQLite reference became visible. Re-put after commit closes that boundary;
+  // cleanup completion must now observe the retained reference and abort.
+  await storeAndVerifyArtifact({
+    artifacts: input.artifacts,
+    bytes,
+    contentHash,
+    expectedUri: committed.record.artifactUri,
+  });
   return { status: "created", record: structuredClone(committed.record) };
 }

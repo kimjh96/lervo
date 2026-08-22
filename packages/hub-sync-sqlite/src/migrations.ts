@@ -328,6 +328,84 @@ const migrations = [
       BEFORE DELETE ON hub_remote_command_authorships
       BEGIN SELECT RAISE(ABORT, 'hub remote command authorships are append-only'); END;
   `,
+  `
+    CREATE TABLE hub_remote_command_artifact_retentions (
+      delivery_id TEXT PRIMARY KEY,
+      artifact_uri TEXT NOT NULL,
+      retain_until TEXT NOT NULL,
+      retain_until_ms INTEGER NOT NULL CHECK (retain_until_ms >= 0),
+      FOREIGN KEY (delivery_id) REFERENCES hub_remote_command_authorships(delivery_id)
+    ) STRICT;
+    INSERT INTO hub_remote_command_artifact_retentions (
+      delivery_id, artifact_uri, retain_until, retain_until_ms
+    )
+    SELECT authorship.delivery_id, authorship.artifact_uri,
+      strftime('%Y-%m-%dT%H:%M:%fZ',
+        (command.queued_at_ms + 2592000000) / 1000.0, 'unixepoch'),
+      command.queued_at_ms + 2592000000
+    FROM hub_remote_command_authorships AS authorship
+    JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id;
+    CREATE INDEX hub_remote_command_artifact_retention_due
+      ON hub_remote_command_artifact_retentions (retain_until_ms, artifact_uri);
+    CREATE TRIGGER hub_remote_command_artifact_retentions_no_update
+      BEFORE UPDATE ON hub_remote_command_artifact_retentions
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact retentions are append-only'); END;
+    CREATE TRIGGER hub_remote_command_artifact_retentions_no_delete
+      BEFORE DELETE ON hub_remote_command_artifact_retentions
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact retentions are append-only'); END;
+
+    CREATE TABLE hub_remote_command_artifact_gc_claims (
+      artifact_uri TEXT PRIMARY KEY,
+      claim_id TEXT NOT NULL UNIQUE,
+      kind TEXT NOT NULL CHECK (kind IN ('expired', 'orphan')),
+      worker_id TEXT NOT NULL,
+      observed_modified_at TEXT,
+      observed_modified_at_ms INTEGER CHECK (observed_modified_at_ms IS NULL OR observed_modified_at_ms >= 0),
+      claimed_at TEXT NOT NULL,
+      claimed_at_ms INTEGER NOT NULL CHECK (claimed_at_ms >= 0),
+      lease_expires_at TEXT NOT NULL,
+      lease_expires_at_ms INTEGER NOT NULL CHECK (lease_expires_at_ms > claimed_at_ms),
+      CHECK (
+        (kind = 'expired' AND observed_modified_at IS NULL AND observed_modified_at_ms IS NULL) OR
+        (kind = 'orphan' AND observed_modified_at IS NOT NULL AND observed_modified_at_ms IS NOT NULL)
+      )
+    ) STRICT;
+    CREATE INDEX hub_remote_command_artifact_gc_claim_leases
+      ON hub_remote_command_artifact_gc_claims (lease_expires_at_ms);
+
+    CREATE TABLE hub_remote_command_artifact_purges (
+      delivery_id TEXT PRIMARY KEY,
+      artifact_uri TEXT NOT NULL,
+      claim_id TEXT NOT NULL,
+      purged_at TEXT NOT NULL,
+      purged_at_ms INTEGER NOT NULL CHECK (purged_at_ms >= 0),
+      FOREIGN KEY (delivery_id) REFERENCES hub_remote_command_authorships(delivery_id)
+    ) STRICT;
+    CREATE INDEX hub_remote_command_artifact_purges_uri
+      ON hub_remote_command_artifact_purges (artifact_uri, claim_id);
+    CREATE TRIGGER hub_remote_command_artifact_purges_no_update
+      BEFORE UPDATE ON hub_remote_command_artifact_purges
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact purges are append-only'); END;
+    CREATE TRIGGER hub_remote_command_artifact_purges_no_delete
+      BEFORE DELETE ON hub_remote_command_artifact_purges
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact purges are append-only'); END;
+
+    CREATE TABLE hub_remote_command_artifact_gc_completions (
+      claim_id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('expired', 'orphan')),
+      artifact_uri TEXT NOT NULL,
+      worker_id TEXT NOT NULL,
+      purged_delivery_count INTEGER NOT NULL CHECK (purged_delivery_count >= 0),
+      completed_at TEXT NOT NULL,
+      completed_at_ms INTEGER NOT NULL CHECK (completed_at_ms >= 0)
+    ) STRICT;
+    CREATE TRIGGER hub_remote_command_artifact_gc_completions_no_update
+      BEFORE UPDATE ON hub_remote_command_artifact_gc_completions
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact completions are append-only'); END;
+    CREATE TRIGGER hub_remote_command_artifact_gc_completions_no_delete
+      BEFORE DELETE ON hub_remote_command_artifact_gc_completions
+      BEGIN SELECT RAISE(ABORT, 'hub remote command artifact completions are append-only'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

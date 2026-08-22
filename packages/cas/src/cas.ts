@@ -6,7 +6,12 @@ import { type ArtifactStore } from "@lervo/storage-contract";
 
 const uriPattern = /^lervo-cas:\/\/sha256\/([a-f0-9]{64})$/;
 
-export type CasErrorCode = "corrupt_object" | "invalid_uri" | "not_found" | "unsafe_path";
+export type CasErrorCode =
+  | "capacity_exceeded"
+  | "corrupt_object"
+  | "invalid_uri"
+  | "not_found"
+  | "unsafe_path";
 
 export class CasError extends Error {
   constructor(

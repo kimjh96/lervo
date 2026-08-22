@@ -1598,4 +1598,20 @@ CLI first-publication completion inspection boundary를 완료했습니다. Stag
 
 Hub 원격 command 작성과 실제 request artifact 전달을 완료했습니다. 플랫폼 중립 작성 경계가 Hub 소유 시각·nonce·서명과 durable idempotency를 적용하고, owner-only CAS metadata와 queue를 한 SQLite transaction으로 연결합니다. `command.write` submission과 현재 Node lease에만 열리는 artifact GET, HTTPS·Hub identity·길이·hash·UTF-8을 검증하는 Node loader를 실제 HTTP에 연결했습니다. 동일 submission 재시도와 변경 충돌, 권한 선검사, 양쪽 SQLite 재시작·acknowledgement 유실 뒤 exact-once executor를 검증했습니다. 자동 CAS GC·orphan 회수는 완료로 주장하지 않습니다. 결정은 [ADR-0146](./docs/adr/0146-hub-command-authoring-and-artifact-delivery.md)에 기록했습니다.
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달은 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. 설치된 Node daemon, production TLS·credential 조합과 command CAS 자동 수명주기는 후속 제품 작업입니다.
+Command request CAS 자동 수명주기 경계를 완료했습니다. 작성별 최대 30일 retention, 공유 URI 전체 참조 만료 판정, SQLite lease claim·재검증·append-only purge/completion과 owner-only CAS의 bounded inventory·멱등 삭제를 분리했습니다. 삭제 뒤 process 중단은 재시작한 store에서 already-missing으로 완료하고, 오래된 orphan은 기본 24시간 grace 뒤 회수합니다. 작성과 정리 경합, 완료 duplicate, 삭제 실패 claim 해제와 실제 임시 CAS·SQLite 재시작을 검증했습니다. 실제 사용자 data에는 cleanup을 실행하지 않았으며 scheduler와 cursor 보존은 배포 조합에 남습니다. 결정은 [ADR-0147](./docs/adr/0147-bounded-command-artifact-lifecycle.md)에 기록했습니다.
+
+Command artifact 수명주기 완료 조건:
+
+- 같은 URI의 모든 purge되지 않은 authorship retention과 command 만료 전에는 claim하지 않음
+- 활성 claim과 새 authorship을 같은 SQLite write 경계에서 충돌 처리함
+- 작성 commit 뒤 CAS object를 다시 put·검증해 물리 삭제 경합을 복구함
+- CAS inventory와 cleanup cycle의 page·scan 상한이 명시되고 초과를 일부 성공으로 숨기지 않음
+- CAS 삭제가 멱등이고 삭제 뒤 SQLite 중단을 재시작 뒤 완료할 수 있음
+- orphan은 무참조와 grace를 모두 확인하고 완료 직전 새 참조를 다시 검사함
+- retention·purge·completion은 append-only이며 claim만 만료 가능한 운영 lease임
+- 원장에 request·principal·credential·내부 오류 원문을 저장하지 않음
+- 새 runtime event나 실행·사용 상태를 만들지 않음
+- 실제 임시 CAS·SQLite, 공유 참조·재시작·경합·실패 fixture와 전체 문서 수명주기 검사를 통과함
+- 실제 사용자 CAS 삭제, scheduler 설치, production TLS·credential 구성을 완료로 주장하지 않음
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달과 command artifact 수명주기 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. 설치된 Node daemon, production TLS·credential 조합과 cleanup scheduler는 후속 제품 작업입니다.

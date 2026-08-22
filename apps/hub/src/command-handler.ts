@@ -206,7 +206,10 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
       if (error instanceof HubCommandError) {
         if (error.code === "invalid_request") {
           sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
-        } else if (error.code === "idempotency_conflict") {
+        } else if (
+          error.code === "idempotency_conflict" ||
+          error.code === "artifact_cleanup_conflict"
+        ) {
           sendHubError(response, 409, "conflict", maxResponseBytes, identityHeaders);
         } else {
           sendHubError(response, 500, "internal_error", maxResponseBytes, identityHeaders);

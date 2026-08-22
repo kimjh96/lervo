@@ -3,6 +3,8 @@
 - 상태: 채택
 - 기준일: 2026-08-22
 
+후속 결정: [ADR-0147](./0147-bounded-command-artifact-lifecycle.md)은 이 결정에서 남긴 command CAS 자동 정리와 orphan 회수를 bounded claim 수명주기로 구현합니다.
+
 ## 맥락
 
 인증된 command lease와 acknowledgement HTTP 경계는 있었지만 command는 내부 fixture가 직접 서명해 queue에 넣었습니다. Node receiver의 payload loader도 고정 byte fixture였으므로 외부 대화 플랫폼이나 자체 채팅 서비스가 공통 경계로 작업을 제출하고 실제 요청 원문을 전달하는 흐름은 완성되지 않았습니다.

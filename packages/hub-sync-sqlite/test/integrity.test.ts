@@ -106,6 +106,16 @@ describe("Hub sync SQLite integrity lifecycle", () => {
       DROP TABLE hub_policy_revocations;
       DROP TABLE hub_policy_approvals;
       DROP TABLE hub_policy_snapshots;
+      DROP TRIGGER hub_remote_command_artifact_gc_completions_no_delete;
+      DROP TRIGGER hub_remote_command_artifact_gc_completions_no_update;
+      DROP TABLE hub_remote_command_artifact_gc_completions;
+      DROP TRIGGER hub_remote_command_artifact_purges_no_delete;
+      DROP TRIGGER hub_remote_command_artifact_purges_no_update;
+      DROP TABLE hub_remote_command_artifact_purges;
+      DROP TABLE hub_remote_command_artifact_gc_claims;
+      DROP TRIGGER hub_remote_command_artifact_retentions_no_delete;
+      DROP TRIGGER hub_remote_command_artifact_retentions_no_update;
+      DROP TABLE hub_remote_command_artifact_retentions;
       DROP TRIGGER hub_remote_command_authorships_no_delete;
       DROP TRIGGER hub_remote_command_authorships_no_update;
       DROP TABLE hub_remote_command_authorships;

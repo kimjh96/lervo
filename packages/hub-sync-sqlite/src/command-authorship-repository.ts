@@ -27,6 +27,10 @@ function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
     });
   }
   const command = (envelope as HubCommandAuthorshipRecord["envelope"]).command;
+  const lifecycleStatus = stringField(row, "artifact_lifecycle_status");
+  if (!["retained", "cleanup_claimed", "purged"].includes(lifecycleStatus)) {
+    throw new HubCommandError("artifact_integrity_failed", "Hub command artifact 수명주기 상태가 유효하지 않습니다.");
+  }
   const record = {
     destinationId: stringField(row, "destination_id"),
     target: {
@@ -37,11 +41,14 @@ function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
     submissionHash: stringField(row, "submission_hash"),
     authorSubjectHash: stringField(row, "author_subject_hash"),
     artifactUri: stringField(row, "artifact_uri"),
+    artifactRetainUntil: stringField(row, "retain_until"),
+    artifactLifecycleStatus: lifecycleStatus as HubCommandAuthorshipRecord["artifactLifecycleStatus"],
     envelope: structuredClone(envelope as HubCommandAuthorshipRecord["envelope"]),
     deliveryId: stringField(row, "delivery_id"),
     queuedAt: stringField(row, "queued_at"),
   };
   const lifetimeMs = Date.parse(command.expiresAt) - Date.parse(command.issuedAt);
+  const artifactRetainUntilMs = Date.parse(record.artifactRetainUntil);
   if (
     record.target.projectId !== command.target.projectId ||
     record.idempotencyKey !== command.idempotencyKey ||
@@ -61,7 +68,9 @@ function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
       request: command.action.request,
     }) ||
     !/^sha256:[a-f0-9]{64}$/.test(record.submissionHash) ||
-    !/^sha256:[a-f0-9]{64}$/.test(record.authorSubjectHash)
+    !/^sha256:[a-f0-9]{64}$/.test(record.authorSubjectHash) ||
+    !Number.isFinite(artifactRetainUntilMs) ||
+    artifactRetainUntilMs < Date.parse(command.expiresAt)
   ) throw new HubCommandError("artifact_integrity_failed", "Hub command authorship 좌표가 원본과 다릅니다.");
   return record;
 }
@@ -79,9 +88,20 @@ export class HubCommandAuthorshipSQLiteRepository {
     idempotencyKey: string;
   }): HubCommandAuthorshipRecord | null {
     const row = this.database.prepare(`
-      SELECT authorship.*, command.envelope_json, command.queued_at
+      SELECT authorship.*, command.envelope_json, command.queued_at, retention.retain_until,
+        CASE
+          WHEN purge.delivery_id IS NOT NULL THEN 'purged'
+          WHEN claim.claim_id IS NOT NULL THEN 'cleanup_claimed'
+          ELSE 'retained'
+        END AS artifact_lifecycle_status
       FROM hub_remote_command_authorships AS authorship
       JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
+      JOIN hub_remote_command_artifact_retentions AS retention
+        ON retention.delivery_id = authorship.delivery_id
+      LEFT JOIN hub_remote_command_artifact_purges AS purge
+        ON purge.delivery_id = authorship.delivery_id
+      LEFT JOIN hub_remote_command_artifact_gc_claims AS claim
+        ON claim.artifact_uri = authorship.artifact_uri
       WHERE authorship.destination_id = ? AND authorship.project_id = ?
         AND authorship.idempotency_key = ?
     `).get(input.destinationId, input.target.projectId, input.idempotencyKey);
@@ -103,6 +123,27 @@ export class HubCommandAuthorshipSQLiteRepository {
         throw new HubCommandError("idempotency_conflict", "같은 idempotency key에 다른 요청이 있습니다.");
       }
       return { status: "duplicate", record: existing };
+    }
+    const queuedAtMs = remoteCommandTimestamp(input.queuedAt, "artifact authorship queuedAt");
+    const retainUntilMs = remoteCommandTimestamp(
+      input.artifactRetainUntil,
+      "artifact retainUntil",
+    );
+    if (retainUntilMs < Date.parse(input.envelope.command.expiresAt)) {
+      throw new HubCommandError("invalid_request", "artifact 보존 기간이 command 만료보다 짧습니다.");
+    }
+    this.database.prepare(`
+      DELETE FROM hub_remote_command_artifact_gc_claims
+      WHERE artifact_uri = ? AND lease_expires_at_ms <= ?
+    `).run(input.artifactUri, queuedAtMs);
+    if (this.database.prepare(`
+      SELECT claim_id FROM hub_remote_command_artifact_gc_claims
+      WHERE artifact_uri = ? AND lease_expires_at_ms > ?
+    `).get(input.artifactUri, queuedAtMs) !== undefined) {
+      throw new HubCommandError(
+        "artifact_cleanup_conflict",
+        "같은 artifact가 정리 중입니다. 잠시 뒤 같은 요청으로 다시 시도하세요.",
+      );
     }
     const queued = this.commands.enqueue({
       destinationId: input.destinationId,
@@ -132,6 +173,11 @@ export class HubCommandAuthorshipSQLiteRepository {
       reference.byteCount,
       reference.mediaType,
     );
+    this.database.prepare(`
+      INSERT INTO hub_remote_command_artifact_retentions (
+        delivery_id, artifact_uri, retain_until, retain_until_ms
+      ) VALUES (?, ?, ?, ?)
+    `).run(input.deliveryId, input.artifactUri, input.artifactRetainUntil, retainUntilMs);
     return { status: "created", record: structuredClone(input) };
   }
 
@@ -155,6 +201,10 @@ export class HubCommandAuthorshipSQLiteRepository {
       WHERE authorship.destination_id = ? AND authorship.project_id = ?
         AND authorship.artifact_id = ? AND command.status = 'leased'
         AND command.lease_owner = ? AND command.lease_expires_at_ms > ?
+        AND NOT EXISTS (
+          SELECT 1 FROM hub_remote_command_artifact_purges AS purge
+          WHERE purge.delivery_id = authorship.delivery_id
+        )
     `).get(
       input.destinationId,
       input.target.projectId,
@@ -178,9 +228,20 @@ export class HubCommandAuthorshipSQLiteRepository {
 
   auditAll(): void {
     for (const row of this.database.prepare(`
-      SELECT authorship.*, command.envelope_json, command.queued_at
+      SELECT authorship.*, command.envelope_json, command.queued_at, retention.retain_until,
+        CASE
+          WHEN purge.delivery_id IS NOT NULL THEN 'purged'
+          WHEN claim.claim_id IS NOT NULL THEN 'cleanup_claimed'
+          ELSE 'retained'
+        END AS artifact_lifecycle_status
       FROM hub_remote_command_authorships AS authorship
       JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
+      JOIN hub_remote_command_artifact_retentions AS retention
+        ON retention.delivery_id = authorship.delivery_id
+      LEFT JOIN hub_remote_command_artifact_purges AS purge
+        ON purge.delivery_id = authorship.delivery_id
+      LEFT JOIN hub_remote_command_artifact_gc_claims AS claim
+        ON claim.artifact_uri = authorship.artifact_uri
       ORDER BY authorship.destination_id, authorship.project_id, authorship.idempotency_key
     `).all()) {
       const record = parseRecord(row);

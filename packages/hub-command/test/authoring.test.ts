@@ -91,7 +91,8 @@ describe("Hub command authoring", () => {
       expiresAt: "2026-08-22T00:02:00.000Z",
       nonce: Buffer.alloc(32, 7).toString("base64url"),
     });
-    expect(setup.artifacts.put).toHaveBeenCalledTimes(2);
+    expect(first.record.artifactRetainUntil).toBe("2026-09-21T00:00:00.000Z");
+    expect(setup.artifacts.put).toHaveBeenCalledTimes(3);
     expect(JSON.stringify(first.record)).not.toContain(request.request);
   });
 
@@ -111,6 +112,20 @@ describe("Hub command authoring", () => {
       ...common,
       request: { ...request, request: "내용이 바뀐 요청" },
     })).rejects.toMatchObject({ code: "idempotency_conflict" });
-    expect(setup.artifacts.put).toHaveBeenCalledTimes(1);
+    expect(setup.artifacts.put).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not allow artifact retention shorter than command lifetime", async () => {
+    const setup = fixture();
+    await expect(authorHubCommand({
+      ...setup,
+      destinationId,
+      target,
+      principalId: "operator:authoring-test",
+      authoredAt: "2026-08-22T00:00:00.000Z",
+      request,
+      artifactRetentionMs: 60_000,
+    })).rejects.toMatchObject({ code: "invalid_request" });
+    expect(setup.artifacts.put).not.toHaveBeenCalled();
   });
 });

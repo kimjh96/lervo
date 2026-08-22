@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -62,6 +62,38 @@ describe("file system content-addressed storage", () => {
 
     expect((await stat(root)).mode & 0o777).toBe(0o700);
     expect((await stat(pathForUri(root, stored.uri))).mode & 0o777).toBe(0o600);
+  });
+
+  it("lists owner-only objects with a stable cursor and deletes idempotently", async () => {
+    const root = await casRoot();
+    const cas = await OwnerOnlyFileSystemCas.open(root);
+    const stored = await Promise.all(["셋", "하나", "둘"].map((value) => cas.put(value)));
+    const observedAt = new Date("2026-08-20T00:00:00.000Z");
+    await Promise.all(stored.map((item) => utimes(pathForUri(root, item.uri), observedAt, observedAt)));
+
+    const first = await cas.listObjects({ limit: 2 });
+    const second = await cas.listObjects({ after: first.nextCursor!, limit: 2 });
+    const listed = [...first.items, ...second.items];
+
+    expect(listed.map((item) => item.uri)).toEqual(
+      stored.map((item) => item.uri).sort(),
+    );
+    expect(listed.every((item) => item.modifiedAt === observedAt.toISOString())).toBe(true);
+    expect(first.nextCursor).toBe(first.items.at(-1)!.uri);
+    expect(second.nextCursor).toBeNull();
+    await expect(cas.deleteObject(listed[0]!.uri)).resolves.toEqual({ deleted: true });
+    await expect(cas.deleteObject(listed[0]!.uri)).resolves.toEqual({ deleted: false });
+    await expect(cas.has(listed[0]!.uri)).resolves.toBe(false);
+  });
+
+  it("bounds owner-only inventory work and validates its cursor", async () => {
+    const cas = await OwnerOnlyFileSystemCas.open(await casRoot());
+    await Promise.all(["a", "b"].map((value) => cas.put(value)));
+
+    await expect(cas.listObjects({ limit: 1, maximumScannedObjects: 1 }))
+      .rejects.toMatchObject({ code: "capacity_exceeded" });
+    await expect(cas.listObjects({ after: "file:///tmp/not-cas" }))
+      .rejects.toMatchObject({ code: "invalid_uri" });
   });
 
   it("detects content that no longer matches its address", async () => {
