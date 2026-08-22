@@ -1635,4 +1635,24 @@ Command artifact cleanup runtime 완료 조건:
 - 실제 SQLite 재시작·worker 경쟁·실패·101개 공유 참조·HTTP server 종료 fixture를 통과함
 - 실제 사용자 CAS, production process signal·TLS·credential·service manager를 완료로 주장하지 않음
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달과 command artifact 수명주기·scheduler 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. 실제 Hub 배포 entrypoint, 설치된 Node daemon, production TLS·credential 조합과 process supervisor는 후속 제품 작업입니다.
+Owner-only loopback Hub runtime을 완료했습니다. `lervo-hub --config <config.json>`이 Hub SQLite, command CAS, 인증기, policy·command 서명기, control review grant, 전체 HTTP handler와 cleanup lifecycle을 한 process로 조합합니다. Signal과 background 실패는 server, cleanup, store 순서의 한 종료 경로로 수렴합니다. 결정은 [ADR-0149](./docs/adr/0149-owner-only-loopback-hub-runtime.md)에 기록했습니다.
+
+Hub runtime 완료 조건:
+
+- HTTP adapter package와 process·filesystem 조합 package가 분리됨
+- `schemaVersion: 1` 구성은 알 수 없는 필드와 잘못된 값 관계를 거부함
+- 상대 경로를 현재 작업 디렉터리가 아니라 config 파일 위치에서 해석함
+- 구성·개인키·HMAC 비밀은 제한된 크기의 owner-only 일반 파일만 허용함
+- SQLite 파일과 WAL·SHM parent를 다른 OS 계정이 읽을 수 없음
+- Bearer credential은 HTTP 인증기와 같은 검증 계약을 통과함
+- Policy·command Ed25519 개인키와 review HMAC 임시 byte를 조합 뒤 지움
+- TLS가 없는 server는 loopback 이외 주소에 bind할 수 없음
+- 실제 listen 뒤에만 비밀 없는 host·port 시작 문구를 출력함
+- `SIGINT|SIGTERM`과 중복 close가 같은 멱등 종료 promise를 사용함
+- Server close, cleanup 종료 대기, SQLite close 순서를 지킴
+- Server·cleanup background 실패가 process 실패 결과로 이어짐
+- 오류 출력에 credential, key byte, 내부 path, identity hash와 CAS URI가 없음
+- 실제 임시 키·SQLite·CAS·HTTP 요청·SIGTERM·재개방 무결성 fixture를 통과함
+- Production TLS, secret manager, credential hot reload, process supervisor를 완료로 주장하지 않음
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler와 loopback Hub 실행 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 설치된 Hub·Node daemon과 process supervisor는 후속 제품 작업입니다.

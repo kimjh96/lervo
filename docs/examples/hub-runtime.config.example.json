@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 8787
+  },
+  "storage": {
+    "databasePath": "state/hub.sqlite",
+    "commandCasPath": "state/command-cas"
+  },
+  "identity": {
+    "hubIdentityHash": "sha256:REPLACE_WITH_64_LOWERCASE_HEX_CHARACTERS"
+  },
+  "credentials": [
+    {
+      "token": "REPLACE_WITH_AT_LEAST_32_PRINTABLE_CHARACTERS",
+      "principalId": "operator:replace-me",
+      "permissions": [
+        "trace.read"
+      ],
+      "projects": []
+    }
+  ],
+  "signing": {
+    "policy": {
+      "keyId": "key_replace_policy_01",
+      "privateKeyPath": "secrets/policy-ed25519.pem"
+    },
+    "command": {
+      "keyId": "key_replace_command_01",
+      "privateKeyPath": "secrets/command-ed25519.pem"
+    }
+  },
+  "control": {
+    "reviewGrantSecretPath": "secrets/control-review.secret",
+    "reviewGrantTtlSeconds": 600
+  },
+  "cleanup": {
+    "workerId": "hub:primary:cleanup",
+    "leaseDurationMs": 300000,
+    "cycleIntervalMs": 3600000,
+    "continuationDelayMs": 1000,
+    "retryDelayMs": 60000,
+    "orphanGraceMs": 86400000,
+    "limit": 100,
+    "maximumScannedObjects": 100000
+  }
+}

@@ -204,6 +204,27 @@ importers:
         specifier: workspace:*
         version: link:../../packages/sync-contract
 
+  apps/hub-runtime:
+    dependencies:
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../../packages/cas
+      '@lervo/hub':
+        specifier: workspace:*
+        version: link:../hub
+      '@lervo/hub-control':
+        specifier: workspace:*
+        version: link:../../packages/hub-control
+      '@lervo/hub-sync-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/hub-sync-sqlite
+      '@lervo/policy':
+        specifier: workspace:*
+        version: link:../../packages/policy
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../../packages/remote-command
+
   packages/adapter-claude:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':

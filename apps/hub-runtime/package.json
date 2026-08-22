@@ -1,0 +1,28 @@
+{
+  "name": "@lervo/hub-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "lervo-hub": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/cas": "workspace:*",
+    "@lervo/hub": "workspace:*",
+    "@lervo/hub-control": "workspace:*",
+    "@lervo/hub-sync-sqlite": "workspace:*",
+    "@lervo/policy": "workspace:*",
+    "@lervo/remote-command": "workspace:*"
+  }
+}

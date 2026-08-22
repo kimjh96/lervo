@@ -1290,6 +1290,10 @@ Cleanup runtime singleton은 inventory cursor, 다음 cycle, 활성 worker lease
 
 `attachHubArtifactCleanupLifecycle`과 `createHubServerWithArtifactCleanup`을 선택한 경우에만 HTTP server `listening`에서 loop를 시작하고 `close`에서 중단합니다. 중단은 새 cycle을 막고 wait를 취소하며 진행 중인 bounded cycle의 durable 종료를 기다릴 수 있는 `settled`를 제공합니다. 같은 server의 중복 부착은 실패합니다. 백그라운드에서 치명적 실패가 나면 `artifact_cleanup_runtime_failed`만 callback에 전달합니다. 이 runtime 상태는 command queue나 실행 event가 아닙니다. 상세 결정은 [ADR-0148](./docs/adr/0148-durable-command-artifact-cleanup-runtime.md)에 기록합니다.
 
+Hub 실행 구성 `schemaVersion: 1`은 loopback host·port, SQLite·command CAS 경로, Hub identity hash, 최대 256개 bearer principal의 permission·project scope, policy·command Ed25519 개인키 좌표, control review HMAC 비밀과 cleanup 상한을 가집니다. 구성, 키와 비밀은 owner-only 일반 파일이어야 하며 SQLite parent도 WAL·SHM을 보호할 수 있는 owner-only 실제 디렉터리여야 합니다. 상대 경로는 구성 파일 위치에서 해석하고 알 수 없는 필드, 외부 평문 bind와 상한 관계 오류를 시작 전에 거부합니다.
+
+`lervo-hub --config <config.json>`은 실제 listen 성공 뒤 loopback 좌표만 출력합니다. `SIGINT|SIGTERM`, server runtime 오류와 cleanup fatal은 같은 멱등 종료 경로를 사용합니다. 먼저 server를 닫고 cleanup 종료를 기다린 다음 SQLite store를 닫습니다. 오류 출력은 고정 code와 일반 설명만 포함하며 credential, key byte, 내부 경로, identity hash, CAS URI나 원인 원문을 포함하지 않습니다. 구성은 시작 때 한 번만 읽으므로 credential·key 회전은 재시작이 필요합니다. 외부 접근은 별도 TLS reverse proxy가 필요하며 상세 결정은 [ADR-0149](./docs/adr/0149-owner-only-loopback-hub-runtime.md)에 기록합니다.
+
 Hub queue의 envelope에는 raw request가 없고 상태 query는 envelope 자체를 반환하지 않습니다. Node replay에는 envelope도 없습니다. Queue/reconnect 성공은 event sync, provider verification, writing 공개나 사람이 결과를 읽었다는 뜻이 아닙니다. 상세 상태와 장애 처분은 [ADR-0042](./docs/adr/0042-durable-remote-command-delivery.md)에 기록합니다.
 
 ## 서명된 정책 배포와 승인 수명주기
