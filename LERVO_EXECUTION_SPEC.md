@@ -514,6 +514,18 @@ Cycle 상태는 `registration_deferred`, `idle`, `synchronized`, `retry_schedule
 
 Worker는 `sync.acknowledged` event를 만들지 않습니다. 같은 outbound 원본 chain에 delivery ack event를 추가하면 그 event가 다시 배송 대상이 되는 순환이 생깁니다. 별도 local-only stream 또는 sync 제외 규칙이 생기기 전에는 outbox row가 local delivery receipt이고, 이번 worker는 새 event나 이해·사용 주장을 추가하지 않습니다.
 
+### Node outbound sync runtime
+
+`runOutboundSyncLoop`는 한 process 안에서 cycle을 직렬로 실행합니다. `synchronized`이면 batch 상한 뒤 남은 항목을 처리하도록 바로 다음 cycle을 시작하고, `idle`이면 기본 2초·최소 100 ms·최대 1시간을 기다립니다. `registration_deferred`와 `retry_scheduled`는 결과의 `nextAttemptAt`과 현재 clock 차이만큼 기다립니다. 시각이 유효하지 않으면 `invalid_worker_configuration`으로 중단하며, AbortSignal이 끝난 뒤에는 새 cycle을 만들지 않습니다. Cycle 결과 callback도 앞 cycle과 다음 wait 사이에서 순서대로 처리합니다.
+
+`lervo-node --config <config.json>`은 strict `schemaVersion: 1` JSON을 사용합니다. 알 수 없는 필드는 거부하고 상대적인 repository·token 경로는 config 파일 위치에서 해석합니다. 구성 파일과 bearer token 파일은 제한된 크기의 owner-only 일반 파일이어야 합니다. Token은 32~4096자 visible ASCII이며 파일 끝의 LF 또는 CRLF 하나만 제거합니다. Config에는 token 원문을 넣지 않습니다. Hub base URL은 credential·query·fragment가 없는 HTTPS만 허용하고 destination, Hub identity, worker·poll·lease·retry·batch와 HTTP timeout·byte 상한을 시작 전에 검증합니다. 예시는 [node-runtime.config.example.json](./docs/examples/node-runtime.config.example.json)에 분리합니다.
+
+시작 때 실제 repository root와 `.lervo/project.yaml`을 확인하고 `hubSyncEnabled=true`인 manifest의 project ID·identity로 `.lervo/state/events.sqlite`를 엽니다. Event store의 저장 project가 다르거나 무결성 검사가 실패하면 network를 시작하지 않습니다. Manifest와 config는 시작 snapshot이며 변경 뒤에는 안전하게 재시작해야 합니다. Node runtime은 event를 append하거나 outbox를 새로 enqueue하지 않고, 이미 enqueue된 항목의 lease·ack·retry 상태만 worker 계약으로 바꿉니다.
+
+`SIGINT`, `SIGTERM`과 명시적 close는 같은 멱등 promise를 사용합니다. 먼저 AbortSignal로 wait와 새 cycle을 막고 진행 중인 bounded HTTP cycle이 끝난 뒤 event store를 닫습니다. Polling의 예상 가능한 offline은 `registration_deferred|retry_scheduled`로 계속 실행하며 process 실패가 아닙니다. Local store·구성 오류나 callback 실패처럼 loop가 계속될 수 없는 경우만 `sync_runtime_failed`로 process를 닫습니다. 시작 문구와 오류에는 repository path, Hub URL·identity, token과 HTTP body를 넣지 않습니다.
+
+새 event나 별도 scheduler 원장을 만들지 않습니다. 마지막 cycle 결과는 process memory에만 있고 durable retry 근거는 기존 outbox의 `availableAt`, lease와 고정 failure code입니다. Process가 재시작되면 event store가 이를 다시 읽습니다. 이 runtime의 시작·등록·전송을 문서 `loaded`, `injected`, `used`나 원격 command 실행으로 해석하지 않습니다. 결정은 [ADR-0151](./docs/adr/0151-restartable-node-outbound-sync-runtime.md)에 기록합니다.
+
 ### Hub sync durable receiver
 
 Hub handler는 schema-valid registration 또는 batch의 복사본을 비동기 command port에 전달합니다. Port는 `(destinationId, projectId)` registration 또는 event batch를 durable하게 commit한 뒤에만 response 또는 acknowledgement로 resolve해야 합니다. 공개 계약에는 transaction callback과 전체 `ProjectSyncState` 읽기·쓰기가 없습니다. `sync-contract`의 전체 state reducer는 중복·역순·cursor 의미를 검증하는 참조 구현으로 남고 운영 adapter는 같은 결과를 증분 저장으로 만들 수 있습니다.

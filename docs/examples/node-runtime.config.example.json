@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "repositoryRoot": "../repository",
+  "hub": {
+    "baseUrl": "https://hub.example.com/",
+    "bearerTokenFile": "secrets/hub-sync.token",
+    "destinationId": "hub:production",
+    "hubIdentityHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "sync": {
+    "workerId": "node:repository-main",
+    "idlePollIntervalMs": 2000,
+    "leaseDurationMs": 30000,
+    "retryDelayMs": 5000,
+    "batchLimit": 100,
+    "requestTimeoutMs": 15000,
+    "maxRequestBytes": 4194304,
+    "maxResponseBytes": 1048576
+  }
+}

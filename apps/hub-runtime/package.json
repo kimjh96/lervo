@@ -23,7 +23,8 @@
     "@lervo/hub-control": "workspace:*",
     "@lervo/hub-sync-sqlite": "workspace:*",
     "@lervo/policy": "workspace:*",
-    "@lervo/remote-command": "workspace:*"
+    "@lervo/remote-command": "workspace:*",
+    "@lervo/runtime-security": "workspace:*"
   },
   "devDependencies": {
     "@lervo/sync-contract": "workspace:*"

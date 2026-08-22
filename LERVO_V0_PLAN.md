@@ -1672,6 +1672,27 @@ Hub sync HTTP 완료 조건:
 - 새 event나 문서 `loaded`·`injected`·`used` 상태를 만들지 않음
 - 실제 `lervo-hub` runtime route가 종료 뒤 재개방한 SQLite registration 원본을 보존함
 - Hub가 없는 local-first 실행 경로를 바꾸지 않음
-- Production TLS·인증서 회전과 설치된 Node daemon을 완료로 주장하지 않음
+- Production TLS·인증서 회전, OS service와 원격 command가 조합된 Node runtime을 완료로 주장하지 않음
 
-현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler, loopback Hub 실행과 프로젝트 sync HTTP 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 설치된 Hub·Node daemon과 process supervisor는 후속 제품 작업입니다.
+재시작 가능한 Node outbound sync runtime을 완료했습니다. 공용 owner-only 파일 경계를 Hub·Node 실행 앱에서 공유하고, `lervo-node --config <config.json>`이 project manifest, event SQLite, HTTPS transport와 직렬 polling lifecycle을 조합합니다. Hub offline 종료 뒤 같은 config로 process를 다시 열어 실제 Hub HTTP·SQLite까지 전송되는지 검증했습니다. 결정은 [ADR-0151](./docs/adr/0151-restartable-node-outbound-sync-runtime.md)에 기록했습니다.
+
+Node outbound sync runtime 완료 조건:
+
+- Worker cycle과 polling·process lifecycle이 분리됨
+- Polling cycle이 겹치지 않고 상태별 idle·retry 시각을 따름
+- Abort 뒤 새 cycle을 만들지 않고 진행 중 bounded cycle 뒤 store를 닫음
+- Strict config가 알 수 없는 필드와 HTTP·worker 상한 오류를 거부함
+- 구성과 bearer token을 별도 owner-only 파일로 읽음
+- 상대 repository·token 경로를 config 파일 위치에서 해석함
+- Public open API도 loader 없이 직접 호출할 때 HTTPS 검증을 우회할 수 없음
+- 실제 project manifest와 event store project identity를 network 전에 확인함
+- Hub sync가 꺼진 project를 자동 활성화하거나 전송하지 않음
+- Offline은 process 실패로 만들지 않고 기존 worker retry 의미를 유지함
+- Process 재시작 뒤 기존 outbox에서 실제 Hub HTTP·SQLite로 이어감
+- Signal·중복 close가 같은 멱등 종료 promise를 사용함
+- 시작·오류 출력에 repository, Hub identity·URL, token과 payload가 없음
+- 새 event·scheduler 원장이나 문서 사용 상태를 만들지 않음
+- Hub가 없거나 Node runtime이 꺼져도 local-first CLI 실행을 바꾸지 않음
+- 원격 command·정책 조합, hot reload, OS service와 production TLS를 완료로 주장하지 않음
+
+현재 문서에 확정된 최초 게시 구현 작업, 제품 명칭 migration, 원격 command 작성·HTTP 전달, command artifact 수명주기·scheduler, loopback Hub 실행, 프로젝트 sync HTTP와 Node outbound sync runtime 경계는 모두 완료되었습니다. 이후 구현은 새 우선순위와 완료 조건을 정한 뒤 이 목록에 추가합니다. Production workflow 적용, npm·GitHub 외부 설정과 실제 stage 게시·2FA 승인은 구현 backlog가 아니라 별도 운영 승인과 실제 외부 실행이 필요한 단계입니다. Production TLS·credential 회전, 원격 command·정책을 포함한 Node runtime 확장, OS service 설치와 process supervisor는 후속 제품 작업입니다.

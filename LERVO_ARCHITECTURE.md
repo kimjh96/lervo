@@ -114,7 +114,7 @@ First-publication external evidence는 license approval, npm scope control confi
 
 ### Lervo Node
 
-저장소별 로컬 런타임입니다. 초기에는 CLI 프로세스 안에서 동작하고, 원격 작업과 장기 실행이 필요해질 때 선택적 데몬 모드를 제공합니다. Node가 원본 실행 이벤트를 소유합니다.
+저장소별 로컬 런타임입니다. CLI 프로세스가 로컬 실행과 원본 실행 event를 소유합니다. 별도 `lervo-node` 프로세스는 한 project의 기존 event store와 outbox만 열어 Hub 등록·전송 cycle을 직렬로 반복합니다. 이 프로세스가 꺼져 있거나 Hub가 없어도 CLI의 로컬 실행은 완료됩니다. 현재 장기 실행 범위는 outbound sync이며 원격 command·정책 polling 조합과 OS service 설치는 후속 범위입니다.
 
 ### Lervo Hub
 
@@ -123,6 +123,8 @@ First-publication external evidence는 license approval, npm scope control confi
 M6 sync 계약은 전체 project manifest와 안정적인 project identity를 분리해 등록하고, allowlist event만 연속 batch로 전달합니다. Hub는 역순 batch를 보관할 수 있지만 project hash chain의 빈 구간이 채워진 가장 높은 seq까지만 cursor를 공개합니다. `@lervo/sync-contract`는 저장과 network가 없는 순수 수락 계획만 계산합니다.
 
 `@lervo/sync`는 Node의 application 경계입니다. 매 cycle 등록을 확인한 뒤 현재 worker가 가진 destination별 outbox lease만 가져오고, hash chain이 이어지는 구간별 batch를 인증된 Hub transport port에 전달합니다. Peer 좌표와 durable ack 전체가 맞으면 해당 구간을 한 local transaction에서 ack하고, 응답 유실이나 검증 실패는 아직 ack하지 않은 lease만 공통 시각으로 재예약합니다. Transport 구현은 TLS·서명 등 실제 인증을 소유하며 core worker는 protocol을 알지 않습니다.
+
+같은 package의 polling lifecycle은 cycle을 겹치지 않게 실행합니다. `synchronized`는 남은 outbox를 바로 비우고, `idle`은 bounded interval, 등록 지연과 batch 재시도는 결과의 `nextAttemptAt`까지 기다립니다. Abort 뒤에는 새 cycle을 시작하지 않습니다. `@lervo/node-runtime`은 owner-only 구성·token, project manifest와 SQLite event store, HTTPS transport와 이 lifecycle만 조합합니다. 공용 파일 권한 검사는 `@lervo/runtime-security`에 두며 process signal·제품 오류·project 해석은 각 실행 앱에 남깁니다. 결정은 [ADR-0151](./docs/adr/0151-restartable-node-outbound-sync-runtime.md)에 기록합니다.
 
 Hub 수신은 `@lervo/hub-sync`의 비동기 command handler와 `@lervo/hub-sync-sqlite`의 durable adapter로 나뉩니다. Handler는 commit 뒤 resolve하는 `registerProject`·`acceptEventBatch`만 알고 transaction callback이나 전체 project state를 노출하지 않습니다. SQLite는 최대 100개 batch의 중복 좌표와 인접 hash만 읽어 새 event와 cursor를 한 commit에 저장합니다. Store 시작은 bounded 구조 검사만 하고 전체 chain 검증은 명시적 audit로 분리합니다.
 

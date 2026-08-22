@@ -59,4 +59,4 @@ Hub SQLite에는 기존 계약의 전체 project manifest와 allowlist event만 
 
 Node outbox와 Hub durable receiver 사이에 실제 인증 HTTP 경계가 생겼습니다. Hub가 저장한 뒤 응답만 유실되는 정상적인 network 실패도 기존 멱등 batch 계약으로 복구합니다. Hub가 없는 로컬 실행 경로는 바뀌지 않습니다.
 
-Production TLS 종료, 인증서·credential 회전, 설치 가능한 Node daemon과 장기 reconnect scheduler는 후속 제품 작업입니다. 현재 identity header를 상호 TLS나 서명 기반 peer proof로 확대하려면 별도 계약과 migration이 필요합니다.
+재시작 가능한 Node outbound sync process와 polling lifecycle은 [ADR-0151](./0151-restartable-node-outbound-sync-runtime.md)에서 이어집니다. Production TLS 종료, 인증서·credential 회전과 OS service 설치는 후속 제품 작업입니다. 현재 identity header를 상호 TLS나 서명 기반 peer proof로 확대하려면 별도 계약과 migration이 필요합니다.

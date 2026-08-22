@@ -1,0 +1,74 @@
+import { chmod } from "node:fs/promises";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  loadNodeRuntimeConfig,
+  openNodeRuntime,
+  parseNodeRuntimeConfig,
+} from "../src/index.js";
+import {
+  availablePort,
+  nodeRuntimeFixture,
+  removeTemporaryRoots,
+  temporaryRoot,
+} from "./fixture.js";
+
+afterEach(removeTemporaryRoots);
+
+describe("Node runtime configuration", () => {
+  it("loads strict owner-only config and resolves project and token paths from that file", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    await expect(loadNodeRuntimeConfig(fixture.configPath)).resolves.toMatchObject({
+      repositoryRoot: fixture.repositoryRoot,
+      hub: { bearerTokenFile: `${root}/hub.token` },
+      sync: { workerId: "node:runtime-test" },
+    });
+
+    if (process.platform !== "win32") {
+      await chmod(fixture.configPath, 0o644);
+      await expect(loadNodeRuntimeConfig(fixture.configPath)).rejects.toMatchObject({
+        code: "unsafe_runtime_file",
+      });
+    }
+  });
+
+  it("rejects plaintext Hub URLs, unknown fields, and invalid scheduler bounds", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const plaintext = structuredClone(fixture.value);
+    (plaintext.hub as Record<string, unknown>).baseUrl = "http://hub.example.test";
+    expect(() => parseNodeRuntimeConfig(plaintext, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+    expect(() => parseNodeRuntimeConfig({ ...fixture.value, extra: true }, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const invalidPoll = structuredClone(fixture.value);
+    (invalidPoll.sync as Record<string, unknown>).idlePollIntervalMs = 99;
+    expect(() => parseNodeRuntimeConfig(invalidPoll, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+
+    const direct = await loadNodeRuntimeConfig(fixture.configPath);
+    direct.hub.baseUrl = "http://hub.example.test/";
+    await expect(openNodeRuntime(direct, {
+      createTransport: () => ({
+        registerProject: async () => ({}),
+        sendEventBatch: async () => ({}),
+      }),
+    })).rejects.toMatchObject({ code: "invalid_config" });
+
+    const disabledRoot = await temporaryRoot();
+    const disabled = await nodeRuntimeFixture(disabledRoot, await availablePort(), {
+      hubSyncEnabled: false,
+    });
+    await expect(openNodeRuntime(await loadNodeRuntimeConfig(disabled.configPath), {
+      createTransport: () => ({
+        registerProject: async () => ({}),
+        sendEventBatch: async () => ({}),
+      }),
+    })).rejects.toMatchObject({ code: "project_invalid" });
+  });
+});

@@ -170,6 +170,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - [Durable cursor와 Hub에 결속된 command artifact cleanup runtime ADR](./docs/adr/0148-durable-command-artifact-cleanup-runtime.md)
 - [Owner-only 구성과 loopback 실행을 강제하는 Hub runtime ADR](./docs/adr/0149-owner-only-loopback-hub-runtime.md)
 - [프로젝트 범위에 결속된 Hub sync HTTP ADR](./docs/adr/0150-authenticated-project-scoped-hub-sync-http.md)
+- [재시작 가능한 Node outbound sync runtime ADR](./docs/adr/0151-restartable-node-outbound-sync-runtime.md)
 - [0.1.0 trace migration 안내](./docs/migrations/0.1.0-trace-bounded-default.md)
 
 ## 현재 구현
@@ -193,7 +194,7 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/event-contract`: 공급자와 저장 구현에 독립적인 payload 정리, 실행 완료·프로젝트 검증·숙의·지식 수명주기 event의 allowlist 후 schema·artifact 좌표 검증, canonical JSON과 event hash 규칙
 - `@lervo/storage-contract`: event transaction, outbox와 artifact 저장소의 공통 interface 및 snapshot visitor·명시적 상한 run event reader
 - `@lervo/sync-contract`: 전체 project manifest에 결속된 Hub 등록, allowlist event의 연속 batch, 역순 수락·중복 제거와 연속 cursor, durable ack 후보를 계산하는 저장·transport 독립 계약
-- `@lervo/sync`: project 등록을 먼저 확인하고 현재 worker의 local outbox lease만 연속 batch로 보내는 Node runtime. HTTPS 기본, Hub identity 확인, 요청·응답 상한과 timeout을 강제하는 실제 HTTP transport를 포함하며 durable ack 전체가 맞을 때만 local ack함
+- `@lervo/sync`: project 등록을 먼저 확인하고 현재 worker의 local outbox lease만 연속 batch로 보내는 Node runtime. HTTPS transport와 cycle을 겹치지 않게 실행하는 polling lifecycle을 포함하며 durable ack 전체가 맞을 때만 local ack함
 - `@lervo/hub-sync`: commit 뒤 resolve하는 registration·event batch와 원격 command enqueue·lease·acknowledgement application port. 전체 state와 저장 transaction callback은 공개하지 않음
 - `@lervo/hub-command`: 플랫폼 중립 command 작성, Hub 소유 시각·nonce·서명, durable idempotency, 현재 Node lease의 raw request 조회와 bounded artifact cleanup cycle·직렬 scheduler loop를 정의하는 application 경계
 - `@lervo/hub-sync-sqlite`: destination·project별 registration, append-only event inbox·연속 cursor, 원격 command authorship·queue·artifact retention/purge와 정책 snapshot·승인·철회 원본을 durable transaction으로 저장하는 adapter. Raw request는 별도 CAS에만 두고 artifact claim, 100개 delivery purge batch와 singleton scheduler lease·cursor로 작성·정리·다중 Hub 경합을 닫음
@@ -201,6 +202,8 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/hub-control`: durable command와 현재 signed policy 원본에서 민감정보 없는 승인 검토 view와 principal·command·만료 시각에 결속된 HMAC review grant를 만드는 경계
 - `@lervo/hub`: bearer credential을 `trace.read`, `sync.write`, `policy.read`, `policy.write`, `command.read`, `command.write`, `command.delivery`, `approval.write`와 project scope에 결속하는 HTTP adapter. 등록·event batch 수신, bounded trace·명시적 관계 그래프와 `/trace`, 재인증 `/control` web view, 정책 작성·동기화, command submission과 현재 lease에 묶인 artifact 전달을 제공함
 - `@lervo/hub-runtime`: owner-only JSON·Ed25519 key·HMAC secret을 읽어 Hub SQLite, command CAS, 인증·서명·sync를 포함한 HTTP handler와 cleanup을 조합하는 `lervo-hub` 실행 앱. 평문 server는 loopback만 허용하고 signal에서 server, cleanup, store 순서로 종료함
+- `@lervo/runtime-security`: Hub·Node 실행 앱이 함께 쓰는 owner-only 일반 파일·UTF-8 secret 검사와 Hub SQLite parent 검사. 제품별 오류 문구와 process lifecycle은 소유하지 않음
+- `@lervo/node-runtime`: owner-only JSON과 별도 bearer token 파일로 한 project event store, HTTPS sync transport와 직렬 polling을 조합하는 `lervo-node` 실행 앱. Hub offline과 process 재시작 뒤에도 outbox 원본으로 재개하며 signal에서 새 cycle을 막고 store를 닫음
 - `@lervo/remote-command-contract`: 원문 대신 bounded artifact 좌표를 가진 `managed_run` command, canonical command ID/hash, Ed25519 서명 envelope와 terminal execution receipt를 정의하는 transport·실행 중립 계약
 - `@lervo/remote-command`: 신뢰 key의 project scope, 서명, receiver identity, 짧은 유효 기간, nonce/idempotency replay, 로컬 정책과 payload hash를 실행 전에 확인하는 Node 수신 경계. HTTPS·Hub identity·bounded response를 강제하는 lease·acknowledgement transport와 artifact loader, reconnect worker와 직렬 polling lifecycle 포함
 - `@lervo/remote-command-sqlite`: project ID·identity hash에 고정된 Node replay 좌표와 terminal receipt를 보존하는 bounded SQLite adapter. Raw request와 command envelope은 저장하지 않음
@@ -235,9 +238,9 @@ Lervo(레르보)는 저장소 안에서 독립적으로 동작하면서, 필요�
 - `@lervo/search-local`: 등록 문서를 bounded하게 읽고 검색 attempt·assessment·평가 실행·후보 비교·검토·엔진 선택 전이·rollout 정책·검토·조치를 한 파일에 누적하지 않는 project-local immutable 원본으로 보존하며 조치 상태 조회와 쓰기 없는 사전 점검을 조합하는 adapter
 - `@lervo/diagnostics`: append-only event의 run별 trace와 candidate·review·verified·stale CAS 및 근거 연결을 읽기 전용으로 점검하고, 실제 검사 범위와 자동 실행 없는 복구 안내를 포함한 항목별 결과와 저장소 독립 trace capability report를 조합하며 버전·구조·필드 간 의미를 확인하는 로컬 진단 경계
 - `@lervo/cli`: `lervo --version`, 안전한 `lervo init`, 한 파일 managed 실행인 `lervo run`, 서로 다른 Codex·Claude 역할을 연결하고 승인 경계에서 안전하게 재개하는 `lervo deliberate` 명령 진입점. 내부 대화 adapter는 queue가 할당한 숙의 ID와 기대 project를 기존 managed 실행기에 결속하지만 CLI 사용자가 ID를 지정할 수는 없음. 숙의는 역할별 독립 session, 공개된 shared context의 역할별 E2/E3, writing 검사와 실제 project verification을 거쳐야 수렴함. 개발 시 workspace 경계를 유지하고 배포 시 내부 package와 Ajv·YAML을 `dist/bin.js` 하나로 묶음
-- `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest·SBOM과 로컬 unsigned statement, 빌드된 CLI·Hub runtime smoke, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
+- `pnpm check`: 타입, schema fixture, contract test, 패키지 빌드, canonical CLI release manifest·SBOM과 로컬 unsigned statement, 빌드된 CLI·Hub·Node runtime smoke, 임시 production deploy smoke, 실제 tarball 소비자 설치 smoke, 문서 수명주기 기본 검사
 
-M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. Node의 인증된 HTTP transport와 Hub 수신 API는 실제 양쪽 SQLite 사이에서 동작하며, Hub commit 뒤 응답만 유실돼도 같은 batch 재전송과 duplicate acknowledgement로 복구합니다. `/trace` web view도 같은 Hub server의 인증 API만 사용합니다. Ed25519 원격 command는 Hub 작성·서명, owner-only request CAS, durable queue, 인증된 HTTP lease·artifact·acknowledgement, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Command CAS에는 30일 기본 retention, bounded expired/orphan cleanup, singleton scheduler lease와 durable cursor가 있습니다. `lervo-hub --config <config.json>`은 이 기능을 loopback server로 조합하고 signal에서 안전하게 종료합니다. 외부 접근을 위한 production TLS 종료와 설치된 Node daemon은 아직 구현하지 않았습니다.
+M5의 project verification artifact, writing 공개 gate, 구조화 숙의 runtime과 지식 수명주기 경계를 구현했습니다. M6에서는 project manifest에 결속된 Hub 등록·event batch 계약, Node outbox worker, 증분 Hub SQLite 저장소와 bounded project/run trace query를 연결했습니다. Node의 인증된 HTTP transport와 Hub 수신 API는 실제 양쪽 SQLite 사이에서 동작하며, Hub commit 뒤 응답만 유실돼도 같은 batch 재전송과 duplicate acknowledgement로 복구합니다. `lervo-node --config <config.json>`은 이 cycle을 직렬로 반복하고 offline·process 재시작 뒤 outbox에서 이어갑니다. `/trace` web view도 같은 Hub server의 인증 API만 사용합니다. Ed25519 원격 command는 Hub 작성·서명, owner-only request CAS, durable queue, 인증된 HTTP lease·artifact·acknowledgement, project-bound Node replay SQLite와 reconnect worker까지 연결했습니다. Command CAS에는 30일 기본 retention, bounded expired/orphan cleanup, singleton scheduler lease와 durable cursor가 있습니다. `lervo-hub --config <config.json>`은 이 기능을 loopback server로 조합하고 signal에서 안전하게 종료합니다. 외부 접근을 위한 production TLS 종료, OS service 설치와 Node runtime의 원격 command 조합은 아직 구현하지 않았습니다.
 
 `lervo deliberate --proposer codex --reviewer claude --verification <suite-id> <주제>`는 서로 다른 두 공급자를 제안·결정 역할과 독립 검토·검증 역할에 고정합니다. 검토자는 `판정: 승인` 또는 `판정: 수정 필요`를 명시해야 하며 자유로운 동의 표현은 승인으로 해석하지 않습니다. 최대 두 회차 안에 승인되지 않거나 필수 검증이 통과하지 않으면 `no_consensus`로 끝나고 결정이나 검증된 지식으로 올리지 않습니다. 사람용 출력에는 내부 ID·digest·경로를 숨기며, `--json`은 자동화용 증거 좌표를 반환합니다. 실행 문서는 `.lervo/state/deliberations/<숙의 ID>/` 아래에서 writing 정책·산출물·의미 평가 요청별 파일로 분리합니다.
 

@@ -230,10 +230,38 @@ importers:
       '@lervo/remote-command':
         specifier: workspace:*
         version: link:../../packages/remote-command
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../../packages/runtime-security
     devDependencies:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../../packages/sync-contract
+
+  apps/node-runtime:
+    dependencies:
+      '@lervo/event-store-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/event-store-sqlite
+      '@lervo/project':
+        specifier: workspace:*
+        version: link:../../packages/project
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../../packages/runtime-security
+      '@lervo/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../../packages/sync-contract
+    devDependencies:
+      '@lervo/hub':
+        specifier: workspace:*
+        version: link:../hub
+      '@lervo/hub-sync-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/hub-sync-sqlite
 
   packages/adapter-claude:
     dependencies:
@@ -943,6 +971,8 @@ importers:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
+
+  packages/runtime-security: {}
 
   packages/schemas:
     dependencies:
