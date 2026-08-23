@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0083-trace-default-transition-fixture.md
+identityPath: docs/adr/0083-trace-default-transition-fixture.md
+kind: document_move
+lineageId: klineage_b0340c4b60f26f1520a5a001
+operationId: kdocop_3249a17fa208e05f0b573447
+schemaVersion: 1
+sourceContentHash: sha256:bfb020925b597acab67299d40a8516447f83e886b2b49be80e44dd018fc0687d
+sourceId: src_ef83581b01bb5740e5c71f9a
+sourceUnitBindingDigest: sha256:9ab51721473234200e93e6f82a82bbff8e4c7236444b3666337334af2b7c5319
+sourceUnitCount: 4
+toPath: docs/decisions/operations/trace/0083-trace-default-transition-fixture.md

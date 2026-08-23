@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a0e2d82dd1037481437d770c
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c56f5fa1052d0c3df6b488de
+title: "ADR-0125: npm Staged-Package Review Evidence"
+type: decision

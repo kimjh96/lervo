@@ -35,7 +35,7 @@ export async function createCliFirstPublicationStageResultEvidence(
   if (online !== true) {
     fail(
       "first_publication_stage_result_online_required",
-      "CLI npm stage 결과 증거에는 온라인 확인이 필요합니다.",
+      "CLI npm stage-result evidence requires online verification.",
     );
   }
   try {
@@ -47,7 +47,7 @@ export async function createCliFirstPublicationStageResultEvidence(
   } catch {
     fail(
       "first_publication_stage_result_input_invalid",
-      "CLI npm stage 결과 증거 입력이 올바르지 않습니다.",
+      "The CLI npm stage-result evidence input is invalid.",
     );
   }
   const readSources = dependencies.readSources ?? readFirstPublicationStageResultSources;

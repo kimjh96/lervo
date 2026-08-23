@@ -14,7 +14,7 @@ const sourceDigestPattern = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 function invalid() {
   throw new FirstPublicationBootstrapError(
     "first_publication_external_evidence_report_invalid",
-    "CLI 최초 게시 외부 요구사항 증거 보고서가 올바르지 않습니다.",
+    "The CLI first-publication external-requirements evidence report is invalid.",
   );
 }
 

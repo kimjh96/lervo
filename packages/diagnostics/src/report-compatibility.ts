@@ -21,20 +21,20 @@ export function readVersionedReport<T>(input: {
   ) {
     throw input.error(
       "unsupported_version",
-      `지원하지 않는 ${input.reportName} schemaVersion입니다: ${String(version)}`,
+      `Unsupported ${input.reportName} schemaVersion: ${String(version)}`,
     );
   }
   if (!validateSchema(input.schemaName, input.value).valid) {
     throw input.error(
       "invalid_structure",
-      `${input.reportName} v${input.schemaVersion}의 필수 구조가 올바르지 않습니다.`,
+      `The required structure of ${input.reportName} v${input.schemaVersion} is invalid.`,
     );
   }
   const report = input.value as T;
   if (!input.semantics(report)) {
     throw input.error(
       "invalid_semantics",
-      `${input.reportName} v${input.schemaVersion}의 필수 의미가 서로 일치하지 않습니다.`,
+      `The required semantics of ${input.reportName} v${input.schemaVersion} are inconsistent.`,
     );
   }
   return report;

@@ -37,7 +37,7 @@ export async function runSearchRolloutActionCheckCommand(args: string[], io: Cli
   const action = parsed.values.action === undefined ? undefined : actions[parsed.values.action];
   if (parsed.positionals.length !== 1 || action === undefined || parsed.values.policy === undefined ||
     parsed.values.operator === undefined) {
-    io.stderr(`rollout 검토 ID, keep|rollback 조치, action policy와 operator가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A rollout review ID, keep|rollback action, action policy, and operator are required.\n${searchUsage}\n`);
     return 1;
   }
   try {
@@ -58,8 +58,8 @@ export async function runSearchRolloutActionCheckCommand(args: string[], io: Cli
       : formatSearchRolloutActionPreflight(result));
     return 0;
   } catch (error) {
-    io.stderr(`검색 rollout 조치를 점검하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not check the search rollout action. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

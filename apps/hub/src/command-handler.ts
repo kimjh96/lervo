@@ -43,20 +43,20 @@ export interface HubRemoteCommandHttpHandlerOptions {
 function requestLimit(value: number | undefined): number {
   const resolved = value ?? DEFAULT_MAX_REQUEST_BYTES;
   if (!Number.isSafeInteger(resolved) || resolved < 1_024 || resolved > 1_048_576) {
-    throw new Error("Hub remote command maxRequestBytes는 1024 이상 1048576 이하여야 합니다.");
+    throw new Error("Hub remote command maxRequestBytes must be between 1024 and 1048576.");
   }
   return resolved;
 }
 
 function currentTime(now: () => Date): string {
   const value = now();
-  if (!Number.isFinite(value.getTime())) throw new Error("Hub remote command clock이 유효하지 않습니다.");
+  if (!Number.isFinite(value.getTime())) throw new Error("The Hub remote command clock is invalid.");
   return value.toISOString();
 }
 
 export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpHandlerOptions) {
   if (!/^sha256:[a-f0-9]{64}$/.test(options.hubIdentityHash)) {
-    throw new Error("Hub remote command identity hash가 유효하지 않습니다.");
+    throw new Error("The Hub remote command identity hash is invalid.");
   }
   const maxRequestBytes = requestLimit(options.maxRequestBytes);
   const maxResponseBytes = resolveHubHttpMaxResponseBytes(options.maxResponseBytes);

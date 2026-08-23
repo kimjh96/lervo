@@ -21,7 +21,7 @@ export function createPlatformConversationDescriptor(input: {
   if (input.instanceIdentity.length < 1 || input.instanceIdentity.length > 512) {
     throw new ConversationPlatformError(
       "invalid_platform_configuration",
-      "Platform instance identity 길이가 유효하지 않습니다.",
+      "The platform instance identity length is invalid.",
     );
   }
   const capabilities = [...(input.capabilities ?? input.supportedCapabilities)].sort();
@@ -33,7 +33,7 @@ export function createPlatformConversationDescriptor(input: {
   ) {
     throw new ConversationPlatformError(
       "invalid_platform_configuration",
-      "Platform adapter가 구현하지 않은 capability를 선언했습니다.",
+      "The platform adapter declared a capability it does not implement.",
     );
   }
   const descriptor: ConversationAdapterDescriptor = {

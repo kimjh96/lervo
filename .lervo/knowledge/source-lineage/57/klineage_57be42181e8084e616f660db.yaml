@@ -1,0 +1,11 @@
+fromPath: docs/adr/0058-deterministic-bm25f-search-candidate.md
+identityPath: docs/adr/0058-deterministic-bm25f-search-candidate.md
+kind: document_move
+lineageId: klineage_57be42181e8084e616f660db
+operationId: kdocop_58ddd319934e7146b5962247
+schemaVersion: 1
+sourceContentHash: sha256:fdcf732c52aefa0367745b1f47c1f779865473b98181b268c426d3ea79c78bc1
+sourceId: src_dad0ff58173fb5c5f757b6c7
+sourceUnitBindingDigest: sha256:ae0f72522290f7c1c28723f9f2d75d7dd9b99e1da393ba7c42cc184705392980
+sourceUnitCount: 5
+toPath: docs/decisions/distribution/0058-deterministic-bm25f-search-candidate.md

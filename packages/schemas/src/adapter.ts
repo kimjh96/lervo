@@ -28,6 +28,7 @@ import {
   adapterIdSchema,
   capabilityMatrixSchema,
 } from "./adapter-primitives.js";
+import { knowledgeContextSchema } from "./knowledge-context.js";
 
 export {
   adapterManagedWriteCompletionSchema,
@@ -147,6 +148,7 @@ const contextDocumentSchema = {
     contentHash: sha256Schema,
     byteCount: { type: "integer", minimum: 0 },
     scope: scopeSchema,
+    knowledgeContext: knowledgeContextSchema,
     delivery: {
       oneOf: [
         {

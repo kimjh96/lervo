@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9ed0b33074077d711dfad9c6
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b6c91e791cc5d718e08aef62
+title: "ADR-0078: Snapshot-bound local trace cursor pages"
+type: decision

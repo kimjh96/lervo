@@ -51,6 +51,7 @@ function reviewFor(candidateResult) {
 function generatedManifest(current, candidateResult) {
   const output = JSON.parse(candidateResult.outputBytes.toString("utf8"));
   const generated = structuredClone(current);
+  generated.artifact.description = output.description;
   generated.artifact.repository = output.repository.url;
   generated.artifact.license = output.license;
   generated.artifact.registry = output.publishConfig.registry;

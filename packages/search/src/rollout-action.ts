@@ -37,7 +37,7 @@ export function assertSearchRolloutActionEligibility(input: {
     input.currentQualitySnapshot.observedThrough !== input.actedAt.toISOString()) {
     throw new SearchError(
       "rollout_action_not_eligible",
-      "검색 rollout 검토·정책·operator·현재 품질 입력이 요청한 조치 조건을 충족하지 않습니다.",
+      "The search rollout review, policy, operator, or current quality input does not satisfy the requested action conditions.",
     );
   }
   const failureReasons = searchRolloutActionEligibilityFailureReasons({
@@ -48,7 +48,7 @@ export function assertSearchRolloutActionEligibility(input: {
   if (failureReasons.length > 0) {
     throw new SearchError(
       "rollout_action_not_eligible",
-      "검색 rollout 검토·정책·operator·현재 품질 입력이 요청한 조치 조건을 충족하지 않습니다.",
+      "The search rollout review, policy, operator, or current quality input does not satisfy the requested action conditions.",
     );
   }
 }
@@ -64,7 +64,7 @@ export function createSearchRolloutKeepAcknowledgement(input: {
 }): SearchRolloutKeepAcknowledgement {
   assertSearchRolloutActionEligibility({ ...input, actedAt: input.acknowledgedAt });
   if (input.actionPolicy.action !== "acknowledge_keep") {
-    throw new SearchError("rollout_action_not_eligible", "후보 유지 확인에는 keep 조치 정책이 필요합니다.");
+    throw new SearchError("rollout_action_not_eligible", "Candidate retention acknowledgement requires a keep action policy.");
   }
   const core = {
     projectId: input.review.projectId,
@@ -104,11 +104,11 @@ export function assertSearchRolloutKeepAcknowledgement(value: SearchRolloutKeepA
     !/^sha256:[a-f0-9]{64}$/.test(value.qualityInputDigest) || !SOURCE_ID_PATTERN.test(value.operatorId) ||
     value.recordState !== "acknowledgement_recorded" || value.effect?.selectionChange !== "not_applied" ||
     value.effect.rollback !== "not_executed" || value.effect.approval !== "not_granted") {
-    throw new SearchError("invalid_rollout_action", "검색 rollout 후보 유지 확인 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action", "The search rollout candidate retention acknowledgement contract is invalid.");
   }
   assertTimestamp(value.acknowledgedAt, "invalid_rollout_action");
   const { schemaVersion: _schema, acknowledgementId: _id, ...core } = value;
   if (contentId("srack", core) !== value.acknowledgementId) {
-    throw new SearchError("invalid_rollout_action", "검색 rollout 후보 유지 확인 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_rollout_action", "The search rollout candidate retention acknowledgement ID does not match its content.");
   }
 }

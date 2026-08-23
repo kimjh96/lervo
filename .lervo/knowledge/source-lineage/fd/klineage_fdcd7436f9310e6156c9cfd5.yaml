@@ -1,0 +1,11 @@
+fromPath: docs/adr/0159-atomic-hub-bearer-credential-reload.md
+identityPath: docs/adr/0159-atomic-hub-bearer-credential-reload.md
+kind: document_move
+lineageId: klineage_fdcd7436f9310e6156c9cfd5
+operationId: kdocop_6cb2036939f9f4d3a593dcea
+schemaVersion: 1
+sourceContentHash: sha256:942a49e7cdf024d3a1da3426250557f819b21521c53f69678c21d481908a57de
+sourceId: src_52ef433b447e211f1dcc825c
+sourceUnitBindingDigest: sha256:496e40ada69b3ae866ba2c0d499d5fc1e7b5b15578f2ff7808bbb14c05bc06b6
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0159-atomic-hub-bearer-credential-reload.md

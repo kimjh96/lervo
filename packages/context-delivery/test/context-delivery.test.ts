@@ -26,6 +26,43 @@ import {
 afterEach(cleanupDeliveryFixtures);
 
 describe("provider-neutral context delivery", () => {
+  it("preserves knowledge assurance and freshness in the controlled envelope and E3 evidence", async () => {
+    const input = await createDeliveryFixture();
+    const documentId = input.loaded.documents[0]!.documentId;
+    const knowledgeContext = {
+      conceptId: "concept_aaaaaaaaaaaaaaaaaaaaaaaa",
+      assurance: "human_reviewed" as const,
+      freshness: "stale" as const,
+      sourceSnapshotId: "ksnap_bbbbbbbbbbbbbbbbbbbbbbbb",
+      impactReportId: "kimpact_cccccccccccccccccccccccc",
+    };
+    const loaded: LoadedContext = structuredClone(input.loaded);
+    for (const document of loaded.plan.documents) {
+      if (document.documentId === documentId) document.knowledgeContext = knowledgeContext;
+    }
+    for (const document of loaded.documents) {
+      if (document.documentId === documentId) document.knowledgeContext = knowledgeContext;
+    }
+    for (const evidence of [...loaded.plan.evidence, ...loaded.evidence]) {
+      if (evidence.documentId === documentId) evidence.knowledgeContext = knowledgeContext;
+    }
+    const injected = await injectLoadedContext({
+      ...input,
+      loaded,
+      publications: [],
+      targetTurnId: "turn-knowledge",
+      contextGeneration: 1,
+      getCurrentContextGeneration: () => 1,
+      injectContext: async (session, envelope) => receiptFor(session, envelope),
+      now: () => new Date("2026-08-18T01:02:00Z"),
+    });
+
+    expect(injected.envelope.documents.find((item) => item.documentId === documentId)?.knowledgeContext)
+      .toEqual(knowledgeContext);
+    expect(injected.e3Evidence.find((item) => item.documentId === documentId)?.knowledgeContext)
+      .toEqual(knowledgeContext);
+  });
+
   it("creates E3 only after an exact controlled receipt including the writing policy", async () => {
     const currentGeneration = 2;
     const input = await createDeliveryFixture();
@@ -159,7 +196,7 @@ describe("provider-neutral context delivery", () => {
     const input = await createDeliveryFixture();
     await writeFile(
       resolve(input.repositoryRoot, "docs/writing.json"),
-      "주입 전에 바뀐 정책입니다.\n",
+      "Policy changed before injection.\n",
     );
     let called = false;
 

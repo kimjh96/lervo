@@ -1,0 +1,11 @@
+fromPath: docs/adr/0127-cli-npm-stage-approval-durable-records.md
+identityPath: docs/adr/0127-cli-npm-stage-approval-durable-records.md
+kind: document_move
+lineageId: klineage_e22e52357a92e5ceaed85590
+operationId: kdocop_ad5ea6288f9e68a2014a6816
+schemaVersion: 1
+sourceContentHash: sha256:b3ea968c8fd324c3933a53753c71b604c3bd7c0e253ef91e8472a5c901c17ab8
+sourceId: src_cdaf0aa2f847fc55b960bdff
+sourceUnitBindingDigest: sha256:6f4436f1f3c752a108f4935a774dfc8e38927ab8ba3fdb50945ad302c31051b8
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md

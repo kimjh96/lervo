@@ -19,7 +19,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail(code = "first_publication_arming_decision_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 실행 승인 결정이 올바르지 않습니다.",
+    "The CLI first-publication execution-approval decision is invalid.",
   );
 }
 

@@ -151,7 +151,7 @@ export async function publishLegacyRegistryMigration(input: {
     })) {
       throw new DocumentMigrationError(
         "migration_finalization_failed",
-        "구조 전환 event 기록 뒤 transaction marker를 안전하게 제거하지 못했습니다.",
+        "The transaction marker could not be removed safely after recording the layout migration event.",
       );
     }
     markerCreated = false;
@@ -163,11 +163,11 @@ export async function publishLegacyRegistryMigration(input: {
         markerCreated = true;
         await syncDirectory(lervoDirectory);
       } catch {
-        // marker 복원 실패도 아래 fail-closed 오류로 보고합니다.
+        // A marker restoration failure is also reported by the fail-closed error below.
       }
       throw new DocumentMigrationError(
         "migration_finalization_failed",
-        "구조 전환 marker 제거를 directory에 영속하지 못했습니다.",
+        "The layout migration marker removal could not be persisted to the directory.",
         { cause: error },
       );
     }
@@ -179,7 +179,7 @@ export async function publishLegacyRegistryMigration(input: {
         ? error
         : new DocumentMigrationError(
             "migration_finalization_failed",
-            "구조 전환 event 기록 뒤 새 layout을 활성화하지 못했습니다.",
+            "The new layout could not be activated after recording the layout migration event.",
             { cause: error },
           );
     }
@@ -204,14 +204,14 @@ export async function publishLegacyRegistryMigration(input: {
     if (!rollbackSafe) {
       throw new DocumentMigrationError(
         "rollback_failed",
-        "실패한 legacy registry 구조 전환을 안전하게 되돌리지 못했습니다.",
+        "The failed legacy registry layout migration could not be rolled back safely.",
         { cause: error },
       );
     }
     if (phase === "telemetry") {
       throw new DocumentMigrationError(
         "telemetry_recording_failed",
-        "구조 전환 event를 기록하지 못해 legacy layout을 복원했습니다.",
+        "The legacy layout was restored because the layout migration event could not be recorded.",
         { cause: error },
       );
     }
@@ -220,8 +220,8 @@ export async function publishLegacyRegistryMigration(input: {
     throw new DocumentMigrationError(
       conflict ? "migration_conflict" : "migration_apply_failed",
       conflict
-        ? "Legacy registry 구조 전환 target 또는 marker가 이미 존재합니다."
-        : `Legacy registry 구조 전환을 ${phase} 단계에서 완료하지 못했습니다.`,
+        ? "The legacy registry layout migration target or marker already exists."
+        : `The legacy registry layout migration could not be completed during the ${phase} phase.`,
       { cause: error },
     );
   }

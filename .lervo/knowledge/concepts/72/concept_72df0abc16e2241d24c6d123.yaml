@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_72df0abc16e2241d24c6d123
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9fc811a1153a8e628d08f3c1
+title: "ADR-0110: CLI first-publication external-requirement evidence report"
+type: decision

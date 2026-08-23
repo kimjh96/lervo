@@ -23,7 +23,7 @@ import {
 function fail(code = "first_publication_preflight_input_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 사전 점검 입력이 올바르지 않습니다.",
+    "The CLI first-publication preflight input is invalid.",
   );
 }
 

@@ -23,7 +23,7 @@ export function normalizeStalenessTimestamp(
 ): { value: string; milliseconds: number } {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
   if (match === null) {
-    invalidStalenessRequest(`${label}은 timezone이 명시된 date-time이어야 합니다.`);
+    invalidStalenessRequest(`${label} must be a date-time with an explicit timezone.`);
   }
   const [, yearText, monthText, dayText, hourText, minuteText, secondText, ,
     offsetHourText, offsetMinuteText] = match;
@@ -41,11 +41,11 @@ export function normalizeStalenessTimestamp(
     (offsetHourText !== undefined && Number(offsetHourText) > 23) ||
     (offsetMinuteText !== undefined && Number(offsetMinuteText) > 59)
   ) {
-    invalidStalenessRequest(`${label}의 날짜 또는 시각 범위가 유효하지 않습니다.`);
+    invalidStalenessRequest(`${label} has an invalid date or time range.`);
   }
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) {
-    invalidStalenessRequest(`${label}을 유효한 시각으로 해석할 수 없습니다.`);
+    invalidStalenessRequest(`${label} cannot be parsed as a valid time.`);
   }
   return { value: new Date(milliseconds).toISOString(), milliseconds };
 }
@@ -55,11 +55,11 @@ export function validateStalenessSnapshot(
   label: string,
 ): void {
   if (snapshot.revision.length < 1 || snapshot.revision.length > 200) {
-    invalidStalenessRequest(`${label} revision이 계약에 맞지 않습니다.`);
+    invalidStalenessRequest(`${label} revision does not satisfy the contract.`);
   }
   const entries = Object.entries(snapshot.files);
   if (entries.length > MAXIMUM_SNAPSHOT_FILES) {
-    invalidStalenessRequest(`${label} 파일 수가 제한을 넘었습니다.`);
+    invalidStalenessRequest(`${label} exceeds the file count limit.`);
   }
   const normalizedPaths = new Set<string>();
   for (const [path, contentHash] of entries) {
@@ -67,13 +67,13 @@ export function validateStalenessSnapshot(
     try {
       normalized = normalizeScanPath(path);
     } catch (error) {
-      invalidStalenessRequest(`${label}에 안전하지 않은 path가 있습니다.`, { cause: error });
+      invalidStalenessRequest(`${label} contains an unsafe path.`, { cause: error });
     }
     if (normalized === "." || normalized.endsWith("/") || normalizedPaths.has(normalized)) {
-      invalidStalenessRequest(`${label}에 파일이 아닌 path 또는 중복 path가 있습니다.`);
+      invalidStalenessRequest(`${label} contains a non-file path or duplicate path.`);
     }
     if (!isContentHash(contentHash)) {
-      invalidStalenessRequest(`${label}에 유효하지 않은 content hash가 있습니다.`);
+      invalidStalenessRequest(`${label} contains an invalid content hash.`);
     }
     normalizedPaths.add(normalized);
   }

@@ -9,7 +9,7 @@ import { canonicalDigest, canonicalJson, sha256 } from
 function fail(code = "first_publication_workflow_activation_plan_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 workflow 활성화 적용 계획이 올바르지 않습니다.",
+    "The CLI first-publication workflow activation apply plan is invalid.",
   );
 }
 

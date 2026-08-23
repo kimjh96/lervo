@@ -11,7 +11,7 @@ import {
   validateReleaseStageReceipt,
 } from "./release-stage-publication-records.mjs";
 
-function fail(code, message = "CLI stage 게시 실행 입력이 올바르지 않습니다.") {
+function fail(code, message = "The CLI stage-publication execution input is invalid.") {
   throw new ReleasePublicationAuthorizationError(code, message);
 }
 
@@ -97,7 +97,7 @@ export async function executeReleaseStagePublication(
       await markUnknown(store, attempt, authorization, clock);
       fail(
         "release_stage_publication_outcome_unknown",
-        "npm stage 호출 뒤 결과가 불명확하므로 같은 게시를 재시도하면 안 됩니다.",
+        "The result after the npm stage call is ambiguous; the same publication must not be retried.",
       );
     }
     const terminal = createReleaseStageTerminal({
@@ -113,7 +113,7 @@ export async function executeReleaseStagePublication(
       await markUnknown(store, attempt, authorization, clock);
       fail(
         "release_stage_publication_outcome_unknown",
-        "npm stage 호출 뒤 결과가 불명확하므로 같은 게시를 재시도하면 안 됩니다.",
+        "The result after the npm stage call is ambiguous; the same publication must not be retried.",
       );
     }
   } finally {

@@ -38,7 +38,7 @@ const sideEffects = Object.freeze({
 function fail(code = "first_publication_resolution_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 결과 확정 문서가 올바르지 않습니다.",
+    "The CLI first-publication result-resolution document is invalid.",
   );
 }
 

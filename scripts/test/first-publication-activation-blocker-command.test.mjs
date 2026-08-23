@@ -44,15 +44,15 @@ describe("first-publication activation blocker command", () => {
     }
   });
 
-  it("uses plain Korean and does not expose source digests", async () => {
+  it("uses plain English and does not expose source digests", async () => {
     const report = createFirstPublicationActivationBlockerReport(
       await currentActivationSources(),
     );
     const output = formatFirstPublicationActivationBlockerReport(report);
-    assert.match(output, /아직 활성화할 수 없습니다/u);
-    assert.match(output, /package\.json에 GitHub 저장소가 없습니다/u);
-    assert.match(output, /npm의 @lervo scope를 실제로 관리할 수 있는지 사람이 확인해야 합니다/u);
-    assert.match(output, /온라인 확인, 파일 수정, 승인 생성, 게시 활성화나 패키지 게시를 실행하지 않았습니다/u);
+    assert.match(output, /activation is not yet allowed/u);
+    assert.match(output, /package\.json has no GitHub repository/u);
+    assert.match(output, /verify control of the @lervo npm scope/u);
+    assert.match(output, /did not perform online checks, modify files, create approvals, activate publication, or publish a package/u);
     assert.equal(output.includes(report.blockerReportDigest), false);
     assert.equal(output.includes(report.sources.packageManifestDigest), false);
   });

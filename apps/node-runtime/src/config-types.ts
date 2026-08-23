@@ -19,15 +19,21 @@ export interface NodeRuntimeConfig {
   };
   remoteCommands?: {
     nodeId: string;
-    commandKeys: Array<{
+    trustFile?: string;
+    commandKeys?: Array<{
       keyId: string;
       publicKeyFile: string;
     }>;
-    policyKeys: Array<{
+    policyKeys?: Array<{
       keyId: string;
       publicKeyFile: string;
       purposes: Array<"snapshot" | "approval" | "revocation">;
     }>;
+    providerHost?: {
+      providers: Array<"codex" | "claude">;
+      roles: string[];
+      developerSkills: string[];
+    };
     idlePollIntervalMs?: number;
     leaseDurationMs?: number;
     retryDelayMs?: number;

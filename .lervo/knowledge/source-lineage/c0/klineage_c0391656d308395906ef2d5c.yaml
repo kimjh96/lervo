@@ -1,0 +1,11 @@
+fromPath: docs/adr/0078-snapshot-bound-local-trace-pages.md
+identityPath: docs/adr/0078-snapshot-bound-local-trace-pages.md
+kind: document_move
+lineageId: klineage_c0391656d308395906ef2d5c
+operationId: kdocop_e016a5d4886d264c81c4b978
+schemaVersion: 1
+sourceContentHash: sha256:e3a84ace2773c22217a27f61c73289dc704388128487c426c94a696b65c7a84d
+sourceId: src_fc25d040a53cb0d1968e2d9e
+sourceUnitBindingDigest: sha256:0095801502592b7f80a3a76de0b2a396fedd4d3a92df71972ab79e969f6dcb96
+sourceUnitCount: 4
+toPath: docs/decisions/operations/0078-snapshot-bound-local-trace-pages.md

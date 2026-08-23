@@ -1,4 +1,5 @@
 import {
+  mkdir,
   mkdtemp,
   readFile,
   readdir,
@@ -84,14 +85,14 @@ describe("project storage bootstrap", () => {
     expect(storage.paths.eventDatabase).toBe(resolve(root, ".lervo/state/events.sqlite"));
     expect(storage.paths.cas).toBe(resolve(root, ".lervo/state/cas"));
     const event = storage.events.append(eventDraft()).event;
-    const artifact = await storage.artifacts.put("재시작 뒤에도 읽을 원문");
+    const artifact = await storage.artifacts.put("source text readable after restart");
     expect(storage.events.listOutbox()).toEqual([]);
     await storage.close();
 
     const reopened = await openProjectStorage(root);
     expect(reopened.events.get(event.eventId)).toEqual(event);
     expect(Buffer.from(await reopened.artifacts.get(artifact.uri)).toString("utf8")).toBe(
-      "재시작 뒤에도 읽을 원문",
+      "source text readable after restart",
     );
     await reopened.close();
   });
@@ -190,7 +191,7 @@ describe("project storage bootstrap", () => {
   it("rejects a symbolic-link state directory before creating storage outside the project", async () => {
     const root = await initializedRepository();
     const outside = await temporaryRepository();
-    await rm(resolve(root, ".lervo/state"), { recursive: true });
+    await rm(resolve(root, ".lervo/state"), { recursive: true, force: true });
     await symlink(outside, resolve(root, ".lervo/state"));
 
     const opening = openProjectStorage(root);
@@ -203,6 +204,7 @@ describe("project storage bootstrap", () => {
 
   it("rejects an unsafe CAS path before creating the event database", async () => {
     const root = await initializedRepository();
+    await mkdir(resolve(root, ".lervo/state"));
     await writeFile(resolve(root, ".lervo/state/cas"), "user-owned file\n");
 
     await expect(openProjectStorage(root)).rejects.toMatchObject({

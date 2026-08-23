@@ -87,28 +87,28 @@ export function calculateKnowledgeGraphRelationId(input: {
 export function assertKnowledgeGraphRelationIntegrity(relation: KnowledgeGraphRelation): void {
   if (relation.schemaVersion !== 1 || !validText(relation.projectId, 256) ||
     !knowledgeGraphRelationTypes.includes(relation.type)) {
-    throw new Error("지식 그래프 relation 기본 좌표가 유효하지 않습니다.");
+    throw new Error("The knowledge graph relation base coordinates are invalid.");
   }
   assertKnowledgeGraphNode(relation.from);
   assertKnowledgeGraphNode(relation.to);
   const endpoints = knowledgeGraphRelationEndpoints[relation.type];
   if (!endpoints.from.includes(relation.from.kind) || !endpoints.to.includes(relation.to.kind)) {
-    throw new Error("지식 그래프 relation 방향과 node 종류가 맞지 않습니다.");
+    throw new Error("The knowledge graph relation direction and node kinds are inconsistent.");
   }
   if (!validText(relation.evidence.eventId, 256) ||
     !eventTypes.includes(relation.evidence.eventType) ||
     !validText(relation.evidence.runId, 256) ||
     !Number.isSafeInteger(relation.evidence.seq) || relation.evidence.seq < 1) {
-    throw new Error("지식 그래프 relation 증거 좌표가 유효하지 않습니다.");
+    throw new Error("The knowledge graph relation evidence coordinates are invalid.");
   }
   if ((relation.from.kind === "project" && relation.from.id !== relation.projectId) ||
     (relation.to.kind === "project" && relation.to.id !== relation.projectId) ||
     (relation.from.kind === "run" && relation.from.id !== relation.evidence.runId) ||
     (relation.to.kind === "run" && relation.to.id !== relation.evidence.runId)) {
-    throw new Error("지식 그래프 relation의 project·run node가 증거 좌표와 다릅니다.");
+    throw new Error("The knowledge graph relation project and run nodes differ from the evidence coordinates.");
   }
   const expected = calculateKnowledgeGraphRelationId(relation);
   if (relation.relationId !== expected) {
-    throw new Error("지식 그래프 relation ID가 명시적 관계와 다릅니다.");
+    throw new Error("The knowledge graph relation ID differs from the explicit relation.");
   }
 }

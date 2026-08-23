@@ -13,7 +13,7 @@ import {
 } from "./policy-file-store.js";
 
 const contract: LocalPolicyFileContract<SearchRolloutActionPolicy> = {
-  label: "검색 rollout 조치 정책",
+  label: "search rollout action policy",
   directory: (paths: LervoProjectPaths) => paths.searchRolloutActionPolicies,
   idPattern: SEARCH_ROLLOUT_ACTION_POLICY_PATTERN,
   id: (policy) => policy.actionPolicyId,

@@ -36,7 +36,7 @@ export async function prepareOwnerOnlyDatabasePath(path: string): Promise<string
   } catch (error) {
     throw new RuntimeSecurityError(
       "unsafe_database",
-      "Runtime database는 owner-only 디렉터리의 일반 파일이어야 합니다.",
+      "A runtime database must be a regular file in an owner-only directory.",
       { cause: error },
     );
   }

@@ -59,7 +59,7 @@ export async function ensureSafeDirectoryPath(
   if (child === ".." || child.startsWith(`..${sep}`)) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Migration directory가 저장소 root 밖을 가리킵니다.",
+      "The migration directory points outside the repository root.",
     );
   }
   const segments = child.split(sep).filter(Boolean);
@@ -73,7 +73,7 @@ export async function ensureSafeDirectoryPath(
       if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath(current) !== current) {
         throw new DocumentMigrationError(
           "migration_conflict",
-          "Migration directory 경로에 안전하지 않은 항목이 있습니다.",
+          "The migration directory path contains an unsafe entry.",
         );
       }
     } catch (error) {
@@ -88,7 +88,7 @@ export async function ensureSafeDirectoryPath(
         if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath(current) !== current) {
           throw new DocumentMigrationError(
             "migration_conflict",
-            "Migration directory를 안전하게 만들 수 없습니다.",
+            "The migration directory cannot be created safely.",
           );
         }
       }

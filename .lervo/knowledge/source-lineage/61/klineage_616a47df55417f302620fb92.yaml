@@ -1,0 +1,11 @@
+fromPath: docs/adr/0077-bounded-trace-source-reads.md
+identityPath: docs/adr/0077-bounded-trace-source-reads.md
+kind: document_move
+lineageId: klineage_616a47df55417f302620fb92
+operationId: kdocop_64ae2da3979d24af87f3cdc5
+schemaVersion: 1
+sourceContentHash: sha256:8b761b4551e2448730ef1c0872d8dd459ce616928c5c38b7b55d6f6b21c406d2
+sourceId: src_e2583b7327e1157978d402cd
+sourceUnitBindingDigest: sha256:7b0e4497e2395a74590a45c59dfc268c0b6e87a7b86e45342c459ce0130732ef
+sourceUnitCount: 4
+toPath: docs/decisions/operations/0077-bounded-trace-source-reads.md

@@ -24,7 +24,7 @@ export function createPolicySnapshot(
 
 export function assertPolicySnapshot(snapshot: PolicySnapshot): void {
   if (!validateSchema("policySnapshot", snapshot).valid) {
-    throw new PolicyContractError("invalid_policy_snapshot", "policy snapshot 계약이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_snapshot", "The policy snapshot contract is invalid.");
   }
   const { snapshotId: _snapshotId, ...content } = snapshot;
   const coordinateSet = new Set<string>();
@@ -34,7 +34,7 @@ export function assertPolicySnapshot(snapshot: PolicySnapshot): void {
     if (coordinateSet.has(coordinate) || ruleIds.has(rule.ruleId)) {
       throw new PolicyContractError(
         "invalid_policy_snapshot",
-        "policy snapshot rule 좌표나 ID가 중복되었습니다.",
+        "Policy snapshot rule coordinates or IDs are duplicated.",
       );
     }
     coordinateSet.add(coordinate);
@@ -49,7 +49,7 @@ export function assertPolicySnapshot(snapshot: PolicySnapshot): void {
   ) {
     throw new PolicyContractError(
       "invalid_policy_snapshot",
-      "policy snapshot ID, 기간 또는 연속 좌표가 원본과 다릅니다.",
+      "The policy snapshot ID, interval, or continuity coordinates differ from the source.",
     );
   }
 }

@@ -11,7 +11,7 @@ import {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_result_arguments_invalid",
-    "CLI npm stage 결과 증거 명령 인자가 올바르지 않습니다.",
+    "The CLI npm stage-result evidence command arguments are invalid.",
   );
 }
 

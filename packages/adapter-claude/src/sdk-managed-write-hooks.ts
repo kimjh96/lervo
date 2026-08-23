@@ -41,8 +41,8 @@ export function createClaudeManagedWriteHooks(input: {
                 hookEventName: "PreToolUse" as const,
                 permissionDecision: allowed ? "allow" as const : "deny" as const,
                 permissionDecisionReason: allowed
-                  ? "Lervo managed write permit가 발급되었습니다."
-                  : "Lervo managed write permit가 없습니다.",
+                  ? "A Lervo managed write permit was issued."
+                  : "No Lervo managed write permit was issued.",
               },
             };
           },

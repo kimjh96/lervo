@@ -51,7 +51,7 @@ export class HubEventInboxSQLiteRepository {
     ) {
       throw new SyncContractError(
         "registration_required",
-        "outbound event batch와 일치하는 project registration이 없습니다.",
+        "No project registration matches the outbound event batch.",
       );
     }
 
@@ -63,7 +63,7 @@ export class HubEventInboxSQLiteRepository {
         if (matches.length !== 1 || !sameEvent(matches[0]!, event)) {
           throw new SyncContractError(
             "event_chain_conflict",
-            "같은 project의 event seq 또는 event ID에 다른 원본이 이미 있습니다.",
+            "A different source already exists for the same project event sequence or event ID.",
           );
         }
         duplicateCount += 1;
@@ -116,14 +116,14 @@ export class HubEventInboxSQLiteRepository {
     if (previous !== undefined && event.previousHash !== previous.eventHash) {
       throw new SyncContractError(
         "event_chain_conflict",
-        "새 event가 저장된 이전 event hash와 연결되지 않습니다.",
+        "The new event does not connect to the stored previous event hash.",
       );
     }
     const next = this.cursor.eventAt(coordinate, event.seq + 1);
     if (next !== undefined && next.previousHash !== event.eventHash) {
       throw new SyncContractError(
         "event_chain_conflict",
-        "새 event가 저장된 다음 event hash와 연결되지 않습니다.",
+        "The new event does not connect to the stored next event hash.",
       );
     }
   }
@@ -177,7 +177,7 @@ export class HubEventInboxSQLiteRepository {
       WHERE key = 'event_count'
     `).run(addedEventCount);
     if (result.changes !== 1) {
-      throw new HubSyncStoreError("integrity_failed", "Hub event count metadata가 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub event count metadata is missing.");
     }
   }
 }

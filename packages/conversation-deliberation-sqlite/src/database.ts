@@ -14,7 +14,7 @@ export async function prepareConversationDeliberationDatabasePath(path: string):
     if (!stats.isFile() || stats.isSymbolicLink()) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
-        "Conversation 숙의 queue 경로는 일반 파일이어야 합니다.",
+        "The conversation deliberation queue path must be a regular file.",
       );
     }
   } catch (error) {
@@ -45,7 +45,7 @@ export function migrateConversationDeliberationDatabase(database: DatabaseSync):
     if (version !== 0 && version !== 1 && version !== conversationDeliberationSQLiteSchemaVersion) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
-        "지원하지 않는 Conversation 숙의 queue schema입니다.",
+        "The conversation deliberation queue schema is unsupported.",
       );
     }
     if (version === 0) {

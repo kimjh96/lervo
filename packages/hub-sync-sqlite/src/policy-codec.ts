@@ -23,7 +23,7 @@ export const MAX_POLICY_REVOCATIONS = 64;
 
 export function assertPolicyPublishedAt(value: string): void {
   if (!Number.isFinite(Date.parse(value))) {
-    throw new HubPolicyError("invalid_policy_request", "Policy publishedAt이 유효하지 않습니다.");
+    throw new HubPolicyError("invalid_policy_request", "Policy publishedAt is invalid.");
   }
 }
 
@@ -38,13 +38,13 @@ export function assertRegisteredPolicyProject(
   if (row === undefined) {
     throw new HubPolicyError(
       "policy_registration_required",
-      "Policy 대상 project가 Hub에 등록되지 않았습니다.",
+      "The policy target project is not registered with the Hub.",
     );
   }
   if (stringField(row, "identity_hash") !== target.projectIdentityHash) {
     throw new HubPolicyError(
       "policy_identity_mismatch",
-      "Policy 대상 identity가 Hub registration과 다릅니다.",
+      "The policy target identity differs from the Hub registration.",
     );
   }
 }
@@ -54,7 +54,7 @@ export function parsePolicySnapshot(row: SQLiteRow): SignedPolicySnapshot {
   try {
     assertSignedPolicySnapshot(envelope);
   } catch (error) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy snapshot 원본이 유효하지 않습니다.", {
+    throw new HubSyncStoreError("integrity_failed", "The Hub policy snapshot source is invalid.", {
       cause: error,
     });
   }
@@ -62,7 +62,7 @@ export function parsePolicySnapshot(row: SQLiteRow): SignedPolicySnapshot {
     envelope.snapshot.snapshotId !== stringField(row, "snapshot_id") ||
     envelope.snapshot.sequence !== integerField(row, "sequence")
   ) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy snapshot 중복 좌표가 다릅니다.");
+    throw new HubSyncStoreError("integrity_failed", "The duplicate Hub policy snapshot coordinates differ.");
   }
   return structuredClone(envelope);
 }
@@ -75,7 +75,7 @@ export function assertPolicySnapshotTarget(
     envelope.snapshot.target.projectId !== target.projectId ||
     envelope.snapshot.target.projectIdentityHash !== target.projectIdentityHash
   ) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy snapshot target이 project와 다릅니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub policy snapshot target differs from the project.");
   }
 }
 
@@ -88,7 +88,7 @@ export function parsePolicyApproval(
     assertSignedPolicyApproval(envelope);
     assertPolicyApproval({ approval: envelope.approval, snapshot: snapshot.snapshot });
   } catch (error) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy approval 원본이 유효하지 않습니다.", {
+    throw new HubSyncStoreError("integrity_failed", "The Hub policy approval source is invalid.", {
       cause: error,
     });
   }
@@ -97,7 +97,7 @@ export function parsePolicyApproval(
     envelope.approval.snapshotId !== stringField(row, "snapshot_id") ||
     envelope.approval.commandId !== stringField(row, "command_id")
   ) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy approval 중복 좌표가 다릅니다.");
+    throw new HubSyncStoreError("integrity_failed", "The duplicate Hub policy approval coordinates differ.");
   }
   return structuredClone(envelope);
 }
@@ -114,7 +114,7 @@ export function parsePolicyRevocation(
       approval: approval.approval,
     });
   } catch (error) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy revocation 원본이 유효하지 않습니다.", {
+    throw new HubSyncStoreError("integrity_failed", "The Hub policy revocation source is invalid.", {
       cause: error,
     });
   }
@@ -122,7 +122,7 @@ export function parsePolicyRevocation(
     envelope.revocation.revocationId !== stringField(row, "revocation_id") ||
     envelope.revocation.approvalId !== stringField(row, "approval_id")
   ) {
-    throw new HubSyncStoreError("integrity_failed", "Hub policy revocation 중복 좌표가 다릅니다.");
+    throw new HubSyncStoreError("integrity_failed", "The duplicate Hub policy revocation coordinates differ.");
   }
   return structuredClone(envelope);
 }

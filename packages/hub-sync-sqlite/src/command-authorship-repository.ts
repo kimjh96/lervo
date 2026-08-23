@@ -34,14 +34,14 @@ function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
     envelope = JSON.parse(stringField(row, "envelope_json"));
     assertSignedRemoteCommand(envelope as never);
   } catch (error) {
-    throw new HubCommandError("artifact_integrity_failed", "Hub command 작성 원본이 유효하지 않습니다.", {
+    throw new HubCommandError("artifact_integrity_failed", "The Hub command authorship source is invalid.", {
       cause: error,
     });
   }
   const command = (envelope as HubCommandAuthorshipRecord["envelope"]).command;
   const lifecycleStatus = stringField(row, "artifact_lifecycle_status");
   if (!["retained", "cleanup_claimed", "purged"].includes(lifecycleStatus)) {
-    throw new HubCommandError("artifact_integrity_failed", "Hub command artifact 수명주기 상태가 유효하지 않습니다.");
+    throw new HubCommandError("artifact_integrity_failed", "The Hub command artifact lifecycle state is invalid.");
   }
   const record = {
     destinationId: stringField(row, "destination_id"),
@@ -83,7 +83,7 @@ function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
     !/^sha256:[a-f0-9]{64}$/.test(record.authorSubjectHash) ||
     !Number.isFinite(artifactRetainUntilMs) ||
     artifactRetainUntilMs < Date.parse(command.expiresAt)
-  ) throw new HubCommandError("artifact_integrity_failed", "Hub command authorship 좌표가 원본과 다릅니다.");
+  ) throw new HubCommandError("artifact_integrity_failed", "The Hub command authorship coordinates differ from the source.");
   return record;
 }
 
@@ -121,7 +121,7 @@ export class HubCommandAuthorshipSQLiteRepository {
     if (row === undefined) return null;
     const record = parseRecord(row);
     if (record.target.projectIdentityHash !== input.target.projectIdentityHash) {
-      throw new HubCommandError("idempotency_conflict", "Hub command project identity가 현재 요청과 다릅니다.");
+      throw new HubCommandError("idempotency_conflict", "The Hub command project identity differs from the current request.");
     }
     return record;
   }
@@ -133,7 +133,7 @@ export class HubCommandAuthorshipSQLiteRepository {
     const existing = this.find(input);
     if (existing !== null) {
       if (existing.submissionHash !== input.submissionHash) {
-        throw new HubCommandError("idempotency_conflict", "같은 idempotency key에 다른 요청이 있습니다.");
+        throw new HubCommandError("idempotency_conflict", "A different request exists for the same idempotency key.");
       }
       return { status: "duplicate", record: existing };
     }
@@ -143,7 +143,7 @@ export class HubCommandAuthorshipSQLiteRepository {
       "artifact retainUntil",
     );
     if (retainUntilMs < Date.parse(input.envelope.command.expiresAt)) {
-      throw new HubCommandError("invalid_request", "artifact 보존 기간이 command 만료보다 짧습니다.");
+      throw new HubCommandError("invalid_request", "The artifact retention period is shorter than the command expiration.");
     }
     this.database.prepare(`
       DELETE FROM hub_remote_command_artifact_gc_claims
@@ -165,7 +165,7 @@ export class HubCommandAuthorshipSQLiteRepository {
     `).get(input.artifactUri, queuedAtMs, input.artifactUri) !== undefined) {
       throw new HubCommandError(
         "artifact_cleanup_conflict",
-        "같은 artifact가 정리 중입니다. 잠시 뒤 같은 요청으로 다시 시도하세요.",
+        "The same artifact is being cleaned up. Retry the same request shortly.",
       );
     }
     const queued = this.commands.enqueue({
@@ -174,7 +174,7 @@ export class HubCommandAuthorshipSQLiteRepository {
       queuedAt: input.queuedAt,
     });
     if (queued.deliveryId !== input.deliveryId) {
-      throw new HubCommandError("artifact_integrity_failed", "Hub command delivery 좌표가 다릅니다.");
+      throw new HubCommandError("artifact_integrity_failed", "The Hub command delivery coordinates differ.");
     }
     const reference = input.envelope.command.action.request;
     this.database.prepare(`
@@ -281,7 +281,7 @@ export class HubCommandAuthorshipSQLiteRepository {
         reference.contentHash !== stringField(row, "content_hash") ||
         reference.byteCount !== integerField(row, "byte_count") ||
         reference.mediaType !== stringField(row, "media_type")
-      ) throw new HubCommandError("artifact_integrity_failed", "Hub command artifact index가 원본과 다릅니다.");
+      ) throw new HubCommandError("artifact_integrity_failed", "The Hub command artifact index differs from the source.");
     }
   }
 }

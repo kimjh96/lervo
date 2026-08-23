@@ -44,7 +44,7 @@ export function policySigningBytes(input: {
 function createSignature(keyId: string, signature: Uint8Array) {
   assertKeyId(keyId);
   if (signature.byteLength !== 64) {
-    throw new PolicyContractError("invalid_policy_signature", "Ed25519 signature은 64 bytes여야 합니다.");
+    throw new PolicyContractError("invalid_policy_signature", "An Ed25519 signature must be 64 bytes.");
   }
   return {
     algorithm: "ed25519" as const,
@@ -70,7 +70,7 @@ export function createSignedPolicySnapshot(input: {
 
 export function assertSignedPolicySnapshot(envelope: SignedPolicySnapshot): void {
   if (!validateSchema("signedPolicySnapshot", envelope).valid) {
-    throw new PolicyContractError("invalid_policy_signature", "signed policy snapshot이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_signature", "The signed policy snapshot is invalid.");
   }
   assertPolicySnapshot(envelope.snapshot);
   assertSignatureEncoding(envelope);
@@ -92,7 +92,7 @@ export function createSignedPolicyApproval(input: {
 
 export function assertSignedPolicyApproval(envelope: SignedPolicyApproval): void {
   if (!validateSchema("signedPolicyApproval", envelope).valid) {
-    throw new PolicyContractError("invalid_policy_signature", "signed policy approval이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_signature", "The signed policy approval is invalid.");
   }
   assertSignatureEncoding(envelope);
 }
@@ -115,7 +115,7 @@ export function assertSignedPolicyApprovalRevocation(
   envelope: SignedPolicyApprovalRevocation,
 ): void {
   if (!validateSchema("signedPolicyApprovalRevocation", envelope).valid) {
-    throw new PolicyContractError("invalid_policy_signature", "signed policy revocation이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_signature", "The signed policy revocation is invalid.");
   }
   assertSignatureEncoding(envelope);
 }

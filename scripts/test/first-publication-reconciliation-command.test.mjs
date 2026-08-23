@@ -156,8 +156,8 @@ describe("first-publication reconciliation command orchestration", () => {
         { id: "target_dist_tag", status: "not_observed", reasons: ["target_dist_tag_not_observed"] },
       ],
     });
-    assert.match(output, /확인되지 않음/u);
-    assert.match(output, /자동 재시도하거나 게시 완료로 전환하지 않았습니다/u);
+    assert.match(output, /not observed/u);
+    assert.match(output, /did not retry automatically or mark publication complete/u);
   });
 
   it("rejects missing online and unknown executable arguments without stdout", () => {

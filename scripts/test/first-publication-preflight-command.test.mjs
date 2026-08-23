@@ -136,9 +136,9 @@ describe("first-publication preflight command orchestration", () => {
       }],
     };
     const output = formatFirstPublicationPreflight(report);
-    assert.match(output, /npm 대화형 준비: 차단됨/u);
-    assert.match(output, /실행 허가가 아닙니다/u);
-    assert.match(output, /예약을 만들거나 패키지를 게시하거나 외부 설정을 바꾸지 않았습니다/u);
+    assert.match(output, /Interactive npm readiness: blocked/u);
+    assert.match(output, /not execution authorization/u);
+    assert.match(output, /did not create a reservation, publish a package, or change external configuration/u);
   });
 
   it("the executable rejects a missing online boundary without network output", () => {

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0015-lervo-run-cli-vertical-slice.md
+identityPath: docs/adr/0015-lervo-run-cli-vertical-slice.md
+kind: document_move
+lineageId: klineage_7e5c117fd85f2027a15f149b
+operationId: kdocop_65b298c3d190aa3f4423c836
+schemaVersion: 1
+sourceContentHash: sha256:ef3c9695a687c067d109e85e10f0d9e1f2a2f4e458d2f0f6dd470be1ccb6569d
+sourceId: src_a436d9eeaa9077492b53f698
+sourceUnitBindingDigest: sha256:6f148e8c8291b3ed046c74396c0de78924722827a8c382eaf36a8f2dbc229db8
+sourceUnitCount: 8
+toPath: docs/decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md

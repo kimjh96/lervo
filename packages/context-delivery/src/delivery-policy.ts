@@ -11,7 +11,7 @@ export function createInlineThresholdPolicy(
   if (!Number.isSafeInteger(inlineByteLimit) || inlineByteLimit < 0) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      "inlineByteLimit은 0 이상의 안전한 정수여야 합니다.",
+      "inlineByteLimit must be a safe integer of at least 0.",
     );
   }
   return (candidate) =>

@@ -10,7 +10,7 @@ export function resolveHubHttpMaxResponseBytes(value: number | undefined): numbe
     resolved > MAX_HUB_HTTP_MAX_RESPONSE_BYTES
   ) {
     throw new Error(
-      `Hub HTTP maxResponseBytes는 1024 이상 ${MAX_HUB_HTTP_MAX_RESPONSE_BYTES} 이하여야 합니다.`,
+      `Hub HTTP maxResponseBytes must be between 1024 and ${MAX_HUB_HTTP_MAX_RESPONSE_BYTES}.`,
     );
   }
   return resolved;
@@ -30,17 +30,17 @@ export type HubHttpErrorCode =
   | "internal_error";
 
 const errorMessages: Record<HubHttpErrorCode, string> = {
-  invalid_request: "요청 형식이 올바르지 않습니다.",
-  unauthorized: "인증 정보가 없거나 올바르지 않습니다.",
-  forbidden: "이 project에 접근할 권한이 없습니다.",
-  not_found: "요청한 API 경로가 없습니다.",
-  method_not_allowed: "이 API에서 허용하지 않는 HTTP method입니다.",
-  project_not_found: "요청한 project trace가 없습니다.",
-  run_not_found: "요청한 run trace가 없습니다.",
-  conflict: "요청이 현재 원본 상태와 충돌합니다.",
-  request_too_large: "요청 본문이 허용된 크기를 초과했습니다.",
-  response_too_large: "응답이 허용된 크기를 초과했습니다.",
-  internal_error: "Hub 요청을 처리하는 중 오류가 발생했습니다.",
+  invalid_request: "The request format is invalid.",
+  unauthorized: "Authentication credentials are missing or invalid.",
+  forbidden: "The credential cannot access this project.",
+  not_found: "The requested API route does not exist.",
+  method_not_allowed: "This API does not allow the requested HTTP method.",
+  project_not_found: "The requested project trace does not exist.",
+  run_not_found: "The requested run trace does not exist.",
+  conflict: "The request conflicts with the current source state.",
+  request_too_large: "The request body exceeds the allowed size.",
+  response_too_large: "The response exceeds the allowed size.",
+  internal_error: "An error occurred while processing the Hub request.",
 };
 
 function headers(extra: Record<string, string> = {}): Record<string, string> {

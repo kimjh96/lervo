@@ -1,0 +1,139 @@
+import { execFile } from "node:child_process";
+import { builtinModules } from "node:module";
+import { chmod, copyFile, cp, lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
+import { promisify } from "node:util";
+
+import { readJson, repositoryRoot } from "./lib/installed-cli.mjs";
+import {
+  createHubDistributionArtifact,
+  createHubDistributionManifest,
+  createHubDistributionSbom,
+  HubRuntimeDistributionError,
+  hubManifestName,
+  validateHubDistributionManifest,
+  verifyHubDistributionArchive,
+} from "./lib/hub-runtime-distribution.mjs";
+import {
+  canonicalJson,
+  collectDistributionEntries,
+  currentDistributionPlatform,
+  ensureExecutable,
+  safeOutputPath,
+  sha256File,
+} from "./lib/node-runtime-distribution.mjs";
+import { sha256 } from "./lib/release-artifact-manifest.mjs";
+
+const execFileAsync = promisify(execFile);
+const nodeBuiltins = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
+
+function parse(args) {
+  const normalized = args[0] === "--" ? args.slice(1) : args;
+  if (normalized.length !== 3 || normalized[0] !== "--output" || normalized[2] !== "--write") {
+    throw new HubRuntimeDistributionError("hub_distribution_arguments_invalid", "Usage: --output <new-absolute.tar.gz> --write");
+  }
+  return normalized[1];
+}
+
+async function assertBundle(bundlePath, metafilePath) {
+  const [bundle, metafile] = await Promise.all([lstat(bundlePath), readJson(metafilePath)]);
+  if (!bundle.isFile() || bundle.isSymbolicLink() || bundle.size < 1 ||
+    metafile.outputs?.["apps/hub-runtime/dist/bin.js"]?.entryPoint !== "apps/hub-runtime/src/bin.ts") {
+    throw new HubRuntimeDistributionError("hub_distribution_bundle_invalid", "Build the Hub runtime bundle first.");
+  }
+  const externalImports = Object.values(metafile.outputs ?? {}).flatMap((output) => output.imports ?? [])
+    .filter((entry) => entry.external && !nodeBuiltins.has(entry.path))
+    .map((entry) => entry.path)
+    .sort()
+    .filter((path, index, paths) => index === 0 || paths[index - 1] !== path);
+  if (canonicalJson(externalImports) !== canonicalJson([])) {
+    throw new HubRuntimeDistributionError("hub_distribution_bundle_invalid", "The Hub runtime bundle contains an unapproved external import.");
+  }
+}
+
+async function buildDistribution(outputArgument) {
+  const output = await safeOutputPath(outputArgument);
+  if (!output.endsWith(".tar.gz")) throw new HubRuntimeDistributionError("hub_distribution_arguments_invalid", "The distribution archive extension must be .tar.gz.");
+  const artifactOutput = await safeOutputPath(`${output}.artifact.json`);
+  const runtimePackage = await readJson(resolve(repositoryRoot, "apps/hub-runtime/package.json"));
+  const runtimeVersion = runtimePackage.version;
+  const platform = currentDistributionPlatform();
+  const bundlePath = resolve(repositoryRoot, "apps/hub-runtime/dist/bin.js");
+  await assertBundle(bundlePath, resolve(repositoryRoot, "apps/hub-runtime/dist/bin.metafile.json"));
+
+  const staging = await mkdtemp(resolve(dirname(output), ".lervo-hub-build-"));
+  const payloadRoot = resolve(staging, "payload");
+  const stagedArchive = resolve(staging, basename(output));
+  try {
+    await mkdir(resolve(payloadRoot, "dist"), { recursive: true });
+    await copyFile(bundlePath, resolve(payloadRoot, "dist/bin.js"));
+    await ensureExecutable(resolve(payloadRoot, "dist/bin.js"));
+    await cp(resolve(repositoryRoot, "apps/hub/assets"), resolve(payloadRoot, "assets"), {
+      recursive: true,
+      errorOnExist: true,
+    });
+    await copyFile(resolve(repositoryRoot, "docs/distribution/hub-runtime-distribution.md"), resolve(payloadRoot, "README.md"));
+    await writeFile(resolve(payloadRoot, "package.json"), `${JSON.stringify({
+      name: "@lervo/hub-runtime-distribution",
+      version: runtimeVersion,
+      private: true,
+      type: "module",
+      engines: { node: ">=22.13" },
+      bin: { "lervo-hub": "./dist/bin.js" },
+    }, null, 2)}\n`, { encoding: "utf8", mode: 0o644, flag: "wx" });
+    const bundleBytes = await readFile(resolve(payloadRoot, "dist/bin.js"));
+    const sbom = createHubDistributionSbom(runtimeVersion, sha256(bundleBytes));
+    await writeFile(resolve(payloadRoot, "sbom.cdx.json"), canonicalJson(sbom), { encoding: "utf8", mode: 0o644, flag: "wx" });
+    const files = await collectDistributionEntries(payloadRoot, new Set([hubManifestName]));
+    const sbomBytes = await readFile(resolve(payloadRoot, "sbom.cdx.json"));
+    const manifest = validateHubDistributionManifest(createHubDistributionManifest({
+      runtimeVersion,
+      platform,
+      files,
+      sbomSha256: sha256(sbomBytes),
+    }));
+    const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
+    await writeFile(resolve(payloadRoot, hubManifestName), manifestBytes, { mode: 0o644, flag: "wx" });
+    await execFileAsync("tar", ["-czf", stagedArchive, "-C", payloadRoot, "."], { timeout: 120_000, maxBuffer: 1024 * 1024 });
+    const archiveInfo = await lstat(stagedArchive);
+    const artifact = createHubDistributionArtifact({
+      runtimeVersion,
+      platform,
+      archiveFileName: basename(output),
+      byteCount: archiveInfo.size,
+      sha256: await sha256File(stagedArchive),
+      manifestSha256: sha256(manifestBytes),
+    });
+    const stagedArtifact = resolve(staging, `${basename(output)}.artifact.json`);
+    await writeFile(stagedArtifact, `${JSON.stringify(artifact, null, 2)}\n`, { encoding: "utf8", mode: 0o644, flag: "wx" });
+    const verified = await verifyHubDistributionArchive({
+      archive: stagedArchive,
+      artifact: stagedArtifact,
+      expectedSha256: artifact.sha256,
+      requireCurrentPlatform: true,
+      smoke: true,
+    });
+    await rm(verified.temporaryRoot, { recursive: true, force: true });
+    await chmod(stagedArchive, 0o644);
+    await chmod(stagedArtifact, 0o644);
+    await rename(stagedArchive, output);
+    try {
+      await rename(stagedArtifact, artifactOutput);
+    } catch (error) {
+      await rm(output, { force: true });
+      throw error;
+    }
+    return { output, artifactOutput, artifact };
+  } finally {
+    await rm(staging, { recursive: true, force: true });
+  }
+}
+
+try {
+  const result = await buildDistribution(parse(process.argv.slice(2)));
+  process.stdout.write(`Created and verified the standalone Lervo Hub distribution.\narchive: ${result.output}\nartifact: ${result.artifactOutput}\nsha256: ${result.artifact.sha256}\n`);
+} catch (error) {
+  const code = error instanceof HubRuntimeDistributionError ? error.code : "hub_distribution_build_failed";
+  process.stderr.write(`${code}: The standalone Lervo Hub distribution could not be created.\n`);
+  process.exitCode = 1;
+}

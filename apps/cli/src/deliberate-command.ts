@@ -33,7 +33,7 @@ async function runDeliberationStatusCommand(
         json: { type: "boolean" },
       },
     });
-    if (parsed.positionals.length !== 1) throw new Error("숙의 ID 하나가 필요합니다.");
+    if (parsed.positionals.length !== 1) throw new Error("Exactly one deliberation ID is required.");
   } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n${deliberateUsage}\n`);
     return 1;
@@ -50,8 +50,8 @@ async function runDeliberationStatusCommand(
       : formatDeliberationInspection(report));
     return report.sourceStatus === "consistent" ? 0 : 1;
   } catch (error) {
-    io.stderr(`숙의 상태를 조회하지 못했습니다. (${errorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not inspect deliberation status. (${errorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   } finally {
@@ -69,28 +69,28 @@ function errorCode(error: unknown): string {
 function reason(outcome: ManagedDeliberationOutcome): string {
   if (outcome.outcome.status !== "no_consensus") return "";
   return outcome.outcome.noConsensusReason === "blocking_objections_unresolved"
-    ? "차단 반론이 마지막 회차까지 남았습니다."
-    : "필수 프로젝트 검증이 모두 통과하지 못했습니다.";
+    ? "Blocking objections remained through the final round."
+    : "Not every required repository verification passed.";
 }
 
 export function formatDeliberationOutcome(outcome: ManagedDeliberationOutcome): string {
   const lines = outcome.status === "converged"
     ? [
-      "숙의가 결론에 도달했습니다.",
+      "Deliberation reached a decision.",
       ...outcome.participants.map((participant) =>
         `- ${participant.name}: ${participant.provider}`),
-      `- 기록한 산출물: ${outcome.artifactCount}개`,
+      `- Recorded artifacts: ${outcome.artifactCount}`,
       "",
-      "최종 결정:",
+      "Final decision:",
       outcome.finalContent,
     ]
     : [
-      "숙의가 합의에 도달하지 못했습니다.",
-      `- 이유: ${reason(outcome)}`,
-      `- 기록한 산출물: ${outcome.artifactCount}개`,
-      "- 미합의 결과를 결정이나 검증된 지식으로 처리하지 않았습니다.",
+      "Deliberation did not reach consensus.",
+      `- Reason: ${reason(outcome)}`,
+      `- Recorded artifacts: ${outcome.artifactCount}`,
+      "- The no-consensus result was not treated as a decision or verified knowledge.",
       "",
-      "마지막 검토:",
+      "Last review:",
       outcome.finalContent,
     ];
   return `${lines.join("\n")}\n`;
@@ -149,7 +149,7 @@ export async function runDeliberateCommand(
       : inlineMode);
   if (invalidMode) {
     io.stderr(
-      `재개 ID 하나, 저장된 policy와 주제, 또는 서로 다른 proposer·reviewer와 verification suite 및 주제가 필요합니다.\n${deliberateUsage}\n`,
+      `Provide one resume ID, a stored policy with a topic, or distinct proposer and reviewer providers with a verification suite and topic.\n${deliberateUsage}\n`,
     );
     return 1;
   }
@@ -173,11 +173,11 @@ export async function runDeliberateCommand(
   } catch (error) {
     const failure = {
       code: errorCode(error),
-      message: error instanceof Error ? error.message : "숙의를 실행하지 못했습니다.",
+      message: error instanceof Error ? error.message : "Could not run deliberation.",
     };
     io.stderr(parsed.values.json
       ? `${JSON.stringify(failure)}\n`
-      : `숙의를 실행하지 못했습니다. (${failure.code}) ${failure.message}\n`);
+      : `Could not run deliberation. (${failure.code}) ${failure.message}\n`);
     return 1;
   }
 }

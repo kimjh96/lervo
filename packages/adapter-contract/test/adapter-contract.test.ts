@@ -226,7 +226,7 @@ function fixture(provider: string) {
     runId: "run_01234567",
     sessionId: "ses_01234567",
     roleId: "developer",
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     requestDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",

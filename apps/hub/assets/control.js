@@ -19,37 +19,37 @@ function setStatus(message, error = false) {
 async function approve(option, button) {
   if (api === null || currentReview?.approval.maximumExpiresAt === null) return;
   button.disabled = true;
-  setStatus("승인 원본을 만들고 있습니다.");
+  setStatus("Creating the approval record.");
   try {
     await api.approve(currentReview, option);
     currentReview = await api.loadReview();
     renderControlReview(currentReview, approve);
-    setStatus("서명된 승인이 생성되었습니다. Node가 정책을 다시 동기화하면 command를 재평가합니다.");
+    setStatus("The signed approval was created. The Node will reevaluate the command after synchronizing policy.");
   } catch (error) {
     button.disabled = false;
-    setStatus(error instanceof Error ? error.message : "승인에 실패했습니다.", true);
+    setStatus(error instanceof Error ? error.message : "Approval failed.", true);
   }
 }
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (coordinates === null) {
-    setStatus("검토 주소가 없거나 형식이 올바르지 않습니다. 대화에서 새 주소를 받아 주세요.", true);
+    setStatus("The review URL is missing or invalid. Request a new URL in the conversation.", true);
     return;
   }
   api = createControlApi({ coordinates, token: tokenInput.value });
   tokenInput.value = "";
-  setStatus("Hub에서 command 상태를 확인하고 있습니다.");
+  setStatus("Checking command status with the Hub.");
   try {
     currentReview = await api.loadReview();
     renderControlReview(currentReview, approve);
     disconnect.hidden = false;
-    setStatus("인증되었습니다. 아래 실행 정보와 승인 범위를 확인하세요.");
+    setStatus("Authenticated. Review the execution details and approval scopes below.");
   } catch (error) {
     api = null;
     currentReview = null;
     reviewPanel.hidden = true;
-    setStatus(error instanceof Error ? error.message : "인증에 실패했습니다.", true);
+    setStatus(error instanceof Error ? error.message : "Authentication failed.", true);
   }
 });
 
@@ -58,11 +58,11 @@ disconnect.addEventListener("click", () => {
   currentReview = null;
   reviewPanel.hidden = true;
   disconnect.hidden = true;
-  setStatus("연결을 해제했습니다. 토큰은 현재 탭 메모리에서 제거되었습니다.");
+  setStatus("Disconnected. The token was removed from this tab's memory.");
 });
 
 if (coordinates === null) {
   tokenInput.disabled = true;
   form.querySelector('button[type="submit"]').disabled = true;
-  setStatus("검토 주소가 없거나 형식이 올바르지 않습니다. 대화에서 새 주소를 받아 주세요.", true);
+  setStatus("The review URL is missing or invalid. Request a new URL in the conversation.", true);
 }

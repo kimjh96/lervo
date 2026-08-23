@@ -18,14 +18,14 @@ export function normalizeRepositoryPath(path: string): string {
   ) {
     throw new ContextPreparationError(
       "invalid_expected_path",
-      `저장소 상대 경로만 사용할 수 있습니다: ${path}`,
+      `Only repository-relative paths are allowed: ${path}`,
     );
   }
   const normalized = posix.normalize(normalizedSeparators).replace(/^\.\//, "");
   if (normalized === "." || normalized.startsWith("../")) {
     throw new ContextPreparationError(
       "invalid_expected_path",
-      `저장소 상대 경로만 사용할 수 있습니다: ${path}`,
+      `Only repository-relative paths are allowed: ${path}`,
     );
   }
   return normalized;

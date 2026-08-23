@@ -1,0 +1,11 @@
+fromPath: docs/adr/0033-bounded-environment-doctor.md
+identityPath: docs/adr/0033-bounded-environment-doctor.md
+kind: document_move
+lineageId: klineage_cfe76c785e6e3ae6449da781
+operationId: kdocop_f8b3fe65c1a231049707f1bc
+schemaVersion: 1
+sourceContentHash: sha256:9e3aba2d6a06273734a2848af87c044edd11de4c8bff5952bc029b0433831be0
+sourceId: src_db07fcb9bdcca37a67d2cef5
+sourceUnitBindingDigest: sha256:fc4565a24cc3016b73fe8409f4d5951f2a1db659d17475b0fe9f807a5f1b1fa2
+sourceUnitCount: 9
+toPath: docs/decisions/foundation/0033-bounded-environment-doctor.md

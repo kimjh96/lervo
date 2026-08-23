@@ -36,7 +36,7 @@ function validTimestamp(value: string): boolean {
 export function assertProjectSyncState(state: ProjectSyncState): void {
   assertProjectRegistrationRequest(state.registration.request);
   if (!validTimestamp(state.registration.registeredAt) || !validTimestamp(state.registration.updatedAt)) {
-    throw new SyncContractError("invalid_sync_state", "project registration 시각이 유효하지 않습니다.");
+    throw new SyncContractError("invalid_sync_state", "The project registration time is invalid.");
   }
   if (!Number.isSafeInteger(state.cursor.seq) || state.cursor.seq < 0 || (
     state.cursor.seq === 0
@@ -44,7 +44,7 @@ export function assertProjectSyncState(state: ProjectSyncState): void {
       : typeof state.cursor.eventHash !== "string" ||
         !/^sha256:[a-f0-9]{64}$/u.test(state.cursor.eventHash)
   )) {
-    throw new SyncContractError("invalid_sync_state", "event sync cursor가 유효하지 않습니다.");
+    throw new SyncContractError("invalid_sync_state", "The event synchronization cursor is invalid.");
   }
   const seenIds = new Set<string>();
   const bySeq = new Map<number, EventEnvelope>();
@@ -52,16 +52,16 @@ export function assertProjectSyncState(state: ProjectSyncState): void {
   for (const event of state.events) {
     assertSyncableEvent(event);
     if (event.projectId !== state.registration.request.project.projectId) {
-      throw new SyncContractError("invalid_sync_state", "Hub에 저장된 event가 project 계약과 다릅니다.");
+      throw new SyncContractError("invalid_sync_state", "An event stored by the Hub differs from the project contract.");
     }
     if (seenIds.has(event.eventId) || (previous !== undefined && event.seq <= previous.seq)) {
-      throw new SyncContractError("invalid_sync_state", "Hub event 좌표가 중복되거나 정렬되지 않았습니다.");
+      throw new SyncContractError("invalid_sync_state", "Hub event coordinates are duplicated or unsorted.");
     }
     if (
       previous !== undefined && event.seq === previous.seq + 1 &&
       event.previousHash !== previous.eventHash
     ) {
-      throw new SyncContractError("invalid_sync_state", "Hub event hash chain이 서로 충돌합니다.");
+      throw new SyncContractError("invalid_sync_state", "Hub event hash chains conflict.");
     }
     seenIds.add(event.eventId);
     bySeq.set(event.seq, event);
@@ -71,12 +71,12 @@ export function assertProjectSyncState(state: ProjectSyncState): void {
   for (let seq = 1; seq <= state.cursor.seq; seq += 1) {
     const event = bySeq.get(seq);
     if (event === undefined || event.previousHash !== cursorHash) {
-      throw new SyncContractError("invalid_sync_state", "Hub cursor 앞의 연속 event 원본이 없습니다.");
+      throw new SyncContractError("invalid_sync_state", "The continuous source event before the Hub cursor is missing.");
     }
     cursorHash = event.eventHash;
   }
   if (state.cursor.eventHash !== cursorHash) {
-    throw new SyncContractError("invalid_sync_state", "Hub cursor hash가 연속 event 원본과 다릅니다.");
+    throw new SyncContractError("invalid_sync_state", "The Hub cursor hash differs from the continuous source event.");
   }
 }
 
@@ -124,7 +124,7 @@ export function planOutboundEventAcceptance(input: {
   ) {
     throw new SyncContractError(
       "registration_required",
-      "outbound event batch와 일치하는 project registration이 없습니다.",
+      "No project registration matches the outbound event batch.",
     );
   }
   const events = structuredClone(input.state.events);
@@ -139,7 +139,7 @@ export function planOutboundEventAcceptance(input: {
       if (atSeq === undefined || atId === undefined || !sameEvent(atSeq, event) || !sameEvent(atId, event)) {
         throw new SyncContractError(
           "event_chain_conflict",
-          "같은 project의 event seq 또는 event ID에 다른 원본이 이미 있습니다.",
+          "A different source already exists for the same project's event sequence or event ID.",
         );
       }
       duplicateCount += 1;
@@ -158,7 +158,7 @@ export function planOutboundEventAcceptance(input: {
     if (event.seq === previous.seq + 1 && event.previousHash !== previous.eventHash) {
       throw new SyncContractError(
         "event_chain_conflict",
-        "역순으로 도착한 batch가 기존 event hash chain과 연결되지 않습니다.",
+        "The out-of-order batch does not connect to the existing event hash chain.",
       );
     }
   }
@@ -169,7 +169,7 @@ export function planOutboundEventAcceptance(input: {
     if (next.previousHash !== cursor.eventHash) {
       throw new SyncContractError(
         "event_chain_conflict",
-        "Hub cursor 다음 event가 현재 hash chain과 연결되지 않습니다.",
+        "The event after the Hub cursor does not connect to the current hash chain.",
       );
     }
     cursor = { seq: next.seq, eventHash: next.eventHash };

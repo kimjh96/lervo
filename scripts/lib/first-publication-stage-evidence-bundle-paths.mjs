@@ -7,7 +7,7 @@ import { validateFirstPublicationStageEvidenceBundleRelativePath } from
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_evidence_bundle_path_invalid",
-    "CLI 최초 게시 stage 증거 묶음 경로가 올바르지 않습니다.",
+    "The CLI first-publication stage evidence bundle path is invalid.",
   );
 }
 

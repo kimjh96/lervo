@@ -35,7 +35,7 @@ export function analyzeDeliberationHistory(input: {
     throw new DeliberationError(
       "history_contract_invalid",
       "decision_not_terminal",
-      "Decision 뒤에는 다른 숙의 artifact를 기록할 수 없습니다.",
+      "No further deliberation artifacts may be recorded after a decision.",
     );
   }
   const recordedVerificationIds = new Set(input.artifacts
@@ -49,7 +49,7 @@ export function analyzeDeliberationHistory(input: {
     throw new DeliberationError(
       "verification_evidence_invalid",
       "unexpected_verification_evidence",
-      "숙의 이력에 기록되지 않은 verification 근거가 포함되었습니다.",
+      "The deliberation history contains verification evidence that was not recorded in it.",
     );
   }
   const openBlockingObjectionIds = [...state.objections.entries()]

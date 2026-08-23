@@ -1,0 +1,11 @@
+fromPath: docs/adr/0072-explicitly-scoped-doctor.md
+identityPath: docs/adr/0072-explicitly-scoped-doctor.md
+kind: document_move
+lineageId: klineage_f33129c4347844b631f8aa5d
+operationId: kdocop_26b7c82ca6a74967caed9c87
+schemaVersion: 1
+sourceContentHash: sha256:74192273c8702ff13564d07c01ef531a40a45dc0b4d55dd4f49047702c4e6596
+sourceId: src_3fd342da4986610f7203265d
+sourceUnitBindingDigest: sha256:9c39f72ab97a88bad3068edef7003a1b550c4aa1f5fe65b2bb9161368715e724
+sourceUnitCount: 5
+toPath: docs/decisions/operations/0072-explicitly-scoped-doctor.md

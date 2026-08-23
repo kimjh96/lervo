@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7820edbbc789558eb4d725ff
+freshness: current
+ownership: user
+path: docs/decisions/distribution/0167-platform-bound-standalone-node-distribution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ae5da07c3824757d071a9ff5
+title: "ADR-0167: Platform-Bound Standalone Lervo Node Distribution"
+type: decision

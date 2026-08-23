@@ -68,7 +68,7 @@ describe("credential-backed platform delivery", () => {
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       expect(body).toMatchObject({
         channel: "C123",
-        text: "검토 &lt;@U123&gt; &amp; 확인",
+        text: "Review &lt;@U123&gt; &amp; confirm",
         mrkdwn: false,
         thread_ts: "1710000000.000100",
         reply_broadcast: false,
@@ -91,7 +91,7 @@ describe("credential-backed platform delivery", () => {
       channelId: "C123",
       threadTs: "1710000000.000100",
       replyToTs: "1710000000.000100",
-      text: "검토 <@U123> & 확인",
+      text: "Review <@U123> & confirm",
       automationDepth: 1,
       format: "plain" as const,
     };
@@ -112,7 +112,7 @@ describe("credential-backed platform delivery", () => {
       expect(init?.headers).toMatchObject({ authorization: `Bot ${"d".repeat(40)}` });
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       expect(body).toMatchObject({
-        content: "<@123>를 직접 호출하지 않습니다.",
+        content: "Do not mention <@123> directly.",
         enforce_nonce: true,
         allowed_mentions: { parse: [], replied_user: false },
         message_reference: { message_id: "323456789012345678", fail_if_not_exists: false },
@@ -136,7 +136,7 @@ describe("credential-backed platform delivery", () => {
       guildId: "123456789012345678",
       channelId: "223456789012345678",
       replyToMessageId: "323456789012345678",
-      content: "<@123>를 직접 호출하지 않습니다.",
+      content: "Do not mention <@123> directly.",
       automationDepth: 1,
       allowedMentions: "none" as const,
       enforceIdempotency: true as const,
@@ -166,12 +166,12 @@ describe("credential-backed platform delivery", () => {
       channelId: "C123",
       threadTs: null,
       replyToTs: null,
-      text: "응답 유실 검사",
+      text: "response-loss check",
       automationDepth: 1,
       format: "plain" as const,
     };
     await expect(delivery.send(input)).rejects.toMatchObject({ code: "platform_delivery_failed" });
-    await expect(delivery.send(input)).rejects.toThrow("운영자 확인이 필요합니다");
+    await expect(delivery.send(input)).rejects.toThrow("Operator review is required");
     expect(request).toHaveBeenCalledOnce();
     try { await delivery.send(input); } catch (error) {
       expect(String(error)).not.toContain(credential);
@@ -197,12 +197,12 @@ describe("credential-backed platform delivery", () => {
       channelId: "C404",
       threadTs: null,
       replyToTs: null,
-      text: "거부 상태 검사",
+      text: "rejection-state check",
       automationDepth: 1,
       format: "plain" as const,
     };
-    await expect(delivery.send(input)).rejects.toThrow("전송을 거부했습니다");
-    await expect(delivery.send(input)).rejects.toThrow("전송을 거부했습니다");
+    await expect(delivery.send(input)).rejects.toThrow("rejected message delivery");
+    await expect(delivery.send(input)).rejects.toThrow("rejected message delivery");
     expect(request).toHaveBeenCalledOnce();
   });
 });

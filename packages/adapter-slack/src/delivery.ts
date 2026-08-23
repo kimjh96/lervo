@@ -65,7 +65,7 @@ export async function deliverSlackConversationMessage(input: {
     if (error instanceof ConversationPlatformError) throw error;
     throw new ConversationPlatformError(
       "platform_delivery_failed",
-      "Slack message를 안전하게 전달하지 못했습니다.",
+      "The Slack message could not be delivered safely.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

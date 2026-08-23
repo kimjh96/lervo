@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8784349b419c38186474dadc
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b06530fd13d28cd329d0d366
+title: "ADR-0106: CLI first-publication package-metadata patch candidate"
+type: decision

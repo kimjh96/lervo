@@ -35,7 +35,7 @@ export async function createKnowledgeCandidates(
     throw new KnowledgeError(
       "candidate_not_eligible",
       "outcome_not_converged",
-      "Converged 숙의 결과만 지식 후보를 만들 수 있습니다.",
+      "Only a converged deliberation result can create knowledge candidates.",
     );
   }
   validateOutcomeEvent(input);
@@ -48,7 +48,7 @@ export async function createKnowledgeCandidates(
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "decision_artifact_missing",
-      "Converged outcome의 결정 artifact를 찾지 못했습니다.",
+      "The decision artifact for the converged outcome was not found.",
     );
   }
   await verifyDecisionContent(input, decision);
@@ -71,7 +71,7 @@ export async function createKnowledgeCandidates(
       throw new KnowledgeError(
         "candidate_contract_invalid",
         "claim_path_missing",
-        "채택 주장마다 현재 digest와 영향 경로가 필요합니다.",
+        "Every accepted claim requires a current digest and impact paths.",
       );
     }
     const verifications = verificationEvidenceForClaim({
@@ -84,7 +84,7 @@ export async function createKnowledgeCandidates(
       throw new KnowledgeError(
         "candidate_evidence_invalid",
         "verification_evidence_missing",
-        "채택 주장을 검증한 근거가 없습니다.",
+        "There is no evidence verifying the accepted claim.",
       );
     }
     const revisions = uniqueSorted(verifications.map((item) =>
@@ -93,7 +93,7 @@ export async function createKnowledgeCandidates(
       throw new KnowledgeError(
         "candidate_evidence_invalid",
         "verification_revision_mismatch",
-        "한 지식 후보의 검증 결과가 서로 다른 repository revision을 가리킵니다.",
+        "Verification results for one knowledge candidate reference different repository revisions.",
       );
     }
     const verificationEvents = verifications.map((item) =>
@@ -109,7 +109,7 @@ export async function createKnowledgeCandidates(
       throw new KnowledgeError(
         "candidate_evidence_invalid",
         "evidence_event_missing",
-        "지식 후보가 참조한 evidence event가 현재 event store에 없습니다.",
+        "An evidence event referenced by the knowledge candidate is missing from the current event store.",
       );
     }
     const withoutId = {
@@ -147,7 +147,7 @@ export async function createKnowledgeCandidates(
       throw new KnowledgeError(
         "candidate_contract_invalid",
         "candidate_schema_invalid",
-        "생성된 지식 후보가 schema 또는 자기 참조 계약을 통과하지 못했습니다.",
+        "The generated knowledge candidate does not satisfy its schema or self-reference contract.",
       );
     }
     if (events.some((event) =>
@@ -156,7 +156,7 @@ export async function createKnowledgeCandidates(
       throw new KnowledgeError(
         "candidate_contract_invalid",
         "candidate_already_recorded",
-        "같은 지식 후보가 이미 event 원본에 기록되어 있습니다.",
+        "The same knowledge candidate is already recorded in the event source.",
       );
     }
     drafts.push({ candidate, candidateArtifact: await storeCandidate(input, candidate) });
@@ -193,7 +193,7 @@ export async function createKnowledgeCandidates(
     throw new KnowledgeError(
       "event_recording_failed",
       "event_store_failed",
-      "지식 후보 event transaction을 기록하지 못했습니다.",
+      "Could not record the knowledge candidate event transaction.",
       { cause: error },
     );
   }

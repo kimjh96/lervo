@@ -1,0 +1,11 @@
+fromPath: docs/adr/0006-deterministic-context-preparation.md
+identityPath: docs/adr/0006-deterministic-context-preparation.md
+kind: document_move
+lineageId: klineage_dd4bf4d919c5c024468d883d
+operationId: kdocop_59c9bd5eb27473e257f22d35
+schemaVersion: 1
+sourceContentHash: sha256:694126c9ab6c30121e1af0fcaed93469bbeb675d07281e0955cd1fd43002c3f3
+sourceId: src_490c53d7787b5aa315b1b7a9
+sourceUnitBindingDigest: sha256:a47e96669a14f4cded77135c41ce91c9381cc65366a31ac711da4bdf8d6aa6c4
+sourceUnitCount: 10
+toPath: docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md

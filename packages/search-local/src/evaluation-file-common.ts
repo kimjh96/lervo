@@ -39,7 +39,7 @@ export async function searchEvaluationDirectory(input: {
     return paths.searchEvaluations;
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError(input.errorCode, `${input.subject} 디렉터리를 확인하지 못했습니다.`, {
+    throw new SearchLocalError(input.errorCode, `Could not inspect the ${input.subject} directory.`, {
       cause: error instanceof Error ? error : undefined,
     });
   }

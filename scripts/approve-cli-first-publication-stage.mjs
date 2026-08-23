@@ -26,7 +26,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_stage_approval_execution_unexpected: " +
-    "CLI npm stage 승인을 실행하지 못했습니다.",
+    "CLI npm stage approval could not be executed.",
   );
   process.exitCode = 1;
 }

@@ -8,7 +8,7 @@
       "surface": "chat",
       "artifactId": "art_01234567",
       "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyId": "writing_en-human",
       "writingPolicyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "evaluationId": "wre_01234567",
       "evaluationHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",

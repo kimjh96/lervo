@@ -77,7 +77,7 @@ export function presentDeliberationOutcome(
   finalContent: string,
 ): ManagedDeliberationOutcome {
   if (outcome.status !== "converged" && outcome.status !== "no_consensus") {
-    throw new Error("사용자에게 반환할 수 없는 숙의 종료 상태입니다.");
+    throw new Error("This deliberation terminal state cannot be returned to the user.");
   }
   return {
     deliberationId: outcome.deliberationId,

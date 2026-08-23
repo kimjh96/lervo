@@ -1,0 +1,11 @@
+fromPath: docs/adr/0020-lervo-product-identity.md
+identityPath: docs/adr/0020-lervo-product-identity.md
+kind: document_move
+lineageId: klineage_d90c65219e7d2268d7636e85
+operationId: kdocop_31f811494ce8f2c02f24213a
+schemaVersion: 1
+sourceContentHash: sha256:96ef6d35fb937993cf9697f7659caf0c412dfbc659fad8a277ac123bb396e620
+sourceId: src_67dba02a590835cf5306b8ee
+sourceUnitBindingDigest: sha256:16b279c8e7c480f111cf6f1f7f013388354f91c2fe6b00ccd92bfef189cdbe69
+sourceUnitCount: 5
+toPath: docs/decisions/foundation/0020-lervo-product-identity.md

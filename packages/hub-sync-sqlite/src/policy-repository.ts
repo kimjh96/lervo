@@ -77,7 +77,7 @@ export class HubPolicySQLiteRepository {
       snapshot.target.projectId !== input.target.projectId ||
       snapshot.target.projectIdentityHash !== input.target.projectIdentityHash
     ) {
-      throw new HubPolicyError("policy_identity_mismatch", "Policy snapshot target이 요청과 다릅니다.");
+      throw new HubPolicyError("policy_identity_mismatch", "The policy snapshot target differs from the request.");
     }
     const existing = this.database.prepare(`
       SELECT sequence, snapshot_id, envelope_json, published_at
@@ -91,7 +91,7 @@ export class HubPolicySQLiteRepository {
         stringField(existing[0]!, "snapshot_id") !== snapshot.snapshotId ||
         stringField(existing[0]!, "envelope_json") !== canonicalJson(input.envelope)
       ) {
-        throw new HubPolicyError("policy_snapshot_conflict", "Policy snapshot sequence가 충돌했습니다.");
+        throw new HubPolicyError("policy_snapshot_conflict", "The policy snapshot sequence conflicts.");
       }
       return {
         status: "duplicate",
@@ -105,7 +105,7 @@ export class HubPolicySQLiteRepository {
       snapshot.sequence !== (head?.snapshot.sequence ?? 0) + 1 ||
       snapshot.previousSnapshotId !== (head?.snapshot.snapshotId ?? null)
     ) {
-      throw new HubPolicyError("policy_snapshot_conflict", "Policy snapshot 연속 좌표가 현재 Hub head와 다릅니다.");
+      throw new HubPolicyError("policy_snapshot_conflict", "The policy snapshot continuity coordinates differ from the current Hub head.");
     }
     this.database.prepare(`
       INSERT INTO hub_policy_snapshots (
@@ -147,7 +147,7 @@ export class HubPolicySQLiteRepository {
     `).get(input.destinationId, input.target.projectId, approval.approvalId);
     if (existing !== undefined) {
       if (stringField(existing, "envelope_json") !== canonicalJson(input.envelope)) {
-        throw new HubPolicyError("policy_snapshot_conflict", "같은 policy approval ID에 다른 원본이 있습니다.");
+        throw new HubPolicyError("policy_snapshot_conflict", "A different source exists for the same policy approval ID.");
       }
       return {
         status: "duplicate",
@@ -158,11 +158,11 @@ export class HubPolicySQLiteRepository {
     }
     const snapshot = this.source.currentSnapshot(input.destinationId, input.target);
     if (snapshot === null || snapshot.snapshot.snapshotId !== approval.snapshotId) {
-      throw new HubPolicyError("policy_snapshot_conflict", "Policy approval snapshot이 현재 Hub head가 아닙니다.");
+      throw new HubPolicyError("policy_snapshot_conflict", "The policy approval snapshot is not the current Hub head.");
     }
     const binding = this.source.command(input.destinationId, input.target, approval.commandId);
     if (binding === null) {
-      throw new HubPolicyError("policy_command_not_found", "Policy approval command가 없습니다.");
+      throw new HubPolicyError("policy_command_not_found", "The policy approval command is missing.");
     }
     this.assertApprovalBinding(input.envelope, snapshot, binding);
     const count = integerField(this.database.prepare(`
@@ -170,7 +170,7 @@ export class HubPolicySQLiteRepository {
       WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
     `).get(input.destinationId, input.target.projectId, approval.snapshotId)!, "count");
     if (count >= MAX_POLICY_APPROVALS) {
-      throw new HubPolicyError("policy_capacity_exceeded", "한 snapshot의 policy approval 한도를 넘었습니다.");
+      throw new HubPolicyError("policy_capacity_exceeded", "The policy approval limit for one snapshot was exceeded.");
     }
     this.database.prepare(`
       INSERT INTO hub_policy_approvals (
@@ -207,7 +207,7 @@ export class HubPolicySQLiteRepository {
         commandSignerKeyId: binding.commandSignerKeyId,
       });
     } catch (error) {
-      throw new HubPolicyError("invalid_policy_request", "Policy approval 원본 관계가 유효하지 않습니다.", {
+      throw new HubPolicyError("invalid_policy_request", "The policy approval source relation is invalid.", {
         cause: error,
       });
     }
@@ -240,7 +240,7 @@ export class HubPolicySQLiteRepository {
         stringField(existing[0]!, "revocation_id") !== revocation.revocationId ||
         stringField(existing[0]!, "envelope_json") !== canonicalJson(input.envelope)
       ) {
-        throw new HubPolicyError("policy_snapshot_conflict", "Policy approval에 다른 revocation이 있습니다.");
+        throw new HubPolicyError("policy_snapshot_conflict", "The policy approval has a different revocation.");
       }
       const approval = this.source.approval(
         input.destinationId,
@@ -260,12 +260,12 @@ export class HubPolicySQLiteRepository {
       revocation.approvalId,
     );
     if (approval === null) {
-      throw new HubPolicyError("policy_approval_not_found", "철회할 policy approval이 없습니다.");
+      throw new HubPolicyError("policy_approval_not_found", "The policy approval to revoke is missing.");
     }
     try {
       assertPolicyApprovalRevocation({ revocation, approval: approval.approval });
     } catch (error) {
-      throw new HubPolicyError("invalid_policy_request", "Policy revocation 원본 관계가 유효하지 않습니다.", {
+      throw new HubPolicyError("invalid_policy_request", "The policy revocation source relation is invalid.", {
         cause: error,
       });
     }
@@ -279,7 +279,7 @@ export class HubPolicySQLiteRepository {
         AND approval.snapshot_id = ?
     `).get(input.destinationId, input.target.projectId, approval.approval.snapshotId)!, "count");
     if (count >= MAX_POLICY_REVOCATIONS) {
-      throw new HubPolicyError("policy_capacity_exceeded", "한 snapshot의 policy revocation 한도를 넘었습니다.");
+      throw new HubPolicyError("policy_capacity_exceeded", "The policy revocation limit for one snapshot was exceeded.");
     }
     this.database.prepare(`
       INSERT INTO hub_policy_revocations (

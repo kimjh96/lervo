@@ -27,7 +27,7 @@ function sameSubmission(record: HubCommandAuthorshipRecord, submissionHash: stri
   if (record.submissionHash !== submissionHash) {
     throw new HubCommandError(
       "idempotency_conflict",
-      "같은 idempotency key에 다른 command 요청이 이미 있습니다.",
+      "A different command request already uses the same idempotency key.",
     );
   }
   assertSignedRemoteCommand(record.envelope);
@@ -43,7 +43,7 @@ async function storeAndVerifyArtifact(input: {
   try {
     const stored = await input.artifacts.put(input.bytes);
     if (input.expectedUri !== undefined && stored.uri !== input.expectedUri) {
-      throw new HubCommandError("artifact_integrity_failed", "Hub command artifact URI가 원본과 다릅니다.");
+      throw new HubCommandError("artifact_integrity_failed", "The Hub command artifact URI differs from the source.");
     }
     const restored = await input.artifacts.get(stored.uri);
     if (
@@ -51,11 +51,11 @@ async function storeAndVerifyArtifact(input: {
       stored.byteCount !== input.bytes.byteLength ||
       hashHubCommandValue(restored) !== input.contentHash ||
       restored.byteLength !== input.bytes.byteLength
-    ) throw new HubCommandError("artifact_integrity_failed", "Hub command artifact 검증에 실패했습니다.");
+    ) throw new HubCommandError("artifact_integrity_failed", "Hub command artifact verification failed.");
     return stored.uri;
   } catch (error) {
     if (error instanceof HubCommandError) throw error;
-    throw new HubCommandError("artifact_store_failed", "Hub command artifact를 저장하지 못했습니다.", {
+    throw new HubCommandError("artifact_store_failed", "The Hub command artifact could not be stored.", {
       cause: error,
     });
   }
@@ -85,7 +85,7 @@ export async function authorHubCommand(input: {
   ) {
     throw new HubCommandError(
       "invalid_request",
-      "Hub command artifact 보존 기간이 command 수명보다 짧거나 허용 상한을 넘습니다.",
+      "The Hub command artifact retention is shorter than the command lifetime or exceeds the allowed limit.",
     );
   }
   const contentHash = hashHubCommandValue(bytes);
@@ -152,7 +152,7 @@ export async function authorHubCommand(input: {
   const envelope = input.signer.sign(command);
   assertSignedRemoteCommand(envelope);
   if (envelope.command.commandId !== command.commandId) {
-    throw new HubCommandError("invalid_request", "Hub command signer가 다른 command를 반환했습니다.");
+    throw new HubCommandError("invalid_request", "The Hub command signer returned a different command.");
   }
   const record: HubCommandAuthorshipRecord = {
     ...coordinate,

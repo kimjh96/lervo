@@ -3,7 +3,7 @@
   "artifact": {
     "name": "@lervo/cli",
     "version": "0.1.0",
-    "description": "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+    "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
       "local-first",
@@ -43,14 +43,21 @@
       "@lervo/deliberation-runtime@0.1.0",
       "@lervo/deliberation@0.1.0",
       "@lervo/diagnostics@0.1.0",
+      "@lervo/documents@0.1.0",
+      "@lervo/environment-adapter-tailscale@0.1.0",
+      "@lervo/environment@0.1.0",
       "@lervo/event-contract@0.1.0",
       "@lervo/event-store-sqlite@0.1.0",
       "@lervo/execution-contract@0.1.0",
       "@lervo/identity-migration@0.1.0",
+      "@lervo/knowledge-okf@0.1.0",
       "@lervo/knowledge@0.1.0",
       "@lervo/orchestrator@0.1.0",
       "@lervo/project-storage@0.1.0",
       "@lervo/project@0.1.0",
+      "@lervo/repository-knowledge-compiler@0.1.0",
+      "@lervo/repository-knowledge@0.1.0",
+      "@lervo/repository-registry@0.1.0",
       "@lervo/schemas@0.1.0",
       "@lervo/search-adapter-bm25f@0.1.0",
       "@lervo/search-local@0.1.0",
@@ -63,16 +70,46 @@
       "@lervo/writing@0.1.0"
     ],
     "externalPackages": [
+      "@babel/parser@7.29.8",
       "ajv@8.20.0",
+      "character-entities@2.0.2",
+      "decode-named-character-reference@1.3.0",
       "fast-deep-equal@3.1.3",
       "fast-uri@3.1.5",
       "json-schema-traverse@1.0.0",
+      "jsonc-parser@3.3.1",
+      "mdast-util-from-markdown@2.0.3",
+      "mdast-util-to-string@4.0.0",
+      "micromark-core-commonmark@2.0.3",
+      "micromark-factory-destination@2.0.1",
+      "micromark-factory-label@2.0.1",
+      "micromark-factory-space@2.0.1",
+      "micromark-factory-title@2.0.1",
+      "micromark-factory-whitespace@2.0.1",
+      "micromark-util-character@2.1.1",
+      "micromark-util-chunked@2.0.1",
+      "micromark-util-classify-character@2.0.1",
+      "micromark-util-combine-extensions@2.0.1",
+      "micromark-util-decode-numeric-character-reference@2.0.2",
+      "micromark-util-decode-string@2.0.1",
+      "micromark-util-encode@2.0.1",
+      "micromark-util-html-tag-name@2.0.1",
+      "micromark-util-normalize-identifier@2.0.1",
+      "micromark-util-resolve-all@2.0.1",
+      "micromark-util-sanitize-uri@2.0.1",
+      "micromark-util-subtokenize@2.1.0",
+      "micromark@4.0.2",
+      "nanoid@3.3.18",
+      "picocolors@1.1.1",
+      "postcss@8.5.26",
+      "source-map-js@1.2.1",
+      "unist-util-stringify-position@4.0.0",
       "yaml@2.9.0"
     ],
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:ecf6aa5e6bf2ad08e728f38121b56995bafd7fd2068fa95a4c04f1368a5facfd"
+    "bundleDigest": "sha256:af81afcb492cc32340e7e2ca753bc4966b9241e14e1ff7003e75b863939e4e4e"
   },
   "archive": {
     "rootFiles": [
@@ -81,17 +118,17 @@
     "files": [
       {
         "path": "README.md",
-        "size": 788,
-        "sha256": "sha256:a851c552994db936c8232e7185a6b53935836bf30088040f515addac8caa2926"
+        "size": 3264,
+        "sha256": "sha256:848c8d61086099ae1fada79d93133ea9b5576a5e28106cf120715d722abadc80"
       },
       {
         "path": "dist/bin.js",
-        "size": 1820500,
-        "sha256": "sha256:dd2dc9e76751c60c977a190eb16e8c4223f116f64aed90e11ec5c3af49905a70"
+        "size": 3387431,
+        "sha256": "sha256:97a056fedcf390ae647f3609599b5afe2a45f12f8ba827f7372a5b9eb2a2e35b"
       }
     ],
     "fileCount": 3,
-    "contentDigest": "sha256:7c8dc565b7987ecd1914edfb9ae0971a609f6a695d40438b85e517cc1857c41d"
+    "contentDigest": "sha256:583b8722ebbc3551300a33198bac96debdc3b6a5244a0918c3e1382f7f3760e2"
   },
   "dependencies": {
     "portable": [
@@ -204,5 +241,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:026c0132df032e675ac74a8c56ee274a9d4d11583d8dc043167d9217585dd083"
+  "artifactDigest": "sha256:50dbad4403db4fc9319b227a1e29e4cc8bd9d3c247b32277fbcd53e476f6090f"
 }

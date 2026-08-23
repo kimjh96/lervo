@@ -16,7 +16,7 @@ export class CodexSessionRegistry {
 
   add(session: AdapterSession, client: CodexAppServerClient): void {
     if (this.has(session.providerSessionId)) {
-      throw new CodexAdapterError("provider_protocol_failed", "Codex thread ID가 중복되었습니다.");
+      throw new CodexAdapterError("provider_protocol_failed", "The Codex thread ID is duplicated.");
     }
     this.sessions.set(session.providerSessionId, {
       session: clone(session),
@@ -32,10 +32,10 @@ export class CodexSessionRegistry {
     assertAdapterMessage(session, "Codex session");
     const state = this.sessions.get(session.providerSessionId);
     if (state === undefined) {
-      throw new CodexAdapterError("session_not_found", "관리 중인 Codex session을 찾지 못했습니다.");
+      throw new CodexAdapterError("session_not_found", "The managed Codex session was not found.");
     }
     if (!sameSession(state.session, session)) {
-      throw new CodexAdapterError("session_mismatch", "Codex session 좌표가 시작 시점과 다릅니다.");
+      throw new CodexAdapterError("session_mismatch", "The Codex session coordinates differ from their initial values.");
     }
     return state;
   }

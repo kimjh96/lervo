@@ -20,6 +20,7 @@ import type { WritingSemanticEvaluator } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
+import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
 import { registerSearchContextDocument } from "./search-context-fixture.js";
 
@@ -143,7 +144,7 @@ class ManagedCodexClient implements CodexAppServerClient {
         params: {
           threadId: "codex-cli-session",
           turnId: "codex-cli-turn",
-          item: { type: "agentMessage", id: "codex-cli-result", text: "CLI 작업 완료" },
+          item: { type: "agentMessage", id: "codex-cli-result", text: "CLI task complete" },
         },
       },
       {
@@ -222,7 +223,7 @@ class ManagedClaudeClient implements ClaudeAgentClient {
         uuid: "44444444-4444-4444-8444-444444444444",
         session_id: CLAUDE_SESSION_ID,
         duration_ms: 1,
-        result: "CLI 작업 완료",
+        result: "CLI task complete",
       },
     );
   }
@@ -247,7 +248,7 @@ async function createRepository(): Promise<string> {
     }),
   );
   await mkdir(resolve(root, "src"));
-  await writeFile(resolve(root, "AGENTS.md"), "선언된 파일 하나만 변경합니다.\n");
+  await writeFile(resolve(root, "AGENTS.md"), "Change only the declared file.\n");
   await writeVerificationSuite(root);
   return root;
 }
@@ -256,6 +257,7 @@ async function writeVerificationSuite(
   root: string,
   script = "process.exit(require('node:fs').existsSync('src/result.ts') ? 0 : 1)",
 ): Promise<void> {
+  await mkdir(resolve(root, ".lervo/verifications"), { recursive: true });
   await writeFile(
     resolve(root, ".lervo/verifications/project.default.yaml"),
     [
@@ -284,7 +286,7 @@ async function createProjectSkill(root: string): Promise<{
 }> {
   const path = resolve(root, ".agents/skills/repository-testing");
   await mkdir(path, { recursive: true });
-  const original = "# 저장소 테스트\n원본 스킬 문서입니다.\n";
+  const original = "# Repository test\nOriginal skill document.\n";
   await writeFile(resolve(path, "SKILL.md"), original);
   const manifest: SkillManifest = {
     schemaVersion: 1,
@@ -375,7 +377,7 @@ describe("lervo run vertical slice", () => {
       const exitCode = await runCli(
         [
           "run", "--provider", provider, "--path", "src/result.ts",
-          "--verification", "project.default", "작은 파일을 구현합니다",
+          "--verification", "project.default", "Implement a small file",
         ],
         {
           cwd: root,
@@ -387,12 +389,12 @@ describe("lervo run vertical slice", () => {
 
       expect(exitCode).toBe(0);
       expect(errorOutput).toBe("");
-      expect(output).toContain("CLI 작업 완료");
-      expect(output).toContain("기능 검증: 통과");
+      expect(output).toContain("CLI task complete");
+      expect(output).toContain("Functional verification: passed");
       expect(output).toContain("project.default: passed");
-      expect(output).toContain("Writing 공개 검증: 통과");
-      expect(output).toContain("추천 1개 · 선택 1개");
-      expect(output).toContain("검색에서 선택한 문서: doc_cli_search_context");
+      expect(output).toContain("Writing publication verification: passed");
+      expect(output).toContain("recommended 1 · selected 1");
+      expect(output).toContain("Documents selected from search: doc_cli_search_context");
       expect(output).toContain("--selected document:doc_cli_search_context");
       expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
         .toBe("export const cli = true;\n");
@@ -412,9 +414,21 @@ describe("lervo run vertical slice", () => {
       });
       expect(events.find((event) => event.type === "run.completed")?.payload)
         .toMatchObject({ verificationStatus: "passed" });
+      const knowledgeSources = await collectLocalKnowledgeSources(root);
+      expect(knowledgeSources.filter((source) => source.kind === "verification_result")).toEqual([
+        expect.objectContaining({
+          path: expect.stringMatching(/^@verification\/ver_[a-f0-9]{16}$/),
+          kind: "verification_result",
+          origin: "verification_event_cas",
+          unitKind: "verification",
+        }),
+      ]);
+      expect(knowledgeSources.some((source) =>
+        source.kind === "execution_event" && source.origin === "execution_event_store"))
+        .toBe(true);
       const serialized = JSON.stringify(events);
-      expect(serialized).not.toContain("작은 파일을 구현합니다");
-      expect(serialized).not.toContain("CLI 작업 완료");
+      expect(serialized).not.toContain("Implement a small file");
+      expect(serialized).not.toContain("CLI task complete");
       expect(serialized).not.toContain("private fixture diff");
       expect(serialized).not.toContain("docs/search-context.md");
       const sourceAttemptId = recommendation?.payload.sourceAttemptId as string;
@@ -422,7 +436,7 @@ describe("lervo run vertical slice", () => {
         resolve(root, ".lervo/state/search/attempts", `${sourceAttemptId}.json`),
         "utf8",
       );
-      expect(searchAttempt).not.toContain("작은 파일을 구현합니다");
+      expect(searchAttempt).not.toContain("Implement a small file");
       expect(searchAttempt).not.toContain("docs/search-context.md");
       await expect(access(
         resolve(root, ".lervo/state/search/assessments", `${sourceAttemptId}.json`),
@@ -449,7 +463,7 @@ describe("lervo run vertical slice", () => {
     const exitCode = await runCli(
       [
         "run", "--provider", "codex", "--path", "src/result.ts",
-        "--verification", "project.default", "작은 파일을 구현합니다",
+        "--verification", "project.default", "Implement a small file",
       ],
       {
         cwd: root,
@@ -461,9 +475,9 @@ describe("lervo run vertical slice", () => {
 
     expect(exitCode).toBe(1);
     expect(errorOutput).toBe("");
-    expect(output).toContain("Writing 공개 검증: 실패");
-    expect(output).toContain("Provider 결과는 공개하지 않았습니다.");
-    expect(output).not.toContain("CLI 작업 완료");
+    expect(output).toContain("Writing publication verification: failed");
+    expect(output).toContain("The provider result was not published.");
+    expect(output).not.toContain("CLI task complete");
     expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
       .toBe("export const cli = true;\n");
     const storage = await openProjectStorage(root);
@@ -503,7 +517,7 @@ describe("lervo run vertical slice", () => {
         skill.manifest.skillId,
         "--verification",
         "project.default",
-        "스킬을 해석해 작업합니다",
+        "Interpret the skill and perform the task",
       ],
       {
         cwd: root,
@@ -516,7 +530,7 @@ describe("lervo run vertical slice", () => {
     expect(exitCode).toBe(0);
     expect(errorOutput).toBe("");
     expect(output).toContain("repository/testing@1.2.0 (project)");
-    expect(output).toContain("호출하거나 사용했다는 뜻이 아닙니다");
+    expect(output).toContain("does not claim that a skill was invoked or used");
     expect(await readFile(resolve(skill.path, "SKILL.md"), "utf8")).toBe(skill.original);
     const lock: unknown = JSON.parse(await readFile(resolve(root, ".lervo/skills.lock"), "utf8"));
     expect(validateSchema("skillLock", lock).valid).toBe(true);
@@ -581,7 +595,7 @@ describe("lervo run vertical slice", () => {
         repositoryRoot: root,
         provider: "codex" as RunProvider,
         expectedPath: "src/result.ts",
-        instructions: "실패 fixture",
+        instructions: "failure fixture",
         risk: "medium",
         verificationSuiteIds: ["project.default"],
       }),
@@ -610,7 +624,7 @@ describe("lervo run vertical slice", () => {
       repositoryRoot: root,
       provider: "codex",
       expectedPath: "src/result.ts",
-      instructions: "검증 실패 fixture",
+      instructions: "verification failure fixture",
       risk: "medium",
       verificationSuiteIds: ["project.default"],
     })).rejects.toMatchObject({

@@ -32,7 +32,7 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
   constructor(registrations: readonly SearchEvaluationEngineRegistration[]) {
     if (!Array.isArray(registrations) || registrations.length < 1 ||
       registrations.length > SEARCH_MAX_CANDIDATE_ENGINES) {
-      throw new SearchError("invalid_evaluation_engine", "등록할 검색 후보 엔진 수가 유효하지 않습니다.");
+      throw new SearchError("invalid_evaluation_engine", "The number of candidate search engines to register is invalid.");
     }
     const coordinates = new Set<string>();
     const adapterBuildIds = new Set<string>();
@@ -43,7 +43,7 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
       if (!SEARCH_CANDIDATE_ID_PATTERN.test(candidateId) || candidateId.length > 64 ||
         this.engines.has(candidateId) || coordinates.has(coordinate) || adapterBuildIds.has(engine.adapterBuildId) ||
         sameSearchEngine(engine.engine, SEARCH_ENGINE)) {
-        throw new SearchError("invalid_evaluation_engine", "검색 후보 ID·engine 좌표가 중복되었거나 유효하지 않습니다.");
+        throw new SearchError("invalid_evaluation_engine", "Candidate search ID or engine coordinates are duplicated or invalid.");
       }
       this.engines.set(candidateId, engine);
       coordinates.add(coordinate);
@@ -59,7 +59,7 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
   resolve(candidateId: string): SearchEvaluationEnginePort {
     const engine = this.engines.get(candidateId);
     if (engine === undefined) {
-      throw new SearchError("evaluation_candidate_not_registered", "등록되지 않은 검색 후보 엔진입니다.");
+      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
     }
     return engine;
   }
@@ -68,7 +68,7 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
     assertSearchEngineIdentity(identity);
     const registration = this.registrations.find((item) => sameSearchEngine(item.engine, identity));
     if (registration === undefined) {
-      throw new SearchError("evaluation_candidate_not_registered", "등록되지 않은 검색 후보 엔진입니다.");
+      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
     }
     return {
       candidateId: registration.candidateId,

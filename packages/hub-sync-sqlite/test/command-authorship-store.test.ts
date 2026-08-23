@@ -50,7 +50,7 @@ describe("Hub command authorship SQLite transaction", () => {
       provider: "codex",
       risk: "low" as const,
       verificationSuiteIds: ["repo.check"],
-      request: "동일한 artifact를 참조하는 요청",
+      request: "request referencing the same artifact",
     };
 
     await expect(authorHubCommand({ ...common, request })).resolves.toMatchObject({ status: "created" });
@@ -69,7 +69,7 @@ describe("Hub command authorship SQLite transaction", () => {
     fault.close();
     await expect(authorHubCommand({
       ...common,
-      request: { ...request, idempotencyKey: "idk_command_author_03", request: "새 orphan 후보" },
+      request: { ...request, idempotencyKey: "idk_command_author_03", request: "new orphan candidate" },
     })).rejects.toMatchObject({ code: "write_failed" });
 
     const inspection = new DatabaseSync(path, { readOnly: true });

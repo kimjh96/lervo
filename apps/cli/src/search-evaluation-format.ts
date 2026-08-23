@@ -12,102 +12,102 @@ import type {
 
 export function formatSearchEvaluationCase(evaluationCase: SearchEvaluationCase): string {
   return [
-    `검색 평가 케이스를 만들었습니다: ${evaluationCase.caseId}`,
-    `  기대 원본 ${evaluationCase.expectation.sources.length}개 · ${evaluationCase.expectation.maximumRank}위 이내`,
-    `  파일: .lervo/search-evaluations/${evaluationCase.caseId}.yaml`,
-    "  이 파일에는 사용자가 확인한 검색 문장이 들어갑니다. 비밀정보가 없는지 커밋 전에 확인하세요.",
+    `Search evaluation case created: ${evaluationCase.caseId}`,
+    `  Expected sources ${evaluationCase.expectation.sources.length} · within rank ${evaluationCase.expectation.maximumRank}`,
+    `  File: .lervo/search-evaluations/${evaluationCase.caseId}.yaml`,
+    "  This file contains a user-reviewed search sentence. Check it for secrets before committing.",
   ].join("\n") + "\n";
 }
 
 export function formatSearchEvaluationRun(run: SearchEvaluationRun): string {
   return [
-    `검색 반복 평가: ${run.runId}`,
-    `  ${run.engine.id}-v${run.engine.version} · 케이스 ${run.totalCases}개`,
-    `  통과 ${run.passedCases} · 실패 ${run.failedCases}`,
-    `  회귀 ${run.regressions} · 개선 ${run.improvements}`,
-    "  임베딩 도입 판단: 아직 결정하지 않음",
+    `Search replay evaluation: ${run.runId}`,
+    `  ${run.engine.id}-v${run.engine.version} · cases ${run.totalCases}`,
+    `  Passed ${run.passedCases} · failed ${run.failedCases}`,
+    `  Regressions ${run.regressions} · improvements ${run.improvements}`,
+    "  Embedding adoption decision: not decided",
   ].join("\n") + "\n";
 }
 
 export function formatSearchEvaluationBundle(bundle: SearchEvaluationBundle): string {
   return [
-    `검색 평가 묶음을 만들었습니다: ${bundle.bundleId}`,
-    `  범위 ${bundle.scope.roleId} / ${bundle.scope.taskType}`,
-    `  활성 case ${bundle.activeCaseIds.length}개 · 최소 표본 ${bundle.minimumActiveCases}개`,
-    `  파일: .lervo/search-evaluations/${bundle.bundleId}.bundle.yaml`,
+    `Search evaluation bundle created: ${bundle.bundleId}`,
+    `  Scope ${bundle.scope.roleId} / ${bundle.scope.taskType}`,
+    `  Active cases ${bundle.activeCaseIds.length} · minimum sample ${bundle.minimumActiveCases}`,
+    `  File: .lervo/search-evaluations/${bundle.bundleId}.bundle.yaml`,
   ].join("\n") + "\n";
 }
 
 export function formatSearchEvaluationCoverage(coverage: SearchEvaluationCoverage): string {
   return [
-    `검색 평가 표본: ${coverage.bundleId} · ${coverage.scope.roleId} / ${coverage.scope.taskType}`,
-    `  활성 ${coverage.activeCases}개 · 최소 ${coverage.minimumActiveCases}개 · 부족 ${coverage.shortfall}개`,
-    `  표본 상태: ${coverage.sampleState === "sufficient" ? "충분" : "부족"}`,
-    `  후보 비교 준비: ${coverage.comparisonReadiness === "ready" ? "가능" : "표본 부족"}`,
-    "  임베딩 도입 판단: 아직 결정하지 않음",
+    `Search evaluation sample: ${coverage.bundleId} · ${coverage.scope.roleId} / ${coverage.scope.taskType}`,
+    `  Active ${coverage.activeCases} · minimum ${coverage.minimumActiveCases} · shortfall ${coverage.shortfall}`,
+    `  Sample state: ${coverage.sampleState === "sufficient" ? "sufficient" : "insufficient"}`,
+    `  Candidate comparison readiness: ${coverage.comparisonReadiness === "ready" ? "ready" : "insufficient sample"}`,
+    "  Embedding adoption decision: not decided",
   ].join("\n") + "\n";
 }
 
 export function formatSearchEvaluationComparison(comparison: SearchEvaluationComparison): string {
   const outcomes = {
-    baseline_better_observed: "baseline 우세 관측",
-    candidate_better_observed: "후보 우세 관측",
-    mixed: "서로 다른 우세 관측",
-    no_difference_observed: "통과 여부 차이 없음",
+    baseline_better_observed: "baseline advantage observed",
+    candidate_better_observed: "candidate advantage observed",
+    mixed: "mixed advantages observed",
+    no_difference_observed: "no pass/fail difference observed",
   } as const;
   return [
-    `검색 후보 비교: ${comparison.comparisonId}`,
-    `  묶음 ${comparison.bundleId} · 케이스 ${comparison.totalCases}개`,
+    `Search candidate comparison: ${comparison.comparisonId}`,
+    `  Bundle ${comparison.bundleId} · cases ${comparison.totalCases}`,
     `  baseline ${comparison.baseline.engine.id}-v${comparison.baseline.engine.version}`,
-    `  후보 ${comparison.candidate.engine.id}-v${comparison.candidate.engine.version}`,
-    `  후보 승 ${comparison.candidateWins} · baseline 승 ${comparison.baselineWins} · 동률 ${comparison.ties}`,
-    `  관측 결과: ${outcomes[comparison.observedOutcome]}`,
-    "  후보 채택 판단: 아직 결정하지 않음",
-    "  임베딩 도입 판단: 아직 결정하지 않음",
+    `  Candidate ${comparison.candidate.engine.id}-v${comparison.candidate.engine.version}`,
+    `  Candidate wins ${comparison.candidateWins} · baseline wins ${comparison.baselineWins} · ties ${comparison.ties}`,
+    `  Observed outcome: ${outcomes[comparison.observedOutcome]}`,
+    "  Candidate adoption decision: not decided",
+    "  Embedding adoption decision: not decided",
   ].join("\n") + "\n";
 }
 
 export function formatSearchCandidateReview(review: SearchCandidateReview): string {
   const decisions = {
-    adopt_candidate: "채택 후보",
-    reject_candidate: "기각",
-    more_samples_required: "표본 추가 필요",
+    adopt_candidate: "adopt candidate",
+    reject_candidate: "reject candidate",
+    more_samples_required: "more samples required",
   } as const;
   return [
-    `검색 후보 검토: ${review.reviewId}`,
-    `  비교 ${review.comparisonId} · 후보 ${review.candidateId}`,
-    `  결정: ${decisions[review.decision]}`,
-    `  후보 replay: ${review.verification.candidateReplay === "matched" ? "일치" : "불일치"}`,
-    `  다음 검토 상태: ${review.promotionReadiness}`,
-    "  실제 엔진 활성화: 적용하지 않음",
-    "  임베딩 도입 판단: 아직 결정하지 않음",
+    `Search candidate review: ${review.reviewId}`,
+    `  Comparison ${review.comparisonId} · candidate ${review.candidateId}`,
+    `  Decision: ${decisions[review.decision]}`,
+    `  Candidate replay: ${review.verification.candidateReplay === "matched" ? "matched" : "mismatched"}`,
+    `  Next review state: ${review.promotionReadiness}`,
+    "  Actual engine activation: not applied",
+    "  Embedding adoption decision: not decided",
   ].join("\n") + "\n";
 }
 
 export function formatSearchEngineActivationPolicy(policy: SearchEngineActivationPolicy): string {
   return [
-    `검색 엔진 활성화 정책: ${policy.policyId}`,
-    `  reviewer ${policy.allowedReviewerIds.length}명 · operator ${policy.allowedOperatorIds.length}명`,
-    `  허용 후보: ${policy.allowedCandidateIds.join(", ")}`,
-    `  최소 후보 승 ${policy.minimumCandidateWins} · 허용 baseline 승 0`,
-    `  파일: .lervo/search-engine-policies/${policy.policyId}.yaml`,
+    `Search engine activation policy: ${policy.policyId}`,
+    `  Reviewers ${policy.allowedReviewerIds.length} · operators ${policy.allowedOperatorIds.length}`,
+    `  Allowed candidates: ${policy.allowedCandidateIds.join(", ")}`,
+    `  Minimum candidate wins ${policy.minimumCandidateWins} · allowed baseline wins 0`,
+    `  File: .lervo/search-engine-policies/${policy.policyId}.yaml`,
   ].join("\n") + "\n";
 }
 
 export function formatSearchEngineActivation(activation: SearchEngineActivation): string {
   const action = {
-    activate_candidate: "후보 선택",
-    refresh_candidate: "후보 검증 원본 갱신",
-    rollback: "이전 선택으로 rollback",
+    activate_candidate: "activate candidate",
+    refresh_candidate: "refresh candidate verification source",
+    rollback: "roll back to previous selection",
   } as const;
   return [
-    `검색 엔진 선택 전이: ${activation.activationId}`,
-    `  순서 ${activation.sequence} · ${action[activation.action]}`,
+    `Search engine selection transition: ${activation.activationId}`,
+    `  Sequence ${activation.sequence} · ${action[activation.action]}`,
     `  ${activation.previousSelection.engine.id}-v${activation.previousSelection.engine.version}` +
       ` → ${activation.selected.engine.id}-v${activation.selected.engine.version}`,
-    `  정책 ${activation.policyId} · operator ${activation.operatorId}`,
-    "  선택 기록: 저장됨",
-    "  임베딩 도입 판단: 아직 결정하지 않음",
+    `  Policy ${activation.policyId} · operator ${activation.operatorId}`,
+    "  Selection record: stored",
+    "  Embedding adoption decision: not decided",
   ].join("\n") + "\n";
 }
 
@@ -120,9 +120,9 @@ export function formatSearchEngineStatus(status: {
   verificationReceiptId: string | null;
 }): string {
   return [
-    `검색 엔진 선택 원본: ${status.selection.engine.id}-v${status.selection.engine.version}`,
-    `  선택 전이: ${status.selectionTransitionId ?? "없음"} · 전체 ${status.transitions}개`,
-    `  검색 resolver: ${status.resolverState === "ready" ? "검증 완료" : `사용 불가 (${status.failureCode})`}`,
-    `  후보 검증 receipt: ${status.verificationReceiptId ?? "없음"}`,
+    `Search engine selection source: ${status.selection.engine.id}-v${status.selection.engine.version}`,
+    `  Selection transition: ${status.selectionTransitionId ?? "none"} · total ${status.transitions}`,
+    `  Search resolver: ${status.resolverState === "ready" ? "verified" : `unavailable (${status.failureCode})`}`,
+    `  Candidate verification receipt: ${status.verificationReceiptId ?? "none"}`,
   ].join("\n") + "\n";
 }

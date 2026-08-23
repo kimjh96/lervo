@@ -13,7 +13,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_reconciliation_arguments_invalid",
-    "CLI 최초 게시 결과 대조 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication reconciliation command arguments are invalid.",
   );
 }
 
@@ -67,7 +67,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_reconciliation_failed: CLI 최초 게시 결과를 대조하지 못했습니다.",
+    "first_publication_reconciliation_failed: The CLI first-publication result could not be reconciled.",
   );
   process.exitCode = 1;
 }

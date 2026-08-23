@@ -17,7 +17,7 @@ const maximumAuthorizationBytes = 128 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_approval_source_invalid",
-    "CLI npm stage 승인 권한 원본이 올바르지 않습니다.",
+    "The CLI npm stage approval authorization source is invalid.",
   );
 }
 

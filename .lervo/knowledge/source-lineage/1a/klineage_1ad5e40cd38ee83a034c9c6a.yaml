@@ -1,0 +1,11 @@
+fromPath: docs/adr/0061-fail-closed-operational-search-engine-resolution.md
+identityPath: docs/adr/0061-fail-closed-operational-search-engine-resolution.md
+kind: document_move
+lineageId: klineage_1ad5e40cd38ee83a034c9c6a
+operationId: kdocop_d85e97022dab5a525c27e6c4
+schemaVersion: 1
+sourceContentHash: sha256:d0284991986323b0e11fb6258cd62308f760c42e256a874fc72c4a16cf41f502
+sourceId: src_bd813fa76ee3eb443b335987
+sourceUnitBindingDigest: sha256:cbe1610619fdc98a8b667d83b4664e6f7428616e6e51620888d8a4b2ef4d63c6
+sourceUnitCount: 5
+toPath: docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md

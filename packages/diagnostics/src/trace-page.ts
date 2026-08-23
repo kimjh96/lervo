@@ -27,7 +27,7 @@ type CreateTracePageInput = {
 
 function assertPageSize(limit: number): void {
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > maximumTracePageSize) {
-    throw new RangeError(`trace page 크기는 1 이상 ${maximumTracePageSize} 이하여야 합니다.`);
+    throw new RangeError(`The trace page size must be between 1 and ${maximumTracePageSize}.`);
   }
 }
 
@@ -35,7 +35,7 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
   const integrity = input.events.verifyIntegrity();
   const cursor = input.cursor === undefined ? null : decodeTraceCursor(input.cursor);
   if (input.cursor !== undefined && cursor === null) {
-    throw new DiagnosticsError("trace_cursor_invalid", "trace cursor가 올바르지 않습니다.");
+    throw new DiagnosticsError("trace_cursor_invalid", "The trace cursor is invalid.");
   }
   if (cursor !== null && (
     cursor.projectId !== input.projectId ||
@@ -44,13 +44,13 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
   )) {
     throw new DiagnosticsError(
       "trace_cursor_stale",
-      "trace cursor를 만든 뒤 event 원본이 변경되었습니다. 첫 page부터 다시 조회하세요.",
+      "The event source changed after the trace cursor was created. Query again from the first page.",
     );
   }
 
   const latest = input.events.latest();
   if (latest === null) {
-    throw new DiagnosticsError("trace_empty", "추적할 로컬 event가 없습니다.");
+    throw new DiagnosticsError("trace_empty", "There are no local events to trace.");
   }
   const selector = input.cursor === undefined ? input.selector : undefined;
   const runId = cursor?.runId ?? (
@@ -71,7 +71,7 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
     filteredEventTypes!.length !== requestedEventTypes.length ||
     filteredEventTypes!.some((eventType) => !knownEventTypes.has(eventType))
   )) {
-    throw new TypeError("trace event type filter가 올바르지 않습니다.");
+    throw new TypeError("The trace event type filter is invalid.");
   }
   const candidates = filteredEventTypes === undefined
     ? input.events.list({ runId, afterSeq, limit: limit + 1 })
@@ -86,10 +86,10 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
     throw new DiagnosticsError(
       code,
       code === "trace_cursor_invalid"
-        ? "trace cursor 뒤에서 다음 event를 찾지 못했습니다."
+        ? "No next event was found after the trace cursor."
         : code === "trace_filter_empty"
-          ? "요청한 event type에 해당하는 기록이 없습니다."
-          : "요청한 run ID의 event가 없습니다.",
+          ? "There are no records for the requested event type."
+          : "There are no events for the requested run ID.",
     );
   }
   const events = candidates.slice(0, limit);

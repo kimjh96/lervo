@@ -61,7 +61,7 @@ export async function readLocalSearchRolloutActionStatus(input: {
       : record.rolloutAction.rolloutReviewId;
     const review = reviews.get(reviewId);
     if (review === undefined || review.projectId !== input.projectId) {
-      throw new SearchLocalError("observation_invalid", "검색 rollout 조치의 검토 원본을 찾을 수 없습니다.");
+      throw new SearchLocalError("observation_invalid", "The review source for the search rollout action was not found.");
     }
     const currentEvidence = rolloutActionEvidenceThrough(
       review,

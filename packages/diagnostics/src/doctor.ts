@@ -25,23 +25,23 @@ function assertEnvironmentInspections(
   for (const inspection of inspections) {
     const { check, issues } = inspection;
     if (!allowed.has(check.checkId) || seen.has(check.checkId)) {
-      throw new TypeError(`Doctor 환경 검사 ID가 유효하지 않습니다: ${check.checkId}`);
+      throw new TypeError(`Doctor environment check ID is invalid: ${check.checkId}`);
     }
     if (!Number.isSafeInteger(check.observedCount) || check.observedCount < 0) {
-      throw new TypeError(`Doctor 관측 개수가 유효하지 않습니다: ${check.checkId}`);
+      throw new TypeError(`Doctor observation count is invalid: ${check.checkId}`);
     }
     if (
       (check.status === "healthy" && issues.length !== 0) ||
       (check.status !== "healthy" && issues.length === 0) ||
       (check.version !== undefined && check.status !== "healthy")
     ) {
-      throw new TypeError(`Doctor 검사 상태와 근거가 일치하지 않습니다: ${check.checkId}`);
+      throw new TypeError(`Doctor check status and evidence do not agree: ${check.checkId}`);
     }
     seen.add(check.checkId);
   }
   const missing = required.filter((checkId) => !seen.has(checkId));
   if (missing.length > 0) {
-    throw new TypeError(`Doctor 환경 검사가 누락되었습니다: ${missing.join(", ")}`);
+    throw new TypeError(`Doctor environment checks are missing: ${missing.join(", ")}`);
   }
 }
 
@@ -68,7 +68,7 @@ export async function createDoctorReport(input: CreateDoctorReportInput): Promis
   const duplicateCheck = checks.find((check, index) =>
     checks.findIndex((candidate) => candidate.checkId === check.checkId) !== index);
   if (duplicateCheck !== undefined) {
-    throw new TypeError(`Doctor 검사 ID가 중복되었습니다: ${duplicateCheck.checkId}`);
+    throw new TypeError(`Doctor check ID is duplicated: ${duplicateCheck.checkId}`);
   }
   issues.push(...inspections.flatMap((inspection) => inspection.issues));
   const status = checks.some((check) => check.status === "unhealthy")

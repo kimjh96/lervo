@@ -1,0 +1,11 @@
+fromPath: docs/adr/0034-project-registration-and-event-sync-contract.md
+identityPath: docs/adr/0034-project-registration-and-event-sync-contract.md
+kind: document_move
+lineageId: klineage_f0c274ddea607a7c29d161eb
+operationId: kdocop_3557ac3e5865deae3aa9c423
+schemaVersion: 1
+sourceContentHash: sha256:6c86b4aeb76af72586c58601c1ce7bce666ffa5d6606f4936cf35a6497accbb6
+sourceId: src_33964eba7ac3222ceb81c16e
+sourceUnitBindingDigest: sha256:884e9871231fa535819dc74c87044fd57dd5469e6d4461f86b9c1e3db8343e8d
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/sync/0034-project-registration-and-event-sync-contract.md

@@ -60,7 +60,7 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
   assert.equal(manifest.version, expectedManifest.version);
   assert.equal(
     manifest.description,
-    "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+    "Lervo CLI for managing AI agent execution and evidence in local repositories",
   );
   assert.deepEqual(manifest.keywords, ["ai-agents", "local-first", "orchestration"]);
   assert.equal(manifest.license, expectedManifest.license);
@@ -109,15 +109,22 @@ async function verifyPackageGuide(consumerRoot) {
   assert.equal(guide.startsWith("# @lervo/cli\n"), true);
   assert.deepEqual(
     [...guide.matchAll(/^## (.+)$/gmu)].map((match) => match[1]),
-    ["준비", "설치", "첫 실행"],
+    [
+      "Requirements",
+      "Install",
+      "First use",
+      "Semantic knowledge",
+      "Documents and provider entrypoints",
+      "Exchange and managed execution",
+    ],
   );
   for (const requiredText of [
-    "Node.js 22.13 이상",
+    "Node.js 22.13 or later",
     "npm install --global @lervo/cli",
     "lervo init --name my-project",
     "lervo init --dry-run --name my-project",
     "lervo --help",
-    "Hub 연결 없이",
+    "without a Hub",
   ]) {
     assert.equal(guide.includes(requiredText), true);
   }
@@ -160,12 +167,12 @@ async function main() {
     await verifyPackageGuide(consumerRoot);
     const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
     await verifyConsumerCommands(consumerRoot, cliManifest.version);
-    console.log(`Claude native runtime 확인: ${nativeRuntime.packageName}`);
+    console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 
-  console.log(`Packed Lervo CLI 소비자 설치 검사 통과 (${cliManifest.version})`);
+  console.log(`Packed Lervo CLI consumer installation check passed (${cliManifest.version})`);
 }
 
 await main();

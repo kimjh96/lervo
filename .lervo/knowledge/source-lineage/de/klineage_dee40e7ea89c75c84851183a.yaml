@@ -1,0 +1,11 @@
+fromPath: docs/adr/0168-platform-bound-standalone-hub-distribution.md
+identityPath: docs/adr/0168-platform-bound-standalone-hub-distribution.md
+kind: document_move
+lineageId: klineage_dee40e7ea89c75c84851183a
+operationId: kdocop_a28eb5fe9eafe640bd3309b2
+schemaVersion: 1
+sourceContentHash: sha256:34c14ec6067fefc10b92e2795b9db4901103cd400e633bd4a00ae24d47fce721
+sourceId: src_874fbdceef4b5990ca5b47a5
+sourceUnitBindingDigest: sha256:66cc4252174c16bfaa045c9ffa48f0bc615b072452dea777db6e26185dfdfe2b
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0168-platform-bound-standalone-hub-distribution.md

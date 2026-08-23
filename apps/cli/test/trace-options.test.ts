@@ -39,17 +39,17 @@ describe("trace command options", () => {
   });
 
   it.each([
-    [["one", "two"], "run ID는 하나만"],
-    [["last", "--cursor", "trc_fixture"], "cursor는 run ID"],
-    [["last", "--capabilities"], "capabilities는 run ID"],
-    [["--capabilities", "--root", "."], "capabilities는 run ID"],
-    [["--capabilities", "--page-size", "10"], "capabilities는 run ID"],
-    [["--full", "--page-size", "10"], "full은 page-size"],
-    [["--full", "--event-type", "run.failed"], "full은 page-size"],
-    [["last", "--deliberation", "dlb_chat0001"], "deliberation은 run ID"],
-    [["--page-size", "0"], "page-size는 1 이상"],
-    [["--event-type", "unknown.event"], "event-type은 지원하는 값"],
-    [["--event-type", "run.failed", "--event-type", "run.failed"], "중복 없이"],
+    [["one", "two"], "Only one run ID"],
+    [["last", "--cursor", "trc_fixture"], "cursor cannot be combined with run ID"],
+    [["last", "--capabilities"], "capabilities cannot be combined with run ID"],
+    [["--capabilities", "--root", "."], "capabilities cannot be combined with run ID"],
+    [["--capabilities", "--page-size", "10"], "capabilities cannot be combined with run ID"],
+    [["--full", "--page-size", "10"], "full cannot be combined with page-size"],
+    [["--full", "--event-type", "run.failed"], "full cannot be combined with page-size"],
+    [["last", "--deliberation", "dlb_chat0001"], "deliberation cannot be combined with run ID"],
+    [["--page-size", "0"], "page-size must be between 1"],
+    [["--event-type", "unknown.event"], "event-type values must be supported"],
+    [["--event-type", "run.failed", "--event-type", "run.failed"], "unique"],
   ])("rejects contradictory or invalid options: %j", (args, message) => {
     expect(() => parseTraceCommandOptions(args)).toThrow(message);
   });

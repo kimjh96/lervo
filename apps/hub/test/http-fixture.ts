@@ -17,7 +17,7 @@ export const token = "lervo-http-token-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 export const allowedProject: HubProjectTraceSummary = {
   destinationId: "hub:primary",
   projectId: "prj_allowed01",
-  projectName: "허용된 project",
+  projectName: "allowed project",
   registrationId: "hpr_" + "a".repeat(64),
   projectIdentityHash: "sha256:" + "b".repeat(64),
   projectManifestHash: "sha256:" + "c".repeat(64),
@@ -32,7 +32,7 @@ export const allowedProject: HubProjectTraceSummary = {
 export const secondProject: HubProjectTraceSummary = {
   ...allowedProject,
   projectId: "prj_allowed02",
-  projectName: "두 번째 project",
+  projectName: "second project",
 };
 export const credentials: HubBearerCredential[] = [{
   token,

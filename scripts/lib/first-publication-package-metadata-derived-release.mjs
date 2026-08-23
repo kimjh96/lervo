@@ -17,7 +17,7 @@ import {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_package_metadata_release_regeneration_invalid",
-    "CLI 최초 게시 package metadata 생성 원본을 일관되게 다시 만들지 못했습니다.",
+    "The CLI first-publication package metadata generation sources could not be reproduced consistently.",
   );
 }
 
@@ -31,6 +31,7 @@ function parseCandidateManifest(candidateResult) {
 
 function expectedReleaseManifest(current, packageManifest) {
   const expected = structuredClone(current);
+  expected.artifact.description = packageManifest.description;
   expected.artifact.repository = packageManifest.repository.url;
   expected.artifact.license = packageManifest.license;
   expected.artifact.registry = packageManifest.publishConfig.registry;

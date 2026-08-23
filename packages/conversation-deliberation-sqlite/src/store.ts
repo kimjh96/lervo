@@ -36,7 +36,7 @@ const leaseConfiguration: LeaseStoreConfiguration<
   table: "conversation_deliberation_jobs",
   leasePrefix: "cdl",
   expiredFailureCode: "worker_lease_expired",
-  label: "Conversation 숙의 queue",
+  label: "conversation deliberation queue",
   decode: decodeConversationDeliberationJob,
 };
 
@@ -76,7 +76,7 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
 
   async enqueue(input: Parameters<ConversationDeliberationJobStore["enqueue"]>[0]) {
     this.assertOpen();
-    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "숙의 요청");
+    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "deliberation request");
     const candidate = decodeConversationDeliberationJob({
       project_id: input.projectId,
       source_event_id: input.sourceEventId,
@@ -112,7 +112,7 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
         ) {
           throw new ConversationDeliberationSQLiteError(
             "deliberation_request_conflict",
-            "같은 Conversation event가 다른 숙의 요청에 사용되었습니다.",
+            "The same conversation event was used for a different deliberation request.",
           );
         }
         this.database.exec("COMMIT;");
@@ -124,13 +124,13 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new ConversationDeliberationSQLiteError(
           "integrity_failed",
-          "Conversation 숙의 queue count가 유효하지 않습니다.",
+          "The conversation deliberation queue count is invalid.",
         );
       }
       if (count >= this.maxRecords) {
         throw new ConversationDeliberationSQLiteError(
           "capacity_exceeded",
-          "Conversation 숙의 queue capacity를 초과했습니다.",
+          "The conversation deliberation queue capacity was exceeded.",
         );
       }
       this.database.prepare(`
@@ -237,7 +237,7 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
     if (this.closed) {
       throw new ConversationDeliberationSQLiteError(
         "closed",
-        "닫힌 Conversation 숙의 queue입니다.",
+        "The conversation deliberation queue is closed.",
       );
     }
   }

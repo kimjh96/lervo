@@ -1,13 +1,14 @@
-import { defaultKoreanWritingContract } from "@lervo/core";
 import type {
   DeliberationPolicy,
   DeliberationResponsibility,
   DeliberationWorkflowSource,
   RoleProfile,
+  WritingContract,
 } from "@lervo/schemas";
 import { writingPolicyHash } from "@lervo/writing-contract";
 
 import type { RunProvider } from "./managed-run.js";
+import { deliberationLanguageFor } from "./deliberation-language.js";
 
 export const deliberationRoleIds = {
   proposer: "deliberation-proposer",
@@ -23,6 +24,7 @@ export interface DeliberationParticipant {
 
 export interface DeliberationExecutionPlan {
   policy: DeliberationPolicy;
+  writingContract: WritingContract;
   participants: readonly DeliberationParticipant[];
   proposer: DeliberationParticipant;
   reviewers: readonly DeliberationParticipant[];
@@ -35,6 +37,7 @@ function participantRole(input: {
   description: string;
   verificationSuiteIds: readonly string[];
   allowedRoleIds: readonly string[];
+  writingContract: WritingContract;
 }): RoleProfile {
   return {
     schemaVersion: 1,
@@ -65,8 +68,8 @@ function participantRole(input: {
       citationsRequired: true,
       presentation: {
         audience: "human",
-        locale: "ko-KR",
-        writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+        locale: input.writingContract.locale,
+        writingPolicyId: input.writingContract.writingPolicyId,
       },
     },
     verification: {
@@ -88,6 +91,7 @@ function policy(input: {
   verificationSuiteIds: readonly string[];
   participants: readonly DeliberationParticipant[];
   decisionOwnerRoleId: string;
+  writingContract: WritingContract;
 }): DeliberationPolicy {
   return {
     schemaVersion: 1,
@@ -111,8 +115,8 @@ function policy(input: {
     },
     publication: {
       surface: "chat",
-      writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
-      writingPolicyHash: writingPolicyHash(defaultKoreanWritingContract),
+      writingPolicyId: input.writingContract.writingPolicyId,
+      writingPolicyHash: writingPolicyHash(input.writingContract),
       requiresWritingPermit: true,
     },
   };
@@ -123,6 +127,7 @@ function executionPlan(input: {
   policyId: string;
   maxRounds: number;
   verificationSuiteIds: readonly string[];
+  writingContract: WritingContract;
   definitions: readonly {
     roleId: string;
     name: string;
@@ -139,6 +144,7 @@ function executionPlan(input: {
       description: definition.description,
       verificationSuiteIds: input.verificationSuiteIds,
       allowedRoleIds: roleIds,
+      writingContract: input.writingContract,
     }),
     provider: definition.provider,
     responsibilities: [...definition.responsibilities],
@@ -150,7 +156,7 @@ function executionPlan(input: {
   const verifier = participants.find((participant) =>
     participant.responsibilities.includes("verifier"));
   if (proposer === undefined || reviewers.length === 0 || verifier === undefined) {
-    throw new Error("숙의 실행 역할을 정책에서 해석하지 못했습니다.");
+    throw new Error("The deliberation execution roles could not be resolved from the policy.");
   }
   return {
     policy: policy({
@@ -160,7 +166,9 @@ function executionPlan(input: {
       verificationSuiteIds: input.verificationSuiteIds,
       participants,
       decisionOwnerRoleId: proposer.role.roleId,
+      writingContract: input.writingContract,
     }),
+    writingContract: structuredClone(input.writingContract),
     participants,
     proposer,
     reviewers,
@@ -173,22 +181,25 @@ export function createInlineDeliberationExecutionPlan(input: {
   proposerProvider: RunProvider;
   reviewerProvider: RunProvider;
   verificationSuiteIds: readonly string[];
+  writingContract: WritingContract;
 }): DeliberationExecutionPlan {
+  const language = deliberationLanguageFor(input.writingContract.locale);
   return executionPlan({
     projectId: input.projectId,
     policyId: "deliberation_cli.two-provider-v1",
     maxRounds: 2,
     verificationSuiteIds: input.verificationSuiteIds,
+    writingContract: input.writingContract,
     definitions: [{
       roleId: deliberationRoleIds.proposer,
-      name: "제안·결정 역할",
-      description: "근거가 있는 제안과 수정안, 최종 결정을 작성합니다.",
+      name: language.roles.proposerName,
+      description: language.roles.proposerDescription,
       provider: input.proposerProvider,
       responsibilities: ["proposer", "decision_owner"],
     }, {
       roleId: deliberationRoleIds.reviewer,
-      name: "독립 검토·검증 역할",
-      description: "제안을 독립적으로 검토하고 프로젝트 검증 결과를 설명합니다.",
+      name: language.roles.reviewerName,
+      description: language.roles.reviewerDescription,
       provider: input.reviewerProvider,
       responsibilities: ["reviewer", "verifier"],
     }],
@@ -198,12 +209,14 @@ export function createInlineDeliberationExecutionPlan(input: {
 export function createStoredDeliberationExecutionPlan(input: {
   projectId: string;
   source: DeliberationWorkflowSource;
+  writingContract: WritingContract;
 }): DeliberationExecutionPlan {
   return executionPlan({
     projectId: input.projectId,
     policyId: input.source.policyId,
     maxRounds: input.source.maxRounds,
     verificationSuiteIds: input.source.requiredVerificationSuiteIds,
+    writingContract: input.writingContract,
     definitions: input.source.participants.map((participant) => ({
       roleId: participant.roleId,
       name: participant.name,
@@ -216,12 +229,14 @@ export function createStoredDeliberationExecutionPlan(input: {
 
 export function createDeliberationEvaluatorRole(
   verificationSuiteId: string,
+  writingContract: WritingContract,
 ): RoleProfile {
+  const language = deliberationLanguageFor(writingContract.locale);
   return {
     schemaVersion: 1,
     roleId: deliberationRoleIds.evaluator,
-    name: "한국어 문장 평가 역할",
-    description: "공개할 문장이 writing 계약을 지키는지 별도 pass에서 판정합니다.",
+    name: language.roles.evaluatorName,
+    description: language.roles.evaluatorDescription,
     requestTypes: ["writing.evaluation"],
     requiredInputs: [],
     contextPolicy: {

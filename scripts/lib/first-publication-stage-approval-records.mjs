@@ -10,7 +10,7 @@ const integrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 function fail(code = "first_publication_stage_approval_record_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 승인 기록이 올바르지 않습니다.",
+    "The CLI npm stage approval record is invalid.",
   );
 }
 

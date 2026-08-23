@@ -12,7 +12,7 @@ import {
   createConversationParticipationPolicy,
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { handleConversationEvent } from "@lervo/interaction";
 import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
@@ -73,7 +73,7 @@ function role(roleId: "reviewer" | "planner"): RoleProfile {
     schemaVersion: 1,
     roleId,
     name: roleId,
-    description: `${roleId} 역할로 대화에 답합니다.`,
+    description: `Responds to the conversation in the ${roleId} role.`,
     requestTypes: ["conversation.response"],
     requiredInputs: [],
     contextPolicy: {
@@ -99,7 +99,7 @@ function role(roleId: "reviewer" | "planner"): RoleProfile {
       presentation: {
         audience: "human",
         locale: "ko-KR",
-        writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+        writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
       },
     },
     verification: { suiteIds: ["conversation.reply"], failureDisposition: "fail_run" },
@@ -142,11 +142,11 @@ describe("managed conversation responder", () => {
       mkdir(resolve(root, ".lervo/state/cas"), { recursive: true }),
       mkdir(resolve(root, "docs"), { recursive: true }),
     ]);
-    const writingContent = `${JSON.stringify(defaultKoreanWritingContract, null, 2)}\n`;
-    const reviewerContent = "검토 역할은 위험과 근거를 먼저 확인합니다.\n";
-    const plannerContent = "계획 역할은 다음 행동과 순서를 먼저 설명합니다.\n";
+    const writingContent = `${JSON.stringify(defaultEnglishWritingContract, null, 2)}\n`;
+    const reviewerContent = "The reviewer role checks risks and evidence first.\n";
+    const plannerContent = "The planner role explains next actions and order first.\n";
     await Promise.all([
-      writeFile(resolve(root, "AGENTS.md"), "답변은 자연스러운 한국어 문장으로 작성합니다.\n"),
+      writeFile(resolve(root, "AGENTS.md"), "Write responses in natural English sentences.\n"),
       writeFile(resolve(root, writingPath), writingContent),
       writeFile(resolve(root, "docs/reviewer.md"), reviewerContent),
       writeFile(resolve(root, "docs/planner.md"), plannerContent),
@@ -156,7 +156,7 @@ describe("managed conversation responder", () => {
       path: resolve(root, ".lervo/state/events.sqlite"),
       projectId,
     });
-    const rawMessage = "이 설계의 위험과 다음 작업을 함께 알려주세요.";
+    const rawMessage = "Describe the risks in this design and the next task.";
     const storedMessage = await artifacts.put(rawMessage);
     const event = createConversationInboundEvent({
       sourceEventKeyHash: hashConversationSourceEventKey("native/private/message-1"),
@@ -227,12 +227,12 @@ describe("managed conversation responder", () => {
     const codexClient = new ConversationCodexClient(
       "codex-review-thread",
       "codex-review-turn",
-      "검토 결과, 현재 설계는 역할별 맥락을 분리해 위험을 줄였습니다.",
+      "The review found that the current design reduces risk by separating context by role.",
     );
     const claudeClient = new ConversationClaudeClient(
       "11111111-1111-4111-8111-111111111111",
       "44444444-4444-4444-8444-444444444444",
-      "다음 작업은 플랫폼 인증 어댑터를 이 공통 계약에 연결하는 것입니다.",
+      "The next task is to connect the platform authentication adapter to this shared contract.",
     );
     const now = clock();
     const roleDocuments = {
@@ -308,18 +308,18 @@ describe("managed conversation responder", () => {
           })],
           handoffs: [],
           writingPolicy: {
-            writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+            writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
             documentId: "doc_writing_policy",
             contentHash: hash(writingContent),
           },
-          writingContract: defaultKoreanWritingContract,
+          writingContract: defaultEnglishWritingContract,
           resolvedSkills: [],
         };
       },
     });
     const verifier = new VerifiedConversationPublication({
       artifactStore: artifacts,
-      resolveWritingContract: () => defaultKoreanWritingContract,
+      resolveWritingContract: () => defaultEnglishWritingContract,
     });
 
     const reviewer = await responder.respond({ event, policy: policies.reviewer, decision: decisions.reviewer });

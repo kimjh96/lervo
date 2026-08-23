@@ -23,7 +23,7 @@ export async function inspectKnowledgeReview(input: {
   const add = (code: DoctorIssue["code"], message: string) =>
     issues.push({ code, eventId: input.event.eventId, message });
   if (!validateSchema("knowledgeCandidateReviewedEventPayload", input.event.payload).valid) {
-    add("review_event_mismatch", "지식 검토 event가 현재 payload 계약과 다릅니다.");
+    add("review_event_mismatch", "The knowledge review event differs from the current payload contract.");
     return issues;
   }
   const payload = input.event.payload as unknown as KnowledgeCandidateReviewedEventPayload;
@@ -52,14 +52,14 @@ export async function inspectKnowledgeReview(input: {
         JSON.stringify(payload.resolvedConflictCandidateIds)
     ) throw new Error("coordinate");
   } catch {
-    add("review_artifact_invalid", "지식 검토 승인 CAS 원본을 확인할 수 없습니다.");
+    add("review_artifact_invalid", "The knowledge review approval CAS source cannot be verified.");
     return issues;
   }
   if (!input.events.some((event) =>
     event.type === "knowledge.candidate.created" &&
     event.payload.candidateId === payload.candidateId &&
     event.payload.candidateContentHash === payload.candidateContentHash)) {
-    add("review_candidate_missing", "지식 검토가 가리키는 candidate event가 없습니다.");
+    add("review_candidate_missing", "The candidate event referenced by the knowledge review is missing.");
   }
   return issues;
 }

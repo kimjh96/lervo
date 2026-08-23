@@ -18,7 +18,7 @@ export interface HubControlReviewGrantCoordinate {
 
 function instant(value: string): number {
   const milliseconds = Date.parse(value);
-  if (!Number.isFinite(milliseconds)) throw new Error("Hub control review grant 시각이 유효하지 않습니다.");
+  if (!Number.isFinite(milliseconds)) throw new Error("The Hub control review grant time is invalid.");
   return milliseconds;
 }
 
@@ -46,16 +46,16 @@ export class HubControlReviewGrants {
     this.secret = Buffer.from(secret);
     this.ttlSeconds = options.ttlSeconds ?? DEFAULT_TTL_SECONDS;
     if (this.secret.byteLength < MINIMUM_SECRET_BYTES) {
-      throw new Error(`Hub control review grant secret은 ${MINIMUM_SECRET_BYTES} bytes 이상이어야 합니다.`);
+      throw new Error(`The Hub control review grant secret must be at least ${MINIMUM_SECRET_BYTES} bytes.`);
     }
     if (!Number.isSafeInteger(this.ttlSeconds) || this.ttlSeconds < 1 ||
       this.ttlSeconds > MAXIMUM_TTL_SECONDS) {
-      throw new Error(`Hub control review grant TTL은 1초 이상 ${MAXIMUM_TTL_SECONDS}초 이하여야 합니다.`);
+      throw new Error(`The Hub control review grant TTL must be between 1 and ${MAXIMUM_TTL_SECONDS} seconds.`);
     }
   }
 
   issue(input: HubControlReviewGrantCoordinate & { issuedAt: string }): string {
-    if (!validCoordinate(input)) throw new Error("Hub control review grant 좌표가 유효하지 않습니다.");
+    if (!validCoordinate(input)) throw new Error("The Hub control review grant coordinates are invalid.");
     const expiresAtSeconds = Math.floor(instant(input.issuedAt) / 1_000) + this.ttlSeconds;
     const digest = createHmac("sha256", this.secret)
       .update(message(input, expiresAtSeconds), "utf8")

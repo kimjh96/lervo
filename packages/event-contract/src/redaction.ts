@@ -4,6 +4,7 @@ import {
   type EventType,
   type KnowledgeCandidateCreatedEventPayload,
   type KnowledgeCandidateReviewedEventPayload,
+  type KnowledgeReconciliationReviewedEventPayload,
   type KnowledgeStaleDetectedEventPayload,
   type KnowledgeVerifiedEventPayload,
   type RunCompletedEventPayload,
@@ -34,16 +35,18 @@ export const eventPayloadAllowlists = {
     "score",
     "selectionPolicyId",
     "selectionPolicyVersion",
-    "selectionMaximum"
+    "selectionMaximum",
+    "knowledgeContext"
   ],
-  "context.selected": ["documentId", "reasonCode", "ruleId", "required", "scope"],
+  "context.selected": ["documentId", "reasonCode", "ruleId", "required", "scope", "knowledgeContext"],
   "document.loaded": [
     "evidenceReceiptId",
     "documentId",
     "contentHash",
     "byteCount",
     "scope",
-    "sourceRevision"
+    "sourceRevision",
+    "knowledgeContext"
   ],
   "context.injected": [
     "receiptId",
@@ -153,8 +156,28 @@ export const eventPayloadAllowlists = {
     "decision",
     "policyId",
     "policyVersion",
+    "itemApprovalDigest",
     "repositoryRevision",
     "resolvedConflictCandidateIds"
+  ],
+  "knowledge.reconciliation.reviewed": [
+    "compilationId",
+    "candidateArtifactHash",
+    "reconciliationPlanId",
+    "sourceSnapshotId",
+    "registryDigest",
+    "reviewId",
+    "reviewArtifactId",
+    "reviewArtifactHash",
+    "decision",
+    "policyId",
+    "policyVersion",
+    "itemApprovalDigest",
+    "acceptedDispositionIds",
+    "skippedDispositionIds",
+    "dispositionListTruncated",
+    "dispositionCount",
+    "reviewedAt"
   ],
   "knowledge.verified": [
     "knowledgeId",
@@ -178,6 +201,33 @@ export const eventPayloadAllowlists = {
     "missingPaths",
     "resultArtifactId",
     "resultContentHash"
+  ],
+  "knowledge.materialization.applied": [
+    "operation",
+    "planId",
+    "sourceSnapshotId",
+    "policyHash",
+    "compilerId",
+    "compilerVersion",
+    "compilerBuildId",
+    "approvalDigest",
+    "coverage",
+    "bundleIds",
+    "createdConceptIds",
+    "updatedConceptIds",
+    "deprecatedConceptIds",
+    "conceptListTruncated",
+    "resultArtifactId",
+    "resultArtifactHash",
+    "createdCount",
+    "updatedCount",
+    "unchangedCount",
+    "deletedCount",
+    "beforeRegistryDigest",
+    "afterRegistryDigest",
+    "validationReportId",
+    "validationReportHash",
+    "appliedAt"
   ],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [
@@ -274,7 +324,7 @@ function sanitizeNested(
       throw new RedactionError(
         "non_finite_number",
         path,
-        `${path}에는 유한한 숫자만 저장할 수 있습니다.`,
+        `${path} can store only finite numbers.`,
       );
     }
     return Object.is(value, -0) ? 0 : value;
@@ -283,11 +333,11 @@ function sanitizeNested(
     throw new RedactionError(
       "unsupported_value",
       path,
-      `${path}의 ${typeof value} 값은 event payload에 저장할 수 없습니다.`,
+      `A ${typeof value} value at ${path} cannot be stored in an event payload.`,
     );
   }
   if (ancestors.has(value)) {
-    throw new RedactionError("cyclic_payload", path, `${path}에서 순환 참조를 발견했습니다.`);
+    throw new RedactionError("cyclic_payload", path, `A cyclic reference was found at ${path}.`);
   }
 
   ancestors.add(value);
@@ -303,7 +353,7 @@ function sanitizeNested(
       throw new RedactionError(
         "unsupported_value",
         path,
-        `${path}에는 일반 JSON 객체만 저장할 수 있습니다.`,
+        `${path} can store only plain JSON objects.`,
       );
     }
     const output: Record<string, JsonValue> = Object.create(null) as Record<
@@ -371,6 +421,9 @@ export function sanitizeEventPayload(
     (type === "knowledge.candidate.reviewed" && !reviewCoordinateMatches(
       sanitized as unknown as KnowledgeCandidateReviewedEventPayload,
     )) ||
+    (type === "knowledge.reconciliation.reviewed" && !reconciliationReviewCoordinateMatches(
+      sanitized as unknown as KnowledgeReconciliationReviewedEventPayload,
+    )) ||
     (type === "knowledge.verified" && !verifiedCoordinateMatches(
       sanitized as unknown as KnowledgeVerifiedEventPayload,
     )) ||
@@ -394,7 +447,7 @@ export function sanitizeEventPayload(
     throw new RedactionError(
       "invalid_payload",
       "$",
-      `${type} payload가 필수 좌표와 상태 계약을 충족하지 않습니다.`,
+      `${type} payload does not satisfy the required coordinates and state contract.`,
     );
   }
 
@@ -409,6 +462,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "deliberation.completed": "deliberationCompletedEventPayload",
   "knowledge.candidate.created": "knowledgeCandidateCreatedEventPayload",
   "knowledge.candidate.reviewed": "knowledgeCandidateReviewedEventPayload",
+  "knowledge.reconciliation.reviewed": "knowledgeReconciliationReviewedEventPayload",
   "knowledge.verified": "knowledgeVerifiedEventPayload",
   "knowledge.stale.detected": "knowledgeStaleDetectedEventPayload",
   "verification.started": "verificationStartedEventPayload",
@@ -432,6 +486,21 @@ function knowledgeCandidateCoordinateMatches(
 function reviewCoordinateMatches(payload: KnowledgeCandidateReviewedEventPayload): boolean {
   return payload.approvalArtifactId ===
     `art_${payload.approvalContentHash.slice("sha256:".length)}`;
+}
+
+function reconciliationReviewCoordinateMatches(
+  payload: KnowledgeReconciliationReviewedEventPayload,
+): boolean {
+  const accepted = new Set(payload.acceptedDispositionIds);
+  const listedCount = payload.acceptedDispositionIds.length + payload.skippedDispositionIds.length;
+  return payload.reviewArtifactId ===
+    `art_${payload.reviewArtifactHash.slice("sha256:".length)}` &&
+    payload.skippedDispositionIds.every((id) => !accepted.has(id)) &&
+    listedCount <= 256 && payload.dispositionCount >= listedCount &&
+    payload.dispositionListTruncated === (payload.dispositionCount > listedCount) &&
+    (payload.decision === "approved"
+      ? payload.acceptedDispositionIds.length > 0
+      : payload.acceptedDispositionIds.length === 0);
 }
 
 function verifiedCoordinateMatches(payload: KnowledgeVerifiedEventPayload): boolean {

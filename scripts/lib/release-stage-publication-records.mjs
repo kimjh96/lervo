@@ -13,7 +13,7 @@ const sha512IntegrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 function fail(code = "release_stage_publication_record_invalid") {
   throw new ReleasePublicationAuthorizationError(
     code,
-    "CLI stage 게시 기록이 올바르지 않습니다.",
+    "The CLI stage-publication record is invalid.",
   );
 }
 

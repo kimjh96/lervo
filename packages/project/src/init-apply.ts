@@ -18,7 +18,7 @@ function resolveManagedPath(root: string, path: string): string {
   if (fromLervoRoot === "" || (!fromLervoRoot.startsWith(`..${sep}`) && fromLervoRoot !== "..")) {
     return target;
   }
-  throw new LervoProjectError("unsafe_path", `초기화 계획의 관리 경로가 아닙니다: ${path}`);
+  throw new LervoProjectError("unsafe_path", `The path is not managed by the initialization plan: ${path}`);
 }
 
 async function preflightOperation(root: string, operation: InitOperation): Promise<void> {
@@ -27,7 +27,7 @@ async function preflightOperation(root: string, operation: InitOperation): Promi
     if (entry.kind !== "missing") {
       throw new LervoProjectError(
         "plan_stale",
-        `${operation.path}이 계획 이후 생성되어 적용을 중단했습니다. 다시 dry-run 하세요.`,
+        `${operation.path} was created after the plan was generated. Run the dry run again.`,
       );
     }
     return;
@@ -37,12 +37,12 @@ async function preflightOperation(root: string, operation: InitOperation): Promi
   }
   if (operation.kind === "directory") {
     if (entry.kind !== "directory") {
-      throw new LervoProjectError("plan_stale", `${operation.path}이 계획 이후 변경되었습니다.`);
+      throw new LervoProjectError("plan_stale", `${operation.path} changed after the plan was generated.`);
     }
     return;
   }
   if (entry.kind !== "file" || contentHash(entry.content) !== operation.expectedContentHash) {
-    throw new LervoProjectError("plan_stale", `${operation.path}이 계획 이후 변경되었습니다.`);
+    throw new LervoProjectError("plan_stale", `${operation.path} changed after the plan was generated.`);
   }
 }
 
@@ -97,7 +97,7 @@ async function applyIncrementallyWithRollback(plan: InitPlan): Promise<void> {
 
 export async function applyInitPlan(plan: InitPlan): Promise<InitApplyResult> {
   if (plan.schemaVersion !== 1) {
-    throw new LervoProjectError("contract_invalid", "지원하지 않는 초기화 계획 버전입니다.");
+    throw new LervoProjectError("contract_invalid", "The initialization plan version is unsupported.");
   }
   if (plan.status === "blocked" || plan.projectManifest === null) {
     const conflicts = plan.operations
@@ -108,7 +108,7 @@ export async function applyInitPlan(plan: InitPlan): Promise<InitApplyResult> {
       .map((operation) => operation.reason);
     throw new LervoProjectError(
       "init_conflict",
-      conflicts.length > 0 ? conflicts.join("\n") : "초기화 계획을 적용할 수 없습니다.",
+      conflicts.length > 0 ? conflicts.join("\n") : "The initialization plan cannot be applied.",
     );
   }
 

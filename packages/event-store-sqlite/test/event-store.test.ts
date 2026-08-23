@@ -38,7 +38,7 @@ function draft(overrides: Partial<EventDraft> = {}): EventDraft {
       requestDigest:
         "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       role: "developer",
-      rawPrompt: "저장하면 안 되는 원문",
+      rawPrompt: "source text that must not be stored",
     },
     ...overrides,
   };
@@ -96,7 +96,7 @@ describe("SQLite append-only event store", () => {
       path: "$.rawPrompt",
       reason: "not_allowlisted",
     });
-    expect(JSON.stringify(store.get(result.event.eventId))).not.toContain("저장하면 안 되는 원문");
+    expect(JSON.stringify(store.get(result.event.eventId))).not.toContain("source text that must not be stored");
     store.close();
   });
 

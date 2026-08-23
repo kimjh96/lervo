@@ -11,7 +11,7 @@ export async function ensureDatabasePath(path: string): Promise<string> {
     if (stats.isSymbolicLink() || !stats.isFile()) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite 경로는 일반 파일이어야 하며 심볼릭 링크일 수 없습니다.",
+        "The Hub sync SQLite path must be a regular file and cannot be a symbolic link.",
       );
     }
   } catch (error) {

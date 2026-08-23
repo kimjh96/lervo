@@ -15,7 +15,7 @@ const maximumReconciliationReportBytes = 128 * 1024;
 function fail(code = "first_publication_stage_evidence_set_source_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 stage 증거 원본 집합이 올바르지 않습니다.",
+    "The CLI first-publication stage evidence source set is invalid.",
   );
 }
 

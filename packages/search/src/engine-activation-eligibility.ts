@@ -14,7 +14,7 @@ export function assertSearchEngineActivationOperator(
 ): void {
   assertSearchEngineActivationPolicy(policy);
   if (!SOURCE_ID_PATTERN.test(operatorId) || !policy.allowedOperatorIds.includes(operatorId)) {
-    throw new SearchError("engine_activation_not_eligible", "활성화 정책이 이 operator를 허용하지 않습니다.");
+    throw new SearchError("engine_activation_not_eligible", "The activation policy does not allow this operator.");
   }
 }
 
@@ -44,6 +44,6 @@ export function assertSearchEngineActivationEvidence(input: {
     !input.policy.allowedCandidateIds.includes(input.review.candidateId) ||
     input.review.candidateWins < input.policy.minimumCandidateWins ||
     input.review.baselineWins > input.policy.maximumBaselineWins) {
-    throw new SearchError("engine_activation_not_eligible", "검토·비교 원본이 검색 엔진 활성화 정책을 충족하지 않습니다.");
+    throw new SearchError("engine_activation_not_eligible", "The review and comparison sources do not satisfy the search engine activation policy.");
   }
 }

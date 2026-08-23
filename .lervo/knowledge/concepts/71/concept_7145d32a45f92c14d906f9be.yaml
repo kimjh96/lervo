@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7145d32a45f92c14d906f9be
+freshness: current
+ownership: user
+path: docs/decisions/search/0054-search-recommendation-managed-context-boundary.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7f86f3257c9c972d7339fcdf
+title: "ADR-0054: Boundary between search recommendations and managed context selection"
+type: decision

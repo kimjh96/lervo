@@ -75,7 +75,7 @@ export class CodexAdapter implements ProviderAdapter {
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
     assertAdapterMessage(request, "Codex start request");
     if (request.adapterId !== this.descriptor.adapterId) {
-      throw new CodexAdapterError("session_mismatch", "Start request의 adapter ID가 Codex와 다릅니다.");
+      throw new CodexAdapterError("session_mismatch", "The start request adapter ID does not identify Codex.");
     }
     const sandbox = this.options.sandbox ?? "read-only";
     const approvalPolicy =
@@ -89,7 +89,7 @@ export class CodexAdapter implements ProviderAdapter {
     ) {
       throw new CodexAdapterError(
         "invalid_request",
-        "Codex managed session의 실행 모드와 sandbox·approval 설정이 다릅니다.",
+        "The Codex managed session execution mode is inconsistent with its sandbox and approval settings.",
       );
     }
     const client = await this.createClient();
@@ -117,7 +117,7 @@ export class CodexAdapter implements ProviderAdapter {
           fileChanges:
             request.executionMode === "managed_write" ? "supported" : "unsupported",
         },
-        startedAt: timestamp(this.now, "Codex session 시작 시각", request.requestedAt),
+        startedAt: timestamp(this.now, "Codex session start time", request.requestedAt),
       };
       assertAdapterMessage(session, "Codex session");
       this.sessions.add(session, client);
@@ -135,7 +135,7 @@ export class CodexAdapter implements ProviderAdapter {
     const state = this.sessions.get(session);
     assertAdapterMessage(envelope, "Codex context envelope");
     if (state.injectedTargetTurnIds.has(envelope.targetTurnId)) {
-      throw new CodexAdapterError("invalid_request", "같은 target turn에 context를 두 번 주입할 수 없습니다.");
+      throw new CodexAdapterError("invalid_request", "Context cannot be injected twice into the same target turn.");
     }
     const items = await buildManagedContextItems(
       clone(state.session),
@@ -143,7 +143,7 @@ export class CodexAdapter implements ProviderAdapter {
       this.options.resolveArtifact,
     );
     await state.client.injectItems(session.providerSessionId, items);
-    const acceptedAt = timestamp(this.now, "Codex context receipt 시각", envelope.createdAt);
+    const acceptedAt = timestamp(this.now, "Codex context receipt time", envelope.createdAt);
     const receipt: AdapterContextReceipt = {
       kind: "context_receipt",
       schemaVersion: 1,
@@ -180,7 +180,7 @@ export class CodexAdapter implements ProviderAdapter {
   ): Promise<void> {
     const state = this.sessions.get(session);
     if (state.managedWrites !== undefined) {
-      throw new CodexAdapterError("invalid_request", "Managed write bridge가 이미 연결되었습니다.");
+      throw new CodexAdapterError("invalid_request", "A managed write bridge is already attached.");
     }
     state.managedWrites = new CodexManagedWriteController({
       session: state.session,
@@ -205,13 +205,13 @@ export class CodexAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new CodexAdapterError("session_mismatch", "Turn request가 managed Codex session과 다릅니다.");
+      throw new CodexAdapterError("session_mismatch", "The turn request does not match the managed Codex session.");
     }
     if (!state.injectedTargetTurnIds.has(request.targetTurnId)) {
-      throw new CodexAdapterError("invalid_request", "현재 target turn에 controlled context receipt가 없습니다.");
+      throw new CodexAdapterError("invalid_request", "The current target turn has no controlled context receipt.");
     }
     if (state.startedTargetTurnIds.has(request.targetTurnId) || state.activeProviderTurnId !== undefined) {
-      throw new CodexAdapterError("invalid_request", "Codex turn이 이미 시작되었거나 실행 중입니다.");
+      throw new CodexAdapterError("invalid_request", "The Codex turn has already started or is still active.");
     }
     const providerTurn = await state.client.startTurn(session.providerSessionId, request.instructions);
     state.activeProviderTurnId = providerTurn.turnId;
@@ -226,7 +226,7 @@ export class CodexAdapter implements ProviderAdapter {
       providerSessionId: session.providerSessionId,
       targetTurnId: request.targetTurnId,
       providerTurnId: providerTurn.turnId,
-      acceptedAt: timestamp(this.now, "Codex turn 수락 시각", request.requestedAt),
+      acceptedAt: timestamp(this.now, "Codex turn acceptance time", request.requestedAt),
     };
     assertAdapterMessage(turn, "Codex turn");
     state.activeTurn = clone(turn);
@@ -240,7 +240,7 @@ export class CodexAdapter implements ProviderAdapter {
   ): AsyncIterable<AdapterNormalizedEvent> {
     const state = this.sessions.get(session);
     if (state.eventStreamClaimed) {
-      throw new CodexAdapterError("invalid_request", "Codex event stream은 session마다 한 번만 열 수 있습니다.");
+      throw new CodexAdapterError("invalid_request", "The Codex event stream can be opened only once per session.");
     }
     state.eventStreamClaimed = true;
     const normalizer = new CodexEventNormalizer({
@@ -304,13 +304,13 @@ export class CodexAdapter implements ProviderAdapter {
       turn.sessionId !== session.sessionId ||
       turn.providerSessionId !== session.providerSessionId
     ) {
-      throw new CodexAdapterError("session_mismatch", "Turn result 요청이 Codex session과 다릅니다.");
+      throw new CodexAdapterError("session_mismatch", "The turn result request does not match the Codex session.");
     }
     const captured = state.turnResults.get(turn.providerTurnId);
     if (captured === undefined) {
       throw new CodexAdapterError(
         "provider_protocol_failed",
-        "완료된 Codex turn의 최종 결과가 없습니다.",
+        "The completed Codex turn has no final result.",
       );
     }
     const result = createAdapterTurnResult({ session, turn, ...captured });
@@ -328,7 +328,7 @@ export class CodexAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new CodexAdapterError("session_mismatch", "Stop request가 managed Codex session과 다릅니다.");
+      throw new CodexAdapterError("session_mismatch", "The stop request does not match the managed Codex session.");
     }
     let stopFailure: CodexAdapterError | undefined;
     try {
@@ -341,7 +341,7 @@ export class CodexAdapter implements ProviderAdapter {
       await state.client.close().catch(() => undefined);
       stopFailure = new CodexAdapterError(
         "provider_process_failed",
-        "Codex session을 안전하게 종료하지 못했습니다.",
+        "The Codex session could not be stopped safely.",
       );
     } finally {
       this.sessions.release(session);
@@ -356,7 +356,7 @@ export class CodexAdapter implements ProviderAdapter {
       sessionId: session.sessionId,
       providerSessionId: session.providerSessionId,
       status: request.reason,
-      stoppedAt: timestamp(this.now, "Codex session 종료 시각", request.requestedAt),
+      stoppedAt: timestamp(this.now, "Codex session stop time", request.requestedAt),
     };
     assertAdapterMessage(result, "Codex stop result");
     return clone(result);

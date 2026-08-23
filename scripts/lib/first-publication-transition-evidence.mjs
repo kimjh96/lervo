@@ -12,7 +12,7 @@ import { validateReleasePublicationAuthorization } from
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_transition_evidence_invalid",
-    "CLI 최초 게시 전환 증거가 올바르지 않습니다.",
+    "The CLI first-publication transition evidence is invalid.",
   );
 }
 

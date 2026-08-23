@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_018dd7b827406100dd669b1e
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0024-provider-neutral-project-verification.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_3d3f856ca651be6a377fea24
+title: "ADR-0024: Provider-neutral project verification and result artifacts"
+type: decision

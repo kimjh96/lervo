@@ -26,7 +26,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_workflow_reachability_unexpected: " +
-    "CLI stage-only workflow ref 도달 가능성 증거를 만들지 못했습니다.",
+    "CLI stage-only workflow ref-reachability evidence could not be created.",
   );
   process.exitCode = 1;
 }

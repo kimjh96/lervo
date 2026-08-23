@@ -1,0 +1,11 @@
+fromPath: docs/adr/0150-authenticated-project-scoped-hub-sync-http.md
+identityPath: docs/adr/0150-authenticated-project-scoped-hub-sync-http.md
+kind: document_move
+lineageId: klineage_d8ef3a65b3d3ade2376fa61f
+operationId: kdocop_7d42794ebdebf6f5e27b8a5b
+schemaVersion: 1
+sourceContentHash: sha256:3b96a1faada9e1331122d36f042c0bd917869aaeef2bc5be84a2adef5eac6e20
+sourceId: src_78227bd3b23f0406b30b02ba
+sourceUnitBindingDigest: sha256:472aed227b99f60e7ee479ba2803fbd776cb12e4798b7db854e37e34005bfc83
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/sync/0150-authenticated-project-scoped-hub-sync-http.md

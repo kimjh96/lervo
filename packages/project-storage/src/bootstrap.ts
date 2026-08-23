@@ -1,4 +1,5 @@
 import { FileSystemCas } from "@lervo/cas";
+import { mkdir } from "node:fs/promises";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { type OutboxStore } from "@lervo/storage-contract";
@@ -36,7 +37,7 @@ async function closeResources(
   if (errors.length > 0) {
     throw new ProjectStorageError(
       "cleanup_failed",
-      "Project storage 자원을 모두 닫지 못했습니다.",
+      "Not all project storage resources could be closed.",
       { cause: new AggregateError(errors) },
     );
   }
@@ -65,6 +66,11 @@ export function createProjectStorageOpener(
     const paths = resolveProjectPaths(root);
     await validateRepositoryRoot(paths);
     const manifest = await loadProjectManifest(paths.repositoryRoot);
+    try {
+      await mkdir(paths.state, { mode: 0o700 });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
     await validateProjectStorageLayout(paths);
     const events = await backends.openEventStore({
       path: paths.eventDatabase,
@@ -79,7 +85,7 @@ export function createProjectStorageOpener(
       } catch (cleanupError) {
         throw new ProjectStorageError(
           "cleanup_failed",
-          "Artifact storage를 여는 데 실패했고 event storage도 닫지 못했습니다.",
+          "Artifact storage failed to open, and event storage also failed to close.",
           { cause: new AggregateError([openError, cleanupError]) },
         );
       }

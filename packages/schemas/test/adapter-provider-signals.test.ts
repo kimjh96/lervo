@@ -88,7 +88,7 @@ describe("provider signal schema", () => {
         sessionId: "ses_provider001",
         providerSessionId: "provider-session-1",
         targetTurnId: "turn-managed-1",
-        instructions: "작업을 진행합니다.",
+        instructions: "Perform the task.",
         requestedAt: "2026-08-18T00:00:00Z",
       }).valid,
     ).toBe(true);

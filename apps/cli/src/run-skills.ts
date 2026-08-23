@@ -28,7 +28,7 @@ function runtimePlatform(): "darwin" | "linux" | "win32" {
   }
   throw new SkillResolutionError(
     "unsupported_runtime_platform",
-    `현재 platform '${process.platform}'에서는 스킬 호환성을 판정할 수 없습니다.`,
+    `Skill compatibility cannot be determined on platform '${process.platform}'.`,
   );
 }
 
@@ -49,7 +49,7 @@ export async function resolveRunSkills(input: {
   )) {
     throw new SkillResolutionError(
       "invalid_skill_request",
-      "요청한 skill ID가 Lervo 계약에 맞지 않습니다.",
+      "A requested skill ID does not satisfy the Lervo contract.",
     );
   }
   const candidates = [

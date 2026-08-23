@@ -1,0 +1,11 @@
+fromPath: docs/adr/0096-cli-trusted-publisher-readiness.md
+identityPath: docs/adr/0096-cli-trusted-publisher-readiness.md
+kind: document_move
+lineageId: klineage_5a83286d52790de51367d85c
+operationId: kdocop_625e7a3e5a0236393a2383de
+schemaVersion: 1
+sourceContentHash: sha256:c1be356093fd34b1ae53f062d8d1bed47f2939267af51f585662e3f9cbfa83e6
+sourceId: src_0ee102ade763e48b4d227ded
+sourceUnitBindingDigest: sha256:ca82f71eca51e00f11f4b53d4b093066d22a038314ea234b5c88c31742a7562e
+sourceUnitCount: 5
+toPath: docs/decisions/release/assurance/0096-cli-trusted-publisher-readiness.md

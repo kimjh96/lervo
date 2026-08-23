@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_6eda4374d46a1be46e0af479
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0019-provider-neutral-deliberation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2455a6fec2c267cce229083e
+title: "ADR-0019: Provider-neutral deliberation and explicit convergence"
+type: decision

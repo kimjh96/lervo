@@ -63,7 +63,7 @@ describe("search rollout review command", () => {
     expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
     const path = resolve(root, ".lervo/state/search/rollout-reviews", `${review.rolloutReviewId}.json`);
     const originalBytes = await readFile(path, "utf8");
-    expect(originalBytes).not.toContain("검색 맥락");
+    expect(originalBytes).not.toContain("zephyrcontext");
     expect(originalBytes).not.toContain("docs/search-context.md");
 
     vi.useFakeTimers();
@@ -118,7 +118,7 @@ describe("search rollout review command", () => {
       repositoryRoot: root,
       projectId: project.projectId,
       registry,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       limit: 5,
     });
     const laterAttempt = createSearchAttempt({

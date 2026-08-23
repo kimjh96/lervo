@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e13ba2f37ba44882de52b903
+freshness: current
+ownership: user
+path: docs/decisions/search/0065-human-search-rollout-review.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_71d0f6acc14d3357380ecd6e
+title: "ADR-0065: Human search-rollout review and execution boundary"
+type: decision

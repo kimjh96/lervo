@@ -72,6 +72,6 @@ export function validateHubCommandAuthoringInput(input: {
     !request.verificationSuiteIds.every((id) =>
       id.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(id)
     )
-  ) throw new HubCommandError("invalid_request", "Hub command 작성 요청이 유효하지 않습니다.");
+  ) throw new HubCommandError("invalid_request", "The Hub command authoring request is invalid.");
   return hashHubCommandValue(`${input.target.projectIdentityHash}\0${input.principalId}`);
 }

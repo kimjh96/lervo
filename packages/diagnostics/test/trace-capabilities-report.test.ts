@@ -73,7 +73,7 @@ describe("trace capabilities report contract", () => {
     expect(() => readTraceCapabilitiesReport(invalid)).toThrowError(
       expect.objectContaining<Partial<TraceCapabilitiesReportCompatibilityError>>({
         code: "trace_capabilities_report_invalid",
-        message: "trace capabilities report v1의 필수 의미가 서로 일치하지 않습니다.",
+        message: "The required semantics of trace capabilities report v1 are inconsistent.",
       }),
     );
     try {

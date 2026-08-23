@@ -19,7 +19,7 @@ export function assertClaimedDeliveries(input: {
   ) {
     throw new SyncWorkerError(
       "outbox_update_failed",
-      "outbox claim 결과가 요청한 destination과 lease 소유권에 맞지 않습니다.",
+      "The outbox claim result does not match the requested destination and lease ownership.",
     );
   }
 }
@@ -46,7 +46,7 @@ export function acknowledgeDeliveries(input: {
   } catch (error) {
     throw new SyncWorkerError(
       "outbox_update_failed",
-      "Hub ack 이후 local outbox를 원자적으로 갱신하지 못했습니다.",
+      "The local outbox could not be updated atomically after the Hub acknowledgement.",
       { cause: error },
     );
   }
@@ -75,7 +75,7 @@ export function rescheduleDeliveries(input: {
   } catch (error) {
     throw new SyncWorkerError(
       "outbox_update_failed",
-      "전송 실패 이후 local outbox 재시도를 원자적으로 예약하지 못했습니다.",
+      "A local outbox retry could not be scheduled atomically after the delivery failed.",
       { cause: error },
     );
   }

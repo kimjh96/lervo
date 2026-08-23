@@ -26,14 +26,14 @@ export async function reviewLocalSearchRollout(input: {
     current.selected.mode !== "candidate") {
     throw new SearchLocalError(
       "rollout_review_not_eligible",
-      "현재 선택된 후보 검색 엔진의 전이만 rollout 검토할 수 있습니다.",
+      "Only the transition of the currently selected candidate search engine can be reviewed for rollout.",
     );
   }
   const review = await loadStoredSearchCandidateReview(input.repositoryRoot, current.selected.reviewId);
   if (review.schemaVersion !== 2) {
     throw new SearchLocalError(
       "rollout_review_not_eligible",
-      "Adapter build에 결속되지 않은 기존 후보 검토는 rollout 검토할 수 없습니다.",
+      "A legacy candidate review that is not bound to an adapter build cannot be reviewed for rollout.",
     );
   }
   const attempts = evidence.attempts.filter(
@@ -42,7 +42,7 @@ export async function reviewLocalSearchRollout(input: {
   if (attempts.length === 0) {
     throw new SearchLocalError(
       "rollout_review_not_eligible",
-      "현재 후보 선택에서 기록된 검색 시도가 없어 rollout 검토를 만들 수 없습니다.",
+      "A rollout review cannot be created because no search attempts were recorded for the current candidate selection.",
     );
   }
   const attemptIds = new Set(attempts.map((attempt) => attempt.attemptId));
@@ -71,7 +71,7 @@ export async function reviewLocalSearchRollout(input: {
     if (assessment.reviewDecisionEligibility !== "eligible") {
       throw new SearchLocalError(
         "rollout_review_not_eligible",
-        `검색 rollout 검토가 정책 기준을 충족하지 않습니다: ${assessment.failureReasons.join(", ")}`,
+        `The search rollout review does not satisfy the policy criteria: ${assessment.failureReasons.join(", ")}`,
       );
     }
   }

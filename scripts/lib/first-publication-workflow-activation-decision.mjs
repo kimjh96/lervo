@@ -16,7 +16,7 @@ export const workflowActivationConfirmations = Object.freeze([
 function fail(code = "first_publication_workflow_activation_decision_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 workflow 활성화 결정이 올바르지 않습니다.",
+    "The CLI first-publication workflow activation decision is invalid.",
   );
 }
 

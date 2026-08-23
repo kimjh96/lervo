@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_76dbfe6271e05f97ab0492ad
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_795553760828edc10451b823
+title: "ADR-0128: Interactive npm Stage-Approval Execution"
+type: decision

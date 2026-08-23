@@ -25,7 +25,7 @@ const maximumInputBytes = 64 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_reconciliation_source_invalid",
-    "CLI 최초 게시 결과 대조 원본이 올바르지 않습니다.",
+    "The CLI first-publication reconciliation source is invalid.",
   );
 }
 
@@ -117,7 +117,7 @@ export async function readFirstPublicationReconciliationSources(
       if (canonicalJson(current) !== canonicalJson(snapshot)) {
         throw new FirstPublicationBootstrapError(
           "first_publication_reconciliation_source_changed",
-          "CLI 최초 게시 결과 대조 중 원본이 변경되었습니다.",
+          "The CLI first-publication reconciliation source changed during reconciliation.",
         );
       }
     },

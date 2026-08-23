@@ -10,7 +10,7 @@ export const maximumWorkflowExecutionArtifactBytes = 64 * 1024 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_execution_input_invalid",
-    "CLI stage-only workflow 실행 증거 입력이 올바르지 않습니다.",
+    "The CLI stage-only workflow execution evidence input is invalid.",
   );
 }
 

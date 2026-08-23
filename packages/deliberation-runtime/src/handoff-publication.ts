@@ -44,7 +44,7 @@ export function publishDeliberationHandoff(input: {
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "publication_artifact_mismatch",
-      "Shared context publication이 기록된 숙의 artifact와 다릅니다.",
+      "The shared-context publication differs from the recorded deliberation artifact.",
     );
   }
   const audienceAllowsRecipient = publication.audience.mode === "project" ||
@@ -64,7 +64,7 @@ export function publishDeliberationHandoff(input: {
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "publication_handoff_invalid",
-      "Handoff가 artifact 생산자, shared context 또는 수신 역할과 다릅니다.",
+      "The handoff does not match the artifact producer, shared context, or recipient role.",
     );
   }
   const coordinates = {
@@ -79,7 +79,7 @@ export function publishDeliberationHandoff(input: {
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "publication_artifact_mismatch",
-      "이미 공개한 숙의 artifact의 shared context 좌표를 바꿀 수 없습니다.",
+      "The shared-context coordinates of an already published deliberation artifact cannot be changed.",
     );
   }
   const publicationSpec = {

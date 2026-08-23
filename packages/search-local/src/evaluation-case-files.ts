@@ -28,21 +28,21 @@ async function readCase(path: string): Promise<SearchEvaluationCase> {
   try {
     const before = await lstat(path, { bigint: true });
     if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_CASE_BYTES)) {
-      throw new SearchLocalError("evaluation_case_invalid", "검색 평가 케이스가 안전한 일반 파일이 아닙니다.");
+      throw new SearchLocalError("evaluation_case_invalid", "The search evaluation case is not a safe regular file.");
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
       before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
-      throw new SearchLocalError("evaluation_case_invalid", "검색 평가 케이스가 읽는 동안 바뀌었습니다.");
+      throw new SearchLocalError("evaluation_case_invalid", "The search evaluation case changed while it was being read.");
     }
     const value = parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as SearchEvaluationCase;
     assertSearchEvaluationCase(value);
     return value;
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("evaluation_case_invalid", "검색 평가 케이스 YAML이 유효하지 않습니다.", {
+    throw new SearchLocalError("evaluation_case_invalid", "The search evaluation case YAML is invalid.", {
       cause: error instanceof Error ? error : undefined,
     });
   } finally {
@@ -55,31 +55,31 @@ export async function loadSearchEvaluationCases(repositoryRoot: string): Promise
     repositoryRoot,
     create: false,
     errorCode: "evaluation_case_read_failed",
-    subject: "검색 평가 케이스",
+    subject: "search evaluation case",
   });
   if (directory === null) return [];
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
   } catch (error) {
-    throw new SearchLocalError("evaluation_case_read_failed", "검색 평가 케이스 목록을 읽지 못했습니다.", {
+    throw new SearchLocalError("evaluation_case_read_failed", "Could not read the search evaluation case list.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
   const caseEntries = entries.filter((entry) => SEARCH_EVALUATION_CASE_FILE.test(entry.name));
   if (caseEntries.length > SEARCH_EVALUATION_MAX_CASES) {
-    throw new SearchLocalError("evaluation_case_limit_exceeded", "검색 평가 케이스 수가 256개를 넘었습니다.");
+    throw new SearchLocalError("evaluation_case_limit_exceeded", "The number of search evaluation cases exceeds 256.");
   }
   const cases: SearchEvaluationCase[] = [];
   for (const entry of entries.sort((left, right) => compareText(left.name, right.name))) {
     const match = SEARCH_EVALUATION_CASE_FILE.exec(entry.name);
     if (SEARCH_EVALUATION_BUNDLE_FILE.test(entry.name) && entry.isFile() && !entry.isSymbolicLink()) continue;
     if (!entry.isFile() || entry.isSymbolicLink() || match === null) {
-      throw new SearchLocalError("evaluation_case_invalid", "검색 평가 케이스 디렉터리에 계약 밖 항목이 있습니다.");
+      throw new SearchLocalError("evaluation_case_invalid", "The search evaluation case directory contains an entry outside the contract.");
     }
     const evaluationCase = await readCase(resolve(directory, entry.name));
     if (evaluationCase.caseId !== match[1]) {
-      throw new SearchLocalError("evaluation_case_invalid", "검색 평가 케이스 파일명과 case ID가 다릅니다.");
+      throw new SearchLocalError("evaluation_case_invalid", "The search evaluation case filename does not match the case ID.");
     }
     cases.push(evaluationCase);
   }
@@ -95,7 +95,7 @@ export async function recordSearchEvaluationCase(
     repositoryRoot,
     create: true,
     errorCode: "evaluation_case_read_failed",
-    subject: "검색 평가 케이스",
+    subject: "search evaluation case",
   }))!;
   const path = resolve(directory, `${evaluationCase.caseId}.yaml`);
   const staging = resolve(dirname(path), `.pending-${randomUUID()}`);
@@ -114,12 +114,12 @@ export async function recordSearchEvaluationCase(
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
       const existing = await readCase(path);
       if (existing.caseId !== evaluationCase.caseId) {
-        throw new SearchLocalError("evaluation_case_write_failed", "같은 case ID에 다른 평가 케이스가 있습니다.");
+        throw new SearchLocalError("evaluation_case_write_failed", "A different evaluation case exists for the same case ID.");
       }
     }
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("evaluation_case_write_failed", "검색 평가 케이스를 저장하지 못했습니다.", {
+    throw new SearchLocalError("evaluation_case_write_failed", "Could not save the search evaluation case.", {
       cause: error instanceof Error ? error : undefined,
     });
   } finally {

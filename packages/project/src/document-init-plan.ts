@@ -15,7 +15,7 @@ export async function planDocumentStorage(root: string): Promise<InitOperation[]
   const legacyEntry = await readEntry(resolve(root, legacyPath));
 
   if (documentsEntry.kind === "missing" && legacyEntry.kind === "missing") {
-    return [{ kind: "directory", path: documentsPath, action: "create" }];
+    return [];
   }
   if (documentsEntry.kind === "directory" && legacyEntry.kind === "missing") {
     try {
@@ -59,7 +59,7 @@ export async function planDocumentStorage(root: string): Promise<InitOperation[]
       kind: "directory",
       path: documentsPath,
       action: "conflict",
-      reason: `${documentsPath}은 실제 디렉터리여야 합니다. 기존 항목은 수정하지 않았습니다.`,
+      reason: `${documentsPath} must be a real directory. The existing entry was not modified.`,
     };
   }
   const operations: InitOperation[] = [documentsOperation];
@@ -68,7 +68,7 @@ export async function planDocumentStorage(root: string): Promise<InitOperation[]
       kind: "file",
       path: legacyPath,
       action: "conflict",
-      reason: `${documentsPath}와 ${legacyPath}을 함께 사용하지 않습니다. 기존 항목은 수정하지 않았습니다.`,
+      reason: `${documentsPath} and ${legacyPath} cannot be used together. Existing entries were not modified.`,
     });
   }
   return operations;

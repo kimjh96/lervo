@@ -1,0 +1,11 @@
+fromPath: docs/adr/0146-hub-command-authoring-and-artifact-delivery.md
+identityPath: docs/adr/0146-hub-command-authoring-and-artifact-delivery.md
+kind: document_move
+lineageId: klineage_87ae8adc20c8e43bdf2dec0a
+operationId: kdocop_e47eaef7502cffa281dcdc9a
+schemaVersion: 1
+sourceContentHash: sha256:de2ead0edf9c901822195639597c2d20930c61867235f4b2473e562c916ba56a
+sourceId: src_3fb0a865cfd775cacf2d3f45
+sourceUnitBindingDigest: sha256:5455f09a4c0617cceb6bf6b220f48c54551716a9c1a7fb0fd788f8bb517428b9
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md

@@ -26,16 +26,16 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
     url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-  ) throw new Error("Remote command artifact Hub URL은 credential·query가 없는 HTTPS URL이어야 합니다.");
+  ) throw new Error("The remote command artifact Hub URL must be an HTTPS URL without credentials or a query.");
   return url;
 }
 
 async function boundedBytes(response: Response, maximum: number): Promise<Uint8Array> {
   const declared = response.headers.get("content-length");
   if (declared === null || !/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) !== maximum) {
-    throw new Error("Remote command artifact 응답 크기가 원본 좌표와 다릅니다.");
+    throw new Error("The remote command artifact response size differs from the source coordinates.");
   }
-  if (response.body === null) throw new Error("Remote command artifact 응답 본문이 없습니다.");
+  if (response.body === null) throw new Error("The remote command artifact response body is missing.");
   const reader = response.body.getReader();
   const output = new Uint8Array(maximum);
   let offset = 0;
@@ -44,12 +44,12 @@ async function boundedBytes(response: Response, maximum: number): Promise<Uint8A
     if (item.done) break;
     if (offset + item.value.byteLength > maximum) {
       await reader.cancel();
-      throw new Error("Remote command artifact 응답이 허용 크기를 넘었습니다.");
+      throw new Error("The remote command artifact response exceeds the allowed size.");
     }
     output.set(item.value, offset);
     offset += item.value.byteLength;
   }
-  if (offset !== maximum) throw new Error("Remote command artifact 응답이 완전하지 않습니다.");
+  if (offset !== maximum) throw new Error("The remote command artifact response is incomplete.");
   return output;
 }
 
@@ -59,7 +59,7 @@ function assertPayloadReference(reference: RemoteCommandPayloadReference): void 
     !HASH_PATTERN.test(reference.contentHash) ||
     !Number.isSafeInteger(reference.byteCount) || reference.byteCount < 1 ||
     reference.byteCount > 65_536 || reference.mediaType !== "text/plain; charset=utf-8"
-  ) throw new Error("Remote command artifact reference가 유효하지 않습니다.");
+  ) throw new Error("The remote command artifact reference is invalid.");
 }
 
 export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteCommandPayloadLoader {
@@ -76,11 +76,11 @@ export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteComman
       !DESTINATION_PATTERN.test(options.destinationId) || !NODE_PATTERN.test(options.nodeId) ||
       !PROJECT_PATTERN.test(options.target.projectId) ||
       !HASH_PATTERN.test(options.target.projectIdentityHash)
-    ) throw new Error("Remote command artifact HTTP loader 설정이 유효하지 않습니다.");
+    ) throw new Error("The remote command artifact HTTP loader configuration is invalid.");
     this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
     if (!Number.isSafeInteger(this.requestTimeoutMs) || this.requestTimeoutMs < 10 ||
       this.requestTimeoutMs > 300_000) {
-      throw new Error("Remote command artifact HTTP 제한 시간이 유효하지 않습니다.");
+      throw new Error("The remote command artifact HTTP timeout is invalid.");
     }
     this.request = options.fetch ?? globalThis.fetch;
   }
@@ -106,7 +106,7 @@ export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteComman
         redirect: "error",
         signal: controller.signal,
       });
-      if (response.status !== 200) throw new Error("Remote command artifact Hub 응답 상태가 유효하지 않습니다.");
+      if (response.status !== 200) throw new Error("The remote command artifact Hub response status is invalid.");
       if (
         response.headers.get("x-lervo-hub-identity") !== this.options.expectedHubIdentityHash ||
         response.headers.get("x-lervo-artifact-id") !== reference.artifactId ||
@@ -114,12 +114,12 @@ export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteComman
         response.headers.get("content-type")?.toLowerCase() !== reference.mediaType
       ) {
         await response.body?.cancel();
-        throw new Error("Remote command artifact Hub 응답 좌표가 요청과 다릅니다.");
+        throw new Error("The remote command artifact Hub response coordinates differ from the request.");
       }
       const bytes = await boundedBytes(response, reference.byteCount);
       const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
       if (contentHash !== reference.contentHash) {
-        throw new Error("Remote command artifact 응답 hash가 원본 좌표와 다릅니다.");
+        throw new Error("The remote command artifact response hash differs from the source coordinates.");
       }
       new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       return bytes;

@@ -15,7 +15,7 @@ export class InteractionSQLiteTransactionRunner {
       try {
         this.database.exec("ROLLBACK;");
       } catch (rollbackError) {
-        throw new InteractionSQLiteError("write_failed", "Interaction transaction rollback에 실패했습니다.", {
+        throw new InteractionSQLiteError("write_failed", "The Interaction transaction rollback failed.", {
           cause: new AggregateError([error, rollbackError]),
         });
       }

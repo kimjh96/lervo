@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9a5da9b99b691151a6c3c379
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0137-deliberation-liveness-and-diagnostics.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ea85f9d093633631c575358a
+title: "ADR-0137: Deliberation Leases and ID-Based Diagnostics"
+type: decision

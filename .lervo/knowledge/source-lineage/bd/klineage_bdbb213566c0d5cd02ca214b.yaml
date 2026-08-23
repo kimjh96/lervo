@@ -1,0 +1,11 @@
+fromPath: docs/adr/0052-rebuildable-explicit-knowledge-graph.md
+identityPath: docs/adr/0052-rebuildable-explicit-knowledge-graph.md
+kind: document_move
+lineageId: klineage_bdbb213566c0d5cd02ca214b
+operationId: kdocop_71dabf4afa712de16d1215d3
+schemaVersion: 1
+sourceContentHash: sha256:5b1de15d8b7a81b5368dd407b1798e6ff8981d67ec9c29fcb265b5f1ebffde23
+sourceId: src_2a285267487b7ea3369f7420
+sourceUnitBindingDigest: sha256:562ff4783d3fbf25741314d325d74659a54999ab93a3d391212045afc945fcf4
+sourceUnitCount: 8
+toPath: docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md

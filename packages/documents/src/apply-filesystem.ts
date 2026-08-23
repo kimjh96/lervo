@@ -1,4 +1,4 @@
-import { link, mkdir, rm } from "node:fs/promises";
+import { link, mkdir, rm, rmdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -39,6 +39,7 @@ export async function publishMigrationSidecars(input: {
   const markerHash = sha256(markerBytes);
   const created: PreparedMigrationSidecar[] = [];
   let markerCreated = false;
+  let documentDirectoryCreated = false;
   let eventRecorded = false;
   let phase: "stage" | "marker" | "publish" | "verify" | "telemetry" | "finalize" = "stage";
   try {
@@ -46,12 +47,18 @@ export async function publishMigrationSidecars(input: {
     for (const sidecar of input.sidecars) {
       await writeDurableExclusive(resolve(staging, basename(sidecar.path)), sidecar.bytes);
     }
+    try {
+      await mkdir(documentDirectory, { mode: 0o700 });
+      documentDirectoryCreated = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    }
+    phase = "verify";
+    await input.verifyBeforePublish(markerFileName);
     phase = "marker";
     await writeDurableExclusive(marker, markerBytes);
     markerCreated = true;
     await syncDirectory(documentDirectory);
-    phase = "verify";
-    await input.verifyBeforePublish(markerFileName);
     phase = "publish";
     for (const sidecar of input.sidecars) {
       await link(resolve(staging, basename(sidecar.path)), absoluteRepositoryPath(input.root, sidecar.path));
@@ -72,7 +79,7 @@ export async function publishMigrationSidecars(input: {
     })) {
       throw new DocumentMigrationError(
         "migration_finalization_failed",
-        "Migration event 기록 뒤 transaction marker를 안전하게 제거하지 못했습니다.",
+        "The transaction marker could not be removed safely after recording the migration event.",
       );
     }
     markerCreated = false;
@@ -85,7 +92,7 @@ export async function publishMigrationSidecars(input: {
         ? error
         : new DocumentMigrationError(
             "migration_finalization_failed",
-            "Migration event 기록 뒤 apply를 공개하지 못했습니다.",
+            "The apply could not be published after recording the migration event.",
             { cause: error },
           );
     }
@@ -116,17 +123,22 @@ export async function publishMigrationSidecars(input: {
     await rm(staging, { recursive: true, force: true }).catch(() => {
       rollbackSafe = false;
     });
+    if (documentDirectoryCreated) {
+      await rmdir(documentDirectory).catch(() => {
+        rollbackSafe = false;
+      });
+    }
     if (!rollbackSafe) {
       throw new DocumentMigrationError(
         "rollback_failed",
-        "실패한 migration apply의 생성 파일을 안전하게 되돌리지 못했습니다.",
+        "Files created by the failed migration apply could not be rolled back safely.",
         { cause: error },
       );
     }
     if (phase === "telemetry") {
       throw new DocumentMigrationError(
         "telemetry_recording_failed",
-        "Migration event를 기록하지 못해 생성한 sidecar를 되돌렸습니다.",
+        "The created sidecars were rolled back because the migration event could not be recorded.",
         { cause: error },
       );
     }
@@ -135,8 +147,8 @@ export async function publishMigrationSidecars(input: {
     throw new DocumentMigrationError(
       conflict ? "migration_conflict" : "migration_apply_failed",
       conflict
-        ? "Migration apply target 또는 transaction marker가 이미 존재합니다."
-        : "Migration sidecar를 안전하게 적용하지 못했습니다.",
+        ? "The migration apply target or transaction marker already exists."
+        : "The migration sidecar could not be applied safely.",
       { cause: error },
     );
   }

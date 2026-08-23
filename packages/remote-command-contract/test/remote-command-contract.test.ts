@@ -20,7 +20,7 @@ const target = {
   projectId: "prj_remote_fixture",
   projectIdentityHash: `sha256:${"a".repeat(64)}`,
 } as const;
-const request = new TextEncoder().encode("작업을 검증하고 결과를 정리해 주세요.");
+const request = new TextEncoder().encode("Verify the task and summarize the result.");
 const requestReference = {
   artifactId: "art_remote_request",
   contentHash: `sha256:${createHash("sha256").update(request).digest("hex")}`,
@@ -53,7 +53,7 @@ describe("remote command contract", () => {
 
     expect(second).toEqual(first);
     expect(first.commandId).toMatch(/^rcm_[a-f0-9]{64}$/);
-    expect(JSON.stringify(first)).not.toContain("작업을 검증하고");
+    expect(JSON.stringify(first)).not.toContain("Verify the task");
 
     const changed = createRemoteCommand({
       ...commandInput(),

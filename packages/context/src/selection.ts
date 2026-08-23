@@ -50,15 +50,93 @@ function instructionRuleDocuments(
   return undefined;
 }
 
+function knowledgeMetadataEqual(
+  left: ContextDocumentCandidate["knowledgeContext"],
+  right: ContextDocumentCandidate["knowledgeContext"],
+): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.conceptId === right.conceptId &&
+    left.assurance === right.assurance &&
+    left.freshness === right.freshness &&
+    left.sourceSnapshotId === right.sourceSnapshotId &&
+    left.impactReportId === right.impactReportId;
+}
+
+function indexCandidates(input: CreateContextPlanInput): Map<string, ContextDocumentCandidate> {
+  if ((input.additionalCandidates ?? []).some((candidate) => candidate.source !== "knowledge")) {
+    throw new ContextPreparationError(
+      "invalid_context_plan",
+      "Additional context candidates must be repository knowledge sources.",
+    );
+  }
+  const byId = new Map<string, ContextDocumentCandidate>();
+  const byPath = new Map<string, ContextDocumentCandidate>();
+  for (const candidate of [
+    ...candidatesFromRegistry(input.registry),
+    ...input.instructionDocuments,
+    ...(input.additionalCandidates ?? []),
+  ]) {
+    const path = normalizeRepositoryPath(candidate.path);
+    if (path !== candidate.path) {
+      throw new ContextPreparationError(
+        "invalid_context_plan",
+        `The context candidate path is not normalized: ${candidate.path}`,
+      );
+    }
+    if (
+      (candidate.source === "knowledge") !== (candidate.knowledgeContext !== undefined)
+    ) {
+      throw new ContextPreparationError(
+        "invalid_context_plan",
+        `The knowledge candidate and knowledge metadata do not match: ${candidate.documentId}`,
+      );
+    }
+    const sameId = byId.get(candidate.documentId);
+    if (
+      sameId !== undefined &&
+      sameId.path === candidate.path &&
+      sameId.source !== "knowledge" &&
+      candidate.source === "knowledge" &&
+      candidate.knowledgeContext !== undefined
+    ) {
+      const augmented = {
+        ...sameId,
+        source: "knowledge" as const,
+        knowledgeContext: structuredClone(candidate.knowledgeContext),
+      };
+      byId.set(candidate.documentId, augmented);
+      byPath.set(candidate.path, augmented);
+      continue;
+    }
+    if (
+      sameId !== undefined &&
+      (sameId.path !== candidate.path ||
+        sameId.source !== candidate.source ||
+        !knowledgeMetadataEqual(sameId.knowledgeContext, candidate.knowledgeContext))
+    ) {
+      throw new ContextPreparationError(
+        "invalid_context_plan",
+        `The context candidate ID references different documents: ${candidate.documentId}`,
+      );
+    }
+    const samePath = byPath.get(candidate.path);
+    if (samePath !== undefined && samePath.documentId !== candidate.documentId) {
+      throw new ContextPreparationError(
+        "duplicate_document_path",
+        `${candidate.path} is duplicated for ${samePath.documentId} and ${candidate.documentId}.`,
+      );
+    }
+    if (sameId === undefined) byId.set(candidate.documentId, candidate);
+    if (samePath === undefined) byPath.set(candidate.path, candidate);
+  }
+  return byId;
+}
+
 export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
   const publicationsById = indexPublications(input.publications);
   assertUniqueHandoffs(input.handoffs);
   const normalizedExpectedPaths = input.expectedPaths.map(normalizeRepositoryPath);
-  const candidates = new Map(
-    [...candidatesFromRegistry(input.registry), ...input.instructionDocuments].map(
-      (candidate) => [candidate.documentId, candidate],
-    ),
-  );
+  const candidates = indexCandidates(input);
   const accumulator = new ContextSelectionAccumulator();
 
   for (const instruction of input.instructionDocuments) {
@@ -80,7 +158,7 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
       } catch (error) {
         throw new ContextPreparationError(
           "invalid_path_rule",
-          `${candidate.documentId}의 path 규칙을 해석할 수 없습니다: ${pattern}`,
+          `The path rule for ${candidate.documentId} cannot be resolved: ${pattern}`,
           { cause: error },
         );
       }
@@ -103,7 +181,7 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     if (!resolved || resolved.length === 0 || resolved.some((document) => !document)) {
       throw new ContextPreparationError(
         "required_rule_unresolved",
-        `Role ${input.role.roleId}의 필수 문서 규칙 ${ruleId}을 해석할 수 없습니다.`,
+        `Required document rule ${ruleId} for role ${input.role.roleId} cannot be resolved.`,
       );
     }
     for (const candidate of resolved) {
@@ -127,7 +205,7 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     if (!candidate) {
       throw new ContextPreparationError(
         "shared_context_document_missing",
-        `${publication.sharedContextId}이 가리키는 문서 ${publication.documentId}가 registry에 없습니다.`,
+        `Document ${publication.documentId} referenced by ${publication.sharedContextId} is not in the registry.`,
       );
     }
     accumulator.discover(candidate);
@@ -137,7 +215,7 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     if (handoff.bundle.toRoleId !== input.coordinates.roleId) {
       throw new ContextPreparationError(
         "handoff_recipient_mismatch",
-        `${handoff.bundle.handoffId}의 수신 Role이 현재 Role과 다릅니다.`,
+        `The recipient role of ${handoff.bundle.handoffId} differs from the current role.`,
       );
     }
     const resolution = resolveHandoffContext({
@@ -149,7 +227,7 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     if (!resolution.allowed) {
       throw new ContextPreparationError(
         "handoff_invalid",
-        `${handoff.bundle.handoffId}의 shared context를 사용할 수 없습니다.`,
+        `The shared context of ${handoff.bundle.handoffId} is unavailable.`,
         { cause: resolution },
       );
     }
@@ -158,14 +236,14 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
       if (!publication) {
         throw new ContextPreparationError(
           "handoff_invalid",
-          `${sharedContextId}의 shared context 좌표를 찾을 수 없습니다.`,
+          `The shared context coordinates for ${sharedContextId} cannot be found.`,
         );
       }
       const candidate = candidates.get(publication.documentId);
       if (!candidate) {
         throw new ContextPreparationError(
           "document_not_registered",
-          `Handoff 문서 ${publication.documentId}가 registry에 없습니다.`,
+          `Handoff document ${publication.documentId} is not in the registry.`,
         );
       }
       accumulator.select({
@@ -202,6 +280,9 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
       state: "discovered",
       recordedAt,
       path: candidate.path,
+      ...(candidate.knowledgeContext === undefined
+        ? {}
+        : { knowledgeContext: structuredClone(candidate.knowledgeContext) }),
     });
   }
   recordSearchRecommendationEvidence({
@@ -226,6 +307,9 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
         policyVersion: input.policyVersion,
         reasonCode: reason.reasonCode,
         ruleId: reason.ruleId,
+        ...(document.knowledgeContext === undefined
+          ? {}
+          : { knowledgeContext: structuredClone(document.knowledgeContext) }),
       });
     }
   }

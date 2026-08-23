@@ -25,12 +25,12 @@ export function assertSearchRolloutReviewTarget(target: SearchRolloutReviewTarge
   if (!/^seact_[a-f0-9]{24}$/.test(target.selectionTransitionId) ||
     !SEARCH_CANDIDATE_ID_PATTERN.test(target.candidateId) || target.candidateId.length > 64 ||
     !SEARCH_CANDIDATE_REVIEW_PATTERN.test(target.candidateReviewId)) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 대상 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review target coordinates are invalid.");
   }
   assertSearchEngineIdentity(target.engine, "invalid_rollout_review");
   assertSearchAdapterBuildId(target.adapterBuildId, "invalid_rollout_review");
   if (sameSearchEngine(target.engine, SEARCH_ENGINE)) {
-    throw new SearchError("invalid_rollout_review", "Rollout 검토 대상은 build에 결속된 후보 검색 엔진이어야 합니다.");
+    throw new SearchError("invalid_rollout_review", "A rollout review target must be a candidate search engine bound to a build.");
   }
 }
 
@@ -56,12 +56,12 @@ export function assertSearchRolloutQualitySnapshot(snapshot: SearchRolloutQualit
       snapshot.failuresByReason[reason] < 0) ||
     searchFailureReasons.reduce((sum, reason) => sum + snapshot.failuresByReason[reason], 0) !==
       snapshot.failedAttempts) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 품질 snapshot이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout quality snapshot is invalid.");
   }
   assertTimestamp(snapshot.observedThrough, "invalid_rollout_review");
   const { snapshotId: _id, ...core } = snapshot;
   if (contentId("srqs", core) !== snapshot.snapshotId) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 품질 snapshot ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout quality snapshot ID does not match its content.");
   }
 }
 
@@ -75,7 +75,7 @@ export function createSearchRolloutQualitySnapshot(input: {
   assertSearchRolloutReviewTarget(input.target);
   if (!SOURCE_ID_PATTERN.test(input.projectId) || !Number.isFinite(input.observedThrough.getTime()) ||
     input.attempts.length < 1 || input.attempts.length > 10_000) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 품질 snapshot 입력이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout quality snapshot input is invalid.");
   }
   const attempts = [...input.attempts].sort((left, right) => compareText(left.attemptId, right.attemptId));
   const attemptIds = new Set<string>();
@@ -85,7 +85,7 @@ export function createSearchRolloutQualitySnapshot(input: {
       attempt.selectionTransitionId !== input.target.selectionTransitionId ||
       !sameSearchEngine(attempt.engine, input.target.engine) ||
       Date.parse(attempt.observedAt) > input.observedThrough.getTime()) {
-      throw new SearchError("invalid_rollout_review", "검색 rollout 검토 시도가 대상 선택·시각과 일치하지 않습니다.");
+      throw new SearchError("invalid_rollout_review", "A search rollout review attempt does not match the target selection or timestamp.");
     }
     attemptIds.add(attempt.attemptId);
   }
@@ -94,11 +94,11 @@ export function createSearchRolloutQualitySnapshot(input: {
   for (const assessment of assessments) {
     const attempt = attemptsById.get(assessment.attemptId);
     if (attempt === undefined) {
-      throw new SearchError("invalid_rollout_review", "검색 rollout 검토에 대상 시도 밖의 평가가 있습니다.");
+      throw new SearchError("invalid_rollout_review", "The search rollout review contains an assessment outside its target attempts.");
     }
     assertSearchAssessment(assessment, attempt);
     if (Date.parse(assessment.assessedAt) > input.observedThrough.getTime()) {
-      throw new SearchError("invalid_rollout_review", "검토 시각 뒤의 검색 평가를 rollout 근거로 사용할 수 없습니다.");
+      throw new SearchError("invalid_rollout_review", "A search assessment after the review timestamp cannot be used as rollout evidence.");
     }
   }
   const quality = createSearchQualityReport(attempts, assessments);

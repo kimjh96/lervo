@@ -52,8 +52,8 @@ describe("first-publication workflow execution command", () => {
         "exact_attempt_completed_success_with_stage_result_artifact");
       assert.deepEqual(await readFile(fixture.reachabilityReportPath), before);
       const output = formatFirstPublicationWorkflowExecutionEvidence(report);
-      assert.match(output, /workflow와 stage job이 모두 성공으로 종료됨/u);
-      assert.match(output, /artifact 내용, npm stage 접수, 2FA 승인, 공개 배포/u);
+      assert.match(output, /both the workflow and stage job completed successfully/u);
+      assert.match(output, /artifact contents, npm stage acceptance, 2FA approval, public distribution/u);
       assert.equal(output.includes(report.evidenceDigest), false);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });

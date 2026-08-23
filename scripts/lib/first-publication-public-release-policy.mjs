@@ -7,7 +7,7 @@ const sha512IntegrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_public_release_observation_invalid",
-    "CLI 최초 게시 public release 관측이 올바르지 않습니다.",
+    "The CLI first-publication public-release observation is invalid.",
   );
 }
 

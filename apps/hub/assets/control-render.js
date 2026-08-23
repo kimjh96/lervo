@@ -1,10 +1,10 @@
 const deliveryLabels = {
-  pending: "실행 대기", leased: "Node 전달 중", completed: "실행 완료",
-  rejected: "실행 거부", expired: "기한 만료",
+  pending: "Pending", leased: "Sent to Node", completed: "Completed",
+  rejected: "Rejected", expired: "Expired",
 };
 const approvalLabels = {
-  unavailable: "정책 확인 불가", denied: "정책에서 거부됨", not_required: "승인 불필요",
-  approval_required: "승인 필요", partially_approved: "일부 승인됨", approved: "승인됨",
+  unavailable: "Policy unavailable", denied: "Denied by policy", not_required: "No approval required",
+  approval_required: "Approval required", partially_approved: "Partially approved", approved: "Approved",
 };
 
 function clear(element) {
@@ -40,14 +40,14 @@ export function renderControlReview(review, onApprove) {
   approvalStatus.textContent = approvalLabels[review.approval.state] ?? review.approval.state;
   approvalStatus.classList.toggle("success", ["approved", "not_required"].includes(review.approval.state));
   addDetail(details, "Command ID", review.delivery.commandId);
-  addDetail(details, "역할", review.command.roleId);
-  addDetail(details, "공급자", review.command.provider);
-  addDetail(details, "위험도", review.command.risk);
-  addDetail(details, "필수 검증", review.command.verificationSuiteIds.join(", ") || "없음");
-  addDetail(details, "Command 만료", formatTime(review.command.expiresAt));
+  addDetail(details, "Role", review.command.roleId);
+  addDetail(details, "Provider", review.command.provider);
+  addDetail(details, "Risk", review.command.risk);
+  addDetail(details, "Required verification", review.command.verificationSuiteIds.join(", ") || "None");
+  addDetail(details, "Command expires", formatTime(review.command.expiresAt));
   approvalHelp.textContent = review.approval.maximumExpiresAt === null
-    ? "현재 정책 snapshot이 없어 이 화면에서 승인할 수 없습니다."
-    : `승인은 늦어도 ${formatTime(review.approval.maximumExpiresAt)}에 만료됩니다. 각 범위를 따로 확인하세요.`;
+    ? "No current policy snapshot is available, so this command cannot be approved here."
+    : `Approvals expire no later than ${formatTime(review.approval.maximumExpiresAt)}. Review each scope separately.`;
   for (const option of review.approval.options) {
     const item = document.createElement("li");
     item.className = "approval-option";
@@ -57,10 +57,10 @@ export function renderControlReview(review, onApprove) {
     const button = document.createElement("button");
     capability.textContent = option.capability;
     paths.textContent = option.repositoryPaths.length === 0
-      ? "저장소 경로 제한 없음"
-      : `허용 경로: ${option.repositoryPaths.join(", ")}`;
+      ? "No repository path restriction"
+      : `Allowed paths: ${option.repositoryPaths.join(", ")}`;
     button.type = "button";
-    button.textContent = option.approvalId === null ? "이 범위 승인" : "승인됨";
+    button.textContent = option.approvalId === null ? "Approve this scope" : "Approved";
     button.disabled = option.approvalId !== null || review.approval.maximumExpiresAt === null ||
       review.approval.state === "denied";
     button.addEventListener("click", () => onApprove(option, button));
@@ -72,8 +72,8 @@ export function renderControlReview(review, onApprove) {
     const item = document.createElement("li");
     item.className = "approval-option";
     item.textContent = review.approval.state === "denied"
-      ? "현재 정책은 이 실행을 거부합니다."
-      : "별도로 승인할 범위가 없습니다.";
+      ? "The current policy denies this execution."
+      : "There are no scopes to approve separately.";
     approvalOptions.append(item);
   }
   reviewPanel.hidden = false;

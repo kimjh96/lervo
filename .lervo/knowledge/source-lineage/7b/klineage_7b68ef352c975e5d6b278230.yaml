@@ -1,0 +1,11 @@
+fromPath: docs/adr/0183-durable-commonmark-heading-subtree-split.md
+identityPath: docs/adr/0183-durable-commonmark-heading-subtree-split.md
+kind: document_move
+lineageId: klineage_7b68ef352c975e5d6b278230
+operationId: kdocop_3f30ec5a57a2dc5537b78ae4
+schemaVersion: 1
+sourceContentHash: sha256:8a128542bd8320bc07843863336d5070e4b82babf9c622cf4c771e987e985d9f
+sourceId: src_be6d734fa232a5a0df971aaa
+sourceUnitBindingDigest: sha256:04a59b45cb193b00decdb778f7ee7b29d3c6d716810c3ef2f3d6c0d559084317
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md

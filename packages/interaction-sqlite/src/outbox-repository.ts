@@ -17,14 +17,14 @@ import { InteractionSQLiteError } from "./errors.js";
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
   if (!Number.isSafeInteger(result) || result < 0) {
-    throw new InteractionSQLiteError("integrity_failed", `${label} 시각이 유효하지 않습니다.`);
+    throw new InteractionSQLiteError("integrity_failed", `${label} time is invalid.`);
   }
   return result;
 }
 
 function failureCode(value: string): void {
   if (!/^[a-z][a-z0-9_]{0,63}$/.test(value)) {
-    throw new InteractionSQLiteError("integrity_failed", "Outbox failure code가 유효하지 않습니다.");
+    throw new InteractionSQLiteError("integrity_failed", "The outbox failure code is invalid.");
   }
 }
 
@@ -51,7 +51,7 @@ export class ConversationOutboxSQLiteRepository {
     if (
       input.message.policyId !== input.policyId ||
       input.message.actor.roleId !== input.roleId
-    ) throw new InteractionSQLiteError("integrity_failed", "Conversation outbound 좌표가 다릅니다.");
+    ) throw new InteractionSQLiteError("integrity_failed", "The conversation outbound coordinates differ.");
     this.database.prepare(`
       INSERT INTO conversation_outbox (
         outbound_id, source_event_id, policy_id, role_id, integration_id, project_id,
@@ -85,7 +85,7 @@ export class ConversationOutboxSQLiteRepository {
       !Number.isSafeInteger(input.leaseDurationMs) ||
       input.leaseDurationMs < 1_000 || input.leaseDurationMs > 300_000 ||
       !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 16
-    ) throw new InteractionSQLiteError("integrity_failed", "Conversation outbox lease 설정이 유효하지 않습니다.");
+    ) throw new InteractionSQLiteError("integrity_failed", "The conversation outbox lease configuration is invalid.");
     const claimedAtMs = milliseconds(input.claimedAt, "Conversation outbox claim");
     const rows = this.database.prepare(`
       SELECT * FROM conversation_outbox
@@ -100,7 +100,7 @@ export class ConversationOutboxSQLiteRepository {
         "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
       ).get(text(row, "source_event_id"), text(row, "role_id"));
       if (eventRow === undefined) {
-        throw new InteractionSQLiteError("integrity_failed", "Conversation outbox inbox 원본이 없습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The conversation outbox inbox source is missing.");
       }
       const message = outbound(row, inbound(eventRow));
       const decisionRow = this.database.prepare(
@@ -108,7 +108,7 @@ export class ConversationOutboxSQLiteRepository {
       ).get(text(row, "source_event_id"), text(row, "role_id"));
       if (eventRow.status !== "completed" || decisionRow === undefined ||
         decision(decisionRow, inbound(eventRow)).action !== "respond") {
-        throw new InteractionSQLiteError("integrity_failed", "Conversation outbox의 완료 decision이 없습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The conversation outbox has no completed decision.");
       }
       const leaseId = `col_${randomBytes(24).toString("base64url")}`;
       const result = this.database.prepare(`
@@ -123,13 +123,13 @@ export class ConversationOutboxSQLiteRepository {
         message.outboundId,
       );
       if (result.changes !== 1) {
-        throw new InteractionSQLiteError("lease_mismatch", "Conversation outbox lease를 획득하지 못했습니다.");
+        throw new InteractionSQLiteError("lease_mismatch", "Could not acquire the conversation outbox lease.");
       }
       const attemptCount = this.database.prepare(
         "SELECT attempt_count FROM conversation_outbox WHERE outbound_id = ?",
       ).get(message.outboundId)?.attempt_count;
       if (typeof attemptCount !== "number" || !Number.isSafeInteger(attemptCount)) {
-        throw new InteractionSQLiteError("integrity_failed", "Conversation outbox attempt가 유효하지 않습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The conversation outbox attempt is invalid.");
       }
       return { leaseId, attemptCount, outbound: message };
     });
@@ -141,19 +141,19 @@ export class ConversationOutboxSQLiteRepository {
     receipt: ConversationDeliveryReceipt;
   }): void {
     if (!validateSchema("conversationDeliveryReceipt", input.receipt).valid) {
-      throw new InteractionSQLiteError("integrity_failed", "Conversation delivery receipt가 유효하지 않습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The conversation delivery receipt is invalid.");
     }
     const row = this.database.prepare(
       "SELECT * FROM conversation_outbox WHERE outbound_id = ?",
     ).get(input.outboundId);
     if (row === undefined || row.status !== "leased" || row.lease_id !== input.leaseId) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation outbox acknowledgement lease가 다릅니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "The conversation outbox acknowledgement lease differs.");
     }
     const eventRow = this.database.prepare(
       "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
     ).get(text(row, "source_event_id"), text(row, "role_id"));
     if (eventRow === undefined) {
-      throw new InteractionSQLiteError("integrity_failed", "Conversation outbox inbox 원본이 없습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The conversation outbox inbox source is missing.");
     }
     const message = outbound(row, inbound(eventRow));
     const deliveredAtMs = milliseconds(input.receipt.deliveredAt, "Conversation delivery");
@@ -161,7 +161,7 @@ export class ConversationOutboxSQLiteRepository {
       input.receipt.outboundId !== message.outboundId ||
       input.receipt.integrationId !== message.target.integrationId ||
       deliveredAtMs < Date.parse(message.createdAt)
-    ) throw new InteractionSQLiteError("integrity_failed", "Conversation receipt 좌표나 시각이 다릅니다.");
+    ) throw new InteractionSQLiteError("integrity_failed", "The conversation receipt coordinates or time differ.");
     const result = this.database.prepare(`
       UPDATE conversation_outbox SET status = 'delivered',
         lease_id = NULL, lease_owner = NULL, lease_expires_at_ms = NULL,
@@ -169,7 +169,7 @@ export class ConversationOutboxSQLiteRepository {
       WHERE outbound_id = ? AND lease_id = ? AND status = 'leased'
     `).run(canonicalJson(input.receipt), deliveredAtMs, input.outboundId, input.leaseId);
     if (result.changes !== 1) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation delivery receipt를 저장하지 못했습니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "Could not store the conversation delivery receipt.");
     }
   }
 
@@ -184,7 +184,7 @@ export class ConversationOutboxSQLiteRepository {
     const availableAtMs = milliseconds(input.availableAt, "Conversation delivery retry");
     failureCode(input.failureCode);
     if (availableAtMs < failedAtMs) {
-      throw new InteractionSQLiteError("integrity_failed", "Conversation delivery retry가 failure보다 빠릅니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The conversation delivery retry is earlier than the failure.");
     }
     const result = this.database.prepare(`
       UPDATE conversation_outbox SET status = 'pending', available_at_ms = ?,
@@ -193,7 +193,7 @@ export class ConversationOutboxSQLiteRepository {
       WHERE outbound_id = ? AND lease_id = ? AND status = 'leased'
     `).run(availableAtMs, input.failureCode, failedAtMs, input.outboundId, input.leaseId);
     if (result.changes !== 1) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation outbox retry lease가 다릅니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "The conversation outbox retry lease differs.");
     }
   }
 
@@ -204,7 +204,7 @@ export class ConversationOutboxSQLiteRepository {
         "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
       ).get(text(row, "source_event_id"), text(row, "role_id"));
       if (eventRow === undefined) {
-        throw new InteractionSQLiteError("integrity_failed", "Conversation outbox inbox 원본이 없습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The conversation outbox inbox source is missing.");
       }
       const message = outbound(row, inbound(eventRow));
       const decisionRow = this.database.prepare(
@@ -212,14 +212,14 @@ export class ConversationOutboxSQLiteRepository {
       ).get(text(row, "source_event_id"), text(row, "role_id"));
       if (eventRow.status !== "completed" || decisionRow === undefined ||
         decision(decisionRow, inbound(eventRow)).action !== "respond") {
-        throw new InteractionSQLiteError("integrity_failed", "Conversation outbox의 완료 decision이 없습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The conversation outbox has no completed decision.");
       }
       if (row.status === "delivered") {
         let receipt;
         try {
           receipt = JSON.parse(String(row.receipt_json)) as ConversationDeliveryReceipt;
         } catch (error) {
-          throw new InteractionSQLiteError("integrity_failed", "Delivery receipt JSON이 유효하지 않습니다.", {
+          throw new InteractionSQLiteError("integrity_failed", "The delivery receipt JSON is invalid.", {
             cause: error,
           });
         }
@@ -228,7 +228,7 @@ export class ConversationOutboxSQLiteRepository {
           receipt.integrationId !== message.target.integrationId ||
           Date.parse(receipt.deliveredAt) !== integer(row, "delivered_at_ms") ||
           Date.parse(receipt.deliveredAt) < Date.parse(message.createdAt)) {
-          throw new InteractionSQLiteError("integrity_failed", "Delivery receipt 원본 관계가 다릅니다.");
+          throw new InteractionSQLiteError("integrity_failed", "The delivery receipt source relation differs.");
         }
       }
     }

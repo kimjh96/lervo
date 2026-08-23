@@ -13,7 +13,7 @@ import type {
 function now(clock: () => Date): string {
   const value = clock();
   if (!Number.isFinite(value.getTime())) {
-    throw new InteractionError("invalid_interaction_request", "Delivery clock이 유효하지 않습니다.");
+    throw new InteractionError("invalid_interaction_request", "The delivery clock is invalid.");
   }
   return value.toISOString();
 }
@@ -37,7 +37,7 @@ export async function runConversationDeliveryCycle(input: {
     !Number.isSafeInteger(leaseDurationMs) || leaseDurationMs < 1_000 || leaseDurationMs > 300_000 ||
     !Number.isSafeInteger(retryDelayMs) || retryDelayMs < 1_000 || retryDelayMs > 3_600_000 ||
     !Number.isSafeInteger(limit) || limit < 1 || limit > 16
-  ) throw new InteractionError("invalid_interaction_request", "Conversation delivery 설정이 유효하지 않습니다.");
+  ) throw new InteractionError("invalid_interaction_request", "The conversation delivery configuration is invalid.");
   const clock = input.clock ?? (() => new Date());
   const claimedAt = now(clock);
   let leases;
@@ -50,7 +50,7 @@ export async function runConversationDeliveryCycle(input: {
       limit,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "Conversation outbox claim에 실패했습니다.", {
+    throw new InteractionError("interaction_store_failed", "The conversation outbox claim failed.", {
       cause: error,
     });
   }

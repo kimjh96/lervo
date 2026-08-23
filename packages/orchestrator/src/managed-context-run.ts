@@ -95,7 +95,7 @@ export class ManagedContextRun {
     if (this.activeOperation !== undefined) {
       throw new ManagedContextError(
         "invalid_state",
-        `Managed run의 ${this.activeOperation} 작업이 아직 진행 중입니다.`,
+        `The managed run ${this.activeOperation} operation is still in progress.`,
       );
     }
     this.activeOperation = name;
@@ -142,7 +142,7 @@ export class ManagedContextRun {
     const loaded = this.state.loadedSnapshot();
     const repositoryRoot = this.state.repositoryRoot;
     if (loaded === undefined || repositoryRoot === undefined) {
-      throw new ManagedContextError("invalid_state", "주입할 prepared context가 없습니다.");
+      throw new ManagedContextError("invalid_state", "There is no prepared context to inject.");
     }
     const injected = await injectLoadedContext({
       ...input,
@@ -154,7 +154,7 @@ export class ManagedContextRun {
     if (this.state.phase !== "context_prepared") {
       throw new ManagedContextError(
         "invalid_state",
-        "Context 주입 중 generation이 무효화되었습니다.",
+        "The generation was invalidated during context injection.",
       );
     }
     this.append([injectedContextEventSpec(injected)]);
@@ -180,7 +180,7 @@ export class ManagedContextRun {
   ): void {
     this.state.assertOperational();
     if (this.state.requiredDocumentIds.length === 0) {
-      throw new ManagedContextError("invalid_state", "무효화할 managed context가 없습니다.");
+      throw new ManagedContextError("invalid_state", "There is no managed context to invalidate.");
     }
     this.invalidateAll(reason, this.state.timestamp(occurredAt));
   }

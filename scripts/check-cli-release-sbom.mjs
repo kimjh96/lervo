@@ -32,13 +32,13 @@ async function main() {
   );
   if (writeMode) {
     await writeFile(releaseSbomPath, `${JSON.stringify(expected, null, 2)}\n`, "utf8");
-    console.log("CLI release SBOM을 갱신했습니다.");
+    console.log("Updated the CLI release SBOM.");
     return;
   }
   validateCliReleaseSbom(await readJson(releaseSbomPath), releaseManifest, lockfile);
   console.log(
-    `CLI release SBOM 검사 통과 (${expected.components.length}개 component, ` +
-    `${expected.dependencies.length}개 dependency node)`,
+    `CLI release SBOM check passed (${expected.components.length} components, ` +
+    `${expected.dependencies.length} dependency nodes)`,
   );
 }
 
@@ -52,7 +52,7 @@ try {
   ) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_sbom_check_failed: CLI release SBOM 검사를 완료하지 못했습니다.");
+    console.error("release_sbom_check_failed: The CLI release SBOM check could not be completed.");
   }
   process.exitCode = 1;
 }

@@ -38,7 +38,7 @@ export async function verifyInstalledClaudeNativeRuntime(consumerRoot) {
     arch: process.arch,
     musl: currentRuntimeUsesMusl(),
   });
-  assert.notEqual(packageName, null, "지원하는 release matrix platform이어야 합니다.");
+  assert.notEqual(packageName, null, "The platform must be supported by the release matrix.");
 
   const cliEntry = resolve(consumerRoot, "node_modules/@lervo/cli/dist/bin.js");
   const sdkEntry = createRequire(await realpath(cliEntry)).resolve(

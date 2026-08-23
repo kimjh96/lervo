@@ -1,0 +1,11 @@
+fromPath: docs/adr/0115-cli-first-publication-transition-evidence-union.md
+identityPath: docs/adr/0115-cli-first-publication-transition-evidence-union.md
+kind: document_move
+lineageId: klineage_53f47857b9877cd05923e10f
+operationId: kdocop_acac3e860ad7365597dc6a47
+schemaVersion: 1
+sourceContentHash: sha256:394d70351a409c5fabc5d2e1e4d8bced8a732a453fcf71a72d7454706481df15
+sourceId: src_53b24314b4dda635ce43e9e9
+sourceUnitBindingDigest: sha256:dd3233f43bf5fbdf63268a99ce16c33dd7c5ca8d011c9cd16289f665f31a5a7e
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md

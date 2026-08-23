@@ -114,12 +114,12 @@ describe("explicit knowledge graph projection", () => {
     };
     invalid.relationId = calculateKnowledgeGraphRelationId(invalid);
 
-    expect(() => assertKnowledgeGraphRelationIntegrity(invalid)).toThrow(/node 종류/);
+    expect(() => assertKnowledgeGraphRelationIntegrity(invalid)).toThrow(/node kinds/);
   });
 
   it("rejects unsafe repository paths before they enter a relation", () => {
     expect(() => projectKnowledgeGraphEvent(event("file.changed", {
       path: "../outside-project.txt",
-    }))).toThrow(/node 좌표/);
+    }))).toThrow(/node coordinates/);
   });
 });

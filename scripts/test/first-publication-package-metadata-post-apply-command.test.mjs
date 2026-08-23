@@ -135,9 +135,9 @@ describe("first-publication package metadata post-apply command", () => {
         },
       );
       const output = formatFirstPublicationPackageMetadataPostApplyReport(report);
-      assert.match(output, /로컬 metadata 차단 항목은 모두 해소되었습니다/u);
-      assert.match(output, /아직 별도로 확인하거나 승인할 항목/u);
-      assert.match(output, /영수증의 서명이나 발급 주체는 확인하지 않았습니다/u);
+      assert.match(output, /All local metadata blockers are resolved/u);
+      assert.match(output, /still require separate confirmation or approval/u);
+      assert.match(output, /receipt signature and issuer were not verified/u);
       assert.equal(output.includes(report.reportDigest), false);
       assert.equal(output.includes(report.receipt.receiptDigest), false);
     } finally {

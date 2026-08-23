@@ -18,7 +18,7 @@ const sourceIds = Object.freeze([
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_external_evidence_source_invalid",
-    "CLI 최초 게시 외부 요구사항 증거 원본이 올바르지 않습니다.",
+    "The CLI first-publication external-requirements evidence source is invalid.",
   );
 }
 

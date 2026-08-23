@@ -14,7 +14,7 @@ function registryCandidates(registry: DocumentRegistry): Map<string, ContextDocu
     if (existing) {
       throw new ContextPreparationError(
         "duplicate_document_path",
-        `${document.path}이 ${existing.documentId}와 ${documentId}에 중복 등록되었습니다.`,
+        `${document.path} is registered more than once for ${existing.documentId} and ${documentId}.`,
       );
     }
     candidates.set(document.path, {

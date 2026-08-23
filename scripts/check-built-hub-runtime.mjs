@@ -15,6 +15,6 @@ assert.equal(result.status, 1);
 assert.equal(result.stdout, "");
 assert.equal(
   result.stderr,
-  "Lervo Hub 오류 (invalid_arguments): 사용법: lervo-hub --config <config.json>\n",
+  "Lervo Hub error (invalid_arguments): Usage: lervo-hub --config <config.json>\n",
 );
-console.log("빌드된 Lervo Hub runtime smoke 검사 통과");
+console.log("Built Lervo Hub runtime smoke check passed");

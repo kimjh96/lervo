@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a4dbcd14bfc6f81364cbae7a
+freshness: current
+ownership: user
+path: docs/decisions/execution/verification/0043-signed-policy-and-command-bound-approval.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ed02fc7fa1d3ef5b99a6ac9f
+title: "ADR-0043: Signed policy and command-bound approval that cannot relax local limits"
+type: decision

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_ccf3d1add2ade99952de997a
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_fa28fcbdbea9af303fe0bf9e
+title: "ADR-0190: Language-aware bounded repository publication"
+type: decision

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0023-evidence-based-document-staleness.md
+identityPath: docs/adr/0023-evidence-based-document-staleness.md
+kind: document_move
+lineageId: klineage_335b0e65e1c5742383c6251e
+operationId: kdocop_a9b82568a59f7f4d4105407b
+schemaVersion: 1
+sourceContentHash: sha256:7b18195932f2a61a818d62c86f75eaa5e816264d0740febd3b638cebcb57e409
+sourceId: src_416184095e5ef81f6d0513ca
+sourceUnitBindingDigest: sha256:9aceac808c9d982d06a59c15b3339e83c89607deb7949f684c6d9b80b9249618
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md

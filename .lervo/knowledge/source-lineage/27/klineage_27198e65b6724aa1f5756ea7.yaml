@@ -1,0 +1,11 @@
+fromPath: LERVO_ARCHITECTURE.md
+identityPath: LERVO_ARCHITECTURE.md
+kind: document_move
+lineageId: klineage_27198e65b6724aa1f5756ea7
+operationId: kdocop_1a61049bfa022845477f96ef
+schemaVersion: 1
+sourceContentHash: sha256:657057a4ca7b704045fc72c2cfd7121aeb08c2236c0c62e1a2ad61fc935cbabd
+sourceId: src_b6e4fb0bfa0d3eca62d56575
+sourceUnitBindingDigest: sha256:22f1917c6050470c90e97dc554556bc148c663dca31fb10351ca3e597af5640a
+sourceUnitCount: 33
+toPath: docs/architecture/system.md

@@ -29,7 +29,7 @@ export async function createTraceDefaultTransitionFixture(): Promise<
   const silentIo = { cwd: root, stdout: () => undefined, stderr: () => undefined };
   if (await runCli(["init"], silentIo) !== 0) {
     await rm(root, { recursive: true, force: true });
-    throw new Error("trace transition fixture를 초기화하지 못했습니다.");
+    throw new Error("The trace transition fixture could not be initialized.");
   }
 
   try {

@@ -4,6 +4,8 @@ import { describe, it } from "vitest";
 
 import { createFirstPublicationMetadataDecision } from
   "../lib/first-publication-metadata-decision.mjs";
+import { cliEnglishDescription } from
+  "../lib/first-publication-metadata-decision.mjs";
 import { createFirstPublicationMetadataPreview } from
   "../lib/first-publication-metadata-preview.mjs";
 import {
@@ -50,6 +52,7 @@ function candidateInput(sources) {
 function withoutPatchFields(manifest) {
   const copy = structuredClone(manifest);
   delete copy.repository;
+  delete copy.description;
   delete copy.license;
   delete copy.publishConfig.registry;
   delete copy.publishConfig.provenance;
@@ -60,12 +63,14 @@ async function alignedSources() {
   const sources = await currentActivationSources();
   sources.packageManifest = {
     ...sources.packageManifest,
+    description: cliEnglishDescription,
     repository: { type: "git", url: repositoryUrl },
     license,
     publishConfig: { access: "public", registry: npmPublicRegistry, provenance: true },
   };
   sources.releaseManifest = replaceActivationReleaseArtifact(sources.releaseManifest, {
     repository: repositoryUrl,
+    description: cliEnglishDescription,
     license,
     registry: npmPublicRegistry,
     provenance: true,
@@ -80,6 +85,7 @@ describe("first-publication package metadata candidate", () => {
     const result = createFirstPublicationPackageMetadataCandidate(input);
     const output = JSON.parse(result.outputBytes.toString("utf8"));
 
+    assert.equal(output.description, cliEnglishDescription);
     assert.deepEqual(output.repository, { type: "git", url: repositoryUrl });
     assert.equal(output.license, license);
     assert.equal(output.publishConfig.registry, npmPublicRegistry);

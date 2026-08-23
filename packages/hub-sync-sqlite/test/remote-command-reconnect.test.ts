@@ -34,7 +34,7 @@ import {
 
 const peerIdentityHash = `sha256:${"c".repeat(64)}`;
 const nodeId = "node_remote_fixture";
-const requestText = "오프라인 명령을 한 번만 실행해 주세요.";
+const requestText = "Execute the offline command exactly once.";
 const requestBytes = new TextEncoder().encode(requestText);
 
 class MutableClock {

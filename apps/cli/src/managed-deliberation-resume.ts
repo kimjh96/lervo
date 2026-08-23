@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { deliberationPolicyHash } from "@lervo/deliberation";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { writingContractForLanguage } from "@lervo/core";
 import {
   DeliberationRuntime,
   type DeliberationRuntimeSnapshot,
@@ -9,6 +9,8 @@ import {
 } from "@lervo/deliberation-runtime";
 import { loadDocumentRegistry } from "@lervo/project";
 import type { ProjectStorage } from "@lervo/project-storage";
+import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
+import type { WritingContract } from "@lervo/schemas";
 
 import { readApprovedDeliberationCheckpoint } from "./deliberation-checkpoint.js";
 import { completeApprovedDeliberation } from "./deliberation-convergence.js";
@@ -40,6 +42,7 @@ function failureCode(error: unknown): string {
 async function restorePlan(
   request: StartManagedDeliberationRequest,
   storage: ProjectStorage,
+  writingContract: WritingContract,
 ) {
   if (typeof request.policyId === "string") {
     const source = await loadDeliberationWorkflowSource(
@@ -49,6 +52,7 @@ async function restorePlan(
     return createStoredDeliberationExecutionPlan({
       projectId: storage.manifest.projectId,
       source,
+      writingContract,
     });
   }
   return createInlineDeliberationExecutionPlan({
@@ -56,6 +60,7 @@ async function restorePlan(
     proposerProvider: request.proposerProvider,
     reviewerProvider: request.reviewerProvider,
     verificationSuiteIds: request.verificationSuiteIds,
+    writingContract,
   });
 }
 
@@ -70,12 +75,12 @@ async function restoreTurnResult(input: {
     item.artifactId === input.artifactId);
   const event = recorded === undefined ? null : input.storage.events.get(recorded.eventId);
   if (artifact === undefined || event?.type !== "deliberation.artifact.recorded") {
-    throw new Error("숙의 재개 checkpoint의 artifact event를 복원하지 못했습니다.");
+    throw new Error("The artifact event in the deliberation resume checkpoint could not be restored.");
   }
   const bytes = await input.storage.artifacts.get(artifact.content.uri);
   const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
   if (digest !== artifact.content.contentHash || bytes.byteLength !== artifact.content.byteCount) {
-    throw new Error("숙의 재개 checkpoint의 artifact 원문이 CAS 좌표와 다릅니다.");
+    throw new Error("The artifact bytes in the deliberation resume checkpoint do not match their CAS coordinates.");
   }
   const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   return { artifact: structuredClone(artifact), content, recordedEvent: event };
@@ -102,10 +107,13 @@ export async function resumeManagedDeliberationWithStorage(
         repositoryRoot: storage.paths.repositoryRoot,
         ...checkpoint.request,
       } as InlineManagedDeliberationRequest | StoredManagedDeliberationRequest;
-      const plan = await restorePlan(originalRequest, storage);
+      const knowledgePolicy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
+      const writingContract = dependencies.writingContract ??
+        writingContractForLanguage(knowledgePolicy.publication.language);
+      const plan = await restorePlan(originalRequest, storage, writingContract);
       const policy = plan.policy;
       if (deliberationPolicyHash(policy) !== checkpoint.policyHash) {
-        throw new Error("숙의 재개 checkpoint 뒤 policy가 바뀌었습니다.");
+        throw new Error("The policy changed after the deliberation resume checkpoint.");
       }
       const checkpointHandoffIds = new Set(checkpoint.runtime.handoffs.map((item) => item.handoffId));
       const contextHandoffIds = new Set(checkpoint.workspace.contexts.map((item) =>
@@ -114,7 +122,7 @@ export async function resumeManagedDeliberationWithStorage(
         contextHandoffIds.size !== checkpoint.workspace.contexts.length ||
         contextHandoffIds.size !== checkpointHandoffIds.size ||
         [...checkpointHandoffIds].some((handoffId) => !contextHandoffIds.has(handoffId))
-      ) throw new Error("숙의 재개 checkpoint의 workspace handoff가 runtime과 다릅니다.");
+      ) throw new Error("Workspace handoffs in the deliberation resume checkpoint differ from runtime state.");
       for (const context of checkpoint.workspace.contexts) {
         const runtimePublication = checkpoint.runtime.publications.find((item) =>
           item.publication.sharedContextId === context.publication.sharedContextId);
@@ -135,7 +143,7 @@ export async function resumeManagedDeliberationWithStorage(
             JSON.stringify(context.handoff.sharedContextIds) ||
           participant === undefined ||
           JSON.stringify(participant.role) !== JSON.stringify(context.producerRole)
-        ) throw new Error("숙의 재개 checkpoint의 공개 맥락 원본이 서로 다릅니다.");
+        ) throw new Error("Published context sources in the deliberation resume checkpoint disagree.");
       }
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
       const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
@@ -146,7 +154,7 @@ export async function resumeManagedDeliberationWithStorage(
         registry,
         participantRoleIds: recipientRoleIds,
         snapshot: checkpoint.workspace,
-        writingContract: dependencies.writingContract ?? defaultKoreanWritingContract,
+        writingContract,
       });
       const runtime = new DeliberationRuntime({
         deliberationId: checkpoint.deliberationId,
@@ -191,7 +199,7 @@ export async function resumeManagedDeliberationWithStorage(
           review.artifact.round !== claim.round ||
           review.artifact.details.reviewStatus !== "approved" ||
           !review.artifact.previousArtifactIds.includes(claim.deliberationArtifactId))
-      ) throw new Error("숙의 재개 checkpoint가 최신 claim의 전체 승인을 가리키지 않습니다.");
+      ) throw new Error("The deliberation resume checkpoint does not reference every approval for the latest claim.");
       try {
         return await completeApprovedDeliberation({
           request: originalRequest,
@@ -220,7 +228,7 @@ export async function resumeManagedDeliberationWithStorage(
             code: failureCode(error),
           }));
         } catch {
-          // 원래 실패를 유지하고 불완전한 이력을 완료로 위장하지 않습니다.
+          // Preserve the original failure instead of presenting incomplete history as completed.
         }
         throw error;
       }

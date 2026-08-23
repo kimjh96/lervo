@@ -143,7 +143,7 @@ describe("search rollout action commands", () => {
       repositoryRoot: root,
       projectId: project.projectId,
       registry,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       limit: 5,
     });
     const laterAttempt = createSearchAttempt({

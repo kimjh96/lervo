@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_bf566ff19cca3edc696fbf9e
+freshness: current
+ownership: user
+path: docs/decisions/search/0066-bounded-search-rollout-review-status.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_10d4d9c07aee1d160db4b87a
+title: "ADR-0066: Bounded search-rollout review status"
+type: decision

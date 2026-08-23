@@ -29,16 +29,16 @@ describe("Hub trace HTTP cursor", () => {
     expect(() => decodeRunCursor(encodeProjectCursor({
       destinationId: "hub:primary",
       projectId: "prj_allowed01",
-    }))).toThrow("cursor 형식");
+    }))).toThrow("cursor format");
     const extra = Buffer.from(JSON.stringify({
       v: 1,
       kind: "event",
       seq: 1,
       extra: true,
     })).toString("base64url");
-    expect(() => decodeEventCursor(extra)).toThrow("event cursor 형식");
-    expect(() => decodeEventCursor("not+base64url")).toThrow("cursor 형식");
+    expect(() => decodeEventCursor(extra)).toThrow("event cursor format");
+    expect(() => decodeEventCursor("not+base64url")).toThrow("cursor format");
     expect(() => decodeKnowledgeGraphCursor(encodeEventCursor({ seq: 1 })))
-      .toThrow("cursor 형식");
+      .toThrow("cursor format");
   });
 });

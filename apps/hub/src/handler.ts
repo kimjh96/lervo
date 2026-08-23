@@ -93,7 +93,7 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
       try {
         reader = new HubProjectScopedTraceReader(options.source, principal.projects);
       } catch (error) {
-        throw new Error("Hub authenticator가 유효하지 않은 project scope를 반환했습니다.", {
+        throw new Error("The Hub authenticator returned an invalid project scope.", {
           cause: error,
         });
       }

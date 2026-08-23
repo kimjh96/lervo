@@ -9,7 +9,7 @@ import {
   createConversationParticipationPolicy,
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import { HubControlReviewGrants, type HubCommandReview } from "@lervo/hub-control";
 import type { WritingSemanticEvaluator } from "@lervo/writing";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -115,14 +115,14 @@ describe("conversation command control", () => {
       operation: "approval_review",
       deliveryId,
     });
-    expect(parseConversationControlCommand(`이 command ${deliveryId} 승인해줘`)).toBeNull();
+    expect(parseConversationControlCommand(`Please approve command ${deliveryId}`)).toBeNull();
     expect(parseConversationControlCommand(`/lervo approve ${deliveryId}`)).toBeNull();
     expect(parseConversationControlCommand(
-      "/lervo deliberate start deliberation_product-review -- 배포 구조를 검토합니다.",
+      "/lervo deliberate start deliberation_product-review -- Review the deployment structure.",
     )).toEqual({
       operation: "deliberation_start",
       policyId: "deliberation_product-review",
-      topic: "배포 구조를 검토합니다.",
+      topic: "Review the deployment structure.",
     });
     expect(parseConversationControlCommand("/lervo deliberate status dlb_chat0001")).toEqual({
       operation: "deliberation_status",
@@ -132,12 +132,12 @@ describe("conversation command control", () => {
       operation: "deliberation_resume",
       deliberationId: "dlb_chat0001",
     });
-    expect(parseConversationControlCommand("Lervo끼리 배포 구조를 토론해 줘")).toBeNull();
+    expect(parseConversationControlCommand("Have Lervo agents discuss the deployment structure")).toBeNull();
   });
 
   it("routes deliberation start and status through one platform-neutral port", async () => {
     const { artifacts, event } = await fixtureMessage(
-      "/lervo deliberate start deliberation_product-review -- 배포 구조를 검토합니다.",
+      "/lervo deliberate start deliberation_product-review -- Review the deployment structure.",
     );
     const start = vi.fn(async () => ({
       deliberationId: "dlb_chat0001",
@@ -155,7 +155,7 @@ describe("conversation command control", () => {
       artifactStore: artifacts,
       control: { inspect: async () => ({ review: review(), reviewUrl: null }) },
       deliberations: { start, resume: vi.fn(), inspect },
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: evaluator(),
       now: () => new Date("2026-08-20T00:05:00.000Z"),
     });
@@ -187,12 +187,12 @@ describe("conversation command control", () => {
     expect(start).toHaveBeenCalledWith({
       event,
       policyId: "deliberation_product-review",
-      topic: "배포 구조를 검토합니다.",
+      topic: "Review the deployment structure.",
       requestedAt: "2026-08-20T00:05:00.000Z",
     });
     expect(inspect).not.toHaveBeenCalled();
-    expect(body).toContain("숙의 dlb_chat0001 요청을 처리했습니다.");
-    expect(body).toContain("기다려 주세요");
+    expect(body).toContain("Processed deliberation dlb_chat0001.");
+    expect(body).toContain("Wait for the current work to finish.");
   });
 
   it("publishes a writing-gated review reply without creating an approval", async () => {
@@ -204,7 +204,7 @@ describe("conversation command control", () => {
     const responder = new ConversationControlResponder({
       artifactStore: artifacts,
       control: { inspect },
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: evaluator(),
       now: () => new Date("2026-08-20T00:05:00.000Z"),
     });
@@ -239,8 +239,8 @@ describe("conversation command control", () => {
     )).toString("utf8");
 
     expect(inspect).toHaveBeenCalledOnce();
-    expect(body).toContain("이 대화에서는 승인이 생성되지 않았습니다.");
-    expect(body).toContain("Hub 화면에서 다시 인증");
+    expect(body).toContain("No approval was created in this conversation.");
+    expect(body).toContain("Reauthenticate and review the scope");
     expect(body).not.toContain("operator:reviewer");
     expect(candidate.publicationEvidence.evaluation.overallStatus).toBe("passed");
     expect(candidate.publicationPermit.surface).toBe("chat");
@@ -322,13 +322,13 @@ describe("conversation command control", () => {
       }],
     });
     const { event } = await fixtureMessage(
-      "/lervo deliberate start deliberation_product-review -- 배포 구조를 검토합니다.",
+      "/lervo deliberate start deliberation_product-review -- Review the deployment structure.",
     );
 
     await control.start({
       event,
       policyId: "deliberation_product-review",
-      topic: "배포 구조를 검토합니다.",
+      topic: "Review the deployment structure.",
       requestedAt: "2026-08-20T00:05:00.000Z",
     });
 
@@ -337,7 +337,7 @@ describe("conversation command control", () => {
       principalId: "operator:reviewer",
       sourceEventId: event.eventId,
       policyId: "deliberation_product-review",
-      topic: "배포 구조를 검토합니다.",
+      topic: "Review the deployment structure.",
       requestedAt: "2026-08-20T00:05:00.000Z",
     });
     await control.resume({

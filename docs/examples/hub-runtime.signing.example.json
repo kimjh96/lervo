@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "keyId": "key_replace_policy_01",
+    "privateKeyPath": "policy-ed25519.pem"
+  },
+  "command": {
+    "keyId": "key_replace_command_01",
+    "privateKeyPath": "command-ed25519.pem"
+  }
+}

@@ -19,12 +19,12 @@ function query(parameters) {
 async function readJson(response) {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.startsWith("application/json")) {
-    throw new TraceApiError(response.status, "invalid_response", "Hub 응답 형식을 확인할 수 없습니다.");
+    throw new TraceApiError(response.status, "invalid_response", "Could not validate the Hub response format.");
   }
   try {
     return await response.json();
   } catch {
-    throw new TraceApiError(response.status, "invalid_response", "Hub 응답을 읽을 수 없습니다.");
+    throw new TraceApiError(response.status, "invalid_response", "Could not read the Hub response.");
   }
 }
 
@@ -32,7 +32,7 @@ export function createTraceApi(readToken) {
   async function request(path) {
     const token = readToken();
     if (typeof token !== "string" || token.length === 0) {
-      throw new TraceApiError(401, "unauthorized", "접근 토큰이 필요합니다.");
+      throw new TraceApiError(401, "unauthorized", "An access token is required.");
     }
     let response;
     try {
@@ -45,18 +45,18 @@ export function createTraceApi(readToken) {
         referrerPolicy: "no-referrer",
       });
     } catch {
-      throw new TraceApiError(0, "network_error", "Hub에 연결할 수 없습니다.");
+      throw new TraceApiError(0, "network_error", "Could not connect to the Hub.");
     }
     const body = await readJson(response);
     if (!response.ok) {
       const code = typeof body?.error?.code === "string" ? body.error.code : "request_failed";
       const message = typeof body?.error?.message === "string"
         ? body.error.message
-        : "Trace를 불러오지 못했습니다.";
+        : "Could not load the trace.";
       throw new TraceApiError(response.status, code, message);
     }
     if (body?.schemaVersion !== 1) {
-      throw new TraceApiError(response.status, "invalid_response", "지원하지 않는 Hub 응답입니다.");
+      throw new TraceApiError(response.status, "invalid_response", "The Hub response is not supported.");
     }
     return body;
   }

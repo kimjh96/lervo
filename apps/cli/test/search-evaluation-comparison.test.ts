@@ -25,7 +25,7 @@ afterEach(cleanupSearchComparisonRepositories);
 describe("local search evaluation candidate comparison", () => {
   it("lists the allowlisted candidate and compares a ready bundle through the CLI", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "작은 파일"), await reviewedCase(root, "검색 맥락")];
+    const cases = [await reviewedCase(root, "tinyartifact"), await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.cli", 2, cases);
 
     const listed = await command(root, ["search", "candidates", "--json"]);
@@ -55,7 +55,7 @@ describe("local search evaluation candidate comparison", () => {
         embeddingDecision: "not_determined",
       },
     });
-    expect(compared.output).not.toContain("검색 맥락");
+    expect(compared.output).not.toContain("zephyrcontext");
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"))).toHaveLength(1);
 
     const reviewed = await command(root, [
@@ -73,7 +73,7 @@ describe("local search evaluation candidate comparison", () => {
       activationState: "not_applied",
       embeddingDecision: "not_determined",
     });
-    expect(reviewed.output).not.toContain("검색 맥락");
+    expect(reviewed.output).not.toContain("zephyrcontext");
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toHaveLength(1);
 
     const policyCreated = await command(root, [
@@ -127,7 +127,7 @@ describe("local search evaluation candidate comparison", () => {
 
   it("records two engine runs and publishes the query-free comparison last", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "작은 파일"), await reviewedCase(root, "검색 맥락")];
+    const cases = [await reviewedCase(root, "tinyartifact"), await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.discovery", 2, cases);
     const project = await loadProjectManifest(root);
     let builds = 0;
@@ -154,12 +154,12 @@ describe("local search evaluation candidate comparison", () => {
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-results"))).toHaveLength(4);
     const comparisonFiles = await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"));
     expect(comparisonFiles).toEqual([`${output.comparison.comparisonId}.json`]);
-    expect(JSON.stringify(output.comparison)).not.toContain("검색 맥락");
+    expect(JSON.stringify(output.comparison)).not.toContain("zephyrcontext");
   });
 
   it("does not build the candidate or create evaluation artifacts for insufficient samples", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "검색 맥락")];
+    const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "designer.review", 2, cases);
     const project = await loadProjectManifest(root);
     let builds = 0;
@@ -188,7 +188,7 @@ describe("local search evaluation candidate comparison", () => {
 
   it("publishes no evaluation artifacts when the candidate response breaks its index contract", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "작은 파일")];
+    const cases = [await reviewedCase(root, "tinyartifact")];
     await bundle(root, "marketer.claims", 1, cases);
     const project = await loadProjectManifest(root);
 
@@ -207,11 +207,11 @@ describe("local search evaluation candidate comparison", () => {
 
   it("reverifies the stored comparison, replays a winning candidate, and stores adoption without activation", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "검색 맥락")];
+    const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.recovery", 1, cases);
-    await writeFile(resolve(root, "docs/search-context.md"), "# 다른 문서\n\n평가 질의와 무관한 현재 내용입니다.\n");
+    await writeFile(resolve(root, "docs/search-context.md"), "# Other document\n\nCurrent content unrelated to the evaluation query.\n");
     const project = await loadProjectManifest(root);
-    const engine = recoveringCandidateEngine("검색 맥락", "doc_cli_search_context");
+    const engine = recoveringCandidateEngine("zephyrcontext", "doc_cli_search_context");
     const compared = await runLocalSearchEvaluationComparison({
       repositoryRoot: root,
       projectId: project.projectId,
@@ -259,7 +259,7 @@ describe("local search evaluation candidate comparison", () => {
 
   it("does not publish a review when the current corpus no longer matches the comparison", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "검색 맥락")];
+    const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.changed-corpus", 1, cases);
     const compared = await command(root, [
       "search", "compare", "researcher.changed-corpus", "--candidate", "bm25f-v1", "--json",
@@ -267,7 +267,7 @@ describe("local search evaluation candidate comparison", () => {
     expect(compared.code, compared.error).toBe(0);
     const comparisonId = (JSON.parse(compared.output) as { comparison: { comparisonId: string } })
       .comparison.comparisonId;
-    await writeFile(resolve(root, "docs/search-context.md"), "# 비교 뒤 바뀐 문서\n\n현재 corpus가 다릅니다.\n");
+    await writeFile(resolve(root, "docs/search-context.md"), "# Document changed after comparison\n\nThe current corpus is different.\n");
 
     const reviewed = await command(root, [
       "search", "review", comparisonId,

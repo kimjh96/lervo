@@ -126,7 +126,7 @@ describe("trace report compatibility contract", () => {
   it("keeps validation errors free of report contents", () => {
     const value = { ...validReport(), schemaVersion: "private-token" };
     expect(() => readTraceReport(value)).toThrowError(
-      "trace report v1의 필수 구조가 올바르지 않습니다.",
+      "The required structure of trace report v1 is invalid.",
     );
     expect(canonicalJson(value)).toContain("private-token");
   });

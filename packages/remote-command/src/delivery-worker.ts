@@ -106,7 +106,7 @@ function timestamp(clock: RemoteCommandClock): { value: string; milliseconds: nu
   if (!Number.isFinite(milliseconds)) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
-      "remote command reconnect clock이 유효하지 않습니다.",
+      "The remote command reconnect clock is invalid.",
     );
   }
   return { value, milliseconds };
@@ -132,7 +132,7 @@ function resolveConfiguration(options: RemoteCommandReconnectWorkerOptions) {
   ) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
-      "remote command reconnect worker 설정이 유효하지 않습니다.",
+      "The remote command reconnect worker configuration is invalid.",
     );
   }
   return { leaseDurationMs, retryDelayMs, limit };

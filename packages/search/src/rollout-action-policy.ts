@@ -18,11 +18,11 @@ import { assertTimestamp, SOURCE_ID_PATTERN } from "./validation.js";
 function orderedOperators(values: readonly string[]): string[] {
   if (!Array.isArray(values) || values.length < 1 || values.length > 32 ||
     values.some((value) => typeof value !== "string" || !SOURCE_ID_PATTERN.test(value))) {
-    throw new SearchError("invalid_rollout_action_policy", "검색 rollout 조치 정책의 operator 목록이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_policy", "The search rollout action policy operator list is invalid.");
   }
   const sorted = [...values].sort();
   if (new Set(sorted).size !== sorted.length) {
-    throw new SearchError("invalid_rollout_action_policy", "검색 rollout 조치 정책의 operator 목록이 중복되었습니다.");
+    throw new SearchError("invalid_rollout_action_policy", "The search rollout action policy operator list contains duplicates.");
   }
   return sorted;
 }
@@ -44,13 +44,13 @@ export function createSearchRolloutActionPolicy(input: SearchRolloutActionPolicy
       rolloutPolicy.projectId !== engineActivationPolicy.projectId ||
       input.createdAt.getTime() < Date.parse(engineActivationPolicy.createdAt)
     ))) {
-    throw new SearchError("invalid_rollout_action_policy", "검색 rollout 조치 정책 입력과 원본 관계가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_policy", "The search rollout action policy input or source relation is invalid.");
   }
   const operators = orderedOperators(input.allowedOperatorIds);
   if (!operators.includes(input.authoredBy) ||
     (engineActivationPolicy !== undefined &&
       operators.some((operatorId) => !engineActivationPolicy.allowedOperatorIds.includes(operatorId)))) {
-    throw new SearchError("invalid_rollout_action_policy", "조치 정책의 작성자·operator 범위가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_policy", "The action policy author or operator scope is invalid.");
   }
   const core = {
     projectId: rolloutPolicy.projectId,
@@ -77,17 +77,17 @@ export function assertSearchRolloutActionPolicy(policy: SearchRolloutActionPolic
     ((policy.action === "execute_rollback") !== (policy.engineActivationPolicyId !== null)) ||
     (policy.engineActivationPolicyId !== null &&
       !SEARCH_ENGINE_ACTIVATION_POLICY_PATTERN.test(policy.engineActivationPolicyId))) {
-    throw new SearchError("invalid_rollout_action_policy", "검색 rollout 조치 정책 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_policy", "The search rollout action policy contract is invalid.");
   }
   const operators = orderedOperators(policy.allowedOperatorIds);
   if (JSON.stringify(operators) !== JSON.stringify(policy.allowedOperatorIds) ||
     !operators.includes(policy.authoredBy)) {
-    throw new SearchError("invalid_rollout_action_policy", "조치 정책의 정렬·작성자 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_policy", "Ordering or author coordinates in the action policy are invalid.");
   }
   assertTimestamp(policy.createdAt, "invalid_rollout_action_policy");
   const { schemaVersion: _schema, actionPolicyId: _id, ...core } = policy;
   if (contentId("srapol", core) !== policy.actionPolicyId) {
-    throw new SearchError("invalid_rollout_action_policy", "검색 rollout 조치 정책 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_rollout_action_policy", "The search rollout action policy ID does not match its content.");
   }
 }
 
@@ -106,7 +106,7 @@ export function verifySearchRolloutActionPolicySources(
   if (canonicalHash(recreated) !== canonicalHash(policy)) {
     throw new SearchError(
       "invalid_rollout_action_policy",
-      "검색 rollout 조치 정책이 검토·엔진 정책 원본과 일치하지 않습니다.",
+      "The search rollout action policy does not match its review and engine policy sources.",
     );
   }
 }

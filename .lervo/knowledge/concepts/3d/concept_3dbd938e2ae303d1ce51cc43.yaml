@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_3dbd938e2ae303d1ce51cc43
+freshness: current
+ownership: user
+path: docs/decisions/release/assurance/0096-cli-trusted-publisher-readiness.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_d4d434afea3a9fb03eaeecb6
+title: "ADR-0096: CLI Trusted Publisher readiness contract"
+type: decision

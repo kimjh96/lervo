@@ -21,7 +21,7 @@ export async function collectProviderResult(input: {
   if (!validateSchema("adapter", result).valid) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Provider turn result가 adapter schema를 통과하지 못했습니다.",
+      "The provider turn result does not satisfy the adapter schema.",
     );
   }
   const binding = inspectTurnResultBinding({
@@ -32,7 +32,7 @@ export async function collectProviderResult(input: {
   if (!binding.passed) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Provider turn result의 좌표 또는 bytes가 공통 계약과 다릅니다.",
+      "The provider turn result coordinates or bytes differ from the common contract.",
     );
   }
   return structuredClone(result);
@@ -66,7 +66,7 @@ export async function storeProviderResult(input: {
   } catch (error) {
     throw new ManagedProviderRunError(
       "artifact_storage_failed",
-      "Provider 결과 artifact를 안전하게 저장하지 못했습니다.",
+      "Could not store the provider result artifact safely.",
       { cause: error },
     );
   }

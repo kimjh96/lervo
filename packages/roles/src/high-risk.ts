@@ -104,7 +104,7 @@ export function assertHighRiskRoleWorkflow(input: {
     definitions.size !== workflow.roleBindings.length) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
-      "고위험 역할 workflow의 schema, ID, project, 결정 책임자 또는 회차가 유효하지 않습니다.",
+      "The high-risk role workflow schema, ID, project, decision owner, or round count is invalid.",
     );
   }
   try {
@@ -112,7 +112,7 @@ export function assertHighRiskRoleWorkflow(input: {
   } catch (error) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
-      "고위험 역할 workflow의 숙의 정책이 유효하지 않습니다.",
+      "The high-risk role workflow deliberation policy is invalid.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
@@ -131,7 +131,7 @@ export function assertHighRiskRoleWorkflow(input: {
     reviewers[0]!.roleId === verifiers[0]!.roleId) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
-      "고위험 workflow는 서로 다른 제안·결정, 독립 검토, 검증 역할을 가져야 합니다.",
+      "A high-risk workflow must have distinct proposal and decision ownership, independent review, and verification roles.",
     );
   }
   for (const binding of workflow.roleBindings) {
@@ -145,7 +145,7 @@ export function assertHighRiskRoleWorkflow(input: {
       JSON.stringify(binding.responsibilities) !== JSON.stringify(participant.responsibilities)) {
       throw new RoleContractError(
         "high_risk_workflow_invalid",
-        "고위험 workflow의 RoleProfile, 평가 묶음 또는 숙의 참여자 결속이 다릅니다.",
+        "The high-risk workflow RoleProfile, evaluation bundle, or deliberation participant binding does not match.",
       );
     }
   }
@@ -153,7 +153,7 @@ export function assertHighRiskRoleWorkflow(input: {
     JSON.stringify(requiredSuites(input.definitions))) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
-      "고위험 workflow가 역할별 project verification 전체를 요구하지 않습니다.",
+      "The high-risk workflow does not require every role-specific project verification.",
     );
   }
 }

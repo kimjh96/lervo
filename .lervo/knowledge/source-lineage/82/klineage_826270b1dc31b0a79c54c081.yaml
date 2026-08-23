@@ -1,0 +1,11 @@
+fromPath: docs/adr/0049-durable-conversation-deployment.md
+identityPath: docs/adr/0049-durable-conversation-deployment.md
+kind: document_move
+lineageId: klineage_826270b1dc31b0a79c54c081
+operationId: kdocop_285d2d369b2280b1440e2199
+schemaVersion: 1
+sourceContentHash: sha256:7c0a7c0c0abb42940e9158423d03bdd24698267baec3d9f7deee2df254d03bda
+sourceId: src_1b15a6883f69567747864539
+sourceUnitBindingDigest: sha256:0d4535eba26955d39e768e64633fedf60ccf967444aed10f5b6e659c3105c6ad
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/conversations/0049-durable-conversation-deployment.md

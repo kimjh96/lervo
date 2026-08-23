@@ -1,0 +1,70 @@
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import { runCli } from "../src/main.js";
+
+const roots: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+describe("repository layout migration CLI", () => {
+  it("completes plan, approved apply, lint, and idempotent rerun through migrate knowledge", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-migration-"));
+    roots.push(root);
+    await writeFile(resolve(root, "README.md"), "# Example\n\nSee PROJECT_ARCHITECTURE.md.\n");
+    await writeFile(resolve(root, "PROJECT_ARCHITECTURE.md"), "# Architecture\n\nRuntime design.\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; planKind: string; status: string; moves: Array<{ operationId: string; approvalHash: string }> };
+    expect(plan).toMatchObject({ planKind: "repository_layout", status: "review_required" });
+    messages.length = 0;
+    const applyArgs = ["migrate", "knowledge", "--apply", plan.planId, "--json"];
+    for (const move of plan.moves) applyArgs.push("--approve-item", `${move.operationId}=${move.approvalHash}`);
+    expect(await runCli(applyArgs, io), errors.join("")).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "migrate", movedCount: 1, referenceUpdatedCount: 1 });
+    await expect(access(resolve(root, "PROJECT_ARCHITECTURE.md"))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toContain("docs/architecture/system.md");
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const bridge = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; status: string };
+    expect(bridge.status).toBe("review_required");
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", bridge.planId, "--approve-item", `${bridge.operationId}=${bridge.approvalHash}`, "--json"], io), errors.join("")).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const rerun = JSON.parse(messages.join("")) as { operations: Array<{ action: string }> };
+    expect(rerun.operations.filter((operation) => operation.action !== "unchanged")).toEqual([]);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
+    expect(errors).toEqual([]);
+  }, 15_000);
+
+  it("reports an actionable blocked plan for an unclassified ADR", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-blocked-"));
+    roots.push(root);
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    await mkdir(resolve(root, "docs/adr"), { recursive: true });
+    await writeFile(resolve(root, "docs/adr/0001-zebra.md"), "# ADR-0001: Purple zebra quorum\n\nDecision.\n");
+    messages.length = 0;
+
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(1);
+    const plan = JSON.parse(messages.join("")) as { status: string; moves: unknown[]; blockers: Array<{ code: string; path: string }> };
+    expect(plan).toMatchObject({ status: "blocked", moves: [] });
+    expect(plan.blockers).toContainEqual(expect.objectContaining({ code: "unclassified_decision", path: "docs/adr/0001-zebra.md" }));
+    expect(errors).toEqual([]);
+  });
+});

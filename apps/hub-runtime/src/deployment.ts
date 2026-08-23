@@ -1,28 +1,42 @@
-import { createPrivateKey } from "node:crypto";
+import type { Server as HttpServer } from "node:http";
+import { createServer as createSecureServer, type Server as SecureServer } from "node:https";
 import type { AddressInfo } from "node:net";
+import { createSecureContext } from "node:tls";
 
 import { OwnerOnlyFileSystemCas } from "@lervo/cas";
 import {
   ConfiguredBearerAuthenticator,
+  ReloadableBearerAuthenticator,
+  attachHubArtifactCleanupLifecycle,
+  createHubRequestListener,
   createHubServerWithArtifactCleanup,
   type HubArtifactCleanupLifecycleResult,
 } from "@lervo/hub";
 import { HubControlReviewGrants } from "@lervo/hub-control";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
-import { Ed25519PolicySigner } from "@lervo/policy";
-import { Ed25519RemoteCommandSigner } from "@lervo/remote-command";
 
 import type { HubRuntimeConfig } from "./config-types.js";
 import { HubRuntimeError } from "./errors.js";
+import { loadHubRuntimeCredentials } from "./credentials.js";
 import { readOwnerOnlyFile } from "./secure-file.js";
 import { prepareOwnerOnlyDatabasePath } from "./secure-storage.js";
+import {
+  assertHubRuntimeSigningReplacement,
+  loadHubRuntimeSigning,
+  ReloadableCommandSigner,
+  ReloadablePolicySigner,
+} from "./signing.js";
 
-const MAXIMUM_PRIVATE_KEY_BYTES = 16_384;
 const MAXIMUM_REVIEW_SECRET_BYTES = 4_096;
+const MAXIMUM_TLS_CERTIFICATE_BYTES = 64 * 1_024;
+const MAXIMUM_TLS_PRIVATE_KEY_BYTES = 64 * 1_024;
+
+type HubRuntimeServer = HttpServer | SecureServer;
 
 export interface HubRuntimeListeningAddress {
-  host: "127.0.0.1" | "::1";
+  host: string;
   port: number;
+  protocol: "http" | "https";
 }
 
 export interface HubRuntimeCloseResult {
@@ -34,10 +48,12 @@ export interface HubRuntimeCloseResult {
 export interface HubRuntimeDeployment {
   readonly closed: Promise<HubRuntimeCloseResult>;
   listen(): Promise<HubRuntimeListeningAddress>;
+  reloadCredentials(): Promise<void>;
+  reloadRuntimeMaterials(): Promise<void>;
   close(): Promise<HubRuntimeCloseResult>;
 }
 
-async function closeServer(server: ReturnType<typeof createHubServerWithArtifactCleanup>["server"]): Promise<void> {
+async function closeServer(server: HubRuntimeServer): Promise<void> {
   if (!server.listening) return;
   await new Promise<void>((resolve, reject) => server.close((error) =>
     error === undefined ? resolve() : reject(error)
@@ -49,15 +65,20 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
   private listenStarted = false;
   private closePromise: Promise<HubRuntimeCloseResult> | null = null;
   private failureCode: HubRuntimeCloseResult["failureCode"];
+  private reloadPromise: Promise<void> | null = null;
+  private materialReloadPromise: Promise<void> | null = null;
   private resolveClosed!: (result: HubRuntimeCloseResult) => void;
   private rejectClosed!: (error: unknown) => void;
 
   constructor(
     private readonly listenAddress: HubRuntimeConfig["listen"],
     private readonly store: HubSyncSQLiteStore,
-    private readonly server: ReturnType<typeof createHubServerWithArtifactCleanup>["server"],
+    private readonly server: HubRuntimeServer,
     private readonly artifactCleanup:
       ReturnType<typeof createHubServerWithArtifactCleanup>["artifactCleanup"],
+    private readonly protocol: "http" | "https",
+    private readonly reloadCredentialSnapshot: () => Promise<void>,
+    private readonly reloadMaterialSnapshot: () => Promise<void>,
   ) {
     this.closed = new Promise<HubRuntimeCloseResult>((resolve, reject) => {
       this.resolveClosed = resolve;
@@ -81,7 +102,7 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
 
   async listen(): Promise<HubRuntimeListeningAddress> {
     if (this.listenStarted || this.closePromise !== null) {
-      throw new HubRuntimeError("listen_failed", "Hub runtime은 한 번만 시작할 수 있습니다.");
+      throw new HubRuntimeError("listen_failed", "The Hub runtime can be started only once.");
     }
     this.listenStarted = true;
     try {
@@ -100,11 +121,11 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
       });
       const address = this.server.address() as AddressInfo | null;
       if (address === null || typeof address === "string") throw new Error("missing address");
-      return { host: this.listenAddress.host, port: address.port };
+      return { host: this.listenAddress.host, port: address.port, protocol: this.protocol };
     } catch (error) {
       this.failureCode ??= "hub_server_runtime_failed";
       await this.close().catch(() => undefined);
-      throw new HubRuntimeError("listen_failed", "Hub runtime HTTP server를 시작하지 못했습니다.", {
+      throw new HubRuntimeError("listen_failed", "Could not start the Hub runtime HTTP server.", {
         cause: error,
       });
     }
@@ -115,6 +136,52 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
       this.beginFinalization(this.shutdown());
     }
     return this.closePromise!;
+  }
+
+  reloadCredentials(): Promise<void> {
+    if (this.closePromise !== null) {
+      return Promise.reject(new HubRuntimeError(
+        "credential_reload_failed",
+        "Cannot reload Hub runtime credentials while the runtime is shutting down.",
+      ));
+    }
+    if (this.reloadPromise === null) {
+      const operation = this.reloadCredentialSnapshot().catch((error) => {
+        throw new HubRuntimeError(
+          "credential_reload_failed",
+          "Could not reload Hub runtime credentials.",
+          { cause: error },
+        );
+      });
+      this.reloadPromise = operation;
+      void operation.finally(() => {
+        if (this.reloadPromise === operation) this.reloadPromise = null;
+      }).catch(() => undefined);
+    }
+    return this.reloadPromise;
+  }
+
+  reloadRuntimeMaterials(): Promise<void> {
+    if (this.closePromise !== null) {
+      return Promise.reject(new HubRuntimeError(
+        "runtime_material_reload_failed",
+        "Cannot reload Hub runtime material while the runtime is shutting down.",
+      ));
+    }
+    if (this.materialReloadPromise === null) {
+      const operation = this.reloadMaterialSnapshot().catch((error) => {
+        throw new HubRuntimeError(
+          "runtime_material_reload_failed",
+          "Could not reload Hub runtime material.",
+          { cause: error },
+        );
+      });
+      this.materialReloadPromise = operation;
+      void operation.finally(() => {
+        if (this.materialReloadPromise === operation) this.materialReloadPromise = null;
+      }).catch(() => undefined);
+    }
+    return this.materialReloadPromise;
   }
 
   private beginFinalization(finalization: Promise<HubRuntimeCloseResult>): void {
@@ -131,7 +198,7 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
     }
     const result = await this.finishResources();
     if (closeFailure !== undefined) {
-      throw new HubRuntimeError("shutdown_failed", "Hub runtime HTTP server를 종료하지 못했습니다.", {
+      throw new HubRuntimeError("shutdown_failed", "Could not stop the Hub runtime HTTP server.", {
         cause: closeFailure,
       });
     }
@@ -146,57 +213,86 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
         ? { status: "stopped", artifactCleanup }
         : { status: "failed", failureCode: this.failureCode, artifactCleanup };
     } catch (error) {
-      throw new HubRuntimeError("shutdown_failed", "Hub runtime 저장소를 안전하게 종료하지 못했습니다.", {
+      throw new HubRuntimeError("shutdown_failed", "Could not close the Hub runtime repository safely.", {
         cause: error,
       });
     }
   }
 }
 
+interface LoadedTlsMaterial {
+  certificate: Buffer;
+  privateKey: Buffer;
+}
+
+async function loadTlsMaterial(config: NonNullable<HubRuntimeConfig["tls"]>): Promise<LoadedTlsMaterial> {
+  const [certificate, privateKey] = await Promise.all([
+    readOwnerOnlyFile(config.certificatePath, MAXIMUM_TLS_CERTIFICATE_BYTES),
+    readOwnerOnlyFile(config.privateKeyPath, MAXIMUM_TLS_PRIVATE_KEY_BYTES),
+  ]);
+  try {
+    createSecureContext({ cert: certificate, key: privateKey, minVersion: "TLSv1.3" });
+    return { certificate, privateKey };
+  } catch (error) {
+    certificate.fill(0);
+    privateKey.fill(0);
+    throw new HubRuntimeError("invalid_config", "The Hub TLS material is invalid.", {
+      cause: error,
+    });
+  }
+}
+
+function clearTlsMaterial(material: LoadedTlsMaterial | undefined): void {
+  material?.certificate.fill(0);
+  material?.privateKey.fill(0);
+}
+
 export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRuntimeDeployment> {
   try {
-    if ((config.listen.host !== "127.0.0.1" && config.listen.host !== "::1") ||
+    if ((config.tls === undefined && config.listen.host !== "127.0.0.1" && config.listen.host !== "::1") ||
+      typeof config.listen.host !== "string" || config.listen.host.length < 1 ||
+      config.listen.host.length > 255 || config.listen.host.trim() !== config.listen.host ||
+      /[\s/\\]/u.test(config.listen.host) ||
       !Number.isSafeInteger(config.listen.port) || config.listen.port < 1 ||
       config.listen.port > 65_535) {
       throw new HubRuntimeError(
         "invalid_config",
-        "TLS가 없는 Hub runtime은 유효한 loopback 주소에서만 실행할 수 있습니다.",
+        "A Hub runtime without TLS may listen only on a valid loopback address.",
       );
     }
-    const [policyKeyBytes, commandKeyBytes, reviewSecret] = await Promise.all([
-      readOwnerOnlyFile(config.signing.policy.privateKeyPath, MAXIMUM_PRIVATE_KEY_BYTES),
-      readOwnerOnlyFile(config.signing.command.privateKeyPath, MAXIMUM_PRIVATE_KEY_BYTES),
+    const [loadedSigning, reviewSecret] = await Promise.all([
+      loadHubRuntimeSigning(config),
       readOwnerOnlyFile(config.control.reviewGrantSecretPath, MAXIMUM_REVIEW_SECRET_BYTES),
     ]);
-    let policySigner: Ed25519PolicySigner;
-    let commandSigner: Ed25519RemoteCommandSigner;
+    const policySigner = new ReloadablePolicySigner(loadedSigning.policy);
+    const commandSigner = new ReloadableCommandSigner(loadedSigning.command);
     let reviewGrants: HubControlReviewGrants;
     try {
-      policySigner = new Ed25519PolicySigner(
-        config.signing.policy.keyId,
-        createPrivateKey(policyKeyBytes),
-      );
-      commandSigner = new Ed25519RemoteCommandSigner(
-        config.signing.command.keyId,
-        createPrivateKey(commandKeyBytes),
-      );
       reviewGrants = new HubControlReviewGrants(reviewSecret, {
         ...(config.control.reviewGrantTtlSeconds === undefined ? {} : {
           ttlSeconds: config.control.reviewGrantTtlSeconds,
         }),
       });
     } finally {
-      policyKeyBytes.fill(0);
-      commandKeyBytes.fill(0);
       reviewSecret.fill(0);
     }
-    const authenticator = new ConfiguredBearerAuthenticator(config.credentials);
+    const authenticator = new ReloadableBearerAuthenticator(
+      await loadHubRuntimeCredentials(config),
+    );
+    const reloadCredentialSnapshot = async () => {
+      if (config.credentialsFile === undefined) return;
+      authenticator.replace(await loadHubRuntimeCredentials(config));
+    };
     const databasePath = await prepareOwnerOnlyDatabasePath(config.storage.databasePath);
     const store = await HubSyncSQLiteStore.open({ path: databasePath });
     try {
       const artifacts = await OwnerOnlyFileSystemCas.open(config.storage.commandCasPath);
       let deployment!: DefaultHubRuntimeDeployment;
-      const composed = createHubServerWithArtifactCleanup({
+      const serverOptions = {
+        health: {
+          hubIdentityHash: config.identity.hubIdentityHash,
+          checkReady: () => store.checkIntegrity(),
+        },
         trace: { authenticator, source: store },
         sync: {
           authenticator,
@@ -222,13 +318,64 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
           artifacts,
           ...config.cleanup,
         },
-        onArtifactCleanupFailure: () => deployment.markArtifactCleanupFailure(),
-      });
+      };
+      let server: HubRuntimeServer;
+      let artifactCleanup: ReturnType<typeof createHubServerWithArtifactCleanup>["artifactCleanup"];
+      if (config.tls === undefined) {
+        const composed = createHubServerWithArtifactCleanup({
+          ...serverOptions,
+          onArtifactCleanupFailure: () => deployment.markArtifactCleanupFailure(),
+        });
+        server = composed.server;
+        artifactCleanup = composed.artifactCleanup;
+      } else {
+        const tls = await loadTlsMaterial(config.tls);
+        try {
+          server = createSecureServer({
+            cert: tls.certificate,
+            key: tls.privateKey,
+            minVersion: "TLSv1.3",
+          }, createHubRequestListener(serverOptions));
+        } finally {
+          clearTlsMaterial(tls);
+        }
+        artifactCleanup = attachHubArtifactCleanupLifecycle({
+          server,
+          runtime: serverOptions.artifactCleanup,
+          onFailure: () => deployment.markArtifactCleanupFailure(),
+        });
+      }
+      const reloadMaterialSnapshot = async () => {
+        const [credentials, candidateSigning, tls] = await Promise.all([
+          loadHubRuntimeCredentials(config),
+          loadHubRuntimeSigning(config),
+          config.tls === undefined ? Promise.resolve(undefined) : loadTlsMaterial(config.tls),
+        ]);
+        try {
+          assertHubRuntimeSigningReplacement(loadedSigning, candidateSigning);
+          if (tls !== undefined) {
+            (server as SecureServer).setSecureContext({
+              cert: tls.certificate,
+              key: tls.privateKey,
+            });
+          }
+          policySigner.replace(candidateSigning.policy);
+          commandSigner.replace(candidateSigning.command);
+          loadedSigning.policy = candidateSigning.policy;
+          loadedSigning.command = candidateSigning.command;
+          authenticator.replace(credentials);
+        } finally {
+          clearTlsMaterial(tls);
+        }
+      };
       deployment = new DefaultHubRuntimeDeployment(
         { ...config.listen },
         store,
-        composed.server,
-        composed.artifactCleanup,
+        server,
+        artifactCleanup,
+        config.tls === undefined ? "http" : "https",
+        reloadCredentialSnapshot,
+        reloadMaterialSnapshot,
       );
       return deployment;
     } catch (error) {
@@ -237,7 +384,7 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
     }
   } catch (error) {
     if (error instanceof HubRuntimeError) throw error;
-    throw new HubRuntimeError("startup_failed", "Hub runtime 구성을 열지 못했습니다.", {
+    throw new HubRuntimeError("startup_failed", "Could not open the Hub runtime configuration.", {
       cause: error,
     });
   }

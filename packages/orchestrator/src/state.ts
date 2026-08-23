@@ -90,7 +90,7 @@ export class ManagedContextState {
     if (this.phaseValue === "telemetry_failed") {
       throw new ManagedContextError(
         "telemetry_recording_failed",
-        "Telemetry 복구 전에는 managed context 실행을 계속할 수 없습니다.",
+        "Managed context execution cannot continue before telemetry recovery.",
       );
     }
   }
@@ -100,7 +100,7 @@ export class ManagedContextState {
     if (this.phaseValue !== expected) {
       throw new ManagedContextError(
         "invalid_state",
-        `${expected} 상태에서만 수행할 수 있는 작업입니다.`,
+        `This operation can only be performed in the ${expected} state.`,
       );
     }
   }
@@ -109,7 +109,7 @@ export class ManagedContextState {
     if (!Number.isFinite(date.getTime()) || date.getTime() < this.lastEventAt) {
       throw new ManagedContextError(
         "context_contract_invalid",
-        "Managed run event 시각은 유효하고 이전 event보다 빠르지 않아야 합니다.",
+        "The managed run event time must be valid and no earlier than the previous event.",
       );
     }
     return date.toISOString();
@@ -125,7 +125,7 @@ export class ManagedContextState {
     this.activePermit = undefined;
     throw new ManagedContextError(
       "telemetry_recording_failed",
-      "필수 telemetry 기록에 실패해 변경 capability를 닫았습니다.",
+      "The mutation capability was closed because required telemetry recording failed.",
     );
   }
 
@@ -223,7 +223,7 @@ export class ManagedContextState {
     ) {
       throw new ManagedContextError(
         "write_permit_invalid",
-        "현재 generation에 발급한 파일 쓰기 permit가 아닙니다.",
+        "The file-write permit was not issued for the current generation.",
       );
     }
   }

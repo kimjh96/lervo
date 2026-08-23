@@ -19,7 +19,7 @@
         "provider": "codex",
         "risk": "medium",
         "verificationSuiteIds": ["repo.check"],
-        "rawRequest": "비밀 본문",
+        "rawRequest": "secret body",
         "request": {
           "artifactId": "art_remote_request",
           "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",

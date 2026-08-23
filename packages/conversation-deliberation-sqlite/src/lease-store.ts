@@ -35,14 +35,14 @@ function rollback(database: DatabaseSync, error: unknown, label: string): never 
   } catch (rollbackError) {
     throw new ConversationDeliberationSQLiteError(
       "write_failed",
-      `${label} transaction과 rollback이 실패했습니다.`,
+      `${label} transaction and rollback both failed.`,
       { cause: new AggregateError([error, rollbackError]) },
     );
   }
   if (error instanceof ConversationDeliberationSQLiteError) throw error;
   throw new ConversationDeliberationSQLiteError(
     "write_failed",
-    `${label} transaction이 실패했습니다.`,
+    `${label} transaction failed.`,
     { cause: error },
   );
 }
@@ -60,7 +60,7 @@ export function assertConversationDeliberationLeaseOptions(
   if (!conversationDeliberationPatterns.workerId.test(workerId)) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${label} lease 설정이 유효하지 않습니다.`,
+      `${label} lease configuration is invalid.`,
     );
   }
   assertConversationDeliberationLeaseDuration(leaseDurationMs, label);
@@ -74,7 +74,7 @@ function assertConversationDeliberationLeaseDuration(
     leaseDurationMs > 60 * 60_000) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${label} lease 기간이 유효하지 않습니다.`,
+      `${label} lease duration is invalid.`,
     );
   }
 }
@@ -132,7 +132,7 @@ export function claimConversationDeliberationJob<
     );
     if (updated.changes !== 1) throw new ConversationDeliberationSQLiteError(
       "lease_mismatch",
-      `${configuration.label} lease를 획득하지 못했습니다.`,
+      `Could not acquire the ${configuration.label} lease.`,
     );
     const leased = database.prepare(`
       SELECT * FROM ${configuration.table}
@@ -154,7 +154,7 @@ export function renewConversationDeliberationJob(input: {
   configuration: LeaseStoreConfiguration<QueueJob, string>;
 }): void {
   const { database, configuration } = input;
-  const renewedAtMs = conversationDeliberationMilliseconds(input.renewedAt, `${configuration.label} lease 갱신`);
+  const renewedAtMs = conversationDeliberationMilliseconds(input.renewedAt, `${configuration.label} lease renewal`);
   assertConversationDeliberationLeaseDuration(input.leaseDurationMs, configuration.label);
   const expiresAtMs = renewedAtMs + input.leaseDurationMs;
   try {
@@ -171,10 +171,10 @@ export function renewConversationDeliberationJob(input: {
     );
     if (result.changes !== 1) throw new ConversationDeliberationSQLiteError(
       "lease_mismatch",
-      `${configuration.label} lease를 갱신하지 못했습니다.`,
+      `Could not renew the ${configuration.label} lease.`,
     );
   } catch (error) {
-    writeError(error, `${configuration.label} lease 갱신을 저장하지 못했습니다.`);
+    writeError(error, `Could not store the ${configuration.label} lease renewal.`);
   }
 }
 
@@ -187,14 +187,14 @@ export function settleConversationDeliberationJob(input: {
   configuration: LeaseStoreConfiguration<QueueJob, string>;
 }): void {
   const { database, configuration } = input;
-  const settledAtMs = conversationDeliberationMilliseconds(input.settledAt, `${configuration.label} 종료`);
+  const settledAtMs = conversationDeliberationMilliseconds(input.settledAt, `${configuration.label} settlement`);
   const encoded = JSON.stringify(input.summary);
   decodeConversationDeliberationSummary(encoded, input.deliberationId);
   if (input.summary.status !== "converged" && input.summary.status !== "no_consensus" &&
     input.summary.status !== "failed") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${configuration.label} 결과가 종료 상태가 아닙니다.`,
+      `The ${configuration.label} result is not terminal.`,
     );
   }
   try {
@@ -208,10 +208,10 @@ export function settleConversationDeliberationJob(input: {
     `).run(encoded, input.settledAt, input.deliberationId, input.leaseId, settledAtMs);
     if (result.changes !== 1) throw new ConversationDeliberationSQLiteError(
       "lease_mismatch",
-      `${configuration.label} 종료 lease가 다릅니다.`,
+      `The ${configuration.label} settlement lease differs.`,
     );
   } catch (error) {
-    writeError(error, `${configuration.label} 종료 결과를 저장하지 못했습니다.`);
+    writeError(error, `Could not store the ${configuration.label} settlement result.`);
   }
 }
 
@@ -224,7 +224,7 @@ export function markConversationDeliberationJobUncertain<TFailureCode extends st
   configuration: LeaseStoreConfiguration<QueueJob, TFailureCode>;
 }): void {
   const { database, configuration } = input;
-  const failedAtMs = conversationDeliberationMilliseconds(input.failedAt, `${configuration.label} 실패`);
+  const failedAtMs = conversationDeliberationMilliseconds(input.failedAt, `${configuration.label} failure`);
   try {
     const result = database.prepare(`
       UPDATE ${configuration.table} SET
@@ -242,9 +242,9 @@ export function markConversationDeliberationJobUncertain<TFailureCode extends st
     );
     if (result.changes !== 1) throw new ConversationDeliberationSQLiteError(
       "lease_mismatch",
-      `${configuration.label} 불확실 상태 lease가 다릅니다.`,
+      `The ${configuration.label} uncertain-state lease differs.`,
     );
   } catch (error) {
-    writeError(error, `${configuration.label} 불확실 상태를 저장하지 못했습니다.`);
+    writeError(error, `Could not store the ${configuration.label} uncertain state.`);
   }
 }

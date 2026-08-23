@@ -13,7 +13,7 @@ export async function ensureDatabasePath(path: string): Promise<string> {
     if (stats.isSymbolicLink() || !stats.isFile()) {
       throw new EventStoreError(
         "integrity_failed",
-        "SQLite 경로는 일반 파일이어야 하며 심볼릭 링크일 수 없습니다.",
+        "The SQLite path must be a regular file and cannot be a symbolic link.",
       );
     }
   } catch (error) {
@@ -42,7 +42,7 @@ export function bindDatabaseMetadata(database: DatabaseSync, projectId: string):
       ) {
         throw new EventStoreError(
           "integrity_failed",
-          `지원하지 않는 event store schema입니다: ${String(storedVersion)}`,
+          `Unsupported event store schema: ${String(storedVersion)}`,
         );
       }
       if (parsedVersion < storageSchemaVersion) {
@@ -57,7 +57,7 @@ export function bindDatabaseMetadata(database: DatabaseSync, projectId: string):
     } else if (storedProjectId !== projectId) {
       throw new EventStoreError(
         "project_mismatch",
-        `event store는 ${String(storedProjectId)}에 속하며 ${projectId}로 열 수 없습니다.`,
+        `The event store belongs to ${String(storedProjectId)} and cannot be opened as ${projectId}.`,
       );
     }
     database.exec("COMMIT;");

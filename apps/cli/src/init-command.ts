@@ -15,18 +15,18 @@ export const initUsage = "  lervo init [--dry-run] [--root <path>] [--name <name
 function operationLabel(operation: InitOperation): string {
   switch (operation.action) {
     case "create":
-      return "생성";
+      return "create";
     case "unchanged":
-      return "유지";
+      return "unchanged";
     case "conflict":
-      return "충돌";
+      return "conflict";
   }
 }
 
 export function formatInitPlan(plan: InitPlan): string {
   const lines = [
-    `초기화 대상: ${plan.root}`,
-    `계획 상태: ${plan.status === "ready" ? "적용 가능" : "적용 불가"}`,
+    `Initialization target: ${plan.root}`,
+    `Plan status: ${plan.status === "ready" ? "ready to apply" : "blocked"}`,
   ];
   for (const operation of plan.operations) {
     lines.push(`  ${operationLabel(operation)}  ${operation.path}`);
@@ -90,8 +90,8 @@ export async function runInitCommand(args: string[], io: CliIo): Promise<number>
     if (!values.json) {
       io.stdout(
         result.created.length > 0
-          ? `Lervo 프로젝트를 초기화했습니다. projectId: ${result.projectManifest.projectId}\n`
-          : `이미 초기화된 프로젝트입니다. projectId: ${result.projectManifest.projectId}\n`,
+          ? `Initialized the Lervo project. projectId: ${result.projectManifest.projectId}\n`
+          : `The project is already initialized. projectId: ${result.projectManifest.projectId}\n`,
       );
     }
     return 0;

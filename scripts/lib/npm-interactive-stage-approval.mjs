@@ -24,7 +24,7 @@ import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 const executeFile = promisify(execFile);
 const maximumUserConfigBytes = 64 * 1024;
 
-function fail(code, message = "대화형 npm stage 승인을 준비하지 못했습니다.") {
+function fail(code, message = "Interactive npm stage approval could not be prepared.") {
   throw new FirstPublicationBootstrapError(code, message);
 }
 
@@ -118,7 +118,7 @@ export async function prepareNpmInteractiveStageApproval({
   });
   if (reasons.length > 0) fail(
     "first_publication_stage_approval_environment_blocked",
-    "대화형 terminal·비자동화·환경 credential 부재가 필요합니다.",
+    "An interactive terminal, non-automated execution, and absence of environment credentials are required.",
   );
   let configContents;
   try {

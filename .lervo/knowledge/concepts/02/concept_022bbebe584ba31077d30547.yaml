@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_022bbebe584ba31077d30547
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_24af976f8c8a7f74aba0ff18
+title: "ADR-0181: Durable, Hash-Bound User Document Deletion"
+type: decision

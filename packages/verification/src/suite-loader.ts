@@ -16,7 +16,7 @@ export async function loadVerificationSuite(
   suiteId: string,
 ): Promise<VerificationSuite> {
   if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
-    throw new VerificationError("invalid_verification_suite", "Verification suite ID가 유효하지 않습니다.");
+    throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
   }
   const root = resolve(repositoryRoot);
   const directory = resolve(root, ".lervo/verifications");
@@ -32,7 +32,7 @@ export async function loadVerificationSuite(
   } catch (error) {
     throw new VerificationError(
       "verification_layout_invalid",
-      "Verification suite 디렉터리가 안전한 실제 디렉터리가 아닙니다.",
+      "The verification suite directory is not a safe real directory.",
       { cause: error },
     );
   }
@@ -43,7 +43,7 @@ export async function loadVerificationSuite(
     if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
       throw new VerificationError(
         "verification_layout_invalid",
-        "Verification suite 파일이 안전한 일반 파일이 아니거나 크기 제한을 넘었습니다.",
+        "The verification suite file is not a safe regular file or exceeds the size limit.",
       );
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -53,26 +53,26 @@ export async function loadVerificationSuite(
       before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
       before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
     ) {
-      throw new VerificationError("verification_layout_invalid", "Verification suite가 읽는 동안 바뀌었습니다.");
+      throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
     }
     let value: unknown;
     try {
       value = parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     } catch (error) {
-      throw new VerificationError("invalid_verification_suite", "Verification suite YAML을 읽지 못했습니다.", { cause: error });
+      throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
     }
     const suite = value as VerificationSuite;
     validateVerificationSuite(suite);
     if (suite.suiteId !== suiteId) {
-      throw new VerificationError("invalid_verification_suite", "Verification suite 파일명과 suite ID가 다릅니다.");
+      throw new VerificationError("invalid_verification_suite", "The verification suite filename and suite ID differ.");
     }
     return structuredClone(suite);
   } catch (error) {
     if (error instanceof VerificationError) throw error;
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new VerificationError("verification_suite_not_found", `Verification suite ${suiteId}을 찾을 수 없습니다.`);
+      throw new VerificationError("verification_suite_not_found", `Verification suite ${suiteId} was not found.`);
     }
-    throw new VerificationError("verification_layout_invalid", "Verification suite 파일을 안전하게 읽지 못했습니다.", { cause: error });
+    throw new VerificationError("verification_layout_invalid", "The verification suite file could not be read safely.", { cause: error });
   } finally {
     await handle?.close();
   }

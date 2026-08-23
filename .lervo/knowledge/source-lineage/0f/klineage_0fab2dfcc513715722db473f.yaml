@@ -1,0 +1,11 @@
+fromPath: docs/adr/0018-existing-document-adoption.md
+identityPath: docs/adr/0018-existing-document-adoption.md
+kind: document_move
+lineageId: klineage_0fab2dfcc513715722db473f
+operationId: kdocop_90cdeecf6e3d35a80fe1cd3a
+schemaVersion: 1
+sourceContentHash: sha256:ba5291987d15210711feae105726f20412ff5bfacb7e2ed9421baeac816379fb
+sourceId: src_34fbff5c6688b7c6f390cecc
+sourceUnitBindingDigest: sha256:c655f0443a70cd9626a71beab2a7f566980ee25ab8cdb2396f005048fef8fe6b
+sourceUnitCount: 12
+toPath: docs/decisions/knowledge/documents/0018-existing-document-adoption.md

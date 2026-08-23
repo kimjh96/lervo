@@ -1,0 +1,11 @@
+fromPath: docs/adr/0037-hub-trace-read-model.md
+identityPath: docs/adr/0037-hub-trace-read-model.md
+kind: document_move
+lineageId: klineage_dfa5c4a265c189d2fa4ff80e
+operationId: kdocop_290ef092efece0947cb1d65f
+schemaVersion: 1
+sourceContentHash: sha256:4e513150083fde1cf727b6044b63065b84f88e927516f403fd235fdad7eb2cb2
+sourceId: src_e33dc56d92a155eca1487d8a
+sourceUnitBindingDigest: sha256:48a951d751b130205e5a0b72ee2af64e9460c6201ad3cddc0d7708bc98c36073
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/sync/0037-hub-trace-read-model.md

@@ -93,14 +93,14 @@ describe("managed conversation deliberation reconciliation mapping", () => {
       resume: "not_available",
       issues: [{
         code: "deliberation_history_incomplete",
-        message: "숙의가 끝나지 않았습니다.",
+        message: "The deliberation did not finish.",
       }],
     }))).toEqual({ status: "not_confirmed", reason: "history_incomplete" });
     expect(interpret(report({
       sourceStatus: "inconsistent",
       issues: [{
         code: "deliberation_history_invalid",
-        message: "숙의 이력이 일치하지 않습니다.",
+        message: "The deliberation history does not match.",
       }],
     }))).toEqual({ status: "not_confirmed", reason: "source_inconsistent" });
     expect(interpret(report({ projectId: "prj_otherproject1" })))

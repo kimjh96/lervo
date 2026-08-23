@@ -24,7 +24,7 @@ export type ParsedDiscordGateway =
 function snowflake(value: unknown, label: string): string {
   const result = requiredString(value, label, 32);
   if (!/^[0-9]{1,32}$/.test(result)) {
-    throw new ConversationPlatformError("invalid_platform_payload", `${label} 형식이 유효하지 않습니다.`);
+    throw new ConversationPlatformError("invalid_platform_payload", `${label} format is invalid.`);
   }
   return result;
 }
@@ -37,7 +37,7 @@ function isoTimestamp(value: unknown): string {
   const timestamp = requiredString(value, "Discord message timestamp", 64);
   const milliseconds = Date.parse(timestamp);
   if (!Number.isFinite(milliseconds)) {
-    throw new ConversationPlatformError("invalid_platform_payload", "Discord message timestamp가 유효하지 않습니다.");
+    throw new ConversationPlatformError("invalid_platform_payload", "The Discord message timestamp is invalid.");
   }
   return new Date(milliseconds).toISOString();
 }

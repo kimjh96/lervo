@@ -19,7 +19,7 @@ export function assertAdapterMessage(value: unknown, label: string): void {
   if (!validateSchema("adapter", value).valid) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      `${label}이 adapter 계약을 통과하지 못했습니다.`,
+      `${label} does not satisfy the adapter contract.`,
     );
   }
 }
@@ -37,12 +37,16 @@ export function validateManagedProviderRunInput(
   const roleSkillIds = [...input.context.role.defaultSkills].sort();
   const resolvedSkillIds = [...skillIds].sort();
   const writeDecision = input.context.role.capabilities["filesystem.write"];
+  const expectedPathCount = input.context.expectedPaths.length;
   if (
     input.instructions.length === 0 ||
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
     input.context.role.roleId !== options.coordinates.roleId ||
     (writeDecision !== "deny" && input.context.expectedPaths.length === 0) ||
+    expectedPathCount > 16 ||
+    new Set(input.context.expectedPaths).size !== expectedPathCount ||
+    (expectedPathCount > 1 && input.createTargetTurnId === undefined) ||
     new Set(skillIds).size !== skillIds.length ||
     roleSkillIds.length !== resolvedSkillIds.length ||
     roleSkillIds.some((skillId, index) => skillId !== resolvedSkillIds[index]) ||
@@ -54,7 +58,7 @@ export function validateManagedProviderRunInput(
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Managed run 요청의 task, 파일 쓰기 정책 또는 예상 경로가 유효하지 않습니다.",
+      "The managed run request task, file-write policy, or expected paths are invalid.",
     );
   }
   if (
@@ -64,7 +68,7 @@ export function validateManagedProviderRunInput(
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "파일 쓰기 정책과 signed approval authorization 입력이 일치하지 않습니다.",
+      "The file-write policy and signed approval authorization input do not agree.",
     );
   }
   if (input.verificationSuites !== undefined) {
@@ -82,7 +86,7 @@ export function validateManagedProviderRunInput(
     ) {
       throw new ManagedProviderRunError(
         "contract_validation_failed",
-        "Role과 project verification suite 입력이 다르거나 실행 port가 없습니다.",
+        "The role and project verification suite inputs differ, or an execution port is missing.",
       );
     }
   }
@@ -93,7 +97,7 @@ export function validateManagedProviderRunInput(
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Role의 writing policy와 managed run 입력이 다릅니다.",
+      "The role writing policy differs from the managed run input.",
     );
   }
 }
@@ -111,7 +115,7 @@ export async function verifyManagedProviderRunApproval(input: {
   if (authorization === undefined || verifier === undefined) {
     throw new ManagedProviderRunError(
       "approval_required",
-      "Managed write 실행에 signed approval authorization이 필요합니다.",
+      "Managed write execution requires signed approval authorization.",
     );
   }
   let result;
@@ -130,14 +134,14 @@ export async function verifyManagedProviderRunApproval(input: {
   } catch (error) {
     throw new ManagedProviderRunError(
       "approval_required",
-      "Managed write approval 원본을 검증하지 못했습니다.",
+      "Could not validate the managed write approval source.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
   if (!result.approved) {
     throw new ManagedProviderRunError(
       "approval_required",
-      `Managed write approval이 현재 실행에 유효하지 않습니다: ${result.reasonCode}`,
+      `The managed write approval is not valid for the current run: ${result.reasonCode}`,
     );
   }
   if (
@@ -146,7 +150,7 @@ export async function verifyManagedProviderRunApproval(input: {
   ) {
     throw new ManagedProviderRunError(
       "approval_required",
-      "Approval verifier 결과가 전달된 authorization 좌표와 다릅니다.",
+      "The approval verifier result differs from the supplied authorization coordinates.",
     );
   }
 }
@@ -204,7 +208,7 @@ export function assertManagedSession(input: {
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Adapter session이 managed run 좌표 또는 실행 모드와 다릅니다.",
+      "The adapter session differs from the managed run coordinates or execution mode.",
     );
   }
 }
@@ -219,7 +223,7 @@ export function assertTerminalTurn(
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Provider terminal signal이 현재 managed turn과 다릅니다.",
+      "The provider terminal signal differs from the current managed turn.",
     );
   }
 }
@@ -240,7 +244,7 @@ export function assertManagedTurn(input: {
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Adapter turn이 managed session 또는 target turn 좌표와 다릅니다.",
+      "The adapter turn differs from the managed session or target turn coordinates.",
     );
   }
 }
@@ -260,7 +264,7 @@ export function assertManagedStopResult(input: {
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      "Adapter stop result가 managed session 좌표와 다릅니다.",
+      "The adapter stop result differs from the managed session coordinates.",
     );
   }
 }

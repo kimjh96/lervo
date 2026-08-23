@@ -48,7 +48,8 @@ async function repository(): Promise<string> {
   const silent = { cwd: root, stdout: () => undefined, stderr: () => undefined };
   expect(await runCli(["init"], silent)).toBe(0);
   await mkdir(resolve(root, "docs"));
-  await writeFile(resolve(root, "docs/search-guide.md"), "# 검색 운영 안내\n\n검색 실패는 사람이 평가합니다.\n");
+  await mkdir(resolve(root, ".lervo/documents"));
+  await writeFile(resolve(root, "docs/search-guide.md"), "# Search operations guide\n\nPeople evaluate search failures.\n");
   await writeFile(
     resolve(root, ".lervo/documents/doc_search_guide_01.yaml"),
     serializeYaml(manifest()),
@@ -77,7 +78,7 @@ describe("lervo search vertical slice", () => {
     const root = await repository();
     let queryOutput = "";
     let queryError = "";
-    const queryCode = await runCli(["search", "검색 실패", "--json"], {
+    const queryCode = await runCli(["search", "search failures", "--json"], {
       cwd: root,
       stdout: (message) => { queryOutput += message; },
       stderr: (message) => { queryError += message; },
@@ -128,7 +129,7 @@ describe("lervo search vertical slice", () => {
       resolve(root, ".lervo/state/search/attempts", `${response.attemptId}.json`),
       "utf8",
     );
-    expect(stored).not.toContain("검색 실패");
+    expect(stored).not.toContain("search failures");
     expect(stored).not.toContain("docs/search-guide.md");
     expect((await stat(resolve(root, ".lervo/state/search/attempts", `${response.attemptId}.json`))).mode & 0o777)
       .toBe(0o600);
@@ -139,7 +140,7 @@ describe("lervo search vertical slice", () => {
   it("does not record an assessment inferred only from an empty result", async () => {
     const root = await repository();
     let queryError = "";
-    const queryCode = await runCli(["search", "존재하지않는검색어"], {
+    const queryCode = await runCli(["search", "nonexistent-search-term"], {
       cwd: root,
       stdout: () => undefined,
       stderr: (message) => { queryError += message; },
@@ -163,10 +164,10 @@ describe("lervo search vertical slice", () => {
   it("rejects a symlinked document and a tampered observation instead of returning partial data", async () => {
     const root = await repository();
     await rm(resolve(root, "docs/search-guide.md"));
-    await writeFile(resolve(root, "outside.md"), "# 검색 실패\n");
+    await writeFile(resolve(root, "outside.md"), "# Search failures\n");
     await symlink(resolve(root, "outside.md"), resolve(root, "docs/search-guide.md"));
     let sourceError = "";
-    expect(await runCli(["search", "검색 실패"], {
+    expect(await runCli(["search", "search failures"], {
       cwd: root,
       stdout: () => undefined,
       stderr: (message) => { sourceError += message; },
@@ -174,9 +175,9 @@ describe("lervo search vertical slice", () => {
     expect(sourceError).toContain("corpus_read_failed");
 
     await rm(resolve(root, "docs/search-guide.md"));
-    await writeFile(resolve(root, "docs/search-guide.md"), "# 검색 실패\n");
+    await writeFile(resolve(root, "docs/search-guide.md"), "# Search failures\n");
     let queryOutput = "";
-    expect(await runCli(["search", "검색 실패", "--json"], {
+    expect(await runCli(["search", "search failures", "--json"], {
       cwd: root,
       stdout: (message) => { queryOutput += message; },
       stderr: () => undefined,

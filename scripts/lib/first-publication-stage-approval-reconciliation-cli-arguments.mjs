@@ -11,7 +11,7 @@ import {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_approval_reconciliation_arguments_invalid",
-    "CLI npm stage 승인 결과 대조 명령 인자가 올바르지 않습니다.",
+    "The CLI npm stage approval reconciliation command arguments are invalid.",
   );
 }
 

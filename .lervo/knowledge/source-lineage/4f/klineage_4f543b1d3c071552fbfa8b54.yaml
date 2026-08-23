@@ -1,0 +1,11 @@
+fromPath: docs/adr/0188-command-driven-repository-layout-migration.md
+identityPath: docs/adr/0188-command-driven-repository-layout-migration.md
+kind: document_move
+lineageId: klineage_4f543b1d3c071552fbfa8b54
+operationId: kdocop_a01884dd65651a55bd88de06
+schemaVersion: 1
+sourceContentHash: sha256:fccdd5cbc7aded3a65e2624b66aba24b94c38fa81e8927670116983918131a9f
+sourceId: src_d60c0b743686150f5fdac000
+sourceUnitBindingDigest: sha256:9bbd00710f75e2d4b7e627f71280270dcd77ab49d17183364fee73c0908972a6
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/repository/0188-command-driven-repository-layout-migration.md

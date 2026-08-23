@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_af2651fe8ce0047222c5fcfd
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0d8f476701e13af974a82a50
+title: "ADR-0147: Bounded, Race-Safe Command Artifact Lifecycle"
+type: decision

@@ -58,7 +58,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "managed_run_coordinate_mismatch",
-        "숙의 runtime과 policy의 project ID가 다릅니다.",
+        "The deliberation runtime and policy project IDs differ.",
       );
     }
     this.recorder = new DeliberationEventRecorder(
@@ -75,7 +75,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "runtime_started_twice",
-        "같은 숙의 runtime을 두 번 시작할 수 없습니다.",
+        "The same deliberation runtime cannot be started twice.",
       );
     }
     this.assertNotCompleted();
@@ -120,7 +120,7 @@ export class DeliberationRuntime {
         throw new DeliberationRuntimeError(
           "runtime_state_invalid",
           "artifact_history_invalid",
-          "현재 runtime 이력에 없는 이전 artifact를 참조했습니다.",
+          "The request references a previous artifact absent from the current runtime history.",
         );
       }
       return artifact;
@@ -134,7 +134,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "artifact_publication_failed",
         "provider_not_allowed",
-        "Managed run의 역할과 공급자가 숙의 정책에서 허용되지 않습니다.",
+        "The managed run role and provider are not allowed by the deliberation policy.",
       );
     }
     const providerSessionRole = this.providerSessionRoles.get(run.session.providerSessionId);
@@ -142,7 +142,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "context_evidence_invalid",
         "provider_session_reused",
-        "서로 다른 역할이 같은 provider session을 재사용했습니다.",
+        "Different roles reused the same provider session.",
       );
     }
     let runEvents: EventEnvelope[];
@@ -156,7 +156,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "context_evidence_invalid",
         "managed_run_event_missing",
-        "Managed run event 원본을 허용된 범위에서 끝까지 읽지 못했습니다.",
+        "The managed run source events could not be read completely within the allowed bounds.",
         { cause: error },
       );
     }
@@ -217,7 +217,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "handoff_already_published",
-        "같은 숙의 handoff를 두 번 기록할 수 없습니다.",
+        "The same deliberation handoff cannot be recorded twice.",
       );
     }
     const recordedPublication = this.publishedArtifacts.get(input.artifactId);
@@ -330,7 +330,7 @@ export class DeliberationRuntime {
     throw new DeliberationRuntimeError(
       "runtime_state_invalid",
       "runtime_snapshot_invalid",
-      "숙의 runtime snapshot이 현재 policy 또는 event 원본과 다릅니다.",
+      "The deliberation runtime snapshot differs from the current policy or source events.",
     );
   }
 
@@ -339,7 +339,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "runtime_not_started",
-        "숙의 runtime을 시작한 뒤 turn을 실행해야 합니다.",
+        "Start the deliberation runtime before running a turn.",
       );
     }
   }
@@ -349,7 +349,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "runtime_already_completed",
-        "종료된 숙의 runtime에는 작업을 추가할 수 없습니다.",
+        "Work cannot be added to a completed deliberation runtime.",
       );
     }
   }
@@ -359,7 +359,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "operation_in_progress",
-        "숙의 turn이 진행 중일 때 다른 runtime 작업을 시작할 수 없습니다.",
+        "Another runtime operation cannot start while a deliberation turn is active.",
       );
     }
   }
@@ -370,7 +370,7 @@ export class DeliberationRuntime {
       throw new DeliberationRuntimeError(
         "runtime_state_invalid",
         "artifact_history_invalid",
-        "숙의 runtime 시각이 유효하지 않습니다.",
+        "The deliberation runtime time is invalid.",
       );
     }
     return value.toISOString();

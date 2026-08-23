@@ -34,7 +34,7 @@ export function calculateRemoteCommandDeliveryId(input: {
   if (!DESTINATION_PATTERN.test(input.destinationId)) {
     throw new RemoteCommandContractError(
       "invalid_delivery_lease",
-      "remote command destination ID가 유효하지 않습니다.",
+      "The remote command destination ID is invalid.",
     );
   }
   assertSignedRemoteCommand(input.envelope);
@@ -72,7 +72,7 @@ export function assertRemoteCommandLease(input: {
   if (!validateSchema("remoteCommandLease", input.lease).valid) {
     throw new RemoteCommandContractError(
       "invalid_delivery_lease",
-      "remote command delivery lease가 유효하지 않습니다.",
+      "The remote command delivery lease is invalid.",
     );
   }
   assertSignedRemoteCommand(input.lease.envelope);
@@ -85,7 +85,7 @@ export function assertRemoteCommandLease(input: {
   ) {
     throw new RemoteCommandContractError(
       "invalid_delivery_lease",
-      "remote command delivery lease 좌표나 기간이 원본과 다릅니다.",
+      "The remote command delivery lease coordinates or interval differ from the source.",
     );
   }
 }
@@ -147,7 +147,7 @@ export function assertRemoteCommandDeliveryAcknowledgement(input: {
   if (!validateSchema("remoteCommandDeliveryAcknowledgement", input.acknowledgement).valid) {
     throw new RemoteCommandContractError(
       "invalid_delivery_acknowledgement",
-      "remote command delivery acknowledgement가 유효하지 않습니다.",
+      "The remote command delivery acknowledgement is invalid.",
     );
   }
   const command = input.lease.envelope.command;
@@ -159,7 +159,7 @@ export function assertRemoteCommandDeliveryAcknowledgement(input: {
   ) {
     throw new RemoteCommandContractError(
       "invalid_delivery_acknowledgement",
-      "remote command acknowledgement 좌표가 lease와 다릅니다.",
+      "The remote command acknowledgement coordinates differ from the lease.",
     );
   }
   const acknowledgedAt = Date.parse(input.acknowledgement.acknowledgedAt);
@@ -169,7 +169,7 @@ export function assertRemoteCommandDeliveryAcknowledgement(input: {
   ) {
     throw new RemoteCommandContractError(
       "invalid_delivery_acknowledgement",
-      "remote command acknowledgement 시각이 lease 범위 밖입니다.",
+      "The remote command acknowledgement time falls outside the lease interval.",
     );
   }
   if (input.acknowledgement.disposition === "completed") {
@@ -186,7 +186,7 @@ export function calculateRemoteCommandAcknowledgementHash(
   if (!validateSchema("remoteCommandDeliveryAcknowledgement", acknowledgement).valid) {
     throw new RemoteCommandContractError(
       "invalid_delivery_acknowledgement",
-      "remote command acknowledgement hash 입력이 유효하지 않습니다.",
+      "The remote command acknowledgement hash input is invalid.",
     );
   }
   return sha256(canonicalJson(acknowledgement));
@@ -229,7 +229,7 @@ export function assertRemoteCommandDeliveryConfirmation(input: {
   ) {
     throw new RemoteCommandContractError(
       "invalid_delivery_confirmation",
-      "remote command delivery confirmation이 acknowledgement와 다릅니다.",
+      "The remote command delivery confirmation differs from the acknowledgement.",
     );
   }
 }

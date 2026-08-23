@@ -1,0 +1,11 @@
+fromPath: docs/decisions/foundation/0186-content-bound-codex-claude-compilation-comparison.md
+identityPath: docs/adr/0186-content-bound-codex-claude-compilation-comparison.md
+kind: document_move
+lineageId: klineage_de986e3a66427feaaba4ca08
+operationId: kdocop_648a5e7e165dcf4f6771cf8c
+schemaVersion: 1
+sourceContentHash: sha256:02a8ba884f5bf9f23a48b383b9ce4c395275848987bf06f7a503c406b0903177
+sourceId: src_caaec4926f9ae696e6cc7dcb
+sourceUnitBindingDigest: sha256:0ea002b59621e37be4aea75d4c82063660c24675cb478c0af460fd0e7f0b2fc2
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md

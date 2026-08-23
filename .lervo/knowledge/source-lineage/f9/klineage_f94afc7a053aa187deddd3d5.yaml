@@ -1,0 +1,11 @@
+fromPath: docs/adr/0036-durable-hub-sync-store.md
+identityPath: docs/adr/0036-durable-hub-sync-store.md
+kind: document_move
+lineageId: klineage_f94afc7a053aa187deddd3d5
+operationId: kdocop_bc874dac15e20e7fb043a4cf
+schemaVersion: 1
+sourceContentHash: sha256:89fa873d7db050936dfb95d3f224ce8f40d6301182b13ff1b8843cbbade54e4b
+sourceId: src_8fc8c6e58506f4373f5a3ed4
+sourceUnitBindingDigest: sha256:4300f977a886c61812f247e5002cc5dc762ca1a495764108f656db7cca19a531
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/sync/0036-durable-hub-sync-store.md

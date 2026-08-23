@@ -29,7 +29,7 @@ function reviewedQuery(value: string, attempt: SearchAttempt): string {
   } catch {
     // The contract error below covers both invalid and non-matching input.
   }
-  throw new Error("검토한 문장이나 managed run 작업이 원본 검색 시도의 질의 좌표와 맞지 않습니다.");
+  throw new Error("The reviewed sentence or managed-run task does not match the original search query coordinate.");
 }
 
 export async function runSearchCaseCommand(args: string[], io: CliIo): Promise<number> {
@@ -53,7 +53,7 @@ export async function runSearchCaseCommand(args: string[], io: CliIo): Promise<n
   }
   if (parsed.positionals.length !== 1 || parsed.values.query === undefined ||
     !["any", "all", undefined].includes(parsed.values.match)) {
-    io.stderr(`검색 시도 ID, 검토한 query와 올바른 match가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A search attempt ID, reviewed query, and valid match are required.\n${searchUsage}\n`);
     return 1;
   }
   const requestedMaximumRank = parsed.values["maximum-rank"] === undefined
@@ -61,7 +61,7 @@ export async function runSearchCaseCommand(args: string[], io: CliIo): Promise<n
     : Number(parsed.values["maximum-rank"]);
   if (requestedMaximumRank !== undefined && (!Number.isSafeInteger(requestedMaximumRank) ||
     requestedMaximumRank < 1 || requestedMaximumRank > 50)) {
-    io.stderr(`maximum-rank는 1 이상 50 이하의 정수여야 합니다.\n${searchUsage}\n`);
+    io.stderr(`maximum-rank must be an integer between 1 and 50.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -70,11 +70,11 @@ export async function runSearchCaseCommand(args: string[], io: CliIo): Promise<n
       loadProjectManifest(root),
       LocalSearchObservationStore.openExisting(root),
     ]);
-    if (store === null) throw new Error("기록된 검색 시도와 평가가 없습니다.");
+    if (store === null) throw new Error("No search attempt and assessment are recorded.");
     const attempt = await store.readAttempt(parsed.positionals[0]!);
     const assessment = await store.readAssessment(attempt.attemptId);
     if (attempt.projectId !== manifest.projectId || assessment.projectId !== manifest.projectId) {
-      throw new Error("검색 시도 또는 평가의 project 좌표가 다릅니다.");
+      throw new Error("The search attempt or assessment project coordinate does not match.");
     }
     const evaluationCase = createSearchEvaluationCase({
       attempt,
@@ -89,8 +89,8 @@ export async function runSearchCaseCommand(args: string[], io: CliIo): Promise<n
       : formatSearchEvaluationCase(evaluationCase));
     return 0;
   } catch (error) {
-    io.stderr(`검색 평가 케이스를 만들지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not create the search evaluation case. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

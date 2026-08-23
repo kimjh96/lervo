@@ -54,7 +54,7 @@ describe("first-publication stage approval reconciliation command", () => {
       });
       assert.equal(report.outcome, "public_release_confirmed");
       assert.match(formatFirstPublicationStageApprovalReconciliation(report),
-        /재시도 권한: 없음/u);
+        /Retry authorization: none/u);
       await writeFile(fixture.authorizationPath, "{}\n");
       await assert.rejects(reconcileCliFirstPublicationStageApproval(input(fixture), {
         observe: async () => matchingStageApprovalReconciliationObservation(fixture),

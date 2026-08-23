@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_06a8d6d8a1a3c2382f7b683a
+freshness: current
+ownership: user
+path: docs/evidence/pilots/shiflo-v0.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1c78643db4ae1cc289b6c063
+title: Shiflo v0 acceptance pilot
+type: concept

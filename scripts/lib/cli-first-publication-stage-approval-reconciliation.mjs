@@ -23,14 +23,14 @@ function assertCoordinates(report, input) {
     target.attempt !== input.attempt
   ) fail(
     "first_publication_stage_approval_reconciliation_source_mismatch",
-    "npm stage 승인 결과 대조 좌표와 검토 증거가 일치하지 않습니다.",
+    "The npm stage approval reconciliation coordinates do not match the review evidence.",
   );
 }
 
 export async function reconcileCliFirstPublicationStageApproval(input, dependencies = {}) {
   if (input.online !== true) fail(
     "first_publication_stage_approval_reconciliation_online_required",
-    "npm stage 승인 결과 대조에는 online 관측이 필요합니다.",
+    "npm stage approval reconciliation requires an online observation.",
   );
   const readSources = dependencies.readSources ??
     readFirstPublicationStageApprovalReconciliationSources;
@@ -53,7 +53,7 @@ export async function reconcileCliFirstPublicationStageApproval(input, dependenc
   });
   if (observation?.state !== "observed") fail(
     "first_publication_stage_approval_reconciliation_not_ready",
-    "npm stage 승인 결과를 관측하지 못했습니다.",
+    "The npm stage approval result could not be observed.",
   );
   const observedAt = (dependencies.clock ?? (() => new Date().toISOString()))();
   const evidence = { ...sources, observation, observedAt };

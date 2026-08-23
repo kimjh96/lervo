@@ -121,7 +121,7 @@ describe("first-publication package metadata apply permit command", () => {
     }
   });
 
-  it("explains the conditional authority and non-writing boundary in plain Korean", async () => {
+  it("explains the conditional authority and non-writing boundary in plain English", async () => {
     const { prepared, selected, review } = await preparedEvidence();
     try {
       const permit = await inspectCliFirstPublicationPackageMetadataApplyPermit(
@@ -130,9 +130,9 @@ describe("first-publication package metadata apply permit command", () => {
         prepared.paths,
       );
       const output = formatFirstPublicationPackageMetadataApplyPermit(permit);
-      assert.match(output, /원본과 후보가 그대로일 때만/u);
-      assert.match(output, /release manifest는 직접 수정하지 않고/u);
-      assert.match(output, /파일 수정, release manifest 재생성/u);
+      assert.match(output, /only while the reviewed source and candidate remain unchanged/u);
+      assert.match(output, /release manifest must be rebuilt.*not edited directly/u);
+      assert.match(output, /did not modify files, rebuild the release manifest/u);
       assert.equal(output.includes(permit.permitDigest), false);
       assert.equal(output.includes(permit.binding.packageSourceSha256), false);
     } finally {

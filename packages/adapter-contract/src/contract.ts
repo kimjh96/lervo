@@ -172,7 +172,7 @@ export async function evaluateAdapterContract(
         decidedAt: request.requestedAt,
       }),
     complete: async () => {
-      throw new Error("읽기 전용 공통 계약 실행에서 managed write 완료를 보고할 수 없습니다.");
+      throw new Error("Managed write completion cannot be reported during a read-only common contract run.");
     },
   });
 
@@ -221,10 +221,10 @@ export async function evaluateAdapterContract(
   const expectedEventCount = fixture.expectedEventCount ?? 1;
   const eventTimeoutMs = fixture.eventTimeoutMs ?? 1_000;
   if (!Number.isSafeInteger(expectedEventCount) || expectedEventCount < 1) {
-    throw new RangeError("expectedEventCount는 1 이상의 안전한 정수여야 합니다.");
+    throw new RangeError("expectedEventCount must be a safe integer of at least 1.");
   }
   if (!Number.isSafeInteger(eventTimeoutMs) || eventTimeoutMs < 1) {
-    throw new RangeError("eventTimeoutMs는 1 이상의 안전한 정수여야 합니다.");
+    throw new RangeError("eventTimeoutMs must be a safe integer of at least 1.");
   }
   const eventAbort = new AbortController();
   const eventIterator = adapter.events(session, eventAbort.signal)[Symbol.asyncIterator]();

@@ -1,0 +1,62 @@
+# ADR-0010: Claude Agent SDK managed adapter
+
+Status: `accepted`; ADR-0157 refines input acknowledgement for SDK 0.3.226
+Decision date: 2026-08-18
+
+## Context
+
+The Codex adapter established session, controlled-context, target-turn, and provider-signal contracts, but Claude had no managed boundary. A one-shot Claude CLI call cannot prove that context entered a particular session before model invocation. Allowing Claude's internal subagents would also mix work that never received the role's documents and writing policy into a managed run.
+
+Claude Agent SDK provides startup before queries, caller-selected session UUIDs, streaming user input, replay, session/tool/result events, and `compact_boundary`. It cannot reliably supply every common usage field or classify a successful file tool as creation versus modification.
+
+## Decision
+
+### Process and session
+
+- Place official `@anthropic-ai/claude-agent-sdk` 0.3.226 behind a narrow client port. Pin the release-age-compliant version that supplies required stable APIs.
+- Run `startup` and initialization per session. Pass a Lervo UUID as SDK `sessionId` and use it as provider session ID.
+- Default to read-only `plan` permission mode. Load no filesystem settings, automatic skills, or external MCP configuration. Deny permission requests until Policy Engine integration.
+- Block Claude `Agent` and `Task` tools by default. Start specialist agents as separate Lervo-managed sessions and inject each role's current-generation envelope. Never label an uninjected internal subagent as managed work.
+- Mark resume `unsupported`. Cancellation interrupts an active query, then closes input and process.
+
+### Controlled context and turn
+
+- Use the shared `@lervo/adapter-contract` materializer for inline/CAS byte count, SHA-256, and lossless UTF-8 checks.
+- Encode the verified set as one synthetic user message containing role and writing-policy IDs, policy document ID, target turn, generation, and each document's ID/path/hash/scope/source.
+- Send it with `shouldQuery=false`. For SDK 0.3.226, create a `controlledInput=true` receipt only after observing same-UUID `command_lifecycle.started` and init. If replay is present, also verify session ID, message UUID, and exact source. ADR-0157 defines compatibility details.
+- Send the real task with `shouldQuery=true`; its message UUID is provider turn ID. Require a context-receipt candidate for the same target turn.
+- A receipt proves that verified source entered input history for the next query, not that Claude understood or followed it.
+
+### Signals and capabilities
+
+- Map first init to `provider.session.started`; matching query lifecycle/replay to one `provider.turn.started`; and result to `provider.turn.completed` or `.failed`. Do not promote context-only lifecycle or zero-turn results.
+- Map `compact_boundary` to `provider.context.compacted`; only the orchestrator may invalidate generation after coordinate validation.
+- Map Bash results to `provider.command.executed` and other tool results to `provider.tool.called`. A result without a linked use ID cannot be normal completion.
+- Mark context compaction, commands, and tool calls `supported`. Mark file-change and usage semantics `unknown`; do not infer `provider.file_change.reported` from a generic file tool.
+- Convert observed subagent messages to `unmanaged_subagent_signal`, never normal parent-session telemetry.
+
+### Failures and privacy
+
+| Situation | Meaning |
+| --- | --- |
+| Invalid adapter/session/turn coordinates or UUID | `invalid_request`/`session_mismatch`; reject before SDK input. |
+| Invalid bytes, digest, UTF-8, or CAS read | `context_materialization_failed`; create neither message nor receipt. |
+| Mismatched init, session, lifecycle/replay, tool, or turn | `provider_protocol_failed`; claim neither controlled receipt nor normal telemetry. |
+| Startup, stream, interrupt, or close failure | `provider_process_failed`; do not claim normal completion. |
+| Permission request | Deny until Policy Engine integration; never auto-approve. |
+| Unverified usage or file change | Capability `unknown`; infer neither zero nor a change kind. |
+
+Context and task prompts remain only in local SDK input. Signals exclude commands, output, tool inputs, model results, absolute paths, and provider error bodies. Retain observable IDs/status/times and repository-relative working directories; digest sensitive values.
+
+## Consequences
+
+- Claude follows the same session/context/turn contract as Codex without changing role, writing policy, or document hashes.
+- Context does not invoke the model and produces no E3 candidate before UUID-bound lifecycle and initialization evidence.
+- Specialists run as separately managed sessions under the same shared-context rules.
+- Provider capability gaps remain explicit instead of being fabricated.
+
+## References
+
+- [Claude Agent SDK TypeScript reference](https://code.claude.com/docs/en/agent-sdk/typescript)
+- [Claude Agent SDK sessions](https://code.claude.com/docs/en/agent-sdk/sessions)
+- [Claude Code hooks and compaction lifecycle](https://code.claude.com/docs/en/hooks)

@@ -11,7 +11,7 @@ export function deliberationContentHash(value: string | Uint8Array): string {
 export function repositoryRelativePath(root: string, path: string): string {
   const value = relative(root, path).split(sep).join("/");
   if (value.length === 0 || value.startsWith("../") || value === "..") {
-    throw new Error("숙의 runtime 문서 경로가 저장소 밖을 가리킵니다.");
+    throw new Error("The deliberation runtime document path points outside the repository.");
   }
   return value;
 }
@@ -21,7 +21,7 @@ function safePathSegment(value: string, label: string): string {
     value.length === 0 || value === "." || value === ".." ||
     value.includes("/") || value.includes("\\") ||
     /[\u0000-\u001f\u007f]/u.test(value)
-  ) throw new Error(`${label}이 안전한 단일 경로 이름이 아닙니다.`);
+  ) throw new Error(`${label} is not a safe single path segment.`);
   return value;
 }
 
@@ -38,10 +38,10 @@ export async function materializeDeliberationDocument(input: {
   repositoryRelativePath(input.repositoryRoot, input.deliberationRoot);
   const rootStats = await lstat(input.deliberationRoot);
   if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
-    throw new Error("숙의 runtime 문서 루트가 안전한 디렉터리가 아닙니다.");
+    throw new Error("The deliberation runtime document root is not a safe directory.");
   }
-  const directoryName = safePathSegment(input.directoryName, "숙의 문서 디렉터리 이름");
-  const filename = safePathSegment(input.filename, "숙의 문서 파일 이름");
+  const directoryName = safePathSegment(input.directoryName, "Deliberation document directory name");
+  const filename = safePathSegment(input.filename, "Deliberation document filename");
   const temporary = await mkdtemp(resolve(input.deliberationRoot, ".document-"));
   const finalDirectory = resolve(input.deliberationRoot, directoryName);
   const contentPath = resolve(temporary, filename);

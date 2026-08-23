@@ -14,21 +14,21 @@ export function failWorkflowActivation(code, message) {
 export function workflowActivationFailed() {
   failWorkflowActivation(
     "first_publication_workflow_activation_apply_failed",
-    "CLI 최초 게시 workflow 활성화 적용을 완료하지 못해 원본을 복구했습니다.",
+    "The CLI first-publication workflow activation apply could not be completed; the original was restored.",
   );
 }
 
 export function workflowActivationRecoveryRequired() {
   failWorkflowActivation(
     "first_publication_workflow_activation_recovery_required",
-    "중단된 CLI 최초 게시 workflow 활성화 transaction을 먼저 복구해야 합니다.",
+    "The interrupted CLI first-publication workflow activation transaction must be recovered first.",
   );
 }
 
 export function workflowActivationSourceChanged() {
   failWorkflowActivation(
     "first_publication_workflow_activation_source_changed",
-    "CLI 최초 게시 workflow 활성화 원본이 바뀌어 파일을 수정하지 않았습니다.",
+    "The CLI first-publication workflow activation source changed; no files were modified.",
   );
 }
 

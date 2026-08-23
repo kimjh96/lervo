@@ -1,0 +1,11 @@
+fromPath: docs/adr/0035-outbound-sync-worker.md
+identityPath: docs/adr/0035-outbound-sync-worker.md
+kind: document_move
+lineageId: klineage_56d47584a659150fcfd2ceb5
+operationId: kdocop_5961d2d73c4a7470b3af600a
+schemaVersion: 1
+sourceContentHash: sha256:b02df336d5bb1e1d063f46d4dac7b8980d9967a63f29709cb277aa06ba83d665
+sourceId: src_2a2753e30674c30cea56cea9
+sourceUnitBindingDigest: sha256:5d057b8ad5b40110b1cc4873385bac043cd39c011e922165257454bd7148b3c2
+sourceUnitCount: 8
+toPath: docs/decisions/coordination/sync/0035-outbound-sync-worker.md

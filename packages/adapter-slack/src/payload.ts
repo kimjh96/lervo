@@ -24,11 +24,11 @@ export type ParsedSlackIngress =
 function slackTimestamp(value: unknown): string {
   const source = requiredString(value, "Slack message timestamp", 32);
   if (!/^[0-9]{1,12}(?:\.[0-9]{1,6})?$/.test(source)) {
-    throw new ConversationPlatformError("invalid_platform_payload", "Slack timestamp가 유효하지 않습니다.");
+    throw new ConversationPlatformError("invalid_platform_payload", "The Slack timestamp is invalid.");
   }
   const milliseconds = Number(source) * 1_000;
   if (!Number.isFinite(milliseconds)) {
-    throw new ConversationPlatformError("invalid_platform_payload", "Slack timestamp가 유효하지 않습니다.");
+    throw new ConversationPlatformError("invalid_platform_payload", "The Slack timestamp is invalid.");
   }
   return new Date(milliseconds).toISOString();
 }
@@ -53,7 +53,7 @@ export function parseSlackIngress(input: {
   const appId = requiredString(outer.api_app_id, "Slack app ID", 128);
   const teamId = requiredString(outer.team_id, "Slack team ID", 128);
   if (appId !== input.apiAppId || !input.allowedTeamIds.has(teamId)) {
-    throw new ConversationPlatformError("platform_authentication_failed", "Slack app 또는 team scope가 다릅니다.");
+    throw new ConversationPlatformError("platform_authentication_failed", "The Slack app or team scope does not match.");
   }
   const eventId = requiredString(outer.event_id, "Slack event ID", 128);
   const event = objectValue(outer.event);

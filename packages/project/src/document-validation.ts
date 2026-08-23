@@ -15,7 +15,7 @@ function validateRepositoryPath(path: string, label: string): void {
     path.includes("\\") ||
     posix.normalize(path) !== path
   ) {
-    invalid(`${label}은 정규화된 저장소 상대 경로여야 합니다.`);
+    invalid(`${label} must be a normalized repository-relative path.`);
   }
 }
 
@@ -24,16 +24,16 @@ export function validateDocumentManifest(
   fileName: string,
 ): void {
   if (fileName !== `${manifest.documentId}.yaml`) {
-    invalid(`${fileName}의 파일명과 documentId가 다릅니다.`);
+    invalid(`${fileName} does not match its documentId.`);
   }
-  validateRepositoryPath(manifest.record.path, `${manifest.documentId}의 path`);
+  validateRepositoryPath(manifest.record.path, `${manifest.documentId} path`);
   for (const path of manifest.record.connectedPaths) {
-    validateRepositoryPath(path, `${manifest.documentId}의 connectedPaths`);
+    validateRepositoryPath(path, `${manifest.documentId} connectedPaths`);
   }
   if (manifest.record.ownership.mode === "lervo_generated") {
     validateRepositoryPath(
       manifest.record.ownership.manifestPath,
-      `${manifest.documentId}의 generation manifestPath`,
+      `${manifest.documentId} generation manifestPath`,
     );
   }
   const relationIds = [
@@ -44,25 +44,25 @@ export function validateDocumentManifest(
     ...manifest.relations.relatedDocumentIds,
   ];
   if (relationIds.includes(manifest.documentId)) {
-    invalid(`${manifest.documentId}은 자기 자신을 문서 관계로 가리킬 수 없습니다.`);
+    invalid(`${manifest.documentId} cannot reference itself in a document relation.`);
   }
   if (manifest.record.ownership.mode !== "managed_blocks") return;
   const blockIds = new Set<string>();
   const inputSourceIds = new Set<string>();
   for (const block of manifest.record.ownership.blocks) {
     if (blockIds.has(block.blockId)) {
-      invalid(`${manifest.documentId}에 중복된 managed block ID가 있습니다.`);
+      invalid(`${manifest.documentId} contains a duplicate managed block ID.`);
     }
     blockIds.add(block.blockId);
     if (
       block.startMarker !== `<!-- lervo:begin block=${block.blockId} schema=1 -->` ||
       block.endMarker !== `<!-- lervo:end block=${block.blockId} -->`
     ) {
-      invalid(`${manifest.documentId}의 managed block marker가 표준 형식이 아닙니다.`);
+      invalid(`${manifest.documentId} has a managed block marker in a nonstandard format.`);
     }
     for (const input of block.inputs) {
       if (inputSourceIds.has(input.sourceId)) {
-        invalid(`${manifest.documentId}의 managed block 입력 source가 중복됩니다.`);
+        invalid(`${manifest.documentId} contains a duplicate managed block input source.`);
       }
       inputSourceIds.add(input.sourceId);
     }
@@ -76,7 +76,7 @@ export function validateDocumentManifestSet(
   const paths = new Set<string>();
   for (const manifest of manifests) {
     if (paths.has(manifest.record.path)) {
-      invalid(`여러 document manifest가 같은 대상 경로를 소유합니다: ${manifest.record.path}`);
+      invalid(`Multiple document manifests own the same target path: ${manifest.record.path}`);
     }
     paths.add(manifest.record.path);
     const relationIds = [
@@ -87,7 +87,7 @@ export function validateDocumentManifestSet(
       ...manifest.relations.relatedDocumentIds,
     ];
     if (relationIds.some((documentId) => !documentIds.has(documentId))) {
-      invalid(`${manifest.documentId}가 등록되지 않은 문서 관계를 가리킵니다.`);
+      invalid(`${manifest.documentId} references an unregistered document relation.`);
     }
   }
 }

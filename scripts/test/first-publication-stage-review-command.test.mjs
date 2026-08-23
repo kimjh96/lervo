@@ -109,8 +109,10 @@ describe("first-publication staged package review command", () => {
       assert.equal(report.sideEffects.stageApprove, "not_attempted");
       assert.equal(JSON.stringify(report).includes("123e4567"), false);
       assert.deepEqual(await readFile(value.stageResultReportPath), before);
-      assert.match(formatFirstPublicationStageReviewEvidence(report),
-        /approve·reject는 수행하지 않음/u);
+      assert.match(
+        formatFirstPublicationStageReviewEvidence(report),
+        /did not approve or reject/u,
+      );
 
       const legacy = structuredClone(report);
       legacy.schemaVersion = 1;

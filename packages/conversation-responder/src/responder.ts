@@ -89,7 +89,7 @@ export class ManagedConversationResponder implements ManagedConversationResponde
     if (!claimed) {
       throw new ManagedConversationResponseError(
         "managed_run_invalid",
-        "대화 응답 역할에 독립 provider session이 배정되지 않았습니다.",
+        "No independent provider session was assigned to the conversation response role.",
       );
     }
     return publishConversationResponse({

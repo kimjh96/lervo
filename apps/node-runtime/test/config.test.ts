@@ -1,8 +1,10 @@
 import { chmod } from "node:fs/promises";
 
+import { createRemoteDeveloperRole } from "@lervo/managed-provider-host";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  createManagedProviderRemoteCommandPorts,
   loadNodeRuntimeConfig,
   openNodeRuntime,
   parseNodeRuntimeConfig,
@@ -94,6 +96,40 @@ describe("Node runtime configuration", () => {
         policyKeys: [{ publicKeyFile: `${root}/keys/policy.pem` }],
       },
     });
+    const external = structuredClone(configured);
+    delete (external.remoteCommands as Record<string, unknown>).commandKeys;
+    delete (external.remoteCommands as Record<string, unknown>).policyKeys;
+    (external.remoteCommands as Record<string, unknown>).trustFile = "secrets/node-trust.json";
+    expect(parseNodeRuntimeConfig(external, root)).toMatchObject({
+      remoteCommands: { trustFile: `${root}/secrets/node-trust.json` },
+    });
+    const mixed = structuredClone(configured);
+    (mixed.remoteCommands as Record<string, unknown>).trustFile = "secrets/node-trust.json";
+    expect(() => parseNodeRuntimeConfig(mixed, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+    const hosted = structuredClone(configured);
+    (hosted.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex", "claude"],
+      roles: ["developer"],
+      developerSkills: [],
+    };
+    expect(parseNodeRuntimeConfig(hosted, root)).toMatchObject({
+      remoteCommands: {
+        providerHost: {
+          providers: ["codex", "claude"], roles: ["developer"], developerSkills: [],
+        },
+      },
+    });
+    const unregistered = structuredClone(hosted);
+    (unregistered.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex"],
+      roles: ["unregistered"],
+      developerSkills: [],
+    };
+    expect(() => createManagedProviderRemoteCommandPorts(
+      parseNodeRuntimeConfig(unregistered, root),
+    )).toThrow(expect.objectContaining({ code: "invalid_config" }));
     await expect(openNodeRuntime(parseNodeRuntimeConfig(configured, root), {
       createTransport: () => ({
         registerProject: async () => ({}),
@@ -109,5 +145,47 @@ describe("Node runtime configuration", () => {
     expect(() => parseNodeRuntimeConfig(duplicate, root)).toThrow(expect.objectContaining({
       code: "invalid_config",
     }));
+    const invalidHost = structuredClone(hosted);
+    (invalidHost.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex", "codex"],
+      roles: ["developer"],
+      developerSkills: [],
+    };
+    expect(() => parseNodeRuntimeConfig(invalidHost, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+    const invalidRoles = structuredClone(hosted);
+    (invalidRoles.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex"],
+      roles: ["developer", "developer"],
+      developerSkills: [],
+    };
+    expect(() => parseNodeRuntimeConfig(invalidRoles, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+    const invalidSkills = structuredClone(hosted);
+    (invalidSkills.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex"],
+      roles: ["developer"],
+      developerSkills: ["repository/testing", "repository/testing"],
+    };
+    expect(() => parseNodeRuntimeConfig(invalidSkills, root)).toThrow(expect.objectContaining({
+      code: "invalid_config",
+    }));
+    const detachedDeveloperSkills = structuredClone(hosted);
+    (detachedDeveloperSkills.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex"],
+      roles: ["maintainer"],
+      developerSkills: ["repository/testing"],
+    };
+    expect(() => createManagedProviderRemoteCommandPorts(
+      parseNodeRuntimeConfig(detachedDeveloperSkills, root),
+      {
+        roleProfiles: [{
+          ...createRemoteDeveloperRole(["repo.check"]),
+          roleId: "maintainer",
+        }],
+      },
+    )).toThrow(expect.objectContaining({ code: "invalid_config" }));
   });
 });

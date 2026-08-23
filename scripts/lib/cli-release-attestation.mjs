@@ -42,7 +42,7 @@ export function validateCliReleaseTag(packageVersion, tag) {
     typeof tag !== "string" ||
     tag !== `v${packageVersion}`
   ) {
-    fail("release_attestation_tag_mismatch", "Release tag와 package version이 다릅니다.");
+    fail("release_attestation_tag_mismatch", "The release tag does not match the package version.");
   }
   return tag;
 }
@@ -74,7 +74,7 @@ export function createLocalCliReleaseStatement({
     typeof architecture !== "string" ||
     architecture.length === 0
   ) {
-    fail("release_attestation_input_invalid", "Release statement 입력이 올바르지 않습니다.");
+    fail("release_attestation_input_invalid", "The release statement input is invalid.");
   }
   for (const contents of [
     releaseManifestContents,
@@ -85,7 +85,7 @@ export function createLocalCliReleaseStatement({
     lockfileContents,
   ]) {
     if (!Buffer.isBuffer(contents)) {
-      fail("release_attestation_input_invalid", "Release statement 입력이 올바르지 않습니다.");
+      fail("release_attestation_input_invalid", "The release statement input is invalid.");
     }
   }
 
@@ -166,14 +166,17 @@ function descriptorsValid(descriptors) {
 
 export function validateLocalCliReleaseStatement(statement, inputs) {
   if (statement === null || typeof statement !== "object" || Array.isArray(statement)) {
-    fail("release_attestation_statement_invalid", "Release statement 구조가 올바르지 않습니다.");
+    fail("release_attestation_statement_invalid", "The release statement structure is invalid.");
   }
   if (
     Object.hasOwn(statement, "signatures") ||
     Object.hasOwn(statement, "payload") ||
     Object.hasOwn(statement, "payloadType")
   ) {
-    fail("release_attestation_envelope_unexpected", "로컬 statement를 서명 envelope처럼 표시할 수 없습니다.");
+    fail(
+      "release_attestation_envelope_unexpected",
+      "A local statement cannot be represented as a signed envelope.",
+    );
   }
   if (
     statement._type !== inTotoStatementType ||
@@ -184,11 +187,14 @@ export function validateLocalCliReleaseStatement(statement, inputs) {
     statement.predicate?.runDetails?.builder?.id !== localUnsignedBuilderId ||
     Object.hasOwn(statement.predicate?.runDetails ?? {}, "metadata")
   ) {
-    fail("release_attestation_statement_invalid", "Release statement 구조가 올바르지 않습니다.");
+    fail("release_attestation_statement_invalid", "The release statement structure is invalid.");
   }
   const expected = createLocalCliReleaseStatement(inputs);
   if (canonicalJson(statement) !== canonicalJson(expected)) {
-    fail("release_attestation_statement_mismatch", "Release statement가 현재 release 파일과 다릅니다.");
+    fail(
+      "release_attestation_statement_mismatch",
+      "The release statement does not match the current release files.",
+    );
   }
   return statement;
 }

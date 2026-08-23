@@ -17,7 +17,7 @@ export function assertRoleArtifactPublishable(input: {
     input.result.artifactId !== input.artifactId || input.result.contentHash !== input.contentHash) {
     throw new RoleContractError(
       "role_publication_blocked",
-      "역할 산출물은 같은 artifact에 결속된 모든 필수 평가가 통과해야 공개할 수 있습니다.",
+      "A role artifact can be published only after every required evaluation bound to that artifact passes.",
     );
   }
 }
@@ -38,18 +38,18 @@ export async function readPublishableRoleArtifact(input: {
   try {
     bytes = new Uint8Array(await input.artifactStore.get(uri));
   } catch (error) {
-    throw new RoleContractError("role_publication_blocked", "역할 산출물 CAS 원본을 읽지 못했습니다.", {
+    throw new RoleContractError("role_publication_blocked", "The role artifact CAS source could not be read.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
   const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
   if (bytes.byteLength !== input.result.byteCount || contentHash !== input.result.contentHash) {
-    throw new RoleContractError("role_publication_blocked", "역할 산출물 CAS 원본의 크기나 hash가 다릅니다.");
+    throw new RoleContractError("role_publication_blocked", "The role artifact CAS source size or hash does not match.");
   }
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch (error) {
-    throw new RoleContractError("role_publication_blocked", "역할 산출물이 유효한 UTF-8이 아닙니다.", {
+    throw new RoleContractError("role_publication_blocked", "The role artifact is not valid UTF-8.", {
       cause: error instanceof Error ? error : undefined,
     });
   }

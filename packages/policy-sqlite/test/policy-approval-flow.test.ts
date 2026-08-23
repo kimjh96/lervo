@@ -41,7 +41,7 @@ const target = {
 };
 const destinationId = "hub.policy.fixture";
 const peerIdentityHash = `sha256:${"d".repeat(64)}`;
-const requestText = "승인 후 한 번만 실행해 주세요.";
+const requestText = "Execute exactly once after approval.";
 const requestBytes = new TextEncoder().encode(requestText);
 
 class MutableClock {
@@ -272,6 +272,7 @@ describe("durable Hub policy and approval lifecycle", () => {
     expect(duplicate.deliveryStatus).toBe("duplicate");
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0]?.[0]).toMatchObject({
+      approvedRepositoryPaths: ["src/result.ts"],
       policyAuthorization: {
         source: "remote_command",
         commandSignerKeyId: "key_remote_policy",

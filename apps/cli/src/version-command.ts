@@ -17,7 +17,7 @@ export const versionUsage = "  lervo --version";
 
 export function runVersionCommand(args: string[], io: CliIo): number {
   if (args.length > 0) {
-    io.stderr("--version에는 다른 인자를 함께 사용할 수 없습니다.\n");
+    io.stderr("--version does not accept additional arguments.\n");
     return 1;
   }
 
@@ -25,7 +25,7 @@ export function runVersionCommand(args: string[], io: CliIo): number {
     io.stdout(`lervo ${readCliPackageVersion()}\n`);
     return 0;
   } catch {
-    io.stderr("Lervo CLI 버전을 확인할 수 없습니다. (cli_version_unavailable)\n");
+    io.stderr("Could not determine the Lervo CLI version. (cli_version_unavailable)\n");
     return 1;
   }
 }

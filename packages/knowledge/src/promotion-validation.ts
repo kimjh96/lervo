@@ -30,7 +30,7 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "policy_schema_invalid",
-      "지식 승격 정책이 schema를 통과하지 못했습니다.",
+      "The knowledge promotion policy does not satisfy the schema.",
     );
   }
   const candidateEvent = await verifyKnowledgeCandidateOriginal(input);
@@ -42,7 +42,7 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "approval_artifact_mismatch",
-      "검토 승인 CAS 원본을 읽지 못했습니다.",
+      "Could not read the review approval CAS source.",
       { cause: error },
     );
   }
@@ -58,7 +58,7 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "approval_artifact_mismatch",
-      "검토 승인 원본의 schema, hash 또는 ID가 다릅니다.",
+      "The review approval source schema, hash, or ID differs.",
     );
   }
   const storedReviewEvent = input.events.get(recordedEvent.eventId);
@@ -73,14 +73,14 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "review_event_missing",
-      "현재 event 원본에서 같은 검토 승인을 확인할 수 없습니다.",
+      "The same review approval cannot be verified in the current event source.",
     );
   }
   if (approval.decision !== "approved") {
     throw new KnowledgeError(
       "promotion_not_eligible",
       "approval_not_approved",
-      "거절된 검토 원본으로 지식을 verified로 승격할 수 없습니다.",
+      "Knowledge cannot be promoted to verified from a rejected review source.",
     );
   }
   if (
@@ -97,7 +97,7 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "reviewer_not_allowed",
-      "승인 원본이 현재 후보 또는 승격 정책과 다릅니다.",
+      "The approval source differs from the current candidate or promotion policy.",
     );
   }
   if (
@@ -107,7 +107,7 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "conflicts_unresolved",
-      "현재 정책상 해소되지 않은 충돌 후보가 있습니다.",
+      "The current policy has unresolved conflict candidates.",
     );
   }
   if (
@@ -117,14 +117,14 @@ export async function validatePromotionInput(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "repository_revision_mismatch",
-      "현재 저장소가 후보와 승인 원본이 검토한 revision과 다릅니다.",
+      "The current repository differs from the revision reviewed by the candidate and approval source.",
     );
   }
   if (input.candidate.paths.some((path) => input.currentSnapshot.files[path] === undefined)) {
     throw new KnowledgeError(
       "promotion_not_eligible",
       "linked_path_missing",
-      "승격할 후보의 영향 path가 현재 저장소 snapshot에 없습니다.",
+      "An impact path of the candidate to promote is missing from the current repository snapshot.",
     );
   }
   return { candidateEvent, reviewEvent: storedReviewEvent };

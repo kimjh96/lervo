@@ -1,0 +1,11 @@
+fromPath: docs/adr/0148-durable-command-artifact-cleanup-runtime.md
+identityPath: docs/adr/0148-durable-command-artifact-cleanup-runtime.md
+kind: document_move
+lineageId: klineage_8403e91a95f87d1317ec9921
+operationId: kdocop_5928c9d67dc1077b650c48b7
+schemaVersion: 1
+sourceContentHash: sha256:f13c49e2caf4bc57ef4a126c06758a6f62c664da8dd9c856d05ba13de5e5e867
+sourceId: src_4492c6c98bb8a2c460e9d931
+sourceUnitBindingDigest: sha256:a44b73b80b7db17c8e3d325f36240dafaf8dc66503784fb551304c481ff96799
+sourceUnitCount: 5
+toPath: docs/decisions/operations/0148-durable-command-artifact-cleanup-runtime.md

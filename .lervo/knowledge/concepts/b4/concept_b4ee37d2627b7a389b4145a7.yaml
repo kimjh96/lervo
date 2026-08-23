@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b4ee37d2627b7a389b4145a7
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0026-structured-deliberation-contracts.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8ea5b8347c77913e55b094bb
+title: "ADR-0026: Structured deliberation contracts and evidence-based convergence"
+type: decision

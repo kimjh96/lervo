@@ -1,0 +1,11 @@
+fromPath: docs/adr/0027-deliberation-boundary-hardening.md
+identityPath: docs/adr/0027-deliberation-boundary-hardening.md
+kind: document_move
+lineageId: klineage_0c4875124e05b065c8988ab2
+operationId: kdocop_95332c02eea8df621830425d
+schemaVersion: 1
+sourceContentHash: sha256:889da441cb37cc1e37139f1c13ec873f79655d2cb94edfb3aa1c736995fcf6f1
+sourceId: src_cd56ba8739310ba54733a4d7
+sourceUnitBindingDigest: sha256:0cd0143927788e2402357537ea313936fd045d1f13321b5589f9b2826acc3e26
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/deliberation/0027-deliberation-boundary-hardening.md

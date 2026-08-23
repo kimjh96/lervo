@@ -1,6 +1,7 @@
 import {
   access,
   lstat,
+  mkdir,
   mkdtemp,
   readFile,
   rm,
@@ -32,6 +33,7 @@ async function initializedRepository(): Promise<string> {
 }
 
 async function writeManifest(root: string, manifest: DocumentManifest): Promise<void> {
+  await mkdir(resolve(root, ".lervo/documents"), { recursive: true });
   await writeFile(
     resolve(root, ".lervo/documents", `${manifest.documentId}.yaml`),
     serializeYaml(manifest),
@@ -43,10 +45,10 @@ afterEach(async () => {
 });
 
 describe("sharded document storage", () => {
-  it("initializes an empty manifest directory without a growing registry file", async () => {
+  it("treats an absent manifest directory as an empty registry without creating it", async () => {
     const root = await initializedRepository();
 
-    expect((await lstat(resolve(root, ".lervo/documents"))).isDirectory()).toBe(true);
+    await expect(lstat(resolve(root, ".lervo/documents"))).rejects.toThrow();
     await expect(access(resolve(root, ".lervo/documents.yaml"))).rejects.toThrow();
     await expect(loadDocumentManifests(root)).resolves.toEqual([]);
     await expect(loadDocumentRegistry(root)).resolves.toEqual({
@@ -55,15 +57,12 @@ describe("sharded document storage", () => {
     });
 
     const next = await createInitPlan({ root });
-    expect(next.operations).toContainEqual({
-      kind: "directory",
-      path: ".lervo/documents",
-      action: "unchanged",
-    });
+    expect(next.operations.some((operation) => operation.path === ".lervo/documents")).toBe(false);
   });
 
   it("loads independent manifests into the existing in-memory registry contract", async () => {
     const root = await initializedRepository();
+    await mkdir(resolve(root, ".lervo/documents"));
     const architecture = userManifest({
       documentId: "doc_architecture_01",
       path: "docs/architecture/context.md",
@@ -128,6 +127,7 @@ describe("sharded document storage", () => {
 
   it("rejects a migration transaction marker instead of loading a partial layout", async () => {
     const root = await initializedRepository();
+    await mkdir(resolve(root, ".lervo/documents"));
     await writeFile(
       resolve(root, ".lervo/documents/.migration-migp_aaaaaaaaaaaaaaaa.lock"),
       "transaction in progress\n",
@@ -143,6 +143,7 @@ describe("sharded document storage", () => {
 
   it("rejects noncanonical paths and oversized sidecars before aggregation", async () => {
     const root = await initializedRepository();
+    await mkdir(resolve(root, ".lervo/documents"));
     const path = resolve(root, ".lervo/documents/doc_path_0000001.yaml");
     const noncanonical = userManifest({
       documentId: "doc_path_0000001",
@@ -159,7 +160,6 @@ describe("sharded document storage", () => {
 
   it("keeps a valid legacy registry byte-identical without creating the new directory", async () => {
     const root = await initializedRepository();
-    await rm(resolve(root, ".lervo/documents"), { recursive: true });
     const legacy: DocumentRegistry = {
       schemaVersion: 1,
       documents: {
@@ -169,7 +169,7 @@ describe("sharded document storage", () => {
         }).record,
       },
     };
-    const original = `# 기존 형식은 자동 변환하지 않습니다.\n${serializeYaml(legacy)}`;
+    const original = `# Do not convert legacy formats automatically.\n${serializeYaml(legacy)}`;
     await writeFile(resolve(root, ".lervo/documents.yaml"), original);
 
     await expect(loadDocumentRegistry(root)).resolves.toEqual(legacy);
@@ -185,6 +185,7 @@ describe("sharded document storage", () => {
 
   it("rejects ambiguous layouts, unsafe entries, duplicate targets, and nonstandard markers", async () => {
     const root = await initializedRepository();
+    await mkdir(resolve(root, ".lervo/documents"));
     const legacyBytes = "schemaVersion: 1\ndocuments: {}\n";
     await writeFile(resolve(root, ".lervo/documents.yaml"), legacyBytes);
     await expect(loadDocumentRegistry(root)).rejects.toMatchObject({
@@ -204,6 +205,7 @@ describe("sharded document storage", () => {
 
     await rm(resolve(root, ".lervo/documents"), { recursive: true });
     await applyInitPlan(await createInitPlan({ root }));
+    await mkdir(resolve(root, ".lervo/documents"));
     const outside = resolve(root, "outside.yaml");
     await writeFile(outside, serializeYaml(first));
     await symlink(outside, resolve(root, ".lervo/documents/doc_duplicate_01.yaml"));

@@ -45,7 +45,7 @@ function validateLimits(limits: DocumentScanLimits): void {
   ) {
     throw new DocumentMigrationError(
       "invalid_scan_request",
-      "문서 탐색 한도는 안전한 기본 상한 안의 양의 정수여야 합니다.",
+      "Document scan limits must be positive integers within the safe default bounds.",
     );
   }
 }
@@ -67,7 +67,7 @@ async function listFiles(input: {
   if (input.traversal.visitedEntries > input.traversal.maximumEntries) {
     throw new DocumentMigrationError(
       "scan_limit_exceeded",
-      "문서 탐색 디렉터리 항목 수 제한을 넘었습니다.",
+      "The document scan directory-entry limit was exceeded.",
     );
   }
   const absolute = absoluteRepositoryPath(input.root, input.path);
@@ -77,21 +77,21 @@ async function listFiles(input: {
   } catch (error) {
     throw new DocumentMigrationError(
       "unsafe_source",
-      `문서 탐색 root를 확인할 수 없습니다: ${input.path}`,
+      `The document scan root cannot be inspected: ${input.path}`,
       { cause: error },
     );
   }
   if (before.isSymbolicLink()) {
     throw new DocumentMigrationError(
       "unsafe_source",
-      `문서 탐색 경로에 symbolic link가 있습니다: ${input.path}`,
+      `The document scan path contains a symbolic link: ${input.path}`,
     );
   }
   if (before.isFile()) return [input.path];
   if (!before.isDirectory() || await realpath(absolute) !== absolute) {
     throw new DocumentMigrationError(
       "unsafe_source",
-      `문서 탐색 경로는 실제 파일 또는 디렉터리여야 합니다: ${input.path}`,
+      `The document scan path must be a real file or directory: ${input.path}`,
     );
   }
   const entries = await readdir(absolute, { withFileTypes: true });
@@ -102,7 +102,7 @@ async function listFiles(input: {
   ) {
     throw new DocumentMigrationError(
       "unsafe_source",
-      `문서 디렉터리가 탐색 중 바뀌었습니다: ${input.path}`,
+      `The document directory changed during the scan: ${input.path}`,
     );
   }
   const files: string[] = [];
@@ -112,7 +112,7 @@ async function listFiles(input: {
     if (entry.isSymbolicLink()) {
       throw new DocumentMigrationError(
         "unsafe_source",
-        `문서 탐색 경로에 symbolic link가 있습니다: ${path}`,
+        `The document scan path contains a symbolic link: ${path}`,
       );
     }
     files.push(...await listFiles({ ...input, path }));
@@ -129,7 +129,7 @@ export async function scanDocumentSources(input: {
   if (input.roots.length === 0) {
     throw new DocumentMigrationError(
       "invalid_scan_request",
-      "문서 탐색 root를 하나 이상 지정해야 합니다.",
+      "At least one document scan root must be specified.",
     );
   }
   const limits = { ...defaultDocumentScanLimits, ...input.limits };
@@ -150,7 +150,7 @@ export async function scanDocumentSources(input: {
     if (paths.size > limits.maximumFiles) {
       throw new DocumentMigrationError(
         "scan_limit_exceeded",
-        "문서 탐색 파일 수 제한을 넘었습니다.",
+        "The document scan file-count limit was exceeded.",
       );
     }
   }
@@ -162,7 +162,7 @@ export async function scanDocumentSources(input: {
     if (totalBytes > limits.maximumTotalBytes) {
       throw new DocumentMigrationError(
         "scan_limit_exceeded",
-        "문서 탐색 전체 byte 제한을 넘었습니다.",
+        "The document scan total-byte limit was exceeded.",
       );
     }
     sources.push({

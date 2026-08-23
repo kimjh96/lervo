@@ -1,0 +1,11 @@
+fromPath: docs/adr/0126-cli-npm-stage-approval-authorization.md
+identityPath: docs/adr/0126-cli-npm-stage-approval-authorization.md
+kind: document_move
+lineageId: klineage_8eb414598b78377f504ef6a9
+operationId: kdocop_1d4b24251b71f333e4d2edd9
+schemaVersion: 1
+sourceContentHash: sha256:f6bbcbab276faf0c4c7440a570e6c15b74595123b2bd61a99b012e52cfce8901
+sourceId: src_2f66dd4b1daa66b43158cb87
+sourceUnitBindingDigest: sha256:714227e4561466cb274fc61957267f4b3563f837e6b6122512397429cdca37f1
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md

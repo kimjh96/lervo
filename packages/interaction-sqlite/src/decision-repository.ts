@@ -14,7 +14,7 @@ import { InteractionSQLiteError } from "./errors.js";
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
   if (!Number.isSafeInteger(result) || result < 0) {
-    throw new InteractionSQLiteError("integrity_failed", `${label} 시각이 유효하지 않습니다.`);
+    throw new InteractionSQLiteError("integrity_failed", `${label} time is invalid.`);
   }
   return result;
 }
@@ -38,7 +38,7 @@ export class ConversationDecisionSQLiteRepository {
     const latest = row?.latest;
     if (typeof count !== "number" || !Number.isSafeInteger(count) ||
       (latest !== null && (typeof latest !== "number" || !Number.isSafeInteger(latest)))) {
-      throw new InteractionSQLiteError("integrity_failed", "Participation window 집계가 유효하지 않습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The participation window aggregate is invalid.");
     }
     return {
       latestResponseAt: latest === null ? null : new Date(latest as number).toISOString(),
@@ -61,7 +61,7 @@ export class ConversationDecisionSQLiteRepository {
   }): void {
     assertConversationParticipationDecision({ decision: input.value, event: input.event });
     if (input.value.policyId !== input.policyId || input.value.roleId !== input.roleId) {
-      throw new InteractionSQLiteError("integrity_failed", "Participation decision 좌표가 다릅니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The participation decision coordinates differ.");
     }
     this.database.prepare(`
       INSERT INTO conversation_participation_decisions (
@@ -88,7 +88,7 @@ export class ConversationDecisionSQLiteRepository {
         "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
       ).get(text(row, "event_id"), text(row, "role_id"));
       if (inboxRow === undefined || inboxRow.status !== "completed") {
-        throw new InteractionSQLiteError("integrity_failed", "Participation decision의 완료 inbox가 없습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The participation decision has no completed inbox.");
       }
       decision(row, inbound(inboxRow));
     }

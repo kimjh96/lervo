@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e27bd8ca5ec2c2f2f9d3500f
+freshness: current
+ownership: user
+path: docs/decisions/distribution/0087-single-bundle-cli-deployment-unit.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b91806af554e8daef03f0936
+title: "ADR-0087: Single-bundle CLI deployment unit"
+type: decision

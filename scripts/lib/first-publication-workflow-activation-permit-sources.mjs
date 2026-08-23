@@ -23,7 +23,7 @@ export const firstPublicationWorkflowActivationPaths = Object.freeze({
 function fail(code = "first_publication_workflow_activation_permit_source_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 workflow 활성화 허가 원본이 올바르지 않습니다.",
+    "The CLI first-publication workflow activation authorization source is invalid.",
   );
 }
 

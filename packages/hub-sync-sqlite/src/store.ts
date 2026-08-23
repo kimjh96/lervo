@@ -140,7 +140,7 @@ export class HubSyncSQLiteStore implements
 
   private assertOpen(): void {
     if (this.closed) {
-      throw new HubSyncStoreError("closed", "닫힌 Hub sync SQLite store는 사용할 수 없습니다.");
+      throw new HubSyncStoreError("closed", "A closed Hub sync SQLite store cannot be used.");
     }
   }
 
@@ -416,7 +416,7 @@ export class HubSyncSQLiteStore implements
       if (state === null) {
         throw new HubSyncStoreError(
           "integrity_failed",
-          "Hub sync SQLite project index와 원본이 다릅니다.",
+          "The Hub sync SQLite project index differs from the source.",
         );
       }
       eventCount += state.events.length;
@@ -435,7 +435,7 @@ export class HubSyncSQLiteStore implements
     if (this.database.prepare("PRAGMA foreign_keys;").get()?.foreign_keys !== 1) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite foreign key 강제가 비활성 상태입니다.",
+        "Hub sync SQLite foreign-key enforcement is disabled.",
       );
     }
     const requiredTriggers = new Set([
@@ -468,19 +468,19 @@ export class HubSyncSQLiteStore implements
     if (requiredTriggers.size !== 0) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite append-only trigger가 누락되었습니다.",
+        "A Hub sync SQLite append-only trigger is missing.",
       );
     }
   }
 
   private verifyFullDatabaseIntegrity(): void {
     if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite quick_check가 실패했습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite quick_check failed.");
     }
     if (this.database.prepare("PRAGMA foreign_key_check;").get() !== undefined) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite foreign key 검사가 실패했습니다.",
+        "The Hub sync SQLite foreign-key check failed.",
       );
     }
   }
@@ -489,7 +489,7 @@ export class HubSyncSQLiteStore implements
     this.assertOpen();
     const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
     if (typeof mode !== "string") {
-      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite journal mode를 읽을 수 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite journal mode cannot be read.");
     }
     return mode;
   }

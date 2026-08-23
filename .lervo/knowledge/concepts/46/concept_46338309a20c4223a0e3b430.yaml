@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_46338309a20c4223a0e3b430
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ebdb456fb26d6a48306d5179
+title: "ADR-0099: Durable storage and interactive adapter for CLI first publication"
+type: decision

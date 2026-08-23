@@ -125,9 +125,9 @@ describe("first-publication package metadata apply command", () => {
         },
       );
       const output = formatFirstPublicationPackageMetadataApplyReceipt(receipt);
-      assert.match(output, /package\.json을 검토한 후보로 교체했습니다/u);
-      assert.match(output, /release manifest를 다시 만들었습니다/u);
-      assert.match(output, /패키지 게시는 실행하지 않았습니다/u);
+      assert.match(output, /Replaced package\.json with the reviewed candidate/u);
+      assert.match(output, /Rebuilt the release manifest/u);
+      assert.match(output, /No approval, publishing activation, or package publication was performed/u);
       assert.equal(output.includes(receipt.receiptDigest), false);
       assert.equal(output.includes(receipt.planDigest), false);
     } finally {

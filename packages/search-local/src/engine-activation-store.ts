@@ -29,7 +29,7 @@ export async function loadSearchEngineActivationHistory(
     expectedFileName: (activation) => `${activation.previousActivationId ?? "baseline"}.json`,
   });
   if (activations.length > MAX_ACTIVATIONS) {
-    throw new SearchLocalError("observation_limit_exceeded", "검색 엔진 선택 전이가 256개를 넘었습니다.");
+    throw new SearchLocalError("observation_limit_exceeded", "The number of search engine selection transitions exceeds 256.");
   }
   const byPrevious = new Map(activations.map((activation) => [activation.previousActivationId, activation]));
   const ordered: SearchEngineActivation[] = [];
@@ -42,7 +42,7 @@ export async function loadSearchEngineActivationHistory(
     previous = next;
   }
   if (ordered.length !== activations.length) {
-    throw new SearchLocalError("observation_invalid", "검색 엔진 선택 전이가 하나의 연속 chain이 아닙니다.");
+    throw new SearchLocalError("observation_invalid", "The search engine selection transitions do not form one continuous chain.");
   }
   return ordered;
 }
@@ -65,7 +65,7 @@ export async function recordSearchEngineActivation(
     await writeObservation(path, activation);
   } catch (error) {
     if ((error as { code?: unknown }).code === "observation_conflict") {
-      throw new SearchLocalError("engine_activation_conflict", "같은 이전 선택에서 다른 활성화가 이미 시작되었습니다.");
+      throw new SearchLocalError("engine_activation_conflict", "Another activation has already started from the same previous selection.");
     }
     throw error;
   }

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0101-cli-first-publication-preflight-command.md
+identityPath: docs/adr/0101-cli-first-publication-preflight-command.md
+kind: document_move
+lineageId: klineage_7540dd4d57c3ea5a28990af7
+operationId: kdocop_cbafc0baeccd96dabf4071d3
+schemaVersion: 1
+sourceContentHash: sha256:c034ed4f25be7bd9716731553acb51af789745e510b4833ec2e5229c6d9c2779
+sourceId: src_d2985df2c8166813f6bdef4f
+sourceUnitBindingDigest: sha256:b8b94a6b9840f77d8e4653b2c5c4fb543870131a6feed957c36dfd1b967c4968
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md

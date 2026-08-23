@@ -87,7 +87,7 @@ function assertEvidence(input: {
     Date.parse(coordinates.actedAt) < Date.parse(review.reviewedAt) ||
     Date.parse(coordinates.actedAt) > input.observedAt.getTime() ||
     !/^srapol_[a-f0-9]{24}$/.test(actionPolicyId) || invalidKeep || invalidRollback) {
-    throw new SearchError("invalid_rollout_action_status", "검색 rollout 조치 상태 근거 관계가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_status", "The search rollout action status evidence relation is invalid.");
   }
   return coordinates;
 }
@@ -105,7 +105,7 @@ export function createSearchRolloutActionStatusPage(input: {
     /^seact_[a-f0-9]{24}$/.test(input.cursor);
   if (!SOURCE_ID_PATTERN.test(input.projectId) || !Number.isFinite(input.observedAt.getTime()) ||
     !Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_ROLLOUT_ACTION_STATUS_MAX_LIMIT || !validCursor) {
-    throw new SearchError("invalid_rollout_action_status", "검색 rollout 조치 상태 조회 입력이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_status", "The search rollout action status query input is invalid.");
   }
   assertSearchRolloutCurrentSelection(input.currentSelection);
   const seen = new Set<string>();
@@ -113,7 +113,7 @@ export function createSearchRolloutActionStatusPage(input: {
     const cloned = structuredClone(evidence);
     const coordinates = assertEvidence({ projectId: input.projectId, observedAt: input.observedAt, evidence: cloned });
     if (seen.has(coordinates.actionId)) {
-      throw new SearchError("invalid_rollout_action_status", "검색 rollout 조치 상태에 중복 원본이 있습니다.");
+      throw new SearchError("invalid_rollout_action_status", "The search rollout action status contains duplicate sources.");
     }
     seen.add(coordinates.actionId);
     return cloned;
@@ -122,7 +122,7 @@ export function createSearchRolloutActionStatusPage(input: {
   if (input.cursor !== undefined) {
     const cursorIndex = sorted.findIndex((item) => recordCoordinates(item.record).actionId === input.cursor);
     if (cursorIndex < 0) {
-      throw new SearchError("invalid_rollout_action_status", "검색 rollout 조치 상태 cursor를 찾을 수 없습니다.");
+      throw new SearchError("invalid_rollout_action_status", "The search rollout action status cursor was not found.");
     }
     start = cursorIndex + 1;
   }

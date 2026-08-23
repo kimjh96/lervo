@@ -39,7 +39,7 @@ export function assertFirstPublicationWorkflowExecutionBinding({
   ) {
     fail(
       "first_publication_workflow_execution_source_mismatch",
-      "Ref 도달 가능성 증거와 workflow 실행 좌표가 일치하지 않습니다.",
+      "The ref-reachability evidence and workflow execution coordinates do not match.",
     );
   }
   return reachabilityReport;
@@ -49,7 +49,7 @@ function validateObservation(observation, input) {
   if (observation?.state !== "observed") {
     fail(
       "first_publication_workflow_execution_not_ready",
-      "Exact GitHub Actions run과 stage job 실행을 확인하지 못했습니다.",
+      "The exact GitHub Actions run and stage-job execution could not be verified.",
     );
   }
   const run = observation.run;
@@ -91,7 +91,7 @@ function validateObservation(observation, input) {
   ) {
     fail(
       "first_publication_workflow_execution_observation_invalid",
-      "GitHub Actions workflow 실행 관측 결과가 올바르지 않습니다.",
+      "The GitHub Actions workflow execution observation is invalid.",
     );
   }
   return observation;
@@ -115,7 +115,7 @@ export function validateFirstPublicationWorkflowExecutionEvidence(report, input)
   if (canonicalJson(report) !== canonicalJson(expected)) {
     fail(
       "first_publication_workflow_execution_report_invalid",
-      "CLI stage-only workflow 실행 증거 보고서가 올바르지 않습니다.",
+      "The CLI stage-only workflow execution evidence report is invalid.",
     );
   }
   return report;

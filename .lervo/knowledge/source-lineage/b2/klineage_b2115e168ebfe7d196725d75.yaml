@@ -1,0 +1,11 @@
+fromPath: docs/adr/0177-bounded-execution-event-sources.md
+identityPath: docs/adr/0177-bounded-execution-event-sources.md
+kind: document_move
+lineageId: klineage_b2115e168ebfe7d196725d75
+operationId: kdocop_4e2f1224733e11b66ee98fee
+schemaVersion: 1
+sourceContentHash: sha256:50ea54863ab08ef94682a63f08f66e098a9abb6dcaa0fcf2ecfa23b45274ddaf
+sourceId: src_f03354bc7748ecdd0893ed69
+sourceUnitBindingDigest: sha256:a68798492e64c5c4f4d815026991bea1488b1b32be2f5d4f7166c4d910a0d59b
+sourceUnitCount: 5
+toPath: docs/decisions/execution/orchestration/0177-bounded-execution-event-sources.md

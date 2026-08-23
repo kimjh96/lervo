@@ -1,0 +1,11 @@
+fromPath: docs/adr/0141-explicit-durable-conversation-deliberation-resume.md
+identityPath: docs/adr/0141-explicit-durable-conversation-deliberation-resume.md
+kind: document_move
+lineageId: klineage_fb09bf4e83089975fa955c65
+operationId: kdocop_cc43f0f89095e897d0a12f82
+schemaVersion: 1
+sourceContentHash: sha256:6af66f2a9a1acfab8d362e9885a3389b733edefc6238fada90bc97f94f1894f2
+sourceId: src_bed725d3ae6b0d3479199a98
+sourceUnitBindingDigest: sha256:cdd7cdca4b70178335f67e15271b7323c16bc2ebbbcf7dcaf5d3ca49eef001aa
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0141-explicit-durable-conversation-deliberation-resume.md

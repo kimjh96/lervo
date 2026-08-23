@@ -39,7 +39,7 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
   }
   const decision = parsed.values.decision === undefined ? undefined : DECISIONS[parsed.values.decision];
   if (parsed.positionals.length !== 1 || decision === undefined || parsed.values.reviewer === undefined) {
-    io.stderr(`선택 전이 ID, keep|rollback|more-assessments 판단과 reviewer ID가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A selection transition ID, keep|rollback|more-assessments decision, and reviewer ID are required.\n${searchUsage}\n`);
     return 1;
   }
   try {
@@ -57,8 +57,8 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
     io.stdout(parsed.values.json ? `${JSON.stringify(review, null, 2)}\n` : formatSearchRolloutReview(review));
     return 0;
   } catch (error) {
-    io.stderr(`검색 rollout 검토를 기록하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not record the search rollout review. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }
@@ -69,6 +69,6 @@ export async function runSearchRolloutCommand(args: string[], io: CliIo): Promis
   if (args[0] === "review") return runSearchRolloutReviewCommand(args.slice(1), io);
   if (args[0] === "policy") return runSearchRolloutPolicyCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchRolloutStatusCommand(args.slice(1), io);
-  io.stderr(`rollout 하위 명령은 policy, review, status와 action을 지원합니다.\n${searchUsage}\n`);
+  io.stderr(`The rollout subcommand supports policy, review, status, and action.\n${searchUsage}\n`);
   return 1;
 }

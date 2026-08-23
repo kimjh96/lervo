@@ -49,10 +49,10 @@ function validateCredential(credential: HubBearerCredential): void {
     credential.token.length > MAX_BEARER_TOKEN_LENGTH ||
     !/^[\x21-\x7e]+$/.test(credential.token)
   ) {
-    throw new Error("Hub bearer credential token 형식이 유효하지 않습니다.");
+    throw new Error("The Hub bearer credential token format is invalid.");
   }
   if (!HUB_PRINCIPAL_ID_PATTERN.test(credential.principalId)) {
-    throw new Error("Hub bearer credential principalId 형식이 유효하지 않습니다.");
+    throw new Error("The Hub bearer credential principalId format is invalid.");
   }
   if (
     !Array.isArray(credential.permissions) ||
@@ -71,10 +71,10 @@ function validateCredential(credential: HubBearerCredential): void {
       ] as HubPermission[]).includes(permission)
     )
   ) {
-    throw new Error("Hub bearer credential permission이 유효하지 않습니다.");
+    throw new Error("A Hub bearer credential permission is invalid.");
   }
   if (!Array.isArray(credential.projects) || credential.projects.length > HUB_TRACE_MAX_PROJECT_SCOPE) {
-    throw new Error(`Hub bearer credential project는 ${HUB_TRACE_MAX_PROJECT_SCOPE}개 이하여야 합니다.`);
+    throw new Error(`A Hub bearer credential may scope at most ${HUB_TRACE_MAX_PROJECT_SCOPE} projects.`);
   }
   for (const project of credential.projects) {
     if (
@@ -82,7 +82,7 @@ function validateCredential(credential: HubBearerCredential): void {
       !HUB_DESTINATION_ID_PATTERN.test(project.destinationId) ||
       !HUB_PROJECT_ID_PATTERN.test(project.projectId)
     ) {
-      throw new Error("Hub bearer credential project 좌표가 유효하지 않습니다.");
+      throw new Error("A Hub bearer credential project coordinate is invalid.");
     }
   }
 }
@@ -100,13 +100,13 @@ export class ConfiguredBearerAuthenticator implements HubRequestAuthenticator {
 
   constructor(credentials: readonly HubBearerCredential[]) {
     if (!Array.isArray(credentials) || credentials.length === 0) {
-      throw new Error("Hub bearer credential이 하나 이상 필요합니다.");
+      throw new Error("At least one Hub bearer credential is required.");
     }
     for (const credential of credentials) {
       validateCredential(credential);
       const digest = tokenDigest(credential.token);
       if (this.principals.has(digest)) {
-        throw new Error("Hub bearer credential token이 중복되었습니다.");
+        throw new Error("Hub bearer credential tokens must be unique.");
       }
       this.principals.set(digest, clonePrincipal(credential));
     }
@@ -124,5 +124,22 @@ export class ConfiguredBearerAuthenticator implements HubRequestAuthenticator {
     }
     const principal = this.principals.get(tokenDigest(token));
     return principal === undefined ? null : clonePrincipal(principal);
+  }
+}
+
+export class ReloadableBearerAuthenticator implements HubRequestAuthenticator {
+  private current: ConfiguredBearerAuthenticator;
+
+  constructor(credentials: readonly HubBearerCredential[]) {
+    this.current = new ConfiguredBearerAuthenticator(credentials);
+  }
+
+  replace(credentials: readonly HubBearerCredential[]): void {
+    const candidate = new ConfiguredBearerAuthenticator(credentials);
+    this.current = candidate;
+  }
+
+  authenticate(authorization: string | undefined): Promise<HubAuthenticatedPrincipal | null> {
+    return this.current.authenticate(authorization);
   }
 }

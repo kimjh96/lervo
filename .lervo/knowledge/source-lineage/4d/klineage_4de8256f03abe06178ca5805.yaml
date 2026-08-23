@@ -1,0 +1,11 @@
+fromPath: docs/adr/0137-deliberation-liveness-and-diagnostics.md
+identityPath: docs/adr/0137-deliberation-liveness-and-diagnostics.md
+kind: document_move
+lineageId: klineage_4de8256f03abe06178ca5805
+operationId: kdocop_931763ea1760e32f106edc14
+schemaVersion: 1
+sourceContentHash: sha256:52a27485dd5c4faa92aa22afe4a5f24c1e23e6eb5152ca263300c976c6ea5604
+sourceId: src_01839e4249f33ffbb1f61237
+sourceUnitBindingDigest: sha256:ecf24a155c3c161147095d7ed033d460d4d91f4f5940b1316a83d9068813b769
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0137-deliberation-liveness-and-diagnostics.md

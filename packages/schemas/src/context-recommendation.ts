@@ -1,6 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import { documentIdSchema, sha256Schema } from "./common.js";
+import { knowledgeContextSchema } from "./knowledge-context.js";
 
 export const contextRecommendationProperties = {
   recommendationId: { type: "string", pattern: "^srec_[a-f0-9]{24}$" },
@@ -51,7 +52,7 @@ export const contextRecommendationEventPayloadSchema = {
   $id: "https://schemas.lervo.dev/v0/context-recommendation-event-payload.schema.json",
   title: "Lervo context recommendation event payload",
   type: "object",
-  properties: { ...contextRecommendationProperties, documentId: documentIdSchema },
+  properties: { ...contextRecommendationProperties, documentId: documentIdSchema, knowledgeContext: knowledgeContextSchema },
   required: [...legacyContextRecommendationEventRequired, "documentId"],
   additionalProperties: false,
 } as const;

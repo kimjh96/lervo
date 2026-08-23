@@ -86,7 +86,7 @@ async function rollbackBeforeCommit(input: {
   if (errors.length > 0) {
     throw new IdentityMigrationError(
       "finalization_failed",
-      "적용 실패 뒤 이전 관리 경로를 완전히 복원하지 못했습니다. 두 관리 경로를 직접 확인해야 합니다.",
+      "The previous managed path could not be fully restored after the apply failed. Inspect both managed paths directly.",
       { cause: new AggregateError(errors) },
     );
   }
@@ -105,22 +105,22 @@ export async function applyIdentityMigration(
       plan.projectId === null || plan.sourceTreeHash === null) {
     throw new IdentityMigrationError(
       "migration_blocked",
-      "적용 가능한 명칭 migration 계획이 아닙니다. 먼저 dry-run 결과를 확인하세요.",
+      "This is not an applicable brand migration plan. Inspect the dry-run result first.",
     );
   }
   const current = await createIdentityMigrationPlan(plan.repositoryRoot);
   if (current.status !== "ready" || current.planId !== plan.planId) {
     throw new IdentityMigrationError(
       "plan_stale",
-      `이전 관리 상태가 계획 뒤 바뀌었습니다. 다시 dry-run 하세요. (승인 ${plan.planId}, 현재 ${current.planId})`,
+      `The previous managed state changed after planning. Run the dry run again. (approved ${plan.planId}, current ${current.planId})`,
     );
   }
-  // 이후 적용에는 호출자가 전달한 가변 필드가 아니라 방금 다시 계산한 원본만 사용합니다.
+  // Apply only the source state just recalculated, never mutable fields supplied by the caller.
   plan = current;
   const projectId = plan.projectId;
   const sourceTreeHash = plan.sourceTreeHash;
   if (projectId === null || sourceTreeHash === null) {
-    throw new IdentityMigrationError("migration_blocked", "재검사한 계획의 필수 좌표가 없습니다.");
+    throw new IdentityMigrationError("migration_blocked", "The reinspected plan is missing required coordinates.");
   }
 
   const sourceRoot = resolve(plan.repositoryRoot, plan.sourceDirectory);
@@ -149,7 +149,7 @@ export async function applyIdentityMigration(
     }
     if (plan.documentDisposition === "archive_previous_metadata") {
       if (plan.documentArchivePath === null) {
-        throw new IdentityMigrationError("apply_failed", "문서 metadata archive 좌표가 없습니다.");
+        throw new IdentityMigrationError("apply_failed", "The document metadata archive coordinate is missing.");
       }
       const archivePath = resolve(plan.repositoryRoot, plan.documentArchivePath);
       const archiveRoot = dirname(archivePath);
@@ -197,7 +197,7 @@ export async function applyIdentityMigration(
     ) {
       throw new IdentityMigrationError(
         "finalization_failed",
-        "완료 event가 보존한 event chain 뒤에 연결되지 않았습니다.",
+        "The completion event was not linked after the preserved event chain.",
       );
     }
     store.close();
@@ -223,7 +223,7 @@ export async function applyIdentityMigration(
       if (eventCommitted) {
         throw new IdentityMigrationError(
           "finalization_failed",
-          "완료 event 저장 뒤 event store를 닫지 못했습니다. 현재 관리 경로를 유지하고 진단해야 합니다.",
+          "The event store could not be closed after saving the completion event. Keep the current managed path and diagnose it.",
           { cause: new AggregateError([error, closeError]) },
         );
       }
@@ -233,7 +233,7 @@ export async function applyIdentityMigration(
         ? error
         : new IdentityMigrationError(
           "finalization_failed",
-          "완료 event 저장 뒤 migration 마무리를 확인하지 못했습니다. 현재 관리 경로를 유지합니다.",
+          "Migration finalization could not be verified after saving the completion event. The current managed path is retained.",
           { cause: error },
         );
     }
@@ -253,7 +253,7 @@ export async function applyIdentityMigration(
       ? error
       : new IdentityMigrationError(
         "apply_failed",
-        "명칭 migration을 적용하지 못해 이전 관리 경로로 되돌렸습니다.",
+        "The brand migration could not be applied, so the previous managed path was restored.",
         { cause: error },
       );
   }

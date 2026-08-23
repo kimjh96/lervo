@@ -13,7 +13,7 @@ import { observeFirstPublicationReconciliation } from
 function fail(code = "first_publication_reconciliation_input_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 결과 대조 입력이 올바르지 않습니다.",
+    "The CLI first-publication reconciliation input is invalid.",
   );
 }
 

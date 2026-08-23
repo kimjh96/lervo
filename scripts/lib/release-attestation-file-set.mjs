@@ -16,13 +16,13 @@ export async function readRegularReleaseFile(path, maximumSize) {
   } catch {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   if (!metadata.isFile() || metadata.size <= 0 || metadata.size > maximumSize) {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   return readFile(path);
@@ -37,7 +37,7 @@ export async function validateExactReleaseDirectory(path, expected) {
   } catch {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   const names = entries.map(({ name }) => name).sort();
@@ -47,7 +47,7 @@ export async function validateExactReleaseDirectory(path, expected) {
   ) {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
 }
@@ -58,7 +58,7 @@ export async function assertReleaseFilesUnchanged(files) {
     if (!current.equals(file.contents)) {
       failReleaseVerification(
         "release_attestation_release_set_changed",
-        "Release attestation 검증 중 파일 집합이 변경되었습니다.",
+        "The release attestation file set changed during verification.",
       );
     }
   }

@@ -59,7 +59,7 @@ export function validateNpmTrustedPublishingEnvironment(
   ) {
     fail(
       "npm_trusted_publishing_environment_invalid",
-      "npm Trusted Publishing 실행 환경이 올바르지 않습니다.",
+      "The npm Trusted Publishing execution environment is invalid.",
     );
   }
 }
@@ -82,7 +82,7 @@ export async function prepareIsolatedNpmTrustedPublishingClient({
   ) {
     fail(
       "npm_trusted_publishing_client_invalid",
-      "npm Trusted Publishing client를 확인하지 못했습니다.",
+      "The npm Trusted Publishing client could not be verified.",
     );
   }
   const isolationRoot = await mkdtemp(resolve(tmpdir(), temporaryPrefix));
@@ -118,13 +118,13 @@ export async function prepareIsolatedNpmTrustedPublishingClient({
     } catch {
       fail(
         "npm_trusted_publishing_client_invalid",
-        "npm Trusted Publishing client를 확인하지 못했습니다.",
+        "The npm Trusted Publishing client could not be verified.",
       );
     }
     if (!meetsMinimum(parseVersion(npmVersion), minimumNpmVersion)) {
       fail(
         "npm_trusted_publishing_client_invalid",
-        "npm Trusted Publishing client를 확인하지 못했습니다.",
+        "The npm Trusted Publishing client could not be verified.",
       );
     }
     return {
@@ -132,7 +132,7 @@ export async function prepareIsolatedNpmTrustedPublishingClient({
         if (disposed) {
           fail(
             "npm_trusted_publishing_client_invalid",
-            "npm Trusted Publishing client를 확인하지 못했습니다.",
+            "The npm Trusted Publishing client could not be verified.",
           );
         }
         return execute(npmCommand, args, {

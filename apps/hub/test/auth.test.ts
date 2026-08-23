@@ -30,18 +30,18 @@ describe("configured Hub bearer authentication", () => {
   });
 
   it("rejects unsafe credential configuration at startup", () => {
-    expect(() => new ConfiguredBearerAuthenticator([])).toThrow("하나 이상");
+    expect(() => new ConfiguredBearerAuthenticator([])).toThrow("At least one");
     expect(() => new ConfiguredBearerAuthenticator([{
       token: "short",
       principalId: "operator:test",
       permissions: ["trace.read"],
       projects: [],
-    }])).toThrow("token 형식");
+    }])).toThrow("token format");
     expect(() => new ConfiguredBearerAuthenticator([{
       token,
       principalId: "operator:test",
       permissions: ["trace.read"],
       projects: [{ destinationId: "hub:primary", projectId: "wrong" }],
-    }])).toThrow("project 좌표");
+    }])).toThrow("project coordinate");
   });
 });

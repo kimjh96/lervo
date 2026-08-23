@@ -7,12 +7,12 @@ describe("Hub trace web labels", () => {
   it("gives every current event type a human-readable Korean label", () => {
     for (const type of eventTypes) {
       expect(eventLabel(type), type).not.toBe(type);
-      expect(eventLabel(type), type).toMatch(/[가-힣]/);
+      expect(eventLabel(type), type).toMatch(/[A-Za-z]/);
     }
   });
 
   it("keeps unknown evidence fields visible instead of inventing a meaning", () => {
-    expect(fieldLabel("documentId")).toBe("문서");
+    expect(fieldLabel("documentId")).toBe("Document");
     expect(fieldLabel("futureEvidenceCoordinate")).toBe("futureEvidenceCoordinate");
   });
 });

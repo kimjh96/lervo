@@ -26,7 +26,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_workflow_activation_post_apply_unexpected: " +
-    "CLI 최초 게시 workflow 활성화 사후 검증을 완료하지 못했습니다.",
+    "CLI first-publication workflow activation post-apply verification could not be completed.",
   );
   process.exitCode = 1;
 }

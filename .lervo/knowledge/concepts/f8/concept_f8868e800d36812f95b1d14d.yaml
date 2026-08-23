@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f8868e800d36812f95b1d14d
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0134-sharded-multi-role-deliberation-policy.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8294ae612e3c18ecbae471ec
+title: "ADR-0134: Policy-Defined Multi-Role Deliberation"
+type: decision

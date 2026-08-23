@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_dece0c5dd3d8e390fc672045
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0168-platform-bound-standalone-hub-distribution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ec137302500096d1c6e7a464
+title: "ADR-0168: Platform-Bound Standalone Lervo Hub Distribution"
+type: decision

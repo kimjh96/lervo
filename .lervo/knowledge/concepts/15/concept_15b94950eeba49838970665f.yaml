@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_15b94950eeba49838970665f
+freshness: current
+ownership: user
+path: docs/specs/repository-knowledge-compilation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_5b3c29c2ced92170ff4429b1
+title: Repository Knowledge Compilation Specification
+type: concept

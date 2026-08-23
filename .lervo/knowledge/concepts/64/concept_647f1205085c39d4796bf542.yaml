@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_647f1205085c39d4796bf542
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a54b70566403cb27b0c373c8
+title: "ADR-0154: Multi-File Managed Provider Turns and Context Reinjection"
+type: decision

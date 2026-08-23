@@ -10,7 +10,7 @@ export function hashConversationSourceEventKey(sourceEventKey: string): string {
   if (sourceEventKey.length < 1 || sourceEventKey.length > 512) {
     throw new ConversationContractError(
       "invalid_conversation_event",
-      "Conversation source event key 길이가 유효하지 않습니다.",
+      "The conversation source event key length is invalid.",
     );
   }
   return digest(sourceEventKey);
@@ -40,7 +40,7 @@ export function assertConversationInboundEvent(event: ConversationInboundEvent):
   if (!validateSchema("conversationInboundEvent", event).valid) {
     throw new ConversationContractError(
       "invalid_conversation_event",
-      "Conversation inbound event 계약이 유효하지 않습니다.",
+      "The conversation inbound event contract is invalid.",
     );
   }
   const { eventId: _eventId, ...content } = event;
@@ -51,7 +51,7 @@ export function assertConversationInboundEvent(event: ConversationInboundEvent):
   ) {
     throw new ConversationContractError(
       "invalid_conversation_event",
-      "Conversation event ID 또는 mention 순서가 원본과 다릅니다.",
+      "The conversation event ID or mention order differs from the source.",
     );
   }
 }

@@ -59,16 +59,17 @@ export async function completeApprovedDeliberation(input: {
         input.request.topic.trim(),
         suiteId,
         input.verifier.role,
+        input.workspace.writingContract.locale,
       ),
       documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
       verificationSuiteId: suiteId,
     });
     const verification = verificationRun.run.verifications[0];
     if (verification === undefined || verification.result.suiteId !== suiteId) {
-      throw new Error("숙의 verification 실행 결과가 요청한 suite와 다릅니다.");
+      throw new Error("The deliberation verification result does not match the requested suite.");
     }
     if (verificationRun.verificationSuite?.suiteId !== suiteId) {
-      throw new Error("숙의 verification suite 원본이 실행 결과와 다릅니다.");
+      throw new Error("The deliberation verification suite source does not match the run result.");
     }
     const evidence: DeliberationVerificationEvidence = {
       suite: verificationRun.verificationSuite,
@@ -123,7 +124,11 @@ export async function completeApprovedDeliberation(input: {
   const decisionRun = await input.runner.execute({
     provider: input.proposer.provider,
     role: input.proposer.role,
-    instructions: decisionPrompt(input.request.topic.trim(), input.proposer.role),
+    instructions: decisionPrompt(
+      input.request.topic.trim(),
+      input.proposer.role,
+      input.workspace.writingContract.locale,
+    ),
     documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
   });
   const decision = await recordDeliberationTurn({

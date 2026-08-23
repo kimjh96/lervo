@@ -19,8 +19,12 @@ export interface HubRuntimeCleanupConfig {
 export interface HubRuntimeConfig {
   schemaVersion: 1;
   listen: {
-    host: "127.0.0.1" | "::1";
+    host: string;
     port: number;
+  };
+  tls?: {
+    certificatePath: string;
+    privateKeyPath: string;
   };
   storage: {
     databasePath: string;
@@ -29,11 +33,13 @@ export interface HubRuntimeConfig {
   identity: {
     hubIdentityHash: string;
   };
-  credentials: HubBearerCredential[];
-  signing: {
+  credentials?: HubBearerCredential[];
+  credentialsFile?: string;
+  signing?: {
     policy: HubRuntimeSigningConfig;
     command: HubRuntimeSigningConfig;
   };
+  signingFile?: string;
   control: {
     reviewGrantSecretPath: string;
     reviewGrantTtlSeconds?: number;

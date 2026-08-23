@@ -19,12 +19,12 @@ function isSafeRelativePath(path: string): boolean {
 
 export function validateVerificationSuite(suite: VerificationSuite): void {
   if (!validateSchema("verificationSuite", suite).valid) {
-    invalidSuite("Verification suite가 schema를 통과하지 못했습니다.");
+    invalidSuite("The verification suite does not satisfy its schema.");
   }
   const commandIds = new Set<string>();
   for (const command of suite.commands) {
     if (commandIds.has(command.commandId)) {
-      invalidSuite("Verification suite에 중복된 command ID가 있습니다.");
+      invalidSuite("The verification suite contains a duplicate command ID.");
     }
     commandIds.add(command.commandId);
     if (
@@ -32,10 +32,10 @@ export function validateVerificationSuite(suite: VerificationSuite): void {
       !(BARE_EXECUTABLE.test(command.executable) ||
         (command.executable.startsWith("./") && isSafeRelativePath(command.executable.slice(2))))
     ) {
-      invalidSuite("Verification executable 또는 argument가 안전한 실행 계약에 맞지 않습니다.");
+      invalidSuite("The verification executable or argument does not satisfy the safe execution contract.");
     }
     if (!isSafeRelativePath(command.cwd)) {
-      invalidSuite("Verification command cwd가 안전한 저장소 상대 경로가 아닙니다.");
+      invalidSuite("The verification command cwd is not a safe repository-relative path.");
     }
   }
 }
@@ -44,7 +44,7 @@ export function validateRepositoryRevision(revision: string): void {
   if (!SHA256.test(revision)) {
     throw new VerificationError(
       "invalid_verification_request",
-      "Verification repository revision은 SHA-256 snapshot이어야 합니다.",
+      "The verification repository revision must be a SHA-256 snapshot.",
     );
   }
 }

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0180-hash-bound-human-conflict-resolution.md
+identityPath: docs/adr/0180-hash-bound-human-conflict-resolution.md
+kind: document_move
+lineageId: klineage_798973137c5bf102e35f1188
+operationId: kdocop_48a1fb8f5a66ca57da15412b
+schemaVersion: 1
+sourceContentHash: sha256:9c8f31918f877c3cec211f8f5c6e1a34a567de8aef2d96c30e8046b299e2d046
+sourceId: src_3487bb18523fa81744675af5
+sourceUnitBindingDigest: sha256:d04e8e33fb60bf40a1ef72bc23f15ba03a3271f16b4b0bbb78679b0485e2af8b
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md

@@ -1,0 +1,11 @@
+fromPath: docs/decisions/foundation/0147-bounded-command-artifact-lifecycle.md
+identityPath: docs/adr/0147-bounded-command-artifact-lifecycle.md
+kind: document_move
+lineageId: klineage_5fc3d85c30c3b542ab985e63
+operationId: kdocop_e493c7903062dbb9e96c1edd
+schemaVersion: 1
+sourceContentHash: sha256:2d8572fd041bd968618ebd857f8e0cb6439f43e45c0af303dc65435b4aeadeca
+sourceId: src_95359f7408b276aae71f4290
+sourceUnitBindingDigest: sha256:690b8444260a8b82cbe5a3a22eac1a0cd00246e1a527764f728234cc7dd1af71
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md

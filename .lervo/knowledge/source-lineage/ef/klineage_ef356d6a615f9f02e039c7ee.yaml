@@ -1,0 +1,11 @@
+fromPath: docs/adr/0067-policy-bound-search-rollout-review.md
+identityPath: docs/adr/0067-policy-bound-search-rollout-review.md
+kind: document_move
+lineageId: klineage_ef356d6a615f9f02e039c7ee
+operationId: kdocop_11d0b90b9d5c91ed5cf183f7
+schemaVersion: 1
+sourceContentHash: sha256:8e56c51371526d2c23b4adaafbff126d5eab6b03ae8d429e40bd53d035d55e55
+sourceId: src_a6cfce9e5b7c5445ae0c448c
+sourceUnitBindingDigest: sha256:0b644aba70b50c1e2fd68e207b69d1f17dfb7674aed6cf1801e6ac44075309b2
+sourceUnitCount: 5
+toPath: docs/decisions/search/0067-policy-bound-search-rollout-review.md

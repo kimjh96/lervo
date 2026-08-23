@@ -198,8 +198,8 @@ function adapter(client: FakeCodexClient, overrides: Partial<ConstructorParamete
 }
 
 function fixture() {
-  const agents = "모든 에이전트가 이 문서를 읽습니다.\n";
-  const writing = "사람이 이해하는 한국어 문장으로 씁니다.\n";
+  const agents = "All agents read this document.\n";
+  const writing = "Write clear English sentences for human readers.\n";
   const startRequest: AdapterStartRequest = {
     kind: "start_request",
     schemaVersion: 1,
@@ -208,7 +208,7 @@ function fixture() {
     runId: "run_01234567",
     sessionId: "ses_01234567",
     roleId: "developer",
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     requestDigest: sha("fixture request"),
     executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
@@ -255,7 +255,7 @@ function fixture() {
     sessionId: startRequest.sessionId,
     providerSessionId: "codex-thread-1",
     targetTurnId: contextEnvelope.targetTurnId,
-    instructions: "작은 기능을 구현합니다.",
+    instructions: "Implement a small feature.",
     requestedAt: "2026-08-18T00:00:02Z",
   };
   return { startRequest, contextEnvelope, turnRequest, agents, writing };
@@ -449,7 +449,7 @@ describe("Codex managed adapter", () => {
     const instance = adapter(client);
     const session = await started(instance);
     const envelope = fixture().contextEnvelope;
-    envelope.documents[0]!.delivery = { kind: "inline", content: "바뀐 원문" };
+    envelope.documents[0]!.delivery = { kind: "inline", content: "changed source" };
     await expect(instance.injectContext(session, envelope)).rejects.toBeInstanceOf(CodexAdapterError);
     expect(client.calls.some((call) => call.method === "injectItems")).toBe(false);
   });

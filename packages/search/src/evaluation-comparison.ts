@@ -61,7 +61,7 @@ function observedOutcome(baselineWins: number, candidateWins: number): SearchEva
 function resultMap(results: readonly SearchEvaluationResult[]): Map<string, SearchEvaluationResult> {
   const byCase = new Map(results.map((result) => [result.caseId, result]));
   if (byCase.size !== results.length) {
-    throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교 결과의 case가 중복되었습니다.");
+    throw new SearchError("invalid_evaluation_comparison", "Cases in the search evaluation comparison results are duplicated.");
   }
   return byCase;
 }
@@ -73,7 +73,7 @@ function comparisonCore(evidence: SearchEvaluationComparisonEvidence): SearchEva
   assertSearchEvaluationBundle(bundle, cases);
   assertSearchEvaluationCoverage(coverage, bundle, cases);
   if (coverage.comparisonReadiness !== "ready") {
-    throw new SearchError("evaluation_comparison_not_ready", "표본이 충분하지 않아 후보 검색을 비교할 수 없습니다.");
+    throw new SearchError("evaluation_comparison_not_ready", "The candidate search cannot be compared because the sample is insufficient.");
   }
   const casesById = new Map(cases.map((evaluationCase) => [evaluationCase.caseId, evaluationCase]));
   const activeCases = coverage.activeCaseIds.map((caseId) => casesById.get(caseId)!);
@@ -86,7 +86,7 @@ function comparisonCore(evidence: SearchEvaluationComparisonEvidence): SearchEva
     baseline.run.evaluatedAt !== candidate.run.evaluatedAt || baseline.run.caseIds.length !== coverage.activeCaseIds.length ||
     baseline.run.caseIds.some((caseId, index) => caseId !== coverage.activeCaseIds[index]) ||
     candidate.run.caseIds.some((caseId, index) => caseId !== coverage.activeCaseIds[index])) {
-    throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교의 엔진·project·시각·case 좌표가 다릅니다.");
+    throw new SearchError("invalid_evaluation_comparison", "Engine, project, timestamp, or case coordinates in the search evaluation comparison differ.");
   }
   const baselineByCase = resultMap(baseline.results);
   const candidateByCase = resultMap(candidate.results);
@@ -95,7 +95,7 @@ function comparisonCore(evidence: SearchEvaluationComparisonEvidence): SearchEva
     const candidateResult = candidateByCase.get(caseId);
     if (baselineResult === undefined || candidateResult === undefined ||
       baselineResult.requestedLimit !== candidateResult.requestedLimit) {
-      throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교의 결과 또는 순위 조건이 다릅니다.");
+      throw new SearchError("invalid_evaluation_comparison", "Result or ranking conditions in the search evaluation comparison differ.");
     }
     return {
       caseId,
@@ -147,7 +147,7 @@ export function createSearchEvaluationComparison(input: {
 function assertRunReference(reference: SearchEvaluationComparisonRunReference): void {
   if (typeof reference !== "object" || reference === null || !SEARCH_INDEX_ID_PATTERN.test(reference.indexId) ||
     !SEARCH_EVALUATION_RUN_PATTERN.test(reference.runId)) {
-    throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교의 실행 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_comparison", "Run coordinates in the search evaluation comparison are invalid.");
   }
   assertSearchEngineIdentity(reference.engine, "invalid_evaluation_comparison");
 }
@@ -177,7 +177,7 @@ export function assertSearchEvaluationComparison(
     comparison.ties !== comparison.cases.filter((item) => item.outcome === "tie").length ||
     comparison.observedOutcome !== observedOutcome(comparison.baselineWins, comparison.candidateWins) ||
     comparison.candidateDecision !== "not_determined" || comparison.embeddingDecision !== "not_determined") {
-    throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_comparison", "The search evaluation comparison contract is invalid.");
   }
   assertTimestamp(comparison.evaluatedAt, "invalid_evaluation_comparison");
   assertRunReference(comparison.baseline);
@@ -187,7 +187,7 @@ export function assertSearchEvaluationComparison(
   }
   if (!sameSearchEngine(comparison.baseline.engine, SEARCH_ENGINE) ||
     sameSearchEngine(comparison.candidate.engine, SEARCH_ENGINE)) {
-    throw new SearchError("invalid_evaluation_comparison", "Baseline과 후보 검색 엔진 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_comparison", "Baseline or candidate search engine coordinates are invalid.");
   }
   if (evidence !== undefined) {
     const expectedCore = comparisonCore(evidence);
@@ -195,12 +195,12 @@ export function assertSearchEvaluationComparison(
       ? contentId("secmp", { ...expectedCore, candidateAdapterBuildId: comparison.candidateAdapterBuildId })
       : contentId("secmp", expectedCore);
     if (expectedId !== comparison.comparisonId) {
-      throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교가 원본 실행과 다릅니다.");
+      throw new SearchError("invalid_evaluation_comparison", "The search evaluation comparison differs from its source runs.");
     }
     return;
   }
   const { schemaVersion: _schema, comparisonId: _id, ...core } = comparison;
   if (contentId("secmp", core) !== comparison.comparisonId) {
-    throw new SearchError("invalid_evaluation_comparison", "검색 평가 비교 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_evaluation_comparison", "The search evaluation comparison ID does not match its content.");
   }
 }

@@ -34,14 +34,14 @@ afterEach(cleanupSearchComparisonRepositories);
 describe("operational search engine selection", () => {
   it("uses a verified selection once, reports failure, and restores baseline on rollback", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "검색 맥락")];
+    const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.activation", 1, cases);
-    const comparedDocument = "# 다른 문서\n\n평가 질의와 무관한 현재 내용입니다.\n";
+    const comparedDocument = "# Other document\n\nCurrent content unrelated to the evaluation query.\n";
     await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
     const project = await loadProjectManifest(root);
     let candidateBuilds = 0;
     const engine = recoveringCandidateEngine(
-      "검색 맥락",
+      "zephyrcontext",
       "doc_cli_search_context",
       () => { candidateBuilds += 1; },
     );
@@ -72,7 +72,7 @@ describe("operational search engine selection", () => {
       createdAt: new Date("2026-08-20T09:30:00.000Z"),
     });
     await recordSearchEngineActivationPolicy(root, policy);
-    await writeFile(resolve(root, "docs/search-context.md"), "# 검토 뒤 변경\n\n현재 corpus가 달라졌습니다.\n");
+    await writeFile(resolve(root, "docs/search-context.md"), "# Changed after review\n\nThe current corpus is different.\n");
     await expect(activateLocalSearchCandidate({
       repositoryRoot: root,
       projectId: project.projectId,
@@ -110,7 +110,7 @@ describe("operational search engine selection", () => {
       repositoryRoot: root,
       projectId: project.projectId,
       registry,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       limit: 5,
     });
     expect(operational).toMatchObject({
@@ -133,14 +133,14 @@ describe("operational search engine selection", () => {
       repositoryRoot: root,
       projectId: project.projectId,
       registry: changedBuildRegistry,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       limit: 5,
     })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
     expect(candidateBuilds).toBe(buildsBeforeMismatch);
     const managed = await prepareManagedSearchContext({
       repositoryRoot: root,
       projectId: project.projectId,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       fallbackQuery: "docs/search-context.md",
       observedAt: new Date("2026-08-20T10:01:00.000Z"),
       nonce: "a".repeat(32),
@@ -155,17 +155,17 @@ describe("operational search engine selection", () => {
       selectionTransitionId: activation.activationId,
     });
 
-    const unavailable = await command(root, ["search", "검색 맥락", "--json"]);
+    const unavailable = await command(root, ["search", "zephyrcontext", "--json"]);
     expect(unavailable.code).toBe(1);
     expect(unavailable.error).toContain("engine_selection_unavailable");
     expect(unavailable.output).toBe("");
 
-    await writeFile(resolve(root, "docs/search-context.md"), "# 다시 변경됨\n\n선택 뒤 corpus 변경입니다.\n");
+    await writeFile(resolve(root, "docs/search-context.md"), "# Changed again\n\nThe corpus changed after selection.\n");
     await expect(runLocalOperationalSearch({
       repositoryRoot: root,
       projectId: project.projectId,
       registry,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       limit: 5,
     })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
 
@@ -218,7 +218,7 @@ describe("operational search engine selection", () => {
       repositoryRoot: root,
       projectId: project.projectId,
       registry,
-      query: "검색 맥락",
+      query: "zephyrcontext",
       limit: 5,
     })).resolves.toMatchObject({
       selectionTransitionId: refresh.activationId,
@@ -244,7 +244,7 @@ describe("operational search engine selection", () => {
         "baseline.json",
       ].sort());
 
-    const searched = await command(root, ["search", "검색 맥락", "--json"]);
+    const searched = await command(root, ["search", "zephyrcontext", "--json"]);
     expect(searched.code, searched.error).toBe(0);
     expect(JSON.parse(searched.output)).toMatchObject({
       engine: { id: "lexical", version: 1 },

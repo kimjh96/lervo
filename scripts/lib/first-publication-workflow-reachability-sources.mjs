@@ -22,7 +22,7 @@ export const firstPublicationWorkflowReachabilityPaths = Object.freeze({
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_reachability_source_invalid",
-    "CLI stage-only workflow ref 도달 가능성 증거 원본이 올바르지 않습니다.",
+    "The CLI stage-only workflow ref-reachability evidence source is invalid.",
   );
 }
 

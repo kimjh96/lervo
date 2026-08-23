@@ -15,14 +15,14 @@ import {
 const GUIDE_HASH = `sha256:${"a".repeat(64)}`;
 const OTHER_HASH = `sha256:${"b".repeat(64)}`;
 
-function corpus(guideText = "검색 실패를 평가하는 운영 안내입니다."): SearchSourceInput[] {
+function corpus(guideText = "Operational guidance for evaluating search failures."): SearchSourceInput[] {
   return [
     {
       kind: "document",
       sourceId: "doc_search_guide_01",
       contentHash: GUIDE_HASH,
       path: "docs/search-guide.md",
-      title: "검색 운영 안내",
+      title: "Search operations guide",
       labels: ["search"],
       text: guideText,
     },
@@ -31,15 +31,15 @@ function corpus(guideText = "검색 실패를 평가하는 운영 안내입니�
       sourceId: "doc_other_guide_01",
       contentHash: OTHER_HASH,
       path: "docs/other.md",
-      title: "다른 문서",
+      title: "Other document",
       labels: [],
-      text: "관련 없는 내용입니다.",
+      text: "Unrelated content.",
     },
   ];
 }
 
 function reviewedCase() {
-  const response = new LexicalSearchIndex(corpus()).search("실패를 평가하는", 10);
+  const response = new LexicalSearchIndex(corpus()).search("evaluating failures", 10);
   const attempt = createSearchAttempt({
     projectId: "prj_search_eval_01",
     observedAt: new Date("2026-08-20T05:00:00.000Z"),
@@ -59,7 +59,7 @@ function reviewedCase() {
     evaluationCase: createSearchEvaluationCase({
       attempt,
       assessment,
-      query: "실패를 평가하는",
+      query: "evaluating failures",
       maximumRank: 3,
     }),
   };
@@ -70,7 +70,7 @@ describe("reusable search evaluation", () => {
     const { attempt, assessment, evaluationCase } = reviewedCase();
 
     expect(evaluationCase).toMatchObject({
-      query: "실패를 평가하는",
+      query: "evaluating failures",
       expectation: {
         matchMode: "any",
         maximumRank: 3,
@@ -86,21 +86,21 @@ describe("reusable search evaluation", () => {
     expect(() => createSearchEvaluationCase({
       attempt,
       assessment,
-      query: "실패를 평가하는",
+      query: "evaluating failures",
       maximumRank: 3,
       sources: [{ sourceKind: "document", sourceId: "doc_unreviewed_01" }],
-    })).toThrow(/평가자가 기대하거나 수락한/);
+    })).toThrow(/expected or accepted by the reviewer/);
     expect(() => createSearchEvaluationCase({
       attempt,
       assessment,
-      query: "실패를 평가하는",
+      query: "evaluating failures",
       maximumRank: attempt.requestedLimit + 1,
-    })).toThrow(/관측한 결과 한도/);
+    })).toThrow(/result limit observed/);
   });
 
   it("detects a regression without making an embedding decision", () => {
     const { evaluationCase } = reviewedCase();
-    const current = new LexicalSearchIndex(corpus("이제 관련 단어가 없습니다.")).search("실패를 평가하는", 50);
+    const current = new LexicalSearchIndex(corpus("No relevant terms remain.")).search("evaluating failures", 50);
     const result = createSearchEvaluationResult({
       evaluationCase,
       response: current,
@@ -128,7 +128,7 @@ describe("reusable search evaluation", () => {
   });
 
   it("observes an improvement from a reviewed failed attempt", () => {
-    const response = new LexicalSearchIndex(corpus("관련 단어 없음")).search("실패를 평가하는", 10);
+    const response = new LexicalSearchIndex(corpus("No relevant terms")).search("evaluating failures", 10);
     const attempt = createSearchAttempt({
       projectId: "prj_search_eval_01",
       observedAt: new Date("2026-08-20T05:00:00.000Z"),
@@ -146,12 +146,12 @@ describe("reusable search evaluation", () => {
     const evaluationCase = createSearchEvaluationCase({
       attempt,
       assessment,
-      query: "실패를 평가하는",
+      query: "evaluating failures",
       maximumRank: 3,
     });
     const result = createSearchEvaluationResult({
       evaluationCase,
-      response: new LexicalSearchIndex(corpus()).search("실패를 평가하는", 50),
+      response: new LexicalSearchIndex(corpus()).search("evaluating failures", 50),
       evaluatedAt: new Date("2026-08-20T06:00:00.000Z"),
     });
 
@@ -164,18 +164,18 @@ describe("reusable search evaluation", () => {
     expect(() => createSearchEvaluationCase({
       attempt,
       assessment,
-      query: "다른 질의",
+      query: "different query",
       maximumRank: 3,
-    })).toThrow(/질의 좌표/);
+    })).toThrow(/query coordinates/);
 
     expect(() => assertSearchEvaluationCase({
       ...evaluationCase,
       expectation: { ...evaluationCase.expectation, maximumRank: 4 },
-    })).toThrow(/ID가 실제 내용/);
+    })).toThrow(/ID does not match its content/);
 
     const result = createSearchEvaluationResult({
       evaluationCase,
-      response: new LexicalSearchIndex(corpus()).search("실패를 평가하는", 50),
+      response: new LexicalSearchIndex(corpus()).search("evaluating failures", 50),
       evaluatedAt: new Date("2026-08-20T06:00:00.000Z"),
     });
     expect(() => assertSearchEvaluationResult({ ...result, returnedHits: 0 })).toThrow();

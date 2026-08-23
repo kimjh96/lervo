@@ -24,7 +24,7 @@ function buildBatch(input: {
     input.recommendationLimit > MAX_RECOMMENDATIONS ||
     !Number.isSafeInteger(input.maximumSelections) || input.maximumSelections < 0 ||
     input.maximumSelections > MAX_SELECTIONS || input.maximumSelections > input.recommendationLimit) {
-    invalid("검색 추천·선택 한도가 유효하지 않습니다.");
+    invalid("The search recommendation or selection limit is invalid.");
   }
   const cores = input.attempt.hits
     .filter((hit) => hit.sourceKind === "document")
@@ -90,7 +90,7 @@ export function assertSearchRecommendationBatch(batch: SearchRecommendationBatch
     typeof batch.selectionPolicy !== "object" || batch.selectionPolicy === null ||
     batch.selectionPolicy.id !== "top_ranked" || batch.selectionPolicy.version !== 1 ||
     !Array.isArray(batch.recommendations) || !Array.isArray(batch.selectedRecommendationIds)) {
-    invalid("검색 추천 묶음 계약이 유효하지 않습니다.");
+    invalid("The search recommendation batch contract is invalid.");
   }
   const expected = buildBatch({
     attempt: batch.attempt,
@@ -98,6 +98,6 @@ export function assertSearchRecommendationBatch(batch: SearchRecommendationBatch
     maximumSelections: batch.selectionPolicy.maximumSelections,
   });
   if (canonicalHash(batch) !== canonicalHash(expected)) {
-    invalid("검색 추천 묶음이 원본 검색 시도와 일치하지 않습니다.");
+    invalid("The search recommendation batch does not match its source search attempt.");
   }
 }

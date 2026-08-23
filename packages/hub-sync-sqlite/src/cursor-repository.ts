@@ -28,7 +28,7 @@ export class HubCursorSQLiteRepository {
     if (first.previousHash !== current.eventHash) {
       throw new SyncContractError(
         "event_chain_conflict",
-        "Hub cursor 다음 event가 현재 hash chain과 연결되지 않습니다.",
+        "The event after the Hub cursor does not connect to the current hash chain.",
       );
     }
     const firstAfterGap = this.database.prepare(`
@@ -44,7 +44,7 @@ export class HubCursorSQLiteRepository {
     const lastSeq = this.lastContinuousSeq(coordinate, current.seq, firstAfterGap);
     const last = this.eventAt(coordinate, lastSeq);
     if (last === undefined) {
-      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite cursor event가 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite cursor event is missing.");
     }
     return { seq: last.seq, eventHash: last.eventHash };
   }
@@ -56,7 +56,7 @@ export class HubCursorSQLiteRepository {
       WHERE destination_id = ? AND project_id = ? AND seq > ?
     `).get(coordinate.destinationId, coordinate.projectId, seq);
     if (row === undefined) {
-      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite event 수를 읽을 수 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite event count cannot be read.");
     }
     return integerField(row, "event_count");
   }
@@ -70,7 +70,7 @@ export class HubCursorSQLiteRepository {
       return firstAfterGap - 2;
     }
     if (firstAfterGap !== null && firstAfterGap !== undefined) {
-      throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite gap 좌표가 유효하지 않습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite gap coordinates are invalid.");
     }
     const maximum = this.database.prepare(`
       SELECT MAX(seq) AS maximum_seq

@@ -17,7 +17,7 @@ export class TrustedPublisherReadinessError extends Error {
 function fail() {
   throw new TrustedPublisherReadinessError(
     "trusted_publisher_readiness_input_invalid",
-    "Trusted Publisher 준비 상태 입력이 올바르지 않습니다.",
+    "The Trusted Publisher readiness input is invalid.",
   );
 }
 

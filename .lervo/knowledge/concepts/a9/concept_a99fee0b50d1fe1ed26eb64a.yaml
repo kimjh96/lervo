@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a99fee0b50d1fe1ed26eb64a
+freshness: current
+ownership: user
+path: docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_15195592a9dab15e1616fb11
+title: "ADR-0006: Deterministic context preparation"
+type: decision

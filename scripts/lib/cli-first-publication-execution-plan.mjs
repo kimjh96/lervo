@@ -11,7 +11,7 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_execution_plan_input_invalid",
-    "CLI 최초 게시 실행 계획 입력이 올바르지 않습니다.",
+    "The CLI first-publication execution-plan input is invalid.",
   );
 }
 

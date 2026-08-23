@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { AuthenticatedRemoteCommandHttpPayloadLoader } from "../src/index.js";
 
-const bytes = new TextEncoder().encode("인증된 원격 요청 원문");
+const bytes = new TextEncoder().encode("authenticated remote request source");
 const reference: RemoteCommandPayloadReference = {
   artifactId: `art_${"a".repeat(64)}`,
   contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
@@ -63,9 +63,9 @@ describe("authenticated remote command HTTP payload loader", () => {
   it("rejects identity, length and content hash drift", async () => {
     await expect(loader(async () => response(bytes, {
       "x-lervo-hub-identity": `sha256:${"d".repeat(64)}`,
-    })).load(reference)).rejects.toThrow("좌표");
+    })).load(reference)).rejects.toThrow("coordinates");
     await expect(loader(async () => response(bytes.slice(0, -1))).load(reference))
-      .rejects.toThrow("크기");
+      .rejects.toThrow("size");
     const changed = bytes.slice();
     changed[0] = 0x41;
     await expect(loader(async () => response(changed)).load(reference)).rejects.toThrow("hash");

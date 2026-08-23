@@ -22,14 +22,14 @@ export class ContextEvidenceCollector {
     if (this.receiptIds.has(item.receiptId)) {
       throw new ContextPreparationError(
         "receipt_id_conflict",
-        `Context receipt ID가 중복되었습니다: ${item.receiptId}`,
+        `Context receipt ID is duplicated: ${item.receiptId}`,
       );
     }
     const validation = validateSchema("contextEvidence", item);
     if (!validation.valid) {
       throw new ContextPreparationError(
         "invalid_context_evidence",
-        `유효한 context evidence를 만들 수 없습니다: ${item.receiptId}`,
+        `Valid context evidence cannot be created: ${item.receiptId}`,
         { cause: validation.errors },
       );
     }

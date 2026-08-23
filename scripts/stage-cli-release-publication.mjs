@@ -10,7 +10,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new ReleasePublicationAuthorizationError(
     "release_stage_publication_arguments_invalid",
-    "CLI stage 게시 명령 인자가 올바르지 않습니다.",
+    "The CLI stage-publication command arguments are invalid.",
   );
 }
 
@@ -39,8 +39,8 @@ function parseArguments(args) {
 try {
   const terminal = await stageCliReleasePublication(parseArguments(process.argv.slice(2)));
   console.log(
-    `CLI package stage 접수 완료 (${terminal.receipt.target.package}@` +
-    `${terminal.receipt.target.version}, 공개 전 2FA 검토 필요)`,
+    `CLI package stage accepted (${terminal.receipt.target.package}@` +
+    `${terminal.receipt.target.version}, 2FA review required before public release)`,
   );
 } catch (error) {
   if (
@@ -49,7 +49,7 @@ try {
     error instanceof ReleaseArtifactManifestError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "release_stage_publication_failed: CLI package stage 게시를 완료하지 못했습니다.",
+    "release_stage_publication_failed: CLI package stage publication could not be completed.",
   );
   process.exitCode = 1;
 }

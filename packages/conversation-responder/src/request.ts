@@ -35,7 +35,7 @@ export function validateConversationResponseRequest(
   ) {
     throw new ManagedConversationResponseError(
       "invalid_response_request",
-      "대화 응답의 프로젝트, 역할, 읽기 전용 실행 또는 writing 정책이 서로 맞지 않습니다.",
+      "The conversation response project, role, read-only execution, or writing policy is inconsistent.",
     );
   }
 }
@@ -65,9 +65,9 @@ export function conversationResponseInstructions(
     threadId: input.event.target.threadId,
     participationReason: input.decision.reason,
     requirements: [
-      "주입된 공통 맥락과 아래 대화 원문을 바탕으로 답합니다.",
-      "읽거나 주입되지 않은 문서를 봤다고 주장하지 않습니다.",
-      "외부 플랫폼에는 직접 전송하지 않고 답변 본문만 작성합니다.",
+      "Respond using the injected shared context and the conversation source below.",
+      "Do not claim to have seen documents that were neither loaded nor injected.",
+      "Write only the response body; do not send directly to an external platform.",
     ],
     message,
   });

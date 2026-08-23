@@ -1,0 +1,11 @@
+fromPath: docs/adr/0004-project-storage-bootstrap.md
+identityPath: docs/adr/0004-project-storage-bootstrap.md
+kind: document_move
+lineageId: klineage_084788d42434898be5c50714
+operationId: kdocop_989d1e7e5b4dd712f9c23a5a
+schemaVersion: 1
+sourceContentHash: sha256:f3ebf8a7a9311503cd970dd02856f16488924f0541aeec6d09af073bfe6aa70f
+sourceId: src_cf2ad41c1dda423c5c475744
+sourceUnitBindingDigest: sha256:a3d70e0196f8f288e84e54ab4b6c5e560bd1f031d864a7cd4b2767e4805c6408
+sourceUnitCount: 8
+toPath: docs/decisions/operations/0004-project-storage-bootstrap.md

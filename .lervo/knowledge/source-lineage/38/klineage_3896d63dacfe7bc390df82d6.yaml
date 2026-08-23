@@ -1,0 +1,11 @@
+fromPath: docs/adr/0016-local-skill-resolution-and-lock.md
+identityPath: docs/adr/0016-local-skill-resolution-and-lock.md
+kind: document_move
+lineageId: klineage_3896d63dacfe7bc390df82d6
+operationId: kdocop_4ca57774d48dcb5029fe650f
+schemaVersion: 1
+sourceContentHash: sha256:27a6711345b8ba10b8666208c98c38ebaa9ac744ba70c0615ec3f7197b8be8c4
+sourceId: src_b1a55ec9cf7b8470debec6eb
+sourceUnitBindingDigest: sha256:b434aac7448eea022de4e0a227a5ba2a876df00927bf0876a7d987afa89c5f0d
+sourceUnitCount: 9
+toPath: docs/decisions/execution/orchestration/0016-local-skill-resolution-and-lock.md

@@ -52,7 +52,7 @@ export function evaluateManagedWriteContract(
   ) {
     violations.push({
       code: "write_message_invalid",
-      detail: "session: managed write 기능이 열린 session이 아닙니다.",
+      detail: "session: managed write capability is not enabled for this session.",
     });
   }
   violations.push(

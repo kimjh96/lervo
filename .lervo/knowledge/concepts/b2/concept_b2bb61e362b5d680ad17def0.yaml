@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b2bb61e362b5d680ad17def0
+freshness: current
+ownership: user
+path: docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_46e7eff573b3fdbe9a5ea2ed
+title: "ADR-0063: Search-adapter build identity and rebuildable replay receipts"
+type: decision

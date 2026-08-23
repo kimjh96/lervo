@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_4dc353857ff84b9c0fdae6cd
+freshness: current
+ownership: user
+path: docs/decisions/foundation/0002-safe-project-initialization.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4525f3c23f40e1aeb6e93e8b
+title: "ADR-0002: Safe Local Project Initialization"
+type: decision

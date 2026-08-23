@@ -63,7 +63,7 @@ export const policy: DeliberationPolicy = {
   },
   publication: {
     surface: "documentation",
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     writingPolicyHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     requiresWritingPermit: true,
   },

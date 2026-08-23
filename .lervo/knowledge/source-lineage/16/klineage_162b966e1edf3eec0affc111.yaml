@@ -1,0 +1,11 @@
+fromPath: docs/adr/0089-cli-multi-platform-release-matrix.md
+identityPath: docs/adr/0089-cli-multi-platform-release-matrix.md
+kind: document_move
+lineageId: klineage_162b966e1edf3eec0affc111
+operationId: kdocop_3516403fb255bb4505204309
+schemaVersion: 1
+sourceContentHash: sha256:ddd90f22d9cc84c9d7a8189ae61c18366ea67b117274900b485cdb48a8a74948
+sourceId: src_20df925a1b22957ae6efedac
+sourceUnitBindingDigest: sha256:50843d829cfcc7cc54f07790035565fc2b2e7cd5c931ce922a3aebb9efb322ab
+sourceUnitCount: 5
+toPath: docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md

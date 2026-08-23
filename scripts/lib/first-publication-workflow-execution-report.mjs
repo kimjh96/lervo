@@ -34,7 +34,7 @@ const checkIds = Object.freeze([
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_execution_report_invalid",
-    "CLI stage-only workflow 실행 증거 보고서가 올바르지 않습니다.",
+    "The CLI stage-only workflow execution evidence report is invalid.",
   );
 }
 

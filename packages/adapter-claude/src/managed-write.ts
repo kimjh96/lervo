@@ -38,7 +38,7 @@ export function createClaudeManagedWriteRequest(input: {
   if (path === null || changeKind === null || text(input.toolUseId) === undefined) {
     throw new ClaudeAdapterError(
       "invalid_request",
-      "Claude managed write 도구의 경로나 종류가 유효하지 않습니다.",
+      "The Claude managed write tool path or kind is invalid.",
     );
   }
   return createManagedWriteRequest({
@@ -80,7 +80,7 @@ export class ClaudeManagedWriteController implements ClaudeManagedWriteHandler {
   async authorize(toolName: string, toolInput: unknown, toolUseId: string): Promise<boolean> {
     const turn = this.options.activeTurn();
     if (turn === undefined) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "Turn 밖에서 write 도구를 요청했습니다.");
+      throw new ClaudeAdapterError("provider_protocol_failed", "A write tool was requested outside a turn.");
     }
     const request = createClaudeManagedWriteRequest({
       session: this.options.session,
@@ -97,7 +97,7 @@ export class ClaudeManagedWriteController implements ClaudeManagedWriteHandler {
     if (!inspectManagedWriteDecisionBinding({ request, decision }).passed) {
       throw new ClaudeAdapterError(
         "provider_protocol_failed",
-        "Managed write 결정이 Claude 요청과 다릅니다.",
+        "The managed write decision does not match the Claude request.",
       );
     }
     if (decision.decision !== "allow") return false;

@@ -45,7 +45,7 @@ export function assertRolloutReviewTarget(
     !sameSearchEngine(activation.selected.engine, review.target.engine) || candidateReview.schemaVersion !== 2 ||
     candidateReview.reviewId !== review.target.candidateReviewId ||
     candidateReview.candidateAdapterBuildId !== review.target.adapterBuildId) {
-    throw new SearchLocalError("observation_invalid", "검색 rollout 검토 대상이 선택·후보 검토 원본과 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The search rollout review target differs from the selection and candidate review sources.");
   }
 }
 
@@ -78,7 +78,7 @@ export function createRolloutCurrentSelection(
   }
   const review = candidateReviews.get(current.selected.reviewId);
   if (review === undefined) {
-    throw new SearchLocalError("observation_invalid", "현재 후보 검색 검토 원본을 찾을 수 없습니다.");
+    throw new SearchLocalError("observation_invalid", "The current candidate search review source was not found.");
   }
   return {
     selectionTransitionId: current.activationId,
@@ -106,7 +106,7 @@ export async function loadVerifiedLocalSearchRolloutReviewState(input: {
     loadStoredSearchRolloutReview(input.repositoryRoot, input.rolloutReviewId),
   ]);
   if (review.projectId !== input.projectId) {
-    throw new SearchLocalError("observation_invalid", "검색 rollout 검토의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The search rollout review has different project coordinates.");
   }
   const [candidateReview, rolloutPolicy] = await Promise.all([
     loadStoredSearchCandidateReview(input.repositoryRoot, review.target.candidateReviewId),
@@ -115,7 +115,7 @@ export async function loadVerifiedLocalSearchRolloutReviewState(input: {
       : Promise.resolve(null),
   ]);
   if (rolloutPolicy !== null && rolloutPolicy.projectId !== input.projectId) {
-    throw new SearchLocalError("observation_invalid", "검색 rollout 검토 정책의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The search rollout review policy has different project coordinates.");
   }
   const activation = qualityEvidence.history.find(
     (item) => item.activationId === review.target.selectionTransitionId,

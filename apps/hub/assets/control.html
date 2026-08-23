@@ -4,43 +4,43 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>Lervo Command 검토</title>
+    <title>Lervo Command Review</title>
     <link rel="stylesheet" href="/assets/control.css">
     <script type="module" src="/assets/control.js"></script>
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/control" aria-label="Lervo Command 검토 처음으로">
+      <a class="brand" href="/control" aria-label="Lervo Command Review home">
         <span class="brand-mark" aria-hidden="true">L</span>
-        <span>Lervo Command 검토</span>
+        <span>Lervo Command Review</span>
       </a>
-      <p>대화와 분리된 Hub 승인 화면</p>
+      <p>A Hub approval surface separate from the conversation</p>
     </header>
 
     <main>
       <section class="panel intro" aria-labelledby="control-title">
         <div>
-          <p class="eyebrow">별도 인증 필요</p>
-          <h1 id="control-title">실행 범위를 확인한 뒤 승인합니다</h1>
-          <p class="supporting">대화 메시지나 반응만으로 승인이 만들어지지 않습니다. 접근 토큰은 현재 탭의 메모리에서만 사용합니다.</p>
+          <p class="eyebrow">Separate authentication required</p>
+          <h1 id="control-title">Review the execution scope before approval</h1>
+          <p class="supporting">Conversation messages and reactions cannot create approvals. The access token is kept only in this tab's memory.</p>
         </div>
         <form id="auth-form" class="auth-form">
-          <label for="token">Hub 접근 토큰</label>
+          <label for="token">Hub access token</label>
           <div class="auth-controls">
             <input id="token" type="password" minlength="32" maxlength="4096"
               autocomplete="off" autocapitalize="none" spellcheck="false" required>
-            <button type="submit">다시 인증</button>
-            <button id="disconnect" class="secondary" type="button" hidden>연결 해제</button>
+            <button type="submit">Authenticate</button>
+            <button id="disconnect" class="secondary" type="button" hidden>Disconnect</button>
           </div>
         </form>
-        <p id="status" class="status" role="status" aria-live="polite">대화에서 받은 검토 주소를 확인하고 토큰을 입력해 주세요.</p>
+        <p id="status" class="status" role="status" aria-live="polite">Open the review URL from the conversation and enter your token.</p>
       </section>
 
       <section id="review" class="panel review" aria-labelledby="review-title" hidden>
         <header class="review-header">
           <div>
             <p class="eyebrow">Command</p>
-            <h2 id="review-title">실행 정보</h2>
+            <h2 id="review-title">Execution details</h2>
           </div>
           <span id="delivery-status" class="badge"></span>
         </header>
@@ -49,7 +49,7 @@
         <div class="approval-heading">
           <div>
             <p class="eyebrow">Approval</p>
-            <h2>승인 범위</h2>
+            <h2>Approval scopes</h2>
           </div>
           <span id="approval-status" class="badge"></span>
         </div>

@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0164-user-runtime-service-management-boundary.md
+identityPath: docs/adr/0164-user-runtime-service-management-boundary.md
+kind: document_move
+lineageId: klineage_bf86faa5d1ae294054ece694
+operationId: kdocop_0c34b77bf72f1648a4b78d37
+schemaVersion: 1
+sourceContentHash: sha256:48fef9b3b2dafd7a9ba34e1d9f57f936dbffafe1af3121ea1b3912b869b82c37
+sourceId: src_03f3b7472430d2f8119b380e
+sourceUnitBindingDigest: sha256:da714ba195b5a310434d7474d75e9123d1c1529eb57bbc1e7b4238ddc81eb630
+sourceUnitCount: 5
+toPath: docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md

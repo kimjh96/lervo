@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0082-machine-readable-trace-capabilities.md
+identityPath: docs/adr/0082-machine-readable-trace-capabilities.md
+kind: document_move
+lineageId: klineage_e9fef3987dcddb1b43433fe9
+operationId: kdocop_e4f021cff9d7dcbe42c0936a
+schemaVersion: 1
+sourceContentHash: sha256:c139bf1d72634acbe2feb8156e989da2ac843b58f0560cffcaeec62b82fe67ce
+sourceId: src_4ed350083d05df3649dbc978
+sourceUnitBindingDigest: sha256:5bfe4b357254317f40c78b8b02cdd8ec36c717b3b2f42427cf334923369cf099
+sourceUnitCount: 4
+toPath: docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md

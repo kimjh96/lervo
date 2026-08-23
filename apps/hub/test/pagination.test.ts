@@ -5,24 +5,24 @@ import { createCursorPager } from "../assets/trace-pagination.js";
 describe("Hub trace web cursor pager", () => {
   it("replaces the current page and can return to the previous cursor", async () => {
     const load = vi.fn(async (cursor: string | null) => cursor === null ? {
-      items: ["첫 페이지"],
+      items: ["first page"],
       nextCursor: "cursor-two",
     } : {
-      items: ["두 번째 페이지"],
+      items: ["second page"],
       nextCursor: null,
     });
     const pager = createCursorPager(load);
 
     await expect(pager.firstPage()).resolves.toMatchObject({
-      page: { items: ["첫 페이지"] },
+      page: { items: ["first page"] },
       navigation: { pageNumber: 1, hasPrevious: false, hasNext: true },
     });
     await expect(pager.nextPage()).resolves.toMatchObject({
-      page: { items: ["두 번째 페이지"] },
+      page: { items: ["second page"] },
       navigation: { pageNumber: 2, hasPrevious: true, hasNext: false },
     });
     await expect(pager.previousPage()).resolves.toMatchObject({
-      page: { items: ["첫 페이지"] },
+      page: { items: ["first page"] },
       navigation: { pageNumber: 1, hasPrevious: false, hasNext: true },
     });
     expect(load.mock.calls.map(([cursor]) => cursor)).toEqual([null, "cursor-two", null]);
@@ -31,7 +31,7 @@ describe("Hub trace web cursor pager", () => {
   it("keeps the current cursor when loading the next page fails", async () => {
     const pager = createCursorPager(async (cursor) => {
       if (cursor !== null) throw new Error("network failed");
-      return { items: ["현재 페이지"], nextCursor: "cursor-failing" };
+      return { items: ["current page"], nextCursor: "cursor-failing" };
     });
 
     await pager.firstPage();

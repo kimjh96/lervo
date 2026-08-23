@@ -77,7 +77,7 @@ function validateRequest(input: CreateManagedBlockPatchCandidateInput): string {
   if (!BLOCK_ID.test(input.blockId)) {
     throw new ManagedBlockPatchError(
       "invalid_patch_request",
-      "Managed block patch의 block ID가 계약에 맞지 않습니다.",
+      "The managed block patch block ID does not satisfy the contract.",
     );
   }
   try {
@@ -87,7 +87,7 @@ function validateRequest(input: CreateManagedBlockPatchCandidateInput): string {
   } catch (error) {
     throw new ManagedBlockPatchError(
       "invalid_patch_request",
-      "Managed block patch의 source 경로가 안전한 저장소 상대 경로가 아닙니다.",
+      "The managed block patch source path is not a safe repository-relative path.",
       { cause: error },
     );
   }
@@ -97,7 +97,7 @@ function validateReplacement(replacement: Uint8Array): void {
   if (replacement.byteLength > MAXIMUM_REPLACEMENT_BYTES) {
     throw new ManagedBlockPatchError(
       "replacement_too_large",
-      "Managed block replacement가 8 KiB 제한을 넘었습니다.",
+      "The managed block replacement exceeds the 8 KiB limit.",
     );
   }
   try {
@@ -105,7 +105,7 @@ function validateReplacement(replacement: Uint8Array): void {
   } catch (error) {
     throw new ManagedBlockPatchError(
       "replacement_invalid_utf8",
-      "Managed block replacement는 유효한 UTF-8이어야 합니다.",
+      "The managed block replacement must be valid UTF-8.",
       { cause: error },
     );
   }
@@ -123,7 +123,7 @@ export function createManagedBlockPatchCandidate(
       input.source.contentHash !== sha256(sourceBytes)) {
     throw new ManagedBlockPatchError(
       "source_changed",
-      "Managed block patch source가 요청에 결속된 byte 수 또는 hash와 다릅니다.",
+      "The managed block patch source differs from the byte count or hash bound to the request.",
     );
   }
 
@@ -131,20 +131,20 @@ export function createManagedBlockPatchCandidate(
   if (parsedSource.status !== "valid") {
     throw new ManagedBlockPatchError(
       "source_structure_invalid",
-      "Managed block patch source의 Markdown 구조를 안전하게 확정할 수 없습니다.",
+      "The Markdown structure of the managed block patch source cannot be determined safely.",
     );
   }
   const target = parsedSource.blocks.find((block) => block.blockId === input.blockId);
   if (target === undefined) {
     throw new ManagedBlockPatchError(
       "block_not_found",
-      "요청한 managed block을 source에서 찾을 수 없습니다.",
+      "The requested managed block was not found in the source.",
     );
   }
   if (target.markerFamily !== "lervo_v1") {
     throw new ManagedBlockPatchError(
       "legacy_marker_not_writable",
-      "이전 제품 marker는 migration 전까지 patch 출력으로 사용할 수 없습니다.",
+      "A legacy product marker cannot be used as patch output before migration.",
     );
   }
 
@@ -152,7 +152,7 @@ export function createManagedBlockPatchCandidate(
   if (bytesEqual(existingContent, replacementBytes)) {
     throw new ManagedBlockPatchError(
       "no_changes",
-      "Replacement가 기존 managed block content와 같습니다.",
+      "The replacement is identical to the existing managed block content.",
     );
   }
 
@@ -183,7 +183,7 @@ export function createManagedBlockPatchCandidate(
   ) {
     throw new ManagedBlockPatchError(
       "output_structure_invalid",
-      "Replacement로 만든 결과가 managed block 구조와 byte 보존 계약을 통과하지 못했습니다.",
+      "The replacement result does not satisfy the managed block structure and byte-preservation contract.",
     );
   }
 
@@ -229,7 +229,7 @@ export function createManagedBlockPatchCandidate(
   if (!validateSchema("managedBlockPatchCandidate", candidate).valid) {
     throw new ManagedBlockPatchError(
       "candidate_contract_invalid",
-      "Managed block patch candidate를 schema-valid하게 만들 수 없습니다.",
+      "The managed block patch candidate cannot be made schema-valid.",
     );
   }
   const candidateBytes = managedBlockPatchCandidateBytes(candidate);
@@ -244,7 +244,7 @@ export function createManagedBlockPatchCandidate(
   if (!validateSchema("managedBlockPatchCandidateArtifact", artifact).valid) {
     throw new ManagedBlockPatchError(
       "candidate_contract_invalid",
-      "Managed block patch candidate artifact를 schema-valid하게 만들 수 없습니다.",
+      "The managed block patch candidate artifact cannot be made schema-valid.",
     );
   }
   return { artifact, candidateBytes, outputBytes };

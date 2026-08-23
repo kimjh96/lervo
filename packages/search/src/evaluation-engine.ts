@@ -26,7 +26,7 @@ export function assertSearchEngineIdentity(
 ): void {
   if (typeof engine !== "object" || engine === null || !SEARCH_ENGINE_ID_PATTERN.test(engine.id) ||
     engine.id.length > 64 || !Number.isSafeInteger(engine.version) || engine.version < 1 || engine.version > 1_000_000) {
-    throw new SearchError(errorCode, "검색 평가 엔진 좌표가 유효하지 않습니다.");
+    throw new SearchError(errorCode, "The search evaluation engine coordinates are invalid.");
   }
 }
 
@@ -39,6 +39,6 @@ export function assertSearchAdapterBuildId(
   errorCode: SearchErrorCode = "invalid_evaluation_engine",
 ): void {
   if (!SEARCH_ADAPTER_BUILD_ID_PATTERN.test(adapterBuildId)) {
-    throw new SearchError(errorCode, "검색 adapter build ID가 유효하지 않습니다.");
+    throw new SearchError(errorCode, "The search adapter build ID is invalid.");
   }
 }

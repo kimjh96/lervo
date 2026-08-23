@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_212946d748510264695a3e0e
+freshness: current
+ownership: user
+path: docs/distribution/hub-runtime-distribution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_305174d315ad89b39f39cc02
+title: Lervo Hub standalone distribution
+type: concept

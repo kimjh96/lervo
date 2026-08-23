@@ -18,7 +18,7 @@ const relativePaths = Object.freeze({
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_package_metadata_apply_plan_invalid",
-    "CLI 최초 게시 package metadata 적용 계획이 올바르지 않습니다.",
+    "The CLI first-publication package metadata apply plan is invalid.",
   );
 }
 

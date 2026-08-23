@@ -18,7 +18,7 @@ export async function inspectDoctorKnowledge(input: {
     issues.push({
       code: "event_chain_invalid",
       eventId: null,
-      message: "로컬 event hash chain이 유효하지 않습니다.",
+      message: "The local event hash chain is invalid.",
     });
   }
   const events = input.events.list();

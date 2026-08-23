@@ -22,7 +22,7 @@ const checkIds = Object.freeze([
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_activation_post_apply_report_invalid",
-    "CLI 최초 게시 workflow 활성화 사후 검증 보고서가 올바르지 않습니다.",
+    "The CLI first-publication workflow activation post-apply verification report is invalid.",
   );
 }
 

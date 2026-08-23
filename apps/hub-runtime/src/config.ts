@@ -15,6 +15,7 @@ import { HubRuntimeError } from "./errors.js";
 import { readOwnerOnlyText } from "./secure-file.js";
 
 const MAX_CONFIG_BYTES = 1_048_576;
+export const MAX_CREDENTIALS_FILE_BYTES = 1_048_576;
 const HUB_IDENTITY_HASH = /^sha256:[a-f0-9]{64}$/u;
 const KEY_ID = /^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
 const WORKER_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
@@ -31,27 +32,27 @@ const PERMISSIONS = new Set<HubPermission>([
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new HubRuntimeError("invalid_config", `${label}은 object여야 합니다.`);
+    throw new HubRuntimeError("invalid_config", `${label} must be an object.`);
   }
   return value as Record<string, unknown>;
 }
 
 function exact(value: Record<string, unknown>, keys: readonly string[], label: string): void {
   if (Object.keys(value).some((key) => !keys.includes(key))) {
-    throw new HubRuntimeError("invalid_config", `${label}에 알 수 없는 필드가 있습니다.`);
+    throw new HubRuntimeError("invalid_config", `${label} contains unknown fields.`);
   }
 }
 
 function text(value: unknown, label: string): string {
   if (typeof value !== "string" || value.length < 1 || value.length > 4_096 || value.includes("\0")) {
-    throw new HubRuntimeError("invalid_config", `${label}이 유효하지 않습니다.`);
+    throw new HubRuntimeError("invalid_config", `${label} is invalid.`);
   }
   return value;
 }
 
 function integer(value: unknown, minimum: number, maximum: number, label: string): number {
   if (!Number.isSafeInteger(value) || (value as number) < minimum || (value as number) > maximum) {
-    throw new HubRuntimeError("invalid_config", `${label}이 유효하지 않습니다.`);
+    throw new HubRuntimeError("invalid_config", `${label} is invalid.`);
   }
   return value as number;
 }
@@ -69,20 +70,24 @@ function configuredPath(value: unknown, base: string, label: string): string {
   return resolve(base, text(value, label));
 }
 
-function signing(value: unknown, base: string, label: string): HubRuntimeSigningConfig {
+export function parseHubRuntimeSigningConfig(
+  value: unknown,
+  base: string,
+  label: string,
+): HubRuntimeSigningConfig {
   const source = record(value, label);
   exact(source, ["keyId", "privateKeyPath"], label);
   const keyId = text(source.keyId, `${label}.keyId`);
-  if (!KEY_ID.test(keyId)) throw new HubRuntimeError("invalid_config", `${label}.keyId가 유효하지 않습니다.`);
+  if (!KEY_ID.test(keyId)) throw new HubRuntimeError("invalid_config", `${label}.keyId is invalid.`);
   return {
     keyId,
     privateKeyPath: configuredPath(source.privateKeyPath, base, `${label}.privateKeyPath`),
   };
 }
 
-function credentials(value: unknown): HubBearerCredential[] {
+export function parseHubBearerCredentials(value: unknown): HubBearerCredential[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 256) {
-    throw new HubRuntimeError("invalid_config", "credentials는 1개 이상 256개 이하여야 합니다.");
+    throw new HubRuntimeError("invalid_config", "credentials must contain between 1 and 256 entries.");
   }
   return value.map((item, index) => {
     const source = record(item, `credentials[${index}]`);
@@ -90,10 +95,10 @@ function credentials(value: unknown): HubBearerCredential[] {
     if (!Array.isArray(source.permissions) || source.permissions.length < 1 ||
       source.permissions.some((permission) => typeof permission !== "string" ||
         !PERMISSIONS.has(permission as HubPermission))) {
-      throw new HubRuntimeError("invalid_config", `credentials[${index}].permissions가 유효하지 않습니다.`);
+      throw new HubRuntimeError("invalid_config", `credentials[${index}].permissions is invalid.`);
     }
     if (!Array.isArray(source.projects)) {
-      throw new HubRuntimeError("invalid_config", `credentials[${index}].projects가 유효하지 않습니다.`);
+      throw new HubRuntimeError("invalid_config", `credentials[${index}].projects is invalid.`);
     }
     return {
       token: text(source.token, `credentials[${index}].token`),
@@ -125,7 +130,7 @@ function cleanup(value: unknown): HubRuntimeCleanupConfig {
   ], "cleanup");
   const workerId = text(source.workerId, "cleanup.workerId");
   if (!WORKER_ID.test(workerId)) {
-    throw new HubRuntimeError("invalid_config", "cleanup.workerId가 유효하지 않습니다.");
+    throw new HubRuntimeError("invalid_config", "cleanup.workerId is invalid.");
   }
   const result: HubRuntimeCleanupConfig = { workerId };
   const leaseDurationMs = optionalInteger(source, "leaseDurationMs", 1_000, 30 * 60_000);
@@ -138,7 +143,7 @@ function cleanup(value: unknown): HubRuntimeCleanupConfig {
   if (maximumScannedObjects !== undefined && maximumScannedObjects < (limit ?? 100)) {
     throw new HubRuntimeError(
       "invalid_config",
-      "cleanup.maximumScannedObjects는 cleanup.limit 이상이어야 합니다.",
+      "cleanup.maximumScannedObjects must be greater than or equal to cleanup.limit.",
     );
   }
   if (leaseDurationMs !== undefined) result.leaseDurationMs = leaseDurationMs;
@@ -154,17 +159,26 @@ function cleanup(value: unknown): HubRuntimeCleanupConfig {
 export function parseHubRuntimeConfig(value: unknown, baseDirectory: string): HubRuntimeConfig {
   const source = record(value, "Hub runtime config");
   exact(source, [
-    "schemaVersion", "listen", "storage", "identity", "credentials", "signing", "control", "cleanup",
+    "schemaVersion", "listen", "tls", "storage", "identity", "credentials", "credentialsFile", "signing", "signingFile", "control", "cleanup",
   ], "Hub runtime config");
   if (source.schemaVersion !== 1) {
-    throw new HubRuntimeError("invalid_config", "Hub runtime config schemaVersion은 1이어야 합니다.");
+    throw new HubRuntimeError("invalid_config", "Hub runtime config schemaVersion must be 1.");
   }
   const listen = record(source.listen, "listen");
   exact(listen, ["host", "port"], "listen");
-  if (listen.host !== "127.0.0.1" && listen.host !== "::1") {
+  const listenHost = text(listen.host, "listen.host");
+  if (
+    listenHost.length > 255 || listenHost.trim() !== listenHost ||
+    /[\s/\\]/u.test(listenHost)
+  ) {
+    throw new HubRuntimeError("invalid_config", "listen.host is invalid.");
+  }
+  const tlsSource = source.tls === undefined ? undefined : record(source.tls, "tls");
+  if (tlsSource !== undefined) exact(tlsSource, ["certificatePath", "privateKeyPath"], "tls");
+  if (tlsSource === undefined && listenHost !== "127.0.0.1" && listenHost !== "::1") {
     throw new HubRuntimeError(
       "invalid_config",
-      "TLS가 없는 Hub runtime은 loopback 주소에서만 실행할 수 있습니다.",
+      "A Hub runtime without TLS may listen only on a loopback address.",
     );
   }
   const storage = record(source.storage, "storage");
@@ -173,37 +187,71 @@ export function parseHubRuntimeConfig(value: unknown, baseDirectory: string): Hu
   exact(identity, ["hubIdentityHash"], "identity");
   const hubIdentityHash = text(identity.hubIdentityHash, "identity.hubIdentityHash");
   if (!HUB_IDENTITY_HASH.test(hubIdentityHash)) {
-    throw new HubRuntimeError("invalid_config", "identity.hubIdentityHash가 유효하지 않습니다.");
+    throw new HubRuntimeError("invalid_config", "identity.hubIdentityHash is invalid.");
   }
-  const signingSource = record(source.signing, "signing");
-  exact(signingSource, ["policy", "command"], "signing");
+  const hasInlineSigning = source.signing !== undefined;
+  const hasSigningFile = source.signingFile !== undefined;
+  if (hasInlineSigning === hasSigningFile) {
+    throw new HubRuntimeError(
+      "invalid_config",
+      "Exactly one of signing or signingFile is required.",
+    );
+  }
+  const signingSource = hasInlineSigning ? record(source.signing, "signing") : undefined;
+  if (signingSource !== undefined) exact(signingSource, ["policy", "command"], "signing");
   const controlSource = record(source.control, "control");
   exact(controlSource, ["reviewGrantSecretPath", "reviewGrantTtlSeconds"], "control");
   const ttl = optionalInteger(controlSource, "reviewGrantTtlSeconds", 1, 3_600);
-  const parsedCredentials = credentials(source.credentials);
-  try {
-    new ConfiguredBearerAuthenticator(parsedCredentials);
-  } catch (error) {
-    throw new HubRuntimeError("invalid_config", "Hub runtime credential이 유효하지 않습니다.", {
-      cause: error,
-    });
+  const hasInlineCredentials = source.credentials !== undefined;
+  const hasCredentialsFile = source.credentialsFile !== undefined;
+  if (hasInlineCredentials === hasCredentialsFile) {
+    throw new HubRuntimeError(
+      "invalid_config",
+      "Exactly one of credentials or credentialsFile is required.",
+    );
+  }
+  const parsedCredentials = hasInlineCredentials
+    ? parseHubBearerCredentials(source.credentials)
+    : undefined;
+  if (parsedCredentials !== undefined) {
+    try {
+      new ConfiguredBearerAuthenticator(parsedCredentials);
+    } catch (error) {
+      throw new HubRuntimeError("invalid_config", "A Hub runtime credential is invalid.", {
+        cause: error,
+      });
+    }
   }
   return {
     schemaVersion: 1,
     listen: {
-      host: listen.host,
+      host: listenHost,
       port: integer(listen.port, 1, 65_535, "listen.port"),
     },
+    ...(tlsSource === undefined ? {} : {
+      tls: {
+        certificatePath: configuredPath(tlsSource.certificatePath, baseDirectory, "tls.certificatePath"),
+        privateKeyPath: configuredPath(tlsSource.privateKeyPath, baseDirectory, "tls.privateKeyPath"),
+      },
+    }),
     storage: {
       databasePath: configuredPath(storage.databasePath, baseDirectory, "storage.databasePath"),
       commandCasPath: configuredPath(storage.commandCasPath, baseDirectory, "storage.commandCasPath"),
     },
     identity: { hubIdentityHash },
-    credentials: parsedCredentials,
-    signing: {
-      policy: signing(signingSource.policy, baseDirectory, "signing.policy"),
-      command: signing(signingSource.command, baseDirectory, "signing.command"),
-    },
+    ...(parsedCredentials === undefined ? {} : { credentials: parsedCredentials }),
+    ...(hasCredentialsFile ? {
+      credentialsFile: configuredPath(source.credentialsFile, baseDirectory, "credentialsFile"),
+    } : {}),
+    ...(signingSource === undefined ? {} : {
+      signing: {
+        policy: parseHubRuntimeSigningConfig(signingSource.policy, baseDirectory, "signing.policy"),
+        command: parseHubRuntimeSigningConfig(signingSource.command, baseDirectory, "signing.command"),
+      },
+    }),
+    ...(hasSigningFile ? {
+      signingFile: configuredPath(source.signingFile, baseDirectory, "signingFile"),
+    } : {}),
     control: {
       reviewGrantSecretPath: configuredPath(
         controlSource.reviewGrantSecretPath,
@@ -223,7 +271,7 @@ export async function loadHubRuntimeConfig(path: string): Promise<HubRuntimeConf
   try {
     value = JSON.parse(serialized);
   } catch (error) {
-    throw new HubRuntimeError("invalid_config", "Hub runtime config JSON이 유효하지 않습니다.", {
+    throw new HubRuntimeError("invalid_config", "The Hub runtime config is not valid JSON.", {
       cause: error,
     });
   }

@@ -21,13 +21,13 @@ import {
 
 function assertEd25519Key(key: KeyObject, type: "private" | "public"): void {
   if (key.type !== type || key.asymmetricKeyType !== "ed25519") {
-    throw new Error(`remote command ${type} key는 Ed25519 key여야 합니다.`);
+    throw new Error(`The remote command ${type} key must be an Ed25519 key.`);
   }
 }
 
 function assertKeyId(keyId: string): void {
   if (!/^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/.test(keyId)) {
-    throw new Error("remote command keyId가 유효하지 않습니다.");
+    throw new Error("The remote command keyId is invalid.");
   }
 }
 
@@ -36,7 +36,7 @@ function assertProjectTarget(target: RemoteCommandTarget): void {
     !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(target.projectId) ||
     !/^sha256:[a-f0-9]{64}$/.test(target.projectIdentityHash)
   ) {
-    throw new Error("trusted remote command project scope가 유효하지 않습니다.");
+    throw new Error("The trusted remote command project scope is invalid.");
   }
 }
 
@@ -77,16 +77,16 @@ export class ConfiguredEd25519RemoteCommandTrustStore implements RemoteCommandTr
 
   constructor(keys: readonly Ed25519TrustedRemoteCommandKey[]) {
     if (!Array.isArray(keys) || keys.length === 0 || keys.length > 256) {
-      throw new Error("trusted remote command key는 1개 이상 256개 이하여야 합니다.");
+      throw new Error("There must be between 1 and 256 trusted remote command keys.");
     }
     for (const key of keys) {
       assertKeyId(key.keyId);
       assertEd25519Key(key.publicKey, "public");
       if (!Array.isArray(key.projects) || key.projects.length < 1 || key.projects.length > 256) {
-        throw new Error("trusted remote command project scope는 1개 이상 256개 이하여야 합니다.");
+        throw new Error("There must be between 1 and 256 trusted remote command project scopes.");
       }
       if (this.signers.has(key.keyId)) {
-        throw new Error("trusted remote command keyId가 중복되었습니다.");
+        throw new Error("A trusted remote command keyId is duplicated.");
       }
       const projects = clone(key.projects);
       const projectCoordinates = new Set<string>();
@@ -94,7 +94,7 @@ export class ConfiguredEd25519RemoteCommandTrustStore implements RemoteCommandTr
         assertProjectTarget(project);
         const coordinate = `${project.projectId}\u0000${project.projectIdentityHash}`;
         if (projectCoordinates.has(coordinate)) {
-          throw new Error("trusted remote command project scope가 중복되었습니다.");
+          throw new Error("A trusted remote command project scope is duplicated.");
         }
         projectCoordinates.add(coordinate);
       }

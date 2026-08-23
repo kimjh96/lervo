@@ -39,7 +39,7 @@ describe("selection-bound search quality report", () => {
         evidenceState: "no_failures_observed",
       }],
     });
-    expect(reported.output).not.toContain("검색 맥락");
+    expect(reported.output).not.toContain("zephyrcontext");
     expect(reported.output).not.toContain("docs/search-context.md");
 
     const rolledBack = await command(root, [
@@ -48,7 +48,7 @@ describe("selection-bound search quality report", () => {
     ]);
     expect(rolledBack.code, rolledBack.error).toBe(0);
     const rollbackId = (JSON.parse(rolledBack.output) as { activationId: string }).activationId;
-    expect((await command(root, ["search", "평가 질의", "--json"])).code).toBe(0);
+    expect((await command(root, ["search", "evaluation query", "--json"])).code).toBe(0);
     const afterRollback = await command(root, ["search", "report", "--json"]);
     expect(afterRollback.code, afterRollback.error).toBe(0);
     expect((JSON.parse(afterRollback.output) as { selections: unknown[] }).selections)

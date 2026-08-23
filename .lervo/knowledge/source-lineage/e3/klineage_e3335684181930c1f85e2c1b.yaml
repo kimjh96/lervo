@@ -1,0 +1,11 @@
+fromPath: docs/adr/0060-policy-bound-search-engine-selection.md
+identityPath: docs/adr/0060-policy-bound-search-engine-selection.md
+kind: document_move
+lineageId: klineage_e3335684181930c1f85e2c1b
+operationId: kdocop_eadd89f42c5922decd6aa050
+schemaVersion: 1
+sourceContentHash: sha256:a28d514ee54f33fab602098e8b5dfe2d72a689f458be3b915b261a17ece0405c
+sourceId: src_c14977c2e53877779ec12935
+sourceUnitBindingDigest: sha256:5f6c0f6818e6d42184c8c8da443750d2e5e39a701fe1d38a80a6a7259e7fe620
+sourceUnitCount: 5
+toPath: docs/decisions/search/0060-policy-bound-search-engine-selection.md

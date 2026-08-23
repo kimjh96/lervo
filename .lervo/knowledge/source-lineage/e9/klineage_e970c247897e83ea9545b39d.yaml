@@ -1,0 +1,11 @@
+fromPath: docs/adr/0130-cli-stage-approval-transition-integration.md
+identityPath: docs/adr/0130-cli-stage-approval-transition-integration.md
+kind: document_move
+lineageId: klineage_e970c247897e83ea9545b39d
+operationId: kdocop_29507e1c89f12bcc5df67933
+schemaVersion: 1
+sourceContentHash: sha256:39c9efa0e1c3d3e6ff9fb6f7e5028a3200ed69a4fabb6e6e1f387e8c543dad12
+sourceId: src_bd757d18b813647618ca6e5e
+sourceUnitBindingDigest: sha256:5633810937966891e7560243ac20af171330ee5e0684e9472d7c10b38ea68f10
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md

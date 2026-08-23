@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_014942d292aed60b1a9fbdeb
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0076-versioned-trace-report-contract.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_e661c688d9177f6598838f32
+title: "ADR-0076: Versioned trace-report compatibility contract"
+type: decision

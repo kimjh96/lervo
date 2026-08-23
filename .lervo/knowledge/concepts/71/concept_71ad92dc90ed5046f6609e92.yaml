@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_71ad92dc90ed5046f6609e92
+freshness: current
+ownership: user
+path: docs/decisions/release/packaging/0090-cli-package-usage-guide.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4792ef60332c06c0593e32aa
+title: "ADR-0090: CLI package usage-guide contract"
+type: decision

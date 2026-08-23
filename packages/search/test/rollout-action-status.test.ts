@@ -191,6 +191,6 @@ describe("search rollout action status", () => {
         buildEvidenceState: "bound",
       },
       evidence: [{ record: acknowledgement, review: otherReview, currentQualitySnapshot }],
-    })).toThrow(/근거 관계/);
+    })).toThrow(/evidence relation/);
   });
 });

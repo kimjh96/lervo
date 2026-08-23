@@ -28,7 +28,7 @@ export async function listStoredSearchRolloutKeepAcknowledgements(
     expectedFileName: (value) => `${value.acknowledgementId}.json`,
   });
   if (values.length > MAX_ACKNOWLEDGEMENTS) {
-    throw new SearchLocalError("observation_limit_exceeded", "검색 rollout 후보 유지 확인이 256개를 넘었습니다.");
+    throw new SearchLocalError("observation_limit_exceeded", "The number of search rollout candidate-retention acknowledgements exceeds 256.");
   }
   return values;
 }
@@ -41,7 +41,7 @@ export async function recordSearchRolloutKeepAcknowledgement(
   const existing = await listStoredSearchRolloutKeepAcknowledgements(repositoryRoot);
   if (existing.length >= MAX_ACKNOWLEDGEMENTS &&
     !existing.some((item) => item.acknowledgementId === acknowledgement.acknowledgementId)) {
-    throw new SearchLocalError("observation_limit_exceeded", "검색 rollout 후보 유지 확인이 256개를 넘었습니다.");
+    throw new SearchLocalError("observation_limit_exceeded", "The number of search rollout candidate-retention acknowledgements exceeds 256.");
   }
   const directory = await prepareObservationSubdirectory(repositoryRoot, "rollout-acknowledgements");
   await writeObservation(resolve(directory, `${acknowledgement.acknowledgementId}.json`), acknowledgement);

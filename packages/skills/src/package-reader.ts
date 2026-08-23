@@ -29,7 +29,7 @@ function assertWithin(root: string, path: string): void {
   if (child === "" || child === ".." || child.startsWith(`..${sep}`)) {
     throw new SkillResolutionError(
       "unsafe_skill_package",
-      "스킬 패키지 경로가 discovery root 밖을 가리킵니다.",
+      "The skill package path points outside the discovery root.",
     );
   }
 }
@@ -42,7 +42,7 @@ async function regularFile(
   if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes) {
     throw new SkillResolutionError(
       "unsafe_skill_package",
-      "스킬 패키지 파일은 일반 파일이어야 하며 크기 제한을 넘을 수 없습니다.",
+      "A skill package file must be a regular file within the size limit.",
     );
   }
   let handle;
@@ -52,7 +52,7 @@ async function regularFile(
     if (before.dev !== opened.dev || before.ino !== opened.ino) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "스킬 패키지 파일 경로가 읽기 전에 바뀌었습니다.",
+        "The skill package file path changed before it was read.",
       );
     }
     const bytes = await handle.readFile();
@@ -67,7 +67,7 @@ async function regularFile(
     ) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "읽는 동안 스킬 패키지 파일이 바뀌었습니다.",
+        "The skill package file changed while it was being read.",
       );
     }
     return bytes;
@@ -75,7 +75,7 @@ async function regularFile(
     if (error instanceof SkillResolutionError) throw error;
     throw new SkillResolutionError(
       "unsafe_skill_package",
-      "스킬 패키지 파일을 안전하게 열 수 없습니다.",
+      "The skill package file cannot be opened safely.",
       { cause: error },
     );
   } finally {
@@ -92,7 +92,7 @@ async function listContentFiles(root: string, current = root): Promise<string[]>
     if (entry.isSymbolicLink()) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "스킬 패키지 안의 symbolic link는 허용되지 않습니다.",
+        "Symbolic links are not allowed inside a skill package.",
       );
     }
     if (entry.isDirectory()) files.push(...await listContentFiles(root, path));
@@ -100,13 +100,13 @@ async function listContentFiles(root: string, current = root): Promise<string[]>
     else if (!entry.isFile()) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "스킬 패키지에는 일반 파일과 디렉터리만 사용할 수 있습니다.",
+        "A skill package may contain only regular files and directories.",
       );
     }
     if (files.length > MAX_PACKAGE_FILES) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "스킬 패키지 파일 수 제한을 초과했습니다.",
+        "The skill package file-count limit has been exceeded.",
       );
     }
   }
@@ -123,7 +123,7 @@ export async function hashSkillPackage(directoryPath: string): Promise<string> {
     if (totalBytes > MAX_PACKAGE_BYTES) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "스킬 패키지 크기 제한을 초과했습니다.",
+        "The skill package size limit has been exceeded.",
       );
     }
     const name = portablePath(relative(directoryPath, path));
@@ -153,7 +153,7 @@ async function readCandidate(input: {
   } catch (error) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
-      "lervo-skill.json을 UTF-8 JSON으로 읽을 수 없습니다.",
+      "lervo-skill.json cannot be read as UTF-8 JSON.",
       { cause: error },
     );
   }
@@ -165,28 +165,28 @@ async function readCandidate(input: {
   if (!validateSchema("skill", manifest).valid) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
-      "lervo-skill.json이 스킬 manifest 계약을 통과하지 못했습니다.",
+      "lervo-skill.json does not satisfy the skill manifest contract.",
     );
   }
   const typedManifest = manifest as SkillManifest;
   if (typedManifest.source.kind !== input.sourceKind) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
-      "스킬 manifest의 source kind가 실제 discovery 위치와 다릅니다.",
+      "The skill manifest source kind differs from its actual discovery location.",
     );
   }
   const actualHash = await hashSkillPackage(input.directoryPath);
   if (actualHash !== typedManifest.contentHash) {
     throw new SkillResolutionError(
       "content_hash_mismatch",
-      "스킬 manifest의 content hash가 실제 패키지와 다릅니다.",
+      "The skill manifest content hash differs from the actual package.",
     );
   }
   const finalManifestBytes = await regularFile(manifestPath, MAX_MANIFEST_BYTES);
   if (!Buffer.from(finalManifestBytes).equals(Buffer.from(manifestBytes))) {
     throw new SkillResolutionError(
       "unsafe_skill_package",
-      "패키지를 확인하는 동안 스킬 manifest가 바뀌었습니다.",
+      "The skill manifest changed while the package was being verified.",
     );
   }
   return {
@@ -208,7 +208,7 @@ export async function discoverSkillRoot(input: {
     if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
-        "스킬 discovery root는 symbolic link가 아닌 디렉터리여야 합니다.",
+        "A skill discovery root must be a directory, not a symbolic link.",
       );
     }
     entries = await readdir(input.root, { withFileTypes: true });

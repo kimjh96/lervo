@@ -1,0 +1,11 @@
+fromPath: docs/adr/0056-search-evaluation-sample-bundles.md
+identityPath: docs/adr/0056-search-evaluation-sample-bundles.md
+kind: document_move
+lineageId: klineage_487d6ed7b94ab7741baefb90
+operationId: kdocop_800cbc3d53c517ed48084a56
+schemaVersion: 1
+sourceContentHash: sha256:a8be40f843bc89c0f7bf8790e6b036b32309d8290dd8fe87679b2724cab5e17f
+sourceId: src_3013d854ab6f6b7577e9e68b
+sourceUnitBindingDigest: sha256:0c96cddfc597cb8ce433696db237e97294b7db81b493336fb242d5b15f6a5849
+sourceUnitCount: 5
+toPath: docs/decisions/search/0056-search-evaluation-sample-bundles.md

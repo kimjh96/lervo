@@ -18,7 +18,7 @@ import { validateReleaseArtifactManifest } from "./release-artifact-manifest.mjs
 function failInput() {
   throw new ReleasePublicationAuthorizationError(
     "release_publication_input_invalid",
-    "Release 게시 적격성 입력이 올바르지 않습니다.",
+    "The release publication eligibility input is invalid.",
   );
 }
 

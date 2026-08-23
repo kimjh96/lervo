@@ -140,7 +140,7 @@ export async function applyFirstPublicationPackageMetadataFiles(input, dependenc
     } catch {
       failMetadataApply(
         "first_publication_package_metadata_apply_rollback_failed",
-        "CLI 최초 게시 package metadata 적용 실패 뒤 원본 복구를 완료하지 못했습니다.",
+        "The originals could not be restored after CLI first-publication package metadata apply failed.",
       );
     }
     metadataApplyFailed();

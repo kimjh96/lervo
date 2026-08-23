@@ -31,7 +31,7 @@
       },
       "publication": {
         "surface": "documentation",
-        "writingPolicyId": "writing_ko-kr-human",
+        "writingPolicyId": "writing_en-human",
         "writingPolicyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "requiresWritingPermit": true
       }
@@ -76,7 +76,7 @@
         "surface": "documentation",
         "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "writingPolicyId": "writing_ko-kr-human",
+        "writingPolicyId": "writing_en-human",
         "writingPolicyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "evaluationId": "wre_01234567",
         "evaluationHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -91,7 +91,7 @@
         ]
       },
       "createdAt": "2026-08-19T00:00:01Z",
-      "rawContent": "원문은 metadata에 넣지 않습니다."
+      "rawContent": "Raw content must not be placed in metadata."
     }
   },
   {

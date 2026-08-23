@@ -13,21 +13,21 @@ export function failMetadataApply(code, message) {
 export function metadataApplyFailed() {
   failMetadataApply(
     "first_publication_package_metadata_apply_failed",
-    "CLI 최초 게시 package metadata 적용을 완료하지 못해 원본을 복구했습니다.",
+    "The CLI first-publication package metadata apply could not be completed; the originals were restored.",
   );
 }
 
 export function metadataApplyRecoveryRequired() {
   failMetadataApply(
     "first_publication_package_metadata_apply_recovery_required",
-    "중단된 CLI 최초 게시 package metadata 적용을 먼저 복구해야 합니다.",
+    "The interrupted CLI first-publication package metadata apply must be recovered first.",
   );
 }
 
 export function metadataApplySourceChanged() {
   failMetadataApply(
     "first_publication_package_metadata_apply_source_changed",
-    "CLI 최초 게시 package metadata 적용 원본이 바뀌어 파일을 수정하지 않았습니다.",
+    "The CLI first-publication package metadata apply source changed; no files were modified.",
   );
 }
 

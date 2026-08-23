@@ -72,16 +72,16 @@ describe("first-publication metadata preview command", () => {
     }
   });
 
-  it("uses plain Korean and keeps the non-writing boundary visible", async () => {
+  it("uses plain English and keeps the non-writing boundary visible", async () => {
     const preview = createFirstPublicationMetadataPreview({
       ...await currentActivationSources(),
       decision: decision(),
     });
     const output = formatFirstPublicationMetadataPreview(preview);
-    assert.match(output, /이 선택은 게시 승인이 아닙니다/u);
-    assert.match(output, /GitHub 저장소를 git\+https:\/\/github\.com\/lervo-dev\/lervo\.git로 설정합니다/u);
-    assert.match(output, /생성 파일을 직접 고치면 안 됩니다/u);
-    assert.match(output, /온라인 확인, 파일 수정, release manifest 재생성, 승인 생성/u);
+    assert.match(output, /This selection is not publication approval/u);
+    assert.match(output, /Set the GitHub repository to git\+https:\/\/github\.com\/lervo-dev\/lervo\.git/u);
+    assert.match(output, /Do not edit the generated file directly/u);
+    assert.match(output, /did not perform online checks, modify files, regenerate the release manifest, create approvals/u);
     assert.equal(output.includes(preview.metadataPreviewDigest), false);
     assert.equal(output.includes(preview.sources.packageManifestDigest), false);
   });

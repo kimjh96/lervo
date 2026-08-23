@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5ce43e13480e75ed2ae11270
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0d39dcb1e9c5038cd15c678a
+title: "ADR-0039: Authenticate and scope projects before trace HTTP reads"
+type: decision

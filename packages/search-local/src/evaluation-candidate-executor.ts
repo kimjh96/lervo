@@ -27,18 +27,18 @@ export async function executeLocalSearchCandidate(input: {
     assertSearchEngineIdentity(input.engine.engine);
     assertSearchAdapterBuildId(input.engine.adapterBuildId);
     if (sameSearchEngine(input.engine.engine, SEARCH_ENGINE)) {
-      throw new Error("후보 엔진은 현재 lexical-v1과 다른 좌표여야 합니다.");
+      throw new Error("The candidate engine must have coordinates different from the current lexical-v1 engine.");
     }
     const index = await input.engine.buildIndex(structuredClone(input.corpus));
     if (!sameSearchEngine(index.engine, input.engine.engine)) {
-      throw new Error("후보 index가 선언한 엔진 좌표와 다릅니다.");
+      throw new Error("The candidate index differs from its declared engine coordinates.");
     }
     return {
       ...await executeSearchEvaluation({ index, cases: input.cases, evaluatedAt: input.evaluatedAt }),
       index,
     };
   } catch (error) {
-    throw new SearchLocalError("evaluation_candidate_failed", "후보 검색 엔진 평가를 완료하지 못했습니다.", {
+    throw new SearchLocalError("evaluation_candidate_failed", "Could not complete the candidate search engine evaluation.", {
       cause: error instanceof Error ? error : undefined,
     });
   }

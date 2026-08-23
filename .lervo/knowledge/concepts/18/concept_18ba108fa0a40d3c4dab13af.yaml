@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_18ba108fa0a40d3c4dab13af
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_f2bfa3626619421c599280b4
+title: "ADR-0104: CLI first-publication activation blocker report"
+type: decision

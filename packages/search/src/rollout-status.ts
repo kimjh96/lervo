@@ -27,23 +27,23 @@ export function assertSearchRolloutCurrentSelection(selection: SearchRolloutCurr
   assertSearchEngineIdentity(selection.engine, "invalid_rollout_status");
   if (!["implicit_baseline", "recorded_baseline", "candidate"].includes(selection.selectionState) ||
     !["not_applicable", "bound", "legacy_unbound"].includes(selection.buildEvidenceState)) {
-    throw new SearchError("invalid_rollout_status", "현재 검색 rollout 선택 상태가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_status", "The current search rollout selection state is invalid.");
   }
   if (selection.selectionState === "implicit_baseline") {
     if (selection.selectionTransitionId !== null || selection.candidateId !== null ||
       selection.adapterBuildId !== null || selection.candidateReviewId !== null ||
       selection.buildEvidenceState !== "not_applicable" || !sameSearchEngine(selection.engine, SEARCH_ENGINE)) {
-      throw new SearchError("invalid_rollout_status", "전이 없는 baseline rollout 상태가 유효하지 않습니다.");
+      throw new SearchError("invalid_rollout_status", "A baseline rollout state without a transition is invalid.");
     }
     return;
   }
   if (selection.selectionTransitionId === null || !/^seact_[a-f0-9]{24}$/.test(selection.selectionTransitionId)) {
-    throw new SearchError("invalid_rollout_status", "현재 검색 rollout 선택 전이 ID가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_status", "The current search rollout selection transition ID is invalid.");
   }
   if (selection.selectionState === "recorded_baseline") {
     if (selection.candidateId !== null || selection.adapterBuildId !== null || selection.candidateReviewId !== null ||
       selection.buildEvidenceState !== "not_applicable" || !sameSearchEngine(selection.engine, SEARCH_ENGINE)) {
-      throw new SearchError("invalid_rollout_status", "기록된 baseline rollout 상태가 유효하지 않습니다.");
+      throw new SearchError("invalid_rollout_status", "The recorded baseline rollout state is invalid.");
     }
     return;
   }
@@ -52,7 +52,7 @@ export function assertSearchRolloutCurrentSelection(selection: SearchRolloutCurr
     !SEARCH_CANDIDATE_REVIEW_PATTERN.test(selection.candidateReviewId) ||
     selection.buildEvidenceState === "not_applicable" ||
     (selection.buildEvidenceState === "bound") !== (selection.adapterBuildId !== null)) {
-    throw new SearchError("invalid_rollout_status", "현재 후보 검색 rollout 상태가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_status", "The current candidate search rollout state is invalid.");
   }
   if (selection.adapterBuildId !== null) {
     assertSearchAdapterBuildId(selection.adapterBuildId, "invalid_rollout_status");
@@ -71,7 +71,7 @@ export function createSearchRolloutStatusPage(input: {
   if (!SOURCE_ID_PATTERN.test(input.projectId) || !Number.isFinite(input.observedAt.getTime()) ||
     !Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_ROLLOUT_STATUS_MAX_LIMIT ||
     (input.cursor !== undefined && !SEARCH_ROLLOUT_REVIEW_PATTERN.test(input.cursor))) {
-    throw new SearchError("invalid_rollout_status", "검색 rollout 상태 조회 입력이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_status", "The search rollout status query input is invalid.");
   }
   assertSearchRolloutCurrentSelection(input.currentSelection);
   const seen = new Set<string>();
@@ -80,7 +80,7 @@ export function createSearchRolloutStatusPage(input: {
     assertSearchRolloutQualitySnapshot(item.currentQualitySnapshot);
     if (seen.has(item.review.rolloutReviewId) || item.review.projectId !== input.projectId ||
       item.currentQualitySnapshot.observedThrough !== input.observedAt.toISOString()) {
-      throw new SearchError("invalid_rollout_status", "검색 rollout 상태 근거의 project·시각 관계가 유효하지 않습니다.");
+      throw new SearchError("invalid_rollout_status", "The project or timestamp relation in search rollout status evidence is invalid.");
     }
     seen.add(item.review.rolloutReviewId);
     return structuredClone(item);
@@ -89,7 +89,7 @@ export function createSearchRolloutStatusPage(input: {
   if (input.cursor !== undefined) {
     const cursorIndex = sorted.findIndex((item) => item.review.rolloutReviewId === input.cursor);
     if (cursorIndex < 0) {
-      throw new SearchError("invalid_rollout_status", "검색 rollout 상태 cursor를 현재 원본에서 찾을 수 없습니다.");
+      throw new SearchError("invalid_rollout_status", "The search rollout status cursor was not found in the current sources.");
     }
     start = cursorIndex + 1;
   }

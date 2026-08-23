@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_6d81ea7f807b2795b33042cf
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0162-reloadable-hub-cryptographic-material-and-service-definitions.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_601b5259aba595ff810fe6b7
+title: "ADR-0162: Reloadable Hub Cryptographic Material and Service Definitions"
+type: decision

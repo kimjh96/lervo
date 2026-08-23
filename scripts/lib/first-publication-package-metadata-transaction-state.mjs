@@ -17,7 +17,7 @@ export async function inspectFirstPublicationPackageMetadataTransactionState(tra
   if (!isAbsolute(transactionRoot ?? "")) {
     fail(
       "first_publication_package_metadata_post_apply_transaction_invalid",
-      "CLI 최초 게시 package metadata transaction 상태를 확인할 수 없습니다.",
+      "The CLI first-publication package metadata transaction state could not be determined.",
     );
   }
   let metadata;
@@ -27,13 +27,13 @@ export async function inspectFirstPublicationPackageMetadataTransactionState(tra
     if (error?.code === "ENOENT") return { status: "clear" };
     fail(
       "first_publication_package_metadata_post_apply_transaction_invalid",
-      "CLI 최초 게시 package metadata transaction 상태를 확인할 수 없습니다.",
+      "The CLI first-publication package metadata transaction state could not be determined.",
     );
   }
   if (!metadata.isDirectory()) {
     fail(
       "first_publication_package_metadata_post_apply_transaction_invalid",
-      "CLI 최초 게시 package metadata transaction 상태를 확인할 수 없습니다.",
+      "The CLI first-publication package metadata transaction state could not be determined.",
     );
   }
   return { status: "recovery_required" };
@@ -43,7 +43,7 @@ export function assertFirstPublicationPackageMetadataTransactionClear(state) {
   if (state?.status !== "clear") {
     fail(
       "first_publication_package_metadata_post_apply_transaction_pending",
-      "중단된 CLI 최초 게시 package metadata transaction을 먼저 복구해야 합니다.",
+      "The interrupted CLI first-publication package metadata transaction must be recovered first.",
     );
   }
   return state;

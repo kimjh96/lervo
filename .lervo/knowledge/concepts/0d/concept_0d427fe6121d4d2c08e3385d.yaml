@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_0d427fe6121d4d2c08e3385d
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0138-durable-conversation-deliberation-queue.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1f40d5d0cb006c3e1dec91ac
+title: "ADR-0138: Durable Conversation Deliberation Queue"
+type: decision

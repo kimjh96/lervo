@@ -9,7 +9,7 @@ import { deployBuiltCli } from "./installed-cli.mjs";
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_package_metadata_post_apply_release_inconsistent",
-    "CLI 최초 게시 package metadata와 release 원본이 일치하지 않습니다.",
+    "The CLI first-publication package metadata does not match the release sources.",
   );
 }
 

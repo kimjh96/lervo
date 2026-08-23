@@ -30,8 +30,8 @@ describe("file system content-addressed storage", () => {
     const root = await casRoot();
     const cas = await FileSystemCas.open(root);
 
-    const first = await cas.put("같은 원문");
-    const second = await cas.put(Buffer.from("같은 원문", "utf8"));
+    const first = await cas.put("identical source text");
+    const second = await cas.put(Buffer.from("identical source text", "utf8"));
 
     expect(first.created).toBe(true);
     expect(second.created).toBe(false);
@@ -40,25 +40,25 @@ describe("file system content-addressed storage", () => {
       contentHash: first.contentHash,
       byteCount: first.byteCount,
     });
-    expect(Buffer.from(await cas.get(first.uri)).toString("utf8")).toBe("같은 원문");
-    expect(await readFile(pathForUri(root, first.uri), "utf8")).toBe("같은 원문");
+    expect(Buffer.from(await cas.get(first.uri)).toString("utf8")).toBe("identical source text");
+    expect(await readFile(pathForUri(root, first.uri), "utf8")).toBe("identical source text");
   });
 
   it("reads a committed object after reopening", async () => {
     const root = await casRoot();
     const first = await FileSystemCas.open(root);
-    const stored = await first.put("재시작 뒤에도 읽습니다.");
+    const stored = await first.put("Readable after restart.");
 
     const reopened = await FileSystemCas.open(root);
     expect(Buffer.from(await reopened.get(stored.uri)).toString("utf8")).toBe(
-      "재시작 뒤에도 읽습니다.",
+      "Readable after restart.",
     );
   });
 
   it("can restrict a sensitive CAS root and its objects to the owner", async () => {
     const root = await casRoot();
     const cas = await OwnerOnlyFileSystemCas.open(root);
-    const stored = await cas.put("외부로 노출하지 않는 요청 원문");
+    const stored = await cas.put("Private request source text");
 
     expect((await stat(root)).mode & 0o777).toBe(0o700);
     expect((await stat(pathForUri(root, stored.uri))).mode & 0o777).toBe(0o600);
@@ -67,7 +67,7 @@ describe("file system content-addressed storage", () => {
   it("lists owner-only objects with a stable cursor and deletes idempotently", async () => {
     const root = await casRoot();
     const cas = await OwnerOnlyFileSystemCas.open(root);
-    const stored = await Promise.all(["셋", "하나", "둘"].map((value) => cas.put(value)));
+    const stored = await Promise.all(["three", "one", "two"].map((value) => cas.put(value)));
     const observedAt = new Date("2026-08-20T00:00:00.000Z");
     await Promise.all(stored.map((item) => utimes(pathForUri(root, item.uri), observedAt, observedAt)));
 
@@ -99,8 +99,8 @@ describe("file system content-addressed storage", () => {
   it("detects content that no longer matches its address", async () => {
     const root = await casRoot();
     const cas = await FileSystemCas.open(root);
-    const stored = await cas.put("원본");
-    await writeFile(pathForUri(root, stored.uri), "변조됨", "utf8");
+    const stored = await cas.put("original");
+    await writeFile(pathForUri(root, stored.uri), "tampered", "utf8");
 
     await expect(cas.get(stored.uri)).rejects.toMatchObject({ code: "corrupt_object" });
     await expect(cas.has(stored.uri)).rejects.toMatchObject({ code: "corrupt_object" });
@@ -118,7 +118,7 @@ describe("file system content-addressed storage", () => {
 
   it("commits one object when concurrent writers store identical bytes", async () => {
     const cas = await FileSystemCas.open(await casRoot());
-    const results = await Promise.all(Array.from({ length: 8 }, () => cas.put("동시 저장")));
+    const results = await Promise.all(Array.from({ length: 8 }, () => cas.put("concurrent write")));
     expect(results.filter((result) => result.created)).toHaveLength(1);
     expect(new Set(results.map((result) => result.uri))).toHaveLength(1);
   });
@@ -127,15 +127,15 @@ describe("file system content-addressed storage", () => {
     const cas = await FileSystemCas.open(await casRoot());
     const result = await cas.putStream(
       (async function* () {
-        yield "큰 ";
-        yield Buffer.from("원문을 ", "utf8");
-        yield "나눠서 저장합니다.";
+        yield "Store ";
+        yield Buffer.from("large source text ", "utf8");
+        yield "in chunks.";
       })(),
     );
 
-    expect(result.byteCount).toBe(Buffer.byteLength("큰 원문을 나눠서 저장합니다."));
+    expect(result.byteCount).toBe(Buffer.byteLength("Store large source text in chunks."));
     expect(Buffer.from(await cas.get(result.uri)).toString("utf8")).toBe(
-      "큰 원문을 나눠서 저장합니다.",
+      "Store large source text in chunks.",
     );
   });
 

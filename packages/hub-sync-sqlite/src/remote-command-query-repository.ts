@@ -43,7 +43,7 @@ export class HubRemoteCommandQuerySQLiteRepository {
     ) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub remote command delivery 좌표가 envelope 원본과 다릅니다.",
+        "The Hub remote command delivery coordinates differ from the source envelope.",
       );
     }
     const status = parseRemoteCommandQueueStatus(stringField(row, "status"));
@@ -83,7 +83,7 @@ export class HubRemoteCommandQuerySQLiteRepository {
     } catch (error) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub remote command acknowledgement 원본을 읽을 수 없습니다.",
+        "The Hub remote command acknowledgement source cannot be read.",
         { cause: error },
       );
     }
@@ -107,7 +107,7 @@ export class HubRemoteCommandQuerySQLiteRepository {
     } catch (error) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub remote command terminal acknowledgement가 원본과 다릅니다.",
+        "The Hub remote command terminal acknowledgement differs from the source.",
         { cause: error },
       );
     }
@@ -120,7 +120,7 @@ export class HubRemoteCommandQuerySQLiteRepository {
     for (const row of rows) {
       const deliveryId = stringField(row, "delivery_id");
       if (this.get(deliveryId) === null) {
-        throw new HubSyncStoreError("integrity_failed", "Hub remote command audit가 실패했습니다.");
+        throw new HubSyncStoreError("integrity_failed", "The Hub remote command audit failed.");
       }
     }
   }

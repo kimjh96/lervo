@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a9403cf94746a5a4781d8331
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0007-provider-neutral-context-delivery.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a1c74e6c02220e42bb562807
+title: "ADR-0007: Provider-neutral context delivery and E3"
+type: decision

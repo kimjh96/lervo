@@ -1,0 +1,11 @@
+fromPath: docs/adr/0081-trace-output-mode-deprecation.md
+identityPath: docs/adr/0081-trace-output-mode-deprecation.md
+kind: document_move
+lineageId: klineage_68eac28a4f948016a61f59e6
+operationId: kdocop_a45c7eebe145741ae5e7b338
+schemaVersion: 1
+sourceContentHash: sha256:ccd849d2b201e57ea98a7e4ba80e315a43491e61b8e1c856b204264c09453a6a
+sourceId: src_c9b6afc04839adfd4ae64c02
+sourceUnitBindingDigest: sha256:86b0f83e86edec56c40860cac53be0021b357b7cd96a6ef74b80cf41819de6cd
+sourceUnitCount: 4
+toPath: docs/decisions/operations/0081-trace-output-mode-deprecation.md

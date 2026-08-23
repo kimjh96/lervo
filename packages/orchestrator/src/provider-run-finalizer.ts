@@ -7,7 +7,7 @@ import { RunFailureLedger } from "./provider-run-failures.js";
 import { assertManagedStopResult } from "./provider-run-validation.js";
 import type { ProviderSignalMonitor } from "./provider-signal-monitor.js";
 import {
-  changedRepositoryPaths,
+  inspectManagedRepositoryChanges,
   type CaptureRepositorySnapshot,
   type RepositorySnapshot,
   type RepositorySnapshotPolicy,
@@ -39,7 +39,7 @@ async function drainProviderStream(input: FinalizeProviderRunInput): Promise<voi
       operation: () => input.monitor!.done,
       timeoutMs: input.deadlines.streamDrainMs,
       failureCode: "provider_stream_failed",
-      label: "Provider signal stream 종료",
+      label: "provider signal stream shutdown",
     });
     input.monitor.throwIfFailed();
   } catch (error) {
@@ -70,7 +70,7 @@ async function stopAdapter(input: FinalizeProviderRunInput): Promise<void> {
       operation: () => input.adapter.stop(input.session!, stopRequest),
       timeoutMs: input.deadlines.adapterStopMs,
       failureCode: "provider_stop_failed",
-      label: "Provider session 종료",
+      label: "provider session shutdown",
     });
     assertManagedStopResult({ request: stopRequest, result: stopped });
     input.append([adapterStoppedSpec(input.session, stopped)]);
@@ -89,38 +89,24 @@ async function captureAfterSnapshot(
         input.captureSnapshot(input.repositoryRoot, input.snapshotPolicy),
       timeoutMs: input.deadlines.snapshotMs,
       failureCode: "repository_snapshot_failed",
-      label: "실행 후 repository snapshot",
+      label: "post-run repository snapshot",
     });
-    const changedPaths = changedRepositoryPaths(input.before, after);
-    const verifiedManagedPaths = new Set<string>();
-    const invalidManagedPaths = new Set<string>();
-    for (const change of input.managedChanges) {
-      const beforeHash = input.before.files[change.path] ?? null;
-      const afterHash = after.files[change.path] ?? null;
-      if (
-        verifiedManagedPaths.has(change.path) ||
-        beforeHash !== change.beforeHash ||
-        afterHash !== change.afterHash ||
-        !changedPaths.includes(change.path)
-      ) {
-        invalidManagedPaths.add(change.path);
-      } else {
-        verifiedManagedPaths.add(change.path);
-      }
-    }
-    if (invalidManagedPaths.size > 0) {
+    const inspection = inspectManagedRepositoryChanges({
+      before: input.before,
+      after,
+      managedChanges: input.managedChanges,
+    });
+    if (inspection.invalidManagedPaths.length > 0) {
       input.failures.add(
         new ManagedProviderRunError(
           "provider_write_failed",
-          "검증된 provider 변경과 실행 전후 snapshot이 다릅니다.",
-          { paths: [...invalidManagedPaths].sort() },
+          "The verified provider changes differ from the pre-run and post-run snapshots.",
+          { paths: inspection.invalidManagedPaths },
         ),
         "after_snapshot",
       );
     }
-    const paths = changedPaths.filter(
-      (path) => !verifiedManagedPaths.has(path) || invalidManagedPaths.has(path),
-    );
+    const paths = inspection.unmanagedPaths;
     if (paths.length > 0) {
       input.append([
         unmanagedChangeSpec({
@@ -133,7 +119,7 @@ async function captureAfterSnapshot(
       input.failures.add(
         new ManagedProviderRunError(
           "unmanaged_change_detected",
-          "Provider 실행 중 관리되지 않은 저장소 변경을 발견했습니다.",
+          "An unmanaged repository change was detected during provider execution.",
           { paths },
         ),
         "after_snapshot",

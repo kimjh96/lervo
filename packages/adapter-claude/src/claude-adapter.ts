@@ -38,6 +38,7 @@ import {
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
 import { captureClaudeTurnResult } from "./turn-result.js";
+import { buildClaudeManagedTurnMessage } from "./turn-message.js";
 import {
   ClaudeAdapterError,
   type ClaudeAdapterOptions,
@@ -87,7 +88,7 @@ export class ClaudeAdapter implements ProviderAdapter {
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
     assertAdapterMessage(request, "Claude start request");
     if (request.adapterId !== this.descriptor.adapterId) {
-      throw new ClaudeAdapterError("session_mismatch", "Start request의 adapter ID가 Claude와 다릅니다.");
+      throw new ClaudeAdapterError("session_mismatch", "The start request adapter ID does not identify Claude.");
     }
     const permissionMode =
       this.options.permissionMode ??
@@ -108,7 +109,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     ) {
       throw new ClaudeAdapterError(
         "invalid_request",
-        "Claude managed session의 실행 모드와 permission·tool 설정이 다릅니다.",
+        "The Claude managed session execution mode is inconsistent with its permission and tool settings.",
       );
     }
     const providerSessionId = this.uuid(this.createProviderSessionId(), "Claude provider session ID");
@@ -132,7 +133,7 @@ export class ClaudeAdapter implements ProviderAdapter {
           fileChanges:
             request.executionMode === "managed_write" ? "supported" : "unsupported",
         },
-        startedAt: timestamp(this.now, "Claude session 시작 시각", request.requestedAt),
+        startedAt: timestamp(this.now, "Claude session start time", request.requestedAt),
       };
       assertAdapterMessage(session, "Claude session");
       this.sessions.add(session, client);
@@ -150,7 +151,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     const state = this.sessions.get(session);
     assertAdapterMessage(envelope, "Claude context envelope");
     if (state.injectedTargetTurnIds.has(envelope.targetTurnId)) {
-      throw new ClaudeAdapterError("invalid_request", "같은 target turn에 context를 두 번 주입할 수 없습니다.");
+      throw new ClaudeAdapterError("invalid_request", "Context cannot be injected twice into the same target turn.");
     }
     const content = await buildManagedContextMessage(
       clone(state.session),
@@ -181,7 +182,7 @@ export class ClaudeAdapter implements ProviderAdapter {
         scope: clone(document.scope),
         status: "injected" as const,
       })),
-      acceptedAt: timestamp(this.now, "Claude context receipt 시각", envelope.createdAt),
+      acceptedAt: timestamp(this.now, "Claude context receipt time", envelope.createdAt),
     };
     assertAdapterMessage(receipt, "Claude context receipt");
     state.injectedTargetTurnIds.add(envelope.targetTurnId);
@@ -194,7 +195,7 @@ export class ClaudeAdapter implements ProviderAdapter {
   ): Promise<void> {
     const state = this.sessions.get(session);
     if (state.managedWrites !== undefined) {
-      throw new ClaudeAdapterError("invalid_request", "Managed write bridge가 이미 연결되었습니다.");
+      throw new ClaudeAdapterError("invalid_request", "A managed write bridge is already attached.");
     }
     state.managedWrites = new ClaudeManagedWriteController({
       session: state.session,
@@ -220,13 +221,13 @@ export class ClaudeAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new ClaudeAdapterError("session_mismatch", "Turn request가 managed Claude session과 다릅니다.");
+      throw new ClaudeAdapterError("session_mismatch", "The turn request does not match the managed Claude session.");
     }
     if (!state.injectedTargetTurnIds.has(request.targetTurnId)) {
-      throw new ClaudeAdapterError("invalid_request", "현재 target turn에 controlled context receipt가 없습니다.");
+      throw new ClaudeAdapterError("invalid_request", "The current target turn has no controlled context receipt.");
     }
     if (state.startedTargetTurnIds.has(request.targetTurnId) || state.activeProviderTurnId !== undefined) {
-      throw new ClaudeAdapterError("invalid_request", "Claude turn이 이미 시작되었거나 실행 중입니다.");
+      throw new ClaudeAdapterError("invalid_request", "The Claude turn has already started or is still active.");
     }
     const providerTurnId = this.uuid(this.createProviderMessageId(), "Claude provider turn ID");
     state.activeProviderTurnId = providerTurnId;
@@ -240,13 +241,16 @@ export class ClaudeAdapter implements ProviderAdapter {
       providerSessionId: session.providerSessionId,
       targetTurnId: request.targetTurnId,
       providerTurnId,
-      acceptedAt: timestamp(this.now, "Claude turn 수락 시각", request.requestedAt),
+      acceptedAt: timestamp(this.now, "Claude turn acceptance time", request.requestedAt),
     };
     assertAdapterMessage(turn, "Claude turn");
     state.activeTurn = clone(turn);
     accepted(clone(turn));
     try {
-      await state.client.startTurn(providerTurnId, request.instructions);
+      await state.client.startTurn(
+        providerTurnId,
+        buildClaudeManagedTurnMessage(this.repositoryRoot, request.instructions),
+      );
     } catch (error) {
       delete state.activeProviderTurnId;
       delete state.activeTurn;
@@ -259,7 +263,7 @@ export class ClaudeAdapter implements ProviderAdapter {
   async *events(session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent> {
     const state = this.sessions.get(session);
     if (state.eventStreamClaimed) {
-      throw new ClaudeAdapterError("invalid_request", "Claude event stream은 session마다 한 번만 열 수 있습니다.");
+      throw new ClaudeAdapterError("invalid_request", "The Claude event stream can be opened only once per session.");
     }
     state.eventStreamClaimed = true;
     const normalizer = new ClaudeEventNormalizer({
@@ -323,13 +327,13 @@ export class ClaudeAdapter implements ProviderAdapter {
       turn.sessionId !== session.sessionId ||
       turn.providerSessionId !== session.providerSessionId
     ) {
-      throw new ClaudeAdapterError("session_mismatch", "Turn result 요청이 Claude session과 다릅니다.");
+      throw new ClaudeAdapterError("session_mismatch", "The turn result request does not match the Claude session.");
     }
     const captured = state.turnResults.get(turn.providerTurnId);
     if (captured === undefined) {
       throw new ClaudeAdapterError(
         "provider_protocol_failed",
-        "완료된 Claude turn의 최종 결과가 없습니다.",
+        "The completed Claude turn has no final result.",
       );
     }
     const result = createAdapterTurnResult({ session, turn, ...captured });
@@ -347,7 +351,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new ClaudeAdapterError("session_mismatch", "Stop request가 managed Claude session과 다릅니다.");
+      throw new ClaudeAdapterError("session_mismatch", "The stop request does not match the managed Claude session.");
     }
     let stopFailure: ClaudeAdapterError | undefined;
     try {
@@ -359,7 +363,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       await state.client.close().catch(() => undefined);
       stopFailure = new ClaudeAdapterError(
         "provider_process_failed",
-        "Claude session을 안전하게 종료하지 못했습니다.",
+        "The Claude session could not be stopped safely.",
       );
     } finally {
       this.sessions.release(session);
@@ -374,7 +378,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       sessionId: session.sessionId,
       providerSessionId: session.providerSessionId,
       status: request.reason,
-      stoppedAt: timestamp(this.now, "Claude session 종료 시각", request.requestedAt),
+      stoppedAt: timestamp(this.now, "Claude session stop time", request.requestedAt),
     };
     assertAdapterMessage(result, "Claude stop result");
     return clone(result);
@@ -401,7 +405,7 @@ export class ClaudeAdapter implements ProviderAdapter {
 
   private uuid(value: string, label: string): string {
     if (!UUID_PATTERN.test(value)) {
-      throw new ClaudeAdapterError("invalid_request", `${label}는 UUID여야 합니다.`);
+      throw new ClaudeAdapterError("invalid_request", `${label} must be a UUID.`);
     }
     return value;
   }

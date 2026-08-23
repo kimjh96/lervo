@@ -3,7 +3,7 @@ import type { RoleEvaluationBundle, RoleProfile } from "@lervo/schemas";
 import { calculateRoleEvaluationBundleId, roleProfileHash } from "./integrity.js";
 import type { RoleDefinition } from "./types.js";
 
-export const defaultRoleWritingPolicyId = "writing_ko-kr-human";
+export const defaultRoleWritingPolicyId = "writing_en-human";
 
 export function defineRole(
   profile: RoleProfile,

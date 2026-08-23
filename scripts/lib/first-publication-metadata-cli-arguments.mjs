@@ -16,15 +16,15 @@ const permitValueArguments = [
 const commandErrors = {
   preview: {
     code: "first_publication_metadata_preview_arguments_invalid",
-    message: "CLI 최초 게시 metadata 변경 미리보기 명령 인자가 올바르지 않습니다.",
+    message: "The CLI first-publication metadata-change preview command arguments are invalid.",
   },
   candidate: {
     code: "first_publication_package_metadata_candidate_arguments_invalid",
-    message: "CLI 최초 게시 package metadata 후보 명령 인자가 올바르지 않습니다.",
+    message: "The CLI first-publication package metadata candidate command arguments are invalid.",
   },
   permit: {
     code: "first_publication_package_metadata_apply_permit_arguments_invalid",
-    message: "CLI 최초 게시 package metadata 적용 허가 명령 인자가 올바르지 않습니다.",
+    message: "The CLI first-publication package metadata apply-permit command arguments are invalid.",
   },
 };
 

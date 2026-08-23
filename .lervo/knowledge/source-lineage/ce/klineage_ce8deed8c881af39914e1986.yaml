@@ -1,0 +1,11 @@
+fromPath: docs/adr/0114-cli-first-publication-reconciliation-resolution.md
+identityPath: docs/adr/0114-cli-first-publication-reconciliation-resolution.md
+kind: document_move
+lineageId: klineage_ce8deed8c881af39914e1986
+operationId: kdocop_93fb1cfb94a3cd5cf122ddfb
+schemaVersion: 1
+sourceContentHash: sha256:51326517865c0c59a2281bb08d3281cee2634a302d9e17311b1ff93e57e3fefd
+sourceId: src_86fadd197e18cd0215815f2e
+sourceUnitBindingDigest: sha256:ab1e29550489792613b8d827da74426d2070ae79f8fb1174f1f52757bfe28458
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md

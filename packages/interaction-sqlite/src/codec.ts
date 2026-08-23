@@ -16,7 +16,7 @@ export type SQLiteRow = Record<string, unknown>;
 export function text(row: SQLiteRow, field: string): string {
   const value = row[field];
   if (typeof value !== "string") {
-    throw new InteractionSQLiteError("integrity_failed", `Interaction ${field}가 유효하지 않습니다.`);
+    throw new InteractionSQLiteError("integrity_failed", `Interaction ${field} is invalid.`);
   }
   return value;
 }
@@ -24,7 +24,7 @@ export function text(row: SQLiteRow, field: string): string {
 export function integer(row: SQLiteRow, field: string): number {
   const value = row[field];
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
-    throw new InteractionSQLiteError("integrity_failed", `Interaction ${field}가 유효하지 않습니다.`);
+    throw new InteractionSQLiteError("integrity_failed", `Interaction ${field} is invalid.`);
   }
   return value;
 }
@@ -33,7 +33,7 @@ function json(row: SQLiteRow, field: string): unknown {
   try {
     return JSON.parse(text(row, field));
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", `Interaction ${field} JSON이 유효하지 않습니다.`, {
+    throw new InteractionSQLiteError("integrity_failed", `Interaction ${field} JSON is invalid.`, {
       cause: error,
     });
   }
@@ -44,7 +44,7 @@ export function inbound(row: SQLiteRow): ConversationInboundEvent {
   try {
     assertConversationInboundEvent(event);
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", "저장된 conversation event가 유효하지 않습니다.", {
+    throw new InteractionSQLiteError("integrity_failed", "The stored conversation event is invalid.", {
       cause: error,
     });
   }
@@ -53,7 +53,7 @@ export function inbound(row: SQLiteRow): ConversationInboundEvent {
     event.target.integrationId !== text(row, "integration_id") ||
     event.target.projectId !== text(row, "project_id") ||
     event.target.conversationId !== text(row, "conversation_id")
-  ) throw new InteractionSQLiteError("integrity_failed", "Conversation event 중복 좌표가 다릅니다.");
+  ) throw new InteractionSQLiteError("integrity_failed", "The duplicate conversation event coordinates differ.");
   return structuredClone(event);
 }
 
@@ -65,7 +65,7 @@ export function decision(
   try {
     assertConversationParticipationDecision({ decision: value, event });
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", "저장된 participation decision이 유효하지 않습니다.", {
+    throw new InteractionSQLiteError("integrity_failed", "The stored participation decision is invalid.", {
       cause: error,
     });
   }
@@ -76,7 +76,7 @@ export function decision(
     value.conversationId !== text(row, "conversation_id") ||
     value.action !== text(row, "action") ||
     Date.parse(value.decidedAt) !== integer(row, "decided_at_ms")
-  ) throw new InteractionSQLiteError("integrity_failed", "Participation decision 중복 좌표가 다릅니다.");
+  ) throw new InteractionSQLiteError("integrity_failed", "The duplicate participation decision coordinates differ.");
   return structuredClone(value);
 }
 
@@ -88,7 +88,7 @@ export function outbound(
   try {
     assertConversationOutboundMessage({ outbound: value, event });
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", "저장된 conversation outbound가 유효하지 않습니다.", {
+    throw new InteractionSQLiteError("integrity_failed", "The stored conversation outbound is invalid.", {
       cause: error,
     });
   }
@@ -100,6 +100,6 @@ export function outbound(
     value.target.integrationId !== text(row, "integration_id") ||
     value.target.projectId !== text(row, "project_id") ||
     value.target.conversationId !== text(row, "conversation_id")
-  ) throw new InteractionSQLiteError("integrity_failed", "Conversation outbound 중복 좌표가 다릅니다.");
+  ) throw new InteractionSQLiteError("integrity_failed", "The duplicate conversation outbound coordinates differ.");
   return structuredClone(value);
 }

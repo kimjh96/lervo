@@ -29,7 +29,7 @@ export class SQLiteTransactionRunner {
     return this.run({
       begin: "BEGIN;",
       failureCode: "read_failed",
-      failureMessage: "Hub sync SQLite read snapshot을 완료하지 못했습니다.",
+      failureMessage: "Could not complete the Hub sync SQLite read snapshot.",
       work,
     });
   }
@@ -38,7 +38,7 @@ export class SQLiteTransactionRunner {
     return this.run({
       begin: "BEGIN IMMEDIATE;",
       failureCode: "write_failed",
-      failureMessage: "Hub sync SQLite transaction을 durable하게 저장하지 못했습니다.",
+      failureMessage: "Could not store the Hub sync SQLite transaction durably.",
       work,
     });
   }
@@ -52,7 +52,7 @@ export class SQLiteTransactionRunner {
     if (this.active) {
       throw new HubSyncStoreError(
         "nested_transaction",
-        "중첩 Hub sync SQLite transaction은 지원하지 않습니다.",
+        "Nested Hub sync SQLite transactions are not supported.",
       );
     }
     try {
@@ -67,7 +67,7 @@ export class SQLiteTransactionRunner {
         void Promise.resolve(result).catch(() => undefined);
         throw new HubSyncStoreError(
           "transaction_async",
-          "Hub sync SQLite transaction callback은 동기 함수여야 합니다.",
+          "The Hub sync SQLite transaction callback must be synchronous.",
         );
       }
       this.database.exec("COMMIT;");
@@ -78,7 +78,7 @@ export class SQLiteTransactionRunner {
       } catch (rollbackError) {
         throw new HubSyncStoreError(
           input.failureCode,
-          "Hub sync SQLite transaction과 rollback이 모두 실패했습니다.",
+          "Both the Hub sync SQLite transaction and rollback failed.",
           { cause: new AggregateError([error, rollbackError]) },
         );
       }

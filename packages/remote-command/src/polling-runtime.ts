@@ -51,7 +51,7 @@ function retryDelay(result: RemoteCommandReconnectCycleResult, input: {
   if (!Number.isFinite(at) || !Number.isFinite(now)) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
-      "remote command polling 시각이 유효하지 않습니다.",
+      "The remote command polling time is invalid.",
     );
   }
   return Math.max(0, at - now);
@@ -67,7 +67,7 @@ export async function runRemoteCommandReconnectLoop(
   ) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
-      "remote command idle poll 간격이 유효하지 않습니다.",
+      "The remote command idle poll interval is invalid.",
     );
   }
   const wait = options.wait ?? systemWait;

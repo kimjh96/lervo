@@ -32,7 +32,7 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
     url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-  ) throw new Error("Remote command Hub URL은 credential·query가 없는 HTTPS URL이어야 합니다.");
+  ) throw new Error("The remote command Hub URL must be an HTTPS URL without credentials or a query.");
   return url;
 }
 
@@ -57,7 +57,7 @@ function responseBody(value: unknown, expected: {
     !("projectIdentityHash" in value.target) ||
     value.target.projectIdentityHash !== expected.target.projectIdentityHash ||
     !(expected.property in value)
-  ) throw new Error("Remote command Hub 응답 좌표가 요청과 다릅니다.");
+  ) throw new Error("The remote command Hub response coordinates differ from the request.");
   return (value as Record<string, unknown>)[expected.property];
 }
 
@@ -78,13 +78,13 @@ implements AuthenticatedRemoteCommandHubTransport {
       !NODE_PATTERN.test(options.nodeId) ||
       !PROJECT_PATTERN.test(options.target.projectId) ||
       !HASH_PATTERN.test(options.target.projectIdentityHash)
-    ) throw new Error("Remote command HTTP transport 설정이 유효하지 않습니다.");
+    ) throw new Error("The remote command HTTP transport configuration is invalid.");
     this.maxResponseBytes = resolveRemoteCommandHttpResponseLimit(options.maxResponseBytes);
     this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
     if (
       !Number.isSafeInteger(this.requestTimeoutMs) ||
       this.requestTimeoutMs < 10 || this.requestTimeoutMs > 300_000
-    ) throw new Error("Remote command HTTP transport 요청 제한 시간이 유효하지 않습니다.");
+    ) throw new Error("The remote command HTTP transport request timeout is invalid.");
     this.request = options.fetch ?? globalThis.fetch;
   }
 
@@ -100,7 +100,7 @@ implements AuthenticatedRemoteCommandHubTransport {
       input.destinationId !== this.options.destinationId ||
       input.nodeId !== this.options.nodeId || !sameTarget(input.target, this.options.target) ||
       !Number.isFinite(Date.parse(input.requestedAt))
-    ) throw new Error("Remote command HTTP pull 좌표가 transport 설정과 다릅니다.");
+    ) throw new Error("The remote command HTTP pull coordinates differ from the transport configuration.");
     return this.post("leases", {
       schemaVersion: 1,
       leaseDurationMs: input.leaseDurationMs,
@@ -136,7 +136,7 @@ implements AuthenticatedRemoteCommandHubTransport {
         redirect: "error",
         signal: controller.signal,
       });
-      if (response.status !== 200) throw new Error("Remote command Hub 응답 상태가 유효하지 않습니다.");
+      if (response.status !== 200) throw new Error("The remote command Hub response status is invalid.");
       if (response.headers.get("x-lervo-hub-identity") !== this.options.expectedHubIdentityHash) {
         await response.body?.cancel();
         return {
@@ -150,7 +150,7 @@ implements AuthenticatedRemoteCommandHubTransport {
       }
       if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
         await response.body?.cancel();
-        throw new Error("Remote command Hub 응답 content type이 유효하지 않습니다.");
+        throw new Error("The remote command Hub response content type is invalid.");
       }
       const value = await readRemoteCommandHttpJson(response, this.maxResponseBytes);
       return {

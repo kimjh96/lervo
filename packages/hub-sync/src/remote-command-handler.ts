@@ -27,7 +27,7 @@ function timestamp(
   if (!Number.isFinite(parsed)) {
     throw new HubRemoteCommandRequestError(
       code,
-      `${label}이 유효하지 않습니다.`,
+      `${label} is invalid.`,
     );
   }
   return parsed;
@@ -40,7 +40,7 @@ function assertDestination(
   if (!DESTINATION_PATTERN.test(destinationId)) {
     throw new HubRemoteCommandRequestError(
       code,
-      "remote command destination ID가 유효하지 않습니다.",
+      "The remote command destination ID is invalid.",
     );
   }
 }
@@ -52,7 +52,7 @@ function assertTarget(target: RemoteCommandTarget): void {
   ) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_lease_request",
-      "remote command lease target이 유효하지 않습니다.",
+      "The remote command lease target is invalid.",
     );
   }
 }
@@ -77,7 +77,7 @@ export async function handleRemoteCommandEnqueue(input: {
     )) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_enqueue",
-      "만료된 remote command는 queue에 넣을 수 없습니다.",
+      "An expired remote command cannot be queued.",
     );
   }
   return input.store.enqueueRemoteCommand({
@@ -102,7 +102,7 @@ export async function handleRemoteCommandLease(input: {
   if (!NODE_PATTERN.test(input.leasedTo)) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_lease_request",
-      "remote command leasedTo가 유효하지 않습니다.",
+      "The remote command leasedTo value is invalid.",
     );
   }
   if (
@@ -112,14 +112,14 @@ export async function handleRemoteCommandLease(input: {
   ) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_lease_request",
-      "remote command lease duration은 1초 이상 5분 이하여야 합니다.",
+      "The remote command lease duration must be between 1 second and 5 minutes.",
     );
   }
   const limit = input.limit ?? 1;
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 16) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_lease_request",
-      "remote command lease limit은 1 이상 16 이하여야 합니다.",
+      "The remote command lease limit must be between 1 and 16.",
     );
   }
   return input.store.leaseRemoteCommands({
@@ -145,7 +145,7 @@ export async function handleRemoteCommandAcknowledgement(input: {
   if (!NODE_PATTERN.test(input.leasedTo)) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_acknowledgement",
-      "remote command acknowledgement node가 유효하지 않습니다.",
+      "The remote command acknowledgement node is invalid.",
     );
   }
   timestamp(
@@ -156,7 +156,7 @@ export async function handleRemoteCommandAcknowledgement(input: {
   if (!validateSchema("remoteCommandDeliveryAcknowledgement", input.acknowledgement).valid) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_acknowledgement",
-      "remote command acknowledgement schema가 유효하지 않습니다.",
+      "The remote command acknowledgement schema is invalid.",
     );
   }
   return input.store.acknowledgeRemoteCommand({

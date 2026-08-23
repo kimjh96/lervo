@@ -29,14 +29,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function requiredRecord(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) {
-    throw new CodexAdapterError("provider_protocol_failed", "Codex 응답 형식이 올바르지 않습니다.");
+    throw new CodexAdapterError("provider_protocol_failed", "The Codex response has an invalid shape.");
   }
   return value;
 }
 
 function requiredString(value: unknown): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new CodexAdapterError("provider_protocol_failed", "Codex 응답 식별자가 없습니다.");
+    throw new CodexAdapterError("provider_protocol_failed", "The Codex response identifier is missing.");
   }
   return value;
 }
@@ -114,7 +114,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     if (!this.pendingFileApprovals.delete(requestId)) {
       throw new CodexAdapterError(
         "provider_protocol_failed",
-        "Codex file change 승인 요청이 없거나 이미 처리되었습니다.",
+        "The Codex file-change approval request is missing or has already been handled.",
       );
     }
     this.write({ id: requestId, result: { decision } });
@@ -156,7 +156,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
   private request(method: string, params: unknown): Promise<unknown> {
     if (this.closed || this.exited) {
       return Promise.reject(
-        new CodexAdapterError("provider_process_failed", "Codex app-server가 종료되었습니다."),
+        new CodexAdapterError("provider_process_failed", "The Codex app-server has stopped."),
       );
     }
     const id = this.nextRequestId;
@@ -165,7 +165,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(
-          new CodexAdapterError("provider_protocol_failed", "Codex app-server 응답 시간이 초과되었습니다."),
+          new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out."),
         );
       }, this.requestTimeoutMs);
       this.pending.set(id, { resolve, reject, timer });
@@ -200,7 +200,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       clearTimeout(pending.timer);
       if (Object.hasOwn(message, "error")) {
         pending.reject(
-          new CodexAdapterError("provider_protocol_failed", "Codex app-server 요청이 거부되었습니다."),
+          new CodexAdapterError("provider_protocol_failed", "The Codex app-server request was rejected."),
         );
       } else {
         pending.resolve(message.result);
@@ -228,7 +228,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
   private failProtocol(): void {
     const error = new CodexAdapterError(
       "provider_protocol_failed",
-      "Codex app-server가 올바르지 않은 protocol message를 보냈습니다.",
+      "The Codex app-server sent an invalid protocol message.",
     );
     this.rejectPending(error);
     this.notificationsQueue.fail(error);
@@ -239,7 +239,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     this.exited = didExit;
     const error = new CodexAdapterError(
       "provider_process_failed",
-      "Codex app-server process가 종료되었습니다.",
+      "The Codex app-server process has exited.",
     );
     this.rejectPending(error);
     if (this.closed) this.notificationsQueue.end();

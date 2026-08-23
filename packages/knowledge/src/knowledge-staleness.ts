@@ -17,7 +17,7 @@ function validTimestamp(value: string): number {
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "지식 stale 판정 시각이 유효하지 않습니다.",
+      "The knowledge staleness evaluation time is invalid.",
     );
   }
   return milliseconds;
@@ -35,7 +35,7 @@ export function evaluateKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "Verified 지식 또는 repository snapshot 계약이 유효하지 않습니다.",
+      "The verified knowledge or repository snapshot contract is invalid.",
     );
   }
   const evaluatedAtMs = validTimestamp(input.evaluatedAt);
@@ -44,7 +44,7 @@ export function evaluateKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "Verified 이전 시각으로 stale 상태를 판정할 수 없습니다.",
+      "Staleness cannot be evaluated at a time before verification.",
     );
   }
   const dueAtMs = verifiedAtMs + input.knowledge.reviewIntervalDays * 86_400_000;
@@ -93,7 +93,7 @@ export function evaluateKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "생성된 지식 stale 결과가 schema를 통과하지 못했습니다.",
+      "The generated knowledge staleness result does not satisfy the schema.",
     );
   }
   return result;
@@ -119,7 +119,7 @@ export function validateKnowledgeStalenessResult(result: KnowledgeStalenessResul
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "지식 stale 결과의 상태, 신호와 사유가 서로 일치하지 않습니다.",
+      "The knowledge staleness result status, signals, and reasons do not agree.",
     );
   }
 }

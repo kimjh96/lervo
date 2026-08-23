@@ -84,7 +84,7 @@ describe("first-publication stage approval execution command", () => {
         "utf8",
       )).publicAvailability, "not_claimed");
       assert.match(formatFirstPublicationStageApprovalExecution(terminal),
-        /아직 별도 registry 검증이 필요함/u);
+        /separate registry verification is still required/u);
       await assert.rejects(executeCliFirstPublicationStageApproval(input(value), {
         prepareApproval: async () => ({
           recheck: async () => {},

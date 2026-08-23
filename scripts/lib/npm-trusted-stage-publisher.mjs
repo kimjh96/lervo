@@ -32,7 +32,7 @@ export async function prepareNpmTrustedStagePublisher(
   ) {
     fail(
       "npm_trusted_stage_target_invalid",
-      "npm stage Trusted Publishing 대상이 올바르지 않습니다.",
+      "The npm stage Trusted Publishing target is invalid.",
     );
   }
   const client = await prepareIsolatedNpmTrustedPublishingClient({
@@ -49,7 +49,7 @@ export async function prepareNpmTrustedStagePublisher(
       if (called) {
         fail(
           "npm_stage_publication_reuse_forbidden",
-          "같은 npm stage publisher를 다시 호출할 수 없습니다.",
+          "The same npm stage publisher cannot be invoked again.",
         );
       }
       called = true;
@@ -69,7 +69,7 @@ export async function prepareNpmTrustedStagePublisher(
       } catch {
         fail(
           "npm_stage_publication_outcome_unknown",
-          "npm stage 게시 결과를 확인할 수 없습니다.",
+          "The npm stage publication result could not be verified.",
         );
       }
       return {

@@ -16,7 +16,7 @@ export const stageApprovalConfirmations = Object.freeze([
 function fail(code = "first_publication_stage_approval_decision_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 승인 결정이 올바르지 않습니다.",
+    "The CLI npm stage approval decision is invalid.",
   );
 }
 

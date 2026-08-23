@@ -1,0 +1,11 @@
+fromPath: docs/adr/0085-installed-cli-smoke-boundary.md
+identityPath: docs/adr/0085-installed-cli-smoke-boundary.md
+kind: document_move
+lineageId: klineage_a33bbcf33ee35aa240de898c
+operationId: kdocop_e239494717c4741fb575f5eb
+schemaVersion: 1
+sourceContentHash: sha256:6cc879099039b1cf02cbc5a6eddc72ac673cf2bcdf7026b9a684ed47818dcf9a
+sourceId: src_6ed5507b5a65450b32202760
+sourceUnitBindingDigest: sha256:adc261f6ff7336699def9508a1dcf36e12281ee08b4295e17caa4886a55cfadd
+sourceUnitCount: 5
+toPath: docs/decisions/foundation/0085-installed-cli-smoke-boundary.md

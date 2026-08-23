@@ -17,7 +17,7 @@ const sideEffects = Object.freeze({
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_package_metadata_candidate_invalid",
-    "CLI 최초 게시 package metadata 후보가 올바르지 않습니다.",
+    "The CLI first-publication package metadata candidate is invalid.",
   );
 }
 

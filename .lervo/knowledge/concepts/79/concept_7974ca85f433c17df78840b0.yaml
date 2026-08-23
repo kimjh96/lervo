@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7974ca85f433c17df78840b0
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ccf47d5aeae909fcaf5b8469
+title: "ADR-0082: Machine-readable trace capabilities"
+type: decision

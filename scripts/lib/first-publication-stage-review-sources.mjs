@@ -17,7 +17,7 @@ const maximumReportBytes = 128 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_review_source_invalid",
-    "CLI npm staged package 검토 증거 원본이 올바르지 않습니다.",
+    "The CLI npm staged-package review evidence source is invalid.",
   );
 }
 

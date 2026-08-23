@@ -65,7 +65,7 @@ function projectSummary(row: SQLiteRow): HubProjectTraceSummary {
   if (storedEventCount < head.cursor.seq || runCount < 0) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub trace project 집계가 cursor와 일치하지 않습니다.",
+      "The Hub trace project aggregate does not match the cursor.",
     );
   }
   return {
@@ -223,7 +223,7 @@ export class HubTraceSQLiteRepository {
     const first = boundaryRows[0];
     const last = boundaryRows.at(-1);
     if (first === undefined || last === undefined || first.runId !== runId || last.runId !== runId) {
-      throw new HubSyncStoreError("integrity_failed", "Hub trace run 경계가 event 원본과 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub trace run boundary differs from the source events.");
     }
     const sessionRows = this.database.prepare(`
       SELECT session_id, first_seq
@@ -241,7 +241,7 @@ export class HubTraceSQLiteRepository {
         AND run_id = ?
     `).get(destinationId, projectId, runId);
     if (sessionCountRow === undefined) {
-      throw new HubSyncStoreError("integrity_failed", "Hub trace session 수를 읽을 수 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub trace session count cannot be read.");
     }
     const sessionCount = integerField(sessionCountRow, "session_count");
     return {

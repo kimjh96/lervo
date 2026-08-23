@@ -12,7 +12,7 @@ export function conversationDeliberationTimestamp(value: string, label: string):
   if (!Number.isSafeInteger(milliseconds) || milliseconds < 0) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      `${label} 시각이 유효하지 않습니다.`,
+      `${label} time is invalid.`,
     );
   }
   return milliseconds;
@@ -39,7 +39,7 @@ export function assertConversationDeliberationSummary(
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "숙의 실행 결과 좌표가 요청과 일치하지 않습니다.",
+      "The deliberation execution result coordinates do not match the request.",
     );
   }
 }

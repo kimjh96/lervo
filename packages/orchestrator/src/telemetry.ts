@@ -14,7 +14,7 @@ export interface ManagedEventSpec {
 
 export class TelemetryWriteError extends Error {
   constructor() {
-    super("Managed run telemetry를 원자적으로 기록하지 못했습니다.");
+    super("Could not record managed run telemetry atomically.");
     this.name = "TelemetryWriteError";
   }
 }

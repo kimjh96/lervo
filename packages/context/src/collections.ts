@@ -13,7 +13,7 @@ export function indexPublications(
     if (indexed.has(publication.sharedContextId)) {
       throw new ContextPreparationError(
         "duplicate_shared_context_id",
-        `Shared context ID가 중복되었습니다: ${publication.sharedContextId}`,
+        `Shared context ID is duplicated: ${publication.sharedContextId}`,
       );
     }
     indexed.set(publication.sharedContextId, publication);
@@ -27,7 +27,7 @@ export function assertUniqueHandoffs(handoffs: readonly ContextHandoffInput[]): 
     if (handoffIds.has(handoff.bundle.handoffId)) {
       throw new ContextPreparationError(
         "duplicate_handoff_id",
-        `Handoff ID가 중복되었습니다: ${handoff.bundle.handoffId}`,
+        `Handoff ID is duplicated: ${handoff.bundle.handoffId}`,
       );
     }
     handoffIds.add(handoff.bundle.handoffId);

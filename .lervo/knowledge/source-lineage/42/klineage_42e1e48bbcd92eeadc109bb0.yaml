@@ -1,0 +1,11 @@
+fromPath: docs/adr/0029-cross-provider-deliberation-runtime.md
+identityPath: docs/adr/0029-cross-provider-deliberation-runtime.md
+kind: document_move
+lineageId: klineage_42e1e48bbcd92eeadc109bb0
+operationId: kdocop_70adeb855f997b3fb24f8505
+schemaVersion: 1
+sourceContentHash: sha256:ebcc7fcbbbd853e1f8a8b1de5fc291d40d23f20901046326bd7827c520961e2e
+sourceId: src_696f7715b50a8cc49cbee9c9
+sourceUnitBindingDigest: sha256:89784978c3dd1a06f24a067731e24d5222f95bedc62d964cf17c74aa795b25d8
+sourceUnitCount: 9
+toPath: docs/decisions/execution/providers/0029-cross-provider-deliberation-runtime.md

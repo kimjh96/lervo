@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1d24ebc19621efcc556dbbdb
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0034-project-registration-and-event-sync-contract.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9429a6b59246db99577165c5
+title: "ADR-0034: Project registration and contiguous-cursor event sync"
+type: decision

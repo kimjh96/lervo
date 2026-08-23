@@ -20,7 +20,7 @@ function claimId(): string {
 
 function validateWorker(workerId: string): void {
   if (!WORKER_PATTERN.test(workerId)) {
-    throw new HubCommandError("invalid_request", "artifact cleanup worker ID가 유효하지 않습니다.");
+    throw new HubCommandError("invalid_request", "The artifact cleanup worker ID is invalid.");
   }
 }
 
@@ -37,7 +37,7 @@ function validateClaimWindow(input: {
     input.leaseDurationMs > 5 * 60_000 ||
     (input.limit !== undefined &&
       (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100))
-  ) throw new HubCommandError("invalid_request", "artifact cleanup claim 범위가 유효하지 않습니다.");
+  ) throw new HubCommandError("invalid_request", "The artifact cleanup claim range is invalid.");
   const leaseExpiresAtMs = claimedAtMs + input.leaseDurationMs;
   return {
     claimedAtMs,
@@ -48,7 +48,7 @@ function validateClaimWindow(input: {
 
 function parseKind(value: string): HubCommandArtifactPurgeKind {
   if (value !== "expired" && value !== "orphan") {
-    throw new HubCommandError("artifact_integrity_failed", "artifact cleanup 종류가 유효하지 않습니다.");
+    throw new HubCommandError("artifact_integrity_failed", "The artifact cleanup kind is invalid.");
   }
   return value;
 }
@@ -159,7 +159,7 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
       "artifact observedModifiedAt",
     );
     if (!URI_PATTERN.test(input.artifactUri) || observedModifiedAtMs > window.claimedAtMs) {
-      throw new HubCommandError("invalid_request", "orphan artifact 관측값이 유효하지 않습니다.");
+      throw new HubCommandError("invalid_request", "The orphan artifact observation is invalid.");
     }
     this.database.prepare(`
       DELETE FROM hub_remote_command_artifact_gc_claims
@@ -214,7 +214,7 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         AND claimed_at_ms <= ? AND lease_expires_at_ms >= ?
     `).get(input.claimId, input.workerId, completedAtMs, completedAtMs);
     if (row === undefined) {
-      throw new HubCommandError("artifact_cleanup_conflict", "artifact cleanup claim이 없거나 만료됐습니다.");
+      throw new HubCommandError("artifact_cleanup_conflict", "The artifact cleanup claim is missing or expired.");
     }
     const claim = parseClaim(row);
     const ids = boundedDeliveryIds(this.database, claim.artifactUri);
@@ -233,7 +233,7 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
           AND (retention.retain_until_ms > ? OR command.expires_at_ms > ?)
       `).get(claim.artifactUri, completedAtMs, completedAtMs);
       if (integerField(blocked!, "count") !== 0 || ids.length === 0) {
-        throw new HubCommandError("artifact_cleanup_conflict", "artifact 보존 조건이 정리 중에 바뀌었습니다.");
+        throw new HubCommandError("artifact_cleanup_conflict", "The artifact retention condition changed during cleanup.");
       }
       if (ids.length > HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT) {
         completionStatus = "partial";
@@ -253,7 +253,7 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
       if (
         completionStatus === "completed" && typeof pendingSince === "number" &&
         completedAtMs < pendingSince
-      ) throw new HubCommandError("artifact_cleanup_conflict", "artifact partial cleanup 시각이 역행했습니다.");
+      ) throw new HubCommandError("artifact_cleanup_conflict", "The artifact partial-cleanup time moved backwards.");
       const insert = this.database.prepare(`
         INSERT INTO hub_remote_command_artifact_purges (
           delivery_id, artifact_uri, claim_id, purged_at, purged_at_ms
@@ -263,7 +263,7 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         insert.run(id, claim.artifactUri, claim.claimId, input.completedAt, completedAtMs);
       }
     } else if (hasUnpurgedReference(this.database, claim.artifactUri)) {
-      throw new HubCommandError("artifact_cleanup_conflict", "orphan artifact에 새 작성 참조가 생겼습니다.");
+      throw new HubCommandError("artifact_cleanup_conflict", "A new authorship reference appeared for the orphan artifact.");
     }
     this.database.prepare(`
       INSERT INTO hub_remote_command_artifact_gc_completions (

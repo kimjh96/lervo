@@ -1,0 +1,11 @@
+fromPath: docs/adr/0024-provider-neutral-project-verification.md
+identityPath: docs/adr/0024-provider-neutral-project-verification.md
+kind: document_move
+lineageId: klineage_07e559d6599740bd48fce8ed
+operationId: kdocop_6ade820b9dd27b5c1c5c33b2
+schemaVersion: 1
+sourceContentHash: sha256:2a194b569c61ea6617797ff1c0b2fe551a8186d90d7436434e2685e6d3e8dab1
+sourceId: src_1722b1325f3208679356615b
+sourceUnitBindingDigest: sha256:02d9203d7136ca945192b23a85b8a9ea21ab1c8c22be84207f7a30b69e80a26e
+sourceUnitCount: 8
+toPath: docs/decisions/execution/providers/0024-provider-neutral-project-verification.md

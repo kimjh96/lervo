@@ -1,0 +1,11 @@
+fromPath: docs/adr/0157-claude-sdk-command-lifecycle-input-acknowledgement.md
+identityPath: docs/adr/0157-claude-sdk-command-lifecycle-input-acknowledgement.md
+kind: document_move
+lineageId: klineage_5fefcffcfe7a20a18984146a
+operationId: kdocop_6c61a69b311e4080d8c97343
+schemaVersion: 1
+sourceContentHash: sha256:bbe973971d70b1ebfea23db531f3f6defe33e592418a1276f151fb65535f7021
+sourceId: src_e8c8616fb39ac2bef63c5f3e
+sourceUnitBindingDigest: sha256:f01b3b83657dcd59bdb520b5f241bc83a3b28b203893681837c7e84e6ef4b658
+sourceUnitCount: 6
+toPath: docs/decisions/foundation/0157-claude-sdk-command-lifecycle-input-acknowledgement.md

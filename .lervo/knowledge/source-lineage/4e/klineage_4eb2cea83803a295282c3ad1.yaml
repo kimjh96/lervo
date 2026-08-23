@@ -1,0 +1,11 @@
+fromPath: docs/adr/0185-profiled-provider-instruction-bridge.md
+identityPath: docs/adr/0185-profiled-provider-instruction-bridge.md
+kind: document_move
+lineageId: klineage_4eb2cea83803a295282c3ad1
+operationId: kdocop_74176f75ca0f9861af6d0fa3
+schemaVersion: 1
+sourceContentHash: sha256:bbda478620d7f1e8a7b3ca45e6c5e3f80f9a62af7f77b84ce6c4cf45f792823d
+sourceId: src_f941bbe26a09c30b22b52787
+sourceUnitBindingDigest: sha256:405e00ed69e906f7dedc595895d99f02a266ab972b6ab1163fe89b9da6162efd
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md

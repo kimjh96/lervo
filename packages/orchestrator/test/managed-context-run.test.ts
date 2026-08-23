@@ -122,7 +122,7 @@ describe("managed context gate orchestration", () => {
       reason: "managed_file_changed",
       contextGeneration: 0,
     });
-    expect(JSON.stringify(events)).not.toContain("저장소 작업 지침입니다");
+    expect(JSON.stringify(events)).not.toContain("Repository work instructions");
     expect(fixture.store.verifyIntegrity().valid).toBe(true);
     fixture.store.close();
   });
@@ -303,7 +303,7 @@ describe("managed context gate orchestration", () => {
     const run = fixture.createRun();
     await prepareFixtureContext(run, fixture.root);
     await injectFixtureContext(run, fixture.session);
-    await writeFile(resolve(fixture.root, "AGENTS.md"), "변경된 작업 지침입니다.\n");
+    await writeFile(resolve(fixture.root, "AGENTS.md"), "Changed work instructions.\n");
 
     const decision = await run.authorizeFileWrite({
       path: "src/result.ts",

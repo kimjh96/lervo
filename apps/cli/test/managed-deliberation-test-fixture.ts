@@ -7,7 +7,7 @@ import {
   type ProviderAdapter,
   type ProviderManagedWriteBridge,
 } from "@lervo/adapter-contract";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import type {
   AdapterContextEnvelope,
@@ -28,7 +28,7 @@ const roots: string[] = [];
 
 export function semanticPass(): string {
   return JSON.stringify({
-    checks: defaultKoreanWritingContract.verification.semanticChecks.map((check) => ({
+    checks: defaultEnglishWritingContract.verification.semanticChecks.map((check) => ({
       checkId: check.checkId,
       status: "passed",
       violationCount: 0,
@@ -220,9 +220,10 @@ export async function repository(): Promise<string> {
     now: new Date("2026-08-21T00:00:00Z"),
   }));
   await mkdir(resolve(root, "src"));
+  await mkdir(resolve(root, ".lervo/verifications"));
   await writeFile(
     resolve(root, "AGENTS.md"),
-    "저장소 근거를 확인하고 자연스러운 한국어 문단으로 답합니다.\n",
+    "Check repository evidence and answer in a natural English paragraph.\n",
   );
   await writeFile(
     resolve(root, ".lervo/verifications/project.default.yaml"),
@@ -247,6 +248,7 @@ export async function repository(): Promise<string> {
 }
 
 export async function writeFourRolePolicy(root: string): Promise<void> {
+  await mkdir(resolve(root, ".lervo/deliberations"), { recursive: true });
   await writeFile(
     resolve(root, ".lervo/deliberations/deliberation_product-review.yaml"),
     [
@@ -257,23 +259,23 @@ export async function writeFourRolePolicy(root: string): Promise<void> {
       "  - project.default",
       "participants:",
       "  - roleId: product-planner",
-      "    name: 제품 기획자",
-      "    description: 사용자 가치와 적용 범위를 중심으로 제안을 작성합니다.",
+      "    name: Product planner",
+      "    description: Writes proposals centered on user value and scope.",
       "    provider: codex",
       "    responsibilities: [proposer, decision_owner]",
       "  - roleId: maintainability-reviewer",
-      "    name: 유지보수 검토자",
-      "    description: 관심사 분리와 장기 변경 비용을 독립적으로 검토합니다.",
+      "    name: Maintenance reviewer",
+      "    description: Independently reviews separation of concerns and long-term change cost.",
       "    provider: claude",
       "    responsibilities: [reviewer]",
       "  - roleId: evidence-reviewer",
-      "    name: 증거 검토자",
-      "    description: 주장과 저장소 근거의 연결이 충분한지 독립적으로 검토합니다.",
+      "    name: Evidence reviewer",
+      "    description: Independently reviews whether claims are sufficiently linked to repository evidence.",
       "    provider: codex",
       "    responsibilities: [reviewer]",
       "  - roleId: project-verifier",
-      "    name: 프로젝트 검증자",
-      "    description: 실제 검증 결과와 결론의 범위를 확인합니다.",
+      "    name: Project verifier",
+      "    description: Checks actual verification results and the scope of conclusions.",
       "    provider: claude",
       "    responsibilities: [verifier]",
       "",
@@ -284,4 +286,3 @@ export async function writeFourRolePolicy(root: string): Promise<void> {
 export async function cleanupManagedDeliberationFixtures(): Promise<void> {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }
-

@@ -50,7 +50,7 @@ describe("authenticated Hub sync HTTP transport", () => {
       destinationId: "hub:other",
       requestedAt: "2026-08-22T00:00:00.000Z",
     });
-    await expect(transport.registerProject(registration)).rejects.toThrow("설정과 다릅니다");
+    await expect(transport.registerProject(registration)).rejects.toThrow("differ from the transport configuration");
     expect(request).not.toHaveBeenCalled();
   });
 
@@ -148,6 +148,6 @@ describe("authenticated Hub sync HTTP transport", () => {
       destinationId: options.destinationId,
       requestedAt: "2026-08-22T00:00:00.000Z",
     });
-    await expect(transport.registerProject(registration)).rejects.toThrow("응답 크기");
+    await expect(transport.registerProject(registration)).rejects.toThrow("response size");
   });
 });

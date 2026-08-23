@@ -1,0 +1,11 @@
+fromPath: docs/adr/0014-managed-adapter-session-hardening.md
+identityPath: docs/adr/0014-managed-adapter-session-hardening.md
+kind: document_move
+lineageId: klineage_c7dd4d37431cef0c6b7ab789
+operationId: kdocop_08a71506454a659876943e29
+schemaVersion: 1
+sourceContentHash: sha256:03afed21b5f7801c2a5ac31c0c59dcb7a39ded2b4ec515a14f4442494d99b548
+sourceId: src_f93d75688816fe92aad33b6d
+sourceUnitBindingDigest: sha256:4cfe2cce87280199ed1a43aad5d711dab8a779f992ebb9cd81db922c30d3e4eb
+sourceUnitCount: 8
+toPath: docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md

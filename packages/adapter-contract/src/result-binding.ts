@@ -71,7 +71,7 @@ export function inspectTurnResultBinding(input: {
   ) {
     violations.push({
       code: "result_coordinates_mismatch",
-      detail: "Turn result가 managed session과 turn 좌표에 묶이지 않았습니다.",
+      detail: "The turn result is not bound to the managed session and turn coordinates.",
     });
   }
   const producedAt = Date.parse(input.result.producedAt);
@@ -83,20 +83,20 @@ export function inspectTurnResultBinding(input: {
   ) {
     violations.push({
       code: "result_time_invalid",
-      detail: "Turn result 시각이 turn 수락 시각보다 빠릅니다.",
+      detail: "The turn result time precedes the turn acceptance time.",
     });
   }
   const bytes = encodeTurnResultContent(input.result.content);
   if (bytes.byteLength === 0 || Buffer.from(bytes).toString("utf8") !== input.result.content) {
     violations.push({
       code: "result_content_invalid",
-      detail: "Turn result를 UTF-8 bytes로 손실 없이 변환할 수 없습니다.",
+      detail: "The turn result cannot be converted to UTF-8 bytes without loss.",
     });
   }
   if (bytes.byteLength > MAX_ADAPTER_TURN_RESULT_BYTES) {
     violations.push({
       code: "result_content_too_large",
-      detail: "Turn result가 provider-neutral 크기 제한을 넘었습니다.",
+      detail: "The turn result exceeds the provider-neutral size limit.",
     });
   }
   if (
@@ -105,7 +105,7 @@ export function inspectTurnResultBinding(input: {
   ) {
     violations.push({
       code: "result_hash_mismatch",
-      detail: "Turn result bytes가 선언된 hash 또는 byte count와 다릅니다.",
+      detail: "The turn result bytes do not match the declared hash or byte count.",
     });
   }
   return { passed: violations.length === 0, violations };

@@ -12,7 +12,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail(code = "first_publication_reservation_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 예약이 올바르지 않습니다.",
+    "The CLI first-publication reservation is invalid.",
   );
 }
 

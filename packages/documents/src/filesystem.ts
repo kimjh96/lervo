@@ -35,14 +35,14 @@ export function normalizeScanPath(path: string): string {
   ) {
     throw new DocumentMigrationError(
       "invalid_scan_request",
-      "탐색 경로는 저장소 안의 정규화된 상대 경로여야 합니다.",
+      "The scan path must be a normalized relative path within the repository.",
     );
   }
   const normalized = posix.normalize(path);
   if (normalized === ".." || normalized.startsWith("../") || normalized !== path) {
     throw new DocumentMigrationError(
       "invalid_scan_request",
-      "탐색 경로는 저장소 밖으로 나가거나 정규화 전 표현을 사용할 수 없습니다.",
+      "The scan path cannot escape the repository or use a non-normalized representation.",
     );
   }
   return normalized;
@@ -55,7 +55,7 @@ export async function canonicalRepositoryRoot(root: string): Promise<string> {
     if (!stats.isDirectory() || stats.isSymbolicLink()) {
       throw new DocumentMigrationError(
         "unsafe_source",
-        "저장소 root는 symbolic link가 아닌 실제 디렉터리여야 합니다.",
+        "The repository root must be a real directory, not a symbolic link.",
       );
     }
     return await realpath(absolute);
@@ -63,7 +63,7 @@ export async function canonicalRepositoryRoot(root: string): Promise<string> {
     if (error instanceof DocumentMigrationError) throw error;
     throw new DocumentMigrationError(
       "unsafe_source",
-      "저장소 root를 안전하게 확인할 수 없습니다.",
+      "The repository root cannot be inspected safely.",
       { cause: error },
     );
   }
@@ -75,7 +75,7 @@ export function absoluteRepositoryPath(root: string, path: string): string {
   if (child === ".." || child.startsWith(`..${sep}`)) {
     throw new DocumentMigrationError(
       "invalid_scan_request",
-      "탐색 경로가 저장소 밖을 가리킵니다.",
+      "The scan path points outside the repository.",
     );
   }
   return absolute;
@@ -94,13 +94,13 @@ export async function readStableFile(
     if (pathStats.isSymbolicLink() || !pathStats.isFile()) {
       throw new DocumentMigrationError(
         "unsafe_source",
-        `문서 source는 일반 파일이어야 합니다: ${normalized}`,
+        `The document source must be a regular file: ${normalized}`,
       );
     }
     if (pathStats.size > BigInt(maximumBytes)) {
       throw new DocumentMigrationError(
         "scan_limit_exceeded",
-        `문서 source가 개별 파일 크기 제한을 넘었습니다: ${normalized}`,
+        `The document source exceeds the per-file size limit: ${normalized}`,
       );
     }
     handle = await open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -108,7 +108,7 @@ export async function readStableFile(
     if (!sameIdentity(identity(pathStats), before)) {
       throw new DocumentMigrationError(
         "unsafe_source",
-        `문서 source 경로가 읽기 전에 바뀌었습니다: ${normalized}`,
+        `The document source path changed before it was read: ${normalized}`,
       );
     }
     const bytes = await handle.readFile();
@@ -120,7 +120,7 @@ export async function readStableFile(
     ) {
       throw new DocumentMigrationError(
         "unsafe_source",
-        `문서 source가 읽는 동안 바뀌었습니다: ${normalized}`,
+        `The document source changed while it was being read: ${normalized}`,
       );
     }
     return bytes;
@@ -128,7 +128,7 @@ export async function readStableFile(
     if (error instanceof DocumentMigrationError) throw error;
     throw new DocumentMigrationError(
       "unsafe_source",
-      `문서 source를 안전하게 읽을 수 없습니다: ${normalized}`,
+      `The document source cannot be read safely: ${normalized}`,
       { cause: error },
     );
   } finally {

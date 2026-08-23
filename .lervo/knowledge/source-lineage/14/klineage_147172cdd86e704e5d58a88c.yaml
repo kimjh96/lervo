@@ -1,0 +1,11 @@
+fromPath: docs/adr/0139-conversation-queue-managed-deliberation-binding.md
+identityPath: docs/adr/0139-conversation-queue-managed-deliberation-binding.md
+kind: document_move
+lineageId: klineage_147172cdd86e704e5d58a88c
+operationId: kdocop_51cab6bc321a8364890a02df
+schemaVersion: 1
+sourceContentHash: sha256:dc65282eeef0efb35505501375c60d1e02d3269c4c88a336f7f0274da04e0eb2
+sourceId: src_f6bb22b43025acc98a0a502a
+sourceUnitBindingDigest: sha256:1186379e77657a5ed5a8ecc1c5ae34f45487adc84b2d09c1072d515efc5534a5
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0139-conversation-queue-managed-deliberation-binding.md

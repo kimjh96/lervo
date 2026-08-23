@@ -41,7 +41,7 @@ export class SQLiteOutboxRepository {
     if (availableAt < enqueuedAt) {
       throw new EventStoreError(
         "invalid_outbox_request",
-        "availableAt은 enqueuedAt보다 빠를 수 없습니다.",
+        "availableAt cannot be earlier than enqueuedAt.",
       );
     }
     const existing = this.database
@@ -52,7 +52,7 @@ export class SQLiteOutboxRepository {
     if (!event) {
       throw new EventStoreError(
         "outbox_not_found",
-        `outbox에 넣을 event ${eventId}가 없습니다.`,
+        `Event ${eventId} to enqueue in the outbox is missing.`,
       );
     }
     this.database
@@ -132,7 +132,7 @@ export class SQLiteOutboxRepository {
       if (result.changes !== 1) continue;
       const row = read.get(eventId, selectedDestination);
       if (!row) {
-        throw new EventStoreError("integrity_failed", "lease한 outbox 항목을 읽을 수 없습니다.");
+        throw new EventStoreError("integrity_failed", "The leased outbox item cannot be read.");
       }
       deliveries.push(rowToOutboxDelivery(row));
     }
@@ -147,19 +147,19 @@ export class SQLiteOutboxRepository {
     const row = this.database
       .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
       .get(eventId, destinationId);
-    if (!row) throw new EventStoreError("outbox_not_found", "ack할 outbox 항목이 없습니다.");
+    if (!row) throw new EventStoreError("outbox_not_found", "The outbox item to acknowledge is missing.");
     if (row.acknowledged_at !== null) return { acknowledged: false };
     if (
       row.lease_owner !== workerId ||
       typeof row.lease_started_at !== "string" ||
       typeof row.lease_expires_at !== "string"
     ) {
-      throw new EventStoreError("outbox_lease_conflict", "현재 worker가 가진 lease가 아닙니다.");
+      throw new EventStoreError("outbox_lease_conflict", "The lease is not held by the current worker.");
     }
     if (acknowledgedAt < row.lease_started_at || row.lease_expires_at <= acknowledgedAt) {
       throw new EventStoreError(
         "outbox_lease_conflict",
-        "lease 유효 구간 밖의 시각으로 ack할 수 없습니다.",
+        "The item cannot be acknowledged at a time outside the lease validity interval.",
       );
     }
     this.database
@@ -183,13 +183,13 @@ export class SQLiteOutboxRepository {
     if (availableAt < failedAt) {
       throw new EventStoreError(
         "invalid_outbox_request",
-        "availableAt은 failedAt보다 빠를 수 없습니다.",
+        "availableAt cannot be earlier than failedAt.",
       );
     }
     const row = this.database
       .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
       .get(eventId, destinationId);
-    if (!row) throw new EventStoreError("outbox_not_found", "재시도할 outbox 항목이 없습니다.");
+    if (!row) throw new EventStoreError("outbox_not_found", "The outbox item to retry is missing.");
     if (
       row.acknowledged_at !== null ||
       row.lease_owner !== workerId ||
@@ -200,7 +200,7 @@ export class SQLiteOutboxRepository {
     ) {
       throw new EventStoreError(
         "outbox_lease_conflict",
-        "현재 유효한 lease를 가진 worker만 재시도를 예약할 수 있습니다.",
+        "Only the worker holding the current valid lease can schedule a retry.",
       );
     }
     this.database
@@ -252,7 +252,7 @@ export class SQLiteOutboxRepository {
     else if (status === "leased") clauses.push("o.acknowledged_at IS NULL AND o.lease_owner IS NOT NULL");
     else if (status === "acknowledged") clauses.push("o.acknowledged_at IS NOT NULL");
     else if (status !== undefined) {
-      throw new EventStoreError("invalid_outbox_request", "지원하지 않는 outbox status입니다.");
+      throw new EventStoreError("invalid_outbox_request", "The outbox status is unsupported.");
     }
     const where = clauses.length === 0 ? "" : `WHERE ${clauses.join(" AND ")}`;
     const rows = this.database

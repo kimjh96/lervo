@@ -33,8 +33,8 @@ export async function runSearchEngineStatusCommand(args: string[], io: CliIo): P
     io.stdout(parsed.values.json ? `${JSON.stringify(status, null, 2)}\n` : formatSearchEngineStatus(status));
     return status.resolverState === "ready" ? 0 : 1;
   } catch (error) {
-    io.stderr(`검색 엔진 선택 상태를 읽지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not read search engine selection status. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

@@ -14,11 +14,11 @@ function fail(code, message) {
 
 function descriptor(name, resolution) {
   if (typeof name !== "string" || typeof resolution !== "string") {
-    fail("release_sbom_lock_dependency_invalid", "Lockfile dependency 좌표가 올바르지 않습니다.");
+    fail("release_sbom_lock_dependency_invalid", "The lockfile dependency coordinates are invalid.");
   }
   const version = resolution.split("(", 1)[0];
   if (!semanticVersionPattern.test(version)) {
-    fail("release_sbom_lock_dependency_invalid", "Lockfile dependency version이 올바르지 않습니다.");
+    fail("release_sbom_lock_dependency_invalid", "The lockfile dependency version is invalid.");
   }
   return {
     coordinate: `${name}@${version}`,
@@ -33,11 +33,11 @@ export function pnpmPackageSha512(lockfile, coordinate) {
   const packages = lockfile?.packages;
   const integrity = packages?.[coordinate]?.resolution?.integrity;
   if (typeof integrity !== "string" || !integrity.startsWith("sha512-")) {
-    fail("release_sbom_lock_integrity_missing", "Production dependency integrity가 없습니다.");
+    fail("release_sbom_lock_integrity_missing", "Production dependency integrity is missing.");
   }
   const bytes = Buffer.from(integrity.slice("sha512-".length), "base64");
   if (bytes.byteLength !== 64) {
-    fail("release_sbom_lock_integrity_invalid", "Production dependency integrity가 올바르지 않습니다.");
+    fail("release_sbom_lock_integrity_invalid", "Production dependency integrity is invalid.");
   }
   return bytes.toString("hex");
 }
@@ -45,17 +45,17 @@ export function pnpmPackageSha512(lockfile, coordinate) {
 function entries(value) {
   if (value === undefined) return [];
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    fail("release_sbom_lock_dependency_invalid", "Lockfile dependency 관계가 올바르지 않습니다.");
+    fail("release_sbom_lock_dependency_invalid", "The lockfile dependency relation is invalid.");
   }
   return Object.entries(value);
 }
 
 export function createPnpmProductionGraph(lockfile, importerId = "apps/cli") {
   if (lockfile?.lockfileVersion !== "9.0") {
-    fail("release_sbom_lock_version_unsupported", "지원하지 않는 pnpm lockfile version입니다.");
+    fail("release_sbom_lock_version_unsupported", "The pnpm lockfile version is unsupported.");
   }
   const importer = lockfile.importers?.[importerId];
-  if (!importer) fail("release_sbom_lock_importer_missing", "CLI lockfile importer가 없습니다.");
+  if (!importer) fail("release_sbom_lock_importer_missing", "The CLI lockfile importer is missing.");
 
   const nodes = new Map();
   const visitedStates = new Set();
@@ -64,7 +64,7 @@ export function createPnpmProductionGraph(lockfile, importerId = "apps/cli") {
     if (visitedStates.has(stateKey)) return;
     visitedStates.add(stateKey);
     const snapshot = lockfile.snapshots?.[item.snapshotKey];
-    if (!snapshot) fail("release_sbom_lock_snapshot_missing", "Dependency snapshot이 없습니다.");
+    if (!snapshot) fail("release_sbom_lock_snapshot_missing", "A dependency snapshot is missing.");
 
     const current = nodes.get(item.coordinate) ?? {
       coordinate: item.coordinate,
@@ -95,7 +95,7 @@ export function createPnpmProductionGraph(lockfile, importerId = "apps/cli") {
     return item.coordinate;
   }).sort();
   if (roots.length === 0) {
-    fail("release_sbom_lock_roots_missing", "CLI production dependency가 없습니다.");
+    fail("release_sbom_lock_roots_missing", "The CLI has no production dependencies.");
   }
 
   return {

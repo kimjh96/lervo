@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_269717d720b6f084dca9451b
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0042-durable-remote-command-delivery.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_83e445f319de7b934d8ced6f
+title: "ADR-0042: Durable remote-command delivery across restart and lost responses"
+type: decision

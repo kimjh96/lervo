@@ -30,7 +30,7 @@ try {
     error instanceof ReleaseAttestationVerificationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_package_metadata_apply_unexpected: CLI 최초 게시 package metadata 적용을 완료하지 못했습니다.",
+    "first_publication_package_metadata_apply_unexpected: The CLI first-publication package metadata apply could not be completed.",
   );
   process.exitCode = 1;
 }

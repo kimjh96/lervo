@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1cc7c1e464b4701281e74243
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0027-deliberation-boundary-hardening.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b0cf579b3b3921c6309b70cb
+title: "ADR-0027: Deliberation boundary hardening before runtime"
+type: decision

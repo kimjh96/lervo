@@ -9,7 +9,7 @@ import { ReleaseAttestationVerificationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_activation_blocker_arguments_invalid",
-    "CLI 최초 게시 활성화 차단 보고서 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication activation-blocker report command arguments are invalid.",
   );
 }
 
@@ -31,7 +31,7 @@ try {
     error instanceof ReleaseAttestationVerificationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_activation_blocker_failed: CLI 최초 게시 활성화 차단 항목을 확인하지 못했습니다.",
+    "first_publication_activation_blocker_failed: CLI first-publication activation blockers could not be determined.",
   );
   process.exitCode = 1;
 }

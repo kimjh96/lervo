@@ -153,6 +153,6 @@ describe("conversation participation", () => {
 
   it("rejects a policy that does not cover the conversation before work starts", () => {
     const other = policy({ conversationIds: ["cnv_other001"] });
-    expect(() => decide({ policy: other })).toThrow(/좌표/);
+    expect(() => decide({ policy: other })).toThrow(/coordinates/);
   });
 });

@@ -33,7 +33,7 @@ export class VerifiedConversationPublication implements ConversationPublicationV
     ) {
       throw new ManagedConversationResponseError(
         "writing_publication_blocked",
-        "대화 응답의 내용 좌표와 writing 공개 증거가 다릅니다.",
+        "The conversation response content coordinates differ from the writing publication evidence.",
       );
     }
     const contract = await this.options.resolveWritingContract({

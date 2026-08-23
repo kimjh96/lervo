@@ -1,0 +1,11 @@
+fromPath: docs/adr/0093-cli-release-attestation-boundary.md
+identityPath: docs/adr/0093-cli-release-attestation-boundary.md
+kind: document_move
+lineageId: klineage_b02f3d55bca8855d4650506a
+operationId: kdocop_470fa810fc0f2c51e55ea6c2
+schemaVersion: 1
+sourceContentHash: sha256:6c18cde8e6cb730aea51165fec27d423b04ec9da127ed51b1fb41f0128a19961
+sourceId: src_323e46eda8a2768388b5c053
+sourceUnitBindingDigest: sha256:34d90a52d71d1fe192fa5d0513fc1ba480e015a414982306e3c2dd3044987879
+sourceUnitCount: 7
+toPath: docs/decisions/release/assurance/0093-cli-release-attestation-boundary.md

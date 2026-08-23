@@ -1,0 +1,11 @@
+fromPath: docs/adr/0086-canonical-cli-release-artifact-manifest.md
+identityPath: docs/adr/0086-canonical-cli-release-artifact-manifest.md
+kind: document_move
+lineageId: klineage_cae7a5e99f47f8238ebd54b4
+operationId: kdocop_1dbfbb76e64744c861cd341a
+schemaVersion: 1
+sourceContentHash: sha256:fe311af112f373c5b78d3811ccad588e300c2ef21e8cb2e30e5b17d82cb92436
+sourceId: src_4a667915b0eebc36b4f7dea1
+sourceUnitBindingDigest: sha256:4bd805d705bc66c7237857bdc34352e4eeb9984728111da1efc4be9ae62ad06a
+sourceUnitCount: 5
+toPath: docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md

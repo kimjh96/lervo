@@ -26,7 +26,7 @@ async function addPackage(packages, packageRoot) {
   if (typeof manifest.name !== "string" || typeof manifest.version !== "string") {
     throw new ReleaseArtifactManifestError(
       "release_artifact_dependency_invalid",
-      "설치된 dependency identity가 올바르지 않습니다.",
+      "The installed dependency identity is invalid.",
     );
   }
   packages.set(`${manifest.name}@${manifest.version}`, manifest);
@@ -101,7 +101,7 @@ export function classifyDependencies(packages, expectedFamilies, updateMode) {
     )) {
       throw new ReleaseArtifactManifestError(
         "release_artifact_platform_dependency_unexpected",
-        "허용되지 않은 platform 전용 dependency가 설치되었습니다.",
+        "A disallowed platform-specific dependency is installed.",
       );
     }
   }

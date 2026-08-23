@@ -1,0 +1,11 @@
+fromPath: docs/adr/0118-cli-stage-publication-command-boundary.md
+identityPath: docs/adr/0118-cli-stage-publication-command-boundary.md
+kind: document_move
+lineageId: klineage_04d849a9c9713d9999234e88
+operationId: kdocop_619787ed6830a07597b24a5f
+schemaVersion: 1
+sourceContentHash: sha256:b92b0a4ef67882ac2eb6a12c039a000a0bca666f0dcafebbd27d88e6e86c6bfc
+sourceId: src_f69755244ba27a95bd890a03
+sourceUnitBindingDigest: sha256:c2497db2afb99da622d9e6cff19d8545f3240523f2b219eb3f1be67884a57b9c
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md

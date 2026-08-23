@@ -25,6 +25,9 @@ export function recommendedContextEventSpecs(loaded: LoadedContext): ManagedEven
         selectionPolicyId: evidence.selectionPolicyId,
         selectionPolicyVersion: evidence.selectionPolicyVersion,
         selectionMaximum: evidence.selectionMaximum,
+        ...(evidence.knowledgeContext === undefined
+          ? {}
+          : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
       },
     }));
 }

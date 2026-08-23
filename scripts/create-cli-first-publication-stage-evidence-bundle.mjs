@@ -22,7 +22,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_stage_evidence_bundle_unexpected: " +
-    "CLI 최초 게시 stage 증거 묶음을 만들지 못했습니다.",
+    "The CLI first-publication stage evidence bundle could not be created.",
   );
   process.exitCode = 1;
 }

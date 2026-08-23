@@ -3,11 +3,13 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
 const licenseMaximumLength = 128;
+export const cliEnglishDescription =
+  "Lervo CLI for managing AI agent execution and evidence in local repositories";
 
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_metadata_decision_invalid",
-    "CLI 최초 게시 metadata 결정 입력이 올바르지 않습니다.",
+    "The CLI first-publication metadata decision input is invalid.",
   );
 }
 
@@ -36,6 +38,7 @@ function decisionBody({ repository, license, scopeOwnerKind, scopeOwnerName }) {
     authority: "preview_only",
     target: {
       package: "@lervo/cli",
+      description: cliEnglishDescription,
       repository: validatedRepository,
       license: validateLicense(license),
       scopeOwner: { kind: scopeOwnerKind, name: scopeOwnerName },

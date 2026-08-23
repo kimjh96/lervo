@@ -47,9 +47,10 @@ async function repository(): Promise<string> {
   roots.push(root);
   expect(await runCli(["init"], { cwd: root, stdout: () => undefined, stderr: () => undefined })).toBe(0);
   await mkdir(resolve(root, "docs"));
+  await mkdir(resolve(root, ".lervo/documents"));
   await writeFile(
     resolve(root, "docs/search-evaluation.md"),
-    "# 운영 안내\n\n검색 실패는 사람이 직접 평가합니다.\n",
+    "# Operations guide\n\nEvaluate alphafailure directly.\n",
   );
   await writeFile(
     resolve(root, ".lervo/documents/doc_search_eval_guide.yaml"),
@@ -76,7 +77,7 @@ afterEach(async () => {
 describe("lervo search reusable evaluation", () => {
   it("records one reviewed case per file and detects a later lexical regression", async () => {
     const root = await repository();
-    const query = "검색 실패는 사람이 직접 평가합니다";
+    const query = "alphafailure";
     const searched = await jsonCommand(root, ["search", query, "--json"]);
     expect(searched.code, searched.error).toBe(0);
     const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
@@ -102,7 +103,7 @@ describe("lervo search reusable evaluation", () => {
     expect(JSON.parse(passing.output).run).toMatchObject({ passedCases: 1, failedCases: 0, regressions: 0 });
     expect(passing.output).not.toContain(query);
 
-    await writeFile(resolve(root, "docs/search-evaluation.md"), "# 전혀 다른 안내\n\n관련 없는 내용입니다.\n");
+    await writeFile(resolve(root, "docs/search-evaluation.md"), "# Entirely different guide\n\nUnrelated content.\n");
     const regressed = await jsonCommand(root, ["search", "evaluate", "--json"]);
     expect(regressed.code).toBe(1);
     expect(regressed.error).toBe("");
@@ -125,7 +126,7 @@ describe("lervo search reusable evaluation", () => {
 
   it("does not invent a reusable answer for a failed assessment without an expected source", async () => {
     const root = await repository();
-    const query = "존재하지 않는 검색어";
+    const query = "quasar zephyr";
     const searched = await jsonCommand(root, ["search", query, "--json"]);
     const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
     expect((await jsonCommand(root, [
@@ -134,14 +135,13 @@ describe("lervo search reusable evaluation", () => {
 
     const created = await jsonCommand(root, ["search", "case", attemptId, "--query", query]);
     expect(created.code).toBe(1);
-    expect(created.error).toContain("평가자가 기대하거나 수락한 원본만");
-    await expect(access(resolve(root, ".lervo/search-evaluations"))).resolves.toBeUndefined();
-    expect(await readdir(resolve(root, ".lervo/search-evaluations"))).toEqual([]);
+    expect(created.error).toContain("Only sources expected or accepted by the reviewer");
+    await expect(access(resolve(root, ".lervo/search-evaluations"))).rejects.toThrow();
   });
 
   it("rejects a changed case instead of publishing a partial evaluation run", async () => {
     const root = await repository();
-    const query = "검색 실패는 사람이 직접 평가합니다";
+    const query = "alphafailure";
     const searched = await jsonCommand(root, ["search", query, "--json"]);
     const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
     expect((await jsonCommand(root, [

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a78da97ad148ebbb4e569f8f
+freshness: current
+ownership: lervo_generated
+path: docs/knowledge/specifications.md
+publicationLanguage: en
+publicationProfile: reference
+publicationStatus: draft
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_5b3c29c2ced92170ff4429b1
+title: Specifications and reference
+type: concept

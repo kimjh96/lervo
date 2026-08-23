@@ -1,0 +1,11 @@
+fromPath: docs/adr/0138-durable-conversation-deliberation-queue.md
+identityPath: docs/adr/0138-durable-conversation-deliberation-queue.md
+kind: document_move
+lineageId: klineage_fe07114bb461beeaf166fb71
+operationId: kdocop_2c7a070eaa0a53094f5a12c7
+schemaVersion: 1
+sourceContentHash: sha256:aa7cce48b6ca9fade0baa27b337255ef61630433c5aec90978151b902c2c380d
+sourceId: src_0caeca464dd44bbfc5c4da63
+sourceUnitBindingDigest: sha256:88e07f35379664bb51a5dfd1472766b20f8fd2305181a3e50286c68a4ae24332
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0138-durable-conversation-deliberation-queue.md

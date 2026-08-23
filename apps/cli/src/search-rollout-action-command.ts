@@ -54,7 +54,7 @@ async function runPolicyCreate(args: string[], io: CliIo): Promise<number> {
   if (parsed.values["review-policy"] === undefined || action === undefined || operators.length === 0 ||
     parsed.values.author === undefined ||
     (action === "execute_rollback") !== (parsed.values["engine-policy"] !== undefined)) {
-    io.stderr(`review-policy, keep|rollback 조치, operator와 author가 필요하며 rollback에는 engine-policy가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`review-policy, a keep|rollback action, operator, and author are required; rollback also requires engine-policy.\n${searchUsage}\n`);
     return 1;
   }
   try {
@@ -68,7 +68,7 @@ async function runPolicyCreate(args: string[], io: CliIo): Promise<number> {
     ]);
     if (rolloutPolicy.projectId !== manifest.projectId ||
       (enginePolicy !== undefined && enginePolicy.projectId !== manifest.projectId)) {
-      throw new Error("조치 정책 원본의 project 좌표가 현재 프로젝트와 다릅니다.");
+      throw new Error("The action policy source project coordinate does not match the current project.");
     }
     const policy = createSearchRolloutActionPolicy({
       rolloutPolicy,
@@ -84,8 +84,8 @@ async function runPolicyCreate(args: string[], io: CliIo): Promise<number> {
       : formatSearchRolloutActionPolicy(policy));
     return 0;
   } catch (error) {
-    io.stderr(`검색 rollout 조치 정책을 만들지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not create the search rollout action policy. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }
@@ -113,7 +113,7 @@ async function runApply(args: string[], io: CliIo): Promise<number> {
   const action = parsed.values.action === undefined ? undefined : actions[parsed.values.action];
   if (parsed.positionals.length !== 1 || action === undefined || parsed.values.policy === undefined ||
     parsed.values.operator === undefined) {
-    io.stderr(`rollout 검토 ID, keep|rollback 조치, action policy와 operator가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A rollout review ID, keep|rollback action, action policy, and operator are required.\n${searchUsage}\n`);
     return 1;
   }
   try {
@@ -132,8 +132,8 @@ async function runApply(args: string[], io: CliIo): Promise<number> {
     io.stdout(parsed.values.json ? `${JSON.stringify(result, null, 2)}\n` : formatSearchRolloutActionResult(result));
     return 0;
   } catch (error) {
-    io.stderr(`검색 rollout 조치를 적용하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not apply the search rollout action. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }
@@ -144,6 +144,6 @@ export async function runSearchRolloutActionCommand(args: string[], io: CliIo): 
   if (args[0] === "apply") return runApply(args.slice(1), io);
   if (args[0] === "check") return runSearchRolloutActionCheckCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchRolloutActionStatusCommand(args.slice(1), io);
-  io.stderr(`검색 rollout 조치는 policy create, apply, check 또는 status를 명시해야 합니다.\n${searchUsage}\n`);
+  io.stderr(`Search rollout action requires policy create, apply, check, or status.\n${searchUsage}\n`);
   return 1;
 }

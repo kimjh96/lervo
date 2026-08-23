@@ -31,7 +31,7 @@ const leaseConfiguration: LeaseStoreConfiguration<
   table: "conversation_deliberation_resume_jobs",
   leasePrefix: "cdr",
   expiredFailureCode: "resume_worker_lease_expired",
-  label: "Conversation 숙의 재개 queue",
+  label: "conversation deliberation resume queue",
   decode: decodeConversationDeliberationResumeJob,
 };
 
@@ -72,7 +72,7 @@ implements ConversationDeliberationResumeJobStore {
 
   async enqueue(input: Parameters<ConversationDeliberationResumeJobStore["enqueue"]>[0]) {
     this.assertOpen();
-    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "숙의 재개 요청");
+    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "deliberation resume request");
     const candidate = decodeConversationDeliberationResumeJob({
       project_id: input.projectId,
       source_event_id: input.sourceEventId,
@@ -104,7 +104,7 @@ implements ConversationDeliberationResumeJobStore {
           existing.deliberationId !== input.deliberationId) {
           throw new ConversationDeliberationSQLiteError(
             "deliberation_resume_conflict",
-            "같은 Conversation event가 다른 숙의 재개 요청에 사용되었습니다.",
+            "The same conversation event was used for a different deliberation resume request.",
           );
         }
         this.database.exec("COMMIT;");
@@ -117,7 +117,7 @@ implements ConversationDeliberationResumeJobStore {
       if (sameDeliberation !== undefined) {
         throw new ConversationDeliberationSQLiteError(
           "deliberation_resume_conflict",
-          "이 숙의에는 이미 별도 재개 요청이 있습니다.",
+          "This deliberation already has a different resume request.",
         );
       }
       const count = this.database.prepare(
@@ -126,13 +126,13 @@ implements ConversationDeliberationResumeJobStore {
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new ConversationDeliberationSQLiteError(
           "integrity_failed",
-          "Conversation 숙의 재개 queue count가 유효하지 않습니다.",
+          "The conversation deliberation resume queue count is invalid.",
         );
       }
       if (count >= this.maxRecords) {
         throw new ConversationDeliberationSQLiteError(
           "capacity_exceeded",
-          "Conversation 숙의 재개 queue capacity를 초과했습니다.",
+          "The conversation deliberation resume queue capacity was exceeded.",
         );
       }
       this.database.prepare(`
@@ -209,7 +209,7 @@ implements ConversationDeliberationResumeJobStore {
     if (input.summary.status === "interrupted" || input.summary.status === "unknown") {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
-        "Conversation 숙의 재개 queue 대조 결과가 종료 상태가 아닙니다.",
+        "The conversation deliberation resume queue reconciliation result is not terminal.",
       );
     }
     reconcileConversationDeliberationRecord(this.database, input, {
@@ -244,7 +244,7 @@ implements ConversationDeliberationResumeJobStore {
   private assertOpen(): void {
     if (this.closed) throw new ConversationDeliberationSQLiteError(
       "closed",
-      "닫힌 Conversation 숙의 재개 queue입니다.",
+      "The conversation deliberation resume queue is closed.",
     );
   }
 

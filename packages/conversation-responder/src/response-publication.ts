@@ -20,7 +20,7 @@ export async function publishConversationResponse(input: {
   if (input.run.resultArtifact.byteCount > 65_536) {
     throw new ManagedConversationResponseError(
       "writing_publication_blocked",
-      "대화 응답이 공개 가능한 최대 크기를 넘었습니다.",
+      "The conversation response exceeds the maximum publishable size.",
     );
   }
   const publication = await evaluateWritingPublication({
@@ -33,7 +33,7 @@ export async function publishConversationResponse(input: {
   if (publication.status !== "allowed") {
     throw new ManagedConversationResponseError(
       "writing_publication_blocked",
-      "Writing 검증을 통과하지 못한 provider 결과는 대화에 공개할 수 없습니다.",
+      "A provider result that fails writing verification cannot be published to a conversation.",
     );
   }
   await readPublishableWritingArtifact({

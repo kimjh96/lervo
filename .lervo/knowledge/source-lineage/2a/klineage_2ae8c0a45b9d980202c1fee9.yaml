@@ -1,0 +1,11 @@
+fromPath: docs/adr/0136-platform-neutral-conversation-deliberation-control.md
+identityPath: docs/adr/0136-platform-neutral-conversation-deliberation-control.md
+kind: document_move
+lineageId: klineage_2ae8c0a45b9d980202c1fee9
+operationId: kdocop_6cbc9cc549c029e1725158ef
+schemaVersion: 1
+sourceContentHash: sha256:e5385d01b6a8cde3e411093e70e23f2bdfdb7bd1676cfb99786293d8f2ffc7cf
+sourceId: src_616406f7260d00ce2eb4a150
+sourceUnitBindingDigest: sha256:69453414923f95ff434c9e9cf15c1c5e7a5d3ee7f07b607119d4f14d00e85495
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0136-platform-neutral-conversation-deliberation-control.md

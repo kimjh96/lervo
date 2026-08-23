@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a3a40d819fc44414b160c7a2
+freshness: current
+ownership: user
+path: docs/decisions/operations/diagnostics/0075-versioned-doctor-report-contract.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c94ac345dd7070ddec5d9e77
+title: "ADR-0075: Versioned doctor-report compatibility contract"
+type: decision

@@ -9,7 +9,7 @@ export function validateDeliberationPolicy(
     throw new DeliberationError(
       "policy_contract_invalid",
       "policy_schema_invalid",
-      "숙의 정책이 schema를 통과하지 못했습니다.",
+      "The deliberation policy does not satisfy its schema.",
     );
   }
   const roleIds = policy.participants.map((participant) => participant.roleId);
@@ -34,7 +34,7 @@ export function validateDeliberationPolicy(
     throw new DeliberationError(
       "policy_contract_invalid",
       "policy_role_assignment_invalid",
-      "숙의 정책의 역할은 중복 없이 제안자, 독립 검토자, 검증자와 결정 책임자를 지정해야 합니다.",
+      "Deliberation policy roles must assign distinct proposer, independent reviewer, verifier, and decision owner responsibilities.",
     );
   }
 }

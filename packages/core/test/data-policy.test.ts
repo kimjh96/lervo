@@ -127,7 +127,7 @@ describe("M0 data policy and failure semantics", () => {
       audienceMode: "project",
       allowedRoleIds: [],
       expiresAt: null,
-      documentBody: "공유 원문을 event에 복제하면 안 됩니다.",
+      documentBody: "Shared source text must not be copied into events.",
     });
     const handoff = sanitizeEventPayload("handoff.created", {
       handoffId: "hnd_research_marketing",
@@ -136,7 +136,7 @@ describe("M0 data policy and failure semantics", () => {
       sharedContextIds: ["scx_research_finding"],
       evidenceEventIds: ["evt_research_source"],
       requestDigest: "sha256:def",
-      rawPrompt: "이 요청 원문도 event에 남기면 안 됩니다.",
+      rawPrompt: "This request source text must not remain in events either.",
     });
 
     expect(published.payload).not.toHaveProperty("documentBody");

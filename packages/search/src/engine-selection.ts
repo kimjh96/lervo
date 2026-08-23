@@ -38,13 +38,13 @@ export function sameSearchEngineSelection(left: SearchEngineSelection, right: Se
 
 export function assertSearchEngineSelection(selection: SearchEngineSelection): void {
   if (typeof selection !== "object" || selection === null || !["baseline", "candidate"].includes(selection.mode)) {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 선택 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine selection coordinates are invalid.");
   }
   assertSearchEngineIdentity(selection.engine, "invalid_engine_activation");
   if (selection.mode === "baseline") {
     if (selection.candidateId !== null || selection.reviewId !== null || selection.comparisonId !== null ||
       !sameSearchEngine(selection.engine, SEARCH_ENGINE)) {
-      throw new SearchError("invalid_engine_activation", "Baseline 검색 엔진 선택 좌표가 유효하지 않습니다.");
+      throw new SearchError("invalid_engine_activation", "The baseline search engine selection coordinates are invalid.");
     }
     return;
   }
@@ -52,6 +52,6 @@ export function assertSearchEngineSelection(selection: SearchEngineSelection): v
     selection.reviewId === null || !SEARCH_CANDIDATE_REVIEW_PATTERN.test(selection.reviewId) ||
     selection.comparisonId === null || !SEARCH_EVALUATION_COMPARISON_PATTERN.test(selection.comparisonId) ||
     sameSearchEngine(selection.engine, SEARCH_ENGINE)) {
-    throw new SearchError("invalid_engine_activation", "후보 검색 엔진 선택 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The candidate search engine selection coordinates are invalid.");
   }
 }

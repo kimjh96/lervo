@@ -117,8 +117,8 @@ describe("first-publication completion inspection", () => {
       assert.deepEqual(await readFile(value.transitionReceiptPath), beforeReceipt);
 
       const text = formatFirstPublicationCompletionInspection(report);
-      assert.match(text, /남은 수동 조치: 없음/u);
-      assert.match(text, /외부 상태.*다시 조회하지 않음/u);
+      assert.match(text, /Remaining manual actions: none/u);
+      assert.match(text, /external state: not queried again/u);
       assert.equal(text.includes("sha256:"), false);
       assert.equal(text.includes(value.stage.root), false);
     } finally {

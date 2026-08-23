@@ -77,5 +77,5 @@ if (failures.length > 0) {
   console.error([...new Set(failures)].join("\n"));
   process.exitCode = 1;
 } else {
-  console.log(`패키지 production 경계 검사 통과 (${manifests.size}개 package)`);
+  console.log(`Package production-boundary check passed (${manifests.size} packages)`);
 }

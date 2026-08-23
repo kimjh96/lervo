@@ -31,7 +31,7 @@ export async function runSearchEvaluateCommand(args: string[], io: CliIo): Promi
     return 1;
   }
   if (parsed.positionals.length !== 0) {
-    io.stderr(`evaluate에는 다른 인자를 지정할 수 없습니다.\n${searchUsage}\n`);
+    io.stderr(`evaluate does not accept additional arguments.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -42,7 +42,7 @@ export async function runSearchEvaluateCommand(args: string[], io: CliIo): Promi
       const cases = await loadSearchEvaluationCases(root);
       const bundles = await loadSearchEvaluationBundles({ repositoryRoot: root, cases });
       const bundle = bundles.find((item) => item.bundleId === parsed.values.bundle);
-      if (bundle === undefined) throw new Error("검색 평가 묶음을 찾을 수 없습니다.");
+      if (bundle === undefined) throw new Error("Could not find the search evaluation bundle.");
       coverage = createSearchEvaluationCoverage(bundle, cases);
     }
     const output = await runLocalSearchEvaluation({
@@ -56,8 +56,8 @@ export async function runSearchEvaluateCommand(args: string[], io: CliIo): Promi
       : `${coverage === null ? "" : formatSearchEvaluationCoverage(coverage)}${formatSearchEvaluationRun(output.run)}`);
     return output.run.failedCases === 0 && coverage?.sampleState !== "insufficient" ? 0 : 1;
   } catch (error) {
-    io.stderr(`검색 반복 평가를 완료하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not complete the search replay evaluation. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

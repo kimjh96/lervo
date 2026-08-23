@@ -13,7 +13,7 @@ export function remoteCommandTimestamp(value: string, label: string): number {
   if (!Number.isFinite(milliseconds) || milliseconds < 0) {
     throw new HubSyncStoreError(
       "remote_command_conflict",
-      `remote command ${label}이 유효하지 않습니다.`,
+      `The remote command ${label} is invalid.`,
     );
   }
   return milliseconds;
@@ -26,7 +26,7 @@ export function parseStoredRemoteCommandEnvelope(row: SQLiteRow): SignedRemoteCo
   } catch (error) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub remote command envelope 원본이 유효하지 않습니다.",
+      "The Hub remote command envelope source is invalid.",
       { cause: error },
     );
   }
@@ -36,7 +36,7 @@ export function parseStoredRemoteCommandEnvelope(row: SQLiteRow): SignedRemoteCo
   ) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub remote command 중복 좌표가 envelope과 다릅니다.",
+      "The duplicate Hub remote command coordinates differ from the envelope.",
     );
   }
   return structuredClone(envelope);
@@ -46,7 +46,7 @@ export function parseRemoteCommandQueueStatus(
   value: string,
 ): HubRemoteCommandDeliveryState["status"] {
   if (!["pending", "leased", "completed", "rejected", "expired"].includes(value)) {
-    throw new HubSyncStoreError("integrity_failed", "Hub remote command 상태가 유효하지 않습니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub remote command state is invalid.");
   }
   return value as HubRemoteCommandDeliveryState["status"];
 }

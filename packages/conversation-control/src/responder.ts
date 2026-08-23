@@ -16,7 +16,7 @@ import { ConversationControlError } from "./types.js";
 function timestamp(now: () => Date): string {
   const value = now();
   if (!Number.isFinite(value.getTime())) {
-    throw new ConversationControlError("control_command_invalid", "Conversation control 시각이 유효하지 않습니다.");
+    throw new ConversationControlError("control_command_invalid", "The conversation control time is invalid.");
   }
   return value.toISOString();
 }
@@ -34,7 +34,7 @@ async function readMessage(options: ConversationControlResponderOptions,
   } catch (error) {
     throw new ConversationControlError(
       "message_artifact_invalid",
-      "Control 명령 원문을 안전하게 읽지 못했습니다.",
+      "Could not read the control command source safely.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
@@ -66,7 +66,7 @@ export class ConversationControlResponder {
     if (parsed === null) {
       throw new ConversationControlError(
         "control_command_invalid",
-        "명시적인 Lervo control 명령이 아닙니다.",
+        "This is not an explicit Lervo control command.",
       );
     }
     const inspectedAt = timestamp(this.now);
@@ -89,7 +89,7 @@ export class ConversationControlResponder {
     if (publication.status !== "allowed") {
       throw new ConversationControlError(
         "writing_publication_blocked",
-        "Hub control 응답이 writing 공개 검증을 통과하지 못했습니다.",
+        "The Hub control response did not pass writing publication verification.",
       );
     }
     await readPublishableWritingArtifact({

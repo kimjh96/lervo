@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_066ab3e149ed1c948b47c0f5
+freshness: current
+ownership: user
+path: docs/decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_70eafd94b5e2d8d55b4d375c
+title: "ADR-0094: Consumer verification of CLI release attestations"
+type: decision

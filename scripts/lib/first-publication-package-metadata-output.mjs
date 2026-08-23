@@ -2,6 +2,7 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 import { canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 
 const allowedFields = [
+  "description",
   "repository",
   "license",
   "publishConfig.registry",
@@ -11,12 +12,13 @@ const allowedFields = [
 function fail(code = "first_publication_package_metadata_candidate_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 package metadata 후보가 올바르지 않습니다.",
+    "The CLI first-publication package metadata candidate is invalid.",
   );
 }
 
 function withoutAllowedFields(value) {
   const copy = structuredClone(value);
+  delete copy.description;
   delete copy.repository;
   delete copy.license;
   if (copy.publishConfig !== null && typeof copy.publishConfig === "object") {
@@ -31,7 +33,7 @@ function applyChange(output, change) {
     change?.source !== "package_manifest" || change.operation !== "set" ||
     !allowedFields.includes(change.field)
   ) fail();
-  if (change.field === "repository" || change.field === "license") {
+  if (change.field === "description" || change.field === "repository" || change.field === "license") {
     output[change.field] = structuredClone(change.value);
     return;
   }

@@ -155,7 +155,7 @@ export function inspectManagedWriteRequestBinding(input: {
   ) {
     violations.push({
       code: "write_coordinates_mismatch",
-      detail: "Managed write 요청이 현재 session과 turn 좌표에 묶이지 않았습니다.",
+      detail: "The managed write request is not bound to the current session and turn coordinates.",
     });
   }
   if (
@@ -165,7 +165,7 @@ export function inspectManagedWriteRequestBinding(input: {
   ) {
     violations.push({
       code: "write_request_time_invalid",
-      detail: "Managed write 요청 시각이 turn 수락 시각보다 빠릅니다.",
+      detail: "The managed write request time precedes the turn acceptance time.",
     });
   }
   return { passed: violations.length === 0, violations };
@@ -181,7 +181,7 @@ export function inspectManagedWriteDecisionBinding(input: {
   if (!sameCoordinates(coordinates(input.request), input.decision)) {
     violations.push({
       code: "write_response_mismatch",
-      detail: "Managed write 결정이 요청 좌표와 다릅니다.",
+      detail: "The managed write decision does not match the request coordinates.",
     });
   }
   if (
@@ -191,7 +191,7 @@ export function inspectManagedWriteDecisionBinding(input: {
   ) {
     violations.push({
       code: "write_response_time_invalid",
-      detail: "Managed write 결정 시각이 요청 시각보다 빠릅니다.",
+      detail: "The managed write decision time precedes the request time.",
     });
   }
   if (
@@ -200,7 +200,7 @@ export function inspectManagedWriteDecisionBinding(input: {
   ) {
     violations.push({
       code: "write_decision_invalid",
-      detail: "Managed write 결정과 reason code가 일치하지 않습니다.",
+      detail: "The managed write decision and reason code are inconsistent.",
     });
   }
   return { passed: violations.length === 0, violations };
@@ -217,7 +217,7 @@ export function inspectManagedWriteCompletionBinding(input: {
   if (!sameCoordinates(coordinates(input.request), input.completion)) {
     violations.push({
       code: "write_response_mismatch",
-      detail: "Managed write 완료 보고가 요청 좌표와 다릅니다.",
+      detail: "The managed write completion report does not match the request coordinates.",
     });
   }
   if (
@@ -227,7 +227,7 @@ export function inspectManagedWriteCompletionBinding(input: {
   ) {
     violations.push({
       code: "write_response_time_invalid",
-      detail: "Managed write 완료 시각이 승인 시각보다 빠릅니다.",
+      detail: "The managed write completion time precedes the approval time.",
     });
   }
   return { passed: violations.length === 0, violations };

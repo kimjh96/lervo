@@ -10,6 +10,8 @@ import type {
   DeliberationPolicy,
 } from "@lervo/schemas";
 
+import { deliberationLanguageFor } from "./deliberation-language.js";
+
 function coordinate(prefix: "clm" | "obj", value: string): string {
   return `${prefix}_${createHash("sha256").update(value).digest("hex").slice(0, 16)}`;
 }
@@ -23,13 +25,17 @@ export function reviewDetails(input: {
   contentHash: string;
   claimId: string;
   roleId: string;
+  locale: string;
 }): Extract<DeliberationArtifact, { kind: "objection" }>["details"] {
+  const language = deliberationLanguageFor(input.locale);
   const firstLine = input.content.split(/\r?\n/u).find((line) => line.trim().length > 0)?.trim();
-  if (firstLine === "판정: 승인") {
+  if (firstLine === language.verdict.approved) {
     return { reviewStatus: "approved", objections: [] };
   }
-  if (firstLine !== "판정: 수정 필요") {
-    throw new Error("검토 결과의 첫 문장은 '판정: 승인' 또는 '판정: 수정 필요'여야 합니다.");
+  if (firstLine !== language.verdict.revisionRequired) {
+    throw new Error(
+      `The first review line must be '${language.verdict.approved}' or '${language.verdict.revisionRequired}'.`,
+    );
   }
   return {
     reviewStatus: "changes_requested",

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0002-safe-project-initialization.md
+identityPath: docs/adr/0002-safe-project-initialization.md
+kind: document_move
+lineageId: klineage_ae154ddc2152ef910e562721
+operationId: kdocop_791b715897cd7169919e9b3b
+schemaVersion: 1
+sourceContentHash: sha256:753640a9b5464445e94c80dc698aaedc164ed1cdde2fecd88b328b0a460c9a32
+sourceId: src_df91d555bf03c89eaed8dfbe
+sourceUnitBindingDigest: sha256:3bac162b678a95d48a75e7cfb2421f7775f384181bb7f3924ad7b5f1177a51a5
+sourceUnitCount: 8
+toPath: docs/decisions/foundation/0002-safe-project-initialization.md

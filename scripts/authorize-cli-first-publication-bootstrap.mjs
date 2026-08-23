@@ -11,7 +11,7 @@ import { ReleasePublicationAuthorizationError } from "./lib/release-publication-
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_bootstrap_arguments_invalid",
-    "CLI 최초 게시 bootstrap 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication bootstrap command arguments are invalid.",
   );
 }
 
@@ -59,7 +59,7 @@ try {
   const bootstrap = await authorizeCliFirstPublicationBootstrap(options);
   await writeFirstPublicationBootstrapAuthorization(outputPath, bootstrap);
   console.log(
-    `CLI 최초 게시 bootstrap 승인 결속 완료 (${bootstrap.target.package}@${bootstrap.target.version})`,
+    `CLI first-publication bootstrap approval bound (${bootstrap.target.package}@${bootstrap.target.version})`,
   );
 } catch (error) {
   if (
@@ -70,7 +70,7 @@ try {
     console.error(`${error.code}: ${error.message}`);
   } else {
     console.error(
-      "first_publication_bootstrap_failed: CLI 최초 게시 bootstrap을 준비하지 못했습니다.",
+      "first_publication_bootstrap_failed: The CLI first-publication bootstrap could not be prepared.",
     );
   }
   process.exitCode = 1;

@@ -30,7 +30,7 @@ describe("deliberation document materializer", () => {
       documentId: "doc_materialized01",
       directoryName: "artifact-materialized01",
       filename: "content.md",
-      content: "검증된 내용입니다.\n",
+      content: "Verified content.\n",
       sourceId: "artifact:materialized01",
     });
 
@@ -38,9 +38,9 @@ describe("deliberation document materializer", () => {
       ".lervo/state/deliberations/dlb_test0001/artifact-materialized01/content.md",
     );
     await expect(readFile(resolve(paths.repositoryRoot, record.path), "utf8"))
-      .resolves.toBe("검증된 내용입니다.\n");
+      .resolves.toBe("Verified content.\n");
     if (record.ownership.mode !== "lervo_generated") {
-      throw new Error("생성 문서 ownership이 다릅니다.");
+      throw new Error("Generated document ownership differs.");
     }
     await expect(readFile(resolve(paths.repositoryRoot, record.ownership.manifestPath), "utf8"))
       .resolves.toContain('"documentId": "doc_materialized01"');
@@ -52,19 +52,19 @@ describe("deliberation document materializer", () => {
       ...paths,
       createdAt: "2026-08-22T00:00:00.000Z",
       documentId: "doc_materialized01",
-      content: "내용\n",
+      content: "Content\n",
       sourceId: "artifact:materialized01",
     };
     await expect(materializeDeliberationDocument({
       ...base,
       directoryName: "../escaped",
       filename: "content.md",
-    })).rejects.toThrow("단일 경로");
+    })).rejects.toThrow("safe single path segment");
     await expect(materializeDeliberationDocument({
       ...base,
       directoryName: "artifact-materialized01",
       filename: "../escaped.md",
-    })).rejects.toThrow("단일 경로");
+    })).rejects.toThrow("safe single path segment");
     await expect(readFile(resolve(paths.repositoryRoot, ".lervo/state/deliberations/escaped")))
       .rejects.toMatchObject({ code: "ENOENT" });
   });

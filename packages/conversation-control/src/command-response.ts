@@ -9,22 +9,22 @@ import { ConversationControlError } from "./types.js";
 
 function statusLabel(status: string): string {
   return ({
-    pending: "실행 대기",
-    leased: "Node 전달 중",
-    completed: "실행 완료",
-    rejected: "실행 거부",
-    expired: "기한 만료",
+    pending: "pending execution",
+    leased: "being delivered to the node",
+    completed: "execution completed",
+    rejected: "execution rejected",
+    expired: "expired",
   } as Record<string, string>)[status] ?? status;
 }
 
 function approvalLabel(status: string): string {
   return ({
-    unavailable: "정책을 확인할 수 없음",
-    denied: "정책에서 거부됨",
-    not_required: "별도 승인 불필요",
-    approval_required: "승인 필요",
-    partially_approved: "일부 범위 승인됨",
-    approved: "필요 범위 승인됨",
+    unavailable: "policy unavailable",
+    denied: "denied by policy",
+    not_required: "no separate approval required",
+    approval_required: "approval required",
+    partially_approved: "partially approved",
+    approved: "required scope approved",
   } as Record<string, string>)[status] ?? status;
 }
 
@@ -34,30 +34,30 @@ function renderHubControl(
 ): string {
   const review = input.review;
   const lines = [
-    `Command ${review.delivery.commandId}은 현재 ${statusLabel(review.delivery.status)} 상태입니다.`,
-    `실행 역할은 ${review.command.roleId}, 공급자는 ${review.command.provider}, 위험도는 ${review.command.risk}입니다. 승인 상태는 ${approvalLabel(review.approval.state)}입니다.`,
+    `Command ${review.delivery.commandId} is currently ${statusLabel(review.delivery.status)}.`,
+    `The execution role is ${review.command.roleId}, the provider is ${review.command.provider}, and the risk is ${review.command.risk}. Approval is ${approvalLabel(review.approval.state)}.`,
   ];
   if (approvalReview) {
     if (input.reviewUrl === null) {
-      throw new ConversationControlError("control_source_failed", "승인 검토 주소가 없습니다.");
+      throw new ConversationControlError("control_source_failed", "The approval review URL is missing.");
     }
     lines.push(
-      `이 대화에서는 승인이 생성되지 않았습니다. 다음 Hub 화면에서 다시 인증하고 범위를 확인해야 승인할 수 있습니다: ${input.reviewUrl}`,
+      `No approval was created in this conversation. Reauthenticate and review the scope in the following Hub view before approving: ${input.reviewUrl}`,
     );
   } else {
-    lines.push("추가 작업이 필요하면 `/lervo approval <delivery-id>` 형식으로 승인 검토 화면을 요청할 수 있습니다.");
+    lines.push("If further action is needed, request the approval review view with `/lervo approval <delivery-id>`.");
   }
   return lines.join("\n\n");
 }
 
 function deliberationStatusLabel(status: ConversationDeliberationSummary["status"]): string {
   return ({
-    running: "진행 중",
-    unknown: "진행 여부 확인 필요",
-    interrupted: "재개 대기",
-    converged: "결론 도달",
-    no_consensus: "합의 없음",
-    failed: "실패",
+    running: "running",
+    unknown: "status requires confirmation",
+    interrupted: "awaiting resume",
+    converged: "converged",
+    no_consensus: "no consensus",
+    failed: "failed",
   } as const)[status];
 }
 
@@ -67,15 +67,15 @@ function renderDeliberation(
 ): string {
   const lines = [
     request === "start"
-      ? `숙의 ${summary.deliberationId} 요청을 처리했습니다.`
+      ? `Processed deliberation ${summary.deliberationId}.`
       : request === "resume"
-        ? `숙의 ${summary.deliberationId} 재개 요청을 처리했습니다.`
-      : `숙의 ${summary.deliberationId}은 현재 ${deliberationStatusLabel(summary.status)} 상태입니다.`,
-    `기록된 산출물은 ${summary.artifactCount}개입니다.`,
+        ? `Processed the resume request for deliberation ${summary.deliberationId}.`
+      : `Deliberation ${summary.deliberationId} is currently ${deliberationStatusLabel(summary.status)}.`,
+    `${summary.artifactCount} artifacts are recorded.`,
   ];
-  if (summary.nextAction === "wait") lines.push("현재 작업이 끝날 때까지 기다려 주세요.");
+  if (summary.nextAction === "wait") lines.push("Wait for the current work to finish.");
   if (summary.nextAction === "resume") {
-    lines.push("재개 권한이 있는 실행 경로에서 승인된 경계부터 이어갈 수 있습니다.");
+    lines.push("Continue from the approved boundary through an execution path authorized to resume.");
   }
   return lines.join("\n\n");
 }
@@ -96,7 +96,7 @@ function assertDeliberationSummary(
     summary.artifactCount > 10_000 || !nextActionMatches
   ) throw new ConversationControlError(
     "deliberation_source_failed",
-    "숙의 서비스가 유효하지 않은 상태를 반환했습니다.",
+    "The deliberation service returned an invalid state.",
   );
 }
 
@@ -118,7 +118,7 @@ export async function createConversationControlResponse(input: {
   if (input.options.deliberations === undefined) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "이 배포에는 숙의 서비스가 연결되지 않았습니다.",
+      "No deliberation service is connected to this deployment.",
     );
   }
   try {
@@ -157,7 +157,7 @@ export async function createConversationControlResponse(input: {
     if (error instanceof ConversationControlError) throw error;
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "숙의를 시작·재개하거나 상태를 조회하지 못했습니다.",
+      "Could not start, resume, or inspect the deliberation.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

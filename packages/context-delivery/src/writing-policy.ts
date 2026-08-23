@@ -13,7 +13,7 @@ export function resolveWritingPolicyDocumentId(
     if (writingPolicy !== null) {
       throw new ContextDeliveryError(
         "invalid_delivery_request",
-        "Writing policy가 없는 session에는 정책 binding을 지정할 수 없습니다.",
+        "A policy binding cannot be specified for a session without a writing policy.",
       );
     }
     return null;
@@ -21,7 +21,7 @@ export function resolveWritingPolicyDocumentId(
   if (writingPolicy === null || writingPolicy.writingPolicyId !== session.writingPolicyId) {
     throw new ContextDeliveryError(
       "writing_policy_document_missing",
-      "Session의 writing policy ID와 일치하는 정책 binding이 필요합니다.",
+      "A policy binding matching the session writing policy ID is required.",
     );
   }
   const document = input.loaded.documents.find(
@@ -30,7 +30,7 @@ export function resolveWritingPolicyDocumentId(
   if (document === undefined || document.contentHash !== writingPolicy.contentHash) {
     throw new ContextDeliveryError(
       "writing_policy_document_missing",
-      "Writing policy binding의 문서 ID와 content hash가 E2 문서와 다릅니다.",
+      "The writing policy binding document ID and content hash differ from the E2 document.",
     );
   }
 
@@ -40,7 +40,7 @@ export function resolveWritingPolicyDocumentId(
   } catch {
     throw new ContextDeliveryError(
       "writing_policy_document_invalid",
-      "Writing policy 문서는 UTF-8 JSON 계약이어야 합니다.",
+      "The writing policy document must satisfy the UTF-8 JSON contract.",
     );
   }
   const validation = validateSchema("writingContract", contract);
@@ -50,7 +50,7 @@ export function resolveWritingPolicyDocumentId(
   ) {
     throw new ContextDeliveryError(
       "writing_policy_document_invalid",
-      "Writing policy 문서의 계약 또는 policy ID가 binding과 다릅니다.",
+      "The writing policy document contract or policy ID differs from the binding.",
       { cause: validation.errors },
     );
   }

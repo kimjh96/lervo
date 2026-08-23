@@ -13,6 +13,12 @@ function packageChanges(packageManifest, decision) {
   };
   const candidates = [
     {
+      field: "description",
+      current: packageManifest.description,
+      value: decision.target.description,
+      missing: packageManifest.description === undefined,
+    },
+    {
       field: "repository",
       current: packageManifest.repository,
       value: repository,
@@ -47,6 +53,7 @@ function packageChanges(packageManifest, decision) {
 
 function releaseManifestRegeneration(releaseManifest, decision, hasPackageChanges) {
   const expected = {
+    description: decision.target.description,
     repository: `git+https://github.com/${decision.target.repository}.git`,
     license: decision.target.license,
     registry: npmPublicRegistry,

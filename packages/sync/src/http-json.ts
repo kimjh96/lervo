@@ -4,8 +4,8 @@ export async function readSyncHttpJson(response: Response, maximumBytes: number)
   const declared = response.headers.get("content-length");
   if (declared !== null && (
     !/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > maximumBytes
-  )) throw new Error("Hub sync 응답 크기가 유효하지 않습니다.");
-  if (response.body === null) throw new Error("Hub sync 응답 본문이 없습니다.");
+  )) throw new Error("The Hub synchronization response size is invalid.");
+  if (response.body === null) throw new Error("The Hub synchronization response body is missing.");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let byteCount = 0;
@@ -15,7 +15,7 @@ export async function readSyncHttpJson(response: Response, maximumBytes: number)
     byteCount += item.value.byteLength;
     if (byteCount > maximumBytes) {
       await reader.cancel();
-      throw new Error("Hub sync 응답이 허용 크기를 넘었습니다.");
+      throw new Error("The Hub synchronization response exceeds the allowed size.");
     }
     chunks.push(item.value);
   }
@@ -28,6 +28,6 @@ export async function readSyncHttpJson(response: Response, maximumBytes: number)
   try {
     return JSON.parse(utf8.decode(bytes));
   } catch {
-    throw new Error("Hub sync 응답이 UTF-8 JSON이 아닙니다.");
+    throw new Error("The Hub synchronization response is not UTF-8 JSON.");
   }
 }

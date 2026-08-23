@@ -60,7 +60,7 @@ function request(adapterId: string): AdapterStartRequest {
     runId: "run_parity001",
     sessionId: "ses_parity001",
     roleId: "developer",
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     requestDigest: sha("same task"),
     executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
@@ -68,8 +68,8 @@ function request(adapterId: string): AdapterStartRequest {
 }
 
 function envelope(adapterId: string): AdapterContextEnvelope {
-  const agents = "모든 역할은 자기 session에 같은 공통 맥락을 주입받습니다.\n";
-  const writing = "사람이 이해하는 자연스러운 한국어 문단으로 씁니다.\n";
+  const agents = "Every role receives the same shared context in its own session.\n";
+  const writing = "Write natural English paragraphs that people can understand.\n";
   return {
     kind: "context_envelope",
     schemaVersion: 1,
@@ -79,7 +79,7 @@ function envelope(adapterId: string): AdapterContextEnvelope {
     runId: "run_parity001",
     sessionId: "ses_parity001",
     roleId: "developer",
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     writingPolicyDocumentId: "doc_writing_policy",
     targetTurnId: "turn-parity-1",
     contextGeneration: 0,

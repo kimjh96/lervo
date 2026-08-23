@@ -1,0 +1,17 @@
+{
+  "name": "@lervo/node-runtime-dependencies",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Locked external dependency closure for standalone Lervo Node distributions",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.226",
+    "@anthropic-ai/sdk": "0.117.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "4.4.3"
+  }
+}

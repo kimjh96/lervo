@@ -29,7 +29,7 @@ const checkIds = Object.freeze([
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_reachability_report_invalid",
-    "CLI stage-only workflow ref 도달 가능성 증거 보고서가 올바르지 않습니다.",
+    "The CLI stage-only workflow ref-reachability evidence report is invalid.",
   );
 }
 

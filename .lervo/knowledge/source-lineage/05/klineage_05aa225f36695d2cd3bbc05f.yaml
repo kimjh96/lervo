@@ -1,0 +1,11 @@
+fromPath: docs/adr/0008-managed-context-gate-orchestration.md
+identityPath: docs/adr/0008-managed-context-gate-orchestration.md
+kind: document_move
+lineageId: klineage_05aa225f36695d2cd3bbc05f
+operationId: kdocop_92e0812cf8f2201c538d0b78
+schemaVersion: 1
+sourceContentHash: sha256:f746111666151b55e4ef29ffe5ddb0ee9508087cf0267e93bccedc13c90d8e3e
+sourceId: src_7bc47ee67010f5d33510cd1a
+sourceUnitBindingDigest: sha256:f9cae497d07cbdbc9e35850c00930a1df2e797d8cf41ba89b2f049ead05335f9
+sourceUnitCount: 10
+toPath: docs/decisions/execution/orchestration/0008-managed-context-gate-orchestration.md

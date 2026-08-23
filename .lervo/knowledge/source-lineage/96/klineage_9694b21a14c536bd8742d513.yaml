@@ -1,0 +1,11 @@
+fromPath: docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md
+identityPath: docs/adr/0117-cli-first-publication-stage-only-workflow-candidate.md
+kind: document_move
+lineageId: klineage_9694b21a14c536bd8742d513
+operationId: kdocop_654e8022acf9e29fb7344909
+schemaVersion: 1
+sourceContentHash: sha256:9a220fc300450d12d75fca81ea25fbd748bf121ede7dee5c78f070b79530ded6
+sourceId: src_58675f3c9a945f75dab45565
+sourceUnitBindingDigest: sha256:bdeb3181ad55977c5a9d0a7744c3e4cfca42168a761e2e3006c958f5a8ff8824
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md

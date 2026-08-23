@@ -113,7 +113,7 @@ describe("durable native chat interaction", () => {
     const path = await databasePath();
     const rawSourceEventKey = "native/raw/message/private-42";
     const rawDeliveryKey = "native/raw/delivery/private-77";
-    const rawBody = "이 원문은 아티팩트 저장소에만 있어야 합니다.";
+    const rawBody = "This source text must remain only in the artifact store.";
     let deliveryAttempts = 0;
     const sent = vi.fn(async () => {
       deliveryAttempts += 1;

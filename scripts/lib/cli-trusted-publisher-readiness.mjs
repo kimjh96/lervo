@@ -30,7 +30,7 @@ export async function checkCliTrustedPublisherReadiness(
   } catch {
     throw new TrustedPublisherReadinessError(
       "trusted_publisher_readiness_source_invalid",
-      "Trusted Publisher 준비 상태 원본을 읽지 못했습니다.",
+      "The Trusted Publisher readiness sources could not be read.",
     );
   }
   const [npmObservation, githubObservation] = online
@@ -49,54 +49,54 @@ export async function checkCliTrustedPublisherReadiness(
 }
 
 const checkLabels = {
-  package_identity: "패키지 정보",
-  workflow_activation_boundary: "게시 작업 비활성 경계",
-  npm_package_access: "npm 패키지 쓰기 권한",
+  package_identity: "Package identity",
+  workflow_activation_boundary: "Inactive publication-job boundary",
+  npm_package_access: "npm package write access",
   npm_trusted_publisher: "npm Trusted Publisher",
-  github_environment: "GitHub 게시 환경",
+  github_environment: "GitHub publication environment",
 };
 
 const reasonMessages = {
-  package_identity_invalid: "공개 CLI 패키지 정보가 현재 계약과 다릅니다.",
-  package_repository_missing: "package.json에 GitHub 저장소 주소가 없습니다.",
-  package_repository_mismatch: "package.json의 저장소 주소가 선택한 저장소와 다릅니다.",
-  package_license_unresolved: "공개 배포에 사용할 라이선스가 정해지지 않았습니다.",
-  package_registry_unpinned: "publishConfig에 npm public registry가 고정되지 않았습니다.",
-  package_provenance_disabled: "npm provenance가 꺼져 있습니다.",
-  release_workflow_invalid: "CLI release workflow 구조가 올바르지 않습니다.",
-  publish_job_already_active: "준비 확인 전에 실제 npm 게시 작업이 활성화되어 있습니다.",
-  npm_observation_missing: "온라인 npm 확인을 실행하지 않았습니다.",
-  npm_observation_unavailable: "npm 설정을 읽기 전용으로 확인하지 못했습니다.",
-  npm_public_package_not_visible: "@lervo/cli이 public npm registry에서 보이지 않습니다.",
-  npm_trust_not_observed: "공개 package가 보이지 않아 npm Trusted Publisher를 확인하지 않았습니다.",
-  npm_trusted_publisher_missing: "npm Trusted Publisher가 설정되지 않았습니다.",
-  npm_publisher_provider_mismatch: "npm publisher가 GitHub Actions로 설정되지 않았습니다.",
-  npm_publisher_repository_mismatch: "npm publisher의 저장소가 선택한 저장소와 다릅니다.",
-  npm_publisher_workflow_mismatch: "npm publisher의 workflow 파일이 release workflow와 다릅니다.",
-  npm_publisher_environment_mismatch: "npm publisher의 environment가 npm-release와 다릅니다.",
-  npm_publisher_permission_mismatch: "npm publisher 권한이 stage publish 하나로 제한되지 않았습니다.",
-  github_observation_missing: "온라인 GitHub 환경 확인을 실행하지 않았습니다.",
-  github_observation_unavailable: "GitHub 게시 환경을 읽기 전용으로 확인하지 못했습니다.",
-  github_environment_missing: "GitHub npm-release 환경이 없습니다.",
-  github_required_reviewer_missing: "npm-release 환경에 필수 검토자가 없습니다.",
-  github_self_review_allowed: "실행 요청자가 자신의 게시를 승인할 수 있습니다.",
-  github_release_tag_policy_mismatch: "npm-release 환경이 v* tag 하나로 제한되지 않았습니다.",
+  package_identity_invalid: "The public CLI package identity differs from the current contract.",
+  package_repository_missing: "package.json has no GitHub repository URL.",
+  package_repository_mismatch: "The package.json repository URL differs from the selected repository.",
+  package_license_unresolved: "The license for public distribution is unresolved.",
+  package_registry_unpinned: "publishConfig does not pin the public npm registry.",
+  package_provenance_disabled: "npm provenance is disabled.",
+  release_workflow_invalid: "The CLI release workflow structure is invalid.",
+  publish_job_already_active: "The real npm publication job is active before readiness is confirmed.",
+  npm_observation_missing: "The online npm check was not run.",
+  npm_observation_unavailable: "The npm configuration could not be inspected read-only.",
+  npm_public_package_not_visible: "@lervo/cli is not visible in the public npm registry.",
+  npm_trust_not_observed: "npm Trusted Publisher was not checked because the public package is not visible.",
+  npm_trusted_publisher_missing: "npm Trusted Publisher is not configured.",
+  npm_publisher_provider_mismatch: "The npm publisher is not configured for GitHub Actions.",
+  npm_publisher_repository_mismatch: "The npm publisher repository differs from the selected repository.",
+  npm_publisher_workflow_mismatch: "The npm publisher workflow file differs from the release workflow.",
+  npm_publisher_environment_mismatch: "The npm publisher environment differs from npm-release.",
+  npm_publisher_permission_mismatch: "The npm publisher permission is not limited to stage publication.",
+  github_observation_missing: "The online GitHub environment check was not run.",
+  github_observation_unavailable: "The GitHub publication environment could not be inspected read-only.",
+  github_environment_missing: "The GitHub npm-release environment is missing.",
+  github_required_reviewer_missing: "The npm-release environment has no required reviewer.",
+  github_self_review_allowed: "The initiating actor can approve their own publication.",
+  github_release_tag_policy_mismatch: "The npm-release environment is not restricted to v* tags.",
 };
 
 export function formatTrustedPublisherReadiness(report) {
-  const state = report.status === "ready" ? "준비됨" : "차단됨";
-  const lines = [`CLI Trusted Publisher 준비 상태: ${state}`];
+  const state = report.status === "ready" ? "ready" : "blocked";
+  const lines = [`CLI Trusted Publisher readiness: ${state}`];
   for (const item of report.checks) {
     const itemState = item.status === "ready"
-      ? "준비됨"
+      ? "ready"
       : item.status === "unknown"
-        ? "확인 불가"
-        : "차단됨";
+        ? "unknown"
+        : "blocked";
     lines.push(`- ${checkLabels[item.id]}: ${itemState}`);
     for (const reason of item.reasons) {
-      lines.push(`  ${reasonMessages[reason] ?? "준비 조건을 확인하지 못했습니다."}`);
+      lines.push(`  ${reasonMessages[reason] ?? "A readiness condition could not be verified."}`);
     }
   }
-  lines.push("이 검사는 외부 설정을 바꾸거나 package를 게시하지 않았습니다.");
+  lines.push("This check did not change external configuration or publish a package.");
   return `${lines.join("\n")}\n`;
 }

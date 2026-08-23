@@ -12,7 +12,7 @@ const sources: SearchSourceInput[] = [{
   sourceId: "doc_rollout_01",
   contentHash: `sha256:${"a".repeat(64)}`,
   labels: ["rollout"],
-  text: "검토할 검색 결과입니다.",
+  text: "Search result to review.",
 }];
 
 export const rolloutTarget: SearchRolloutReviewTarget = {
@@ -29,7 +29,7 @@ export function rolloutAttempt(nonce: string, observedAt: string): SearchAttempt
     observedAt: new Date(observedAt),
     nonce,
     response: {
-      ...new LexicalSearchIndex(sources).search("검토 결과"),
+      ...new LexicalSearchIndex(sources).search("review result"),
       engine: rolloutTarget.engine,
     },
     selectionTransitionId: rolloutTarget.selectionTransitionId,

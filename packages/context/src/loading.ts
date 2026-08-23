@@ -25,7 +25,7 @@ export async function loadContextPlan(input: {
   if (input.recordedAt.getTime() < Date.parse(input.plan.createdAt)) {
     throw new ContextPreparationError(
       "invalid_context_plan",
-      "E2 적재 시각은 context plan 생성 이후여야 합니다.",
+      "The E2 load time must be after context plan creation.",
     );
   }
   const evidence = new ContextEvidenceCollector(input.plan.evidence);
@@ -39,7 +39,7 @@ export async function loadContextPlan(input: {
       ) {
         throw new ContextPreparationError(
           "content_hash_mismatch",
-          `${document.documentId}의 현재 content hash가 handoff와 다릅니다.`,
+          `The current content hash of ${document.documentId} differs from the handoff.`,
         );
       }
       return {
@@ -66,6 +66,9 @@ export async function loadContextPlan(input: {
       contentHash: document.contentHash,
       byteCount: document.byteCount,
       sourceRevision: document.sourceRevision,
+      ...(document.knowledgeContext === undefined
+        ? {}
+        : { knowledgeContext: structuredClone(document.knowledgeContext) }),
     });
   }
   return {

@@ -38,11 +38,11 @@ export async function inspectManagedDeliberation(input: {
   deliberationId: string;
 }): Promise<DeliberationInspectionReport> {
   if (!/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(input.deliberationId)) {
-    throw new TypeError("진단할 숙의 ID가 유효하지 않습니다.");
+    throw new TypeError("The deliberation ID to inspect is invalid.");
   }
   const integrity = input.storage.events.verifyIntegrity();
   if (!integrity.valid) {
-    throw Object.assign(new Error("숙의 event hash chain이 유효하지 않습니다."), {
+    throw Object.assign(new Error("The deliberation event hash chain is invalid."), {
       code: "deliberation_history_invalid",
     });
   }
@@ -75,7 +75,7 @@ export async function inspectManagedDeliberation(input: {
     ),
   });
   if (started.length === 0 && artifacts.length === 0 && completed.length === 0) {
-    throw Object.assign(new Error("요청한 숙의 ID의 event가 없습니다."), {
+    throw Object.assign(new Error("No events exist for the requested deliberation ID."), {
       code: "deliberation_not_found",
     });
   }
@@ -97,20 +97,20 @@ export async function inspectManagedDeliberation(input: {
   if (structurallyInvalid) {
     issues.push({
       code: "deliberation_history_invalid",
-      message: "숙의 시작·산출물·완료 event 관계가 유효하지 않습니다.",
+      message: "The relationships among deliberation start, artifact, and completion events are invalid.",
     });
   }
   if (checkpoint === "invalid") {
     issues.push({
       code: "deliberation_checkpoint_invalid",
-      message: "숙의 checkpoint 또는 실행 lease를 안전하게 읽지 못했습니다.",
+      message: "The deliberation checkpoint or run lease could not be read safely.",
     });
   }
   const terminal = completed[0];
   if (terminal === undefined && checkpoint === "missing") {
     issues.push({
       code: "deliberation_history_incomplete",
-      message: "숙의가 끝나지 않았고 승인 checkpoint도 없습니다.",
+      message: "Deliberation has not completed and has no approved checkpoint.",
     });
   }
   const phase = terminal !== undefined
@@ -152,20 +152,20 @@ export async function inspectManagedDeliberation(input: {
 
 export function formatDeliberationInspection(report: DeliberationInspectionReport): string {
   const phase = ({
-    rounds: "검토 회차 진행 중 또는 중단",
-    running_after_approval: "승인 뒤 검증·결정 진행 중",
-    interrupted_after_approval: "승인 뒤 재개 가능 후보",
-    completed: "종료",
+    rounds: "review rounds active or interrupted",
+    running_after_approval: "verification and decision active after approval",
+    interrupted_after_approval: "eligible to resume after approval",
+    completed: "completed",
   } as const)[report.phase];
   const lines = [
-    `숙의 진단: ${report.deliberationId}`,
-    `상태: ${phase}`,
-    `기록한 산출물: ${report.artifactCount}개${report.lastRound === null ? "" : ` · 마지막 ${report.lastRound}회차`}`,
-    `원본 점검: ${report.sourceStatus === "consistent" ? "일관됨" : report.sourceStatus === "incomplete" ? "완료 여부 확인 필요" : "불일치"}`,
-    `재개 판정: ${report.resume === "candidate" ? "실제 재개 시 전체 원본 재검증 필요" : report.resume === "blocked_running" ? "현재 process가 실행 중이라 차단" : report.resume === "completed" ? "이미 종료되어 재개 불가" : "승인 checkpoint가 없어 재개 불가"}`,
+    `Deliberation inspection: ${report.deliberationId}`,
+    `Status: ${phase}`,
+    `Recorded artifacts: ${report.artifactCount}${report.lastRound === null ? "" : ` · last round ${report.lastRound}`}`,
+    `Source check: ${report.sourceStatus === "consistent" ? "consistent" : report.sourceStatus === "incomplete" ? "completion needs confirmation" : "inconsistent"}`,
+    `Resume assessment: ${report.resume === "candidate" ? "revalidate every source when resuming" : report.resume === "blocked_running" ? "blocked because a process is active" : report.resume === "completed" ? "unavailable because deliberation completed" : "unavailable because no approved checkpoint exists"}`,
   ];
   if (report.issues.length > 0) {
-    lines.push("확인할 항목:", ...report.issues.map((issue) => `  ${issue.code}: ${issue.message}`));
+    lines.push("Items to inspect:", ...report.issues.map((issue) => `  ${issue.code}: ${issue.message}`));
   }
   return `${lines.join("\n")}\n`;
 }
@@ -174,5 +174,5 @@ export function formatDeliberationTrace(report: DeliberationInspectionReport): s
   const summary = formatDeliberationInspection(report).trimEnd();
   const events = report.events.map((event) =>
     `  ${event.seq}. ${event.type} · ${event.occurredAt} · run ${event.runId}`);
-  return `${summary}\n기록 (${events.length}개):\n${events.join("\n")}\n`;
+  return `${summary}\nEvents (${events.length}):\n${events.join("\n")}\n`;
 }

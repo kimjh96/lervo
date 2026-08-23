@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_357eb042cbc3d8eac0b49667
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0009-codex-app-server-managed-adapter.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b8c4a5f2a7de45c180a147b6
+title: "ADR-0009: Codex app-server managed adapter"
+type: decision

@@ -16,7 +16,7 @@ import {
 } from "@lervo/search";
 
 export const BM25F_SEARCH_ENGINE = { id: "bm25f", version: 1 } as const;
-// 실행 동작이나 runtime 의존성이 달라지면 새 비교 전에 반드시 올립니다.
+// Increment before a new comparison whenever execution behavior or runtime dependencies change.
 const BM25F_ADAPTER_IMPLEMENTATION_REVISION = 1;
 export const BM25F_ADAPTER_BUILD_ID = contentId("sebuild", {
   package: "@lervo/search-adapter-bm25f",
@@ -104,7 +104,7 @@ export class Bm25fSearchIndex implements SearchEvaluationIndexPort {
 
   search(query: string, limit = 10): SearchResponse {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_MAX_RESULTS) {
-      throw new SearchError("invalid_query", `검색 결과 한도는 1 이상 ${SEARCH_MAX_RESULTS} 이하여야 합니다.`);
+      throw new SearchError("invalid_query", `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`);
     }
     const terms = [...new Set(searchTerms(query, "invalid_query"))];
     const phrase = normalizeSearchText(query);

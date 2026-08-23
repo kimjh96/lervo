@@ -29,7 +29,7 @@ function compareText(left: string, right: string): number {
 
 export function prepareSearchCorpus(inputs: readonly SearchSourceInput[]): PreparedSearchCorpus {
   if (!Array.isArray(inputs) || inputs.length > SEARCH_MAX_SOURCES) {
-    throw new SearchError("corpus_limit_exceeded", "검색 source 수가 안전한 한도를 넘었습니다.");
+    throw new SearchError("corpus_limit_exceeded", "The search source count exceeds the safe limit.");
   }
   const seen = new Set<string>();
   let characters = 0;
@@ -38,10 +38,10 @@ export function prepareSearchCorpus(inputs: readonly SearchSourceInput[]): Prepa
     if (typeof input.text !== "string" || input.text.length < 1 ||
       input.text.length > SEARCH_MAX_SOURCE_CHARACTERS ||
       /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input.text)) {
-      throw new SearchError("corpus_invalid", "검색 source 본문 계약이 유효하지 않습니다.");
+      throw new SearchError("corpus_invalid", "The search source content contract is invalid.");
     }
     if (!Array.isArray(input.labels)) {
-      throw new SearchError("corpus_invalid", "검색 source label 계약이 유효하지 않습니다.");
+      throw new SearchError("corpus_invalid", "The search source label contract is invalid.");
     }
     const labels = input.labels as readonly unknown[];
     if (labels.length > 32 || labels.some((label) => {
@@ -53,15 +53,15 @@ export function prepareSearchCorpus(inputs: readonly SearchSourceInput[]): Prepa
         return true;
       }
     })) {
-      throw new SearchError("corpus_invalid", "검색 source label 계약이 유효하지 않습니다.");
+      throw new SearchError("corpus_invalid", "The search source label contract is invalid.");
     }
     if (input.title !== undefined) assertText(input.title, 500, "corpus_invalid");
     const key = searchSourceKey(input);
-    if (seen.has(key)) throw new SearchError("corpus_invalid", "검색 source 종류와 ID 좌표가 중복되었습니다.");
+    if (seen.has(key)) throw new SearchError("corpus_invalid", "Search source kind and ID coordinates are duplicated.");
     seen.add(key);
     characters += input.text.length + (input.title?.length ?? 0) + (labels as readonly string[]).join("").length;
     if (characters > SEARCH_MAX_TOTAL_CHARACTERS) {
-      throw new SearchError("corpus_limit_exceeded", "검색 corpus 전체 크기가 안전한 한도를 넘었습니다.");
+      throw new SearchError("corpus_limit_exceeded", "The total search corpus size exceeds the safe limit.");
     }
     return structuredClone(input);
   }).sort((left, right) => compareText(searchSourceKey(left), searchSourceKey(right)));

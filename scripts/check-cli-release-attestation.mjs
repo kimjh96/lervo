@@ -57,7 +57,7 @@ function parseMode(args) {
       expectedTag: args[3],
     };
   }
-  fail("release_attestation_arguments_invalid", "Release statement 명령 인자가 올바르지 않습니다.");
+  fail("release_attestation_arguments_invalid", "The release statement command arguments are invalid.");
 }
 
 async function readInputs() {
@@ -93,7 +93,10 @@ async function readInputs() {
     packageManifest.version !== releaseManifest.artifact.version ||
     rootManifest.packageManager !== "pnpm@11.18.0"
   ) {
-    fail("release_attestation_identity_mismatch", "Release statement package identity가 다릅니다.");
+    fail(
+      "release_attestation_identity_mismatch",
+      "The release statement package identity does not match.",
+    );
   }
   return {
     bundleContents,
@@ -109,13 +112,16 @@ async function readInputs() {
 
 async function prepareReleaseFiles(outputDirectory, tarballPath) {
   if (!isAbsolute(outputDirectory)) {
-    fail("release_attestation_output_invalid", "Release 준비 경로는 절대 경로여야 합니다.");
+    fail("release_attestation_output_invalid", "The release preparation path must be absolute.");
   }
   let stagingDirectory;
   try {
     stagingDirectory = await mkdtemp(resolve(dirname(outputDirectory), ".lervo-release-"));
   } catch {
-    fail("release_attestation_output_unavailable", "Release 준비 경로를 새로 만들 수 없습니다.");
+    fail(
+      "release_attestation_output_unavailable",
+      "The release preparation path could not be created.",
+    );
   }
   try {
     await copyFile(tarballPath, resolve(stagingDirectory, basename(tarballPath)));
@@ -127,7 +133,10 @@ async function prepareReleaseFiles(outputDirectory, tarballPath) {
     await rename(stagingDirectory, outputDirectory);
   } catch {
     await rm(stagingDirectory, { recursive: true, force: true });
-    fail("release_attestation_output_unavailable", "Release 준비 경로를 새로 만들 수 없습니다.");
+    fail(
+      "release_attestation_output_unavailable",
+      "The release preparation path could not be created.",
+    );
   }
 }
 
@@ -164,10 +173,10 @@ async function main() {
     }
     if (command.mode === "prepare") {
       await prepareReleaseFiles(command.outputDirectory, tarballPath);
-      console.log("CLI release 서명 대상 준비 완료 (3개 파일)");
+      console.log("CLI release signing inputs prepared (3 files)");
       return;
     }
-    console.log("CLI release unsigned statement 검사 통과 (3개 subject)");
+    console.log("CLI release unsigned statement check passed (3 subjects)");
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });
   }
@@ -184,7 +193,7 @@ try {
   ) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_attestation_check_failed: CLI release statement 검사를 완료하지 못했습니다.");
+    console.error("release_attestation_check_failed: The CLI release statement check could not be completed.");
   }
   process.exitCode = 1;
 }

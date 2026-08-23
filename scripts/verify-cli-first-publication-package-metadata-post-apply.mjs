@@ -22,7 +22,7 @@ try {
     error instanceof ReleaseAttestationVerificationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_package_metadata_post_apply_unexpected: CLI 최초 게시 package metadata 사후 검증을 완료하지 못했습니다.",
+    "first_publication_package_metadata_post_apply_unexpected: CLI first-publication package metadata post-apply verification could not be completed.",
   );
   process.exitCode = 1;
 }

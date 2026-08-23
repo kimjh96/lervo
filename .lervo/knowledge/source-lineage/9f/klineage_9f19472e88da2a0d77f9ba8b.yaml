@@ -1,0 +1,11 @@
+fromPath: docs/adr/0121-cli-stage-only-workflow-remote-deployment-evidence.md
+identityPath: docs/adr/0121-cli-stage-only-workflow-remote-deployment-evidence.md
+kind: document_move
+lineageId: klineage_9f19472e88da2a0d77f9ba8b
+operationId: kdocop_9cb8aa0322c9692ab2f3bd3b
+schemaVersion: 1
+sourceContentHash: sha256:ff38943f7fead0af42a64be5b51911c763d3f2fa8fce384233bfd4fc0ff0dcfa
+sourceId: src_3c0415821655af58744a9892
+sourceUnitBindingDigest: sha256:393dea2aa7c312ff0ef263520464f6ea195298d1eed98c8ce38c3882cf190788
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md

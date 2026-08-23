@@ -1,0 +1,11 @@
+fromPath: docs/adr/0057-provider-neutral-search-candidate-comparison.md
+identityPath: docs/adr/0057-provider-neutral-search-candidate-comparison.md
+kind: document_move
+lineageId: klineage_1596958ed5d8fdf6bc9a7342
+operationId: kdocop_ae3abd1b00140106ac7c18cf
+schemaVersion: 1
+sourceContentHash: sha256:1b6c80385ed27c138c5e1af8f57045bf166961a4464b1abe3dce6fd1e1af276b
+sourceId: src_8c6cf141480ef89d987d2d3c
+sourceUnitBindingDigest: sha256:fb2b075a9b40b9780555d91cb4b07770e87b408b733c4ee5c58d534831c7892d
+sourceUnitCount: 5
+toPath: docs/decisions/search/0057-provider-neutral-search-candidate-comparison.md

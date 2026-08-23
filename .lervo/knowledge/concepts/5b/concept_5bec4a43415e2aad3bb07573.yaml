@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5bec4a43415e2aad3bb07573
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_45d3d9c70317fdbb0868f5f7
+title: "ADR-0105: CLI first-publication metadata decision and write-free preview"
+type: decision

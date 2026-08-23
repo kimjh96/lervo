@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9fc3fda7af8b9b4e931702ff
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2d05acdc8b9be581c5b68f77
+title: "ADR-0184: Durable Exact-Byte User Document Merge"
+type: decision

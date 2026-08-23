@@ -72,12 +72,12 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           }),
           canUseTool: async () => ({
             behavior: "deny" as const,
-            message: "Lervo approval bridge가 연결되지 않아 이 권한 요청을 거부했습니다.",
+            message: "This permission request was denied because no Lervo approval bridge is attached.",
           }),
         },
       });
     } catch {
-      throw new ClaudeAdapterError("provider_process_failed", "Claude Agent SDK를 시작하지 못했습니다.");
+      throw new ClaudeAdapterError("provider_process_failed", "The Claude Agent SDK could not be started.");
     }
     connected = new ClaudeSdkAgentClient(options, warm, abortController);
     return connected;
@@ -85,7 +85,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
 
   attachToolUseHandler(handler: ClaudeToolUseHandler): void {
     if (this.toolUseHandler !== undefined) {
-      throw new ClaudeAdapterError("invalid_request", "Claude tool handler가 이미 연결되었습니다.");
+      throw new ClaudeAdapterError("invalid_request", "A Claude tool handler is already attached.");
     }
     this.toolUseHandler = handler;
   }
@@ -96,7 +96,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
         ? error
         : new ClaudeAdapterError(
             "provider_protocol_failed",
-            "Claude managed write bridge가 실패했습니다.",
+            "The Claude managed write bridge failed.",
           );
     this.output.fail(failure);
     throw failure;
@@ -115,7 +115,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     try {
       await this.query.interrupt();
     } catch {
-      throw new ClaudeAdapterError("provider_process_failed", "Claude turn을 중단하지 못했습니다.");
+      throw new ClaudeAdapterError("provider_process_failed", "The Claude turn could not be interrupted.");
     }
   }
 
@@ -135,12 +135,12 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       }
     } catch {
       this.abortController.abort();
-      throw new ClaudeAdapterError("provider_process_failed", "Claude Agent SDK를 종료하지 못했습니다.");
+      throw new ClaudeAdapterError("provider_process_failed", "The Claude Agent SDK could not be stopped.");
     } finally {
       this.abortController.abort();
       this.output.end();
       this.replays.fail(
-        new ClaudeAdapterError("session_stopped", "Claude session이 입력 확인 전에 종료되었습니다."),
+        new ClaudeAdapterError("session_stopped", "The Claude session ended before acknowledging input."),
       );
     }
   }
@@ -169,12 +169,12 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
   }
 
   private async send(content: string, shouldQuery: boolean, messageId?: string): Promise<void> {
-    if (this.closed) throw new ClaudeAdapterError("session_stopped", "이미 종료된 Claude session입니다.");
+    if (this.closed) throw new ClaudeAdapterError("session_stopped", "The Claude session has already ended.");
     const uuid = messageId ?? this.options.createMessageId();
     if (!UUID_PATTERN.test(uuid)) {
-      throw new ClaudeAdapterError("invalid_request", "Claude input message ID는 UUID여야 합니다.");
+      throw new ClaudeAdapterError("invalid_request", "The Claude input message ID must be a UUID.");
     }
-    const accepted = this.replays.expect(uuid, content);
+    const accepted = this.replays.expect(uuid, content, shouldQuery);
     this.ensureStream();
     this.input.push({
       type: "user",
@@ -200,17 +200,17 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
   private async pumpMessages(query: Query): Promise<void> {
     try {
       for await (const message of query) {
-        this.replays.accept(message);
-        this.output.push(message);
+        const internalContextAcknowledgement = this.replays.accept(message);
+        if (!internalContextAcknowledgement) this.output.push(message);
       }
       if (!this.closed) {
-        throw new ClaudeAdapterError("provider_process_failed", "Claude event stream이 예기치 않게 끝났습니다.");
+        throw new ClaudeAdapterError("provider_process_failed", "The Claude event stream ended unexpectedly.");
       }
     } catch (error) {
       const failure =
         error instanceof ClaudeAdapterError
           ? error
-          : new ClaudeAdapterError("provider_process_failed", "Claude event stream을 읽지 못했습니다.");
+          : new ClaudeAdapterError("provider_process_failed", "The Claude event stream could not be read.");
       this.replays.fail(failure);
       this.output.fail(failure);
     }

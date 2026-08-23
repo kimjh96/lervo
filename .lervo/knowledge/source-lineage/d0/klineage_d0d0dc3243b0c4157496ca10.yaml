@@ -1,0 +1,11 @@
+fromPath: docs/adr/0092-cli-release-sbom.md
+identityPath: docs/adr/0092-cli-release-sbom.md
+kind: document_move
+lineageId: klineage_d0d0dc3243b0c4157496ca10
+operationId: kdocop_329f9992d81412789ba9d598
+schemaVersion: 1
+sourceContentHash: sha256:ecd99d46dd4ee8ea547ab4838963cb51619929e445136388ae4468b2f13104f5
+sourceId: src_84ac5634285970e4becc03c8
+sourceUnitBindingDigest: sha256:7ae7f6d36f42efa9595bc37826f0fcc89ba31e5057af3ab7f94010b0b5a437d9
+sourceUnitCount: 5
+toPath: docs/decisions/release/assurance/0092-cli-release-sbom.md

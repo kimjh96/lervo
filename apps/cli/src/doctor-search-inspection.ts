@@ -44,14 +44,14 @@ async function inspectSearchPolicies(input: {
     if ([...enginePolicies, ...rolloutPolicies, ...actionPolicies].some(
       (policy) => policy.projectId !== input.projectId,
     )) {
-      throw new TypeError("검색 정책의 project 좌표가 다릅니다.");
+      throw new TypeError("The search policy project coordinate does not match.");
     }
     for (const policy of actionPolicies) {
       const rolloutPolicy = rolloutById.get(policy.rolloutPolicyId);
       const engineActivationPolicy = policy.engineActivationPolicyId === null
         ? undefined
         : engineById.get(policy.engineActivationPolicyId);
-      if (rolloutPolicy === undefined) throw new TypeError("Rollout 검토 정책 원본이 없습니다.");
+      if (rolloutPolicy === undefined) throw new TypeError("The rollout review policy source is missing.");
       verifySearchRolloutActionPolicySources(policy, {
         rolloutPolicy,
         ...(engineActivationPolicy === undefined ? {} : { engineActivationPolicy }),
@@ -66,7 +66,7 @@ async function inspectSearchPolicies(input: {
     return invalidInspection(
       "search_rollout_policies",
       "search_rollout_policy_invalid",
-      "검색 엔진·rollout 정책 원본을 안전하게 검증하지 못했습니다.",
+      "Could not safely validate search engine and rollout policy sources.",
     );
   }
 }
@@ -83,14 +83,14 @@ async function inspectSearchSelection(input: {
       : invalidInspection(
         "search_engine_selection",
         "search_engine_selection_invalid",
-        "현재 검색 엔진 선택과 근거를 안전하게 검증하지 못했습니다.",
+        "Could not safely validate the current search engine selection and evidence.",
         result.transitions,
       );
   } catch {
     return invalidInspection(
       "search_engine_selection",
       "search_engine_selection_invalid",
-      "현재 검색 엔진 선택과 근거를 안전하게 검증하지 못했습니다.",
+      "Could not safely validate the current search engine selection and evidence.",
     );
   }
 }
@@ -120,12 +120,12 @@ export async function inspectDoctorSearch(input: {
       unavailableInspection(
         "search_rollout_reviews",
         "search_rollout_review_unavailable",
-        "검색 선택이나 정책 문제로 rollout 검토를 판정할 수 없습니다.",
+        "Could not assess rollout reviews because of a search selection or policy issue.",
       ),
       unavailableInspection(
         "search_rollout_actions",
         "search_rollout_action_unavailable",
-        "검색 선택이나 정책 문제로 rollout 조치를 판정할 수 없습니다.",
+        "Could not assess rollout actions because of a search selection or policy issue.",
       ),
     ];
   }
@@ -137,7 +137,7 @@ export async function inspectDoctorSearch(input: {
     reviews = invalidInspection(
       "search_rollout_reviews",
       "search_rollout_review_invalid",
-      "검색 rollout 검토와 품질 근거를 안전하게 검증하지 못했습니다.",
+      "Could not safely validate search rollout reviews and quality evidence.",
     );
   }
   if (reviews.check.status !== "healthy") {
@@ -148,7 +148,7 @@ export async function inspectDoctorSearch(input: {
       unavailableInspection(
         "search_rollout_actions",
         "search_rollout_action_unavailable",
-        "Rollout 검토 문제로 조치 원본을 판정할 수 없습니다.",
+        "Could not assess action sources because of a rollout review issue.",
       ),
     ];
   }
@@ -160,7 +160,7 @@ export async function inspectDoctorSearch(input: {
     actions = invalidInspection(
       "search_rollout_actions",
       "search_rollout_action_invalid",
-      "검색 rollout 조치와 연결 근거를 안전하게 검증하지 못했습니다.",
+      "Could not safely validate search rollout actions and linked evidence.",
     );
   }
   return [selection, policies, reviews, actions];

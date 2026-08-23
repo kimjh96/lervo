@@ -17,7 +17,7 @@ export function parseRemoteCommandTimestamp(value: string, label: string): numbe
   if (!Number.isFinite(timestamp)) {
     throw new RemoteCommandRuntimeError(
       "invalid_command",
-      `remote command ${label}이 유효하지 않습니다.`,
+      `The remote command ${label} is invalid.`,
     );
   }
   return timestamp;
@@ -39,7 +39,7 @@ export function assertRemoteCommandTarget(target: RemoteCommandTarget): void {
   if (!isRemoteCommandTarget(target)) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
-      "remote command receiver target이 유효하지 않습니다.",
+      "The remote command receiver target is invalid.",
     );
   }
 }
@@ -62,7 +62,7 @@ function resolveDuration(
   if (!Number.isSafeInteger(resolved) || resolved < 0 || resolved > maximum) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
-      `remote command ${label} 설정이 유효하지 않습니다.`,
+      `The remote command ${label} configuration is invalid.`,
     );
   }
   return resolved;

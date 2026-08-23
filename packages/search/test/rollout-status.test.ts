@@ -120,7 +120,7 @@ describe("search rollout status", () => {
     });
     expect(() => createSearchRolloutStatusPage({ ...input, cursor: `srrv_${"f".repeat(24)}` }))
       .toThrow(/cursor/);
-    expect(() => createSearchRolloutStatusPage({ ...input, limit: 51 })).toThrow(/조회 입력/);
+    expect(() => createSearchRolloutStatusPage({ ...input, limit: 51 })).toThrow(/query input/);
   });
 
   it("shows past reviews beside a current rollback baseline without changing their meaning", () => {

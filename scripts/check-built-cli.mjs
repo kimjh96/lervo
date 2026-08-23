@@ -29,7 +29,7 @@ async function verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, ex
   assert.equal(deployedManifest.version, expectedManifest.version);
   assert.equal(
     deployedManifest.description,
-    "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI",
+    "Lervo CLI for managing AI agent execution and evidence in local repositories",
   );
   assert.deepEqual(deployedManifest.keywords, ["ai-agents", "local-first", "orchestration"]);
   assert.equal(deployedManifest.license, expectedManifest.license);
@@ -178,7 +178,7 @@ async function main() {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 
-  console.log(`설치된 Lervo CLI smoke 검사 통과 (${expectedManifest.version})`);
+  console.log(`Installed Lervo CLI smoke check passed (${expectedManifest.version})`);
 }
 
 await main();

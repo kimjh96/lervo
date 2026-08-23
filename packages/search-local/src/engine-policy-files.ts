@@ -13,7 +13,7 @@ import {
 } from "./policy-file-store.js";
 
 const contract: LocalPolicyFileContract<SearchEngineActivationPolicy> = {
-  label: "검색 엔진 활성화 정책",
+  label: "search engine activation policy",
   directory: (paths: LervoProjectPaths) => paths.searchEnginePolicies,
   idPattern: SEARCH_ENGINE_ACTIVATION_POLICY_PATTERN,
   id: (policy) => policy.policyId,

@@ -40,7 +40,7 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       !/^[\x21-\x7e]+$/.test(options.botToken)) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
-        "Discord integration 또는 bot credential이 유효하지 않습니다.",
+        "The Discord integration or bot credential is invalid.",
       );
     }
     this.now = options.now ?? (() => new Date());
@@ -51,7 +51,7 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
 
   async send(input: DiscordDeliveryRequest): Promise<DiscordDeliveryResult> {
     if (!/^[0-9]{1,32}$/.test(input.channelId) || [...input.content].length > 2_000) {
-      throw new ConversationPlatformError("platform_delivery_failed", "Discord channel 또는 content가 유효하지 않습니다.");
+      throw new ConversationPlatformError("platform_delivery_failed", "The Discord channel or content is invalid.");
     }
     const nonce = createHash("sha256").update(input.outboundId).digest("base64url").slice(0, 25);
     const body = {
@@ -75,10 +75,10 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       requestHash,
       attemptedAt: this.now().toISOString(),
       replay: this.options.replay,
-      unknownMessage: "Discord 전송 결과를 확인할 수 없어 재발송하지 않았습니다. 운영자 확인이 필요합니다.",
-      conflictMessage: "같은 Discord outbound ID에 다른 요청이 연결되어 있습니다.",
-      rejectedMessage: "Discord API가 메시지 전송을 거부했습니다.",
-      failureMessage: "Discord 전송 결과를 안전하게 확인하지 못했습니다.",
+      unknownMessage: "The Discord delivery result is unknown, so the message was not resent. Operator review is required.",
+      conflictMessage: "A different request is bound to the same Discord outbound ID.",
+      rejectedMessage: "The Discord API rejected message delivery.",
+      failureMessage: "The Discord delivery result could not be verified safely.",
       send: async () => {
         const response = object(await postPlatformJson({
           url: `${this.apiBaseUrl}/channels/${encodeURIComponent(input.channelId)}/messages`,

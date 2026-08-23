@@ -81,7 +81,7 @@ export class SQLiteEventStore implements OutboxStore {
 
   private assertOpen(): void {
     if (this.closed) {
-      throw new EventStoreError("closed", "닫힌 event store는 사용할 수 없습니다.");
+      throw new EventStoreError("closed", "A closed event store cannot be used.");
     }
   }
 
@@ -90,7 +90,7 @@ export class SQLiteEventStore implements OutboxStore {
     if (this.transactionActive) {
       throw new EventStoreError(
         "nested_transaction",
-        "중첩 event store transaction은 지원하지 않습니다.",
+        "Nested event store transactions are not supported.",
       );
     }
     this.database.exec("BEGIN IMMEDIATE;");
@@ -108,7 +108,7 @@ export class SQLiteEventStore implements OutboxStore {
         void Promise.resolve(result).catch(() => undefined);
         throw new EventStoreError(
           "transaction_async",
-          "event store transaction callback은 동기 함수여야 합니다.",
+          "The event store transaction callback must be synchronous.",
         );
       }
       this.database.exec("COMMIT;");
@@ -173,7 +173,7 @@ export class SQLiteEventStore implements OutboxStore {
     if (typeof mode !== "string") {
       throw new EventStoreError(
         "integrity_failed",
-        "SQLite journal mode를 확인할 수 없습니다.",
+        "The SQLite journal mode cannot be inspected.",
       );
     }
     return mode;
@@ -185,14 +185,14 @@ export class SQLiteEventStore implements OutboxStore {
     if (quickCheck !== "ok") {
       throw new EventStoreError(
         "integrity_failed",
-        `SQLite quick_check가 실패했습니다: ${String(quickCheck)}`,
+        `SQLite quick_check failed: ${String(quickCheck)}`,
       );
     }
     const foreignKeyViolation = this.database.prepare("PRAGMA foreign_key_check;").get();
     if (foreignKeyViolation !== undefined) {
       throw new EventStoreError(
         "integrity_failed",
-        "SQLite foreign key 검사가 실패했습니다.",
+        "The SQLite foreign-key check failed.",
       );
     }
     this.outbox.verifyIntegrity();

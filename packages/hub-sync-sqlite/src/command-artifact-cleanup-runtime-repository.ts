@@ -18,25 +18,25 @@ const CURSOR_PATTERN = /^lervo-cas:\/\/sha256\/[a-f0-9]{64}$/u;
 
 function validateWorker(workerId: string): void {
   if (!WORKER_PATTERN.test(workerId)) {
-    throw new HubCommandError("invalid_request", "artifact cleanup runtime worker ID가 유효하지 않습니다.");
+    throw new HubCommandError("invalid_request", "The artifact cleanup runtime worker ID is invalid.");
   }
 }
 
 function validateLeaseDuration(value: number): void {
   if (!Number.isSafeInteger(value) || value < 1_000 || value > 30 * 60_000) {
-    throw new HubCommandError("invalid_request", "artifact cleanup runtime lease가 유효하지 않습니다.");
+    throw new HubCommandError("invalid_request", "The artifact cleanup runtime lease is invalid.");
   }
 }
 
 function validateCursor(value: string | null): void {
   if (value !== null && !CURSOR_PATTERN.test(value)) {
-    throw new HubCommandError("invalid_request", "artifact cleanup inventory cursor가 유효하지 않습니다.");
+    throw new HubCommandError("invalid_request", "The artifact cleanup inventory cursor is invalid.");
   }
 }
 
 function validateCount(value: number): void {
   if (!Number.isSafeInteger(value) || value < 0) {
-    throw new HubCommandError("invalid_request", "artifact cleanup 결과 개수가 유효하지 않습니다.");
+    throw new HubCommandError("invalid_request", "The artifact cleanup result count is invalid.");
   }
 }
 
@@ -52,7 +52,7 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
       WHERE runtime_key = 'command_artifact_cleanup'
     `).get();
     if (row === undefined) {
-      throw new HubCommandError("artifact_integrity_failed", "artifact cleanup runtime 원본이 없습니다.");
+      throw new HubCommandError("artifact_integrity_failed", "The artifact cleanup runtime source is missing.");
     }
     const leaseExpiresAtMs = row.lease_expires_at_ms;
     if (typeof leaseExpiresAtMs === "number" && leaseExpiresAtMs > claimedAtMs) {
@@ -76,7 +76,7 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
       WHERE runtime_key = 'command_artifact_cleanup'
     `).run(leaseId, input.workerId, input.claimedAt, claimedAtMs, expiresAt, expiresAtMs);
     if (updated.changes !== 1) {
-      throw new HubCommandError("artifact_cleanup_conflict", "artifact cleanup runtime lease를 얻지 못했습니다.");
+      throw new HubCommandError("artifact_cleanup_conflict", "Could not acquire the artifact cleanup runtime lease.");
     }
     return {
       status: "claimed",
@@ -90,12 +90,12 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
     validateWorker(input.workerId);
     validateCursor(input.inventoryCursor);
     if (!/^hcr_[A-Za-z0-9_-]{32}$/u.test(input.leaseId)) {
-      throw new HubCommandError("invalid_request", "artifact cleanup runtime lease ID가 유효하지 않습니다.");
+      throw new HubCommandError("invalid_request", "The artifact cleanup runtime lease ID is invalid.");
     }
     const completedAtMs = remoteCommandTimestamp(input.completedAt, "cleanup runtime completedAt");
     const nextCycleAtMs = remoteCommandTimestamp(input.nextCycleAt, "cleanup runtime nextCycleAt");
     if (nextCycleAtMs < completedAtMs) {
-      throw new HubCommandError("invalid_request", "artifact cleanup 다음 실행 시각이 완료보다 빠릅니다.");
+      throw new HubCommandError("invalid_request", "The next artifact cleanup run time is earlier than completion.");
     }
     for (const value of [
       input.claimedCount,
@@ -113,7 +113,7 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
         (input.deletedCount + input.alreadyMissingCount) *
           HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT ||
       (input.failureCount > 0 && !input.continuationRecommended)
-    ) throw new HubCommandError("invalid_request", "artifact cleanup 결과 관계가 유효하지 않습니다.");
+    ) throw new HubCommandError("invalid_request", "The artifact cleanup result relation is invalid.");
     const updated = this.database.prepare(`
       UPDATE hub_remote_command_artifact_cleanup_runtime
       SET inventory_cursor = ?, next_cycle_at = ?, next_cycle_at_ms = ?,
@@ -135,7 +135,7 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
       input.leaseId, input.workerId, completedAtMs, completedAtMs,
     );
     if (updated.changes !== 1) {
-      throw new HubCommandError("artifact_cleanup_conflict", "artifact cleanup runtime 완료 lease가 다릅니다.");
+      throw new HubCommandError("artifact_cleanup_conflict", "The artifact cleanup runtime completion lease differs.");
     }
   }
 
@@ -143,12 +143,12 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
     validateWorker(input.workerId);
     if (!/^hcr_[A-Za-z0-9_-]{32}$/u.test(input.leaseId) ||
       input.failureCode !== "artifact_cleanup_cycle_failed") {
-      throw new HubCommandError("invalid_request", "artifact cleanup runtime 실패 좌표가 유효하지 않습니다.");
+      throw new HubCommandError("invalid_request", "The artifact cleanup runtime failure coordinates are invalid.");
     }
     const failedAtMs = remoteCommandTimestamp(input.failedAt, "cleanup runtime failedAt");
     const nextCycleAtMs = remoteCommandTimestamp(input.nextCycleAt, "cleanup runtime nextCycleAt");
     if (nextCycleAtMs < failedAtMs) {
-      throw new HubCommandError("invalid_request", "artifact cleanup 재시도 시각이 실패보다 빠릅니다.");
+      throw new HubCommandError("invalid_request", "The artifact cleanup retry time is earlier than the failure.");
     }
     const updated = this.database.prepare(`
       UPDATE hub_remote_command_artifact_cleanup_runtime
@@ -167,7 +167,7 @@ export class HubCommandArtifactCleanupRuntimeSQLiteRepository {
       input.leaseId, input.workerId, failedAtMs, failedAtMs,
     );
     if (updated.changes !== 1) {
-      throw new HubCommandError("artifact_cleanup_conflict", "artifact cleanup runtime 실패 lease가 다릅니다.");
+      throw new HubCommandError("artifact_cleanup_conflict", "The artifact cleanup runtime failure lease differs.");
     }
   }
 

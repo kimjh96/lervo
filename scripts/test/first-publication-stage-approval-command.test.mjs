@@ -72,7 +72,7 @@ describe("first-publication stage approval authorization command", () => {
       assert.deepEqual(await readFile(value.stageReviewReportPath), reportBefore);
       assert.deepEqual(await readFile(value.decisionPath), decisionBefore);
       assert.match(formatFirstPublicationStageApprovalAuthorization(authorization),
-        /아직 npm approve·reject·공개 확인을 실행하지 않았습니다/u);
+        /npm approve, reject, and public-status checks have not been performed/u);
       await assert.rejects(authorizeCliFirstPublicationStageApproval(input(value), {
         clock: () => "2026-08-21T10:16:30Z",
       }), { code: "first_publication_stage_approval_output_exists" });

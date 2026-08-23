@@ -8,7 +8,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_evidence_bundle_invalid",
-    "CLI 최초 게시 stage 증거 묶음 manifest가 올바르지 않습니다.",
+    "The CLI first-publication stage evidence bundle manifest is invalid.",
   );
 }
 

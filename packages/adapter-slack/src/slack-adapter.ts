@@ -43,7 +43,7 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
     ) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
-        "Slack app, team 또는 signing secret 구성이 유효하지 않습니다.",
+        "The Slack app, team, or signing-secret configuration is invalid.",
       );
     }
     this.teams = new Set(options.allowedTeamIds);
@@ -60,10 +60,10 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
 
   async receive(request: SlackSignedHttpRequest): Promise<SlackIngressResult> {
     if (!this.descriptor.capabilities.includes("messages.receive")) {
-      throw new ConversationPlatformError("unsupported_platform_event", "Slack message 수신 기능이 꺼져 있습니다.");
+      throw new ConversationPlatformError("unsupported_platform_event", "Slack message reception is disabled.");
     }
     if (request.body.byteLength < 1 || request.body.byteLength > this.maximumRequestBytes) {
-      throw new ConversationPlatformError("invalid_platform_payload", "Slack 요청 크기가 허용 범위를 벗어났습니다.");
+      throw new ConversationPlatformError("invalid_platform_payload", "The Slack request size is outside the allowed range.");
     }
     verifySlackRequest({
       headers: request.headers,
@@ -99,7 +99,7 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
     } catch (error) {
       throw new ConversationPlatformError(
         "identity_mapping_failed",
-        "Slack 외부 식별자를 Lervo 대화 좌표로 바꾸지 못했습니다.",
+        "Slack external identifiers could not be mapped to Lervo conversation coordinates.",
         { cause: error instanceof Error ? error : undefined },
       );
     }
@@ -137,7 +137,7 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
     } catch (error) {
       throw new ConversationPlatformError(
         "identity_mapping_failed",
-        "Slack 메시지와 Lervo event 연결을 저장하지 못했습니다.",
+        "The link between the Slack message and Lervo event could not be saved.",
         { cause: error instanceof Error ? error : undefined },
       );
     }
@@ -149,7 +149,7 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
 
   async deliver(message: ConversationOutboundMessage): Promise<ConversationDeliveryReceipt> {
     if (!this.descriptor.capabilities.includes("messages.send")) {
-      throw new ConversationPlatformError("platform_delivery_failed", "Slack message 전송 기능이 꺼져 있습니다.");
+      throw new ConversationPlatformError("platform_delivery_failed", "Slack message delivery is disabled.");
     }
     return deliverSlackConversationMessage({
       descriptor: this.descriptor,

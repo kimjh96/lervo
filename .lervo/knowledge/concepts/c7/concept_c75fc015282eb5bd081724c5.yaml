@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c75fc015282eb5bd081724c5
+freshness: current
+ownership: user
+path: docs/decisions/coordination/conversations/0143-execution-and-conversation-boundary-hardening.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a7c56734fc61a4f23394920f
+title: "ADR-0143: Harden Execution-Evidence and Conversation Boundaries"
+type: decision

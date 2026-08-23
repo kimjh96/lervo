@@ -9,7 +9,7 @@ export type SqliteRow = Record<string, SQLOutputValue>;
 export function requireString(row: SqliteRow, key: string): string {
   const value = row[key];
   if (typeof value !== "string") {
-    throw new EventStoreError("integrity_failed", `SQLite event의 ${key}가 문자열이 아닙니다.`);
+    throw new EventStoreError("integrity_failed", `SQLite event ${key} is not a string.`);
   }
   return value;
 }
@@ -17,7 +17,7 @@ export function requireString(row: SqliteRow, key: string): string {
 function requireNumber(row: SqliteRow, key: string): number {
   const value = row[key];
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
-    throw new EventStoreError("integrity_failed", `SQLite event의 ${key}가 안전한 정수가 아닙니다.`);
+    throw new EventStoreError("integrity_failed", `SQLite event ${key} is not a safe integer.`);
   }
   return value;
 }
@@ -27,10 +27,10 @@ function parseJsonObject(value: string, field: string): Record<string, unknown> 
   try {
     parsed = JSON.parse(value);
   } catch {
-    throw new EventStoreError("integrity_failed", `${field} JSON을 읽을 수 없습니다.`);
+    throw new EventStoreError("integrity_failed", `${field} JSON cannot be read.`);
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new EventStoreError("integrity_failed", `${field}는 JSON 객체여야 합니다.`);
+    throw new EventStoreError("integrity_failed", `${field} must be a JSON object.`);
   }
   return parsed as Record<string, unknown>;
 }
@@ -38,7 +38,7 @@ function parseJsonObject(value: string, field: string): Record<string, unknown> 
 export function rowToEvent(row: SqliteRow): EventEnvelope {
   const previousHash = row.previous_hash;
   if (previousHash !== null && typeof previousHash !== "string") {
-    throw new EventStoreError("integrity_failed", "previous_hash 형식이 잘못되었습니다.");
+    throw new EventStoreError("integrity_failed", "The previous_hash format is invalid.");
   }
   const candidate = {
     eventId: requireString(row, "event_id"),
@@ -59,7 +59,7 @@ export function rowToEvent(row: SqliteRow): EventEnvelope {
   if (!validation.valid) {
     throw new EventStoreError(
       "integrity_failed",
-      `저장된 event가 schema에 맞지 않습니다: ${validation.errors
+      `The stored event does not satisfy the schema: ${validation.errors
         .map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`)
         .join("; ")}`,
     );

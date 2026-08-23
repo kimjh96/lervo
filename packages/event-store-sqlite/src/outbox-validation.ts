@@ -12,7 +12,7 @@ export function requireOutboxIdentifier(value: unknown, field: string): string {
   if (!isOutboxIdentifier(value)) {
     throw new EventStoreError(
       "invalid_outbox_request",
-      `${field}는 공백 없는 안전한 식별자여야 합니다.`,
+      `${field} must be a safe identifier without whitespace.`,
     );
   }
   return value;
@@ -22,14 +22,14 @@ export function requireOutboxTimestamp(value: unknown, field: string): string {
   if (typeof value !== "string" || !timezonePattern.test(value)) {
     throw new EventStoreError(
       "invalid_outbox_request",
-      `${field}는 유효한 ISO 8601 시각이어야 합니다.`,
+      `${field} must be a valid ISO 8601 time.`,
     );
   }
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) {
     throw new EventStoreError(
       "invalid_outbox_request",
-      `${field}는 유효한 ISO 8601 시각이어야 합니다.`,
+      `${field} must be a valid ISO 8601 time.`,
     );
   }
   return new Date(milliseconds).toISOString();
@@ -40,7 +40,7 @@ export function requireStoredOutboxTimestamp(value: string, field: string): stri
   if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== value) {
     throw new EventStoreError(
       "integrity_failed",
-      `outbox의 ${field}가 정규화된 ISO 8601 시각이 아닙니다.`,
+      `Outbox ${field} is not a normalized ISO 8601 time.`,
     );
   }
   return value;
@@ -59,7 +59,7 @@ export function requireOutboxPositiveInteger(
   ) {
     throw new EventStoreError(
       "invalid_outbox_request",
-      `${field}는 1 이상 ${maximum} 이하의 안전한 정수여야 합니다.`,
+      `${field} must be a safe integer between 1 and ${maximum}.`,
     );
   }
   return value;
@@ -73,7 +73,7 @@ export function requireOutboxFailureCode(value: unknown): string {
   if (!isOutboxFailureCode(value)) {
     throw new EventStoreError(
       "invalid_outbox_request",
-      "failureCode는 비밀정보가 아닌 짧은 기계용 코드여야 합니다.",
+      "failureCode must be a short machine-readable code without secret information.",
     );
   }
   return value;

@@ -56,7 +56,7 @@ function failureCode(status: Exclude<VerificationCommandResult["status"], "not_r
 function validClock(now: () => Date): Date {
   const value = now();
   if (Number.isNaN(value.getTime())) {
-    throw new VerificationError("invalid_verification_request", "Verification clock이 유효하지 않습니다.");
+    throw new VerificationError("invalid_verification_request", "The verification clock is invalid.");
   }
   return value;
 }
@@ -69,7 +69,7 @@ async function captureRevision(input: RunVerificationSuiteInput): Promise<string
   } catch (error) {
     throw new VerificationError(
       "repository_snapshot_failed",
-      "Verification repository snapshot을 안전하게 수집하지 못했습니다.",
+      "The verification repository snapshot could not be collected safely.",
       { cause: error },
     );
   }
@@ -89,7 +89,7 @@ export async function runVerificationSuite(
   if (beforeRevision !== input.repositoryRevision) {
     throw new VerificationError(
       "repository_snapshot_mismatch",
-      "Verification 요청 revision이 실행 직전 repository snapshot과 다릅니다.",
+      "The requested verification revision differs from the repository snapshot immediately before execution.",
     );
   }
   const now = options.now ?? (() => new Date());
@@ -134,13 +134,13 @@ export async function runVerificationSuite(
 
   const completedAt = validClock(now);
   if (completedAt.getTime() < startedAt.getTime()) {
-    throw new VerificationError("invalid_verification_request", "Verification 완료 시각이 시작 시각보다 이를 수 없습니다.");
+    throw new VerificationError("invalid_verification_request", "Verification cannot complete before it starts.");
   }
   const afterRevision = await captureRevision(input);
   if (afterRevision !== beforeRevision) {
     throw new VerificationError(
       "repository_changed_during_verification",
-      "Verification 명령 실행 중 repository snapshot이 바뀌었습니다.",
+      "The repository snapshot changed while verification commands were running.",
     );
   }
   const status = commands.some((command) =>

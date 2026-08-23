@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a6719cdafcd45321871de1c3
+freshness: current
+ownership: user
+path: docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c4bd6d9fb09225fa8bc4fc6e
+title: "ADR-0086: Canonical CLI release artifact manifest"
+type: decision

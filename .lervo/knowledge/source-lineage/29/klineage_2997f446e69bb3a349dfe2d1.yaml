@@ -1,0 +1,11 @@
+fromPath: docs/adr/0120-cli-stage-only-workflow-post-apply-verification.md
+identityPath: docs/adr/0120-cli-stage-only-workflow-post-apply-verification.md
+kind: document_move
+lineageId: klineage_2997f446e69bb3a349dfe2d1
+operationId: kdocop_338e37fc1764805be9c5b59a
+schemaVersion: 1
+sourceContentHash: sha256:948de155c5dd167102baf358d305e12868f7a4089d5f221ceb343aa1563ffdf5
+sourceId: src_daa49e0dc2186c5c861c0ca6
+sourceUnitBindingDigest: sha256:53f359e37261f8046d2b7bc80b535331d9c1d0ba3cf71e8201b2303b728d7e57
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md

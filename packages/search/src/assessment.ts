@@ -29,7 +29,7 @@ function validSource(value: unknown): value is SearchAssessmentSource {
 
 function sources(values: readonly SearchAssessmentSource[]): SearchAssessmentSource[] {
   if (values.length > SEARCH_MAX_RESULTS || values.some((source) => !validSource(source))) {
-    throw new SearchError("invalid_assessment", "검색 평가 source 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_assessment", "The search assessment source coordinates are invalid.");
   }
   return [...new Map(values.map((source) => [sourceKey(source), { ...source }])).values()]
     .sort((left, right) => compareText(sourceKey(left), sourceKey(right)));
@@ -80,15 +80,15 @@ export function assertSearchAssessment(assessment: SearchAssessment, attempt?: S
     !["human", "verification"].includes(assessment.assessor) ||
     !["accepted", "failed"].includes(assessment.outcome) ||
     !validSources(assessment.selectedSources) || !validSources(assessment.expectedSources)) {
-    throw new SearchError("invalid_assessment", "검색 평가 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_assessment", "The search assessment contract is invalid.");
   }
   assertTimestamp(assessment.assessedAt, "invalid_assessment");
   if (assessment.outcome === "accepted") {
     if (assessment.failureReason !== null || assessment.selectedSources.length === 0) {
-      throw new SearchError("invalid_assessment", "수락 평가에는 선택한 source가 필요합니다.");
+      throw new SearchError("invalid_assessment", "An accepted assessment requires a selected source.");
     }
   } else if (assessment.failureReason === null || !searchFailureReasons.includes(assessment.failureReason)) {
-    throw new SearchError("invalid_assessment", "실패 평가에는 controlled 실패 사유가 필요합니다.");
+    throw new SearchError("invalid_assessment", "A failed assessment requires a controlled failure reason.");
   }
   if (attempt !== undefined) {
     assertSearchAttempt(attempt);
@@ -97,11 +97,11 @@ export function assertSearchAssessment(assessment: SearchAssessment, attempt?: S
       Date.parse(assessment.assessedAt) < Date.parse(attempt.observedAt) ||
       assessment.selectedSources.some((source) => !resultSources.has(sourceKey(source))) ||
       (assessment.failureReason === "no_results" && attempt.hits.length !== 0)) {
-      throw new SearchError("invalid_assessment", "검색 평가가 대상 시도와 일치하지 않습니다.");
+      throw new SearchError("invalid_assessment", "The search assessment does not match its target attempt.");
     }
   }
   const { schemaVersion: _schema, assessmentId: _id, ...core } = assessment;
   if (contentId("sas", core) !== assessment.assessmentId) {
-    throw new SearchError("invalid_assessment", "검색 평가 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_assessment", "The search assessment ID does not match its content.");
   }
 }

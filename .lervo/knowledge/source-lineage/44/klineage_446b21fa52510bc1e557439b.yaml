@@ -1,0 +1,11 @@
+fromPath: docs/adr/0100-cli-first-publication-read-only-preflight-report.md
+identityPath: docs/adr/0100-cli-first-publication-read-only-preflight-report.md
+kind: document_move
+lineageId: klineage_446b21fa52510bc1e557439b
+operationId: kdocop_1bde2f05c1cb486916240821
+schemaVersion: 1
+sourceContentHash: sha256:5d6793654d8448009be71504b9a40034f9a9753f4a498e0406e4d9a92c0dd7bb
+sourceId: src_5b6934b8004b9cb79370cfac
+sourceUnitBindingDigest: sha256:b4a3d6b0066f93dc0895219458fbf4b354e2db89432094e84725949a4feded52
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md

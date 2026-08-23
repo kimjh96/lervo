@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c8fe81ae05d8cf5fb53595be
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_e25c9ba665e52ea7fb1a6658
+title: "ADR-0129: npm Stage-Approval Reconciliation Evidence"
+type: decision

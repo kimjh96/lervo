@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0074-doctor-scope-execution-plans.md
+identityPath: docs/adr/0074-doctor-scope-execution-plans.md
+kind: document_move
+lineageId: klineage_7efdc5fbedc1f3fc83b7ff3b
+operationId: kdocop_5c35661fc205fec8fba471a7
+schemaVersion: 1
+sourceContentHash: sha256:8df04f38afdd93d1793be0dc2f731253aefd09628cb0ebeda4f8be6d88e0dc0e
+sourceId: src_8f6f018ab75c768bbdd0a567
+sourceUnitBindingDigest: sha256:3bd303cc6285c5372740dcaacd2b4de906f71cdd1b67087b134f339926c0a70d
+sourceUnitCount: 5
+toPath: docs/decisions/operations/diagnostics/0074-doctor-scope-execution-plans.md

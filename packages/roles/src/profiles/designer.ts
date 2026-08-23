@@ -6,7 +6,7 @@ const profile: RoleProfile = {
   schemaVersion: 1,
   roleId: "designer",
   name: "Designer",
-  description: "등록된 디자인 토큰과 접근성 기준에 맞는 구현 가능한 디자인 명세를 만듭니다.",
+  description: "Creates implementable design specifications that follow registered design tokens and accessibility standards.",
   requestTypes: ["design.review", "design.specification"],
   requiredInputs: [{
     name: "designBrief", schemaRef: "lervo-schema://roles/design-brief/v1",
@@ -34,7 +34,7 @@ const profile: RoleProfile = {
     pathTemplate: ".lervo/generated/design/{runId}.md",
     citationsRequired: true,
     presentation: {
-      audience: "human", locale: "ko-KR", writingPolicyId: defaultRoleWritingPolicyId,
+      audience: "human", locale: "en", writingPolicyId: defaultRoleWritingPolicyId,
     },
   },
   verification: { suiteIds: ["role.design.artifact"], failureDisposition: "fail_run" },
@@ -48,16 +48,16 @@ const profile: RoleProfile = {
 export function designerRoleDefinition() {
   return defineRole(profile, [{
     checkId: "design.accessibility", category: "accessibility", method: "separate_semantic",
-    requirement: "접근성 기준과 예외가 별도 평가에서 확인되어야 합니다.",
+    requirement: "Accessibility standards and exceptions must be confirmed by a separate evaluation.",
     verificationSuiteId: null, evidenceRequired: true,
   }, {
     checkId: "design.artifact-schema", category: "artifact_schema",
     method: "project_verification",
-    requirement: "디자인 산출물이 등록된 design specification schema와 맞아야 합니다.",
+    requirement: "The design artifact must satisfy the registered design specification schema.",
     verificationSuiteId: "role.design.artifact", evidenceRequired: true,
   }, {
     checkId: "design.token-usage", category: "design_token_usage", method: "deterministic",
-    requirement: "색상, 간격, 서체와 크기는 등록된 design token ID를 참조해야 합니다.",
+    requirement: "Colors, spacing, typefaces, and sizes must reference registered design token IDs.",
     verificationSuiteId: null, evidenceRequired: true,
   }]);
 }

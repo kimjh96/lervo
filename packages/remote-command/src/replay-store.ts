@@ -24,7 +24,7 @@ export class InMemoryRemoteCommandReplayStore implements RemoteCommandReplayStor
 
   constructor(private readonly maxRecords = 1_024) {
     if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || maxRecords > 100_000) {
-      throw new Error("remote command replay store maxRecords가 유효하지 않습니다.");
+      throw new Error("The remote command replay store maxRecords value is invalid.");
     }
   }
 
@@ -59,7 +59,7 @@ export class InMemoryRemoteCommandReplayStore implements RemoteCommandReplayStor
     const decision = this.inspectCurrentState(coordinate);
     if (decision.status !== "available") return decision;
     if (this.byIdempotencyKey.size >= this.maxRecords) {
-      throw new Error("remote command replay store capacity를 초과했습니다.");
+      throw new Error("The remote command replay store capacity was exceeded.");
     }
     this.reservationSequence += 1;
     const reservationId = `remote-command-reservation-${this.reservationSequence}`;
@@ -84,7 +84,7 @@ export class InMemoryRemoteCommandReplayStore implements RemoteCommandReplayStor
       record.commandHash !== input.receipt.commandHash ||
       record.idempotencyKey !== input.receipt.idempotencyKey
     ) {
-      throw new Error("remote command replay reservation과 receipt가 일치하지 않습니다.");
+      throw new Error("The remote command replay reservation and receipt do not match.");
     }
     record.receipt = clone(input.receipt);
   }

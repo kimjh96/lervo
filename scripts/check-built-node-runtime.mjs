@@ -14,6 +14,6 @@ assert.equal(result.status, 1);
 assert.equal(result.stdout, "");
 assert.equal(
   result.stderr,
-  "Lervo Node 오류 (invalid_arguments): 사용법: lervo-node --config <config.json>\n",
+  "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json>\n",
 );
-console.log("빌드된 Lervo Node runtime smoke 검사 통과");
+console.log("Built Lervo Node runtime smoke check passed");

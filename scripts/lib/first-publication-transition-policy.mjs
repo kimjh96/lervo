@@ -27,7 +27,7 @@ const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_transition_input_invalid",
-    "CLI 최초 게시 전환 입력이 올바르지 않습니다.",
+    "The CLI first-publication transition input is invalid.",
   );
 }
 

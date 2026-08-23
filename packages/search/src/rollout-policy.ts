@@ -14,11 +14,11 @@ import { assertTimestamp, SOURCE_ID_PATTERN } from "./validation.js";
 function orderedUnique(values: readonly string[], pattern: RegExp, maximum: number): string[] {
   if (!Array.isArray(values) || values.length < 1 || values.length > maximum ||
     values.some((value) => typeof value !== "string" || !pattern.test(value))) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책의 허용 목록이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_policy", "The search rollout policy allowlist is invalid.");
   }
   const sorted = [...values].sort();
   if (new Set(sorted).size !== sorted.length) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책의 허용 목록이 중복되었습니다.");
+    throw new SearchError("invalid_rollout_policy", "The search rollout policy allowlist contains duplicates.");
   }
   return sorted;
 }
@@ -44,7 +44,7 @@ export function createSearchRolloutReviewPolicy(input: {
     input.keepMaximumFailedAttempts >= input.rollbackMinimumFailedAttempts ||
     input.rollbackMinimumFailedAttempts > input.rollbackMinimumAssessedAttempts ||
     !Number.isFinite(input.createdAt.getTime())) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책 입력과 판단 기준이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_policy", "The search rollout policy input or decision criteria are invalid.");
   }
   const core = {
     projectId: input.projectId,
@@ -65,7 +65,7 @@ export function createSearchRolloutReviewPolicy(input: {
     createdAt: input.createdAt.toISOString(),
   };
   if (!core.allowedReviewerIds.includes(input.authoredBy)) {
-    throw new SearchError("invalid_rollout_policy", "정책 작성자는 허용 reviewer에 포함되어야 합니다.");
+    throw new SearchError("invalid_rollout_policy", "The policy author must be included in the allowed reviewers.");
   }
   const policy: SearchRolloutReviewPolicy = {
     schemaVersion: 1,
@@ -86,19 +86,19 @@ export function assertSearchRolloutReviewPolicy(policy: SearchRolloutReviewPolic
     policy.rules.keepCandidate.maximumFailedAttempts >= policy.rules.rollbackRecommended.minimumFailedAttempts ||
     policy.rules.rollbackRecommended.minimumFailedAttempts > policy.rules.rollbackRecommended.minimumAssessedAttempts ||
     policy.rules.moreAssessmentsRequired?.allowed !== true) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_policy", "The search rollout policy contract is invalid.");
   }
   const reviewers = orderedUnique(policy.allowedReviewerIds, SOURCE_ID_PATTERN, 32);
   const candidates = orderedUnique(policy.allowedCandidateIds, SEARCH_CANDIDATE_ID_PATTERN, 16);
   if (JSON.stringify(reviewers) !== JSON.stringify(policy.allowedReviewerIds) ||
     JSON.stringify(candidates) !== JSON.stringify(policy.allowedCandidateIds) ||
     !reviewers.includes(policy.authoredBy)) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책의 정렬·작성자 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_policy", "Ordering or author coordinates in the search rollout policy are invalid.");
   }
   assertTimestamp(policy.createdAt, "invalid_rollout_policy");
   const { schemaVersion: _schema, policyId: _id, ...core } = policy;
   if (contentId("srpol", core) !== policy.policyId) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_rollout_policy", "The search rollout policy ID does not match its content.");
   }
 }
 
@@ -109,7 +109,7 @@ export function evaluateSearchRolloutReviewPolicy(
   assertSearchRolloutReviewPolicy(policy);
   assertSearchRolloutReview(review);
   if (policy.projectId !== review.projectId) {
-    throw new SearchError("invalid_rollout_policy", "검색 rollout 정책과 검토의 project 좌표가 다릅니다.");
+    throw new SearchError("invalid_rollout_policy", "Project coordinates in the search rollout policy and review differ.");
   }
   const bindingState = review.schemaVersion === 1
     ? "legacy_unbound" as const

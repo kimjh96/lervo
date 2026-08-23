@@ -6,6 +6,34 @@ import {
 } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps repository reconciliation review coordinates without reviewer identity", () => {
+    const hash = `sha256:${"a".repeat(64)}`;
+    const payload = {
+      compilationId: `kcomp_${"b".repeat(24)}`,
+      candidateArtifactHash: `sha256:${"c".repeat(64)}`,
+      reconciliationPlanId: `krecon_${"d".repeat(24)}`,
+      sourceSnapshotId: `ksnap_${"e".repeat(24)}`,
+      registryDigest: `sha256:${"f".repeat(64)}`,
+      reviewId: `krvw_${"1".repeat(24)}`,
+      reviewArtifactId: `art_${"a".repeat(64)}`,
+      reviewArtifactHash: hash,
+      decision: "approved",
+      policyId: "knowledge_semantic_review.default",
+      policyVersion: `sha256:${"2".repeat(64)}`,
+      itemApprovalDigest: `sha256:${"5".repeat(64)}`,
+      acceptedDispositionIds: [`kdisp_${"3".repeat(24)}`],
+      skippedDispositionIds: [`kdisp_${"4".repeat(24)}`],
+      dispositionListTruncated: false,
+      dispositionCount: 2,
+      reviewedAt: "2026-08-22T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("knowledge.reconciliation.reviewed", { ...payload, reviewerId: "private.human", prompt: "private" });
+    expect(result.payload).toEqual(payload);
+    expect(result.payload).not.toHaveProperty("reviewerId");
+    expect(() => sanitizeEventPayload("knowledge.reconciliation.reviewed", { ...payload, reviewArtifactId: `art_${"9".repeat(64)}` }))
+      .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("binds run completion to provider and verification result artifacts", () => {
     const completed = {
       resultDigest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -117,6 +145,13 @@ describe("event payload privacy boundary", () => {
   });
 
   it("keeps E2 and E3 evidence receipt coordinates without document content", () => {
+    const knowledgeContext = {
+      conceptId: `concept_${"1".repeat(24)}`,
+      assurance: "human_reviewed",
+      freshness: "current",
+      sourceSnapshotId: `ksnap_${"2".repeat(24)}`,
+      impactReportId: `kimpact_${"3".repeat(24)}`,
+    };
     const loaded = sanitizeEventPayload("document.loaded", {
       evidenceReceiptId: "ctx_loaded_00000001",
       documentId: "doc_context_00000001",
@@ -124,6 +159,7 @@ describe("event payload privacy boundary", () => {
       byteCount: 42,
       scope: { mode: "full" },
       sourceRevision: "fixture-v1",
+      knowledgeContext,
       documentBody: "private body",
     });
     const injected = sanitizeEventPayload("context.injected", {
@@ -137,6 +173,7 @@ describe("event payload privacy boundary", () => {
     });
 
     expect(loaded.payload.evidenceReceiptId).toBe("ctx_loaded_00000001");
+    expect(loaded.payload.knowledgeContext).toEqual(knowledgeContext);
     expect(injected.payload.evidenceReceiptIds).toEqual(["ctx_injected_000001"]);
     expect(JSON.stringify([loaded.payload, injected.payload])).not.toContain("private body");
   });
@@ -158,6 +195,13 @@ describe("event payload privacy boundary", () => {
       selectionPolicyId: "top_ranked",
       selectionPolicyVersion: 1,
       selectionMaximum: 3,
+      knowledgeContext: {
+        conceptId: `concept_${"1".repeat(24)}`,
+        assurance: "unreviewed",
+        freshness: "unknown",
+        sourceSnapshotId: `ksnap_${"2".repeat(24)}`,
+        impactReportId: `kimpact_${"3".repeat(24)}`,
+      },
     };
     const result = sanitizeEventPayload("context.recommended", {
       ...recommendation,

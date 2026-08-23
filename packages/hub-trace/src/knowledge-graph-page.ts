@@ -18,13 +18,13 @@ export function assertKnowledgeGraphPage(input: {
     (result.relations.items.length === 0 && result.relations.nextCursor !== null)) {
     throw new HubTraceError(
       "source_inconsistent",
-      "Hub knowledge graph source가 bounded page 계약을 지키지 않았습니다.",
+      "The Hub knowledge graph source did not satisfy the bounded-page contract.",
     );
   }
   if (result.project.destinationId !== query.destinationId ||
     result.project.projectId !== query.projectId ||
     !sameKnowledgeGraphNode(result.focus, query.focus)) {
-    throw new HubTraceError("source_inconsistent", "Hub knowledge graph 좌표가 요청과 다릅니다.");
+    throw new HubTraceError("source_inconsistent", "The Hub knowledge graph coordinates differ from the request.");
   }
   let previous = query.after?.relationId ?? "";
   const seen = new Set<string>();
@@ -32,19 +32,19 @@ export function assertKnowledgeGraphPage(input: {
     try {
       assertKnowledgeGraphRelationIntegrity(relation);
     } catch {
-      throw new HubTraceError("source_inconsistent", "Hub knowledge graph relation ID가 유효하지 않습니다.");
+      throw new HubTraceError("source_inconsistent", "A Hub knowledge graph relation ID is invalid.");
     }
     if (relation.projectId !== query.projectId ||
       (!sameKnowledgeGraphNode(relation.from, query.focus) &&
         !sameKnowledgeGraphNode(relation.to, query.focus)) ||
       relation.relationId <= previous || seen.has(relation.relationId)) {
-      throw new HubTraceError("source_inconsistent", "Hub knowledge graph source가 focus·순서 계약을 지키지 않았습니다.");
+      throw new HubTraceError("source_inconsistent", "The Hub knowledge graph source did not satisfy the focus and ordering contract.");
     }
     previous = relation.relationId;
     seen.add(relation.relationId);
   }
   if (result.relations.nextCursor !== null &&
     result.relations.nextCursor.relationId !== previous) {
-    throw new HubTraceError("source_inconsistent", "Hub knowledge graph cursor가 page 끝과 다릅니다.");
+    throw new HubTraceError("source_inconsistent", "The Hub knowledge graph cursor differs from the end of the page.");
   }
 }

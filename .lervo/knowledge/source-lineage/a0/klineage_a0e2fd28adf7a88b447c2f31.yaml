@@ -1,0 +1,11 @@
+fromPath: docs/adr/0116-cli-first-publication-transition-completion-command.md
+identityPath: docs/adr/0116-cli-first-publication-transition-completion-command.md
+kind: document_move
+lineageId: klineage_a0e2fd28adf7a88b447c2f31
+operationId: kdocop_1e13ce6f13dc161ec2d7c4be
+schemaVersion: 1
+sourceContentHash: sha256:93d289cfa414e725b357ed4b8325fe45f4a2920dfc438db607a81531b71f8160
+sourceId: src_e1fbe77084cef7b3c35fc508
+sourceUnitBindingDigest: sha256:19193bf8ad7f1e01402b0f9180644a0a41c079d6aecc550eff32a0f9ebac546c
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md

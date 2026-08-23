@@ -37,7 +37,7 @@ export function createManagedConversationDeliberationExecutionAdapter(options: {
       ) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",
-          "실행할 대화 숙의 job이 유효하지 않습니다.",
+          "The conversation deliberation job is invalid.",
         );
       }
       const outcome = await executeAssigned({
@@ -56,7 +56,7 @@ export function createManagedConversationDeliberationExecutionAdapter(options: {
       ) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",
-          "Managed 숙의 결과 좌표가 queue job과 일치하지 않습니다.",
+          "The managed deliberation result coordinates do not match the queue job.",
         );
       }
       return {

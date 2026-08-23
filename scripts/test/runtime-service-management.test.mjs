@@ -1,0 +1,196 @@
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import { manageRuntimeService } from "../manage-runtime-service.mjs";
+import { renderRuntimeService } from "../render-runtime-service.mjs";
+
+const roots = [];
+
+afterEach(async () => Promise.all(
+  roots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
+));
+
+async function fixture(manager, runtime = "hub") {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-service-manage-"));
+  roots.push(root);
+  const executable = resolve(root, "lervo-runtime");
+  const config = resolve(root, "runtime.json");
+  const definition = resolve(root, manager === "systemd" ? "runtime.service" : "runtime.plist");
+  await writeFile(executable, "#!/bin/sh\n", { mode: 0o700 });
+  await chmod(executable, 0o700);
+  await writeFile(config, "{}", { mode: 0o600 });
+  await renderRuntimeService([
+    "--manager", manager,
+    "--runtime", runtime,
+    "--executable", executable,
+    "--config", config,
+    "--output", definition,
+  ]);
+  const writeArgs = (action) => [
+    "--action", action,
+    "--manager", manager,
+    "--runtime", runtime,
+    "--definition", definition,
+    "--executable", executable,
+    "--config", config,
+    "--write",
+  ];
+  return { root, executable, config, definition, writeArgs };
+}
+
+function systemdManager() {
+  const calls = [];
+  let enabled = false;
+  let active = false;
+  return {
+    calls,
+    async run(command, args) {
+      calls.push([command, ...args]);
+      if (command !== "systemctl" || args[0] !== "--user") return { exitCode: null };
+      if (args[1] === "daemon-reload") return { exitCode: 0 };
+      if (args[1] === "is-enabled") return { exitCode: enabled ? 0 : 1 };
+      if (args[1] === "is-active") return { exitCode: active ? 0 : 3 };
+      if (args[1] === "enable" && args[2] === "--now") {
+        enabled = true;
+        active = true;
+        return { exitCode: 0 };
+      }
+      if (args[1] === "disable" && args[2] === "--now") {
+        enabled = false;
+        active = false;
+        return { exitCode: 0 };
+      }
+      return { exitCode: 1 };
+    },
+  };
+}
+
+describe("runtime user service management", () => {
+  it("installs, reports, idempotently reuses, and removes an exact systemd user unit", async () => {
+    const value = await fixture("systemd", "hub");
+    const manager = systemdManager();
+    const options = {
+      platform: "linux",
+      homeDirectory: value.root,
+      runCommand: manager.run.bind(manager),
+    };
+    await expect(manageRuntimeService(value.writeArgs("install"), options)).resolves.toMatchObject({
+      manager: "systemd",
+      runtime: "hub",
+      installed: true,
+      enabled: true,
+      active: true,
+      change: "installed",
+    });
+    const target = resolve(value.root, ".config/systemd/user/lervo-hub.service");
+    expect(await readFile(target, "utf8")).toBe(await readFile(value.definition, "utf8"));
+    const callsAfterInstall = manager.calls.length;
+    await expect(manageRuntimeService(value.writeArgs("install"), options)).resolves.toMatchObject({
+      change: "unchanged",
+    });
+    expect(manager.calls.length).toBe(callsAfterInstall + 2);
+    await expect(manageRuntimeService([
+      "--action", "status", "--manager", "systemd", "--runtime", "hub",
+    ], options)).resolves.toMatchObject({ installed: true, enabled: true, active: true });
+    await expect(manageRuntimeService(value.writeArgs("remove"), options)).resolves.toMatchObject({
+      change: "removed",
+      installed: false,
+      active: false,
+    });
+    await expect(readFile(target)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("requires explicit write authority and never overwrites another definition", async () => {
+    const value = await fixture("systemd", "node");
+    const manager = systemdManager();
+    const options = {
+      platform: "linux",
+      homeDirectory: value.root,
+      runCommand: manager.run.bind(manager),
+    };
+    await expect(manageRuntimeService(value.writeArgs("install").filter((arg) => arg !== "--write"), options))
+      .rejects.toMatchObject({ code: "write_not_authorized" });
+    const target = resolve(value.root, ".config/systemd/user/lervo-node.service");
+    await writeFile(target, "unrelated unit\n", { mode: 0o600 }).catch(async (error) => {
+      if (error.code !== "ENOENT") throw error;
+      await mkdir(resolve(target, ".."), { recursive: true });
+      await writeFile(target, "unrelated unit\n", { mode: 0o600 });
+    });
+    await expect(manageRuntimeService(value.writeArgs("install"), options)).rejects.toMatchObject({
+      code: "service_state_conflict",
+    });
+    expect(await readFile(target, "utf8")).toBe("unrelated unit\n");
+    expect(manager.calls).toHaveLength(0);
+  });
+
+  it("rejects a symlinked definition before invoking the manager", async () => {
+    if (process.platform === "win32") return;
+    const value = await fixture("systemd", "hub");
+    const definitionLink = resolve(value.root, "definition-link.service");
+    await symlink(value.definition, definitionLink);
+    const args = value.writeArgs("install");
+    args[args.indexOf(value.definition)] = definitionLink;
+    const manager = systemdManager();
+    await expect(manageRuntimeService(args, {
+      platform: "linux",
+      homeDirectory: value.root,
+      runCommand: manager.run.bind(manager),
+    })).rejects.toMatchObject({ code: "unsafe_service_definition" });
+    expect(manager.calls).toHaveLength(0);
+  });
+
+  it("compensates a failed launchd bootstrap back to the uninstalled state", async () => {
+    const value = await fixture("launchd", "hub");
+    let enabled = false;
+    let loaded = false;
+    const calls = [];
+    const runCommand = async (command, args) => {
+      calls.push([command, ...args]);
+      if (command !== "launchctl") return { exitCode: null };
+      if (args[0] === "print") return { exitCode: loaded ? 0 : 113 };
+      if (args[0] === "enable") { enabled = true; return { exitCode: 0 }; }
+      if (args[0] === "bootstrap") return { exitCode: 5 };
+      if (args[0] === "bootout") { loaded = false; return { exitCode: 113 }; }
+      if (args[0] === "disable") { enabled = false; return { exitCode: 0 }; }
+      return { exitCode: 1 };
+    };
+    await expect(manageRuntimeService(value.writeArgs("install"), {
+      platform: "darwin",
+      homeDirectory: value.root,
+      uid: 501,
+      runCommand,
+    })).rejects.toMatchObject({ code: "service_apply_failed" });
+    expect(enabled).toBe(false);
+    expect(loaded).toBe(false);
+    const target = resolve(value.root, "Library/LaunchAgents/com.lervo.hub.plist");
+    await expect(readFile(target)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(calls.some((call) => call[1] === "disable")).toBe(true);
+  });
+
+  it("reports manager unavailability without treating it as an inactive service", async () => {
+    const value = await fixture("launchd", "node");
+    const options = {
+      platform: "darwin",
+      homeDirectory: value.root,
+      uid: 501,
+      runCommand: async () => ({ exitCode: null }),
+    };
+    await expect(manageRuntimeService([
+      "--", "--action", "status", "--manager", "launchd", "--runtime", "node",
+    ], options)).resolves.toMatchObject({
+      managerAvailable: false,
+      installed: false,
+      active: false,
+    });
+    await expect(manageRuntimeService(value.writeArgs("install"), options)).rejects.toMatchObject({
+      code: "service_manager_unavailable",
+    });
+    await expect(readFile(resolve(
+      value.root,
+      "Library/LaunchAgents/com.lervo.node.plist",
+    ))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+});

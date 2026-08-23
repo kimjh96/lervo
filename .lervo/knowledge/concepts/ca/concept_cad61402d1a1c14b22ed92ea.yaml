@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_cad61402d1a1c14b22ed92ea
+freshness: current
+ownership: user
+path: docs/decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_039b5224ec69cc13c0028e64
+title: "ADR-0073: Doctor recovery guidance without automatic repair"
+type: decision

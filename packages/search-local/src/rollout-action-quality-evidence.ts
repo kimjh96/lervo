@@ -37,6 +37,6 @@ export function assertRolloutActionReviewTarget(
     !sameSearchEngine(activation.selected.engine, review.target.engine) || candidateReview.schemaVersion !== 2 ||
     candidateReview.reviewId !== review.target.candidateReviewId ||
     candidateReview.candidateAdapterBuildId !== review.target.adapterBuildId) {
-    throw new SearchLocalError("observation_invalid", "Rollout 조치 검토 대상이 검색 선택 원본과 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The rollout action review target differs from the source search selection.");
   }
 }

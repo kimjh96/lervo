@@ -7,7 +7,7 @@ export interface ManagedWritePlan {
   allowedPaths: readonly string[];
   minimumVerifiedChanges: number;
   maximumVerifiedChanges: number;
-  contextAfterChange: "invalidate";
+  pathsPerTurn: 1;
 }
 
 export function createManagedWritePlan(input: {
@@ -16,11 +16,12 @@ export function createManagedWritePlan(input: {
 }): ManagedWritePlan {
   const allowedPaths = normalizeExpectedWritePaths(input.expectedPaths);
   const requiresWrite = input.executionMode === "managed_write";
+  const requiredChanges = requiresWrite ? allowedPaths.length : 0;
   return Object.freeze({
     executionMode: input.executionMode,
     allowedPaths: Object.freeze([...allowedPaths]),
-    minimumVerifiedChanges: requiresWrite ? 1 : 0,
-    maximumVerifiedChanges: requiresWrite ? 1 : 0,
-    contextAfterChange: "invalidate" as const,
+    minimumVerifiedChanges: requiredChanges,
+    maximumVerifiedChanges: requiredChanges,
+    pathsPerTurn: 1 as const,
   });
 }

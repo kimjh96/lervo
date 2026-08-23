@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8e722f79fa54a5c0ed037151
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_309d295b0f6a1c18f633869e
+title: "ADR-0182: Durable, Identity-Preserving User Document Move"
+type: decision

@@ -29,7 +29,7 @@ const sideEffects = Object.freeze({
 function fail(code = "first_publication_arming_authorization_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 실행 허가가 올바르지 않습니다.",
+    "The CLI first-publication execution authorization is invalid.",
   );
 }
 

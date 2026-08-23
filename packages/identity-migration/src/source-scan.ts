@@ -38,7 +38,7 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
     if (!before.isDirectory() || before.isSymbolicLink()) {
       throw new SourceTreeScanError(
         "source_unsafe",
-        "이전 관리 경로에는 실제 디렉터리만 사용할 수 있습니다.",
+        "Only real directories are allowed in the previous managed path.",
       );
     }
     treeHash.update(canonicalJson(["directory", relativeDirectory]));
@@ -56,20 +56,20 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
       if (!entry.isFile() || entry.isSymbolicLink()) {
         throw new SourceTreeScanError(
           "source_unsafe",
-          `이전 관리 경로의 ${relativePath}은 일반 파일이나 디렉터리가 아닙니다.`,
+          `${relativePath} in the previous managed path is neither a regular file nor a directory.`,
         );
       }
       fileCount += 1;
       if (fileCount > MAX_SOURCE_FILES) {
-        scanLimit(`이전 관리 파일 수가 안전한 한도 ${MAX_SOURCE_FILES}개를 넘습니다.`);
+        scanLimit(`The previous managed file count exceeds the safe limit of ${MAX_SOURCE_FILES}.`);
       }
       const fileBefore = await lstat(absolutePath, { bigint: true });
       if (!fileBefore.isFile() || fileBefore.isSymbolicLink()) {
-        throw new SourceTreeScanError("source_unsafe", `${relativePath}을 안전하게 읽을 수 없습니다.`);
+        throw new SourceTreeScanError("source_unsafe", `${relativePath} cannot be read safely.`);
       }
       const size = Number(fileBefore.size);
       if (!Number.isSafeInteger(size) || byteCount + size > MAX_SOURCE_BYTES) {
-        scanLimit("이전 관리 데이터가 안전한 전체 byte 한도를 넘습니다.");
+        scanLimit("The previous managed data exceeds the safe total byte limit.");
       }
       byteCount += size;
       const contentHash = createHash("sha256");
@@ -85,7 +85,7 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
       ) {
         throw new SourceTreeScanError(
           "source_changed",
-          `${relativePath}이 읽는 동안 바뀌었습니다. 실행 중인 도구를 종료하고 다시 확인하세요.`,
+          `${relativePath} changed while it was being read. Stop active tools and check again.`,
         );
       }
       treeHash.update(canonicalJson([
@@ -103,7 +103,7 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
     ) {
       throw new SourceTreeScanError(
         "source_changed",
-        "이전 관리 경로가 검사 중 바뀌었습니다. 실행 중인 도구를 종료하고 다시 확인하세요.",
+        "The previous managed path changed during inspection. Stop active tools and check again.",
       );
     }
   }

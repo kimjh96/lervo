@@ -1,0 +1,11 @@
+fromPath: docs/decisions/foundation/0088-packed-cli-consumer-installation.md
+identityPath: docs/adr/0088-packed-cli-consumer-installation.md
+kind: document_move
+lineageId: klineage_b6872608dcd9d9de04951940
+operationId: kdocop_3aa01e1acb5b8bf684ea5f69
+schemaVersion: 1
+sourceContentHash: sha256:ab0baafdc92e3701a950b8647753c711221af585183be2ac9068412acfe026ea
+sourceId: src_fff9912635d6dd8c3f8406cb
+sourceUnitBindingDigest: sha256:0c8956781e2678f67cc843179545914f2db873cf9a79261f8decdcdc7ed2e599
+sourceUnitCount: 5
+toPath: docs/decisions/distribution/0088-packed-cli-consumer-installation.md

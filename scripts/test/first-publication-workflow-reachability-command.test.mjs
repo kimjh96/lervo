@@ -123,9 +123,9 @@ describe("first-publication workflow reachability command", () => {
     try {
       const report = await createEvidence(fixture);
       const output = formatFirstPublicationWorkflowReachabilityEvidence(report);
-      assert.match(output, /Source commit은 현재 기본 브랜치 main에 포함됩니다/u);
-      assert.match(output, /관측 뒤 ref가 바뀌지 않는다는 보장이 아닙니다/u);
-      assert.match(output, /Workflow 실행, npm stage 접수·2FA 승인과 package 공개도 확인하지 않았습니다/u);
+      assert.match(output, /source commit is contained in the current default branch, main/u);
+      assert.match(output, /does not guarantee that refs remain unchanged after observation/u);
+      assert.match(output, /Workflow execution, npm stage acceptance, 2FA approval/u);
       assert.equal(output.includes(report.evidenceDigest), false);
       assert.equal(output.includes(report.upstream.remoteDeploymentEvidenceDigest), false);
     } finally {

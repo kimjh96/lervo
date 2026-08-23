@@ -28,7 +28,7 @@ export async function runSearchEngineRollbackCommand(args: string[], io: CliIo):
     return 1;
   }
   if (parsed.values.policy === undefined || parsed.values.operator === undefined) {
-    io.stderr(`policy ID와 operator ID가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A policy ID and operator ID are required.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -47,8 +47,8 @@ export async function runSearchEngineRollbackCommand(args: string[], io: CliIo):
       : formatSearchEngineActivation(activation));
     return 0;
   } catch (error) {
-    io.stderr(`검색 엔진 rollback을 기록하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not record the search engine rollback. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

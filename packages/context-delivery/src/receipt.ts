@@ -26,7 +26,7 @@ function createEvidenceReceiptId(factory: () => string): string {
   } catch {
     throw new ContextDeliveryError(
       "invalid_context_evidence",
-      "E3 context receipt ID를 만들지 못했습니다.",
+      "Could not create the E3 context receipt ID.",
     );
   }
 }
@@ -37,13 +37,13 @@ function throwBindingError(
   if (violations.some((item) => item.code === "stale_context_generation")) {
     throw new ContextDeliveryError(
       "stale_context_generation",
-      "Context envelope 또는 receipt가 현재 generation보다 오래되었습니다.",
+      "The context envelope or receipt is older than the current generation.",
     );
   }
   if (violations.some((item) => item.code === "receipt_invalid")) {
     throw new ContextDeliveryError(
       "invalid_context_receipt",
-      "Adapter가 유효한 context receipt를 반환하지 않았습니다.",
+      "The adapter did not return a valid context receipt.",
       { cause: violations },
     );
   }
@@ -61,13 +61,13 @@ function throwBindingError(
   ) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      "검증할 envelope 또는 managed session binding이 유효하지 않습니다.",
+      "The envelope or managed session binding to verify is invalid.",
       { cause: violations },
     );
   }
   throw new ContextDeliveryError(
     "context_receipt_mismatch",
-    "Context receipt가 정확한 envelope 주입을 증명하지 않습니다.",
+    "The context receipt does not prove exact envelope injection.",
     { cause: violations },
   );
 }
@@ -84,14 +84,14 @@ function createInjectedEvidence(input: {
     if (!validation.valid) {
       throw new ContextDeliveryError(
         "invalid_context_evidence",
-        `기존 context evidence가 유효하지 않습니다: ${evidence.receiptId}`,
+        `Existing context evidence is invalid: ${evidence.receiptId}`,
         { cause: validation.errors },
       );
     }
     if (receiptIds.has(evidence.receiptId)) {
       throw new ContextDeliveryError(
         "receipt_id_conflict",
-        `기존 context receipt ID가 중복되었습니다: ${evidence.receiptId}`,
+        `An existing context receipt ID is duplicated: ${evidence.receiptId}`,
       );
     }
     receiptIds.add(evidence.receiptId);
@@ -102,7 +102,7 @@ function createInjectedEvidence(input: {
     if (receiptIds.has(receiptId)) {
       throw new ContextDeliveryError(
         "receipt_id_conflict",
-        `E3 context receipt ID가 중복되었습니다: ${receiptId}`,
+        `An E3 context receipt ID is duplicated: ${receiptId}`,
       );
     }
     const evidence: InjectedEvidence = {
@@ -123,12 +123,15 @@ function createInjectedEvidence(input: {
       targetTurnId: input.receipt.targetTurnId,
       contextGeneration: input.receipt.contextGeneration,
       controlledInput: true,
+      ...(document.knowledgeContext === undefined
+        ? {}
+        : { knowledgeContext: structuredClone(document.knowledgeContext) }),
     };
     const validation = validateSchema("contextEvidence", evidence);
     if (!validation.valid) {
       throw new ContextDeliveryError(
         "invalid_context_evidence",
-        `유효한 E3 evidence를 만들지 못했습니다: ${receiptId}`,
+        `Could not create valid E3 evidence: ${receiptId}`,
         { cause: validation.errors },
       );
     }

@@ -36,7 +36,7 @@ const hubIdentityHash = `sha256:${"7".repeat(64)}`;
 const nodeToken = "hub-command-node-token-aaaaaaaaaaaaaaaaaaaaaaaa";
 const observerToken = "hub-command-observer-token-bbbbbbbbbbbbbbbbbbbbb";
 const writerToken = "hub-command-writer-token-cccccccccccccccccccccc";
-const requestText = "HTTP로 전달된 작업을 한 번만 실행해 주세요.";
+const requestText = "Execute the task delivered over HTTP exactly once.";
 const requestBytes = new TextEncoder().encode(requestText);
 
 class MutableClock {
@@ -189,7 +189,7 @@ describe("authenticated remote command HTTP delivery", () => {
       deliveryId: firstSubmissionBody.deliveryId,
       envelope: firstSubmissionBody.envelope,
     });
-    await expect(submit({ ...submissionBody, request: "다른 요청" }).then((response) => response.status))
+    await expect(submit({ ...submissionBody, request: "different request" }).then((response) => response.status))
       .resolves.toBe(409);
     const queued = { deliveryId: firstSubmissionBody.deliveryId };
     const inspection = new DatabaseSync(hubPath, { readOnly: true });

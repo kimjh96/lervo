@@ -1,0 +1,11 @@
+fromPath: docs/adr/0013-provider-neutral-managed-write-bridge.md
+identityPath: docs/adr/0013-provider-neutral-managed-write-bridge.md
+kind: document_move
+lineageId: klineage_ae739c8891b79b4dd4e51cab
+operationId: kdocop_69c87d2af5e4ac521909339b
+schemaVersion: 1
+sourceContentHash: sha256:fa8f8314b29aa956ff097c065fd2ac163478f1831625f82ee7543f5e6f2fe25e
+sourceId: src_45dcc0850476d65521eaafe0
+sourceUnitBindingDigest: sha256:43061958f3ff5d494e2168b3450f9b828576702f4402df877e34fa33f57e7bb4
+sourceUnitCount: 9
+toPath: docs/decisions/execution/providers/0013-provider-neutral-managed-write-bridge.md

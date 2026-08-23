@@ -267,7 +267,7 @@ describe("Hub trace HTTP API", () => {
   it("replaces an oversized authorized result with a bounded safe error", async () => {
     const querySource = traceSource();
     vi.mocked(querySource.listProjects).mockResolvedValue({
-      items: [{ ...allowedProject, projectName: "가".repeat(2_000) }],
+      items: [{ ...allowedProject, projectName: "a".repeat(6_000) }],
       nextCursor: null,
     });
     const base = await startHubTestServer(querySource, 1_024);

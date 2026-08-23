@@ -1,0 +1,11 @@
+fromPath: docs/adr/0175-bounded-git-head-revision-source.md
+identityPath: docs/adr/0175-bounded-git-head-revision-source.md
+kind: document_move
+lineageId: klineage_c0183e15f219a974ecfe0a5f
+operationId: kdocop_5fc8a1f008e877b8b3255b07
+schemaVersion: 1
+sourceContentHash: sha256:0cb04edaa58ffc9b3056d203f667b713cad6a79efe3cdadfbc7babb32074dfb5
+sourceId: src_052fa922ab73c3ba80687177
+sourceUnitBindingDigest: sha256:3149c5da8ce979549e4e902a5203824dc14fdbc82cc7061dc80f72211b199829
+sourceUnitCount: 5
+toPath: docs/decisions/foundation/0175-bounded-git-head-revision-source.md

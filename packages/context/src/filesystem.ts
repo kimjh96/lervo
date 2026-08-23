@@ -47,14 +47,14 @@ async function canonicalRepositoryRoot(root: string): Promise<string> {
   } catch (error) {
     throw new ContextPreparationError(
       "unsafe_document_path",
-      `저장소 root를 확인할 수 없습니다: ${absoluteRoot}`,
+      `The repository root cannot be inspected: ${absoluteRoot}`,
       { cause: error },
     );
   }
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new ContextPreparationError(
       "unsafe_document_path",
-      `저장소 root는 실제 디렉터리여야 합니다: ${absoluteRoot}`,
+      `The repository root must be a real directory: ${absoluteRoot}`,
     );
   }
   return realpath(absoluteRoot);
@@ -79,21 +79,21 @@ async function inspectPath(root: string, path: string): Promise<{
       }
       throw new ContextPreparationError(
         "document_read_failed",
-        `문서 경로를 확인할 수 없습니다: ${normalized}`,
+        `The document path cannot be inspected: ${normalized}`,
         { cause: error },
       );
     }
     if (stats.isSymbolicLink()) {
       throw new ContextPreparationError(
         "unsafe_document_path",
-        `문서 경로는 심볼릭 링크를 포함할 수 없습니다: ${normalized}`,
+        `The document path cannot contain symbolic links: ${normalized}`,
       );
     }
     const final = index === segments.length - 1;
     if (final ? !stats.isFile() : !stats.isDirectory()) {
       throw new ContextPreparationError(
         "unsafe_document_path",
-        `문서 경로는 실제 파일과 디렉터리만 포함해야 합니다: ${normalized}`,
+        `The document path must contain only real files and directories: ${normalized}`,
       );
     }
   }
@@ -101,7 +101,7 @@ async function inspectPath(root: string, path: string): Promise<{
   if (pathFromRoot.startsWith(`..${sep}`) || pathFromRoot === "..") {
     throw new ContextPreparationError(
       "unsafe_document_path",
-      `문서 경로가 저장소 밖을 가리킵니다: ${normalized}`,
+      `The document path points outside the repository: ${normalized}`,
     );
   }
   return { absolutePath: current, kind: "file" };
@@ -117,14 +117,14 @@ export async function readRepositoryFile(
   maximumBytes = Number.MAX_SAFE_INTEGER,
 ): Promise<Uint8Array> {
   if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
-    throw new ContextPreparationError("document_read_failed", "문서 byte 상한이 유효하지 않습니다.");
+    throw new ContextPreparationError("document_read_failed", "The document byte limit is invalid.");
   }
   const inspected = await inspectPath(root, path);
   const normalized = normalizeRepositoryPath(path);
   if (inspected.kind === "missing") {
     throw new ContextPreparationError(
       "document_missing",
-      `선택한 문서가 없습니다: ${normalized}`,
+      `The selected document is missing: ${normalized}`,
     );
   }
 
@@ -139,8 +139,8 @@ export async function readRepositoryFile(
       throw new ContextPreparationError(
         beforeStats.isFile() ? "document_read_failed" : "unsafe_document_path",
         beforeStats.isFile()
-          ? `선택한 문서가 byte 상한을 넘었습니다: ${normalized}`
-          : `선택한 문서는 실제 파일이어야 합니다: ${normalized}`,
+          ? `The selected document exceeds the byte limit: ${normalized}`
+          : `The selected document must be a real file: ${normalized}`,
       );
     }
     const before = identity(beforeStats);
@@ -168,7 +168,7 @@ export async function readRepositoryFile(
     ) {
       throw new ContextPreparationError(
         "document_changed_during_read",
-        `문서를 읽는 동안 경로나 내용이 바뀌었습니다: ${normalized}`,
+        `The document path or content changed while it was being read: ${normalized}`,
       );
     }
     return bytes;
@@ -176,7 +176,7 @@ export async function readRepositoryFile(
     if (error instanceof ContextPreparationError) throw error;
     throw new ContextPreparationError(
       "document_read_failed",
-      `문서를 읽을 수 없습니다: ${normalized}`,
+      `The document cannot be read: ${normalized}`,
       { cause: error },
     );
   } finally {

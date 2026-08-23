@@ -43,7 +43,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_event_mismatch",
       input.event.eventId,
-      "지식 후보 생성 event가 현재 payload 계약과 다릅니다.",
+      "The knowledge candidate creation event differs from the current payload contract.",
     );
     return issues;
   }
@@ -66,7 +66,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_artifact_invalid",
       input.event.eventId,
-      "지식 후보 CAS 원본의 schema, hash 또는 ID를 확인할 수 없습니다.",
+      "The schema, hash, or ID of the knowledge candidate CAS source cannot be verified.",
     );
     return issues;
   }
@@ -82,7 +82,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_event_mismatch",
       input.event.eventId,
-      "지식 후보 원본과 생성 event 좌표가 다릅니다.",
+      "The knowledge candidate source and creation event coordinates differ.",
     );
   }
   const evidenceIds = new Set(payload.evidenceIds);
@@ -92,7 +92,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_evidence_missing",
       input.event.eventId,
-      "지식 후보가 참조한 evidence event가 없습니다.",
+      "The evidence event referenced by the knowledge candidate is missing.",
     );
   }
   if (!eventBy({
@@ -108,7 +108,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_outcome_not_converged",
       input.event.eventId,
-      "지식 후보의 converged outcome event를 확인할 수 없습니다.",
+      "The converged outcome event for the knowledge candidate cannot be verified.",
     );
   }
   if (!eventBy({
@@ -123,7 +123,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_decision_missing",
       input.event.eventId,
-      "지식 후보의 decision artifact event를 확인할 수 없습니다.",
+      "The decision artifact event for the knowledge candidate cannot be verified.",
     );
   }
   if (payload.verificationArtifactIds.some((artifactId) => !eventBy({
@@ -138,7 +138,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_verification_missing",
       input.event.eventId,
-      "지식 후보의 verification artifact event를 확인할 수 없습니다.",
+      "The verification artifact event for the knowledge candidate cannot be verified.",
     );
   }
   try {
@@ -152,7 +152,7 @@ export async function inspectCandidate(input: {
       issues,
       "candidate_decision_missing",
       input.event.eventId,
-      "지식 후보가 참조한 decision 원문을 CAS에서 확인할 수 없습니다.",
+      "The decision source referenced by the knowledge candidate cannot be verified in CAS.",
     );
   }
   return issues;

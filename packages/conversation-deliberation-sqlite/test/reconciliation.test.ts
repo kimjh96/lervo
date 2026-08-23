@@ -32,7 +32,7 @@ async function uncertain(store: SQLiteConversationDeliberationJobStore) {
     principalId: "operator:reviewer",
     sourceEventId,
     policyId: "deliberation_product-review",
-    topic: "배포 구조를 검토합니다.",
+    topic: "Review the deployment structure.",
     requestedAt: "2026-08-22T00:00:00.000Z",
   });
   const lease = await store.claim({
@@ -40,7 +40,7 @@ async function uncertain(store: SQLiteConversationDeliberationJobStore) {
     claimedAt: "2026-08-22T00:01:00.000Z",
     leaseDurationMs: 10_000,
   });
-  if (lease === null) throw new Error("숙의 queue lease가 없습니다.");
+  if (lease === null) throw new Error("The deliberation queue lease is missing.");
   await store.markUncertain({
     deliberationId: started.deliberationId,
     leaseId: lease.leaseId,
@@ -177,7 +177,7 @@ describe("conversation deliberation reconciliation storage", () => {
       INSERT INTO conversation_deliberation_jobs VALUES (
         'prj_deliberation01', '${sourceEventId}', 'dlb_legacyqueue0001',
         'sha256:${"1".repeat(64)}', 'sha256:${"2".repeat(64)}',
-        'deliberation_product-review', '기존 queue 요청입니다.',
+        'deliberation_product-review', 'Existing queue request.',
         '2026-08-22T00:00:00.000Z', 1787356800000, 'uncertain', 1,
         NULL, NULL, NULL, NULL, NULL, 'worker_lease_expired', '2026-08-22T00:01:00.000Z'
       );

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0041-signed-scoped-remote-command.md
+identityPath: docs/adr/0041-signed-scoped-remote-command.md
+kind: document_move
+lineageId: klineage_abcb906548feb45c710b0d7e
+operationId: kdocop_c74fc691ab25e9d408ba77ab
+schemaVersion: 1
+sourceContentHash: sha256:111003fc6969ee3cfd7efd7b7a1cfd0a569a450300a284df1cb192045da1b746
+sourceId: src_37bb806e03c9ac36302f6234
+sourceUnitBindingDigest: sha256:d42e49d807a08a8195297f30bcda539e6850011da7ba47ef7a53b3afc45c0ce2
+sourceUnitCount: 8
+toPath: docs/decisions/foundation/0041-signed-scoped-remote-command.md

@@ -1,27 +1,39 @@
 # Lervo Agent Instructions
 
-이 저장소에서 작업하는 모든 코딩 에이전트에 적용됩니다.
+These instructions apply to every coding agent working in this repository.
 
-## 작업 전 읽기
+## Read before changing
 
-- 제품 범위나 용어를 바꿀 때: `README.md`, `LERVO_VISION.md`
-- 구성 요소나 데이터 흐름을 바꿀 때: `LERVO_ARCHITECTURE.md`
-- 실행, 문서 보장, 텔레메트리, 스킬 계약을 바꿀 때: `LERVO_EXECUTION_SPEC.md`
-- 구현 범위나 순서를 바꿀 때: `LERVO_V0_PLAN.md`
+- Product scope or terminology: `README.md`, `docs/product/vision.md`
+- Components or data flow: `docs/architecture/system.md`
+- Execution, documentation guarantees, telemetry, or skills: `docs/specifications/execution.md`
+- Delivery scope or order: `docs/roadmap/v0.md`
+- Repository knowledge, migration, claims, relations, or OKF exchange: `docs/specs/repository-knowledge-compilation.md`
 
-## 불변 원칙
+Read only the directly relevant ADRs linked by those entrypoints. Do not load the entire ADR history by default.
 
-1. 로컬 실행은 Hub 없이도 완료되어야 한다.
-2. 공급자별 기능은 어댑터 뒤에 두고 핵심 실행/증거 규격은 Codex나 Claude에 종속시키지 않는다.
-3. `selected`, `loaded`, `injected`, `used`를 혼용하지 않으며, 텔레메트리가 증명하지 못하는 이해나 사용을 주장하지 않는다.
-4. Markdown 문서, 저장소 상태, 스킬 정의, 검증 결과와 실행 이벤트가 원본이다. 그래프·전문 검색·임베딩은 재생성 가능한 파생 인덱스다.
-5. Lervo가 관리하는 문서 블록과 사용자가 작성한 블록을 분리하고 사용자 영역을 자동 덮어쓰지 않는다.
-6. 직접 실행된 외부 에이전트처럼 관측할 수 없는 작업은 `unmanaged`로 표시하며 정상 추적 작업으로 위장하지 않는다.
-7. 새 주제나 이력을 기존 파일에 계속 덧붙이지 않는다. 사람용 진입점은 짧게 유지하고 독립된 관심사는 별도 파일과 명시적 관계로 분리한다.
+## Invariants
 
-## 변경 규칙
+1. Local execution must complete without a Hub.
+2. Keep provider-specific behavior behind adapters; core execution and evidence contracts must not depend on Codex or Claude.
+3. Do not conflate `selected`, `loaded`, `injected`, and `used`, or claim understanding that telemetry cannot prove.
+4. Markdown, repository state, skill definitions, verification results, and execution events are canonical. Graphs, search indexes, and embeddings are rebuildable projections.
+5. Separate Lervo-managed blocks from user-owned blocks. Never overwrite user-owned content automatically.
+6. Mark unobservable direct provider work as `unmanaged`.
+7. Keep entrypoints short. Put each independent concern in a separate file with explicit links instead of appending history.
+8. Generated documentation defaults to English through a versioned language boundary.
+9. Do not create feature directories until an artifact must be written there.
 
-- 설계 결정을 변경하면 영향을 받는 문서와 `LERVO_V0_PLAN.md`의 완료 조건을 함께 갱신한다.
-- 새 이벤트나 상태를 추가하면 이름, 필수 필드, 개인정보/비밀정보 처리, 실패 시 의미를 명시한다.
-- 공급자 어댑터는 공통 계약 테스트를 통과해야 한다.
-- 구현이 생긴 뒤에는 관련 테스트와 문서 수명주기 검사를 완료한 후 작업을 종료한다.
+## Change contract
+
+- Update affected documentation and roadmap completion criteria when a design decision changes.
+- For a new event or state, define its name, required fields, privacy handling, and failure meaning.
+- Run common contract tests for provider adapters.
+- Run relevant tests and the document lifecycle checks before finishing implementation.
+- Use `lervo migrate knowledge` for repository-wide knowledge lifecycle changes and verify with `lervo knowledge lint`.
+
+## Environment lookup
+
+Before asking for mutable connection or device details, inspect `.lervo/environment-sources/` and `.lervo/environment-targets/`, then refresh observations with `lervo environment query --target <target-id> --json`.
+
+Do not infer current validity from an old conversation or observation. Ask only when candidates conflict, validation fails, or required authority is missing. Keep secrets out of tracked manifests and `.lervo/state/` out of source documentation.

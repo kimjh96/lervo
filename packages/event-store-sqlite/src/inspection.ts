@@ -17,8 +17,8 @@ export interface ExistingEventStoreInspection {
 }
 
 /**
- * 기존 DB를 migration하거나 metadata를 보충하지 않고 무결성만 확인합니다.
- * 저장소 이동 같은 dry-run에서 SQLite 원본을 변경하지 않기 위한 경계입니다.
+ * Checks integrity without migrating an existing database or supplementing metadata.
+ * This boundary prevents SQLite source mutation during dry runs such as repository moves.
  */
 export async function inspectExistingEventStore(input: {
   path: string;
@@ -29,7 +29,7 @@ export async function inspectExistingEventStore(input: {
   if (!stats.isFile() || stats.isSymbolicLink()) {
     throw new EventStoreError(
       "integrity_failed",
-      "검사할 SQLite 경로는 실제 일반 파일이어야 합니다.",
+      "The SQLite path to inspect must be a real regular file.",
     );
   }
 
@@ -38,7 +38,7 @@ export async function inspectExistingEventStore(input: {
       await lstat(`${path}${suffix}`);
       throw new EventStoreError(
         "integrity_failed",
-        "실행 중이거나 정리되지 않은 SQLite 보조 파일이 있습니다.",
+        "An active or uncleaned SQLite auxiliary file exists.",
       );
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -53,10 +53,10 @@ export async function inspectExistingEventStore(input: {
     database = new DatabaseSync(inspectionPath, { readOnly: true, allowExtension: false });
     const quickCheck = database.prepare("PRAGMA quick_check;").get()?.quick_check;
     if (quickCheck !== "ok") {
-      throw new EventStoreError("integrity_failed", "SQLite quick_check가 실패했습니다.");
+      throw new EventStoreError("integrity_failed", "SQLite quick_check failed.");
     }
     if (database.prepare("PRAGMA foreign_key_check;").get() !== undefined) {
-      throw new EventStoreError("integrity_failed", "SQLite foreign key 검사가 실패했습니다.");
+      throw new EventStoreError("integrity_failed", "The SQLite foreign-key check failed.");
     }
     const version = database.prepare("PRAGMA user_version;").get()?.user_version;
     if (
@@ -65,7 +65,7 @@ export async function inspectExistingEventStore(input: {
     ) {
       throw new EventStoreError(
         "integrity_failed",
-        `지원하지 않는 event store schema입니다: ${String(version)}`,
+        `Unsupported event store schema: ${String(version)}`,
       );
     }
     const projectId = database
@@ -74,7 +74,7 @@ export async function inspectExistingEventStore(input: {
     if (projectId !== input.projectId) {
       throw new EventStoreError(
         "project_mismatch",
-        "event store의 project 식별자가 manifest와 다릅니다.",
+        "The event store project identifier differs from the manifest.",
       );
     }
 
@@ -92,7 +92,7 @@ export async function inspectExistingEventStore(input: {
       ) {
         throw new EventStoreError(
           "integrity_failed",
-          `event chain이 ${event.eventId}에서 일치하지 않습니다.`,
+          `The event chain does not match at ${event.eventId}.`,
         );
       }
       previousHash = event.eventHash;
@@ -103,7 +103,7 @@ export async function inspectExistingEventStore(input: {
     if (foreignProject !== undefined) {
       throw new EventStoreError(
         "project_mismatch",
-        "event store에 다른 project의 event가 있습니다.",
+        "The event store contains an event from a different project.",
       );
     }
 

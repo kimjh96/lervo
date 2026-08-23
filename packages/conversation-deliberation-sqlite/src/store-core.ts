@@ -19,7 +19,7 @@ export function resolveConversationDeliberationMaximumRecords(
   if (!Number.isSafeInteger(maximumRecords) || maximumRecords < 1 || maximumRecords > 100_000) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${label} maxRecords가 유효하지 않습니다.`,
+      `${label} maxRecords is invalid.`,
     );
   }
   return maximumRecords;
@@ -56,7 +56,7 @@ export function checkConversationDeliberationQueueIntegrity(input: {
   if (input.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${input.label} quick_check가 실패했습니다.`,
+      `${input.label} quick_check failed.`,
     );
   }
   const required = new Set(input.requiredSchema);
@@ -68,7 +68,7 @@ export function checkConversationDeliberationQueueIntegrity(input: {
   if (required.size > 0) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${input.label} 보호 schema가 누락되었습니다.`,
+      `${input.label} protective schema is missing.`,
     );
   }
   let count = 0;
@@ -77,7 +77,7 @@ export function checkConversationDeliberationQueueIntegrity(input: {
     if (count > input.maximumRecords) {
       throw new ConversationDeliberationSQLiteError(
         "capacity_exceeded",
-        `${input.label} capacity를 초과했습니다.`,
+        `${input.label} capacity was exceeded.`,
       );
     }
     input.decode(row);
@@ -94,14 +94,14 @@ export function rollbackConversationDeliberationQueueTransaction(
   } catch (rollbackError) {
     throw new ConversationDeliberationSQLiteError(
       "write_failed",
-      `${label} transaction과 rollback이 실패했습니다.`,
+      `${label} transaction and rollback both failed.`,
       { cause: new AggregateError([error, rollbackError]) },
     );
   }
   if (error instanceof ConversationDeliberationSQLiteError) throw error;
   throw new ConversationDeliberationSQLiteError(
     "write_failed",
-    `${label} transaction이 실패했습니다.`,
+    `${label} transaction failed.`,
     { cause: error },
   );
 }

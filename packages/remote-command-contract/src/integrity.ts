@@ -45,19 +45,19 @@ export function createRemoteCommand(
 
 export function assertRemoteCommand(command: RemoteCommand): void {
   if (!validateSchema("remoteCommand", command).valid) {
-    throw new RemoteCommandContractError("invalid_command", "remote command 계약이 유효하지 않습니다.");
+    throw new RemoteCommandContractError("invalid_command", "The remote command contract is invalid.");
   }
   const { commandId: _commandId, ...content } = command;
   if (command.commandId !== calculateRemoteCommandId(content)) {
     throw new RemoteCommandContractError(
       "invalid_command",
-      "remote command ID가 command 원본과 일치하지 않습니다.",
+      "The remote command ID does not match the command source.",
     );
   }
   if (Date.parse(command.expiresAt) <= Date.parse(command.issuedAt)) {
     throw new RemoteCommandContractError(
       "invalid_command",
-      "remote command 만료 시각은 발급 시각보다 뒤여야 합니다.",
+      "The remote command expiry time must follow its issue time.",
     );
   }
 }
@@ -75,7 +75,7 @@ export function remoteCommandSigningBytes(input: {
   if (!/^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/.test(input.keyId)) {
     throw new RemoteCommandContractError(
       "invalid_signature_envelope",
-      "remote command signature key ID가 유효하지 않습니다.",
+      "The remote command signature key ID is invalid.",
     );
   }
   return Buffer.from(canonicalJson({
@@ -94,7 +94,7 @@ export function createSignedRemoteCommandEnvelope(input: {
   if (input.signature.byteLength !== 64) {
     throw new RemoteCommandContractError(
       "invalid_signature_envelope",
-      "Ed25519 signature은 64 bytes여야 합니다.",
+      "An Ed25519 signature must be 64 bytes.",
     );
   }
   const envelope: SignedRemoteCommand = {
@@ -114,7 +114,7 @@ export function assertSignedRemoteCommand(envelope: SignedRemoteCommand): void {
   if (!validateSchema("signedRemoteCommand", envelope).valid) {
     throw new RemoteCommandContractError(
       "invalid_signature_envelope",
-      "signed remote command envelope이 유효하지 않습니다.",
+      "The signed remote command envelope is invalid.",
     );
   }
   assertRemoteCommand(envelope.command);
@@ -125,7 +125,7 @@ export function assertSignedRemoteCommand(envelope: SignedRemoteCommand): void {
   ) {
     throw new RemoteCommandContractError(
       "invalid_signature_envelope",
-      "remote command signature encoding이 유효하지 않습니다.",
+      "The remote command signature encoding is invalid.",
     );
   }
 }
@@ -143,7 +143,7 @@ export function assertRemoteCommandExecutionReceipt(input: {
   if (!validateSchema("remoteCommandExecutionReceipt", input.receipt).valid) {
     throw new RemoteCommandContractError(
       "invalid_execution_receipt",
-      "remote command execution receipt가 유효하지 않습니다.",
+      "The remote command execution receipt is invalid.",
     );
   }
   if (
@@ -153,7 +153,7 @@ export function assertRemoteCommandExecutionReceipt(input: {
   ) {
     throw new RemoteCommandContractError(
       "invalid_execution_receipt",
-      "remote command execution receipt 좌표가 command와 다릅니다.",
+      "The remote command execution receipt coordinates differ from the command.",
     );
   }
 }

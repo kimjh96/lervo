@@ -17,7 +17,7 @@ const maximumReadinessLifetimeMilliseconds = 5 * 60 * 1000;
 function fail(code = "first_publication_workflow_activation_permit_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 workflow 활성화 허가가 올바르지 않습니다.",
+    "The CLI first-publication workflow activation authorization is invalid.",
   );
 }
 

@@ -23,7 +23,7 @@ export async function runSearchBundleReportCommand(args: string[], io: CliIo): P
     return 1;
   }
   if (parsed.positionals.length > 1) {
-    io.stderr(`report에는 bundle ID를 하나만 지정할 수 있습니다.\n${searchUsage}\n`);
+    io.stderr(`report accepts exactly one bundle ID.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -33,9 +33,9 @@ export async function runSearchBundleReportCommand(args: string[], io: CliIo): P
     const selected = parsed.positionals[0] === undefined
       ? bundles
       : bundles.filter((bundle) => bundle.bundleId === parsed.positionals[0]);
-    if (selected.length === 0) throw new Error("검색 평가 묶음을 찾을 수 없습니다.");
+    if (selected.length === 0) throw new Error("Could not find the search evaluation bundle.");
     if (selected.some((bundle) => bundle.projectId !== manifest.projectId)) {
-      throw new Error("검색 평가 묶음의 project 좌표가 다릅니다.");
+      throw new Error("The search evaluation bundle project coordinate does not match.");
     }
     const coverages = selected.map((bundle) => createSearchEvaluationCoverage(bundle, cases));
     io.stdout(parsed.values.json
@@ -43,8 +43,8 @@ export async function runSearchBundleReportCommand(args: string[], io: CliIo): P
       : coverages.map(formatSearchEvaluationCoverage).join(""));
     return coverages.every((coverage) => coverage.sampleState === "sufficient") ? 0 : 1;
   } catch (error) {
-    io.stderr(`검색 평가 표본을 확인하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not inspect the search evaluation sample. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

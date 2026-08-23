@@ -37,7 +37,7 @@ export function assertKeyId(keyId: string): void {
   if (!/^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/.test(keyId)) {
     throw new PolicyContractError(
       "invalid_policy_signature",
-      "policy signature key ID가 유효하지 않습니다.",
+      "The policy signature key ID is invalid.",
     );
   }
 }
@@ -47,7 +47,7 @@ export function assertSignatureEncoding(envelope: SignedPolicyEnvelope): void {
   if (bytes.byteLength !== 64 || bytes.toString("base64url") !== envelope.signature.value) {
     throw new PolicyContractError(
       "invalid_policy_signature",
-      "policy signature encoding이 유효하지 않습니다.",
+      "The policy signature encoding is invalid.",
     );
   }
 }

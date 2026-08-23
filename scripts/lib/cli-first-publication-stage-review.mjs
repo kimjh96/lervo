@@ -35,7 +35,7 @@ export async function createCliFirstPublicationStageReviewEvidence({
 }, dependencies = {}) {
   if (online !== true) fail(
     "first_publication_stage_review_online_required",
-    "CLI npm staged package 검토 증거에는 온라인 확인이 필요합니다.",
+    "CLI npm staged-package review evidence requires online verification.",
   );
   try {
     validateReadinessRepository(repository);
@@ -46,7 +46,7 @@ export async function createCliFirstPublicationStageReviewEvidence({
   } catch {
     fail(
       "first_publication_stage_review_input_invalid",
-      "CLI npm staged package 검토 증거 입력이 올바르지 않습니다.",
+      "The CLI npm staged-package review evidence input is invalid.",
     );
   }
   const readSources = dependencies.readSources ?? readFirstPublicationStageReviewSources;

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0172-bounded-parser-grade-yaml-source-units.md
+identityPath: docs/adr/0172-bounded-parser-grade-yaml-source-units.md
+kind: document_move
+lineageId: klineage_d2dab1fe4c770b93d78b528a
+operationId: kdocop_83389330ec16e30babbab9d9
+schemaVersion: 1
+sourceContentHash: sha256:a5827dcaba53154245c81f30d8b379256eca3b63f7a7c57d430268d47bc9b2d5
+sourceId: src_caa353e3c7c759ea4953b6dc
+sourceUnitBindingDigest: sha256:e8250b148d196c97c8d4a4acd0bb6acf60efe648dcbd3ff1636b8600ec3ecd02
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/repository/0172-bounded-parser-grade-yaml-source-units.md

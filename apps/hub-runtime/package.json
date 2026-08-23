@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json"
+    "build": "tsc --project tsconfig.json && node scripts/build-bundle.mjs"
   },
   "dependencies": {
     "@lervo/cas": "workspace:*",
@@ -27,6 +27,7 @@
     "@lervo/runtime-security": "workspace:*"
   },
   "devDependencies": {
-    "@lervo/sync-contract": "workspace:*"
+    "@lervo/sync-contract": "workspace:*",
+    "esbuild": "0.28.2"
   }
 }

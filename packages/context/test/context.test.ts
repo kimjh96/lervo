@@ -86,7 +86,7 @@ function role(
       presentation: {
         audience: "human",
         locale: "ko-KR",
-        writingPolicyId: "writing_ko-kr-human",
+        writingPolicyId: "writing_en-human",
       },
     },
     verification: {
@@ -145,18 +145,18 @@ async function fixtureRepository(): Promise<FixtureRepository> {
     mkdir(resolve(root, "docs"), { recursive: true }),
     mkdir(resolve(root, ".lervo/generated/research"), { recursive: true }),
   ]);
-  const researchContent = "사용자 인터뷰에서 반복된 문제와 근거입니다.\n";
+  const researchContent = "Recurring user-interview problem and supporting evidence.\n";
   await Promise.all([
-    writeFile(resolve(root, "AGENTS.md"), "프로젝트 전체 지침입니다.\n"),
-    writeFile(resolve(root, "packages/AGENTS.md"), "패키지 공통 지침입니다.\n"),
-    writeFile(resolve(root, "packages/api/AGENTS.md"), "API 변경 지침입니다.\n"),
-    writeFile(resolve(root, "packages/other/AGENTS.md"), "다른 패키지 지침입니다.\n"),
-    writeFile(resolve(root, "docs/architecture.md"), "API 아키텍처 원칙입니다.\n"),
-    writeFile(resolve(root, "docs/brand.md"), "브랜드 표현 원칙입니다.\n"),
+    writeFile(resolve(root, "AGENTS.md"), "Repository-wide instructions.\n"),
+    writeFile(resolve(root, "packages/AGENTS.md"), "Shared package instructions.\n"),
+    writeFile(resolve(root, "packages/api/AGENTS.md"), "API change instructions.\n"),
+    writeFile(resolve(root, "packages/other/AGENTS.md"), "Other package instructions.\n"),
+    writeFile(resolve(root, "docs/architecture.md"), "API architecture principles.\n"),
+    writeFile(resolve(root, "docs/brand.md"), "Brand expression principles.\n"),
     writeFile(resolve(root, ".lervo/generated/research/finding.md"), researchContent),
     writeFile(
       resolve(root, ".lervo/generated/research/restricted.md"),
-      "연구자만 읽을 수 있는 제한 자료입니다.\n",
+      "Restricted material available only to researchers.\n",
     ),
   ]);
   const researcher = role("researcher", ["repository.instructions"], ["marketer"]);
@@ -193,7 +193,7 @@ async function fixtureRepository(): Promise<FixtureRepository> {
       projectId,
       kind: "finding",
       documentId: "doc_restricted_finding",
-      contentHash: hash("연구자만 읽을 수 있는 제한 자료입니다.\n"),
+      contentHash: hash("Restricted material available only to researchers.\n"),
       sourceRevision: "fixture-restricted-v1",
       producer: {
         kind: "agent",
@@ -384,7 +384,7 @@ describe("context preparation", () => {
       instructionDocuments: instructions,
       handoffs: [],
     });
-    const changed = "선택 이후, 실제 읽기 전에 바뀐 브랜드 원칙입니다.\n";
+    const changed = "Brand principles changed after selection but before reading.\n";
     await writeFile(resolve(fixture.root, "docs/brand.md"), changed);
 
     const loaded = await loadContextPlan({
@@ -445,7 +445,7 @@ describe("context preparation", () => {
     });
     await writeFile(
       resolve(fixture.root, ".lervo/generated/research/finding.md"),
-      "publication 이후 바뀐 조사 결과입니다.\n",
+      "Research findings changed after publication.\n",
     );
 
     await expect(
@@ -466,7 +466,7 @@ describe("context preparation", () => {
       sourceRevision: "working-tree:fixture-1",
       ...planInput(fixture),
     });
-    await writeFile(resolve(fixture.root, "docs/brand.md"), "새 브랜드 원칙입니다.\n");
+    await writeFile(resolve(fixture.root, "docs/brand.md"), "New brand principles.\n");
 
     await expect(
       validateContextSnapshot({
@@ -631,8 +631,8 @@ describe("context preparation", () => {
   it("rejects symbolic-link parents before reading outside the repository", async () => {
     const root = await temporaryDirectory();
     const outside = await temporaryDirectory("lervo-context-outside-");
-    await writeFile(resolve(root, "AGENTS.md"), "프로젝트 지침입니다.\n");
-    await writeFile(resolve(outside, "secret.md"), "저장소 밖 원문입니다.\n");
+    await writeFile(resolve(root, "AGENTS.md"), "Project instructions.\n");
+    await writeFile(resolve(outside, "secret.md"), "Source text outside the repository.\n");
     await symlink(outside, resolve(root, "docs"));
     const documentRegistry: DocumentRegistry = {
       schemaVersion: 1,
@@ -672,7 +672,7 @@ describe("context preparation", () => {
       }),
     ).rejects.toMatchObject({ code: "unsafe_document_path" });
     expect(await readFile(resolve(outside, "secret.md"), "utf8")).toBe(
-      "저장소 밖 원문입니다.\n",
+      "Source text outside the repository.\n",
     );
   });
 

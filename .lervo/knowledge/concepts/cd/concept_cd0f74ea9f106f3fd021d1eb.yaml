@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_cd0f74ea9f106f3fd021d1eb
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_3767dbb6274137b761f88501
+title: "ADR-0130: Integrate Stage Approval into Publication Transition"
+type: decision

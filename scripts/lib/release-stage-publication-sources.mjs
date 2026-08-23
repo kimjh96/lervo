@@ -25,7 +25,7 @@ const maximumAuthorizationBytes = 64 * 1024;
 function fail(code = "release_stage_publication_source_invalid") {
   throw new ReleasePublicationAuthorizationError(
     code,
-    "CLI stage 게시 원본이 올바르지 않습니다.",
+    "The CLI stage-publication source is invalid.",
   );
 }
 

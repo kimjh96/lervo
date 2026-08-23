@@ -62,7 +62,7 @@ export async function promoteKnowledgeCandidate(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "knowledge_schema_invalid",
-      "Verified 지식 원본이 schema를 통과하지 못했습니다.",
+      "The verified knowledge source does not satisfy the schema.",
     );
   }
   if (input.events.list().some((event) =>
@@ -72,14 +72,14 @@ export async function promoteKnowledgeCandidate(
     throw new KnowledgeError(
       "promotion_not_eligible",
       "knowledge_already_recorded",
-      "같은 후보의 verified 지식이 이미 event에 기록되어 있습니다.",
+      "Verified knowledge for the same candidate is already recorded in an event.",
     );
   }
   const knowledgeArtifact = await storeKnowledgeArtifact({
     artifactStore: input.artifactStore,
     bytes: verifiedKnowledgeBytes(knowledge),
     mismatchReason: "knowledge_artifact_mismatch",
-    label: "Verified 지식",
+    label: "verified knowledge",
   });
   try {
     const recordedEvent = input.events.append({
@@ -110,7 +110,7 @@ export async function promoteKnowledgeCandidate(
     throw new KnowledgeError(
       "event_recording_failed",
       "event_store_failed",
-      "Verified 지식 event를 기록하지 못했습니다.",
+      "Could not record the verified knowledge event.",
       { cause: error },
     );
   }

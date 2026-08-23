@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c33660a17ca5c4ca21dfe597
+freshness: current
+ownership: user
+path: docs/decisions/release/packaging/0047-managed-conversation-responder.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_614af4343880e7e14f5c4924
+title: "ADR-0047: Role-scoped managed conversation responses and publication evidence"
+type: decision

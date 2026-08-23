@@ -27,7 +27,7 @@ function scanSnapshot(input: {
     });
   } catch (error) {
     if (!(error instanceof EventReadError)) throw error;
-    throw Object.assign(new Error("숙의 진단 event snapshot을 끝까지 읽지 못했습니다.", {
+    throw Object.assign(new Error("The deliberation diagnostic event snapshot could not be read completely.", {
       cause: error,
     }), {
       code: "deliberation_history_invalid",
@@ -43,7 +43,7 @@ export function readDeliberationEventSnapshot(input: {
   checkpointRunIds: ReadonlySet<string>;
 }): DeliberationEventSnapshot {
   if (!Number.isSafeInteger(input.eventCount) || input.eventCount < 0) {
-    throw new TypeError("숙의 진단 event snapshot 크기가 유효하지 않습니다.");
+    throw new TypeError("The deliberation diagnostic event snapshot size is invalid.");
   }
   const started: EventEnvelope[] = [];
   const artifacts: EventEnvelope[] = [];
@@ -66,14 +66,14 @@ export function readDeliberationEventSnapshot(input: {
       if (event.type === "deliberation.completed" &&
         event.payload.deliberationId === input.deliberationId) completed.push(event);
       if (started.length + artifacts.length + completed.length > maximumDeliberationTraceEvents) {
-        throw Object.assign(new Error("숙의 추적 event가 1,000개를 넘었습니다."), {
+        throw Object.assign(new Error("The deliberation trace contains more than 1,000 events."), {
           code: "deliberation_trace_too_large",
         });
       }
     },
   });
   if (matchedCheckpointEventIds.size !== input.checkpointEventIds.size) {
-    throw Object.assign(new Error("숙의 checkpoint event가 현재 snapshot과 일치하지 않습니다."), {
+    throw Object.assign(new Error("The deliberation checkpoint events do not match the current snapshot."), {
       code: "deliberation_history_invalid",
     });
   }
@@ -87,7 +87,7 @@ export function readDeliberationEventSnapshot(input: {
       if (!relatedRunIds.has(event.runId)) return;
       traceEvents.push(event);
       if (traceEvents.length > maximumDeliberationTraceEvents) {
-        throw Object.assign(new Error("숙의 추적 event가 1,000개를 넘었습니다."), {
+        throw Object.assign(new Error("The deliberation trace contains more than 1,000 events."), {
           code: "deliberation_trace_too_large",
         });
       }

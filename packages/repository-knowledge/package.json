@@ -1,0 +1,31 @@
+{
+  "name": "@lervo/repository-knowledge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@babel/parser": "7.29.8",
+    "@lervo/documents": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
+    "@lervo/project": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/skills": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/verification-contract": "workspace:*",
+    "jsonc-parser": "3.3.1",
+    "mdast-util-from-markdown": "2.0.3",
+    "postcss": "8.5.26",
+    "yaml": "2.9.0"
+  }
+}

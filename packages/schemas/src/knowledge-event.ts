@@ -10,6 +10,7 @@ import {
   knowledgeStalenessResultIdSchema,
   repositoryRelativePathSchema,
   sha256Schema,
+  timestampSchema,
   verifiedKnowledgeIdSchema,
 } from "./common.js";
 
@@ -83,6 +84,7 @@ export const knowledgeCandidateReviewedEventPayloadSchema = {
       maxLength: 150,
     },
     policyVersion: sha256Schema,
+    itemApprovalDigest: sha256Schema,
     repositoryRevision: sha256Schema,
     resolvedConflictCandidateIds: {
       type: "array",
@@ -193,6 +195,56 @@ export const knowledgeStaleDetectedEventPayloadSchema = {
 
 export type KnowledgeCandidateReviewedEventPayload = FromSchema<
   typeof knowledgeCandidateReviewedEventPayloadSchema
+>;
+
+export const knowledgeReconciliationReviewedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/knowledge-reconciliation-reviewed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    compilationId: { type: "string", pattern: "^kcomp_[a-f0-9]{24}$" },
+    candidateArtifactHash: sha256Schema,
+    reconciliationPlanId: { type: "string", pattern: "^krecon_[a-f0-9]{24}$" },
+    sourceSnapshotId: { type: "string", pattern: "^ksnap_[a-f0-9]{24}$" },
+    registryDigest: sha256Schema,
+    reviewId: { type: "string", pattern: "^krvw_[a-f0-9]{24}$" },
+    reviewArtifactId: artifactIdSchema,
+    reviewArtifactHash: sha256Schema,
+    decision: { type: "string", enum: ["approved", "rejected"] },
+    policyId: {
+      type: "string",
+      pattern: "^knowledge_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      maxLength: 150,
+    },
+    policyVersion: sha256Schema,
+    itemApprovalDigest: sha256Schema,
+    acceptedDispositionIds: {
+      type: "array",
+      items: { type: "string", pattern: "^kdisp_[a-f0-9]{24}$" },
+      maxItems: 256,
+      uniqueItems: true,
+    },
+    skippedDispositionIds: {
+      type: "array",
+      items: { type: "string", pattern: "^kdisp_[a-f0-9]{24}$" },
+      maxItems: 256,
+      uniqueItems: true,
+    },
+    dispositionListTruncated: { type: "boolean" },
+    dispositionCount: { type: "integer", minimum: 0, maximum: 20000 },
+    reviewedAt: timestampSchema,
+  },
+  required: [
+    "compilationId", "candidateArtifactHash", "reconciliationPlanId", "sourceSnapshotId",
+    "registryDigest", "reviewId", "reviewArtifactId", "reviewArtifactHash", "decision",
+    "policyId", "policyVersion", "itemApprovalDigest", "acceptedDispositionIds", "skippedDispositionIds",
+    "dispositionListTruncated", "dispositionCount", "reviewedAt",
+  ],
+  additionalProperties: false,
+} as const;
+
+export type KnowledgeReconciliationReviewedEventPayload = FromSchema<
+  typeof knowledgeReconciliationReviewedEventPayloadSchema
 >;
 export type KnowledgeVerifiedEventPayload = FromSchema<
   typeof knowledgeVerifiedEventPayloadSchema

@@ -49,7 +49,7 @@ function validateEntryArtifacts(input: {
   if (entries.size !== input.plan.entries.length || input.entryArtifacts.length !== entries.size) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "구조 전환 plan과 항목 artifact 수 또는 document ID가 일치하지 않습니다.",
+      "The layout migration plan and entry artifact count or document IDs do not match.",
     );
   }
   const artifacts = new Map<string, LegacyRegistryEntryArtifact>();
@@ -62,7 +62,7 @@ function validateEntryArtifacts(input: {
   ) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "구조 전환 plan은 각 항목의 참조 문서 snapshot을 정확히 하나씩 가져야 합니다.",
+      "The layout migration plan must have exactly one referenced-document snapshot for each entry.",
     );
   }
   const artifactIds = new Set<string>();
@@ -71,7 +71,7 @@ function validateEntryArtifacts(input: {
     if (artifactIds.has(entry.artifactId) || targetPaths.has(entry.target.path)) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
-        "구조 전환 plan에 중복 artifact 또는 sidecar target이 있습니다.",
+        "The layout migration plan contains duplicate artifacts or sidecar targets.",
       );
     }
     artifactIds.add(entry.artifactId);
@@ -81,7 +81,7 @@ function validateEntryArtifacts(input: {
     if (!validateSchema("legacyRegistryEntryArtifact", artifact).valid) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
-        "Legacy registry 항목 artifact가 schema 계약을 통과하지 못했습니다.",
+        "The legacy registry entry artifact does not satisfy the schema contract.",
       );
     }
     const bytes = legacyRegistryEntryBytes(artifact);
@@ -99,7 +99,7 @@ function validateEntryArtifacts(input: {
     ) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
-        "Legacy registry 항목 artifact의 bytes, ID 또는 plan 좌표가 일치하지 않습니다.",
+        "The legacy registry entry artifact bytes, ID, or plan coordinates do not match.",
       );
     }
     artifacts.set(artifact.documentId, structuredClone(artifact));
@@ -123,7 +123,7 @@ function sidecarFromDecision(input: {
       sha256(canonicalJsonBytes(input.artifact.record))
   ) {
     invalidApproval(
-      "승인한 sidecar가 legacy 항목의 document ID, 원본 record 또는 target과 일치하지 않습니다.",
+      "The approved sidecar does not match the legacy entry document ID, source record, or target.",
     );
   }
   const manifest = structuredClone(input.decision.manifest);
@@ -132,13 +132,13 @@ function sidecarFromDecision(input: {
   } catch (error) {
     throw new DocumentMigrationError(
       "invalid_approval",
-      "승인한 legacy document manifest가 sidecar 의미 계약을 통과하지 못했습니다.",
+      "The approved legacy document manifest does not satisfy the sidecar semantic contract.",
       { cause: error },
     );
   }
   const bytes = Buffer.from(stringify(manifest, { lineWidth: 0 }), "utf8");
   if (bytes.byteLength > 64 * 1024) {
-    invalidApproval("승인한 legacy document manifest가 sidecar 크기 제한을 넘었습니다.");
+    invalidApproval("The approved legacy document manifest exceeds the sidecar size limit.");
   }
   return {
     documentId: manifest.documentId,
@@ -161,13 +161,13 @@ export function prepareLegacyRegistryMigration(input: {
   ) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Legacy registry 구조 전환 plan schema 또는 plan ID가 현재 내용과 다릅니다.",
+      "The legacy registry layout migration plan schema or plan ID differs from the current content.",
     );
   }
   if (input.plan.outcome === "conflict") {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Conflict 상태의 legacy registry 구조 전환 plan은 적용할 수 없습니다.",
+      "A legacy registry layout migration plan in conflict state cannot be applied.",
     );
   }
   const expectedArchivePath = `.lervo/archive/document-registries/sha256/${
@@ -184,18 +184,18 @@ export function prepareLegacyRegistryMigration(input: {
   ) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "구조 전환 archive 또는 manifest directory 좌표가 원본 hash와 일치하지 않습니다.",
+      "The layout migration archive or manifest directory coordinates do not match the source hash.",
     );
   }
   if (!validateSchema("legacyRegistryMigrationApproval", input.approval).valid) {
-    invalidApproval("구조 전환 승인이 schema 계약을 통과하지 못했습니다.");
+    invalidApproval("The layout migration approval does not satisfy the schema contract.");
   }
   if (
     input.approval.planId !== input.plan.planId ||
     Date.parse(input.plan.generatedAt) > Date.parse(input.approval.approvedAt) ||
     Date.parse(input.approval.approvedAt) > Date.parse(input.appliedAt)
   ) {
-    invalidApproval("구조 전환 plan, 승인과 적용 시각의 순서 또는 좌표가 맞지 않습니다.");
+    invalidApproval("The layout migration plan, approval, and apply time have inconsistent ordering or coordinates.");
   }
 
   const artifacts = validateEntryArtifacts({
@@ -210,7 +210,7 @@ export function prepareLegacyRegistryMigration(input: {
     decisions.size !== input.approval.decisions.length ||
     decisions.size !== input.plan.entries.length
   ) {
-    invalidApproval("모든 legacy registry 항목에는 중복 없는 승인 결정을 하나씩 내려야 합니다.");
+    invalidApproval("Every legacy registry entry must have exactly one non-duplicated approval decision.");
   }
 
   const sidecars: PreparedLegacySidecar[] = [];
@@ -223,7 +223,7 @@ export function prepareLegacyRegistryMigration(input: {
       decision.artifactId !== artifact.artifactId ||
       decision.artifactHash !== artifact.contentHash
     ) {
-      invalidApproval("승인 결정의 legacy 항목 artifact 좌표가 dry-run 결과와 다릅니다.");
+      invalidApproval("The approval decision legacy entry artifact coordinates differ from the dry-run result.");
     }
     if (decision.action === "skip") {
       skippedDocumentIds.push(entry.documentId);
@@ -236,7 +236,7 @@ export function prepareLegacyRegistryMigration(input: {
   } catch (error) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "승인한 legacy sidecar 집합의 ID, path 또는 관계가 충돌합니다.",
+      "The approved legacy sidecar set has conflicting IDs, paths, or relations.",
       { cause: error },
     );
   }

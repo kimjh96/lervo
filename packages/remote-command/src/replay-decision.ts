@@ -5,9 +5,9 @@ export function throwRemoteCommandReplayDecision(
   decision: Exclude<RemoteCommandReplayDecision, { status: "available" | "duplicate" }>,
 ): never {
   const details = {
-    idempotency_conflict: ["idempotency_conflict", "idempotency key가 다른 command에 사용되었습니다."],
-    nonce_replay: ["nonce_replay", "remote command nonce가 다시 사용되었습니다."],
-    in_progress: ["command_in_progress", "동일한 remote command가 처리 중입니다."],
+    idempotency_conflict: ["idempotency_conflict", "The idempotency key was used for a different command."],
+    nonce_replay: ["nonce_replay", "The remote command nonce was reused."],
+    in_progress: ["command_in_progress", "The same remote command is being processed."],
   } as const;
   const [code, message] = details[decision.status];
   throw new RemoteCommandRuntimeError(code, message);

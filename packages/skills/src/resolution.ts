@@ -49,7 +49,7 @@ export function resolveSkills(input: {
   for (const skillId of requestedIds) {
     const matching = input.candidates.filter((candidate) => candidate.manifest.skillId === skillId);
     if (matching.length === 0) {
-      throw new SkillResolutionError("skill_not_found", `요청한 스킬 '${skillId}'을 찾지 못했습니다.`);
+      throw new SkillResolutionError("skill_not_found", `Requested skill '${skillId}' was not found.`);
     }
     const compatible: DiscoveredSkill[] = [];
     for (const candidate of matching) {
@@ -63,7 +63,7 @@ export function resolveSkills(input: {
         .map((item) => item.reasonCode);
       throw new SkillResolutionError(
         "no_compatible_skill",
-        `요청한 스킬 '${skillId}'에 현재 실행과 호환되는 후보가 없습니다.`,
+        `Requested skill '${skillId}' has no candidate compatible with the current run.`,
         { reasons },
       );
     }
@@ -76,7 +76,7 @@ export function resolveSkills(input: {
     if (sameRank.some((candidate) => candidate.manifest.contentHash !== winner.manifest.contentHash)) {
       throw new SkillResolutionError(
         "ambiguous_skill_selection",
-        `스킬 '${skillId}'의 같은 우선순위와 version에 서로 다른 내용이 있습니다.`,
+        `Skill '${skillId}' has different content at the same priority and version.`,
       );
     }
     selected.push(winner);

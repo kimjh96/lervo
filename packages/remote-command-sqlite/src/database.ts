@@ -12,7 +12,7 @@ export async function ensureRemoteCommandDatabasePath(path: string): Promise<str
     if (stats.isSymbolicLink() || !stats.isFile()) {
       throw new RemoteCommandSQLiteError(
         "integrity_failed",
-        "remote command SQLite 경로는 일반 파일이어야 합니다.",
+        "The remote command SQLite path must be a regular file.",
       );
     }
   } catch (error) {
@@ -41,7 +41,7 @@ export function migrateRemoteCommandDatabase(database: DatabaseSync): void {
     if (version !== 0 && version !== 1) {
       throw new RemoteCommandSQLiteError(
         "integrity_failed",
-        "지원하지 않는 remote command SQLite schema입니다.",
+        "The remote command SQLite schema is unsupported.",
       );
     }
     if (version === 0) {

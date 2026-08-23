@@ -21,15 +21,15 @@ function formattedTime(value) {
 }
 
 function displayValue(value) {
-  if (value === null) return "없음";
-  if (value === true) return "예";
-  if (value === false) return "아니요";
-  if (Array.isArray(value)) return value.length === 0 ? "없음" : value.join(", ");
+  if (value === null) return "None";
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  if (Array.isArray(value)) return value.length === 0 ? "None" : value.join(", ");
   if (typeof value === "object") {
     try {
       return JSON.stringify(value);
     } catch {
-      return "표시할 수 없는 값";
+      return "Value cannot be displayed";
     }
   }
   return String(value);
@@ -60,9 +60,9 @@ export function renderProjects(element, projects, selectedProject, onSelect) {
       project.projectName,
       project.projectId,
       [
-        `실행 ${project.runCount}개`,
-        `이벤트 ${project.storedEventCount}개`,
-        `대기 ${project.bufferedEventCount}개`,
+        `${project.runCount} runs`,
+        `${project.storedEventCount} events`,
+        `${project.bufferedEventCount} buffered`,
       ],
       selected,
       () => onSelect(project),
@@ -79,9 +79,9 @@ export function renderRuns(element, runs, selectedRunId, onSelect) {
       formattedTime(run.firstOccurredAt),
       run.runId,
       [
-        `세션 ${run.sessionCount}개`,
-        `이벤트 ${run.eventCount}개`,
-        `대기 ${run.bufferedEventCount}개`,
+        `${run.sessionCount} sessions`,
+        `${run.eventCount} events`,
+        `${run.bufferedEventCount} buffered`,
       ],
       selectedRunId === run.runId,
       () => onSelect(run),
@@ -103,7 +103,7 @@ export function renderEvents(element, events) {
       text("h3", eventLabel(event.type), "event-title"),
       text("p", `#${event.seq} · ${formattedTime(event.occurredAt)}`, "event-meta"),
     );
-    const badgeText = traceEvent.chainPosition === "buffered" ? "연결 대기" : "연속 이력";
+    const badgeText = traceEvent.chainPosition === "buffered" ? "Awaiting chain link" : "Continuous history";
     const badge = text("span", badgeText, `badge${traceEvent.chainPosition === "buffered" ? " buffered" : ""}`);
     heading.append(titleGroup, badge);
     item.append(heading);
@@ -132,7 +132,7 @@ export function setPagination(prefix, navigation) {
   const label = document.getElementById(`${prefix}-page`);
   previous.disabled = navigation.loading || !navigation.hasPrevious;
   next.disabled = navigation.loading || !navigation.hasNext;
-  label.textContent = `${navigation.pageNumber}페이지`;
+  label.textContent = `Page ${navigation.pageNumber}`;
 }
 
 export function clearTracePane(list, state, pageLabel, message) {

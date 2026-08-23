@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_984348c45824a29438fddd03
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4a7a18905ec61393c6eefcd1
+title: "ADR-0118: CLI Stage-Publication Command Boundary"
+type: decision

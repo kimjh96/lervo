@@ -1,9 +1,18 @@
-import { access, mkdtemp, rm } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
+import {
+  canonicalJson,
+  compileRepositoryKnowledgeCandidate,
+  scanConfiguredRepositoryKnowledge,
+  sha256,
+  listKnowledgeArtifactPaths,
+  shardedKnowledgeArtifactPath,
+  storeKnowledgeCompilationCandidate,
+} from "@lervo/repository-knowledge";
 
 import { runCli } from "../src/main.js";
 import type { ManagedDeliberationOutcome } from "../src/managed-deliberation.js";
@@ -55,7 +64,7 @@ describe("lervo CLI identity", () => {
       stdout: () => undefined,
       stderr: (message) => { errors += message; },
     })).toBe(1);
-    expect(errors).toContain("다른 인자를 함께 사용할 수 없습니다");
+    expect(errors).toContain("does not accept additional arguments");
   });
 });
 
@@ -72,7 +81,7 @@ describe("lervo init CLI", () => {
     });
 
     expect(exitCode).toBe(0);
-    expect(output).toContain("생성  .lervo/project.yaml");
+    expect(output).toContain("create  .lervo/project.yaml");
     expect(output).toContain("+ name: fixture");
     await expect(access(resolve(root, ".lervo"))).rejects.toThrow();
   });
@@ -88,8 +97,8 @@ describe("lervo init CLI", () => {
 
     expect(await runCli(["init"], io)).toBe(0);
     expect(await runCli(["init"], io)).toBe(0);
-    expect(messages.join("")).toContain("Lervo 프로젝트를 초기화했습니다.");
-    expect(messages.join("")).toContain("이미 초기화된 프로젝트입니다.");
+    expect(messages.join("")).toContain("Initialized the Lervo project.");
+    expect(messages.join("")).toContain("The project is already initialized.");
   });
 });
 
@@ -106,10 +115,649 @@ describe("lervo migrate identity CLI", () => {
     });
 
     expect(exitCode).toBe(1);
-    expect(output).toContain("계획 상태: 적용 불가");
-    expect(output).toContain("이전 관리 경로가 없습니다");
+    expect(output).toContain("Plan status: blocked");
+    expect(output).toContain("previous managed path does not exist");
     expect(errors).toBe("");
     await expect(access(resolve(root, ".lervo"))).rejects.toThrow();
+  });
+});
+
+describe("lervo repository knowledge CLI", () => {
+  it("runs dry-run, apply, lint and query with a recorded materialization event", async () => {
+    const root = await temporaryRepository();
+    await writeFile(resolve(root, "main.ts"), "export const greeting = 'hello';\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
+    expect(await runCli(["init"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; operations: Array<{ content?: unknown }> };
+    expect(plan.operations.every((operation) => operation.content === undefined)).toBe(true);
+    await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
+
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ type: "knowledge.materialization.applied" });
+    expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain("Repository knowledge");
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "query", "--json", "repository"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ semantics: "recommended", hits: [expect.objectContaining({ path: "docs/knowledge/index.md" })] });
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "impact", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ status: "current", lineageComplete: true, summary: { current: 0, stale: 0, unknown: 0, affectedConcepts: 0 }, items: [] });
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "refresh-candidate", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      semantics: "review_candidate",
+      status: "no_changes",
+      automaticPublicationMutation: false,
+      items: [],
+    });
+
+    const storage = await openProjectStorage(root);
+    try {
+      expect(storage.events.list().some((event) => event.type === "knowledge.materialization.applied")).toBe(true);
+    } finally {
+      await storage.close();
+    }
+    expect(errors).toEqual([]);
+  });
+
+  it("creates an unreviewed semantic candidate without a materialization event", async () => {
+    const root = await temporaryRepository();
+    const executable = resolve(root, "claude-fixture.mjs");
+    await writeFile(resolve(root, "main.ts"), "export const runtime = 'local';\n");
+    await writeFile(executable, `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.includes("--version")) { console.log("claude-fixture 1.0.0"); process.exit(0); }
+let input = "";
+for await (const chunk of process.stdin) input += chunk;
+const envelope = JSON.parse(input).envelope;
+const evidence = envelope.sourceUnits[0].unitVersionId;
+const response = { schemaVersion: 1, concepts: [{ localKey: "runtime", title: "Runtime", type: "concept", summary: "A source-backed runtime candidate.", claims: [{ localKey: "local", statement: "The repository declares a runtime source.", evidenceUnitVersionIds: [evidence] }] }], relations: [] };
+console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), permission_denials: [], stop_reason: "end_turn", num_turns: 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } } }));
+`, { mode: 0o700 });
+    await chmod(executable, 0o700);
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
+    expect(await runCli(["init"], io)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "compile", "--provider", "claude", "--executable", executable, "--json"], io)).toBe(0);
+    const output = JSON.parse(messages.join("")) as { receipt: { compilationId: string; artifactPath: string; assurance: string }; coverage: { complete: boolean } };
+    expect(output).toMatchObject({ receipt: { assurance: "unreviewed" }, coverage: { complete: true } });
+    expect(JSON.parse(await readFile(resolve(root, output.receipt.artifactPath), "utf8"))).toMatchObject({ concepts: [{ assurance: "unreviewed" }] });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "reconcile", "--json", output.receipt.compilationId], io)).toBe(0);
+    const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string; status: string; dispositions: Array<{ action: string; review: string }> };
+    expect(reconciliation).toMatchObject({ status: "ready", dispositions: [{ action: "create_generated", review: "not_required" }] });
+    const storage = await openProjectStorage(root);
+    try {
+      expect(storage.events.list().some((event) => event.type === "knowledge.candidate.created" || event.type === "knowledge.materialization.applied")).toBe(false);
+    } finally {
+      await storage.close();
+    }
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.fixture", "--write", "--json"], io)).toBe(0);
+    const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review", output.receipt.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.fixture", "--accept-all-safe", "--json"], io)).toBe(0);
+    const review = JSON.parse(messages.join("")) as { review: { reviewId: string }; eventId: string };
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(0);
+    const semanticPlan = JSON.parse(messages.join("")) as { planId: string; createdConceptIds: string[] };
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--apply", semanticPlan.planId, "--json"], io), messages.join("")).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "semantic", type: "knowledge.materialization.applied" });
+    expect(await readFile(resolve(root, `docs/knowledge/semantic/${semanticPlan.createdConceptIds[0]}.md`), "utf8")).toContain("Human-reviewed semantic publication");
+    const finalStorage = await openProjectStorage(root);
+    try {
+      const reviewEvent = finalStorage.events.list().find((event) => event.type === "knowledge.reconciliation.reviewed");
+      expect(reviewEvent?.payload).not.toHaveProperty("reviewerId");
+      expect(finalStorage.events.list().some((event) => event.type === "knowledge.materialization.applied" && event.payload.operation === "semantic")).toBe(true);
+    } finally { await finalStorage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("links reviewed claims to an existing user publication without changing its bytes", async () => {
+    const root = await temporaryRepository();
+    const readme = "# Existing Runtime\n\nThis user-owned document stays byte-identical.\n";
+    await writeFile(resolve(root, "README.md"), readme);
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const structuralPlan = JSON.parse(messages.join("")) as { planId: string };
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", structuralPlan.planId, "--json"], io)).toBe(0);
+
+    const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
+    const evidence = scan.units.find((unit) => unit.path === "README.md" && unit.unitKind === "markdown_section")!;
+    const candidate = await compileRepositoryKnowledgeCandidate({
+      scan,
+      policyHash: sha256(canonicalJson(policy)),
+      compiler: {
+        descriptor: { compilerId: "claude.semantic.fixture", compilerVersion: "1", compilerBuildId: `sha256:${"a".repeat(64)}`, provider: "claude", isolation: "external_no_capabilities" },
+        compile: async () => ({ schemaVersion: 1, concepts: [{ localKey: "existing", title: "Existing Runtime", type: "concept", summary: "Reviewed existing publication.", claims: [{ localKey: "linked", statement: "Quasar linkage is reviewed.", evidenceUnitVersionIds: [evidence.unitVersionId] }] }], relations: [], telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true } }),
+      },
+      signal: new AbortController().signal,
+    });
+    await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "reconcile", "--json", candidate.compilationId], io)).toBe(0);
+    const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string; dispositions: Array<{ action: string }> };
+    expect(reconciliation.dispositions).toEqual([expect.objectContaining({ action: "register_existing" })]);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.owner", "--write", "--json"], io)).toBe(0);
+    const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--json"], io)).toBe(0);
+    const reviewId = (JSON.parse(messages.join("")) as { review: { reviewId: string } }).review.reviewId;
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", reviewId, "--json"], io)).toBe(0);
+    const planId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", reviewId, "--apply", planId, "--json"], io)).toBe(0);
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(readme);
+    const claimFiles = await listKnowledgeArtifactPaths({ root, directory: ".lervo/knowledge/claims", extension: "yaml", maximumFiles: 20_000 });
+    expect(await readFile(resolve(root, claimFiles[0]!), "utf8")).toContain(`evidenceUnitIds:\n  - ${evidence.unitId}`);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "query", "--json", "quasar"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ hits: [expect.objectContaining({ path: "README.md", assurance: "human_reviewed" })] });
+    expect(errors).toEqual([]);
+  });
+
+  it("materializes only an exact policy-authorized duplicate and contradiction resolution", async () => {
+    const root = await temporaryRepository();
+    await writeFile(resolve(root, "main.ts"), "export const local = true;\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
+    const candidate = await compileRepositoryKnowledgeCandidate({
+      scan,
+      policyHash: sha256(canonicalJson(policy)),
+      compiler: {
+        descriptor: { compilerId: "claude.semantic.fixture", compilerVersion: "1", compilerBuildId: `sha256:${"c".repeat(64)}`, provider: "claude", isolation: "external_no_capabilities" },
+        compile: async (envelope) => {
+          const evidenceUnitVersionId = envelope.sourceUnits[0]!.unitVersionId;
+          return ({
+          schemaVersion: 1,
+          concepts: [
+            { localKey: "duplicate_left", title: "Duplicate left", type: "concept", summary: "First duplicate.", claims: [{ localKey: "same_left", statement: "The same bounded claim.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
+            { localKey: "duplicate_right", title: "Duplicate right", type: "concept", summary: "Second duplicate.", claims: [{ localKey: "same_right", statement: "The same bounded claim.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
+            { localKey: "mode_a", title: "Mode A", type: "concept", summary: "First contradictory view.", claims: [{ localKey: "a", statement: "The mode is A.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
+            { localKey: "mode_b", title: "Mode B", type: "concept", summary: "Second contradictory view.", claims: [{ localKey: "b", statement: "The mode is B.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
+          ],
+          relations: [{ fromConceptKey: "mode_a", toConceptKey: "mode_b", type: "contradicts", evidenceUnitVersionIds: [evidenceUnitVersionId] }],
+          telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+          });
+        },
+      },
+      signal: new AbortController().signal,
+    });
+    await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "reconcile", "--json", candidate.compilationId], io)).toBe(0);
+    const reconciliation = JSON.parse(messages.join("")) as {
+      reconciliationPlanId: string;
+      dispositions: Array<{ dispositionId: string; subjectId: string; action: string; resolutionOptions: Array<{ resolutionHash: string }> }>;
+    };
+    const bySubject = new Map(reconciliation.dispositions.map((item) => [item.subjectId, item]));
+    const selectedSubjects = [candidate.concepts[0]!.conceptId, candidate.concepts[2]!.conceptId, candidate.concepts[3]!.conceptId, candidate.relations[0]!.relationId];
+    const selections = selectedSubjects.map((subjectId) => {
+      const disposition = bySubject.get(subjectId)!;
+      return `${disposition.dispositionId}=${disposition.resolutionOptions[0]!.resolutionHash}`;
+    });
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.resolver", "--policy-id", "knowledge_conflict.skip", "--write", "--json"], io)).toBe(0);
+    const skipPolicyPath = (JSON.parse(messages.join("")) as { path: string }).path;
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", skipPolicyPath, "--reviewer", "human.resolver", "--resolve-item", selections[0]!, "--json"], io)).toBe(1);
+    expect(errors.join("")).toContain("policy authorization");
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.resolver", "--policy-id", "knowledge_conflict.resolve", "--allow-conflict-resolution", "--write", "--json"], io)).toBe(0);
+    const resolutionPolicyPath = (JSON.parse(messages.join("")) as { path: string }).path;
+    const duplicateRight = bySubject.get(candidate.concepts[1]!.conceptId)!;
+    const duplicateRightSelection = `${duplicateRight.dispositionId}=${duplicateRight.resolutionOptions[0]!.resolutionHash}`;
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", resolutionPolicyPath, "--reviewer", "human.resolver", "--resolve-item", selections[0]!, "--resolve-item", duplicateRightSelection, "--json"], io)).toBe(1);
+    expect(errors.join("")).toContain("Only one concept");
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", resolutionPolicyPath, "--reviewer", "human.resolver", "--resolve-item", selections[3]!, "--json"], io)).toBe(1);
+    expect(errors.join("")).toContain("endpoint");
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", resolutionPolicyPath, "--reviewer", "human.resolver", ...selections.flatMap((selection) => ["--resolve-item", selection]), "--json"], io)).toBe(0);
+    const review = JSON.parse(messages.join("")) as { review: { reviewId: string; itemApprovals: Array<{ action: string }> } };
+    expect(review.review.itemApprovals).toHaveLength(4);
+    expect(review.review.itemApprovals.every((item) => item.action === "resolve_conflict")).toBe(true);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(0);
+    const materialization = JSON.parse(messages.join("")) as { planId: string; createdConceptIds: string[]; relationIds: string[] };
+    expect(materialization.createdConceptIds).toHaveLength(3);
+    expect(materialization.relationIds).toHaveLength(1);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--apply", materialization.planId, "--json"], io), errors.join("")).toBe(0);
+    expect(errors).toEqual([]);
+  });
+
+  it("deletes an exact registered user document and deprecates its concept atomically", async () => {
+    const root = await temporaryRepository();
+    const documentPath = "docs/research/retired.md";
+    await writeFile(resolve(root, "seed.txt"), "seed\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    await mkdir(resolve(root, "docs/research"), { recursive: true });
+    await writeFile(resolve(root, documentPath), "# Retired note\n\nExact user bytes to remove.\n");
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "structure", "delete", documentPath, "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; deprecatedConceptIds: string[]; operations: Array<{ path: string; action: string; content?: string }> };
+    expect(plan.deprecatedConceptIds).toHaveLength(1);
+    expect(plan.operations).toContainEqual(expect.objectContaining({ path: documentPath, action: "delete" }));
+    expect(plan.operations.every((operation) => operation.content === undefined)).toBe(true);
+    expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "delete", documentPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(errors.join("")).toContain("exact approval hash");
+    expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "delete", documentPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    await expect(access(resolve(root, documentPath))).rejects.toMatchObject({ code: "ENOENT" });
+    const conceptBytes = await readFile(resolve(root, shardedKnowledgeArtifactPath(".lervo/knowledge/concepts", plan.deprecatedConceptIds[0]!, "yaml")), "utf8");
+    expect(conceptBytes).toContain("publicationStatus: deprecated");
+    expect(conceptBytes).toContain("kind: document_deleted");
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+    const refreshPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["knowledge", "refresh", "--apply", refreshPlanId, "--json"], io)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "query", "--json", "Retired note"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits).toEqual([]);
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_delete");
+      expect(event?.payload).toMatchObject({ planId: plan.planId, deprecatedConceptIds: plan.deprecatedConceptIds });
+      expect(JSON.stringify(event?.payload)).not.toContain(documentPath);
+    } finally { await storage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("moves an exact registered user document while preserving identity and navigation", async () => {
+    const root = await temporaryRepository();
+    const sourcePath = "docs/research/original.md";
+    const destinationPath = "docs/research/current.md";
+    await writeFile(resolve(root, "seed.txt"), "seed\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    await mkdir(resolve(root, "docs/research"), { recursive: true });
+    await writeFile(resolve(root, sourcePath), "# Movable guide\n\nExact user bytes remain unchanged.\n");
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; preservedConceptIds: string[]; operations: Array<{ action: string; content?: string }> };
+    expect(plan.preservedConceptIds).toHaveLength(1);
+    expect(plan.operations.some((item) => item.action === "move")).toBe(true);
+    expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toContain("Exact user bytes");
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(resolve(root, destinationPath), "utf8")).toContain("Exact user bytes");
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "query", "--json", "Movable guide"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits[0]).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every((item) => item.action === "unchanged")).toBe(true);
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_move");
+      expect(event?.payload).toMatchObject({ planId: plan.planId, updatedConceptIds: plan.preservedConceptIds });
+      expect(JSON.stringify(event?.payload)).not.toContain(sourcePath);
+      expect(JSON.stringify(event?.payload)).not.toContain(destinationPath);
+    } finally { await storage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("splits one exact CommonMark heading subtree into a new registered document", async () => {
+    const root = await temporaryRepository();
+    const sourcePath = "docs/research/guide.md";
+    const destinationPath = "docs/research/extracted.md";
+    const original = "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n## Tail\n\nKeep tail.\n";
+    const remainder = "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Tail\n\nKeep tail.\n";
+    const extracted = "## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n";
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    await mkdir(resolve(root, "docs/research"), { recursive: true });
+    await writeFile(resolve(root, sourcePath), original);
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "structure", "split", sourcePath, destinationPath, "--at-heading", "heading:Guide > Extract", "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; createdConceptIds: string[]; operations: Array<{ ownership: string; content?: string }> };
+    expect(plan.createdConceptIds).toHaveLength(1);
+    expect(plan.operations.some((item) => item.ownership === "user")).toBe(true);
+    expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "split", sourcePath, destinationPath, "--at-heading", "heading:Guide > Extract", "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(original);
+    await expect(access(resolve(root, destinationPath))).rejects.toMatchObject({ code: "ENOENT" });
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "split", sourcePath, destinationPath, "--at-heading", "heading:Guide > Extract", "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(remainder);
+    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(extracted);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "query", "--json", "Extract"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits[0]).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every((item) => item.action === "unchanged")).toBe(true);
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_split");
+      expect(event?.payload).toMatchObject({ planId: plan.planId, createdConceptIds: plan.createdConceptIds });
+      expect(JSON.stringify(event?.payload)).not.toContain(sourcePath);
+      expect(JSON.stringify(event?.payload)).not.toContain(destinationPath);
+      expect(JSON.stringify(event?.payload)).not.toContain("Move this");
+    } finally { await storage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("merges one registered source into a registered destination with exact approval", async () => {
+    const root = await temporaryRepository();
+    const sourcePath = "docs/research/source.md";
+    const destinationPath = "docs/research/destination.md";
+    const source = "# Source\n\nSource-only body.\n";
+    const destination = "# Destination\n\nDestination body.\n\n";
+    await mkdir(resolve(root, "docs/research"), { recursive: true });
+    await writeFile(resolve(root, sourcePath), source);
+    await writeFile(resolve(root, destinationPath), destination);
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; preservedConceptIds: string[]; deprecatedConceptIds: string[]; operations: Array<{ action: string; ownership?: string; content?: string }> };
+    expect(plan.preservedConceptIds).toHaveLength(1);
+    expect(plan.deprecatedConceptIds).toHaveLength(1);
+    expect(plan.operations.some((item) => item.action === "delete")).toBe(true);
+    expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(source);
+    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(destination);
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(destination + source);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "query", "--json", "Source-only body"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits[0]).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+    expect((JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every((item) => item.action === "unchanged")).toBe(true);
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_merge");
+      expect(event?.payload).toMatchObject({ planId: plan.planId, deprecatedConceptIds: plan.deprecatedConceptIds });
+      expect(JSON.stringify(event?.payload)).not.toContain(sourcePath);
+      expect(JSON.stringify(event?.payload)).not.toContain(destinationPath);
+      expect(JSON.stringify(event?.payload)).not.toContain("Source-only body");
+    } finally { await storage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("creates and records a privacy-bounded Claude instruction bridge", async () => {
+    const root = await temporaryRepository();
+    await writeFile(resolve(root, "AGENTS.md"), "# Canonical agent policy\n\nRepository instructions.\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--json"], io)).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; target: { action: string }; operations: Array<{ content?: string }> };
+    expect(plan.target.action).toBe("create");
+    expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
+    await expect(access(resolve(root, "CLAUDE.md"))).rejects.toMatchObject({ code: "ENOENT" });
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(errors.join("")).toContain("exact approval hash");
+    await expect(access(resolve(root, "CLAUDE.md"))).rejects.toMatchObject({ code: "ENOENT" });
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io), errors.join("")).toBe(0);
+    expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toContain("@AGENTS.md\n");
+    const receipt = JSON.parse(messages.join("")) as { canonicalPathDigest: string; targetPathDigest: string };
+    expect(receipt.canonicalPathDigest).toMatch(/^sha256:/);
+    expect(receipt.targetPathDigest).toMatch(/^sha256:/);
+
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "instruction_bridge_update");
+      expect(event?.payload).toMatchObject({ planId: plan.planId, compilerId: "lervo.instruction-bridge" });
+      expect(JSON.stringify(event?.payload)).not.toContain("AGENTS.md");
+      expect(JSON.stringify(event?.payload)).not.toContain("CLAUDE.md");
+      expect(JSON.stringify(event?.payload)).not.toContain("Repository instructions");
+    } finally { await storage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("updates only an explicit managed block after an exact output-hash item approval", async () => {
+    const root = await temporaryRepository();
+    const startMarker = "<!-- lervo:begin block=repository-knowledge schema=1 -->";
+    const endMarker = "<!-- lervo:end block=repository-knowledge -->";
+    const readme = `# Existing Runtime\n\nUser prefix stays byte-identical.\n${startMarker}\nOld generated summary.\n${endMarker}\nUser suffix stays byte-identical.\n`;
+    await writeFile(resolve(root, "README.md"), readme);
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], io)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const structuralPlan = JSON.parse(messages.join("")) as { planId: string };
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", structuralPlan.planId, "--json"], io)).toBe(0);
+
+    const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
+    const evidence = scan.units.find((unit) => unit.path === "README.md" && unit.unitKind === "markdown_section")!;
+    const candidate = await compileRepositoryKnowledgeCandidate({
+      scan,
+      policyHash: sha256(canonicalJson(policy)),
+      compiler: {
+        descriptor: { compilerId: "claude.semantic.fixture", compilerVersion: "1", compilerBuildId: `sha256:${"b".repeat(64)}`, provider: "claude", isolation: "external_no_capabilities" },
+        compile: async () => ({ schemaVersion: 1, concepts: [{ localKey: "existing", title: "Existing Runtime", type: "concept", summary: "Reviewed managed summary.", claims: [{ localKey: "linked", statement: "Managed block replacement is reviewed.", evidenceUnitVersionIds: [evidence.unitVersionId] }] }], relations: [], telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true } }),
+      },
+      signal: new AbortController().signal,
+    });
+    await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
+    messages.length = 0;
+    expect(await runCli(["knowledge", "reconcile", "--json", candidate.compilationId], io)).toBe(0);
+    const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string; status: string; dispositions: Array<{ dispositionId: string; action: string; patch: null | { outputHash: string } }> };
+    expect(reconciliation.status).toBe("review_required");
+    expect(reconciliation.dispositions.map((item) => item.action).sort()).toEqual(["propose_user_patch", "register_existing"]);
+    const patch = reconciliation.dispositions.find((item) => item.action === "propose_user_patch")!;
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.owner", "--write", "--json"], io)).toBe(0);
+    const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
+    messages.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--json"], io)).toBe(0);
+    const safeOnly = JSON.parse(messages.join("")) as { review: { itemApprovals: unknown[]; skippedDispositionIds: string[] } };
+    expect(safeOnly.review.itemApprovals).toEqual([]);
+    expect(safeOnly.review.skippedDispositionIds).toContain(patch.dispositionId);
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(readme);
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--approve-item", `${patch.dispositionId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(errors.join("")).toContain("exact output hash");
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(readme);
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--approve-item", `${patch.dispositionId}=${patch.patch!.outputHash}`, "--json"], io)).toBe(0);
+    const reviewed = JSON.parse(messages.join("")) as { review: { reviewId: string; itemApprovals: Array<{ dispositionId: string; outputHash: string }> } };
+    expect(reviewed.review.itemApprovals).toEqual([{ dispositionId: patch.dispositionId, action: "apply_managed_block_patch", outputHash: patch.patch!.outputHash }]);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", reviewed.review.reviewId, "--json"], io)).toBe(0);
+    const semanticPlan = JSON.parse(messages.join("")) as { planId: string; userPatchCount: number; operations: Array<{ path: string; ownership: string }> };
+    expect(semanticPlan.userPatchCount).toBe(1);
+    expect(semanticPlan.operations).toContainEqual(expect.objectContaining({ path: "README.md", ownership: "managed_blocks" }));
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", reviewed.review.reviewId, "--apply", semanticPlan.planId, "--json"], io)).toBe(0);
+
+    const after = await readFile(resolve(root, "README.md"), "utf8");
+    const prefixEnd = readme.indexOf(startMarker) + startMarker.length;
+    const suffixStart = readme.indexOf(endMarker);
+    expect(after.slice(0, prefixEnd)).toBe(readme.slice(0, prefixEnd));
+    expect(after.slice(after.indexOf(endMarker))).toBe(readme.slice(suffixStart));
+    expect(after).toContain("Reviewed managed summary.");
+    expect(after).toContain("Managed block replacement is reviewed.");
+    const storage = await openProjectStorage(root);
+    try {
+      const reviewEvent = storage.events.list().filter((event) => event.type === "knowledge.reconciliation.reviewed").at(-1)!;
+      expect(reviewEvent.payload).toHaveProperty("itemApprovalDigest");
+      expect(reviewEvent.payload).not.toHaveProperty("reviewerId");
+      expect(JSON.stringify(reviewEvent.payload)).not.toContain("README.md");
+      expect(JSON.stringify(reviewEvent.payload)).not.toContain("Managed block replacement");
+    } finally { await storage.close(); }
+    expect(errors).toEqual([]);
+  });
+
+  it("exchanges an OKF bundle with another Lervo using a read-only same-ID import plan", async () => {
+    const source = await temporaryRepository();
+    const target = await temporaryRepository();
+    const exchangeParent = await temporaryRepository();
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const sourceIo = { cwd: source, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    expect(await runCli(["init"], sourceIo)).toBe(0);
+    await writeFile(resolve(source, "README.md"), "# Exchange fixture\n\nPortable quasar knowledge.\n");
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], sourceIo)).toBe(0);
+    const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], sourceIo)).toBe(0);
+    messages.length = 0;
+    const bundle = resolve(exchangeParent, "bundle");
+    expect(await runCli(["knowledge", "export", "okf", "--output", bundle, "--json"], sourceIo)).toBe(0);
+    const exported = JSON.parse(messages.join("")) as { bundleDigest: string };
+
+    const targetIo = { cwd: target, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    messages.length = 0;
+    expect(await runCli(["init"], targetIo)).toBe(0);
+    messages.length = 0;
+    expect(await runCli(["knowledge", "import", "okf", bundle, "--json"], targetIo)).toBe(0);
+    const importPlan = JSON.parse(messages.join("")) as { planId: string; candidateId: string; targetPath: string; bundleDigest: string };
+    expect(importPlan.bundleDigest).toBe(exported.bundleDigest);
+    await expect(access(resolve(target, importPlan.targetPath))).rejects.toThrow();
+    messages.length = 0;
+    expect(await runCli(["knowledge", "import", "okf", bundle, "--apply", importPlan.planId, "--json"], targetIo)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ candidateId: importPlan.candidateId, created: true, localAssurance: "unreviewed" });
+
+    messages.length = 0;
+    expect(await runCli(["knowledge", "okf", "query", bundle, "quasar", "--json"], targetIo)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ semantics: "recommended", hits: [expect.objectContaining({ localAssurance: "unreviewed" })] });
+    const roundtrip = resolve(exchangeParent, "roundtrip");
+    messages.length = 0;
+    expect(await runCli(["knowledge", "okf", "re-export", importPlan.candidateId, "--output", roundtrip, "--json"], targetIo)).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ bundleDigest: exported.bundleDigest });
+    expect(await readFile(resolve(roundtrip, "index.md"), "utf8")).toBe(await readFile(resolve(bundle, "index.md"), "utf8"));
+    const storage = await openProjectStorage(target);
+    try { expect(storage.events.list()).toEqual([]); } finally { await storage.close(); }
+    expect(errors).toEqual([]);
   });
 });
 
@@ -119,7 +767,7 @@ describe("lervo run CLI arguments", () => {
     let called = false;
     let errorOutput = "";
     const exitCode = await runCli(
-      ["run", "--provider", "codex", "작업"],
+      ["run", "--provider", "codex", "task"],
       {
         cwd: root,
         stdout: () => undefined,
@@ -135,7 +783,7 @@ describe("lervo run CLI arguments", () => {
 
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
-    expect(errorOutput).toContain("provider, path, verification suite와 작업 문장이 필요합니다");
+    expect(errorOutput).toContain("A provider, path, verification suite, and task request are required");
   });
 });
 
@@ -145,7 +793,7 @@ describe("lervo deliberate CLI", () => {
     let errors = "";
     const exitCode = await runCli(
       ["deliberate", "--proposer", "codex", "--reviewer", "codex",
-        "--verification", "project.default", "주제"],
+        "--verification", "project.default", "topic"],
       {
         cwd: process.cwd(),
         stdout: () => undefined,
@@ -160,13 +808,13 @@ describe("lervo deliberate CLI", () => {
     );
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
-    expect(errors).toContain("재개 ID 하나");
+    expect(errors).toContain("Provide one resume ID");
   });
 
   it("accepts a stored policy without inline role arguments", async () => {
     let request: unknown;
     const exitCode = await runCli(
-      ["deliberate", "--policy", "deliberation_product-review", "검토 주제"],
+      ["deliberate", "--policy", "deliberation_product-review", "review topic"],
       {
         cwd: "/work/repository",
         stdout: () => undefined,
@@ -183,7 +831,7 @@ describe("lervo deliberate CLI", () => {
     expect(request).toEqual({
       repositoryRoot: "/work/repository",
       policyId: "deliberation_product-review",
-      topic: "검토 주제",
+      topic: "review topic",
     });
   });
 
@@ -191,7 +839,7 @@ describe("lervo deliberate CLI", () => {
     let called = false;
     const exitCode = await runCli(
       ["deliberate", "--policy", "deliberation_product-review",
-        "--proposer", "codex", "검토 주제"],
+        "--proposer", "codex", "review topic"],
       { cwd: process.cwd(), stdout: () => undefined, stderr: () => undefined },
       { executeManagedDeliberation: async () => {
         called = true;
@@ -225,16 +873,16 @@ describe("lervo deliberate CLI", () => {
       deliberationId: "dlb_cli_result_0001",
       status: "converged",
       artifactCount: 4,
-      finalContent: "독립 검토와 실제 검증을 거친 결론입니다.",
+      finalContent: "A conclusion reached through independent review and actual verification.",
       providers: { proposer: "codex", reviewer: "claude" },
       participants: [{
         roleId: "deliberation-proposer",
-        name: "제안·결정 역할",
+        name: "Proposal and decision role",
         provider: "codex",
         responsibilities: ["proposer", "decision_owner"],
       }, {
         roleId: "deliberation-reviewer",
-        name: "독립 검토·검증 역할",
+        name: "Independent review and verification role",
         provider: "claude",
         responsibilities: ["reviewer", "verifier"],
       }],
@@ -259,7 +907,7 @@ describe("lervo deliberate CLI", () => {
     };
     const exitCode = await runCli(
       ["deliberate", "--proposer", "codex", "--reviewer", "claude",
-        "--verification", "project.default", "검토할 주제"],
+        "--verification", "project.default", "topic to review"],
       {
         cwd: process.cwd(),
         stdout: (message) => { output += message; },
@@ -268,7 +916,7 @@ describe("lervo deliberate CLI", () => {
       { executeManagedDeliberation: async () => outcome },
     );
     expect(exitCode).toBe(0);
-    expect(output).toContain("숙의가 결론에 도달했습니다");
+    expect(output).toContain("Deliberation reached a decision");
     expect(output).toContain(outcome.finalContent);
     expect(output).not.toContain("sha256:");
     expect(output).not.toContain("dlb_cli_result_0001");
@@ -380,10 +1028,10 @@ describe("lervo trace CLI", () => {
     });
 
     expect(code).toBe(0);
-    expect(output).toContain("실행 추적 페이지: run_cli_trace_0001");
+    expect(output).toContain("Run trace page: run_cli_trace_0001");
     expect(output).toContain("run.requested");
     expect(output).toContain("run.completed");
-    expect(output).not.toContain("원문 주장");
+    expect(output).not.toContain("source claim");
     expect(defaultErrors).toBe("");
 
     let jsonOutput = "";

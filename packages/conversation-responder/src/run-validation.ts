@@ -26,7 +26,7 @@ export function validateConversationManagedRun(input: {
   ) {
     throw new ManagedConversationResponseError(
       "managed_run_invalid",
-      "대화 응답 managed run이 읽기 전용 역할과 결과 좌표를 지키지 않았습니다.",
+      "The conversation response managed run did not preserve the read-only role and result coordinates.",
     );
   }
   let runEvents;
@@ -39,7 +39,7 @@ export function validateConversationManagedRun(input: {
   } catch (error) {
     throw new ManagedConversationResponseError(
       "managed_run_invalid",
-      "대화 응답 managed run event 범위를 확인하지 못했습니다.",
+      "The conversation response managed run event range could not be verified.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
@@ -51,7 +51,7 @@ export function validateConversationManagedRun(input: {
   ) {
     throw new ManagedConversationResponseError(
       "managed_run_invalid",
-      "대화 원문 hash와 managed run 요청 원본이 서로 연결되지 않았습니다.",
+      "The conversation source hash is not linked to the managed run request source.",
     );
   }
   try {
@@ -63,7 +63,7 @@ export function validateConversationManagedRun(input: {
   } catch (error) {
     throw new ManagedConversationResponseError(
       "managed_run_invalid",
-      "대화 응답에 필요한 E2/E3 공통 맥락 증거를 확인하지 못했습니다.",
+      "The E2/E3 shared-context evidence required for the conversation response could not be verified.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

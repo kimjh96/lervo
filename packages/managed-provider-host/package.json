@@ -1,0 +1,34 @@
+{
+  "name": "@lervo/managed-provider-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/adapter-contract": "workspace:*",
+    "@lervo/context": "workspace:*",
+    "@lervo/orchestrator": "workspace:*",
+    "@lervo/project": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
+    "@lervo/remote-command": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/skills": "workspace:*",
+    "@lervo/storage-contract": "workspace:*",
+    "@lervo/sync-contract": "workspace:*",
+    "@lervo/verification": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/adapter-codex": "workspace:*",
+    "@lervo/remote-command-contract": "workspace:*"
+  }
+}

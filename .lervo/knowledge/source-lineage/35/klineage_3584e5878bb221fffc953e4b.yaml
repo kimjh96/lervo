@@ -1,0 +1,11 @@
+fromPath: docs/adr/0047-managed-conversation-responder.md
+identityPath: docs/adr/0047-managed-conversation-responder.md
+kind: document_move
+lineageId: klineage_3584e5878bb221fffc953e4b
+operationId: kdocop_0a548c505fa66762a307ee4f
+schemaVersion: 1
+sourceContentHash: sha256:8dd451f32097679218c641ef6ae8177fe34abe4ce1b80ec2f29030f1775f7359
+sourceId: src_081a6e7a25c208ff55cdb2e4
+sourceUnitBindingDigest: sha256:9155d9c4ce995038417acd46f3299bd99e24c3b8e6100df154ab1dd7a6f14202
+sourceUnitCount: 5
+toPath: docs/decisions/release/packaging/0047-managed-conversation-responder.md

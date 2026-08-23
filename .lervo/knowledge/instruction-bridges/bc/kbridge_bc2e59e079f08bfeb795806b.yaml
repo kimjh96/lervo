@@ -1,0 +1,15 @@
+bridgeId: kbridge_bc2e59e079f08bfeb795806b
+canonical:
+  contentHash: sha256:e6662861dec64f075c2f48d518a85d912062edaba3562d0ff463c2b3b15dd946
+  path: AGENTS.md
+profile:
+  discoveryContract: claude-code-memory-import
+  id: claude_agents_import_v1
+  provider: claude
+  version: 1
+schemaVersion: 1
+target:
+  blockId: provider_entry
+  contentHash: sha256:734caedbc45974ccc3dd027b13e5977d73c95905466292919c705c9cf1426622
+  managedContentHash: sha256:336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49
+  path: CLAUDE.md

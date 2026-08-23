@@ -16,18 +16,18 @@ export function createSearchQualityReport(
   const projectIds = new Set<string>();
   for (const attempt of attempts) {
     assertSearchAttempt(attempt);
-    if (byAttempt.has(attempt.attemptId)) throw new SearchError("invalid_attempt", "중복 검색 시도가 있습니다.");
+    if (byAttempt.has(attempt.attemptId)) throw new SearchError("invalid_attempt", "A search attempt is duplicated.");
     byAttempt.set(attempt.attemptId, attempt);
     projectIds.add(attempt.projectId);
   }
-  if (projectIds.size > 1) throw new SearchError("invalid_attempt", "서로 다른 project의 검색 시도를 합칠 수 없습니다.");
+  if (projectIds.size > 1) throw new SearchError("invalid_attempt", "Search attempts from different projects cannot be combined.");
   const assessmentByAttempt = new Map<string, SearchAssessment>();
   for (const assessment of assessments) {
     const attempt = byAttempt.get(assessment.attemptId);
-    if (attempt === undefined) throw new SearchError("invalid_assessment", "원본 시도 없는 검색 평가가 있습니다.");
+    if (attempt === undefined) throw new SearchError("invalid_assessment", "A search assessment has no source attempt.");
     assertSearchAssessment(assessment, attempt);
     if (assessmentByAttempt.has(assessment.attemptId)) {
-      throw new SearchError("assessment_conflict", "한 검색 시도에 여러 평가가 있습니다.");
+      throw new SearchError("assessment_conflict", "A search attempt has multiple assessments.");
     }
     assessmentByAttempt.set(assessment.attemptId, assessment);
   }

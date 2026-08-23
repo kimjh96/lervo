@@ -19,7 +19,7 @@ const target = {
   projectId: "prj_policy_contract",
   projectIdentityHash: `sha256:${"a".repeat(64)}`,
 };
-const request = new TextEncoder().encode("승인이 필요한 작업입니다.");
+const request = new TextEncoder().encode("This task requires approval.");
 
 function command() {
   return createRemoteCommand({

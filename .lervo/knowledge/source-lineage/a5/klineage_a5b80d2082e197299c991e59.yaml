@@ -1,0 +1,11 @@
+fromPath: docs/adr/0095-cli-release-publication-authorization.md
+identityPath: docs/adr/0095-cli-release-publication-authorization.md
+kind: document_move
+lineageId: klineage_a5b80d2082e197299c991e59
+operationId: kdocop_ac5d19a2b44d9a79b273a78e
+schemaVersion: 1
+sourceContentHash: sha256:d912f22738dd646ef24638dc039140e749786f3a0c32bc9be9ecb1b20a253a32
+sourceId: src_23c8b04c23cd3f78e3acb806
+sourceUnitBindingDigest: sha256:302a09ac6e0c3ebdeee217497427600219f5e182d582f1f6dd746ba56dc23b6e
+sourceUnitCount: 5
+toPath: docs/decisions/release/assurance/0095-cli-release-publication-authorization.md

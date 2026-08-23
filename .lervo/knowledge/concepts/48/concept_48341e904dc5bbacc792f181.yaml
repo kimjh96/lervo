@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_48341e904dc5bbacc792f181
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0035-outbound-sync-worker.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ae96332c7d2892e536edf257
+title: "ADR-0035: Authenticated-peer, lease-bound outbound sync worker"
+type: decision

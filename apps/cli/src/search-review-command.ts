@@ -44,7 +44,7 @@ export async function runSearchReviewCommand(args: string[], io: CliIo): Promise
   }
   const decision = parsed.values.decision === undefined ? undefined : DECISIONS[parsed.values.decision];
   if (parsed.positionals.length !== 1 || decision === undefined || parsed.values.reviewer === undefined) {
-    io.stderr(`comparison ID, adopt|reject|more-samples 결정과 reviewer ID가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A comparison ID, adopt|reject|more-samples decision, and reviewer ID are required.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -63,8 +63,8 @@ export async function runSearchReviewCommand(args: string[], io: CliIo): Promise
     io.stdout(parsed.values.json ? `${JSON.stringify(review, null, 2)}\n` : formatSearchCandidateReview(review));
     return 0;
   } catch (error) {
-    io.stderr(`검색 후보 검토를 완료하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not complete the search candidate review. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

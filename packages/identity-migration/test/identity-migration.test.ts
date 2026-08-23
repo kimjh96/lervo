@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -39,7 +39,7 @@ async function previousVersionRepository(): Promise<{
     now: new Date("2026-08-18T00:00:00Z"),
   }));
   const storage = await openProjectStorage(root);
-  const artifact = await storage.artifacts.put("이름과 무관하게 보존할 증거 원문");
+  const artifact = await storage.artifacts.put("Evidence source text preserved independently of the name");
   const event = storage.events.append({
     eventId: "evt_identity_source_01",
     projectId,
@@ -64,7 +64,9 @@ async function previousVersionRepository(): Promise<{
     "search-engine-policies",
     "search-rollout-policies",
     "search-rollout-action-policies",
-  ]) await rmdir(resolve(root, ".lervo", directory));
+  ]) await rmdir(resolve(root, ".lervo", directory)).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+  });
   await rename(resolve(root, ".lervo"), resolve(root, ".roven"));
   return { root, eventHash: event.eventHash, artifactUri: artifact.uri };
 }
@@ -121,14 +123,14 @@ describe("project identity migration", () => {
       previousHash: fixture.eventHash,
     });
     expect(Buffer.from(await storage.artifacts.get(fixture.artifactUri)).toString("utf8"))
-      .toBe("이름과 무관하게 보존할 증거 원문");
+      .toBe("Evidence source text preserved independently of the name");
     await storage.close();
   });
 
   it("rejects an approved plan after any source byte changes", async () => {
     const fixture = await previousVersionRepository();
     const plan = await createIdentityMigrationPlan(fixture.root);
-    await writeFile(resolve(fixture.root, ".roven/extra.txt"), "계획 뒤 변경\n");
+    await writeFile(resolve(fixture.root, ".roven/extra.txt"), "Changed after planning\n");
 
     await expect(applyIdentityMigration(plan)).rejects.toMatchObject({ code: "plan_stale" });
     await expect(access(resolve(fixture.root, ".roven"))).resolves.toBeUndefined();
@@ -153,7 +155,7 @@ describe("project identity migration", () => {
   it("archives previous managed document metadata without rewriting the user document", async () => {
     const fixture = await previousVersionRepository();
     const previous = "ro" + "ven";
-    const documentBytes = `사용자 문단\n\n<!-- ${previous}:begin block=summary schema=1 -->\n관리 내용\n<!-- ${previous}:end block=summary -->\n`;
+    const documentBytes = `User paragraph\n\n<!-- ${previous}:begin block=summary schema=1 -->\nManaged content\n<!-- ${previous}:end block=summary -->\n`;
     await writeFile(resolve(fixture.root, "README.md"), documentBytes);
     const manifest: DocumentManifest = {
       schemaVersion: 1,
@@ -194,6 +196,7 @@ describe("project identity migration", () => {
     };
     const previousManifest = serializeYaml(manifest).replaceAll("<!-- lervo:", `<!-- ${previous}:`);
     const sourceManifest = resolve(fixture.root, ".roven/documents/doc_identity_0001.yaml");
+    await mkdir(resolve(fixture.root, ".roven/documents"), { recursive: true });
     await writeFile(sourceManifest, previousManifest);
 
     const plan = await createIdentityMigrationPlan(fixture.root);
@@ -210,7 +213,7 @@ describe("project identity migration", () => {
 
   it("blocks mixed roots and corrupt CAS objects without changing either", async () => {
     const fixture = await previousVersionRepository();
-    await writeFile(resolve(fixture.root, ".lervo"), "사용자 파일\n");
+    await writeFile(resolve(fixture.root, ".lervo"), "User file\n");
     const mixed = await createIdentityMigrationPlan(fixture.root);
     expect(mixed.status).toBe("blocked");
     expect(mixed.blockers).toContainEqual(expect.objectContaining({ code: "target_exists" }));
@@ -219,7 +222,7 @@ describe("project identity migration", () => {
     const objectRoot = resolve(fixture.root, ".roven/state/cas/sha256");
     const prefixName = (await readdir(objectRoot))[0]!;
     const suffixName = (await readdir(resolve(objectRoot, prefixName)))[0]!;
-    await writeFile(resolve(objectRoot, prefixName, suffixName), "손상된 bytes");
+    await writeFile(resolve(objectRoot, prefixName, suffixName), "corrupted bytes");
     const corrupt = await createIdentityMigrationPlan(fixture.root);
     expect(corrupt.status).toBe("blocked");
     expect(corrupt.blockers).toContainEqual(expect.objectContaining({ code: "cas_invalid" }));

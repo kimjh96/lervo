@@ -1,0 +1,11 @@
+fromPath: docs/adr/0032-managed-run-project-verification.md
+identityPath: docs/adr/0032-managed-run-project-verification.md
+kind: document_move
+lineageId: klineage_1f83c246a0403ab99d137876
+operationId: kdocop_591bac5659be65580fc35bc2
+schemaVersion: 1
+sourceContentHash: sha256:73ae012204e735d50b1e71abd7751c6cc274796ce4055bfc864afb3e3e57f247
+sourceId: src_c321c7f33804ee72f1415375
+sourceUnitBindingDigest: sha256:d76846bdf23dc92d5bbc22503afd5e15dcab7324e26c003c7bc1fd6d22b34ae0
+sourceUnitCount: 9
+toPath: docs/decisions/execution/verification/0032-managed-run-project-verification.md

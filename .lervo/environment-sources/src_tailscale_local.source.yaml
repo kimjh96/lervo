@@ -1,0 +1,9 @@
+schemaVersion: 1
+sourceId: src_tailscale_local
+adapterId: tailscale
+scope: project
+capabilities:
+  - network.peer
+maximumValiditySeconds: 300
+sharing: local_only
+configuration: {}

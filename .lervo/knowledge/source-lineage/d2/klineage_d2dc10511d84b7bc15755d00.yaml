@@ -1,0 +1,11 @@
+fromPath: docs/adr/0149-owner-only-loopback-hub-runtime.md
+identityPath: docs/adr/0149-owner-only-loopback-hub-runtime.md
+kind: document_move
+lineageId: klineage_d2dc10511d84b7bc15755d00
+operationId: kdocop_0904bcd2f1eb03aeefc6d3d2
+schemaVersion: 1
+sourceContentHash: sha256:49a931727cb45863833583e0eac9850433520ead3321ff5859f57756f10cd4f9
+sourceId: src_df4d9a6c290ad69f2b6d0fcd
+sourceUnitBindingDigest: sha256:fe8adbde832a5f816354332f1e5453456986350426ca1063f5616ab89a679360
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md

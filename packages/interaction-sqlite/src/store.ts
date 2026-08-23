@@ -63,7 +63,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
   }): Promise<SQLiteConversationInteractionStore> {
     const maxRecords = options.maxRecords ?? 100_000;
     if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || maxRecords > 1_000_000) {
-      throw new InteractionSQLiteError("integrity_failed", "Interaction maxRecords가 유효하지 않습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "Interaction maxRecords is invalid.");
     }
     const path = await ensureInteractionDatabasePath(options.path);
     const database = new DatabaseSync(path, {
@@ -83,7 +83,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
   }
 
   private assertOpen(): void {
-    if (this.closed) throw new InteractionSQLiteError("closed", "닫힌 Interaction SQLite store입니다.");
+    if (this.closed) throw new InteractionSQLiteError("closed", "The Interaction SQLite store is closed.");
   }
 
   async claimInbound(input: {
@@ -102,7 +102,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     ) {
       throw new InteractionSQLiteError(
         "integrity_failed",
-        "Conversation event와 participation policy 범위가 다릅니다.",
+        "The conversation event and participation policy scopes differ.",
       );
     }
     return this.transaction.write(() => {
@@ -117,11 +117,11 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
       if (claim.status !== "completed") return claim;
       const decision = this.decisions.read(input.event, input.policy.roleId);
       if (decision === null) {
-        throw new InteractionSQLiteError("integrity_failed", "완료된 inbox에 decision이 없습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "A completed inbox has no decision.");
       }
       const outbound = this.outbox.readForSource(input.event, input.policy.roleId);
       if ((decision.action === "respond") !== (outbound !== null)) {
-        throw new InteractionSQLiteError("integrity_failed", "Decision과 outbox 관계가 다릅니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The decision and outbox relation differs.");
       }
       return { status: "completed", decision, outbound };
     });
@@ -148,7 +148,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     this.transaction.write(() => {
       const event = this.inbox.leasedEvent(input);
       if ((input.decision.action === "respond") !== (input.outbound !== null)) {
-        throw new InteractionSQLiteError("integrity_failed", "Participation action과 outbound 유무가 다릅니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The participation action and outbound presence do not agree.");
       }
       this.decisions.insert({
         event,
@@ -215,13 +215,13 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
   checkIntegrity(): InteractionSQLiteIntegrityReport {
     this.assertOpen();
     if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new InteractionSQLiteError("integrity_failed", "Interaction SQLite quick_check가 실패했습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The Interaction SQLite quick_check failed.");
     }
     const version = this.database.prepare(
       "SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'",
     ).get()?.value;
     if (version !== String(interactionSQLiteSchemaVersion)) {
-      throw new InteractionSQLiteError("integrity_failed", "Interaction SQLite metadata가 유효하지 않습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The Interaction SQLite metadata is invalid.");
     }
     const requiredTriggers = new Set([
       "conversation_inbox_identity_immutable",
@@ -239,7 +239,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
-      throw new InteractionSQLiteError("integrity_failed", "Interaction append-only trigger가 누락되었습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "An Interaction append-only trigger is missing.");
     }
     return this.counts();
   }
@@ -248,7 +248,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     this.assertOpen();
     this.checkIntegrity();
     if (this.database.prepare("PRAGMA foreign_key_check;").all().length !== 0) {
-      throw new InteractionSQLiteError("integrity_failed", "Interaction foreign key가 손상되었습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "An Interaction foreign key is corrupted.");
     }
     const inbox = this.inbox.auditAll();
     this.decisions.auditAll();
@@ -260,7 +260,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
         (coordinate.status === "completed") !== (decision !== null) ||
         (decision?.action === "respond") !== (outbound !== null)
       ) {
-        throw new InteractionSQLiteError("integrity_failed", "Interaction 완료 원본 관계가 다릅니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The Interaction completion source relation differs.");
       }
     }
     return this.counts();
@@ -270,7 +270,7 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     const count = (table: string): number => {
       const value = this.database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()?.count;
       if (typeof value !== "number" || !Number.isSafeInteger(value)) {
-        throw new InteractionSQLiteError("integrity_failed", "Interaction row count가 유효하지 않습니다.");
+        throw new InteractionSQLiteError("integrity_failed", "The Interaction row count is invalid.");
       }
       return value;
     };

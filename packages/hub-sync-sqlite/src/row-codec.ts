@@ -14,7 +14,7 @@ export type SQLiteRow = Record<string, unknown>;
 export function stringField(row: SQLiteRow, field: string): string {
   const value = row[field];
   if (typeof value !== "string") {
-    throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite row 형식이 유효하지 않습니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite row format is invalid.");
   }
   return value;
 }
@@ -22,7 +22,7 @@ export function stringField(row: SQLiteRow, field: string): string {
 export function nullableStringField(row: SQLiteRow, field: string): string | null {
   const value = row[field];
   if (value !== null && typeof value !== "string") {
-    throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite row 형식이 유효하지 않습니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite row format is invalid.");
   }
   return value;
 }
@@ -30,7 +30,7 @@ export function nullableStringField(row: SQLiteRow, field: string): string | nul
 export function integerField(row: SQLiteRow, field: string): number {
   const value = row[field];
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
-    throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite row 형식이 유효하지 않습니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite row format is invalid.");
   }
   return value;
 }
@@ -41,7 +41,7 @@ export function parseJson(value: string): unknown {
   } catch (error) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub sync SQLite JSON 원본을 읽을 수 없습니다.",
+      "The Hub sync SQLite JSON source cannot be read.",
       { cause: error },
     );
   }
@@ -59,7 +59,7 @@ export function decodeProjectHead(projectRow: SQLiteRow): ProjectHead {
   } catch (error) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub sync SQLite registration 원본이 유효하지 않습니다.",
+      "The Hub sync SQLite registration source is invalid.",
       { cause: error },
     );
   }
@@ -72,7 +72,7 @@ export function decodeProjectHead(projectRow: SQLiteRow): ProjectHead {
   ) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub sync SQLite의 중복 project 좌표가 registration 원본과 다릅니다.",
+      "The duplicate Hub sync SQLite project coordinates differ from the registration source.",
     );
   }
   const cursor = {
@@ -83,7 +83,7 @@ export function decodeProjectHead(projectRow: SQLiteRow): ProjectHead {
     cursor.seq < 0 ||
     (cursor.seq === 0 ? cursor.eventHash !== null : cursor.eventHash === null)
   ) {
-    throw new HubSyncStoreError("integrity_failed", "Hub sync SQLite cursor가 유효하지 않습니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite cursor is invalid.");
   }
   return {
     registration: {
@@ -102,7 +102,7 @@ export function decodeStoredEvent(row: SQLiteRow): EventEnvelope {
   } catch (error) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub sync SQLite event 원본이 유효하지 않습니다.",
+      "The Hub sync SQLite event source is invalid.",
       { cause: error },
     );
   }
@@ -114,7 +114,7 @@ export function decodeStoredEvent(row: SQLiteRow): EventEnvelope {
   ) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub sync SQLite의 중복 event 좌표가 event 원본과 다릅니다.",
+      "The duplicate Hub sync SQLite event coordinates differ from the event source.",
     );
   }
   return structuredClone(event);
@@ -134,7 +134,7 @@ export function decodeProjectState(
   } catch (error) {
     throw new HubSyncStoreError(
       "integrity_failed",
-      "Hub sync SQLite 원본이 project sync 계약과 다릅니다.",
+      "The Hub sync SQLite source differs from the project sync contract.",
       { cause: error },
     );
   }

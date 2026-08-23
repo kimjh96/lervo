@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "commandKeys": [
+    {
+      "keyId": "key_command_production_02",
+      "publicKeyFile": "keys/command-public-02.pem"
+    },
+    {
+      "keyId": "key_command_production_01",
+      "publicKeyFile": "keys/command-public-01.pem"
+    }
+  ],
+  "policyKeys": [
+    {
+      "keyId": "key_policy_production_02",
+      "publicKeyFile": "keys/policy-public-02.pem",
+      "purposes": ["snapshot", "approval", "revocation"]
+    },
+    {
+      "keyId": "key_policy_production_01",
+      "publicKeyFile": "keys/policy-public-01.pem",
+      "purposes": ["snapshot", "approval", "revocation"]
+    }
+  ]
+}

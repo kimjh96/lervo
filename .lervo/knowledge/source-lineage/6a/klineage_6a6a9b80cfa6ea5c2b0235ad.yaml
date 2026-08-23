@@ -1,0 +1,11 @@
+fromPath: docs/adr/0142-snapshot-bounded-deliberation-event-scan.md
+identityPath: docs/adr/0142-snapshot-bounded-deliberation-event-scan.md
+kind: document_move
+lineageId: klineage_6a6a9b80cfa6ea5c2b0235ad
+operationId: kdocop_a82f984acfd9763dc8ce5f7d
+schemaVersion: 1
+sourceContentHash: sha256:33dcb2ba37d77f46df7b753e095d667fb130017feaec3162abc441ab5fe6d7bd
+sourceId: src_9c25aede89af2389d99dad64
+sourceUnitBindingDigest: sha256:b5b95cb51d0e1c9f5e1f58c614fbf75562b25f7eb92b75511bcdbc0eec1caaa3
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0142-snapshot-bounded-deliberation-event-scan.md

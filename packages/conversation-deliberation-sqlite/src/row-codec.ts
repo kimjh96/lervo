@@ -21,7 +21,7 @@ function text(row: Row, key: string): string {
   if (typeof value !== "string") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -32,7 +32,7 @@ function nullableText(row: Row, key: string): string | null {
   if (value !== null && typeof value !== "string") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -43,7 +43,7 @@ function integer(row: Row, key: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -54,7 +54,7 @@ function nullableInteger(row: Row, key: string): number | null {
   if (value !== null && (typeof value !== "number" || !Number.isSafeInteger(value))) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -65,7 +65,7 @@ export function conversationDeliberationMilliseconds(value: string, label: strin
   if (!Number.isSafeInteger(result) || result < 0) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `${label} 시각이 유효하지 않습니다.`,
+      `${label} time is invalid.`,
     );
   }
   return result;
@@ -82,7 +82,7 @@ export function decodeConversationDeliberationSummary(
   } catch (error) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 결과 JSON이 유효하지 않습니다.",
+      "The conversation deliberation queue result JSON is invalid.",
       { cause: error },
     );
   }
@@ -103,7 +103,7 @@ export function decodeConversationDeliberationSummary(
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 결과 좌표가 유효하지 않습니다.",
+      "The conversation deliberation queue result coordinates are invalid.",
     );
   }
   return item as ConversationDeliberationSummary;
@@ -116,7 +116,7 @@ export function assertConversationDeliberationLookup(input: {
   if (!projectIdPattern.test(input.projectId) || !deliberationIdPattern.test(input.deliberationId)) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 조회 좌표가 유효하지 않습니다.",
+      "The conversation deliberation queue query coordinates are invalid.",
     );
   }
 }
@@ -132,7 +132,7 @@ function decodeReconciliation(
   } catch (error) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 대조 JSON이 유효하지 않습니다.",
+      "The conversation deliberation queue reconciliation JSON is invalid.",
       { cause: error },
     );
   }
@@ -140,10 +140,10 @@ function decodeReconciliation(
     schemaVersion?: unknown;
   };
   const uncertainAtMs = typeof item.uncertainAt === "string"
-    ? conversationDeliberationMilliseconds(item.uncertainAt, "숙의 불확실")
+    ? conversationDeliberationMilliseconds(item.uncertainAt, "deliberation uncertainty")
     : -1;
   const reconciledAtMs = typeof item.reconciledAt === "string"
-    ? conversationDeliberationMilliseconds(item.reconciledAt, "숙의 대조")
+    ? conversationDeliberationMilliseconds(item.reconciledAt, "deliberation reconciliation")
     : -1;
   if (
     item.schemaVersion !== 1 || typeof item.sourceKind !== "string" ||
@@ -155,7 +155,7 @@ function decodeReconciliation(
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 대조 좌표가 유효하지 않습니다.",
+      "The conversation deliberation queue reconciliation coordinates are invalid.",
     );
   }
   return {
@@ -204,35 +204,35 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue record가 유효하지 않습니다.",
+      "The conversation deliberation queue record is invalid.",
     );
   }
-  if (conversationDeliberationMilliseconds(requestedAt, "숙의 요청") !== requestedAtMs) {
+  if (conversationDeliberationMilliseconds(requestedAt, "deliberation request") !== requestedAtMs) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 요청 시각 좌표가 다릅니다.",
+      "The conversation deliberation queue request time coordinates differ.",
     );
   }
   if (leaseExpiresAt !== null && (
     leaseExpiresAtMs === null ||
-    conversationDeliberationMilliseconds(leaseExpiresAt, "숙의 lease 만료") !== leaseExpiresAtMs
+    conversationDeliberationMilliseconds(leaseExpiresAt, "deliberation lease expiration") !== leaseExpiresAtMs
   )) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue lease 시각 좌표가 다릅니다.",
+      "The conversation deliberation queue lease time coordinates differ.",
     );
   }
   if (terminalAt !== null &&
-    conversationDeliberationMilliseconds(terminalAt, "숙의 queue 종료") < requestedAtMs) {
+    conversationDeliberationMilliseconds(terminalAt, "deliberation queue settlement") < requestedAtMs) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 종료가 요청보다 빠릅니다.",
+      "The conversation deliberation queue settlement is earlier than the request.",
     );
   }
   if (reconciliation !== null && terminalAt !== reconciliation.reconciledAt) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 대조 시각과 종료 시각이 다릅니다.",
+      "The conversation deliberation queue reconciliation and settlement times differ.",
     );
   }
   return {

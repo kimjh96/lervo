@@ -1,0 +1,11 @@
+fromPath: apps/hub-runtime/DISTRIBUTION_README.md
+identityPath: apps/hub-runtime/DISTRIBUTION_README.md
+kind: document_move
+lineageId: klineage_e0f525742c28d812b96da794
+operationId: kdocop_f5c82b16b1d4a083e120efcf
+schemaVersion: 1
+sourceContentHash: sha256:37cbb54bdf23c1975672832d4e9f4fd04313ba05dab1b09de64621be3985f5a1
+sourceId: src_e4bfcbc11ab92fc310eeee93
+sourceUnitBindingDigest: sha256:a36c45138126efc800abc2b84323776f7172fbe6a37b65eab8375437238f5aa1
+sourceUnitCount: 2
+toPath: docs/distribution/hub-runtime-distribution.md

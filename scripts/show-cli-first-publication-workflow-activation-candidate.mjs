@@ -9,7 +9,7 @@ import { ReleaseAttestationVerificationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_activation_candidate_arguments_invalid",
-    "CLI 최초 게시 workflow 활성화 후보 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication workflow activation candidate command arguments are invalid.",
   );
 }
 
@@ -38,7 +38,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_workflow_activation_candidate_failed: " +
-    "CLI 최초 게시 workflow 활성화 후보를 만들지 못했습니다.",
+    "The CLI first-publication workflow activation candidate could not be created.",
   );
   process.exitCode = 1;
 }

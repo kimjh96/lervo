@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0073-bounded-doctor-recovery-guidance.md
+identityPath: docs/adr/0073-bounded-doctor-recovery-guidance.md
+kind: document_move
+lineageId: klineage_b097db5613750e6ed0d9a7e2
+operationId: kdocop_5902bfc9b282766d17ea7f02
+schemaVersion: 1
+sourceContentHash: sha256:4763bd94f3cfd9f49cfc511d7b5964a6bfd01ef179f6fc2b0f083a18246b46ac
+sourceId: src_28b870db76fa974d7924b0fe
+sourceUnitBindingDigest: sha256:33ccb140fb4de25398f0f2997b8d4441e772156d55858757ec8bb63cc66206ef
+sourceUnitCount: 5
+toPath: docs/decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md

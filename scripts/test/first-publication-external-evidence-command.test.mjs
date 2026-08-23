@@ -183,8 +183,8 @@ describe("first-publication external requirement evidence command", () => {
         dependencies(fixture),
       );
       const output = formatFirstPublicationExternalEvidenceReport(report);
-      assert.match(output, /이 결과는 게시 실행 허가가 아닙니다/u);
-      assert.match(output, /사람의 신원과 npm scope 권한은 외부 시스템에서 검증하지 않았습니다/u);
+      assert.match(output, /does not authorize publication execution/u);
+      assert.match(output, /Human identity and npm scope permissions were not verified/u);
       assert.equal(output.includes(report.evidenceReportDigest), false);
       assert.equal(output.includes("release-owner@example.invalid"), false);
     } finally {

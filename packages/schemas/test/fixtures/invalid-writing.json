@@ -4,7 +4,7 @@
     "schema": "writingContract",
     "value": {
       "schemaVersion": 1,
-      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyId": "writing_en-human",
       "locale": "ko-KR",
       "surfaces": ["documentation"],
       "audience": "mixed",
@@ -50,7 +50,7 @@
     "value": {
       "schemaVersion": 1,
       "evaluationId": "wre_01234567",
-      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyId": "writing_en-human",
       "artifactId": "art_01234567",
       "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "locale": "ko-KR",
@@ -60,7 +60,7 @@
       ],
       "checks": [
         {
-          "checkId": "natural_ko-kr_prose",
+          "checkId": "natural_en_prose",
           "kind": "semantic",
           "status": "passed",
           "violationCount": 0,
@@ -76,7 +76,7 @@
     "value": {
       "schemaVersion": 1,
       "evaluationId": "wre_01234567",
-      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyId": "writing_en-human",
       "artifactId": "art_01234567",
       "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "locale": "ko-KR",
@@ -94,7 +94,7 @@
         }
       ],
       "overallStatus": "passed",
-      "rawContent": "원문은 evaluation record에 저장하지 않습니다."
+      "rawContent": "Raw content must not be stored in an evaluation record."
     }
   }
 ]

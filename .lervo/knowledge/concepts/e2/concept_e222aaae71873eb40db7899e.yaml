@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e222aaae71873eb40db7899e
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0136-platform-neutral-conversation-deliberation-control.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c13b503e8ace3c702ea5f5ff
+title: "ADR-0136: Platform-Neutral Conversation Deliberation Control"
+type: decision

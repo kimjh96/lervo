@@ -35,14 +35,14 @@ function rollback(database: DatabaseSync, error: unknown): never {
   } catch (rollbackError) {
     throw new ConversationDeliberationSQLiteError(
       "write_failed",
-      "Conversation 숙의 queue 대조 transaction과 rollback이 실패했습니다.",
+      "The conversation deliberation queue reconciliation transaction and rollback both failed.",
       { cause: new AggregateError([error, rollbackError]) },
     );
   }
   if (error instanceof ConversationDeliberationSQLiteError) throw error;
   throw new ConversationDeliberationSQLiteError(
     "write_failed",
-    "Conversation 숙의 queue 대조 transaction이 실패했습니다.",
+    "The conversation deliberation queue reconciliation transaction failed.",
     { cause: error },
   );
 }
@@ -61,16 +61,16 @@ export function reconcileConversationDeliberationRecord(
     !/^sha256:[a-f0-9]{64}$/u.test(input.evidenceHash)) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 대조 좌표가 유효하지 않습니다.",
+      "The conversation deliberation queue reconciliation coordinates are invalid.",
     );
   }
-  const reconciledAtMs = conversationDeliberationMilliseconds(input.reconciledAt, "숙의 대조");
+  const reconciledAtMs = conversationDeliberationMilliseconds(input.reconciledAt, "deliberation reconciliation");
   const encodedSummary = JSON.stringify(input.summary);
   decodeConversationDeliberationSummary(encodedSummary, input.deliberationId);
   if (input.summary.status === "unknown") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 queue 대조 결과가 확정되지 않았습니다.",
+      "The conversation deliberation queue reconciliation result is not resolved.",
     );
   }
 
@@ -83,7 +83,7 @@ export function reconcileConversationDeliberationRecord(
     if (row === undefined) {
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",
-        "Conversation 숙의 queue 대조 대상이 다릅니다.",
+        "The conversation deliberation queue reconciliation target differs.",
       );
     }
     const job = options.decode(row);
@@ -97,15 +97,15 @@ export function reconcileConversationDeliberationRecord(
     if (job.state !== "uncertain" || job.failureCode === null) {
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",
-        "Conversation 숙의 queue가 대조 가능한 불확실 상태가 아닙니다.",
+        "The conversation deliberation queue is not in a reconcilable uncertain state.",
       );
     }
     const uncertainAt = row.terminal_at;
     if (typeof uncertainAt !== "string" ||
-      reconciledAtMs < conversationDeliberationMilliseconds(uncertainAt, "숙의 불확실")) {
+      reconciledAtMs < conversationDeliberationMilliseconds(uncertainAt, "deliberation uncertainty")) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
-        "Conversation 숙의 queue 대조가 불확실 상태보다 빠릅니다.",
+        "The conversation deliberation queue reconciliation is earlier than the uncertain state.",
       );
     }
     const reconciliation = JSON.stringify({
@@ -133,7 +133,7 @@ export function reconcileConversationDeliberationRecord(
     if (updated.changes !== 1) {
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",
-        "Conversation 숙의 queue 대조 상태를 저장하지 못했습니다.",
+        "Could not store the conversation deliberation queue reconciliation state.",
       );
     }
     database.exec("COMMIT;");

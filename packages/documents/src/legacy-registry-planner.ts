@@ -38,7 +38,7 @@ export async function createLegacyRegistryMigrationDryRun(input: {
   if (!TIMESTAMP.test(generatedAt) || Number.isNaN(Date.parse(generatedAt))) {
     throw new DocumentMigrationError(
       "invalid_generated_at",
-      "Legacy registry migration plan 생성 시각이 유효해야 합니다.",
+      "The legacy registry migration plan creation time must be valid.",
     );
   }
   const root = await canonicalRepositoryRoot(input.repositoryRoot);
@@ -47,14 +47,14 @@ export async function createLegacyRegistryMigrationDryRun(input: {
   if (registry === null) {
     throw new DocumentMigrationError(
       "invalid_legacy_registry",
-      "기존 documents.yaml이 legacy registry schema를 통과하지 못했습니다.",
+      "The existing documents.yaml does not satisfy the legacy registry schema.",
     );
   }
   const documentIds = Object.keys(registry.documents).sort(compareText);
   if (documentIds.length > 4096) {
     throw new DocumentMigrationError(
       "scan_limit_exceeded",
-      "Legacy registry의 document 수가 migration 한도를 넘었습니다.",
+      "The legacy registry document count exceeds the migration limit.",
     );
   }
 
@@ -174,7 +174,7 @@ export async function createLegacyRegistryMigrationDryRun(input: {
   if (!validateSchema("legacyRegistryMigrationPlan", plan).valid) {
     throw new DocumentMigrationError(
       "invalid_legacy_registry",
-      "Legacy registry migration dry-run plan을 schema-valid하게 만들 수 없습니다.",
+      "The legacy registry migration dry-run plan cannot be made schema-valid.",
     );
   }
   return {

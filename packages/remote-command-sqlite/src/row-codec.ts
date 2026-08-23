@@ -23,7 +23,7 @@ export function assertReplayCoordinate(coordinate: RemoteCommandReplayCoordinate
   ) {
     throw new RemoteCommandSQLiteError(
       "integrity_failed",
-      "remote command replay coordinate가 유효하지 않습니다.",
+      "The remote command replay coordinate is invalid.",
     );
   }
 }
@@ -31,7 +31,7 @@ export function assertReplayCoordinate(coordinate: RemoteCommandReplayCoordinate
 function stringField(row: Record<string, unknown>, field: string): string {
   const value = row[field];
   if (typeof value !== "string") {
-    throw new RemoteCommandSQLiteError("integrity_failed", "remote command replay row가 유효하지 않습니다.");
+    throw new RemoteCommandSQLiteError("integrity_failed", "The remote command replay row is invalid.");
   }
   return value;
 }
@@ -39,7 +39,7 @@ function stringField(row: Record<string, unknown>, field: string): string {
 function nullableStringField(row: Record<string, unknown>, field: string): string | null {
   const value = row[field];
   if (value !== null && typeof value !== "string") {
-    throw new RemoteCommandSQLiteError("integrity_failed", "remote command replay row가 유효하지 않습니다.");
+    throw new RemoteCommandSQLiteError("integrity_failed", "The remote command replay row is invalid.");
   }
   return value;
 }
@@ -68,14 +68,14 @@ export function decodeReplayReceipt(row: ReplayRow): RemoteCommandExecutionRecei
   } catch (error) {
     throw new RemoteCommandSQLiteError(
       "integrity_failed",
-      "remote command replay receipt JSON을 읽을 수 없습니다.",
+      "The remote command replay receipt JSON could not be read.",
       { cause: error },
     );
   }
   if (!validateSchema("remoteCommandExecutionReceipt", receipt).valid) {
     throw new RemoteCommandSQLiteError(
       "integrity_failed",
-      "remote command replay receipt가 coordinate와 다릅니다.",
+      "The remote command replay receipt does not match its coordinate.",
     );
   }
   const candidate = receipt as RemoteCommandExecutionReceipt;
@@ -85,7 +85,7 @@ export function decodeReplayReceipt(row: ReplayRow): RemoteCommandExecutionRecei
   ) {
     throw new RemoteCommandSQLiteError(
       "integrity_failed",
-      "remote command replay receipt가 coordinate와 다릅니다.",
+      "The remote command replay receipt does not match its coordinate.",
     );
   }
   return structuredClone(candidate);

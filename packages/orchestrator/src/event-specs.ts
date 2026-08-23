@@ -24,6 +24,9 @@ export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSp
           ruleId: evidence.ruleId,
           required: evidence.required,
           scope: evidence.scope,
+          ...(evidence.knowledgeContext === undefined
+            ? {}
+            : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
         },
       }),
     );
@@ -41,6 +44,9 @@ export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSp
           byteCount: evidence.byteCount,
           scope: evidence.scope,
           sourceRevision: evidence.sourceRevision,
+          ...(evidence.knowledgeContext === undefined
+            ? {}
+            : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
         },
       }),
     );

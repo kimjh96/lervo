@@ -176,6 +176,7 @@ describe("doctor project environment inspection", () => {
   it("does not call a missing registered document source healthy", async () => {
     const { root, userSkillRoot } = await repository();
     const manifest = missingDocumentManifest();
+    await mkdir(resolve(root, ".lervo/documents"));
     await writeFile(
       resolve(root, ".lervo/documents", `${manifest.documentId}.yaml`),
       serializeYaml(manifest),

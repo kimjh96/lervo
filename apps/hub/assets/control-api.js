@@ -13,14 +13,14 @@ function approvalEndpoint(review) {
 
 async function readResponse(response, operation) {
   if (response.ok) return response.json();
-  if (response.status === 401) throw new Error("토큰을 확인할 수 없습니다.");
+  if (response.status === 401) throw new Error("The token could not be authenticated.");
   if (response.status === 403) {
     throw new Error(operation === "review"
-      ? "이 대화 참여자와 토큰의 Hub 사용자가 다르거나 조회 권한이 없습니다."
-      : "이 토큰에는 승인 권한이 없습니다.");
+      ? "The conversation participant does not match the Hub token principal, or the token lacks read access."
+      : "This token does not have approval permission.");
   }
-  if (response.status === 404) throw new Error("검토할 command를 찾을 수 없습니다.");
-  throw new Error("Hub가 요청을 처리하지 못했습니다.");
+  if (response.status === 404) throw new Error("The command to review was not found.");
+  throw new Error("The Hub could not process the request.");
 }
 
 export function createControlApi({ coordinates, token }) {

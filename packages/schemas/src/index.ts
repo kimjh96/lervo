@@ -25,6 +25,7 @@ export * from "./high-risk-role-workflow.js";
 export * from "./legacy-registry-migration.js";
 export * from "./legacy-registry-migration-apply.js";
 export * from "./knowledge.js";
+export * from "./knowledge-context.js";
 export * from "./knowledge-event.js";
 export * from "./knowledge-lifecycle.js";
 export * from "./managed-block-patch.js";

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0099-cli-first-publication-durable-interactive-adapter.md
+identityPath: docs/adr/0099-cli-first-publication-durable-interactive-adapter.md
+kind: document_move
+lineageId: klineage_854305b192c1e3863b75cd7d
+operationId: kdocop_578ea6d2b77d5d08ca9beff2
+schemaVersion: 1
+sourceContentHash: sha256:4cbbc587cada2d3112c81c6286f58eef150beed071097c2491f35c9758de3f33
+sourceId: src_6b10484564a5d79d6a72f66c
+sourceUnitBindingDigest: sha256:58241cfa486cf8566b02bec3ed8c68e9eb0a6a1084160bf7fca392e9e47b2d1a
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md

@@ -40,7 +40,7 @@ async function expectPublishConflict(tarballPath, registryUrl, environment) {
     assert.match(output, /\[E409\]\s+409 Conflict/u);
     return;
   }
-  assert.fail("같은 package version의 재게시는 거부되어야 합니다.");
+  assert.fail("Republishing the same package version must be rejected.");
 }
 
 async function viewJson(args, registryUrl, environment, cwd) {
@@ -171,13 +171,13 @@ async function main() {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 
-  console.log(`CLI registry 게시 사전검사 통과 (${cliManifest.version})`);
+  console.log(`CLI registry publication preflight passed (${cliManifest.version})`);
 }
 
 try {
   await main();
 } catch (error) {
   if (process.env.LERVO_REGISTRY_PREFLIGHT_DEBUG === "1") console.error(error);
-  console.error("registry_publish_preflight_failed: CLI registry 게시 사전검사를 완료하지 못했습니다.");
+  console.error("registry_publish_preflight_failed: The CLI registry publication preflight could not be completed.");
   process.exitCode = 1;
 }

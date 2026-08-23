@@ -29,7 +29,7 @@ async function loadActivationEvidence(
   selection: SearchEngineSelection,
 ): Promise<ActivationEvidence> {
   if (selection.mode !== "candidate" || selection.reviewId === null || selection.comparisonId === null) {
-    throw new SearchLocalError("observation_invalid", "후보 검색 엔진 선택의 검토·비교 좌표가 없습니다.");
+    throw new SearchLocalError("observation_invalid", "The candidate search engine selection has no review or comparison coordinates.");
   }
   const [review, comparison] = await Promise.all([
     loadStoredSearchCandidateReview(repositoryRoot, selection.reviewId),
@@ -60,7 +60,7 @@ export async function verifySearchEngineSelectionHistory(input: {
   for (const activation of input.history) {
     const policy: SearchEngineActivationPolicy | undefined = policiesById.get(activation.policyId);
     if (policy === undefined || policy.projectId !== input.projectId || activation.projectId !== input.projectId) {
-      throw new SearchLocalError("engine_selection_unavailable", "검색 엔진 선택 정책이나 project 좌표가 없습니다.");
+      throw new SearchLocalError("engine_selection_unavailable", "The search engine selection has no policy or project coordinates.");
     }
     assertSearchEngineActivationOperator(policy, activation.operatorId);
     if (activation.action === "activate_candidate" || activation.action === "refresh_candidate") {
@@ -71,11 +71,11 @@ export async function verifySearchEngineSelectionHistory(input: {
         comparison: evidence.comparison,
       });
       if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
-        throw new SearchLocalError("observation_invalid", "검색 엔진 선택이 검토·비교 원본과 다릅니다.");
+        throw new SearchLocalError("observation_invalid", "The search engine selection differs from the review and comparison sources.");
       }
     } else {
       if (previous === null) {
-        throw new SearchLocalError("observation_invalid", "첫 검색 엔진 선택 전이는 rollback일 수 없습니다.");
+        throw new SearchLocalError("observation_invalid", "The first search engine selection transition cannot be a rollback.");
       }
       const evidence = activation.selected.mode === "candidate"
         ? await loadActivationEvidence(input.repositoryRoot, activation.selected)
@@ -87,7 +87,7 @@ export async function verifySearchEngineSelectionHistory(input: {
           comparison: evidence.comparison,
         });
         if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
-          throw new SearchLocalError("observation_invalid", "Rollback 선택이 검토·비교 원본과 다릅니다.");
+          throw new SearchLocalError("observation_invalid", "The rollback selection differs from the review and comparison sources.");
         }
       }
       if (activation.schemaVersion === 3) {

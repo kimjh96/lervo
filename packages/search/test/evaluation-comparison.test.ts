@@ -63,7 +63,7 @@ describe("search evaluation candidate comparison", () => {
       candidateAdapterBuildId: evidence.candidateAdapterBuildId,
     });
     expect(() => assertSearchEvaluationComparison(legacyComparison(comparison), evidence)).not.toThrow();
-    expect(JSON.stringify(comparison)).not.toContain("사과");
+    expect(JSON.stringify(comparison)).not.toContain("apple");
   });
 
   it("refuses comparison when the bundle has not reached its declared sample minimum", async () => {
@@ -73,7 +73,7 @@ describe("search evaluation candidate comparison", () => {
       evidence,
       candidateAdapterBuildId: evidence.candidateAdapterBuildId,
     }))
-      .toThrow(/표본이 충분하지 않아/);
+      .toThrow(/sample is insufficient/);
   });
 
   it("rejects tampered aggregates and a candidate using the baseline identity", async () => {
@@ -86,11 +86,11 @@ describe("search evaluation candidate comparison", () => {
     expect(() => assertSearchEvaluationComparison({
       ...comparison,
       candidate: { ...comparison.candidate, engine: comparison.baseline.engine },
-    })).toThrow(/Baseline과 후보/);
+    })).toThrow(/Baseline or candidate search engine coordinates/);
     expect(() => assertSearchEvaluationComparison(comparison, {
       ...evidence,
-      corpus: evidence.corpus.map((source) => ({ ...source, text: `${source.text} 변경` })),
-    })).toThrow(/엔진·project·시각·case 좌표/);
+      corpus: evidence.corpus.map((source) => ({ ...source, text: `${source.text} changed` })),
+    })).toThrow(/Engine, project, timestamp, or case coordinates/);
   });
 
   it("records an eligible review only after the candidate replay matches exactly", async () => {
@@ -122,7 +122,7 @@ describe("search evaluation candidate comparison", () => {
       activationState: "not_applied",
       embeddingDecision: "not_determined",
     });
-    expect(JSON.stringify(review)).not.toContain("사과");
+    expect(JSON.stringify(review)).not.toContain("apple");
     const receipt = createSearchCandidateVerificationReceipt({
       review,
       comparison,
@@ -157,7 +157,7 @@ describe("search evaluation candidate comparison", () => {
       reviewerId: "reviewer_search",
       reviewedAt: new Date("2026-08-20T04:00:00.000Z"),
       decision: "adopt_candidate",
-    })).toThrow(/replay 좌표/);
+    })).toThrow(/replay coordinates/);
     expect(() => createSearchCandidateReview({
       comparison,
       candidateId: "fixture-v1",
@@ -167,7 +167,7 @@ describe("search evaluation candidate comparison", () => {
       reviewerId: "reviewer_search",
       reviewedAt: new Date("2026-08-20T04:00:00.000Z"),
       decision: "adopt_candidate",
-    })).toThrow(/replay 좌표/);
+    })).toThrow(/replay coordinates/);
   });
 
   it("keeps rejection and more-sample decisions distinct and refuses unsupported adoption", async () => {
@@ -191,6 +191,6 @@ describe("search evaluation candidate comparison", () => {
     expect(createSearchCandidateReview({ ...shared, decision: "more_samples_required" }))
       .toMatchObject({ promotionReadiness: "more_evidence_required", activationState: "not_applied" });
     expect(() => createSearchCandidateReview({ ...shared, decision: "adopt_candidate" }))
-      .toThrow(/채택 후보로 검토할 수 없습니다/);
+      .toThrow(/cannot be reviewed for adoption/);
   });
 });

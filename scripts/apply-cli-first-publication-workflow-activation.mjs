@@ -15,7 +15,7 @@ import { TrustedPublisherReadinessError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_activation_apply_arguments_invalid",
-    "CLI 최초 게시 workflow 활성화 적용 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication workflow activation apply command arguments are invalid.",
   );
 }
 
@@ -73,7 +73,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_workflow_activation_apply_unexpected: " +
-    "CLI 최초 게시 workflow 활성화 적용을 완료하지 못했습니다.",
+    "The CLI first-publication workflow activation apply could not be completed.",
   );
   process.exitCode = 1;
 }

@@ -24,32 +24,32 @@ function sources(): SearchSourceInput[] {
       sourceId: "doc_runtime_01",
       path: "docs/runtime.md",
       contentHash: HASH_A,
-      title: "실행 상태와 복구",
+      title: "Execution state and recovery",
       labels: ["runtime"],
-      text: "중단된 실행은 원본 이벤트에서 복구합니다.",
+      text: "Interrupted execution is recovered from source events.",
     },
     {
       kind: "document",
       sourceId: "doc_lifecycle_01",
       path: "docs/document-lifecycle.md",
       contentHash: HASH_B,
-      title: "문서 수명주기",
+      title: "Document lifecycle",
       labels: ["canonical", "documents"],
-      text: "문서를 주제별로 나누고 노후화 상태를 검증합니다.",
+      text: "Split documents by topic and verify their staleness state.",
     },
   ];
 }
 
 describe("deterministic lexical search baseline", () => {
   it("ranks exact title and path evidence without returning source text", () => {
-    const result = new LexicalSearchIndex(sources()).search("문서 수명주기", 10);
+    const result = new LexicalSearchIndex(sources()).search("document lifecycle", 10);
 
     expect(result.hits[0]).toMatchObject({
       source: { sourceId: "doc_lifecycle_01", path: "docs/document-lifecycle.md" },
       rank: 1,
       matchedFields: expect.arrayContaining(["title", "text"]),
     });
-    expect(JSON.stringify(result)).not.toContain("주제별로 나누고");
+    expect(JSON.stringify(result)).not.toContain("Split documents by topic");
   });
 
   it("produces the same index and ranking regardless of corpus input order", () => {
@@ -61,7 +61,7 @@ describe("deterministic lexical search baseline", () => {
       engine: SEARCH_ENGINE,
       sources: prepareSearchCorpus(sources()).indexSources,
     }));
-    expect(reversed.search("복구")).toEqual(forward.search("복구"));
+    expect(reversed.search("recovery")).toEqual(forward.search("recovery"));
   });
 
   it("changes the derived index identity when an original content hash changes", () => {
@@ -73,13 +73,13 @@ describe("deterministic lexical search baseline", () => {
 
   it("binds ranking metadata and searchable text to the index identity", () => {
     const changed = sources();
-    changed[0] = { ...changed[0]!, title: "다른 제목", labels: ["changed"] };
+    changed[0] = { ...changed[0]!, title: "Different title", labels: ["changed"] };
 
     expect(new LexicalSearchIndex(changed).indexId).not.toBe(new LexicalSearchIndex(sources()).indexId);
   });
 
   it("records only a query digest and bounded result coordinates", () => {
-    const response = new LexicalSearchIndex(sources()).search("복구 방법");
+    const response = new LexicalSearchIndex(sources()).search("recovery method");
     const attempt = createSearchAttempt({
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
@@ -87,13 +87,13 @@ describe("deterministic lexical search baseline", () => {
       response,
     });
 
-    expect(JSON.stringify(attempt)).not.toContain("복구 방법");
+    expect(JSON.stringify(attempt)).not.toContain("recovery method");
     expect(attempt.hits[0]).not.toHaveProperty("path");
   });
 
   it("binds candidate attempts and recommendations to the selection transition", () => {
     const response = {
-      ...new LexicalSearchIndex(sources()).search("문서 복구"),
+      ...new LexicalSearchIndex(sources()).search("document recovery"),
       engine: { id: "fixture_candidate", version: 1 },
     };
     const selectionTransitionId = `seact_${"a".repeat(24)}`;
@@ -117,11 +117,11 @@ describe("deterministic lexical search baseline", () => {
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
       nonce: "8".repeat(32),
       response,
-    })).toThrow(/선택 전이 ID/);
+    })).toThrow(/selection transition ID/);
   });
 
   it("requires explicit assessment and never turns failures into an embedding decision", () => {
-    const acceptedResponse = new LexicalSearchIndex(sources()).search("복구");
+    const acceptedResponse = new LexicalSearchIndex(sources()).search("recovery");
     const acceptedAttempt = createSearchAttempt({
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
@@ -132,7 +132,7 @@ describe("deterministic lexical search baseline", () => {
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:01.000Z"),
       nonce: "3".repeat(32),
-      response: new LexicalSearchIndex(sources()).search("양자역학"),
+      response: new LexicalSearchIndex(sources()).search("quantum mechanics"),
     });
     const assessments = [
       createSearchAssessment({
@@ -169,7 +169,7 @@ describe("deterministic lexical search baseline", () => {
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
       nonce: "9".repeat(32),
-      response: new LexicalSearchIndex(sources()).search("복구"),
+      response: new LexicalSearchIndex(sources()).search("recovery"),
     });
     const selectionTransitionId = `seact_${"b".repeat(24)}`;
     const candidateAttempt = createSearchAttempt({
@@ -177,7 +177,7 @@ describe("deterministic lexical search baseline", () => {
       observedAt: new Date("2026-08-20T04:00:01.000Z"),
       nonce: "a".repeat(32),
       response: {
-        ...new LexicalSearchIndex(sources()).search("문서"),
+        ...new LexicalSearchIndex(sources()).search("document"),
         engine: { id: "fixture_candidate", version: 1 },
       },
       selectionTransitionId,
@@ -235,7 +235,7 @@ describe("deterministic lexical search baseline", () => {
       attempts: [candidateAttempt],
       assessments: [assessment],
       coordinates: [],
-    })).toThrow(/품질 좌표가 없습니다/);
+    })).toThrow(/selection transition or engine quality coordinates/);
     expect(createSearchSelectionQualityReport({
       attempts: [candidateAttempt],
       assessments: [assessment],
@@ -261,7 +261,7 @@ describe("deterministic lexical search baseline", () => {
         adapterBuildId,
         buildEvidenceState: "bound",
       }],
-    })).toThrow(/engine 품질 좌표가 없습니다/);
+    })).toThrow(/engine quality coordinates/);
     expect(() => createSearchSelectionQualityReport({
       attempts: [],
       assessments: [],
@@ -272,14 +272,14 @@ describe("deterministic lexical search baseline", () => {
         adapterBuildId: null,
         buildEvidenceState: "not_applicable",
       }],
-    })).toThrow(/검색 시도 없는 선택 품질 좌표/);
+    })).toThrow(/coordinates exist without a search attempt/);
   });
 
   it("rejects an unsafe repository path and an unbounded query", () => {
     expect(() => new LexicalSearchIndex([{ ...sources()[0]!, path: "../secret.md" }]))
-      .toThrow(/source 좌표/);
-    expect(() => new LexicalSearchIndex(sources()).search("단어 ".repeat(33)))
-      .toThrow(/32개/);
+      .toThrow(/source coordinates/);
+    expect(() => new LexicalSearchIndex(sources()).search("word ".repeat(33)))
+      .toThrow(/between 1 and 32/);
   });
 
   it("does not accept no_results as a label when the attempt returned a result", () => {
@@ -287,7 +287,7 @@ describe("deterministic lexical search baseline", () => {
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
       nonce: "4".repeat(32),
-      response: new LexicalSearchIndex(sources()).search("복구"),
+      response: new LexicalSearchIndex(sources()).search("recovery"),
     });
 
     expect(() => createSearchAssessment({
@@ -296,7 +296,7 @@ describe("deterministic lexical search baseline", () => {
       assessor: "human",
       outcome: "failed",
       failureReason: "no_results",
-    })).toThrow(/대상 시도/);
+    })).toThrow(/target attempt/);
   });
 
   it("keeps source kind in assessment coordinates when IDs overlap", () => {
@@ -304,7 +304,7 @@ describe("deterministic lexical search baseline", () => {
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
       nonce: "5".repeat(32),
-      response: new LexicalSearchIndex(sources()).search("복구"),
+      response: new LexicalSearchIndex(sources()).search("recovery"),
     });
 
     expect(() => createSearchAssessment({
@@ -313,7 +313,7 @@ describe("deterministic lexical search baseline", () => {
       assessor: "human",
       outcome: "accepted",
       selectedSources: [{ sourceKind: "skill", sourceId: attempt.hits[0]!.sourceId }],
-    })).toThrow(/대상 시도/);
+    })).toThrow(/target attempt/);
   });
 
   it("creates a bounded recommendation batch and keeps selection distinct", () => {
@@ -321,7 +321,7 @@ describe("deterministic lexical search baseline", () => {
       projectId: "prj_search_01",
       observedAt: new Date("2026-08-20T04:00:00.000Z"),
       nonce: "6".repeat(32),
-      response: new LexicalSearchIndex(sources()).search("문서 복구"),
+      response: new LexicalSearchIndex(sources()).search("document recovery"),
     });
     const batch = createSearchRecommendationBatch({
       attempt,
@@ -331,10 +331,10 @@ describe("deterministic lexical search baseline", () => {
 
     expect(batch.recommendations).toHaveLength(2);
     expect(batch.selectedRecommendationIds).toEqual([batch.recommendations[0]!.recommendationId]);
-    expect(JSON.stringify(batch.recommendations)).not.toContain("문서 복구");
+    expect(JSON.stringify(batch.recommendations)).not.toContain("document recovery");
     expect(() => assertSearchRecommendationBatch({
       ...batch,
       selectedRecommendationIds: [batch.recommendations[1]!.recommendationId],
-    })).toThrow(/원본 검색 시도/);
+    })).toThrow(/source search attempt/);
   });
 });

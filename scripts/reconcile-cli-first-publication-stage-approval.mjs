@@ -26,7 +26,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_stage_approval_reconciliation_unexpected: " +
-    "CLI npm stage 승인 결과를 대조하지 못했습니다.",
+    "The CLI npm stage approval result could not be reconciled.",
   );
   process.exitCode = 1;
 }

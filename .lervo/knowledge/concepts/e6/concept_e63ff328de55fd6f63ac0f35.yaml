@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e63ff328de55fd6f63ac0f35
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_e287b04fa7fbc4f70dc88f73
+title: "ADR-0119: Stage-Only Workflow Activation Permit and Transaction"
+type: decision

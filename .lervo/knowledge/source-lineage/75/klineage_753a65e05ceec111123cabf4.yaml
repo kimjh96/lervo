@@ -1,0 +1,11 @@
+fromPath: docs/adr/0031-reviewed-verified-knowledge-lifecycle.md
+identityPath: docs/adr/0031-reviewed-verified-knowledge-lifecycle.md
+kind: document_move
+lineageId: klineage_753a65e05ceec111123cabf4
+operationId: kdocop_153d14f2f111f82d845cfedc
+schemaVersion: 1
+sourceContentHash: sha256:df8178ff354bdc8455372c04813c281e582541e89f4c435d341366604ddfac8a
+sourceId: src_6b184fd5786d0512060baca9
+sourceUnitBindingDigest: sha256:487ba11439011833a11a55725110004e6ad3eb8373a0270e0d0900458b6a50d2
+sourceUnitCount: 9
+toPath: docs/decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md

@@ -16,6 +16,7 @@ import {
   contextRecommendationProperties,
   contextRecommendationRequired,
 } from "./context-recommendation.js";
+import { knowledgeContextSchema } from "./knowledge-context.js";
 
 export const contextEvidenceStates = [
   "discovered",
@@ -43,6 +44,7 @@ const commonProperties = {
   sessionId: sessionIdSchema,
   documentId: documentIdSchema,
   recordedAt: timestampSchema,
+  knowledgeContext: knowledgeContextSchema,
 } as const;
 
 const commonRequired = [

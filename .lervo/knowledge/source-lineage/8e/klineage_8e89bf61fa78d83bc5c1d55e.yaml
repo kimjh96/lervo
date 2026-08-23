@@ -1,0 +1,11 @@
+fromPath: docs/adr/0070-read-only-search-rollout-action-preflight.md
+identityPath: docs/adr/0070-read-only-search-rollout-action-preflight.md
+kind: document_move
+lineageId: klineage_8e89bf61fa78d83bc5c1d55e
+operationId: kdocop_5bccfe22e0a1b65387d5f210
+schemaVersion: 1
+sourceContentHash: sha256:b8dc7052d3e31158de8971853b7178f537e583354fade78ec041aa2350610e70
+sourceId: src_37a5123e643f19dddc01c49b
+sourceUnitBindingDigest: sha256:98376f9171f6b9f09e84dc51c3ba60fc8c0d39daa6814054d18b3ce2f0b2289f
+sourceUnitCount: 5
+toPath: docs/decisions/search/0070-read-only-search-rollout-action-preflight.md

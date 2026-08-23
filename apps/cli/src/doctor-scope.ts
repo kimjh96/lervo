@@ -10,12 +10,12 @@ export const doctorScopeValues = [
 ] as const satisfies readonly DoctorScope[];
 
 const scopeLabels = {
-  all: "전체",
-  knowledge: "지식",
-  documents: "문서",
-  skills: "스킬",
-  providers: "에이전트 실행 환경",
-  search: "검색",
+  all: "all",
+  knowledge: "knowledge",
+  documents: "documents",
+  skills: "skills",
+  providers: "agent runtimes",
+  search: "search",
 } as const satisfies Record<DoctorScope, string>;
 
 function isDoctorScope(value: string): value is DoctorScope {
@@ -25,7 +25,7 @@ function isDoctorScope(value: string): value is DoctorScope {
 export function parseDoctorScope(value: string | undefined): DoctorScope {
   const candidate = value ?? "all";
   if (isDoctorScope(candidate)) return candidate;
-  throw new TypeError(`지원하지 않는 doctor 범위입니다: ${candidate}`);
+  throw new TypeError(`Unsupported doctor scope: ${candidate}`);
 }
 
 export function doctorScopeLabel(scope: DoctorScope): string {

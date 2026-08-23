@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_64048a2da5c5af53e95026df
+freshness: current
+ownership: user
+path: docs/decisions/operations/security/0163-atomic-node-trust-material-reload.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_079415ee1f3ababc6af5efd2
+title: "ADR-0163: Atomic Node Trust-Material Reload"
+type: decision

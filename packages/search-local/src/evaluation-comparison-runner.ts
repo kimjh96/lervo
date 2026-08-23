@@ -34,11 +34,11 @@ export async function runLocalSearchEvaluationComparison(input: {
   const bundles = await loadSearchEvaluationBundles({ repositoryRoot: input.repositoryRoot, cases: availableCases });
   const bundle = bundles.find((item) => item.bundleId === input.bundleId);
   if (bundle === undefined || bundle.projectId !== input.projectId) {
-    throw new SearchLocalError("evaluation_bundle_invalid", "비교할 검색 평가 묶음을 찾을 수 없거나 project가 다릅니다.");
+    throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation bundle to compare was not found or belongs to a different project.");
   }
   const coverage = createSearchEvaluationCoverage(bundle, availableCases);
   if (coverage.comparisonReadiness !== "ready") {
-    throw new SearchLocalError("evaluation_comparison_not_ready", "표본이 충분하지 않아 후보 검색을 실행하지 않습니다.");
+    throw new SearchLocalError("evaluation_comparison_not_ready", "The candidate search will not run because the sample is insufficient.");
   }
   const corpus = await loadRegisteredDocumentCorpus(input.repositoryRoot);
   const cases = selectSearchEvaluationCases(availableCases, coverage.activeCaseIds);

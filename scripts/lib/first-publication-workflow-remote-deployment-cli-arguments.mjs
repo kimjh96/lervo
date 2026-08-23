@@ -7,7 +7,7 @@ const sourceCommitPattern = /^[a-f0-9]{40}$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_remote_deployment_arguments_invalid",
-    "CLI stage-only workflow 원격 배포 증거 명령 인자가 올바르지 않습니다.",
+    "The CLI stage-only workflow remote-deployment evidence command arguments are invalid.",
   );
 }
 

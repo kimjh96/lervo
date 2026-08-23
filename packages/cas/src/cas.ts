@@ -42,7 +42,7 @@ async function ensureRealDirectory(path: string): Promise<void> {
   await mkdir(path, { recursive: true });
   const stats = await lstat(path);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new CasError("unsafe_path", `${path}은 실제 디렉터리여야 합니다.`);
+    throw new CasError("unsafe_path", `${path} must be a real directory.`);
   }
 }
 
@@ -69,7 +69,7 @@ export class FileSystemCas implements ArtifactStore {
     const match = uriPattern.exec(uri);
     const hash = match?.[1];
     if (!hash) {
-      throw new CasError("invalid_uri", `지원하지 않는 CAS URI입니다: ${uri}`);
+      throw new CasError("invalid_uri", `Unsupported CAS URI: ${uri}`);
     }
     return hash;
   }
@@ -81,18 +81,18 @@ export class FileSystemCas implements ArtifactStore {
       stats = await lstat(path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new CasError("not_found", `CAS object가 없습니다: ${uriForDigest(hash)}`);
+        throw new CasError("not_found", `CAS object not found: ${uriForDigest(hash)}`);
       }
       throw error;
     }
     if (!stats.isFile() || stats.isSymbolicLink()) {
-      throw new CasError("unsafe_path", "CAS object는 일반 파일이어야 합니다.");
+      throw new CasError("unsafe_path", "A CAS object must be a regular file.");
     }
     const bytes = await readFile(path);
     if (digest(bytes) !== hash) {
       throw new CasError(
         "corrupt_object",
-        `CAS object hash가 일치하지 않습니다: ${uriForDigest(hash)}`,
+        `CAS object hash mismatch: ${uriForDigest(hash)}`,
       );
     }
     return bytes;
@@ -127,7 +127,7 @@ export class FileSystemCas implements ArtifactStore {
             null,
           );
           if (bytesWritten === 0) {
-            throw new Error("CAS 임시 파일 쓰기가 진행되지 않았습니다.");
+            throw new Error("The CAS temporary-file write made no progress.");
           }
           offset += bytesWritten;
         }

@@ -3,9 +3,11 @@ import { validateSchema } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
-  defaultKoreanWritingContract,
+  defaultEnglishWritingContract,
+  defaultWritingContract,
   evaluateWritingGate,
   lintDeterministicWriting,
+  writingContractForLanguage,
 } from "../src/index.js";
 
 const artifactId = "art_01234567";
@@ -14,16 +16,16 @@ const evidenceDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 function evaluation(status: "failed" | "not_run" | "passed"): WritingEvaluation {
   const deterministicChecks = lintDeterministicWriting(
-    "문서 규칙을 적용했습니다. 추가 조치는 없습니다.",
-    defaultKoreanWritingContract,
+    "The document rules were applied. No further action is needed.",
+    defaultEnglishWritingContract,
   );
   return {
     schemaVersion: 1,
     evaluationId: "wre_01234567",
-    writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+    writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
     artifactId,
     contentHash,
-    locale: defaultKoreanWritingContract.locale,
+    locale: defaultEnglishWritingContract.locale,
     checkedAt: "2026-08-18T00:00:00Z",
     evaluators: [
       { kind: "deterministic", evaluatorId: "lervo-writing-lint-v1" },
@@ -31,7 +33,7 @@ function evaluation(status: "failed" | "not_run" | "passed"): WritingEvaluation 
     ],
     checks: [
       ...deterministicChecks,
-      ...defaultKoreanWritingContract.verification.semanticChecks.map((check) => ({
+      ...defaultEnglishWritingContract.verification.semanticChecks.map((check) => ({
         checkId: check.checkId,
         kind: "semantic" as const,
         status,
@@ -44,17 +46,26 @@ function evaluation(status: "failed" | "not_run" | "passed"): WritingEvaluation 
 }
 
 describe("provider-neutral writing verification", () => {
-  it("keeps the default Korean writing policy schema-valid", () => {
-    expect(validateSchema("writingContract", defaultKoreanWritingContract)).toEqual({
+  it("keeps the default English writing policy schema-valid", () => {
+    expect(validateSchema("writingContract", defaultEnglishWritingContract)).toEqual({
       valid: true,
       errors: [],
     });
   });
 
+  it("resolves the v1 publication language and rejects unsupported languages", () => {
+    expect(writingContractForLanguage("en")).toEqual(defaultEnglishWritingContract);
+    expect(writingContractForLanguage("en")).not.toBe(defaultEnglishWritingContract);
+    expect(defaultWritingContract).toBe(defaultEnglishWritingContract);
+    expect(() => writingContractForLanguage("ko-KR")).toThrow(
+      "Unsupported writing publication language: ko-KR",
+    );
+  });
+
   it("catches only deterministic expression violations in the lint pass", () => {
     const results = lintDeterministicWriting(
-      "# 결과\n\n사람 확인 필요 — 이 변경을 봉인합니다.\n\n## 비어 있는 절",
-      defaultKoreanWritingContract,
+      "# Result\n\nThe user must check this — it is obviously ready.\n\n## Empty section",
+      defaultEnglishWritingContract,
     );
 
     expect(results).toEqual(
@@ -73,7 +84,7 @@ describe("provider-neutral writing verification", () => {
   it("does not treat an unrun semantic review as natural prose", () => {
     expect(
       evaluateWritingGate({
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         evaluation: evaluation("not_run"),
         artifactId,
         contentHash,
@@ -82,7 +93,7 @@ describe("provider-neutral writing verification", () => {
       allowed: false,
       failure: "writing_verification_failed",
       missingChecks: expect.arrayContaining([
-        "natural_ko-kr_prose",
+        "natural_en_prose",
         "plain_audience_language",
         "direct_result_and_action",
       ]),
@@ -95,7 +106,7 @@ describe("provider-neutral writing verification", () => {
     expect(validateSchema("writingEvaluation", result)).toEqual({ valid: true, errors: [] });
     expect(
       evaluateWritingGate({
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         evaluation: result,
         artifactId,
         contentHash,
@@ -109,7 +120,7 @@ describe("provider-neutral writing verification", () => {
 
     expect(
       evaluateWritingGate({
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         evaluation: result,
         artifactId,
         contentHash,
@@ -123,7 +134,7 @@ describe("provider-neutral writing verification", () => {
   it("rejects an evaluation copied from a different artifact revision", () => {
     expect(
       evaluateWritingGate({
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         evaluation: evaluation("passed"),
         artifactId,
         contentHash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",

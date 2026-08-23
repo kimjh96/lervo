@@ -40,7 +40,7 @@ function resolvedLimit(limit: number | undefined): number {
   if (!Number.isSafeInteger(value) || value < 1 || value > HUB_TRACE_MAX_PAGE_LIMIT) {
     throw new HubTraceError(
       "invalid_query",
-      `Hub trace page limit은 1 이상 ${HUB_TRACE_MAX_PAGE_LIMIT} 이하여야 합니다.`,
+      `The Hub trace page limit must be between 1 and ${HUB_TRACE_MAX_PAGE_LIMIT}.`,
     );
   }
   return value;
@@ -48,7 +48,7 @@ function resolvedLimit(limit: number | undefined): number {
 
 function assertText(value: string, name: string): void {
   if (typeof value !== "string" || value.length < 1 || value.length > 256) {
-    throw new HubTraceError("invalid_query", `${name} 조회 좌표가 유효하지 않습니다.`);
+    throw new HubTraceError("invalid_query", `${name} query coordinates are invalid.`);
   }
 }
 
@@ -67,7 +67,7 @@ function projectScope(
   if (!Array.isArray(projects) || projects.length > HUB_TRACE_MAX_PROJECT_SCOPE) {
     throw new HubTraceError(
       "invalid_query",
-      `Hub trace project scope는 ${HUB_TRACE_MAX_PROJECT_SCOPE}개 이하여야 합니다.`,
+      `The Hub trace project scope must contain at most ${HUB_TRACE_MAX_PROJECT_SCOPE} projects.`,
     );
   }
   const unique = new Map<string, { destinationId: string; projectId: string }>();
@@ -86,7 +86,7 @@ function projectScope(
 
 function assertPositiveSeq(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
-    throw new HubTraceError("invalid_query", `${name} cursor가 유효하지 않습니다.`);
+    throw new HubTraceError("invalid_query", `${name} cursor is invalid.`);
   }
 }
 
@@ -104,7 +104,7 @@ function assertBoundedPage<T, Cursor>(
   )) {
     throw new HubTraceError(
       "source_inconsistent",
-      `${label} source가 bounded page 계약을 지키지 않았습니다.`,
+      `${label} source did not satisfy the bounded-page contract.`,
     );
   }
 }
@@ -118,7 +118,7 @@ class HubTraceQueryReader {
 
   private assertAuthorized(input: { destinationId: string; projectId: string }): void {
     if (this.authorizedProjects !== null && !this.authorizedProjects.has(coordinateKey(input))) {
-      throw new HubTraceError("project_forbidden", "요청한 Hub project trace에 접근할 수 없습니다.");
+      throw new HubTraceError("project_forbidden", "The requested Hub project trace is not accessible.");
     }
   }
 
@@ -139,7 +139,7 @@ class HubTraceQueryReader {
     )) {
       throw new HubTraceError(
         "source_inconsistent",
-        "Hub project trace source가 허용 scope 밖의 결과를 반환했습니다.",
+        "The Hub project trace source returned a result outside the allowed scope.",
       );
     }
     return clone(result);
@@ -161,14 +161,14 @@ class HubTraceQueryReader {
       limit,
     });
     if (result === null) {
-      throw new HubTraceError("project_not_found", "요청한 Hub project trace가 없습니다.");
+      throw new HubTraceError("project_not_found", "The requested Hub project trace was not found.");
     }
     assertBoundedPage(result.runs, limit, "Hub run summary");
     if (
       result.project.destinationId !== query.destinationId ||
       result.project.projectId !== query.projectId
     ) {
-      throw new HubTraceError("source_inconsistent", "Hub project trace 좌표가 요청과 다릅니다.");
+      throw new HubTraceError("source_inconsistent", "The Hub project trace coordinates differ from the request.");
     }
     return clone(result);
   }
@@ -188,7 +188,7 @@ class HubTraceQueryReader {
       limit,
     });
     if (result === null) {
-      throw new HubTraceError("run_not_found", "요청한 Hub run trace가 없습니다.");
+      throw new HubTraceError("run_not_found", "The requested Hub run trace was not found.");
     }
     assertBoundedPage(result.events, limit, "Hub run event");
     if (
@@ -196,7 +196,7 @@ class HubTraceQueryReader {
       result.project.projectId !== query.projectId ||
       result.run.runId !== query.runId
     ) {
-      throw new HubTraceError("source_inconsistent", "Hub run trace 좌표가 요청과 다릅니다.");
+      throw new HubTraceError("source_inconsistent", "The Hub run trace coordinates differ from the request.");
     }
     return clone(result);
   }
@@ -206,7 +206,7 @@ class HubTraceQueryReader {
     this.assertAuthorized(query);
     assertKnowledgeGraphNode(query.focus);
     if (query.after !== undefined && !/^kgr_[a-f0-9]{16}$/.test(query.after.relationId)) {
-      throw new HubTraceError("invalid_query", "knowledge graph cursor가 유효하지 않습니다.");
+      throw new HubTraceError("invalid_query", "The knowledge graph cursor is invalid.");
     }
     const limit = resolvedLimit(query.limit);
     const resolved: ResolvedHubKnowledgeGraphQuery = {
@@ -219,7 +219,7 @@ class HubTraceQueryReader {
     };
     const result = await this.source.getKnowledgeGraph(resolved);
     if (result === null) {
-      throw new HubTraceError("project_not_found", "요청한 Hub project trace가 없습니다.");
+      throw new HubTraceError("project_not_found", "The requested Hub project trace was not found.");
     }
     assertKnowledgeGraphPage({ query: resolved, result });
     return clone(result);

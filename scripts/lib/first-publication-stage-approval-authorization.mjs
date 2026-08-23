@@ -11,7 +11,7 @@ const maximumAuthorizationLifetimeMilliseconds = 5 * 60 * 1000;
 function fail(code = "first_publication_stage_approval_authorization_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 승인 권한이 올바르지 않습니다.",
+    "The CLI npm stage approval authorization is invalid.",
   );
 }
 

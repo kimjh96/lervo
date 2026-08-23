@@ -35,36 +35,36 @@ export function evaluateDocumentStaleness(
 ): EvaluateDocumentStalenessResult {
   try {
     if (!validateSchema("documentManifest", input.manifest).valid) {
-      invalidStalenessRequest("Document staleness manifest가 schema를 통과하지 못했습니다.");
+      invalidStalenessRequest("The document staleness manifest does not satisfy the schema.");
     }
     validateDocumentManifest(input.manifest, `${input.manifest.documentId}.yaml`);
   } catch (error) {
     if (error instanceof DocumentStalenessError) throw error;
     invalidStalenessRequest(
-      "Document staleness manifest의 의미 계약이 유효하지 않습니다.",
+      "The semantic contract of the document staleness manifest is invalid.",
       { cause: error },
     );
   }
-  validateStalenessSnapshot(input.currentSnapshot, "현재 repository snapshot");
+  validateStalenessSnapshot(input.currentSnapshot, "current repository snapshot");
   if (input.verifiedSnapshot !== undefined) {
-    validateStalenessSnapshot(input.verifiedSnapshot, "검증 repository snapshot");
+    validateStalenessSnapshot(input.verifiedSnapshot, "verified repository snapshot");
     if (
       input.verifiedSnapshot.revision === input.currentSnapshot.revision &&
       !snapshotsHaveSameFiles(input.verifiedSnapshot, input.currentSnapshot)
     ) {
-      invalidStalenessRequest("같은 revision의 repository snapshot 파일 집합이 서로 다릅니다.");
+      invalidStalenessRequest("Repository snapshots with the same revision have different file sets.");
     }
   }
 
   const evaluated = normalizeStalenessTimestamp(input.evaluatedAt, "evaluatedAt");
   const verified = normalizeStalenessTimestamp(input.manifest.record.verifiedAt, "verifiedAt");
   if (evaluated.milliseconds < verified.milliseconds) {
-    invalidStalenessRequest("evaluatedAt은 document verifiedAt보다 이를 수 없습니다.");
+    invalidStalenessRequest("evaluatedAt cannot be earlier than the document verifiedAt.");
   }
   const dueMilliseconds = verified.milliseconds +
     input.manifest.record.reviewIntervalDays * 24 * 60 * 60 * 1000;
   if (!Number.isFinite(dueMilliseconds) || Number.isNaN(new Date(dueMilliseconds).getTime())) {
-    invalidStalenessRequest("Document review 만료 시각을 계산할 수 없습니다.");
+    invalidStalenessRequest("The document review expiration time cannot be calculated.");
   }
   const reviewStatus = evaluated.milliseconds >= dueMilliseconds ? "stale" : "current";
 
@@ -114,7 +114,7 @@ export function evaluateDocumentStaleness(
   if (!validateSchema("documentStalenessResult", result).valid) {
     throw new DocumentStalenessError(
       "staleness_contract_invalid",
-      "Document staleness result를 schema-valid하게 만들 수 없습니다.",
+      "The document staleness result cannot be made schema-valid.",
     );
   }
   return result;

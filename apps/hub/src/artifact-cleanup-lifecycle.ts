@@ -1,4 +1,5 @@
 import { type Server } from "node:http";
+import { type Server as SecureServer } from "node:https";
 
 import {
   HubCommandError,
@@ -7,7 +8,9 @@ import {
   type HubCommandArtifactCleanupLoopResult,
 } from "@lervo/hub-command";
 
-const attachedServers = new WeakSet<Server>();
+export type HubLifecycleServer = Server | SecureServer;
+
+const attachedServers = new WeakSet<HubLifecycleServer>();
 
 export type HubArtifactCleanupLifecycleResult =
   | { status: "stopped"; loop: HubCommandArtifactCleanupLoopResult | null }
@@ -20,12 +23,12 @@ export interface HubArtifactCleanupLifecycle {
 
 /** Binds cleanup start/stop to an HTTP server without making the server own storage. */
 export function attachHubArtifactCleanupLifecycle(input: {
-  server: Server;
+  server: HubLifecycleServer;
   runtime: Omit<HubCommandArtifactCleanupLoopOptions, "signal">;
   onFailure?: (failureCode: "artifact_cleanup_runtime_failed") => void | Promise<void>;
 }): HubArtifactCleanupLifecycle {
   if (attachedServers.has(input.server)) {
-    throw new HubCommandError("invalid_request", "Hub server에는 cleanup lifecycle을 한 번만 연결할 수 있습니다.");
+    throw new HubCommandError("invalid_request", "A cleanup lifecycle can be attached to a Hub server only once.");
   }
   attachedServers.add(input.server);
   const controller = new AbortController();

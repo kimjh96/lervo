@@ -34,7 +34,7 @@ export async function applyLegacyRegistryMigration(
   ) {
     throw new DocumentMigrationError(
       "invalid_approval",
-      "구조 전환 적용 시각, event recorder와 failure injector가 유효해야 합니다.",
+      "The layout migration apply time, event recorder, and failure injector must be valid.",
     );
   }
   const prepared = prepareLegacyRegistryMigration({
@@ -76,7 +76,7 @@ export async function applyLegacyRegistryMigration(
   if (!validateSchema("legacyRegistryMigrationAppliedEventPayload", eventPayload).valid) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Legacy registry 구조 전환 event payload를 schema-valid하게 만들 수 없습니다.",
+      "The legacy registry layout migration event payload cannot be made schema-valid.",
     );
   }
   const receipt: LegacyRegistryMigrationApplyReceipt = {
@@ -108,7 +108,7 @@ export async function applyLegacyRegistryMigration(
   if (!validateSchema("legacyRegistryMigrationApplyReceipt", receipt).valid) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Legacy registry 구조 전환 receipt를 schema-valid하게 만들 수 없습니다.",
+      "The legacy registry layout migration receipt cannot be made schema-valid.",
     );
   }
 

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_4a0fb50bfd9f0f9952bc077f
+freshness: current
+ownership: user
+path: docs/decisions/search/0060-policy-bound-search-engine-selection.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_50a9ac234bdbfa739169c83a
+title: "ADR-0060: Policy-bound search-engine selection and rollback"
+type: decision

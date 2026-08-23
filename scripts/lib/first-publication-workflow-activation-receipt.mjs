@@ -7,7 +7,7 @@ const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_activation_receipt_invalid",
-    "CLI 최초 게시 workflow 활성화 적용 영수증이 올바르지 않습니다.",
+    "The CLI first-publication workflow activation apply receipt is invalid.",
   );
 }
 

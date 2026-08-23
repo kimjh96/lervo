@@ -33,7 +33,7 @@ export async function verifySearchCandidateActivationEvidence(input: {
 }): Promise<VerifiedSearchCandidateActivationEvidence> {
   const review = await loadStoredSearchCandidateReview(input.repositoryRoot, input.reviewId);
   if (review.projectId !== input.projectId) {
-    throw new SearchLocalError("observation_invalid", "검색 후보 검토의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The search candidate review has different project coordinates.");
   }
   const loaded = await loadSearchEvaluationComparison({
     repositoryRoot: input.repositoryRoot,
@@ -42,12 +42,12 @@ export async function verifySearchCandidateActivationEvidence(input: {
   });
   const engine = input.registry.resolve(review.candidateId);
   if (!sameSearchEngine(engine.engine, review.candidate)) {
-    throw new SearchLocalError("evaluation_candidate_failed", "검토 원본의 후보가 현재 등록된 엔진과 다릅니다.");
+    throw new SearchLocalError("evaluation_candidate_failed", "The candidate in the review source differs from the currently registered engine.");
   }
   if (review.schemaVersion !== loaded.comparison.schemaVersion) {
     throw new SearchLocalError(
       "evaluation_candidate_build_mismatch",
-      "검토와 비교 원본의 adapter build 계약 version이 다릅니다.",
+      "The adapter build contract versions in the review and comparison sources differ.",
     );
   }
   if (review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2 &&
@@ -55,7 +55,7 @@ export async function verifySearchCandidateActivationEvidence(input: {
       loaded.comparison.candidateAdapterBuildId !== engine.adapterBuildId)) {
     throw new SearchLocalError(
       "evaluation_candidate_build_mismatch",
-      "검토·비교 원본의 adapter build가 현재 등록된 구현과 다릅니다.",
+      "The adapter build in the review and comparison sources differs from the currently registered implementation.",
     );
   }
   const replay = await executeLocalSearchCandidate({
@@ -77,7 +77,7 @@ export async function verifySearchCandidateActivationEvidence(input: {
     }).reviewId
     : replay.run.runId === review.replayRunId ? review.reviewId : null;
   if (recreatedReviewId !== review.reviewId) {
-    throw new SearchLocalError("observation_invalid", "검색 후보 검토가 현재 원본과 재현 결과에 맞지 않습니다.");
+    throw new SearchLocalError("observation_invalid", "The search candidate review does not match the current source and replay result.");
   }
   const verificationReceipt = review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2
     ? createSearchCandidateVerificationReceipt({

@@ -5,7 +5,7 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_evidence_bundle_arguments_invalid",
-    "CLI 최초 게시 stage 증거 묶음 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication stage evidence bundle command arguments are invalid.",
   );
 }
 

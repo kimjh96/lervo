@@ -27,7 +27,7 @@ export async function createCliFirstPublicationWorkflowReachabilityEvidence(
   if (online !== true) {
     fail(
       "first_publication_workflow_reachability_online_required",
-      "CLI stage-only workflow ref 도달 가능성 증거에는 온라인 확인이 필요합니다.",
+      "CLI stage-only workflow ref-reachability evidence requires online verification.",
     );
   }
   try {
@@ -37,7 +37,7 @@ export async function createCliFirstPublicationWorkflowReachabilityEvidence(
   } catch {
     fail(
       "first_publication_workflow_reachability_input_invalid",
-      "CLI stage-only workflow ref 도달 가능성 증거 입력이 올바르지 않습니다.",
+      "The CLI stage-only workflow ref-reachability evidence input is invalid.",
     );
   }
   const paths = dependencies.paths ?? firstPublicationWorkflowReachabilityPaths;

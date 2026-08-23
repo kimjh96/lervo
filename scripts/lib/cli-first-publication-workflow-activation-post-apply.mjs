@@ -30,7 +30,7 @@ export async function verifyCliFirstPublicationWorkflowActivationPostApply(
   if (online !== true) {
     fail(
       "first_publication_workflow_activation_post_apply_online_required",
-      "CLI 최초 게시 workflow 활성화 사후 검증에는 온라인 확인이 필요합니다.",
+      "CLI first-publication workflow activation post-apply verification requires online verification.",
     );
   }
   validateReadinessRepository(repository);

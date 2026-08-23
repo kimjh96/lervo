@@ -24,7 +24,7 @@ export async function readConversationMessage(input: {
   } catch (error) {
     throw new ManagedConversationResponseError(
       "message_artifact_invalid",
-      "대화 원문 artifact를 내용 해시와 함께 확인하지 못했습니다.",
+      "The conversation source artifact could not be verified against its content hash.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

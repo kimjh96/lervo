@@ -42,7 +42,7 @@ export function createSearchRolloutActionPreflight(input: {
   if (!searchRolloutActionKinds.includes(input.requestedAction) || !SOURCE_ID_PATTERN.test(input.operatorId) ||
     !Number.isFinite(input.checkedAt.getTime()) || input.review.projectId !== input.actionPolicy.projectId ||
     input.currentQualitySnapshot.observedThrough !== input.checkedAt.toISOString()) {
-    throw new SearchError("invalid_rollout_action_preflight", "검색 rollout 조치 사전 점검 입력이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_action_preflight", "The search rollout action preflight input is invalid.");
   }
   const requiredDecision = input.requestedAction === "acknowledge_keep"
     ? "keep_candidate" as const

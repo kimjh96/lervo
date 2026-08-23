@@ -1,0 +1,11 @@
+fromPath: docs/adr/0154-multi-file-managed-provider-turns.md
+identityPath: docs/adr/0154-multi-file-managed-provider-turns.md
+kind: document_move
+lineageId: klineage_88dde7c0f98f574e5d115798
+operationId: kdocop_6fbc7243447ac7d9badbaa22
+schemaVersion: 1
+sourceContentHash: sha256:13218714399adc83dd3f498f05c4a09dd98fc1ec29afa0c99504ff3a2443fca1
+sourceId: src_4ed4421661f384fd651fadc0
+sourceUnitBindingDigest: sha256:b26012435416c010f12df6654e1f125032c92c4a008f815a1d9f6647be4da7a7
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md

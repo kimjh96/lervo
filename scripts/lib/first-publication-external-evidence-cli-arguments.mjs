@@ -14,7 +14,7 @@ const pathArguments = Object.freeze({
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_external_evidence_arguments_invalid",
-    "CLI 최초 게시 외부 요구사항 증거 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication external-requirements evidence command arguments are invalid.",
   );
 }
 

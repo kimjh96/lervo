@@ -27,22 +27,22 @@ function fail(code: "contract_invalid" | "document_layout_conflict", message: st
 async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
   const before = await lstat(path, { bigint: true });
   if (!before.isDirectory() || before.isSymbolicLink()) {
-    fail("document_layout_conflict", "문서 manifest 경로는 실제 디렉터리여야 합니다.");
+    fail("document_layout_conflict", "The document manifest path must be a real directory.");
   }
   const entries = await readdir(path, { withFileTypes: true });
   if (entries.length > MAX_DOCUMENT_MANIFESTS) {
-    fail("contract_invalid", "문서 manifest 수가 한 프로젝트의 안전한 조회 한도를 넘었습니다.");
+    fail("contract_invalid", "The document manifest count exceeds the safe per-project lookup limit.");
   }
   const manifests: DocumentManifest[] = [];
   for (const entry of entries.sort((left, right) =>
     left.name === right.name ? 0 : left.name < right.name ? -1 : 1
   )) {
     if (!entry.isFile() || entry.isSymbolicLink() || !DOCUMENT_FILE_PATTERN.test(entry.name)) {
-      fail("document_layout_conflict", "문서 manifest 디렉터리에 계약 밖의 항목이 있습니다.");
+      fail("document_layout_conflict", "The document manifest directory contains an entry outside the contract.");
     }
     const manifestEntry = await readEntry(resolve(path, entry.name), MAX_DOCUMENT_MANIFEST_BYTES);
     if (manifestEntry.kind !== "file") {
-      fail("document_layout_conflict", `${entry.name}을 안전한 document manifest로 읽을 수 없습니다.`);
+      fail("document_layout_conflict", `${entry.name} cannot be read safely as a document manifest.`);
     }
     const manifest = parseAndValidateYaml<DocumentManifest>(
       "documentManifest",
@@ -57,7 +57,7 @@ async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
     before.dev !== after.dev || before.ino !== after.ino ||
     before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
   ) {
-    fail("document_layout_conflict", "문서 manifest 디렉터리가 읽는 동안 바뀌었습니다.");
+    fail("document_layout_conflict", "The document manifest directory changed while it was being read.");
   }
   validateDocumentManifestSet(manifests);
   return manifests;
@@ -72,20 +72,20 @@ async function documentStorageKind(root: string): Promise<{
   if (lervoRoot.kind === "missing") {
     throw new LervoProjectError(
       "not_initialized",
-      `${paths.lervoRoot}이 없습니다. 먼저 lervo init을 실행하세요.`,
+      `${paths.lervoRoot} does not exist. Run lervo init first.`,
     );
   }
   if (lervoRoot.kind !== "directory") {
     throw new LervoProjectError(
       "unsafe_path",
-      `${paths.lervoRoot}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
+      `${paths.lervoRoot} must be a real directory and cannot be a symbolic link.`,
     );
   }
   const migrationMarker = await readEntry(paths.documentMigrationMarker, 4096);
   if (migrationMarker.kind !== "missing") {
     throw new LervoProjectError(
       "document_layout_conflict",
-      "문서 registry 구조 전환이 완료되지 않아 현재 layout을 읽을 수 없습니다.",
+      "The current layout cannot be read because the document registry migration is incomplete.",
     );
   }
   return {
@@ -103,16 +103,13 @@ export async function loadDocumentManifests(root: string): Promise<DocumentManif
   if (storage.documents.kind === "missing" && storage.legacy.kind === "file") {
     throw new LervoProjectError(
       "document_layout_conflict",
-      "기존 documents.yaml은 읽을 수 있지만 문서별 manifest API에는 사용할 수 없습니다.",
+      "The legacy documents.yaml can be read, but it cannot be used with the per-document manifest API.",
     );
   }
   if (storage.documents.kind === "missing" && storage.legacy.kind === "missing") {
-    throw new LervoProjectError(
-      "not_initialized",
-      `${paths.documents}이 없습니다. 먼저 lervo init을 실행하세요.`,
-    );
+    return [];
   }
-  fail("document_layout_conflict", "문서 registry 저장 형식이 하나로 결정되지 않습니다.");
+  fail("document_layout_conflict", "The document registry storage format is ambiguous.");
 }
 
 export async function loadDocumentRegistry(root: string): Promise<DocumentRegistry> {
@@ -128,10 +125,7 @@ export async function loadDocumentRegistry(root: string): Promise<DocumentRegist
     return parseAndValidateYaml<DocumentRegistry>("documentRegistry", storage.legacy.content);
   }
   if (storage.documents.kind === "missing" && storage.legacy.kind === "missing") {
-    throw new LervoProjectError(
-      "not_initialized",
-      `${paths.documents}이 없습니다. 먼저 lervo init을 실행하세요.`,
-    );
+    return { schemaVersion: 1, documents: {} };
   }
-  fail("document_layout_conflict", "documents 디렉터리와 기존 documents.yaml을 함께 사용할 수 없습니다.");
+  fail("document_layout_conflict", "The documents directory and legacy documents.yaml cannot be used together.");
 }

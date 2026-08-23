@@ -65,6 +65,7 @@ import { knowledgeCandidateSchema } from "./knowledge.js";
 import {
   knowledgeCandidateCreatedEventPayloadSchema,
   knowledgeCandidateReviewedEventPayloadSchema,
+  knowledgeReconciliationReviewedEventPayloadSchema,
   knowledgeStaleDetectedEventPayloadSchema,
   knowledgeVerifiedEventPayloadSchema,
 } from "./knowledge-event.js";
@@ -232,6 +233,9 @@ const validators = {
   ),
   knowledgeCandidateReviewedEventPayload: ajv.compile(
     knowledgeCandidateReviewedEventPayloadSchema,
+  ),
+  knowledgeReconciliationReviewedEventPayload: ajv.compile(
+    knowledgeReconciliationReviewedEventPayloadSchema,
   ),
   knowledgeVerifiedEventPayload: ajv.compile(knowledgeVerifiedEventPayloadSchema),
   knowledgeStaleDetectedEventPayload: ajv.compile(

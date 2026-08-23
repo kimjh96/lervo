@@ -1,0 +1,11 @@
+fromPath: docs/adr/0001-m0-contracts-and-data-defaults.md
+identityPath: docs/adr/0001-m0-contracts-and-data-defaults.md
+kind: document_move
+lineageId: klineage_aa30e53f7323019b5cbbe734
+operationId: kdocop_59ac9f0fac1086133fccb3be
+schemaVersion: 1
+sourceContentHash: sha256:5c9ca73291d545c48b9c30cbb6c46d1fe952a959627392806383227cbc1fe838
+sourceId: src_44bf2a64e72223c780e2edad
+sourceUnitBindingDigest: sha256:1ab37623c2921afa25c9ccd81e6b49770def0e0666ea3ab86842caa2708d43ce
+sourceUnitCount: 14
+toPath: docs/decisions/foundation/0001-m0-contracts-and-data-defaults.md

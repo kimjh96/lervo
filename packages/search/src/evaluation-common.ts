@@ -26,11 +26,11 @@ export function normalizeEvaluationSources(
   if (!Array.isArray(values) || values.length < 1 || values.length > SEARCH_MAX_RESULTS ||
     values.some((source) => !searchSourceKinds.includes(source.sourceKind) ||
       !SOURCE_ID_PATTERN.test(source.sourceId))) {
-    throw new SearchError(code, "검색 평가 묶음의 기대 원본 좌표가 유효하지 않습니다.");
+    throw new SearchError(code, "The expected source coordinates in the search evaluation bundle are invalid.");
   }
   const unique = new Map(values.map((source) => [evaluationSourceKey(source), { ...source }]));
   if (unique.size !== values.length) {
-    throw new SearchError(code, "검색 평가 묶음의 기대 원본 좌표가 중복되었습니다.");
+    throw new SearchError(code, "Expected source coordinates in the search evaluation bundle are duplicated.");
   }
   return [...unique.values()].sort((left, right) =>
     compareText(evaluationSourceKey(left), evaluationSourceKey(right)));
@@ -42,7 +42,7 @@ export function assertOrderedEvaluationSources(
 ): void {
   const normalized = normalizeEvaluationSources(values, code);
   if (normalized.some((source, index) => evaluationSourceKey(source) !== evaluationSourceKey(values[index]!))) {
-    throw new SearchError(code, "검색 평가 묶음의 기대 원본 순서가 canonical하지 않습니다.");
+    throw new SearchError(code, "The expected source order in the search evaluation bundle is not canonical.");
   }
 }
 

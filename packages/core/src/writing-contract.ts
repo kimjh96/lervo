@@ -1,9 +1,13 @@
 import type { WritingContract } from "@lervo/schemas";
 
-export const defaultKoreanWritingContract = {
+export const supportedWritingLanguages = ["en"] as const;
+
+export type SupportedWritingLanguage = typeof supportedWritingLanguages[number];
+
+export const defaultEnglishWritingContract = {
   schemaVersion: 1,
-  writingPolicyId: "writing_ko-kr-human",
-  locale: "ko-KR",
+  writingPolicyId: "writing_en-human",
+  locale: "en",
   surfaces: [
     "readme",
     "pull_request",
@@ -19,7 +23,7 @@ export const defaultKoreanWritingContract = {
     then: ["reason", "change_or_result", "scope_and_impact", "next_action", "evidence"],
   },
   prose: {
-    register: "polite",
+    register: "plain_spec",
     completeSentences: true,
     cohesiveParagraphs: true,
     oneMainFactPerSentence: true,
@@ -29,7 +33,7 @@ export const defaultKoreanWritingContract = {
     preserveMachineIdentifiers: true,
     explainInternalTermsAtFirstUse: true,
     preferConcreteVerbs: true,
-    forbiddenVagueTerms: ["퀵스타트", "간판", "발사", "봉인"],
+    forbiddenVagueTerms: ["quick win", "magic", "simply", "obviously"],
   },
   actions: {
     abstractActors: "forbid",
@@ -50,21 +54,21 @@ export const defaultKoreanWritingContract = {
     ],
     semanticChecks: [
       {
-        checkId: "natural_ko-kr_prose",
+        checkId: "natural_en_prose",
         requirement:
-          "한국어 문장을 번역투나 명사 조각으로 나열하지 않고, 앞뒤 문장이 하나의 문단 맥락으로 자연스럽게 이어져야 합니다.",
+          "Write natural English prose in complete sentences, with each paragraph forming a coherent line of thought instead of a list of fragments.",
         required: true,
       },
       {
         checkId: "plain_audience_language",
         requirement:
-          "첫 화면에서는 내부 구현 용어보다 독자가 이해할 수 있는 업무 언어를 사용하고, 필요한 기술 용어는 처음 등장할 때 뜻을 설명해야 합니다.",
+          "Use language the intended reader can understand before internal implementation terms, and explain necessary technical terms when they first appear.",
         required: true,
       },
       {
         checkId: "direct_result_and_action",
         requirement:
-          "결과와 영향, 다음 행동을 구체적으로 설명하고 사람·사용자·담당자 같은 추상적인 행동 주체에 책임을 넘기지 않아야 합니다.",
+          "State the result, impact, and next action concretely without assigning responsibility to an unspecified user, person, or owner.",
         required: true,
       },
     ],
@@ -73,3 +77,16 @@ export const defaultKoreanWritingContract = {
     failureDisposition: "block_publication",
   },
 } as const satisfies WritingContract;
+
+const writingContracts = {
+  en: defaultEnglishWritingContract,
+} as const satisfies Record<SupportedWritingLanguage, WritingContract>;
+
+export function writingContractForLanguage(language: string): WritingContract {
+  if (!supportedWritingLanguages.includes(language as SupportedWritingLanguage)) {
+    throw new Error(`Unsupported writing publication language: ${language}`);
+  }
+  return structuredClone(writingContracts[language as SupportedWritingLanguage]);
+}
+
+export const defaultWritingContract = defaultEnglishWritingContract;

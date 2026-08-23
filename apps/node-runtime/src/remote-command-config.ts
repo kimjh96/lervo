@@ -11,6 +11,8 @@ import { NodeRuntimeError } from "./errors.js";
 
 const NODE_PATTERN = /^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const KEY_PATTERN = /^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
+const ROLE_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
+const SKILL_PATTERN = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
 
 function baseTrustKeys(
   value: unknown,
@@ -18,7 +20,7 @@ function baseTrustKeys(
   kind: "command" | "policy",
 ): Array<{ source: Record<string, unknown>; keyId: string; publicKeyFile: string }> {
   if (!Array.isArray(value) || value.length < 1 || value.length > 256) {
-    throw new NodeRuntimeError("invalid_config", `remoteCommands.${kind}Keys가 유효하지 않습니다.`);
+    throw new NodeRuntimeError("invalid_config", `remoteCommands.${kind}Keys is invalid.`);
   }
   const seen = new Set<string>();
   return value.map((item, index) => {
@@ -31,7 +33,7 @@ function baseTrustKeys(
     );
     const keyId = configText(key.keyId, `${label}.keyId`);
     if (!KEY_PATTERN.test(keyId) || seen.has(keyId)) {
-      throw new NodeRuntimeError("invalid_config", `remoteCommands.${kind}Keys keyId가 유효하지 않습니다.`);
+      throw new NodeRuntimeError("invalid_config", `remoteCommands.${kind}Keys keyId is invalid.`);
     }
     seen.add(keyId);
     return {
@@ -58,7 +60,7 @@ function policyTrustKeys(value: unknown, baseDirectory: string) {
         ["snapshot", "approval", "revocation"].includes(String(purpose))
       )
     ) {
-      throw new NodeRuntimeError("invalid_config", "remoteCommands.policyKeys purposes가 유효하지 않습니다.");
+      throw new NodeRuntimeError("invalid_config", "remoteCommands.policyKeys purposes is invalid.");
     }
     return {
       keyId,
@@ -66,6 +68,24 @@ function policyTrustKeys(value: unknown, baseDirectory: string) {
       purposes: [...source.purposes] as Array<"snapshot" | "approval" | "revocation">,
     };
   });
+}
+
+export function parseRemoteCommandTrustConfig(
+  value: unknown,
+  baseDirectory: string,
+): Pick<NonNullable<NodeRuntimeConfig["remoteCommands"]>, "commandKeys" | "policyKeys"> {
+  const source = configRecord(value, "remote command trust snapshot");
+  exactConfigKeys(source, ["schemaVersion", "commandKeys", "policyKeys"], "remote command trust snapshot");
+  if (source.schemaVersion !== 1) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Remote-command trust snapshot schemaVersion must be 1.",
+    );
+  }
+  return {
+    commandKeys: commandTrustKeys(source.commandKeys, baseDirectory),
+    policyKeys: policyTrustKeys(source.policyKeys, baseDirectory),
+  };
 }
 
 function optionalIntegers(source: Record<string, unknown>) {
@@ -94,8 +114,10 @@ export function parseRemoteCommandConfig(
   const source = configRecord(value, "remoteCommands");
   exactConfigKeys(source, [
     "nodeId",
+    "trustFile",
     "commandKeys",
     "policyKeys",
+    "providerHost",
     "idlePollIntervalMs",
     "leaseDurationMs",
     "retryDelayMs",
@@ -107,12 +129,79 @@ export function parseRemoteCommandConfig(
   ], "remoteCommands");
   const nodeId = configText(source.nodeId, "remoteCommands.nodeId");
   if (!NODE_PATTERN.test(nodeId)) {
-    throw new NodeRuntimeError("invalid_config", "remoteCommands.nodeId가 유효하지 않습니다.");
+    throw new NodeRuntimeError("invalid_config", "remoteCommands.nodeId is invalid.");
+  }
+  const hasTrustFile = source.trustFile !== undefined;
+  const hasInlineTrust = source.commandKeys !== undefined || source.policyKeys !== undefined;
+  if (hasTrustFile === hasInlineTrust) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "remoteCommands must use exactly one of trustFile or commandKeys plus policyKeys.",
+    );
+  }
+  let trust: Pick<NonNullable<NodeRuntimeConfig["remoteCommands"]>,
+    "trustFile" | "commandKeys" | "policyKeys">;
+  if (hasTrustFile) {
+    trust = {
+      trustFile: resolve(
+        baseDirectory,
+        configText(source.trustFile, "remoteCommands.trustFile"),
+      ),
+    };
+  } else {
+    trust = {
+      commandKeys: commandTrustKeys(source.commandKeys, baseDirectory),
+      policyKeys: policyTrustKeys(source.policyKeys, baseDirectory),
+    };
+  }
+  let providerHost: NonNullable<NodeRuntimeConfig["remoteCommands"]>["providerHost"];
+  if (source.providerHost !== undefined) {
+    const host = configRecord(source.providerHost, "remoteCommands.providerHost");
+    exactConfigKeys(host, ["providers", "roles", "developerSkills"], "remoteCommands.providerHost");
+    if (
+      !Array.isArray(host.providers) || host.providers.length < 1 || host.providers.length > 2 ||
+      new Set(host.providers).size !== host.providers.length ||
+      host.providers.some((provider) => provider !== "codex" && provider !== "claude")
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "remoteCommands.providerHost.providers must be a unique codex/claude allowlist.",
+      );
+    }
+    if (
+      !Array.isArray(host.roles) || host.roles.length < 1 || host.roles.length > 16 ||
+      new Set(host.roles).size !== host.roles.length ||
+      host.roles.some((roleId) =>
+        typeof roleId !== "string" || roleId.length > 100 || !ROLE_PATTERN.test(roleId)
+      )
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "remoteCommands.providerHost.roles must be a unique role ID allowlist.",
+      );
+    }
+    if (
+      !Array.isArray(host.developerSkills) || host.developerSkills.length > 16 ||
+      new Set(host.developerSkills).size !== host.developerSkills.length ||
+      host.developerSkills.some((skillId) =>
+        typeof skillId !== "string" || skillId.length > 150 || !SKILL_PATTERN.test(skillId)
+      )
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "remoteCommands.providerHost.developerSkills is invalid.",
+      );
+    }
+    providerHost = {
+      providers: [...host.providers] as Array<"codex" | "claude">,
+      roles: [...host.roles] as string[],
+      developerSkills: [...host.developerSkills] as string[],
+    };
   }
   return {
     nodeId,
-    commandKeys: commandTrustKeys(source.commandKeys, baseDirectory),
-    policyKeys: policyTrustKeys(source.policyKeys, baseDirectory),
+    ...trust,
+    ...(providerHost === undefined ? {} : { providerHost }),
     ...optionalIntegers(source),
   };
 }

@@ -26,14 +26,14 @@ import {
 
 export async function prepareSelectedSearchCandidate(scope: string) {
   const root = await repository();
-  const cases = [await reviewedCase(root, "검색 맥락")];
+  const cases = [await reviewedCase(root, "zephyrcontext")];
   await bundle(root, scope, 1, cases);
   await writeFile(
     resolve(root, "docs/search-context.md"),
-    "# 다른 문서\n\n평가 질의와 무관한 현재 내용입니다.\n",
+    "# Other document\n\nCurrent content unrelated to the evaluation query.\n",
   );
   const project = await loadProjectManifest(root);
-  const engine = recoveringCandidateEngine("검색 맥락", "doc_cli_search_context");
+  const engine = recoveringCandidateEngine("zephyrcontext", "doc_cli_search_context");
   const registry = new SearchEvaluationEngineRegistry([{ candidateId: "fixture-v1", engine }]);
   const compared = await runLocalSearchEvaluationComparison({
     repositoryRoot: root,
@@ -74,7 +74,7 @@ export async function prepareSelectedSearchCandidate(scope: string) {
     repositoryRoot: root,
     projectId: project.projectId,
     registry,
-    query: "검색 맥락",
+    query: "zephyrcontext",
     limit: 5,
   });
   const candidateAttempt = createSearchAttempt({

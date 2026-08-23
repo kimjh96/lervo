@@ -53,7 +53,7 @@ function loadAssets(): Map<string, HubWebAsset> {
   for (const [route, filename, contentType] of assetDefinitions) {
     const body = readFileSync(new URL(`../assets/${filename}`, import.meta.url));
     if (body.byteLength > MAX_WEB_ASSET_BYTES) {
-      throw new Error(`Hub web asset 크기가 ${MAX_WEB_ASSET_BYTES} bytes를 초과했습니다: ${filename}`);
+      throw new Error(`Hub web asset exceeds ${MAX_WEB_ASSET_BYTES} bytes: ${filename}`);
     }
     assets.set(route, { body, contentType });
   }
@@ -88,20 +88,20 @@ export function createHubWebHandler() {
     const asset = assets.get(url.pathname);
     if (asset === undefined) return false;
     if (request.method !== "GET") {
-      send(response, 405, "이 화면은 GET 요청만 지원합니다.", "text/plain; charset=utf-8", {
+      send(response, 405, "This page supports GET requests only.", "text/plain; charset=utf-8", {
         allow: "GET",
       });
       return true;
     }
     if (url.search !== "") {
-      send(response, 400, "화면 URL에는 query parameter를 사용할 수 없습니다.", "text/plain; charset=utf-8");
+      send(response, 400, "Page URLs cannot contain query parameters.", "text/plain; charset=utf-8");
       return true;
     }
     if (
       request.headers["transfer-encoding"] !== undefined ||
       (request.headers["content-length"] !== undefined && request.headers["content-length"] !== "0")
     ) {
-      send(response, 400, "GET 화면 요청에는 body를 보낼 수 없습니다.", "text/plain; charset=utf-8");
+      send(response, 400, "GET page requests cannot contain a body.", "text/plain; charset=utf-8");
       return true;
     }
     send(response, 200, asset.body, asset.contentType);

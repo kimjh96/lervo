@@ -26,7 +26,7 @@ try {
     error instanceof ReleaseAttestationVerificationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_package_metadata_apply_permit_failed: CLI 최초 게시 package metadata 적용 허가를 만들지 못했습니다.",
+    "first_publication_package_metadata_apply_permit_failed: The CLI first-publication package metadata apply permit could not be created.",
   );
   process.exitCode = 1;
 }

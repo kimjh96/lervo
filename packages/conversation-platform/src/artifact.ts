@@ -33,7 +33,7 @@ export async function storeConversationText(input: {
   if (bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_CONVERSATION_BYTES) {
     throw new ConversationPlatformError(
       "invalid_platform_payload",
-      "대화 본문 크기가 허용 범위를 벗어났습니다.",
+      "The conversation body size is outside the allowed range.",
     );
   }
   try {
@@ -55,7 +55,7 @@ export async function storeConversationText(input: {
     if (error instanceof ConversationPlatformError) throw error;
     throw new ConversationPlatformError(
       "artifact_storage_failed",
-      "대화 본문 artifact를 저장하고 확인하지 못했습니다.",
+      "The conversation body artifact could not be stored and verified.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
@@ -77,7 +77,7 @@ export async function readConversationOutboundText(input: {
   } catch (error) {
     throw new ConversationPlatformError(
       "artifact_storage_failed",
-      "전송할 대화 본문 artifact를 확인하지 못했습니다.",
+      "The conversation body artifact to deliver could not be verified.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

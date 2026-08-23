@@ -19,7 +19,7 @@ const maximumBundleBytes = 16 * 1024;
 function fail(code = "first_publication_stage_evidence_bundle_source_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 stage 증거 묶음 원본이 올바르지 않습니다.",
+    "The CLI first-publication stage evidence bundle source is invalid.",
   );
 }
 

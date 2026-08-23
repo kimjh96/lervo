@@ -22,26 +22,26 @@ export interface SQLiteInboxCoordinate {
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
   if (!Number.isSafeInteger(result) || result < 0) {
-    throw new InteractionSQLiteError("integrity_failed", `${label} 시각이 유효하지 않습니다.`);
+    throw new InteractionSQLiteError("integrity_failed", `${label} time is invalid.`);
   }
   return result;
 }
 
 function failureCode(value: string): void {
   if (!/^[a-z][a-z0-9_]{0,63}$/.test(value)) {
-    throw new InteractionSQLiteError("integrity_failed", "Interaction failure code가 유효하지 않습니다.");
+    throw new InteractionSQLiteError("integrity_failed", "The Interaction failure code is invalid.");
   }
 }
 
 function policyId(value: string): void {
   if (!/^cpp_[a-f0-9]{64}$/.test(value)) {
-    throw new InteractionSQLiteError("integrity_failed", "Participation policy ID가 유효하지 않습니다.");
+    throw new InteractionSQLiteError("integrity_failed", "The participation policy ID is invalid.");
   }
 }
 
 function roleId(value: string): void {
   if (value.length > 100 || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(value)) {
-    throw new InteractionSQLiteError("integrity_failed", "Participation role ID가 유효하지 않습니다.");
+    throw new InteractionSQLiteError("integrity_failed", "The participation role ID is invalid.");
   }
 }
 
@@ -65,7 +65,7 @@ export class ConversationInboxSQLiteRepository {
       !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(input.workerId) ||
       !Number.isSafeInteger(input.leaseDurationMs) ||
       input.leaseDurationMs < 1_000 || input.leaseDurationMs > 300_000
-    ) throw new InteractionSQLiteError("integrity_failed", "Conversation inbox lease 설정이 유효하지 않습니다.");
+    ) throw new InteractionSQLiteError("integrity_failed", "The conversation inbox lease configuration is invalid.");
     const claimedAtMs = milliseconds(input.claimedAt, "Conversation claim");
     const row = this.database.prepare(
       "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
@@ -73,13 +73,13 @@ export class ConversationInboxSQLiteRepository {
     if (row === undefined) return this.insert(input, claimedAtMs);
     const stored = inbound(row);
     if (canonicalJson(stored) !== canonicalJson(input.event)) {
-      throw new InteractionSQLiteError("integrity_failed", "같은 conversation event ID에 다른 원본이 있습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "A different source exists for the same conversation event ID.");
     }
     if (row.status === "completed") return { status: "completed" };
     if (text(row, "policy_id") !== input.policyId) {
       throw new InteractionSQLiteError(
         "integrity_failed",
-        "진행 중인 conversation interaction의 participation policy가 바뀌었습니다.",
+        "The participation policy of an in-progress conversation interaction changed.",
       );
     }
     const availableAtMs = row.available_at_ms;
@@ -102,10 +102,10 @@ export class ConversationInboxSQLiteRepository {
       "SELECT COUNT(*) AS count FROM conversation_inbox",
     ).get()?.count;
     if (typeof count !== "number" || !Number.isSafeInteger(count)) {
-      throw new InteractionSQLiteError("integrity_failed", "Conversation inbox count가 유효하지 않습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The conversation inbox count is invalid.");
     }
     if (count >= this.maxRecords) {
-      throw new InteractionSQLiteError("capacity_exceeded", "Conversation inbox capacity를 넘었습니다.");
+      throw new InteractionSQLiteError("capacity_exceeded", "The conversation inbox capacity was exceeded.");
     }
     const leaseId = `cil_${randomBytes(24).toString("base64url")}`;
     this.database.prepare(`
@@ -150,13 +150,13 @@ export class ConversationInboxSQLiteRepository {
       input.roleId,
     );
     if (updated.changes !== 1) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox lease를 획득하지 못했습니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "Could not acquire the conversation inbox lease.");
     }
     const attemptCount = this.database.prepare(
       "SELECT attempt_count FROM conversation_inbox WHERE event_id = ? AND role_id = ?",
     ).get(input.event.eventId, input.roleId)?.attempt_count;
     if (typeof attemptCount !== "number" || !Number.isSafeInteger(attemptCount)) {
-      throw new InteractionSQLiteError("integrity_failed", "Conversation attempt count가 유효하지 않습니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The conversation attempt count is invalid.");
     }
     return { status: "claimed", leaseId, attemptCount };
   }
@@ -173,7 +173,7 @@ export class ConversationInboxSQLiteRepository {
       "SELECT * FROM conversation_inbox WHERE event_id = ? AND role_id = ? AND policy_id = ?",
     ).get(input.eventId, input.roleId, input.policyId);
     if (row === undefined || row.status !== "leased" || row.lease_id !== input.leaseId) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox lease가 다릅니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "The conversation inbox lease differs.");
     }
     return inbound(row);
   }
@@ -191,7 +191,7 @@ export class ConversationInboxSQLiteRepository {
         AND lease_id = ? AND status = 'leased'
     `).run(input.eventId, input.roleId, input.policyId, input.leaseId);
     if (updated.changes !== 1) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox 완료 상태를 저장하지 못했습니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "Could not store the conversation inbox completion state.");
     }
   }
 
@@ -210,7 +210,7 @@ export class ConversationInboxSQLiteRepository {
     const availableAtMs = milliseconds(input.availableAt, "Conversation retry");
     failureCode(input.failureCode);
     if (availableAtMs < failedAtMs) {
-      throw new InteractionSQLiteError("integrity_failed", "Conversation retry가 failure보다 빠릅니다.");
+      throw new InteractionSQLiteError("integrity_failed", "The conversation retry is earlier than the failure.");
     }
     const result = this.database.prepare(`
       UPDATE conversation_inbox SET status = 'pending', available_at_ms = ?,
@@ -228,7 +228,7 @@ export class ConversationInboxSQLiteRepository {
       input.leaseId,
     );
     if (result.changes !== 1) {
-      throw new InteractionSQLiteError("lease_mismatch", "Conversation inbox retry lease가 다릅니다.");
+      throw new InteractionSQLiteError("lease_mismatch", "The conversation inbox retry lease differs.");
     }
   }
 

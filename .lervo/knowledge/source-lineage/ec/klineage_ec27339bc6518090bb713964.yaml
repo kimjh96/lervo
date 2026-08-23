@@ -1,0 +1,11 @@
+fromPath: docs/adr/0094-cli-release-attestation-consumer-verification.md
+identityPath: docs/adr/0094-cli-release-attestation-consumer-verification.md
+kind: document_move
+lineageId: klineage_ec27339bc6518090bb713964
+operationId: kdocop_c99711cd3bfff9c7436ebe4a
+schemaVersion: 1
+sourceContentHash: sha256:8ff2a0da740edb033ffa06ebfd9204bd70da3f50d2320a6ecbaf0da05104aa87
+sourceId: src_0e57a2af205be457172a088c
+sourceUnitBindingDigest: sha256:6c0df1f8e92ba08ad0613ee821d998207ec310efdffb9b5d418b4ae3e6417179
+sourceUnitCount: 5
+toPath: docs/decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md

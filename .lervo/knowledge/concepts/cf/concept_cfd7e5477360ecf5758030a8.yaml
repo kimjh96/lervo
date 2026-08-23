@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_cfd7e5477360ecf5758030a8
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c5362c82eac7784e7f1df39d
+title: "ADR-0014: Managed adapter session hardening"
+type: decision

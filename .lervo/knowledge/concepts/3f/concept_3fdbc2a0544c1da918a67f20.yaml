@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_3fdbc2a0544c1da918a67f20
+freshness: current
+ownership: user
+path: docs/product/vision.md
+publicationLanguage: en
+publicationProfile: architecture_context
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0c57cf3ef143fdfe1e9ae80f
+title: Lervo Product Vision
+type: concept

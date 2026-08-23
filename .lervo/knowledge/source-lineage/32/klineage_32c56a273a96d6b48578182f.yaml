@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0003-local-event-store-and-cas.md
+identityPath: docs/adr/0003-local-event-store-and-cas.md
+kind: document_move
+lineageId: klineage_32c56a273a96d6b48578182f
+operationId: kdocop_5b05b9cb963c8ff77fe95033
+schemaVersion: 1
+sourceContentHash: sha256:c26b5790b78f7346c66213d71533033546895ecf570e227ebd0445425b63d94f
+sourceId: src_ae545362bee7b4b0bb792b34
+sourceUnitBindingDigest: sha256:0d75e2268c21209db9059c5500521b4f9dbcc9de4c8a0c77ac568dac862b44a6
+sourceUnitCount: 10
+toPath: docs/decisions/operations/storage/0003-local-event-store-and-cas.md

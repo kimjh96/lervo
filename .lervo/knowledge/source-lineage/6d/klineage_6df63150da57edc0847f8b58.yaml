@@ -1,0 +1,11 @@
+fromPath: docs/adr/0112-cli-first-publication-arming-authorization.md
+identityPath: docs/adr/0112-cli-first-publication-arming-authorization.md
+kind: document_move
+lineageId: klineage_6df63150da57edc0847f8b58
+operationId: kdocop_b983a8febd2dcfeaebbd763f
+schemaVersion: 1
+sourceContentHash: sha256:443f86d2633fe1a93a928cfc048094b2af4c472f0aca8c1109b2d2e508aa3000
+sourceId: src_32067e570e7fb9242e19ee39
+sourceUnitBindingDigest: sha256:057a56b79ab7d04238c1eb52e12f0115dfbf6daa8e7efde4f6bb2ac8a85a656b
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md

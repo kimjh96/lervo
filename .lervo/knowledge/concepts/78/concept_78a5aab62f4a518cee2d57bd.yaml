@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_78a5aab62f4a518cee2d57bd
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0037-hub-trace-read-model.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1d84ea6f83920e1c0698eda5
+title: "ADR-0037: Hub trace read model distinguishes contiguous and buffered events"
+type: decision

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0174-bounded-parser-grade-javascript-symbol-units.md
+identityPath: docs/adr/0174-bounded-parser-grade-javascript-symbol-units.md
+kind: document_move
+lineageId: klineage_d9faf9f6cb4bac81612c4fa4
+operationId: kdocop_16a86b4678f67c68234b9be1
+schemaVersion: 1
+sourceContentHash: sha256:0a7dcec14c505015baea0945287d43a09ba074ceaa79562e8a5878b74643462f
+sourceId: src_d4393332ac252b628f4347a6
+sourceUnitBindingDigest: sha256:fdb45dd371bb61aa8159a7903b88498c70066065cff1db3fd97d9e6fa4fac453
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/repository/0174-bounded-parser-grade-javascript-symbol-units.md

@@ -22,7 +22,7 @@ export async function registerSearchContextDocument(root: string): Promise<void>
       mode: "user_managed",
       mediaType: "text/markdown; charset=utf-8",
       profileId: "search/context",
-      locale: "ko-KR",
+      locale: "en",
       audience: "human",
       metadataPlacement: "sidecar",
       historyMode: "separate_documents",
@@ -35,9 +35,10 @@ export async function registerSearchContextDocument(root: string): Promise<void>
     relations: { supersedesDocumentIds: [], relatedDocumentIds: [] },
   };
   await mkdir(resolve(root, "docs"), { recursive: true });
+  await mkdir(resolve(root, ".lervo/documents"));
   await writeFile(
     resolve(root, "docs/search-context.md"),
-    "# 작은 파일 구현 안내\n\n작은 파일을 구현할 때 확인하는 검색 맥락입니다.\n",
+    "# Tiny-artifact implementation guide\n\nUse zephyrcontext when implementing tinyartifact.\n",
   );
   await writeFile(
     resolve(root, ".lervo/documents/doc_cli_search_context.yaml"),

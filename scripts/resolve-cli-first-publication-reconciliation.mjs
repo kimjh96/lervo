@@ -13,7 +13,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_resolution_arguments_invalid",
-    "CLI 최초 게시 결과 확정 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication result-resolution command arguments are invalid.",
   );
 }
 
@@ -64,7 +64,7 @@ try {
   const resolution = await resolveCliFirstPublication(options);
   await writeFirstPublicationResolution(outputPath, resolution);
   console.log(
-    `CLI 최초 게시 결과 확정 완료 (${resolution.target.package}@${resolution.target.version}, 전환 검토 가능)`,
+    `CLI first-publication result resolved (${resolution.target.package}@${resolution.target.version}, transition review available)`,
   );
 } catch (error) {
   if (
@@ -73,7 +73,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_resolution_failed: CLI 최초 게시 결과를 확정하지 못했습니다.",
+    "first_publication_resolution_failed: The CLI first-publication result could not be resolved.",
   );
   process.exitCode = 1;
 }

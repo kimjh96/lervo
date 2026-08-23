@@ -1,0 +1,11 @@
+fromPath: docs/adr/0046-platform-neutral-conversation-participation.md
+identityPath: docs/adr/0046-platform-neutral-conversation-participation.md
+kind: document_move
+lineageId: klineage_168d06c3f354af3a31f2193a
+operationId: kdocop_571f274fbb85d0809f155bc9
+schemaVersion: 1
+sourceContentHash: sha256:ce0c5aa2452f855dab017332a28744595e8186ff194d4bb0da9cf14c0e6448f2
+sourceId: src_c6d98e518e327f17d162eb49
+sourceUnitBindingDigest: sha256:fa68b9f153cc2abdde5bf3ad23885bdfc3f0af6fceb4b32dfbf54db4d02682f2
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md

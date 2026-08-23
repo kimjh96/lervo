@@ -36,13 +36,13 @@ function decodeUtf8(bytes: Uint8Array): string {
   } catch {
     throw new ContextMaterializationError(
       "context_materialization_failed",
-      "Context 문서는 UTF-8이어야 합니다.",
+      "Context documents must be valid UTF-8.",
     );
   }
   if (!Buffer.from(content, "utf8").equals(Buffer.from(bytes))) {
     throw new ContextMaterializationError(
       "context_materialization_failed",
-      "Context 문서를 손실 없이 문자열로 변환할 수 없습니다.",
+      "The context document cannot be converted to a string without loss.",
     );
   }
   return content;
@@ -59,7 +59,7 @@ async function materializeDocument(
     if (resolveArtifact === undefined) {
       throw new ContextMaterializationError(
         "context_materialization_failed",
-        "CAS context를 읽는 artifact resolver가 없습니다.",
+        "No artifact resolver is available to read CAS context.",
       );
     }
     try {
@@ -67,14 +67,14 @@ async function materializeDocument(
     } catch {
       throw new ContextMaterializationError(
         "context_materialization_failed",
-        "CAS context 문서를 읽지 못했습니다.",
+        "The CAS context document could not be read.",
       );
     }
   }
   if (bytes.byteLength !== document.byteCount || digest(bytes) !== document.contentHash) {
     throw new ContextMaterializationError(
       "context_materialization_failed",
-      `Context 문서 ${document.documentId}의 bytes와 envelope metadata가 다릅니다.`,
+      `The bytes for context document ${document.documentId} do not match the envelope metadata.`,
     );
   }
   return decodeUtf8(bytes);
@@ -93,7 +93,7 @@ export async function materializeContextEnvelope(
   if (!binding.passed) {
     throw new ContextMaterializationError(
       "session_mismatch",
-      "Context envelope가 managed session과 일치하지 않습니다.",
+      "The context envelope does not match the managed session.",
     );
   }
 

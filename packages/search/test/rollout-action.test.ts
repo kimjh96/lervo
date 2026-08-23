@@ -94,7 +94,7 @@ describe("search rollout action", () => {
       currentSelectionTransitionId: rolloutTarget.selectionTransitionId,
       operatorId: "operator_search",
       actedAt: new Date("2026-08-20T08:07:00.000Z"),
-    })).toThrow(/현재 품질 입력/);
+    })).toThrow(/current quality input/);
   });
 
   it("uses a separate operator scope and engine policy for rollback actions", () => {
@@ -130,6 +130,6 @@ describe("search rollout action", () => {
       allowedOperatorIds: ["operator_other"],
       authoredBy: "operator_other",
       createdAt: new Date("2026-08-20T08:02:00.000Z"),
-    })).toThrow(/operator 범위/);
+    })).toThrow(/operator scope/);
   });
 });

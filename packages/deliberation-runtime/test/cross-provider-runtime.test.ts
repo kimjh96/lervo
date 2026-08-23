@@ -1,6 +1,6 @@
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DeliberationRuntime } from "../src/index.js";
@@ -60,7 +60,7 @@ describe("cross-provider deliberation runtime", () => {
     runtime.start();
 
     const proposalContent =
-      "제안은 공급자와 무관한 공통 산출물을 공유하는 것입니다. 검토자는 이 원문과 근거를 별도 세션에서 다시 읽습니다.";
+      "The proposal shares a provider-neutral common artifact. The reviewer rereads this source and its evidence in a separate session.";
     const codexClient = new DeliberationCodexClient(
       "codex-thread-proposer",
       "codex-turn-proposer",
@@ -91,7 +91,7 @@ describe("cross-provider deliberation runtime", () => {
         root: fixture.root,
         role: proposerRole,
       })),
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
@@ -108,7 +108,7 @@ describe("cross-provider deliberation runtime", () => {
     });
 
     const reviewContent =
-      "검토 결과는 변경 요청입니다. 공유 원문의 해시와 실제 주입 증거가 연결되어야 공급자 간 검토를 신뢰할 수 있습니다.";
+      "The review requests changes. The shared-source hash must be linked to actual injection evidence for cross-provider review to be trusted.";
     const claudeClient = new DeliberationClaudeClient(
       CLAUDE_SESSION_ID,
       CLAUDE_RESULT_ID,
@@ -153,7 +153,7 @@ describe("cross-provider deliberation runtime", () => {
         publications: [publication],
         handoff,
       })),
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
@@ -235,7 +235,7 @@ describe("cross-provider deliberation runtime", () => {
     const claudeClient = new DeliberationClaudeClient(
       CLAUDE_SESSION_ID,
       CLAUDE_RESULT_ID,
-      "이 결과는 제안자 역할에 배정되지 않은 공급자가 만들었습니다.",
+      "This result was produced by a provider not assigned to the proposer role.",
     );
     const run = coordinator({
       fixture,
@@ -267,7 +267,7 @@ describe("cross-provider deliberation runtime", () => {
         root: fixture.root,
         role: proposerRole,
       })),
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: { evaluate },
     })).rejects.toMatchObject({
       code: "artifact_publication_failed",

@@ -28,7 +28,7 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
     LIMIT 1
   `).get();
   if (invalidRetention !== undefined) {
-    throw new HubCommandError("artifact_integrity_failed", "artifact 수명주기 index가 원본과 다릅니다.");
+    throw new HubCommandError("artifact_integrity_failed", "The artifact lifecycle index differs from the source.");
   }
   const invalidPurge = database.prepare(`
     SELECT 1
@@ -72,7 +72,7 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
   if (
     invalidPurge !== undefined || invalidCompletion !== undefined ||
     completedClaim !== undefined
-  ) throw new HubCommandError("artifact_integrity_failed", "artifact 정리 원본 관계가 유효하지 않습니다.");
+  ) throw new HubCommandError("artifact_integrity_failed", "The artifact cleanup source relation is invalid.");
 
   for (const row of database.prepare(`
     SELECT artifact_uri, claim_id, kind, worker_id, claimed_at, claimed_at_ms,
@@ -96,7 +96,7 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
         typeof observedAt !== "string" || typeof observedAtMs !== "number" ||
         remoteCommandTimestamp(observedAt, "artifact observedModifiedAt") !== observedAtMs
       ))
-    ) throw new HubCommandError("artifact_integrity_failed", "artifact cleanup claim이 유효하지 않습니다.");
+    ) throw new HubCommandError("artifact_integrity_failed", "The artifact cleanup claim is invalid.");
   }
 
   for (const row of database.prepare(`
@@ -117,6 +117,6 @@ export function auditCommandArtifactLifecycle(database: DatabaseSync): void {
       !["completed", "partial"].includes(completionStatus) ||
       remoteCommandTimestamp(stringField(row, "completed_at"), "artifact lifecycle timestamp") !==
         integerField(row, "completed_at_ms")
-    ) throw new HubCommandError("artifact_integrity_failed", "artifact 정리 완료 원본이 유효하지 않습니다.");
+    ) throw new HubCommandError("artifact_integrity_failed", "The artifact cleanup completion source is invalid.");
   }
 }

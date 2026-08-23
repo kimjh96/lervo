@@ -61,7 +61,7 @@ export function assertPolicyApproval(input: {
   const { approval, snapshot } = input;
   assertPolicySnapshot(snapshot);
   if (!validateSchema("policyApproval", approval).valid) {
-    throw new PolicyContractError("invalid_policy_approval", "policy approval 계약이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_approval", "The policy approval contract is invalid.");
   }
   const { approvalId: _approvalId, ...content } = approval;
   const sortedPaths = [...approval.repositoryPaths].sort();
@@ -77,7 +77,7 @@ export function assertPolicyApproval(input: {
   ) {
     throw new PolicyContractError(
       "invalid_policy_approval",
-      "policy approval ID, 대상, snapshot 또는 기간이 원본과 다릅니다.",
+      "The policy approval ID, target, snapshot, or interval differs from the source.",
     );
   }
   if (input.command !== undefined) {
@@ -102,7 +102,7 @@ export function assertPolicyApproval(input: {
     ) {
       throw new PolicyContractError(
         "invalid_policy_approval",
-        "policy approval command 좌표나 기간이 원본과 다릅니다.",
+        "The policy approval command coordinates or interval differ from the source.",
       );
     }
   }
@@ -114,7 +114,7 @@ export function createPolicyApprovalRevocation(input: {
   reasonCode: PolicyApprovalRevocation["reasonCode"];
 }): PolicyApprovalRevocation {
   if (!validateSchema("policyApproval", input.approval).valid) {
-    throw new PolicyContractError("invalid_policy_revocation", "철회할 policy approval이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_revocation", "The policy approval to revoke is invalid.");
   }
   const content: PolicyRevocationContent = {
     schemaVersion: 1,
@@ -139,7 +139,7 @@ export function assertPolicyApprovalRevocation(input: {
     !validateSchema("policyApprovalRevocation", input.revocation).valid ||
     !validateSchema("policyApproval", input.approval).valid
   ) {
-    throw new PolicyContractError("invalid_policy_revocation", "policy approval revocation 계약이 유효하지 않습니다.");
+    throw new PolicyContractError("invalid_policy_revocation", "The policy approval revocation contract is invalid.");
   }
   const { revocationId: _revocationId, ...content } = input.revocation;
   if (
@@ -151,7 +151,7 @@ export function assertPolicyApprovalRevocation(input: {
   ) {
     throw new PolicyContractError(
       "invalid_policy_revocation",
-      "policy approval revocation ID, 대상 또는 시각이 원본과 다릅니다.",
+      "The policy approval revocation ID, target, or time differs from the source.",
     );
   }
 }

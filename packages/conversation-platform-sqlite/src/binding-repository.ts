@@ -261,10 +261,10 @@ export class ConversationPlatformBindingRepository {
   }
 
   private notFound(label: string): ConversationPlatformSQLiteError {
-    return new ConversationPlatformSQLiteError("mapping_not_found", `${label} mapping이 없습니다.`);
+    return new ConversationPlatformSQLiteError("mapping_not_found", `${label} mapping was not found.`);
   }
 
   private conflict(label: string): ConversationPlatformSQLiteError {
-    return new ConversationPlatformSQLiteError("conflicting_binding", `${label} binding이 기존 값과 다릅니다.`);
+    return new ConversationPlatformSQLiteError("conflicting_binding", `${label} binding differs from the existing value.`);
   }
 }

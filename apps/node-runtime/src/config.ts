@@ -23,7 +23,7 @@ function httpsUrl(value: unknown): string {
   try {
     url = new URL(raw);
   } catch (error) {
-    throw new NodeRuntimeError("invalid_config", "hub.baseUrl이 유효하지 않습니다.", {
+    throw new NodeRuntimeError("invalid_config", "hub.baseUrl is invalid.", {
       cause: error,
     });
   }
@@ -33,7 +33,7 @@ function httpsUrl(value: unknown): string {
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
-      "hub.baseUrl은 credential·query가 없는 HTTPS URL이어야 합니다.",
+      "hub.baseUrl must be an HTTPS URL without credentials or a query string.",
     );
   }
   return url.href;
@@ -43,14 +43,14 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   const source = configRecord(value, "Node runtime config");
   exactConfigKeys(source, ["schemaVersion", "repositoryRoot", "hub", "sync", "remoteCommands"], "Node runtime config");
   if (source.schemaVersion !== 1) {
-    throw new NodeRuntimeError("invalid_config", "Node runtime config schemaVersion은 1이어야 합니다.");
+    throw new NodeRuntimeError("invalid_config", "Node runtime config schemaVersion must be 1.");
   }
   const hub = configRecord(source.hub, "hub");
   exactConfigKeys(hub, ["baseUrl", "bearerTokenFile", "destinationId", "hubIdentityHash"], "hub");
   const destinationId = configText(hub.destinationId, "hub.destinationId");
   const hubIdentityHash = configText(hub.hubIdentityHash, "hub.hubIdentityHash");
   if (!DESTINATION_PATTERN.test(destinationId) || !HASH_PATTERN.test(hubIdentityHash)) {
-    throw new NodeRuntimeError("invalid_config", "Hub destination 또는 identity가 유효하지 않습니다.");
+    throw new NodeRuntimeError("invalid_config", "The Hub destination or identity is invalid.");
   }
   const sync = configRecord(source.sync, "sync");
   exactConfigKeys(sync, [
@@ -65,7 +65,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   ], "sync");
   const workerId = configText(sync.workerId, "sync.workerId");
   if (!WORKER_PATTERN.test(workerId)) {
-    throw new NodeRuntimeError("invalid_config", "sync.workerId가 유효하지 않습니다.");
+    throw new NodeRuntimeError("invalid_config", "sync.workerId is invalid.");
   }
   const integer = (key: string, minimum: number, maximum: number) =>
     optionalConfigInteger(sync, key, minimum, maximum, "sync");
@@ -111,7 +111,7 @@ export async function loadNodeRuntimeConfig(path: string): Promise<NodeRuntimeCo
     const code = error instanceof RuntimeSecurityError && error.code === "invalid_text"
       ? "invalid_config"
       : "unsafe_runtime_file";
-    throw new NodeRuntimeError(code, "Node runtime 구성 파일을 안전하게 읽지 못했습니다.", {
+    throw new NodeRuntimeError(code, "Could not read the Node runtime config file safely.", {
       cause: error,
     });
   }
@@ -119,7 +119,7 @@ export async function loadNodeRuntimeConfig(path: string): Promise<NodeRuntimeCo
   try {
     value = JSON.parse(serialized);
   } catch (error) {
-    throw new NodeRuntimeError("invalid_config", "Node runtime config JSON이 유효하지 않습니다.", {
+    throw new NodeRuntimeError("invalid_config", "The Node runtime config is not valid JSON.", {
       cause: error,
     });
   }

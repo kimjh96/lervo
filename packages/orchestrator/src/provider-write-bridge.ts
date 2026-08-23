@@ -35,7 +35,7 @@ function assertAdapterMessage(value: unknown, label: string): void {
   if (!validateSchema("adapter", value).valid) {
     throw writeError(
       "contract_validation_failed",
-      `${label}이 adapter 계약을 통과하지 못했습니다.`,
+      `${label} does not satisfy the adapter contract.`,
     );
   }
 }
@@ -63,13 +63,13 @@ function wrapWriteFailure(error: unknown): ManagedProviderRunError {
   if (error instanceof ManagedContextError && error.code === "telemetry_recording_failed") {
     return writeError(
       "telemetry_recording_failed",
-      "Managed write telemetry 기록에 실패했습니다.",
+      "Failed to record managed write telemetry.",
       { cause: error },
     );
   }
   return writeError(
     "provider_write_failed",
-    "Managed write 정책 또는 파일 검증 단계가 실패했습니다.",
+    "The managed write policy or file validation stage failed.",
     { cause: error instanceof Error ? error : undefined },
   );
 }
@@ -87,6 +87,8 @@ function changeKind(
 export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
   private readonly approvals = new Map<string, ApprovedWrite>();
   private readonly completed: ManagedFileChangeEvidence[] = [];
+  private activeExpectedPath: string | undefined;
+  private completedBeforeTurn = 0;
 
   constructor(
     private readonly options: {
@@ -104,6 +106,21 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     },
   ) {}
 
+  beginTurn(expectedPath: string): void {
+    if (
+      this.activeExpectedPath !== undefined || this.approvals.size > 0 ||
+      !this.options.plan.allowedPaths.includes(expectedPath) ||
+      this.completed.some((change) => change.path === expectedPath)
+    ) {
+      throw writeError(
+        "contract_validation_failed",
+        "The managed write turn expected path differs from the execution plan.",
+      );
+    }
+    this.activeExpectedPath = expectedPath;
+    this.completedBeforeTurn = this.completed.length;
+  }
+
   async authorize(
     request: AdapterManagedWriteRequest,
   ): Promise<AdapterManagedWriteDecision> {
@@ -112,7 +129,7 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     if (turn === undefined) {
       throw writeError(
         "contract_validation_failed",
-        "Turn 수락 전에 managed write를 요청할 수 없습니다.",
+        "A managed write cannot be requested before turn acceptance.",
       );
     }
     const binding = inspectManagedWriteRequestBinding({
@@ -123,12 +140,14 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     if (
       !binding.passed ||
       !this.options.plan.allowedPaths.includes(request.path) ||
+      request.path !== this.activeExpectedPath ||
       this.approvals.has(request.providerItemId) ||
+      this.completed.some((change) => change.path === request.path) ||
       this.completed.length >= this.options.plan.maximumVerifiedChanges
     ) {
       throw writeError(
         "contract_validation_failed",
-        "Managed write 요청 좌표가 현재 turn과 다르거나 중복되었습니다.",
+        "The managed write request coordinates differ from the current turn or are duplicated.",
       );
     }
     let decision;
@@ -171,7 +190,7 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     if (approved === undefined) {
       throw writeError(
         "contract_validation_failed",
-        "승인되지 않은 managed write 완료 보고를 받았습니다.",
+        "Received an unapproved managed write completion report.",
       );
     }
     const binding = inspectManagedWriteCompletionBinding({
@@ -182,13 +201,13 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     if (!binding.passed) {
       throw writeError(
         "contract_validation_failed",
-        "Managed write 완료 보고가 승인 좌표와 다릅니다.",
+        "The managed write completion report differs from the approval coordinates.",
       );
     }
     if (completion.status !== "completed") {
       throw writeError(
         "provider_write_failed",
-        "승인된 provider 파일 변경이 완료되지 않았습니다.",
+        "The approved provider file change was not completed.",
       );
     }
     const afterHash = await readManagedFileHash(
@@ -203,7 +222,7 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     ) {
       throw writeError(
         "provider_write_failed",
-        "Provider가 승인된 종류와 다른 파일 상태를 만들었습니다.",
+        "The provider created a file state different from the approved kind.",
       );
     }
     let evidence;
@@ -223,15 +242,30 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     this.completed.push(structuredClone(evidence));
   }
 
+  assertTurnSettled(expectedPath: string): void {
+    const changes = this.completed.slice(this.completedBeforeTurn);
+    if (
+      this.activeExpectedPath !== expectedPath || this.approvals.size > 0 ||
+      changes.length !== this.options.plan.pathsPerTurn || changes[0]?.path !== expectedPath
+    ) {
+      throw writeError(
+        "provider_write_failed",
+        "The managed write turn did not complete its single expected path as a verified change.",
+      );
+    }
+    this.activeExpectedPath = undefined;
+    this.completedBeforeTurn = this.completed.length;
+  }
+
   assertSettled(): void {
     if (
-      this.approvals.size > 0 ||
+      this.approvals.size > 0 || this.activeExpectedPath !== undefined ||
       this.completed.length < this.options.plan.minimumVerifiedChanges ||
       this.completed.length > this.options.plan.maximumVerifiedChanges
     ) {
       throw writeError(
         "provider_write_failed",
-        "Managed write run의 검증된 변경 수가 실행 계획과 다릅니다.",
+        "The managed write run verified-change count differs from the execution plan.",
       );
     }
   }
@@ -245,7 +279,7 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     if (!Number.isFinite(value.getTime())) {
       throw writeError(
         "contract_validation_failed",
-        "Managed write bridge 시각이 유효하지 않습니다.",
+        "The managed write bridge time is invalid.",
       );
     }
     return new Date(value.getTime());

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_06a1a6c7c1bee51428422108
+freshness: current
+ownership: user
+path: docs/research/provider-instruction-entrypoints.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b0709e2ae9dd23ee654d5f29
+title: Provider instruction entrypoint research
+type: concept

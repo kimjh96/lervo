@@ -48,7 +48,7 @@ function retryDelay(result: SyncCycleResult, input: {
   if (!Number.isFinite(at) || !Number.isFinite(now)) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",
-      "outbound sync polling 시각이 유효하지 않습니다.",
+      "The outbound synchronization polling time is invalid.",
     );
   }
   return Math.max(0, at - now);
@@ -64,7 +64,7 @@ export async function runOutboundSyncLoop(
   ) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",
-      "outbound sync idle poll 간격이 유효하지 않습니다.",
+      "The outbound synchronization idle polling interval is invalid.",
     );
   }
   const wait = options.wait ?? systemWait;

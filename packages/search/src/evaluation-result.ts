@@ -46,7 +46,7 @@ export function createSearchEvaluationResult(input: {
   if (input.response.queryDigest !== input.evaluationCase.queryDigest ||
     input.response.queryCharacterCount !== input.evaluationCase.queryCharacterCount ||
     input.response.queryTermCount !== input.evaluationCase.queryTermCount) {
-    throw new SearchError("invalid_evaluation_result", "검색 평가 결과의 질의 좌표가 케이스와 다릅니다.");
+    throw new SearchError("invalid_evaluation_result", "Query coordinates in the search evaluation result differ from the case.");
   }
   const measurement = measureSearchExpectation(
     input.evaluationCase.expectation,
@@ -108,7 +108,7 @@ export function assertSearchEvaluationResult(
     result.embeddingDecision !== "not_determined" || !Array.isArray(result.expectedSourceRanks) ||
     result.expectedSourceRanks.length < 1 || result.expectedSourceRanks.length > SEARCH_MAX_RESULTS ||
     !Array.isArray(result.hits) || result.hits.length !== result.returnedHits) {
-    throw new SearchError("invalid_evaluation_result", "검색 평가 결과 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_result", "The search evaluation result contract is invalid.");
   }
   assertSearchEngineIdentity(result.engine, "invalid_evaluation_result");
   assertTimestamp(result.evaluatedAt, "invalid_evaluation_result");
@@ -116,7 +116,7 @@ export function assertSearchEvaluationResult(
     if (!searchSourceKinds.includes(hit.sourceKind) || !SOURCE_ID_PATTERN.test(hit.sourceId) ||
       !SHA256_PATTERN.test(hit.contentHash) || hit.rank !== index + 1 ||
       !Number.isSafeInteger(hit.score) || hit.score < 1) {
-      throw new SearchError("invalid_evaluation_result", "검색 평가 결과의 hit 좌표가 유효하지 않습니다.");
+      throw new SearchError("invalid_evaluation_result", "Hit coordinates in the search evaluation result are invalid.");
     }
   }
   if (new Set(result.hits.map(hitKey)).size !== result.hits.length ||
@@ -125,7 +125,7 @@ export function assertSearchEvaluationResult(
       const previous = result.hits[index - 1]!;
       return hit.score > previous.score || (hit.score === previous.score && hitKey(hit) <= hitKey(previous));
     }) || canonicalHash(result.hits) !== result.resultSetHash) {
-    throw new SearchError("invalid_evaluation_result", "검색 평가 결과의 hit 순서 또는 result-set hash가 다릅니다.");
+    throw new SearchError("invalid_evaluation_result", "Hit order or result-set hash in the search evaluation result differs.");
   }
   assertOrderedEvaluationSources(result.expectedSourceRanks, "invalid_evaluation_result");
   const hitRanks = new Map(result.hits.map((hit) => [hitKey(hit), hit.rank]));
@@ -133,18 +133,18 @@ export function assertSearchEvaluationResult(
     if (typeof source !== "object" || source === null ||
       (source.rank !== null && (!Number.isSafeInteger(source.rank) || source.rank < 1 ||
         source.rank > result.requestedLimit))) {
-      throw new SearchError("invalid_evaluation_result", "검색 평가 결과의 기대 원본 순위가 유효하지 않습니다.");
+      throw new SearchError("invalid_evaluation_result", "An expected source rank in the search evaluation result is invalid.");
     }
     return evaluationSourceKey(source);
   });
   if (result.expectedSourceRanks.filter((source) => source.rank !== null).length > result.returnedHits) {
-    throw new SearchError("invalid_evaluation_result", "기대 원본 순위 수가 실제 결과 수보다 큽니다.");
+    throw new SearchError("invalid_evaluation_result", "The expected source rank count exceeds the actual result count.");
   }
   if (result.expectedSourceRanks.some((source) => source.rank !== (hitRanks.get(evaluationSourceKey(source)) ?? null))) {
-    throw new SearchError("invalid_evaluation_result", "기대 원본 순위가 실제 hit 좌표와 다릅니다.");
+    throw new SearchError("invalid_evaluation_result", "Expected source ranks differ from actual hit coordinates.");
   }
   if (new Set(keys).size !== keys.length || keys.some((key, index) => index > 0 && keys[index - 1]! >= key)) {
-    throw new SearchError("invalid_evaluation_result", "검색 평가 결과의 기대 원본 순서가 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_result", "Expected source order in the search evaluation result is invalid.");
   }
   if (evaluationCase !== undefined) {
     assertSearchEvaluationCase(evaluationCase);
@@ -159,7 +159,7 @@ export function assertSearchEvaluationResult(
       result.projectId !== evaluationCase.projectId ||
       result.queryDigest !== evaluationCase.queryDigest || keys.some((key, index) => key !== caseKeys[index]) ||
       result.status !== status || result.comparisonToReference !== expectedComparison) {
-      throw new SearchError("invalid_evaluation_result", "검색 평가 결과가 대상 케이스와 다릅니다.");
+      throw new SearchError("invalid_evaluation_result", "The search evaluation result differs from its target case.");
     }
     const expectedFailure = status === "passed"
       ? null
@@ -169,11 +169,11 @@ export function assertSearchEvaluationResult(
           ? "expected_source_missing"
           : "low_rank";
     if (result.failureReason !== expectedFailure) {
-      throw new SearchError("invalid_evaluation_result", "검색 평가 결과의 실패 사유가 순위와 다릅니다.");
+      throw new SearchError("invalid_evaluation_result", "The search evaluation result failure reason conflicts with its ranks.");
     }
   }
   const { schemaVersion: _schema, resultId: _id, ...core } = result;
   if (contentId("ser", core) !== result.resultId) {
-    throw new SearchError("invalid_evaluation_result", "검색 평가 결과 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_evaluation_result", "The search evaluation result ID does not match its content.");
   }
 }

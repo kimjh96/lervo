@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7f0bad64520265ebaab14c7d
+freshness: current
+ownership: user
+path: docs/decisions/index.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7faa5c3f5771bd94fe9c5769
+title: Architecture decisions
+type: decision

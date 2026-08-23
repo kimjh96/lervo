@@ -42,7 +42,7 @@ function assertReceiptOutputs(receipt, snapshots) {
     ) {
       fail(
         "first_publication_package_metadata_post_apply_source_mismatch",
-        "CLI 최초 게시 package metadata 적용 결과가 영수증과 다릅니다.",
+        "The CLI first-publication package metadata apply result differs from the receipt.",
       );
     }
   }
@@ -59,7 +59,7 @@ function assertReleaseConsistency(input) {
   } catch {
     fail(
       "first_publication_package_metadata_post_apply_release_inconsistent",
-      "CLI 최초 게시 package metadata와 release 원본이 일치하지 않습니다.",
+      "The CLI first-publication package metadata does not match the release sources.",
     );
   }
 }
@@ -69,7 +69,7 @@ function reportBody(input) {
   if (input.transactionState?.status !== "clear") {
     fail(
       "first_publication_package_metadata_post_apply_transaction_pending",
-      "중단된 CLI 최초 게시 package metadata transaction을 먼저 복구해야 합니다.",
+      "The interrupted CLI first-publication package metadata transaction must be recovered first.",
     );
   }
   assertReceiptOutputs(input.receipt, input.sourceSnapshots);
@@ -78,7 +78,7 @@ function reportBody(input) {
   if (local.localStatus !== "ready") {
     fail(
       "first_publication_package_metadata_post_apply_local_metadata_incomplete",
-      "CLI 최초 게시 package metadata의 로컬 차단 항목이 남아 있습니다.",
+      "Local blockers remain in the CLI first-publication package metadata.",
     );
   }
   return {
@@ -128,13 +128,13 @@ export function validateFirstPublicationPackageMetadataPostApplyReport(report, i
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail(
       "first_publication_package_metadata_post_apply_report_invalid",
-      "CLI 최초 게시 package metadata 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication package metadata post-apply verification report is invalid.",
     );
   }
   if (canonicalJson(report) !== canonicalJson(expected)) {
     fail(
       "first_publication_package_metadata_post_apply_report_invalid",
-      "CLI 최초 게시 package metadata 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication package metadata post-apply verification report is invalid.",
     );
   }
   return report;

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0017-sharded-document-manifests.md
+identityPath: docs/adr/0017-sharded-document-manifests.md
+kind: document_move
+lineageId: klineage_3f3b6a6e26001041cb9eb852
+operationId: kdocop_2a71daa071d18bfa216ae83b
+schemaVersion: 1
+sourceContentHash: sha256:de6814cd5db4034e2842973d8214a193bc01f588e49c6dc7d646a814399d0dc4
+sourceId: src_79ea1b5ecd6a69369b392215
+sourceUnitBindingDigest: sha256:de99f1890d46fc95dd5842771f689f35ad60f421eec312f7bf9b05795d25b5eb
+sourceUnitCount: 9
+toPath: docs/decisions/knowledge/documents/0017-sharded-document-manifests.md

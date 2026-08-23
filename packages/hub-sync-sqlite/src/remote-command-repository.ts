@@ -57,13 +57,13 @@ export class HubRemoteCommandSQLiteRepository {
     if (registration === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
-        "remote command target project가 Hub에 등록되지 않았습니다.",
+        "The remote command target project is not registered with the Hub.",
       );
     }
     if (stringField(registration, "identity_hash") !== command.target.projectIdentityHash) {
       throw new HubRemoteCommandStoreError(
         "remote_command_identity_mismatch",
-        "remote command target identity가 Hub registration과 다릅니다.",
+        "The remote command target identity differs from the Hub registration.",
       );
     }
     const queuedAtMs = remoteCommandTimestamp(input.queuedAt, "queuedAt");
@@ -72,7 +72,7 @@ export class HubRemoteCommandSQLiteRepository {
     if (queuedAtMs >= expiresAtMs) {
       throw new HubRemoteCommandStoreError(
         "remote_command_conflict",
-        "만료된 remote command는 Hub queue에 저장할 수 없습니다.",
+        "An expired remote command cannot be stored in the Hub queue.",
       );
     }
 
@@ -100,7 +100,7 @@ export class HubRemoteCommandSQLiteRepository {
       ) {
         throw new HubRemoteCommandStoreError(
           "remote_command_conflict",
-          "같은 remote command 좌표에 다른 envelope이 이미 있습니다.",
+          "A different envelope already exists at the same remote command coordinates.",
         );
       }
       return {
@@ -157,13 +157,13 @@ export class HubRemoteCommandSQLiteRepository {
     if (registration === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
-        "remote command lease project가 Hub에 등록되지 않았습니다.",
+        "The remote command lease project is not registered with the Hub.",
       );
     }
     if (stringField(registration, "identity_hash") !== input.target.projectIdentityHash) {
       throw new HubRemoteCommandStoreError(
         "remote_command_identity_mismatch",
-        "remote command lease identity가 Hub registration과 다릅니다.",
+        "The remote command lease identity differs from the Hub registration.",
       );
     }
 
@@ -214,7 +214,7 @@ export class HubRemoteCommandSQLiteRepository {
       if (result.changes !== 1) {
         throw new HubSyncStoreError(
           "write_failed",
-          "Hub remote command lease를 원자적으로 예약하지 못했습니다.",
+          "Could not reserve the Hub remote command lease atomically.",
         );
       }
       return createRemoteCommandLease({
@@ -251,7 +251,7 @@ export class HubRemoteCommandSQLiteRepository {
     if (row === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
-        "remote command acknowledgement 대상이 없습니다.",
+        "The remote command acknowledgement target is missing.",
       );
     }
     const status = parseRemoteCommandQueueStatus(stringField(row, "status"));
@@ -263,14 +263,14 @@ export class HubRemoteCommandSQLiteRepository {
     ) {
       throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
-        "remote command acknowledgement scope가 현재 lease와 다릅니다.",
+        "The remote command acknowledgement scope differs from the current lease.",
       );
     }
     if (status === "completed" || status === "rejected") {
       if (nullableStringField(row, "acknowledgement_hash") !== acknowledgementHash) {
         throw new HubRemoteCommandStoreError(
           "remote_command_ack_invalid",
-          "terminal remote command에 다른 acknowledgement가 도착했습니다.",
+          "A different acknowledgement arrived for the terminal remote command.",
         );
       }
       return createRemoteCommandDeliveryConfirmation({
@@ -287,7 +287,7 @@ export class HubRemoteCommandSQLiteRepository {
     ) {
       throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
-        "remote command acknowledgement가 현재 lease와 다릅니다.",
+        "The remote command acknowledgement differs from the current lease.",
       );
     }
     const envelope = parseStoredRemoteCommandEnvelope(row);
@@ -307,7 +307,7 @@ export class HubRemoteCommandSQLiteRepository {
     } catch (error) {
       throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
-        "remote command acknowledgement 계약이 현재 lease와 다릅니다.",
+        "The remote command acknowledgement contract differs from the current lease.",
         { cause: error },
       );
     }
@@ -330,7 +330,7 @@ export class HubRemoteCommandSQLiteRepository {
     if (updated.changes !== 1) {
       throw new HubSyncStoreError(
         "write_failed",
-        "Hub remote command acknowledgement를 원자적으로 완료하지 못했습니다.",
+        "Could not complete the Hub remote command acknowledgement atomically.",
       );
     }
     return createRemoteCommandDeliveryConfirmation({

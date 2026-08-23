@@ -1,0 +1,11 @@
+fromPath: docs/adr/0160-real-https-managed-provider-vertical-pilot.md
+identityPath: docs/adr/0160-real-https-managed-provider-vertical-pilot.md
+kind: document_move
+lineageId: klineage_be8428be956453205fe6fb5b
+operationId: kdocop_e3bc6219550a501dc9205acc
+schemaVersion: 1
+sourceContentHash: sha256:ccc1b964eebbe822e01e502bd03b878326e4f9bb1ec5d091a76be95f0339bcb2
+sourceId: src_1505213060d4f3f3db076b9c
+sourceUnitBindingDigest: sha256:270d0c13cbe8ddd0fcdab493abb1f119f4e3a7755300393f8364573c89175697
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0160-real-https-managed-provider-vertical-pilot.md

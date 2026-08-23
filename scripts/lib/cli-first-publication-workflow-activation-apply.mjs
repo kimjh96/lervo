@@ -45,7 +45,7 @@ export async function applyCliFirstPublicationWorkflowActivation(
 ) {
   if (online !== true) fail(
     "first_publication_workflow_activation_apply_online_required",
-    "CLI 최초 게시 workflow 활성화 적용에는 온라인 재확인이 필요합니다.",
+    "Applying CLI first-publication workflow activation requires online revalidation.",
   );
   validateReadinessRepository(repository);
   const paths = dependencies.paths ?? firstPublicationWorkflowActivationPaths;
@@ -108,7 +108,7 @@ export async function applyCliFirstPublicationWorkflowActivation(
     canonicalJson(currentReadiness) !== canonicalJson(sources.permit.readiness.report)
   ) fail(
     "first_publication_workflow_activation_controls_changed",
-    "CLI 최초 게시 workflow 활성화 외부 보호 설정이 허가 뒤 달라졌습니다.",
+    "The CLI first-publication workflow activation external protections changed after authorization.",
   );
   await sources.assertUnchanged();
   const planInput = {
@@ -141,7 +141,7 @@ export async function applyCliFirstPublicationWorkflowActivation(
     recovery: "not_required",
   })) fail(
     "first_publication_workflow_activation_apply_failed",
-    "CLI 최초 게시 workflow 활성화 transaction 결과가 올바르지 않습니다.",
+    "The CLI first-publication workflow activation transaction result is invalid.",
   );
   const receipt = createFirstPublicationWorkflowActivationReceipt(planResult.plan, clock());
   return validateFirstPublicationWorkflowActivationReceipt(receipt, planResult.plan);

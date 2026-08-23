@@ -12,7 +12,7 @@ import type { CliIo } from "./types.js";
 
 export async function runSearchEnginePolicyCommand(args: string[], io: CliIo): Promise<number> {
   if (args[0] !== "create") {
-    io.stderr(`검색 엔진 정책 작업은 create를 명시해야 합니다.\n${searchUsage}\n`);
+    io.stderr(`The search engine policy action must be create.\n${searchUsage}\n`);
     return 1;
   }
   let parsed;
@@ -41,7 +41,7 @@ export async function runSearchEnginePolicyCommand(args: string[], io: CliIo): P
   const minimumWins = Number(parsed.values["minimum-wins"]);
   if (reviewers.length === 0 || operators.length === 0 || candidates.length === 0 ||
     parsed.values.author === undefined) {
-    io.stderr(`reviewer, operator, author와 candidate를 각각 하나 이상 명시해야 합니다.\n${searchUsage}\n`);
+    io.stderr(`At least one reviewer, operator, author, and candidate are required.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -63,8 +63,8 @@ export async function runSearchEnginePolicyCommand(args: string[], io: CliIo): P
       : formatSearchEngineActivationPolicy(policy));
     return 0;
   } catch (error) {
-    io.stderr(`검색 엔진 활성화 정책을 만들지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not create the search engine activation policy. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

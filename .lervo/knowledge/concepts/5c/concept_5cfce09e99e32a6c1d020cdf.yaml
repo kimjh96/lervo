@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5cfce09e99e32a6c1d020cdf
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0133-cli-two-provider-deliberation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_33f3ac97743cb5e422ae758b
+title: "ADR-0133: User-Facing Codex–Claude Deliberation CLI"
+type: decision

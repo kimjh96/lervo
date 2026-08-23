@@ -12,7 +12,11 @@ const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CONTEXT_ID = "22222222-2222-4222-8222-222222222222";
 const TURN_ID = "33333333-3333-4333-8333-333333333333";
 
-function fakeSdk(options: { alterReplay?: boolean; hangOnReturn?: boolean } = {}) {
+function fakeSdk(options: {
+  alterReplay?: boolean;
+  acknowledgeSyntheticWithLifecycle?: boolean;
+  hangOnReturn?: boolean;
+} = {}) {
   const state = {
     startupParams: undefined as Parameters<typeof startup>[0] | undefined,
     interrupted: false,
@@ -31,6 +35,43 @@ function fakeSdk(options: { alterReplay?: boolean; hangOnReturn?: boolean } = {}
             uuid: "44444444-4444-4444-8444-444444444444",
           };
           for await (const message of input) {
+            if (options.acknowledgeSyntheticWithLifecycle === true && message.shouldQuery === false) {
+              yield {
+                type: "command_lifecycle",
+                state: "started",
+                command_uuid: message.uuid,
+                session_id: SESSION_ID,
+                uuid: "55555555-5555-4555-8555-555555555555",
+              };
+              yield {
+                type: "result",
+                subtype: "success",
+                is_error: false,
+                num_turns: 0,
+                session_id: SESSION_ID,
+                uuid: "66666666-6666-4666-8666-666666666666",
+                result: "",
+                duration_ms: 0,
+              };
+              yield {
+                type: "command_lifecycle",
+                state: "completed",
+                command_uuid: message.uuid,
+                session_id: SESSION_ID,
+                uuid: "77777777-7777-4777-8777-777777777777",
+              };
+              continue;
+            }
+            if (options.acknowledgeSyntheticWithLifecycle === true && message.shouldQuery !== false) {
+              yield {
+                type: "command_lifecycle",
+                state: "started",
+                command_uuid: message.uuid,
+                session_id: SESSION_ID,
+                uuid: "88888888-8888-4888-8888-888888888888",
+              };
+              continue;
+            }
             const replay = structuredClone(message) as SDKUserMessage & { isReplay: true };
             replay.isReplay = true;
             if (options.alterReplay === true) {
@@ -138,6 +179,25 @@ describe("Claude Agent SDK client", () => {
 
     await client.interrupt();
     expect(fake.state.interrupted).toBe(true);
+    await client.close();
+  });
+
+  it("accepts and suppresses the SDK lifecycle acknowledgement for synthetic context", async () => {
+    const fake = fakeSdk({ acknowledgeSyntheticWithLifecycle: true });
+    const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);
+    await client.appendContext("managed context secret");
+    await client.startTurn(TURN_ID, "managed task secret");
+
+    const controller = new AbortController();
+    const iterator = client.messages(controller.signal)[Symbol.asyncIterator]();
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: { type: "system", subtype: "init" },
+    });
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: { type: "command_lifecycle", state: "started", command_uuid: TURN_ID },
+    });
+    controller.abort();
+    await iterator.return?.();
     await client.close();
   });
 

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0124-cli-npm-stage-result-artifact-evidence.md
+identityPath: docs/adr/0124-cli-npm-stage-result-artifact-evidence.md
+kind: document_move
+lineageId: klineage_aedb6132ffb579a0c700878e
+operationId: kdocop_a6ae3d73b533ff9ab2a406db
+schemaVersion: 1
+sourceContentHash: sha256:5c1aea37fe12e8f488b74c2e91fbcde56b11931ae9203c10da386ef280e7a973
+sourceId: src_cfb5fb649d2e857e5b0ffc54
+sourceUnitBindingDigest: sha256:73ffd69ece716df4615995dd1c064f5658096e7831b9a7cccc374651f3ece7e7
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md

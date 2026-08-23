@@ -19,7 +19,7 @@ export function assertFirstPublicationStageReviewBinding(input) {
     target.attempt !== input.attempt
   ) fail(
     "first_publication_stage_review_source_mismatch",
-    "npm staged package 검토 좌표와 stage 결과 증거가 일치하지 않습니다.",
+    "The npm staged-package review coordinates do not match the stage-result evidence.",
   );
   return input.stageResultReport;
 }
@@ -27,7 +27,7 @@ export function assertFirstPublicationStageReviewBinding(input) {
 function validateObservation(observation, stageResultReport) {
   if (observation?.state !== "observed") fail(
     "first_publication_stage_review_not_ready",
-    "Exact npm staged package와 tarball을 확인하지 못했습니다.",
+    "The exact npm staged package and tarball could not be verified.",
   );
   const expected = stageResultReport.stage;
   const exactKeys = (value, keys) => value !== null && typeof value === "object" &&
@@ -61,7 +61,7 @@ function validateObservation(observation, stageResultReport) {
     }) !== canonicalJson(expected.artifact)
   ) fail(
     "first_publication_stage_review_observation_invalid",
-    "npm staged package 검토 관측이 올바르지 않습니다.",
+    "The npm staged-package review observation is invalid.",
   );
   return observation;
 }
@@ -83,7 +83,7 @@ export function validateFirstPublicationStageReviewEvidence(report, input) {
   const expected = createFirstPublicationStageReviewEvidence(input);
   if (canonicalJson(report) !== canonicalJson(expected)) fail(
     "first_publication_stage_review_report_invalid",
-    "CLI npm staged package 검토 증거 보고서가 올바르지 않습니다.",
+    "The CLI npm staged-package review evidence report is invalid.",
   );
   return report;
 }

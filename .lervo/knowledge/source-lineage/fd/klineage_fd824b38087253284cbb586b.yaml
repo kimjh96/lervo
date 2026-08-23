@@ -1,0 +1,11 @@
+fromPath: docs/adr/0156-managed-provider-skill-resolution.md
+identityPath: docs/adr/0156-managed-provider-skill-resolution.md
+kind: document_move
+lineageId: klineage_fd824b38087253284cbb586b
+operationId: kdocop_757443efcf67c8453cfa701d
+schemaVersion: 1
+sourceContentHash: sha256:97be60c6ccf12ac177fda4e116e5634d33b2021b9277af55d1b1f452642099e8
+sourceId: src_2978d022ce6144aebc38de52
+sourceUnitBindingDigest: sha256:3548f9bd6c8a3107ce9baf6e86e8ab47af609c3344fd7a9389e4fdc64c38e8e3
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0156-managed-provider-skill-resolution.md

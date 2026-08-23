@@ -1,0 +1,11 @@
+fromPath: docs/adr/0155-managed-provider-role-registry.md
+identityPath: docs/adr/0155-managed-provider-role-registry.md
+kind: document_move
+lineageId: klineage_1f316b05a44d5a04c568833b
+operationId: kdocop_74785ddb04e1b71d00d20b3c
+schemaVersion: 1
+sourceContentHash: sha256:1b4bbc8bc5f989ccfcc064884b77f8ab3c076ed18730b5db28133d3135634c83
+sourceId: src_ce4244718bcc0a42a70d8b49
+sourceUnitBindingDigest: sha256:9b69a1e662d0b148bde7245cdaced6531f5a85829315f3a25ff1421d7340248b
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0155-managed-provider-role-registry.md

@@ -26,9 +26,9 @@ function evaluationCase(input: {
     sourceId: "doc_bundle_guide_01",
     contentHash: CONTENT_HASH,
     path: "docs/bundle-guide.md",
-    title: "평가 묶음 안내",
+    title: "Evaluation bundle guide",
     labels: [],
-    text: `검색 평가 표본 ${input.query} 문서입니다.`,
+    text: `Search evaluation sample document for ${input.query}.`,
   };
   const response = new LexicalSearchIndex([source]).search(input.query, 5);
   const attempt = createSearchAttempt({
@@ -49,9 +49,9 @@ function evaluationCase(input: {
 
 describe("search evaluation sample bundles", () => {
   it("selects active cases through acyclic replacements and reports sufficient samples", () => {
-    const oldCase = evaluationCase({ query: "이전표본", nonce: "a", minute: 1 });
-    const replacement = evaluationCase({ query: "새표본", nonce: "b", minute: 2 });
-    const second = evaluationCase({ query: "추가표본", nonce: "c", minute: 3 });
+    const oldCase = evaluationCase({ query: "old-sample", nonce: "a", minute: 1 });
+    const replacement = evaluationCase({ query: "new-sample", nonce: "b", minute: 2 });
+    const second = evaluationCase({ query: "additional-sample", nonce: "c", minute: 3 });
     const bundle = createSearchEvaluationBundle({
       bundleId: "researcher.discovery",
       projectId: oldCase.projectId,
@@ -72,11 +72,11 @@ describe("search evaluation sample bundles", () => {
       comparisonReadiness: "ready",
       embeddingDecision: "not_determined",
     });
-    expect(JSON.stringify({ bundle, coverage })).not.toContain("이전표본");
+    expect(JSON.stringify({ bundle, coverage })).not.toContain("old-sample");
   });
 
   it("keeps an undersized bundle explicitly ineligible for comparison", () => {
-    const only = evaluationCase({ query: "단일표본", nonce: "d", minute: 4 });
+    const only = evaluationCase({ query: "single-sample", nonce: "d", minute: 4 });
     const bundle = createSearchEvaluationBundle({
       bundleId: "designer.tokens",
       projectId: only.projectId,
@@ -96,9 +96,9 @@ describe("search evaluation sample bundles", () => {
   });
 
   it("rejects cycles, missing cases and duplicate active queries", () => {
-    const first = evaluationCase({ query: "중복표본", nonce: "e", minute: 5 });
-    const duplicateQuery = evaluationCase({ query: "중복표본", nonce: "f", minute: 6 });
-    const terminal = evaluationCase({ query: "종료표본", nonce: "1", minute: 7 });
+    const first = evaluationCase({ query: "duplicate-sample", nonce: "e", minute: 5 });
+    const duplicateQuery = evaluationCase({ query: "duplicate-sample", nonce: "f", minute: 6 });
+    const terminal = evaluationCase({ query: "terminal-sample", nonce: "1", minute: 7 });
 
     expect(() => createSearchEvaluationBundle({
       bundleId: "general.cycle",
@@ -111,7 +111,7 @@ describe("search evaluation sample bundles", () => {
         { replacedCaseId: first.caseId, replacementCaseId: duplicateQuery.caseId },
         { replacedCaseId: duplicateQuery.caseId, replacementCaseId: first.caseId },
       ],
-    })).toThrow(/순환/);
+    })).toThrow(/contain a cycle/);
 
     const duplicateBundle = createSearchEvaluationBundle({
       bundleId: "general.duplicate",
@@ -122,12 +122,12 @@ describe("search evaluation sample bundles", () => {
       activeCaseIds: [first.caseId, duplicateQuery.caseId],
     });
     expect(() => assertSearchEvaluationBundle(duplicateBundle, [first, duplicateQuery]))
-      .toThrow(/query를 활성 표본으로 중복/);
-    expect(() => assertSearchEvaluationBundle(duplicateBundle, [first])).toThrow(/없거나 다른 project/);
+      .toThrow(/same search query cannot be counted more than once/);
+    expect(() => assertSearchEvaluationBundle(duplicateBundle, [first])).toThrow(/missing case or a case from another project/);
   });
 
   it("rejects changed bundle and coverage content", () => {
-    const only = evaluationCase({ query: "변조표본", nonce: "2", minute: 8 });
+    const only = evaluationCase({ query: "tampered-sample", nonce: "2", minute: 8 });
     const bundle = createSearchEvaluationBundle({
       bundleId: "marketer.claims",
       projectId: only.projectId,

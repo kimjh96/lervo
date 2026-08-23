@@ -28,7 +28,7 @@ export function hashPolicyApproverSubject(input: {
   ) {
     throw new HubPolicyError(
       "invalid_policy_request",
-      "Policy approver principal ID가 유효하지 않습니다.",
+      "The policy approver principal ID is invalid.",
     );
   }
   return `sha256:${createHash("sha256")
@@ -39,7 +39,7 @@ export function hashPolicyApproverSubject(input: {
 function wrapContractError(label: string, error: unknown): HubPolicyError {
   return new HubPolicyError(
     "invalid_policy_request",
-    `${label} 계약이 유효하지 않습니다.`,
+    `${label} contract is invalid.`,
     { cause: error instanceof Error ? error : undefined },
   );
 }
@@ -51,7 +51,7 @@ function assertPublishedBeforeExpiry(publishedAt: string, expiresAt: string): vo
   ) {
     throw new HubPolicyError(
       "invalid_policy_request",
-      "만료된 policy 원본은 새로 발행할 수 없습니다.",
+      "An expired policy source cannot be issued again.",
     );
   }
 }
@@ -104,7 +104,7 @@ export async function authorPolicyApproval(input: {
 }): Promise<HubPolicyPublishResult> {
   assertPublishedBeforeExpiry(input.request.publishedAt, input.request.expiresAt);
   if (!COMMAND_ID_PATTERN.test(input.request.commandId)) {
-    throw new HubPolicyError("invalid_policy_request", "Policy approval command ID가 유효하지 않습니다.");
+    throw new HubPolicyError("invalid_policy_request", "The policy approval command ID is invalid.");
   }
   const [snapshot, binding] = await Promise.all([
     input.store.getCurrentPolicySnapshot({
@@ -118,10 +118,10 @@ export async function authorPolicyApproval(input: {
     }),
   ]);
   if (snapshot === null) {
-    throw new HubPolicyError("policy_snapshot_conflict", "승인에 사용할 현재 policy snapshot이 없습니다.");
+    throw new HubPolicyError("policy_snapshot_conflict", "No current policy snapshot is available for approval.");
   }
   if (binding === null) {
-    throw new HubPolicyError("policy_command_not_found", "승인할 remote command가 Hub queue에 없습니다.");
+    throw new HubPolicyError("policy_command_not_found", "The remote command to approve is absent from the Hub queue.");
   }
   let approval;
   try {
@@ -159,7 +159,7 @@ export async function authorPolicyRevocation(input: {
   };
 }): Promise<HubPolicyPublishResult> {
   if (!APPROVAL_ID_PATTERN.test(input.request.approvalId)) {
-    throw new HubPolicyError("invalid_policy_request", "Policy revocation approval ID가 유효하지 않습니다.");
+    throw new HubPolicyError("invalid_policy_request", "The policy revocation approval ID is invalid.");
   }
   const envelope = await input.store.getPolicyApproval({
     destinationId: input.request.destinationId,
@@ -167,7 +167,7 @@ export async function authorPolicyRevocation(input: {
     approvalId: input.request.approvalId,
   });
   if (envelope === null) {
-    throw new HubPolicyError("policy_approval_not_found", "철회할 policy approval이 없습니다.");
+    throw new HubPolicyError("policy_approval_not_found", "The policy approval to revoke was not found.");
   }
   let revocation;
   try {

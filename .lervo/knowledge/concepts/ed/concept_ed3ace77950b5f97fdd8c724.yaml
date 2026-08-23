@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_ed3ace77950b5f97fdd8c724
+freshness: current
+ownership: user
+path: docs/decisions/release/assurance/0093-cli-release-attestation-boundary.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_42881d8cc637c0166d2914f5
+title: "ADR-0093: CLI release provenance-attestation boundary"
+type: decision

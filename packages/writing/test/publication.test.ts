@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import type { WritingContract } from "@lervo/schemas";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -60,11 +60,11 @@ afterEach(async () => {
 describe("writing publication boundary", () => {
   it("publishes only after separate semantic checks and revalidates the stored permit", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "작업을 마쳤습니다. 변경 범위와 검증 결과를 함께 확인했습니다.");
+    const artifact = await storeWriting(store, "The task is complete. The change scope and verification result were checked together.");
     const result = await evaluateWritingPublication(
       {
         artifact,
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
         semanticEvaluator: passingEvaluator(),
@@ -87,7 +87,7 @@ describe("writing publication boundary", () => {
       evaluation: result.evaluation,
       evaluationArtifact: result.evaluationArtifact,
       permit: result.permit,
-      contract: defaultKoreanWritingContract,
+      contract: defaultEnglishWritingContract,
       surface: "chat",
       artifactStore: store,
     })).resolves.toBe(result.content);
@@ -95,9 +95,9 @@ describe("writing publication boundary", () => {
 
   it("fails closed when no semantic evaluator is available", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "작업을 마쳤습니다.");
+    const artifact = await storeWriting(store, "The task is complete.");
     const result = await evaluateWritingPublication(
-      { artifact, contract: defaultKoreanWritingContract, surface: "chat", artifactStore: store },
+      { artifact, contract: defaultEnglishWritingContract, surface: "chat", artifactStore: store },
       { now: () => checkedAt },
     );
 
@@ -119,7 +119,7 @@ describe("writing publication boundary", () => {
 
     await expect(evaluateWritingPublication({
       artifact,
-      contract: defaultKoreanWritingContract,
+      contract: defaultEnglishWritingContract,
       surface: "chat",
       artifactStore: store,
       semanticEvaluator: { evaluate },
@@ -129,12 +129,12 @@ describe("writing publication boundary", () => {
 
   it("does not call the semantic evaluator when deterministic checks fail", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "사용자가 직접 확인해야 합니다 — 퀵스타트");
+    const artifact = await storeWriting(store, "The user must check this — obviously.");
     const evaluate = vi.fn(passingEvaluator().evaluate);
     const result = await evaluateWritingPublication(
       {
         artifact,
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
         semanticEvaluator: { evaluate },
@@ -153,11 +153,11 @@ describe("writing publication boundary", () => {
 
   it("records an invalid separate response as incomplete without exposing content", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "작업을 마쳤습니다.");
+    const artifact = await storeWriting(store, "The task is complete.");
     const result = await evaluateWritingPublication(
       {
         artifact,
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
         semanticEvaluator: {
@@ -189,11 +189,11 @@ describe("writing publication boundary", () => {
 
   it("turns a structurally malformed evaluator response into an invalid attempt", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "작업을 마쳤습니다.");
+    const artifact = await storeWriting(store, "The task is complete.");
     const result = await evaluateWritingPublication(
       {
         artifact,
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
         semanticEvaluator: {
@@ -212,11 +212,11 @@ describe("writing publication boundary", () => {
 
   it("rejects reuse for another surface, policy body, or content artifact", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "작업을 마쳤습니다.");
+    const artifact = await storeWriting(store, "The task is complete.");
     const result = await evaluateWritingPublication(
       {
         artifact,
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
         semanticEvaluator: passingEvaluator(),
@@ -229,29 +229,29 @@ describe("writing publication boundary", () => {
       evaluation: result.evaluation,
       evaluationArtifact: result.evaluationArtifact,
       permit: result.permit,
-      contract: defaultKoreanWritingContract as WritingContract,
+      contract: defaultEnglishWritingContract as WritingContract,
       surface: "chat" as const,
       artifactStore: store,
     };
 
     await expect(readPublishableWritingArtifact({ ...base, surface: "documentation" }))
       .rejects.toMatchObject({ code: "publication_permit_invalid" });
-    const changedPolicy = structuredClone(defaultKoreanWritingContract) as WritingContract;
-    changedPolicy.terminology.forbiddenVagueTerms.push("대충");
+    const changedPolicy = structuredClone(defaultEnglishWritingContract) as WritingContract;
+    changedPolicy.terminology.forbiddenVagueTerms.push("roughly");
     await expect(readPublishableWritingArtifact({ ...base, contract: changedPolicy }))
       .rejects.toMatchObject({ code: "publication_permit_invalid" });
-    const otherArtifact = await storeWriting(store, "다른 결과입니다.");
+    const otherArtifact = await storeWriting(store, "A different result.");
     await expect(readPublishableWritingArtifact({ ...base, artifact: otherArtifact }))
       .rejects.toMatchObject({ code: "publication_permit_invalid" });
   });
 
   it("treats an evaluator exception as a failed attempt without persisting its error text", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "작업을 마쳤습니다.");
+    const artifact = await storeWriting(store, "The task is complete.");
     const result = await evaluateWritingPublication(
       {
         artifact,
-        contract: defaultKoreanWritingContract,
+        contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
         semanticEvaluator: { evaluate: async () => { throw new Error("private evaluator detail"); } },

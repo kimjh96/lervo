@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_286bd6f47060aadea52106b1
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8410a93aed12801a96caa2f8
+title: "ADR-0187: Review-Gated Cross-Provider Exact Merge"
+type: decision

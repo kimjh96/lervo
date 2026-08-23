@@ -31,6 +31,7 @@ export interface ClaudeEventNormalizerOptions {
 
 export class ClaudeEventNormalizer {
   private readonly pendingTools = new Map<string, PendingTool>();
+  private readonly startedProviderTurns = new Set<string>();
   private seenInit = false;
 
   constructor(private readonly options: ClaudeEventNormalizerOptions) {}
@@ -44,7 +45,7 @@ export class ClaudeEventNormalizer {
     if (message === undefined) return [];
     const sessionId = text(message.session_id);
     if (sessionId !== undefined && sessionId !== this.options.session.providerSessionId) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "Claude event의 session ID가 다릅니다.");
+      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude event session ID does not match.");
     }
 
     if (message.type === "system" && message.subtype === "init") {
@@ -72,23 +73,43 @@ export class ClaudeEventNormalizer {
         ),
       ];
     }
+    if (message.type === "command_lifecycle" && message.state === "started") {
+      const providerTurnId = this.options.activeProviderTurnId();
+      const commandUuid = text(message.command_uuid);
+      if (providerTurnId === undefined) return [];
+      if (commandUuid !== providerTurnId) {
+        return [this.providerError(
+          "unbound_turn_start",
+          message.state,
+          eventTime(message, this.options.now),
+        )];
+      }
+      return this.turnStarted(providerTurnId, message);
+    }
     if (message.type === "user" && message.isReplay === true) {
       const providerTurnId = this.options.activeProviderTurnId();
       const uuid = text(message.uuid);
       return message.shouldQuery !== false && providerTurnId !== undefined && uuid === providerTurnId
-        ? [
-            this.event(
-              "provider.turn.started",
-              { providerTurnId },
-              eventTime(message, this.options.now),
-            ),
-          ]
+        ? this.turnStarted(providerTurnId, message)
         : [];
     }
     if (message.type === "assistant") return this.assistant(message);
     if (message.type === "user") return this.toolResults(message);
     if (message.type === "result") return this.result(message);
     return [];
+  }
+
+  private turnStarted(
+    providerTurnId: string,
+    message: Record<string, unknown>,
+  ): AdapterNormalizedEvent[] {
+    if (this.startedProviderTurns.has(providerTurnId)) return [];
+    this.startedProviderTurns.add(providerTurnId);
+    return [this.event(
+      "provider.turn.started",
+      { providerTurnId },
+      eventTime(message, this.options.now),
+    )];
   }
 
   private assistant(message: Record<string, unknown>): AdapterNormalizedEvent[] {

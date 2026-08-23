@@ -1,0 +1,11 @@
+fromPath: docs/adr/0011-managed-provider-run-lifecycle.md
+identityPath: docs/adr/0011-managed-provider-run-lifecycle.md
+kind: document_move
+lineageId: klineage_3338fe7055e7c4c41d319d42
+operationId: kdocop_3db28f47618a9faa7ac68558
+schemaVersion: 1
+sourceContentHash: sha256:3eb3860c274e39b113c09a34288f3f2dd16cf4ba0871f53cd4caec09dbaa8cd3
+sourceId: src_bc195985218ccd4b23f5583f
+sourceUnitBindingDigest: sha256:7d778d26b0801e7af9caf6019570c53ea9b038849364cbfe6ce2bdfc3ab51465
+sourceUnitCount: 9
+toPath: docs/decisions/execution/providers/0011-managed-provider-run-lifecycle.md

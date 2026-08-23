@@ -26,7 +26,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_workflow_remote_deployment_unexpected: " +
-    "CLI stage-only workflow 원격 배포 증거를 만들지 못했습니다.",
+    "CLI stage-only workflow remote-deployment evidence could not be created.",
   );
   process.exitCode = 1;
 }

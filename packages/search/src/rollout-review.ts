@@ -27,7 +27,7 @@ export function createSearchRolloutReview(input: {
   rolloutPolicyId?: string;
 }): SearchRolloutReview {
   if (!SOURCE_ID_PATTERN.test(input.reviewerId) || !searchRolloutReviewDecisions.includes(input.decision)) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 입력이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review input is invalid.");
   }
   const qualitySnapshot = createSearchRolloutQualitySnapshot({
     projectId: input.projectId,
@@ -51,7 +51,7 @@ export function createSearchRolloutReview(input: {
     embeddingDecision: "not_determined" as const,
   };
   if (input.rolloutPolicyId !== undefined && !SEARCH_ROLLOUT_POLICY_PATTERN.test(input.rolloutPolicyId)) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 정책 ID가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review policy ID is invalid.");
   }
   const review: SearchRolloutReview = input.rolloutPolicyId === undefined
     ? {
@@ -81,24 +81,24 @@ export function assertSearchRolloutReview(review: SearchRolloutReview): void {
     !searchRolloutReviewDecisions.includes(review.decision) ||
     review.effect?.selectionChange !== "not_applied" || review.effect.rollback !== "not_executed" ||
     review.effect.approval !== "not_granted" || review.embeddingDecision !== "not_determined") {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review contract is invalid.");
   }
   if ((review.schemaVersion === 1 && review.thresholdPolicyState !== "not_defined") ||
     (review.schemaVersion === 2 && review.thresholdPolicyState !== "bound")) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토의 정책 상태가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The policy status in the search rollout review is invalid.");
   }
   if (review.schemaVersion === 2 && !SEARCH_ROLLOUT_POLICY_PATTERN.test(review.rolloutPolicyId)) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 정책 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review policy coordinates are invalid.");
   }
   assertSearchRolloutReviewTarget(review.target);
   assertSearchRolloutQualitySnapshot(review.qualitySnapshot);
   assertTimestamp(review.reviewedAt, "invalid_rollout_review");
   if (review.reviewedAt !== review.qualitySnapshot.observedThrough) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토와 품질 snapshot 시각이 다릅니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review and quality snapshot timestamps differ.");
   }
   const { schemaVersion: _schema, rolloutReviewId: _id, ...core } = review;
   if (contentId("srrv", core) !== review.rolloutReviewId) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review ID does not match its content.");
   }
 }
 
@@ -118,6 +118,6 @@ export function verifySearchRolloutReview(
     ...(review.schemaVersion === 1 ? {} : { rolloutPolicyId: review.rolloutPolicyId }),
   });
   if (canonicalHash(recreated) !== canonicalHash(review)) {
-    throw new SearchError("invalid_rollout_review", "검색 rollout 검토가 원본 품질 입력과 일치하지 않습니다.");
+    throw new SearchError("invalid_rollout_review", "The search rollout review does not match its source quality input.");
   }
 }

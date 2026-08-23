@@ -25,7 +25,7 @@ export async function registerProject(input: {
   } catch (error) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",
-      "project manifest로 Hub registration을 만들 수 없습니다.",
+      "A Hub registration cannot be created from the project manifest.",
       { cause: error },
     );
   }

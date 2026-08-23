@@ -21,12 +21,12 @@ export class KnowledgeGraphIndexSQLiteWriter {
       "SELECT value FROM hub_sync_meta WHERE key = ?",
     ).get("knowledge_graph_index_version");
     if (row === undefined) {
-      throw new HubSyncStoreError("integrity_failed", "지식 그래프 index version이 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The knowledge graph index version is missing.");
     }
     const version = Number(stringField(row, "value"));
     if (version === KNOWLEDGE_GRAPH_INDEX_VERSION) return;
     if (!Number.isSafeInteger(version) || version < 0 || version > KNOWLEDGE_GRAPH_INDEX_VERSION) {
-      throw new HubSyncStoreError("integrity_failed", "지식 그래프 index version이 유효하지 않습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The knowledge graph index version is invalid.");
     }
 
     this.database.exec("BEGIN IMMEDIATE;");
@@ -56,7 +56,7 @@ export class KnowledgeGraphIndexSQLiteWriter {
   addEvents(coordinate: HubProjectCoordinate, events: readonly EventEnvelope[]): void {
     for (const event of events) {
       if (event.projectId !== coordinate.projectId) {
-        throw new HubSyncStoreError("integrity_failed", "그래프 event의 project 좌표가 다릅니다.");
+        throw new HubSyncStoreError("integrity_failed", "The graph event has different project coordinates.");
       }
       for (const relation of projectKnowledgeGraphEvent(event)) {
         assertKnowledgeGraphRelationIntegrity(relation);
@@ -82,7 +82,7 @@ export class KnowledgeGraphIndexSQLiteWriter {
       WHERE destination_id = ? AND project_id = ?
     `).all(coordinate.destinationId, coordinate.projectId);
     if (rows.length !== expected.size) {
-      throw new HubSyncStoreError("integrity_failed", "지식 그래프 index relation 수가 event 투영과 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The knowledge graph index relation count differs from the event projection.");
     }
     for (const row of rows) {
       const relation = expected.get(stringField(row, "relation_id"));
@@ -96,7 +96,7 @@ export class KnowledgeGraphIndexSQLiteWriter {
         stringField(row, "evidence_event_type") !== relation.evidence.eventType ||
         stringField(row, "evidence_run_id") !== relation.evidence.runId ||
         integerField(row, "evidence_seq") !== relation.evidence.seq) {
-        throw new HubSyncStoreError("integrity_failed", "지식 그래프 index가 event 원본 투영과 다릅니다.");
+        throw new HubSyncStoreError("integrity_failed", "The knowledge graph index differs from the source event projection.");
       }
     }
   }
@@ -133,7 +133,7 @@ export class KnowledgeGraphIndexSQLiteWriter {
       stringField(stored, "from_id") !== relation.from.id ||
       stringField(stored, "to_kind") !== relation.to.kind ||
       stringField(stored, "to_id") !== relation.to.id) {
-      throw new HubSyncStoreError("integrity_failed", "지식 그래프 relation ID 충돌이 발생했습니다.");
+      throw new HubSyncStoreError("integrity_failed", "A knowledge graph relation ID conflict occurred.");
     }
     if (integerField(stored, "evidence_seq") > relation.evidence.seq) {
       this.database.prepare(`

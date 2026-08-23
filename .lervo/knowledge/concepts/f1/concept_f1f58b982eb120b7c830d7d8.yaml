@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f1f58b982eb120b7c830d7d8
+freshness: current
+ownership: user
+path: docs/distribution/node-runtime-distribution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_10f36ac3cb980023b52f8d47
+title: Lervo Node standalone distribution
+type: concept

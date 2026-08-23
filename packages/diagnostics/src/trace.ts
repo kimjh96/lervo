@@ -13,7 +13,7 @@ export function createTraceReport(input: {
   const integrity = input.events.verifyIntegrity();
   const latestEvent = input.events.latest();
   if (latestEvent === null) {
-    throw new DiagnosticsError("trace_empty", "추적할 로컬 event가 없습니다.");
+    throw new DiagnosticsError("trace_empty", "There are no local events to trace.");
   }
   const runId = input.selector === "last"
     ? latestEvent.runId
@@ -22,7 +22,7 @@ export function createTraceReport(input: {
   if (events.length === 0) {
     throw new DiagnosticsError(
       "trace_run_not_found",
-      `요청한 run ID의 event가 없습니다: ${runId}`,
+      `There are no events for the requested run ID: ${runId}`,
     );
   }
   const lastEvent = events.at(-1)!;
@@ -32,7 +32,7 @@ export function createTraceReport(input: {
   ) {
     throw new DiagnosticsError(
       "trace_result_too_large",
-      `한 번에 표시할 수 있는 event ${maximumTraceReportEvents}개를 넘었습니다.`,
+      `The maximum of ${maximumTraceReportEvents} events that can be displayed at once was exceeded.`,
     );
   }
   const types = new Set(events.map((event) => event.type));

@@ -10,6 +10,8 @@ interface Deferred {
 
 interface PendingReplay extends Deferred {
   expectedContent: string;
+  shouldQuery: boolean;
+  lifecycleStarted: boolean;
 }
 
 function deferred(): Deferred {
@@ -47,7 +49,7 @@ export class ClaudeInputStream implements AsyncIterable<SDKUserMessage> {
   private ended = false;
 
   push(value: SDKUserMessage): void {
-    if (this.ended) throw new ClaudeAdapterError("session_stopped", "종료된 Claude 입력 stream입니다.");
+    if (this.ended) throw new ClaudeAdapterError("session_stopped", "The Claude input stream has ended.");
     this.values.push(value);
     this.wake();
   }
@@ -85,39 +87,83 @@ export class ClaudeReplayTracker {
     private readonly timeoutMs: number,
   ) {}
 
-  expect(uuid: string, expectedContent: string): Promise<void> {
+  expect(uuid: string, expectedContent: string, shouldQuery: boolean): Promise<void> {
     if (this.pending.has(uuid)) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "Claude input UUID가 중복되었습니다.");
+      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude input UUID is duplicated.");
     }
-    const replay = { ...deferred(), expectedContent };
+    const replay = { ...deferred(), expectedContent, shouldQuery, lifecycleStarted: false };
     this.pending.set(uuid, replay);
     return Promise.all([
-      this.withTimeout(this.initialized.promise, "Claude init 확인 시간이 초과되었습니다."),
-      this.withTimeout(replay.promise, "Claude 입력 확인 시간이 초과되었습니다."),
+      this.withTimeout(this.initialized.promise, "Claude initialization acknowledgement timed out."),
+      this.withTimeout(replay.promise, "Claude input acknowledgement timed out."),
     ]).then(() => undefined);
   }
 
-  accept(message: SDKMessage): void {
+  accept(message: SDKMessage): boolean {
     const value = record(message);
     const sessionId = value?.session_id;
     if (typeof sessionId === "string" && sessionId !== this.providerSessionId) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "Claude message의 session ID가 다릅니다.");
+      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude message session ID does not match.");
     }
     if (value?.type === "system" && value.subtype === "init") {
       this.initialized.resolve();
-      return;
+      return false;
     }
-    if (value?.type !== "user" || value.isReplay !== true || typeof value.uuid !== "string") return;
+    if (
+      value?.type === "command_lifecycle" && typeof value.command_uuid === "string"
+    ) {
+      const pending = this.pending.get(value.command_uuid);
+      if (pending !== undefined) {
+        if (pending.shouldQuery === false) {
+          if (value.state === "started") {
+            pending.lifecycleStarted = true;
+            pending.resolve();
+          } else if (value.state === "completed") {
+            this.pending.delete(value.command_uuid);
+            pending.resolve();
+          }
+          return true;
+        }
+        if (value.state === "started") {
+          this.pending.delete(value.command_uuid);
+          pending.resolve();
+        }
+      }
+    }
+    if (
+      value?.type === "result" && value.subtype === "success" && value.is_error === false &&
+      value.num_turns === 0 && value.user_message_uuid === undefined &&
+      [...this.pending.values()].filter((pending) =>
+        pending.shouldQuery === false && pending.lifecycleStarted
+      ).length === 1
+    ) {
+      return true;
+    }
+    if (
+      value?.type === "result" && value.subtype === "success" && value.is_error === false &&
+      typeof value.user_message_uuid === "string"
+    ) {
+      const pending = this.pending.get(value.user_message_uuid);
+      if (pending !== undefined && pending.shouldQuery === false) {
+        this.pending.delete(value.user_message_uuid);
+        pending.resolve();
+        return true;
+      }
+    }
+    if (value?.type !== "user" || value.isReplay !== true || typeof value.uuid !== "string") {
+      return false;
+    }
     const pending = this.pending.get(value.uuid);
-    if (pending === undefined) return;
+    if (pending === undefined) return false;
     this.pending.delete(value.uuid);
     if (messageText(value) !== pending.expectedContent) {
       pending.reject(
-        new ClaudeAdapterError("provider_protocol_failed", "Claude가 확인한 입력이 보낸 입력과 다릅니다."),
+        new ClaudeAdapterError("provider_protocol_failed", "The input acknowledged by Claude differs from the input sent."),
       );
-      return;
+      return false;
     }
     pending.resolve();
+    return false;
   }
 
   fail(error: Error): void {

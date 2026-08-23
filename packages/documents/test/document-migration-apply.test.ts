@@ -1,4 +1,5 @@
 import {
+  access,
   mkdir,
   mkdtemp,
   readFile,
@@ -141,8 +142,8 @@ afterEach(async () => {
 describe("metadata-only document migration apply", () => {
   it("creates reviewed sidecars, records a privacy-bounded event, and preserves source bytes", async () => {
     const root = await initializedRoot({
-      "README.md": "# Project\n\n사람이 작성한 원본입니다.\n",
-      "docs/guide.md": "# Guide\n\n기존 안내 문서입니다.\n",
+      "README.md": "# Project\n\nHuman-authored source.\n",
+      "docs/guide.md": "# Guide\n\nExisting guide document.\n",
     });
     const beforeReadme = await readFile(resolve(root, "README.md"));
     const beforeGuide = await readFile(resolve(root, "docs/guide.md"));
@@ -193,12 +194,13 @@ describe("metadata-only document migration apply", () => {
       eventRecorder: { record: () => { sourceEvents += 1; } },
     })).rejects.toMatchObject({ code: "plan_stale" });
     expect(sourceEvents).toBe(0);
-    expect(await readdir(resolve(sourceRoot, ".lervo", "documents"))).toEqual([]);
+    await expect(access(resolve(sourceRoot, ".lervo", "documents"))).rejects.toThrow();
 
     const targetRoot = await initializedRoot({ "README.md": "# Target\n" });
     const targetPlan = await dryRun(targetRoot, ["README.md"]);
     const target = targetPlan.plan.candidates[0]?.target;
     if (target === null || target === undefined) throw new Error("fixture target is missing");
+    await mkdir(dirname(resolve(targetRoot, target.path)), { recursive: true });
     await writeFile(resolve(targetRoot, target.path), "user-owned target bytes\n");
     await expect(applyDocumentMigration({
       repositoryRoot: targetRoot,
@@ -257,7 +259,7 @@ describe("metadata-only document migration apply", () => {
       appliedAt: "2026-08-19T02:00:00Z",
       eventRecorder: { record: () => undefined },
     })).rejects.toMatchObject({ code: "invalid_approval" });
-    expect(await readdir(resolve(root, ".lervo", "documents"))).toEqual([]);
+    await expect(access(resolve(root, ".lervo", "documents"))).rejects.toThrow();
   });
 
   it("rolls every sidecar back when durable event recording fails", async () => {
@@ -275,7 +277,7 @@ describe("metadata-only document migration apply", () => {
       eventRecorder: { record: () => { throw new Error("fixture telemetry failure"); } },
     })).rejects.toMatchObject({ code: "telemetry_recording_failed" });
 
-    expect(await readdir(resolve(root, ".lervo", "documents"))).toEqual([]);
+    await expect(access(resolve(root, ".lervo", "documents"))).rejects.toThrow();
     expect((await readdir(resolve(root, ".lervo"))).some(
       (name) => name.startsWith(".document-migration-"),
     )).toBe(false);

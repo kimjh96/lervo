@@ -34,7 +34,7 @@ export async function loadVerifiedSearchSelectionQualityEvidence(input: {
     : await Promise.all([store.listAttempts(), store.listAssessments()]);
   if (attempts.some((attempt) => attempt.projectId !== input.projectId) ||
     assessments.some((assessment) => assessment.projectId !== input.projectId)) {
-    throw new SearchLocalError("observation_invalid", "검색 품질 원본의 project 좌표가 현재 manifest와 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The search quality source has project coordinates that differ from the current manifest.");
   }
   if (history.length > 0) {
     await verifySearchEngineSelectionHistory({
@@ -61,7 +61,7 @@ export async function loadVerifiedSearchSelectionQualityEvidence(input: {
     if (coordinates.has(attempt.selectionTransitionId)) continue;
     const activation = activations.get(attempt.selectionTransitionId);
     if (activation === undefined) {
-      throw new SearchLocalError("observation_invalid", "검색 시도가 가리키는 선택 전이를 찾을 수 없습니다.");
+      throw new SearchLocalError("observation_invalid", "The selection transition referenced by the search attempt was not found.");
     }
     const selection = activation.selected;
     if (selection.mode === "baseline") {

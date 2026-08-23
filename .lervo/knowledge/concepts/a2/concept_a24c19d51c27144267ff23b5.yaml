@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a24c19d51c27144267ff23b5
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a04f411257d1302620f6822c
+title: "ADR-0116: CLI First-Publication Transition Completion Command"
+type: decision

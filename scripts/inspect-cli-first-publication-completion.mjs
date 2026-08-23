@@ -24,7 +24,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_completion_inspection_unexpected: " +
-    "CLI 최초 게시 완료 상태를 점검하지 못했습니다.",
+    "CLI first-publication completion status could not be inspected.",
   );
   process.exitCode = 1;
 }

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9d11aca58e656cc254db0c4a
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8cbda2baf2c3c373a5c29783
+title: "ADR-0109: Post-apply verification of CLI first-publication package metadata"
+type: decision

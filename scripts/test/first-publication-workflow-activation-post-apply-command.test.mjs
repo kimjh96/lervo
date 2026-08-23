@@ -116,8 +116,8 @@ describe("first-publication workflow activation post-apply command", () => {
     try {
       const report = await verify(fixture);
       const output = formatFirstPublicationWorkflowActivationPostApplyReport(report);
-      assert.match(output, /현재 workflow 파일은 적용 영수증에 기록된 결과와 같습니다/u);
-      assert.match(output, /배포·실행됐거나 npm stage 접수와 공개가 일어났다는 뜻이 아닙니다/u);
+      assert.match(output, /current workflow file matches the result recorded in the apply receipt/u);
+      assert.match(output, /does not establish that the workflow was deployed or run on GitHub/u);
       assert.equal(output.includes(report.reportDigest), false);
       assert.equal(output.includes(report.receipt.receiptDigest), false);
     } finally {

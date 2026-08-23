@@ -4,7 +4,7 @@ import type { AdapterNormalizedEvent, AdapterSession } from "@lervo/schemas";
 import { ManagedProviderRunError } from "./provider-run-types.js";
 
 export interface ProviderSignalMonitor {
-  terminal: Promise<AdapterNormalizedEvent>;
+  waitForTerminal(): Promise<AdapterNormalizedEvent>;
   abort(): void;
   done: Promise<void>;
   throwIfFailed(): void;
@@ -21,7 +21,7 @@ export function resolveMaximumProviderSignals(value: number | undefined): number
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
-      `maximumProviderSignals는 1 이상 ${absoluteMaximumProviderSignals} 이하여야 합니다.`,
+      `maximumProviderSignals must be between 1 and ${absoluteMaximumProviderSignals}.`,
     );
   }
   return resolved;
@@ -39,16 +39,20 @@ export function startProviderSignalMonitor(input: {
 }): ProviderSignalMonitor {
   const maximumEvents = resolveMaximumProviderSignals(input.maximumEvents);
   const controller = new AbortController();
-  let resolveTerminal!: (event: AdapterNormalizedEvent) => void;
-  let rejectTerminal!: (error: Error) => void;
-  let settled = false;
+  const terminals: AdapterNormalizedEvent[] = [];
+  const waiters: Array<{
+    resolve: (event: AdapterNormalizedEvent) => void;
+    reject: (error: Error) => void;
+  }> = [];
+  let terminalCount = 0;
+  let ended = false;
   let failure: Error | undefined;
   let observedEvents = 0;
-  const terminal = new Promise<AdapterNormalizedEvent>((resolve, reject) => {
-    resolveTerminal = resolve;
-    rejectTerminal = reject;
-  });
-  void terminal.catch(() => undefined);
+
+  function fail(error: Error): void {
+    failure ??= error;
+    for (const waiter of waiters.splice(0)) waiter.reject(failure);
+  }
 
   const done = (async () => {
     try {
@@ -57,7 +61,7 @@ export function startProviderSignalMonitor(input: {
         if (observedEvents > maximumEvents) {
           throw new ManagedProviderRunError(
             "provider_stream_failed",
-            `Provider signal이 허용된 ${maximumEvents}개를 넘었습니다.`,
+            `Provider signals exceeded the allowed maximum of ${maximumEvents}.`,
           );
         }
         try {
@@ -68,41 +72,58 @@ export function startProviderSignalMonitor(input: {
               ? error
               : new ManagedProviderRunError(
                   "provider_stream_failed",
-                  "Provider signal을 처리하지 못했습니다.",
+                  "Could not process the provider signal.",
                 );
           throw failure;
         }
-        if (!settled && isTerminal(event)) {
-          settled = true;
-          resolveTerminal(structuredClone(event));
+        if (isTerminal(event)) {
+          terminalCount += 1;
+          const terminal = structuredClone(event);
+          const waiter = waiters.shift();
+          if (waiter === undefined) terminals.push(terminal);
+          else waiter.resolve(terminal);
         }
       }
-      if (!controller.signal.aborted && !settled) {
-        throw new ManagedProviderRunError(
+      ended = true;
+      if (!controller.signal.aborted) {
+        const error = new ManagedProviderRunError(
           "provider_stream_failed",
-          "Provider event stream이 turn 결과 전에 끝났습니다.",
+          terminalCount === 0
+            ? "The provider event stream ended before the turn result."
+            : "The provider event stream ended before the next turn result.",
         );
+        if (terminalCount === 0 || waiters.length > 0) fail(error);
       }
     } catch (error) {
       if (controller.signal.aborted && failure === undefined) return;
-      failure ??=
+      fail(
         error instanceof ManagedProviderRunError
           ? error
           : new ManagedProviderRunError(
               "provider_stream_failed",
-              "Provider event stream을 읽지 못했습니다.",
+              "Could not read the provider event stream.",
               { cause: error },
-            );
-      if (!settled) {
-        settled = true;
-        rejectTerminal(failure);
-      }
+            ),
+      );
       controller.abort();
     }
   })();
 
   return {
-    terminal,
+    waitForTerminal: () => {
+      const terminal = terminals.shift();
+      if (terminal !== undefined) return Promise.resolve(structuredClone(terminal));
+      if (failure !== undefined) return Promise.reject(failure);
+      if (ended) {
+        return Promise.reject(new ManagedProviderRunError(
+          "provider_stream_failed",
+          "The provider event stream ended before the next turn result.",
+        ));
+      }
+      return new Promise<AdapterNormalizedEvent>((resolve, reject) => {
+        waiters.push({ resolve, reject });
+      });
+    },
     abort: () => controller.abort(),
     done,
     throwIfFailed: () => {

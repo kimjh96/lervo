@@ -30,7 +30,7 @@ export function createManagedConversationDeliberationResumeExecutionAdapter(opti
       if (job.state !== "leased") {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",
-          "실행할 대화 숙의 재개 job이 유효하지 않습니다.",
+          "The conversation deliberation resume job is invalid.",
         );
       }
       const outcome = await executeAssignedResume({
@@ -46,7 +46,7 @@ export function createManagedConversationDeliberationResumeExecutionAdapter(opti
         outcome.artifactCount > 10_000) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",
-          "Managed 숙의 재개 결과 좌표가 queue job과 일치하지 않습니다.",
+          "The managed deliberation resume result coordinates do not match the queue job.",
         );
       }
       return {

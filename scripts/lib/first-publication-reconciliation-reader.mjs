@@ -32,7 +32,7 @@ const limitations = Object.freeze([
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_reconciliation_report_invalid",
-    "CLI 최초 게시 결과 대조 보고서가 올바르지 않습니다.",
+    "The CLI first-publication reconciliation report is invalid.",
   );
 }
 

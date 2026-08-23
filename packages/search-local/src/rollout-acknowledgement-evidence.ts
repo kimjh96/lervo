@@ -39,7 +39,7 @@ export async function verifySearchRolloutKeepAcknowledgementEvidence(input: {
     (activation) => activation.activationId === review.target.selectionTransitionId,
   );
   if (targetActivation === undefined) {
-    throw new SearchLocalError("observation_invalid", "후보 유지 확인의 검색 선택 전이를 찾을 수 없습니다.");
+    throw new SearchLocalError("observation_invalid", "The search selection transition for the candidate-retention acknowledgement was not found.");
   }
   assertRolloutActionReviewTarget(review, targetActivation, candidateReview);
   verifySearchRolloutReview(
@@ -82,7 +82,7 @@ export async function verifySearchRolloutKeepAcknowledgementEvidence(input: {
     input.acknowledgement.selectionTransitionId !== review.target.selectionTransitionId ||
     input.acknowledgement.qualitySnapshotId !== qualitySnapshot.snapshotId ||
     input.acknowledgement.qualityInputDigest !== qualitySnapshot.inputDigest) {
-    throw new SearchLocalError("observation_invalid", "후보 유지 확인의 정책·검토·품질 근거가 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The policy, review, and quality evidence for the candidate-retention acknowledgement differs.");
   }
   return review;
 }

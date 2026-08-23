@@ -1,4 +1,5 @@
 import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
+import type { EnvironmentObservation, EnvironmentSourceManifest } from "@lervo/environment";
 import type { ProjectStorage } from "@lervo/project-storage";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
@@ -19,6 +20,10 @@ export interface CliServices {
     projectId: string;
     scope?: DoctorScope;
   }): Promise<DoctorInspection[]>;
+  executeEnvironmentQuery(input: {
+    source: EnvironmentSourceManifest;
+    observedAt?: Date;
+  }): Promise<EnvironmentObservation>;
 }
 
 export type CliServiceOverrides = Partial<CliServices>;

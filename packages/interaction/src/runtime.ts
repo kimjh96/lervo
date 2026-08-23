@@ -23,7 +23,7 @@ import type {
 function timestamp(clock: () => Date): string {
   const value = clock();
   if (!Number.isFinite(value.getTime())) {
-    throw new InteractionError("invalid_interaction_request", "Interaction clock이 유효하지 않습니다.");
+    throw new InteractionError("invalid_interaction_request", "The interaction clock is invalid.");
   }
   return value.toISOString();
 }
@@ -54,7 +54,7 @@ export async function handleConversationEvent(input: {
     !/^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(input.agentParticipantId) ||
     !Number.isSafeInteger(leaseDurationMs) || leaseDurationMs < 1_000 || leaseDurationMs > 300_000 ||
     !Number.isSafeInteger(retryDelayMs) || retryDelayMs < 1_000 || retryDelayMs > 3_600_000
-  ) throw new InteractionError("invalid_interaction_request", "Interaction runtime 설정이 유효하지 않습니다.");
+  ) throw new InteractionError("invalid_interaction_request", "The interaction runtime configuration is invalid.");
   assertConversationParticipationScope({
     event: input.event,
     policy: input.policy,
@@ -71,7 +71,7 @@ export async function handleConversationEvent(input: {
       leaseDurationMs,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "Conversation inbox claim에 실패했습니다.", {
+    throw new InteractionError("interaction_store_failed", "The conversation inbox claim failed.", {
       cause: error,
     });
   }
@@ -88,7 +88,7 @@ export async function handleConversationEvent(input: {
       at: claimedAt,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "Participation window 조회에 실패했습니다.", {
+    throw new InteractionError("interaction_store_failed", "The participation window query failed.", {
       cause: error,
     });
   }
@@ -183,7 +183,7 @@ export async function handleConversationEvent(input: {
       outbound,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "Conversation decision commit에 실패했습니다.", {
+    throw new InteractionError("interaction_store_failed", "The conversation decision commit failed.", {
       cause: error,
     });
   }

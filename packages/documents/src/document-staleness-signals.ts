@@ -145,7 +145,7 @@ function expectedInputs(manifest: DocumentManifest): ExpectedInput[] {
   const expected = new Map<string, string>();
   for (const input of inputs) {
     if (expected.has(input.sourceId)) {
-      invalidStalenessRequest("같은 managed input source ID가 여러 번 선언됐습니다.");
+      invalidStalenessRequest("The same managed input source ID was declared more than once.");
     }
     expected.set(input.sourceId, input.contentHash);
   }
@@ -159,7 +159,7 @@ function validateObservations(
   expected: readonly ExpectedInput[],
 ): ReadonlyMap<string, ManagedInputObservation> {
   if (observations.length > MAXIMUM_INPUTS) {
-    invalidStalenessRequest("Managed input observation 수가 제한을 넘었습니다.");
+    invalidStalenessRequest("The managed input observation count exceeds the limit.");
   }
   const expectedIds = new Set(expected.map((input) => input.sourceId));
   const result = new Map<string, ManagedInputObservation>();
@@ -169,7 +169,7 @@ function validateObservations(
       result.has(observation.sourceId) || !expectedIds.has(observation.sourceId) ||
       (observation.status === "available" && !isContentHash(observation.contentHash))
     ) {
-      invalidStalenessRequest("Managed input observation이 manifest와 공통 계약에 맞지 않습니다.");
+      invalidStalenessRequest("The managed input observation does not satisfy the manifest and common contract.");
     }
     result.set(observation.sourceId, observation);
   }

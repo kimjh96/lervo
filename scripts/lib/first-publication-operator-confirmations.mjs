@@ -1,12 +1,12 @@
 import { validateFirstPublicationBootstrapAuthorization } from
   "./first-publication-bootstrap-reader.mjs";
 
-export const firstPublicationSecondFactorPhrase = "2FA 확인을 완료했습니다";
+export const firstPublicationSecondFactorPhrase = "I completed the 2FA confirmation";
 
 export function firstPublicationIntentPhrase(bootstrap) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  return `${bootstrap.target.package}@${bootstrap.target.version}을 ` +
-    "대화형 2FA로 한 번 게시하고 bypass token은 사용하지 않습니다";
+  return `I will publish ${bootstrap.target.package}@${bootstrap.target.version} once ` +
+    "with interactive 2FA and will not use a bypass token";
 }
 
 export function firstPublicationOperatorConfirmations(bootstrap) {

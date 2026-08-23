@@ -1,8 +1,12 @@
 {
   "schemaVersion": 1,
   "listen": {
-    "host": "127.0.0.1",
+    "host": "0.0.0.0",
     "port": 8787
+  },
+  "tls": {
+    "certificatePath": "secrets/hub-tls-chain.pem",
+    "privateKeyPath": "secrets/hub-tls-key.pem"
   },
   "storage": {
     "databasePath": "state/hub.sqlite",
@@ -11,27 +15,8 @@
   "identity": {
     "hubIdentityHash": "sha256:REPLACE_WITH_64_LOWERCASE_HEX_CHARACTERS"
   },
-  "credentials": [
-    {
-      "token": "REPLACE_WITH_AT_LEAST_32_PRINTABLE_CHARACTERS",
-      "principalId": "operator:replace-me",
-      "permissions": [
-        "trace.read",
-        "sync.write"
-      ],
-      "projects": []
-    }
-  ],
-  "signing": {
-    "policy": {
-      "keyId": "key_replace_policy_01",
-      "privateKeyPath": "secrets/policy-ed25519.pem"
-    },
-    "command": {
-      "keyId": "key_replace_command_01",
-      "privateKeyPath": "secrets/command-ed25519.pem"
-    }
-  },
+  "credentialsFile": "secrets/hub-credentials.json",
+  "signingFile": "secrets/hub-signing.json",
   "control": {
     "reviewGrantSecretPath": "secrets/control-review.secret",
     "reviewGrantTtlSeconds": 600

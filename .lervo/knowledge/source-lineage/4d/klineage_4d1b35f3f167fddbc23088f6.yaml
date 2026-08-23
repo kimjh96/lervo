@@ -1,0 +1,11 @@
+fromPath: docs/adr/0075-versioned-doctor-report-contract.md
+identityPath: docs/adr/0075-versioned-doctor-report-contract.md
+kind: document_move
+lineageId: klineage_4d1b35f3f167fddbc23088f6
+operationId: kdocop_f906bc2ffeae86b9186aed47
+schemaVersion: 1
+sourceContentHash: sha256:52dc19c86e80c60887b3fbf9db193f847cb0731fb1d2f09e9bc89cb1ed86af49
+sourceId: src_bec9b813f0fb0b08f422a263
+sourceUnitBindingDigest: sha256:b9d798240c1ed4bfd6a89f91344939f72ce46e09316bdeb1bf3015afdaab1aa9
+sourceUnitCount: 5
+toPath: docs/decisions/operations/0075-versioned-doctor-report-contract.md

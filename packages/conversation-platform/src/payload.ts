@@ -10,7 +10,7 @@ export function parseBoundedJson(
   ) {
     throw new ConversationPlatformError(
       "invalid_platform_payload",
-      "Platform payload 크기가 허용 범위를 벗어났습니다.",
+      "The platform payload size is outside the allowed range.",
     );
   }
   try {
@@ -18,7 +18,7 @@ export function parseBoundedJson(
   } catch (error) {
     throw new ConversationPlatformError(
       "invalid_platform_payload",
-      "Platform payload가 유효한 UTF-8 JSON이 아닙니다.",
+      "The platform payload is not valid UTF-8 JSON.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
@@ -28,7 +28,7 @@ export function objectValue(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new ConversationPlatformError(
       "invalid_platform_payload",
-      "Platform payload 객체가 필요합니다.",
+      "A platform payload object is required.",
     );
   }
   return value as Record<string, unknown>;
@@ -42,7 +42,7 @@ export function requiredString(
   if (typeof value !== "string" || value.length < 1 || value.length > maximumLength) {
     throw new ConversationPlatformError(
       "invalid_platform_payload",
-      `${label} 값이 유효하지 않습니다.`,
+      `${label} value is invalid.`,
     );
   }
   return value;

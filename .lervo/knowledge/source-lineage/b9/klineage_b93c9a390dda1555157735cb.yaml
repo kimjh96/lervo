@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0040-bounded-trace-web-view.md
+identityPath: docs/adr/0040-bounded-trace-web-view.md
+kind: document_move
+lineageId: klineage_b93c9a390dda1555157735cb
+operationId: kdocop_8734cdbfc7e2f18e1ef80ebe
+schemaVersion: 1
+sourceContentHash: sha256:297c9622afb9b1dc0823fd6e06cbe72afdf3714babdbc79ef3b109b2fbe1ac7c
+sourceId: src_8a6e9f274596bf9565680f92
+sourceUnitBindingDigest: sha256:b9fbfe67c106055e4fbf4cd1451c3e646423c7770b9788b13a7247bac5dd999d
+sourceUnitCount: 8
+toPath: docs/decisions/operations/trace/0040-bounded-trace-web-view.md

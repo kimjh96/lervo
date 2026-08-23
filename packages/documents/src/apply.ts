@@ -35,7 +35,7 @@ export async function applyDocumentMigration(
   ) {
     throw new DocumentMigrationError(
       "invalid_approval",
-      "Apply 시각과 필수 migration event recorder가 유효해야 합니다.",
+      "The apply time and required migration event recorder must be valid.",
     );
   }
   const root = await canonicalRepositoryRoot(input.repositoryRoot);
@@ -49,7 +49,7 @@ export async function applyDocumentMigration(
   } catch (error) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Metadata-only apply 전에 document manifest layout을 검증하지 못했습니다.",
+      "The document manifest layout could not be verified before the metadata-only apply.",
       { cause: error },
     );
   }
@@ -57,7 +57,7 @@ export async function applyDocumentMigration(
   if (!sameSidecarSnapshot(snapshotBeforeLoad, existingSnapshot)) {
     throw new DocumentMigrationError(
       "plan_stale",
-      "Document manifest 집합이 apply preflight 중 바뀌었습니다.",
+      "The document manifest set changed during apply preflight.",
     );
   }
 
@@ -86,7 +86,7 @@ export async function applyDocumentMigration(
   if (!validateSchema("documentMigrationAppliedEventPayload", eventPayload).valid) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Migration applied event payload를 schema-valid하게 만들 수 없습니다.",
+      "The migration-applied event payload cannot be made schema-valid.",
     );
   }
   const receipt: DocumentMigrationApplyReceipt = {
@@ -109,7 +109,7 @@ export async function applyDocumentMigration(
   if (!validateSchema("documentMigrationApplyReceipt", receipt).valid) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Migration apply receipt를 schema-valid하게 만들 수 없습니다.",
+      "The migration apply receipt cannot be made schema-valid.",
     );
   }
 
@@ -127,7 +127,7 @@ export async function applyDocumentMigration(
       if (!sameSidecarSnapshot(current, existingSnapshot)) {
         throw new DocumentMigrationError(
           "plan_stale",
-          "Document manifest 집합이 sidecar 공개 전에 바뀌었습니다.",
+          "The document manifest set changed before sidecar publication.",
         );
       }
     },
@@ -137,7 +137,7 @@ export async function applyDocumentMigration(
       if (!sameSidecarSnapshot(current, publishedSnapshot)) {
         throw new DocumentMigrationError(
           "plan_stale",
-          "공개한 sidecar 집합을 승인된 snapshot으로 확인할 수 없습니다.",
+          "The published sidecar set cannot be verified against the approved snapshot.",
         );
       }
     },

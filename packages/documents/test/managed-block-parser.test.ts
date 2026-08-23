@@ -17,8 +17,8 @@ describe("managed Markdown block parser", () => {
   it("returns exact UTF-8 byte ownership ranges for Korean text and CRLF", () => {
     const startMarker = "<!-- lervo:begin block=summary schema=1 -->";
     const endMarker = "<!-- lervo:end block=summary -->";
-    const content = "관리되는 요약입니다.\r\n";
-    const source = `사람이 쓴 머리말입니다.\r\n\r\n${startMarker}\r\n${content}${endMarker}\r\n\r\n사람이 쓴 꼬리말입니다.\r\n`;
+    const content = "Managed summary.\r\n";
+    const source = `Human-authored preface.\r\n\r\n${startMarker}\r\n${content}${endMarker}\r\n\r\nHuman-authored epilogue.\r\n`;
     const original = bytes(source);
     const snapshot = original.slice();
 
@@ -67,9 +67,9 @@ describe("managed Markdown block parser", () => {
   it("preserves a UTF-8 byte-order mark and recognizes CommonMark CR line endings", () => {
     const source = [
       "\uFEFF<!-- lervo:begin block=bom schema=1 -->",
-      "한글 내용",
+      "Managed content",
       "<!-- lervo:end block=bom -->",
-      "사용자 꼬리말",
+      "User epilogue",
     ].join("\r");
     const input = bytes(source);
 
@@ -96,7 +96,7 @@ describe("managed Markdown block parser", () => {
 
   it("ignores marker-shaped text in fenced, indented, and inline code", () => {
     const source = [
-      "# 예제",
+      "# Example",
       "",
       "```md",
       "<!-- lervo:begin block=fenced schema=1 -->",
@@ -237,7 +237,7 @@ describe("managed Markdown block parser", () => {
 
     const oversizedBlock = [
       "<!-- lervo:begin block=large schema=1 -->",
-      "가".repeat(2731),
+      "a".repeat(8193),
       "<!-- lervo:end block=large -->",
     ].join("\n");
     expect(parseManagedMarkdownBlocks(bytes(oversizedBlock)).diagnostics)

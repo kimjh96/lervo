@@ -13,7 +13,7 @@ import {
   canonicalJson,
 } from "./release-artifact-manifest.mjs";
 
-function fail(code, message = "CLI 최초 게시 외부 요구사항 증거를 결속하지 못했습니다.") {
+function fail(code, message = "CLI first-publication external-requirements evidence could not be bound.") {
   throw new FirstPublicationBootstrapError(code, message);
 }
 

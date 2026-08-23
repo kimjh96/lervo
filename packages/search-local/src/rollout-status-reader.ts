@@ -50,10 +50,10 @@ export async function readLocalSearchRolloutStatus(input: {
   const statusEvidence: SearchRolloutStatusEvidence[] = [];
   for (const review of reviews) {
     if (review.projectId !== input.projectId) {
-      throw new SearchLocalError("observation_invalid", "검색 rollout 검토의 project 좌표가 다릅니다.");
+      throw new SearchLocalError("observation_invalid", "The search rollout review has different project coordinates.");
     }
     if (review.schemaVersion === 2 && rolloutPolicies.get(review.rolloutPolicyId)?.projectId !== input.projectId) {
-      throw new SearchLocalError("observation_invalid", "검색 rollout 검토 정책의 project 좌표가 다릅니다.");
+      throw new SearchLocalError("observation_invalid", "The search rollout review policy has different project coordinates.");
     }
     const candidateReview = candidateReviews.get(review.target.candidateReviewId)!;
     assertRolloutReviewTarget(review, activations.get(review.target.selectionTransitionId), candidateReview);

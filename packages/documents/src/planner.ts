@@ -115,7 +115,7 @@ export async function createDocumentMigrationDryRun(input: {
   if (!TIMESTAMP.test(generatedAt) || Number.isNaN(Date.parse(generatedAt))) {
     throw new DocumentMigrationError(
       "invalid_generated_at",
-      "Migration plan 생성 시각은 timezone이 있는 유효한 timestamp여야 합니다.",
+      "The migration plan creation time must be a valid timestamp with a timezone.",
     );
   }
   const root = await canonicalRepositoryRoot(input.repositoryRoot);
@@ -165,7 +165,7 @@ export async function createDocumentMigrationDryRun(input: {
   if (!validateSchema("documentMigrationPlan", plan).valid) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Document migration dry-run plan을 schema-valid하게 만들 수 없습니다.",
+      "The document migration dry-run plan cannot be made schema-valid.",
     );
   }
   return {

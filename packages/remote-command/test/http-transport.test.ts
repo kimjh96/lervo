@@ -65,7 +65,7 @@ describe("remote command authenticated HTTP transport", () => {
       requestedAt: "2026-08-19T00:00:00.000Z",
       leaseDurationMs: 30_000,
       limit: 1,
-    })).rejects.toThrow("설정과 다릅니다");
+    })).rejects.toThrow("differ from the transport configuration");
     expect(request).not.toHaveBeenCalled();
   });
 });

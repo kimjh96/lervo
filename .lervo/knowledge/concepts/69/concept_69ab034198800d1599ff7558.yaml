@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_69ab034198800d1599ff7558
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7cf6892cf46f6b79e1f89c88
+title: "ADR-0152: Fail-Closed Node Remote-Control Runtime"
+type: decision

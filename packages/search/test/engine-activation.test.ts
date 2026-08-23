@@ -79,7 +79,7 @@ describe("search engine activation policy and rollback", () => {
       recordState: "selection_recorded",
     });
     expect(() => assertSearchEngineActivation(rollback, activation)).not.toThrow();
-    expect(JSON.stringify([activation, rollback])).not.toContain("사과");
+    expect(JSON.stringify([activation, rollback])).not.toContain("apple");
 
     const {
       schemaVersion: _schemaVersion,
@@ -134,7 +134,7 @@ describe("search engine activation policy and rollback", () => {
         authoredBy: "operator_search",
         createdAt: new Date("2026-08-20T05:01:00.000Z"),
       }),
-    })).toThrow(/정책을 충족하지 않습니다/);
+    })).toThrow(/do not satisfy the search engine activation policy/);
     expect(() => create({
       policy: createSearchEngineActivationPolicy({
         projectId: fixture.comparison.projectId,
@@ -145,7 +145,7 @@ describe("search engine activation policy and rollback", () => {
         authoredBy: "operator_search",
         createdAt: new Date("2026-08-20T05:02:00.000Z"),
       }),
-    })).toThrow(/정책을 충족하지 않습니다/);
+    })).toThrow(/do not satisfy the search engine activation policy/);
     const activation = create();
     expect(() => create({ previous: activation })).toThrow(/refresh/);
     expect(() => assertSearchEngineActivation({ ...activation, sequence: 2 }, null)).toThrow();
@@ -211,6 +211,6 @@ describe("search engine activation policy and rollback", () => {
       previous: activation,
       operatorId: "operator_search",
       decidedAt: new Date("2026-08-20T07:00:00.000Z"),
-    })).toThrow(/같은 검토·비교 원본/);
+    })).toThrow(/same review and comparison sources/);
   });
 });

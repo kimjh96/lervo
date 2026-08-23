@@ -1,0 +1,11 @@
+fromPath: docs/adr/0059-replayed-search-candidate-review.md
+identityPath: docs/adr/0059-replayed-search-candidate-review.md
+kind: document_move
+lineageId: klineage_6d579ee21870ca39b2c4c96b
+operationId: kdocop_cb10efa497ad4db3f6b81528
+schemaVersion: 1
+sourceContentHash: sha256:965c5b27995358cba450d6b8ca8a6ba3ce52aa937b7a5dccc806cc3844e2425e
+sourceId: src_25e2feba7b9dd70f4a426913
+sourceUnitBindingDigest: sha256:49fe379820dad5d3bf97af7780313bc4778f9bc00034805ab69d2e3c12d45fb7
+sourceUnitCount: 5
+toPath: docs/decisions/search/0059-replayed-search-candidate-review.md

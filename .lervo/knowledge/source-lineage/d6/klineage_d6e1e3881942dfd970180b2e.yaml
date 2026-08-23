@@ -1,0 +1,11 @@
+fromPath: docs/adr/0079-explicit-trace-page-event-filter.md
+identityPath: docs/adr/0079-explicit-trace-page-event-filter.md
+kind: document_move
+lineageId: klineage_d6e1e3881942dfd970180b2e
+operationId: kdocop_f93d4f389710cefeb6d001e5
+schemaVersion: 1
+sourceContentHash: sha256:393f5e373c22643732fbedf14d891301bbb724b3867f377e4a31fcd28a7b85c7
+sourceId: src_caaefb02dc0b2c339d96a935
+sourceUnitBindingDigest: sha256:207030c696eff40d4973907c50ea41a4f99b739bab8bb7c78dd0323e5b6a36db
+sourceUnitCount: 4
+toPath: docs/decisions/operations/0079-explicit-trace-page-event-filter.md

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_54702f4743234961989e5105
+freshness: current
+ownership: user
+path: docs/decisions/distribution/0088-packed-cli-consumer-installation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8908ee6f9a1380e6d3820cda
+title: "ADR-0088: Packed CLI consumer-installation contract"
+type: decision

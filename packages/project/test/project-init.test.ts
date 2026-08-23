@@ -49,12 +49,26 @@ describe("Lervo project initialization", () => {
 
     const result = await applyInitPlan(plan);
     expect(result.created).toContain(".lervo/project.yaml");
-    expect(result.created).toContain(".lervo/verifications");
-    expect(result.created).toContain(".lervo/deliberations");
-    expect(result.created).toContain(".lervo/search-engine-policies");
-    expect(result.created).toContain(".lervo/search-rollout-policies");
-    expect(result.created).toContain(".lervo/search-rollout-action-policies");
+    expect(result.created).toContain(".lervo/knowledge/policy.yaml");
+    expect(result.created).toContain(".lervo/knowledge/document-layout.yaml");
+    expect(result.created).toEqual(expect.arrayContaining([".lervo", ".lervo/knowledge", ".lervo/.gitignore"]));
+    expect(result.created).toHaveLength(6);
+    await expect(access(resolve(root, ".lervo/documents"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo/verifications"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo/generated"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo/state"))).rejects.toThrow();
     expect(await loadProjectManifest(root)).toEqual(plan.projectManifest);
+    const knowledgePolicy = await readFile(resolve(root, ".lervo/knowledge/policy.yaml"), "utf8");
+    expect(knowledgePolicy).toContain("  - '**/Pods/**'\n");
+    expect(knowledgePolicy).toContain("  - '**/.cxx/**'\n");
+    expect(knowledgePolicy).toContain("  - '**/build-device/**'\n");
+    expect(knowledgePolicy).toContain("  language: en\n");
+    const decisionTaxonomy = await readFile(resolve(root, ".lervo/knowledge/document-layout.yaml"), "utf8");
+    expect(decisionTaxonomy).toContain("decisionRoot: docs/decisions\n");
+    expect(decisionTaxonomy).toContain("maxLeafDocuments: 24\n");
+    expect(decisionTaxonomy).toContain("id: architecture\n");
+    expect(decisionTaxonomy).not.toContain("managed provider");
+    expect(decisionTaxonomy).not.toContain("id: foundation\n");
 
     const secondPlan = await createInitPlan({ root });
     expect(secondPlan.status).toBe("ready");
@@ -66,9 +80,9 @@ describe("Lervo project initialization", () => {
   it("preserves existing user documents byte for byte", async () => {
     const root = await temporaryRepository();
     const documents = new Map([
-      ["README.md", "# 사용자 문서\n\n문단과 공백을 그대로 둡니다.\n"],
-      ["AGENTS.md", "사용자가 작성한 지침입니다.\n"],
-      ["CLAUDE.md", "기존 Claude 설정입니다.\n"],
+      ["README.md", "# User document\n\nPreserve paragraphs and whitespace exactly.\n"],
+      ["AGENTS.md", "User-authored instructions.\n"],
+      ["CLAUDE.md", "Existing Claude configuration.\n"],
     ]);
     for (const [path, content] of documents) {
       await writeFile(resolve(root, path), content, "utf8");
@@ -100,6 +114,28 @@ describe("Lervo project initialization", () => {
 
     expect(nextPlan.projectManifest?.projectId).toBe("prj_existing1");
     expect(nextPlan.projectManifest?.name).not.toBe("ignored-name");
+  });
+
+  it("blocks an invalid existing repository knowledge policy", async () => {
+    const root = await temporaryRepository();
+    await applyInitPlan(await createInitPlan({ root, projectId: "prj_01234567" }));
+    await writeFile(resolve(root, ".lervo/knowledge/policy.yaml"), "schemaVersion: 2\n");
+
+    const plan = await createInitPlan({ root });
+    expect(plan.status).toBe("blocked");
+    expect(plan.operations).toContainEqual(expect.objectContaining({ path: ".lervo/knowledge/policy.yaml", action: "conflict" }));
+    await expect(applyInitPlan(plan)).rejects.toMatchObject({ code: "init_conflict" });
+  });
+
+  it("blocks an invalid existing decision taxonomy", async () => {
+    const root = await temporaryRepository();
+    await applyInitPlan(await createInitPlan({ root, projectId: "prj_01234567" }));
+    await writeFile(resolve(root, ".lervo/knowledge/document-layout.yaml"), "schemaVersion: 1\nroutes: []\n");
+
+    const plan = await createInitPlan({ root });
+    expect(plan.status).toBe("blocked");
+    expect(plan.operations).toContainEqual(expect.objectContaining({ path: ".lervo/knowledge/document-layout.yaml", action: "conflict" }));
+    await expect(applyInitPlan(plan)).rejects.toMatchObject({ code: "init_conflict" });
   });
 
   it("blocks the whole plan instead of overwriting an invalid manifest", async () => {
@@ -144,28 +180,26 @@ describe("Lervo project initialization", () => {
     const plan = await createInitPlan({ root, projectId: "prj_01234567" });
 
     expect(plan.status).toBe("blocked");
-    await expect(applyInitPlan(plan)).rejects.toThrow("계약에 맞지 않습니다");
+    await expect(applyInitPlan(plan)).rejects.toThrow("does not satisfy the contract");
     await expect(access(resolve(root, ".lervo/documents.yaml"))).rejects.toThrow();
     await expect(readFile(resolve(root, ".lervo/project.yaml"), "utf8")).resolves.toBe(
       "schemaVersion: 1\nprojectId: invalid\n",
     );
   });
 
-  it("preserves a conflicting verification suite path and blocks the whole init", async () => {
+  it("preserves an unused verification path without eagerly claiming the feature directory", async () => {
     const root = await temporaryRepository();
     await mkdir(resolve(root, ".lervo"));
     await writeFile(resolve(root, ".lervo/verifications"), "user-owned bytes\n", "utf8");
 
     const plan = await createInitPlan({ root, projectId: "prj_01234567" });
 
-    expect(plan.status).toBe("blocked");
-    expect(plan.operations).toContainEqual(
-      expect.objectContaining({ path: ".lervo/verifications", action: "conflict" }),
-    );
-    await expect(applyInitPlan(plan)).rejects.toMatchObject({ code: "init_conflict" });
+    expect(plan.status).toBe("ready");
+    expect(plan.operations.some((operation) => operation.path === ".lervo/verifications")).toBe(false);
+    await applyInitPlan(plan);
     await expect(readFile(resolve(root, ".lervo/verifications"), "utf8"))
       .resolves.toBe("user-owned bytes\n");
-    await expect(access(resolve(root, ".lervo/project.yaml"))).rejects.toThrow();
+    await expect(access(resolve(root, ".lervo/project.yaml"))).resolves.toBeUndefined();
   });
 
   it("stops when a create target changes after planning", async () => {
@@ -173,7 +207,7 @@ describe("Lervo project initialization", () => {
     const plan = await createInitPlan({ root, projectId: "prj_01234567" });
     await writeFile(resolve(root, ".lervo"), "raced file\n", "utf8");
 
-    await expect(applyInitPlan(plan)).rejects.toThrow("계획 이후 생성");
+    await expect(applyInitPlan(plan)).rejects.toThrow("was created after the plan was generated");
     await expect(readFile(resolve(root, ".lervo"), "utf8")).resolves.toBe("raced file\n");
   });
 
@@ -227,6 +261,6 @@ describe("Lervo project initialization", () => {
     expect(plan.operations[0]).toEqual(
       expect.objectContaining({ path: ".lervo", action: "conflict" }),
     );
-    await expect(loadProjectManifest(root)).rejects.toThrow("심볼릭 링크일 수 없습니다");
+    await expect(loadProjectManifest(root)).rejects.toThrow("cannot be a symbolic link");
   });
 });

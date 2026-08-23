@@ -3,6 +3,7 @@ import { type OutboundSyncLoopResult } from "@lervo/sync";
 
 import { type RemoteControlLoopResult } from "./control-loop.js";
 import { NodeRuntimeError } from "./errors.js";
+import type { NodeRuntimeHealthPublisher } from "./health.js";
 
 export interface NodeRuntimeCloseResult {
   status: "stopped" | "failed";
@@ -14,6 +15,8 @@ export interface NodeRuntimeCloseResult {
 export interface NodeRuntimeDeployment {
   readonly closed: Promise<NodeRuntimeCloseResult>;
   start(): Promise<void>;
+  reloadBearerToken(): Promise<void>;
+  reloadRuntimeMaterials(): Promise<void>;
   close(): Promise<NodeRuntimeCloseResult>;
 }
 
@@ -24,6 +27,8 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   private syncLoop: Promise<OutboundSyncLoopResult> | null = null;
   private controlLoop: Promise<RemoteControlLoopResult> | null = null;
   private closePromise: Promise<NodeRuntimeCloseResult> | null = null;
+  private reloadPromise: Promise<void> | null = null;
+  private materialReloadPromise: Promise<void> | null = null;
   private failureCode: NodeRuntimeCloseResult["failureCode"];
   private resolveClosed!: (result: NodeRuntimeCloseResult) => void;
   private rejectClosed!: (error: unknown) => void;
@@ -35,6 +40,9 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       run(signal: AbortSignal): Promise<RemoteControlLoopResult>;
       close(): void;
     } | null,
+    private readonly reloadBearerTokenSnapshot: () => Promise<void>,
+    private readonly reloadRuntimeMaterialSnapshot: () => Promise<void>,
+    private readonly health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null,
   ) {
     this.closed = new Promise<NodeRuntimeCloseResult>((resolve, reject) => {
       this.resolveClosed = resolve;
@@ -44,7 +52,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
 
   async start(): Promise<void> {
     if (this.started || this.closePromise !== null) {
-      throw new NodeRuntimeError("startup_failed", "Node runtime은 한 번만 시작할 수 있습니다.");
+      throw new NodeRuntimeError("startup_failed", "The Node runtime can be started only once.");
     }
     this.started = true;
     this.syncLoop = Promise.resolve().then(() => this.runSyncLoop(this.abort.signal));
@@ -65,10 +73,57 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   close(): Promise<NodeRuntimeCloseResult> {
     if (this.closePromise === null) {
       this.abort.abort();
-      this.closePromise = this.finish();
+      this.closePromise = this.health?.stopping().catch(() => undefined).then(() => this.finish()) ??
+        this.finish();
       void this.closePromise.then(this.resolveClosed, this.rejectClosed);
     }
     return this.closePromise;
+  }
+
+  reloadBearerToken(): Promise<void> {
+    if (this.closePromise !== null) {
+      return Promise.reject(new NodeRuntimeError(
+        "token_reload_failed",
+        "Cannot reload the Node runtime bearer token while the runtime is shutting down.",
+      ));
+    }
+    if (this.reloadPromise === null) {
+      const operation = this.reloadBearerTokenSnapshot().catch((error) => {
+        throw new NodeRuntimeError(
+          "token_reload_failed",
+          "Could not reload the Node runtime bearer token.",
+          { cause: error },
+        );
+      });
+      this.reloadPromise = operation;
+      void operation.finally(() => {
+        if (this.reloadPromise === operation) this.reloadPromise = null;
+      }).catch(() => undefined);
+    }
+    return this.reloadPromise;
+  }
+
+  reloadRuntimeMaterials(): Promise<void> {
+    if (this.closePromise !== null) {
+      return Promise.reject(new NodeRuntimeError(
+        "runtime_material_reload_failed",
+        "Cannot reload Node runtime material while the runtime is shutting down.",
+      ));
+    }
+    if (this.materialReloadPromise === null) {
+      const operation = this.reloadRuntimeMaterialSnapshot().catch((error) => {
+        throw new NodeRuntimeError(
+          "runtime_material_reload_failed",
+          "Could not reload Node runtime material.",
+          { cause: error },
+        );
+      });
+      this.materialReloadPromise = operation;
+      void operation.finally(() => {
+        if (this.materialReloadPromise === operation) this.materialReloadPromise = null;
+      }).catch(() => undefined);
+    }
+    return this.materialReloadPromise;
   }
 
   private async finish(): Promise<NodeRuntimeCloseResult> {
@@ -98,7 +153,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     if (shutdownErrors.length > 0) {
       throw new NodeRuntimeError(
         "shutdown_failed",
-        "Node runtime 저장소를 안전하게 종료하지 못했습니다.",
+        "Could not close the Node runtime repository safely.",
         { cause: new AggregateError(shutdownErrors) },
       );
     }
@@ -115,6 +170,16 @@ export function createNodeRuntimeDeployment(
     run(signal: AbortSignal): Promise<RemoteControlLoopResult>;
     close(): void;
   } | null = null,
+  reloadBearerToken: () => Promise<void> = async () => undefined,
+  reloadRuntimeMaterials: () => Promise<void> = reloadBearerToken,
+  health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null = null,
 ): NodeRuntimeDeployment {
-  return new DefaultNodeRuntimeDeployment(store, runLoop, control);
+  return new DefaultNodeRuntimeDeployment(
+    store,
+    runLoop,
+    control,
+    reloadBearerToken,
+    reloadRuntimeMaterials,
+    health,
+  );
 }

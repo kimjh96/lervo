@@ -34,7 +34,7 @@ function event(input: { id: string; ts: string; threadTs?: string }) {
       type: "message",
       channel: "C123",
       user: "U123",
-      text: "배포 조합을 확인합니다.",
+      text: "Check the deployment combination.",
       ts: input.ts,
       event_ts: input.ts,
       ...(input.threadTs === undefined ? {} : { thread_ts: input.threadTs }),
@@ -158,7 +158,7 @@ describe("conversation deployment composition", () => {
         platform: "teams",
         create: () => mismatched,
       }],
-    })).rejects.toThrow("deployment 좌표");
+    })).rejects.toThrow("deployment coordinates");
   });
 
   it("restores a platform reply link through the application entrypoint", async () => {
@@ -211,7 +211,7 @@ describe("conversation deployment composition", () => {
           principalId: "operator:reviewer",
           permissions: ["deliberation.resume"] as const,
         }],
-        executor: { execute: async () => { throw new Error("호출되지 않아야 합니다."); } },
+        executor: { execute: async () => { throw new Error("Must not be called."); } },
         workerId: "conversation-worker-1",
       },
     })).rejects.toThrow("resume executor");
@@ -242,27 +242,27 @@ describe("conversation deployment composition", () => {
     let application = await openConversationApplication(configured);
     const adapter = application.slackAdapters.get("itg_slack001");
     if (adapter === undefined || application.deliberations === null) {
-      throw new Error("Conversation 숙의 배포가 누락되었습니다.");
+      throw new Error("Conversation deliberation delivery is missing.");
     }
     const received = await adapter.receive(signed(event({
       id: "Ev-deliberation-1",
       ts: "1787191200.000200",
     })));
-    if (received.status !== "accepted") throw new Error("숙의 event가 수신되지 않았습니다.");
+    if (received.status !== "accepted") throw new Error("The deliberation event was not received.");
     const first = await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
-      topic: "배포 구조를 검토합니다.",
+      topic: "Review the deployment structure.",
       requestedAt: "2026-08-20T02:00:00.000Z",
     });
     application.close();
 
     application = await openConversationApplication(configured);
-    if (application.deliberations === null) throw new Error("숙의 control이 복원되지 않았습니다.");
+    if (application.deliberations === null) throw new Error("Deliberation control was not restored.");
     const duplicate = await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
-      topic: "배포 구조를 검토합니다.",
+      topic: "Review the deployment structure.",
       requestedAt: "2026-08-20T02:00:01.000Z",
     });
     expect(duplicate.deliberationId).toBe(first.deliberationId);
@@ -306,7 +306,7 @@ describe("conversation deployment composition", () => {
             "deliberation.read",
           ] as const,
         }],
-        executor: { execute: async () => { throw new Error("결과를 알 수 없습니다."); } },
+        executor: { execute: async () => { throw new Error("The result is unknown."); } },
         resumeExecutor: {
           execute: async (job) => ({
             deliberationId: job.deliberationId,
@@ -323,16 +323,16 @@ describe("conversation deployment composition", () => {
     if (
       adapter === undefined || application.deliberations === null ||
       application.reconcileDeliberation === null
-    ) throw new Error("Conversation 숙의 대조 배포가 누락되었습니다.");
+    ) throw new Error("Conversation deliberation reconciliation delivery is missing.");
     const received = await adapter.receive(signed(event({
       id: "Ev-reconciliation-1",
       ts: "1787191200.000300",
     })));
-    if (received.status !== "accepted") throw new Error("숙의 event가 수신되지 않았습니다.");
+    if (received.status !== "accepted") throw new Error("The deliberation event was not received.");
     const started = await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
-      topic: "불확실한 실행 결과를 원본과 대조합니다.",
+      topic: "Reconcile an uncertain execution result with its sources.",
       requestedAt: now.toISOString(),
     });
     await expect(application.runDeliberationWorkerCycle()).resolves.toMatchObject({
@@ -356,7 +356,7 @@ describe("conversation deployment composition", () => {
       id: "Ev-reconciliation-2",
       ts: "1787191201.000300",
     })));
-    if (resumeEvent.status !== "accepted") throw new Error("재개 event가 수신되지 않았습니다.");
+    if (resumeEvent.status !== "accepted") throw new Error("The resume event was not received.");
     await expect(application.deliberations.resume({
       event: resumeEvent.event,
       deliberationId: started.deliberationId,

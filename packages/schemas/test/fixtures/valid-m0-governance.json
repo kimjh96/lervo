@@ -39,7 +39,7 @@
         "presentation": {
           "audience": "human",
           "locale": "ko-KR",
-          "writingPolicyId": "writing_ko-kr-human"
+          "writingPolicyId": "writing_en-human"
         }
       },
       "verification": {

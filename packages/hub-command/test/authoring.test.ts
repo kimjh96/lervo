@@ -25,7 +25,7 @@ const request = {
   provider: "custom_provider",
   risk: "medium" as const,
   verificationSuiteIds: ["repo.check"],
-  request: "사람이 이해할 수 있는 실제 요청",
+  request: "A real request that a person can understand",
 };
 
 function fixture() {
@@ -110,7 +110,7 @@ describe("Hub command authoring", () => {
 
     await expect(authorHubCommand({
       ...common,
-      request: { ...request, request: "내용이 바뀐 요청" },
+      request: { ...request, request: "request with changed content" },
     })).rejects.toMatchObject({ code: "idempotency_conflict" });
     expect(setup.artifacts.put).toHaveBeenCalledTimes(2);
   });

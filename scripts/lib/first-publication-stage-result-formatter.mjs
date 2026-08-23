@@ -1,13 +1,13 @@
 export function formatFirstPublicationStageResultEvidence(report) {
   return [
-    "CLI npm stage 결과 증거: 확인됨",
-    `- 대상: ${report.target.package}@${report.target.version}`,
+    "CLI npm stage result evidence: verified",
+    `- Target: ${report.target.package}@${report.target.version}`,
     `- workflow run ID: ${report.target.runId}, attempt ${report.target.attempt}`,
-    "- artifact: 전체 archive digest와 내부 attempt·terminal 문서 확인됨",
-    "- stage 결과: npm CLI가 stage 요청을 exit code 0으로 마쳤다고 기록됨",
-    "- 주의: registry의 독립 접수 증명이나 2FA 승인이 아닙니다",
-    "- 공개 상태: 확인하지 않음",
-    "- 변경 사항: 읽기 전용 artifact download 외 변경 없음",
+    "- Artifact: full archive digest and embedded attempt and terminal documents verified",
+    "- Stage result: records that npm CLI completed the stage request with exit code 0",
+    "- Caution: this is not independent registry acceptance evidence or 2FA approval",
+    "- Public status: not checked",
+    "- Changes: none beyond read-only artifact download",
     "",
   ].join("\n");
 }

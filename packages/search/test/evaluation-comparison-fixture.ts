@@ -90,8 +90,8 @@ function candidateIndex(
 }
 
 export async function comparisonFixture(minimumActiveCases = 2, recoverCandidate = true) {
-  const recovered = reviewedCase("사과", "doc_compare_apple", "a", 1);
-  const unchanged = reviewedCase("바나나", "doc_compare_banana", "b", 2);
+  const recovered = reviewedCase("apple", "doc_compare_apple", "a", 1);
+  const unchanged = reviewedCase("banana", "doc_compare_banana", "b", 2);
   const cases = [recovered, unchanged];
   const bundle = createSearchEvaluationBundle({
     bundleId: "researcher.discovery",
@@ -103,13 +103,13 @@ export async function comparisonFixture(minimumActiveCases = 2, recoverCandidate
   });
   const coverage = createSearchEvaluationCoverage(bundle, cases);
   const corpus: SearchSourceInput[] = [
-    { kind: "document", sourceId: "doc_compare_apple", contentHash: CURRENT_HASH, labels: [], text: "배" },
-    { kind: "document", sourceId: "doc_compare_banana", contentHash: CURRENT_HASH, labels: [], text: "바나나" },
+    { kind: "document", sourceId: "doc_compare_apple", contentHash: CURRENT_HASH, labels: [], text: "pear" },
+    { kind: "document", sourceId: "doc_compare_banana", contentHash: CURRENT_HASH, labels: [], text: "banana" },
   ];
   const evaluatedAt = new Date("2026-08-20T03:00:00.000Z");
   const baseline = await executeSearchEvaluation({ index: new LexicalSearchIndex(corpus), cases, evaluatedAt });
   const candidate = await executeSearchEvaluation({
-    index: candidateIndex(corpus, recoverCandidate ? "사과" : "__no_recovery__", "doc_compare_apple"),
+    index: candidateIndex(corpus, recoverCandidate ? "apple" : "__no_recovery__", "doc_compare_apple"),
     cases,
     evaluatedAt,
   });

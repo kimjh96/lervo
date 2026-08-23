@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_fb8616d52e2eedceb0fe9a60
+freshness: current
+ownership: user
+path: docs/decisions/coordination/conversations/0050-principal-bound-conversation-command-review.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_d33cb9004a1c63781e182133
+title: "ADR-0050: Principal-bound conversation command review with separate approval"
+type: decision

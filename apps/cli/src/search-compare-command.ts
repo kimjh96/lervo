@@ -27,7 +27,7 @@ export async function runSearchCompareCommand(args: string[], io: CliIo): Promis
     return 1;
   }
   if (parsed.positionals.length !== 1 || parsed.values.candidate === undefined) {
-    io.stderr(`bundle ID와 등록된 candidate ID가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A bundle ID and registered candidate ID are required.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -50,8 +50,8 @@ export async function runSearchCompareCommand(args: string[], io: CliIo): Promis
       : formatSearchEvaluationComparison(output.comparison));
     return 0;
   } catch (error) {
-    io.stderr(`검색 후보 비교를 완료하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not complete the search candidate comparison. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

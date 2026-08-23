@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { writingContractForLanguage } from "@lervo/core";
 import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
   DeliberationRuntime,
@@ -8,6 +8,7 @@ import {
 } from "@lervo/deliberation-runtime";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
+import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import type {
   DeliberationOutcome,
   DeliberationResponsibility,
@@ -131,7 +132,7 @@ const defaultDependencies: ManagedDeliberationDependencies = {
 };
 
 export class DeliberationProcessInterruptedError extends Error {
-  constructor(message = "숙의 process가 승인 checkpoint 뒤에 중단되었습니다.") {
+  constructor(message = "The deliberation process was interrupted after the approved checkpoint.") {
     super(message);
     this.name = "DeliberationProcessInterruptedError";
   }
@@ -148,7 +149,7 @@ function assertRequest(request: ManagedDeliberationRequest): void {
     if (!/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(request.resumeDeliberationId)) {
       throw new ManagedDeliberationError(
         "deliberation_request_invalid",
-        "재개할 숙의 ID가 유효하지 않습니다.",
+        "The deliberation ID to resume is invalid.",
       );
     }
     return;
@@ -160,7 +161,7 @@ function assertRequest(request: ManagedDeliberationRequest): void {
   if (!topicIsValid || (!stored && !inlineValid)) {
     throw new ManagedDeliberationError(
       "deliberation_request_invalid",
-      "유효한 작업 주제와 저장된 policy 또는 서로 다른 Codex·Claude 역할 및 verification suite가 필요합니다.",
+      "A valid topic and either a stored policy or distinct Codex and Claude roles with a verification suite are required.",
     );
   }
 }
@@ -173,6 +174,7 @@ function errorCode(error: unknown): string {
 async function resolveExecutionPlan(
   request: StartManagedDeliberationRequest,
   storage: ProjectStorage,
+  writingContract: WritingContract,
 ): Promise<DeliberationExecutionPlan> {
   if (typeof request.policyId === "string") {
     const source = await loadDeliberationWorkflowSource(
@@ -182,6 +184,7 @@ async function resolveExecutionPlan(
     return createStoredDeliberationExecutionPlan({
       projectId: storage.manifest.projectId,
       source,
+      writingContract,
     });
   }
   return createInlineDeliberationExecutionPlan({
@@ -189,7 +192,17 @@ async function resolveExecutionPlan(
     proposerProvider: request.proposerProvider,
     reviewerProvider: request.reviewerProvider,
     verificationSuiteIds: request.verificationSuiteIds,
+    writingContract,
   });
+}
+
+async function resolveWritingContract(
+  repositoryRoot: string,
+  override: WritingContract | undefined,
+): Promise<WritingContract> {
+  if (override !== undefined) return structuredClone(override);
+  const knowledgePolicy = await loadRepositoryKnowledgePolicy(repositoryRoot);
+  return writingContractForLanguage(knowledgePolicy.publication.language);
 }
 
 export function createManagedDeliberationExecutor(
@@ -215,7 +228,7 @@ export function createAssignedManagedDeliberationExecutor(
     ) {
       throw new ManagedDeliberationError(
         "deliberation_request_invalid",
-        "할당된 숙의 ID가 유효하지 않습니다.",
+        "The assigned deliberation ID is invalid.",
       );
     }
     assertRequest(assignment.request);
@@ -225,7 +238,7 @@ export function createAssignedManagedDeliberationExecutor(
     ) {
       throw new ManagedDeliberationError(
         "deliberation_request_invalid",
-        "할당된 숙의 ID와 재개할 숙의 ID가 다릅니다.",
+        "The assigned deliberation ID differs from the deliberation ID to resume.",
       );
     }
     return executeManagedDeliberationLifecycle({
@@ -250,12 +263,16 @@ async function executeWithStorage(
     if (assignedDeliberationId !== undefined) {
       throw new ManagedDeliberationError(
         "deliberation_request_invalid",
-        "재개 요청에는 새 숙의 ID를 할당할 수 없습니다.",
+        "A new deliberation ID cannot be assigned to a resume request.",
       );
     }
     return resumeManagedDeliberationWithStorage(request, storage, dependencies);
   }
-  const plan = await resolveExecutionPlan(request, storage);
+  const writingContract = await resolveWritingContract(
+    storage.paths.repositoryRoot,
+    dependencies.writingContract,
+  );
+  const plan = await resolveExecutionPlan(request, storage, writingContract);
   const policy = plan.policy;
   const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
   const deliberationId = assignedDeliberationId ?? dependencies.createId("dlb");
@@ -267,7 +284,7 @@ async function executeWithStorage(
     registry,
     createdAt: dependencies.now().toISOString(),
     participantRoleIds: recipientRoleIds,
-    writingContract: dependencies.writingContract ?? defaultKoreanWritingContract,
+    writingContract,
   });
   const runtimeCoordinates: DeliberationRuntimeCoordinates = {
     projectId: storage.manifest.projectId,
@@ -376,7 +393,7 @@ async function executeWithStorage(
           code: errorCode(error),
         }));
       } catch {
-        // 원래 실패를 유지합니다. 불완전한 이력을 완료로 위장하지 않습니다.
+        // Preserve the original failure instead of presenting incomplete history as completed.
       }
     }
     if (leaseOwnerId !== null) {
@@ -387,7 +404,7 @@ async function executeWithStorage(
           ownerId: leaseOwnerId,
         });
       } catch {
-        // 원래 실행 실패를 유지합니다. 남은 lease는 다음 재개에서 보수적으로 판정합니다.
+        // Preserve the run failure. A later resume will assess the remaining lease conservatively.
       }
     }
     throw error;

@@ -36,14 +36,14 @@ function pairCasesAndResults(
 ): Array<{ evaluationCase: SearchEvaluationCase; result: SearchEvaluationResult }> {
   const resultsByCaseId = new Map(results.map((result) => [result.caseId, result]));
   if (resultsByCaseId.size !== results.length) {
-    throw new SearchError("invalid_evaluation_run", "검색 평가 실행 결과의 case가 중복되었습니다.");
+    throw new SearchError("invalid_evaluation_run", "Cases in the search evaluation run results are duplicated.");
   }
   const pairs = cases.map((evaluationCase) => ({
     evaluationCase,
     result: resultsByCaseId.get(evaluationCase.caseId),
   }));
   if (pairs.some((pair) => pair.result === undefined)) {
-    throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 케이스·결과 좌표가 다릅니다.");
+    throw new SearchError("invalid_evaluation_run", "Case and result coordinates in the search evaluation run differ.");
   }
   return pairs
     .map((pair) => ({ evaluationCase: pair.evaluationCase, result: pair.result! }))
@@ -58,7 +58,7 @@ export function createSearchEvaluationRun(input: {
 }): SearchEvaluationRun {
   if (input.cases.length < 1 || input.cases.length > SEARCH_EVALUATION_MAX_CASES ||
     input.results.length !== input.cases.length) {
-    throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 케이스·결과 수가 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_run", "The number of cases or results in the search evaluation run is invalid.");
   }
   const pairs = pairCasesAndResults(input.cases, input.results);
   for (const pair of pairs) {
@@ -68,7 +68,7 @@ export function createSearchEvaluationRun(input: {
       pair.result.evaluatedAt !== input.evaluatedAt.toISOString() ||
       pair.result.indexId !== pairs[0]!.result.indexId ||
       !sameSearchEngine(pair.result.engine, pairs[0]!.result.engine)) {
-      throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 project·시각·index 좌표가 다릅니다.");
+      throw new SearchError("invalid_evaluation_run", "Project, timestamp, or index coordinates in the search evaluation run differ.");
     }
   }
   const failuresByReason = emptyFailureCounts();
@@ -128,20 +128,20 @@ export function assertSearchEvaluationRun(
     searchEvaluationFailureReasons.some((reason) => !Number.isSafeInteger(run.failuresByReason[reason]) ||
       run.failuresByReason[reason] < 0) ||
     searchEvaluationFailureReasons.reduce((sum, reason) => sum + run.failuresByReason[reason], 0) !== run.failedCases) {
-    throw new SearchError("invalid_evaluation_run", "검색 평가 실행 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_run", "The search evaluation run contract is invalid.");
   }
   assertSearchEngineIdentity(run.engine, "invalid_evaluation_run");
   assertTimestamp(run.evaluatedAt, "invalid_evaluation_run");
   if ((cases === undefined) !== (results === undefined)) {
-    throw new SearchError("invalid_evaluation_run", "검색 평가 실행 검증에는 케이스와 결과가 함께 필요합니다.");
+    throw new SearchError("invalid_evaluation_run", "Search evaluation run verification requires both cases and results.");
   }
   if (cases !== undefined && results !== undefined) {
     if (cases.length !== results.length) {
-      throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 케이스와 결과 수가 다릅니다.");
+      throw new SearchError("invalid_evaluation_run", "Case and result counts in the search evaluation run differ.");
     }
     const pairs = pairCasesAndResults(cases, results);
     if (pairs.length !== run.totalCases) {
-      throw new SearchError("invalid_evaluation_run", "검색 평가 실행의 원본 수가 다릅니다.");
+      throw new SearchError("invalid_evaluation_run", "The search evaluation run source count differs.");
     }
     for (const { evaluationCase, result } of pairs) {
       assertSearchEvaluationCase(evaluationCase);
@@ -154,12 +154,12 @@ export function assertSearchEvaluationRun(
       results: pairs.map(({ result }) => result),
     });
     if (expected.runId !== run.runId) {
-      throw new SearchError("invalid_evaluation_run", "검색 평가 실행이 케이스·결과 원본과 다릅니다.");
+      throw new SearchError("invalid_evaluation_run", "The search evaluation run differs from its case or result sources.");
     }
     return;
   }
   const { schemaVersion: _schema, runId: _id, ...core } = run;
   if (contentId("sevr", core) !== run.runId) {
-    throw new SearchError("invalid_evaluation_run", "검색 평가 실행 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_evaluation_run", "The search evaluation run ID does not match its content.");
   }
 }

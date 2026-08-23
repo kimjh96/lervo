@@ -1,0 +1,11 @@
+fromPath: docs/adr/0162-reloadable-hub-cryptographic-material-and-service-definitions.md
+identityPath: docs/adr/0162-reloadable-hub-cryptographic-material-and-service-definitions.md
+kind: document_move
+lineageId: klineage_49c259f1d9804c3bc3f2b7c5
+operationId: kdocop_be99a0ccb56deb0decf4323b
+schemaVersion: 1
+sourceContentHash: sha256:0dca72d35bcfeb7eb37eecef540c4e90a25e0485504f3cd80cf147ea03636dfa
+sourceId: src_f73b3e9a799948e3a37abe20
+sourceUnitBindingDigest: sha256:8aa211645f618e64470261d20a9634bd89d7710168202a51fd921207a0ff6220
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0162-reloadable-hub-cryptographic-material-and-service-definitions.md

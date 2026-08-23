@@ -52,7 +52,7 @@ export class ContextSelectionAccumulator {
     ) {
       throw new ContextPreparationError(
         "content_expectation_conflict",
-        `${input.candidate.documentId}에 서로 다른 content hash가 요구되었습니다.`,
+        `Different content hashes were required for ${input.candidate.documentId}.`,
       );
     }
     if (input.expectedContentHash !== undefined) {
@@ -96,6 +96,9 @@ export class ContextSelectionAccumulator {
               compareCanonicalText(left.ruleId, right.ruleId),
           ),
           sharedContextIds: [...document.sharedContextIds].sort(),
+          ...(document.candidate.knowledgeContext === undefined
+            ? {}
+            : { knowledgeContext: structuredClone(document.candidate.knowledgeContext) }),
         };
         return document.expectedContentHash === undefined
           ? common

@@ -1,10 +1,15 @@
 import type { RoleProfile } from "@lervo/schemas";
 
+export const developerResultProtocol = [
+  "In the final response, use natural English complete sentences without a heading or list.",
+  "State what changed, its effect, and the next action. If no action remains, state that no further action is needed.",
+].join(" ");
+
 const developerRoleBase: RoleProfile = {
   schemaVersion: 1,
   roleId: "developer",
   name: "Developer",
-  description: "저장소 지침을 읽고 선언된 한 파일을 변경합니다.",
+  description: `Read repository instructions and modify the single declared file. ${developerResultProtocol}`,
   requestTypes: ["implementation"],
   requiredInputs: [],
   contextPolicy: {
@@ -48,4 +53,13 @@ export function createDeveloperRole(
   role.defaultSkills = [...skillIds];
   role.verification.suiteIds = [...verificationSuiteIds];
   return role;
+}
+
+export function createDeveloperTurnInstructions(task: string): string {
+  return [
+    task,
+    "",
+    "Lervo managed result protocol:",
+    developerResultProtocol,
+  ].join("\n");
 }

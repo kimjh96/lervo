@@ -52,7 +52,7 @@ describe("knowledge candidate creation", () => {
       events: storage.events,
       artifacts: storage.artifacts,
       inspections: [],
-    })).rejects.toThrow("Doctor 환경 검사가 누락되었습니다");
+    })).rejects.toThrow("Doctor environment checks are missing");
     await expect(createDoctorReport({
       projectId: policy.projectId,
       events: storage.events,

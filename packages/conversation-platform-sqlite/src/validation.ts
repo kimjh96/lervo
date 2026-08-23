@@ -37,6 +37,6 @@ export function assertTimestamp(value: string, label: string): void {
 function invalid(label: string): never {
   throw new ConversationPlatformSQLiteError(
     "integrity_failed",
-    `${label} 값이 conversation platform 계약과 맞지 않습니다.`,
+    `${label} value does not satisfy the conversation platform contract.`,
   );
 }

@@ -35,7 +35,7 @@ export function validateManagedRunContextEvidence(input: {
     throw new DeliberationRuntimeError(
       "context_evidence_invalid",
       "receipt_event_mismatch",
-      "Managed run의 E2/E3 또는 완료 증거가 원본 event와 다릅니다.",
+      "The managed run E2/E3 or completion evidence differs from the source event.",
       { cause: error instanceof Error ? error : undefined },
     );
   }
@@ -52,7 +52,7 @@ export function validateManagedRunContextEvidence(input: {
       throw new DeliberationRuntimeError(
         "context_evidence_invalid",
         "previous_artifact_not_loaded",
-        "이전 숙의 artifact가 shared context로 다시 적재되지 않았습니다.",
+        "The previous deliberation artifact was not reloaded as shared context.",
       );
     }
   }

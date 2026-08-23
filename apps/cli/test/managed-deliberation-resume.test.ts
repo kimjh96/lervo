@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import {
   QueuedConversationDeliberationBackend,
   reconcileConversationDeliberation,
@@ -49,15 +49,15 @@ describe("managed CLI deliberation resume", () => {
     const pass = semanticPass();
     const queues: Record<RunProvider, string[]> = {
       codex: [
-        "제안은 승인된 검토까지 원본과 실행 증거를 보존하고, 그 경계에서만 안전하게 재개하는 방식입니다.",
+        "Preserve source and execution evidence through approved review, then resume only from that boundary.",
         pass,
         pass,
-        "결론은 승인 경계를 다시 검증한 뒤 검증과 결정 단계만 이어가는 것입니다.",
+        "The decision revalidates the approved boundary and resumes only verification and decision steps.",
       ],
       claude: [
         pass,
-        "판정: 승인\n\n승인 이전 산출물과 이벤트를 다시 확인하므로 중복 실행 없이 이어갈 수 있습니다.",
-        "프로젝트 검증은 재개 뒤 실제 명령으로 새로 실행했으며 현재 저장소에서 통과했습니다.",
+        "Verdict: approved\n\nRechecking artifacts and events before approval permits continuation without duplicate execution.",
+        "Repository verification ran the actual command after resume and passed against the current repository.",
         pass,
       ],
     };
@@ -66,7 +66,7 @@ describe("managed CLI deliberation resume", () => {
     const runner = {
       createAdapter: ({ provider }: { provider: RunProvider }) => {
         const content = queues[provider].shift();
-        if (content === undefined) throw new Error(`${provider} fixture 응답이 없습니다.`);
+        if (content === undefined) throw new Error(`The ${provider} fixture response is missing.`);
         return new FixtureDeliberationAdapter(
           provider,
           `provider-session-${nextId("session")}`,
@@ -119,7 +119,7 @@ describe("managed CLI deliberation resume", () => {
       proposerProvider: "codex",
       reviewerProvider: "claude",
       verificationSuiteIds: ["project.default"],
-      topic: "승인된 검토 다음 단계에서 중단된 숙의를 재개합니다.",
+      topic: "Resume deliberation interrupted after an approved review.",
     })).rejects.toThrow("fixture interruption");
     expect(concurrentResumeBlocked).toBe(true);
 
@@ -143,7 +143,7 @@ describe("managed CLI deliberation resume", () => {
       stdout: (message) => { traceOutput += message; },
       stderr: () => undefined,
     })).toBe(0);
-    expect(traceOutput).toContain("승인 뒤 재개 가능 후보");
+    expect(traceOutput).toContain("eligible to resume after approval");
     expect(traceOutput).toContain("deliberation.artifact.recorded");
 
     let doctorOutput = "";
@@ -152,7 +152,7 @@ describe("managed CLI deliberation resume", () => {
       stdout: (message) => { doctorOutput += message; },
       stderr: () => undefined,
     })).toBe(0);
-    expect(doctorOutput).toContain("실제 재개 시 전체 원본 재검증 필요");
+    expect(doctorOutput).toContain("revalidate every source when resuming");
 
     let statusOutput = "";
     expect(await runCli(["deliberate", "status", deliberationId], {
@@ -160,7 +160,7 @@ describe("managed CLI deliberation resume", () => {
       stdout: (message) => { statusOutput += message; },
       stderr: () => undefined,
     })).toBe(0);
-    expect(statusOutput).toContain("승인 뒤 재개 가능 후보");
+    expect(statusOutput).toContain("eligible to resume after approval");
 
     const resumeDependencies = {
       openStorage: openProjectStorage,
@@ -208,7 +208,7 @@ describe("managed CLI deliberation resume", () => {
       workerId: "managed-conversation-resume-worker",
       now,
     });
-    if (resumedCycle.status !== "settled") throw new Error("대화 숙의 재개 queue가 종료되지 않았습니다.");
+    if (resumedCycle.status !== "settled") throw new Error("The resumed conversation deliberation queue did not settle.");
     const result = resumedCycle.summary;
 
     expect(result).toMatchObject({ deliberationId, status: "converged", artifactCount: 4 });

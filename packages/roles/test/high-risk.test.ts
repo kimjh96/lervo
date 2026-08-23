@@ -8,7 +8,7 @@ import {
 
 const publication = {
   surface: "documentation" as const,
-  writingPolicyId: "writing_ko-kr-human",
+  writingPolicyId: "writing_en-human",
   writingPolicyHash: `sha256:${"c".repeat(64)}`,
   requiresWritingPermit: true as const,
 };
@@ -85,14 +85,14 @@ describe("high-risk cross-role workflow", () => {
       primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
       reviewer: { definition: marketer, providerSelection: { mode: "fixed", provider: "claude" } },
       verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
-    })).toThrow(/서로 다른|schema/);
+    })).toThrow(/different|schema/);
     expect(() => createHighRiskRoleWorkflow({
       ...common,
       primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
       reviewer: { definition: researcher, providerSelection: { mode: "fixed", provider: "claude" } },
       verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
       maxRounds: 6,
-    })).toThrow(/회차/);
+    })).toThrow(/round count/);
 
     const workflow = createHighRiskRoleWorkflow({
       ...common,
@@ -104,6 +104,6 @@ describe("high-risk cross-role workflow", () => {
     expect(() => assertHighRiskRoleWorkflow({
       workflow,
       definitions: [marketer, researcher, designer],
-    })).toThrow(/ID|결속/);
+    })).toThrow(/ID|binding/);
   });
 });

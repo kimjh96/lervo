@@ -43,7 +43,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
     if (!Number.isSafeInteger(maxRecords) || maxRecords < 1 || maxRecords > 100_000) {
       throw new RemoteCommandSQLiteError(
         "integrity_failed",
-        "remote command replay maxRecords가 유효하지 않습니다.",
+        "The remote command replay maxRecords value is invalid.",
       );
     }
     const path = await ensureRemoteCommandDatabasePath(options.path);
@@ -71,7 +71,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
     ) {
       throw new RemoteCommandSQLiteError(
         "integrity_failed",
-        "remote command replay project target이 유효하지 않습니다.",
+        "The remote command replay project target is invalid.",
       );
     }
     this.database.exec("BEGIN IMMEDIATE;");
@@ -93,7 +93,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       ) {
         throw new RemoteCommandSQLiteError(
           "integrity_failed",
-          "remote command replay database가 다른 project에 고정되어 있습니다.",
+          "The remote command replay database is bound to a different project.",
         );
       }
       this.database.exec("COMMIT;");
@@ -105,7 +105,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
 
   private assertOpen(): void {
     if (this.closed) {
-      throw new RemoteCommandSQLiteError("closed", "닫힌 remote command replay store입니다.");
+      throw new RemoteCommandSQLiteError("closed", "The remote command replay store is closed.");
     }
   }
 
@@ -157,12 +157,12 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
         "SELECT COUNT(*) AS count FROM remote_command_replay",
       ).get()?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
-        throw new RemoteCommandSQLiteError("integrity_failed", "remote command replay count가 유효하지 않습니다.");
+        throw new RemoteCommandSQLiteError("integrity_failed", "The remote command replay count is invalid.");
       }
       if (count >= this.maxRecords) {
         throw new RemoteCommandSQLiteError(
           "capacity_exceeded",
-          "remote command replay capacity를 초과했습니다.",
+          "The remote command replay capacity has been exceeded.",
         );
       }
       const reservationId = `rsv_${randomBytes(32).toString("base64url")}`;
@@ -184,14 +184,14 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       } catch (rollbackError) {
         throw new RemoteCommandSQLiteError(
           "write_failed",
-          "remote command replay reserve와 rollback이 실패했습니다.",
+          "Both remote command replay reservation and rollback failed.",
           { cause: new AggregateError([error, rollbackError]) },
         );
       }
       if (error instanceof RemoteCommandSQLiteError) throw error;
       throw new RemoteCommandSQLiteError(
         "write_failed",
-        "remote command replay reservation을 저장하지 못했습니다.",
+        "The remote command replay reservation could not be saved.",
         { cause: error },
       );
     }
@@ -203,7 +203,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
   }): Promise<void> {
     this.assertOpen();
     if (!validateSchema("remoteCommandExecutionReceipt", input.receipt).valid) {
-      throw new RemoteCommandSQLiteError("integrity_failed", "remote command receipt가 유효하지 않습니다.");
+      throw new RemoteCommandSQLiteError("integrity_failed", "The remote command receipt is invalid.");
     }
     try {
       const result = this.database.prepare(`
@@ -220,14 +220,14 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       if (result.changes !== 1) {
         throw new RemoteCommandSQLiteError(
           "write_failed",
-          "remote command reservation과 receipt가 일치하지 않습니다.",
+          "The remote command reservation and receipt do not match.",
         );
       }
     } catch (error) {
       if (error instanceof RemoteCommandSQLiteError) throw error;
       throw new RemoteCommandSQLiteError(
         "write_failed",
-        "remote command receipt를 저장하지 못했습니다.",
+        "The remote command receipt could not be saved.",
         { cause: error },
       );
     }
@@ -236,7 +236,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
   checkIntegrity(): void {
     this.assertOpen();
     if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new RemoteCommandSQLiteError("integrity_failed", "remote command SQLite quick_check가 실패했습니다.");
+      throw new RemoteCommandSQLiteError("integrity_failed", "The remote command SQLite quick_check failed.");
     }
     const requiredTriggers = new Set([
       "remote_command_replay_no_delete",
@@ -248,7 +248,7 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
-      throw new RemoteCommandSQLiteError("integrity_failed", "remote command replay trigger가 누락되었습니다.");
+      throw new RemoteCommandSQLiteError("integrity_failed", "A remote command replay trigger is missing.");
     }
     const metadata = this.database.prepare(
       "SELECT key, value FROM remote_command_meta ORDER BY key ASC",
@@ -259,14 +259,14 @@ export class SQLiteRemoteCommandReplayStore implements RemoteCommandReplayStore 
       metadata[1]?.key !== "project_identity_hash" ||
       typeof metadata[1]?.value !== "string"
     ) {
-      throw new RemoteCommandSQLiteError("integrity_failed", "remote command replay project metadata가 유효하지 않습니다.");
+      throw new RemoteCommandSQLiteError("integrity_failed", "The remote command replay project metadata is invalid.");
     }
     const rows = this.database.prepare(`
       SELECT idempotency_key, command_hash, nonce, reservation_id, receipt_json
       FROM remote_command_replay
     `).all();
     if (rows.length > this.maxRecords) {
-      throw new RemoteCommandSQLiteError("capacity_exceeded", "remote command replay capacity를 초과했습니다.");
+      throw new RemoteCommandSQLiteError("capacity_exceeded", "The remote command replay capacity has been exceeded.");
     }
     for (const row of rows) decodeReplayReceipt(decodeReplayRow(row));
   }

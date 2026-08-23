@@ -20,7 +20,7 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-function fail(code, message = "npm 최초 게시 대화형 실행 조건이 올바르지 않습니다.") {
+function fail(code, message = "The interactive npm first-publication execution conditions are invalid.") {
   throw new FirstPublicationBootstrapError(code, message);
 }
 

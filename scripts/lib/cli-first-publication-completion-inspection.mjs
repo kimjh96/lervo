@@ -11,7 +11,7 @@ import { readFirstPublicationCompletionInspectionSources } from
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_completion_inspection_input_invalid",
-    "CLI 최초 게시 완료 점검 입력이 올바르지 않습니다.",
+    "The CLI first-publication completion-inspection input is invalid.",
   );
 }
 

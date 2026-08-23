@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_4944e5e8204a942a9af74f67
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_3859eb8a102d5d24873c382e
+title: "ADR-0107: CLI first-publication package-metadata apply permit"
+type: decision

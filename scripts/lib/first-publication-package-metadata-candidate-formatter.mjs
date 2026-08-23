@@ -3,19 +3,19 @@ import { formatFirstPublicationMetadataChange } from
 
 export function formatFirstPublicationPackageMetadataCandidate(candidate) {
   const lines = [
-    "CLI 최초 게시 package.json 후보",
-    `대상: ${candidate.target.package}@${candidate.target.version}`,
-    "상태: 내용을 검토해야 하며 아직 적용할 수 없습니다.",
+    "CLI first-publication package.json candidate",
+    `Target: ${candidate.target.package}@${candidate.target.version}`,
+    "Status: Review is required; this candidate cannot be applied yet.",
     "",
-    "후보에 반영된 변경:",
+    "Changes included in the candidate:",
   ];
   for (const change of candidate.changes) {
     lines.push(`- ${formatFirstPublicationMetadataChange(change)}`);
   }
   lines.push(
     "",
-    "정확한 package.json 내용은 같은 인자에 --package-json을 붙여 확인할 수 있습니다.",
-    "이 명령은 파일 수정, release manifest 재생성, 승인 생성, 게시 활성화나 패키지 게시를 실행하지 않았습니다.",
+    "Add --package-json to the same arguments to inspect the exact package.json content.",
+    "This command did not modify files, rebuild the release manifest, create approvals, activate publishing, or publish the package.",
   );
   return `${lines.join("\n")}\n`;
 }

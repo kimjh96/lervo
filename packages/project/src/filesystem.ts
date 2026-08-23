@@ -19,21 +19,21 @@ export async function readEntry(
   try {
     const stats = await lstat(path);
     if (stats.isSymbolicLink()) {
-      return { kind: "unsupported", description: "심볼릭 링크" };
+      return { kind: "unsupported", description: "symbolic link" };
     }
     if (stats.isDirectory()) {
       return { kind: "directory" };
     }
     if (stats.isFile()) {
       if (stats.size > maximumFileBytes) {
-        return { kind: "unsupported", description: "크기 제한을 넘는 파일" };
+        return { kind: "unsupported", description: "file exceeding the size limit" };
       }
       let handle;
       try {
         handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
         const opened = await handle.stat();
         if (stats.dev !== opened.dev || stats.ino !== opened.ino) {
-          return { kind: "unsupported", description: "읽기 전에 바뀐 파일 경로" };
+          return { kind: "unsupported", description: "file path changed before reading" };
         }
         const bytes = await handle.readFile();
         const after = await handle.stat();
@@ -45,7 +45,7 @@ export async function readEntry(
           stats.size !== after.size ||
           stats.mtimeMs !== after.mtimeMs
         ) {
-          return { kind: "unsupported", description: "읽는 동안 바뀐 파일" };
+          return { kind: "unsupported", description: "file changed while being read" };
         }
         try {
           return {
@@ -53,22 +53,22 @@ export async function readEntry(
             content: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
           };
         } catch {
-          return { kind: "unsupported", description: "유효한 UTF-8이 아닌 파일" };
+          return { kind: "unsupported", description: "file that is not valid UTF-8" };
         }
       } catch {
-        return { kind: "unsupported", description: "안전하게 열 수 없는 파일" };
+        return { kind: "unsupported", description: "file that cannot be opened safely" };
       } finally {
         await handle?.close();
       }
     }
-    return { kind: "unsupported", description: "일반 파일이나 디렉터리가 아닌 항목" };
+    return { kind: "unsupported", description: "entry that is neither a regular file nor a directory" };
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {
       return { kind: "missing" };
     }
     if (code === "ENOTDIR") {
-      return { kind: "unsupported", description: "상위 경로가 디렉터리가 아닌 항목" };
+      return { kind: "unsupported", description: "entry whose parent path is not a directory" };
     }
     throw error;
   }

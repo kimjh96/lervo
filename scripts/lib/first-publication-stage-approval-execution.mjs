@@ -18,7 +18,7 @@ async function writeTerminal(store, method, terminal) {
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail(
       "first_publication_stage_approval_store_failed",
-      "npm stage 승인 terminal을 저장하지 못했습니다.",
+      "The npm stage approval terminal record could not be saved.",
     );
   }
 }
@@ -52,7 +52,7 @@ export async function executeFirstPublicationStageApproval({
     typeof store.abort !== "function" || typeof store.markUnknown !== "function"
   ) fail(
     "first_publication_stage_approval_execution_input_invalid",
-    "npm stage 승인 실행 입력이 올바르지 않습니다.",
+    "The npm stage approval execution input is invalid.",
   );
   validateAuthorization(clock());
   const prepared = await prepareApproval();
@@ -71,7 +71,7 @@ export async function executeFirstPublicationStageApproval({
       if (error instanceof FirstPublicationBootstrapError) throw error;
       fail(
         "first_publication_stage_approval_store_failed",
-        "npm stage 승인 attempt를 저장하지 못했습니다.",
+        "The npm stage approval attempt could not be saved.",
       );
     }
     let approvalStarted = false;
@@ -109,7 +109,7 @@ export async function executeFirstPublicationStageApproval({
       await markUnknown(store, attempt, clock());
       fail(
         "first_publication_stage_approval_outcome_unknown",
-        "npm stage 승인 결과가 불명확하므로 재시도 전에 대조가 필요합니다.",
+        "The npm stage approval result is ambiguous and must be reconciled before retrying.",
       );
     }
   } finally {

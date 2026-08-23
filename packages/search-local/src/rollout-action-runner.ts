@@ -36,7 +36,7 @@ export async function applyLocalSearchRolloutAction(input: {
   if (actionPolicy.projectId !== input.projectId || actionPolicy.action !== input.requestedAction) {
     throw new SearchLocalError(
       "rollout_action_not_eligible",
-      "검색 rollout 조치 정책의 project·요청 조치가 다릅니다.",
+      "The search rollout action policy has different project or requested-action coordinates.",
     );
   }
   const rolloutPolicy = await loadSearchRolloutReviewPolicy(
@@ -78,7 +78,7 @@ export async function applyLocalSearchRolloutAction(input: {
     },
   });
   if (activation.schemaVersion !== 3) {
-    throw new SearchLocalError("observation_invalid", "검색 rollout rollback 전이에 조치 근거가 없습니다.");
+    throw new SearchLocalError("observation_invalid", "The search rollout rollback transition has no action evidence.");
   }
   return activation;
 }

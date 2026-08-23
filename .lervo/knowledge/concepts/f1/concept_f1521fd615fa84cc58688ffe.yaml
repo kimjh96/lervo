@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f1521fd615fa84cc58688ffe
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7aa8245183b69f466a39483b
+title: "ADR-0117: CLI First-Publication Stage-Only Workflow Candidate"
+type: decision

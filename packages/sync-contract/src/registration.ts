@@ -47,7 +47,7 @@ export function calculateProjectIdentityHash(input: {
 
 export function calculateProjectManifestHash(manifest: ProjectManifest): string {
   if (!validateSchema("project", manifest).valid) {
-    throw new SyncContractError("invalid_registration", "project manifest가 유효하지 않습니다.");
+    throw new SyncContractError("invalid_registration", "The project manifest is invalid.");
   }
   return syncContentHash(manifest);
 }
@@ -63,7 +63,7 @@ export function assertProjectRegistrationRequest(
   request: ProjectRegistrationRequest,
 ): void {
   if (!validateSchema("projectRegistrationRequest", request).valid) {
-    throw new SyncContractError("invalid_registration", "project registration 계약이 유효하지 않습니다.");
+    throw new SyncContractError("invalid_registration", "The project registration contract is invalid.");
   }
   const identityHash = calculateProjectIdentityHash(request.project);
   const manifestHash = calculateProjectManifestHash(request.project);
@@ -79,7 +79,7 @@ export function assertProjectRegistrationRequest(
   ) {
     throw new SyncContractError(
       "invalid_registration",
-      "project registration의 manifest, identity hash와 ID가 입력 좌표와 다릅니다.",
+      "The project registration manifest, identity hash, and ID differ from the input coordinates.",
     );
   }
 }
@@ -90,12 +90,12 @@ export function createProjectRegistrationRequest(input: {
   requestedAt: string;
 }): ProjectRegistrationRequest {
   if (!validateSchema("project", input.manifest).valid) {
-    throw new SyncContractError("invalid_registration", "project manifest가 유효하지 않습니다.");
+    throw new SyncContractError("invalid_registration", "The project manifest is invalid.");
   }
   if (!input.manifest.dataPolicy.hubSyncEnabled) {
     throw new SyncContractError(
       "project_sync_disabled",
-      "project data policy가 Hub 동기화를 허용하지 않습니다.",
+      "The project data policy does not allow Hub synchronization.",
     );
   }
   const identityHash = calculateProjectIdentityHash(input.manifest);
@@ -131,7 +131,7 @@ export function assertProjectRegistrationResponse(input: {
 }): void {
   assertProjectRegistrationRequest(input.request);
   if (!validateSchema("projectRegistrationResponse", input.response).valid) {
-    throw new SyncContractError("invalid_registration", "project registration 응답이 유효하지 않습니다.");
+    throw new SyncContractError("invalid_registration", "The project registration response is invalid.");
   }
   if (
     input.response.registrationId !== input.request.registrationId ||
@@ -140,7 +140,7 @@ export function assertProjectRegistrationResponse(input: {
   ) {
     throw new SyncContractError(
       "invalid_registration",
-      "project registration 응답이 요청 좌표와 다릅니다.",
+      "The project registration response differs from the request coordinates.",
     );
   }
 }
@@ -164,7 +164,7 @@ export function planProjectRegistrationAcceptance(input: {
     ) {
       throw new SyncContractError(
         "registration_identity_conflict",
-        "같은 Hub project 좌표에 서로 다른 로컬 project identity를 등록할 수 없습니다.",
+        "Different local project identities cannot be registered at the same Hub project coordinates.",
       );
     }
     registeredAt = input.current.registeredAt;

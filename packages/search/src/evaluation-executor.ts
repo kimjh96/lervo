@@ -28,7 +28,7 @@ export async function executeSearchEvaluation(input: {
   assertSearchEngineIdentity(input.index.engine);
   if (!SEARCH_INDEX_ID_PATTERN.test(input.index.indexId) || input.cases.length < 1 ||
     input.cases.length > SEARCH_EVALUATION_MAX_CASES || !Number.isFinite(input.evaluatedAt.getTime())) {
-    throw new SearchError("invalid_evaluation_engine", "검색 평가 index 또는 case 입력이 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_engine", "The search evaluation index or case input is invalid.");
   }
   const results: SearchEvaluationResult[] = [];
   for (const evaluationCase of input.cases) {
@@ -41,7 +41,7 @@ export async function executeSearchEvaluation(input: {
     });
     if (!sameSearchEngine(response.engine, input.index.engine) || response.indexId !== input.index.indexId ||
       response.requestedLimit !== SEARCH_MAX_RESULTS) {
-      throw new SearchError("invalid_evaluation_engine", "검색 평가 응답이 요청한 엔진·index·순위 조건과 다릅니다.");
+      throw new SearchError("invalid_evaluation_engine", "The search evaluation response differs from the requested engine, index, or ranking conditions.");
     }
     results.push(createSearchEvaluationResult({ evaluationCase, response, evaluatedAt: input.evaluatedAt }));
   }

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0108-cli-first-publication-package-metadata-apply-transaction.md
+identityPath: docs/adr/0108-cli-first-publication-package-metadata-apply-transaction.md
+kind: document_move
+lineageId: klineage_0b40b5d0d55a1761f81923dd
+operationId: kdocop_459e424d707ab2a912c905e3
+schemaVersion: 1
+sourceContentHash: sha256:3aaf63eaf2e54e9065103c263af214613f968d1037e3d003d2c0e18696f19f40
+sourceId: src_e2ecfa3c332ec30c21df6dc0
+sourceUnitBindingDigest: sha256:ab0057f872086e192535193ace0363407b846ac940c1197cd2b4dafafe3c7ed7
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md

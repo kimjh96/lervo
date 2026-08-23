@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c0df13b7d5117442cc2b3a94
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0036-durable-hub-sync-store.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2f8143fdd06a22329dfc0740
+title: "ADR-0036: Hub sync storage commits before responding"
+type: decision

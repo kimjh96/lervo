@@ -41,7 +41,7 @@ export async function buildContextEnvelope(
   ) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      "Envelope 생성 시각은 E2 적재와 adapter session 시작 이후여야 합니다.",
+      "The envelope creation time must be after E2 loading and adapter session start.",
     );
   }
   const writingPolicyDocumentId = resolveWritingPolicyDocumentId({ ...input, session });
@@ -52,7 +52,7 @@ export async function buildContextEnvelope(
   } catch {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      "Context envelope ID를 만들지 못했습니다.",
+      "Could not create the context envelope ID.",
     );
   }
   const envelope: AdapterContextEnvelope = {
@@ -79,7 +79,7 @@ export async function buildContextEnvelope(
   if (!binding.passed) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      "유효한 provider-neutral context envelope를 만들지 못했습니다.",
+      "Could not create a valid provider-neutral context envelope.",
       { cause: binding.violations },
     );
   }

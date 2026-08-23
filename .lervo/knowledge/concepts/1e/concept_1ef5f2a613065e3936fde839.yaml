@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1ef5f2a613065e3936fde839
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9b8ef242bb1f4900601afe17
+title: "ADR-0005: Shared context and role handoff"
+type: decision

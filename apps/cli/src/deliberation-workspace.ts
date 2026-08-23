@@ -106,7 +106,7 @@ export class DeliberationWorkspace {
     if (input.snapshot.schemaVersion !== 1 || !stats.isDirectory() || stats.isSymbolicLink() ||
       JSON.stringify(input.participantRoleIds) !==
         JSON.stringify(input.snapshot.participantRoleIds)) {
-      throw new Error("숙의 workspace snapshot의 디렉터리나 참여 역할이 다릅니다.");
+      throw new Error("The deliberation workspace snapshot directory or participant roles differ.");
     }
     const workspace = new DeliberationWorkspace(
       input.repositoryRoot,
@@ -128,11 +128,11 @@ export class DeliberationWorkspace {
         !relativePath.startsWith(expectedPrefix) || record.kind !== "generated" ||
         record.ownership.mode !== "lervo_generated"
       ) {
-        throw new Error("숙의 workspace의 생성 문서 경로가 안전하지 않습니다.");
+        throw new Error("A generated document path in the deliberation workspace is unsafe.");
       }
       const bytes = await readFile(path);
       if (deliberationContentHash(bytes) !== record.verifiedRevision) {
-        throw new Error("숙의 workspace의 생성 문서 원문이 snapshot과 다릅니다.");
+        throw new Error("Generated document bytes in the deliberation workspace differ from the snapshot.");
       }
       workspace.documents[documentId] = structuredClone(record);
       workspace.generatedDocumentIds.add(documentId);
@@ -143,7 +143,7 @@ export class DeliberationWorkspace {
       writingRecord.verifiedRevision !== input.snapshot.writingPolicyContentHash ||
       deliberationContentHash(`${JSON.stringify(input.writingContract, null, 2)}\n`) !==
         input.snapshot.writingPolicyContentHash
-    ) throw new Error("숙의 workspace의 writing contract 원본이 snapshot과 다릅니다.");
+    ) throw new Error("The writing contract in the deliberation workspace differs from the snapshot.");
     for (const context of input.snapshot.contexts) workspace.rememberContext(context);
     return workspace;
   }
@@ -185,7 +185,7 @@ export class DeliberationWorkspace {
   }): void {
     const existing = this.publicationsById.get(input.publication.sharedContextId);
     if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(input.publication)) {
-      throw new Error("같은 shared context ID에 서로 다른 숙의 원본을 연결할 수 없습니다.");
+      throw new Error("Different deliberation sources cannot share one shared context ID.");
     }
     this.publicationsById.set(
       input.publication.sharedContextId,
@@ -203,7 +203,7 @@ export class DeliberationWorkspace {
   }> {
     const artifact = input.turn.artifact;
     if (deliberationContentHash(input.turn.content) !== artifact.content.contentHash) {
-      throw new Error("숙의 artifact 원문이 기록된 content hash와 다릅니다.");
+      throw new Error("The deliberation artifact bytes do not match the recorded content hash.");
     }
     const suffix = artifact.deliberationArtifactId.slice(4);
     const documentId = `doc_${suffix}`;

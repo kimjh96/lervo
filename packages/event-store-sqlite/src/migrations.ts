@@ -76,12 +76,12 @@ export function migrateDatabase(database: DatabaseSync): void {
     const row = database.prepare("PRAGMA user_version;").get();
     const version = row?.user_version;
     if (typeof version !== "number" || !Number.isSafeInteger(version)) {
-      throw new EventStoreError("integrity_failed", "SQLite schema version을 읽을 수 없습니다.");
+      throw new EventStoreError("integrity_failed", "The SQLite schema version cannot be read.");
     }
     if (version > storageSchemaVersion) {
       throw new EventStoreError(
         "integrity_failed",
-        `지원하지 않는 event store schema입니다: ${version}`,
+        `Unsupported event store schema: ${version}`,
       );
     }
     for (let index = version; index < migrations.length; index += 1) {

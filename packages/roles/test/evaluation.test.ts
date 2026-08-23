@@ -50,7 +50,7 @@ describe("role evaluation result", () => {
       result,
       artifactId,
       contentHash: `sha256:${"e".repeat(64)}`,
-    })).toThrow(/공개/);
+    })).toThrow(/published/);
   });
 
   it("keeps failed and not-run checks distinct and never promotes incomplete work", () => {
@@ -87,7 +87,7 @@ describe("role evaluation result", () => {
       result: incomplete,
       artifactId,
       contentHash,
-    })).toThrow(/공개/);
+    })).toThrow(/published/);
   });
 
   it("rejects missing evidence, missing checks and tampered result identity", () => {
@@ -115,7 +115,7 @@ describe("role evaluation result", () => {
       producerRunId: "run_designer_0001",
       evaluatedAt: "2026-08-20T01:00:00.000Z",
       observations: sameRun,
-    })).toThrow(/다른 evaluator run/);
+    })).toThrow(/distinct from the producer run/);
     expect(() => createRoleEvaluationResult({
       definition,
       artifactId,
@@ -138,14 +138,14 @@ describe("role evaluation result", () => {
       observations: observations("designer"),
     });
     const tampered: RoleEvaluationResult = { ...valid, overallStatus: "failed" };
-    expect(() => assertRoleEvaluationResult({ definition, result: tampered })).toThrow(/ID|상태/);
+    expect(() => assertRoleEvaluationResult({ definition, result: tampered })).toThrow(/ID|status/);
   });
 
   it("reads only the evaluated bytes from CAS for publication", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-role-evaluation-"));
     roots.push(root);
     const artifacts = await FileSystemCas.open(root);
-    const content = "출처와 한계를 확인한 조사 결과입니다.";
+    const content = "Research result with sources and limitations checked.";
     const stored = await artifacts.put(content);
     const definition = getBuiltInRoleDefinition("researcher");
     const result = createRoleEvaluationResult({
@@ -165,17 +165,17 @@ describe("role evaluation result", () => {
       put: artifacts.put.bind(artifacts),
       putStream: artifacts.putStream.bind(artifacts),
       has: artifacts.has.bind(artifacts),
-      get: async () => new TextEncoder().encode(`${content} 변조`),
+      get: async () => new TextEncoder().encode(`${content} tampered`),
     };
     await expect(readPublishableRoleArtifact({
       definition,
       result,
       artifactStore: corruptedStore,
-    })).rejects.toThrow(/크기나 hash/);
+    })).rejects.toThrow(/size or hash/);
     await expect(readPublishableRoleArtifact({
       definition,
       result: { ...result, byteCount: result.byteCount + 1 },
       artifactStore: artifacts,
-    })).rejects.toThrow(/ID|크기/);
+    })).rejects.toThrow(/ID|size/);
   });
 });

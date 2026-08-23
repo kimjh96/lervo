@@ -10,7 +10,7 @@ export const traceUsage = `  lervo trace [last|run-id] [--root <path>] [--json] 
   lervo trace --cursor <cursor> [--root <path>] [--json]
   lervo trace --deliberation <deliberation-id> [--root <path>] [--json]
   lervo trace --capabilities [--json]
-  기본 출력은 최대 ${defaultTracePageSize}개의 bounded page이며 전체 v1 report는 --full로 요청합니다.`;
+  The default output is a bounded page of at most ${defaultTracePageSize} events; request the complete v1 report with --full.`;
 
 const knownEventTypes = new Set<string>(eventTypes);
 
@@ -26,10 +26,10 @@ export type TraceCommandOptions =
   | { help: false; root?: string; json: boolean; request: TraceCommandRequest };
 
 function parsePageSize(value: string): number {
-  if (!/^\d+$/.test(value)) throw new RangeError("page-size는 정수여야 합니다.");
+  if (!/^\d+$/.test(value)) throw new RangeError("page-size must be an integer.");
   const pageSize = Number(value);
   if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > maximumTracePageSize) {
-    throw new RangeError(`page-size는 1 이상 ${maximumTracePageSize} 이하여야 합니다.`);
+    throw new RangeError(`page-size must be between 1 and ${maximumTracePageSize}.`);
   }
   return pageSize;
 }
@@ -53,7 +53,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
   });
   if (parsed.values.help) return { help: true };
   if (parsed.positionals.length > 1) {
-    throw new TypeError("run ID는 하나만 지정할 수 있습니다.");
+    throw new TypeError("Only one run ID may be specified.");
   }
   const requestedEventTypes = parsed.values["event-type"];
   if (parsed.values.capabilities === true && (
@@ -66,7 +66,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
     requestedEventTypes !== undefined
   )) {
     throw new TypeError(
-      "capabilities는 run ID, root, cursor, deliberation, full, page-size, event-type과 함께 지정할 수 없습니다.",
+      "capabilities cannot be combined with run ID, root, cursor, deliberation, full, page-size, or event-type.",
     );
   }
   if (parsed.values.cursor !== undefined && (
@@ -75,19 +75,19 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
     parsed.values["page-size"] !== undefined ||
     requestedEventTypes !== undefined || parsed.values.deliberation !== undefined
   )) {
-    throw new TypeError("cursor는 run ID, full, page-size, event-type과 함께 지정할 수 없습니다.");
+    throw new TypeError("cursor cannot be combined with run ID, full, page-size, event-type, or deliberation.");
   }
   if (parsed.values.deliberation !== undefined && (
     parsed.positionals.length > 0 || parsed.values.full === true ||
     parsed.values["page-size"] !== undefined || requestedEventTypes !== undefined
   )) {
-    throw new TypeError("deliberation은 run ID, full, page-size, event-type과 함께 지정할 수 없습니다.");
+    throw new TypeError("deliberation cannot be combined with run ID, full, page-size, or event-type.");
   }
   if (requestedEventTypes !== undefined && (
     new Set(requestedEventTypes).size !== requestedEventTypes.length ||
     requestedEventTypes.some((eventType) => !knownEventTypes.has(eventType))
   )) {
-    throw new TypeError("event-type은 지원하는 값을 중복 없이 지정해야 합니다.");
+    throw new TypeError("event-type values must be supported and unique.");
   }
 
   const common = {
@@ -103,7 +103,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
   }
   if (parsed.values.deliberation !== undefined) {
     if (!/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.values.deliberation)) {
-      throw new TypeError("deliberation ID가 유효하지 않습니다.");
+      throw new TypeError("The deliberation ID is invalid.");
     }
     return {
       ...common,
@@ -113,7 +113,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
   const selector = parsed.positionals[0] ?? "last";
   const paged = parsed.values["page-size"] !== undefined || requestedEventTypes !== undefined;
   if (parsed.values.full === true && paged) {
-    throw new TypeError("full은 page-size나 event-type과 함께 지정할 수 없습니다.");
+    throw new TypeError("full cannot be combined with page-size or event-type.");
   }
   if (parsed.values.full === true) {
     return {

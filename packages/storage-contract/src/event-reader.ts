@@ -18,7 +18,7 @@ export class EventReadError extends Error {
 
 function assertPositiveSafeInteger(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
-    throw new TypeError(`${label}은 1 이상의 안전한 정수여야 합니다.`);
+    throw new TypeError(`${label} must be a safe integer of at least 1.`);
   }
 }
 
@@ -32,7 +32,7 @@ function assertForwardPage(
     if (event.seq <= previousSeq || (expectedRunId !== undefined && event.runId !== expectedRunId)) {
       throw new EventReadError(
         "event_sequence_invalid",
-        "Event 저장소가 요청 좌표에 맞는 순방향 page를 반환하지 않았습니다.",
+        "The event store did not return a forward page matching the requested coordinates.",
       );
     }
     previousSeq = event.seq;
@@ -49,11 +49,11 @@ export function collectRunEventsBounded(input: {
   maximumEvents: number;
   pageSize?: number;
 }): EventEnvelope[] {
-  if (input.runId.length === 0) throw new TypeError("runId가 비어 있습니다.");
+  if (input.runId.length === 0) throw new TypeError("runId must not be empty.");
   assertPositiveSafeInteger(input.maximumEvents, "maximumEvents");
   const pageSize = input.pageSize ?? maximumPageSize;
   assertPositiveSafeInteger(pageSize, "pageSize");
-  if (pageSize > maximumPageSize) throw new TypeError("pageSize는 1,000 이하여야 합니다.");
+  if (pageSize > maximumPageSize) throw new TypeError("pageSize must not exceed 1,000.");
 
   const events: EventEnvelope[] = [];
   let afterSeq = 0;
@@ -68,7 +68,7 @@ export function collectRunEventsBounded(input: {
     if (page.length > remaining) {
       throw new EventReadError(
         "event_limit_exceeded",
-        `Run event가 허용된 ${input.maximumEvents}개를 넘었습니다.`,
+        `Run events exceed the allowed limit of ${input.maximumEvents}.`,
       );
     }
     events.push(...page);
@@ -88,11 +88,11 @@ export function visitEventSnapshot(input: {
   pageSize?: number;
 }): void {
   if (!Number.isSafeInteger(input.throughSeq) || input.throughSeq < 0) {
-    throw new TypeError("throughSeq는 0 이상의 안전한 정수여야 합니다.");
+    throw new TypeError("throughSeq must be a safe integer of at least 0.");
   }
   const pageSize = input.pageSize ?? maximumPageSize;
   assertPositiveSafeInteger(pageSize, "pageSize");
-  if (pageSize > maximumPageSize) throw new TypeError("pageSize는 1,000 이하여야 합니다.");
+  if (pageSize > maximumPageSize) throw new TypeError("pageSize must not exceed 1,000.");
 
   let afterSeq = 0;
   while (afterSeq < input.throughSeq) {
@@ -103,7 +103,7 @@ export function visitEventSnapshot(input: {
     if (next === undefined) {
       throw new EventReadError(
         "event_sequence_invalid",
-        "Event snapshot을 지정된 sequence까지 읽지 못했습니다.",
+        "The event snapshot could not be read through the requested sequence.",
       );
     }
     snapshotPage.forEach(input.visit);

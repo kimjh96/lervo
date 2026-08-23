@@ -1,0 +1,11 @@
+fromPath: docs/decisions/foundation/0080-shared-diagnostics-report-compatibility.md
+identityPath: docs/adr/0080-shared-diagnostics-report-compatibility.md
+kind: document_move
+lineageId: klineage_1df18ad46ac9ee2b7aa9c3a8
+operationId: kdocop_ebbfbbd1e27e9a2a8a3f72fb
+schemaVersion: 1
+sourceContentHash: sha256:c49c196d6efec9c2c78a65f8b38861f7f6165b8ecbe0f73ae67868e4c366fa87
+sourceId: src_fc3912f520f33f51079982e2
+sourceUnitBindingDigest: sha256:074b51dad4161e453f2aba5baff7644cdc78defe5bae06be92bf9a3dcb8f7678
+sourceUnitCount: 4
+toPath: docs/decisions/operations/0080-shared-diagnostics-report-compatibility.md

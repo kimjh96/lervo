@@ -15,7 +15,7 @@ const DESTINATION_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
 function validTime(value: string, label: string): number {
   const result = Date.parse(value);
   if (!Number.isFinite(result)) {
-    throw new HubControlError("source_inconsistent", `${label} 시각이 유효하지 않습니다.`);
+    throw new HubControlError("source_inconsistent", `${label} time is invalid.`);
   }
   return result;
 }
@@ -52,20 +52,20 @@ export class HubCommandControlReader {
   }): Promise<HubCommandReview> {
     if (!DESTINATION_ID.test(input.destinationId) || !PROJECT_ID.test(input.projectId) ||
       !DELIVERY_ID.test(input.deliveryId)) {
-      throw new HubControlError("invalid_control_request", "Command review 좌표가 유효하지 않습니다.");
+      throw new HubControlError("invalid_control_request", "The command review coordinates are invalid.");
     }
     const inspectedAtMs = validTime(input.inspectedAt, "inspectedAt");
     let delivery;
     try {
       delivery = await this.source.getRemoteCommandDelivery(input.deliveryId);
     } catch (error) {
-      throw new HubControlError("source_inconsistent", "Command delivery를 읽지 못했습니다.", {
+      throw new HubControlError("source_inconsistent", "The command delivery could not be read.", {
         cause: error instanceof Error ? error : undefined,
       });
     }
     if (delivery === null || delivery.destinationId !== input.destinationId ||
       delivery.target.projectId !== input.projectId) {
-      throw new HubControlError("command_not_found", "조회할 command가 없습니다.");
+      throw new HubControlError("command_not_found", "The requested command was not found.");
     }
     let binding;
     try {
@@ -75,12 +75,12 @@ export class HubCommandControlReader {
         commandId: delivery.commandId,
       });
     } catch (error) {
-      throw new HubControlError("source_inconsistent", "Command 원본을 읽지 못했습니다.", {
+      throw new HubControlError("source_inconsistent", "The command source could not be read.", {
         cause: error instanceof Error ? error : undefined,
       });
     }
     if (binding === null || binding.command.commandId !== delivery.commandId) {
-      throw new HubControlError("source_inconsistent", "Delivery와 command 원본이 연결되지 않습니다.");
+      throw new HubControlError("source_inconsistent", "The delivery is not linked to the command source.");
     }
     const command = binding.command;
     const [snapshot, bundle] = await Promise.all([
@@ -94,7 +94,7 @@ export class HubCommandControlReader {
     if ((snapshot === null) !== (bundle === null) ||
       (snapshot !== null && bundle !== null &&
         snapshot.snapshot.snapshotId !== bundle.snapshot.snapshot.snapshotId)) {
-      throw new HubControlError("source_inconsistent", "Policy head와 review bundle이 다릅니다.");
+      throw new HubControlError("source_inconsistent", "The policy head and review bundle differ.");
     }
     const matchingRules = snapshot?.snapshot.rules.filter((rule) =>
       rule.roleId === command.action.roleId && rule.risk === command.action.risk

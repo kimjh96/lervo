@@ -1,0 +1,11 @@
+fromPath: docs/adr/0104-cli-first-publication-activation-blocker-report.md
+identityPath: docs/adr/0104-cli-first-publication-activation-blocker-report.md
+kind: document_move
+lineageId: klineage_cabc4a2087b513dd89b4c09d
+operationId: kdocop_01c827efdff49c380304f891
+schemaVersion: 1
+sourceContentHash: sha256:47628f54c0c359a8b3ec7927d8da3f868c7edd361f75ef1b13724d6787e58a0e
+sourceId: src_03f5ef2a601a3752abdfbf77
+sourceUnitBindingDigest: sha256:465538421758e5230eae8f67c4cb715456148a7df22d0becd403d2541c8ee784
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md

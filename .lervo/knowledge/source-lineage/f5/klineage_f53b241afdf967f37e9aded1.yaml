@@ -1,0 +1,11 @@
+fromPath: docs/adr/0128-cli-interactive-npm-stage-approval-execution.md
+identityPath: docs/adr/0128-cli-interactive-npm-stage-approval-execution.md
+kind: document_move
+lineageId: klineage_f53b241afdf967f37e9aded1
+operationId: kdocop_f7f557dc7c2d8a6be03a4911
+schemaVersion: 1
+sourceContentHash: sha256:cfbc2d1d834f72b01ca7ee6e82b3fa1f2510415bae685469468b3766ce0239ae
+sourceId: src_6550d2aec85a02c54c7a3110
+sourceUnitBindingDigest: sha256:23179802b5066f6583ef3b9b3013e6ac5a09b2386cbfdf1eb78bb0834ba427ac
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md

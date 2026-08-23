@@ -34,11 +34,11 @@ function packageIdentity(coordinate) {
   const separator = coordinate.lastIndexOf("@");
   const fullName = coordinate.slice(0, separator);
   const version = coordinate.slice(separator + 1);
-  if (!fullName || !version) fail("release_sbom_component_invalid", "SBOM package 좌표가 올바르지 않습니다.");
+  if (!fullName || !version) fail("release_sbom_component_invalid", "The SBOM package coordinates are invalid.");
   if (fullName.startsWith("@")) {
     const [group, name, ...rest] = fullName.split("/");
     if (!group || !name || rest.length > 0) {
-      fail("release_sbom_component_invalid", "SBOM scoped package 좌표가 올바르지 않습니다.");
+      fail("release_sbom_component_invalid", "The SBOM scoped-package coordinates are invalid.");
     }
     const purl = `pkg:npm/${encodeURIComponent(group)}/${encodeURIComponent(name)}@${encodeURIComponent(version)}`;
     return { fullName, group, name, purl, version };
@@ -73,7 +73,7 @@ function nativeCoordinates(families) {
     families.length !== 1 ||
     families[0].prefix !== "@anthropic-ai/claude-agent-sdk-"
   ) {
-    fail("release_sbom_native_family_invalid", "SBOM native dependency family가 올바르지 않습니다.");
+    fail("release_sbom_native_family_invalid", "The SBOM native dependency family is invalid.");
   }
   return nativeSuffixes.map((suffix) =>
     `${families[0].prefix}${suffix}@${families[0].version}`
@@ -83,16 +83,16 @@ function nativeCoordinates(families) {
 function assertSourceConsistency(releaseManifest, graph, lockfile) {
   const required = graph.nodes.filter(({ optional }) => !optional).map(({ coordinate }) => coordinate);
   if (canonicalJson(required) !== canonicalJson(releaseManifest.dependencies.portable)) {
-    fail("release_sbom_portable_closure_mismatch", "SBOM production closure가 release manifest와 다릅니다.");
+    fail("release_sbom_portable_closure_mismatch", "The SBOM production closure differs from the release manifest.");
   }
   const optional = graph.nodes.filter(({ optional }) => optional).map(({ coordinate }) => coordinate);
   if (canonicalJson(optional) !== canonicalJson(
     nativeCoordinates(releaseManifest.dependencies.platformSpecificFamilies),
   )) {
-    fail("release_sbom_optional_closure_mismatch", "SBOM optional closure가 승인된 native family와 다릅니다.");
+    fail("release_sbom_optional_closure_mismatch", "The SBOM optional closure differs from the approved native family.");
   }
   if (canonicalJson(graph.roots) !== canonicalJson(releaseManifest.directDependencies)) {
-    fail("release_sbom_roots_mismatch", "SBOM 직접 dependency가 release manifest와 다릅니다.");
+    fail("release_sbom_roots_mismatch", "The SBOM direct dependencies differ from the release manifest.");
   }
   const graphCoordinates = new Set(graph.nodes.map(({ coordinate }) => coordinate));
   for (const coordinate of releaseManifest.bundle.externalPackages) {
@@ -104,7 +104,7 @@ function rootComponent(releaseManifest) {
   const coordinate = `${releaseManifest.artifact.name}@${releaseManifest.artifact.version}`;
   const component = componentFromCoordinate(coordinate, { application: true });
   const bundleFile = releaseManifest.archive.files.find(({ path }) => path === "dist/bin.js");
-  if (!bundleFile) fail("release_sbom_bundle_hash_missing", "SBOM bundle hash 원본이 없습니다.");
+  if (!bundleFile) fail("release_sbom_bundle_hash_missing", "The SBOM bundle-hash source is missing.");
   return {
     ...component,
     hashes: [{ alg: "SHA-256", content: bundleFile.sha256.slice("sha256:".length) }],
@@ -225,15 +225,15 @@ export function releaseSbomDifferences(expected, actual) {
 
 export function validateCliReleaseSbom(sbom, releaseManifest, lockfile) {
   if (sbom === null || typeof sbom !== "object" || Array.isArray(sbom)) {
-    fail("release_sbom_invalid", "CLI release SBOM 구조가 올바르지 않습니다.");
+    fail("release_sbom_invalid", "The CLI release SBOM structure is invalid.");
   }
   if (Object.hasOwn(sbom.metadata ?? {}, "timestamp")) {
-    fail("release_sbom_nondeterministic_metadata", "CLI release SBOM에 비결정적 metadata가 있습니다.");
+    fail("release_sbom_nondeterministic_metadata", "The CLI release SBOM contains nondeterministic metadata.");
   }
   const expected = createCliReleaseSbom(releaseManifest, lockfile);
   const differences = releaseSbomDifferences(expected, sbom);
   if (differences.length > 0) {
-    fail("release_sbom_mismatch", `CLI release SBOM이 승인 원본과 다릅니다: ${differences.join(", ")}`);
+    fail("release_sbom_mismatch", `The CLI release SBOM differs from the approved source: ${differences.join(", ")}`);
   }
   return sbom;
 }

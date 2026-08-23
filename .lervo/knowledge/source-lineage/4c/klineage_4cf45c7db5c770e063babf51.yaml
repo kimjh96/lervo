@@ -1,0 +1,11 @@
+fromPath: docs/adr/0190-language-aware-bounded-repository-publication.md
+identityPath: docs/adr/0190-language-aware-bounded-repository-publication.md
+kind: document_move
+lineageId: klineage_4cf45c7db5c770e063babf51
+operationId: kdocop_356c7c85b7d5de1e49c9226f
+schemaVersion: 1
+sourceContentHash: sha256:b56cc91107f849c247f5a48e7ba1e1ebd7a8090b4a4102d35a04a217596aa4ad
+sourceId: src_8cf285e32dafc16d6dbc6277
+sourceUnitBindingDigest: sha256:8792dee922f1a828439ad7b54877838a751efad012201322b244d06fe988ca89
+sourceUnitCount: 8
+toPath: docs/decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md

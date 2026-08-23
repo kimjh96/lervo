@@ -29,10 +29,10 @@ function assertStartInput(input: Parameters<ConversationDeliberationBackend["sta
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "숙의 queue 요청이 유효하지 않습니다.",
+      "The deliberation queue request is invalid.",
     );
   }
-  conversationDeliberationTimestamp(input.requestedAt, "숙의 요청");
+  conversationDeliberationTimestamp(input.requestedAt, "deliberation request");
 }
 
 function idFor(projectId: string, sourceEventId: string): string {
@@ -56,12 +56,12 @@ function summaryFor(
   job: ConversationDeliberationJob | ConversationDeliberationResumeJob,
   inspectedAt: string,
 ): ConversationDeliberationSummary {
-  const inspectedAtMs = conversationDeliberationTimestamp(inspectedAt, "숙의 조회");
+  const inspectedAtMs = conversationDeliberationTimestamp(inspectedAt, "deliberation inspection");
   if (job.state === "settled") {
     if (job.summary === null) {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "종료된 숙의 queue 결과가 없습니다.",
+        "The terminal deliberation queue result is missing.",
       );
     }
     assertConversationDeliberationSummary(job.summary, job.deliberationId);
@@ -69,7 +69,7 @@ function summaryFor(
   }
   if (job.state === "uncertain" || (
     job.state === "leased" && job.leaseExpiresAt !== null &&
-    conversationDeliberationTimestamp(job.leaseExpiresAt, "숙의 lease 만료") <= inspectedAtMs
+    conversationDeliberationTimestamp(job.leaseExpiresAt, "deliberation lease expiration") <= inspectedAtMs
   )) {
     return {
       deliberationId: job.deliberationId,
@@ -114,7 +114,7 @@ export class QueuedConversationDeliberationBackend implements ConversationDelibe
     ) {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "숙의 queue 조회 좌표가 유효하지 않습니다.",
+        "The deliberation queue inspection coordinates are invalid.",
       );
     }
     const resumed = await this.resumeStore?.inspect({
@@ -129,7 +129,7 @@ export class QueuedConversationDeliberationBackend implements ConversationDelibe
     if (job === null) {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "요청한 숙의를 찾을 수 없습니다.",
+        "The requested deliberation was not found.",
       );
     }
     return summaryFor(job, input.inspectedAt);
@@ -144,14 +144,14 @@ export class QueuedConversationDeliberationBackend implements ConversationDelibe
     ) {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "숙의 재개 queue 요청이 유효하지 않습니다.",
+        "The deliberation resume queue request is invalid.",
       );
     }
-    conversationDeliberationTimestamp(input.requestedAt, "숙의 재개 요청");
+    conversationDeliberationTimestamp(input.requestedAt, "deliberation resume request");
     if (this.resumeStore === undefined) {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "이 배포에는 숙의 재개 queue가 연결되지 않았습니다.",
+        "No deliberation resume queue is connected to this deployment.",
       );
     }
     const original = await this.store.inspect({
@@ -161,7 +161,7 @@ export class QueuedConversationDeliberationBackend implements ConversationDelibe
     if (original === null || summaryFor(original, input.requestedAt).status !== "interrupted") {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "승인된 중단 상태로 확인된 숙의만 재개할 수 있습니다.",
+        "Only a deliberation confirmed in an approved interrupted state can be resumed.",
       );
     }
     const requestDigest = digest(JSON.stringify([

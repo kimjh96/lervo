@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_746d434ad33cdec05955a85f
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0148-durable-command-artifact-cleanup-runtime.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4942c8089a96498f62288956
+title: "ADR-0148: Durable Command Artifact Cleanup Runtime"
+type: decision

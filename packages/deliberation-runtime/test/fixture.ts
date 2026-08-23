@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { FileSystemCas } from "@lervo/cas";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
 import type {
@@ -20,7 +20,7 @@ import { writingPolicyHash } from "@lervo/writing-contract";
 export const projectId = "prj_deliberation_runtime";
 export const deliberationId = "dlb_runtime_fixture_0001";
 export const policyVersion = hash("runtime-policy-v1");
-export const writingPolicyContent = `${JSON.stringify(defaultKoreanWritingContract, null, 2)}\n`;
+export const writingPolicyContent = `${JSON.stringify(defaultEnglishWritingContract, null, 2)}\n`;
 export const writingPolicyContentHash = hash(writingPolicyContent);
 export const proposalPath = ".lervo/generated/deliberation/proposal.md";
 export const proposalDocumentId = "doc_deliberation_proposal";
@@ -81,7 +81,7 @@ function role(
     schemaVersion: 1,
     roleId,
     name: roleId,
-    description: `${artifactKind} 역할을 수행합니다.`,
+    description: `Performs the ${artifactKind} role.`,
     requestTypes: ["deliberation"],
     requiredInputs: [],
     contextPolicy: {
@@ -107,7 +107,7 @@ function role(
       presentation: {
         audience: "human",
         locale: "ko-KR",
-        writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+        writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
       },
     },
     verification: { suiteIds: ["fixture.required"], failureDisposition: "fail_run" },
@@ -138,7 +138,7 @@ export async function createRuntimeFixture(): Promise<RuntimeFixture> {
     mkdir(resolve(root, "src"), { recursive: true }),
   ]);
   await Promise.all([
-    writeFile(resolve(root, "AGENTS.md"), "숙의 참여자는 근거를 확인하고 한국어 문장으로 답합니다.\n"),
+    writeFile(resolve(root, "AGENTS.md"), "Deliberation participants check evidence and answer in English.\n"),
     writeFile(resolve(root, "docs/writing.json"), writingPolicyContent),
   ]);
   return {
@@ -188,8 +188,8 @@ export function managedInput(input: {
     requestDigest: hash(`${input.role.roleId}:request`),
     risk: "low",
     instructions: input.role.roleId === "proposer"
-      ? "설계 제안을 근거와 함께 작성하세요."
-      : "제안을 검토하고 차단 반론을 구체적으로 작성하세요.",
+      ? "Write a design proposal with supporting evidence."
+      : "Review the proposal and describe any blocking objection concretely.",
     targetTurnId: `target-${input.role.roleId}-0001`,
     context: {
       registry: registry(input.includeProposal),
@@ -203,7 +203,7 @@ export function managedInput(input: {
       createReceiptId: sequence(`ctx_${input.role.roleId}_e12`),
     },
     writingPolicy: {
-      writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
+      writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
       documentId: "doc_writing_policy",
       contentHash: writingPolicyContentHash,
     },
@@ -261,8 +261,8 @@ export function policyWithProviders(
     },
     publication: {
       surface: "chat",
-      writingPolicyId: defaultKoreanWritingContract.writingPolicyId,
-      writingPolicyHash: writingPolicyHash(defaultKoreanWritingContract),
+      writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
+      writingPolicyHash: writingPolicyHash(defaultEnglishWritingContract),
       requiresWritingPermit: true,
     },
   };

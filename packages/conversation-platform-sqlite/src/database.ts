@@ -14,7 +14,7 @@ export async function ensureConversationPlatformDatabasePath(path: string): Prom
     if (stats.isSymbolicLink() || !stats.isFile()) {
       throw new ConversationPlatformSQLiteError(
         "integrity_failed",
-        "Conversation platform SQLite 경로는 일반 파일이어야 합니다.",
+        "The conversation platform SQLite path must be a regular file.",
       );
     }
   } catch (error) {
@@ -150,7 +150,7 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
     if (version !== 0 && version !== 1 && version !== conversationPlatformSQLiteSchemaVersion) {
       throw new ConversationPlatformSQLiteError(
         "integrity_failed",
-        "지원하지 않는 Conversation platform SQLite schema입니다.",
+        "The conversation platform SQLite schema is unsupported.",
       );
     }
     if (version === 0) {
@@ -250,7 +250,7 @@ export function assertConversationPlatformDatabaseIntegrity(database: DatabaseSy
   if (quick !== "ok" || foreignKeyViolation !== undefined) {
     throw new ConversationPlatformSQLiteError(
       "integrity_failed",
-      "Conversation platform SQLite 무결성 검사가 실패했습니다.",
+      "The conversation platform SQLite integrity check failed.",
     );
   }
 }

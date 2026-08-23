@@ -7,7 +7,7 @@ export interface PlatformDeliveryResult {
 }
 
 export class PlatformDeliveryRejectedError extends Error {
-  constructor(message = "Platform API가 메시지 전송을 거부했습니다.") {
+  constructor(message = "The platform API rejected message delivery.") {
     super(message);
     this.name = "PlatformDeliveryRejectedError";
   }

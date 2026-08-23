@@ -21,7 +21,7 @@ function sourceCoordinates(values: string[] | undefined): SearchAssessmentSource
     const sourceKind = value.slice(0, separator) as SearchAssessmentSource["sourceKind"];
     const sourceId = value.slice(separator + 1);
     if (separator < 1 || !searchSourceKinds.includes(sourceKind) || sourceId.length === 0) {
-      throw new Error(`검색 원본 좌표는 <source-kind>:<source-id> 형식이어야 합니다: ${value}`);
+      throw new Error(`Search source coordinates must use <source-kind>:<source-id>: ${value}`);
     }
     return { sourceKind, sourceId };
   });
@@ -48,12 +48,12 @@ export async function runSearchAssessmentCommand(args: string[], io: CliIo): Pro
     return 1;
   }
   if (parsed.positionals.length !== 1 || !["accepted", "failed"].includes(parsed.values.outcome ?? "")) {
-    io.stderr(`검색 시도 ID와 accepted 또는 failed outcome이 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A search attempt ID and accepted or failed outcome are required.\n${searchUsage}\n`);
     return 1;
   }
   const reason = parsed.values.reason as SearchFailureReason | undefined;
   if (reason !== undefined && !searchFailureReasons.includes(reason)) {
-    io.stderr(`알 수 없는 검색 실패 사유입니다: ${reason}\n`);
+    io.stderr(`Unknown search failure reason: ${reason}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -62,9 +62,9 @@ export async function runSearchAssessmentCommand(args: string[], io: CliIo): Pro
       loadProjectManifest(root),
       LocalSearchObservationStore.openExisting(root),
     ]);
-    if (store === null) throw new Error("기록된 검색 시도가 없습니다.");
+    if (store === null) throw new Error("No search attempt is recorded.");
     const attempt = await store.readAttempt(parsed.positionals[0]!);
-    if (attempt.projectId !== manifest.projectId) throw new Error("검색 시도의 project 좌표가 다릅니다.");
+    if (attempt.projectId !== manifest.projectId) throw new Error("The search attempt project coordinate does not match.");
     const assessment = createSearchAssessment({
       attempt,
       assessedAt: new Date(),
@@ -80,8 +80,8 @@ export async function runSearchAssessmentCommand(args: string[], io: CliIo): Pro
       : formatSearchAssessment(assessment));
     return 0;
   } catch (error) {
-    io.stderr(`검색 평가를 기록하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not record the search assessment. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

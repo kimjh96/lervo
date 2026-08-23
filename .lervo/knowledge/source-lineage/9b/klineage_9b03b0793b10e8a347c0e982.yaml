@@ -1,0 +1,11 @@
+fromPath: docs/adr/0133-cli-two-provider-deliberation.md
+identityPath: docs/adr/0133-cli-two-provider-deliberation.md
+kind: document_move
+lineageId: klineage_9b03b0793b10e8a347c0e982
+operationId: kdocop_a40e8ae131ee3d7fd6aeaf01
+schemaVersion: 1
+sourceContentHash: sha256:c215cb38b25d61f9f71a35c01bd09e7ae720a7f02bcb2f122c513922fc4e921f
+sourceId: src_915dbd7ffe13bef3c4d8cc59
+sourceUnitBindingDigest: sha256:6aea792f434d76255642fc40c539b075afdd2bde6b0b5d5029bce91932c3ac89
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0133-cli-two-provider-deliberation.md

@@ -66,25 +66,25 @@ export function createSearchEngineCandidateActivation(input: {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivationEvidence(input);
   if (input.review.schemaVersion !== 2 || input.comparison.schemaVersion !== 2) {
-    throw new SearchError("engine_activation_not_eligible", "새 검색 엔진 선택에는 adapter build가 결속된 검토가 필요합니다.");
+    throw new SearchError("engine_activation_not_eligible", "A new search engine selection requires a review bound to an adapter build.");
   }
   if (!Number.isFinite(input.decidedAt.getTime())) {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 시각이 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine activation timestamp is invalid.");
   }
   if (input.previous !== null) {
     assertSearchEngineActivation(input.previous);
     if (input.previous.projectId !== input.policy.projectId) {
-      throw new SearchError("invalid_engine_activation", "이전 검색 엔진 선택의 project가 정책과 다릅니다.");
+      throw new SearchError("invalid_engine_activation", "The project in the previous search engine selection differs from the policy.");
     }
   }
   const previousSelection = input.previous?.selected ?? baselineSearchEngineSelection();
   const selected = candidateSearchEngineSelection(input.review);
   if (previousSelection.mode === "candidate" && previousSelection.candidateId === selected.candidateId &&
     sameSearchEngine(previousSelection.engine, selected.engine)) {
-    throw new SearchError("engine_activation_not_eligible", "같은 후보 엔진의 새 증거는 refresh로 기록해야 합니다.");
+    throw new SearchError("engine_activation_not_eligible", "New evidence for the same candidate engine must be recorded as a refresh.");
   }
   if (sameSearchEngineSelection(previousSelection, selected)) {
-    throw new SearchError("engine_activation_not_eligible", "현재 선택과 같은 검색 엔진은 다시 활성화하지 않습니다.");
+    throw new SearchError("engine_activation_not_eligible", "The currently selected search engine cannot be activated again.");
   }
   return createTransition({
     projectId: input.policy.projectId,
@@ -115,20 +115,20 @@ export function createSearchEngineCandidateRefresh(input: {
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivationEvidence(input);
   if (input.review.schemaVersion !== 2 || input.comparison.schemaVersion !== 2) {
-    throw new SearchError("engine_activation_not_eligible", "검색 후보 refresh에는 adapter build가 결속된 검토가 필요합니다.");
+    throw new SearchError("engine_activation_not_eligible", "A candidate search refresh requires a review bound to an adapter build.");
   }
   assertSearchEngineActivation(input.previous);
   if (input.previous.projectId !== input.policy.projectId || !Number.isFinite(input.decidedAt.getTime())) {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 refresh 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine refresh coordinates are invalid.");
   }
   const previousSelection = input.previous.selected;
   const selected = candidateSearchEngineSelection(input.review);
   if (previousSelection.mode !== "candidate" || previousSelection.candidateId !== selected.candidateId ||
     !sameSearchEngine(previousSelection.engine, selected.engine)) {
-    throw new SearchError("engine_activation_not_eligible", "Refresh는 현재 선택과 같은 후보 엔진의 새 증거가 필요합니다.");
+    throw new SearchError("engine_activation_not_eligible", "A refresh requires new evidence for the currently selected candidate engine.");
   }
   if (sameSearchEngineSelection(previousSelection, selected)) {
-    throw new SearchError("engine_activation_not_eligible", "현재 선택과 같은 검토·비교 원본은 refresh하지 않습니다.");
+    throw new SearchError("engine_activation_not_eligible", "The same review and comparison sources as the current selection cannot be refreshed.");
   }
   return createTransition<SearchEngineCandidateRefresh>({
     projectId: input.policy.projectId,
@@ -169,13 +169,13 @@ export function createSearchEngineRollback(
   assertSearchEngineActivationOperator(input.policy, input.operatorId);
   assertSearchEngineActivation(input.previous);
   if (input.previous.projectId !== input.policy.projectId || !Number.isFinite(input.decidedAt.getTime())) {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 rollback 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine rollback coordinates are invalid.");
   }
   const fallback = searchEngineActivationFallback(input.previous);
   const selected = fallback.selection;
   if (selected.mode === "candidate") {
     if (input.targetReview === undefined || input.targetComparison === undefined) {
-      throw new SearchError("engine_activation_not_eligible", "이전 후보로 돌아가려면 원래 검토·비교 원본이 필요합니다.");
+      throw new SearchError("engine_activation_not_eligible", "Returning to a previous candidate requires its original review and comparison sources.");
     }
     assertSearchEngineActivationEvidence({
       policy: input.policy,
@@ -183,10 +183,10 @@ export function createSearchEngineRollback(
       comparison: input.targetComparison,
     });
     if (!sameSearchEngineSelection(selected, candidateSearchEngineSelection(input.targetReview))) {
-      throw new SearchError("engine_activation_not_eligible", "Rollback 대상이 이전 검색 엔진 선택과 다릅니다.");
+      throw new SearchError("engine_activation_not_eligible", "The rollback target differs from the previous search engine selection.");
     }
   } else if (input.targetReview !== undefined || input.targetComparison !== undefined) {
-    throw new SearchError("invalid_engine_activation", "Baseline rollback에는 후보 검토 원본을 사용하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "A baseline rollback does not use candidate review sources.");
   }
   const core: Omit<SearchEngineRollback, "schemaVersion" | "activationId"> = {
     projectId: input.policy.projectId,

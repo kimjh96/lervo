@@ -37,24 +37,24 @@ export async function loadRegisteredDocumentCorpus(repositoryRoot: string): Prom
     } catch (error) {
       throw new SearchLocalError(
         "corpus_read_failed",
-        `등록 문서를 검색 corpus로 안전하게 읽지 못했습니다: ${documentId}`,
+        `Could not safely read the registered document into the search corpus: ${documentId}`,
         { cause: error instanceof Error ? error : undefined },
       );
     }
     totalBytes += bytes.byteLength;
     if (totalBytes > MAX_TOTAL_BYTES) {
-      throw new SearchLocalError("corpus_limit_exceeded", "등록 문서 corpus가 전체 byte 상한을 넘었습니다.");
+      throw new SearchLocalError("corpus_limit_exceeded", "The registered-document corpus exceeds the total byte limit.");
     }
     let text: string;
     try {
       text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     } catch (error) {
-      throw new SearchLocalError("corpus_read_failed", `등록 문서가 UTF-8이 아닙니다: ${documentId}`, {
+      throw new SearchLocalError("corpus_read_failed", `The registered document is not UTF-8: ${documentId}`, {
         cause: error instanceof Error ? error : undefined,
       });
     }
     if (text.length === 0) {
-      throw new SearchLocalError("corpus_read_failed", `등록 문서가 비어 있습니다: ${documentId}`);
+      throw new SearchLocalError("corpus_read_failed", `The registered document is empty: ${documentId}`);
     }
     const heading = title(text);
     sources.push({

@@ -15,7 +15,7 @@ export interface HubCommandArtifactCleanupResult extends HubCommandArtifactClean
 function timestamp(value: string, label: string): number {
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds) || milliseconds < 0) {
-    throw new HubCommandError("invalid_request", `${label}이 유효하지 않습니다.`);
+    throw new HubCommandError("invalid_request", `${label} is invalid.`);
   }
   return milliseconds;
 }
@@ -37,7 +37,7 @@ function validateInput(input: {
     !Number.isSafeInteger(input.orphanGraceMs) || input.orphanGraceMs < 60_000 ||
     input.orphanGraceMs > 30 * 24 * 60 * 60_000 ||
     !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100
-  ) throw new HubCommandError("invalid_request", "artifact cleanup 실행 범위가 유효하지 않습니다.");
+  ) throw new HubCommandError("invalid_request", "The artifact cleanup execution scope is invalid.");
   return cleanedAtMs;
 }
 

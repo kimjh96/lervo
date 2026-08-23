@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9abb756cd1aa5d530c73b703
+freshness: current
+ownership: user
+path: docs/decisions/operations/diagnostics/0074-doctor-scope-execution-plans.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9fb6cb1c2bb6f2ff7a595569
+title: "ADR-0074: Dependency-separated doctor scope plans"
+type: decision

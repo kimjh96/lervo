@@ -1,0 +1,11 @@
+fromPath: docs/adr/0050-principal-bound-conversation-command-review.md
+identityPath: docs/adr/0050-principal-bound-conversation-command-review.md
+kind: document_move
+lineageId: klineage_44e171ba373fa4918b43c4f8
+operationId: kdocop_ac2306162fd93d6ba438f162
+schemaVersion: 1
+sourceContentHash: sha256:fcaf6b1d0733248a1fb802bd665bf722d728d16d87ec1f6decccebae5c1cdb01
+sourceId: src_ad7d9cb5b253cfcbcc2e4c3f
+sourceUnitBindingDigest: sha256:ddc7bf49c8a1b26a270c7c6a8203629a7cc2d1d2e2e80893343c440537070f56
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/conversations/0050-principal-bound-conversation-command-review.md

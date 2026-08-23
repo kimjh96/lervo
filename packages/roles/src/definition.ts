@@ -23,7 +23,7 @@ function projectSuites(bundle: RoleEvaluationBundle): string[] {
 export function assertRoleDefinition(definition: RoleDefinition): void {
   const { profile, evaluation } = definition;
   if (!validateSchema("role", profile).valid) {
-    throw new RoleContractError("role_profile_invalid", "RoleProfile schema가 유효하지 않습니다.");
+    throw new RoleContractError("role_profile_invalid", "The RoleProfile schema is invalid.");
   }
   if (!validateSchema("roleEvaluationBundle", evaluation).valid ||
     evaluation.bundleId !== calculateRoleEvaluationBundleId(evaluation) ||
@@ -33,7 +33,7 @@ export function assertRoleDefinition(definition: RoleDefinition): void {
     !sortedUnique(evaluation.checks.map((check) => check.checkId))) {
     throw new RoleContractError(
       "evaluation_bundle_invalid",
-      "역할 평가 묶음의 schema, ID, RoleProfile 또는 check 순서가 유효하지 않습니다.",
+      "The role evaluation bundle schema, ID, RoleProfile, or check order is invalid.",
     );
   }
   for (const check of evaluation.checks) {
@@ -41,7 +41,7 @@ export function assertRoleDefinition(definition: RoleDefinition): void {
     if (project !== (check.verificationSuiteId !== null)) {
       throw new RoleContractError(
         "evaluation_bundle_invalid",
-        "Project verification check만 verification suite를 가질 수 있습니다.",
+        "Only project verification checks may have a verification suite.",
       );
     }
   }
@@ -50,7 +50,7 @@ export function assertRoleDefinition(definition: RoleDefinition): void {
     JSON.stringify(profileSuites) !== JSON.stringify(projectSuites(evaluation))) {
     throw new RoleContractError(
       "evaluation_bundle_invalid",
-      "RoleProfile verification suite와 평가 묶음의 project verification이 다릅니다.",
+      "The RoleProfile verification suites do not match the evaluation bundle's project verifications.",
     );
   }
 }

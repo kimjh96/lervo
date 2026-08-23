@@ -15,7 +15,7 @@ type SqliteRow = Record<string, SQLOutputValue>;
 export function requireOutboxRowString(row: SqliteRow, field: string): string {
   const value = row[field];
   if (typeof value !== "string") {
-    throw new EventStoreError("integrity_failed", `outbox의 ${field}가 문자열이 아닙니다.`);
+    throw new EventStoreError("integrity_failed", `Outbox ${field} is not a string.`);
   }
   return value;
 }
@@ -24,7 +24,7 @@ function optionalString(row: SqliteRow, field: string): string | null {
   const value = row[field];
   if (value === null) return null;
   if (typeof value !== "string") {
-    throw new EventStoreError("integrity_failed", `outbox의 ${field} 형식이 잘못되었습니다.`);
+    throw new EventStoreError("integrity_failed", `Outbox ${field} has an invalid format.`);
   }
   return value;
 }
@@ -32,7 +32,7 @@ function optionalString(row: SqliteRow, field: string): string | null {
 function requireAttemptCount(row: SqliteRow): number {
   const value = row.outbox_attempt_count;
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
-    throw new EventStoreError("integrity_failed", "outbox attempt count가 잘못되었습니다.");
+    throw new EventStoreError("integrity_failed", "The outbox attempt count is invalid.");
   }
   return value;
 }
@@ -53,25 +53,25 @@ export function rowToOutboxDelivery(row: SqliteRow): OutboxDelivery {
     (leaseOwner === null) !== (leaseStartedAt === null) ||
     (leaseOwner === null) !== (leaseExpiresAt === null)
   ) {
-    throw new EventStoreError("integrity_failed", "outbox lease 좌표가 불완전합니다.");
+    throw new EventStoreError("integrity_failed", "The outbox lease coordinates are incomplete.");
   }
   if ((failureCode === null) !== (failedAt === null)) {
-    throw new EventStoreError("integrity_failed", "outbox 실패 좌표가 불완전합니다.");
+    throw new EventStoreError("integrity_failed", "The outbox failure coordinates are incomplete.");
   }
   const destinationId = requireOutboxRowString(row, "outbox_destination_id");
   const enqueuedAt = requireOutboxRowString(row, "outbox_enqueued_at");
   const availableAt = requireOutboxRowString(row, "outbox_available_at");
   const acknowledgedAt = optionalString(row, "outbox_acknowledged_at");
   if (!isOutboxIdentifier(destinationId)) {
-    throw new EventStoreError("integrity_failed", "outbox destinationId 형식이 잘못되었습니다.");
+    throw new EventStoreError("integrity_failed", "The outbox destinationId format is invalid.");
   }
   requireStoredOutboxTimestamp(enqueuedAt, "enqueuedAt");
   requireStoredOutboxTimestamp(availableAt, "availableAt");
   if (availableAt < enqueuedAt) {
-    throw new EventStoreError("integrity_failed", "outbox availableAt이 enqueuedAt보다 빠릅니다.");
+    throw new EventStoreError("integrity_failed", "Outbox availableAt is earlier than enqueuedAt.");
   }
   if (leaseOwner !== null && !isOutboxIdentifier(leaseOwner)) {
-    throw new EventStoreError("integrity_failed", "outbox lease owner 형식이 잘못되었습니다.");
+    throw new EventStoreError("integrity_failed", "The outbox lease owner format is invalid.");
   }
   if (leaseExpiresAt !== null) {
     requireStoredOutboxTimestamp(leaseExpiresAt, "leaseExpiresAt");
@@ -84,17 +84,17 @@ export function rowToOutboxDelivery(row: SqliteRow): OutboxDelivery {
     leaseExpiresAt !== null &&
     leaseStartedAt >= leaseExpiresAt
   ) {
-    throw new EventStoreError("integrity_failed", "outbox lease 시각 범위가 잘못되었습니다.");
+    throw new EventStoreError("integrity_failed", "The outbox lease time range is invalid.");
   }
   if (failureCode !== null && !isOutboxFailureCode(failureCode)) {
-    throw new EventStoreError("integrity_failed", "outbox failure code 형식이 잘못되었습니다.");
+    throw new EventStoreError("integrity_failed", "The outbox failure code format is invalid.");
   }
   if (failedAt !== null) requireStoredOutboxTimestamp(failedAt, "failedAt");
   if (acknowledgedAt !== null) {
     requireStoredOutboxTimestamp(acknowledgedAt, "acknowledgedAt");
   }
   if (acknowledgedAt !== null && leaseOwner !== null) {
-    throw new EventStoreError("integrity_failed", "acknowledged outbox에 lease가 남아 있습니다.");
+    throw new EventStoreError("integrity_failed", "An acknowledged outbox item still has a lease.");
   }
   return {
     event: rowToEvent(row),

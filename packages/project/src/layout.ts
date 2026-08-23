@@ -10,8 +10,26 @@ export const lervoRelativePaths = {
   documentMigrationMarker: ".lervo/.document-migration.lock",
   gitignore: ".lervo/.gitignore",
   generated: ".lervo/generated",
+  generatedManifests: ".lervo/generated/manifests",
+  generatedSemanticManifests: ".lervo/generated/semantic-manifests",
   state: ".lervo/state",
   knowledge: ".lervo/knowledge",
+  knowledgePolicy: ".lervo/knowledge/policy.yaml",
+  knowledgeDocumentLayout: ".lervo/knowledge/document-layout.yaml",
+  knowledgeBundles: ".lervo/knowledge/bundles",
+  knowledgeConcepts: ".lervo/knowledge/concepts",
+  knowledgeClaims: ".lervo/knowledge/claims",
+  knowledgeRelations: ".lervo/knowledge/relations",
+  knowledgeReviewPolicies: ".lervo/knowledge/review-policies",
+  knowledgeSourceLineage: ".lervo/knowledge/source-lineage",
+  knowledgeInstructionBridges: ".lervo/knowledge/instruction-bridges",
+  knowledgeState: ".lervo/state/knowledge",
+  knowledgeInventory: ".lervo/state/knowledge/inventory",
+  knowledgeSourceUnits: ".lervo/state/knowledge/source-units",
+  knowledgeImpacts: ".lervo/state/knowledge/impacts",
+  knowledgeCandidates: ".lervo/state/knowledge/candidates",
+  knowledgeOkfImports: ".lervo/state/knowledge/okf-imports",
+  knowledgeIndexes: ".lervo/state/knowledge/indexes",
   eventDatabase: ".lervo/state/events.sqlite",
   cas: ".lervo/state/cas",
   searchEvaluations: ".lervo/search-evaluations",
@@ -20,6 +38,10 @@ export const lervoRelativePaths = {
   searchRolloutActionPolicies: ".lervo/search-rollout-action-policies",
   searchObservations: ".lervo/state/search",
   skillsLock: ".lervo/skills.lock",
+  environmentSources: ".lervo/environment-sources",
+  environmentTargets: ".lervo/environment-targets",
+  environmentAdmissionPolicy: ".lervo/environment-admission.yaml",
+  environmentObservations: ".lervo/state/environment",
 } as const;
 
 export const previousBrandRelativePaths = {
@@ -37,8 +59,26 @@ export interface LervoProjectPaths {
   documentMigrationMarker: string;
   gitignore: string;
   generated: string;
+  generatedManifests: string;
+  generatedSemanticManifests: string;
   state: string;
   knowledge: string;
+  knowledgePolicy: string;
+  knowledgeDocumentLayout: string;
+  knowledgeBundles: string;
+  knowledgeConcepts: string;
+  knowledgeClaims: string;
+  knowledgeRelations: string;
+  knowledgeReviewPolicies: string;
+  knowledgeSourceLineage: string;
+  knowledgeInstructionBridges: string;
+  knowledgeState: string;
+  knowledgeInventory: string;
+  knowledgeSourceUnits: string;
+  knowledgeImpacts: string;
+  knowledgeCandidates: string;
+  knowledgeOkfImports: string;
+  knowledgeIndexes: string;
   eventDatabase: string;
   cas: string;
   searchEvaluations: string;
@@ -47,6 +87,10 @@ export interface LervoProjectPaths {
   searchRolloutActionPolicies: string;
   searchObservations: string;
   skillsLock: string;
+  environmentSources: string;
+  environmentTargets: string;
+  environmentAdmissionPolicy: string;
+  environmentObservations: string;
 }
 
 export function resolveProjectPaths(root: string): LervoProjectPaths {
@@ -62,8 +106,26 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     documentMigrationMarker: resolve(repositoryRoot, lervoRelativePaths.documentMigrationMarker),
     gitignore: resolve(repositoryRoot, lervoRelativePaths.gitignore),
     generated: resolve(repositoryRoot, lervoRelativePaths.generated),
+    generatedManifests: resolve(repositoryRoot, lervoRelativePaths.generatedManifests),
+    generatedSemanticManifests: resolve(repositoryRoot, lervoRelativePaths.generatedSemanticManifests),
     state: resolve(repositoryRoot, lervoRelativePaths.state),
     knowledge: resolve(repositoryRoot, lervoRelativePaths.knowledge),
+    knowledgePolicy: resolve(repositoryRoot, lervoRelativePaths.knowledgePolicy),
+    knowledgeDocumentLayout: resolve(repositoryRoot, lervoRelativePaths.knowledgeDocumentLayout),
+    knowledgeBundles: resolve(repositoryRoot, lervoRelativePaths.knowledgeBundles),
+    knowledgeConcepts: resolve(repositoryRoot, lervoRelativePaths.knowledgeConcepts),
+    knowledgeClaims: resolve(repositoryRoot, lervoRelativePaths.knowledgeClaims),
+    knowledgeRelations: resolve(repositoryRoot, lervoRelativePaths.knowledgeRelations),
+    knowledgeReviewPolicies: resolve(repositoryRoot, lervoRelativePaths.knowledgeReviewPolicies),
+    knowledgeSourceLineage: resolve(repositoryRoot, lervoRelativePaths.knowledgeSourceLineage),
+    knowledgeInstructionBridges: resolve(repositoryRoot, lervoRelativePaths.knowledgeInstructionBridges),
+    knowledgeState: resolve(repositoryRoot, lervoRelativePaths.knowledgeState),
+    knowledgeInventory: resolve(repositoryRoot, lervoRelativePaths.knowledgeInventory),
+    knowledgeSourceUnits: resolve(repositoryRoot, lervoRelativePaths.knowledgeSourceUnits),
+    knowledgeImpacts: resolve(repositoryRoot, lervoRelativePaths.knowledgeImpacts),
+    knowledgeCandidates: resolve(repositoryRoot, lervoRelativePaths.knowledgeCandidates),
+    knowledgeOkfImports: resolve(repositoryRoot, lervoRelativePaths.knowledgeOkfImports),
+    knowledgeIndexes: resolve(repositoryRoot, lervoRelativePaths.knowledgeIndexes),
     eventDatabase: resolve(repositoryRoot, lervoRelativePaths.eventDatabase),
     cas: resolve(repositoryRoot, lervoRelativePaths.cas),
     searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),
@@ -72,5 +134,9 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     searchRolloutActionPolicies: resolve(repositoryRoot, lervoRelativePaths.searchRolloutActionPolicies),
     searchObservations: resolve(repositoryRoot, lervoRelativePaths.searchObservations),
     skillsLock: resolve(repositoryRoot, lervoRelativePaths.skillsLock),
+    environmentSources: resolve(repositoryRoot, lervoRelativePaths.environmentSources),
+    environmentTargets: resolve(repositoryRoot, lervoRelativePaths.environmentTargets),
+    environmentAdmissionPolicy: resolve(repositoryRoot, lervoRelativePaths.environmentAdmissionPolicy),
+    environmentObservations: resolve(repositoryRoot, lervoRelativePaths.environmentObservations),
   };
 }

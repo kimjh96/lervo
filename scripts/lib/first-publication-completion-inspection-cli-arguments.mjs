@@ -5,7 +5,7 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_completion_inspection_arguments_invalid",
-    "CLI 최초 게시 완료 점검 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication completion-inspection command arguments are invalid.",
   );
 }
 

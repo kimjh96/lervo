@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
 import {
+  cliEnglishDescription,
   createFirstPublicationMetadataDecision,
   validateFirstPublicationMetadataDecision,
 } from "../lib/first-publication-metadata-decision.mjs";
@@ -35,11 +36,13 @@ async function alignedSources() {
   const sources = await currentActivationSources();
   sources.packageManifest = {
     ...sources.packageManifest,
+    description: cliEnglishDescription,
     license,
     repository: { type: "git", url: repositoryUrl },
     publishConfig: { access: "public", registry: npmPublicRegistry, provenance: true },
   };
   sources.releaseManifest = replaceActivationReleaseArtifact(sources.releaseManifest, {
+    description: cliEnglishDescription,
     license,
     repository: repositoryUrl,
     registry: npmPublicRegistry,

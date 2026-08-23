@@ -1,0 +1,11 @@
+fromPath: docs/adr/0045-hub-policy-authoring-and-http-sync.md
+identityPath: docs/adr/0045-hub-policy-authoring-and-http-sync.md
+kind: document_move
+lineageId: klineage_330dc983706395575b0c0530
+operationId: kdocop_4bba610e2bf303d92cd74ff8
+schemaVersion: 1
+sourceContentHash: sha256:4723f537b7a5de25237c0c089967a625e83d29f1afb9c8d2f99dbb5e293a1ae3
+sourceId: src_dcf874f79abf538a857bf4ec
+sourceUnitBindingDigest: sha256:f2142468eeb18175c3641dd71cd64fb918cee9c3380aba99ef7ae6564e1d90eb
+sourceUnitCount: 8
+toPath: docs/decisions/coordination/sync/0045-hub-policy-authoring-and-http-sync.md

@@ -46,8 +46,8 @@ export async function runSearchRolloutStatusCommand(args: string[], io: CliIo): 
     io.stdout(parsed.values.json ? `${JSON.stringify(status, null, 2)}\n` : formatSearchRolloutStatus(status));
     return 0;
   } catch (error) {
-    io.stderr(`검색 rollout 검토 상태를 읽지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not read search rollout review status. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

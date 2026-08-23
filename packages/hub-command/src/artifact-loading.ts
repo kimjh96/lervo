@@ -24,7 +24,7 @@ export async function loadLeasedHubCommandArtifact(input: {
   try {
     bytes = await input.artifacts.get(binding.uri);
   } catch (error) {
-    throw new HubCommandError("artifact_store_failed", "Hub command artifact를 읽지 못했습니다.", {
+    throw new HubCommandError("artifact_store_failed", "The Hub command artifact could not be read.", {
       cause: error,
     });
   }
@@ -32,7 +32,7 @@ export async function loadLeasedHubCommandArtifact(input: {
     !(bytes instanceof Uint8Array) || bytes.byteLength !== binding.reference.byteCount ||
     sha256(bytes) !== binding.reference.contentHash
   ) {
-    throw new HubCommandError("artifact_integrity_failed", "Hub command artifact 원본이 좌표와 다릅니다.");
+    throw new HubCommandError("artifact_integrity_failed", "The Hub command artifact source differs from its coordinates.");
   }
   return { bytes, reference: structuredClone(binding.reference) };
 }

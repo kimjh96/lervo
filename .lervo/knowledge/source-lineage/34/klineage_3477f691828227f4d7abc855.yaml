@@ -1,0 +1,11 @@
+fromPath: LERVO_EXECUTION_SPEC.md
+identityPath: LERVO_EXECUTION_SPEC.md
+kind: document_move
+lineageId: klineage_3477f691828227f4d7abc855
+operationId: kdocop_e415fdc9e27975785c27bde8
+schemaVersion: 1
+sourceContentHash: sha256:48dce9e86978a7fc8b1fa768173b393e9aa9b7c3efb2d8f02794fd58e2322e2f
+sourceId: src_b2fcb3dde904402685be0cc2
+sourceUnitBindingDigest: sha256:4cef545109515853dc47abc809674ddb2bd121e530f020edbb2b3064c3299bed
+sourceUnitCount: 74
+toPath: docs/specifications/execution.md

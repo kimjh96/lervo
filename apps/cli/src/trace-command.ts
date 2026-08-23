@@ -91,8 +91,8 @@ export async function runTraceCommand(
     const code = typeof (error as { code?: unknown })?.code === "string"
       ? (error as { code: string }).code
       : "trace_failed";
-    io.stderr(`실행 기록을 조회하지 못했습니다. (${code}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not inspect the run record. (${code}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   } finally {

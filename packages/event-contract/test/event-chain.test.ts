@@ -11,11 +11,11 @@ describe("event chain contract", () => {
 
   it("normalizes negative zero and rejects values JSON cannot represent safely", () => {
     expect(canonicalJson({ value: -0 })).toBe('{"value":0}');
-    expect(() => canonicalJson({ value: Number.NaN })).toThrow("유한한 숫자");
-    expect(() => canonicalJson({ value: new Date() })).toThrow("일반 객체");
+    expect(() => canonicalJson({ value: Number.NaN })).toThrow("finite numbers");
+    expect(() => canonicalJson({ value: new Date() })).toThrow("plain objects");
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
-    expect(() => canonicalJson(cyclic)).toThrow("순환 참조");
+    expect(() => canonicalJson(cyclic)).toThrow("cyclic references");
   });
 
   it("hashes all chain coordinates, including the previous hash", () => {

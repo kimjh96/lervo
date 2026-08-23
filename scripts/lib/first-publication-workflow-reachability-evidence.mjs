@@ -43,7 +43,7 @@ export function assertFirstPublicationWorkflowReachabilityBinding({
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail(
       "first_publication_workflow_reachability_input_invalid",
-      "CLI stage-only workflow ref 도달 가능성 증거 입력이 올바르지 않습니다.",
+      "The CLI stage-only workflow ref-reachability evidence input is invalid.",
     );
   }
   if (
@@ -57,7 +57,7 @@ export function assertFirstPublicationWorkflowReachabilityBinding({
   ) {
     fail(
       "first_publication_workflow_reachability_source_mismatch",
-      "원격 배포 증거와 현재 package·대상 ref가 일치하지 않습니다.",
+      "The remote-deployment evidence does not match the current package and target ref.",
     );
   }
   let snapshotPackage;
@@ -66,13 +66,13 @@ export function assertFirstPublicationWorkflowReachabilityBinding({
   } catch {
     fail(
       "first_publication_workflow_reachability_source_mismatch",
-      "원격 배포 증거와 현재 package·대상 ref가 일치하지 않습니다.",
+      "The remote-deployment evidence does not match the current package and target ref.",
     );
   }
   if (canonicalJson(snapshotPackage) !== canonicalJson(cliPackage)) {
     fail(
       "first_publication_workflow_reachability_source_mismatch",
-      "원격 배포 증거와 현재 package·대상 ref가 일치하지 않습니다.",
+      "The remote-deployment evidence does not match the current package and target ref.",
     );
   }
   return remoteEvidenceReport;
@@ -82,7 +82,7 @@ function validateObservation(observation, input) {
   if (observation?.state !== "observed") {
     fail(
       "first_publication_workflow_reachability_not_ready",
-      "GitHub 기본 브랜치와 release tag 도달 가능성을 확인하지 못했습니다.",
+      "GitHub default-branch and release-tag reachability could not be confirmed.",
     );
   }
   const exactKeys = (value, keys) => value !== null && typeof value === "object" &&
@@ -107,7 +107,7 @@ function validateObservation(observation, input) {
   ) {
     fail(
       "first_publication_workflow_reachability_observation_invalid",
-      "GitHub ref 도달 가능성 관측 결과가 올바르지 않습니다.",
+      "The GitHub ref-reachability observation is invalid.",
     );
   }
   try {
@@ -118,7 +118,7 @@ function validateObservation(observation, input) {
   } catch {
     fail(
       "first_publication_workflow_reachability_observation_invalid",
-      "GitHub ref 도달 가능성 관측 결과가 올바르지 않습니다.",
+      "The GitHub ref-reachability observation is invalid.",
     );
   }
   const branch = observation.defaultBranch;
@@ -139,7 +139,7 @@ function validateObservation(observation, input) {
   if (!validShape || tag.name !== input.releaseTag) {
     fail(
       "first_publication_workflow_reachability_observation_invalid",
-      "GitHub ref 도달 가능성 관측 결과가 올바르지 않습니다.",
+      "The GitHub ref-reachability observation is invalid.",
     );
   }
   if (
@@ -148,7 +148,7 @@ function validateObservation(observation, input) {
   ) {
     fail(
       "first_publication_workflow_reachability_not_ready",
-      "Source commit이 기본 브랜치와 exact release tag에 함께 결속되지 않았습니다.",
+      "The source commit is not bound to both the default branch and the exact release tag.",
     );
   }
   if (
@@ -157,7 +157,7 @@ function validateObservation(observation, input) {
   ) {
     fail(
       "first_publication_workflow_reachability_source_mismatch",
-      "Source commit의 package와 현재 검증된 package가 일치하지 않습니다.",
+      "The source commit package does not match the currently verified package.",
     );
   }
   return observation;
@@ -187,7 +187,7 @@ export function validateFirstPublicationWorkflowReachabilityEvidence(report, inp
   if (canonicalJson(report) !== canonicalJson(expected)) {
     fail(
       "first_publication_workflow_reachability_report_invalid",
-      "CLI stage-only workflow ref 도달 가능성 증거 보고서가 올바르지 않습니다.",
+      "The CLI stage-only workflow ref-reachability evidence report is invalid.",
     );
   }
   return report;

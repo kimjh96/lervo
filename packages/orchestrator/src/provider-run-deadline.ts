@@ -25,7 +25,7 @@ export function resolveManagedProviderRunDeadlines(
     if (!Number.isSafeInteger(value) || value < 1) {
       throw new ManagedProviderRunError(
         "contract_validation_failed",
-        `Managed run deadline ${name}이 1 이상의 안전한 정수가 아닙니다.`,
+        `Managed run deadline ${name} is not a safe integer of at least 1.`,
       );
     }
   }
@@ -50,7 +50,7 @@ export async function withinDeadline<T>(input: {
             reject(
               new ManagedProviderRunError(
                 input.failureCode,
-                `${input.label} 제한 시간 ${input.timeoutMs}ms를 초과했습니다.`,
+                `${input.label} exceeded the ${input.timeoutMs}ms timeout.`,
               ),
             ),
           input.timeoutMs,

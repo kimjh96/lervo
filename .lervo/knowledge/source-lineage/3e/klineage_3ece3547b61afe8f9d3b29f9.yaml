@@ -1,0 +1,11 @@
+fromPath: docs/adr/0123-cli-stage-only-workflow-execution-evidence.md
+identityPath: docs/adr/0123-cli-stage-only-workflow-execution-evidence.md
+kind: document_move
+lineageId: klineage_3ece3547b61afe8f9d3b29f9
+operationId: kdocop_967fccdd48fa9583762bdebf
+schemaVersion: 1
+sourceContentHash: sha256:bd4e934c06cd12fc265ac3d808a6bfd784816c6781988e68b79a97eff6d26240
+sourceId: src_96707107b1471db7769a2868
+sourceUnitBindingDigest: sha256:68ccf32f3865415755591c01fc6c9bd0daf066bda32da6bb0e3f5b141bcfb95b
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md

@@ -2,7 +2,6 @@ import { lstat } from "node:fs/promises";
 
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
-import { readOwnerOnlyText, RuntimeSecurityError } from "@lervo/runtime-security";
 import {
   AuthenticatedHubHttpTransport,
   runOutboundSyncLoop,
@@ -15,7 +14,9 @@ import { calculateProjectIdentityHash } from "@lervo/sync-contract";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
+import { loadNodeBearerToken, ReloadableNodeBearerToken } from "./credentials.js";
 import { NodeRuntimeError } from "./errors.js";
+import { createNodeRuntimeHealthPublisher } from "./health.js";
 import {
   createNodeRuntimeDeployment,
   type NodeRuntimeDeployment,
@@ -25,8 +26,7 @@ import {
   type NodeRemoteCommandPorts,
   type NodeRemoteControlRuntime,
 } from "./control-runtime.js";
-
-const MAX_BEARER_TOKEN_FILE_BYTES = 4_098;
+import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
 
 export interface NodeRuntimeOpenPorts {
   createTransport?: (options: SyncHttpTransportOptions) => AuthenticatedHubTransport;
@@ -36,16 +36,6 @@ export interface NodeRuntimeOpenPorts {
   remoteCommands?: NodeRemoteCommandPorts;
 }
 
-function normalizedToken(value: string): string {
-  const token = value.endsWith("\r\n") ? value.slice(0, -2) :
-    value.endsWith("\n") ? value.slice(0, -1) : value;
-  if (
-    token.length < 32 || token.length > 4_096 ||
-    !/^[\x21-\x7e]+$/.test(token)
-  ) throw new NodeRuntimeError("invalid_config", "Hub bearer token 파일이 유효하지 않습니다.");
-  return token;
-}
-
 async function assertRepositoryRoot(path: string): Promise<void> {
   try {
     const metadata = await lstat(path);
@@ -53,7 +43,7 @@ async function assertRepositoryRoot(path: string): Promise<void> {
   } catch (error) {
     throw new NodeRuntimeError(
       "project_invalid",
-      "Node runtime 저장소 root는 초기화된 실제 디렉터리여야 합니다.",
+      "The Node runtime repository root must be an initialized physical directory.",
       { cause: error },
     );
   }
@@ -65,6 +55,7 @@ export async function openNodeRuntime(
 ): Promise<NodeRuntimeDeployment> {
   let store: SQLiteEventStore | undefined;
   let remoteControl: NodeRemoteControlRuntime | undefined;
+  let runtimeTrust: ReloadableNodeRuntimeTrust | undefined;
   try {
     const validated = parseNodeRuntimeConfig(config, process.cwd());
     await assertRepositoryRoot(validated.repositoryRoot);
@@ -73,21 +64,16 @@ export async function openNodeRuntime(
     if (!manifest.dataPolicy.hubSyncEnabled) {
       throw new NodeRuntimeError(
         "project_invalid",
-        "Project data policy에서 Hub sync가 활성화되지 않았습니다.",
+        "Hub sync is not enabled by the project data policy.",
       );
     }
-    let tokenText: string;
-    try {
-      tokenText = await readOwnerOnlyText(validated.hub.bearerTokenFile, MAX_BEARER_TOKEN_FILE_BYTES);
-    } catch (error) {
-      const code = error instanceof RuntimeSecurityError && error.code === "invalid_text"
-        ? "invalid_config"
-        : "unsafe_runtime_file";
-      throw new NodeRuntimeError(code, "Hub bearer token 파일을 안전하게 읽지 못했습니다.", {
-        cause: error,
-      });
-    }
-    const bearerToken = normalizedToken(tokenText);
+    const bearerToken = new ReloadableNodeBearerToken(
+      await loadNodeBearerToken(validated.hub.bearerTokenFile),
+    );
+    const health = createNodeRuntimeHealthPublisher(
+      paths.state,
+      validated.remoteCommands !== undefined,
+    );
     store = await SQLiteEventStore.open({ path: paths.eventDatabase, projectId: manifest.projectId });
     const target = {
       projectId: manifest.projectId,
@@ -96,21 +82,32 @@ export async function openNodeRuntime(
     if ((validated.remoteCommands === undefined) !== (ports.remoteCommands === undefined)) {
       throw new NodeRuntimeError(
         "invalid_config",
-        "원격 제어 구성과 실행기·로컬 정책 port는 함께 제공해야 합니다.",
+        "Remote-control configuration, executor, and local-policy ports must be provided together.",
       );
     }
     if (validated.remoteCommands !== undefined && ports.remoteCommands !== undefined) {
+      runtimeTrust = new ReloadableNodeRuntimeTrust(
+        await loadNodeRuntimeTrust(validated.remoteCommands),
+        target,
+      );
       remoteControl = await openNodeRemoteControlRuntime({
         config: validated,
-        token: bearerToken,
+        token: () => bearerToken.current(),
         target,
         stateDirectory: paths.state,
-        ports: ports.remoteCommands,
+        ports: {
+          ...ports.remoteCommands,
+          onCycle: async (result) => {
+            await health.observeRemoteControl(result);
+            await ports.remoteCommands!.onCycle?.(result);
+          },
+        },
+        trust: runtimeTrust,
       });
     }
-    const transportOptions: SyncHttpTransportOptions = {
+    const transportOptions = (): SyncHttpTransportOptions => ({
       baseUrl: validated.hub.baseUrl,
-      bearerToken,
+      bearerToken: bearerToken.current(),
       expectedHubIdentityHash: validated.hub.hubIdentityHash,
       destinationId: validated.hub.destinationId,
       target,
@@ -123,9 +120,17 @@ export async function openNodeRuntime(
       ...(validated.sync.maxResponseBytes === undefined ? {} : {
         maxResponseBytes: validated.sync.maxResponseBytes,
       }),
+    });
+    const createTransport = ports.createTransport ?? ((options) =>
+      new AuthenticatedHubHttpTransport(options));
+    const transport: AuthenticatedHubTransport = {
+      registerProject(request) {
+        return createTransport(transportOptions()).registerProject(request);
+      },
+      sendEventBatch(batch) {
+        return createTransport(transportOptions()).sendEventBatch(batch);
+      },
     };
-    const transport = (ports.createTransport ?? ((options) =>
-      new AuthenticatedHubHttpTransport(options)))(transportOptions);
     const worker = {
       store,
       transport,
@@ -143,6 +148,7 @@ export async function openNodeRuntime(
         batchLimit: validated.sync.batchLimit,
       }),
     };
+    await health.initialize();
     return createNodeRuntimeDeployment(store, (signal) => runOutboundSyncLoop({
       worker,
       signal,
@@ -151,8 +157,25 @@ export async function openNodeRuntime(
       }),
       ...(ports.wait === undefined ? {} : { wait: ports.wait }),
       ...(ports.nowMilliseconds === undefined ? {} : { nowMilliseconds: ports.nowMilliseconds }),
-      ...(ports.onCycle === undefined ? {} : { onCycle: ports.onCycle }),
-    }), remoteControl ?? null);
+      onCycle: async (result) => {
+        await health.observeSync(result);
+        await ports.onCycle?.(result);
+      },
+    }), remoteControl ?? null, async () => {
+      const next = await loadNodeBearerToken(validated.hub.bearerTokenFile);
+      bearerToken.replace(next);
+    }, async () => {
+      const [nextToken, nextTrust] = await Promise.all([
+        loadNodeBearerToken(validated.hub.bearerTokenFile),
+        validated.remoteCommands === undefined
+          ? Promise.resolve(undefined)
+          : loadNodeRuntimeTrust(validated.remoteCommands),
+      ]);
+      if (nextTrust !== undefined) {
+        runtimeTrust!.replace(nextTrust);
+      }
+      bearerToken.replace(nextToken);
+    }, health);
   } catch (error) {
     const cleanupErrors: unknown[] = [];
     try {
@@ -166,12 +189,12 @@ export async function openNodeRuntime(
       cleanupErrors.push(cleanupError);
     }
     if (cleanupErrors.length > 0) {
-      throw new NodeRuntimeError("startup_failed", "Node runtime 시작 실패 뒤 저장소를 닫지 못했습니다.", {
+      throw new NodeRuntimeError("startup_failed", "Could not close the repository after Node runtime startup failed.", {
         cause: new AggregateError([error, ...cleanupErrors]),
       });
     }
     if (error instanceof NodeRuntimeError) throw error;
-    throw new NodeRuntimeError("startup_failed", "Node runtime 구성을 열지 못했습니다.", {
+    throw new NodeRuntimeError("startup_failed", "Could not open the Node runtime configuration.", {
       cause: error,
     });
   }

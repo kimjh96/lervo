@@ -16,7 +16,7 @@ import { canonicalJson } from "./release-artifact-manifest.mjs";
 function fail(code = "first_publication_stage_approval_reconciliation_source_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 승인 결과 대조 원본이 올바르지 않습니다.",
+    "The CLI npm stage approval reconciliation source is invalid.",
   );
 }
 

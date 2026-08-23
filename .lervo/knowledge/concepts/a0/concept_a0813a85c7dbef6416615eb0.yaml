@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a0813a85c7dbef6416615eb0
+freshness: current
+ownership: user
+path: docs/decisions/foundation/0001-m0-contracts-and-data-defaults.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0f31ecad084e8eae4e1d45ab
+title: "ADR-0001: M0 Contracts and Data Defaults"
+type: decision

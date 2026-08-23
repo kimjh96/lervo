@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_28c76d0503c63b0a291569aa
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/documents/0018-existing-document-adoption.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_96c818c1ebeeb4e08e157f8c
+title: "ADR-0018: Existing-document adoption and safe migration"
+type: decision

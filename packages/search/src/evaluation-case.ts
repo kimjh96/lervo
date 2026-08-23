@@ -24,7 +24,7 @@ function sameQueryIdentity(evaluationCase: SearchEvaluationCase, attempt?: Searc
   try {
     identity = identifySearchQuery(evaluationCase.query);
   } catch (error) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스의 query가 유효하지 않습니다.", {
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case query is invalid.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
@@ -55,27 +55,27 @@ export function createSearchEvaluationCase(input: {
   try {
     identity = identifySearchQuery(input.query);
   } catch (error) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 query가 유효하지 않습니다.", {
+    throw new SearchError("invalid_evaluation_case", "The search evaluation query is invalid.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
   if (identity.queryDigest !== input.attempt.queryDigest ||
     identity.queryCharacterCount !== input.attempt.queryCharacterCount ||
     identity.queryTermCount !== input.attempt.queryTermCount) {
-    throw new SearchError("invalid_evaluation_case", "평가 질의가 원본 검색 시도의 질의 좌표와 다릅니다.");
+    throw new SearchError("invalid_evaluation_case", "The evaluation query differs from the source search attempt query coordinates.");
   }
   const reviewed = reviewedSources(input.assessment);
   if (reviewed.length === 0) {
     throw new SearchError(
       "invalid_evaluation_case",
-      "평가자가 기대하거나 수락한 원본만 반복 평가의 정답으로 사용할 수 있습니다.",
+      "Only sources expected or accepted by the reviewer can be used as replay evaluation ground truth.",
     );
   }
   if (!Number.isSafeInteger(input.maximumRank) || input.maximumRank < 1 ||
     input.maximumRank > input.attempt.requestedLimit) {
     throw new SearchError(
       "invalid_evaluation_case",
-      "허용 순위는 원본 검색 시도가 관측한 결과 한도를 넘을 수 없습니다.",
+      "Allowed ranks cannot exceed the result limit observed by the source search attempt.",
     );
   }
   const sources = normalizeEvaluationSources(input.sources ?? reviewed, "invalid_evaluation_case");
@@ -84,7 +84,7 @@ export function createSearchEvaluationCase(input: {
   if (sources.some((source) => !reviewedKeys.has(evaluationSourceKey(source)))) {
     throw new SearchError(
       "invalid_evaluation_case",
-      "평가자가 기대하거나 수락한 원본만 반복 평가의 정답으로 사용할 수 있습니다.",
+      "Only sources expected or accepted by the reviewer can be used as replay evaluation ground truth.",
     );
   }
   const expectation = {
@@ -135,11 +135,11 @@ export function assertSearchEvaluationCase(
     !["any", "all"].includes(evaluationCase.expectation.matchMode) ||
     !Number.isSafeInteger(evaluationCase.expectation?.maximumRank) ||
     evaluationCase.expectation.maximumRank < 1 || evaluationCase.expectation.maximumRank > 50) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case contract is invalid.");
   }
   assertOrderedEvaluationSources(evaluationCase.expectation.sources, "invalid_evaluation_case");
   if (typeof evaluationCase.review !== "object" || evaluationCase.review === null) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스의 검토 원본 좌표가 없습니다.");
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case has no review source coordinates.");
   }
   assertTimestamp(evaluationCase.review.assessedAt, "invalid_evaluation_case");
   if (!/^sat_[a-f0-9]{24}$/.test(evaluationCase.review.attemptId) ||
@@ -156,7 +156,7 @@ export function assertSearchEvaluationCase(
     evaluationCase.review.referenceRequestedLimit > 50 ||
     !["passed", "failed"].includes(evaluationCase.review.referenceStatus) ||
     !Array.isArray(evaluationCase.review.referenceExpectedSourceRanks)) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스의 검토 원본 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case review source coordinates are invalid.");
   }
   assertOrderedEvaluationSources(
     evaluationCase.review.referenceExpectedSourceRanks,
@@ -170,7 +170,7 @@ export function assertSearchEvaluationCase(
     evaluationSourceKey(source) !== evaluationSourceKey(evaluationCase.expectation.sources[index]!) ||
     (source.rank !== null && (!Number.isSafeInteger(source.rank) || source.rank < 1 ||
       source.rank > evaluationCase.review.referenceRequestedLimit)))) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스의 기준 순위가 기대 원본과 다릅니다.");
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case reference ranks differ from expected sources.");
   }
   const referenceWithinRank = evaluationCase.review.referenceExpectedSourceRanks.filter((source) =>
     source.rank !== null && source.rank <= evaluationCase.expectation.maximumRank);
@@ -178,10 +178,10 @@ export function assertSearchEvaluationCase(
     ? referenceWithinRank.length > 0 ? "passed" : "failed"
     : referenceWithinRank.length === evaluationCase.expectation.sources.length ? "passed" : "failed";
   if (referenceStatus !== evaluationCase.review.referenceStatus) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스의 기준 상태가 기대 원본 순위와 다릅니다.");
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case reference status differs from expected source ranks.");
   }
   if (!sameQueryIdentity(evaluationCase, evidence?.attempt)) {
-    throw new SearchError("invalid_evaluation_case", "평가 질의의 digest 또는 크기 좌표가 다릅니다.");
+    throw new SearchError("invalid_evaluation_case", "The evaluation query digest or size coordinates differ.");
   }
   if (evidence !== undefined) {
     assertSearchAttempt(evidence.attempt);
@@ -197,11 +197,11 @@ export function assertSearchEvaluationCase(
       review.referenceRequestedLimit !== evidence.attempt.requestedLimit ||
       review.referenceStatus !== reference.status ||
       JSON.stringify(review.referenceExpectedSourceRanks) !== JSON.stringify(reference.expectedSourceRanks)) {
-      throw new SearchError("invalid_evaluation_case", "검색 평가 케이스가 검토한 attempt·assessment와 다릅니다.");
+      throw new SearchError("invalid_evaluation_case", "The search evaluation case differs from the reviewed attempt or assessment.");
     }
   }
   const { schemaVersion: _schema, caseId: _id, ...core } = evaluationCase;
   if (contentId("sec", core) !== evaluationCase.caseId) {
-    throw new SearchError("invalid_evaluation_case", "검색 평가 케이스 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_evaluation_case", "The search evaluation case ID does not match its content.");
   }
 }

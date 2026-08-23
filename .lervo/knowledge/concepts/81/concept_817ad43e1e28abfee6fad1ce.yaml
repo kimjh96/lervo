@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_817ad43e1e28abfee6fad1ce
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4ca3fa28e81ed6c01b7a8941
+title: "ADR-0100: Read-only CLI first-publication preflight report"
+type: decision

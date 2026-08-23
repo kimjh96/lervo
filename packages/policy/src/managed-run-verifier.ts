@@ -49,7 +49,7 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
       !/^sha256:[a-f0-9]{64}$/.test(input.requestDigest) ||
       !validPaths(input.expectedPaths) ||
       (input.requestedPath !== null && !PATH_PATTERN.test(input.requestedPath))
-    ) throw new PolicyRuntimeError("policy_evaluation_failed", "managed run approval 검증 입력이 유효하지 않습니다.");
+    ) throw new PolicyRuntimeError("policy_evaluation_failed", "The managed run approval verification input is invalid.");
 
     const command = input.authorization.command;
     assertRemoteCommand(command);
@@ -72,7 +72,7 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
     try {
       snapshotEnvelope = await this.options.store.getCurrentSnapshot();
     } catch (error) {
-      throw new PolicyRuntimeError("policy_store_failed", "현재 policy snapshot을 읽지 못했습니다.", { cause: error });
+      throw new PolicyRuntimeError("policy_store_failed", "Could not read the current policy snapshot.", { cause: error });
     }
     if (
       snapshotEnvelope === null ||
@@ -98,7 +98,7 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
       try {
         state = await this.options.store.getApproval(approvalId);
       } catch (error) {
-        throw new PolicyRuntimeError("policy_store_failed", "managed run approval 원본을 읽지 못했습니다.", { cause: error });
+        throw new PolicyRuntimeError("policy_store_failed", "Could not read the managed run approval source.", { cause: error });
       }
       if (state === null) continue;
       try {
@@ -133,7 +133,7 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
       } catch (error) {
         throw new PolicyRuntimeError(
           "policy_evaluation_failed",
-          "managed run approval 서명 원본을 검증하지 못했습니다.",
+          "Could not verify the managed run approval signature source.",
           { cause: error },
         );
       }

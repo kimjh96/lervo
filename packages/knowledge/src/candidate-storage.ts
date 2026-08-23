@@ -22,7 +22,7 @@ export async function storeCandidate(
     throw new KnowledgeError(
       "artifact_storage_failed",
       "candidate_artifact_mismatch",
-      "지식 후보 원본을 CAS에 저장하고 다시 확인하지 못했습니다.",
+      "Could not store and reverify the knowledge candidate source in CAS.",
       { cause: error },
     );
   }

@@ -15,7 +15,7 @@ const maximumInputBytes = 64 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_contract_files_invalid",
-    "CLI 최초 게시 계약 파일이 올바르지 않습니다.",
+    "The CLI first-publication contract file is invalid.",
   );
 }
 

@@ -3,6 +3,7 @@ import { lstat, readdir, readlink } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
 import { readRepositoryFile } from "@lervo/context";
+import type { ManagedFileChangeEvidence } from "./types.js";
 
 export interface RepositorySnapshot {
   revision: string;
@@ -22,7 +23,22 @@ export interface RepositorySnapshotPolicy {
 }
 
 export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.freeze({
-  excludedDirectoryNames: Object.freeze([".git", "node_modules"]),
+  excludedDirectoryNames: Object.freeze([
+    ".git",
+    ".next",
+    ".turbo",
+    ".expo",
+    ".gradle",
+    ".cxx",
+    ".vercel",
+    "node_modules",
+    "dist",
+    "build",
+    "build-device",
+    "coverage",
+    "Pods",
+    "vendor",
+  ]),
   excludedPaths: Object.freeze([".lervo/state"]),
   maxEntries: 20_000,
   maxBytes: 256 * 1024 * 1024,
@@ -74,7 +90,7 @@ export function resolveRepositorySnapshotPolicy(
         path.split("/").some((part) => part.length === 0 || part === "." || part === ".."),
     )
   ) {
-    throw new RepositorySnapshotError("저장소 snapshot 정책이 유효하지 않습니다.");
+    throw new RepositorySnapshotError("The repository snapshot policy is invalid.");
   }
   return Object.freeze({
     ...resolved,
@@ -96,7 +112,7 @@ export async function captureRepositorySnapshot(
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error("unsafe root");
   } catch {
     throw new RepositorySnapshotError(
-      "저장소 snapshot root가 안전한 실제 디렉터리가 아닙니다.",
+      "The repository snapshot root is not a safe real directory.",
     );
   }
   const files: Record<string, string> = Object.create(null) as Record<string, string>;
@@ -109,7 +125,7 @@ export async function captureRepositorySnapshot(
       entries = await readdir(directory, { withFileTypes: true });
     } catch {
       throw new RepositorySnapshotError(
-        "저장소 snapshot을 읽지 못했습니다.",
+        "Could not read the repository snapshot.",
       );
     }
     entries.sort((left, right) => left.name.localeCompare(right.name));
@@ -126,7 +142,7 @@ export async function captureRepositorySnapshot(
       fileCount += 1;
       if (fileCount > resolvedPolicy.maxEntries) {
         throw new RepositorySnapshotError(
-          "저장소 snapshot 파일 수 제한을 넘었습니다.",
+          "The repository snapshot file-count limit was exceeded.",
         );
       }
       if (entry.isSymbolicLink()) {
@@ -154,14 +170,14 @@ export async function captureRepositorySnapshot(
         byteCount += bytes.byteLength;
         if (byteCount > resolvedPolicy.maxBytes) {
           throw new RepositorySnapshotError(
-            "저장소 snapshot byte 제한을 넘었습니다.",
+            "The repository snapshot byte limit was exceeded.",
           );
         }
         files[path] = sha256(bytes);
       } catch (error) {
         if (error instanceof RepositorySnapshotError) throw error;
         throw new RepositorySnapshotError(
-          "저장소 파일을 안전하게 snapshot하지 못했습니다.",
+          "Could not snapshot the repository file safely.",
           { cause: error },
         );
       }
@@ -186,4 +202,43 @@ export function changedRepositoryPaths(
   return [...paths]
     .filter((path) => before.files[path] !== after.files[path])
     .sort();
+}
+
+export interface ManagedRepositoryChangeInspection {
+  changedPaths: string[];
+  verifiedManagedPaths: string[];
+  invalidManagedPaths: string[];
+  unmanagedPaths: string[];
+}
+
+export function inspectManagedRepositoryChanges(input: {
+  before: RepositorySnapshot;
+  after: RepositorySnapshot;
+  managedChanges: readonly ManagedFileChangeEvidence[];
+}): ManagedRepositoryChangeInspection {
+  const changedPaths = changedRepositoryPaths(input.before, input.after);
+  const verifiedManagedPaths = new Set<string>();
+  const invalidManagedPaths = new Set<string>();
+  for (const change of input.managedChanges) {
+    const beforeHash = input.before.files[change.path] ?? null;
+    const afterHash = input.after.files[change.path] ?? null;
+    if (
+      verifiedManagedPaths.has(change.path) ||
+      beforeHash !== change.beforeHash ||
+      afterHash !== change.afterHash ||
+      !changedPaths.includes(change.path)
+    ) {
+      invalidManagedPaths.add(change.path);
+    } else {
+      verifiedManagedPaths.add(change.path);
+    }
+  }
+  return {
+    changedPaths,
+    verifiedManagedPaths: [...verifiedManagedPaths].sort(),
+    invalidManagedPaths: [...invalidManagedPaths].sort(),
+    unmanagedPaths: changedPaths.filter(
+      (path) => !verifiedManagedPaths.has(path) || invalidManagedPaths.has(path),
+    ),
+  };
 }

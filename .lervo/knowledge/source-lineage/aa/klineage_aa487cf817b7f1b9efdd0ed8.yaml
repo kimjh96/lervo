@@ -1,0 +1,11 @@
+fromPath: docs/adr/0178-content-bound-project-skill-contract-units.md
+identityPath: docs/adr/0178-content-bound-project-skill-contract-units.md
+kind: document_move
+lineageId: klineage_aa487cf817b7f1b9efdd0ed8
+operationId: kdocop_56f29658bbd61b0cb4267963
+schemaVersion: 1
+sourceContentHash: sha256:309ae818511c601e1928274231d6b1094991ee737c1030bd6ee8525f404d4484
+sourceId: src_7cda393e9ae2b437c28b3dd7
+sourceUnitBindingDigest: sha256:f239cbdea72883bac52538be5ee8b8cb44f5cb3257568aa16647817769d848ba
+sourceUnitCount: 5
+toPath: docs/decisions/execution/orchestration/0178-content-bound-project-skill-contract-units.md

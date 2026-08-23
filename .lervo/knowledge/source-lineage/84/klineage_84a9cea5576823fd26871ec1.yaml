@@ -1,0 +1,11 @@
+fromPath: docs/adr/0038-bounded-async-hub-storage-and-trace.md
+identityPath: docs/adr/0038-bounded-async-hub-storage-and-trace.md
+kind: document_move
+lineageId: klineage_84a9cea5576823fd26871ec1
+operationId: kdocop_da7ebb454b1831631d2af023
+schemaVersion: 1
+sourceContentHash: sha256:7e3fffe5e01e34a26e72982c46cbb1c3b062502c590843695ff0dd893c6bc94a
+sourceId: src_5211e0e4dacf93c74b9c081c
+sourceUnitBindingDigest: sha256:17d4b5e3a87cbd385cf9f3aab5808ae639d77635581ecc61fb7094f1f2063785
+sourceUnitCount: 10
+toPath: docs/decisions/coordination/sync/0038-bounded-async-hub-storage-and-trace.md

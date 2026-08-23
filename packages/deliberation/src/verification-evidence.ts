@@ -18,7 +18,7 @@ export function verificationEvidenceById(
       throw new DeliberationError(
         "verification_evidence_invalid",
         "verification_evidence_duplicate",
-        "같은 verification ID의 근거가 중복되었습니다.",
+        "Evidence with the same verification ID is duplicated.",
       );
     }
     try {
@@ -27,7 +27,7 @@ export function verificationEvidenceById(
       throw new DeliberationError(
         "verification_evidence_invalid",
         "verification_result_invalid",
-        "숙의에 연결한 verification result가 suite 계약과 다릅니다.",
+        "The verification result linked to the deliberation does not satisfy the suite contract.",
         { cause: error },
       );
     }
@@ -45,7 +45,7 @@ export function verificationEvidenceById(
       throw new DeliberationError(
         "verification_evidence_invalid",
         "verification_coordinate_mismatch",
-        "Verification result artifact 좌표가 canonical 결과와 다릅니다.",
+        "The verification result artifact coordinates differ from the canonical result.",
       );
     }
     result.set(item.result.verificationId, item);

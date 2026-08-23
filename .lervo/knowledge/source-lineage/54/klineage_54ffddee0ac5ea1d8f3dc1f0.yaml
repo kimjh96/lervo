@@ -1,0 +1,11 @@
+fromPath: docs/adr/0043-signed-policy-and-command-bound-approval.md
+identityPath: docs/adr/0043-signed-policy-and-command-bound-approval.md
+kind: document_move
+lineageId: klineage_54ffddee0ac5ea1d8f3dc1f0
+operationId: kdocop_adb39f99f08e721c450301e1
+schemaVersion: 1
+sourceContentHash: sha256:0f3c9d5074fb88f4cca231d4b906c4211b57a388d7e62f674c5d43ab22275ee9
+sourceId: src_a61cbabd04d2b50a42732e85
+sourceUnitBindingDigest: sha256:556ddaf130eecabc2884ff5c556f40f45df14cd06751f99e4fc6b50d1e69fdf6
+sourceUnitCount: 9
+toPath: docs/decisions/foundation/0043-signed-policy-and-command-bound-approval.md

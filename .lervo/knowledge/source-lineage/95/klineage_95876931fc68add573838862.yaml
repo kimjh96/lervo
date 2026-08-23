@@ -1,0 +1,11 @@
+fromPath: docs/adr/0005-shared-context-and-role-handoff.md
+identityPath: docs/adr/0005-shared-context-and-role-handoff.md
+kind: document_move
+lineageId: klineage_95876931fc68add573838862
+operationId: kdocop_9dd2dc5efe185bfae279da79
+schemaVersion: 1
+sourceContentHash: sha256:334e8876c29d50e210f5e4277a8ecb693a7c85f0092dbc62f9724d9b60a94006
+sourceId: src_35964e6a10433f9f23ae12e9
+sourceUnitBindingDigest: sha256:f515b6cdd19ec617c957979f5326200b6c27dc79ecad1eb2cf4c0503a566dbb7
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md

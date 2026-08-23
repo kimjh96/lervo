@@ -31,7 +31,7 @@ export async function storeKnowledgeArtifact(input: {
     throw new KnowledgeError(
       "artifact_storage_failed",
       input.mismatchReason,
-      `${input.label} 원본을 CAS에 저장하고 다시 확인하지 못했습니다.`,
+      `Could not store and reverify the ${input.label} source in CAS.`,
       { cause: error },
     );
   }

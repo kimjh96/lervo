@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_66b84e9ef181033eb16beab4
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8a49d3a95b0ef00499dd83ba
+title: "ADR-0127: Durable npm Stage-Approval Records"
+type: decision

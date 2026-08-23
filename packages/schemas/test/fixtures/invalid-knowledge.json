@@ -38,7 +38,7 @@
     "value": {
       "candidateId": "knc_0123456789abcdef",
       "claimDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "claim": "원문 주장",
+      "claim": "source claim",
       "paths": ["src/decision.ts"],
       "evidenceIds": ["evt_knowledge_0001"],
       "sourceOutcomeId": "dlo_0123456789abcdef",

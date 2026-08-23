@@ -1,0 +1,11 @@
+fromPath: LERVO_VISION.md
+identityPath: LERVO_VISION.md
+kind: document_move
+lineageId: klineage_5ec2c8c76785f5ae0a43032a
+operationId: kdocop_540b11beafbb75e59fd3e3bf
+schemaVersion: 1
+sourceContentHash: sha256:cd5d4cb479dbf37dd714501dfaefb98af374e36018520f4c0a679d872064730b
+sourceId: src_302fb422c1c6b62783dc46ff
+sourceUnitBindingDigest: sha256:b3bc66ed9fb2c5cb16644142b9f40c05aad78c32bc21452a3607c54a857c28fa
+sourceUnitCount: 21
+toPath: docs/product/vision.md

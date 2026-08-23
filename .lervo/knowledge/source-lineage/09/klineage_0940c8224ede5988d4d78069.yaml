@@ -1,0 +1,11 @@
+fromPath: docs/adr/0181-durable-hash-bound-user-document-deletion.md
+identityPath: docs/adr/0181-durable-hash-bound-user-document-deletion.md
+kind: document_move
+lineageId: klineage_0940c8224ede5988d4d78069
+operationId: kdocop_c4f111a35656ba292d345b0d
+schemaVersion: 1
+sourceContentHash: sha256:e1ca2012921e8b29f5bb81c890c6152b437ae361a5ac4026b9d76b066cbb0923
+sourceId: src_a3a9927e05c162456b3cbc06
+sourceUnitBindingDigest: sha256:9ee737627e1ec56a8273ca0f62b967e682e1537959411af5c6e1a7dc977b9f9c
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md

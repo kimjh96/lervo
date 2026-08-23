@@ -1,0 +1,11 @@
+fromPath: docs/adr/0152-fail-closed-node-remote-control-runtime.md
+identityPath: docs/adr/0152-fail-closed-node-remote-control-runtime.md
+kind: document_move
+lineageId: klineage_7c96ec9fcc7e537e3dfbc063
+operationId: kdocop_9d2f85b818b98ca82cab9a46
+schemaVersion: 1
+sourceContentHash: sha256:2f6b41a58230d292c50e632d86527aa24f283fcf88f3e70af6f3484424ad3218
+sourceId: src_c86996531229cc452a05b6e3
+sourceUnitBindingDigest: sha256:61c64c7bac24def9c191d4335f27e732b161711ebe4a35817bdf95b996a2409a
+sourceUnitCount: 5
+toPath: docs/decisions/foundation/0152-fail-closed-node-remote-control-runtime.md

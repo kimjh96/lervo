@@ -26,63 +26,63 @@ export const doctorUsage =
 
 function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string {
   switch (checkId) {
-    case "event_chain": return "이벤트 원본";
-    case "knowledge_candidates": return "지식 후보 근거";
-    case "knowledge_reviews": return "지식 검토 근거";
-    case "verified_knowledge": return "검증된 지식 근거";
-    case "knowledge_staleness": return "지식 노후화 근거";
-    case "document_registry": return "문서 registry";
-    case "document_sources": return "문서 원본 파일";
-    case "skill_packages": return "스킬 패키지";
-    case "skill_lock": return "스킬 해석 lock";
-    case "provider_codex_runtime": return "Codex 실행 파일";
-    case "provider_claude_runtime": return "Claude 실행 파일";
-    case "search_engine_selection": return "검색 엔진 선택";
-    case "search_rollout_policies": return "검색 rollout 정책";
-    case "search_rollout_reviews": return "검색 rollout 검토";
-    case "search_rollout_actions": return "검색 rollout 조치";
+    case "event_chain": return "event source";
+    case "knowledge_candidates": return "knowledge candidate evidence";
+    case "knowledge_reviews": return "knowledge review evidence";
+    case "verified_knowledge": return "verified knowledge evidence";
+    case "knowledge_staleness": return "knowledge staleness evidence";
+    case "document_registry": return "document registry";
+    case "document_sources": return "document source files";
+    case "skill_packages": return "skill packages";
+    case "skill_lock": return "skill resolution lock";
+    case "provider_codex_runtime": return "Codex executable";
+    case "provider_claude_runtime": return "Claude executable";
+    case "search_engine_selection": return "search engine selection";
+    case "search_rollout_policies": return "search rollout policies";
+    case "search_rollout_reviews": return "search rollout reviews";
+    case "search_rollout_actions": return "search rollout actions";
   }
 }
 
 function statusLabel(status: DoctorReport["checks"][number]["status"]): string {
-  if (status === "healthy") return "정상";
-  if (status === "unhealthy") return "문제";
-  return "확인 불가";
+  if (status === "healthy") return "healthy";
+  if (status === "unhealthy") return "unhealthy";
+  return "unknown";
 }
 
 export function formatDoctorReport(report: DoctorReport): string {
   const limitedScopeLabel = doctorScopeLabel(report.scope);
   const reportLabel = report.scope === "all"
-    ? "Lervo 진단 결과"
-    : `Lervo ${limitedScopeLabel} 범위 진단 결과`;
+    ? "Lervo diagnostic report"
+    : `Lervo ${limitedScopeLabel} diagnostic report`;
   const lines = [
     `${reportLabel}: ${
       report.status === "healthy"
-        ? "확인한 항목 정상"
+        ? "checked items are healthy"
         : report.status === "unhealthy"
-          ? "문제 발견"
-          : "확인 불가 항목 있음"
+          ? "issues found"
+          : "some items could not be determined"
     }`,
     ...(report.scope !== "all"
-      ? [`  범위 제한: ${limitedScopeLabel} 항목만 확인했으며 프로젝트 전체 상태를 뜻하지 않습니다.`]
+      ? [`  Limited scope: only ${limitedScopeLabel} items were checked; this is not the overall project status.`]
       : []),
     ...report.checks.map((check) =>
-      `  ${statusLabel(check.status)}  ${checkLabel(check.checkId)} (${check.observedCount}개)${
+      `  ${statusLabel(check.status)}  ${checkLabel(check.checkId)} (${check.observedCount})${
         check.version === undefined ? "" : ` · ${check.version}`
       }`),
   ];
   if (report.issues.length > 0) {
     lines.push(
-      "확인할 항목:",
+      "Items to review:",
       ...report.issues.map((item) =>
         `  ${item.code}${item.eventId === null ? "" : ` · ${item.eventId}`}: ${item.message}`),
     );
   }
   if (report.recoveryGuidance.length > 0) {
     lines.push(
-      "다음 확인:",
+      "Next checks:",
       ...report.recoveryGuidance.map((item) => `  ${item.actionCode}: ${item.message}`),
-      "  자동 수정이나 상태 변경은 실행하지 않았습니다.",
+      "  No automatic fixes or state changes were performed.",
     );
   }
   return `${lines.join("\n")}\n`;
@@ -116,7 +116,7 @@ export async function runDoctorCommand(
     return 0;
   }
   if (parsed.values.deliberation !== undefined && parsed.values.scope !== undefined) {
-    io.stderr(`deliberation과 scope는 함께 지정할 수 없습니다.\n${doctorUsage}\n`);
+    io.stderr(`deliberation and scope cannot be specified together.\n${doctorUsage}\n`);
     return 1;
   }
   let scope: DoctorScope;
@@ -178,8 +178,8 @@ export async function runDoctorCommand(
     const code = typeof (error as { code?: unknown })?.code === "string"
       ? (error as { code: string }).code
       : "doctor_failed";
-    io.stderr(`Lervo 상태를 진단하지 못했습니다. (${code}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not diagnose Lervo state. (${code}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   } finally {

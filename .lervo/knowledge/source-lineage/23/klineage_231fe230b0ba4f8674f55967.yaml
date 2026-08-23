@@ -1,0 +1,11 @@
+fromPath: docs/adr/0054-search-recommendation-managed-context-boundary.md
+identityPath: docs/adr/0054-search-recommendation-managed-context-boundary.md
+kind: document_move
+lineageId: klineage_231fe230b0ba4f8674f55967
+operationId: kdocop_4a9af5e0b8ce4743de6b15f5
+schemaVersion: 1
+sourceContentHash: sha256:66a2273b690ad57582766bb32780ee83ea006a5d1fa9fe630f07d6826ecb5f6b
+sourceId: src_44a827058cbb2784d66361eb
+sourceUnitBindingDigest: sha256:1799379e95836c02684731d89e4a3d841e6669092960b18bda019bdb7adcecb0
+sourceUnitCount: 8
+toPath: docs/decisions/search/0054-search-recommendation-managed-context-boundary.md

@@ -47,7 +47,7 @@ async function createSkill(input: {
 }): Promise<{ directoryPath: string; manifest: SkillManifest; original: string }> {
   const directoryPath = resolve(input.root, input.directory);
   await mkdir(directoryPath, { recursive: true });
-  const original = `# ${input.directory}\n사람이 읽는 원본입니다.\n`;
+  const original = `# ${input.directory}\nHuman-readable source.\n`;
   await writeFile(resolve(directoryPath, "SKILL.md"), original);
   const contentHash = await hashSkillPackage(directoryPath);
   const manifest: SkillManifest = {
@@ -210,7 +210,7 @@ describe("local skill resolution", () => {
         runtime: runtime(),
         generatedAt: "2026-08-19T00:00:00Z",
       });
-      throw new Error("호환되지 않는 스킬이 선택되었습니다.");
+      throw new Error("An incompatible skill was selected.");
     } catch (error) {
       expect(error).toMatchObject({
         code: "no_compatible_skill",
@@ -222,7 +222,7 @@ describe("local skill resolution", () => {
   it("rejects changed content and symbolic links", async () => {
     const root = await temporaryRoot();
     const changed = await createSkill({ root, directory: "changed", sourceKind: "project" });
-    await writeFile(resolve(changed.directoryPath, "SKILL.md"), "변조됨\n");
+    await writeFile(resolve(changed.directoryPath, "SKILL.md"), "tampered\n");
     await expect(discoverSkillRoot({
       root,
       sourceKind: "project",

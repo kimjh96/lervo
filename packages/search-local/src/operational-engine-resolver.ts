@@ -65,7 +65,7 @@ async function resolveOperationalSearchEngineFromHistory(input: {
     await verifySearchEngineSelectionHistory({ ...input, history });
   } catch (error) {
     if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable") throw error;
-    throw new SearchLocalError("engine_selection_unavailable", "검색 엔진 선택 chain을 안전하게 검증하지 못했습니다.", {
+    throw new SearchLocalError("engine_selection_unavailable", "Could not safely verify the search engine selection chain.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
@@ -88,7 +88,7 @@ async function resolveOperationalSearchEngineFromHistory(input: {
     });
     const index = evidence.index;
     if (!sameSearchEngine(index.engine, selection.engine) || index.indexId !== evidence.comparison.candidate.indexId) {
-      throw new SearchLocalError("engine_selection_unavailable", "선택된 검색 엔진의 현재 index가 검증된 비교 원본과 다릅니다.");
+      throw new SearchLocalError("engine_selection_unavailable", "The current index of the selected search engine differs from the verified comparison source.");
     }
     return {
       selection,
@@ -99,7 +99,7 @@ async function resolveOperationalSearchEngineFromHistory(input: {
     };
   } catch (error) {
     if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable") throw error;
-    throw new SearchLocalError("engine_selection_unavailable", "현재 후보 검색 엔진 선택을 안전하게 사용할 수 없습니다.", {
+    throw new SearchLocalError("engine_selection_unavailable", "The current candidate search engine selection cannot be used safely.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
@@ -155,7 +155,7 @@ export async function runLocalOperationalSearch(input: {
   limit: number;
 }): Promise<OperationalSearchResult> {
   if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > SEARCH_MAX_RESULTS) {
-    throw new SearchError("invalid_query", `검색 결과 한도는 1 이상 ${SEARCH_MAX_RESULTS} 이하여야 합니다.`);
+    throw new SearchError("invalid_query", `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`);
   }
   identifySearchQuery(input.query);
   const resolved = await resolveOperationalSearchEngine(input);
@@ -169,7 +169,7 @@ export async function runLocalOperationalSearch(input: {
       verificationReceiptId: resolved.verificationReceipt?.receiptId ?? null,
     };
   } catch (error) {
-    throw new SearchLocalError("engine_selection_unavailable", "선택된 검색 엔진이 유효한 응답을 만들지 못했습니다.", {
+    throw new SearchLocalError("engine_selection_unavailable", "The selected search engine did not produce a valid response.", {
       cause: error instanceof Error ? error : undefined,
     });
   }

@@ -5,7 +5,7 @@ import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_activation_blocker_report_invalid",
-    "CLI 최초 게시 활성화 차단 보고서가 올바르지 않습니다.",
+    "The CLI first-publication activation-blocker report is invalid.",
   );
 }
 

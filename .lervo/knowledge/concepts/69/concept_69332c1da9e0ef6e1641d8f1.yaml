@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_69332c1da9e0ef6e1641d8f1
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0df3d29135af2692dd975d43
+title: "ADR-0102: CLI first-publication execution plan and unarmed boundary"
+type: decision

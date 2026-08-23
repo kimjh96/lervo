@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5e0f5ba649190aa8d7c1ad44
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7025bef89620eaac38adca13
+title: "ADR-0023: Evidence-based document staleness"
+type: decision

@@ -30,7 +30,7 @@ export async function executeManagedDeliberationLifecycle(input: {
     ) {
       throw new ManagedDeliberationError(
         "deliberation_project_mismatch",
-        "대화 숙의 project와 저장소 manifest가 일치하지 않습니다.",
+        "The conversation deliberation project does not match the repository manifest.",
       );
     }
     result = await input.executeWithStorage(
@@ -55,14 +55,14 @@ export async function executeManagedDeliberationLifecycle(input: {
     throw new ManagedDeliberationError(
       "deliberation_cleanup_failed",
       executionFailure === undefined
-        ? "숙의 뒤 project storage를 닫지 못했습니다."
-        : "숙의 실패 뒤 project storage도 닫지 못했습니다.",
+        ? "Project storage could not be closed after deliberation."
+        : "Project storage also could not be closed after deliberation failed.",
       { cause: executionFailure === undefined
         ? cleanupFailure
         : new AggregateError([executionFailure, cleanupFailure]) },
     );
   }
   if (executionFailure !== undefined) throw executionFailure;
-  if (result === undefined) throw new Error("숙의 결과가 없습니다.");
+  if (result === undefined) throw new Error("The deliberation result is missing.");
   return result;
 }

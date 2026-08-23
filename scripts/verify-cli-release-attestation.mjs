@@ -8,7 +8,7 @@ import { ReleaseArtifactManifestError } from "./lib/release-artifact-manifest.mj
 function failArguments() {
   throw new ReleaseAttestationVerificationError(
     "release_attestation_verification_arguments_invalid",
-    "Release attestation 검증 명령 인자가 올바르지 않습니다.",
+    "The release attestation verification command arguments are invalid.",
   );
 }
 
@@ -58,7 +58,7 @@ try {
   if (json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } else {
-    console.log("CLI release attestation 소비자 검사 통과 (2개 bundle, 3개 subject)");
+    console.log("CLI release attestation consumer check passed (2 bundles, 3 subjects)");
   }
 } catch (error) {
   if (
@@ -69,7 +69,7 @@ try {
     console.error(`${error.code}: ${error.message}`);
   } else {
     console.error(
-      "release_attestation_verification_failed: Release attestation 검증을 완료하지 못했습니다.",
+      "release_attestation_verification_failed: Release attestation verification could not be completed.",
     );
   }
   process.exitCode = 1;

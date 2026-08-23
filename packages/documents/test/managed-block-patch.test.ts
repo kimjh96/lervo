@@ -24,19 +24,19 @@ function source(path: string, text: string): ManagedBlockPatchSource {
 
 function fixtureSource(): string {
   return [
-    "사람이 작성한 머리말입니다.",
+    "Human-authored preface.",
     "",
     "<!-- lervo:begin block=summary schema=1 -->",
-    "기존 요약입니다.",
+    "Existing summary.",
     "<!-- lervo:end block=summary -->",
     "",
-    "두 block 사이 사용자 내용입니다.",
+    "User content between the two blocks.",
     "",
     "<!-- lervo:begin block=details schema=1 -->",
-    "기존 상세입니다.",
+    "Existing details.",
     "<!-- lervo:end block=details -->",
     "",
-    "사람이 작성한 꼬리말입니다.",
+    "Human-authored epilogue.",
     "",
   ].join("\r\n");
 }
@@ -45,7 +45,7 @@ describe("managed block patch candidate", () => {
   it("changes only target content and binds review artifacts to every byte hash", () => {
     const originalText = fixtureSource();
     const input = source("README.md", originalText);
-    const replacement = encoder.encode("새로운 요약입니다.\r\n두 번째 줄입니다.\r\n");
+    const replacement = encoder.encode("New summary.\r\nSecond line.\r\n");
     const sourceSnapshot = input.bytes.slice();
     const replacementSnapshot = replacement.slice();
 
@@ -60,7 +60,7 @@ describe("managed block patch candidate", () => {
       replacementBytes: replacement,
     });
 
-    const expectedText = originalText.replace("기존 요약입니다.\r\n", decoder.decode(replacement));
+    const expectedText = originalText.replace("Existing summary.\r\n", decoder.decode(replacement));
     expect(decoder.decode(result.outputBytes)).toBe(expectedText);
     expect(input.bytes).toEqual(sourceSnapshot);
     expect(replacement).toEqual(replacementSnapshot);
@@ -79,7 +79,7 @@ describe("managed block patch candidate", () => {
         target: {
           blockId: "summary",
           markerFamily: "lervo_v1",
-          contentHash: sha256(encoder.encode("기존 요약입니다.\r\n")),
+          contentHash: sha256(encoder.encode("Existing summary.\r\n")),
         },
         replacement: {
           contentHash: sha256(replacement),
@@ -140,7 +140,7 @@ describe("managed block patch candidate", () => {
       make: () => {
         const input = source("README.md", fixtureSource());
         input.bytes[0] = 0x23;
-        return { source: input, blockId: "summary", replacementBytes: encoder.encode("새 내용\r\n") };
+        return { source: input, blockId: "summary", replacementBytes: encoder.encode("New content\r\n") };
       },
       code: "source_changed",
     },
@@ -149,7 +149,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("README.md", "<!-- lervo:begin block=summary schema=1 -->\n"),
         blockId: "summary",
-        replacementBytes: encoder.encode("새 내용\n"),
+        replacementBytes: encoder.encode("New content\n"),
       }),
       code: "source_structure_invalid",
     },
@@ -158,7 +158,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("README.md", fixtureSource()),
         blockId: "missing",
-        replacementBytes: encoder.encode("새 내용\r\n"),
+        replacementBytes: encoder.encode("New content\r\n"),
       }),
       code: "block_not_found",
     },
@@ -167,7 +167,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("README.md", fixtureSource()),
         blockId: "Invalid",
-        replacementBytes: encoder.encode("새 내용\r\n"),
+        replacementBytes: encoder.encode("New content\r\n"),
       }),
       code: "invalid_patch_request",
     },
@@ -176,7 +176,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("../README.md", fixtureSource()),
         blockId: "summary",
-        replacementBytes: encoder.encode("새 내용\r\n"),
+        replacementBytes: encoder.encode("New content\r\n"),
       }),
       code: "invalid_patch_request",
     },
@@ -185,7 +185,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source(".", fixtureSource()),
         blockId: "summary",
-        replacementBytes: encoder.encode("새 내용\r\n"),
+        replacementBytes: encoder.encode("New content\r\n"),
       }),
       code: "invalid_patch_request",
     },
@@ -212,7 +212,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("README.md", fixtureSource()),
         blockId: "summary",
-        replacementBytes: encoder.encode("기존 요약입니다.\r\n"),
+        replacementBytes: encoder.encode("Existing summary.\r\n"),
       }),
       code: "no_changes",
     },
@@ -221,7 +221,7 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("README.md", fixtureSource()),
         blockId: "summary",
-        replacementBytes: encoder.encode("끝 줄바꿈 없음"),
+        replacementBytes: encoder.encode("No final newline"),
       }),
       code: "output_structure_invalid",
     },

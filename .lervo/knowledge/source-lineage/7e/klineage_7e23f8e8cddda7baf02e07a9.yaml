@@ -1,0 +1,11 @@
+fromPath: LERVO_V0_PLAN.md
+identityPath: LERVO_V0_PLAN.md
+kind: document_move
+lineageId: klineage_7e23f8e8cddda7baf02e07a9
+operationId: kdocop_790bbcfaf748a2543473bbfb
+schemaVersion: 1
+sourceContentHash: sha256:2a9b9084316ead854527bc09d147f6226f63371503703482a969a1e7c21b8839
+sourceId: src_cf33defd3c2848e23e9e7f04
+sourceUnitBindingDigest: sha256:abdd6be7b1b65464c86bfe3a532db47d95e02d25afad2fe491d90bda5e202b65
+sourceUnitCount: 20
+toPath: docs/roadmap/v0.md

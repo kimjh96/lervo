@@ -30,7 +30,7 @@ export function createGitHubReleaseTrustPolicy({ repository, tag, sourceDigest }
   ) {
     failReleaseVerification(
       "release_attestation_trust_policy_invalid",
-      "Release attestation 신뢰 정책이 올바르지 않습니다.",
+      "The release attestation trust policy is invalid.",
     );
   }
   const sourceRef = `refs/tags/${tag}`;
@@ -60,7 +60,7 @@ export function createGitHubVerificationArguments({
   ) {
     failReleaseVerification(
       "release_attestation_verification_input_invalid",
-      "Release attestation 검증 입력이 올바르지 않습니다.",
+      "The release attestation verification input is invalid.",
     );
   }
   return [
@@ -110,7 +110,7 @@ export async function verifyGitHubAttestation(inputs, execute = execFileAsync) {
     if (error instanceof ReleaseAttestationVerificationError) throw error;
     failReleaseVerification(
       "release_attestation_signature_unverified",
-      "Release attestation 서명과 identity를 검증하지 못했습니다.",
+      "The release attestation signature and identity could not be verified.",
     );
   }
   try {
@@ -118,7 +118,7 @@ export async function verifyGitHubAttestation(inputs, execute = execFileAsync) {
   } catch {
     failReleaseVerification(
       "release_attestation_verifier_output_invalid",
-      "Attestation verifier 결과가 올바르지 않습니다.",
+      "The attestation verifier result is invalid.",
     );
   }
 }

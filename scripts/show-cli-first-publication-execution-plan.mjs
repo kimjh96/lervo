@@ -13,7 +13,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_execution_plan_arguments_invalid",
-    "CLI 최초 게시 실행 계획 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication execution-plan command arguments are invalid.",
   );
 }
 
@@ -55,7 +55,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_execution_plan_failed: CLI 최초 게시 실행 계획을 만들지 못했습니다.",
+    "first_publication_execution_plan_failed: The CLI first-publication execution plan could not be created.",
   );
   process.exitCode = 1;
 }

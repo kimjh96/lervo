@@ -12,7 +12,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail(code) {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 외부 요구사항 증거 문서가 올바르지 않습니다.",
+    "The CLI first-publication external-requirements evidence document is invalid.",
   );
 }
 

@@ -28,7 +28,7 @@ export async function readWritingArtifact(
   ) {
     throw new WritingPublicationError(
       "artifact_contract_invalid",
-      "Writing artifact 좌표 또는 크기가 공개 검증 계약과 다릅니다.",
+      "The writing artifact coordinates or size differ from the publication verification contract.",
     );
   }
   try {
@@ -44,7 +44,7 @@ export async function readWritingArtifact(
     if (error instanceof WritingPublicationError) throw error;
     throw new WritingPublicationError(
       "artifact_storage_failed",
-      "Writing artifact를 안전하게 읽고 확인하지 못했습니다.",
+      "The writing artifact could not be read and verified safely.",
       { cause: error },
     );
   }
@@ -75,7 +75,7 @@ export async function storeWritingEvaluation(
   } catch (error) {
     throw new WritingPublicationError(
       "artifact_storage_failed",
-      "Writing evaluation artifact를 안전하게 저장하고 다시 확인하지 못했습니다.",
+      "The writing evaluation artifact could not be stored and reverified safely.",
       { cause: error },
     );
   }
@@ -99,7 +99,7 @@ export async function verifyEvaluationArtifact(
   } catch (error) {
     throw new WritingPublicationError(
       "publication_permit_invalid",
-      "Writing evaluation artifact가 permit의 평가와 다릅니다.",
+      "The writing evaluation artifact differs from the evaluation in the permit.",
       { cause: error },
     );
   }

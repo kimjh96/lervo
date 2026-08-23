@@ -21,7 +21,7 @@ const otherTarget: RemoteCommandTarget = {
   projectId: "prj_remote_other",
   projectIdentityHash: `sha256:${"b".repeat(64)}`,
 };
-const requestText = "작업을 검증하고 결과를 정리해 주세요.";
+const requestText = "Verify the task and summarize the result.";
 const requestBytes = new TextEncoder().encode(requestText);
 const requestReference = {
   artifactId: "art_remote_request",

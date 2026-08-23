@@ -9,17 +9,19 @@ import type { RoleProfile, VerificationSuite } from "@lervo/schemas";
 import type { ManagedProviderRunResult } from "@lervo/orchestrator";
 import type {
   SemanticWritingEvaluationRequest,
-  SemanticWritingEvaluationResponse,
   WritingSemanticEvaluator,
 } from "@lervo/writing";
 
 import { createDeliberationEvaluatorRole } from "./deliberation-roles.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type { RunProvider } from "./managed-run.js";
+import { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 import {
   prepareRunVerification,
   type PreparedRunVerification,
 } from "./run-verification.js";
+
+export { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 
 function digest(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -139,7 +141,7 @@ export class ManagedDeliberationRunner {
     const bytes = await this.storage.artifacts.get(run.resultArtifact.uri);
     const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     if (bytes.byteLength !== run.resultArtifact.byteCount || digest(content) !== run.resultArtifact.contentHash) {
-      throw new Error("숙의 provider 결과의 CAS 좌표가 원문과 다릅니다.");
+      throw new Error("The deliberation provider result does not match its CAS coordinates.");
     }
     return {
       run,
@@ -159,7 +161,7 @@ export class ManagedDeliberationRunner {
   private async evaluateSemantics(
     provider: RunProvider,
     request: SemanticWritingEvaluationRequest,
-  ): Promise<SemanticWritingEvaluationResponse> {
+  ) {
     const requestDocument = `${JSON.stringify({
       schemaVersion: 1,
       writingPolicyId: request.writingPolicyId,
@@ -173,68 +175,21 @@ export class ManagedDeliberationRunner {
     const documentId = await this.workspace.materializeSemanticEvaluationRequest(
       requestDocument,
     );
-    const role = createDeliberationEvaluatorRole(this.defaultVerificationSuiteId);
+    const role = createDeliberationEvaluatorRole(
+      this.defaultVerificationSuiteId,
+      this.workspace.writingContract,
+    );
     const result = await this.execute({
       provider,
       role,
       instructions: [
-        "writing.evaluation.request 문서의 한국어 문장과 검사 조건을 별도로 평가하세요.",
-        "응답은 설명이나 Markdown code fence 없이 JSON 객체 하나만 작성하세요.",
-        "형식: {\"checks\":[{\"checkId\":\"...\",\"status\":\"passed|failed\",\"violationCount\":0}]}",
-        "요청의 check 순서를 유지하고 빠짐없이 판정하세요.",
+        "Evaluate the text and checks in the writing.evaluation.request document in a separate pass.",
+        "Return exactly one JSON object without explanation or a Markdown code fence.",
+        "Shape: {\"checks\":[{\"checkId\":\"...\",\"status\":\"passed|failed\",\"violationCount\":0}]}",
+        "Preserve the requested check order and evaluate every check.",
       ].join("\n"),
       documentRules: { "writing.evaluation.request": [documentId] },
     });
     return parseSemanticEvaluation(result.content, request, provider);
   }
-}
-
-export function parseSemanticEvaluation(
-  content: string,
-  request: SemanticWritingEvaluationRequest,
-  provider: RunProvider,
-): SemanticWritingEvaluationResponse {
-  let value: unknown;
-  try {
-    value = JSON.parse(content);
-  } catch {
-    throw new Error("Writing 의미 평가 결과가 JSON 객체가 아닙니다.");
-  }
-  if (
-    value === null || typeof value !== "object" || Array.isArray(value) ||
-    JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(["checks"])
-  ) throw new Error("Writing 의미 평가 결과의 필드가 올바르지 않습니다.");
-  const checks = (value as { checks?: unknown }).checks;
-  if (!Array.isArray(checks) || checks.length !== request.checks.length) {
-    throw new Error("Writing 의미 평가 결과가 필수 검사를 모두 포함하지 않습니다.");
-  }
-  const normalized = checks.map((check, index) => {
-    if (
-      check === null || typeof check !== "object" || Array.isArray(check) ||
-      JSON.stringify(Object.keys(check).sort()) !==
-        JSON.stringify(["checkId", "status", "violationCount"].sort())
-    ) throw new Error("Writing 의미 평가 검사 형식이 올바르지 않습니다.");
-    const item = check as { checkId?: unknown; status?: unknown; violationCount?: unknown };
-    const expected = request.checks[index]!;
-    if (
-      item.checkId !== expected.checkId ||
-      (item.status !== "passed" && item.status !== "failed") ||
-      !Number.isInteger(item.violationCount) || Number(item.violationCount) < 0 ||
-      (item.status === "passed" && item.violationCount !== 0) ||
-      (item.status === "failed" && item.violationCount === 0)
-    ) throw new Error("Writing 의미 평가 검사 좌표나 판정이 올바르지 않습니다.");
-    const status: "passed" | "failed" = item.status;
-    return {
-      checkId: expected.checkId,
-      status,
-      violationCount: Number(item.violationCount),
-    };
-  });
-  return {
-    evaluator: {
-      kind: "model",
-      evaluatorId: `lervo.${provider}.semantic-writing.v1`,
-    },
-    checks: normalized,
-  };
 }

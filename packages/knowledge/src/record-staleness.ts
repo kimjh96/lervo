@@ -24,7 +24,7 @@ export async function recordKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "knowledge_artifact_mismatch",
-      "Verified 지식 CAS 원본을 읽지 못했습니다.",
+      "Could not read the verified knowledge CAS source.",
       { cause: error },
     );
   }
@@ -40,7 +40,7 @@ export async function recordKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "knowledge_artifact_mismatch",
-      "Verified 지식 원본의 schema, hash 또는 ID가 다릅니다.",
+      "The verified knowledge source schema, hash, or ID differs.",
     );
   }
   if (
@@ -55,7 +55,7 @@ export async function recordKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "Stale 결과가 verified 지식 원본과 결속되지 않았습니다.",
+      "The staleness result is not bound to the verified knowledge source.",
     );
   }
   validateKnowledgeStalenessResult(input.result);
@@ -63,7 +63,7 @@ export async function recordKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_not_stale",
-      "Current 판정은 stale 감지 event로 기록하지 않습니다.",
+      "A current decision is not recorded as a staleness-detected event.",
     );
   }
   if (input.events.list().some((event) =>
@@ -71,14 +71,14 @@ export async function recordKnowledgeStaleness(
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",
-      "같은 stale 판정이 이미 event에 기록되어 있습니다.",
+      "The same staleness decision is already recorded in an event.",
     );
   }
   const resultArtifact = await storeKnowledgeArtifact({
     artifactStore: input.artifactStore,
     bytes: knowledgeStalenessResultBytes(input.result),
     mismatchReason: "staleness_artifact_mismatch",
-    label: "지식 stale 판정",
+    label: "knowledge staleness decision",
   });
   try {
     const recordedEvent = input.events.append({
@@ -108,7 +108,7 @@ export async function recordKnowledgeStaleness(
     throw new KnowledgeError(
       "event_recording_failed",
       "event_store_failed",
-      "지식 stale 감지 event를 기록하지 못했습니다.",
+      "Could not record the knowledge staleness-detected event.",
       { cause: error },
     );
   }

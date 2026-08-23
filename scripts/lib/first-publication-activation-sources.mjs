@@ -18,7 +18,7 @@ export const firstPublicationActivationSourcePaths = Object.freeze({
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_activation_blocker_source_invalid",
-    "CLI 최초 게시 활성화 차단 보고서 원본이 올바르지 않습니다.",
+    "The CLI first-publication activation-blocker report source is invalid.",
   );
 }
 

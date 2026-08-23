@@ -1,0 +1,11 @@
+fromPath: docs/adr/0166-repository-authorized-environment-source-query.md
+identityPath: docs/adr/0166-repository-authorized-environment-source-query.md
+kind: document_move
+lineageId: klineage_fa700fc76e16e323399d7abb
+operationId: kdocop_98105bddfa95f7fd909a048b
+schemaVersion: 1
+sourceContentHash: sha256:0152ee625fa36c5f9e51a36da01a107deef1242c2c096a1080a7d7580f6b46eb
+sourceId: src_03056d152dd896d3473843e8
+sourceUnitBindingDigest: sha256:e831c46d356fd416cdf963ae2032e6f9df70ca7402d531b6a96ba187ba6dd0b8
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0166-repository-authorized-environment-source-query.md

@@ -14,7 +14,7 @@ export interface HubRuntimeCliPorts {
 
 function configArgument(args: readonly string[]): string {
   if (args.length !== 2 || args[0] !== "--config" || args[1] === undefined || args[1].length === 0) {
-    throw new HubRuntimeError("invalid_arguments", "사용법: lervo-hub --config <config.json>");
+    throw new HubRuntimeError("invalid_arguments", "Usage: lervo-hub --config <config.json>");
   }
   return args[1];
 }
@@ -26,13 +26,17 @@ export async function runHubRuntimeCli(
   try {
     const path = resolve(ports.cwd, configArgument(args));
     const deployment = await openHubRuntime(await loadHubRuntimeConfig(path));
-    const signals = attachHubRuntimeSignalHandlers(deployment, ports.signals ?? process);
+    const signals = attachHubRuntimeSignalHandlers(
+      deployment,
+      ports.signals ?? process,
+      (failureCode) => ports.stderr(`Failed to reload Lervo Hub runtime material (${failureCode}).\n`),
+    );
     try {
       const address = await deployment.listen();
-      ports.stdout(`Lervo Hub가 ${address.host}:${address.port}에서 시작됐습니다.\n`);
+      ports.stdout(`Lervo Hub started on ${address.host}:${address.port}.\n`);
       const result = await deployment.closed;
       if (result.status === "failed") {
-        ports.stderr(`Lervo Hub가 중단됐습니다 (${result.failureCode}).\n`);
+        ports.stderr(`Lervo Hub stopped (${result.failureCode}).\n`);
         return 1;
       }
       return 0;
@@ -43,8 +47,8 @@ export async function runHubRuntimeCli(
   } catch (error) {
     const failure = error instanceof HubRuntimeError
       ? error
-      : new HubRuntimeError("startup_failed", "Lervo Hub를 시작하지 못했습니다.", { cause: error });
-    ports.stderr(`Lervo Hub 오류 (${failure.code}): ${failure.message}\n`);
+      : new HubRuntimeError("startup_failed", "Could not start Lervo Hub.", { cause: error });
+    ports.stderr(`Lervo Hub error (${failure.code}): ${failure.message}\n`);
     return 1;
   }
 }

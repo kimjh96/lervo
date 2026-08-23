@@ -26,7 +26,7 @@ export class DeliberationLeaseError extends Error {
 
 function pathFor(stateRoot: string, deliberationId: string): string {
   if (!idPattern.test(deliberationId)) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "숙의 lease ID가 유효하지 않습니다.");
+    throw new DeliberationLeaseError("deliberation_lease_invalid", "The deliberation lease ID is invalid.");
   }
   return resolve(stateRoot, "deliberations", deliberationId, "checkpoints", "active.json");
 }
@@ -62,7 +62,7 @@ async function readLease(path: string, deliberationId: string): Promise<Delibera
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw new DeliberationLeaseError(
       "deliberation_lease_invalid",
-      "숙의 실행 lease를 안전하게 읽지 못했습니다.",
+      "The deliberation run lease could not be read safely.",
       { cause: error },
     );
   } finally {
@@ -74,7 +74,7 @@ async function writeLease(path: string, lease: DeliberationLease): Promise<boole
   const directoryPath = dirname(path);
   const deliberationRoot = await lstat(dirname(directoryPath));
   if (!deliberationRoot.isDirectory() || deliberationRoot.isSymbolicLink()) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "숙의 실행 디렉터리가 안전하지 않습니다.");
+    throw new DeliberationLeaseError("deliberation_lease_invalid", "The deliberation run directory is unsafe.");
   }
   try {
     await mkdir(directoryPath, { mode: 0o700 });
@@ -83,7 +83,7 @@ async function writeLease(path: string, lease: DeliberationLease): Promise<boole
   }
   const directory = await lstat(directoryPath);
   if (!directory.isDirectory() || directory.isSymbolicLink()) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "숙의 lease 디렉터리가 안전하지 않습니다.");
+    throw new DeliberationLeaseError("deliberation_lease_invalid", "The deliberation lease directory is unsafe.");
   }
   let handle;
   try {
@@ -128,7 +128,7 @@ export async function acquireDeliberationLease(input: {
   if (current === null) {
     if (await writeLease(path, lease)) return { ownerId: input.ownerId };
   } else if (!input.recoverStale || processIsAlive(current.processId)) {
-    throw new DeliberationLeaseError("deliberation_in_progress", "숙의가 다른 process에서 진행 중입니다.");
+    throw new DeliberationLeaseError("deliberation_in_progress", "Deliberation is running in another process.");
   } else {
     const stalePath = resolve(dirname(path), `stale-${input.ownerId}.json`);
     try {
@@ -141,7 +141,7 @@ export async function acquireDeliberationLease(input: {
       return { ownerId: input.ownerId };
     }
   }
-  throw new DeliberationLeaseError("deliberation_in_progress", "숙의 재개 lease를 다른 process가 먼저 획득했습니다.");
+  throw new DeliberationLeaseError("deliberation_in_progress", "Another process acquired the deliberation resume lease first.");
 }
 
 export async function releaseDeliberationLease(input: {
@@ -153,7 +153,7 @@ export async function releaseDeliberationLease(input: {
   const current = await readLease(path, input.deliberationId);
   if (current === null) return;
   if (current.ownerId !== input.ownerId || current.processId !== process.pid) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "다른 실행이 소유한 숙의 lease를 해제할 수 없습니다.");
+    throw new DeliberationLeaseError("deliberation_lease_invalid", "A deliberation lease owned by another run cannot be released.");
   }
   await unlink(path);
 }

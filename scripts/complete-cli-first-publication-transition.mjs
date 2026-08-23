@@ -13,7 +13,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_transition_arguments_invalid",
-    "CLI 최초 게시 전환 완료 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication transition completion command arguments are invalid.",
   );
 }
 
@@ -120,12 +120,12 @@ try {
   const receipt = await completeCliFirstPublicationTransition(options);
   await writeFirstPublicationTransitionReceipt(outputPath, receipt);
   const evidence = receipt.publicationEvidence.type === "execution_receipt"
-    ? "게시 실행 영수증"
+    ? "publication execution receipt"
     : receipt.publicationEvidence.type === "reconciliation_resolution"
-      ? "검토된 결과 대조"
-      : "검증된 npm stage 승인 대조";
+      ? "reviewed result reconciliation"
+      : "verified npm stage approval reconciliation";
   console.log(
-    `CLI 최초 게시 전환 완료 (${evidence}, Trusted Publisher stage-only 전환)`,
+    `CLI first-publication transition complete (${evidence}, Trusted Publisher stage-only transition)`,
   );
 } catch (error) {
   if (
@@ -134,7 +134,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_transition_failed: CLI 최초 게시 전환을 완료하지 못했습니다.",
+    "first_publication_transition_failed: The CLI first-publication transition could not be completed.",
   );
   process.exitCode = 1;
 }

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0090-cli-package-usage-guide.md
+identityPath: docs/adr/0090-cli-package-usage-guide.md
+kind: document_move
+lineageId: klineage_3059155e379239dd4b923767
+operationId: kdocop_fe5340d67cc5960695741b49
+schemaVersion: 1
+sourceContentHash: sha256:4620d36f0fe08762d88a8ba03cd1ab1586f8a3fccbbb4b7a46451a80c07c052c
+sourceId: src_6e02811adaa160ea2d7e9e39
+sourceUnitBindingDigest: sha256:8467adada1ae4223092c4c2ecbd70bbad8f7835605073bf5e08240c9d90040c0
+sourceUnitCount: 5
+toPath: docs/decisions/release/packaging/0090-cli-package-usage-guide.md

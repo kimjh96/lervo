@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_674f6930c14f669f3c9b36ab
+freshness: current
+ownership: user
+path: docs/decisions/search/0069-bounded-search-rollout-action-status.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2e44bb49ff6dfacda368c51a
+title: "ADR-0069: Bounded search-rollout action status"
+type: decision

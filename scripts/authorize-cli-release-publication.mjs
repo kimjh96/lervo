@@ -12,7 +12,7 @@ import { ReleasePublicationAuthorizationError } from "./lib/release-publication-
 function failArguments() {
   throw new ReleasePublicationAuthorizationError(
     "release_publication_arguments_invalid",
-    "Release 게시 적격성 명령 인자가 올바르지 않습니다.",
+    "The release publication eligibility command arguments are invalid.",
   );
 }
 
@@ -63,7 +63,7 @@ try {
   const { options, outputPath } = parseArguments(process.argv.slice(2));
   const authorization = await authorizeCliReleasePublication(options);
   await writeReleasePublicationAuthorization(outputPath, authorization);
-  console.log(`CLI release 게시 적격성 검사 통과 (${authorization.target.package}@${authorization.target.version}, ${authorization.target.distTag})`);
+  console.log(`CLI release publication eligibility check passed (${authorization.target.package}@${authorization.target.version}, ${authorization.target.distTag})`);
 } catch (error) {
   if (
     error instanceof ReleasePublicationAuthorizationError ||
@@ -73,7 +73,7 @@ try {
   ) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_publication_authorization_failed: Release 게시 적격성 검사를 완료하지 못했습니다.");
+    console.error("release_publication_authorization_failed: The release publication eligibility check could not be completed.");
   }
   process.exitCode = 1;
 }

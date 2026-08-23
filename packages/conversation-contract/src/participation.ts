@@ -47,7 +47,7 @@ export function assertConversationParticipationPolicy(
   if (!validateSchema("conversationParticipationPolicy", policy).valid) {
     throw new ConversationContractError(
       "invalid_participation_policy",
-      "Conversation participation policy 계약이 유효하지 않습니다.",
+      "The conversation participation policy contract is invalid.",
     );
   }
   const { policyId: _policyId, ...content } = policy;
@@ -59,7 +59,7 @@ export function assertConversationParticipationPolicy(
   ) {
     throw new ConversationContractError(
       "invalid_participation_policy",
-      "Conversation participation policy ID 또는 집합 순서가 원본과 다릅니다.",
+      "The conversation participation policy ID or set order differs from the source.",
     );
   }
 }
@@ -109,7 +109,7 @@ export function assertConversationParticipationDecision(input: {
   if (!validateSchema("conversationParticipationDecision", decision).valid) {
     throw new ConversationContractError(
       "invalid_participation_decision",
-      "Conversation participation decision 계약이 유효하지 않습니다.",
+      "The conversation participation decision contract is invalid.",
     );
   }
   const { decisionId: _decisionId, ...content } = decision;
@@ -137,7 +137,7 @@ export function assertConversationParticipationDecision(input: {
   ) {
     throw new ConversationContractError(
       "invalid_participation_decision",
-      "Conversation decision ID, action, reason 또는 원본 좌표가 다릅니다.",
+      "The conversation decision ID, action, reason, or source coordinates differ.",
     );
   }
 }

@@ -27,7 +27,7 @@ export function assertSearchEngineActivation(
     !["activate_candidate", "refresh_candidate", "rollback"].includes(activation.action) ||
     !/^sepol_[a-f0-9]{24}$/.test(activation.policyId) || !SOURCE_ID_PATTERN.test(activation.operatorId) ||
     activation.embeddingDecision !== "not_determined") {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine activation contract is invalid.");
   }
   if (activation.schemaVersion === 3 && (activation.action !== "rollback" ||
     !SEARCH_ROLLOUT_ACTION_POLICY_PATTERN.test(activation.rolloutAction?.actionPolicyId) ||
@@ -35,10 +35,10 @@ export function assertSearchEngineActivation(
     !SEARCH_ROLLOUT_REVIEW_PATTERN.test(activation.rolloutAction.rolloutReviewId) ||
     !SEARCH_ROLLOUT_SNAPSHOT_PATTERN.test(activation.rolloutAction.qualitySnapshotId) ||
     !/^sha256:[a-f0-9]{64}$/.test(activation.rolloutAction.qualityInputDigest))) {
-    throw new SearchError("invalid_engine_activation", "검색 rollout rollback 근거가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search rollout rollback evidence is invalid.");
   }
   if (activation.schemaVersion !== 3 && "rolloutAction" in activation) {
-    throw new SearchError("invalid_engine_activation", "기존 검색 엔진 전이에 rollout 조치 근거가 있습니다.");
+    throw new SearchError("invalid_engine_activation", "A legacy search engine transition contains rollout action evidence.");
   }
   if (legacy) {
     const hasLegacyState = activation.applicationState === "not_connected" && activation.recordState === undefined;
@@ -46,12 +46,12 @@ export function assertSearchEngineActivation(
     if (action === "refresh_candidate" || (!hasLegacyState && !hasInterimState) ||
       (activation.rollbackTargetActivationId !== null &&
         !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.rollbackTargetActivationId))) {
-      throw new SearchError("invalid_engine_activation", "기존 검색 엔진 활성화 계약이 유효하지 않습니다.");
+      throw new SearchError("invalid_engine_activation", "The legacy search engine activation contract is invalid.");
     }
   } else if ((activation.fallbackActivationId !== null &&
     !SEARCH_ENGINE_ACTIVATION_PATTERN.test(activation.fallbackActivationId)) ||
     activation.recordState !== "selection_recorded") {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 fallback 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine activation fallback contract is invalid.");
   }
   assertTimestamp(activation.decidedAt, "invalid_engine_activation");
   assertSearchEngineSelection(activation.previousSelection);
@@ -63,12 +63,12 @@ export function assertSearchEngineActivation(
       activation.rollbackOfActivationId !== null)) ||
     (activation.action === "refresh_candidate" && activation.previousActivationId === null) ||
     (activation.action === "rollback" && activation.rollbackOfActivationId !== activation.previousActivationId)) {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 전이 관계가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine activation transition relation is invalid.");
   }
   if (legacy && ((activation.action === "activate_candidate" &&
     activation.rollbackTargetActivationId !== activation.previousActivationId) ||
     (activation.action === "rollback" && activation.rollbackTargetActivationId === activation.previousActivationId))) {
-    throw new SearchError("invalid_engine_activation", "기존 검색 엔진 활성화 전이 관계가 유효하지 않습니다.");
+    throw new SearchError("invalid_engine_activation", "The legacy search engine activation transition relation is invalid.");
   }
   if (current) {
     assertSearchEngineSelection(activation.fallbackSelection);
@@ -84,7 +84,7 @@ export function assertSearchEngineActivation(
     );
     if (invalidRefresh || invalidOther ||
       (activation.action === "rollback" && activation.rollbackOfActivationId === null)) {
-      throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 fallback 관계가 유효하지 않습니다.");
+      throw new SearchError("invalid_engine_activation", "The search engine activation fallback relation is invalid.");
     }
   }
   if (previous !== undefined) {
@@ -113,11 +113,11 @@ export function assertSearchEngineActivation(
       })())
     );
     if (invalidRoot || invalidContinuation) {
-      throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 chain이 이전 원본과 다릅니다.");
+      throw new SearchError("invalid_engine_activation", "The search engine activation chain differs from its previous source.");
     }
   }
   const { schemaVersion: _schema, activationId: _id, ...core } = activation;
   if (contentId("seact", core) !== activation.activationId) {
-    throw new SearchError("invalid_engine_activation", "검색 엔진 활성화 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_engine_activation", "The search engine activation ID does not match its content.");
   }
 }

@@ -9,7 +9,7 @@ import {
 function fail(code = "first_publication_stage_approval_store_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 승인 기록 저장소가 올바르지 않습니다.",
+    "The CLI npm stage approval record store is invalid.",
   );
 }
 

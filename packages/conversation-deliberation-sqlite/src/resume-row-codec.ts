@@ -19,7 +19,7 @@ function text(row: Row, key: string): string {
   if (typeof value !== "string") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 재개 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation resume queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -30,7 +30,7 @@ function nullableText(row: Row, key: string): string | null {
   if (value !== null && typeof value !== "string") {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 재개 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation resume queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -41,7 +41,7 @@ function integer(row: Row, key: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 재개 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation resume queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -52,7 +52,7 @@ function nullableInteger(row: Row, key: string): number | null {
   if (value !== null && (typeof value !== "number" || !Number.isSafeInteger(value))) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      `Conversation 숙의 재개 queue ${key} 값이 유효하지 않습니다.`,
+      `The conversation deliberation resume queue ${key} value is invalid.`,
     );
   }
   return value;
@@ -69,7 +69,7 @@ function decodeReconciliation(
   } catch (error) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue 대조 JSON이 유효하지 않습니다.",
+      "The conversation deliberation resume queue reconciliation JSON is invalid.",
       { cause: error },
     );
   }
@@ -77,10 +77,10 @@ function decodeReconciliation(
     schemaVersion?: unknown;
   };
   const uncertainAtMs = typeof item.uncertainAt === "string"
-    ? conversationDeliberationMilliseconds(item.uncertainAt, "숙의 재개 불확실")
+    ? conversationDeliberationMilliseconds(item.uncertainAt, "deliberation resume uncertainty")
     : -1;
   const reconciledAtMs = typeof item.reconciledAt === "string"
-    ? conversationDeliberationMilliseconds(item.reconciledAt, "숙의 재개 대조")
+    ? conversationDeliberationMilliseconds(item.reconciledAt, "deliberation resume reconciliation")
     : -1;
   if (
     item.schemaVersion !== 1 || typeof item.sourceKind !== "string" ||
@@ -92,7 +92,7 @@ function decodeReconciliation(
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue 대조 좌표가 유효하지 않습니다.",
+      "The conversation deliberation resume queue reconciliation coordinates are invalid.",
     );
   }
   return {
@@ -140,35 +140,35 @@ export function decodeConversationDeliberationResumeJob(row: Row): ConversationD
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue record가 유효하지 않습니다.",
+      "The conversation deliberation resume queue record is invalid.",
     );
   }
-  if (conversationDeliberationMilliseconds(requestedAt, "숙의 재개 요청") !== requestedAtMs) {
+  if (conversationDeliberationMilliseconds(requestedAt, "deliberation resume request") !== requestedAtMs) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue 요청 시각 좌표가 다릅니다.",
+      "The conversation deliberation resume queue request time coordinates differ.",
     );
   }
   if (leaseExpiresAt !== null && (
     leaseExpiresAtMs === null ||
-    conversationDeliberationMilliseconds(leaseExpiresAt, "숙의 재개 lease 만료") !== leaseExpiresAtMs
+    conversationDeliberationMilliseconds(leaseExpiresAt, "deliberation resume lease expiration") !== leaseExpiresAtMs
   )) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue lease 시각 좌표가 다릅니다.",
+      "The conversation deliberation resume queue lease time coordinates differ.",
     );
   }
   if (terminalAt !== null &&
-    conversationDeliberationMilliseconds(terminalAt, "숙의 재개 queue 종료") < requestedAtMs) {
+    conversationDeliberationMilliseconds(terminalAt, "deliberation resume queue settlement") < requestedAtMs) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue 종료가 요청보다 빠릅니다.",
+      "The conversation deliberation resume queue settlement is earlier than the request.",
     );
   }
   if (reconciliation !== null && terminalAt !== reconciliation.reconciledAt) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
-      "Conversation 숙의 재개 queue 대조 시각과 종료 시각이 다릅니다.",
+      "The conversation deliberation resume queue reconciliation and settlement times differ.",
     );
   }
   return {

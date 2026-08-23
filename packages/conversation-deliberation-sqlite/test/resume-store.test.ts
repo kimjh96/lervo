@@ -35,7 +35,7 @@ async function fixture() {
     principalId: "operator:reviewer",
     sourceEventId: `cve_${"a".repeat(64)}`,
     policyId: "deliberation_product-review",
-    topic: "승인된 경계에서 재개합니다.",
+    topic: "Resume from the approved boundary.",
     requestedAt: "2026-08-22T00:00:00.000Z",
   });
   const lease = await starts.claim({
@@ -43,7 +43,7 @@ async function fixture() {
     claimedAt: "2026-08-22T00:01:00.000Z",
     leaseDurationMs: 10_000,
   });
-  if (lease === null) throw new Error("시작 queue lease가 없습니다.");
+  if (lease === null) throw new Error("The start queue lease is missing.");
   await starts.markUncertain({
     deliberationId: started.deliberationId,
     leaseId: lease.leaseId,
@@ -160,7 +160,7 @@ describe("durable conversation deliberation resume queue", () => {
       claimedAt: "2026-08-22T00:04:00.000Z",
       leaseDurationMs: 10_000,
     });
-    if (lease === null) throw new Error("재개 queue lease가 없습니다.");
+    if (lease === null) throw new Error("The resume queue lease is missing.");
     const execute = vi.fn();
     await expect(runConversationDeliberationResumeWorkerCycle({
       store: state.resumes,

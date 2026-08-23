@@ -14,7 +14,7 @@ export function searchTerms(value: string, code: "corpus_invalid" | "invalid_que
   const normalized = normalizeSearchText(assertText(value, maximum, code));
   const terms = normalized.match(TERM_PATTERN) ?? [];
   if (terms.length === 0 || (code === "invalid_query" && terms.length > MAX_QUERY_TERMS)) {
-    throw new SearchError(code, "검색어를 1개 이상 32개 이하의 문자·숫자 단위로 입력해야 합니다.");
+    throw new SearchError(code, "A query must contain between 1 and 32 letter-or-number terms.");
   }
   return terms;
 }

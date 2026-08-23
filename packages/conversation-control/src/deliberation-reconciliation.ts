@@ -47,7 +47,7 @@ export async function reconcileConversationDeliberation(input: {
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "대조할 숙의 queue 좌표가 유효하지 않습니다.",
+      "The deliberation queue coordinates to reconcile are invalid.",
     );
   }
   const job = await input.store.inspect({
@@ -76,7 +76,7 @@ export async function reconcileConversationDeliberation(input: {
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "숙의 대조 증거가 종료 또는 재개 후보를 증명하지 못했습니다.",
+      "The deliberation reconciliation evidence does not prove a terminal or resumable candidate.",
     );
   }
   assertConversationDeliberationSummary(inspected.summary, job.deliberationId);

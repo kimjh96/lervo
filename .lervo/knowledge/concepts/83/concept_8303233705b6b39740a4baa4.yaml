@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8303233705b6b39740a4baa4
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0175-bounded-git-head-revision-source.md
+publicationLanguage: en
+publicationProfile: architecture_context
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_d6fb35758333e7aab3c65006
+title: "ADR-0175: Bounded Git HEAD Revision Source"
+type: decision

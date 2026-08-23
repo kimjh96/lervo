@@ -29,7 +29,7 @@ export class ManagedConversationDeliberationProjects {
       ) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",
-          "대화 숙의 project binding이 유효하지 않습니다.",
+          "The conversation deliberation project binding is invalid.",
         );
       }
       this.projects.set(binding.projectId, repositoryRoot);
@@ -38,7 +38,7 @@ export class ManagedConversationDeliberationProjects {
     if (this.projects.size === 0) {
       throw new ManagedConversationDeliberationExecutionError(
         "deliberation_job_invalid",
-        "대화 숙의 project binding이 하나 이상 필요합니다.",
+        "At least one conversation deliberation project binding is required.",
       );
     }
   }
@@ -48,7 +48,7 @@ export class ManagedConversationDeliberationProjects {
     if (repositoryRoot === undefined) {
       throw new ManagedConversationDeliberationExecutionError(
         "deliberation_project_not_configured",
-        "대화 숙의 project에 연결된 저장소가 없습니다.",
+        "No repository is bound to the conversation deliberation project.",
       );
     }
     return repositoryRoot;

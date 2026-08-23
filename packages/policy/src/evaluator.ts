@@ -49,13 +49,14 @@ export class PolicyBackedRemoteCommandPolicy {
         policySnapshotId: string | null;
         approvalIds: string[];
         authorization?: ManagedRunApprovalAuthorization;
+        approvedRepositoryPaths?: string[];
       }
     | { status: "denied"; reasonCode: string }
     | { status: "approval_required"; reasonCode: string; capability: PolicyApproval["capability"] }
   > {
     const evaluatedAtMs = Date.parse(input.evaluatedAt);
     if (!Number.isFinite(evaluatedAtMs)) {
-      throw new PolicyRuntimeError("policy_evaluation_failed", "policy 평가 시각이 유효하지 않습니다.");
+      throw new PolicyRuntimeError("policy_evaluation_failed", "The policy evaluation time is invalid.");
     }
     let localDecisions;
     let envelope;
@@ -65,17 +66,17 @@ export class PolicyBackedRemoteCommandPolicy {
         this.options.store.getCurrentSnapshot(),
       ]);
     } catch (error) {
-      throw new PolicyRuntimeError("policy_store_failed", "policy 평가 원본을 읽지 못했습니다.", { cause: error });
+      throw new PolicyRuntimeError("policy_store_failed", "Could not read the policy evaluation source.", { cause: error });
     }
     if (!Array.isArray(localDecisions) || localDecisions.length < 1 || localDecisions.length > 7) {
-      throw new PolicyRuntimeError("policy_evaluation_failed", "local capability policy 결과가 유효하지 않습니다.");
+      throw new PolicyRuntimeError("policy_evaluation_failed", "The local capability policy result is invalid.");
     }
     const capabilitySet = new Set<string>();
     for (const entry of localDecisions) {
       if (
         capabilitySet.has(entry.capability) ||
         !["allow", "deny", "require_approval"].includes(entry.decision)
-      ) throw new PolicyRuntimeError("policy_evaluation_failed", "local capability policy 결과가 중복되거나 유효하지 않습니다.");
+      ) throw new PolicyRuntimeError("policy_evaluation_failed", "The local capability policy result is duplicated or invalid.");
       capabilitySet.add(entry.capability);
     }
 
@@ -96,6 +97,7 @@ export class PolicyBackedRemoteCommandPolicy {
     }
 
     const approvalIds: string[] = [];
+    let approvedRepositoryPaths: string[] = [];
     for (const entry of localDecisions) {
       const hubRule = snapshot?.rules.find((rule) =>
         rule.roleId === input.command.action.roleId &&
@@ -121,7 +123,7 @@ export class PolicyBackedRemoteCommandPolicy {
           capability: entry.capability,
         });
       } catch (error) {
-        throw new PolicyRuntimeError("policy_store_failed", "policy approval을 읽지 못했습니다.", { cause: error });
+        throw new PolicyRuntimeError("policy_store_failed", "Could not read the policy approval.", { cause: error });
       }
       let accepted: string | null = null;
       for (const state of states) {
@@ -159,7 +161,7 @@ export class PolicyBackedRemoteCommandPolicy {
         } catch (error) {
           throw new PolicyRuntimeError(
             "policy_evaluation_failed",
-            "저장된 policy approval 또는 revocation을 검증하지 못했습니다.",
+            "Could not verify the stored policy approval or revocation.",
             { cause: error },
           );
         }
@@ -177,6 +179,12 @@ export class PolicyBackedRemoteCommandPolicy {
         return { status: "approval_required", reasonCode: "active_approval_missing", capability: entry.capability };
       }
       approvalIds.push(accepted);
+      if (entry.capability === "filesystem.write") {
+        const approved = states.find((state) => state.approval.approval.approvalId === accepted);
+        approvedRepositoryPaths = approved === undefined
+          ? []
+          : [...approved.approval.approval.repositoryPaths];
+      }
     }
     return {
       status: "approved",
@@ -192,6 +200,7 @@ export class PolicyBackedRemoteCommandPolicy {
               policySnapshotId: snapshot.snapshotId,
               approvalIds: approvalIds.sort(),
             },
+            approvedRepositoryPaths,
           }
         : {}),
     };

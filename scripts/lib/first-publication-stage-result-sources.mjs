@@ -15,7 +15,7 @@ const maximumWorkflowExecutionReportBytes = 128 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_result_source_invalid",
-    "CLI npm stage 결과 증거 원본이 올바르지 않습니다.",
+    "The CLI npm stage-result evidence source is invalid.",
   );
 }
 

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1a31da81f28cbecdd20732a7
+freshness: current
+ownership: user
+path: AGENTS.md
+publicationLanguage: en
+publicationProfile: reference
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_fa4f7f59d2df43de845f42d6
+title: Lervo Agent Instructions
+type: invariant

@@ -133,7 +133,7 @@ export class ConversationPlatformCorrelationRepository {
   private conflict(): ConversationPlatformSQLiteError {
     return new ConversationPlatformSQLiteError(
       "conflicting_binding",
-      "외부 메시지가 서로 다른 Lervo event 또는 outbound에 연결되어 있습니다.",
+      "The external message is linked to different Lervo events or outbound messages.",
     );
   }
 
@@ -141,7 +141,7 @@ export class ConversationPlatformCorrelationRepository {
     if (error instanceof ConversationPlatformSQLiteError) return error;
     return new ConversationPlatformSQLiteError(
       "write_failed",
-      "Conversation message correlation을 저장하지 못했습니다.",
+      "The conversation message correlation could not be saved.",
       { cause: error },
     );
   }

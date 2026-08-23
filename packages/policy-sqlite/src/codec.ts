@@ -14,13 +14,13 @@ import {
 import { PolicySQLiteError } from "./errors.js";
 
 function parse<T>(json: unknown, assertValue: (value: T) => void): T {
-  if (typeof json !== "string") throw new PolicySQLiteError("integrity_failed", "policy JSON row가 유효하지 않습니다.");
+  if (typeof json !== "string") throw new PolicySQLiteError("integrity_failed", "The policy JSON row is invalid.");
   let value: unknown;
   try { value = JSON.parse(json); } catch (error) {
-    throw new PolicySQLiteError("integrity_failed", "policy JSON row를 읽을 수 없습니다.", { cause: error });
+    throw new PolicySQLiteError("integrity_failed", "The policy JSON row could not be read.", { cause: error });
   }
   try { assertValue(value as T); } catch (error) {
-    throw new PolicySQLiteError("integrity_failed", "policy JSON row가 계약을 통과하지 못했습니다.", { cause: error });
+    throw new PolicySQLiteError("integrity_failed", "The policy JSON row does not satisfy its contract.", { cause: error });
   }
   return structuredClone(value as T);
 }
@@ -35,7 +35,7 @@ export function decodeSnapshotRow(row: Record<string, unknown>): SignedPolicySna
     row.snapshot_hash !== calculatePolicySnapshotHash(envelope.snapshot) ||
     row.issued_at_ms !== Date.parse(envelope.snapshot.issuedAt) ||
     row.expires_at_ms !== Date.parse(envelope.snapshot.expiresAt)
-  ) throw new PolicySQLiteError("integrity_failed", "policy snapshot row 좌표가 원본과 다릅니다.");
+  ) throw new PolicySQLiteError("integrity_failed", "The policy snapshot row coordinates differ from the source.");
   return envelope;
 }
 
@@ -48,7 +48,7 @@ export function decodeApprovalRow(row: Record<string, unknown>): SignedPolicyApp
     row.command_signer_key_id !== approval.commandSignerKeyId ||
     row.capability !== approval.capability || row.granted_at_ms !== Date.parse(approval.grantedAt) ||
     row.expires_at_ms !== Date.parse(approval.expiresAt)
-  ) throw new PolicySQLiteError("integrity_failed", "policy approval row 좌표가 원본과 다릅니다.");
+  ) throw new PolicySQLiteError("integrity_failed", "The policy approval row coordinates differ from the source.");
   return envelope;
 }
 
@@ -58,6 +58,6 @@ export function decodeRevocationRow(row: Record<string, unknown>): SignedPolicyA
     row.revocation_id !== envelope.revocation.revocationId ||
     row.approval_id !== envelope.revocation.approvalId ||
     row.revoked_at_ms !== Date.parse(envelope.revocation.revokedAt)
-  ) throw new PolicySQLiteError("integrity_failed", "policy revocation row 좌표가 원본과 다릅니다.");
+  ) throw new PolicySQLiteError("integrity_failed", "The policy revocation row coordinates differ from the source.");
   return envelope;
 }

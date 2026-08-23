@@ -1,0 +1,11 @@
+fromPath: docs/adr/0113-cli-first-publication-unknown-outcome-reconciliation.md
+identityPath: docs/adr/0113-cli-first-publication-unknown-outcome-reconciliation.md
+kind: document_move
+lineageId: klineage_7099908a378d224b5ad896e3
+operationId: kdocop_77ce98d8b4b08b60095f0a3f
+schemaVersion: 1
+sourceContentHash: sha256:ff5f1c549a2c3c443779e891dbaef0ea32681c99ae54d5354bea0970ade7e104
+sourceId: src_b0a6d5d026adfcddf47730a5
+sourceUnitBindingDigest: sha256:2f6c557a44bec3f1336425f0f95df2a732fd1372c4f9226b138a6d3921762f9a
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md

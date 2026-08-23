@@ -1,0 +1,11 @@
+fromPath: apps/node-runtime/DISTRIBUTION_README.md
+identityPath: apps/node-runtime/DISTRIBUTION_README.md
+kind: document_move
+lineageId: klineage_1311be7c785599f83040257a
+operationId: kdocop_364cca2fc6bf6beaa34f2abc
+schemaVersion: 1
+sourceContentHash: sha256:8b6a3878ef41aabb72905a6083a1eed6dd25447a157522c33875e4d54b623873
+sourceId: src_159343c8426164f08052039d
+sourceUnitBindingDigest: sha256:2aa052a9b906ddcec63acdac4884cc11331c3889862151ce129461ad4e6d5c50
+sourceUnitCount: 2
+toPath: docs/distribution/node-runtime-distribution.md

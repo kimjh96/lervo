@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_57032ad7aa3d0157da10a506
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0150-authenticated-project-scoped-hub-sync-http.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_fe7628c62c4fbdb2e7eec6b1
+title: "ADR-0150: Authenticated, Project-Scoped Hub Sync HTTP"
+type: decision

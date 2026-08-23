@@ -25,14 +25,14 @@ function assertCoordinates(report, input) {
     target.attempt !== input.attempt
   ) fail(
     "first_publication_stage_approval_source_mismatch",
-    "npm stage 승인 좌표와 staged package 검토 증거가 일치하지 않습니다.",
+    "The npm stage approval coordinates do not match the staged-package review evidence.",
   );
 }
 
 export async function authorizeCliFirstPublicationStageApproval(input, dependencies = {}) {
   if (input.write !== true || !isAbsolute(input.outputPath ?? "")) fail(
     "first_publication_stage_approval_write_required",
-    "CLI npm stage 승인 권한은 새 output에만 기록할 수 있습니다.",
+    "The CLI npm stage approval authorization can be written only to a new output.",
   );
   const readSources = dependencies.readSources ??
     readFirstPublicationStageApprovalAuthorizationSources;
@@ -64,7 +64,7 @@ export async function authorizeCliFirstPublicationStageApproval(input, dependenc
   } catch (error) {
     if (error?.code === "EEXIST") fail(
       "first_publication_stage_approval_output_exists",
-      "CLI npm stage 승인 권한 출력이 이미 있습니다.",
+      "The CLI npm stage approval authorization output already exists.",
     );
     throw error;
   }

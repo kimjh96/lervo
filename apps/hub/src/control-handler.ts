@@ -26,7 +26,7 @@ export interface HubControlHttpHandlerOptions {
 
 function inspectedAt(now: () => Date): string {
   const value = now();
-  if (!Number.isFinite(value.getTime())) throw new Error("Hub control clock이 유효하지 않습니다.");
+  if (!Number.isFinite(value.getTime())) throw new Error("The Hub control clock is invalid.");
   return value.toISOString();
 }
 

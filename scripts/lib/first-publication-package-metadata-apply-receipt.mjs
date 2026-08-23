@@ -12,7 +12,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_package_metadata_apply_receipt_invalid",
-    "CLI 최초 게시 package metadata 적용 영수증이 올바르지 않습니다.",
+    "The CLI first-publication package metadata apply receipt is invalid.",
   );
 }
 

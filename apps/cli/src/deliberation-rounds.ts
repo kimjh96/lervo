@@ -58,7 +58,11 @@ export async function executeDeliberationRounds(input: {
   const proposalRun = await input.runner.execute({
     provider: input.plan.proposer.provider,
     role: input.plan.proposer.role,
-    instructions: proposalPrompt(input.request.topic.trim(), input.plan.proposer.role),
+    instructions: proposalPrompt(
+      input.request.topic.trim(),
+      input.plan.proposer.role,
+      input.workspace.writingContract.locale,
+    ),
     documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
   });
   const claimId = initialClaimId(input.deliberationId);
@@ -87,7 +91,12 @@ export async function executeDeliberationRounds(input: {
       const reviewRun = await input.runner.execute({
         provider: reviewer.provider,
         role: reviewer.role,
-        instructions: reviewPrompt(input.request.topic.trim(), round, reviewer.role),
+        instructions: reviewPrompt(
+          input.request.topic.trim(),
+          round,
+          reviewer.role,
+          input.workspace.writingContract.locale,
+        ),
         documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
       });
       const details = reviewDetails({
@@ -95,6 +104,7 @@ export async function executeDeliberationRounds(input: {
         contentHash: reviewRun.run.resultArtifact.contentHash,
         claimId,
         roleId: reviewer.role.roleId,
+        locale: input.workspace.writingContract.locale,
       });
       const review = await recordDeliberationTurn({
         runtime: input.runtime,
@@ -148,7 +158,11 @@ export async function executeDeliberationRounds(input: {
     const revisionRun = await input.runner.execute({
       provider: input.plan.proposer.provider,
       role: input.plan.proposer.role,
-      instructions: revisionPrompt(input.request.topic.trim(), input.plan.proposer.role),
+      instructions: revisionPrompt(
+        input.request.topic.trim(),
+        input.plan.proposer.role,
+        input.workspace.writingContract.locale,
+      ),
       documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
     });
     currentClaim = {
@@ -177,5 +191,5 @@ export async function executeDeliberationRounds(input: {
     });
     input.setOpenBlockingObjectionIds([]);
   }
-  throw new Error("숙의 회차가 종료 결과 없이 끝났습니다.");
+  throw new Error("Deliberation rounds ended without a terminal outcome.");
 }

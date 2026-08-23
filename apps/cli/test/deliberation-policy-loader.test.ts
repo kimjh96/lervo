@@ -1,4 +1,4 @@
-import { mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -21,20 +21,20 @@ function validSource(): DeliberationWorkflowSource {
     requiredVerificationSuiteIds: ["project.default"],
     participants: [{
       roleId: "product-planner",
-      name: "제품 기획자",
-      description: "사용자 가치와 범위를 정합니다.",
+      name: "Product planner",
+      description: "Defines user value and scope.",
       provider: "codex",
       responsibilities: ["proposer", "decision_owner"],
     }, {
       roleId: "maintainability-reviewer",
-      name: "유지보수 검토자",
-      description: "변경 비용을 검토합니다.",
+      name: "Maintenance reviewer",
+      description: "Reviews the cost of change.",
       provider: "claude",
       responsibilities: ["reviewer"],
     }, {
       roleId: "project-verifier",
-      name: "프로젝트 검증자",
-      description: "실제 검증 결과를 확인합니다.",
+      name: "Project verifier",
+      description: "Checks actual verification results.",
       provider: "claude",
       responsibilities: ["verifier"],
     }],
@@ -52,12 +52,12 @@ describe("deliberation workflow source", () => {
     combined.participants[1]!.responsibilities = ["reviewer", "verifier"];
     combined.participants[2]!.responsibilities = ["reviewer"];
     expect(() => validateDeliberationWorkflowSource(combined)).toThrow(
-      "별도 검증 역할",
+      "a separate verification role",
     );
     const oneProvider = structuredClone(validSource());
     for (const participant of oneProvider.participants) participant.provider = "codex";
     expect(() => validateDeliberationWorkflowSource(oneProvider)).toThrow(
-      "별도 검증 역할",
+      "a separate verification role",
     );
   });
 
@@ -65,6 +65,7 @@ describe("deliberation workflow source", () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-deliberation-policy-"));
     roots.push(root);
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_policy_loader1" }));
+    await mkdir(resolve(root, ".lervo/deliberations"));
     const path = resolve(
       root,
       ".lervo/deliberations/deliberation_product-review.yaml",
@@ -76,18 +77,18 @@ describe("deliberation workflow source", () => {
       "requiredVerificationSuiteIds: [project.default]",
       "participants:",
       "  - roleId: product-planner",
-      "    name: 제품 기획자",
-      "    description: 사용자 가치와 범위를 정합니다.",
+      "    name: Product planner",
+      "    description: Defines user value and scope.",
       "    provider: codex",
       "    responsibilities: [proposer, decision_owner]",
       "  - roleId: maintainability-reviewer",
-      "    name: 유지보수 검토자",
-      "    description: 변경 비용을 검토합니다.",
+      "    name: Maintenance reviewer",
+      "    description: Reviews the cost of change.",
       "    provider: claude",
       "    responsibilities: [reviewer]",
       "  - roleId: project-verifier",
-      "    name: 프로젝트 검증자",
-      "    description: 실제 검증 결과를 확인합니다.",
+      "    name: Project verifier",
+      "    description: Checks actual verification results.",
       "    provider: claude",
       "    responsibilities: [verifier]",
       "",
@@ -108,6 +109,7 @@ describe("deliberation workflow source", () => {
     const outside = await mkdtemp(resolve(tmpdir(), "lervo-deliberation-policy-outside-"));
     roots.push(root, outside);
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_policy_loader2" }));
+    await mkdir(resolve(root, ".lervo/deliberations"));
     const source = resolve(outside, "policy.yaml");
     await writeFile(source, "outside: true\n");
     await symlink(

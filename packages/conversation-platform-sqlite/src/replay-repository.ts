@@ -50,7 +50,7 @@ export class ConversationPlatformReplayRepository {
       if (current.status === "unknown" || current.status === "sending") return { status: "unknown" };
       if (current.status === "rejected") return { status: "rejected" };
       if (current.external_message_key === null || current.delivered_at === null) {
-        throw new ConversationPlatformSQLiteError("integrity_failed", "완료된 delivery replay가 손상되었습니다.");
+        throw new ConversationPlatformSQLiteError("integrity_failed", "The completed delivery replay is corrupted.");
       }
       assertExternal(current.external_message_key, "external message key");
       assertTimestamp(current.delivered_at, "deliveredAt");
@@ -78,7 +78,7 @@ export class ConversationPlatformReplayRepository {
       if (current?.status === "delivered" && current.request_hash === input.requestHash &&
         current.external_message_key === input.externalMessageKey &&
         current.delivered_at === input.deliveredAt) return;
-      throw new ConversationPlatformSQLiteError("conflicting_binding", "delivery 완료 기록이 기존 값과 다릅니다.");
+      throw new ConversationPlatformSQLiteError("conflicting_binding", "The delivery completion record differs from the existing value.");
     } catch (error) {
       throw this.wrap(error);
     }
@@ -96,7 +96,7 @@ export class ConversationPlatformReplayRepository {
       const current = this.find(input);
       if (current !== null && current.request_hash === input.requestHash &&
         (current.status === "unknown" || current.status === "delivered")) return;
-      throw new ConversationPlatformSQLiteError("conflicting_binding", "delivery unknown 기록이 기존 값과 다릅니다.");
+      throw new ConversationPlatformSQLiteError("conflicting_binding", "The unknown-delivery record differs from the existing value.");
     } catch (error) {
       throw this.wrap(error);
     }
@@ -117,7 +117,7 @@ export class ConversationPlatformReplayRepository {
       if (result.changes === 1) return;
       const current = this.find(input);
       if (current !== null && current.request_hash === input.requestHash && current.status === status) return;
-      throw new ConversationPlatformSQLiteError("conflicting_binding", "delivery 거부 기록이 기존 값과 다릅니다.");
+      throw new ConversationPlatformSQLiteError("conflicting_binding", "The rejected-delivery record differs from the existing value.");
     } catch (error) {
       throw this.wrap(error);
     }
@@ -146,7 +146,7 @@ export class ConversationPlatformReplayRepository {
     if (error instanceof ConversationPlatformSQLiteError) return error;
     return new ConversationPlatformSQLiteError(
       "write_failed",
-      "Conversation delivery replay를 저장하지 못했습니다.",
+      "The conversation delivery replay could not be saved.",
       { cause: error },
     );
   }

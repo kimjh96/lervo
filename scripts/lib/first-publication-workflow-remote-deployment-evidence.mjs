@@ -42,7 +42,7 @@ function parseWorkflow(contents) {
   } catch {
     fail(
       "first_publication_workflow_remote_deployment_not_ready",
-      "GitHub source commit의 workflow가 stage-only 계약에 맞지 않습니다.",
+      "The workflow in the GitHub source commit does not satisfy the stage-only contract.",
     );
   }
 }
@@ -60,7 +60,7 @@ export function assertFirstPublicationWorkflowRemoteLocalBinding({
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail(
       "first_publication_workflow_remote_deployment_input_invalid",
-      "CLI stage-only workflow 원격 배포 증거 입력이 올바르지 않습니다.",
+      "The CLI stage-only workflow remote-deployment evidence input is invalid.",
     );
   }
   if (
@@ -69,7 +69,7 @@ export function assertFirstPublicationWorkflowRemoteLocalBinding({
   ) {
     fail(
       "first_publication_workflow_remote_deployment_source_mismatch",
-      "현재 workflow와 사후 검증 보고서가 일치하지 않습니다.",
+      "The current workflow does not match the post-apply verification report.",
     );
   }
   if (inspectFirstPublicationStageOnlyWorkflow(
@@ -77,7 +77,7 @@ export function assertFirstPublicationWorkflowRemoteLocalBinding({
   ).status !== "ready") {
     fail(
       "first_publication_workflow_remote_deployment_not_ready",
-      "현재 workflow가 stage-only 계약에 맞지 않습니다.",
+      "The current workflow does not satisfy the stage-only contract.",
     );
   }
   return postApplyReport;
@@ -87,7 +87,7 @@ function validateRemoteObservation(observation, { repository, sourceCommit }) {
   if (observation?.state !== "observed") {
     fail(
       "first_publication_workflow_remote_deployment_not_ready",
-      "GitHub source commit에서 workflow를 확인하지 못했습니다.",
+      "The workflow could not be confirmed in the GitHub source commit.",
     );
   }
   const keys = [
@@ -104,7 +104,7 @@ function validateRemoteObservation(observation, { repository, sourceCommit }) {
   ) {
     fail(
       "first_publication_workflow_remote_deployment_observation_invalid",
-      "GitHub workflow 관측 결과가 올바르지 않습니다.",
+      "The GitHub workflow observation is invalid.",
     );
   }
   return observation;
@@ -115,7 +115,7 @@ function reportBody(input) {
   if (input.transactionState?.status !== "clear") {
     fail(
       "first_publication_workflow_remote_deployment_transaction_pending",
-      "중단된 workflow 활성화 transaction을 먼저 복구해야 합니다.",
+      "The interrupted workflow-activation transaction must be recovered first.",
     );
   }
   const remote = validateRemoteObservation(input.remoteObservation, input);
@@ -126,14 +126,14 @@ function reportBody(input) {
   ) {
     fail(
       "first_publication_workflow_remote_deployment_bytes_mismatch",
-      "GitHub source commit의 workflow가 현재 검증된 workflow와 다릅니다.",
+      "The workflow in the GitHub source commit differs from the currently verified workflow.",
     );
   }
   const stageOnly = inspectFirstPublicationStageOnlyWorkflow(parseWorkflow(remote.contents));
   if (stageOnly.status !== "ready") {
     fail(
       "first_publication_workflow_remote_deployment_not_ready",
-      "GitHub source commit의 workflow가 stage-only 계약에 맞지 않습니다.",
+      "The workflow in the GitHub source commit does not satisfy the stage-only contract.",
     );
   }
   return { ...input, remoteObservation: remote };
@@ -151,7 +151,7 @@ export function validateFirstPublicationWorkflowRemoteDeploymentEvidence(report,
   if (canonicalJson(report) !== canonicalJson(expected)) {
     fail(
       "first_publication_workflow_remote_deployment_report_invalid",
-      "CLI stage-only workflow 원격 배포 증거 보고서가 올바르지 않습니다.",
+      "The CLI stage-only workflow remote-deployment evidence report is invalid.",
     );
   }
   return report;

@@ -19,11 +19,11 @@ export async function loadStoredSearchCandidateReview(
   reviewId: string,
 ): Promise<SearchCandidateReview> {
   if (!SEARCH_CANDIDATE_REVIEW_PATTERN.test(reviewId)) {
-    throw new SearchLocalError("candidate_review_not_found", "검색 후보 검토 ID가 유효하지 않습니다.");
+    throw new SearchLocalError("candidate_review_not_found", "The search candidate review ID is invalid.");
   }
   const directory = await existingObservationSubdirectory(repositoryRoot, "evaluation-reviews");
   if (directory === null) {
-    throw new SearchLocalError("candidate_review_not_found", "검색 후보 검토 원본을 찾을 수 없습니다.");
+    throw new SearchLocalError("candidate_review_not_found", "The search candidate review source was not found.");
   }
   let review: SearchCandidateReview;
   try {
@@ -31,13 +31,13 @@ export async function loadStoredSearchCandidateReview(
   } catch (error) {
     if (error instanceof SearchLocalError && error.code === "observation_read_failed" &&
       (error.cause as NodeJS.ErrnoException | undefined)?.code === "ENOENT") {
-      throw new SearchLocalError("candidate_review_not_found", "검색 후보 검토 원본을 찾을 수 없습니다.");
+      throw new SearchLocalError("candidate_review_not_found", "The search candidate review source was not found.");
     }
     throw error;
   }
   assertSearchCandidateReview(review);
   if (review.reviewId !== reviewId) {
-    throw new SearchLocalError("observation_invalid", "검색 후보 검토 ID가 파일 좌표와 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The search candidate review ID does not match the file coordinates.");
   }
   return review;
 }

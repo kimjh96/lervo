@@ -1,0 +1,11 @@
+fromPath: docs/adr/0106-cli-first-publication-package-metadata-candidate.md
+identityPath: docs/adr/0106-cli-first-publication-package-metadata-candidate.md
+kind: document_move
+lineageId: klineage_374ad2c205ef7e8a9b6e1d6c
+operationId: kdocop_2ef8e7baa29d3104f4c75507
+schemaVersion: 1
+sourceContentHash: sha256:e88bd7c3ed3d0c273c998405dd8833303c519cf4e3688f551617d61e57cf1e30
+sourceId: src_b71731ea6c689513328838d3
+sourceUnitBindingDigest: sha256:5161a1c4dd18779bced56d2fbc1f7e344e8100fbddb4ca255d97b163b7c06931
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md

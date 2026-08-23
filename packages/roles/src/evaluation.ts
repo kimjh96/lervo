@@ -23,7 +23,7 @@ export function createRoleEvaluationResult(input: {
   assertRoleDefinition(input.definition);
   const result = buildRoleEvaluationResult(input);
   if (!validateSchema("roleEvaluationResult", result).valid) {
-    throw new RoleContractError("evaluation_result_invalid", "역할 평가 결과 schema가 유효하지 않습니다.");
+    throw new RoleContractError("evaluation_result_invalid", "The role evaluation result schema is invalid.");
   }
   return structuredClone(result);
 }
@@ -48,7 +48,7 @@ export function assertRoleEvaluationResult(input: {
     JSON.stringify(result) !== JSON.stringify(recreated)) {
     throw new RoleContractError(
       "evaluation_result_invalid",
-      "역할 평가 결과의 schema, ID, bundle 또는 상태가 원본과 다릅니다.",
+      "The role evaluation result schema, ID, bundle, or status differs from the reconstructed source.",
     );
   }
 }
@@ -66,19 +66,19 @@ function buildRoleEvaluationResult(input: {
   const byCheck = new Map(input.observations.map((observation) => [observation.checkId, observation]));
   if (byCheck.size !== input.observations.length ||
     input.observations.length !== input.definition.evaluation.checks.length) {
-    throw new RoleContractError("evaluation_result_invalid", "역할 평가 check 집합이 다릅니다.");
+    throw new RoleContractError("evaluation_result_invalid", "The role evaluation check set does not match.");
   }
   const checks = input.definition.evaluation.checks.map((check) => {
     const observation = byCheck.get(check.checkId);
     if (observation === undefined ||
       (observation.status === "not_run") !== (observation.evidence.length === 0)) {
-      throw new RoleContractError("evaluation_result_invalid", "역할 평가 evidence가 유효하지 않습니다.");
+      throw new RoleContractError("evaluation_result_invalid", "The role evaluation evidence is invalid.");
     }
     const evidence = [...observation.evidence].sort((left, right) =>
       `${left.artifactId}\0${left.contentHash}`.localeCompare(`${right.artifactId}\0${right.contentHash}`));
     if (new Set(evidence.map((item) => `${item.artifactId}\0${item.contentHash}`)).size !==
       evidence.length) {
-      throw new RoleContractError("evaluation_result_invalid", "역할 평가 evidence가 중복되었습니다.");
+      throw new RoleContractError("evaluation_result_invalid", "The role evaluation evidence contains duplicates.");
     }
     const semantic = check.method === "separate_semantic";
     if (semantic !== (observation.evaluatorRunId !== null) ||
@@ -86,7 +86,7 @@ function buildRoleEvaluationResult(input: {
       (semantic && observation.evaluatorRunId === input.producerRunId)) {
       throw new RoleContractError(
         "evaluation_result_invalid",
-        "별도 의미 평가는 생산 run과 다른 evaluator run·role에 결속되어야 합니다.",
+        "A separate semantic evaluation must bind to an evaluator run and role distinct from the producer run.",
       );
     }
     return { ...structuredClone(observation), evidence, method: check.method };

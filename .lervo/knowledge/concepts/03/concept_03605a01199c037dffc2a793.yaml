@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_03605a01199c037dffc2a793
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4a704d79446ae62b3eda16c5
+title: "ADR-0113: Reconcile Unknown CLI First-Publication Outcomes"
+type: decision

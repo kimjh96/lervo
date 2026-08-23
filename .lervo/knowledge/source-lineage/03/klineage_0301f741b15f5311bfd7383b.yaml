@@ -1,0 +1,11 @@
+fromPath: docs/adr/0167-platform-bound-standalone-node-distribution.md
+identityPath: docs/adr/0167-platform-bound-standalone-node-distribution.md
+kind: document_move
+lineageId: klineage_0301f741b15f5311bfd7383b
+operationId: kdocop_99b2c2e4b71ec5ca6dace9df
+schemaVersion: 1
+sourceContentHash: sha256:8cbc6bed2b145cc668f9359feb5d3ecdb6cc0bc93fdedde6804ae3e617ab26fd
+sourceId: src_bc7941f5004cb4ddcf98cbd5
+sourceUnitBindingDigest: sha256:e1356d43a3e0e0a65ef1d8e87209f5d80d547b6b10bc303e011289726bc309f4
+sourceUnitCount: 5
+toPath: docs/decisions/distribution/0167-platform-bound-standalone-node-distribution.md

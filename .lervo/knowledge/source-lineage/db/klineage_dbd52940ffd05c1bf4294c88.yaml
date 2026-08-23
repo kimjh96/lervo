@@ -1,0 +1,11 @@
+fromPath: docs/adr/0048-authenticated-platform-conversation-adapters.md
+identityPath: docs/adr/0048-authenticated-platform-conversation-adapters.md
+kind: document_move
+lineageId: klineage_dbd52940ffd05c1bf4294c88
+operationId: kdocop_9af5de88f6b88112b6ce8b91
+schemaVersion: 1
+sourceContentHash: sha256:fff9538566a0be74288ad88e21fb54eb0798276615a2ee16f07a004a354eff03
+sourceId: src_c434906b34e4c60602b5e308
+sourceUnitBindingDigest: sha256:5949dc9fbbe7da238d29af49531d18b71fbbacecb399031b757b956f6a140312
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0176-bounded-verification-result-sources.md
+identityPath: docs/adr/0176-bounded-verification-result-sources.md
+kind: document_move
+lineageId: klineage_a02d616c84b95094b8073f83
+operationId: kdocop_6220f37a6e781cf1cd6dc90d
+schemaVersion: 1
+sourceContentHash: sha256:1d53eefee91505bcac1d381e8eb4d4f9c47414f7dfc1440524678316bfbc5d7b
+sourceId: src_0440acb9a21cc915801b10a8
+sourceUnitBindingDigest: sha256:5b2adf1948157b6d46c4c9d89abebf1e3afecc4698b32f18a3e8a97b649392b2
+sourceUnitCount: 5
+toPath: docs/decisions/execution/verification/0176-bounded-verification-result-sources.md

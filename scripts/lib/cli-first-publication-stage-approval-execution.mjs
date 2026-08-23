@@ -27,14 +27,14 @@ function assertCoordinates(report, input) {
     target.attempt !== input.attempt
   ) fail(
     "first_publication_stage_approval_execution_source_mismatch",
-    "npm stage 승인 실행 좌표와 검토 증거가 일치하지 않습니다.",
+    "The npm stage approval execution coordinates do not match the review evidence.",
   );
 }
 
 export async function executeCliFirstPublicationStageApproval(input, dependencies = {}) {
   if (input.online !== true || input.write !== true) fail(
     "first_publication_stage_approval_execution_authority_required",
-    "npm stage 승인 실행에는 명시적 online·write 권한이 필요합니다.",
+    "npm stage approval execution requires explicit online and write authority.",
   );
   const readSources = dependencies.readSources ??
     readFirstPublicationStageApprovalExecutionSources;

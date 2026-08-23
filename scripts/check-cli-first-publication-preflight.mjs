@@ -13,7 +13,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_preflight_arguments_invalid",
-    "CLI 최초 게시 사전 점검 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication preflight command arguments are invalid.",
   );
 }
 
@@ -72,7 +72,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_preflight_failed: CLI 최초 게시 사전 점검을 완료하지 못했습니다.",
+    "first_publication_preflight_failed: The CLI first-publication preflight could not be completed.",
   );
   process.exitCode = 1;
 }

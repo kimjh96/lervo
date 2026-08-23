@@ -29,12 +29,12 @@ const report = {
   issues: [{
     code: "search_rollout_review_unavailable",
     eventId: null,
-    message: "선행 검색 검사를 완료하지 못했습니다.",
+    message: "The prerequisite search check could not be completed.",
   }],
   recoveryGuidance: [{
     issueCode: "search_rollout_review_unavailable",
     actionCode: "resolve_search_review_prerequisites",
-    message: "검색 엔진 선택과 정책 문제를 먼저 해결한 뒤 rollout 검토를 다시 진단하세요.",
+    message: "Resolve the search engine selection and policy issues first, then diagnose the rollout review again.",
     actionState: "not_performed",
   }],
 } as const;
@@ -102,6 +102,6 @@ describe("doctor report compatibility contract", () => {
     expect(() => readDoctorReport({
       ...report,
       schemaVersion: "private-token",
-    })).toThrowError("doctor report v1의 필수 구조가 올바르지 않습니다.");
+    })).toThrowError("The required structure of doctor report v1 is invalid.");
   });
 });

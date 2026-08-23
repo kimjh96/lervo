@@ -1,0 +1,11 @@
+fromPath: docs/adr/0007-provider-neutral-context-delivery.md
+identityPath: docs/adr/0007-provider-neutral-context-delivery.md
+kind: document_move
+lineageId: klineage_a6bee757753845590285c86a
+operationId: kdocop_a018fc8ba092501f31825c4c
+schemaVersion: 1
+sourceContentHash: sha256:44e4054e53667f110e1f95d6ab6e8d6d295571b91f46d3a28070e2d601c92c8b
+sourceId: src_6b224510c62002fd980f2671
+sourceUnitBindingDigest: sha256:5e3d40c3f73b6288da8f645d6e4cb1cd90b8bff1aa722af0f5321975a9cceaec
+sourceUnitCount: 9
+toPath: docs/decisions/execution/providers/0007-provider-neutral-context-delivery.md

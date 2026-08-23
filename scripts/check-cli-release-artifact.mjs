@@ -34,19 +34,19 @@ async function main() {
     ));
     if (writeMode) {
       await writeFile(releaseManifestPath, `${JSON.stringify(actual, null, 2)}\n`, "utf8");
-      console.log("CLI release artifact manifest를 갱신했습니다.");
+      console.log("Updated the CLI release artifact manifest.");
       return;
     }
     const differences = releaseArtifactDifferences(expected, actual);
     if (differences.length > 0) {
       throw new ReleaseArtifactManifestError(
         "release_artifact_mismatch",
-        `Release artifact가 승인된 manifest와 다릅니다: ${differences.join(", ")}`,
+        `The release artifact differs from the approved manifest: ${differences.join(", ")}`,
       );
     }
     console.log(
-      `CLI release artifact 검사 통과 (${actual.archive.fileCount}개 파일, ` +
-      `${actual.dependencies.portable.length}개 portable dependency)`,
+      `CLI release artifact check passed (${actual.archive.fileCount} files, ` +
+      `${actual.dependencies.portable.length} portable dependencies)`,
     );
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
@@ -59,7 +59,7 @@ try {
   if (error instanceof ReleaseArtifactManifestError) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_artifact_check_failed: Release artifact 검사를 완료하지 못했습니다.");
+    console.error("release_artifact_check_failed: The release artifact check could not be completed.");
   }
   process.exitCode = 1;
 }

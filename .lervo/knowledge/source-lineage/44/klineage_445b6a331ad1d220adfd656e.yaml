@@ -1,0 +1,11 @@
+fromPath: docs/adr/0044-signed-approval-managed-write-permit.md
+identityPath: docs/adr/0044-signed-approval-managed-write-permit.md
+kind: document_move
+lineageId: klineage_445b6a331ad1d220adfd656e
+operationId: kdocop_9315cc8d6095b15fe4db9fb9
+schemaVersion: 1
+sourceContentHash: sha256:cba8619817ab811f612430b3b30f152a8140eb5f99be7c53ab830daf465a8410
+sourceId: src_46689b5059c0b16040c9be52
+sourceUnitBindingDigest: sha256:25e6b6e26dae612bcf879efe3b4a6047bf15ef9d91caadbf9815435da1d286dc
+sourceUnitCount: 5
+toPath: docs/decisions/execution/verification/0044-signed-approval-managed-write-permit.md

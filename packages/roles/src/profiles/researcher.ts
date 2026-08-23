@@ -6,7 +6,7 @@ const profile: RoleProfile = {
   schemaVersion: 1,
   roleId: "researcher",
   name: "Researcher",
-  description: "질문을 출처와 조회 시각이 있는 근거로 바꾸고 한계까지 기록합니다.",
+  description: "Turns questions into evidence with sources and retrieval times, while recording limitations.",
   requestTypes: ["evidence.review", "research"],
   requiredInputs: [{
     name: "researchQuestion",
@@ -36,7 +36,7 @@ const profile: RoleProfile = {
     pathTemplate: ".lervo/generated/research/{runId}.md",
     citationsRequired: true,
     presentation: {
-      audience: "human", locale: "ko-KR", writingPolicyId: defaultRoleWritingPolicyId,
+      audience: "human", locale: "en", writingPolicyId: defaultRoleWritingPolicyId,
     },
   },
   verification: { suiteIds: ["role.research.artifact"], failureDisposition: "fail_run" },
@@ -51,21 +51,21 @@ export function researcherRoleDefinition() {
   return defineRole(profile, [{
     checkId: "research.artifact-schema", category: "artifact_schema",
     method: "project_verification",
-    requirement: "조사 산출물이 등록된 research brief schema와 맞아야 합니다.",
+    requirement: "The research artifact must satisfy the registered research brief schema.",
     verificationSuiteId: "role.research.artifact", evidenceRequired: true,
   }, {
     checkId: "research.citation-integrity", category: "citation_integrity",
     method: "separate_semantic",
-    requirement: "각 인용이 실제 출처의 주장과 같은 의미인지 별도 평가자가 확인해야 합니다.",
+    requirement: "A separate evaluator must confirm that each citation preserves the source claim's meaning.",
     verificationSuiteId: null, evidenceRequired: true,
   }, {
     checkId: "research.claim-support", category: "claim_support", method: "separate_semantic",
-    requirement: "주요 결론마다 이를 직접 뒷받침하는 출처가 있어야 합니다.",
+    requirement: "Every major conclusion must have a source that directly supports it.",
     verificationSuiteId: null, evidenceRequired: true,
   }, {
     checkId: "research.source-traceability", category: "source_traceability",
     method: "deterministic",
-    requirement: "모든 출처에 URL, 조회 시각과 content hash가 있어야 합니다.",
+    requirement: "Every source must include a URL, retrieval time, and content hash.",
     verificationSuiteId: null, evidenceRequired: true,
   }]);
 }

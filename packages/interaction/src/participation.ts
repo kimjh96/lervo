@@ -29,7 +29,7 @@ export function assertConversationParticipationScope(input: {
   ) {
     throw new InteractionError(
       "invalid_interaction_request",
-      "Conversation participation 좌표나 시각이 유효하지 않습니다.",
+      "The conversation participation coordinates or time are invalid.",
     );
   }
 }
@@ -76,7 +76,7 @@ export function decideConversationParticipation(input: {
   ) {
     throw new InteractionError(
       "invalid_interaction_request",
-      "Conversation participation 좌표, 시각 또는 window가 유효하지 않습니다.",
+      "The conversation participation coordinates, time, or window are invalid.",
     );
   }
 

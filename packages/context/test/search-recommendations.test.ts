@@ -30,7 +30,7 @@ const role: RoleProfile = {
   schemaVersion: 1,
   roleId: "developer",
   name: "Developer",
-  description: "검색 추천 경계 fixture",
+  description: "Search recommendation boundary fixture",
   requestTypes: ["implementation"],
   requiredInputs: [],
   contextPolicy: {
@@ -81,10 +81,10 @@ describe("search recommendations in context preparation", () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-context-search-"));
     roots.push(root);
     await mkdir(resolve(root, "docs"));
-    const selectedText = "# 검색 추천 문서\n\n배포 복구 절차입니다.\n";
-    const observedText = "# 참고 문서\n\n검색 추천 후보지만 선택 대상은 아닙니다.\n";
+    const selectedText = "# Search recommendation document\n\nDeployment recovery procedure.\n";
+    const observedText = "# Reference document\n\nA search recommendation candidate that was not selected.\n";
     await Promise.all([
-      writeFile(resolve(root, "AGENTS.md"), "저장소 지침입니다.\n"),
+      writeFile(resolve(root, "AGENTS.md"), "Repository instructions.\n"),
       writeFile(resolve(root, "docs/search-selected.md"), selectedText),
       writeFile(resolve(root, "docs/search-observed.md"), observedText),
     ]);
@@ -102,11 +102,11 @@ describe("search recommendations in context preparation", () => {
         sourceId: id,
         path: item.path,
         contentHash: hash(text),
-        title: id === "doc_search_selected" ? "검색 추천 문서" : "참고 문서",
+        title: id === "doc_search_selected" ? "Search recommendation document" : "Reference document",
         labels: [],
         text,
       };
-    })).search("검색 추천");
+    })).search("search recommendation");
     const batch = createSearchRecommendationBatch({
       attempt: createSearchAttempt({
         projectId,
@@ -117,6 +117,13 @@ describe("search recommendations in context preparation", () => {
       recommendationLimit: 2,
       maximumSelections: 1,
     });
+    const knowledgeContext = {
+      conceptId: "concept_aaaaaaaaaaaaaaaaaaaaaaaa",
+      assurance: "human_reviewed" as const,
+      freshness: "current" as const,
+      sourceSnapshotId: "ksnap_bbbbbbbbbbbbbbbbbbbbbbbb",
+      impactReportId: "kimpact_cccccccccccccccccccccccc",
+    };
     const input = {
       repositoryRoot: root,
       sourceRevision: "fixture-search-v1",
@@ -128,6 +135,13 @@ describe("search recommendations in context preparation", () => {
       publications: [],
       handoffs: [],
       recommendationBatches: [batch],
+      additionalCandidates: [{
+        documentId: "doc_search_selected",
+        path: "docs/search-selected.md",
+        connectedPaths: [],
+        source: "knowledge" as const,
+        knowledgeContext,
+      }],
       policyVersion,
       recordedAt: new Date("2026-08-20T01:00:00Z"),
     } as const;
@@ -138,6 +152,15 @@ describe("search recommendations in context preparation", () => {
       .toContainEqual(expect.objectContaining({ reasonCode: "search_recommendation" }));
     expect(loaded.documents.map((document) => document.documentId)).toContain("doc_search_selected");
     expect(loaded.documents.map((document) => document.documentId)).not.toContain("doc_search_observed");
+    expect(loaded.documents.find((document) => document.documentId === "doc_search_selected")?.knowledgeContext)
+      .toEqual(knowledgeContext);
+    expect(loaded.evidence.filter((item) => item.documentId === "doc_search_selected"))
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ state: "discovered", knowledgeContext }),
+        expect.objectContaining({ state: "recommended", knowledgeContext }),
+        expect.objectContaining({ state: "selected", knowledgeContext }),
+        expect.objectContaining({ state: "loaded", knowledgeContext }),
+      ]));
 
     const observeOnlyBatch = createSearchRecommendationBatch({
       attempt: createSearchAttempt({
@@ -161,7 +184,7 @@ describe("search recommendations in context preparation", () => {
     });
     expect(reversed.plan).toEqual(forward.plan);
 
-    await writeFile(resolve(root, "docs/search-selected.md"), `${selectedText}변경됨\n`);
+    await writeFile(resolve(root, "docs/search-selected.md"), `${selectedText}changed\n`);
     await expect(prepareContext({ ...input, sourceRevision: "fixture-search-v2" }))
       .rejects.toMatchObject({ code: "content_hash_mismatch" });
   });

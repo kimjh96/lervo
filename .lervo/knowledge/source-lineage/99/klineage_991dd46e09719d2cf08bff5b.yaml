@@ -1,0 +1,11 @@
+fromPath: docs/adr/0010-claude-agent-sdk-managed-adapter.md
+identityPath: docs/adr/0010-claude-agent-sdk-managed-adapter.md
+kind: document_move
+lineageId: klineage_991dd46e09719d2cf08bff5b
+operationId: kdocop_87e8a17e7385d290e32af82a
+schemaVersion: 1
+sourceContentHash: sha256:2a73ecd8bb6098567a49ef84e0e64b413bc7fd331b2cc6981306021114dcb5a4
+sourceId: src_28ec4cf9a61b58442e98f8b9
+sourceUnitBindingDigest: sha256:14fa0ae7031c2266e7a485aa14e578b073d42cea34b9b3723ca140fa9403a1cb
+sourceUnitCount: 10
+toPath: docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md

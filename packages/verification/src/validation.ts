@@ -30,7 +30,7 @@ export async function resolveVerificationWorkingDirectories(
   } catch (error) {
     throw new VerificationError(
       "command_working_directory_invalid",
-      "Verification repository root가 안전한 실제 디렉터리가 아닙니다.",
+      "The verification repository root is not a safe real directory.",
       { cause: error },
     );
   }
@@ -50,7 +50,7 @@ export async function resolveVerificationWorkingDirectories(
     } catch (error) {
       throw new VerificationError(
         "command_working_directory_invalid",
-        `Verification command ${command.commandId}의 cwd가 안전한 실제 디렉터리가 아닙니다.`,
+        `The cwd for verification command ${command.commandId} is not a safe real directory.`,
         { cause: error },
       );
     }

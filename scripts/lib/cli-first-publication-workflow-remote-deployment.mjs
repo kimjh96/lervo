@@ -29,7 +29,7 @@ async function inspectClear(inspectTransaction, transactionRoot) {
       "first_publication_workflow_activation_post_apply_transaction_invalid") {
       fail(
         "first_publication_workflow_remote_deployment_transaction_invalid",
-        "Workflow 활성화 transaction 상태를 확인할 수 없습니다.",
+        "The workflow-activation transaction state could not be determined.",
       );
     }
     throw error;
@@ -37,7 +37,7 @@ async function inspectClear(inspectTransaction, transactionRoot) {
   if (state?.status !== "clear") {
     fail(
       "first_publication_workflow_remote_deployment_transaction_pending",
-      "중단된 workflow 활성화 transaction을 먼저 복구해야 합니다.",
+      "The interrupted workflow-activation transaction must be recovered first.",
     );
   }
   return state;
@@ -50,7 +50,7 @@ export async function createCliFirstPublicationWorkflowRemoteDeploymentEvidence(
   if (online !== true) {
     fail(
       "first_publication_workflow_remote_deployment_online_required",
-      "CLI stage-only workflow 원격 배포 증거에는 온라인 확인이 필요합니다.",
+      "CLI stage-only workflow remote-deployment evidence requires online verification.",
     );
   }
   try {
@@ -59,7 +59,7 @@ export async function createCliFirstPublicationWorkflowRemoteDeploymentEvidence(
   } catch {
     fail(
       "first_publication_workflow_remote_deployment_input_invalid",
-      "CLI stage-only workflow 원격 배포 증거 입력이 올바르지 않습니다.",
+      "The CLI stage-only workflow remote-deployment evidence input is invalid.",
     );
   }
   const transactionRoot = dependencies.transactionRoot ??

@@ -27,7 +27,7 @@ export async function activateLocalSearchCandidate(input: {
 }): Promise<SearchEngineActivation> {
   const policy = await loadSearchEngineActivationPolicy(input.repositoryRoot, input.policyId);
   if (policy.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_policy_invalid", "검색 엔진 활성화 정책의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("engine_policy_invalid", "The search engine activation policy has different project coordinates.");
   }
   const evidence = await verifySearchCandidateActivationEvidence({
     repositoryRoot: input.repositoryRoot,
@@ -62,10 +62,10 @@ export async function refreshLocalSearchCandidate(input: {
     loadCurrentSearchEngineActivation(input.repositoryRoot),
   ]);
   if (policy.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_policy_invalid", "검색 엔진 refresh 정책의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("engine_policy_invalid", "The search engine refresh policy has different project coordinates.");
   }
   if (previous === null || previous.projectId !== input.projectId || previous.selected.mode !== "candidate") {
-    throw new SearchLocalError("engine_activation_not_found", "Refresh할 현재 후보 검색 엔진 선택이 없습니다.");
+    throw new SearchLocalError("engine_activation_not_found", "There is no current candidate search engine selection to refresh.");
   }
   const evidence = await verifySearchCandidateActivationEvidence({
     repositoryRoot: input.repositoryRoot,
@@ -100,14 +100,14 @@ async function prepareLocalSearchCandidateRollback(input: {
     loadCurrentSearchEngineActivation(input.repositoryRoot),
   ]);
   if (policy.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_policy_invalid", "검색 엔진 활성화 정책의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("engine_policy_invalid", "The search engine activation policy has different project coordinates.");
   }
   if (previous === null || previous.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_activation_not_found", "되돌릴 검색 엔진 선택이 없습니다.");
+    throw new SearchLocalError("engine_activation_not_found", "There is no search engine selection to roll back.");
   }
   if (input.expectedPreviousActivationId !== undefined &&
     previous.activationId !== input.expectedPreviousActivationId) {
-    throw new SearchLocalError("rollout_action_not_eligible", "검토한 검색 후보가 더 이상 현재 선택이 아닙니다.");
+    throw new SearchLocalError("rollout_action_not_eligible", "The reviewed search candidate is no longer the current selection.");
   }
   const rollbackTarget = searchEngineActivationFallback(previous).selection;
   const targetEvidence = rollbackTarget.mode === "candidate"

@@ -10,7 +10,7 @@ import {
 function fail(code = "release_stage_publication_store_invalid") {
   throw new ReleasePublicationAuthorizationError(
     code,
-    "CLI stage 게시 기록 저장소가 올바르지 않습니다.",
+    "The CLI stage-publication record store is invalid.",
   );
 }
 

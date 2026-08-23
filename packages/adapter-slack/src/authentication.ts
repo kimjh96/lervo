@@ -12,7 +12,7 @@ function singleHeader(
   if (values.length !== 1 || values[0]!.length > 256) {
     throw new ConversationPlatformError(
       "platform_authentication_failed",
-      "Slack 인증 header가 없거나 중복되었습니다.",
+      "A Slack authentication header is missing or duplicated.",
     );
   }
   return values[0]!;
@@ -29,7 +29,7 @@ export function verifySlackRequest(input: {
   if (!/^[0-9]{1,12}$/.test(timestamp) || !/^v0=[a-f0-9]{64}$/.test(signature)) {
     throw new ConversationPlatformError(
       "platform_authentication_failed",
-      "Slack 서명 형식이 유효하지 않습니다.",
+      "The Slack signature format is invalid.",
     );
   }
   const nowSeconds = Math.floor(input.now.getTime() / 1_000);
@@ -37,7 +37,7 @@ export function verifySlackRequest(input: {
   if (!Number.isFinite(nowSeconds) || Math.abs(nowSeconds - requestSeconds) > 300) {
     throw new ConversationPlatformError(
       "platform_authentication_failed",
-      "Slack 요청 시각이 허용된 5분 범위를 벗어났습니다.",
+      "The Slack request time falls outside the allowed five-minute window.",
     );
   }
   const expected = `v0=${createHmac("sha256", input.signingSecret)
@@ -52,7 +52,7 @@ export function verifySlackRequest(input: {
   ) {
     throw new ConversationPlatformError(
       "platform_authentication_failed",
-      "Slack 요청 서명이 일치하지 않습니다.",
+      "The Slack request signature does not match.",
     );
   }
 }

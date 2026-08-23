@@ -1,0 +1,11 @@
+fromPath: docs/adr/0165-runtime-readiness-and-preflight-boundary.md
+identityPath: docs/adr/0165-runtime-readiness-and-preflight-boundary.md
+kind: document_move
+lineageId: klineage_5eda7a83e7c7952283b45626
+operationId: kdocop_d4c9e467e71ff788d88c3e50
+schemaVersion: 1
+sourceContentHash: sha256:2e390fed1a5fc7adce7f8b55a83ab0d2acf1ef886c7d3532ca2d670338e700a2
+sourceId: src_fd1d86645a75ecdf8ded272f
+sourceUnitBindingDigest: sha256:8f658cc2c26c36c0503fa1cf5efc4e32f8c6f39110ebd414053dd539cba0b133
+sourceUnitCount: 5
+toPath: docs/decisions/operations/0165-runtime-readiness-and-preflight-boundary.md

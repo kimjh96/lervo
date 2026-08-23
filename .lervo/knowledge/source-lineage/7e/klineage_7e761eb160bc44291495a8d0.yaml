@@ -1,0 +1,11 @@
+fromPath: docs/adr/0012-provider-result-artifacts.md
+identityPath: docs/adr/0012-provider-result-artifacts.md
+kind: document_move
+lineageId: klineage_7e761eb160bc44291495a8d0
+operationId: kdocop_3e4a84b673eb93f40b74c1a2
+schemaVersion: 1
+sourceContentHash: sha256:0d58b38a0e07b1e2dac6673ff1b8ed5f2d06661052767e799b501d03172a1035
+sourceId: src_50715355b6dd9c75dec8eea3
+sourceUnitBindingDigest: sha256:43dd70effc73857043f2861e61907b0d95f90e55b24e9c401f6c0733ebceaef3
+sourceUnitCount: 8
+toPath: docs/decisions/execution/providers/0012-provider-result-artifacts.md

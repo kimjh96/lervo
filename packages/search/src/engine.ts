@@ -61,7 +61,7 @@ export class LexicalSearchIndex {
 
   search(query: string, limit = 10): SearchResponse {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_MAX_RESULTS) {
-      throw new SearchError("invalid_query", `검색 결과 한도는 1 이상 ${SEARCH_MAX_RESULTS} 이하여야 합니다.`);
+      throw new SearchError("invalid_query", `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`);
     }
     const terms = [...new Set(searchTerms(query, "invalid_query"))];
     const queryIdentity = identifySearchQuery(query);

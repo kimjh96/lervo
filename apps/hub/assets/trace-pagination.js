@@ -19,10 +19,10 @@ export function createCursorPager(loadPage) {
     try {
       const page = await loadPage(cursor);
       if (typeof page !== "object" || page === null || !("nextCursor" in page)) {
-        throw new Error("페이지 응답 형식이 올바르지 않습니다.");
+        throw new Error("The page response format is invalid.");
       }
       if (page.nextCursor !== null && typeof page.nextCursor !== "string") {
-        throw new Error("다음 페이지 cursor 형식이 올바르지 않습니다.");
+        throw new Error("The next-page cursor format is invalid.");
       }
       return page;
     } finally {

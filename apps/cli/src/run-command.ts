@@ -19,7 +19,7 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
     .map((change) => `  ${change.changeKind}  ${change.path}`)
     .join("\n");
   const skills = outcome.resolvedSkills.length === 0
-    ? "  없음"
+    ? "  none"
     : outcome.resolvedSkills
       .map((skill) => `  ${skill.skillId}@${skill.version} (${skill.sourceKind})`)
       .join("\n");
@@ -30,43 +30,43 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
       outcome.searchContext.selectedDocumentIds.map((id) => `--selected document:${id}`).join(" ")
     }`;
   const lines = [
-    `Managed run을 완료했습니다. provider: ${outcome.provider}`,
+    `Managed run completed. provider: ${outcome.provider}`,
     `runId: ${outcome.runId}`,
-    "검증된 변경:",
+    "Verified changes:",
     changes,
-    "스킬 해석 결과:",
+    "Resolved skills:",
     skills,
-    "이 기록은 스킬을 호출하거나 사용했다는 뜻이 아닙니다.",
-    `검색 맥락: ${outcome.searchContext.attemptId} · 추천 ${
+    "This record does not claim that a skill was invoked or used.",
+    `Search context: ${outcome.searchContext.attemptId} · recommended ${
       outcome.searchContext.recommendedDocuments
-    }개 · 선택 ${
+    } · selected ${
       outcome.searchContext.selectedDocuments
-    }개`,
-    "선택된 검색 추천만 이후 적재·주입 대상으로 처리합니다.",
-    `검색에서 선택한 문서: ${outcome.searchContext.selectedDocumentIds.join(", ") || "없음"}`,
+    }`,
+    "Only selected search recommendations may be loaded or injected later.",
+    `Documents selected from search: ${outcome.searchContext.selectedDocumentIds.join(", ") || "none"}`,
     acceptedAssessment === null
-      ? `검색 결과를 확인한 뒤 평가하려면: lervo search assess ${outcome.searchContext.attemptId} --outcome failed --reason <reason>`
-      : `수락으로 평가하려면: ${acceptedAssessment}`,
-    `기능 검증: ${
+      ? `After reviewing the search results, record an assessment with: lervo search assess ${outcome.searchContext.attemptId} --outcome failed --reason <reason>`
+      : `To record acceptance: ${acceptedAssessment}`,
+    `Functional verification: ${
       outcome.verificationStatus === "passed"
-        ? "통과"
+        ? "passed"
         : outcome.verificationStatus === "failed"
-          ? "실패"
-          : "실행하지 않음"
+          ? "failed"
+          : "not run"
     }`,
     ...outcome.verifications.map((verification) =>
       `  ${verification.result.suiteId}: ${verification.result.status}`),
-    `Writing 공개 검증: ${publication.status === "allowed" ? "통과" : "실패"}`,
+    `Writing publication verification: ${publication.status === "allowed" ? "passed" : "failed"}`,
   ];
   if (publication.status === "allowed") {
-    lines.push("", "Provider 결과:", publication.content);
+    lines.push("", "Provider result:", publication.content);
   } else {
-    lines.push("Provider 결과는 공개하지 않았습니다.");
+    lines.push("The provider result was not published.");
     if (publication.failedChecks.length > 0) {
-      lines.push(`실패한 검사: ${publication.failedChecks.join(", ")}`);
+      lines.push(`Failed checks: ${publication.failedChecks.join(", ")}`);
     }
     if (publication.missingChecks.length > 0) {
-      lines.push(`완료되지 않은 검사: ${publication.missingChecks.join(", ")}`);
+      lines.push(`Incomplete checks: ${publication.missingChecks.join(", ")}`);
     }
   }
   return lines.join("\n").concat("\n");
@@ -113,7 +113,7 @@ export async function runManagedCommand(
     verificationSuiteIds.length === 0 ||
     instructions.length === 0
   ) {
-    io.stderr(`provider, path, verification suite와 작업 문장이 필요합니다.\n${runUsage}\n`);
+    io.stderr(`A provider, path, verification suite, and task request are required.\n${runUsage}\n`);
     return 1;
   }
 
@@ -137,12 +137,12 @@ export async function runManagedCommand(
   } catch (error) {
     const failure = {
       code: errorCode(error),
-      message: error instanceof Error ? error.message : "Managed run이 실패했습니다.",
+      message: error instanceof Error ? error.message : "The managed run failed.",
     };
     io.stderr(
       parsed.values.json
         ? `${JSON.stringify(failure)}\n`
-        : `Managed run을 완료하지 못했습니다. (${failure.code}) ${failure.message}\n`,
+        : `Could not complete the managed run. (${failure.code}) ${failure.message}\n`,
     );
     return 1;
   }

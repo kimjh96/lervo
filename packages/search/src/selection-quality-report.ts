@@ -17,23 +17,23 @@ function assertCoordinate(coordinate: SearchSelectionQualityCoordinate): void {
   assertSearchEngineIdentity(coordinate.engine, "invalid_attempt");
   if (!["implicit_baseline", "recorded_baseline", "candidate"].includes(coordinate.selectionState) ||
     !["not_applicable", "bound", "legacy_unbound"].includes(coordinate.buildEvidenceState)) {
-    throw new SearchError("invalid_attempt", "검색 선택 품질 상태가 유효하지 않습니다.");
+    throw new SearchError("invalid_attempt", "The search selection quality state is invalid.");
   }
   if (coordinate.selectionTransitionId === null) {
     if (coordinate.selectionState !== "implicit_baseline" || coordinate.adapterBuildId !== null ||
       coordinate.buildEvidenceState !== "not_applicable" || !sameSearchEngine(coordinate.engine, SEARCH_ENGINE)) {
-      throw new SearchError("invalid_attempt", "기본 검색 선택 품질 좌표가 유효하지 않습니다.");
+      throw new SearchError("invalid_attempt", "The default search selection quality coordinates are invalid.");
     }
     return;
   }
   if (!/^seact_[a-f0-9]{24}$/.test(coordinate.selectionTransitionId) ||
     coordinate.selectionState === "implicit_baseline") {
-    throw new SearchError("invalid_attempt", "검색 선택 품질 전이 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_attempt", "The search selection quality transition coordinates are invalid.");
   }
   if (coordinate.selectionState === "recorded_baseline") {
     if (coordinate.adapterBuildId !== null || coordinate.buildEvidenceState !== "not_applicable" ||
       !sameSearchEngine(coordinate.engine, SEARCH_ENGINE)) {
-      throw new SearchError("invalid_attempt", "기록된 baseline 품질 좌표가 유효하지 않습니다.");
+      throw new SearchError("invalid_attempt", "The recorded baseline quality coordinates are invalid.");
     }
     return;
   }
@@ -41,7 +41,7 @@ function assertCoordinate(coordinate: SearchSelectionQualityCoordinate): void {
     (coordinate.buildEvidenceState === "bound" && coordinate.adapterBuildId === null) ||
     (coordinate.buildEvidenceState === "legacy_unbound" && coordinate.adapterBuildId !== null) ||
     coordinate.buildEvidenceState === "not_applicable") {
-    throw new SearchError("invalid_attempt", "후보 검색 선택 품질 좌표가 유효하지 않습니다.");
+    throw new SearchError("invalid_attempt", "The candidate search selection quality coordinates are invalid.");
   }
   if (coordinate.adapterBuildId !== null) assertSearchAdapterBuildId(coordinate.adapterBuildId, "invalid_attempt");
 }
@@ -66,7 +66,7 @@ export function createSearchSelectionQualityReport(input: {
   for (const coordinate of input.coordinates) {
     assertCoordinate(coordinate);
     const key = coordinateKey(coordinate.selectionTransitionId);
-    if (coordinates.has(key)) throw new SearchError("invalid_attempt", "검색 선택 품질 좌표가 중복되었습니다.");
+    if (coordinates.has(key)) throw new SearchError("invalid_attempt", "Search selection quality coordinates are duplicated.");
     coordinates.set(key, structuredClone(coordinate));
   }
   const attemptsByCoordinate = new Map<string, SearchAttempt[]>();
@@ -77,7 +77,7 @@ export function createSearchSelectionQualityReport(input: {
     const key = coordinateKey(attempt.selectionTransitionId);
     const coordinate = coordinates.get(key);
     if (coordinate === undefined || !sameSearchEngine(attempt.engine, coordinate.engine)) {
-      throw new SearchError("invalid_attempt", "검색 시도의 선택 전이·engine 품질 좌표가 없습니다.");
+      throw new SearchError("invalid_attempt", "A search attempt has no selection transition or engine quality coordinates.");
     }
     const selected = attemptsByCoordinate.get(key) ?? [];
     selected.push(attempt);
@@ -86,12 +86,12 @@ export function createSearchSelectionQualityReport(input: {
   const assessmentByAttempt = new Map<string, SearchAssessment>();
   for (const assessment of input.assessments) {
     const attempt = attemptsById.get(assessment.attemptId);
-    if (attempt === undefined) throw new SearchError("invalid_assessment", "원본 시도 없는 검색 평가가 있습니다.");
+    if (attempt === undefined) throw new SearchError("invalid_assessment", "A search assessment has no source attempt.");
     assertSearchAssessment(assessment, attempt);
     assessmentByAttempt.set(assessment.attemptId, assessment);
   }
   if (coordinates.size !== attemptsByCoordinate.size) {
-    throw new SearchError("invalid_attempt", "검색 시도 없는 선택 품질 좌표가 있습니다.");
+    throw new SearchError("invalid_attempt", "Selection quality coordinates exist without a search attempt.");
   }
   const selections = [...attemptsByCoordinate.entries()]
     .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)

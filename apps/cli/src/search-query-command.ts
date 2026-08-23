@@ -29,7 +29,7 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
     return 1;
   }
   if (parsed.positionals.length !== 1) {
-    io.stderr(`검색 문장은 하나만 지정해야 합니다.\n${searchUsage}\n`);
+    io.stderr(`Specify exactly one search sentence.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -62,8 +62,8 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
       : formatSearchResponse(response, attempt.attemptId));
     return 0;
   } catch (error) {
-    io.stderr(`검색을 완료하지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not complete the search. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

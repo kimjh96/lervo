@@ -10,6 +10,6 @@ export function readFirstPublicationPackageMetadataApplySources(paths, permitPat
   return readFirstPublicationPackageMetadataSourceSet(paths, permitPath, {
     evidenceId: "permit",
     errorCode: "first_publication_package_metadata_apply_source_invalid",
-    errorMessage: "CLI 최초 게시 package metadata 적용 원본이 올바르지 않습니다.",
+    errorMessage: "The CLI first-publication package metadata apply source is invalid.",
   });
 }

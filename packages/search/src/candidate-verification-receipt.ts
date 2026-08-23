@@ -49,7 +49,7 @@ export function createSearchCandidateVerificationReceipt(input: {
     input.comparison.candidateAdapterBuildId !== input.adapterBuildId ||
     !sameSearchEngine(input.review.candidate, input.comparison.candidate.engine) ||
     input.replayRunId !== input.review.replayRunId || input.indexId !== input.comparison.candidate.indexId) {
-    throw new SearchError("invalid_candidate_review", "검색 후보 검증 receipt 원본이 서로 다릅니다.");
+    throw new SearchError("invalid_candidate_review", "Candidate search verification receipt sources differ.");
   }
   const core = {
     projectId: input.review.projectId,
@@ -81,12 +81,12 @@ export function assertSearchCandidateVerificationReceipt(receipt: SearchCandidat
     !SHA256_PATTERN.test(receipt.corpusDigest) ||
     !SEARCH_EVALUATION_RUN_PATTERN.test(receipt.candidateRunId) ||
     !SEARCH_INDEX_ID_PATTERN.test(receipt.indexId) || receipt.verificationState !== "replayed") {
-    throw new SearchError("invalid_candidate_review", "검색 후보 검증 receipt 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_candidate_review", "The candidate search verification receipt contract is invalid.");
   }
   assertSearchEngineIdentity(receipt.engine, "invalid_candidate_review");
   assertSearchAdapterBuildId(receipt.adapterBuildId, "invalid_candidate_review");
   const { schemaVersion: _schema, receiptId: _id, ...core } = receipt;
   if (contentId("sevrf", core) !== receipt.receiptId) {
-    throw new SearchError("invalid_candidate_review", "검색 후보 검증 receipt ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_candidate_review", "The candidate search verification receipt ID does not match its content.");
   }
 }

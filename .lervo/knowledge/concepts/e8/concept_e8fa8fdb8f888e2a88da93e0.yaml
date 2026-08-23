@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e8fa8fdb8f888e2a88da93e0
+freshness: current
+ownership: user
+path: docs/architecture/system.md
+publicationLanguage: en
+publicationProfile: architecture_context
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_99c386065716f3f081e1e39a
+title: Lervo System Architecture
+type: concept

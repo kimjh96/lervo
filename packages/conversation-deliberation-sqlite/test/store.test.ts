@@ -34,7 +34,7 @@ function request(overrides: Partial<Parameters<QueuedConversationDeliberationBac
     principalId: "operator:reviewer",
     sourceEventId,
     policyId: "deliberation_product-review",
-    topic: "배포 구조를 검토합니다.",
+    topic: "Review the deployment structure.",
     requestedAt: "2026-08-22T00:00:00.000Z",
     ...overrides,
   };
@@ -94,7 +94,7 @@ describe("durable conversation deliberation queue", () => {
       WHERE deliberation_id = ?
     `).get(first.deliberationId);
     expect(row?.principal_hash).not.toBe("operator:reviewer");
-    expect(row?.topic).toBe("배포 구조를 검토합니다.");
+    expect(row?.topic).toBe("Review the deployment structure.");
     expect(() => database.prepare(
       "DELETE FROM conversation_deliberation_jobs WHERE deliberation_id = ?",
     ).run(first.deliberationId)).toThrow("cannot be deleted");
@@ -106,7 +106,7 @@ describe("durable conversation deliberation queue", () => {
     const backend = new QueuedConversationDeliberationBackend(store);
     await backend.start(request());
 
-    await expect(backend.start(request({ topic: "다른 주제입니다." }))).rejects.toMatchObject({
+    await expect(backend.start(request({ topic: "A different topic." }))).rejects.toMatchObject({
       name: "ConversationDeliberationSQLiteError",
       code: "deliberation_request_conflict",
     } satisfies Partial<ConversationDeliberationSQLiteError>);

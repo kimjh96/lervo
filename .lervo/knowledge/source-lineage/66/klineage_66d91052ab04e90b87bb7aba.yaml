@@ -1,0 +1,11 @@
+fromPath: docs/adr/0153-managed-provider-node-host.md
+identityPath: docs/adr/0153-managed-provider-node-host.md
+kind: document_move
+lineageId: klineage_66d91052ab04e90b87bb7aba
+operationId: kdocop_43a3e4e785b0490013e4921e
+schemaVersion: 1
+sourceContentHash: sha256:aa2f23e86e55292757adf0e1f55197160fa0cf06dc2e2f3121ac7ebbf462a18e
+sourceId: src_ae5ea3107af1d4608b4e88f2
+sourceUnitBindingDigest: sha256:6e4c31521ed570d6aae507fc614a52524a51c0eddc21f2a774fc7b4516285a81
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0153-managed-provider-node-host.md

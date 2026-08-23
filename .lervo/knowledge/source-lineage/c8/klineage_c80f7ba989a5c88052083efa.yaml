@@ -1,0 +1,11 @@
+fromPath: docs/adr/0076-versioned-trace-report-contract.md
+identityPath: docs/adr/0076-versioned-trace-report-contract.md
+kind: document_move
+lineageId: klineage_c80f7ba989a5c88052083efa
+operationId: kdocop_0e0ddb9e66aff88bb3efe6ec
+schemaVersion: 1
+sourceContentHash: sha256:b128dc712a48651bc15b19e9ec0e41e15906e3a4440058c423fb3c2b26e68b33
+sourceId: src_1208124e6cf26ac8aa990197
+sourceUnitBindingDigest: sha256:89bdec50a58f2ef753356ca1e58ac4fa32ecb578237957ebbff6c2721f794857
+sourceUnitCount: 4
+toPath: docs/decisions/operations/0076-versioned-trace-report-contract.md

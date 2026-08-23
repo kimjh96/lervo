@@ -13,7 +13,7 @@ import { ReleasePublicationAuthorizationError } from
 function failArguments() {
   throw new FirstPublicationBootstrapError(
     "first_publication_arming_arguments_invalid",
-    "CLI 최초 게시 실행 허가 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication execution authorization command arguments are invalid.",
   );
 }
 
@@ -51,7 +51,7 @@ try {
   const armingAuthorization = await authorizeCliFirstPublicationArming(options);
   await writeFirstPublicationArmingAuthorization(outputPath, armingAuthorization);
   console.log(
-    `CLI 최초 게시 1회 실행 허가 결속 완료 (${armingAuthorization.target.package}@${armingAuthorization.target.version})`,
+    `CLI first-publication one-time execution authorization bound (${armingAuthorization.target.package}@${armingAuthorization.target.version})`,
   );
 } catch (error) {
   if (
@@ -60,7 +60,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_arming_failed: CLI 최초 게시 실행 허가를 만들지 못했습니다.",
+    "first_publication_arming_failed: The CLI first-publication execution authorization could not be created.",
   );
   process.exitCode = 1;
 }

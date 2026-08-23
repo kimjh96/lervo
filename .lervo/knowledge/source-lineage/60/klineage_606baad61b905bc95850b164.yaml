@@ -1,0 +1,11 @@
+fromPath: docs/adr/0187-review-gated-cross-provider-exact-merge.md
+identityPath: docs/adr/0187-review-gated-cross-provider-exact-merge.md
+kind: document_move
+lineageId: klineage_606baad61b905bc95850b164
+operationId: kdocop_390109dc9e4f7f1f767cf09a
+schemaVersion: 1
+sourceContentHash: sha256:5e5f991c34a468142738a98556fe249fe9d3a1cea55dd4f39dd43c1ea749e021
+sourceId: src_5842cc7302326b818b897f82
+sourceUnitBindingDigest: sha256:6763b924781c2eea1c5a53eb2b5b0309079c7bde3fae1828708959af5c3a57f2
+sourceUnitCount: 5
+toPath: docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md

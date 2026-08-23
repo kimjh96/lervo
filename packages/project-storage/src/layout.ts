@@ -13,7 +13,7 @@ async function requireRealDirectory(path: string, label: string): Promise<void> 
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new ProjectStorageError(
         "storage_layout_invalid",
-        `${label} ${path}이 없습니다. 먼저 lervo init을 실행하세요.`,
+        `${label} ${path} does not exist. Run lervo init first.`,
       );
     }
     throw error;
@@ -21,7 +21,7 @@ async function requireRealDirectory(path: string, label: string): Promise<void> 
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new ProjectStorageError(
       "storage_layout_invalid",
-      `${label} ${path}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
+      `${label} ${path} must be a real directory and cannot be a symbolic link.`,
     );
   }
 }
@@ -32,7 +32,7 @@ async function validateOptionalRealDirectory(path: string, label: string): Promi
     if (!stats.isDirectory() || stats.isSymbolicLink()) {
       throw new ProjectStorageError(
         "storage_layout_invalid",
-        `${label} ${path}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
+        `${label} ${path} must be a real directory and cannot be a symbolic link.`,
       );
     }
   } catch (error) {
@@ -43,14 +43,14 @@ async function validateOptionalRealDirectory(path: string, label: string): Promi
 export async function validateProjectStorageLayout(
   paths: LervoProjectPaths,
 ): Promise<void> {
-  await requireRealDirectory(paths.repositoryRoot, "저장소 root");
-  await requireRealDirectory(paths.lervoRoot, "Lervo 설정 경로");
-  await requireRealDirectory(paths.state, "Lervo 상태 경로");
-  await validateOptionalRealDirectory(paths.cas, "CAS 경로");
-  await validateOptionalRealDirectory(resolve(paths.cas, "sha256"), "CAS object 경로");
-  await validateOptionalRealDirectory(resolve(paths.cas, ".tmp"), "CAS 임시 경로");
+  await requireRealDirectory(paths.repositoryRoot, "Repository root");
+  await requireRealDirectory(paths.lervoRoot, "Lervo configuration path");
+  await requireRealDirectory(paths.state, "Lervo state path");
+  await validateOptionalRealDirectory(paths.cas, "CAS path");
+  await validateOptionalRealDirectory(resolve(paths.cas, "sha256"), "CAS object path");
+  await validateOptionalRealDirectory(resolve(paths.cas, ".tmp"), "CAS temporary path");
 }
 
 export async function validateRepositoryRoot(paths: LervoProjectPaths): Promise<void> {
-  await requireRealDirectory(paths.repositoryRoot, "저장소 root");
+  await requireRealDirectory(paths.repositoryRoot, "Repository root");
 }

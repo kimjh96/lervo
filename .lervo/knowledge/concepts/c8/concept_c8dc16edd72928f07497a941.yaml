@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c8dc16edd72928f07497a941
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a5749b9cbbdcee839b14aede
+title: "ADR-0115: CLI First-Publication Transition Evidence Union"
+type: decision

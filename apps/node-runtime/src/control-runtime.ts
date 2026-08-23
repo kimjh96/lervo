@@ -1,20 +1,19 @@
-import { createPublicKey } from "node:crypto";
 import { resolve } from "node:path";
 
 import {
   AuthenticatedPolicyHttpTransport,
-  ConfiguredEd25519PolicyTrustStore,
   PolicyBackedRemoteCommandPolicy,
+  PolicyManagedRunApprovalVerifier,
   runPolicySyncCycle,
   type AuthenticatedPolicyHubTransport,
   type LocalCommandCapabilityPolicy,
+  type ManagedRunApprovalVerifier,
   type PolicyHttpTransportOptions,
 } from "@lervo/policy";
 import { SQLitePolicyStateStore } from "@lervo/policy-sqlite";
 import {
   AuthenticatedRemoteCommandHttpPayloadLoader,
   AuthenticatedRemoteCommandHttpTransport,
-  ConfiguredEd25519RemoteCommandTrustStore,
   RemoteCommandReceiver,
   runRemoteCommandReconnectCycle,
   type AuthenticatedRemoteCommandHubTransport,
@@ -26,17 +25,19 @@ import {
   type RemoteCommandPollingWaitPort,
 } from "@lervo/remote-command";
 import { SQLiteRemoteCommandReplayStore } from "@lervo/remote-command-sqlite";
-import { readOwnerOnlyText, RuntimeSecurityError } from "@lervo/runtime-security";
 import { type RemoteCommandTarget } from "@lervo/schemas";
 
 import { runRemoteControlLoop, type RemoteControlCycleResult, type RemoteControlLoopResult } from "./control-loop.js";
 import { type NodeRuntimeConfig } from "./config-types.js";
 import { NodeRuntimeError } from "./errors.js";
-
-const MAX_PUBLIC_KEY_BYTES = 65_536;
+import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
 
 export interface NodeRemoteCommandPorts {
-  executor: RemoteCommandExecutor;
+  executor?: RemoteCommandExecutor;
+  createExecutor?: (input: {
+    target: RemoteCommandTarget;
+    approvalVerifier: ManagedRunApprovalVerifier;
+  }) => RemoteCommandExecutor;
   localPolicy: LocalCommandCapabilityPolicy;
   createPolicyTransport?: (options: PolicyHttpTransportOptions) => AuthenticatedPolicyHubTransport;
   createCommandTransport?: (
@@ -54,27 +55,6 @@ export interface NodeRemoteCommandPorts {
 export interface NodeRemoteControlRuntime {
   run(signal: AbortSignal): Promise<RemoteControlLoopResult>;
   close(): void;
-}
-
-async function publicKey(path: string) {
-  let serialized: string;
-  try {
-    serialized = await readOwnerOnlyText(path, MAX_PUBLIC_KEY_BYTES);
-  } catch (error) {
-    const code = error instanceof RuntimeSecurityError && error.code === "invalid_text"
-      ? "invalid_config"
-      : "unsafe_runtime_file";
-    throw new NodeRuntimeError(code, "원격 제어 public key 파일을 안전하게 읽지 못했습니다.", {
-      cause: error,
-    });
-  }
-  try {
-    return createPublicKey(serialized);
-  } catch (error) {
-    throw new NodeRuntimeError("invalid_config", "원격 제어 public key가 유효하지 않습니다.", {
-      cause: error,
-    });
-  }
 }
 
 function httpOptions(input: {
@@ -98,33 +78,25 @@ function httpOptions(input: {
 
 export async function openNodeRemoteControlRuntime(input: {
   config: NodeRuntimeConfig;
-  token: string;
+  token: () => string;
   target: RemoteCommandTarget;
   stateDirectory: string;
   ports: NodeRemoteCommandPorts;
+  trust?: ReloadableNodeRuntimeTrust;
 }): Promise<NodeRemoteControlRuntime> {
   const commands = input.config.remoteCommands;
   if (commands === undefined) {
-    throw new NodeRuntimeError("invalid_config", "원격 제어 구성이 없습니다.");
+    throw new NodeRuntimeError("invalid_config", "No remote-control configuration was provided.");
   }
   let policyStore: SQLitePolicyStateStore | undefined;
   let replayStore: SQLiteRemoteCommandReplayStore | undefined;
   try {
-    const [commandKeys, policyKeys] = await Promise.all([
-      Promise.all(commands.commandKeys.map(async (key) => ({
-        keyId: key.keyId,
-        publicKey: await publicKey(key.publicKeyFile),
-        projects: [structuredClone(input.target)],
-      }))),
-      Promise.all(commands.policyKeys.map(async (key) => ({
-        keyId: key.keyId,
-        publicKey: await publicKey(key.publicKeyFile),
-        projects: [structuredClone(input.target)],
-        purposes: [...key.purposes],
-      }))),
-    ]);
-    const commandTrust = new ConfiguredEd25519RemoteCommandTrustStore(commandKeys);
-    const policyTrust = new ConfiguredEd25519PolicyTrustStore(policyKeys);
+    const trust = input.trust ?? new ReloadableNodeRuntimeTrust(
+      await loadNodeRuntimeTrust(commands),
+      input.target,
+    );
+    const commandTrust = trust.commandTrustStore;
+    const policyTrust = trust.policyTrustStore;
     policyStore = await SQLitePolicyStateStore.open({
       path: resolve(input.stateDirectory, "policy.sqlite"),
       target: input.target,
@@ -133,28 +105,66 @@ export async function openNodeRemoteControlRuntime(input: {
       path: resolve(input.stateDirectory, "remote-command-replay.sqlite"),
       target: input.target,
     });
-    const commonHttp = httpOptions(input);
-    const policyTransport = (input.ports.createPolicyTransport ?? ((options) =>
-      new AuthenticatedPolicyHttpTransport(options)))({
-      baseUrl: commonHttp.baseUrl,
-      bearerToken: commonHttp.bearerToken,
-      expectedHubIdentityHash: commonHttp.expectedHubIdentityHash,
-      ...(commands.requestTimeoutMs === undefined ? {} : {
-        requestTimeoutMs: commands.requestTimeoutMs,
-      }),
-      ...(commands.maxResponseBytes === undefined ? {} : {
-        maxResponseBytes: commands.maxResponseBytes,
-      }),
+    if ((input.ports.executor === undefined) === (input.ports.createExecutor === undefined)) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "Exactly one remote-control executor or managed executor factory is required.",
+      );
+    }
+    const approvalVerifier = new PolicyManagedRunApprovalVerifier({
+      store: policyStore,
+      trustStore: policyTrust,
     });
-    const commandTransport = (input.ports.createCommandTransport ?? ((options) =>
-      new AuthenticatedRemoteCommandHttpTransport(options)))({
-      ...commonHttp,
-      ...(commands.maxResponseBytes === undefined ? {} : {
-        maxResponseBytes: commands.maxResponseBytes,
-      }),
+    const executor = input.ports.executor ?? input.ports.createExecutor!({
+      target: structuredClone(input.target),
+      approvalVerifier,
     });
-    const payloadLoader = (input.ports.createPayloadLoader ?? ((options) =>
-      new AuthenticatedRemoteCommandHttpPayloadLoader(options)))(commonHttp);
+    const createPolicyTransport = input.ports.createPolicyTransport ?? ((options) =>
+      new AuthenticatedPolicyHttpTransport(options));
+    const createCommandTransport = input.ports.createCommandTransport ?? ((options) =>
+      new AuthenticatedRemoteCommandHttpTransport(options));
+    const createPayloadLoader = input.ports.createPayloadLoader ?? ((options) =>
+      new AuthenticatedRemoteCommandHttpPayloadLoader(options));
+    const currentHttp = () => httpOptions({ ...input, token: input.token() });
+    const policyTransport: AuthenticatedPolicyHubTransport = {
+      pullPolicyBundle(request) {
+        const commonHttp = currentHttp();
+        return createPolicyTransport({
+          baseUrl: commonHttp.baseUrl,
+          bearerToken: commonHttp.bearerToken,
+          expectedHubIdentityHash: commonHttp.expectedHubIdentityHash,
+          ...(commands.requestTimeoutMs === undefined ? {} : {
+            requestTimeoutMs: commands.requestTimeoutMs,
+          }),
+          ...(commands.maxResponseBytes === undefined ? {} : {
+            maxResponseBytes: commands.maxResponseBytes,
+          }),
+        }).pullPolicyBundle(request);
+      },
+    };
+    const commandTransport: AuthenticatedRemoteCommandHubTransport = {
+      pullRemoteCommands(request) {
+        return createCommandTransport({
+          ...currentHttp(),
+          ...(commands.maxResponseBytes === undefined ? {} : {
+            maxResponseBytes: commands.maxResponseBytes,
+          }),
+        }).pullRemoteCommands(request);
+      },
+      acknowledgeRemoteCommand(acknowledgement) {
+        return createCommandTransport({
+          ...currentHttp(),
+          ...(commands.maxResponseBytes === undefined ? {} : {
+            maxResponseBytes: commands.maxResponseBytes,
+          }),
+        }).acknowledgeRemoteCommand(acknowledgement);
+      },
+    };
+    const payloadLoader: RemoteCommandPayloadLoader = {
+      load(reference) {
+        return createPayloadLoader(currentHttp()).load(reference);
+      },
+    };
     const clock = input.ports.clock ?? { now: () => new Date().toISOString() };
     const receiver = new RemoteCommandReceiver({
       target: input.target,
@@ -166,7 +176,7 @@ export async function openNodeRemoteControlRuntime(input: {
         localPolicy: input.ports.localPolicy,
       }),
       payloadLoader,
-      executor: input.ports.executor,
+      executor,
       clock,
       ...(commands.maxLifetimeMs === undefined ? {} : { maxLifetimeMs: commands.maxLifetimeMs }),
       ...(commands.clockSkewMs === undefined ? {} : { clockSkewMs: commands.clockSkewMs }),
@@ -235,12 +245,12 @@ export async function openNodeRemoteControlRuntime(input: {
       cleanupErrors.push(cleanupError);
     }
     if (cleanupErrors.length > 0) {
-      throw new NodeRuntimeError("startup_failed", "원격 제어 시작 실패 뒤 저장소를 닫지 못했습니다.", {
+      throw new NodeRuntimeError("startup_failed", "Could not close the repository after remote-control startup failed.", {
         cause: new AggregateError([error, ...cleanupErrors]),
       });
     }
     if (error instanceof NodeRuntimeError) throw error;
-    throw new NodeRuntimeError("startup_failed", "원격 제어 runtime을 열지 못했습니다.", {
+    throw new NodeRuntimeError("startup_failed", "Could not open the remote-control runtime.", {
       cause: error,
     });
   }

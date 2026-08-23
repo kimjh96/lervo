@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_63a9b07e26190574bb5a172a
+freshness: current
+ownership: user
+path: docs/decisions/release/assurance/0095-cli-release-publication-authorization.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_cc36c0a5a8fff816ad23a11b
+title: "ADR-0095: CLI release publication eligibility and authority boundary"
+type: decision

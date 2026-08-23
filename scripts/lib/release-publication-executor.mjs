@@ -35,7 +35,7 @@ export async function executeAuthorizedReleasePublication(
   if (!isAbsolute(releaseDirectory) || typeof publish !== "function") {
     fail(
       "release_publication_execution_input_invalid",
-      "Release 게시 실행 입력이 올바르지 않습니다.",
+      "The release publication execution input is invalid.",
     );
   }
   const tarballPath = resolve(releaseDirectory, authorization.artifact.file);
@@ -51,7 +51,7 @@ export async function executeAuthorizedReleasePublication(
   if (canonicalJson(actualArtifact) !== canonicalJson(authorization.artifact)) {
     fail(
       "release_publication_artifact_changed",
-      "게시 직전 release artifact가 적격성 문서와 달라졌습니다.",
+      "The release artifact changed from the eligibility document immediately before publication.",
     );
   }
   const receipt = await publish({
@@ -62,7 +62,7 @@ export async function executeAuthorizedReleasePublication(
   if (canonicalJson(receipt) !== canonicalJson(expectedReceipt(authorization))) {
     fail(
       "release_publication_receipt_invalid",
-      "Registry 게시 결과를 적격성 문서와 대조하지 못했습니다.",
+      "The registry publication result could not be reconciled with the eligibility document.",
     );
   }
   await assertReleaseFilesUnchanged([{

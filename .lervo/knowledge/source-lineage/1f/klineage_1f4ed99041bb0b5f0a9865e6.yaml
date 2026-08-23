@@ -1,0 +1,11 @@
+fromPath: docs/adr/0110-cli-first-publication-external-requirement-evidence-report.md
+identityPath: docs/adr/0110-cli-first-publication-external-requirement-evidence-report.md
+kind: document_move
+lineageId: klineage_1f4ed99041bb0b5f0a9865e6
+operationId: kdocop_f75cf252044329de1865115e
+schemaVersion: 1
+sourceContentHash: sha256:613a6476101b7524a48791cc3825f0eb59cc3907c418551fbefa5e4b3ecc8ddb
+sourceId: src_855b55b98a3bd11677c07237
+sourceUnitBindingDigest: sha256:bf06fa76a2dfbf65fb9df2e00ef42b0110d1fc23a39144f0dfd3f2e7885bf2ec
+sourceUnitCount: 6
+toPath: docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0103-cli-first-publication-execution-plan-command.md
+identityPath: docs/adr/0103-cli-first-publication-execution-plan-command.md
+kind: document_move
+lineageId: klineage_bd63f946dbf914946dd15586
+operationId: kdocop_ac1e4bf821ccd6cfe0d3bd79
+schemaVersion: 1
+sourceContentHash: sha256:12d1192c1029bdd8e1e1823a41b85ca355834a8c0d56b9fe8b1bdea8ffad1b21
+sourceId: src_d4854d37c9aaa34f8773f279
+sourceUnitBindingDigest: sha256:0f82662c0769128a0c1437173fe05333e349161832154aabd0a18040dab59abe
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md

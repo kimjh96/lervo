@@ -20,7 +20,7 @@ function unavailable(target) {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_reconciliation_observer_input_invalid",
-    "CLI 최초 게시 결과 대조 관측 입력이 올바르지 않습니다.",
+    "The CLI first-publication reconciliation observation input is invalid.",
   );
 }
 

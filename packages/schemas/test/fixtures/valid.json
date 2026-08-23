@@ -159,7 +159,7 @@
       "runId": "run_01234567",
       "sessionId": "ses_01234567",
       "roleId": "developer",
-      "writingPolicyId": "writing_ko-kr-human",
+      "writingPolicyId": "writing_en-human",
       "writingPolicyDocumentId": "doc_writing_policy",
       "provider": "codex",
       "providerSessionId": "provider-session-1",

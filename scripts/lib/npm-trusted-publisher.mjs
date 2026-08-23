@@ -23,7 +23,7 @@ async function executeJson(client, args) {
   } catch {
     fail(
       "npm_publication_verification_failed",
-      "npm registry 게시 결과를 확인하지 못했습니다.",
+      "The npm registry publication result could not be verified.",
     );
   }
 }
@@ -38,7 +38,7 @@ export function createNpmTrustedPublisher({
     if (target.registry !== npmPublicRegistry) {
       fail(
         "npm_trusted_publishing_target_invalid",
-        "npm Trusted Publishing 대상이 올바르지 않습니다.",
+        "The npm Trusted Publishing target is invalid.",
       );
     }
     const client = await prepareIsolatedNpmTrustedPublishingClient({
@@ -65,7 +65,7 @@ export function createNpmTrustedPublisher({
       } catch {
         fail(
           "npm_publication_failed",
-          "npm registry 게시를 완료하지 못했습니다.",
+          "The npm registry publication could not be completed.",
         );
       }
       const coordinate = `${target.package}@${target.version}`;
@@ -94,7 +94,7 @@ export function createNpmTrustedPublisher({
       ) {
         fail(
           "npm_publication_verification_failed",
-          "npm registry 게시 결과를 확인하지 못했습니다.",
+          "The npm registry publication result could not be verified.",
         );
       }
       return {

@@ -104,6 +104,7 @@ export interface ManagedProviderRunInput {
   signal?: AbortSignal;
   createEnvelopeId?: () => string;
   createEvidenceReceiptId?: () => string;
+  createTargetTurnId?: () => string;
   approvalAuthorization?: ManagedRunApprovalAuthorization;
 }
 

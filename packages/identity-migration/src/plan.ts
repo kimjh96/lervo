@@ -80,7 +80,7 @@ export async function createIdentityMigrationPlan(
   const missingCurrentFiles: Array<{ path: ".lervo/.gitignore"; content: "state/\n" }> = [];
 
   if (await entryKind(root) !== "directory") {
-    blocker(blockers, "repository_invalid", "대상은 실제 저장소 디렉터리여야 합니다.");
+    blocker(blockers, "repository_invalid", "The target must be a real repository directory.");
     const withoutId: Omit<IdentityMigrationPlan, "planId"> = {
       schemaVersion: 1,
       repositoryRoot: root,
@@ -105,18 +105,18 @@ export async function createIdentityMigrationPlan(
   }
   const sourceKind = await entryKind(sourceRoot);
   if (sourceKind === "missing") {
-    blocker(blockers, "source_missing", "이전 관리 경로가 없습니다.");
+    blocker(blockers, "source_missing", "The previous managed path does not exist.");
   } else if (sourceKind !== "directory") {
-    blocker(blockers, "source_unsafe", "이전 관리 경로는 실제 디렉터리여야 합니다.");
+    blocker(blockers, "source_unsafe", "The previous managed path must be a real directory.");
   }
   if (await entryKind(targetRoot) !== "missing") {
-    blocker(blockers, "target_exists", "현재 관리 경로가 이미 있어 두 상태를 합치지 않습니다.");
+    blocker(blockers, "target_exists", "The current managed path already exists, so the two states will not be merged.");
   }
 
   if (sourceKind === "directory") {
     try {
       const manifestPath = resolve(sourceRoot, "project.yaml");
-      if (await entryKind(manifestPath) !== "file") throw new Error("project.yaml이 없습니다.");
+      if (await entryKind(manifestPath) !== "file") throw new Error("project.yaml does not exist.");
       const manifest = parseAndValidateYaml<ProjectManifest>(
         "project",
         await readStableUtf8File(manifestPath, 4 * 1024 * 1024),
@@ -129,7 +129,7 @@ export async function createIdentityMigrationPlan(
       blocker(
         blockers,
         "manifest_invalid",
-        `이전 project 또는 문서 metadata를 현재 계약으로 확인할 수 없습니다: ${error instanceof Error ? error.message : String(error)}`,
+        `The previous project or document metadata cannot be verified against the current contract: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 
@@ -142,14 +142,14 @@ export async function createIdentityMigrationPlan(
         )) continue;
         missingCurrentDirectories.push(`${TARGET_DIRECTORY}/${name}`);
       } else if (kind !== "directory") {
-        blocker(blockers, "source_unsafe", `이전 관리 경로의 ${name}이 실제 디렉터리가 아닙니다.`);
+        blocker(blockers, "source_unsafe", `${name} in the previous managed path is not a real directory.`);
       }
     }
     const gitignoreKind = await entryKind(resolve(sourceRoot, ".gitignore"));
     if (gitignoreKind === "missing") {
       missingCurrentFiles.push({ path: ".lervo/.gitignore", content: "state/\n" });
     } else if (gitignoreKind !== "file") {
-      blocker(blockers, "source_unsafe", "이전 관리 경로의 .gitignore가 일반 파일이 아닙니다.");
+      blocker(blockers, "source_unsafe", ".gitignore in the previous managed path is not a regular file.");
     }
 
     const eventDatabase = resolve(sourceRoot, "state/events.sqlite");
@@ -160,7 +160,7 @@ export async function createIdentityMigrationPlan(
       blocker(
         blockers,
         "event_store_active",
-        "event store 보조 파일이 남아 있습니다. Lervo 관련 실행을 모두 종료한 뒤 다시 확인하세요.",
+        "Event store sidecar files remain. Stop all Lervo-related processes and check again.",
       );
     }
     if (eventKind === "file" && projectId !== null) {
@@ -173,18 +173,18 @@ export async function createIdentityMigrationPlan(
           blocker(
             blockers,
             "event_store_invalid",
-            "이전 event store는 먼저 별도 schema migration이 필요합니다. 명칭 변경 중에는 DB schema를 함께 바꾸지 않습니다.",
+            "The previous event store requires a separate schema migration first. The database schema is not changed during the brand migration.",
           );
         }
       } catch (error) {
         blocker(
           blockers,
           "event_store_invalid",
-          `event 원본 무결성을 확인할 수 없습니다: ${error instanceof Error ? error.message : String(error)}`,
+          `The integrity of the source events cannot be verified: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     } else if (eventKind !== "missing") {
-      blocker(blockers, "event_store_invalid", "event store 경로가 일반 파일이 아닙니다.");
+      blocker(blockers, "event_store_invalid", "The event store path is not a regular file.");
     }
 
     try {
@@ -193,7 +193,7 @@ export async function createIdentityMigrationPlan(
       blocker(
         blockers,
         "cas_invalid",
-        `CAS 원본 무결성을 확인할 수 없습니다: ${error instanceof Error ? error.message : String(error)}`,
+        `The integrity of the source CAS cannot be verified: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
 
@@ -223,7 +223,7 @@ export async function createIdentityMigrationPlan(
         blocker(
           blockers,
           "source_unsafe",
-          "같은 원본 hash의 문서 metadata archive가 이미 있어 자동으로 합치지 않습니다.",
+          "A document metadata archive with the same source hash already exists, so it will not be merged automatically.",
         );
       }
     }

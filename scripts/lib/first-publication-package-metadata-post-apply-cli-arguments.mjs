@@ -5,7 +5,7 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_package_metadata_post_apply_arguments_invalid",
-    "CLI 최초 게시 package metadata 사후 검증 명령 인자가 올바르지 않습니다.",
+    "The CLI first-publication package metadata post-apply verification command arguments are invalid.",
   );
 }
 

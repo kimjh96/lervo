@@ -27,7 +27,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_stage_review_unexpected: " +
-    "CLI npm staged package 검토 증거를 만들지 못했습니다.",
+    "CLI npm staged-package review evidence could not be created.",
   );
   process.exitCode = 1;
 }

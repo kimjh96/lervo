@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_cfe63edcbd8d26e52355ae90
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8a770c4c2e4afe90d8d9173c
+title: "ADR-0123: Stage-Only Workflow Execution Evidence"
+type: decision

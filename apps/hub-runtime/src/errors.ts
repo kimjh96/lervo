@@ -4,6 +4,8 @@ export type HubRuntimeErrorCode =
   | "unsafe_runtime_file"
   | "startup_failed"
   | "listen_failed"
+  | "credential_reload_failed"
+  | "runtime_material_reload_failed"
   | "shutdown_failed";
 
 export class HubRuntimeError extends Error {

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0179-bounded-parser-grade-css-symbol-units.md
+identityPath: docs/adr/0179-bounded-parser-grade-css-symbol-units.md
+kind: document_move
+lineageId: klineage_f59a724854cc1b9c8f7fae6d
+operationId: kdocop_52e8d64c1138e0c38e8295fb
+schemaVersion: 1
+sourceContentHash: sha256:d5f553a361b2d1572897290b8f11d65e22445e438daa51fb90dfb2564b3d21f6
+sourceId: src_e738954943f6f204677f9091
+sourceUnitBindingDigest: sha256:631c074fd54cec6339727e11bd77702408af9b2f5d106c6098b569fc4f7b3069
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/repository/0179-bounded-parser-grade-css-symbol-units.md

@@ -22,7 +22,7 @@ export function createPlatformDeliveryReceipt(input: {
   ) {
     throw new ConversationPlatformError(
       "platform_delivery_failed",
-      "Platform delivery 결과 좌표나 시각이 유효하지 않습니다.",
+      "The platform delivery result coordinates or time are invalid.",
     );
   }
   const receipt: ConversationDeliveryReceipt = {

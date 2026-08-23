@@ -1,0 +1,11 @@
+fromPath: docs/adr/0026-structured-deliberation-contracts.md
+identityPath: docs/adr/0026-structured-deliberation-contracts.md
+kind: document_move
+lineageId: klineage_b5d18f9186c2f750e9622c9e
+operationId: kdocop_8dd7e58d49303381adf6b849
+schemaVersion: 1
+sourceContentHash: sha256:d8a902a98cc4b3eaa4b74b2aba1a36de046086906c37972cfdc794aea2b85765
+sourceId: src_094c9d3244bbfd13ac011b16
+sourceUnitBindingDigest: sha256:96b584a7d2ea373c93a24de465799462acab03996565c0bf0f285a50728618af
+sourceUnitCount: 7
+toPath: docs/decisions/coordination/deliberation/0026-structured-deliberation-contracts.md

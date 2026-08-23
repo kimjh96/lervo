@@ -32,13 +32,13 @@ export function parseAndValidateYaml<T>(
     value = parse(content);
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new LervoProjectError("invalid_yaml", `YAML을 읽을 수 없습니다: ${detail}`);
+    throw new LervoProjectError("invalid_yaml", `Unable to read YAML: ${detail}`);
   }
   const validation = validateSchema(schema, value);
   if (!validation.valid) {
     throw new LervoProjectError(
       "contract_invalid",
-      `계약에 맞지 않습니다: ${formatValidationErrors(validation.errors)}`,
+      `The value does not satisfy the contract: ${formatValidationErrors(validation.errors)}`,
     );
   }
   return value as T;
@@ -65,7 +65,7 @@ export function createDefaultManifest(
   if (!validation.valid) {
     throw new LervoProjectError(
       "contract_invalid",
-      `새 project 설정을 만들 수 없습니다: ${formatValidationErrors(validation.errors)}`,
+      `Unable to create the new project configuration: ${formatValidationErrors(validation.errors)}`,
     );
   }
   return manifest;
@@ -76,13 +76,13 @@ async function assertLervoDirectory(path: string): Promise<void> {
   if (lervoDirectory.kind === "missing") {
     throw new LervoProjectError(
       "not_initialized",
-      `${path}이 없습니다. 먼저 lervo init을 실행하세요.`,
+      `${path} does not exist. Run lervo init first.`,
     );
   }
   if (lervoDirectory.kind !== "directory") {
     throw new LervoProjectError(
       "unsafe_path",
-      `${path}은 실제 디렉터리여야 하며 심볼릭 링크일 수 없습니다.`,
+      `${path} must be a real directory and cannot be a symbolic link.`,
     );
   }
 }
@@ -94,13 +94,13 @@ export async function loadProjectManifest(root: string): Promise<ProjectManifest
   if (entry.kind === "missing") {
     throw new LervoProjectError(
       "not_initialized",
-      `${paths.projectManifest}이 없습니다. 먼저 lervo init을 실행하세요.`,
+      `${paths.projectManifest} does not exist. Run lervo init first.`,
     );
   }
   if (entry.kind !== "file") {
     throw new LervoProjectError(
       "unsafe_path",
-      `${paths.projectManifest}은 일반 파일이어야 하며 심볼릭 링크일 수 없습니다.`,
+      `${paths.projectManifest} must be a regular file and cannot be a symbolic link.`,
     );
   }
   return parseAndValidateYaml<ProjectManifest>("project", entry.content);

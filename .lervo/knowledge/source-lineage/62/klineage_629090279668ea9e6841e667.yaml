@@ -1,0 +1,11 @@
+fromPath: docs/adr/0009-codex-app-server-managed-adapter.md
+identityPath: docs/adr/0009-codex-app-server-managed-adapter.md
+kind: document_move
+lineageId: klineage_629090279668ea9e6841e667
+operationId: kdocop_31cf4d2e67b9c24c1ef4e0d2
+schemaVersion: 1
+sourceContentHash: sha256:bc211bd4fb82faac6eaa12fa48e45243b2fb08bfdfeb2649f82d3caaf4f85a9e
+sourceId: src_b966bf168c43b341c79d8965
+sourceUnitBindingDigest: sha256:7dec2a5ff0cebb0d1db84c9dd49f1bacb5c6d8326323be3f8dc7a22201c37d8b
+sourceUnitCount: 9
+toPath: docs/decisions/execution/providers/0009-codex-app-server-managed-adapter.md

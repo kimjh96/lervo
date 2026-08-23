@@ -17,7 +17,7 @@ const maximumJournalBytes = 64 * 1024;
 function invalidJournal() {
   failWorkflowActivation(
     "first_publication_workflow_activation_journal_invalid",
-    "CLI 최초 게시 workflow 활성화 복구 기록이 올바르지 않습니다.",
+    "The CLI first-publication workflow activation recovery record is invalid.",
   );
 }
 
@@ -69,7 +69,7 @@ export async function recoverFirstPublicationWorkflowActivationFiles({
   if (!await workflowActivationPathExists(transactionRoot)) {
     failWorkflowActivation(
       "first_publication_workflow_activation_recovery_not_found",
-      "복구할 CLI 최초 게시 workflow 활성화 transaction이 없습니다.",
+      "There is no CLI first-publication workflow activation transaction to recover.",
     );
   }
   try {
@@ -103,7 +103,7 @@ export async function recoverFirstPublicationWorkflowActivationFiles({
   if (processIsAlive(journal.ownerPid)) {
     failWorkflowActivation(
       "first_publication_workflow_activation_busy",
-      "CLI 최초 게시 workflow 활성화 transaction이 아직 실행 중입니다.",
+      "The CLI first-publication workflow activation transaction is still running.",
     );
   }
   const workflowFile = { path: workflowPath, binding: journal.workflow };
@@ -117,7 +117,7 @@ export async function recoverFirstPublicationWorkflowActivationFiles({
   } catch {
     failWorkflowActivation(
       "first_publication_workflow_activation_rollback_failed",
-      "CLI 최초 게시 workflow 활성화 원본 복구를 완료하지 못했습니다.",
+      "The original CLI first-publication workflow could not be restored.",
     );
   }
   return { status: "rolled_back" };

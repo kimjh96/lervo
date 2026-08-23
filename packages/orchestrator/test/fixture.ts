@@ -59,7 +59,7 @@ export const role: RoleProfile = {
   schemaVersion: 1,
   roleId: "developer",
   name: "Developer",
-  description: "저장소 코드를 변경합니다.",
+  description: "Changes repository code.",
   requestTypes: ["implementation"],
   requiredInputs: [],
   contextPolicy: {
@@ -104,7 +104,7 @@ export async function createManagedFixture(): Promise<ManagedFixture> {
   temporaryRoots.push(root);
   await mkdir(resolve(root, ".lervo/state"), { recursive: true });
   await mkdir(resolve(root, "src"), { recursive: true });
-  await writeFile(resolve(root, "AGENTS.md"), "저장소 작업 지침입니다.\n");
+  await writeFile(resolve(root, "AGENTS.md"), "Repository work instructions.\n");
   const store = await SQLiteEventStore.open({
     path: resolve(root, ".lervo/state", "events.sqlite"),
     projectId,
@@ -151,7 +151,7 @@ export function providerRunInput() {
   return {
     requestDigest: targetDigest,
     risk: "low",
-    instructions: "저장소를 읽고 결과를 설명합니다.",
+    instructions: "Read the repository and explain the result.",
     targetTurnId: "turn-managed-provider-1",
     context: {
       registry,

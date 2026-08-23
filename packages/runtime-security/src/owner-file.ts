@@ -9,7 +9,7 @@ const utf8 = new TextDecoder("utf-8", { fatal: true });
 
 export async function readOwnerOnlyFile(path: string, maximumBytes: number): Promise<Buffer> {
   if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
-    throw new RuntimeSecurityError("unsafe_file", "보안 파일 크기 제한이 유효하지 않습니다.");
+    throw new RuntimeSecurityError("unsafe_file", "The secure-file size limit is invalid.");
   }
   const absolutePath = resolve(path);
   let handle;
@@ -21,7 +21,7 @@ export async function readOwnerOnlyFile(path: string, maximumBytes: number): Pro
       (process.platform !== "win32" && (before.mode & 0o077) !== 0)) {
       throw new RuntimeSecurityError(
         "unsafe_file",
-        "보안 파일은 owner만 읽을 수 있는 크기 제한 내 일반 파일이어야 합니다.",
+        "A secure file must be a regular file within the size limit and readable only by its owner.",
       );
     }
     const bytes = await handle.readFile();
@@ -31,12 +31,12 @@ export async function readOwnerOnlyFile(path: string, maximumBytes: number): Pro
       after.dev !== before.dev || after.ino !== before.ino || after.mtimeMs !== before.mtimeMs
     ) {
       bytes.fill(0);
-      throw new RuntimeSecurityError("unsafe_file", "보안 파일이 읽는 중 변경됐습니다.");
+      throw new RuntimeSecurityError("unsafe_file", "The secure file changed while it was being read.");
     }
     return bytes;
   } catch (error) {
     if (error instanceof RuntimeSecurityError) throw error;
-    throw new RuntimeSecurityError("unsafe_file", "보안 파일을 안전하게 읽지 못했습니다.", {
+    throw new RuntimeSecurityError("unsafe_file", "The secure file could not be read safely.", {
       cause: error,
     });
   } finally {
@@ -51,7 +51,7 @@ export async function readOwnerOnlyText(path: string, maximumBytes: number): Pro
     if (value.includes("\0")) throw new Error("NUL byte");
     return value;
   } catch (error) {
-    throw new RuntimeSecurityError("invalid_text", "보안 파일은 올바른 UTF-8이어야 합니다.", {
+    throw new RuntimeSecurityError("invalid_text", "A secure file must contain valid UTF-8.", {
       cause: error,
     });
   } finally {

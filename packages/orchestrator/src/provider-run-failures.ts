@@ -91,7 +91,7 @@ export function classifyRunFailure(
     return {
       error: new ManagedProviderRunError(
         "telemetry_recording_failed",
-        "Managed run telemetry 기록에 실패했습니다.",
+        "Failed to record managed run telemetry.",
         { cause: error },
       ),
       phase,
@@ -108,7 +108,7 @@ export function classifyRunFailure(
             ? "context_injection_failed"
             : "contract_validation_failed";
     return {
-      error: new ManagedProviderRunError(code, "Managed context 단계가 실패했습니다.", {
+      error: new ManagedProviderRunError(code, "The managed context stage failed.", {
         cause: error,
       }),
       phase,
@@ -119,7 +119,7 @@ export function classifyRunFailure(
     return {
       error: new ManagedProviderRunError(
         "context_preparation_failed",
-        "Managed context 준비에 실패했습니다.",
+        "Failed to prepare managed context.",
         { cause: error },
       ),
       phase,
@@ -130,7 +130,7 @@ export function classifyRunFailure(
     return {
       error: new ManagedProviderRunError(
         "context_injection_failed",
-        "Managed context 주입에 실패했습니다.",
+        "Failed to inject managed context.",
         { cause: error },
       ),
       phase,
@@ -150,7 +150,7 @@ export function classifyRunFailure(
   }
   const code = failureCodeForPhase(phase);
   return {
-    error: new ManagedProviderRunError(code, "Managed provider run이 실패했습니다.", {
+    error: new ManagedProviderRunError(code, "The managed provider run failed.", {
       cause: error,
     }),
     phase,

@@ -1,0 +1,11 @@
+fromPath: docs/decisions/foundation/0087-single-bundle-cli-deployment-unit.md
+identityPath: docs/adr/0087-single-bundle-cli-deployment-unit.md
+kind: document_move
+lineageId: klineage_e3d1d2125de09905d644cc8e
+operationId: kdocop_1f77cd687f7e7293aa25a975
+schemaVersion: 1
+sourceContentHash: sha256:061092b406984ca65a76f553c64ccc5c22529b57a5113243a109786e5fb37cea
+sourceId: src_e316c93c402cc13a8e2a862a
+sourceUnitBindingDigest: sha256:00129ad580415de4e7b52790c09a8704a5d5657bb8a2f308a235cd57b369bc25
+sourceUnitCount: 5
+toPath: docs/decisions/distribution/0087-single-bundle-cli-deployment-unit.md

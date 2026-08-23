@@ -29,7 +29,7 @@ function assertSecretKey(value: string, label: string): void {
   if (value.length < 1 || value.length > 512) {
     throw new NativeChatAdapterError(
       "invalid_native_chat_configuration",
-      `${label} 길이가 유효하지 않습니다.`,
+      `${label} length is invalid.`,
     );
   }
 }
@@ -60,7 +60,7 @@ export class NativeChatConversationAdapter {
     if (!this.descriptor.capabilities.includes("messages.receive")) {
       throw new NativeChatAdapterError(
         "unsupported_native_chat_capability",
-        "Native chat adapter가 message 수신을 지원하지 않습니다.",
+        "The native chat adapter does not support message reception.",
       );
     }
     try {
@@ -82,7 +82,7 @@ export class NativeChatConversationAdapter {
     } catch (error) {
       throw new NativeChatAdapterError(
         "invalid_native_chat_event",
-        "Native chat inbound event를 정규화하지 못했습니다.",
+        "The native chat inbound event could not be normalized.",
         { cause: error },
       );
     }
@@ -92,7 +92,7 @@ export class NativeChatConversationAdapter {
     if (!this.descriptor.capabilities.includes("messages.send")) {
       throw new NativeChatAdapterError(
         "unsupported_native_chat_capability",
-        "Native chat adapter가 message 전송을 지원하지 않습니다.",
+        "The native chat adapter does not support message delivery.",
       );
     }
     try {
@@ -122,7 +122,7 @@ export class NativeChatConversationAdapter {
     } catch (error) {
       throw new NativeChatAdapterError(
         "native_chat_delivery_failed",
-        "Native chat message를 전달하지 못했습니다.",
+        "The native chat message could not be delivered.",
         { cause: error },
       );
     }

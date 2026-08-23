@@ -3,6 +3,7 @@ import type {
   ContextScope,
   DocumentRegistry,
   HandoffBundle,
+  KnowledgeContextMetadata,
   RoleProfile,
   SelectionReasonCode,
   SharedContextPublication,
@@ -20,7 +21,8 @@ export interface ContextDocumentCandidate {
   documentId: string;
   path: string;
   connectedPaths: readonly string[];
-  source: "instruction" | "registry";
+  source: "instruction" | "registry" | "knowledge";
+  knowledgeContext?: KnowledgeContextMetadata;
 }
 
 export interface ContextSelectionReason {
@@ -36,6 +38,7 @@ export interface PlannedContextDocument {
   reasons: ContextSelectionReason[];
   sharedContextIds: string[];
   expectedContentHash?: string;
+  knowledgeContext?: KnowledgeContextMetadata;
 }
 
 export interface ContextPlan {
@@ -62,6 +65,7 @@ export interface CreateContextPlanInput {
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   recommendationBatches?: readonly SearchRecommendationBatch[];
+  additionalCandidates?: readonly ContextDocumentCandidate[];
   policyVersion: string;
   recordedAt: Date;
   createReceiptId?: () => string;

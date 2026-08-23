@@ -1,65 +1,82 @@
+import { deliberationLanguageFor } from "./deliberation-language.js";
+
 interface PromptRole {
   name: string;
   description: string;
 }
 
 function roleContext(role: PromptRole): string[] {
-  return [`담당 역할: ${role.name}`, `역할 관점: ${role.description}`];
+  return [`Assigned role: ${role.name}`, `Role perspective: ${role.description}`];
 }
 
-export function proposalPrompt(topic: string, role: PromptRole): string {
+export function proposalPrompt(topic: string, role: PromptRole, locale: string): string {
+  deliberationLanguageFor(locale);
   return [
     ...roleContext(role),
-    "아래 주제에 대해 저장소 근거를 확인한 뒤 실행 가능한 제안을 작성하세요.",
-    "결론을 먼저 말하고 이유, 영향과 확인 방법을 자연스러운 한국어 문단으로 이어서 설명하세요.",
-    "내부 추론이나 JSON은 쓰지 마세요.",
+    "Inspect repository evidence and write an actionable proposal for the topic below.",
+    "Lead with the conclusion, then explain the reasons, impact, and verification method in coherent English paragraphs.",
+    "Do not include private reasoning or JSON.",
     "",
-    `주제: ${topic}`,
+    `Topic: ${topic}`,
   ].join("\n");
 }
 
-export function reviewPrompt(topic: string, round: number, role: PromptRole): string {
+export function reviewPrompt(
+  topic: string,
+  round: number,
+  role: PromptRole,
+  locale: string,
+): string {
+  const language = deliberationLanguageFor(locale);
   return [
     ...roleContext(role),
-    "공유된 최신 제안 또는 수정안을 독립적으로 검토하세요.",
-    "첫 문장은 반드시 '판정: 승인' 또는 '판정: 수정 필요' 중 하나로 작성하세요.",
-    "수정이 필요하면 실제로 결론을 막는 문제와 필요한 수정을 구체적으로 설명하세요.",
-    "승인이라면 확인한 근거와 남은 한계를 설명하세요. JSON은 쓰지 마세요.",
+    "Review the latest shared proposal or revision independently.",
+    `The first line must be exactly '${language.verdict.approved}' or '${language.verdict.revisionRequired}'.`,
+    "If revision is required, identify the issue that blocks the conclusion and the concrete change needed.",
+    "If approved, explain the evidence you checked and any remaining limitations. Do not write JSON.",
     "",
-    `검토 회차: ${round}`,
-    `주제: ${topic}`,
+    `Review round: ${round}`,
+    `Topic: ${topic}`,
   ].join("\n");
 }
 
-export function revisionPrompt(topic: string, role: PromptRole): string {
+export function revisionPrompt(topic: string, role: PromptRole, locale: string): string {
+  deliberationLanguageFor(locale);
   return [
     ...roleContext(role),
-    "공유된 제안과 차단 반론을 모두 다시 읽고, 반론을 해소한 수정안을 작성하세요.",
-    "무엇을 바꿨는지와 왜 반론이 해소되는지를 자연스러운 한국어 문단으로 설명하세요.",
-    "내부 추론이나 JSON은 쓰지 마세요.",
+    "Read the shared proposal and every blocking objection again, then write a revision that resolves them.",
+    "Explain what changed and why it resolves each objection in coherent English paragraphs.",
+    "Do not include private reasoning or JSON.",
     "",
-    `주제: ${topic}`,
+    `Topic: ${topic}`,
   ].join("\n");
 }
 
-export function verificationPrompt(topic: string, suiteId: string, role: PromptRole): string {
+export function verificationPrompt(
+  topic: string,
+  suiteId: string,
+  role: PromptRole,
+  locale: string,
+): string {
+  deliberationLanguageFor(locale);
   return [
     ...roleContext(role),
-    "공유된 최신 제안과 독립 검토 결과를 읽으세요.",
-    `Lervo가 별도로 실행하는 ${suiteId} 검증의 범위와 결과가 결론에 어떤 의미인지 설명하세요.`,
-    "검증을 실행했다고 미리 주장하거나 JSON을 쓰지 마세요.",
+    "Read the latest shared proposal and independent review results.",
+    `Explain what the separately executed ${suiteId} verification covers and what its result means for the conclusion.`,
+    "Do not claim that verification has run before evidence is available, and do not write JSON.",
     "",
-    `주제: ${topic}`,
+    `Topic: ${topic}`,
   ].join("\n");
 }
 
-export function decisionPrompt(topic: string, role: PromptRole): string {
+export function decisionPrompt(topic: string, role: PromptRole, locale: string): string {
+  deliberationLanguageFor(locale);
   return [
     ...roleContext(role),
-    "공유된 최신 제안, 승인 검토와 실제 verification 결과를 모두 읽으세요.",
-    "채택하는 결론을 먼저 말하고 적용 범위, 근거와 다음 행동을 자연스러운 한국어로 설명하세요.",
-    "검증되지 않은 사실이나 내부 추론, JSON은 쓰지 마세요.",
+    "Read the latest shared proposal, approved reviews, and actual verification results.",
+    "Lead with the adopted conclusion, then explain its scope, evidence, and next action in natural English.",
+    "Do not include unverified claims, private reasoning, or JSON.",
     "",
-    `주제: ${topic}`,
+    `Topic: ${topic}`,
   ].join("\n");
 }

@@ -19,7 +19,7 @@ export async function inspectFirstPublicationWorkflowActivationTransactionState(
   if (!isAbsolute(transactionRoot ?? "")) {
     fail(
       "first_publication_workflow_activation_post_apply_transaction_invalid",
-      "CLI 최초 게시 workflow 활성화 transaction 상태를 확인할 수 없습니다.",
+      "The CLI first-publication workflow activation transaction state could not be determined.",
     );
   }
   let metadata;
@@ -29,13 +29,13 @@ export async function inspectFirstPublicationWorkflowActivationTransactionState(
     if (error?.code === "ENOENT") return { status: "clear" };
     fail(
       "first_publication_workflow_activation_post_apply_transaction_invalid",
-      "CLI 최초 게시 workflow 활성화 transaction 상태를 확인할 수 없습니다.",
+      "The CLI first-publication workflow activation transaction state could not be determined.",
     );
   }
   if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
     fail(
       "first_publication_workflow_activation_post_apply_transaction_invalid",
-      "CLI 최초 게시 workflow 활성화 transaction 상태를 확인할 수 없습니다.",
+      "The CLI first-publication workflow activation transaction state could not be determined.",
     );
   }
   return { status: "recovery_required" };
@@ -45,7 +45,7 @@ export function assertFirstPublicationWorkflowActivationTransactionClear(state) 
   if (state?.status !== "clear") {
     fail(
       "first_publication_workflow_activation_post_apply_transaction_pending",
-      "중단된 CLI 최초 게시 workflow 활성화 transaction을 먼저 복구해야 합니다.",
+      "The interrupted CLI first-publication workflow activation transaction must be recovered first.",
     );
   }
   return state;

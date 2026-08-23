@@ -1,0 +1,12 @@
+schemaVersion: 1
+projectId: prj_ab094111596346d7
+name: lervo
+root: .
+createdAt: 2026-08-22T12:04:13.404Z
+dataPolicy:
+  eventMetadataRetentionDays: 90
+  artifactRetentionDays: 30
+  persistRawPrompts: false
+  persistDocumentBodiesInEvents: false
+  hubSyncEnabled: false
+  eventPayloadMode: allowlist

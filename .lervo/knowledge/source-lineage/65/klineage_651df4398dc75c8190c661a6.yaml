@@ -1,0 +1,11 @@
+fromPath: docs/adr/0158-direct-tls-hub-runtime.md
+identityPath: docs/adr/0158-direct-tls-hub-runtime.md
+kind: document_move
+lineageId: klineage_651df4398dc75c8190c661a6
+operationId: kdocop_e60d0d59e1979cb54d847d4f
+schemaVersion: 1
+sourceContentHash: sha256:640accb7c55fd3971323bbe28dba908968ca5e77095c8e3c5e968526b7050413
+sourceId: src_906a35d245a0766034972303
+sourceUnitBindingDigest: sha256:a3a8ab7e72c8306618a103dfeb39e5eae1a6e90297bd9d6020b7319b6efac697
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md

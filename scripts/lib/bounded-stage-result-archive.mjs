@@ -17,7 +17,7 @@ const allowedFlags = 0x0808;
 function fail(code = "first_publication_stage_result_archive_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 결과 artifact archive가 올바르지 않습니다.",
+    "The CLI npm stage-result artifact archive is invalid.",
   );
 }
 

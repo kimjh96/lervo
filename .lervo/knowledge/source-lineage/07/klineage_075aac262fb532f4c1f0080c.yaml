@@ -1,0 +1,11 @@
+fromPath: docs/adr/0119-cli-stage-only-workflow-activation-permit-transaction.md
+identityPath: docs/adr/0119-cli-stage-only-workflow-activation-permit-transaction.md
+kind: document_move
+lineageId: klineage_075aac262fb532f4c1f0080c
+operationId: kdocop_1b025ed3362156e395902ef1
+schemaVersion: 1
+sourceContentHash: sha256:db45d35305546b202181c15d4f547b43fac6025afab4e362c645a2c61df54264
+sourceId: src_25f9ab047845b1153895fed3
+sourceUnitBindingDigest: sha256:4dfe89240c62d4065ceb886ed6df66b1131717ab7712e769073ba5b381d31291
+sourceUnitCount: 8
+toPath: docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md

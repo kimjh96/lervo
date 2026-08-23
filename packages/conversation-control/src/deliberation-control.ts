@@ -59,13 +59,13 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
         binding.permissions.some((permission) => !deliberationPermissions.has(permission))
       ) throw new ConversationControlError(
         "control_command_invalid",
-        "Conversation 숙의 principal binding이 유효하지 않습니다.",
+        "The conversation deliberation principal binding is invalid.",
       );
       const bindingKey = key(binding.projectId, binding.participantId);
       if (this.bindings.has(bindingKey)) {
         throw new ConversationControlError(
           "control_command_invalid",
-          "Conversation 숙의 principal binding이 중복되었습니다.",
+          "A conversation deliberation principal binding is duplicated.",
         );
       }
       this.bindings.set(bindingKey, { ...binding, permissions: [...binding.permissions] });
@@ -112,14 +112,14 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
     if (event.actor.kind !== "human") {
       throw new ConversationControlError(
         "control_access_denied",
-        "사람 participant만 숙의를 시작·재개하거나 조회할 수 있습니다.",
+        "Only a human participant can start, resume, or inspect a deliberation.",
       );
     }
     const binding = this.bindings.get(key(event.target.projectId, event.actor.participantId));
     if (binding === undefined || !binding.permissions.includes(permission)) {
       throw new ConversationControlError(
         "control_access_denied",
-        "대화 참여자에게 숙의 권한이 없습니다.",
+        "The conversation participant does not have deliberation permission.",
       );
     }
     return binding;

@@ -13,7 +13,7 @@ const maximumInputBytes = 64 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_arming_source_invalid",
-    "CLI 최초 게시 실행 허가 원본이 올바르지 않습니다.",
+    "The CLI first-publication execution authorization source is invalid.",
   );
 }
 

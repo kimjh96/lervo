@@ -19,7 +19,7 @@ function replacements(values: string[] | undefined): SearchEvaluationCaseReplace
   return (values ?? []).map((value) => {
     const separator = value.indexOf(":");
     if (separator < 1 || separator !== value.lastIndexOf(":") || separator === value.length - 1) {
-      throw new Error(`대체 관계는 <old-case-id>:<new-case-id> 형식이어야 합니다: ${value}`);
+      throw new Error(`Replacement relationships must use <old-case-id>:<new-case-id>: ${value}`);
     }
     return { replacedCaseId: value.slice(0, separator), replacementCaseId: value.slice(separator + 1) };
   });
@@ -50,7 +50,7 @@ export async function runSearchBundleCreateCommand(args: string[], io: CliIo): P
   if (parsed.positionals.length !== 1 || parsed.values.role === undefined ||
     parsed.values["task-type"] === undefined || parsed.values["minimum-cases"] === undefined ||
     !Number.isSafeInteger(minimumActiveCases) || minimumActiveCases < 1 || minimumActiveCases > 64) {
-    io.stderr(`bundle ID, role, task-type과 1~64의 minimum-cases가 필요합니다.\n${searchUsage}\n`);
+    io.stderr(`A bundle ID, role, task-type, and minimum-cases from 1 to 64 are required.\n${searchUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -74,8 +74,8 @@ export async function runSearchBundleCreateCommand(args: string[], io: CliIo): P
       : formatSearchEvaluationBundle(bundle));
     return 0;
   } catch (error) {
-    io.stderr(`검색 평가 묶음을 만들지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not create the search evaluation bundle. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

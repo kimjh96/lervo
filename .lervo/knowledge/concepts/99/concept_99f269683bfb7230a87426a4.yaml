@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_99f269683bfb7230a87426a4
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/documents/0021-commonmark-managed-block-parser.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_36775a2ee690961bdbd1a6d6
+title: "ADR-0021: CommonMark managed-block parsing"
+type: decision

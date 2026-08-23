@@ -28,10 +28,10 @@ export function createSearchAttempt(input: {
   assertSearchEngineIdentity(input.response.engine, "invalid_attempt");
   const selectionTransitionId = input.selectionTransitionId ?? null;
   if (selectionTransitionId !== null && !/^seact_[a-f0-9]{24}$/.test(selectionTransitionId)) {
-    throw new SearchError("invalid_attempt", "검색 엔진 선택 전이 ID가 유효하지 않습니다.");
+    throw new SearchError("invalid_attempt", "The search engine selection transition ID is invalid.");
   }
   if (!sameSearchEngine(input.response.engine, SEARCH_ENGINE) && selectionTransitionId === null) {
-    throw new SearchError("invalid_attempt", "후보 검색 엔진 시도에는 선택 전이 ID가 필요합니다.");
+    throw new SearchError("invalid_attempt", "A candidate search engine attempt requires a selection transition ID.");
   }
   const core = {
     projectId: input.projectId,
@@ -68,18 +68,18 @@ export function assertSearchAttempt(attempt: SearchAttempt): void {
     !Number.isSafeInteger(attempt.queryTermCount) || attempt.queryTermCount < 1 || attempt.queryTermCount > 32 ||
     !Number.isSafeInteger(attempt.requestedLimit) || attempt.requestedLimit < 1 || attempt.requestedLimit > SEARCH_MAX_RESULTS ||
     !Array.isArray(attempt.hits) || attempt.hits.length > attempt.requestedLimit) {
-    throw new SearchError("invalid_attempt", "검색 시도 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_attempt", "The search attempt contract is invalid.");
   }
   assertSearchEngineIdentity(attempt.engine, "invalid_attempt");
   if (!sameSearchEngine(attempt.engine, SEARCH_ENGINE) && attempt.selectionTransitionId === null) {
-    throw new SearchError("invalid_attempt", "후보 검색 엔진 시도에는 선택 전이 ID가 필요합니다.");
+    throw new SearchError("invalid_attempt", "A candidate search engine attempt requires a selection transition ID.");
   }
   assertTimestamp(attempt.observedAt, "invalid_attempt");
   for (const [index, hit] of attempt.hits.entries()) {
     if (!searchSourceKinds.includes(hit.sourceKind) || !SOURCE_ID_PATTERN.test(hit.sourceId) ||
       !SHA256_PATTERN.test(hit.contentHash) || hit.rank !== index + 1 ||
       !Number.isSafeInteger(hit.score) || hit.score < 1) {
-      throw new SearchError("invalid_attempt", "검색 시도 결과 좌표가 유효하지 않습니다.");
+      throw new SearchError("invalid_attempt", "The search attempt result coordinates are invalid.");
     }
   }
   if (new Set(attempt.hits.map(hitKey)).size !== attempt.hits.length ||
@@ -88,10 +88,10 @@ export function assertSearchAttempt(attempt: SearchAttempt): void {
       const previous = attempt.hits[index - 1]!;
       return hit.score > previous.score || (hit.score === previous.score && hitKey(hit) <= hitKey(previous));
     })) {
-    throw new SearchError("invalid_attempt", "검색 시도 결과가 중복되었거나 점수 순서가 다릅니다.");
+    throw new SearchError("invalid_attempt", "Search attempt results are duplicated or not ordered by score.");
   }
   const { schemaVersion: _schema, attemptId: _id, ...core } = attempt;
   if (canonicalHash(attempt.hits) !== attempt.resultSetHash || contentId("sat", core) !== attempt.attemptId) {
-    throw new SearchError("invalid_attempt", "검색 시도 hash가 실제 결과와 다릅니다.");
+    throw new SearchError("invalid_attempt", "The search attempt hash does not match the actual results.");
   }
 }

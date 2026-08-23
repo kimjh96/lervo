@@ -120,14 +120,14 @@ export async function inspectDocuments(sourceRoot: string): Promise<DocumentInsp
   }
   if (directoryKind === "directory" && registryKind === "missing") {
     const entries = await readdir(directory, { withFileTypes: true });
-    if (entries.length > 4_096) throw new Error("문서 manifest 수가 안전한 한도를 넘습니다.");
+    if (entries.length > 4_096) throw new Error("The document manifest count exceeds the safe limit.");
     const manifests: DocumentManifest[] = [];
     let previous = false;
     for (const entry of entries.sort((left, right) =>
       left.name === right.name ? 0 : left.name < right.name ? -1 : 1
     )) {
       if (!entry.isFile() || entry.isSymbolicLink() || !DOCUMENT_FILE_PATTERN.test(entry.name)) {
-        throw new Error("문서 manifest 디렉터리에 계약 밖의 항목이 있습니다.");
+        throw new Error("The document manifest directory contains an entry outside the contract.");
       }
       const path = resolve(directory, entry.name);
       const read = readManifest(
@@ -154,5 +154,5 @@ export async function inspectDocuments(sourceRoot: string): Promise<DocumentInsp
       return { disposition: "archive_previous_metadata", archiveSourceName: "documents.yaml" };
     }
   }
-  throw new Error("문서 manifest와 기존 registry의 저장 형식을 하나로 결정할 수 없습니다.");
+  throw new Error("The storage format cannot be resolved between document manifests and the legacy registry.");
 }

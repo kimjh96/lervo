@@ -38,13 +38,13 @@ export async function inspectDoctorSkills(input: {
       doctorInspection("skill_packages", "unhealthy", 0, [
         doctorIssue(
           "skill_package_invalid",
-          "스킬 패키지의 manifest, content hash 또는 경로를 확인할 수 없습니다.",
+          "Could not validate a skill package manifest, content hash, or path.",
         ),
       ]),
       doctorInspection("skill_lock", "unknown", 0, [
         doctorIssue(
           "skill_lock_invalid",
-          "스킬 패키지가 유효하지 않아 skills.lock과 대조하지 못했습니다.",
+          "Could not compare skills.lock because a skill package is invalid.",
         ),
       ]),
     ];
@@ -58,7 +58,7 @@ export async function inspectDoctorSkills(input: {
       doctorInspection("skill_lock", "unhealthy", 0, [
         doctorIssue(
           "skill_lock_invalid",
-          "skills.lock을 안전하게 읽거나 계약에 맞게 해석할 수 없습니다.",
+          "Could not safely read or validate skills.lock against its contract.",
         ),
       ]),
     ];
@@ -74,7 +74,7 @@ export async function inspectDoctorSkills(input: {
           ? []
           : [doctorIssue(
             "skill_lock_missing",
-            "스킬 패키지는 있지만 실행별 해석 결과인 skills.lock이 아직 없습니다.",
+            "Skill packages exist, but no per-run resolution record exists in skills.lock yet.",
           )],
       ),
     ];
@@ -110,7 +110,7 @@ export async function inspectDoctorSkills(input: {
       stale
         ? [doctorIssue(
           "skill_lock_stale",
-          "skills.lock의 project 또는 현재 스킬 해석 결과가 기록된 원본과 다릅니다.",
+          "The skills.lock project or current skill resolution differs from the recorded source.",
         )]
         : [],
     ),

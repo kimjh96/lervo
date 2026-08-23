@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_428175bf113421dc57d9694d
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0084-trace-bounded-default-release.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_77bd87285adfea67691b62e2
+title: "ADR-0084: 0.1.0 bounded trace default"
+type: decision

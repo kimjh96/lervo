@@ -1,0 +1,219 @@
+schemaVersion: 1
+taxonomyId: decisions.default
+decisionRoot: docs/decisions
+legacyRoots:
+  - docs/adr
+maxLeafDocuments: 24
+routes:
+  - id: search
+    path: search
+    priority: 100
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - search
+      - bm25
+      - lexical
+  - id: knowledge.documents
+    path: knowledge/documents
+    priority: 95
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - document
+      - commonmark
+      - markdown
+      - managed block
+      - staleness
+  - id: knowledge.semantics
+    path: knowledge/semantics
+    priority: 94
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - semantic candidate
+      - knowledge graph
+      - duplicate
+      - contradiction
+      - cross provider
+      - compilation comparison
+  - id: knowledge.repository
+    path: knowledge/repository
+    priority: 93
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - knowledge
+      - repository migration
+      - agent surface
+      - language
+      - instruction bridge
+      - okf
+      - source unit
+      - parser grade
+      - revision source
+  - id: release.staging
+    path: release/staging
+    priority: 90
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - stage only
+      - stage approval
+      - stage evidence
+      - staged package
+      - npm stage
+      - staging
+  - id: release.bootstrap
+    path: release/bootstrap
+    priority: 89
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - first publication
+      - publication bootstrap
+  - id: release.assurance
+    path: release/assurance
+    priority: 88
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - sbom
+      - attestation
+      - provenance
+      - trusted publisher
+      - publication authorization
+      - publication preflight
+  - id: release.packaging
+    path: release/packaging
+    priority: 87
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - release
+      - publish
+      - publication
+      - npm
+      - package
+  - id: coordination.deliberation
+    path: coordination/deliberation
+    priority: 84
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - deliberation
+  - id: coordination.conversations
+    path: coordination/conversations
+    priority: 83
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - conversation
+      - slack
+      - discord
+  - id: coordination.sync
+    path: coordination/sync
+    priority: 82
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - hub sync
+      - outbound sync
+      - project sync
+      - registration
+  - id: coordination.remote-control
+    path: coordination/remote-control
+    priority: 81
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - hub
+      - remote command
+      - remote commands
+      - remote control
+      - command artifact
+      - role handoff
+  - id: distribution
+    path: distribution
+    priority: 70
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - distribution
+      - install
+      - installation
+      - installed cli
+      - cli deployment
+      - standalone
+  - id: operations.trace
+    path: operations/trace
+    priority: 64
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - trace
+  - id: operations.diagnostics
+    path: operations/diagnostics
+    priority: 63
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - doctor
+      - diagnostic
+      - diagnostics
+  - id: operations.security
+    path: operations/security
+    priority: 62
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - bearer token
+      - trust material
+      - credential
+      - tls
+  - id: operations.services
+    path: operations/services
+    priority: 61
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - runtime service
+      - readiness
+      - preflight
+  - id: operations.storage
+    path: operations/storage
+    priority: 60
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - storage
+      - event store
+      - cas
+      - cleanup
+  - id: execution.providers
+    path: execution/providers
+    priority: 53
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - provider
+      - adapter
+      - session
+      - codex
+      - claude
+  - id: execution.verification
+    path: execution/verification
+    priority: 52
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - verification
+      - managed write
+      - result artifact
+      - publication gate
+      - permit
+      - approval
+  - id: execution.orchestration
+    path: execution/orchestration
+    priority: 51
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - run
+      - context
+      - skill
+      - execution
+      - orchestration
+      - specialist roles
+      - cross review
+  - id: foundation
+    path: foundation
+    priority: 10
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - foundation
+      - foundational
+      - product identity
+      - m0 contract
+      - data default
+      - safe project initialization
+      - invariant

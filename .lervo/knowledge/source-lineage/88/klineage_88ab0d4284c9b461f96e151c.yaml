@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0161-atomic-node-bearer-token-reload.md
+identityPath: docs/adr/0161-atomic-node-bearer-token-reload.md
+kind: document_move
+lineageId: klineage_88ab0d4284c9b461f96e151c
+operationId: kdocop_5efdbdeb1d6c3247a092dde9
+schemaVersion: 1
+sourceContentHash: sha256:3a580952f2588dfe755b738d85324e1197085dea448dd22a2b9124ff8bed693b
+sourceId: src_8faab23751d76d05d4265150
+sourceUnitBindingDigest: sha256:2887085c67d18ab1315a663052100bff21ff5b05c0149c4897fd954f500c21e0
+sourceUnitCount: 5
+toPath: docs/decisions/operations/security/0161-atomic-node-bearer-token-reload.md

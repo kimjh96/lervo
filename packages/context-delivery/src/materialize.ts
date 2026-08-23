@@ -41,7 +41,7 @@ async function storeInCas(
     ) {
       throw new ContextDeliveryError(
         "artifact_storage_failed",
-        `CAS 검증이 실패했습니다: ${documentId}`,
+        `CAS verification failed: ${documentId}`,
       );
     }
     return { kind: "cas", uri: result.uri };
@@ -49,7 +49,7 @@ async function storeInCas(
     if (error instanceof ContextDeliveryError) throw error;
     throw new ContextDeliveryError(
       "artifact_storage_failed",
-      `CAS에 context 문서를 안전하게 저장하지 못했습니다: ${documentId}`,
+      `Could not store the context document safely in CAS: ${documentId}`,
       { cause: error },
     );
   }
@@ -72,6 +72,9 @@ export async function materializeContextDocuments(input: {
       byteCount: document.byteCount,
       scope: cloneContextScope(document.scope),
       sharedContextIds: [...document.sharedContextIds],
+      ...(document.knowledgeContext === undefined
+        ? {}
+        : { knowledgeContext: structuredClone(document.knowledgeContext) }),
       bytes: Uint8Array.from(document.bytes),
     };
   });
@@ -94,7 +97,7 @@ export async function materializeContextDocuments(input: {
         if (error instanceof ContextDeliveryError) throw error;
         throw new ContextDeliveryError(
           "invalid_delivery_request",
-          `Delivery policy 실행에 실패했습니다: ${snapshot.documentId}`,
+          `Delivery policy execution failed: ${snapshot.documentId}`,
         );
       }
       let delivery: { kind: "inline"; content: string } | { kind: "cas"; uri: string };
@@ -102,7 +105,7 @@ export async function materializeContextDocuments(input: {
         if (inline === null) {
           throw new ContextDeliveryError(
             "invalid_inline_content",
-            `UTF-8로 손실 없이 전달할 수 없는 문서입니다: ${snapshot.documentId}`,
+            `The document cannot be delivered losslessly as UTF-8: ${snapshot.documentId}`,
           );
         }
         delivery = { kind: "inline", content: inline };
@@ -110,7 +113,7 @@ export async function materializeContextDocuments(input: {
         if (input.options.artifactStore === undefined) {
           throw new ContextDeliveryError(
             "artifact_store_required",
-            `CAS 전달에 artifact port가 필요합니다: ${snapshot.documentId}`,
+            `CAS delivery requires an artifact port: ${snapshot.documentId}`,
           );
         }
         delivery = await storeInCas(
@@ -122,7 +125,7 @@ export async function materializeContextDocuments(input: {
       } else {
         throw new ContextDeliveryError(
           "invalid_delivery_request",
-          `Delivery policy가 지원하지 않는 결과를 반환했습니다: ${snapshot.documentId}`,
+          `The delivery policy returned an unsupported result: ${snapshot.documentId}`,
         );
       }
       return {
@@ -131,6 +134,9 @@ export async function materializeContextDocuments(input: {
         contentHash: snapshot.contentHash,
         byteCount: snapshot.byteCount,
         scope: cloneContextScope(snapshot.scope),
+        ...(snapshot.knowledgeContext === undefined
+          ? {}
+          : { knowledgeContext: structuredClone(snapshot.knowledgeContext) }),
         delivery,
       };
     }),

@@ -7,8 +7,8 @@ import type {
 } from "@lervo/schemas";
 
 const abstractActionSubjectPatterns = [
-  /(사람|사용자|담당자)(?:은|는|이|가) ?(?:직접 |최종 )?(?:확인|판단|처리|머지|편집|검토|결정|재검증)/g,
-  /(사람|사용자|담당자) ?(?:직접 |최종 )?(?:확인|판단|처리|머지|편집|검토|결정|재검증)(?= ?(?:이|가|은|는|도)? ?(?:필요|대기|대상)| ?[.!?,)'"\]]| ?$)/gm,
+  /\b(?:the )?(?:user|person|owner|someone) (?:must|needs? to|should) (?:check|decide|handle|merge|edit|review|verify)\b/gi,
+  /\b(?:user|human|owner) (?:confirmation|decision|review|verification) (?:is )?(?:needed|required|pending)\b/gi,
 ];
 
 function digestEvidence(checkId: string, text: string): string {

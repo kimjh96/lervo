@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e10b28b65e7778eb3f076635
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0159-atomic-hub-bearer-credential-reload.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_31f4d9cbb2915bdebc65415f
+title: "ADR-0159: Atomic Hub Bearer-Credential Reload"
+type: decision

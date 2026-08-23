@@ -20,7 +20,7 @@ export function assertConversationAdapterDescriptor(
   if (!validateSchema("conversationAdapterDescriptor", descriptor).valid) {
     throw new ConversationContractError(
       "invalid_adapter_descriptor",
-      "Conversation adapter descriptor가 유효하지 않습니다.",
+      "The conversation adapter descriptor is invalid.",
     );
   }
 }
@@ -73,7 +73,7 @@ export function assertConversationOutboundMessage(input: {
   if (!validateSchema("conversationOutboundMessage", outbound).valid) {
     throw new ConversationContractError(
       "invalid_outbound_message",
-      "Conversation outbound message 계약이 유효하지 않습니다.",
+      "The conversation outbound message contract is invalid.",
     );
   }
   const { outboundId: _outboundId, ...content } = outbound;
@@ -101,7 +101,7 @@ export function assertConversationOutboundMessage(input: {
   ) {
     throw new ConversationContractError(
       "invalid_outbound_message",
-      "Conversation outbound ID, publication permit 또는 원본 좌표가 다릅니다.",
+      "The conversation outbound ID, publication permit, or source coordinates differ.",
     );
   }
 }
@@ -119,7 +119,7 @@ export function assertConversationDeliveryReceipt(input: {
   ) {
     throw new ConversationContractError(
       "invalid_delivery_receipt",
-      "Conversation delivery receipt 좌표가 원본과 다릅니다.",
+      "The conversation delivery receipt coordinates differ from the source.",
     );
   }
 }

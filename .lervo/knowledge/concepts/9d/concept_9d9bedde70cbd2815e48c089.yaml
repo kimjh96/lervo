@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9d9bedde70cbd2815e48c089
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0011-managed-provider-run-lifecycle.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a4391fe8eb01b267b5b41dc6
+title: "ADR-0011: Managed provider run lifecycle and repository boundary"
+type: decision

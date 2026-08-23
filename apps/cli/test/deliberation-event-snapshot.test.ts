@@ -98,7 +98,7 @@ describe("deliberation event snapshot scan", () => {
       deliberationId,
       checkpointEventIds: new Set(),
       checkpointRunIds: new Set(),
-    })).toThrow("1,000개");
+    })).toThrow("more than 1,000 events");
   });
 
   it("rejects checkpoint evidence outside the fixed snapshot", () => {
@@ -115,6 +115,6 @@ describe("deliberation event snapshot scan", () => {
       deliberationId: "dlb_snapshot03",
       checkpointEventIds: new Set(["evt_00000002"]),
       checkpointRunIds: new Set(),
-    })).toThrow("snapshot과 일치하지 않습니다");
+    })).toThrow("do not match the current snapshot");
   });
 });

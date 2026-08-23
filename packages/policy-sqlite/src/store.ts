@@ -45,7 +45,7 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
     if (
       !Number.isSafeInteger(maxSnapshots) || maxSnapshots < 1 || maxSnapshots > 100_000 ||
       !Number.isSafeInteger(maxApprovals) || maxApprovals < 1 || maxApprovals > 1_000_000
-    ) throw new PolicySQLiteError("integrity_failed", "policy SQLite capacity 설정이 유효하지 않습니다.");
+    ) throw new PolicySQLiteError("integrity_failed", "The policy SQLite capacity settings are invalid.");
     const path = await ensurePolicyDatabasePath(options.path);
     const database = new DatabaseSync(path, { enableForeignKeyConstraints: true, allowExtension: false });
     try {
@@ -62,14 +62,14 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
   }
 
   private assertOpen(): void {
-    if (this.closed) throw new PolicySQLiteError("closed", "닫힌 policy store입니다.");
+    if (this.closed) throw new PolicySQLiteError("closed", "The policy store is closed.");
   }
 
   private bindTarget(target: RemoteCommandTarget): void {
     if (
       !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(target.projectId) ||
       !/^sha256:[a-f0-9]{64}$/.test(target.projectIdentityHash)
-    ) throw new PolicySQLiteError("integrity_failed", "policy store project target이 유효하지 않습니다.");
+    ) throw new PolicySQLiteError("integrity_failed", "The policy store project target is invalid.");
     this.database.exec("BEGIN IMMEDIATE;");
     try {
       const projectId = this.database.prepare("SELECT value FROM policy_meta WHERE key = 'project_id'").get()?.value;
@@ -79,7 +79,7 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
         insert.run("project_id", target.projectId);
         insert.run("project_identity_hash", target.projectIdentityHash);
       } else if (projectId !== target.projectId || identityHash !== target.projectIdentityHash) {
-        throw new PolicySQLiteError("integrity_failed", "policy database가 다른 project에 고정되어 있습니다.");
+        throw new PolicySQLiteError("integrity_failed", "The policy database is bound to a different project.");
       }
       this.database.exec("COMMIT;");
     } catch (error) {
@@ -145,11 +145,11 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
         current !== null && !duplicateSnapshot &&
         (snapshot.sequence !== current.snapshot.sequence + 1 ||
           snapshot.previousSnapshotId !== current.snapshot.snapshotId)
-      ) throw new PolicySQLiteError("stale_policy", "policy snapshot이 현재 연속 이력의 다음 revision이 아닙니다.");
+      ) throw new PolicySQLiteError("stale_policy", "The policy snapshot is not the next revision in the current continuous history.");
       if (!duplicateSnapshot) {
         const count = this.database.prepare("SELECT COUNT(*) AS count FROM policy_snapshots").get()?.count;
         if (typeof count !== "number" || count >= this.maxSnapshots) {
-          throw new PolicySQLiteError("capacity_exceeded", "policy snapshot capacity를 초과했습니다.");
+          throw new PolicySQLiteError("capacity_exceeded", "The policy snapshot capacity has been exceeded.");
         }
         this.database.prepare(`INSERT INTO policy_snapshots (${SNAPSHOT_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
           snapshot.snapshotId, snapshot.sequence, snapshot.previousSnapshotId,
@@ -157,12 +157,12 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
           Date.parse(snapshot.expiresAt), JSON.stringify(bundle.snapshot),
         );
       } else if (JSON.stringify(current) !== JSON.stringify(bundle.snapshot)) {
-        throw new PolicySQLiteError("integrity_failed", "같은 policy snapshot ID의 원본이 다릅니다.");
+        throw new PolicySQLiteError("integrity_failed", "Sources with the same policy snapshot ID differ.");
       }
 
       const approvalCount = this.database.prepare("SELECT COUNT(*) AS count FROM policy_approvals").get()?.count;
       if (typeof approvalCount !== "number") {
-        throw new PolicySQLiteError("capacity_exceeded", "policy approval capacity를 초과했습니다.");
+        throw new PolicySQLiteError("capacity_exceeded", "The policy approval capacity has been exceeded.");
       }
       let currentApprovalCount = approvalCount;
       let insertedApprovals = 0;
@@ -172,12 +172,12 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
         const existing = this.database.prepare(`SELECT ${APPROVAL_COLUMNS} FROM policy_approvals WHERE approval_id = ?`).get(approval.approvalId);
         if (existing !== undefined) {
           if (JSON.stringify(decodeApprovalRow(existing)) !== JSON.stringify(envelope)) {
-            throw new PolicySQLiteError("integrity_failed", "같은 policy approval ID의 원본이 다릅니다.");
+            throw new PolicySQLiteError("integrity_failed", "Sources with the same policy approval ID differ.");
           }
           continue;
         }
         if (currentApprovalCount >= this.maxApprovals) {
-          throw new PolicySQLiteError("capacity_exceeded", "policy approval capacity를 초과했습니다.");
+          throw new PolicySQLiteError("capacity_exceeded", "The policy approval capacity has been exceeded.");
         }
         this.database.prepare(`INSERT INTO policy_approvals (${APPROVAL_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
           approval.approvalId, approval.snapshotId, approval.commandId, approval.commandHash,
@@ -191,11 +191,11 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
       let insertedRevocations = 0;
       for (const envelope of bundle.revocations) {
         const state = this.getApprovalWithinTransaction(envelope.revocation.approvalId);
-        if (state === null) throw new PolicySQLiteError("integrity_failed", "policy revocation approval 원본이 없습니다.");
+        if (state === null) throw new PolicySQLiteError("integrity_failed", "The policy revocation's source approval is missing.");
         assertPolicyApprovalRevocation({ revocation: envelope.revocation, approval: state.approval.approval });
         if (state.revocation !== null) {
           if (JSON.stringify(state.revocation) !== JSON.stringify(envelope)) {
-            throw new PolicySQLiteError("integrity_failed", "policy approval에 다른 revocation이 이미 있습니다.");
+            throw new PolicySQLiteError("integrity_failed", "The policy approval already has a different revocation.");
           }
           continue;
         }
@@ -214,12 +214,12 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
       };
     } catch (error) {
       try { this.database.exec("ROLLBACK;"); } catch (rollbackError) {
-        throw new PolicySQLiteError("write_failed", "policy bundle 저장과 rollback이 실패했습니다.", {
+        throw new PolicySQLiteError("write_failed", "Saving the policy bundle and rolling back both failed.", {
           cause: new AggregateError([error, rollbackError]),
         });
       }
       if (error instanceof PolicySQLiteError) throw error;
-      throw new PolicySQLiteError("write_failed", "policy bundle을 저장하지 못했습니다.", { cause: error });
+      throw new PolicySQLiteError("write_failed", "The policy bundle could not be saved.", { cause: error });
     }
   }
 
@@ -233,7 +233,7 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
   checkStructure(): void {
     this.assertOpen();
     if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new PolicySQLiteError("integrity_failed", "policy SQLite quick_check가 실패했습니다.");
+      throw new PolicySQLiteError("integrity_failed", "The policy SQLite quick_check failed.");
     }
     const required = new Set([
       "policy_snapshots_immutable", "policy_snapshots_no_delete",
@@ -243,15 +243,15 @@ export class SQLitePolicyStateStore implements PolicyStateStore {
     for (const row of this.database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").all()) {
       if (typeof row.name === "string") required.delete(row.name);
     }
-    if (required.size !== 0) throw new PolicySQLiteError("integrity_failed", "policy SQLite immutable trigger가 누락되었습니다.");
+    if (required.size !== 0) throw new PolicySQLiteError("integrity_failed", "A policy SQLite immutability trigger is missing.");
     const meta = this.database.prepare("SELECT key, value FROM policy_meta ORDER BY key").all();
     if (meta.length !== 2 || meta[0]?.key !== "project_id" || meta[1]?.key !== "project_identity_hash") {
-      throw new PolicySQLiteError("integrity_failed", "policy SQLite project metadata가 유효하지 않습니다.");
+      throw new PolicySQLiteError("integrity_failed", "The policy SQLite project metadata is invalid.");
     }
     const snapshots = this.database.prepare("SELECT COUNT(*) AS count FROM policy_snapshots").get()?.count;
     const approvals = this.database.prepare("SELECT COUNT(*) AS count FROM policy_approvals").get()?.count;
     if (typeof snapshots !== "number" || snapshots > this.maxSnapshots || typeof approvals !== "number" || approvals > this.maxApprovals) {
-      throw new PolicySQLiteError("capacity_exceeded", "policy SQLite capacity를 초과했습니다.");
+      throw new PolicySQLiteError("capacity_exceeded", "The policy SQLite capacity has been exceeded.");
     }
   }
 

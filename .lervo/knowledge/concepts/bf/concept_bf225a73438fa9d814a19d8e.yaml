@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_bf225a73438fa9d814a19d8e
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0038-bounded-async-hub-storage-and-trace.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_12c77be86edb7dd720aa1781
+title: "ADR-0038: History-size-independent async Hub storage and bounded trace"
+type: decision

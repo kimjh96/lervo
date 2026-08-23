@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_3e967851e2e265d85142afb0
+freshness: current
+ownership: user
+path: docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_5b980f7f6c4cfff0be037a8d
+title: "ADR-0062: Refreshing evidence for a selected search candidate"
+type: decision

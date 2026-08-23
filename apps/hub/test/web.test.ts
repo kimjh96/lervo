@@ -24,10 +24,10 @@ describe("Hub trace web view", () => {
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
     expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
-    expect(html).toContain("1단계");
-    expect(html).toContain("2단계");
-    expect(html).toContain("3단계");
-    expect(html).toContain("지식 그래프");
+    expect(html).toContain("Step 1");
+    expect(html).toContain("Step 2");
+    expect(html).toContain("Step 3");
+    expect(html).toContain("Knowledge graph");
     expect(html).toContain('src="/assets/trace.js"');
     expect(html).not.toContain('name="token"');
     expect(html).not.toContain(token);
@@ -108,7 +108,7 @@ describe("Hub command control web view", () => {
 
     expect(page.status).toBe(200);
     expect(page.headers.get("cache-control")).toBe("no-store");
-    expect(html).toContain("대화 메시지나 반응만으로 승인이 만들어지지 않습니다.");
+    expect(html).toContain("Conversation messages and reactions cannot create approvals.");
     expect(html).toContain('src="/assets/control.js"');
     expect(html).not.toContain(token);
     expect(scriptResponses.every((response) => response.status === 200)).toBe(true);

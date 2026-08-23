@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a1e628fe26fa4eb429575aee
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0156-managed-provider-skill-resolution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_04e93868eb9e0ae4d0b58710
+title: "ADR-0156: Local Skill Resolution in the Managed Provider Host"
+type: decision

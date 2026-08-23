@@ -17,14 +17,14 @@ const semanticVersionPattern = /^\d+\.\d+\.\d+$/u;
 function invalid() {
   throw new FirstPublicationBootstrapError(
     "first_publication_bootstrap_invalid",
-    "CLI 최초 게시 bootstrap 입력이 올바르지 않습니다.",
+    "The CLI first-publication bootstrap input is invalid.",
   );
 }
 
 function unsupported() {
   throw new FirstPublicationBootstrapError(
     "first_publication_bootstrap_schema_unsupported",
-    "지원하지 않는 CLI 최초 게시 bootstrap 형식입니다.",
+    "The CLI first-publication bootstrap format is unsupported.",
   );
 }
 

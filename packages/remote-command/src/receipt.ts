@@ -23,7 +23,7 @@ export function assertStoredRemoteCommandReceipt(
   } catch (error) {
     throw new RemoteCommandRuntimeError(
       "replay_store_failed",
-      "저장된 remote command receipt가 command와 일치하지 않습니다.",
+      "The stored remote command receipt does not match the command.",
       { cause: error },
     );
   }

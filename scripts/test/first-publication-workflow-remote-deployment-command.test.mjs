@@ -122,9 +122,9 @@ describe("first-publication workflow remote deployment command", () => {
     try {
       const report = await createEvidence(fixture);
       const output = formatFirstPublicationWorkflowRemoteDeploymentEvidence(report);
-      assert.match(output, /지정한 GitHub commit에 현재 검증된 workflow와 같은 파일/u);
-      assert.match(output, /기본 브랜치나 release tag에 포함됐다는 뜻이 아닙니다/u);
-      assert.match(output, /Workflow 실행, npm stage 접수·2FA 승인과 package 공개도 확인하지 않았습니다/u);
+      assert.match(output, /specified GitHub commit contains a file identical/u);
+      assert.match(output, /does not establish that the commit is contained in the default branch or a release tag/u);
+      assert.match(output, /Workflow execution, npm stage acceptance, 2FA approval/u);
       assert.equal(output.includes(report.evidenceDigest), false);
       assert.equal(output.includes(report.local.postApplyReportDigest), false);
     } finally {

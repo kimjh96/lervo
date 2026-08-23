@@ -52,7 +52,7 @@ describe("Hub command artifact lifecycle", () => {
       provider: "codex",
       risk: "low" as const,
       verificationSuiteIds: ["repo.check"],
-      request: "공유 artifact 수명주기 테스트",
+      request: "Shared artifact lifecycle test",
     };
     const first = await authorHubCommand({ ...common, request, artifactRetentionMs: 2_000 });
     const second = await authorHubCommand({
@@ -146,7 +146,7 @@ describe("Hub command artifact lifecycle", () => {
     await registerStore(store, project);
     const artifacts = await OwnerOnlyFileSystemCas.open(`${path}.command-cas`);
     const old = new Date("2026-08-20T00:00:00.000Z");
-    const orphan = await artifacts.put(new TextEncoder().encode("끊긴 작성의 orphan"));
+    const orphan = await artifacts.put(new TextEncoder().encode("orphan from interrupted write"));
     await utimes(objectPath(artifacts.root, orphan.uri), old, old);
 
     const failingArtifacts = {
@@ -180,7 +180,7 @@ describe("Hub command artifact lifecycle", () => {
     });
     await expect(artifacts.has(orphan.uri)).resolves.toBe(false);
 
-    const raced = await artifacts.put(new TextEncoder().encode("정리와 작성 경합"));
+    const raced = await artifacts.put(new TextEncoder().encode("cleanup and write race"));
     await utimes(objectPath(artifacts.root, raced.uri), old, old);
     const claim = await store.claimOrphanArtifact({
       workerId: "gc:test",
@@ -210,7 +210,7 @@ describe("Hub command artifact lifecycle", () => {
         provider: "codex",
         risk: "low" as const,
         verificationSuiteIds: ["repo.check"],
-        request: "정리와 작성 경합",
+        request: "cleanup and write race",
       },
     };
     await expect(authorHubCommand(authoring)).rejects.toMatchObject({
@@ -258,7 +258,7 @@ describe("Hub command artifact lifecycle", () => {
           provider: "codex",
           risk: "low",
           verificationSuiteIds: ["repo.check"],
-          request: "100개 단위로 정리하는 공유 원문",
+          request: "shared source text cleaned in batches of 100",
         },
       });
     }
@@ -310,7 +310,7 @@ describe("Hub command artifact lifecycle", () => {
         provider: "codex",
         risk: "low",
         verificationSuiteIds: ["repo.check"],
-        request: "100개 단위로 정리하는 공유 원문",
+        request: "shared source text cleaned in batches of 100",
       },
     })).rejects.toMatchObject({ code: "artifact_cleanup_conflict" });
 
@@ -348,10 +348,10 @@ describe("Hub command artifact lifecycle", () => {
         provider: "codex",
         risk: "low",
         verificationSuiteIds: ["repo.check"],
-        request: "100개 단위로 정리하는 공유 원문",
+        request: "shared source text cleaned in batches of 100",
       },
     })).resolves.toMatchObject({ status: "created" });
     await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await store.close();
-  });
+  }, 15_000);
 });

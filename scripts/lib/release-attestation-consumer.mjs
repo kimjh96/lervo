@@ -33,7 +33,7 @@ export function createReleaseSubject(name, contents) {
   if (typeof name !== "string" || name.length === 0 || !Buffer.isBuffer(contents)) {
     failReleaseVerification(
       "release_attestation_verification_input_invalid",
-      "Release attestation 검증 입력이 올바르지 않습니다.",
+      "The release attestation verification input is invalid.",
     );
   }
   return { name, digest: { sha256: sha256(contents) } };
@@ -61,14 +61,14 @@ function normalizedSubjects(subjects) {
   ) {
     failReleaseVerification(
       "release_attestation_verified_statement_invalid",
-      "검증된 release statement 구조가 올바르지 않습니다.",
+      "The verified release statement structure is invalid.",
     );
   }
   const sorted = sortReleaseSubjects(subjects.map(({ name, digest }) => ({ name, digest })));
   if (sorted.some((subject, index) => index > 0 && sorted[index - 1].name === subject.name)) {
     failReleaseVerification(
       "release_attestation_verified_statement_invalid",
-      "검증된 release statement subject가 중복됩니다.",
+      "The verified release statement contains duplicate subjects.",
     );
   }
   return sorted;
@@ -78,7 +78,7 @@ export function validateVerifiedAttestationResults(results, expected) {
   if (!Array.isArray(results) || results.length !== 1) {
     failReleaseVerification(
       "release_attestation_verifier_output_invalid",
-      "Attestation verifier 결과가 올바르지 않습니다.",
+      "The attestation verifier result is invalid.",
     );
   }
   const result = results[0];
@@ -101,7 +101,7 @@ export function validateVerifiedAttestationResults(results, expected) {
   ) {
     failReleaseVerification(
       "release_attestation_verifier_output_invalid",
-      "Attestation verifier 결과가 올바르지 않습니다.",
+      "The attestation verifier result is invalid.",
     );
   }
   if (
@@ -110,7 +110,7 @@ export function validateVerifiedAttestationResults(results, expected) {
   ) {
     failReleaseVerification(
       "release_attestation_verified_subject_mismatch",
-      "검증된 release subject가 전달받은 파일과 다릅니다.",
+      "The verified release subjects do not match the delivered files.",
     );
   }
   if (
@@ -119,7 +119,7 @@ export function validateVerifiedAttestationResults(results, expected) {
   ) {
     failReleaseVerification(
       "release_attestation_verified_predicate_mismatch",
-      "검증된 release predicate가 전달받은 문서와 다릅니다.",
+      "The verified release predicate does not match the delivered document.",
     );
   }
   return {
@@ -137,7 +137,7 @@ export function rejectLocalUnsignedStatement(value) {
   ) {
     failReleaseVerification(
       "release_attestation_unsigned_untrusted",
-      "로컬 unsigned statement는 release 신뢰 근거로 사용할 수 없습니다.",
+      "A local unsigned statement cannot establish release trust.",
     );
   }
 }
@@ -146,7 +146,7 @@ export function validateDeliveredReleaseSbom(sbom, packageVersion) {
   if (sbom === null || typeof sbom !== "object" || Array.isArray(sbom)) {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   const { serialNumber, ...withoutSerial } = sbom;
@@ -162,7 +162,7 @@ export function validateDeliveredReleaseSbom(sbom, packageVersion) {
   ) {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   return sbom;

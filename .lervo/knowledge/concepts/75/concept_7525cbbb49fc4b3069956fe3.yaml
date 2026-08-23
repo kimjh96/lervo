@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7525cbbb49fc4b3069956fe3
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9dcf590e965cac1982828c2e
+title: "ADR-0186: Content-Bound Codex–Claude Compilation Comparison"
+type: decision

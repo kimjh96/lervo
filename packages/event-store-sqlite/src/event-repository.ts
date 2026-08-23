@@ -28,7 +28,7 @@ export class SQLiteEventRepository {
     if (draft.projectId !== this.projectId) {
       throw new EventStoreError(
         "project_mismatch",
-        `event의 projectId ${draft.projectId}가 store ${this.projectId}와 다릅니다.`,
+        `Event projectId ${draft.projectId} differs from store ${this.projectId}.`,
       );
     }
     const sanitized = sanitizeEventPayload(draft.type, draft.payload);
@@ -41,7 +41,7 @@ export class SQLiteEventRepository {
       if (eventIdentity(existing, existing.payload) !== identity) {
         throw new EventStoreError(
           "event_id_conflict",
-          `${draft.eventId}가 다른 내용으로 이미 저장되어 있습니다.`,
+          `${draft.eventId} is already stored with different content.`,
         );
       }
       return { event: existing, inserted: false, redactions: sanitized.redactions };
@@ -55,7 +55,7 @@ export class SQLiteEventRepository {
       seqValue !== undefined &&
       (typeof seqValue !== "number" || !Number.isSafeInteger(seqValue))
     ) {
-      throw new EventStoreError("integrity_failed", "event tail sequence가 안전한 정수가 아닙니다.");
+      throw new EventStoreError("integrity_failed", "The event tail sequence is not a safe integer.");
     }
     const seq = typeof seqValue === "number" ? seqValue + 1 : 1;
     const previousHash = tailRow ? requireString(tailRow, "event_hash") : null;
@@ -117,10 +117,10 @@ export class SQLiteEventRepository {
     const afterSeq = options.afterSeq ?? 0;
     const limit = options.limit ?? 100;
     if (!Number.isSafeInteger(afterSeq) || afterSeq < 0) {
-      throw new RangeError("afterSeq는 0 이상의 안전한 정수여야 합니다.");
+      throw new RangeError("afterSeq must be a safe integer of at least 0.");
     }
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
-      throw new RangeError("limit은 1 이상 1000 이하의 안전한 정수여야 합니다.");
+      throw new RangeError("limit must be a safe integer between 1 and 1000.");
     }
     const rows = options.runId
       ? this.database
@@ -148,13 +148,13 @@ export class SQLiteEventRepository {
       if (event.seq !== eventCount || event.previousHash !== previousHash) {
         throw new EventStoreError(
           "integrity_failed",
-          `event chain 좌표가 ${event.eventId}에서 끊겼습니다.`,
+          `The event chain coordinates break at ${event.eventId}.`,
         );
       }
       if (event.eventHash !== computeEventHash(eventWithoutHash(event))) {
         throw new EventStoreError(
           "integrity_failed",
-          `event hash가 ${event.eventId}에서 일치하지 않습니다.`,
+          `The event hash does not match at ${event.eventId}.`,
         );
       }
       previousHash = event.eventHash;

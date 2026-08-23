@@ -21,7 +21,7 @@ function invalid(): never {
   throw new DeliberationRuntimeError(
     "runtime_state_invalid",
     "runtime_snapshot_invalid",
-    "숙의 runtime snapshot이 현재 policy 또는 event 원본과 다릅니다.",
+    "The deliberation runtime snapshot differs from the current policy or source events.",
   );
 }
 
@@ -195,7 +195,7 @@ export function restoreDeliberationRuntimeSnapshot(input: {
     throw new DeliberationRuntimeError(
       "runtime_state_invalid",
       "runtime_snapshot_invalid",
-      "숙의 runtime snapshot이 현재 policy 또는 event 원본과 다릅니다.",
+      "The deliberation runtime snapshot differs from the current policy or source events.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

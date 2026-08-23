@@ -1,0 +1,11 @@
+fromPath: docs/decisions/foundation/0022-byte-preserving-managed-block-patch-candidate.md
+identityPath: docs/adr/0022-byte-preserving-managed-block-patch-candidate.md
+kind: document_move
+lineageId: klineage_56148a45bb2b2229502a6112
+operationId: kdocop_938ee87a7defb88b8a4b1672
+schemaVersion: 1
+sourceContentHash: sha256:0aa32379a62cff0033468970c3ad6276cdb9613412e3878f77b218b8764f013d
+sourceId: src_1889da168d1b236cf87f2e75
+sourceUnitBindingDigest: sha256:fe8c9c77399fc8a01897eed1f56ede96f7c46d17a7477fb3901a844437a92b8b
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md

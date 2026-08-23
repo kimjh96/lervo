@@ -81,16 +81,16 @@ describe("first-publication execution plan command", () => {
     }
   });
 
-  it("uses plain Korean to show order, cancellation, and the no-action boundary", async () => {
+  it("uses plain English to show order, cancellation, and the no-action boundary", async () => {
     const prepared = await contractFiles();
     try {
       const plan = await createCliFirstPublicationExecutionPlan(prepared.options);
       const output = formatFirstPublicationExecutionPlan(plan);
-      assert.match(output, /상태: 실행 권한 없음/u);
-      assert.match(output, /1\. 실행 입력을 다시 확인합니다/u);
-      assert.match(output, /예약 전에는 상태 변경 없이 취소할 수 있습니다/u);
-      assert.match(output, /게시를 시작한 뒤에는 취소하거나 바로 다시 시도할 수 없습니다/u);
-      assert.match(output, /온라인 확인, 사람 확인 요청, 예약, 실행 활성화, 패키지 게시를 실행하지 않았습니다/u);
+      assert.match(output, /Status: no execution authorization/u);
+      assert.match(output, /1\. Revalidate execution inputs/u);
+      assert.match(output, /Before reservation, cancellation causes no state change/u);
+      assert.match(output, /After publication starts, it cannot be cancelled or retried immediately/u);
+      assert.match(output, /did not perform online checks, request human confirmation, reserve, activate execution, or publish a package/u);
       assert.equal(output.includes(plan.executionPlanDigest), false);
       assert.equal(output.includes(prepared.options.bootstrapPath), false);
     } finally {

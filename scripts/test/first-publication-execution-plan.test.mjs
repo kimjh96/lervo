@@ -63,13 +63,13 @@ describe("first-publication execution plan", () => {
       {
         id: "direct_publication_intent",
         timing: "before_reservation",
-        phrase: "@lervo/cli@0.1.0을 대화형 2FA로 한 번 게시하고 bypass token은 사용하지 않습니다",
+        phrase: "I will publish @lervo/cli@0.1.0 once with interactive 2FA and will not use a bypass token",
         declinedOutcome: "no_state_change",
       },
       {
         id: "second_factor_attestation",
         timing: "after_publication_attempt",
-        phrase: "2FA 확인을 완료했습니다",
+        phrase: "I completed the 2FA confirmation",
         declinedOutcome: "publication_unknown_retry_forbidden",
       },
     ]);

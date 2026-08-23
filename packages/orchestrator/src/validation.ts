@@ -21,7 +21,7 @@ export function validateRunOptions(options: ManagedContextRunOptions): number {
   if (!Number.isSafeInteger(initialGeneration) || initialGeneration < 0) {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "초기 context generation은 0 이상의 안전한 정수여야 합니다.",
+      "The initial context generation must be a safe integer of at least 0.",
     );
   }
   if (
@@ -33,7 +33,7 @@ export function validateRunOptions(options: ManagedContextRunOptions): number {
   ) {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "Managed run 좌표와 policy version이 유효하지 않습니다.",
+      "The managed run coordinates and policy version are invalid.",
     );
   }
   return initialGeneration;
@@ -56,7 +56,7 @@ export function assertPreparedBinding(
   ) {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "Prepared context가 managed run 좌표 또는 policy version과 다릅니다.",
+      "The prepared context differs from the managed run coordinates or policy version.",
     );
   }
 }
@@ -65,7 +65,7 @@ export function validateWriteRequest(input: FileWriteRequest): string {
   if (!sha256Pattern.test(input.targetDigest) || input.risk.trim().length === 0) {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "파일 쓰기 대상 digest와 risk가 유효해야 합니다.",
+      "The file-write target digest and risk must be valid.",
     );
   }
   try {
@@ -73,7 +73,7 @@ export function validateWriteRequest(input: FileWriteRequest): string {
   } catch {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "파일 쓰기 대상은 안전한 저장소 상대 경로여야 합니다.",
+      "The file-write target must be a safe repository-relative path.",
     );
   }
 }
@@ -89,7 +89,7 @@ export function validateFileChange(input: FileChangeRecord): string {
   } catch {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "파일 변경 경로는 안전한 저장소 상대 경로여야 합니다.",
+      "The file-change path must be a safe repository-relative path.",
     );
   }
   const hashesValid =
@@ -104,7 +104,7 @@ export function validateFileChange(input: FileChangeRecord): string {
   if (!hashesValid) {
     throw new ManagedContextError(
       "context_contract_invalid",
-      "파일 변경 종류와 before/after hash가 일치해야 합니다.",
+      "The file-change kind must agree with the before and after hashes.",
     );
   }
   return normalizedPath;

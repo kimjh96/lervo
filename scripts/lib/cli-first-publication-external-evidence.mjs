@@ -18,7 +18,7 @@ function assertPostApplyReportMatches(saved, current) {
   if (canonicalJson(saved) !== canonicalJson(current)) {
     throw new FirstPublicationBootstrapError(
       "first_publication_external_evidence_post_apply_invalid",
-      "CLI 최초 게시 package metadata 사후 검증 결과가 현재 원본과 다릅니다.",
+      "The CLI first-publication package metadata post-apply verification result differs from the current sources.",
     );
   }
 }

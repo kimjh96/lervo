@@ -51,7 +51,7 @@ function validateReleaseEvidence(release, artifact) {
   ) {
     fail(
       "release_publication_authorization_invalid",
-      "Release 게시 적격성 문서가 올바르지 않습니다.",
+      "The release publication eligibility document is invalid.",
     );
   }
   const expectedNames = [
@@ -74,14 +74,14 @@ function validateReleaseEvidence(release, artifact) {
   ) {
     fail(
       "release_publication_authorization_invalid",
-      "Release 게시 적격성 문서가 올바르지 않습니다.",
+      "The release publication eligibility document is invalid.",
     );
   }
   const tarballSubject = release.subjects.find(({ name }) => name === artifact.file);
   if (tarballSubject.digest.sha256 !== artifact.sha256) {
     fail(
       "release_publication_authorization_invalid",
-      "Release 게시 적격성 문서가 올바르지 않습니다.",
+      "The release publication eligibility document is invalid.",
     );
   }
 }
@@ -95,7 +95,7 @@ export function createReleasePublicationArtifact(file, version, contents) {
   ) {
     fail(
       "release_publication_input_invalid",
-      "Release 게시 적격성 입력이 올바르지 않습니다.",
+      "The release publication eligibility input is invalid.",
     );
   }
   return {
@@ -125,7 +125,7 @@ export function createReleasePublicationAuthorization({
   ) {
     fail(
       "release_publication_input_invalid",
-      "Release 게시 적격성 입력이 올바르지 않습니다.",
+      "The release publication eligibility input is invalid.",
     );
   }
   const body = {
@@ -171,7 +171,7 @@ export function validateReleasePublicationAuthorization(authorization) {
   ) {
     fail(
       "release_publication_authorization_invalid",
-      "Release 게시 적격성 문서가 올바르지 않습니다.",
+      "The release publication eligibility document is invalid.",
     );
   }
   validateReleaseEvidence(authorization.release, {

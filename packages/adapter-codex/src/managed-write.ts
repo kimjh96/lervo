@@ -182,7 +182,7 @@ export class CodexManagedWriteController {
       if (!inspectManagedWriteDecisionBinding({ request: approval.request, decision }).passed) {
         throw new CodexAdapterError(
           "provider_protocol_failed",
-          "Managed write 결정이 Codex 요청과 다릅니다.",
+          "The managed write decision does not match the Codex request.",
         );
       }
       const allowed = decision.decision === "allow";

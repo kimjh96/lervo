@@ -17,7 +17,7 @@ export function validateOutcomeEvent(input: CreateKnowledgeCandidatesInput): voi
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "outcome_event_mismatch",
-      "숙의 완료 event가 현재 event store 원본과 다릅니다.",
+      "The deliberation completion event differs from the current event store source.",
     );
   }
   if (
@@ -31,7 +31,7 @@ export function validateOutcomeEvent(input: CreateKnowledgeCandidatesInput): voi
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "outcome_event_mismatch",
-      "지식 후보의 숙의 완료 event 좌표가 converged outcome과 다릅니다.",
+      "The knowledge candidate deliberation completion event coordinates differ from the converged outcome.",
     );
   }
 }
@@ -61,7 +61,7 @@ export function recordedArtifactEvent(
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "evidence_event_missing",
-      "결정 또는 검증 artifact의 기록 event를 정확히 하나 확인할 수 없습니다.",
+      "Exactly one recorded event for the decision or verification artifact cannot be verified.",
     );
   }
   return matches[0]!;
@@ -78,7 +78,7 @@ export async function verifyDecisionContent(
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "decision_content_unavailable",
-      "결정 artifact 원문을 CAS에서 읽지 못했습니다.",
+      "Could not read the decision artifact source from CAS.",
       { cause: error },
     );
   }
@@ -91,7 +91,7 @@ export async function verifyDecisionContent(
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "candidate_artifact_mismatch",
-      "결정 artifact의 CAS bytes와 좌표가 다릅니다.",
+      "The decision artifact CAS bytes and coordinates differ.",
     );
   }
 }
@@ -111,7 +111,7 @@ export function verificationEvidenceForClaim(input: {
       throw new KnowledgeError(
         "candidate_evidence_invalid",
         "verification_evidence_missing",
-        "Decision이 참조한 verification artifact를 찾지 못했습니다.",
+        "The verification artifact referenced by the decision was not found.",
       );
     }
     if (!artifact.details.targetClaims.some((claim) => claim.claimId === input.claimId)) return [];
@@ -120,7 +120,7 @@ export function verificationEvidenceForClaim(input: {
       throw new KnowledgeError(
         "candidate_evidence_invalid",
         "verification_evidence_missing",
-        "채택 주장에 연결된 verification 원본이 없습니다.",
+        "The verification source linked to the accepted claim is missing.",
       );
     }
     return [{

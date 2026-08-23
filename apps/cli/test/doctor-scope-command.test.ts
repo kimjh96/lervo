@@ -50,13 +50,13 @@ afterEach(async () => {
 
 describe("lervo doctor limited scopes", () => {
   it.each([
-    ["documents", "문서", ["document_registry", "document_sources"]],
-    ["skills", "스킬", ["skill_packages", "skill_lock"]],
-    ["providers", "에이전트 실행 환경", [
+    ["documents", "documents", ["document_registry", "document_sources"]],
+    ["skills", "skills", ["skill_packages", "skill_lock"]],
+    ["providers", "agent runtimes", [
       "provider_codex_runtime",
       "provider_claude_runtime",
     ]],
-    ["search", "검색", [
+    ["search", "search", [
       "search_engine_selection",
       "search_rollout_policies",
       "search_rollout_reviews",
@@ -74,7 +74,7 @@ describe("lervo doctor limited scopes", () => {
       expected.has(inspection.check.checkId));
     const services = {
       openProjectStorage: async () => {
-        throw new Error("제한 범위에서 project storage를 열면 안 됩니다.");
+        throw new Error("Project storage must not be opened in the restricted scope.");
       },
       inspectDoctorEnvironment: async (input: { scope?: DoctorScope }) => {
         observedScopes.push(input.scope ?? "all");
@@ -88,8 +88,8 @@ describe("lervo doctor limited scopes", () => {
       stdout: (message) => { textOutput += message; },
       stderr: () => undefined,
     }, services)).toBe(0);
-    expect(textOutput).toContain(`Lervo ${label} 범위 진단 결과: 확인한 항목 정상`);
-    expect(textOutput).toContain(`${label} 항목만 확인했으며 프로젝트 전체 상태를 뜻하지 않습니다`);
+    expect(textOutput).toContain(`Lervo ${label} diagnostic report: checked items are healthy`);
+    expect(textOutput).toContain(`only ${label} items were checked; this is not the overall project status`);
 
     let jsonOutput = "";
     expect(await runCli(["doctor", "--scope", scope, "--json"], {
@@ -119,13 +119,13 @@ describe("lervo doctor limited scopes", () => {
     }, {
       inspectDoctorEnvironment: async () => {
         environmentCalls += 1;
-        throw new Error("지식 범위에서 환경 검사기를 호출하면 안 됩니다.");
+        throw new Error("The environment inspector must not be called in the knowledge scope.");
       },
     })).toBe(0);
     expect(environmentCalls).toBe(0);
-    expect(textOutput).toContain("Lervo 지식 범위 진단 결과: 확인한 항목 정상");
-    expect(textOutput).toContain("지식 항목만 확인했으며 프로젝트 전체 상태를 뜻하지 않습니다");
-    expect(textOutput).not.toContain("문서 registry");
+    expect(textOutput).toContain("Lervo knowledge diagnostic report: checked items are healthy");
+    expect(textOutput).toContain("only knowledge items were checked; this is not the overall project status");
+    expect(textOutput).not.toContain("document registry");
 
     let jsonOutput = "";
     expect(await runCli(["doctor", "--scope", "knowledge", "--json"], {
@@ -135,7 +135,7 @@ describe("lervo doctor limited scopes", () => {
     }, {
       inspectDoctorEnvironment: async () => {
         environmentCalls += 1;
-        throw new Error("지식 범위에서 환경 검사기를 호출하면 안 됩니다.");
+        throw new Error("The environment inspector must not be called in the knowledge scope.");
       },
     })).toBe(0);
     const report = JSON.parse(jsonOutput) as {
@@ -164,7 +164,7 @@ describe("lervo doctor limited scopes", () => {
     codex.issues.push({
       code: "provider_executable_missing",
       eventId: null,
-      message: "Codex 실행 파일을 찾지 못했습니다.",
+      message: "The Codex executable was not found.",
     });
     let output = "";
 
@@ -174,7 +174,7 @@ describe("lervo doctor limited scopes", () => {
       stderr: () => undefined,
     }, {
       openProjectStorage: async () => {
-        throw new Error("provider 범위에서 project storage를 열면 안 됩니다.");
+        throw new Error("Project storage must not be opened in the provider scope.");
       },
       inspectDoctorEnvironment: async () => inspections,
     })).toBe(1);
@@ -204,7 +204,7 @@ describe("lervo doctor limited scopes", () => {
       },
     })).toBe(1);
     expect(opened).toBe(false);
-    expect(errorOutput).toContain("지원하지 않는 doctor 범위입니다: network");
+    expect(errorOutput).toContain("Unsupported doctor scope: network");
     expect(errorOutput).toContain("--scope <all|knowledge|documents|skills|providers|search>");
   });
 });

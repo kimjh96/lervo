@@ -66,7 +66,7 @@ export function validateWritingEvaluation(
   if (!validateSchema("writingEvaluation", evaluation).valid) {
     throw new WritingPublicationError(
       "evaluation_contract_invalid",
-      "Writing evaluation이 schema를 통과하지 못했습니다.",
+      "The writing evaluation does not satisfy its schema.",
     );
   }
   const expectedChecks = new Set([
@@ -97,7 +97,7 @@ export function validateWritingEvaluation(
   ) {
     throw new WritingPublicationError(
       "evaluation_contract_invalid",
-      "Writing evaluation의 schema, 필수 검사 또는 파생 상태가 계약과 다릅니다.",
+      "The writing evaluation schema, required checks, or derived state differs from the contract.",
     );
   }
 }

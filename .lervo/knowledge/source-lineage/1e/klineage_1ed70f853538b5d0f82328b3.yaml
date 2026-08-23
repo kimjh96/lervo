@@ -1,0 +1,11 @@
+fromPath: docs/adr/0134-sharded-multi-role-deliberation-policy.md
+identityPath: docs/adr/0134-sharded-multi-role-deliberation-policy.md
+kind: document_move
+lineageId: klineage_1ed70f853538b5d0f82328b3
+operationId: kdocop_6e9295b49ad8fef193df6f86
+schemaVersion: 1
+sourceContentHash: sha256:7c05b5bb688221709256d674da84aab5e3196430c8ce1785895475321a4ced1d
+sourceId: src_1612dae08fcd88e3ccac3ccb
+sourceUnitBindingDigest: sha256:32f061b4643a2d47dab3a784a6db5afec643c3344035b9570e8442fcf25c0458
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0134-sharded-multi-role-deliberation-policy.md

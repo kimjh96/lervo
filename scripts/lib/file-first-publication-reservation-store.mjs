@@ -14,7 +14,7 @@ const reservationIdPattern = /^fpr_[a-f0-9]{24}$/u;
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 const maximumRecordBytes = 64 * 1024;
 
-function fail(code, message = "CLI 최초 게시 예약 저장소가 올바르지 않습니다.") {
+function fail(code, message = "The CLI first-publication reservation store is invalid.") {
   throw new FirstPublicationBootstrapError(code, message);
 }
 

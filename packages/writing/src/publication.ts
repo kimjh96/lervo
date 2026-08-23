@@ -22,7 +22,7 @@ import { WritingPublicationError } from "./types.js";
 function validTimestamp(now: () => Date): string {
   const value = now();
   if (Number.isNaN(value.getTime())) {
-    throw new WritingPublicationError("invalid_writing_request", "Writing 검증 시각이 유효하지 않습니다.");
+    throw new WritingPublicationError("invalid_writing_request", "The writing verification time is invalid.");
   }
   return value.toISOString();
 }
@@ -31,7 +31,7 @@ function validateWritingContract(contract: WritingContract): void {
   if (!validateSchema("writingContract", contract).valid) {
     throw new WritingPublicationError(
       "invalid_writing_request",
-      "Writing policy가 schema를 통과하지 못했습니다.",
+      "The writing policy does not satisfy its schema.",
     );
   }
 }
@@ -44,7 +44,7 @@ export async function evaluateWritingPublication(
   if (!input.contract.surfaces.includes(input.surface)) {
     throw new WritingPublicationError(
       "invalid_writing_request",
-      `Writing policy가 ${input.surface} 공개 surface를 허용하지 않습니다.`,
+      `The writing policy does not allow the ${input.surface} publication surface.`,
     );
   }
   const content = await readWritingArtifact(input.artifactStore, input.artifact);
@@ -118,7 +118,7 @@ export async function readPublishableWritingArtifact(
   ) {
     throw new WritingPublicationError(
       "publication_permit_invalid",
-      "Writing artifact가 publication permit의 내용과 다릅니다.",
+      "The writing artifact differs from the content in the publication permit.",
     );
   }
   return readWritingArtifact(input.artifactStore, input.artifact);

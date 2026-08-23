@@ -13,14 +13,14 @@ export async function runSearchCandidatesCommand(args: string[], io: CliIo): Pro
     return 1;
   }
   if (parsed.positionals.length !== 0) {
-    io.stderr(`candidates에는 다른 인자를 지정할 수 없습니다.\n${searchUsage}\n`);
+    io.stderr(`candidates does not accept additional arguments.\n${searchUsage}\n`);
     return 1;
   }
   const candidates = searchCandidateRegistry.list();
   io.stdout(parsed.values.json
     ? `${JSON.stringify({ candidates }, null, 2)}\n`
     : [
-      "등록된 검색 후보:",
+      "Registered search candidates:",
       ...candidates.map((item) =>
         `  ${item.candidateId} · ${item.engine.id}-v${item.engine.version} · build ${item.adapterBuildId}`),
     ].join("\n") + "\n");

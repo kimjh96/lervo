@@ -49,8 +49,8 @@ afterEach(async () => {
 describe("lervo search evaluation bundles", () => {
   it("selects only active replacements and separates sufficient from insufficient samples", async () => {
     const root = await repository();
-    const oldCaseId = await reviewedCase(root, "작은 파일");
-    const activeCaseId = await reviewedCase(root, "검색 맥락");
+    const oldCaseId = await reviewedCase(root, "tinyartifact");
+    const activeCaseId = await reviewedCase(root, "zephyrcontext");
 
     const sufficient = await command(root, [
       "search", "bundle", "create", "researcher.discovery",
@@ -63,7 +63,7 @@ describe("lervo search evaluation bundles", () => {
       activeCaseIds: [activeCaseId],
       replacements: [{ replacedCaseId: oldCaseId, replacementCaseId: activeCaseId }],
     });
-    expect(sufficient.output).not.toContain("검색 맥락");
+    expect(sufficient.output).not.toContain("zephyrcontext");
 
     const insufficient = await command(root, [
       "search", "bundle", "create", "designer.context",
@@ -118,7 +118,7 @@ describe("lervo search evaluation bundles", () => {
     expect(evaluation.coverage.activeCaseIds).toEqual([activeCaseId]);
     expect(evaluation.run.caseIds).toEqual([activeCaseId]);
     expect(evaluation.results).toHaveLength(1);
-    expect(evaluated.output).not.toContain("검색 맥락");
+    expect(evaluated.output).not.toContain("zephyrcontext");
 
     const bundleFiles = (await readdir(resolve(root, ".lervo/search-evaluations")))
       .filter((name) => name.endsWith(".bundle.yaml"));
@@ -127,15 +127,15 @@ describe("lervo search evaluation bundles", () => {
 
   it("rejects a replacement cycle and a duplicate role/task scope", async () => {
     const root = await repository();
-    const first = await reviewedCase(root, "작은 파일");
-    const second = await reviewedCase(root, "검색 맥락");
+    const first = await reviewedCase(root, "tinyartifact");
+    const second = await reviewedCase(root, "zephyrcontext");
     const cyclic = await command(root, [
       "search", "bundle", "create", "general.cycle",
       "--role", "general", "--task-type", "cycle", "--minimum-cases", "1",
       "--replace", `${first}:${second}`, "--replace", `${second}:${first}`,
     ]);
     expect(cyclic.code).toBe(1);
-    expect(cyclic.error).toContain("순환");
+    expect(cyclic.error).toContain("contain a cycle");
 
     expect((await command(root, [
       "search", "bundle", "create", "general.primary",
@@ -146,6 +146,6 @@ describe("lervo search evaluation bundles", () => {
       "--role", "general", "--task-type", "review", "--minimum-cases", "1", "--case", second,
     ]);
     expect(duplicate.code).toBe(1);
-    expect(duplicate.error).toContain("같은 역할·작업 유형");
+    expect(duplicate.error).toContain("same role and task type");
   });
 });

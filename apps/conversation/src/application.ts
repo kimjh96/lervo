@@ -30,19 +30,19 @@ function uniqueIntegrations(
 ): void {
   const identifiers = deployments.map((item) => item.integrationId);
   if (identifiers.length === 0 || new Set(identifiers).size !== identifiers.length) {
-    throw new Error("Conversation deployment에는 서로 다른 integration이 하나 이상 필요합니다.");
+    throw new Error("A conversation deployment requires at least one unique integration.");
   }
   const configured = new Map(deployments.map((item) => [item.integrationId, item.platform]));
   if ([...options.conversations, ...options.participants, ...(options.threads ?? [])]
     .some((binding) => configured.get(binding.integrationId) !== binding.platform)) {
-    throw new Error("Conversation binding이 배포되지 않은 integration을 가리킵니다.");
+    throw new Error("A conversation binding references an integration that is not deployed.");
   }
   for (const deployment of deployments) {
     if (deployment.platform !== null && (
       !options.conversations.some((binding) => binding.integrationId === deployment.integrationId) ||
       !options.participants.some((binding) => binding.integrationId === deployment.integrationId)
     )) {
-      throw new Error("배포된 conversation integration에는 주소와 participant binding이 필요합니다.");
+      throw new Error("Each deployed conversation integration requires address and participant bindings.");
     }
   }
 }
@@ -65,14 +65,14 @@ export async function openConversationApplication(
     const deliberationOptions = options.deliberations;
     if (deliberationOptions !== undefined) {
       if (deliberationOptions.bindings.length === 0) {
-        throw new Error("Conversation 숙의 배포에는 principal binding이 하나 이상 필요합니다.");
+        throw new Error("A conversation deliberation deployment requires at least one principal binding.");
       }
       if (
         deliberationOptions.bindings.some((binding) =>
           binding.permissions.includes("deliberation.resume")) &&
         deliberationOptions.resumeExecutor === undefined
       ) {
-        throw new Error("Conversation 숙의 재개 권한에는 resume executor가 필요합니다.");
+        throw new Error("Conversation deliberation resume permission requires a resume executor.");
       }
       deliberationStore = await SQLiteConversationDeliberationJobStore.open({
         path: resolve(options.dataDirectory, "deliberations.sqlite"),
@@ -120,7 +120,7 @@ export async function openConversationApplication(
         (deployment.platform !== null &&
           adapter.descriptor.adapterKind !== deployment.platform)
       ) {
-        throw new Error("Conversation adapter descriptor가 deployment 좌표와 다릅니다.");
+        throw new Error("The conversation adapter descriptor does not match deployment coordinates.");
       }
       adapters.set(deployment.integrationId, adapter);
     }

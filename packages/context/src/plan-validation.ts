@@ -1,4 +1,8 @@
-import { contextScopesEqual, type ContextEvidence } from "@lervo/schemas";
+import {
+  contextScopesEqual,
+  type ContextEvidence,
+  type KnowledgeContextMetadata,
+} from "@lervo/schemas";
 
 import {
   type ContextPlan,
@@ -10,6 +14,16 @@ function invalid(message: string): never {
   throw new ContextPreparationError("invalid_context_plan", message);
 }
 
+function metadataEqual(
+  left: KnowledgeContextMetadata | undefined,
+  right: KnowledgeContextMetadata | undefined,
+): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.conceptId === right.conceptId && left.assurance === right.assurance &&
+    left.freshness === right.freshness && left.sourceSnapshotId === right.sourceSnapshotId &&
+    left.impactReportId === right.impactReportId;
+}
+
 function validateDocumentEvidence(
   plan: ContextPlan,
   document: PlannedContextDocument,
@@ -19,10 +33,11 @@ function validateDocumentEvidence(
     (item) =>
       item.state === "discovered" &&
       item.documentId === document.documentId &&
-      item.path === document.path,
+      item.path === document.path &&
+      metadataEqual(item.knowledgeContext, document.knowledgeContext),
   );
   if (!discovered) {
-    invalid(`${document.documentId}의 E0 discovery가 plan에 없습니다.`);
+    invalid(`The E0 discovery for ${document.documentId} is missing from the plan.`);
   }
   for (const reason of document.reasons) {
     const selected = evidence.some(
@@ -35,10 +50,11 @@ function validateDocumentEvidence(
         item.ruleId === reason.ruleId &&
         item.projectId === plan.coordinates.projectId &&
         item.runId === plan.coordinates.runId &&
-        item.sessionId === plan.coordinates.sessionId,
+        item.sessionId === plan.coordinates.sessionId &&
+        metadataEqual(item.knowledgeContext, document.knowledgeContext),
     );
     if (!selected) {
-      invalid(`${document.documentId}의 E1 선택 이유 ${reason.ruleId}이 plan에 없습니다.`);
+      invalid(`The E1 selection reason ${reason.ruleId} for ${document.documentId} is missing from the plan.`);
     }
   }
 }
@@ -49,13 +65,14 @@ function validateRecommendationEvidence(plan: ContextPlan): void {
     recommendedEvidence.map((item) => [item.recommendationId, item]),
   );
   if (recommendations.size !== recommendedEvidence.length) {
-    invalid("Context plan에 중복 검색 추천 evidence가 있습니다.");
+    invalid("The context plan contains duplicate search recommendation evidence.");
   }
   for (const recommendation of recommendations.values()) {
     const discovered = plan.evidence.some(
-      (item) => item.state === "discovered" && item.documentId === recommendation.documentId,
+      (item) => item.state === "discovered" && item.documentId === recommendation.documentId &&
+        metadataEqual(item.knowledgeContext, recommendation.knowledgeContext),
     );
-    if (!discovered) invalid(`검색 추천 문서의 E0 discovery가 없습니다: ${recommendation.documentId}`);
+    if (!discovered) invalid(`The search-recommended document has no E0 discovery: ${recommendation.documentId}`);
   }
   for (const document of plan.documents) {
     for (const reason of document.reasons) {
@@ -65,8 +82,9 @@ function validateRecommendationEvidence(plan: ContextPlan): void {
         ? recommendations.get(reason.ruleId.slice(prefix.length))
         : undefined;
       if (recommendation === undefined || recommendation.documentId !== document.documentId ||
-        recommendation.sourceContentHash !== document.expectedContentHash) {
-        invalid(`검색 추천 선택 근거가 plan 문서와 다릅니다: ${document.documentId}`);
+        recommendation.sourceContentHash !== document.expectedContentHash ||
+        !metadataEqual(recommendation.knowledgeContext, document.knowledgeContext)) {
+        invalid(`The search recommendation selection evidence differs from the plan document: ${document.documentId}`);
       }
     }
   }
@@ -77,10 +95,10 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
   const paths = new Set<string>();
   for (const document of plan.documents) {
     if (documentIds.has(document.documentId) || paths.has(document.path)) {
-      invalid(`Context plan에 중복 문서가 있습니다: ${document.documentId}`);
+      invalid(`The context plan contains a duplicate document: ${document.documentId}`);
     }
     if (document.reasons.length === 0) {
-      invalid(`${document.documentId}에 선택 이유가 없습니다.`);
+      invalid(`${document.documentId} has no selection reason.`);
     }
     documentIds.add(document.documentId);
     paths.add(document.path);
@@ -89,21 +107,21 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
   for (const evidence of plan.evidence) {
     if (evidence.state !== "discovered" && evidence.state !== "recommended" &&
       evidence.state !== "selected") {
-      invalid(`Context plan에는 discovery·recommendation·E1 evidence만 포함할 수 있습니다: ${evidence.receiptId}`);
+      invalid(`A context plan can contain only discovery, recommendation, and E1 evidence: ${evidence.receiptId}`);
     }
     if (
       evidence.projectId !== plan.coordinates.projectId ||
       evidence.runId !== plan.coordinates.runId ||
       evidence.sessionId !== plan.coordinates.sessionId
     ) {
-      invalid(`Context plan evidence의 run/session 좌표가 다릅니다: ${evidence.receiptId}`);
+      invalid(`The context plan evidence has different run/session coordinates: ${evidence.receiptId}`);
     }
     if (evidence.state === "selected") {
       const document = plan.documents.find(
         (candidate) => candidate.documentId === evidence.documentId,
       );
       if (!document) {
-        invalid(`선택 evidence가 plan에 없는 문서를 가리킵니다: ${evidence.documentId}`);
+        invalid(`The selection evidence references a document not in the plan: ${evidence.documentId}`);
       }
       const reasonExists = document.reasons.some(
         (reason) =>
@@ -112,9 +130,10 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
       if (
         !reasonExists ||
         evidence.required !== document.required ||
-        !contextScopesEqual(evidence.scope, document.scope)
+        !contextScopesEqual(evidence.scope, document.scope) ||
+        !metadataEqual(evidence.knowledgeContext, document.knowledgeContext)
       ) {
-        invalid(`선택 evidence가 plan의 선택 이유와 다릅니다: ${evidence.receiptId}`);
+        invalid(`The selection evidence differs from the plan selection reason: ${evidence.receiptId}`);
       }
     }
   }

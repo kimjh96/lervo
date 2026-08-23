@@ -49,7 +49,7 @@ function checkpointPath(stateRoot: string, deliberationId: string): string {
   if (!deliberationIdPattern.test(deliberationId)) {
     throw new DeliberationCheckpointError(
       "deliberation_checkpoint_invalid",
-      "재개할 숙의 ID가 유효하지 않습니다.",
+      "The deliberation ID to resume is invalid.",
     );
   }
   return resolve(stateRoot, "deliberations", deliberationId, "checkpoints", "approved.json");
@@ -106,7 +106,7 @@ function validateCheckpoint(value: unknown, deliberationId: string): ApprovedDel
   ) {
     throw new DeliberationCheckpointError(
       "deliberation_checkpoint_invalid",
-      "숙의 재개 checkpoint 형식이 유효하지 않습니다.",
+      "The deliberation resume checkpoint has an invalid shape.",
     );
   }
   return structuredClone(checkpoint as ApprovedDeliberationCheckpoint);
@@ -123,7 +123,7 @@ export async function writeApprovedDeliberationCheckpoint(input: {
   if (!deliberationRoot.isDirectory() || deliberationRoot.isSymbolicLink()) {
     throw new DeliberationCheckpointError(
       "deliberation_checkpoint_invalid",
-      "숙의 실행 디렉터리가 안전하지 않습니다.",
+      "The deliberation run directory is unsafe.",
     );
   }
   try {
@@ -135,14 +135,14 @@ export async function writeApprovedDeliberationCheckpoint(input: {
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink()) {
     throw new DeliberationCheckpointError(
       "deliberation_checkpoint_invalid",
-      "숙의 checkpoint 디렉터리가 안전하지 않습니다.",
+      "The deliberation checkpoint directory is unsafe.",
     );
   }
   const bytes = `${JSON.stringify(input.checkpoint, null, 2)}\n`;
   if (Buffer.byteLength(bytes) > maximumCheckpointBytes) {
     throw new DeliberationCheckpointError(
       "deliberation_checkpoint_invalid",
-      "숙의 재개 checkpoint가 크기 제한을 넘었습니다.",
+      "The deliberation resume checkpoint exceeds the size limit.",
     );
   }
   let handle;
@@ -154,7 +154,7 @@ export async function writeApprovedDeliberationCheckpoint(input: {
     if ((error as NodeJS.ErrnoException).code === "EEXIST") {
       throw new DeliberationCheckpointError(
         "deliberation_checkpoint_exists",
-        "숙의 승인 checkpoint를 덮어쓸 수 없습니다.",
+        "An approved deliberation checkpoint cannot be overwritten.",
       );
     }
     throw error;
@@ -174,7 +174,7 @@ export async function readApprovedDeliberationCheckpoint(input: {
     if (!before.isFile() || before.isSymbolicLink() || before.size > maximumCheckpointBytes) {
       throw new DeliberationCheckpointError(
         "deliberation_checkpoint_invalid",
-        "숙의 재개 checkpoint가 안전한 일반 파일이 아니거나 너무 큽니다.",
+        "The deliberation resume checkpoint is not a safe regular file or is too large.",
       );
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -193,12 +193,12 @@ export async function readApprovedDeliberationCheckpoint(input: {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new DeliberationCheckpointError(
         "deliberation_checkpoint_not_found",
-        "재개 가능한 승인 checkpoint를 찾지 못했습니다.",
+        "No resumable approved checkpoint was found.",
       );
     }
     throw new DeliberationCheckpointError(
       "deliberation_checkpoint_invalid",
-      "숙의 재개 checkpoint를 안전하게 읽지 못했습니다.",
+      "The deliberation resume checkpoint could not be read safely.",
       { cause: error },
     );
   } finally {

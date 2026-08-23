@@ -1,0 +1,11 @@
+fromPath: docs/adr/0135-approved-deliberation-resume-boundary.md
+identityPath: docs/adr/0135-approved-deliberation-resume-boundary.md
+kind: document_move
+lineageId: klineage_38e5cf7750fbd897efe9e74d
+operationId: kdocop_dd38d6057c57d653634b4b72
+schemaVersion: 1
+sourceContentHash: sha256:8282a98b7d4dc4a34709bc7afcb8307f97e5145edee7c5a545ae7d3273d1c2aa
+sourceId: src_568cd63fb96197dcc9b22cd5
+sourceUnitBindingDigest: sha256:7b6a9d75027bfe99f1f9470e6928c38bd3bf563734998c10110e919117f76d97
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/deliberation/0135-approved-deliberation-resume-boundary.md

@@ -16,7 +16,7 @@ export class ClaudeSessionRegistry {
 
   add(session: AdapterSession, client: ClaudeAgentClient): void {
     if (this.sessions.has(session.providerSessionId)) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "Claude session ID가 중복되었습니다.");
+      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude session ID is duplicated.");
     }
     this.sessions.set(session.providerSessionId, {
       session: clone(session),
@@ -32,10 +32,10 @@ export class ClaudeSessionRegistry {
     assertAdapterMessage(session, "Claude session");
     const state = this.sessions.get(session.providerSessionId);
     if (state === undefined) {
-      throw new ClaudeAdapterError("session_not_found", "관리 중인 Claude session을 찾지 못했습니다.");
+      throw new ClaudeAdapterError("session_not_found", "The managed Claude session was not found.");
     }
     if (!sameSession(state.session, session)) {
-      throw new ClaudeAdapterError("session_mismatch", "Claude session 좌표가 시작 시점과 다릅니다.");
+      throw new ClaudeAdapterError("session_mismatch", "The Claude session coordinates differ from their initial values.");
     }
     return state;
   }

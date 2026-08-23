@@ -70,7 +70,7 @@ export async function runConversationDeliberationLeaseCycle<
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
-      "숙의 worker 설정이 유효하지 않습니다.",
+      "The deliberation worker configuration is invalid.",
     );
   }
   const now = options.now ?? (() => new Date());
@@ -105,7 +105,7 @@ export async function runConversationDeliberationLeaseCycle<
     if (renewalFailed) {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "숙의 worker lease를 갱신하지 못했습니다.",
+        "Could not renew the deliberation worker lease.",
       );
     }
     assertConversationDeliberationSummary(summary, lease.job.deliberationId);
@@ -113,7 +113,7 @@ export async function runConversationDeliberationLeaseCycle<
       summary.status === "interrupted") {
       throw new ConversationControlError(
         "deliberation_source_failed",
-        "숙의 worker 실행 결과가 종료 상태가 아닙니다.",
+        "The deliberation worker execution result is not terminal.",
       );
     }
     await options.store.settle({

@@ -14,13 +14,13 @@ export function assertSourceReference(source: SearchSourceReference): void {
   if (!searchSourceKinds.includes(source.kind) || !SOURCE_ID_PATTERN.test(source.sourceId) ||
     !SHA256_PATTERN.test(source.contentHash) ||
     (source.path !== undefined && !safeRepositoryPath(source.path))) {
-    throw new SearchError("corpus_invalid", "검색 source 좌표가 유효하지 않습니다.");
+    throw new SearchError("corpus_invalid", "The search source coordinates are invalid.");
   }
 }
 
 export function assertText(value: unknown, maximum: number, code: "corpus_invalid" | "invalid_query"): string {
   if (typeof value !== "string" || value.length < 1 || value.length > maximum || CONTROL_PATTERN.test(value)) {
-    throw new SearchError(code, "검색 문자열이 허용 범위를 벗어났습니다.");
+    throw new SearchError(code, "The search string is outside the allowed bounds.");
   }
   return value;
 }
@@ -30,6 +30,6 @@ export function assertTimestamp(
   code: SearchErrorCode,
 ): void {
   if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) {
-    throw new SearchError(code, "검색 관측 시각이 canonical ISO 형식이 아닙니다.");
+    throw new SearchError(code, "The search observation timestamp is not in canonical ISO format.");
   }
 }

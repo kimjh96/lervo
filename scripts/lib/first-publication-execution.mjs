@@ -14,7 +14,7 @@ import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mj
 import { validateReleasePublicationAuthorization } from
   "./release-publication-authorization.mjs";
 
-function fail(code, message = "CLI 최초 게시 실행 입력이 올바르지 않습니다.") {
+function fail(code, message = "The CLI first-publication execution input is invalid.") {
   throw new FirstPublicationBootstrapError(code, message);
 }
 
@@ -45,7 +45,7 @@ async function abortBeforePublication(store, reservation) {
   } catch {
     fail(
       "first_publication_reservation_failed",
-      "게시 전 중단 상태를 저장하지 못했습니다.",
+      "The pre-publication interruption state could not be saved.",
     );
   }
 }
@@ -101,7 +101,7 @@ export async function executeFirstPublicationBootstrap(
     }
   } catch (error) {
     if (error instanceof FirstPublicationBootstrapError) throw error;
-    fail("first_publication_reservation_failed", "CLI 최초 게시 예약을 확보하지 못했습니다.");
+    fail("first_publication_reservation_failed", "The CLI first-publication reservation could not be acquired.");
   }
   let publicationStarted = false;
   let publicationReport;
@@ -123,7 +123,7 @@ export async function executeFirstPublicationBootstrap(
     await markUnknown(reservationStore, reservation);
     fail(
       "first_publication_outcome_unknown",
-      "CLI 최초 게시 결과가 불명확하므로 같은 bootstrap을 재시도하면 안 됩니다.",
+      "The CLI first-publication result is ambiguous; the same bootstrap must not be retried.",
     );
   }
   try {
@@ -149,7 +149,7 @@ export async function executeFirstPublicationBootstrap(
     await markUnknown(reservationStore, reservation);
     fail(
       "first_publication_outcome_unknown",
-      "CLI 최초 게시 결과가 불명확하므로 같은 bootstrap을 재시도하면 안 됩니다.",
+      "The CLI first-publication result is ambiguous; the same bootstrap must not be retried.",
     );
   }
 }

@@ -54,7 +54,7 @@ async function validateVerificationOriginal(input: {
   } catch (error) {
     throw new ManagedProviderRunError(
       "verification_failed",
-      "Project verification result CAS 원본을 읽지 못했습니다.",
+      "Could not read the project verification result CAS source.",
       { cause: error },
     );
   }
@@ -70,7 +70,7 @@ async function validateVerificationOriginal(input: {
   ) {
     throw new ManagedProviderRunError(
       "verification_failed",
-      "Project verification result의 revision, schema 또는 CAS 좌표가 다릅니다.",
+      "The project verification result revision, schema, or CAS coordinates differ.",
     );
   }
 }
@@ -87,7 +87,7 @@ async function validateOutputOriginals(
     } catch (error) {
       throw new ManagedProviderRunError(
         "verification_failed",
-        "Project verification output CAS 원본을 읽지 못했습니다.",
+        "Could not read the project verification output CAS source.",
         { cause: error },
       );
     }
@@ -99,7 +99,7 @@ async function validateOutputOriginals(
     ) {
       throw new ManagedProviderRunError(
         "verification_failed",
-        "Project verification output의 CAS 좌표가 원본과 다릅니다.",
+        "The project verification output CAS coordinates differ from the source.",
       );
     }
   }
@@ -147,7 +147,7 @@ export async function runRequiredProjectVerifications(
   if (verifications.some((item) => item.result.status === "cancelled")) {
     throw new ManagedProviderRunError(
       "cancelled",
-      "Project verification이 취소되었습니다.",
+      "Project verification was cancelled.",
     );
   }
   const failed = verifications.length !== input.suites.length ||
@@ -158,7 +158,7 @@ export async function runRequiredProjectVerifications(
       .map((item) => item.result.suiteId);
     throw new ManagedProviderRunError(
       "verification_failed",
-      `필수 project verification이 통과하지 못했습니다: ${failedSuiteIds.join(", ")}`,
+      `Required project verification did not pass: ${failedSuiteIds.join(", ")}`,
     );
   }
   return verifications;

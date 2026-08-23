@@ -1,0 +1,11 @@
+fromPath: docs/adr/0109-cli-first-publication-package-metadata-post-apply-verification.md
+identityPath: docs/adr/0109-cli-first-publication-package-metadata-post-apply-verification.md
+kind: document_move
+lineageId: klineage_2d5261f8b58d63586258344a
+operationId: kdocop_7e33f971c775a1a35f647e46
+schemaVersion: 1
+sourceContentHash: sha256:224aaf8387568a255f3b34a02d5222017b2e5bc400c264233814b7baaa5b26d5
+sourceId: src_c48faa2e79f6051ab83281db
+sourceUnitBindingDigest: sha256:a62b72d811c5d7107af59d9fd23ebdd29b36fe0016a2d09f842a7edfc61eaccb
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md

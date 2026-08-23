@@ -1,0 +1,11 @@
+fromPath: docs/adr/0039-authenticated-project-scoped-trace-http.md
+identityPath: docs/adr/0039-authenticated-project-scoped-trace-http.md
+kind: document_move
+lineageId: klineage_b572ccfa48f64cb6f07302ea
+operationId: kdocop_a7282eee85cca897c5611db1
+schemaVersion: 1
+sourceContentHash: sha256:4c698254bed3a995a097420798183b01621ded48cad230715411d90b5cdbe3ad
+sourceId: src_39328aa8e364dbad164a5480
+sourceUnitBindingDigest: sha256:546bb2f33fdba878359e23a26a0163e0b684faf29ebb87e86d5212a21090f393
+sourceUnitCount: 8
+toPath: docs/decisions/operations/0039-authenticated-project-scoped-trace-http.md

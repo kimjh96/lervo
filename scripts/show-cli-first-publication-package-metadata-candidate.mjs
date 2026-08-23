@@ -26,7 +26,7 @@ try {
     error instanceof ReleaseAttestationVerificationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_package_metadata_candidate_failed: CLI 최초 게시 package metadata 후보를 만들지 못했습니다.",
+    "first_publication_package_metadata_candidate_failed: The CLI first-publication package metadata candidate could not be created.",
   );
   process.exitCode = 1;
 }

@@ -33,7 +33,7 @@ async function readPackFileList() {
   if (report.name !== "@lervo/cli" || !Array.isArray(report.files)) {
     throw new ReleaseArtifactManifestError(
       "release_artifact_pack_report_invalid",
-      "CLI pack report가 올바르지 않습니다.",
+      "The CLI pack report is invalid.",
     );
   }
   return report.files.map(({ path }) => path).sort();
@@ -43,7 +43,7 @@ async function createArchiveSnapshot(paths) {
   if (!paths.includes("package.json")) {
     throw new ReleaseArtifactManifestError(
       "release_artifact_package_manifest_missing",
-      "Release archive에 package manifest가 없습니다.",
+      "The release archive does not contain a package manifest.",
     );
   }
   const files = [];
@@ -52,7 +52,7 @@ async function createArchiveSnapshot(paths) {
     if (!publicContentPaths.has(path)) {
       throw new ReleaseArtifactManifestError(
         "release_artifact_file_unexpected",
-        "Release archive에 허용되지 않은 파일이 있습니다.",
+        "The release archive contains a disallowed file.",
       );
     }
     const contents = await readFile(resolve(cliRoot, path));
@@ -93,7 +93,7 @@ async function createBundleSnapshot() {
   if (!output || !Array.isArray(output.imports)) {
     throw new ReleaseArtifactManifestError(
       "release_artifact_bundle_metadata_invalid",
-      "CLI bundle metadata에서 실행 출력을 찾지 못했습니다.",
+      "The executable output was not found in the CLI bundle metadata.",
     );
   }
 

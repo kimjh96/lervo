@@ -26,7 +26,7 @@ try {
     error instanceof ReleaseAttestationVerificationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_metadata_preview_failed: CLI 최초 게시 metadata 변경 미리보기를 만들지 못했습니다.",
+    "first_publication_metadata_preview_failed: The CLI first-publication metadata-change preview could not be created.",
   );
   process.exitCode = 1;
 }

@@ -71,7 +71,7 @@ export async function deliverDiscordConversationMessage(input: {
     if (error instanceof ConversationPlatformError) throw error;
     throw new ConversationPlatformError(
       "platform_delivery_failed",
-      "Discord message를 안전하게 전달하지 못했습니다.",
+      "The Discord message could not be delivered safely.",
       { cause: error instanceof Error ? error : undefined },
     );
   }

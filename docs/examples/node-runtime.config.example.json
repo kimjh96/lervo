@@ -16,5 +16,22 @@
     "requestTimeoutMs": 15000,
     "maxRequestBytes": 4194304,
     "maxResponseBytes": 1048576
+  },
+  "remoteCommands": {
+    "nodeId": "node_repository_main",
+    "trustFile": "secrets/node-trust.json",
+    "providerHost": {
+      "providers": ["codex", "claude"],
+      "roles": ["developer"],
+      "developerSkills": []
+    },
+    "idlePollIntervalMs": 2000,
+    "leaseDurationMs": 30000,
+    "retryDelayMs": 5000,
+    "limit": 1,
+    "requestTimeoutMs": 15000,
+    "maxResponseBytes": 1048576,
+    "maxLifetimeMs": 900000,
+    "clockSkewMs": 30000
   }
 }

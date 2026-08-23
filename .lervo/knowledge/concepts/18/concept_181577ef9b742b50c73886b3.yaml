@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_181577ef9b742b50c73886b3
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0041-signed-scoped-remote-command.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_536d89e50c099de6692d0ee7
+title: "ADR-0041: Signed, project-scoped, locally authorized remote commands"
+type: decision

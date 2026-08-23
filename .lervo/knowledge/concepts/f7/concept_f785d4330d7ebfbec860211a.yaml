@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f785d4330d7ebfbec860211a
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_862f6e43ace06675dfd5cb35
+title: "ADR-0108: CLI first-publication package-metadata apply transaction"
+type: decision

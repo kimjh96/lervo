@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_97198724187683df0a106e3a
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_41a1283df96afc917fbad2a1
+title: "ADR-0103: CLI first-publication execution-plan command"
+type: decision

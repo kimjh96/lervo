@@ -1,0 +1,11 @@
+fromPath: docs/adr/0132-cli-first-publication-completion-inspection.md
+identityPath: docs/adr/0132-cli-first-publication-completion-inspection.md
+kind: document_move
+lineageId: klineage_06248df6c40ce2ad00362db9
+operationId: kdocop_2ddbbf72bac2d3d83b70cc02
+schemaVersion: 1
+sourceContentHash: sha256:33f16fb7eb8b8d7090dc107c4f44a2165dbd99ca59efb6dc5827fef8111faa3e
+sourceId: src_58259cb7de2a0e12fe6d1686
+sourceUnitBindingDigest: sha256:72bdf169dd8d73e9571410af3c0666d5d72e65aff07725f08a839dd48178ce6a
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md

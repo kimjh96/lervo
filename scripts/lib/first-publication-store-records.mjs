@@ -7,7 +7,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail(code) {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 저장 문서가 올바르지 않습니다.",
+    "The CLI first-publication stored document is invalid.",
   );
 }
 

@@ -24,7 +24,7 @@ import { integerField, stringField, type SQLiteRow } from "./row-codec.js";
 function enumField<T extends string>(row: SQLiteRow, name: string, values: readonly T[]): T {
   const value = stringField(row, name);
   if (!values.includes(value as T)) {
-    throw new HubSyncStoreError("integrity_failed", `Hub graph ${name} 값이 유효하지 않습니다.`);
+    throw new HubSyncStoreError("integrity_failed", `The Hub graph ${name} value is invalid.`);
   }
   return value as T;
 }
@@ -54,12 +54,12 @@ function graphRelation(row: SQLiteRow, projectId: string): KnowledgeGraphRelatio
   if (relation.evidence.eventId !== stringField(row, "source_event_id") ||
     relation.evidence.eventType !== stringField(row, "source_event_type") ||
     relation.evidence.runId !== stringField(row, "source_run_id")) {
-    throw new HubSyncStoreError("integrity_failed", "Hub graph evidence가 event 원본과 다릅니다.");
+    throw new HubSyncStoreError("integrity_failed", "The Hub graph evidence differs from the source event.");
   }
   try {
     assertKnowledgeGraphRelationIntegrity(relation);
   } catch (error) {
-    throw new HubSyncStoreError("integrity_failed", "Hub graph relation 무결성이 유효하지 않습니다.", {
+    throw new HubSyncStoreError("integrity_failed", "The Hub graph relation integrity is invalid.", {
       cause: error instanceof Error ? error : undefined,
     });
   }

@@ -13,7 +13,7 @@ const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
 function fail(code = "first_publication_stage_approval_reconciliation_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI npm stage 승인 결과 대조 증거가 올바르지 않습니다.",
+    "The CLI npm stage approval reconciliation evidence is invalid.",
   );
 }
 

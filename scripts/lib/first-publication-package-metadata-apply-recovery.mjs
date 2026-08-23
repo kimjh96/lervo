@@ -38,7 +38,7 @@ function validateJournal(journal) {
   ) {
     failMetadataApply(
       "first_publication_package_metadata_apply_journal_invalid",
-      "CLI 최초 게시 package metadata 적용 복구 기록이 올바르지 않습니다.",
+      "The CLI first-publication package metadata apply recovery record is invalid.",
     );
   }
 }
@@ -63,7 +63,7 @@ export async function recoverFirstPublicationPackageMetadataFiles({ transactionR
   if (!await metadataApplyPathExists(transactionRoot)) {
     failMetadataApply(
       "first_publication_package_metadata_apply_recovery_not_found",
-      "복구할 CLI 최초 게시 package metadata 적용 transaction이 없습니다.",
+      "There is no CLI first-publication package metadata apply transaction to recover.",
     );
   }
   let journal;
@@ -72,14 +72,14 @@ export async function recoverFirstPublicationPackageMetadataFiles({ transactionR
   } catch {
     failMetadataApply(
       "first_publication_package_metadata_apply_journal_invalid",
-      "CLI 최초 게시 package metadata 적용 복구 기록이 올바르지 않습니다.",
+      "The CLI first-publication package metadata apply recovery record is invalid.",
     );
   }
   validateJournal(journal);
   if (processIsAlive(journal.ownerPid)) {
     failMetadataApply(
       "first_publication_package_metadata_apply_busy",
-      "CLI 최초 게시 package metadata 적용 transaction이 아직 실행 중입니다.",
+      "The CLI first-publication package metadata apply transaction is still running.",
     );
   }
   const files = journal.files.map((binding) => ({ path: targets[binding.id], binding }));
@@ -93,7 +93,7 @@ export async function recoverFirstPublicationPackageMetadataFiles({ transactionR
   } catch {
     failMetadataApply(
       "first_publication_package_metadata_apply_rollback_failed",
-      "CLI 최초 게시 package metadata 적용 실패 뒤 원본 복구를 완료하지 못했습니다.",
+      "The original files could not be restored after the CLI first-publication package metadata apply failed.",
     );
   }
   return { status: "rolled_back" };

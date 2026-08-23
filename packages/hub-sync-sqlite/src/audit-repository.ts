@@ -21,7 +21,7 @@ export class HubAuditSQLiteRepository {
   assertGlobalCounts(projectCount: number, eventCount: number): void {
     const metadata = this.healthCounts();
     if (metadata.projectCount !== projectCount || metadata.eventCount !== eventCount) {
-      throw new HubSyncStoreError("integrity_failed", "Hub global count가 원본과 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub global count differs from the source.");
     }
   }
 
@@ -31,7 +31,7 @@ export class HubAuditSQLiteRepository {
     ).get(key)?.value;
     const count = typeof value === "string" ? Number(value) : Number.NaN;
     if (!Number.isSafeInteger(count) || count < 0) {
-      throw new HubSyncStoreError("integrity_failed", "Hub count metadata가 유효하지 않습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub count metadata is invalid.");
     }
     return count;
   }
@@ -99,7 +99,7 @@ export class HubAuditSQLiteRepository {
       integerField(projectRow, "stored_event_count") !== state.events.length ||
       integerField(projectRow, "run_count") !== expectedRuns.size
     ) {
-      throw new HubSyncStoreError("integrity_failed", "Hub project 파생 count가 event 원본과 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The derived Hub project count differs from the source events.");
     }
     const storedRuns = this.database.prepare(`
       SELECT run_id, first_seq, last_seq, event_count, continuous_event_count
@@ -123,7 +123,7 @@ export class HubAuditSQLiteRepository {
       continuousEventCount: run.continuousEventCount,
     }));
     if (canonicalJson(storedRuns) !== canonicalJson(expectedRunRows)) {
-      throw new HubSyncStoreError("integrity_failed", "Hub run 파생 index가 event 원본과 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The derived Hub run index differs from the source events.");
     }
     const storedSessions = this.database.prepare(`
       SELECT run_id, session_id, first_seq
@@ -145,7 +145,7 @@ export class HubAuditSQLiteRepository {
       left.runId.localeCompare(right.runId) || left.sessionId.localeCompare(right.sessionId)
     );
     if (canonicalJson(storedSessions) !== canonicalJson(expectedSessions)) {
-      throw new HubSyncStoreError("integrity_failed", "Hub session 파생 index가 event 원본과 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The derived Hub session index differs from the source events.");
     }
   }
 }

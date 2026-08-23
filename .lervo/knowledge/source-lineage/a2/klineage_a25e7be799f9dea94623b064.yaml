@@ -1,0 +1,11 @@
+fromPath: docs/adr/0129-cli-npm-stage-approval-reconciliation-evidence.md
+identityPath: docs/adr/0129-cli-npm-stage-approval-reconciliation-evidence.md
+kind: document_move
+lineageId: klineage_a25e7be799f9dea94623b064
+operationId: kdocop_3a56520a1626c3c2b0f7d66f
+schemaVersion: 1
+sourceContentHash: sha256:25a079f3346cb49fc7215168063bed2ae8d98df046ab291c6fcdbb4806600419
+sourceId: src_24648b3cc48955064f04f4e9
+sourceUnitBindingDigest: sha256:291f95931e630b8610677bc67a71fd54c9b67e2505aab5fb8297e56504732bea
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md

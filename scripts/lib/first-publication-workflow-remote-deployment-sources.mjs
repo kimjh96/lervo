@@ -22,7 +22,7 @@ export const firstPublicationWorkflowRemoteDeploymentPaths = Object.freeze({
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_remote_deployment_source_invalid",
-    "CLI stage-only workflow 원격 배포 증거 원본이 올바르지 않습니다.",
+    "The CLI stage-only workflow remote-deployment evidence source is invalid.",
   );
 }
 

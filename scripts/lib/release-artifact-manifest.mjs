@@ -4,6 +4,9 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/;
 const semanticVersionPattern = /^\d+\.\d+\.\d+$/;
 const repositoryPattern = /^git\+https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.git$/u;
 const npmPublicRegistry = "https://registry.npmjs.org/";
+const supportedCliDescriptions = new Set([
+  "Lervo CLI for managing AI agent execution and evidence in local repositories",
+]);
 
 export class ReleaseArtifactManifestError extends Error {
   constructor(code, message) {
@@ -52,7 +55,7 @@ function fail(code, message) {
 
 export function validateReleaseArtifactManifest(manifest) {
   if (manifest === null || typeof manifest !== "object" || Array.isArray(manifest)) {
-    fail("release_artifact_manifest_invalid", "Release artifact manifest 구조가 올바르지 않습니다.");
+    fail("release_artifact_manifest_invalid", "The release artifact manifest structure is invalid.");
   }
   const { artifact, archive, bundle, dependencies } = manifest;
   if (
@@ -60,7 +63,7 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
-    artifact.description !== "로컬 저장소에서 AI 에이전트 실행과 근거를 관리하는 Lervo CLI" ||
+    !supportedCliDescriptions.has(artifact.description) ||
     canonicalJson(artifact.keywords) !== canonicalJson([
       "ai-agents",
       "local-first",
@@ -79,7 +82,7 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.bin !== "dist/bin.js" ||
     canonicalJson(artifact.files) !== canonicalJson(["README.md", "dist/bin.js"])
   ) {
-    fail("release_artifact_identity_invalid", "Release artifact identity가 올바르지 않습니다.");
+    fail("release_artifact_identity_invalid", "The release artifact identity is invalid.");
   }
   if (
     !Array.isArray(manifest.directDependencies) ||
@@ -96,7 +99,7 @@ export function validateReleaseArtifactManifest(manifest) {
       "zod",
     ])
   ) {
-    fail("release_artifact_dependencies_invalid", "직접 dependency 좌표가 올바르지 않습니다.");
+    fail("release_artifact_dependencies_invalid", "The direct dependency coordinates are invalid.");
   }
   const workspacePackagesValid = Array.isArray(bundle?.workspacePackages) &&
     bundle.workspacePackages.length > 0 &&
@@ -114,16 +117,46 @@ export function validateReleaseArtifactManifest(manifest) {
     bundle.output !== "dist/bin.js" ||
     !workspacePackagesValid ||
     canonicalJson(bundle.externalPackages) !== canonicalJson([
+      "@babel/parser@7.29.8",
       "ajv@8.20.0",
+      "character-entities@2.0.2",
+      "decode-named-character-reference@1.3.0",
       "fast-deep-equal@3.1.3",
       "fast-uri@3.1.5",
       "json-schema-traverse@1.0.0",
+      "jsonc-parser@3.3.1",
+      "mdast-util-from-markdown@2.0.3",
+      "mdast-util-to-string@4.0.0",
+      "micromark-core-commonmark@2.0.3",
+      "micromark-factory-destination@2.0.1",
+      "micromark-factory-label@2.0.1",
+      "micromark-factory-space@2.0.1",
+      "micromark-factory-title@2.0.1",
+      "micromark-factory-whitespace@2.0.1",
+      "micromark-util-character@2.1.1",
+      "micromark-util-chunked@2.0.1",
+      "micromark-util-classify-character@2.0.1",
+      "micromark-util-combine-extensions@2.0.1",
+      "micromark-util-decode-numeric-character-reference@2.0.2",
+      "micromark-util-decode-string@2.0.1",
+      "micromark-util-encode@2.0.1",
+      "micromark-util-html-tag-name@2.0.1",
+      "micromark-util-normalize-identifier@2.0.1",
+      "micromark-util-resolve-all@2.0.1",
+      "micromark-util-sanitize-uri@2.0.1",
+      "micromark-util-subtokenize@2.1.0",
+      "micromark@4.0.2",
+      "nanoid@3.3.18",
+      "picocolors@1.1.1",
+      "postcss@8.5.26",
+      "source-map-js@1.2.1",
+      "unist-util-stringify-position@4.0.0",
       "yaml@2.9.0",
     ]) ||
     canonicalJson(bundle.externalImports) !== canonicalJson(["@anthropic-ai/claude-agent-sdk"]) ||
     bundle.bundleDigest !== canonicalDigest(bundleFields)
   ) {
-    fail("release_artifact_bundle_invalid", "CLI bundle 경계가 올바르지 않습니다.");
+    fail("release_artifact_bundle_invalid", "The CLI bundle boundary is invalid.");
   }
   const archiveFilesValid = Array.isArray(archive?.files) &&
     archive.files.length === 2 &&
@@ -148,7 +181,7 @@ export function validateReleaseArtifactManifest(manifest) {
     archive.fileCount !== archive.files.length + archive.rootFiles.length ||
     archive.contentDigest !== canonicalDigest(archive.files)
   ) {
-    fail("release_artifact_archive_invalid", "Release archive 파일 계약이 올바르지 않습니다.");
+    fail("release_artifact_archive_invalid", "The release archive file contract is invalid.");
   }
   const platformFamiliesValid = Array.isArray(dependencies?.platformSpecificFamilies) &&
     dependencies.platformSpecificFamilies.every((family) =>
@@ -171,11 +204,11 @@ export function validateReleaseArtifactManifest(manifest) {
       `${family.prefix}@${family.version}`
     ))
   ) {
-    fail("release_artifact_closure_invalid", "Production dependency closure가 올바르지 않습니다.");
+    fail("release_artifact_closure_invalid", "The production dependency closure is invalid.");
   }
   const expectedArtifactDigest = releaseArtifactDigest(manifest);
   if (!digestPattern.test(manifest.artifactDigest) || manifest.artifactDigest !== expectedArtifactDigest) {
-    fail("release_artifact_digest_invalid", "Release artifact digest가 올바르지 않습니다.");
+    fail("release_artifact_digest_invalid", "The release artifact digest is invalid.");
   }
   return manifest;
 }

@@ -12,7 +12,7 @@ const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_execution_receipt_invalid",
-    "CLI 최초 게시 실행 영수증이 올바르지 않습니다.",
+    "The CLI first-publication execution receipt is invalid.",
   );
 }
 

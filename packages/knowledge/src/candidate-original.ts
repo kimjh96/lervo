@@ -24,7 +24,7 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     throw new KnowledgeError(
       "candidate_contract_invalid",
       "candidate_schema_invalid",
-      "지식 후보 schema 또는 결정적 ID가 유효하지 않습니다.",
+      "The knowledge candidate schema or deterministic ID is invalid.",
     );
   }
   let bytes: Uint8Array;
@@ -34,7 +34,7 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "candidate_artifact_mismatch",
-      "지식 후보 CAS 원본을 읽지 못했습니다.",
+      "Could not read the knowledge candidate CAS source.",
       { cause: error },
     );
   }
@@ -48,7 +48,7 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "candidate_artifact_mismatch",
-      "지식 후보 객체와 CAS 원본 좌표가 다릅니다.",
+      "The knowledge candidate object and CAS source coordinates differ.",
     );
   }
   const matches = input.events.list().filter((event) =>
@@ -61,7 +61,7 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "candidate_event_missing",
-      "지식 후보 생성 event를 정확히 하나 확인할 수 없습니다.",
+      "Exactly one knowledge candidate creation event cannot be verified.",
     );
   }
   const event = matches[0]!;
@@ -77,14 +77,14 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "candidate_event_missing",
-      "지식 후보 생성 event와 CAS 원본 좌표가 다릅니다.",
+      "The knowledge candidate creation event and CAS source coordinates differ.",
     );
   }
   if (input.candidate.evidence.eventIds.some((eventId) => input.events.get(eventId) === null)) {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "evidence_event_missing",
-      "지식 후보가 참조한 evidence event가 현재 store에 없습니다.",
+      "The evidence event referenced by the knowledge candidate is missing from the current store.",
     );
   }
   try {
@@ -99,7 +99,7 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
       "decision_content_unavailable",
-      "지식 후보가 참조한 decision CAS 원본을 확인할 수 없습니다.",
+      "The decision CAS source referenced by the knowledge candidate cannot be verified.",
       { cause: error },
     );
   }

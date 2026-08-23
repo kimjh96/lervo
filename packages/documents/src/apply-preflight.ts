@@ -23,7 +23,7 @@ export async function revalidateMigrationSources(
 ): Promise<void> {
   const seen = new Set<string>();
   for (const source of plan.sources) {
-    if (seen.has(source.path)) stale("Migration plan에 중복 source snapshot이 있습니다.");
+    if (seen.has(source.path)) stale("The migration plan contains duplicate source snapshots.");
     seen.add(source.path);
     let bytes: Uint8Array;
     try {
@@ -31,18 +31,18 @@ export async function revalidateMigrationSources(
     } catch (error) {
       throw new DocumentMigrationError(
         "plan_stale",
-        `Migration source를 현재 snapshot으로 다시 확인할 수 없습니다: ${source.path}`,
+        `The migration source cannot be revalidated against the current snapshot: ${source.path}`,
         { cause: error },
       );
     }
     if (bytes.byteLength !== source.byteCount || sha256(bytes) !== source.contentHash) {
-      stale(`Migration source가 dry-run 이후 바뀌었습니다: ${source.path}`);
+      stale(`The migration source changed after the dry run: ${source.path}`);
     }
   }
   if (plan.candidates.some((candidate) => !seen.has(candidate.sourcePath))) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Migration candidate가 plan에 없는 source를 가리킵니다.",
+      "A migration candidate references a source that is not in the plan.",
     );
   }
 }
@@ -61,7 +61,7 @@ export async function revalidateMigrationTargets(
         ? current.kind === "unsafe" && current.reasonCode === expected.reasonCode
         : current.kind === "file" && current.bytes.byteLength === expected.byteCount &&
           sha256(current.bytes) === expected.contentHash;
-    if (!matches) stale(`Sidecar target이 dry-run 이후 바뀌었습니다: ${candidate.target.path}`);
+    if (!matches) stale(`The sidecar target changed after the dry run: ${candidate.target.path}`);
   }
 }
 
@@ -77,9 +77,10 @@ export async function captureSidecarDirectorySnapshot(
       throw new Error("unsafe document directory");
     }
   } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return new Map();
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Metadata-only apply에는 안전한 .lervo/documents 디렉터리가 필요합니다.",
+      "Metadata-only apply requires a safe .lervo/documents directory.",
       { cause: error },
     );
   }
@@ -87,7 +88,7 @@ export async function captureSidecarDirectorySnapshot(
   if (entries.length > 4097) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Document manifest 디렉터리 항목 수 제한을 넘었습니다.",
+      "The document manifest directory entry-count limit was exceeded.",
     );
   }
   const snapshot = new Map<string, string>();
@@ -96,7 +97,7 @@ export async function captureSidecarDirectorySnapshot(
     if (!entry.isFile() || entry.isSymbolicLink() || !DOCUMENT_FILE.test(entry.name)) {
       throw new DocumentMigrationError(
         "migration_conflict",
-        "Document manifest 디렉터리에 계약 밖의 항목이 있습니다.",
+        "The document manifest directory contains an entry outside the contract.",
       );
     }
     const path = `.lervo/documents/${entry.name}`;
@@ -108,7 +109,7 @@ export async function captureSidecarDirectorySnapshot(
     before.dev !== after.dev || before.ino !== after.ino ||
     before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
   ) {
-    stale("Document manifest 디렉터리가 snapshot 중 바뀌었습니다.");
+    stale("The document manifest directory changed while it was being snapshotted.");
   }
   return snapshot;
 }
@@ -141,7 +142,7 @@ export function expectedPublishedSnapshot(
     if (expected.has(item.path)) {
       throw new DocumentMigrationError(
         "migration_conflict",
-        `승인한 sidecar target이 기존 manifest와 겹칩니다: ${basename(item.path)}`,
+        `An approved sidecar target overlaps an existing manifest: ${basename(item.path)}`,
       );
     }
     expected.set(item.path, item.contentHash);

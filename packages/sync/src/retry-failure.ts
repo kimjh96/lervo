@@ -23,6 +23,6 @@ export function registrationFailureCode(code: SyncRetryFailureCode): Registratio
   }
   throw new SyncWorkerError(
     "invalid_worker_configuration",
-    "registration 단계에서 허용되지 않은 실패 code가 발생했습니다.",
+    "A disallowed failure code occurred during registration.",
   );
 }

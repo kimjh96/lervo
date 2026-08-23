@@ -11,7 +11,7 @@ import {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_stage_approval_arguments_invalid",
-    "CLI npm stage 승인 권한 명령 인자가 올바르지 않습니다.",
+    "The CLI npm stage approval authorization command arguments are invalid.",
   );
 }
 

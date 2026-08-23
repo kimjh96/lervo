@@ -35,7 +35,7 @@ export async function createCliFirstPublicationWorkflowExecutionEvidence(
   if (online !== true) {
     fail(
       "first_publication_workflow_execution_online_required",
-      "CLI stage-only workflow 실행 증거에는 온라인 확인이 필요합니다.",
+      "CLI stage-only workflow execution evidence requires online verification.",
     );
   }
   try {
@@ -47,7 +47,7 @@ export async function createCliFirstPublicationWorkflowExecutionEvidence(
   } catch {
     fail(
       "first_publication_workflow_execution_input_invalid",
-      "CLI stage-only workflow 실행 증거 입력이 올바르지 않습니다.",
+      "The CLI stage-only workflow execution evidence input is invalid.",
     );
   }
   const readSources = dependencies.readSources ??

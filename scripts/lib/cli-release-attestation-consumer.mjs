@@ -39,7 +39,7 @@ export async function verifyCliReleaseAttestations(options, dependencies = {}) {
   ) {
     failReleaseVerification(
       "release_attestation_verification_input_invalid",
-      "Release attestation 검증 입력이 올바르지 않습니다.",
+      "The release attestation verification input is invalid.",
     );
   }
   const releaseManifestPath = resolve(
@@ -59,7 +59,7 @@ export async function verifyCliReleaseAttestations(options, dependencies = {}) {
     if (error?.code) throw error;
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   validateCliReleaseTag(releaseManifest.artifact.version, options.tag);
@@ -96,7 +96,7 @@ export async function verifyCliReleaseAttestations(options, dependencies = {}) {
   } catch {
     failReleaseVerification(
       "release_attestation_release_set_invalid",
-      "Release attestation 파일 집합이 올바르지 않습니다.",
+      "The release attestation file set is invalid.",
     );
   }
   validateDeliveredReleaseSbom(sbom, releaseManifest.artifact.version);

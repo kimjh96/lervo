@@ -31,7 +31,7 @@ const sideEffects = Object.freeze({
 function fail(code = "first_publication_metadata_preview_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 metadata 변경 미리보기가 올바르지 않습니다.",
+    "The CLI first-publication metadata-change preview is invalid.",
   );
 }
 
@@ -69,6 +69,7 @@ function previewBody({ packageManifest, releaseManifest, decision }) {
     target: {
       package: "@lervo/cli",
       version: releaseManifest.artifact.version,
+      description: decision.target.description,
       repository: decision.target.repository,
       license: decision.target.license,
       scopeOwner: structuredClone(decision.target.scopeOwner),

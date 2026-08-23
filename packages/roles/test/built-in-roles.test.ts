@@ -32,12 +32,12 @@ describe("built-in multi-discipline roles", () => {
 
   it("returns clones so one run cannot mutate the built-in role source", () => {
     const first = getBuiltInRoleDefinition("researcher");
-    first.profile.description = "변조";
-    first.evaluation.checks[0]!.requirement = "변조";
+    first.profile.description = "tampered";
+    first.evaluation.checks[0]!.requirement = "tampered";
 
     const second = getBuiltInRoleDefinition("researcher");
-    expect(second.profile.description).not.toBe("변조");
-    expect(second.evaluation.checks[0]!.requirement).not.toBe("변조");
+    expect(second.profile.description).not.toBe("tampered");
+    expect(second.evaluation.checks[0]!.requirement).not.toBe("tampered");
     expect(() => assertRoleDefinition(second)).not.toThrow();
   });
 });

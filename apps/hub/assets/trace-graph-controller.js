@@ -3,7 +3,7 @@ import { loadFirstPage, moveCursorPage } from "/assets/trace-navigation.js";
 import { createCursorPager } from "/assets/trace-pagination.js";
 import { setPagination, setPaneState } from "/assets/trace-render.js";
 
-const EMPTY_MESSAGE = "프로젝트를 선택하면 명시적으로 기록된 관계를 확인할 수 있습니다.";
+const EMPTY_MESSAGE = "Select a project to inspect explicitly recorded relationships.";
 
 export function createKnowledgeGraphController(options) {
   let pager = null;
@@ -24,9 +24,9 @@ export function createKnowledgeGraphController(options) {
     setPagination("graph", result.navigation);
     setPaneState(
       options.ui.state,
-      relations.length === 0 ? "이 항목에 연결된 관계가 없습니다." : `${relations.length}개 관계`,
+      relations.length === 0 ? "This item has no connected relationships." : `${relations.length} relationships`,
     );
-    options.ui.help.textContent = `${focus.kind} · ${focus.id}에서 한 단계로 연결된 관계입니다.`;
+    options.ui.help.textContent = `Relationships one step away from ${focus.kind} · ${focus.id}.`;
   }
 
   async function selectFocus(focus) {
@@ -42,7 +42,7 @@ export function createKnowledgeGraphController(options) {
       pager: currentPager,
       prefix: "graph",
       stateElement: options.ui.state,
-      loadingMessage: "명시적 관계를 불러오는 중입니다.",
+      loadingMessage: "Loading explicit relationships.",
       isCurrent: () => pager === currentPager,
       apply: (result) => applyPage(currentPager, result),
       onError: (error) => options.onError(options.ui.state, error),
@@ -56,7 +56,7 @@ export function createKnowledgeGraphController(options) {
       pager: currentPager,
       prefix: "graph",
       stateElement: options.ui.state,
-      loadingMessage: "명시적 관계를 불러오는 중입니다.",
+      loadingMessage: "Loading explicit relationships.",
       isCurrent: () => pager === currentPager,
       apply: (result) => applyPage(currentPager, result),
       onError: (error) => options.onError(options.ui.state, error),

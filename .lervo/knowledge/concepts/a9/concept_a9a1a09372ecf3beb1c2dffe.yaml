@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a9a1a09372ecf3beb1c2dffe
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0029-cross-provider-deliberation-runtime.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ccc17090d31aa6d6aed0a527
+title: "ADR-0029: Codex–Claude cross-review and role-specific provider enforcement"
+type: decision

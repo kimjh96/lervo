@@ -1,4 +1,4 @@
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import type {
   EventEnvelope,
 } from "@lervo/schemas";
@@ -56,7 +56,7 @@ describe("same-provider independent role deliberation runtime", () => {
     runtime.start();
     const adapter = new FixtureProviderAdapter(
       "codex-session-proposer",
-      "페이지 기본값과 관계없이 실행 완료 원본을 확인합니다.",
+      "Inspect the completed execution source regardless of pagination defaults.",
       120,
     );
     const proposal = await runtime.executeTurn({
@@ -73,7 +73,7 @@ describe("same-provider independent role deliberation runtime", () => {
         sessionId: "ses_proposer_many_events",
         now,
       }).run(managedInput({ root: fixture.root, role: proposerRole })),
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
@@ -105,7 +105,7 @@ describe("same-provider independent role deliberation runtime", () => {
 
     const proposerAdapter = new FixtureProviderAdapter(
       "codex-session-proposer",
-      "설계 결론은 역할마다 독립된 실행 맥락을 사용하는 것입니다. 각 역할은 같은 근거를 직접 읽고 확인합니다.",
+      "The design conclusion uses an independent execution context for each role. Every role reads and checks the same evidence directly.",
     );
     const proposalRun = coordinator({
       fixture,
@@ -125,7 +125,7 @@ describe("same-provider independent role deliberation runtime", () => {
         root: fixture.root,
         role: proposerRole,
       })),
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
@@ -161,7 +161,7 @@ describe("same-provider independent role deliberation runtime", () => {
 
     const reviewerAdapter = new FixtureProviderAdapter(
       "codex-session-reviewer",
-      "검토 결과는 변경 요청입니다. 이전 산출물의 근거와 실제 주입 기록을 연결해야 역할 독립성을 확인할 수 있습니다.",
+      "The review requests changes. Evidence for the prior artifact must be linked to actual injection records to verify role independence.",
     );
     const reviewerRun = coordinator({
       fixture,
@@ -193,7 +193,7 @@ describe("same-provider independent role deliberation runtime", () => {
         publications: [publication],
         handoff,
       })),
-      writingContract: defaultKoreanWritingContract,
+      writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
@@ -262,7 +262,7 @@ describe("same-provider independent role deliberation runtime", () => {
     const now = clock();
     const adapter = new FixtureProviderAdapter(
       "codex-session-proposer",
-      "설계 결론을 기록했습니다. 각 역할은 같은 원문을 별도로 읽고 검증합니다.",
+      "Recorded the design conclusion. Each role reads and verifies the same source independently.",
     );
     const run = await coordinator({
       fixture,

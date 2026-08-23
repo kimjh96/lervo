@@ -1,0 +1,11 @@
+fromPath: docs/adr/0182-durable-identity-preserving-user-document-move.md
+identityPath: docs/adr/0182-durable-identity-preserving-user-document-move.md
+kind: document_move
+lineageId: klineage_2fab0ded2ab3fd8a96b06f27
+operationId: kdocop_2897633ab7e780f17a775896
+schemaVersion: 1
+sourceContentHash: sha256:01e654b99696a0563c7e69b39e8d43b150186dd99e47ce70b0d53f67fe30f659
+sourceId: src_92552a4bef5cb7a920404715
+sourceUnitBindingDigest: sha256:4844f97e4ea138ebdee32534b8cafb6dfebb2c4ff2e3cfb888f7495b46ee961a
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md

@@ -29,7 +29,7 @@ function validateAdapters(adapters: readonly DocumentImportAdapter[]): void {
     if (!ADAPTER_ID.test(adapterId) || !ADAPTER_VERSION.test(version) || ids.has(adapterId)) {
       throw new DocumentMigrationError(
         "invalid_adapter_contract",
-        "Document import adapter descriptor가 공통 계약을 통과하지 못했습니다.",
+        "The document import adapter descriptor does not satisfy the common contract.",
       );
     }
     ids.add(adapterId);
@@ -63,7 +63,7 @@ function candidateFromDraft(
   ) {
     throw new DocumentMigrationError(
       "invalid_adapter_contract",
-      "Document import adapter의 처분, 신뢰도와 문서 제안이 서로 맞지 않습니다.",
+      "The document import adapter disposition, confidence, and document proposal do not agree.",
     );
   }
   if (draft.proposal !== null) {
@@ -73,7 +73,7 @@ function candidateFromDraft(
     } catch (error) {
       throw new DocumentMigrationError(
         "invalid_adapter_contract",
-        "Document import adapter가 정규화되지 않은 문서 경로를 제안했습니다.",
+        "The document import adapter proposed a non-normalized document path.",
         { cause: error },
       );
     }
@@ -113,7 +113,7 @@ function candidateFromDraft(
   if (!validateSchema("documentMigrationCandidate", candidate).valid) {
     throw new DocumentMigrationError(
       "invalid_adapter_contract",
-      "Document import adapter 결과가 migration candidate 계약을 통과하지 못했습니다.",
+      "The document import adapter result does not satisfy the migration candidate contract.",
     );
   }
   return candidate;
@@ -134,7 +134,7 @@ function materializeCandidate(
   if (!validateSchema("documentMigrationCandidateArtifact", artifact).valid) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Migration candidate artifact를 schema-valid하게 만들 수 없습니다.",
+      "The migration candidate artifact cannot be made schema-valid.",
     );
   }
   return { artifact, bytes };
@@ -163,14 +163,14 @@ export async function importDocumentSources(input: {
     } catch (error) {
       throw new DocumentMigrationError(
         "invalid_adapter_contract",
-        "Document import adapter가 source 지원 여부를 판정하지 못했습니다.",
+        "The document import adapter did not determine whether it supports the source.",
         { cause: error },
       );
     }
     if (matching.length > 1) {
       throw new DocumentMigrationError(
         "ambiguous_import_adapter",
-        `여러 document import adapter가 같은 source를 선택했습니다: ${source.path}`,
+        `Multiple document import adapters selected the same source: ${source.path}`,
       );
     }
     const adapter = matching[0];
@@ -191,7 +191,7 @@ export async function importDocumentSources(input: {
       } catch (error) {
         throw new DocumentMigrationError(
           "invalid_adapter_contract",
-          "Document import adapter가 source를 판정하지 못했습니다.",
+          "The document import adapter did not classify the source.",
           { cause: error },
         );
       }
@@ -202,7 +202,7 @@ export async function importDocumentSources(input: {
       ) {
         throw new DocumentMigrationError(
           "invalid_adapter_contract",
-          "Document import adapter가 입력 bytes를 바꾸거나 후보 수 계약을 어겼습니다.",
+          "The document import adapter changed the input bytes or violated the candidate count contract.",
         );
       }
     }
@@ -211,7 +211,7 @@ export async function importDocumentSources(input: {
       if (candidateIds.has(item.artifact.candidate.candidateId)) {
         throw new DocumentMigrationError(
           "invalid_adapter_contract",
-          "Document import adapter가 중복 candidate 좌표를 반환했습니다.",
+          "The document import adapter returned duplicate candidate coordinates.",
         );
       }
       candidateIds.add(item.artifact.candidate.candidateId);
@@ -219,7 +219,7 @@ export async function importDocumentSources(input: {
       if (materialized.length > MAX_MIGRATION_CANDIDATES) {
         throw new DocumentMigrationError(
           "scan_limit_exceeded",
-          "Document migration candidate 수 제한을 넘었습니다.",
+          "The document migration candidate count limit was exceeded.",
         );
       }
     }
@@ -239,7 +239,7 @@ export async function importDocumentSources(input: {
     if (existing !== undefined && sha256(existing) !== item.artifact.contentHash) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
-        "서로 다른 migration candidate가 같은 artifact ID를 사용합니다.",
+        "Different migration candidates use the same artifact ID.",
       );
     }
     bytesByArtifactId.set(item.artifact.artifactId, new Uint8Array(item.bytes));

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0071-search-rollout-operational-doctor.md
+identityPath: docs/adr/0071-search-rollout-operational-doctor.md
+kind: document_move
+lineageId: klineage_c3c78a40e170c83da619b637
+operationId: kdocop_2f84fdbe3ed6271404632ae6
+schemaVersion: 1
+sourceContentHash: sha256:7b8291e3becd40236064ee696afaa10faeed0fd5e50330bff2b1bdf44e97946d
+sourceId: src_e1a9627ab952bc7e16a24782
+sourceUnitBindingDigest: sha256:17b35a7ca3c8b5821d3239cab6140063910ef72d564fd8b7475574c40a7f0dd2
+sourceUnitCount: 5
+toPath: docs/decisions/search/0071-search-rollout-operational-doctor.md

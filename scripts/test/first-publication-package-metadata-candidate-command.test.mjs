@@ -81,7 +81,7 @@ describe("first-publication package metadata candidate command", () => {
     }
   });
 
-  it("explains the review boundary in plain Korean", async () => {
+  it("explains the review boundary in plain English", async () => {
     const prepared = await createActivationSourceFiles();
     try {
       const result = await inspectCliFirstPublicationPackageMetadataCandidate(
@@ -89,9 +89,9 @@ describe("first-publication package metadata candidate command", () => {
         prepared.paths,
       );
       const output = formatFirstPublicationPackageMetadataCandidate(result.candidate);
-      assert.match(output, /내용을 검토해야 하며 아직 적용할 수 없습니다/u);
+      assert.match(output, /Review is required; this candidate cannot be applied yet/u);
       assert.match(output, /--package-json/u);
-      assert.match(output, /파일 수정, release manifest 재생성, 승인 생성/u);
+      assert.match(output, /did not modify files, rebuild the release manifest, create approvals/u);
       assert.equal(output.includes(result.candidate.candidateDigest), false);
       assert.equal(output.includes(result.candidate.sources.packageSourceSha256), false);
     } finally {

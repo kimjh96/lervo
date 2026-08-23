@@ -45,7 +45,7 @@ export class SlackWebApiDelivery implements SlackDeliveryPort {
       !/^[\x21-\x7e]+$/.test(options.botToken)) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
-        "Slack integration 또는 bot credential이 유효하지 않습니다.",
+        "The Slack integration or bot credential is invalid.",
       );
     }
     this.now = options.now ?? (() => new Date());
@@ -57,7 +57,7 @@ export class SlackWebApiDelivery implements SlackDeliveryPort {
   async send(input: SlackDeliveryRequest): Promise<SlackDeliveryResult> {
     const threadTs = input.replyToTs ?? input.threadTs;
     if (input.replyToTs !== null && input.threadTs !== null && input.replyToTs !== input.threadTs) {
-      throw new ConversationPlatformError("platform_delivery_failed", "Slack thread와 reply 주소가 다릅니다.");
+      throw new ConversationPlatformError("platform_delivery_failed", "The Slack thread and reply address differ.");
     }
     const body = {
       channel: input.channelId,
@@ -76,10 +76,10 @@ export class SlackWebApiDelivery implements SlackDeliveryPort {
       requestHash,
       attemptedAt: this.now().toISOString(),
       replay: this.options.replay,
-      unknownMessage: "Slack 전송 결과를 확인할 수 없어 재발송하지 않았습니다. 운영자 확인이 필요합니다.",
-      conflictMessage: "같은 Slack outbound ID에 다른 요청이 연결되어 있습니다.",
-      rejectedMessage: "Slack API가 메시지 전송을 거부했습니다.",
-      failureMessage: "Slack 전송 결과를 안전하게 확인하지 못했습니다.",
+      unknownMessage: "The Slack delivery result is unknown, so the message was not resent. Operator review is required.",
+      conflictMessage: "A different request is bound to the same Slack outbound ID.",
+      rejectedMessage: "The Slack API rejected message delivery.",
+      failureMessage: "The Slack delivery result could not be verified safely.",
       send: async () => {
         const response = object(await postPlatformJson({
           url: this.apiUrl,

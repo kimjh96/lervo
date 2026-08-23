@@ -38,7 +38,7 @@ export function validateDeliberationOutcome(
     throw new DeliberationError(
       "outcome_contract_invalid",
       "outcome_schema_invalid",
-      "숙의 종료 결과가 schema를 통과하지 못했습니다.",
+      "The deliberation outcome does not satisfy its schema.",
     );
   }
   const analysis = analyzeDeliberationHistory(input);
@@ -70,7 +70,7 @@ export function validateDeliberationOutcome(
     throw new DeliberationError(
       "outcome_contract_invalid",
       "outcome_coordinate_mismatch",
-      "숙의 종료 결과의 정책, artifact, 회차, 검증 또는 반론 좌표가 실제 이력과 다릅니다.",
+      "The deliberation outcome policy, artifact, round, verification, or objection coordinates differ from the actual history.",
     );
   }
   const passedRequired = requiredVerificationsPassed(
@@ -88,18 +88,18 @@ export function validateDeliberationOutcome(
     if (
       analysis.decision === null ||
       outcome.decisionArtifactId !== analysis.decision.deliberationArtifactId
-    ) outcomeInvalid("decision_missing", "결정 책임자의 마지막 decision이 없습니다.");
+    ) outcomeInvalid("decision_missing", "The decision owner's final decision is missing.");
     if (analysis.openBlockingObjectionIds.length !== 0) {
-      outcomeInvalid("blocking_objection_unresolved", "해소되지 않은 차단 반론이 있습니다.");
+      outcomeInvalid("blocking_objection_unresolved", "An unresolved blocking objection remains.");
     }
     if (!passedRequired) {
-      outcomeInvalid("required_verification_missing", "필수 verification suite가 통과하지 않았습니다.");
+      outcomeInvalid("required_verification_missing", "A required verification suite has not passed.");
     }
     if (!analysis.independentReviewApproved) {
-      outcomeInvalid("independent_review_missing", "최신 proposal 또는 revision의 독립 승인이 없습니다.");
+      outcomeInvalid("independent_review_missing", "The latest proposal or revision lacks independent approval.");
     }
     if (!adoptedClaimsVerified) {
-      outcomeInvalid("adopted_claim_unverified", "채택한 현재 주장 버전이 모든 필수 suite에서 검증되지 않았습니다.");
+      outcomeInvalid("adopted_claim_unverified", "The adopted current claim version has not been verified by every required suite.");
     }
     return;
   }
@@ -108,7 +108,7 @@ export function validateDeliberationOutcome(
       throw new DeliberationError(
         "outcome_contract_invalid",
         "no_consensus_reason_mismatch",
-        "Decision artifact가 있는 이력을 no_consensus로 기록할 수 없습니다.",
+        "A history containing a decision artifact cannot be recorded as no_consensus.",
       );
     }
     const reasonMatches =
@@ -121,7 +121,7 @@ export function validateDeliberationOutcome(
       throw new DeliberationError(
         "outcome_contract_invalid",
         "no_consensus_reason_mismatch",
-        "no_consensus 종료 사유가 실제 회차, 반론 또는 검증 상태와 다릅니다.",
+        "The no_consensus termination reason does not match the actual round, objection, or verification state.",
       );
     }
   }

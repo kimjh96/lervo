@@ -11,7 +11,7 @@ export function migrateConversationDeliberationResumeDatabase(database: Database
     if (version !== 0 && version !== conversationDeliberationResumeSQLiteSchemaVersion) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
-        "지원하지 않는 Conversation 숙의 재개 queue schema입니다.",
+        "The conversation deliberation resume queue schema is unsupported.",
       );
     }
     if (version === 0) {

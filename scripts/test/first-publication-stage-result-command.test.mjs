@@ -53,8 +53,8 @@ describe("first-publication npm stage result command", () => {
       assert.equal(report.stage.state, "staged");
       assert.deepEqual(await readFile(fixture.workflowExecutionReportPath), before);
       const output = formatFirstPublicationStageResultEvidence(report);
-      assert.match(output, /npm CLI가 stage 요청을 exit code 0으로 마쳤다고 기록됨/u);
-      assert.match(output, /registry의 독립 접수 증명이나 2FA 승인이 아닙니다/u);
+      assert.match(output, /npm CLI completed the stage request with exit code 0/u);
+      assert.match(output, /not independent registry acceptance evidence or 2FA approval/u);
       assert.equal(output.includes(report.evidenceDigest), false);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });

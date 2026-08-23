@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_d2d8fd16c49929d1e03f62a3
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0166-repository-authorized-environment-source-query.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_da3bb36a8ee01ce5523d236b
+title: "ADR-0166: Repository-Authorized, Provider-Neutral Environment Sources"
+type: decision

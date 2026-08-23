@@ -11,7 +11,7 @@ import {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_execution_arguments_invalid",
-    "CLI stage-only workflow 실행 증거 명령 인자가 올바르지 않습니다.",
+    "The CLI stage-only workflow execution evidence command arguments are invalid.",
   );
 }
 

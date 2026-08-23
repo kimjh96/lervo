@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1a95c2edc23991ffbc756fd7
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0013-provider-neutral-managed-write-bridge.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7f7601157ed453c49b249377
+title: "ADR-0013: Provider-neutral managed-write bridge"
+type: decision

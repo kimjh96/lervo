@@ -4,7 +4,7 @@ import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
 import { normalizeRepositoryPath } from "@lervo/context";
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { writingContractForLanguage } from "@lervo/core";
 import {
   ManagedProviderRunCoordinator,
   type ManagedFileChangeEvidence,
@@ -16,13 +16,21 @@ import {
   openProjectStorage,
   type ProjectStorage,
 } from "@lervo/project-storage";
+import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import {
   evaluateWritingPublication,
   type WritingPublicationResult,
   type WritingSemanticEvaluator,
 } from "@lervo/writing";
 
-import { createDeveloperRole } from "./developer-role.js";
+import {
+  createDeveloperRole,
+  createDeveloperTurnInstructions,
+} from "./developer-role.js";
+import {
+  createLocalProviderWritingEvaluator,
+  type LocalProviderWritingEvaluatorInput,
+} from "./managed-writing-evaluator.js";
 import {
   prepareManagedSearchContext,
   summarizeManagedSearchContext,
@@ -70,6 +78,9 @@ export interface ManagedRunDependencies {
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
   userSkillRoot?: string;
   semanticEvaluator?: WritingSemanticEvaluator;
+  createSemanticEvaluator?: (
+    input: LocalProviderWritingEvaluatorInput,
+  ) => WritingSemanticEvaluator;
   now?: () => Date;
   createSearchNonce?: () => string;
   prepareVerification?(input: {
@@ -105,6 +116,7 @@ const defaultDependencies: ManagedRunDependencies = {
       : new ClaudeAdapter({ repositoryRoot, resolveArtifact }),
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
+  createSemanticEvaluator: createLocalProviderWritingEvaluator,
 };
 
 export function createManagedRunExecutor(
@@ -123,7 +135,7 @@ export function createManagedRunExecutor(
         !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(suiteId) || suiteId.length > 150)
     ) {
       throw new TypeError(
-        "작업 문장, 위험도와 중복되지 않은 1~16개의 verification suite가 필요합니다.",
+        "A task request, risk level, and 1 to 16 unique verification suites are required.",
       );
     }
 
@@ -132,8 +144,11 @@ export function createManagedRunExecutor(
     let executionFailure: unknown;
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
+      const knowledgePolicy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
+      const writingContract = writingContractForLanguage(knowledgePolicy.publication.language);
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
       const role = createDeveloperRole(skillIds, verificationSuiteIds);
+      const providerInstructions = createDeveloperTurnInstructions(instructions);
       const verification = await (
         dependencies.prepareVerification ?? prepareRunVerification
       )({
@@ -165,6 +180,7 @@ export function createManagedRunExecutor(
         ...(dependencies.createSearchNonce === undefined
           ? {}
           : { nonce: dependencies.createSearchNonce() }),
+        documentRegistry: registry,
       });
       const adapter = dependencies.createAdapter({
         provider: request.provider,
@@ -189,7 +205,7 @@ export function createManagedRunExecutor(
         repositoryRoot: storage.paths.repositoryRoot,
         requestDigest: digest(instructions),
         risk: request.risk.trim(),
-        instructions,
+        instructions: providerInstructions,
         targetTurnId: dependencies.createId("turn"),
         context: {
           registry,
@@ -198,7 +214,8 @@ export function createManagedRunExecutor(
           documentRules: {},
           publications: [],
           handoffs: [],
-          recommendationBatches: [searchContext.recommendationBatch],
+          recommendationBatches: searchContext.recommendationBatches,
+          additionalCandidates: searchContext.additionalCandidates,
           createReceiptId: () => dependencies.createId("ctx"),
         },
         writingPolicy: null,
@@ -210,12 +227,22 @@ export function createManagedRunExecutor(
       const writingPublication = await evaluateWritingPublication(
         {
           artifact: result.resultArtifact,
-          contract: defaultKoreanWritingContract,
+          contract: writingContract,
           surface: "chat",
           artifactStore: storage.artifacts,
-          ...(dependencies.semanticEvaluator === undefined
-            ? {}
-            : { semanticEvaluator: dependencies.semanticEvaluator }),
+          ...(dependencies.semanticEvaluator !== undefined
+            ? { semanticEvaluator: dependencies.semanticEvaluator }
+            : dependencies.createSemanticEvaluator === undefined
+              ? {}
+              : {
+                  semanticEvaluator: dependencies.createSemanticEvaluator({
+                    provider: request.provider,
+                    projectId: storage.manifest.projectId,
+                    createAdapter: dependencies.createAdapter,
+                    createId: dependencies.createId,
+                    now: dependencies.now ?? (() => new Date()),
+                  }),
+                }),
         },
         dependencies.now === undefined ? {} : { now: dependencies.now },
       );
@@ -232,6 +259,7 @@ export function createManagedRunExecutor(
         resolvedSkills,
         searchContext: summarizeManagedSearchContext(
           searchContext.attempt.attemptId,
+          searchContext.knowledgeAttempt.attemptId,
           result.contextEvidence,
         ),
       };
@@ -251,8 +279,8 @@ export function createManagedRunExecutor(
       throw new ManagedRunCommandError(
         "cleanup_failed",
         executionFailure === undefined
-          ? "Managed run 뒤 project storage를 닫지 못했습니다."
-          : "Managed run 실패 뒤 project storage도 닫지 못했습니다.",
+          ? "Could not close project storage after the managed run."
+          : "Could not close project storage after the managed run failed.",
         {
           cause:
             executionFailure === undefined
@@ -263,7 +291,7 @@ export function createManagedRunExecutor(
     }
     if (executionFailure !== undefined) throw executionFailure;
     if (outcome === undefined) {
-      throw new TypeError("Managed run 결과가 없습니다.");
+      throw new TypeError("The managed run has no result.");
     }
     return outcome;
   };

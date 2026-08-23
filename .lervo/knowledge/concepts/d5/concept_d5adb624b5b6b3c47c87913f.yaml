@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_d5adb624b5b6b3c47c87913f
+freshness: current
+ownership: user
+path: docs/decisions/execution/orchestration/0178-content-bound-project-skill-contract-units.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9a5e956b9591d855dcc080f4
+title: "ADR-0178: Content-Bound Project Skill Contract Units"
+type: decision

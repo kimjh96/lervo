@@ -60,7 +60,7 @@ export class HubPolicySQLiteSourceReader {
       envelope.command.target.projectIdentityHash !== target.projectIdentityHash ||
       calculateRemoteCommandHash(envelope.command) !== stringField(row, "command_hash")
     ) {
-      throw new HubSyncStoreError("integrity_failed", "Policy command 원본 좌표가 다릅니다.");
+      throw new HubSyncStoreError("integrity_failed", "The policy command source coordinates differ.");
     }
     return {
       command: structuredClone(envelope.command),
@@ -115,7 +115,7 @@ export class HubPolicySQLiteSourceReader {
         WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
       `).get(input.destinationId, input.target.projectId, input.currentSnapshotId);
       if (current === undefined) {
-        throw new HubPolicyError("policy_snapshot_conflict", "Node policy snapshot cursor를 Hub에서 찾지 못했습니다.");
+        throw new HubPolicyError("policy_snapshot_conflict", "The node policy snapshot cursor was not found on the Hub.");
       }
       if (integerField(current, "sequence") < integerField(head, "sequence")) {
         selected = this.database.prepare(`
@@ -142,7 +142,7 @@ export class HubPolicySQLiteSourceReader {
       MAX_POLICY_APPROVALS + 1,
     );
     if (approvalRows.length > MAX_POLICY_APPROVALS) {
-      throw new HubSyncStoreError("integrity_failed", "Hub policy approval 저장 한도가 손상되었습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The stored Hub policy approval limit is corrupted.");
     }
     const approvals = approvalRows.map((row) => parsePolicyApproval(row, snapshot));
     const approvalById = new Map(approvals.map((approval) => [approval.approval.approvalId, approval]));
@@ -163,12 +163,12 @@ export class HubPolicySQLiteSourceReader {
       MAX_POLICY_REVOCATIONS + 1,
     );
     if (revocationRows.length > MAX_POLICY_REVOCATIONS) {
-      throw new HubSyncStoreError("integrity_failed", "Hub policy revocation 저장 한도가 손상되었습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The stored Hub policy revocation limit is corrupted.");
     }
     const revocations = revocationRows.map((row) => {
       const approval = approvalById.get(stringField(row, "approval_id"));
       if (approval === undefined) {
-        throw new HubSyncStoreError("integrity_failed", "Hub policy revocation approval 원본이 없습니다.");
+        throw new HubSyncStoreError("integrity_failed", "The Hub policy revocation approval source is missing.");
       }
       return parsePolicyRevocation(row, approval);
     });
@@ -202,7 +202,7 @@ export class HubPolicySQLiteSourceReader {
           envelope.snapshot.sequence !== index + 1 ||
           envelope.snapshot.previousSnapshotId !== previousId
         ) {
-          throw new HubSyncStoreError("integrity_failed", "Hub policy snapshot chain이 유효하지 않습니다.");
+          throw new HubSyncStoreError("integrity_failed", "The Hub policy snapshot chain is invalid.");
         }
         this.auditSnapshotRelations(destinationId, target, envelope);
         previousId = envelope.snapshot.snapshotId;
@@ -222,13 +222,13 @@ export class HubPolicySQLiteSourceReader {
       ORDER BY approval_id ASC LIMIT ?
     `).all(destinationId, target.projectId, snapshot.snapshot.snapshotId, MAX_POLICY_APPROVALS + 1);
     if (approvalRows.length > MAX_POLICY_APPROVALS) {
-      throw new HubSyncStoreError("integrity_failed", "Hub policy approval 저장 한도가 손상되었습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The stored Hub policy approval limit is corrupted.");
     }
     const approvals = approvalRows.map((row) => {
       const approval = parsePolicyApproval(row, snapshot);
       const binding = this.command(destinationId, target, approval.approval.commandId);
       if (binding === null) {
-        throw new HubSyncStoreError("integrity_failed", "Hub policy approval command 원본이 없습니다.");
+        throw new HubSyncStoreError("integrity_failed", "The Hub policy approval command source is missing.");
       }
       try {
         assertPolicyApproval({
@@ -240,7 +240,7 @@ export class HubPolicySQLiteSourceReader {
       } catch (error) {
         throw new HubSyncStoreError(
           "integrity_failed",
-          "Hub policy approval과 command 원본 관계가 유효하지 않습니다.",
+          "The source relation between the Hub policy approval and command is invalid.",
           { cause: error },
         );
       }
@@ -261,12 +261,12 @@ export class HubPolicySQLiteSourceReader {
       ORDER BY revocation.revocation_id ASC LIMIT ?
     `).all(destinationId, target.projectId, snapshot.snapshot.snapshotId, MAX_POLICY_REVOCATIONS + 1);
     if (revocationRows.length > MAX_POLICY_REVOCATIONS) {
-      throw new HubSyncStoreError("integrity_failed", "Hub policy revocation 저장 한도가 손상되었습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The stored Hub policy revocation limit is corrupted.");
     }
     for (const row of revocationRows) {
       const approval = approvalById.get(stringField(row, "approval_id"));
       if (approval === undefined) {
-        throw new HubSyncStoreError("integrity_failed", "Hub policy revocation approval 원본이 없습니다.");
+        throw new HubSyncStoreError("integrity_failed", "The Hub policy revocation approval source is missing.");
       }
       parsePolicyRevocation(row, approval);
     }

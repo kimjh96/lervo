@@ -35,7 +35,7 @@ export function validateDeliberationWorkflowSource(
   if (!validateSchema("deliberationWorkflowSource", source).valid) {
     throw new DeliberationPolicySourceError(
       "deliberation_policy_invalid",
-      "숙의 정책 파일이 지원하는 형식과 다릅니다.",
+      "The deliberation policy file has an unsupported shape.",
     );
   }
   const roleIds = source.participants.map((participant) => participant.roleId);
@@ -64,7 +64,7 @@ export function validateDeliberationWorkflowSource(
   ) {
     throw new DeliberationPolicySourceError(
       "deliberation_policy_invalid",
-      "숙의 정책은 서로 다른 제안·결정 역할, 한 명 이상의 검토 역할과 별도 검증 역할을 지정해야 합니다.",
+      "The deliberation policy must define a distinct proposal and decision role, at least one review role, and a separate verification role.",
     );
   }
 }
@@ -76,7 +76,7 @@ export async function loadDeliberationWorkflowSource(
   if (!policyIdPattern.test(policyId) || policyId.length > 150) {
     throw new DeliberationPolicySourceError(
       "deliberation_policy_invalid",
-      "숙의 policy ID가 유효하지 않습니다.",
+      "The deliberation policy ID is invalid.",
     );
   }
   const root = resolve(repositoryRoot);
@@ -90,7 +90,7 @@ export async function loadDeliberationWorkflowSource(
   } catch (error) {
     throw new DeliberationPolicySourceError(
       "deliberation_policy_layout_invalid",
-      "숙의 정책 디렉터리가 안전한 실제 디렉터리가 아닙니다.",
+      "The deliberation policy directory is not a safe physical directory.",
       { cause: error },
     );
   }
@@ -102,7 +102,7 @@ export async function loadDeliberationWorkflowSource(
     if (!before.isFile() || before.isSymbolicLink() || before.size > maximumPolicyBytes) {
       throw new DeliberationPolicySourceError(
         "deliberation_policy_layout_invalid",
-        "숙의 정책이 안전한 일반 파일이 아니거나 크기 제한을 넘었습니다.",
+        "The deliberation policy is not a safe regular file or exceeds the size limit.",
       );
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
@@ -114,7 +114,7 @@ export async function loadDeliberationWorkflowSource(
     ) {
       throw new DeliberationPolicySourceError(
         "deliberation_policy_layout_invalid",
-        "숙의 정책이 읽는 동안 바뀌었습니다.",
+        "The deliberation policy changed while it was being read.",
       );
     }
     let value: unknown;
@@ -123,7 +123,7 @@ export async function loadDeliberationWorkflowSource(
     } catch (error) {
       throw new DeliberationPolicySourceError(
         "deliberation_policy_invalid",
-        "숙의 정책 YAML을 읽지 못했습니다.",
+        "The deliberation policy YAML could not be read.",
         { cause: error },
       );
     }
@@ -132,7 +132,7 @@ export async function loadDeliberationWorkflowSource(
     if (source.policyId !== policyId) {
       throw new DeliberationPolicySourceError(
         "deliberation_policy_invalid",
-        "숙의 정책 파일명과 policy ID가 다릅니다.",
+        "The deliberation policy filename does not match its policy ID.",
       );
     }
     return structuredClone(source);
@@ -141,12 +141,12 @@ export async function loadDeliberationWorkflowSource(
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new DeliberationPolicySourceError(
         "deliberation_policy_not_found",
-        "요청한 숙의 정책을 찾을 수 없습니다.",
+        "The requested deliberation policy was not found.",
       );
     }
     throw new DeliberationPolicySourceError(
       "deliberation_policy_layout_invalid",
-      "숙의 정책을 안전하게 읽지 못했습니다.",
+      "The deliberation policy could not be read safely.",
       { cause: error },
     );
   } finally {

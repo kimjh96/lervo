@@ -14,7 +14,7 @@ export async function ensureInteractionDatabasePath(path: string): Promise<strin
     if (stats.isSymbolicLink() || !stats.isFile()) {
       throw new InteractionSQLiteError(
         "integrity_failed",
-        "Interaction SQLite 경로는 일반 파일이어야 합니다.",
+        "The Interaction SQLite path must be a regular file.",
       );
     }
   } catch (error) {
@@ -41,7 +41,7 @@ export function migrateInteractionDatabase(database: DatabaseSync): void {
     if (version !== 0 && version !== interactionSQLiteSchemaVersion) {
       throw new InteractionSQLiteError(
         "integrity_failed",
-        "지원하지 않는 Interaction SQLite schema입니다.",
+        "The Interaction SQLite schema is unsupported.",
       );
     }
     if (version === 0) {

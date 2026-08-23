@@ -36,7 +36,7 @@ export async function authorizeCliFirstPublicationWorkflowActivation(
     online === true
       ? "first_publication_workflow_activation_permit_arguments_invalid"
       : "first_publication_workflow_activation_permit_online_required",
-    "CLI 최초 게시 workflow 활성화 허가 입력이 올바르지 않습니다.",
+    "The CLI first-publication workflow activation authorization input is invalid.",
   );
   validateReadinessRepository(repository);
   const paths = dependencies.paths ?? firstPublicationWorkflowActivationPaths;
@@ -93,7 +93,7 @@ export async function authorizeCliFirstPublicationWorkflowActivation(
   } catch (error) {
     if (error?.code === "EEXIST") fail(
       "first_publication_workflow_activation_permit_output_exists",
-      "CLI 최초 게시 workflow 활성화 허가 출력이 이미 있습니다.",
+      "The CLI first-publication workflow activation authorization output already exists.",
     );
     throw error;
   }

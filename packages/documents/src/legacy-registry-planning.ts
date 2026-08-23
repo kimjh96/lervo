@@ -75,7 +75,7 @@ export function materializeLegacyRegistryEntry(input: {
   if (bytes.byteLength > 1024 * 1024) {
     throw new DocumentMigrationError(
       "scan_limit_exceeded",
-      `Legacy registry 항목 artifact가 크기 제한을 넘었습니다: ${input.documentId}`,
+      `The legacy registry entry artifact exceeds the size limit: ${input.documentId}`,
     );
   }
   const contentHash = sha256(bytes);
@@ -88,7 +88,7 @@ export function materializeLegacyRegistryEntry(input: {
   if (!validateSchema("legacyRegistryEntryArtifact", artifact).valid) {
     throw new DocumentMigrationError(
       "invalid_legacy_registry",
-      `Legacy registry 항목을 schema-valid artifact로 만들 수 없습니다: ${input.documentId}`,
+      `The legacy registry entry cannot be made into a schema-valid artifact: ${input.documentId}`,
     );
   }
   return { artifact, bytes };

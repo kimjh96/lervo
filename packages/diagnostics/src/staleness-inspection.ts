@@ -22,7 +22,7 @@ export async function inspectKnowledgeStaleness(input: {
   const add = (code: DoctorIssue["code"], message: string) =>
     issues.push({ code, eventId: input.event.eventId, message });
   if (!validateSchema("knowledgeStaleDetectedEventPayload", input.event.payload).valid) {
-    add("staleness_event_mismatch", "지식 stale event가 현재 payload 계약과 다릅니다.");
+    add("staleness_event_mismatch", "The knowledge staleness event differs from the current payload contract.");
     return issues;
   }
   const payload = input.event.payload as unknown as KnowledgeStaleDetectedEventPayload;
@@ -41,7 +41,7 @@ export async function inspectKnowledgeStaleness(input: {
       !Buffer.from(knowledgeStalenessResultBytes(result)).equals(Buffer.from(bytes))
     ) throw new Error("coordinate");
   } catch {
-    add("staleness_artifact_invalid", "지식 stale 결과 CAS 원본을 확인할 수 없습니다.");
+    add("staleness_artifact_invalid", "The knowledge staleness result CAS source cannot be verified.");
     return issues;
   }
   if (
@@ -52,11 +52,11 @@ export async function inspectKnowledgeStaleness(input: {
     JSON.stringify(result.signals.paths.changedPaths) !== JSON.stringify(payload.changedPaths) ||
     JSON.stringify(result.signals.paths.missingPaths) !== JSON.stringify(payload.missingPaths)
   ) {
-    add("staleness_event_mismatch", "지식 stale 결과와 event 좌표가 다릅니다.");
+    add("staleness_event_mismatch", "The knowledge staleness result and event coordinates differ.");
   }
   if (!input.events.some((event) =>
     event.type === "knowledge.verified" && event.payload.knowledgeId === result.knowledgeId)) {
-    add("staleness_verified_missing", "지식 stale 결과의 verified 원본 event가 없습니다.");
+    add("staleness_verified_missing", "The verified source event for the knowledge staleness result is missing.");
   }
   return issues;
 }

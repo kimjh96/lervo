@@ -1,0 +1,11 @@
+fromPath: docs/adr/0169-user-local-repository-registration-and-resolution.md
+identityPath: docs/adr/0169-user-local-repository-registration-and-resolution.md
+kind: document_move
+lineageId: klineage_e7fd6283e79561cf27cea804
+operationId: kdocop_374afed19b29200f7683cccb
+schemaVersion: 1
+sourceContentHash: sha256:3ed46b0cc0639da9b71b7be3948b522f858ecd3419bf93cb78f97ead19dc416a
+sourceId: src_cc00d12a633f0dac09c1d7ae
+sourceUnitBindingDigest: sha256:6c21a3a521a69d2b94973940605ddd74595aa1855d1794a6c3ec84294ff38a76
+sourceUnitCount: 5
+toPath: docs/decisions/distribution/0169-user-local-repository-registration-and-resolution.md

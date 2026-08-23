@@ -24,7 +24,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_stage_approval_unexpected: " +
-    "CLI npm stage 승인 권한을 만들지 못했습니다.",
+    "The CLI npm stage approval authorization could not be created.",
   );
   process.exitCode = 1;
 }

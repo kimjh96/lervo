@@ -36,12 +36,12 @@ function body(input: {
     typeof input.response !== "object" || input.response === null ||
     !("authentication" in input.response) || !("body" in input.response) ||
     typeof input.response.authentication !== "object" || input.response.authentication === null
-  ) throw new PolicyRuntimeError("transport_authentication_failed", "policy transport 인증 응답이 없습니다.");
+  ) throw new PolicyRuntimeError("transport_authentication_failed", "The policy transport authentication response is missing.");
   const auth = input.response.authentication as Record<string, unknown>;
   if (
     auth.status !== "verified" || auth.destinationId !== input.destinationId ||
     auth.peerIdentityHash !== input.peerHash
-  ) throw new PolicyRuntimeError("transport_authentication_failed", "policy transport peer가 다릅니다.");
+  ) throw new PolicyRuntimeError("transport_authentication_failed", "The policy transport peer differs.");
   return input.response.body;
 }
 
@@ -55,16 +55,16 @@ export async function runPolicySyncCycle(options: PolicySyncOptions): Promise<
     !/^sha256:[a-f0-9]{64}$/.test(options.expectedPeerIdentityHash) ||
     !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(options.target.projectId) ||
     !/^sha256:[a-f0-9]{64}$/.test(options.target.projectIdentityHash)
-  ) throw new PolicyRuntimeError("invalid_runtime_configuration", "policy sync 설정이 유효하지 않습니다.");
+  ) throw new PolicyRuntimeError("invalid_runtime_configuration", "The policy sync configuration is invalid.");
   const now = (options.clock ?? { now: () => new Date().toISOString() }).now();
   if (!Number.isFinite(Date.parse(now))) {
-    throw new PolicyRuntimeError("invalid_runtime_configuration", "policy sync clock이 유효하지 않습니다.");
+    throw new PolicyRuntimeError("invalid_runtime_configuration", "The policy sync clock is invalid.");
   }
   let current;
   try {
     current = await options.store.getCurrentSnapshot();
   } catch (error) {
-    throw new PolicyRuntimeError("policy_store_failed", "현재 policy snapshot을 읽지 못했습니다.", { cause: error });
+    throw new PolicyRuntimeError("policy_store_failed", "Could not read the current policy snapshot.", { cause: error });
   }
   let response;
   try {
@@ -99,6 +99,6 @@ export async function runPolicySyncCycle(options: PolicySyncOptions): Promise<
   try {
     return await options.store.applyVerifiedBundle(verified);
   } catch (error) {
-    throw new PolicyRuntimeError("policy_store_failed", "검증된 policy bundle을 저장하지 못했습니다.", { cause: error });
+    throw new PolicyRuntimeError("policy_store_failed", "Could not store the verified policy bundle.", { cause: error });
   }
 }

@@ -22,7 +22,7 @@ export async function runSearchReportCommand(args: string[], io: CliIo): Promise
     return 1;
   }
   if (parsed.positionals.length !== 0) {
-    io.stderr(`report에는 다른 인자를 지정할 수 없습니다.\n${searchUsage}\n`);
+    io.stderr(`report does not accept additional arguments.\n${searchUsage}\n`);
     return 1;
   }
   try {
@@ -35,8 +35,8 @@ export async function runSearchReportCommand(args: string[], io: CliIo): Promise
     io.stdout(parsed.values.json ? `${JSON.stringify(report, null, 2)}\n` : formatSearchQualityReport(report));
     return 0;
   } catch (error) {
-    io.stderr(`검색 품질 관측을 읽지 못했습니다. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "알 수 없는 오류입니다."
+    io.stderr(`Could not read the search quality observation. (${searchErrorCode(error)}) ${
+      error instanceof Error ? error.message : "Unknown error."
     }\n`);
     return 1;
   }

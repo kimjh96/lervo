@@ -511,13 +511,13 @@ export function migrateDatabase(database: DatabaseSync): void {
     if (typeof version !== "number" || !Number.isSafeInteger(version)) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite schema version을 읽을 수 없습니다.",
+        "The Hub sync SQLite schema version cannot be read.",
       );
     }
     if (version > hubSyncSchemaVersion) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "지원하지 않는 Hub sync SQLite schema입니다.",
+        "This Hub sync SQLite schema is not supported.",
       );
     }
     for (let index = version; index < migrations.length; index += 1) {
@@ -539,7 +539,7 @@ export function migrateDatabase(database: DatabaseSync): void {
     ) {
       throw new HubSyncStoreError(
         "integrity_failed",
-        "Hub sync SQLite metadata version이 유효하지 않습니다.",
+        "The Hub sync SQLite metadata version is invalid.",
       );
     } else if (Number(storedVersion) < hubSyncSchemaVersion) {
       database.prepare(

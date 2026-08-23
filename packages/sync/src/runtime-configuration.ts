@@ -15,7 +15,7 @@ function assertPositiveInteger(value: number, name: string, maximum: number): vo
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",
-      `${name} 설정이 허용 범위를 벗어났습니다.`,
+      `${name} is outside the allowed range.`,
     );
   }
 }
@@ -39,7 +39,7 @@ export function resolveWorkerConfiguration(
   ) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",
-      "worker ID 또는 Hub peer identity 설정이 유효하지 않습니다.",
+      "The worker ID or Hub peer identity configuration is invalid.",
     );
   }
   return configuration;
@@ -50,7 +50,7 @@ export function clockTimestamp(clock: SyncClock): string {
   if (!TIMESTAMP_PATTERN.test(value) || !Number.isFinite(Date.parse(value))) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",
-      "sync clock이 유효한 timestamp를 반환하지 않았습니다.",
+      "The synchronization clock did not return a valid timestamp.",
     );
   }
   return new Date(Date.parse(value)).toISOString();

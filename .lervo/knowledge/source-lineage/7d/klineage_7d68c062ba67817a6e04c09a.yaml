@@ -1,0 +1,11 @@
+fromPath: docs/adr/0063-search-adapter-build-identity-and-replay-receipt.md
+identityPath: docs/adr/0063-search-adapter-build-identity-and-replay-receipt.md
+kind: document_move
+lineageId: klineage_7d68c062ba67817a6e04c09a
+operationId: kdocop_bbf7380bb1098352707fb40f
+schemaVersion: 1
+sourceContentHash: sha256:31339611821a003fcf2261ee8a0d9f637fe7aa17f3587a9567a760de929f15cb
+sourceId: src_1f71cf272fdd9932819635de
+sourceUnitBindingDigest: sha256:544a40267315f3f1b0e60edc1268d8e487ea4f04f2bbfb9eb4d5855378309f84
+sourceUnitCount: 5
+toPath: docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md

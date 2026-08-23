@@ -73,20 +73,20 @@ export function assertSearchEvaluationCoverage(
     coverage.sampleState !== (coverage.shortfall === 0 ? "sufficient" : "insufficient") ||
     coverage.comparisonReadiness !== (coverage.sampleState === "sufficient" ? "ready" : "insufficient_sample") ||
     coverage.embeddingDecision !== "not_determined") {
-    throw new SearchError("invalid_evaluation_coverage", "검색 평가 표본 충분성 계약이 유효하지 않습니다.");
+    throw new SearchError("invalid_evaluation_coverage", "The search evaluation sample sufficiency contract is invalid.");
   }
   if ((bundle === undefined) !== (cases === undefined)) {
-    throw new SearchError("invalid_evaluation_coverage", "표본 충분성 검증에는 묶음과 case가 함께 필요합니다.");
+    throw new SearchError("invalid_evaluation_coverage", "Sample sufficiency verification requires both a bundle and cases.");
   }
   if (bundle !== undefined && cases !== undefined) {
     const expected = createSearchEvaluationCoverage(bundle, cases);
     if (expected.coverageId !== coverage.coverageId) {
-      throw new SearchError("invalid_evaluation_coverage", "검색 평가 표본 충분성이 묶음 원본과 다릅니다.");
+      throw new SearchError("invalid_evaluation_coverage", "Search evaluation sample sufficiency differs from the bundle source.");
     }
     return;
   }
   const { schemaVersion: _schema, coverageId: _id, ...core } = coverage;
   if (contentId("secov", core) !== coverage.coverageId) {
-    throw new SearchError("invalid_evaluation_coverage", "검색 평가 표본 충분성 ID가 실제 내용과 다릅니다.");
+    throw new SearchError("invalid_evaluation_coverage", "The search evaluation sample sufficiency ID does not match its content.");
   }
 }

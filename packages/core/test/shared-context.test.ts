@@ -20,7 +20,7 @@ function researcherRole(allowedRoleIds = ["marketer"]): RoleProfile {
     schemaVersion: 1,
     roleId: "researcher",
     name: "Researcher",
-    description: "근거가 있는 조사 결과를 공유합니다.",
+    description: "Shares evidence-backed research results.",
     requestTypes: ["research"],
     requiredInputs: [],
     contextPolicy: {
@@ -46,7 +46,7 @@ function researcherRole(allowedRoleIds = ["marketer"]): RoleProfile {
       presentation: {
         audience: "human",
         locale: "ko-KR",
-        writingPolicyId: "writing_ko-kr-human",
+        writingPolicyId: "writing_en-human",
       },
     },
     verification: {

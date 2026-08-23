@@ -1,0 +1,9 @@
+schemaVersion: 1
+targetId: tgt_always_on_lervo_host
+requiredCapabilities:
+  - network.peer
+selectors:
+  - label: device.hostname
+    equals: DESKTOP-DBI4M8F
+preferredSourceIds:
+  - src_tailscale_local

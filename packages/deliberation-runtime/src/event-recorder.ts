@@ -61,7 +61,7 @@ export class DeliberationEventRecorder {
             throw new DeliberationRuntimeError(
               "event_recording_failed",
               "event_redacted",
-              "숙의 event의 허용되지 않은 필드를 제거하지 않고 기록을 중단했습니다.",
+              "Recording stopped because disallowed deliberation event fields were not removed.",
             );
           }
           return result.event;
@@ -72,7 +72,7 @@ export class DeliberationEventRecorder {
       throw new DeliberationRuntimeError(
         "event_recording_failed",
         "event_store_failed",
-        "숙의 event를 원자적으로 기록하지 못했습니다.",
+        "The deliberation event could not be recorded atomically.",
         { cause: error },
       );
     }

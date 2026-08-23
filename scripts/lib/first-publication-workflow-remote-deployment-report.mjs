@@ -25,7 +25,7 @@ const checkIds = Object.freeze([
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_remote_deployment_report_invalid",
-    "CLI stage-only workflow 원격 배포 증거 보고서가 올바르지 않습니다.",
+    "The CLI stage-only workflow remote-deployment evidence report is invalid.",
   );
 }
 

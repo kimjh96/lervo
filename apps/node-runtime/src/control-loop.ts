@@ -52,7 +52,7 @@ const systemWait: RemoteCommandPollingWaitPort = {
 function checkedInteger(value: number | undefined, fallback: number, minimum: number): number {
   const resolved = value ?? fallback;
   if (!Number.isSafeInteger(resolved) || resolved < minimum || resolved > 60 * 60_000) {
-    throw new NodeRuntimeError("invalid_config", "원격 제어 polling 간격이 유효하지 않습니다.");
+    throw new NodeRuntimeError("invalid_config", "The remote-control polling interval is invalid.");
   }
   return resolved;
 }
@@ -67,7 +67,7 @@ function commandDelay(
   const next = Date.parse(result.nextAttemptAt);
   const now = nowMilliseconds();
   if (!Number.isFinite(next) || !Number.isFinite(now)) {
-    throw new NodeRuntimeError("startup_failed", "원격 제어 polling 시각이 유효하지 않습니다.");
+    throw new NodeRuntimeError("startup_failed", "The remote-control polling time is invalid.");
   }
   return Math.max(0, next - now);
 }

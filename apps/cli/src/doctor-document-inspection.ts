@@ -15,13 +15,13 @@ export async function inspectDoctorDocuments(
       doctorInspection("document_registry", "unhealthy", 0, [
         doctorIssue(
           "document_registry_invalid",
-          "문서 registry의 구조와 계약을 확인할 수 없습니다.",
+          "Could not validate the document registry structure and contract.",
         ),
       ]),
       doctorInspection("document_sources", "unknown", 0, [
         doctorIssue(
           "document_source_invalid",
-          "문서 registry가 유효하지 않아 원본 파일을 확인하지 못했습니다.",
+          "Could not inspect source files because the document registry is invalid.",
         ),
       ]),
     ];
@@ -41,7 +41,7 @@ export async function inspectDoctorDocuments(
         ? []
         : [doctorIssue(
           "document_source_invalid",
-          `등록된 문서 원본 ${failed}개를 안전한 일반 파일로 읽지 못했습니다.`,
+          `Could not read ${failed} registered document sources as safe regular files.`,
         )],
     ),
   ];

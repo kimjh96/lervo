@@ -1,0 +1,11 @@
+fromPath: docs/adr/0064-selection-bound-operational-search-quality.md
+identityPath: docs/adr/0064-selection-bound-operational-search-quality.md
+kind: document_move
+lineageId: klineage_60ccbc38b51cf3d901e2a77f
+operationId: kdocop_28ac4407059406bc1beee8d3
+schemaVersion: 1
+sourceContentHash: sha256:733e195c363ebf1bace0fb3241fcd45f88cc054e8f273723cbd75bbad9cccb0b
+sourceId: src_259e1e0454c674eb076bee7f
+sourceUnitBindingDigest: sha256:b9091478203afd1c7b0273afba2fd771ee7081e66ffcff3d12485b408719c6e7
+sourceUnitCount: 5
+toPath: docs/decisions/search/0064-selection-bound-operational-search-quality.md

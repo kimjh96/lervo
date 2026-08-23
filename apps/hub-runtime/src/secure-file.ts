@@ -12,7 +12,7 @@ export async function readOwnerOnlyFile(path: string, maximumBytes: number): Pro
   } catch (error) {
     throw new HubRuntimeError(
       "unsafe_runtime_file",
-      "Hub runtime 보안 파일을 안전하게 읽지 못했습니다.",
+      "Could not read the Hub runtime secure file safely.",
       { cause: error },
     );
   }
@@ -25,13 +25,13 @@ export async function readOwnerOnlyText(path: string, maximumBytes: number): Pro
     if (error instanceof RuntimeSecurityError && error.code !== "invalid_text") {
       throw new HubRuntimeError(
         "unsafe_runtime_file",
-        "Hub runtime 보안 파일을 안전하게 읽지 못했습니다.",
+        "Could not read the Hub runtime secure file safely.",
         { cause: error },
       );
     }
     throw new HubRuntimeError(
       "invalid_config",
-      "Hub runtime 보안 파일은 올바른 UTF-8이어야 합니다.",
+      "The Hub runtime secure file must contain valid UTF-8.",
       { cause: error },
     );
   }

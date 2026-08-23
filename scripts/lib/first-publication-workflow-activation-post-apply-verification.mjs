@@ -29,14 +29,14 @@ function timestamp(value) {
   if (typeof value !== "string" || !timestampPattern.test(value)) {
     fail(
       "first_publication_workflow_activation_post_apply_report_invalid",
-      "CLI 최초 게시 workflow 활성화 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication workflow activation post-apply verification report is invalid.",
     );
   }
   const result = Date.parse(value ?? "");
   if (!Number.isFinite(result)) {
     fail(
       "first_publication_workflow_activation_post_apply_report_invalid",
-      "CLI 최초 게시 workflow 활성화 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication workflow activation post-apply verification report is invalid.",
     );
   }
   return result;
@@ -65,7 +65,7 @@ export function assertFirstPublicationWorkflowActivationReceiptOutput(
   ) {
     fail(
       "first_publication_workflow_activation_post_apply_source_mismatch",
-      "현재 CLI 최초 게시 workflow가 적용 영수증의 결과와 다릅니다.",
+      "The current CLI first-publication workflow differs from the apply receipt result.",
     );
   }
 }
@@ -76,13 +76,13 @@ function reportBody(input) {
   if (input.transactionState?.status !== "clear") {
     fail(
       "first_publication_workflow_activation_post_apply_transaction_pending",
-      "중단된 CLI 최초 게시 workflow 활성화 transaction을 먼저 복구해야 합니다.",
+      "The interrupted CLI first-publication workflow activation transaction must be recovered first.",
     );
   }
   if (timestamp(input.observedAt) < timestamp(input.receipt.appliedAt)) {
     fail(
       "first_publication_workflow_activation_post_apply_report_invalid",
-      "CLI 최초 게시 workflow 활성화 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication workflow activation post-apply verification report is invalid.",
     );
   }
   assertFirstPublicationWorkflowActivationReceiptOutput(
@@ -104,7 +104,7 @@ function reportBody(input) {
   if (checks.some(({ status }) => status !== "ready")) {
     fail(
       "first_publication_workflow_activation_post_apply_not_ready",
-      "CLI 최초 게시 workflow 활성화 사후 검증 조건이 준비되지 않았습니다.",
+      "The CLI first-publication workflow activation post-apply verification prerequisites are not ready.",
     );
   }
   return {
@@ -167,13 +167,13 @@ export function validateFirstPublicationWorkflowActivationPostApplyReport(report
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail(
       "first_publication_workflow_activation_post_apply_report_invalid",
-      "CLI 최초 게시 workflow 활성화 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication workflow activation post-apply verification report is invalid.",
     );
   }
   if (canonicalJson(report) !== canonicalJson(expected)) {
     fail(
       "first_publication_workflow_activation_post_apply_report_invalid",
-      "CLI 최초 게시 workflow 활성화 사후 검증 보고서가 올바르지 않습니다.",
+      "The CLI first-publication workflow activation post-apply verification report is invalid.",
     );
   }
   return report;

@@ -8,35 +8,39 @@ import {
 } from "@lervo/identity-migration";
 
 import type { CliIo } from "./types.js";
+import { runKnowledgeMigration } from "./knowledge-command.js";
 
 export const migrateUsage =
-  "  lervo migrate identity [--root <path>] [--apply <plan-id>] [--json]";
+  "  lervo migrate identity [--root <path>] [--apply <plan-id>] [--json]\n  lervo migrate knowledge [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--approve-item ...] [--json]";
 
 export function formatIdentityMigrationPlan(plan: IdentityMigrationPlan): string {
   const lines = [
-    `명칭 migration 대상: ${plan.repositoryRoot}`,
-    `계획 ID: ${plan.planId}`,
-    `계획 상태: ${plan.status === "ready" ? "적용 가능" : "적용 불가"}`,
+    `Identity migration target: ${plan.repositoryRoot}`,
+    `Plan ID: ${plan.planId}`,
+    `Plan status: ${plan.status === "ready" ? "ready to apply" : "blocked"}`,
   ];
   if (plan.status === "ready") {
     lines.push(
-      `보존할 event: ${plan.preservedEventCount}개`,
-      `확인한 CAS object: ${plan.verifiedCasObjectCount}개`,
+      `Events to preserve: ${plan.preservedEventCount}`,
+      `CAS objects verified: ${plan.verifiedCasObjectCount}`,
       ...(plan.documentDisposition === "archive_previous_metadata"
-        ? ["이전 marker를 쓰는 문서 metadata는 원본 그대로 archive하고 활성 registry는 비워 둡니다."]
+        ? ["Document metadata using the previous marker will be archived byte-for-byte and the active registry will remain empty."]
         : []),
-      "아직 파일을 변경하지 않았습니다.",
-      `적용하려면 --apply ${plan.planId}를 붙여 다시 실행하세요.`,
+      "No files have been changed.",
+      `Run again with --apply ${plan.planId} to apply this plan.`,
     );
   } else {
-    for (const item of plan.blockers) lines.push(`  확인 필요 [${item.code}] ${item.message}`);
+    for (const item of plan.blockers) lines.push(`  review required [${item.code}] ${item.message}`);
   }
   return `${lines.join("\n")}\n`;
 }
 
 export async function runMigrateCommand(args: string[], io: CliIo): Promise<number> {
+  if (args[0] === "knowledge") {
+    return runKnowledgeMigration({ args: args.slice(1), io, mode: "migrate" });
+  }
   if (args[0] !== "identity") {
-    io.stderr(`지원하는 migration 종류를 지정하세요.\n${migrateUsage}\n`);
+    io.stderr(`Specify a supported migration type.\n${migrateUsage}\n`);
     return 1;
   }
   let values: { root?: string; apply?: string; json?: boolean; help?: boolean };
@@ -69,14 +73,14 @@ export async function runMigrateCommand(args: string[], io: CliIo): Promise<numb
       return plan.status === "ready" ? 0 : 1;
     }
     if (values.apply !== plan.planId) {
-      io.stderr("적용 요청의 plan ID가 현재 읽기 전용 계획과 다릅니다. 계획을 다시 확인하세요.\n");
+      io.stderr("The requested plan ID does not match the current read-only plan. Review the plan again.\n");
       return 1;
     }
     const receipt = await applyIdentityMigration(plan);
     io.stdout(
       values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`
-        : `명칭 migration을 완료했습니다. projectId: ${receipt.projectId}\n보존한 event: ${receipt.preservedEventCount}개\n확인한 CAS object: ${receipt.verifiedCasObjectCount}개\n${receipt.documentArchivePath === null ? "" : `이전 문서 metadata archive: ${receipt.documentArchivePath}\n`}`,
+        : `Identity migration completed. projectId: ${receipt.projectId}\nEvents preserved: ${receipt.preservedEventCount}\nCAS objects verified: ${receipt.verifiedCasObjectCount}\n${receipt.documentArchivePath === null ? "" : `Previous document metadata archive: ${receipt.documentArchivePath}\n`}`,
     );
     return 0;
   } catch (error) {

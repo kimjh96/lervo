@@ -15,7 +15,7 @@ const PAGE_LIMIT = 20;
 
 function element(id) {
   const value = document.getElementById(id);
-  if (value === null) throw new Error(`필수 화면 요소가 없습니다: ${id}`);
+  if (value === null) throw new Error(`Required page element is missing: ${id}`);
   return value;
 }
 
@@ -76,26 +76,26 @@ function emptyNavigation(prefix) {
   element(`${prefix}-page`).textContent = "";
 }
 
-function clearEvents(message = "실행을 선택하면 이벤트를 확인할 수 있습니다.") {
+function clearEvents(message = "Select a run to view its events.") {
   eventsPager = null;
   selectedRunId = null;
   clearTracePane(ui.eventsList, ui.eventsState, ui.eventsPage, message);
   emptyNavigation("events");
-  ui.eventsHelp.textContent = "실행을 선택하면 선택 근거와 검증 결과를 순서대로 확인할 수 있습니다.";
+  ui.eventsHelp.textContent = "Select a run to inspect selection evidence and verification results in order.";
 }
 
-function clearRuns(message = "프로젝트를 선택하면 실행 목록을 확인할 수 있습니다.") {
+function clearRuns(message = "Select a project to view its runs.") {
   runsPager = null;
   runs = [];
   selectedProject = null;
   clearTracePane(ui.runsList, ui.runsState, ui.runsPage, message);
   emptyNavigation("runs");
-  ui.runsHelp.textContent = "프로젝트를 선택하면 실행 목록을 확인할 수 있습니다.";
+  ui.runsHelp.textContent = "Select a project to view its runs.";
   clearEvents();
   graph.clear();
 }
 
-function disconnect(message = "연결을 해제했습니다.", error = false) {
+function disconnect(message = "Disconnected.", error = false) {
   bearerToken = "";
   projectsPager = null;
   projects = [];
@@ -109,12 +109,12 @@ function disconnect(message = "연결을 해제했습니다.", error = false) {
 
 function messageFor(error) {
   if (error instanceof TraceApiError) return error.message;
-  return "Trace 화면을 갱신하지 못했습니다.";
+  return "Could not refresh the trace view.";
 }
 
 function handleRequestError(stateElement, error) {
   if (error instanceof TraceApiError && error.status === 401) {
-    disconnect("토큰이 만료되었거나 올바르지 않습니다. 다시 연결해 주세요.", true);
+    disconnect("The token is invalid or has expired. Connect again.", true);
     return;
   }
   setPaneState(stateElement, messageFor(error), true);
@@ -140,7 +140,7 @@ function applyProjectPage(result) {
   setPagination("projects", result.navigation);
   setPaneState(
     ui.projectsState,
-    projects.length === 0 ? "이 페이지에는 조회할 프로젝트가 없습니다." : `${projects.length}개 프로젝트`,
+    projects.length === 0 ? "This page has no projects to inspect." : `${projects.length} projects`,
   );
 }
 
@@ -151,7 +151,7 @@ async function navigateProjects(direction) {
     pager,
     prefix: "projects",
     stateElement: ui.projectsState,
-    loadingMessage: "프로젝트를 불러오는 중입니다.",
+    loadingMessage: "Loading projects.",
     isCurrent: () => projectsPager === pager,
     apply: applyProjectPage,
     onError: (error) => handleRequestError(ui.projectsState, error),
@@ -167,7 +167,7 @@ function applyRunPage(pager, result) {
   setPagination("runs", result.navigation);
   setPaneState(
     ui.runsState,
-    runs.length === 0 ? "이 페이지에는 실행 기록이 없습니다." : `${runs.length}개 실행`,
+    runs.length === 0 ? "This page has no run records." : `${runs.length} runs`,
   );
 }
 
@@ -179,7 +179,7 @@ async function selectProject(project) {
   emptyNavigation("runs");
   renderProjects(ui.projectsList, projects, selectedProject, selectProject);
   clearEvents();
-  ui.runsHelp.textContent = `${project.projectName}의 실행을 시간순으로 표시합니다.`;
+  ui.runsHelp.textContent = `Runs for ${project.projectName}, ordered by time.`;
   void graph.selectFocus({ kind: "project", id: project.projectId });
   const pager = createCursorPager((cursor) => api.getProject(project, cursor, PAGE_LIMIT));
   runsPager = pager;
@@ -187,7 +187,7 @@ async function selectProject(project) {
     pager,
     prefix: "runs",
     stateElement: ui.runsState,
-    loadingMessage: "실행 목록을 불러오는 중입니다.",
+    loadingMessage: "Loading runs.",
     isCurrent: () => runsPager === pager,
     apply: (result) => applyRunPage(pager, result),
     onError: (error) => handleRequestError(ui.runsState, error),
@@ -201,7 +201,7 @@ async function navigateRuns(direction) {
     pager,
     prefix: "runs",
     stateElement: ui.runsState,
-    loadingMessage: "실행 목록을 불러오는 중입니다.",
+    loadingMessage: "Loading runs.",
     isCurrent: () => runsPager === pager,
     apply: (result) => applyRunPage(pager, result),
     onError: (error) => handleRequestError(ui.runsState, error),
@@ -215,7 +215,7 @@ function applyEventPage(pager, result) {
   setPagination("events", result.navigation);
   setPaneState(
     ui.eventsState,
-    events.length === 0 ? "이 페이지에는 이벤트가 없습니다." : `${events.length}개 이벤트`,
+    events.length === 0 ? "This page has no events." : `${events.length} events`,
   );
 }
 
@@ -225,7 +225,7 @@ async function selectRun(run) {
   ui.eventsList.replaceChildren();
   emptyNavigation("events");
   renderRuns(ui.runsList, runs, selectedRunId, selectRun);
-  ui.eventsHelp.textContent = `${run.runId}의 이벤트를 project 순서대로 표시합니다.`;
+  ui.eventsHelp.textContent = `Events for ${run.runId}, shown in project order.`;
   void graph.selectFocus({ kind: "run", id: run.runId });
   const project = selectedProject;
   const pager = createCursorPager((cursor) => api.getRun(project, run.runId, cursor, PAGE_LIMIT));
@@ -234,7 +234,7 @@ async function selectRun(run) {
     pager,
     prefix: "events",
     stateElement: ui.eventsState,
-    loadingMessage: "이벤트를 불러오는 중입니다.",
+    loadingMessage: "Loading events.",
     isCurrent: () => eventsPager === pager,
     apply: (result) => applyEventPage(pager, result),
     onError: (error) => handleRequestError(ui.eventsState, error),
@@ -248,7 +248,7 @@ async function navigateEvents(direction) {
     pager,
     prefix: "events",
     stateElement: ui.eventsState,
-    loadingMessage: "이벤트를 불러오는 중입니다.",
+    loadingMessage: "Loading events.",
     isCurrent: () => eventsPager === pager,
     apply: (result) => applyEventPage(pager, result),
     onError: (error) => handleRequestError(ui.eventsState, error),
@@ -265,7 +265,7 @@ ui.authForm.addEventListener("submit", async (event) => {
   projects = [];
   ui.projectsList.replaceChildren();
   clearRuns();
-  connectionMessage("권한을 확인하는 중입니다.");
+  connectionMessage("Checking access.");
   const pager = createCursorPager((cursor) => api.listProjects(cursor, PAGE_LIMIT));
   projectsPager = pager;
   try {
@@ -273,7 +273,7 @@ ui.authForm.addEventListener("submit", async (event) => {
     if (projectsPager !== pager || result === null) return;
     ui.workspace.hidden = false;
     ui.disconnect.hidden = false;
-    connectionMessage("연결되었습니다. 조회할 프로젝트를 선택하세요.");
+    connectionMessage("Connected. Select a project to inspect.");
     applyProjectPage(result);
   } catch (error) {
     if (projectsPager !== pager) return;

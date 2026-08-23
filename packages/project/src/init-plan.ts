@@ -1,12 +1,14 @@
 import { resolve } from "node:path";
 
 import type { ProjectManifest } from "@lervo/schemas";
+import { parse } from "yaml";
 
 import {
   createDefaultManifest,
   parseAndValidateYaml,
   serializeYaml,
 } from "./config.js";
+import { serializeDecisionTaxonomy, validateDecisionTaxonomy } from "./decision-taxonomy.js";
 import { planDocumentStorage } from "./document-init-plan.js";
 import { contentHash, readEntry } from "./filesystem.js";
 import { lervoRelativePaths, previousBrandRelativePaths } from "./layout.js";
@@ -20,16 +22,38 @@ import {
 
 const managedDirectories = [
   lervoRelativePaths.root,
-  lervoRelativePaths.generated,
-  lervoRelativePaths.state,
   lervoRelativePaths.knowledge,
-  lervoRelativePaths.searchEvaluations,
-  lervoRelativePaths.searchEnginePolicies,
-  lervoRelativePaths.searchRolloutPolicies,
-  lervoRelativePaths.searchRolloutActionPolicies,
-  lervoRelativePaths.verifications,
-  lervoRelativePaths.deliberations,
 ] as const;
+
+function validateKnowledgePolicyContent(content: string): void {
+  let value: unknown;
+  try { value = parse(content); } catch {
+    throw new LervoProjectError("invalid_yaml", ".lervo/knowledge/policy.yaml must contain valid YAML.");
+  }
+  const policy = value as { schemaVersion?: unknown; policyId?: unknown; publicationRoot?: unknown; publication?: Record<string, unknown>; exclude?: unknown; limits?: Record<string, unknown> } | null;
+  if (
+    policy === null || typeof policy !== "object" || policy.schemaVersion !== 1 ||
+    typeof policy.policyId !== "string" || typeof policy.publicationRoot !== "string" ||
+    !Array.isArray(policy.exclude) || !policy.exclude.every((item) => typeof item === "string") ||
+    (policy.publication !== undefined && (
+      policy.publication.language !== "en" ||
+      !Number.isSafeInteger(policy.publication.maxNavigationEntries) ||
+      !Number.isSafeInteger(policy.publication.maxNavigationBytes)
+    )) ||
+    policy.limits === undefined || !Number.isSafeInteger(policy.limits.maxFiles) ||
+    !Number.isSafeInteger(policy.limits.maxFileBytes) || !Number.isSafeInteger(policy.limits.maxTotalBytes)
+  ) {
+    throw new LervoProjectError("contract_invalid", ".lervo/knowledge/policy.yaml does not satisfy the repository knowledge policy contract.");
+  }
+}
+
+function validateDecisionTaxonomyContent(content: string): void {
+  let value: unknown;
+  try { value = parse(content); } catch {
+    throw new LervoProjectError("invalid_yaml", ".lervo/knowledge/document-layout.yaml must contain valid YAML.");
+  }
+  validateDecisionTaxonomy(value);
+}
 
 async function planDirectory(root: string, path: string): Promise<InitOperation> {
   const entry = await readEntry(resolve(root, path));
@@ -43,7 +67,7 @@ async function planDirectory(root: string, path: string): Promise<InitOperation>
     kind: "directory",
     path,
     action: "conflict",
-    reason: `${path}에 디렉터리를 만들 수 없습니다. 기존 ${entry.kind === "file" ? "파일" : entry.description}을 보존했습니다.`,
+    reason: `A directory cannot be created at ${path}. The existing ${entry.kind === "file" ? "file" : entry.description} was preserved.`,
   };
 }
 
@@ -58,12 +82,12 @@ async function planManagedFile(input: {
     return { kind: "file", path: input.path, action: "create", content: input.desiredContent };
   }
   if (entry.kind !== "file") {
-    const description = entry.kind === "directory" ? "디렉터리" : entry.description;
+    const description = entry.kind === "directory" ? "directory" : entry.description;
     return {
       kind: "file",
       path: input.path,
       action: "conflict",
-      reason: `${input.path}의 기존 ${description}을 덮어쓰지 않습니다.`,
+      reason: `The existing ${description} at ${input.path} will not be overwritten.`,
     };
   }
   try {
@@ -90,7 +114,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
   if (rootEntry.kind !== "directory") {
     throw new LervoProjectError(
       "unsafe_path",
-      `초기화 대상 ${root}은 존재하는 디렉터리여야 합니다.`,
+      `The initialization target ${root} must be an existing directory.`,
     );
   }
 
@@ -105,7 +129,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
         kind: "directory",
         path: lervoRelativePaths.root,
         action: "conflict",
-        reason: `이전 제품명으로 만든 ${previousBrandRelativePaths.root} 경로가 있습니다. Lervo는 이 경로를 자동 변환하거나 ${lervoRelativePaths.root}와 함께 사용하지 않습니다. 기존 상태를 보존한 뒤 명시적인 명칭 migration을 사용해야 합니다.`,
+        reason: `The ${previousBrandRelativePaths.root} path from the previous product name exists. Lervo will neither convert it automatically nor use it alongside ${lervoRelativePaths.root}. Preserve the existing state and use the explicit brand migration.`,
       }],
     };
   }
@@ -149,6 +173,60 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
   }
 
   operations.push(
+    await planManagedFile({
+      root,
+      path: lervoRelativePaths.knowledgePolicy,
+      desiredContent: [
+        "schemaVersion: 1",
+        "policyId: knowledge.default",
+        "publicationRoot: docs/knowledge",
+        "publication:",
+        "  language: en",
+        "  maxNavigationEntries: 24",
+        "  maxNavigationBytes: 8192",
+        "exclude:",
+        "  - .git/**",
+        "  - .lervo/**",
+        "  - node_modules/**",
+        "  - '**/node_modules/**'",
+        "  - dist/**",
+        "  - '**/dist/**'",
+        "  - build/**",
+        "  - '**/build/**'",
+        "  - coverage/**",
+        "  - '**/coverage/**'",
+        "  - .next/**",
+        "  - '**/.next/**'",
+        "  - .turbo/**",
+        "  - '**/.turbo/**'",
+        "  - .expo/**",
+        "  - '**/.expo/**'",
+        "  - .gradle/**",
+        "  - '**/.gradle/**'",
+        "  - .cxx/**",
+        "  - '**/.cxx/**'",
+        "  - Pods/**",
+        "  - '**/Pods/**'",
+        "  - build-device/**",
+        "  - '**/build-device/**'",
+        "  - vendor/**",
+        "  - '**/vendor/**'",
+        "  - apps/node-runtime-dependencies/**",
+        "  - apps/hub-runtime-dependencies/**",
+        "limits:",
+        "  maxFiles: 20000",
+        "  maxFileBytes: 1048576",
+        "  maxTotalBytes: 33554432",
+        "",
+      ].join("\n"),
+      validateExisting: validateKnowledgePolicyContent,
+    }),
+    await planManagedFile({
+      root,
+      path: lervoRelativePaths.knowledgeDocumentLayout,
+      desiredContent: serializeDecisionTaxonomy(),
+      validateExisting: validateDecisionTaxonomyContent,
+    }),
     ...await planDocumentStorage(root),
     await planManagedFile({
       root,

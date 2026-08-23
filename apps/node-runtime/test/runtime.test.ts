@@ -4,7 +4,11 @@ import { mkdir } from "node:fs/promises";
 import type { Server } from "node:http";
 import { resolve } from "node:path";
 
-import { ConfiguredBearerAuthenticator, createHubServer } from "@lervo/hub";
+import {
+  ConfiguredBearerAuthenticator,
+  ReloadableBearerAuthenticator,
+  createHubServer,
+} from "@lervo/hub";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import { Ed25519PolicySigner } from "@lervo/policy";
 import { createPolicySnapshot } from "@lervo/policy-contract";
@@ -46,6 +50,7 @@ import {
 const deployments: NodeRuntimeDeployment[] = [];
 const servers: Server[] = [];
 const hubStores: HubSyncSQLiteStore[] = [];
+const rotatedNodeRuntimeToken = "node-runtime-token-bbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 afterEach(async () => {
   await Promise.all(deployments.splice(0).map((deployment) => deployment.close()));
@@ -86,6 +91,133 @@ async function startHub(path: string, port: number): Promise<HubSyncSQLiteStore>
 }
 
 describe("installed Node sync runtime", () => {
+  it("reloads the external command and policy trust snapshot as one runtime operation", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const keyDirectory = resolve(root, "keys");
+    await mkdir(keyDirectory, { mode: 0o700 });
+    const firstCommand = generateKeyPairSync("ed25519");
+    const firstPolicy = generateKeyPairSync("ed25519");
+    const nextCommand = generateKeyPairSync("ed25519");
+    const nextPolicy = generateKeyPairSync("ed25519");
+    const publicPem = (key: ReturnType<typeof generateKeyPairSync>["publicKey"]) => String(
+      key.export({ type: "spki", format: "pem" }),
+    );
+    await Promise.all([
+      ownerFile(resolve(keyDirectory, "command-01.pem"), publicPem(firstCommand.publicKey)),
+      ownerFile(resolve(keyDirectory, "policy-01.pem"), publicPem(firstPolicy.publicKey)),
+      ownerFile(resolve(keyDirectory, "command-02.pem"), publicPem(nextCommand.publicKey)),
+      ownerFile(resolve(keyDirectory, "policy-02.pem"), publicPem(nextPolicy.publicKey)),
+    ]);
+    const trustPath = resolve(root, "node-trust.json");
+    const snapshot = (suffix: "01" | "02") => ({
+      schemaVersion: 1,
+      commandKeys: [{
+        keyId: `key_command_runtime_${suffix}`,
+        publicKeyFile: `keys/command-${suffix}.pem`,
+      }],
+      policyKeys: [{
+        keyId: `key_policy_runtime_${suffix}`,
+        publicKeyFile: `keys/policy-${suffix}.pem`,
+        purposes: ["snapshot", "approval", "revocation"],
+      }],
+    });
+    await ownerFile(trustPath, JSON.stringify(snapshot("01")));
+    const configured = structuredClone(fixture.value);
+    configured.remoteCommands = {
+      nodeId: "node_runtime_control_01",
+      trustFile: "node-trust.json",
+      idlePollIntervalMs: 100,
+      retryDelayMs: 1_000,
+    };
+    const deployment = await openNodeRuntime(parseNodeRuntimeConfig(configured, root), {
+      createTransport: localHttpTransport,
+      remoteCommands: {
+        executor: { execute: async () => ({
+          runId: "run_node_runtime_reload_01",
+          completedAt: "2026-08-22T00:00:00.000Z",
+        }) },
+        localPolicy: { resolve: async () => [] },
+      },
+    });
+    deployments.push(deployment);
+    await ownerFile(trustPath, JSON.stringify(snapshot("02")));
+    const first = deployment.reloadRuntimeMaterials();
+    const second = deployment.reloadRuntimeMaterials();
+    expect(second).toBe(first);
+    await first;
+
+    await ownerFile(resolve(keyDirectory, "command-02.pem"), publicPem(firstCommand.publicKey));
+    await expect(deployment.reloadRuntimeMaterials()).rejects.toMatchObject({
+      code: "runtime_material_reload_failed",
+    });
+    let closed = false;
+    void deployment.closed.then(() => { closed = true; });
+    await Promise.resolve();
+    expect(closed).toBe(false);
+  });
+
+  it("atomically reloads its bearer token for later requests and retains the prior token on failure", async () => {
+    const root = await temporaryRoot();
+    const port = await availablePort();
+    const fixture = await nodeRuntimeFixture(root, port);
+    const store = await HubSyncSQLiteStore.open({ path: `${root}/hub.sqlite` });
+    hubStores.push(store);
+    const credential = (token: string) => ({
+      token,
+      principalId: "node:runtime-test",
+      permissions: ["sync.write" as const],
+      projects: [{ destinationId: nodeRuntimeDestinationId, projectId: nodeRuntimeProjectId }],
+    });
+    const authenticator = new ReloadableBearerAuthenticator([credential(nodeRuntimeToken)]);
+    const server = createHubServer({
+      trace: { authenticator, source: store },
+      sync: { authenticator, store, hubIdentityHash: nodeRuntimeHubIdentityHash },
+    });
+    servers.push(server);
+    await new Promise<void>((resolvePromise, reject) => {
+      server.once("error", reject);
+      server.listen(port, "127.0.0.1", resolvePromise);
+    });
+
+    const observedTokens: string[] = [];
+    let phase = "initial" as "initial" | "rotated" | "done";
+    let deployment!: NodeRuntimeDeployment;
+    deployment = await openNodeRuntime(await loadNodeRuntimeConfig(fixture.configPath), {
+      createTransport(options) {
+        observedTokens.push(options.bearerToken);
+        return localHttpTransport(options);
+      },
+      async onCycle() {
+        if (phase === "initial") {
+          phase = "rotated";
+          authenticator.replace([credential(rotatedNodeRuntimeToken)]);
+          await ownerFile(resolve(root, "hub.token"), `${rotatedNodeRuntimeToken}\n`);
+          const first = deployment.reloadBearerToken();
+          const second = deployment.reloadBearerToken();
+          expect(second).toBe(first);
+          await first;
+          await ownerFile(resolve(root, "hub.token"), "invalid\n");
+          await expect(deployment.reloadBearerToken()).rejects.toMatchObject({
+            code: "token_reload_failed",
+          });
+          return;
+        }
+        if (phase === "rotated" && observedTokens.includes(rotatedNodeRuntimeToken)) {
+          phase = "done";
+          queueMicrotask(() => { void deployment.close(); });
+        }
+      },
+    });
+    deployments.push(deployment);
+    await deployment.start();
+    await expect(deployment.closed).resolves.toMatchObject({ status: "stopped" });
+    expect(phase).toBe("done");
+    expect(observedTokens).toContain(nodeRuntimeToken);
+    expect(observedTokens).toContain(rotatedNodeRuntimeToken);
+    expect(observedTokens.at(-1)).toBe(rotatedNodeRuntimeToken);
+  });
+
   it("keeps outbox pending while offline, then synchronizes it after a daemon restart", async () => {
     const root = await temporaryRoot();
     const port = await availablePort();
@@ -160,7 +292,7 @@ describe("installed Node sync runtime", () => {
     });
 
     await expect(running).resolves.toBe(0);
-    expect(stdout).toEqual(["Lervo Node 동기화가 시작됐습니다.\n"]);
+    expect(stdout).toEqual(["Lervo Node synchronization started.\n"]);
     expect(stderr).toEqual([]);
     const output = [...stdout, ...stderr].join("");
     expect(output).not.toContain(root);
@@ -223,7 +355,7 @@ describe("installed Node sync runtime", () => {
       projectId: manifest.projectId,
       projectIdentityHash: calculateProjectIdentityHash(manifest),
     };
-    const request = "재시작 뒤에도 한 번만 실행해 주세요.";
+    const request = "Execute exactly once even after restart.";
     const requestBytes = new TextEncoder().encode(request);
     const commandSigner = new Ed25519RemoteCommandSigner(
       "key_command_runtime_01",

@@ -34,8 +34,8 @@ export function searchArgumentError(error: unknown): string {
 
 export function searchPageLimit(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
-  if (!/^[1-9][0-9]*$/.test(value)) throw new Error("limit은 1부터 50 사이의 정수여야 합니다.");
+  if (!/^[1-9][0-9]*$/.test(value)) throw new Error("limit must be an integer between 1 and 50.");
   const limit = Number(value);
-  if (limit > 50) throw new Error("limit은 1부터 50 사이의 정수여야 합니다.");
+  if (limit > 50) throw new Error("limit must be an integer between 1 and 50.");
   return limit;
 }

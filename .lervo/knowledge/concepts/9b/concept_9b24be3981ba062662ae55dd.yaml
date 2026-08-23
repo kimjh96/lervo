@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9b24be3981ba062662ae55dd
+freshness: current
+ownership: user
+path: docs/decisions/search/0064-selection-bound-operational-search-quality.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1937f9dd044fe3e263cad670
+title: "ADR-0064: Selection-bound operational search quality observations"
+type: decision

@@ -49,7 +49,7 @@ function validatedArtifacts(input: {
   if (planEntries.size !== input.plan.candidates.length || input.artifacts.length !== planEntries.size) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Migration plan과 candidate artifact 수 또는 ID가 일치하지 않습니다.",
+      "The migration plan and candidate artifact count or IDs do not match.",
     );
   }
   const artifacts = new Map<string, DocumentMigrationCandidateArtifact>();
@@ -57,7 +57,7 @@ function validatedArtifacts(input: {
     if (!validateSchema("documentMigrationCandidateArtifact", artifact).valid) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
-        "Candidate artifact가 schema 계약을 통과하지 못했습니다.",
+        "The candidate artifact does not satisfy the schema contract.",
       );
     }
     const candidate = artifact.candidate;
@@ -73,7 +73,7 @@ function validatedArtifacts(input: {
     ) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
-        "Candidate artifact의 bytes, ID 또는 plan 좌표가 일치하지 않습니다.",
+        "The candidate artifact bytes, ID, or plan coordinates do not match.",
       );
     }
     artifacts.set(candidate.candidateId, structuredClone(artifact));
@@ -100,7 +100,7 @@ function sidecarFromDecision(input: {
     !input.sourcePaths.has(input.decision.manifest.record.path)
   ) {
     invalidApproval(
-      "승인한 sidecar가 candidate 제안, source snapshot 또는 빈 target과 일치하지 않습니다.",
+      "The approved sidecar does not match the candidate proposal, source snapshot, or empty target.",
     );
   }
   const manifest = structuredClone(input.decision.manifest);
@@ -109,13 +109,13 @@ function sidecarFromDecision(input: {
   } catch (error) {
     throw new DocumentMigrationError(
       "invalid_approval",
-      "승인한 document manifest가 sidecar 의미 계약을 통과하지 못했습니다.",
+      "The approved document manifest does not satisfy the sidecar semantic contract.",
       { cause: error },
     );
   }
   const bytes = Buffer.from(stringify(manifest, { lineWidth: 0 }), "utf8");
   if (bytes.byteLength > 64 * 1024) {
-    invalidApproval("승인한 document manifest가 sidecar 크기 제한을 넘었습니다.");
+    invalidApproval("The approved document manifest exceeds the sidecar size limit.");
   }
   return {
     documentId: manifest.documentId,
@@ -139,24 +139,24 @@ export function prepareMigrationApproval(input: {
   ) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
-      "Migration plan schema 또는 plan ID가 현재 내용과 일치하지 않습니다.",
+      "The migration plan schema or plan ID does not match the current content.",
     );
   }
   if (input.plan.outcome === "conflict") {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Conflict 상태의 migration plan은 적용할 수 없습니다.",
+      "A migration plan in conflict state cannot be applied.",
     );
   }
   if (!validateSchema("documentMigrationApproval", input.approval).valid) {
-    invalidApproval("Migration approval이 schema 계약을 통과하지 못했습니다.");
+    invalidApproval("The migration approval does not satisfy the schema contract.");
   }
   if (
     input.approval.planId !== input.plan.planId ||
     Date.parse(input.plan.generatedAt) > Date.parse(input.approval.approvedAt) ||
     Date.parse(input.approval.approvedAt) > Date.parse(input.appliedAt)
   ) {
-    invalidApproval("Migration plan, 승인과 적용 시각의 순서 또는 좌표가 맞지 않습니다.");
+    invalidApproval("The migration plan, approval, and apply time have inconsistent ordering or coordinates.");
   }
 
   const artifacts = validatedArtifacts({
@@ -168,7 +168,7 @@ export function prepareMigrationApproval(input: {
     decisions.size !== input.approval.decisions.length ||
     decisions.size !== input.plan.candidates.length
   ) {
-    invalidApproval("모든 migration candidate에는 중복 없는 승인 결정을 하나씩 내려야 합니다.");
+    invalidApproval("Every migration candidate must have exactly one non-duplicated approval decision.");
   }
   const sourcePaths = new Set(input.plan.sources.map((source) => source.path));
   const sidecars: PreparedMigrationSidecar[] = [];
@@ -181,7 +181,7 @@ export function prepareMigrationApproval(input: {
       decision.artifactId !== artifact.artifactId ||
       decision.artifactHash !== artifact.contentHash
     ) {
-      invalidApproval("승인 결정의 candidate artifact 좌표가 dry-run 결과와 다릅니다.");
+      invalidApproval("The approval decision candidate artifact coordinates differ from the dry-run result.");
     }
     if (decision.action === "skip") {
       skippedCandidateIds.push(entry.candidateId);
@@ -195,12 +195,12 @@ export function prepareMigrationApproval(input: {
     }));
   }
   if (sidecars.length === 0) {
-    invalidApproval("Metadata-only apply에는 승인된 sidecar가 하나 이상 필요합니다.");
+    invalidApproval("A metadata-only apply requires at least one approved sidecar.");
   }
   if (input.existingManifests.length + sidecars.length > 4096) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "승인한 sidecar를 적용하면 document manifest 수 제한을 넘습니다.",
+      "Applying the approved sidecars would exceed the document manifest count limit.",
     );
   }
   try {
@@ -211,7 +211,7 @@ export function prepareMigrationApproval(input: {
   } catch (error) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "승인한 sidecar가 기존 document manifest 집합과 충돌합니다.",
+      "An approved sidecar conflicts with the existing document manifest set.",
       { cause: error },
     );
   }

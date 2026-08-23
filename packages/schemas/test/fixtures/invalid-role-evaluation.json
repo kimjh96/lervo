@@ -13,7 +13,7 @@
           "checkId": "research.source-traceability",
           "category": "source_traceability",
           "method": "model_guess",
-          "requirement": "출처를 확인합니다.",
+          "requirement": "Check the sources.",
           "verificationSuiteId": null,
           "evidenceRequired": true
         }
@@ -50,7 +50,7 @@
         }
       ],
       "overallStatus": "passed",
-      "rawOutput": "평가 원문은 결과 계약에 들어갈 수 없습니다."
+      "rawOutput": "Raw evaluation output cannot appear in the result contract."
     }
   },
   {
@@ -107,7 +107,7 @@
         },
         "publication": {
           "surface": "documentation",
-          "writingPolicyId": "writing_ko-kr-human",
+          "writingPolicyId": "writing_en-human",
           "writingPolicyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "requiresWritingPermit": true
         }

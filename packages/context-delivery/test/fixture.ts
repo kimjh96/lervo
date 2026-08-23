@@ -62,7 +62,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-context-delivery-"));
   temporaryRoots.push(root);
   await mkdir(resolve(root, "docs"), { recursive: true });
-  await writeFile(resolve(root, "AGENTS.md"), "저장소 작업 지침입니다.\n");
+  await writeFile(resolve(root, "AGENTS.md"), "Repository work instructions.\n");
   await writeFile(
     resolve(root, "docs/writing.json"),
     `${JSON.stringify(writingPolicyFixture, null, 2)}\n`,
@@ -86,7 +86,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
     schemaVersion: 1,
     roleId: "writer",
     name: "Writer",
-    description: "사람이 읽는 글을 작성합니다.",
+    description: "Writes human-readable prose.",
     requestTypes: ["writing"],
     requiredInputs: [],
     contextPolicy: {
@@ -112,7 +112,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
       presentation: {
         audience: "human",
         locale: "ko-KR",
-        writingPolicyId: "writing_ko-kr-human",
+        writingPolicyId: "writing_en-human",
       },
     },
     verification: { suiteIds: ["writing.fixture"], failureDisposition: "fail_run" },
@@ -145,7 +145,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
     runId: "run_delivery_01",
     sessionId: "ses_delivery_01",
     roleId: role.roleId,
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     provider: "fixture",
     providerSessionId: "provider-session-1",
     executionMode: "read_only",

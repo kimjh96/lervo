@@ -91,8 +91,8 @@ describe("lervo doctor command", () => {
       stdout: (message) => { healthyOutput += message; },
       stderr: () => undefined,
     }, doctorServices)).toBe(0);
-    expect(healthyOutput).toContain("확인한 항목 정상");
-    expect(healthyOutput).not.toContain("다음 확인:");
+    expect(healthyOutput).toContain("checked items are healthy");
+    expect(healthyOutput).not.toContain("Next checks:");
 
     await appendBrokenKnowledgeCandidate(root);
     let issueOutput = "";
@@ -102,7 +102,7 @@ describe("lervo doctor command", () => {
       stderr: () => undefined,
     }, doctorServices)).toBe(1);
     expect(issueOutput).toContain("candidate_artifact_invalid");
-    expect(issueOutput).toContain("문제 발견");
+    expect(issueOutput).toContain("issues found");
   });
 
   it("returns unknown instead of healthy when a provider runtime cannot be checked", async () => {
@@ -116,7 +116,7 @@ describe("lervo doctor command", () => {
     codex.issues.push({
       code: "provider_executable_missing",
       eventId: null,
-      message: "Codex 실행 파일을 찾지 못했습니다.",
+      message: "The Codex executable was not found.",
     });
     let output = "";
 
@@ -127,8 +127,8 @@ describe("lervo doctor command", () => {
     }, {
       inspectDoctorEnvironment: async () => inspections,
     })).toBe(1);
-    expect(output).toContain("확인 불가 항목 있음");
-    expect(output).toContain("확인 불가  Codex 실행 파일");
+    expect(output).toContain("some items could not be determined");
+    expect(output).toContain("unknown  Codex executable");
     expect(output).toContain("provider_executable_missing");
   });
 
@@ -142,7 +142,7 @@ describe("lervo doctor command", () => {
     actions.issues.push({
       code: "search_rollout_action_invalid",
       eventId: null,
-      message: "검색 rollout 조치와 연결 근거를 안전하게 검증하지 못했습니다.",
+      message: "The search rollout action and linked evidence could not be verified safely.",
     });
     let output = "";
 
@@ -153,11 +153,11 @@ describe("lervo doctor command", () => {
     }, {
       inspectDoctorEnvironment: async () => inspections,
     })).toBe(1);
-    expect(output).toContain("문제  검색 rollout 조치");
+    expect(output).toContain("unhealthy  search rollout actions");
     expect(output).toContain("search_rollout_action_invalid");
-    expect(output).toContain("다음 확인:");
+    expect(output).toContain("Next checks:");
     expect(output).toContain("inspect_search_action");
-    expect(output).toContain("자동 수정이나 상태 변경은 실행하지 않았습니다");
+    expect(output).toContain("No automatic fixes or state changes were performed");
 
     let jsonOutput = "";
     expect(await runCli(["doctor", "--json"], {

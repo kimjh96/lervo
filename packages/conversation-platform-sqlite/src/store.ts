@@ -109,7 +109,7 @@ export class SQLiteConversationPlatformStore implements
 
   private assertOpen(): void {
     if (this.closed) {
-      throw new ConversationPlatformSQLiteError("closed", "닫힌 conversation platform store입니다.");
+      throw new ConversationPlatformSQLiteError("closed", "The conversation platform store is closed.");
     }
   }
 }

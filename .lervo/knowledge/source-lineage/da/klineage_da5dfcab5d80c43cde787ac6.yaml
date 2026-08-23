@@ -1,0 +1,11 @@
+fromPath: docs/adr/0051-evidence-bound-multi-discipline-roles.md
+identityPath: docs/adr/0051-evidence-bound-multi-discipline-roles.md
+kind: document_move
+lineageId: klineage_da5dfcab5d80c43cde787ac6
+operationId: kdocop_3dbf7bab93d8ecb0360b5cfd
+schemaVersion: 1
+sourceContentHash: sha256:5defa8bed89435ce393fce1ee1b46136801d6f9be08c6ec338129ca807841a77
+sourceId: src_1ec6ddf0a53a7bda6000b769
+sourceUnitBindingDigest: sha256:21fda72cde8e83f3e22f4d685dc895cde66372be42ddc7447ed58f1afaab3423
+sourceUnitCount: 5
+toPath: docs/decisions/foundation/0051-evidence-bound-multi-discipline-roles.md

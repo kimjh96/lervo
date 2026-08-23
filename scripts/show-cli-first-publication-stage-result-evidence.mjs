@@ -27,7 +27,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_stage_result_unexpected: " +
-    "CLI npm stage 결과 증거를 만들지 못했습니다.",
+    "CLI npm stage-result evidence could not be created.",
   );
   process.exitCode = 1;
 }

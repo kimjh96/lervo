@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c3c4fd845ca75dbc0963a688
+freshness: current
+ownership: user
+path: docs/decisions/operations/diagnostics/0033-bounded-environment-doctor.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_172735bd6f5cbe3e60c2cc15
+title: "ADR-0033: Scope-explicit local environment diagnostics"
+type: decision

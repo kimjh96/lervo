@@ -16,6 +16,7 @@ import {
   runFailedSpec,
   runRequestedSpecs,
   skillResolvedSpecs,
+  unmanagedChangeSpec,
 } from "./provider-run-events.js";
 import {
   assertAdapterMessage,
@@ -50,6 +51,7 @@ import {
 } from "./provider-signal-monitor.js";
 import {
   captureRepositorySnapshot,
+  inspectManagedRepositoryChanges,
   resolveRepositorySnapshotPolicy,
   type RepositorySnapshot,
   type RepositorySnapshotPolicy,
@@ -61,7 +63,14 @@ function copy<T>(value: T): T {
 }
 
 function snapshotInput(input: ManagedProviderRunInput): ManagedProviderRunInput {
-  const { signal, createEnvelopeId, createEvidenceReceiptId, context, ...values } = input;
+  const {
+    signal,
+    createEnvelopeId,
+    createEvidenceReceiptId,
+    createTargetTurnId,
+    context,
+    ...values
+  } = input;
   const { createReceiptId, ...contextValues } = context;
   return {
     ...copy(values),
@@ -72,6 +81,7 @@ function snapshotInput(input: ManagedProviderRunInput): ManagedProviderRunInput 
     ...(signal === undefined ? {} : { signal }),
     ...(createEnvelopeId === undefined ? {} : { createEnvelopeId }),
     ...(createEvidenceReceiptId === undefined ? {} : { createEvidenceReceiptId }),
+    ...(createTargetTurnId === undefined ? {} : { createTargetTurnId }),
   };
 }
 
@@ -85,7 +95,7 @@ function abortPromise(signal: AbortSignal | undefined): {
   let listener: () => void = () => {};
   const promise = new Promise<never>((_resolve, reject) => {
     listener = () =>
-      reject(new ManagedProviderRunError("cancelled", "Managed run이 취소되었습니다."));
+      reject(new ManagedProviderRunError("cancelled", "The managed run was cancelled."));
     if (signal.aborted) listener();
     else signal.addEventListener("abort", listener, { once: true });
   });
@@ -106,6 +116,35 @@ interface ManagedProviderRunExecutionState {
   verifications: ManagedProviderRunResult["verifications"];
   contextEvidence?: readonly ContextEvidence[];
   writeBridge?: ManagedProviderWriteBridge;
+}
+
+function resolveTargetTurnIds(input: ManagedProviderRunInput): string[] {
+  const turnCount = input.context.role.capabilities["filesystem.write"] === "deny"
+    ? 1
+    : input.context.expectedPaths.length;
+  const targetTurnIds = [input.targetTurnId];
+  try {
+    while (targetTurnIds.length < turnCount) {
+      targetTurnIds.push(input.createTargetTurnId!());
+    }
+  } catch (error) {
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      "Could not create the managed multi-file turn ID.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
+  if (
+    targetTurnIds.some((targetTurnId) =>
+      typeof targetTurnId !== "string" || targetTurnId.length === 0
+    ) || new Set(targetTurnIds).size !== targetTurnIds.length
+  ) {
+    throw new ManagedProviderRunError(
+      "contract_validation_failed",
+      "Managed multi-file turn IDs are empty or duplicated.",
+    );
+  }
+  return targetTurnIds;
 }
 
 export class ManagedProviderRunCoordinator {
@@ -138,7 +177,7 @@ export class ManagedProviderRunCoordinator {
     if (this.running) {
       throw new ManagedProviderRunError(
         "contract_validation_failed",
-        "같은 coordinator에서 managed run을 두 번 시작할 수 없습니다.",
+        "A managed run cannot be started twice on the same coordinator.",
       );
     }
     this.running = true;
@@ -147,6 +186,7 @@ export class ManagedProviderRunCoordinator {
 
   private async execute(input: ManagedProviderRunInput): Promise<ManagedProviderRunResult> {
     validateManagedProviderRunInput(input, this.options);
+    const targetTurnIds = resolveTargetTurnIds(input);
     const state: ManagedProviderRunExecutionState = { verifications: [] };
     let monitor: ProviderSignalMonitor | undefined;
     let terminal: AdapterNormalizedEvent | undefined;
@@ -178,7 +218,7 @@ export class ManagedProviderRunCoordinator {
         operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
         timeoutMs: this.deadlines.snapshotMs,
         failureCode: "repository_snapshot_failed",
-        label: "실행 전 repository snapshot",
+        label: "pre-run repository snapshot",
       });
 
       phase = "adapter_start";
@@ -206,35 +246,6 @@ export class ManagedProviderRunCoordinator {
         },
       });
 
-      phase = "context_prepare";
-      await this.context.prepareContext({
-        ...input.context,
-        repositoryRoot: input.repositoryRoot,
-        sourceRevision: state.before.revision,
-        recordedAt: this.date(),
-      });
-      monitor.throwIfFailed();
-
-      phase = "context_inject";
-      const injected = await this.context.injectContext({
-        session: state.session,
-        writingPolicy: input.writingPolicy,
-        targetTurnId: input.targetTurnId,
-        publications: input.context.publications,
-        injectContext: (session, envelope) =>
-          this.options.adapter.injectContext(session, envelope),
-        artifactStore: this.options.artifactStore,
-        ...(input.createEnvelopeId === undefined
-          ? {}
-          : { createEnvelopeId: input.createEnvelopeId }),
-        ...(input.createEvidenceReceiptId === undefined
-          ? {}
-          : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
-        now: () => this.date(),
-      });
-      state.contextEvidence = copy(injected.evidence);
-      monitor.throwIfFailed();
-
       phase = "write_bridge";
       const writePlan = createManagedWritePlan({
         executionMode: state.session.executionMode,
@@ -255,87 +266,172 @@ export class ManagedProviderRunCoordinator {
         publications: input.context.publications,
         now: () => this.date(),
       });
-      await this.options.adapter.attachManagedWriteBridge(
-        state.session,
-        state.writeBridge,
-      );
+      const scheduledPaths: Array<string | null> = writePlan.executionMode === "read_only"
+        ? [null]
+        : [...writePlan.allowedPaths];
+      let contextSnapshot = state.before;
+      for (let index = 0; index < scheduledPaths.length; index += 1) {
+        const expectedPath = scheduledPaths[index]!;
+        const targetTurnId = targetTurnIds[index]!;
 
-      phase = "turn_start";
-      const turnRequest: AdapterTurnRequest = {
-        kind: "turn_request",
-        schemaVersion: 1,
-        adapterId: this.options.adapter.descriptor.adapterId,
-        projectId: state.session.projectId,
-        runId: state.session.runId,
-        sessionId: state.session.sessionId,
-        providerSessionId: state.session.providerSessionId,
-        targetTurnId: input.targetTurnId,
-        instructions: input.instructions,
-        requestedAt: this.time(),
-      };
-      let acceptedTurn: AdapterTurn | undefined;
-      const returnedTurn = await this.options.adapter.startTurn(
-        state.session,
-        turnRequest,
-        (turn) => {
-          if (acceptedTurn !== undefined) {
+        phase = "context_prepare";
+        await this.context.prepareContext({
+          ...input.context,
+          repositoryRoot: input.repositoryRoot,
+          sourceRevision: contextSnapshot.revision,
+          recordedAt: this.date(),
+        });
+        monitor.throwIfFailed();
+
+        phase = "context_inject";
+        const injected = await this.context.injectContext({
+          session: state.session,
+          writingPolicy: input.writingPolicy,
+          targetTurnId,
+          publications: input.context.publications,
+          injectContext: (session, envelope) =>
+            this.options.adapter.injectContext(session, envelope),
+          artifactStore: this.options.artifactStore,
+          ...(input.createEnvelopeId === undefined
+            ? {}
+            : { createEnvelopeId: input.createEnvelopeId }),
+          ...(input.createEvidenceReceiptId === undefined
+            ? {}
+            : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
+          now: () => this.date(),
+        });
+        state.contextEvidence = copy(injected.evidence);
+        monitor.throwIfFailed();
+        if (index === 0) {
+          phase = "write_bridge";
+          await this.options.adapter.attachManagedWriteBridge(
+            state.session,
+            state.writeBridge,
+          );
+        }
+        if (expectedPath !== null) state.writeBridge.beginTurn(expectedPath);
+
+        phase = "turn_start";
+        const turnRequest: AdapterTurnRequest = {
+          kind: "turn_request",
+          schemaVersion: 1,
+          adapterId: this.options.adapter.descriptor.adapterId,
+          projectId: state.session.projectId,
+          runId: state.session.runId,
+          sessionId: state.session.sessionId,
+          providerSessionId: state.session.providerSessionId,
+          targetTurnId,
+          instructions: expectedPath === null || scheduledPaths.length === 1
+            ? input.instructions
+            : [
+                input.instructions,
+                "",
+                `Lervo managed file ${index + 1}/${scheduledPaths.length}: ${expectedPath}`,
+                "Change only the repository-relative path above in this turn.",
+              ].join("\n"),
+          requestedAt: this.time(),
+        };
+        let acceptedTurn: AdapterTurn | undefined;
+        const returnedTurn = await this.options.adapter.startTurn(
+          state.session,
+          turnRequest,
+          (turn) => {
+            if (acceptedTurn !== undefined) {
+              throw new ManagedProviderRunError(
+                "contract_validation_failed",
+                "The adapter accepted the same turn twice.",
+              );
+            }
+            assertManagedTurn({ request: turnRequest, session: state.session!, turn });
+            acceptedTurn = copy(turn);
+            state.turn = copy(turn);
+          },
+        );
+        if (acceptedTurn === undefined) {
+          throw new ManagedProviderRunError(
+            "contract_validation_failed",
+            "The adapter did not report turn acceptance before provider execution.",
+          );
+        }
+        assertManagedTurn({ request: turnRequest, session: state.session, turn: returnedTurn });
+        if (JSON.stringify(returnedTurn) !== JSON.stringify(acceptedTurn)) {
+          throw new ManagedProviderRunError(
+            "contract_validation_failed",
+            "The turn reported by the adapter differs from the returned turn.",
+          );
+        }
+        const managedTurn = state.turn;
+        if (managedTurn === undefined) {
+          throw new ManagedProviderRunError(
+            "contract_validation_failed",
+            "The accepted adapter turn is absent from the execution state.",
+          );
+        }
+        monitor.throwIfFailed();
+
+        phase = "provider_turn";
+        const cancelled = abortPromise(input.signal);
+        try {
+          terminal = await withinDeadline({
+            operation: () => Promise.race([monitor!.waitForTerminal(), cancelled.promise]),
+            timeoutMs: this.deadlines.providerTurnMs,
+            failureCode: "provider_turn_failed",
+            label: "provider turn completion wait",
+          });
+        } finally {
+          cancelled.dispose();
+        }
+        assertTerminalTurn(managedTurn, terminal);
+        if (terminal.type === "provider.turn.failed") {
+          throw new ManagedProviderRunError(
+            "provider_turn_failed",
+            "The provider turn failed.",
+          );
+        }
+        if (expectedPath !== null) state.writeBridge.assertTurnSettled(expectedPath);
+        monitor.throwIfFailed();
+
+        if (index < scheduledPaths.length - 1) {
+          phase = "after_snapshot";
+          contextSnapshot = await withinDeadline({
+            operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
+            timeoutMs: this.deadlines.snapshotMs,
+            failureCode: "repository_snapshot_failed",
+            label: "managed multi-file intermediate repository snapshot",
+          });
+          const inspection = inspectManagedRepositoryChanges({
+            before: state.before,
+            after: contextSnapshot,
+            managedChanges: state.writeBridge.evidence(),
+          });
+          if (inspection.invalidManagedPaths.length > 0) {
             throw new ManagedProviderRunError(
-              "contract_validation_failed",
-              "Adapter가 같은 turn을 두 번 수락했습니다.",
+              "provider_write_failed",
+              "The verified provider change differs from the intermediate snapshot.",
+              { paths: inspection.invalidManagedPaths },
             );
           }
-          assertManagedTurn({ request: turnRequest, session: state.session!, turn });
-          acceptedTurn = copy(turn);
-          state.turn = copy(turn);
-        },
-      );
-      if (acceptedTurn === undefined) {
-        throw new ManagedProviderRunError(
-          "contract_validation_failed",
-          "Adapter가 provider 실행 전에 turn 수락을 알리지 않았습니다.",
-        );
-      }
-      assertManagedTurn({ request: turnRequest, session: state.session, turn: returnedTurn });
-      if (JSON.stringify(returnedTurn) !== JSON.stringify(acceptedTurn)) {
-        throw new ManagedProviderRunError(
-          "contract_validation_failed",
-          "Adapter가 알린 turn과 반환한 turn이 다릅니다.",
-        );
-      }
-      const managedTurn = state.turn;
-      if (managedTurn === undefined) {
-        throw new ManagedProviderRunError(
-          "contract_validation_failed",
-          "수락된 adapter turn이 실행 상태에 없습니다.",
-        );
-      }
-      monitor.throwIfFailed();
-
-      phase = "provider_turn";
-      const cancelled = abortPromise(input.signal);
-      try {
-        terminal = await withinDeadline({
-          operation: () => Promise.race([monitor!.terminal, cancelled.promise]),
-          timeoutMs: this.deadlines.providerTurnMs,
-          failureCode: "provider_turn_failed",
-          label: "Provider turn 완료 대기",
-        });
-      } finally {
-        cancelled.dispose();
-      }
-      assertTerminalTurn(managedTurn, terminal);
-      if (terminal.type === "provider.turn.failed") {
-        throw new ManagedProviderRunError(
-          "provider_turn_failed",
-          "Provider turn이 실패했습니다.",
-        );
+          if (inspection.unmanagedPaths.length > 0) {
+            this.append([unmanagedChangeSpec({
+              paths: inspection.unmanagedPaths,
+              beforeRevision: state.before.revision,
+              afterRevision: contextSnapshot.revision,
+              detectedAt: this.time(),
+            })]);
+            throw new ManagedProviderRunError(
+              "unmanaged_change_detected",
+              "An unmanaged change was detected before the next managed file turn.",
+              { paths: inspection.unmanagedPaths },
+            );
+          }
+        }
       }
       state.writeBridge.assertSettled();
       phase = "result_collect";
       state.turnResult = await collectProviderResult({
         adapter: this.options.adapter,
         session: state.session,
-        turn: managedTurn,
+        turn: state.turn!,
       });
     } catch (error) {
       failures.add(error, phase);
@@ -427,7 +523,7 @@ export class ManagedProviderRunCoordinator {
     ) {
       throw new ManagedProviderRunError(
         "contract_validation_failed",
-        "완료된 managed run의 필수 결과가 없습니다.",
+        "A required result is missing from the completed managed run.",
       );
     }
     const verificationStatus = input.verificationSuites === undefined
@@ -466,7 +562,7 @@ export class ManagedProviderRunCoordinator {
       if (error instanceof TelemetryWriteError) {
         throw new ManagedProviderRunError(
           "telemetry_recording_failed",
-          "Managed run telemetry 기록에 실패했습니다.",
+          "Failed to record managed run telemetry.",
           { cause: error },
         );
       }
@@ -479,7 +575,7 @@ export class ManagedProviderRunCoordinator {
     if (!Number.isFinite(date.getTime())) {
       throw new ManagedProviderRunError(
         "contract_validation_failed",
-        "Managed run 시각이 유효하지 않습니다.",
+        "The managed run time is invalid.",
       );
     }
     return new Date(date.getTime());

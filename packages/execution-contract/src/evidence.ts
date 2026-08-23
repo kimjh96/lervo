@@ -38,13 +38,13 @@ export function validateManagedProviderRunEvidence(input: {
   const { run } = input;
   const loaded = run.contextEvidence.filter((evidence) => evidence.state === "loaded");
   const injected = run.contextEvidence.filter((evidence) => evidence.state === "injected");
-  if (loaded.length === 0 || injected.length === 0) fail("Managed run에 E2 또는 E3 context evidence가 없습니다.");
+  if (loaded.length === 0 || injected.length === 0) fail("The managed run has no E2 or E3 context evidence.");
   if (run.session.providerSessionId !== run.turn.providerSessionId) {
-    fail("Managed run의 session과 turn 좌표가 다릅니다.");
+    fail("The managed run session and turn coordinates differ.");
   }
   for (const evidence of [...loaded, ...injected]) {
     if (evidence.projectId !== run.session.projectId || evidence.runId !== run.session.runId ||
-      evidence.sessionId !== run.session.sessionId) fail("Context evidence가 managed run 좌표와 다릅니다.");
+      evidence.sessionId !== run.session.sessionId) fail("The context evidence does not match the managed run coordinates.");
   }
 
   const eventIds: string[] = [];
@@ -57,7 +57,7 @@ export function validateManagedProviderRunEvidence(input: {
       event.payload.contentHash !== evidence.contentHash ||
       event.payload.byteCount !== evidence.byteCount ||
       event.payload.sourceRevision !== evidence.sourceRevision) {
-      fail("E2 context receipt와 document.loaded event가 다릅니다.");
+      fail("The E2 context receipt differs from the document.loaded event.");
     }
     eventIds.push(event.eventId);
   }
@@ -76,7 +76,7 @@ export function validateManagedProviderRunEvidence(input: {
       event.payload.contextGeneration !== evidence.contextGeneration ||
       !Array.isArray(event.payload.documentIds) ||
       !event.payload.documentIds.includes(evidence.documentId)) {
-      fail("E3 context receipt와 context.injected event가 다릅니다.");
+      fail("The E3 context receipt differs from the context.injected event.");
     }
     const group = injectedByEvent.get(event) ?? [];
     group.push(evidence);
@@ -85,7 +85,7 @@ export function validateManagedProviderRunEvidence(input: {
   for (const [event, evidence] of injectedByEvent) {
     if (!sameStringArray(event.payload.evidenceReceiptIds,
       evidence.map((item) => item.receiptId))) {
-      fail("context.injected event의 E3 receipt 목록이 실제 목록과 다릅니다.");
+      fail("The context.injected event E3 receipt list differs from the actual list.");
     }
     eventIds.push(event.eventId);
   }
@@ -99,7 +99,7 @@ export function validateManagedProviderRunEvidence(input: {
     completed[0]!.payload.resultDigest !== run.resultArtifact.contentHash ||
     completed[0]!.payload.verificationStatus !== run.verificationStatus ||
     !sameStringArray(completed[0]!.payload.artifactIds, expectedArtifactIds)) {
-    fail("Managed run 완료 event가 result artifact와 다릅니다.");
+    fail("The managed run completion event differs from the result artifact.");
   }
   eventIds.push(completed[0]!.eventId);
 
@@ -112,23 +112,23 @@ export function validateManagedProviderRunEvidence(input: {
       event.payload.status !== verification.result.status ||
       event.payload.resultArtifactId !== verification.resultArtifact.artifactId ||
       event.payload.resultContentHash !== verification.resultArtifact.contentHash) {
-      fail("Managed run verification 결과와 완료 event가 다릅니다.");
+      fail("The managed run verification result differs from the completion event.");
     }
     eventIds.push(event.eventId);
   }
 
   const generations = new Set(injected.map((evidence) => evidence.contextGeneration));
   if (generations.size !== 1 || !generations.has(run.contextGeneration)) {
-    fail("Provider 결과가 생성된 뒤 context generation이 무효화되었습니다.");
+    fail("The context generation was invalidated after the provider result was produced.");
   }
   for (const publication of input.sharedContextPublications) {
-    if (!validateSchema("sharedContext", publication).valid) fail("Shared context publication이 schema를 통과하지 못했습니다.");
+    if (!validateSchema("sharedContext", publication).valid) fail("The shared-context publication does not satisfy its schema.");
     const loadedEvidence = loaded.find((evidence) => evidence.documentId === publication.documentId &&
       evidence.contentHash === publication.contentHash);
     const injectedEvidence = injected.find((evidence) => evidence.documentId === publication.documentId &&
       evidence.contentHash === publication.contentHash);
     if (loadedEvidence === undefined || injectedEvidence === undefined) {
-      fail("Shared context 원문이 현재 역할의 E2/E3에 없습니다.");
+      fail("The shared-context source is absent from the current role's E2/E3 evidence.");
     }
   }
   return {

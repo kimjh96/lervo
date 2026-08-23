@@ -18,7 +18,7 @@ export async function assessLocalSearchRolloutReviewPolicy(input: {
     loadStoredSearchRolloutReview(input.repositoryRoot, input.rolloutReviewId),
   ]);
   if (policy.projectId !== input.projectId || review.projectId !== input.projectId) {
-    throw new SearchLocalError("rollout_policy_invalid", "검색 rollout 정책·검토의 project 좌표가 다릅니다.");
+    throw new SearchLocalError("rollout_policy_invalid", "The search rollout policy and review have different project coordinates.");
   }
   return evaluateSearchRolloutReviewPolicy(policy, review);
 }

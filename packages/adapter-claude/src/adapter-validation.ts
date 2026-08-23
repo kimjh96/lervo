@@ -39,7 +39,7 @@ export function sameSession(left: AdapterSession, right: AdapterSession): boolea
 export function assertAdapterMessage(value: unknown, label: string): void {
   const result = validateSchema("adapter", value);
   if (!result.valid) {
-    throw new ClaudeAdapterError("invalid_request", `${label}이 adapter schema를 통과하지 못했습니다.`);
+    throw new ClaudeAdapterError("invalid_request", `${label} does not satisfy the adapter schema.`);
   }
 }
 
@@ -47,7 +47,7 @@ export function timestamp(now: () => Date, label: string, notBefore?: string): s
   const value = now();
   const minimum = notBefore === undefined ? Number.NEGATIVE_INFINITY : Date.parse(notBefore);
   if (!Number.isFinite(value.getTime()) || !Number.isFinite(minimum) || value.getTime() < minimum) {
-    throw new ClaudeAdapterError("invalid_request", `${label}이 유효하지 않습니다.`);
+    throw new ClaudeAdapterError("invalid_request", `${label} is invalid.`);
   }
   return value.toISOString();
 }

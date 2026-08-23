@@ -1,0 +1,11 @@
+fromPath: docs/adr/0098-cli-first-publication-execution-transition-receipts.md
+identityPath: docs/adr/0098-cli-first-publication-execution-transition-receipts.md
+kind: document_move
+lineageId: klineage_22079b500b6fdf0c9362d6df
+operationId: kdocop_e8e6fe5765f58646bd01be56
+schemaVersion: 1
+sourceContentHash: sha256:0138e0b8c7e4dcaab13ff9c1d58d7c491b0c47bd69d6ef631cd5fd2a0d9164bc
+sourceId: src_19e2d29cf8c1a2ad759fb2f3
+sourceUnitBindingDigest: sha256:73ba0021e92dc2638152107466649e17707f636dcf0ad4ec440e58517417c98c
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md

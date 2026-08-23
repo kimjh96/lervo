@@ -24,7 +24,7 @@ export function assertPlatformHttpLimits(input: {
     !Number.isSafeInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 300_000) {
     throw new ConversationPlatformError(
       "invalid_platform_configuration",
-      "Platform API 응답 크기 또는 요청 제한 시간이 유효하지 않습니다.",
+      "The platform API response-size or request-timeout setting is invalid.",
     );
   }
 }
@@ -37,7 +37,7 @@ export function platformApiUrl(value: string, allowInsecureHttpForTests = false)
   ) {
     throw new ConversationPlatformError(
       "invalid_platform_configuration",
-      "Platform API 주소는 credential, query, fragment가 없는 HTTPS URL이어야 합니다.",
+      "The platform API address must be an HTTPS URL without credentials, a query, or a fragment.",
     );
   }
   return url;
@@ -101,7 +101,7 @@ export async function postPlatformJson(options: PlatformJsonRequestOptions): Pro
     if (error instanceof PlatformDeliveryRejectedError) throw error;
     throw new ConversationPlatformError(
       "platform_delivery_failed",
-      "Platform API 응답을 안전하게 확인하지 못했습니다.",
+      "The platform API response could not be verified safely.",
       { cause: error instanceof Error ? error : undefined },
     );
   } finally {

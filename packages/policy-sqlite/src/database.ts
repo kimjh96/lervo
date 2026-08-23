@@ -10,7 +10,7 @@ export async function ensurePolicyDatabasePath(path: string): Promise<string> {
   try {
     const stats = await lstat(absolute);
     if (stats.isSymbolicLink() || !stats.isFile()) {
-      throw new PolicySQLiteError("integrity_failed", "policy SQLite 경로는 일반 파일이어야 합니다.");
+      throw new PolicySQLiteError("integrity_failed", "The policy SQLite path must be a regular file.");
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -34,7 +34,7 @@ export function migratePolicyDatabase(database: DatabaseSync): void {
   try {
     const version = database.prepare("PRAGMA user_version;").get()?.user_version;
     if (version !== 0 && version !== 1) {
-      throw new PolicySQLiteError("integrity_failed", "지원하지 않는 policy SQLite schema입니다.");
+      throw new PolicySQLiteError("integrity_failed", "The policy SQLite schema is unsupported.");
     }
     if (version === 0) {
       database.exec(`

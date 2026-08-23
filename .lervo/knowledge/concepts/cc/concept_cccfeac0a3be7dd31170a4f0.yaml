@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_cccfeac0a3be7dd31170a4f0
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0040-bounded-trace-web-view.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0eccb6982efc51f89e795c03
+title: "ADR-0040: Read-only trace web view without accumulated pages"
+type: decision

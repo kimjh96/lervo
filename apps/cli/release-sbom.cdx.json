@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:a180ac74-654a-5af5-b40b-a0f7cfdb0568",
+  "serialNumber": "urn:uuid:6e6b9848-535d-5e8c-8ffc-bac82d21d5e0",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "dd2dc9e76751c60c977a190eb16e8c4223f116f64aed90e11ec5c3af49905a70"
+          "content": "97a056fedcf390ae647f3609599b5afe2a45f12f8ba827f7372a5b9eb2a2e35b"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:026c0132df032e675ac74a8c56ee274a9d4d11583d8dc043167d9217585dd083"
+          "value": "sha256:50dbad4403db4fc9319b227a1e29e4cc8bd9d3c247b32277fbcd53e476f6090f"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:ecf6aa5e6bf2ad08e728f38121b56995bafd7fd2068fa95a4c04f1368a5facfd"
+          "value": "sha256:af81afcb492cc32340e7e2ca753bc4966b9241e14e1ff7003e75b863939e4e4e"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -268,6 +268,31 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40babel/parser@7.29.8",
+      "group": "@babel",
+      "name": "parser",
+      "version": "7.29.8",
+      "purl": "pkg:npm/%40babel/parser@7.29.8",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "13c953018341d4a5be147f95189b993358a8031d84ea8565bd0151adfe4ff19666b222576000fdbd3155ef2c84511373821d5d16a319b8eead53070045ba8508"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40babel/runtime@7.29.7",
       "group": "@babel",
       "name": "runtime",
@@ -460,6 +485,51 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/documents@0.1.0",
+      "group": "@lervo",
+      "name": "documents",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/documents@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/environment-adapter-tailscale@0.1.0",
+      "group": "@lervo",
+      "name": "environment-adapter-tailscale",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/environment-adapter-tailscale@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/environment@0.1.0",
+      "group": "@lervo",
+      "name": "environment",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/environment@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/event-contract@0.1.0",
       "group": "@lervo",
       "name": "event-contract",
@@ -520,6 +590,21 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/knowledge-okf@0.1.0",
+      "group": "@lervo",
+      "name": "knowledge-okf",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/knowledge-okf@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/knowledge@0.1.0",
       "group": "@lervo",
       "name": "knowledge",
@@ -570,6 +655,51 @@
       "name": "project",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/project@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/repository-knowledge-compiler@0.1.0",
+      "group": "@lervo",
+      "name": "repository-knowledge-compiler",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/repository-knowledge-compiler@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/repository-knowledge@0.1.0",
+      "group": "@lervo",
+      "name": "repository-knowledge",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/repository-knowledge@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/repository-registry@0.1.0",
+      "group": "@lervo",
+      "name": "repository-registry",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/repository-registry@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -916,6 +1046,30 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/character-entities@2.0.2",
+      "name": "character-entities",
+      "version": "2.0.2",
+      "purl": "pkg:npm/character-entities@2.0.2",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b21c7ba10d00c1e9ff05121d92392fcf9e0f9c4108fc48f05c3488669f3afca29d6da7c78750dffd16060619f885b7b6fae282f459d3e540847723f3dda8bd85"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/content-disposition@1.1.0",
       "name": "content-disposition",
       "version": "1.1.0",
@@ -1068,6 +1222,30 @@
         }
       ],
       "properties": [
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/decode-named-character-reference@1.3.0",
+      "name": "decode-named-character-reference",
+      "version": "1.3.0",
+      "purl": "pkg:npm/decode-named-character-reference@1.3.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1ada50601dbcdcaacfa7a9d1c39d2add4f7f55f3aeb5939ed74dea94dec13cfe80776ef16273885afe253f3a3c1c200bfa6319a1f27d284cb7d1faba31f68ae9"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -1828,6 +2006,30 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/jsonc-parser@3.3.1",
+      "name": "jsonc-parser",
+      "version": "3.3.1",
+      "purl": "pkg:npm/jsonc-parser@3.3.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "1d4807eb92b27a3ad414fbc714f6ea398d2bb058a9dc1a39c1be2782f762d44a426165100c2e55f98ee6670b3e0cb92be0cfffcd02686a7bb548ffbcec3bf5a1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/math-intrinsics@1.1.0",
       "name": "math-intrinsics",
       "version": "1.1.0",
@@ -1840,6 +2042,54 @@
         }
       ],
       "properties": [
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/mdast-util-from-markdown@2.0.3",
+      "name": "mdast-util-from-markdown",
+      "version": "2.0.3",
+      "purl": "pkg:npm/mdast-util-from-markdown@2.0.3",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5b8980593bd294abdff0be89f9537dc8b4aa43d00e000bc7ba80c098f933e1d1dfe79de6e60563d9e8da747261a0999c9b11273afe8f6bc5c9869c44f7791bf1"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/mdast-util-to-string@4.0.0",
+      "name": "mdast-util-to-string",
+      "version": "4.0.0",
+      "purl": "pkg:npm/mdast-util-to-string@4.0.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d07e38bc38a69f9d45d18c2fc522529b47820ce25346598dd11d72061e072e3f70895d439f44285c66ef1405a3da1488b554e50a6045d61a8a948c9405514b3e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -1880,6 +2130,462 @@
         }
       ],
       "properties": [
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-core-commonmark@2.0.3",
+      "name": "micromark-core-commonmark",
+      "version": "2.0.3",
+      "purl": "pkg:npm/micromark-core-commonmark@2.0.3",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "44306b1c4312c5514b83ac6f9d799bd40cabd96ccb0168de4804c0a31c0a60957de1378d6af82821d0346bdcadcc3495cc1cb660a14af9e9823ce1226cb782ae"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-factory-destination@2.0.1",
+      "name": "micromark-factory-destination",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-factory-destination@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5deeab0dd2659266c5444c694ce9918fd37731a5a66c081da52ac142f085aa17b3527e001ea2476da1277db5586227b1552b3ffeda8e758fc3c618dd0a226720"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-factory-label@2.0.1",
+      "name": "micromark-factory-label",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-factory-label@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "54531e932404c6a216ef120285c5e7e28936f58137ae7bb2bde5b7c194165aa17836ff56939ae027df4accfbc78e498f5c5f7715721b069e98756dedef5ffb56"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-factory-space@2.0.1",
+      "name": "micromark-factory-space",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-factory-space@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "cd19318ed071c4b77649cd1df9f6e712e9ec4e3e3a4965e05dc899987ab49036069dc93f6521a3f7fc142d357de6ea1e6222b98515cfda627df14a3872afcb42"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-factory-title@2.0.1",
+      "name": "micromark-factory-title",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-factory-title@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "e5b67edc28e101df5e0a16131ec8f2e931b1a4e1522a028a24f271af6f778d36dfaf2d8a0e85a48416fa4dc3d5078366cda3e132cd45ae6f40647ece0f80a3cf"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-factory-whitespace@2.0.1",
+      "name": "micromark-factory-whitespace",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-factory-whitespace@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "39bd27b99dcf2adfe7d213911f2be80fdb9986bf996bcb05a0ff8e9cc72758ae659e04b300b81060a32bf512553962ea418bb29faba5a865925ddc1fe85f3495"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-character@2.1.1",
+      "name": "micromark-util-character",
+      "version": "2.1.1",
+      "purl": "pkg:npm/micromark-util-character@2.1.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c2ff2d7544c9ded8521451492ada5828e62218fdbebfde87be4e13bbc2a9080b1332ceb28be9d5986875b32bd20ac6b1cf8e49e896f0fbd0c3ea0f7bf8d57aed"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-chunked@2.0.1",
+      "name": "micromark-util-chunked",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-chunked@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "41434510e3c42df9afbfee3188d836b1161e4bf3fce294d6d130a03f9cdcf45a577ad1d8d1a6fb4b12b201008d09cd5e2b4e39f6ea0b235cb9a0ee5573575b84"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-classify-character@2.0.1",
+      "name": "micromark-util-classify-character",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-classify-character@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2b4907ccce9a7d6fcc6de59858b8e81d0bf5b2083643d11c707103cd293188ffc469a80dcc29bb4ff58c299deb8cc6ef229bc189983047774a33282d038986d5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-combine-extensions@2.0.1",
+      "name": "micromark-util-combine-extensions",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-combine-extensions@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "3a70271fc5239b2e7d25cc99c3c2526caf5c1a9755638e0d2a048cec4f4487b0e22d2d84f513507f474e35a183cc41bdca3125e6172a788b23e217d190b1ff06"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-decode-numeric-character-reference@2.0.2",
+      "name": "micromark-util-decode-numeric-character-reference",
+      "version": "2.0.2",
+      "purl": "pkg:npm/micromark-util-decode-numeric-character-reference@2.0.2",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "71c51b624e82c1576498240ccabeb8757cf8d847c71a43d09418f9a7b6151b3abc23b0ad8d7649aee6c061ecdfed1a7e6e33ec7a244ea9eec6e9fa0577e944bb"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-decode-string@2.0.1",
+      "name": "micromark-util-decode-string",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-decode-string@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "9c357fefb163e9e1f5ca7c2c7184ceb1b2bbad1fff523d1b65707025945f68b109d6218147a9087cd9a536a6aa25feb8f443f417735635d7898b4dde96594d51"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-encode@2.0.1",
+      "name": "micromark-util-encode",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-encode@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "737715c76cb82aa527c28a5c3bd6ff482768d8eebb2f0249fd4caa19f6e281a85f7a02fd9b2a041680d8660913edfdfa4f46cbaccf6165301a0321fe3c20178f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-html-tag-name@2.0.1",
+      "name": "micromark-util-html-tag-name",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-html-tag-name@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d9c3448980e1096288f86b3d4f44e2cac935dfa4a7475de184ef325ba04637284e0b8a98167c05d6729f0f71c50085c0e5ce3946b206d6e6f5d46897798775c4"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-normalize-identifier@2.0.1",
+      "name": "micromark-util-normalize-identifier",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-normalize-identifier@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b313ea9a8ef42f201126cd30d947250023d4504aa5b42909e8f84a74c203b89de049ffd0fbf1887b758a9742236ff1b21fd94ea5491100edb0a7419590bbd2f5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-resolve-all@2.0.1",
+      "name": "micromark-util-resolve-all",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-resolve-all@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "55d432c455854f6fc51898304272586ded638d0a0d4d2e118e09664a34d496950c6bde47b71f4d1de616e2b1832736e3bc2b25f5e2e3310c0678496caa6cdc1e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-sanitize-uri@2.0.1",
+      "name": "micromark-util-sanitize-uri",
+      "version": "2.0.1",
+      "purl": "pkg:npm/micromark-util-sanitize-uri@2.0.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "f4df48a2667f62e18665999079cd4c6e0c6d960a2e8314e8755c03cf3128b8f2a8dea156bf29851d67270e2dafcd5d5f7fa91ab3db9c5bea37cb324af5807501"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark-util-subtokenize@2.1.0",
+      "name": "micromark-util-subtokenize",
+      "version": "2.1.0",
+      "purl": "pkg:npm/micromark-util-subtokenize@2.1.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "5d02eee79da249cb6f9c47205f0ebe4b1ef919f9403cd103d6ac7b78127ec327416f62826d165ef8dc2f20410c33cdee9a5d7ed96497a4101ca7d2140a009858"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/micromark@4.0.2",
+      "name": "micromark",
+      "version": "4.0.2",
+      "purl": "pkg:npm/micromark@4.0.2",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "ce97bdf10ea4bdabe90abd4d3d548231e6c229f0fb080d8da99fabca478d84e348241a5cd6d14ab7d86e70b1b085ade3353348f251e972d5895a88a6545e0f7c"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -1940,6 +2646,30 @@
         }
       ],
       "properties": [
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/nanoid@3.3.18",
+      "name": "nanoid",
+      "version": "3.3.18",
+      "purl": "pkg:npm/nanoid@3.3.18",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "0d38383096c631691f8ba55915d36ddbf71a31b432e0ebbe3a9fe1250bc611672755fa00d5003ec7344a033c3d8c3ebe19538e798aff98872e0d276e83a17afb"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -2108,6 +2838,30 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/picocolors@1.1.1",
+      "name": "picocolors",
+      "version": "1.1.1",
+      "purl": "pkg:npm/picocolors@1.1.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "c5c787dac9e1b5be4cf658aa0ec984c39ea57b7efa993664117fe311bfd1c4d1727a036e97b78db250973fd1438ff2dcbb45fc284c8c71e3f69eda5a1eb0c454"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/pkce-challenge@5.0.1",
       "name": "pkce-challenge",
       "version": "5.0.1",
@@ -2120,6 +2874,30 @@
         }
       ],
       "properties": [
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/postcss@8.5.26",
+      "name": "postcss",
+      "version": "8.5.26",
+      "purl": "pkg:npm/postcss@8.5.26",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "bbcd8def82c5cc6f1c6be743f29b8f9e99535e8187e1f4cfa551ae21bb77e86deabcd964bdf0f49440194b16a5cb7297f134bf2f503582c0849af2a605c55b91"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -2448,6 +3226,30 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/source-map-js@1.2.1",
+      "name": "source-map-js",
+      "version": "1.2.1",
+      "purl": "pkg:npm/source-map-js@1.2.1",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "51758c2a12cec1529bef6f0852d40f5f17d853ebac7726ed52b2bff2e184f0240cbeb84ea70bf30c1c23d108522fb31073bbc8b084811bc550f3e203431a5f40"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/standardwebhooks@1.0.0",
       "name": "standardwebhooks",
       "version": "1.0.0",
@@ -2540,6 +3342,30 @@
         }
       ],
       "properties": [
+        {
+          "name": "lervo:release:locked",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/unist-util-stringify-position@4.0.0",
+      "name": "unist-util-stringify-position",
+      "version": "4.0.0",
+      "purl": "pkg:npm/unist-util-stringify-position@4.0.0",
+      "scope": "required",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "d00495d3a000a0a083912dbec70e515c9cb0aeebaba5b0b82594a6ee7afb30eb75a23033bf2c9a3be53165fd7c8fc14217a926cc264a70080dff2bb6826d9781"
+        }
+      ],
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        },
         {
           "name": "lervo:release:locked",
           "value": "true"
@@ -2763,6 +3589,7 @@
       "dependsOn": [
         "pkg:npm/%40anthropic-ai/claude-agent-sdk@0.3.226",
         "pkg:npm/%40anthropic-ai/sdk@0.117.1",
+        "pkg:npm/%40babel/parser@7.29.8",
         "pkg:npm/%40lervo/adapter-claude@0.1.0",
         "pkg:npm/%40lervo/adapter-codex@0.1.0",
         "pkg:npm/%40lervo/adapter-contract@0.1.0",
@@ -2773,14 +3600,21 @@
         "pkg:npm/%40lervo/deliberation-runtime@0.1.0",
         "pkg:npm/%40lervo/deliberation@0.1.0",
         "pkg:npm/%40lervo/diagnostics@0.1.0",
+        "pkg:npm/%40lervo/documents@0.1.0",
+        "pkg:npm/%40lervo/environment-adapter-tailscale@0.1.0",
+        "pkg:npm/%40lervo/environment@0.1.0",
         "pkg:npm/%40lervo/event-contract@0.1.0",
         "pkg:npm/%40lervo/event-store-sqlite@0.1.0",
         "pkg:npm/%40lervo/execution-contract@0.1.0",
         "pkg:npm/%40lervo/identity-migration@0.1.0",
+        "pkg:npm/%40lervo/knowledge-okf@0.1.0",
         "pkg:npm/%40lervo/knowledge@0.1.0",
         "pkg:npm/%40lervo/orchestrator@0.1.0",
         "pkg:npm/%40lervo/project-storage@0.1.0",
         "pkg:npm/%40lervo/project@0.1.0",
+        "pkg:npm/%40lervo/repository-knowledge-compiler@0.1.0",
+        "pkg:npm/%40lervo/repository-knowledge@0.1.0",
+        "pkg:npm/%40lervo/repository-registry@0.1.0",
         "pkg:npm/%40lervo/schemas@0.1.0",
         "pkg:npm/%40lervo/search-adapter-bm25f@0.1.0",
         "pkg:npm/%40lervo/search-local@0.1.0",
@@ -2793,9 +3627,38 @@
         "pkg:npm/%40lervo/writing@0.1.0",
         "pkg:npm/%40modelcontextprotocol/sdk@1.30.0",
         "pkg:npm/ajv@8.20.0",
+        "pkg:npm/character-entities@2.0.2",
+        "pkg:npm/decode-named-character-reference@1.3.0",
         "pkg:npm/fast-deep-equal@3.1.3",
         "pkg:npm/fast-uri@3.1.5",
         "pkg:npm/json-schema-traverse@1.0.0",
+        "pkg:npm/jsonc-parser@3.3.1",
+        "pkg:npm/mdast-util-from-markdown@2.0.3",
+        "pkg:npm/mdast-util-to-string@4.0.0",
+        "pkg:npm/micromark-core-commonmark@2.0.3",
+        "pkg:npm/micromark-factory-destination@2.0.1",
+        "pkg:npm/micromark-factory-label@2.0.1",
+        "pkg:npm/micromark-factory-space@2.0.1",
+        "pkg:npm/micromark-factory-title@2.0.1",
+        "pkg:npm/micromark-factory-whitespace@2.0.1",
+        "pkg:npm/micromark-util-character@2.1.1",
+        "pkg:npm/micromark-util-chunked@2.0.1",
+        "pkg:npm/micromark-util-classify-character@2.0.1",
+        "pkg:npm/micromark-util-combine-extensions@2.0.1",
+        "pkg:npm/micromark-util-decode-numeric-character-reference@2.0.2",
+        "pkg:npm/micromark-util-decode-string@2.0.1",
+        "pkg:npm/micromark-util-encode@2.0.1",
+        "pkg:npm/micromark-util-html-tag-name@2.0.1",
+        "pkg:npm/micromark-util-normalize-identifier@2.0.1",
+        "pkg:npm/micromark-util-resolve-all@2.0.1",
+        "pkg:npm/micromark-util-sanitize-uri@2.0.1",
+        "pkg:npm/micromark-util-subtokenize@2.1.0",
+        "pkg:npm/micromark@4.0.2",
+        "pkg:npm/nanoid@3.3.18",
+        "pkg:npm/picocolors@1.1.1",
+        "pkg:npm/postcss@8.5.26",
+        "pkg:npm/source-map-js@1.2.1",
+        "pkg:npm/unist-util-stringify-position@4.0.0",
         "pkg:npm/yaml@2.9.0",
         "pkg:npm/zod@4.4.3"
       ]

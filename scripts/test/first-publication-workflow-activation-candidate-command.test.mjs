@@ -53,8 +53,8 @@ describe("first-publication workflow activation candidate command", () => {
         readFile(prepared.paths.workflowPath),
       ]), before);
       const output = formatFirstPublicationWorkflowActivationCandidate(result.candidate);
-      assert.match(output, /job 하나만 추가합니다/u);
-      assert.match(output, /아직 원본 workflow에 적용할 수 없습니다/u);
+      assert.match(output, /Adds one publish-cli job/u);
+      assert.match(output, /cannot yet be applied to the source workflow/u);
       assert.equal(output.includes(result.candidate.candidateDigest), false);
     } finally {
       await rm(prepared.root, { recursive: true, force: true });

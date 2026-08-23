@@ -60,7 +60,7 @@ describe("search rollout review", () => {
       },
       embeddingDecision: "not_determined",
     });
-    expect(JSON.stringify(review)).not.toContain("검토 결과");
+    expect(JSON.stringify(review)).not.toContain("review result");
     assertSearchRolloutReview(review);
     verifySearchRolloutReview(review, { attempts: [first, second], assessments: [assessment] });
 
@@ -79,7 +79,7 @@ describe("search rollout review", () => {
 
     const tampered = structuredClone(review);
     tampered.qualitySnapshot.acceptedAttempts = 0;
-    expect(() => assertSearchRolloutReview(tampered)).toThrow(/snapshot|실제 내용/);
+    expect(() => assertSearchRolloutReview(tampered)).toThrow(/snapshot|actual content/);
   });
 
   it("does not silently widen a recorded snapshot when later evidence appears", () => {
@@ -98,7 +98,7 @@ describe("search rollout review", () => {
     expect(() => verifySearchRolloutReview(review, {
       attempts: [first, later],
       assessments: [],
-    })).toThrow(/원본 품질 입력/);
+    })).toThrow(/source quality input/);
     expect(() => createSearchRolloutReview({
       projectId: "prj_search_01",
       target: { ...rolloutTarget, selectionTransitionId: `seact_${"d".repeat(24)}` },
@@ -107,6 +107,6 @@ describe("search rollout review", () => {
       reviewerId: "reviewer_rollout",
       reviewedAt: new Date("2026-08-20T05:01:00.000Z"),
       decision: "rollback_recommended",
-    })).toThrow(/대상 선택/);
+    })).toThrow(/target selection or timestamp/);
   });
 });

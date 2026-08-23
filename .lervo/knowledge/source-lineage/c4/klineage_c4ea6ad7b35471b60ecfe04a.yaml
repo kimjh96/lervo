@@ -1,0 +1,11 @@
+fromPath: docs/adr/0143-execution-and-conversation-boundary-hardening.md
+identityPath: docs/adr/0143-execution-and-conversation-boundary-hardening.md
+kind: document_move
+lineageId: klineage_c4ea6ad7b35471b60ecfe04a
+operationId: kdocop_f9d29b87d702057e7f69d85f
+schemaVersion: 1
+sourceContentHash: sha256:ff9681249a4adab0c722d3b97101c28d593b1e69c6c30138f9437e62b2119693
+sourceId: src_a8780de53597e683481b64c7
+sourceUnitBindingDigest: sha256:6427bfb4116e7f62e7ce08cf45913c8b35b05e73ec448b28f5965acd06465238
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/conversations/0143-execution-and-conversation-boundary-hardening.md

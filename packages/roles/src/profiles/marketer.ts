@@ -6,7 +6,7 @@ const profile: RoleProfile = {
   schemaVersion: 1,
   roleId: "marketer",
   name: "Marketer",
-  description: "검증된 근거와 브랜드 정책 안에서 대상 독자에게 전달할 내용을 만듭니다.",
+  description: "Creates material for a target audience within verified evidence and brand policy.",
   requestTypes: ["campaign.plan", "marketing.copy"],
   requiredInputs: [{
     name: "audience", schemaRef: "lervo-schema://roles/marketing-audience/v1",
@@ -37,7 +37,7 @@ const profile: RoleProfile = {
     pathTemplate: ".lervo/generated/marketing/{runId}.md",
     citationsRequired: true,
     presentation: {
-      audience: "human", locale: "ko-KR", writingPolicyId: defaultRoleWritingPolicyId,
+      audience: "human", locale: "en", writingPolicyId: defaultRoleWritingPolicyId,
     },
   },
   verification: { suiteIds: ["role.marketing.artifact"], failureDisposition: "fail_run" },
@@ -52,17 +52,17 @@ export function marketerRoleDefinition() {
   return defineRole(profile, [{
     checkId: "marketing.artifact-schema", category: "artifact_schema",
     method: "project_verification",
-    requirement: "마케팅 산출물이 등록된 marketing content schema와 맞아야 합니다.",
+    requirement: "The marketing artifact must satisfy the registered marketing content schema.",
     verificationSuiteId: "role.marketing.artifact", evidenceRequired: true,
   }, {
     checkId: "marketing.brand-compliance", category: "brand_compliance",
     method: "separate_semantic",
-    requirement: "표현, 약속과 금지 문구가 현재 브랜드 정책을 따라야 합니다.",
+    requirement: "Language, promises, and prohibited phrases must follow the current brand policy.",
     verificationSuiteId: null, evidenceRequired: true,
   }, {
     checkId: "marketing.claim-support", category: "claim_support",
     method: "separate_semantic",
-    requirement: "외부에 제시하는 사실 주장은 검증된 research evidence와 연결되어야 합니다.",
+    requirement: "Factual claims presented externally must link to verified research evidence.",
     verificationSuiteId: null, evidenceRequired: true,
   }]);
 }

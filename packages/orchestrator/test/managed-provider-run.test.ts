@@ -106,7 +106,7 @@ describe("managed provider run lifecycle", () => {
         "run.completed",
       ]);
       const serialized = JSON.stringify(data.store.list({ runId }));
-      expect(serialized).not.toContain("저장소를 읽고 결과를 설명합니다");
+      expect(serialized).not.toContain("Read the repository and explain the result");
       expect(serialized).not.toContain("fixture provider result");
       expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
         resultDigest: result.resultArtifact.contentHash,
@@ -133,6 +133,32 @@ describe("managed provider run lifecycle", () => {
     });
     data.store.close();
   });
+
+  it.each(["missing", "duplicate"] as const)(
+    "rejects a multi-file run with a %s target turn ID source before provider startup",
+    async (scenario) => {
+      const data = await createManagedFixture();
+      const adapter = new FakeManagedAdapter("codex");
+      const input = providerRunInput();
+
+      await expect(coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        context: {
+          ...input.context,
+          role,
+          expectedPaths: ["src/other.ts", "src/result.ts"],
+        },
+        ...(scenario === "duplicate"
+          ? { createTargetTurnId: () => input.targetTurnId }
+          : {}),
+      })).rejects.toMatchObject({ code: "contract_validation_failed" });
+
+      expect(adapter.calls).toEqual([]);
+      expect(data.store.list({ runId })).toEqual([]);
+      data.store.close();
+    },
+  );
 
   it("fails a write-capable run that produces no verified change", async () => {
     const data = await createManagedFixture();

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8b3552aa6d7d6c2c485984c1
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0012-provider-result-artifacts.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_cc862622548bec8669d7b5bb
+title: "ADR-0012: Provider-neutral result artifacts"
+type: decision

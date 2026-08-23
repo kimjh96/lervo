@@ -63,13 +63,13 @@ function validDuration(value: number, minimum: number, maximum: number): boolean
 function parseTime(value: string, label: string): number {
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds) || milliseconds < 0) {
-    throw new HubCommandError("invalid_request", `${label}이 유효하지 않습니다.`);
+    throw new HubCommandError("invalid_request", `${label} is invalid.`);
   }
   return milliseconds;
 }
 
 function nextTimestamp(now: string, delayMs: number): string {
-  return new Date(parseTime(now, "artifact cleanup runtime 시각") + delayMs).toISOString();
+  return new Date(parseTime(now, "artifact cleanup runtime time") + delayMs).toISOString();
 }
 
 export async function runHubCommandArtifactCleanupLoop(
@@ -84,7 +84,7 @@ export async function runHubCommandArtifactCleanupLoop(
     !validDuration(cycleIntervalMs, 60_000, 24 * 60 * 60_000) ||
     !validDuration(continuationDelayMs, 100, 60_000) ||
     !validDuration(retryDelayMs, 1_000, 60 * 60_000)
-  ) throw new HubCommandError("invalid_request", "artifact cleanup runtime 간격이 유효하지 않습니다.");
+  ) throw new HubCommandError("invalid_request", "The artifact cleanup runtime interval is invalid.");
 
   const now = options.now ?? (() => new Date().toISOString());
   const wait = options.wait ?? systemWait;
@@ -103,7 +103,7 @@ export async function runHubCommandArtifactCleanupLoop(
     });
     if (claim.status === "waiting") {
       const delay = Math.max(0, parseTime(claim.nextAttemptAt, "artifact cleanup nextAttemptAt") -
-        parseTime(now(), "artifact cleanup 현재 시각"));
+        parseTime(now(), "artifact cleanup current time"));
       await wait.wait(delay, options.signal);
       continue;
     }

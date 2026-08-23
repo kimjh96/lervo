@@ -1,0 +1,11 @@
+fromPath: docs/adr/0111-cli-first-publication-bootstrap-v2-evidence-integration.md
+identityPath: docs/adr/0111-cli-first-publication-bootstrap-v2-evidence-integration.md
+kind: document_move
+lineageId: klineage_49476f1cc8ad1a7986d4f7a4
+operationId: kdocop_9e3bda20396af16db9347503
+schemaVersion: 1
+sourceContentHash: sha256:f69942d807b81b1e5b0d25fc6def953b1859a04b5b9c6308915fb2dbe15c1655
+sourceId: src_d09a362ef16f0070a2c1e0dc
+sourceUnitBindingDigest: sha256:1e90cb3dff54689d648c0b50d64ee22d0b1fffe298ad7b4fdacc5cfaa83fcec8
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md

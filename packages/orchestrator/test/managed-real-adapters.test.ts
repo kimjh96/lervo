@@ -121,7 +121,7 @@ class AcceptanceCodexClient implements CodexAppServerClient {
         params: {
           threadId,
           turnId: "codex-turn-acceptance",
-          item: { type: "agentMessage", id: "message-acceptance", text: "완료" },
+          item: { type: "agentMessage", id: "message-acceptance", text: "Complete" },
         },
       },
       {
@@ -163,7 +163,7 @@ class AcceptanceCodexClient implements CodexAppServerClient {
         params: {
           threadId: "codex-thread-acceptance",
           turnId: "codex-turn-acceptance",
-          item: { type: "agentMessage", id: "message-acceptance", text: "완료" },
+          item: { type: "agentMessage", id: "message-acceptance", text: "Complete" },
         },
       },
       {
@@ -222,7 +222,7 @@ class AcceptanceClaudeClient implements ClaudeAgentClient {
           uuid: "44444444-4444-4444-8444-444444444444",
           session_id: CLAUDE_SESSION_ID,
           duration_ms: 1,
-          result: "완료",
+          result: "Complete",
         },
       );
     if (this.managedRoot !== undefined) {
@@ -279,8 +279,8 @@ describe("managed coordinator with production adapters", () => {
     expect(result.status).toBe("completed");
     expect(result.session.executionMode).toBe("read_only");
     expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
-      .toBe("완료");
-    expect(JSON.stringify(data.store.list({ runId }))).not.toContain("완료");
+      .toBe("Complete");
+    expect(JSON.stringify(data.store.list({ runId }))).not.toContain("Complete");
     expect(client.startOptions).toMatchObject({ sandbox: "read-only", approvalPolicy: "never" });
     expect(data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload)
       .toMatchObject({ executionMode: "read_only" });
@@ -320,8 +320,8 @@ describe("managed coordinator with production adapters", () => {
 
     expect(result.status).toBe("completed");
     expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
-      .toBe("완료");
-    expect(JSON.stringify(data.store.list({ runId }))).not.toContain("완료");
+      .toBe("Complete");
+    expect(JSON.stringify(data.store.list({ runId }))).not.toContain("Complete");
     expect(startOptions).toMatchObject({
       permissionMode: "plan",
       tools: ["Read", "Glob", "Grep"],

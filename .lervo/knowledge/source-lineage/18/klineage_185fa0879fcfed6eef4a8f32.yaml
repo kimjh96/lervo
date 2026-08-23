@@ -1,0 +1,11 @@
+fromPath: docs/adr/0107-cli-first-publication-package-metadata-apply-permit.md
+identityPath: docs/adr/0107-cli-first-publication-package-metadata-apply-permit.md
+kind: document_move
+lineageId: klineage_185fa0879fcfed6eef4a8f32
+operationId: kdocop_06661bf5f029242de7040a8a
+schemaVersion: 1
+sourceContentHash: sha256:9bc4dab2b86cb41c8c1114ca671c13912eb703b67c8edab4d0ae176f41fe23f4
+sourceId: src_aad2c7191545653af1558b59
+sourceUnitBindingDigest: sha256:bf7217471c5f5d0d321f1ee4ad68710159bc7056c808d3af7a12cb321bbc461b
+sourceUnitCount: 5
+toPath: docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md

@@ -15,7 +15,7 @@ function assertCurrentGeneration(input: InjectLoadedContextInput): void {
   if (current !== input.contextGeneration) {
     throw new ContextDeliveryError(
       "stale_context_generation",
-      "Context generation이 바뀌어 재주입이 필요합니다.",
+      "The context generation changed and must be reinjected.",
     );
   }
 }
@@ -33,7 +33,7 @@ async function assertFreshSnapshot(
   if (!freshness.valid) {
     throw new ContextDeliveryError(
       "context_snapshot_invalid",
-      `Context snapshot이 유효하지 않습니다: ${freshness.invalidations
+      `The context snapshot is invalid: ${freshness.invalidations
         .map((item) => `${item.documentId}:${item.reason}`)
         .join(",")}`,
     );
@@ -77,7 +77,7 @@ export async function injectLoadedContext(
   } catch {
     throw new ContextDeliveryError(
       "injection_failed",
-      "Adapter가 controlled context 입력을 완료하지 못했습니다.",
+      "The adapter did not complete controlled context input.",
     );
   }
   await assertFreshSnapshot(input, now());

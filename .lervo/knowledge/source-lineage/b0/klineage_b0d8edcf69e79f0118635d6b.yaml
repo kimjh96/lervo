@@ -1,0 +1,11 @@
+fromPath: docs/adr/0028-same-provider-deliberation-runtime.md
+identityPath: docs/adr/0028-same-provider-deliberation-runtime.md
+kind: document_move
+lineageId: klineage_b0d8edcf69e79f0118635d6b
+operationId: kdocop_e071f5a6c353f380bbdbaa94
+schemaVersion: 1
+sourceContentHash: sha256:543f4745f5dcb805808c03ae0dc1cde1b90c4b3e0dcc396896b0be4a4df90bad
+sourceId: src_98f7a1a089bce89136908eea
+sourceUnitBindingDigest: sha256:329ed270bf63e0c1a7be78a20cd30364166ee972a5a311201243ec7da71804bc
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/deliberation/0028-same-provider-deliberation-runtime.md

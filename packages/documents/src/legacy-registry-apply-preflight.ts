@@ -39,7 +39,7 @@ async function requireMissingMarker(root: string): Promise<void> {
   if (marker.kind !== "missing") {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "완료되지 않은 문서 구조 전환 marker가 이미 있습니다.",
+      "An incomplete document layout migration marker already exists.",
     );
   }
 }
@@ -51,7 +51,7 @@ export async function revalidateReferencedDocuments(
   for (const reference of plan.referencedDocuments) {
     const current = await snapshotLegacyMigrationPath(root, reference.path, 4 * 1024 * 1024);
     if (!samePathSnapshot(current, reference.snapshot)) {
-      stale(`Legacy registry 참조 문서가 dry-run 이후 바뀌었습니다: ${reference.documentId}`);
+      stale(`A legacy registry referenced document changed after the dry run: ${reference.documentId}`);
     }
   }
 }
@@ -67,7 +67,7 @@ export async function revalidateLegacyRegistryPlanBefore(
   } catch (error) {
     throw new DocumentMigrationError(
       "plan_stale",
-      "Legacy registry 원본을 현재 snapshot으로 다시 확인할 수 없습니다.",
+      "The legacy registry source cannot be revalidated against the current snapshot.",
       { cause: error },
     );
   }
@@ -75,11 +75,11 @@ export async function revalidateLegacyRegistryPlanBefore(
     sourceBytes.byteLength !== plan.source.byteCount ||
     sha256(sourceBytes) !== plan.source.contentHash
   ) {
-    stale("Legacy registry 원본이 dry-run 이후 바뀌었습니다.");
+    stale("The legacy registry source changed after the dry run.");
   }
   const archive = await snapshotLegacyMigrationPath(root, plan.archiveTarget.path, 4 * 1024 * 1024);
   if (!samePathSnapshot(archive, plan.archiveTarget.expected)) {
-    stale("Legacy registry archive target이 dry-run 이후 바뀌었습니다.");
+    stale("The legacy registry archive target changed after the dry run.");
   }
   const directory = await snapshotLegacyMigrationPath(
     root,
@@ -87,12 +87,12 @@ export async function revalidateLegacyRegistryPlanBefore(
     64 * 1024,
   );
   if (!samePathSnapshot(directory, plan.manifestDirectory.expected)) {
-    stale("Document manifest directory가 dry-run 이후 바뀌었습니다.");
+    stale("The document manifest directory changed after the dry run.");
   }
   for (const entry of plan.entries) {
     const target = await snapshotLegacyMigrationPath(root, entry.target.path, 64 * 1024);
     if (!samePathSnapshot(target, entry.target.expected)) {
-      stale(`Legacy sidecar target이 dry-run 이후 바뀌었습니다: ${entry.documentId}`);
+      stale(`A legacy sidecar target changed after the dry run: ${entry.documentId}`);
     }
   }
   await revalidateReferencedDocuments(root, plan);
@@ -109,7 +109,7 @@ export async function verifyLegacyRegistryReadyForTransition(
   } catch (error) {
     throw new DocumentMigrationError(
       "plan_stale",
-      "Transaction marker 이후 legacy registry 원본을 다시 확인할 수 없습니다.",
+      "The legacy registry source cannot be revalidated after the transaction marker.",
       { cause: error },
     );
   }
@@ -117,14 +117,14 @@ export async function verifyLegacyRegistryReadyForTransition(
     sha256(sourceBytes) !== plan.source.contentHash ||
     sourceBytes.byteLength !== plan.source.byteCount
   ) {
-    stale("Transaction marker 이후 legacy registry 원본이 바뀌었습니다.");
+    stale("The legacy registry source changed after the transaction marker.");
   }
   const archive = await snapshotLegacyMigrationPath(root, plan.archiveTarget.path, 4 * 1024 * 1024);
   if (
     archive.kind !== "file" || archive.contentHash !== plan.source.contentHash ||
     archive.byteCount !== plan.source.byteCount
   ) {
-    stale("공개 준비한 legacy registry archive가 원본과 다릅니다.");
+    stale("The staged legacy registry archive differs from the source.");
   }
   const directory = await snapshotLegacyMigrationPath(
     root,
@@ -132,7 +132,7 @@ export async function verifyLegacyRegistryReadyForTransition(
     64 * 1024,
   );
   if (directory.kind !== "missing") {
-    stale("Sidecar 공개 전에 document manifest directory가 생겼습니다.");
+    stale("The document manifest directory appeared before sidecar publication.");
   }
   await revalidateReferencedDocuments(root, plan);
 }
@@ -144,7 +144,7 @@ export async function verifyLegacyRegistryPublished(input: {
 }): Promise<void> {
   const source = await inspectTargetFile(input.root, input.plan.source.path, 4 * 1024 * 1024);
   if (source.kind !== "missing") {
-    stale("Legacy registry 원본 경로가 승인된 처분대로 비활성화되지 않았습니다.");
+    stale("The legacy registry source path was not deactivated according to the approved disposition.");
   }
   const archive = await snapshotLegacyMigrationPath(
     input.root,
@@ -156,11 +156,11 @@ export async function verifyLegacyRegistryPublished(input: {
     archive.contentHash !== input.plan.source.contentHash ||
     archive.byteCount !== input.plan.source.byteCount
   ) {
-    stale("Legacy registry archive를 원본 bytes로 확인할 수 없습니다.");
+    stale("The legacy registry archive cannot be verified against the source bytes.");
   }
   const sidecars = await captureSidecarDirectorySnapshot(input.root);
   if (!sameSidecarSnapshot(sidecars, input.expectedSidecars)) {
-    stale("공개한 legacy sidecar layout이 승인된 snapshot과 다릅니다.");
+    stale("The published legacy sidecar layout differs from the approved snapshot.");
   }
   await revalidateReferencedDocuments(input.root, input.plan);
 }
@@ -204,7 +204,7 @@ export async function assertSafeLervoDirectory(root: string): Promise<void> {
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new DocumentMigrationError(
       "migration_conflict",
-      "Legacy registry 구조 전환에는 안전한 .lervo 디렉터리가 필요합니다.",
+      "Legacy registry layout migration requires a safe .lervo directory.",
     );
   }
 }

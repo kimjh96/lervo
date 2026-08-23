@@ -1,0 +1,11 @@
+fromPath: docs/adr/0151-restartable-node-outbound-sync-runtime.md
+identityPath: docs/adr/0151-restartable-node-outbound-sync-runtime.md
+kind: document_move
+lineageId: klineage_c075fa4adc5e5ff156513b60
+operationId: kdocop_0f1fba97f9799b40bfe5b959
+schemaVersion: 1
+sourceContentHash: sha256:4f559218a3071d4bf984d8c3eb083701aad5107914ddb898c6c928ff1b0c3a0f
+sourceId: src_16daa6c336a3d633c2201b59
+sourceUnitBindingDigest: sha256:da8667d4d93a630a103738248bcd1f7d152714f5bf4f2ea6e772e746a060de4e
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/sync/0151-restartable-node-outbound-sync-runtime.md

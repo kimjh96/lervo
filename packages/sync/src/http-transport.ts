@@ -38,14 +38,14 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
     url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-  ) throw new Error("Hub sync URL은 credential·query가 없는 HTTPS URL이어야 합니다.");
+  ) throw new Error("The Hub synchronization URL must be an HTTPS URL without credentials or a query.");
   return url;
 }
 
 function byteLimit(value: number | undefined, fallback: number, label: string): number {
   const resolved = value ?? fallback;
   if (!Number.isSafeInteger(resolved) || resolved < 1_024 || resolved > MAXIMUM_HTTP_BYTES) {
-    throw new Error(`${label}은 1024 이상 16777216 이하여야 합니다.`);
+    throw new Error(`${label} must be between 1024 and 16777216.`);
   }
   return resolved;
 }
@@ -76,7 +76,7 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
       !DESTINATION_PATTERN.test(options.destinationId) ||
       !PROJECT_PATTERN.test(options.target.projectId) ||
       !HASH_PATTERN.test(options.target.projectIdentityHash)
-    ) throw new Error("Hub sync HTTP transport 설정이 유효하지 않습니다.");
+    ) throw new Error("The Hub synchronization HTTP transport configuration is invalid.");
     this.bearerToken = options.bearerToken;
     this.expectedHubIdentityHash = options.expectedHubIdentityHash;
     this.destinationId = options.destinationId;
@@ -84,17 +84,17 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
     this.maxRequestBytes = byteLimit(
       options.maxRequestBytes,
       DEFAULT_MAX_REQUEST_BYTES,
-      "Hub sync HTTP 요청 한도",
+      "Hub synchronization HTTP request limit",
     );
     this.maxResponseBytes = byteLimit(
       options.maxResponseBytes,
       DEFAULT_MAX_RESPONSE_BYTES,
-      "Hub sync HTTP 응답 한도",
+      "Hub synchronization HTTP response limit",
     );
     this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     if (!Number.isSafeInteger(this.requestTimeoutMs) || this.requestTimeoutMs < 10 ||
       this.requestTimeoutMs > 300_000) {
-      throw new Error("Hub sync HTTP 요청 제한 시간이 유효하지 않습니다.");
+      throw new Error("The Hub synchronization HTTP request timeout is invalid.");
     }
     this.request = options.fetch ?? globalThis.fetch;
     this.registrationId = calculateProjectRegistrationId({
@@ -110,7 +110,7 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
       request.projectIdentityHash !== this.target.projectIdentityHash ||
       request.registrationId !== this.registrationId ||
       request.project.projectId !== this.target.projectId
-    ) throw new Error("Hub sync registration 좌표가 transport 설정과 다릅니다.");
+    ) throw new Error("The Hub synchronization registration coordinates differ from the transport configuration.");
     return this.post("registration", request, [200, 201]);
   }
 
@@ -119,7 +119,7 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
     if (
       batch.destinationId !== this.destinationId ||
       batch.projectId !== this.target.projectId || batch.registrationId !== this.registrationId
-    ) throw new Error("Hub sync event batch 좌표가 transport 설정과 다릅니다.");
+    ) throw new Error("The Hub synchronization event batch coordinates differ from the transport configuration.");
     return this.post("event-batches", batch, [200]);
   }
 
@@ -130,7 +130,7 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
   ): Promise<unknown> {
     const serialized = JSON.stringify(body);
     if (Buffer.byteLength(serialized, "utf8") > this.maxRequestBytes) {
-      throw new Error("Hub sync 요청이 허용 크기를 넘었습니다.");
+      throw new Error("The Hub synchronization request exceeds the allowed size.");
     }
     const url = new URL(
       `v1/sync/projects/${encodeURIComponent(this.target.projectId)}/${kind}`,
@@ -154,7 +154,7 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
       });
       if (!acceptedStatuses.includes(response.status)) {
         await response.body?.cancel();
-        throw new Error("Hub sync 응답 상태가 유효하지 않습니다.");
+        throw new Error("The Hub synchronization response status is invalid.");
       }
       if (response.headers.get("x-lervo-hub-identity") !== this.expectedHubIdentityHash) {
         await response.body?.cancel();
@@ -169,7 +169,7 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
       }
       if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
         await response.body?.cancel();
-        throw new Error("Hub sync 응답 content type이 유효하지 않습니다.");
+        throw new Error("The Hub synchronization response content type is invalid.");
       }
       return {
         authentication: {

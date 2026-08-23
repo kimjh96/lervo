@@ -72,7 +72,7 @@ describe("document migration discovery", () => {
     const root = await temporaryRoot();
     await mkdir(resolve(root, ".lervo"));
     await mkdir(resolve(root, "docs"));
-    await writeFile(resolve(root, "README.md"), "# Project\n\n사람이 작성한 원본입니다.\n");
+    await writeFile(resolve(root, "README.md"), "# Project\n\nHuman-authored source.\n");
     await writeFile(resolve(root, "docs", "notes.txt"), "custom document bytes\n");
     await writeFile(
       resolve(root, ".lervo", "documents.yaml"),

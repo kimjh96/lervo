@@ -21,18 +21,18 @@ const sources: SearchSourceInput[] = [
     sourceId: "doc_bm25f_common",
     contentHash: HASH_A,
     path: "docs/common.md",
-    title: "공통 안내",
+    title: "Common guide",
     labels: ["guide"],
-    text: "검색 검색 검색 공통 문서",
+    text: "search search search common document",
   },
   {
     kind: "document",
     sourceId: "doc_bm25f_rare",
     contentHash: HASH_B,
     path: "docs/rare.md",
-    title: "희귀 근거",
+    title: "Rare evidence",
     labels: ["evidence"],
-    text: "검색 고유근거 문서",
+    text: "search unique-evidence document",
   },
 ];
 
@@ -41,7 +41,7 @@ describe("bm25f search evaluation adapter", () => {
     await expect(verifySearchEvaluationEngineContract({
       engine: bm25fSearchEvaluationEngine,
       sources,
-      queries: ["검색", "고유근거"],
+      queries: ["search", "unique-evidence"],
     })).resolves.toMatchObject({
       engine: BM25F_SEARCH_ENGINE,
       adapterBuildId: BM25F_ADAPTER_BUILD_ID,
@@ -50,17 +50,17 @@ describe("bm25f search evaluation adapter", () => {
   });
 
   it("uses document frequency and fixed integer scores without exposing the query", () => {
-    const response = new Bm25fSearchIndex(sources).search("검색 고유근거", 10);
+    const response = new Bm25fSearchIndex(sources).search("search unique-evidence", 10);
 
     expect(response.hits[0]?.source.sourceId).toBe("doc_bm25f_rare");
     expect(response.hits.every((hit) => Number.isSafeInteger(hit.score) && hit.score > 0)).toBe(true);
-    expect(JSON.stringify(response)).not.toContain("고유근거");
+    expect(JSON.stringify(response)).not.toContain("unique-evidence");
   });
 
   it("rejects invalid corpus through the shared corpus contract", () => {
-    expect(() => new Bm25fSearchIndex([{ ...sources[0]!, text: "" }])).toThrow(/본문 계약/);
+    expect(() => new Bm25fSearchIndex([{ ...sources[0]!, text: "" }])).toThrow(/content contract/);
     const index = new Bm25fSearchIndex(sources);
-    expect(() => index.search("검색", 0)).toThrow(/결과 한도/);
-    expect(() => index.search("검색", 51)).toThrow(/결과 한도/);
+    expect(() => index.search("search", 0)).toThrow(/result limit/);
+    expect(() => index.search("search", 51)).toThrow(/result limit/);
   });
 });

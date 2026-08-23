@@ -17,7 +17,7 @@ export function validateSession(session: AdapterSession): void {
   if (!validation.valid || session.kind !== "session") {
     throw new ContextDeliveryError(
       "invalid_session",
-      "유효한 managed adapter session이 필요합니다.",
+      "A valid managed adapter session is required.",
       { cause: validation.errors },
     );
   }
@@ -29,7 +29,7 @@ export function validateLoadedContext(loaded: LoadedContext): void {
   } catch (error) {
     throw new ContextDeliveryError(
       "invalid_loaded_context",
-      "E2 LoadedContext 무결성 검증에 실패했습니다.",
+      "E2 LoadedContext integrity verification failed.",
       { cause: error },
     );
   }
@@ -48,7 +48,7 @@ export function assertSessionCoordinates(
   ) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      "LoadedContext와 adapter session의 project/run/session/role 좌표가 다릅니다.",
+      "The LoadedContext and adapter session project/run/session/role coordinates differ.",
     );
   }
 }
@@ -57,7 +57,7 @@ export function assertGeneration(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new ContextDeliveryError(
       "invalid_delivery_request",
-      `${label}은 0 이상의 안전한 정수여야 합니다.`,
+      `${label} must be a safe integer of at least 0.`,
     );
   }
 }

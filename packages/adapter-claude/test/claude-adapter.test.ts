@@ -55,14 +55,12 @@ class FakeClaudeClient implements ClaudeAgentClient {
     this.calls.push({ method: "startTurn", value: { turnId, instructions } });
     this.messageList.push(
       {
-        type: "user",
-        isReplay: true,
-        shouldQuery: true,
-        uuid: turnId,
+        type: "command_lifecycle",
+        state: "started",
+        command_uuid: turnId,
         session_id: PROVIDER_SESSION_ID,
+        uuid: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         timestamp: "2026-08-18T00:00:03Z",
-        message: { role: "user", content: instructions },
-        parent_tool_use_id: null,
       },
       {
         type: "assistant",
@@ -142,7 +140,6 @@ class FakeClaudeClient implements ClaudeAgentClient {
         type: "result",
         subtype: "success",
         is_error: false,
-        user_message_uuid: turnId,
         uuid: "99999999-9999-4999-8999-999999999999",
         session_id: PROVIDER_SESSION_ID,
         duration_ms: 20,
@@ -202,8 +199,8 @@ function adapter(
 }
 
 function fixture() {
-  const agents = "모든 전문 에이전트는 같은 검증된 맥락을 받습니다.\n";
-  const writing = "한국 사람이 평소에 이해하는 문장과 이어지는 문단으로 씁니다.\n";
+  const agents = "All specialist agents receive the same verified context.\n";
+  const writing = "Write natural English sentences and cohesive paragraphs.\n";
   const startRequest: AdapterStartRequest = {
     kind: "start_request",
     schemaVersion: 1,
@@ -212,7 +209,7 @@ function fixture() {
     runId: "run_01234567",
     sessionId: "ses_01234567",
     roleId: "developer",
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     requestDigest: sha("fixture request"),
     executionMode: "read_only",
     requestedAt: "2026-08-18T00:00:00Z",
@@ -259,7 +256,7 @@ function fixture() {
     sessionId: startRequest.sessionId,
     providerSessionId: PROVIDER_SESSION_ID,
     targetTurnId: contextEnvelope.targetTurnId,
-    instructions: "작은 기능을 구현합니다.",
+    instructions: "Implement a small feature.",
     requestedAt: "2026-08-18T00:00:02Z",
   };
   return { startRequest, contextEnvelope, turnRequest, agents, writing };
@@ -396,6 +393,17 @@ describe("Claude managed adapter", () => {
       data.contextEnvelope.documents.map((item) => item.contentHash),
     );
     expect(client.calls.map((call) => call.method)).toEqual(["appendContext", "startTurn"]);
+    expect(client.calls[1]?.value).toEqual({
+      turnId: PROVIDER_TURN_ID,
+      instructions: [
+        "[Lervo managed execution boundary]",
+        'Repository root: "/repo"',
+        "Resolve every repository-relative path against this exact root.",
+        "Write/Edit file_path values must remain inside this root.",
+        "",
+        data.turnRequest.instructions,
+      ].join("\n"),
+    });
   });
 
   it("does not start a turn without the matching controlled context", async () => {
@@ -415,7 +423,7 @@ describe("Claude managed adapter", () => {
     const instance = adapter(client);
     const session = await start(instance);
     const envelope = fixture().contextEnvelope;
-    envelope.documents[0]!.delivery = { kind: "inline", content: "바뀐 원문" };
+    envelope.documents[0]!.delivery = { kind: "inline", content: "changed source" };
     await expect(instance.injectContext(session, envelope)).rejects.toBeInstanceOf(ClaudeAdapterError);
     expect(client.calls).toEqual([]);
   });

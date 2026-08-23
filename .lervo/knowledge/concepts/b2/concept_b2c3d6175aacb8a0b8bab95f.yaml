@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b2c3d6175aacb8a0b8bab95f
+freshness: current
+ownership: user
+path: docs/research/repository-knowledge-systems.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_238f042270447eda29a6fec0
+title: Repository knowledge systems research
+type: concept

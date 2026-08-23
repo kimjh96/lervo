@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_2e55c6b287fd8a6028b82881
+freshness: current
+ownership: user
+path: apps/cli/README.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_cc37214fdddb18bdbefb2749
+title: "@lervo/cli"
+type: concept

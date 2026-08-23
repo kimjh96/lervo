@@ -1,0 +1,11 @@
+fromPath: docs/adr/0025-writing-publication-gate.md
+identityPath: docs/adr/0025-writing-publication-gate.md
+kind: document_move
+lineageId: klineage_b51783a360f8c9a9def7b718
+operationId: kdocop_bc1322fa9a7d76e5c4af6927
+schemaVersion: 1
+sourceContentHash: sha256:ebac51fc56a3e25cb2ec542460ef14f07b8ac26cb4d3c830da02ca6582fa7f04
+sourceId: src_b5e605388c1becc389091dac
+sourceUnitBindingDigest: sha256:f69106680f5b8e4d2e84d12d4582916b095edd0c67faff79288713df430c60a9
+sourceUnitCount: 11
+toPath: docs/decisions/release/packaging/0025-writing-publication-gate.md

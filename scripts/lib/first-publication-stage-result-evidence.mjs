@@ -36,7 +36,7 @@ export function assertFirstPublicationStageResultBinding({
   ) {
     fail(
       "first_publication_stage_result_source_mismatch",
-      "Workflow 실행 증거와 npm stage 결과 좌표가 일치하지 않습니다.",
+      "The workflow execution evidence and npm stage result coordinates do not match.",
     );
   }
   return workflowExecutionReport;
@@ -46,7 +46,7 @@ function validateObservation(observation, input) {
   if (observation?.state !== "observed") {
     fail(
       "first_publication_stage_result_not_ready",
-      "Exact stage 결과 artifact를 읽고 검증하지 못했습니다.",
+      "The exact stage-result artifact could not be read and verified.",
     );
   }
   if (
@@ -67,7 +67,7 @@ function validateObservation(observation, input) {
   ) {
     fail(
       "first_publication_stage_result_observation_invalid",
-      "GitHub stage 결과 artifact 관측이 올바르지 않습니다.",
+      "The GitHub stage-result artifact observation is invalid.",
     );
   }
   return observation;
@@ -88,7 +88,7 @@ export function createFirstPublicationStageResultEvidence(input) {
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail(
       "first_publication_stage_result_record_invalid",
-      "Artifact 내부 stage 결과 문서가 올바르지 않습니다.",
+      "The stage-result document inside the artifact is invalid.",
     );
   }
   if (
@@ -97,7 +97,7 @@ export function createFirstPublicationStageResultEvidence(input) {
   ) {
     fail(
       "first_publication_stage_result_source_mismatch",
-      "Artifact의 package·version이 workflow 실행 증거와 일치하지 않습니다.",
+      "The artifact package and version do not match the workflow execution evidence.",
     );
   }
   const report = createFirstPublicationStageResultReport({
@@ -115,7 +115,7 @@ export function validateFirstPublicationStageResultEvidence(report, input) {
   if (canonicalJson(report) !== canonicalJson(expected)) {
     fail(
       "first_publication_stage_result_report_invalid",
-      "CLI npm stage 결과 증거 보고서가 올바르지 않습니다.",
+      "The CLI npm stage-result evidence report is invalid.",
     );
   }
   return report;

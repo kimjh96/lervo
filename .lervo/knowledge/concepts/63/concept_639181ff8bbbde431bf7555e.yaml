@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_639181ff8bbbde431bf7555e
+freshness: current
+ownership: user
+path: docs/decisions/operations/trace/0077-bounded-trace-source-reads.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8d701b9944790d674034ade7
+title: "ADR-0077: Bounded trace source reads that expose truncation"
+type: decision

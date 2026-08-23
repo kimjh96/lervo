@@ -1,0 +1,11 @@
+fromPath: docs/adr/0053-deterministic-lexical-search-observations.md
+identityPath: docs/adr/0053-deterministic-lexical-search-observations.md
+kind: document_move
+lineageId: klineage_4d9c535b78dcdedd121cd2a1
+operationId: kdocop_ae62820125351eb80dcb6beb
+schemaVersion: 1
+sourceContentHash: sha256:3a32c956974cbe12bd092bd365950b35fe353bac0c9112759f301dae2e5e188c
+sourceId: src_f403f1438413143524509ed5
+sourceUnitBindingDigest: sha256:f52860b0a27032b2311c7213e54fd7596e83e7e34bdd8ac7fad7cc2939af3e5a
+sourceUnitCount: 7
+toPath: docs/decisions/search/0053-deterministic-lexical-search-observations.md

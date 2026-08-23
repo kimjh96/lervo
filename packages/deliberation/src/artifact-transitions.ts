@@ -28,11 +28,11 @@ function applyProposal(
   state.lastProposalOrRevisionArtifactId = artifact.deliberationArtifactId;
   state.lastProposalOrRevisionRoleId = artifact.producer.roleId;
   if (!hasUniqueClaimIds(artifact.details.claims)) {
-    historyInvalid("duplicate_claim", "Proposal claim ID가 중복되었습니다.");
+    historyInvalid("duplicate_claim", "The proposal contains duplicate claim IDs.");
   }
   for (const claim of artifact.details.claims) {
     if (state.claims.has(claim.claimId)) {
-      historyInvalid("duplicate_claim", "Proposal claim ID가 앞선 주장과 중복되었습니다.");
+      historyInvalid("duplicate_claim", "A proposal claim ID duplicates an earlier claim.");
     }
     state.claims.set(claim.claimId, claim.claimDigest);
   }
@@ -46,21 +46,21 @@ function applyObjection(
   if (
     (artifact.details.reviewStatus === "approved" && artifact.details.objections.length > 0) ||
     (artifact.details.reviewStatus === "changes_requested" && artifact.details.objections.length === 0)
-  ) historyInvalid("objection_state_mismatch", "Review 상태와 반론 목록이 서로 다릅니다.");
+  ) historyInvalid("objection_state_mismatch", "The review status and objection list are inconsistent.");
   if (artifact.details.reviewStatus === "approved") {
     if (
       state.lastProposalOrRevisionArtifactId === null ||
       !artifact.previousArtifactIds.includes(state.lastProposalOrRevisionArtifactId) ||
       artifact.producer.roleId === state.lastProposalOrRevisionRoleId
-    ) historyInvalid("independent_review_missing", "독립 승인 검토가 현재 proposal 또는 revision을 직접 참조하지 않습니다.");
+    ) historyInvalid("independent_review_missing", "The independent approval review does not directly reference the current proposal or revision.");
     state.lastApprovedReviewIndex = artifactIndex;
   }
   for (const objection of artifact.details.objections) {
     if (state.objections.has(objection.objectionId)) {
-      historyInvalid("duplicate_objection", "반론 ID가 중복되었습니다.");
+      historyInvalid("duplicate_objection", "The objection ID is duplicated.");
     }
     if (objection.targetClaimIds.some((claimId) => !state.claims.has(claimId))) {
-      historyInvalid("objection_state_mismatch", "반론이 존재하지 않는 주장을 대상으로 합니다.");
+      historyInvalid("objection_state_mismatch", "The objection targets a claim that does not exist.");
     }
     state.objections.set(objection.objectionId, {
       blocking: objection.blocking,
@@ -82,9 +82,9 @@ function applyRevision(
   if (
     !revised || (revised.kind !== "proposal" && revised.kind !== "revision") ||
     !artifact.previousArtifactIds.includes(revised.deliberationArtifactId)
-  ) historyInvalid("revision_link_invalid", "Revision이 앞선 proposal 또는 revision에 직접 연결되지 않았습니다.");
+  ) historyInvalid("revision_link_invalid", "The revision does not link directly to the preceding proposal or revision.");
   if (!hasUniqueClaimIds(artifact.details.claims)) {
-    historyInvalid("duplicate_claim", "Revision claim ID가 중복되었습니다.");
+    historyInvalid("duplicate_claim", "The revision contains duplicate claim IDs.");
   }
   const revisedClaimIds = new Set(artifact.details.claims.map((claim) => claim.claimId));
   for (const objectionId of artifact.details.resolvesObjectionIds) {
@@ -92,7 +92,7 @@ function applyRevision(
     if (
       !objection || objection.resolved ||
       objection.targetClaimIds.some((claimId) => !revisedClaimIds.has(claimId))
-    ) historyInvalid("revision_resolution_invalid", "Revision의 반론 해소 좌표나 수정한 주장 범위가 유효하지 않습니다.");
+    ) historyInvalid("revision_resolution_invalid", "The revision's objection-resolution coordinates or modified claim scope are invalid.");
     objection.resolved = true;
   }
   for (const claim of artifact.details.claims) state.claims.set(claim.claimId, claim.claimDigest);
@@ -107,7 +107,7 @@ function applyVerification(
     !hasUniqueClaimIds(artifact.details.targetClaims) ||
     artifact.details.targetClaims.some((claim) =>
       state.claims.get(claim.claimId) !== claim.claimDigest)
-  ) historyInvalid("stale_claim_verification", "Verification이 현재 주장 버전과 다른 대상을 가리킵니다.");
+  ) historyInvalid("stale_claim_verification", "The verification targets a version other than the current claim version.");
   const evidence = verificationById.get(artifact.details.verificationId);
   if (
     !evidence || evidence.result.suiteId !== artifact.details.suiteId ||
@@ -118,7 +118,7 @@ function applyVerification(
     throw new DeliberationError(
       "verification_evidence_invalid",
       "verification_coordinate_mismatch",
-      "Verification artifact가 실제 suite 결과와 다릅니다.",
+      "The verification artifact differs from the actual suite result.",
     );
   }
   if (evidence.result.status !== "passed") return;
@@ -133,24 +133,24 @@ function applyDecision(
   state: DeliberationHistoryState,
   artifact: Extract<DeliberationArtifact, { kind: "decision" }>,
 ): void {
-  if (state.decision !== null) historyInvalid("duplicate_decision", "Decision artifact는 하나만 기록할 수 있습니다.");
+  if (state.decision !== null) historyInvalid("duplicate_decision", "Only one decision artifact may be recorded.");
   if (artifact.details.adoptedClaimIds.some((claimId) => !state.claims.has(claimId))) {
-    historyInvalid("decision_claim_invalid", "Decision이 존재하지 않는 주장을 채택했습니다.");
+    historyInvalid("decision_claim_invalid", "The decision adopts a claim that does not exist.");
   }
   if (!exactSet(artifact.details.verificationArtifactIds, new Set(state.passedVerificationArtifactIds))) {
-    historyInvalid("decision_verification_mismatch", "Decision의 verification 목록이 실제 통과 결과와 다릅니다.");
+    historyInvalid("decision_verification_mismatch", "The decision verification list differs from the actual passing results.");
   }
   const openBlocking = new Set([...state.objections.entries()]
     .filter(([, value]) => value.blocking && !value.resolved)
     .map(([id]) => id));
   if (!exactSet(artifact.details.unresolvedObjectionIds, openBlocking)) {
-    historyInvalid("objection_state_mismatch", "Decision의 미해결 반론 목록이 실제 반론 상태와 다릅니다.");
+    historyInvalid("objection_state_mismatch", "The decision's unresolved objection list differs from the actual objection state.");
   }
   state.decision = artifact;
 }
 
 function assertNever(value: never): never {
-  throw new Error(`지원하지 않는 숙의 artifact 종류입니다: ${String(value)}`);
+  throw new Error(`Unsupported deliberation artifact kind: ${String(value)}`);
 }
 
 export function applyArtifactTransition(input: {

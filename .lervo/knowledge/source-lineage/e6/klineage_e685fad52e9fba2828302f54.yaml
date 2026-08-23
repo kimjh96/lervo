@@ -1,0 +1,11 @@
+fromPath: docs/adr/0019-provider-neutral-deliberation.md
+identityPath: docs/adr/0019-provider-neutral-deliberation.md
+kind: document_move
+lineageId: klineage_e685fad52e9fba2828302f54
+operationId: kdocop_5e4411a1c72ca0dd645a97b0
+schemaVersion: 1
+sourceContentHash: sha256:0290fce3544eb1219868912786b61c9366d8304090ed76cb5cd9bc0bcd4c79b6
+sourceId: src_f77302a545c5f501747897c1
+sourceUnitBindingDigest: sha256:728cb421e5b21b19831496fe6fe255b885ac459e0994a1aa598780c20f3ab1c2
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/deliberation/0019-provider-neutral-deliberation.md

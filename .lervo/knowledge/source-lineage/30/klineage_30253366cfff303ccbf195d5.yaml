@@ -1,0 +1,11 @@
+fromPath: docs/adr/0091-cli-registry-publish-preflight.md
+identityPath: docs/adr/0091-cli-registry-publish-preflight.md
+kind: document_move
+lineageId: klineage_30253366cfff303ccbf195d5
+operationId: kdocop_c19ccf188eacfc8c7f7cb70f
+schemaVersion: 1
+sourceContentHash: sha256:478ac9e3da5f16e8cb8feef9cfb9ad5c024ee183356bb697e6467e1ccfb01ece
+sourceId: src_6dac534b802895da26c7d37d
+sourceUnitBindingDigest: sha256:2bb7b3e9ec5d45867d6a98f4d64216bea7a70a805756b88df3baf198728f6399
+sourceUnitCount: 5
+toPath: docs/decisions/release/assurance/0091-cli-registry-publish-preflight.md

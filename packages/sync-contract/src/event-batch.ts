@@ -20,7 +20,7 @@ type BatchContent = Omit<OutboundEventBatch, "batchId">;
 
 export function assertSyncableEvent(event: EventEnvelope): void {
   if (!validateSchema("event", event).valid || computeEventHash(eventWithoutHash(event)) !== event.eventHash) {
-    throw new SyncContractError("invalid_event_batch", "동기화 event의 schema 또는 hash가 유효하지 않습니다.");
+    throw new SyncContractError("invalid_event_batch", "A synchronization event schema or hash is invalid.");
   }
   let sanitized;
   try {
@@ -28,7 +28,7 @@ export function assertSyncableEvent(event: EventEnvelope): void {
   } catch (error) {
     throw new SyncContractError(
       "invalid_event_batch",
-      "동기화 event payload가 allowlist 계약을 통과하지 못했습니다.",
+      "The synchronization event payload does not satisfy the allowlist contract.",
       { cause: error },
     );
   }
@@ -38,7 +38,7 @@ export function assertSyncableEvent(event: EventEnvelope): void {
   ) {
     throw new SyncContractError(
       "invalid_event_batch",
-      "동기화 event에는 allowlist 밖의 payload를 포함할 수 없습니다.",
+      "A synchronization event cannot contain payload fields outside the allowlist.",
     );
   }
 }
@@ -47,7 +47,7 @@ function assertEventSequence(events: readonly EventEnvelope[], projectId: string
   for (const [index, event] of events.entries()) {
     assertSyncableEvent(event);
     if (event.projectId !== projectId) {
-      throw new SyncContractError("invalid_event_batch", "한 batch에는 한 project의 event만 담을 수 있습니다.");
+      throw new SyncContractError("invalid_event_batch", "A batch can contain events from only one project.");
     }
     const previous = events[index - 1];
     if (previous !== undefined && (
@@ -55,7 +55,7 @@ function assertEventSequence(events: readonly EventEnvelope[], projectId: string
     )) {
       throw new SyncContractError(
         "invalid_event_batch",
-        "batch 내부 event는 seq와 hash chain이 연속되어야 합니다.",
+        "Events within a batch must have continuous sequence numbers and hash chains.",
       );
     }
   }
@@ -67,7 +67,7 @@ export function calculateOutboundEventBatchId(content: BatchContent): string {
 
 export function assertOutboundEventBatch(batch: OutboundEventBatch): void {
   if (!validateSchema("outboundEventBatch", batch).valid) {
-    throw new SyncContractError("invalid_event_batch", "outbound event batch schema가 유효하지 않습니다.");
+    throw new SyncContractError("invalid_event_batch", "The outbound event batch schema is invalid.");
   }
   assertEventSequence(batch.events, batch.projectId);
   const first = batch.events[0]!;
@@ -82,7 +82,7 @@ export function assertOutboundEventBatch(batch: OutboundEventBatch): void {
   ) {
     throw new SyncContractError(
       "invalid_event_batch",
-      "outbound event batch의 범위, hash 또는 ID가 event 원본과 다릅니다.",
+      "The outbound event batch range, hash, or ID differs from the source events.",
     );
   }
 }
@@ -93,7 +93,7 @@ export function createOutboundEventBatch(input: {
 }): OutboundEventBatch {
   assertProjectRegistrationRequest(input.registration);
   if (input.events.length === 0) {
-    throw new SyncContractError("invalid_event_batch", "빈 outbound event batch는 만들 수 없습니다.");
+    throw new SyncContractError("invalid_event_batch", "An empty outbound event batch cannot be created.");
   }
   const events = structuredClone([...input.events]);
   assertEventSequence(events, input.registration.project.projectId);
@@ -125,7 +125,7 @@ export function assertEventSyncAcknowledgement(input: {
   assertOutboundEventBatch(input.batch);
   const acknowledgement = input.acknowledgement;
   if (!validateSchema("eventSyncAcknowledgement", acknowledgement).valid) {
-    throw new SyncContractError("invalid_acknowledgement", "event sync acknowledgement schema가 유효하지 않습니다.");
+    throw new SyncContractError("invalid_acknowledgement", "The event synchronization acknowledgement schema is invalid.");
   }
   const eventIds = input.batch.events.map((event) => event.eventId);
   if (
@@ -139,7 +139,7 @@ export function assertEventSyncAcknowledgement(input: {
   ) {
     throw new SyncContractError(
       "invalid_acknowledgement",
-      "event sync acknowledgement가 요청 batch의 durable acceptance를 증명하지 못합니다.",
+      "The event synchronization acknowledgement does not prove durable acceptance of the requested batch.",
     );
   }
 }

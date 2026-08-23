@@ -41,12 +41,12 @@ export class LocalSearchObservationStore {
 
   async readAttempt(attemptId: string): Promise<SearchAttempt> {
     if (!/^sat_[a-f0-9]{24}$/.test(attemptId)) {
-      throw new SearchLocalError("observation_invalid", "검색 시도 ID가 유효하지 않습니다.");
+      throw new SearchLocalError("observation_invalid", "The search attempt ID is invalid.");
     }
     const attempt = await readObservation<SearchAttempt>(resolve(this.attemptsPath, `${attemptId}.json`));
     assertSearchAttempt(attempt);
     if (attempt.attemptId !== attemptId) {
-      throw new SearchLocalError("observation_invalid", "검색 시도 파일명과 원본 ID가 다릅니다.");
+      throw new SearchLocalError("observation_invalid", "The search attempt filename does not match the source ID.");
     }
     return attempt;
   }
@@ -61,7 +61,7 @@ export class LocalSearchObservationStore {
     const assessment = await readObservation<SearchAssessment>(resolve(this.assessmentsPath, `${attemptId}.json`));
     assertSearchAssessment(assessment, attempt);
     if (assessment.attemptId !== attemptId) {
-      throw new SearchLocalError("observation_invalid", "검색 평가 파일명과 대상 시도 ID가 다릅니다.");
+      throw new SearchLocalError("observation_invalid", "The search assessment filename does not match the target attempt ID.");
     }
     return assessment;
   }

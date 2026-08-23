@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { defaultKoreanWritingContract } from "@lervo/core";
+import { defaultEnglishWritingContract } from "@lervo/core";
 import {
   QueuedConversationDeliberationBackend,
   reconcileConversationDeliberation,
@@ -50,17 +50,17 @@ describe("managed CLI deliberation policies", () => {
     const pass = semanticPass();
     const queues: Record<RunProvider, string[]> = {
       codex: [
-        "제안은 사용자 가치와 적용 범위를 먼저 정하고 각 검토 근거를 별도 기록으로 연결하는 것입니다.",
+        "The proposal defines user value and scope first, then links each review basis to a separate record.",
         pass,
-        "판정: 승인\n\n저장소 근거와 주장의 연결이 분명하며 현재 범위에서 추가로 차단할 문제는 없습니다.",
+        "Verdict: approved\n\nThe link between repository evidence and claims is clear, with no remaining blocker in scope.",
         pass,
-        "결론은 네 역할의 독립 세션과 실제 검증 결과를 함께 보존하는 방식입니다. 적용 범위도 명확합니다.",
+        "The conclusion preserves independent sessions for all four roles together with actual verification results. Its scope is explicit.",
       ],
       claude: [
         pass,
-        "판정: 승인\n\n관심사가 역할과 실행 단계별로 나뉘어 있으며 장기 변경 비용을 키우는 차단 문제는 없습니다.",
+        "Verdict: approved\n\nResponsibilities are separated by role and execution stage, with no blocker that increases long-term change cost.",
         pass,
-        "프로젝트 검증은 실제 명령 결과와 현재 저장소 revision에 연결됩니다. 통과 범위 밖의 사실은 주장하지 않습니다.",
+        "Project verification is linked to actual command results and the current repository revision. It makes no claims beyond the passing scope.",
         pass,
       ],
     };
@@ -96,7 +96,7 @@ describe("managed CLI deliberation policies", () => {
       principalId: "operator:reviewer",
       sourceEventId: `cve_${"a".repeat(64)}`,
       policyId: "deliberation_product-review",
-      topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+      topic: "Decide how multiple specialist roles independently inspect the same public evidence.",
       requestedAt: "2026-08-21T00:00:00.000Z",
     });
     const cycle = await runConversationDeliberationWorkerCycle({
@@ -105,7 +105,7 @@ describe("managed CLI deliberation policies", () => {
       workerId: "managed-conversation-worker",
       now,
     });
-    if (cycle.status !== "settled") throw new Error("대화 숙의 queue가 종료되지 않았습니다.");
+    if (cycle.status !== "settled") throw new Error("The conversation deliberation queue did not settle.");
     const result = cycle.summary;
 
     expect(result.deliberationId).toBe(started.deliberationId);
@@ -138,7 +138,7 @@ describe("managed CLI deliberation policies", () => {
       principalId: "operator:reviewer",
       sourceEventId: `cve_${"a".repeat(64)}`,
       policyId: "deliberation_product-review",
-      topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+      topic: "Decide how multiple specialist roles independently inspect the same public evidence.",
       requestedAt: "2026-08-21T00:00:00.000Z",
     })).resolves.toMatchObject({
       deliberationId: started.deliberationId,
@@ -154,7 +154,7 @@ describe("managed CLI deliberation policies", () => {
       principalId: "operator:reviewer",
       sourceEventId: `cve_${"a".repeat(64)}`,
       policyId: "deliberation_product-review",
-      topic: "여러 전문 역할이 같은 공개 근거를 각자 확인하는 방식을 결정합니다.",
+      topic: "Decide how multiple specialist roles independently inspect the same public evidence.",
       requestedAt: "2026-08-21T00:00:00.000Z",
     });
     expect(replacement.deliberationId).toBe(started.deliberationId);
@@ -213,7 +213,7 @@ describe("managed CLI deliberation policies", () => {
       requestHash: `sha256:${"f".repeat(64)}`,
       principalHash: `sha256:${"1".repeat(64)}`,
       policyId: "deliberation_product-review",
-      topic: "잘못 연결된 저장소에서는 provider를 시작하지 않습니다.",
+      topic: "Do not start a provider in a mismatched repository.",
       requestedAt: "2026-08-21T00:11:00.000Z",
       state: "leased",
       attemptCount: 1,
@@ -229,16 +229,16 @@ describe("managed CLI deliberation policies", () => {
     const pass = semanticPass();
     const queues: Record<RunProvider, string[]> = {
       codex: [
-        "첫 제안은 저장소 맥락을 역할별로 다시 읽는 것입니다. 각 역할은 독립된 실행 기록을 남깁니다.",
+        "The first proposal has each role reread repository context. Every role leaves an independent execution record.",
         pass,
-        "수정안은 각 역할의 별도 receipt를 필수로 확인합니다. 검토 결과도 다음 역할의 입력으로 연결합니다.",
+        "The revision requires a separate receipt for every role and links each review result into the next role's input.",
         pass,
       ],
       claude: [
         pass,
-        "판정: 수정 필요\n\n첫 제안은 검증 결과가 결론과 연결되는 방법을 설명하지 않아 지금 채택할 수 없습니다.",
+        "Verdict: revision required\n\nThe first proposal does not explain how verification supports the conclusion, so it cannot be adopted.",
         pass,
-        "판정: 수정 필요\n\n수정안도 실패한 검증을 처리하는 기준이 없으므로 차단 반론이 남습니다.",
+        "Verdict: revision required\n\nThe revision still lacks a rule for failed verification, so the blocking objection remains.",
       ],
     };
     const nextId = sequence();
@@ -264,7 +264,7 @@ describe("managed CLI deliberation policies", () => {
       proposerProvider: "codex",
       reviewerProvider: "claude",
       verificationSuiteIds: ["project.default"],
-      topic: "차단 반론이 남으면 결론으로 처리하지 않습니다.",
+      topic: "Do not treat the result as a conclusion while a blocking objection remains.",
     });
 
     expect(result.status).toBe("no_consensus");
@@ -285,11 +285,11 @@ describe("managed CLI deliberation policies", () => {
     const root = await repository();
     const queues: Record<RunProvider, string[]> = {
       codex: [
-        "제안은 공통 맥락을 역할마다 직접 확인하는 것입니다. 각 세션은 별도 증거를 기록합니다.",
+        "The proposal has every role inspect the shared context directly. Each session records separate evidence.",
       ],
       claude: [
         semanticPass(),
-        "제안에 동의합니다. 이 문장은 구조화된 승인 표식을 따르지 않았습니다.",
+        "I agree with the proposal. This sentence does not use the structured approval marker.",
       ],
     };
     const nextId = sequence();
@@ -316,8 +316,8 @@ describe("managed CLI deliberation policies", () => {
       proposerProvider: "codex",
       reviewerProvider: "claude",
       verificationSuiteIds: ["project.default"],
-      topic: "자유 형식 문장을 승인으로 추정하지 않습니다.",
-    })).rejects.toThrow("첫 문장은 '판정: 승인' 또는 '판정: 수정 필요'");
+      topic: "Do not infer approval from free-form prose.",
+    })).rejects.toThrow("The first review line must be 'Verdict: approved' or 'Verdict: revision required'");
 
     const storage = await openProjectStorage(root);
     const events = storage.events.list({ limit: 1000 });

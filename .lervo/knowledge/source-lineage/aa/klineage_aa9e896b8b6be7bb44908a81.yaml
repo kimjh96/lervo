@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0163-atomic-node-trust-material-reload.md
+identityPath: docs/adr/0163-atomic-node-trust-material-reload.md
+kind: document_move
+lineageId: klineage_aa9e896b8b6be7bb44908a81
+operationId: kdocop_824fbad1da1e9fc151ab8edf
+schemaVersion: 1
+sourceContentHash: sha256:c8240411085c76eebb0df78d6f3ba79ffd52d88c92fedb2c554382cda6c04fc0
+sourceId: src_e926d18f8617465034fc1f6e
+sourceUnitBindingDigest: sha256:9e10ba6ea38465860e77725663b7c2e967404db536ebfeb76e724044866d39bc
+sourceUnitCount: 5
+toPath: docs/decisions/operations/security/0163-atomic-node-trust-material-reload.md

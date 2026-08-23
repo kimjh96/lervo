@@ -1,0 +1,11 @@
+fromPath: docs/adr/0184-durable-exact-byte-user-document-merge.md
+identityPath: docs/adr/0184-durable-exact-byte-user-document-merge.md
+kind: document_move
+lineageId: klineage_d08c4877f00f6805f6df8bd8
+operationId: kdocop_1d51257f2b8bb298c9f61f06
+schemaVersion: 1
+sourceContentHash: sha256:06f5787d6231280c4e4cdf155bf24a5bbce9ffb385aa71cd90ab3eabf5bf7817
+sourceId: src_cedd2aaf1ac5320c55b7b62c
+sourceUnitBindingDigest: sha256:9db3bbd2b37f5f3c678b2057579a12c7ddbe75a0e43a1c3bd117a59a36cd1f28
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md

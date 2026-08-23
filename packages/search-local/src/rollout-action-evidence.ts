@@ -38,7 +38,7 @@ export async function verifySearchRolloutRollbackEvidence(input: {
     actionPolicy.engineActivationPolicyId !== input.activation.policyId ||
     actionPolicy.rolloutPolicyId !== input.activation.rolloutAction.rolloutPolicyId ||
     review.rolloutReviewId !== input.activation.rolloutAction.rolloutReviewId) {
-    throw new SearchLocalError("observation_invalid", "Rollout rollback 정책·검토 좌표가 전이 근거와 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The rollout rollback policy and review coordinates differ from the transition evidence.");
   }
   assertRolloutActionReviewTarget(review, input.previous, candidateReview);
   verifySearchRolloutReview(
@@ -69,6 +69,6 @@ export async function verifySearchRolloutRollbackEvidence(input: {
   });
   if (currentQualitySnapshot.snapshotId !== input.activation.rolloutAction.qualitySnapshotId ||
     currentQualitySnapshot.inputDigest !== input.activation.rolloutAction.qualityInputDigest) {
-    throw new SearchLocalError("observation_invalid", "Rollout rollback 품질 입력이 전이 근거와 다릅니다.");
+    throw new SearchLocalError("observation_invalid", "The rollout rollback quality input differs from the transition evidence.");
   }
 }

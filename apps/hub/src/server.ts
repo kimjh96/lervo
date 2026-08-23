@@ -1,4 +1,4 @@
-import { createServer, type Server } from "node:http";
+import { createServer, type RequestListener, type Server } from "node:http";
 
 import { type HubCommandArtifactCleanupLoopOptions } from "@lervo/hub-command";
 
@@ -21,6 +21,7 @@ import {
   type HubArtifactCleanupLifecycle,
 } from "./artifact-cleanup-lifecycle.js";
 import { createHubSyncHttpHandler, type HubSyncHttpHandlerOptions } from "./sync-handler.js";
+import { createHubHealthHttpHandler, type HubHealthHttpHandlerOptions } from "./health-handler.js";
 
 export interface HubServerOptions {
   trace: HubTraceHttpHandlerOptions;
@@ -28,13 +29,14 @@ export interface HubServerOptions {
   control?: HubControlHttpHandlerOptions;
   commands?: HubRemoteCommandHttpHandlerOptions;
   sync?: HubSyncHttpHandlerOptions;
+  health?: HubHealthHttpHandlerOptions;
 }
 
 export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Server {
   return createHubServer({ trace: options });
 }
 
-export function createHubServer(options: HubServerOptions): Server {
+export function createHubRequestListener(options: HubServerOptions): RequestListener {
   const traceHandler = createHubTraceHttpHandler(options.trace);
   const policyHandler = options.policy === undefined
     ? undefined
@@ -48,10 +50,15 @@ export function createHubServer(options: HubServerOptions): Server {
   const syncHandler = options.sync === undefined
     ? undefined
     : createHubSyncHttpHandler(options.sync);
+  const healthHandler = options.health === undefined
+    ? undefined
+    : createHubHealthHttpHandler(options.health);
   const webHandler = createHubWebHandler();
-  return createServer((request, response) => {
+  return (request, response) => {
     if (webHandler(request, response)) return;
-    if (request.url?.startsWith("/v1/sync/") && syncHandler !== undefined) {
+    if (request.url?.startsWith("/v1/health/") && healthHandler !== undefined) {
+      void healthHandler(request, response);
+    } else if (request.url?.startsWith("/v1/sync/") && syncHandler !== undefined) {
       void syncHandler(request, response);
     } else if (request.url?.startsWith("/v1/commands/") && commandHandler !== undefined) {
       void commandHandler(request, response);
@@ -62,7 +69,11 @@ export function createHubServer(options: HubServerOptions): Server {
     } else {
       void traceHandler(request, response);
     }
-  });
+  };
+}
+
+export function createHubServer(options: HubServerOptions): Server {
+  return createServer(createHubRequestListener(options));
 }
 
 export function createHubServerWithArtifactCleanup(options: HubServerOptions & {

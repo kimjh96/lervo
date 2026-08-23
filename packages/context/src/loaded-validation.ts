@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   contextScopesEqual,
   type ContextEvidence,
+  type KnowledgeContextMetadata,
   validateSchema,
 } from "@lervo/schemas";
 
@@ -48,6 +49,16 @@ function reasonsEqual(
   return stringSetsEqual(left.map(key), right.map(key));
 }
 
+function metadataEqual(
+  left: KnowledgeContextMetadata | undefined,
+  right: KnowledgeContextMetadata | undefined,
+): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.conceptId === right.conceptId && left.assurance === right.assurance &&
+    left.freshness === right.freshness && left.sourceSnapshotId === right.sourceSnapshotId &&
+    left.impactReportId === right.impactReportId;
+}
+
 function planEvidenceEqual(
   left: PlanEvidence,
   right: ContextEvidence | undefined,
@@ -65,7 +76,7 @@ function planEvidenceEqual(
     return false;
   }
   if (left.state === "discovered" && right.state === "discovered") {
-    return left.path === right.path;
+    return left.path === right.path && metadataEqual(left.knowledgeContext, right.knowledgeContext);
   }
   if (left.state === "recommended" && right.state === "recommended") {
     return left.recommendationId === right.recommendationId &&
@@ -75,7 +86,8 @@ function planEvidenceEqual(
       left.sourceContentHash === right.sourceContentHash && left.rank === right.rank &&
       left.score === right.score && left.selectionPolicyId === right.selectionPolicyId &&
       left.selectionPolicyVersion === right.selectionPolicyVersion &&
-      left.selectionMaximum === right.selectionMaximum;
+      left.selectionMaximum === right.selectionMaximum &&
+      metadataEqual(left.knowledgeContext, right.knowledgeContext);
   }
   return (
     left.state === "selected" &&
@@ -84,7 +96,8 @@ function planEvidenceEqual(
     contextScopesEqual(left.scope, right.scope) &&
     left.policyVersion === right.policyVersion &&
     left.reasonCode === right.reasonCode &&
-    left.ruleId === right.ruleId
+    left.ruleId === right.ruleId &&
+    metadataEqual(left.knowledgeContext, right.knowledgeContext)
   );
 }
 
@@ -92,7 +105,7 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
   try {
     validateContextPlanForLoading(loaded.plan);
   } catch (error) {
-    invalid("E2 context plan이 유효하지 않습니다.", error);
+    invalid("The E2 context plan is invalid.", error);
   }
   const planCreatedAt = Date.parse(loaded.plan.createdAt);
   const loadedAt = Date.parse(loaded.loadedAt);
@@ -101,17 +114,17 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
     !Number.isFinite(loadedAt) ||
     loadedAt < planCreatedAt
   ) {
-    invalid("LoadedContext의 plan/E2 시간 순서가 유효하지 않습니다.");
+    invalid("The LoadedContext plan/E2 time ordering is invalid.");
   }
   if (loaded.documents.length !== loaded.plan.documents.length) {
-    invalid("E2 문서 수가 context plan과 다릅니다.");
+    invalid("The E2 document count differs from the context plan.");
   }
 
   const loadedDocuments = new Map(
     loaded.documents.map((document) => [document.documentId, document]),
   );
   if (loadedDocuments.size !== loaded.documents.length) {
-    invalid("LoadedContext에 중복 문서 ID가 있습니다.");
+    invalid("LoadedContext contains duplicate document IDs.");
   }
   for (const planned of loaded.plan.documents) {
     const document = loadedDocuments.get(planned.documentId);
@@ -122,9 +135,10 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
       !contextScopesEqual(document.scope, planned.scope) ||
       !reasonsEqual(document.reasons, planned.reasons) ||
       !stringSetsEqual(document.sharedContextIds, planned.sharedContextIds) ||
-      document.expectedContentHash !== planned.expectedContentHash
+      document.expectedContentHash !== planned.expectedContentHash ||
+      !metadataEqual(document.knowledgeContext, planned.knowledgeContext)
     ) {
-      invalid(`E2 문서가 context plan과 다릅니다: ${planned.documentId}`);
+      invalid(`The E2 document differs from the context plan: ${planned.documentId}`);
     }
     if (
       document.byteCount !== document.bytes.byteLength ||
@@ -133,7 +147,7 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
       (document.expectedContentHash !== undefined &&
         document.expectedContentHash !== document.contentHash)
     ) {
-      invalid(`E2 문서 bytes와 증거가 일치하지 않습니다: ${document.documentId}`);
+      invalid(`The E2 document bytes and evidence do not match: ${document.documentId}`);
     }
   }
 
@@ -143,10 +157,10 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
   for (const evidence of loaded.evidence) {
     const validation = validateSchema("contextEvidence", evidence);
     if (!validation.valid) {
-      invalid(`유효하지 않은 context evidence입니다: ${evidence.receiptId}`);
+      invalid(`The context evidence is invalid: ${evidence.receiptId}`);
     }
     if (evidenceIds.has(evidence.receiptId)) {
-      invalid(`중복 context receipt ID입니다: ${evidence.receiptId}`);
+      invalid(`The context receipt ID is duplicated: ${evidence.receiptId}`);
     }
     evidenceIds.add(evidence.receiptId);
     evidenceById.set(evidence.receiptId, evidence);
@@ -155,28 +169,28 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
       evidence.runId !== loaded.plan.coordinates.runId ||
       evidence.sessionId !== loaded.plan.coordinates.sessionId
     ) {
-      invalid(`다른 실행 좌표의 evidence입니다: ${evidence.receiptId}`);
+      invalid(`The evidence has different run coordinates: ${evidence.receiptId}`);
     }
     if (evidence.state === "loaded") {
       if (loadedEvidence.has(evidence.documentId)) {
-        invalid(`문서의 E2 evidence가 중복되었습니다: ${evidence.documentId}`);
+        invalid(`The document has duplicate E2 evidence: ${evidence.documentId}`);
       }
       loadedEvidence.set(evidence.documentId, evidence);
     } else if (evidence.state === "injected" || evidence.state === "referenced") {
-      invalid(`E2 입력에 ${evidence.state} evidence를 넣을 수 없습니다.`);
+      invalid(`${evidence.state} evidence cannot be included in E2 input.`);
     }
   }
 
   if (loaded.evidence.length !== loaded.plan.evidence.length + loaded.documents.length) {
-    invalid("LoadedContext evidence 수가 discovery/recommendation/E1/E2 체인과 다릅니다.");
+    invalid("The LoadedContext evidence count differs from the discovery/recommendation/E1/E2 chain.");
   }
   for (const evidence of loaded.plan.evidence) {
     if (evidence.state !== "discovered" && evidence.state !== "recommended" &&
       evidence.state !== "selected") {
-      invalid(`Context plan에는 discovery·recommendation·E1 evidence만 포함할 수 있습니다: ${evidence.receiptId}`);
+      invalid(`A context plan can contain only discovery, recommendation, and E1 evidence: ${evidence.receiptId}`);
     }
     if (!planEvidenceEqual(evidence, evidenceById.get(evidence.receiptId))) {
-      invalid(`Context plan evidence가 변경되었습니다: ${evidence.receiptId}`);
+      invalid(`The context plan evidence changed: ${evidence.receiptId}`);
     }
   }
   for (const document of loaded.documents) {
@@ -187,9 +201,10 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
       evidence.contentHash !== document.contentHash ||
       evidence.byteCount !== document.byteCount ||
       evidence.sourceRevision !== document.sourceRevision ||
-      !contextScopesEqual(evidence.scope, document.scope)
+      !contextScopesEqual(evidence.scope, document.scope) ||
+      !metadataEqual(evidence.knowledgeContext, document.knowledgeContext)
     ) {
-      invalid(`문서와 일치하는 E2 evidence가 없습니다: ${document.documentId}`);
+      invalid(`There is no E2 evidence matching the document: ${document.documentId}`);
     }
   }
 }

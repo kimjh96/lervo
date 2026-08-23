@@ -76,7 +76,7 @@ export class HubRegistrationSQLiteRepository {
     ) {
       throw new HubSyncStoreError(
         "write_failed",
-        "Hub sync SQLite registration을 같은 transaction에서 확인하지 못했습니다.",
+        "The Hub sync SQLite registration could not be verified in the same transaction.",
       );
     }
     return structuredClone(planned.response);
@@ -89,7 +89,7 @@ export class HubRegistrationSQLiteRepository {
       WHERE key = 'project_count'
     `).run();
     if (result.changes !== 1) {
-      throw new HubSyncStoreError("integrity_failed", "Hub project count metadata가 없습니다.");
+      throw new HubSyncStoreError("integrity_failed", "The Hub project count metadata is missing.");
     }
   }
 }

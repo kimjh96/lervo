@@ -52,7 +52,7 @@ export async function publishDeliberationArtifact<K extends DeliberationArtifact
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "writing_policy_mismatch",
-      "숙의 정책과 writing 공개 정책이 다릅니다.",
+      "The deliberation policy and writing publication policy differ.",
     );
   }
   const publication = await evaluateWritingPublication({
@@ -66,7 +66,7 @@ export async function publishDeliberationArtifact<K extends DeliberationArtifact
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "writing_publication_blocked",
-      "Writing 검증을 통과하지 못한 provider 결과는 숙의 artifact로 공개할 수 없습니다.",
+      "A provider result that fails writing verification cannot be published as a deliberation artifact.",
     );
   }
   const content = await readPublishableWritingArtifact({
@@ -123,7 +123,7 @@ export async function publishDeliberationArtifact<K extends DeliberationArtifact
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "artifact_history_invalid",
-      "Provider 결과로 만든 숙의 artifact가 현재 이력 계약과 맞지 않습니다.",
+      "The deliberation artifact created from the provider result does not satisfy the current history contract.",
       { cause: error },
     );
   }

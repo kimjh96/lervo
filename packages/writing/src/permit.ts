@@ -35,7 +35,7 @@ export function createWritingPublicationPermit(input: {
   if (!validateSchema("writingPublicationPermit", permit).valid) {
     throw new WritingPublicationError(
       "publication_permit_invalid",
-      "Writing publication permit가 schema를 통과하지 못했습니다.",
+      "The writing publication permit does not satisfy its schema.",
     );
   }
   validateWritingPublicationPermit({
@@ -77,7 +77,7 @@ export function validateWritingPublicationPermit(input: {
   ) {
     throw new WritingPublicationError(
       "publication_permit_invalid",
-      "Writing publication permit가 현재 내용, 정책, 평가 또는 공개 surface와 다릅니다.",
+      "The writing publication permit differs from the current content, policy, evaluation, or publication surface.",
     );
   }
 }

@@ -1,0 +1,11 @@
+fromPath: docs/decisions/operations/0084-trace-bounded-default-release.md
+identityPath: docs/adr/0084-trace-bounded-default-release.md
+kind: document_move
+lineageId: klineage_f11570f0726adc0604a375d4
+operationId: kdocop_66315e8ae9c05a3de6dc0595
+schemaVersion: 1
+sourceContentHash: sha256:0cb5278ad134a6b50a9557512020dee3584ee5a7487d4a59353f34b47f09014b
+sourceId: src_f7d8ad7dca828d35056831bf
+sourceUnitBindingDigest: sha256:f5595d7b4a978a354528ce7497883325a4f924d3fd528ab29a9affc109ebef16
+sourceUnitCount: 4
+toPath: docs/decisions/operations/trace/0084-trace-bounded-default-release.md

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0125-cli-npm-staged-package-review-evidence.md
+identityPath: docs/adr/0125-cli-npm-staged-package-review-evidence.md
+kind: document_move
+lineageId: klineage_489dbbbab886cc6636f113fb
+operationId: kdocop_79050a35e4fbc3032a7f1e8f
+schemaVersion: 1
+sourceContentHash: sha256:10184592d713f79456c0e2b5845097d63c5696fa77d8f550e0f4ee2eacf70c4d
+sourceId: src_1c70ab709bd9d97fa35b4bb1
+sourceUnitBindingDigest: sha256:a2096784a33411fd2328cf723e0d995c0fd12c3cbb2259d4bad75063700b3f30
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md

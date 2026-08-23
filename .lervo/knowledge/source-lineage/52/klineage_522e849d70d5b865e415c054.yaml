@@ -1,0 +1,11 @@
+fromPath: docs/adr/0062-selected-search-candidate-evidence-refresh.md
+identityPath: docs/adr/0062-selected-search-candidate-evidence-refresh.md
+kind: document_move
+lineageId: klineage_522e849d70d5b865e415c054
+operationId: kdocop_a08c7f7577fb01dae0292f4e
+schemaVersion: 1
+sourceContentHash: sha256:1836cc3ba2ba6497888c9554e0e4fa4eef37516c12d1ce5fe7d8b83044d81db3
+sourceId: src_0a881277bf2cea751b787bea
+sourceUnitBindingDigest: sha256:533f9aa158a44b6a40a16998c2d986d54694ab7be9328c3944f6e278870c5336
+sourceUnitCount: 5
+toPath: docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md

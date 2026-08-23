@@ -27,6 +27,7 @@ export type RemoteCommandPolicyDecision =
       policySnapshotId?: string | null;
       approvalIds?: string[];
       authorization?: ManagedRunApprovalAuthorization;
+      approvedRepositoryPaths?: string[];
     }
   | { status: "denied"; reasonCode: string }
   | { status: "approval_required"; reasonCode: string; capability: string };
@@ -49,6 +50,7 @@ export interface RemoteCommandExecutor {
     request: string;
     authorizedAt: string;
     policyAuthorization: ManagedRunApprovalAuthorization | null;
+    approvedRepositoryPaths: string[];
   }): Promise<{ runId: string; completedAt: string }>;
 }
 

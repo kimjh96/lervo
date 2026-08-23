@@ -42,14 +42,14 @@ export class ConfiguredConversationHubControl implements ConversationHubControlP
       this.baseUrl.password !== "" || this.baseUrl.search !== "" || this.baseUrl.hash !== "") {
       throw new ConversationControlError(
         "control_command_invalid",
-        "Hub control 주소는 credential, query, fragment가 없는 HTTPS URL이어야 합니다.",
+        "The Hub control URL must be an HTTPS URL without credentials, a query, or a fragment.",
       );
     }
     for (const binding of options.bindings) {
       this.validateBinding(binding);
       const key = bindingKey(binding.projectId, binding.participantId);
       if (this.bindings.has(key)) {
-        throw new ConversationControlError("control_command_invalid", "Conversation principal binding이 중복되었습니다.");
+        throw new ConversationControlError("control_command_invalid", "A conversation principal binding is duplicated.");
       }
       this.bindings.set(key, { ...binding, permissions: [...binding.permissions] });
     }
@@ -57,7 +57,7 @@ export class ConfiguredConversationHubControl implements ConversationHubControlP
 
   async inspect(input: Parameters<ConversationHubControlPort["inspect"]>[0]) {
     if (input.event.actor.kind !== "human") {
-      throw new ConversationControlError("control_access_denied", "사람 participant만 Hub control을 조회할 수 있습니다.");
+      throw new ConversationControlError("control_access_denied", "Only a human participant can inspect Hub control.");
     }
     const binding = this.bindings.get(bindingKey(
       input.event.target.projectId,
@@ -65,7 +65,7 @@ export class ConfiguredConversationHubControl implements ConversationHubControlP
     ));
     const required = input.operation === "command_status" ? "command.read" : "approval.review";
     if (binding === undefined || !binding.permissions.includes(required)) {
-      throw new ConversationControlError("control_access_denied", "대화 참여자에게 Hub control 권한이 없습니다.");
+      throw new ConversationControlError("control_access_denied", "The conversation participant does not have Hub control permission.");
     }
     let review;
     try {
@@ -76,7 +76,7 @@ export class ConfiguredConversationHubControl implements ConversationHubControlP
         inspectedAt: input.inspectedAt,
       });
     } catch (error) {
-      throw new ConversationControlError("control_source_failed", "Hub command 상태를 조회하지 못했습니다.", {
+      throw new ConversationControlError("control_source_failed", "Could not inspect Hub command status.", {
         cause: error instanceof Error ? error : undefined,
       });
     }
@@ -106,7 +106,7 @@ export class ConfiguredConversationHubControl implements ConversationHubControlP
       !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u.test(binding.destinationId) ||
       binding.permissions.length === 0 ||
       new Set(binding.permissions).size !== binding.permissions.length) {
-      throw new ConversationControlError("control_command_invalid", "Conversation principal binding이 유효하지 않습니다.");
+      throw new ConversationControlError("control_command_invalid", "The conversation principal binding is invalid.");
     }
   }
 }

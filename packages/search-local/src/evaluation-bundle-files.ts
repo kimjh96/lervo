@@ -33,21 +33,21 @@ async function readBundle(path: string): Promise<SearchEvaluationBundle> {
   try {
     const before = await lstat(path, { bigint: true });
     if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_BUNDLE_BYTES)) {
-      throw new SearchLocalError("evaluation_bundle_invalid", "검색 평가 묶음이 안전한 일반 파일이 아닙니다.");
+      throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation bundle is not a safe regular file.");
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
       before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
-      throw new SearchLocalError("evaluation_bundle_invalid", "검색 평가 묶음이 읽는 동안 바뀌었습니다.");
+      throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation bundle changed while it was being read.");
     }
     const value = parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as SearchEvaluationBundle;
     assertSearchEvaluationBundle(value);
     return value;
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("evaluation_bundle_invalid", "검색 평가 묶음 YAML이 유효하지 않습니다.", {
+    throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation bundle YAML is invalid.", {
       cause: error instanceof Error ? error : undefined,
     });
   } finally {
@@ -63,37 +63,37 @@ export async function loadSearchEvaluationBundles(input: {
     repositoryRoot: input.repositoryRoot,
     create: false,
     errorCode: "evaluation_bundle_read_failed",
-    subject: "검색 평가 묶음",
+    subject: "search evaluation bundle",
   });
   if (directory === null) return [];
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
   } catch (error) {
-    throw new SearchLocalError("evaluation_bundle_read_failed", "검색 평가 묶음 목록을 읽지 못했습니다.", {
+    throw new SearchLocalError("evaluation_bundle_read_failed", "Could not read the search evaluation bundle list.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
   const bundleEntries = entries.filter((entry) => SEARCH_EVALUATION_BUNDLE_FILE.test(entry.name));
   if (bundleEntries.length > SEARCH_EVALUATION_MAX_BUNDLES) {
-    throw new SearchLocalError("evaluation_bundle_limit_exceeded", "검색 평가 묶음 수가 32개를 넘었습니다.");
+    throw new SearchLocalError("evaluation_bundle_limit_exceeded", "The number of search evaluation bundles exceeds 32.");
   }
   const bundles: SearchEvaluationBundle[] = [];
   for (const entry of entries.sort((left, right) => compareText(left.name, right.name))) {
     const match = SEARCH_EVALUATION_BUNDLE_FILE.exec(entry.name);
     if (SEARCH_EVALUATION_CASE_FILE.test(entry.name) && entry.isFile() && !entry.isSymbolicLink()) continue;
     if (!entry.isFile() || entry.isSymbolicLink() || match === null) {
-      throw new SearchLocalError("evaluation_bundle_invalid", "검색 평가 디렉터리에 계약 밖 항목이 있습니다.");
+      throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation directory contains an entry outside the contract.");
     }
     const bundle = await readBundle(resolve(directory, entry.name));
     if (bundle.bundleId !== match[1]) {
-      throw new SearchLocalError("evaluation_bundle_invalid", "검색 평가 묶음 파일명과 bundle ID가 다릅니다.");
+      throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation bundle filename does not match the bundle ID.");
     }
     assertSearchEvaluationBundle(bundle, input.cases);
     bundles.push(bundle);
   }
   if (new Set(bundles.map(scopeKey)).size !== bundles.length) {
-    throw new SearchLocalError("evaluation_bundle_invalid", "같은 역할·작업 유형에 활성 검색 평가 묶음이 중복되었습니다.");
+    throw new SearchLocalError("evaluation_bundle_invalid", "More than one active search evaluation bundle exists for the same role and task type.");
   }
   return bundles;
 }
@@ -107,13 +107,13 @@ export async function recordSearchEvaluationBundle(
   const existingBundles = await loadSearchEvaluationBundles({ repositoryRoot, cases });
   if (existingBundles.some((existing) => existing.bundleId !== bundle.bundleId &&
     scopeKey(existing) === scopeKey(bundle))) {
-    throw new SearchLocalError("evaluation_bundle_write_failed", "같은 역할·작업 유형의 평가 묶음이 이미 있습니다.");
+    throw new SearchLocalError("evaluation_bundle_write_failed", "An evaluation bundle already exists for the same role and task type.");
   }
   const directory = (await searchEvaluationDirectory({
     repositoryRoot,
     create: true,
     errorCode: "evaluation_bundle_read_failed",
-    subject: "검색 평가 묶음",
+    subject: "search evaluation bundle",
   }))!;
   const path = resolve(directory, `${bundle.bundleId}.bundle.yaml`);
   const staging = resolve(directory, `.pending-${randomUUID()}`);
@@ -131,12 +131,12 @@ export async function recordSearchEvaluationBundle(
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
       const existing = await readBundle(path);
       if (existing.bundleHash !== bundle.bundleHash) {
-        throw new SearchLocalError("evaluation_bundle_write_failed", "같은 bundle ID에 다른 평가 묶음이 있습니다.");
+        throw new SearchLocalError("evaluation_bundle_write_failed", "A different evaluation bundle exists for the same bundle ID.");
       }
     }
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("evaluation_bundle_write_failed", "검색 평가 묶음을 저장하지 못했습니다.", {
+    throw new SearchLocalError("evaluation_bundle_write_failed", "Could not save the search evaluation bundle.", {
       cause: error instanceof Error ? error : undefined,
     });
   } finally {

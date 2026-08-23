@@ -17,7 +17,7 @@ export async function readManagedFileHash(
     }
     throw new ManagedContextError(
       "file_snapshot_invalid",
-      "변경 대상 파일의 현재 상태를 안전하게 확인하지 못했습니다.",
+      "Could not safely inspect the current state of the target file.",
     );
   }
 }

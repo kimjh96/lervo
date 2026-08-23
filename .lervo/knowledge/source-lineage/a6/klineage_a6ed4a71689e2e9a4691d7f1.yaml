@@ -1,0 +1,11 @@
+fromPath: docs/adr/0068-explicit-search-rollout-actions.md
+identityPath: docs/adr/0068-explicit-search-rollout-actions.md
+kind: document_move
+lineageId: klineage_a6ed4a71689e2e9a4691d7f1
+operationId: kdocop_c543f9cf1353731474e95040
+schemaVersion: 1
+sourceContentHash: sha256:6cffdd7c4fabc2ff5cccaa63dabd196be32670bd2a267d281f10c2fa96d1e656
+sourceId: src_3cfdeaa2c99001be1a09592d
+sourceUnitBindingDigest: sha256:c3761ed936a5b06507e16f4ce92db018f6e87934a0df9f762069f3a5a1fa4ba2
+sourceUnitCount: 5
+toPath: docs/decisions/search/0068-explicit-search-rollout-actions.md

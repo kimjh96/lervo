@@ -30,7 +30,7 @@ export async function inspectVerifiedKnowledge(input: {
   const issues: DoctorIssue[] = [];
   if (!validateSchema("knowledgeVerifiedEventPayload", input.event.payload).valid) {
     issue(issues, "verified_event_mismatch", input.event.eventId,
-      "Verified 지식 event가 현재 payload 계약과 다릅니다.");
+      "The verified knowledge event differs from the current payload contract.");
     return issues;
   }
   const payload = input.event.payload as unknown as KnowledgeVerifiedEventPayload;
@@ -49,7 +49,7 @@ export async function inspectVerifiedKnowledge(input: {
     ) throw new Error("coordinate mismatch");
   } catch {
     issue(issues, "verified_artifact_invalid", input.event.eventId,
-      "Verified 지식 CAS 원본의 schema, hash 또는 ID를 확인할 수 없습니다.");
+      "The schema, hash, or ID of the verified knowledge CAS source cannot be verified.");
     return issues;
   }
   if (
@@ -63,7 +63,7 @@ export async function inspectVerifiedKnowledge(input: {
     JSON.stringify(knowledge.paths.map((item) => item.path)) !== JSON.stringify(payload.paths)
   ) {
     issue(issues, "verified_event_mismatch", input.event.eventId,
-      "Verified 지식 원본과 event 좌표가 다릅니다.");
+      "The verified knowledge source and event coordinates differ.");
   }
   const candidateEvent = input.events.find((event) =>
     event.type === "knowledge.candidate.created" &&
@@ -71,7 +71,7 @@ export async function inspectVerifiedKnowledge(input: {
     event.payload.candidateContentHash === knowledge.candidate.artifact.contentHash);
   if (candidateEvent === undefined || !knowledge.evidenceEventIds.includes(candidateEvent.eventId)) {
     issue(issues, "verified_candidate_missing", input.event.eventId,
-      "Verified 지식의 candidate 생성 event를 확인할 수 없습니다.");
+      "The candidate creation event for the verified knowledge cannot be verified.");
   }
   const reviewEvent = input.events.find((event) =>
     event.type === "knowledge.candidate.reviewed" &&
@@ -82,7 +82,7 @@ export async function inspectVerifiedKnowledge(input: {
     !knowledge.evidenceEventIds.includes(reviewEvent.eventId)
   ) {
     issue(issues, "verified_review_missing", input.event.eventId,
-      "Verified 지식의 승인된 review event를 확인할 수 없습니다.");
+      "The approved review event for the verified knowledge cannot be verified.");
   }
   try {
     const bytes = await input.artifacts.get(knowledge.approval.artifact.uri);
@@ -100,7 +100,7 @@ export async function inspectVerifiedKnowledge(input: {
     ) throw new Error("approval mismatch");
   } catch {
     issue(issues, "verified_review_missing", input.event.eventId,
-      "Verified 지식의 사람 승인 CAS 원본을 확인할 수 없습니다.");
+      "The human-approval CAS source for the verified knowledge cannot be verified.");
   }
   return issues;
 }

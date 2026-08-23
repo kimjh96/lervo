@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_86053b9658002e473b9f2496
+freshness: current
+ownership: user
+path: docs/decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_17a395e92b31760c74f5f3f9
+title: "ADR-0149: Owner-Only, Loopback-Restricted Hub Runtime"
+type: decision

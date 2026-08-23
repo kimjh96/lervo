@@ -27,11 +27,11 @@ function assertLock(lock: SkillLock): void {
   if (!validateSchema("skillLock", lock).valid) {
     throw new SkillResolutionError(
       "invalid_skill_lock",
-      "생성한 skills.lock이 schema 계약을 통과하지 못했습니다.",
+      "The generated skills.lock does not satisfy its schema contract.",
     );
   }
   if (new Set(lock.entries.map((entry) => entry.skillId)).size !== lock.entries.length) {
-    throw new SkillResolutionError("invalid_skill_lock", "skills.lock에 중복된 skillId가 있습니다.");
+    throw new SkillResolutionError("invalid_skill_lock", "skills.lock contains a duplicate skillId.");
   }
 }
 
@@ -44,14 +44,14 @@ export async function readSkillLock(path: string): Promise<SkillLock | null> {
     if (error instanceof SkillResolutionError) throw error;
     throw new SkillResolutionError(
       "invalid_skill_lock",
-      "기존 skills.lock을 안전하게 읽지 못했습니다.",
+      "The existing skills.lock could not be read safely.",
       { cause: error },
     );
   }
   if (!validateSchema("skillLock", parsed).valid) {
     throw new SkillResolutionError(
       "invalid_skill_lock",
-      "기존 skills.lock이 schema 계약을 통과하지 못했습니다.",
+      "The existing skills.lock does not satisfy its schema contract.",
     );
   }
   const lock = parsed as SkillLock;
@@ -64,7 +64,7 @@ async function readExistingLock(path: string): Promise<string> {
   if (!before.isFile() || before.isSymbolicLink() || before.size > MAX_LOCK_BYTES) {
     throw new SkillResolutionError(
       "invalid_skill_lock",
-      "기존 skills.lock은 크기 제한 안의 일반 파일이어야 합니다.",
+      "The existing skills.lock must be a regular file within the size limit.",
     );
   }
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -73,7 +73,7 @@ async function readExistingLock(path: string): Promise<string> {
     if (before.dev !== opened.dev || before.ino !== opened.ino) {
       throw new SkillResolutionError(
         "invalid_skill_lock",
-        "읽기 전에 기존 skills.lock 경로가 바뀌었습니다.",
+        "The existing skills.lock path changed before it was read.",
       );
     }
     const bytes = await handle.readFile();
@@ -88,7 +88,7 @@ async function readExistingLock(path: string): Promise<string> {
     ) {
       throw new SkillResolutionError(
         "invalid_skill_lock",
-        "읽는 동안 기존 skills.lock이 바뀌었습니다.",
+        "The existing skills.lock changed while it was being read.",
       );
     }
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -105,7 +105,7 @@ export async function writeSkillLock(path: string, next: SkillLock): Promise<Ski
   if (Buffer.byteLength(serialized) > MAX_LOCK_BYTES) {
     throw new SkillResolutionError(
       "invalid_skill_lock",
-      "생성한 skills.lock이 크기 제한을 초과했습니다.",
+      "The generated skills.lock exceeds the size limit.",
     );
   }
   const temporary = resolve(dirname(path), `.skills.lock.${randomUUID()}.tmp`);
@@ -118,7 +118,7 @@ export async function writeSkillLock(path: string, next: SkillLock): Promise<Ski
     } catch {}
     throw new SkillResolutionError(
       "skill_lock_write_failed",
-      "skills.lock을 원자적으로 기록하지 못했습니다.",
+      "skills.lock could not be written atomically.",
       { cause: error },
     );
   }

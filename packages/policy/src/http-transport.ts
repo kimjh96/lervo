@@ -21,7 +21,7 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
     url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
   ) {
-    throw new Error("Policy Hub URL은 credential·query가 없는 HTTPS URL이어야 합니다.");
+    throw new Error("The policy Hub URL must be an HTTPS URL without credentials or a query.");
   }
   return url;
 }
@@ -29,9 +29,9 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
 async function boundedJson(response: Response, maxBytes: number): Promise<unknown> {
   const declared = response.headers.get("content-length");
   if (declared !== null && (/^(0|[1-9][0-9]*)$/.test(declared) === false || Number(declared) > maxBytes)) {
-    throw new Error("Policy Hub 응답 크기가 유효하지 않습니다.");
+    throw new Error("The policy Hub response size is invalid.");
   }
-  if (response.body === null) throw new Error("Policy Hub 응답 본문이 없습니다.");
+  if (response.body === null) throw new Error("The policy Hub response body is missing.");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let byteCount = 0;
@@ -41,7 +41,7 @@ async function boundedJson(response: Response, maxBytes: number): Promise<unknow
     byteCount += item.value.byteLength;
     if (byteCount > maxBytes) {
       await reader.cancel();
-      throw new Error("Policy Hub 응답이 허용 크기를 넘었습니다.");
+      throw new Error("The policy Hub response exceeds the allowed size.");
     }
     chunks.push(item.value);
   }
@@ -54,7 +54,7 @@ async function boundedJson(response: Response, maxBytes: number): Promise<unknow
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
-    throw new Error("Policy Hub 응답이 UTF-8 JSON이 아닙니다.");
+    throw new Error("The policy Hub response is not UTF-8 JSON.");
   }
 }
 
@@ -70,19 +70,19 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
       options.bearerToken.length < 32 || options.bearerToken.length > 4_096 ||
       !/^[\x21-\x7e]+$/.test(options.bearerToken) ||
       !/^sha256:[a-f0-9]{64}$/.test(options.expectedHubIdentityHash)
-    ) throw new Error("Policy HTTP transport credential 또는 Hub identity가 유효하지 않습니다.");
+    ) throw new Error("The policy HTTP transport credential or Hub identity is invalid.");
     this.maxResponseBytes = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
     if (
       !Number.isSafeInteger(this.maxResponseBytes) ||
       this.maxResponseBytes < 1_024 ||
       this.maxResponseBytes > 16_777_216
-    ) throw new Error("Policy HTTP transport 응답 한도가 유효하지 않습니다.");
+    ) throw new Error("The policy HTTP transport response limit is invalid.");
     this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     if (
       !Number.isSafeInteger(this.requestTimeoutMs) ||
       this.requestTimeoutMs < 10 ||
       this.requestTimeoutMs > 300_000
-    ) throw new Error("Policy HTTP transport 요청 제한 시간이 유효하지 않습니다.");
+    ) throw new Error("The policy HTTP transport request timeout is invalid.");
     this.request = options.fetch ?? globalThis.fetch;
   }
 
@@ -93,7 +93,7 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
     requestedAt: string;
   }): Promise<unknown> {
     if (!Number.isFinite(Date.parse(input.requestedAt))) {
-      throw new Error("Policy HTTP 요청 시각이 유효하지 않습니다.");
+      throw new Error("The policy HTTP request time is invalid.");
     }
     const url = new URL(
       `v1/policy/projects/${encodeURIComponent(input.target.projectId)}/bundle`,
@@ -116,7 +116,7 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
         redirect: "error",
         signal: controller.signal,
       });
-      if (response.status !== 200) throw new Error("Policy Hub 응답 상태가 유효하지 않습니다.");
+      if (response.status !== 200) throw new Error("The policy Hub response status is invalid.");
       if (response.headers.get("x-lervo-hub-identity") !== this.options.expectedHubIdentityHash) {
         await response.body?.cancel();
         return {
@@ -130,7 +130,7 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
       }
       if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
         await response.body?.cancel();
-        throw new Error("Policy Hub 응답 content type이 유효하지 않습니다.");
+        throw new Error("The policy Hub response content type is invalid.");
       }
       const body = await boundedJson(response, this.maxResponseBytes);
       if (
@@ -142,7 +142,7 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
         !("projectIdentityHash" in body.target) ||
         body.target.projectIdentityHash !== input.target.projectIdentityHash ||
         !("bundle" in body)
-      ) throw new Error("Policy Hub 응답 좌표가 요청과 다릅니다.");
+      ) throw new Error("The policy Hub response coordinates differ from the request.");
       return {
         authentication: {
           status: "verified",

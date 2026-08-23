@@ -61,7 +61,7 @@ export class RemoteCommandReceiver {
     } catch (error) {
       throw new RemoteCommandRuntimeError(
         "invalid_command",
-        "signed remote command가 계약을 통과하지 못했습니다.",
+        "The signed remote command does not satisfy the contract.",
         { cause: error },
       );
     }
@@ -74,12 +74,12 @@ export class RemoteCommandReceiver {
     } catch (error) {
       throw new RemoteCommandRuntimeError(
         "trust_store_failed",
-        "remote command trust store를 조회하지 못했습니다.",
+        "Could not query the remote command trust store.",
         { cause: error },
       );
     }
     if (signer === null) {
-      throw new RemoteCommandRuntimeError("unknown_signer", "신뢰되지 않은 remote command signer입니다.");
+      throw new RemoteCommandRuntimeError("unknown_signer", "The remote command signer is not trusted.");
     }
     if (
       signer.keyId !== keyId ||
@@ -91,7 +91,7 @@ export class RemoteCommandReceiver {
     ) {
       throw new RemoteCommandRuntimeError(
         "trust_store_failed",
-        "remote command trust store가 유효한 signer 계약을 반환하지 않았습니다.",
+        "The remote command trust store did not return a valid signer contract.",
       );
     }
 
@@ -105,16 +105,16 @@ export class RemoteCommandReceiver {
       verified = false;
     }
     if (!verified) {
-      throw new RemoteCommandRuntimeError("invalid_signature", "remote command signature 검증에 실패했습니다.");
+      throw new RemoteCommandRuntimeError("invalid_signature", "Remote command signature verification failed.");
     }
     if (!signer.projects.some((project) => sameRemoteCommandTarget(project, command.target))) {
       throw new RemoteCommandRuntimeError(
         "signer_scope_denied",
-        "remote command signer가 대상 프로젝트에 허용되지 않았습니다.",
+        "The remote command signer is not authorized for the target project.",
       );
     }
     if (!sameRemoteCommandTarget(command.target, this.target)) {
-      throw new RemoteCommandRuntimeError("target_mismatch", "remote command 대상이 현재 프로젝트가 아닙니다.");
+      throw new RemoteCommandRuntimeError("target_mismatch", "The remote command target is not the current project.");
     }
 
     const commandHash = calculateRemoteCommandHash(command);
@@ -129,7 +129,7 @@ export class RemoteCommandReceiver {
     } catch (error) {
       throw new RemoteCommandRuntimeError(
         "replay_store_failed",
-        "remote command replay store를 조회하지 못했습니다.",
+        "Could not query the remote command replay store.",
         { cause: error },
       );
     }
@@ -148,14 +148,14 @@ export class RemoteCommandReceiver {
     if (expiresAtMs - issuedAtMs > this.maxLifetimeMs) {
       throw new RemoteCommandRuntimeError(
         "command_lifetime_exceeded",
-        "remote command 유효 기간이 로컬 제한을 초과했습니다.",
+        "The remote command validity period exceeds the local limit.",
       );
     }
     if (nowMs + this.clockSkewMs < issuedAtMs) {
-      throw new RemoteCommandRuntimeError("command_not_yet_valid", "remote command 발급 시각이 아직 오지 않았습니다.");
+      throw new RemoteCommandRuntimeError("command_not_yet_valid", "The remote command issue time has not arrived yet.");
     }
     if (nowMs - this.clockSkewMs > expiresAtMs) {
-      throw new RemoteCommandRuntimeError("command_expired", "remote command가 만료되었습니다.");
+      throw new RemoteCommandRuntimeError("command_expired", "The remote command has expired.");
     }
 
     let policyDecision;
@@ -168,12 +168,12 @@ export class RemoteCommandReceiver {
     } catch (error) {
       throw new RemoteCommandRuntimeError(
         "policy_evaluation_failed",
-        "remote command 로컬 정책을 평가하지 못했습니다.",
+        "Could not evaluate the local remote command policy.",
         { cause: error },
       );
     }
     if (policyDecision?.status === "denied" && typeof policyDecision.reasonCode === "string") {
-      throw new RemoteCommandRuntimeError("policy_denied", "remote command가 로컬 정책에서 거부되었습니다.");
+      throw new RemoteCommandRuntimeError("policy_denied", "The remote command was denied by local policy.");
     }
     if (
       policyDecision?.status === "approval_required" &&
@@ -182,13 +182,13 @@ export class RemoteCommandReceiver {
     ) {
       throw new RemoteCommandRuntimeError(
         "approval_required",
-        "remote command 실행에 검증된 승인이 필요합니다.",
+        "Remote command execution requires verified approval.",
       );
     }
     if (policyDecision?.status !== "approved") {
       throw new RemoteCommandRuntimeError(
         "policy_evaluation_failed",
-        "remote command 로컬 정책 결과가 유효하지 않습니다.",
+        "The local remote command policy result is invalid.",
       );
     }
 
@@ -198,7 +198,7 @@ export class RemoteCommandReceiver {
     } catch (error) {
       throw new RemoteCommandRuntimeError(
         "replay_store_failed",
-        "remote command replay reservation을 만들지 못했습니다.",
+        "Could not create the remote command replay reservation.",
         { cause: error },
       );
     }
@@ -243,6 +243,9 @@ export class RemoteCommandReceiver {
         policyAuthorization: policyDecision.authorization === undefined
           ? null
           : clone(policyDecision.authorization),
+        approvedRepositoryPaths: Array.isArray(policyDecision.approvedRepositoryPaths)
+          ? [...policyDecision.approvedRepositoryPaths]
+          : [],
       });
       receipt = {
         schemaVersion: 1,
@@ -276,7 +279,7 @@ export class RemoteCommandReceiver {
     } catch (error) {
       throw new RemoteCommandRuntimeError(
         "replay_store_failed",
-        "remote command receipt를 replay store에 완료하지 못했습니다.",
+        "Could not complete the remote command receipt in the replay store.",
         { cause: error },
       );
     }

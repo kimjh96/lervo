@@ -25,7 +25,7 @@ try {
     error instanceof ReleasePublicationAuthorizationError
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
-    "first_publication_external_evidence_unexpected: CLI 최초 게시 외부 요구사항 증거를 확인하지 못했습니다.",
+    "first_publication_external_evidence_unexpected: CLI first-publication external-requirements evidence could not be verified.",
   );
   process.exitCode = 1;
 }

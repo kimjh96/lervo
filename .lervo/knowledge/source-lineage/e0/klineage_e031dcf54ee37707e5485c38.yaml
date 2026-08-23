@@ -1,0 +1,11 @@
+fromPath: docs/adr/0042-durable-remote-command-delivery.md
+identityPath: docs/adr/0042-durable-remote-command-delivery.md
+kind: document_move
+lineageId: klineage_e031dcf54ee37707e5485c38
+operationId: kdocop_1b1c746151cb951433bbf4b5
+schemaVersion: 1
+sourceContentHash: sha256:56c33c7026aebca272ee9bb8af5e8356e369d57c4bd2adb4eb81a2044c0777cd
+sourceId: src_63269f93ca8d438bb43a0ade
+sourceUnitBindingDigest: sha256:5d93e27eecc36be15c2c7eb5990cbcab49d4e118c4920c48e131a4514f7cffbb
+sourceUnitCount: 9
+toPath: docs/decisions/foundation/0042-durable-remote-command-delivery.md

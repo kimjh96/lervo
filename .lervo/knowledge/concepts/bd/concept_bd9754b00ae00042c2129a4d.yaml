@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_bd9754b00ae00042c2129a4d
+freshness: current
+ownership: user
+path: docs/decisions/coordination/deliberation/0141-explicit-durable-conversation-deliberation-resume.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_84874396078be6d1e8423543
+title: "ADR-0141: Explicit Durable Conversation Deliberation Resume"
+type: decision

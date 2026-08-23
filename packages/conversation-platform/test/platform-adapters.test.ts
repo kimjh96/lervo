@@ -88,7 +88,7 @@ function permit(content: Awaited<ReturnType<typeof storeConversationText>>): Wri
     surface: "chat",
     artifactId: content.artifactId,
     contentHash: content.contentHash,
-    writingPolicyId: "writing_ko-kr-human",
+    writingPolicyId: "writing_en-human",
     writingPolicyHash: `sha256:${"c".repeat(64)}`,
     evaluationId: "wre_platform_reply",
     evaluationHash: `sha256:${"d".repeat(64)}`,
@@ -102,7 +102,7 @@ async function outbound(input: {
   artifactStore: Awaited<ReturnType<typeof artifacts>>;
 }): Promise<ConversationOutboundMessage> {
   const content = await storeConversationText({
-    content: "확인했습니다. 다음 검증 단계로 진행하겠습니다.",
+    content: "Confirmed. Proceeding to the next verification step.",
     artifactStore: input.artifactStore,
   });
   const policy = createConversationParticipationPolicy({
@@ -159,7 +159,7 @@ describe("authenticated platform conversation adapters", () => {
       now: () => now,
     });
     const timestamp = Math.floor(now.getTime() / 1_000);
-    const rawText = "배포 위험을 검토해 주세요 <@U999>";
+    const rawText = "Please review the deployment risk <@U999>";
     const body = Buffer.from(JSON.stringify({
       type: "event_callback",
       api_app_id: "A123",
@@ -208,7 +208,7 @@ describe("authenticated platform conversation adapters", () => {
     const retryReceipt = await adapter.deliver(message);
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
       outboundId: message.outboundId,
-      text: "확인했습니다. 다음 검증 단계로 진행하겠습니다.",
+      text: "Confirmed. Proceeding to the next verification step.",
       format: "plain",
     }));
     expect(identity.record).toHaveBeenCalledWith(expect.objectContaining({
@@ -265,7 +265,7 @@ describe("authenticated platform conversation adapters", () => {
       api_app_id: "A123",
       team_id: "T999",
       event_id: "Ev-wrong-team",
-      event: { type: "message", channel: "C123", user: "U123", text: "거부", ts: `${current}.1` },
+      event: { type: "message", channel: "C123", user: "U123", text: "reject", ts: `${current}.1` },
     }));
     await expect(adapter.receive(slackRequest(
       wrongTeamBody,
@@ -308,7 +308,7 @@ describe("authenticated platform conversation adapters", () => {
       delivery: { send },
       now: () => now,
     });
-    const rawText = "이 변경의 다음 단계를 알려주세요.";
+    const rawText = "Tell me the next step for this change.";
     const body = Buffer.from(JSON.stringify({
       op: 0,
       s: 42,
@@ -355,7 +355,7 @@ describe("authenticated platform conversation adapters", () => {
     const receipt = await adapter.deliver(message);
     const retryReceipt = await adapter.deliver(message);
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
-      content: "확인했습니다. 다음 검증 단계로 진행하겠습니다.",
+      content: "Confirmed. Proceeding to the next verification step.",
       allowedMentions: "none",
       enforceIdempotency: true,
     }));
@@ -395,7 +395,7 @@ describe("authenticated platform conversation adapters", () => {
         channel_id: "223456789012345678",
         guild_id: "777777777777777777",
         author: { id: "523456789012345678", bot: false },
-        content: "범위 밖 메시지",
+        content: "out-of-scope message",
         timestamp: "2026-08-20T00:00:00.000Z",
       },
     }));

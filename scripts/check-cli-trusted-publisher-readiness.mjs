@@ -7,7 +7,7 @@ import { TrustedPublisherReadinessError } from "./lib/trusted-publisher-readines
 function failArguments() {
   throw new TrustedPublisherReadinessError(
     "trusted_publisher_readiness_arguments_invalid",
-    "Trusted Publisher 준비 상태 명령 인자가 올바르지 않습니다.",
+    "The Trusted Publisher readiness command arguments are invalid.",
   );
 }
 
@@ -49,7 +49,7 @@ try {
     console.error(`${error.code}: ${error.message}`);
   } else {
     console.error(
-      "trusted_publisher_readiness_failed: Trusted Publisher 준비 상태를 확인하지 못했습니다.",
+      "trusted_publisher_readiness_failed: Trusted Publisher readiness could not be determined.",
     );
   }
   process.exitCode = 1;

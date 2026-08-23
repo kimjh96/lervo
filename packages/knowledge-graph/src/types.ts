@@ -104,7 +104,7 @@ export function assertKnowledgeGraphNode(node: KnowledgeGraphNode): void {
     typeof node.id !== "string" || node.id.length < 1 || node.id.length > 500 ||
     /[\u0000-\u001f\u007f]/.test(node.id) ||
     (node.kind === "repository_path" && !isSafeRepositoryPath(node.id))) {
-    throw new KnowledgeGraphContractError("invalid_node", "지식 그래프 node 좌표가 유효하지 않습니다.");
+    throw new KnowledgeGraphContractError("invalid_node", "The knowledge graph node coordinates are invalid.");
   }
 }
 

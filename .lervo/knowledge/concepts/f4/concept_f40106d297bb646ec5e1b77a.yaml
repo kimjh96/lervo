@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f40106d297bb646ec5e1b77a
+freshness: current
+ownership: user
+path: docs/decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_daa96912354309aaab5b1077
+title: "ADR-0114: Resolve Reconciled CLI First-Publication Outcomes"
+type: decision

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0170-evidence-bound-repository-knowledge-compilation.md
+identityPath: docs/adr/0170-evidence-bound-repository-knowledge-compilation.md
+kind: document_move
+lineageId: klineage_add11595942b66299a4c7f4a
+operationId: kdocop_b05d3751898412ec6065bc75
+schemaVersion: 1
+sourceContentHash: sha256:869b9af04bd26ac288e66a9977dcc124870bffd43e72b700b1e84b38d3841518
+sourceId: src_5cb481865cb6c95a16607ce7
+sourceUnitBindingDigest: sha256:cf3be1d024ceec5a5f9a42e091cd44214e104f368c7bdb3162578d584f116283
+sourceUnitCount: 5
+toPath: docs/decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md

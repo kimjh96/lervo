@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a91a4c856e0dc276876700be
+freshness: current
+ownership: user
+path: docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_588a047d775211dff11b00b4
+title: "ADR-0122: Stage-Only Workflow Ref-Reachability Evidence"
+type: decision

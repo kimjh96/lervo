@@ -27,7 +27,7 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "review_contract_invalid",
       "policy_schema_invalid",
-      "지식 승격 정책이 schema를 통과하지 못했습니다.",
+      "The knowledge promotion policy does not satisfy the schema.",
     );
   }
   await verifyKnowledgeCandidateOriginal(input);
@@ -35,14 +35,14 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "review_contract_invalid",
       "reviewer_not_allowed",
-      "현재 정책이 허용한 사람 reviewer가 아닙니다.",
+      "The human reviewer is not allowed by the current policy.",
     );
   }
   if (input.repositoryRevision !== input.candidate.verifiedRevision) {
     throw new KnowledgeError(
       "review_contract_invalid",
       "repository_revision_mismatch",
-      "검토 revision이 후보를 검증한 repository revision과 다릅니다.",
+      "The review revision differs from the repository revision that verified the candidate.",
     );
   }
   const resolvedConflictCandidateIds = sortedUnique(input.resolvedConflictCandidateIds);
@@ -51,7 +51,7 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "review_contract_invalid",
       "conflicts_unresolved",
-      "후보에 기록되지 않은 충돌을 해소했다고 표시할 수 없습니다.",
+      "A conflict not recorded in the candidate cannot be marked as resolved.",
     );
   }
   if (
@@ -62,7 +62,7 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "review_contract_invalid",
       "conflicts_unresolved",
-      "정책상 모든 충돌 후보를 검토하고 해소해야 승인할 수 있습니다.",
+      "Policy requires every conflict candidate to be reviewed and resolved before approval.",
     );
   }
   const content = {
@@ -87,14 +87,14 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "review_contract_invalid",
       "approval_schema_invalid",
-      "지식 검토 승인 원본이 schema를 통과하지 못했습니다.",
+      "The knowledge review approval source does not satisfy the schema.",
     );
   }
   if (Date.parse(approval.reviewedAt) < Date.parse(input.candidate.createdAt)) {
     throw new KnowledgeError(
       "review_contract_invalid",
       "approval_schema_invalid",
-      "후보가 생성되기 전 시각의 검토 승인을 기록할 수 없습니다.",
+      "A review approval dated before candidate creation cannot be recorded.",
     );
   }
   if (input.events.list().some((event) =>
@@ -103,14 +103,14 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "review_contract_invalid",
       "approval_already_recorded",
-      "같은 검토 승인 원본이 이미 event에 기록되어 있습니다.",
+      "The same review approval source is already recorded in an event.",
     );
   }
   const approvalArtifact = await storeKnowledgeArtifact({
     artifactStore: input.artifactStore,
     bytes: knowledgeReviewApprovalBytes(approval),
     mismatchReason: "approval_artifact_mismatch",
-    label: "지식 검토 승인",
+    label: "knowledge review approval",
   });
   try {
     const recordedEvent = input.events.append({
@@ -141,7 +141,7 @@ export async function reviewKnowledgeCandidate(
     throw new KnowledgeError(
       "event_recording_failed",
       "event_store_failed",
-      "지식 검토 event를 기록하지 못했습니다.",
+      "Could not record the knowledge review event.",
       { cause: error },
     );
   }

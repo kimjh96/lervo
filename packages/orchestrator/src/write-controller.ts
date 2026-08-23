@@ -50,7 +50,7 @@ export class ManagedWriteController {
     const loaded = this.state.loadedSnapshot();
     const repositoryRoot = this.state.repositoryRoot;
     if (loaded === undefined || repositoryRoot === undefined) {
-      throw new ManagedContextError("invalid_state", "검증할 context snapshot이 없습니다.");
+      throw new ManagedContextError("invalid_state", "There is no context snapshot to verify.");
     }
     try {
       const freshness = await validateContextSnapshot({
@@ -80,7 +80,7 @@ export class ManagedWriteController {
     if (this.state.phase === "write_authorized") {
       throw new ManagedContextError(
         "invalid_state",
-        "기존 파일 쓰기 permit를 완료하거나 무효화한 뒤 다시 요청해야 합니다.",
+        "Complete or invalidate the existing file-write permit before requesting another one.",
       );
     }
     const normalizedPath = validateWriteRequest(input);
@@ -127,7 +127,7 @@ export class ManagedWriteController {
         } catch {
           throw new ManagedContextError(
             "approval_verification_failed",
-            "파일 쓰기 직전 approval 원본 재검증에 실패했습니다.",
+            "Failed to revalidate the approval source immediately before the file write.",
           );
         }
         if (result.approved) {
@@ -137,7 +137,7 @@ export class ManagedWriteController {
           ) {
             throw new ManagedContextError(
               "approval_verification_failed",
-              "Approval verifier 결과가 현재 authorization 좌표와 다릅니다.",
+              "The approval verifier result differs from the current authorization coordinates.",
             );
           }
           capabilityDecision = "allow";
@@ -153,7 +153,7 @@ export class ManagedWriteController {
       if (repositoryRoot === undefined) {
         throw new ManagedContextError(
           "invalid_state",
-          "변경 대상 파일을 검증할 repository root가 없습니다.",
+          "There is no repository root for validating the target file.",
         );
       }
       expectedBeforeHash = await readManagedFileHash(repositoryRoot, normalizedPath);
@@ -197,7 +197,7 @@ export class ManagedWriteController {
     if (contextDecision.assurance !== "E3") {
       throw new ManagedContextError(
         "invalid_state",
-        "필수 E3 문서가 없는 실행에는 파일 쓰기 permit를 발급할 수 없습니다.",
+        "A file-write permit cannot be issued for a run without the required E3 documents.",
       );
     }
     const permit = this.state.issuePermit({
@@ -220,7 +220,7 @@ export class ManagedWriteController {
     if (provider === undefined || repositoryRoot === undefined) {
       throw new ManagedContextError(
         "invalid_state",
-        "파일 변경 주체나 repository root가 없습니다.",
+        "The file-change actor or repository root is missing.",
       );
     }
     const occurredAt = this.state.timestamp(input.occurredAt);
@@ -228,7 +228,7 @@ export class ManagedWriteController {
     if (normalizedPath !== input.permit.path) {
       throw new ManagedContextError(
         "write_permit_invalid",
-        "파일 쓰기 permit의 대상 경로와 실제 변경 경로가 다릅니다.",
+        "The file-write permit target path differs from the actual change path.",
       );
     }
     let actualAfterHash: string | null;
@@ -247,7 +247,7 @@ export class ManagedWriteController {
       this.invalidateAll("file_change_unverified", occurredAt);
       throw new ManagedContextError(
         "file_snapshot_invalid",
-        "파일 변경 hash가 permit 또는 현재 저장소 상태와 다릅니다.",
+        "The file-change hash differs from the permit or current repository state.",
       );
     }
     this.append([

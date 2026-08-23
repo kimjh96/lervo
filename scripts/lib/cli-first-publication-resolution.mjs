@@ -19,7 +19,7 @@ import { observeFirstPublicationReconciliation } from
 function fail(code = "first_publication_resolution_input_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 결과 확정 입력이 올바르지 않습니다.",
+    "The CLI first-publication result-resolution input is invalid.",
   );
 }
 

@@ -1,0 +1,11 @@
+fromPath: docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md
+identityPath: docs/adr/0140-authoritative-conversation-deliberation-reconciliation.md
+kind: document_move
+lineageId: klineage_618ba80140a623a55e5c2d81
+operationId: kdocop_6dad6de209f4d430df581879
+schemaVersion: 1
+sourceContentHash: sha256:8bc84de9cee4e12c691daf9768e478d39a07ddbee8fb1030e92e50278a5394f5
+sourceId: src_39efe23b4775c0a66e20097b
+sourceUnitBindingDigest: sha256:af51be6d1a01331278cc0f289ea1274cd3eedb219d1fe42e522a3fc1c9ff3ef6
+sourceUnitCount: 5
+toPath: docs/decisions/coordination/conversations/0140-authoritative-conversation-deliberation-reconciliation.md

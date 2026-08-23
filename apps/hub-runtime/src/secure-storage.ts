@@ -9,7 +9,7 @@ export async function prepareOwnerOnlyDatabasePath(path: string): Promise<string
   } catch (error) {
     throw new HubRuntimeError(
       "unsafe_runtime_file",
-      "Hub runtime database는 owner-only 디렉터리의 일반 파일이어야 합니다.",
+      "The Hub runtime database must be a regular file in an owner-only directory.",
       { cause: error },
     );
   }

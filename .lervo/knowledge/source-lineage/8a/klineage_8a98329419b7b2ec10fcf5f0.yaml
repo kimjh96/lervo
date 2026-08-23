@@ -1,0 +1,11 @@
+fromPath: docs/adr/0122-cli-stage-only-workflow-ref-reachability-evidence.md
+identityPath: docs/adr/0122-cli-stage-only-workflow-ref-reachability-evidence.md
+kind: document_move
+lineageId: klineage_8a98329419b7b2ec10fcf5f0
+operationId: kdocop_d4a08567337fba345656554a
+schemaVersion: 1
+sourceContentHash: sha256:a89d5048b8ba02eafdd284bc394af46773e38c9e034fd2ad1ec5ca5fcbcc4a70
+sourceId: src_ad63ae20204b33a15bde5c5b
+sourceUnitBindingDigest: sha256:6d9357b97b84c7f900517e387ff7133e444291d419acc5ba31ac875fb0b56ef8
+sourceUnitCount: 5
+toPath: docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md

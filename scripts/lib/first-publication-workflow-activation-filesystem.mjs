@@ -130,7 +130,7 @@ export async function applyFirstPublicationWorkflowActivationFiles(input, depend
     } catch {
       failWorkflowActivation(
         "first_publication_workflow_activation_rollback_failed",
-        "CLI 최초 게시 workflow 활성화 실패 뒤 원본 복구를 완료하지 못했습니다.",
+        "The original workflow could not be restored after CLI first-publication workflow activation failed.",
       );
     }
     workflowActivationFailed();

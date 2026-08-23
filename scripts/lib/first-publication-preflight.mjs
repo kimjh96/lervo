@@ -22,7 +22,7 @@ const sideEffects = {
 function fail(code = "first_publication_preflight_invalid") {
   throw new FirstPublicationBootstrapError(
     code,
-    "CLI 최초 게시 사전 점검 보고서가 올바르지 않습니다.",
+    "The CLI first-publication preflight report is invalid.",
   );
 }
 

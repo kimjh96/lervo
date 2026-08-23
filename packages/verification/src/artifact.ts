@@ -35,7 +35,7 @@ export async function storeVerificationBytes(
   } catch (error) {
     throw new VerificationError(
       "artifact_storage_failed",
-      "Verification artifact를 안전하게 저장하고 다시 확인하지 못했습니다.",
+      "The verification artifact could not be stored and reverified safely.",
       { cause: error },
     );
   }

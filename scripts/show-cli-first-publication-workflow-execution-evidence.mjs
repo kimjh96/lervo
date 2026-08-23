@@ -24,7 +24,7 @@ try {
   ) console.error(`${error.code}: ${error.message}`);
   else console.error(
     "first_publication_workflow_execution_unexpected: " +
-    "CLI stage-only workflow 실행 증거를 만들지 못했습니다.",
+    "CLI stage-only workflow execution evidence could not be created.",
   );
   process.exitCode = 1;
 }

@@ -9,7 +9,7 @@ import {
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_workflow_reachability_arguments_invalid",
-    "CLI stage-only workflow ref 도달 가능성 증거 명령 인자가 올바르지 않습니다.",
+    "The CLI stage-only workflow ref-reachability evidence command arguments are invalid.",
   );
 }
 

@@ -32,7 +32,7 @@ const maximumWorkflowBytes = 256 * 1024;
 function fail() {
   throw new FirstPublicationBootstrapError(
     "first_publication_transition_source_invalid",
-    "CLI 최초 게시 전환 원본이 올바르지 않습니다.",
+    "The CLI first-publication transition source is invalid.",
   );
 }
 

@@ -114,6 +114,6 @@ describe("search rollout review policy", () => {
       rollbackMinimumFailedAttempts: 1,
       authoredBy: "reviewer_rollout",
       createdAt: new Date("2026-08-20T09:00:00.000Z"),
-    })).toThrow(/판단 기준/);
+    })).toThrow(/decision criteria/);
   });
 });
