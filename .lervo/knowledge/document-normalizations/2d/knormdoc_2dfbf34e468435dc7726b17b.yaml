@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_be1ae37e780d8f7e38acdd10
+outputLanguage: en
+outputs:
+  - byteCount: 2362
+    contentHash: sha256:e5dd9613ef4e45730c2674f6da91981baef1882a22ec6e7b40670e75b9abbbd4
+    path: docs/decisions/knowledge/repository/0144-explicit-project-identity-migration.md
+    userRegionHash: sha256:e5dd9613ef4e45730c2674f6da91981baef1882a22ec6e7b40670e75b9abbbd4
+profile: decision_record
+recordId: knormdoc_2dfbf34e468435dc7726b17b
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:23bb3f9d088b223b86095ae996cf5fdebf3f85b5a314a9561de43f11b9747b98
+sourcePath: docs/decisions/knowledge/repository/0144-explicit-project-identity-migration.md
+sourceUnitVersionIds:
+  - uv_3033b66b15e2a614221e3bc4
+  - uv_639114844debb2cf94f88eb7
+  - uv_7b4849ef688904e6265d9c79
+  - uv_94aea265530cb3afa66ceb56

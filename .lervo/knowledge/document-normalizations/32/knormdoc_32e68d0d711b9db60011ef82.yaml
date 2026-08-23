@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5404ac67f02cb0233c5e76cd
+outputLanguage: en
+outputs:
+  - byteCount: 1282
+    contentHash: sha256:8b2a67e1fd9e3d792f0a1219ff4e1e647b21df162f33bfe85d308d8c3010840c
+    path: docs/decisions/operations/diagnostics/0075-versioned-doctor-report-contract.md
+    userRegionHash: sha256:8b2a67e1fd9e3d792f0a1219ff4e1e647b21df162f33bfe85d308d8c3010840c
+profile: decision_record
+recordId: knormdoc_32e68d0d711b9db60011ef82
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:52dc19c86e80c60887b3fbf9db193f847cb0731fb1d2f09e9bc89cb1ed86af49
+sourcePath: docs/decisions/operations/diagnostics/0075-versioned-doctor-report-contract.md
+sourceUnitVersionIds:
+  - uv_67b8aa6daf333bb92b970e8b
+  - uv_83b3cd65fd5006a0ce2f29d2
+  - uv_cc1bfaff3adf6067bf81ac29
+  - uv_fb205f486683a7128e61eea2

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5757096b697e66005337590f
+outputLanguage: en
+outputs:
+  - byteCount: 3272
+    contentHash: sha256:3c333d8f8795eb683afbcf00b87ba1fda8c482668e0cd57acb7fb638d9d63899
+    path: docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md
+    userRegionHash: sha256:3c333d8f8795eb683afbcf00b87ba1fda8c482668e0cd57acb7fb638d9d63899
+profile: decision_record
+recordId: knormdoc_ee738f950bb314d644826f1f
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:394d70351a409c5fabc5d2e1e4d8bced8a732a453fcf71a72d7454706481df15
+sourcePath: docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md
+sourceUnitVersionIds:
+  - uv_82a6676b86ecdb70f9dcea40
+  - uv_8de1c388ba6c534b02f0e3f2
+  - uv_ab9d1160457b903f136fbba0
+  - uv_e5a0db52beb751a09b017042

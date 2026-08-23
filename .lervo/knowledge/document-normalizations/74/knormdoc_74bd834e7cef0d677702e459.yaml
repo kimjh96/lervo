@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_aeb48ad56ea3fcb2b3637b18
+outputLanguage: en
+outputs:
+  - byteCount: 1282
+    contentHash: sha256:f829296076d3f7ed0f39ad7b2fa75c77daeea21b9edeae4aef9cb59ee84c0257
+    path: docs/decisions/coordination/deliberation/0142-snapshot-bounded-deliberation-event-scan.md
+    userRegionHash: sha256:f829296076d3f7ed0f39ad7b2fa75c77daeea21b9edeae4aef9cb59ee84c0257
+profile: decision_record
+recordId: knormdoc_74bd834e7cef0d677702e459
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:33dcb2ba37d77f46df7b753e095d667fb130017feaec3162abc441ab5fe6d7bd
+sourcePath: docs/decisions/coordination/deliberation/0142-snapshot-bounded-deliberation-event-scan.md
+sourceUnitVersionIds:
+  - uv_0a4789aaeb5d959672052f5f
+  - uv_83ffdf7bba42f8c95180345f
+  - uv_8b3368293e5b358ff3fa0eba
+  - uv_b704318fa23fb8d20810e0fd

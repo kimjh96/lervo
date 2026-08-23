@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_4792ef60332c06c0593e32aa
+  - uv_e36bfeccbcbf9e68c0c89282
 title: "ADR-0090: CLI package usage-guide contract"
 type: decision

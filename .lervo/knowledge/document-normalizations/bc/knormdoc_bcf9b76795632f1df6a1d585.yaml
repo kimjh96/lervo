@@ -1,0 +1,30 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f951be36869a0ebd598dc984
+outputLanguage: en
+outputs:
+  - byteCount: 3455
+    contentHash: sha256:ec926ef86d82f55bf774c5ba16cbf64a0be69a86e21c1514afc5bf3975b5f9fd
+    path: docs/decisions/execution/verification/0032-managed-run-project-verification.md
+    userRegionHash: sha256:ec926ef86d82f55bf774c5ba16cbf64a0be69a86e21c1514afc5bf3975b5f9fd
+profile: decision_record
+recordId: knormdoc_bcf9b76795632f1df6a1d585
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:73ae012204e735d50b1e71abd7751c6cc274796ce4055bfc864afb3e3e57f247
+sourcePath: docs/decisions/execution/verification/0032-managed-run-project-verification.md
+sourceUnitVersionIds:
+  - uv_3014458a2b7b1a1367e0dde1
+  - uv_37f46145607f9323b77b4c3f
+  - uv_4a54a46c2b8ae3075ca4c05a
+  - uv_69034041b467656d62b0e29f
+  - uv_95ff9209400ab4f9d9f0bdc3
+  - uv_a581f3245a86028867fd738a
+  - uv_bf8925fd7476fd127bf246ff
+  - uv_f893fdb3a6bf6e16106766cc

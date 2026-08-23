@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8a49d3a95b0ef00499dd83ba
+  - uv_0c6a3eff794c374caaf8d691
 title: "ADR-0127: Durable npm Stage-Approval Records"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_e961e6cab8bbf29a4d7766c1
+  - uv_cd95f5bbdd3b1aefc9470f42
 title: "ADR-0120: Post-Apply Verification for the Stage-Only Workflow"
 type: decision

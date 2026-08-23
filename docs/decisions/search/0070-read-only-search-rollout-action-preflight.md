@@ -1,22 +1,22 @@
 # ADR-0070: Write-free search-rollout action preflight
 
-Status: `accepted`
+Status: `accepted`  
 Decision date: 2026-08-20
 
 ## Context
 
-Action apply failed safely but revealed unmet review/policy/operator/head/input conditions only afterward. Preflight must explain current eligibility without becoming approval, reservation, or future-success guarantee.
+Action application failed safely but exposed unmet review, policy, operator, head, and input conditions only after invocation. Preflight must explain current eligibility without becoming approval, a reservation, or a guarantee of future success.
 
 ## Decision
 
-- `search rollout action check <review-id>` requires explicit action policy, action, and operator; never selects latest inputs.
-- Revalidate current selection and quality and return `eligible` or `ineligible` with bounded reasons.
-- Preflight and apply share the same core eligibility. For rollback, also run read-only engine-policy/head/fallback-candidate replay checks used immediately before publication. Do not expose a prepared transition object.
-- Reasons cover requested-action mismatch, not-yet-valid policy/review, policy/threshold/decision mismatch, operator scope, current-head mismatch, and changed quality input.
-- Missing/tampered source or replay failure remains a concrete error, not softened to ineligible.
-- Fix effects to no action selection, acknowledgement, selection change, rollback, or approval. Reserve neither execution slot nor CAS head; apply rechecks everything.
-- Return only requested local operator, policy/review/selection IDs, decision, and input-change state—not query, quality-source IDs, nonce, source/body, provider result, credential, or receipt.
+- `search rollout action check <review-id>` requires an explicit action policy, action, and operator; it never selects the latest inputs.
+- Revalidate current selection and quality, then return `eligible` or `ineligible` with bounded reasons.
+- Preflight and apply share the same core eligibility logic. For rollback, also perform the read-only engine-policy, head, and fallback-candidate replay checks used immediately before publication. Do not expose a prepared transition object.
+- Reasons cover requested-action mismatch; policy or review not yet valid; policy, threshold, or decision mismatch; operator scope; current-head mismatch; and changed quality input.
+- Treat missing or tampered sources and replay failures as concrete errors, not `ineligible` results.
+- Fix effects to no action selection, acknowledgement, selection change, rollback, or approval. Reserve neither an execution slot nor the CAS head; apply must recheck every condition.
+- Return only the requested local operator, policy, review, and selection IDs, decision, and input-change state. Exclude query, quality-source IDs, nonce, source and body data, provider results, credentials, and receipts.
 
 ## Consequences
 
-Operators can inspect unmet conditions without side effects; apply-time revalidation and previous-head CAS remain authoritative.
+Operators can inspect unmet conditions without side effects. Apply-time revalidation and previous-head CAS remain authoritative.

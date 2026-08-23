@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_be6c9c71cadf4add357766c8
+  - uv_c0a72882b10a5f07029dcf8f
 title: "ADR-0144: Explicit Project-Identity Migration with Source Preservation"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a1c74e6c02220e42bb562807
+  - uv_e5d3fb074c40cc4649aa6c58
 title: "ADR-0007: Provider-neutral context delivery and E3"
 type: decision

@@ -5,23 +5,23 @@ Decision date: 2026-08-20
 
 ## Context
 
-Recorded selections have no operational effect until ordinary search/context consume them. Connecting candidates without revalidation could silently fall back after missing adapters, changed corpus, or tampered evidence and still appear to have used the candidate. Evaluation baseline must remain fixed independently, while an explicit baseline rollback must recover without replaying an unavailable old candidate.
+Recorded selections have no effect until ordinary search and context operations consume them. Connecting candidates without revalidation could silently fall back after missing adapters, changed corpora, or tampered evidence while appearing to use the candidate. The evaluation baseline must remain independently fixed, and an explicit baseline rollback must work without replaying an unavailable historical candidate.
 
 ## Decision
 
-- Generalize evaluation ports as provider-neutral `SearchEnginePort`/`SearchIndexPort`, retaining compatibility aliases. Operational code resolves candidate IDs through a narrow registry port.
-- Search, managed context, and status share one `@lervo/search-local` resolver/inspection boundary.
-- With no transition, build current `lexical-v1`. With a chain, revalidate every transition against policy/review/comparison/content/project coordinates.
-- For candidate head, revalidate current registry, corpus, comparison, review replay, and require the candidate index ID bound by comparison.
-- For baseline head, build current lexical corpus without replaying historical candidates. Thus explicit rollback remains usable after candidate removal/corpus change.
-- Evaluation/comparison baseline bypasses operational resolver and stays lexical.
-- Any selected-chain/policy/review/comparison/registry/corpus/replay/index/response failure returns `engine_selection_unavailable`; never fallback, create attempt/recommendation, or start provider.
-- `SearchAttempt` records actual engine plus nullable `selectionTransitionId`. Candidate requires it; implicit baseline is null; rollback baseline records rollback transition. Recommendation/event carries the same ID without implying later context/use.
-- New transitions use schema v2 `recordState=selection_recorded`; v3 rollback adds ADR-0068 evidence. Preserve legacy v1 IDs/files without rewriting.
+- Generalize evaluation ports as provider-neutral `SearchEnginePort` and `SearchIndexPort`, retaining compatibility aliases. Operational code resolves candidate IDs through a narrow registry port.
+- Search, managed context, and status share one `@lervo/search-local` resolver and inspection boundary.
+- Without a transition, build the current `lexical-v1`. With a chain, revalidate every transition against policy, review, comparison, content, and project coordinates.
+- For a candidate head, revalidate the current registry, corpus, comparison, and review replay, and require the candidate index ID bound by the comparison.
+- For a baseline head, build the current lexical corpus without replaying historical candidates. Explicit rollback therefore remains usable after candidate removal or corpus change.
+- The evaluation and comparison baseline bypasses the operational resolver and remains lexical.
+- Any selected-chain, policy, review, comparison, registry, corpus, replay, index, or response failure returns `engine_selection_unavailable`. Never fall back, create an attempt or recommendation, or start a provider.
+- `SearchAttempt` records the actual engine and nullable `selectionTransitionId`. A candidate requires the ID; implicit baseline uses null; rollback baseline records the rollback transition. Recommendations and events carry the same ID without implying later context or use.
+- New transitions use schema v2 with `recordState=selection_recorded`; v3 rollback adds ADR-0068 evidence. Preserve legacy v1 IDs and files without rewriting.
 - Status distinguishes recorded selection from resolver-verified `ready` or controlled `unavailable`; neither means a query ran.
 
-Add no event/source kind. Attempts stay local and recommendation privacy stays unchanged. Historical events without transition ID remain byte-identical; only new writers require it.
+Add no event or source kind. Attempts remain local, and recommendation privacy is unchanged. Historical events without a transition ID remain byte-identical; only new writers require it.
 
 ## Consequences
 
-Operational engine use is explicit and fail-closed, while evaluation remains a stable lexical baseline and rollback can restore baseline independently.
+Operational engine use is explicit and fail-closed, while evaluation retains a stable lexical baseline and rollback can independently restore baseline operation.

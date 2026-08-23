@@ -5,18 +5,30 @@ Decision date: 2026-08-21
 
 ## Context
 
-The plan showed order/risk but not locally fixable versus externally verified blockers. Publisher readiness assumes a repository and steady-state settings and cannot decide unresolved repository/scope ownership for first publication.
+The plan showed order and risk but did not distinguish locally fixable blockers from externally verified ones. Publisher readiness assumes a repository and steady-state settings and cannot decide unresolved repository or scope ownership for first publication.
 
 ## Decision
 
-- Add `release:bootstrap:blockers [--json]`, reading only bounded regular CLI package and release-manifest files and rechecking unchanged bytes before output.
-- V1 always states `blocked`, activation not implemented, advisory only.
-- Local checks: package identity/public access; matching valid GitHub repository; matching non-UNLICENSED license; public npm registry plus explicit provenance. Each is ready/blocked with controlled reason. Only matching valid repository/license appear as targets.
-- Bind both source digests and checks; reader reconstructs report, rejecting redigested forgery.
-- Separately list `required` external facts: online public-name availability, human confirmation of real `@lervo` scope control, and separate approval binding license/name/scope/one-time publish/stage transition.
-- `required` means unobserved, not failed/absent. Even all local-ready remains blocked because external facts and activation are outstanding.
-- Default English output separates local changes from external confirmation; query exits 0 because report succeeded, so consumers inspect status.
-- Reject unsupported/online arguments before source. Provide no online/approval/patch/reservation/publisher port. Bind metadata not changed and write no result/event/state.
+Add `release:bootstrap:blockers [--json]`. It reads only bounded regular CLI-package and release-manifest files and rechecks unchanged bytes before output.
+
+V1 is always `blocked`, with activation not implemented and advisory-only status. It reports these local checks as ready or blocked with controlled reasons:
+
+- Package identity and public access.
+- A matching valid GitHub repository.
+- A matching non-UNLICENSED license.
+- The public npm registry with explicit provenance.
+
+Only a matching valid repository and license appear as targets. Bind both source digests and the checks. The reader reconstructs the report and rejects redigested forgery.
+
+Separately list these external facts as `required`:
+
+- Online public-name availability.
+- Human confirmation of actual `@lervo` scope control.
+- Separate approval binding the license, name, scope, one-time publication, and stage transition.
+
+`required` means unobserved, not failed or absent. Even when every local check is ready, the result remains blocked because external facts and activation are outstanding.
+
+Default English output separates local changes from external confirmation. A successful query exits 0, so consumers must inspect status. Reject unsupported or online arguments before reading sources. Provide no online, approval, patch, reservation, or publisher port. Bind that metadata was not changed, and write no result, event, or state.
 
 ## Consequences
 

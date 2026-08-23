@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ec137302500096d1c6e7a464
+  - uv_5bacd54d7a88e33c366ce11c
 title: "ADR-0168: Platform-Bound Standalone Lervo Hub Distribution"
 type: decision

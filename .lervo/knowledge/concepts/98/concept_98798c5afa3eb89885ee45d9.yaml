@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_625ee34eb4803bc4ed44643b
+  - uv_769840ca0a1143b44bd136a9
 title: "ADR-0089: CLI multi-platform release matrix"
 type: decision

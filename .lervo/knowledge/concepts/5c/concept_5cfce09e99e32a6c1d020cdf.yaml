@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_33f3ac97743cb5e422ae758b
+  - uv_5f07137ad2234decbfff8d1f
 title: "ADR-0133: User-Facing Codex–Claude Deliberation CLI"
 type: decision

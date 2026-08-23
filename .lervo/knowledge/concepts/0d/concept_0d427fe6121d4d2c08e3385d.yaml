@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_1f40d5d0cb006c3e1dec91ac
+  - uv_0727c15285658e6f9949a1af
 title: "ADR-0138: Durable Conversation Deliberation Queue"
 type: decision

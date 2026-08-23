@@ -98,7 +98,11 @@ for (const path of trackedAndNewFiles) {
   }
   const withoutStandardTerms = content
     .replaceAll("provenance", "")
-    .replaceAll("Provenance", "");
+    .replaceAll("Provenance", "")
+    .replaceAll("unproven", "")
+    .replaceAll("Unproven", "")
+    .replaceAll("proven", "")
+    .replaceAll("Proven", "");
   if (path !== brandCheckPath && withoutStandardTerms.includes("roven")) {
     let withoutPreviousIdentity = withoutStandardTerms.replaceAll(".roven", "");
     if (previousMarkerAllowlist.has(path)) {

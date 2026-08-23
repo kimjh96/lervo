@@ -1,0 +1,25 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2090a522592f794c94607f8d
+outputLanguage: en
+outputs:
+  - byteCount: 1072
+    contentHash: sha256:5a22a0383c97b084b4015b4e825072e60fe93a1efce12bf2e4d00fdeb4b98fce
+    path: docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md
+    userRegionHash: sha256:5a22a0383c97b084b4015b4e825072e60fe93a1efce12bf2e4d00fdeb4b98fce
+profile: decision_record
+recordId: knormdoc_4d1fa8abbf885ea8cba84367
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:e3a84ace2773c22217a27f61c73289dc704388128487c426c94a696b65c7a84d
+sourcePath: docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md
+sourceUnitVersionIds:
+  - uv_5fc4dbce33c5e5311856adc2
+  - uv_d89d387b6a04201ce2a9a55f
+  - uv_f55cac402ddfff288f4ee5a4

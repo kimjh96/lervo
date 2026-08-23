@@ -1,21 +1,21 @@
 # ADR-0069: Bounded search-rollout action status
 
-Status: `accepted`
+Status: `accepted`  
 Decision date: 2026-08-20
 
 ## Context
 
-Keep acknowledgements and rollout-driven schema-v3 rollbacks live in different immutable stores. Operators need one bounded view without treating ordinary rollback as rollout policy evidence or hiding corrupt history through pagination.
+Keep acknowledgements and rollout-driven schema-v3 rollbacks occupy different immutable stores. Operators need one bounded view that neither treats ordinary rollback as rollout-policy evidence nor hides corrupt history through pagination.
 
 ## Decision
 
-- `search rollout action status` combines keep acknowledgements and schema-v3 rollbacks only.
-- Return default 20/max 50 newest-first by action time/ID with cursor after last action ID.
-- Each item includes action source, linked review, current derived quality snapshot, whether target transition is current, whether rollback transition is current, and input change by digest.
-- Before pagination validate every acknowledgement and full selection chain. Revalidate keep policy/review/candidate/head/input and v3 rollback with operational resolver semantics. Any off-page corruption fails the entire query.
-- Read-only query creates no file, transition, acknowledgement, approval, event, or sync.
-- Output may include local actors, policy/review/selection IDs, times, and aggregates, but excludes queries/digests, detailed search/source data, provider results, credentials, and verification receipts.
+- `search rollout action status` combines only keep acknowledgements and schema-v3 rollbacks.
+- Return actions newest-first by action time and ID, with 20 items by default and 50 maximum. The cursor follows the last action ID.
+- Each item includes the action source, linked review, current derived quality snapshot, whether the target transition is current, whether the rollback transition is current, and digest-based input-change state.
+- Before pagination, validate every acknowledgement and the complete selection chain. Revalidate keep policy, review, candidate, head, and input, and validate v3 rollback with operational-resolver semantics. Any off-page corruption fails the entire query.
+- Keep the query read-only: create no file, transition, acknowledgement, approval, event, or sync.
+- Output may contain local actors, policy, review, and selection IDs, times, and aggregates. Exclude queries and digests, detailed search and source data, provider results, credentials, and verification receipts.
 
 ## Consequences
 
-Operators see heterogeneous actions in one bounded page without automatic action selection; full-source validation costs scale with the bounded source count.
+Operators can inspect heterogeneous actions in one bounded page without automatic action selection. Full-source validation cost scales with the bounded source count.

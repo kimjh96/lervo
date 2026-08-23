@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_633837e47a5881a055c6ee12
+  - uv_3e2b218a3210f455a9e91c14
 title: "ADR-0124: npm Stage-Result Artifact Evidence"
 type: decision

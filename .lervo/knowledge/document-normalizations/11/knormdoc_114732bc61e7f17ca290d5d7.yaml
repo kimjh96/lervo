@@ -1,0 +1,25 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bce0a219ec3e44c488524887
+outputLanguage: en
+outputs:
+  - byteCount: 1070
+    contentHash: sha256:ade684fef0ccb489fb555484b17bfc94f4fc6a21583539777787799a3e08e61c
+    path: docs/decisions/operations/trace/0083-trace-default-transition-fixture.md
+    userRegionHash: sha256:ade684fef0ccb489fb555484b17bfc94f4fc6a21583539777787799a3e08e61c
+profile: decision_record
+recordId: knormdoc_114732bc61e7f17ca290d5d7
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:bfb020925b597acab67299d40a8516447f83e886b2b49be80e44dd018fc0687d
+sourcePath: docs/decisions/operations/trace/0083-trace-default-transition-fixture.md
+sourceUnitVersionIds:
+  - uv_7b8fbe727477ab6f043078c6
+  - uv_bd78330f1d96b8f36f84ea24
+  - uv_c34bd540aa9fca0ece7b1588

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ccc17090d31aa6d6aed0a527
+  - uv_e1938ccfe6dc2f86ce12c48d
 title: "ADR-0029: Codex–Claude cross-review and role-specific provider enforcement"
 type: decision

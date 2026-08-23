@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_6996444718c7c58b1aabab4c
+  - uv_9b77ecf84494f9577f108722
 title: "ADR-0111: CLI first-publication bootstrap v2 evidence binding"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c94ac345dd7070ddec5d9e77
+  - uv_c4836c50d93a6c5121635b9d
 title: "ADR-0075: Versioned doctor-report compatibility contract"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e99cf2d55f86d58f11458fff
+outputLanguage: en
+outputs:
+  - byteCount: 2800
+    contentHash: sha256:f17d439b8cf878b804e48c61f75d9eb3eabec8da7dd44e6c918a78da815b44c1
+    path: docs/decisions/coordination/remote-control/0148-durable-command-artifact-cleanup-runtime.md
+    userRegionHash: sha256:f17d439b8cf878b804e48c61f75d9eb3eabec8da7dd44e6c918a78da815b44c1
+profile: decision_record
+recordId: knormdoc_c6ad4c49e10afd6a2fbe8d1b
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:f13c49e2caf4bc57ef4a126c06758a6f62c664da8dd9c856d05ba13de5e5e867
+sourcePath: docs/decisions/coordination/remote-control/0148-durable-command-artifact-cleanup-runtime.md
+sourceUnitVersionIds:
+  - uv_03bd24e4e18a46fbe5ff66ec
+  - uv_1948cf2b277addefd068da9c
+  - uv_422ea1002b31a55da56f4e5b
+  - uv_c6359184365c353fa801ae2d

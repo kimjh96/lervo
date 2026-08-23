@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_862f6e43ace06675dfd5cb35
+  - uv_d73a906075707c4b3495606a
 title: "ADR-0108: CLI first-publication package-metadata apply transaction"
 type: decision

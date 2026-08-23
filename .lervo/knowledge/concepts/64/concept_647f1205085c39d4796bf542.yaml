@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a54b70566403cb27b0c373c8
+  - uv_55c92767d3d5a5b465f08ffe
 title: "ADR-0154: Multi-File Managed Provider Turns and Context Reinjection"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_865ae6a7373c526437792dfa
+outputLanguage: en
+outputs:
+  - byteCount: 2881
+    contentHash: sha256:51120e9b1888009f7ba07b65bdcacc60df52d5df4ea91938cea2616306a4b1ed
+    path: docs/decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md
+    userRegionHash: sha256:51120e9b1888009f7ba07b65bdcacc60df52d5df4ea91938cea2616306a4b1ed
+profile: decision_record
+recordId: knormdoc_5dd75316b168b66282fb9463
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:3c158e793bee4ad18404180deea7640244d7691c9780a29118c237181bd32d78
+sourcePath: docs/decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md
+sourceUnitVersionIds:
+  - uv_2d2f137f48781669f0b6eabd
+  - uv_6c57c5137bdaa1cf1fce8b03
+  - uv_ddc9b0e0440d4693ada0e0ca
+  - uv_fbf812bf4db81d972713f6bb

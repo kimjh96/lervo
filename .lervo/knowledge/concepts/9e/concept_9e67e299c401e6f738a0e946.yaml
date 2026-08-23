@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_caf4b26d36ae8197146310c7
+  - uv_139bd70e6a399b0a181e5fe3
 title: "ADR-0126: npm Stage-Approval Authorization"
 type: decision

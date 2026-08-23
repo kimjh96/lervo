@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fe1fa924f08acf413957e2e0
+outputLanguage: en
+outputs:
+  - byteCount: 3798
+    contentHash: sha256:2e284f29496ae69951892c73cff2bf46ffb7afa223dd3e7154bb8637c5cd5766
+    path: docs/decisions/coordination/sync/0045-hub-policy-authoring-and-http-sync.md
+    userRegionHash: sha256:2e284f29496ae69951892c73cff2bf46ffb7afa223dd3e7154bb8637c5cd5766
+profile: decision_record
+recordId: knormdoc_c195e316ecc5ff9b1eeae6f7
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:4723f537b7a5de25237c0c089967a625e83d29f1afb9c8d2f99dbb5e293a1ae3
+sourcePath: docs/decisions/coordination/sync/0045-hub-policy-authoring-and-http-sync.md
+sourceUnitVersionIds:
+  - uv_0773e29b645a60ef2dd86038
+  - uv_4a6d620b3c14afaf411f8a86
+  - uv_4af3d5a7f28ad639df285ea2
+  - uv_4edeaaa68707a63617448329
+  - uv_5a92a77dfc5cc52189e4cceb
+  - uv_7e53e7264cb83cdc65420e7a
+  - uv_a05e71c463054924ef64f93e

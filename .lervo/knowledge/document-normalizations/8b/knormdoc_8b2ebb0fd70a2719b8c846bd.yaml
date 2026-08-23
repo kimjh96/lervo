@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b7cb8d3acf15bee8f6a65f0c
+outputLanguage: en
+outputs:
+  - byteCount: 4365
+    contentHash: sha256:6af0659331ce39b5d39d833ed4cd16c2a26a4bf0aa4b91da3854f3d0d09c2d04
+    path: docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md
+    userRegionHash: sha256:6af0659331ce39b5d39d833ed4cd16c2a26a4bf0aa4b91da3854f3d0d09c2d04
+profile: decision_record
+recordId: knormdoc_8b2ebb0fd70a2719b8c846bd
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:db45d35305546b202181c15d4f547b43fac6025afab4e362c645a2c61df54264
+sourcePath: docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md
+sourceUnitVersionIds:
+  - uv_11d6dfb292f34694683f772a
+  - uv_380c7dc9b2c36be410200083
+  - uv_4849b7fe49889467eefbb7a4
+  - uv_4a34ebf01afebaa672341161
+  - uv_65e6b969ecd26599abc28ce9
+  - uv_aaf79e87b312ebb22ee35161
+  - uv_b9e30d8404e61ceacaddb48a

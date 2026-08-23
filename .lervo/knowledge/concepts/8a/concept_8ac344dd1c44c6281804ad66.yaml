@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9bf88ad6969daddefbb07cea
+  - uv_924a8619b86617507c13bdf9
 title: "ADR-0160: Real HTTPS Managed Provider Vertical Pilot"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_de15aca7e940f0183dbe5861
+outputLanguage: en
+outputs:
+  - byteCount: 2069
+    contentHash: sha256:6db23a0ee2f4af936cf94bb7fed97ab64aac38fc6c3161aaf1fa73d5ce1a9fdd
+    path: docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md
+    userRegionHash: sha256:6db23a0ee2f4af936cf94bb7fed97ab64aac38fc6c3161aaf1fa73d5ce1a9fdd
+profile: decision_record
+recordId: knormdoc_184aa6a92ad9637741835231
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:02a8ba884f5bf9f23a48b383b9ce4c395275848987bf06f7a503c406b0903177
+sourcePath: docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md
+sourceUnitVersionIds:
+  - uv_38b2f3b1b808d22d7b361137
+  - uv_3e62d9ad163118fb594861c2
+  - uv_6648b34c7c67b0750ed14907
+  - uv_c42dc53e9b17aef55a25deb4

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_46e7eff573b3fdbe9a5ea2ed
+  - uv_e2df3dcd855389275c433481
 title: "ADR-0063: Search-adapter build identity and rebuildable replay receipts"
 type: decision

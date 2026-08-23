@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_36775a2ee690961bdbd1a6d6
+  - uv_e7ffa33e07b8c7d26c3859fe
 title: "ADR-0021: CommonMark managed-block parsing"
 type: decision

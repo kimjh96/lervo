@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_35c7a69297bf0383716f8b71
+outputLanguage: en
+outputs:
+  - byteCount: 1920
+    contentHash: sha256:f3ec5017b261eba2e01b2fb54682b8a0853346e3a6d427990c501457a80517c9
+    path: docs/decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md
+    userRegionHash: sha256:f3ec5017b261eba2e01b2fb54682b8a0853346e3a6d427990c501457a80517c9
+profile: decision_record
+recordId: knormdoc_2d08a8165e7d97a80a29062c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:640accb7c55fd3971323bbe28dba908968ca5e77095c8e3c5e968526b7050413
+sourcePath: docs/decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md
+sourceUnitVersionIds:
+  - uv_09ee936617c4617d8d32adde
+  - uv_5bda2de3eb0c6edbe0ad993c
+  - uv_74fd4b9a8d429f93f76fb10b
+  - uv_766ec1a146d161ce1d0c5501

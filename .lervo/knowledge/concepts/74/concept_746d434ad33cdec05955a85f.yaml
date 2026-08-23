@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_4942c8089a96498f62288956
+  - uv_b93c2e7096e09470f91b7436
 title: "ADR-0148: Durable Command Artifact Cleanup Runtime"
 type: decision

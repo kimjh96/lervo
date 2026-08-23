@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_645e530b5908f3ba2681fda3
+outputLanguage: en
+outputs:
+  - byteCount: 3367
+    contentHash: sha256:b964eed5400ac6b681900e00335c700c8d45bdce76b96e6133ec6efbd9927618
+    path: docs/decisions/coordination/remote-control/0041-signed-scoped-remote-command.md
+    userRegionHash: sha256:b964eed5400ac6b681900e00335c700c8d45bdce76b96e6133ec6efbd9927618
+profile: decision_record
+recordId: knormdoc_22906a7edbfc045c67339f24
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:111003fc6969ee3cfd7efd7b7a1cfd0a569a450300a284df1cb192045da1b746
+sourcePath: docs/decisions/coordination/remote-control/0041-signed-scoped-remote-command.md
+sourceUnitVersionIds:
+  - uv_17bab251daae42c7be7e43ba
+  - uv_4949fb7cf34cf2ed209e658e
+  - uv_7e2498d3831d6dff149c42b4
+  - uv_7f1ae8b9b865e942a078a56f
+  - uv_8563e2f0bdd62c4aea27d6c6
+  - uv_99d86a2d0bc1eb4052f4ac5c
+  - uv_eb4489d1b3495658043cd3d2

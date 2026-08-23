@@ -5,4 +5,4 @@
 
 - [Lervo System Architecture](../architecture/system.md) — `docs/architecture/system.md`
 - [ADR-0175: Bounded Git HEAD Revision Source](../decisions/knowledge/repository/0175-bounded-git-head-revision-source.md) — `docs/decisions/knowledge/repository/0175-bounded-git-head-revision-source.md`
-- [Lervo Product Vision](../product/vision.md) — `docs/product/vision.md`
+- [Lervo product vision](../product/vision.md) — `docs/product/vision.md`

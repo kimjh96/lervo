@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_27731ff2eff749994c8f5e1f
+outputLanguage: en
+outputs:
+  - byteCount: 1341
+    contentHash: sha256:6dd19372792913641d13c1ff3d1f305ff1809c79587a79d7149099efee8f5a82
+    path: docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md
+    userRegionHash: sha256:6dd19372792913641d13c1ff3d1f305ff1809c79587a79d7149099efee8f5a82
+profile: decision_record
+recordId: knormdoc_821139525f95eeb2d82450aa
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:25a079f3346cb49fc7215168063bed2ae8d98df046ab291c6fcdbb4806600419
+sourcePath: docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md
+sourceUnitVersionIds:
+  - uv_392ac51918a566e784620f9f
+  - uv_482182ecbcc42f3a9c85d8e1
+  - uv_b00885cb64d0aba0ae1c483a
+  - uv_b8d5a24ae4e9a05a25ee039d

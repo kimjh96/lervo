@@ -124,10 +124,10 @@ async function verifyPackageGuide(consumerRoot) {
     "lervo init --name my-project",
     "lervo init --dry-run --name my-project",
     "lervo --help",
-    "without a Hub",
   ]) {
     assert.equal(guide.includes(requiredText), true);
   }
+  assert.match(guide, /\b(?:works?|operates?|runs?) without a Hub\b|\bdo(?:es)? not require a Hub\b/u);
 }
 
 async function runConsumerCli(consumerRoot, args) {

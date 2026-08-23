@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_f4b560839349c9117d121c95
+  - uv_c32af5b0ffab6d89a36b0008
 title: "ADR-0091: CLI registry-publish preflight contract"
 type: decision

@@ -3,22 +3,22 @@
 Status: `accepted`
 Decision date: 2026-08-20
 
-Later ADR-0087 bundles internals; ADR-0090 adds package README/metadata checks.
+Later ADR-0087 bundles internals; ADR-0090 adds package README and metadata checks.
 
 ## Context
 
-Source tests/build do not prove installed version/bin/dist/runtime dependencies. The 0.1.0 trace transition could pass source fixtures while an installed package executes stale output. Deployment smoke should reuse, not duplicate, the larger cursor fixture.
+Source tests and builds do not prove the installed version, bin, dist output, or runtime dependencies. The 0.1.0 trace transition could pass source fixtures while an installed package ran stale output. Deployment smoke should reuse the larger cursor fixture rather than duplicate it.
 
 ## Decision
 
-- Add storage-free `lervo --version`/`-v`, printing one `lervo <semver>` line from packaged `package.json`; invalid/unavailable version is source-free `cli_version_unavailable`. Reject trailing arguments.
-- `pnpm smoke:built-cli` builds the workspace, creates an isolated production `pnpm deploy --prod`, and runs installed `dist/bin.js` from another project cwd.
-- Require root/source/installed versions equal; bin points to `./dist/bin.js`; version output matches with empty stderr.
-- Read installed `trace --capabilities` and verify page default/implicit mode/no deprecation.
-- Initialize with installed CLI, write two fixed synthetic events using independently built project-storage, then verify default page v1 without status and explicit completed full v1 over the same events.
-- Use no user repository/payload and remove temporary install/project on success or failure.
-- Keep 50/51 pagination continuity solely in ADR-0083 fixture.
+- Add storage-free `lervo --version` and `lervo -v`, printing exactly one `lervo <semver>` line from the packaged `package.json`. An invalid or unavailable version returns source-free `cli_version_unavailable`. Reject trailing arguments.
+- `pnpm smoke:built-cli` builds the workspace, creates an isolated production deployment with `pnpm deploy --prod`, and runs the installed `dist/bin.js` from another project working directory.
+- Require root, source, and installed versions to match; require bin to target `./dist/bin.js`; and require version output to match with empty stderr.
+- Read installed `trace --capabilities` and verify the page default, implicit mode, and absence of deprecation.
+- Initialize through the installed CLI, write two fixed synthetic events using independently built project storage, then verify default page v1 without status and explicit completed full v1 against the same events.
+- Use no user repository or payload. Remove temporary installation and project data on success or failure.
+- Keep 50/51 pagination continuity solely in the ADR-0083 fixture.
 
 ## Consequences
 
-`pnpm check` catches stale/missing dist, version/bin mismatch, and deployed dependency omissions. It proves only local lockfile/store deployment—not registry/global shim/provider auth/managed run.
+`pnpm check` detects stale or missing dist output, version/bin mismatches, and deployed dependency omissions. It proves only local lockfile/store deployment, not registry or global shims, provider authentication, or managed runs.

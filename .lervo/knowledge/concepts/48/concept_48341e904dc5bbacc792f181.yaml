@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8237dc47f46f44349bf15eb1
-title: "ADR-0035: Authenticated-peer, lease-bound outbound sync worker"
+  - uv_8e91d2addd19bccc561bc31e
+title: "ADR-0035: Authenticated-Peer, Lease-Bound Outbound Sync Worker"
 type: decision

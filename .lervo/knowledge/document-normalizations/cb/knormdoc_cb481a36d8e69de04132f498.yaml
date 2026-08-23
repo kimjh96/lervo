@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dfa062c30871b40faff2ff91
+outputLanguage: en
+outputs:
+  - byteCount: 3060
+    contentHash: sha256:a83c45ed2ca9da8a114e287129a6269528a2a3d530e79b35b21725d605f71a59
+    path: docs/decisions/execution/orchestration/0051-evidence-bound-multi-discipline-roles.md
+    userRegionHash: sha256:a83c45ed2ca9da8a114e287129a6269528a2a3d530e79b35b21725d605f71a59
+profile: decision_record
+recordId: knormdoc_cb481a36d8e69de04132f498
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5defa8bed89435ce393fce1ee1b46136801d6f9be08c6ec338129ca807841a77
+sourcePath: docs/decisions/execution/orchestration/0051-evidence-bound-multi-discipline-roles.md
+sourceUnitVersionIds:
+  - uv_43ecfdd8e45dce8bb2c23269
+  - uv_66d12b0d2cdce5f09d728535
+  - uv_91d1d937ea93e8c44dda3d23
+  - uv_9a6fd100f2df99dbffbe2653

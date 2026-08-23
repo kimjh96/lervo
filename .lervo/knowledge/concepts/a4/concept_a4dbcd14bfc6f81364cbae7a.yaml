@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ed02fc7fa1d3ef5b99a6ac9f
+  - uv_2f614e45c802123b2f435ad8
 title: "ADR-0043: Signed policy and command-bound approval that cannot relax local limits"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7120dbd83af5104073a65f4f
+  - uv_0f5f3cf2c72ed98b1bbe3550
 title: "ADR-0189: Typed Repository Agent-Surface Inventory"
 type: decision

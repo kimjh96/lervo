@@ -1,0 +1,30 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2c6f9eee1c9513eaf417add8
+outputLanguage: en
+outputs:
+  - byteCount: 3137
+    contentHash: sha256:32c1baa4a57b8d50d9d0969a957e86457953ae94d491e19a9590e13b99750ace
+    path: docs/decisions/coordination/deliberation/0027-deliberation-boundary-hardening.md
+    userRegionHash: sha256:32c1baa4a57b8d50d9d0969a957e86457953ae94d491e19a9590e13b99750ace
+profile: decision_record
+recordId: knormdoc_4423f9fffc1c310b274c8169
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:889da441cb37cc1e37139f1c13ec873f79655d2cb94edfb3aa1c736995fcf6f1
+sourcePath: docs/decisions/coordination/deliberation/0027-deliberation-boundary-hardening.md
+sourceUnitVersionIds:
+  - uv_6dba69fdf46fc0abc473ae67
+  - uv_75879246ec20d99a296bd207
+  - uv_75b9135ed57859799a9a945f
+  - uv_a5ac9b07a1b033d39bbfaec8
+  - uv_b60a9d3a7c1cd2b463737874
+  - uv_d596c838ae7756c9c752062d
+  - uv_dee058cb8ddf75fb472fa96b
+  - uv_fd4a9647abf92f03fe0de0ba

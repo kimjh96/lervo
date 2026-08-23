@@ -3,9 +3,10 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
-- [ADR-0039: Authenticate and scope projects before trace HTTP reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`
-- [ADR-0040: Read-only trace web view without accumulated pages](../../decisions/operations/trace/0040-bounded-trace-web-view.md) — `docs/decisions/operations/trace/0040-bounded-trace-web-view.md`
-- [ADR-0076: Versioned trace-report compatibility contract](../../decisions/operations/trace/0076-versioned-trace-report-contract.md) — `docs/decisions/operations/trace/0076-versioned-trace-report-contract.md`
+- [ADR-0004: Project Storage Bootstrap](../../decisions/operations/storage/0004-project-storage-bootstrap.md) — `docs/decisions/operations/storage/0004-project-storage-bootstrap.md`
+- [ADR-0039: Authenticate and Scope Projects Before Trace HTTP Reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`
+- [ADR-0040: Read-Only Trace Web View Without Accumulated Pages](../../decisions/operations/trace/0040-bounded-trace-web-view.md) — `docs/decisions/operations/trace/0040-bounded-trace-web-view.md`
+- [ADR-0076: Versioned Trace-Report Compatibility Contract](../../decisions/operations/trace/0076-versioned-trace-report-contract.md) — `docs/decisions/operations/trace/0076-versioned-trace-report-contract.md`
 - [ADR-0077: Bounded trace source reads that expose truncation](../../decisions/operations/trace/0077-bounded-trace-source-reads.md) — `docs/decisions/operations/trace/0077-bounded-trace-source-reads.md`
 - [ADR-0078: Snapshot-bound local trace cursor pages](../../decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md) — `docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md`
 - [ADR-0079: Explicit trace-page event-type filters](../../decisions/operations/trace/0079-explicit-trace-page-event-filter.md) — `docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md`
@@ -26,4 +27,3 @@
 - [ADR-0101: CLI first-publication preflight command](../../decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md) — `docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md`
 - [ADR-0102: CLI first-publication execution plan and unarmed boundary](../../decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md) — `docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md`
 - [ADR-0103: CLI first-publication execution-plan command](../../decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md) — `docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md`
-- [ADR-0104: CLI first-publication activation blocker report](../../decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md) — `docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md`

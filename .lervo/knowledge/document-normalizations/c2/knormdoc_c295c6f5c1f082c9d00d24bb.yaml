@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3121f0829db6a4e2a566405f
+outputLanguage: en
+outputs:
+  - byteCount: 1819
+    contentHash: sha256:4feb9d9ed5f3232423c0becbe96688ae3c3716abe44ed34c50b00aa2788bd022
+    path: docs/decisions/operations/security/0161-atomic-node-bearer-token-reload.md
+    userRegionHash: sha256:4feb9d9ed5f3232423c0becbe96688ae3c3716abe44ed34c50b00aa2788bd022
+profile: decision_record
+recordId: knormdoc_c295c6f5c1f082c9d00d24bb
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:3a580952f2588dfe755b738d85324e1197085dea448dd22a2b9124ff8bed693b
+sourcePath: docs/decisions/operations/security/0161-atomic-node-bearer-token-reload.md
+sourceUnitVersionIds:
+  - uv_41ca784f2faeede3d4fa2fa2
+  - uv_63dfd606716ad96578d5210f
+  - uv_f5351dc8af5211ceb16ef67c
+  - uv_f5d779e8adba9a102f2648d8

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_fc9d2796b132116fec6b128d
+  - uv_48e133125d332eb05d18d9ad
 title: "ADR-0083: Trace default-transition compatibility fixture"
 type: decision

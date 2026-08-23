@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_94e7a7fe0cf4a990f367759f
+outputLanguage: en
+outputs:
+  - byteCount: 5460
+    contentHash: sha256:2110b52de1361d6701c8835f23efd1ceaf14c9eb89a4e018533ca6c9c0d07df6
+    path: docs/decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md
+    userRegionHash: sha256:2110b52de1361d6701c8835f23efd1ceaf14c9eb89a4e018533ca6c9c0d07df6
+profile: decision_record
+recordId: knormdoc_9a03cccf15eb59ed7f5425c5
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:869b9af04bd26ac288e66a9977dcc124870bffd43e72b700b1e84b38d3841518
+sourcePath: docs/decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md
+sourceUnitVersionIds:
+  - uv_3e579a393e710804524b18c0
+  - uv_3f9dafe868cc43b2a4abdd0c
+  - uv_475ff95beffff2352a11409d
+  - uv_84f881983ac62825983ef3f0

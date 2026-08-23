@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4dd36f898edf3fccc667d70c
+outputLanguage: en
+outputs:
+  - byteCount: 3048
+    contentHash: sha256:8c5ee34e7d43fbb036ebbbd0bd617a8b9efb0b5bb980e4f358c5649a2298432f
+    path: docs/decisions/coordination/conversations/0050-principal-bound-conversation-command-review.md
+    userRegionHash: sha256:8c5ee34e7d43fbb036ebbbd0bd617a8b9efb0b5bb980e4f358c5649a2298432f
+profile: decision_record
+recordId: knormdoc_e6abb145ba307ce577f2bf02
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:fcaf6b1d0733248a1fb802bd665bf722d728d16d87ec1f6decccebae5c1cdb01
+sourcePath: docs/decisions/coordination/conversations/0050-principal-bound-conversation-command-review.md
+sourceUnitVersionIds:
+  - uv_00788adfea743b37e9931303
+  - uv_261d56a9d9328834a0bed804
+  - uv_43ca09e07d35fbbbf2467684
+  - uv_ccc330f0ff898d1487953570

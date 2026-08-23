@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4e012c34e65dc5717323aae4
+outputLanguage: en
+outputs:
+  - byteCount: 3312
+    contentHash: sha256:cd12cd0f043539c0c33a3b75e1ad78435e4aac28b73038dcde2fba9596b39dd8
+    path: docs/decisions/foundation/0002-safe-project-initialization.md
+    userRegionHash: sha256:cd12cd0f043539c0c33a3b75e1ad78435e4aac28b73038dcde2fba9596b39dd8
+profile: decision_record
+recordId: knormdoc_7384abecd0804a90d89e5dc7
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:753640a9b5464445e94c80dc698aaedc164ed1cdde2fecd88b328b0a460c9a32
+sourcePath: docs/decisions/foundation/0002-safe-project-initialization.md
+sourceUnitVersionIds:
+  - uv_2e665b343813866cbfa80bdf
+  - uv_348fc1cb91eca0da0c7656b0
+  - uv_67a00a3d3eff145d17c0c950
+  - uv_ae3a184b42aea885e37b5aae
+  - uv_aee50ee9525234b3def40ab3
+  - uv_f4b7553f4ea223112710ec05
+  - uv_fffbbc982e2b504502248c95

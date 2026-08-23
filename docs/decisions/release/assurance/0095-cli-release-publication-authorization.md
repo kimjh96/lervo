@@ -1,24 +1,24 @@
 # ADR-0095: CLI release publication eligibility and authority boundary
 
-Status: `accepted`
+Status: `accepted`  
 Decision date: 2026-08-21
 
 ## Context
 
-Verified signed release files do not determine npm target/version/tag, and a changed tarball after verification could be published. Read-only readiness must not hold registry-write credentials. Repository URL, `@lervo` ownership, and Trusted Publisher were unverified and cannot be invented.
+Verified signed release files do not determine the npm target, version, or tag, and a tarball changed after verification could be published. Read-only readiness must not hold registry-write credentials. Repository URL, `@lervo` ownership, and Trusted Publisher configuration were unverified and must not be invented.
 
 ## Decision
 
-- `release:publication:authorize` reruns consumer attestation verification and writes one new, non-overwriting JSON outside the repository.
-- V1 binds `status=eligible`, public npm/access, exact package/version, explicit `latest`/`next`, tar basename/SHA-256, expected npm SHA-512 integrity/SHA-1 shasum, verified repository/workflow/tag/commit/three subjects, and canonical authorization digest.
-- `eligible` means coordinates match verified release policy—not human approval, namespace ownership, publisher setup, reachability, or publication.
-- Core reader revalidates eligibility and tarball, recalculates all three digests immediately before narrow publish port, verifies exact registry/package/version/tag/digests in receipt, and rereads tarball afterward. Core knows no npm/GitHub environment.
-- Trusted-publishing adapter requires GitHub-hosted Actions/OIDC, Node ≥22.14, npm ≥11.5.1, rejects long-lived token/auth config, uses isolated empty npm configs/cache/cwd, publishes exact tar with public access/tag and no lifecycle scripts, then verifies public metadata and cleans up.
-- Tag attestation job creates/stores temporary eligibility only; it does not add npm publish/environment. Default readiness later restricts activation to staged publishing, leaving this direct adapter inactive unless separately authorized.
-- Add no runtime event/state.
+- `release:publication:authorize` reruns consumer attestation verification and exclusively writes one new JSON file outside the repository, without overwriting.
+- V1 binds `status=eligible`, public npm and access, exact package and version, explicit `latest` or `next`, tar basename and SHA-256, expected npm SHA-512 integrity and SHA-1 shasum, verified repository, workflow, tag, commit, and three subjects, plus a canonical authorization digest.
+- `eligible` means the coordinates satisfy verified release policy. It does not mean human approval, namespace ownership, publisher setup, reachability, or successful publication.
+- The core reader revalidates eligibility and the tarball, recalculates all three digests immediately before the narrow publish port, verifies the exact registry, package, version, tag, and digests in the receipt, and rereads the tarball afterward. Core knows no npm or GitHub environment.
+- The trusted-publishing adapter requires GitHub-hosted Actions/OIDC, Node ≥22.14, and npm ≥11.5.1. It rejects long-lived tokens and auth configuration; uses isolated empty npm configs, cache, and cwd; publishes the exact tarball with public access and the selected tag, without lifecycle scripts; verifies public metadata; and cleans up.
+- The tag attestation job creates and stores temporary eligibility only. It adds no npm publication or environment. Default readiness later restricts activation to staged publishing, so this direct adapter remains inactive unless separately authorized.
+- Add no runtime event or state.
 
-Fixtures reject digest/tag/unverified/tar mutation, tokens, old tools, and registry receipt mismatch. Verdaccio remains ADR-0091. No real GitHub/npm publish is claimed.
+Fixtures reject digest, tag, verification, or tar mutations; tokens; obsolete tools; and registry-receipt mismatches. Verdaccio remains governed by ADR-0091. No real GitHub or npm publication is claimed.
 
 ## Consequences
 
-Signed verification, publication coordinates, and external write authority are separate and cannot be conflated with actual publication approval/success.
+Signed verification, publication coordinates, and external write authority remain separate and cannot be conflated with actual publication approval or success.

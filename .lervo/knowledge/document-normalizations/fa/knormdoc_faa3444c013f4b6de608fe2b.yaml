@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_87bc79cd5c298e60ebfa7e73
+outputLanguage: en
+outputs:
+  - byteCount: 2780
+    contentHash: sha256:3f1fe9592c343b938fae8e1ea17469e0b7769e8b84465dc156d1bccb95811b1e
+    path: docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md
+    userRegionHash: sha256:3f1fe9592c343b938fae8e1ea17469e0b7769e8b84465dc156d1bccb95811b1e
+profile: decision_record
+recordId: knormdoc_faa3444c013f4b6de608fe2b
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:7b18195932f2a61a818d62c86f75eaa5e816264d0740febd3b638cebcb57e409
+sourcePath: docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md
+sourceUnitVersionIds:
+  - uv_1844c4cd121053b368dc1c61
+  - uv_1bb7518424b480f4de75790a
+  - uv_412f3d89e9ff1bc164eaeb19
+  - uv_5bcca55232df867e30fbe84e

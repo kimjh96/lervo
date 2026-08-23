@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_00dcd590a91c8bbee1bc4f95
+outputLanguage: en
+outputs:
+  - byteCount: 1512
+    contentHash: sha256:aa84ddfb473bc47860cdc1546d7378d438dea410335091a3cf170eaa29789237
+    path: docs/decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md
+    userRegionHash: sha256:aa84ddfb473bc47860cdc1546d7378d438dea410335091a3cf170eaa29789237
+profile: decision_record
+recordId: knormdoc_b6b1ad062ae10e8189e53889
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:88bfb7ae8efa1cc5a559692fe25e33158f3629f08fd77adde163c972c8a9214e
+sourcePath: docs/decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md
+sourceUnitVersionIds:
+  - uv_04aab54dc65da5bf0f156d02
+  - uv_602c7715f2194889d0364d24
+  - uv_c431c30d74345943d2ebd4de
+  - uv_d4d839183c16c99e675ac488

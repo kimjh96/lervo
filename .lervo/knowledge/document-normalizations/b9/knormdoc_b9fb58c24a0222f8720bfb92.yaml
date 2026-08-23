@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2b3361266f76528015d435c6
+outputLanguage: en
+outputs:
+  - byteCount: 1241
+    contentHash: sha256:bb60ae1b56a87b152caaeaccee1e49c8beb14d90f692ae9a71bf05cb52eac93a
+    path: docs/decisions/operations/diagnostics/0072-explicitly-scoped-doctor.md
+    userRegionHash: sha256:bb60ae1b56a87b152caaeaccee1e49c8beb14d90f692ae9a71bf05cb52eac93a
+profile: decision_record
+recordId: knormdoc_b9fb58c24a0222f8720bfb92
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:74192273c8702ff13564d07c01ef531a40a45dc0b4d55dd4f49047702c4e6596
+sourcePath: docs/decisions/operations/diagnostics/0072-explicitly-scoped-doctor.md
+sourceUnitVersionIds:
+  - uv_4fed2f6a39c58a4a17d3a388
+  - uv_5b585d698137d71b1a37267d
+  - uv_808f403caf43b1ef8a4dcfe3
+  - uv_bb319a9bb80981b0cbd723bd

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bd99789ef28c034e66e707d5
+outputLanguage: en
+outputs:
+  - byteCount: 3578
+    contentHash: sha256:e202fe2c4ba1c93c0958086731d50adfb0c1d3f976af3a40a70d3d91afb8c855
+    path: docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md
+    userRegionHash: sha256:e202fe2c4ba1c93c0958086731d50adfb0c1d3f976af3a40a70d3d91afb8c855
+profile: decision_record
+recordId: knormdoc_07df4c9bbeba07d88369a3ef
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5c1aea37fe12e8f488b74c2e91fbcde56b11931ae9203c10da386ef280e7a973
+sourcePath: docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md
+sourceUnitVersionIds:
+  - uv_20a066e82f1bb28d09f115a0
+  - uv_2fa91178dd7a9a2476993f34
+  - uv_32ac36592ac5a88811a04fbb
+  - uv_37c88e1180b943cfcbadcdeb

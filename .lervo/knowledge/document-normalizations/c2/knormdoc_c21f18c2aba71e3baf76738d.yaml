@@ -1,0 +1,27 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bf31adaa6e8af66ee1e92fac
+outputLanguage: en
+outputs:
+  - byteCount: 3283
+    contentHash: sha256:bac5ee5b3506647a7ea05b5dad7d9ce3f516c923ed1cac3cee7c1513fcf15e49
+    path: docs/decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md
+    userRegionHash: sha256:bac5ee5b3506647a7ea05b5dad7d9ce3f516c923ed1cac3cee7c1513fcf15e49
+profile: decision_record
+recordId: knormdoc_c21f18c2aba71e3baf76738d
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:33ef8157f0004aa2df43876ca98c4dd4899419293b7e6c42eea437d9ca9f5137
+sourcePath: docs/decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md
+sourceUnitVersionIds:
+  - uv_74513010f8f26a4e7a3a1031
+  - uv_c0017ce31bd552b5aa1c2d96
+  - uv_e263682b79cce0d9c9f5f8f8
+  - uv_f85f20def54d5553f73c15b5
+  - uv_fdd3b390a8d73838588070bb

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b11f9dde0c810a576cc627a9
+outputLanguage: en
+outputs:
+  - byteCount: 2606
+    contentHash: sha256:8bd4f38d40d1dc38ceea40d89434ab23d00436f423f3dc665a99b2c4dc19f9bb
+    path: docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md
+    userRegionHash: sha256:8bd4f38d40d1dc38ceea40d89434ab23d00436f423f3dc665a99b2c4dc19f9bb
+profile: decision_record
+recordId: knormdoc_ed074a88a0785b228b7bdee2
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:443f86d2633fe1a93a928cfc048094b2af4c472f0aca8c1109b2d2e508aa3000
+sourcePath: docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md
+sourceUnitVersionIds:
+  - uv_684177a9a62969feb777f24c
+  - uv_9005a75440e953185676dbb6
+  - uv_bbdbf8aa3819a91b88996126
+  - uv_f12af24a168806d8b336d7f6

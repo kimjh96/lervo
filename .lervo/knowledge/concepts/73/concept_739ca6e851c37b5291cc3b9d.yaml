@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_316730cd0195dc5e6784a0fd
+  - uv_1b5c13e265b0a866a88716c0
 title: "ADR-0046: Platform-neutral conversation participation"
 type: decision

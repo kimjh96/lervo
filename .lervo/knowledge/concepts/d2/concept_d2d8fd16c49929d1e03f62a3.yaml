@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_da3bb36a8ee01ce5523d236b
+  - uv_58b08a2fdef64c4e4ed1b310
 title: "ADR-0166: Repository-Authorized, Provider-Neutral Environment Sources"
 type: decision

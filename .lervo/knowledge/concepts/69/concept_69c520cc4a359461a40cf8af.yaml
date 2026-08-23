@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_843b6fb010e5bc9af7378e5d
+  - uv_f34e2d0bd29bb7d20d543835
 title: "ADR-0085: Installed CLI artifact smoke boundary"
 type: decision

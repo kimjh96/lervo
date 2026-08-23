@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b0cf579b3b3921c6309b70cb
+  - uv_294d84ec47a30ce067fd352e
 title: "ADR-0027: Deliberation boundary hardening before runtime"
 type: decision

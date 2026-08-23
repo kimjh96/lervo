@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2d05acdc8b9be581c5b68f77
+  - uv_8f2333916181b3f6862de25a
 title: "ADR-0184: Durable Exact-Byte User Document Merge"
 type: decision

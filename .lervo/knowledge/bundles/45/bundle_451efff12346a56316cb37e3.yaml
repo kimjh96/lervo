@@ -115,6 +115,7 @@ conceptIds:
   - concept_6031ec40d28689993e682b0b
   - concept_654bfa2ee70c344763b5f9fa
   - concept_1c1ab49f871084747b59fb72
+  - concept_98b760e9d56ef0e716111d89
   - concept_9304fa8997c2b471ce1bf733
   - concept_066f624cb9b93ec9d66b001d
   - concept_7525cbbb49fc4b3069956fe3
@@ -207,6 +208,7 @@ conceptIds:
   - concept_fe6a2ebccaed1676dbcd1525
   - concept_212946d748510264695a3e0e
   - concept_f1f58b982eb120b7c830d7d8
+  - concept_83dffd0999e9c9139b80bafb
   - concept_06a8d6d8a1a3c2382f7b683a
   - concept_839a0575afa59f77bd292d47
   - concept_3fdbc2a0544c1da918a67f20
@@ -220,5 +222,5 @@ entryPath: docs/knowledge/index.md
 publicationLanguage: en
 publicationRoot: docs/knowledge
 schemaVersion: 1
-sourceSnapshotId: ksnap_12c0e772f978faf5279213e2
+sourceSnapshotId: ksnap_814c367bdbcec1c7f57f3ff5
 title: Repository knowledge

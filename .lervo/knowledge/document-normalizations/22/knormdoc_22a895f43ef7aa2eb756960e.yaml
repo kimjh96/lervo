@@ -1,0 +1,28 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4b17befe8de68b52433a306b
+outputLanguage: en
+outputs:
+  - byteCount: 3525
+    contentHash: sha256:0e8a66129c9dd7e0e656dfe41476accd5596c8a1045ad1a02e305aaa691848a3
+    path: docs/decisions/coordination/sync/0194-destination-bound-local-event-reconciliation.md
+    userRegionHash: sha256:0e8a66129c9dd7e0e656dfe41476accd5596c8a1045ad1a02e305aaa691848a3
+profile: decision_record
+recordId: knormdoc_22a895f43ef7aa2eb756960e
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5860380609c11015bf5161dd950df796f9049ba29e128305df476c97a26cd3ca
+sourcePath: docs/decisions/coordination/sync/0194-destination-bound-local-event-reconciliation.md
+sourceUnitVersionIds:
+  - uv_1ce3cda27c98e155bc69da1c
+  - uv_5267aba7b7fa46efa648dcb2
+  - uv_780f6651ac868d14edd09ce4
+  - uv_8992f68412b68606f45f3636
+  - uv_b330648e2dc1ebb31d713065
+  - uv_f785eed996ef00e9be20fcf4

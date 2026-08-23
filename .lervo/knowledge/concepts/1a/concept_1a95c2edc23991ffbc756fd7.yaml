@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7f7601157ed453c49b249377
+  - uv_eb8e9a0666b3f92d15a651f7
 title: "ADR-0013: Provider-neutral managed-write bridge"
 type: decision

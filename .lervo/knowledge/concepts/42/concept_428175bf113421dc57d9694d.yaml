@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_77bd87285adfea67691b62e2
+  - uv_4d8ea6145670bb0d4525f49f
 title: "ADR-0084: 0.1.0 bounded trace default"
 type: decision

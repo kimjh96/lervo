@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c13b503e8ace3c702ea5f5ff
+  - uv_1b00e0e53d56472664abad3d
 title: "ADR-0136: Platform-Neutral Conversation Deliberation Control"
 type: decision

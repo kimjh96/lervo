@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8dc6289c5ca70c94797c529a
+  - uv_b8e9e335a5bb52c5e4934505
 title: "ADR-0055: Reviewed search evaluation cases and repeat measurement"
 type: decision

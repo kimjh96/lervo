@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1ad4eb6cca79912b3ca5ab78
+outputLanguage: en
+outputs:
+  - byteCount: 2939
+    contentHash: sha256:69e7103b1a087b9715b02ac2b65d9e95bf2ef3dbb74e03974f64149b3ffd1254
+    path: docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md
+    userRegionHash: sha256:69e7103b1a087b9715b02ac2b65d9e95bf2ef3dbb74e03974f64149b3ffd1254
+profile: decision_record
+recordId: knormdoc_a59ed3f8fa35f7d2efbd8d12
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:9a220fc300450d12d75fca81ea25fbd748bf121ede7dee5c78f070b79530ded6
+sourcePath: docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md
+sourceUnitVersionIds:
+  - uv_31fab8d6fa53eae8f4e9113e
+  - uv_556c0e7fd5c48271c0de59b2
+  - uv_6ef3395fbdeda1abd3330489
+  - uv_7d274a6d1ef23735e32d86ca

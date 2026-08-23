@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fa3011dd79534d35df4d6789
+outputLanguage: en
+outputs:
+  - byteCount: 1676
+    contentHash: sha256:c634cba04ccd05b1b05c9338946bb82d0429d3eeb008e4a9341a39a207c55fc6
+    path: docs/decisions/coordination/deliberation/0137-deliberation-liveness-and-diagnostics.md
+    userRegionHash: sha256:c634cba04ccd05b1b05c9338946bb82d0429d3eeb008e4a9341a39a207c55fc6
+profile: decision_record
+recordId: knormdoc_cea1472a8412602749c06891
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:52a27485dd5c4faa92aa22afe4a5f24c1e23e6eb5152ca263300c976c6ea5604
+sourcePath: docs/decisions/coordination/deliberation/0137-deliberation-liveness-and-diagnostics.md
+sourceUnitVersionIds:
+  - uv_026ac7da36f4f48fca223a43
+  - uv_562125c881c461286885a4dd
+  - uv_8ee9145c6aef550aedda5dcf
+  - uv_cae8c849646f60d8045f3238

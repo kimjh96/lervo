@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5a6bb2ee7e5e2c9c32ab8f7a
+outputLanguage: en
+outputs:
+  - byteCount: 2587
+    contentHash: sha256:4f3426cc9c5816f6cde43d8da39ef8dd92cce5e2d8972d1f4ddbc9c6ec6fdf63
+    path: docs/decisions/execution/providers/0155-managed-provider-role-registry.md
+    userRegionHash: sha256:4f3426cc9c5816f6cde43d8da39ef8dd92cce5e2d8972d1f4ddbc9c6ec6fdf63
+profile: decision_record
+recordId: knormdoc_84a5ea1cb842ab027b12fb54
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:1b4bbc8bc5f989ccfcc064884b77f8ab3c076ed18730b5db28133d3135634c83
+sourcePath: docs/decisions/execution/providers/0155-managed-provider-role-registry.md
+sourceUnitVersionIds:
+  - uv_055348789d10c90edbcdef6c
+  - uv_6a3d028bfec3f65e047ade25
+  - uv_8c78bdceb9bb9b2145a73283
+  - uv_dcbfd298933d76dc8a6c73b4

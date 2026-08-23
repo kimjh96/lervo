@@ -69,7 +69,7 @@ export interface RepositoryLayoutMachineMove {
   toPath: string;
   contentHash: string;
   byteCount: number;
-  registry: "bundles" | "concepts" | "claims" | "relations" | "source_lineage" | "instruction_bridges" | "semantic_manifests" | "inventory" | "source_units" | "impacts" | "candidates";
+  registry: "bundles" | "concepts" | "claims" | "relations" | "source_lineage" | "instruction_bridges" | "document_normalizations" | "semantic_manifests" | "inventory" | "source_units" | "impacts" | "candidates";
 }
 
 export interface RepositoryLayoutMigrationPlan {
@@ -169,6 +169,7 @@ async function machineArtifactMoves(root: string): Promise<RepositoryLayoutMachi
     { directory: ".lervo/knowledge/relations", extension: "yaml" as const, registry: "relations" as const, maximumBytes: 1024 * 1024 },
     { directory: ".lervo/knowledge/source-lineage", extension: "yaml" as const, registry: "source_lineage" as const, maximumBytes: 1024 * 1024 },
     { directory: ".lervo/knowledge/instruction-bridges", extension: "yaml" as const, registry: "instruction_bridges" as const, maximumBytes: 1024 * 1024 },
+    { directory: ".lervo/knowledge/document-normalizations", extension: "yaml" as const, registry: "document_normalizations" as const, maximumBytes: 1024 * 1024 },
     { directory: ".lervo/generated/semantic-manifests", extension: "json" as const, registry: "semantic_manifests" as const, maximumBytes: 16 * 1024 * 1024 },
     { directory: ".lervo/state/knowledge/inventory", extension: "json" as const, registry: "inventory" as const, maximumBytes: 32 * 1024 * 1024 },
     { directory: ".lervo/state/knowledge/source-units", extension: "json" as const, registry: "source_units" as const, maximumBytes: 32 * 1024 * 1024 },
@@ -534,7 +535,15 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       ? { ...currentRecord, content, desiredHash }
       : currentRecord.desiredHash === desiredHash
         ? { ...currentRecord, action: "unchanged", desiredHash }
-        : { path: bridge.bridgeRecordPath, action: "update", ownership: "lervo_generated", mediaType: "application/yaml", content, expectedCurrentHash: currentRecord.desiredHash, desiredHash });
+        : {
+            path: bridge.bridgeRecordPath,
+            action: "update",
+            ownership: "lervo_generated",
+            mediaType: "application/yaml",
+            content,
+            expectedCurrentHash: currentRecord.action === "unchanged" ? currentRecord.desiredHash : currentRecord.expectedCurrentHash!,
+            desiredHash,
+          });
   }
   const structuralPaths = new Set((structural?.operations ?? []).map((operation) => operation.path));
   const machineMoves = (await machineArtifactMoves(root)).filter((move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath));

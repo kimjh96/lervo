@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_0eccb6982efc51f89e795c03
-title: "ADR-0040: Read-only trace web view without accumulated pages"
+  - uv_347904898a7187faac2fb140
+title: "ADR-0040: Read-Only Trace Web View Without Accumulated Pages"
 type: decision

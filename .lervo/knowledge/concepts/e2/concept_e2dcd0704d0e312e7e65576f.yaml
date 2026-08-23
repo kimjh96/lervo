@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_473079d961ae6293c6a6e003
+  - uv_97935acc75c30999e7591925
 title: "ADR-0165: Runtime Readiness Separate from OS Activation"
 type: decision

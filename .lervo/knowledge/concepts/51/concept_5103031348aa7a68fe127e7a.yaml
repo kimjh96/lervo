@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c551d932e73cbfb341a1d1f0
+  - uv_e5815a624dbb1c51abfa0212
 title: "ADR-0183: Durable CommonMark Heading-Subtree Split"
 type: decision

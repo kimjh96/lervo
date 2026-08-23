@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_db5f3c34cff6253c2796bd56
+outputLanguage: en
+outputs:
+  - byteCount: 3033
+    contentHash: sha256:382f4e2bb168e319de19f0e90984dce364890b8bc079645c0f20495c852f5b08
+    path: docs/decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md
+    userRegionHash: sha256:382f4e2bb168e319de19f0e90984dce364890b8bc079645c0f20495c852f5b08
+profile: decision_record
+recordId: knormdoc_55cebbc0e684026999d4b196
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:0aa32379a62cff0033468970c3ad6276cdb9613412e3878f77b218b8764f013d
+sourcePath: docs/decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md
+sourceUnitVersionIds:
+  - uv_2a879c3f699e3d64b4a2f37a
+  - uv_959a27161636998fd7a84a9d
+  - uv_bd463536c46fea2784217d9e
+  - uv_d98ffe0cc6ab2074111377dd

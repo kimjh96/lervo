@@ -5,22 +5,24 @@
 
 ## Context
 
-Scanning .lervo/state would expose private storage and bypass event/result/suite binding. Event status alone cannot validate canonical result bytes or current tracked suites, and passed execution is not verified knowledge.
+Scanning `.lervo/state` would expose private storage and bypass event, result, and suite binding. Event status alone cannot validate canonical result bytes or current tracked suites. Passed execution is not verified knowledge.
 
 ## Decision
 
-verification-result-v1+event-cas uses a storage-neutral supplemental-source port. It audits the event chain through a starting sequence, selects only verification.completed, and caps sequence at 100,000 and results at 256.
+`verification-result-v1+event-cas` uses a storage-neutral supplemental-source port. It audits the event chain through a starting sequence, selects only `verification.completed` events, and limits the sequence to 100,000 and results to 256.
 
-Each event must bind verification ID, suite ID/hash, repository revision, status, result artifact ID/hash, nonpassing command ID, and time. CAS results are limited to 1 MiB each/16 MiB total and revalidated by address, strict canonical JSON, and VerificationResult. The current safe tracked suite loader recomputes suite hash, command digest, and result status.
+Each event must bind the verification ID, suite ID and hash, repository revision, status, result-artifact ID and hash, nonpassing command ID, and time.
 
-Each valid result becomes ordinary @verification/<id>, with adapter verification-result-v1+event-cas and exact full-byte verification:<id> unit. Scanner core sees only revalidated immutable supplemental bytes and rechecks virtual coordinates, duplicates, counts, and sizes. Every knowledge CLI and managed search uses the same collector.
+CAS results are limited to 1 MiB each and 16 MiB in total. Each result is revalidated by address, strict canonical JSON, and `VerificationResult`. The current safe tracked-suite loader recomputes the suite hash, command digest, and result status.
 
-Full snapshotId includes verification; contentSnapshotId excludes revision/verification/event for clone-reproducible structural output.
+Each valid result becomes an ordinary `@verification/<id>` source using adapter `verification-result-v1+event-cas` and an exact full-byte `verification:<id>` unit. Scanner core receives only revalidated immutable supplemental bytes and rechecks virtual coordinates, duplicates, counts, and sizes. Every knowledge CLI and managed search uses the same collector.
 
-Result status proves only recorded suite execution, not claim truth, understanding, context use, or verified assurance. Structural compilation creates no natural-language fact from it; semantic output remains unreviewed and human review alone remains human_reviewed. Stdout/stderr and their bytes are excluded.
+`full snapshotId` includes verification. `contentSnapshotId` excludes revision, verification, and event information to provide clone-reproducible structural output.
 
-Any chain, CAS, canonical, suite/result/event binding, bound, or duplicate failure aborts the complete corpus as knowledge_evidence_source_invalid with no sensitive coordinates. No events yields an empty source list, not success/failure. Later appends wait for the next snapshot.
+Result status proves only recorded suite execution. It does not prove claim truth, understanding, context use, or verified assurance. Structural compilation creates no natural-language fact from a result. Semantic output remains unreviewed, and only human review produces `human_reviewed`. Stdout, stderr, and their bytes are excluded.
+
+Any event-chain, CAS, canonicalization, suite, result, event-binding, bound, or duplicate failure aborts the complete corpus as `knowledge_evidence_source_invalid` without exposing sensitive coordinates. No events produces an empty source list, not a success or failure result. Later appends wait for the next snapshot.
 
 ## Consequences
 
-Fixtures bind canonical suite/result/event/CAS into exact units, separate full/content snapshots, reject tampering without leakage, and reopen real managed Codex/Claude storage to collect verified result sources.
+Fixtures bind canonical suites, results, events, and CAS objects into exact units; distinguish full and content snapshots; reject tampering without leakage; and reopen real managed Codex and Claude storage to collect verified result sources.

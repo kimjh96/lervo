@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a04f411257d1302620f6822c
+  - uv_5885600f01a6565d72d5ccf6
 title: "ADR-0116: CLI First-Publication Transition Completion Command"
 type: decision

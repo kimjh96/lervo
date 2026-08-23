@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ea5e2d8d79231c13f5317c94
+outputLanguage: en
+outputs:
+  - byteCount: 2604
+    contentHash: sha256:ac3409595efbed56743fb9d8c521ceb8208ba564bcda4aea0c96f5131794e46f
+    path: docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md
+    userRegionHash: sha256:ac3409595efbed56743fb9d8c521ceb8208ba564bcda4aea0c96f5131794e46f
+profile: decision_record
+recordId: knormdoc_881e235eb20112f64a338e77
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:d0284991986323b0e11fb6258cd62308f760c42e256a874fc72c4a16cf41f502
+sourcePath: docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md
+sourceUnitVersionIds:
+  - uv_290288029d9ef3f96036cc1a
+  - uv_4b49b17ea51d22fa7d095926
+  - uv_876d5b6269ac5d3620e1d99b
+  - uv_acab956f9182ece2bfafee3d

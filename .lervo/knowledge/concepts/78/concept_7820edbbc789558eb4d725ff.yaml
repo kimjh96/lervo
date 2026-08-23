@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ae5da07c3824757d071a9ff5
+  - uv_ebef6c55179bf8cd3bd4b50f
 title: "ADR-0167: Platform-Bound Standalone Lervo Node Distribution"
 type: decision

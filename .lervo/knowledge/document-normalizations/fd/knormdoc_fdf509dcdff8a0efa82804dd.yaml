@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a39f50ebb0ffac89a137e11a
+outputLanguage: en
+outputs:
+  - byteCount: 1922
+    contentHash: sha256:ea1334523a525d9cd86e21821dd38f028062f1a29a8cb594e5a621b61d9e3882
+    path: docs/decisions/operations/security/0163-atomic-node-trust-material-reload.md
+    userRegionHash: sha256:ea1334523a525d9cd86e21821dd38f028062f1a29a8cb594e5a621b61d9e3882
+profile: decision_record
+recordId: knormdoc_fdf509dcdff8a0efa82804dd
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:c8240411085c76eebb0df78d6f3ba79ffd52d88c92fedb2c554382cda6c04fc0
+sourcePath: docs/decisions/operations/security/0163-atomic-node-trust-material-reload.md
+sourceUnitVersionIds:
+  - uv_66e589947bb06d1b70b6643e
+  - uv_7d17a4069ff7898a222b0c77
+  - uv_a0affc78870b42b72ecfb0a2
+  - uv_b6237b58d3f705ec78c742ec

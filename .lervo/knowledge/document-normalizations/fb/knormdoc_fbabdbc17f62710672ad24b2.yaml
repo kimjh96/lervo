@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f809fc025dc38fe5c1c84dad
+outputLanguage: en
+outputs:
+  - byteCount: 2031
+    contentHash: sha256:e30c0aa64a8a6658e31cfaddb868a2d8fee2ccc894dd92bc9a12e8f33ce89e9e
+    path: docs/decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md
+    userRegionHash: sha256:e30c0aa64a8a6658e31cfaddb868a2d8fee2ccc894dd92bc9a12e8f33ce89e9e
+profile: decision_record
+recordId: knormdoc_fbabdbc17f62710672ad24b2
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:01e654b99696a0563c7e69b39e8d43b150186dd99e47ce70b0d53f67fe30f659
+sourcePath: docs/decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md
+sourceUnitVersionIds:
+  - uv_556a3389c57aeb43e9136363
+  - uv_7ccaf4ef15cbe15e1f86e4e8
+  - uv_ba5645e93e9a65679b4ede45
+  - uv_df999aaa5efc00afafbeda84

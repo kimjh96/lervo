@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_07ab48f1ca6134864207364a
+outputLanguage: en
+outputs:
+  - byteCount: 2002
+    contentHash: sha256:73c261f825b040b39632a15dfff0a8c8b634d3b0c0355e7e2150a1db008b48a3
+    path: docs/decisions/knowledge/repository/0175-bounded-git-head-revision-source.md
+    userRegionHash: sha256:73c261f825b040b39632a15dfff0a8c8b634d3b0c0355e7e2150a1db008b48a3
+profile: decision_record
+recordId: knormdoc_d09b5b1e6f0e023d104f8625
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:0cb04edaa58ffc9b3056d203f667b713cad6a79efe3cdadfbc7babb32074dfb5
+sourcePath: docs/decisions/knowledge/repository/0175-bounded-git-head-revision-source.md
+sourceUnitVersionIds:
+  - uv_277eded120d759bc4838482f
+  - uv_88e124454759cbe4404f2fba
+  - uv_8ca049ff8cb642f0fb8494f6
+  - uv_cae43b1376052c546d1fd1ab

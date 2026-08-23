@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_307dc5528d61e32c7318724b
+  - uv_6ed34ab3216e83f5bec5af04
 title: "ADR-0172: Bounded Parser-Grade YAML Source Units"
 type: decision

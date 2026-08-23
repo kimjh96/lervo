@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d0481b415c27d477d0dcc3d4
+  - uv_dbb0e8835171a09d98d7d2e2
 title: "ADR-0139: Bind the Conversation Queue to Managed Deliberation"
 type: decision

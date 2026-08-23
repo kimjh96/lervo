@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_fe7628c62c4fbdb2e7eec6b1
+  - uv_4b9e93f261b0f9b025a82e8d
 title: "ADR-0150: Authenticated, Project-Scoped Hub Sync HTTP"
 type: decision

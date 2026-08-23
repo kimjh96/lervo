@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_77c0883e957a99f7d5bfe491
+outputLanguage: en
+outputs:
+  - byteCount: 1883
+    contentHash: sha256:bea34ef02ec576a6a40b17736e08439f77d26067dca073633c039598897b14fe
+    path: docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md
+    userRegionHash: sha256:bea34ef02ec576a6a40b17736e08439f77d26067dca073633c039598897b14fe
+profile: decision_record
+recordId: knormdoc_e4d373c52f0aa280b660b63c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:fe311af112f373c5b78d3811ccad588e300c2ef21e8cb2e30e5b17d82cb92436
+sourcePath: docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md
+sourceUnitVersionIds:
+  - uv_0d77aee2ed48f92a9944b8b8
+  - uv_c4be36971c87054e39e79bde
+  - uv_d327d7b52239533e3aa525b3
+  - uv_fe005e54ff23a23f7e19ab60

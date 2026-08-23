@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_edd4353950bf8473d2b293f5
+outputLanguage: en
+outputs:
+  - byteCount: 2762
+    contentHash: sha256:c7ee64af7b7a1f7def98c61fd72ae0e6a59236dee9f623e733c6d51f91ba5651
+    path: docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md
+    userRegionHash: sha256:c7ee64af7b7a1f7def98c61fd72ae0e6a59236dee9f623e733c6d51f91ba5651
+profile: decision_record
+recordId: knormdoc_7413b5ed8a1eabdbaca4282e
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:3aaf63eaf2e54e9065103c263af214613f968d1037e3d003d2c0e18696f19f40
+sourcePath: docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md
+sourceUnitVersionIds:
+  - uv_9a7247c2fc167f4b67e02239
+  - uv_9dd4799a9a0f752c2139a33e
+  - uv_c2376bc02f0a7d65ac4d0565
+  - uv_f031536896f3118f656a7a8f

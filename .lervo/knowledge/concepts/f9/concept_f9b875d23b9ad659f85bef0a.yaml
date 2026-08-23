@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2267cd089eafc634f26906fc
+  - uv_a403570d5ca093fd986ce680
 title: "ADR-0032: Project verification in `lervo run`"
 type: decision

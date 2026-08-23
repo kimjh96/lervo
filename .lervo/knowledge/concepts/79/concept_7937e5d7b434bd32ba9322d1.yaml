@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_de9ad47153e43cbb17498da5
+  - uv_c2775a579d885356563c9b26
 title: "ADR-0171: Content-Addressed OKF Exchange and Git Reproduction"
 type: decision

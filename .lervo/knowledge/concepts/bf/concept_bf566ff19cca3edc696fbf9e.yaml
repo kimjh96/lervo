@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_10d4d9c07aee1d160db4b87a
+  - uv_9bccddc31a7376d4cce38ab3
 title: "ADR-0066: Bounded search-rollout review status"
 type: decision

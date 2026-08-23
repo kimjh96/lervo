@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0de1b7aa71c159cb090a3701
+outputLanguage: en
+outputs:
+  - byteCount: 2379
+    contentHash: sha256:3958f5db4755af4496564625ee422f45c377a7fb9f982ec06a6f3355e61f54d8
+    path: docs/decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md
+    userRegionHash: sha256:3958f5db4755af4496564625ee422f45c377a7fb9f982ec06a6f3355e61f54d8
+profile: decision_record
+recordId: knormdoc_d034f559667b0212e68189c0
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5eccbe06d7f529e327785c93a6834bf9517c56813910ed71555389c3fd82007c
+sourcePath: docs/decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md
+sourceUnitVersionIds:
+  - uv_0994eef14bdca815f869dac7
+  - uv_68f644762e05baaf16131c63
+  - uv_b04ba1b06869af0e41e13487
+  - uv_b52d50483250ef34ffb50bcf

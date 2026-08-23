@@ -1,23 +1,20 @@
 # Lervo
 
-Lervo is a local-first operating layer for AI-assisted repository work. It gives Codex and Claude a shared, provider-neutral execution contract while keeping repository evidence, decisions, and reusable knowledge inspectable.
-
-Lervo works without a Hub. A Hub is optional coordination layer for multiple repositories, devices, and agents.
+Lervo is a local-first operating layer for AI-assisted repository work. It gives Codex and Claude a shared, provider-neutral execution contract while keeping evidence, decisions, and reusable knowledge inspectable. It works without a Hub; the Hub is optional coordination for multiple repositories, devices, and agents.
 
 ## What Lervo provides
 
 - Managed Codex and Claude runs with explicit evidence and lifecycle events.
-- Repository knowledge compiled from code, configuration, schemas, tests, documents, agent instructions, verification results, and other bounded sources.
-- Read-only migration plans, repository-scoped decision taxonomy, exact approvals, durable apply, rollback, lint, and query workflows.
-- A short, generated knowledge map whose pages are bounded instead of continuously appended.
-- Provider-neutral `AGENTS.md` instructions and profiled provider bridges such as Claude's `@AGENTS.md` import.
-- Optional Hub and node runtimes for authenticated remote coordination.
+- Bounded repository knowledge compiled from documents, instructions, code, configuration, schemas, tests, verification, and other sources.
+- Read-only plans, repository-scoped decision taxonomy, exact approvals, durable apply, rollback, lint, and query workflows.
+- Bounded generated knowledge maps, provider-neutral `AGENTS.md` guidance, and provider bridges such as Claude's `@AGENTS.md` import.
+- Optional authenticated Hub and node coordination.
 
-Lervo does not treat selection, loading, injection, and use as interchangeable claims. It records only what the available telemetry can prove.
+Lervo distinguishes discovery, selection, loading, injection, reference, and use, and claims only what available telemetry proves.
 
 ## Quick start
 
-Requirements: Node.js 22.13 or later and pnpm 11.
+Requires Node.js 22.13 or later and pnpm 11.
 
 ```bash
 pnpm install
@@ -27,21 +24,22 @@ lervo init
 lervo migrate knowledge --json
 ```
 
-Review the returned plan, then apply the exact current plan ID:
+Review the plan, then apply its exact current ID:
 
 ```bash
 lervo migrate knowledge --apply <plan-id> --json
+lervo migrate knowledge --provider codex --json
+lervo migrate knowledge --candidate <candidate-id> --apply <plan-id> \
+  --approve-item <operation-id>=<approval-hash> --json
 lervo knowledge lint --json
 lervo knowledge query "managed provider" --json
 ```
 
-The global install above uses the built local checkout; npm registry publication is not required. For an independent archive, run `pnpm --dir apps/cli pack --pack-destination <directory>` and install the resulting `.tgz` with `npm install --global <archive>`.
+The global install uses the built checkout; registry publication is unnecessary. To create an independent archive, run `pnpm --dir apps/cli pack --pack-destination <directory>` and install its `.tgz` with `npm install --global <archive>`.
 
-`init` creates only the minimum Lervo configuration. It does not create empty feature directories or invent repository documentation. `migrate knowledge` creates missing human and agent entrypoints, preserves existing user-owned bytes, and materializes bounded navigation under `docs/knowledge/`.
+`init` creates minimum configuration only. `migrate knowledge` first routes sources and creates bounded navigation under `docs/knowledge/`. Once structural work is current, `--provider` stores a no-tool rewrite candidate. Review its outputs and approve every content-bound item; apply does not rerun the provider.
 
 ## Managed provider runs
-
-Use an installed provider through the common run contract:
 
 ```bash
 lervo run --provider codex --path src/example.ts --verification project.quick \
@@ -50,24 +48,24 @@ lervo run --provider claude --path src/example.ts --verification project.quick \
   "Review and update the current implementation"
 ```
 
-Each `--verification` value names a tracked suite under `.lervo/verifications/`. A successful command requires the declared file boundary, the project suite, and the result-publication checks to pass. The writing check uses a separate read-only local provider session in an empty temporary repository.
-
-Direct provider sessions that Lervo cannot observe remain `unmanaged`; they are never presented as fully tracked runs.
+Each `--verification` names a tracked suite under `.lervo/verifications/`. Success requires the declared file boundary, project suite, and result-publication checks. A separate read-only local provider session evaluates writing in an empty temporary repository. Unobserved direct provider sessions remain `unmanaged`.
 
 ## Repository knowledge
 
-The main entrypoint is [docs/knowledge/index.md](docs/knowledge/index.md). Generated indexes are navigation aids, not semantic truth. Markdown and repository state remain canonical; graphs, lexical indexes, and embeddings are rebuildable projections.
+Start at [docs/knowledge/index.md](docs/knowledge/index.md). Generated indexes are navigation, not semantic truth. Markdown and repository state are canonical; graphs, lexical indexes, and embeddings are rebuildable.
 
-For semantic compilation with an installed provider:
+Compile semantic candidates with an installed provider:
 
 ```bash
 node apps/cli/dist/bin.js knowledge compile --provider codex --json
 node apps/cli/dist/bin.js knowledge compile --provider claude --json
 ```
 
-Candidates are unreviewed until they pass reconciliation and explicit review. Migration may relocate documents, normalize agent surfaces, or update exact references only through content-bound item approvals; unmanaged user regions remain byte-preserved. Provider configuration is inventoried, not translated.
+Candidates remain unreviewed until reconciliation and explicit review. Migration changes user content only through exact approvals. It validates managed blocks, code and link coordinates, skill identity, and skill-resource bindings. Provider configuration, scripts, and assets are inventoried rather than translated.
 
 ## Documentation
+
+Agent guidance: [AGENTS.md](AGENTS.md).
 
 - [Product vision](docs/product/vision.md)
 - [System architecture](docs/architecture/system.md)
@@ -76,8 +74,6 @@ Candidates are unreviewed until they pass reconciliation and explicit review. Mi
 - [Repository knowledge compilation specification](docs/specs/repository-knowledge-compilation.md)
 - [Architecture decisions](docs/decisions/)
 - [Research](docs/research/)
-
-Keep this README short and task-oriented. Detailed contracts, decisions, and historical rationale belong in their own linked documents.
 
 ## Development
 
@@ -88,8 +84,8 @@ pnpm docs:check
 pnpm build
 ```
 
-Run `pnpm check` for the full release-oriented verification suite.
+Run `pnpm check` for the full release-oriented suite.
 
 ## Status
 
-Lervo is pre-1.0 software. The agreed v0 scope is complete: local managed execution, repository knowledge workflows, and optional Hub/node runtimes are implemented. Interfaces may still change before a stable release.
+Lervo is pre-1.0. The agreed v0 scope—local managed execution, repository knowledge workflows, and optional Hub/node runtimes—is implemented, but interfaces may change before a stable release.

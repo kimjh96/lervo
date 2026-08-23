@@ -42,8 +42,9 @@ describe("repository layout migration CLI", () => {
     expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
-    const rerun = JSON.parse(messages.join("")) as { operations: Array<{ action: string }> };
-    expect(rerun.operations.filter((operation) => operation.action !== "unchanged")).toEqual([]);
+    const rerun = JSON.parse(messages.join("")) as { planKind: string; status: string; pendingDocuments: string[] };
+    expect(rerun).toMatchObject({ planKind: "document_normalization_provider_selection", status: "provider_required" });
+    expect(rerun.pendingDocuments).toEqual(expect.arrayContaining(["README.md", "CLAUDE.md", "docs/architecture/system.md"]));
     messages.length = 0;
     expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });

@@ -163,12 +163,12 @@ async function assertBindings(root: string, operations: JournalOperation[], side
       const sourceExpected = side === "before" ? operation.beforeHash : null;
       const destinationExpected = side === "before" ? null : operation.afterHash;
       if (await hashAt(safeTarget(root, operation.path)) !== sourceExpected || await hashAt(destination) !== destinationExpected) {
-        throw new RepositoryKnowledgeError("knowledge_plan_stale", "Knowledge move target bytes differ from the transaction binding.");
+        throw new RepositoryKnowledgeError("knowledge_plan_stale", `Knowledge move target bytes differ from the ${side} transaction binding at ${operation.path}.`);
       }
       continue;
     }
     const expected = side === "before" ? operation.beforeHash : operation.afterHash;
-    if (await hashAt(safeTarget(root, operation.path)) !== expected) throw new RepositoryKnowledgeError("knowledge_plan_stale", "Knowledge materialization target bytes differ from the transaction binding.");
+    if (await hashAt(safeTarget(root, operation.path)) !== expected) throw new RepositoryKnowledgeError("knowledge_plan_stale", `Knowledge materialization target bytes differ from the ${side} transaction binding at ${operation.path}.`);
   }
 }
 
@@ -239,7 +239,7 @@ async function rollback(root: string, transaction: string, journal: KnowledgeMat
 function validJournal(value: unknown): value is KnowledgeMaterializationJournal {
   const item = value as KnowledgeMaterializationJournal | null;
   return item !== null && typeof item === "object" && item.schemaVersion === 1 &&
-    item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|klayout)_[a-f0-9]{24}$/.test(item.planId) &&
+    item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|klayout|knormplan)_[a-f0-9]{24}$/.test(item.planId) &&
     typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 &&
     ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) &&
     Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 &&

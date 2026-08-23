@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_4a7a18905ec61393c6eefcd1
+  - uv_47c91c5bd6f8e78b1a8ed169
 title: "ADR-0118: CLI Stage-Publication Command Boundary"
 type: decision

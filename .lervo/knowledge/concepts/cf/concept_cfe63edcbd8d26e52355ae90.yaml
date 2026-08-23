@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8a770c4c2e4afe90d8d9173c
+  - uv_7b3d2ebe9274af6d6c7f1334
 title: "ADR-0123: Stage-Only Workflow Execution Evidence"
 type: decision

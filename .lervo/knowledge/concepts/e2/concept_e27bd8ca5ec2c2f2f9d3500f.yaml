@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b91806af554e8daef03f0936
+  - uv_0caddb6b8c7fa14949b1eb38
 title: "ADR-0087: Single-bundle CLI deployment unit"
 type: decision

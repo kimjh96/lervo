@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_f9c164e84fe344c76428d0bd
+  - uv_2f9df355cf881783905fb7e8
 title: "ADR-0153: Approval-Bound Managed Provider Node Host"
 type: decision

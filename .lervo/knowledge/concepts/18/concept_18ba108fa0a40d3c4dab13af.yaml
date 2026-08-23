@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_f2bfa3626619421c599280b4
+  - uv_8885ca2099f20ff2c5066c29
 title: "ADR-0104: CLI first-publication activation blocker report"
 type: decision

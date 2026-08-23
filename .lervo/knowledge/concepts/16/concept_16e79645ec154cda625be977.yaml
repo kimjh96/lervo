@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_e3a28353b80cd4fd261d0dff
+  - uv_5ff4f18c55c472566dcc5083
 title: "ADR-0177: Bounded Execution Event Sources"
 type: decision

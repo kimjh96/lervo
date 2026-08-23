@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c4bd6d9fb09225fa8bc4fc6e
+  - uv_3681911b39ed341700e14852
 title: "ADR-0086: Canonical CLI release artifact manifest"
 type: decision

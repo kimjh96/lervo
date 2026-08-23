@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_6af4d3346d14c6aaf7c515f3
+  - uv_0c3dac63f4cb5b278c54b457
 title: WSL Hub and Shiflo release acceptance
 type: concept

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ef9dad110f92e6a31183a9b8
+  - uv_a962e543877f59bb66f7e917
 title: "ADR-0022: Byte-preserving managed-block patch candidates"
 type: decision

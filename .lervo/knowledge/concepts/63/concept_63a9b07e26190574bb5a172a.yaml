@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_cc36c0a5a8fff816ad23a11b
+  - uv_f7d82350707669fe475c3e78
 title: "ADR-0095: CLI release publication eligibility and authority boundary"
 type: decision

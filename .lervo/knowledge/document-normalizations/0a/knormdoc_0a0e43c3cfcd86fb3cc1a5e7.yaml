@@ -1,0 +1,25 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_39ad47392b2f73900e2156f8
+outputLanguage: en
+outputs:
+  - byteCount: 815
+    contentHash: sha256:3771630b3a06af5aa2da02d6fc753f6ade70a366fce9212f8abba56a46d3a5e5
+    path: docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md
+    userRegionHash: sha256:3771630b3a06af5aa2da02d6fc753f6ade70a366fce9212f8abba56a46d3a5e5
+profile: decision_record
+recordId: knormdoc_0a0e43c3cfcd86fb3cc1a5e7
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ccd849d2b201e57ea98a7e4ba80e315a43491e61b8e1c856b204264c09453a6a
+sourcePath: docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md
+sourceUnitVersionIds:
+  - uv_178af29250a64ee3a2528e04
+  - uv_23acb4210e495a5a2c2c4cf7
+  - uv_643a22b74523a010c028c69e

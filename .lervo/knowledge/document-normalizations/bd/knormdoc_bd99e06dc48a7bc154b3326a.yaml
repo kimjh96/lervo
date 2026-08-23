@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4d841603318eeec1c3c7bc0b
+outputLanguage: en
+outputs:
+  - byteCount: 3756
+    contentHash: sha256:c0e6e6cfdbcea2520a2bee12dbecd498e74c72983f9c4e92d776f1a88bfe24c7
+    path: docs/decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md
+    userRegionHash: sha256:c0e6e6cfdbcea2520a2bee12dbecd498e74c72983f9c4e92d776f1a88bfe24c7
+profile: decision_record
+recordId: knormdoc_bd99e06dc48a7bc154b3326a
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:05a7ef2741c0efb35c81357de6a384efb02bdd985ee815d5cc1642bf8d5af4a0
+sourcePath: docs/decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md
+sourceUnitVersionIds:
+  - uv_3b00dc5f77f16b9fe70eda1d
+  - uv_51a9f489397f7de7637fc2da
+  - uv_59453f97b65b15ae86df94ef
+  - uv_8019b98898eb067fdc8db4ca
+  - uv_a26d0443796588b61e0b7e77
+  - uv_bf7a36ea6cb0b3398085e9fd
+  - uv_c0ff3fd495f5b7dc226a8f17

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8cbda2baf2c3c373a5c29783
+  - uv_157d578f63d036239b7cd4f5
 title: "ADR-0109: Post-apply verification of CLI first-publication package metadata"
 type: decision

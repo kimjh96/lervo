@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bd8fd65a6f99caef7f02ea1f
+outputLanguage: en
+outputs:
+  - byteCount: 2214
+    contentHash: sha256:617bfd3f1967e6a95c364424f86e2db24b91f80a2e3a7be5330d97cfc0ecc6de
+    path: docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md
+    userRegionHash: sha256:617bfd3f1967e6a95c364424f86e2db24b91f80a2e3a7be5330d97cfc0ecc6de
+profile: decision_record
+recordId: knormdoc_733af7a7dd4f6b6906bf1e4d
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:9c8f31918f877c3cec211f8f5c6e1a34a567de8aef2d96c30e8046b299e2d046
+sourcePath: docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md
+sourceUnitVersionIds:
+  - uv_81080d05c954734cb1f4c084
+  - uv_a01c710dd01e3d07731e5e7a
+  - uv_c562e15dd5b031d3e7aa519c
+  - uv_ca2242c6b99220c27061ab58

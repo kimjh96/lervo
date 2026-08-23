@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f0a2b10b657f2a5c59eab891
+outputLanguage: en
+outputs:
+  - byteCount: 1823
+    contentHash: sha256:5744c3cfe1086935016c4f3179c0d5a1c3eb327703020397d290ee86aa0f6335
+    path: docs/decisions/distribution/0085-installed-cli-smoke-boundary.md
+    userRegionHash: sha256:5744c3cfe1086935016c4f3179c0d5a1c3eb327703020397d290ee86aa0f6335
+profile: decision_record
+recordId: knormdoc_0481b6ba63b483016d03d69f
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:6cc879099039b1cf02cbc5a6eddc72ac673cf2bcdf7026b9a684ed47818dcf9a
+sourcePath: docs/decisions/distribution/0085-installed-cli-smoke-boundary.md
+sourceUnitVersionIds:
+  - uv_1032813128d9d2d2d1db09a4
+  - uv_63bebafb40a963d01398ed99
+  - uv_93d5ae4cbea24afad61d7ae0
+  - uv_d9b5cced624dfc878d274cef

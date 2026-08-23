@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8ea5b8347c77913e55b094bb
+  - uv_0dc0438a73ff134f827a499e
 title: "ADR-0026: Structured deliberation contracts and evidence-based convergence"
 type: decision

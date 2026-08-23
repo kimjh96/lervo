@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_914fafb8be39892d060edbdc
+outputLanguage: en
+outputs:
+  - byteCount: 2326
+    contentHash: sha256:1165de56b0a1c7527c1a536c78c8423cd0fffdd0448b8173589ae9f1bc8a9540
+    path: docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md
+    userRegionHash: sha256:1165de56b0a1c7527c1a536c78c8423cd0fffdd0448b8173589ae9f1bc8a9540
+profile: decision_record
+recordId: knormdoc_bdf8d6eb10c81946eeffc278
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:13218714399adc83dd3f498f05c4a09dd98fc1ec29afa0c99504ff3a2443fca1
+sourcePath: docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md
+sourceUnitVersionIds:
+  - uv_39cf7c8242be7a2ae6878e4a
+  - uv_69b6f371620b80c8cd4f7f04
+  - uv_d8cf525d9d5d412b836caed3
+  - uv_e0fba568a3f8556e7835bd8e

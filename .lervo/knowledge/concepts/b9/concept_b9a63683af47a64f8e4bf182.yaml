@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8f93c6832b2104e9074ff421
+  - uv_dd3e0fc90d7e4c795da9d8ca
 title: "ADR-0194: Destination-bound local event reconciliation"
 type: decision

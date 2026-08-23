@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b6c91e791cc5d718e08aef62
+  - uv_db71c9d0975fbdc8b4e4a05c
 title: "ADR-0078: Snapshot-bound local trace cursor pages"
 type: decision

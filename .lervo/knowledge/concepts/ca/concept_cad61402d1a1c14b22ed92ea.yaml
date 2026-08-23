@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_039b5224ec69cc13c0028e64
+  - uv_febe9f2096dc1ac4d9c3b2f8
 title: "ADR-0073: Doctor recovery guidance without automatic repair"
 type: decision

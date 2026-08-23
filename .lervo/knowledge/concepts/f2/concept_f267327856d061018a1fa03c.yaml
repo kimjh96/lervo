@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2e090085621d76d780c1f0cf
+  - uv_6739d4cdd32ad95560b93f5c
 title: "ADR-0070: Write-free search-rollout action preflight"
 type: decision

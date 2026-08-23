@@ -5,24 +5,33 @@
 
 ## Context
 
-Agents should reuse how to rediscover current device/service endpoints, not stale conversational values or one vendor's names. Authority belongs to each repository project, and discovery itself must not grant permanent registration or upload provider identities.
+Agents need a reusable way to rediscover current device and service endpoints without relying on stale conversational values or vendor-specific names. Each repository project owns the authority for discovery, which must not grant permanent registration or upload provider identities.
 
 ## Decision
 
-@lervo/environment owns neutral source manifests, admission, observations, logical targets, and resolution; core contracts contain no Tailscale-specific field or executable.
+`@lervo/environment` owns provider-neutral source manifests, admission, observations, logical targets, and resolution. Core contracts contain no Tailscale-specific field or executable.
 
-Tracked .lervo/environment-sources/<sourceId>.source.yaml authorizes adapter, scope, capabilities, maximum validity, sharing, and bounded configuration. Only repository policy or human review changes it. Optional .lervo/environment-admission.yaml deterministically returns auto_register, review_required, or deny; absent/unmatched policy defaults to review_required, and no auto-registration writer exists yet.
+Tracked `.lervo/environment-sources/<sourceId>.source.yaml` files authorize the adapter, scope, capabilities, maximum validity, sharing, and bounded configuration. Only repository policy or human review may change them.
 
-Adapters return only available/unavailable, generic subject labels, capabilities, endpoints, and verification. Core rejects excess capability and computes validUntil. Atomic owner-only .lervo/state/environment observations are rebuildable local state and unusable after expiry.
+Optional `.lervo/environment-admission.yaml` policy deterministically returns `auto_register`, `review_required`, or `deny`. Missing or unmatched policy defaults to `review_required`. No automatic registration writer exists yet.
 
-Tracked targets name a repository role, required capability, selectors, and source preference—not an OS or provider. Resolution uses only fresh verified candidates and treats tied candidates as ambiguous. Device labels never imply WSL, container, service, Node, SSH, or host-key relationships.
+Adapters return only availability, generic subject labels, capabilities, endpoints, and verification. Core rejects excess capabilities and computes `validUntil`. Atomic, owner-only observations under `.lervo/state/environment` are rebuildable local state and cannot be used after expiry.
 
-lervo environment query --source updates one normalized observation; --target freshly queries eligible sources then resolves; --adapter ... --ephemeral writes nothing; resolve --target reads fresh stored observations only.
+Tracked targets identify a repository role, required capability, selectors, and source preference—not an operating system or provider. Resolution considers only fresh, verified candidates and treats ties as ambiguous. Device labels do not imply WSL, container, service, Node, SSH, or host-key relationships.
 
-The first replaceable adapter runs bounded tailscale status --json without a shell and discards accounts, node/map/user IDs, and raw JSON. It normalizes only DNS/IP/OS/online with hashed subject IDs.
+Command behavior is fixed:
 
-Tracked configuration excludes secrets. Observations cap subjects, endpoints, and labels. Failures are bounded source/adapter/observation/unresolved/ambiguous codes and never claim connection or credential possession.
+- `lervo environment query --source` updates one normalized observation.
+- `lervo environment query --target` freshly queries eligible sources and resolves the target.
+- `lervo environment query --adapter ... --ephemeral` writes nothing.
+- `lervo environment resolve --target` reads only fresh stored observations.
+
+The first replaceable adapter executes bounded `tailscale status --json` without a shell. It discards accounts, node/map/user IDs, and raw JSON, retaining only normalized DNS, IP, OS, and online state with hashed subject IDs.
+
+Tracked configuration excludes secrets. Observations cap subjects, endpoints, and labels. Failures use bounded source, adapter, observation, unresolved, or ambiguous codes and never claim connection or credential possession.
 
 ## Consequences
 
-Discovery, repository admission, runtime observation, and target resolution are distinct. Fixtures cover neutral adapters, capability denial, expiry/ties/preference, YAML safety, owner-only storage, Tailscale redaction, bounded failures, and ephemeral non-mutation. Automatic admission patches, managed preflight, verified runtime relationships, Hub sharing, and cross-Lervo references remain separate.
+Discovery, repository admission, runtime observation, and target resolution remain distinct. Fixtures cover neutral adapters, capability denial, expiry, ties, preferences, YAML safety, owner-only storage, Tailscale redaction, bounded failures, and non-mutating ephemeral queries.
+
+Automatic admission patches, managed preflight, verified runtime relationships, Hub sharing, and cross-Lervo references remain separate work.

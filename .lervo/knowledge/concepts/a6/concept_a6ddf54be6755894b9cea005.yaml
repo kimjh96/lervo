@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9c2cddccc36e726b6de7ef77
+  - uv_2fc0418dac663ad1b7b1a904
 title: "ADR-0121: Remote Deployment Evidence for the Stage-Only Workflow"
 type: decision

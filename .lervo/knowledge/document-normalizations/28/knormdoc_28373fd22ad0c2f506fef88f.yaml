@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0bb2934658c2dd8dac414001
+outputLanguage: en
+outputs:
+  - byteCount: 1990
+    contentHash: sha256:b58626ec538703c374f20b9fd0316b3bccaba08b11ba27b92fba31807d1f290c
+    path: docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md
+    userRegionHash: sha256:b58626ec538703c374f20b9fd0316b3bccaba08b11ba27b92fba31807d1f290c
+profile: decision_record
+recordId: knormdoc_28373fd22ad0c2f506fef88f
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:31339611821a003fcf2261ee8a0d9f637fe7aa17f3587a9567a760de929f15cb
+sourcePath: docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md
+sourceUnitVersionIds:
+  - uv_4fd33ad5a94f8522a5cf4e87
+  - uv_9213abbebcd2f49d67cc17ab
+  - uv_9d8a774f784df832525c663f
+  - uv_c14f792a72587b62dd0d3b25

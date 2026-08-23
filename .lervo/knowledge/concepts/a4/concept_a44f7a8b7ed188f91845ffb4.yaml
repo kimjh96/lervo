@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_e5c17fcb630305025680ec20
+  - uv_6afc99d22a2895c8322e2482
 title: "ADR-0059: Search candidate review with replay verification"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b5de0f80343b87f24bb344da
+outputLanguage: en
+outputs:
+  - byteCount: 2437
+    contentHash: sha256:6a54732f59d45228748a1fa1f0194930f019c4efe7dfb69585d34d321da323a2
+    path: docs/decisions/execution/verification/0176-bounded-verification-result-sources.md
+    userRegionHash: sha256:6a54732f59d45228748a1fa1f0194930f019c4efe7dfb69585d34d321da323a2
+profile: decision_record
+recordId: knormdoc_b7a917c95e2d70839f235c6f
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:1d53eefee91505bcac1d381e8eb4d4f9c47414f7dfc1440524678316bfbc5d7b
+sourcePath: docs/decisions/execution/verification/0176-bounded-verification-result-sources.md
+sourceUnitVersionIds:
+  - uv_2bb9cb8b3e6513a9fea11cc1
+  - uv_37c1819d59e5c3bf8345a943
+  - uv_e1d219afc14823a7cf1ea830
+  - uv_e3fc8363b39c86c13d9149eb

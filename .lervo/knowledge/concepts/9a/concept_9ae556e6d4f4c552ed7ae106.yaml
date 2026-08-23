@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_3fa6638f61eb7e9504ece56e
+  - uv_82c198bc1eceb49e9b857b75
 title: "ADR-0081: Trace default-output transition contract"
 type: decision

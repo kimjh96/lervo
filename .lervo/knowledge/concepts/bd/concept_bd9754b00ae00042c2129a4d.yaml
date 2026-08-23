@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_84874396078be6d1e8423543
+  - uv_5a4b91c2162b784864aa6bc7
 title: "ADR-0141: Explicit Durable Conversation Deliberation Resume"
 type: decision

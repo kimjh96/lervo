@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_74b436c44b63024103ce1bbf
+  - uv_95fbda94fedaebc160de74e1
 title: "ADR-0179: Bounded Parser-Grade CSS Symbol Units"
 type: decision

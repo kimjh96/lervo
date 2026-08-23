@@ -1,0 +1,28 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5dca438279c11446e27b81d5
+outputLanguage: en
+outputs:
+  - byteCount: 2709
+    contentHash: sha256:de355129201178f847539603c2c59b9a74580580f2ce9d6ed6a2be945cc51c5f
+    path: docs/decisions/release/assurance/0093-cli-release-attestation-boundary.md
+    userRegionHash: sha256:de355129201178f847539603c2c59b9a74580580f2ce9d6ed6a2be945cc51c5f
+profile: decision_record
+recordId: knormdoc_a92af5cee60a4cd654703bfa
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:6c18cde8e6cb730aea51165fec27d423b04ec9da127ed51b1fb41f0128a19961
+sourcePath: docs/decisions/release/assurance/0093-cli-release-attestation-boundary.md
+sourceUnitVersionIds:
+  - uv_3b7ae8fe02c6f0907a664e04
+  - uv_5cab416e97ee06e8dd1e790a
+  - uv_b127a80dffd767947f3836e7
+  - uv_c93760cff487b26e8ad4a73b
+  - uv_ec3d89d91b8e24f8f1b7a395
+  - uv_fdf4a24acb3e74b1c8189532

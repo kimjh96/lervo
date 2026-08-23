@@ -5,20 +5,20 @@
 
 ## Context
 
-lervo run --skill already verifies local packages and writes skills.lock plus skill.resolved without injecting or invoking them. The Node host fixed resolved skills empty. Remote commands carry no skill IDs, so inferring them from request text would break authority and reproducibility.
+`lervo run --skill` already verifies local packages and writes `skills.lock` plus `skill.resolved` without injecting or invoking skills. The Node host fixed resolved skills as empty. Remote commands contain no skill IDs, so deriving them from request text would break authority and reproducibility.
 
 ## Decision
 
-remoteCommands.providerHost.developerSkills is a unique 0–16 skill-ID startup allowlist copied into developer.defaultSkills. Custom roles use their registered defaults under the same constraints. Nonempty developerSkills is invalid when developer is not allowed.
+`remoteCommands.providerHost.developerSkills` is a unique startup allowlist of 0–16 skill IDs copied into `developer.defaultSkills`. Custom roles use registered defaults under the same constraints. Nonempty `developerSkills` is invalid unless developer is allowed.
 
-After project, role, and suite validation but before provider creation, the host uses the existing resolver for only requested IDs under project .agents/skills and user ~/.agents/skills. Existing package hash, scope, provider, role, runtime, platform, available-tool, and allowed-capability checks apply. require_approval is never elevated to compatible capability. The atomic .lervo/skills.lock is updated and resolutions enter coordinator resolvedSkills.
+After validating project, role, and suites—but before provider creation—the host uses the existing resolver for only requested IDs under project `.agents/skills` and user `~/.agents/skills`. Existing package hash, scope, provider, role, runtime, platform, available-tool, and allowed-capability checks apply. `require_approval` is never elevated to a compatible capability. Atomically update `.lervo/skills.lock` and pass resolutions as coordinator `resolvedSkills`.
 
-run.requested, run.resolved, and skill.resolved commit together. Skill bodies are neither placed in context nor invoked, so no context loaded/injected, skill.invoked/completed, or actual-use claim is made. The lock is derived state, not execution evidence.
+`run.requested`, `run.resolved`, and `skill.resolved` commit together. Skill bodies are neither added to context nor invoked, so emit no context loaded/injected, `skill.invoked`, `skill.completed`, or actual-use claim. The lock is derived state, not execution evidence.
 
-Authority comes from local config/startup profiles, not Hub authors. Command-specific skill selection requires a future schema/policy. Full profiles and skill IDs are indirectly bound by the policy-version digest but not copied into remote receipts.
+Authority comes from local configuration and startup profiles, not Hub authors. Command-specific skill selection requires a future schema and policy. Full profiles and skill IDs are indirectly bound by the policy-version digest but are not copied into remote receipts.
 
-Invalid config fails before network; existing discovery/hash/compatibility/ambiguity/lock codes fail before providers. Post-reservation failure becomes execution_failed without replay. Events retain only ID, version, content hash, source kind, and trust status—never URI, reviewers, bodies, absolute paths, or provider errors.
+Invalid configuration fails before network access. Existing discovery, hash, compatibility, ambiguity, and lock codes fail before provider creation. Post-reservation failure becomes `execution_failed` without replay. Events retain only ID, version, content hash, source kind, and trust status—never URI, reviewers, bodies, absolute paths, or provider errors.
 
 ## Consequences
 
-Fixtures verify project-pinned custom-role resolution, lock/event evidence, multi-file completion, developer snapshot validation, role binding, and existing resolver/restart failures. This resolves but does not invoke skills.
+Fixtures verify project-pinned custom-role resolution, lock and event evidence, multi-file completion, developer snapshot validation, role binding, and existing resolver and restart failures. This decision resolves skills but does not invoke them.

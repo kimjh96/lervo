@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_795553760828edc10451b823
+  - uv_a922f355d6fef39faa678d6e
 title: "ADR-0128: Interactive npm Stage-Approval Execution"
 type: decision

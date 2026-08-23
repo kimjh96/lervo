@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_1d84ea6f83920e1c0698eda5
-title: "ADR-0037: Hub trace read model distinguishes contiguous and buffered events"
+  - uv_5063e5b8cf38c04b778fec95
+title: "ADR-0037: Hub Trace Read Model Distinguishes Contiguous and Buffered Events"
 type: decision

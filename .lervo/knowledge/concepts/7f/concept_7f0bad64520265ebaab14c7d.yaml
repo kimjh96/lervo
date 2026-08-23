@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7faa5c3f5771bd94fe9c5769
+  - uv_5c021e27f5f4f32fda8aba42
 title: Architecture decisions
 type: decision

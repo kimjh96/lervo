@@ -5,18 +5,20 @@
 
 ## Context
 
-Inline startup-only tokens mixed secrets with reviewed config and required Hub downtime. Partial credential updates would break snapshot consistency, and invalid candidates must not erase working authentication.
+Inline, startup-only tokens mixed secrets with reviewed configuration and required Hub downtime. Partial credential updates would violate snapshot consistency, and invalid candidates must not erase working authentication.
 
 ## Decision
 
-Hub accepts exactly one of legacy inline credentials or recommended credentialsFile. The owner-only UTF-8 file is at most 1 MiB and contains only schemaVersion 1 and credentials; its path resolves from Hub config. Startup validates every token, principal, duplicate, permission, and at most 256 project scopes before listening.
+The Hub accepts exactly one of legacy inline credentials or the recommended `credentialsFile`. Its path resolves relative to the Hub config. The owner-only UTF-8 file is limited to 1 MiB and may contain only `schemaVersion` 1 and `credentials`. Before listening, startup validates every token, principal, duplicate, permission, and the limit of 256 project scopes.
 
-ReloadableBearerAuthenticator builds a complete immutable candidate before one reference swap. Each in-flight request retains either the old or new snapshot. At this decision SIGHUP reloaded credentials; ADR-0162 later expands it to credentials plus TLS/signing. reloadCredentials remains credential-only; inline reload is a no-op.
+`ReloadableBearerAuthenticator` builds and validates a complete immutable candidate before replacing one reference. Each in-flight request retains either the old or new snapshot.
 
-Read/JSON/contract failure reports only credential_reload_failed and preserves current state. Token issuance/distribution/revocation, automatic expiry, secret managers, and other key reload were not included here. Operators rotate by adding an overlapping snapshot, switching Node, then removing the old token.
+At this decision, SIGHUP reloaded credentials. ADR-0162 later expands SIGHUP to credentials, TLS, and signing material. `reloadCredentials` remains credential-only; reloading inline credentials is a no-op.
 
-Tokens exist only in the owner-only file and authenticator memory. No output, event, Hub/policy/replay database, or receipt contains tokens, paths, principal lists, or causes. Reload proves no sync, command, or content use and adds no event/scheduler.
+Read, JSON, or contract failures report only `credential_reload_failed` and preserve the current snapshot. Token issuance, distribution, revocation, automatic expiry, secret managers, and other key reloads are excluded. Operators rotate credentials by adding an overlapping snapshot, switching the Node, and then removing the old token.
+
+Tokens exist only in the owner-only file and authenticator memory. No output, event, Hub/policy/replay database, or receipt contains tokens, paths, principal lists, or failure causes. Reload proves no sync, command, or content use and adds no event or scheduler.
 
 ## Consequences
 
-Fixtures verify safe external files, rejection of public/corrupt sources, live old-to-new authentication inversion, invalid-candidate rollback, coalesced reload promises, nonterminating SIGHUP, and fixed failure callbacks.
+Fixtures verify safe external files, rejection of public or corrupt sources, live old-to-new authentication inversion, invalid-candidate rollback, coalesced reload promises, nonterminating SIGHUP, and fixed failure callbacks.

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_49ab69c2a82342569c858a42
+outputLanguage: en
+outputs:
+  - byteCount: 2955
+    contentHash: sha256:465ab054b9f3706d94e26797bb855ae09ab61ad5210b5afab9a0cd48e0dc7073
+    path: docs/decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md
+    userRegionHash: sha256:465ab054b9f3706d94e26797bb855ae09ab61ad5210b5afab9a0cd48e0dc7073
+profile: decision_record
+recordId: knormdoc_a85a5e254f2e732c74ea048b
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:8ff2a0da740edb033ffa06ebfd9204bd70da3f50d2320a6ecbaf0da05104aa87
+sourcePath: docs/decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md
+sourceUnitVersionIds:
+  - uv_098aac96695ae9cdff80546b
+  - uv_4f792078d009ed801b8d9a9f
+  - uv_5f9472dc2e16b0b32206e159
+  - uv_8ac4ee9e2626e2ddd0939a3a

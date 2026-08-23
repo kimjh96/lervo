@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8d701b9944790d674034ade7
+  - uv_39c6bb8bc7eb0697de5e4fd6
 title: "ADR-0077: Bounded trace source reads that expose truncation"
 type: decision

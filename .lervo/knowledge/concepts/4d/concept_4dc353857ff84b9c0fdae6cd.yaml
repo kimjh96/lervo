@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_4525f3c23f40e1aeb6e93e8b
+  - uv_760d3d775aaf9fd38c4178a0
 title: "ADR-0002: Safe Local Project Initialization"
 type: decision

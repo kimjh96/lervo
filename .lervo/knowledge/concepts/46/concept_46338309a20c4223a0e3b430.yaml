@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ebdb456fb26d6a48306d5179
+  - uv_0909b121ec12c0f55f1c9877
 title: "ADR-0099: Durable storage and interactive adapter for CLI first publication"
 type: decision

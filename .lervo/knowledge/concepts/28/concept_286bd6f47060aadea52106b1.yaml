@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8410a93aed12801a96caa2f8
+  - uv_bcccd1a5e35477c9164d808e
 title: "ADR-0187: Review-Gated Cross-Provider Exact Merge"
 type: decision

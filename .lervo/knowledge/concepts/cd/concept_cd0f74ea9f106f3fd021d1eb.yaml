@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_3767dbb6274137b761f88501
+  - uv_e59486f96d595e4e298b4c57
 title: "ADR-0130: Integrate Stage Approval into Publication Transition"
 type: decision

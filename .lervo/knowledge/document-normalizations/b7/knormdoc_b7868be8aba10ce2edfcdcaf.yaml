@@ -1,0 +1,31 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_892c8fa0c37fc560b48f0932
+outputLanguage: en
+outputs:
+  - byteCount: 4347
+    contentHash: sha256:bfdf1a3309004444db549d958f117376154dbf80e920186bc24526b4957df5bb
+    path: docs/decisions/execution/orchestration/0008-managed-context-gate-orchestration.md
+    userRegionHash: sha256:bfdf1a3309004444db549d958f117376154dbf80e920186bc24526b4957df5bb
+profile: decision_record
+recordId: knormdoc_b7868be8aba10ce2edfcdcaf
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:f746111666151b55e4ef29ffe5ddb0ee9508087cf0267e93bccedc13c90d8e3e
+sourcePath: docs/decisions/execution/orchestration/0008-managed-context-gate-orchestration.md
+sourceUnitVersionIds:
+  - uv_420d895f9418285a7c5a7394
+  - uv_5a7a52107cfd6fa324e9c59d
+  - uv_670be7d3ca165cc897d6a5ad
+  - uv_8752135a021411f2657e71bf
+  - uv_9d3f6b2e69c7df9a9b412ab8
+  - uv_a19acbb8aa5b549f0e0c9b44
+  - uv_d6a274da64d3bc96c54eaa8f
+  - uv_e7381098db9d1faca1f9ad65
+  - uv_f39f71a5ae93a429dc3b92f3

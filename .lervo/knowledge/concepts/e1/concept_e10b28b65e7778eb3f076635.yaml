@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_31f4d9cbb2915bdebc65415f
+  - uv_8b805d4abe3ed36ecf2836b9
 title: "ADR-0159: Atomic Hub Bearer-Credential Reload"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e31ac2195a1731bdd348a95
+outputLanguage: en
+outputs:
+  - byteCount: 1912
+    contentHash: sha256:f8d268dfc1dd5027d16609ff4571056eaa7778e42b4ff16ded30b688c64de7e3
+    path: docs/decisions/execution/providers/0160-real-https-managed-provider-vertical-pilot.md
+    userRegionHash: sha256:f8d268dfc1dd5027d16609ff4571056eaa7778e42b4ff16ded30b688c64de7e3
+profile: decision_record
+recordId: knormdoc_ae89eec630d1ca57fe5ded34
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ccc1b964eebbe822e01e502bd03b878326e4f9bb1ec5d091a76be95f0339bcb2
+sourcePath: docs/decisions/execution/providers/0160-real-https-managed-provider-vertical-pilot.md
+sourceUnitVersionIds:
+  - uv_1cfe473be8549f052610551e
+  - uv_2f49d8b20e2dd728fafc35d1
+  - uv_427035b616fe663873524003
+  - uv_73bc0da535bc1c7284a812ad

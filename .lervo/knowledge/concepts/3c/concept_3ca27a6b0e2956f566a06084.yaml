@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ac9660ee90cbec4826032f66
+  - uv_08380fca24210f9630c01b13
 title: "ADR-0057: Provider-neutral search candidate comparison"
 type: decision

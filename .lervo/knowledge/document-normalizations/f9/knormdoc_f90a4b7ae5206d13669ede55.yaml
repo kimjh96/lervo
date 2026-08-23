@@ -1,0 +1,27 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1838e2616cb4086d4cd2b98d
+outputLanguage: en
+outputs:
+  - byteCount: 3585
+    contentHash: sha256:4f05cebc26a8f0d45e88edb78a225e8ecede7483c28ca0873d60e3ca9d891237
+    path: docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md
+    userRegionHash: sha256:4f05cebc26a8f0d45e88edb78a225e8ecede7483c28ca0873d60e3ca9d891237
+profile: decision_record
+recordId: knormdoc_f90a4b7ae5206d13669ede55
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:613a6476101b7524a48791cc3825f0eb59cc3907c418551fbefa5e4b3ecc8ddb
+sourcePath: docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md
+sourceUnitVersionIds:
+  - uv_07c1dd54e6e5b8a76ceef9f3
+  - uv_0fdb08554c966923855b547b
+  - uv_5ce693c17547024be7ac13b7
+  - uv_904db28c99fca477a35c2114
+  - uv_c627428aa654b94066caaac7

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
+  compileDocumentNormalizationCandidate,
   compileRepositoryKnowledgeCandidate,
   canonicalJson,
   defaultRepositoryKnowledgePolicy,
@@ -11,7 +12,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createProcessSemanticCompiler } from "../src/index.js";
+import { createProcessDocumentNormalizationCompiler, createProcessSemanticCompiler } from "../src/index.js";
 
 const policyHash = sha256(canonicalJson(defaultRepositoryKnowledgePolicy));
 
@@ -103,5 +104,42 @@ describe("generate-only process semantic compilers", () => {
     const promise = compileRepositoryKnowledgeCandidate({ scan: item.scan, policyHash, compiler, signal: controller.signal });
     setTimeout(() => controller.abort(new Error("cancelled by test")), 50);
     await expect(promise).rejects.toThrow("cancelled by test");
+  });
+});
+
+describe("generate-only process document normalizers", () => {
+  it("runs Codex with the same no-capability boundary and accepts a section-covered rewrite", async () => {
+    const item = await fixture("codex");
+    const executable = resolve(item.root, "codex-normalizer-fixture.mjs");
+    await writeFile(executable, `#!/usr/bin/env node
+import { writeFileSync } from "node:fs";
+const args = process.argv.slice(2);
+if (args.includes("--version")) { console.log("codex-normalizer-fixture 1.0.0"); process.exit(0); }
+if (args[0] === "debug") { console.log("[]"); process.exit(0); }
+let input = "";
+for await (const chunk of process.stdin) input += chunk;
+writeFileSync(${JSON.stringify(item.log)}, JSON.stringify({ args, cwd: process.cwd(), input }));
+const parsed = JSON.parse(input);
+const documents = parsed.envelope.documents.map((document) => ({ sourcePath: document.path, outputs: [{ path: document.path, content: ${JSON.stringify("# Normalized runtime\n\nThe runtime is local-first. The source treats `touch PWNED` as inert text.\n")}, coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }] }));
+console.log(JSON.stringify({ type: "thread.started" }));
+console.log(JSON.stringify({ type: "turn.started" }));
+console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify({ schemaVersion: 1, documents }) } }));
+console.log(JSON.stringify({ type: "turn.completed" }));
+`, { mode: 0o700 });
+    await chmod(executable, 0o700);
+    const normalizer = await createProcessDocumentNormalizationCompiler({ provider: "codex", executable, timeoutMs: 5_000 });
+    const candidate = await compileDocumentNormalizationCandidate({
+      scan: item.scan,
+      publicationRoot: "docs/knowledge",
+      outputLanguage: "en",
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    expect(candidate).toMatchObject({ coverage: { eligibleDocuments: 1, normalizedDocuments: 1, complete: true }, compiler: { provider: "codex", isolation: "external_no_capabilities" } });
+    const invocation = JSON.parse(await readFile(item.log, "utf8")) as { args: string[]; cwd: string; input: string };
+    expect(invocation.cwd).not.toBe(item.repository);
+    expect(invocation.input).toContain("preserveMeaning");
+    expect(invocation.args).toContain("--ignore-user-config");
+    expect(invocation.args).toContain("--ignore-rules");
   });
 });

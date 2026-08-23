@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_e287b04fa7fbc4f70dc88f73
+  - uv_8a5ff2c0fe2e74e25cf27f94
 title: "ADR-0119: Stage-Only Workflow Activation Permit and Transaction"
 type: decision

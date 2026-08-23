@@ -5,38 +5,38 @@ Decision date: 2026-08-20
 
 ## Context
 
-Events already link runs, documents, roles, verification, deliberation, and knowledge, but manual traversal is difficult. Inferring edges from similarity, embeddings, model judgments, or search would present relationships without evidence as facts. A separate authoritative graph would also complicate local-first recovery.
+Events already link runs, documents, roles, verification, deliberation, and knowledge, but manual traversal is difficult. Similarity, embeddings, model judgments, and search cannot establish factual relationships. A separate authoritative graph would also complicate local-first recovery.
 
 ## Decision
 
 ### Projection boundary
 
-- `@lervo/knowledge-graph` deterministically projects allowlist-validated `EventEnvelope` values and knows no provider, Hub, or storage.
-- Each relation has schema version, content-derived ID, project, controlled type, controlled directed endpoints, and evidence event/type/run/sequence.
-- Connect only IDs/paths explicitly present in payloads. Selection, loading, and injection are separate edges; never infer `used`.
-- Do not create edges from similarity, embeddings, model/search output, or UI actions. Events/documents/artifacts remain source; graph is derived.
-- Derive relation ID from project/type/endpoints. For repeat evidence retain earliest sequence. Any canonical-ID collision is integrity failure.
+- `@lervo/knowledge-graph` deterministically projects allowlist-validated `EventEnvelope` values and has no provider, Hub, or storage knowledge.
+- Every relation has a schema version, content-derived ID, project, controlled type, controlled directed endpoints, and evidence event, type, run, and sequence.
+- Connect only IDs and paths explicit in event payloads. Selection, loading, and injection are distinct edges; never infer `used`.
+- Never create edges from similarity, embeddings, model or search output, or UI actions. Events, documents, and artifacts remain authoritative; the graph is derived.
+- Derive relation IDs from project, type, and endpoints. For repeated evidence, retain the earliest sequence. Treat any canonical-ID collision as an integrity failure.
 
 ### Storage and rebuild
 
-- Hub SQLite stores derived rows in `hub_knowledge_graph_relations` and updates them atomically with accepted event and trace indexes. Unprojectable payload or conflict rolls back the whole batch and yields no durable acknowledgement.
-- Missing/stale index version triggers a one-transaction streaming rebuild from ordered events.
-- Bounded startup checks metadata only. Explicit audit reprojects all events and detects missing/extra/mutated relations/evidence.
-- Loss of graph table loses no source. Use no separate graph database.
+- Hub SQLite stores derived relations in `hub_knowledge_graph_relations`, atomically with accepted event and trace indexes. An unprojectable payload or conflict rolls back the batch and produces no durable acknowledgement.
+- A missing or stale index version triggers a one-transaction streaming rebuild from ordered events.
+- Bounded startup checks only metadata. Explicit audit reprojects every event and detects missing, extra, or mutated relations and evidence.
+- Losing the graph table loses no source data. Do not use a separate graph database.
 
 ### Bounded query and UI
 
-- Query one project's one-hop relations around a focus node (default project node), ordered by relation ID, default 50/max 100, cursor after last relation ID.
-- Empty page on an existing project does not prove the focus source exists.
-- HTTP `GET /v1/trace/projects/<projectId>/graph` requires destination and either both focus kind/ID or neither. Authenticate `trace.read` and project scope before source access. Return focus, current relations, necessary nodes, and next cursor only.
-- `/trace` renders one current page as SVG plus accessible list. Selecting a neighbor refocuses; next page replaces DOM. Keep graph/cursor/token only in tab memory.
+- Query one project's one-hop relations around a focus node, defaulting to the project node. Order by relation ID, use default page size 50 and maximum 100, and place the cursor after the last relation ID.
+- An empty page for an existing project does not prove that the focus source exists.
+- HTTP `GET /v1/trace/projects/<projectId>/graph` requires destination and either both focus kind and focus ID or neither. Authenticate `trace.read` and project scope before source access. Return only focus, current relations, required nodes, and next cursor.
+- `/trace` renders one current page as SVG and an accessible list. Selecting a neighbor refocuses. The next page replaces the DOM. Keep graph data, cursor, and token only in tab memory.
 
-Relations contain only allowlisted relative paths/IDs. Exclude bodies, content hashes, prompts, results, reasoning, authorization, credentials, and external identities. Never return cross-project relations or emit events from reads.
+Relations contain only allowlisted relative paths and IDs. Exclude bodies, content hashes, prompts, results, reasoning, authorization, credentials, and external identities. Never return cross-project relations or emit events from reads.
 
-Failures distinguish invalid nodes/projection/query, forbidden or absent project, inconsistent page source, and derived-index integrity failure. Integrity failure requires rebuild/operator diagnosis and never a normal graph response.
+Distinguish invalid nodes, projection, or queries; forbidden or missing projects; inconsistent page sources; and derived-index integrity failures. Integrity failure requires rebuild or operator diagnosis and never returns a normal graph response.
 
-Fixtures cover deterministic projection/IDs, all controlled relationship types, tamper detection, rebuild/audit, pre-query authorization, focus adjacency, cursor bounds, safe page replacement, token non-persistence, and asset security.
+Fixtures cover deterministic projection and IDs, every controlled relationship type, tamper detection, rebuild and audit, authorization before query, focus adjacency, cursor bounds, safe page replacement, token non-persistence, and asset security.
 
 ## Consequences
 
-The graph is reproducible locally from events and Hub provides only authorized bounded projection. Multi-hop and semantic relations/search/embeddings are excluded; future search may use the graph only as a verifiable auxiliary signal.
+The graph is locally reproducible from events, while Hub exposes only an authorized bounded projection. Multi-hop traversal, semantic relations, search, and embeddings remain excluded. Future search may use the graph only as a verifiable auxiliary signal.

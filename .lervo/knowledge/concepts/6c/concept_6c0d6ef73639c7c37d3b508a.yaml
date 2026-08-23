@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_006ecb5b0ed89974cf724736
+  - uv_a4961da4457db7b97c4a6ae0
 title: "ADR-0131: Stage-Evidence Bundle Manifest"
 type: decision

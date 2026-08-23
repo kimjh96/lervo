@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_172735bd6f5cbe3e60c2cc15
+  - uv_a19989ef2fcab35d154d804c
 title: "ADR-0033: Scope-explicit local environment diagnostics"
 type: decision

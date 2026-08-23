@@ -1,6 +1,6 @@
 # @lervo/cli
 
-Lervo manages AI-agent execution and evidence inside a local repository. Initialization, repository knowledge, and help work without a Hub.
+Lervo manages local AI-agent execution, evidence, and repository knowledge. Initialization, knowledge operations, and help do not require a Hub.
 
 ## Requirements
 
@@ -8,13 +8,13 @@ Lervo manages AI-agent execution and evidence inside a local repository. Initial
 
 ## Install
 
-From the registry after publication:
+From the registry:
 
 ```sh
 npm install --global @lervo/cli
 ```
 
-From a built Lervo checkout without publishing to npm:
+From a built checkout:
 
 ```sh
 pnpm install
@@ -27,25 +27,30 @@ For a relocatable archive, run `pnpm --dir apps/cli pack --pack-destination <dir
 
 ## First use
 
-Run these commands from the repository root:
+Run from the repository root:
 
 ```sh
 lervo init --name my-project
 lervo migrate knowledge
 # Review the plan ID, then apply the same current plan.
 lervo migrate knowledge --apply <plan-id>
+# After layout, bridge, and structural stages are current:
+lervo migrate knowledge --provider codex
+# Review the stored candidate, then apply every displayed item approval.
+lervo migrate knowledge --candidate <candidate-id> --apply <plan-id> \
+  --approve-item <operation-id>=<approval-hash>
 lervo knowledge lint
 lervo knowledge query "architecture"
 lervo --help
 ```
 
-`lervo init --dry-run --name my-project` previews the minimum tracked contract. Feature and runtime directories appear only when first used.
+`lervo init --dry-run --name my-project` previews the minimum tracked contract. Runtime and feature directories are created only when first used.
 
-Migration preserves existing user bytes. Structural moves require exact approval, and a completed migration replans with no changes.
+Structural migration preserves user bytes unless an exact move or update is approved. Normalization uses installed Codex or Claude without tools to store an English, audience-profiled candidate. Apply does not rerun the provider and requires exact approval for every source document. Migration is complete when normalization lifecycle records are current and replanning finds no pending documents.
 
 ## Semantic knowledge
 
-Codex and Claude can independently create no-tool, unreviewed semantic candidates:
+Codex and Claude can independently produce no-tool, unreviewed semantic candidates:
 
 ```sh
 lervo knowledge compile --provider claude
@@ -60,21 +65,21 @@ lervo knowledge review <compilation-id> --plan <plan-id> \
 lervo knowledge materialize <review-id>
 ```
 
-Compilation does not prove truth. Conflicts and managed-block changes require exact approval; recover an interrupted apply with `lervo knowledge materialize --recover`.
+Compilation does not prove truth. Conflicts and managed-block changes require exact approval. Recover interrupted apply with `lervo knowledge materialize --recover`.
 
 ## Documents and provider entrypoints
 
-Use `lervo knowledge structure delete|move|split|merge` with the reviewed plan ID and every required exact item approval. MDX and instruction user regions are not rewritten.
+Use `lervo knowledge structure delete|move|split|merge` with the reviewed plan ID and all required exact item approvals. Use `lervo knowledge normalize` for the reviewed content stage also exposed by `migrate knowledge --provider`.
 
 `lervo knowledge instruction bridge --provider claude` keeps `AGENTS.md` canonical and manages only the `@AGENTS.md` bridge in `CLAUDE.md`.
 
 ## Exchange and managed execution
 
-`lervo knowledge export okf` and `lervo knowledge import okf` exchange OKF v0.2 bundles. Import remains read-only until exact apply.
+Use `lervo knowledge export okf` and `lervo knowledge import okf` for OKF v0.2 bundles. Import stays read-only until exact apply.
 
 `lervo run` keeps document and knowledge searches separate. Selected sources require current-byte validation and adapter delivery receipts; later use is not inferred.
 
-Configure the provider and a tracked suite under `.lervo/verifications/`, then run an agent through the one-file managed boundary:
+Configure a provider and tracked suite under `.lervo/verifications/`, then run through the one-file managed boundary:
 
 ```sh
 lervo run --provider codex --path src/example.ts --verification project.quick \
@@ -83,4 +88,4 @@ lervo run --provider claude --path src/example.ts --verification project.quick \
   "Review and update the requested change"
 ```
 
-The declared project suite and result-publication checks must pass. Result prose is evaluated in a separate read-only local provider session that uses an empty temporary repository. See `lervo --help` for the current command surface.
+The declared suite and result-publication checks must pass. Result prose is evaluated in a separate, read-only local provider session using an empty temporary repository. See `lervo --help` for the current command surface.

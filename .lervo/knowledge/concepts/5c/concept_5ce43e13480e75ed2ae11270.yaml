@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_0d39dcb1e9c5038cd15c678a
-title: "ADR-0039: Authenticate and scope projects before trace HTTP reads"
+  - uv_f7e807dffe1df0030fb0a9fa
+title: "ADR-0039: Authenticate and Scope Projects Before Trace HTTP Reads"
 type: decision

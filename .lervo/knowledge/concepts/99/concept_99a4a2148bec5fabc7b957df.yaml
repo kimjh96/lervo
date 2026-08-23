@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_5678e2be5afd73fd3c598ccf
+  - uv_3977017b5194b59412fc6e6c
 title: "ADR-0048: Authenticated Slack and Discord conversation adapters"
 type: decision

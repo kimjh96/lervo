@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7cf6892cf46f6b79e1f89c88
+  - uv_53de525f28241c400a593c02
 title: "ADR-0152: Fail-Closed Node Remote-Control Runtime"
 type: decision

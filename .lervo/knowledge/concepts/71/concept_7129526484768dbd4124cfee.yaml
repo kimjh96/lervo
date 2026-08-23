@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_dfcc72e39eac8c38a28200e9
+  - uv_7f7b8664fdb7c2ff83f15c49
 title: "ADR-0142: Snapshot-Bounded Deliberation Event Scans"
 type: decision

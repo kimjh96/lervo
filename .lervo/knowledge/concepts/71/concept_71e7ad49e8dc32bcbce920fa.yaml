@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2378b8632dda0fe2bf805c28
+  - uv_a5fbb4c3314cc0ee2217bf2d
 title: "ADR-0058: Deterministic `bm25f-v1` candidate with explicit registration"
 type: decision

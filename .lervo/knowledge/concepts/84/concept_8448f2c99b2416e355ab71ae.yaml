@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9f5794875d1a6685d241bd99
+  - uv_78e20a50751cf768d3f1d35b
 title: "ADR-0169: User-Local Repository Registration and Revalidation"
 type: decision

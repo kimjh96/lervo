@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_eac6bc8d6ffb01e0b3210b62
+  - uv_20ccd8d0bd05864704c1b526
 title: "ADR-0135: Resume Only from an Approved Deliberation Boundary"
 type: decision

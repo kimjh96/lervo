@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_50a9ac234bdbfa739169c83a
+  - uv_2165d70e39e8bee72b759a03
 title: "ADR-0060: Policy-bound search-engine selection and rollback"
 type: decision

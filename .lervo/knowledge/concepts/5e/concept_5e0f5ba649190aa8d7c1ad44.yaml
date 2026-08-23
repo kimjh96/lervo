@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7025bef89620eaac38adca13
+  - uv_e34295a23366e10fc84b4b03
 title: "ADR-0023: Evidence-based document staleness"
 type: decision

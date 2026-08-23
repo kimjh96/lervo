@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_588a047d775211dff11b00b4
+  - uv_d3fd626fe776e051b87e1615
 title: "ADR-0122: Stage-Only Workflow Ref-Reachability Evidence"
 type: decision

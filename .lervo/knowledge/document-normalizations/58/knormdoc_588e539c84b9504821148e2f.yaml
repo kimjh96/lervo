@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0cbd5829d2a0991267eb2b84
+outputLanguage: en
+outputs:
+  - byteCount: 1915
+    contentHash: sha256:3ec8d4ae2669c39c4d61f661408064e2438da49362641482d348dd1004ea2d84
+    path: docs/decisions/release/assurance/0091-cli-registry-publish-preflight.md
+    userRegionHash: sha256:3ec8d4ae2669c39c4d61f661408064e2438da49362641482d348dd1004ea2d84
+profile: decision_record
+recordId: knormdoc_588e539c84b9504821148e2f
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:478ac9e3da5f16e8cb8feef9cfb9ad5c024ee183356bb697e6467e1ccfb01ece
+sourcePath: docs/decisions/release/assurance/0091-cli-registry-publish-preflight.md
+sourceUnitVersionIds:
+  - uv_421a53f12510afb5e4394634
+  - uv_67bbfa1a17494bed54df8839
+  - uv_95058da45a41754e49a86105
+  - uv_e18f6af15fd46b5353e673a1

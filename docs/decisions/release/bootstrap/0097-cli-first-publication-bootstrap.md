@@ -1,26 +1,26 @@
 # ADR-0097: CLI first-publication bootstrap contract
 
-Status: `accepted`; ADR-0111 replaces v1 input/result with evidence-report-based v2
+Status: `accepted`; ADR-0111 replaces v1 input/result with evidence-report-based v2  
 Decision date: 2026-08-21
 
 ## Context
 
-Public npm 404 proves only public absence, not private absence or scope ownership. Staged publishing/Trusted Publisher require an existing package, so first publication needs a one-time boundary that cannot leak direct publish authority into steady state. Human approval must bind exact release bytes/identity.
+A public npm 404 proves only public absence, not private absence or scope ownership. Staged publishing and Trusted Publisher require an existing package, so the first publication needs a one-time boundary that cannot leak direct-publish authority into steady state. Human approval must bind the exact release bytes and identity.
 
 ## Decision
 
-V1 `release:bootstrap:authorize` revalidates publication authorization/tarball, manifest v5/current package, separate human approval JSON, and explicit online anonymous public-registry observation.
+V1 `release:bootstrap:authorize` revalidates the publication authorization and tarball, manifest v5 and the current package, a separate human-approval JSON document, and an explicit online anonymous observation of the public registry.
 
-Manifest v5 binds repository, publish registry, and provenance; bootstrap requires exact GitHub repository, public npm, settled license, and enabled provenance. Metadata changes force regenerated manifest/SBOM/attestation/eligibility.
+Manifest v5 binds the repository, publish registry, and provenance. Bootstrap requires the exact GitHub repository, public npm, a settled license, and enabled provenance. Metadata changes require regeneration of the manifest, SBOM, attestation, and eligibility.
 
-Approval v1 binds ID, approval/≤24-hour expiry times, approver, package/repository/license/scope owner, and publication digest, explicitly confirming license, public-name availability, scope control, one-time direct publish, and required stage-only transition. Result keeps only approval ID/digest. This proves content binding, not approver identity or npm authority.
+Approval v1 binds an ID; approval and expiry times no more than 24 hours apart; approver; package, repository, license, and scope owner; and publication digest. It explicitly confirms the license, public-name availability, scope control, one-time direct publication, and required transition to stage-only operation. The result retains only the approval ID and digest. This proves content binding, not approver identity or npm authority.
 
-Anonymous adapter classifies public endpoint as `not_found`, `existing`, or `unavailable`, storing no body. Accept only `not_found` observed within ten minutes and phrase it as public-package absence.
+The anonymous adapter classifies the public endpoint as `not_found`, `existing`, or `unavailable` and stores no response body. Accept only `not_found` observed within ten minutes, described as public-package absence.
 
-Result `bootstrap_authorized` binds target, release/approval digests, observation, and constraints: manual interactive once, recheck absence immediately before publish, 2FA presence, no reuse, transition to exact staged workflow/environment/permission, then forbid direct publish.
+The `bootstrap_authorized` result binds the target, release and approval digests, observation, and these constraints: one manual interactive use; absence rechecked immediately before publication; 2FA present; no reuse; transition to the exact staged workflow, environment, and permission; and direct publication forbidden afterward.
 
-Command reads no npm credential, publishes/configures nothing, writes only a new absolute-path output with exclusive creation, and adds no project/event state.
+The command reads no npm credential, publishes and configures nothing, writes only a new absolute-path output using exclusive creation, and adds no project or event state.
 
 ## Consequences
 
-Unresolved metadata correctly blocks bootstrap. Fixtures never prove scope ownership, private absence, 2FA, or successful first publication.
+Unresolved metadata blocks bootstrap. Fixtures do not prove scope ownership, private absence, 2FA, or successful first publication.

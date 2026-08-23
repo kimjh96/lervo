@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_598509f09e52740799502be5
+  - uv_f223d02bff27220b8ee1c7b3
 title: "ADR-0067: Policy-bound search-rollout review"
 type: decision

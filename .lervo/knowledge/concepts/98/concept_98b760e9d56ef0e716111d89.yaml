@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_98b760e9d56ef0e716111d89
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2da409bd8b66ab54f690ad48
+title: "ADR-0195: Reviewed document content normalization"
+type: decision

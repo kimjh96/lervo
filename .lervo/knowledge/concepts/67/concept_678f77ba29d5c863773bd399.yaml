@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8575fcdce6028c33f2a85ce8
+  - uv_ccaea5578b8257d7c5ae7955
 title: "ADR-0161: Atomic Node Bearer-Token Reload"
 type: decision

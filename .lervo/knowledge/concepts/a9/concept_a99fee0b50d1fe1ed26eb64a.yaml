@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_15195592a9dab15e1616fb11
+  - uv_bd83a788c9f7fd6040177b5c
 title: "ADR-0006: Deterministic context preparation"
 type: decision

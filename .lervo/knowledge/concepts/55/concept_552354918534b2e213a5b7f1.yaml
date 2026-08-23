@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_1eb600f587ae27aa53bf347c
+  - uv_f7d2d8dd9c638bd9eb0be504
 title: "ADR-0173: Bounded Parser-Grade JSON Source Units"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9429a6b59246db99577165c5
-title: "ADR-0034: Project registration and contiguous-cursor event sync"
+  - uv_f3930aa96ab538eeae6c5e04
+title: "ADR-0034: Project Registration and Contiguous-Cursor Event Sync"
 type: decision

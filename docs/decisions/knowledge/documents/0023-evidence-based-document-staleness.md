@@ -5,31 +5,31 @@ Decision date: 2026-08-19
 
 ## Context
 
-A different repository revision does not by itself prove a document stale, while a current file listing can miss files changed and later deleted. Unknown evidence must not be reported current. Staleness is rebuildable derived data and must remain separate from document mutation or approval.
+A different repository revision does not itself prove that a document is stale, while a current file listing can miss files changed and later deleted. Unknown evidence cannot be reported as current. Staleness is rebuildable derived data and remains separate from mutation and approval.
 
 ## Decision
 
-`@lervo/documents` provides pure `evaluateDocumentStaleness`, accepting a valid manifest, evaluation time, current snapshot, optional exact verified-revision snapshot, and optional managed-input observations. Snapshots contain only revision and relative-path content hashes.
+`@lervo/documents` provides pure `evaluateDocumentStaleness`, accepting a valid manifest, evaluation time, current snapshot, optional exact verified-revision snapshot, and optional managed-input observations. Snapshots contain only a revision and relative-path content hashes.
 
-Return one schema-valid `DocumentStalenessResult` per document with document/result IDs, time, verified/current revisions, overall status, and per-signal statuses/reasons. Derive result ID from canonical result content excluding the ID.
+Return one schema-valid `DocumentStalenessResult` per document, containing document/result IDs, time, verified/current revisions, overall status, and per-signal statuses and reasons. Derive the result ID from canonical result content excluding that ID.
 
 - `current`: every applicable signal proves current.
-- `stale`: at least one signal proves change/expiry, even when others are unknown.
-- `unknown`: no stale proof but at least one signal is unavailable.
+- `stale`: at least one signal proves change or expiry, even if others are unknown.
+- `unknown`: no signal proves staleness, but at least one is unavailable.
 
 Signal rules:
 
 - `reviewInterval`: stale exactly at `verifiedAt + reviewIntervalDays`.
-- `documentPath`: at the verified revision, present is current and absent stale. At another revision, compare document hash only with a snapshot exactly matching the verified revision; otherwise unknown.
-- `connectedPaths`: compare each path and descendants across both snapshots. No observations on both sides is unknown, not unchanged. `src` does not match `src2`.
-- `managedInputs`: compare declared source IDs/hashes for `managed_blocks` and `lervo_generated`; changed or explicitly absent is stale, unavailable observation unknown. User-owned documents are not applicable.
+- `documentPath`: at the verified revision, presence is current and absence is stale. At another revision, compare the document hash only against a snapshot that exactly matches the verified revision; otherwise return unknown.
+- `connectedPaths`: compare each path and its descendants across both snapshots. No observations on both sides means unknown, not unchanged. `src` does not match `src2`.
+- `managedInputs`: for `managed_blocks` and `lervo_generated`, compare declared source IDs and hashes. Changed or explicitly absent input is stale; unavailable observation is unknown. This signal does not apply to user-owned documents.
 
-Reject inconsistent same-revision snapshots, undeclared/duplicate observations, unsafe paths, and invalid times. The evaluator writes no file, CAS object, or event and claims no modification, approval, or completed verification.
+Reject inconsistent same-revision snapshots, undeclared or duplicate observations, unsafe paths, and invalid times. The evaluator writes no file, CAS object, or event and claims no modification, approval, or completed verification.
 
-Results contain local relative paths and source IDs only, never bodies, input source, absolute paths, or secrets. This slice emits no `document.stale.detected`; a future event requires a separate allowlist and failure meaning.
+Results contain only local relative paths and source IDs—never bodies, input source, absolute paths, or secrets. This slice emits no `document.stale.detected`; a future event requires a separate allowlist and failure meaning.
 
-- `invalid_staleness_request`: inputs do not form consistent evidence; collect again.
-- `staleness_contract_invalid`: computed output violates public schema; report no status.
+- `invalid_staleness_request`: inputs do not form consistent evidence; collect them again.
+- `staleness_contract_invalid`: computed output violates the public schema; report no status.
 
 ## Consequences
 

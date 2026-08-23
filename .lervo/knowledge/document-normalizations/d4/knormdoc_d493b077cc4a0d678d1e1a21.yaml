@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7dcf05b3f505bc5246d3f4d0
+outputLanguage: en
+outputs:
+  - byteCount: 3262
+    contentHash: sha256:f56b8a61d68d9afd585645f0312be86322357ae071449da088f92309bef9251e
+    path: docs/decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md
+    userRegionHash: sha256:f56b8a61d68d9afd585645f0312be86322357ae071449da088f92309bef9251e
+profile: decision_record
+recordId: knormdoc_d493b077cc4a0d678d1e1a21
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:e3883b440dff83403035eceb2c4b544c8d6207da9a138b74ef283f5dd4a2cac3
+sourcePath: docs/decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md
+sourceUnitVersionIds:
+  - uv_626c2e2cb3914bf01b5c70f4
+  - uv_b9e5026b5178b81aa966dace
+  - uv_c41d16fc1d2e47015168c62f
+  - uv_e89e7ddb63c667cbe75c8e85

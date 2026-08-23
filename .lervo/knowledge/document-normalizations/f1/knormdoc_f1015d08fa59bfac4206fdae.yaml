@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_995b67335f5bf61ecc79fc4d
+outputLanguage: en
+outputs:
+  - byteCount: 2898
+    contentHash: sha256:13ca13f0a246e1bbdeba5062b5684eaca0a590617ed21efdc58b04645712e256
+    path: docs/decisions/execution/verification/0044-signed-approval-managed-write-permit.md
+    userRegionHash: sha256:13ca13f0a246e1bbdeba5062b5684eaca0a590617ed21efdc58b04645712e256
+profile: decision_record
+recordId: knormdoc_f1015d08fa59bfac4206fdae
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:cba8619817ab811f612430b3b30f152a8140eb5f99be7c53ab830daf465a8410
+sourcePath: docs/decisions/execution/verification/0044-signed-approval-managed-write-permit.md
+sourceUnitVersionIds:
+  - uv_0e2e1b52d648145dd88c2738
+  - uv_69048a5da673a577a412ae7b
+  - uv_ae27eebf62cda63789358f63
+  - uv_b5e3c218935d7c1f0a1246dc

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d81379e9d354be09a2f21b46
+outputLanguage: en
+outputs:
+  - byteCount: 2506
+    contentHash: sha256:dc2ceb39307ddcf0c8296a0dceac46ba5f1bd180b8dad4d8d7a8ec821386b768
+    path: docs/decisions/coordination/deliberation/0141-explicit-durable-conversation-deliberation-resume.md
+    userRegionHash: sha256:dc2ceb39307ddcf0c8296a0dceac46ba5f1bd180b8dad4d8d7a8ec821386b768
+profile: decision_record
+recordId: knormdoc_e29140f5fb9bc73a08ce6f19
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:6af66f2a9a1acfab8d362e9885a3389b733edefc6238fada90bc97f94f1894f2
+sourcePath: docs/decisions/coordination/deliberation/0141-explicit-durable-conversation-deliberation-resume.md
+sourceUnitVersionIds:
+  - uv_0a658f68418b043e09ec7214
+  - uv_467b2f7c112a7799cf9bea3e
+  - uv_4dc63e798f732da369cf803b
+  - uv_e0aa95d1c11a1e6714a4e8b4

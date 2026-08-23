@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7aa8245183b69f466a39483b
+  - uv_6e2657dc626f071c4a945193
 title: "ADR-0117: CLI First-Publication Stage-Only Workflow Candidate"
 type: decision

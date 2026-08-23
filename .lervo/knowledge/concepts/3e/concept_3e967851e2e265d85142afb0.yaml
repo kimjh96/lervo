@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_5b980f7f6c4cfff0be037a8d
+  - uv_449b23744036b5ccf0804bd6
 title: "ADR-0062: Refreshing evidence for a selected search candidate"
 type: decision

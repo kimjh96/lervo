@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_536d89e50c099de6692d0ee7
+  - uv_39b8033b8e9345b67e521af9
 title: "ADR-0041: Signed, project-scoped, locally authorized remote commands"
 type: decision

@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
 - [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`
 - [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`
@@ -26,4 +27,3 @@
 - [ADR-0065: Human search-rollout review and execution boundary](../../decisions/search/0065-human-search-rollout-review.md) — `docs/decisions/search/0065-human-search-rollout-review.md`
 - [ADR-0066: Bounded search-rollout review status](../../decisions/search/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/0066-bounded-search-rollout-review-status.md`
 - [ADR-0067: Policy-bound search-rollout review](../../decisions/search/0067-policy-bound-search-rollout-review.md) — `docs/decisions/search/0067-policy-bound-search-rollout-review.md`
-- [ADR-0068: Explicit search-rollout actions and atomic rollback](../../decisions/search/0068-explicit-search-rollout-actions.md) — `docs/decisions/search/0068-explicit-search-rollout-actions.md`

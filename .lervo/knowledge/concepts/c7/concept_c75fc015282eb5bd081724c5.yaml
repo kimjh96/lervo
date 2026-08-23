@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a7c56734fc61a4f23394920f
+  - uv_109e6a8e0e565894e4de6775
 title: "ADR-0143: Harden Execution-Evidence and Conversation Boundaries"
 type: decision

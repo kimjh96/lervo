@@ -1,13 +1,13 @@
 # WSL Hub and Shiflo release acceptance
 
-Status: `passed`
+Status: `passed`  
 Date: 2026-08-24
 
 ## Scope and topology
 
-This acceptance used the existing Shiflo repository on macOS as the project authority and a user-level Lervo Node on the same device. The optional shared Hub ran continuously as a systemd user service in Ubuntu WSL2 on a Windows host. Authenticated HTTPS crossed the existing private overlay, but neither the protocol nor implementation depends on that network product.
+The existing Shiflo repository on macOS was the project authority, with a user-level Lervo Node on the same device. The optional shared Hub ran continuously as a systemd user service in Ubuntu WSL2 on Windows. Authenticated HTTPS crossed the existing private overlay, but the protocol and implementation do not depend on that network product.
 
-No npm registry publication, remote Git push, or Shiflo commit occurred. Existing Shiflo changes were preserved. Temporary provider pilot output was removed after verification; its tracked verification-suite definitions remain as historical event dependencies.
+No npm publication, remote Git push, or Shiflo commit occurred. Existing changes were preserved. Temporary provider pilot output was removed; tracked verification-suite definitions remain as historical event dependencies.
 
 ## Installed candidates
 
@@ -17,30 +17,30 @@ No npm registry publication, remote Git push, or Shiflo commit occurred. Existin
 | Hub in WSL2 | standalone Linux x64 glibc `0.1.0`, SHA-256 `03800f88728ffbc7b7b3adc5d5abd9866e38982b574ab88f527100d30afc3123` |
 | Node on macOS | standalone Darwin arm64 `0.1.0`, SHA-256 `a726e09615e91da07287ee220ddba47ffed0c31ed20819db12fb0baea29edc29` |
 
-The Hub candidate came from clean baseline `55bc6ef7895718367d77cba8ae597d2c98097f2b`. The CLI and Node candidates include the acceptance fixes recorded by this revision. Previous runtime directories remain local rollback material; active service definitions point to the candidates above.
+The Hub came from clean baseline `55bc6ef7895718367d77cba8ae597d2c98097f2b`. The CLI and Node include this revision's acceptance fixes. Previous runtime directories remain as local rollback material; active service definitions target these candidates.
 
 ## Local repository and managed providers
 
-- Shiflo knowledge lint reported a valid registry with 43 concepts and zero issues.
-- Query `documentation governance canonical update rules` ranked `docs/repository/documentation-governance.md` first with score 26.
-- Codex managed run `run_e06b52de950e40cb83c2f53db1d7bde6` changed only its declared pilot path; project verification and isolated writing evaluation passed.
-- Claude run `run_1aa6ac0a6abf4d95ac7ae906add6b2dc` omitted the required period. Exact project verification rejected it, demonstrating that provider completion alone cannot produce Lervo success.
+- Knowledge lint validated 43 concepts with no issues.
+- Query `documentation governance canonical update rules` ranked `docs/repository/documentation-governance.md` first, scoring 26.
+- Codex run `run_e06b52de950e40cb83c2f53db1d7bde6` changed only its declared pilot path; project verification and isolated writing evaluation passed.
+- Claude run `run_1aa6ac0a6abf4d95ac7ae906add6b2dc` omitted a required period. Exact project verification rejected it, showing that provider completion alone cannot produce Lervo success.
 - Claude retry `run_e9eb4c11aa054f56b92c82428a471641` changed only its declared pilot path; project verification and isolated writing evaluation passed.
 
-The external repository also exposed a managed-context collision: `AGENTS.md` could enter through both instruction discovery and repository knowledge under different IDs and metadata. The final CLI canonicalizes an identical path to one deterministic document identity while retaining both knowledge context and required-instruction evidence. Targeted full-context preparation and both real providers passed afterward.
+The repository exposed a managed-context collision: `AGENTS.md` entered through instruction discovery and repository knowledge under different identities and metadata. The final CLI canonicalizes an identical path to one deterministic document identity while retaining knowledge context and required-instruction evidence. Targeted full-context preparation and both real providers then passed.
 
 ## Hub and Node acceptance
 
-The WSL Hub was enabled and active through systemd user service management and passed identity-bound readiness. The macOS Node was enabled and active through launchd and passed its live-process readiness snapshot. The Node configuration selects one project, destination, Hub identity, and provider-host allowlist; those device-local coordinates and credentials were not copied into repository documents or command output.
+The WSL Hub was enabled and active under systemd user management and passed identity-bound readiness. The macOS Node was enabled and active under launchd and passed its live-process readiness snapshot. Node configuration selects one project, destination, Hub identity, and provider-host allowlist. Device-local coordinates and credentials were not copied into repository documents or command output.
 
-Before destination reconciliation, the state was:
+Before reconciliation:
 
 | Source | Events | Cursor or outbox |
 |---|---:|---:|
 | Shiflo local event chain | 245 | outbox 0 |
 | WSL Hub Shiflo project | 0 | cursor 0 |
 
-This proved that registration and readiness did not imply delivery. Production event producers never populated the outbox; only test fixtures did. ADR-0194 moved that responsibility to the explicitly configured Node without coupling local CLI or providers to Hub configuration.
+Registration and readiness therefore did not imply delivery: production event producers had not populated the outbox; only test fixtures had. ADR-0194 assigned that responsibility to the explicitly configured Node without coupling the local CLI or providers to Hub configuration.
 
 After installing the corrected Node:
 
@@ -51,24 +51,24 @@ After installing the corrected Node:
 | WSL Hub Shiflo project | cursor 245, 245 stored events |
 | WSL Hub Shiflo trace index | 23 runs |
 
-Unit integration also backfilled 205 events as bounded 100/100/5 cycles, repaired existing destination gaps, and failed closed when the authenticated Hub cursor differed from the local event hash.
+Unit integration also backfilled 205 events in bounded 100/100/5 cycles, repaired existing destination gaps, and failed closed when the authenticated Hub cursor differed from the local event hash.
 
 ## Restart and service lifecycle
 
-The Hub was restarted through systemd and returned to identity-bound ready. The Node was restarted through launchd and returned to live-process ready. The counts above remained identical after both restarts.
+After systemd and launchd restarts, the Hub returned to identity-bound ready, the Node returned to live-process ready, and all counts remained unchanged.
 
-Two real upgrades hardened service management:
+Two upgrades hardened service management:
 
 - A WSL systemd service briefly reported active before a broken launcher exited. Installation now requires three operational observations separated by 500 milliseconds and compensates a transient activation.
-- launchd briefly retained the old process state immediately after `bootout`. Removal now allows six observations and requires three consecutive stopped observations before deleting the exact service definition.
+- launchd briefly retained old process state after `bootout`. Removal now permits six observations and requires three consecutive stopped observations before deleting the exact service definition.
 
-OS service status remains distinct from runtime readiness, and both remain distinct from event delivery. The database counts above are the delivery evidence.
+OS service status, runtime readiness, and event delivery remain distinct. The database counts are the delivery evidence.
 
 ## Claims and limits
 
-This pilot demonstrates local knowledge workflows, real managed Codex and Claude execution, exact verification rejection, installation from local archives, service restart, destination-bound event reconciliation, authenticated delivery, and durable Hub persistence for the observed environment.
+This pilot demonstrates, for the observed environment, local knowledge workflows, real managed Codex and Claude execution, exact-verification rejection, installation from local archives, service restart, destination-bound reconciliation, authenticated delivery, and durable Hub persistence.
 
-It does not claim provider understanding beyond telemetry, artifact-body synchronization, repository-file replication, npm publication, automatic runtime upgrade, organization deployment policy, or future availability.
+It does not establish provider understanding beyond telemetry, artifact-body synchronization, repository-file replication, npm publication, automatic runtime upgrades, organization deployment policy, or future availability.
 
 ## References
 

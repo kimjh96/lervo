@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_aa2f37e20786ad7bfbbc4e6a
+  - uv_57cf2d0b86f88a90e52d370e
 title: "ADR-0031: Human-reviewed knowledge promotion and path-based staleness"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_48cc70dea448bdf2db114219
+  - uv_4ae421e6c8956f3a5ef227b3
 title: "ADR-0025: Human-facing publication gate and content-bound permits"
 type: decision

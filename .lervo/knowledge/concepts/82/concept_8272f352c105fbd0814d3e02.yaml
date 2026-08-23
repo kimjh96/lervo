@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_eb334d6f66619177b744ebbb
+  - uv_1517f642797b9c5d728e7087
 title: "ADR-0146: Hub-Owned Remote Command Authoring and Artifact Delivery"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b30da82357f1447d193082b8
+  - uv_ca6fe5dc739ca22b029eb905
 title: "ADR-0155: Explicit Managed Provider Host Role Registry"
 type: decision

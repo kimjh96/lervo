@@ -1,0 +1,31 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_14d6e55c409cfc43bfdd7a4d
+outputLanguage: en
+outputs:
+  - byteCount: 4371
+    contentHash: sha256:f991e0feb17859bfb489fdcee12ef9a3db11b22291765c79735b8b89ba9cbe55
+    path: docs/decisions/coordination/sync/0038-bounded-async-hub-storage-and-trace.md
+    userRegionHash: sha256:f991e0feb17859bfb489fdcee12ef9a3db11b22291765c79735b8b89ba9cbe55
+profile: decision_record
+recordId: knormdoc_be07e4abb5731a2af8ade16a
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:7e3fffe5e01e34a26e72982c46cbb1c3b062502c590843695ff0dd893c6bc94a
+sourcePath: docs/decisions/coordination/sync/0038-bounded-async-hub-storage-and-trace.md
+sourceUnitVersionIds:
+  - uv_25730ce00a0370e1ee9ffc6f
+  - uv_28697c25adfffa80dcf35700
+  - uv_333fc7528a8c91241c9b4bf0
+  - uv_456d64fe78e499deaf991131
+  - uv_53a71dd1c015e3261fc0b467
+  - uv_5c90a9420daed41b8f90ac5b
+  - uv_81bc5976ebb384481217b0dd
+  - uv_d6230c11cbf32a985e74a524
+  - uv_d9aab9263dd78b82b6dc6a01

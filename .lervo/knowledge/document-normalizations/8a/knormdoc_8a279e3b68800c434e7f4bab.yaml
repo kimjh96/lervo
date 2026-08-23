@@ -1,0 +1,30 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_717dd75b0ca02632d1c4a75a
+outputLanguage: en
+outputs:
+  - byteCount: 3772
+    contentHash: sha256:e704ffe4a924e5cbb883aec54d97a63341b1e5c16b2aae92911f7df624be4646
+    path: docs/decisions/coordination/remote-control/0042-durable-remote-command-delivery.md
+    userRegionHash: sha256:e704ffe4a924e5cbb883aec54d97a63341b1e5c16b2aae92911f7df624be4646
+profile: decision_record
+recordId: knormdoc_8a279e3b68800c434e7f4bab
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:56c33c7026aebca272ee9bb8af5e8356e369d57c4bd2adb4eb81a2044c0777cd
+sourcePath: docs/decisions/coordination/remote-control/0042-durable-remote-command-delivery.md
+sourceUnitVersionIds:
+  - uv_11f71d1317dd91fb248f1b4d
+  - uv_1e4a33f365d8b26cbb2ddf47
+  - uv_230fdd9e46a468b6bdc2a827
+  - uv_93b56505c867f524d913dff9
+  - uv_deeac27df2d63cb07ad42415
+  - uv_e7091748d450cd48136647ba
+  - uv_ef05c331b4ffcdef6c544ba4
+  - uv_f099b43a076370f3ff9ed5e5

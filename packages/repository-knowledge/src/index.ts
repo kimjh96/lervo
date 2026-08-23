@@ -11,6 +11,7 @@ export * from "./document-structure-delete.js";
 export * from "./document-structure-move.js";
 export * from "./document-structure-merge.js";
 export * from "./document-structure-split.js";
+export * from "./document-normalization.js";
 export * from "./decision-layout.js";
 export * from "./document-layout.js";
 export * from "./execution-event-source.js";

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b6761a2acc0b7a6b82138bf6
+outputLanguage: en
+outputs:
+  - byteCount: 2500
+    contentHash: sha256:5dfc6c27d76f7200fee09158837d96f2c103038830bc85c5d291168697635da5
+    path: docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md
+    userRegionHash: sha256:5dfc6c27d76f7200fee09158837d96f2c103038830bc85c5d291168697635da5
+profile: decision_record
+recordId: knormdoc_782ad70fe3ff8a114fd0c19c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:06f5787d6231280c4e4cdf155bf24a5bbce9ffb385aa71cd90ab3eabf5bf7817
+sourcePath: docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md
+sourceUnitVersionIds:
+  - uv_08a5d8098c91184b55dd078b
+  - uv_7b5d4fa57739bd398e2f8f8a
+  - uv_b8e16c283434a5283beeeaa4
+  - uv_d2f4a2551b37616024e5fb65

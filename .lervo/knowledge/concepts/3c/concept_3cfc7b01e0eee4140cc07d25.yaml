@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_725925d7b337ff2fd5e3923f
+  - uv_6e38bcb43cf313c1b4954bb8
 title: "ADR-0072: Explicit doctor execution scope"
 type: decision

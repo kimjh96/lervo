@@ -1,0 +1,28 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e95eeb5431a8003b07ddc891
+outputLanguage: en
+outputs:
+  - byteCount: 3451
+    contentHash: sha256:2fd4fdcae474c7f2fd81d579fc010ba7f03e3044cfbbf0218c159bb1ed190da9
+    path: docs/decisions/search/0053-deterministic-lexical-search-observations.md
+    userRegionHash: sha256:2fd4fdcae474c7f2fd81d579fc010ba7f03e3044cfbbf0218c159bb1ed190da9
+profile: decision_record
+recordId: knormdoc_4c8695c222351f3b975f09fa
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:3a32c956974cbe12bd092bd365950b35fe353bac0c9112759f301dae2e5e188c
+sourcePath: docs/decisions/search/0053-deterministic-lexical-search-observations.md
+sourceUnitVersionIds:
+  - uv_0057dbf9138f3a2b5b2fa710
+  - uv_3e40a08afcd2e4e17263a06d
+  - uv_931d1eecb8a04292b59193b9
+  - uv_cfc007a302a1a7548309f57a
+  - uv_d553244912545e3b6627c28b
+  - uv_fa2b89cea9100275988b6d42

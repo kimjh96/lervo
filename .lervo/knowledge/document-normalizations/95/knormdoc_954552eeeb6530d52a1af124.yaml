@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c5e4a278fb8c6194e0a8b321
+outputLanguage: en
+outputs:
+  - byteCount: 2277
+    contentHash: sha256:ad5f40e53fa8715a0c1b1d4e8854e6478e0c83e56fd99829b6f80937888fed74
+    path: docs/decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md
+    userRegionHash: sha256:ad5f40e53fa8715a0c1b1d4e8854e6478e0c83e56fd99829b6f80937888fed74
+profile: decision_record
+recordId: knormdoc_954552eeeb6530d52a1af124
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:8a128542bd8320bc07843863336d5070e4b82babf9c622cf4c771e987e985d9f
+sourcePath: docs/decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md
+sourceUnitVersionIds:
+  - uv_6883209d2f55afd818d3cdfa
+  - uv_8671569e88decb5eb77365f6
+  - uv_98fe0d78612f3510d995854d
+  - uv_cc88c70a70728af4d3b88aad

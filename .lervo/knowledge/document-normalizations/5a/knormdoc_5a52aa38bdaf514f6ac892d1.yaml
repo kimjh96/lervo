@@ -1,0 +1,27 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1d45bc174c2e09460b78616b
+outputLanguage: en
+outputs:
+  - byteCount: 2430
+    contentHash: sha256:27b3c71c46a356f55f3966ad743e3ee1fe83e50f6f6e02364893142a98300c62
+    path: docs/decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md
+    userRegionHash: sha256:27b3c71c46a356f55f3966ad743e3ee1fe83e50f6f6e02364893142a98300c62
+profile: decision_record
+recordId: knormdoc_5a52aa38bdaf514f6ac892d1
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:f7f7ed162e7718698f275351dccd072aec06423cf20caee7cbb47a596f85e800
+sourcePath: docs/decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md
+sourceUnitVersionIds:
+  - uv_035df71358784d21120317a8
+  - uv_26500bca6b6580bd4cd0a200
+  - uv_5200e42bc1d9b5205ca8ef94
+  - uv_61f62a381a059a8fc3bce7bf
+  - uv_7189f030fa01cfa47db42eb3

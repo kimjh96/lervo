@@ -5,20 +5,20 @@
 
 ## Context
 
-Ordinary deletion cannot bind current bytes, ownership, concepts, and human approval, and would leave nonexistent publications queryable. Move/split/merge also require distinct identity and navigation contracts.
+Ordinary deletion cannot bind current bytes, ownership, concepts, and human approval, and can leave nonexistent publications queryable. Move, split, and merge operations require separate identity and navigation contracts.
 
 ## Decision
 
-lervo knowledge structure delete <relative-markdown-path> creates only a read-only plan for an included regular .md/.mdx user-owned file registered to at least one current nondeprecated concept. Lervo/generated/unregistered/unsafe paths are rejected.
+`lervo knowledge structure delete <relative-markdown-path>` creates a read-only plan only for an included, regular `.md` or `.mdx` user-owned file registered to at least one current, nondeprecated concept. Reject Lervo-owned, generated, unregistered, or unsafe paths.
 
-The plan binds snapshot, policy, registry digest, exact bytes, linked concepts, sidecar before/after hashes, and a delete operation. Apply requires exact plan ID and every operation approval hash.
+The plan binds the snapshot, policy, registry digest, exact bytes, linked concepts, sidecar before/after hashes, and delete operation. Apply requires the exact plan ID and every operation approval hash.
 
-Apply removes the source and marks linked sidecars publicationStatus=deprecated, freshness=stale, deprecation.kind=document_deleted. It never infers claim truth or replacement. The durable journal renames the source to backup with after=null. Pre-event failure restores every byte; post-event recovery verifies exact absence/output and cleans only transaction state.
+Apply deletes the source and changes linked sidecars to `publicationStatus=deprecated`, `freshness=stale`, and `deprecation.kind=document_deleted`. It does not infer claim truth or a replacement. The durable journal renames the source to a backup with `after=null`. A pre-event failure restores every byte; post-event recovery verifies exact absence and output, then removes only transaction state.
 
-If a generated category loses its last active user document, refresh produces a deprecated tombstone. Query/lint exclude deprecated concepts from active publication. Deleting a moved document closes terminal lineage in the same transaction so path reuse gets a new identity.
+If a generated category loses its last active user document, refresh creates a deprecated tombstone. Query and lint exclude deprecated concepts from active publication. Deleting a moved document closes terminal lineage in the same transaction so reuse of the path creates a new identity.
 
-Success records knowledge.materialization.applied operation=document_structure_delete with bounded digests/counts but no raw path/content/identity; receipts use path digest. Failures distinguish approval, stale plan, ownership conflict, apply/recovery/rollback and never record partial success.
+Success records `knowledge.materialization.applied` with `operation=document_structure_delete` and bounded digests/counts, excluding raw path, content, and identity. Receipts use a path digest. Failures distinguish approval, stale plan, ownership conflict, apply, recovery, and rollback errors, and never record partial success.
 
 ## Consequences
 
-Fixtures verify dry-run privacy/nonmutation, wrong-approval safety, exact deletion/deprecation/lint/refresh/query, bounded events, byte-perfect rollback and plan reproducibility, and rejection of unregistered/generated/unsafe targets.
+Fixtures verify dry-run privacy and nonmutation, wrong-approval safety, exact deletion and deprecation, lint/refresh/query behavior, bounded events, byte-perfect rollback, plan reproducibility, and rejection of unregistered, generated, or unsafe targets.

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d7ac6fc03d4807fbb018bd65
+outputLanguage: en
+outputs:
+  - byteCount: 1596
+    contentHash: sha256:7ae59c8a30ffd13cdb84b1028f04bd758b4ffb41b30b766f1846151932753f9b
+    path: docs/decisions/coordination/deliberation/0139-conversation-queue-managed-deliberation-binding.md
+    userRegionHash: sha256:7ae59c8a30ffd13cdb84b1028f04bd758b4ffb41b30b766f1846151932753f9b
+profile: decision_record
+recordId: knormdoc_081fccbab24653b0ac84b2e4
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:dc65282eeef0efb35505501375c60d1e02d3269c4c88a336f7f0274da04e0eb2
+sourcePath: docs/decisions/coordination/deliberation/0139-conversation-queue-managed-deliberation-binding.md
+sourceUnitVersionIds:
+  - uv_3887fe96b3f4e252fdd6d549
+  - uv_53c52920b5679c2074555852
+  - uv_a4fbca1e513746259d7e45ed
+  - uv_c1a6f7d7e43e0af7a3de40bd

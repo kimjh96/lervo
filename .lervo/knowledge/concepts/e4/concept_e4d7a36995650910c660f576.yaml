@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a7d88c30cdd947dd3974fb6c
+  - uv_58e06c84c003c831d0c77c20
 title: "ADR-0145: Authenticated, Node-Scoped Remote Command Delivery"
 type: decision

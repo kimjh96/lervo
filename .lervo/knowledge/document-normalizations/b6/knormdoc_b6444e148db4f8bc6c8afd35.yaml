@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0ce8179e73ea0797528e1764
+outputLanguage: en
+outputs:
+  - byteCount: 3148
+    contentHash: sha256:86f77192bef4c4330744093797cf7f36f0c1b4a7dfc37cd0f751628afd77b5dc
+    path: docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md
+    userRegionHash: sha256:86f77192bef4c4330744093797cf7f36f0c1b4a7dfc37cd0f751628afd77b5dc
+profile: decision_record
+recordId: knormdoc_b6444e148db4f8bc6c8afd35
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ff38943f7fead0af42a64be5b51911c763d3f2fa8fce384233bfd4fc0ff0dcfa
+sourcePath: docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md
+sourceUnitVersionIds:
+  - uv_5c308523f29f8999ac93f534
+  - uv_826befffe62d6b46e3962494
+  - uv_c2bda2f475f7e2b114f201ba
+  - uv_de8b0e1ea9d8d482652a38e9

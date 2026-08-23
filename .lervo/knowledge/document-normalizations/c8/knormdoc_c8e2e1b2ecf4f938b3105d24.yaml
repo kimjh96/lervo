@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f571f643ce48a5d5dded2d37
+outputLanguage: en
+outputs:
+  - byteCount: 2145
+    contentHash: sha256:cc52fcae4fc1430857cdc0aa7fb5bc8907b8739e690c7a9ef592982066d6a9c1
+    path: docs/decisions/coordination/conversations/0140-authoritative-conversation-deliberation-reconciliation.md
+    userRegionHash: sha256:cc52fcae4fc1430857cdc0aa7fb5bc8907b8739e690c7a9ef592982066d6a9c1
+profile: decision_record
+recordId: knormdoc_c8e2e1b2ecf4f938b3105d24
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:8bc84de9cee4e12c691daf9768e478d39a07ddbee8fb1030e92e50278a5394f5
+sourcePath: docs/decisions/coordination/conversations/0140-authoritative-conversation-deliberation-reconciliation.md
+sourceUnitVersionIds:
+  - uv_5eabb5823758e149cca0b612
+  - uv_6d27ef7e3aca9a57017d5ad2
+  - uv_9e991262595007e2cd68dbd8
+  - uv_c4e311783647bd2a888c38d5

@@ -5,24 +5,24 @@
 
 ## Inventory
 
-Publication snapshot: `ksnap_12c0e772f978faf5279213e2`. Included 1888 publishable sources (8084146 bytes), excluded 5, unsupported 0. Local-inventory-only agent surfaces are omitted.
+Publication snapshot: `ksnap_814c367bdbcec1c7f57f3ff5`. Included 1895 publishable sources (8317153 bytes), excluded 5, unsupported 0. Local-inventory-only agent surfaces are omitted.
 
 - build_definition: 71
-- code: 814
+- code: 816
 - configuration: 79
-- documentation: 208
+- documentation: 210
 - instruction: 2
-- other: 283
+- other: 284
 - revision_metadata: 1
 - schema: 57
-- test: 373
+- test: 375
 
 ## Knowledge map
 
 - [Agent instructions](instructions.md) — 2 concepts
 - [Architecture and vision](architecture.md) — 3 concepts
 - [Specifications and reference](specifications.md) — 1 concept
-- [Documentation](documentation.md) — 204 concepts
+- [Documentation](documentation.md) — 206 concepts
 
 ## Evidence semantics
 

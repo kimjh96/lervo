@@ -1,0 +1,33 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_80665382f10eb2cd0ae27dff
+outputLanguage: en
+outputs:
+  - byteCount: 7872
+    contentHash: sha256:a5447d14815958dd94ce8369bf62d7282ef45c316929c47b035044427d6a2dde
+    path: docs/decisions/knowledge/documents/0018-existing-document-adoption.md
+    userRegionHash: sha256:a5447d14815958dd94ce8369bf62d7282ef45c316929c47b035044427d6a2dde
+profile: decision_record
+recordId: knormdoc_012cffdabb26170ebc88f659
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ba5291987d15210711feae105726f20412ff5bfacb7e2ed9421baeac816379fb
+sourcePath: docs/decisions/knowledge/documents/0018-existing-document-adoption.md
+sourceUnitVersionIds:
+  - uv_21e2e06337da3f362d6b088c
+  - uv_27edb6d233817619967b3bc9
+  - uv_27f454fd2ee25e7fe111b06f
+  - uv_3f1c0ab058c6748355dfafa6
+  - uv_53ae676ccfe5636340ad398f
+  - uv_5c2928e41426a8aed8f88234
+  - uv_7ffef2aace3c07cfc92cf21b
+  - uv_80e70d7ca6552a2cf952f91e
+  - uv_a2f1dcbd892a728728b830a0
+  - uv_afadb5ed835147347db46817
+  - uv_d361579aec2d8be6a9cb2e28

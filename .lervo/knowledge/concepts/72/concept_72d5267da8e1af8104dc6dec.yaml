@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ade11bc4946d74da74b260db
+  - uv_a63cc7715e8f4bc31ff5f582
 title: "ADR-0049: Restartable conversation deployment composition"
 type: decision

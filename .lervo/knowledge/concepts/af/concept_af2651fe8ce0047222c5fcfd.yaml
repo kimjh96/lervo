@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_0d8f476701e13af974a82a50
+  - uv_7895e2ea0194fb3155dbcb6c
 title: "ADR-0147: Bounded, Race-Safe Command Artifact Lifecycle"
 type: decision

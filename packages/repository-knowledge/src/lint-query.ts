@@ -14,6 +14,7 @@ import { repositoryKnowledgePublicationSnapshotId } from "./publication-snapshot
 import { scanRepositoryKnowledge } from "./scanner.js";
 import { loadStoredClaims, loadStoredConcepts, loadStoredRelations, type StoredClaim } from "./store-reader.js";
 import { inspectGroupedDecisionPaths } from "./decision-layout.js";
+import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import type {
   KnowledgeLintIssue,
   KnowledgeLintResult,
@@ -147,6 +148,7 @@ async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]):
     [".lervo/knowledge/bundles", "yaml"], [".lervo/knowledge/concepts", "yaml"],
     [".lervo/knowledge/claims", "yaml"], [".lervo/knowledge/relations", "yaml"],
     [".lervo/knowledge/source-lineage", "yaml"], [".lervo/knowledge/instruction-bridges", "yaml"],
+    [".lervo/knowledge/document-normalizations", "yaml"],
     [".lervo/generated/semantic-manifests", "json"], [".lervo/state/knowledge/inventory", "json"],
     [".lervo/state/knowledge/source-units", "json"], [".lervo/state/knowledge/impacts", "json"],
     [".lervo/state/knowledge/candidates", "json"],
@@ -231,6 +233,11 @@ export async function lintRepositoryKnowledge(
   }
   const project = await loadProjectManifest(root);
   await lintInstructionBridgeRecords(root, project.projectId, issues);
+  const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root, ...(options.supplementalSources === undefined ? {} : { supplementalSources: options.supplementalSources }), ...(options.allowTransactionPlanId === undefined ? {} : { allowTransactionPlanId: options.allowTransactionPlanId }) });
+  for (const record of normalization.records) {
+    if (record.status === "invalid") issues.push({ code: "invalid_document_normalization_record", severity: "error", path: record.path, message: "The document normalization lifecycle record is invalid." });
+    if (record.status === "stale") issues.push({ code: "document_normalization_stale", severity: "warning", path: record.path, message: "A normalized document family changed after its reviewed rewrite. Create a new content-bound normalization candidate." });
+  }
   const policy = await loadRepositoryKnowledgePolicy(root);
   const generated = await generatedPaths(root);
   const scan = await scanRepositoryKnowledge({ repositoryRoot: root, projectId: project.projectId, policy, generatedPaths: generated, ...(options.supplementalSources === undefined ? {} : { supplementalSources: options.supplementalSources }) });

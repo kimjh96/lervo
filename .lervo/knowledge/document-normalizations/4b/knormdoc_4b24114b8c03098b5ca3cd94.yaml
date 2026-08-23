@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9a4c679c000a4f201711f424
+outputLanguage: en
+outputs:
+  - byteCount: 3605
+    contentHash: sha256:888ee303a6e8299af4e8e0009e6a3405a27509bdf6c0abbd3c7fc0f62eeee7db
+    path: docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md
+    userRegionHash: sha256:888ee303a6e8299af4e8e0009e6a3405a27509bdf6c0abbd3c7fc0f62eeee7db
+profile: decision_record
+recordId: knormdoc_4b24114b8c03098b5ca3cd94
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:03afed21b5f7801c2a5ac31c0c59dcb7a39ded2b4ec515a14f4442494d99b548
+sourcePath: docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md
+sourceUnitVersionIds:
+  - uv_085a138abcf4bc4f5b3f7cfc
+  - uv_8407415bf32676e2c59bf106
+  - uv_84301f5512e7a6dc5a0ce2fb
+  - uv_c7e14f1857d448eada5c5d73
+  - uv_ded331d8eecb2b325ae43baa
+  - uv_e7e07e6f69be870f6098ac49
+  - uv_f466dd48d23bff6bda506266

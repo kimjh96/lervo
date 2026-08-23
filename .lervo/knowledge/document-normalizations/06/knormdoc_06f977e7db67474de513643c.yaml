@@ -1,0 +1,30 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_649bf178421fe44423613501
+outputLanguage: en
+outputs:
+  - byteCount: 4351
+    contentHash: sha256:47de6c461fe53168d002fe5dc5b350bb4c7e12f70d9872b1d6fad1477fed116f
+    path: docs/decisions/execution/providers/0013-provider-neutral-managed-write-bridge.md
+    userRegionHash: sha256:47de6c461fe53168d002fe5dc5b350bb4c7e12f70d9872b1d6fad1477fed116f
+profile: decision_record
+recordId: knormdoc_06f977e7db67474de513643c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:fa8f8314b29aa956ff097c065fd2ac163478f1831625f82ee7543f5e6f2fe25e
+sourcePath: docs/decisions/execution/providers/0013-provider-neutral-managed-write-bridge.md
+sourceUnitVersionIds:
+  - uv_2c5b9559c4488d562ba63750
+  - uv_6dcc6ccc5a22367898e409a2
+  - uv_734983237a4c31c559c3e0d1
+  - uv_7cbca06e5b87441e642c3875
+  - uv_9645fae3fd7eda958180c117
+  - uv_c0ea6428bc0c4b30340dbb6f
+  - uv_c8d5ccafeb23e13267511bc9
+  - uv_eb4581730176bd50c1602b99

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_e661c688d9177f6598838f32
-title: "ADR-0076: Versioned trace-report compatibility contract"
+  - uv_9e1ed46701d05d9174a05be0
+title: "ADR-0076: Versioned Trace-Report Compatibility Contract"
 type: decision

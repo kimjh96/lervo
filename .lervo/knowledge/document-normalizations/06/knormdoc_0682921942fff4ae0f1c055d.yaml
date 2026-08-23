@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_20bbd3e099988668c25b4f3f
+outputLanguage: en
+outputs:
+  - byteCount: 1883
+    contentHash: sha256:fa71a25070b305edc53793a8e7bfd7d19292f35fdb66d340431bae87a9e7f80c
+    path: docs/decisions/coordination/deliberation/0134-sharded-multi-role-deliberation-policy.md
+    userRegionHash: sha256:fa71a25070b305edc53793a8e7bfd7d19292f35fdb66d340431bae87a9e7f80c
+profile: decision_record
+recordId: knormdoc_0682921942fff4ae0f1c055d
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:7c05b5bb688221709256d674da84aab5e3196430c8ce1785895475321a4ced1d
+sourcePath: docs/decisions/coordination/deliberation/0134-sharded-multi-role-deliberation-policy.md
+sourceUnitVersionIds:
+  - uv_b18e38b4940fe780f7fa69ca
+  - uv_c42248f025bc291286af670b
+  - uv_c82e158faa078cce9f17d6be
+  - uv_c91b6a72d6e215b4e77513a2

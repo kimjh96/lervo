@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a577905840646266199a3a62
+  - uv_be91d4ecbecd52b9807e4a93
 title: "ADR-0098: CLI first-publication execution and transition receipts"
 type: decision

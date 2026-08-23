@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7de5ccdba2ce93fc4b736d8c
+outputLanguage: en
+outputs:
+  - byteCount: 2960
+    contentHash: sha256:e3cfcf52ab66772c02b541c2a4767f002658cd4c689cf3afe4741f917b11bbc5
+    path: docs/decisions/search/0060-policy-bound-search-engine-selection.md
+    userRegionHash: sha256:e3cfcf52ab66772c02b541c2a4767f002658cd4c689cf3afe4741f917b11bbc5
+profile: decision_record
+recordId: knormdoc_ab5612e607e9193255ff5519
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a28d514ee54f33fab602098e8b5dfe2d72a689f458be3b915b261a17ece0405c
+sourcePath: docs/decisions/search/0060-policy-bound-search-engine-selection.md
+sourceUnitVersionIds:
+  - uv_047d4f0de07f01dfb3aa3b48
+  - uv_28b6a21ffe9af4d7068d03e8
+  - uv_d1d4c8984297d59140240f93
+  - uv_e422ffa8024a49fcd713dc2a

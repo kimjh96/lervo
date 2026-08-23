@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9dcf590e965cac1982828c2e
+  - uv_88b30aa9daee3aa422d2f32c
 title: "ADR-0186: Content-Bound Codex–Claude Compilation Comparison"
 type: decision

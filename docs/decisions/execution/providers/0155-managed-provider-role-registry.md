@@ -5,20 +5,31 @@
 
 ## Context
 
-Hardcoded developer checks in policy and executor could diverge when roles expand. Config strings alone do not prove a role is registered or immutable. Existing researcher, marketer, and designer contracts require structured inputs, writing/publication gates, evaluation, capabilities, and suites that the current remote request and adapters do not yet enforce.
+Hardcoded developer checks in policy and executor could diverge as roles expand. Configuration strings do not prove a role is registered or immutable. Existing researcher, marketer, and designer contracts require structured inputs, writing/publication gates, evaluation, capabilities, and suites not yet enforced by the current remote request and adapters.
 
 ## Decision
 
-remoteCommands.providerHost.roles is a unique allowlist of 1–16 role IDs. At startup, one ManagedProviderHostRoleRegistry must resolve every configured role before network or command execution. Policy and executor share the same immutable snapshot. Unlisted roles or suite mismatch never create providers.
+`remoteCommands.providerHost.roles` is a unique allowlist of 1–16 role IDs. At startup, one `ManagedProviderHostRoleRegistry` must resolve every configured role before network or command execution. Policy and executor share the same immutable snapshot. Unlisted roles or suite mismatches never create providers.
 
-The default registry supplies developer. It copies the signed command's 1–16 suites per execution while fixing all other terms. Custom profiles are startup dependencies copied immutably; developer override, duplicate IDs, and more than fifteen custom profiles are rejected.
+The default registry supplies developer. For each execution it copies the signed command's 1–16 suites while fixing all other terms. Custom profiles are immutable startup dependencies. Reject developer overrides, duplicate IDs, and more than fifteen custom profiles.
 
-Custom profiles must have no structured required input, at most sixteen unique default skills, required E3/references, machine-only output without writing policy, filesystem read allow, write require_approval, shell allow, network/message/deploy/data mutation deny, and fixed suites exactly matching the command. This is the enforceable Codex/Claude intersection. Provider allowlist, signed approval, per-path permit, E1/E2/E3, and actual verification remain independent controls; full role profile enters the coordinator policy-version digest.
+Custom profiles must:
 
-Researcher, marketer, and designer are intentionally absent until their input, writing/publication, evaluation, and adapter capability contracts are wired. Definitions alone are not execution evidence.
+- require no structured input;
+- define at most sixteen unique default skills;
+- require E3 and references;
+- produce machine-only output without writing policy;
+- allow filesystem reads and shell;
+- require approval for writes;
+- deny network, messaging, deployment, and data mutation; and
+- use fixed suites exactly matching the command.
 
-Invalid config fails before network. Registry/profile/host mismatches and command denial retain bounded codes. No event or durable registry is added; startup snapshots require restart to change. Receipts/events gain no descriptions, inputs, or provider payloads, and registry resolution proves no execution, content use, skill use, or publication.
+This is the enforceable Codex/Claude intersection. Provider allowlist, signed approval, per-path permit, E1/E2/E3, and actual verification remain independent controls. The complete role profile enters the coordinator policy-version digest.
+
+Researcher, marketer, and designer remain absent until their input, writing/publication, evaluation, and adapter capability contracts are connected. Definitions alone are not execution evidence.
+
+Invalid configuration fails before network access. Registry, profile, and host mismatches and command denial retain bounded codes. Add no event or durable registry; changing startup snapshots requires restart. Receipts and events gain no descriptions, inputs, or provider payloads. Registry resolution proves no execution, content use, skill use, or publication.
 
 ## Consequences
 
-Fixtures verify immutable custom profiles, fixed suites, override/capability/skill rejection, a maintainer multi-generation run, allowlist startup validation, and developer regressions. Installed CLI still defaults to developer only; embedding applications must supply both a safe registered profile and matching allowlist.
+Fixtures verify immutable custom profiles, fixed suites, override/capability/skill rejection, a maintainer multi-generation run, allowlist startup validation, and developer regressions. The installed CLI still defaults to developer only; embedding applications must provide both a safe registered profile and a matching allowlist.

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2fa651092cccfde2aaf49622
+  - uv_7d0818fc50dccc1258dcc30e
 title: "ADR-0191: Bounded hierarchical repository layout"
 type: decision

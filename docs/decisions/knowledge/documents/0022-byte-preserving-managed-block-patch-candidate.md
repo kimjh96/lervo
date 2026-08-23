@@ -5,44 +5,44 @@ Decision date: 2026-08-19
 
 ## Context
 
-Parser-verified block boundaries do not authorize immediate writes. Reviewers need a source-bound candidate showing what changes and demonstrating preservation of user-owned bytes. Stale output must not apply after source changes. Metadata should contain hashes, while full output bytes remain locally reviewable rather than copied into events.
+Parser-verified boundaries do not authorize writes. Reviewers need a source-bound candidate that shows the change and proves preservation of user-owned bytes. Stale output cannot apply after source changes. Metadata holds hashes; complete output bytes remain locally reviewable instead of entering events.
 
 ## Decision
 
-`@lervo/documents` exposes filesystem-free `createManagedBlockPatchCandidate`, accepting scanner-verified source path/hash/count/bytes, a current block ID, and replacement bytes. It:
+`@lervo/documents` exposes filesystem-free `createManagedBlockPatchCandidate`, which accepts a scanner-verified source path, hash, byte count and bytes, a current block ID, and replacement bytes. It:
 
-1. Verifies source digest and byte count.
+1. Verifies the source digest and byte count.
 2. Requires a fully valid CommonMark parse with exactly one target block.
-3. Requires marker family `lervo_v1`; legacy markers are read-only.
+3. Requires marker family `lervo_v1`; legacy markers remain read-only.
 4. Replaces only the content byte range.
 5. Re-parses output and proves unchanged block order, IDs, families, and marker bytes.
-6. Proves all bytes before/after the target content unchanged and content equal to replacement.
+6. Proves that all bytes before and after target content are unchanged and that content equals the replacement.
 
-Replacement must be valid UTF-8 and at most 8 KiB. Empty content is allowed. Reject content that breaks the standalone end marker, injects managed markers, changes structure, or equals existing bytes.
+Replacement must be valid UTF-8 and no larger than 8 KiB. Empty content is allowed. Reject replacements that break the standalone end marker, inject managed markers, change structure, or equal the current bytes.
 
 Return:
 
-- `ManagedBlockPatchCandidateArtifact`: canonical JSON with source/parser coordinates, original range/content hash, replacement hash/count, output hash/count/range, and verification constants.
-- `outputBytes`: full review/apply bytes bound by output hash but absent from JSON/events.
+- `ManagedBlockPatchCandidateArtifact`: canonical JSON containing source/parser coordinates, original range and content hash, replacement hash/count, output hash/count/range, and verification constants.
+- `outputBytes`: complete review/apply bytes bound by the output hash but excluded from JSON and events.
 
-Derive candidate and artifact IDs from canonical content, not time. Fix `disposition=review_required` and `writesAllowed=false`. Set `onlyTargetContentChanged`, `markerBytesUnchanged`, and `outputStructureValid` true only after direct proof.
+Derive candidate and artifact IDs from canonical content, not time. Fix `disposition=review_required` and `writesAllowed=false`. Set `onlyTargetContentChanged`, `markerBytesUnchanged`, and `outputStructureValid` to true only after direct proof.
 
-This stage writes no file, CAS object, or event and creates no approval/application state. Metadata contains hashes and byte coordinates only—never source, replacement, or absolute paths.
+This stage writes no file, CAS object, or event and creates no approval or application state. Metadata contains only hashes and byte coordinates—never source, replacement, or absolute paths.
 
 | Code | Meaning |
 | --- | --- |
 | `invalid_patch_request` | Invalid block ID or relative path. |
-| `source_changed` | Bytes no longer match requested digest/count. |
-| `source_structure_invalid`, `block_not_found` | Ownership boundary or target is not verified. |
+| `source_changed` | Bytes do not match the requested digest/count. |
+| `source_structure_invalid`, `block_not_found` | Ownership boundary or target is unverified. |
 | `legacy_marker_not_writable` | Explicit migration is required. |
-| `replacement_invalid_utf8`, `replacement_too_large`, `no_changes` | Invalid or ineffective replacement. |
+| `replacement_invalid_utf8`, `replacement_too_large`, `no_changes` | Replacement is invalid or ineffective. |
 | `output_structure_invalid` | Reparse, marker identity, or outside-byte preservation failed. |
-| `candidate_contract_invalid` | Generated candidate/artifact violates schema. |
+| `candidate_contract_invalid` | Generated candidate or artifact violates its schema. |
 
 ## Consequences
 
-- Only output verified to preserve user regions and other blocks becomes reviewable.
+- Only output proven to preserve user regions and other blocks becomes reviewable.
 - Source, replacement, and output have distinct hash bindings.
 - Candidate generation is deterministic and write-free.
 - Legacy or ambiguous Markdown is never silently rewritten.
-- A later applier must revalidate artifact/output and require explicit approval.
+- A later applier must revalidate artifact and output and require explicit approval.

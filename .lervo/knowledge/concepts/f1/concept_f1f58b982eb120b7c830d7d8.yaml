@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_10f36ac3cb980023b52f8d47
+  - uv_f3831ea3a9af599adb78fa47
 title: Lervo Node standalone distribution
 type: concept

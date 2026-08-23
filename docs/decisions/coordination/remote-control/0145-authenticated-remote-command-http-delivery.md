@@ -9,16 +9,16 @@ Durable commands and reconnect workers lacked a real HTTP transport, and acknowl
 
 ## Decision
 
-@lervo/hub exposes project-scoped lease and acknowledgement POST routes. Bearer authentication, command.delivery permission, destination/project scope, and principalId=nodeId are checked before bodies. Hub time owns lease and confirmation times. Lease duration is 1 second–5 minutes and limit 1–16. Requests default to 256 KiB, responses 1 MiB; non-JSON, unknown/duplicate query, and invalid routes fail. Responses use no-store and a Hub identity header.
+`@lervo/hub` exposes project-scoped lease and acknowledgement POST routes. Before reading bodies, it checks bearer authentication, `command.delivery` permission, destination/project scope, and `principalId=nodeId`. Hub time determines lease and confirmation times. Lease duration is 1 second–5 minutes and limit is 1–16. Requests default to 256 KiB and responses to 1 MiB. Non-JSON, unknown or duplicate query parameters, and invalid routes fail. Responses use `no-store` and a Hub identity header.
 
-Acknowledgement storage requires destination, project/identity, and Node and rechecks current registration and lease owner transactionally. Duplicate terminal acknowledgements require identical hashes and scope.
+Acknowledgement storage requires destination, project/identity, and Node, and transactionally rechecks current registration and lease owner. Duplicate terminal acknowledgements require identical hashes and scope.
 
-AuthenticatedRemoteCommandHttpTransport fixes HTTPS base URL, bearer, expected Hub identity, destination, Node, and project at construction. URLs reject credentials/query/fragment; HTTP is fixture-only. It sends bounded JSON with a 15-second default timeout and validates status, content type, Hub identity, and all coordinates before the worker sees a body. The header supplements, not replaces, TLS. Lease time is checked against post-response current time.
+`AuthenticatedRemoteCommandHttpTransport` fixes HTTPS base URL, bearer credential, expected Hub identity, destination, Node, and project at construction. URLs reject credentials, query, and fragment; HTTP is fixture-only. It sends bounded JSON with a 15-second default timeout and validates status, content type, Hub identity, and every coordinate before exposing a body to the worker. The identity header supplements rather than replaces TLS. Lease time is checked against the current time after the response.
 
-A separate polling lifecycle serializes cycles, waits bounded intervals for idle/deferred outcomes, continues after processed batches, and obeys AbortSignal. It owns no process, service, credentials, or logs.
+A separate polling lifecycle serializes cycles, waits bounded intervals after idle or deferred outcomes, continues after processed batches, and obeys `AbortSignal`. It owns no process, service, credentials, or logs.
 
-Tokens exist only in memory and Authorization headers. No raw request, provider output, or internal exception is stored. HTTP codes distinguish authentication, authorization, absence, invalid input, conflict, size, and internal failure. Node normalizes transport failures to hub_unavailable or transport_authentication_failed without new queue states/events.
+Tokens exist only in memory and `Authorization` headers. No raw request, provider output, or internal exception is stored. HTTP codes distinguish authentication, authorization, absence, invalid input, conflict, size, and internal failure. Node normalizes transport failures to `hub_unavailable` or `transport_authentication_failed` without adding queue states or events.
 
 ## Consequences
 
-Real HTTP now preserves durable replay: an integration fixture loses the first acknowledgement, restarts Hub/Node databases and server, and confirms one executor call with the second acknowledgement committed. Authorization-before-body, size limits, identity failure, polling serialization, and abort behavior are verified. This does not claim an installed daemon or production TLS deployment.
+Real HTTP preserves durable replay: an integration fixture loses the first acknowledgement, restarts Hub and Node databases and server, and confirms one executor call with the second acknowledgement committed. Fixtures also verify authorization before body parsing, size limits, identity failure, polling serialization, and abort behavior. This decision does not claim an installed daemon or production TLS deployment.

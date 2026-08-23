@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_4ca3fa28e81ed6c01b7a8941
+  - uv_279119a1c76eeaa22a160ef5
 title: "ADR-0100: Read-only CLI first-publication preflight report"
 type: decision

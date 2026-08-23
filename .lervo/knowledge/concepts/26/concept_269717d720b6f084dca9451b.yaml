@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_83e445f319de7b934d8ced6f
+  - uv_28ea0f9929a7830b702ca450
 title: "ADR-0042: Durable remote-command delivery across restart and lost responses"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2bf775ec0872ece84f6d25e3
+outputLanguage: en
+outputs:
+  - byteCount: 3017
+    contentHash: sha256:baa1b98853a266e276c83086a451826f7e7981b8b0b0f48a0af960996463d1e3
+    path: docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md
+    userRegionHash: sha256:baa1b98853a266e276c83086a451826f7e7981b8b0b0f48a0af960996463d1e3
+profile: decision_record
+recordId: knormdoc_1b5c19f853bbc9e07089a5b2
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5cb090a7339e4075b1c60f08a9a5f53a5c7f1d330c6088ebfa860c58c5cc80fa
+sourcePath: docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md
+sourceUnitVersionIds:
+  - uv_4b958ebdb2e353a2e0b227a6
+  - uv_790122c93fe76bc130d08865
+  - uv_80a53b725aab782358d8c581
+  - uv_ce57a0ff2d3cc36837d1c610

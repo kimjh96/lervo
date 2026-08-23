@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_12dc0945e886854dd50dd24f
+  - uv_422b857612cadc714dd4adf4
 title: "ADR-0052: Rebuildable explicit knowledge graph"
 type: decision

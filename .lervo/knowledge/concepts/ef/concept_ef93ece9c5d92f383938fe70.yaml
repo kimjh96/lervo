@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b4dc53323862e0bef814d525
+  - uv_38a6e2047d367876cd3ddd1c
 title: "ADR-0017: Sharded document manifests and no append-only documents"
 type: decision

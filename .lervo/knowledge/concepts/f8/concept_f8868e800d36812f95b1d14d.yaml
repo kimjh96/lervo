@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8294ae612e3c18ecbae471ec
+  - uv_bcb498691f1f0e66145664b1
 title: "ADR-0134: Policy-Defined Multi-Role Deliberation"
 type: decision

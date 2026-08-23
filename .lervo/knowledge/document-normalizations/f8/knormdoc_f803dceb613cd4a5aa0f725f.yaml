@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_43e1165a450abca2f0779d55
+outputLanguage: en
+outputs:
+  - byteCount: 2224
+    contentHash: sha256:9d442e5d77bdba3c1e1c02b52e99b9f40fc02dd788fcc2d5c169a544d5e00e75
+    path: docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md
+    userRegionHash: sha256:9d442e5d77bdba3c1e1c02b52e99b9f40fc02dd788fcc2d5c169a544d5e00e75
+profile: decision_record
+recordId: knormdoc_f803dceb613cd4a5aa0f725f
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:c034ed4f25be7bd9716731553acb51af789745e510b4833ec2e5229c6d9c2779
+sourcePath: docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md
+sourceUnitVersionIds:
+  - uv_918f244f70883c72b164cae1
+  - uv_a0c99256e5c9538edd64c72b
+  - uv_a82c556566f8a007ce67cb6e
+  - uv_e2c4b5251ac42aae0f77a0c7

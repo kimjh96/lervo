@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_fdab9cdb9a4e4095111190d0
+  - uv_c3f15951c995d1059bb863f1
 title: "ADR-0092: CLI release SBOM contract"
 type: decision

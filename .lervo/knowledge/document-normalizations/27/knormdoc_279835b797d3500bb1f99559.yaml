@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_889ced0d166bc1470f770bcb
+outputLanguage: en
+outputs:
+  - byteCount: 3899
+    contentHash: sha256:52d5a74ad2291ac40b2f49bb8736a37fbc54704cb1f8b1cfbb3f855d7ec2f53a
+    path: docs/decisions/search/0054-search-recommendation-managed-context-boundary.md
+    userRegionHash: sha256:52d5a74ad2291ac40b2f49bb8736a37fbc54704cb1f8b1cfbb3f855d7ec2f53a
+profile: decision_record
+recordId: knormdoc_279835b797d3500bb1f99559
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a4bdffd15773733e0d2b252e299625a28827e18191d24ea50b32999f34f56b66
+sourcePath: docs/decisions/search/0054-search-recommendation-managed-context-boundary.md
+sourceUnitVersionIds:
+  - uv_2e5c39597fe91194f3d98c23
+  - uv_5b6e5ee78433cc02da51689f
+  - uv_6527cfabba806a90272222d1
+  - uv_7e5b3428f0e38d98c2ebf5a1
+  - uv_81bc5d8b5d66e592c0009f1d
+  - uv_a274eec0fc55b0974ccfaa81
+  - uv_e8fdb45b164522503cc14ff9

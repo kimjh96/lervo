@@ -118,17 +118,17 @@
     "files": [
       {
         "path": "README.md",
-        "size": 3264,
-        "sha256": "sha256:848c8d61086099ae1fada79d93133ea9b5576a5e28106cf120715d722abadc80"
+        "size": 3795,
+        "sha256": "sha256:5fd5f73bc1355a34060f8fd2f9e134928646809430f4848ba54249279d21a4e4"
       },
       {
         "path": "dist/bin.js",
-        "size": 3387806,
-        "sha256": "sha256:e442504ad83922cfb7c6ee052a1a1432ddb3a202905383b68440de7632b6d6fc"
+        "size": 3461031,
+        "sha256": "sha256:3f7865674864ece10350ec0e67bb111f070d7fd3725f8c7888e596a732b90106"
       }
     ],
     "fileCount": 3,
-    "contentDigest": "sha256:84ae1c45a66a3087489885749c33105e3ba65f5e29290d6cd0aeabe347eaf1f7"
+    "contentDigest": "sha256:abead980699a20fde1c0e52f00bf00d1872a39874d11e37a843d1d9957621b6c"
   },
   "dependencies": {
     "portable": [
@@ -241,5 +241,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:13ede15bd4c01d64a2876148810078df0255909738390088e9b83502e24bf5c8"
+  "artifactDigest": "sha256:7f75787fab1dd6d3fb26adc0dcfd3c32003b500a61fc110222d59042455f1e41"
 }

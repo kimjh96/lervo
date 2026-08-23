@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9a075e1528d44a2d21d60fe8
+  - uv_48e260318f16895731c7ce21
 title: "ADR-0079: Explicit trace-page event-type filters"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7f94c4ebfe3c395ad3b4067a
+outputLanguage: en
+outputs:
+  - byteCount: 1595
+    contentHash: sha256:048ec216ab0de94f12a4021e1623c9deafcec576045e86d62a0b140a37ba0baf
+    path: docs/decisions/coordination/deliberation/0135-approved-deliberation-resume-boundary.md
+    userRegionHash: sha256:048ec216ab0de94f12a4021e1623c9deafcec576045e86d62a0b140a37ba0baf
+profile: decision_record
+recordId: knormdoc_ce2d8caa2c9e4db201a776d5
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:8282a98b7d4dc4a34709bc7afcb8307f97e5145edee7c5a545ae7d3273d1c2aa
+sourcePath: docs/decisions/coordination/deliberation/0135-approved-deliberation-resume-boundary.md
+sourceUnitVersionIds:
+  - uv_0c23086cab3f4475099f1edf
+  - uv_0cc417797fe4d7f119b9a8ed
+  - uv_921c1f7acaeadcba36660cc3
+  - uv_d470a1f42e84b7242273a7c4

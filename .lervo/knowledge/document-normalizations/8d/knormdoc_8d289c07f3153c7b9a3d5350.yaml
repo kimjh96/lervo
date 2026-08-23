@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1fa0ba91ddb02ac6eb0969de
+outputLanguage: en
+outputs:
+  - byteCount: 2249
+    contentHash: sha256:d38ae2fe2936b87f99017b2fedca4a4cb363509f4671c4896a77fe9d1c9e4361
+    path: docs/decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md
+    userRegionHash: sha256:d38ae2fe2936b87f99017b2fedca4a4cb363509f4671c4896a77fe9d1c9e4361
+profile: decision_record
+recordId: knormdoc_8d289c07f3153c7b9a3d5350
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a0827d5478ddcea1d928229df578431797107a4147406b1b97dd823fb7d0d58d
+sourcePath: docs/decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md
+sourceUnitVersionIds:
+  - uv_1289547536608abf0f6b92c5
+  - uv_4862d321b7d2dbd864c8bb37
+  - uv_7d72aadcd32cdefecce35607
+  - uv_ddee966c6d219a9dbce20246

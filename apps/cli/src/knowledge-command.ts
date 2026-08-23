@@ -26,6 +26,7 @@ import {
   createKnowledgeMigrationPlan,
   createRepositoryLayoutMigrationPlan,
   lintRepositoryKnowledge,
+  inspectConfiguredDocumentNormalization,
   queryRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
   sha256,
@@ -56,6 +57,7 @@ import { stringify } from "yaml";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runKnowledgeCompilationCommand } from "./knowledge-compilation-command.js";
+import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
 import type { CliIo } from "./types.js";
 
 export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--apply <plan-id>] [--json]
@@ -66,6 +68,7 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--appl
   lervo knowledge stability --provider <codex|claude> [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--json]
   lervo knowledge stability --baseline <compilation-id> --candidate <compilation-id> [--root <path>] [--json]
   lervo knowledge merge-candidate --comparison <comparison-id> --codex <compilation-id> --claude <compilation-id> [--root <path>] [--json]
+  lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
   lervo knowledge reconcile [--root <path>] [--json] <compilation-id>
   lervo knowledge review-policy --reviewer <id> [--policy-id <id>] [--allow-conflict-resolution] [--root <path>] [--write] [--json]
   lervo knowledge review --plan <plan-id> --policy <relative-path> --reviewer <id> (--accept-all-safe|--approve-item <disposition-id>=<output-hash>|--resolve-item <disposition-id>=<resolution-hash>|--reject) [--approve-item ...] [--resolve-item ...] [--root <path>] [--json] <compilation-id>
@@ -741,7 +744,7 @@ export async function runKnowledgeMigration(input: {
   io: CliIo;
   mode: "migrate" | "refresh";
 }): Promise<number> {
-  let values: { root?: string; apply?: string; "approve-item"?: string[]; json?: boolean; help?: boolean };
+  let values: { root?: string; apply?: string; "approve-item"?: string[]; provider?: string; candidate?: string; model?: string; executable?: string; "timeout-ms"?: string; json?: boolean; help?: boolean };
   try {
     values = parseArgs({
       args: input.args,
@@ -751,6 +754,11 @@ export async function runKnowledgeMigration(input: {
         root: { type: "string" },
         apply: { type: "string" },
         "approve-item": { type: "string", multiple: true },
+        provider: { type: "string" },
+        candidate: { type: "string" },
+        model: { type: "string" },
+        executable: { type: "string" },
+        "timeout-ms": { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -878,6 +886,42 @@ export async function runKnowledgeMigration(input: {
         ], input.io);
       }
     }
+    if (input.mode === "migrate" && structuralCurrent) {
+      if (values.provider !== undefined || values.candidate !== undefined) {
+        return runDocumentNormalizationCommand([
+          ...(values.provider === undefined ? [] : ["--provider", values.provider]),
+          ...(values.candidate === undefined ? [] : ["--candidate", values.candidate]),
+          "--root", repositoryRoot,
+          ...(values.model === undefined ? [] : ["--model", values.model]),
+          ...(values.executable === undefined ? [] : ["--executable", values.executable]),
+          ...(values["timeout-ms"] === undefined ? [] : ["--timeout-ms", values["timeout-ms"]]),
+          ...(values.apply === undefined ? [] : ["--apply", values.apply]),
+          ...(values["approve-item"] ?? []).flatMap((approval) => ["--approve-item", approval]),
+          ...(values.json ? ["--json"] : []),
+        ], input.io);
+      }
+      if (values.apply === undefined) {
+        const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot, supplementalSources });
+        if (normalization.pendingDocuments.length > 0) {
+          const result = {
+            schemaVersion: 1,
+            planKind: "document_normalization_provider_selection",
+            status: "provider_required",
+            repositoryRoot,
+            outputLanguage: normalization.outputLanguage,
+            formatVersion: normalization.formatVersion,
+            eligibleDocuments: normalization.eligibleDocuments,
+            currentDocuments: normalization.currentDocuments,
+            pendingDocuments: normalization.pendingDocuments,
+            supportedProviders: ["codex", "claude"],
+          };
+          input.io.stdout(values.json
+            ? `${JSON.stringify(result, null, 2)}\n`
+            : `Repository content normalization requires an installed provider.\npending documents: ${normalization.pendingDocuments.length}/${normalization.eligibleDocuments}\nlanguage: ${normalization.outputLanguage} · format: ${normalization.formatVersion}\nRun lervo migrate knowledge --provider codex (or claude) to create the reviewable rewrite candidate.\n`);
+          return 0;
+        }
+      }
+    }
     if ((values["approve-item"]?.length ?? 0) > 0) throw new Error("The current migration plan does not require item approvals.");
     if (values.apply === undefined) {
       input.io.stdout(values.json ? `${JSON.stringify(printablePlan(plan), null, 2)}\n` : formatKnowledgeMigrationPlan(plan));
@@ -1002,6 +1046,7 @@ export async function runKnowledgeCommand(args: string[], io: CliIo): Promise<nu
   if (subcommand === "compile" || subcommand === "compare" || subcommand === "stability" || subcommand === "merge-candidate") {
     return runKnowledgeCompilationCommand({ operation: subcommand, args: args.slice(1), io, usage: knowledgeUsage });
   }
+  if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
   if (subcommand === "review-policy") return runKnowledgeReviewPolicy(args.slice(1), io);
   if (subcommand === "review") return runKnowledgeReview(args.slice(1), io);
   if (subcommand === "materialize") return runKnowledgeSemanticMaterialize(args.slice(1), io);

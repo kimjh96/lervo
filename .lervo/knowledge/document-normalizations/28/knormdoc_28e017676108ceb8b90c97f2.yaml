@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9565dabce00d344fd93bebdc
+outputLanguage: en
+outputs:
+  - byteCount: 3100
+    contentHash: sha256:6fa7c2591e0a5e2664d4f9946bd9b9b9c41a1cdfbed290e33ae54f4b7de55113
+    path: docs/decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md
+    userRegionHash: sha256:6fa7c2591e0a5e2664d4f9946bd9b9b9c41a1cdfbed290e33ae54f4b7de55113
+profile: decision_record
+recordId: knormdoc_28e017676108ceb8b90c97f2
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ce0c5aa2452f855dab017332a28744595e8186ff194d4bb0da9cf14c0e6448f2
+sourcePath: docs/decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md
+sourceUnitVersionIds:
+  - uv_12423566f7f28d8f2e0468ee
+  - uv_7498e1136838d8f4a47596c6
+  - uv_80826554a9b7d899ee4f8ace
+  - uv_f684e1fda969a3427d9d1bc8

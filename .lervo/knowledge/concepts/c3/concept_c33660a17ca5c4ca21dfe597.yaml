@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_614af4343880e7e14f5c4924
+  - uv_e1a2d1bec5f849125d0f459c
 title: "ADR-0047: Role-scoped managed conversation responses and publication evidence"
 type: decision

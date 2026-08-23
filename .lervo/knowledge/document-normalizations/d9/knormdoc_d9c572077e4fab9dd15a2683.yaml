@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_91e4c9b473c4320bf5db7c20
+outputLanguage: en
+outputs:
+  - byteCount: 2922
+    contentHash: sha256:93bbd48771754d819ebf9e0ff74c0373e5f3caa1ce90dc05a5c68430f5b67d14
+    path: docs/decisions/coordination/sync/0151-restartable-node-outbound-sync-runtime.md
+    userRegionHash: sha256:93bbd48771754d819ebf9e0ff74c0373e5f3caa1ce90dc05a5c68430f5b67d14
+profile: decision_record
+recordId: knormdoc_d9c572077e4fab9dd15a2683
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5578c24fdae808a849d8e110047129b4629730acfc60eafd93e1e0dce954c887
+sourcePath: docs/decisions/coordination/sync/0151-restartable-node-outbound-sync-runtime.md
+sourceUnitVersionIds:
+  - uv_017cb12331a4ce6d9fa7208a
+  - uv_287caf6c79e9ce736db90f11
+  - uv_40966890431c1dbc5deccb4c
+  - uv_baa4edc89ad0c733a30ea6d9

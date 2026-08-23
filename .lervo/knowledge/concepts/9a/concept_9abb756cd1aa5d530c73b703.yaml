@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_9fb6cb1c2bb6f2ff7a595569
+  - uv_ee8ec7cd82c4d626c8528cfa
 title: "ADR-0074: Dependency-separated doctor scope plans"
 type: decision

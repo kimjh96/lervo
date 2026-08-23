@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_3dfabe95c7d23668b16ee1de
+  - uv_c9e5aa580f426b5fb4542ab1
 title: "ADR-0028: Same-provider role isolation and deliberation evidence binding"
 type: decision

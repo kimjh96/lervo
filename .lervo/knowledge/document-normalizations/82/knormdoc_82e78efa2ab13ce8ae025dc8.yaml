@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_236551e030f69935494cc874
+outputLanguage: en
+outputs:
+  - byteCount: 2330
+    contentHash: sha256:95d22a8caec037bbb67f35ea2cd532c7da24a7ddbb10f1442bc9cc4a97c62210
+    path: docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md
+    userRegionHash: sha256:95d22a8caec037bbb67f35ea2cd532c7da24a7ddbb10f1442bc9cc4a97c62210
+profile: decision_record
+recordId: knormdoc_82e78efa2ab13ce8ae025dc8
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5e5f991c34a468142738a98556fe249fe9d3a1cea55dd4f39dd43c1ea749e021
+sourcePath: docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md
+sourceUnitVersionIds:
+  - uv_050a8a41cc85f1ad5b1dd29f
+  - uv_499e95ceb6d1b4509d45f8ad
+  - uv_b7111f5b6437e96e2740b31d
+  - uv_e383ac8148c16b675a2d640d

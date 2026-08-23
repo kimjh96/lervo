@@ -5,20 +5,20 @@
 
 ## Context
 
-Regex declarations missed multiline bodies, decorators, overloads, destructuring, JSX, namespaces, and members and used source-wide hashes.
+Regex-based declaration scanning missed multiline bodies, decorators, overloads, destructuring, JSX, namespaces, and members, and it used source-wide hashes.
 
 ## Decision
 
-javascript-symbol-v1+babel-parser-7.29.8 pins pure @babel/parser 7.29.8 and parses JS/JSX/MJS/CJS/TS/TSX/MTS/CTS with appropriate modes and decorators.
+`javascript-symbol-v1+babel-parser-7.29.8` pins pure `@babel/parser` 7.29.8 and parses JS, JSX, MJS, CJS, TS, TSX, MTS, and CTS using appropriate modes and decorator support.
 
-It extracts module-level functions, classes, interfaces, types, enums, namespaces, variable bindings including destructuring, and named namespace/class/interface/enum members. Simple top-level names retain declaration:<name>; qualified and anonymous-default symbols use escaped symbol:/<scope>/<name>.
+It extracts module-level functions, classes, interfaces, types, enums, namespaces, variable bindings including destructuring, and named namespace, class, interface, and enum members. Simple top-level names retain `declaration:<name>`; qualified and anonymous-default symbols use escaped `symbol:/<scope>/<name>` locators.
 
-Ranges cover complete declarations including export/decorators. Multiple bindings share statement range; overloads/merges with one locator span first start through last end. Versions bind exact symbol bytes, adapter ID, and unit mode; source hash stays separate. UTF-16 AST offsets are converted once through sorted UTF-8 boundaries.
+Ranges cover complete declarations, including exports and decorators. Multiple bindings share their statement range. Overloads or merged declarations with one locator span from the first start through the last end. Versions bind exact symbol bytes, adapter ID, and unit mode; the source hash remains separate. UTF-16 AST offsets are converted once through sorted UTF-8 boundaries.
 
-Limits are 16,384 symbols and depth 128. Invalid AST/ranges fail completely. V1 explicitly excludes function locals, computed/dynamic members, CommonJS assignment, import/export references, and cross-file resolution, making no precise-reference/SCIP claim. It runs no code, import, macro, build, filesystem service, shell, or network.
+Limits are 16,384 symbols and depth 128. Invalid ASTs or ranges fail completely. V1 explicitly excludes function locals, computed or dynamic members, CommonJS assignment, import/export references, and cross-file resolution; it makes no precise-reference or SCIP claim. It runs no code, imports, macros, builds, filesystem services, shell commands, or network operations.
 
-Parser dependencies are bundled into CLI and recorded exactly in release manifest/SBOM. Errors reveal no source/path/identifier/parser detail.
+Parser dependencies are bundled into the CLI and recorded exactly in the release manifest and SBOM. Errors reveal no source, path, identifier, or parser details.
 
 ## Consequences
 
-Fixtures cover modern TS/JS syntax, members, namespaces, destructuring, TSX/module modes, UTF-8 ranges, locator continuity, sibling isolation, limits, nonexecution, and built/packed isolated CLI.
+Fixtures cover modern TS and JS syntax, members, namespaces, destructuring, TSX and module modes, UTF-8 ranges, locator continuity, sibling isolation, limits, nonexecution, and built and packed isolated CLI behavior.

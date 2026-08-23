@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_194f16c2dde52766d0f1b02b
+  - uv_4a6dc36325c56271aa12a712
 title: "ADR-0132: Inspect CLI First-Publication Completion Records"
 type: decision

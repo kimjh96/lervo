@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fba47e2500a285f234096e7c
+outputLanguage: en
+outputs:
+  - byteCount: 1223
+    contentHash: sha256:ec70724899370f1599f552856cc9188bd8622fe4ad56ae6537aa446ef02a8de4
+    path: docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md
+    userRegionHash: sha256:ec70724899370f1599f552856cc9188bd8622fe4ad56ae6537aa446ef02a8de4
+profile: decision_record
+recordId: knormdoc_e8709d1241d38639c4d36849
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:b3ea968c8fd324c3933a53753c71b604c3bd7c0e253ef91e8472a5c901c17ab8
+sourcePath: docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md
+sourceUnitVersionIds:
+  - uv_2c321c85355c53607d1b13c7
+  - uv_42848ead884aad3b3430d8b7
+  - uv_9ac5e15507d946179856eac1
+  - uv_afa1bcd5772fd049a14c9701

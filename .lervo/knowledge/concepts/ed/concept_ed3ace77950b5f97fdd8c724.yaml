@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_42881d8cc637c0166d2914f5
+  - uv_28c4410bed4c209531baae8c
 title: "ADR-0093: CLI release provenance-attestation boundary"
 type: decision

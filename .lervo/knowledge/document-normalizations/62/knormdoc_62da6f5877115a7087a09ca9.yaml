@@ -1,0 +1,27 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5fc4e46bba144a0b2959e650
+outputLanguage: en
+outputs:
+  - byteCount: 3872
+    contentHash: sha256:555dd569bf2b9e1f23ef5c064bf2a5e2589095f44eb8da70e9a4daceb86b4b77
+    path: docs/evidence/pilots/shiflo-v0.md
+    userRegionHash: sha256:555dd569bf2b9e1f23ef5c064bf2a5e2589095f44eb8da70e9a4daceb86b4b77
+profile: repository_document
+recordId: knormdoc_62da6f5877115a7087a09ca9
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:029832fdf9f37a74e7ddcbb9338612b66ee9cbedc3051af9ccb88779dea9a96e
+sourcePath: docs/evidence/pilots/shiflo-v0.md
+sourceUnitVersionIds:
+  - uv_14166f56b0979ffd50ae1b2c
+  - uv_64edf9b78743e6b0bd6101ae
+  - uv_7b5968fb95ad853df18f3652
+  - uv_cf2f059ca997134fd3e461ed
+  - uv_d98e5ac56132772f280a9319

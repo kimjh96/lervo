@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_82848a051bd13d8d722efc3a
+  - uv_dc20f9b9d088dfcc6af8b3bd
 title: "ADR-0044: Bind signed approval source to managed-write permits"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2455a6fec2c267cce229083e
+  - uv_7b422f4f2678256d821c584b
 title: "ADR-0019: Provider-neutral deliberation and explicit convergence"
 type: decision

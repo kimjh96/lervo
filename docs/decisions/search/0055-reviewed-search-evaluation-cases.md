@@ -5,22 +5,22 @@ Decision date: 2026-08-20
 
 ## Context
 
-One attempt/assessment cannot reveal regression after engine changes. Storing historical queries in telemetry or converting empty results/run success into truth would break privacy and evaluation validity. Repeatable evaluation needs user-reviewed query and expected sources with a different lifecycle from execution telemetry.
+A single assessment cannot reveal regressions after engine changes. Historical queries must not enter telemetry, and empty results or successful runs are not ground truth. Repeatable evaluation requires user-reviewed queries and expected sources with a lifecycle separate from execution telemetry.
 
 ## Decision
 
-- Create `SearchEvaluationCase` only from a valid attempt and its assessment. Query digest/length/term count must match. Expected sources must be assessor-declared expected sources or accepted selected sources; a failed assessment without expected sources cannot promote.
-- Bind `any`/`all`, allowed rank 1–50 within original limit, evaluator/verdict/reason, baseline index/result set, and baseline expected-source ranks. Recompute baseline status; do not equate subjective failure reason with deterministic rank criteria.
-- Store one immutable case at `.lervo/search-evaluations/<caseId>.yaml`, maximum 256, 64 KiB, mode `0600`. Reject symlinks, unknown files, unstable reads, and ID mismatch. Never overwrite or append history.
-- Only case YAML stores reviewed query source. Users must remove secrets and choose repository exposure. Attempts/results/runs/events/Hub never copy it.
-- `lervo search evaluate` validates all cases and corpus first, builds `lexical-v1` once, runs each query to 50 results, and records expected-source ranks.
-- A case passes when expectation/rank holds; otherwise fail `no_results`, `expected_source_missing`, or `low_rank`. Recompute path-free result-set hash and classify versus baseline as `improved`, `unchanged`, or `regressed`, without claiming semantic sufficiency/use.
-- Store content-bound per-case results first, then a validated run last. Orphan results without a run are not completed evaluation.
+- Create `SearchEvaluationCase` only from a valid attempt and assessment. Query digest, length, and term count must match. Expected sources must be assessor-declared or accepted selected sources. A failed assessment without expected sources cannot be promoted.
+- Bind `any`/`all`, allowed rank 1–50 within the original limit, evaluator, verdict, reason, baseline index/result set, and baseline expected-source ranks. Recompute baseline status; a subjective failure reason is not a deterministic rank criterion.
+- Store each immutable case at `.lervo/search-evaluations/<caseId>.yaml`, with limits of 256 cases and 64 KiB and mode `0600`. Reject symlinks, unknown files, unstable reads, and ID mismatches. Never overwrite cases or append history.
+- Only case YAML stores the reviewed query source. Users must remove secrets and choose repository exposure. Attempts, results, runs, events, and Hub never copy it.
+- `lervo search evaluate` validates every case and the corpus before execution, builds `lexical-v1` once, runs each query for 50 results, and records expected-source ranks.
+- A case passes when its expectation and rank hold. Otherwise it fails with `no_results`, `expected_source_missing`, or `low_rank`. Recompute the path-free result-set hash and classify against baseline as `improved`, `unchanged`, or `regressed`, without claiming semantic sufficiency or use.
+- Store content-bound per-case results first and a validated run last. Orphan results without a run are not a completed evaluation.
 
-Failures distinguish invalid cases/results/runs, unsafe case layout/read/write, 256-case overflow, no cases, and observation publication failure. On any case-source error execute none; never publish a partial run.
+Distinguish invalid cases, results, and runs; unsafe case layout, reads, and writes; 256-case overflow; no cases; and observation-publication failure. If any case source is invalid, execute none and never publish a partial run.
 
-Add no event. Cases/results/runs are not Hub sync, execution evidence, verification, shared context, or E1–E4. Regression counts do not choose embeddings; keep `embeddingDecision=not_determined`.
+Add no event. Cases, results, and runs are not Hub sync, execution evidence, verification, shared context, or E1–E4. Regression counts do not select embeddings; keep `embeddingDecision=not_determined`.
 
 ## Consequences
 
-Reviewed search behavior becomes repeatable without duplicating queries into operational observations.
+Reviewed search behavior becomes repeatable without duplicating queries in operational observations.

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_45d3d9c70317fdbb0868f5f7
+  - uv_831489f770926bc54408236b
 title: "ADR-0105: CLI first-publication metadata decision and write-free preview"
 type: decision

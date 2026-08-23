@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c5362c82eac7784e7f1df39d
+  - uv_530f04b6999bf5c0d9e40e8b
 title: "ADR-0014: Managed adapter session hardening"
 type: decision

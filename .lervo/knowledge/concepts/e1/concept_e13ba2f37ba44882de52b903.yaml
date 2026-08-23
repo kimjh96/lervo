@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_71d0f6acc14d3357380ecd6e
+  - uv_a13b7f0a9cf3e56c394208ec
 title: "ADR-0065: Human search-rollout review and execution boundary"
 type: decision

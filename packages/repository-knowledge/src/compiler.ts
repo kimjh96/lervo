@@ -780,14 +780,14 @@ export async function createKnowledgeMigrationPlanForScan(input: {
   return buildKnowledgeMigrationPlan({ root, manifest, policy, scan: input.scan, previous, mode: input.mode ?? "refresh" });
 }
 
-async function configuredRepositoryKnowledgeScan(repositoryRoot: string, options: RepositoryKnowledgeScanOptions = {}): Promise<{
+async function configuredRepositoryKnowledgeScan(repositoryRoot: string, options: RepositoryKnowledgeScanOptions & { allowTransactionPlanId?: string } = {}): Promise<{
   manifest: Awaited<ReturnType<typeof loadProjectManifest>>;
   policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
   scan: RepositoryKnowledgeScan;
   previous: Awaited<ReturnType<typeof previousGenerated>>;
 }> {
   const root = resolve(repositoryRoot);
-  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
+  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root, ...(options.allowTransactionPlanId === undefined ? {} : { allowedPlanId: options.allowTransactionPlanId }) });
   const manifest = await loadProjectManifest(root);
   const policy = await loadRepositoryKnowledgePolicy(root);
   const previous = await previousGenerated(root);
@@ -801,7 +801,7 @@ async function configuredRepositoryKnowledgeScan(repositoryRoot: string, options
   return { manifest, policy, scan, previous };
 }
 
-export async function scanConfiguredRepositoryKnowledge(repositoryRoot: string, options: RepositoryKnowledgeScanOptions = {}): Promise<{
+export async function scanConfiguredRepositoryKnowledge(repositoryRoot: string, options: RepositoryKnowledgeScanOptions & { allowTransactionPlanId?: string } = {}): Promise<{
   manifest: Awaited<ReturnType<typeof loadProjectManifest>>;
   policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
   scan: RepositoryKnowledgeScan;

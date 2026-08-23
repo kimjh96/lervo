@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_74955cafad259636e84d9fdb
+outputLanguage: en
+outputs:
+  - byteCount: 2656
+    contentHash: sha256:2ce2363bf0a2366ba0556567fcd19f801ebec9bf3e31561f47d7f3d426d65512
+    path: docs/decisions/coordination/sync/0150-authenticated-project-scoped-hub-sync-http.md
+    userRegionHash: sha256:2ce2363bf0a2366ba0556567fcd19f801ebec9bf3e31561f47d7f3d426d65512
+profile: decision_record
+recordId: knormdoc_c3633f1dcb968dc0ca42e31c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:3b96a1faada9e1331122d36f042c0bd917869aaeef2bc5be84a2adef5eac6e20
+sourcePath: docs/decisions/coordination/sync/0150-authenticated-project-scoped-hub-sync-http.md
+sourceUnitVersionIds:
+  - uv_3de8187490451d582ef7a336
+  - uv_87fd4a2f1de8167ed00e9593
+  - uv_988cd2e7ecca1017251e38df
+  - uv_9b4873f1902417c6c26c6790

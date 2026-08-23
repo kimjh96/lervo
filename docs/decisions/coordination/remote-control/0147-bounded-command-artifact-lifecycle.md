@@ -11,19 +11,19 @@ Command CAS lacked physical cleanup. Pre-commit crashes leave orphans, shared co
 
 ## Decision
 
-OwnerOnlyFileSystemCas provides ordered inventory and idempotent deletion only. Inventory returns 100 by default, at most 1,000, scanning 100,000 by default and at most 1,000,000 objects. Cursors are last CAS URIs; object hash, type, and content are revalidated. Unsafe entries and capacity overflow fail without partial success.
+`OwnerOnlyFileSystemCas` provides ordered inventory and idempotent deletion only. Inventory returns 100 entries by default and at most 1,000, while scanning 100,000 objects by default and at most 1,000,000. Cursors are the last CAS URIs. Object hash, type, and content are revalidated. Unsafe entries and capacity overflow fail without partial success.
 
-The application combines physical CAS and lifecycle repository ports without knowing SQLite, paths, scheduler, or provider. One cycle handles at most 100 expired references and inventory candidates.
+The application combines physical CAS and lifecycle repository ports without depending on SQLite, paths, scheduler, or provider. One cycle handles at most 100 expired references and inventory candidates.
 
-Each authorship has artifactRetainUntil, at least command expiry and at most 30 days; default is 30 days. An expired claim requires every unpurged reference for the URI to be past both retention and command expiry. Authorship, retention, purge, and completion are append-only. Only claims are leased mutable state. Active claims block new authorship.
+Each authorship has `artifactRetainUntil`, which is at least command expiry and at most 30 days; the default is 30 days. An expired claim requires every unpurged reference for the URI to be past retention and command expiry. Authorship, retention, purge, and completion are append-only; only claims are leased mutable state. Active claims block new authorship.
 
-Lookups distinguish retained, cleanup_claimed, and purged. Duplicate submissions under cleanup or after purge return the original envelope and never recreate expired bytes. To bridge non-atomic CAS/SQLite writes, authoring verifies before commit and puts/verifies again after commit. Cleanup cannot leave a successful new authorship pointing only to missing bytes.
+Lookups distinguish `retained`, `cleanup_claimed`, and `purged`. Duplicate submissions during cleanup or after purge return the original envelope and never recreate expired bytes. To bridge non-atomic CAS/SQLite writes, authoring verifies before commit and puts/verifies again after commit. Cleanup cannot leave successful new authorship pointing only to missing bytes.
 
-Cleanup orders SQLite claim, idempotent CAS delete, then transactional condition recheck plus purge/completion. Interruption after deletion resumes safely with deleted=false. Duplicate completion is idempotent. Failures release claims where possible and record only counts.
+Cleanup orders SQLite claim, idempotent CAS deletion, then transactional condition recheck plus purge and completion. Interruption after deletion resumes safely with `deleted=false`. Duplicate completion is idempotent. Failures release claims where possible and record only counts.
 
-Inventory objects with no unpurged reference and older than a default 24-hour grace may receive orphan claims. A new authorship after claim blocks completion. The grace is configurable only upward within bounds.
+Inventory objects with no unpurged reference and older than the default 24-hour grace may receive orphan claims. New authorship after a claim blocks completion. The grace is configurable only upward within bounds.
 
-SQLite stores no request text, secret, or internal exception. Lifecycle states are operational, not runtime events or execution/content-use evidence. Failures distinguish cleanup conflicts, capacity overflow, unsafe/corrupt CAS, and physical deletion failure.
+SQLite stores no request text, secret, or internal exception. Lifecycle states are operational—not runtime events or execution/content-use evidence. Failures distinguish cleanup conflicts, capacity overflow, unsafe or corrupt CAS, and physical deletion failure.
 
 ## Consequences
 

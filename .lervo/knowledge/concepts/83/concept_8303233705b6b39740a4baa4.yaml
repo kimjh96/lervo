@@ -9,6 +9,6 @@ publicationProfile: architecture_context
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d6fb35758333e7aab3c65006
+  - uv_3418412f10af7b913266d267
 title: "ADR-0175: Bounded Git HEAD Revision Source"
 type: decision

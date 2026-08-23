@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2caf583924bfda6be36bbc95
+outputLanguage: en
+outputs:
+  - byteCount: 3997
+    contentHash: sha256:2bdc44276cea2a6bc72ac6681fb86eb89337a166a12f64b34345745946fe270e
+    path: docs/decisions/coordination/sync/0035-outbound-sync-worker.md
+    userRegionHash: sha256:2bdc44276cea2a6bc72ac6681fb86eb89337a166a12f64b34345745946fe270e
+profile: decision_record
+recordId: knormdoc_510702173e55c216a8775fd4
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a595448ea4a94ca733eb84a77337fd5f3062a5a1954fdaa85442f5a981798cc3
+sourcePath: docs/decisions/coordination/sync/0035-outbound-sync-worker.md
+sourceUnitVersionIds:
+  - uv_234b0c438e7bb5006b907471
+  - uv_244d43fd1141586e71dd160f
+  - uv_7cf5be280ccc2625e20ab661
+  - uv_827a83fcff68b95bdf498ebe
+  - uv_a3a3e7f90771f696ab8ff6af
+  - uv_dddc948c15263f1e78bcef9b
+  - uv_ff18b656ed3aa081da157cd0

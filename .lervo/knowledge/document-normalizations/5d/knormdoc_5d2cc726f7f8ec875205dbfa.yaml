@@ -1,0 +1,25 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e0aa716ceabddd2d54ec58d3
+outputLanguage: en
+outputs:
+  - byteCount: 888
+    contentHash: sha256:c004e2b318132cc3b10608a59b0b8c5200248775d86c6298f377522a5fa88ad3
+    path: docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md
+    userRegionHash: sha256:c004e2b318132cc3b10608a59b0b8c5200248775d86c6298f377522a5fa88ad3
+profile: decision_record
+recordId: knormdoc_5d2cc726f7f8ec875205dbfa
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:393f5e373c22643732fbedf14d891301bbb724b3867f377e4a31fcd28a7b85c7
+sourcePath: docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md
+sourceUnitVersionIds:
+  - uv_5ae8ec066bf325eb5b75d9e8
+  - uv_896a389e75e2a9f7fe80f79f
+  - uv_a9d2e9750d705ad46f3ef9c8

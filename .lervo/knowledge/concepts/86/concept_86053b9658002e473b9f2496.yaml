@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_17a395e92b31760c74f5f3f9
+  - uv_a3a9a41685b4f96d84f69bd9
 title: "ADR-0149: Owner-Only, Loopback-Restricted Hub Runtime"
 type: decision

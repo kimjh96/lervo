@@ -1,28 +1,28 @@
 # ADR-0094: Consumer verification of CLI release attestations
 
-Status: `accepted`
+Status: `accepted`  
 Decision date: 2026-08-21
 
 ## Context
 
-Bundle existence does not prove delivered bytes or exact repository/workflow/tag/commit identity. Tag name alone misses tag movement; signed predicate cannot replace certificate identity. Local unsigned statements are not trust evidence. CycloneDX also needs deterministic UUIDv5 serial for pinned `actions/attest` recognition.
+A bundle's existence does not prove delivered bytes or exact repository, workflow, tag, and commit identity. A tag name does not detect tag movement, and a signed predicate does not replace certificate identity. Local unsigned statements are not trust evidence. CycloneDX also requires a deterministic UUIDv5 serial for recognition by pinned `actions/attest`.
 
 ## Decision
 
-- Separate provider-neutral statement policy, GitHub verifier adapter, and file-lifecycle validation.
-- Delegate cryptography/certificates/trusted root/transparency timestamps to `gh attestation verify`; independently validate its successful statement JSON.
-- Consumer explicitly supplies absolute release directory, exact `owner/repository`, `v<package-version>` tag, 40/64-hex source commit, and optional separately obtained trusted root.
-- For provenance and SBOM bundles require exact repository, GitHub token issuer, exact workflow certificate identity at tag ref, exact source ref/digest and signer workflow digest, GitHub-hosted runner, and expected SLSA-v1 or CycloneDX predicate type.
-- Use exact `--cert-identity`, not partial workflow matching. Optional absolute trusted root maps to custom offline verification; root acquisition/update remains consumer responsibility.
-- Release root contains only tarball/manifest/SBOM/`attestations`; bundle directory only provenance/SBOM bundles. Reject symlinks, empty/oversized/extra/missing files.
-- Compare version/tag and snapshot bytes before verification; reread release files, bundles, and custom root afterward and reject change.
-- Provenance subject set must exactly equal delivered three basenames/digests. SBOM subject is exactly tarball, and signed CycloneDX predicate semantically equals delivered SBOM.
-- Require exactly one attestation, certificate, and at least one verified timestamp per verifier result. Reject local builder unsigned input before invoking verifier.
-- CLI verification returns bounded v1 JSON only when both bundles and added policies pass; writes nothing.
-- Tag job runs this command with repository/ref/SHA and limited GH token before uploading.
+- Separate provider-neutral statement policy, the GitHub verifier adapter, and file-lifecycle validation.
+- Delegate cryptography, certificates, trusted roots, and transparency timestamps to `gh attestation verify`, then independently validate its successful statement JSON.
+- Require the consumer to supply an absolute release directory, exact `owner/repository`, `v<package-version>` tag, 40- or 64-hex source commit, and optionally a separately obtained trusted root.
+- For provenance and SBOM bundles, require the exact repository, GitHub token issuer, workflow certificate identity at the tag ref, source ref and digest, signer workflow digest, GitHub-hosted runner, and expected SLSA-v1 or CycloneDX predicate type.
+- Use exact `--cert-identity`, never partial workflow matching. An optional absolute trusted root enables custom offline verification; acquiring and updating that root remains the consumer's responsibility.
+- Permit only the tarball, manifest, SBOM, and `attestations` in the release root, and only provenance and SBOM bundles in the bundle directory. Reject symlinks and empty, oversized, extra, or missing files.
+- Compare version, tag, and snapshot bytes before verification. Reread release files, bundles, and any custom root afterward, rejecting changes.
+- Require the provenance subject set to exactly equal the three delivered basenames and digests. The SBOM subject must be exactly the tarball, and its signed CycloneDX predicate must semantically equal the delivered SBOM.
+- Require exactly one attestation and certificate, plus at least one verified timestamp, in each verifier result. Reject local-builder unsigned input before invoking the verifier.
+- Return bounded v1 JSON only after both bundles and all added policies pass. Write nothing.
+- Before upload, run this command in the tag job with repository, ref, SHA, and a limited GH token.
 
-Use bounded failure codes for arguments/input/trust/release set/unsigned/signature/verifier output/statement subject/predicate/change/general verification. Default output exposes no verifier stderr, bundle/certificate source, credential, or paths.
+Use bounded failure codes for arguments, input, trust, release set, unsigned input, signature, verifier output, statement subject, predicate, change, and general verification. Default output reveals no verifier stderr, bundle or certificate source, credentials, or paths.
 
 ## Consequences
 
-Consumers verify bytes, predicate relationships, and exact GitHub workload identity including immovable source digest. Crypto remains adapter-local. Fixtures/workflow structure do not prove future remote signing, retention, npm publication, code review, or SLSA level.
+Consumers can verify bytes, predicate relationships, and exact GitHub workload identity, including the immovable source digest. Cryptography remains adapter-local. Fixtures and workflow structure do not prove future remote signing, retention, npm publication, code review, or a SLSA level.

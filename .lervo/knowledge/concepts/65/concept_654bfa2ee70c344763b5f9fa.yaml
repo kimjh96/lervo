@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_34ac8ab09951dd4a91aff7b5
+  - uv_7ea4bb35c6a0d76265b42cda
 title: "ADR-0192: Repository-scoped fail-closed decision taxonomy"
 type: decision

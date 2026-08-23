@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d54df84d4223a75205896e6d
+  - uv_7c726ecbd9bbb9fb38fe4af4
 title: "ADR-0045: Hub-owned time/scope for policy authoring and HTTP sync"
 type: decision

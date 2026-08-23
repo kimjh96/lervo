@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b06530fd13d28cd329d0d366
+  - uv_fb517e08bac103b85091f558
 title: "ADR-0106: CLI first-publication package-metadata patch candidate"
 type: decision

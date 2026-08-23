@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_646634d2384c69b590c9790f
+  - uv_c74fb84238bb56e7d43d08da
 title: "ADR-0051: Evidence-bound specialist roles and high-risk cross-review"
 type: decision

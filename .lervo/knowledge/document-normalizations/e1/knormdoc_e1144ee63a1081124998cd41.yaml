@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5d0431583c511e7d06acc96f
+outputLanguage: en
+outputs:
+  - byteCount: 1908
+    contentHash: sha256:a1c03080ce3a4c3eb3e37d6e2a64b4df629a9a206e6db82599d93c196c601909
+    path: docs/decisions/execution/orchestration/0178-content-bound-project-skill-contract-units.md
+    userRegionHash: sha256:a1c03080ce3a4c3eb3e37d6e2a64b4df629a9a206e6db82599d93c196c601909
+profile: decision_record
+recordId: knormdoc_e1144ee63a1081124998cd41
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:309ae818511c601e1928274231d6b1094991ee737c1030bd6ee8525f404d4484
+sourcePath: docs/decisions/execution/orchestration/0178-content-bound-project-skill-contract-units.md
+sourceUnitVersionIds:
+  - uv_95c29da4531118cd77907856
+  - uv_b43173213dba7bbb2bcee623
+  - uv_cdab6312eb43331af045761d
+  - uv_f4a964166580c181462299dd

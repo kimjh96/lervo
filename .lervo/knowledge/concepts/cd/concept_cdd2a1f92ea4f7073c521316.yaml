@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_f0b8f96f3339acc7e31e81ed
+  - uv_1329f2472fbe92d967937242
 title: "ADR-0176: Bounded Verification Result Sources"
 type: decision

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a25ff44ce0cdbd865164391d
+outputLanguage: en
+outputs:
+  - byteCount: 1612
+    contentHash: sha256:1beb31e9d866eebc02b782f7d2157a50fad8e08d9b1f16fc5d3f1cd184f4b840
+    path: docs/decisions/knowledge/repository/0173-bounded-parser-grade-json-source-units.md
+    userRegionHash: sha256:1beb31e9d866eebc02b782f7d2157a50fad8e08d9b1f16fc5d3f1cd184f4b840
+profile: decision_record
+recordId: knormdoc_5abf0fae342822d9c6ccb17a
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:637e21283cf9348f45c2a2c368d86aa7d63e1f25e8c5df946df163fed7143de0
+sourcePath: docs/decisions/knowledge/repository/0173-bounded-parser-grade-json-source-units.md
+sourceUnitVersionIds:
+  - uv_19f97b823372f75c37dc0830
+  - uv_422dda05da18e626d0577aed
+  - uv_435371698749b612754eb10e
+  - uv_d5ea5e93242b8da08189e0e4

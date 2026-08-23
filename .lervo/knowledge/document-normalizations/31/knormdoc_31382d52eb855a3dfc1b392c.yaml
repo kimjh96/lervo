@@ -1,0 +1,25 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_142f04b6690fa7e7e31db884
+outputLanguage: en
+outputs:
+  - byteCount: 873
+    contentHash: sha256:bb839731f58760067984a9bcc3f69a983f4dc3c87b2ca278c86eeb9610886d3b
+    path: docs/decisions/operations/diagnostics/0080-shared-diagnostics-report-compatibility.md
+    userRegionHash: sha256:bb839731f58760067984a9bcc3f69a983f4dc3c87b2ca278c86eeb9610886d3b
+profile: decision_record
+recordId: knormdoc_31382d52eb855a3dfc1b392c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:c49c196d6efec9c2c78a65f8b38861f7f6165b8ecbe0f73ae67868e4c366fa87
+sourcePath: docs/decisions/operations/diagnostics/0080-shared-diagnostics-report-compatibility.md
+sourceUnitVersionIds:
+  - uv_27861f50145babbf84b8e145
+  - uv_d0bf5a056341707bcbe349f8
+  - uv_e756b007b3d77176ab596e91

@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_38408ccd047de6c65cf575aa
+outputLanguage: en
+outputs:
+  - byteCount: 2381
+    contentHash: sha256:bf9a6b68039f8d77ae9d4af0b95bdaba13109a39777a9419c9896ab1892aecb2
+    path: docs/decisions/distribution/0058-deterministic-bm25f-search-candidate.md
+    userRegionHash: sha256:bf9a6b68039f8d77ae9d4af0b95bdaba13109a39777a9419c9896ab1892aecb2
+profile: decision_record
+recordId: knormdoc_b2c40163ebc6119db4b8cf2e
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:fdcf732c52aefa0367745b1f47c1f779865473b98181b268c426d3ea79c78bc1
+sourcePath: docs/decisions/distribution/0058-deterministic-bm25f-search-candidate.md
+sourceUnitVersionIds:
+  - uv_0eced940dda37734b4201259
+  - uv_47824dcc0d6f7e7e0bb22450
+  - uv_b0a42005e53288d5a41b5217
+  - uv_f49af76d622947a4eadb0bb9

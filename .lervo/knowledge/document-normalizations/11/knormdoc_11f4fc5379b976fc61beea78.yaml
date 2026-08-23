@@ -1,0 +1,30 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d840fa943f5c7617614d1da5
+outputLanguage: en
+outputs:
+  - byteCount: 4137
+    contentHash: sha256:c61a8aeaab52068a8b340d8f748fce6b290e4ab0b057df122d869acc485b5164
+    path: docs/decisions/execution/verification/0043-signed-policy-and-command-bound-approval.md
+    userRegionHash: sha256:c61a8aeaab52068a8b340d8f748fce6b290e4ab0b057df122d869acc485b5164
+profile: decision_record
+recordId: knormdoc_11f4fc5379b976fc61beea78
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:0f3c9d5074fb88f4cca231d4b906c4211b57a388d7e62f674c5d43ab22275ee9
+sourcePath: docs/decisions/execution/verification/0043-signed-policy-and-command-bound-approval.md
+sourceUnitVersionIds:
+  - uv_271c255d78acf7ffbac4c0bb
+  - uv_43c8d7fa66ebaa0b3b44b8b1
+  - uv_70f00b09939585c529b7ccf6
+  - uv_74a6a3b589f142976fcf6848
+  - uv_8907d7160ef09b3c6a019c30
+  - uv_e4d1ed26df332ef156e8f1e6
+  - uv_ed8868f54a0fa34bb8354316
+  - uv_f92bddfdc5748f36ffa2865a

@@ -5,10 +5,12 @@ Decision date: 2026-08-20
 
 ## Decision
 
-A test-only project creates one run with 51 fixed allowlisted events: one above default page 50 and below full 1,000. The 0.0.x fixture jointly checked implicit-full capabilities/deprecation, valid 51-event implicit full with one source-free warning, identical quiet `--full`, valid `50 + 1` cursor pages without gaps/duplicates, and absence of whole-run status on pages.
+A test-only project creates one run with 51 fixed, allowlisted events: one more than the default page size of 50 and fewer than the full limit of 1,000.
 
-Any setup/reader/warning/stdout/cursor mismatch fails the fixture. It changes no runtime mode/version/schema/user project. The 0.1.0 transition had to update default call, capabilities, explicit-full regression, help, and migration docs together without dual defaults.
+The 0.0.x fixture jointly verified implicit-full capabilities and deprecation behavior, a valid 51-event implicit full report with one source-free warning, an identical and quiet `--full` report, valid `50 + 1` cursor pages without gaps or duplicates, and no whole-run status on pages.
+
+Any setup, reader, warning, stdout, or cursor mismatch fails the fixture. The fixture changes no runtime mode, version, schema, or user project. The 0.1.0 transition had to update the default call, capabilities, explicit-full regression, help, and migration documentation together, without dual defaults.
 
 ## Consequences
 
-The old/new consumer boundary is reproducible and release changes cannot silently desynchronize CLI from capabilities.
+The old-to-new consumer boundary is reproducible, and release changes cannot silently desynchronize the CLI from its capabilities report.

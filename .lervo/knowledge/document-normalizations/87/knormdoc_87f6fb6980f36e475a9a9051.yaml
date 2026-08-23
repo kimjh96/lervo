@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b9a0f7c8a2921eac695f6c58
+outputLanguage: en
+outputs:
+  - byteCount: 2126
+    contentHash: sha256:1959f5187c4a5276c5129d62bc656ce98a9fe47687a7de68eed197606d205742
+    path: docs/decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md
+    userRegionHash: sha256:1959f5187c4a5276c5129d62bc656ce98a9fe47687a7de68eed197606d205742
+profile: decision_record
+recordId: knormdoc_87f6fb6980f36e475a9a9051
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:9ad81e56dbeba26d012cc78c8500c2e9cd98d3702df7c33290e823733a156df2
+sourcePath: docs/decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md
+sourceUnitVersionIds:
+  - uv_29f16f60f5dc7c47dae59a55
+  - uv_5eefae78ba30982cd7b1e2c4
+  - uv_83afdd01e16e094441a88969
+  - uv_b4133cdcaf78a1c27f725178

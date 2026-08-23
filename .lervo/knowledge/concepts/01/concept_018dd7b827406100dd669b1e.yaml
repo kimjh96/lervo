@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_3d3f856ca651be6a377fea24
+  - uv_4ed0c2f813facda7dd9747f4
 title: "ADR-0024: Provider-neutral project verification and result artifacts"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_3eb1024a727c096fd76cc39f
+  - uv_ab3818442667e9c7c82a9cca
 title: "ADR-0112: One-time CLI first-publication arming authorization"
 type: decision

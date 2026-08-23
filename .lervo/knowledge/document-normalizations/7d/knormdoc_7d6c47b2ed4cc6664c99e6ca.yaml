@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_36d01fb32599b4c1391749f0
+outputLanguage: en
+outputs:
+  - byteCount: 1799
+    contentHash: sha256:2f43189c5a9410e6ee0e59c4f07c237d0feba6b32f8bb92336d47d74faaca85f
+    path: docs/decisions/knowledge/repository/0179-bounded-parser-grade-css-symbol-units.md
+    userRegionHash: sha256:2f43189c5a9410e6ee0e59c4f07c237d0feba6b32f8bb92336d47d74faaca85f
+profile: decision_record
+recordId: knormdoc_7d6c47b2ed4cc6664c99e6ca
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:d5f553a361b2d1572897290b8f11d65e22445e438daa51fb90dfb2564b3d21f6
+sourcePath: docs/decisions/knowledge/repository/0179-bounded-parser-grade-css-symbol-units.md
+sourceUnitVersionIds:
+  - uv_2b261766a00107ac6ddb7a66
+  - uv_53befc3aa27df5aa4b2290d8
+  - uv_cc17dd3dcd41b25d1845bb2c
+  - uv_cd32c5b2ce1b592044736fea

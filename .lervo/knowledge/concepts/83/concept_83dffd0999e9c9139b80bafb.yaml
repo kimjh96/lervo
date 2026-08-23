@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_83dffd0999e9c9139b80bafb
+freshness: current
+ownership: user
+path: docs/evidence/pilots/reviewed-document-normalization.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7da448b357406af725566b59
+title: Reviewed document normalization acceptance
+type: concept

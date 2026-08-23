@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_108bc4302d095609e264ad55
+  - uv_642e11aec7d4f257ec7799d7
 title: "ADR-0140: Reconcile Conversation Jobs with Project Sources"
 type: decision

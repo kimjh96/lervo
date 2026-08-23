@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a4391fe8eb01b267b5b41dc6
+  - uv_80c4818df50a1a824a67ef6e
 title: "ADR-0011: Managed provider run lifecycle and repository boundary"
 type: decision

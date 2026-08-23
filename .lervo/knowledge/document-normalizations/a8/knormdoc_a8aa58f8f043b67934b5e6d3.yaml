@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_15c3b72917fb74a12826f83a
+outputLanguage: en
+outputs:
+  - byteCount: 1397
+    contentHash: sha256:3ff2ad8b1257574f986d64834e32403fd5c217e974036fa81e59aafc0b614615
+    path: docs/decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md
+    userRegionHash: sha256:3ff2ad8b1257574f986d64834e32403fd5c217e974036fa81e59aafc0b614615
+profile: decision_record
+recordId: knormdoc_a8aa58f8f043b67934b5e6d3
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:4763bd94f3cfd9f49cfc511d7b5964a6bfd01ef179f6fc2b0f083a18246b46ac
+sourcePath: docs/decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md
+sourceUnitVersionIds:
+  - uv_2807286baf32ab4adfd54dd7
+  - uv_4694e136d9e0788dc616b37e
+  - uv_6d67169d6d4b096d2b231f0c
+  - uv_fd6122184efb84a3fe5fe6f2

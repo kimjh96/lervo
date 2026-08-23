@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4c3a9e63b1a49a622eed30fb
+outputLanguage: en
+outputs:
+  - byteCount: 3107
+    contentHash: sha256:67ae1d4e75ec8543a9fbe9ec3739d36461bc4fede0ffd76882263ed7338c6bd6
+    path: docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md
+    userRegionHash: sha256:67ae1d4e75ec8543a9fbe9ec3739d36461bc4fede0ffd76882263ed7338c6bd6
+profile: decision_record
+recordId: knormdoc_7cd34b53637cd4b44590e4b5
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a89d5048b8ba02eafdd284bc394af46773e38c9e034fd2ad1ec5ca5fcbcc4a70
+sourcePath: docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md
+sourceUnitVersionIds:
+  - uv_2d2a16edf70ac84a96ee0fb3
+  - uv_529f83225de2dd5ab6f0ecd3
+  - uv_6f0676cd5eeadde8a6923dc2
+  - uv_f20dbf7d1878c292ead21e88

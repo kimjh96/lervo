@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_18a48916e77cb3f603966282
+  - uv_e07f50ff624619d7f216cc3b
 title: "ADR-0010: Claude Agent SDK managed adapter"
 type: decision

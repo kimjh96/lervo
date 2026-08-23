@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d33cb9004a1c63781e182133
+  - uv_1eeef461320fda087d2cc9a0
 title: "ADR-0050: Principal-bound conversation command review with separate approval"
 type: decision

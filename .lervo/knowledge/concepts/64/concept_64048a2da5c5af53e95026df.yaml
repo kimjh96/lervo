@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_079415ee1f3ababc6af5efd2
+  - uv_b81083b2cab2add4692a4360
 title: "ADR-0163: Atomic Node Trust-Material Reload"
 type: decision

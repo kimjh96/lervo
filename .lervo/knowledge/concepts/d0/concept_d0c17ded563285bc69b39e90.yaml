@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_cea17f8fe7e01e3da89c3444
+  - uv_d3500a3ca9fd5cfebc1cc1a9
 title: "ADR-0174: Bounded Parser-Grade JavaScript and TypeScript Symbol Units"
 type: decision

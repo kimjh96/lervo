@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_240645deff86539a5e1c5ad7
+outputLanguage: en
+outputs:
+  - byteCount: 1620
+    contentHash: sha256:b36a3d3aa3efe320a99a9e27930900d8ed0bd973cc0cc7c0e9152fbc8cea2c04
+    path: docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md
+    userRegionHash: sha256:b36a3d3aa3efe320a99a9e27930900d8ed0bd973cc0cc7c0e9152fbc8cea2c04
+profile: decision_record
+recordId: knormdoc_cf79ef08948ad0497372e562
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:10184592d713f79456c0e2b5845097d63c5696fa77d8f550e0f4ee2eacf70c4d
+sourcePath: docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md
+sourceUnitVersionIds:
+  - uv_1369c0a3a2a869052a371b9b
+  - uv_2f13fa2ccc123c0e011bc20c
+  - uv_4224403dcfd1e2f4c583b8f9
+  - uv_6a812c2c0e3c4042607823d6

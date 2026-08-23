@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_f3e078285fc19da26cf7a855
+  - uv_e6680bed7466c090512cce9a
 title: "ADR-0180: Hash-Bound Human Duplicate and Contradiction Resolution"
 type: decision

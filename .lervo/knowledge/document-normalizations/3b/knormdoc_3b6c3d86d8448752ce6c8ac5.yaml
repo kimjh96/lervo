@@ -1,0 +1,30 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_484b7f0117f01ca7878d3346
+outputLanguage: en
+outputs:
+  - byteCount: 4413
+    contentHash: sha256:f5c9cfb4ae7490e1fada39038feb1bf9b5fe6d66421024eac05e910074aaed8f
+    path: docs/decisions/knowledge/documents/0017-sharded-document-manifests.md
+    userRegionHash: sha256:f5c9cfb4ae7490e1fada39038feb1bf9b5fe6d66421024eac05e910074aaed8f
+profile: decision_record
+recordId: knormdoc_3b6c3d86d8448752ce6c8ac5
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:de6814cd5db4034e2842973d8214a193bc01f588e49c6dc7d646a814399d0dc4
+sourcePath: docs/decisions/knowledge/documents/0017-sharded-document-manifests.md
+sourceUnitVersionIds:
+  - uv_093ff7568f4bdce98e045d2a
+  - uv_3505c96824f15e53bb02f827
+  - uv_47ed54e7a9f0a19daf22f1cb
+  - uv_4dcb670dfc1c171ec0b2fdc8
+  - uv_53a5fb62d7811ae867331134
+  - uv_6817973da911c94227492fb4
+  - uv_7d1acf148bfe1510a4d6d875
+  - uv_8a0a3f97883ad3a6687a09c4

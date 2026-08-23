@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0a4e0464f88480f21c01233a
+outputLanguage: en
+outputs:
+  - byteCount: 1786
+    contentHash: sha256:9d19e998968fcde907460de166544befa9c9adcfdd44a6eccc20f3403e8a2874
+    path: docs/decisions/search/0064-selection-bound-operational-search-quality.md
+    userRegionHash: sha256:9d19e998968fcde907460de166544befa9c9adcfdd44a6eccc20f3403e8a2874
+profile: decision_record
+recordId: knormdoc_792707adf116589c0eaffa48
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:733e195c363ebf1bace0fb3241fcd45f88cc054e8f273723cbd75bbad9cccb0b
+sourcePath: docs/decisions/search/0064-selection-bound-operational-search-quality.md
+sourceUnitVersionIds:
+  - uv_4ba3826b875169f8d94f5c94
+  - uv_5f6d87f2b6e1c1dae27ec9a1
+  - uv_8518fca984759475ef203702
+  - uv_f9c837be0054193868c1cfb1

@@ -9,20 +9,20 @@
 
 ## Context
 
-After invoking a publisher, a connection error, receipt mismatch, or failure to persist terminal completion can leave local state unable to determine whether publication succeeded. The execution core closes such attempts with a durable reservation, `publication_unknown`, and `retry=forbidden`. Treating that state as failure risks duplicate publication; treating a visible package name as success may approve the wrong artifact or dist-tag.
+A connection error, receipt mismatch, or failure to persist terminal completion after publisher invocation can leave publication success unknown. The execution core closes such attempts with a durable reservation, `publication_unknown`, and `retry=forbidden`. Treating this as failure risks duplicate publication; treating a visible package name as success could approve the wrong artifact or dist-tag.
 
-Reconciliation must not overwrite the terminal record or issue another bootstrap. It needs a read-only report that compares only facts observable from public npm with the exact release while retaining those facts' limits.
+Reconciliation must neither overwrite the terminal record nor issue another bootstrap. It must produce a read-only comparison between public npm facts and the exact release while preserving the observation's limitations.
 
 ## Decision
 
-Reconciliation accepts only a reservation v2 and a `publication_unknown`, `retry=forbidden` terminal. It revalidates publication authorization, bootstrap, arming authorization, reservation and terminal coordinates, and their digests. Arming authorization is evaluated at its issue time and the reservation at its reservation time; current expiry does not invalidate historical source evidence.
+Accept only reservation v2 and a `publication_unknown`, `retry=forbidden` terminal. Revalidate the publication authorization, bootstrap, arming authorization, reservation, terminal coordinates, and their digests. Evaluate arming authorization at its issue time and reservation at its reservation time; current expiry does not invalidate historical evidence.
 
 The anonymous public npm observer reads only:
 
 - `dist.integrity` and `dist.shasum` from exact `@lervo/cli@<version>` metadata;
 - the approved `latest|next` value from `@lervo/cli` dist-tags.
 
-Each response is limited to ten seconds and 256 KiB, with redirects disabled. Raw bodies, other version metadata, other tags, and request-error details are not retained. Observations are normalized to the two required values or `not_found|unavailable`.
+Limit each response to ten seconds and 256 KiB, and disable redirects. Do not retain raw bodies, unrelated version metadata or tags, or request-error details. Normalize observations to the two required values or `not_found|unavailable`.
 
 The pure policy returns:
 
@@ -30,16 +30,16 @@ The pure policy returns:
 - `not_observed` when exact-version metadata is absent and the target dist-tag does not point to that version;
 - `unknown` for partial matches, digest mismatches, malformed responses, or registry unavailability.
 
-`not_observed` does not prove non-publication or authorize a retry. Registry propagation and observation limits remain possible, so the terminal's `retry=forbidden` stands. `published` is not the original publisher receipt, 2FA proof, or execution receipt and does not complete the stage-only transition.
+`not_observed` neither proves non-publication nor authorizes retry. Registry propagation and observation limits remain possible, so `retry=forbidden` persists. `published` is not an original publisher receipt, 2FA proof, execution receipt, or completed stage-only transition.
 
-Report v1 canonically binds the exact target; bootstrap, arming, and publication authorizations; reservation and terminal record digests; observation time; version and dist-tag checks; and these limits:
+Report v1 canonically binds the exact target; bootstrap, arming, and publication authorizations; reservation and terminal-record digests; observation time; version and dist-tag checks; and these limits:
 
 - only the public registry was observed;
 - private-package state was not observed;
 - automatic retry is not authorized;
-- the transition is not complete.
+- the transition is incomplete.
 
-Side effects are fixed to reservation and terminal `unchanged`, publication `not_attempted`, and external settings `not_changed`. Readers reconstruct the complete report from its source records and normalized observations rather than trusting its digest alone.
+Fix side effects as reservation and terminal `unchanged`, publication `not_attempted`, and external settings `not_changed`. Readers reconstruct the complete report from source records and normalized observations instead of trusting its digest alone.
 
 The command is:
 
@@ -52,12 +52,12 @@ pnpm release:bootstrap:reconcile \
   --online [--json]
 ```
 
-Without the explicit online boundary, it reads no files. The source reader checks all three contract files and the stored snapshot both before and after observation. Storage `inspect` does not create a missing root or reservation directory. A successful exit means only that a report was produced; every outcome is printed to stdout. The command writes no result file, prompts for nothing, and changes no reservation, terminal, publication, retry, or external setting.
+Without the explicit online boundary, read no files. Check all three contract files and the stored snapshot before and after observation. Storage `inspect` must not create a missing root or reservation directory. A successful exit means only that a report was produced; print every outcome to stdout. Write no result file, prompt for nothing, and change no reservation, terminal, publication, retry, or external setting.
 
-Errors exclude paths, credentials, raw registry responses, and unrelated digest or tag values. This decision adds no runtime event, project state, or telemetry. The three outcomes exist only inside reconciliation reports.
+Errors exclude paths, credentials, raw registry responses, and unrelated digest or tag values. Add no runtime event, project state, or telemetry. The three outcomes exist only in reconciliation reports.
 
 ## Consequences
 
-Operators can classify an uncertain first-publication outcome without a blind retry. Seeing the exact public release preserves the original unknown terminal and leaves recovery authorization to a separate decision. Seeing nothing on public npm still does not enable an automatic retry.
+Operators can classify an uncertain first publication without risking a blind retry. Exact public visibility preserves the unknown terminal and leaves recovery authorization to a separate decision; public absence still does not permit automatic retry.
 
-Fixtures cover exact publication, complete absence, partial matches, digest mismatch, registry failure, redigested outcome forgery, wrong terminals, source mutation during observation, non-creation of missing roots, and bounded responses. They do not claim actual npm publication, 2FA, absence of a private package, or transition completion.
+Fixtures cover exact publication, complete absence, partial matches, digest mismatch, registry failure, redigested outcome forgery, wrong terminals, source mutation during observation, non-creation of missing roots, and bounded responses. They do not claim actual npm publication, 2FA, private-package absence, or transition completion.

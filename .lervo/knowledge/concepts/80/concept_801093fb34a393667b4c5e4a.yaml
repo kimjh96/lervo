@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_139d830758f4cb48bbc4b41a
+  - uv_d2c299a416ea6940a93faf4d
 title: "ADR-0030: Converged knowledge candidates and local diagnostics"
 type: decision

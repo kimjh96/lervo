@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_04e93868eb9e0ae4d0b58710
+  - uv_e3ddd82c24bc6c66f94c98c4
 title: "ADR-0156: Local Skill Resolution in the Managed Provider Host"
 type: decision

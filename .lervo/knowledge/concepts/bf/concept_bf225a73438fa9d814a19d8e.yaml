@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_12c77be86edb7dd720aa1781
+  - uv_091f984266982a55e46e3779
 title: "ADR-0038: History-size-independent async Hub storage and bounded trace"
 type: decision

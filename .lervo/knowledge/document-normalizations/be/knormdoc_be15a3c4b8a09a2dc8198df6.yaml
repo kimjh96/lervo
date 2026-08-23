@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fabb0f97c60b2d69039cb93f
+outputLanguage: en
+outputs:
+  - byteCount: 1943
+    contentHash: sha256:94d139294026ab91e262afb6bed8edf4e30341fb124b4a6569d076db3eb068f3
+    path: docs/decisions/coordination/remote-control/0159-atomic-hub-bearer-credential-reload.md
+    userRegionHash: sha256:94d139294026ab91e262afb6bed8edf4e30341fb124b4a6569d076db3eb068f3
+profile: decision_record
+recordId: knormdoc_be15a3c4b8a09a2dc8198df6
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:942a49e7cdf024d3a1da3426250557f819b21521c53f69678c21d481908a57de
+sourcePath: docs/decisions/coordination/remote-control/0159-atomic-hub-bearer-credential-reload.md
+sourceUnitVersionIds:
+  - uv_12b14bfa4e4dabc8c3aa30e0
+  - uv_925e7fc6d5aea18622bb7725
+  - uv_96993d9fee023444905b5a0f
+  - uv_f9a7d12fbb0f81b0dd371f4f

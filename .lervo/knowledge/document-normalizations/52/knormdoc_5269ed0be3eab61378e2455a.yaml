@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_452fcedd15889742c7af195d
+outputLanguage: en
+outputs:
+  - byteCount: 1223
+    contentHash: sha256:970c789b874b706fd21545047a60ba93bc080560e8ad3d9851898c69918027be
+    path: docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md
+    userRegionHash: sha256:970c789b874b706fd21545047a60ba93bc080560e8ad3d9851898c69918027be
+profile: decision_record
+recordId: knormdoc_5269ed0be3eab61378e2455a
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:f6bbcbab276faf0c4c7440a570e6c15b74595123b2bd61a99b012e52cfce8901
+sourcePath: docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md
+sourceUnitVersionIds:
+  - uv_b778d71495591d450082a6f8
+  - uv_e3b825c31ffacb2d512da9d9
+  - uv_e849fc35cffefb9afcc1ae62
+  - uv_f6ac0209a30ddffa91406b29

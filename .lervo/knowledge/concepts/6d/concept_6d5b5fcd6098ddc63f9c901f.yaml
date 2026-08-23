@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_865bf4495b3d90c2d45ebe23
+  - uv_3ad6f51847c795aee83938a4
 title: "ADR-0185: Profiled Provider Instruction Bridge"
 type: decision

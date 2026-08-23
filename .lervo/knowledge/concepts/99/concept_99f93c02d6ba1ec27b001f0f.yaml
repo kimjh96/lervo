@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_04035372eec6c35ad2d4d282
+  - uv_ae65e29f524fdd1029c8c2ee
 title: "ADR-0158: Direct TLS Termination in the Hub Runtime"
 type: decision

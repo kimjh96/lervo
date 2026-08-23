@@ -1,0 +1,26 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e18ec42899674e18be6fc92c
+outputLanguage: en
+outputs:
+  - byteCount: 2712
+    contentHash: sha256:899c6cc20c56bf6b04f552dd43d29c7f917a86a40e242532bf31fb80da1438b0
+    path: docs/decisions/coordination/conversations/0143-execution-and-conversation-boundary-hardening.md
+    userRegionHash: sha256:899c6cc20c56bf6b04f552dd43d29c7f917a86a40e242532bf31fb80da1438b0
+profile: decision_record
+recordId: knormdoc_f6c25fa7b410aeef3aac6810
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ff9681249a4adab0c722d3b97101c28d593b1e69c6c30138f9437e62b2119693
+sourcePath: docs/decisions/coordination/conversations/0143-execution-and-conversation-boundary-hardening.md
+sourceUnitVersionIds:
+  - uv_382eee91ea7adc58cd301257
+  - uv_8cee0dd42339cffe8bfc079f
+  - uv_9509ed1d823ba993ef809abf
+  - uv_994716f1e00f03c89c631b24

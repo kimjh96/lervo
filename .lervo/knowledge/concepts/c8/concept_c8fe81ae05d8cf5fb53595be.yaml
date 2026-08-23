@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_e25c9ba665e52ea7fb1a6658
+  - uv_c61e480ae0a06db21da883d1
 title: "ADR-0129: npm Stage-Approval Reconciliation Evidence"
 type: decision

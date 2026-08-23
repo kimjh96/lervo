@@ -1,0 +1,25 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_23c24e834005c4663b4bb8b5
+outputLanguage: en
+outputs:
+  - byteCount: 1120
+    contentHash: sha256:d7a3cdc93d614b4793d6d93552f53e167a1737f4c965b2cccc9899e514af21e3
+    path: docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md
+    userRegionHash: sha256:d7a3cdc93d614b4793d6d93552f53e167a1737f4c965b2cccc9899e514af21e3
+profile: decision_record
+recordId: knormdoc_585a3f977e872e1a6f7c3228
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:c139bf1d72634acbe2feb8156e989da2ac843b58f0560cffcaeec62b82fe67ce
+sourcePath: docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md
+sourceUnitVersionIds:
+  - uv_2c2acd7d84aaedb33872df7d
+  - uv_5527a8efc95e24a636246efb
+  - uv_f75a002f9281f6e1be963b0d

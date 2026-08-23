@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_340d2286e5f373b31d0e76c7
+  - uv_e6601dfc624de2dbdaf2e59a
 title: "ADR-0188: Command-Driven Repository Layout Migration"
 type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d4d434afea3a9fb03eaeecb6
+  - uv_627328500915cc6aadb744f6
 title: "ADR-0096: CLI Trusted Publisher readiness contract"
 type: decision

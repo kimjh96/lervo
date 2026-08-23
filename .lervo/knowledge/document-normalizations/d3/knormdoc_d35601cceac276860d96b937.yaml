@@ -1,0 +1,29 @@
+candidateId: knorm_6ed0bc559b4301ea817b4100
+compiler:
+  compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3da4f69f4348f11ee7e88193
+outputLanguage: en
+outputs:
+  - byteCount: 3747
+    contentHash: sha256:1d5ac7c4a3cde3c59ba956a60b7405eff6f2702c352921b105bf402e092fcd66
+    path: docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md
+    userRegionHash: sha256:1d5ac7c4a3cde3c59ba956a60b7405eff6f2702c352921b105bf402e092fcd66
+profile: decision_record
+recordId: knormdoc_d35601cceac276860d96b937
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:4c698254bed3a995a097420798183b01621ded48cad230715411d90b5cdbe3ad
+sourcePath: docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md
+sourceUnitVersionIds:
+  - uv_3c36e8dfab639f26a35206d0
+  - uv_429ad8bb5c9f6a693fb28229
+  - uv_8dd5d7c752db840a9b4ed160
+  - uv_95864cd40c083d388ac1a105
+  - uv_9f0183946a07bce3dcd37671
+  - uv_aedf7abda43df5cbdf7537fa
+  - uv_e34748599b8adc652a715054

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_309d295b0f6a1c18f633869e
+  - uv_04a3acb5f0fadfb00da4170b
 title: "ADR-0182: Durable, Identity-Preserving User Document Move"
 type: decision

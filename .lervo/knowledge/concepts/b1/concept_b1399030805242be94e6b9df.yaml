@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8d5533f273446e0f2e7c163a
+  - uv_d77e6a2523f7266cac9f5ffb
 title: "ADR-0080: Shared diagnostics-report compatibility boundary"
 type: decision
