@@ -1,6 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { readRepositoryFile, type ContextDocumentCandidate } from "@lervo/context";
+import {
+  documentIdForPath,
+  instructionPathsFor,
+  readRepositoryFile,
+  type ContextDocumentCandidate,
+} from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
 import {
   createSearchAttempt,
@@ -83,6 +88,7 @@ export async function prepareManagedSearchContext(input: {
   nonce?: string;
   registry?: SearchCandidateEngineResolver;
   documentRegistry?: DocumentRegistry;
+  expectedPaths?: readonly string[];
 }): Promise<PreparedManagedSearchContext> {
   const query = managedSearchQuery(input.query, input.fallbackQuery);
   const nonce = input.nonce ?? randomBytes(16).toString("hex");
@@ -116,6 +122,9 @@ export async function prepareManagedSearchContext(input: {
       documentId,
     ]),
   );
+  for (const path of instructionPathsFor(input.expectedPaths ?? [])) {
+    if (!documentIdByPath.has(path)) documentIdByPath.set(path, documentIdForPath(path));
+  }
   const additionalCandidates: ContextDocumentCandidate[] = [];
   const knowledgeSources = await Promise.all(knowledge.hits.map(async (hit) => {
     const bytes = await readRepositoryFile(input.repositoryRoot, hit.path, 131_072);

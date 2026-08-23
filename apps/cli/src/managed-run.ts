@@ -177,6 +177,7 @@ export function createManagedRunExecutor(
         observedAt: dependencies.now?.() ?? new Date(),
         query: instructions,
         fallbackQuery: expectedPath,
+        expectedPaths: [expectedPath],
         ...(dependencies.createSearchNonce === undefined
           ? {}
           : { nonce: dependencies.createSearchNonce() }),

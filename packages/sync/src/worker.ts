@@ -6,6 +6,7 @@ import {
 } from "@lervo/sync-contract";
 
 import { partitionContiguousDeliveries } from "./batching.js";
+import { reconcileDestinationOutbox } from "./destination-reconciliation.js";
 import {
   acknowledgeDeliveries,
   assertClaimedDeliveries,
@@ -82,12 +83,21 @@ export async function runOutboundSyncCycle(
       status: "registration_deferred",
       failureCode: registrationFailureCode(error.code),
       nextAttemptAt: calculateNextAttemptAt(failedAt, configuration.retryDelayMs),
+      enqueuedCount: 0,
       claimedCount: 0,
       acknowledgedCount: 0,
       rescheduledCount: 0,
       acknowledgedBatchCount: 0,
     };
   }
+
+  const reconciliation = reconcileDestinationOutbox({
+    store: options.store,
+    destinationId: options.destinationId,
+    cursor: registration.response.cursor,
+    enqueuedAt: clockTimestamp(configuration.clock),
+    limit: configuration.batchLimit,
+  });
 
   const claimed = options.store.claim({
     workerId: options.workerId,
@@ -107,6 +117,7 @@ export async function runOutboundSyncCycle(
       status: "idle",
       registrationStatus: registration.response.status,
       cursor: structuredClone(registration.response.cursor),
+      enqueuedCount: reconciliation.enqueuedCount,
       claimedCount: 0,
       acknowledgedCount: 0,
       rescheduledCount: 0,
@@ -138,6 +149,7 @@ export async function runOutboundSyncCycle(
         status: "retry_scheduled",
         registrationStatus: registration.response.status,
         cursor,
+        enqueuedCount: reconciliation.enqueuedCount,
         failureCode: error.code,
         nextAttemptAt: availableAt,
         claimedCount: claimed.length,
@@ -160,6 +172,7 @@ export async function runOutboundSyncCycle(
     status: "synchronized",
     registrationStatus: registration.response.status,
     cursor,
+    enqueuedCount: reconciliation.enqueuedCount,
     claimedCount: claimed.length,
     acknowledgedCount,
     rescheduledCount: 0,

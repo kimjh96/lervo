@@ -31,6 +31,7 @@ const idleSync = {
   status: "idle" as const,
   registrationStatus: "unchanged" as const,
   cursor: { seq: 0 as const, eventHash: null },
+  enqueuedCount: 0,
   claimedCount: 0 as const,
   acknowledgedCount: 0,
   rescheduledCount: 0,

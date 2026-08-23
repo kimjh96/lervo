@@ -1,7 +1,7 @@
 # Lervo System Architecture
 
 Status: `active`
-As of: 2026-08-23
+As of: 2026-08-24
 
 ## System shape
 
@@ -75,7 +75,9 @@ Hub endpoints authenticate before project-scoped reads or writes. Remote command
 
 Transport is not tied to Tailscale. Direct TLS, private overlays, loopback proxies, or another authenticated network may carry the same protocol.
 
-Key decisions: [signed commands](../decisions/coordination/remote-control/0041-signed-scoped-remote-command.md), [Hub runtime](../decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md), [node control](../decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md), [managed provider node host](../decisions/execution/providers/0153-managed-provider-node-host.md), [direct TLS](../decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md).
+Local event producers remain unaware of Hub endpoints and device credentials. When project policy enables sync and a Node explicitly selects a destination, the Node authenticates registration, verifies the Hub cursor against local truth, and durably reconciles the next bounded event prefix into that destination's outbox before delivery. This makes CLI and provider execution local-first while allowing restartable cross-device evidence propagation.
+
+Key decisions: [signed commands](../decisions/coordination/remote-control/0041-signed-scoped-remote-command.md), [Hub runtime](../decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md), [destination reconciliation](../decisions/coordination/sync/0194-destination-bound-local-event-reconciliation.md), [node control](../decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md), [managed provider node host](../decisions/execution/providers/0153-managed-provider-node-host.md), [direct TLS](../decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md).
 
 ## Data ownership
 

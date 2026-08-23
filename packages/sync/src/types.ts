@@ -34,6 +34,7 @@ export interface OutboundSyncWorkerOptions {
 interface CycleBase {
   registrationStatus: ProjectRegistrationResponse["status"];
   cursor: EventSyncCursor;
+  enqueuedCount: number;
   claimedCount: number;
   acknowledgedCount: number;
   rescheduledCount: number;
@@ -52,6 +53,7 @@ export type SyncCycleResult =
       status: "registration_deferred";
       failureCode: Exclude<SyncRetryFailureCode, "invalid_sync_ack" | "local_batch_invalid">;
       nextAttemptAt: string;
+      enqueuedCount: 0;
       claimedCount: 0;
       acknowledgedCount: 0;
       rescheduledCount: 0;

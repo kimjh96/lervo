@@ -26,7 +26,9 @@ Injecting search results directly collapses `recommended`, `selected`, `loaded`,
 
 ### Managed run
 
-Before provider start, local `lervo run` projects the task deterministically into NFKC letter/number terms (32/500-character bounds); use expected path only if no term. Attempt digest/count describe this bounded projection, not full task. Record mode-`0600` attempt and pass its batch to context. Zero hits records an empty attempt and continues existing path/role/instruction selection.
+Before provider start, local `lervo run` projects the task deterministically into NFKC letter/number terms (32/500-character bounds); use expected path only if no term. Attempt digest/count describe this bounded projection, not full task. Record mode-`0600` attempts for operational search and repository-knowledge search and pass their batches to context. Zero hits records an empty attempt and continues existing path/role/instruction selection.
+
+Repository-knowledge hits load only current bounded repository bytes and carry source snapshot, impact report, concept, assurance, and freshness coordinates. A hit whose path is already a registered document reuses that document ID. A hit for a dynamically discovered AGENTS instruction reuses the same deterministic path ID that instruction discovery assigns. The canonical candidate must carry the knowledge metadata consistently through E0, recommendation, E1, E2, and E3; unrelated candidates that merely share a path or ID still fail closed.
 
 Return attempt ID, recommendation/selection counts, and selected document IDs for optional explicit assessment. Never auto-assess from recommendation, selection, E2/E3, or run success.
 
@@ -36,4 +38,4 @@ Invalid batch/context relationships produce no partial plan/event; selected hash
 
 ## Consequences
 
-Bounded lexical ranking is only a recommendation input. Role-specific policy, opt-out, additional source loaders, and semantic comparison await explicit assessment evidence.
+Bounded lexical ranking is only a recommendation input. Registry, instruction, and repository-knowledge views of one exact path now converge on one canonical candidate without weakening duplicate-path rejection. Role-specific policy, opt-out, additional source loaders, and semantic comparison await explicit assessment evidence.

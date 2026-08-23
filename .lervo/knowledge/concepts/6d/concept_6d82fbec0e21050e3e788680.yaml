@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_4dcc0cef234b461aca006a23
+  - uv_0ba329fd8c914870af474d0a
 title: "ADR-0151: Restartable Node Outbound-Sync Runtime"
 type: decision

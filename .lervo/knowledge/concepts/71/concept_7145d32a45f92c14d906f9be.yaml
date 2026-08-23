@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7f86f3257c9c972d7339fcdf
+  - uv_e86d1e88151fbc03c22b826b
 title: "ADR-0054: Boundary between search recommendations and managed context selection"
 type: decision

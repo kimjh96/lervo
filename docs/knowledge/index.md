@@ -5,12 +5,12 @@
 
 ## Inventory
 
-Publication snapshot: `ksnap_1aa36e91c577e4f0e3764cbb`. Included 1885 publishable sources (8057386 bytes), excluded 5, unsupported 0. Local-inventory-only agent surfaces are omitted.
+Publication snapshot: `ksnap_12c0e772f978faf5279213e2`. Included 1888 publishable sources (8084146 bytes), excluded 5, unsupported 0. Local-inventory-only agent surfaces are omitted.
 
 - build_definition: 71
-- code: 813
+- code: 814
 - configuration: 79
-- documentation: 206
+- documentation: 208
 - instruction: 2
 - other: 283
 - revision_metadata: 1
@@ -22,7 +22,7 @@ Publication snapshot: `ksnap_1aa36e91c577e4f0e3764cbb`. Included 1885 publishabl
 - [Agent instructions](instructions.md) — 2 concepts
 - [Architecture and vision](architecture.md) — 3 concepts
 - [Specifications and reference](specifications.md) — 1 concept
-- [Documentation](documentation.md) — 202 concepts
+- [Documentation](documentation.md) — 204 concepts
 
 ## Evidence semantics
 

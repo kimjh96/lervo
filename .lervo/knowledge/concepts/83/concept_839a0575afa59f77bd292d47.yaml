@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_839a0575afa59f77bd292d47
+freshness: current
+ownership: user
+path: docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6af4d3346d14c6aaf7c515f3
+title: WSL Hub and Shiflo release acceptance
+type: concept

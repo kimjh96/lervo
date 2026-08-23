@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0174: Bounded Parser-Grade JavaScript and TypeScript Symbol Units](../../decisions/knowledge/repository/0174-bounded-parser-grade-javascript-symbol-units.md) — `docs/decisions/knowledge/repository/0174-bounded-parser-grade-javascript-symbol-units.md`
 - [ADR-0179: Bounded Parser-Grade CSS Symbol Units](../../decisions/knowledge/repository/0179-bounded-parser-grade-css-symbol-units.md) — `docs/decisions/knowledge/repository/0179-bounded-parser-grade-css-symbol-units.md`
 - [ADR-0185: Profiled Provider Instruction Bridge](../../decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md) — `docs/decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md`
 - [ADR-0188: Command-Driven Repository Layout Migration](../../decisions/knowledge/repository/0188-command-driven-repository-layout-migration.md) — `docs/decisions/knowledge/repository/0188-command-driven-repository-layout-migration.md`
@@ -26,4 +27,3 @@
 - [ADR-0165: Runtime Readiness Separate from OS Activation](../../decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md) — `docs/decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md`
 - [ADR-0003: Local event store, outbox, and content-addressed storage](../../decisions/operations/storage/0003-local-event-store-and-cas.md) — `docs/decisions/operations/storage/0003-local-event-store-and-cas.md`
 - [ADR-0004: Project Storage Bootstrap](../../decisions/operations/storage/0004-project-storage-bootstrap.md) — `docs/decisions/operations/storage/0004-project-storage-bootstrap.md`
-- [ADR-0039: Authenticate and scope projects before trace HTTP reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`

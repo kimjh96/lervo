@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runOutboundSyncCycle } from "../src/index.js";
+import {
+  runOutboundSyncCycle,
+  type AuthenticatedHubTransport,
+} from "../src/index.js";
 import {
   appendEvents,
   destinationId,
@@ -16,7 +19,7 @@ const workerId = "sync-worker-1";
 
 function workerOptions(
   store: Awaited<ReturnType<typeof openStore>>,
-  transport: HubFixtureTransport,
+  transport: AuthenticatedHubTransport,
   clock = new MutableClock(),
 ) {
   return {
@@ -35,6 +38,76 @@ function workerOptions(
 afterEach(removeTemporaryStores);
 
 describe("outbound sync worker", () => {
+  it("durably discovers local events for an explicitly configured destination", async () => {
+    const store = await openStore();
+    appendEvents(store, 3, []);
+    const transport = new HubFixtureTransport();
+
+    const result = await runOutboundSyncCycle(workerOptions(store, transport));
+
+    expect(result).toMatchObject({
+      status: "synchronized",
+      enqueuedCount: 3,
+      claimedCount: 3,
+      acknowledgedCount: 3,
+      cursor: { seq: 3 },
+    });
+    expect(store.listOutbox({ status: "acknowledged" })).toHaveLength(3);
+    expect(transport.batches).toHaveLength(1);
+    store.close();
+  });
+
+  it("backfills a long local chain in bounded contiguous cycles", async () => {
+    const store = await openStore();
+    appendEvents(store, 205, []);
+    const transport = new HubFixtureTransport();
+
+    const first = await runOutboundSyncCycle(workerOptions(store, transport));
+    const second = await runOutboundSyncCycle(workerOptions(store, transport));
+    const third = await runOutboundSyncCycle(workerOptions(store, transport));
+
+    expect([first, second, third]).toMatchObject([
+      { status: "synchronized", enqueuedCount: 100, acknowledgedCount: 100, cursor: { seq: 100 } },
+      { status: "synchronized", enqueuedCount: 100, acknowledgedCount: 100, cursor: { seq: 200 } },
+      { status: "synchronized", enqueuedCount: 5, acknowledgedCount: 5, cursor: { seq: 205 } },
+    ]);
+    expect(store.listOutbox({ status: "acknowledged", limit: 1_000 })).toHaveLength(205);
+    expect(transport.batches.map((batch) => [batch.firstSeq, batch.lastSeq])).toEqual([
+      [1, 100],
+      [101, 200],
+      [201, 205],
+    ]);
+    store.close();
+  });
+
+  it("fails closed when the authenticated Hub cursor differs from local truth", async () => {
+    const store = await openStore();
+    appendEvents(store, 2, []);
+    const transport = new HubFixtureTransport();
+    await runOutboundSyncCycle(workerOptions(store, transport));
+    const conflictingTransport = {
+      async registerProject(request: Parameters<typeof transport.registerProject>[0]) {
+        const response = await transport.registerProject(request);
+        return {
+          ...response,
+          body: {
+            ...(response.body as Record<string, unknown>),
+            cursor: {
+              seq: 1,
+              eventHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            },
+          },
+        };
+      },
+      sendEventBatch: transport.sendEventBatch.bind(transport),
+    };
+
+    await expect(runOutboundSyncCycle(workerOptions(store, conflictingTransport))).rejects.toMatchObject({
+      code: "outbox_update_failed",
+    });
+    store.close();
+  });
+
   it("registers first and acknowledges a leased contiguous batch atomically", async () => {
     const store = await openStore();
     appendEvents(store, 3);
@@ -161,10 +234,14 @@ describe("outbound sync worker", () => {
     appendEvents(store, 3, [1, 3]);
     const transport = new HubFixtureTransport();
 
-    const result = await runOutboundSyncCycle(workerOptions(store, transport));
+    const result = await runOutboundSyncCycle({
+      ...workerOptions(store, transport),
+      batchLimit: 2,
+    });
 
     expect(result).toMatchObject({
       status: "synchronized",
+      enqueuedCount: 1,
       claimedCount: 2,
       acknowledgedCount: 2,
       acknowledgedBatchCount: 2,
@@ -176,6 +253,9 @@ describe("outbound sync worker", () => {
     ]);
     expect(transport.state).toMatchObject({ cursor: { seq: 1 }, events: [{ seq: 1 }, { seq: 3 }] });
     expect(store.listOutbox({ status: "acknowledged" })).toHaveLength(2);
+    expect(store.listOutbox({ status: "pending" })).toEqual([
+      expect.objectContaining({ event: expect.objectContaining({ seq: 2 }) }),
+    ]);
     store.close();
   });
 
@@ -184,7 +264,10 @@ describe("outbound sync worker", () => {
     appendEvents(store, 3, [1, 3]);
     const transport = new HubFixtureTransport("lose_second_batch_response");
 
-    const result = await runOutboundSyncCycle(workerOptions(store, transport));
+    const result = await runOutboundSyncCycle({
+      ...workerOptions(store, transport),
+      batchLimit: 2,
+    });
 
     expect(result).toMatchObject({
       status: "retry_scheduled",
@@ -203,6 +286,10 @@ describe("outbound sync worker", () => {
         event: expect.objectContaining({ seq: 3 }),
         lastFailure: expect.objectContaining({ code: "hub_unavailable" }),
       }),
+      expect.objectContaining({
+        event: expect.objectContaining({ seq: 2 }),
+        lastFailure: null,
+      }),
     ]);
     store.close();
   });
@@ -218,6 +305,7 @@ describe("outbound sync worker", () => {
       status: "registration_deferred",
       failureCode: "hub_unavailable",
       nextAttemptAt: "2026-08-19T02:00:05.000Z",
+      enqueuedCount: 0,
       claimedCount: 0,
       acknowledgedCount: 0,
       rescheduledCount: 0,

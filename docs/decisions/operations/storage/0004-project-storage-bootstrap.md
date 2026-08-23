@@ -26,7 +26,7 @@ Putting this composition in `@lervo/project` would make the project configuratio
 4. Open the event/outbox store using the manifest project ID and `.lervo/state/events.sqlite`.
 5. Open the artifact store at `.lervo/state/cas`.
 
-The caller does not provide a project ID or backend path separately. Manifest identity and actual storage location therefore come from one path contract. A manifest with Hub disabled can still open local stores, and bootstrap does not create outbox entries automatically.
+The caller does not provide a project ID or backend path separately. Manifest identity and actual storage location therefore come from one path contract. A manifest with Hub disabled can still open local stores, and bootstrap does not create outbox entries automatically. A separately configured Node owns destination reconciliation after authenticated registration under ADR-0194.
 
 ### Failure and cleanup
 
@@ -49,4 +49,4 @@ Existing `not_initialized`, manifest contract errors, event-store `project_misma
 - The project configuration layer does not depend on concrete storage implementations.
 - Backend-specific fixtures can independently verify resource lifecycles for partial-open failure and repeated close.
 - A real repository fixture can record events and artifacts, close them, and reopen the same project to recover them.
-- Local execution sources remain stored without Hub; synchronization remains an explicit caller-owned outbox operation.
+- Local execution sources remain stored without Hub. A producer may enqueue atomically when it owns a destination; otherwise an explicitly configured Node performs bounded destination reconciliation without entering the local execution path.

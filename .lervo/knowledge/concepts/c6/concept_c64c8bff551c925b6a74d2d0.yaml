@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c52e1bf5cc5eb35d3b834dd4
+  - uv_a1ec9e402731c560632d186d
 title: "ADR-0004: Project Storage Bootstrap"
 type: decision

@@ -15,7 +15,7 @@ install/remove additionally require a canonical owner-only rendered definition, 
 
 Targets are fixed per user: ~/.config/systemd/user/lervo-<hub|node>.service or ~/Library/LaunchAgents/com.lervo.<hub|node>.plist. Different existing bytes cause service_state_conflict without overwrite or stop.
 
-Install exclusively creates mode-0600 target, reloads/enables/starts, and verifies normalized status. Identical active bytes return unchanged. New-target failure compensates stop/disable and deletes only after exact-byte recheck. Unverified application or compensation yields service_apply_unknown without retry, deletion, or success claim.
+Install exclusively creates a mode-0600 target, reloads/enables/starts, and verifies normalized status. A newly activated service must remain operational across three observations separated by 500 milliseconds; one transient active response is insufficient. Removal permits at most six observations and requires three consecutive stopped observations before deleting the exact definition, so asynchronous manager teardown is not mistaken for failure or completion. Identical already-active bytes return unchanged. New-target failure compensates stop/disable and deletes only after exact-byte recheck. Unverified application or compensation yields service_apply_unknown without retry, deletion, or success claim.
 
 Remove acts only when target equals canonical source, stops/disables, verifies inactive and bytes, then deletes. Missing definitions or differing bytes are never guessed. Upgrades require explicit remove/install; runtime material uses SIGHUP.
 
@@ -23,4 +23,4 @@ Fixed failures separate arguments/authority/manager, source/CAS/conflict, and ex
 
 ## Consequences
 
-Fixtures cover user-only install/status/idempotency/remove, missing --write, conflicting/symlink sources, launchd compensation, unavailable managers, renderer safety, and signal/restart/umask contracts. No real user service was installed during repository work.
+Fixtures cover user-only install/status/idempotency/remove, transient activation compensation, transient launchd removal, missing --write, conflicting/symlink sources, launchd compensation, unavailable managers, renderer safety, and signal/restart/umask contracts. A WSL2 user Hub and Mac Node were upgraded through explicit remove/install and separately passed service stability and runtime readiness checks; manager state still does not claim runtime readiness.

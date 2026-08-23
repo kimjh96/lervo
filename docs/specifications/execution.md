@@ -1,7 +1,7 @@
 # Lervo Execution and Evidence Specification
 
 Status: `active`
-As of: 2026-08-23
+As of: 2026-08-24
 
 ## 1. Scope
 
@@ -15,6 +15,8 @@ requested -> resolved -> context prepared -> provider started
 ```
 
 A run may complete only when its required contracts, capability decisions, context evidence, provider result, repository snapshot, and verification result agree. Direct provider work outside this lifecycle is `unmanaged`.
+
+Managed search records separate bounded operational and repository-knowledge recommendation attempts. If an AGENTS instruction or registered document is also returned as repository knowledge, both views must resolve to the canonical document ID and carry identical knowledge metadata across discovery, recommendation, selection, loading, and injection. Same-path candidates that cannot be demonstrated to be the same canonical document fail before a provider turn.
 
 ## 3. Context evidence
 
@@ -125,6 +127,10 @@ Hub operations authenticate before source access and enforce project scope in st
 
 A node checks trust, signature, scope, freshness, replay state, repository registration, manifest identity, local policy, approval, and snapshot before execution. Network transport does not confer authority.
 
+After authenticated registration, outbound sync compares the Hub cursor with the exact local event at that sequence and fails closed on mismatch. It then enqueues at most one configured batch of subsequent local events for the Node's explicit destination and runs the existing lease-bound delivery. This reconciliation is restartable and producer-neutral: local commands never read Hub credentials or wait for the Node. Cycle output may include only `enqueuedCount` and existing bounded status/count fields; it excludes event identities, payloads, paths, repository coordinates, endpoints, credentials, and peer identities.
+
+User service installation requires an explicit canonical definition and write authority. A newly activated Hub or Node service must remain installed, enabled where applicable, and active across three observations separated by 500 milliseconds. A transient active state triggers the existing fail-closed compensation path for a newly created service. Removal permits up to six observations and requires three consecutive stopped observations before deleting the canonical definition. This stabilization proves only OS service continuity; operational readiness still requires the separate identity-bound Hub or live-process Node preflight.
+
 ## 13. Failure categories
 
 | Category | Required behavior |
@@ -144,6 +150,8 @@ A node checks trust, signature, scope, freshness, replay state, repository regis
 - Schema validation and redaction tests.
 - Provider adapter common contract tests.
 - Failure-injection tests for write and recovery checkpoints.
+- Transient service activation and compensation tests plus separate runtime readiness checks.
+- Empty-outbox discovery, bounded long-chain reconciliation, existing-gap, and Hub/local cursor-conflict sync tests.
 - Repository knowledge plan/apply/lint/idempotence tests.
 - Source privacy, path safety, symlink, size, and race tests.
 - Package-boundary, type, documentation lifecycle, build, and distribution checks appropriate to the change.

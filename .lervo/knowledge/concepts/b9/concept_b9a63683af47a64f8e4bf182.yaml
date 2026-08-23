@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b9a63683af47a64f8e4bf182
+freshness: current
+ownership: user
+path: docs/decisions/coordination/sync/0194-destination-bound-local-event-reconciliation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8f93c6832b2104e9074ff421
+title: "ADR-0194: Destination-bound local event reconciliation"
+type: decision

@@ -13,6 +13,7 @@ The sync contract and SQLite outbox defined batch semantics and retry state sepa
 
 - `@lervo/sync` executes one outbound cycle.
 - Build a registration request from current manifest and verify destination/peer-authenticated response. On failure, claim no outbox row; return `registration_deferred`, safe failure code, and next attempt.
+- After registration, reconcile a bounded local prefix after the authenticated Hub cursor into the explicitly configured destination outbox as specified by ADR-0194.
 - After registration, claim at most 100 pending rows for that destination and revalidate lease ownership.
 - Sort by sequence and split into contiguous hash-chain ranges. Gaps may become separate valid batches; Hub buffers later ranges while preserving cursor.
 
@@ -30,7 +31,7 @@ Before reading response bodies, worker requires exact destination and configured
 - Preserve successful earlier batches when a later one fails.
 - Emit no `sync.acknowledged`; outbox is the local receipt.
 
-Cycle states are `registration_deferred`, `idle`, `synchronized`, and `retry_scheduled` with acknowledged/rescheduled counts.
+Cycle states are `registration_deferred`, `idle`, `synchronized`, and `retry_scheduled` with enqueued, acknowledged, and rescheduled counts. Counts disclose no event coordinates or payloads.
 
 | Code | Meaning |
 | --- | --- |
@@ -48,4 +49,4 @@ SQLite fixtures cover success/idle, registration failure without attempt increme
 
 ## Consequences
 
-Core worker depends only on store, transport, and clock ports. Local execution remains Hub-independent and reconnect recovers through deterministic replay. ADR-0036 defines Hub storage; ADR-0150 supplies authenticated HTTP transport.
+Core worker depends only on store, transport, and clock ports. Local execution remains Hub-independent and reconnect recovers through deterministic replay. ADR-0194 defines destination reconciliation, ADR-0036 defines Hub storage, and ADR-0150 supplies authenticated HTTP transport.

@@ -57,13 +57,14 @@ export async function removeTemporaryStores(): Promise<void> {
 }
 
 function draft(seq: number): EventDraft {
+  const occurredAt = new Date(Date.parse("2026-08-19T00:00:00.000Z") + seq * 1_000).toISOString();
   return {
     eventId: `evt_sync_worker_${String(seq).padStart(2, "0")}`,
     projectId: manifest.projectId,
     runId: "run_sync_worker_01",
     sessionId: "ses_sync_worker_01",
     type: "run.requested",
-    occurredAt: `2026-08-19T00:00:${String(seq).padStart(2, "0")}.000Z`,
+    occurredAt,
     actor: { kind: "user" },
     schemaVersion: 1,
     policyVersion,
@@ -87,7 +88,9 @@ export function appendEvents(
         transaction.enqueue({
           eventId: event.eventId,
           destinationId,
-          enqueuedAt: `2026-08-19T00:01:${String(seq).padStart(2, "0")}.000Z`,
+          enqueuedAt: new Date(
+            Date.parse("2026-08-19T00:01:00.000Z") + seq * 1_000,
+          ).toISOString(),
         });
       }
     });

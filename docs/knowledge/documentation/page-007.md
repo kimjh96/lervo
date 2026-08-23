@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0105: CLI first-publication metadata decision and write-free preview](../../decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md) — `docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md`
 - [ADR-0106: CLI first-publication package-metadata patch candidate](../../decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md) — `docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md`
 - [ADR-0107: CLI first-publication package-metadata apply permit](../../decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md) — `docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md`
 - [ADR-0108: CLI first-publication package-metadata apply transaction](../../decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md) — `docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md`
@@ -26,4 +27,3 @@
 - [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`
 - [ADR-0121: Remote Deployment Evidence for the Stage-Only Workflow](../../decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md) — `docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md`
 - [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
-- [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`

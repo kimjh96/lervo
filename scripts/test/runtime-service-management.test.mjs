@@ -76,6 +76,7 @@ describe("runtime user service management", () => {
       platform: "linux",
       homeDirectory: value.root,
       runCommand: manager.run.bind(manager),
+      wait: async () => {},
     };
     await expect(manageRuntimeService(value.writeArgs("install"), options)).resolves.toMatchObject({
       manager: "systemd",
@@ -101,6 +102,85 @@ describe("runtime user service management", () => {
       active: false,
     });
     await expect(readFile(target)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("compensates when a newly activated systemd service is only transiently active", async () => {
+    const value = await fixture("systemd", "hub");
+    let enabled = false;
+    let activeObservations = 0;
+    const calls = [];
+    const runCommand = async (command, args) => {
+      calls.push([command, ...args]);
+      if (command !== "systemctl" || args[0] !== "--user") return { exitCode: null };
+      if (args[1] === "daemon-reload") return { exitCode: 0 };
+      if (args[1] === "is-enabled") return { exitCode: enabled ? 0 : 1 };
+      if (args[1] === "is-active") {
+        if (!enabled) return { exitCode: 3 };
+        activeObservations += 1;
+        return { exitCode: activeObservations === 1 ? 0 : 3 };
+      }
+      if (args[1] === "enable" && args[2] === "--now") {
+        enabled = true;
+        return { exitCode: 0 };
+      }
+      if (args[1] === "disable" && args[2] === "--now") {
+        enabled = false;
+        return { exitCode: 0 };
+      }
+      return { exitCode: 1 };
+    };
+    await expect(manageRuntimeService(value.writeArgs("install"), {
+      platform: "linux",
+      homeDirectory: value.root,
+      runCommand,
+      wait: async () => {},
+    })).rejects.toMatchObject({ code: "service_apply_failed" });
+    expect(calls.some((call) => call[2] === "disable" && call[3] === "--now")).toBe(true);
+    await expect(readFile(resolve(
+      value.root,
+      ".config/systemd/user/lervo-hub.service",
+    ))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("waits for a transient launchd removal state before deleting the exact definition", async () => {
+    const value = await fixture("launchd", "node");
+    let enabled = false;
+    let loaded = false;
+    let stopping = false;
+    let removalObservations = 0;
+    const runCommand = async (command, args) => {
+      if (command !== "launchctl") return { exitCode: null };
+      if (args[0] === "print") {
+        if (stopping) {
+          removalObservations += 1;
+          if (removalObservations === 1) return { exitCode: 0 };
+          loaded = false;
+        }
+        return { exitCode: loaded ? 0 : 113 };
+      }
+      if (args[0] === "enable") { enabled = true; return { exitCode: 0 }; }
+      if (args[0] === "bootstrap") { loaded = true; return { exitCode: 0 }; }
+      if (args[0] === "bootout") { stopping = true; return { exitCode: 0 }; }
+      if (args[0] === "disable") { enabled = false; return { exitCode: 0 }; }
+      return { exitCode: 1 };
+    };
+    const options = {
+      platform: "darwin",
+      homeDirectory: value.root,
+      uid: 501,
+      runCommand,
+      wait: async () => {},
+    };
+    await expect(manageRuntimeService(value.writeArgs("install"), options)).resolves.toMatchObject({
+      change: "installed",
+      active: true,
+    });
+    await expect(manageRuntimeService(value.writeArgs("remove"), options)).resolves.toMatchObject({
+      change: "removed",
+      installed: false,
+      active: false,
+    });
+    expect(removalObservations).toBeGreaterThan(1);
   });
 
   it("requires explicit write authority and never overwrites another definition", async () => {

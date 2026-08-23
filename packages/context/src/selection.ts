@@ -140,8 +140,9 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
   const accumulator = new ContextSelectionAccumulator();
 
   for (const instruction of input.instructionDocuments) {
+    const candidate = candidates.get(instruction.documentId) ?? instruction;
     accumulator.select({
-      candidate: instruction,
+      candidate,
       reason: {
         reasonCode:
           instruction.path === "AGENTS.md" ? "explicit_instruction" : "parent_instruction",
@@ -184,8 +185,9 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
         `Required document rule ${ruleId} for role ${input.role.roleId} cannot be resolved.`,
       );
     }
-    for (const candidate of resolved) {
-      if (!candidate) continue;
+    for (const resolvedCandidate of resolved) {
+      if (!resolvedCandidate) continue;
+      const candidate = candidates.get(resolvedCandidate.documentId) ?? resolvedCandidate;
       accumulator.select({
         candidate,
         reason: { reasonCode: "role_required", ruleId },

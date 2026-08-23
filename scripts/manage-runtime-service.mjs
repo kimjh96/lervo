@@ -6,6 +6,9 @@ import { isAbsolute, resolve } from "node:path";
 import { createRuntimeServiceDefinition } from "./render-runtime-service.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
+const SERVICE_STABILITY_OBSERVATIONS = 3;
+const SERVICE_STABILITY_INTERVAL_MS = 500;
+const SERVICE_STOP_MAXIMUM_OBSERVATIONS = 6;
 
 export class RuntimeServiceManagementError extends Error {
   constructor(code, message, options) {
@@ -157,6 +160,10 @@ function defaultRunCommand(command, args) {
   });
 }
 
+function defaultWait(durationMs) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, durationMs));
+}
+
 async function command(runCommand, executable, args) {
   try {
     const result = await runCommand(executable, args);
@@ -193,6 +200,36 @@ async function serviceStatus(input, context) {
     enabled: null,
     active: loaded === 0,
   };
+}
+
+function isOperationalServiceStatus(status) {
+  return status.managerAvailable && status.installed && status.active && status.enabled !== false;
+}
+
+function isStoppedServiceStatus(status) {
+  return status.managerAvailable && !status.active && status.enabled !== true;
+}
+
+async function stabilizedServiceStatus(input, context, initial) {
+  let status = initial;
+  for (let index = 1; index < SERVICE_STABILITY_OBSERVATIONS; index += 1) {
+    if (!isOperationalServiceStatus(status)) return status;
+    await context.wait(SERVICE_STABILITY_INTERVAL_MS);
+    status = await serviceStatus(input, context);
+  }
+  return status;
+}
+
+async function stabilizedStoppedServiceStatus(input, context, initial) {
+  let status = initial;
+  let consecutive = 0;
+  for (let index = 0; index < SERVICE_STOP_MAXIMUM_OBSERVATIONS; index += 1) {
+    consecutive = isStoppedServiceStatus(status) ? consecutive + 1 : 0;
+    if (consecutive === SERVICE_STABILITY_OBSERVATIONS) return status;
+    await context.wait(SERVICE_STABILITY_INTERVAL_MS);
+    status = await serviceStatus(input, context);
+  }
+  return status;
 }
 
 async function writeTarget(path, bytes) {
@@ -254,8 +291,11 @@ async function install(input, expected, context) {
         "bootstrap", context.identity.domain, context.target,
       ]) === 0);
   }
-  const after = await serviceStatus(input, context);
-  if (applied && after.managerAvailable && after.installed && after.active && after.enabled !== false) {
+  let after = await serviceStatus(input, context);
+  if (applied && isOperationalServiceStatus(after)) {
+    after = await stabilizedServiceStatus(input, context, after);
+  }
+  if (applied && isOperationalServiceStatus(after)) {
     return { ...after, change: created ? "installed" : "activated" };
   }
   if (!created) {
@@ -329,8 +369,12 @@ async function remove(input, expected, context) {
       "disable", `${context.identity.domain}/${context.identity.label}`,
     ]);
   }
-  const stopped = await serviceStatus(input, context);
-  if (!stopped.managerAvailable || stopped.active || stopped.enabled === true) {
+  const stopped = await stabilizedStoppedServiceStatus(
+    input,
+    context,
+    await serviceStatus(input, context),
+  );
+  if (!isStoppedServiceStatus(stopped)) {
     fail("service_remove_unknown", "The stopped service state could not be verified.");
   }
   const confirmed = await currentTarget(context.target);
@@ -369,6 +413,7 @@ export async function manageRuntimeService(args, options = {}) {
     identity: serviceIdentity,
     target: targetPath(input, homeDirectory, serviceIdentity),
     runCommand: options.runCommand ?? defaultRunCommand,
+    wait: options.wait ?? defaultWait,
   };
   if (input.action === "status") return serviceStatus(input, context);
   const expected = await exactDefinition(input);
