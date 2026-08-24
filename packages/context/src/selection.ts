@@ -63,10 +63,10 @@ function knowledgeMetadataEqual(
 }
 
 function indexCandidates(input: CreateContextPlanInput): Map<string, ContextDocumentCandidate> {
-  if ((input.additionalCandidates ?? []).some((candidate) => candidate.source !== "knowledge")) {
+  if ((input.additionalCandidates ?? []).some((candidate) => candidate.source !== "knowledge" && candidate.source !== "workstream")) {
     throw new ContextPreparationError(
       "invalid_context_plan",
-      "Additional context candidates must be repository knowledge sources.",
+      "Additional context candidates must be repository knowledge or workstream sources.",
     );
   }
   const byId = new Map<string, ContextDocumentCandidate>();

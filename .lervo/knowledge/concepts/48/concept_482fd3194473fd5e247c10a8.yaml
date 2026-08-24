@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_482fd3194473fd5e247c10a8
+freshness: current
+ownership: user
+path: docs/roadmap/natural-language-terminal-flow.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_3e7d5f28236b423979225be5
+title: Natural-language terminal development flow
+type: concept

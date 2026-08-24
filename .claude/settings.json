@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "lervo terminal hook --provider claude --contract 1",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "lervo terminal hook --provider claude --contract 1",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

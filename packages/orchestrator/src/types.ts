@@ -166,8 +166,8 @@ const failureByErrorCode = {
 export class ManagedContextError extends Error {
   readonly failure: (typeof failureByErrorCode)[ManagedContextErrorCode];
 
-  constructor(readonly code: ManagedContextErrorCode, message: string) {
-    super(message);
+  constructor(readonly code: ManagedContextErrorCode, message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "ManagedContextError";
     this.failure = failureByErrorCode[code];
   }

@@ -11,3 +11,4 @@ export * from "./lifecycle.js";
 export * from "./managed-provider-runtime.js";
 export * from "./process-runtime.js";
 export * from "./trust.js";
+export * from "./workstream-replication.js";

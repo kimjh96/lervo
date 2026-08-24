@@ -6,6 +6,7 @@ import {
 } from "@lervo/event-contract";
 
 import type { TraceReport } from "./types.js";
+import { projectManagedContextCoverage } from "@lervo/context-coverage";
 
 function expectedTraceStatus(events: TraceReport["events"]): TraceReport["status"] {
   const types = new Set(events.map((event) => event.type));
@@ -25,6 +26,15 @@ export function isTraceReportSemanticallyValid(report: TraceReport): boolean {
     return false;
   }
   const sessionIds = [...new Set(events.map((event) => event.sessionId))];
+  if (report.contextCoverage !== undefined) {
+    try {
+      if (canonicalJson(report.contextCoverage) !== canonicalJson(projectManagedContextCoverage(events))) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
   return report.status === expectedTraceStatus(events) &&
     report.firstOccurredAt === events[0]!.occurredAt &&
     report.lastOccurredAt === last.occurredAt &&

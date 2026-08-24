@@ -13,6 +13,7 @@ import {
   type ResolvedHubProjectTraceQuery,
   type ResolvedHubRunEventQuery,
 } from "@lervo/hub-trace";
+import { projectManagedContextCoverage } from "@lervo/context-coverage";
 
 import { HubSyncStoreError } from "./errors.js";
 import {
@@ -179,12 +180,24 @@ export class HubTraceSQLiteRepository {
         event,
       };
     });
+    const coverageRows = this.database.prepare(`
+      SELECT seq, event_id, event_hash, previous_hash, event_json
+      FROM hub_events
+      WHERE destination_id = ? AND project_id = ?
+        AND json_extract(event_json, '$.runId') = ?
+      ORDER BY seq ASC
+    `).all(query.destinationId, query.projectId, query.runId);
+    if (coverageRows.length !== run.eventCount) {
+      throw new HubSyncStoreError("integrity_failed", "The Hub managed context coverage source is incomplete.");
+    }
+    const contextCoverage = projectManagedContextCoverage(coverageRows.map(decodeStoredEvent));
     return {
       project,
       run,
       events: page<HubRunTraceEvent, HubEventTraceCursor>(events, query.limit, (item) => ({
         seq: item.event.seq,
       })),
+      contextCoverage,
     };
   }
 

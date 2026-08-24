@@ -3,11 +3,16 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   handleOutboundEventBatch,
   handleProjectRegistration,
+  handleWorkstreamPublish,
+  handleWorkstreamRead,
   type HubSyncCommandStore,
+  type HubWorkstreamReplicationStore,
+  HubWorkstreamReplicationError,
 } from "@lervo/hub-sync";
 import {
   type OutboundEventBatch,
   type ProjectRegistrationRequest,
+  type WorkstreamReplicationPublishRequest,
   validateSchema,
 } from "@lervo/schemas";
 import {
@@ -26,11 +31,26 @@ const MAX_MAX_REQUEST_BYTES = 16_777_216;
 
 export interface HubSyncHttpHandlerOptions {
   authenticator: HubRequestAuthenticator;
-  store: HubSyncCommandStore;
+  store: HubSyncCommandStore & HubWorkstreamReplicationStore;
   hubIdentityHash: string;
   now?: () => Date;
   maxRequestBytes?: number;
   maxResponseBytes?: number;
+}
+
+function workstreamError(
+  response: ServerResponse,
+  error: HubWorkstreamReplicationError,
+  maximum: number,
+  headers: Record<string, string>,
+): void {
+  if (error.code === "invalid_workstream") {
+    sendHubError(response, 400, "invalid_request", maximum, headers);
+  } else if (["registration_required", "unknown_parent", "head_limit_exceeded", "workstream_conflict"].includes(error.code)) {
+    sendHubError(response, 409, "conflict", maximum, headers);
+  } else {
+    sendHubError(response, 500, "internal_error", maximum, headers);
+  }
 }
 
 function requestLimit(value: number | undefined): number {
@@ -86,10 +106,13 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
         return;
       }
-      if (request.method !== "POST") {
+      const acceptedMethod = route.kind === "workstreams"
+        ? request.method === "GET" || request.method === "POST"
+        : request.method === "POST";
+      if (!acceptedMethod) {
         sendHubError(response, 405, "method_not_allowed", maxResponseBytes, {
           ...identityHeaders,
-          allow: "POST",
+          allow: route.kind === "workstreams" ? "GET, POST" : "POST",
         });
         return;
       }
@@ -105,17 +128,30 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
       const inScope = principal.projects.some((project) =>
         project.destinationId === query.destinationId && project.projectId === route.projectId
       );
-      if (!inScope || !principal.permissions.includes("sync.write")) {
+      const requiredPermission = route.kind === "workstreams"
+        ? request.method === "GET" ? "workstream.read" : "workstream.write"
+        : "sync.write";
+      if (!inScope || !principal.permissions.includes(requiredPermission)) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
         return;
       }
 
-      const body = await readBoundedJsonBody(request, maxRequestBytes);
       const expectedRegistrationId = calculateProjectRegistrationId({
         destinationId: query.destinationId,
         identityHash: query.projectIdentityHash,
       });
       const acceptedAt = currentTime(now);
+      if (route.kind === "workstreams" && request.method === "GET") {
+        const result = await handleWorkstreamRead({
+          store: options.store,
+          destinationId: query.destinationId,
+          projectId: route.projectId,
+          repositoryIdentityHash: query.projectIdentityHash,
+        });
+        sendHubJson(response, 200, result, maxResponseBytes, identityHeaders);
+        return;
+      }
+      const body = await readBoundedJsonBody(request, maxRequestBytes);
       if (route.kind === "registration") {
         if (!validateSchema("projectRegistrationRequest", body).valid) {
           throw new InvalidHubHttpRequestError();
@@ -142,6 +178,26 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         return;
       }
 
+      if (route.kind === "workstreams") {
+        if (!validateSchema("workstreamReplicationPublishRequest", body).valid) {
+          throw new InvalidHubHttpRequestError();
+        }
+        const publication = body as WorkstreamReplicationPublishRequest;
+        if (
+          publication.projectId !== route.projectId ||
+          publication.repositoryIdentityHash !== query.projectIdentityHash ||
+          publication.registrationId !== expectedRegistrationId
+        ) throw new InvalidHubHttpRequestError();
+        const result = await handleWorkstreamPublish({
+          store: options.store,
+          destinationId: query.destinationId,
+          request: publication,
+          publishedAt: acceptedAt,
+        });
+        sendHubJson(response, result.status === "created" ? 201 : 200, result, maxResponseBytes, identityHeaders);
+        return;
+      }
+
       if (!validateSchema("outboundEventBatch", body).valid) {
         throw new InvalidHubHttpRequestError();
       }
@@ -163,6 +219,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubError(response, 400, "invalid_request", maxResponseBytes, identityHeaders);
       } else if (error instanceof SyncContractError) {
         syncError(response, error, maxResponseBytes, identityHeaders);
+      } else if (error instanceof HubWorkstreamReplicationError) {
+        workstreamError(response, error, maxResponseBytes, identityHeaders);
       } else {
         sendHubError(response, 500, "internal_error", maxResponseBytes, identityHeaders);
       }

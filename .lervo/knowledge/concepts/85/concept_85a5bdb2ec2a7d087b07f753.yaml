@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_85a5bdb2ec2a7d087b07f753
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_32c2b1555ec71d9ae5307584
+title: "ADR-0199: Structured workstream continuation state"
+type: decision

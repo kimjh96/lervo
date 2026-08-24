@@ -21,7 +21,7 @@ export interface ContextDocumentCandidate {
   documentId: string;
   path: string;
   connectedPaths: readonly string[];
-  source: "instruction" | "registry" | "knowledge";
+  source: "instruction" | "registry" | "knowledge" | "workstream";
   knowledgeContext?: KnowledgeContextMetadata;
 }
 

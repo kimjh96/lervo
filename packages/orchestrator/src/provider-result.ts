@@ -1,4 +1,5 @@
 import {
+  digestTurnResult,
   encodeTurnResultContent,
   inspectTurnResultBinding,
   type ProviderAdapter,
@@ -40,28 +41,37 @@ export async function collectProviderResult(input: {
 
 export async function storeProviderResult(input: {
   result: AdapterTurnResult;
+  publicationContent?: string;
   artifactStore: ContextArtifactPort;
 }): Promise<ManagedProviderResultArtifact> {
-  const bytes = encodeTurnResultContent(input.result.content);
+  const content = input.publicationContent ?? input.result.content;
+  const bytes = encodeTurnResultContent(content);
+  if (bytes.byteLength === 0) {
+    throw new ManagedProviderRunError(
+      "artifact_storage_failed",
+      "The human-facing provider result is empty after removing managed evidence metadata.",
+    );
+  }
+  const contentHash = digestTurnResult(bytes);
   try {
     const stored = await input.artifactStore.put(bytes);
     const restored = new Uint8Array(await input.artifactStore.get(stored.uri));
-    const expectedUri = `lervo-cas://sha256/${input.result.contentHash.slice(7)}`;
+    const expectedUri = `lervo-cas://sha256/${contentHash.slice(7)}`;
     if (
       stored.uri !== expectedUri ||
-      stored.contentHash !== input.result.contentHash ||
-      stored.byteCount !== input.result.byteCount ||
+      stored.contentHash !== contentHash ||
+      stored.byteCount !== bytes.byteLength ||
       restored.byteLength !== bytes.byteLength ||
       !Buffer.from(restored).equals(Buffer.from(bytes))
     ) {
       throw new Error("artifact verification failed");
     }
     return {
-      artifactId: `art_${input.result.contentHash.slice(7)}`,
+      artifactId: `art_${contentHash.slice(7)}`,
       uri: stored.uri,
       mediaType: input.result.mediaType,
-      contentHash: input.result.contentHash,
-      byteCount: input.result.byteCount,
+      contentHash,
+      byteCount: bytes.byteLength,
     };
   } catch (error) {
     throw new ManagedProviderRunError(

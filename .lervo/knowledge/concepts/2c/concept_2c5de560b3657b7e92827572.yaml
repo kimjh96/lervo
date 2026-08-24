@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_2c5de560b3657b7e92827572
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_aedbd027e935fa39d7e60cd7
+title: "ADR-0198: Managed context grounding and coverage"
+type: decision

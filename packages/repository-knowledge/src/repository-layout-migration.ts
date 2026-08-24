@@ -417,13 +417,21 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     : []);
   const routedInstructions = instructionCandidates.length > 0 ? instructionCandidates : existingInstructions;
   const routedSkills = skillCandidates.length > 0 ? skillCandidates : existingSkills;
-  if (routedInstructions.length > 0 || routedSkills.length > 0) {
-    const agents = scan.sources.find((source): source is RepositorySource & { content: string; contentHash: string } =>
-      source.path === "AGENTS.md" && source.status === "included" && source.content !== undefined && source.contentHash !== null);
-    if (agents === undefined) throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Provider instruction normalization requires a canonical AGENTS.md source.");
+  const agents = scan.sources.find((source): source is RepositorySource & { content: string; contentHash: string } =>
+    source.path === "AGENTS.md" && source.status === "included" && source.content !== undefined && source.contentHash !== null);
+  if (agents === undefined && (routedInstructions.length > 0 || routedSkills.length > 0)) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Provider instruction normalization requires a canonical AGENTS.md source.");
+  }
+  if (agents !== undefined) {
     const begin = "<!-- lervo:begin block=repository_instruction_routes schema=1 -->";
     const end = "<!-- lervo:end block=repository_instruction_routes -->";
-    const lines = [begin, "## Repository instruction routes", ""];
+    const lines = [
+      begin,
+      "## Repository instruction routes",
+      "",
+      "- Read the verified current state with `lervo workstream current --context` before continuing repository work.",
+      "- Before completing a terminal turn, create the first bounded checkpoint with `lervo workstream start` or advance the existing snapshot with `lervo workstream update`; perform this agent bookkeeping without asking the user to run it.",
+    ];
     for (const item of routedInstructions.sort((left, right) => left.toPath.localeCompare(right.toPath))) {
       const scope = item.instructionPaths?.length === 0 ? "For all repository work" : `For paths matching ${item.instructionPaths!.map((path) => `\`${path}\``).join(", ")}`;
       lines.push(`- ${scope}, read [${basename(item.toPath, ".md")}](${item.toPath}).`);

@@ -4,7 +4,7 @@
   "hub": {
     "baseUrl": "https://hub.example.com/",
     "bearerTokenFile": "secrets/hub-sync.token",
-    "destinationId": "hub:production",
+    "destinationId": "hub:production:repository-main",
     "hubIdentityHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
   },
   "sync": {

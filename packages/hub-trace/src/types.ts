@@ -1,6 +1,10 @@
 import { type HubProjectCoordinate } from "@lervo/hub-sync";
 import type { KnowledgeGraphNode, KnowledgeGraphRelation } from "@lervo/knowledge-graph";
-import { type EventEnvelope, type EventSyncCursor } from "@lervo/schemas";
+import {
+  type EventEnvelope,
+  type EventSyncCursor,
+  type ManagedContextCoverageReport,
+} from "@lervo/schemas";
 
 export type TraceChainPosition = "continuous" | "buffered";
 
@@ -70,6 +74,7 @@ export interface HubRunTrace {
   project: HubProjectTraceSummary;
   run: HubRunTraceSummary;
   events: HubTracePage<HubRunTraceEvent, HubEventTraceCursor>;
+  contextCoverage: ManagedContextCoverageReport | null;
 }
 
 export interface HubProjectKnowledgeGraph {

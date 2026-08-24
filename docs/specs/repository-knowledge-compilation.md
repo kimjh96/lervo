@@ -1,23 +1,21 @@
 # Repository Knowledge Compilation Specification
 
-Status: `active`  
+Status: `active`
 As of: 2026-08-23
 
 ## 1. Purpose
 
-Lervo compiles bounded repository evidence whether or not `docs/` exists. Its portable Markdown and sidecars remain inspectable without an opaque hosted index.
+Lervo compiles bounded repository evidence whether or not `docs/` exists. Portable Markdown and sidecars remain inspectable without a hosted index.
 
 ## 2. Sources
 
-The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agent definitions, policies, hooks, client or tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs or traces, and unsupported binaries.
+The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 
-Ordinary bytes may enter local structural extraction. Sensitive log bytes never enter publication or an external semantic compiler. Secret candidates are excluded before content is read. Presence proves discovery only, not loading, trust, injection, or use.
+Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Presence proves discovery only, not loading, trust, injection, or use.
 
 ## 3. Source units
 
-Each source has a stable ID and content-bound version. Adapters may emit bounded Markdown sections; JSON or YAML key paths; JavaScript or TypeScript declarations and members; CSS rules, named at-rules, and custom properties; Git `HEAD`; verification results; privacy-valid events; and validated skill contract content.
-
-Parser failure rejects the affected extraction instead of claiming complete fine-grained coverage. The file remains the baseline unit when no specialized adapter applies.
+Sources have stable IDs and content-bound versions. Adapters may emit bounded Markdown sections; JSON or YAML keys; JavaScript or TypeScript declarations and members; CSS rules, named at-rules, and custom properties; Git `HEAD`; verification; privacy-valid events; and validated skill contracts. Parser failure rejects affected extraction rather than claiming fine-grained completeness; otherwise the file is the baseline unit.
 
 ## 4. Policy
 
@@ -31,13 +29,9 @@ publication:
   maxNavigationBytes: 8192
 ```
 
-V1 supports only `en`. Language affects generated prose and navigation titles, not source identity or user bytes. Incompatible titles receive localized neutral labels while exact encoded paths remain visible. Unsupported values fail before planning.
+V1 supports only `en`. Language changes generated prose and titles, not identities or user bytes. Neutral localized labels preserve exact encoded paths. Unsupported values fail before planning.
 
-`.lervo/knowledge/document-layout.yaml` separately declares canonical and legacy decision roots, leaf bounds, and repository semantic routes. Explicit ADR metadata outranks deterministic title terms. No match or an equal strongest match blocks migration; there is no implicit `foundation` fallback.
-
-Initialization writes a product-neutral starter taxonomy. Repositories do not inherit Lervo-specific domains. Reviewed route changes are bound by the migration plan and taxonomy hash.
-
-An ADR may declare a configured route without changing its heading or body:
+`.lervo/knowledge/document-layout.yaml` declares decision roots, leaf bounds, and semantic routes. Explicit ADR metadata outranks title terms. No match or tie blocks migration; there is no implicit `foundation` fallback. Initialization writes a product-neutral taxonomy. Reviewed route changes bind plan and taxonomy hash.
 
 ```yaml
 ---
@@ -48,113 +42,99 @@ lervo:
 ---
 ```
 
-The taxonomy and route must exist in current configuration. Invalid or stale metadata blocks planning.
+The taxonomy and route must exist; invalid or stale metadata blocks planning.
 
 ## 5. Structural compilation
 
-`lervo.structural@1` is deterministic, bounded, read-only, and tool-free. It produces:
+`lervo.structural@1` is deterministic, bounded, read-only, and tool-free. It produces generated indexes and bounded pages; two-hex-sharded bundle, concept, claim, relation, lineage, and bridge sidecars; local inventory, source-unit, and impact projections; and a generation manifest binding paths and hashes. It claims only organization and provenance with `unreviewed` assurance.
 
-- `docs/knowledge/index.md` and indexes for non-empty categories;
-- bounded numbered pages and optional catalogs;
-- two-hex-sharded bundle, concept, claim, relation, lineage, and bridge sidecars under `.lervo/knowledge/`;
-- inventory, source-unit, and impact projections under `.lervo/state/knowledge/`;
-- a generation manifest binding canonical paths and hashes.
-
-It claims organization and provenance only, with `unreviewed` assurance.
+Inventory displays the structural publication-input snapshot, excluding revision metadata, verification, events, and local-only agent surfaces. Query and normalization may use broader snapshots without making publication stale. Only manifest validation, lint, and the current migration plan determine currency.
 
 ## 6. Entrypoints
 
-Initialization does not invent root documents. On first migration, missing README and AGENTS files receive short English human and provider-neutral entrypoints. Existing README, AGENTS, and CLAUDE files remain user-owned until reviewed normalization. A missing or stale CLAUDE bridge is handled by `knowledge instruction bridge --provider claude`. That bridge accepts AGENTS bytes only from a bounded included instruction or a hash recorded by structural generation.
+Initialization invents no root documents. First migration creates short English README and AGENTS files only when missing. Existing README, AGENTS, and CLAUDE remain user-owned until reviewed normalization. `knowledge instruction bridge --provider claude` handles missing or stale CLAUDE and accepts AGENTS only from a bounded included instruction or structural-generation hash. Structural migration never translates existing bytes. Normalization uses human README, provider-neutral AGENTS, and thin CLAUDE bridge profiles while preserving the managed import.
 
-Structural migration never translates or replaces existing entrypoint bytes. Normalization uses the human profile for README, provider-neutral agent profile for AGENTS, and a thin provider-bridge profile for CLAUDE while preserving its managed import.
+An active continuation document is not a permanent entrypoint. Before layout migration, a repository-wide bounded scan scores safely included Markdown using name, title, current objective, next action, blocker, state, and active-language signals. Name and location never establish the role alone. One unambiguous or explicitly selected source enters an exact-approved stage that preserves its bytes in CAS, creates `.lervo/state/workstreams/current.json`, and updates resolvable Markdown references. Only the dedicated root legacy `HANDOFF.md` is deleted with its owned normalization records; an arbitrary source may contain durable knowledge, so its user bytes remain for reviewed document normalization and splitting. Multiple candidates block without merging or deletion. With no source, the working agent creates the first snapshot during its terminal turn. The structured snapshot remains outside structural publication; lasting facts belong in routed Markdown.
 
 ## 7. Bounded publication lifecycle
 
-Every navigation page satisfies configured entry and UTF-8 byte limits. New topics create files rather than append-only sections; empty categories create no path.
+Navigation obeys entry and UTF-8 byte limits. New topics create files; empty categories create no paths. Refresh computes the complete desired set and deletes obsolete output only when prior generation records its current hash. Edited or unrecorded output conflicts. Cleanup removes empty generated parents.
 
-Refresh calculates the complete desired set. It deletes an obsolete output only when a prior structural generation records its current hash. Edited or unrecorded outputs conflict. Successful cleanup removes empty generated parents.
-
-`.lervo/generated/manifests/current.json` records structural ownership. Refresh replaces that validated manifest and deletes older valid ID-named structural manifests. It does not compact semantic manifests or immutable review and evidence records.
+`.lervo/generated/manifests/current.json` records structural ownership. Refresh replaces it and deletes older valid ID-named structural manifests, but not semantic manifests or immutable review and evidence.
 
 ## 8. Semantic compilation
 
-`knowledge compile --provider codex|claude` runs an installed provider in a temporary directory with filesystem, shell, network, external actions, tools, provider rules, and session persistence disabled. The envelope contains untrusted units, exact evidence IDs, and `outputLanguage: en`.
+`knowledge compile --provider codex|claude` runs the installed provider in a temporary directory with filesystem, shell, network, external actions, tools, provider rules, and persistence disabled. The envelope contains untrusted units, exact evidence IDs, and `outputLanguage: en`.
 
-The provider returns schema-valid concepts, claims, and within-response relations citing current source-unit versions. Results are `unreviewed`; stability or provider overlap proves neither truth nor consensus.
+The provider returns schema-valid concepts, claims, and within-response relations citing current versions. Results are `unreviewed`; stability or provider overlap proves neither truth nor consensus.
 
 ### Document content normalization
 
-After structural layout and bridges are current, `migrate knowledge --provider codex|claude` uses the same empty no-capability boundary to return bounded Markdown rewrites, not claims.
+After layout and bridges are current, `migrate knowledge --provider codex|claude` uses the same boundary to return bounded Markdown candidates.
 
-V1 includes ordinary `.md` files outside generated navigation and distinguishes profiles for README, agent instructions, bridges, portable skills and references, decisions, product, architecture, specifications, roadmaps, instructions, and general documents. Output follows `publication.language`; v1 accepts `en`.
+V1 covers ordinary `.md` files outside generated navigation and distinguishes README, agent instruction, bridge, portable skill or reference, decision, product, architecture, specification, roadmap, instruction, and general profiles. Output follows `publication.language`; v1 accepts `en`.
 
-Every input retains an output at its current path. Allowed splits remain in the declared grouped directory: root handoffs use `docs/repository/handoffs/`; ordinary documents use a sibling directory named for the source stem. Every output has one H1 and obeys its byte and line bounds. Provider bridges additionally stay below 2 KiB and 40 lines.
+Every input retains an output at its path. Ordinary splits use a sibling directory named for the source stem. The root README never splits into a root-level `README/` tree because durable detail belongs in the repository's semantic documentation hierarchy. Durable historical continuation documents may use the bounded handoff profile based on content structure regardless of name or location; the selected active source has already entered the workstream stage. Outputs have one H1 and obey byte and line limits; bridges stay below 2 KiB and 40 lines.
 
-Coverage assigns every source section to exactly one output through complete, non-foreign document-local integer indexes. Lervo resolves those indexes to content-bound source-unit version IDs. Validation preserves instruction path-scope frontmatter, managed blocks, provider imports, Agent Skill `name`, fenced examples and links in skills or instructions, and inline coordinates in portable skill material. Root README routes agents to `AGENTS.md`; legacy wiki links become portable Markdown links. Skill descriptions may follow publication language without changing identity. Canonical instruction frontmatter remains exact. Other condensation belongs to exact human review. Skill resource hashes join lifecycle and approval bindings, but scripts and assets are not rewritten.
+Coverage maps every source section to one or more declared outputs using complete, document-local integer indexes resolved to content-bound versions. Validation preserves path-scope frontmatter, lifecycle metadata such as `Status:` and `As of:`, managed blocks, provider imports, Agent Skill `name`, fenced examples and links in skills and instructions, and portable inline coordinates. Outputs end with exactly one newline; newly introduced trailing spaces, tabs, or blank lines are rejected. Exact source lines may retain required trailing whitespace only through protected material. Root README routes agents to `AGENTS.md`; wiki links become portable Markdown. Skill descriptions may be localized without changing identity. Canonical instruction frontmatter stays exact. Further condensation requires exact human review. Skill resource hashes bind lifecycle and approval; scripts and assets are not rewritten.
 
-Candidates and schema-valid shard responses reside in ignored local state. Cache identity binds the complete envelope and compiler build, so changed inputs or instructions invalidate resumable results. Plans bind exact candidate bytes and require per-source approval. Apply never reruns the provider: it writes candidate outputs and sharded lifecycle records through the durable journal, then emits `knowledge.materialization.applied` with `operation=normalize_documents`.
+Candidates and shard responses remain ignored local state. Cache identity binds envelope and compiler build. Plans bind exact candidate bytes and require per-source approval. Apply never reruns the provider: it writes candidates and sharded lifecycle records through the journal, then emits `knowledge.materialization.applied` with `operation=normalize_documents`.
 
-Records bind exact output hashes and a user-region hash excluding managed blocks, so managed route refresh does not stale unchanged prose. Replacement removes older active records for the source. Apply lint tolerates only the expected stale instruction-bridge binding as a transition warning; immediate bridge and structural refresh must restore ordinary validity. Other lint errors roll back. Later user-region, output, or skill-resource mismatches become stale and require new review.
+Records bind output hashes and a user-region hash excluding managed blocks, preventing managed route refresh from staling unchanged prose. Replacement removes older active records. Apply lint permits only the expected stale instruction-bridge transition warning; immediate bridge and structural refresh restore validity. Other lint errors roll back. Later user-region, output, or resource mismatches become stale and require review.
 
 ## 9. Reconciliation and review
 
-Reconciliation compares candidates with the current registry and yields create, register existing, add relation, managed-block patch, conflict, or skip dispositions. Duplicate and contradiction resolutions require policy authorization and an exact resolution hash.
-
-Human review is an immutable local CAS artifact. Events contain bounded identifiers, hashes, counts, policy coordinates, and decision metadata. User-byte patches require separate exact output-hash approval and never enter `accept-all-safe`.
+Reconciliation yields create, register-existing, add-relation, managed-block patch, conflict, or skip. Duplicate or contradiction resolution requires policy authorization and an exact hash. Human review is an immutable local CAS artifact. Events retain bounded IDs, hashes, counts, policy coordinates, and decision metadata. User-byte patches require separate exact output-hash approval and never enter `accept-all-safe`.
 
 ## 10. Durable materialization
 
-Materialization validates the current plan, stages outputs, backs up originals, publishes exact bytes or deletions, runs deterministic lint, records the event, and cleans the transaction. Pre-event failure restores originals; post-event cleanup failure preserves committed outputs and requires recovery.
+Validate plan, stage outputs, back up originals, publish exact bytes and deletions, lint, record the event, and clean the transaction. Pre-event failure restores originals; post-event cleanup failure preserves outputs and requires recovery.
 
 ## 11. Concepts, claims, and relations
 
-Concept sidecars record title, publication language, type, publication path, ownership, lifecycle, source-unit versions, assurance, and freshness. Bundle sidecars also record language. Claims contain source-backed statements and evidence versions. Relations use bounded terms including `depends_on`, `constrains`, `related_to`, `supersedes`, and `contradicts`.
-
-Markdown and sidecars are canonical. Graph and lexical indexes are rebuildable.
+Concept sidecars record title, language, type, path, ownership, lifecycle, source versions, assurance, and freshness. Bundle sidecars record language. Claims cite evidence versions. Relations include `depends_on`, `constrains`, `related_to`, `supersedes`, and `contradicts`. Markdown and sidecars are canonical; graph and lexical indexes are rebuildable.
 
 ## 12. Impact and query
 
-Impact compares stored and current evidence versions and marks dependent subjects `current`, `stale`, or `unknown`. Query results are `recommended`; later evidence is required for selection, loading, injection, reference, or use.
+Impact compares stored and current versions and marks subjects `current`, `stale`, or `unknown`. Query results are `recommended`; later evidence is required for selection, loading, injection, reference, or use.
 
 ## 13. Agent surfaces
 
-Lervo recognizes documented AGENTS hierarchy; Claude memory, rules, skills, commands, agents, and settings; Codex rules, hooks, configuration, and custom agents; Agent Skills; and supported third-party entrypoints.
+Recognized surfaces include AGENTS hierarchy; Claude memory, rules, skills, commands, agents, and settings; Codex rules, hooks, configuration, and custom agents; Agent Skills; and supported third-party entrypoints.
 
-Behavioral instructions, portable skills, and reviewable workflows may be semantic sources. Execution policy, hooks, client or tool configuration, provider subagents, local memory, and unknown `.agents/**` remain inventory only. `.agents/rules/**` is not a standard rules location.
-
-See [ADR-0189](../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md).
+Behavioral instructions, portable skills, and reviewable workflows may be semantic sources. Execution policy, hooks, client and tool configuration, provider subagents, local memory, and unknown `.agents/**` remain inventory-only. Migration may merge only versioned Lervo terminal handlers into project arrays after exact approval. Existing provider semantics are not translated. `.agents/rules/**` is not standard. See [ADR-0189](../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md).
 
 ## 14. Exchange
 
-OKF v0.2 export projects publications and sidecars into a content-addressed bundle. Import preserves unknown metadata and original bundle bytes but maps external verification to local `unreviewed`. A clone or another Lervo installation can lint, query, and re-export without a Hub.
+OKF v0.2 export creates a content-addressed bundle. Import preserves unknown metadata and original bundle bytes but maps external verification to local `unreviewed`. A clone or another installation can lint, query, and re-export without a Hub.
 
 ## 15. Failure meaning
 
 | Failure | Meaning |
 |---|---|
 | source unsafe | Path, symlink, race, or source contract prevents safe reading. |
-| limit exceeded | A file, byte, unit, nesting, response, or navigation bound was exceeded. |
-| plan stale | Source, policy, registry, approval, or target changed after planning. |
-| reconciliation conflict | Ownership or semantic identity cannot be resolved automatically. |
-| approval required | A user-byte or conflict operation lacks exact authorization. |
+| limit exceeded | File, byte, unit, nesting, response, or navigation bound exceeded. |
+| plan stale | Source, policy, registry, approval, or target changed. |
+| reconciliation conflict | Ownership or identity cannot be resolved automatically. |
+| approval required | User-byte or conflict operation lacks exact authorization. |
 | apply failed | Commit failed and pre-event bytes were restored. |
-| recovery required | An interrupted or post-commit transaction requires recovery. |
-| lint failed | Canonical publications, sidecars, manifests, or bridges disagree. |
+| recovery required | Interrupted or post-commit transaction requires recovery. |
+| lint failed | Publications, sidecars, manifests, or bridges disagree. |
 
 ## 16. Acceptance
 
-1. Migration, not initialization, gives an undocumented repository English README and AGENTS entrypoints plus a cited bundle.
-2. Structural routing precedes exact, per-source-approved rewrites from stored candidates.
-3. Coverage honestly includes code, configuration, tests, evidence, log metadata, and unsupported files.
+1. Migration, not initialization, gives an undocumented repository English README and AGENTS entrypoints and a cited bundle.
+2. Structural routing precedes exact per-source-approved rewrites from stored candidates.
+3. Coverage includes code, configuration, tests, evidence, log metadata, and unsupported files.
 4. Large categories shard below both bounds; owned obsolete pages disappear safely.
 5. Malicious text cannot trigger tools, network, writes, or provider customization.
 6. Codex and Claude pass the same no-capability contract.
 7. Semantic changes require reconciliation and human review.
 8. Apply and recovery pass failure injection.
-9. Lint succeeds and immediate replan reports no changed operations.
+9. Lint succeeds and immediate replan has no changed operations.
 10. A clean clone reproduces tracked knowledge without a Hub.
-11. Ambiguous or unclassified ADRs fail closed, and leaves respect configured bounds.
-12. Eligible Markdown, including portable skill prose, enters the language and format lifecycle; immediate normalization replan is current, while changed skill resources become stale.
+11. Ambiguous or unclassified ADRs fail closed and leaves respect bounds.
+12. Eligible Markdown, including portable skills, enters language and format lifecycle; immediate replan is current, while changed resources become stale.
 
 ## References
 
@@ -165,3 +145,4 @@ OKF v0.2 export projects publications and sidecars into a content-addressed bund
 - [Language-aware bounded publication](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md)
 - [Repository-scoped decision taxonomy](../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md)
 - [Reviewed document content normalization](../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md)
+- [Fail-closed provider terminal integration](../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md)

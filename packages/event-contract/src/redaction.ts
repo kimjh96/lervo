@@ -10,6 +10,7 @@ import {
   type RunCompletedEventPayload,
   type SchemaName,
   type VerificationCompletedEventPayload,
+  type WorkstreamSnapshotRecordedEventPayload,
 } from "@lervo/schemas";
 
 export type JsonPrimitive = boolean | number | string | null;
@@ -54,7 +55,36 @@ export const eventPayloadAllowlists = {
     "envelopeId",
     "documentIds",
     "targetTurnId",
-    "contextGeneration"
+    "contextGeneration",
+    "adapterId",
+    "providerSessionId",
+    "documents"
+  ],
+  "adapter.result.captured": [
+    "adapterId",
+    "providerSessionId",
+    "targetTurnId",
+    "providerTurnId",
+    "resultDigest",
+    "byteCount",
+    "mediaType",
+    "referenceTelemetry"
+  ],
+  "context.referenced": [
+    "evidenceReceiptId",
+    "injectedEvidenceReceiptId",
+    "adapterReceiptId",
+    "sourceEventId",
+    "documentId",
+    "contentHash",
+    "scope",
+    "provider",
+    "providerSessionId",
+    "targetTurnId",
+    "providerTurnId",
+    "contextGeneration",
+    "referenceKind",
+    "citation"
   ],
   "context.invalidated": ["documentIds", "reason", "contextGeneration"],
   "context.published": [
@@ -165,6 +195,7 @@ export const eventPayloadAllowlists = {
     "candidateArtifactHash",
     "reconciliationPlanId",
     "sourceSnapshotId",
+    "repositoryRevision",
     "registryDigest",
     "reviewId",
     "reviewArtifactId",
@@ -228,6 +259,84 @@ export const eventPayloadAllowlists = {
     "validationReportId",
     "validationReportHash",
     "appliedAt"
+  ],
+  "terminal.integration.applied": [
+    "operation",
+    "planId",
+    "contractId",
+    "providers",
+    "targetPathDigests",
+    "targetAfterHashes",
+    "approvalHash",
+    "appliedAt"
+  ],
+  "terminal.context.prepared": [
+    "observationId",
+    "executionMode",
+    "providerSessionDigest",
+    "providerTurnDigest",
+    "sourceSnapshotId",
+    "repositoryRevision",
+    "queryDigest",
+    "contextHash",
+    "recommendationCount",
+    "loadedDocuments",
+    "workstreamId",
+    "workstreamRevision",
+    "workstreamSnapshotHash",
+    "workstreamScope",
+    "workstreamDeliveredByteCount"
+  ],
+  "terminal.turn.declared": [
+    "declarationId",
+    "contextEventId",
+    "repositoryRevision",
+    "taskMode",
+    "canonicalizationDisposition",
+    "knowledgeDisposition",
+    "deliberationDisposition",
+    "deliberationId",
+    "declaredAt"
+  ],
+  "terminal.reference.observed": [
+    "observationId",
+    "contextEventId",
+    "conceptId",
+    "path",
+    "contentHash",
+    "scope",
+    "referenceKind",
+    "providerSessionDigest",
+    "providerTurnDigest"
+  ],
+  "terminal.turn.observed": [
+    "observationId",
+    "contextEventId",
+    "referenceEventIds",
+    "referenceCount",
+    "referenceTelemetry",
+    "lifecycleStatus",
+    "completionResult",
+    "repositoryRevisionBefore",
+    "repositoryRevisionAfter",
+    "repositoryChanged",
+    "finalWorkstreamId",
+    "finalWorkstreamRevision",
+    "finalWorkstreamSnapshotHash",
+    "providerSessionDigest",
+    "providerTurnDigest"
+  ],
+  "workstream.snapshot.recorded": [
+    "workstreamId",
+    "revision",
+    "status",
+    "changeKind",
+    "snapshotArtifactId",
+    "snapshotContentHash",
+    "previousSnapshotContentHash",
+    "sourceArtifactId",
+    "sourceContentHash",
+    "recordedAt"
   ],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [
@@ -439,10 +548,14 @@ export function sanitizeEventPayload(
     type === "run.completed" && !runCompletedCoordinateMatches(
       sanitized as unknown as RunCompletedEventPayload,
     );
+  const invalidWorkstreamCoordinate = !invalidSchema &&
+    type === "workstream.snapshot.recorded" && !workstreamCoordinateMatches(
+      sanitized as unknown as WorkstreamSnapshotRecordedEventPayload,
+    );
   if (
     invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate ||
     invalidKnowledgeCoordinate || invalidVerificationCoordinate ||
-    invalidRunCompletedCoordinate
+    invalidRunCompletedCoordinate || invalidWorkstreamCoordinate
   ) {
     throw new RedactionError(
       "invalid_payload",
@@ -456,6 +569,9 @@ export function sanitizeEventPayload(
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "context.recommended": "contextRecommendationEventPayload",
+  "context.injected": "managedContextInjectedEventPayload",
+  "adapter.result.captured": "adapterResultCapturedEventPayload",
+  "context.referenced": "managedContextReferencedEventPayload",
   "run.completed": "runCompletedEventPayload",
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
@@ -468,6 +584,11 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "verification.started": "verificationStartedEventPayload",
   "verification.completed": "verificationCompletedEventPayload",
   "project.identity.migrated": "projectIdentityMigratedEventPayload",
+  "terminal.context.prepared": "terminalContextPreparedEventPayload",
+  "terminal.turn.declared": "terminalTurnDeclaredEventPayload",
+  "terminal.reference.observed": "terminalReferenceObservedEventPayload",
+  "terminal.turn.observed": "terminalTurnObservedEventPayload",
+  "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
 };
 
 function deliberationArtifactCoordinateMatches(
@@ -481,6 +602,16 @@ function knowledgeCandidateCoordinateMatches(
 ): boolean {
   return payload.candidateArtifactId ===
     `art_${payload.candidateContentHash.slice("sha256:".length)}`;
+}
+
+function workstreamCoordinateMatches(payload: WorkstreamSnapshotRecordedEventPayload): boolean {
+  return payload.snapshotArtifactId === `art_${payload.snapshotContentHash.slice("sha256:".length)}` &&
+    (payload.sourceArtifactId === null
+      ? payload.sourceContentHash === null
+      : payload.sourceContentHash !== null && payload.sourceArtifactId === `art_${payload.sourceContentHash.slice("sha256:".length)}`) &&
+    (["legacy_handoff_migration", "legacy_continuation_migration"].includes(payload.changeKind)
+      ? payload.sourceArtifactId !== null && payload.sourceContentHash !== null
+      : payload.sourceArtifactId === null && payload.sourceContentHash === null);
 }
 
 function reviewCoordinateMatches(payload: KnowledgeCandidateReviewedEventPayload): boolean {

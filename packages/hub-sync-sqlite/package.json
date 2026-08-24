@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/context-coverage": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/hub-command": "workspace:*",
     "@lervo/hub-sync": "workspace:*",

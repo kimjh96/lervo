@@ -3,6 +3,9 @@ import {
   type OutboundEventBatch,
   type ProjectRegistrationRequest,
   type ProjectRegistrationResponse,
+  type WorkstreamReplicationPublishRequest,
+  type WorkstreamReplicationPublishResponse,
+  type WorkstreamReplicationReadResponse,
 } from "@lervo/schemas";
 
 export interface HubProjectCoordinate {
@@ -27,6 +30,21 @@ export interface HubSyncCommandStore {
     batch: OutboundEventBatch;
     acknowledgedAt: string;
   }): Promise<EventSyncAcknowledgement>;
+
+}
+
+export interface HubWorkstreamReplicationStore {
+  publishWorkstream(input: {
+    destinationId: string;
+    request: WorkstreamReplicationPublishRequest;
+    publishedAt: string;
+  }): Promise<WorkstreamReplicationPublishResponse>;
+
+  readWorkstream(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+  }): Promise<WorkstreamReplicationReadResponse>;
 }
 
 /** Operational checks are deliberately separate from the request path. */

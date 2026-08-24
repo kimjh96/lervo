@@ -8,6 +8,7 @@ import {
   timestampSchema,
 } from "./common.js";
 import { eventEnvelopeSchema } from "./event.js";
+import { managedContextCoverageReportSchema } from "./managed-context-coverage-report.js";
 
 export const traceReportSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -40,6 +41,9 @@ export const traceReportSchema = {
       uniqueItems: true,
       items: sessionIdSchema,
     },
+    contextCoverage: {
+      anyOf: [{ $ref: managedContextCoverageReportSchema.$id }, { type: "null" }],
+    },
     events: {
       type: "array",
       minItems: 1,
@@ -62,5 +66,5 @@ export const traceReportSchema = {
 
 export type TraceReport = FromSchema<
   typeof traceReportSchema,
-  { references: [typeof eventEnvelopeSchema] }
+  { references: [typeof eventEnvelopeSchema, typeof managedContextCoverageReportSchema] }
 >;

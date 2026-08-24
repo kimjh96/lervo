@@ -22,6 +22,7 @@ import {
   type HubSyncIntegrityReport,
   type HubSyncIntegrityStore,
   type HubSyncLifecycle,
+  type HubWorkstreamReplicationStore,
   type HubRemoteCommandDeliveryState,
   type HubRemoteCommandEnqueueResult,
   type HubRemoteCommandQueueInspectionStore,
@@ -53,6 +54,9 @@ import {
   type SignedPolicyApproval,
   type SignedPolicyApprovalRevocation,
   type SignedPolicySnapshot,
+  type WorkstreamReplicationPublishRequest,
+  type WorkstreamReplicationPublishResponse,
+  type WorkstreamReplicationReadResponse,
 } from "@lervo/schemas";
 
 import { ensureDatabasePath } from "./database-lifecycle.js";
@@ -72,11 +76,13 @@ import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
 import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
+import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
 
 export class HubSyncSQLiteStore implements
   HubSyncCommandStore,
   HubSyncIntegrityStore,
   HubSyncLifecycle,
+  HubWorkstreamReplicationStore,
   HubRemoteCommandQueueStore,
   HubRemoteCommandQueueInspectionStore,
   HubTraceSource,
@@ -100,6 +106,7 @@ export class HubSyncSQLiteStore implements
   private readonly knowledgeGraphIndex: KnowledgeGraphIndexSQLiteWriter;
   private readonly knowledgeGraphRepository: HubKnowledgeGraphSQLiteRepository;
   private readonly transactionRunner: SQLiteTransactionRunner;
+  private readonly workstreamRepository: HubWorkstreamSQLiteRepository;
 
   private constructor(path: string, private readonly database: DatabaseSync) {
     this.path = path;
@@ -117,6 +124,7 @@ export class HubSyncSQLiteStore implements
     this.knowledgeGraphIndex = new KnowledgeGraphIndexSQLiteWriter(database);
     this.knowledgeGraphRepository = new HubKnowledgeGraphSQLiteRepository(database);
     this.transactionRunner = new SQLiteTransactionRunner(database);
+    this.workstreamRepository = new HubWorkstreamSQLiteRepository(database);
   }
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
@@ -158,6 +166,24 @@ export class HubSyncSQLiteStore implements
   }): Promise<EventSyncAcknowledgement> {
     this.assertOpen();
     return this.transactionRunner.write(() => this.eventInboxRepository.accept(input));
+  }
+
+  async publishWorkstream(input: {
+    destinationId: string;
+    request: WorkstreamReplicationPublishRequest;
+    publishedAt: string;
+  }): Promise<WorkstreamReplicationPublishResponse> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.workstreamRepository.publish(input));
+  }
+
+  async readWorkstream(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+  }): Promise<WorkstreamReplicationReadResponse> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.workstreamRepository.read(input));
   }
 
   async enqueueRemoteCommand(input: {
@@ -427,6 +453,11 @@ export class HubSyncSQLiteStore implements
     auditCommandArtifactLifecycle(this.database);
     auditCommandArtifactCleanupRuntime(this.database);
     this.policyRepository.auditAll();
+    try {
+      this.workstreamRepository.auditAll();
+    } catch (error) {
+      throw new HubSyncStoreError("integrity_failed", "The Hub workstream revision audit failed.", { cause: error });
+    }
     this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
     return { valid: true, projectCount: coordinates.length, eventCount };
   }
@@ -459,6 +490,8 @@ export class HubSyncSQLiteStore implements
       "hub_policy_approvals_no_delete",
       "hub_policy_revocations_no_update",
       "hub_policy_revocations_no_delete",
+      "hub_workstream_revisions_identity_immutable",
+      "hub_workstream_revisions_no_delete",
     ]);
     for (const row of this.database.prepare(
       "SELECT name FROM sqlite_schema WHERE type = 'trigger'",

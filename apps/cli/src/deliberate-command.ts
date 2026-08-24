@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -14,6 +15,7 @@ import {
 export const deliberateUsage =
   "  lervo deliberate --proposer <codex|claude> --reviewer <codex|claude> --verification <suite-id> [--verification <suite-id> ...] [--root <path>] [--json] <topic>\n" +
   "  lervo deliberate --policy <deliberation-policy-id> [--root <path>] [--json] <topic>\n" +
+  "  lervo deliberate --auto --caller <codex|claude> [--root <path>] [--json] <topic>\n" +
   "  lervo deliberate --resume <deliberation-id> [--root <path>] [--json]\n" +
   "  lervo deliberate status <deliberation-id> [--root <path>] [--json]";
 
@@ -66,6 +68,20 @@ function errorCode(error: unknown): string {
     : "deliberation_failed";
 }
 
+async function automaticVerificationSuite(repositoryRoot: string): Promise<string> {
+  const entries = await readdir(resolve(repositoryRoot, ".lervo/verifications"), { withFileTypes: true });
+  const suiteIds = entries
+    .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
+    .map((entry) => entry.name.slice(0, -".yaml".length))
+    .filter((suiteId) => /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(suiteId));
+  if (suiteIds.includes("repository.default")) return "repository.default";
+  const nonPilot = suiteIds.filter((suiteId) => !suiteId.startsWith("lervo.pilot."));
+  if (nonPilot.length === 1) return nonPilot[0]!;
+  throw Object.assign(new Error("Automatic deliberation requires a repository.default verification suite or exactly one non-pilot suite."), {
+    code: "deliberation_verification_ambiguous",
+  });
+}
+
 function reason(outcome: ManagedDeliberationOutcome): string {
   if (outcome.outcome.status !== "no_consensus") return "";
   return outcome.outcome.noConsensusReason === "blocking_objections_unresolved"
@@ -115,6 +131,8 @@ export async function runDeliberateCommand(
         reviewer: { type: "string" },
         verification: { type: "string", multiple: true },
         policy: { type: "string" },
+        auto: { type: "boolean" },
+        caller: { type: "string" },
         resume: { type: "string" },
         root: { type: "string" },
         json: { type: "boolean" },
@@ -133,6 +151,8 @@ export async function runDeliberateCommand(
   const reviewer = parsed.values.reviewer;
   const verificationSuiteIds = parsed.values.verification ?? [];
   const policyId = parsed.values.policy;
+  const automaticMode = parsed.values.auto === true;
+  const caller = parsed.values.caller;
   const resumeDeliberationId = parsed.values.resume;
   const topic = parsed.positionals.join(" ").trim();
   const storedPolicyMode = policyId !== undefined;
@@ -142,11 +162,12 @@ export async function runDeliberateCommand(
     (reviewer !== "codex" && reviewer !== "claude") ||
     proposer === reviewer || verificationSuiteIds.length === 0;
   const invalidMode = resumeMode
-    ? topic.length > 0 || storedPolicyMode || proposer !== undefined || reviewer !== undefined ||
-      verificationSuiteIds.length > 0
-    : topic.length === 0 || (storedPolicyMode
-      ? proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
-      : inlineMode);
+    ? topic.length > 0 || storedPolicyMode || automaticMode || caller !== undefined || proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
+    : topic.length === 0 || (automaticMode
+      ? (caller !== "codex" && caller !== "claude") || storedPolicyMode || proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
+      : storedPolicyMode
+        ? caller !== undefined || proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
+        : caller !== undefined || inlineMode);
   if (invalidMode) {
     io.stderr(
       `Provide one resume ID, a stored policy with a topic, or distinct proposer and reviewer providers with a verification suite and topic.\n${deliberateUsage}\n`,
@@ -157,6 +178,14 @@ export async function runDeliberateCommand(
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     const outcome = await services.executeManagedDeliberation(resumeMode
       ? { repositoryRoot, resumeDeliberationId }
+      : automaticMode
+        ? {
+            repositoryRoot,
+            proposerProvider: caller as RunProvider,
+            reviewerProvider: (caller === "codex" ? "claude" : "codex") as RunProvider,
+            verificationSuiteIds: [await automaticVerificationSuite(repositoryRoot)],
+            topic,
+          }
       : storedPolicyMode
         ? { repositoryRoot, policyId, topic }
         : {

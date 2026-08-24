@@ -37,6 +37,8 @@ export * from "./semantic-materialization.js";
 export * from "./source-lineage.js";
 export * from "./skill-contract-source-units.js";
 export * from "./store-reader.js";
+export * from "./terminal-integration.js";
 export * from "./types.js";
 export * from "./user-patch.js";
 export * from "./verification-source.js";
+export * from "./workstream.js";

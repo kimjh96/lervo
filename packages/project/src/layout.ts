@@ -42,6 +42,7 @@ export const lervoRelativePaths = {
   environmentTargets: ".lervo/environment-targets",
   environmentAdmissionPolicy: ".lervo/environment-admission.yaml",
   environmentObservations: ".lervo/state/environment",
+  workstreams: ".lervo/state/workstreams",
 } as const;
 
 export const previousBrandRelativePaths = {
@@ -91,6 +92,7 @@ export interface LervoProjectPaths {
   environmentTargets: string;
   environmentAdmissionPolicy: string;
   environmentObservations: string;
+  workstreams: string;
 }
 
 export function resolveProjectPaths(root: string): LervoProjectPaths {
@@ -138,5 +140,6 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     environmentTargets: resolve(repositoryRoot, lervoRelativePaths.environmentTargets),
     environmentAdmissionPolicy: resolve(repositoryRoot, lervoRelativePaths.environmentAdmissionPolicy),
     environmentObservations: resolve(repositoryRoot, lervoRelativePaths.environmentObservations),
+    workstreams: resolve(repositoryRoot, lervoRelativePaths.workstreams),
   };
 }

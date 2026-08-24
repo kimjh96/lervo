@@ -173,6 +173,108 @@ describe("Hub trace SQLite query source", () => {
     await store.close();
   });
 
+  it("projects the same managed context coverage from complete Hub event history", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_hub_coverage_01");
+    const contentHash = `sha256:${"a".repeat(64)}`;
+    const resultHash = `sha256:${"b".repeat(64)}`;
+    const provider = { kind: "provider", provider: "codex" } as const;
+    const events = eventChain(project.projectId, 6, (seq) => {
+      if (seq === 1) return {
+        type: "adapter.started",
+        actor: provider,
+        payload: {
+          adapterId: "lervo/codex",
+          adapterVersion: "1",
+          providerSessionId: "provider-session-1",
+          executionMode: "read_only",
+          capabilities: {},
+        },
+      };
+      if (seq === 2) return {
+        type: "context.selected",
+        payload: {
+          documentId: "doc_context_00000001",
+          reasonCode: "role_required",
+          ruleId: "developer.instructions",
+          required: true,
+          scope: { kind: "full" },
+        },
+      };
+      if (seq === 3) return {
+        type: "document.loaded",
+        payload: {
+          evidenceReceiptId: "ctx_loaded_00000001",
+          documentId: "doc_context_00000001",
+          contentHash,
+          byteCount: 10,
+          scope: { kind: "full" },
+          sourceRevision: "working-tree:1",
+        },
+      };
+      if (seq === 4) return {
+        type: "context.injected",
+        actor: provider,
+        payload: {
+          receiptId: "ctx_adapter_00000001",
+          evidenceReceiptIds: ["ctx_injected_00000001"],
+          envelopeId: "envelope-1",
+          documentIds: ["doc_context_00000001"],
+          targetTurnId: "target-turn-1",
+          contextGeneration: 0,
+          adapterId: "lervo/codex",
+          providerSessionId: "provider-session-1",
+          documents: [{
+            evidenceReceiptId: "ctx_injected_00000001",
+            documentId: "doc_context_00000001",
+            contentHash,
+            scope: { kind: "full" },
+          }],
+        },
+      };
+      if (seq === 5) return {
+        type: "adapter.result.captured",
+        actor: provider,
+        payload: {
+          adapterId: "lervo/codex",
+          providerSessionId: "provider-session-1",
+          targetTurnId: "target-turn-1",
+          providerTurnId: "provider-turn-1",
+          resultDigest: resultHash,
+          byteCount: 10,
+          mediaType: "text/markdown; charset=utf-8",
+          referenceTelemetry: "supported",
+        },
+      };
+      return {
+        type: "run.completed",
+        payload: {
+          resultDigest: resultHash,
+          artifactIds: [`art_${"b".repeat(64)}`],
+          verificationStatus: "not_run",
+        },
+      };
+    });
+    await registerStore(store, project);
+    await acceptEvents(store, project, events);
+    const trace = await new HubTraceReader(store).getRun({
+      destinationId,
+      projectId: project.projectId,
+      runId: events[0]!.runId,
+      limit: 2,
+    });
+    expect(trace.events.items).toHaveLength(2);
+    expect(trace.contextCoverage).toMatchObject({
+      executionMode: "managed",
+      provider: "codex",
+      coverage: {
+        delivery: { numerator: 1, denominator: 1, value: 1 },
+        explicitReference: { numerator: 0, denominator: 1, value: 0 },
+      },
+    });
+    await store.close();
+  });
+
   it("rebuilds the disposable graph index from append-only events", async () => {
     const path = await databasePath();
     const project = manifest("prj_hub_graph_rebuild_01");

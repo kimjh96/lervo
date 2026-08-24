@@ -420,6 +420,7 @@ describe("Codex managed adapter", () => {
     await instance.startTurn(session, data.turnRequest, () => undefined);
 
     const injection = client.calls.find((call) => call.method === "injectItems");
+    expect(JSON.stringify(injection?.value)).toContain("lervo-e4:");
     const serialized = JSON.stringify(injection?.value);
     expect(serialized).toContain(data.agents.trim());
     expect(serialized).toContain(data.writing.trim());

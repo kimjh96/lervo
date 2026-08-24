@@ -119,13 +119,14 @@ export class ManagedContextState {
     this.lastEventAt = Date.parse(occurredAt);
   }
 
-  failTelemetry(): never {
+  failTelemetry(cause?: unknown): never {
     this.phaseValue = "telemetry_failed";
     this.generationValue += 1;
     this.activePermit = undefined;
     throw new ManagedContextError(
       "telemetry_recording_failed",
       "The mutation capability was closed because required telemetry recording failed.",
+      { cause: cause instanceof Error ? cause : undefined },
     );
   }
 

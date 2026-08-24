@@ -28,6 +28,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
   private session: AdapterSession | undefined;
   private turnId: string | undefined;
   private turn: import("@lervo/schemas").AdapterTurn | undefined;
+  private envelope: AdapterContextEnvelope | undefined;
   private writeBridge: ProviderManagedWriteBridge | undefined;
   private releaseTurn!: () => void;
   private readonly turnStarted = new Promise<void>((resolve) => {
@@ -50,6 +51,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
       hangOnStop?: boolean;
       invalidStopCoordinates?: boolean;
       failResult?: boolean;
+      resultContent?: (envelope: AdapterContextEnvelope) => string;
       managedWrite?: {
         path: string;
         targetDigest: string;
@@ -111,6 +113,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
     envelope: AdapterContextEnvelope,
   ): Promise<AdapterContextReceipt> {
     this.calls.push("injectContext");
+    this.envelope = structuredClone(envelope);
     return {
       kind: "context_receipt",
       schemaVersion: 1,
@@ -323,7 +326,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
     return createAdapterTurnResult({
       session,
       turn,
-      content: "fixture provider result",
+      content: this.options.resultContent?.(this.envelope!) ?? "fixture provider result",
       producedAt: "2026-08-18T01:10:00Z",
     });
   }

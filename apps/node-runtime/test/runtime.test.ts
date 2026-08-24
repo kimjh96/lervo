@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { createHash, generateKeyPairSync } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { resolve } from "node:path";
 
@@ -9,6 +9,8 @@ import {
   ReloadableBearerAuthenticator,
   createHubServer,
 } from "@lervo/hub";
+import { FileSystemCas } from "@lervo/cas";
+import { canonicalJson } from "@lervo/event-contract";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import { Ed25519PolicySigner } from "@lervo/policy";
 import { createPolicySnapshot } from "@lervo/policy-contract";
@@ -19,18 +21,21 @@ import {
   createRemoteCommandDeliveryConfirmation,
   createRemoteCommandLease,
 } from "@lervo/remote-command-contract";
-import { type RemoteCommandDeliveryAcknowledgement } from "@lervo/schemas";
+import { type RemoteCommandDeliveryAcknowledgement, type WorkstreamSnapshot } from "@lervo/schemas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import {
   AuthenticatedHubHttpTransport,
+  runOutboundSyncCycle,
+  runWorkstreamReplicationCycle,
   type SyncHttpTransportOptions,
 } from "@lervo/sync";
-import { calculateProjectIdentityHash } from "@lervo/sync-contract";
+import { calculateProjectIdentityHash, createProjectRegistrationRequest } from "@lervo/sync-contract";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   loadNodeRuntimeConfig,
   openNodeRuntime,
+  NodeWorkstreamReplicationLocalPort,
   parseNodeRuntimeConfig,
   runNodeRuntimeCli,
   type NodeRuntimeDeployment,
@@ -51,6 +56,7 @@ const deployments: NodeRuntimeDeployment[] = [];
 const servers: Server[] = [];
 const hubStores: HubSyncSQLiteStore[] = [];
 const rotatedNodeRuntimeToken = "node-runtime-token-bbbbbbbbbbbbbbbbbbbbbbbbbb";
+const secondaryNodeRuntimeDestinationId = "hub:node-runtime-test:secondary";
 
 afterEach(async () => {
   await Promise.all(deployments.splice(0).map((deployment) => deployment.close()));
@@ -75,8 +81,11 @@ async function startHub(path: string, port: number): Promise<HubSyncSQLiteStore>
   const authenticator = new ConfiguredBearerAuthenticator([{
     token: nodeRuntimeToken,
     principalId: "node:runtime-test",
-    permissions: ["sync.write"],
-    projects: [{ destinationId: nodeRuntimeDestinationId, projectId: nodeRuntimeProjectId }],
+    permissions: ["sync.write", "workstream.read", "workstream.write"],
+    projects: [
+      { destinationId: nodeRuntimeDestinationId, projectId: nodeRuntimeProjectId },
+      { destinationId: secondaryNodeRuntimeDestinationId, projectId: nodeRuntimeProjectId },
+    ],
   }]);
   const server = createHubServer({
     trace: { authenticator, source: store },
@@ -91,6 +100,143 @@ async function startHub(path: string, port: number): Promise<HubSyncSQLiteStore>
 }
 
 describe("installed Node sync runtime", () => {
+  it("automatically publishes a workstream and imports it on another authorized repository node", async () => {
+    const hubRoot = await temporaryRoot();
+    const port = await availablePort();
+    const firstRoot = await temporaryRoot();
+    const secondRoot = await temporaryRoot();
+    const firstFixture = await nodeRuntimeFixture(firstRoot, port);
+    const secondFixture = await nodeRuntimeFixture(secondRoot, port);
+    const secondConfig = structuredClone(secondFixture.value) as Record<string, unknown> & {
+      hub: { destinationId: string };
+    };
+    secondConfig.hub.destinationId = secondaryNodeRuntimeDestinationId;
+    await ownerFile(secondFixture.configPath, JSON.stringify(secondConfig));
+    const snapshot: WorkstreamSnapshot = {
+      schemaVersion: 1,
+      workstreamId: "wks_1234567890abcdef12345678",
+      revision: 1,
+      status: "active",
+      title: "Hub continuation",
+      objective: "Resume the exact active task on another authorized repository node.",
+      nextActions: ["Continue the verified implementation."],
+      blockers: [],
+      notes: ["The Hub transports bounded continuation state, not user authority."],
+      references: [],
+      pendingDecisions: [],
+      pendingApprovals: [],
+      origin: { kind: "created", sourceArtifactId: null, sourceContentHash: null, sourcePathDigest: null },
+      updatedAt: "2026-08-24T00:00:00.000Z",
+    };
+    const content = `${canonicalJson(snapshot)}\n`;
+    const snapshotContentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+    const workstreamPath = resolve(firstFixture.repositoryRoot, ".lervo/state/workstreams/current.json");
+    await mkdir(resolve(workstreamPath, ".."), { recursive: true });
+    await writeFile(workstreamPath, content);
+    const artifacts = await FileSystemCas.open(resolve(firstFixture.repositoryRoot, ".lervo/state/cas"));
+    await artifacts.put(content);
+    const events = await SQLiteEventStore.open({
+      path: firstFixture.databasePath,
+      projectId: nodeRuntimeProjectId,
+    });
+    events.append({
+      eventId: "evt_node_workstream_seed_01",
+      projectId: nodeRuntimeProjectId,
+      runId: "run_node_workstream_seed_01",
+      sessionId: "ses_node_workstream_seed_01",
+      type: "workstream.snapshot.recorded",
+      occurredAt: "2026-08-24T00:00:00.000Z",
+      actor: { kind: "agent", provider: "codex" },
+      schemaVersion: 1,
+      policyVersion: snapshotContentHash,
+      payload: {
+        workstreamId: snapshot.workstreamId,
+        revision: snapshot.revision,
+        status: snapshot.status,
+        changeKind: "agent_start",
+        snapshotArtifactId: `art_${snapshotContentHash.slice("sha256:".length)}`,
+        snapshotContentHash,
+        previousSnapshotContentHash: null,
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        recordedAt: "2026-08-24T00:00:00.000Z",
+      },
+    });
+    events.close();
+
+    const hub = await startHub(`${hubRoot}/hub.sqlite`, port);
+    const runOneCycle = async (fixture: typeof firstFixture, destination: string) => {
+      const project = await loadProjectManifest(fixture.repositoryRoot);
+      const target = { projectId: project.projectId, projectIdentityHash: calculateProjectIdentityHash(project) };
+      const transport = localHttpTransport({
+        baseUrl: `https://127.0.0.1:${port}/`,
+        bearerToken: nodeRuntimeToken,
+        expectedHubIdentityHash: nodeRuntimeHubIdentityHash,
+        destinationId: destination,
+        target,
+      });
+      const registration = createProjectRegistrationRequest({
+        manifest: project,
+        destinationId: destination,
+        requestedAt: "2026-08-24T00:00:00.000Z",
+      });
+      await transport.registerProject(registration);
+      const localEvents = await SQLiteEventStore.open({ path: fixture.databasePath, projectId: project.projectId });
+      const localArtifacts = await FileSystemCas.open(resolve(fixture.repositoryRoot, ".lervo/state/cas"));
+      const local = new NodeWorkstreamReplicationLocalPort(fixture.repositoryRoot, project.projectId, localEvents, localArtifacts);
+      try {
+        await runOutboundSyncCycle({
+          store: localEvents,
+          transport,
+          manifest: project,
+          destinationId: destination,
+          expectedPeerIdentityHash: nodeRuntimeHubIdentityHash,
+          workerId: "node:workstream-integration",
+        });
+        return await runWorkstreamReplicationCycle({
+          local,
+          transport,
+          registration,
+          destinationId: destination,
+          expectedPeerIdentityHash: nodeRuntimeHubIdentityHash,
+        });
+      } finally {
+        localEvents.close();
+      }
+    };
+    await expect(runOneCycle(firstFixture, nodeRuntimeDestinationId)).resolves.toMatchObject({ status: "published", publishedCount: 1 });
+    await expect(hub.readWorkstream({
+      destinationId: nodeRuntimeDestinationId,
+      projectId: nodeRuntimeProjectId,
+      repositoryIdentityHash: calculateProjectIdentityHash(await loadProjectManifest(firstFixture.repositoryRoot)),
+    })).resolves.toMatchObject({ status: "current", snapshot });
+
+    let secondNode!: NodeRuntimeDeployment;
+    secondNode = await openNodeRuntime(await loadNodeRuntimeConfig(secondFixture.configPath), {
+      createTransport: localHttpTransport,
+      onCycle(result) {
+        if (result.status === "idle" || result.status === "synchronized") {
+          queueMicrotask(() => { void secondNode.close(); });
+        }
+      },
+    });
+    deployments.push(secondNode);
+    await secondNode.start();
+    await expect(secondNode.closed).resolves.toMatchObject({ status: "stopped" });
+    await expect(readFile(resolve(secondFixture.repositoryRoot, ".lervo/state/workstreams/current.json"), "utf8"))
+      .resolves.toBe(content);
+    const importedEvents = await SQLiteEventStore.open({
+      path: secondFixture.databasePath,
+      projectId: nodeRuntimeProjectId,
+    });
+    expect(importedEvents.list({ afterSeq: 0, limit: 100 }).at(-1)?.payload).toMatchObject({
+      workstreamId: snapshot.workstreamId,
+      snapshotContentHash,
+      changeKind: "hub_replication_import",
+    });
+    importedEvents.close();
+  });
+
   it("reloads the external command and policy trust snapshot as one runtime operation", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());
@@ -166,7 +312,7 @@ describe("installed Node sync runtime", () => {
     const credential = (token: string) => ({
       token,
       principalId: "node:runtime-test",
-      permissions: ["sync.write" as const],
+      permissions: ["sync.write" as const, "workstream.read" as const, "workstream.write" as const],
       projects: [{ destinationId: nodeRuntimeDestinationId, projectId: nodeRuntimeProjectId }],
     });
     const authenticator = new ReloadableBearerAuthenticator([credential(nodeRuntimeToken)]);

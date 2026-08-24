@@ -104,6 +104,7 @@ describe("Hub trace HTTP API", () => {
         continuousEventCount: 0,
         bufferedEventCount: 1,
       },
+      contextCoverage: null,
       events: {
         items: [{
           chainPosition: "buffered",

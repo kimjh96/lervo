@@ -86,8 +86,8 @@ export class ManagedContextRun {
   private append(specs: Parameters<ManagedTelemetryRecorder["append"]>[0]) {
     try {
       return this.telemetry.append(specs);
-    } catch {
-      return this.state.failTelemetry();
+    } catch (error) {
+      return this.state.failTelemetry(error);
     }
   }
 

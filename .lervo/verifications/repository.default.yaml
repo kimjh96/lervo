@@ -1,0 +1,12 @@
+schemaVersion: 1
+suiteId: repository.default
+stopOnFailure: true
+commands:
+  - commandId: repository-typecheck
+    executable: pnpm
+    arguments:
+      - typecheck
+    cwd: .
+    timeoutMs: 900000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []

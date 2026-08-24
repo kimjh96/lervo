@@ -1,11 +1,13 @@
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { SQLiteEventStore, type EventDraft } from "@lervo/event-store-sqlite";
+import { canonicalJson } from "@lervo/event-contract";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
-import { defaultProjectDataPolicy, type ProjectManifest } from "@lervo/schemas";
+import { defaultProjectDataPolicy, type ProjectManifest, type WorkstreamSnapshot } from "@lervo/schemas";
 import {
   AuthenticatedHubHttpTransport,
   runOutboundSyncCycle,
@@ -81,7 +83,7 @@ async function start(store: HubSyncSQLiteStore, project: ProjectManifest): Promi
   const authenticator = new ConfiguredBearerAuthenticator([{
     token: syncToken,
     principalId: "node:sync-http",
-    permissions: ["sync.write", "trace.read"],
+    permissions: ["sync.write", "trace.read", "workstream.read", "workstream.write"],
     projects: [{ destinationId, projectId: project.projectId }],
   }, {
     token: traceOnlyToken,
@@ -108,6 +110,63 @@ async function start(store: HubSyncSQLiteStore, project: ProjectManifest): Promi
 }
 
 describe("authenticated Hub event sync HTTP", () => {
+  it("round-trips an exact workstream snapshot through authenticated HTTP", async () => {
+    const root = await fixtureRoot();
+    const project = manifest();
+    const identity = calculateProjectIdentityHash(project);
+    const hub = await HubSyncSQLiteStore.open({ path: resolve(root, "hub.sqlite") });
+    hubStores.push(hub);
+    const baseUrl = await start(hub, project);
+    const transport = new AuthenticatedHubHttpTransport({
+      baseUrl,
+      bearerToken: syncToken,
+      expectedHubIdentityHash: hubIdentityHash,
+      destinationId,
+      target: { projectId: project.projectId, projectIdentityHash: identity },
+      allowInsecureHttpForTests: true,
+    });
+    const registered = createProjectRegistrationRequest({
+      manifest: project,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
+    await transport.registerProject(registered);
+    const snapshot: WorkstreamSnapshot = {
+      schemaVersion: 1,
+      workstreamId: "wks_abcdef0123456789abcdef01",
+      revision: 1,
+      status: "active",
+      title: "Cross-node continuation",
+      objective: "Resume this exact task from another authorized Lervo node.",
+      nextActions: ["Continue from the current verified checkpoint."],
+      blockers: [],
+      notes: [],
+      references: [],
+      pendingDecisions: [],
+      pendingApprovals: [],
+      origin: { kind: "created", sourceArtifactId: null, sourceContentHash: null, sourcePathDigest: null },
+      updatedAt: "2026-08-24T00:01:00.000Z",
+    };
+    const content = `${canonicalJson(snapshot)}\n`;
+    const snapshotContentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+    await expect(transport.publishWorkstream({
+      schemaVersion: 1,
+      registrationId: registered.registrationId,
+      projectId: project.projectId,
+      repositoryIdentityHash: identity,
+      snapshotContentHash,
+      previousSnapshotContentHash: null,
+      snapshot,
+    })).resolves.toMatchObject({
+      authentication: { status: "verified" },
+      body: { status: "created", heads: [{ snapshotContentHash }] },
+    });
+    await expect(transport.readWorkstream()).resolves.toMatchObject({
+      authentication: { status: "verified" },
+      body: { status: "current", snapshot, heads: [{ snapshotContentHash }] },
+    });
+  });
+
   it("recovers a lost committed acknowledgement through the actual Node worker and Hub SQLite", async () => {
     const root = await fixtureRoot();
     const project = manifest();

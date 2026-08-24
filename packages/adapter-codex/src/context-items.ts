@@ -1,5 +1,7 @@
 import {
   ContextMaterializationError,
+  managedContextReferenceInstruction,
+  managedContextReferenceToken,
   materializeContextEnvelope,
 } from "@lervo/adapter-contract";
 import type { AdapterContextEnvelope, AdapterSession } from "@lervo/schemas";
@@ -31,11 +33,13 @@ export async function buildManagedContextItems(
       roleId: envelope.roleId,
       writingPolicyId: envelope.writingPolicyId,
       writingPolicyDocumentId: envelope.writingPolicyDocumentId,
+      referenceInstruction: managedContextReferenceInstruction,
       document: {
         documentId: document.documentId,
         path: document.path,
         contentHash: document.contentHash,
         scope: document.scope,
+        evidenceToken: managedContextReferenceToken(document),
         content,
       },
     };

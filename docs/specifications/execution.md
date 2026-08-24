@@ -1,11 +1,11 @@
 # Lervo Execution and Evidence Specification
 
-Status: `active`  
+Status: `active`
 As of: 2026-08-24
 
 ## 1. Scope
 
-This specification defines Lervo's provider-neutral contracts for managed runs, evidence, documents, knowledge, telemetry, and recovery. ADRs retain historical rationale.
+Defines provider-neutral contracts for managed runs, evidence, documents, knowledge, telemetry, and recovery. ADRs retain rationale.
 
 ## 2. Managed run lifecycle
 
@@ -14,9 +14,13 @@ requested -> resolved -> context prepared -> provider started
 -> provider result observed -> repository verified -> completed
 ```
 
-Completion requires agreement among required contracts, capability decisions, context evidence, provider results, repository snapshots, and verification results. Provider work outside this lifecycle is `unmanaged`.
+Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
-Managed search records bounded operational and repository-knowledge recommendation attempts separately. When an AGENTS instruction or registered document appears in both views, both must resolve to the same canonical document ID and carry identical knowledge metadata through discovery, recommendation, selection, loading, and injection. Unproven same-path identity fails before a provider turn.
+Direct Codex and Claude hooks may query, exact-hash load, and prepare at most 28 KiB of valid UTF-8 context before committing preparation and returning from `UserPromptSubmit`. This creates no managed run and proves no acceptance, understanding, or use. Fail-closed `Stop` always requires current migration, bridge, knowledge, lint, and normalization. It compares the prepared repository revision with current repository-authored bytes. Unchanged turns create no artificial workstream history. Changed turns require the working agent—not the user—to create or advance the workstream with an agent/provider coordinate and emit an exact-revision bounded turn declaration after all changes. Stop records only bounded coordinates and exact output-reference tokens matching the prepared session and turn. New tokens are standalone Markdown HTML comments; legacy plain v1 tokens remain accepted for in-flight sessions.
+
+A present current workstream must match its latest `workstream.snapshot.recorded` event and CAS artifact. Managed runs select it through required rule `repository.workstream` and load exact bytes before E3. Direct hooks prepend at most 8 KiB and record only ID, revision, snapshot hash, delivered bytes, and full or prefix scope. Absence is valid for an unchanged turn before the first checkpoint; invalid state fails immediately. After repository bytes change, direct completion fails until a verified first revision exists or the present revision advances beyond the prompt-time revision. Bounded pending decisions and approvals are unresolved current state; resolved history belongs in canonical documents.
+
+Managed search records operational and repository-knowledge recommendations separately. If an AGENTS instruction or registered document appears in both, injection discovery must resolve one canonical document ID with identical metadata; unproven same-path identity fails before the turn.
 
 ## 3. Context evidence
 
@@ -26,95 +30,79 @@ Managed search records bounded operational and repository-knowledge recommendati
 | E1 | Candidate selected by policy. |
 | E2 | Current bytes loaded and validated. |
 | E3 | Adapter acknowledged the exact delivered envelope. |
+| E4 | Validated provider result explicitly cited the exact injected version. |
 
-E3 proves injection, not understanding or use. Claims of `referenced` or `used` require provider-native telemetry.
+E3 proves controlled injection, not understanding or use. E4 requires a structured result matching E3 on run, session, provider session, target and provider turns, adapter receipt, context generation, document ID, content hash, and scope. The exact `lervo-e4:<documentId>:<contentHash>` token must be a standalone Markdown HTML comment. It proves only bounded output citation—not attention, semantic reliance, understanding, agreement, correctness, or internal use. Internal use is unsupported.
+
+`@lervo/context-coverage` rebuilds one report from canonical events, retaining all E1 reasons, E2 versions and revisions, enhanced E3 coordinates, valid E4, highest evidence, and missing stages. Delivery, reference, relevance, and selection ratios remain separate. Unknown denominators are `null` with a reason; no combined score exists.
+
+Unmanaged observations use `prepared -> referenced`, never E1–E4. Preparation proves hook-side construction; reference proves only a matching marker in bounded Stop output. Lervo neither rewrites nor stores that output.
 
 ## 4. Capability decisions
 
-Every role must declare `allow`, `deny`, or `require_approval` for filesystem reads and writes, shell processes, network access, external messages, deployments, and data changes. Missing policy is an error.
+Every role declares `allow`, `deny`, or `require_approval` for filesystem reads and writes, shell processes, network, external messages, deployments, and data changes. Missing policy is an error.
 
-Write approval binds the project, run, session, provider, role, risk, request digest, repository snapshot, expected paths, verification suite, policy snapshot, validity interval, and revocation state. The write bridge revalidates approval immediately before changing bytes.
+Write approval binds project, run, session, provider, role, risk, request digest, repository snapshot, expected paths, verification suite, policy snapshot, validity interval, and revocation. Revalidate immediately before mutation.
 
 ## 5. Provider adapters
 
-Codex and Claude adapters share common contract tests. They normalize native session, tool, usage, error, and result events without inventing unavailable telemetry. Provider-specific settings and discovery files remain behind adapter or profile boundaries.
+Codex and Claude share contract tests and normalize native session, tool, usage, error, and result events without inventing telemetry. Provider-specific behavior stays behind profile boundaries.
 
-An ordinary managed run formats its machine result with a role-bound English result protocol. A separate read-only session of the selected local provider evaluates human-facing publication. It runs in an empty temporary repository without repository documents, tools, or write access. Its exact JSON response becomes content-bound evaluation evidence. This is not independent cross-provider review, human review, proof of understanding, or writing-policy E3 injection. Evaluation failure blocks publication and CLI success, but not an already verified file change.
+Terminal profiles merge approved handlers into project arrays while preserving settings and hooks. Invalid JSON or shapes, conflicting Lervo commands, Claude disablement, or Codex project-hook disablement blocks migration. Authority excludes local, global, and organization settings. Successful apply is installation evidence, not activation readiness: human and JSON output must immediately disclose Codex's one-time `/hooks` review. `terminal status` remains `action_required` until canonical invocations for both events are observed, while distinguishing an unreviewed-or-unobserved Codex hook from a stale repository lifecycle.
+
+Managed runs use a role-bound English machine-result protocol. A separate read-only session of the selected local provider evaluates human-facing publication in an empty temporary repository without documents, tools, or write access. Its exact JSON is content-bound evidence, not independent cross-provider or human review, proof of understanding, or writing-policy E3. Failure blocks publication and CLI success but not an already verified file change.
+
+The validated result is the E4 source. Before publication, remove only exact evidence tokens for current E3 versions and store the human artifact under a separate digest. Writing checks, permits, `run.completed`, and display bind to that projection. `adapter.result.captured` retains the unprojected digest without content. Unknown tokens remain visible; empty projection fails closed.
 
 ## 6. Repository snapshots and writes
 
-A managed write plan identifies current repository state, expected paths, before and desired hashes, and verification requirements. Apply rejects symlinks, path escape, changed targets, unapproved paths, and stale plans.
+Plans bind state, expected paths, before and desired hashes, and verification. Apply rejects symlinks, escape, changed targets, unapproved paths, and stale plans.
 
-Before-and-after snapshots cover repository-authored files. Runtime state, dependency trees, and conventional generated build or cache directories are explicit non-observation boundaries. Their omission bounds snapshots while retaining unmanaged-change detection for source and tracked generated files.
+Snapshots cover repository-authored files, excluding runtime state, dependencies, and conventional generated build or cache directories. Source and tracked generated files remain covered.
 
-User-owned content changes only through an explicit content-bound operation. Managed blocks preserve every byte outside their exact CommonMark range. A Lervo-generated file may be updated or deleted only when a recorded generation contains its current hash.
+User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
 ## 7. Verification
 
-A verification suite declares exact commands, working directories, limits, and required outcomes. Lervo snapshots before and after execution and rejects unexpected repository changes during verification. Command output is bounded artifact data, not event-payload content.
+Suites declare exact commands, working directories, limits, and outcomes. Lervo compares pre- and post-snapshots and rejects unexpected changes. Bounded command output is artifact data, not event content.
 
 ## 8. Repository knowledge
 
-`.lervo/knowledge/policy.yaml` defines scanner limits, exclusions, publication root, language, and navigation bounds. `.lervo/knowledge/document-layout.yaml` separately defines decision and legacy roots, semantic routes, deterministic routing evidence, and leaf bounds. Version 1 accepts only `publication.language: en`.
+Tracked scanner, publication, language, taxonomy, routing, and leaf bounds govern knowledge. Documentation stays under `docs/`; `.lervo` stores policy, provenance, manifests, and rebuildable state. V1 publishes English with deterministic sharding.
 
-Human navigation defaults to `docs/knowledge`. `.lervo` stores policy, provenance, manifests, and rebuildable local state, not hidden human documentation. ID registries use deterministic two-hex fan-out; decision sources use semantic groups limited to 24 ADRs per leaf.
+Structural planning is read-only. Generated changes and user bytes require current bindings and exact approval where specified. Unknown or tied classifications, unsafe sources, provider-specific enforcement, and over-capacity layouts fail closed. Isolated no-capability semantic compilation and normalization retain complete source-unit coverage; provider output and successful materialization are not semantic truth.
 
-Structural migration remains read-only until the same current plan ID is applied. It may inventory bounded sources; generate navigation and sidecars; create missing README and AGENTS entrypoints; shard navigation; route ADRs by explicit repository route or one strongest configured title-term match with per-document approval; route included non-entrypoint Markdown into `docs/<route>/`; treat substantive legacy `docs/README.md` as content; honor safe `lervo.document.route` and optional `lervo.document.filename`; move Claude rules to `docs/instructions/<route>/` and skills to `.agents/skills/`; refresh AGENTS routing and the CLAUDE-to-AGENTS bridge with exact approval; relocate legacy machine artifacts; and delete outputs owned by a prior manifest.
-
-It must not alter user bytes without an exact item hash, expose secrets or raw logs, claim semantic truth, translate provider enforcement settings, or use a catch-all route. Unknown, ambiguous, invalid, or over-capacity routes block apply. Configuration-only surfaces remain local inventory.
-
-After routing is current, document normalization runs Codex or Claude through the same external no-capability adapter. Stored candidates rewrite eligible ordinary Markdown into the configured language and audience profile. Multi-topic sources may retain a short entrypoint and split into bounded grouped topics; handoffs go under `docs/repository/handoffs/`. Every source section maps through a validated document-local integer index to its content-bound unit version. Managed blocks, provider imports, README-to-AGENTS routing, portable skill identity, fenced examples and links in skills or instructions, and inline coordinates in portable skill material must survive. Other examples may be condensed only at the exact human-review boundary. Skill lifecycle binds resource hashes without rewriting scripts or assets.
-
-Each source rewrite needs its own approval hash. Schema-valid shard results are cached in content-bound ignored state and invalidate when the envelope or compiler build changes. No more than three isolated shards run concurrently. Loading revalidates candidate structure and content bindings against all eligible sources and skill resources. Apply uses the stored candidate, durable journal, sharded lineage, exact-result lint, and privacy-bounded materialization evidence; it never reinvokes the provider. Changed outputs or resources become stale. Output, coverage, or successful apply does not prove semantic truth or equivalence; the reviewer owns that judgment.
-
-Semantic compilation uses an installed provider in a temporary workspace with filesystem, shell, network, external actions, and tools disabled. Version 1 emits English, source-cited candidates. Reconciliation and human review precede materialization.
-
-See [repository knowledge compilation](../specs/repository-knowledge-compilation.md).
+The [repository knowledge compilation specification](../specs/repository-knowledge-compilation.md) defines candidates, approvals, durable apply, lifecycle, skill resources, entrypoints, splits, bridges, agent surfaces, and recovery rules.
 
 ## 9. Entrypoints and language
 
-- README provides concise human onboarding.
-- AGENTS provides concise provider-neutral operational guidance.
-- CLAUDE is a profiled AGENTS bridge and does not duplicate policy.
-- Generated publications use a versioned message catalog and tracked language tag.
-- Reviewed normalization uses that tag and a separate versioned format profile; v1 supports English.
-- Incompatible source titles receive localized neutral navigation titles while exact encoded source paths remain evidence.
-- Human writing resolves from tracked `publication.language`. V1 binds `writing_en-human`, semantic checks, policy hash, evaluation, and publication permit to the artifact.
-- Structured deliberation passes locale through profiles, prompts, verdict parsing, evaluation, and publication. Unsupported locales fail before provider execution; provider prose never implies approval.
-
-Initialization creates minimum configuration only. Feature and state directories appear with their first artifact.
+README is concise human onboarding; AGENTS is concise provider-neutral guidance; CLAUDE is a thin AGENTS bridge. Generated publications use a versioned catalog and tracked language. Normalization uses that language and a versioned profile; v1 supports English. Neutral localized titles preserve exact encoded paths. Human writing binds `publication.language` to `writing_en-human`, semantic checks, policy hash, evaluation, and permit. Deliberation carries locale through profiles, prompts, verdicts, evaluation, and publication. Unsupported locales fail before execution; provider prose never implies approval. Initialization creates minimum configuration; feature and state directories remain lazy.
 
 ## 10. Events and privacy
 
-Events use schema-specific allowlists and a validated hash chain. Ordinary payloads exclude raw prompts, document bodies, provider output, credentials, absolute paths, reviewer identities, and unrestricted errors.
+Events use schema allowlists and a validated hash chain. Payloads exclude raw prompts, document bodies, provider output, credentials, absolute paths, reviewer identities, and unrestricted errors. Every event and state defines name and version, identifiers and hashes, privacy, success, and failure or retry meaning.
 
-Every event or state defines its name and schema version, identifiers and hashes, privacy behavior, success meaning, and failure or retry meaning.
+`knowledge.materialization.applied` records operation, plan and snapshot bindings, compiler, coverage, privacy-bounded counts including deletions, registry digests, validation coordinates, and time.
 
-`knowledge.materialization.applied` records operation kind, plan and snapshot bindings, compiler identity, coverage, privacy-bounded counts including deletions, registry digests, validation artifact coordinates, and application time.
+`terminal.integration.applied` records contract, providers, path digests, after-hashes, approval hash, and time; it excludes prompts, bodies, raw configuration, commands, credentials, absolute paths, and output. Failure rolls back and emits no success event.
+
+Bounded provider and event activation receipts contain provider, event, result, time, and bounded hashes and counts. They prove that the Lervo hook endpoint executed or prepared context, not that the provider launched, accepted, understood, referenced, or used it. Status labels the evidence `hook_endpoint_observed_not_provider_authorship`. Receipt failure blocks the hook. Status validates receipts against events, separates endpoint observation from readiness, and emits a provider-specific action until every required event is observed. Lervo never changes local or global hook trust.
+
+`terminal.context.prepared`, `terminal.reference.observed`, and `terminal.turn.observed` retain opaque IDs, domain-separated digests, repository-relative coordinates, hashes, counts, assurance, freshness, lifecycle state, reference availability, prepared and final repository revisions, the derived changed flag, and final verified workstream ID, revision, and snapshot hash. `terminal.turn.declared` retains an opaque declaration and context ID, exact repository revision, task mode, canonicalization and knowledge dispositions, deliberation disposition and optional completed-deliberation ID, and time. These events exclude prompts, bodies, final responses, transcripts, summaries, raw coordinates, configuration, secrets, and absolute paths. Agent declarations are not proof of internal reasoning. Preparation commits before context; declaration commits after repository work; reference and turn commit together before Stop. Missing context, stale declaration, or persistence failure fails closed.
+
+`workstream.snapshot.recorded` retains workstream ID, monotonic revision, status, change kind, snapshot and previous hashes, content-addressed snapshot and optional legacy-source artifact IDs, and time. It excludes objective, tasks, blockers, notes, references, source bodies, prompts, credentials, and absolute paths. The local projection is written lazily under `.lervo/state/workstreams/`; exact snapshots and migrated source bytes are CAS artifacts. Migration or update publishes files before recording the event and rolls them back if the event fails.
+
+`lervo terminal coverage` is rebuildable. Preparation is diagnostic; managed delivery is unavailable without an adapter receipt; explicit reference is nullable when Stop output is unavailable; relevance is nullable without ground truth. No combined score exists.
+
+Managed `context.injected` events include adapter and provider session and per-document E3 receipt, ID, hash, and scope. `adapter.result.captured` records adapter, provider session, turns, digest, bytes, media type, and reference support without content. `context.referenced` records validated E4 linked to that result and E3 version. Unknown, stale, altered, cross-turn, or cross-generation tokens create no E4. Contradictory persisted coordinates fail projection. Result and E4 events commit atomically; failure fails the run. Local trace and Hub use one projector; Hub coverage uses complete history despite response pagination.
 
 ## 11. Durable apply and recovery
 
-The owner-only materialization journal records:
-
-1. plan and current-byte validation;
-2. desired-output staging;
-3. original-byte backup;
-4. staged publication or deletion;
-5. deterministic lint;
-6. event commit;
-7. backup and empty generated-parent cleanup.
-
-Failure before event commit restores originals. Failure after commit preserves outputs and requires explicit cleanup recovery. An interrupted transaction blocks mutation until recovery. Rollback recreates only repository parents pruned by that transaction before restoring exact backups, including deleted shards and moved documents.
+The owner-only journal validates plan and current bytes, stages outputs, backs up originals, publishes or deletes, lints, commits the event, then cleans backups and empty parents. Pre-commit failure restores originals. Post-commit cleanup failure preserves outputs and requires recovery. Interrupted transactions block mutation. Rollback recreates only parents pruned by that transaction before restoring exact backups, including deleted shards and moved documents.
 
 ## 12. Hub and remote execution
 
-Hub operations authenticate before source access and scope storage queries by project. Commands bind signature, signer purpose, target node, project, issue/not-before/expiry times, nonce, idempotency key, requested capability, and content-addressed artifacts.
-
-A node validates trust, signature, scope, freshness, replay state, repository registration, manifest identity, local policy, approval, and snapshot. Transport grants no authority.
-
-After authenticated registration, outbound sync compares the Hub cursor with the exact local event at that sequence and fails closed on mismatch. It queues at most one configured batch of later local events for the Node's explicit destination and uses lease-bound delivery. Reconciliation is restartable and producer-neutral; local commands neither read Hub credentials nor wait for the Node. Cycle output may contain only `enqueuedCount` and existing bounded status or count fields, never event identities, payloads, paths, repository coordinates, endpoints, credentials, or peer identities.
-
-User service installation requires an explicit canonical definition and write authority. A newly activated Hub or Node must remain installed, enabled where applicable, and active across three observations 500 milliseconds apart. Transient activity invokes fail-closed compensation for a newly created service. Removal permits six observations and requires three consecutive stopped observations before definition deletion. Stabilization proves OS service continuity only; separate identity-bound Hub or live-process Node preflight proves readiness.
+Hub and Node coordination remains authenticated, project-scoped, local-policy-bound, and independent of a specific network. Event streams, repository-scoped workstream replication, remote authority, runtime health, and service stability are defined in the [Hub and Node coordination specification](coordination/hub-and-node.md).
 
 ## 13. Failure categories
 
@@ -122,24 +110,17 @@ User service installation requires an explicit canonical definition and write au
 |---|---|
 | Invalid contract or policy | Fail before provider or write execution. |
 | Stale plan or snapshot | Produce a new read-only plan. |
-| Approval missing or revoked | Deny the capability. |
-| Provider telemetry incomplete | Lower assurance; infer neither success nor use. |
+| Approval missing or revoked | Deny capability. |
+| Incomplete telemetry | Lower assurance; infer neither success nor use. |
 | Verification failure | Do not emit successful completion. |
 | Event commit failure | Roll back pre-commit bytes. |
-| Post-commit cleanup failure | Preserve committed bytes and require recovery. |
-| Remote effect uncertain | Record uncertainty; do not retry automatically. |
+| Post-commit cleanup failure | Preserve bytes and require recovery. |
+| Uncertain remote effect | Record uncertainty; do not retry automatically. |
 | Secret or unsafe source | Exclude content; retain bounded diagnostics only. |
 
 ## 14. Required verification
 
-- Schema validation and redaction tests.
-- Provider-adapter common contract tests.
-- Write and recovery failure-injection tests.
-- Transient service activation, compensation, and separate readiness tests.
-- Empty-outbox, bounded long-chain, existing-gap, and cursor-conflict synchronization tests.
-- Knowledge plan, apply, lint, and idempotence tests.
-- Source privacy, path safety, symlink, size, and race tests.
-- Applicable package-boundary, type, documentation lifecycle, build, and distribution checks.
+Schema and redaction tests; shared adapter contracts; write and recovery failure injection; transient service compensation and readiness; synchronization empty-outbox, long-chain, gap, and cursor-conflict tests; knowledge plan, apply, lint, and idempotence; source privacy, path, symlink, size, and race tests; and applicable boundary, type, documentation, build, and distribution checks.
 
 ## References
 
@@ -149,3 +130,4 @@ User service installation requires an explicit canonical definition and write au
 - [Signed approval ADR](../decisions/execution/verification/0044-signed-approval-managed-write-permit.md)
 - [Repository knowledge ADR](../decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md)
 - [Bounded publication ADR](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md)
+- [Hub and Node coordination](coordination/hub-and-node.md)

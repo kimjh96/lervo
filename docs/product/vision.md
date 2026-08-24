@@ -1,44 +1,50 @@
 # Lervo product vision
 
-Status: `active`  
+Status: `active`
 As of: 2026-08-23
 
 ## Purpose
 
-Lervo makes AI-assisted repository work durable, inspectable, and portable without requiring a hosted service. Repositories retain the instructions, decisions, source-backed knowledge, execution evidence, verification results, and environment lookup contracts needed to continue work on another device or compatible Lervo installation without depending on one conversation.
+Lervo makes AI-assisted repository work durable, inspectable, and portable without requiring a hosted service. Repositories retain instructions, decisions, source-backed knowledge, execution evidence, verification results, and environment lookup contracts so work can continue on another device or compatible Lervo installation without depending on one conversation.
 
 ## Product promise
 
 - Local work completes without a Hub.
 - Codex and Claude share a provider-neutral execution and evidence model.
-- Bounded source evidence, rather than a required documentation layout, supplies repository knowledge.
+- Bounded source evidence, not a required documentation layout, supplies repository knowledge.
 - Human and agent entrypoints stay short; independent concerns use linked documents.
 - Existing user content changes only through exact reviewed approval.
 - Optional Hub and node runtimes coordinate repositories and devices without becoming authorities for local source truth.
 
 ## Users
 
-Lervo supports developers and other repository-based roles, including researchers, designers, product operators, and marketers. Role profiles can differ while sharing one lifecycle for context, capability decisions, evidence, review, and handoff.
+Lervo supports developers and other repository-based roles, including researchers, designers, product operators, and marketers. Role profiles may differ while sharing one lifecycle for context, capability decisions, evidence, review, and handoff.
 
 ## Core concepts
 
 ### Managed execution
 
-Lervo starts an agent through a provider adapter, supplies a bounded context envelope, records observable lifecycle evidence, gates writes and external effects, and verifies repository state. Work started directly in an external provider terminal is `unmanaged` unless an adapter proves the same contract.
+Lervo starts an agent through a provider adapter, supplies bounded context, records observable lifecycle evidence, gates writes and external effects, and verifies repository state. Work started directly in an external provider terminal is `unmanaged` unless an adapter proves the same contract.
+
+Exact adapter receipts prove managed E3 delivery. A provider-bound structured result may add E4 only by returning an exact token for the injected document version. E4 proves an observable output citation, not understanding, correctness, or internal use.
+
+Repository-installed Codex and Claude hooks make direct terminals Lervo-aware, not managed. Each prompt performs a fail-closed local knowledge query; each Stop checks lifecycle currency. Lervo may retain privacy-bounded preparation and exact output-reference observations but cannot infer provider acceptance or internal use. Managed writes and verification still require a managed run.
+
+Mutable continuation belongs to a revisioned Lervo workstream, not a root handoff document or conversation memory. Managed runs load its exact state through the normal evidence pipeline; direct provider hooks prepare a bounded verified projection. Durable decisions are promoted to canonical repository documents instead of accumulating in the workstream.
 
 ### Repository knowledge
 
-Explicit privacy and size policies govern discovery of code, configuration, schemas, tests, documents, agent instructions, skills, verification results, execution events, revision identity, logs, and unsupported-file metadata. Structural extraction creates navigation and source identity. Semantic candidates remain unreviewed until reconciliation and human review.
+Explicit privacy and size policies govern discovery of code, configuration, schemas, tests, documents, agent instructions, skills, verification results, execution events, revision identity, logs, and unsupported-file metadata. Structural extraction creates navigation and source identity. Semantic candidates require reconciliation and human review.
 
-Migration creates an explicit repository structure and documentation system. Ordinary documents use repository-scoped semantic routes and reviewed audience-specific formats; behavioral instructions use provider-neutral canonical pages routed from AGENTS; portable skills use `.agents/skills` with resource-bound lifecycle records; provider configuration remains provider-specific. Moving or rewriting user bytes requires exact content-bound approval.
+Migration creates an explicit repository structure and documentation system. Documents use repository-scoped semantic routes and reviewed audience-specific formats. Behavioral instructions use provider-neutral pages routed from AGENTS. Portable skills use `.agents/skills` with resource-bound lifecycle records. Provider configuration remains provider-specific. Moving or rewriting user bytes—including adding Lervo-owned provider hooks—requires exact content-bound approval.
 
 ### Evidence language
 
-`selected`, `loaded`, `injected`, `referenced`, and `used` are distinct states. Lervo promotes none without matching telemetry.
+`selected`, `loaded`, `injected`, `referenced`, and `used` are distinct states. Never promote a state without matching telemetry.
 
 ### Optional coordination
 
-A Hub can synchronize allowed events, route signed commands, and show cross-project status. A project node revalidates identity, authorization, freshness, repository state, and local policy before execution.
+A Hub may synchronize allowed events, route signed commands, and show cross-project status. A project node revalidates identity, authorization, freshness, repository state, and local policy before execution.
 
 ## Non-goals for v0
 

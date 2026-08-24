@@ -139,6 +139,7 @@ console.log(JSON.stringify({ type: "turn.completed" }));
     const invocation = JSON.parse(await readFile(item.log, "utf8")) as { args: string[]; cwd: string; input: string };
     expect(invocation.cwd).not.toBe(item.repository);
     expect(invocation.input).toContain("preserveMeaning");
+    expect(invocation.input).toContain("Preserve every independently testable requirement");
     expect(invocation.args).toContain("--ignore-user-config");
     expect(invocation.args).toContain("--ignore-rules");
   });

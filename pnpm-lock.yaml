@@ -270,6 +270,12 @@ importers:
       '@lervo/adapter-codex':
         specifier: workspace:*
         version: link:../../packages/adapter-codex
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../../packages/cas
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../../packages/event-contract
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../../packages/event-store-sqlite
@@ -291,12 +297,18 @@ importers:
       '@lervo/remote-command-sqlite':
         specifier: workspace:*
         version: link:../../packages/remote-command-sqlite
+      '@lervo/repository-knowledge':
+        specifier: workspace:*
+        version: link:../../packages/repository-knowledge
       '@lervo/runtime-security':
         specifier: workspace:*
         version: link:../../packages/runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../../packages/storage-contract
       '@lervo/sync':
         specifier: workspace:*
         version: link:../../packages/sync
@@ -418,6 +430,12 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../search
+
+  packages/context-coverage:
+    dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/context-delivery:
     dependencies:
@@ -642,6 +660,9 @@ importers:
 
   packages/diagnostics:
     dependencies:
+      '@lervo/context-coverage':
+        specifier: workspace:*
+        version: link:../context-coverage
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
@@ -753,6 +774,9 @@ importers:
 
   packages/hub-sync-sqlite:
     dependencies:
+      '@lervo/context-coverage':
+        specifier: workspace:*
+        version: link:../context-coverage
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
@@ -805,6 +829,9 @@ importers:
 
   packages/hub-trace:
     dependencies:
+      '@lervo/context-coverage':
+        specifier: workspace:*
+        version: link:../context-coverage
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync

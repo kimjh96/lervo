@@ -6,8 +6,10 @@ import {
   type AdapterTurnRequest,
   type ContextEvidence,
 } from "@lervo/schemas";
+import type { InjectedContext } from "@lervo/context-delivery";
 
 import { ManagedContextRun } from "./managed-context-run.js";
+import { managedResultReferenceSpecs } from "./managed-context-reference.js";
 import { createManagedWritePlan } from "./managed-write-plan.js";
 import {
   adapterStartedSpec,
@@ -112,9 +114,11 @@ interface ManagedProviderRunExecutionState {
   before?: RepositorySnapshot;
   after?: RepositorySnapshot;
   turnResult?: AdapterTurnResult;
+  publicationContent?: string;
   resultArtifact?: ManagedProviderRunResult["resultArtifact"];
   verifications: ManagedProviderRunResult["verifications"];
   contextEvidence?: readonly ContextEvidence[];
+  injected?: InjectedContext;
   writeBridge?: ManagedProviderWriteBridge;
 }
 
@@ -301,6 +305,7 @@ export class ManagedProviderRunCoordinator {
           now: () => this.date(),
         });
         state.contextEvidence = copy(injected.evidence);
+        state.injected = copy(injected);
         monitor.throwIfFailed();
         if (index === 0) {
           phase = "write_bridge";
@@ -433,6 +438,25 @@ export class ManagedProviderRunCoordinator {
         session: state.session,
         turn: state.turn!,
       });
+      if (state.injected === undefined || state.contextEvidence === undefined) {
+        throw new ManagedProviderRunError(
+          "contract_validation_failed",
+          "The managed result has no matching injected context.",
+        );
+      }
+      const reference = managedResultReferenceSpecs({
+        sourceEventId: this.telemetry.reserveEventId(),
+        session: state.session,
+        turn: state.turn!,
+        result: state.turnResult,
+        injected: state.injected,
+        ...(input.createEvidenceReceiptId === undefined
+          ? {}
+          : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
+      });
+      this.append(reference.specs);
+      state.contextEvidence = [...state.contextEvidence, ...reference.evidence];
+      state.publicationContent = reference.publicationContent;
     } catch (error) {
       failures.add(error, phase);
     }
@@ -462,10 +486,14 @@ export class ManagedProviderRunCoordinator {
     state: ManagedProviderRunExecutionState,
     failures: RunFailureLedger,
   ): Promise<void> {
-    if (failures.empty && state.turnResult !== undefined) {
+    if (
+      failures.empty && state.turnResult !== undefined &&
+      state.publicationContent !== undefined
+    ) {
       try {
         state.resultArtifact = await storeProviderResult({
           result: state.turnResult,
+          publicationContent: state.publicationContent,
           artifactStore: this.options.artifactStore,
         });
       } catch (error) {

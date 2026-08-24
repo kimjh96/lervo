@@ -21,6 +21,7 @@ const result = await build({
   format: "esm",
   legalComments: "none",
   logLevel: "silent",
+  mainFields: ["module", "main"],
   metafile: true,
   platform: "node",
   target: "node22.13",

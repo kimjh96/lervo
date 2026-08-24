@@ -1,0 +1,28 @@
+candidateId: knorm_79409b0814ff0544d6bbb4fd
+compiler:
+  compilerBuildId: sha256:c8381c553154267e04a4caefccb685caf84e1a3253353fd249824428307ce1df
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.224 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_e66eb54d195b0d4aa741c218
+outputLanguage: en
+outputs:
+  - byteCount: 2971
+    contentHash: sha256:03f93dd9543e70ed8b63c53664b2cf1a5369613506b7aa7b30ae2a612e947519
+    path: AGENTS.md
+    userRegionHash: sha256:a102968e9b0fb3d6d9592c10c32308a38be97952d5df96250f7130a50c25afe6
+profile: agent_instruction
+recordId: knormdoc_78df2d3344573f8f3e745c8c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:ea820040df4e077ea308f69fb31ebb6ccb5c139636f432414a92a4c60087cb1c
+sourcePath: AGENTS.md
+sourceUnitVersionIds:
+  - uv_1d5d9c5e50c1453484533530
+  - uv_587e027ea0b34128c343a1d6
+  - uv_64f684a07d8a27fa095196b1
+  - uv_7f5544da2ced559eccc922c1
+  - uv_b2eba41b14045b70a5c300e3
+  - uv_b629f665846e422b138e712f

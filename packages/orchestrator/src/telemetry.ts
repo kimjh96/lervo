@@ -6,6 +6,7 @@ import type { EventEnvelope } from "@lervo/schemas";
 import type { ManagedEventStore, ManagedRunCoordinates } from "./types.js";
 
 export interface ManagedEventSpec {
+  eventId?: string;
   type: EventDraft["type"];
   occurredAt: string;
   actor: EventDraft["actor"];
@@ -13,8 +14,8 @@ export interface ManagedEventSpec {
 }
 
 export class TelemetryWriteError extends Error {
-  constructor() {
-    super("Could not record managed run telemetry atomically.");
+  constructor(options?: ErrorOptions) {
+    super("Could not record managed run telemetry atomically.", options);
     this.name = "TelemetryWriteError";
   }
 }
@@ -37,17 +38,18 @@ export class ManagedTelemetryRecorder {
 
   append(specs: readonly ManagedEventSpec[]): EventEnvelope[] {
     try {
-      const drafts = specs.map(
-        (spec): EventDraft => ({
-          eventId: this.createEventId(),
+      const drafts = specs.map((spec): EventDraft => {
+        const { eventId, ...values } = spec;
+        return {
+          eventId: eventId ?? this.createEventId(),
           projectId: this.coordinates.projectId,
           runId: this.coordinates.runId,
           sessionId: this.coordinates.sessionId,
           schemaVersion: 1,
           policyVersion: this.policyVersion,
-          ...spec,
-        }),
-      );
+          ...values,
+        };
+      });
       return this.events.transact((transaction) =>
         drafts.map((draft) => {
           const result = transaction.append(draft);
@@ -55,8 +57,16 @@ export class ManagedTelemetryRecorder {
           return result.event;
         }),
       );
-    } catch {
-      throw new TelemetryWriteError();
+    } catch (error) {
+      throw new TelemetryWriteError({ cause: error });
+    }
+  }
+
+  reserveEventId(): string {
+    try {
+      return this.createEventId();
+    } catch (error) {
+      throw new TelemetryWriteError({ cause: error });
     }
   }
 }

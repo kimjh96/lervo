@@ -101,6 +101,9 @@ describe("repository knowledge migration", () => {
     expect(receipt.type).toBe("knowledge.materialization.applied");
     const index = await readFile(resolve(root, "docs/knowledge/index.md"), "utf8");
     expect(index).toContain("No existing Markdown publication was found");
+    expect(index).toContain("Publication input snapshot:");
+    expect(index).toContain("A full query snapshot may differ while this publication remains current");
+    expect(index).toContain("use `lervo migrate knowledge` to determine currency");
     expect(index).toContain("code: 1");
     expect(index).toContain("test: 1");
     expect(await readFile(resolve(root, "README.md"), "utf8")).toContain("## Start here");

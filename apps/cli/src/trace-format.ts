@@ -9,11 +9,19 @@ function formatPayload(payload: Record<string, unknown>): string {
 }
 
 export function formatTraceReport(report: TraceReport): string {
+  const coverage = report.contextCoverage;
   const lines = [
     `Run trace: ${report.runId}`,
     `Status: ${report.status === "completed" ? "completed" : report.status === "failed" ? "failed" : "running or interrupted"}`,
     `Recorded range: ${report.firstOccurredAt} ~ ${report.lastOccurredAt}`,
     `Event source integrity: passed (${report.integrity.eventCount})`,
+    ...(coverage === undefined || coverage === null
+      ? []
+      : [
+          `Managed context delivery: ${coverage.coverage.delivery.value === null ? "unavailable" : `${coverage.coverage.delivery.numerator}/${coverage.coverage.delivery.denominator}`}`,
+          `Managed context references: ${coverage.coverage.explicitReference.value === null ? "unavailable" : `${coverage.coverage.explicitReference.numerator}/${coverage.coverage.explicitReference.denominator}`}`,
+          "Managed internal use: unsupported",
+        ]),
     "Records:",
     ...report.events.map((event) =>
       `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`),

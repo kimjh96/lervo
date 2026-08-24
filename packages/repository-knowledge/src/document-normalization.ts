@@ -53,7 +53,7 @@ export interface DocumentNormalizationEnvelopeDocument {
   contentHash: string;
   untrustedSourceData: string;
   sourceUnits: Array<{ index: number; unitVersionId: string; locator: string; title?: string }>;
-  protectedFragments: Array<{ kind: "frontmatter" | "managed_block" | "fenced_code" | "inline_code" | "link_target" | "provider_import"; value: string }>;
+  protectedFragments: Array<{ kind: "frontmatter" | "lifecycle_metadata" | "managed_block" | "fenced_code" | "inline_code" | "link_target" | "provider_import"; value: string }>;
   requiredSkillName: string | null;
   constraints: {
     outputLanguage: string;
@@ -211,7 +211,6 @@ export interface DocumentNormalizationReceipt {
 
 function normalizationProfile(source: RepositorySource): DocumentNormalizationProfile | null {
   if (!/\.md$/iu.test(source.path)) return null;
-  if (source.path === "HANDOFF.md" || /\/(?:HANDOFF|SESSION|CONTEXT)\.md$/iu.test(source.path)) return "handoff_document";
   if (source.path === "README.md" || /\/README\.md$/u.test(source.path)) return "human_readme";
   if (source.path === "AGENTS.md" || /\/(?:AGENTS|AGENTS\.override)\.md$/u.test(source.path)) return "agent_instruction";
   if (source.path === "CLAUDE.md" || /\/(?:CLAUDE|CLAUDE\.local)\.md$/u.test(source.path)) return "provider_bridge";
@@ -223,6 +222,14 @@ function normalizationProfile(source: RepositorySource): DocumentNormalizationPr
   if (/^docs\/(?:specifications|specs)\//u.test(source.path)) return "specification_document";
   if (/^docs\/roadmap\//u.test(source.path)) return "roadmap_document";
   if (/^docs\/instructions\//u.test(source.path)) return "instruction_document";
+  if (source.content !== undefined) {
+    const headings = [...source.content.matchAll(/^#{1,6}\s+(.+)$/gmu)].map((match) => match[1]!).join("\n");
+    const name = `${basename(source.path, ".md")} ${headings.slice(0, 500)}`;
+    const named = /(?:handoff|hand-over|session|context|status|progress|resume|continuation|current[-_ ]?(?:work|task)|work[-_ ]?log|\uC778\uACC4|\uC138\uC158|\uB9E5\uB77D|\uC9C4\uD589|\uD604\uD669|\uC791\uC5C5)/iu.test(name);
+    const structured = /(?:objective|goal|purpose|focus|\uBAA9\uD45C|\uBAA9\uC801|\uC911\uC810)/iu.test(headings) && /(?:next|action|resume|procedure|task|continue|todo|\uB2E4\uC74C|\uD560 \uC77C|\uC7AC\uAC1C|\uC774\uC5B4|\uC791\uC5C5)/iu.test(headings);
+    const active = /(?:\b(?:resume|continue|next step|in progress|remaining)\b|\uC7AC\uAC1C|\uC774\uC5B4\uC11C|\uB2E4\uC74C \uC791\uC5C5|\uC9C4\uD589 \uC911|\uB0A8\uC740 \uC791\uC5C5)/iu.test(source.content.slice(0, 8192));
+    if ((named && active) || structured) return "handoff_document";
+  }
   if (source.kind === "documentation" || source.kind === "instruction" || source.kind === "skill_contract") return "repository_document";
   return null;
 }
@@ -244,6 +251,7 @@ function protectedMarkdownFragments(content: string, profile: DocumentNormalizat
       ? (content.match(/^---\n[\s\S]*?\n---(?:\n|$)/u) ?? []).map((value) => ({ kind: "frontmatter" as const, value }))
       : []),
     ...(content.match(/<!-- lervo:begin\b[^>]*-->[\s\S]*?<!-- lervo:end\b[^>]*-->/gu) ?? []).map((value) => ({ kind: "managed_block" as const, value })),
+    ...(content.match(/^(?:Status|As of):[^\n]*(?:\n|$)/gmu) ?? []).map((value) => ({ kind: "lifecycle_metadata" as const, value })),
     ...(criticalInstruction ? (content.match(/```[^\n]*\n[\s\S]*?```/gu) ?? []).map((value) => ({ kind: "fenced_code" as const, value })) : []),
     ...(portableSkillMaterial ? (content.match(/(?<!`)`[^`\n]+`(?!`)/gu) ?? []).map((value) => ({ kind: "inline_code" as const, value: value.slice(1, -1) })) : []),
     ...(criticalInstruction ? [...content.matchAll(/!?(?:\[[^\]]*\])\(([^)\s]+)(?:\s+"[^"]*")?\)/gu)].map((match) => ({ kind: "link_target" as const, value: match[1]! })) : []),
@@ -269,8 +277,11 @@ function maximumOutputLines(profile: DocumentNormalizationProfile): number {
 }
 
 function splitPrefix(path: string, profile: DocumentNormalizationProfile): string | null {
+  // The root README is a stable human entrypoint. Its durable detail belongs in
+  // the repository's semantic documentation hierarchy, which cannot be chosen
+  // safely by a document-local normalizer.
+  if (path === "README.md") return null;
   if (["agent_instruction", "provider_bridge", "portable_skill", "skill_reference", "decision_record"].includes(profile)) return null;
-  if (profile === "handoff_document" && path === "HANDOFF.md") return "docs/repository/handoffs/";
   return `${dirname(path) === "." ? "" : `${dirname(path)}/`}${basename(path, ".md")}/`;
 }
 
@@ -377,6 +388,7 @@ function requiredResponse(value: unknown, envelope: DocumentNormalizationEnvelop
       throw new RepositoryKnowledgeError("knowledge_compile_failed", "A document normalization response does not match its source envelope.");
     }
     const allowedUnitIndexes = new Set(source.sourceUnits.map((unit) => unit.index));
+    const sourceTrailingWhitespaceLines = new Set(source.untrustedSourceData.split("\n").filter((line) => /[ \t]+$/u.test(line)));
     const covered = new Set<number>();
     const allowedSplitPrefix = source.constraints.allowedSplitPrefix;
     for (const output of document.outputs) {
@@ -384,11 +396,15 @@ function requiredResponse(value: unknown, envelope: DocumentNormalizationEnvelop
       if (seenOutputs.has(output.path)) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output path ${output.path} is duplicated.`);
       if (posix.normalize(output.path) !== output.path || output.path.startsWith("/") || output.path.includes("../") || !output.path.endsWith(".md")) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output path ${output.path} is unsafe or is not Markdown.`);
       if (output.path !== source.path && (!source.constraints.allowSiblingTopicSplit || allowedSplitPrefix === null || !output.path.startsWith(allowedSplitPrefix))) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output ${output.path} must remain at ${source.path} or below ${source.constraints.allowedSplitPrefix ?? "the disabled split boundary"}.`);
+      if (!output.content.endsWith("\n") || output.content.endsWith("\n\n")) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output ${output.path} must end with exactly one newline.`);
       const outputBytes = Buffer.byteLength(output.content);
       if (outputBytes < 1 || outputBytes > source.constraints.maximumOutputBytes) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output ${output.path} has ${outputBytes} bytes and exceeds its 1-${source.constraints.maximumOutputBytes} byte contract.`);
       const outputLines = output.content.split("\n").length;
       if (outputLines > source.constraints.maximumOutputLines) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output ${output.path} has ${outputLines} lines and exceeds its ${source.constraints.maximumOutputLines}-line contract.`);
       if (!/^#\s+\S/mu.test(output.content)) throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output ${output.path} has no H1.`);
+      if (output.content.split("\n").some((line) => /[ \t]+$/u.test(line) && !sourceTrailingWhitespaceLines.has(line))) {
+        throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output ${output.path} introduced trailing whitespace that was not present in its source.`);
+      }
       if (document.outputs.length === 1) {
         output.coveredUnitIndexes = [...allowedUnitIndexes];
       } else if (output.coveredUnitIndexes.length < 1 || output.coveredUnitIndexes.some((index) => !Number.isSafeInteger(index) || !allowedUnitIndexes.has(index))) {
@@ -406,7 +422,9 @@ function requiredResponse(value: unknown, envelope: DocumentNormalizationEnvelop
     if (source.constraints.rewriteWikiLinksAsMarkdown === true && /\[\[[^\]\n]+\]\]/u.test(proseOutput)) {
       throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output for ${source.path} retained a non-portable wiki link.`);
     }
-    const missingProtected = source.protectedFragments.filter((fragment) => !combinedOutput.includes(fragment.value));
+    const missingProtected = source.protectedFragments.filter((fragment) => fragment.kind === "lifecycle_metadata"
+      ? !document.outputs.some((output) => output.content.split("\n").includes(fragment.value.replace(/\n$/u, "")))
+      : !combinedOutput.includes(fragment.value));
     if (missingProtected.length > 0) {
       throw new RepositoryKnowledgeError("knowledge_compile_failed", `The normalized output for ${source.path} dropped ${missingProtected.length} protected ${[...new Set(missingProtected.map((fragment) => fragment.kind))].join(", ")} fragment(s); digest ${sha256(canonicalJson(missingProtected.map((fragment) => ({ kind: fragment.kind, valueHash: sha256(fragment.value) })) ))}.`);
     }
@@ -482,7 +500,7 @@ function validateDocumentNormalizationCandidate(candidate: DocumentNormalization
     for (const output of item.outputs) {
       if (
         output === null || typeof output !== "object" || !safeRelativePath(output.path) || !output.path.endsWith(".md") ||
-        typeof output.content !== "string" || !output.content.endsWith("\n") || !HASH.test(output.contentHash) ||
+        typeof output.content !== "string" || !output.content.endsWith("\n") || output.content.endsWith("\n\n") || !HASH.test(output.contentHash) ||
         output.contentHash !== sha256(output.content) || !Number.isSafeInteger(output.byteCount) || output.byteCount !== Buffer.byteLength(output.content) ||
         output.byteCount < 1 || output.byteCount > maximumOutputBytes(item.profile) || output.content.split("\n").length > maximumOutputLines(item.profile) ||
         !/^#\s+\S/mu.test(output.content) || !Array.isArray(output.coveredUnitVersionIds) || output.coveredUnitVersionIds.length < 1 ||

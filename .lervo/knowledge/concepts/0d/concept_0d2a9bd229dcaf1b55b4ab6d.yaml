@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_0d2a9bd229dcaf1b55b4ab6d
+freshness: current
+ownership: user
+path: docs/decisions/execution/providers/0197-unmanaged-terminal-context-observation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c22c19e3b0f74ca111314b36
+title: "ADR-0197: Unmanaged Terminal Context Observation"
+type: decision

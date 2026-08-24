@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c625d6ef25bf027c6922cdbf
+  - uv_45d59d0cfd4f625ad46a0833
 title: "ADR-0190: Language-aware bounded repository publication"
 type: decision

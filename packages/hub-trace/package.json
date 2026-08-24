@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/context-coverage": "workspace:*",
     "@lervo/hub-sync": "workspace:*",
     "@lervo/knowledge-graph": "workspace:*",
     "@lervo/schemas": "workspace:*",

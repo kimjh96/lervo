@@ -778,6 +778,33 @@ describe("context preparation", () => {
     expect(documentIdForPath("packages/api/AGENTS.md")).toMatch(/^doc_path_[a-f0-9]{24}$/);
   });
 
+  it("loads an explicitly required current workstream with ordinary E1 and E2 evidence", async () => {
+    const fixture = await fixtureRepository();
+    const path = ".lervo/state/workstreams/current.json";
+    await mkdir(resolve(fixture.root, ".lervo/state/workstreams"), { recursive: true });
+    await writeFile(resolve(fixture.root, path), "{\"schemaVersion\":1,\"objective\":\"Continue the current work\"}\n");
+    const workstreamId = documentIdForPath(path);
+    const currentRole = structuredClone(fixture.marketer);
+    currentRole.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
+    const loaded = await prepareContext({
+      ...planInput({ ...fixture, marketer: currentRole }),
+      role: currentRole,
+      repositoryRoot: fixture.root,
+      sourceRevision: "fixture-workstream-v1",
+      documentRules: { "brand.policy": ["doc_brand_policy"], "repository.workstream": [workstreamId] },
+      additionalCandidates: [{ documentId: workstreamId, path, connectedPaths: [], source: "workstream" }],
+    });
+    expect(loaded.documents).toContainEqual(expect.objectContaining({
+      documentId: workstreamId,
+      path,
+      reasons: [{ reasonCode: "role_required", ruleId: "repository.workstream" }],
+    }));
+    expect(loaded.evidence).toEqual(expect.arrayContaining([
+      expect.objectContaining({ documentId: workstreamId, state: "selected", reasonCode: "role_required" }),
+      expect.objectContaining({ documentId: workstreamId, state: "loaded" }),
+    ]));
+  });
+
   it("enforces the byte bound while reading a repository file", async () => {
     const root = await temporaryDirectory();
     await writeFile(resolve(root, "bounded.md"), "12345");

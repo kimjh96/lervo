@@ -4,7 +4,7 @@ These instructions apply to every coding agent in this repository.
 
 ## Before changing anything
 
-Read only the relevant entrypoints and ADRs they link:
+Read only the relevant entrypoints and the ADRs they link:
 
 - Product scope or terminology: `README.md`, `docs/product/vision.md`
 - Components or data flow: `docs/architecture/system.md`
@@ -39,3 +39,10 @@ Do not load the entire ADR history by default.
 Before requesting mutable connection or device details, inspect `.lervo/environment-sources/` and `.lervo/environment-targets/`, then refresh observations with `lervo environment query --target <target-id> --json`.
 
 Do not infer current validity from an old conversation or observation. Ask only if candidates conflict, validation fails, or required authority is missing. Keep secrets out of tracked manifests and `.lervo/state/` out of source documentation.
+
+<!-- lervo:begin block=repository_instruction_routes schema=1 -->
+## Repository instruction routes
+
+- Read the verified current state with `lervo workstream current --context` before continuing repository work.
+- Before completing a terminal turn, create the first bounded checkpoint with `lervo workstream start` or advance the existing snapshot with `lervo workstream update`; perform this agent bookkeeping without asking the user to run it.
+<!-- lervo:end block=repository_instruction_routes -->

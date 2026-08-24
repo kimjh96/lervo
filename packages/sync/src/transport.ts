@@ -1,6 +1,7 @@
 import {
   type OutboundEventBatch,
   type ProjectRegistrationRequest,
+  type WorkstreamReplicationPublishRequest,
 } from "@lervo/schemas";
 
 export interface VerifiedHubPeer {
@@ -22,4 +23,9 @@ export interface HubTransportResponse {
 export interface AuthenticatedHubTransport {
   registerProject(request: ProjectRegistrationRequest): Promise<unknown>;
   sendEventBatch(batch: OutboundEventBatch): Promise<unknown>;
+}
+
+export interface AuthenticatedWorkstreamHubTransport {
+  publishWorkstream(request: WorkstreamReplicationPublishRequest): Promise<unknown>;
+  readWorkstream(): Promise<unknown>;
 }

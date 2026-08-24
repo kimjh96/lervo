@@ -22,6 +22,8 @@ const WORKER_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const PERMISSIONS = new Set<HubPermission>([
   "trace.read",
   "sync.write",
+  "workstream.read",
+  "workstream.write",
   "policy.read",
   "policy.write",
   "command.read",

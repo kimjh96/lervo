@@ -1,0 +1,32 @@
+candidateId: knorm_7e23e7b6290d7ea73f700f45
+compiler:
+  compilerBuildId: sha256:9379c406145c32f0d28403b180a121c9a9d830f9fd21f72bf39bd2a9761019b8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8aa767778338c54882fb947c
+outputLanguage: en
+outputs:
+  - byteCount: 5287
+    contentHash: sha256:a2a461542f61c6655996c494ff28a6902570d3d4f0d9f1c97728388c9deacc75
+    path: docs/decisions/execution/providers/0197-unmanaged-terminal-context-observation.md
+    userRegionHash: sha256:a2a461542f61c6655996c494ff28a6902570d3d4f0d9f1c97728388c9deacc75
+profile: decision_record
+recordId: knormdoc_4e5c1405a7280b830986310c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:2e71f3baf0d06a483ab4c58ad73901664b21ce741d60226dca910bf6a87b20b6
+sourcePath: docs/decisions/execution/providers/0197-unmanaged-terminal-context-observation.md
+sourceUnitVersionIds:
+  - uv_34c28f7c498da9a0b4f144a7
+  - uv_3f1593d808f1664429e2da12
+  - uv_4c0160a0178a155f6c2b22de
+  - uv_534efea55ac6601d3b5fdf14
+  - uv_552b62b7e9e4c560f9b6812b
+  - uv_93b4d86fd6152b8a24eff785
+  - uv_97f48cafae280a1cdf1d5a88
+  - uv_ad8fbe3b32e30d791e1cd644
+  - uv_df20d7dd463d995f3a138e1a
+  - uv_f25d66e53a0bee978499f07f

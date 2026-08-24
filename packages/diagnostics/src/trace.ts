@@ -1,4 +1,5 @@
 import type { EventStore } from "@lervo/storage-contract";
+import { projectManagedContextCoverage } from "@lervo/context-coverage";
 
 import { readTraceReport, traceReportSchemaVersion } from "./trace-report-contract.js";
 import { DiagnosticsError, type TraceReport, type TraceSelector } from "./types.js";
@@ -50,6 +51,7 @@ export function createTraceReport(input: {
     firstOccurredAt: events[0]!.occurredAt,
     lastOccurredAt: events.at(-1)!.occurredAt,
     sessionIds: [...new Set(events.map((event) => event.sessionId))],
+    contextCoverage: projectManagedContextCoverage(events),
     events,
   });
 }

@@ -1,0 +1,28 @@
+candidateId: knorm_8bdd64133b64fb0cae3dd611
+compiler:
+  compilerBuildId: sha256:ad68baffc3159430cb850172b62213e133862097161bc1366f2ff8820d565653
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.148.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6e61fa4272886eceb1dd6905
+outputLanguage: en
+outputs:
+  - byteCount: 8039
+    contentHash: sha256:57e743227221e6afe85eb70084a735b15b04cfe84a70a0c3b61e4d0d5070902f
+    path: docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md
+    userRegionHash: sha256:57e743227221e6afe85eb70084a735b15b04cfe84a70a0c3b61e4d0d5070902f
+profile: decision_record
+recordId: knormdoc_05e7afaade1d7c60771ba0e4
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a4e9cd67edff33d67bbd68666034d67ecaeee9c1d150db8e19175f98d0811a1e
+sourcePath: docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md
+sourceUnitVersionIds:
+  - uv_1458573f2529453c26787adb
+  - uv_1da03a6349464f999797307a
+  - uv_295a6dd8f310f642b0138575
+  - uv_2df062405237b5454ebaade0
+  - uv_883f15298a02b9d0f052cbf6
+  - uv_e213fcca8a690724b5d41650

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_6d4bc9bf166d68e8aaca358f
+freshness: current
+ownership: user
+path: docs/roadmap/onboarding/agent-workforce.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_73c4a9c2bd51253bfcfa086f
+title: Repository onboarding and agent workforce
+type: concept

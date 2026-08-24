@@ -19,6 +19,7 @@ import {
 } from "./types.js";
 import { HubTraceError } from "./errors.js";
 import { assertKnowledgeGraphPage } from "./knowledge-graph-page.js";
+import { validateSchema } from "@lervo/schemas";
 
 const DEFAULT_PAGE_LIMIT = 50;
 export const HUB_TRACE_MAX_PAGE_LIMIT = 100;
@@ -197,6 +198,13 @@ class HubTraceQueryReader {
       result.run.runId !== query.runId
     ) {
       throw new HubTraceError("source_inconsistent", "The Hub run trace coordinates differ from the request.");
+    }
+    if (result.contextCoverage !== null && (
+      !validateSchema("managedContextCoverageReport", result.contextCoverage).valid ||
+      result.contextCoverage.projectId !== query.projectId ||
+      result.contextCoverage.runId !== query.runId
+    )) {
+      throw new HubTraceError("source_inconsistent", "The Hub managed context coverage differs from the requested run.");
     }
     return clone(result);
   }

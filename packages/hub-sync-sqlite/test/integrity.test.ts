@@ -102,6 +102,9 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const previous = new DatabaseSync(path);
     previous.exec(`
+      DROP TRIGGER hub_workstream_revisions_no_delete;
+      DROP TRIGGER hub_workstream_revisions_identity_immutable;
+      DROP TABLE hub_workstream_revisions;
       DROP TRIGGER hub_remote_command_artifact_cleanup_runtime_no_delete;
       DROP TABLE hub_remote_command_artifact_cleanup_runtime;
       DROP INDEX hub_remote_command_artifact_gc_completion_uri;
@@ -131,6 +134,9 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const previous = new DatabaseSync(path);
     previous.exec(`
+      DROP TRIGGER hub_workstream_revisions_no_delete;
+      DROP TRIGGER hub_workstream_revisions_identity_immutable;
+      DROP TABLE hub_workstream_revisions;
       DROP INDEX hub_knowledge_graph_to;
       DROP INDEX hub_knowledge_graph_from;
       DROP TABLE hub_knowledge_graph_relations;

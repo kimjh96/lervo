@@ -142,6 +142,8 @@ function credentialSnapshot(token: string): Record<string, unknown> {
       permissions: [
         "trace.read",
         "sync.write",
+        "workstream.read",
+        "workstream.write",
         "policy.read",
         "policy.write",
         "command.read",

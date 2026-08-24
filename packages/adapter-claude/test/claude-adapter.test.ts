@@ -389,6 +389,7 @@ describe("Claude managed adapter", () => {
     expect(context).toContain(data.writing.trim());
     expect(context).toContain(data.startRequest.roleId);
     expect(context).toContain(data.startRequest.writingPolicyId as string);
+    expect(context).toContain("lervo-e4:");
     expect(receipt.documents.map((item) => item.contentHash)).toEqual(
       data.contextEnvelope.documents.map((item) => item.contentHash),
     );

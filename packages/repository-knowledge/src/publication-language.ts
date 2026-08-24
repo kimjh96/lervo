@@ -73,7 +73,7 @@ const english: RepositoryPublicationMessages = {
     "Run the repository's relevant verification and `lervo knowledge lint` after changes.",
   ],
   publicationSnapshot: ({ snapshotId, included, includedBytes, excluded, unsupported }) =>
-    `Publication snapshot: \`${snapshotId}\`. Included ${included} publishable sources (${includedBytes} bytes), excluded ${excluded}, unsupported ${unsupported}. Local-inventory-only agent surfaces are omitted.`,
+    `Publication input snapshot: \`${snapshotId}\`. Included ${included} publishable sources (${includedBytes} bytes), excluded ${excluded}, unsupported ${unsupported}. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use \`lervo migrate knowledge\` to determine currency.`,
   itemCount: (count, singular, plural = `${singular}s`) => `${count} ${count === 1 ? singular : plural}`,
   groups: {
     agent_instructions: "Agent instructions",

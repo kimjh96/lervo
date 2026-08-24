@@ -12,6 +12,8 @@ import {
   applyKnowledgeDocumentSplitPlan,
   applyKnowledgeInstructionBridgePlan,
   applySemanticKnowledgeMaterializationPlan,
+  applyTerminalIntegrationPlan,
+  applyContinuationWorkstreamMigrationPlan,
   analyzeRepositoryKnowledgeImpact,
   calculateKnowledgeReconciliationReviewPolicyVersion,
   canonicalJson,
@@ -25,6 +27,8 @@ import {
   createSemanticKnowledgeMaterializationPlan,
   createKnowledgeMigrationPlan,
   createRepositoryLayoutMigrationPlan,
+  createTerminalIntegrationPlan,
+  createContinuationWorkstreamMigrationPlan,
   lintRepositoryKnowledge,
   inspectConfiguredDocumentNormalization,
   queryRepositoryKnowledge,
@@ -40,6 +44,7 @@ import {
   serializableKnowledgeDocumentSplitPlan,
   serializableKnowledgeInstructionBridgePlan,
   serializableRepositoryLayoutMigrationPlan,
+  serializableTerminalIntegrationPlan,
   applyKnowledgeDocumentDeletionPlan,
   type KnowledgeMigrationPlan,
   type RepositoryLayoutMigrationPlan,
@@ -744,7 +749,7 @@ export async function runKnowledgeMigration(input: {
   io: CliIo;
   mode: "migrate" | "refresh";
 }): Promise<number> {
-  let values: { root?: string; apply?: string; "approve-item"?: string[]; provider?: string; candidate?: string; model?: string; executable?: string; "timeout-ms"?: string; json?: boolean; help?: boolean };
+  let values: { root?: string; apply?: string; "approve-item"?: string[]; "continuation-source"?: string; provider?: string; candidate?: string; model?: string; executable?: string; "timeout-ms"?: string; json?: boolean; help?: boolean };
   try {
     values = parseArgs({
       args: input.args,
@@ -754,6 +759,7 @@ export async function runKnowledgeMigration(input: {
         root: { type: "string" },
         apply: { type: "string" },
         "approve-item": { type: "string", multiple: true },
+        "continuation-source": { type: "string" },
         provider: { type: "string" },
         candidate: { type: "string" },
         model: { type: "string" },
@@ -774,6 +780,87 @@ export async function runKnowledgeMigration(input: {
   try {
     const repositoryRoot = resolve(input.io.cwd, values.root ?? ".");
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
+    if (input.mode === "migrate") {
+      const projectStorage = await openProjectStorage(repositoryRoot);
+      let continuation;
+      try {
+        continuation = await createContinuationWorkstreamMigrationPlan({
+          repositoryRoot,
+          projectId: projectStorage.manifest.projectId,
+          ...(values["continuation-source"] === undefined ? {} : { sourcePath: values["continuation-source"] }),
+          supplementalSources,
+        });
+      } finally {
+        await projectStorage.close();
+      }
+      if (continuation.status !== "current") {
+        if (values.apply === undefined) {
+          if ((values["approve-item"]?.length ?? 0) > 0) throw new Error("--approve-item must be used with --apply.");
+          input.io.stdout(values.json
+            ? `${JSON.stringify({ ...continuation, operations: continuation.operations.map((operation) => {
+                if (!("content" in operation)) return operation;
+                const { content: _content, ...printable } = operation;
+                return printable;
+              }) }, null, 2)}\n`
+            : continuation.status === "blocked"
+              ? `Continuation workstream migration is blocked.\n${continuation.blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n${continuation.candidates.map((item) => `  candidate: ${item.path} score=${item.score} signals=${item.signals.join(",")}`).join("\n")}\n`
+              : `Continuation workstream migration review plan created.\nplan: ${continuation.planId}\nworkstream: ${continuation.workstream?.workstreamId}\nsource: ${continuation.sourcePath} (${continuation.sourceContentHash})\nreferences updated: ${continuation.referenceUpdates.length}\nnormalization records retired: ${continuation.removedNormalizationRecords.length}\napproval: ${continuation.operationId}=${continuation.approvalHash}\nNo files or state have been changed.\n`);
+          return continuation.status === "blocked" ? 1 : 0;
+        }
+        if (continuation.status === "blocked") throw new Error("The continuation workstream migration is blocked.");
+        if (values.apply !== continuation.planId) throw new Error("The requested plan ID does not match the current continuation workstream migration plan.");
+        if ((values["approve-item"]?.length ?? 0) !== 1) throw new Error("Continuation workstream migration requires one exact --approve-item value.");
+        const approval = /^(kwstreamop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(values["approve-item"]![0]!);
+        if (approval === null) throw new Error("--approve-item must use <operation-id>=<sha256-approval-hash>.");
+        const storage = await openProjectStorage(repositoryRoot);
+        try {
+          const eventIdentity = randomUUID().replaceAll("-", "");
+          const receipt = await applyContinuationWorkstreamMigrationPlan({
+            plan: continuation,
+            approvedOperationId: approval[1]!,
+            approvedHash: approval[2]!,
+            now: new Date(),
+            supplementalSources,
+            recordApplied: async (applied, artifacts) => {
+              const sourceArtifact = await storage.artifacts.put(artifacts.sourceContent);
+              const snapshotArtifact = await storage.artifacts.put(artifacts.snapshotContent);
+              if (sourceArtifact.contentHash !== applied.sourceContentHash || snapshotArtifact.contentHash !== applied.snapshotContentHash) {
+                throw new RepositoryKnowledgeError("knowledge_apply_failed", "The persisted workstream artifacts differ from the migration bindings.");
+              }
+              storage.events.append({
+                eventId: `evt_${eventIdentity}`,
+                projectId: applied.projectId,
+                runId: `run_${eventIdentity}`,
+                sessionId: `ses_${eventIdentity}`,
+                type: "workstream.snapshot.recorded",
+                occurredAt: applied.appliedAt,
+                actor: { kind: "user" },
+                schemaVersion: 1,
+                policyVersion: applied.approvalHash,
+                payload: {
+                  workstreamId: applied.workstreamId,
+                  revision: applied.revision,
+                  status: applied.status,
+                  changeKind: "legacy_continuation_migration",
+                  snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
+                  snapshotContentHash: applied.snapshotContentHash,
+                  previousSnapshotContentHash: applied.previousSnapshotContentHash,
+                  sourceArtifactId: `art_${applied.sourceContentHash.slice("sha256:".length)}`,
+                  sourceContentHash: applied.sourceContentHash,
+                  recordedAt: applied.appliedAt,
+                },
+              });
+            },
+          });
+          input.io.stdout(values.json
+            ? `${JSON.stringify(receipt, null, 2)}\n`
+            : `Migrated ${continuation.sourcePath} into Lervo workstream state.\nworkstream: ${receipt.workstreamId}\nreferences updated: ${receipt.referenceUpdatedCount}\nRun lervo migrate knowledge again to refresh canonical documentation and navigation.\n`);
+        } finally {
+          await storage.close();
+        }
+        return 0;
+      }
+    }
     const layout = input.mode === "migrate" ? await createRepositoryLayoutMigrationPlan({ repositoryRoot, supplementalSources }) : null;
     if (layout !== null && layout.status !== "current") {
       if (values.apply === undefined) {
@@ -884,6 +971,73 @@ export async function runKnowledgeMigration(input: {
           ...(values["approve-item"]?.[0] === undefined ? [] : ["--approve-item", values["approve-item"][0]]),
           ...(values.json ? ["--json"] : []),
         ], input.io);
+      }
+    }
+    if (input.mode === "migrate" && structuralCurrent) {
+      const terminal = await createTerminalIntegrationPlan(repositoryRoot);
+      if (terminal.status !== "current") {
+        if (values.apply === undefined) {
+          if ((values["approve-item"]?.length ?? 0) > 0) throw new Error("--approve-item must be used with --apply.");
+          input.io.stdout(values.json
+            ? `${JSON.stringify(serializableTerminalIntegrationPlan(terminal), null, 2)}\n`
+            : terminal.status === "blocked"
+              ? `Terminal integration migration is blocked.\n${terminal.blockers.map((item) => `  ${item.provider} [${item.code}] ${item.path}`).join("\n")}\nExisting provider settings and hooks were not changed.\n`
+              : `Terminal integration review plan created.\nplan: ${terminal.planId}\ncontract: ${terminal.contractId}\ntargets:\n${terminal.targets.map((item) => `  ${item.provider}: ${item.action} ${item.path} · ${item.beforeHash ?? "absent"} → ${item.afterHash ?? "blocked"}`).join("\n")}\napproval: ${terminal.operationId}=${terminal.approvalHash}\nExisting provider settings and hooks have not been changed.\n`);
+          return terminal.status === "blocked" ? 1 : 0;
+        }
+        if (terminal.status === "blocked") throw new Error("The terminal integration plan is blocked; provider configuration must be reviewed before apply.");
+        if (values.apply !== terminal.planId) throw new Error("The requested plan ID does not match the current terminal integration plan.");
+        if ((values["approve-item"]?.length ?? 0) !== 1) throw new Error("Terminal integration requires one exact --approve-item value.");
+        const approval = /^(ktermop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(values["approve-item"]![0]!);
+        if (approval === null) throw new Error("--approve-item must use <operation-id>=<sha256-approval-hash>.");
+        const storage = await openProjectStorage(repositoryRoot);
+        try {
+          if (storage.events.list().some((event) => event.type === "terminal.integration.applied" && event.payload.planId === terminal.planId)) throw new Error("The same terminal integration plan was already applied.");
+          const identity = randomUUID().replaceAll("-", "");
+          const receipt = await applyTerminalIntegrationPlan({
+            plan: terminal,
+            approvedOperationId: approval[1]!,
+            approvedHash: approval[2]!,
+            now: new Date(),
+            recordApplied: (applied) => {
+              storage.events.append({
+                eventId: `evt_${identity}`,
+                projectId: terminal.projectId,
+                runId: `run_${identity}`,
+                sessionId: `ses_${identity}`,
+                type: "terminal.integration.applied",
+                occurredAt: applied.appliedAt,
+                actor: { kind: "user" },
+                schemaVersion: 1,
+                policyVersion: terminal.approvalHash,
+                payload: {
+                  operation: applied.operation,
+                  planId: applied.planId,
+                  contractId: applied.contractId,
+                  providers: terminal.providers,
+                  targetPathDigests: applied.targetDigests.map((item) => item.pathDigest),
+                  targetAfterHashes: applied.targetDigests.map((item) => item.afterHash),
+                  approvalHash: applied.approvalHash,
+                  appliedAt: applied.appliedAt,
+                },
+              });
+            },
+          });
+          const activation = {
+            status: "action_required" as const,
+            requiredOnce: {
+              provider: "codex" as const,
+              instruction: "Open Codex in this repository, run /hooks, then review and trust the Lervo UserPromptSubmit and Stop command hooks. Codex skips untrusted project hooks.",
+            },
+            verification: "Run lervo terminal status after one prompt and one completed turn in each installed provider.",
+          };
+          input.io.stdout(values.json
+            ? `${JSON.stringify({ ...receipt, activation }, null, 2)}\n`
+            : `Applied the Codex and Claude terminal integration without replacing existing provider hooks.\nplan: ${receipt.planId}\ncontract: ${receipt.contractId}\nACTION REQUIRED ONCE FOR CODEX: ${activation.requiredOnce.instruction}\nVERIFY: ${activation.verification}\n`);
+        } finally {
+          await storage.close();
+        }
+        return 0;
       }
     }
     if (input.mode === "migrate" && structuralCurrent) {

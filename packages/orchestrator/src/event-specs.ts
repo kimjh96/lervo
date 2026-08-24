@@ -65,6 +65,14 @@ export function injectedContextEventSpec(injected: InjectedContext): ManagedEven
       documentIds: injected.envelope.documents.map((document) => document.documentId),
       targetTurnId: injected.envelope.targetTurnId,
       contextGeneration: injected.envelope.contextGeneration,
+      adapterId: injected.receipt.adapterId,
+      providerSessionId: injected.receipt.providerSessionId,
+      documents: injected.e3Evidence.map((evidence) => ({
+        evidenceReceiptId: evidence.receiptId,
+        documentId: evidence.documentId,
+        contentHash: evidence.contentHash,
+        scope: evidence.scope,
+      })),
     },
   };
 }

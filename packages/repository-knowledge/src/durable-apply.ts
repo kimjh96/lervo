@@ -239,7 +239,7 @@ async function rollback(root: string, transaction: string, journal: KnowledgeMat
 function validJournal(value: unknown): value is KnowledgeMaterializationJournal {
   const item = value as KnowledgeMaterializationJournal | null;
   return item !== null && typeof item === "object" && item.schemaVersion === 1 &&
-    item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|klayout|knormplan)_[a-f0-9]{24}$/.test(item.planId) &&
+    item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|klayout|knormplan|kwstreamplan)_[a-f0-9]{24}$/.test(item.planId) &&
     typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 &&
     ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) &&
     Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 &&

@@ -3,6 +3,11 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0187: Review-Gated Cross-Provider Exact Merge](../../decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md) — `docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md`
+- [ADR-0196: Fail-Closed Provider Terminal Integration](../../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md) — `docs/decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md`
+- [ADR-0197: Unmanaged Terminal Context Observation](../../decisions/execution/providers/0197-unmanaged-terminal-context-observation.md) — `docs/decisions/execution/providers/0197-unmanaged-terminal-context-observation.md`
+- [ADR-0198: Managed context grounding and coverage](../../decisions/execution/providers/0198-managed-context-grounding-and-coverage.md) — `docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md`
+- [ADR-0200: Natural-language terminal turn finalization](../../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md) — `docs/decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md`
 - [ADR-0032: Project verification in `lervo run`](../../decisions/execution/verification/0032-managed-run-project-verification.md) — `docs/decisions/execution/verification/0032-managed-run-project-verification.md`
 - [ADR-0043: Signed policy and command-bound approval that cannot relax local limits](../../decisions/execution/verification/0043-signed-policy-and-command-bound-approval.md) — `docs/decisions/execution/verification/0043-signed-policy-and-command-bound-approval.md`
 - [ADR-0044: Bind signed approval source to managed-write permits](../../decisions/execution/verification/0044-signed-approval-managed-write-permit.md) — `docs/decisions/execution/verification/0044-signed-approval-managed-write-permit.md`
@@ -22,8 +27,3 @@
 - [ADR-0183: Durable CommonMark Heading-Subtree Split](../../decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md) — `docs/decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md`
 - [ADR-0184: Durable Exact-Byte User Document Merge](../../decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md) — `docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md`
 - [ADR-0030: Converged knowledge candidates and local diagnostics](../../decisions/knowledge/repository/0030-evidence-bound-knowledge-candidates.md) — `docs/decisions/knowledge/repository/0030-evidence-bound-knowledge-candidates.md`
-- [ADR-0144: Explicit Project-Identity Migration with Source Preservation](../../decisions/knowledge/repository/0144-explicit-project-identity-migration.md) — `docs/decisions/knowledge/repository/0144-explicit-project-identity-migration.md`
-- [ADR-0170: Evidence-Bound Repository Knowledge Compilation and Migration](../../decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md) — `docs/decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md`
-- [ADR-0171: Content-Addressed OKF Exchange and Git Reproduction](../../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md) — `docs/decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md`
-- [ADR-0172: Bounded Parser-Grade YAML Source Units](../../decisions/knowledge/repository/0172-bounded-parser-grade-yaml-source-units.md) — `docs/decisions/knowledge/repository/0172-bounded-parser-grade-yaml-source-units.md`
-- [ADR-0173: Bounded Parser-Grade JSON Source Units](../../decisions/knowledge/repository/0173-bounded-parser-grade-json-source-units.md) — `docs/decisions/knowledge/repository/0173-bounded-parser-grade-json-source-units.md`

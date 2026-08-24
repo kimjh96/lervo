@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:af4cde55-8ff6-5757-8a60-34a39942d3b6",
+  "serialNumber": "urn:uuid:df1a3b50-ae48-5d15-9043-e90f9f2bbe70",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "3f7865674864ece10350ec0e67bb111f070d7fd3725f8c7888e596a732b90106"
+          "content": "8635325f1ace26e261613a2bada4ec4c069da89c57a3ed391fee06e265cccff1"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:7f75787fab1dd6d3fb26adc0dcfd3c32003b500a61fc110222d59042455f1e41"
+          "value": "sha256:f733045fe51934f45d13f8ae518613305fc6bf3e0276333977020c24761ea73f"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:af81afcb492cc32340e7e2ca753bc4966b9241e14e1ff7003e75b863939e4e4e"
+          "value": "sha256:f9fe850f815d4712f295de29f75b330e28e145201885206a69d43752a8433656"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -385,6 +385,21 @@
       "name": "cas",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/cas@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/context-coverage@0.1.0",
+      "group": "@lervo",
+      "name": "context-coverage",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/context-coverage@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -3594,6 +3609,7 @@
         "pkg:npm/%40lervo/adapter-codex@0.1.0",
         "pkg:npm/%40lervo/adapter-contract@0.1.0",
         "pkg:npm/%40lervo/cas@0.1.0",
+        "pkg:npm/%40lervo/context-coverage@0.1.0",
         "pkg:npm/%40lervo/context-delivery@0.1.0",
         "pkg:npm/%40lervo/context@0.1.0",
         "pkg:npm/%40lervo/core@0.1.0",

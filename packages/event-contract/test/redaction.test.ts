@@ -6,6 +6,73 @@ import {
 } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps bounded unmanaged coordinates while excluding provider text", () => {
+    const result = sanitizeEventPayload("terminal.context.prepared", {
+      observationId: "tobs_context_01234567",
+      executionMode: "unmanaged",
+      providerSessionDigest: `sha256:${"a".repeat(64)}`,
+      providerTurnDigest: null,
+      sourceSnapshotId: `ksnap_${"b".repeat(24)}`,
+      repositoryRevision: `sha256:${"9".repeat(64)}`,
+      queryDigest: `sha256:${"c".repeat(64)}`,
+      contextHash: `sha256:${"d".repeat(64)}`,
+      recommendationCount: 1,
+      loadedDocuments: [{ conceptId: `concept_${"e".repeat(24)}`, path: "docs/knowledge/cache.md", contentHash: `sha256:${"f".repeat(64)}`, scope: "full", deliveredByteCount: 42, assurance: "human_reviewed", freshness: "current" }],
+      workstreamId: null,
+      workstreamRevision: null,
+      workstreamSnapshotHash: null,
+      workstreamScope: null,
+      workstreamDeliveredByteCount: null,
+      prompt: "private prompt text",
+      lastAssistantMessage: "private completion text",
+      providerSessionId: "private-provider-session",
+    });
+    expect(result.payload).toMatchObject({ executionMode: "unmanaged", recommendationCount: 1 });
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(result.redactions).toEqual(expect.arrayContaining([
+      { path: "$.prompt", reason: "not_allowlisted" },
+      { path: "$.lastAssistantMessage", reason: "not_allowlisted" },
+      { path: "$.providerSessionId", reason: "not_allowlisted" },
+    ]));
+  });
+
+  it("stores only content-addressed workstream coordinates", () => {
+    const snapshotHash = `sha256:${"a".repeat(64)}`;
+    const sourceHash = `sha256:${"b".repeat(64)}`;
+    const payload = {
+      workstreamId: `wks_${"c".repeat(24)}`,
+      revision: 1,
+      status: "active",
+      changeKind: "legacy_handoff_migration",
+      snapshotArtifactId: `art_${"a".repeat(64)}`,
+      snapshotContentHash: snapshotHash,
+      previousSnapshotContentHash: null,
+      sourceArtifactId: `art_${"b".repeat(64)}`,
+      sourceContentHash: sourceHash,
+      recordedAt: "2026-08-24T00:00:00.000Z",
+    };
+    expect(sanitizeEventPayload("workstream.snapshot.recorded", { ...payload, objective: "private objective" }).payload).toEqual(payload);
+    expect(() => sanitizeEventPayload("workstream.snapshot.recorded", { ...payload, snapshotArtifactId: `art_${"d".repeat(64)}` }))
+      .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
+  it("keeps only bounded agent-declared terminal disposition coordinates", () => {
+    const payload = {
+      declarationId: "tdecl_0123456789abcdef",
+      contextEventId: "evt_context_01234567",
+      repositoryRevision: `sha256:${"a".repeat(64)}`,
+      taskMode: "change",
+      canonicalizationDisposition: "canonical_sources_updated",
+      knowledgeDisposition: "refreshed",
+      deliberationDisposition: "not_requested",
+      deliberationId: null,
+      declaredAt: "2026-08-24T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("terminal.turn.declared", { ...payload, summary: "private provider prose" });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+  });
+
   it("keeps repository reconciliation review coordinates without reviewer identity", () => {
     const hash = `sha256:${"a".repeat(64)}`;
     const payload = {
@@ -176,6 +243,47 @@ describe("event payload privacy boundary", () => {
     expect(loaded.payload.knowledgeContext).toEqual(knowledgeContext);
     expect(injected.payload.evidenceReceiptIds).toEqual(["ctx_injected_000001"]);
     expect(JSON.stringify([loaded.payload, injected.payload])).not.toContain("private body");
+  });
+
+  it("keeps managed E4 bindings without provider result or document bodies", () => {
+    const contentHash = `sha256:${"a".repeat(64)}`;
+    const result = sanitizeEventPayload("adapter.result.captured", {
+      adapterId: "lervo/codex",
+      providerSessionId: "provider-session-1",
+      targetTurnId: "target-turn-1",
+      providerTurnId: "provider-turn-1",
+      resultDigest: `sha256:${"b".repeat(64)}`,
+      byteCount: 42,
+      mediaType: "text/markdown; charset=utf-8",
+      referenceTelemetry: "supported",
+      content: "private provider response",
+    });
+    const reference = sanitizeEventPayload("context.referenced", {
+      evidenceReceiptId: "ctx_reference_0000001",
+      injectedEvidenceReceiptId: "ctx_injected_00000001",
+      adapterReceiptId: "ctx_adapter_00000001",
+      sourceEventId: "evt_result_00000001",
+      documentId: "doc_context_00000001",
+      contentHash,
+      scope: { kind: "full" },
+      provider: "codex",
+      providerSessionId: "provider-session-1",
+      targetTurnId: "target-turn-1",
+      providerTurnId: "provider-turn-1",
+      contextGeneration: 0,
+      referenceKind: "output_citation",
+      citation: `lervo-e4:doc_context_00000001:${contentHash}`,
+      documentBody: "private document body",
+    });
+
+    expect(result.payload).not.toHaveProperty("content");
+    expect(reference.payload).not.toHaveProperty("documentBody");
+    expect(reference.payload).toMatchObject({
+      documentId: "doc_context_00000001",
+      contentHash,
+      referenceKind: "output_citation",
+    });
+    expect(JSON.stringify([result.payload, reference.payload])).not.toContain("private");
   });
 
   it("keeps bounded search recommendation evidence without query or source path", () => {

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_edbfa7cb206aacd7c29c5569
+freshness: current
+ownership: user
+path: docs/roadmap/knowledge/public-readme-migration.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6084d36da59b0d905bda21e7
+title: Public README migration
+type: concept

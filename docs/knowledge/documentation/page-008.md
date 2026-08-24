@@ -3,6 +3,12 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
+- [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
+- [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
+- [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
+- [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`
+- [ADR-0121: Remote Deployment Evidence for the Stage-Only Workflow](../../decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md) — `docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md`
 - [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
 - [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`
@@ -21,9 +27,3 @@
 - [ADR-0059: Search candidate review with replay verification](../../decisions/search/0059-replayed-search-candidate-review.md) — `docs/decisions/search/0059-replayed-search-candidate-review.md`
 - [ADR-0060: Policy-bound search-engine selection and rollback](../../decisions/search/0060-policy-bound-search-engine-selection.md) — `docs/decisions/search/0060-policy-bound-search-engine-selection.md`
 - [ADR-0061: Fail-closed operational search-engine resolution](../../decisions/search/0061-fail-closed-operational-search-engine-resolution.md) — `docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md`
-- [ADR-0062: Refreshing evidence for a selected search candidate](../../decisions/search/0062-selected-search-candidate-evidence-refresh.md) — `docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md`
-- [ADR-0063: Search-adapter build identity and rebuildable replay receipts](../../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md) — `docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md`
-- [ADR-0064: Selection-bound operational search quality observations](../../decisions/search/0064-selection-bound-operational-search-quality.md) — `docs/decisions/search/0064-selection-bound-operational-search-quality.md`
-- [ADR-0065: Human search-rollout review and execution boundary](../../decisions/search/0065-human-search-rollout-review.md) — `docs/decisions/search/0065-human-search-rollout-review.md`
-- [ADR-0066: Bounded search-rollout review status](../../decisions/search/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/0066-bounded-search-rollout-review-status.md`
-- [ADR-0067: Policy-bound search-rollout review](../../decisions/search/0067-policy-bound-search-rollout-review.md) — `docs/decisions/search/0067-policy-bound-search-rollout-review.md`

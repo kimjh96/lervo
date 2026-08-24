@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./workstream": {
+      "types": "./dist/workstream.d.ts",
+      "default": "./dist/workstream.js"
     }
   },
   "scripts": {

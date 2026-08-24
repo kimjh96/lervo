@@ -2,7 +2,9 @@ import type {
   OutboundEventBatch,
   ProjectRegistrationRequest,
   RemoteCommandTarget,
+  WorkstreamReplicationPublishRequest,
 } from "@lervo/schemas";
+import { validateSchema } from "@lervo/schemas";
 import {
   assertOutboundEventBatch,
   assertProjectRegistrationRequest,
@@ -10,7 +12,7 @@ import {
 } from "@lervo/sync-contract";
 
 import { readSyncHttpJson } from "./http-json.js";
-import type { AuthenticatedHubTransport } from "./transport.js";
+import type { AuthenticatedHubTransport, AuthenticatedWorkstreamHubTransport } from "./transport.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 4_194_304;
 const MAXIMUM_HTTP_BYTES = 16_777_216;
@@ -55,7 +57,7 @@ function sameTarget(left: RemoteCommandTarget, right: RemoteCommandTarget): bool
     left.projectIdentityHash === right.projectIdentityHash;
 }
 
-export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport {
+export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport, AuthenticatedWorkstreamHubTransport {
   private readonly baseUrl: URL;
   private readonly bearerToken: string;
   private readonly expectedHubIdentityHash: string;
@@ -123,13 +125,38 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
     return this.post("event-batches", batch, [200]);
   }
 
+  async publishWorkstream(request: WorkstreamReplicationPublishRequest): Promise<unknown> {
+    if (!validateSchema("workstreamReplicationPublishRequest", request).valid) {
+      throw new Error("The workstream publication request is invalid.");
+    }
+    if (
+      request.projectId !== this.target.projectId ||
+      request.repositoryIdentityHash !== this.target.projectIdentityHash ||
+      request.registrationId !== this.registrationId
+    ) throw new Error("The workstream publication coordinates differ from the transport configuration.");
+    return this.requestJson("workstreams", "POST", request, [200, 201]);
+  }
+
+  async readWorkstream(): Promise<unknown> {
+    return this.requestJson("workstreams", "GET", undefined, [200]);
+  }
+
   private async post(
     kind: "registration" | "event-batches",
     body: unknown,
     acceptedStatuses: readonly number[],
   ): Promise<unknown> {
-    const serialized = JSON.stringify(body);
-    if (Buffer.byteLength(serialized, "utf8") > this.maxRequestBytes) {
+    return this.requestJson(kind, "POST", body, acceptedStatuses);
+  }
+
+  private async requestJson(
+    kind: "registration" | "event-batches" | "workstreams",
+    method: "GET" | "POST",
+    body: unknown | undefined,
+    acceptedStatuses: readonly number[],
+  ): Promise<unknown> {
+    const serialized = body === undefined ? undefined : JSON.stringify(body);
+    if (serialized !== undefined && Buffer.byteLength(serialized, "utf8") > this.maxRequestBytes) {
       throw new Error("The Hub synchronization request exceeds the allowed size.");
     }
     const url = new URL(
@@ -142,13 +169,13 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport 
     const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
     try {
       const response = await this.request(url, {
-        method: "POST",
+        method,
         headers: {
           accept: "application/json",
           authorization: `Bearer ${this.bearerToken}`,
-          "content-type": "application/json; charset=utf-8",
+          ...(serialized === undefined ? {} : { "content-type": "application/json; charset=utf-8" }),
         },
-        body: serialized,
+        ...(serialized === undefined ? {} : { body: serialized }),
         redirect: "error",
         signal: controller.signal,
       });

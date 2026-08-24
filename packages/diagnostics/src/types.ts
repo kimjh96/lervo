@@ -14,6 +14,10 @@ export type {
   TracePageReport,
   TraceReport,
   TraceCapabilitiesReport,
+  TerminalCoverageReport,
+  TerminalTurnCoverage,
+  ManagedContextCoverageReport,
+  ManagedContextDocumentCoverage,
 } from "@lervo/schemas";
 
 export type TraceSelector = "last" | string;
@@ -31,7 +35,8 @@ export class DiagnosticsError extends Error {
       | "trace_empty"
       | "trace_filter_empty"
       | "trace_result_too_large"
-      | "trace_run_not_found",
+      | "trace_run_not_found"
+      | "terminal_coverage_invalid",
     message: string,
   ) {
     super(message);

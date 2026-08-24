@@ -6,4 +6,5 @@ export * from "./trace-report-contract.js";
 export * from "./trace-page.js";
 export * from "./trace-page-report-contract.js";
 export * from "./trace-capabilities-report.js";
+export * from "./terminal-coverage.js";
 export * from "./types.js";

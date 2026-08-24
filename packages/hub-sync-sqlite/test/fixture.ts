@@ -70,6 +70,7 @@ export function eventChain(
     sessionId?: string;
     type?: EventType;
     payload?: Record<string, unknown>;
+    actor?: EventEnvelope["actor"];
   } = () => ({}),
 ): EventEnvelope[] {
   const events: EventEnvelope[] = [];
@@ -84,7 +85,7 @@ export function eventChain(
       seq,
       type: item.type ?? "run.requested",
       occurredAt: `2026-08-19T00:00:${String(seq).padStart(2, "0")}.000Z`,
-      actor: { kind: "user" },
+      actor: item.actor ?? { kind: "user" },
       schemaVersion: 1,
       policyVersion,
       payload: item.payload ?? {

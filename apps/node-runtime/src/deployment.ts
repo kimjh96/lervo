@@ -1,16 +1,19 @@
 import { lstat } from "node:fs/promises";
 
+import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import {
   AuthenticatedHubHttpTransport,
   runOutboundSyncLoop,
+  runWorkstreamReplicationCycle,
   type AuthenticatedHubTransport,
+  type AuthenticatedWorkstreamHubTransport,
   type OutboundSyncPollingWaitPort,
   type SyncCycleResult,
   type SyncHttpTransportOptions,
 } from "@lervo/sync";
-import { calculateProjectIdentityHash } from "@lervo/sync-contract";
+import { calculateProjectIdentityHash, createProjectRegistrationRequest } from "@lervo/sync-contract";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
@@ -27,6 +30,7 @@ import {
   type NodeRemoteControlRuntime,
 } from "./control-runtime.js";
 import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
+import { NodeWorkstreamReplicationLocalPort } from "./workstream-replication.js";
 
 export interface NodeRuntimeOpenPorts {
   createTransport?: (options: SyncHttpTransportOptions) => AuthenticatedHubTransport;
@@ -75,6 +79,7 @@ export async function openNodeRuntime(
       validated.remoteCommands !== undefined,
     );
     store = await SQLiteEventStore.open({ path: paths.eventDatabase, projectId: manifest.projectId });
+    const artifacts = await FileSystemCas.open(paths.cas);
     const target = {
       projectId: manifest.projectId,
       projectIdentityHash: calculateProjectIdentityHash(manifest),
@@ -131,6 +136,28 @@ export async function openNodeRuntime(
         return createTransport(transportOptions()).sendEventBatch(batch);
       },
     };
+    const workstreamTransport: AuthenticatedWorkstreamHubTransport = {
+      publishWorkstream(request) {
+        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport & Partial<AuthenticatedWorkstreamHubTransport>;
+        if (typeof candidate.publishWorkstream !== "function") {
+          throw new Error("The configured Hub transport does not support workstream publication.");
+        }
+        return candidate.publishWorkstream(request);
+      },
+      readWorkstream() {
+        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport & Partial<AuthenticatedWorkstreamHubTransport>;
+        if (typeof candidate.readWorkstream !== "function") {
+          throw new Error("The configured Hub transport does not support workstream reads.");
+        }
+        return candidate.readWorkstream();
+      },
+    };
+    const localWorkstreams = new NodeWorkstreamReplicationLocalPort(
+      paths.repositoryRoot,
+      manifest.projectId,
+      store,
+      artifacts,
+    );
     const worker = {
       store,
       transport,
@@ -159,6 +186,29 @@ export async function openNodeRuntime(
       ...(ports.nowMilliseconds === undefined ? {} : { nowMilliseconds: ports.nowMilliseconds }),
       onCycle: async (result) => {
         await health.observeSync(result);
+        if (result.status === "idle" || result.status === "synchronized") {
+          try {
+            const replication = await runWorkstreamReplicationCycle({
+              local: localWorkstreams,
+              transport: workstreamTransport,
+              registration: createProjectRegistrationRequest({
+                manifest,
+                destinationId: validated.hub.destinationId,
+                requestedAt: new Date().toISOString(),
+              }),
+              destinationId: validated.hub.destinationId,
+              expectedPeerIdentityHash: validated.hub.hubIdentityHash,
+            });
+            await health.observeWorkstreamReplication(replication);
+          } catch (error) {
+            const code = typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+              ? error.code
+              : "workstream_replication_failed";
+            await health.observeWorkstreamReplicationFailure(code);
+          }
+        } else {
+          await health.observeWorkstreamReplicationFailure(result.failureCode);
+        }
         await ports.onCycle?.(result);
       },
     }), remoteControl ?? null, async () => {

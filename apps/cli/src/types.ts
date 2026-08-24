@@ -9,6 +9,7 @@ export interface CliIo {
   cwd: string;
   stdout: (message: string) => void;
   stderr: (message: string) => void;
+  stdin?: () => Promise<string>;
 }
 
 export interface CliServices {

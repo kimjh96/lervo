@@ -3,6 +3,12 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0098: CLI first-publication execution and transition receipts](../../decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md) — `docs/decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md`
+- [ADR-0099: Durable storage and interactive adapter for CLI first publication](../../decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md) — `docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md`
+- [ADR-0100: Read-only CLI first-publication preflight report](../../decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md) — `docs/decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md`
+- [ADR-0101: CLI first-publication preflight command](../../decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md) — `docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md`
+- [ADR-0102: CLI first-publication execution plan and unarmed boundary](../../decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md) — `docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md`
+- [ADR-0103: CLI first-publication execution-plan command](../../decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md) — `docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md`
 - [ADR-0104: CLI first-publication activation blocker report](../../decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md) — `docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md`
 - [ADR-0105: CLI first-publication metadata decision and write-free preview](../../decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md) — `docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md`
 - [ADR-0106: CLI first-publication package-metadata patch candidate](../../decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md) — `docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md`
@@ -21,9 +27,3 @@
 - [ADR-0047: Role-scoped managed conversation responses and publication evidence](../../decisions/release/packaging/0047-managed-conversation-responder.md) — `docs/decisions/release/packaging/0047-managed-conversation-responder.md`
 - [ADR-0086: Canonical CLI release artifact manifest](../../decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md) — `docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md`
 - [ADR-0089: CLI multi-platform release matrix](../../decisions/release/packaging/0089-cli-multi-platform-release-matrix.md) — `docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md`
-- [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
-- [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
-- [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
-- [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
-- [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`
-- [ADR-0121: Remote Deployment Evidence for the Stage-Only Workflow](../../decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md) — `docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md`

@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import {
   createManagedWriteDecision,
   inspectTurnResultBinding,
+  managedContextPublicationContent,
   type ProviderAdapter,
 } from "@lervo/adapter-contract";
 import type {
@@ -205,7 +206,11 @@ export function createLocalProviderWritingEvaluator(
           throw new Error("The writing evaluator result does not match its adapter coordinates.");
         }
         stopReason = "completed";
-        return parseSemanticEvaluation(result.content, request, input.provider);
+        return parseSemanticEvaluation(
+          managedContextPublicationContent(result.content, envelope.documents),
+          request,
+          input.provider,
+        );
       } finally {
         let cleanupFailure: unknown;
         if (session !== undefined) {

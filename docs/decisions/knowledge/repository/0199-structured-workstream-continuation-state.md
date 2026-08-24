@@ -1,0 +1,51 @@
+# ADR-0199: Structured workstream continuation state
+
+- Status: accepted (amended 2026-08-24)
+- Decision date: 2026-08-24
+
+## Context
+
+Lervo previously exempted root `HANDOFF.md` from semantic routing and used it as a short continuation entrypoint. Reviewed normalization could split history into `docs/repository/handoffs/`, but the mutable root file still mixed current objectives, actions, deployment facts, references, and long-term documentation. It lacked workstream identity, revision transitions, event binding, automatic provider context, and reliable cross-device coordinates. A line limit bounded size but did not create a lifecycle.
+
+`HANDOFF.md` is not a standard Codex or Claude discovery surface, and neither its name nor root location is a portable repository contract. Existing projects may keep active state in session notes, status pages, work logs, issue documents, or arbitrary Markdown; new projects may have no continuation document.
+
+## Decision
+
+Active continuation state uses the provider-neutral `lervo.workstream.v1` snapshot contract. The current local projection is written lazily to `.lervo/state/workstreams/current.json`; no workstream directory exists before its first snapshot. A snapshot has a stable workstream ID, monotonic revision, `active`, `blocked`, or `completed` status, bounded title and objective, bounded next actions, blockers, current facts, repository-relative references, immutable origin coordinates, and update time.
+
+Every committed snapshot is stored byte-for-byte in local CAS and emits `workstream.snapshot.recorded`. The event contains workstream ID, revision, status, change kind, current and previous snapshot hashes, content-addressed artifact coordinates, optional legacy-source artifact coordinates, and time. It contains no objective, action, blocker, note, reference text, absolute path, provider text, prompt, credential, or source body. Missing events, mismatched projections, or missing or invalid current snapshot artifacts invalidate workstream context and fail terminal completion closed. Migrating legacy HANDOFF retains the source artifact locally.
+
+`lervo workstream current` reads verified current state; `--context` returns bounded agent context and `--json` returns the structured snapshot. `lervo workstream start` accepts bounded semantic fields, derives system identity and created origin, and uses reproducible plan/apply. It is for recovery and inspection: provider integration tells the working agent, not the user, to invoke it. `lervo workstream update` accepts a complete v1 JSON snapshot, creates a read-only plan, requires its exact plan ID for apply, preserves workstream identity and origin, and requires revision to increase by exactly one.
+
+Managed runs add a present current workstream as a required `repository.workstream` context candidate with ordinary E1 selection, E2 exact-byte loading, and provider-adapter E3 delivery. Direct Codex and Claude hooks prepend at most 8 KiB of verified workstream context and record workstream ID, revision, exact snapshot hash, delivered byte count, full or prefix scope, and the repository revision prepared for the turn. An unchanged turn creates no artificial continuation history. When repository-authored bytes change, Stop requires a first snapshot if none existed at prompt preparation, or a revision greater than the prepared revision. Before completion, the working agent records `agent_start` or `agent_update` with its provider coordinate. This unmanaged preparation proves neither provider acceptance nor use.
+
+Snapshots may carry bounded unresolved decisions and approvals. They contain choices or exact binding coordinates needed by the next agent but do not accumulate resolved history. Natural-language user responses resolve them through the working agent; durable outcomes move to canonical documentation and resolved items leave current state.
+
+`lervo migrate knowledge` safely scans included Markdown throughout the repository before layout work. It ranks continuation candidates using bounded name, title, objective, next-action, blocker, current-state, and active-language signals; path and basename alone are never sufficient. One unambiguous candidate may be planned automatically; multiple candidates block until an exact `--continuation-source` is supplied. Lervo never heuristically merges candidate prose.
+
+Exact-approved apply preserves source bytes in CAS, creates the current projection, and updates resolvable Markdown references to `lervo workstream current`. Only the dedicated root legacy `HANDOFF.md` is deleted with its source-owned normalization records. Because arbitrary sources may mix active and durable knowledge, their user bytes remain for reviewed normalization and splitting. One content-bound approval covers every state and user-byte change. Event or validation failure restores every changed file. With no candidate, the first working agent creates the snapshot during its turn. Structural refresh and reviewed normalization use the same content-aware continuation profile for lasting history documents regardless of name or location.
+
+Durable architecture, product, operational, and decision facts must move to appropriate canonical Markdown. Completed handoff publications may remain under semantically grouped documentation only when durably valuable; they are not active continuation state.
+
+Hub event synchronization does not transfer workstream bodies. The separately authorized repository-scoped replication contract in [ADR-0201](../../coordination/sync/0201-repository-scoped-workstream-replication.md) publishes bounded snapshot revisions and may materialize a newer unique head on another authorized node. Local use never depends on that transport.
+
+## Failure meaning
+
+- Invalid or conflicting current state blocks import or update; Lervo does not replace a different active workstream.
+- A stale plan means the source, reference, lifecycle record, current state, or desired snapshot changed and requires replanning.
+- Missing exact approval leaves the selected continuation source and every reference untouched.
+- Multiple credible sources remain separate and block automatic migration; Lervo does not infer a merge.
+- A repository-changing direct terminal turn cannot complete without creating or advancing its verified checkpoint; an unchanged turn does not advance it.
+- Pre-event apply failure rolls back source, state, references, and lifecycle records.
+- Committed-event cleanup failure preserves the committed snapshot and requires normal durable recovery.
+- Missing provider telemetry never upgrades workstream preparation into acceptance or use.
+
+## Consequences
+
+Repository roots retain only conventional human and provider entrypoints. Workstream state becomes bounded, revisioned, inspectable, and provider-neutral without assuming a legacy filename or location. Legacy source bytes remain locally recoverable without forcing session history into long-term documentation. Managed and unmanaged execution receive the same state with their distinct evidence semantics.
+
+The current-state projection remains local node state in v1 and is not published through Git. With explicit Hub replication, only the bounded snapshot contract crosses authorized repository nodes; prompts, transcripts, credentials, legacy source bodies, and approval authority do not. [ADR-0200](../../execution/providers/0200-natural-language-terminal-turn-finalization.md) defines changed-turn declarations and conditional checkpoint enforcement. [ADR-0201](../../coordination/sync/0201-repository-scoped-workstream-replication.md) defines cross-node transport and divergence handling.
+
+## Superseded clauses
+
+This decision supersedes ADR-0193 where it listed root HANDOFF as a permanent entrypoint and ADR-0195 where it retained root HANDOFF as the active continuation document. Nested historical HANDOFF, SESSION, or CONTEXT documents may still use the reviewed handoff-document format when they are durable repository documentation rather than active state.

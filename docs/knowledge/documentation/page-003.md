@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0169: User-Local Repository Registration and Revalidation](../../decisions/distribution/0169-user-local-repository-registration-and-resolution.md) — `docs/decisions/distribution/0169-user-local-repository-registration-and-resolution.md`
 - [ADR-0006: Deterministic context preparation](../../decisions/execution/orchestration/0006-deterministic-context-preparation.md) — `docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md`
 - [ADR-0008: Managed context-gate orchestration](../../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md) — `docs/decisions/execution/orchestration/0008-managed-context-gate-orchestration.md`
 - [ADR-0015: One-file `lervo run` CLI vertical slice](../../decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md) — `docs/decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md`
@@ -26,4 +27,3 @@
 - [ADR-0157: Claude SDK Command-Lifecycle Input Acknowledgement](../../decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md) — `docs/decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md`
 - [ADR-0160: Real HTTPS Managed Provider Vertical Pilot](../../decisions/execution/providers/0160-real-https-managed-provider-vertical-pilot.md) — `docs/decisions/execution/providers/0160-real-https-managed-provider-vertical-pilot.md`
 - [ADR-0166: Repository-Authorized, Provider-Neutral Environment Sources](../../decisions/execution/providers/0166-repository-authorized-environment-source-query.md) — `docs/decisions/execution/providers/0166-repository-authorized-environment-source-query.md`
-- [ADR-0187: Review-Gated Cross-Provider Exact Merge](../../decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md) — `docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md`

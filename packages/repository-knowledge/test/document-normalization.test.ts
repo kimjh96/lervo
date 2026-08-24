@@ -130,6 +130,71 @@ describe("document content normalization", () => {
       .rejects.toMatchObject({ code: "knowledge_compile_failed" });
   });
 
+  it("rejects trailing whitespace introduced by a document normalizer", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/runtime-guide.md"), "# Runtime notes\n\nKeep the runtime current.\n");
+    const invalid = compiler([]);
+    invalid.normalize = async (envelope) => ({
+      schemaVersion: 1,
+      documents: envelope.documents.map((document) => ({
+        sourcePath: document.path,
+        outputs: [{
+          path: document.path,
+          content: "# Runtime guide\n\nStatus: `active`  \n",
+          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+        }],
+      })),
+      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+    });
+
+    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+  });
+
+  it("rejects a trailing blank line introduced by a document normalizer", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Project\n\nStart here.\n");
+    const invalid = compiler([]);
+    invalid.normalize = async (envelope) => ({
+      schemaVersion: 1,
+      documents: envelope.documents.map((document) => ({
+        sourcePath: document.path,
+        outputs: [{
+          path: document.path,
+          content: "# Project\n\nStart here.\n\n",
+          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+        }],
+      })),
+      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+    });
+
+    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+  });
+
+  it("preserves repository lifecycle metadata byte-for-byte", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/roadmap"), { recursive: true });
+    await writeFile(resolve(root, "docs/roadmap/v0.md"), "# Roadmap\n\nStatus: `complete`\nAs of: 2026-08-24\n\n## Scope\n\nDone.\n");
+    const invalid = compiler([]);
+    invalid.normalize = async (envelope) => ({
+      schemaVersion: 1,
+      documents: envelope.documents.map((document) => ({
+        sourcePath: document.path,
+        outputs: [{
+          path: document.path,
+          content: "# Roadmap\n\n- Status: `complete`\n- As of: 2026-08-24\n\n## Scope\n\nDone.\n",
+          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+        }],
+      })),
+      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+    });
+
+    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
+      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+  });
+
   it("uses the portable skill package directory as identity when legacy SKILL.md has no frontmatter", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".agents/skills/deploy-check"), { recursive: true });
@@ -176,7 +241,11 @@ describe("document content normalization", () => {
     await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal }))
       .rejects.toMatchObject({ code: "knowledge_compile_failed" });
     expect(observed.flatMap((envelope) => envelope.documents).find((document) => document.path === "README.md")?.constraints)
-      .toMatchObject({ requiredAgentInstructionPath: "AGENTS.md" });
+      .toMatchObject({
+        requiredAgentInstructionPath: "AGENTS.md",
+        allowSiblingTopicSplit: false,
+        allowedSplitPrefix: null,
+      });
     expect(observed.flatMap((envelope) => envelope.documents).find((document) => document.path.endsWith("voice.md"))?.constraints)
       .toMatchObject({ rewriteWikiLinksAsMarkdown: true });
 

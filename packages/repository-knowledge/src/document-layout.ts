@@ -36,7 +36,6 @@ export interface RepositoryInstructionRoute {
 }
 
 const CONVENTIONAL_ENTRYPOINTS = new Set([
-  "HANDOFF.md",
   "CONTRIBUTING.md",
   "SECURITY.md",
   "CHANGELOG.md",

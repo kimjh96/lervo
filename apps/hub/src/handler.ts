@@ -149,6 +149,7 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
         schemaVersion: 1,
         project: result.project,
         run: result.run,
+        contextCoverage: result.contextCoverage,
         events: result.events.items,
         nextCursor: result.events.nextCursor === null ? null : encodeEventCursor(result.events.nextCursor),
       }, maxResponseBytes);

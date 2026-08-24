@@ -3,6 +3,12 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0080: Shared diagnostics-report compatibility boundary](../../decisions/operations/diagnostics/0080-shared-diagnostics-report-compatibility.md) — `docs/decisions/operations/diagnostics/0080-shared-diagnostics-report-compatibility.md`
+- [ADR-0161: Atomic Node Bearer-Token Reload](../../decisions/operations/security/0161-atomic-node-bearer-token-reload.md) — `docs/decisions/operations/security/0161-atomic-node-bearer-token-reload.md`
+- [ADR-0163: Atomic Node Trust-Material Reload](../../decisions/operations/security/0163-atomic-node-trust-material-reload.md) — `docs/decisions/operations/security/0163-atomic-node-trust-material-reload.md`
+- [ADR-0164: User Runtime Service Management with Explicit Writes](../../decisions/operations/services/0164-user-runtime-service-management-boundary.md) — `docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md`
+- [ADR-0165: Runtime Readiness Separate from OS Activation](../../decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md) — `docs/decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md`
+- [ADR-0003: Local Event Store, Outbox, and Content-Addressed Storage](../../decisions/operations/storage/0003-local-event-store-and-cas.md) — `docs/decisions/operations/storage/0003-local-event-store-and-cas.md`
 - [ADR-0004: Project Storage Bootstrap](../../decisions/operations/storage/0004-project-storage-bootstrap.md) — `docs/decisions/operations/storage/0004-project-storage-bootstrap.md`
 - [ADR-0039: Authenticate and Scope Projects Before Trace HTTP Reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`
 - [ADR-0040: Read-Only Trace Web View Without Accumulated Pages](../../decisions/operations/trace/0040-bounded-trace-web-view.md) — `docs/decisions/operations/trace/0040-bounded-trace-web-view.md`
@@ -21,9 +27,3 @@
 - [ADR-0095: CLI release publication eligibility and authority boundary](../../decisions/release/assurance/0095-cli-release-publication-authorization.md) — `docs/decisions/release/assurance/0095-cli-release-publication-authorization.md`
 - [ADR-0096: CLI Trusted Publisher readiness contract](../../decisions/release/assurance/0096-cli-trusted-publisher-readiness.md) — `docs/decisions/release/assurance/0096-cli-trusted-publisher-readiness.md`
 - [ADR-0097: CLI first-publication bootstrap contract](../../decisions/release/bootstrap/0097-cli-first-publication-bootstrap.md) — `docs/decisions/release/bootstrap/0097-cli-first-publication-bootstrap.md`
-- [ADR-0098: CLI first-publication execution and transition receipts](../../decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md) — `docs/decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md`
-- [ADR-0099: Durable storage and interactive adapter for CLI first publication](../../decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md) — `docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md`
-- [ADR-0100: Read-only CLI first-publication preflight report](../../decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md) — `docs/decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md`
-- [ADR-0101: CLI first-publication preflight command](../../decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md) — `docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md`
-- [ADR-0102: CLI first-publication execution plan and unarmed boundary](../../decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md) — `docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md`
-- [ADR-0103: CLI first-publication execution-plan command](../../decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md) — `docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md`

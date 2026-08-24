@@ -2,6 +2,9 @@ import { access, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
+import {
+  managedContextReferenceComment,
+} from "@lervo/adapter-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -102,6 +105,7 @@ describe("managed provider run lifecycle", () => {
         "context.injected",
         "tool.called",
         "command.executed",
+        "adapter.result.captured",
         "adapter.stopped",
         "run.completed",
       ]);
@@ -113,6 +117,44 @@ describe("managed provider run lifecycle", () => {
         artifactIds: [result.resultArtifact.artifactId],
       });
       expect(data.store.verifyIntegrity().valid).toBe(true);
+      data.store.close();
+    },
+  );
+
+  it.each(["codex", "claude"] as const)(
+    "records exact managed E4 output citations for %s without retaining the result body",
+    async (provider) => {
+      const data = await createManagedFixture();
+      const artifactStore = new MemoryArtifactStore();
+      const adapter = new FakeManagedAdapter(provider, {
+        resultContent: (envelope) =>
+          `Applied repository guidance.\n\n${managedContextReferenceComment(envelope.documents[0]!)}`,
+      });
+      const result = await coordinator(
+        adapter,
+        data.root,
+        data.store,
+        undefined,
+        artifactStore,
+      ).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      });
+      const referenced = result.contextEvidence.filter((item) => item.state === "referenced");
+      expect(referenced).toHaveLength(1);
+      expect(referenced[0]).toMatchObject({
+        documentId: result.contextEvidence.find((item) => item.state === "injected")?.documentId,
+        referenceKind: "output_citation",
+      });
+      const events = data.store.list({ runId });
+      expect(events.filter((event) => event.type === "adapter.result.captured")).toHaveLength(1);
+      expect(events.filter((event) => event.type === "context.referenced")).toHaveLength(1);
+      expect(JSON.stringify(events)).not.toContain("Applied repository guidance");
+      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
+        .toBe("Applied repository guidance.\n\n");
+      expect(result.resultArtifact.contentHash).not.toBe(
+        events.find((event) => event.type === "adapter.result.captured")?.payload.resultDigest,
+      );
       data.store.close();
     },
   );

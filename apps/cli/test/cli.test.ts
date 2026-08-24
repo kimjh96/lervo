@@ -788,6 +788,29 @@ describe("lervo run CLI arguments", () => {
 });
 
 describe("lervo deliberate CLI", () => {
+  it("resolves a natural terminal request to the repository default cross-provider workflow", async () => {
+    const root = await temporaryRepository();
+    await mkdir(resolve(root, ".lervo/verifications"), { recursive: true });
+    await writeFile(resolve(root, ".lervo/verifications/repository.default.yaml"), "fixture\n");
+    let request: unknown;
+    const exitCode = await runCli(
+      ["deliberate", "--auto", "--caller", "claude", "Review the proposed UX writing change."],
+      { cwd: root, stdout: () => undefined, stderr: () => undefined },
+      { executeManagedDeliberation: async (input) => {
+        request = input;
+        throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
+      } },
+    );
+    expect(exitCode).toBe(1);
+    expect(request).toEqual({
+      repositoryRoot: root,
+      proposerProvider: "claude",
+      reviewerProvider: "codex",
+      verificationSuiteIds: ["repository.default"],
+      topic: "Review the proposed UX writing change.",
+    });
+  });
+
   it("requires two different providers before starting a deliberation", async () => {
     let called = false;
     let errors = "";

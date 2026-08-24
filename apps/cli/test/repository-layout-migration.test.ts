@@ -42,6 +42,30 @@ describe("repository layout migration CLI", () => {
     expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const terminal = JSON.parse(messages.join("")) as { planKind: string; planId: string; operationId: string; approvalHash: string; status: string };
+    expect(terminal).toMatchObject({ planKind: "terminal_integration", status: "review_required" });
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", terminal.planId, "--approve-item", `${terminal.operationId}=${terminal.approvalHash}`, "--json"], io), errors.join("")).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      operation: "terminal_integration_update",
+      activation: {
+        status: "action_required",
+        requiredOnce: {
+          provider: "codex",
+          instruction: expect.stringContaining("run /hooks"),
+        },
+      },
+    });
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const refresh = JSON.parse(messages.join("")) as { planId: string; status: string; operations: Array<{ ownership?: string; action: string }> };
+    expect(refresh.status).toBe("ready");
+    expect(refresh.operations.some((item) => item.ownership === "user" && item.action !== "unchanged")).toBe(false);
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--apply", refresh.planId, "--json"], io), errors.join("")).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const rerun = JSON.parse(messages.join("")) as { planKind: string; status: string; pendingDocuments: string[] };
     expect(rerun).toMatchObject({ planKind: "document_normalization_provider_selection", status: "provider_required" });
     expect(rerun.pendingDocuments).toEqual(expect.arrayContaining(["README.md", "CLAUDE.md", "docs/architecture/system.md"]));
@@ -49,7 +73,7 @@ describe("repository layout migration CLI", () => {
     expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
     expect(errors).toEqual([]);
-  }, 15_000);
+  }, 25_000);
 
   it("reports an actionable blocked plan for an unclassified ADR", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-blocked-"));

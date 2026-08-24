@@ -61,6 +61,12 @@ import {
   managedBlockPatchCandidateArtifactSchema,
   managedBlockPatchCandidateSchema,
 } from "./managed-block-patch.js";
+import { managedContextCoverageReportSchema } from "./managed-context-coverage-report.js";
+import {
+  adapterResultCapturedEventPayloadSchema,
+  managedContextInjectedEventPayloadSchema,
+  managedContextReferencedEventPayloadSchema,
+} from "./managed-context-event.js";
 import { knowledgeCandidateSchema } from "./knowledge.js";
 import {
   knowledgeCandidateCreatedEventPayloadSchema,
@@ -107,6 +113,13 @@ import { skillLockSchema } from "./skill-lock.js";
 import { traceReportSchema } from "./trace-report.js";
 import { tracePageReportSchema } from "./trace-page-report.js";
 import { traceCapabilitiesReportSchema } from "./trace-capabilities-report.js";
+import { terminalCoverageReportSchema } from "./terminal-coverage-report.js";
+import {
+  terminalContextPreparedEventPayloadSchema,
+  terminalReferenceObservedEventPayloadSchema,
+  terminalTurnObservedEventPayloadSchema,
+} from "./terminal-observation-event.js";
+import { terminalTurnDeclaredEventPayloadSchema } from "./terminal-turn-declaration-event.js";
 import { verificationResultSchema, verificationSuiteSchema } from "./verification.js";
 import {
   verificationCompletedEventPayloadSchema,
@@ -115,6 +128,15 @@ import {
 import { writingContractSchema } from "./writing.js";
 import { writingEvaluationSchema } from "./writing-evaluation.js";
 import { writingPublicationPermitSchema } from "./writing-publication.js";
+import {
+  workstreamSnapshotRecordedEventPayloadSchema,
+  workstreamSnapshotSchema,
+} from "./workstream.js";
+import {
+  workstreamReplicationPublishRequestSchema,
+  workstreamReplicationPublishResponseSchema,
+  workstreamReplicationReadResponseSchema,
+} from "./workstream-replication.js";
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 ajv.addFormat("date-time", {
@@ -137,6 +159,7 @@ ajv.addSchema(remoteCommandSchema);
 ajv.addSchema(signedRemoteCommandSchema);
 ajv.addSchema(remoteCommandExecutionReceiptSchema);
 ajv.addSchema(deliberationPolicySchema);
+ajv.addSchema(managedContextCoverageReportSchema);
 
 const validators = {
   project: ajv.getSchema(projectManifestSchema.$id)!,
@@ -209,6 +232,22 @@ const validators = {
   traceReport: ajv.compile(traceReportSchema),
   tracePageReport: ajv.compile(tracePageReportSchema),
   traceCapabilitiesReport: ajv.compile(traceCapabilitiesReportSchema),
+  terminalCoverageReport: ajv.compile(terminalCoverageReportSchema),
+  managedContextCoverageReport: ajv.getSchema(managedContextCoverageReportSchema.$id)!,
+  managedContextInjectedEventPayload: ajv.compile(managedContextInjectedEventPayloadSchema),
+  adapterResultCapturedEventPayload: ajv.compile(adapterResultCapturedEventPayloadSchema),
+  managedContextReferencedEventPayload: ajv.compile(managedContextReferencedEventPayloadSchema),
+  terminalContextPreparedEventPayload: ajv.compile(terminalContextPreparedEventPayloadSchema),
+  terminalTurnDeclaredEventPayload: ajv.compile(terminalTurnDeclaredEventPayloadSchema),
+  terminalReferenceObservedEventPayload: ajv.compile(terminalReferenceObservedEventPayloadSchema),
+  terminalTurnObservedEventPayload: ajv.compile(terminalTurnObservedEventPayloadSchema),
+  workstreamSnapshot: ajv.compile(workstreamSnapshotSchema),
+  workstreamSnapshotRecordedEventPayload: ajv.compile(
+    workstreamSnapshotRecordedEventPayloadSchema,
+  ),
+  workstreamReplicationPublishRequest: ajv.compile(workstreamReplicationPublishRequestSchema),
+  workstreamReplicationPublishResponse: ajv.compile(workstreamReplicationPublishResponseSchema),
+  workstreamReplicationReadResponse: ajv.compile(workstreamReplicationReadResponseSchema),
   documentRegistry: ajv.compile(documentRegistrySchema),
   documentStalenessResult: ajv.compile(documentStalenessResultSchema),
   doctorReport: ajv.compile(doctorReportSchema),

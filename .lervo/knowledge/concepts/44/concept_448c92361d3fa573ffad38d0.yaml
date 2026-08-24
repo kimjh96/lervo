@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_448c92361d3fa573ffad38d0
+freshness: current
+ownership: user
+path: docs/evidence/pilots/managed-context-grounding.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_57c191e475cb58130cee38b1
+title: Managed context grounding acceptance pilot
+type: concept

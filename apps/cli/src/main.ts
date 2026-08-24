@@ -14,8 +14,10 @@ import { repositoryUsage, runRepositoryCommand } from "./repository-command.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
+import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
+import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
 
 const usage = `Usage:
 ${versionUsage}
@@ -29,6 +31,8 @@ ${searchUsage}
 ${doctorUsage}
 ${environmentUsage}
 ${repositoryUsage}
+${terminalUsage}
+${workstreamUsage}
 `;
 
 const defaultServices: CliServices = {
@@ -63,6 +67,8 @@ export async function runCli(
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
+  if (command === "terminal") return runTerminalCommand(args.slice(1), io);
+  if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
   io.stderr(`Unknown command: ${command}\n${usage}`);
   return 1;
 }

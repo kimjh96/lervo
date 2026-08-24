@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
-import { normalizeRepositoryPath } from "@lervo/context";
+import { documentIdForPath, normalizeRepositoryPath } from "@lervo/context";
 import { writingContractForLanguage } from "@lervo/core";
 import {
   ManagedProviderRunCoordinator,
@@ -37,6 +37,7 @@ import {
   type ManagedSearchContextSummary,
 } from "./managed-search-context.js";
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
+import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import {
   prepareRunVerification,
   type PreparedRunVerification,
@@ -148,6 +149,10 @@ export function createManagedRunExecutor(
       const writingContract = writingContractForLanguage(knowledgePolicy.publication.language);
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
       const role = createDeveloperRole(skillIds, verificationSuiteIds);
+      const currentWorkstream = await verifiedCurrentWorkstream(storage);
+      const workstreamPath = ".lervo/state/workstreams/current.json";
+      const workstreamDocumentId = documentIdForPath(workstreamPath);
+      if (currentWorkstream !== null) role.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
       const providerInstructions = createDeveloperTurnInstructions(instructions);
       const verification = await (
         dependencies.prepareVerification ?? prepareRunVerification
@@ -212,11 +217,19 @@ export function createManagedRunExecutor(
           registry,
           role,
           expectedPaths: [expectedPath],
-          documentRules: {},
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
-          additionalCandidates: searchContext.additionalCandidates,
+          documentRules: currentWorkstream === null ? {} : { "repository.workstream": [workstreamDocumentId] },
+          additionalCandidates: [
+            ...searchContext.additionalCandidates,
+            ...(currentWorkstream === null ? [] : [{
+              documentId: workstreamDocumentId,
+              path: workstreamPath,
+              connectedPaths: [],
+              source: "workstream" as const,
+            }]),
+          ],
           createReceiptId: () => dependencies.createId("ctx"),
         },
         writingPolicy: null,

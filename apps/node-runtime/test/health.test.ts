@@ -37,6 +37,12 @@ const idleSync = {
   rescheduledCount: 0,
   acknowledgedBatchCount: 0,
 };
+const absentWorkstream = {
+  status: "absent" as const,
+  publishedCount: 0 as const,
+  imported: false as const,
+  headCount: 0 as const,
+};
 
 describe("Node runtime readiness snapshot", () => {
   it("publishes an owner-only atomic snapshot and reaches ready after sync", async () => {
@@ -48,11 +54,13 @@ describe("Node runtime readiness snapshot", () => {
       status: "starting",
       processId: process.pid,
       sync: { status: "pending" },
+      workstreamReplication: { status: "pending" },
       remoteControl: { status: "disabled" },
     });
     expect((await lstat(publisher.path)).mode & 0o777).toBe(0o600);
 
     await publisher.observeSync(idleSync);
+    await publisher.observeWorkstreamReplication(absentWorkstream);
     expect(await snapshot(publisher.path)).toMatchObject({
       status: "ready",
       sync: { status: "ready" },
@@ -65,6 +73,7 @@ describe("Node runtime readiness snapshot", () => {
     const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), true);
     await publisher.initialize();
     await publisher.observeSync(idleSync);
+    await publisher.observeWorkstreamReplication(absentWorkstream);
     expect(await snapshot(publisher.path)).toMatchObject({
       status: "starting",
       remoteControl: { status: "pending" },

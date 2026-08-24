@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { chmod, lstat, open, rename, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import type { SyncCycleResult } from "@lervo/sync";
+import type { SyncCycleResult, WorkstreamReplicationCycleResult } from "@lervo/sync";
 
 import type { RemoteControlCycleResult } from "./control-loop.js";
 import { NodeRuntimeError } from "./errors.js";
@@ -20,6 +20,7 @@ export interface NodeRuntimeHealthSnapshot {
   startedAt: string;
   updatedAt: string;
   sync: ComponentHealth;
+  workstreamReplication: ComponentHealth;
   remoteControl: ComponentHealth;
 }
 
@@ -27,16 +28,18 @@ export interface NodeRuntimeHealthPublisher {
   readonly path: string;
   initialize(): Promise<void>;
   observeSync(result: SyncCycleResult): Promise<void>;
+  observeWorkstreamReplication(result: WorkstreamReplicationCycleResult): Promise<void>;
+  observeWorkstreamReplicationFailure(code: string): Promise<void>;
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void>;
   stopping(): Promise<void>;
 }
 
 function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapshot["status"] {
   if (snapshot.status === "stopping") return "stopping";
-  if (snapshot.sync.status === "unavailable" || snapshot.remoteControl.status === "unavailable") {
+  if (snapshot.sync.status === "unavailable" || snapshot.workstreamReplication.status === "unavailable" || snapshot.remoteControl.status === "unavailable") {
     return "degraded";
   }
-  if (snapshot.sync.status === "ready" &&
+  if (snapshot.sync.status === "ready" && snapshot.workstreamReplication.status === "ready" &&
     (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled")) {
     return "ready";
   }
@@ -98,6 +101,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
       startedAt: now,
       updatedAt: now,
       sync: { status: "pending" },
+      workstreamReplication: { status: "pending" },
       remoteControl: remoteControlConfigured ? { status: "pending" } : { status: "disabled" },
     };
   }
@@ -117,6 +121,20 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
 
   observeSync(result: SyncCycleResult): Promise<void> {
     return this.publish(() => { this.snapshot.sync = syncHealth(result); });
+  }
+
+  observeWorkstreamReplication(result: WorkstreamReplicationCycleResult): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.workstreamReplication = result.status === "divergent"
+        ? { status: "unavailable", failureCode: "divergent_heads" }
+        : { status: "ready" };
+    });
+  }
+
+  observeWorkstreamReplicationFailure(code: string): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.workstreamReplication = { status: "unavailable", failureCode: code };
+    });
   }
 
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void> {
