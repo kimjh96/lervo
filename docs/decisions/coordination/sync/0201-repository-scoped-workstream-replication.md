@@ -5,7 +5,7 @@ Date: 2026-08-24
 
 ## Context
 
-Local workstream checkpoints let new agent sessions resume without a named handoff file. Other authorized repository nodes also need this bounded continuation state, but repository event histories are single hash chains and user approvals must not become portable authority.
+Local workstream checkpoints let new agent sessions resume without a named handoff file. Other authorized repository nodes need the same bounded continuation state, but repository event histories are single hash chains, and user approvals must not become portable authority.
 
 ## Decision
 

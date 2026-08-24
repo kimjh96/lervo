@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a9876ee1853b37eadb23e8eb
+  - uv_0a18372073bb5fb382a6595c
 title: "ADR-0201: Repository-scoped workstream replication"
 type: decision

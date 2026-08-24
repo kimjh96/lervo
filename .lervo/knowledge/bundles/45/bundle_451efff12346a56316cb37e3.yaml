@@ -222,6 +222,7 @@ conceptIds:
   - concept_06a1a6c7c1bee51428422108
   - concept_b2c3d6175aacb8a0b8bab95f
   - concept_42db2be7a36ae6aeb12fc1d7
+  - concept_87f0bca4f55cedbc10f7fd4e
   - concept_edbfa7cb206aacd7c29c5569
   - concept_482fd3194473fd5e247c10a8
   - concept_6d4bc9bf166d68e8aaca358f
@@ -234,5 +235,5 @@ entryPath: docs/knowledge/index.md
 publicationLanguage: en
 publicationRoot: docs/knowledge
 schemaVersion: 1
-sourceSnapshotId: ksnap_58cfa4a824d7d834281dc609
+sourceSnapshotId: ksnap_a1c326d95c258895bf56d065
 title: Repository knowledge

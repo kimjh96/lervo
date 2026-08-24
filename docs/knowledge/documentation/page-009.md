@@ -22,8 +22,8 @@
 - [Provider instruction entrypoint research](../../research/provider-instruction-entrypoints.md) — `docs/research/provider-instruction-entrypoints.md`
 - [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
 - [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
+- [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
 - [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`
 - [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
 - [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`
 - [Lervo v0 roadmap](../../roadmap/v0.md) — `docs/roadmap/v0.md`
-- [Hub and Node coordination specification](../../specifications/coordination/hub-and-node.md) — `docs/specifications/coordination/hub-and-node.md`

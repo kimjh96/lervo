@@ -6,19 +6,19 @@ Completed: 2026-08-24
 
 ## Objective
 
-Make every managed run explain which repository documents were selected, loaded, delivered, and explicitly referenced; why each transition occurred; and where evidence is missing. Delivery must never become a claim of model understanding or use.
+Make every managed run explain which repository documents were selected, loaded, delivered, and explicitly referenced; why each transition occurred; and where evidence is missing. Delivery never claims model understanding or use.
 
-## Current baseline
+## Baseline
 
 - E1 records policy selection with `documentId`, `reasonCode`, `ruleId`, required status, and scope.
-- E2 records exact current content hash, byte count, scope, and source revision.
+- E2 records the exact current content hash, byte count, scope, and source revision.
 - E3 records adapter acknowledgement of the exact controlled-input envelope, provider session, target turn, and context generation.
 - The write gate requires a current E1 -> E2 -> E3 chain for every required document.
-- The `referenced` contract existed without a complete provider-bound E4 producer in Codex and Claude adapters.
+- Codex and Claude adapters previously lacked a complete provider-bound E4 producer for the `referenced` contract.
 - Work outside a Lervo-managed lifecycle is `unmanaged` and has no managed context-coverage claim.
-- ADR-0197 separately reconstructs unmanaged preparation and exact final-output token references. It leaves managed delivery and internal use unsupported and cannot satisfy this roadmap's E1-E4 criteria.
+- ADR-0197 reconstructs unmanaged preparation and exact final-output token references. It leaves managed delivery and internal use unsupported and cannot satisfy this roadmap's E1-E4 criteria.
 
-E3 proves delivery of exact bytes as controlled model input—not attention, understanding, agreement, or internal use. Internal states remain `unknown` unless future provider telemetry independently verifies them.
+E3 proves delivery of exact bytes as controlled model input, not attention, understanding, agreement, or internal use. Internal states remain `unknown` unless future provider telemetry independently verifies them.
 
 ## Required report
 

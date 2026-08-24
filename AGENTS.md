@@ -4,7 +4,7 @@ These instructions apply to every coding agent in this repository.
 
 ## Before changing anything
 
-Read only the relevant entrypoints and the ADRs they link:
+Read only the relevant entrypoints and linked ADRs:
 
 - Product scope or terminology: `README.md`, `docs/product/vision.md`
 - Components or data flow: `docs/architecture/system.md`
@@ -39,6 +39,10 @@ Do not load the entire ADR history by default.
 Before requesting mutable connection or device details, inspect `.lervo/environment-sources/` and `.lervo/environment-targets/`, then refresh observations with `lervo environment query --target <target-id> --json`.
 
 Do not infer current validity from an old conversation or observation. Ask only if candidates conflict, validation fails, or required authority is missing. Keep secrets out of tracked manifests and `.lervo/state/` out of source documentation.
+
+## Fresh-clone continuation
+
+If a fresh clone has no local or Hub-imported current workstream, recover the next bounded scope from `docs/roadmap/v0.md` and its linked active or planned roadmap. Do not ask the user for a bookkeeping command or assume there is no prior work. Create the recovered first checkpoint before changing repository bytes.
 
 <!-- lervo:begin block=repository_instruction_routes schema=1 -->
 ## Repository instruction routes

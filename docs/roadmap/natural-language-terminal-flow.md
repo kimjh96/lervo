@@ -5,7 +5,7 @@ Started: 2026-08-24
 
 ## Objective
 
-Let users ask Codex or Claude ordinary repository questions and implementation requests without typing Lervo commands, while preserving verifiable continuation, canonical documentation, knowledge freshness, approvals, optional cross-provider deliberation, and honest unmanaged evidence.
+Let users ask Codex or Claude ordinary repository questions and request implementations without typing Lervo commands, while preserving verifiable continuation, canonical documentation, knowledge freshness, approvals, optional cross-provider deliberation, and honest unmanaged evidence.
 
 ## Acceptance matrix
 

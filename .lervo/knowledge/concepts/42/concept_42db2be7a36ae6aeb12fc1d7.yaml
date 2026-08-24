@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b3c2ceb8ff75adb7ce215721
+  - uv_cbc34dde5c146baf6e6e5a60
 title: Managed Context Grounding and Coverage
 type: concept
