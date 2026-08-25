@@ -87,9 +87,10 @@ export async function loadProjectManifest(root: string): Promise<ProjectManifest
     );
   }
   if (entry.kind !== "file") {
+    const detail = entry.kind === "unsupported" ? ` (${entry.description})` : "";
     throw new LervoProjectError(
       "unsafe_path",
-      `${paths.projectManifest} must be a regular file and cannot be a symbolic link.`,
+      `${paths.projectManifest} must be a regular file and cannot be a symbolic link${detail}.`,
     );
   }
   return parseAndValidateYaml<ProjectManifest>("project", entry.content);

@@ -17,7 +17,7 @@ export async function readEntry(
   maximumFileBytes = 4 * 1024 * 1024,
 ): Promise<FileSystemEntry> {
   try {
-    const stats = await lstat(path);
+    const stats = await lstat(path, { bigint: true });
     if (stats.isSymbolicLink()) {
       return { kind: "unsupported", description: "symbolic link" };
     }
@@ -25,25 +25,25 @@ export async function readEntry(
       return { kind: "directory" };
     }
     if (stats.isFile()) {
-      if (stats.size > maximumFileBytes) {
+      if (stats.size > BigInt(maximumFileBytes)) {
         return { kind: "unsupported", description: "file exceeding the size limit" };
       }
       let handle;
       try {
         handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-        const opened = await handle.stat();
+        const opened = await handle.stat({ bigint: true });
         if (stats.dev !== opened.dev || stats.ino !== opened.ino) {
           return { kind: "unsupported", description: "file path changed before reading" };
         }
         const bytes = await handle.readFile();
-        const after = await handle.stat();
+        const after = await handle.stat({ bigint: true });
         if (
           !after.isFile() ||
-          after.size > maximumFileBytes ||
+          after.size > BigInt(maximumFileBytes) ||
           stats.dev !== after.dev ||
           stats.ino !== after.ino ||
           stats.size !== after.size ||
-          stats.mtimeMs !== after.mtimeMs
+          stats.mtimeNs !== after.mtimeNs
         ) {
           return { kind: "unsupported", description: "file changed while being read" };
         }
