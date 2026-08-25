@@ -29,10 +29,11 @@ export async function readEntry(
         return { kind: "unsupported", description: "file exceeding the size limit" };
       }
       let handle;
+      let verifier;
       try {
         handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
         const opened = await handle.stat({ bigint: true });
-        if (stats.dev !== opened.dev || stats.ino !== opened.ino) {
+        if (!opened.isFile() || opened.size > BigInt(maximumFileBytes)) {
           return { kind: "unsupported", description: "file path changed before reading" };
         }
         const bytes = await handle.readFile();
@@ -40,12 +41,27 @@ export async function readEntry(
         if (
           !after.isFile() ||
           after.size > BigInt(maximumFileBytes) ||
-          stats.dev !== after.dev ||
-          stats.ino !== after.ino ||
-          stats.size !== after.size ||
-          stats.mtimeNs !== after.mtimeNs
+          opened.dev !== after.dev ||
+          opened.ino !== after.ino ||
+          opened.size !== after.size ||
+          opened.mtimeNs !== after.mtimeNs
         ) {
           return { kind: "unsupported", description: "file changed while being read" };
+        }
+        const pathAfter = await lstat(path, { bigint: true });
+        if (pathAfter.isSymbolicLink() || !pathAfter.isFile()) {
+          return { kind: "unsupported", description: "file path changed after reading" };
+        }
+        verifier = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+        const verified = await verifier.stat({ bigint: true });
+        if (
+          !verified.isFile() ||
+          opened.dev !== verified.dev ||
+          opened.ino !== verified.ino ||
+          after.size !== verified.size ||
+          after.mtimeNs !== verified.mtimeNs
+        ) {
+          return { kind: "unsupported", description: "file path changed after reading" };
         }
         try {
           return {
@@ -58,6 +74,7 @@ export async function readEntry(
       } catch {
         return { kind: "unsupported", description: "file that cannot be opened safely" };
       } finally {
+        await verifier?.close();
         await handle?.close();
       }
     }
