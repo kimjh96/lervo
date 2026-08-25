@@ -246,3 +246,18 @@ export function releaseArtifactDifferences(expected, actual) {
   }
   return differences;
 }
+
+export function releaseArchiveFileDifferences(expected, actual) {
+  const expectedFiles = new Map((expected?.files ?? []).map((entry) => [entry.path, entry]));
+  const actualFiles = new Map((actual?.files ?? []).map((entry) => [entry.path, entry]));
+  const paths = [...new Set([...expectedFiles.keys(), ...actualFiles.keys()])].sort();
+  return paths.flatMap((path) => {
+    const expectedEntry = expectedFiles.get(path);
+    const actualEntry = actualFiles.get(path);
+    if (canonicalJson(expectedEntry) === canonicalJson(actualEntry)) return [];
+    return [
+      `${path} expected=${expectedEntry?.size ?? "missing"}/${expectedEntry?.sha256 ?? "missing"} ` +
+        `actual=${actualEntry?.size ?? "missing"}/${actualEntry?.sha256 ?? "missing"}`,
+    ];
+  });
+}

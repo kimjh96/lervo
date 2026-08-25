@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 
 import {
   canonicalDigest,
+  releaseArchiveFileDifferences,
   releaseArtifactDifferences,
   validateReleaseArtifactManifest,
 } from "../lib/release-artifact-manifest.mjs";
@@ -229,5 +230,9 @@ describe("release artifact manifest", () => {
     actual.artifact.version = "0.1.1";
     actual.archive.files[0].size += 1;
     assert.deepEqual(releaseArtifactDifferences(expected, actual), ["artifact", "archive"]);
+    assert.deepEqual(releaseArchiveFileDifferences(expected.archive, actual.archive), [
+      "README.md expected=20/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa " +
+        "actual=21/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    ]);
   });
 });

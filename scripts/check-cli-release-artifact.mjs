@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import { createCliReleaseManifest } from "./lib/cli-release-snapshot.mjs";
 import {
+  releaseArchiveFileDifferences,
   releaseArtifactDifferences,
   ReleaseArtifactManifestError,
   validateReleaseArtifactManifest,
@@ -34,9 +35,13 @@ async function main() {
     }
     const differences = releaseArtifactDifferences(expected, actual);
     if (differences.length > 0) {
+      const archiveDetails = differences.includes("archive")
+        ? releaseArchiveFileDifferences(expected.archive, actual.archive)
+        : [];
       throw new ReleaseArtifactManifestError(
         "release_artifact_mismatch",
-        `The release artifact differs from the approved manifest: ${differences.join(", ")}`,
+        `The release artifact differs from the approved manifest: ${differences.join(", ")}` +
+          (archiveDetails.length > 0 ? `. Archive files: ${archiveDetails.join("; ")}` : ""),
       );
     }
     console.log(
