@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { build } from "esbuild";
 
 import { nodeSqliteBundlePlugin } from "../../../scripts/lib/node-sqlite-bundle.mjs";
+import { normalizeGeneratedTextFile } from "../../../scripts/lib/generated-text.mjs";
 
 const cliRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(cliRoot, "../..");
@@ -64,6 +65,11 @@ await build({
   target: "node22.13",
 });
 
+await Promise.all(
+  ["bin.js", "node-runtime.js", "terminal-hook.js"].map((fileName) =>
+    normalizeGeneratedTextFile(resolve(outputDirectory, fileName)),
+  ),
+);
 await chmod(resolve(outputDirectory, "node-runtime.js"), 0o755);
 
 await writeFile(

@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { build } from "esbuild";
 
 import { nodeSqliteBundlePlugin } from "../../../scripts/lib/node-sqlite-bundle.mjs";
+import { normalizeGeneratedTextFile } from "../../../scripts/lib/generated-text.mjs";
 
 const runtimeRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(runtimeRoot, "../..");
@@ -27,6 +28,8 @@ const result = await build({
   plugins: [nodeSqliteBundlePlugin],
   target: "node22.13",
 });
+
+await normalizeGeneratedTextFile(resolve(outputDirectory, "bin.js"));
 
 await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),

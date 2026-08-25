@@ -5,15 +5,15 @@ Decision date: 2026-08-25
 
 ## Context
 
-Lervo supports Node.js 22.13 and later. Release checks must not infer this boundary from the runtime executing them. Node 22.13 can load `node:sqlite`, but omits it from `builtinModules` and emits an experimental warning when loading it. On Windows, the repository and temporary deployment target may reside on different volumes, making pnpm's default package import strategy non-portable.
+Lervo supports Node.js 22.13 and later. Release checks must not infer this boundary from their executing runtime. Node 22.13 can load `node:sqlite`, but omits it from `builtinModules` and emits an experimental warning when loading it. On Windows, the repository and temporary deployment target may be on different volumes, making pnpm's default package import strategy non-portable.
 
 ## Decision
 
 - Classify every `node:` specifier as a Node built-in, regardless of the current runtime's `builtinModules` inventory. Use one shared classifier for CLI, Hub, and Node release validation.
 - Bundle a provider-neutral SQLite compatibility module into every executable. It must intercept only the exact Node `ExperimentalWarning` emitted when loading `node:sqlite`, synchronously restore `process.emitWarning`, and forward every other warning unchanged.
 - Keep `node:sqlite` external at the final runtime boundary. The compatibility module must not recursively resolve itself. Packed-consumer smoke tests must run `lervo init` on Node 22.13 with empty stderr.
-- Force the `copy` package import method and retain pnpm's shared-lockfile deploy implementation for temporary CLI and standalone Node deployments. macOS and Linux deployments must be offline. On Windows, when the cross-volume content-addressable store cannot rematerialize a package, deployment may fetch an exact integrity-locked tarball while preferring the installed store and preserving the frozen lockfile closure. Restore pnpm's rebuildable workspace-state cache after every deployment.
-- Enforce LF checkout bytes for repository text through `.gitattributes`, keeping public package files and release digests identical across Windows, macOS, and Linux.
+- Force the `copy` package import method and retain pnpm's shared-lockfile deploy implementation for temporary CLI and standalone Node deployments. macOS and Linux deployments must be offline. On Windows, if the cross-volume content-addressable store cannot rematerialize a package, deployment may fetch an exact integrity-locked tarball while preferring the installed store and preserving the frozen lockfile closure. Restore pnpm's rebuildable workspace-state cache after every deployment.
+- Enforce LF checkout bytes for repository text through `.gitattributes`, and normalize generated executable text to LF immediately after bundling. Public package files and release digests must remain byte-identical across Windows, macOS, and Linux.
 - Normalize bundle metadata paths. For unexpected release-check failures, expose bounded child-process stdout and stderr. Diagnostics may include build output but must exclude prompts, credentials, provider configuration, and user documents.
 
 This decision adds no execution event or persistent runtime state. Release manifests and SBOMs continue to bind the changed executable bytes.
