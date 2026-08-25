@@ -11,6 +11,8 @@ Codex and Claude deliberation `dlb_bfafdd74ec1d402dbdc4ae790c50a474` ended witho
 
 Deliberation `dlb_858e018de9994f479d436f730161ac0b` also ended without consensus. It established that deterministic case results and observational timings remain separate, every task type needs its own minimum sample, and an aggregate benchmark cannot authorize activation. Claude rejected a combined 20-case total as an adoption gate; this limitation remains.
 
+Performance deliberation `dlb_a6920272bdb344319ed2ced28bf5a020` ended without consensus after identifying vector feature construction as the dominant build cost. Its review required an additive prepared-corpus path that leaves baseline construction unchanged, exact-output differential tests for representation changes, a fresh observation after the adapter build identity changes, and explicit separation between passing the cost bound and authorizing adoption. This decision incorporates those requirements.
+
 ## Decision
 
 ### Register a local hybrid candidate
@@ -23,6 +25,10 @@ Register `local-hybrid-v1` behind `SearchEnginePort` as an inactive candidate. I
 - uses an inverted feature index to bound warm-query work to matching postings.
 
 Lexical-weighted rank-sum fusion uses both top-50 branches. It returns the existing schema-v1 response with positive safe-integer scores, canonical source-key ties, and the union of matched fields.
+
+The hybrid adapter uses an immutable core-prepared corpus through an additive lexical entry point. The ordinary `LexicalSearchIndex` constructor still performs baseline validation, cloning, sorting, hashing, normalization, and tokenization. The hybrid-only entry point reuses the prepared corpus and observes the lexical token projection during construction, avoiding a second corpus preparation and field-tokenization pass.
+
+The sparse projection preserves the same features and hashed dimensions while caching normalized token, trigram, and adjacent-pair identities. It continues FNV-1a from cached prefix and left-token states instead of assembling temporary prefixed feature strings. Source contributions are accumulated in fixed 4,096-dimension arrays with four-bit field masks, then stored as dimension offsets, 16-bit source indexes, 64-bit contributions, and 8-bit masks. The 4,096-source corpus bound makes the source width safe. These representation changes alter adapter build identity but not engine version, embedding identity, fusion identity, index identity, scores, matched fields, or ordering.
 
 Index identity binds the corpus digest, engine version, embedding dimensions and algorithm, and fusion version. Adapter build identity binds the package implementation revision. The projection uses no network, random value, clock, model download, or floating-point ordering. It is deletable and rebuildable.
 
@@ -63,6 +69,8 @@ The shared engine contract rebuilds from forward and reversed corpus order and c
 
 - a morphology-adjacent candidate win over `lexical-v1` in the same reviewed `maximumRank=10` case;
 - exact index replay;
+- complete response equivalence with the previous representation for Unicode, deliberate hash collisions, duplicate labels, repeated and concurrent searches, reversed input, and the 4,096-source boundary;
+- immutable core-prepared corpus reuse without changing ordinary lexical construction;
 - report privacy;
 - benchmark-protocol sample counts;
 - owner-only report storage;
@@ -77,3 +85,5 @@ Existing provider adapter contracts continue proving that every loaded selected 
 ## Consequences
 
 Lervo can measure a local semantic-recall candidate without a remote dependency or stored-attempt schema changes. Reviewed graph relations improve document exploration through an auditable recommendation layer. Activation remains gated on real lexical failures and reviewed no-regression evidence. Verification-authored repository results do not establish production quality, latency under load, energy use, or an adoption decision.
+
+The optimized adapter can satisfy the repository build and warm-query cost bounds while preserving the recorded quality result. Cost acceptance does not resolve the failed aggregate coverage threshold, per-task coverage gates, or case regressions, so the candidate remains inactive and adoption remains undetermined.

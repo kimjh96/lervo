@@ -10,6 +10,7 @@ import {
   contentId,
   LexicalSearchIndex,
   prepareSearchCorpus,
+  prepareReusableSearchCorpus,
   SEARCH_ENGINE,
   type SearchSourceInput,
 } from "../src/index.js";
@@ -64,6 +65,32 @@ describe("deterministic lexical search baseline", () => {
       }),
     );
     expect(reversed.search("recovery")).toEqual(forward.search("recovery"));
+  });
+
+  it("reuses only an immutable core-prepared corpus while preserving baseline output", () => {
+    const reusable = prepareReusableSearchCorpus(sources());
+    const observed: Array<{ sourceIndex: number; name: string; tokens: readonly string[] }> = [];
+    const reused = LexicalSearchIndex.fromPreparedCorpus(reusable, (field) => {
+      observed.push({ sourceIndex: field.sourceIndex, name: field.name, tokens: field.tokens });
+    });
+    const baseline = new LexicalSearchIndex(sources());
+
+    expect(reused.indexId).toBe(baseline.indexId);
+    expect(reused.search("document recovery", 50)).toEqual(
+      baseline.search("document recovery", 50),
+    );
+    expect(observed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sourceIndex: 0, name: "title" }),
+        expect.objectContaining({ sourceIndex: 1, name: "text" }),
+      ]),
+    );
+    expect(Object.isFrozen(reusable)).toBe(true);
+    expect(Object.isFrozen(reusable.sources)).toBe(true);
+    expect(reusable.sources.every((source) => Object.isFrozen(source))).toBe(true);
+    expect(() => LexicalSearchIndex.fromPreparedCorpus(prepareSearchCorpus(sources()))).toThrow(
+      "core preparation boundary",
+    );
   });
 
   it("changes the derived index identity when an original content hash changes", () => {

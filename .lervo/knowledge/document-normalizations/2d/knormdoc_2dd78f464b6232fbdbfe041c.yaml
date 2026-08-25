@@ -1,0 +1,31 @@
+candidateId: knorm_40d0cb4e31430551d1f17414
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1981793122478d07b95a385e
+outputLanguage: en
+outputs:
+  - byteCount: 10281
+    contentHash: sha256:258df66500ebf6367131c2d9edc6c8979b8fa4a3c6ab52338cb4937cb0191b09
+    path: docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md
+    userRegionHash: sha256:258df66500ebf6367131c2d9edc6c8979b8fa4a3c6ab52338cb4937cb0191b09
+profile: decision_record
+recordId: knormdoc_2dd78f464b6232fbdbfe041c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:5d79c038a357aabf9cc168224d708ce59596304c7c0473f377d8240c3b958e5f
+sourcePath: docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md
+sourceUnitVersionIds:
+  - uv_09746295065dc1223638ec3b
+  - uv_63afea9180ef7218bfbaaff3
+  - uv_8e0bc85cb9929b47a753e651
+  - uv_ace3cb95998d4b6fe587d67e
+  - uv_b18f2b4308f2279f687b6042
+  - uv_b263ef779a27ee247ddb2b5d
+  - uv_c2ffe8109f5b2f73c695962b
+  - uv_c32295f1534162506bf80b15
+  - uv_e4ef2b1d10e52329b4f1fa63

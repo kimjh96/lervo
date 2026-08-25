@@ -19,6 +19,41 @@ export interface PreparedSearchCorpus {
   corpusDigest: string;
 }
 
+const reusableSearchCorpora = new WeakSet<PreparedSearchCorpus>();
+
+function freezeSearchSource(source: SearchSourceInput): void {
+  Object.freeze(source.labels);
+  Object.freeze(source);
+}
+
+/**
+ * Prepares an immutable corpus that another core index can safely reuse without
+ * repeating validation, cloning, sorting, or hashing.
+ */
+export function prepareReusableSearchCorpus(
+  inputs: readonly SearchSourceInput[],
+): PreparedSearchCorpus {
+  const corpus = prepareSearchCorpus(inputs);
+  for (const source of corpus.sources) freezeSearchSource(source);
+  for (const source of corpus.indexSources) Object.freeze(source);
+  Object.freeze(corpus.sources);
+  Object.freeze(corpus.indexSources);
+  Object.freeze(corpus);
+  reusableSearchCorpora.add(corpus);
+  return corpus;
+}
+
+export function assertReusableSearchCorpus(
+  corpus: PreparedSearchCorpus,
+): asserts corpus is PreparedSearchCorpus {
+  if (!reusableSearchCorpora.has(corpus)) {
+    throw new SearchError(
+      "corpus_invalid",
+      "A reusable search corpus must be created by the core preparation boundary.",
+    );
+  }
+}
+
 export function searchSourceKey(source: Pick<SearchSourceInput, "kind" | "sourceId">): string {
   return `${source.kind.length}:${source.kind}${source.sourceId}`;
 }

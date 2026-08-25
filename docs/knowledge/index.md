@@ -5,13 +5,13 @@
 
 ## Inventory
 
-Publication input snapshot: `ksnap_2bfa0210039a3e049c4ecde9`. Included 2861 publishable sources (10608389 bytes), excluded 5, unsupported 0. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use `lervo migrate knowledge` to determine currency.
+Publication input snapshot: `ksnap_f5cbc8f23e3d062acedcce92`. Included 3039 publishable sources (10784561 bytes), excluded 5, unsupported 0. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use `lervo migrate knowledge` to determine currency.
 
 - build_definition: 75
 - code: 874
 - configuration: 87
 - documentation: 246
-- execution_event: 810
+- execution_event: 988
 - instruction: 2
 - other: 292
 - revision_metadata: 1

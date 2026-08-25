@@ -1,4 +1,9 @@
-import { prepareSearchCorpus, searchSourceKey } from "./corpus.js";
+import {
+  assertReusableSearchCorpus,
+  prepareSearchCorpus,
+  searchSourceKey,
+  type PreparedSearchCorpus,
+} from "./corpus.js";
 import { canonicalHash, contentId } from "./integrity.js";
 import { identifySearchQuery, normalizeSearchText, searchTerms } from "./normalize.js";
 import {
@@ -22,15 +27,37 @@ interface IndexedSource {
   fields: IndexedField[];
 }
 
+export interface LexicalIndexedFieldProjection {
+  sourceIndex: number;
+  name: FieldName;
+  tokens: readonly string[];
+  weight: number;
+}
+
+interface ReusableLexicalBuild {
+  corpus: PreparedSearchCorpus;
+  observeField?: (field: LexicalIndexedFieldProjection) => void;
+}
+
+const reusableCorpusInputs = new WeakMap<readonly SearchSourceInput[], ReusableLexicalBuild>();
+
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function field(name: FieldName, value: string, weight: number): IndexedField | null {
+function field(
+  sourceIndex: number,
+  name: FieldName,
+  value: string,
+  weight: number,
+  observe?: (field: LexicalIndexedFieldProjection) => void,
+): IndexedField | null {
   if (value.length === 0) return null;
   const normalized = normalizeSearchText(value);
+  const tokens = normalized.match(/[\p{L}\p{N}]+/gu) ?? [];
+  observe?.({ sourceIndex, name, tokens, weight });
   const termFrequency = new Map<string, number>();
-  for (const term of normalized.match(/[\p{L}\p{N}]+/gu) ?? []) {
+  for (const term of tokens) {
     termFrequency.set(term, (termFrequency.get(term) ?? 0) + 1);
   }
   return { name, normalized, termFrequency, weight };
@@ -53,14 +80,33 @@ export class LexicalSearchIndex {
   readonly indexId: string;
   private readonly sources: IndexedSource[];
 
+  static fromPreparedCorpus(
+    corpus: PreparedSearchCorpus,
+    observeField?: (field: LexicalIndexedFieldProjection) => void,
+  ): LexicalSearchIndex {
+    assertReusableSearchCorpus(corpus);
+    reusableCorpusInputs.set(corpus.sources, {
+      corpus,
+      ...(observeField === undefined ? {} : { observeField }),
+    });
+    try {
+      return new LexicalSearchIndex(corpus.sources);
+    } finally {
+      reusableCorpusInputs.delete(corpus.sources);
+    }
+  }
+
   constructor(inputs: readonly SearchSourceInput[]) {
-    const corpus = prepareSearchCorpus(inputs);
-    this.sources = corpus.sources.map((input) => {
+    const reusable = reusableCorpusInputs.get(inputs);
+    const corpus = reusable?.corpus ?? prepareSearchCorpus(inputs);
+    this.sources = corpus.sources.map((input, sourceIndex) => {
       const fields = [
-        field("title", input.title ?? "", 12),
-        field("path", input.path ?? "", 8),
-        ...input.labels.map((label) => field("label", label, 10)),
-        field("text", input.text, 2),
+        field(sourceIndex, "title", input.title ?? "", 12, reusable?.observeField),
+        field(sourceIndex, "path", input.path ?? "", 8, reusable?.observeField),
+        ...input.labels.map((label) =>
+          field(sourceIndex, "label", label, 10, reusable?.observeField),
+        ),
+        field(sourceIndex, "text", input.text, 2, reusable?.observeField),
       ].filter((item): item is IndexedField => item !== null);
       return { input, fields };
     });
