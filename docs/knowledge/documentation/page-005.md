@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0021: CommonMark managed-block parsing](../../decisions/knowledge/documents/0021-commonmark-managed-block-parser.md) — `docs/decisions/knowledge/documents/0021-commonmark-managed-block-parser.md`
 - [ADR-0022: Byte-preserving managed-block patch candidates](../../decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md) — `docs/decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md`
 - [ADR-0023: Evidence-based document staleness](../../decisions/knowledge/documents/0023-evidence-based-document-staleness.md) — `docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md`
 - [ADR-0031: Human-reviewed knowledge promotion and path-based staleness](../../decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md) — `docs/decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md`
@@ -26,4 +27,3 @@
 - [ADR-0191: Bounded hierarchical repository layout](../../decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md) — `docs/decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md`
 - [ADR-0192: Repository-scoped fail-closed decision taxonomy](../../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md) — `docs/decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md`
 - [ADR-0193: Semantic Repository and Agent-Surface Migration](../../decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md) — `docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md`
-- [ADR-0195: Reviewed document content normalization](../../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md) — `docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md`

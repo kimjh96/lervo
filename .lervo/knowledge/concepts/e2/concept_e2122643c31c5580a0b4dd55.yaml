@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e2122643c31c5580a0b4dd55
+freshness: current
+ownership: user
+path: CHANGELOG.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_766be0b173223f2bf54a4564
+title: Changelog
+type: concept

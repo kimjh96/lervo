@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0066: Bounded search-rollout review status](../../decisions/search/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/0066-bounded-search-rollout-review-status.md`
 - [ADR-0067: Policy-bound search-rollout review](../../decisions/search/0067-policy-bound-search-rollout-review.md) — `docs/decisions/search/0067-policy-bound-search-rollout-review.md`
 - [ADR-0068: Explicit search-rollout actions and atomic rollback](../../decisions/search/0068-explicit-search-rollout-actions.md) — `docs/decisions/search/0068-explicit-search-rollout-actions.md`
 - [ADR-0069: Bounded search-rollout action status](../../decisions/search/0069-bounded-search-rollout-action-status.md) — `docs/decisions/search/0069-bounded-search-rollout-action-status.md`
@@ -26,4 +27,3 @@
 - [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
 - [Evidence-bound development-pattern promotion](../../roadmap/knowledge/development-pattern-promotion.md) — `docs/roadmap/knowledge/development-pattern-promotion.md`
 - [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`
-- [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`

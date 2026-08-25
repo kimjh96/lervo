@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0167: Platform-Bound Standalone Lervo Node Distribution](../../decisions/distribution/0167-platform-bound-standalone-node-distribution.md) — `docs/decisions/distribution/0167-platform-bound-standalone-node-distribution.md`
 - [ADR-0169: User-Local Repository Registration and Revalidation](../../decisions/distribution/0169-user-local-repository-registration-and-resolution.md) — `docs/decisions/distribution/0169-user-local-repository-registration-and-resolution.md`
 - [ADR-0006: Deterministic context preparation](../../decisions/execution/orchestration/0006-deterministic-context-preparation.md) — `docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md`
 - [ADR-0008: Managed context-gate orchestration](../../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md) — `docs/decisions/execution/orchestration/0008-managed-context-gate-orchestration.md`
@@ -26,4 +27,3 @@
 - [ADR-0029: Codex–Claude cross-review and role-specific provider enforcement](../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md) — `docs/decisions/execution/providers/0029-cross-provider-deliberation-runtime.md`
 - [ADR-0153: Approval-Bound Managed Provider Node Host](../../decisions/execution/providers/0153-managed-provider-node-host.md) — `docs/decisions/execution/providers/0153-managed-provider-node-host.md`
 - [ADR-0154: Multi-File Managed Provider Turns and Context Reinjection](../../decisions/execution/providers/0154-multi-file-managed-provider-turns.md) — `docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md`
-- [ADR-0155: Explicit Managed Provider Host Role Registry](../../decisions/execution/providers/0155-managed-provider-role-registry.md) — `docs/decisions/execution/providers/0155-managed-provider-role-registry.md`

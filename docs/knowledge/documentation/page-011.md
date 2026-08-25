@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
 - [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`
 - [Provider-entrypoint bootstrap convergence](../../roadmap/onboarding/provider-entrypoint-bootstrap.md) — `docs/roadmap/onboarding/provider-entrypoint-bootstrap.md`
 - [Repository upgrade orchestration](../../roadmap/onboarding/repository-upgrade.md) — `docs/roadmap/onboarding/repository-upgrade.md`

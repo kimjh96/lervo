@@ -8,6 +8,7 @@ conceptIds:
   - concept_051057aa4cf238635b956a7b
   - concept_1a31da81f28cbecdd20732a7
   - concept_2e55c6b287fd8a6028b82881
+  - concept_e2122643c31c5580a0b4dd55
   - concept_07331d73e696962845b0ec81
   - concept_e8fa8fdb8f888e2a88da93e0
   - concept_739ca6e851c37b5291cc3b9d
@@ -269,5 +270,5 @@ entryPath: docs/knowledge/index.md
 publicationLanguage: en
 publicationRoot: docs/knowledge
 schemaVersion: 1
-sourceSnapshotId: ksnap_cf709a697c0d4dc02de0b42f
+sourceSnapshotId: ksnap_349a148e4c0955272bf7bf5a
 title: Repository knowledge
