@@ -3,6 +3,19 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
+- [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`
+- [ADR-0129: npm Stage-Approval Reconciliation Evidence](../../decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md) — `docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md`
+- [ADR-0130: Integrate Stage Approval into Publication Transition](../../decisions/release/staging/0130-cli-stage-approval-transition-integration.md) — `docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md`
+- [ADR-0131: Stage-Evidence Bundle Manifest](../../decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md) — `docs/decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md`
+- [ADR-0053: Deterministic lexical search with explicit failure observations](../../decisions/search/0053-deterministic-lexical-search-observations.md) — `docs/decisions/search/0053-deterministic-lexical-search-observations.md`
+- [ADR-0054: Boundary between search recommendations and managed context selection](../../decisions/search/0054-search-recommendation-managed-context-boundary.md) — `docs/decisions/search/0054-search-recommendation-managed-context-boundary.md`
+- [ADR-0055: Reviewed search evaluation cases and repeat measurement](../../decisions/search/0055-reviewed-search-evaluation-cases.md) — `docs/decisions/search/0055-reviewed-search-evaluation-cases.md`
+- [ADR-0056: Search evaluation bundles and sample sufficiency](../../decisions/search/0056-search-evaluation-sample-bundles.md) — `docs/decisions/search/0056-search-evaluation-sample-bundles.md`
+- [ADR-0057: Provider-neutral search candidate comparison](../../decisions/search/0057-provider-neutral-search-candidate-comparison.md) — `docs/decisions/search/0057-provider-neutral-search-candidate-comparison.md`
+- [ADR-0059: Search candidate review with replay verification](../../decisions/search/0059-replayed-search-candidate-review.md) — `docs/decisions/search/0059-replayed-search-candidate-review.md`
+- [ADR-0060: Policy-bound search-engine selection and rollback](../../decisions/search/0060-policy-bound-search-engine-selection.md) — `docs/decisions/search/0060-policy-bound-search-engine-selection.md`
+- [ADR-0061: Fail-closed operational search-engine resolution](../../decisions/search/0061-fail-closed-operational-search-engine-resolution.md) — `docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md`
 - [ADR-0062: Refreshing evidence for a selected search candidate](../../decisions/search/0062-selected-search-candidate-evidence-refresh.md) — `docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md`
 - [ADR-0063: Search-adapter build identity and rebuildable replay receipts](../../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md) — `docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md`
 - [ADR-0064: Selection-bound operational search quality observations](../../decisions/search/0064-selection-bound-operational-search-quality.md) — `docs/decisions/search/0064-selection-bound-operational-search-quality.md`
@@ -14,16 +27,3 @@
 - [ADR-0070: Write-free search-rollout action preflight](../../decisions/search/0070-read-only-search-rollout-action-preflight.md) — `docs/decisions/search/0070-read-only-search-rollout-action-preflight.md`
 - [ADR-0071: Doctor checks for search-rollout operational sources](../../decisions/search/0071-search-rollout-operational-doctor.md) — `docs/decisions/search/0071-search-rollout-operational-doctor.md`
 - [Lervo Hub standalone distribution](../../distribution/hub-runtime-distribution.md) — `docs/distribution/hub-runtime-distribution.md`
-- [Lervo Node standalone distribution](../../distribution/node-runtime-distribution.md) — `docs/distribution/node-runtime-distribution.md`
-- [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
-- [Reviewed document normalization acceptance](../../evidence/pilots/reviewed-document-normalization.md) — `docs/evidence/pilots/reviewed-document-normalization.md`
-- [Shiflo v0 acceptance pilot](../../evidence/pilots/shiflo-v0.md) — `docs/evidence/pilots/shiflo-v0.md`
-- [WSL Hub and Shiflo release acceptance](../../evidence/pilots/wsl-hub-shiflo-release-acceptance.md) — `docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md`
-- [Provider instruction entrypoint research](../../research/provider-instruction-entrypoints.md) — `docs/research/provider-instruction-entrypoints.md`
-- [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
-- [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
-- [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
-- [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`
-- [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
-- [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`
-- [Lervo v0 roadmap](../../roadmap/v0.md) — `docs/roadmap/v0.md`

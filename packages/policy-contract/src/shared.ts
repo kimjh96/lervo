@@ -13,9 +13,7 @@ import { PolicyContractError } from "./errors.js";
 
 export type SignedPolicyOriginal = PolicySnapshot | PolicyApproval | PolicyApprovalRevocation;
 export type SignedPolicyEnvelope =
-  | SignedPolicySnapshot
-  | SignedPolicyApproval
-  | SignedPolicyApprovalRevocation;
+  SignedPolicySnapshot | SignedPolicyApproval | SignedPolicyApprovalRevocation;
 
 export function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -29,8 +27,9 @@ export function sameTarget(
   left: PolicySnapshot["target"],
   right: PolicySnapshot["target"],
 ): boolean {
-  return left.projectId === right.projectId &&
-    left.projectIdentityHash === right.projectIdentityHash;
+  return (
+    left.projectId === right.projectId && left.projectIdentityHash === right.projectIdentityHash
+  );
 }
 
 export function assertKeyId(keyId: string): void {

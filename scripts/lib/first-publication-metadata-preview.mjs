@@ -1,23 +1,22 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { inspectFirstPublicationActivationLocalMetadata } from
-  "./first-publication-activation-local-policy.mjs";
+import { inspectFirstPublicationActivationLocalMetadata } from "./first-publication-activation-local-policy.mjs";
 import {
   canonicalDigest,
   canonicalJson,
   validateReleaseArtifactManifest,
 } from "./release-artifact-manifest.mjs";
-import { validateFirstPublicationMetadataDecision } from
-  "./first-publication-metadata-decision.mjs";
-import { inspectFirstPublicationMetadataPatch } from
-  "./first-publication-metadata-patch-policy.mjs";
+import { validateFirstPublicationMetadataDecision } from "./first-publication-metadata-decision.mjs";
+import { inspectFirstPublicationMetadataPatch } from "./first-publication-metadata-patch-policy.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 
-const remainingRequirements = Object.freeze([
-  { id: "license_approval", status: "required" },
-  { id: "public_package_availability", status: "required" },
-  { id: "scope_control_confirmation", status: "required" },
-  { id: "first_publication_approval", status: "required" },
-].map(Object.freeze));
+const remainingRequirements = Object.freeze(
+  [
+    { id: "license_approval", status: "required" },
+    { id: "public_package_availability", status: "required" },
+    { id: "scope_control_confirmation", status: "required" },
+    { id: "first_publication_approval", status: "required" },
+  ].map(Object.freeze),
+);
 
 const sideEffects = Object.freeze({
   onlineObservation: "not_run",
@@ -37,9 +36,11 @@ function fail(code = "first_publication_metadata_preview_invalid") {
 
 function previewBody({ packageManifest, releaseManifest, decision }) {
   if (
-    packageManifest === null || typeof packageManifest !== "object" ||
+    packageManifest === null ||
+    typeof packageManifest !== "object" ||
     Array.isArray(packageManifest)
-  ) fail();
+  )
+    fail();
   try {
     validateReleaseArtifactManifest(releaseManifest);
     validateFirstPublicationMetadataDecision(decision);
@@ -60,10 +61,11 @@ function previewBody({ packageManifest, releaseManifest, decision }) {
   });
   return {
     schemaVersion: 1,
-    status: patch.packageManifestChanges.length === 0 &&
-        patch.releaseManifestRegeneration.status === "not_required"
-      ? "no_local_changes"
-      : "changes_required",
+    status:
+      patch.packageManifestChanges.length === 0 &&
+      patch.releaseManifestRegeneration.status === "not_required"
+        ? "no_local_changes"
+        : "changes_required",
     activation: "not_implemented",
     advisoryOnly: true,
     target: {

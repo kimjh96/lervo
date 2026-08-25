@@ -7,10 +7,7 @@ import {
 } from "@lervo/verification-contract";
 import { describe, expect, it } from "vitest";
 
-import {
-  runManagedProjectVerifications,
-  type ManagedProjectVerification,
-} from "../src/index.js";
+import { runManagedProjectVerifications, type ManagedProjectVerification } from "../src/index.js";
 import type { ManagedEventSpec } from "../src/telemetry.js";
 import { MemoryArtifactStore } from "./fixture.js";
 
@@ -19,15 +16,17 @@ const suite: VerificationSuite = {
   schemaVersion: 1,
   suiteId: "project.default",
   stopOnFailure: true,
-  commands: [{
-    commandId: "typecheck",
-    executable: "node",
-    arguments: ["--version"],
-    cwd: ".",
-    timeoutMs: 1_000,
-    maxOutputBytes: 4_096,
-    environmentVariableNames: [],
-  }],
+  commands: [
+    {
+      commandId: "typecheck",
+      executable: "node",
+      arguments: ["--version"],
+      cwd: ".",
+      timeoutMs: 1_000,
+      maxOutputBytes: 4_096,
+      environmentVariableNames: [],
+    },
+  ],
 };
 
 async function createVerification(
@@ -46,18 +45,20 @@ async function createVerification(
     startedAt: "2026-08-19T01:00:00.000Z",
     completedAt: "2026-08-19T01:00:01.000Z",
     status: "passed",
-    commands: [{
-      commandId: "typecheck",
-      commandDigest: verificationCommandDigest(suite.commands[0]!),
-      status: "passed",
-      exitCode: 0,
-      startedAt: "2026-08-19T01:00:00.000Z",
-      completedAt: "2026-08-19T01:00:01.000Z",
-      durationMs: 1_000,
-      stdoutArtifact: outputArtifact,
-      stderrArtifact: outputArtifact,
-      failureCode: null,
-    }],
+    commands: [
+      {
+        commandId: "typecheck",
+        commandDigest: verificationCommandDigest(suite.commands[0]!),
+        status: "passed",
+        exitCode: 0,
+        startedAt: "2026-08-19T01:00:00.000Z",
+        completedAt: "2026-08-19T01:00:01.000Z",
+        durationMs: 1_000,
+        stdoutArtifact: outputArtifact,
+        stderrArtifact: outputArtifact,
+        failureCode: null,
+      },
+    ],
   };
   const result: VerificationResult = {
     ...resultWithoutId,
@@ -109,15 +110,17 @@ describe("managed project verification boundary", () => {
       },
     };
 
-    await expect(runManagedProjectVerifications({
-      suites: [suite],
-      verifier: { verify: async () => tampered },
-      repositoryRoot: "/fixture",
-      repositoryRevision,
-      artifactStore: artifacts,
-      time: () => "2026-08-19T01:00:00.000Z",
-      append: () => undefined,
-    })).rejects.toMatchObject({ code: "verification_failed" });
+    await expect(
+      runManagedProjectVerifications({
+        suites: [suite],
+        verifier: { verify: async () => tampered },
+        repositoryRoot: "/fixture",
+        repositoryRevision,
+        artifactStore: artifacts,
+        time: () => "2026-08-19T01:00:00.000Z",
+        append: () => undefined,
+      }),
+    ).rejects.toMatchObject({ code: "verification_failed" });
   });
 
   it("rejects a result whose referenced command output is missing from CAS", async () => {
@@ -126,14 +129,16 @@ describe("managed project verification boundary", () => {
     const outputUri = verification.result.commands[0]!.stdoutArtifact!.uri;
     artifacts.objects.delete(outputUri);
 
-    await expect(runManagedProjectVerifications({
-      suites: [suite],
-      verifier: { verify: async () => verification },
-      repositoryRoot: "/fixture",
-      repositoryRevision,
-      artifactStore: artifacts,
-      time: () => "2026-08-19T01:00:00.000Z",
-      append: () => undefined,
-    })).rejects.toMatchObject({ code: "verification_failed" });
+    await expect(
+      runManagedProjectVerifications({
+        suites: [suite],
+        verifier: { verify: async () => verification },
+        repositoryRoot: "/fixture",
+        repositoryRevision,
+        artifactStore: artifacts,
+        time: () => "2026-08-19T01:00:00.000Z",
+        append: () => undefined,
+      }),
+    ).rejects.toMatchObject({ code: "verification_failed" });
   });
 });

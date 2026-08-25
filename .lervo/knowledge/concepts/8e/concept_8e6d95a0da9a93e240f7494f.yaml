@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8e6d95a0da9a93e240f7494f
+freshness: current
+ownership: user
+path: docs/foundation/commit-convention.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_61daa58be29fc5fa10b46a7a
+title: Commit convention
+type: concept

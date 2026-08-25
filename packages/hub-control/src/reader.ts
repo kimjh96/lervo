@@ -21,10 +21,12 @@ function validTime(value: string, label: string): number {
 }
 
 function covers(approval: SignedPolicyApproval, rule: PolicyRule, at: number): boolean {
-  return approval.approval.capability === rule.capability &&
+  return (
+    approval.approval.capability === rule.capability &&
     validTime(approval.approval.grantedAt, "approval grantedAt") <= at &&
     at <= validTime(approval.approval.expiresAt, "approval expiresAt") &&
-    (rule.repositoryPaths ?? []).every((path) => approval.approval.repositoryPaths.includes(path));
+    (rule.repositoryPaths ?? []).every((path) => approval.approval.repositoryPaths.includes(path))
+  );
 }
 
 function approvalState(input: {
@@ -50,9 +52,15 @@ export class HubCommandControlReader {
     deliveryId: string;
     inspectedAt: string;
   }): Promise<HubCommandReview> {
-    if (!DESTINATION_ID.test(input.destinationId) || !PROJECT_ID.test(input.projectId) ||
-      !DELIVERY_ID.test(input.deliveryId)) {
-      throw new HubControlError("invalid_control_request", "The command review coordinates are invalid.");
+    if (
+      !DESTINATION_ID.test(input.destinationId) ||
+      !PROJECT_ID.test(input.projectId) ||
+      !DELIVERY_ID.test(input.deliveryId)
+    ) {
+      throw new HubControlError(
+        "invalid_control_request",
+        "The command review coordinates are invalid.",
+      );
     }
     const inspectedAtMs = validTime(input.inspectedAt, "inspectedAt");
     let delivery;
@@ -63,8 +71,11 @@ export class HubCommandControlReader {
         cause: error instanceof Error ? error : undefined,
       });
     }
-    if (delivery === null || delivery.destinationId !== input.destinationId ||
-      delivery.target.projectId !== input.projectId) {
+    if (
+      delivery === null ||
+      delivery.destinationId !== input.destinationId ||
+      delivery.target.projectId !== input.projectId
+    ) {
       throw new HubControlError("command_not_found", "The requested command was not found.");
     }
     let binding;
@@ -80,44 +91,62 @@ export class HubCommandControlReader {
       });
     }
     if (binding === null || binding.command.commandId !== delivery.commandId) {
-      throw new HubControlError("source_inconsistent", "The delivery is not linked to the command source.");
+      throw new HubControlError(
+        "source_inconsistent",
+        "The delivery is not linked to the command source.",
+      );
     }
     const command = binding.command;
     const [snapshot, bundle] = await Promise.all([
-      this.source.getCurrentPolicySnapshot({ destinationId: input.destinationId, target: delivery.target }),
+      this.source.getCurrentPolicySnapshot({
+        destinationId: input.destinationId,
+        target: delivery.target,
+      }),
       this.source.pullPolicyBundle({
         destinationId: input.destinationId,
         target: delivery.target,
         currentSnapshotId: null,
       }),
     ]);
-    if ((snapshot === null) !== (bundle === null) ||
-      (snapshot !== null && bundle !== null &&
-        snapshot.snapshot.snapshotId !== bundle.snapshot.snapshot.snapshotId)) {
+    if (
+      (snapshot === null) !== (bundle === null) ||
+      (snapshot !== null &&
+        bundle !== null &&
+        snapshot.snapshot.snapshotId !== bundle.snapshot.snapshot.snapshotId)
+    ) {
       throw new HubControlError("source_inconsistent", "The policy head and review bundle differ.");
     }
-    const matchingRules = snapshot?.snapshot.rules.filter((rule) =>
-      rule.roleId === command.action.roleId && rule.risk === command.action.risk
-    ) ?? [];
+    const matchingRules =
+      snapshot?.snapshot.rules.filter(
+        (rule) => rule.roleId === command.action.roleId && rule.risk === command.action.risk,
+      ) ?? [];
     const required = matchingRules.filter((rule) => rule.decision === "require_approval");
     const denied = matchingRules.some((rule) => rule.decision === "deny");
-    const commandApprovals = bundle?.approvals.filter((approval) =>
-      approval.approval.commandId === command.commandId
-    ) ?? [];
-    const revokedIds = new Set((bundle?.revocations ?? []).map((item) => item.revocation.approvalId));
-    const activeApprovals = commandApprovals.filter((approval) => !revokedIds.has(approval.approval.approvalId));
+    const commandApprovals =
+      bundle?.approvals.filter((approval) => approval.approval.commandId === command.commandId) ??
+      [];
+    const revokedIds = new Set(
+      (bundle?.revocations ?? []).map((item) => item.revocation.approvalId),
+    );
+    const activeApprovals = commandApprovals.filter(
+      (approval) => !revokedIds.has(approval.approval.approvalId),
+    );
     const options = required.map((rule): HubCommandApprovalOption => ({
       capability: rule.capability,
       repositoryPaths: [...(rule.repositoryPaths ?? [])].sort(),
-      approvalId: activeApprovals.find((approval) => covers(approval, rule, inspectedAtMs))
-        ?.approval.approvalId ?? null,
+      approvalId:
+        activeApprovals.find((approval) => covers(approval, rule, inspectedAtMs))?.approval
+          .approvalId ?? null,
     }));
-    const maximumExpiresAt = snapshot === null
-      ? null
-      : new Date(Math.min(
-          validTime(snapshot.snapshot.expiresAt, "snapshot expiresAt"),
-          validTime(command.expiresAt, "command expiresAt"),
-        )).toISOString();
+    const maximumExpiresAt =
+      snapshot === null
+        ? null
+        : new Date(
+            Math.min(
+              validTime(snapshot.snapshot.expiresAt, "snapshot expiresAt"),
+              validTime(command.expiresAt, "command expiresAt"),
+            ),
+          ).toISOString();
     return {
       schemaVersion: 1,
       destinationId: input.destinationId,
@@ -145,7 +174,8 @@ export class HubCommandControlReader {
         snapshotId: snapshot?.snapshot.snapshotId ?? null,
         maximumExpiresAt,
         hadRevokedApproval: commandApprovals.some((approval) =>
-          revokedIds.has(approval.approval.approvalId)),
+          revokedIds.has(approval.approval.approvalId),
+        ),
         options,
       },
       inspectedAt: input.inspectedAt,

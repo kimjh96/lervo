@@ -1,0 +1,25 @@
+candidateId: knorm_18a5bcdf6497c643adecf5d8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_667053783bb6d8cef3908afc
+outputLanguage: en
+outputs:
+  - byteCount: 1996
+    contentHash: sha256:31ee5386b9be3ea12761c719b1251f8583e819a084b2f9b4c76dc1a90229120f
+    path: docs/foundation/code-convention.md
+    userRegionHash: sha256:31ee5386b9be3ea12761c719b1251f8583e819a084b2f9b4c76dc1a90229120f
+profile: repository_document
+recordId: knormdoc_821e6a21ea11480a8ccaca22
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:4ec54325ec2a737b1865a1aaffb3e738434f825045b924bd905b6fb8e0b8b175
+sourcePath: docs/foundation/code-convention.md
+sourceUnitVersionIds:
+  - uv_3495b662ecf3245407723692
+  - uv_85d8496b48f97c72b55a8e05
+  - uv_c49913c1a95b0e6a168a5dee

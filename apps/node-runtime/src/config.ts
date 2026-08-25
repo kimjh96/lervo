@@ -28,8 +28,11 @@ function httpsUrl(value: unknown): string {
     });
   }
   if (
-    url.protocol !== "https:" || url.username !== "" || url.password !== "" ||
-    url.search !== "" || url.hash !== ""
+    url.protocol !== "https:" ||
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
@@ -41,7 +44,11 @@ function httpsUrl(value: unknown): string {
 
 export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): NodeRuntimeConfig {
   const source = configRecord(value, "Node runtime config");
-  exactConfigKeys(source, ["schemaVersion", "repositoryRoot", "hub", "sync", "remoteCommands"], "Node runtime config");
+  exactConfigKeys(
+    source,
+    ["schemaVersion", "repositoryRoot", "hub", "sync", "remoteCommands"],
+    "Node runtime config",
+  );
   if (source.schemaVersion !== 1) {
     throw new NodeRuntimeError("invalid_config", "Node runtime config schemaVersion must be 1.");
   }
@@ -53,16 +60,20 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     throw new NodeRuntimeError("invalid_config", "The Hub destination or identity is invalid.");
   }
   const sync = configRecord(source.sync, "sync");
-  exactConfigKeys(sync, [
-    "workerId",
-    "idlePollIntervalMs",
-    "leaseDurationMs",
-    "retryDelayMs",
-    "batchLimit",
-    "requestTimeoutMs",
-    "maxRequestBytes",
-    "maxResponseBytes",
-  ], "sync");
+  exactConfigKeys(
+    sync,
+    [
+      "workerId",
+      "idlePollIntervalMs",
+      "leaseDurationMs",
+      "retryDelayMs",
+      "batchLimit",
+      "requestTimeoutMs",
+      "maxRequestBytes",
+      "maxResponseBytes",
+    ],
+    "sync",
+  );
   const workerId = configText(sync.workerId, "sync.workerId");
   if (!WORKER_PATTERN.test(workerId)) {
     throw new NodeRuntimeError("invalid_config", "sync.workerId is invalid.");
@@ -76,15 +87,19 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   const requestTimeoutMs = integer("requestTimeoutMs", 10, 300_000);
   const maxRequestBytes = integer("maxRequestBytes", 1_024, 16_777_216);
   const maxResponseBytes = integer("maxResponseBytes", 1_024, 16_777_216);
-  const remoteCommands = source.remoteCommands === undefined
-    ? undefined
-    : parseRemoteCommandConfig(source.remoteCommands, baseDirectory);
+  const remoteCommands =
+    source.remoteCommands === undefined
+      ? undefined
+      : parseRemoteCommandConfig(source.remoteCommands, baseDirectory);
   return {
     schemaVersion: 1,
     repositoryRoot: resolve(baseDirectory, configText(source.repositoryRoot, "repositoryRoot")),
     hub: {
       baseUrl: httpsUrl(hub.baseUrl),
-      bearerTokenFile: resolve(baseDirectory, configText(hub.bearerTokenFile, "hub.bearerTokenFile")),
+      bearerTokenFile: resolve(
+        baseDirectory,
+        configText(hub.bearerTokenFile, "hub.bearerTokenFile"),
+      ),
       destinationId,
       hubIdentityHash,
     },
@@ -108,9 +123,10 @@ export async function loadNodeRuntimeConfig(path: string): Promise<NodeRuntimeCo
   try {
     serialized = await readOwnerOnlyText(absolutePath, MAX_CONFIG_BYTES);
   } catch (error) {
-    const code = error instanceof RuntimeSecurityError && error.code === "invalid_text"
-      ? "invalid_config"
-      : "unsafe_runtime_file";
+    const code =
+      error instanceof RuntimeSecurityError && error.code === "invalid_text"
+        ? "invalid_config"
+        : "unsafe_runtime_file";
     throw new NodeRuntimeError(code, "Could not read the Node runtime config file safely.", {
       cause: error,
     });

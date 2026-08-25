@@ -26,10 +26,7 @@ import {
 
 import { HubSyncStoreError } from "./errors.js";
 import { HubRemoteCommandQuerySQLiteRepository } from "./remote-command-query-repository.js";
-import {
-  nullableStringField,
-  stringField,
-} from "./row-codec.js";
+import { nullableStringField, stringField } from "./row-codec.js";
 import {
   parseRemoteCommandQueueStatus,
   parseStoredRemoteCommandEnvelope,
@@ -50,10 +47,14 @@ export class HubRemoteCommandSQLiteRepository {
   }): HubRemoteCommandEnqueueResult {
     assertSignedRemoteCommand(input.envelope);
     const command = input.envelope.command;
-    const registration = this.database.prepare(`
+    const registration = this.database
+      .prepare(
+        `
       SELECT identity_hash FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
-    `).get(input.destinationId, command.target.projectId);
+    `,
+      )
+      .get(input.destinationId, command.target.projectId);
     if (registration === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
@@ -80,18 +81,17 @@ export class HubRemoteCommandSQLiteRepository {
       destinationId: input.destinationId,
       envelope: input.envelope,
     });
-    const existing = this.database.prepare(`
+    const existing = this.database
+      .prepare(
+        `
       SELECT delivery_id, envelope_json, status, queued_at
       FROM hub_remote_commands
       WHERE delivery_id = ? OR (
         destination_id = ? AND project_id = ? AND command_id = ?
       )
-    `).all(
-      deliveryId,
-      input.destinationId,
-      command.target.projectId,
-      command.commandId,
-    );
+    `,
+      )
+      .all(deliveryId, input.destinationId, command.target.projectId, command.commandId);
     if (existing.length !== 0) {
       if (
         existing.length !== 1 ||
@@ -112,26 +112,30 @@ export class HubRemoteCommandSQLiteRepository {
       };
     }
 
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_remote_commands (
         delivery_id, destination_id, project_id, command_id, command_hash,
         envelope_json, queued_at, queued_at_ms, issued_at, issued_at_ms,
         expires_at, expires_at_ms, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `).run(
-      deliveryId,
-      input.destinationId,
-      command.target.projectId,
-      command.commandId,
-      calculateRemoteCommandHash(command),
-      canonicalJson(input.envelope),
-      input.queuedAt,
-      queuedAtMs,
-      command.issuedAt,
-      issuedAtMs,
-      command.expiresAt,
-      expiresAtMs,
-    );
+    `,
+      )
+      .run(
+        deliveryId,
+        input.destinationId,
+        command.target.projectId,
+        command.commandId,
+        calculateRemoteCommandHash(command),
+        canonicalJson(input.envelope),
+        input.queuedAt,
+        queuedAtMs,
+        command.issuedAt,
+        issuedAtMs,
+        command.expiresAt,
+        expiresAtMs,
+      );
     return {
       status: "queued",
       deliveryId,
@@ -150,10 +154,14 @@ export class HubRemoteCommandSQLiteRepository {
     limit: number;
   }): RemoteCommandLease[] {
     const leasedAtMs = remoteCommandTimestamp(input.leasedAt, "leasedAt");
-    const registration = this.database.prepare(`
+    const registration = this.database
+      .prepare(
+        `
       SELECT identity_hash FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
-    `).get(input.destinationId, input.target.projectId);
+    `,
+      )
+      .get(input.destinationId, input.target.projectId);
     if (registration === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_registration_required",
@@ -167,28 +175,40 @@ export class HubRemoteCommandSQLiteRepository {
       );
     }
 
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       UPDATE hub_remote_commands
       SET status = 'pending', lease_id = NULL, lease_owner = NULL,
           leased_at = NULL, lease_expires_at = NULL, lease_expires_at_ms = NULL
       WHERE destination_id = ? AND project_id = ? AND status = 'leased'
         AND lease_expires_at_ms <= ?
-    `).run(input.destinationId, input.target.projectId, leasedAtMs);
-    this.database.prepare(`
+    `,
+      )
+      .run(input.destinationId, input.target.projectId, leasedAtMs);
+    this.database
+      .prepare(
+        `
       UPDATE hub_remote_commands
       SET status = 'expired', terminal_at = ?
       WHERE destination_id = ? AND project_id = ? AND status = 'pending'
         AND expires_at_ms <= ?
-    `).run(input.leasedAt, input.destinationId, input.target.projectId, leasedAtMs);
+    `,
+      )
+      .run(input.leasedAt, input.destinationId, input.target.projectId, leasedAtMs);
 
-    const rows = this.database.prepare(`
+    const rows = this.database
+      .prepare(
+        `
       SELECT delivery_id, command_id, command_hash, envelope_json, expires_at
       FROM hub_remote_commands
       WHERE destination_id = ? AND project_id = ? AND status = 'pending'
         AND issued_at_ms <= ?
       ORDER BY queued_at_ms ASC, delivery_id ASC
       LIMIT ?
-    `).all(input.destinationId, input.target.projectId, leasedAtMs, input.limit);
+    `,
+      )
+      .all(input.destinationId, input.target.projectId, leasedAtMs, input.limit);
     return rows.map((row) => {
       const envelope = parseStoredRemoteCommandEnvelope(row);
       const leaseId = `rcl_${randomBytes(32).toString("base64url")}`;
@@ -197,20 +217,24 @@ export class HubRemoteCommandSQLiteRepository {
         Date.parse(stringField(row, "expires_at")),
       );
       const leaseExpiresAt = new Date(leaseExpiresAtMs).toISOString();
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         UPDATE hub_remote_commands
         SET status = 'leased', attempt_count = attempt_count + 1,
             lease_id = ?, lease_owner = ?, leased_at = ?, lease_expires_at = ?,
             lease_expires_at_ms = ?
         WHERE delivery_id = ? AND status = 'pending'
-      `).run(
-        leaseId,
-        input.leasedTo,
-        input.leasedAt,
-        leaseExpiresAt,
-        leaseExpiresAtMs,
-        stringField(row, "delivery_id"),
-      );
+      `,
+        )
+        .run(
+          leaseId,
+          input.leasedTo,
+          input.leasedAt,
+          leaseExpiresAt,
+          leaseExpiresAtMs,
+          stringField(row, "delivery_id"),
+        );
       if (result.changes !== 1) {
         throw new HubSyncStoreError(
           "write_failed",
@@ -236,7 +260,9 @@ export class HubRemoteCommandSQLiteRepository {
     confirmedAt: string;
   }): RemoteCommandDeliveryConfirmation {
     const acknowledgementHash = calculateRemoteCommandAcknowledgementHash(input.acknowledgement);
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT command.delivery_id, command.destination_id, command.project_id,
         command.command_id, command.command_hash, command.envelope_json,
         command.status, command.lease_id, command.lease_owner, command.leased_at,
@@ -247,7 +273,9 @@ export class HubRemoteCommandSQLiteRepository {
         ON project.destination_id = command.destination_id
         AND project.project_id = command.project_id
       WHERE command.delivery_id = ?
-    `).get(input.acknowledgement.deliveryId);
+    `,
+      )
+      .get(input.acknowledgement.deliveryId);
     if (row === undefined) {
       throw new HubRemoteCommandStoreError(
         "remote_command_ack_invalid",
@@ -311,22 +339,25 @@ export class HubRemoteCommandSQLiteRepository {
         { cause: error },
       );
     }
-    const terminalStatus = input.acknowledgement.disposition === "completed"
-      ? "completed"
-      : "rejected";
-    const updated = this.database.prepare(`
+    const terminalStatus =
+      input.acknowledgement.disposition === "completed" ? "completed" : "rejected";
+    const updated = this.database
+      .prepare(
+        `
       UPDATE hub_remote_commands
       SET status = ?, lease_id = NULL, lease_owner = NULL, leased_at = NULL,
           lease_expires_at = NULL, lease_expires_at_ms = NULL, acknowledgement_json = ?,
           acknowledgement_hash = ?, terminal_at = ?
       WHERE delivery_id = ? AND status = 'leased'
-    `).run(
-      terminalStatus,
-      canonicalJson(input.acknowledgement),
-      acknowledgementHash,
-      input.confirmedAt,
-      input.acknowledgement.deliveryId,
-    );
+    `,
+      )
+      .run(
+        terminalStatus,
+        canonicalJson(input.acknowledgement),
+        acknowledgementHash,
+        input.confirmedAt,
+        input.acknowledgement.deliveryId,
+      );
     if (updated.changes !== 1) {
       throw new HubSyncStoreError(
         "write_failed",

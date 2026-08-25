@@ -1,8 +1,10 @@
 import {
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
+  rename,
   rm,
   symlink,
   writeFile,
@@ -55,11 +57,8 @@ function eventDraft() {
     schemaVersion: 1 as const,
     policyVersion,
     payload: {
-      resultDigest:
-        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      artifactIds: [
-        "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      ],
+      resultDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      artifactIds: ["art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
       verificationStatus: "not_run",
     },
   };
@@ -82,8 +81,8 @@ describe("project storage bootstrap", () => {
 
     expect(storage.manifest.projectId).toBe(projectId);
     expect(storage.manifest.dataPolicy.hubSyncEnabled).toBe(false);
-    expect(storage.paths.eventDatabase).toBe(resolve(root, ".lervo/state/events.sqlite"));
-    expect(storage.paths.cas).toBe(resolve(root, ".lervo/state/cas"));
+    expect(storage.paths.eventDatabase).toBe(resolve(root, ".lervo/data/events.sqlite"));
+    expect(storage.paths.cas).toBe(resolve(root, ".lervo/data/cas"));
     const event = storage.events.append(eventDraft()).event;
     const artifact = await storage.artifacts.put("source text readable after restart");
     expect(storage.events.listOutbox()).toEqual([]);
@@ -204,13 +203,97 @@ describe("project storage bootstrap", () => {
 
   it("rejects an unsafe CAS path before creating the event database", async () => {
     const root = await initializedRepository();
-    await mkdir(resolve(root, ".lervo/state"));
-    await writeFile(resolve(root, ".lervo/state/cas"), "user-owned file\n");
+    await mkdir(resolve(root, ".lervo/data"));
+    await writeFile(resolve(root, ".lervo/data/cas"), "user-owned file\n");
 
     await expect(openProjectStorage(root)).rejects.toMatchObject({
       code: "storage_layout_invalid",
     });
-    await expect(readFile(resolve(root, ".lervo/state/events.sqlite"))).rejects.toThrow();
+    await expect(readFile(resolve(root, ".lervo/data/events.sqlite"))).rejects.toThrow();
+  });
+
+  it("migrates durable legacy records out of deletable state without data loss", async () => {
+    const root = await initializedRepository();
+    const first = await openProjectStorage(root);
+    const event = first.events.append(eventDraft()).event;
+    const artifact = await first.artifacts.put("legacy durable bytes");
+    await first.close();
+
+    await rename(
+      resolve(root, ".lervo/data/events.sqlite"),
+      resolve(root, ".lervo/state/events.sqlite"),
+    );
+    await rename(resolve(root, ".lervo/data/cas"), resolve(root, ".lervo/state/cas"));
+
+    const migrated = await openProjectStorage(root);
+    expect(migrated.events.get(event.eventId)).toEqual(event);
+    expect(Buffer.from(await migrated.artifacts.get(artifact.uri)).toString("utf8")).toBe(
+      "legacy durable bytes",
+    );
+    await migrated.close();
+    await expect(lstat(resolve(root, ".lervo/state/events.sqlite"))).rejects.toThrow();
+    await expect(lstat(resolve(root, ".lervo/state/cas"))).rejects.toThrow();
+  });
+
+  it("migrates legacy Node policy and replay databases out of deletable state", async () => {
+    const root = await initializedRepository();
+    const state = resolve(root, ".lervo/state");
+    const data = resolve(root, ".lervo/data");
+    const entries = [
+      "policy.sqlite",
+      "policy.sqlite-wal",
+      "policy.sqlite-shm",
+      "remote-command-replay.sqlite",
+      "remote-command-replay.sqlite-wal",
+      "remote-command-replay.sqlite-shm",
+    ];
+    await mkdir(state, { recursive: true });
+    await Promise.all(entries.map((name) => writeFile(resolve(state, name), `legacy ${name}\n`)));
+
+    const storage = await openProjectStorage(root);
+    await storage.close();
+
+    for (const name of entries) {
+      expect(await readFile(resolve(data, name), "utf8")).toBe(`legacy ${name}\n`);
+      await expect(lstat(resolve(state, name))).rejects.toThrow();
+    }
+  });
+
+  it("refuses conflicting durable and legacy copies", async () => {
+    const root = await initializedRepository();
+    await Promise.all([
+      mkdir(resolve(root, ".lervo/state"), { recursive: true }),
+      mkdir(resolve(root, ".lervo/data"), { recursive: true }),
+    ]);
+    await writeFile(resolve(root, ".lervo/state/events.sqlite"), "legacy");
+    await writeFile(resolve(root, ".lervo/data/events.sqlite"), "current");
+
+    await expect(openProjectStorage(root)).rejects.toMatchObject({
+      code: "storage_layout_invalid",
+    });
+  });
+
+  it("removes verified empty legacy copies recreated by a completed old runtime", async () => {
+    const root = await initializedRepository();
+    const current = await openProjectStorage(root);
+    current.events.append(eventDraft());
+    await current.artifacts.put("durable object");
+    await current.close();
+
+    const { SQLiteEventStore } = await import("@lervo/event-store-sqlite");
+    const legacy = await SQLiteEventStore.open({
+      path: resolve(root, ".lervo/state/events.sqlite"),
+      projectId,
+    });
+    legacy.close();
+    await mkdir(resolve(root, ".lervo/state/cas/sha256"), { recursive: true });
+    await mkdir(resolve(root, ".lervo/state/cas/.tmp"), { recursive: true });
+
+    const reopened = await openProjectStorage(root);
+    expect(reopened.events.list()).toHaveLength(1);
+    await reopened.close();
+    await expect(lstat(resolve(root, ".lervo/state/events.sqlite"))).rejects.toThrow();
+    await expect(lstat(resolve(root, ".lervo/state/cas"))).rejects.toThrow();
   });
 
   it("keeps an uninitialized repository free of storage side effects", async () => {

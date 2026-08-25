@@ -1,8 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { verifyCliFirstPublicationPackageMetadataPostApply } from
-  "../../lib/cli-first-publication-package-metadata-post-apply.mjs";
+import { verifyCliFirstPublicationPackageMetadataPostApply } from "../../lib/cli-first-publication-package-metadata-post-apply.mjs";
 import {
   applyMetadataFixture,
   createMetadataApplyFixture,
@@ -62,13 +61,12 @@ export async function createExternalEvidenceFixture() {
     scopeConfirmation,
     firstPublicationApproval: publication.approval,
   };
-  const paths = Object.fromEntries(Object.keys(documents).map((id) => [
-    `${id}Path`,
-    resolve(metadata.root, `${id}.json`),
-  ]));
-  await Promise.all(Object.entries(documents).map(([id, document]) =>
-    writeDocument(paths[`${id}Path`], document)
-  ));
+  const paths = Object.fromEntries(
+    Object.keys(documents).map((id) => [`${id}Path`, resolve(metadata.root, `${id}.json`)]),
+  );
+  await Promise.all(
+    Object.entries(documents).map(([id, document]) => writeDocument(paths[`${id}Path`], document)),
+  );
   return {
     ...metadata,
     ...applied,

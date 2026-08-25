@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b03b96c81831774c1255915b
+  - uv_c0219d616de6f83368e3bbcf
 title: "ADR-0008: Managed context-gate orchestration"
 type: decision

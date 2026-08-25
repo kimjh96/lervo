@@ -29,21 +29,35 @@ async function safeDirectory(path: string, create: boolean): Promise<void> {
   }
   try {
     const stats = await lstat(path);
-    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath(path) !== path) {
-      throw new SearchLocalError("observation_invalid", "The search observation path must be a real directory.");
+    if (!stats.isDirectory() || stats.isSymbolicLink() || (await realpath(path)) !== path) {
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search observation path must be a real directory.",
+      );
     }
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("observation_read_failed", "Could not inspect the search observation directory.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not inspect the search observation directory.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
 }
 
 type ObservationDirectories = { attempts: string; assessments: string };
-export type ObservationSubdirectory = "assessments" | "attempts" | "evaluation-comparisons" |
-  "engine-selections" | "evaluation-results" | "evaluation-reviews" | "evaluation-runs" |
-  "rollout-acknowledgements" | "rollout-reviews";
+export type ObservationSubdirectory =
+  | "assessments"
+  | "attempts"
+  | "evaluation-comparisons"
+  | "engine-selections"
+  | "evaluation-results"
+  | "evaluation-reviews"
+  | "evaluation-runs"
+  | "rollout-acknowledgements"
+  | "rollout-reviews";
 
 async function observationPaths(repositoryRoot: string): Promise<{ state: string; root: string }> {
   try {
@@ -51,13 +65,19 @@ async function observationPaths(repositoryRoot: string): Promise<{ state: string
     const paths = resolveProjectPaths(canonicalRoot);
     return { state: paths.state, root: paths.searchObservations };
   } catch (error) {
-    throw new SearchLocalError("observation_read_failed", "Could not inspect the search observation store root.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not inspect the search observation store root.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
 }
 
-export async function prepareObservationDirectories(repositoryRoot: string): Promise<ObservationDirectories> {
+export async function prepareObservationDirectories(
+  repositoryRoot: string,
+): Promise<ObservationDirectories> {
   const [attempts, assessments] = await Promise.all([
     prepareObservationSubdirectory(repositoryRoot, "attempts"),
     prepareObservationSubdirectory(repositoryRoot, "assessments"),
@@ -93,9 +113,13 @@ export async function existingObservationSubdirectory(
     await lstat(paths.root);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw new SearchLocalError("observation_read_failed", "Could not inspect the search observation path.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not inspect the search observation path.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   await safeDirectory(paths.root, false);
   const directory = resolve(paths.root, name);
@@ -103,9 +127,13 @@ export async function existingObservationSubdirectory(
     await lstat(directory);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw new SearchLocalError("observation_read_failed", "Could not inspect the search observation child path.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not inspect the search observation child path.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   await safeDirectory(directory, false);
   return directory;
@@ -126,9 +154,13 @@ export async function existingObservationDirectories(
     await lstat(paths.root);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw new SearchLocalError("observation_read_failed", "Could not inspect the search observation path.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not inspect the search observation path.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   await safeDirectory(paths.root, false);
   const attempts = resolve(paths.root, "attempts");
@@ -143,25 +175,48 @@ export async function readObservation<T>(path: string): Promise<T> {
   try {
     const before = await lstat(path, { bigint: true });
     if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_FILE_BYTES)) {
-      throw new SearchLocalError("observation_invalid", "The search observation source file is unsafe.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search observation source file is unsafe.",
+      );
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const opened = await handle.stat({ bigint: true });
-    if (before.dev !== opened.dev || before.ino !== opened.ino || opened.size > BigInt(MAX_FILE_BYTES)) {
-      throw new SearchLocalError("observation_invalid", "The search observation source path changed before it was read.");
+    if (
+      before.dev !== opened.dev ||
+      before.ino !== opened.ino ||
+      opened.size > BigInt(MAX_FILE_BYTES)
+    ) {
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search observation source path changed before it was read.",
+      );
     }
     const buffer = Buffer.alloc(Number(opened.size) + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     const after = await handle.stat({ bigint: true });
-    if (bytesRead !== Number(opened.size) || opened.size !== after.size || opened.mtimeNs !== after.mtimeNs) {
-      throw new SearchLocalError("observation_invalid", "The search observation source changed while it was being read.");
+    if (
+      bytesRead !== Number(opened.size) ||
+      opened.size !== after.size ||
+      opened.mtimeNs !== after.mtimeNs
+    ) {
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search observation source changed while it was being read.",
+      );
     }
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, bytesRead))) as T;
+    return JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, bytesRead)),
+    ) as T;
   } catch (error) {
     if (error instanceof SearchLocalError) throw error;
-    throw new SearchLocalError("observation_read_failed", "Could not read the search observation source.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not read the search observation source.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   } finally {
     await handle?.close();
   }
@@ -172,7 +227,11 @@ export async function writeObservation(path: string, value: unknown): Promise<vo
   const serialized = `${canonicalJson(value)}\n`;
   try {
     try {
-      const stagingHandle = await open(staging, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL, 0o600);
+      const stagingHandle = await open(
+        staging,
+        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL,
+        0o600,
+      );
       try {
         await stagingHandle.writeFile(serialized, "utf8");
         await stagingHandle.sync();
@@ -180,20 +239,31 @@ export async function writeObservation(path: string, value: unknown): Promise<vo
         await stagingHandle.close();
       }
     } catch (error) {
-      throw new SearchLocalError("observation_write_failed", "Could not save the temporary search observation source.", {
-        cause: error instanceof Error ? error : undefined,
-      });
+      throw new SearchLocalError(
+        "observation_write_failed",
+        "Could not save the temporary search observation source.",
+        {
+          cause: error instanceof Error ? error : undefined,
+        },
+      );
     }
     try {
       await link(staging, path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-        throw new SearchLocalError("observation_write_failed", "Could not publish the search observation source.", {
-          cause: error instanceof Error ? error : undefined,
-        });
+        throw new SearchLocalError(
+          "observation_write_failed",
+          "Could not publish the search observation source.",
+          {
+            cause: error instanceof Error ? error : undefined,
+          },
+        );
       }
       if (`${canonicalJson(await readObservation(path))}\n` !== serialized) {
-        throw new SearchLocalError("observation_conflict", "A different source exists for the same search observation ID.");
+        throw new SearchLocalError(
+          "observation_conflict",
+          "A different source exists for the same search observation ID.",
+        );
       }
     }
   } finally {
@@ -201,9 +271,15 @@ export async function writeObservation(path: string, value: unknown): Promise<vo
       await unlink(staging);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-        throw new SearchLocalError("observation_write_failed", "Could not clean up the temporary search observation source.", {
-          cause: error instanceof Error ? error : undefined,
-        });
+        // Fail closed: an unremoved staging source makes publication state indeterminate.
+        // eslint-disable-next-line no-unsafe-finally
+        throw new SearchLocalError(
+          "observation_write_failed",
+          "Could not clean up the temporary search observation source.",
+          {
+            cause: error instanceof Error ? error : undefined,
+          },
+        );
       }
     }
   }
@@ -219,23 +295,36 @@ export async function listObservations<T>(input: {
   try {
     entries = await readdir(input.path, { withFileTypes: true });
   } catch (error) {
-    throw new SearchLocalError("observation_read_failed", "Could not read the search observation list.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "observation_read_failed",
+      "Could not read the search observation list.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   if (entries.length > MAX_OBSERVATIONS) {
-    throw new SearchLocalError("observation_limit_exceeded", "The number of search observation sources exceeds the query limit.");
+    throw new SearchLocalError(
+      "observation_limit_exceeded",
+      "The number of search observation sources exceeds the query limit.",
+    );
   }
   const values: T[] = [];
   for (const entry of entries.sort((left, right) => compareText(left.name, right.name))) {
     if (!entry.isFile() || entry.isSymbolicLink() || !input.pattern.test(entry.name)) {
-      throw new SearchLocalError("observation_invalid", "The search observation directory contains an entry outside the contract.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search observation directory contains an entry outside the contract.",
+      );
     }
     const value = await readObservation<T>(resolve(input.path, entry.name));
     input.assertValue(value);
     const expectedFileName = input.expectedFileName?.(value);
     if (expectedFileName !== undefined && expectedFileName !== entry.name) {
-      throw new SearchLocalError("observation_invalid", "The search observation filename does not match the source coordinates.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search observation filename does not match the source coordinates.",
+      );
     }
     values.push(value);
   }

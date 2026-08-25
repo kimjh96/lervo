@@ -1,6 +1,7 @@
 export const supportedRepositoryPublicationLanguages = ["en"] as const;
 
-export type RepositoryPublicationLanguage = typeof supportedRepositoryPublicationLanguages[number];
+export type RepositoryPublicationLanguage =
+  (typeof supportedRepositoryPublicationLanguages)[number];
 export type RepositoryPublicationGroup =
   | "agent_instructions"
   | "agent_workflows"
@@ -48,15 +49,21 @@ const english: RepositoryPublicationMessages = {
   knowledgeMap: "Knowledge map",
   startingPoint: "Starting point",
   evidenceSemantics: "Evidence semantics",
-  generatedOverview: "Lervo generated this structural index from bounded, read-only repository sources. It is a draft navigation aid, not a claim that an agent read or used every linked document.",
-  generatedNavigation: "Generated navigation over user-owned publications. Linked source bytes remain at their original paths.",
-  noPublications: "No existing Markdown publication was found. The inventory above was compiled from code, configuration, schema, test, build, log metadata, and bounded evidence sources. Add durable explanations as separate concepts instead of expanding this generated file manually.",
-  evidenceExplanation: "Every registered concept sidecar points to exact source-unit versions. `unreviewed` means structural extraction only; query results are `recommended`, never `loaded`, `injected`, `referenced`, or `used` evidence.",
+  generatedOverview:
+    "Lervo generated this structural index from bounded, read-only repository sources. It is a draft navigation aid, not a claim that an agent read or used every linked document.",
+  generatedNavigation:
+    "Generated navigation over user-owned publications. Linked source bytes remain at their original paths.",
+  noPublications:
+    "No existing Markdown publication was found. The inventory above was compiled from code, configuration, schema, test, build, log metadata, and bounded evidence sources. Add durable explanations as separate concepts instead of expanding this generated file manually.",
+  evidenceExplanation:
+    "Every registered concept sidecar points to exact source-unit versions. `unreviewed` means structural extraction only; query results are `recommended`, never `loaded`, `injected`, `referenced`, or `used` evidence.",
   page: "Page",
   pages: "Pages",
   catalog: "Catalog",
-  generatedReadmeSummary: "This repository is initialized for local-first, evidence-bound work with Lervo.",
-  generatedAgentsPurpose: "Use the repository knowledge entrypoint before changing code or documentation.",
+  generatedReadmeSummary:
+    "This repository is initialized for local-first, evidence-bound work with Lervo.",
+  generatedAgentsPurpose:
+    "Use the repository knowledge entrypoint before changing code or documentation.",
   readmeStartHeading: "Start here",
   repositoryKnowledgeLink: "Repository knowledge",
   readmeRules: [
@@ -71,10 +78,14 @@ const english: RepositoryPublicationMessages = {
     "Preserve user-owned bytes and edit only explicitly managed Lervo blocks.",
     "Keep entrypoints short; put each independent concern in a separate document.",
     "Run the repository's relevant verification and `lervo knowledge lint` after changes.",
+    "Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into the corresponding Lervo operation yourself; never ask the user to type bookkeeping commands.",
+    "Resolve built-in and repository roles through the versioned role registry; create a custom role source only with its first requested artifact, and preserve exact role, capability, verification, ancestry, and hash validation.",
+    "Register subagents with their parent agent and give them the same assignment, lease, evidence, verification, and finalization contract as root agents.",
   ],
   publicationSnapshot: ({ snapshotId, included, includedBytes, excluded, unsupported }) =>
     `Publication input snapshot: \`${snapshotId}\`. Included ${included} publishable sources (${includedBytes} bytes), excluded ${excluded}, unsupported ${unsupported}. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use \`lervo migrate knowledge\` to determine currency.`,
-  itemCount: (count, singular, plural = `${singular}s`) => `${count} ${count === 1 ? singular : plural}`,
+  itemCount: (count, singular, plural = `${singular}s`) =>
+    `${count} ${count === 1 ? singular : plural}`,
   groups: {
     agent_instructions: "Agent instructions",
     agent_workflows: "Agent workflows",

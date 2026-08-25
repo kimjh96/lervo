@@ -67,10 +67,12 @@ describe("durable remote command replay store", () => {
 
     const reopened = await SQLiteRemoteCommandReplayStore.open({ path, target });
     await expect(reopened.inspect(selected)).resolves.toEqual({ status: "in_progress" });
-    await expect(reopened.inspect({ ...selected, commandHash: `sha256:${"c".repeat(64)}` }))
-      .resolves.toEqual({ status: "idempotency_conflict" });
-    await expect(reopened.inspect({ ...coordinate("d", "02"), nonce: selected.nonce }))
-      .resolves.toEqual({ status: "nonce_replay" });
+    await expect(
+      reopened.inspect({ ...selected, commandHash: `sha256:${"c".repeat(64)}` }),
+    ).resolves.toEqual({ status: "idempotency_conflict" });
+    await expect(
+      reopened.inspect({ ...coordinate("d", "02"), nonce: selected.nonce }),
+    ).resolves.toEqual({ status: "nonce_replay" });
     reopened.close();
   });
 
@@ -93,9 +95,11 @@ describe("durable remote command replay store", () => {
     const store = await SQLiteRemoteCommandReplayStore.open({ path, target });
     store.close();
 
-    await expect(SQLiteRemoteCommandReplayStore.open({
-      path,
-      target: { ...target, projectIdentityHash: `sha256:${"e".repeat(64)}` },
-    })).rejects.toMatchObject({ code: "integrity_failed" });
+    await expect(
+      SQLiteRemoteCommandReplayStore.open({
+        path,
+        target: { ...target, projectIdentityHash: `sha256:${"e".repeat(64)}` },
+      }),
+    ).rejects.toMatchObject({ code: "integrity_failed" });
   });
 });

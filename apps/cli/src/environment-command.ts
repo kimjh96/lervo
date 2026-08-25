@@ -30,8 +30,13 @@ function formatObservation(observation: EnvironmentObservation, persisted: boole
     `  Persistence: ${persisted ? "repository-local derived state" : "unpersisted one-time observation"}`,
   ];
   for (const subject of observation.subjects) {
-    lines.push(`  ${subject.labels["device.hostname"] ?? subject.subjectId} · ${subject.capabilities.join(", ") || "no capabilities"}`);
-    for (const endpoint of subject.endpoints) lines.push(`    ${endpoint.transport}://${endpoint.host}${endpoint.port === undefined ? "" : `:${endpoint.port}`}`);
+    lines.push(
+      `  ${subject.labels["device.hostname"] ?? subject.subjectId} · ${subject.capabilities.join(", ") || "no capabilities"}`,
+    );
+    for (const endpoint of subject.endpoints)
+      lines.push(
+        `    ${endpoint.transport}://${endpoint.host}${endpoint.port === undefined ? "" : `:${endpoint.port}`}`,
+      );
   }
   return `${lines.join("\n")}\n`;
 }
@@ -69,20 +74,32 @@ async function runQuery(
   const adapterId = parsed.values.adapter;
   const targetId = parsed.values.target;
   const modeCount = [sourceId, adapterId, targetId].filter((value) => value !== undefined).length;
-  if (modeCount !== 1 ||
+  if (
+    modeCount !== 1 ||
     (adapterId !== undefined && parsed.values.ephemeral !== true) ||
-    (adapterId === undefined && parsed.values.ephemeral === true)) {
-    io.stderr(`Specify one registered source or target, or use --adapter with --ephemeral.\n${environmentUsage}\n`);
+    (adapterId === undefined && parsed.values.ephemeral === true)
+  ) {
+    io.stderr(
+      `Specify one registered source or target, or use --adapter with --ephemeral.\n${environmentUsage}\n`,
+    );
     return 1;
   }
   try {
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     if (targetId !== undefined) {
       const target = await loadEnvironmentTarget(repositoryRoot, targetId);
-      const sources = target.preferredSourceIds.length > 0
-        ? await Promise.all(target.preferredSourceIds.map((preferredSourceId) => loadEnvironmentSource(repositoryRoot, preferredSourceId)))
-        : (await loadEnvironmentSources(repositoryRoot)).filter((source) =>
-          target.requiredCapabilities.every((capability) => source.capabilities.includes(capability)));
+      const sources =
+        target.preferredSourceIds.length > 0
+          ? await Promise.all(
+              target.preferredSourceIds.map((preferredSourceId) =>
+                loadEnvironmentSource(repositoryRoot, preferredSourceId),
+              ),
+            )
+          : (await loadEnvironmentSources(repositoryRoot)).filter((source) =>
+              target.requiredCapabilities.every((capability) =>
+                source.capabilities.includes(capability),
+              ),
+            );
       const observations: EnvironmentObservation[] = [];
       for (const source of sources) {
         const observation = await services.executeEnvironmentQuery({ source });
@@ -90,32 +107,39 @@ async function runQuery(
         observations.push(observation);
       }
       const resolution = resolveEnvironmentTarget({ target, observations });
-      io.stdout(parsed.values.json
-        ? `${JSON.stringify({ persistence: "repository_local_derived_state", observations, resolution }, null, 2)}\n`
-        : `Environment target ${target.targetId}: ${resolution.status === "resolved" ? "resolved" : resolution.status === "ambiguous" ? "ambiguous" : "unresolved"}\n  Sources observed: ${observations.length}\n`);
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify({ persistence: "repository_local_derived_state", observations, resolution }, null, 2)}\n`
+          : `Environment target ${target.targetId}: ${resolution.status === "resolved" ? "resolved" : resolution.status === "ambiguous" ? "ambiguous" : "unresolved"}\n  Sources observed: ${observations.length}\n`,
+      );
       return resolution.status === "resolved" ? 0 : 1;
     }
     const ephemeral = adapterId !== undefined;
     const source = ephemeral
       ? validateEnvironmentSourceManifest({
-        schemaVersion: 1,
-        sourceId: "src_ephemeral_query",
-        adapterId,
-        scope: "project",
-        capabilities: ["network.peer"],
-        maximumValiditySeconds: 60,
-        sharing: "local_only",
-        configuration: {},
-      })
+          schemaVersion: 1,
+          sourceId: "src_ephemeral_query",
+          adapterId,
+          scope: "project",
+          capabilities: ["network.peer"],
+          maximumValiditySeconds: 60,
+          sharing: "local_only",
+          configuration: {},
+        })
       : await loadEnvironmentSource(repositoryRoot, sourceId!);
     const observation = await services.executeEnvironmentQuery({ source });
     if (!ephemeral) await storeEnvironmentObservation(repositoryRoot, observation);
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify({ persistence: ephemeral ? "ephemeral" : "repository_local_derived_state", observation }, null, 2)}\n`
-      : formatObservation(observation, !ephemeral));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify({ persistence: ephemeral ? "ephemeral" : "repository_local_derived_state", observation }, null, 2)}\n`
+        : formatObservation(observation, !ephemeral),
+    );
     return observation.status === "available" ? 0 : 1;
   } catch (error) {
-    const code = typeof (error as { code?: unknown }).code === "string" ? (error as { code: string }).code : "environment_query_failed";
+    const code =
+      typeof (error as { code?: unknown }).code === "string"
+        ? (error as { code: string }).code
+        : "environment_query_failed";
     io.stderr(`${code}: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
@@ -153,17 +177,26 @@ async function runResolve(args: string[], io: CliIo): Promise<number> {
     const resolution = resolveEnvironmentTarget({
       target: await loadEnvironmentTarget(repositoryRoot, parsed.values.target),
       observations: await loadEnvironmentObservations(repositoryRoot),
-      ...(parsed.values.capability === undefined ? {} : { additionalCapabilities: parsed.values.capability }),
+      ...(parsed.values.capability === undefined
+        ? {}
+        : { additionalCapabilities: parsed.values.capability }),
     });
     if (parsed.values.json) io.stdout(`${JSON.stringify(resolution, null, 2)}\n`);
     else if (resolution.status === "resolved") {
-      io.stdout(`Environment target ${resolution.targetId}: resolved\n  Source: ${resolution.candidate.sourceId}\n  Subject: ${resolution.candidate.subject.subjectId}\n`);
+      io.stdout(
+        `Environment target ${resolution.targetId}: resolved\n  Source: ${resolution.candidate.sourceId}\n  Subject: ${resolution.candidate.subject.subjectId}\n`,
+      );
     } else {
-      io.stdout(`Environment target ${resolution.targetId}: ${resolution.status === "ambiguous" ? "ambiguous" : "unresolved"}\n`);
+      io.stdout(
+        `Environment target ${resolution.targetId}: ${resolution.status === "ambiguous" ? "ambiguous" : "unresolved"}\n`,
+      );
     }
     return resolution.status === "resolved" ? 0 : 1;
   } catch (error) {
-    const code = typeof (error as { code?: unknown }).code === "string" ? (error as { code: string }).code : "environment_resolution_failed";
+    const code =
+      typeof (error as { code?: unknown }).code === "string"
+        ? (error as { code: string }).code
+        : "environment_resolution_failed";
     io.stderr(`${code}: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }

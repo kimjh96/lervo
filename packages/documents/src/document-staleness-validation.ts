@@ -21,12 +21,25 @@ export function normalizeStalenessTimestamp(
   value: string,
   label: string,
 ): { value: string; milliseconds: number } {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(value);
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|([+-])(\d{2}):(\d{2}))$/.exec(
+      value,
+    );
   if (match === null) {
     invalidStalenessRequest(`${label} must be a date-time with an explicit timezone.`);
   }
-  const [, yearText, monthText, dayText, hourText, minuteText, secondText, ,
-    offsetHourText, offsetMinuteText] = match;
+  const [
+    ,
+    yearText,
+    monthText,
+    dayText,
+    hourText,
+    minuteText,
+    secondText,
+    ,
+    offsetHourText,
+    offsetMinuteText,
+  ] = match;
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
@@ -35,9 +48,15 @@ export function normalizeStalenessTimestamp(
   const second = Number(secondText);
   const calendar = new Date(Date.UTC(year, month - 1, day));
   if (
-    month < 1 || month > 12 || day < 1 ||
-    calendar.getUTCFullYear() !== year || calendar.getUTCMonth() !== month - 1 ||
-    calendar.getUTCDate() !== day || hour > 23 || minute > 59 || second > 59 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    calendar.getUTCFullYear() !== year ||
+    calendar.getUTCMonth() !== month - 1 ||
+    calendar.getUTCDate() !== day ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59 ||
     (offsetHourText !== undefined && Number(offsetHourText) > 23) ||
     (offsetMinuteText !== undefined && Number(offsetMinuteText) > 59)
   ) {
@@ -85,7 +104,10 @@ export function snapshotsHaveSameFiles(
 ): boolean {
   const leftPaths = Object.keys(left.files).sort(compareText);
   const rightPaths = Object.keys(right.files).sort(compareText);
-  return leftPaths.length === rightPaths.length && leftPaths.every(
-    (path, index) => path === rightPaths[index] && left.files[path] === right.files[path],
+  return (
+    leftPaths.length === rightPaths.length &&
+    leftPaths.every(
+      (path, index) => path === rightPaths[index] && left.files[path] === right.files[path],
+    )
   );
 }

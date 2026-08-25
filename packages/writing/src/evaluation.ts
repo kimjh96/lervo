@@ -14,7 +14,8 @@ import {
 function derivedStatus(checks: WritingEvaluation["checks"]): WritingEvaluation["overallStatus"] {
   if (checks.some((check) => check.status === "not_run")) return "incomplete";
   return checks.every((check) => check.status === "passed" && check.violationCount === 0)
-    ? "passed" : "failed";
+    ? "passed"
+    : "failed";
 }
 
 export async function createWritingEvaluation(input: {
@@ -71,7 +72,8 @@ export function validateWritingEvaluation(
   }
   const expectedChecks = new Set([
     ...contract.verification.deterministicChecks.map((id) => `deterministic:${id}`),
-    ...contract.verification.semanticChecks.filter((check) => check.required)
+    ...contract.verification.semanticChecks
+      .filter((check) => check.required)
       .map((check) => `semantic:${check.checkId}`),
   ]);
   const actualChecks = new Set(evaluation.checks.map((check) => `${check.kind}:${check.checkId}`));
@@ -87,7 +89,8 @@ export function validateWritingEvaluation(
   if (
     evaluation.writingPolicyId !== contract.writingPolicyId ||
     evaluation.locale !== contract.locale ||
-    evaluation.checks.length !== expectedChecks.size || actualChecks.size !== expectedChecks.size ||
+    evaluation.checks.length !== expectedChecks.size ||
+    actualChecks.size !== expectedChecks.size ||
     [...expectedChecks].some((check) => !actualChecks.has(check)) ||
     deterministicEvaluators.length !== 1 ||
     deterministicEvaluators[0]?.evaluatorId !== "lervo.core.writing-lint.v1" ||

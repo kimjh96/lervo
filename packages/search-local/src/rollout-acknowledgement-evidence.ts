@@ -39,7 +39,10 @@ export async function verifySearchRolloutKeepAcknowledgementEvidence(input: {
     (activation) => activation.activationId === review.target.selectionTransitionId,
   );
   if (targetActivation === undefined) {
-    throw new SearchLocalError("observation_invalid", "The search selection transition for the candidate-retention acknowledgement was not found.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search selection transition for the candidate-retention acknowledgement was not found.",
+    );
   }
   assertRolloutActionReviewTarget(review, targetActivation, candidateReview);
   verifySearchRolloutReview(
@@ -52,12 +55,20 @@ export async function verifySearchRolloutKeepAcknowledgementEvidence(input: {
     ),
   );
   const acknowledgedAt = new Date(input.acknowledgement.acknowledgedAt);
-  const targetIndex = input.history.findIndex((activation) => activation.activationId === targetActivation.activationId);
-  const targetWasHead = Date.parse(targetActivation.decidedAt) <= acknowledgedAt.getTime() &&
-    input.history.slice(targetIndex + 1).every(
-      (activation) => Date.parse(activation.decidedAt) >= acknowledgedAt.getTime(),
-    );
-  const actionEvidence = rolloutActionEvidenceThrough(review, input.attempts, input.assessments, acknowledgedAt);
+  const targetIndex = input.history.findIndex(
+    (activation) => activation.activationId === targetActivation.activationId,
+  );
+  const targetWasHead =
+    Date.parse(targetActivation.decidedAt) <= acknowledgedAt.getTime() &&
+    input.history
+      .slice(targetIndex + 1)
+      .every((activation) => Date.parse(activation.decidedAt) >= acknowledgedAt.getTime());
+  const actionEvidence = rolloutActionEvidenceThrough(
+    review,
+    input.attempts,
+    input.assessments,
+    acknowledgedAt,
+  );
   const qualitySnapshot = createSearchRolloutQualitySnapshot({
     projectId: input.projectId,
     target: review.target,
@@ -74,15 +85,21 @@ export async function verifySearchRolloutKeepAcknowledgementEvidence(input: {
     operatorId: input.acknowledgement.operatorId,
     actedAt: acknowledgedAt,
   });
-  if (input.acknowledgement.projectId !== input.projectId || actionPolicy.projectId !== input.projectId ||
+  if (
+    input.acknowledgement.projectId !== input.projectId ||
+    actionPolicy.projectId !== input.projectId ||
     actionPolicy.action !== "acknowledge_keep" ||
     input.acknowledgement.actionPolicyId !== actionPolicy.actionPolicyId ||
     input.acknowledgement.rolloutPolicyId !== rolloutPolicy.policyId ||
     input.acknowledgement.rolloutReviewId !== review.rolloutReviewId ||
     input.acknowledgement.selectionTransitionId !== review.target.selectionTransitionId ||
     input.acknowledgement.qualitySnapshotId !== qualitySnapshot.snapshotId ||
-    input.acknowledgement.qualityInputDigest !== qualitySnapshot.inputDigest) {
-    throw new SearchLocalError("observation_invalid", "The policy, review, and quality evidence for the candidate-retention acknowledgement differs.");
+    input.acknowledgement.qualityInputDigest !== qualitySnapshot.inputDigest
+  ) {
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The policy, review, and quality evidence for the candidate-retention acknowledgement differs.",
+    );
   }
   return review;
 }

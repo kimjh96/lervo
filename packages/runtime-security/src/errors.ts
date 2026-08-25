@@ -1,7 +1,4 @@
-export type RuntimeSecurityErrorCode =
-  | "unsafe_file"
-  | "invalid_text"
-  | "unsafe_database";
+export type RuntimeSecurityErrorCode = "unsafe_file" | "invalid_text" | "unsafe_database";
 
 export class RuntimeSecurityError extends Error {
   constructor(

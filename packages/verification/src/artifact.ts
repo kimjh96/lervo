@@ -20,8 +20,10 @@ export async function storeVerificationBytes(
     const stored = await store.put(bytes);
     const restored = new Uint8Array(await store.get(stored.uri));
     if (
-      stored.uri !== expectedUri || stored.contentHash !== expectedHash ||
-      stored.byteCount !== bytes.byteLength || restored.byteLength !== bytes.byteLength ||
+      stored.uri !== expectedUri ||
+      stored.contentHash !== expectedHash ||
+      stored.byteCount !== bytes.byteLength ||
+      restored.byteLength !== bytes.byteLength ||
       !Buffer.from(restored).equals(Buffer.from(bytes))
     ) {
       throw new Error("artifact verification failed");

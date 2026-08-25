@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_997cffe254326448152638b5
+  - uv_e173d08e7f0fc9f4948119f7
 title: "ADR-0001: M0 Contracts and Data Defaults"
 type: decision

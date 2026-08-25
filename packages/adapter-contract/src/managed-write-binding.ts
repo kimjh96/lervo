@@ -158,11 +158,7 @@ export function inspectManagedWriteRequestBinding(input: {
       detail: "The managed write request is not bound to the current session and turn coordinates.",
     });
   }
-  if (
-    !Number.isFinite(requestedAt) ||
-    !Number.isFinite(acceptedAt) ||
-    requestedAt < acceptedAt
-  ) {
+  if (!Number.isFinite(requestedAt) || !Number.isFinite(acceptedAt) || requestedAt < acceptedAt) {
     violations.push({
       code: "write_request_time_invalid",
       detail: "The managed write request time precedes the turn acceptance time.",
@@ -184,11 +180,7 @@ export function inspectManagedWriteDecisionBinding(input: {
       detail: "The managed write decision does not match the request coordinates.",
     });
   }
-  if (
-    !Number.isFinite(decidedAt) ||
-    !Number.isFinite(requestedAt) ||
-    decidedAt < requestedAt
-  ) {
+  if (!Number.isFinite(decidedAt) || !Number.isFinite(requestedAt) || decidedAt < requestedAt) {
     violations.push({
       code: "write_response_time_invalid",
       detail: "The managed write decision time precedes the request time.",
@@ -220,11 +212,7 @@ export function inspectManagedWriteCompletionBinding(input: {
       detail: "The managed write completion report does not match the request coordinates.",
     });
   }
-  if (
-    !Number.isFinite(completedAt) ||
-    !Number.isFinite(decidedAt) ||
-    completedAt < decidedAt
-  ) {
+  if (!Number.isFinite(completedAt) || !Number.isFinite(decidedAt) || completedAt < decidedAt) {
     violations.push({
       code: "write_response_time_invalid",
       detail: "The managed write completion time precedes the approval time.",

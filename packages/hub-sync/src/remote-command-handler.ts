@@ -18,38 +18,22 @@ const NODE_PATTERN = /^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const TARGET_ID_PATTERN = /^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
-function timestamp(
-  value: string,
-  label: string,
-  code: HubRemoteCommandRequestErrorCode,
-): number {
+function timestamp(value: string, label: string, code: HubRemoteCommandRequestErrorCode): number {
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) {
-    throw new HubRemoteCommandRequestError(
-      code,
-      `${label} is invalid.`,
-    );
+    throw new HubRemoteCommandRequestError(code, `${label} is invalid.`);
   }
   return parsed;
 }
 
-function assertDestination(
-  destinationId: string,
-  code: HubRemoteCommandRequestErrorCode,
-): void {
+function assertDestination(destinationId: string, code: HubRemoteCommandRequestErrorCode): void {
   if (!DESTINATION_PATTERN.test(destinationId)) {
-    throw new HubRemoteCommandRequestError(
-      code,
-      "The remote command destination ID is invalid.",
-    );
+    throw new HubRemoteCommandRequestError(code, "The remote command destination ID is invalid.");
   }
 }
 
 function assertTarget(target: RemoteCommandTarget): void {
-  if (
-    !TARGET_ID_PATTERN.test(target.projectId) ||
-    !HASH_PATTERN.test(target.projectIdentityHash)
-  ) {
+  if (!TARGET_ID_PATTERN.test(target.projectId) || !HASH_PATTERN.test(target.projectIdentityHash)) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_lease_request",
       "The remote command lease target is invalid.",
@@ -69,12 +53,14 @@ export async function handleRemoteCommandEnqueue(input: {
     destinationId: input.destinationId,
     envelope: input.envelope,
   });
-  if (timestamp(input.queuedAt, "remote command queuedAt", "invalid_remote_command_enqueue") >=
+  if (
+    timestamp(input.queuedAt, "remote command queuedAt", "invalid_remote_command_enqueue") >=
     timestamp(
       input.envelope.command.expiresAt,
       "remote command expiresAt",
       "invalid_remote_command_enqueue",
-    )) {
+    )
+  ) {
     throw new HubRemoteCommandRequestError(
       "invalid_remote_command_enqueue",
       "An expired remote command cannot be queued.",

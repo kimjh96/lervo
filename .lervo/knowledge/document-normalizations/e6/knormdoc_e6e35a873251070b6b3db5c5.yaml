@@ -1,0 +1,27 @@
+candidateId: knorm_f41aa97f3640f015e2d32a1c
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_956648d4b5ae153f504c2422
+outputLanguage: en
+outputs:
+  - byteCount: 2583
+    contentHash: sha256:60796a69832eddd2cbd9d47f152d8c7cdfcfedcfc163b14b624809e3b1b2ff15
+    path: docs/decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md
+    userRegionHash: sha256:60796a69832eddd2cbd9d47f152d8c7cdfcfedcfc163b14b624809e3b1b2ff15
+profile: decision_record
+recordId: knormdoc_e6e35a873251070b6b3db5c5
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:cd4db739da275a9318e83459ad64de97e635b6a91968bc4ac784c14221671efa
+sourcePath: docs/decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md
+sourceUnitVersionIds:
+  - uv_7a7833a372e4e8fa6081fb44
+  - uv_9913a584127956728eb992a8
+  - uv_9d4cbd4f8d89946cb7841441
+  - uv_c5d0e3e01ee725709a28d93a
+  - uv_e2db640277a217867f99d7ee

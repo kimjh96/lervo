@@ -77,7 +77,10 @@ function nodeTitle(node) {
 }
 
 function drawNode(svg, node, x, y, focus, onSelect) {
-  const group = svgElement("g", { class: focus ? "graph-node focus" : "graph-node", transform: `translate(${x} ${y})` });
+  const group = svgElement("g", {
+    class: focus ? "graph-node focus" : "graph-node",
+    transform: `translate(${x} ${y})`,
+  });
   if (!focus) {
     group.setAttribute("role", "button");
     group.setAttribute("tabindex", "0");
@@ -94,7 +97,12 @@ function drawNode(svg, node, x, y, focus, onSelect) {
   const title = svgElement("title");
   title.textContent = nodeTitle(node);
   const box = svgElement("rect", { x: -145, y: -24, width: 290, height: 48, rx: 10 });
-  const kind = svgElement("text", { x: 0, y: -4, class: "graph-node-kind", "text-anchor": "middle" });
+  const kind = svgElement("text", {
+    x: 0,
+    y: -4,
+    class: "graph-node-kind",
+    "text-anchor": "middle",
+  });
   kind.textContent = nodeLabels[node.kind] ?? node.kind;
   const id = svgElement("text", { x: 0, y: 14, class: "graph-node-id", "text-anchor": "middle" });
   id.textContent = shortId(node.id);

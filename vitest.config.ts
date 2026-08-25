@@ -7,6 +7,7 @@ const fromRoot = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 export default defineConfig({
   resolve: {
     alias: {
+      "@lervo/agent-workforce": fromRoot("./packages/agent-workforce/src/index.ts"),
       "@lervo/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),
       "@lervo/adapter-claude": fromRoot("./packages/adapter-claude/src/index.ts"),
       "@lervo/adapter-codex": fromRoot("./packages/adapter-codex/src/index.ts"),
@@ -14,14 +15,19 @@ export default defineConfig({
       "@lervo/adapter-native-chat": fromRoot("./packages/adapter-native-chat/src/index.ts"),
       "@lervo/adapter-slack": fromRoot("./packages/adapter-slack/src/index.ts"),
       "@lervo/cas": fromRoot("./packages/cas/src/index.ts"),
+      "@lervo/capabilities": fromRoot("./packages/capabilities/src/index.ts"),
       "@lervo/context": fromRoot("./packages/context/src/index.ts"),
       "@lervo/context-delivery": fromRoot("./packages/context-delivery/src/index.ts"),
       "@lervo/context-coverage": fromRoot("./packages/context-coverage/src/index.ts"),
       "@lervo/conversation-contract": fromRoot("./packages/conversation-contract/src/index.ts"),
       "@lervo/conversation-control": fromRoot("./packages/conversation-control/src/index.ts"),
-      "@lervo/conversation-deliberation-sqlite": fromRoot("./packages/conversation-deliberation-sqlite/src/index.ts"),
+      "@lervo/conversation-deliberation-sqlite": fromRoot(
+        "./packages/conversation-deliberation-sqlite/src/index.ts",
+      ),
       "@lervo/conversation-platform": fromRoot("./packages/conversation-platform/src/index.ts"),
-      "@lervo/conversation-platform-sqlite": fromRoot("./packages/conversation-platform-sqlite/src/index.ts"),
+      "@lervo/conversation-platform-sqlite": fromRoot(
+        "./packages/conversation-platform-sqlite/src/index.ts",
+      ),
       "@lervo/conversation-responder": fromRoot("./packages/conversation-responder/src/index.ts"),
       "@lervo/conversation-app": fromRoot("./apps/conversation/src/index.ts"),
       "@lervo/deliberation": fromRoot("./packages/deliberation/src/index.ts"),
@@ -32,7 +38,9 @@ export default defineConfig({
       "@lervo/event-contract": fromRoot("./packages/event-contract/src/index.ts"),
       "@lervo/event-store-sqlite": fromRoot("./packages/event-store-sqlite/src/index.ts"),
       "@lervo/environment": fromRoot("./packages/environment/src/index.ts"),
-      "@lervo/environment-adapter-tailscale": fromRoot("./packages/environment-adapter-tailscale/src/index.ts"),
+      "@lervo/environment-adapter-tailscale": fromRoot(
+        "./packages/environment-adapter-tailscale/src/index.ts",
+      ),
       "@lervo/hub": fromRoot("./apps/hub/src/index.ts"),
       "@lervo/hub-command": fromRoot("./packages/hub-command/src/index.ts"),
       "@lervo/hub-policy": fromRoot("./packages/hub-policy/src/index.ts"),
@@ -57,9 +65,13 @@ export default defineConfig({
       "@lervo/remote-command-contract": fromRoot("./packages/remote-command-contract/src/index.ts"),
       "@lervo/remote-command-sqlite": fromRoot("./packages/remote-command-sqlite/src/index.ts"),
       "@lervo/repository-registry": fromRoot("./packages/repository-registry/src/index.ts"),
-      "@lervo/repository-knowledge/workstream": fromRoot("./packages/repository-knowledge/src/workstream.ts"),
+      "@lervo/repository-knowledge/workstream": fromRoot(
+        "./packages/repository-knowledge/src/workstream.ts",
+      ),
       "@lervo/repository-knowledge": fromRoot("./packages/repository-knowledge/src/index.ts"),
-      "@lervo/repository-knowledge-compiler": fromRoot("./packages/repository-knowledge-compiler/src/index.ts"),
+      "@lervo/repository-knowledge-compiler": fromRoot(
+        "./packages/repository-knowledge-compiler/src/index.ts",
+      ),
       "@lervo/roles": fromRoot("./packages/roles/src/index.ts"),
       "@lervo/runtime-security": fromRoot("./packages/runtime-security/src/index.ts"),
       "@lervo/search": fromRoot("./packages/search/src/index.ts"),

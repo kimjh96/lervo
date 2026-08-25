@@ -3,6 +3,14 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0023: Evidence-based document staleness](../../decisions/knowledge/documents/0023-evidence-based-document-staleness.md) — `docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md`
+- [ADR-0031: Human-reviewed knowledge promotion and path-based staleness](../../decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md) — `docs/decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md`
+- [ADR-0181: Durable, Hash-Bound User Document Deletion](../../decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md) — `docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md`
+- [ADR-0182: Durable, Identity-Preserving User Document Move](../../decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md) — `docs/decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md`
+- [ADR-0183: Durable CommonMark Heading-Subtree Split](../../decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md) — `docs/decisions/knowledge/documents/0183-durable-commonmark-heading-subtree-split.md`
+- [ADR-0184: Durable Exact-Byte User Document Merge](../../decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md) — `docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md`
+- [ADR-0206: Public README preservation and separate improvement](../../decisions/knowledge/documents/0206-public-readme-preservation-and-improvement.md) — `docs/decisions/knowledge/documents/0206-public-readme-preservation-and-improvement.md`
+- [ADR-0030: Converged knowledge candidates and local diagnostics](../../decisions/knowledge/repository/0030-evidence-bound-knowledge-candidates.md) — `docs/decisions/knowledge/repository/0030-evidence-bound-knowledge-candidates.md`
 - [ADR-0144: Explicit Project-Identity Migration with Source Preservation](../../decisions/knowledge/repository/0144-explicit-project-identity-migration.md) — `docs/decisions/knowledge/repository/0144-explicit-project-identity-migration.md`
 - [ADR-0170: Evidence-Bound Repository Knowledge Compilation and Migration](../../decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md) — `docs/decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md`
 - [ADR-0171: Content-Addressed OKF Exchange and Git Reproduction](../../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md) — `docs/decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md`
@@ -19,11 +27,3 @@
 - [ADR-0193: Semantic Repository and Agent-Surface Migration](../../decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md) — `docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md`
 - [ADR-0195: Reviewed document content normalization](../../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md) — `docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md`
 - [ADR-0199: Structured workstream continuation state](../../decisions/knowledge/repository/0199-structured-workstream-continuation-state.md) — `docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md`
-- [ADR-0052: Rebuildable explicit knowledge graph](../../decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md) — `docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md`
-- [ADR-0180: Hash-Bound Human Duplicate and Contradiction Resolution](../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md) — `docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md`
-- [ADR-0186: Content-Bound Codex–Claude Compilation Comparison](../../decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md) — `docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md`
-- [ADR-0033: Scope-explicit local environment diagnostics](../../decisions/operations/diagnostics/0033-bounded-environment-doctor.md) — `docs/decisions/operations/diagnostics/0033-bounded-environment-doctor.md`
-- [ADR-0072: Explicit doctor execution scope](../../decisions/operations/diagnostics/0072-explicitly-scoped-doctor.md) — `docs/decisions/operations/diagnostics/0072-explicitly-scoped-doctor.md`
-- [ADR-0073: Doctor recovery guidance without automatic repair](../../decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md) — `docs/decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md`
-- [ADR-0074: Dependency-separated doctor scope plans](../../decisions/operations/diagnostics/0074-doctor-scope-execution-plans.md) — `docs/decisions/operations/diagnostics/0074-doctor-scope-execution-plans.md`
-- [ADR-0075: Versioned doctor-report compatibility contract](../../decisions/operations/diagnostics/0075-versioned-doctor-report-contract.md) — `docs/decisions/operations/diagnostics/0075-versioned-doctor-report-contract.md`

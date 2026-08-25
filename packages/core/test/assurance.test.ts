@@ -77,9 +77,7 @@ describe("context assurance gate", () => {
     expect(
       evaluateWriteContext({
         coordinates,
-        requiredDocuments: [
-          { documentId: "doc_01234567", contentHash, scope: { kind: "full" } },
-        ],
+        requiredDocuments: [{ documentId: "doc_01234567", contentHash, scope: { kind: "full" } }],
         evidence: evidence(),
       }),
     ).toEqual({ allowed: true, assurance: "E3", missing: [] });
@@ -89,9 +87,7 @@ describe("context assurance gate", () => {
     const injectedOnly = evidence().filter((item) => item.state !== "loaded");
     const decision = evaluateWriteContext({
       coordinates,
-      requiredDocuments: [
-        { documentId: "doc_01234567", contentHash, scope: { kind: "full" } },
-      ],
+      requiredDocuments: [{ documentId: "doc_01234567", contentHash, scope: { kind: "full" } }],
       evidence: injectedOnly,
     });
 
@@ -106,9 +102,7 @@ describe("context assurance gate", () => {
   it("rejects a receipt from an earlier context generation", () => {
     const decision = evaluateWriteContext({
       coordinates: { ...coordinates, contextGeneration: 3 },
-      requiredDocuments: [
-        { documentId: "doc_01234567", contentHash, scope: { kind: "full" } },
-      ],
+      requiredDocuments: [{ documentId: "doc_01234567", contentHash, scope: { kind: "full" } }],
       evidence: evidence(),
     });
 

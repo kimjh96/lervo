@@ -11,10 +11,7 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import {
-  conversationContentReferenceSchema,
-  conversationTargetSchema,
-} from "./conversation.js";
+import { conversationContentReferenceSchema, conversationTargetSchema } from "./conversation.js";
 import { writingPublicationPermitValueSchema } from "./writing-publication.js";
 
 export const conversationOutboundMessageSchema = {
@@ -70,19 +67,9 @@ export const conversationDeliveryReceiptSchema = {
     deliveryKeyHash: sha256Schema,
     deliveredAt: timestampSchema,
   },
-  required: [
-    "schemaVersion",
-    "outboundId",
-    "integrationId",
-    "deliveryKeyHash",
-    "deliveredAt",
-  ],
+  required: ["schemaVersion", "outboundId", "integrationId", "deliveryKeyHash", "deliveredAt"],
   additionalProperties: false,
 } as const;
 
-export type ConversationOutboundMessage = FromSchema<
-  typeof conversationOutboundMessageSchema
->;
-export type ConversationDeliveryReceipt = FromSchema<
-  typeof conversationDeliveryReceiptSchema
->;
+export type ConversationOutboundMessage = FromSchema<typeof conversationOutboundMessageSchema>;
+export type ConversationDeliveryReceipt = FromSchema<typeof conversationDeliveryReceiptSchema>;

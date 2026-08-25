@@ -7,9 +7,7 @@ export async function storeKnowledgeArtifact(input: {
   artifactStore: ArtifactStore;
   bytes: Uint8Array;
   mismatchReason:
-    | "approval_artifact_mismatch"
-    | "knowledge_artifact_mismatch"
-    | "staleness_artifact_mismatch";
+    "approval_artifact_mismatch" | "knowledge_artifact_mismatch" | "staleness_artifact_mismatch";
   label: string;
 }): Promise<KnowledgeArtifactCoordinate> {
   try {
@@ -20,7 +18,8 @@ export async function storeKnowledgeArtifact(input: {
       stored.byteCount !== input.bytes.byteLength ||
       knowledgeSha256(reloaded) !== stored.contentHash ||
       !Buffer.from(reloaded).equals(Buffer.from(input.bytes))
-    ) throw new Error(`${input.label} CAS mismatch`);
+    )
+      throw new Error(`${input.label} CAS mismatch`);
     return {
       artifactId: `art_${stored.contentHash.slice(7)}`,
       uri: stored.uri,

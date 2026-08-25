@@ -11,10 +11,7 @@ import {
   type HubRemoteCommandHttpHandlerOptions,
 } from "./command-handler.js";
 import { createHubTraceHttpHandler, type HubTraceHttpHandlerOptions } from "./handler.js";
-import {
-  createHubPolicyHttpHandler,
-  type HubPolicyHttpHandlerOptions,
-} from "./policy-handler.js";
+import { createHubPolicyHttpHandler, type HubPolicyHttpHandlerOptions } from "./policy-handler.js";
 import { createHubWebHandler } from "./web-handler.js";
 import {
   attachHubArtifactCleanupLifecycle,
@@ -22,6 +19,10 @@ import {
 } from "./artifact-cleanup-lifecycle.js";
 import { createHubSyncHttpHandler, type HubSyncHttpHandlerOptions } from "./sync-handler.js";
 import { createHubHealthHttpHandler, type HubHealthHttpHandlerOptions } from "./health-handler.js";
+import {
+  createHubCapabilityHttpHandler,
+  type HubCapabilityHttpHandlerOptions,
+} from "./capability-handler.js";
 
 export interface HubServerOptions {
   trace: HubTraceHttpHandlerOptions;
@@ -30,6 +31,7 @@ export interface HubServerOptions {
   commands?: HubRemoteCommandHttpHandlerOptions;
   sync?: HubSyncHttpHandlerOptions;
   health?: HubHealthHttpHandlerOptions;
+  capabilities?: HubCapabilityHttpHandlerOptions;
 }
 
 export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Server {
@@ -38,25 +40,28 @@ export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Serve
 
 export function createHubRequestListener(options: HubServerOptions): RequestListener {
   const traceHandler = createHubTraceHttpHandler(options.trace);
-  const policyHandler = options.policy === undefined
-    ? undefined
-    : createHubPolicyHttpHandler(options.policy);
-  const controlHandler = options.control === undefined
-    ? undefined
-    : createHubControlHttpHandler(options.control);
-  const commandHandler = options.commands === undefined
-    ? undefined
-    : createHubRemoteCommandHttpHandler(options.commands);
-  const syncHandler = options.sync === undefined
-    ? undefined
-    : createHubSyncHttpHandler(options.sync);
-  const healthHandler = options.health === undefined
-    ? undefined
-    : createHubHealthHttpHandler(options.health);
+  const policyHandler =
+    options.policy === undefined ? undefined : createHubPolicyHttpHandler(options.policy);
+  const controlHandler =
+    options.control === undefined ? undefined : createHubControlHttpHandler(options.control);
+  const commandHandler =
+    options.commands === undefined
+      ? undefined
+      : createHubRemoteCommandHttpHandler(options.commands);
+  const syncHandler =
+    options.sync === undefined ? undefined : createHubSyncHttpHandler(options.sync);
+  const healthHandler =
+    options.health === undefined ? undefined : createHubHealthHttpHandler(options.health);
+  const capabilityHandler =
+    options.capabilities === undefined
+      ? undefined
+      : createHubCapabilityHttpHandler(options.capabilities);
   const webHandler = createHubWebHandler();
   return (request, response) => {
     if (webHandler(request, response)) return;
-    if (request.url?.startsWith("/v1/health/") && healthHandler !== undefined) {
+    if (request.url?.startsWith("/v1/capabilities/") && capabilityHandler !== undefined) {
+      void capabilityHandler(request, response);
+    } else if (request.url?.startsWith("/v1/health/") && healthHandler !== undefined) {
       void healthHandler(request, response);
     } else if (request.url?.startsWith("/v1/sync/") && syncHandler !== undefined) {
       void syncHandler(request, response);
@@ -76,21 +81,25 @@ export function createHubServer(options: HubServerOptions): Server {
   return createServer(createHubRequestListener(options));
 }
 
-export function createHubServerWithArtifactCleanup(options: HubServerOptions & {
-  artifactCleanup: Omit<HubCommandArtifactCleanupLoopOptions, "signal">;
-  onArtifactCleanupFailure?: (
-    failureCode: "artifact_cleanup_runtime_failed",
-  ) => void | Promise<void>;
-}): { server: Server; artifactCleanup: HubArtifactCleanupLifecycle } {
+export function createHubServerWithArtifactCleanup(
+  options: HubServerOptions & {
+    artifactCleanup: Omit<HubCommandArtifactCleanupLoopOptions, "signal">;
+    onArtifactCleanupFailure?: (
+      failureCode: "artifact_cleanup_runtime_failed",
+    ) => void | Promise<void>;
+  },
+): { server: Server; artifactCleanup: HubArtifactCleanupLifecycle } {
   const server = createHubServer(options);
   return {
     server,
     artifactCleanup: attachHubArtifactCleanupLifecycle({
       server,
       runtime: options.artifactCleanup,
-      ...(options.onArtifactCleanupFailure === undefined ? {} : {
-        onFailure: options.onArtifactCleanupFailure,
-      }),
+      ...(options.onArtifactCleanupFailure === undefined
+        ? {}
+        : {
+            onFailure: options.onArtifactCleanupFailure,
+          }),
     }),
   };
 }

@@ -7,10 +7,8 @@ import {
   validateFirstPublicationBootstrapLocalInputs,
 } from "./first-publication-bootstrap-authorization.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationExternalEvidenceReportDocument } from
-  "./first-publication-external-evidence-reader.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationExternalEvidenceReportDocument } from "./first-publication-external-evidence-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
 import { observeNpmPublicPackage } from "./npm-public-package-observer.mjs";
 import {
@@ -51,10 +49,7 @@ async function readCliFirstPublicationBootstrapSources(options) {
   };
   const snapshots = await Promise.all([
     readRegularReleaseFile(paths.packageManifest, inputMaximumSize),
-    readRegularReleaseFile(
-      paths.releaseManifest,
-      releaseVerificationMaximumSizes.document,
-    ),
+    readRegularReleaseFile(paths.releaseManifest, releaseVerificationMaximumSizes.document),
     readRegularReleaseFile(paths.publicationAuthorization, inputMaximumSize),
     readRegularReleaseFile(paths.externalEvidence, inputMaximumSize),
   ]);
@@ -68,10 +63,7 @@ async function readCliFirstPublicationBootstrapSources(options) {
   const externalEvidenceReport = validateFirstPublicationExternalEvidenceReportDocument(
     parseJson(evidenceContents),
   );
-  const tarballPath = resolve(
-    options.releaseDirectory,
-    publicationAuthorization.artifact.file,
-  );
+  const tarballPath = resolve(options.releaseDirectory, publicationAuthorization.artifact.file);
   const tarballContents = await readRegularReleaseFile(
     tarballPath,
     releaseVerificationMaximumSizes.tarball,
@@ -89,36 +81,38 @@ async function readCliFirstPublicationBootstrapSources(options) {
   }
   if (
     manifestSubject?.digest?.sha256 !==
-      createHash("sha256").update(releaseManifestContents).digest("hex")
-  ) fail("first_publication_release_changed");
+    createHash("sha256").update(releaseManifestContents).digest("hex")
+  )
+    fail("first_publication_release_changed");
   return {
     packageManifest,
     releaseManifest,
     publicationAuthorization,
     externalEvidenceReport,
-    assertUnchanged: () => assertReleaseFilesUnchanged([
-      { path: paths.packageManifest, contents: packageContents, maximumSize: inputMaximumSize },
-      {
-        path: paths.releaseManifest,
-        contents: releaseManifestContents,
-        maximumSize: releaseVerificationMaximumSizes.document,
-      },
-      {
-        path: paths.publicationAuthorization,
-        contents: authorizationContents,
-        maximumSize: inputMaximumSize,
-      },
-      {
-        path: paths.externalEvidence,
-        contents: evidenceContents,
-        maximumSize: inputMaximumSize,
-      },
-      {
-        path: tarballPath,
-        contents: tarballContents,
-        maximumSize: releaseVerificationMaximumSizes.tarball,
-      },
-    ]),
+    assertUnchanged: () =>
+      assertReleaseFilesUnchanged([
+        { path: paths.packageManifest, contents: packageContents, maximumSize: inputMaximumSize },
+        {
+          path: paths.releaseManifest,
+          contents: releaseManifestContents,
+          maximumSize: releaseVerificationMaximumSizes.document,
+        },
+        {
+          path: paths.publicationAuthorization,
+          contents: authorizationContents,
+          maximumSize: inputMaximumSize,
+        },
+        {
+          path: paths.externalEvidence,
+          contents: evidenceContents,
+          maximumSize: inputMaximumSize,
+        },
+        {
+          path: tarballPath,
+          contents: tarballContents,
+          maximumSize: releaseVerificationMaximumSizes.tarball,
+        },
+      ]),
   };
 }
 
@@ -128,7 +122,8 @@ export async function authorizeCliFirstPublicationBootstrap(options, dependencie
     !isAbsolute(options.releaseDirectory ?? "") ||
     !isAbsolute(options.publicationAuthorizationPath ?? "") ||
     !isAbsolute(options.externalEvidencePath ?? "")
-  ) fail(options?.online === true ? undefined : "first_publication_online_required");
+  )
+    fail(options?.online === true ? undefined : "first_publication_online_required");
   const readSources = dependencies.readSources ?? readCliFirstPublicationBootstrapSources;
   const observePackage = dependencies.observeNpmPublicPackage ?? observeNpmPublicPackage;
   const now = dependencies.now ?? (() => new Date().toISOString());

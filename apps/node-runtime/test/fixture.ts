@@ -31,9 +31,9 @@ export async function availablePort(): Promise<number> {
   });
   const address = server.address();
   if (address === null || typeof address === "string") throw new Error("test port unavailable");
-  await new Promise<void>((resolve, reject) => server.close((error) =>
-    error === undefined ? resolve() : reject(error)
-  ));
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error === undefined ? resolve() : reject(error))),
+  );
   return address.port;
 }
 
@@ -72,25 +72,31 @@ export async function nodeRuntimeFixture(
   value: Record<string, unknown>;
 }> {
   const repositoryRoot = resolve(root, "repository");
-  const state = resolve(repositoryRoot, ".lervo/state");
-  await mkdir(state, { recursive: true });
-  await writeFile(resolve(repositoryRoot, ".lervo/project.yaml"), serializeYaml({
-    schemaVersion: 1,
+  const data = resolve(repositoryRoot, ".lervo/data");
+  await mkdir(data, { recursive: true });
+  await writeFile(
+    resolve(repositoryRoot, ".lervo/project.yaml"),
+    serializeYaml({
+      schemaVersion: 1,
+      projectId: nodeRuntimeProjectId,
+      name: "node-runtime-test",
+      root: ".",
+      createdAt: "2026-08-22T00:00:00.000Z",
+      dataPolicy: {
+        eventMetadataRetentionDays: 90,
+        artifactRetentionDays: 30,
+        persistRawPrompts: false,
+        persistDocumentBodiesInEvents: false,
+        hubSyncEnabled: options.hubSyncEnabled ?? true,
+        eventPayloadMode: "allowlist",
+      },
+    }),
+  );
+  const databasePath = resolve(data, "events.sqlite");
+  const events = await SQLiteEventStore.open({
+    path: databasePath,
     projectId: nodeRuntimeProjectId,
-    name: "node-runtime-test",
-    root: ".",
-    createdAt: "2026-08-22T00:00:00.000Z",
-    dataPolicy: {
-      eventMetadataRetentionDays: 90,
-      artifactRetentionDays: 30,
-      persistRawPrompts: false,
-      persistDocumentBodiesInEvents: false,
-      hubSyncEnabled: options.hubSyncEnabled ?? true,
-      eventPayloadMode: "allowlist",
-    },
-  }));
-  const databasePath = resolve(state, "events.sqlite");
-  const events = await SQLiteEventStore.open({ path: databasePath, projectId: nodeRuntimeProjectId });
+  });
   events.transact((transaction) => {
     const event = transaction.append(eventDraft()).event;
     transaction.enqueue({

@@ -22,25 +22,29 @@ export interface OutboundSyncLoopResult {
 }
 
 const systemWait: OutboundSyncPollingWaitPort = {
-  wait: (delayMs, signal) => new Promise<void>((resolve) => {
-    if (signal.aborted) {
-      resolve();
-      return;
-    }
-    const timeout = setTimeout(finish, delayMs);
-    signal.addEventListener("abort", finish, { once: true });
-    function finish(): void {
-      clearTimeout(timeout);
-      signal.removeEventListener("abort", finish);
-      resolve();
-    }
-  }),
+  wait: (delayMs, signal) =>
+    new Promise<void>((resolve) => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
+      const timeout = setTimeout(finish, delayMs);
+      signal.addEventListener("abort", finish, { once: true });
+      function finish(): void {
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", finish);
+        resolve();
+      }
+    }),
 };
 
-function retryDelay(result: SyncCycleResult, input: {
-  idlePollIntervalMs: number;
-  nowMilliseconds: () => number;
-}): number {
+function retryDelay(
+  result: SyncCycleResult,
+  input: {
+    idlePollIntervalMs: number;
+    nowMilliseconds: () => number;
+  },
+): number {
   if (result.status === "synchronized") return 0;
   if (result.status === "idle") return input.idlePollIntervalMs;
   const at = Date.parse(result.nextAttemptAt);
@@ -60,7 +64,8 @@ export async function runOutboundSyncLoop(
   const idlePollIntervalMs = options.idlePollIntervalMs ?? 2_000;
   if (
     !Number.isSafeInteger(idlePollIntervalMs) ||
-    idlePollIntervalMs < 100 || idlePollIntervalMs > 60 * 60_000
+    idlePollIntervalMs < 100 ||
+    idlePollIntervalMs > 60 * 60_000
   ) {
     throw new SyncWorkerError(
       "invalid_worker_configuration",

@@ -2,7 +2,7 @@ import type { WritingContract } from "@lervo/schemas";
 
 export const supportedWritingLanguages = ["en"] as const;
 
-export type SupportedWritingLanguage = typeof supportedWritingLanguages[number];
+export type SupportedWritingLanguage = (typeof supportedWritingLanguages)[number];
 
 export const defaultEnglishWritingContract = {
   schemaVersion: 1,

@@ -48,7 +48,9 @@ async function readJson(response) {
       chunks.push(value);
     }
   } catch (error) {
-    try { await reader.cancel(); } catch {}
+    try {
+      await reader.cancel();
+    } catch {}
     throw error;
   }
   const bytes = new Uint8Array(total);
@@ -82,10 +84,13 @@ export async function observeFirstPublicationReconciliation(
   { request = globalThis.fetch } = {},
 ) {
   if (
-    target?.registry !== npmPublicRegistry || target.package !== "@lervo/cli" ||
+    target?.registry !== npmPublicRegistry ||
+    target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(target.version ?? "") ||
-    !["latest", "next"].includes(target.distTag) || typeof request !== "function"
-  ) fail();
+    !["latest", "next"].includes(target.distTag) ||
+    typeof request !== "function"
+  )
+    fail();
   const encodedPackage = "%40lervo%2Fcli";
   let metadataResult;
   let tagsResult;
@@ -101,16 +106,23 @@ export async function observeFirstPublicationReconciliation(
   const tags = tagsResult.value;
   if (
     metadataResult.state === "found" &&
-    (metadata === null || typeof metadata !== "object" || Array.isArray(metadata) ||
-      metadata.name !== target.package || metadata.version !== target.version ||
+    (metadata === null ||
+      typeof metadata !== "object" ||
+      Array.isArray(metadata) ||
+      metadata.name !== target.package ||
+      metadata.version !== target.version ||
       !sha512IntegrityPattern.test(metadata.dist?.integrity ?? "") ||
       !sha1Pattern.test(metadata.dist.shasum ?? ""))
-  ) return unavailable(target);
+  )
+    return unavailable(target);
   if (
     tagsResult.state === "found" &&
-    (tags === null || typeof tags !== "object" || Array.isArray(tags) ||
+    (tags === null ||
+      typeof tags !== "object" ||
+      Array.isArray(tags) ||
       (tags[target.distTag] !== undefined && typeof tags[target.distTag] !== "string"))
-  ) return unavailable(target);
+  )
+    return unavailable(target);
   return {
     schemaVersion: 1,
     source: "npm_public_registry_reconciliation",
@@ -118,15 +130,17 @@ export async function observeFirstPublicationReconciliation(
     package: target.package,
     version: target.version,
     distTag: target.distTag,
-    versionMetadata: metadataResult.state === "found"
-      ? {
-          state: "found",
-          registryIntegrity: metadata.dist.integrity,
-          registryShasum: metadata.dist.shasum,
-        }
-      : { state: "not_found" },
-    distTagValue: tagsResult.state === "found" && tags[target.distTag] !== undefined
-      ? { state: "found", version: tags[target.distTag] }
-      : { state: "not_found" },
+    versionMetadata:
+      metadataResult.state === "found"
+        ? {
+            state: "found",
+            registryIntegrity: metadata.dist.integrity,
+            registryShasum: metadata.dist.shasum,
+          }
+        : { state: "not_found" },
+    distTagValue:
+      tagsResult.state === "found" && tags[target.distTag] !== undefined
+        ? { state: "found", version: tags[target.distTag] }
+        : { state: "not_found" },
   };
 }

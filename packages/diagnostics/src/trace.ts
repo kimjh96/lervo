@@ -16,9 +16,7 @@ export function createTraceReport(input: {
   if (latestEvent === null) {
     throw new DiagnosticsError("trace_empty", "There are no local events to trace.");
   }
-  const runId = input.selector === "last"
-    ? latestEvent.runId
-    : input.selector;
+  const runId = input.selector === "last" ? latestEvent.runId : input.selector;
   const events = input.events.list({ runId, limit: maximumTraceReportEvents });
   if (events.length === 0) {
     throw new DiagnosticsError(

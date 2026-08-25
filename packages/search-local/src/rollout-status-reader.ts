@@ -15,9 +15,7 @@ import {
   createRolloutCurrentSelection,
   rolloutAttemptEvidence,
 } from "./rollout-review-state.js";
-import {
-  loadVerifiedSearchSelectionQualityEvidence,
-} from "./selection-quality-evidence.js";
+import { loadVerifiedSearchSelectionQualityEvidence } from "./selection-quality-evidence.js";
 import { SearchLocalError } from "./types.js";
 
 export async function readLocalSearchRolloutStatus(input: {
@@ -34,29 +32,56 @@ export async function readLocalSearchRolloutStatus(input: {
   const current = qualityEvidence.history.at(-1);
   const candidateReviewIds = new Set(reviews.map((review) => review.target.candidateReviewId));
   if (current?.selected.mode === "candidate") candidateReviewIds.add(current.selected.reviewId);
-  const candidateReviews = new Map(await Promise.all([...candidateReviewIds].map(async (reviewId) => [
-    reviewId,
-    await loadStoredSearchCandidateReview(input.repositoryRoot, reviewId),
-  ] as const)));
-  const policyIds = new Set(reviews.flatMap((review) =>
-    review.schemaVersion === 2 ? [review.rolloutPolicyId] : []));
-  const rolloutPolicies = new Map(await Promise.all([...policyIds].map(async (policyId) => [
-    policyId,
-    await loadSearchRolloutReviewPolicy(input.repositoryRoot, policyId),
-  ] as const)));
+  const candidateReviews = new Map(
+    await Promise.all(
+      [...candidateReviewIds].map(
+        async (reviewId) =>
+          [
+            reviewId,
+            await loadStoredSearchCandidateReview(input.repositoryRoot, reviewId),
+          ] as const,
+      ),
+    ),
+  );
+  const policyIds = new Set(
+    reviews.flatMap((review) => (review.schemaVersion === 2 ? [review.rolloutPolicyId] : [])),
+  );
+  const rolloutPolicies = new Map(
+    await Promise.all(
+      [...policyIds].map(
+        async (policyId) =>
+          [policyId, await loadSearchRolloutReviewPolicy(input.repositoryRoot, policyId)] as const,
+      ),
+    ),
+  );
   const selection = createRolloutCurrentSelection(qualityEvidence.history, candidateReviews);
-  const activations = new Map(qualityEvidence.history.map((activation) => [activation.activationId, activation]));
+  const activations = new Map(
+    qualityEvidence.history.map((activation) => [activation.activationId, activation]),
+  );
   const currentSnapshots = new Map<string, SearchRolloutQualitySnapshot>();
   const statusEvidence: SearchRolloutStatusEvidence[] = [];
   for (const review of reviews) {
     if (review.projectId !== input.projectId) {
-      throw new SearchLocalError("observation_invalid", "The search rollout review has different project coordinates.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search rollout review has different project coordinates.",
+      );
     }
-    if (review.schemaVersion === 2 && rolloutPolicies.get(review.rolloutPolicyId)?.projectId !== input.projectId) {
-      throw new SearchLocalError("observation_invalid", "The search rollout review policy has different project coordinates.");
+    if (
+      review.schemaVersion === 2 &&
+      rolloutPolicies.get(review.rolloutPolicyId)?.projectId !== input.projectId
+    ) {
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search rollout review policy has different project coordinates.",
+      );
     }
     const candidateReview = candidateReviews.get(review.target.candidateReviewId)!;
-    assertRolloutReviewTarget(review, activations.get(review.target.selectionTransitionId), candidateReview);
+    assertRolloutReviewTarget(
+      review,
+      activations.get(review.target.selectionTransitionId),
+      candidateReview,
+    );
     verifySearchRolloutReview(
       review,
       rolloutAttemptEvidence(

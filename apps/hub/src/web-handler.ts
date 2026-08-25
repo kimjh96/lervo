@@ -41,7 +41,11 @@ const assetDefinitions = [
   ["/assets/trace-api.js", "trace-api.js", "text/javascript; charset=utf-8"],
   ["/assets/trace-labels.js", "trace-labels.js", "text/javascript; charset=utf-8"],
   ["/assets/trace-graph.js", "trace-graph.js", "text/javascript; charset=utf-8"],
-  ["/assets/trace-graph-controller.js", "trace-graph-controller.js", "text/javascript; charset=utf-8"],
+  [
+    "/assets/trace-graph-controller.js",
+    "trace-graph-controller.js",
+    "text/javascript; charset=utf-8",
+  ],
   ["/assets/trace-navigation.js", "trace-navigation.js", "text/javascript; charset=utf-8"],
   ["/assets/trace-pagination.js", "trace-pagination.js", "text/javascript; charset=utf-8"],
   ["/assets/trace-render.js", "trace-render.js", "text/javascript; charset=utf-8"],
@@ -67,7 +71,8 @@ function send(
   contentType: string,
   extraHeaders: Record<string, string> = {},
 ): void {
-  const contentLength = typeof body === "string" ? Buffer.byteLength(body, "utf8") : body.byteLength;
+  const contentLength =
+    typeof body === "string" ? Buffer.byteLength(body, "utf8") : body.byteLength;
   response.writeHead(status, {
     ...WEB_SECURITY_HEADERS,
     "content-length": String(contentLength),
@@ -94,7 +99,12 @@ export function createHubWebHandler() {
       return true;
     }
     if (url.search !== "") {
-      send(response, 400, "Page URLs cannot contain query parameters.", "text/plain; charset=utf-8");
+      send(
+        response,
+        400,
+        "Page URLs cannot contain query parameters.",
+        "text/plain; charset=utf-8",
+      );
       return true;
     }
     if (

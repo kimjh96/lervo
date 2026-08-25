@@ -31,10 +31,13 @@ export function assertSearchRolloutActionEligibility(input: {
   assertSearchRolloutActionPolicy(input.actionPolicy);
   assertSearchRolloutReview(input.review);
   assertSearchRolloutQualitySnapshot(input.currentQualitySnapshot);
-  if (!SOURCE_ID_PATTERN.test(input.operatorId) || !Number.isFinite(input.actedAt.getTime()) ||
+  if (
+    !SOURCE_ID_PATTERN.test(input.operatorId) ||
+    !Number.isFinite(input.actedAt.getTime()) ||
     input.actionPolicy.projectId !== input.review.projectId ||
     input.actionPolicy.rolloutPolicyId !== input.rolloutPolicy.policyId ||
-    input.currentQualitySnapshot.observedThrough !== input.actedAt.toISOString()) {
+    input.currentQualitySnapshot.observedThrough !== input.actedAt.toISOString()
+  ) {
     throw new SearchError(
       "rollout_action_not_eligible",
       "The search rollout review, policy, operator, or current quality input does not satisfy the requested action conditions.",
@@ -64,7 +67,10 @@ export function createSearchRolloutKeepAcknowledgement(input: {
 }): SearchRolloutKeepAcknowledgement {
   assertSearchRolloutActionEligibility({ ...input, actedAt: input.acknowledgedAt });
   if (input.actionPolicy.action !== "acknowledge_keep") {
-    throw new SearchError("rollout_action_not_eligible", "Candidate retention acknowledgement requires a keep action policy.");
+    throw new SearchError(
+      "rollout_action_not_eligible",
+      "Candidate retention acknowledgement requires a keep action policy.",
+    );
   }
   const core = {
     projectId: input.review.projectId,
@@ -93,22 +99,37 @@ export function createSearchRolloutKeepAcknowledgement(input: {
   return acknowledgement;
 }
 
-export function assertSearchRolloutKeepAcknowledgement(value: SearchRolloutKeepAcknowledgement): void {
-  if (value.schemaVersion !== 1 || !SEARCH_ROLLOUT_ACKNOWLEDGEMENT_PATTERN.test(value.acknowledgementId) ||
-    !SOURCE_ID_PATTERN.test(value.projectId) || value.action !== "acknowledge_keep" ||
+export function assertSearchRolloutKeepAcknowledgement(
+  value: SearchRolloutKeepAcknowledgement,
+): void {
+  if (
+    value.schemaVersion !== 1 ||
+    !SEARCH_ROLLOUT_ACKNOWLEDGEMENT_PATTERN.test(value.acknowledgementId) ||
+    !SOURCE_ID_PATTERN.test(value.projectId) ||
+    value.action !== "acknowledge_keep" ||
     !SEARCH_ROLLOUT_ACTION_POLICY_PATTERN.test(value.actionPolicyId) ||
     !SEARCH_ROLLOUT_POLICY_PATTERN.test(value.rolloutPolicyId) ||
     !SEARCH_ROLLOUT_REVIEW_PATTERN.test(value.rolloutReviewId) ||
     !SEARCH_ENGINE_ACTIVATION_PATTERN.test(value.selectionTransitionId) ||
     !SEARCH_ROLLOUT_SNAPSHOT_PATTERN.test(value.qualitySnapshotId) ||
-    !/^sha256:[a-f0-9]{64}$/.test(value.qualityInputDigest) || !SOURCE_ID_PATTERN.test(value.operatorId) ||
-    value.recordState !== "acknowledgement_recorded" || value.effect?.selectionChange !== "not_applied" ||
-    value.effect.rollback !== "not_executed" || value.effect.approval !== "not_granted") {
-    throw new SearchError("invalid_rollout_action", "The search rollout candidate retention acknowledgement contract is invalid.");
+    !/^sha256:[a-f0-9]{64}$/.test(value.qualityInputDigest) ||
+    !SOURCE_ID_PATTERN.test(value.operatorId) ||
+    value.recordState !== "acknowledgement_recorded" ||
+    value.effect?.selectionChange !== "not_applied" ||
+    value.effect.rollback !== "not_executed" ||
+    value.effect.approval !== "not_granted"
+  ) {
+    throw new SearchError(
+      "invalid_rollout_action",
+      "The search rollout candidate retention acknowledgement contract is invalid.",
+    );
   }
   assertTimestamp(value.acknowledgedAt, "invalid_rollout_action");
   const { schemaVersion: _schema, acknowledgementId: _id, ...core } = value;
   if (contentId("srack", core) !== value.acknowledgementId) {
-    throw new SearchError("invalid_rollout_action", "The search rollout candidate retention acknowledgement ID does not match its content.");
+    throw new SearchError(
+      "invalid_rollout_action",
+      "The search rollout candidate retention acknowledgement ID does not match its content.",
+    );
   }
 }

@@ -1,15 +1,13 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createFileFirstPublicationStageApprovalStore } from
-  "../../lib/file-first-publication-stage-approval-store.mjs";
+import { createFileFirstPublicationStageApprovalStore } from "../../lib/file-first-publication-stage-approval-store.mjs";
 import {
   createFirstPublicationStageApprovalAttempt,
   createFirstPublicationStageApprovalReceipt,
   createFirstPublicationStageApprovalTerminal,
 } from "../../lib/first-publication-stage-approval-records.mjs";
-import { createFirstPublicationStageApprovalFixture } from
-  "./first-publication-stage-approval.mjs";
+import { createFirstPublicationStageApprovalFixture } from "./first-publication-stage-approval.mjs";
 
 export function matchingPublicReleaseObservation(fixture, overrides = {}) {
   return {
@@ -32,10 +30,7 @@ export function matchingPublicReleaseObservation(fixture, overrides = {}) {
   };
 }
 
-export function matchingStageApprovalReconciliationObservation(
-  fixture,
-  overrides = {},
-) {
+export function matchingStageApprovalReconciliationObservation(fixture, overrides = {}) {
   return {
     schemaVersion: 1,
     source: "npm_stage_approval_reconciliation",

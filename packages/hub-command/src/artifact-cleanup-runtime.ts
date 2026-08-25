@@ -1,5 +1,8 @@
 import { HubCommandError } from "./errors.js";
-import { cleanupHubCommandArtifacts, type HubCommandArtifactCleanupResult } from "./artifact-cleanup.js";
+import {
+  cleanupHubCommandArtifacts,
+  type HubCommandArtifactCleanupResult,
+} from "./artifact-cleanup.js";
 import type {
   HubCommandArtifactCleanupScheduleStore,
   HubCommandArtifactLifecycleRepository,
@@ -41,19 +44,20 @@ export interface HubCommandArtifactCleanupLoopOptions {
 }
 
 const systemWait: HubCommandArtifactCleanupWaitPort = {
-  wait: (delayMs, signal) => new Promise<void>((resolve) => {
-    if (signal.aborted) {
-      resolve();
-      return;
-    }
-    const timeout = setTimeout(finish, delayMs);
-    signal.addEventListener("abort", finish, { once: true });
-    function finish(): void {
-      clearTimeout(timeout);
-      signal.removeEventListener("abort", finish);
-      resolve();
-    }
-  }),
+  wait: (delayMs, signal) =>
+    new Promise<void>((resolve) => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
+      const timeout = setTimeout(finish, delayMs);
+      signal.addEventListener("abort", finish, { once: true });
+      function finish(): void {
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", finish);
+        resolve();
+      }
+    }),
 };
 
 function validDuration(value: number, minimum: number, maximum: number): boolean {
@@ -84,7 +88,11 @@ export async function runHubCommandArtifactCleanupLoop(
     !validDuration(cycleIntervalMs, 60_000, 24 * 60 * 60_000) ||
     !validDuration(continuationDelayMs, 100, 60_000) ||
     !validDuration(retryDelayMs, 1_000, 60 * 60_000)
-  ) throw new HubCommandError("invalid_request", "The artifact cleanup runtime interval is invalid.");
+  )
+    throw new HubCommandError(
+      "invalid_request",
+      "The artifact cleanup runtime interval is invalid.",
+    );
 
   const now = options.now ?? (() => new Date().toISOString());
   const wait = options.wait ?? systemWait;
@@ -102,8 +110,11 @@ export async function runHubCommandArtifactCleanupLoop(
       leaseDurationMs,
     });
     if (claim.status === "waiting") {
-      const delay = Math.max(0, parseTime(claim.nextAttemptAt, "artifact cleanup nextAttemptAt") -
-        parseTime(now(), "artifact cleanup current time"));
+      const delay = Math.max(
+        0,
+        parseTime(claim.nextAttemptAt, "artifact cleanup nextAttemptAt") -
+          parseTime(now(), "artifact cleanup current time"),
+      );
       await wait.wait(delay, options.signal);
       continue;
     }
@@ -120,9 +131,11 @@ export async function runHubCommandArtifactCleanupLoop(
         ...(options.orphanGraceMs === undefined ? {} : { orphanGraceMs: options.orphanGraceMs }),
         ...(options.limit === undefined ? {} : { limit: options.limit }),
         ...(claim.inventoryCursor === null ? {} : { inventoryCursor: claim.inventoryCursor }),
-        ...(options.maximumScannedObjects === undefined ? {} : {
-          maximumScannedObjects: options.maximumScannedObjects,
-        }),
+        ...(options.maximumScannedObjects === undefined
+          ? {}
+          : {
+              maximumScannedObjects: options.maximumScannedObjects,
+            }),
       });
       const completedAt = now();
       const nextCycleAt = nextTimestamp(

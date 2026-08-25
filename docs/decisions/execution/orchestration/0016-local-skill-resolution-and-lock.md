@@ -5,33 +5,33 @@
 
 ## Context
 
-Skill manifests existed without reproducible discovery or a lock identifying the candidate selected for a run. Treating provider-read files or user-run skills as Lervo-observed selection would collapse `resolved`, `invoked`, and `used`. User-global skills also reside outside the repository and require explicit source-preservation, symlink, and privacy boundaries.
+Skill manifests lacked reproducible discovery and a per-run lock identifying the selected candidate. Treating provider-read files or user-run skills as Lervo-observed selection would conflate `resolved`, `invoked`, and `used`. User-global skills also reside outside the repository, requiring explicit source-preservation, symlink, and privacy boundaries.
 
 ## Decision
 
 ### Discovery and package integrity
 
-For requested `lervo run --skill <skill-id>` values only, inspect project `.agents/skills/*/lervo-skill.json` and user `~/.agents/skills/*/lervo-skill.json`. Ignore directories without manifests and unrequested IDs. Organization and external registries remain future source adapters.
+Only for requested `lervo run --skill <skill-id>` values, inspect project `.agents/skills/*/lervo-skill.json` and user `~/.agents/skills/*/lervo-skill.json`. Ignore directories without manifests and unrequested IDs. Organization and external registries remain future source adapters.
 
-Hash every regular file except top-level `lervo-skill.json` in relative-path order, including its path, byte count, and body. Require manifest `contentHash` to match.
+Hash every regular file except the top-level `lervo-skill.json`, in relative-path order, including each path, byte count, and body. The manifest `contentHash` must match.
 
 Follow no symlink in a discovery root, candidate directory, or package. Limit packages to 256 files and 16 MiB, and manifests to 1 MiB. Reject identity, size, or mtime changes during reading. Never modify skill source.
 
 ### Compatibility and selection
 
-Require enabled scope, provider, role, minimum runtime version, platform, required tools, and role-allowed capabilities. Do not treat `require_approval`, unknown tools, or unknown platforms as compatible. Validate input/output schema references only syntactically; invocation later resolves schemas and validates calls.
+Require enabled scope, provider, role, minimum runtime version, platform, required tools, and role-allowed capabilities. Treat neither `require_approval`, unknown tools, nor unknown platforms as compatible. Validate input and output schema references only syntactically; invocation later resolves schemas and validates calls.
 
-Choose candidates in this order: pinned project candidate, other project candidate, then user candidate. Within a tier, choose the highest semantic version. The same tier and version with different content hashes is `ambiguous_skill_selection`, never an arbitrary choice.
+Select candidates by tier: pinned project candidate, other project candidate, then user candidate. Within a tier, select the highest semantic version. If candidates in the same tier and version have different content hashes, fail with `ambiguous_skill_selection`; never choose arbitrarily.
 
 Retain unselected compatible and incompatible candidates in the lock with `source_shadowed`, `version_shadowed`, or specific compatibility reasons.
 
 ### `skills.lock` and evidence
 
-Validate `.lervo/skills.lock` against its standalone JSON Schema and cap it at 4 MiB. Record project, generation time, provider, role, runtime, platform, known tools, allowed capabilities, selections, rejections, and machine reasons. URIs remain local.
+Validate `.lervo/skills.lock` against its standalone JSON Schema and cap it at 4 MiB. Record the project, generation time, provider, role, runtime, platform, known tools, allowed capabilities, selections, rejections, and machine reasons. URIs remain local.
 
-Preserve existing bytes and `generatedAt` when semantics are unchanged. Never overwrite a schema-invalid or non-regular existing lock. Publish a new lock through a completed same-directory temporary file and rename.
+When semantics are unchanged, preserve existing bytes and `generatedAt`. Never overwrite a schema-invalid or non-regular existing lock. Publish a new lock by renaming a completed same-directory temporary file.
 
-A lock is derived resolution state, not execution evidence. Before execution, atomically record `run.requested`, `run.resolved`, and one `skill.resolved` per selection. Include only skill ID, version, content hash, source kind, and trust level; exclude URI, publisher, reviewer, and body. If event recording fails, do not execute; lock existence alone proves nothing.
+A lock is derived resolution state, not execution evidence. Before execution, atomically record `run.requested`, `run.resolved`, and one `skill.resolved` per selection. Include only skill ID, version, content hash, source kind, and trust level; exclude URI, publisher, reviewer, and body. If event recording fails, do not execute. Lock existence alone proves nothing.
 
 This slice neither injects nor invokes skill content, so it emits no `skill.invoked` or `.completed`. Future invocation requires schema resolution, an input digest, capability approval, output artifacts, and an observable provider boundary.
 

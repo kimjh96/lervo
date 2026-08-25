@@ -4,8 +4,7 @@ import {
   firstPublicationTransition,
   FirstPublicationBootstrapError,
 } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationExternalEvidenceReportDocument } from
-  "./first-publication-external-evidence-reader.mjs";
+import { validateFirstPublicationExternalEvidenceReportDocument } from "./first-publication-external-evidence-reader.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import {
   npmPublicRegistry,
@@ -23,7 +22,8 @@ function timestamp(value) {
   if (
     typeof value !== "string" ||
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
-  ) fail();
+  )
+    fail();
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) fail();
   return milliseconds;
@@ -40,22 +40,28 @@ function validateEvidenceBinding(report, authorization, checkedAt) {
     report.release.publicationAuthorizationDigest !== authorization.authorizationDigest ||
     report.release.artifactSha256 !== authorization.artifact.sha256 ||
     report.release.sourceDigest !== authorization.release.sourceDigest
-  ) fail("first_publication_external_evidence_target_mismatch");
+  )
+    fail("first_publication_external_evidence_target_mismatch");
   const checkedAtMs = timestamp(checkedAt);
   if (
     timestamp(report.validity.checkedAt) > checkedAtMs ||
     timestamp(report.validity.validUntil) <= checkedAtMs
-  ) fail("first_publication_external_evidence_expired");
+  )
+    fail("first_publication_external_evidence_expired");
 }
 
 function validateIdentity(manifest, releaseManifest, report, authorization) {
   const target = report.target;
   const expectedRepository = `git+https://github.com/${target.repository}.git`;
   if (
-    manifest?.name !== target.package || manifest.version !== target.version ||
-    manifest.version !== authorization.target.version || manifest.private !== false ||
-    manifest.license !== target.license || manifest.license === "UNLICENSED" ||
-    manifest.repository?.type !== "git" || manifest.repository.url !== expectedRepository ||
+    manifest?.name !== target.package ||
+    manifest.version !== target.version ||
+    manifest.version !== authorization.target.version ||
+    manifest.private !== false ||
+    manifest.license !== target.license ||
+    manifest.license === "UNLICENSED" ||
+    manifest.repository?.type !== "git" ||
+    manifest.repository.url !== expectedRepository ||
     manifest.publishConfig?.access !== "public" ||
     manifest.publishConfig.registry !== npmPublicRegistry ||
     manifest.publishConfig.provenance === false ||
@@ -65,20 +71,26 @@ function validateIdentity(manifest, releaseManifest, report, authorization) {
     releaseManifest.artifact.repository !== expectedRepository ||
     releaseManifest.artifact.registry !== npmPublicRegistry ||
     releaseManifest.artifact.provenance === false ||
-    releaseManifest.artifact.private !== false || releaseManifest.artifact.access !== "public"
-  ) fail("first_publication_identity_unresolved");
+    releaseManifest.artifact.private !== false ||
+    releaseManifest.artifact.access !== "public"
+  )
+    fail("first_publication_identity_unresolved");
 }
 
 function validatePackageObservation(observation) {
   if (observation?.state === "unavailable") {
     fail("first_publication_package_observation_unavailable");
   }
-  if (canonicalJson(observation) !== canonicalJson({
-    schemaVersion: 1,
-    source: "npm_public_registry",
-    state: "not_found",
-    package: "@lervo/cli",
-  })) fail("first_publication_package_not_missing");
+  if (
+    canonicalJson(observation) !==
+    canonicalJson({
+      schemaVersion: 1,
+      source: "npm_public_registry",
+      state: "not_found",
+      package: "@lervo/cli",
+    })
+  )
+    fail("first_publication_package_not_missing");
 }
 
 export function validateFirstPublicationBootstrapLocalInputs({
@@ -111,10 +123,12 @@ export function createFirstPublicationBootstrapAuthorization({
   });
   validatePackageObservation(packageObservation);
   const observedAtMs = timestamp(observedAt);
-  const validUntil = new Date(Math.min(
-    timestamp(externalEvidenceReport.validity.validUntil),
-    observedAtMs + firstPublicationRegistryObservationLifetimeMs,
-  )).toISOString();
+  const validUntil = new Date(
+    Math.min(
+      timestamp(externalEvidenceReport.validity.validUntil),
+      observedAtMs + firstPublicationRegistryObservationLifetimeMs,
+    ),
+  ).toISOString();
   const body = {
     schemaVersion: 2,
     status: "bootstrap_authorized",

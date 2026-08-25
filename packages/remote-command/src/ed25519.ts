@@ -1,8 +1,4 @@
-import {
-  type KeyObject,
-  sign,
-  verify,
-} from "node:crypto";
+import { type KeyObject, sign, verify } from "node:crypto";
 
 import {
   createSignedRemoteCommandEnvelope,
@@ -14,10 +10,7 @@ import {
   type SignedRemoteCommand,
 } from "@lervo/schemas";
 
-import {
-  type RemoteCommandTrustStore,
-  type TrustedRemoteCommandSigner,
-} from "./types.js";
+import { type RemoteCommandTrustStore, type TrustedRemoteCommandSigner } from "./types.js";
 
 function assertEd25519Key(key: KeyObject, type: "private" | "public"): void {
   if (key.type !== type || key.asymmetricKeyType !== "ed25519") {
@@ -54,10 +47,14 @@ export class Ed25519RemoteCommandSigner {
   }
 
   sign(command: RemoteCommand): SignedRemoteCommand {
-    const signature = sign(null, remoteCommandSigningBytes({
-      command,
-      keyId: this.keyId,
-    }), this.privateKey);
+    const signature = sign(
+      null,
+      remoteCommandSigningBytes({
+        command,
+        keyId: this.keyId,
+      }),
+      this.privateKey,
+    );
     return createSignedRemoteCommandEnvelope({
       command,
       keyId: this.keyId,

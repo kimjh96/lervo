@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_b96a452437697646d70766b2
+  - uv_62bc0b9c29ce94360e2642f1
 title: "ADR-0036: Hub Sync Storage Commits Before Responding"
 type: decision

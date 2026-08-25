@@ -2,9 +2,7 @@ import type { TracePageReport, TraceReport } from "@lervo/diagnostics";
 
 function formatPayload(payload: Record<string, unknown>): string {
   return Object.entries(payload)
-    .map(([key, value]) => `${key}=${
-      Array.isArray(value) ? value.join(", ") : String(value)
-    }`)
+    .map(([key, value]) => `${key}=${Array.isArray(value) ? value.join(", ") : String(value)}`)
     .join(" · ");
 }
 
@@ -23,8 +21,10 @@ export function formatTraceReport(report: TraceReport): string {
           "Managed internal use: unsupported",
         ]),
     "Records:",
-    ...report.events.map((event) =>
-      `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`),
+    ...report.events.map(
+      (event) =>
+        `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`,
+    ),
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -40,11 +40,11 @@ export function formatTracePageReport(report: TracePageReport): string {
       ? []
       : [`Event type filter: ${report.filter.eventTypes.join(", ")}`]),
     "Records:",
-    ...report.events.map((event) =>
-      `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`),
-    report.page.nextCursor === null
-      ? "Next page: none"
-      : `Next cursor: ${report.page.nextCursor}`,
+    ...report.events.map(
+      (event) =>
+        `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`,
+    ),
+    report.page.nextCursor === null ? "Next page: none" : `Next cursor: ${report.page.nextCursor}`,
   ];
   return `${lines.join("\n")}\n`;
 }

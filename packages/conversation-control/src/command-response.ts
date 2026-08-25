@@ -8,24 +8,32 @@ import type {
 import { ConversationControlError } from "./types.js";
 
 function statusLabel(status: string): string {
-  return ({
-    pending: "pending execution",
-    leased: "being delivered to the node",
-    completed: "execution completed",
-    rejected: "execution rejected",
-    expired: "expired",
-  } as Record<string, string>)[status] ?? status;
+  return (
+    (
+      {
+        pending: "pending execution",
+        leased: "being delivered to the node",
+        completed: "execution completed",
+        rejected: "execution rejected",
+        expired: "expired",
+      } as Record<string, string>
+    )[status] ?? status
+  );
 }
 
 function approvalLabel(status: string): string {
-  return ({
-    unavailable: "policy unavailable",
-    denied: "denied by policy",
-    not_required: "no separate approval required",
-    approval_required: "approval required",
-    partially_approved: "partially approved",
-    approved: "required scope approved",
-  } as Record<string, string>)[status] ?? status;
+  return (
+    (
+      {
+        unavailable: "policy unavailable",
+        denied: "denied by policy",
+        not_required: "no separate approval required",
+        approval_required: "approval required",
+        partially_approved: "partially approved",
+        approved: "required scope approved",
+      } as Record<string, string>
+    )[status] ?? status
+  );
 }
 
 function renderHubControl(
@@ -39,26 +47,33 @@ function renderHubControl(
   ];
   if (approvalReview) {
     if (input.reviewUrl === null) {
-      throw new ConversationControlError("control_source_failed", "The approval review URL is missing.");
+      throw new ConversationControlError(
+        "control_source_failed",
+        "The approval review URL is missing.",
+      );
     }
     lines.push(
       `No approval was created in this conversation. Reauthenticate and review the scope in the following Hub view before approving: ${input.reviewUrl}`,
     );
   } else {
-    lines.push("If further action is needed, request the approval review view with `/lervo approval <delivery-id>`.");
+    lines.push(
+      "If further action is needed, request the approval review view with `/lervo approval <delivery-id>`.",
+    );
   }
   return lines.join("\n\n");
 }
 
 function deliberationStatusLabel(status: ConversationDeliberationSummary["status"]): string {
-  return ({
-    running: "running",
-    unknown: "status requires confirmation",
-    interrupted: "awaiting resume",
-    converged: "converged",
-    no_consensus: "no consensus",
-    failed: "failed",
-  } as const)[status];
+  return (
+    {
+      running: "running",
+      unknown: "status requires confirmation",
+      interrupted: "awaiting resume",
+      converged: "converged",
+      no_consensus: "no consensus",
+      failed: "failed",
+    } as const
+  )[status];
 }
 
 function renderDeliberation(
@@ -70,12 +85,14 @@ function renderDeliberation(
       ? `Processed deliberation ${summary.deliberationId}.`
       : request === "resume"
         ? `Processed the resume request for deliberation ${summary.deliberationId}.`
-      : `Deliberation ${summary.deliberationId} is currently ${deliberationStatusLabel(summary.status)}.`,
+        : `Deliberation ${summary.deliberationId} is currently ${deliberationStatusLabel(summary.status)}.`,
     `${summary.artifactCount} artifacts are recorded.`,
   ];
   if (summary.nextAction === "wait") lines.push("Wait for the current work to finish.");
   if (summary.nextAction === "resume") {
-    lines.push("Continue from the approved boundary through an execution path authorized to resume.");
+    lines.push(
+      "Continue from the approved boundary through an execution path authorized to resume.",
+    );
   }
   return lines.join("\n\n");
 }
@@ -84,20 +101,24 @@ function assertDeliberationSummary(
   summary: ConversationDeliberationSummary,
   expectedId?: string,
 ): void {
-  const nextActionMatches = summary.status === "running"
-    ? summary.nextAction === "wait"
-    : summary.status === "interrupted"
-      ? summary.nextAction === "resume"
-      : summary.nextAction === "none";
+  const nextActionMatches =
+    summary.status === "running"
+      ? summary.nextAction === "wait"
+      : summary.status === "interrupted"
+        ? summary.nextAction === "resume"
+        : summary.nextAction === "none";
   if (
     !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(summary.deliberationId) ||
     (expectedId !== undefined && summary.deliberationId !== expectedId) ||
-    !Number.isSafeInteger(summary.artifactCount) || summary.artifactCount < 0 ||
-    summary.artifactCount > 10_000 || !nextActionMatches
-  ) throw new ConversationControlError(
-    "deliberation_source_failed",
-    "The deliberation service returned an invalid state.",
-  );
+    !Number.isSafeInteger(summary.artifactCount) ||
+    summary.artifactCount < 0 ||
+    summary.artifactCount > 10_000 ||
+    !nextActionMatches
+  )
+    throw new ConversationControlError(
+      "deliberation_source_failed",
+      "The deliberation service returned an invalid state.",
+    );
 }
 
 export async function createConversationControlResponse(input: {
@@ -122,24 +143,25 @@ export async function createConversationControlResponse(input: {
     );
   }
   try {
-    const summary = input.command.operation === "deliberation_start"
-      ? await input.options.deliberations.start({
-          event: input.event,
-          policyId: input.command.policyId,
-          topic: input.command.topic,
-          requestedAt: input.at,
-        })
-      : input.command.operation === "deliberation_resume"
-        ? await input.options.deliberations.resume({
+    const summary =
+      input.command.operation === "deliberation_start"
+        ? await input.options.deliberations.start({
             event: input.event,
-            deliberationId: input.command.deliberationId,
+            policyId: input.command.policyId,
+            topic: input.command.topic,
             requestedAt: input.at,
           })
-      : await input.options.deliberations.inspect({
-          event: input.event,
-          deliberationId: input.command.deliberationId,
-          inspectedAt: input.at,
-        });
+        : input.command.operation === "deliberation_resume"
+          ? await input.options.deliberations.resume({
+              event: input.event,
+              deliberationId: input.command.deliberationId,
+              requestedAt: input.at,
+            })
+          : await input.options.deliberations.inspect({
+              event: input.event,
+              deliberationId: input.command.deliberationId,
+              inspectedAt: input.at,
+            });
     assertDeliberationSummary(
       summary,
       input.command.operation === "deliberation_status" ||
@@ -151,7 +173,9 @@ export async function createConversationControlResponse(input: {
       summary,
       input.command.operation === "deliberation_start"
         ? "start"
-        : input.command.operation === "deliberation_resume" ? "resume" : null,
+        : input.command.operation === "deliberation_resume"
+          ? "resume"
+          : null,
     );
   } catch (error) {
     if (error instanceof ConversationControlError) throw error;

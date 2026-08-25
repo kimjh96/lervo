@@ -5,7 +5,7 @@ import type { CliIo } from "./types.js";
 const require = createRequire(import.meta.url);
 const semanticVersionPattern = /^\d+\.\d+\.\d+$/;
 
-function readCliPackageVersion(): string {
+export function readCliPackageVersion(): string {
   const manifest = require("../package.json") as { version?: unknown };
   if (typeof manifest.version !== "string" || !semanticVersionPattern.test(manifest.version)) {
     throw new Error("invalid CLI package version");

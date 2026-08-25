@@ -1,10 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import {
-  projectIdSchema,
-  schemaVersionSchema,
-  timestampSchema,
-} from "./common.js";
+import { projectIdSchema, schemaVersionSchema, timestampSchema } from "./common.js";
 
 export const defaultProjectDataPolicy = {
   eventMetadataRetentionDays: 90,
@@ -69,19 +65,12 @@ export const projectManifestSchema = {
         "persistRawPrompts",
         "persistDocumentBodiesInEvents",
         "hubSyncEnabled",
-        "eventPayloadMode"
+        "eventPayloadMode",
       ],
       additionalProperties: false,
     },
   },
-  required: [
-    "schemaVersion",
-    "projectId",
-    "name",
-    "root",
-    "createdAt",
-    "dataPolicy"
-  ],
+  required: ["schemaVersion", "projectId", "name", "root", "createdAt", "dataPolicy"],
   additionalProperties: false,
 } as const;
 

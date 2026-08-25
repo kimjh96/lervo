@@ -33,7 +33,7 @@ Roles cannot share a managed run, provider session, or receipts. Approval after 
 | `deliberation.artifact.recorded` | deliberation/artifact IDs, kind, round, producer role, CAS artifact ID/hash, writing permit ID |
 | `deliberation.completed` | deliberation/outcome IDs, status, last round, decision artifact, unresolved objections, failure phase/code |
 
-ADR-0027 adds per-event schemas; ADR-0028 adds persistence. Exclude prompts, bodies, provider responses or payloads, reasoning, tool input, credentials, and detailed diagnostics. Redaction failure stores no partial event and terminates runtime in `telemetry`. Failure phases are `provider`, `context`, `telemetry`, `artifact`, `writing`, `verification`, and `contract`, with short source-free codes.
+ADR-0027 adds per-event schemas; ADR-0028 adds persistence. Events exclude prompts, bodies, provider responses or payloads, reasoning, tool input, credentials, and detailed diagnostics. Redaction failure stores no partial event and terminates runtime in `telemetry`. Failure phases are `provider`, `context`, `telemetry`, `artifact`, `writing`, `verification`, and `contract`, with short source-free codes.
 
 Receipt and shared-context IDs alone do not prove E2/E3 or publication access; runtime must compare source stores. Contract validation does not imply execution, persistence, publication, Hub transfer, or knowledge promotion.
 

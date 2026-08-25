@@ -3,14 +3,12 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { readFirstPublicationWorkflowActivationPostApplySources } from
-  "../lib/first-publication-workflow-activation-post-apply-sources.mjs";
+import { readFirstPublicationWorkflowActivationPostApplySources } from "../lib/first-publication-workflow-activation-post-apply-sources.mjs";
 import {
   createFirstPublicationWorkflowActivationPostApplyReport,
   validateFirstPublicationWorkflowActivationPostApplyReport,
 } from "../lib/first-publication-workflow-activation-post-apply-verification.mjs";
-import { validateFirstPublicationWorkflowActivationReceiptDocument } from
-  "../lib/first-publication-workflow-activation-receipt.mjs";
+import { validateFirstPublicationWorkflowActivationReceiptDocument } from "../lib/first-publication-workflow-activation-receipt.mjs";
 import { canonicalDigest, sha256 } from "../lib/release-artifact-manifest.mjs";
 import {
   createAppliedWorkflowActivationFixture,
@@ -42,7 +40,10 @@ describe("first-publication workflow activation post-apply report", () => {
       const report = createFirstPublicationWorkflowActivationPostApplyReport(input);
       assert.equal(report.status, "verified");
       assert.equal(report.localActivation, "stage_only_workflow_present");
-      assert.equal(report.checks.every(({ status }) => status === "ready"), true);
+      assert.equal(
+        report.checks.every(({ status }) => status === "ready"),
+        true,
+      );
       assert.equal(report.limitations.receiptAuthenticity, "not_verified");
       assert.equal(report.limitations.reviewedCandidateProvenance, "receipt_binding_only");
       assert.equal(report.limitations.remoteWorkflowDeployment, "not_verified");
@@ -74,10 +75,7 @@ describe("first-publication workflow activation post-apply report", () => {
       const { reportDigest: _reportDigest, ...reportBody } = forgedReport;
       forgedReport.reportDigest = canonicalDigest(reportBody);
       assert.throws(
-        () => validateFirstPublicationWorkflowActivationPostApplyReport(
-          forgedReport,
-          input,
-        ),
+        () => validateFirstPublicationWorkflowActivationPostApplyReport(forgedReport, input),
         { code: "first_publication_workflow_activation_post_apply_report_invalid" },
       );
     } finally {
@@ -90,10 +88,9 @@ describe("first-publication workflow activation post-apply report", () => {
     try {
       await writeFile(fixture.paths.workflowPath, fixture.workflowContents);
       const input = await reportInput(fixture);
-      assert.throws(
-        () => createFirstPublicationWorkflowActivationPostApplyReport(input),
-        { code: "first_publication_workflow_activation_post_apply_source_mismatch" },
-      );
+      assert.throws(() => createFirstPublicationWorkflowActivationPostApplyReport(input), {
+        code: "first_publication_workflow_activation_post_apply_source_mismatch",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -103,10 +100,12 @@ describe("first-publication workflow activation post-apply report", () => {
     const fixture = await createAppliedWorkflowActivationFixture();
     try {
       const current = await readFile(fixture.paths.workflowPath, "utf8");
-      const changed = Buffer.from(current.replaceAll(
-        "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-        `actions/checkout@${"b".repeat(40)}`,
-      ));
+      const changed = Buffer.from(
+        current.replaceAll(
+          "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          `actions/checkout@${"b".repeat(40)}`,
+        ),
+      );
       await writeFile(fixture.paths.workflowPath, changed);
       const forgedReceipt = structuredClone(fixture.receipt);
       forgedReceipt.workflow = {
@@ -115,15 +114,11 @@ describe("first-publication workflow activation post-apply report", () => {
       };
       const { receiptDigest: _receiptDigest, ...receiptBody } = forgedReceipt;
       forgedReceipt.receiptDigest = canonicalDigest(receiptBody);
-      await writeFile(
-        fixture.receiptPath,
-        `${JSON.stringify(forgedReceipt, null, 2)}\n`,
-      );
+      await writeFile(fixture.receiptPath, `${JSON.stringify(forgedReceipt, null, 2)}\n`);
       const input = await reportInput(fixture);
-      assert.throws(
-        () => createFirstPublicationWorkflowActivationPostApplyReport(input),
-        { code: "first_publication_workflow_activation_post_apply_not_ready" },
-      );
+      assert.throws(() => createFirstPublicationWorkflowActivationPostApplyReport(input), {
+        code: "first_publication_workflow_activation_post_apply_not_ready",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

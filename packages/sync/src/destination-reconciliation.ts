@@ -40,11 +40,18 @@ export function reconcileDestinationOutbox(input: {
 
     const events = input.store.list({ afterSeq: input.cursor.seq, limit: input.limit });
     const enqueuedCount = input.store.transact((transaction) =>
-      events.reduce((count, event) => count + Number(transaction.enqueue({
-        eventId: event.eventId,
-        destinationId: input.destinationId,
-        enqueuedAt: input.enqueuedAt,
-      }).inserted), 0)
+      events.reduce(
+        (count, event) =>
+          count +
+          Number(
+            transaction.enqueue({
+              eventId: event.eventId,
+              destinationId: input.destinationId,
+              enqueuedAt: input.enqueuedAt,
+            }).inserted,
+          ),
+        0,
+      ),
     );
     return { scannedCount: events.length, enqueuedCount };
   } catch (error) {

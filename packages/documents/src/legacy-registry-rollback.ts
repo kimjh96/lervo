@@ -18,14 +18,11 @@ async function movePublishedSidecarsBack(input: {
   stagedDocuments: string;
   expectedSidecars: ReadonlyMap<string, string>;
 }): Promise<boolean> {
-  if (!await isExactSidecarDirectory({ root: input.root, expected: input.expectedSidecars })) {
+  if (!(await isExactSidecarDirectory({ root: input.root, expected: input.expectedSidecars }))) {
     return false;
   }
   try {
-    await rename(
-      absoluteRepositoryPath(input.root, ".lervo/documents"),
-      input.stagedDocuments,
-    );
+    await rename(absoluteRepositoryPath(input.root, ".lervo/documents"), input.stagedDocuments);
     await syncDirectory(absoluteRepositoryPath(input.root, ".lervo"));
     return true;
   } catch {
@@ -44,13 +41,10 @@ async function restoreLegacySource(input: {
       .split("\\")
       .join("/");
     const bytes = await readStableFile(input.root, relativeSource, 4 * 1024 * 1024);
-    if (sha256(bytes) !== input.sourceHash || !await legacyRegistrySourceIsMissing(input.root)) {
+    if (sha256(bytes) !== input.sourceHash || !(await legacyRegistrySourceIsMissing(input.root))) {
       return false;
     }
-    await rename(
-      input.stagedSource,
-      absoluteRepositoryPath(input.root, ".lervo/documents.yaml"),
-    );
+    await rename(input.stagedSource, absoluteRepositoryPath(input.root, ".lervo/documents.yaml"));
     await syncDirectory(absoluteRepositoryPath(input.root, ".lervo"));
     return true;
   } catch {
@@ -78,18 +72,20 @@ export async function rollbackLegacyRegistryTransition(input: {
   const lervoDirectory = absoluteRepositoryPath(input.root, ".lervo");
   let safe = true;
   if (input.sidecarsPublished) {
-    safe = await movePublishedSidecarsBack({
-      root: input.root,
-      stagedDocuments: input.stagedDocuments,
-      expectedSidecars: input.expectedSidecars,
-    }) && safe;
+    safe =
+      (await movePublishedSidecarsBack({
+        root: input.root,
+        stagedDocuments: input.stagedDocuments,
+        expectedSidecars: input.expectedSidecars,
+      })) && safe;
   }
   if (input.sourceDeactivated) {
-    safe = await restoreLegacySource({
-      root: input.root,
-      stagedSource: input.stagedSource,
-      sourceHash: input.sourceHash,
-    }) && safe;
+    safe =
+      (await restoreLegacySource({
+        root: input.root,
+        stagedSource: input.stagedSource,
+        sourceHash: input.sourceHash,
+      })) && safe;
   }
   let archiveRemains = input.archiveCreated;
   if (input.archiveCreated) {
@@ -106,7 +102,7 @@ export async function rollbackLegacyRegistryTransition(input: {
     });
   }
   if (input.createdArchiveDirectories.length > 0 && !archiveRemains) {
-    safe = await removeCreatedDirectories(input.createdArchiveDirectories) && safe;
+    safe = (await removeCreatedDirectories(input.createdArchiveDirectories)) && safe;
   }
   if (input.markerCreated && safe) {
     const removed = await removeFileIfUnchanged({

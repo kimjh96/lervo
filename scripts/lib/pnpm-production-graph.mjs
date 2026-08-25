@@ -14,7 +14,10 @@ function fail(code, message) {
 
 function descriptor(name, resolution) {
   if (typeof name !== "string" || typeof resolution !== "string") {
-    fail("release_sbom_lock_dependency_invalid", "The lockfile dependency coordinates are invalid.");
+    fail(
+      "release_sbom_lock_dependency_invalid",
+      "The lockfile dependency coordinates are invalid.",
+    );
   }
   const version = resolution.split("(", 1)[0];
   if (!semanticVersionPattern.test(version)) {
@@ -55,7 +58,8 @@ export function createPnpmProductionGraph(lockfile, importerId = "apps/cli") {
     fail("release_sbom_lock_version_unsupported", "The pnpm lockfile version is unsupported.");
   }
   const importer = lockfile.importers?.[importerId];
-  if (!importer) fail("release_sbom_lock_importer_missing", "The CLI lockfile importer is missing.");
+  if (!importer)
+    fail("release_sbom_lock_importer_missing", "The CLI lockfile importer is missing.");
 
   const nodes = new Map();
   const visitedStates = new Set();
@@ -89,20 +93,24 @@ export function createPnpmProductionGraph(lockfile, importerId = "apps/cli") {
     }
   };
 
-  const roots = entries(importer.dependencies).map(([name, value]) => {
-    const item = descriptor(name, value?.version);
-    visit(item, false);
-    return item.coordinate;
-  }).sort();
+  const roots = entries(importer.dependencies)
+    .map(([name, value]) => {
+      const item = descriptor(name, value?.version);
+      visit(item, false);
+      return item.coordinate;
+    })
+    .sort();
   if (roots.length === 0) {
     fail("release_sbom_lock_roots_missing", "The CLI has no production dependencies.");
   }
 
   return {
     roots,
-    nodes: [...nodes.values()].map((node) => ({
-      ...node,
-      dependencies: [...node.dependencies].sort(),
-    })).sort((left, right) => left.coordinate.localeCompare(right.coordinate)),
+    nodes: [...nodes.values()]
+      .map((node) => ({
+        ...node,
+        dependencies: [...node.dependencies].sort(),
+      }))
+      .sort((left, right) => left.coordinate.localeCompare(right.coordinate)),
   };
 }

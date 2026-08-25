@@ -1,9 +1,6 @@
 import { parseArgs } from "node:util";
 
-import {
-  defaultTracePageSize,
-  maximumTracePageSize,
-} from "@lervo/diagnostics";
+import { defaultTracePageSize, maximumTracePageSize } from "@lervo/diagnostics";
 import { eventTypes, type EventType } from "@lervo/schemas";
 
 export const traceUsage = `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}>] [--event-type <type>...] [--full]
@@ -22,8 +19,7 @@ export type TraceCommandRequest =
   | { kind: "full"; selector: string };
 
 export type TraceCommandOptions =
-  | { help: true }
-  | { help: false; root?: string; json: boolean; request: TraceCommandRequest };
+  { help: true } | { help: false; root?: string; json: boolean; request: TraceCommandRequest };
 
 function parsePageSize(value: string): number {
   if (!/^\d+$/.test(value)) throw new RangeError("page-size must be an integer.");
@@ -56,37 +52,48 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
     throw new TypeError("Only one run ID may be specified.");
   }
   const requestedEventTypes = parsed.values["event-type"];
-  if (parsed.values.capabilities === true && (
-    parsed.positionals.length > 0 ||
-    parsed.values.root !== undefined ||
-    parsed.values.cursor !== undefined ||
-    parsed.values.deliberation !== undefined ||
-    parsed.values.full === true ||
-    parsed.values["page-size"] !== undefined ||
-    requestedEventTypes !== undefined
-  )) {
+  if (
+    parsed.values.capabilities === true &&
+    (parsed.positionals.length > 0 ||
+      parsed.values.root !== undefined ||
+      parsed.values.cursor !== undefined ||
+      parsed.values.deliberation !== undefined ||
+      parsed.values.full === true ||
+      parsed.values["page-size"] !== undefined ||
+      requestedEventTypes !== undefined)
+  ) {
     throw new TypeError(
       "capabilities cannot be combined with run ID, root, cursor, deliberation, full, page-size, or event-type.",
     );
   }
-  if (parsed.values.cursor !== undefined && (
-    parsed.positionals.length > 0 ||
-    parsed.values.full === true ||
-    parsed.values["page-size"] !== undefined ||
-    requestedEventTypes !== undefined || parsed.values.deliberation !== undefined
-  )) {
-    throw new TypeError("cursor cannot be combined with run ID, full, page-size, event-type, or deliberation.");
+  if (
+    parsed.values.cursor !== undefined &&
+    (parsed.positionals.length > 0 ||
+      parsed.values.full === true ||
+      parsed.values["page-size"] !== undefined ||
+      requestedEventTypes !== undefined ||
+      parsed.values.deliberation !== undefined)
+  ) {
+    throw new TypeError(
+      "cursor cannot be combined with run ID, full, page-size, event-type, or deliberation.",
+    );
   }
-  if (parsed.values.deliberation !== undefined && (
-    parsed.positionals.length > 0 || parsed.values.full === true ||
-    parsed.values["page-size"] !== undefined || requestedEventTypes !== undefined
-  )) {
-    throw new TypeError("deliberation cannot be combined with run ID, full, page-size, or event-type.");
+  if (
+    parsed.values.deliberation !== undefined &&
+    (parsed.positionals.length > 0 ||
+      parsed.values.full === true ||
+      parsed.values["page-size"] !== undefined ||
+      requestedEventTypes !== undefined)
+  ) {
+    throw new TypeError(
+      "deliberation cannot be combined with run ID, full, page-size, or event-type.",
+    );
   }
-  if (requestedEventTypes !== undefined && (
-    new Set(requestedEventTypes).size !== requestedEventTypes.length ||
-    requestedEventTypes.some((eventType) => !knownEventTypes.has(eventType))
-  )) {
+  if (
+    requestedEventTypes !== undefined &&
+    (new Set(requestedEventTypes).size !== requestedEventTypes.length ||
+      requestedEventTypes.some((eventType) => !knownEventTypes.has(eventType)))
+  ) {
     throw new TypeError("event-type values must be supported and unique.");
   }
 

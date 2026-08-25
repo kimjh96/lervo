@@ -22,30 +22,36 @@ export async function planDocumentStorage(root: string): Promise<InitOperation[]
       await loadDocumentManifests(root);
       return [{ kind: "directory", path: documentsPath, action: "unchanged" }];
     } catch (error) {
-      return [{
-        kind: "directory",
-        path: documentsPath,
-        action: "conflict",
-        reason: error instanceof Error ? error.message : String(error),
-      }];
+      return [
+        {
+          kind: "directory",
+          path: documentsPath,
+          action: "conflict",
+          reason: error instanceof Error ? error.message : String(error),
+        },
+      ];
     }
   }
   if (documentsEntry.kind === "missing" && legacyEntry.kind === "file") {
     try {
       parseAndValidateYaml<DocumentRegistry>("documentRegistry", legacyEntry.content);
-      return [{
-        kind: "file",
-        path: legacyPath,
-        action: "unchanged",
-        expectedContentHash: contentHash(legacyEntry.content),
-      }];
+      return [
+        {
+          kind: "file",
+          path: legacyPath,
+          action: "unchanged",
+          expectedContentHash: contentHash(legacyEntry.content),
+        },
+      ];
     } catch (error) {
-      return [{
-        kind: "file",
-        path: legacyPath,
-        action: "conflict",
-        reason: error instanceof Error ? error.message : String(error),
-      }];
+      return [
+        {
+          kind: "file",
+          path: legacyPath,
+          action: "conflict",
+          reason: error instanceof Error ? error.message : String(error),
+        },
+      ];
     }
   }
 

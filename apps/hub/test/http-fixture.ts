@@ -1,9 +1,6 @@
 import { type AddressInfo } from "node:net";
 
-import {
-  type HubProjectTraceSummary,
-  type HubTraceSource,
-} from "@lervo/hub-trace";
+import { type HubProjectTraceSummary, type HubTraceSource } from "@lervo/hub-trace";
 import { vi } from "vitest";
 
 import {
@@ -34,27 +31,33 @@ export const secondProject: HubProjectTraceSummary = {
   projectId: "prj_allowed02",
   projectName: "second project",
 };
-export const credentials: HubBearerCredential[] = [{
-  token,
-  principalId: "operator:http-test",
-  permissions: ["trace.read", "policy.read", "policy.write"],
-  projects: [
-    { destinationId: allowedProject.destinationId, projectId: allowedProject.projectId },
-    { destinationId: secondProject.destinationId, projectId: secondProject.projectId },
-  ],
-}];
+export const credentials: HubBearerCredential[] = [
+  {
+    token,
+    principalId: "operator:http-test",
+    permissions: ["trace.read", "policy.read", "policy.write"],
+    projects: [
+      { destinationId: allowedProject.destinationId, projectId: allowedProject.projectId },
+      { destinationId: secondProject.destinationId, projectId: secondProject.projectId },
+    ],
+  },
+];
 
 const openServers: ReturnType<typeof createHubTraceServer>[] = [];
 
 export function traceSource(): HubTraceSource {
   return {
-    listProjects: vi.fn(async (query) => query.after === undefined ? {
-      items: [allowedProject],
-      nextCursor: {
-        destinationId: allowedProject.destinationId,
-        projectId: allowedProject.projectId,
-      },
-    } : { items: [secondProject], nextCursor: null }),
+    listProjects: vi.fn(async (query) =>
+      query.after === undefined
+        ? {
+            items: [allowedProject],
+            nextCursor: {
+              destinationId: allowedProject.destinationId,
+              projectId: allowedProject.projectId,
+            },
+          }
+        : { items: [secondProject], nextCursor: null },
+    ),
     getProject: vi.fn(async () => ({
       project: allowedProject,
       runs: { items: [], nextCursor: null },
@@ -84,7 +87,12 @@ export async function startHubTestServer(
 }
 
 export async function closeHubTestServers(): Promise<void> {
-  await Promise.all(openServers.splice(0).map((server) => new Promise<void>((resolve, reject) => {
-    server.close((error) => error === undefined ? resolve() : reject(error));
-  })));
+  await Promise.all(
+    openServers.splice(0).map(
+      (server) =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => (error === undefined ? resolve() : reject(error)));
+        }),
+    ),
+  );
 }

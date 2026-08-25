@@ -2,9 +2,7 @@ import { validateSchema, type DeliberationPolicy } from "@lervo/schemas";
 
 import { DeliberationError } from "./types.js";
 
-export function validateDeliberationPolicy(
-  policy: DeliberationPolicy,
-): void {
+export function validateDeliberationPolicy(policy: DeliberationPolicy): void {
   if (!validateSchema("deliberationPolicy", policy).valid) {
     throw new DeliberationError(
       "policy_contract_invalid",
@@ -14,20 +12,25 @@ export function validateDeliberationPolicy(
   }
   const roleIds = policy.participants.map((participant) => participant.roleId);
   const decisionOwners = policy.participants.filter((participant) =>
-    participant.responsibilities.includes("decision_owner")
+    participant.responsibilities.includes("decision_owner"),
   );
-  const proposers = new Set(policy.participants
-    .filter((participant) => participant.responsibilities.includes("proposer"))
-    .map((participant) => participant.roleId));
+  const proposers = new Set(
+    policy.participants
+      .filter((participant) => participant.responsibilities.includes("proposer"))
+      .map((participant) => participant.roleId),
+  );
   const reviewers = policy.participants
     .filter((participant) => participant.responsibilities.includes("reviewer"))
     .map((participant) => participant.roleId);
   const hasVerifier = policy.participants.some((participant) =>
-    participant.responsibilities.includes("verifier")
+    participant.responsibilities.includes("verifier"),
   );
   if (
-    new Set(roleIds).size !== roleIds.length || proposers.size === 0 || reviewers.length === 0 ||
-    !hasVerifier || decisionOwners.length !== 1 ||
+    new Set(roleIds).size !== roleIds.length ||
+    proposers.size === 0 ||
+    reviewers.length === 0 ||
+    !hasVerifier ||
+    decisionOwners.length !== 1 ||
     decisionOwners[0]?.roleId !== policy.decisionOwnerRoleId ||
     !reviewers.some((roleId) => !proposers.has(roleId))
   ) {

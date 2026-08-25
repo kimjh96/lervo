@@ -1,8 +1,7 @@
 import { isAbsolute } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateWorkflowExecutionCoordinate } from
-  "./first-publication-workflow-execution-contract.mjs";
+import { validateWorkflowExecutionCoordinate } from "./first-publication-workflow-execution-contract.mjs";
 import {
   validateWorkflowReachabilityCommit,
   validateWorkflowReachabilityReleaseTag,
@@ -28,8 +27,13 @@ export function parseFirstPublicationStageReviewArguments(args) {
   const flags = new Set();
   const values = new Map();
   const valueNames = [
-    "--repository", "--source-commit", "--release-tag", "--run-id", "--attempt",
-    "--stage-result-report", "--npm-user-config",
+    "--repository",
+    "--source-commit",
+    "--release-tag",
+    "--run-id",
+    "--attempt",
+    "--stage-result-report",
+    "--npm-user-config",
   ];
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
@@ -38,8 +42,13 @@ export function parseFirstPublicationStageReviewArguments(args) {
       flags.add(name);
       continue;
     }
-    if (!valueNames.includes(name) || values.has(name) || index + 1 >= args.length ||
-        args[index + 1].startsWith("--")) fail();
+    if (
+      !valueNames.includes(name) ||
+      values.has(name) ||
+      index + 1 >= args.length ||
+      args[index + 1].startsWith("--")
+    )
+      fail();
     values.set(name, args[index + 1]);
     index += 1;
   }
@@ -50,10 +59,12 @@ export function parseFirstPublicationStageReviewArguments(args) {
     fail();
   }
   if (
-    !flags.has("--online") || values.size !== valueNames.length ||
+    !flags.has("--online") ||
+    values.size !== valueNames.length ||
     !isAbsolute(values.get("--stage-result-report") ?? "") ||
     !isAbsolute(values.get("--npm-user-config") ?? "")
-  ) fail();
+  )
+    fail();
   return {
     repository: values.get("--repository"),
     sourceCommit: values.get("--source-commit"),

@@ -1,10 +1,7 @@
 import { createHash, createPublicKey, type KeyObject } from "node:crypto";
 import { dirname } from "node:path";
 
-import {
-  ConfiguredEd25519PolicyTrustStore,
-  type PolicyTrustStore,
-} from "@lervo/policy";
+import { ConfiguredEd25519PolicyTrustStore, type PolicyTrustStore } from "@lervo/policy";
 import {
   ConfiguredEd25519RemoteCommandTrustStore,
   type RemoteCommandTrustStore,
@@ -27,9 +24,11 @@ interface LoadedPublicKey {
 
 export interface LoadedNodeRuntimeTrust {
   commandKeys: LoadedPublicKey[];
-  policyKeys: Array<LoadedPublicKey & {
-    purposes: Array<"snapshot" | "approval" | "revocation">;
-  }>;
+  policyKeys: Array<
+    LoadedPublicKey & {
+      purposes: Array<"snapshot" | "approval" | "revocation">;
+    }
+  >;
 }
 
 type RemoteCommands = NonNullable<NodeRuntimeConfig["remoteCommands"]>;
@@ -51,9 +50,10 @@ async function trustConfig(commands: RemoteCommands): Promise<{
   try {
     serialized = await readOwnerOnlyText(commands.trustFile, MAXIMUM_TRUST_FILE_BYTES);
   } catch (error) {
-    const code = error instanceof RuntimeSecurityError && error.code === "invalid_text"
-      ? "invalid_config"
-      : "unsafe_runtime_file";
+    const code =
+      error instanceof RuntimeSecurityError && error.code === "invalid_text"
+        ? "invalid_config"
+        : "unsafe_runtime_file";
     throw new NodeRuntimeError(code, "Could not read the Node runtime trust snapshot safely.", {
       cause: error,
     });
@@ -62,13 +62,20 @@ async function trustConfig(commands: RemoteCommands): Promise<{
   try {
     value = JSON.parse(serialized);
   } catch (error) {
-    throw new NodeRuntimeError("invalid_config", "The Node runtime trust snapshot is not valid JSON.", {
-      cause: error,
-    });
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "The Node runtime trust snapshot is not valid JSON.",
+      {
+        cause: error,
+      },
+    );
   }
   const parsed = parseRemoteCommandTrustConfig(value, dirname(commands.trustFile));
   if (parsed.commandKeys === undefined || parsed.policyKeys === undefined) {
-    throw new NodeRuntimeError("invalid_config", "The Node runtime trust snapshot has no key list.");
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "The Node runtime trust snapshot has no key list.",
+    );
   }
   return { commandKeys: parsed.commandKeys, policyKeys: parsed.policyKeys };
 }
@@ -78,9 +85,10 @@ async function publicKey(path: string): Promise<{ key: KeyObject; publicKeyHash:
   try {
     serialized = await readOwnerOnlyText(path, MAXIMUM_PUBLIC_KEY_BYTES);
   } catch (error) {
-    const code = error instanceof RuntimeSecurityError && error.code === "invalid_text"
-      ? "invalid_config"
-      : "unsafe_runtime_file";
+    const code =
+      error instanceof RuntimeSecurityError && error.code === "invalid_text"
+        ? "invalid_config"
+        : "unsafe_runtime_file";
     throw new NodeRuntimeError(code, "Could not read the remote-control public key file safely.", {
       cause: error,
     });
@@ -104,19 +112,23 @@ export async function loadNodeRuntimeTrust(
 ): Promise<LoadedNodeRuntimeTrust> {
   const config = await trustConfig(commands);
   const [commandKeys, policyKeys] = await Promise.all([
-    Promise.all(config.commandKeys.map(async ({ keyId, publicKeyFile }) => {
-      const loaded = await publicKey(publicKeyFile);
-      return { keyId, publicKey: loaded.key, publicKeyHash: loaded.publicKeyHash };
-    })),
-    Promise.all(config.policyKeys.map(async ({ keyId, publicKeyFile, purposes }) => {
-      const loaded = await publicKey(publicKeyFile);
-      return {
-        keyId,
-        publicKey: loaded.key,
-        publicKeyHash: loaded.publicKeyHash,
-        purposes: [...purposes],
-      };
-    })),
+    Promise.all(
+      config.commandKeys.map(async ({ keyId, publicKeyFile }) => {
+        const loaded = await publicKey(publicKeyFile);
+        return { keyId, publicKey: loaded.key, publicKeyHash: loaded.publicKeyHash };
+      }),
+    ),
+    Promise.all(
+      config.policyKeys.map(async ({ keyId, publicKeyFile, purposes }) => {
+        const loaded = await publicKey(publicKeyFile);
+        return {
+          keyId,
+          publicKey: loaded.key,
+          publicKeyHash: loaded.publicKeyHash,
+          purposes: [...purposes],
+        };
+      }),
+    ),
   ]);
   return { commandKeys, policyKeys };
 }
@@ -174,17 +186,21 @@ export class ReloadableNodeRuntimeTrust {
     policy: ConfiguredEd25519PolicyTrustStore;
   } {
     return {
-      command: new ConfiguredEd25519RemoteCommandTrustStore(material.commandKeys.map((key) => ({
-        keyId: key.keyId,
-        publicKey: key.publicKey,
-        projects: [structuredClone(this.target)],
-      }))),
-      policy: new ConfiguredEd25519PolicyTrustStore(material.policyKeys.map((key) => ({
-        keyId: key.keyId,
-        publicKey: key.publicKey,
-        projects: [structuredClone(this.target)],
-        purposes: [...key.purposes],
-      }))),
+      command: new ConfiguredEd25519RemoteCommandTrustStore(
+        material.commandKeys.map((key) => ({
+          keyId: key.keyId,
+          publicKey: key.publicKey,
+          projects: [structuredClone(this.target)],
+        })),
+      ),
+      policy: new ConfiguredEd25519PolicyTrustStore(
+        material.policyKeys.map((key) => ({
+          keyId: key.keyId,
+          publicKey: key.publicKey,
+          projects: [structuredClone(this.target)],
+          purposes: [...key.purposes],
+        })),
+      ),
     };
   }
 

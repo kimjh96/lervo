@@ -48,19 +48,23 @@ export function managedManifest(standardMarkers = true): DocumentManifest {
       ownership: {
         mode: "managed_blocks",
         outsideManagedBlocks: "preserve",
-        blocks: [{
-          blockId: "agent_context",
-          startMarker: standardMarkers
-            ? "<!-- lervo:begin block=agent_context schema=1 -->"
-            : "<!-- arbitrary -->",
-          endMarker: standardMarkers
-            ? "<!-- lervo:end block=agent_context -->"
-            : "<!-- /arbitrary -->",
-          inputs: [{
-            sourceId: "project-policy",
-            contentHash: `sha256:${"a".repeat(64)}`,
-          }],
-        }],
+        blocks: [
+          {
+            blockId: "agent_context",
+            startMarker: standardMarkers
+              ? "<!-- lervo:begin block=agent_context schema=1 -->"
+              : "<!-- arbitrary -->",
+            endMarker: standardMarkers
+              ? "<!-- lervo:end block=agent_context -->"
+              : "<!-- /arbitrary -->",
+            inputs: [
+              {
+                sourceId: "project-policy",
+                contentHash: `sha256:${"a".repeat(64)}`,
+              },
+            ],
+          },
+        ],
       },
     },
     contentPolicy: {

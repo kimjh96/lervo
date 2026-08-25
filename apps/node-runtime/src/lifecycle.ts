@@ -73,8 +73,11 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   close(): Promise<NodeRuntimeCloseResult> {
     if (this.closePromise === null) {
       this.abort.abort();
-      this.closePromise = this.health?.stopping().catch(() => undefined).then(() => this.finish()) ??
-        this.finish();
+      this.closePromise =
+        this.health
+          ?.stopping()
+          .catch(() => undefined)
+          .then(() => this.finish()) ?? this.finish();
       void this.closePromise.then(this.resolveClosed, this.rejectClosed);
     }
     return this.closePromise;
@@ -82,10 +85,12 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
 
   reloadBearerToken(): Promise<void> {
     if (this.closePromise !== null) {
-      return Promise.reject(new NodeRuntimeError(
-        "token_reload_failed",
-        "Cannot reload the Node runtime bearer token while the runtime is shutting down.",
-      ));
+      return Promise.reject(
+        new NodeRuntimeError(
+          "token_reload_failed",
+          "Cannot reload the Node runtime bearer token while the runtime is shutting down.",
+        ),
+      );
     }
     if (this.reloadPromise === null) {
       const operation = this.reloadBearerTokenSnapshot().catch((error) => {
@@ -96,19 +101,23 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
         );
       });
       this.reloadPromise = operation;
-      void operation.finally(() => {
-        if (this.reloadPromise === operation) this.reloadPromise = null;
-      }).catch(() => undefined);
+      void operation
+        .finally(() => {
+          if (this.reloadPromise === operation) this.reloadPromise = null;
+        })
+        .catch(() => undefined);
     }
     return this.reloadPromise;
   }
 
   reloadRuntimeMaterials(): Promise<void> {
     if (this.closePromise !== null) {
-      return Promise.reject(new NodeRuntimeError(
-        "runtime_material_reload_failed",
-        "Cannot reload Node runtime material while the runtime is shutting down.",
-      ));
+      return Promise.reject(
+        new NodeRuntimeError(
+          "runtime_material_reload_failed",
+          "Cannot reload Node runtime material while the runtime is shutting down.",
+        ),
+      );
     }
     if (this.materialReloadPromise === null) {
       const operation = this.reloadRuntimeMaterialSnapshot().catch((error) => {
@@ -119,9 +128,11 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
         );
       });
       this.materialReloadPromise = operation;
-      void operation.finally(() => {
-        if (this.materialReloadPromise === operation) this.materialReloadPromise = null;
-      }).catch(() => undefined);
+      void operation
+        .finally(() => {
+          if (this.materialReloadPromise === operation) this.materialReloadPromise = null;
+        })
+        .catch(() => undefined);
     }
     return this.materialReloadPromise;
   }

@@ -51,17 +51,26 @@ function graphRelation(row: SQLiteRow, projectId: string): KnowledgeGraphRelatio
       seq: integerField(row, "evidence_seq"),
     },
   };
-  if (relation.evidence.eventId !== stringField(row, "source_event_id") ||
+  if (
+    relation.evidence.eventId !== stringField(row, "source_event_id") ||
     relation.evidence.eventType !== stringField(row, "source_event_type") ||
-    relation.evidence.runId !== stringField(row, "source_run_id")) {
-    throw new HubSyncStoreError("integrity_failed", "The Hub graph evidence differs from the source event.");
+    relation.evidence.runId !== stringField(row, "source_run_id")
+  ) {
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The Hub graph evidence differs from the source event.",
+    );
   }
   try {
     assertKnowledgeGraphRelationIntegrity(relation);
   } catch (error) {
-    throw new HubSyncStoreError("integrity_failed", "The Hub graph relation integrity is invalid.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The Hub graph relation integrity is invalid.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   return relation;
 }
@@ -74,9 +83,7 @@ function page(
   if (hasMore) items.pop();
   return {
     items,
-    nextCursor: hasMore && items.length !== 0
-      ? { relationId: items.at(-1)!.relationId }
-      : null,
+    nextCursor: hasMore && items.length !== 0 ? { relationId: items.at(-1)!.relationId } : null,
   };
 }
 
@@ -87,7 +94,9 @@ export class HubKnowledgeGraphSQLiteRepository {
     query: ResolvedHubKnowledgeGraphQuery,
     project: HubProjectTraceSummary,
   ): HubProjectKnowledgeGraph {
-    const rows = this.database.prepare(`
+    const rows = this.database
+      .prepare(
+        `
       SELECT relation.relation_id, relation.relation_type,
         relation.from_kind, relation.from_id, relation.to_kind, relation.to_id,
         relation.evidence_event_id, relation.evidence_event_type,
@@ -106,20 +115,25 @@ export class HubKnowledgeGraphSQLiteRepository {
         AND relation.relation_id > ?
       ORDER BY relation.relation_id ASC
       LIMIT ?
-    `).all(
-      query.destinationId,
-      query.projectId,
-      query.focus.kind,
-      query.focus.id,
-      query.focus.kind,
-      query.focus.id,
-      query.after?.relationId ?? "",
-      query.limit + 1,
-    );
+    `,
+      )
+      .all(
+        query.destinationId,
+        query.projectId,
+        query.focus.kind,
+        query.focus.id,
+        query.focus.kind,
+        query.focus.id,
+        query.after?.relationId ?? "",
+        query.limit + 1,
+      );
     return {
       project,
       focus: structuredClone(query.focus),
-      relations: page(rows.map((row) => graphRelation(row, query.projectId)), query.limit),
+      relations: page(
+        rows.map((row) => graphRelation(row, query.projectId)),
+        query.limit,
+      ),
     };
   }
 }

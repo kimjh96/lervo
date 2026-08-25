@@ -67,18 +67,24 @@ describe("Hub sync SQLite integrity lifecycle", () => {
     await store.close();
 
     const tampered = new DatabaseSync(path);
-    tampered.prepare(`
+    tampered
+      .prepare(
+        `
       UPDATE hub_knowledge_graph_relations
       SET evidence_event_id = 'evt_graph_evidence_tampered'
-    `).run();
+    `,
+      )
+      .run();
     tampered.close();
 
     const reopened = await HubSyncSQLiteStore.open({ path });
-    await expect(new HubTraceReader(reopened).getKnowledgeGraph({
-      destinationId: "hub:primary",
-      projectId: project.projectId,
-      focus: { kind: "project", id: project.projectId },
-    })).rejects.toMatchObject({ code: "integrity_failed" });
+    await expect(
+      new HubTraceReader(reopened).getKnowledgeGraph({
+        destinationId: "hub:primary",
+        projectId: project.projectId,
+        focus: { kind: "project", id: project.projectId },
+      }),
+    ).rejects.toMatchObject({ code: "integrity_failed" });
     await expect(reopened.auditIntegrity()).rejects.toMatchObject({ code: "integrity_failed" });
     await reopened.close();
   });
@@ -116,9 +122,15 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const migrated = await HubSyncSQLiteStore.open({ path });
     const inspection = new DatabaseSync(path, { readOnly: true });
-    expect(inspection.prepare(`
+    expect(
+      inspection
+        .prepare(
+          `
       SELECT completion_status FROM hub_remote_command_artifact_gc_completions
-    `).get()).toEqual({ completion_status: "completed" });
+    `,
+        )
+        .get(),
+    ).toEqual({ completion_status: "completed" });
     inspection.close();
     await expect(migrated.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await migrated.close();

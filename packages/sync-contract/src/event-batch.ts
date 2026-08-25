@@ -19,8 +19,14 @@ import { assertProjectRegistrationRequest } from "./registration.js";
 type BatchContent = Omit<OutboundEventBatch, "batchId">;
 
 export function assertSyncableEvent(event: EventEnvelope): void {
-  if (!validateSchema("event", event).valid || computeEventHash(eventWithoutHash(event)) !== event.eventHash) {
-    throw new SyncContractError("invalid_event_batch", "A synchronization event schema or hash is invalid.");
+  if (
+    !validateSchema("event", event).valid ||
+    computeEventHash(eventWithoutHash(event)) !== event.eventHash
+  ) {
+    throw new SyncContractError(
+      "invalid_event_batch",
+      "A synchronization event schema or hash is invalid.",
+    );
   }
   let sanitized;
   try {
@@ -47,12 +53,16 @@ function assertEventSequence(events: readonly EventEnvelope[], projectId: string
   for (const [index, event] of events.entries()) {
     assertSyncableEvent(event);
     if (event.projectId !== projectId) {
-      throw new SyncContractError("invalid_event_batch", "A batch can contain events from only one project.");
+      throw new SyncContractError(
+        "invalid_event_batch",
+        "A batch can contain events from only one project.",
+      );
     }
     const previous = events[index - 1];
-    if (previous !== undefined && (
-      event.seq !== previous.seq + 1 || event.previousHash !== previous.eventHash
-    )) {
+    if (
+      previous !== undefined &&
+      (event.seq !== previous.seq + 1 || event.previousHash !== previous.eventHash)
+    ) {
       throw new SyncContractError(
         "invalid_event_batch",
         "Events within a batch must have continuous sequence numbers and hash chains.",
@@ -67,7 +77,10 @@ export function calculateOutboundEventBatchId(content: BatchContent): string {
 
 export function assertOutboundEventBatch(batch: OutboundEventBatch): void {
   if (!validateSchema("outboundEventBatch", batch).valid) {
-    throw new SyncContractError("invalid_event_batch", "The outbound event batch schema is invalid.");
+    throw new SyncContractError(
+      "invalid_event_batch",
+      "The outbound event batch schema is invalid.",
+    );
   }
   assertEventSequence(batch.events, batch.projectId);
   const first = batch.events[0]!;
@@ -93,7 +106,10 @@ export function createOutboundEventBatch(input: {
 }): OutboundEventBatch {
   assertProjectRegistrationRequest(input.registration);
   if (input.events.length === 0) {
-    throw new SyncContractError("invalid_event_batch", "An empty outbound event batch cannot be created.");
+    throw new SyncContractError(
+      "invalid_event_batch",
+      "An empty outbound event batch cannot be created.",
+    );
   }
   const events = structuredClone([...input.events]);
   assertEventSequence(events, input.registration.project.projectId);
@@ -125,7 +141,10 @@ export function assertEventSyncAcknowledgement(input: {
   assertOutboundEventBatch(input.batch);
   const acknowledgement = input.acknowledgement;
   if (!validateSchema("eventSyncAcknowledgement", acknowledgement).valid) {
-    throw new SyncContractError("invalid_acknowledgement", "The event synchronization acknowledgement schema is invalid.");
+    throw new SyncContractError(
+      "invalid_acknowledgement",
+      "The event synchronization acknowledgement schema is invalid.",
+    );
   }
   const eventIds = input.batch.events.map((event) => event.eventId);
   if (

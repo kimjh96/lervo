@@ -7,18 +7,15 @@ import {
   createFirstPublicationWorkflowReachabilityEvidence,
   validateFirstPublicationWorkflowReachabilityEvidence,
 } from "../lib/first-publication-workflow-reachability-evidence.mjs";
-import { readFirstPublicationWorkflowReachabilitySources } from
-  "../lib/first-publication-workflow-reachability-sources.mjs";
+import { readFirstPublicationWorkflowReachabilitySources } from "../lib/first-publication-workflow-reachability-sources.mjs";
 import { canonicalDigest, sha256 } from "../lib/release-artifact-manifest.mjs";
 import {
   createWorkflowReachabilityFixture,
   matchingWorkflowReachabilityObservation,
   workflowReleaseTag,
 } from "./fixtures/first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./fixtures/first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./fixtures/first-publication-workflow-activation.mjs";
+import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./fixtures/first-publication-workflow-activation.mjs";
 
 async function evidenceInput(fixture, overrides = {}) {
   const sources = await readFirstPublicationWorkflowReachabilitySources(
@@ -46,8 +43,7 @@ describe("first-publication workflow reachability evidence", () => {
       const report = createFirstPublicationWorkflowReachabilityEvidence(input);
       assert.equal(report.status, "evidence_bound");
       assert.equal(report.reachability, "source_on_default_branch_and_exact_release_tag");
-      assert.equal(report.github.defaultBranch.relation,
-        "source_commit_ancestor_or_equal");
+      assert.equal(report.github.defaultBranch.relation, "source_commit_ancestor_or_equal");
       assert.equal(report.github.releaseTag.commit, workflowRemoteSourceCommit);
       assert.equal(report.limitations.upstreamEvidenceAuthenticity, "not_verified");
       assert.equal(report.limitations.defaultBranchAfterObservation, "not_verified");
@@ -80,10 +76,11 @@ describe("first-publication workflow reachability evidence", () => {
         }),
       ]) {
         assert.throws(
-          () => createFirstPublicationWorkflowReachabilityEvidence({
-            ...input,
-            reachabilityObservation: observation,
-          }),
+          () =>
+            createFirstPublicationWorkflowReachabilityEvidence({
+              ...input,
+              reachabilityObservation: observation,
+            }),
           { code: "first_publication_workflow_reachability_not_ready" },
         );
       }
@@ -97,32 +94,35 @@ describe("first-publication workflow reachability evidence", () => {
     try {
       const input = await evidenceInput(fixture);
       assert.throws(
-        () => createFirstPublicationWorkflowReachabilityEvidence({
-          ...input,
-          sourceCommit: "a".repeat(40),
-        }),
+        () =>
+          createFirstPublicationWorkflowReachabilityEvidence({
+            ...input,
+            sourceCommit: "a".repeat(40),
+          }),
         { code: "first_publication_workflow_reachability_source_mismatch" },
       );
       assert.throws(
-        () => createFirstPublicationWorkflowReachabilityEvidence({
-          ...input,
-          releaseTag: "v0.1.1",
-        }),
+        () =>
+          createFirstPublicationWorkflowReachabilityEvidence({
+            ...input,
+            releaseTag: "v0.1.1",
+          }),
         { code: "first_publication_workflow_reachability_input_invalid" },
       );
       const changedPackage = Buffer.from("{}\n");
       assert.throws(
-        () => createFirstPublicationWorkflowReachabilityEvidence({
-          ...input,
-          reachabilityObservation: matchingWorkflowReachabilityObservation(fixture, {
-            sourcePackage: {
-              ...input.reachabilityObservation.sourcePackage,
-              contents: changedPackage,
-              byteCount: changedPackage.length,
-              sha256: sha256(changedPackage),
-            },
+        () =>
+          createFirstPublicationWorkflowReachabilityEvidence({
+            ...input,
+            reachabilityObservation: matchingWorkflowReachabilityObservation(fixture, {
+              sourcePackage: {
+                ...input.reachabilityObservation.sourcePackage,
+                contents: changedPackage,
+                byteCount: changedPackage.length,
+                sha256: sha256(changedPackage),
+              },
+            }),
           }),
-        }),
         { code: "first_publication_workflow_reachability_source_mismatch" },
       );
     } finally {
@@ -139,10 +139,11 @@ describe("first-publication workflow reachability evidence", () => {
       const { evidenceDigest: _upstreamDigest, ...upstreamBody } = forgedUpstream;
       forgedUpstream.evidenceDigest = canonicalDigest(upstreamBody);
       assert.throws(
-        () => createFirstPublicationWorkflowReachabilityEvidence({
-          ...input,
-          remoteEvidenceReport: forgedUpstream,
-        }),
+        () =>
+          createFirstPublicationWorkflowReachabilityEvidence({
+            ...input,
+            remoteEvidenceReport: forgedUpstream,
+          }),
         { code: "first_publication_workflow_remote_deployment_report_invalid" },
       );
 
@@ -153,10 +154,7 @@ describe("first-publication workflow reachability evidence", () => {
       const { evidenceDigest: _reportDigest, ...reportBody } = forgedReport;
       forgedReport.evidenceDigest = canonicalDigest(reportBody);
       assert.throws(
-        () => validateFirstPublicationWorkflowReachabilityEvidence(
-          forgedReport,
-          input,
-        ),
+        () => validateFirstPublicationWorkflowReachabilityEvidence(forgedReport, input),
         { code: "first_publication_workflow_reachability_report_invalid" },
       );
     } finally {

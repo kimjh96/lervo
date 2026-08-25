@@ -1,16 +1,12 @@
-import { maximumStageResultArchiveBytes } from
-  "./bounded-stage-result-archive.mjs";
+import { maximumStageResultArchiveBytes } from "./bounded-stage-result-archive.mjs";
 import {
   defaultGitHubCliExecute,
   getGitHubApiBuffer,
   getGitHubApiJson,
 } from "./github-read-only-api.mjs";
-import { normalizeGitHubWorkflowArtifact } from
-  "./github-workflow-execution-response.mjs";
-import { validateWorkflowExecutionCoordinate } from
-  "./first-publication-workflow-execution-contract.mjs";
-import { validateWorkflowReachabilityCommit } from
-  "./first-publication-workflow-reachability-contract.mjs";
+import { normalizeGitHubWorkflowArtifact } from "./github-workflow-execution-response.mjs";
+import { validateWorkflowExecutionCoordinate } from "./first-publication-workflow-execution-contract.mjs";
+import { validateWorkflowReachabilityCommit } from "./first-publication-workflow-reachability-contract.mjs";
 import { canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
@@ -38,22 +34,20 @@ export async function observeGitHubStageResultArtifact({
   validateWorkflowExecutionCoordinate(runId);
   validateWorkflowExecutionCoordinate(artifact?.id);
   const metadataPath = `repos/${repository}/actions/artifacts/${artifact.id}`;
-  const metadata = async () => normalizeGitHubWorkflowArtifact(
-    await getGitHubApiJson(
-      execute,
-      metadataPath,
-      environment,
-      maximumMetadataResponseBytes,
-    ),
-    artifact.name,
-    runId,
-    sourceCommit,
-  );
+  const metadata = async () =>
+    normalizeGitHubWorkflowArtifact(
+      await getGitHubApiJson(execute, metadataPath, environment, maximumMetadataResponseBytes),
+      artifact.name,
+      runId,
+      sourceCommit,
+    );
   try {
     if (
-      !Number.isSafeInteger(artifact.sizeInBytes) || artifact.sizeInBytes <= 0 ||
+      !Number.isSafeInteger(artifact.sizeInBytes) ||
+      artifact.sizeInBytes <= 0 ||
       artifact.sizeInBytes > maximumStageResultArchiveBytes
-    ) return unavailable("archive_size_invalid");
+    )
+      return unavailable("archive_size_invalid");
     const before = await metadata();
     if (before === undefined) return unavailable("response_invalid");
     if (canonicalJson(before) !== canonicalJson(artifact)) {
@@ -66,9 +60,12 @@ export async function observeGitHubStageResultArtifact({
       maximumStageResultArchiveBytes,
     );
     if (
-      contents.length !== before.sizeInBytes || contents.length <= 0 ||
-      contents.length > maximumStageResultArchiveBytes || sha256(contents) !== before.digest
-    ) return unavailable("archive_invalid");
+      contents.length !== before.sizeInBytes ||
+      contents.length <= 0 ||
+      contents.length > maximumStageResultArchiveBytes ||
+      sha256(contents) !== before.digest
+    )
+      return unavailable("archive_invalid");
     const after = await metadata();
     if (after === undefined) return unavailable("response_invalid");
     if (canonicalJson(after) !== canonicalJson(before)) {

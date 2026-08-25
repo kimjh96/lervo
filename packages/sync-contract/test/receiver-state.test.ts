@@ -60,13 +60,15 @@ describe("Hub event acceptance reference semantics", () => {
     });
     expect(completed.state.events.map((event) => event.seq)).toEqual([1, 2, 3, 4]);
 
-    expect(() => assertEventSyncAcknowledgement({
-      batch: earlierBatch,
-      acknowledgement: {
-        ...completed.acknowledgement,
-        acceptedEventIds: [events[0]!.eventId],
-      },
-    })).toThrowError(expect.objectContaining({ code: "invalid_acknowledgement" }));
+    expect(() =>
+      assertEventSyncAcknowledgement({
+        batch: earlierBatch,
+        acknowledgement: {
+          ...completed.acknowledgement,
+          acceptedEventIds: [events[0]!.eventId],
+        },
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_acknowledgement" }));
   });
 
   it("keeps project streams isolated and rejects divergent chain coordinates", () => {
@@ -82,14 +84,16 @@ describe("Hub event acceptance reference semantics", () => {
       acceptedAt: "2026-08-19T01:00:01.000Z",
     }).state;
 
-    expect(() => planOutboundEventAcceptance({
-      state: firstState,
-      batch: createOutboundEventBatch({
-        registration: secondRegistration,
-        events: secondEvents,
+    expect(() =>
+      planOutboundEventAcceptance({
+        state: firstState,
+        batch: createOutboundEventBatch({
+          registration: secondRegistration,
+          events: secondEvents,
+        }),
+        acknowledgedAt: "2026-08-19T01:01:00.000Z",
       }),
-      acknowledgedAt: "2026-08-19T01:01:00.000Z",
-    })).toThrowError(expect.objectContaining({ code: "registration_required" }));
+    ).toThrowError(expect.objectContaining({ code: "registration_required" }));
 
     const accepted = planOutboundEventAcceptance({
       state: firstState,
@@ -113,13 +117,15 @@ describe("Hub event acceptance reference semantics", () => {
       ...divergentWithoutHash,
       eventHash: computeEventHash(divergentWithoutHash),
     };
-    expect(() => planOutboundEventAcceptance({
-      state: accepted.state,
-      batch: createOutboundEventBatch({
-        registration: firstRegistration,
-        events: [divergent],
+    expect(() =>
+      planOutboundEventAcceptance({
+        state: accepted.state,
+        batch: createOutboundEventBatch({
+          registration: firstRegistration,
+          events: [divergent],
+        }),
+        acknowledgedAt: "2026-08-19T01:01:02.000Z",
       }),
-      acknowledgedAt: "2026-08-19T01:01:02.000Z",
-    })).toThrowError(expect.objectContaining({ code: "event_chain_conflict" }));
+    ).toThrowError(expect.objectContaining({ code: "event_chain_conflict" }));
   });
 });

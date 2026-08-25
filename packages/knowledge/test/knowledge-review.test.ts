@@ -12,12 +12,7 @@ import {
   removeStores,
   sequence,
 } from "./fixture.js";
-import {
-  approvedFixture,
-  laterRevision,
-  pathHash,
-  promotionPolicy,
-} from "./lifecycle-fixture.js";
+import { approvedFixture, laterRevision, pathHash, promotionPolicy } from "./lifecycle-fixture.js";
 
 afterEach(removeStores);
 
@@ -34,14 +29,18 @@ describe("knowledge review and verified promotion", () => {
       artifactStore: fixture.storage.artifacts,
       createEventId: sequence("evt_verified"),
     };
-    await expect(promoteKnowledgeCandidate({
-      ...promotionInput,
-      currentSnapshot: { revision: laterRevision, files: { "src/decision.ts": pathHash } },
-    })).rejects.toMatchObject({ reason: "repository_revision_mismatch" });
-    await expect(promoteKnowledgeCandidate({
-      ...promotionInput,
-      currentSnapshot: { revision: fixture.created.candidate.verifiedRevision, files: {} },
-    })).rejects.toMatchObject({ reason: "linked_path_missing" });
+    await expect(
+      promoteKnowledgeCandidate({
+        ...promotionInput,
+        currentSnapshot: { revision: laterRevision, files: { "src/decision.ts": pathHash } },
+      }),
+    ).rejects.toMatchObject({ reason: "repository_revision_mismatch" });
+    await expect(
+      promoteKnowledgeCandidate({
+        ...promotionInput,
+        currentSnapshot: { revision: fixture.created.candidate.verifiedRevision, files: {} },
+      }),
+    ).rejects.toMatchObject({ reason: "linked_path_missing" });
     const promoted = await promoteKnowledgeCandidate({
       ...promotionInput,
       currentSnapshot: {
@@ -56,12 +55,11 @@ describe("knowledge review and verified promotion", () => {
       approval: { approvalId: fixture.review.approval.approvalId },
       paths: [{ path: "src/decision.ts", contentHash: pathHash }],
     });
-    await expect(fixture.storage.artifacts.get(promoted.knowledgeArtifact.uri)).resolves
-      .toEqual(verifiedKnowledgeBytes(promoted.knowledge));
-    expect(promoted.recordedEvent.type).toBe("knowledge.verified");
-    expect(JSON.stringify(fixture.storage.events.list())).not.toContain(
-      "reviewer@example.com",
+    await expect(fixture.storage.artifacts.get(promoted.knowledgeArtifact.uri)).resolves.toEqual(
+      verifiedKnowledgeBytes(promoted.knowledge),
     );
+    expect(promoted.recordedEvent.type).toBe("knowledge.verified");
+    expect(JSON.stringify(fixture.storage.events.list())).not.toContain("reviewer@example.com");
     fixture.storage.events.close();
   });
 
@@ -78,23 +76,27 @@ describe("knowledge review and verified promotion", () => {
       events: fixture.storage.events,
       artifactStore: fixture.storage.artifacts,
     };
-    await expect(reviewKnowledgeCandidate({
-      ...reviewInput,
-      policy: {
-        ...promotionPolicy,
-        allowedReviewerIds: ["reviewer@example.com", "unauthorized@example.com"],
-      },
-      reviewerId: "unauthorized@example.com",
-      decision: "approved",
-      createEventId: sequence("evt_policy_tamper"),
-    })).rejects.toMatchObject({ reason: "policy_schema_invalid" });
-    await expect(reviewKnowledgeCandidate({
-      ...reviewInput,
-      policy: promotionPolicy,
-      reviewerId: "unauthorized@example.com",
-      decision: "approved",
-      createEventId: sequence("evt_unauthorized"),
-    })).rejects.toMatchObject({ reason: "reviewer_not_allowed" });
+    await expect(
+      reviewKnowledgeCandidate({
+        ...reviewInput,
+        policy: {
+          ...promotionPolicy,
+          allowedReviewerIds: ["reviewer@example.com", "unauthorized@example.com"],
+        },
+        reviewerId: "unauthorized@example.com",
+        decision: "approved",
+        createEventId: sequence("evt_policy_tamper"),
+      }),
+    ).rejects.toMatchObject({ reason: "policy_schema_invalid" });
+    await expect(
+      reviewKnowledgeCandidate({
+        ...reviewInput,
+        policy: promotionPolicy,
+        reviewerId: "unauthorized@example.com",
+        decision: "approved",
+        createEventId: sequence("evt_unauthorized"),
+      }),
+    ).rejects.toMatchObject({ reason: "reviewer_not_allowed" });
     const rejected = await reviewKnowledgeCandidate({
       ...reviewInput,
       policy: promotionPolicy,
@@ -102,49 +104,53 @@ describe("knowledge review and verified promotion", () => {
       decision: "rejected",
       createEventId: sequence("evt_review"),
     });
-    await expect(promoteKnowledgeCandidate({
-      candidate: fixture.created.candidate,
-      candidateArtifact: fixture.created.candidateArtifact,
-      review: rejected,
-      policy: promotionPolicy,
-      currentSnapshot: {
-        revision: fixture.created.candidate.verifiedRevision,
-        files: { "src/decision.ts": pathHash },
-      },
-      policyVersion: promotionPolicy.policyVersion,
-      events: fixture.storage.events,
-      artifactStore: fixture.storage.artifacts,
-      createEventId: sequence("evt_verified"),
-    })).rejects.toMatchObject({ reason: "approval_not_approved" });
-    expect(fixture.storage.events.list().some((event) => event.type === "knowledge.verified"))
-      .toBe(false);
+    await expect(
+      promoteKnowledgeCandidate({
+        candidate: fixture.created.candidate,
+        candidateArtifact: fixture.created.candidateArtifact,
+        review: rejected,
+        policy: promotionPolicy,
+        currentSnapshot: {
+          revision: fixture.created.candidate.verifiedRevision,
+          files: { "src/decision.ts": pathHash },
+        },
+        policyVersion: promotionPolicy.policyVersion,
+        events: fixture.storage.events,
+        artifactStore: fixture.storage.artifacts,
+        createEventId: sequence("evt_verified"),
+      }),
+    ).rejects.toMatchObject({ reason: "approval_not_approved" });
+    expect(fixture.storage.events.list().some((event) => event.type === "knowledge.verified")).toBe(
+      false,
+    );
     fixture.storage.events.close();
   });
 
   it("requires policy-requested conflict resolution", async () => {
     const fixture = await createCandidateFixture({ conflicts: ["knc_1111111111111111"] });
-    await expect(reviewKnowledgeCandidate({
-      candidate: fixture.created.candidate,
-      candidateArtifact: fixture.created.candidateArtifact,
-      policy: promotionPolicy,
-      reviewerId: "reviewer@example.com",
-      decision: "approved",
-      resolvedConflictCandidateIds: [],
-      repositoryRevision: fixture.created.candidate.verifiedRevision,
-      reviewedAt: "2026-08-19T01:00:00Z",
-      runId: "run_knowledge_review",
-      sessionId: "ses_knowledge_review",
-      events: fixture.storage.events,
-      artifactStore: fixture.storage.artifacts,
-      createEventId: sequence("evt_review_conflict"),
-    })).rejects.toMatchObject({ reason: "conflicts_unresolved" });
+    await expect(
+      reviewKnowledgeCandidate({
+        candidate: fixture.created.candidate,
+        candidateArtifact: fixture.created.candidateArtifact,
+        policy: promotionPolicy,
+        reviewerId: "reviewer@example.com",
+        decision: "approved",
+        resolvedConflictCandidateIds: [],
+        repositoryRevision: fixture.created.candidate.verifiedRevision,
+        reviewedAt: "2026-08-19T01:00:00Z",
+        runId: "run_knowledge_review",
+        sessionId: "ses_knowledge_review",
+        events: fixture.storage.events,
+        artifactStore: fixture.storage.artifacts,
+        createEventId: sequence("evt_review_conflict"),
+      }),
+    ).rejects.toMatchObject({ reason: "conflicts_unresolved" });
     fixture.storage.events.close();
   });
 
   it("reports a review event whose approval CAS original is missing", async () => {
     const fixture = await createCandidateFixture();
-    const missingHash =
-      "sha256:9999999999999999999999999999999999999999999999999999999999999999";
+    const missingHash = "sha256:9999999999999999999999999999999999999999999999999999999999999999";
     fixture.storage.events.append({
       eventId: "evt_missing_review_artifact",
       projectId: fixture.created.candidate.projectId,
@@ -168,12 +174,14 @@ describe("knowledge review and verified promotion", () => {
         resolvedConflictCandidateIds: [],
       },
     });
-    await expect(createDoctorReport({
-      projectId: fixture.created.candidate.projectId,
-      events: fixture.storage.events,
-      artifacts: fixture.storage.artifacts,
-      inspections: healthyDoctorEnvironmentInspections,
-    })).resolves.toMatchObject({
+    await expect(
+      createDoctorReport({
+        projectId: fixture.created.candidate.projectId,
+        events: fixture.storage.events,
+        artifacts: fixture.storage.artifacts,
+        inspections: healthyDoctorEnvironmentInspections,
+      }),
+    ).resolves.toMatchObject({
       status: "unhealthy",
       issues: [{ code: "review_artifact_invalid" }],
     });

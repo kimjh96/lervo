@@ -1,9 +1,6 @@
 import { matchesGlob } from "node:path";
 
-import {
-  decideSharedContextAccess,
-  resolveHandoffContext,
-} from "@lervo/core";
+import { decideSharedContextAccess, resolveHandoffContext } from "@lervo/core";
 import type { SharedContextPublication } from "@lervo/schemas";
 
 import { ContextSelectionAccumulator } from "./accumulator.js";
@@ -55,15 +52,21 @@ function knowledgeMetadataEqual(
   right: ContextDocumentCandidate["knowledgeContext"],
 ): boolean {
   if (left === undefined || right === undefined) return left === right;
-  return left.conceptId === right.conceptId &&
+  return (
+    left.conceptId === right.conceptId &&
     left.assurance === right.assurance &&
     left.freshness === right.freshness &&
     left.sourceSnapshotId === right.sourceSnapshotId &&
-    left.impactReportId === right.impactReportId;
+    left.impactReportId === right.impactReportId
+  );
 }
 
 function indexCandidates(input: CreateContextPlanInput): Map<string, ContextDocumentCandidate> {
-  if ((input.additionalCandidates ?? []).some((candidate) => candidate.source !== "knowledge" && candidate.source !== "workstream")) {
+  if (
+    (input.additionalCandidates ?? []).some(
+      (candidate) => candidate.source !== "knowledge" && candidate.source !== "workstream",
+    )
+  ) {
     throw new ContextPreparationError(
       "invalid_context_plan",
       "Additional context candidates must be repository knowledge or workstream sources.",
@@ -83,9 +86,7 @@ function indexCandidates(input: CreateContextPlanInput): Map<string, ContextDocu
         `The context candidate path is not normalized: ${candidate.path}`,
       );
     }
-    if (
-      (candidate.source === "knowledge") !== (candidate.knowledgeContext !== undefined)
-    ) {
+    if ((candidate.source === "knowledge") !== (candidate.knowledgeContext !== undefined)) {
       throw new ContextPreparationError(
         "invalid_context_plan",
         `The knowledge candidate and knowledge metadata do not match: ${candidate.documentId}`,

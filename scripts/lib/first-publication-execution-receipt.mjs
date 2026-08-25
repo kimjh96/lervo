@@ -1,9 +1,6 @@
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
-import {
-  validateFirstPublicationReservation,
-} from "./first-publication-reservation.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationReservation } from "./first-publication-reservation.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
@@ -51,17 +48,20 @@ export function createFirstPublicationExecutionReceipt({
   });
   if (
     timestamp(publishedAt) < timestamp(reservation.reservedAt) ||
-    publicationReport?.schemaVersion !== 1 || publicationReport.status !== "published" ||
+    publicationReport?.schemaVersion !== 1 ||
+    publicationReport.status !== "published" ||
     publicationReport.authorizationDigest !== bootstrap.release.publicationAuthorizationDigest ||
-    canonicalJson(publicationReport.receipt) !== canonicalJson({
-      registry: bootstrap.target.registry,
-      package: bootstrap.target.package,
-      version: bootstrap.target.version,
-      distTag: bootstrap.target.distTag,
-      registryIntegrity: bootstrap.release.artifact.registryIntegrity,
-      registryShasum: bootstrap.release.artifact.registryShasum,
-    })
-  ) fail();
+    canonicalJson(publicationReport.receipt) !==
+      canonicalJson({
+        registry: bootstrap.target.registry,
+        package: bootstrap.target.package,
+        version: bootstrap.target.version,
+        distTag: bootstrap.target.distTag,
+        registryIntegrity: bootstrap.release.artifact.registryIntegrity,
+        registryShasum: bootstrap.release.artifact.registryShasum,
+      })
+  )
+    fail();
   const receiptBody = {
     schemaVersion: 2,
     status: "published_transition_pending",
@@ -86,25 +86,28 @@ export function createFirstPublicationExecutionReceipt({
   return { ...receiptBody, executionReceiptDigest: canonicalDigest(receiptBody) };
 }
 
-export function validateFirstPublicationExecutionReceipt(receipt, {
-  bootstrap,
-  armingAuthorization,
-  publicationAuthorization,
-}) {
+export function validateFirstPublicationExecutionReceipt(
+  receipt,
+  { bootstrap, armingAuthorization, publicationAuthorization },
+) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
   const receiptBody = body(receipt ?? {});
   if (
-    receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
+    receipt === null ||
+    typeof receipt !== "object" ||
+    Array.isArray(receipt) ||
     canonicalJson(Object.keys(receipt).sort()) !==
       canonicalJson([...Object.keys(receiptBody), "executionReceiptDigest"].sort()) ||
-    receipt.schemaVersion !== 2 || receipt.status !== "published_transition_pending" ||
+    receipt.schemaVersion !== 2 ||
+    receipt.status !== "published_transition_pending" ||
     receipt.bootstrapDigest !== bootstrap.bootstrapDigest ||
     receipt.armingAuthorizationDigest !== armingAuthorization?.armingAuthorizationDigest ||
     !digestPattern.test(receipt.executionReceiptDigest ?? "") ||
     receipt.executionReceiptDigest !== canonicalDigest(receiptBody) ||
     receipt.transition?.state !== "pending" ||
     canonicalJson(receipt.transition.required) !== canonicalJson(bootstrap.transition)
-  ) fail();
+  )
+    fail();
   const reservation = {
     schemaVersion: 2,
     reservationId: receipt.reservation?.reservationId,

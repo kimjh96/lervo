@@ -10,8 +10,7 @@ import { NodeRuntimeError } from "./errors.js";
 export const NODE_RUNTIME_HEALTH_FILE = "node-runtime-health.json";
 
 type ComponentHealth =
-  | { status: "pending" | "ready" | "disabled" }
-  | { status: "unavailable"; failureCode: string };
+  { status: "pending" | "ready" | "disabled" } | { status: "unavailable"; failureCode: string };
 
 export interface NodeRuntimeHealthSnapshot {
   schemaVersion: 1;
@@ -36,11 +35,18 @@ export interface NodeRuntimeHealthPublisher {
 
 function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapshot["status"] {
   if (snapshot.status === "stopping") return "stopping";
-  if (snapshot.sync.status === "unavailable" || snapshot.workstreamReplication.status === "unavailable" || snapshot.remoteControl.status === "unavailable") {
+  if (
+    snapshot.sync.status === "unavailable" ||
+    snapshot.workstreamReplication.status === "unavailable" ||
+    snapshot.remoteControl.status === "unavailable"
+  ) {
     return "degraded";
   }
-  if (snapshot.sync.status === "ready" && snapshot.workstreamReplication.status === "ready" &&
-    (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled")) {
+  if (
+    snapshot.sync.status === "ready" &&
+    snapshot.workstreamReplication.status === "ready" &&
+    (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled")
+  ) {
     return "ready";
   }
   return "starting";
@@ -120,14 +126,17 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   }
 
   observeSync(result: SyncCycleResult): Promise<void> {
-    return this.publish(() => { this.snapshot.sync = syncHealth(result); });
+    return this.publish(() => {
+      this.snapshot.sync = syncHealth(result);
+    });
   }
 
   observeWorkstreamReplication(result: WorkstreamReplicationCycleResult): Promise<void> {
     return this.publish(() => {
-      this.snapshot.workstreamReplication = result.status === "divergent"
-        ? { status: "unavailable", failureCode: "divergent_heads" }
-        : { status: "ready" };
+      this.snapshot.workstreamReplication =
+        result.status === "divergent"
+          ? { status: "unavailable", failureCode: "divergent_heads" }
+          : { status: "ready" };
     });
   }
 
@@ -138,11 +147,15 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   }
 
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void> {
-    return this.publish(() => { this.snapshot.remoteControl = remoteControlHealth(result); });
+    return this.publish(() => {
+      this.snapshot.remoteControl = remoteControlHealth(result);
+    });
   }
 
   stopping(): Promise<void> {
-    return this.publish(() => { this.snapshot.status = "stopping"; });
+    return this.publish(() => {
+      this.snapshot.status = "stopping";
+    });
   }
 
   private publish(update: () => void): Promise<void> {

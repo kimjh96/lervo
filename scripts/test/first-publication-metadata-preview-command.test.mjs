@@ -5,14 +5,10 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { inspectCliFirstPublicationMetadataPreview } from
-  "../lib/cli-first-publication-metadata-preview.mjs";
-import { createFirstPublicationMetadataDecision } from
-  "../lib/first-publication-metadata-decision.mjs";
-import { createFirstPublicationMetadataPreview } from
-  "../lib/first-publication-metadata-preview.mjs";
-import { formatFirstPublicationMetadataPreview } from
-  "../lib/first-publication-metadata-preview-formatter.mjs";
+import { inspectCliFirstPublicationMetadataPreview } from "../lib/cli-first-publication-metadata-preview.mjs";
+import { createFirstPublicationMetadataDecision } from "../lib/first-publication-metadata-decision.mjs";
+import { createFirstPublicationMetadataPreview } from "../lib/first-publication-metadata-preview.mjs";
+import { formatFirstPublicationMetadataPreview } from "../lib/first-publication-metadata-preview-formatter.mjs";
 import {
   activationRepository,
   activationRepositoryRoot,
@@ -22,10 +18,14 @@ import {
 
 const command = "scripts/show-cli-first-publication-metadata-preview.mjs";
 const validArguments = [
-  "--repository", activationRepository,
-  "--license", "Apache-2.0",
-  "--scope-owner-kind", "organization",
-  "--scope-owner-name", "lervo",
+  "--repository",
+  activationRepository,
+  "--license",
+  "Apache-2.0",
+  "--scope-owner-kind",
+  "organization",
+  "--scope-owner-name",
+  "lervo",
 ];
 
 function decision() {
@@ -42,10 +42,7 @@ describe("first-publication metadata preview command", () => {
     const prepared = await createActivationSourceFiles();
     try {
       const before = await readdir(prepared.root);
-      const preview = await inspectCliFirstPublicationMetadataPreview(
-        decision(),
-        prepared.paths,
-      );
+      const preview = await inspectCliFirstPublicationMetadataPreview(decision(), prepared.paths);
       assert.equal(preview.status, "changes_required");
       assert.deepEqual(await readdir(prepared.root), before);
     } finally {
@@ -56,17 +53,16 @@ describe("first-publication metadata preview command", () => {
   it("rejects source changes made while the preview is built", async () => {
     const prepared = await createActivationSourceFiles();
     try {
-      await assert.rejects(inspectCliFirstPublicationMetadataPreview(
-        decision(),
-        prepared.paths,
-        {
+      await assert.rejects(
+        inspectCliFirstPublicationMetadataPreview(decision(), prepared.paths, {
           createPreview: async (sources) => {
             const preview = createFirstPublicationMetadataPreview(sources);
             await writeFile(prepared.paths.packageManifestPath, JSON.stringify({ changed: true }));
             return preview;
           },
-        },
-      ), { code: "release_attestation_release_set_changed" });
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -74,14 +70,20 @@ describe("first-publication metadata preview command", () => {
 
   it("uses plain English and keeps the non-writing boundary visible", async () => {
     const preview = createFirstPublicationMetadataPreview({
-      ...await currentActivationSources(),
+      ...(await currentActivationSources()),
       decision: decision(),
     });
     const output = formatFirstPublicationMetadataPreview(preview);
     assert.match(output, /This selection is not publication approval/u);
-    assert.match(output, /Set the GitHub repository to git\+https:\/\/github\.com\/lervo-dev\/lervo\.git/u);
+    assert.match(
+      output,
+      /Set the GitHub repository to git\+https:\/\/github\.com\/lervo-dev\/lervo\.git/u,
+    );
     assert.match(output, /Do not edit the generated file directly/u);
-    assert.match(output, /did not perform online checks, modify files, regenerate the release manifest, create approvals/u);
+    assert.match(
+      output,
+      /did not perform online checks, modify files, regenerate the release manifest, create approvals/u,
+    );
     assert.equal(output.includes(preview.metadataPreviewDigest), false);
     assert.equal(output.includes(preview.sources.packageManifestDigest), false);
   });
@@ -128,12 +130,17 @@ describe("first-publication metadata preview command", () => {
 
   it("does not expose invalid decision values in errors", () => {
     const secret = "secret-license-value";
-    const result = spawnSync(process.execPath, [
-      command,
-      ...validArguments.slice(0, 2),
-      "--license", `${secret}\nunsafe`,
-      ...validArguments.slice(4),
-    ], { cwd: activationRepositoryRoot, encoding: "utf8" });
+    const result = spawnSync(
+      process.execPath,
+      [
+        command,
+        ...validArguments.slice(0, 2),
+        "--license",
+        `${secret}\nunsafe`,
+        ...validArguments.slice(4),
+      ],
+      { cwd: activationRepositoryRoot, encoding: "utf8" },
+    );
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /^first_publication_metadata_decision_invalid:/u);

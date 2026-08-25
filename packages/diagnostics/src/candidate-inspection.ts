@@ -28,8 +28,10 @@ function eventBy(input: {
   evidenceIds: ReadonlySet<string>;
   matches(event: EventEnvelope): boolean;
 }): boolean {
-  return input.events.some((event) =>
-    input.evidenceIds.has(event.eventId) && event.type === input.type && input.matches(event));
+  return input.events.some(
+    (event) =>
+      input.evidenceIds.has(event.eventId) && event.type === input.type && input.matches(event),
+  );
 }
 
 export async function inspectCandidate(input: {
@@ -60,7 +62,8 @@ export async function inspectCandidate(input: {
       payload.candidateArtifactId !== `art_${payload.candidateContentHash.slice(7)}` ||
       calculateKnowledgeCandidateId(candidate) !== candidate.candidateId ||
       !Buffer.from(knowledgeCandidateBytes(candidate)).equals(Buffer.from(bytes))
-    ) throw new Error("coordinate mismatch");
+    )
+      throw new Error("coordinate mismatch");
   } catch {
     issue(
       issues,
@@ -86,8 +89,9 @@ export async function inspectCandidate(input: {
     );
   }
   const evidenceIds = new Set(payload.evidenceIds);
-  if (payload.evidenceIds.some((eventId) => !input.events.some((event) =>
-    event.eventId === eventId))) {
+  if (
+    payload.evidenceIds.some((eventId) => !input.events.some((event) => event.eventId === eventId))
+  ) {
     issue(
       issues,
       "candidate_evidence_missing",
@@ -95,15 +99,17 @@ export async function inspectCandidate(input: {
       "The evidence event referenced by the knowledge candidate is missing.",
     );
   }
-  if (!eventBy({
-    events: input.events,
-    type: "deliberation.completed",
-    evidenceIds,
-    matches: (event) =>
-      event.payload.outcomeId === payload.sourceOutcomeId &&
-      event.payload.status === "converged" &&
-      event.payload.decisionArtifactId === payload.decisionArtifactId,
-  })) {
+  if (
+    !eventBy({
+      events: input.events,
+      type: "deliberation.completed",
+      evidenceIds,
+      matches: (event) =>
+        event.payload.outcomeId === payload.sourceOutcomeId &&
+        event.payload.status === "converged" &&
+        event.payload.decisionArtifactId === payload.decisionArtifactId,
+    })
+  ) {
     issue(
       issues,
       "candidate_outcome_not_converged",
@@ -111,14 +117,16 @@ export async function inspectCandidate(input: {
       "The converged outcome event for the knowledge candidate cannot be verified.",
     );
   }
-  if (!eventBy({
-    events: input.events,
-    type: "deliberation.artifact.recorded",
-    evidenceIds,
-    matches: (event) =>
-      event.payload.deliberationArtifactId === payload.decisionArtifactId &&
-      event.payload.kind === "decision",
-  })) {
+  if (
+    !eventBy({
+      events: input.events,
+      type: "deliberation.artifact.recorded",
+      evidenceIds,
+      matches: (event) =>
+        event.payload.deliberationArtifactId === payload.decisionArtifactId &&
+        event.payload.kind === "decision",
+    })
+  ) {
     issue(
       issues,
       "candidate_decision_missing",
@@ -126,14 +134,19 @@ export async function inspectCandidate(input: {
       "The decision artifact event for the knowledge candidate cannot be verified.",
     );
   }
-  if (payload.verificationArtifactIds.some((artifactId) => !eventBy({
-    events: input.events,
-    type: "deliberation.artifact.recorded",
-    evidenceIds,
-    matches: (event) =>
-      event.payload.deliberationArtifactId === artifactId &&
-      event.payload.kind === "verification",
-  }))) {
+  if (
+    payload.verificationArtifactIds.some(
+      (artifactId) =>
+        !eventBy({
+          events: input.events,
+          type: "deliberation.artifact.recorded",
+          evidenceIds,
+          matches: (event) =>
+            event.payload.deliberationArtifactId === artifactId &&
+            event.payload.kind === "verification",
+        }),
+    )
+  ) {
     issue(
       issues,
       "candidate_verification_missing",
@@ -146,7 +159,8 @@ export async function inspectCandidate(input: {
     if (
       knowledgeSha256(content) !== candidate.source.decisionContent.contentHash ||
       content.byteLength !== candidate.source.decisionContent.byteCount
-    ) throw new Error("decision mismatch");
+    )
+      throw new Error("decision mismatch");
   } catch {
     issue(
       issues,

@@ -23,13 +23,16 @@ export async function publishConversationResponse(input: {
       "The conversation response exceeds the maximum publishable size.",
     );
   }
-  const publication = await evaluateWritingPublication({
-    artifact: input.run.resultArtifact,
-    contract: input.writingContract,
-    surface: "chat",
-    artifactStore: input.artifactStore,
-    semanticEvaluator: input.semanticEvaluator,
-  }, input.now === undefined ? {} : { now: input.now });
+  const publication = await evaluateWritingPublication(
+    {
+      artifact: input.run.resultArtifact,
+      contract: input.writingContract,
+      surface: "chat",
+      artifactStore: input.artifactStore,
+      semanticEvaluator: input.semanticEvaluator,
+    },
+    input.now === undefined ? {} : { now: input.now },
+  );
   if (publication.status !== "allowed") {
     throw new ManagedConversationResponseError(
       "writing_publication_blocked",

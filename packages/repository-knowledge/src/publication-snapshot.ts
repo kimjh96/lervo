@@ -12,11 +12,22 @@ export function repositorySourceCanEnterStructuralPublication(source: Repository
 export function repositoryKnowledgePublicationSnapshotId(scan: RepositoryKnowledgeScan): string {
   const sources = scan.sources
     .filter(repositorySourceCanEnterStructuralPublication)
-    .filter((source) => source.kind !== "revision_metadata" && source.kind !== "verification_result" && source.kind !== "execution_event")
+    .filter(
+      (source) =>
+        source.kind !== "revision_metadata" &&
+        source.kind !== "verification_result" &&
+        source.kind !== "execution_event",
+    )
     .map(({ content: _content, ...source }) => source);
   const sourceIds = new Set(sources.map((source) => source.sourceId));
   const unitVersionIds = scan.units
-    .filter((unit) => sourceIds.has(unit.sourceId) && unit.unitKind !== "revision" && unit.unitKind !== "verification" && unit.unitKind !== "event")
+    .filter(
+      (unit) =>
+        sourceIds.has(unit.sourceId) &&
+        unit.unitKind !== "revision" &&
+        unit.unitKind !== "verification" &&
+        unit.unitKind !== "event",
+    )
     .map((unit) => unit.unitVersionId);
   return stableId("ksnap", { sources, units: unitVersionIds });
 }

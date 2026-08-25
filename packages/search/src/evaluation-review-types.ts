@@ -1,9 +1,7 @@
 import type { SearchEngineIdentity } from "./types.js";
 
 export type SearchCandidateReviewDecision =
-  | "adopt_candidate"
-  | "reject_candidate"
-  | "more_samples_required";
+  "adopt_candidate" | "reject_candidate" | "more_samples_required";
 
 interface SearchCandidateReviewBase {
   reviewId: string;
@@ -20,8 +18,8 @@ interface SearchCandidateReviewBase {
   reviewerId: string;
   reviewedAt: string;
   decision: SearchCandidateReviewDecision;
-  observedOutcome: "baseline_better_observed" | "candidate_better_observed" | "mixed" |
-    "no_difference_observed";
+  observedOutcome:
+    "baseline_better_observed" | "candidate_better_observed" | "mixed" | "no_difference_observed";
   totalCases: number;
   baselineWins: number;
   candidateWins: number;

@@ -2,10 +2,7 @@ import type { EventStore } from "@lervo/storage-contract";
 import { eventTypes, type EventEnvelope, type EventType } from "@lervo/schemas";
 
 import { createTraceCursor, decodeTraceCursor } from "./trace-cursor.js";
-import {
-  readTracePageReport,
-  tracePageReportSchemaVersion,
-} from "./trace-page-report-contract.js";
+import { readTracePageReport, tracePageReportSchemaVersion } from "./trace-page-report-contract.js";
 import { DiagnosticsError, type TracePageReport, type TraceSelector } from "./types.js";
 
 export const defaultTracePageSize = 50;
@@ -37,11 +34,12 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
   if (input.cursor !== undefined && cursor === null) {
     throw new DiagnosticsError("trace_cursor_invalid", "The trace cursor is invalid.");
   }
-  if (cursor !== null && (
-    cursor.projectId !== input.projectId ||
-    cursor.eventCount !== integrity.eventCount ||
-    cursor.headHash !== integrity.headHash
-  )) {
+  if (
+    cursor !== null &&
+    (cursor.projectId !== input.projectId ||
+      cursor.eventCount !== integrity.eventCount ||
+      cursor.headHash !== integrity.headHash)
+  ) {
     throw new DiagnosticsError(
       "trace_cursor_stale",
       "The event source changed after the trace cursor was created. Query again from the first page.",
@@ -53,36 +51,35 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
     throw new DiagnosticsError("trace_empty", "There are no local events to trace.");
   }
   const selector = input.cursor === undefined ? input.selector : undefined;
-  const runId = cursor?.runId ?? (
-    selector === undefined || selector === "last" ? latest.runId : selector
-  );
+  const runId =
+    cursor?.runId ?? (selector === undefined || selector === "last" ? latest.runId : selector);
   const limit = cursor?.limit ?? input.limit ?? defaultTracePageSize;
   assertPageSize(limit);
   const afterSeq = cursor?.afterSeq ?? 0;
   const afterEventHash = cursor?.afterEventHash ?? null;
-  const requestedEventTypes = cursor?.eventTypes ?? (
-    input.cursor === undefined ? input.eventTypes : undefined
-  );
-  const filteredEventTypes = requestedEventTypes === undefined
-    ? undefined
-    : [...new Set(requestedEventTypes)].sort();
-  if (requestedEventTypes !== undefined && (
-    filteredEventTypes!.length === 0 ||
-    filteredEventTypes!.length !== requestedEventTypes.length ||
-    filteredEventTypes!.some((eventType) => !knownEventTypes.has(eventType))
-  )) {
+  const requestedEventTypes =
+    cursor?.eventTypes ?? (input.cursor === undefined ? input.eventTypes : undefined);
+  const filteredEventTypes =
+    requestedEventTypes === undefined ? undefined : [...new Set(requestedEventTypes)].sort();
+  if (
+    requestedEventTypes !== undefined &&
+    (filteredEventTypes!.length === 0 ||
+      filteredEventTypes!.length !== requestedEventTypes.length ||
+      filteredEventTypes!.some((eventType) => !knownEventTypes.has(eventType)))
+  ) {
     throw new TypeError("The trace event type filter is invalid.");
   }
-  const candidates = filteredEventTypes === undefined
-    ? input.events.list({ runId, afterSeq, limit: limit + 1 })
-    : readFilteredCandidates(input.events, runId, afterSeq, limit, filteredEventTypes);
+  const candidates =
+    filteredEventTypes === undefined
+      ? input.events.list({ runId, afterSeq, limit: limit + 1 })
+      : readFilteredCandidates(input.events, runId, afterSeq, limit, filteredEventTypes);
   if (candidates.length === 0) {
-    const code = cursor !== null
-      ? "trace_cursor_invalid"
-      : filteredEventTypes !== undefined &&
-          input.events.list({ runId, limit: 1 }).length > 0
-        ? "trace_filter_empty"
-        : "trace_run_not_found";
+    const code =
+      cursor !== null
+        ? "trace_cursor_invalid"
+        : filteredEventTypes !== undefined && input.events.list({ runId, limit: 1 }).length > 0
+          ? "trace_filter_empty"
+          : "trace_run_not_found";
     throw new DiagnosticsError(
       code,
       code === "trace_cursor_invalid"
@@ -122,9 +119,7 @@ export function createTracePage(input: CreateTracePageInput): TracePageReport {
       hasMore,
       nextCursor,
     },
-    ...(filteredEventTypes === undefined
-      ? {}
-      : { filter: { eventTypes: filteredEventTypes } }),
+    ...(filteredEventTypes === undefined ? {} : { filter: { eventTypes: filteredEventTypes } }),
     events,
   });
 }

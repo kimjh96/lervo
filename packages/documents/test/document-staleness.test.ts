@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  calculateDocumentStalenessResultId,
-  evaluateDocumentStaleness,
-} from "../src/index.js";
+import { calculateDocumentStalenessResultId, evaluateDocumentStaleness } from "../src/index.js";
 import {
   generatedManifest,
   HASH_A,
@@ -48,11 +45,13 @@ describe("document staleness detector", () => {
       reasons: [],
     });
     expect(calculateDocumentStalenessResultId(result)).toBe(result.resultId);
-    expect(evaluateDocumentStaleness({
-      manifest,
-      evaluatedAt: "2026-08-19T00:00:00Z",
-      currentSnapshot: current,
-    })).toEqual(result);
+    expect(
+      evaluateDocumentStaleness({
+        manifest,
+        evaluatedAt: "2026-08-19T00:00:00Z",
+        currentSnapshot: current,
+      }),
+    ).toEqual(result);
   });
 
   it("marks the review interval stale at the exact due instant", () => {
@@ -81,10 +80,7 @@ describe("document staleness detector", () => {
       changedPaths: [],
       unobservedPaths: ["missing-scope"],
     });
-    expect(result.reasons).toEqual([
-      "connected_path_unobserved",
-      "document_path_missing",
-    ]);
+    expect(result.reasons).toEqual(["connected_path_unobserved", "document_path_missing"]);
   });
 
   it("uses a matching verified snapshot to detect document and connected path changes", () => {
@@ -235,11 +231,13 @@ describe("document staleness detector", () => {
       manifest: generatedManifest(),
       evaluatedAt: "2026-08-19T00:00:00Z",
       currentSnapshot: snapshot("snapshot:verified"),
-      managedInputObservations: [{
-        sourceId: "canonical-policy",
-        status: "available",
-        contentHash: HASH_B,
-      }],
+      managedInputObservations: [
+        {
+          sourceId: "canonical-policy",
+          status: "available",
+          contentHash: HASH_B,
+        },
+      ],
     });
 
     expect(result.status).toBe("stale");
@@ -313,7 +311,9 @@ describe("document staleness detector", () => {
   it("does not mutate manifest, snapshots, or observations", () => {
     const manifest = managedManifest();
     const currentSnapshot = snapshot("snapshot:verified", { "AGENTS.md": HASH_A });
-    const observations = [{ sourceId: "policy", status: "available" as const, contentHash: HASH_A }];
+    const observations = [
+      { sourceId: "policy", status: "available" as const, contentHash: HASH_A },
+    ];
     const before = JSON.stringify({ manifest, currentSnapshot, observations });
 
     evaluateDocumentStaleness({

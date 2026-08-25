@@ -30,9 +30,8 @@ async function ensureDirectory(path, create = false) {
     if (created) await syncDirectory(dirname(path));
   }
   const stats = await lstat(path);
-  if (
-    !stats.isDirectory() || stats.isSymbolicLink() || (stats.mode & 0o077) !== 0
-  ) fail("first_publication_store_unsafe");
+  if (!stats.isDirectory() || stats.isSymbolicLink() || (stats.mode & 0o077) !== 0)
+    fail("first_publication_store_unsafe");
 }
 
 async function syncDirectory(path) {
@@ -59,7 +58,9 @@ async function writeDurable(path, value) {
 async function readRecord(path) {
   const stats = await lstat(path);
   if (
-    !stats.isFile() || stats.isSymbolicLink() || stats.size > maximumRecordBytes ||
+    !stats.isFile() ||
+    stats.isSymbolicLink() ||
+    stats.size > maximumRecordBytes ||
     (stats.mode & 0o077) !== 0
   ) {
     fail("first_publication_store_unsafe");
@@ -76,7 +77,8 @@ function boundTerminal(record, reservation) {
   if (
     terminal.reservationId !== reservation.reservationId ||
     terminal.reservationDigest !== reservation.reservationDigest
-  ) fail("first_publication_terminal_conflict");
+  )
+    fail("first_publication_terminal_conflict");
   return terminal;
 }
 
@@ -103,8 +105,10 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
   }
 
   async function existingReservation(input) {
-    if (!reservationIdPattern.test(input?.reservationId ?? "") ||
-        !digestPattern.test(input?.reservationDigest ?? "")) {
+    if (
+      !reservationIdPattern.test(input?.reservationId ?? "") ||
+      !digestPattern.test(input?.reservationDigest ?? "")
+    ) {
       fail("first_publication_store_input_invalid");
     }
     await ensureDirectory(rootDirectory, true);
@@ -116,7 +120,8 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
     if (
       reservation.reservationId !== input.reservationId ||
       reservation.reservationDigest !== input.reservationDigest
-    ) fail("first_publication_reservation_conflict");
+    )
+      fail("first_publication_reservation_conflict");
     return { directory, reservation };
   }
 
@@ -140,7 +145,7 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
       if (!reservationIdPattern.test(reservationId ?? "")) {
         fail("first_publication_store_input_invalid");
       }
-      if (!await pathExists(rootDirectory)) {
+      if (!(await pathExists(rootDirectory))) {
         return {
           schemaVersion: 1,
           source: "first_publication_reservation_store",
@@ -150,7 +155,7 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
       }
       await ensureDirectory(rootDirectory);
       const directory = resolve(rootDirectory, reservationId);
-      if (!await pathExists(directory)) {
+      if (!(await pathExists(directory))) {
         return {
           schemaVersion: 1,
           source: "first_publication_reservation_store",
@@ -166,7 +171,7 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
         fail("first_publication_reservation_conflict");
       }
       const terminalPath = resolve(directory, "terminal.json");
-      if (!await pathExists(terminalPath)) {
+      if (!(await pathExists(terminalPath))) {
         return {
           schemaVersion: 1,
           source: "first_publication_reservation_store",
@@ -208,36 +213,30 @@ export function createFileFirstPublicationReservationStore({ rootDirectory }) {
         return await writeTerminal(input);
       } catch (error) {
         if (error?.code !== "first_publication_already_terminal") throw error;
-        const reservation = validateStoredFirstPublicationReservation(await readRecord(resolve(
-          rootDirectory,
-          input.reservationId,
-          "reservation.json",
-        )));
-        return readTerminal(resolve(
-          rootDirectory,
-          input.reservationId,
-          "terminal.json",
-        ), reservation);
+        const reservation = validateStoredFirstPublicationReservation(
+          await readRecord(resolve(rootDirectory, input.reservationId, "reservation.json")),
+        );
+        return readTerminal(
+          resolve(rootDirectory, input.reservationId, "terminal.json"),
+          reservation,
+        );
       }
     },
     async inspect(reservationId) {
       if (!reservationIdPattern.test(reservationId ?? "")) {
         fail("first_publication_store_input_invalid");
       }
-      if (!await pathExists(rootDirectory)) fail("first_publication_store_missing");
+      if (!(await pathExists(rootDirectory))) fail("first_publication_store_missing");
       await ensureDirectory(rootDirectory);
       const directory = resolve(rootDirectory, reservationId);
-      if (!await pathExists(directory)) fail("first_publication_store_missing");
+      if (!(await pathExists(directory))) fail("first_publication_store_missing");
       await ensureDirectory(directory);
       const reservation = validateStoredFirstPublicationReservation(
         await readRecord(resolve(directory, "reservation.json")),
       );
       let terminal = null;
       try {
-        terminal = await readTerminal(
-          resolve(directory, "terminal.json"),
-          reservation,
-        );
+        terminal = await readTerminal(resolve(directory, "terminal.json"), reservation);
       } catch (error) {
         if (error?.code !== "ENOENT") throw error;
       }

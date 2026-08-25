@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:df1a3b50-ae48-5d15-9043-e90f9f2bbe70",
+  "serialNumber": "urn:uuid:6d5fbdd0-f644-53fc-9a72-b68e540a8499",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8635325f1ace26e261613a2bada4ec4c069da89c57a3ed391fee06e265cccff1"
+          "content": "166596b1db9cd41ab0a038479971932ba95b277350e08bb89aedd000b5459a1d"
         }
       ],
       "licenses": [
@@ -42,15 +42,15 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:f733045fe51934f45d13f8ae518613305fc6bf3e0276333977020c24761ea73f"
+          "value": "sha256:b59362793d8987c4efbf65da92e8ebbe70c675f08c976390bb426e7313bc802a"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:f9fe850f815d4712f295de29f75b330e28e145201885206a69d43752a8433656"
+          "value": "sha256:6473c8e15182f919412184f64441b16be09240afa4c1c2150aec6c8933a7c853"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
-          "value": "sha256:bcd2a352264aa53105656264d8a55c9427563d5f6361f455a2b59a449fa4563c"
+          "value": "sha256:2d82bdf320ab72231159756d7a647d1f2687e92721b824c429977013d85e9fa0"
         }
       ]
     }
@@ -380,6 +380,36 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/agent-workforce@0.1.0",
+      "group": "@lervo",
+      "name": "agent-workforce",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/agent-workforce@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/capabilities@0.1.0",
+      "group": "@lervo",
+      "name": "capabilities",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/capabilities@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/cas@0.1.0",
       "group": "@lervo",
       "name": "cas",
@@ -635,11 +665,71 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/managed-provider-host@0.1.0",
+      "group": "@lervo",
+      "name": "managed-provider-host",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/managed-provider-host@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/orchestrator@0.1.0",
       "group": "@lervo",
       "name": "orchestrator",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/orchestrator@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/policy-contract@0.1.0",
+      "group": "@lervo",
+      "name": "policy-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/policy-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/policy-sqlite@0.1.0",
+      "group": "@lervo",
+      "name": "policy-sqlite",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/policy-sqlite@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/policy@0.1.0",
+      "group": "@lervo",
+      "name": "policy",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/policy@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -670,6 +760,51 @@
       "name": "project",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/project@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/remote-command-contract@0.1.0",
+      "group": "@lervo",
+      "name": "remote-command-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/remote-command-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/remote-command-sqlite@0.1.0",
+      "group": "@lervo",
+      "name": "remote-command-sqlite",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/remote-command-sqlite@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/remote-command@0.1.0",
+      "group": "@lervo",
+      "name": "remote-command",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/remote-command@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -715,6 +850,36 @@
       "name": "repository-registry",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/repository-registry@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/roles@0.1.0",
+      "group": "@lervo",
+      "name": "roles",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/roles@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/runtime-security@0.1.0",
+      "group": "@lervo",
+      "name": "runtime-security",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/runtime-security@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -805,6 +970,36 @@
       "name": "storage-contract",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/storage-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/sync-contract@0.1.0",
+      "group": "@lervo",
+      "name": "sync-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/sync-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/sync@0.1.0",
+      "group": "@lervo",
+      "name": "sync",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/sync@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -1777,15 +1972,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/hono@4.13.2",
+      "bom-ref": "pkg:npm/hono@4.13.3",
       "name": "hono",
-      "version": "4.13.2",
-      "purl": "pkg:npm/hono@4.13.2",
+      "version": "4.13.3",
+      "purl": "pkg:npm/hono@4.13.3",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2727518a50d191805032df6a47d53dda65f199b1aab2a4a7fc828eae1e1eeff8046e7fb4cd2afc8a04eed286f0268346378b1ecf6f0322a97b1411d6c9da09a4"
+          "content": "afc00eda6607a0bc521e481a7cd782fc15f26f6bd64710f78de9b84ecfa9b5abfca131b91484627c08ee2449992386d2bef7369ecd06c662188999c7a8dde633"
         }
       ],
       "properties": [
@@ -1937,15 +2132,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/jose@6.2.9",
+      "bom-ref": "pkg:npm/jose@6.2.10",
       "name": "jose",
-      "version": "6.2.9",
-      "purl": "pkg:npm/jose@6.2.9",
+      "version": "6.2.10",
+      "purl": "pkg:npm/jose@6.2.10",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "5eb72164e159525fd3def4f045ef172be709ac6b4c178b61d404670dfc1b05714a4e11a196cc4413866ed37003fdb8c94adffd8d3fe6c6b38290958e83beda3c"
+          "content": "8a25bb27da911651b1bc2388043043c4578f4129fb64c027ad81a1aeb3a8eac88efcc22ac1fca294b476ee991f0e0524fab68bbb30034bc0374bf28b062b1cd2"
         }
       ],
       "properties": [
@@ -2693,15 +2888,15 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/negotiator@1.0.0",
+      "bom-ref": "pkg:npm/negotiator@1.1.0",
       "name": "negotiator",
-      "version": "1.0.0",
-      "purl": "pkg:npm/negotiator@1.0.0",
+      "version": "1.1.0",
+      "purl": "pkg:npm/negotiator@1.1.0",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "f0e7ecfc051087c31a11cae5ab9c4e5f4090f72a53179765efc9a394c35f38ad3c7f3a604c741140f07170f944b48c34c91a70b3e668ff7afee5645bcbbbb71a"
+          "content": "34c3c144c2608901e36ddf29846dd579b771e246751f5db5adb97922432a78eb1a869b41f412a8fddee8277cd35ea4e06a09f66d694d497921d10506337d5162"
         }
       ],
       "properties": [
@@ -3596,7 +3791,7 @@
     {
       "ref": "pkg:npm/%40hono/node-server@2.1.1",
       "dependsOn": [
-        "pkg:npm/hono@4.13.2"
+        "pkg:npm/hono@4.13.3"
       ]
     },
     {
@@ -3608,6 +3803,8 @@
         "pkg:npm/%40lervo/adapter-claude@0.1.0",
         "pkg:npm/%40lervo/adapter-codex@0.1.0",
         "pkg:npm/%40lervo/adapter-contract@0.1.0",
+        "pkg:npm/%40lervo/agent-workforce@0.1.0",
+        "pkg:npm/%40lervo/capabilities@0.1.0",
         "pkg:npm/%40lervo/cas@0.1.0",
         "pkg:npm/%40lervo/context-coverage@0.1.0",
         "pkg:npm/%40lervo/context-delivery@0.1.0",
@@ -3625,18 +3822,29 @@
         "pkg:npm/%40lervo/identity-migration@0.1.0",
         "pkg:npm/%40lervo/knowledge-okf@0.1.0",
         "pkg:npm/%40lervo/knowledge@0.1.0",
+        "pkg:npm/%40lervo/managed-provider-host@0.1.0",
         "pkg:npm/%40lervo/orchestrator@0.1.0",
+        "pkg:npm/%40lervo/policy-contract@0.1.0",
+        "pkg:npm/%40lervo/policy-sqlite@0.1.0",
+        "pkg:npm/%40lervo/policy@0.1.0",
         "pkg:npm/%40lervo/project-storage@0.1.0",
         "pkg:npm/%40lervo/project@0.1.0",
+        "pkg:npm/%40lervo/remote-command-contract@0.1.0",
+        "pkg:npm/%40lervo/remote-command-sqlite@0.1.0",
+        "pkg:npm/%40lervo/remote-command@0.1.0",
         "pkg:npm/%40lervo/repository-knowledge-compiler@0.1.0",
         "pkg:npm/%40lervo/repository-knowledge@0.1.0",
         "pkg:npm/%40lervo/repository-registry@0.1.0",
+        "pkg:npm/%40lervo/roles@0.1.0",
+        "pkg:npm/%40lervo/runtime-security@0.1.0",
         "pkg:npm/%40lervo/schemas@0.1.0",
         "pkg:npm/%40lervo/search-adapter-bm25f@0.1.0",
         "pkg:npm/%40lervo/search-local@0.1.0",
         "pkg:npm/%40lervo/search@0.1.0",
         "pkg:npm/%40lervo/skills@0.1.0",
         "pkg:npm/%40lervo/storage-contract@0.1.0",
+        "pkg:npm/%40lervo/sync-contract@0.1.0",
+        "pkg:npm/%40lervo/sync@0.1.0",
         "pkg:npm/%40lervo/verification-contract@0.1.0",
         "pkg:npm/%40lervo/verification@0.1.0",
         "pkg:npm/%40lervo/writing-contract@0.1.0",
@@ -3692,8 +3900,8 @@
         "pkg:npm/eventsource@3.0.7",
         "pkg:npm/express-rate-limit@8.6.2",
         "pkg:npm/express@5.2.1",
-        "pkg:npm/hono@4.13.2",
-        "pkg:npm/jose@6.2.9",
+        "pkg:npm/hono@4.13.3",
+        "pkg:npm/jose@6.2.10",
         "pkg:npm/json-schema-typed@8.0.2",
         "pkg:npm/pkce-challenge@5.0.1",
         "pkg:npm/raw-body@3.0.2",
@@ -3709,7 +3917,7 @@
       "ref": "pkg:npm/accepts@2.0.0",
       "dependsOn": [
         "pkg:npm/mime-types@3.0.2",
-        "pkg:npm/negotiator@1.0.0"
+        "pkg:npm/negotiator@1.1.0"
       ]
     },
     {
@@ -3965,7 +4173,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/hono@4.13.2",
+      "ref": "pkg:npm/hono@4.13.3",
       "dependsOn": []
     },
     {
@@ -4005,7 +4213,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:npm/jose@6.2.9",
+      "ref": "pkg:npm/jose@6.2.10",
       "dependsOn": []
     },
     {
@@ -4050,8 +4258,10 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:npm/negotiator@1.0.0",
-      "dependsOn": []
+      "ref": "pkg:npm/negotiator@1.1.0",
+      "dependsOn": [
+        "pkg:npm/content-type@2.1.0"
+      ]
     },
     {
       "ref": "pkg:npm/object-assign@4.1.1",

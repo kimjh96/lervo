@@ -5,7 +5,7 @@ Decision date: 2026-08-19
 
 ## Context
 
-The original `.lervo/documents.yaml` put every record in one growing, contended map. Appending topics or generation history to existing Markdown similarly harms navigation, review, and ownership boundaries. A thin central index only delays growth, while mandatory front matter contaminates user documents and may be interpreted differently by providers.
+The original `.lervo/documents.yaml` stored every record in one growing, contended map. Appending topics or generation history to existing Markdown also harms navigation, review, and ownership boundaries. A thin central index only delays growth, while mandatory front matter contaminates user documents and providers may interpret it differently.
 
 ## Decision
 
@@ -25,8 +25,8 @@ New projects use:
       doc_project_context.json
 ```
 
-- `.lervo/documents/` is the registry index; create no `index.yaml`.
-- Name each manifest `<documentId>.yaml` and require its body ID to match. Limit each manifest to 64 KiB and v0 reads to 4,096 entries.
+- `.lervo/documents/` is the registry index; do not create `index.yaml`.
+- Name each manifest `<documentId>.yaml` and require its body ID to match. Each manifest is limited to 64 KiB, and v0 reads are limited to 4,096 entries.
 - Reject symlinks, wrong extensions, subdirectories, and unknown entries as `document_layout_conflict`.
 - Load manifests in filename-byte order into the existing in-memory `DocumentRegistry`.
 - One target path has one owner. `parent`, `supersedes`, and `related` cannot self-reference or identify an unregistered document. Relation graphs are rebuildable derived indexes.
@@ -35,15 +35,15 @@ New projects use:
 
 ### Separate human source and machine metadata
 
-- Documents use `text/markdown; charset=utf-8`. Store metadata in `.lervo/documents/<documentId>.yaml`, never mandatory user front matter.
+- Documents use `text/markdown; charset=utf-8`. Store metadata in `.lervo/documents/<documentId>.yaml`, never in mandatory user front matter.
 - Sidecars record profile, locale, audience, `sidecar` metadata placement, `separate_documents` history, `topic_documents` overflow, and `parent`/`supersedes`/`related` links.
-- Never append a new decision or history to an old section. Create and relate a new ID/file.
-- Keep entry documents short: orientation and links only. Preserve superseded manifests so provenance remains reconstructable.
+- Never append a new decision or history to an old section. Create and relate a new ID and file.
+- Keep entry documents short, containing only orientation and links. Preserve superseded manifests so provenance remains reconstructable.
 
 ### Size and update rules by ownership
 
 - Never write user-owned documents. Recommend a topic split at 32 KiB and require separate review above 64 KiB; never auto-split.
-- Replace only a managed block's declared region, limited to 8 KiB. Put overflow in a new document and leave a summary/link.
+- Replace only a managed block's declared region, limited to 8 KiB. Put overflow in a new document and leave a summary and link.
 - Accept only these markers:
 
 ```text
@@ -53,7 +53,7 @@ New projects use:
 
 - Block IDs and input source IDs must be unique within a manifest. ADR-0021 defines byte-exact, read-only CommonMark parsing; ADR-0022 defines a review-only patch candidate. Neither writes before a separate apply contract.
 - Limit Lervo-generated documents to 64 KiB and 12 top-level sections. Replace a whole file only when its current hash equals the previous generated output; otherwise split and link.
-- Store input/output hashes, generator, and policy version in `.lervo/generated/manifests/`, not body text. A later slice defines compiler schema and atomic publication.
+- Store input and output hashes, generator, and policy version in `.lervo/generated/manifests/`, not body text. A later slice defines compiler schema and atomic publication.
 
 ### Failures and retention
 

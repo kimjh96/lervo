@@ -33,7 +33,10 @@ export async function verifySearchCandidateActivationEvidence(input: {
 }): Promise<VerifiedSearchCandidateActivationEvidence> {
   const review = await loadStoredSearchCandidateReview(input.repositoryRoot, input.reviewId);
   if (review.projectId !== input.projectId) {
-    throw new SearchLocalError("observation_invalid", "The search candidate review has different project coordinates.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search candidate review has different project coordinates.",
+    );
   }
   const loaded = await loadSearchEvaluationComparison({
     repositoryRoot: input.repositoryRoot,
@@ -42,7 +45,10 @@ export async function verifySearchCandidateActivationEvidence(input: {
   });
   const engine = input.registry.resolve(review.candidateId);
   if (!sameSearchEngine(engine.engine, review.candidate)) {
-    throw new SearchLocalError("evaluation_candidate_failed", "The candidate in the review source differs from the currently registered engine.");
+    throw new SearchLocalError(
+      "evaluation_candidate_failed",
+      "The candidate in the review source differs from the currently registered engine.",
+    );
   }
   if (review.schemaVersion !== loaded.comparison.schemaVersion) {
     throw new SearchLocalError(
@@ -50,9 +56,12 @@ export async function verifySearchCandidateActivationEvidence(input: {
       "The adapter build contract versions in the review and comparison sources differ.",
     );
   }
-  if (review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2 &&
+  if (
+    review.schemaVersion === 2 &&
+    loaded.comparison.schemaVersion === 2 &&
     (review.candidateAdapterBuildId !== engine.adapterBuildId ||
-      loaded.comparison.candidateAdapterBuildId !== engine.adapterBuildId)) {
+      loaded.comparison.candidateAdapterBuildId !== engine.adapterBuildId)
+  ) {
     throw new SearchLocalError(
       "evaluation_candidate_build_mismatch",
       "The adapter build in the review and comparison sources differs from the currently registered implementation.",
@@ -64,30 +73,37 @@ export async function verifySearchCandidateActivationEvidence(input: {
     cases: loaded.activeCases,
     evaluatedAt: new Date(loaded.comparison.evaluatedAt),
   });
-  const recreatedReviewId = review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2
-    ? createSearchCandidateReview({
-      comparison: loaded.comparison,
-      candidateId: review.candidateId,
-      cases: loaded.activeCases,
-      replay,
-      candidateAdapterBuildId: engine.adapterBuildId,
-      reviewerId: review.reviewerId,
-      reviewedAt: new Date(review.reviewedAt),
-      decision: review.decision,
-    }).reviewId
-    : replay.run.runId === review.replayRunId ? review.reviewId : null;
+  const recreatedReviewId =
+    review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2
+      ? createSearchCandidateReview({
+          comparison: loaded.comparison,
+          candidateId: review.candidateId,
+          cases: loaded.activeCases,
+          replay,
+          candidateAdapterBuildId: engine.adapterBuildId,
+          reviewerId: review.reviewerId,
+          reviewedAt: new Date(review.reviewedAt),
+          decision: review.decision,
+        }).reviewId
+      : replay.run.runId === review.replayRunId
+        ? review.reviewId
+        : null;
   if (recreatedReviewId !== review.reviewId) {
-    throw new SearchLocalError("observation_invalid", "The search candidate review does not match the current source and replay result.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search candidate review does not match the current source and replay result.",
+    );
   }
-  const verificationReceipt = review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2
-    ? createSearchCandidateVerificationReceipt({
-      review,
-      comparison: loaded.comparison,
-      adapterBuildId: engine.adapterBuildId,
-      replayRunId: replay.run.runId,
-      indexId: replay.index.indexId,
-    })
-    : null;
+  const verificationReceipt =
+    review.schemaVersion === 2 && loaded.comparison.schemaVersion === 2
+      ? createSearchCandidateVerificationReceipt({
+          review,
+          comparison: loaded.comparison,
+          adapterBuildId: engine.adapterBuildId,
+          replayRunId: replay.run.runId,
+          indexId: replay.index.indexId,
+        })
+      : null;
   return {
     review,
     comparison: loaded.comparison,

@@ -55,9 +55,7 @@
       "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "locale": "ko-KR",
       "checkedAt": "2026-08-18T00:00:00Z",
-      "evaluators": [
-        { "kind": "model", "evaluatorId": "same-generation-review" }
-      ],
+      "evaluators": [{ "kind": "model", "evaluatorId": "same-generation-review" }],
       "checks": [
         {
           "checkId": "natural_en_prose",
@@ -81,9 +79,7 @@
       "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "locale": "ko-KR",
       "checkedAt": "2026-08-18T00:00:00Z",
-      "evaluators": [
-        { "kind": "deterministic", "evaluatorId": "lervo-writing-lint-v1" }
-      ],
+      "evaluators": [{ "kind": "deterministic", "evaluatorId": "lervo-writing-lint-v1" }],
       "checks": [
         {
           "checkId": "forbid_em_dash",

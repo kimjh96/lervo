@@ -4,10 +4,7 @@ import { type EventEnvelope } from "@lervo/schemas";
 
 import { canonicalJson } from "./canonical-json.js";
 
-export type EventDraft = Omit<
-  EventEnvelope,
-  "seq" | "previousHash" | "eventHash" | "payload"
-> & {
+export type EventDraft = Omit<EventEnvelope, "seq" | "previousHash" | "eventHash" | "payload"> & {
   payload: Readonly<Record<string, unknown>>;
 };
 

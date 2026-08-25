@@ -48,7 +48,17 @@ describe("unmanaged terminal context coverage", () => {
         queryDigest: `sha256:${"e".repeat(64)}`,
         contextHash: `sha256:${"f".repeat(64)}`,
         recommendationCount: 2,
-        loadedDocuments: [{ conceptId: `concept_${"1".repeat(24)}`, path: "docs/knowledge/cache.md", contentHash, scope: "full", deliveredByteCount: 42, assurance: "human_reviewed", freshness: "current" }],
+        loadedDocuments: [
+          {
+            conceptId: `concept_${"1".repeat(24)}`,
+            path: "docs/knowledge/cache.md",
+            contentHash,
+            scope: "full",
+            deliveredByteCount: 42,
+            assurance: "human_reviewed",
+            freshness: "current",
+          },
+        ],
         workstreamId: null,
         workstreamRevision: null,
         workstreamSnapshotHash: null,
@@ -101,11 +111,21 @@ describe("unmanaged terminal context coverage", () => {
     expect(report.reports).toHaveLength(1);
     expect(report.reports[0]).toMatchObject({
       executionMode: "unmanaged",
-      capabilities: { hookContextPreparation: "observed", providerContextAcceptance: "unsupported", explicitOutputReference: "observed", internalUse: "unsupported" },
+      capabilities: {
+        hookContextPreparation: "observed",
+        providerContextAcceptance: "unsupported",
+        explicitOutputReference: "observed",
+        internalUse: "unsupported",
+      },
       documents: [{ highestObservation: "referenced", referenceKinds: ["output_citation"] }],
       coverage: {
         candidatePreparation: { numerator: 1, denominator: 2, value: 0.5, reason: null },
-        managedDelivery: { numerator: 0, denominator: 1, value: null, reason: "unmanaged_no_adapter_receipt" },
+        managedDelivery: {
+          numerator: 0,
+          denominator: 1,
+          value: null,
+          reason: "unmanaged_no_adapter_receipt",
+        },
         explicitReference: { numerator: 1, denominator: 1, value: 1, reason: null },
       },
       completion: { result: "allowed", lifecycleStatus: "current" },

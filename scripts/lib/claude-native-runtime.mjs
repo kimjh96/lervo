@@ -53,9 +53,9 @@ export async function verifyInstalledClaudeNativeRuntime(consumerRoot) {
 
   const installedPackages = await collectInstalledPackages(resolve(consumerRoot, "node_modules"));
   assert.deepEqual(
-    [...installedPackages.keys()].filter((coordinate) =>
-      coordinate.startsWith(nativePackagePrefix)
-    ).sort(),
+    [...installedPackages.keys()]
+      .filter((coordinate) => coordinate.startsWith(nativePackagePrefix))
+      .sort(),
     [`${packageName}@${nativePackageVersion}`],
   );
 
@@ -71,7 +71,10 @@ export async function verifyInstalledClaudeNativeRuntime(consumerRoot) {
     timeout: 5_000,
     windowsHide: true,
   });
-  const version = `${stdout}${stderr}`.split(/\r?\n/u).map((line) => line.trim()).find(Boolean);
+  const version = `${stdout}${stderr}`
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .find(Boolean);
   assert.match(version ?? "", /^\d+\.\d+\.\d+ \(Claude Code\)$/u);
   return { packageName, version };
 }

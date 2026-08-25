@@ -44,16 +44,24 @@ export function inbound(row: SQLiteRow): ConversationInboundEvent {
   try {
     assertConversationInboundEvent(event);
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", "The stored conversation event is invalid.", {
-      cause: error,
-    });
+    throw new InteractionSQLiteError(
+      "integrity_failed",
+      "The stored conversation event is invalid.",
+      {
+        cause: error,
+      },
+    );
   }
   if (
     event.eventId !== text(row, "event_id") ||
     event.target.integrationId !== text(row, "integration_id") ||
     event.target.projectId !== text(row, "project_id") ||
     event.target.conversationId !== text(row, "conversation_id")
-  ) throw new InteractionSQLiteError("integrity_failed", "The duplicate conversation event coordinates differ.");
+  )
+    throw new InteractionSQLiteError(
+      "integrity_failed",
+      "The duplicate conversation event coordinates differ.",
+    );
   return structuredClone(event);
 }
 
@@ -65,18 +73,27 @@ export function decision(
   try {
     assertConversationParticipationDecision({ decision: value, event });
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", "The stored participation decision is invalid.", {
-      cause: error,
-    });
+    throw new InteractionSQLiteError(
+      "integrity_failed",
+      "The stored participation decision is invalid.",
+      {
+        cause: error,
+      },
+    );
   }
   if (
-    value.decisionId !== text(row, "decision_id") || value.eventId !== text(row, "event_id") ||
+    value.decisionId !== text(row, "decision_id") ||
+    value.eventId !== text(row, "event_id") ||
     value.policyId !== text(row, "policy_id") ||
     value.roleId !== text(row, "role_id") ||
     value.conversationId !== text(row, "conversation_id") ||
     value.action !== text(row, "action") ||
     Date.parse(value.decidedAt) !== integer(row, "decided_at_ms")
-  ) throw new InteractionSQLiteError("integrity_failed", "The duplicate participation decision coordinates differ.");
+  )
+    throw new InteractionSQLiteError(
+      "integrity_failed",
+      "The duplicate participation decision coordinates differ.",
+    );
   return structuredClone(value);
 }
 
@@ -88,9 +105,13 @@ export function outbound(
   try {
     assertConversationOutboundMessage({ outbound: value, event });
   } catch (error) {
-    throw new InteractionSQLiteError("integrity_failed", "The stored conversation outbound is invalid.", {
-      cause: error,
-    });
+    throw new InteractionSQLiteError(
+      "integrity_failed",
+      "The stored conversation outbound is invalid.",
+      {
+        cause: error,
+      },
+    );
   }
   if (
     value.outboundId !== text(row, "outbound_id") ||
@@ -100,6 +121,10 @@ export function outbound(
     value.target.integrationId !== text(row, "integration_id") ||
     value.target.projectId !== text(row, "project_id") ||
     value.target.conversationId !== text(row, "conversation_id")
-  ) throw new InteractionSQLiteError("integrity_failed", "The duplicate conversation outbound coordinates differ.");
+  )
+    throw new InteractionSQLiteError(
+      "integrity_failed",
+      "The duplicate conversation outbound coordinates differ.",
+    );
   return structuredClone(value);
 }

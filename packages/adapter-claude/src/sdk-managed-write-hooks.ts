@@ -28,18 +28,17 @@ export function createClaudeManagedWriteHooks(input: {
             let allowed = false;
             try {
               allowed =
-                (await input.handler()?.authorize(
-                  hookInput.tool_name,
-                  hookInput.tool_input,
-                  hookInput.tool_use_id,
-                )) ?? false;
+                (await input
+                  .handler()
+                  ?.authorize(hookInput.tool_name, hookInput.tool_input, hookInput.tool_use_id)) ??
+                false;
             } catch (error) {
               input.fail(error);
             }
             return {
               hookSpecificOutput: {
                 hookEventName: "PreToolUse" as const,
-                permissionDecision: allowed ? "allow" as const : "deny" as const,
+                permissionDecision: allowed ? ("allow" as const) : ("deny" as const),
                 permissionDecisionReason: allowed
                   ? "A Lervo managed write permit was issued."
                   : "No Lervo managed write permit was issued.",
@@ -58,12 +57,14 @@ export function createClaudeManagedWriteHooks(input: {
               isManagedWriteTool(hookInput.tool_name)
             ) {
               try {
-                await input.handler()?.complete(
-                  hookInput.tool_name,
-                  hookInput.tool_input,
-                  hookInput.tool_use_id,
-                  "completed",
-                );
+                await input
+                  .handler()
+                  ?.complete(
+                    hookInput.tool_name,
+                    hookInput.tool_input,
+                    hookInput.tool_use_id,
+                    "completed",
+                  );
               } catch (error) {
                 input.fail(error);
               }
@@ -82,12 +83,14 @@ export function createClaudeManagedWriteHooks(input: {
               isManagedWriteTool(hookInput.tool_name)
             ) {
               try {
-                await input.handler()?.complete(
-                  hookInput.tool_name,
-                  hookInput.tool_input,
-                  hookInput.tool_use_id,
-                  "failed",
-                );
+                await input
+                  .handler()
+                  ?.complete(
+                    hookInput.tool_name,
+                    hookInput.tool_input,
+                    hookInput.tool_use_id,
+                    "failed",
+                  );
               } catch (error) {
                 input.fail(error);
               }

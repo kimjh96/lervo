@@ -39,23 +39,37 @@ export function createSearchRolloutActionPreflight(input: {
       ? {}
       : { engineActivationPolicy: input.engineActivationPolicy }),
   });
-  if (!searchRolloutActionKinds.includes(input.requestedAction) || !SOURCE_ID_PATTERN.test(input.operatorId) ||
-    !Number.isFinite(input.checkedAt.getTime()) || input.review.projectId !== input.actionPolicy.projectId ||
-    input.currentQualitySnapshot.observedThrough !== input.checkedAt.toISOString()) {
-    throw new SearchError("invalid_rollout_action_preflight", "The search rollout action preflight input is invalid.");
+  if (
+    !searchRolloutActionKinds.includes(input.requestedAction) ||
+    !SOURCE_ID_PATTERN.test(input.operatorId) ||
+    !Number.isFinite(input.checkedAt.getTime()) ||
+    input.review.projectId !== input.actionPolicy.projectId ||
+    input.currentQualitySnapshot.observedThrough !== input.checkedAt.toISOString()
+  ) {
+    throw new SearchError(
+      "invalid_rollout_action_preflight",
+      "The search rollout action preflight input is invalid.",
+    );
   }
-  const requiredDecision = input.requestedAction === "acknowledge_keep"
-    ? "keep_candidate" as const
-    : "rollback_recommended" as const;
+  const requiredDecision =
+    input.requestedAction === "acknowledge_keep"
+      ? ("keep_candidate" as const)
+      : ("rollback_recommended" as const);
   const reasons = new Set(searchRolloutActionEligibilityFailureReasons({ ...input }));
-  if (input.requestedAction === "execute_rollback" && input.actionPolicy.action === "execute_rollback" &&
-    !input.engineActivationPolicy?.allowedOperatorIds.includes(input.operatorId)) {
+  if (
+    input.requestedAction === "execute_rollback" &&
+    input.actionPolicy.action === "execute_rollback" &&
+    !input.engineActivationPolicy?.allowedOperatorIds.includes(input.operatorId)
+  ) {
     reasons.add("engine_operator_not_allowed");
   }
-  const qualityInputState = input.currentQualitySnapshot.inputDigest === input.review.qualitySnapshot.inputDigest
-    ? "unchanged" as const
-    : "changed" as const;
-  const failureReasons = searchRolloutActionPreflightFailureReasons.filter((reason) => reasons.has(reason));
+  const qualityInputState =
+    input.currentQualitySnapshot.inputDigest === input.review.qualitySnapshot.inputDigest
+      ? ("unchanged" as const)
+      : ("changed" as const);
+  const failureReasons = searchRolloutActionPreflightFailureReasons.filter((reason) =>
+    reasons.has(reason),
+  );
   return {
     schemaVersion: 1,
     projectId: input.actionPolicy.projectId,

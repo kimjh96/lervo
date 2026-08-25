@@ -27,7 +27,10 @@ export async function activateLocalSearchCandidate(input: {
 }): Promise<SearchEngineActivation> {
   const policy = await loadSearchEngineActivationPolicy(input.repositoryRoot, input.policyId);
   if (policy.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_policy_invalid", "The search engine activation policy has different project coordinates.");
+    throw new SearchLocalError(
+      "engine_policy_invalid",
+      "The search engine activation policy has different project coordinates.",
+    );
   }
   const evidence = await verifySearchCandidateActivationEvidence({
     repositoryRoot: input.repositoryRoot,
@@ -62,10 +65,20 @@ export async function refreshLocalSearchCandidate(input: {
     loadCurrentSearchEngineActivation(input.repositoryRoot),
   ]);
   if (policy.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_policy_invalid", "The search engine refresh policy has different project coordinates.");
+    throw new SearchLocalError(
+      "engine_policy_invalid",
+      "The search engine refresh policy has different project coordinates.",
+    );
   }
-  if (previous === null || previous.projectId !== input.projectId || previous.selected.mode !== "candidate") {
-    throw new SearchLocalError("engine_activation_not_found", "There is no current candidate search engine selection to refresh.");
+  if (
+    previous === null ||
+    previous.projectId !== input.projectId ||
+    previous.selected.mode !== "candidate"
+  ) {
+    throw new SearchLocalError(
+      "engine_activation_not_found",
+      "There is no current candidate search engine selection to refresh.",
+    );
   }
   const evidence = await verifySearchCandidateActivationEvidence({
     repositoryRoot: input.repositoryRoot,
@@ -100,24 +113,36 @@ async function prepareLocalSearchCandidateRollback(input: {
     loadCurrentSearchEngineActivation(input.repositoryRoot),
   ]);
   if (policy.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_policy_invalid", "The search engine activation policy has different project coordinates.");
+    throw new SearchLocalError(
+      "engine_policy_invalid",
+      "The search engine activation policy has different project coordinates.",
+    );
   }
   if (previous === null || previous.projectId !== input.projectId) {
-    throw new SearchLocalError("engine_activation_not_found", "There is no search engine selection to roll back.");
+    throw new SearchLocalError(
+      "engine_activation_not_found",
+      "There is no search engine selection to roll back.",
+    );
   }
-  if (input.expectedPreviousActivationId !== undefined &&
-    previous.activationId !== input.expectedPreviousActivationId) {
-    throw new SearchLocalError("rollout_action_not_eligible", "The reviewed search candidate is no longer the current selection.");
+  if (
+    input.expectedPreviousActivationId !== undefined &&
+    previous.activationId !== input.expectedPreviousActivationId
+  ) {
+    throw new SearchLocalError(
+      "rollout_action_not_eligible",
+      "The reviewed search candidate is no longer the current selection.",
+    );
   }
   const rollbackTarget = searchEngineActivationFallback(previous).selection;
-  const targetEvidence = rollbackTarget.mode === "candidate"
-    ? await verifySearchCandidateActivationEvidence({
-      repositoryRoot: input.repositoryRoot,
-      projectId: input.projectId,
-      reviewId: rollbackTarget.reviewId,
-      registry: input.registry,
-    })
-    : undefined;
+  const targetEvidence =
+    rollbackTarget.mode === "candidate"
+      ? await verifySearchCandidateActivationEvidence({
+          repositoryRoot: input.repositoryRoot,
+          projectId: input.projectId,
+          reviewId: rollbackTarget.reviewId,
+          registry: input.registry,
+        })
+      : undefined;
   return createSearchEngineRollback({
     policy,
     previous,

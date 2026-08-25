@@ -18,8 +18,12 @@ function fixture(deleteObject: () => Promise<{ deleted: boolean }>) {
     completedAt,
     releasedAt,
     repository: {
-      async claimExpiredArtifacts() { return [structuredClone(claim)]; },
-      async claimOrphanArtifact() { return null; },
+      async claimExpiredArtifacts() {
+        return [structuredClone(claim)];
+      },
+      async claimOrphanArtifact() {
+        return null;
+      },
       async completeArtifactPurge(input: { completedAt: string }) {
         completedAt.push(input.completedAt);
         return {
@@ -34,9 +38,15 @@ function fixture(deleteObject: () => Promise<{ deleted: boolean }>) {
       },
     },
     artifacts: {
-      async put() { throw new Error("not called"); },
-      async get() { throw new Error("not called"); },
-      async listObjects() { return { items: [], nextCursor: null }; },
+      async put() {
+        throw new Error("not called");
+      },
+      async get() {
+        throw new Error("not called");
+      },
+      async listObjects() {
+        return { items: [], nextCursor: null };
+      },
       deleteObject,
     },
   };
@@ -45,27 +55,35 @@ function fixture(deleteObject: () => Promise<{ deleted: boolean }>) {
 describe("Hub command artifact cleanup cycle time", () => {
   it("uses a fresh completion time instead of reusing the retention cutoff", async () => {
     const setup = fixture(async () => ({ deleted: true }));
-    await expect(cleanupHubCommandArtifacts({
-      repository: setup.repository,
-      artifacts: setup.artifacts,
-      workerId: claim.workerId,
-      cleanedAt: claim.claimedAt,
-      now: () => "2026-08-22T00:00:10.000Z",
-      limit: 2,
-    })).resolves.toMatchObject({ deletedCount: 1, failureCount: 0 });
+    await expect(
+      cleanupHubCommandArtifacts({
+        repository: setup.repository,
+        artifacts: setup.artifacts,
+        workerId: claim.workerId,
+        cleanedAt: claim.claimedAt,
+        now: () => "2026-08-22T00:00:10.000Z",
+        limit: 2,
+      }),
+    ).resolves.toMatchObject({ deletedCount: 1, failureCount: 0 });
     expect(setup.completedAt).toEqual(["2026-08-22T00:00:10.000Z"]);
   });
 
   it("uses a fresh release time and recommends a prompt retry after partial failure", async () => {
-    const setup = fixture(vi.fn(async () => { throw new Error("delete failed"); }));
-    await expect(cleanupHubCommandArtifacts({
-      repository: setup.repository,
-      artifacts: setup.artifacts,
-      workerId: claim.workerId,
-      cleanedAt: claim.claimedAt,
-      now: () => "2026-08-22T00:00:20.000Z",
-      limit: 2,
-    })).resolves.toMatchObject({
+    const setup = fixture(
+      vi.fn(async () => {
+        throw new Error("delete failed");
+      }),
+    );
+    await expect(
+      cleanupHubCommandArtifacts({
+        repository: setup.repository,
+        artifacts: setup.artifacts,
+        workerId: claim.workerId,
+        cleanedAt: claim.claimedAt,
+        now: () => "2026-08-22T00:00:20.000Z",
+        limit: 2,
+      }),
+    ).resolves.toMatchObject({
       claimedCount: 1,
       failureCount: 1,
       continuationRecommended: true,

@@ -5,8 +5,7 @@ import {
   parseCanonicalReleaseJson,
 } from "./bounded-release-json-source.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageResultReportDocument } from
-  "./first-publication-stage-result-report.mjs";
+import { validateFirstPublicationStageResultReportDocument } from "./first-publication-stage-result-report.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,

@@ -37,16 +37,17 @@ export interface RemoteControlLoopOptions {
 }
 
 const systemWait: RemoteCommandPollingWaitPort = {
-  wait: (delayMs, signal) => new Promise<void>((resolve) => {
-    if (signal.aborted) return resolve();
-    const timeout = setTimeout(finish, delayMs);
-    signal.addEventListener("abort", finish, { once: true });
-    function finish(): void {
-      clearTimeout(timeout);
-      signal.removeEventListener("abort", finish);
-      resolve();
-    }
-  }),
+  wait: (delayMs, signal) =>
+    new Promise<void>((resolve) => {
+      if (signal.aborted) return resolve();
+      const timeout = setTimeout(finish, delayMs);
+      signal.addEventListener("abort", finish, { once: true });
+      function finish(): void {
+        clearTimeout(timeout);
+        signal.removeEventListener("abort", finish);
+        resolve();
+      }
+    }),
 };
 
 function checkedInteger(value: number | undefined, fallback: number, minimum: number): number {
@@ -96,9 +97,10 @@ export async function runRemoteControlLoop(
     cycleCount += 1;
     await options.onCycle?.(structuredClone(lastCycle));
     if (options.signal.aborted) break;
-    const delay = lastCycle.status === "policy_unavailable"
-      ? retryDelayMs
-      : commandDelay(lastCycle.command, idlePollIntervalMs, nowMilliseconds);
+    const delay =
+      lastCycle.status === "policy_unavailable"
+        ? retryDelayMs
+        : commandDelay(lastCycle.command, idlePollIntervalMs, nowMilliseconds);
     await wait.wait(delay, options.signal);
   }
   return { status: "stopped", cycleCount, lastCycle };

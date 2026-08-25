@@ -45,8 +45,9 @@ describe("doctor search rollout inspection", () => {
   });
 
   it("separates broken actions from reviews and marks dependent action checks unknown", async () => {
-    const { root, project, activation, registry } =
-      await prepareSelectedSearchCandidate("researcher.doctor-rollout");
+    const { root, project, activation, registry } = await prepareSelectedSearchCandidate(
+      "researcher.doctor-rollout",
+    );
     const rolloutPolicy = createSearchRolloutReviewPolicy({
       projectId: project.projectId,
       allowedReviewerIds: ["reviewer_rollout"],
@@ -86,12 +87,13 @@ describe("doctor search rollout inspection", () => {
       actedAt: new Date("2026-08-20T10:04:00.000Z"),
       registry,
     });
-    const inspect = () => inspectDoctorSearch({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      registry,
-      observedAt: new Date("2026-08-20T10:05:00.000Z"),
-    });
+    const inspect = () =>
+      inspectDoctorSearch({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        registry,
+        observedAt: new Date("2026-08-20T10:05:00.000Z"),
+      });
     const healthy = await inspect();
     expect(healthy.map((item) => item.check)).toEqual([
       { checkId: "search_engine_selection", status: "healthy", observedCount: 1 },
@@ -104,8 +106,10 @@ describe("doctor search rollout inspection", () => {
     const acknowledgementName = (await readdir(acknowledgementDirectory))[0]!;
     const acknowledgementPath = resolve(acknowledgementDirectory, acknowledgementName);
     const originalAcknowledgement = await readFile(acknowledgementPath, "utf8");
-    const forged = JSON.parse(originalAcknowledgement) as
-      Record<string, unknown> & { acknowledgementId: string; qualityInputDigest: string };
+    const forged = JSON.parse(originalAcknowledgement) as Record<string, unknown> & {
+      acknowledgementId: string;
+      qualityInputDigest: string;
+    };
     forged.qualityInputDigest = `sha256:${"f".repeat(64)}`;
     const { schemaVersion: _schema, acknowledgementId: _id, ...core } = forged;
     forged.acknowledgementId = contentId("srack", core);
@@ -113,29 +117,37 @@ describe("doctor search rollout inspection", () => {
     await rename(acknowledgementPath, forgedPath);
     await writeFile(forgedPath, `${JSON.stringify(forged)}\n`);
     const brokenAction = await inspect();
-    expect(brokenAction.find((item) => item.check.checkId === "search_rollout_reviews")?.check.status)
-      .toBe("healthy");
-    expect(brokenAction.find((item) => item.check.checkId === "search_rollout_actions"))
-      .toMatchObject({
-        check: { status: "unhealthy" },
-        issues: [{ code: "search_rollout_action_invalid" }],
-      });
+    expect(
+      brokenAction.find((item) => item.check.checkId === "search_rollout_reviews")?.check.status,
+    ).toBe("healthy");
+    expect(
+      brokenAction.find((item) => item.check.checkId === "search_rollout_actions"),
+    ).toMatchObject({
+      check: { status: "unhealthy" },
+      issues: [{ code: "search_rollout_action_invalid" }],
+    });
 
     await rename(forgedPath, acknowledgementPath);
     await writeFile(acknowledgementPath, originalAcknowledgement);
-    const reviewPath = resolve(root, ".lervo/state/search/rollout-reviews", `${review.rolloutReviewId}.json`);
+    const reviewPath = resolve(
+      root,
+      ".lervo/state/search/rollout-reviews",
+      `${review.rolloutReviewId}.json`,
+    );
     await writeFile(reviewPath, "{}\n");
     const brokenReview = await inspect();
-    expect(brokenReview.find((item) => item.check.checkId === "search_rollout_reviews"))
-      .toMatchObject({
-        check: { status: "unhealthy" },
-        issues: [{ code: "search_rollout_review_invalid" }],
-      });
-    expect(brokenReview.find((item) => item.check.checkId === "search_rollout_actions"))
-      .toMatchObject({
-        check: { status: "unknown" },
-        issues: [{ code: "search_rollout_action_unavailable" }],
-      });
+    expect(
+      brokenReview.find((item) => item.check.checkId === "search_rollout_reviews"),
+    ).toMatchObject({
+      check: { status: "unhealthy" },
+      issues: [{ code: "search_rollout_review_invalid" }],
+    });
+    expect(
+      brokenReview.find((item) => item.check.checkId === "search_rollout_actions"),
+    ).toMatchObject({
+      check: { status: "unknown" },
+      issues: [{ code: "search_rollout_action_unavailable" }],
+    });
 
     await writeFile(reviewPath, `${JSON.stringify(review)}\n`);
     const actionPolicyPath = resolve(
@@ -145,14 +157,17 @@ describe("doctor search rollout inspection", () => {
     );
     await writeFile(actionPolicyPath, "{}\n");
     const brokenPolicy = await inspect();
-    expect(brokenPolicy.find((item) => item.check.checkId === "search_rollout_policies"))
-      .toMatchObject({
-        check: { status: "unhealthy" },
-        issues: [{ code: "search_rollout_policy_invalid" }],
-      });
-    expect(brokenPolicy.find((item) => item.check.checkId === "search_rollout_reviews")?.check.status)
-      .toBe("unknown");
-    expect(brokenPolicy.find((item) => item.check.checkId === "search_rollout_actions")?.check.status)
-      .toBe("unknown");
+    expect(
+      brokenPolicy.find((item) => item.check.checkId === "search_rollout_policies"),
+    ).toMatchObject({
+      check: { status: "unhealthy" },
+      issues: [{ code: "search_rollout_policy_invalid" }],
+    });
+    expect(
+      brokenPolicy.find((item) => item.check.checkId === "search_rollout_reviews")?.check.status,
+    ).toBe("unknown");
+    expect(
+      brokenPolicy.find((item) => item.check.checkId === "search_rollout_actions")?.check.status,
+    ).toBe("unknown");
   });
 });

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_6a9f1f36f46f27219fa02431
+freshness: current
+ownership: user
+path: docs/decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2d842fd18ac4ef6f51565685
+title: "ADR-0205: Conflict-safe repository agent workforce"
+type: decision

@@ -9,8 +9,15 @@ export function matchHubControlRoute(pathname: string): {
   deliveryId: string;
 } | null {
   const parts = pathname.split("/");
-  if (parts.length !== 7 || parts[0] !== "" || parts[1] !== "v1" ||
-    parts[2] !== "control" || parts[3] !== "projects" || parts[5] !== "commands") return null;
+  if (
+    parts.length !== 7 ||
+    parts[0] !== "" ||
+    parts[1] !== "v1" ||
+    parts[2] !== "control" ||
+    parts[3] !== "projects" ||
+    parts[5] !== "commands"
+  )
+    return null;
   let projectId: string;
   let deliveryId: string;
   try {

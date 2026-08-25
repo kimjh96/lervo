@@ -3,8 +3,7 @@ import { access } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { prepareNpmTrustedStagePublisher } from
-  "../lib/npm-trusted-stage-publisher.mjs";
+import { prepareNpmTrustedStagePublisher } from "../lib/npm-trusted-stage-publisher.mjs";
 import { npmPublicRegistry } from "../lib/release-publication-authorization.mjs";
 
 const environment = {

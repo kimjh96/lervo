@@ -13,10 +13,8 @@ import {
   npmStageEnvironmentReasons,
   withoutNpmConfiguration,
 } from "./npm-stage-client-policy.mjs";
-import { observeFirstPublicationReconciliation } from
-  "./npm-first-publication-reconciliation-observer.mjs";
-import { parseNpmStageListResponse } from
-  "./npm-staged-package-review-response.mjs";
+import { observeFirstPublicationReconciliation } from "./npm-first-publication-reconciliation-observer.mjs";
+import { parseNpmStageListResponse } from "./npm-staged-package-review-response.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 
@@ -41,27 +39,26 @@ function stageDisposition(stages, version, expectedIdDigest) {
     : { state: "replacement_observed" };
 }
 
-export async function observeNpmStageApprovalReconciliation({
-  registry,
-  packageName,
-  version,
-  distTag,
-  expectedStageIdDigest,
-  userConfigPath,
-}, {
-  execute = executeFile,
-  observePublicRelease = observeFirstPublicationReconciliation,
-  environment = process.env,
-  npmCommand = "npm",
-} = {}) {
+export async function observeNpmStageApprovalReconciliation(
+  { registry, packageName, version, distTag, expectedStageIdDigest, userConfigPath },
+  {
+    execute = executeFile,
+    observePublicRelease = observeFirstPublicationReconciliation,
+    environment = process.env,
+    npmCommand = "npm",
+  } = {},
+) {
   if (
-    registry !== npmPublicRegistry || packageName !== "@lervo/cli" ||
+    registry !== npmPublicRegistry ||
+    packageName !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(version ?? "") ||
     !["latest", "next"].includes(distTag) ||
     !/^sha256:[a-f0-9]{64}$/u.test(expectedStageIdDigest ?? "") ||
-    !isAbsolute(userConfigPath ?? "") || typeof execute !== "function" ||
+    !isAbsolute(userConfigPath ?? "") ||
+    typeof execute !== "function" ||
     typeof observePublicRelease !== "function"
-  ) throw new TypeError("npm stage approval reconciliation input is invalid");
+  )
+    throw new TypeError("npm stage approval reconciliation input is invalid");
   if (npmStageEnvironmentReasons({ environment }).length > 0) {
     return unavailable("environment_invalid");
   }
@@ -103,9 +100,11 @@ export async function observeNpmStageApprovalReconciliation({
       result = unavailable("npm_client_unsupported");
     }
     const readStages = async () => {
-      const { stdout } = await execute(npmCommand, [
-        "stage", "list", packageName, "--registry", registry, "--json",
-      ], options);
+      const { stdout } = await execute(
+        npmCommand,
+        ["stage", "list", packageName, "--registry", registry, "--json"],
+        options,
+      );
       return parseNpmStageListResponse(stdout);
     };
     let firstStages;
@@ -135,11 +134,13 @@ export async function observeNpmStageApprovalReconciliation({
       }
     }
     try {
-      await assertReleaseFilesUnchanged([{
-        path: userConfigPath,
-        contents: configContents,
-        maximumSize: maximumUserConfigBytes,
-      }]);
+      await assertReleaseFilesUnchanged([
+        {
+          path: userConfigPath,
+          contents: configContents,
+          maximumSize: maximumUserConfigBytes,
+        },
+      ]);
     } catch {
       result = unavailable("user_config_changed");
     }

@@ -1,6 +1,4 @@
-import {
-  assertKnowledgeGraphNode,
-} from "@lervo/knowledge-graph";
+import { assertKnowledgeGraphNode } from "@lervo/knowledge-graph";
 import {
   type HubKnowledgeGraphQuery,
   type HubProjectKnowledgeGraph,
@@ -62,9 +60,10 @@ function coordinateKey(input: { destinationId: string; projectId: string }): str
   return `${input.destinationId.length}:${input.destinationId}${input.projectId}`;
 }
 
-function projectScope(
-  projects: ReadonlyArray<{ destinationId: string; projectId: string }>,
-): { scope: HubTraceProjectScope; keys: Set<string> } {
+function projectScope(projects: ReadonlyArray<{ destinationId: string; projectId: string }>): {
+  scope: HubTraceProjectScope;
+  keys: Set<string>;
+} {
   if (!Array.isArray(projects) || projects.length > HUB_TRACE_MAX_PROJECT_SCOPE) {
     throw new HubTraceError(
       "invalid_query",
@@ -76,8 +75,10 @@ function projectScope(
     assertProjectCoordinate(coordinate);
     unique.set(coordinateKey(coordinate), clone(coordinate));
   }
-  const normalized = [...unique.values()].sort((left, right) =>
-    left.destinationId.localeCompare(right.destinationId) || left.projectId.localeCompare(right.projectId)
+  const normalized = [...unique.values()].sort(
+    (left, right) =>
+      left.destinationId.localeCompare(right.destinationId) ||
+      left.projectId.localeCompare(right.projectId),
   );
   return {
     scope: { mode: "projects", projects: normalized },
@@ -100,9 +101,11 @@ function assertBoundedPage<T, Cursor>(
   limit: number,
   label: string,
 ): void {
-  if (!Array.isArray(page.items) || page.items.length > limit || (
-    page.items.length === 0 && page.nextCursor !== null
-  )) {
+  if (
+    !Array.isArray(page.items) ||
+    page.items.length > limit ||
+    (page.items.length === 0 && page.nextCursor !== null)
+  ) {
     throw new HubTraceError(
       "source_inconsistent",
       `${label} source did not satisfy the bounded-page contract.`,
@@ -119,7 +122,10 @@ class HubTraceQueryReader {
 
   private assertAuthorized(input: { destinationId: string; projectId: string }): void {
     if (this.authorizedProjects !== null && !this.authorizedProjects.has(coordinateKey(input))) {
-      throw new HubTraceError("project_forbidden", "The requested Hub project trace is not accessible.");
+      throw new HubTraceError(
+        "project_forbidden",
+        "The requested Hub project trace is not accessible.",
+      );
     }
   }
 
@@ -134,10 +140,12 @@ class HubTraceQueryReader {
       limit,
     });
     assertBoundedPage(result, limit, "Hub project trace");
-    if (this.authorizedProjects !== null && (
-      result.items.some((item) => !this.authorizedProjects!.has(coordinateKey(item))) ||
-      (result.nextCursor !== null && !this.authorizedProjects.has(coordinateKey(result.nextCursor)))
-    )) {
+    if (
+      this.authorizedProjects !== null &&
+      (result.items.some((item) => !this.authorizedProjects!.has(coordinateKey(item))) ||
+        (result.nextCursor !== null &&
+          !this.authorizedProjects.has(coordinateKey(result.nextCursor))))
+    ) {
       throw new HubTraceError(
         "source_inconsistent",
         "The Hub project trace source returned a result outside the allowed scope.",
@@ -162,14 +170,20 @@ class HubTraceQueryReader {
       limit,
     });
     if (result === null) {
-      throw new HubTraceError("project_not_found", "The requested Hub project trace was not found.");
+      throw new HubTraceError(
+        "project_not_found",
+        "The requested Hub project trace was not found.",
+      );
     }
     assertBoundedPage(result.runs, limit, "Hub run summary");
     if (
       result.project.destinationId !== query.destinationId ||
       result.project.projectId !== query.projectId
     ) {
-      throw new HubTraceError("source_inconsistent", "The Hub project trace coordinates differ from the request.");
+      throw new HubTraceError(
+        "source_inconsistent",
+        "The Hub project trace coordinates differ from the request.",
+      );
     }
     return clone(result);
   }
@@ -197,14 +211,21 @@ class HubTraceQueryReader {
       result.project.projectId !== query.projectId ||
       result.run.runId !== query.runId
     ) {
-      throw new HubTraceError("source_inconsistent", "The Hub run trace coordinates differ from the request.");
+      throw new HubTraceError(
+        "source_inconsistent",
+        "The Hub run trace coordinates differ from the request.",
+      );
     }
-    if (result.contextCoverage !== null && (
-      !validateSchema("managedContextCoverageReport", result.contextCoverage).valid ||
-      result.contextCoverage.projectId !== query.projectId ||
-      result.contextCoverage.runId !== query.runId
-    )) {
-      throw new HubTraceError("source_inconsistent", "The Hub managed context coverage differs from the requested run.");
+    if (
+      result.contextCoverage !== null &&
+      (!validateSchema("managedContextCoverageReport", result.contextCoverage).valid ||
+        result.contextCoverage.projectId !== query.projectId ||
+        result.contextCoverage.runId !== query.runId)
+    ) {
+      throw new HubTraceError(
+        "source_inconsistent",
+        "The Hub managed context coverage differs from the requested run.",
+      );
     }
     return clone(result);
   }
@@ -227,7 +248,10 @@ class HubTraceQueryReader {
     };
     const result = await this.source.getKnowledgeGraph(resolved);
     if (result === null) {
-      throw new HubTraceError("project_not_found", "The requested Hub project trace was not found.");
+      throw new HubTraceError(
+        "project_not_found",
+        "The requested Hub project trace was not found.",
+      );
     }
     assertKnowledgeGraphPage({ query: resolved, result });
     return clone(result);
@@ -241,10 +265,13 @@ export class HubTraceReader extends HubTraceQueryReader {
 }
 
 export class HubProjectScopedTraceReader extends HubTraceQueryReader {
-  constructor(source: HubTraceSource, projects: ReadonlyArray<{
-    destinationId: string;
-    projectId: string;
-  }>) {
+  constructor(
+    source: HubTraceSource,
+    projects: ReadonlyArray<{
+      destinationId: string;
+      projectId: string;
+    }>,
+  ) {
     const normalized = projectScope(projects);
     super(source, normalized.scope, normalized.keys);
   }

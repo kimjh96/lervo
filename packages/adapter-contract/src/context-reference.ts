@@ -21,9 +21,9 @@ export function referencedManagedContextDocuments(
   content: string,
   documents: AdapterContextEnvelope["documents"],
 ): AdapterContextEnvelope["documents"] {
-  return documents.filter((document) =>
-    content.includes(managedContextReferenceToken(document))
-  ).map((document) => structuredClone(document));
+  return documents
+    .filter((document) => content.includes(managedContextReferenceToken(document)))
+    .map((document) => structuredClone(document));
 }
 
 function escapeRegularExpression(value: string): string {

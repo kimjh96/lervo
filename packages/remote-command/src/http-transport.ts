@@ -1,13 +1,7 @@
-import type {
-  RemoteCommandDeliveryAcknowledgement,
-  RemoteCommandTarget,
-} from "@lervo/schemas";
+import type { RemoteCommandDeliveryAcknowledgement, RemoteCommandTarget } from "@lervo/schemas";
 
 import type { AuthenticatedRemoteCommandHubTransport } from "./delivery-transport.js";
-import {
-  readRemoteCommandHttpJson,
-  resolveRemoteCommandHttpResponseLimit,
-} from "./http-json.js";
+import { readRemoteCommandHttpJson, resolveRemoteCommandHttpResponseLimit } from "./http-json.js";
 
 const DESTINATION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
 const NODE_PATTERN = /^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
@@ -31,38 +25,56 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   const url = new URL(value);
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
-    url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-  ) throw new Error("The remote command Hub URL must be an HTTPS URL without credentials or a query.");
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
+  )
+    throw new Error(
+      "The remote command Hub URL must be an HTTPS URL without credentials or a query.",
+    );
   return url;
 }
 
 function sameTarget(left: RemoteCommandTarget, right: RemoteCommandTarget): boolean {
-  return left.projectId === right.projectId &&
-    left.projectIdentityHash === right.projectIdentityHash;
+  return (
+    left.projectId === right.projectId && left.projectIdentityHash === right.projectIdentityHash
+  );
 }
 
-function responseBody(value: unknown, expected: {
-  destinationId: string;
-  nodeId: string;
-  target: RemoteCommandTarget;
-  property: "leases" | "confirmation";
-}): unknown {
+function responseBody(
+  value: unknown,
+  expected: {
+    destinationId: string;
+    nodeId: string;
+    target: RemoteCommandTarget;
+    property: "leases" | "confirmation";
+  },
+): unknown {
   if (
-    typeof value !== "object" || value === null || Array.isArray(value) ||
-    !("schemaVersion" in value) || value.schemaVersion !== 1 ||
-    !("destinationId" in value) || value.destinationId !== expected.destinationId ||
-    !("nodeId" in value) || value.nodeId !== expected.nodeId ||
-    !("target" in value) || typeof value.target !== "object" || value.target === null ||
-    !("projectId" in value.target) || value.target.projectId !== expected.target.projectId ||
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    !("schemaVersion" in value) ||
+    value.schemaVersion !== 1 ||
+    !("destinationId" in value) ||
+    value.destinationId !== expected.destinationId ||
+    !("nodeId" in value) ||
+    value.nodeId !== expected.nodeId ||
+    !("target" in value) ||
+    typeof value.target !== "object" ||
+    value.target === null ||
+    !("projectId" in value.target) ||
+    value.target.projectId !== expected.target.projectId ||
     !("projectIdentityHash" in value.target) ||
     value.target.projectIdentityHash !== expected.target.projectIdentityHash ||
     !(expected.property in value)
-  ) throw new Error("The remote command Hub response coordinates differ from the request.");
+  )
+    throw new Error("The remote command Hub response coordinates differ from the request.");
   return (value as Record<string, unknown>)[expected.property];
 }
 
-export class AuthenticatedRemoteCommandHttpTransport
-implements AuthenticatedRemoteCommandHubTransport {
+export class AuthenticatedRemoteCommandHttpTransport implements AuthenticatedRemoteCommandHubTransport {
   private readonly baseUrl: URL;
   private readonly maxResponseBytes: number;
   private readonly requestTimeoutMs: number;
@@ -71,20 +83,24 @@ implements AuthenticatedRemoteCommandHubTransport {
   constructor(private readonly options: RemoteCommandHttpTransportOptions) {
     this.baseUrl = configuredUrl(options.baseUrl, options.allowInsecureHttpForTests === true);
     if (
-      options.bearerToken.length < 32 || options.bearerToken.length > 4_096 ||
+      options.bearerToken.length < 32 ||
+      options.bearerToken.length > 4_096 ||
       !/^[\x21-\x7e]+$/.test(options.bearerToken) ||
       !HASH_PATTERN.test(options.expectedHubIdentityHash) ||
       !DESTINATION_PATTERN.test(options.destinationId) ||
       !NODE_PATTERN.test(options.nodeId) ||
       !PROJECT_PATTERN.test(options.target.projectId) ||
       !HASH_PATTERN.test(options.target.projectIdentityHash)
-    ) throw new Error("The remote command HTTP transport configuration is invalid.");
+    )
+      throw new Error("The remote command HTTP transport configuration is invalid.");
     this.maxResponseBytes = resolveRemoteCommandHttpResponseLimit(options.maxResponseBytes);
     this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
     if (
       !Number.isSafeInteger(this.requestTimeoutMs) ||
-      this.requestTimeoutMs < 10 || this.requestTimeoutMs > 300_000
-    ) throw new Error("The remote command HTTP transport request timeout is invalid.");
+      this.requestTimeoutMs < 10 ||
+      this.requestTimeoutMs > 300_000
+    )
+      throw new Error("The remote command HTTP transport request timeout is invalid.");
     this.request = options.fetch ?? globalThis.fetch;
   }
 
@@ -98,9 +114,13 @@ implements AuthenticatedRemoteCommandHubTransport {
   }): Promise<unknown> {
     if (
       input.destinationId !== this.options.destinationId ||
-      input.nodeId !== this.options.nodeId || !sameTarget(input.target, this.options.target) ||
+      input.nodeId !== this.options.nodeId ||
+      !sameTarget(input.target, this.options.target) ||
       !Number.isFinite(Date.parse(input.requestedAt))
-    ) throw new Error("The remote command HTTP pull coordinates differ from the transport configuration.");
+    )
+      throw new Error(
+        "The remote command HTTP pull coordinates differ from the transport configuration.",
+      );
     return this.post("leases", {
       schemaVersion: 1,
       leaseDurationMs: input.leaseDurationMs,
@@ -136,7 +156,8 @@ implements AuthenticatedRemoteCommandHubTransport {
         redirect: "error",
         signal: controller.signal,
       });
-      if (response.status !== 200) throw new Error("The remote command Hub response status is invalid.");
+      if (response.status !== 200)
+        throw new Error("The remote command Hub response status is invalid.");
       if (response.headers.get("x-lervo-hub-identity") !== this.options.expectedHubIdentityHash) {
         await response.body?.cancel();
         return {

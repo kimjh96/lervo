@@ -69,10 +69,9 @@ describe("first-publication metadata decision and preview", () => {
     forged.effect.approval = "granted";
     const { metadataDecisionDigest: _discarded, ...body } = forged;
     forged.metadataDecisionDigest = canonicalDigest(body);
-    assert.throws(
-      () => validateFirstPublicationMetadataDecision(forged),
-      { code: "first_publication_metadata_decision_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationMetadataDecision(forged), {
+      code: "first_publication_metadata_decision_invalid",
+    });
   });
 
   it("rejects unresolved, unsafe, or mismatched decision inputs", () => {
@@ -91,19 +90,22 @@ describe("first-publication metadata decision and preview", () => {
 
   it("calculates only the four package metadata changes for the current sources", async () => {
     const preview = createFirstPublicationMetadataPreview({
-      ...await currentActivationSources(),
+      ...(await currentActivationSources()),
       decision: decision(),
     });
     assert.equal(preview.status, "changes_required");
-    assert.deepEqual(preview.packageManifestChanges.map(({ field, currentState }) => ({
-      field,
-      currentState,
-    })), [
-      { field: "repository", currentState: "missing" },
-      { field: "license", currentState: "missing" },
-      { field: "publishConfig.registry", currentState: "missing" },
-      { field: "publishConfig.provenance", currentState: "missing" },
-    ]);
+    assert.deepEqual(
+      preview.packageManifestChanges.map(({ field, currentState }) => ({
+        field,
+        currentState,
+      })),
+      [
+        { field: "repository", currentState: "missing" },
+        { field: "license", currentState: "missing" },
+        { field: "publishConfig.registry", currentState: "missing" },
+        { field: "publishConfig.provenance", currentState: "missing" },
+      ],
+    );
     assert.equal(preview.releaseManifestRegeneration.status, "required");
     assert.equal(preview.releaseManifestRegeneration.directPatch, "forbidden");
     assert.equal(preview.sideEffects.metadata, "not_changed");
@@ -111,14 +113,17 @@ describe("first-publication metadata decision and preview", () => {
 
   it("keeps approval requirements when local metadata already matches", async () => {
     const preview = createFirstPublicationMetadataPreview({
-      ...await alignedSources(),
+      ...(await alignedSources()),
       decision: decision(),
     });
     assert.equal(preview.status, "no_local_changes");
     assert.deepEqual(preview.packageManifestChanges, []);
     assert.equal(preview.releaseManifestRegeneration.status, "not_required");
     assert.equal(preview.activation, "not_implemented");
-    assert.equal(preview.remainingRequirements.every(({ status }) => status === "required"), true);
+    assert.equal(
+      preview.remainingRequirements.every(({ status }) => status === "required"),
+      true,
+    );
   });
 
   it("marks existing different values without copying them into the preview", async () => {
@@ -132,13 +137,16 @@ describe("first-publication metadata decision and preview", () => {
       },
     };
     const preview = createFirstPublicationMetadataPreview({ ...sources, decision: decision() });
-    assert.deepEqual(preview.packageManifestChanges.slice(0, 2).map((change) => ({
-      field: change.field,
-      currentState: change.currentState,
-    })), [
-      { field: "repository", currentState: "different" },
-      { field: "license", currentState: "different" },
-    ]);
+    assert.deepEqual(
+      preview.packageManifestChanges.slice(0, 2).map((change) => ({
+        field: change.field,
+        currentState: change.currentState,
+      })),
+      [
+        { field: "repository", currentState: "different" },
+        { field: "license", currentState: "different" },
+      ],
+    );
     assert.equal(JSON.stringify(preview).includes("example/another"), false);
     assert.equal(JSON.stringify(preview).includes('"MIT"'), false);
   });
@@ -153,15 +161,14 @@ describe("first-publication metadata decision and preview", () => {
   });
 
   it("rejects a redigested activation or approval claim", async () => {
-    const sources = { ...await currentActivationSources(), decision: decision() };
+    const sources = { ...(await currentActivationSources()), decision: decision() };
     const forged = structuredClone(createFirstPublicationMetadataPreview(sources));
     forged.activation = "armed";
     forged.remainingRequirements = [];
     const { metadataPreviewDigest: _discarded, ...body } = forged;
     forged.metadataPreviewDigest = canonicalDigest(body);
-    assert.throws(
-      () => validateFirstPublicationMetadataPreview(forged, sources),
-      { code: "first_publication_metadata_preview_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationMetadataPreview(forged, sources), {
+      code: "first_publication_metadata_preview_invalid",
+    });
   });
 });

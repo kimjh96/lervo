@@ -41,37 +41,45 @@ describe("Node runtime configuration", () => {
     const fixture = await nodeRuntimeFixture(root, await availablePort());
     const plaintext = structuredClone(fixture.value);
     (plaintext.hub as Record<string, unknown>).baseUrl = "http://hub.example.test";
-    expect(() => parseNodeRuntimeConfig(plaintext, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(plaintext, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
     expect(() => parseNodeRuntimeConfig({ ...fixture.value, extra: true }, root)).toThrow(
       expect.objectContaining({ code: "invalid_config" }),
     );
     const invalidPoll = structuredClone(fixture.value);
     (invalidPoll.sync as Record<string, unknown>).idlePollIntervalMs = 99;
-    expect(() => parseNodeRuntimeConfig(invalidPoll, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(invalidPoll, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
 
     const direct = await loadNodeRuntimeConfig(fixture.configPath);
     direct.hub.baseUrl = "http://hub.example.test/";
-    await expect(openNodeRuntime(direct, {
-      createTransport: () => ({
-        registerProject: async () => ({}),
-        sendEventBatch: async () => ({}),
+    await expect(
+      openNodeRuntime(direct, {
+        createTransport: () => ({
+          registerProject: async () => ({}),
+          sendEventBatch: async () => ({}),
+        }),
       }),
-    })).rejects.toMatchObject({ code: "invalid_config" });
+    ).rejects.toMatchObject({ code: "invalid_config" });
 
     const disabledRoot = await temporaryRoot();
     const disabled = await nodeRuntimeFixture(disabledRoot, await availablePort(), {
       hubSyncEnabled: false,
     });
-    await expect(openNodeRuntime(await loadNodeRuntimeConfig(disabled.configPath), {
-      createTransport: () => ({
-        registerProject: async () => ({}),
-        sendEventBatch: async () => ({}),
+    await expect(
+      openNodeRuntime(await loadNodeRuntimeConfig(disabled.configPath), {
+        createTransport: () => ({
+          registerProject: async () => ({}),
+          sendEventBatch: async () => ({}),
+        }),
       }),
-    })).rejects.toMatchObject({ code: "project_invalid" });
+    ).rejects.toMatchObject({ code: "project_invalid" });
   });
 
   it("parses scoped trust key files and requires explicit command execution ports", async () => {
@@ -81,11 +89,13 @@ describe("Node runtime configuration", () => {
     configured.remoteCommands = {
       nodeId: "node_runtime_control_01",
       commandKeys: [{ keyId: "key_command_runtime_01", publicKeyFile: "keys/command.pem" }],
-      policyKeys: [{
-        keyId: "key_policy_runtime_01",
-        publicKeyFile: "keys/policy.pem",
-        purposes: ["snapshot", "approval", "revocation"],
-      }],
+      policyKeys: [
+        {
+          keyId: "key_policy_runtime_01",
+          publicKeyFile: "keys/policy.pem",
+          purposes: ["snapshot", "approval", "revocation"],
+        },
+      ],
       idlePollIntervalMs: 100,
       retryDelayMs: 1_000,
     };
@@ -105,9 +115,11 @@ describe("Node runtime configuration", () => {
     });
     const mixed = structuredClone(configured);
     (mixed.remoteCommands as Record<string, unknown>).trustFile = "secrets/node-trust.json";
-    expect(() => parseNodeRuntimeConfig(mixed, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(mixed, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
     const hosted = structuredClone(configured);
     (hosted.remoteCommands as Record<string, unknown>).providerHost = {
       providers: ["codex", "claude"],
@@ -117,7 +129,9 @@ describe("Node runtime configuration", () => {
     expect(parseNodeRuntimeConfig(hosted, root)).toMatchObject({
       remoteCommands: {
         providerHost: {
-          providers: ["codex", "claude"], roles: ["developer"], developerSkills: [],
+          providers: ["codex", "claude"],
+          roles: ["developer"],
+          developerSkills: [],
         },
       },
     });
@@ -127,65 +141,79 @@ describe("Node runtime configuration", () => {
       roles: ["unregistered"],
       developerSkills: [],
     };
-    expect(() => createManagedProviderRemoteCommandPorts(
-      parseNodeRuntimeConfig(unregistered, root),
-    )).toThrow(expect.objectContaining({ code: "invalid_config" }));
-    await expect(openNodeRuntime(parseNodeRuntimeConfig(configured, root), {
-      createTransport: () => ({
-        registerProject: async () => ({}),
-        sendEventBatch: async () => ({}),
+    expect(() =>
+      createManagedProviderRemoteCommandPorts(parseNodeRuntimeConfig(unregistered, root)),
+    ).toThrow(expect.objectContaining({ code: "invalid_config" }));
+    await expect(
+      openNodeRuntime(parseNodeRuntimeConfig(configured, root), {
+        createTransport: () => ({
+          registerProject: async () => ({}),
+          sendEventBatch: async () => ({}),
+        }),
       }),
-    })).rejects.toMatchObject({ code: "invalid_config" });
+    ).rejects.toMatchObject({ code: "invalid_config" });
 
     const duplicate = structuredClone(configured);
     (duplicate.remoteCommands as Record<string, unknown>).commandKeys = [
       { keyId: "key_command_runtime_01", publicKeyFile: "keys/one.pem" },
       { keyId: "key_command_runtime_01", publicKeyFile: "keys/two.pem" },
     ];
-    expect(() => parseNodeRuntimeConfig(duplicate, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(duplicate, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
     const invalidHost = structuredClone(hosted);
     (invalidHost.remoteCommands as Record<string, unknown>).providerHost = {
       providers: ["codex", "codex"],
       roles: ["developer"],
       developerSkills: [],
     };
-    expect(() => parseNodeRuntimeConfig(invalidHost, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(invalidHost, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
     const invalidRoles = structuredClone(hosted);
     (invalidRoles.remoteCommands as Record<string, unknown>).providerHost = {
       providers: ["codex"],
       roles: ["developer", "developer"],
       developerSkills: [],
     };
-    expect(() => parseNodeRuntimeConfig(invalidRoles, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(invalidRoles, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
     const invalidSkills = structuredClone(hosted);
     (invalidSkills.remoteCommands as Record<string, unknown>).providerHost = {
       providers: ["codex"],
       roles: ["developer"],
       developerSkills: ["repository/testing", "repository/testing"],
     };
-    expect(() => parseNodeRuntimeConfig(invalidSkills, root)).toThrow(expect.objectContaining({
-      code: "invalid_config",
-    }));
+    expect(() => parseNodeRuntimeConfig(invalidSkills, root)).toThrow(
+      expect.objectContaining({
+        code: "invalid_config",
+      }),
+    );
     const detachedDeveloperSkills = structuredClone(hosted);
     (detachedDeveloperSkills.remoteCommands as Record<string, unknown>).providerHost = {
       providers: ["codex"],
       roles: ["maintainer"],
       developerSkills: ["repository/testing"],
     };
-    expect(() => createManagedProviderRemoteCommandPorts(
-      parseNodeRuntimeConfig(detachedDeveloperSkills, root),
-      {
-        roleProfiles: [{
-          ...createRemoteDeveloperRole(["repo.check"]),
-          roleId: "maintainer",
-        }],
-      },
-    )).toThrow(expect.objectContaining({ code: "invalid_config" }));
+    expect(() =>
+      createManagedProviderRemoteCommandPorts(
+        parseNodeRuntimeConfig(detachedDeveloperSkills, root),
+        {
+          roleProfiles: [
+            {
+              ...createRemoteDeveloperRole(["repo.check"]),
+              roleId: "maintainer",
+            },
+          ],
+        },
+      ),
+    ).toThrow(expect.objectContaining({ code: "invalid_config" }));
   });
 });

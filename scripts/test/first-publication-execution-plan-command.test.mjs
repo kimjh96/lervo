@@ -6,12 +6,9 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createCliFirstPublicationExecutionPlan } from
-  "../lib/cli-first-publication-execution-plan.mjs";
-import { createFirstPublicationExecutionPlan } from
-  "../lib/first-publication-execution-plan.mjs";
-import { formatFirstPublicationExecutionPlan } from
-  "../lib/first-publication-execution-plan-formatter.mjs";
+import { createCliFirstPublicationExecutionPlan } from "../lib/cli-first-publication-execution-plan.mjs";
+import { createFirstPublicationExecutionPlan } from "../lib/first-publication-execution-plan.mjs";
+import { formatFirstPublicationExecutionPlan } from "../lib/first-publication-execution-plan-formatter.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -49,13 +46,16 @@ describe("first-publication execution plan command", () => {
   it("rejects a contract file changed while the plan is being made", async () => {
     const prepared = await contractFiles();
     try {
-      await assert.rejects(createCliFirstPublicationExecutionPlan(prepared.options, {
-        createPlan: async (sources) => {
-          const plan = createFirstPublicationExecutionPlan(sources);
-          await writeFile(prepared.options.bootstrapPath, JSON.stringify({ changed: true }));
-          return plan;
-        },
-      }), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        createCliFirstPublicationExecutionPlan(prepared.options, {
+          createPlan: async (sources) => {
+            const plan = createFirstPublicationExecutionPlan(sources);
+            await writeFile(prepared.options.bootstrapPath, JSON.stringify({ changed: true }));
+            return plan;
+          },
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -64,12 +64,18 @@ describe("first-publication execution plan command", () => {
   it("prints the canonical JSON plan and exits successfully without being armed", async () => {
     const prepared = await contractFiles();
     try {
-      const result = spawnSync(process.execPath, [
-        "scripts/show-cli-first-publication-execution-plan.mjs",
-        "--publication-authorization", prepared.options.publicationAuthorizationPath,
-        "--bootstrap", prepared.options.bootstrapPath,
-        "--json",
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        [
+          "scripts/show-cli-first-publication-execution-plan.mjs",
+          "--publication-authorization",
+          prepared.options.publicationAuthorizationPath,
+          "--bootstrap",
+          prepared.options.bootstrapPath,
+          "--json",
+        ],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 0);
       assert.equal(result.stderr, "");
       const plan = JSON.parse(result.stdout);
@@ -89,8 +95,14 @@ describe("first-publication execution plan command", () => {
       assert.match(output, /Status: no execution authorization/u);
       assert.match(output, /1\. Revalidate execution inputs/u);
       assert.match(output, /Before reservation, cancellation causes no state change/u);
-      assert.match(output, /After publication starts, it cannot be cancelled or retried immediately/u);
-      assert.match(output, /did not perform online checks, request human confirmation, reserve, activate execution, or publish a package/u);
+      assert.match(
+        output,
+        /After publication starts, it cannot be cancelled or retried immediately/u,
+      );
+      assert.match(
+        output,
+        /did not perform online checks, request human confirmation, reserve, activate execution, or publish a package/u,
+      );
       assert.equal(output.includes(plan.executionPlanDigest), false);
       assert.equal(output.includes(prepared.options.bootstrapPath), false);
     } finally {
@@ -102,22 +114,28 @@ describe("first-publication execution plan command", () => {
     const cases = [
       ["--publication-authorization", "relative.json", "--bootstrap", "/bootstrap.json"],
       [
-        "--publication-authorization", "/publication.json",
-        "--publication-authorization", "/other.json",
-        "--bootstrap", "/bootstrap.json",
+        "--publication-authorization",
+        "/publication.json",
+        "--publication-authorization",
+        "/other.json",
+        "--bootstrap",
+        "/bootstrap.json",
       ],
       [
-        "--publication-authorization", "/publication.json",
-        "--bootstrap", "/bootstrap.json",
+        "--publication-authorization",
+        "/publication.json",
+        "--bootstrap",
+        "/bootstrap.json",
         "--online",
       ],
       ["--unknown"],
     ];
     for (const args of cases) {
-      const result = spawnSync(process.execPath, [
-        "scripts/show-cli-first-publication-execution-plan.mjs",
-        ...args,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/show-cli-first-publication-execution-plan.mjs", ...args],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_execution_plan_arguments_invalid:/u);
@@ -129,11 +147,17 @@ describe("first-publication execution plan command", () => {
     try {
       const secret = "secret-approval-value";
       await writeFile(prepared.options.bootstrapPath, `{\"secret\":\"${secret}\"`);
-      const result = spawnSync(process.execPath, [
-        "scripts/show-cli-first-publication-execution-plan.mjs",
-        "--publication-authorization", prepared.options.publicationAuthorizationPath,
-        "--bootstrap", prepared.options.bootstrapPath,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        [
+          "scripts/show-cli-first-publication-execution-plan.mjs",
+          "--publication-authorization",
+          prepared.options.publicationAuthorizationPath,
+          "--bootstrap",
+          prepared.options.bootstrapPath,
+        ],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_contract_files_invalid:/u);

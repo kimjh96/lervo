@@ -19,25 +19,29 @@ function validSource(): DeliberationWorkflowSource {
     policyId: "deliberation_product-review",
     maxRounds: 2,
     requiredVerificationSuiteIds: ["project.default"],
-    participants: [{
-      roleId: "product-planner",
-      name: "Product planner",
-      description: "Defines user value and scope.",
-      provider: "codex",
-      responsibilities: ["proposer", "decision_owner"],
-    }, {
-      roleId: "maintainability-reviewer",
-      name: "Maintenance reviewer",
-      description: "Reviews the cost of change.",
-      provider: "claude",
-      responsibilities: ["reviewer"],
-    }, {
-      roleId: "project-verifier",
-      name: "Project verifier",
-      description: "Checks actual verification results.",
-      provider: "claude",
-      responsibilities: ["verifier"],
-    }],
+    participants: [
+      {
+        roleId: "product-planner",
+        name: "Product planner",
+        description: "Defines user value and scope.",
+        provider: "codex",
+        responsibilities: ["proposer", "decision_owner"],
+      },
+      {
+        roleId: "maintainability-reviewer",
+        name: "Maintenance reviewer",
+        description: "Reviews the cost of change.",
+        provider: "claude",
+        responsibilities: ["reviewer"],
+      },
+      {
+        roleId: "project-verifier",
+        name: "Project verifier",
+        description: "Checks actual verification results.",
+        provider: "claude",
+        responsibilities: ["verifier"],
+      },
+    ],
   };
 }
 
@@ -66,42 +70,40 @@ describe("deliberation workflow source", () => {
     roots.push(root);
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_policy_loader1" }));
     await mkdir(resolve(root, ".lervo/deliberations"));
-    const path = resolve(
-      root,
-      ".lervo/deliberations/deliberation_product-review.yaml",
+    const path = resolve(root, ".lervo/deliberations/deliberation_product-review.yaml");
+    await writeFile(
+      path,
+      [
+        "schemaVersion: 1",
+        "policyId: deliberation_product-review",
+        "maxRounds: 2",
+        "requiredVerificationSuiteIds: [project.default]",
+        "participants:",
+        "  - roleId: product-planner",
+        "    name: Product planner",
+        "    description: Defines user value and scope.",
+        "    provider: codex",
+        "    responsibilities: [proposer, decision_owner]",
+        "  - roleId: maintainability-reviewer",
+        "    name: Maintenance reviewer",
+        "    description: Reviews the cost of change.",
+        "    provider: claude",
+        "    responsibilities: [reviewer]",
+        "  - roleId: project-verifier",
+        "    name: Project verifier",
+        "    description: Checks actual verification results.",
+        "    provider: claude",
+        "    responsibilities: [verifier]",
+        "",
+      ].join("\n"),
     );
-    await writeFile(path, [
-      "schemaVersion: 1",
-      "policyId: deliberation_product-review",
-      "maxRounds: 2",
-      "requiredVerificationSuiteIds: [project.default]",
-      "participants:",
-      "  - roleId: product-planner",
-      "    name: Product planner",
-      "    description: Defines user value and scope.",
-      "    provider: codex",
-      "    responsibilities: [proposer, decision_owner]",
-      "  - roleId: maintainability-reviewer",
-      "    name: Maintenance reviewer",
-      "    description: Reviews the cost of change.",
-      "    provider: claude",
-      "    responsibilities: [reviewer]",
-      "  - roleId: project-verifier",
-      "    name: Project verifier",
-      "    description: Checks actual verification results.",
-      "    provider: claude",
-      "    responsibilities: [verifier]",
-      "",
-    ].join("\n"));
 
-    await expect(loadDeliberationWorkflowSource(
-      root,
-      "deliberation_product-review",
-    )).resolves.toMatchObject({ policyId: "deliberation_product-review" });
-    await expect(loadDeliberationWorkflowSource(
-      root,
-      "deliberation_other-review",
-    )).rejects.toMatchObject({ code: "deliberation_policy_not_found" });
+    await expect(
+      loadDeliberationWorkflowSource(root, "deliberation_product-review"),
+    ).resolves.toMatchObject({ policyId: "deliberation_product-review" });
+    await expect(
+      loadDeliberationWorkflowSource(root, "deliberation_other-review"),
+    ).rejects.toMatchObject({ code: "deliberation_policy_not_found" });
   });
 
   it("does not follow a symbolic-link policy file", async () => {
@@ -112,14 +114,10 @@ describe("deliberation workflow source", () => {
     await mkdir(resolve(root, ".lervo/deliberations"));
     const source = resolve(outside, "policy.yaml");
     await writeFile(source, "outside: true\n");
-    await symlink(
-      source,
-      resolve(root, ".lervo/deliberations/deliberation_product-review.yaml"),
-    );
+    await symlink(source, resolve(root, ".lervo/deliberations/deliberation_product-review.yaml"));
 
-    await expect(loadDeliberationWorkflowSource(
-      root,
-      "deliberation_product-review",
-    )).rejects.toMatchObject({ code: "deliberation_policy_layout_invalid" });
+    await expect(
+      loadDeliberationWorkflowSource(root, "deliberation_product-review"),
+    ).rejects.toMatchObject({ code: "deliberation_policy_layout_invalid" });
   });
 });

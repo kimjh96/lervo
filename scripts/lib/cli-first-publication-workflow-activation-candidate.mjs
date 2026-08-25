@@ -4,8 +4,7 @@ import {
   createFirstPublicationWorkflowActivationCandidate,
   validateFirstPublicationWorkflowActivationCandidate,
 } from "./first-publication-workflow-activation-candidate.mjs";
-import { readFirstPublicationWorkflowActivationSources } from
-  "./first-publication-workflow-activation-sources.mjs";
+import { readFirstPublicationWorkflowActivationSources } from "./first-publication-workflow-activation-sources.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
 
 export const workflowActivationSourcePaths = Object.freeze({
@@ -17,10 +16,9 @@ export async function inspectCliFirstPublicationWorkflowActivationCandidate(
   paths = workflowActivationSourcePaths,
   dependencies = {},
 ) {
-  const readSources = dependencies.readSources ??
-    readFirstPublicationWorkflowActivationSources;
-  const createCandidate = dependencies.createCandidate ??
-    createFirstPublicationWorkflowActivationCandidate;
+  const readSources = dependencies.readSources ?? readFirstPublicationWorkflowActivationSources;
+  const createCandidate =
+    dependencies.createCandidate ?? createFirstPublicationWorkflowActivationCandidate;
   const sources = await readSources(paths);
   const input = {
     packageManifest: sources.packageManifest,

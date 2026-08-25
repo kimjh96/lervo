@@ -1,13 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  stat,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -117,12 +109,8 @@ function registry(): DocumentRegistry {
     documents: {
       doc_architecture: record("docs/architecture.md", ["packages/api/**"]),
       doc_brand_policy: record("docs/brand.md", ["marketing/**"]),
-      doc_research_finding: record(".lervo/generated/research/finding.md", [
-        "marketing/**",
-      ]),
-      doc_restricted_finding: record(".lervo/generated/research/restricted.md", [
-        "research/**",
-      ]),
+      doc_research_finding: record(".lervo/generated/research/finding.md", ["marketing/**"]),
+      doc_restricted_finding: record(".lervo/generated/research/restricted.md", ["research/**"]),
     },
   };
 }
@@ -225,7 +213,15 @@ async function fixtureRepository(): Promise<FixtureRepository> {
     evidenceEventIds: ["evt_research_source"],
     createdAt: "2026-08-18T01:01:00Z",
   };
-  return { root, registry: registry(), marketer, researcher, publications, handoff, researchContent };
+  return {
+    root,
+    registry: registry(),
+    marketer,
+    researcher,
+    publications,
+    handoff,
+    researchContent,
+  };
 }
 
 function planInput(fixture: FixtureRepository, createReceiptId = receiptFactory()) {
@@ -272,9 +268,7 @@ describe("context preparation", () => {
       "packages/AGENTS.md",
       "packages/api/AGENTS.md",
     ]);
-    expect(instructions.map((document) => document.path)).not.toContain(
-      "packages/other/AGENTS.md",
-    );
+    expect(instructions.map((document) => document.path)).not.toContain("packages/other/AGENTS.md");
 
     const plan = createContextPlan({
       ...planInput(fixture, ids),
@@ -782,7 +776,10 @@ describe("context preparation", () => {
     const fixture = await fixtureRepository();
     const path = ".lervo/state/workstreams/current.json";
     await mkdir(resolve(fixture.root, ".lervo/state/workstreams"), { recursive: true });
-    await writeFile(resolve(fixture.root, path), "{\"schemaVersion\":1,\"objective\":\"Continue the current work\"}\n");
+    await writeFile(
+      resolve(fixture.root, path),
+      '{"schemaVersion":1,"objective":"Continue the current work"}\n',
+    );
     const workstreamId = documentIdForPath(path);
     const currentRole = structuredClone(fixture.marketer);
     currentRole.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
@@ -791,18 +788,31 @@ describe("context preparation", () => {
       role: currentRole,
       repositoryRoot: fixture.root,
       sourceRevision: "fixture-workstream-v1",
-      documentRules: { "brand.policy": ["doc_brand_policy"], "repository.workstream": [workstreamId] },
-      additionalCandidates: [{ documentId: workstreamId, path, connectedPaths: [], source: "workstream" }],
+      documentRules: {
+        "brand.policy": ["doc_brand_policy"],
+        "repository.workstream": [workstreamId],
+      },
+      additionalCandidates: [
+        { documentId: workstreamId, path, connectedPaths: [], source: "workstream" },
+      ],
     });
-    expect(loaded.documents).toContainEqual(expect.objectContaining({
-      documentId: workstreamId,
-      path,
-      reasons: [{ reasonCode: "role_required", ruleId: "repository.workstream" }],
-    }));
-    expect(loaded.evidence).toEqual(expect.arrayContaining([
-      expect.objectContaining({ documentId: workstreamId, state: "selected", reasonCode: "role_required" }),
-      expect.objectContaining({ documentId: workstreamId, state: "loaded" }),
-    ]));
+    expect(loaded.documents).toContainEqual(
+      expect.objectContaining({
+        documentId: workstreamId,
+        path,
+        reasons: [{ reasonCode: "role_required", ruleId: "repository.workstream" }],
+      }),
+    );
+    expect(loaded.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: workstreamId,
+          state: "selected",
+          reasonCode: "role_required",
+        }),
+        expect.objectContaining({ documentId: workstreamId, state: "loaded" }),
+      ]),
+    );
   });
 
   it("enforces the byte bound while reading a repository file", async () => {

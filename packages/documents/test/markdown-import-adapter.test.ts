@@ -24,12 +24,15 @@ async function inspect(path: string, content: string) {
 
 describe("Markdown import adapter ownership detection", () => {
   it("classifies structurally valid canonical blocks with high confidence", async () => {
-    const draft = await inspect("README.md", [
-      "<!-- lervo:begin block=summary schema=1 -->",
-      "generated summary",
-      "<!-- lervo:end block=summary -->",
-      "",
-    ].join("\n"));
+    const draft = await inspect(
+      "README.md",
+      [
+        "<!-- lervo:begin block=summary schema=1 -->",
+        "generated summary",
+        "<!-- lervo:end block=summary -->",
+        "",
+      ].join("\n"),
+    );
 
     expect(draft).toMatchObject({
       confidence: "high",
@@ -39,13 +42,16 @@ describe("Markdown import adapter ownership detection", () => {
   });
 
   it("does not classify marker examples in CommonMark code as managed", async () => {
-    const draft = await inspect("guide.md", [
-      "```md",
-      "<!-- lervo:begin block=example schema=1 -->",
-      "<!-- lervo:end block=example -->",
-      "```",
-      "",
-    ].join("\n"));
+    const draft = await inspect(
+      "guide.md",
+      [
+        "```md",
+        "<!-- lervo:begin block=example schema=1 -->",
+        "<!-- lervo:end block=example -->",
+        "```",
+        "",
+      ].join("\n"),
+    );
 
     expect(draft).toMatchObject({
       confidence: "medium",
@@ -61,19 +67,21 @@ describe("Markdown import adapter ownership detection", () => {
       confidence: "none",
       detectedOwnership: "unknown",
     });
-    expect(draft?.warnings).toEqual(expect.arrayContaining([
-      "managed_block_structure_invalid",
-      "unclosed_begin_marker",
-    ]));
+    expect(draft?.warnings).toEqual(
+      expect.arrayContaining(["managed_block_structure_invalid", "unclosed_begin_marker"]),
+    );
   });
 
   it("recognizes previous markers only as a migration candidate", async () => {
-    const draft = await inspect("legacy.md", [
-      `<!-- ${previousProductPrefix}:begin block=context schema=1 -->`,
-      "legacy content",
-      `<!-- ${previousProductPrefix}:end block=context -->`,
-      "",
-    ].join("\n"));
+    const draft = await inspect(
+      "legacy.md",
+      [
+        `<!-- ${previousProductPrefix}:begin block=context schema=1 -->`,
+        "legacy content",
+        `<!-- ${previousProductPrefix}:end block=context -->`,
+        "",
+      ].join("\n"),
+    );
 
     expect(draft).toMatchObject({
       confidence: "low",
@@ -83,19 +91,21 @@ describe("Markdown import adapter ownership detection", () => {
   });
 
   it("keeps MDX on the unverified path until MDX parsing is implemented", async () => {
-    const draft = await inspect("component.mdx", [
-      "<!-- lervo:begin block=context schema=1 -->",
-      "<Component />",
-      "<!-- lervo:end block=context -->",
-    ].join("\n"));
+    const draft = await inspect(
+      "component.mdx",
+      [
+        "<!-- lervo:begin block=context schema=1 -->",
+        "<Component />",
+        "<!-- lervo:end block=context -->",
+      ].join("\n"),
+    );
 
     expect(draft).toMatchObject({
       confidence: "none",
       detectedOwnership: "unknown",
     });
-    expect(draft?.warnings).toEqual(expect.arrayContaining([
-      "mdx_semantics_not_parsed",
-      "marker_structure_not_verified",
-    ]));
+    expect(draft?.warnings).toEqual(
+      expect.arrayContaining(["mdx_semantics_not_parsed", "marker_structure_not_verified"]),
+    );
   });
 });

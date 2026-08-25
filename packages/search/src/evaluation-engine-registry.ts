@@ -30,26 +30,44 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
   private readonly registrations: SearchEvaluationEngineRegistrationInfo[];
 
   constructor(registrations: readonly SearchEvaluationEngineRegistration[]) {
-    if (!Array.isArray(registrations) || registrations.length < 1 ||
-      registrations.length > SEARCH_MAX_CANDIDATE_ENGINES) {
-      throw new SearchError("invalid_evaluation_engine", "The number of candidate search engines to register is invalid.");
+    if (
+      !Array.isArray(registrations) ||
+      registrations.length < 1 ||
+      registrations.length > SEARCH_MAX_CANDIDATE_ENGINES
+    ) {
+      throw new SearchError(
+        "invalid_evaluation_engine",
+        "The number of candidate search engines to register is invalid.",
+      );
     }
     const coordinates = new Set<string>();
     const adapterBuildIds = new Set<string>();
-    this.registrations = registrations.map(({ candidateId, engine }) => {
-      assertSearchEngineIdentity(engine.engine);
-      assertSearchAdapterBuildId(engine.adapterBuildId);
-      const coordinate = `${engine.engine.id}:${engine.engine.version}`;
-      if (!SEARCH_CANDIDATE_ID_PATTERN.test(candidateId) || candidateId.length > 64 ||
-        this.engines.has(candidateId) || coordinates.has(coordinate) || adapterBuildIds.has(engine.adapterBuildId) ||
-        sameSearchEngine(engine.engine, SEARCH_ENGINE)) {
-        throw new SearchError("invalid_evaluation_engine", "Candidate search ID or engine coordinates are duplicated or invalid.");
-      }
-      this.engines.set(candidateId, engine);
-      coordinates.add(coordinate);
-      adapterBuildIds.add(engine.adapterBuildId);
-      return { candidateId, engine: { ...engine.engine }, adapterBuildId: engine.adapterBuildId };
-    }).sort((left, right) => left.candidateId < right.candidateId ? -1 : left.candidateId > right.candidateId ? 1 : 0);
+    this.registrations = registrations
+      .map(({ candidateId, engine }) => {
+        assertSearchEngineIdentity(engine.engine);
+        assertSearchAdapterBuildId(engine.adapterBuildId);
+        const coordinate = `${engine.engine.id}:${engine.engine.version}`;
+        if (
+          !SEARCH_CANDIDATE_ID_PATTERN.test(candidateId) ||
+          candidateId.length > 64 ||
+          this.engines.has(candidateId) ||
+          coordinates.has(coordinate) ||
+          adapterBuildIds.has(engine.adapterBuildId) ||
+          sameSearchEngine(engine.engine, SEARCH_ENGINE)
+        ) {
+          throw new SearchError(
+            "invalid_evaluation_engine",
+            "Candidate search ID or engine coordinates are duplicated or invalid.",
+          );
+        }
+        this.engines.set(candidateId, engine);
+        coordinates.add(coordinate);
+        adapterBuildIds.add(engine.adapterBuildId);
+        return { candidateId, engine: { ...engine.engine }, adapterBuildId: engine.adapterBuildId };
+      })
+      .sort((left, right) =>
+        left.candidateId < right.candidateId ? -1 : left.candidateId > right.candidateId ? 1 : 0,
+      );
   }
 
   list(): SearchEvaluationEngineRegistrationInfo[] {
@@ -59,7 +77,10 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
   resolve(candidateId: string): SearchEvaluationEnginePort {
     const engine = this.engines.get(candidateId);
     if (engine === undefined) {
-      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
+      throw new SearchError(
+        "evaluation_candidate_not_registered",
+        "The candidate search engine is not registered.",
+      );
     }
     return engine;
   }
@@ -68,7 +89,10 @@ export class SearchEvaluationEngineRegistry implements SearchCandidateEngineReso
     assertSearchEngineIdentity(identity);
     const registration = this.registrations.find((item) => sameSearchEngine(item.engine, identity));
     if (registration === undefined) {
-      throw new SearchError("evaluation_candidate_not_registered", "The candidate search engine is not registered.");
+      throw new SearchError(
+        "evaluation_candidate_not_registered",
+        "The candidate search engine is not registered.",
+      );
     }
     return {
       candidateId: registration.candidateId,

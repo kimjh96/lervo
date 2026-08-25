@@ -1,8 +1,13 @@
-import type { KnowledgeMigrationPlan, RepositoryAgentArtifact, RepositoryKnowledgeScan } from "./types.js";
+import type {
+  KnowledgeMigrationPlan,
+  RepositoryAgentArtifact,
+  RepositoryKnowledgeScan,
+} from "./types.js";
 
 function scopeFor(path: string, local: boolean): RepositoryAgentArtifact["scope"] {
   if (local) return "local_repository";
-  if (!path.includes("/") || /^(?:\.agents|\.claude|\.codex|\.github)\//.test(path)) return "repository";
+  if (!path.includes("/") || /^(?:\.agents|\.claude|\.codex|\.github)\//.test(path))
+    return "repository";
   return "subtree";
 }
 
@@ -70,7 +75,8 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
       provider: "claude",
       role: "behavioral_instruction",
       discovery: "automatic",
-      migrationDisposition: normalized === "CLAUDE.md" ? "provider_bridge" : "provider_specific_review",
+      migrationDisposition:
+        normalized === "CLAUDE.md" ? "provider_bridge" : "provider_specific_review",
       contentHandling: "semantic_source",
     });
   }
@@ -245,7 +251,10 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
       contentHandling: "local_inventory_only",
     });
   }
-  if (/(^|\/)\.worktreeinclude$/.test(normalized) && !/(^|\/)\.claude\/\.worktreeinclude$/.test(normalized)) {
+  if (
+    /(^|\/)\.worktreeinclude$/.test(normalized) &&
+    !/(^|\/)\.claude\/\.worktreeinclude$/.test(normalized)
+  ) {
     return artifact(normalized, {
       profileId: "claude-worktree-include-v1",
       provider: "claude",
@@ -265,7 +274,10 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
       contentHandling: "local_inventory_only",
     });
   }
-  if (/(^|\/)\.claude-plugin\/(?:plugin\.json|marketplace\.json)$/.test(normalized) || /(^|\/)\.claude\/plugins\//.test(normalized)) {
+  if (
+    /(^|\/)\.claude-plugin\/(?:plugin\.json|marketplace\.json)$/.test(normalized) ||
+    /(^|\/)\.claude\/plugins\//.test(normalized)
+  ) {
     return artifact(normalized, {
       profileId: "claude-plugin-configuration-v1",
       provider: "claude",
@@ -337,20 +349,34 @@ const reviewDispositions = new Set<RepositoryAgentArtifact["migrationDisposition
 export function summarizeRepositoryAgentArtifacts(
   scan: RepositoryKnowledgeScan,
 ): KnowledgeMigrationPlan["agentArtifacts"] {
-  const items = scan.sources.flatMap((source) => source.agentArtifact === undefined ? [] : [{
-    path: source.path,
-    status: source.status,
-    classification: source.classification,
-    ...source.agentArtifact,
-  }]).sort((left, right) => left.path.localeCompare(right.path));
+  const items = scan.sources
+    .flatMap((source) =>
+      source.agentArtifact === undefined
+        ? []
+        : [
+            {
+              path: source.path,
+              status: source.status,
+              classification: source.classification,
+              ...source.agentArtifact,
+            },
+          ],
+    )
+    .sort((left, right) => left.path.localeCompare(right.path));
   const byRole: KnowledgeMigrationPlan["agentArtifacts"]["byRole"] = {};
   for (const item of items) byRole[item.role] = (byRole[item.role] ?? 0) + 1;
   return {
     total: items.length,
-    semanticSources: items.filter((item) => item.contentHandling === "semantic_source" && item.status === "included").length,
-    localInventoryOnly: items.filter((item) => item.contentHandling === "local_inventory_only").length,
-    reviewRequired: items.filter((item) => reviewDispositions.has(item.migrationDisposition)).length,
-    nonstandard: items.filter((item) => item.discovery === "not_standard" || item.discovery === "not_current_standard").length,
+    semanticSources: items.filter(
+      (item) => item.contentHandling === "semantic_source" && item.status === "included",
+    ).length,
+    localInventoryOnly: items.filter((item) => item.contentHandling === "local_inventory_only")
+      .length,
+    reviewRequired: items.filter((item) => reviewDispositions.has(item.migrationDisposition))
+      .length,
+    nonstandard: items.filter(
+      (item) => item.discovery === "not_standard" || item.discovery === "not_current_standard",
+    ).length,
     byRole,
     items,
   };

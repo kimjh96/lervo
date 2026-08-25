@@ -29,10 +29,7 @@ export interface ContextBindingReport {
   violations: ContextBindingViolation[];
 }
 
-function isMessageKind<T extends { kind: string }>(
-  value: unknown,
-  kind: T["kind"],
-): value is T {
+function isMessageKind<T extends { kind: string }>(value: unknown, kind: T["kind"]): value is T {
   if (typeof value !== "object" || value === null || !("kind" in value)) return false;
   return value.kind === kind && validateSchema("adapter", value).valid;
 }
@@ -120,9 +117,7 @@ export function inspectContextReceiptBinding(input: {
   const session = input.session as AdapterSession;
   const envelope = input.envelope as AdapterContextEnvelope;
   if (!isMessageKind<AdapterContextReceipt>(input.receipt, "context_receipt")) {
-    return report([
-      { code: "receipt_invalid", detail: "adapter context receipt is invalid" },
-    ]);
+    return report([{ code: "receipt_invalid", detail: "adapter context receipt is invalid" }]);
   }
   const receipt = input.receipt;
   const violations: ContextBindingViolation[] = [];
@@ -178,8 +173,7 @@ export function inspectContextReceiptBinding(input: {
   }
   if (
     !documentsMatch ||
-    (receipt.writingPolicyDocumentId !== null &&
-      !receivedIds.has(receipt.writingPolicyDocumentId))
+    (receipt.writingPolicyDocumentId !== null && !receivedIds.has(receipt.writingPolicyDocumentId))
   ) {
     violations.push({
       code: "receipt_document_mismatch",

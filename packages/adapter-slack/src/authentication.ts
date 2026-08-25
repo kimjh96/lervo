@@ -8,7 +8,7 @@ function singleHeader(
 ): string {
   const values = Object.entries(headers)
     .filter(([key]) => key.toLowerCase() === name)
-    .flatMap(([, value]) => typeof value === "string" ? [value] : value ?? []);
+    .flatMap(([, value]) => (typeof value === "string" ? [value] : (value ?? [])));
   if (values.length !== 1 || values[0]!.length > 256) {
     throw new ConversationPlatformError(
       "platform_authentication_failed",

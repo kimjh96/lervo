@@ -9,8 +9,7 @@ import { readVersionedReport } from "./report-compatibility.js";
 export const traceCapabilitiesReportSchemaVersion = 1 as const;
 
 export type TraceCapabilitiesReportCompatibilityErrorCode =
-  | "trace_capabilities_report_invalid"
-  | "trace_capabilities_report_schema_unsupported";
+  "trace_capabilities_report_invalid" | "trace_capabilities_report_schema_unsupported";
 
 export class TraceCapabilitiesReportCompatibilityError extends Error {
   constructor(
@@ -27,18 +26,21 @@ function semanticsAreValid(report: TraceCapabilitiesReport): boolean {
   const defaultMode = modes.get(report.defaultMode);
   const implicitModes = report.modes.filter(({ explicit }) => !explicit);
   const deprecationCodes = new Set(report.deprecations.map(({ code }) => code));
-  return modes.size === report.modes.length &&
+  return (
+    modes.size === report.modes.length &&
     defaultMode !== undefined &&
     implicitModes.length === 1 &&
     implicitModes[0]!.mode === report.defaultMode &&
     report.limits.defaultPageSize <= report.limits.maximumPageSize &&
     deprecationCodes.size === report.deprecations.length &&
-    report.deprecations.every((deprecation) =>
-      modes.has(deprecation.mode) &&
-      modes.has(deprecation.replacementMode) &&
-      modes.has(deprecation.nextDefaultMode) &&
-      deprecation.mode !== deprecation.replacementMode
-    );
+    report.deprecations.every(
+      (deprecation) =>
+        modes.has(deprecation.mode) &&
+        modes.has(deprecation.replacementMode) &&
+        modes.has(deprecation.nextDefaultMode) &&
+        deprecation.mode !== deprecation.replacementMode,
+    )
+  );
 }
 
 export function readTraceCapabilitiesReport(value: unknown): TraceCapabilitiesReport {
@@ -48,12 +50,13 @@ export function readTraceCapabilitiesReport(value: unknown): TraceCapabilitiesRe
     schemaVersion: traceCapabilitiesReportSchemaVersion,
     reportName: "trace capabilities report",
     semantics: semanticsAreValid,
-    error: (failure, message) => new TraceCapabilitiesReportCompatibilityError(
-      failure === "unsupported_version"
-        ? "trace_capabilities_report_schema_unsupported"
-        : "trace_capabilities_report_invalid",
-      message,
-    ),
+    error: (failure, message) =>
+      new TraceCapabilitiesReportCompatibilityError(
+        failure === "unsupported_version"
+          ? "trace_capabilities_report_schema_unsupported"
+          : "trace_capabilities_report_invalid",
+        message,
+      ),
   });
 }
 

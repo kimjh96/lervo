@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_96c4a433966171537b43693d
+outputLanguage: en
+outputs:
+  - byteCount: 3814
+    contentHash: sha256:9466072ea7995effa2ddb871a38cd6476e5cdcccac5cbf999e3ef72a522347e4
+    path: docs/decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md
+    userRegionHash: sha256:9466072ea7995effa2ddb871a38cd6476e5cdcccac5cbf999e3ef72a522347e4
+profile: decision_record
+recordId: knormdoc_e51cec5faf09905d7b0ae5a4
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:46325b2cdbe9f580693f27977b5946271e8634079f2c8f4d89c9a9e6f720c964
+sourcePath: docs/decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md
+sourceUnitVersionIds:
+  - uv_15c124b67b22e3a0419a5488
+  - uv_16d37c434ecbc6bbc2aad516
+  - uv_496ddb471a1b4cefb2621ffb
+  - uv_4e344f1a9b72ea26a0ec01d0
+  - uv_814ea6697ff3f1f41a8cdf61
+  - uv_839663652868de971f7af981
+  - uv_a74b99ce5701945d9b644ce2
+  - uv_da7f15c2dbe741d328d16726

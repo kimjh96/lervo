@@ -6,10 +6,7 @@ import {
   knowledgeCandidateBytes,
   knowledgeSha256,
 } from "./integrity.js";
-import {
-  KnowledgeError,
-  type KnowledgeCandidateArtifact,
-} from "./types.js";
+import { KnowledgeError, type KnowledgeCandidateArtifact } from "./types.js";
 
 export async function verifyKnowledgeCandidateOriginal(input: {
   candidate: KnowledgeCandidate;
@@ -40,7 +37,8 @@ export async function verifyKnowledgeCandidateOriginal(input: {
   }
   if (
     input.candidateArtifact.artifactId !== `art_${input.candidateArtifact.contentHash.slice(7)}` ||
-    input.candidateArtifact.uri !== `lervo-cas://sha256/${input.candidateArtifact.contentHash.slice(7)}` ||
+    input.candidateArtifact.uri !==
+      `lervo-cas://sha256/${input.candidateArtifact.contentHash.slice(7)}` ||
     input.candidateArtifact.contentHash !== knowledgeSha256(bytes) ||
     input.candidateArtifact.byteCount !== bytes.byteLength ||
     !Buffer.from(knowledgeCandidateBytes(input.candidate)).equals(Buffer.from(bytes))
@@ -51,12 +49,15 @@ export async function verifyKnowledgeCandidateOriginal(input: {
       "The knowledge candidate object and CAS source coordinates differ.",
     );
   }
-  const matches = input.events.list().filter((event) =>
-    event.type === "knowledge.candidate.created" &&
-    event.payload.candidateId === input.candidate.candidateId &&
-    event.payload.candidateArtifactId === input.candidateArtifact.artifactId &&
-    event.payload.candidateContentHash === input.candidateArtifact.contentHash
-  );
+  const matches = input.events
+    .list()
+    .filter(
+      (event) =>
+        event.type === "knowledge.candidate.created" &&
+        event.payload.candidateId === input.candidate.candidateId &&
+        event.payload.candidateArtifactId === input.candidateArtifact.artifactId &&
+        event.payload.candidateContentHash === input.candidateArtifact.contentHash,
+    );
   if (matches.length !== 1) {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
@@ -71,8 +72,7 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     event.payload.decisionArtifactId !== input.candidate.source.decisionArtifactId ||
     event.payload.verifiedRevision !== input.candidate.verifiedRevision ||
     JSON.stringify(event.payload.paths) !== JSON.stringify(input.candidate.paths) ||
-    JSON.stringify(event.payload.evidenceIds) !==
-      JSON.stringify(input.candidate.evidence.eventIds)
+    JSON.stringify(event.payload.evidenceIds) !== JSON.stringify(input.candidate.evidence.eventIds)
   ) {
     throw new KnowledgeError(
       "candidate_evidence_invalid",
@@ -88,13 +88,12 @@ export async function verifyKnowledgeCandidateOriginal(input: {
     );
   }
   try {
-    const decisionBytes = await input.artifactStore.get(
-      input.candidate.source.decisionContent.uri,
-    );
+    const decisionBytes = await input.artifactStore.get(input.candidate.source.decisionContent.uri);
     if (
       knowledgeSha256(decisionBytes) !== input.candidate.source.decisionContent.contentHash ||
       decisionBytes.byteLength !== input.candidate.source.decisionContent.byteCount
-    ) throw new Error("decision mismatch");
+    )
+      throw new Error("decision mismatch");
   } catch (error) {
     throw new KnowledgeError(
       "candidate_evidence_invalid",

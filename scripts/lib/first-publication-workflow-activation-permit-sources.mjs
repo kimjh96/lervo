@@ -1,9 +1,7 @@
 import { isAbsolute, resolve } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import {
-  readFirstPublicationWorkflowActivationSources,
-} from "./first-publication-workflow-activation-sources.mjs";
+import { readFirstPublicationWorkflowActivationSources } from "./first-publication-workflow-activation-sources.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
@@ -35,9 +33,12 @@ function parseCanonicalJson(contents, maximumSize) {
     fail();
   }
   if (
-    value === null || typeof value !== "object" || Array.isArray(value) ||
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
     !contents.equals(Buffer.from(`${JSON.stringify(value, null, 2)}\n`))
-  ) fail();
+  )
+    fail();
   return {
     value,
     snapshot: {
@@ -69,15 +70,19 @@ async function readSources(paths, decisionPath, permitPath) {
     !isAbsolute(paths?.packageManifestPath ?? "") ||
     !isAbsolute(paths?.cliPackageManifestPath ?? "") ||
     !isAbsolute(paths?.workflowPath ?? "")
-  ) fail();
+  )
+    fail();
   const [base, cliPackage, decision, permit] = await Promise.all([
     readFirstPublicationWorkflowActivationSources(paths),
     readExtra(paths.cliPackageManifestPath, maximumJsonBytes),
     readExtra(decisionPath, maximumDecisionBytes),
     permitPath === undefined ? undefined : readExtra(permitPath, maximumDecisionBytes),
   ]);
-  const extras = [cliPackage.snapshot, decision.snapshot,
-    ...(permit === undefined ? [] : [permit.snapshot])];
+  const extras = [
+    cliPackage.snapshot,
+    decision.snapshot,
+    ...(permit === undefined ? [] : [permit.snapshot]),
+  ];
   return {
     packageManifest: base.packageManifest,
     cliPackageManifest: cliPackage.value,
@@ -92,18 +97,12 @@ async function readSources(paths, decisionPath, permitPath) {
       ...(permit === undefined ? {} : { permit: permit.snapshot }),
     },
     assertUnchanged: async () => {
-      await Promise.all([
-        base.assertUnchanged(),
-        assertReleaseFilesUnchanged(extras),
-      ]);
+      await Promise.all([base.assertUnchanged(), assertReleaseFilesUnchanged(extras)]);
     },
   };
 }
 
-export function readFirstPublicationWorkflowActivationPermitSources(
-  paths,
-  decisionPath,
-) {
+export function readFirstPublicationWorkflowActivationPermitSources(paths, decisionPath) {
   return readSources(paths, decisionPath);
 }
 

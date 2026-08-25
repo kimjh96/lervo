@@ -6,16 +6,12 @@ import { absoluteRepositoryPath, readStableFile } from "./filesystem.js";
 import { sha256 } from "./hash.js";
 import { DocumentMigrationError } from "./types.js";
 
-export async function writeDurableExclusive(
-  path: string,
-  bytes: Uint8Array,
-): Promise<void> {
+export async function writeDurableExclusive(path: string, bytes: Uint8Array): Promise<void> {
   let handle;
   try {
     handle = await open(
       path,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL |
-        (constants.O_NOFOLLOW ?? 0),
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
       0o600,
     );
     await handle.writeFile(bytes);
@@ -70,7 +66,7 @@ export async function ensureSafeDirectoryPath(
     current = resolve(current, segment);
     try {
       const stats = await lstat(current);
-      if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath(current) !== current) {
+      if (!stats.isDirectory() || stats.isSymbolicLink() || (await realpath(current)) !== current) {
         throw new DocumentMigrationError(
           "migration_conflict",
           "The migration directory path contains an unsafe entry.",
@@ -85,7 +81,11 @@ export async function ensureSafeDirectoryPath(
       } catch (createError) {
         if ((createError as NodeJS.ErrnoException).code !== "EEXIST") throw createError;
         const stats = await lstat(current);
-        if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath(current) !== current) {
+        if (
+          !stats.isDirectory() ||
+          stats.isSymbolicLink() ||
+          (await realpath(current)) !== current
+        ) {
           throw new DocumentMigrationError(
             "migration_conflict",
             "The migration directory cannot be created safely.",

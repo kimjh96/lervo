@@ -1,13 +1,4 @@
-import {
-  chmod,
-  lstat,
-  mkdir,
-  open,
-  readdir,
-  rename,
-  rmdir,
-  writeFile,
-} from "node:fs/promises";
+import { chmod, lstat, mkdir, open, readdir, rename, rmdir, writeFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
@@ -46,19 +37,24 @@ async function replaceJournal(transactionRoot, journal) {
 function validateInput({ transactionRoot, files, readOnlyFiles = [], plan }) {
   if (
     !isAbsolute(transactionRoot ?? "") ||
-    !Array.isArray(files) || files.length !== 3 ||
-    files.some((file, index) =>
-      !isAbsolute(file?.path ?? "") ||
-      !Buffer.isBuffer(file.outputBytes) ||
-      canonicalJson(file.binding) !== canonicalJson(plan.files[index])
+    !Array.isArray(files) ||
+    files.length !== 3 ||
+    files.some(
+      (file, index) =>
+        !isAbsolute(file?.path ?? "") ||
+        !Buffer.isBuffer(file.outputBytes) ||
+        canonicalJson(file.binding) !== canonicalJson(plan.files[index]),
     ) ||
     new Set(files.map(({ path }) => path)).size !== files.length ||
-    !Array.isArray(readOnlyFiles) || readOnlyFiles.length !== plan.readOnlySources.length ||
-    readOnlyFiles.some((file, index) =>
-      !isAbsolute(file?.path ?? "") ||
-      canonicalJson(file.binding?.before) !== canonicalJson(plan.readOnlySources[index])
+    !Array.isArray(readOnlyFiles) ||
+    readOnlyFiles.length !== plan.readOnlySources.length ||
+    readOnlyFiles.some(
+      (file, index) =>
+        !isAbsolute(file?.path ?? "") ||
+        canonicalJson(file.binding?.before) !== canonicalJson(plan.readOnlySources[index]),
     )
-  ) metadataApplyFailed();
+  )
+    metadataApplyFailed();
 }
 
 export async function applyFirstPublicationPackageMetadataFiles(input, dependencies = {}) {
@@ -71,11 +67,13 @@ export async function applyFirstPublicationPackageMetadataFiles(input, dependenc
   );
   let targetModes;
   try {
-    targetModes = await Promise.all(files.map(async ({ path }) => {
-      const metadata = await lstat(path);
-      if (!metadata.isFile()) metadataApplySourceChanged();
-      return metadata.mode & 0o777;
-    }));
+    targetModes = await Promise.all(
+      files.map(async ({ path }) => {
+        const metadata = await lstat(path);
+        if (!metadata.isFile()) metadataApplySourceChanged();
+        return metadata.mode & 0o777;
+      }),
+    );
   } catch (error) {
     if (error instanceof FirstPublicationBootstrapError) throw error;
     metadataApplySourceChanged();

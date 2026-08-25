@@ -21,7 +21,8 @@ export function parseFirstPublicationPackageMetadataApplyArguments(args) {
         (name === "--write" && write) ||
         (name === "--recover" && recover) ||
         (name === "--json" && json)
-      ) fail();
+      )
+        fail();
       if (name === "--write") write = true;
       if (name === "--recover") recover = true;
       if (name === "--json") json = true;

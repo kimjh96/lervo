@@ -56,17 +56,19 @@ function makeCommand(changes: CommandChanges = {}): RemoteCommand {
   });
 }
 
-function setup(options: {
-  command?: RemoteCommand;
-  signerProjects?: RemoteCommandTarget[];
-  receiverTarget?: RemoteCommandTarget;
-  now?: () => string;
-  policy?: () => Promise<RemoteCommandPolicyDecision>;
-  payload?: () => Promise<Uint8Array>;
-  execute?: (request: string) => Promise<{ runId: string; completedAt: string }>;
-  replayStore?: InMemoryRemoteCommandReplayStore;
-  trustStore?: RemoteCommandTrustStore;
-} = {}) {
+function setup(
+  options: {
+    command?: RemoteCommand;
+    signerProjects?: RemoteCommandTarget[];
+    receiverTarget?: RemoteCommandTarget;
+    now?: () => string;
+    policy?: () => Promise<RemoteCommandPolicyDecision>;
+    payload?: () => Promise<Uint8Array>;
+    execute?: (request: string) => Promise<{ runId: string; completedAt: string }>;
+    replayStore?: InMemoryRemoteCommandReplayStore;
+    trustStore?: RemoteCommandTrustStore;
+  } = {},
+) {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
   const signer = new Ed25519RemoteCommandSigner("key_hub_fixture", privateKey);
   const command = options.command ?? makeCommand();
@@ -81,26 +83,40 @@ function setup(options: {
   });
   const executor = vi.fn(async (input: { request: string }) => {
     calls.push("execute");
-    return options.execute?.(input.request) ?? {
-      runId: "run_remote_fixture",
-      completedAt: "2026-08-19T00:01:00.000Z",
-    };
+    return (
+      options.execute?.(input.request) ?? {
+        runId: "run_remote_fixture",
+        completedAt: "2026-08-19T00:01:00.000Z",
+      }
+    );
   });
   const replayStore = options.replayStore ?? new InMemoryRemoteCommandReplayStore();
   const receiver = new RemoteCommandReceiver({
     target: options.receiverTarget ?? target,
-    trustStore: options.trustStore ?? new ConfiguredEd25519RemoteCommandTrustStore([{
-      keyId: signer.keyId,
-      publicKey,
-      projects: options.signerProjects ?? [target],
-    }]),
+    trustStore:
+      options.trustStore ??
+      new ConfiguredEd25519RemoteCommandTrustStore([
+        {
+          keyId: signer.keyId,
+          publicKey,
+          projects: options.signerProjects ?? [target],
+        },
+      ]),
     replayStore,
     policy: { authorize: policy },
     payloadLoader: { load: payloadLoader },
     executor: { execute: (input) => executor({ request: input.request }) },
     clock: { now: options.now ?? (() => "2026-08-19T00:01:00.000Z") },
   });
-  return { calls, command, envelope: signer.sign(command), executor, payloadLoader, policy, receiver };
+  return {
+    calls,
+    command,
+    envelope: signer.sign(command),
+    executor,
+    payloadLoader,
+    policy,
+    receiver,
+  };
 }
 
 describe("signed remote command local receiver", () => {
@@ -166,9 +182,10 @@ describe("signed remote command local receiver", () => {
   it("does not reserve a policy-denied command, so a later approved retry can execute", async () => {
     let approved = false;
     const fixture = setup({
-      policy: async () => approved
-        ? { status: "approved" }
-        : { status: "denied", reasonCode: "manual_confirmation_required" },
+      policy: async () =>
+        approved
+          ? { status: "approved" }
+          : { status: "denied", reasonCode: "manual_confirmation_required" },
     });
 
     await expect(fixture.receiver.handle(fixture.envelope)).rejects.toMatchObject({
@@ -182,7 +199,11 @@ describe("signed remote command local receiver", () => {
   });
 
   it("stores payload and execution failures as terminal receipts without leaking details", async () => {
-    const unavailable = setup({ payload: async () => { throw new Error("artifact secret"); } });
+    const unavailable = setup({
+      payload: async () => {
+        throw new Error("artifact secret");
+      },
+    });
     const unavailableResult = await unavailable.receiver.handle(unavailable.envelope);
     expect(unavailableResult.receipt).toMatchObject({
       outcome: "failed",
@@ -198,7 +219,11 @@ describe("signed remote command local receiver", () => {
     expect(payloadFailure.payloadLoader).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(first)).not.toContain(requestText);
 
-    const executionFailure = setup({ execute: async () => { throw new Error("secret detail"); } });
+    const executionFailure = setup({
+      execute: async () => {
+        throw new Error("secret detail");
+      },
+    });
     const failed = await executionFailure.receiver.handle(executionFailure.envelope);
     const failedRetry = await executionFailure.receiver.handle(executionFailure.envelope);
     expect(failed.receipt).toMatchObject({ outcome: "failed", failureCode: "execution_failed" });
@@ -244,9 +269,13 @@ describe("signed remote command local receiver", () => {
 
   it("allows only one concurrent execution for the same command", async () => {
     let release!: () => void;
-    const waiting = new Promise<void>((resolve) => { release = resolve; });
+    const waiting = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     let started!: () => void;
-    const executionStarted = new Promise<void>((resolve) => { started = resolve; });
+    const executionStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
     const fixture = setup({
       execute: async () => {
         started();
@@ -270,10 +299,14 @@ describe("signed remote command local receiver", () => {
 
   it("makes reservation atomic when two policy checks finish together", async () => {
     let releasePolicy!: () => void;
-    const policyGate = new Promise<void>((resolve) => { releasePolicy = resolve; });
+    const policyGate = new Promise<void>((resolve) => {
+      releasePolicy = resolve;
+    });
     let policyCount = 0;
     let bothPolicies!: () => void;
-    const bothPoliciesStarted = new Promise<void>((resolve) => { bothPolicies = resolve; });
+    const bothPoliciesStarted = new Promise<void>((resolve) => {
+      bothPolicies = resolve;
+    });
     const fixture = setup({
       policy: async () => {
         policyCount += 1;
@@ -290,9 +323,11 @@ describe("signed remote command local receiver", () => {
     const settled = await Promise.allSettled([first, second]);
 
     expect(settled.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-    expect(settled.filter(
-      (result) => result.status === "rejected" && result.reason?.code === "command_in_progress",
-    )).toHaveLength(1);
+    expect(
+      settled.filter(
+        (result) => result.status === "rejected" && result.reason?.code === "command_in_progress",
+      ),
+    ).toHaveLength(1);
     expect(fixture.executor).toHaveBeenCalledTimes(1);
   });
 });

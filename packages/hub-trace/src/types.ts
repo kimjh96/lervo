@@ -52,8 +52,7 @@ export interface HubKnowledgeGraphCursor {
 }
 
 export type HubTraceProjectScope =
-  | { mode: "all" }
-  | { mode: "projects"; projects: HubProjectCoordinate[] };
+  { mode: "all" } | { mode: "projects"; projects: HubProjectCoordinate[] };
 
 export interface HubTracePage<T, Cursor> {
   items: T[];

@@ -4,16 +4,13 @@ import {
   createFirstPublicationStageResultEvidence,
   validateFirstPublicationStageResultEvidence,
 } from "./first-publication-stage-result-evidence.mjs";
-import { readFirstPublicationStageResultSources } from
-  "./first-publication-stage-result-sources.mjs";
-import { validateWorkflowExecutionCoordinate } from
-  "./first-publication-workflow-execution-contract.mjs";
+import { readFirstPublicationStageResultSources } from "./first-publication-stage-result-sources.mjs";
+import { validateWorkflowExecutionCoordinate } from "./first-publication-workflow-execution-contract.mjs";
 import {
   validateWorkflowReachabilityCommit,
   validateWorkflowReachabilityReleaseTag,
 } from "./first-publication-workflow-reachability-contract.mjs";
-import { observeGitHubStageResultArtifact } from
-  "./github-stage-result-artifact-observer.mjs";
+import { observeGitHubStageResultArtifact } from "./github-stage-result-artifact-observer.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
 function fail(code, message) {
@@ -21,15 +18,7 @@ function fail(code, message) {
 }
 
 export async function createCliFirstPublicationStageResultEvidence(
-  {
-    repository,
-    sourceCommit,
-    releaseTag,
-    runId,
-    attempt,
-    workflowExecutionReportPath,
-    online,
-  },
+  { repository, sourceCommit, releaseTag, runId, attempt, workflowExecutionReportPath, online },
   dependencies = {},
 ) {
   if (online !== true) {
@@ -61,8 +50,7 @@ export async function createCliFirstPublicationStageResultEvidence(
     workflowExecutionReport: sources.workflowExecutionReport,
   };
   assertFirstPublicationStageResultBinding(binding);
-  const observeStageResult = dependencies.observeStageResult ??
-    observeGitHubStageResultArtifact;
+  const observeStageResult = dependencies.observeStageResult ?? observeGitHubStageResultArtifact;
   const stageResultObservation = await observeStageResult({
     repository,
     sourceCommit,

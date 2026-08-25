@@ -52,17 +52,21 @@ function findEndRecord(contents) {
 function readCentralDirectory(contents) {
   const endOffset = findEndRecord(contents);
   if (
-    uint16(contents, endOffset + 4) !== 0 || uint16(contents, endOffset + 6) !== 0 ||
+    uint16(contents, endOffset + 4) !== 0 ||
+    uint16(contents, endOffset + 6) !== 0 ||
     uint16(contents, endOffset + 8) !== stageResultEntryNames.length ||
     uint16(contents, endOffset + 10) !== stageResultEntryNames.length ||
     uint16(contents, endOffset + 20) !== 0
-  ) fail();
+  )
+    fail();
   const centralSize = uint32(contents, endOffset + 12);
   const centralOffset = uint32(contents, endOffset + 16);
   if (
-    centralSize === 0xffffffff || centralOffset === 0xffffffff ||
+    centralSize === 0xffffffff ||
+    centralOffset === 0xffffffff ||
     centralOffset + centralSize !== endOffset
-  ) fail();
+  )
+    fail();
   const entries = [];
   let offset = centralOffset;
   while (offset < endOffset) {
@@ -80,18 +84,29 @@ function readCentralDirectory(contents) {
     const localOffset = uint32(contents, offset + 42);
     const next = offset + 46 + nameLength + extraLength + commentLength;
     if (
-      next > endOffset || nameLength === 0 || (flags & ~allowedFlags) !== 0 ||
-      ![0, 8].includes(method) || disk !== 0 || compressedSize === 0xffffffff ||
-      uncompressedSize === 0xffffffff || uncompressedSize <= 0 ||
-      uncompressedSize > maximumStageResultRecordBytes || localOffset === 0xffffffff
-    ) fail();
+      next > endOffset ||
+      nameLength === 0 ||
+      (flags & ~allowedFlags) !== 0 ||
+      ![0, 8].includes(method) ||
+      disk !== 0 ||
+      compressedSize === 0xffffffff ||
+      uncompressedSize === 0xffffffff ||
+      uncompressedSize <= 0 ||
+      uncompressedSize > maximumStageResultRecordBytes ||
+      localOffset === 0xffffffff
+    )
+      fail();
     const name = decodeName(contents.subarray(offset + 46, offset + 46 + nameLength));
     const unixMode = externalAttributes >>> 16;
     const fileType = unixMode & 0o170000;
     if (
-      !stageResultEntryNames.includes(name) || name.includes("/") || name.includes("\\") ||
-      name.includes("\0") || (fileType !== 0 && fileType !== 0o100000)
-    ) fail();
+      !stageResultEntryNames.includes(name) ||
+      name.includes("/") ||
+      name.includes("\\") ||
+      name.includes("\0") ||
+      (fileType !== 0 && fileType !== 0o100000)
+    )
+      fail();
     entries.push({
       name,
       flags,
@@ -104,9 +119,11 @@ function readCentralDirectory(contents) {
     offset = next;
   }
   if (
-    offset !== endOffset || entries.length !== stageResultEntryNames.length ||
+    offset !== endOffset ||
+    entries.length !== stageResultEntryNames.length ||
     new Set(entries.map(({ name }) => name)).size !== entries.length
-  ) fail();
+  )
+    fail();
   return { entries, centralOffset };
 }
 
@@ -134,19 +151,23 @@ function readEntry(contents, entry, centralOffset) {
   const dataOffset = offset + 30 + nameLength + extraLength;
   const dataEnd = dataOffset + entry.compressedSize;
   if (
-    flags !== entry.flags || method !== entry.method || dataEnd > centralOffset ||
+    flags !== entry.flags ||
+    method !== entry.method ||
+    dataEnd > centralOffset ||
     decodeName(contents.subarray(offset + 30, offset + 30 + nameLength)) !== entry.name ||
-    ((flags & 0x0008) === 0 && (
-      localCrc !== entry.crc || localCompressedSize !== entry.compressedSize ||
-      localUncompressedSize !== entry.uncompressedSize
-    ))
-  ) fail();
+    ((flags & 0x0008) === 0 &&
+      (localCrc !== entry.crc ||
+        localCompressedSize !== entry.compressedSize ||
+        localUncompressedSize !== entry.uncompressedSize))
+  )
+    fail();
   const compressed = contents.subarray(dataOffset, dataEnd);
   let output;
   try {
-    output = method === 0
-      ? Buffer.from(compressed)
-      : inflateRawSync(compressed, { maxOutputLength: maximumStageResultRecordBytes });
+    output =
+      method === 0
+        ? Buffer.from(compressed)
+        : inflateRawSync(compressed, { maxOutputLength: maximumStageResultRecordBytes });
   } catch {
     fail();
   }
@@ -160,7 +181,8 @@ function readEntry(contents, entry, centralOffset) {
       uint32(contents, descriptorOffset) !== entry.crc ||
       uint32(contents, descriptorOffset + 4) !== entry.compressedSize ||
       uint32(contents, descriptorOffset + 8) !== entry.uncompressedSize
-    ) fail();
+    )
+      fail();
     recordEnd = descriptorOffset + 12;
   }
   return { output, recordEnd };
@@ -168,11 +190,13 @@ function readEntry(contents, entry, centralOffset) {
 
 export function readBoundedStageResultArchive(contents, expectedDigest) {
   if (
-    !Buffer.isBuffer(contents) || contents.length <= 0 ||
+    !Buffer.isBuffer(contents) ||
+    contents.length <= 0 ||
     contents.length > maximumStageResultArchiveBytes ||
     !/^sha256:[a-f0-9]{64}$/u.test(expectedDigest ?? "") ||
     sha256(contents) !== expectedDigest
-  ) fail("first_publication_stage_result_archive_digest_mismatch");
+  )
+    fail("first_publication_stage_result_archive_digest_mismatch");
   const { entries, centralOffset } = readCentralDirectory(contents);
   const ranges = [];
   const documents = new Map();
@@ -189,9 +213,11 @@ export function readBoundedStageResultArchive(contents, expectedDigest) {
   }
   ranges.sort(([left], [right]) => left - right);
   if (
-    ranges[0][0] !== 0 || ranges.at(-1)[1] !== centralOffset ||
+    ranges[0][0] !== 0 ||
+    ranges.at(-1)[1] !== centralOffset ||
     ranges.some((range, index) => index > 0 && range[0] !== ranges[index - 1][1])
-  ) fail();
+  )
+    fail();
   return {
     archive: { byteCount: contents.length, sha256: expectedDigest },
     attempt: documents.get("attempt.json"),

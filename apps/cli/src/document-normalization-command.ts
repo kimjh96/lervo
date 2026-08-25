@@ -20,12 +20,16 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 
-const usage = "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
+const usage =
+  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
 
-function approvals(values: string[] | undefined): Array<{ operationId: string; approvalHash: string }> {
+function approvals(
+  values: string[] | undefined,
+): Array<{ operationId: string; approvalHash: string }> {
   return (values ?? []).map((value) => {
     const match = /^(knormop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(value);
-    if (match === null) throw new Error("--approve-item must use <normalization-operation-id>=<approval-hash>.");
+    if (match === null)
+      throw new Error("--approve-item must use <normalization-operation-id>=<approval-hash>.");
     return { operationId: match[1]!, approvalHash: match[2]! };
   });
 }
@@ -56,11 +60,15 @@ function formatPlan(plan: DocumentNormalizationPlan, artifactPath: string): stri
   ];
   for (const item of plan.items) {
     lines.push(`  ${item.sourcePath} (${item.profile})`);
-    for (const output of item.outputs) lines.push(`    -> ${output.path} · ${output.byteCount} bytes · ${output.contentHash}`);
+    for (const output of item.outputs)
+      lines.push(`    -> ${output.path} · ${output.byteCount} bytes · ${output.contentHash}`);
     lines.push(`    approval: ${item.operationId}=${item.approvalHash}`);
   }
   for (const blocker of plan.blockers) lines.push(`  blocker [${blocker.code}] ${blocker.path}`);
-  if (plan.status === "review_required") lines.push("No repository document has been changed. Review the stored candidate bytes, then apply this plan with every displayed approval.");
+  if (plan.status === "review_required")
+    lines.push(
+      "No repository document has been changed. Review the stored candidate bytes, then apply this plan with every displayed approval.",
+    );
   return `${lines.join("\n")}\n`;
 }
 
@@ -83,12 +91,29 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
         help: { type: "boolean", short: "h" },
       },
     });
-    if (parsed.values.help) { io.stdout(`${usage}\n`); return 0; }
-    if ((parsed.values.provider === undefined) === (parsed.values.candidate === undefined)) throw new Error("Specify exactly one of --provider or --candidate.");
-    if (parsed.values.provider !== undefined && parsed.values.provider !== "codex" && parsed.values.provider !== "claude") throw new Error("--provider must be codex or claude.");
-    if (parsed.values.apply !== undefined && parsed.values.candidate === undefined) throw new Error("Applying normalization requires the stored --candidate ID shown by the planning command.");
-    const timeoutMs = parsed.values["timeout-ms"] === undefined ? undefined : Number(parsed.values["timeout-ms"]);
-    if (timeoutMs !== undefined && (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000)) throw new Error("--timeout-ms must be an integer between 1000 and 600000.");
+    if (parsed.values.help) {
+      io.stdout(`${usage}\n`);
+      return 0;
+    }
+    if ((parsed.values.provider === undefined) === (parsed.values.candidate === undefined))
+      throw new Error("Specify exactly one of --provider or --candidate.");
+    if (
+      parsed.values.provider !== undefined &&
+      parsed.values.provider !== "codex" &&
+      parsed.values.provider !== "claude"
+    )
+      throw new Error("--provider must be codex or claude.");
+    if (parsed.values.apply !== undefined && parsed.values.candidate === undefined)
+      throw new Error(
+        "Applying normalization requires the stored --candidate ID shown by the planning command.",
+      );
+    const timeoutMs =
+      parsed.values["timeout-ms"] === undefined ? undefined : Number(parsed.values["timeout-ms"]);
+    if (
+      timeoutMs !== undefined &&
+      (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000)
+    )
+      throw new Error("--timeout-ms must be an integer between 1000 and 600000.");
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     let candidate;
@@ -110,11 +135,22 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
           compiler,
           signal: controller.signal,
           supplementalSources,
-          onShardProgress: ({ index, total, status }) => {
-            if (parsed.values.json) return;
-            if (status === "started") io.stderr(`normalization shard ${index}/${total}: started\n`);
-            if (status === "cache_hit") io.stderr(`normalization shard ${index}/${total}: reused cached result\n`);
-            if (status === "completed") io.stderr(`normalization shard ${index}/${total}: completed\n`);
+          onShardProgress: ({ index, total, status, documentCount, cachedDocumentCount }) => {
+            const documents = `${documentCount} document${documentCount === 1 ? "" : "s"}`;
+            if (status === "started")
+              io.stderr(`normalization shard ${index}/${total}: started (${documents})\n`);
+            if (status === "cache_hit")
+              io.stderr(
+                `normalization shard ${index}/${total}: reused ${cachedDocumentCount} cached document${cachedDocumentCount === 1 ? "" : "s"}\n`,
+              );
+            if (status === "split_retry")
+              io.stderr(
+                `normalization shard ${index}/${total}: retrying ${documents} individually\n`,
+              );
+            if (status === "completed")
+              io.stderr(
+                `normalization shard ${index}/${total}: completed (${cachedDocumentCount} cached, ${documentCount - cachedDocumentCount} generated)\n`,
+              );
           },
         });
       } finally {
@@ -123,16 +159,37 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       }
       stored = await storeDocumentNormalizationCandidate({ repositoryRoot, candidate });
     } else {
-      candidate = await loadDocumentNormalizationCandidate({ repositoryRoot, candidateId: parsed.values.candidate! });
-      stored = { candidateId: candidate.candidateId, artifactPath: `.lervo/state/knowledge/normalization-candidates/${candidate.candidateId.slice("knorm_".length, "knorm_".length + 2)}/${candidate.candidateId}.json`, artifactHash: "", created: false };
+      candidate = await loadDocumentNormalizationCandidate({
+        repositoryRoot,
+        candidateId: parsed.values.candidate!,
+      });
+      stored = {
+        candidateId: candidate.candidateId,
+        artifactPath: `.lervo/state/knowledge/normalization-candidates/${candidate.candidateId.slice("knorm_".length, "knorm_".length + 2)}/${candidate.candidateId}.json`,
+        artifactHash: "",
+        created: false,
+      };
     }
-    const plan = await createDocumentNormalizationPlan({ repositoryRoot, candidate, now: new Date(), supplementalSources });
+    const plan = await createDocumentNormalizationPlan({
+      repositoryRoot,
+      candidate,
+      now: new Date(),
+      supplementalSources,
+    });
     if (parsed.values.apply === undefined) {
-      if ((parsed.values["approve-item"]?.length ?? 0) > 0) throw new Error("--approve-item must be used with --apply.");
-      io.stdout(parsed.values.json ? `${JSON.stringify(printablePlan(plan, stored.artifactPath), null, 2)}\n` : formatPlan(plan, stored.artifactPath));
+      if ((parsed.values["approve-item"]?.length ?? 0) > 0)
+        throw new Error("--approve-item must be used with --apply.");
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify(printablePlan(plan, stored.artifactPath), null, 2)}\n`
+          : formatPlan(plan, stored.artifactPath),
+      );
       return plan.status === "blocked" ? 1 : 0;
     }
-    if (parsed.values.apply !== plan.planId) throw new Error("The requested plan ID does not match the current document normalization plan.");
+    if (parsed.values.apply !== plan.planId)
+      throw new Error(
+        "The requested plan ID does not match the current document normalization plan.",
+      );
     const storage = await openProjectStorage(repositoryRoot);
     try {
       const eventIdentity = randomUUID().replaceAll("-", "");
@@ -143,20 +200,41 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
         now: new Date(),
         supplementalSources,
         recordApplied: async (applied) => {
-          const validation = await lintRepositoryKnowledge(repositoryRoot, { supplementalSources, allowTransactionPlanId: plan.planId });
-          const rewritesBridgeInputs = plan.items.some((item) => item.sourcePath === "AGENTS.md" || item.sourcePath === "CLAUDE.md");
-          const expectedTransitionCodes = new Set(rewritesBridgeInputs ? ["instruction_bridge_binding_stale"] : []);
-          const blockingIssues = validation.issues.filter((issue) => issue.severity === "error" && !expectedTransitionCodes.has(issue.code));
+          const validation = await lintRepositoryKnowledge(repositoryRoot, {
+            supplementalSources,
+            allowTransactionPlanId: plan.planId,
+          });
+          const rewritesBridgeInputs = plan.items.some(
+            (item) => item.sourcePath === "AGENTS.md" || item.sourcePath === "CLAUDE.md",
+          );
+          const expectedTransitionCodes = new Set(
+            rewritesBridgeInputs ? ["instruction_bridge_binding_stale"] : [],
+          );
+          const blockingIssues = validation.issues.filter(
+            (issue) => issue.severity === "error" && !expectedTransitionCodes.has(issue.code),
+          );
           if (blockingIssues.length > 0) {
-            const summary = blockingIssues.slice(0, 20).map((issue) => `${issue.code}:${issue.path}`).join(", ");
-            throw new RepositoryKnowledgeError("knowledge_lint_failed", `Deterministic lint failed after document normalization: ${summary}`);
+            const summary = blockingIssues
+              .slice(0, 20)
+              .map((issue) => `${issue.code}:${issue.path}`)
+              .join(", ");
+            throw new RepositoryKnowledgeError(
+              "knowledge_lint_failed",
+              `Deterministic lint failed after document normalization: ${summary}`,
+            );
           }
           const stageValidation = {
             ...validation,
             valid: true,
-            issues: validation.issues.map((issue) => expectedTransitionCodes.has(issue.code)
-              ? { ...issue, severity: "warning" as const, message: `${issue.message} Expected until the immediate instruction-bridge refresh.` }
-              : issue),
+            issues: validation.issues.map((issue) =>
+              expectedTransitionCodes.has(issue.code)
+                ? {
+                    ...issue,
+                    severity: "warning" as const,
+                    message: `${issue.message} Expected until the immediate instruction-bridge refresh.`,
+                  }
+                : issue,
+            ),
           };
           const validationHash = sha256(canonicalJson(stageValidation));
           await storage.artifacts.put(canonicalJson(stageValidation));
@@ -169,25 +247,56 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
             occurredAt: applied.appliedAt,
             actor: { kind: "system" },
             schemaVersion: 1,
-            policyVersion: sha256(canonicalJson({ outputLanguage: plan.outputLanguage, formatVersion: plan.formatVersion })),
+            policyVersion: sha256(
+              canonicalJson({
+                outputLanguage: plan.outputLanguage,
+                formatVersion: plan.formatVersion,
+              }),
+            ),
             payload: {
               operation: "normalize_documents",
               planId: plan.planId,
               sourceSnapshotId: plan.sourceSnapshotId,
-              policyHash: sha256(canonicalJson({ outputLanguage: plan.outputLanguage, formatVersion: plan.formatVersion })),
+              policyHash: sha256(
+                canonicalJson({
+                  outputLanguage: plan.outputLanguage,
+                  formatVersion: plan.formatVersion,
+                }),
+              ),
               compilerId: candidate.compiler.compilerId,
               compilerVersion: candidate.compiler.compilerVersion,
               compilerBuildId: candidate.compiler.compilerBuildId,
               approvalDigest: applied.approvalDigest,
               coverage: candidate.coverage,
-              bundleIds: [], createdConceptIds: [], updatedConceptIds: [], deprecatedConceptIds: [], conceptListTruncated: false,
-              resultArtifactId: null, resultArtifactHash: null,
+              bundleIds: [],
+              createdConceptIds: [],
+              updatedConceptIds: [],
+              deprecatedConceptIds: [],
+              conceptListTruncated: false,
+              resultArtifactId: null,
+              resultArtifactHash: null,
               createdCount: applied.created.length,
               updatedCount: applied.updated.length,
               unchangedCount: 0,
               deletedCount: applied.deleted.length,
-              beforeRegistryDigest: sha256(canonicalJson(plan.items.map((item) => ({ pathDigest: sha256(item.sourcePath), hash: item.sourceContentHash })))),
-              afterRegistryDigest: sha256(canonicalJson(plan.items.flatMap((item) => item.outputs.map((output) => ({ pathDigest: sha256(output.path), hash: output.contentHash }))))),
+              beforeRegistryDigest: sha256(
+                canonicalJson(
+                  plan.items.map((item) => ({
+                    pathDigest: sha256(item.sourcePath),
+                    hash: item.sourceContentHash,
+                  })),
+                ),
+              ),
+              afterRegistryDigest: sha256(
+                canonicalJson(
+                  plan.items.flatMap((item) =>
+                    item.outputs.map((output) => ({
+                      pathDigest: sha256(output.path),
+                      hash: output.contentHash,
+                    })),
+                  ),
+                ),
+              ),
               validationReportId: `klint_${validationHash.slice("sha256:".length, "sha256:".length + 24)}`,
               validationReportHash: validationHash,
               appliedAt: applied.appliedAt,
@@ -195,9 +304,15 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
           });
         },
       });
-      io.stdout(parsed.values.json ? `${JSON.stringify(receipt, null, 2)}\n` : `Repository documents normalized.\nplan: ${receipt.planId}\nsource documents: ${receipt.normalizedDocumentCount}\noutput documents: ${receipt.outputDocumentCount}\nRun lervo migrate knowledge again to refresh structural navigation.\n`);
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify(receipt, null, 2)}\n`
+          : `Repository documents normalized.\nplan: ${receipt.planId}\nsource documents: ${receipt.normalizedDocumentCount}\noutput documents: ${receipt.outputDocumentCount}\nRun lervo migrate knowledge again to refresh structural navigation.\n`,
+      );
       return 0;
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
   } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n${usage}\n`);
     return 1;

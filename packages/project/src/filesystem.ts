@@ -61,7 +61,10 @@ export async function readEntry(
         await handle?.close();
       }
     }
-    return { kind: "unsupported", description: "entry that is neither a regular file nor a directory" };
+    return {
+      kind: "unsupported",
+      description: "entry that is neither a regular file nor a directory",
+    };
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {

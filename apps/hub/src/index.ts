@@ -1,4 +1,5 @@
 export * from "./auth.js";
+export * from "./capability-handler.js";
 export * from "./artifact-cleanup-lifecycle.js";
 export * from "./command-handler.js";
 export * from "./command-authoring-handler.js";

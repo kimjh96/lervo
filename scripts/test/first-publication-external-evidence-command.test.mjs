@@ -3,22 +3,24 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { inspectCliFirstPublicationExternalEvidence } from
-  "../lib/cli-first-publication-external-evidence.mjs";
-import { parseFirstPublicationExternalEvidenceArguments } from
-  "../lib/first-publication-external-evidence-cli-arguments.mjs";
-import { formatFirstPublicationExternalEvidenceReport } from
-  "../lib/first-publication-external-evidence-formatter.mjs";
-import { createExternalEvidenceFixture } from
-  "./fixtures/first-publication-external-evidence.mjs";
+import { inspectCliFirstPublicationExternalEvidence } from "../lib/cli-first-publication-external-evidence.mjs";
+import { parseFirstPublicationExternalEvidenceArguments } from "../lib/first-publication-external-evidence-cli-arguments.mjs";
+import { formatFirstPublicationExternalEvidenceReport } from "../lib/first-publication-external-evidence-formatter.mjs";
+import { createExternalEvidenceFixture } from "./fixtures/first-publication-external-evidence.mjs";
 
 const absoluteArguments = [
-  "--receipt", "/tmp/receipt.json",
-  "--post-apply-report", "/tmp/post.json",
-  "--publication-authorization", "/tmp/publication.json",
-  "--license-approval", "/tmp/license.json",
-  "--scope-confirmation", "/tmp/scope.json",
-  "--first-publication-approval", "/tmp/approval.json",
+  "--receipt",
+  "/tmp/receipt.json",
+  "--post-apply-report",
+  "/tmp/post.json",
+  "--publication-authorization",
+  "/tmp/publication.json",
+  "--license-approval",
+  "/tmp/license.json",
+  "--scope-confirmation",
+  "/tmp/scope.json",
+  "--first-publication-approval",
+  "/tmp/approval.json",
   "--online",
 ];
 
@@ -34,24 +36,20 @@ function dependencies(fixture, additions = {}) {
 
 describe("first-publication external requirement evidence command", () => {
   it("requires all absolute inputs and explicit online mode", () => {
-    const parsed = parseFirstPublicationExternalEvidenceArguments([
-      ...absoluteArguments,
-      "--json",
-    ]);
+    const parsed = parseFirstPublicationExternalEvidenceArguments([...absoluteArguments, "--json"]);
     assert.equal(parsed.options.receiptPath, "/tmp/receipt.json");
     assert.equal(parsed.options.scopeConfirmationPath, "/tmp/scope.json");
     assert.equal(parsed.json, true);
     for (const args of [
       absoluteArguments.filter((value) => value !== "--online"),
       absoluteArguments.slice(2),
-      absoluteArguments.map((value) => value === "/tmp/license.json" ? "relative.json" : value),
+      absoluteArguments.map((value) => (value === "/tmp/license.json" ? "relative.json" : value)),
       [...absoluteArguments, "--online"],
       [...absoluteArguments, "--unknown"],
     ]) {
-      assert.throws(
-        () => parseFirstPublicationExternalEvidenceArguments(args),
-        { code: "first_publication_external_evidence_arguments_invalid" },
-      );
+      assert.throws(() => parseFirstPublicationExternalEvidenceArguments(args), {
+        code: "first_publication_external_evidence_arguments_invalid",
+      });
     }
   });
 
@@ -89,20 +87,23 @@ describe("first-publication external requirement evidence command", () => {
     const fixture = await createExternalEvidenceFixture();
     try {
       let observations = 0;
-      await assert.rejects(inspectCliFirstPublicationExternalEvidence(
-        fixture.evidencePaths,
-        fixture.paths,
-        dependencies(fixture, {
-          verifyPostApply: async () => ({
-            ...fixture.documents.postApplyReport,
-            status: "changed",
+      await assert.rejects(
+        inspectCliFirstPublicationExternalEvidence(
+          fixture.evidencePaths,
+          fixture.paths,
+          dependencies(fixture, {
+            verifyPostApply: async () => ({
+              ...fixture.documents.postApplyReport,
+              status: "changed",
+            }),
+            observePackage: async () => {
+              observations += 1;
+              return fixture.packageObservation;
+            },
           }),
-          observePackage: async () => {
-            observations += 1;
-            return fixture.packageObservation;
-          },
-        }),
-      ), { code: "first_publication_external_evidence_post_apply_invalid" });
+        ),
+        { code: "first_publication_external_evidence_post_apply_invalid" },
+      );
       assert.equal(observations, 0);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
@@ -118,16 +119,19 @@ describe("first-publication external requirement evidence command", () => {
         `${JSON.stringify(fixture.documents.licenseApproval, null, 2)}\n`,
       );
       let observations = 0;
-      await assert.rejects(inspectCliFirstPublicationExternalEvidence(
-        fixture.evidencePaths,
-        fixture.paths,
-        dependencies(fixture, {
-          observePackage: async () => {
-            observations += 1;
-            return fixture.packageObservation;
-          },
-        }),
-      ), { code: "first_publication_external_evidence_license_approval_invalid" });
+      await assert.rejects(
+        inspectCliFirstPublicationExternalEvidence(
+          fixture.evidencePaths,
+          fixture.paths,
+          dependencies(fixture, {
+            observePackage: async () => {
+              observations += 1;
+              return fixture.packageObservation;
+            },
+          }),
+        ),
+        { code: "first_publication_external_evidence_license_approval_invalid" },
+      );
       assert.equal(observations, 0);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
@@ -138,18 +142,21 @@ describe("first-publication external requirement evidence command", () => {
     const fixture = await createExternalEvidenceFixture();
     try {
       let checks = 0;
-      await assert.rejects(inspectCliFirstPublicationExternalEvidence(
-        fixture.evidencePaths,
-        fixture.paths,
-        dependencies(fixture, {
-          verifyPostApply: async () => {
-            checks += 1;
-            return checks === 1
-              ? fixture.documents.postApplyReport
-              : { ...fixture.documents.postApplyReport, status: "changed" };
-          },
-        }),
-      ), { code: "first_publication_external_evidence_post_apply_invalid" });
+      await assert.rejects(
+        inspectCliFirstPublicationExternalEvidence(
+          fixture.evidencePaths,
+          fixture.paths,
+          dependencies(fixture, {
+            verifyPostApply: async () => {
+              checks += 1;
+              return checks === 1
+                ? fixture.documents.postApplyReport
+                : { ...fixture.documents.postApplyReport, status: "changed" };
+            },
+          }),
+        ),
+        { code: "first_publication_external_evidence_post_apply_invalid" },
+      );
       assert.equal(checks, 2);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
@@ -159,16 +166,19 @@ describe("first-publication external requirement evidence command", () => {
   it("rejects evidence files changed during observation", async () => {
     const fixture = await createExternalEvidenceFixture();
     try {
-      await assert.rejects(inspectCliFirstPublicationExternalEvidence(
-        fixture.evidencePaths,
-        fixture.paths,
-        dependencies(fixture, {
-          observePackage: async () => {
-            await writeFile(fixture.evidencePaths.licenseApprovalPath, "{}\n");
-            return fixture.packageObservation;
-          },
-        }),
-      ), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        inspectCliFirstPublicationExternalEvidence(
+          fixture.evidencePaths,
+          fixture.paths,
+          dependencies(fixture, {
+            observePackage: async () => {
+              await writeFile(fixture.evidencePaths.licenseApprovalPath, "{}\n");
+              return fixture.packageObservation;
+            },
+          }),
+        ),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

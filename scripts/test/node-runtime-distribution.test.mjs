@@ -15,13 +15,27 @@ import {
 import { sha256 } from "../lib/release-artifact-manifest.mjs";
 
 const roots = [];
-afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
+afterEach(async () =>
+  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
+);
 
 function manifestFixture() {
   const files = [
     { path: "dist/bin.js", kind: "file", size: 1, mode: 0o755, sha256: `sha256:${"a".repeat(64)}` },
-    { path: "package.json", kind: "file", size: 1, mode: 0o644, sha256: `sha256:${"b".repeat(64)}` },
-    { path: "sbom.cdx.json", kind: "file", size: 1, mode: 0o644, sha256: `sha256:${"c".repeat(64)}` },
+    {
+      path: "package.json",
+      kind: "file",
+      size: 1,
+      mode: 0o644,
+      sha256: `sha256:${"b".repeat(64)}`,
+    },
+    {
+      path: "sbom.cdx.json",
+      kind: "file",
+      size: 1,
+      mode: 0o644,
+      sha256: `sha256:${"c".repeat(64)}`,
+    },
   ];
   return createNodeDistributionManifest({
     runtimeVersion: "0.1.0",
@@ -43,10 +57,14 @@ describe("standalone Node runtime distribution contract", () => {
   it("rejects content, platform, and stronger service claims", () => {
     const changed = manifestFixture();
     changed.files[0].size += 1;
-    assert.throws(() => validateNodeDistributionManifest(changed), { code: "node_distribution_manifest_invalid" });
+    assert.throws(() => validateNodeDistributionManifest(changed), {
+      code: "node_distribution_manifest_invalid",
+    });
     const claimed = manifestFixture();
     claimed.claims.serviceActivated = true;
-    assert.throws(() => validateNodeDistributionManifest(claimed), { code: "node_distribution_manifest_invalid" });
+    assert.throws(() => validateNodeDistributionManifest(claimed), {
+      code: "node_distribution_manifest_invalid",
+    });
   });
 
   it("binds the sidecar to one archive name, platform, size, and digest", () => {
@@ -60,7 +78,9 @@ describe("standalone Node runtime distribution contract", () => {
     });
     assert.equal(validateNodeDistributionArtifact(artifact), artifact);
     artifact.archiveFileName = "../escaped.tar.gz";
-    assert.throws(() => validateNodeDistributionArtifact(artifact), { code: "node_distribution_artifact_invalid" });
+    assert.throws(() => validateNodeDistributionArtifact(artifact), {
+      code: "node_distribution_artifact_invalid",
+    });
   });
 
   it("hashes regular files and rejects symlinks escaping the distribution root", async () => {
@@ -69,19 +89,23 @@ describe("standalone Node runtime distribution contract", () => {
     await mkdir(resolve(root, "dist"));
     await writeFile(resolve(root, "dist/bin.js"), "x");
     const info = await stat(resolve(root, "dist/bin.js"));
-    assert.deepEqual(await collectDistributionEntries(root), [{
-      path: "dist/bin.js",
-      kind: "file",
-      size: 1,
-      mode: info.mode & 0o777,
-      sha256: sha256(Buffer.from("x")),
-    }]);
+    assert.deepEqual(await collectDistributionEntries(root), [
+      {
+        path: "dist/bin.js",
+        kind: "file",
+        size: 1,
+        mode: info.mode & 0o777,
+        sha256: sha256(Buffer.from("x")),
+      },
+    ]);
   });
 
   it("rejects a symlink whose normalized target leaves the archive root", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-node-contract-"));
     roots.push(root);
     await symlink("../../outside", resolve(root, "escape"));
-    await assert.rejects(() => collectDistributionEntries(root), { code: "node_distribution_symlink_invalid" });
+    await assert.rejects(() => collectDistributionEntries(root), {
+      code: "node_distribution_symlink_invalid",
+    });
   });
 });

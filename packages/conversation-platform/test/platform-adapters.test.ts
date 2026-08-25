@@ -3,14 +3,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import {
-  DiscordConversationAdapter,
-  type DiscordDeliveryRequest,
-} from "@lervo/adapter-discord";
-import {
-  SlackConversationAdapter,
-  type SlackDeliveryRequest,
-} from "@lervo/adapter-slack";
+import { DiscordConversationAdapter, type DiscordDeliveryRequest } from "@lervo/adapter-discord";
+import { SlackConversationAdapter, type SlackDeliveryRequest } from "@lervo/adapter-slack";
 import { FileSystemCas } from "@lervo/cas";
 import {
   createConversationOutboundMessage,
@@ -24,10 +18,7 @@ import type {
 import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  type ConversationPlatformIdentityPort,
-  storeConversationText,
-} from "../src/index.js";
+import { type ConversationPlatformIdentityPort, storeConversationText } from "../src/index.js";
 
 const roots: string[] = [];
 const now = new Date("2026-08-20T00:00:00Z");
@@ -43,34 +34,39 @@ afterEach(async () => {
 });
 
 function identityPort() {
-  const inbound = vi.fn(async (input: Parameters<ConversationPlatformIdentityPort["mapInbound"]>[0]) => ({
-    projectId: "prj_platform_adapter",
-    conversationId: "cnv_team_general",
-    threadId: input.threadKey === null ? null : "thd_platform_thread",
-    actor: input.actorKindHint === "agent"
-      ? { kind: "agent" as const, participantId: "ptc_external_bot", roleId: "external_bot" }
-      : { kind: "human" as const, participantId: "ptc_external_user", roleId: null },
-    mentions: {
-      roleIds: input.mentionedParticipantKeys.length > 0 ? ["reviewer"] : [],
-      participantIds: input.mentionedParticipantKeys.length > 0 ? ["ptc_lervo_agent"] : [],
-    },
-    replyToEventId: null,
-    automationDepth: input.actorKindHint === "agent" ? 2 : 0,
-  }));
-  const outbound = vi.fn(async (input: Parameters<ConversationPlatformIdentityPort["mapOutbound"]>[0]) =>
-    input.platform === "slack"
-      ? {
-          tenantKey: "T123",
-          conversationKey: "C123",
-          threadKey: "1710000000.000100",
-          replyToMessageKey: "1710000000.000100",
-        }
-      : {
-          tenantKey: "123456789012345678",
-          conversationKey: "223456789012345678",
-          threadKey: null,
-          replyToMessageKey: "323456789012345678",
-        });
+  const inbound = vi.fn(
+    async (input: Parameters<ConversationPlatformIdentityPort["mapInbound"]>[0]) => ({
+      projectId: "prj_platform_adapter",
+      conversationId: "cnv_team_general",
+      threadId: input.threadKey === null ? null : "thd_platform_thread",
+      actor:
+        input.actorKindHint === "agent"
+          ? { kind: "agent" as const, participantId: "ptc_external_bot", roleId: "external_bot" }
+          : { kind: "human" as const, participantId: "ptc_external_user", roleId: null },
+      mentions: {
+        roleIds: input.mentionedParticipantKeys.length > 0 ? ["reviewer"] : [],
+        participantIds: input.mentionedParticipantKeys.length > 0 ? ["ptc_lervo_agent"] : [],
+      },
+      replyToEventId: null,
+      automationDepth: input.actorKindHint === "agent" ? 2 : 0,
+    }),
+  );
+  const outbound = vi.fn(
+    async (input: Parameters<ConversationPlatformIdentityPort["mapOutbound"]>[0]) =>
+      input.platform === "slack"
+        ? {
+            tenantKey: "T123",
+            conversationKey: "C123",
+            threadKey: "1710000000.000100",
+            replyToMessageKey: "1710000000.000100",
+          }
+        : {
+            tenantKey: "123456789012345678",
+            conversationKey: "223456789012345678",
+            threadKey: null,
+            replyToMessageKey: "323456789012345678",
+          },
+  );
   const recordInbound = vi.fn(async () => undefined);
   const record = vi.fn(async () => undefined);
   return {
@@ -82,7 +78,9 @@ function identityPort() {
   };
 }
 
-function permit(content: Awaited<ReturnType<typeof storeConversationText>>): WritingPublicationPermit {
+function permit(
+  content: Awaited<ReturnType<typeof storeConversationText>>,
+): WritingPublicationPermit {
   const value: Omit<WritingPublicationPermit, "permitId"> = {
     schemaVersion: 1,
     surface: "chat",
@@ -129,7 +127,9 @@ async function outbound(input: {
 
 function slackRequest(body: Uint8Array, timestamp: number, secret: string) {
   const signature = `v0=${createHmac("sha256", secret)
-    .update(`v0:${timestamp}:`).update(body).digest("hex")}`;
+    .update(`v0:${timestamp}:`)
+    .update(body)
+    .digest("hex")}`;
   return {
     headers: {
       "X-Slack-Request-Timestamp": String(timestamp),
@@ -160,21 +160,23 @@ describe("authenticated platform conversation adapters", () => {
     });
     const timestamp = Math.floor(now.getTime() / 1_000);
     const rawText = "Please review the deployment risk <@U999>";
-    const body = Buffer.from(JSON.stringify({
-      type: "event_callback",
-      api_app_id: "A123",
-      team_id: "T123",
-      event_id: "Ev-private-1",
-      event_time: timestamp,
-      event: {
-        type: "message",
-        channel: "C123",
-        user: "U123",
-        text: rawText,
-        ts: `${timestamp}.000001`,
-        event_ts: `${timestamp}.000001`,
-      },
-    }));
+    const body = Buffer.from(
+      JSON.stringify({
+        type: "event_callback",
+        api_app_id: "A123",
+        team_id: "T123",
+        event_id: "Ev-private-1",
+        event_time: timestamp,
+        event: {
+          type: "message",
+          channel: "C123",
+          user: "U123",
+          text: rawText,
+          ts: `${timestamp}.000001`,
+          event_ts: `${timestamp}.000001`,
+        },
+      }),
+    );
 
     const accepted = await adapter.receive(slackRequest(body, timestamp, secret));
     expect(accepted.status).toBe("accepted");
@@ -186,39 +188,57 @@ describe("authenticated platform conversation adapters", () => {
     });
     expect(JSON.stringify(accepted.event)).not.toContain("Ev-private-1");
     expect(JSON.stringify(accepted.event)).not.toContain("U123");
-    expect(Buffer.from(await artifactStore.get(
-      `lervo-cas://sha256/${accepted.event.content.contentHash.slice(7)}`,
-    )).toString("utf8")).toBe(rawText);
-    expect(identity.inbound).toHaveBeenCalledWith(expect.objectContaining({
-      tenantKey: "T123",
-      participantKey: "user:U123",
-      mentionedParticipantKeys: ["user:U999"],
-    }));
-    expect(identity.recordInbound).toHaveBeenCalledWith(expect.objectContaining({
-      tenantKey: "T123",
-      conversationKey: "C123",
-      externalMessageKey: `${timestamp}.000001`,
-      eventId: accepted.event.eventId,
-    }));
+    expect(
+      Buffer.from(
+        await artifactStore.get(
+          `lervo-cas://sha256/${accepted.event.content.contentHash.slice(7)}`,
+        ),
+      ).toString("utf8"),
+    ).toBe(rawText);
+    expect(identity.inbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantKey: "T123",
+        participantKey: "user:U123",
+        mentionedParticipantKeys: ["user:U999"],
+      }),
+    );
+    expect(identity.recordInbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantKey: "T123",
+        conversationKey: "C123",
+        externalMessageKey: `${timestamp}.000001`,
+        eventId: accepted.event.eventId,
+      }),
+    );
 
     const replay = await adapter.receive(slackRequest(body, timestamp, secret));
-    expect(replay).toMatchObject({ status: "accepted", event: { eventId: accepted.event.eventId } });
+    expect(replay).toMatchObject({
+      status: "accepted",
+      event: { eventId: accepted.event.eventId },
+    });
     const message = await outbound({ event: accepted.event, artifactStore });
     const receipt = await adapter.deliver(message);
     const retryReceipt = await adapter.deliver(message);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outboundId: message.outboundId,
+        text: "Confirmed. Proceeding to the next verification step.",
+        format: "plain",
+      }),
+    );
+    expect(identity.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantKey: "T123",
+        conversationKey: "C123",
+        sourceEventId: message.sourceEventId,
+        externalMessageKey: "1710000001.000200",
+        automationDepth: 1,
+      }),
+    );
+    expect(receipt).toMatchObject({
       outboundId: message.outboundId,
-      text: "Confirmed. Proceeding to the next verification step.",
-      format: "plain",
-    }));
-    expect(identity.record).toHaveBeenCalledWith(expect.objectContaining({
-      tenantKey: "T123",
-      conversationKey: "C123",
-      sourceEventId: message.sourceEventId,
-      externalMessageKey: "1710000001.000200",
-      automationDepth: 1,
-    }));
-    expect(receipt).toMatchObject({ outboundId: message.outboundId, integrationId: "itg_slack001" });
+      integrationId: "itg_slack001",
+    });
     expect(retryReceipt.deliveryKeyHash).toBe(receipt.deliveryKeyHash);
     expect(send.mock.calls.map(([request]) => request.outboundId)).toEqual([
       message.outboundId,
@@ -239,50 +259,55 @@ describe("authenticated platform conversation adapters", () => {
       delivery: { send: async () => ({ messageTs: "1.1", deliveredAt: now.toISOString() }) },
       now: () => now,
     });
-    expect(() => new SlackConversationAdapter({
-      integrationId: "itg_slack002",
-      apiAppId: "A123",
-      allowedTeamIds: ["T123"],
-      signingSecret: "slack-signing-secret-for-fixture",
-      identity: identity.port,
-      artifactStore,
-      delivery: { send: async () => ({ messageTs: "1.1", deliveredAt: now.toISOString() }) },
-      capabilities: ["message_revisions"],
-    })).toThrow(expect.objectContaining({ code: "invalid_platform_configuration" }));
+    expect(
+      () =>
+        new SlackConversationAdapter({
+          integrationId: "itg_slack002",
+          apiAppId: "A123",
+          allowedTeamIds: ["T123"],
+          signingSecret: "slack-signing-secret-for-fixture",
+          identity: identity.port,
+          artifactStore,
+          delivery: { send: async () => ({ messageTs: "1.1", deliveredAt: now.toISOString() }) },
+          capabilities: ["message_revisions"],
+        }),
+    ).toThrow(expect.objectContaining({ code: "invalid_platform_configuration" }));
     const body = Buffer.from('{"type":"event_callback"}');
-    const challengeBody = Buffer.from(JSON.stringify({
-      type: "url_verification",
-      challenge: "challenge-value",
-    }));
+    const challengeBody = Buffer.from(
+      JSON.stringify({
+        type: "url_verification",
+        challenge: "challenge-value",
+      }),
+    );
     const current = Math.floor(now.getTime() / 1_000);
-    await expect(adapter.receive(slackRequest(
-      challengeBody,
-      current,
-      "slack-signing-secret-for-fixture",
-    ))).resolves.toEqual({ status: "challenge", challenge: "challenge-value" });
-    const wrongTeamBody = Buffer.from(JSON.stringify({
-      type: "event_callback",
-      api_app_id: "A123",
-      team_id: "T999",
-      event_id: "Ev-wrong-team",
-      event: { type: "message", channel: "C123", user: "U123", text: "reject", ts: `${current}.1` },
-    }));
-    await expect(adapter.receive(slackRequest(
-      wrongTeamBody,
-      current,
-      "slack-signing-secret-for-fixture",
-    ))).rejects.toMatchObject({ code: "platform_authentication_failed" });
+    await expect(
+      adapter.receive(slackRequest(challengeBody, current, "slack-signing-secret-for-fixture")),
+    ).resolves.toEqual({ status: "challenge", challenge: "challenge-value" });
+    const wrongTeamBody = Buffer.from(
+      JSON.stringify({
+        type: "event_callback",
+        api_app_id: "A123",
+        team_id: "T999",
+        event_id: "Ev-wrong-team",
+        event: {
+          type: "message",
+          channel: "C123",
+          user: "U123",
+          text: "reject",
+          ts: `${current}.1`,
+        },
+      }),
+    );
+    await expect(
+      adapter.receive(slackRequest(wrongTeamBody, current, "slack-signing-secret-for-fixture")),
+    ).rejects.toMatchObject({ code: "platform_authentication_failed" });
     const stale = Math.floor(now.getTime() / 1_000) - 301;
-    await expect(adapter.receive(slackRequest(
-      body,
-      stale,
-      "slack-signing-secret-for-fixture",
-    ))).rejects.toMatchObject({ code: "platform_authentication_failed" });
-    await expect(adapter.receive(slackRequest(
-      body,
-      current,
-      "different-signing-secret-fixture",
-    ))).rejects.toMatchObject({ code: "platform_authentication_failed" });
+    await expect(
+      adapter.receive(slackRequest(body, stale, "slack-signing-secret-for-fixture")),
+    ).rejects.toMatchObject({ code: "platform_authentication_failed" });
+    await expect(
+      adapter.receive(slackRequest(body, current, "different-signing-secret-fixture")),
+    ).rejects.toMatchObject({ code: "platform_authentication_failed" });
     expect(identity.inbound).not.toHaveBeenCalled();
   });
 
@@ -292,7 +317,8 @@ describe("authenticated platform conversation adapters", () => {
     const verifyDispatch = vi.fn(async ({ sessionHandle }: { sessionHandle: string }) =>
       sessionHandle === "authenticated-session"
         ? { authenticated: true as const }
-        : { authenticated: false as const, reasonCode: "unknown_session" });
+        : { authenticated: false as const, reasonCode: "unknown_session" },
+    );
     const send = vi.fn(async (_request: DiscordDeliveryRequest) => ({
       messageId: "423456789012345678",
       deliveredAt: "2026-08-20T00:00:03.000Z",
@@ -309,25 +335,29 @@ describe("authenticated platform conversation adapters", () => {
       now: () => now,
     });
     const rawText = "Tell me the next step for this change.";
-    const body = Buffer.from(JSON.stringify({
-      op: 0,
-      s: 42,
-      t: "MESSAGE_CREATE",
-      d: {
-        id: "323456789012345678",
-        channel_id: "223456789012345678",
-        guild_id: "123456789012345678",
-        author: { id: "523456789012345678", bot: false },
-        content: rawText,
-        mentions: [{ id: "623456789012345678" }],
-        timestamp: "2026-08-20T00:00:00.000Z",
-      },
-    }));
+    const body = Buffer.from(
+      JSON.stringify({
+        op: 0,
+        s: 42,
+        t: "MESSAGE_CREATE",
+        d: {
+          id: "323456789012345678",
+          channel_id: "223456789012345678",
+          guild_id: "123456789012345678",
+          author: { id: "523456789012345678", bot: false },
+          content: rawText,
+          mentions: [{ id: "623456789012345678" }],
+          timestamp: "2026-08-20T00:00:00.000Z",
+        },
+      }),
+    );
 
-    await expect(adapter.receiveGatewayDispatch({
-      sessionHandle: "unknown-session",
-      body,
-    })).rejects.toMatchObject({ code: "platform_authentication_failed" });
+    await expect(
+      adapter.receiveGatewayDispatch({
+        sessionHandle: "unknown-session",
+        body,
+      }),
+    ).rejects.toMatchObject({ code: "platform_authentication_failed" });
     expect(identity.inbound).not.toHaveBeenCalled();
 
     const accepted = await adapter.receiveGatewayDispatch({
@@ -340,30 +370,46 @@ describe("authenticated platform conversation adapters", () => {
       sessionHandle: "authenticated-session",
       body,
     });
-    expect(replay).toMatchObject({ status: "accepted", event: { eventId: accepted.event.eventId } });
-    expect(verifyDispatch).toHaveBeenCalledWith(expect.objectContaining({
-      applicationId: "999999999999999999",
-      sequence: 42,
-      eventName: "MESSAGE_CREATE",
-    }));
+    expect(replay).toMatchObject({
+      status: "accepted",
+      event: { eventId: accepted.event.eventId },
+    });
+    expect(verifyDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationId: "999999999999999999",
+        sequence: 42,
+        eventName: "MESSAGE_CREATE",
+      }),
+    );
     expect(JSON.stringify(accepted.event)).not.toContain("523456789012345678");
-    expect(Buffer.from(await artifactStore.get(
-      `lervo-cas://sha256/${accepted.event.content.contentHash.slice(7)}`,
-    )).toString("utf8")).toBe(rawText);
+    expect(
+      Buffer.from(
+        await artifactStore.get(
+          `lervo-cas://sha256/${accepted.event.content.contentHash.slice(7)}`,
+        ),
+      ).toString("utf8"),
+    ).toBe(rawText);
 
     const message = await outbound({ event: accepted.event, artifactStore });
     const receipt = await adapter.deliver(message);
     const retryReceipt = await adapter.deliver(message);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({
-      content: "Confirmed. Proceeding to the next verification step.",
-      allowedMentions: "none",
-      enforceIdempotency: true,
-    }));
-    expect(identity.record).toHaveBeenCalledWith(expect.objectContaining({
-      externalMessageKey: "423456789012345678",
-      automationDepth: 1,
-    }));
-    expect(receipt).toMatchObject({ outboundId: message.outboundId, integrationId: "itg_discord01" });
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: "Confirmed. Proceeding to the next verification step.",
+        allowedMentions: "none",
+        enforceIdempotency: true,
+      }),
+    );
+    expect(identity.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalMessageKey: "423456789012345678",
+        automationDepth: 1,
+      }),
+    );
+    expect(receipt).toMatchObject({
+      outboundId: message.outboundId,
+      integrationId: "itg_discord01",
+    });
     expect(retryReceipt.deliveryKeyHash).toBe(receipt.deliveryKeyHash);
     expect(send.mock.calls.map(([request]) => request.outboundId)).toEqual([
       message.outboundId,
@@ -386,23 +432,27 @@ describe("authenticated platform conversation adapters", () => {
       delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
       now: () => now,
     });
-    const body = Buffer.from(JSON.stringify({
-      op: 0,
-      s: 43,
-      t: "MESSAGE_CREATE",
-      d: {
-        id: "323456789012345678",
-        channel_id: "223456789012345678",
-        guild_id: "777777777777777777",
-        author: { id: "523456789012345678", bot: false },
-        content: "out-of-scope message",
-        timestamp: "2026-08-20T00:00:00.000Z",
-      },
-    }));
-    await expect(adapter.receiveGatewayDispatch({
-      sessionHandle: "authenticated-session",
-      body,
-    })).rejects.toMatchObject({ code: "platform_authentication_failed" });
+    const body = Buffer.from(
+      JSON.stringify({
+        op: 0,
+        s: 43,
+        t: "MESSAGE_CREATE",
+        d: {
+          id: "323456789012345678",
+          channel_id: "223456789012345678",
+          guild_id: "777777777777777777",
+          author: { id: "523456789012345678", bot: false },
+          content: "out-of-scope message",
+          timestamp: "2026-08-20T00:00:00.000Z",
+        },
+      }),
+    );
+    await expect(
+      adapter.receiveGatewayDispatch({
+        sessionHandle: "authenticated-session",
+        body,
+      }),
+    ).rejects.toMatchObject({ code: "platform_authentication_failed" });
     expect(verifyDispatch).toHaveBeenCalledOnce();
     expect(identity.inbound).not.toHaveBeenCalled();
   });

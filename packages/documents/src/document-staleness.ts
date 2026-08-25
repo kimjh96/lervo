@@ -1,7 +1,4 @@
-import {
-  validateSchema,
-  type DocumentStalenessResult,
-} from "@lervo/schemas";
+import { validateSchema, type DocumentStalenessResult } from "@lervo/schemas";
 import { validateDocumentManifest } from "@lervo/project";
 
 import { calculateDocumentStalenessResultId } from "./integrity.js";
@@ -52,7 +49,9 @@ export function evaluateDocumentStaleness(
       input.verifiedSnapshot.revision === input.currentSnapshot.revision &&
       !snapshotsHaveSameFiles(input.verifiedSnapshot, input.currentSnapshot)
     ) {
-      invalidStalenessRequest("Repository snapshots with the same revision have different file sets.");
+      invalidStalenessRequest(
+        "Repository snapshots with the same revision have different file sets.",
+      );
     }
   }
 
@@ -61,8 +60,8 @@ export function evaluateDocumentStaleness(
   if (evaluated.milliseconds < verified.milliseconds) {
     invalidStalenessRequest("evaluatedAt cannot be earlier than the document verifiedAt.");
   }
-  const dueMilliseconds = verified.milliseconds +
-    input.manifest.record.reviewIntervalDays * 24 * 60 * 60 * 1000;
+  const dueMilliseconds =
+    verified.milliseconds + input.manifest.record.reviewIntervalDays * 24 * 60 * 60 * 1000;
   if (!Number.isFinite(dueMilliseconds) || Number.isNaN(new Date(dueMilliseconds).getTime())) {
     invalidStalenessRequest("The document review expiration time cannot be calculated.");
   }
@@ -90,9 +89,7 @@ export function evaluateDocumentStaleness(
       reviewStatus,
       revision.documentPath.status,
       revision.connectedPaths.status,
-      ...(managedInputs.signal.status === "not_applicable"
-        ? []
-        : [managedInputs.signal.status]),
+      ...(managedInputs.signal.status === "not_applicable" ? [] : [managedInputs.signal.status]),
     ]),
     verifiedRevision: input.manifest.record.verifiedRevision,
     currentRevision: input.currentSnapshot.revision,

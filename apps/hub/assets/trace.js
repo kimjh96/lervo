@@ -81,7 +81,8 @@ function clearEvents(message = "Select a run to view its events.") {
   selectedRunId = null;
   clearTracePane(ui.eventsList, ui.eventsState, ui.eventsPage, message);
   emptyNavigation("events");
-  ui.eventsHelp.textContent = "Select a run to inspect selection evidence and verification results in order.";
+  ui.eventsHelp.textContent =
+    "Select a run to inspect selection evidence and verification results in order.";
 }
 
 function clearRuns(message = "Select a project to view its runs.") {
@@ -147,15 +148,18 @@ function applyProjectPage(result) {
 async function navigateProjects(direction) {
   if (projectsPager === null) return;
   const pager = projectsPager;
-  await moveCursorPage({
-    pager,
-    prefix: "projects",
-    stateElement: ui.projectsState,
-    loadingMessage: "Loading projects.",
-    isCurrent: () => projectsPager === pager,
-    apply: applyProjectPage,
-    onError: (error) => handleRequestError(ui.projectsState, error),
-  }, direction);
+  await moveCursorPage(
+    {
+      pager,
+      prefix: "projects",
+      stateElement: ui.projectsState,
+      loadingMessage: "Loading projects.",
+      isCurrent: () => projectsPager === pager,
+      apply: applyProjectPage,
+      onError: (error) => handleRequestError(ui.projectsState, error),
+    },
+    direction,
+  );
 }
 
 function applyRunPage(pager, result) {
@@ -197,15 +201,18 @@ async function selectProject(project) {
 async function navigateRuns(direction) {
   if (runsPager === null) return;
   const pager = runsPager;
-  await moveCursorPage({
-    pager,
-    prefix: "runs",
-    stateElement: ui.runsState,
-    loadingMessage: "Loading runs.",
-    isCurrent: () => runsPager === pager,
-    apply: (result) => applyRunPage(pager, result),
-    onError: (error) => handleRequestError(ui.runsState, error),
-  }, direction);
+  await moveCursorPage(
+    {
+      pager,
+      prefix: "runs",
+      stateElement: ui.runsState,
+      loadingMessage: "Loading runs.",
+      isCurrent: () => runsPager === pager,
+      apply: (result) => applyRunPage(pager, result),
+      onError: (error) => handleRequestError(ui.runsState, error),
+    },
+    direction,
+  );
 }
 
 function applyEventPage(pager, result) {
@@ -244,15 +251,18 @@ async function selectRun(run) {
 async function navigateEvents(direction) {
   if (eventsPager === null) return;
   const pager = eventsPager;
-  await moveCursorPage({
-    pager,
-    prefix: "events",
-    stateElement: ui.eventsState,
-    loadingMessage: "Loading events.",
-    isCurrent: () => eventsPager === pager,
-    apply: (result) => applyEventPage(pager, result),
-    onError: (error) => handleRequestError(ui.eventsState, error),
-  }, direction);
+  await moveCursorPage(
+    {
+      pager,
+      prefix: "events",
+      stateElement: ui.eventsState,
+      loadingMessage: "Loading events.",
+      isCurrent: () => eventsPager === pager,
+      apply: (result) => applyEventPage(pager, result),
+      onError: (error) => handleRequestError(ui.eventsState, error),
+    },
+    direction,
+  );
 }
 
 ui.authForm.addEventListener("submit", async (event) => {

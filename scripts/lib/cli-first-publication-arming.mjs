@@ -6,8 +6,7 @@ import {
   validateFirstPublicationArmingAuthorization,
   validateFirstPublicationArmingAuthorizationDocument,
 } from "./first-publication-arming-authorization.mjs";
-import { readFirstPublicationArmingSources } from
-  "./first-publication-arming-sources.mjs";
+import { readFirstPublicationArmingSources } from "./first-publication-arming-sources.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 
 function fail(code = "first_publication_arming_input_invalid") {
@@ -22,7 +21,8 @@ export async function authorizeCliFirstPublicationArming(options, dependencies =
     !isAbsolute(options?.publicationAuthorizationPath ?? "") ||
     !isAbsolute(options?.bootstrapPath ?? "") ||
     !isAbsolute(options?.decisionPath ?? "")
-  ) fail();
+  )
+    fail();
   const readSources = dependencies.readSources ?? readFirstPublicationArmingSources;
   const now = dependencies.now ?? (() => new Date().toISOString());
   const sources = await readSources(options);
@@ -39,10 +39,7 @@ export async function authorizeCliFirstPublicationArming(options, dependencies =
   return armingAuthorization;
 }
 
-export async function writeFirstPublicationArmingAuthorization(
-  outputPath,
-  armingAuthorization,
-) {
+export async function writeFirstPublicationArmingAuthorization(outputPath, armingAuthorization) {
   if (!isAbsolute(outputPath)) fail();
   validateFirstPublicationArmingAuthorizationDocument(armingAuthorization);
   await writeFile(outputPath, `${JSON.stringify(armingAuthorization, null, 2)}\n`, {

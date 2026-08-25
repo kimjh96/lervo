@@ -4,11 +4,31 @@ import { fileURLToPath } from "node:url";
 
 const hangul = /[\u3131-\u318E\uAC00-\uD7A3]/u;
 const textExtensions = new Set([
-  ".c", ".css", ".html", ".js", ".json", ".jsx", ".mjs", ".md", ".mdx",
-  ".toml", ".ts", ".tsx", ".txt", ".yaml", ".yml",
+  ".c",
+  ".css",
+  ".html",
+  ".js",
+  ".json",
+  ".jsx",
+  ".mjs",
+  ".md",
+  ".mdx",
+  ".toml",
+  ".ts",
+  ".tsx",
+  ".txt",
+  ".yaml",
+  ".yml",
 ]);
 const ignoredDirectories = new Set([
-  ".git", ".next", ".turbo", "build", "coverage", "dist", "node_modules", "vendor",
+  ".git",
+  ".next",
+  ".turbo",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+  "vendor",
 ]);
 
 function extension(path) {
@@ -23,16 +43,24 @@ function shouldIgnoreDirectory(path, name) {
 }
 
 function categoryFor(path) {
-  if (path.startsWith("docs/knowledge/") || path.startsWith(".lervo/knowledge/")) return "generated_knowledge";
-  if (path.includes("/test/") || /(?:^|\/)test[^/]*\.[^/]+$/u.test(path) || /\.test\.[^/]+$/u.test(path)) return "test_fixture";
+  if (path.startsWith("docs/knowledge/") || path.startsWith(".lervo/knowledge/"))
+    return "generated_knowledge";
   if (
-    path === "README.md" || path === "AGENTS.md" || path === "CLAUDE.md" ||
-    path.startsWith("docs/") || /(?:^|\/)(?:README|DISTRIBUTION_README)\.md$/u.test(path)
-  ) return "documentation";
+    path.includes("/test/") ||
+    /(?:^|\/)test[^/]*\.[^/]+$/u.test(path) ||
+    /\.test\.[^/]+$/u.test(path)
+  )
+    return "test_fixture";
   if (
-    /^(?:apps|packages)\/[^/]+\/(?:src|assets)\//u.test(path) ||
-    path.startsWith("scripts/")
-  ) return "runtime_surface";
+    path === "README.md" ||
+    path === "AGENTS.md" ||
+    path === "CLAUDE.md" ||
+    path.startsWith("docs/") ||
+    /(?:^|\/)(?:README|DISTRIBUTION_README)\.md$/u.test(path)
+  )
+    return "documentation";
+  if (/^(?:apps|packages)\/[^/]+\/(?:src|assets)\//u.test(path) || path.startsWith("scripts/"))
+    return "runtime_surface";
   if (/\.(?:json|toml|yaml|yml)$/u.test(path)) return "metadata";
   return "other_source";
 }
@@ -40,10 +68,12 @@ function categoryFor(path) {
 async function walk(root, directory = "") {
   const entries = await readdir(resolve(root, directory), { withFileTypes: true });
   const files = [];
-  for (const entry of entries.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0)) {
+  for (const entry of entries.sort((left, right) =>
+    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+  )) {
     const path = directory === "" ? entry.name : `${directory}/${entry.name}`;
     if (entry.isDirectory()) {
-      if (!shouldIgnoreDirectory(path, entry.name)) files.push(...await walk(root, path));
+      if (!shouldIgnoreDirectory(path, entry.name)) files.push(...(await walk(root, path)));
       continue;
     }
     if (entry.isFile() && textExtensions.has(extension(path))) files.push(path);
@@ -61,7 +91,12 @@ export async function auditProductLanguage(repositoryRoot) {
     for (let index = 0; index < lines.length; index += 1) {
       if (hangul.test(lines[index])) lineNumbers.push(index + 1);
     }
-    findings.push({ path, category: categoryFor(path), lineCount: lineNumbers.length, lineNumbers });
+    findings.push({
+      path,
+      category: categoryFor(path),
+      lineCount: lineNumbers.length,
+      lineNumbers,
+    });
   }
   const categories = {};
   for (const finding of findings) {
@@ -89,7 +124,9 @@ function formatReport(report) {
     `Non-English findings: ${report.fileCount} files, ${report.lineCount} lines`,
     "",
   ];
-  for (const [category, counts] of Object.entries(report.categories).sort(([left], [right]) => left.localeCompare(right))) {
+  for (const [category, counts] of Object.entries(report.categories).sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
     lines.push(`- ${category}: ${counts.fileCount} files, ${counts.lineCount} lines`);
   }
   if (report.findings.length > 0) {
@@ -108,7 +145,9 @@ async function main() {
   const unknown = [...args].filter((arg) => arg !== "--json" && arg !== "--strict");
   if (unknown.length > 0) throw new Error(`Unknown option: ${unknown[0]}`);
   const report = await auditProductLanguage(process.cwd());
-  process.stdout.write(args.has("--json") ? `${JSON.stringify(report, null, 2)}\n` : formatReport(report));
+  process.stdout.write(
+    args.has("--json") ? `${JSON.stringify(report, null, 2)}\n` : formatReport(report),
+  );
   if (args.has("--strict") && report.fileCount > 0) process.exitCode = 1;
 }
 

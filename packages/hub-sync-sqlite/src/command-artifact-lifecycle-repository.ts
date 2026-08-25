@@ -33,11 +33,13 @@ function validateClaimWindow(input: {
   validateWorker(input.workerId);
   const claimedAtMs = remoteCommandTimestamp(input.claimedAt, "artifact claimedAt");
   if (
-    !Number.isSafeInteger(input.leaseDurationMs) || input.leaseDurationMs < 1_000 ||
+    !Number.isSafeInteger(input.leaseDurationMs) ||
+    input.leaseDurationMs < 1_000 ||
     input.leaseDurationMs > 5 * 60_000 ||
     (input.limit !== undefined &&
       (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100))
-  ) throw new HubCommandError("invalid_request", "The artifact cleanup claim range is invalid.");
+  )
+    throw new HubCommandError("invalid_request", "The artifact cleanup claim range is invalid.");
   const leaseExpiresAtMs = claimedAtMs + input.leaseDurationMs;
   return {
     claimedAtMs,
@@ -54,7 +56,9 @@ function parseKind(value: string): HubCommandArtifactPurgeKind {
 }
 
 function boundedDeliveryIds(database: DatabaseSync, artifactUri: string): string[] {
-  return database.prepare(`
+  return database
+    .prepare(
+      `
     SELECT authorship.delivery_id
     FROM hub_remote_command_authorships AS authorship
     LEFT JOIN hub_remote_command_artifact_purges AS purge
@@ -62,21 +66,27 @@ function boundedDeliveryIds(database: DatabaseSync, artifactUri: string): string
     WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
     ORDER BY authorship.delivery_id
     LIMIT ?
-  `).all(
-    artifactUri,
-    HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT + 1,
-  ).map((row) => stringField(row, "delivery_id"));
+  `,
+    )
+    .all(artifactUri, HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT + 1)
+    .map((row) => stringField(row, "delivery_id"));
 }
 
 function hasUnpurgedReference(database: DatabaseSync, artifactUri: string): boolean {
-  return database.prepare(`
+  return (
+    database
+      .prepare(
+        `
     SELECT 1
     FROM hub_remote_command_authorships AS authorship
     LEFT JOIN hub_remote_command_artifact_purges AS purge
       ON purge.delivery_id = authorship.delivery_id
     WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
     LIMIT 1
-  `).get(artifactUri) !== undefined;
+  `,
+      )
+      .get(artifactUri) !== undefined
+  );
 }
 
 function parseClaim(row: SQLiteRow): HubCommandArtifactPurgeClaim {
@@ -101,10 +111,12 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
     limit: number;
   }): HubCommandArtifactPurgeClaim[] {
     const window = validateClaimWindow(input);
-    this.database.prepare(
-      "DELETE FROM hub_remote_command_artifact_gc_claims WHERE lease_expires_at_ms <= ?",
-    ).run(window.claimedAtMs);
-    const candidates = this.database.prepare(`
+    this.database
+      .prepare("DELETE FROM hub_remote_command_artifact_gc_claims WHERE lease_expires_at_ms <= ?")
+      .run(window.claimedAtMs);
+    const candidates = this.database
+      .prepare(
+        `
       SELECT authorship.artifact_uri
       FROM hub_remote_command_authorships AS authorship
       JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
@@ -119,21 +131,32 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
       HAVING MAX(retention.retain_until_ms) <= ? AND MAX(command.expires_at_ms) <= ?
       ORDER BY MAX(retention.retain_until_ms), authorship.artifact_uri
       LIMIT ?
-    `).all(window.claimedAtMs, window.claimedAtMs, input.limit);
+    `,
+      )
+      .all(window.claimedAtMs, window.claimedAtMs, input.limit);
     const claims: HubCommandArtifactPurgeClaim[] = [];
     for (const candidate of candidates) {
       const artifactUri = stringField(candidate, "artifact_uri");
       const id = claimId();
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         INSERT INTO hub_remote_command_artifact_gc_claims (
           artifact_uri, claim_id, kind, worker_id, observed_modified_at,
           observed_modified_at_ms, claimed_at, claimed_at_ms,
           lease_expires_at, lease_expires_at_ms
         ) VALUES (?, ?, 'expired', ?, NULL, NULL, ?, ?, ?, ?)
-      `).run(
-        artifactUri, id, input.workerId, input.claimedAt, window.claimedAtMs,
-        window.leaseExpiresAt, window.leaseExpiresAtMs,
-      );
+      `,
+        )
+        .run(
+          artifactUri,
+          id,
+          input.workerId,
+          input.claimedAt,
+          window.claimedAtMs,
+          window.leaseExpiresAt,
+          window.leaseExpiresAtMs,
+        );
       claims.push({
         claimId: id,
         kind: "expired",
@@ -161,25 +184,44 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
     if (!URI_PATTERN.test(input.artifactUri) || observedModifiedAtMs > window.claimedAtMs) {
       throw new HubCommandError("invalid_request", "The orphan artifact observation is invalid.");
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       DELETE FROM hub_remote_command_artifact_gc_claims
       WHERE artifact_uri = ? AND lease_expires_at_ms <= ?
-    `).run(input.artifactUri, window.claimedAtMs);
-    const active = this.database.prepare(`
+    `,
+      )
+      .run(input.artifactUri, window.claimedAtMs);
+    const active = this.database
+      .prepare(
+        `
       SELECT claim_id FROM hub_remote_command_artifact_gc_claims WHERE artifact_uri = ?
-    `).get(input.artifactUri);
+    `,
+      )
+      .get(input.artifactUri);
     if (active !== undefined || hasUnpurgedReference(this.database, input.artifactUri)) return null;
     const id = claimId();
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_remote_command_artifact_gc_claims (
         artifact_uri, claim_id, kind, worker_id, observed_modified_at,
         observed_modified_at_ms, claimed_at, claimed_at_ms,
         lease_expires_at, lease_expires_at_ms
       ) VALUES (?, ?, 'orphan', ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      input.artifactUri, id, input.workerId, input.observedModifiedAt, observedModifiedAtMs,
-      input.claimedAt, window.claimedAtMs, window.leaseExpiresAt, window.leaseExpiresAtMs,
-    );
+    `,
+      )
+      .run(
+        input.artifactUri,
+        id,
+        input.workerId,
+        input.observedModifiedAt,
+        observedModifiedAtMs,
+        input.claimedAt,
+        window.claimedAtMs,
+        window.leaseExpiresAt,
+        window.leaseExpiresAtMs,
+      );
     return {
       claimId: id,
       kind: "orphan",
@@ -198,30 +240,44 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
   } {
     validateWorker(input.workerId);
     const completedAtMs = remoteCommandTimestamp(input.completedAt, "artifact completedAt");
-    const prior = this.database.prepare(`
+    const prior = this.database
+      .prepare(
+        `
       SELECT kind, completion_status, purged_delivery_count
       FROM hub_remote_command_artifact_gc_completions WHERE claim_id = ? AND worker_id = ?
-    `).get(input.claimId, input.workerId);
-    if (prior !== undefined) return {
-      status: "duplicate",
-      kind: parseKind(stringField(prior, "kind")),
-      purgedDeliveryCount: integerField(prior, "purged_delivery_count"),
-      continuationRecommended: stringField(prior, "completion_status") === "partial",
-    };
-    const row = this.database.prepare(`
+    `,
+      )
+      .get(input.claimId, input.workerId);
+    if (prior !== undefined)
+      return {
+        status: "duplicate",
+        kind: parseKind(stringField(prior, "kind")),
+        purgedDeliveryCount: integerField(prior, "purged_delivery_count"),
+        continuationRecommended: stringField(prior, "completion_status") === "partial",
+      };
+    const row = this.database
+      .prepare(
+        `
       SELECT * FROM hub_remote_command_artifact_gc_claims
       WHERE claim_id = ? AND worker_id = ?
         AND claimed_at_ms <= ? AND lease_expires_at_ms >= ?
-    `).get(input.claimId, input.workerId, completedAtMs, completedAtMs);
+    `,
+      )
+      .get(input.claimId, input.workerId, completedAtMs, completedAtMs);
     if (row === undefined) {
-      throw new HubCommandError("artifact_cleanup_conflict", "The artifact cleanup claim is missing or expired.");
+      throw new HubCommandError(
+        "artifact_cleanup_conflict",
+        "The artifact cleanup claim is missing or expired.",
+      );
     }
     const claim = parseClaim(row);
     const ids = boundedDeliveryIds(this.database, claim.artifactUri);
     let completionStatus: "completed" | "partial" = "completed";
     let purgedIds = ids;
     if (claim.kind === "expired") {
-      const blocked = this.database.prepare(`
+      const blocked = this.database
+        .prepare(
+          `
         SELECT COUNT(*) AS count
         FROM hub_remote_command_authorships AS authorship
         JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
@@ -231,15 +287,22 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
           ON purge.delivery_id = authorship.delivery_id
         WHERE authorship.artifact_uri = ? AND purge.delivery_id IS NULL
           AND (retention.retain_until_ms > ? OR command.expires_at_ms > ?)
-      `).get(claim.artifactUri, completedAtMs, completedAtMs);
+      `,
+        )
+        .get(claim.artifactUri, completedAtMs, completedAtMs);
       if (integerField(blocked!, "count") !== 0 || ids.length === 0) {
-        throw new HubCommandError("artifact_cleanup_conflict", "The artifact retention condition changed during cleanup.");
+        throw new HubCommandError(
+          "artifact_cleanup_conflict",
+          "The artifact retention condition changed during cleanup.",
+        );
       }
       if (ids.length > HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT) {
         completionStatus = "partial";
         purgedIds = ids.slice(0, HUB_COMMAND_ARTIFACT_PURGE_BATCH_LIMIT);
       }
-      const pendingSince = this.database.prepare(`
+      const pendingSince = this.database
+        .prepare(
+          `
         SELECT MAX(partial.completed_at_ms) AS pending_since
         FROM hub_remote_command_artifact_gc_completions AS partial
         WHERE partial.artifact_uri = ? AND partial.completion_status = 'partial'
@@ -249,11 +312,18 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
               AND completed.completion_status = 'completed'
               AND completed.completed_at_ms >= partial.completed_at_ms
           )
-      `).get(claim.artifactUri)?.pending_since;
+      `,
+        )
+        .get(claim.artifactUri)?.pending_since;
       if (
-        completionStatus === "completed" && typeof pendingSince === "number" &&
+        completionStatus === "completed" &&
+        typeof pendingSince === "number" &&
         completedAtMs < pendingSince
-      ) throw new HubCommandError("artifact_cleanup_conflict", "The artifact partial-cleanup time moved backwards.");
+      )
+        throw new HubCommandError(
+          "artifact_cleanup_conflict",
+          "The artifact partial-cleanup time moved backwards.",
+        );
       const insert = this.database.prepare(`
         INSERT INTO hub_remote_command_artifact_purges (
           delivery_id, artifact_uri, claim_id, purged_at, purged_at_ms
@@ -263,21 +333,33 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
         insert.run(id, claim.artifactUri, claim.claimId, input.completedAt, completedAtMs);
       }
     } else if (hasUnpurgedReference(this.database, claim.artifactUri)) {
-      throw new HubCommandError("artifact_cleanup_conflict", "A new authorship reference appeared for the orphan artifact.");
+      throw new HubCommandError(
+        "artifact_cleanup_conflict",
+        "A new authorship reference appeared for the orphan artifact.",
+      );
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_remote_command_artifact_gc_completions (
         claim_id, kind, completion_status, artifact_uri, worker_id, purged_delivery_count,
         completed_at, completed_at_ms
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      claim.claimId, claim.kind, completionStatus, claim.artifactUri, claim.workerId,
-      purgedIds.length,
-      input.completedAt, completedAtMs,
-    );
-    this.database.prepare(
-      "DELETE FROM hub_remote_command_artifact_gc_claims WHERE claim_id = ?",
-    ).run(claim.claimId);
+    `,
+      )
+      .run(
+        claim.claimId,
+        claim.kind,
+        completionStatus,
+        claim.artifactUri,
+        claim.workerId,
+        purgedIds.length,
+        input.completedAt,
+        completedAtMs,
+      );
+    this.database
+      .prepare("DELETE FROM hub_remote_command_artifact_gc_claims WHERE claim_id = ?")
+      .run(claim.claimId);
     return {
       status: completionStatus,
       kind: claim.kind,
@@ -289,9 +371,13 @@ export class HubCommandArtifactLifecycleSQLiteRepository {
   release(input: { claimId: string; workerId: string; releasedAt: string }): void {
     validateWorker(input.workerId);
     remoteCommandTimestamp(input.releasedAt, "artifact releasedAt");
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       DELETE FROM hub_remote_command_artifact_gc_claims
       WHERE claim_id = ? AND worker_id = ?
-    `).run(input.claimId, input.workerId);
+    `,
+      )
+      .run(input.claimId, input.workerId);
   }
 }

@@ -39,7 +39,9 @@ const requestBytes = new TextEncoder().encode(requestText);
 
 class MutableClock {
   constructor(public value: string) {}
-  now(): string { return this.value; }
+  now(): string {
+    return this.value;
+  }
 }
 
 class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTransport {
@@ -63,20 +65,22 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
     };
   }
 
-  async pullRemoteCommands(input: Parameters<
-    AuthenticatedRemoteCommandHubTransport["pullRemoteCommands"]
-  >[0]): Promise<unknown> {
+  async pullRemoteCommands(
+    input: Parameters<AuthenticatedRemoteCommandHubTransport["pullRemoteCommands"]>[0],
+  ): Promise<unknown> {
     if (this.offline) throw new Error("fixture Hub offline");
     this.target = structuredClone(input.target);
-    return this.response(await handleRemoteCommandLease({
-      store: this.hub,
-      destinationId: input.destinationId,
-      target: input.target,
-      leasedTo: input.nodeId,
-      leasedAt: input.requestedAt,
-      leaseDurationMs: input.leaseDurationMs,
-      limit: input.limit,
-    }));
+    return this.response(
+      await handleRemoteCommandLease({
+        store: this.hub,
+        destinationId: input.destinationId,
+        target: input.target,
+        leasedTo: input.nodeId,
+        leasedAt: input.requestedAt,
+        leaseDurationMs: input.leaseDurationMs,
+        limit: input.limit,
+      }),
+    );
   }
 
   async acknowledgeRemoteCommand(
@@ -87,14 +91,16 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
       throw new Error("fixture acknowledgement response lost before commit");
     }
     if (this.target === null) throw new Error("fixture target missing");
-    return this.response(await handleRemoteCommandAcknowledgement({
-      store: this.hub,
-      destinationId,
-      target: this.target,
-      leasedTo: nodeId,
-      acknowledgement,
-      confirmedAt: this.clock.value,
-    }));
+    return this.response(
+      await handleRemoteCommandAcknowledgement({
+        store: this.hub,
+        destinationId,
+        target: this.target,
+        leasedTo: nodeId,
+        acknowledgement,
+        confirmedAt: this.clock.value,
+      }),
+    );
   }
 }
 
@@ -141,11 +147,13 @@ function receiver(input: {
 }) {
   return new RemoteCommandReceiver({
     target: input.target,
-    trustStore: new ConfiguredEd25519RemoteCommandTrustStore([{
-      keyId: "key_hub_fixture",
-      publicKey: input.publicKey,
-      projects: [input.target],
-    }]),
+    trustStore: new ConfiguredEd25519RemoteCommandTrustStore([
+      {
+        keyId: "key_hub_fixture",
+        publicKey: input.publicKey,
+        projects: [input.target],
+      },
+    ]),
     replayStore: input.replayStore,
     policy: { authorize: async () => ({ status: "approved" }) },
     payloadLoader: { load: async () => requestBytes },
@@ -256,15 +264,20 @@ describe("durable remote command offline queue and reconnect", () => {
     await hub.close();
 
     const hubDatabase = new DatabaseSync(hubPath);
-    const hubOriginals = hubDatabase.prepare(`
+    const hubOriginals = hubDatabase
+      .prepare(
+        `
       SELECT envelope_json, acknowledgement_json FROM hub_remote_commands
-    `).get();
+    `,
+      )
+      .get();
     expect(JSON.stringify(hubOriginals)).not.toContain(requestText);
     hubDatabase.close();
     const replayDatabase = new DatabaseSync(replayPath);
-    const replayColumns = replayDatabase.prepare(
-      "PRAGMA table_info(remote_command_replay)",
-    ).all().map((row) => row.name);
+    const replayColumns = replayDatabase
+      .prepare("PRAGMA table_info(remote_command_replay)")
+      .all()
+      .map((row) => row.name);
     expect(replayColumns).toEqual([
       "idempotency_key",
       "command_hash",
@@ -272,9 +285,9 @@ describe("durable remote command offline queue and reconnect", () => {
       "reservation_id",
       "receipt_json",
     ]);
-    expect(JSON.stringify(replayDatabase.prepare(
-      "SELECT * FROM remote_command_replay",
-    ).all())).not.toContain(requestText);
+    expect(
+      JSON.stringify(replayDatabase.prepare("SELECT * FROM remote_command_replay").all()),
+    ).not.toContain(requestText);
     replayDatabase.close();
   });
 
@@ -298,14 +311,16 @@ describe("durable remote command offline queue and reconnect", () => {
       queuedAt: "2026-08-19T09:00:10.000+09:00",
     });
 
-    await expect(handleRemoteCommandLease({
-      store: hub,
-      destinationId,
-      target: envelope.command.target,
-      leasedTo: nodeId,
-      leasedAt: "2026-08-19T00:02:00.000Z",
-      leaseDurationMs: 30_000,
-    })).resolves.toEqual([]);
+    await expect(
+      handleRemoteCommandLease({
+        store: hub,
+        destinationId,
+        target: envelope.command.target,
+        leasedTo: nodeId,
+        leasedAt: "2026-08-19T00:02:00.000Z",
+        leaseDurationMs: 30_000,
+      }),
+    ).resolves.toEqual([]);
     await expect(hub.getRemoteCommandDelivery(queued.deliveryId)).resolves.toMatchObject({
       status: "expired",
       attemptCount: 0,
@@ -350,15 +365,17 @@ describe("durable remote command offline queue and reconnect", () => {
     const executor = vi.fn();
     const commandReceiver = receiver({ target, publicKey, replayStore, clock, executor });
 
-    await expect(runRemoteCommandReconnectCycle({
-      destinationId,
-      expectedPeerIdentityHash: peerIdentityHash,
-      nodeId,
-      target,
-      transport,
-      handler: commandReceiver,
-      clock,
-    })).resolves.toMatchObject({
+    await expect(
+      runRemoteCommandReconnectCycle({
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+        nodeId,
+        target,
+        transport,
+        handler: commandReceiver,
+        clock,
+      }),
+    ).resolves.toMatchObject({
       status: "processed",
       acknowledgedCount: 1,
       rejectedCount: 1,

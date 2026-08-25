@@ -1,17 +1,11 @@
-import { validateFirstPublicationArmingAuthorization } from
-  "./first-publication-arming-authorization.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationArmingAuthorization } from "./first-publication-arming-authorization.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationReservation } from
-  "./first-publication-reservation.mjs";
-import { validateStoredFirstPublicationTerminal } from
-  "./first-publication-store-records.mjs";
-import { inspectFirstPublicationPublicRelease } from
-  "./first-publication-public-release-policy.mjs";
+import { validateFirstPublicationReservation } from "./first-publication-reservation.mjs";
+import { validateStoredFirstPublicationTerminal } from "./first-publication-store-records.mjs";
+import { inspectFirstPublicationPublicRelease } from "./first-publication-public-release-policy.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import { validateReleasePublicationAuthorization } from "./release-publication-authorization.mjs";
 
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
 
@@ -66,11 +60,13 @@ export function createFirstPublicationReconciliationReport({
   });
   validateStoredFirstPublicationTerminal(terminal);
   if (
-    terminal.state !== "publication_unknown" || terminal.retry !== "forbidden" ||
+    terminal.state !== "publication_unknown" ||
+    terminal.retry !== "forbidden" ||
     terminal.reservationId !== reservation.reservationId ||
     terminal.reservationDigest !== reservation.reservationDigest ||
     timestamp(observedAt) < timestamp(reservation.reservedAt)
-  ) fail();
+  )
+    fail();
   let release;
   try {
     release = inspectFirstPublicationPublicRelease({

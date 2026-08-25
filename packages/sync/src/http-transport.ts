@@ -12,7 +12,10 @@ import {
 } from "@lervo/sync-contract";
 
 import { readSyncHttpJson } from "./http-json.js";
-import type { AuthenticatedHubTransport, AuthenticatedWorkstreamHubTransport } from "./transport.js";
+import type {
+  AuthenticatedHubTransport,
+  AuthenticatedWorkstreamHubTransport,
+} from "./transport.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 4_194_304;
 const MAXIMUM_HTTP_BYTES = 16_777_216;
@@ -39,8 +42,14 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   const url = new URL(value);
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
-    url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-  ) throw new Error("The Hub synchronization URL must be an HTTPS URL without credentials or a query.");
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
+  )
+    throw new Error(
+      "The Hub synchronization URL must be an HTTPS URL without credentials or a query.",
+    );
   return url;
 }
 
@@ -52,12 +61,9 @@ function byteLimit(value: number | undefined, fallback: number, label: string): 
   return resolved;
 }
 
-function sameTarget(left: RemoteCommandTarget, right: RemoteCommandTarget): boolean {
-  return left.projectId === right.projectId &&
-    left.projectIdentityHash === right.projectIdentityHash;
-}
-
-export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport, AuthenticatedWorkstreamHubTransport {
+export class AuthenticatedHubHttpTransport
+  implements AuthenticatedHubTransport, AuthenticatedWorkstreamHubTransport
+{
   private readonly baseUrl: URL;
   private readonly bearerToken: string;
   private readonly expectedHubIdentityHash: string;
@@ -72,13 +78,15 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport,
   constructor(options: SyncHttpTransportOptions) {
     this.baseUrl = configuredUrl(options.baseUrl, options.allowInsecureHttpForTests === true);
     if (
-      options.bearerToken.length < 32 || options.bearerToken.length > 4_096 ||
+      options.bearerToken.length < 32 ||
+      options.bearerToken.length > 4_096 ||
       !/^[\x21-\x7e]+$/.test(options.bearerToken) ||
       !HASH_PATTERN.test(options.expectedHubIdentityHash) ||
       !DESTINATION_PATTERN.test(options.destinationId) ||
       !PROJECT_PATTERN.test(options.target.projectId) ||
       !HASH_PATTERN.test(options.target.projectIdentityHash)
-    ) throw new Error("The Hub synchronization HTTP transport configuration is invalid.");
+    )
+      throw new Error("The Hub synchronization HTTP transport configuration is invalid.");
     this.bearerToken = options.bearerToken;
     this.expectedHubIdentityHash = options.expectedHubIdentityHash;
     this.destinationId = options.destinationId;
@@ -94,8 +102,11 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport,
       "Hub synchronization HTTP response limit",
     );
     this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-    if (!Number.isSafeInteger(this.requestTimeoutMs) || this.requestTimeoutMs < 10 ||
-      this.requestTimeoutMs > 300_000) {
+    if (
+      !Number.isSafeInteger(this.requestTimeoutMs) ||
+      this.requestTimeoutMs < 10 ||
+      this.requestTimeoutMs > 300_000
+    ) {
       throw new Error("The Hub synchronization HTTP request timeout is invalid.");
     }
     this.request = options.fetch ?? globalThis.fetch;
@@ -112,7 +123,10 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport,
       request.projectIdentityHash !== this.target.projectIdentityHash ||
       request.registrationId !== this.registrationId ||
       request.project.projectId !== this.target.projectId
-    ) throw new Error("The Hub synchronization registration coordinates differ from the transport configuration.");
+    )
+      throw new Error(
+        "The Hub synchronization registration coordinates differ from the transport configuration.",
+      );
     return this.post("registration", request, [200, 201]);
   }
 
@@ -120,8 +134,12 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport,
     assertOutboundEventBatch(batch);
     if (
       batch.destinationId !== this.destinationId ||
-      batch.projectId !== this.target.projectId || batch.registrationId !== this.registrationId
-    ) throw new Error("The Hub synchronization event batch coordinates differ from the transport configuration.");
+      batch.projectId !== this.target.projectId ||
+      batch.registrationId !== this.registrationId
+    )
+      throw new Error(
+        "The Hub synchronization event batch coordinates differ from the transport configuration.",
+      );
     return this.post("event-batches", batch, [200]);
   }
 
@@ -133,7 +151,10 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport,
       request.projectId !== this.target.projectId ||
       request.repositoryIdentityHash !== this.target.projectIdentityHash ||
       request.registrationId !== this.registrationId
-    ) throw new Error("The workstream publication coordinates differ from the transport configuration.");
+    )
+      throw new Error(
+        "The workstream publication coordinates differ from the transport configuration.",
+      );
     return this.requestJson("workstreams", "POST", request, [200, 201]);
   }
 
@@ -173,7 +194,9 @@ export class AuthenticatedHubHttpTransport implements AuthenticatedHubTransport,
         headers: {
           accept: "application/json",
           authorization: `Bearer ${this.bearerToken}`,
-          ...(serialized === undefined ? {} : { "content-type": "application/json; charset=utf-8" }),
+          ...(serialized === undefined
+            ? {}
+            : { "content-type": "application/json; charset=utf-8" }),
         },
         ...(serialized === undefined ? {} : { body: serialized }),
         redirect: "error",

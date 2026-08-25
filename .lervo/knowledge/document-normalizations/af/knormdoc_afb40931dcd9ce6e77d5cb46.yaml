@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_95ce70a591fa9cf6dd526b6e
+outputLanguage: en
+outputs:
+  - byteCount: 4162
+    contentHash: sha256:a83110e72405486e6088fc6f93070190c9b635e98ba7156d85261dd86c4ce2ed
+    path: docs/decisions/execution/orchestration/0016-local-skill-resolution-and-lock.md
+    userRegionHash: sha256:a83110e72405486e6088fc6f93070190c9b635e98ba7156d85261dd86c4ce2ed
+profile: decision_record
+recordId: knormdoc_afb40931dcd9ce6e77d5cb46
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:2652576f244fa12d4d873ac1795a1eeaf184fdf4ff4ca5b1d801b9fbddc83524
+sourcePath: docs/decisions/execution/orchestration/0016-local-skill-resolution-and-lock.md
+sourceUnitVersionIds:
+  - uv_19ec7d2dcbd233ffb0f6244c
+  - uv_4b94e24a77ff4adf3f156e1f
+  - uv_4d231bde7251970e57d32d68
+  - uv_8cefcec0a0a44d4342e19292
+  - uv_a4b5f38eb7c10301631dc78e
+  - uv_aea97fbb1c920a11ba7942f3
+  - uv_b5947efdfcfff30ed77fc01d
+  - uv_e42aaddd21e6f042501c4b70

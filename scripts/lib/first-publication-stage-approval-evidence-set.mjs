@@ -1,7 +1,5 @@
-import { validateFirstPublicationStageApprovalAuthorization } from
-  "./first-publication-stage-approval-authorization.mjs";
-import { validateFirstPublicationStageApprovalDecision } from
-  "./first-publication-stage-approval-decision.mjs";
+import { validateFirstPublicationStageApprovalAuthorization } from "./first-publication-stage-approval-authorization.mjs";
+import { validateFirstPublicationStageApprovalDecision } from "./first-publication-stage-approval-decision.mjs";
 import {
   bindFirstPublicationStageApprovalTerminal,
   validateFirstPublicationStageApprovalAttempt,
@@ -10,8 +8,7 @@ import {
   validateFirstPublicationStageApprovalReconciliationReport,
   validateFirstPublicationStageApprovalReconciliationReportDocument,
 } from "./first-publication-stage-approval-reconciliation.mjs";
-import { validateFirstPublicationStageReviewReportDocument } from
-  "./first-publication-stage-review-report.mjs";
+import { validateFirstPublicationStageReviewReportDocument } from "./first-publication-stage-review-report.mjs";
 
 function observationFromReport(report) {
   return {
@@ -31,14 +28,8 @@ function observationFromReport(report) {
 }
 
 export function validateFirstPublicationStageApprovalEvidenceSet(evidence) {
-  const {
-    reconciliationReport,
-    stageReviewReport,
-    decision,
-    authorization,
-    attempt,
-    terminal,
-  } = evidence ?? {};
+  const { reconciliationReport, stageReviewReport, decision, authorization, attempt, terminal } =
+    evidence ?? {};
   validateFirstPublicationStageReviewReportDocument(stageReviewReport);
   validateFirstPublicationStageApprovalDecision(decision);
   validateFirstPublicationStageApprovalAuthorization(authorization, {
@@ -48,19 +39,14 @@ export function validateFirstPublicationStageApprovalEvidenceSet(evidence) {
   });
   validateFirstPublicationStageApprovalAttempt(attempt);
   bindFirstPublicationStageApprovalTerminal(terminal, attempt);
-  validateFirstPublicationStageApprovalReconciliationReportDocument(
-    reconciliationReport,
-  );
-  validateFirstPublicationStageApprovalReconciliationReport(
-    reconciliationReport,
-    {
-      stageReviewReport,
-      authorization,
-      attempt,
-      terminal,
-      observation: observationFromReport(reconciliationReport),
-      observedAt: reconciliationReport.npm.observedAt,
-    },
-  );
+  validateFirstPublicationStageApprovalReconciliationReportDocument(reconciliationReport);
+  validateFirstPublicationStageApprovalReconciliationReport(reconciliationReport, {
+    stageReviewReport,
+    authorization,
+    attempt,
+    terminal,
+    observation: observationFromReport(reconciliationReport),
+    observedAt: reconciliationReport.npm.observedAt,
+  });
   return evidence;
 }

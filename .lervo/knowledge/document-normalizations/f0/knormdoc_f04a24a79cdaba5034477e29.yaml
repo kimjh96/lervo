@@ -1,0 +1,26 @@
+candidateId: knorm_f41aa97f3640f015e2d32a1c
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6fd70206145973d21499f37c
+outputLanguage: en
+outputs:
+  - byteCount: 3025
+    contentHash: sha256:de38a4d05dd9d3a9ea8a9fb2b7d877cc3d57ab2153df107374deee26211958fc
+    path: docs/decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md
+    userRegionHash: sha256:de38a4d05dd9d3a9ea8a9fb2b7d877cc3d57ab2153df107374deee26211958fc
+profile: decision_record
+recordId: knormdoc_f04a24a79cdaba5034477e29
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:92a0b9b6a63ca54fb02028bf060963255cfb608f834dea1444763e45864ef0eb
+sourcePath: docs/decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md
+sourceUnitVersionIds:
+  - uv_00d3fb26b6fed2c5a0701b70
+  - uv_281cbfd205d0d1feee866548
+  - uv_5f17dbb640874f61561b66be
+  - uv_def5fe6d55668efa01e95ab0

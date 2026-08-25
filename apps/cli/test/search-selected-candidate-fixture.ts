@@ -89,10 +89,12 @@ export async function prepareSelectedSearchCandidate(scope: string) {
     assessedAt: new Date("2026-08-20T10:02:00.000Z"),
     assessor: "human",
     outcome: "accepted",
-    selectedSources: [{
-      sourceKind: candidateAttempt.hits[0]!.sourceKind,
-      sourceId: candidateAttempt.hits[0]!.sourceId,
-    }],
+    selectedSources: [
+      {
+        sourceKind: candidateAttempt.hits[0]!.sourceKind,
+        sourceId: candidateAttempt.hits[0]!.sourceId,
+      },
+    ],
   });
   const store = await LocalSearchObservationStore.open(root);
   await store.recordAttempt(candidateAttempt);

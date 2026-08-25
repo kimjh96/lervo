@@ -8,11 +8,7 @@ import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import { createProjectRegistrationRequest } from "@lervo/sync-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  loadHubRuntimeConfig,
-  openHubRuntime,
-  runHubRuntimeCli,
-} from "../src/index.js";
+import { loadHubRuntimeConfig, openHubRuntime, runHubRuntimeCli } from "../src/index.js";
 import {
   availablePort,
   enableRuntimeTls,
@@ -45,25 +41,34 @@ describe("Hub runtime deployment entrypoint", () => {
       protocol: "https",
     });
 
-    const response = await new Promise<{ status: number | undefined; body: string; protocol: string }>((resolvePromise, reject) => {
-      const request = httpsRequest({
-        hostname: "127.0.0.1",
-        port,
-        path: "/v1/trace/projects",
-        method: "GET",
-        ca: runtimeTlsCertificate,
-        minVersion: "TLSv1.3",
-        headers: { authorization: `Bearer ${runtimeToken}` },
-      }, (incoming) => {
-        const chunks: Buffer[] = [];
-        const protocol = (incoming.socket as TLSSocket).getProtocol() ?? "";
-        incoming.on("data", (chunk: Buffer) => chunks.push(chunk));
-        incoming.on("end", () => resolvePromise({
-          status: incoming.statusCode,
-          body: Buffer.concat(chunks).toString("utf8"),
-          protocol,
-        }));
-      });
+    const response = await new Promise<{
+      status: number | undefined;
+      body: string;
+      protocol: string;
+    }>((resolvePromise, reject) => {
+      const request = httpsRequest(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/v1/trace/projects",
+          method: "GET",
+          ca: runtimeTlsCertificate,
+          minVersion: "TLSv1.3",
+          headers: { authorization: `Bearer ${runtimeToken}` },
+        },
+        (incoming) => {
+          const chunks: Buffer[] = [];
+          const protocol = (incoming.socket as TLSSocket).getProtocol() ?? "";
+          incoming.on("data", (chunk: Buffer) => chunks.push(chunk));
+          incoming.on("end", () =>
+            resolvePromise({
+              status: incoming.statusCode,
+              body: Buffer.concat(chunks).toString("utf8"),
+              protocol,
+            }),
+          );
+        },
+      );
       request.once("error", reject);
       request.end();
     });
@@ -76,22 +81,27 @@ describe("Hub runtime deployment entrypoint", () => {
       identity: string | undefined;
       body: string;
     }>((resolvePromise, reject) => {
-      const request = httpsRequest({
-        hostname: "127.0.0.1",
-        port,
-        path: "/v1/health/ready",
-        method: "GET",
-        ca: runtimeTlsCertificate,
-        minVersion: "TLSv1.3",
-      }, (incoming) => {
-        const chunks: Buffer[] = [];
-        incoming.on("data", (chunk: Buffer) => chunks.push(chunk));
-        incoming.on("end", () => resolvePromise({
-          status: incoming.statusCode,
-          identity: incoming.headers["x-lervo-hub-identity"] as string | undefined,
-          body: Buffer.concat(chunks).toString("utf8"),
-        }));
-      });
+      const request = httpsRequest(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/v1/health/ready",
+          method: "GET",
+          ca: runtimeTlsCertificate,
+          minVersion: "TLSv1.3",
+        },
+        (incoming) => {
+          const chunks: Buffer[] = [];
+          incoming.on("data", (chunk: Buffer) => chunks.push(chunk));
+          incoming.on("end", () =>
+            resolvePromise({
+              status: incoming.statusCode,
+              identity: incoming.headers["x-lervo-hub-identity"] as string | undefined,
+              body: Buffer.concat(chunks).toString("utf8"),
+            }),
+          );
+        },
+      );
       request.once("error", reject);
       request.end();
     });
@@ -130,18 +140,21 @@ describe("Hub runtime deployment entrypoint", () => {
     });
 
     const response = await new Promise<number | undefined>((resolvePromise, reject) => {
-      const request = httpsRequest({
-        hostname: "127.0.0.1",
-        port,
-        path: "/v1/trace/projects",
-        method: "GET",
-        ca: runtimeTlsCertificate,
-        minVersion: "TLSv1.3",
-        headers: { authorization: `Bearer ${runtimeToken}` },
-      }, (incoming) => {
-        incoming.resume();
-        incoming.on("end", () => resolvePromise(incoming.statusCode));
-      });
+      const request = httpsRequest(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/v1/trace/projects",
+          method: "GET",
+          ca: runtimeTlsCertificate,
+          minVersion: "TLSv1.3",
+          headers: { authorization: `Bearer ${runtimeToken}` },
+        },
+        (incoming) => {
+          incoming.resume();
+          incoming.on("end", () => resolvePromise(incoming.statusCode));
+        },
+      );
       request.once("error", reject);
       request.end();
     });
@@ -156,9 +169,12 @@ describe("Hub runtime deployment entrypoint", () => {
     const deployment = await openHubRuntime(await loadHubRuntimeConfig(fixture.configPath));
     await deployment.listen();
     const endpoint = `http://127.0.0.1:${port}/v1/trace/projects`;
-    const status = async (token: string) => (await fetch(endpoint, {
-      headers: { authorization: `Bearer ${token}` },
-    })).status;
+    const status = async (token: string) =>
+      (
+        await fetch(endpoint, {
+          headers: { authorization: `Bearer ${token}` },
+        })
+      ).status;
 
     expect(await status(runtimeToken)).toBe(200);
     expect(await status(rotatedRuntimeToken)).toBe(401);
@@ -170,7 +186,9 @@ describe("Hub runtime deployment entrypoint", () => {
     expect(await status(runtimeToken)).toBe(401);
     expect(await status(rotatedRuntimeToken)).toBe(200);
 
-    await writeFile(resolve(root, "credentials.json"), "private-invalid-credential-json", { mode: 0o600 });
+    await writeFile(resolve(root, "credentials.json"), "private-invalid-credential-json", {
+      mode: 0o600,
+    });
     await expect(deployment.reloadCredentials()).rejects.toMatchObject({
       code: "credential_reload_failed",
     });
@@ -184,7 +202,9 @@ describe("Hub runtime deployment entrypoint", () => {
     const fixture = await runtimeConfigFixture(root, port);
     const signals = new EventEmitter();
     let started!: () => void;
-    const listening = new Promise<void>((resolve) => { started = resolve; });
+    const listening = new Promise<void>((resolve) => {
+      started = resolve;
+    });
     const stdout: string[] = [];
     const stderr: string[] = [];
     const running = runHubRuntimeCli(["--config", fixture.configPath], {
@@ -266,11 +286,13 @@ describe("Hub runtime deployment entrypoint", () => {
     await writeFile(keyPath, secretText);
     await chmod(keyPath, 0o600);
     const stderr: string[] = [];
-    await expect(runHubRuntimeCli(["--config", fixture.configPath], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: (message) => stderr.push(message),
-    })).resolves.toBe(1);
+    await expect(
+      runHubRuntimeCli(["--config", fixture.configPath], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (message) => stderr.push(message),
+      }),
+    ).resolves.toBe(1);
     expect(stderr.join("\n")).toContain("startup_failed");
     expect(stderr.join("\n")).not.toContain(secretText);
   });
@@ -293,11 +315,13 @@ describe("Hub runtime deployment entrypoint", () => {
     await mkdir(resolve(root, "state"), { mode: 0o755 });
     await chmod(resolve(root, "state"), 0o755);
     const stderr: string[] = [];
-    await expect(runHubRuntimeCli(["--config", fixture.configPath], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: (message) => stderr.push(message),
-    })).resolves.toBe(1);
+    await expect(
+      runHubRuntimeCli(["--config", fixture.configPath], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (message) => stderr.push(message),
+      }),
+    ).resolves.toBe(1);
     expect(stderr.join("\n")).toContain("unsafe_runtime_file");
   });
 });

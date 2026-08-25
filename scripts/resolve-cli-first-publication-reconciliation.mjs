@@ -5,10 +5,8 @@ import {
   writeFirstPublicationResolution,
 } from "./lib/cli-first-publication-resolution.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
-import { ReleasePublicationAuthorizationError } from
-  "./lib/release-publication-authorization.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
+import { ReleasePublicationAuthorizationError } from "./lib/release-publication-authorization.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -38,9 +36,12 @@ function parseArguments(args) {
     }
     const value = args[index + 1];
     if (
-      !allowed.includes(name) || values.has(name) || value === undefined ||
+      !allowed.includes(name) ||
+      values.has(name) ||
+      value === undefined ||
       value.startsWith("--")
-    ) failArguments();
+    )
+      failArguments();
     values.set(name, value);
     index += 1;
   }
@@ -71,9 +72,11 @@ try {
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError ||
     error instanceof ReleasePublicationAuthorizationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_resolution_failed: The CLI first-publication result could not be resolved.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_resolution_failed: The CLI first-publication result could not be resolved.",
+    );
   process.exitCode = 1;
 }

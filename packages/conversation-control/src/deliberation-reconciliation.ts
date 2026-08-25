@@ -8,10 +8,7 @@ import type { ConversationDeliberationSummary } from "./types.js";
 import { ConversationControlError } from "./types.js";
 
 export type ConversationDeliberationReconciliationReason =
-  | "active_execution"
-  | "history_incomplete"
-  | "source_inconsistent"
-  | "source_not_found";
+  "active_execution" | "history_incomplete" | "source_inconsistent" | "source_not_found";
 
 export interface ConversationDeliberationReconciliationSourcePort {
   inspect(input: {
@@ -67,12 +64,16 @@ export async function reconcileConversationDeliberation(input: {
     };
   }
   const reconciledAt = (input.now ?? (() => new Date()))().toISOString();
-  const inspected = await input.source.inspect({ job: structuredClone(job), inspectedAt: reconciledAt });
+  const inspected = await input.source.inspect({
+    job: structuredClone(job),
+    inspectedAt: reconciledAt,
+  });
   if (inspected.status === "not_confirmed") return inspected;
   if (
     !conversationDeliberationPatterns.reconciliationSourceKind.test(inspected.sourceKind) ||
     !/^sha256:[a-f0-9]{64}$/u.test(inspected.evidenceHash) ||
-    inspected.summary.status === "running" || inspected.summary.status === "unknown"
+    inspected.summary.status === "running" ||
+    inspected.summary.status === "unknown"
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",

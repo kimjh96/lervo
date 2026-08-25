@@ -1,8 +1,6 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationWorkflowActivationDecision } from
-  "./first-publication-workflow-activation-decision.mjs";
-import { validateFirstPublicationWorkflowActivationCandidate } from
-  "./first-publication-workflow-activation-candidate.mjs";
+import { validateFirstPublicationWorkflowActivationDecision } from "./first-publication-workflow-activation-decision.mjs";
+import { validateFirstPublicationWorkflowActivationCandidate } from "./first-publication-workflow-activation-candidate.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 import {
@@ -63,9 +61,11 @@ export function validateReadyWorkflowActivationReadiness(
   validateReadinessRepository(repository);
   const expected = readyReport({ repository, packageManifest, workflow });
   if (
-    expected.status !== "ready" || report?.status !== "ready" ||
+    expected.status !== "ready" ||
+    report?.status !== "ready" ||
     canonicalJson(report) !== canonicalJson(expected)
-  ) fail("first_publication_workflow_activation_controls_not_ready");
+  )
+    fail("first_publication_workflow_activation_controls_not_ready");
   return report;
 }
 
@@ -94,12 +94,12 @@ function permitBody(input) {
     decision.binding.packageSourceSha256 !== candidate.sources.package.sha256 ||
     decision.binding.workflowSourceSha256 !== candidate.sources.workflow.sha256 ||
     decision.binding.outputSha256 !== candidate.output.sha256
-  ) fail("first_publication_workflow_activation_review_mismatch");
+  )
+    fail("first_publication_workflow_activation_review_mismatch");
   const observed = milliseconds(observedAt);
-  const expiresAt = new Date(Math.min(
-    observed + maximumReadinessLifetimeMilliseconds,
-    milliseconds(decision.expiresAt),
-  )).toISOString();
+  const expiresAt = new Date(
+    Math.min(observed + maximumReadinessLifetimeMilliseconds, milliseconds(decision.expiresAt)),
+  ).toISOString();
   return {
     schemaVersion: 1,
     status: "apply_permitted",
@@ -166,7 +166,8 @@ export function validateFirstPublicationWorkflowActivationPermit(
     if (
       checked < milliseconds(permit.readiness.observedAt) ||
       checked >= milliseconds(permit.readiness.expiresAt)
-    ) fail("first_publication_workflow_activation_permit_expired");
+    )
+      fail("first_publication_workflow_activation_permit_expired");
   }
   return permit;
 }

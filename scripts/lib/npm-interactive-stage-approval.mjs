@@ -42,8 +42,7 @@ function forwardRedacted(stream, output, secret) {
         continue;
       }
       let suffixLength = Math.min(secret.length - 1, value.length);
-      while (suffixLength > 0 &&
-          value.slice(-suffixLength) !== secret.slice(0, suffixLength)) {
+      while (suffixLength > 0 && value.slice(-suffixLength) !== secret.slice(0, suffixLength)) {
         suffixLength -= 1;
       }
       output.write(value.slice(0, value.length - suffixLength));
@@ -66,10 +65,13 @@ function executeInteractive(command, args, options, stageId) {
     });
     forwardRedacted(child.stdout, process.stdout, stageId);
     forwardRedacted(child.stderr, process.stderr, stageId);
-    const timeout = setTimeout(() => {
-      child.kill();
-      reject(new Error("npm stage approval timed out"));
-    }, 10 * 60 * 1000);
+    const timeout = setTimeout(
+      () => {
+        child.kill();
+        reject(new Error("npm stage approval timed out"));
+      },
+      10 * 60 * 1000,
+    );
     child.once("error", (error) => {
       clearTimeout(timeout);
       reject(error);
@@ -83,32 +85,35 @@ function executeInteractive(command, args, options, stageId) {
 }
 
 function matchesExpected(stage, expectedStage) {
-  return stage.idDigest === expectedStage.idDigest &&
+  return (
+    stage.idDigest === expectedStage.idDigest &&
     stage.createdAt === expectedStage.createdAt &&
-    stage.distTag === expectedStage.distTag && stage.shasum === expectedStage.shasum;
+    stage.distTag === expectedStage.distTag &&
+    stage.shasum === expectedStage.shasum
+  );
 }
 
-export async function prepareNpmInteractiveStageApproval({
-  registry,
-  packageName,
-  version,
-  expectedStage,
-  userConfigPath,
-}, {
-  execute = executeFile,
-  runInteractive = executeInteractive,
-  environment = process.env,
-  npmCommand = "npm",
-  stdinIsTTY = process.stdin.isTTY === true,
-  stdoutIsTTY = process.stdout.isTTY === true,
-  stderrIsTTY = process.stderr.isTTY === true,
-} = {}) {
+export async function prepareNpmInteractiveStageApproval(
+  { registry, packageName, version, expectedStage, userConfigPath },
+  {
+    execute = executeFile,
+    runInteractive = executeInteractive,
+    environment = process.env,
+    npmCommand = "npm",
+    stdinIsTTY = process.stdin.isTTY === true,
+    stdoutIsTTY = process.stdout.isTTY === true,
+    stderrIsTTY = process.stderr.isTTY === true,
+  } = {},
+) {
   if (
-    registry !== npmPublicRegistry || packageName !== "@lervo/cli" ||
+    registry !== npmPublicRegistry ||
+    packageName !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(version ?? "") ||
-    !isAbsolute(userConfigPath ?? "") || typeof execute !== "function" ||
+    !isAbsolute(userConfigPath ?? "") ||
+    typeof execute !== "function" ||
     typeof runInteractive !== "function"
-  ) throw new TypeError("npm interactive stage approval input is invalid");
+  )
+    throw new TypeError("npm interactive stage approval input is invalid");
   const reasons = npmStageEnvironmentReasons({
     environment,
     interactive: true,
@@ -116,10 +121,11 @@ export async function prepareNpmInteractiveStageApproval({
     stdoutIsTTY,
     stderrIsTTY,
   });
-  if (reasons.length > 0) fail(
-    "first_publication_stage_approval_environment_blocked",
-    "An interactive terminal, non-automated execution, and absence of environment credentials are required.",
-  );
+  if (reasons.length > 0)
+    fail(
+      "first_publication_stage_approval_environment_blocked",
+      "An interactive terminal, non-automated execution, and absence of environment credentials are required.",
+    );
   let configContents;
   try {
     configContents = await readRegularReleaseFile(userConfigPath, maximumUserConfigBytes);
@@ -167,9 +173,11 @@ export async function prepareNpmInteractiveStageApproval({
     }
     let selected;
     try {
-      const { stdout } = await execute(npmCommand, [
-        "stage", "list", packageName, "--registry", registry, "--json",
-      ], options);
+      const { stdout } = await execute(
+        npmCommand,
+        ["stage", "list", packageName, "--registry", registry, "--json"],
+        options,
+      );
       selected = parseNpmStageList(stdout, version);
     } catch {
       fail("first_publication_stage_approval_stage_unavailable");
@@ -180,9 +188,11 @@ export async function prepareNpmInteractiveStageApproval({
     const readView = async () => {
       let viewed;
       try {
-        const { stdout } = await execute(npmCommand, [
-          "stage", "view", selected.stage.id, "--registry", registry, "--json",
-        ], options);
+        const { stdout } = await execute(
+          npmCommand,
+          ["stage", "view", selected.stage.id, "--registry", registry, "--json"],
+          options,
+        );
         viewed = parseNpmStageView(stdout);
       } catch {
         fail("first_publication_stage_approval_stage_unavailable");
@@ -190,24 +200,31 @@ export async function prepareNpmInteractiveStageApproval({
       if (!sameNpmStage(selected.stage, viewed) || !matchesExpected(viewed, expectedStage)) {
         fail("first_publication_stage_approval_stage_mismatch");
       }
-      await assertReleaseFilesUnchanged([{
-        path: userConfigPath,
-        contents: configContents,
-        maximumSize: maximumUserConfigBytes,
-      }]);
+      await assertReleaseFilesUnchanged([
+        {
+          path: userConfigPath,
+          contents: configContents,
+          maximumSize: maximumUserConfigBytes,
+        },
+      ]);
     };
     await readView();
     return {
       recheck: readView,
       approve: async () => {
-        await runInteractive(npmCommand, [
-          "stage", "approve", selected.stage.id, "--registry", registry,
-        ], options, selected.stage.id);
-        await assertReleaseFilesUnchanged([{
-          path: userConfigPath,
-          contents: configContents,
-          maximumSize: maximumUserConfigBytes,
-        }]);
+        await runInteractive(
+          npmCommand,
+          ["stage", "approve", selected.stage.id, "--registry", registry],
+          options,
+          selected.stage.id,
+        );
+        await assertReleaseFilesUnchanged([
+          {
+            path: userConfigPath,
+            contents: configContents,
+            maximumSize: maximumUserConfigBytes,
+          },
+        ]);
       },
       dispose,
     };

@@ -6,7 +6,8 @@ const sha1Pattern = /^[a-f0-9]{40}$/u;
 const sha256Pattern = /^[a-f0-9]{64}$/u;
 const sha512IntegrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 const sourceDigestPattern = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
-const repositoryPattern = /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?\/[A-Za-z0-9_.-]{1,100}$/u;
+const repositoryPattern =
+  /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?\/[A-Za-z0-9_.-]{1,100}$/u;
 
 export const npmPublicRegistry = "https://registry.npmjs.org/";
 export const cliPublicationDistTags = ["latest", "next"];
@@ -62,14 +63,15 @@ function validateReleaseEvidence(release, artifact) {
   const names = release.subjects.map(({ name }) => name).sort();
   if (
     canonicalJson(names) !== canonicalJson(expectedNames) ||
-    release.subjects.some((subject) =>
-      subject === null ||
-      typeof subject !== "object" ||
-      typeof subject.name !== "string" ||
-      subject.digest === null ||
-      typeof subject.digest !== "object" ||
-      Object.keys(subject.digest).length !== 1 ||
-      !sha256Pattern.test(subject.digest.sha256 ?? "")
+    release.subjects.some(
+      (subject) =>
+        subject === null ||
+        typeof subject !== "object" ||
+        typeof subject.name !== "string" ||
+        subject.digest === null ||
+        typeof subject.digest !== "object" ||
+        Object.keys(subject.digest).length !== 1 ||
+        !sha256Pattern.test(subject.digest.sha256 ?? ""),
     )
   ) {
     fail(

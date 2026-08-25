@@ -26,10 +26,15 @@ export async function reviewLocalSearchCandidate(input: {
     comparisonId: input.comparisonId,
   });
   if (!sameSearchEngine(input.registration.engine.engine, loaded.comparison.candidate.engine)) {
-    throw new SearchLocalError("evaluation_candidate_failed", "The candidate in the comparison source differs from the currently registered engine.");
+    throw new SearchLocalError(
+      "evaluation_candidate_failed",
+      "The candidate in the comparison source differs from the currently registered engine.",
+    );
   }
-  if (loaded.comparison.schemaVersion !== 2 ||
-    loaded.comparison.candidateAdapterBuildId !== input.registration.engine.adapterBuildId) {
+  if (
+    loaded.comparison.schemaVersion !== 2 ||
+    loaded.comparison.candidateAdapterBuildId !== input.registration.engine.adapterBuildId
+  ) {
     throw new SearchLocalError(
       "evaluation_candidate_build_mismatch",
       "The adapter build in the comparison source differs from the currently registered implementation.",

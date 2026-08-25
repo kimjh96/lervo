@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0e7ed71f5e1b7affdb44c371
+outputLanguage: en
+outputs:
+  - byteCount: 3705
+    contentHash: sha256:bca270f03155736f2edbe7d3084d2965f785f0539c27cb70ba69736fcc6ea27a
+    path: docs/decisions/operations/diagnostics/0033-bounded-environment-doctor.md
+    userRegionHash: sha256:bca270f03155736f2edbe7d3084d2965f785f0539c27cb70ba69736fcc6ea27a
+profile: decision_record
+recordId: knormdoc_8d99d401583c97b68131be19
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:7ad3aea542759e5ebd042717003d374920e3b6890903c4605b23f38cbd4d14a9
+sourcePath: docs/decisions/operations/diagnostics/0033-bounded-environment-doctor.md
+sourceUnitVersionIds:
+  - uv_0612fa763a3dd3b5909d7d2e
+  - uv_0deb24a9d9524e862c78fff2
+  - uv_2187009e875fae124e318285
+  - uv_27675bbf7a94771be7a35f9f
+  - uv_4ed30e207c9c016cfef4b82f
+  - uv_721926aa40c733a9986edc65
+  - uv_98c6764c6175c30eb6d647b2
+  - uv_e81158d1313fa8da4f7bfb69

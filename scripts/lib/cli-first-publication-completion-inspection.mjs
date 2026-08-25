@@ -5,8 +5,7 @@ import {
   createFirstPublicationCompletionInspection,
   validateFirstPublicationCompletionInspectionDocument,
 } from "./first-publication-completion-inspection.mjs";
-import { readFirstPublicationCompletionInspectionSources } from
-  "./first-publication-completion-inspection-sources.mjs";
+import { readFirstPublicationCompletionInspectionSources } from "./first-publication-completion-inspection-sources.mjs";
 
 function fail() {
   throw new FirstPublicationBootstrapError(
@@ -19,9 +18,9 @@ export async function inspectCliFirstPublicationCompletion(input, dependencies =
   if (
     !isAbsolute(input?.stageApprovalBundlePath ?? "") ||
     !isAbsolute(input?.transitionReceiptPath ?? "")
-  ) fail();
-  const readSources = dependencies.readSources ??
-    readFirstPublicationCompletionInspectionSources;
+  )
+    fail();
+  const readSources = dependencies.readSources ?? readFirstPublicationCompletionInspectionSources;
   const sources = await readSources(input, dependencies);
   const report = createFirstPublicationCompletionInspection({
     ...sources,

@@ -24,7 +24,12 @@ export const CANDIDATE_ADAPTER_BUILD_ID = contentId("sebuild", {
   revision: 1,
 });
 
-function reviewedCase(query: string, sourceId: string, nonce: string, minute: number): SearchEvaluationCase {
+function reviewedCase(
+  query: string,
+  sourceId: string,
+  nonce: string,
+  minute: number,
+): SearchEvaluationCase {
   const source: SearchSourceInput = {
     kind: "document",
     sourceId,
@@ -55,7 +60,10 @@ function candidateIndex(
   recoveredSourceId: string,
 ): SearchEvaluationIndexPort {
   const lexical = new LexicalSearchIndex(corpus);
-  const indexId = contentId("sidx", { engine: CANDIDATE_ENGINE, corpusDigest: lexical.corpusDigest });
+  const indexId = contentId("sidx", {
+    engine: CANDIDATE_ENGINE,
+    corpusDigest: lexical.corpusDigest,
+  });
   return {
     engine: CANDIDATE_ENGINE,
     indexId,
@@ -64,12 +72,18 @@ function candidateIndex(
       let hits = lexicalResponse.hits;
       if (query === recoveredQuery) {
         const source = corpus.find((item) => item.sourceId === recoveredSourceId)!;
-        hits = [{
-          source: { kind: source.kind, sourceId: source.sourceId, contentHash: source.contentHash },
-          rank: 1,
-          score: 1,
-          matchedFields: ["text"],
-        } satisfies SearchHit];
+        hits = [
+          {
+            source: {
+              kind: source.kind,
+              sourceId: source.sourceId,
+              contentHash: source.contentHash,
+            },
+            rank: 1,
+            score: 1,
+            matchedFields: ["text"],
+          } satisfies SearchHit,
+        ];
       }
       return {
         ...lexicalResponse,
@@ -77,13 +91,15 @@ function candidateIndex(
         indexId,
         ...identifySearchQuery(query),
         hits,
-        resultSetHash: canonicalHash(hits.map((hit) => ({
-          sourceKind: hit.source.kind,
-          sourceId: hit.source.sourceId,
-          contentHash: hit.source.contentHash,
-          rank: hit.rank,
-          score: hit.score,
-        }))),
+        resultSetHash: canonicalHash(
+          hits.map((hit) => ({
+            sourceKind: hit.source.kind,
+            sourceId: hit.source.sourceId,
+            contentHash: hit.source.contentHash,
+            rank: hit.rank,
+            score: hit.score,
+          })),
+        ),
       };
     },
   };
@@ -103,13 +119,33 @@ export async function comparisonFixture(minimumActiveCases = 2, recoverCandidate
   });
   const coverage = createSearchEvaluationCoverage(bundle, cases);
   const corpus: SearchSourceInput[] = [
-    { kind: "document", sourceId: "doc_compare_apple", contentHash: CURRENT_HASH, labels: [], text: "pear" },
-    { kind: "document", sourceId: "doc_compare_banana", contentHash: CURRENT_HASH, labels: [], text: "banana" },
+    {
+      kind: "document",
+      sourceId: "doc_compare_apple",
+      contentHash: CURRENT_HASH,
+      labels: [],
+      text: "pear",
+    },
+    {
+      kind: "document",
+      sourceId: "doc_compare_banana",
+      contentHash: CURRENT_HASH,
+      labels: [],
+      text: "banana",
+    },
   ];
   const evaluatedAt = new Date("2026-08-20T03:00:00.000Z");
-  const baseline = await executeSearchEvaluation({ index: new LexicalSearchIndex(corpus), cases, evaluatedAt });
+  const baseline = await executeSearchEvaluation({
+    index: new LexicalSearchIndex(corpus),
+    cases,
+    evaluatedAt,
+  });
   const candidate = await executeSearchEvaluation({
-    index: candidateIndex(corpus, recoverCandidate ? "apple" : "__no_recovery__", "doc_compare_apple"),
+    index: candidateIndex(
+      corpus,
+      recoverCandidate ? "apple" : "__no_recovery__",
+      "doc_compare_apple",
+    ),
     cases,
     evaluatedAt,
   });

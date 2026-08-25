@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  verifySearchEvaluationEngineContract,
-  type SearchSourceInput,
-} from "@lervo/search";
+import { verifySearchEvaluationEngineContract, type SearchSourceInput } from "@lervo/search";
 
 import {
   BM25F_ADAPTER_BUILD_ID,
@@ -38,11 +35,13 @@ const sources: SearchSourceInput[] = [
 
 describe("bm25f search evaluation adapter", () => {
   it("passes the shared deterministic engine contract", async () => {
-    await expect(verifySearchEvaluationEngineContract({
-      engine: bm25fSearchEvaluationEngine,
-      sources,
-      queries: ["search", "unique-evidence"],
-    })).resolves.toMatchObject({
+    await expect(
+      verifySearchEvaluationEngineContract({
+        engine: bm25fSearchEvaluationEngine,
+        sources,
+        queries: ["search", "unique-evidence"],
+      }),
+    ).resolves.toMatchObject({
       engine: BM25F_SEARCH_ENGINE,
       adapterBuildId: BM25F_ADAPTER_BUILD_ID,
       checkedQueries: 2,
@@ -53,7 +52,9 @@ describe("bm25f search evaluation adapter", () => {
     const response = new Bm25fSearchIndex(sources).search("search unique-evidence", 10);
 
     expect(response.hits[0]?.source.sourceId).toBe("doc_bm25f_rare");
-    expect(response.hits.every((hit) => Number.isSafeInteger(hit.score) && hit.score > 0)).toBe(true);
+    expect(response.hits.every((hit) => Number.isSafeInteger(hit.score) && hit.score > 0)).toBe(
+      true,
+    );
     expect(JSON.stringify(response)).not.toContain("unique-evidence");
   });
 

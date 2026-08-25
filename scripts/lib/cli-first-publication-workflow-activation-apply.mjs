@@ -1,8 +1,7 @@
 import { observeGitHubPublisherEnvironment } from "./github-environment-observer.mjs";
 import { observeNpmTrustedPublisher } from "./npm-trust-observer.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationWorkflowActivationDecision } from
-  "./first-publication-workflow-activation-decision.mjs";
+import { validateFirstPublicationWorkflowActivationDecision } from "./first-publication-workflow-activation-decision.mjs";
 import {
   applyFirstPublicationWorkflowActivationFiles,
   assertNoFirstPublicationWorkflowActivationTransaction,
@@ -11,8 +10,7 @@ import {
   validateFirstPublicationWorkflowActivationPermit,
   validateReadyWorkflowActivationReadiness,
 } from "./first-publication-workflow-activation-permit.mjs";
-import { recoverFirstPublicationWorkflowActivationFiles } from
-  "./first-publication-workflow-activation-recovery.mjs";
+import { recoverFirstPublicationWorkflowActivationFiles } from "./first-publication-workflow-activation-recovery.mjs";
 import {
   createFirstPublicationWorkflowActivationCandidate,
   validateFirstPublicationWorkflowActivationCandidate,
@@ -27,8 +25,7 @@ import {
   validateFirstPublicationWorkflowActivationPlan,
   validateFirstPublicationWorkflowActivationReceipt,
 } from "./first-publication-workflow-activation-transaction.mjs";
-import { firstPublicationWorkflowActivationTransactionRoot } from
-  "./first-publication-workflow-activation-transaction-state.mjs";
+import { firstPublicationWorkflowActivationTransactionRoot } from "./first-publication-workflow-activation-transaction-state.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 import {
   createTrustedPublisherReadinessReport,
@@ -43,19 +40,20 @@ export async function applyCliFirstPublicationWorkflowActivation(
   { repository, decisionPath, permitPath, online },
   dependencies = {},
 ) {
-  if (online !== true) fail(
-    "first_publication_workflow_activation_apply_online_required",
-    "Applying CLI first-publication workflow activation requires online revalidation.",
-  );
+  if (online !== true)
+    fail(
+      "first_publication_workflow_activation_apply_online_required",
+      "Applying CLI first-publication workflow activation requires online revalidation.",
+    );
   validateReadinessRepository(repository);
   const paths = dependencies.paths ?? firstPublicationWorkflowActivationPaths;
-  const transactionRoot = dependencies.transactionRoot ??
-    firstPublicationWorkflowActivationTransactionRoot;
-  const assertNoTransaction = dependencies.assertNoTransaction ??
-    assertNoFirstPublicationWorkflowActivationTransaction;
+  const transactionRoot =
+    dependencies.transactionRoot ?? firstPublicationWorkflowActivationTransactionRoot;
+  const assertNoTransaction =
+    dependencies.assertNoTransaction ?? assertNoFirstPublicationWorkflowActivationTransaction;
   await assertNoTransaction(transactionRoot);
-  const readSources = dependencies.readSources ??
-    readFirstPublicationWorkflowActivationApplySources;
+  const readSources =
+    dependencies.readSources ?? readFirstPublicationWorkflowActivationApplySources;
   const sources = await readSources(paths, decisionPath, permitPath);
   const clock = dependencies.clock ?? (() => new Date().toISOString());
   const checkedAt = clock();
@@ -104,12 +102,11 @@ export async function applyCliFirstPublicationWorkflowActivation(
     packageManifest: sources.cliPackageManifest,
     workflow: sources.workflow,
   });
-  if (
-    canonicalJson(currentReadiness) !== canonicalJson(sources.permit.readiness.report)
-  ) fail(
-    "first_publication_workflow_activation_controls_changed",
-    "The CLI first-publication workflow activation external protections changed after authorization.",
-  );
+  if (canonicalJson(currentReadiness) !== canonicalJson(sources.permit.readiness.report))
+    fail(
+      "first_publication_workflow_activation_controls_changed",
+      "The CLI first-publication workflow activation external protections changed after authorization.",
+    );
   await sources.assertUnchanged();
   const planInput = {
     permit: sources.permit,
@@ -120,37 +117,44 @@ export async function applyCliFirstPublicationWorkflowActivation(
   const planResult = createFirstPublicationWorkflowActivationPlan(planInput);
   validateFirstPublicationWorkflowActivationPlan(planResult, planInput);
   const applyFiles = dependencies.applyFiles ?? applyFirstPublicationWorkflowActivationFiles;
-  const transaction = await applyFiles({
-    transactionRoot,
-    plan: planResult.plan,
-    workflowFile: {
-      path: paths.workflowPath,
-      binding: planResult.plan.workflow,
-      outputBytes: planResult.outputBytes,
+  const transaction = await applyFiles(
+    {
+      transactionRoot,
+      plan: planResult.plan,
+      workflowFile: {
+        path: paths.workflowPath,
+        binding: planResult.plan.workflow,
+        outputBytes: planResult.outputBytes,
+      },
+      readOnlyFiles: [
+        { path: paths.packageManifestPath, binding: planResult.plan.readOnlySources[0] },
+        { path: paths.cliPackageManifestPath, binding: planResult.plan.readOnlySources[1] },
+        { path: decisionPath, binding: planResult.plan.readOnlySources[2] },
+        { path: permitPath, binding: planResult.plan.readOnlySources[3] },
+      ],
     },
-    readOnlyFiles: [
-      { path: paths.packageManifestPath, binding: planResult.plan.readOnlySources[0] },
-      { path: paths.cliPackageManifestPath, binding: planResult.plan.readOnlySources[1] },
-      { path: decisionPath, binding: planResult.plan.readOnlySources[2] },
-      { path: permitPath, binding: planResult.plan.readOnlySources[3] },
-    ],
-  }, dependencies);
-  if (canonicalJson(transaction) !== canonicalJson({
-    journal: "removed",
-    rollback: "not_required",
-    recovery: "not_required",
-  })) fail(
-    "first_publication_workflow_activation_apply_failed",
-    "The CLI first-publication workflow activation transaction result is invalid.",
+    dependencies,
   );
+  if (
+    canonicalJson(transaction) !==
+    canonicalJson({
+      journal: "removed",
+      rollback: "not_required",
+      recovery: "not_required",
+    })
+  )
+    fail(
+      "first_publication_workflow_activation_apply_failed",
+      "The CLI first-publication workflow activation transaction result is invalid.",
+    );
   const receipt = createFirstPublicationWorkflowActivationReceipt(planResult.plan, clock());
   return validateFirstPublicationWorkflowActivationReceipt(receipt, planResult.plan);
 }
 
 export async function recoverCliFirstPublicationWorkflowActivation(dependencies = {}) {
   const paths = dependencies.paths ?? firstPublicationWorkflowActivationPaths;
-  const transactionRoot = dependencies.transactionRoot ??
-    firstPublicationWorkflowActivationTransactionRoot;
+  const transactionRoot =
+    dependencies.transactionRoot ?? firstPublicationWorkflowActivationTransactionRoot;
   const recover = dependencies.recoverFiles ?? recoverFirstPublicationWorkflowActivationFiles;
   return recover({ transactionRoot, workflowPath: paths.workflowPath });
 }

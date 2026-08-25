@@ -2,6 +2,8 @@ import {
   startup as defaultStartup,
   type Query,
   type WarmQuery,
+  type McpServerConfig,
+  type SdkPluginConfig,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { AsyncQueue } from "./async-queue.js";
@@ -43,6 +45,59 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     let warm: WarmQuery;
     let connected: ClaudeSdkAgentClient | undefined;
     try {
+      const mcpServers: Record<string, McpServerConfig> = {};
+      const plugins: SdkPluginConfig[] = [];
+      for (const activation of options.capabilityActivations ?? []) {
+        const runtime = activation.runtime;
+        if (runtime.kind === "provider_plugin") {
+          if (runtime.provider !== "claude") {
+            throw new ClaudeAdapterError(
+              "invalid_request",
+              "A provider plugin targets a different provider.",
+            );
+          }
+          plugins.push({ type: "local", path: runtime.pluginRoot, skipMcpDiscovery: true });
+        } else if (runtime.kind === "mcp_stdio") {
+          const env: Record<string, string> = {};
+          for (const name of runtime.credentialNames) {
+            const value = process.env[name];
+            if (value === undefined) {
+              throw new ClaudeAdapterError(
+                "capability_activation_failed",
+                "A required MCP credential is unavailable.",
+              );
+            }
+            env[name] = value;
+          }
+          mcpServers[runtime.serverName] = {
+            type: "stdio",
+            command: runtime.command,
+            args: [...runtime.arguments],
+            env,
+            timeout: runtime.timeoutMs,
+            alwaysLoad: true,
+          };
+        } else {
+          const headers: Record<string, string> = {};
+          if (runtime.bearerTokenCredential !== null) {
+            const value = process.env[runtime.bearerTokenCredential];
+            if (value === undefined) {
+              throw new ClaudeAdapterError(
+                "capability_activation_failed",
+                "A required MCP credential is unavailable.",
+              );
+            }
+            headers.Authorization = `Bearer ${value}`;
+          }
+          mcpServers[runtime.serverName] = {
+            type: "http",
+            url: runtime.url,
+            ...(Object.keys(headers).length === 0 ? {} : { headers }),
+            timeout: runtime.timeoutMs,
+            alwaysLoad: true,
+          };
+        }
+      }
       warm = await sdkStartup({
         initializeTimeoutMs: options.requestTimeoutMs,
         options: {
@@ -57,7 +112,8 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           settingSources: [],
           skills: [],
           strictMcpConfig: true,
-          mcpServers: {},
+          mcpServers,
+          plugins,
           disallowedTools: ["Agent", "Task"],
           tools: options.tools ?? { type: "preset", preset: "claude_code" },
           includePartialMessages: false,
@@ -72,12 +128,17 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           }),
           canUseTool: async () => ({
             behavior: "deny" as const,
-            message: "This permission request was denied because no Lervo approval bridge is attached.",
+            message:
+              "This permission request was denied because no Lervo approval bridge is attached.",
           }),
         },
       });
-    } catch {
-      throw new ClaudeAdapterError("provider_process_failed", "The Claude Agent SDK could not be started.");
+    } catch (error) {
+      if (error instanceof ClaudeAdapterError) throw error;
+      throw new ClaudeAdapterError(
+        "provider_process_failed",
+        "The Claude Agent SDK could not be started.",
+      );
     }
     connected = new ClaudeSdkAgentClient(options, warm, abortController);
     return connected;
@@ -106,6 +167,64 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     await this.send(content, false);
   }
 
+  async confirmCapabilities(): Promise<void> {
+    if (this.query === undefined) {
+      throw new ClaudeAdapterError(
+        "capability_activation_failed",
+        "Claude capability activation was checked before controlled context started the provider stream.",
+      );
+    }
+    try {
+      const activations = this.options.capabilityActivations ?? [];
+      const expectedMcp = new Set(
+        activations.flatMap((activation) =>
+          activation.runtime.kind === "mcp_stdio" || activation.runtime.kind === "mcp_http"
+            ? [activation.runtime.serverName]
+            : [],
+        ),
+      );
+      const statuses = await this.query.mcpServerStatus();
+      for (const name of expectedMcp) {
+        if (!statuses.some((status) => status.name === name && status.status === "connected")) {
+          throw new ClaudeAdapterError(
+            "capability_activation_failed",
+            "Claude did not report every requested MCP server as connected.",
+          );
+        }
+      }
+      const expectedPlugins = activations.filter(
+        (activation) => activation.runtime.kind === "provider_plugin",
+      );
+      if (expectedPlugins.length > 0) {
+        const reloaded = await this.query.reloadPlugins();
+        if (
+          reloaded.error_count !== 0 ||
+          expectedPlugins.some((activation) => {
+            const runtime = activation.runtime;
+            return (
+              runtime.kind !== "provider_plugin" ||
+              !reloaded.plugins.some(
+                (plugin) =>
+                  plugin.path === runtime.pluginRoot && plugin.version === activation.version,
+              )
+            );
+          })
+        ) {
+          throw new ClaudeAdapterError(
+            "capability_activation_failed",
+            "Claude did not report every requested provider plugin as loaded.",
+          );
+        }
+      }
+    } catch (error) {
+      if (error instanceof ClaudeAdapterError) throw error;
+      throw new ClaudeAdapterError(
+        "capability_activation_failed",
+        "Claude capability activation could not be confirmed.",
+      );
+    }
+  }
+
   async startTurn(turnId: string, instructions: string): Promise<void> {
     await this.send(instructions, true, turnId);
   }
@@ -115,7 +234,10 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     try {
       await this.query.interrupt();
     } catch {
-      throw new ClaudeAdapterError("provider_process_failed", "The Claude turn could not be interrupted.");
+      throw new ClaudeAdapterError(
+        "provider_process_failed",
+        "The Claude turn could not be interrupted.",
+      );
     }
   }
 
@@ -135,12 +257,18 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
       }
     } catch {
       this.abortController.abort();
-      throw new ClaudeAdapterError("provider_process_failed", "The Claude Agent SDK could not be stopped.");
+      throw new ClaudeAdapterError(
+        "provider_process_failed",
+        "The Claude Agent SDK could not be stopped.",
+      );
     } finally {
       this.abortController.abort();
       this.output.end();
       this.replays.fail(
-        new ClaudeAdapterError("session_stopped", "The Claude session ended before acknowledging input."),
+        new ClaudeAdapterError(
+          "session_stopped",
+          "The Claude session ended before acknowledging input.",
+        ),
       );
     }
   }
@@ -169,10 +297,14 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
   }
 
   private async send(content: string, shouldQuery: boolean, messageId?: string): Promise<void> {
-    if (this.closed) throw new ClaudeAdapterError("session_stopped", "The Claude session has already ended.");
+    if (this.closed)
+      throw new ClaudeAdapterError("session_stopped", "The Claude session has already ended.");
     const uuid = messageId ?? this.options.createMessageId();
     if (!UUID_PATTERN.test(uuid)) {
-      throw new ClaudeAdapterError("invalid_request", "The Claude input message ID must be a UUID.");
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "The Claude input message ID must be a UUID.",
+      );
     }
     const accepted = this.replays.expect(uuid, content, shouldQuery);
     this.ensureStream();
@@ -204,13 +336,19 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
         if (!internalContextAcknowledgement) this.output.push(message);
       }
       if (!this.closed) {
-        throw new ClaudeAdapterError("provider_process_failed", "The Claude event stream ended unexpectedly.");
+        throw new ClaudeAdapterError(
+          "provider_process_failed",
+          "The Claude event stream ended unexpectedly.",
+        );
       }
     } catch (error) {
       const failure =
         error instanceof ClaudeAdapterError
           ? error
-          : new ClaudeAdapterError("provider_process_failed", "The Claude event stream could not be read.");
+          : new ClaudeAdapterError(
+              "provider_process_failed",
+              "The Claude event stream could not be read.",
+            );
       this.replays.fail(failure);
       this.output.fail(failure);
     }

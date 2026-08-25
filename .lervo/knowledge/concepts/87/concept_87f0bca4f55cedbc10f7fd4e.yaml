@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_47e42a6a59da6e957c0a0b75
+  - uv_0a3b5c6d47ee346c161babae
 title: Repository Node fleet and automatic Hub replication
 type: concept

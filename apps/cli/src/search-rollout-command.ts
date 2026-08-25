@@ -37,9 +37,16 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
     io.stderr(searchArgumentError(error));
     return 1;
   }
-  const decision = parsed.values.decision === undefined ? undefined : DECISIONS[parsed.values.decision];
-  if (parsed.positionals.length !== 1 || decision === undefined || parsed.values.reviewer === undefined) {
-    io.stderr(`A selection transition ID, keep|rollback|more-assessments decision, and reviewer ID are required.\n${searchUsage}\n`);
+  const decision =
+    parsed.values.decision === undefined ? undefined : DECISIONS[parsed.values.decision];
+  if (
+    parsed.positionals.length !== 1 ||
+    decision === undefined ||
+    parsed.values.reviewer === undefined
+  ) {
+    io.stderr(
+      `A selection transition ID, keep|rollback|more-assessments decision, and reviewer ID are required.\n${searchUsage}\n`,
+    );
     return 1;
   }
   try {
@@ -54,12 +61,18 @@ async function runSearchRolloutReviewCommand(args: string[], io: CliIo): Promise
       decision,
       ...(parsed.values.policy === undefined ? {} : { policyId: parsed.values.policy }),
     });
-    io.stdout(parsed.values.json ? `${JSON.stringify(review, null, 2)}\n` : formatSearchRolloutReview(review));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(review, null, 2)}\n`
+        : formatSearchRolloutReview(review),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not record the search rollout review. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not record the search rollout review. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }
@@ -69,6 +82,8 @@ export async function runSearchRolloutCommand(args: string[], io: CliIo): Promis
   if (args[0] === "review") return runSearchRolloutReviewCommand(args.slice(1), io);
   if (args[0] === "policy") return runSearchRolloutPolicyCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchRolloutStatusCommand(args.slice(1), io);
-  io.stderr(`The rollout subcommand supports policy, review, status, and action.\n${searchUsage}\n`);
+  io.stderr(
+    `The rollout subcommand supports policy, review, status, and action.\n${searchUsage}\n`,
+  );
   return 1;
 }

@@ -60,7 +60,10 @@ async function canonicalRepositoryRoot(root: string): Promise<string> {
   return realpath(absoluteRoot);
 }
 
-async function inspectPath(root: string, path: string): Promise<{
+async function inspectPath(
+  root: string,
+  path: string,
+): Promise<{
   absolutePath: string;
   kind: "file" | "missing";
 }> {
@@ -117,7 +120,10 @@ export async function readRepositoryFile(
   maximumBytes = Number.MAX_SAFE_INTEGER,
 ): Promise<Uint8Array> {
   if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
-    throw new ContextPreparationError("document_read_failed", "The document byte limit is invalid.");
+    throw new ContextPreparationError(
+      "document_read_failed",
+      "The document byte limit is invalid.",
+    );
   }
   const inspected = await inspectPath(root, path);
   const normalized = normalizeRepositoryPath(path);
@@ -130,10 +136,7 @@ export async function readRepositoryFile(
 
   let handle;
   try {
-    handle = await open(
-      inspected.absolutePath,
-      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0),
-    );
+    handle = await open(inspected.absolutePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const beforeStats = await handle.stat({ bigint: true });
     if (!beforeStats.isFile() || beforeStats.size > BigInt(maximumBytes)) {
       throw new ContextPreparationError(

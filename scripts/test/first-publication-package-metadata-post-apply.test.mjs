@@ -3,16 +3,13 @@ import { access, mkdir, rm, writeFile } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { validateFirstPublicationPackageMetadataApplyReceiptDocument } from
-  "../lib/first-publication-package-metadata-apply-receipt.mjs";
-import { readFirstPublicationPackageMetadataPostApplySources } from
-  "../lib/first-publication-package-metadata-post-apply-sources.mjs";
+import { validateFirstPublicationPackageMetadataApplyReceiptDocument } from "../lib/first-publication-package-metadata-apply-receipt.mjs";
+import { readFirstPublicationPackageMetadataPostApplySources } from "../lib/first-publication-package-metadata-post-apply-sources.mjs";
 import {
   createFirstPublicationPackageMetadataPostApplyReport,
   validateFirstPublicationPackageMetadataPostApplyReport,
 } from "../lib/first-publication-package-metadata-post-apply-verification.mjs";
-import { inspectFirstPublicationPackageMetadataTransactionState } from
-  "../lib/first-publication-package-metadata-transaction-state.mjs";
+import { inspectFirstPublicationPackageMetadataTransactionState } from "../lib/first-publication-package-metadata-transaction-state.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
 import {
   applyMetadataFixture,
@@ -42,13 +39,19 @@ describe("first-publication package metadata post-apply report", () => {
       );
       assert.equal(report.status, "verified");
       assert.equal(report.localStatus, "ready");
-      assert.equal(report.localChecks.every(({ status }) => status === "ready"), true);
-      assert.deepEqual(report.externalRequirements.map(({ id, status }) => ({ id, status })), [
-        { id: "license_approval", status: "required" },
-        { id: "public_package_availability", status: "required" },
-        { id: "scope_control_confirmation", status: "required" },
-        { id: "first_publication_approval", status: "required" },
-      ]);
+      assert.equal(
+        report.localChecks.every(({ status }) => status === "ready"),
+        true,
+      );
+      assert.deepEqual(
+        report.externalRequirements.map(({ id, status }) => ({ id, status })),
+        [
+          { id: "license_approval", status: "required" },
+          { id: "public_package_availability", status: "required" },
+          { id: "scope_control_confirmation", status: "required" },
+          { id: "first_publication_approval", status: "required" },
+        ],
+      );
       assert.equal(report.limitations.receiptAuthenticity, "not_verified");
       assert.equal(report.sideEffects.publication, "not_attempted");
     } finally {
@@ -64,18 +67,16 @@ describe("first-publication package metadata post-apply report", () => {
       forged.effects.approval = "created";
       const { receiptDigest: _discarded, ...body } = forged;
       forged.receiptDigest = canonicalDigest(body);
-      assert.throws(
-        () => validateFirstPublicationPackageMetadataApplyReceiptDocument(forged),
-        { code: "first_publication_package_metadata_apply_receipt_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationPackageMetadataApplyReceiptDocument(forged), {
+        code: "first_publication_package_metadata_apply_receipt_invalid",
+      });
       const redirected = structuredClone(receipt);
       redirected.files[0].relativePath = "package.json";
       const { receiptDigest: _redirectedDigest, ...redirectedBody } = redirected;
       redirected.receiptDigest = canonicalDigest(redirectedBody);
-      assert.throws(
-        () => validateFirstPublicationPackageMetadataApplyReceiptDocument(redirected),
-        { code: "first_publication_package_metadata_apply_receipt_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationPackageMetadataApplyReceiptDocument(redirected), {
+        code: "first_publication_package_metadata_apply_receipt_invalid",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -87,10 +88,9 @@ describe("first-publication package metadata post-apply report", () => {
       const applied = await applyMetadataFixture(fixture);
       await writeFile(fixture.paths.packageManifestPath, "{}\n");
       const input = await reportInput(fixture, applied);
-      assert.throws(
-        () => createFirstPublicationPackageMetadataPostApplyReport(input),
-        { code: "first_publication_package_metadata_post_apply_source_mismatch" },
-      );
+      assert.throws(() => createFirstPublicationPackageMetadataPostApplyReport(input), {
+        code: "first_publication_package_metadata_post_apply_source_mismatch",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -105,10 +105,9 @@ describe("first-publication package metadata post-apply report", () => {
       forged.activation = "ready";
       const { reportDigest: _discarded, ...body } = forged;
       forged.reportDigest = canonicalDigest(body);
-      assert.throws(
-        () => validateFirstPublicationPackageMetadataPostApplyReport(forged, input),
-        { code: "first_publication_package_metadata_post_apply_report_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationPackageMetadataPostApplyReport(forged, input), {
+        code: "first_publication_package_metadata_post_apply_report_invalid",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

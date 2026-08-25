@@ -35,20 +35,14 @@ export class HubEventInboxSQLiteRepository {
     this.knowledgeGraphIndex = new KnowledgeGraphIndexSQLiteWriter(database);
   }
 
-  accept(input: {
-    batch: OutboundEventBatch;
-    acknowledgedAt: string;
-  }): EventSyncAcknowledgement {
+  accept(input: { batch: OutboundEventBatch; acknowledgedAt: string }): EventSyncAcknowledgement {
     assertOutboundEventBatch(input.batch);
     const coordinate = {
       destinationId: input.batch.destinationId,
       projectId: input.batch.projectId,
     };
     const head = loadProjectHead(this.database, coordinate);
-    if (
-      head === null ||
-      head.registration.request.registrationId !== input.batch.registrationId
-    ) {
+    if (head === null || head.registration.request.registrationId !== input.batch.registrationId) {
       throw new SyncContractError(
         "registration_required",
         "No project registration matches the outbound event batch.",
@@ -99,15 +93,16 @@ export class HubEventInboxSQLiteRepository {
     return structuredClone(acknowledgement);
   }
 
-  private matchingEvents(
-    coordinate: HubProjectCoordinate,
-    event: EventEnvelope,
-  ): EventEnvelope[] {
-    return this.database.prepare(`
+  private matchingEvents(coordinate: HubProjectCoordinate, event: EventEnvelope): EventEnvelope[] {
+    return this.database
+      .prepare(
+        `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND (seq = ? OR event_id = ?)
-    `).all(coordinate.destinationId, coordinate.projectId, event.seq, event.eventId)
+    `,
+      )
+      .all(coordinate.destinationId, coordinate.projectId, event.seq, event.eventId)
       .map(decodeStoredEvent);
   }
 
@@ -153,29 +148,37 @@ export class HubEventInboxSQLiteRepository {
     addedEventCount: number,
     addedRunCount: number,
   ): void {
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       UPDATE hub_projects
       SET cursor_seq = ?, cursor_hash = ?,
           stored_event_count = stored_event_count + ?,
           run_count = run_count + ?
       WHERE destination_id = ? AND project_id = ?
-    `).run(
-      cursor.seq,
-      cursor.eventHash,
-      addedEventCount,
-      addedRunCount,
-      coordinate.destinationId,
-      coordinate.projectId,
-    );
+    `,
+      )
+      .run(
+        cursor.seq,
+        cursor.eventHash,
+        addedEventCount,
+        addedRunCount,
+        coordinate.destinationId,
+        coordinate.projectId,
+      );
   }
 
   private incrementEventCount(addedEventCount: number): void {
     if (addedEventCount === 0) return;
-    const result = this.database.prepare(`
+    const result = this.database
+      .prepare(
+        `
       UPDATE hub_sync_meta
       SET value = CAST(CAST(value AS INTEGER) + ? AS TEXT)
       WHERE key = 'event_count'
-    `).run(addedEventCount);
+    `,
+      )
+      .run(addedEventCount);
     if (result.changes !== 1) {
       throw new HubSyncStoreError("integrity_failed", "The Hub event count metadata is missing.");
     }

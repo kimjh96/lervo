@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_4e1cd73bdcb5de88152bf39e
+freshness: current
+ownership: user
+path: docs/specifications/execution/state-lifecycle.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_d8ba4ebd0294c7ff5b9f32ba
+title: Local data and state lifecycle
+type: concept

@@ -41,17 +41,21 @@ async function inspectSearchPolicies(input: {
     const rolloutById = new Map<string, SearchRolloutReviewPolicy>(
       rolloutPolicies.map((policy) => [policy.policyId, policy]),
     );
-    if ([...enginePolicies, ...rolloutPolicies, ...actionPolicies].some(
-      (policy) => policy.projectId !== input.projectId,
-    )) {
+    if (
+      [...enginePolicies, ...rolloutPolicies, ...actionPolicies].some(
+        (policy) => policy.projectId !== input.projectId,
+      )
+    ) {
       throw new TypeError("The search policy project coordinate does not match.");
     }
     for (const policy of actionPolicies) {
       const rolloutPolicy = rolloutById.get(policy.rolloutPolicyId);
-      const engineActivationPolicy = policy.engineActivationPolicyId === null
-        ? undefined
-        : engineById.get(policy.engineActivationPolicyId);
-      if (rolloutPolicy === undefined) throw new TypeError("The rollout review policy source is missing.");
+      const engineActivationPolicy =
+        policy.engineActivationPolicyId === null
+          ? undefined
+          : engineById.get(policy.engineActivationPolicyId);
+      if (rolloutPolicy === undefined)
+        throw new TypeError("The rollout review policy source is missing.");
       verifySearchRolloutActionPolicySources(policy, {
         rolloutPolicy,
         ...(engineActivationPolicy === undefined ? {} : { engineActivationPolicy }),
@@ -81,11 +85,11 @@ async function inspectSearchSelection(input: {
     return result.resolverState === "ready"
       ? doctorInspection("search_engine_selection", "healthy", result.transitions)
       : invalidInspection(
-        "search_engine_selection",
-        "search_engine_selection_invalid",
-        "Could not safely validate the current search engine selection and evidence.",
-        result.transitions,
-      );
+          "search_engine_selection",
+          "search_engine_selection_invalid",
+          "Could not safely validate the current search engine selection and evidence.",
+          result.transitions,
+        );
   } catch {
     return invalidInspection(
       "search_engine_selection",

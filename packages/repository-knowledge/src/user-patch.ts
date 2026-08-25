@@ -27,12 +27,21 @@ export function createSemanticManagedBlockPatch(input: {
   const bytes = Buffer.from(input.sourceContent, "utf8");
   try {
     return createManagedBlockPatchCandidate({
-      source: { path: input.path, contentHash: input.sourceHash, byteCount: bytes.byteLength, bytes },
+      source: {
+        path: input.path,
+        contentHash: input.sourceHash,
+        byteCount: bytes.byteLength,
+        bytes,
+      },
       blockId: SEMANTIC_MANAGED_BLOCK_ID,
       replacementBytes: Buffer.from(semanticManagedBlockContent(input.concept), "utf8"),
     });
   } catch (error) {
-    if (error instanceof ManagedBlockPatchError && ["block_not_found", "no_changes", "replacement_too_large"].includes(error.code)) return null;
+    if (
+      error instanceof ManagedBlockPatchError &&
+      ["block_not_found", "no_changes", "replacement_too_large"].includes(error.code)
+    )
+      return null;
     throw error;
   }
 }

@@ -1,0 +1,29 @@
+candidateId: knorm_fcf7c6145ff9d232dcdd5402
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_303e485b59538adf05c16349
+outputLanguage: en
+outputs:
+  - byteCount: 8074
+    contentHash: sha256:6985cc8dbd154e747c19834a585ce947f5dbc0a74de116fdc4867857ff1c06ee
+    path: docs/roadmap/coordination/repository-node-fleet.md
+    userRegionHash: sha256:6985cc8dbd154e747c19834a585ce947f5dbc0a74de116fdc4867857ff1c06ee
+profile: roadmap_document
+recordId: knormdoc_5393d002c9db71102287f269
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:76d6ffe69191cd93c5cd4c32ee5a23adbb2903b4e853ea11eba0af496ee20570
+sourcePath: docs/roadmap/coordination/repository-node-fleet.md
+sourceUnitVersionIds:
+  - uv_204de3d114aba471309f7d87
+  - uv_37dd0dc1c050038f1b14fdd0
+  - uv_4958b1d936b467948d63318c
+  - uv_5293d4330dde4c4170d043c0
+  - uv_7bb8cd3c5b23c384e4824d2a
+  - uv_940581954c87ad826fda37ff
+  - uv_c796ab77e3fcc8c1bee1ab9b

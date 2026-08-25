@@ -2,12 +2,9 @@ import { writeFile } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { createFirstPublicationStageEvidenceBundle } from
-  "./first-publication-stage-evidence-bundle.mjs";
-import { makeFirstPublicationStageEvidenceBundleRelativePath } from
-  "./first-publication-stage-evidence-bundle-paths.mjs";
-import { readFirstPublicationStageEvidenceSetSources } from
-  "./first-publication-stage-evidence-set-sources.mjs";
+import { createFirstPublicationStageEvidenceBundle } from "./first-publication-stage-evidence-bundle.mjs";
+import { makeFirstPublicationStageEvidenceBundleRelativePath } from "./first-publication-stage-evidence-bundle-paths.mjs";
+import { readFirstPublicationStageEvidenceSetSources } from "./first-publication-stage-evidence-set-sources.mjs";
 
 function fail(code = "first_publication_stage_evidence_bundle_input_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -17,20 +14,20 @@ function fail(code = "first_publication_stage_evidence_bundle_input_invalid") {
 }
 
 function validInput(input) {
-  return input?.write === true && [
-    input.stageReviewReportPath,
-    input.decisionPath,
-    input.authorizationPath,
-    input.resultDirectory,
-    input.reconciliationReportPath,
-    input.outputPath,
-  ].every((value) => isAbsolute(value ?? ""));
+  return (
+    input?.write === true &&
+    [
+      input.stageReviewReportPath,
+      input.decisionPath,
+      input.authorizationPath,
+      input.resultDirectory,
+      input.reconciliationReportPath,
+      input.outputPath,
+    ].every((value) => isAbsolute(value ?? ""))
+  );
 }
 
-export async function createCliFirstPublicationStageEvidenceBundle(
-  input,
-  dependencies = {},
-) {
+export async function createCliFirstPublicationStageEvidenceBundle(input, dependencies = {}) {
   if (!validInput(input)) fail();
   const paths = {
     stageReviewReport: makeFirstPublicationStageEvidenceBundleRelativePath(
@@ -54,8 +51,7 @@ export async function createCliFirstPublicationStageEvidenceBundle(
       input.reconciliationReportPath,
     ),
   };
-  const readSources = dependencies.readSources ??
-    readFirstPublicationStageEvidenceSetSources;
+  const readSources = dependencies.readSources ?? readFirstPublicationStageEvidenceSetSources;
   const sources = await readSources(input, dependencies);
   const bundle = createFirstPublicationStageEvidenceBundle({ paths, evidenceSet: sources });
   await sources.assertUnchanged();
@@ -66,9 +62,7 @@ export async function createCliFirstPublicationStageEvidenceBundle(
       mode: 0o600,
     });
   } catch (error) {
-    if (error?.code === "EEXIST") fail(
-      "first_publication_stage_evidence_bundle_output_exists",
-    );
+    if (error?.code === "EEXIST") fail("first_publication_stage_evidence_bundle_output_exists");
     throw error;
   }
   return bundle;

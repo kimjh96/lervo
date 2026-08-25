@@ -1,7 +1,6 @@
 import { createFileImmutableAttemptStore } from "./file-immutable-attempt-store.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import { ReleasePublicationAuthorizationError } from
-  "./release-publication-authorization.mjs";
+import { ReleasePublicationAuthorizationError } from "./release-publication-authorization.mjs";
 import {
   validateReleaseStageAttempt,
   validateReleaseStageTerminal,
@@ -19,11 +18,11 @@ function bindTerminal(terminal, attempt) {
   if (
     terminal.attemptDigest !== attempt.attemptDigest ||
     terminal.authorizationDigest !== attempt.authorizationDigest ||
-    (terminal.state === "staged" && (
-      canonicalJson(terminal.receipt.target) !== canonicalJson(attempt.target) ||
-      canonicalJson(terminal.receipt.artifact) !== canonicalJson(attempt.artifact)
-    ))
-  ) fail("release_stage_publication_terminal_conflict");
+    (terminal.state === "staged" &&
+      (canonicalJson(terminal.receipt.target) !== canonicalJson(attempt.target) ||
+        canonicalJson(terminal.receipt.artifact) !== canonicalJson(attempt.artifact)))
+  )
+    fail("release_stage_publication_terminal_conflict");
   return terminal;
 }
 

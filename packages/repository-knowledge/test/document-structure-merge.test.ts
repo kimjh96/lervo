@@ -32,9 +32,19 @@ async function repository(destination = destinationContent): Promise<string> {
   roots.push(root);
   await writeFile(resolve(root, sourcePath), sourceContent);
   await writeFile(resolve(root, destinationPath), destination);
-  await applyInitPlan(await createInitPlan({ root, projectId: "prj_structure_merge", now: new Date("2026-08-23T00:00:00.000Z") }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_structure_merge",
+      now: new Date("2026-08-23T00:00:00.000Z"),
+    }),
+  );
   const migration = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" });
-  await applyKnowledgeMigrationPlan(migration, new Date("2026-08-23T00:01:00.000Z"), () => undefined);
+  await applyKnowledgeMigrationPlan(
+    migration,
+    new Date("2026-08-23T00:01:00.000Z"),
+    () => undefined,
+  );
   return root;
 }
 
@@ -45,70 +55,177 @@ afterEach(async () => {
 describe("user document structure merge", () => {
   it("composes exact destination-then-source bytes and preserves only destination identity", async () => {
     const root = await repository();
-    const plan = await createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath });
-    expect(plan.destination.afterByteCount).toBe(plan.destination.beforeByteCount + plan.source.byteCount);
+    const plan = await createKnowledgeDocumentMergePlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+    });
+    expect(plan.destination.afterByteCount).toBe(
+      plan.destination.beforeByteCount + plan.source.byteCount,
+    );
     expect(plan.preservedConceptIds).toEqual([plan.destination.conceptId]);
     expect(plan.deprecatedConceptIds).toContain(plan.source.conceptId);
-    await applyKnowledgeDocumentMergePlan({ plan, approvedOperationId: plan.operationId, approvedHash: plan.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => undefined });
-    await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
-    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(mergedContent);
-    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
-    expect((await queryRepositoryKnowledge({ repositoryRoot: root, query: "Source body" })).hits[0]).toMatchObject({ conceptId: plan.destination.conceptId, path: destinationPath });
-    expect((await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" })).operations.filter((item) => item.action !== "unchanged")).toEqual([]);
-  });
-
-  it("restores both documents, lineage, sidecars, and navigation after interruption", async () => {
-    const root = await repository();
-    const plan = await createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath });
-    const changedCount = plan.operations.filter((item) => item.action === "create" || item.action === "update" || item.action === "delete").length;
-    await expect(applyKnowledgeDocumentMergePlan({
+    await applyKnowledgeDocumentMergePlan({
       plan,
       approvedOperationId: plan.operationId,
       approvedHash: plan.approvalHash,
       now: new Date("2026-08-23T00:02:00.000Z"),
       recordApplied: () => undefined,
-      failureInjector: (checkpoint) => checkpoint === `published:${changedCount - 1}` ? "interrupt" : undefined,
-    })).rejects.toMatchObject({ code: "knowledge_recovery_required" });
-    expect((await recoverKnowledgeMaterialization({ repositoryRoot: root, eventRecorded: () => false })).disposition).toBe("rolled_back");
+    });
+    await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(mergedContent);
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+    expect(
+      (await queryRepositoryKnowledge({ repositoryRoot: root, query: "Source body" })).hits[0],
+    ).toMatchObject({ conceptId: plan.destination.conceptId, path: destinationPath });
+    expect(
+      (
+        await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" })
+      ).operations.filter((item) => item.action !== "unchanged"),
+    ).toEqual([]);
+  });
+
+  it("restores both documents, lineage, sidecars, and navigation after interruption", async () => {
+    const root = await repository();
+    const plan = await createKnowledgeDocumentMergePlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+    });
+    const changedCount = plan.operations.filter(
+      (item) => item.action === "create" || item.action === "update" || item.action === "delete",
+    ).length;
+    await expect(
+      applyKnowledgeDocumentMergePlan({
+        plan,
+        approvedOperationId: plan.operationId,
+        approvedHash: plan.approvalHash,
+        now: new Date("2026-08-23T00:02:00.000Z"),
+        recordApplied: () => undefined,
+        failureInjector: (checkpoint) =>
+          checkpoint === `published:${changedCount - 1}` ? "interrupt" : undefined,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_recovery_required" });
+    expect(
+      (await recoverKnowledgeMaterialization({ repositoryRoot: root, eventRecorded: () => false }))
+        .disposition,
+    ).toBe("rolled_back");
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(sourceContent);
     expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(destinationContent);
-    expect((await createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath })).planId).toBe(plan.planId);
+    expect(
+      (
+        await createKnowledgeDocumentMergePlan({
+          repositoryRoot: root,
+          sourcePath,
+          destinationPath,
+        })
+      ).planId,
+    ).toBe(plan.planId);
   });
 
   it("rolls back every user and generated byte when event recording fails", async () => {
     const root = await repository();
-    const plan = await createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath });
-    await expect(applyKnowledgeDocumentMergePlan({ plan, approvedOperationId: plan.operationId, approvedHash: plan.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => { throw new Error("event unavailable"); } })).rejects.toMatchObject({ code: "knowledge_apply_failed" });
+    const plan = await createKnowledgeDocumentMergePlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+    });
+    await expect(
+      applyKnowledgeDocumentMergePlan({
+        plan,
+        approvedOperationId: plan.operationId,
+        approvedHash: plan.approvalHash,
+        now: new Date("2026-08-23T00:02:00.000Z"),
+        recordApplied: () => {
+          throw new Error("event unavailable");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_apply_failed" });
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(sourceContent);
     expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(destinationContent);
   });
 
   it("fails closed when persisted merge lineage is tampered", async () => {
     const root = await repository();
-    const plan = await createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath });
-    await applyKnowledgeDocumentMergePlan({ plan, approvedOperationId: plan.operationId, approvedHash: plan.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => undefined });
-    const lineagePath = resolve(root, shardedKnowledgeArtifactPath(".lervo/knowledge/source-lineage", plan.lineageId, "yaml"));
+    const plan = await createKnowledgeDocumentMergePlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+    });
+    await applyKnowledgeDocumentMergePlan({
+      plan,
+      approvedOperationId: plan.operationId,
+      approvedHash: plan.approvalHash,
+      now: new Date("2026-08-23T00:02:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    const lineagePath = resolve(
+      root,
+      shardedKnowledgeArtifactPath(".lervo/knowledge/source-lineage", plan.lineageId, "yaml"),
+    );
     const lineage = await readFile(lineagePath, "utf8");
-    await writeFile(lineagePath, lineage.replace(`destinationAfterByteCount: ${plan.destination.afterByteCount}`, "destinationAfterByteCount: 1"));
-    await expect(lintRepositoryKnowledge(root)).rejects.toMatchObject({ code: "knowledge_source_unsafe" });
+    await writeFile(
+      lineagePath,
+      lineage.replace(
+        `destinationAfterByteCount: ${plan.destination.afterByteCount}`,
+        "destinationAfterByteCount: 1",
+      ),
+    );
+    await expect(lintRepositoryKnowledge(root)).rejects.toMatchObject({
+      code: "knowledge_source_unsafe",
+    });
   });
 
   it("requires a byte-preserving Markdown boundary", async () => {
     const root = await repository("# Destination\n\nNo terminal newline.");
-    await expect(createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath })).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
+    await expect(
+      createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath, destinationPath }),
+    ).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
   });
 
   it("closes a moved source lineage so path reuse cannot inherit merged identity", async () => {
     const root = await repository();
     const movedPath = "moved-source.md";
-    const move = await createKnowledgeDocumentMovePlan({ repositoryRoot: root, fromPath: sourcePath, toPath: movedPath });
-    await applyKnowledgeDocumentMovePlan({ plan: move, approvedOperationId: move.operationId, approvedHash: move.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => undefined });
-    const merge = await createKnowledgeDocumentMergePlan({ repositoryRoot: root, sourcePath: movedPath, destinationPath });
-    await applyKnowledgeDocumentMergePlan({ plan: merge, approvedOperationId: merge.operationId, approvedHash: merge.approvalHash, now: new Date("2026-08-23T00:03:00.000Z"), recordApplied: () => undefined });
-    expect(await readFile(resolve(root, shardedKnowledgeArtifactPath(".lervo/knowledge/source-lineage", move.lineageId, "yaml")), "utf8")).toContain("kind: document_merged");
+    const move = await createKnowledgeDocumentMovePlan({
+      repositoryRoot: root,
+      fromPath: sourcePath,
+      toPath: movedPath,
+    });
+    await applyKnowledgeDocumentMovePlan({
+      plan: move,
+      approvedOperationId: move.operationId,
+      approvedHash: move.approvalHash,
+      now: new Date("2026-08-23T00:02:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    const merge = await createKnowledgeDocumentMergePlan({
+      repositoryRoot: root,
+      sourcePath: movedPath,
+      destinationPath,
+    });
+    await applyKnowledgeDocumentMergePlan({
+      plan: merge,
+      approvedOperationId: merge.operationId,
+      approvedHash: merge.approvalHash,
+      now: new Date("2026-08-23T00:03:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    expect(
+      await readFile(
+        resolve(
+          root,
+          shardedKnowledgeArtifactPath(".lervo/knowledge/source-lineage", move.lineageId, "yaml"),
+        ),
+        "utf8",
+      ),
+    ).toContain("kind: document_merged");
     await writeFile(resolve(root, movedPath), "# New document\n\nNew identity.\n");
     const { scan } = await scanConfiguredRepositoryKnowledge(root);
-    expect(scan.sources.find((item) => item.path === movedPath)?.sourceId).toBe(stableId("src", { projectId: "prj_structure_merge", path: movedPath }));
-    expect(scan.sources.find((item) => item.path === movedPath)?.sourceId).not.toBe(stableId("src", { projectId: "prj_structure_merge", path: sourcePath }));
+    expect(scan.sources.find((item) => item.path === movedPath)?.sourceId).toBe(
+      stableId("src", { projectId: "prj_structure_merge", path: movedPath }),
+    );
+    expect(scan.sources.find((item) => item.path === movedPath)?.sourceId).not.toBe(
+      stableId("src", { projectId: "prj_structure_merge", path: sourcePath }),
+    );
   });
 });

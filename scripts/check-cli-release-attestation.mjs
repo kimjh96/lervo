@@ -1,11 +1,4 @@
-import {
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rename,
-  rm,
-} from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rename, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, resolve } from "node:path";
 
@@ -17,10 +10,7 @@ import {
   validateCliReleaseTag,
   validateLocalCliReleaseStatement,
 } from "./lib/cli-release-attestation.mjs";
-import {
-  ReleaseSbomError,
-  validateCliReleaseSbom,
-} from "./lib/cli-release-sbom.mjs";
+import { ReleaseSbomError, validateCliReleaseSbom } from "./lib/cli-release-sbom.mjs";
 import { readJson, repositoryRoot } from "./lib/installed-cli.mjs";
 import { packCliArtifact } from "./lib/packed-cli-artifact.mjs";
 import { PnpmProductionGraphError } from "./lib/pnpm-production-graph.mjs";
@@ -57,7 +47,10 @@ function parseMode(args) {
       expectedTag: args[3],
     };
   }
-  fail("release_attestation_arguments_invalid", "The release statement command arguments are invalid.");
+  fail(
+    "release_attestation_arguments_invalid",
+    "The release statement command arguments are invalid.",
+  );
 }
 
 async function readInputs() {
@@ -150,10 +143,7 @@ async function main() {
   try {
     const archiveRoot = resolve(temporaryRoot, "archive");
     await mkdir(archiveRoot);
-    const tarballPath = await packCliArtifact(
-      archiveRoot,
-      inputs.releaseManifest.artifact.version,
-    );
+    const tarballPath = await packCliArtifact(archiveRoot, inputs.releaseManifest.artifact.version);
     const statementInputs = {
       ...inputs,
       tarballName: basename(tarballPath),
@@ -193,7 +183,9 @@ try {
   ) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_attestation_check_failed: The CLI release statement check could not be completed.");
+    console.error(
+      "release_attestation_check_failed: The CLI release statement check could not be completed.",
+    );
   }
   process.exitCode = 1;
 }

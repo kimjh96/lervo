@@ -3,12 +3,9 @@ import { isAbsolute } from "node:path";
 
 import { parseCanonicalReleaseJson } from "./bounded-release-json-source.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageEvidenceBundleDocument } from
-  "./first-publication-stage-evidence-bundle.mjs";
-import { resolveFirstPublicationStageEvidenceBundlePath } from
-  "./first-publication-stage-evidence-bundle-paths.mjs";
-import { readFirstPublicationStageEvidenceSetSources } from
-  "./first-publication-stage-evidence-set-sources.mjs";
+import { validateFirstPublicationStageEvidenceBundleDocument } from "./first-publication-stage-evidence-bundle.mjs";
+import { resolveFirstPublicationStageEvidenceBundlePath } from "./first-publication-stage-evidence-bundle-paths.mjs";
+import { readFirstPublicationStageEvidenceSetSources } from "./first-publication-stage-evidence-set-sources.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
@@ -32,7 +29,8 @@ function assertDigests(bundle, evidenceSet) {
     sources.approvalResult.attemptDigest !== evidenceSet.attempt.attemptDigest ||
     sources.approvalResult.terminalDigest !== evidenceSet.terminal.terminalDigest ||
     sources.reconciliationReport.digest !== evidenceSet.reconciliationReport.evidenceDigest
-  ) fail("first_publication_stage_evidence_bundle_source_mismatch");
+  )
+    fail("first_publication_stage_evidence_bundle_source_mismatch");
 }
 
 export async function readFirstPublicationStageEvidenceBundleSources(
@@ -75,8 +73,8 @@ export async function readFirstPublicationStageEvidenceBundleSources(
       bundle.sources.reconciliationReport.path,
     ),
   };
-  const readEvidenceSet = dependencies.readEvidenceSet ??
-    readFirstPublicationStageEvidenceSetSources;
+  const readEvidenceSet =
+    dependencies.readEvidenceSet ?? readFirstPublicationStageEvidenceSetSources;
   const evidenceSet = await readEvidenceSet(paths, dependencies);
   assertDigests(bundle, evidenceSet);
   return {
@@ -86,11 +84,13 @@ export async function readFirstPublicationStageEvidenceBundleSources(
     assertUnchanged: async () => {
       await Promise.all([
         evidenceSet.assertUnchanged(),
-        assertReleaseFilesUnchanged([{
-          path: manifestPath,
-          contents: manifestContents,
-          maximumSize: maximumBundleBytes,
-        }]),
+        assertReleaseFilesUnchanged([
+          {
+            path: manifestPath,
+            contents: manifestContents,
+            maximumSize: maximumBundleBytes,
+          },
+        ]),
       ]);
     },
   };

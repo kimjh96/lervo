@@ -26,8 +26,7 @@ const replyContent = {
   mediaType: "text/plain; charset=utf-8" as const,
 };
 
-function permit(surface: WritingPublicationPermit["surface"] = "chat"):
-WritingPublicationPermit {
+function permit(surface: WritingPublicationPermit["surface"] = "chat"): WritingPublicationPermit {
   const content: Omit<WritingPublicationPermit, "permitId"> = {
     schemaVersion: 1,
     surface,
@@ -96,10 +95,12 @@ describe("conversation contract", () => {
 
   it("rejects a changed canonical event identity", () => {
     const value = event();
-    expect(() => assertConversationInboundEvent({
-      ...value,
-      sourceEventKeyHash: hashConversationSourceEventKey("tampered"),
-    })).toThrow(/ID/);
+    expect(() =>
+      assertConversationInboundEvent({
+        ...value,
+        sourceEventKeyHash: hashConversationSourceEventKey("tampered"),
+      }),
+    ).toThrow(/ID/);
   });
 
   it("requires a content-bound chat publication permit", () => {
@@ -115,21 +116,25 @@ describe("conversation contract", () => {
     });
 
     expect(outbound.publicationPermit.surface).toBe("chat");
-    expect(() => createConversationOutboundMessage({
-      event: source,
-      policy: participation,
-      participantId: "ptc_agent001",
-      content: replyContent,
-      publicationPermit: permit("status"),
-      createdAt: "2026-08-20T00:00:02.000Z",
-    })).toThrow(/permit/);
-    expect(() => assertConversationOutboundMessage({
-      outbound: {
-        ...outbound,
-        content: { ...outbound.content, artifactId: "art_changed01" },
-      },
-      event: source,
-      policy: participation,
-    })).toThrow(/ID|permit/);
+    expect(() =>
+      createConversationOutboundMessage({
+        event: source,
+        policy: participation,
+        participantId: "ptc_agent001",
+        content: replyContent,
+        publicationPermit: permit("status"),
+        createdAt: "2026-08-20T00:00:02.000Z",
+      }),
+    ).toThrow(/permit/);
+    expect(() =>
+      assertConversationOutboundMessage({
+        outbound: {
+          ...outbound,
+          content: { ...outbound.content, artifactId: "art_changed01" },
+        },
+        event: source,
+        policy: participation,
+      }),
+    ).toThrow(/ID|permit/);
   });
 });

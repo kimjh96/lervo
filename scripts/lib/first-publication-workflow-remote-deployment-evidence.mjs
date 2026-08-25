@@ -1,17 +1,17 @@
 import { parseDocument } from "yaml";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { inspectFirstPublicationStageOnlyWorkflow } from
-  "./first-publication-stage-only-policy.mjs";
-import { validateFirstPublicationWorkflowActivationPostApplyReportDocument } from
-  "./first-publication-workflow-activation-post-apply-report.mjs";
+import { inspectFirstPublicationStageOnlyWorkflow } from "./first-publication-stage-only-policy.mjs";
+import { validateFirstPublicationWorkflowActivationPostApplyReportDocument } from "./first-publication-workflow-activation-post-apply-report.mjs";
 import {
   createFirstPublicationWorkflowRemoteDeploymentReport,
   validateFirstPublicationWorkflowRemoteDeploymentReportDocument,
 } from "./first-publication-workflow-remote-deployment-report.mjs";
 import { canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
-import { remoteReleaseWorkflowPath, validateRemoteWorkflowSourceCommit } from
-  "./first-publication-workflow-remote-source-contract.mjs";
+import {
+  remoteReleaseWorkflowPath,
+  validateRemoteWorkflowSourceCommit,
+} from "./first-publication-workflow-remote-source-contract.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 const blobShaPattern = /^[a-f0-9]{40}$/u;
@@ -21,9 +21,12 @@ function fail(code, message) {
 }
 
 function validSnapshot(snapshot) {
-  return Buffer.isBuffer(snapshot?.contents) && snapshot.contents.length > 0 &&
+  return (
+    Buffer.isBuffer(snapshot?.contents) &&
+    snapshot.contents.length > 0 &&
     snapshot.byteCount === snapshot.contents.length &&
-    snapshot.sha256 === sha256(snapshot.contents);
+    snapshot.sha256 === sha256(snapshot.contents)
+  );
 }
 
 function parseWorkflow(contents) {
@@ -35,9 +38,13 @@ function parseWorkflow(contents) {
     const document = parseDocument(text, { uniqueKeys: true });
     const workflow = document.toJS();
     if (
-      document.errors.length > 0 || document.warnings.length > 0 ||
-      workflow === null || typeof workflow !== "object" || Array.isArray(workflow)
-    ) throw new Error("invalid workflow");
+      document.errors.length > 0 ||
+      document.warnings.length > 0 ||
+      workflow === null ||
+      typeof workflow !== "object" ||
+      Array.isArray(workflow)
+    )
+      throw new Error("invalid workflow");
     return workflow;
   } catch {
     fail(
@@ -64,7 +71,8 @@ export function assertFirstPublicationWorkflowRemoteLocalBinding({
     );
   }
   if (
-    postApplyReport.target.repository !== repository || !validSnapshot(workflowSnapshot) ||
+    postApplyReport.target.repository !== repository ||
+    !validSnapshot(workflowSnapshot) ||
     postApplyReport.sources.workflowSha256 !== workflowSnapshot.sha256
   ) {
     fail(
@@ -72,9 +80,10 @@ export function assertFirstPublicationWorkflowRemoteLocalBinding({
       "The current workflow does not match the post-apply verification report.",
     );
   }
-  if (inspectFirstPublicationStageOnlyWorkflow(
-    parseWorkflow(workflowSnapshot.contents),
-  ).status !== "ready") {
+  if (
+    inspectFirstPublicationStageOnlyWorkflow(parseWorkflow(workflowSnapshot.contents)).status !==
+    "ready"
+  ) {
     fail(
       "first_publication_workflow_remote_deployment_not_ready",
       "The current workflow does not satisfy the stage-only contract.",
@@ -91,15 +100,26 @@ function validateRemoteObservation(observation, { repository, sourceCommit }) {
     );
   }
   const keys = [
-    "schemaVersion", "source", "state", "repository", "sourceCommit", "path",
-    "blobSha", "byteCount", "sha256", "contents",
+    "schemaVersion",
+    "source",
+    "state",
+    "repository",
+    "sourceCommit",
+    "path",
+    "blobSha",
+    "byteCount",
+    "sha256",
+    "contents",
   ];
   if (
     canonicalJson(Object.keys(observation).sort()) !== canonicalJson(keys.sort()) ||
-    observation.schemaVersion !== 1 || observation.source !== "github_repository_workflow" ||
-    observation.repository !== repository || observation.sourceCommit !== sourceCommit ||
+    observation.schemaVersion !== 1 ||
+    observation.source !== "github_repository_workflow" ||
+    observation.repository !== repository ||
+    observation.sourceCommit !== sourceCommit ||
     observation.path !== remoteReleaseWorkflowPath ||
-    !blobShaPattern.test(observation.blobSha ?? "") || !validSnapshot(observation) ||
+    !blobShaPattern.test(observation.blobSha ?? "") ||
+    !validSnapshot(observation) ||
     !digestPattern.test(observation.sha256 ?? "")
   ) {
     fail(

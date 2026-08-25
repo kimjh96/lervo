@@ -33,15 +33,14 @@ describe("provider runtime inspection", () => {
   });
 
   it("rejects output beyond the probe evidence limit", async () => {
-    await expect(inspectProviderExecutable({
-      provider: "claude",
-      executable: process.execPath,
-      arguments: [
-        "-e",
-        "process.stdout.write('fixture-provider 1.2.3\\n'+'x'.repeat(17*1024))",
-      ],
-      source: "configured",
-    })).resolves.toMatchObject({
+    await expect(
+      inspectProviderExecutable({
+        provider: "claude",
+        executable: process.execPath,
+        arguments: ["-e", "process.stdout.write('fixture-provider 1.2.3\\n'+'x'.repeat(17*1024))"],
+        source: "configured",
+      }),
+    ).resolves.toMatchObject({
       status: "unknown",
       version: null,
       reasonCode: "probe_failed",
@@ -49,11 +48,13 @@ describe("provider runtime inspection", () => {
   });
 
   it("distinguishes a missing executable from a working runtime", async () => {
-    await expect(inspectProviderExecutable({
-      provider: "codex",
-      executable: "lervo-provider-that-does-not-exist",
-      source: "configured",
-    })).resolves.toMatchObject({
+    await expect(
+      inspectProviderExecutable({
+        provider: "codex",
+        executable: "lervo-provider-that-does-not-exist",
+        source: "configured",
+      }),
+    ).resolves.toMatchObject({
       status: "unavailable",
       version: null,
       reasonCode: "executable_not_found",

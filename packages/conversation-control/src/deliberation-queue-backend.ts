@@ -25,7 +25,8 @@ function assertStartInput(input: Parameters<ConversationDeliberationBackend["sta
     !conversationDeliberationPatterns.sourceEventId.test(input.sourceEventId) ||
     !conversationDeliberationPatterns.policyId.test(input.policyId) ||
     !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(input.principalId) ||
-    input.topic.length < 1 || input.topic.length > 4_096
+    input.topic.length < 1 ||
+    input.topic.length > 4_096
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
@@ -36,20 +37,23 @@ function assertStartInput(input: Parameters<ConversationDeliberationBackend["sta
 }
 
 function idFor(projectId: string, sourceEventId: string): string {
-  return `dlb_${digest(JSON.stringify(["conversation-deliberation", 1, projectId, sourceEventId]))
-    .slice("sha256:".length, "sha256:".length + 32)}`;
+  return `dlb_${digest(
+    JSON.stringify(["conversation-deliberation", 1, projectId, sourceEventId]),
+  ).slice("sha256:".length, "sha256:".length + 32)}`;
 }
 
 function requestHash(input: Parameters<ConversationDeliberationBackend["start"]>[0]): string {
-  return digest(JSON.stringify([
-    "conversation-deliberation-request",
-    1,
-    input.projectId,
-    input.sourceEventId,
-    digest(input.principalId),
-    input.policyId,
-    input.topic,
-  ]));
+  return digest(
+    JSON.stringify([
+      "conversation-deliberation-request",
+      1,
+      input.projectId,
+      input.sourceEventId,
+      digest(input.principalId),
+      input.policyId,
+      input.topic,
+    ]),
+  );
 }
 
 function summaryFor(
@@ -67,10 +71,13 @@ function summaryFor(
     assertConversationDeliberationSummary(job.summary, job.deliberationId);
     return structuredClone(job.summary);
   }
-  if (job.state === "uncertain" || (
-    job.state === "leased" && job.leaseExpiresAt !== null &&
-    conversationDeliberationTimestamp(job.leaseExpiresAt, "deliberation lease expiration") <= inspectedAtMs
-  )) {
+  if (
+    job.state === "uncertain" ||
+    (job.state === "leased" &&
+      job.leaseExpiresAt !== null &&
+      conversationDeliberationTimestamp(job.leaseExpiresAt, "deliberation lease expiration") <=
+        inspectedAtMs)
+  ) {
     return {
       deliberationId: job.deliberationId,
       status: "unknown",
@@ -164,14 +171,16 @@ export class QueuedConversationDeliberationBackend implements ConversationDelibe
         "Only a deliberation confirmed in an approved interrupted state can be resumed.",
       );
     }
-    const requestDigest = digest(JSON.stringify([
-      "conversation-deliberation-resume-request",
-      1,
-      input.projectId,
-      input.sourceEventId,
-      digest(input.principalId),
-      input.deliberationId,
-    ]));
+    const requestDigest = digest(
+      JSON.stringify([
+        "conversation-deliberation-resume-request",
+        1,
+        input.projectId,
+        input.sourceEventId,
+        digest(input.principalId),
+        input.deliberationId,
+      ]),
+    );
     const job = await this.resumeStore.enqueue({
       projectId: input.projectId,
       sourceEventId: input.sourceEventId,

@@ -1,10 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import {
-  documentIdSchema,
-  localeSchema,
-  schemaVersionSchema,
-} from "./common.js";
+import { documentIdSchema, localeSchema, schemaVersionSchema } from "./common.js";
 import { documentRecordSchema } from "./document-registry.js";
 
 const commonProperties = {
@@ -61,13 +57,7 @@ const managedBlocksContentPolicySchema = {
     maxBlockBytes: { const: 8192 },
     overflowAction: { const: "split_and_link" },
   },
-  required: [
-    ...commonRequired,
-    "mode",
-    "writeScope",
-    "maxBlockBytes",
-    "overflowAction",
-  ],
+  required: [...commonRequired, "mode", "writeScope", "maxBlockBytes", "overflowAction"],
   additionalProperties: false,
 } as const;
 

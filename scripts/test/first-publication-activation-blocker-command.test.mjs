@@ -4,12 +4,9 @@ import { readdir, rm, writeFile } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { inspectCliFirstPublicationActivationBlockers } from
-  "../lib/cli-first-publication-activation-blockers.mjs";
-import { formatFirstPublicationActivationBlockerReport } from
-  "../lib/first-publication-activation-blocker-formatter.mjs";
-import { createFirstPublicationActivationBlockerReport } from
-  "../lib/first-publication-activation-blockers.mjs";
+import { inspectCliFirstPublicationActivationBlockers } from "../lib/cli-first-publication-activation-blockers.mjs";
+import { formatFirstPublicationActivationBlockerReport } from "../lib/first-publication-activation-blocker-formatter.mjs";
+import { createFirstPublicationActivationBlockerReport } from "../lib/first-publication-activation-blockers.mjs";
 import {
   activationRepositoryRoot,
   createActivationSourceFiles,
@@ -32,36 +29,41 @@ describe("first-publication activation blocker command", () => {
   it("rejects local source changes made while the report is built", async () => {
     const prepared = await createActivationSourceFiles();
     try {
-      await assert.rejects(inspectCliFirstPublicationActivationBlockers(prepared.paths, {
-        createReport: async (sources) => {
-          const report = createFirstPublicationActivationBlockerReport(sources);
-          await writeFile(prepared.paths.packageManifestPath, JSON.stringify({ changed: true }));
-          return report;
-        },
-      }), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        inspectCliFirstPublicationActivationBlockers(prepared.paths, {
+          createReport: async (sources) => {
+            const report = createFirstPublicationActivationBlockerReport(sources);
+            await writeFile(prepared.paths.packageManifestPath, JSON.stringify({ changed: true }));
+            return report;
+          },
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
   });
 
   it("uses plain English and does not expose source digests", async () => {
-    const report = createFirstPublicationActivationBlockerReport(
-      await currentActivationSources(),
-    );
+    const report = createFirstPublicationActivationBlockerReport(await currentActivationSources());
     const output = formatFirstPublicationActivationBlockerReport(report);
     assert.match(output, /activation is not yet allowed/u);
     assert.match(output, /package\.json has no GitHub repository/u);
     assert.match(output, /verify control of the @lervo npm scope/u);
-    assert.match(output, /did not perform online checks, modify files, create approvals, activate publication, or publish a package/u);
+    assert.match(
+      output,
+      /did not perform online checks, modify files, create approvals, activate publication, or publish a package/u,
+    );
     assert.equal(output.includes(report.blockerReportDigest), false);
     assert.equal(output.includes(report.sources.packageManifestDigest), false);
   });
 
   it("prints the current canonical report without clearing its blockers", () => {
-    const result = spawnSync(process.execPath, [
-      "scripts/show-cli-first-publication-activation-blockers.mjs",
-      "--json",
-    ], { cwd: activationRepositoryRoot, encoding: "utf8" });
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/show-cli-first-publication-activation-blockers.mjs", "--json"],
+      { cwd: activationRepositoryRoot, encoding: "utf8" },
+    );
     assert.equal(result.status, 0);
     assert.equal(result.stderr, "");
     const report = JSON.parse(result.stdout);
@@ -72,10 +74,11 @@ describe("first-publication activation blocker command", () => {
 
   it("rejects online, duplicate JSON, and unknown arguments", () => {
     for (const args of [["--online"], ["--json", "--json"], ["--unknown"]]) {
-      const result = spawnSync(process.execPath, [
-        "scripts/show-cli-first-publication-activation-blockers.mjs",
-        ...args,
-      ], { cwd: activationRepositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/show-cli-first-publication-activation-blockers.mjs", ...args],
+        { cwd: activationRepositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_activation_blocker_arguments_invalid:/u);

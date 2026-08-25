@@ -17,12 +17,16 @@ const reasonMessages = {
   publication_already_reserved: "The same first-publication approval is already reserved.",
   publication_already_terminal: "The same first-publication approval is already terminal.",
   terminal_not_interactive: "Run this in a terminal where commands are entered directly.",
-  automation_environment_detected: "Manual first publication is not prepared in an automation environment.",
-  registry_credential_in_environment: "npm credentials were found in environment variables, so preparation stopped.",
+  automation_environment_detected:
+    "Manual first publication is not prepared in an automation environment.",
+  registry_credential_in_environment:
+    "npm credentials were found in environment variables, so preparation stopped.",
   npm_client_unavailable: "The npm command could not be run.",
   npm_client_unsupported: "npm 11.5.1 or later is required.",
-  npm_profile_unavailable: "The npm account two-factor authentication setting could not be verified.",
-  npm_write_2fa_not_ready: "The npm account is not configured to require two-factor authentication for publication.",
+  npm_profile_unavailable:
+    "The npm account two-factor authentication setting could not be verified.",
+  npm_write_2fa_not_ready:
+    "The npm account is not configured to require two-factor authentication for publication.",
 };
 
 export function formatFirstPublicationPreflight(report) {
@@ -30,8 +34,8 @@ export function formatFirstPublicationPreflight(report) {
     `CLI first-publication preflight: ${report.status === "ready" ? "ready" : "blocked"}`,
   ];
   for (const check of report.checks) {
-    const status = check.status === "ready" ? "ready" :
-      check.status === "unknown" ? "unknown" : "blocked";
+    const status =
+      check.status === "ready" ? "ready" : check.status === "unknown" ? "unknown" : "blocked";
     lines.push(`- ${checkLabels[check.id] ?? check.id}: ${status}`);
     for (const reason of check.reasons) {
       lines.push(`  ${reasonMessages[reason] ?? "A readiness condition could not be verified."}`);

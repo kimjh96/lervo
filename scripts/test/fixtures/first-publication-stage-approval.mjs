@@ -1,10 +1,6 @@
-import {
-  createFirstPublicationStageApprovalAuthorization,
-} from "../../lib/first-publication-stage-approval-authorization.mjs";
-import { createFirstPublicationStageApprovalDecision } from
-  "../../lib/first-publication-stage-approval-decision.mjs";
-import { createFirstPublicationStageReviewFixture } from
-  "./first-publication-stage-review.mjs";
+import { createFirstPublicationStageApprovalAuthorization } from "../../lib/first-publication-stage-approval-authorization.mjs";
+import { createFirstPublicationStageApprovalDecision } from "../../lib/first-publication-stage-approval-decision.mjs";
+import { createFirstPublicationStageReviewFixture } from "./first-publication-stage-review.mjs";
 
 export async function createFirstPublicationStageApprovalFixture() {
   const value = await createFirstPublicationStageReviewFixture();
@@ -23,9 +19,7 @@ export async function createFirstPublicationStageApprovalFixture() {
     decision,
     authorizedAt: "2026-08-21T10:16:30Z",
   };
-  const authorization = createFirstPublicationStageApprovalAuthorization(
-    authorizationInput,
-  );
+  const authorization = createFirstPublicationStageApprovalAuthorization(authorizationInput);
   return {
     ...value,
     publicationAuthorization,

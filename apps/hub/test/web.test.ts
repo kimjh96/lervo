@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  closeHubTestServers,
-  startHubTestServer,
-  token,
-  traceSource,
-} from "./http-fixture.js";
+import { closeHubTestServers, startHubTestServer, token, traceSource } from "./http-fixture.js";
 
 afterEach(closeHubTestServers);
 
@@ -53,13 +48,15 @@ describe("Hub trace web view", () => {
       "/assets/trace-responsive.css",
       "/assets/trace-graph.css",
     ];
-    const contents = await Promise.all(paths.map(async (path) => {
-      const response = await fetch(`${base}${path}`);
-      expect(response.status).toBe(200);
-      expect(response.headers.get("cache-control")).toBe("no-store");
-      expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
-      return response.text();
-    }));
+    const contents = await Promise.all(
+      paths.map(async (path) => {
+        const response = await fetch(`${base}${path}`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+        return response.text();
+      }),
+    );
     const combined = contents.join("\n");
 
     expect(combined).toContain("/v1/trace/projects");

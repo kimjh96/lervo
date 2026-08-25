@@ -69,15 +69,15 @@ describe("file system content-addressed storage", () => {
     const cas = await OwnerOnlyFileSystemCas.open(root);
     const stored = await Promise.all(["three", "one", "two"].map((value) => cas.put(value)));
     const observedAt = new Date("2026-08-20T00:00:00.000Z");
-    await Promise.all(stored.map((item) => utimes(pathForUri(root, item.uri), observedAt, observedAt)));
+    await Promise.all(
+      stored.map((item) => utimes(pathForUri(root, item.uri), observedAt, observedAt)),
+    );
 
     const first = await cas.listObjects({ limit: 2 });
     const second = await cas.listObjects({ after: first.nextCursor!, limit: 2 });
     const listed = [...first.items, ...second.items];
 
-    expect(listed.map((item) => item.uri)).toEqual(
-      stored.map((item) => item.uri).sort(),
-    );
+    expect(listed.map((item) => item.uri)).toEqual(stored.map((item) => item.uri).sort());
     expect(listed.every((item) => item.modifiedAt === observedAt.toISOString())).toBe(true);
     expect(first.nextCursor).toBe(first.items.at(-1)!.uri);
     expect(second.nextCursor).toBeNull();
@@ -90,10 +90,12 @@ describe("file system content-addressed storage", () => {
     const cas = await OwnerOnlyFileSystemCas.open(await casRoot());
     await Promise.all(["a", "b"].map((value) => cas.put(value)));
 
-    await expect(cas.listObjects({ limit: 1, maximumScannedObjects: 1 }))
-      .rejects.toMatchObject({ code: "capacity_exceeded" });
-    await expect(cas.listObjects({ after: "file:///tmp/not-cas" }))
-      .rejects.toMatchObject({ code: "invalid_uri" });
+    await expect(cas.listObjects({ limit: 1, maximumScannedObjects: 1 })).rejects.toMatchObject({
+      code: "capacity_exceeded",
+    });
+    await expect(cas.listObjects({ after: "file:///tmp/not-cas" })).rejects.toMatchObject({
+      code: "invalid_uri",
+    });
   });
 
   it("detects content that no longer matches its address", async () => {
@@ -108,9 +110,7 @@ describe("file system content-addressed storage", () => {
 
   it("returns false only when a valid address is absent", async () => {
     const cas = await FileSystemCas.open(await casRoot());
-    await expect(
-      cas.has(`lervo-cas://sha256/${"a".repeat(64)}`),
-    ).resolves.toBe(false);
+    await expect(cas.has(`lervo-cas://sha256/${"a".repeat(64)}`)).resolves.toBe(false);
     await expect(cas.get(`lervo-cas://sha256/${"a".repeat(64)}`)).rejects.toMatchObject({
       code: "not_found",
     });
@@ -155,9 +155,7 @@ describe("file system content-addressed storage", () => {
     const root = await casRoot();
     const cas = await FileSystemCas.open(root);
 
-    await expect(cas.get("lervo-cas://sha256/../../secret")).rejects.toBeInstanceOf(
-      CasError,
-    );
+    await expect(cas.get("lervo-cas://sha256/../../secret")).rejects.toBeInstanceOf(CasError);
     await expect(cas.get("lervo-cas://sha256/../../secret")).rejects.toMatchObject({
       code: "invalid_uri",
     });

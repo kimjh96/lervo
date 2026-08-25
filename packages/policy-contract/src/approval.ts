@@ -1,8 +1,5 @@
 import { canonicalJson } from "@lervo/event-contract";
-import {
-  assertRemoteCommand,
-  calculateRemoteCommandHash,
-} from "@lervo/remote-command-contract";
+import { assertRemoteCommand, calculateRemoteCommandHash } from "@lervo/remote-command-contract";
 import {
   type PolicyApproval,
   type PolicyApprovalRevocation,
@@ -61,7 +58,10 @@ export function assertPolicyApproval(input: {
   const { approval, snapshot } = input;
   assertPolicySnapshot(snapshot);
   if (!validateSchema("policyApproval", approval).valid) {
-    throw new PolicyContractError("invalid_policy_approval", "The policy approval contract is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_approval",
+      "The policy approval contract is invalid.",
+    );
   }
   const { approvalId: _approvalId, ...content } = approval;
   const sortedPaths = [...approval.repositoryPaths].sort();
@@ -83,10 +83,11 @@ export function assertPolicyApproval(input: {
   if (input.command !== undefined) {
     const command = input.command;
     assertRemoteCommand(command);
-    const boundedRule = snapshot.rules.find((rule) =>
-      rule.roleId === command.action.roleId &&
-      rule.risk === command.action.risk &&
-      rule.capability === approval.capability
+    const boundedRule = snapshot.rules.find(
+      (rule) =>
+        rule.roleId === command.action.roleId &&
+        rule.risk === command.action.risk &&
+        rule.capability === approval.capability,
     );
     const boundedPaths = boundedRule?.repositoryPaths;
     if (
@@ -114,7 +115,10 @@ export function createPolicyApprovalRevocation(input: {
   reasonCode: PolicyApprovalRevocation["reasonCode"];
 }): PolicyApprovalRevocation {
   if (!validateSchema("policyApproval", input.approval).valid) {
-    throw new PolicyContractError("invalid_policy_revocation", "The policy approval to revoke is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_revocation",
+      "The policy approval to revoke is invalid.",
+    );
   }
   const content: PolicyRevocationContent = {
     schemaVersion: 1,
@@ -139,7 +143,10 @@ export function assertPolicyApprovalRevocation(input: {
     !validateSchema("policyApprovalRevocation", input.revocation).valid ||
     !validateSchema("policyApproval", input.approval).valid
   ) {
-    throw new PolicyContractError("invalid_policy_revocation", "The policy approval revocation contract is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_revocation",
+      "The policy approval revocation contract is invalid.",
+    );
   }
   const { revocationId: _revocationId, ...content } = input.revocation;
   if (

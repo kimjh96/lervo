@@ -2,10 +2,7 @@ import { EventEmitter } from "node:events";
 
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  attachHubRuntimeSignalHandlers,
-  type HubRuntimeDeployment,
-} from "../src/index.js";
+import { attachHubRuntimeSignalHandlers, type HubRuntimeDeployment } from "../src/index.js";
 
 function deployment(overrides: Partial<HubRuntimeDeployment> = {}): HubRuntimeDeployment {
   return {
@@ -48,7 +45,9 @@ describe("Hub runtime process signals", () => {
     }));
     const binding = attachHubRuntimeSignalHandlers(
       deployment({
-        reloadRuntimeMaterials: async () => { throw new Error("private reload failure"); },
+        reloadRuntimeMaterials: async () => {
+          throw new Error("private reload failure");
+        },
         close,
       }),
       signals,

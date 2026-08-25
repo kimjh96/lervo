@@ -4,9 +4,7 @@ import {
   assertPolicySnapshot,
   policySignatureBytes,
 } from "@lervo/policy-contract";
-import {
-  assertRemoteCommand,
-} from "@lervo/remote-command-contract";
+import { assertRemoteCommand } from "@lervo/remote-command-contract";
 import { validateSchema } from "@lervo/schemas";
 
 import { verifyPolicyEnvelope } from "./bundle-verifier.js";
@@ -28,15 +26,21 @@ function sameValues(left: readonly string[], right: readonly string[]): boolean 
 }
 
 function validPaths(paths: readonly string[]): boolean {
-  return paths.length >= 1 && paths.length <= 16 &&
-    new Set(paths).size === paths.length && paths.every((path) => PATH_PATTERN.test(path));
+  return (
+    paths.length >= 1 &&
+    paths.length <= 16 &&
+    new Set(paths).size === paths.length &&
+    paths.every((path) => PATH_PATTERN.test(path))
+  );
 }
 
 export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerifier {
-  constructor(private readonly options: {
-    store: PolicyStateStore;
-    trustStore: PolicyTrustStore;
-  }) {}
+  constructor(
+    private readonly options: {
+      store: PolicyStateStore;
+      trustStore: PolicyTrustStore;
+    },
+  ) {}
 
   async verify(
     input: ManagedRunApprovalVerificationInput,
@@ -49,7 +53,11 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
       !/^sha256:[a-f0-9]{64}$/.test(input.requestDigest) ||
       !validPaths(input.expectedPaths) ||
       (input.requestedPath !== null && !PATH_PATTERN.test(input.requestedPath))
-    ) throw new PolicyRuntimeError("policy_evaluation_failed", "The managed run approval verification input is invalid.");
+    )
+      throw new PolicyRuntimeError(
+        "policy_evaluation_failed",
+        "The managed run approval verification input is invalid.",
+      );
 
     const command = input.authorization.command;
     assertRemoteCommand(command);
@@ -62,28 +70,36 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
       command.action.request.contentHash !== input.requestDigest ||
       !sameValues(command.action.verificationSuiteIds, input.verificationSuiteIds) ||
       (input.requestedPath !== null && !input.expectedPaths.includes(input.requestedPath))
-    ) return { approved: false, reasonCode: "managed_run_binding_mismatch" };
+    )
+      return { approved: false, reasonCode: "managed_run_binding_mismatch" };
     if (
       evaluatedAtMs < Date.parse(command.issuedAt) ||
       evaluatedAtMs > Date.parse(command.expiresAt)
-    ) return { approved: false, reasonCode: "remote_command_not_current" };
+    )
+      return { approved: false, reasonCode: "remote_command_not_current" };
 
     let snapshotEnvelope;
     try {
       snapshotEnvelope = await this.options.store.getCurrentSnapshot();
     } catch (error) {
-      throw new PolicyRuntimeError("policy_store_failed", "Could not read the current policy snapshot.", { cause: error });
+      throw new PolicyRuntimeError(
+        "policy_store_failed",
+        "Could not read the current policy snapshot.",
+        { cause: error },
+      );
     }
     if (
       snapshotEnvelope === null ||
       snapshotEnvelope.snapshot.snapshotId !== input.authorization.policySnapshotId
-    ) return { approved: false, reasonCode: "policy_snapshot_changed" };
+    )
+      return { approved: false, reasonCode: "policy_snapshot_changed" };
     const snapshot = snapshotEnvelope.snapshot;
     assertPolicySnapshot(snapshot);
     if (
       evaluatedAtMs < Date.parse(snapshot.issuedAt) ||
       evaluatedAtMs > Date.parse(snapshot.expiresAt)
-    ) return { approved: false, reasonCode: "policy_snapshot_not_current" };
+    )
+      return { approved: false, reasonCode: "policy_snapshot_not_current" };
     await verifyPolicyEnvelope({
       trustStore: this.options.trustStore,
       purpose: "snapshot",
@@ -98,7 +114,11 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
       try {
         state = await this.options.store.getApproval(approvalId);
       } catch (error) {
-        throw new PolicyRuntimeError("policy_store_failed", "Could not read the managed run approval source.", { cause: error });
+        throw new PolicyRuntimeError(
+          "policy_store_failed",
+          "Could not read the managed run approval source.",
+          { cause: error },
+        );
       }
       if (state === null) continue;
       try {
@@ -145,9 +165,9 @@ export class PolicyManagedRunApprovalVerifier implements ManagedRunApprovalVerif
         (state.revocation !== null &&
           evaluatedAtMs >= Date.parse(state.revocation.revocation.revokedAt)) ||
         !input.expectedPaths.every((path) => approval.repositoryPaths.includes(path)) ||
-        (input.requestedPath !== null &&
-          !approval.repositoryPaths.includes(input.requestedPath))
-      ) continue;
+        (input.requestedPath !== null && !approval.repositoryPaths.includes(input.requestedPath))
+      )
+        continue;
       return {
         approved: true,
         approvalId: approval.approvalId,

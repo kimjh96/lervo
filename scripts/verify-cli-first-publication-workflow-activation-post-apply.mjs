@@ -1,32 +1,29 @@
-import { verifyCliFirstPublicationWorkflowActivationPostApply } from
-  "./lib/cli-first-publication-workflow-activation-post-apply.mjs";
+import { verifyCliFirstPublicationWorkflowActivationPostApply } from "./lib/cli-first-publication-workflow-activation-post-apply.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { parseFirstPublicationWorkflowActivationPostApplyArguments } from
-  "./lib/first-publication-workflow-activation-post-apply-cli-arguments.mjs";
-import { formatFirstPublicationWorkflowActivationPostApplyReport } from
-  "./lib/first-publication-workflow-activation-post-apply-formatter.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
-import { TrustedPublisherReadinessError } from
-  "./lib/trusted-publisher-readiness.mjs";
+import { parseFirstPublicationWorkflowActivationPostApplyArguments } from "./lib/first-publication-workflow-activation-post-apply-cli-arguments.mjs";
+import { formatFirstPublicationWorkflowActivationPostApplyReport } from "./lib/first-publication-workflow-activation-post-apply-formatter.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
+import { TrustedPublisherReadinessError } from "./lib/trusted-publisher-readiness.mjs";
 
 try {
-  const parsed = parseFirstPublicationWorkflowActivationPostApplyArguments(
-    process.argv.slice(2),
-  );
+  const parsed = parseFirstPublicationWorkflowActivationPostApplyArguments(process.argv.slice(2));
   const report = await verifyCliFirstPublicationWorkflowActivationPostApply(parsed);
-  process.stdout.write(parsed.json
-    ? `${JSON.stringify(report, null, 2)}\n`
-    : formatFirstPublicationWorkflowActivationPostApplyReport(report));
+  process.stdout.write(
+    parsed.json
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : formatFirstPublicationWorkflowActivationPostApplyReport(report),
+  );
 } catch (error) {
   if (
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError ||
     error instanceof TrustedPublisherReadinessError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_workflow_activation_post_apply_unexpected: " +
-    "CLI first-publication workflow activation post-apply verification could not be completed.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_workflow_activation_post_apply_unexpected: " +
+        "CLI first-publication workflow activation post-apply verification could not be completed.",
+    );
   process.exitCode = 1;
 }

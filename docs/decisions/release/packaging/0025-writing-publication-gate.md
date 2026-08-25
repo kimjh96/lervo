@@ -5,7 +5,7 @@ Decision date: 2026-08-19
 
 ## Context
 
-A provider result artifact proves execution and CAS integrity, not readable human prose. A pure writing contract cannot prevent CLI code from reading and printing source before evaluation, and deterministic regular expressions cannot establish natural-language quality. A boolean result can be reused with different content, policy, or surfaces. Storing evaluated source or evaluator errors in events would violate source minimization.
+A provider result artifact proves execution and CAS integrity, not readable human prose. A pure writing contract cannot stop CLI code from reading or printing source before evaluation, and deterministic regular expressions cannot establish natural-language quality. A boolean result could be reused with different content, policy, or surfaces. Events cannot store evaluated source or evaluator errors without violating source minimization.
 
 ## Decision
 
@@ -16,10 +16,10 @@ Provider-independent `@lervo/writing` accepts a writing contract, surface, resul
 1. Reads CAS source and verifies media type, ID/URI, digest, byte count, the 4 MiB limit, and lossless UTF-8.
 2. Runs deterministic `@lervo/core` checks and skips semantic evaluation after any failure.
 3. Calls the separately injected evaluator only after deterministic success, passing policy, locale, surface, artifact coordinates, source, and required check definitions.
-4. Accepts only a `model` or `human` evaluator ID and exactly one `passed` or `failed` result, with a violation count, for every required check. Missing, duplicate, unknown, contradictory, or exceptional responses never pass.
-5. Computes per-check evidence digests, derived overall status, and a content-addressed evaluation ID; stores canonical evaluation JSON in CAS and verifies read-back.
+4. Accepts only a `model` or `human` evaluator ID and exactly one `passed` or `failed` result, including a violation count, for every required check. Missing, duplicate, unknown, contradictory, or exceptional responses never pass.
+5. Computes per-check evidence digests, the derived overall status, and a content-addressed evaluation ID; stores canonical evaluation JSON in CAS and verifies read-back.
 
-Consumers call `readPublishableWritingArtifact`, which revalidates evaluation schema, semantics, CAS bytes, current policy, and permit before returning source. The CLI prints only this result. Shared-context and deliberation publishers use the same boundary for human-facing source.
+Consumers call `readPublishableWritingArtifact`, which revalidates evaluation schema, semantics, CAS bytes, current policy, and permit before returning source. Only this result may be printed by the CLI. Shared-context and deliberation publishers use the same boundary for human-facing source.
 
 ### Bind permits to all decision inputs
 
@@ -30,7 +30,7 @@ Consumers call `readPublishableWritingArtifact`, which revalidates evaluation sc
 - `writingPolicyId`, `writingPolicyHash`
 - `evaluationId`, `evaluationHash`
 
-Derive `permitId` as the SHA-256 of canonical content excluding the ID. A changed source, policy body, evaluation JSON, or surface invalidates reuse. Issue a permit only when every required check passes. This slice returns permits without adding a persistent permit store.
+Derive `permitId` as the SHA-256 of canonical content excluding the ID. Any change to source, policy body, evaluation JSON, or surface invalidates reuse. Issue a permit only when every required check passes. This slice returns permits without a persistent permit store.
 
 ### States and failures
 
@@ -41,7 +41,7 @@ Publication states are:
 
 Semantic-attempt states are independent:
 
-- `completed`: a valid response was received; individual check failures may still block publication.
+- `completed`: a valid response arrived; individual check failures may still block publication.
 - `not_run`: no evaluator was available or deterministic checks failed.
 - `failed`: evaluator invocation threw.
 - `invalid`: the response check set or status violated the contract.
@@ -60,7 +60,7 @@ Semantic-attempt states are independent:
 
 Evaluation artifacts contain only policy and artifact coordinates, evaluator ID, check status, count, evidence digest, and times. Exclude provider source, prompts, tool input, payloads, and evaluator exception bodies. The evaluator receives source in memory but does not echo it.
 
-Add no event type or field. Evaluation or permit existence does not imply Hub transfer, shared-context publication, another role's E2/E3, E4, or knowledge promotion. The fixed developer role remains `presentation.audience=machine` without a writing policy; post-generation evaluation must not be represented as pre-generation policy injection.
+Add no event type or field. An evaluation or permit does not imply Hub transfer, shared-context publication, another role's E2/E3, E4, or knowledge promotion. The fixed developer role remains `presentation.audience=machine` without a writing policy; post-generation evaluation must not be represented as pre-generation policy injection.
 
 ### Module boundaries
 
@@ -80,13 +80,13 @@ The CLI no longer reads result artifacts directly. Unevaluated text is never inf
 
 Replace the former fixed Korean default with a publication-language contract. Version 1 supports only `en` and resolves `writing_en-human` from knowledge policy `publication.language`. Unsupported languages fail before a managed run or deliberation starts. Schema, policy hash, evaluator request, permit, and artifacts remain provider-neutral.
 
-Managed deliberation injects the resolved English writing contract before generation. Role descriptions, prompts, the exact verdict protocol (`Verdict: approved` or `Verdict: revision required`), semantic evaluation, and final publication all use its locale. The ordinary developer run remains machine-audience generation followed by separate English publication evaluation, so it does not claim injection without evidence.
+Managed deliberation injects the resolved English writing contract before generation. Role descriptions, prompts, the exact verdict protocol (`Verdict: approved` or `Verdict: revision required`), semantic evaluation, and final publication all use its locale. The ordinary developer run remains machine-audience generation followed by separate English publication evaluation and therefore does not claim injection without evidence.
 
 Add no event field. Unsupported-language errors expose only the identifier. Verdict-parse failures expose only expected protocol markers, never provider prose, prompts, or repository content.
 
 ## 2026-08-23 local managed-run evaluator amendment
 
-Production `lervo run` composition supplies the previously test-only semantic evaluator port. After the managed file change and project verification complete, Lervo starts a separate read-only session with the selected local provider. The evaluator runs in a newly created empty temporary repository, receives one inline fixed evaluation protocol, receives result-artifact source only in its turn request, and has every managed write denied. Lervo removes the temporary repository after the session stops. This requires neither a Hub nor an external semantic service.
+Production `lervo run` composition supplies the previously test-only semantic evaluator port. After the managed file change and project verification complete, Lervo starts a separate read-only session with the selected local provider. The evaluator runs in a newly created empty temporary repository, receives one inline fixed evaluation protocol, receives result-artifact source only in its turn request, and has every managed write denied. Lervo removes the temporary repository after the session stops. No Hub or external semantic service is required.
 
 The response remains the exact bounded JSON check set and passes through the existing parser, evaluation artifact, and permit validation. Evaluator request source, provider payloads, and errors do not enter events. Only the content-bound writing evaluation stores evaluator ID, statuses, counts, and evidence digests. Missing, failed, malformed, or non-passing evaluation continues to hide provider prose and makes the CLI exit nonzero while preserving the verified repository change.
 

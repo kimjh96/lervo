@@ -1,18 +1,13 @@
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { firstPublicationReservationId } from "./first-publication-reservation.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
-import { validateNpmInteractiveFirstPublicationObservation } from
-  "./npm-interactive-first-publication-policy.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import { validateNpmInteractiveFirstPublicationObservation } from "./npm-interactive-first-publication-policy.mjs";
+import { validateReleasePublicationAuthorization } from "./release-publication-authorization.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
-const terminalStates = new Set([
-  "published", "aborted_before_publication", "publication_unknown",
-]);
+const terminalStates = new Set(["published", "aborted_before_publication", "publication_unknown"]);
 const sideEffects = {
   reservation: "not_created",
   publication: "not_attempted",
@@ -27,8 +22,12 @@ function fail(code = "first_publication_preflight_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function milliseconds(value) {
@@ -41,17 +40,26 @@ function milliseconds(value) {
 function validateArtifact(observation, bootstrap) {
   const base = ["schemaVersion", "source", "state"];
   if (
-    observation?.schemaVersion !== 1 || observation.source !== "first_publication_artifact" ||
+    observation?.schemaVersion !== 1 ||
+    observation.source !== "first_publication_artifact" ||
     !["verified", "changed", "unavailable"].includes(observation.state)
-  ) fail();
+  )
+    fail();
   if (observation.state === "unavailable") {
-    if (!exactKeys(observation, [...base, "reason"]) ||
-        observation.reason !== "artifact_unavailable") fail();
+    if (
+      !exactKeys(observation, [...base, "reason"]) ||
+      observation.reason !== "artifact_unavailable"
+    )
+      fail();
     return { id: "release_artifact", status: "unknown", reasons: ["artifact_unavailable"] };
   }
-  if (!exactKeys(observation, [...base, "artifactSha256"]) ||
-      !/^[a-f0-9]{64}$/u.test(observation.artifactSha256 ?? "")) fail();
-  const matches = observation.state === "verified" &&
+  if (
+    !exactKeys(observation, [...base, "artifactSha256"]) ||
+    !/^[a-f0-9]{64}$/u.test(observation.artifactSha256 ?? "")
+  )
+    fail();
+  const matches =
+    observation.state === "verified" &&
     observation.artifactSha256 === bootstrap.release.artifact.sha256;
   return matches
     ? { id: "release_artifact", status: "ready", reasons: [] }
@@ -61,13 +69,18 @@ function validateArtifact(observation, bootstrap) {
 function validatePackage(observation) {
   const base = ["schemaVersion", "source", "state", "package"];
   if (
-    observation?.schemaVersion !== 1 || observation.source !== "npm_public_registry" ||
+    observation?.schemaVersion !== 1 ||
+    observation.source !== "npm_public_registry" ||
     observation.package !== "@lervo/cli" ||
     !["not_found", "existing", "unavailable"].includes(observation.state)
-  ) fail();
+  )
+    fail();
   if (observation.state === "unavailable") {
-    if (!exactKeys(observation, [...base, "reason"]) ||
-        observation.reason !== "registry_unavailable") fail();
+    if (
+      !exactKeys(observation, [...base, "reason"]) ||
+      observation.reason !== "registry_unavailable"
+    )
+      fail();
     return { id: "public_package_absence", status: "unknown", reasons: ["registry_unavailable"] };
   }
   if (!exactKeys(observation, base)) fail();
@@ -84,25 +97,37 @@ function validateReservation(observation, bootstrap) {
     observation.source !== "first_publication_reservation_store" ||
     observation.reservationId !== expectedId ||
     !["missing", "reserved", "terminal", "unavailable"].includes(observation.state)
-  ) fail();
+  )
+    fail();
   if (observation.state === "missing") {
     if (!exactKeys(observation, base)) fail();
     return { id: "reservation_state", status: "ready", reasons: [] };
   }
   if (observation.state === "unavailable") {
-    if (!exactKeys(observation, [...base, "reason"]) ||
-        observation.reason !== "reservation_store_unavailable") fail();
+    if (
+      !exactKeys(observation, [...base, "reason"]) ||
+      observation.reason !== "reservation_store_unavailable"
+    )
+      fail();
     return { id: "reservation_state", status: "unknown", reasons: [observation.reason] };
   }
   const recordKeys = [...base, "bootstrapDigest", "reservationDigest"];
   if (
     observation.bootstrapDigest !== bootstrap.bootstrapDigest ||
     !digestPattern.test(observation.reservationDigest ?? "")
-  ) fail();
+  )
+    fail();
   if (observation.state === "terminal") {
-    if (!exactKeys(observation, [...recordKeys, "terminalState"]) ||
-        !terminalStates.has(observation.terminalState)) fail();
-    return { id: "reservation_state", status: "blocked", reasons: ["publication_already_terminal"] };
+    if (
+      !exactKeys(observation, [...recordKeys, "terminalState"]) ||
+      !terminalStates.has(observation.terminalState)
+    )
+      fail();
+    return {
+      id: "reservation_state",
+      status: "blocked",
+      reasons: ["publication_already_terminal"],
+    };
   }
   if (!exactKeys(observation, recordKeys)) fail();
   return { id: "reservation_state", status: "blocked", reasons: ["publication_already_reserved"] };
@@ -116,8 +141,12 @@ function npmCheck(observation) {
   }
   return {
     id: "npm_interactive_readiness",
-    status: observation.state === "ready" ? "ready" :
-      observation.state === "unavailable" ? "unknown" : "blocked",
+    status:
+      observation.state === "ready"
+        ? "ready"
+        : observation.state === "unavailable"
+          ? "unknown"
+          : "blocked",
     reasons: [...observation.reasons],
   };
 }
@@ -127,7 +156,11 @@ function freshnessCheck(bootstrap, checkedAt) {
   const observed = milliseconds(bootstrap.registryObservation.observedAt);
   const validUntil = milliseconds(bootstrap.registryObservation.validUntil);
   if (checked < observed) {
-    return { id: "bootstrap_freshness", status: "blocked", reasons: ["check_precedes_observation"] };
+    return {
+      id: "bootstrap_freshness",
+      status: "blocked",
+      reasons: ["check_precedes_observation"],
+    };
   }
   if (checked >= validUntil) {
     return { id: "bootstrap_freshness", status: "blocked", reasons: ["bootstrap_expired"] };
@@ -159,9 +192,11 @@ export function createFirstPublicationPreflightReport({
 }) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
   const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
-  if (authorization.authorizationDigest !== bootstrap.release.publicationAuthorizationDigest ||
-      canonicalJson(authorization.target) !== canonicalJson(bootstrap.target) ||
-      canonicalJson(authorization.artifact) !== canonicalJson(bootstrap.release.artifact)) {
+  if (
+    authorization.authorizationDigest !== bootstrap.release.publicationAuthorizationDigest ||
+    canonicalJson(authorization.target) !== canonicalJson(bootstrap.target) ||
+    canonicalJson(authorization.artifact) !== canonicalJson(bootstrap.release.artifact)
+  ) {
     fail("first_publication_preflight_authorization_mismatch");
   }
   const checks = [
@@ -188,22 +223,33 @@ export function validateFirstPublicationPreflightReport(report, evidence) {
   const body = reportBody(report ?? {});
   if (
     !exactKeys(report, [...Object.keys(body), "preflightDigest"]) ||
-    report.schemaVersion !== 1 || !["ready", "blocked"].includes(report.status) ||
-    report.advisoryOnly !== true || !digestPattern.test(report.bootstrapDigest ?? "") ||
+    report.schemaVersion !== 1 ||
+    !["ready", "blocked"].includes(report.status) ||
+    report.advisoryOnly !== true ||
+    !digestPattern.test(report.bootstrapDigest ?? "") ||
     !digestPattern.test(report.publicationAuthorizationDigest ?? "") ||
     canonicalJson(report.sideEffects) !== canonicalJson(sideEffects) ||
-    !Array.isArray(report.checks) || report.checks.length !== 5 ||
-    canonicalJson(report.checks.map(({ id }) => id)) !== canonicalJson([
-      "bootstrap_freshness", "release_artifact", "public_package_absence",
-      "reservation_state", "npm_interactive_readiness",
-    ]) ||
-    report.checks.some((check) => !exactKeys(check, ["id", "status", "reasons"]) ||
-      !["ready", "blocked", "unknown"].includes(check.status) ||
-      !Array.isArray(check.reasons) ||
-      (check.status === "ready") !== (check.reasons.length === 0)) ||
+    !Array.isArray(report.checks) ||
+    report.checks.length !== 5 ||
+    canonicalJson(report.checks.map(({ id }) => id)) !==
+      canonicalJson([
+        "bootstrap_freshness",
+        "release_artifact",
+        "public_package_absence",
+        "reservation_state",
+        "npm_interactive_readiness",
+      ]) ||
+    report.checks.some(
+      (check) =>
+        !exactKeys(check, ["id", "status", "reasons"]) ||
+        !["ready", "blocked", "unknown"].includes(check.status) ||
+        !Array.isArray(check.reasons) ||
+        (check.status === "ready") !== (check.reasons.length === 0),
+    ) ||
     (report.status === "ready") !== report.checks.every(({ status }) => status === "ready") ||
     report.preflightDigest !== canonicalDigest(body)
-  ) fail();
+  )
+    fail();
   milliseconds(report.checkedAt);
   let expected;
   try {

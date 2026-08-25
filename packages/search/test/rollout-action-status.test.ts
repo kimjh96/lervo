@@ -116,13 +116,15 @@ describe("search rollout action status", () => {
     expect(page).toMatchObject({
       actionCount: 2,
       pageLimit: 1,
-      actions: [{
-        actionId: second.acknowledgementId,
-        action: "acknowledge_keep",
-        qualityInputState: "unchanged",
-        reviewSelectionRelation: "current_selection",
-        actionTransitionRelation: "not_applicable",
-      }],
+      actions: [
+        {
+          actionId: second.acknowledgementId,
+          action: "acknowledge_keep",
+          qualityInputState: "unchanged",
+          reviewSelectionRelation: "current_selection",
+          actionTransitionRelation: "not_applicable",
+        },
+      ],
       nextCursor: second.acknowledgementId,
       actionSelection: "not_performed",
       effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
@@ -134,10 +136,12 @@ describe("search rollout action status", () => {
     });
     expect(next.actions[0]!.actionId).toBe(first.acknowledgementId);
     expect(next.nextCursor).toBeNull();
-    expect(() => createSearchRolloutActionStatusPage({
-      ...input,
-      cursor: `srack_${"f".repeat(24)}`,
-    })).toThrow(/cursor/);
+    expect(() =>
+      createSearchRolloutActionStatusPage({
+        ...input,
+        cursor: `srack_${"f".repeat(24)}`,
+      }),
+    ).toThrow(/cursor/);
   });
 
   it("rejects a structurally valid action that is detached from its review evidence", () => {
@@ -178,19 +182,21 @@ describe("search rollout action status", () => {
       observedThrough: observedAt,
     });
 
-    expect(() => createSearchRolloutActionStatusPage({
-      projectId: "prj_search_01",
-      observedAt,
-      currentSelection: {
-        selectionTransitionId: rolloutTarget.selectionTransitionId,
-        selectionState: "candidate",
-        candidateId: rolloutTarget.candidateId,
-        engine: rolloutTarget.engine,
-        adapterBuildId: rolloutTarget.adapterBuildId,
-        candidateReviewId: rolloutTarget.candidateReviewId,
-        buildEvidenceState: "bound",
-      },
-      evidence: [{ record: acknowledgement, review: otherReview, currentQualitySnapshot }],
-    })).toThrow(/evidence relation/);
+    expect(() =>
+      createSearchRolloutActionStatusPage({
+        projectId: "prj_search_01",
+        observedAt,
+        currentSelection: {
+          selectionTransitionId: rolloutTarget.selectionTransitionId,
+          selectionState: "candidate",
+          candidateId: rolloutTarget.candidateId,
+          engine: rolloutTarget.engine,
+          adapterBuildId: rolloutTarget.adapterBuildId,
+          candidateReviewId: rolloutTarget.candidateReviewId,
+          buildEvidenceState: "bound",
+        },
+        evidence: [{ record: acknowledgement, review: otherReview, currentQualitySnapshot }],
+      }),
+    ).toThrow(/evidence relation/);
   });
 });

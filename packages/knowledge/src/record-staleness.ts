@@ -32,7 +32,8 @@ export async function recordKnowledgeStaleness(
     !validateSchema("verifiedKnowledge", input.knowledge).valid ||
     calculateVerifiedKnowledgeId(input.knowledge) !== input.knowledge.knowledgeId ||
     input.knowledgeArtifact.artifactId !== `art_${input.knowledgeArtifact.contentHash.slice(7)}` ||
-    input.knowledgeArtifact.uri !== `lervo-cas://sha256/${input.knowledgeArtifact.contentHash.slice(7)}` ||
+    input.knowledgeArtifact.uri !==
+      `lervo-cas://sha256/${input.knowledgeArtifact.contentHash.slice(7)}` ||
     input.knowledgeArtifact.contentHash !== knowledgeSha256(knowledgeBytes) ||
     input.knowledgeArtifact.byteCount !== knowledgeBytes.byteLength ||
     !Buffer.from(verifiedKnowledgeBytes(input.knowledge)).equals(Buffer.from(knowledgeBytes))
@@ -44,10 +45,14 @@ export async function recordKnowledgeStaleness(
     );
   }
   if (
-    !input.events.list().some((event) =>
-      event.type === "knowledge.verified" &&
-      event.payload.knowledgeId === input.knowledge.knowledgeId &&
-      event.payload.knowledgeContentHash === input.knowledgeArtifact.contentHash) ||
+    !input.events
+      .list()
+      .some(
+        (event) =>
+          event.type === "knowledge.verified" &&
+          event.payload.knowledgeId === input.knowledge.knowledgeId &&
+          event.payload.knowledgeContentHash === input.knowledgeArtifact.contentHash,
+      ) ||
     input.result.knowledgeId !== input.knowledge.knowledgeId ||
     input.result.projectId !== input.knowledge.projectId ||
     input.result.verifiedRevision !== input.knowledge.verifiedRevision
@@ -66,8 +71,15 @@ export async function recordKnowledgeStaleness(
       "A current decision is not recorded as a staleness-detected event.",
     );
   }
-  if (input.events.list().some((event) =>
-    event.type === "knowledge.stale.detected" && event.payload.resultId === input.result.resultId)) {
+  if (
+    input.events
+      .list()
+      .some(
+        (event) =>
+          event.type === "knowledge.stale.detected" &&
+          event.payload.resultId === input.result.resultId,
+      )
+  ) {
     throw new KnowledgeError(
       "staleness_contract_invalid",
       "staleness_schema_invalid",

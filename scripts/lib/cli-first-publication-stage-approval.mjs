@@ -6,12 +6,9 @@ import {
   createFirstPublicationStageApprovalAuthorization,
   validateFirstPublicationStageApprovalAuthorization,
 } from "./first-publication-stage-approval-authorization.mjs";
-import { validateFirstPublicationStageApprovalDecision } from
-  "./first-publication-stage-approval-decision.mjs";
-import { readFirstPublicationStageApprovalAuthorizationSources } from
-  "./first-publication-stage-approval-sources.mjs";
-import { validateFirstPublicationStageReviewReportDocument } from
-  "./first-publication-stage-review-report.mjs";
+import { validateFirstPublicationStageApprovalDecision } from "./first-publication-stage-approval-decision.mjs";
+import { readFirstPublicationStageApprovalAuthorizationSources } from "./first-publication-stage-approval-sources.mjs";
+import { validateFirstPublicationStageReviewReportDocument } from "./first-publication-stage-review-report.mjs";
 
 function fail(code, message) {
   throw new FirstPublicationBootstrapError(code, message);
@@ -20,22 +17,26 @@ function fail(code, message) {
 function assertCoordinates(report, input) {
   const target = report.target;
   if (
-    target.repository !== input.repository || target.sourceCommit !== input.sourceCommit ||
-    target.releaseTag !== input.releaseTag || target.runId !== input.runId ||
+    target.repository !== input.repository ||
+    target.sourceCommit !== input.sourceCommit ||
+    target.releaseTag !== input.releaseTag ||
+    target.runId !== input.runId ||
     target.attempt !== input.attempt
-  ) fail(
-    "first_publication_stage_approval_source_mismatch",
-    "The npm stage approval coordinates do not match the staged-package review evidence.",
-  );
+  )
+    fail(
+      "first_publication_stage_approval_source_mismatch",
+      "The npm stage approval coordinates do not match the staged-package review evidence.",
+    );
 }
 
 export async function authorizeCliFirstPublicationStageApproval(input, dependencies = {}) {
-  if (input.write !== true || !isAbsolute(input.outputPath ?? "")) fail(
-    "first_publication_stage_approval_write_required",
-    "The CLI npm stage approval authorization can be written only to a new output.",
-  );
-  const readSources = dependencies.readSources ??
-    readFirstPublicationStageApprovalAuthorizationSources;
+  if (input.write !== true || !isAbsolute(input.outputPath ?? ""))
+    fail(
+      "first_publication_stage_approval_write_required",
+      "The CLI npm stage approval authorization can be written only to a new output.",
+    );
+  const readSources =
+    dependencies.readSources ?? readFirstPublicationStageApprovalAuthorizationSources;
   const sources = await readSources(input.stageReviewReportPath, input.decisionPath);
   validateFirstPublicationStageReviewReportDocument(sources.stageReviewReport);
   assertCoordinates(sources.stageReviewReport, input);
@@ -49,11 +50,9 @@ export async function authorizeCliFirstPublicationStageApproval(input, dependenc
     authorizedAt,
   };
   const authorization = createFirstPublicationStageApprovalAuthorization(authorizationInput);
-  validateFirstPublicationStageApprovalAuthorization(
-    authorization,
-    authorizationInput,
-    { checkedAt: authorizedAt },
-  );
+  validateFirstPublicationStageApprovalAuthorization(authorization, authorizationInput, {
+    checkedAt: authorizedAt,
+  });
   await sources.assertUnchanged();
   try {
     await writeFile(input.outputPath, `${JSON.stringify(authorization, null, 2)}\n`, {
@@ -62,10 +61,11 @@ export async function authorizeCliFirstPublicationStageApproval(input, dependenc
       mode: 0o600,
     });
   } catch (error) {
-    if (error?.code === "EEXIST") fail(
-      "first_publication_stage_approval_output_exists",
-      "The CLI npm stage approval authorization output already exists.",
-    );
+    if (error?.code === "EEXIST")
+      fail(
+        "first_publication_stage_approval_output_exists",
+        "The CLI npm stage approval authorization output already exists.",
+      );
     throw error;
   }
   return authorization;

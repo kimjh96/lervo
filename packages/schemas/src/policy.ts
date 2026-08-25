@@ -63,10 +63,7 @@ export const policySnapshotSchema = {
     target: remoteCommandTargetSchema,
     sequence: { type: "integer", minimum: 1, maximum: 2_147_483_647 },
     previousSnapshotId: {
-      oneOf: [
-        { type: "null" },
-        { type: "string", pattern: "^pol_[a-f0-9]{64}$" },
-      ],
+      oneOf: [{ type: "null" }, { type: "string", pattern: "^pol_[a-f0-9]{64}$" }],
     },
     issuedAt: timestampSchema,
     expiresAt: timestampSchema,
@@ -178,14 +175,7 @@ export const policyApprovalRevocationSchema = {
       enum: ["cancelled", "superseded", "security_policy_changed"],
     },
   },
-  required: [
-    "schemaVersion",
-    "revocationId",
-    "target",
-    "approvalId",
-    "revokedAt",
-    "reasonCode",
-  ],
+  required: ["schemaVersion", "revocationId", "target", "approvalId", "revokedAt", "reasonCode"],
   additionalProperties: false,
 } as const;
 

@@ -10,10 +10,7 @@ export const contextRecommendationProperties = {
   engineId: { type: "string", pattern: "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$", maxLength: 64 },
   engineVersion: { type: "integer", minimum: 1, maximum: 1_000_000 },
   selectionTransitionId: {
-    anyOf: [
-      { type: "string", pattern: "^seact_[a-f0-9]{24}$" },
-      { type: "null" },
-    ],
+    anyOf: [{ type: "string", pattern: "^seact_[a-f0-9]{24}$" }, { type: "null" }],
   },
   indexId: { type: "string", pattern: "^sidx_[a-f0-9]{24}$" },
   resultSetHash: sha256Schema,
@@ -43,7 +40,9 @@ export const contextRecommendationRequired = [
 ] as const;
 
 const legacyContextRecommendationEventRequired = contextRecommendationRequired.filter(
-  (field): field is Exclude<(typeof contextRecommendationRequired)[number], "selectionTransitionId"> =>
+  (
+    field,
+  ): field is Exclude<(typeof contextRecommendationRequired)[number], "selectionTransitionId"> =>
     field !== "selectionTransitionId",
 );
 
@@ -52,7 +51,11 @@ export const contextRecommendationEventPayloadSchema = {
   $id: "https://schemas.lervo.dev/v0/context-recommendation-event-payload.schema.json",
   title: "Lervo context recommendation event payload",
   type: "object",
-  properties: { ...contextRecommendationProperties, documentId: documentIdSchema, knowledgeContext: knowledgeContextSchema },
+  properties: {
+    ...contextRecommendationProperties,
+    documentId: documentIdSchema,
+    knowledgeContext: knowledgeContextSchema,
+  },
   required: [...legacyContextRecommendationEventRequired, "documentId"],
   additionalProperties: false,
 } as const;

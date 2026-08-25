@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b8672403ff18293e57f5644c
+freshness: current
+ownership: user
+path: docs/specifications/execution/events-and-privacy.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7a08ee272680e1eeaa766e9e
+title: Execution events and privacy
+type: concept

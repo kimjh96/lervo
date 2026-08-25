@@ -11,8 +11,7 @@ import {
   type IdentityMigrationReceipt,
 } from "./types.js";
 
-const IDENTITY_MIGRATION_POLICY_VERSION =
-  `sha256:${createHash("sha256").update("lervo/project-identity-migration/v1").digest("hex")}`;
+const IDENTITY_MIGRATION_POLICY_VERSION = `sha256:${createHash("sha256").update("lervo/project-identity-migration/v1").digest("hex")}`;
 
 async function syncDirectory(path: string): Promise<void> {
   const handle = await open(path, "r");
@@ -101,8 +100,12 @@ export async function applyIdentityMigration(
   plan: IdentityMigrationPlan,
   options: { now?: Date } = {},
 ): Promise<IdentityMigrationReceipt> {
-  if (plan.schemaVersion !== 1 || plan.status !== "ready" ||
-      plan.projectId === null || plan.sourceTreeHash === null) {
+  if (
+    plan.schemaVersion !== 1 ||
+    plan.status !== "ready" ||
+    plan.projectId === null ||
+    plan.sourceTreeHash === null
+  ) {
     throw new IdentityMigrationError(
       "migration_blocked",
       "This is not an applicable brand migration plan. Inspect the dry-run result first.",
@@ -120,7 +123,10 @@ export async function applyIdentityMigration(
   const projectId = plan.projectId;
   const sourceTreeHash = plan.sourceTreeHash;
   if (projectId === null || sourceTreeHash === null) {
-    throw new IdentityMigrationError("migration_blocked", "The reinspected plan is missing required coordinates.");
+    throw new IdentityMigrationError(
+      "migration_blocked",
+      "The reinspected plan is missing required coordinates.",
+    );
   }
 
   const sourceRoot = resolve(plan.repositoryRoot, plan.sourceDirectory);
@@ -149,7 +155,10 @@ export async function applyIdentityMigration(
     }
     if (plan.documentDisposition === "archive_previous_metadata") {
       if (plan.documentArchivePath === null) {
-        throw new IdentityMigrationError("apply_failed", "The document metadata archive coordinate is missing.");
+        throw new IdentityMigrationError(
+          "apply_failed",
+          "The document metadata archive coordinate is missing.",
+        );
       }
       const archivePath = resolve(plan.repositoryRoot, plan.documentArchivePath);
       const archiveRoot = dirname(archivePath);
@@ -232,10 +241,10 @@ export async function applyIdentityMigration(
       throw error instanceof IdentityMigrationError
         ? error
         : new IdentityMigrationError(
-          "finalization_failed",
-          "Migration finalization could not be verified after saving the completion event. The current managed path is retained.",
-          { cause: error },
-        );
+            "finalization_failed",
+            "Migration finalization could not be verified after saving the completion event. The current managed path is retained.",
+            { cause: error },
+          );
     }
     if (renamed) {
       await rollbackBeforeCommit({
@@ -252,9 +261,9 @@ export async function applyIdentityMigration(
     throw error instanceof IdentityMigrationError
       ? error
       : new IdentityMigrationError(
-        "apply_failed",
-        "The brand migration could not be applied, so the previous managed path was restored.",
-        { cause: error },
-      );
+          "apply_failed",
+          "The brand migration could not be applied, so the previous managed path was restored.",
+          { cause: error },
+        );
   }
 }

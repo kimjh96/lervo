@@ -4,10 +4,7 @@ import {
   type LegacyRegistryMigrationPlan,
 } from "@lervo/schemas";
 
-import {
-  canonicalRepositoryRoot,
-  readStableFile,
-} from "./filesystem.js";
+import { canonicalRepositoryRoot, readStableFile } from "./filesystem.js";
 import { sha256 } from "./hash.js";
 import { calculateLegacyRegistryMigrationPlanId } from "./integrity.js";
 import { parseLegacyDocumentRegistry } from "./legacy-registry.js";
@@ -17,10 +14,7 @@ import {
   materializeLegacyRegistryEntry,
   snapshotLegacyMigrationPath,
 } from "./legacy-registry-planning.js";
-import {
-  DocumentMigrationError,
-  type LegacyRegistryMigrationDryRun,
-} from "./types.js";
+import { DocumentMigrationError, type LegacyRegistryMigrationDryRun } from "./types.js";
 
 const LEGACY_REGISTRY_PATH = ".lervo/documents.yaml";
 const MANIFEST_DIRECTORY_PATH = ".lervo/documents";
@@ -61,17 +55,20 @@ export async function createLegacyRegistryMigrationDryRun(input: {
   const sourceHash = sha256(sourceBytes);
   const archivePath = `.lervo/archive/document-registries/sha256/${sourceHash.slice("sha256:".length)}.yaml`;
   const archiveExpected = await snapshotLegacyMigrationPath(root, archivePath, 4 * 1024 * 1024);
-  const directoryExpected = await snapshotLegacyMigrationPath(root, MANIFEST_DIRECTORY_PATH, 64 * 1024);
+  const directoryExpected = await snapshotLegacyMigrationPath(
+    root,
+    MANIFEST_DIRECTORY_PATH,
+    64 * 1024,
+  );
   const warnings = new Set<string>();
   let conflict = directoryExpected.kind !== "missing";
   let reviewRequired = false;
   if (conflict) warnings.add("legacy_and_sharded_layout_conflict");
   if (
     archiveExpected.kind === "unsafe" ||
-    (archiveExpected.kind === "file" && (
-      archiveExpected.contentHash !== sourceHash ||
-      archiveExpected.byteCount !== sourceBytes.byteLength
-    ))
+    (archiveExpected.kind === "file" &&
+      (archiveExpected.contentHash !== sourceHash ||
+        archiveExpected.byteCount !== sourceBytes.byteLength))
   ) {
     conflict = true;
     warnings.add("archive_target_conflict");
@@ -147,10 +144,10 @@ export async function createLegacyRegistryMigrationDryRun(input: {
     writesAllowed: false as const,
     approvalStatus: "not_requested" as const,
     outcome: conflict
-      ? "conflict" as const
+      ? ("conflict" as const)
       : reviewRequired
-        ? "review_required" as const
-        : "ready_for_review" as const,
+        ? ("review_required" as const)
+        : ("ready_for_review" as const),
     source: {
       path: LEGACY_REGISTRY_PATH as typeof LEGACY_REGISTRY_PATH,
       contentHash: sourceHash,

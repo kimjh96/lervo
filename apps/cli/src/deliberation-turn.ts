@@ -11,12 +11,8 @@ import type {
   ManagedDeliberationRunResult,
   ManagedDeliberationRunner,
 } from "./managed-deliberation-runner.js";
-import type {
-  DeliberationExecutionPlan,
-} from "./deliberation-roles.js";
-import type {
-  ManagedDeliberationOutcome,
-} from "./managed-deliberation.js";
+import type { DeliberationExecutionPlan } from "./deliberation-roles.js";
+import type { ManagedDeliberationOutcome } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
 
 function opposite(provider: RunProvider): RunProvider {

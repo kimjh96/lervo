@@ -50,12 +50,14 @@
       "planId": "migp_aaaaaaaaaaaaaaaa",
       "approvedAt": "2026-08-19T04:00:00Z",
       "approver": { "kind": "user", "id": "reviewer" },
-      "decisions": [{
-        "documentId": "doc_readme_000001",
-        "artifactId": "art_aaaaaaaaaaaaaaaa",
-        "action": "skip",
-        "reasonCode": "excluded_by_reviewer"
-      }]
+      "decisions": [
+        {
+          "documentId": "doc_readme_000001",
+          "artifactId": "art_aaaaaaaaaaaaaaaa",
+          "action": "skip",
+          "reasonCode": "excluded_by_reviewer"
+        }
+      ]
     }
   },
   {

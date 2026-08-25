@@ -29,6 +29,7 @@ export interface HubRuntimeConfig {
   storage: {
     databasePath: string;
     commandCasPath: string;
+    capabilityRegistryPath?: string;
   };
   identity: {
     hubIdentityHash: string;

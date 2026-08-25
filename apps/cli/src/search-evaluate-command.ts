@@ -10,7 +10,10 @@ import {
 } from "@lervo/search-local";
 
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
-import { formatSearchEvaluationCoverage, formatSearchEvaluationRun } from "./search-evaluation-format.js";
+import {
+  formatSearchEvaluationCoverage,
+  formatSearchEvaluationRun,
+} from "./search-evaluation-format.js";
 import type { CliIo } from "./types.js";
 
 export async function runSearchEvaluateCommand(args: string[], io: CliIo): Promise<number> {
@@ -51,14 +54,18 @@ export async function runSearchEvaluateCommand(args: string[], io: CliIo): Promi
       evaluatedAt: new Date(),
       ...(coverage === null ? {} : { caseIds: coverage.activeCaseIds }),
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify({ ...(coverage === null ? {} : { coverage }), ...output }, null, 2)}\n`
-      : `${coverage === null ? "" : formatSearchEvaluationCoverage(coverage)}${formatSearchEvaluationRun(output.run)}`);
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify({ ...(coverage === null ? {} : { coverage }), ...output }, null, 2)}\n`
+        : `${coverage === null ? "" : formatSearchEvaluationCoverage(coverage)}${formatSearchEvaluationRun(output.run)}`,
+    );
     return output.run.failedCases === 0 && coverage?.sampleState !== "insufficient" ? 0 : 1;
   } catch (error) {
-    io.stderr(`Could not complete the search replay evaluation. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not complete the search replay evaluation. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

@@ -5,8 +5,7 @@ import type { TraceReport } from "./types.js";
 export const traceReportSchemaVersion = 1 as const;
 
 export type TraceReportCompatibilityErrorCode =
-  | "trace_report_invalid"
-  | "trace_report_schema_unsupported";
+  "trace_report_invalid" | "trace_report_schema_unsupported";
 
 export class TraceReportCompatibilityError extends Error {
   constructor(
@@ -25,11 +24,12 @@ export function readTraceReport(value: unknown): TraceReport {
     schemaVersion: traceReportSchemaVersion,
     reportName: "trace report",
     semantics: isTraceReportSemanticallyValid,
-    error: (failure, message) => new TraceReportCompatibilityError(
-      failure === "unsupported_version"
-        ? "trace_report_schema_unsupported"
-        : "trace_report_invalid",
-      message,
-    ),
+    error: (failure, message) =>
+      new TraceReportCompatibilityError(
+        failure === "unsupported_version"
+          ? "trace_report_schema_unsupported"
+          : "trace_report_invalid",
+        message,
+      ),
   });
 }

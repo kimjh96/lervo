@@ -79,10 +79,7 @@ export function migrateDatabase(database: DatabaseSync): void {
       throw new EventStoreError("integrity_failed", "The SQLite schema version cannot be read.");
     }
     if (version > storageSchemaVersion) {
-      throw new EventStoreError(
-        "integrity_failed",
-        `Unsupported event store schema: ${version}`,
-      );
+      throw new EventStoreError("integrity_failed", `Unsupported event store schema: ${version}`);
     }
     for (let index = version; index < migrations.length; index += 1) {
       database.exec(migrations[index] as string);

@@ -37,10 +37,7 @@ export class InMemoryRemoteCommandReplayStore implements RemoteCommandReplayStor
   ): RemoteCommandReplayDecision {
     const existing = this.byIdempotencyKey.get(coordinate.idempotencyKey);
     if (existing !== undefined) {
-      if (
-        existing.commandHash !== coordinate.commandHash ||
-        existing.nonce !== coordinate.nonce
-      ) {
+      if (existing.commandHash !== coordinate.commandHash || existing.nonce !== coordinate.nonce) {
         return { status: "idempotency_conflict" };
       }
       return existing.receipt === null
@@ -80,7 +77,8 @@ export class InMemoryRemoteCommandReplayStore implements RemoteCommandReplayStor
   }): Promise<void> {
     const record = this.byReservationId.get(input.reservationId);
     if (
-      record === undefined || record.receipt !== null ||
+      record === undefined ||
+      record.receipt !== null ||
       record.commandHash !== input.receipt.commandHash ||
       record.idempotencyKey !== input.receipt.idempotencyKey
     ) {

@@ -1,13 +1,11 @@
-import { readBoundedStageResultArchive } from
-  "./bounded-stage-result-archive.mjs";
+import { readBoundedStageResultArchive } from "./bounded-stage-result-archive.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import {
   createFirstPublicationStageResultReport,
   validateFirstPublicationStageResultReportDocument,
   validateStageResultUpstreamReport,
 } from "./first-publication-stage-result-report.mjs";
-import { validateReleaseStageResultRecords } from
-  "./release-stage-publication-records.mjs";
+import { validateReleaseStageResultRecords } from "./release-stage-publication-records.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 
 function fail(code, message) {
@@ -15,8 +13,12 @@ function fail(code, message) {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 export function assertFirstPublicationStageResultBinding({
@@ -30,8 +32,10 @@ export function assertFirstPublicationStageResultBinding({
   validateStageResultUpstreamReport(workflowExecutionReport);
   const target = workflowExecutionReport.target;
   if (
-    target.repository !== repository || target.sourceCommit !== sourceCommit ||
-    target.releaseTag !== releaseTag || target.runId !== runId ||
+    target.repository !== repository ||
+    target.sourceCommit !== sourceCommit ||
+    target.releaseTag !== releaseTag ||
+    target.runId !== runId ||
     target.attempt !== attempt
   ) {
     fail(
@@ -51,12 +55,21 @@ function validateObservation(observation, input) {
   }
   if (
     !exactKeys(observation, [
-      "schemaVersion", "source", "state", "repository", "sourceCommit", "runId",
-      "artifact", "archive", "metadataStability",
-    ]) || observation.schemaVersion !== 1 ||
+      "schemaVersion",
+      "source",
+      "state",
+      "repository",
+      "sourceCommit",
+      "runId",
+      "artifact",
+      "archive",
+      "metadataStability",
+    ]) ||
+    observation.schemaVersion !== 1 ||
     observation.source !== "github_stage_result_artifact" ||
     observation.repository !== input.repository ||
-    observation.sourceCommit !== input.sourceCommit || observation.runId !== input.runId ||
+    observation.sourceCommit !== input.sourceCommit ||
+    observation.runId !== input.runId ||
     canonicalJson(observation.artifact) !==
       canonicalJson(input.workflowExecutionReport.github.artifact) ||
     !exactKeys(observation.archive, ["byteCount", "sha256", "contents"]) ||

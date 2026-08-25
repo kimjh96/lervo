@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Lervo Command Review</title>
-    <link rel="stylesheet" href="/assets/control.css">
+    <link rel="stylesheet" href="/assets/control.css" />
     <script type="module" src="/assets/control.js"></script>
   </head>
   <body>
@@ -22,18 +22,31 @@
         <div>
           <p class="eyebrow">Separate authentication required</p>
           <h1 id="control-title">Review the execution scope before approval</h1>
-          <p class="supporting">Conversation messages and reactions cannot create approvals. The access token is kept only in this tab's memory.</p>
+          <p class="supporting">
+            Conversation messages and reactions cannot create approvals. The access token is kept
+            only in this tab's memory.
+          </p>
         </div>
         <form id="auth-form" class="auth-form">
           <label for="token">Hub access token</label>
           <div class="auth-controls">
-            <input id="token" type="password" minlength="32" maxlength="4096"
-              autocomplete="off" autocapitalize="none" spellcheck="false" required>
+            <input
+              id="token"
+              type="password"
+              minlength="32"
+              maxlength="4096"
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
             <button type="submit">Authenticate</button>
             <button id="disconnect" class="secondary" type="button" hidden>Disconnect</button>
           </div>
         </form>
-        <p id="status" class="status" role="status" aria-live="polite">Open the review URL from the conversation and enter your token.</p>
+        <p id="status" class="status" role="status" aria-live="polite">
+          Open the review URL from the conversation and enter your token.
+        </p>
       </section>
 
       <section id="review" class="panel review" aria-labelledby="review-title" hidden>

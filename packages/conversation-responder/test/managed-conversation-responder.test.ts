@@ -16,21 +16,11 @@ import { defaultEnglishWritingContract } from "@lervo/core";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { handleConversationEvent } from "@lervo/interaction";
 import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
-import type {
-  DocumentRegistry,
-  RoleProfile,
-  SharedContextPublication,
-} from "@lervo/schemas";
+import type { DocumentRegistry, RoleProfile, SharedContextPublication } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  ManagedConversationResponder,
-  VerifiedConversationPublication,
-} from "../src/index.js";
-import {
-  ConversationClaudeClient,
-  ConversationCodexClient,
-} from "./provider-clients.js";
+import { ManagedConversationResponder, VerifiedConversationPublication } from "../src/index.js";
+import { ConversationClaudeClient, ConversationCodexClient } from "./provider-clients.js";
 
 const projectId = "prj_conversation_bridge";
 const policyVersion = hash("conversation-policy-v1");
@@ -301,11 +291,13 @@ describe("managed conversation responder", () => {
             "writing.policy": ["doc_writing_policy"],
             "role.context": [roleDocument.id],
           },
-          publications: [publication({
-            roleId,
-            documentId: roleDocument.id,
-            contentHash: hash(roleDocument.content),
-          })],
+          publications: [
+            publication({
+              roleId,
+              documentId: roleDocument.id,
+              contentHash: hash(roleDocument.content),
+            }),
+          ],
           handoffs: [],
           writingPolicy: {
             writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
@@ -322,12 +314,23 @@ describe("managed conversation responder", () => {
       resolveWritingContract: () => defaultEnglishWritingContract,
     });
 
-    const reviewer = await responder.respond({ event, policy: policies.reviewer, decision: decisions.reviewer });
-    const planner = await responder.respond({ event, policy: policies.planner, decision: decisions.planner });
+    const reviewer = await responder.respond({
+      event,
+      policy: policies.reviewer,
+      decision: decisions.reviewer,
+    });
+    const planner = await responder.respond({
+      event,
+      policy: policies.planner,
+      decision: decisions.planner,
+    });
     await verifier.verify({ candidate: reviewer, event, policy: policies.reviewer });
     await verifier.verify({ candidate: planner, event, policy: policies.planner });
 
-    expect(codexClient.startOptions).toMatchObject({ sandbox: "read-only", approvalPolicy: "never" });
+    expect(codexClient.startOptions).toMatchObject({
+      sandbox: "read-only",
+      approvalPolicy: "never",
+    });
     expect(JSON.stringify(codexClient.injectedItems)).toContain(reviewerContent.trim());
     expect(JSON.stringify(codexClient.injectedItems)).not.toContain(plannerContent.trim());
     expect(claudeClient.appendedContexts.join("\n")).toContain(plannerContent.trim());
@@ -340,22 +343,23 @@ describe("managed conversation responder", () => {
     expect(planner.publicationPermit.surface).toBe("chat");
 
     const tampered = structuredClone(reviewer);
-    tampered.publicationEvidence.evaluationArtifact.contentHash =
-      `sha256:${"f".repeat(64)}`;
+    tampered.publicationEvidence.evaluationArtifact.contentHash = `sha256:${"f".repeat(64)}`;
     const interactionStore = await SQLiteConversationInteractionStore.open({
       path: resolve(root, ".lervo/state/interaction.sqlite"),
     });
-    await expect(handleConversationEvent({
-      event,
-      policy: policies.reviewer,
-      workerId: "conversation-publication-worker",
-      agentParticipantId: "ptc_agent001",
-      store: interactionStore,
-      responder: { respond: async () => tampered },
-      publicationVerifier: verifier,
-      relevanceEvaluator: { evaluate: async () => "relevant" },
-      clock: () => new Date("2026-08-20T02:00:00Z"),
-    })).resolves.toMatchObject({
+    await expect(
+      handleConversationEvent({
+        event,
+        policy: policies.reviewer,
+        workerId: "conversation-publication-worker",
+        agentParticipantId: "ptc_agent001",
+        store: interactionStore,
+        responder: { respond: async () => tampered },
+        publicationVerifier: verifier,
+        relevanceEvaluator: { evaluate: async () => "relevant" },
+        clock: () => new Date("2026-08-20T02:00:00Z"),
+      }),
+    ).resolves.toMatchObject({
       status: "retry_scheduled",
       failureCode: "publication_verification_failed",
     });

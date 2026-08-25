@@ -22,19 +22,23 @@ describe("Hub trace SQLite query source", () => {
     const forbidden = manifest("prj_hub_scope_02");
     await registerStore(store, allowed);
     await registerStore(store, forbidden);
-    const reader = new HubProjectScopedTraceReader(store, [{
-      destinationId,
-      projectId: allowed.projectId,
-    }]);
+    const reader = new HubProjectScopedTraceReader(store, [
+      {
+        destinationId,
+        projectId: allowed.projectId,
+      },
+    ]);
 
     await expect(reader.listProjects()).resolves.toMatchObject({
       items: [{ projectId: allowed.projectId }],
       nextCursor: null,
     });
-    await expect(reader.getProject({
-      destinationId,
-      projectId: forbidden.projectId,
-    })).rejects.toMatchObject({ code: "project_forbidden" });
+    await expect(
+      reader.getProject({
+        destinationId,
+        projectId: forbidden.projectId,
+      }),
+    ).rejects.toMatchObject({ code: "project_forbidden" });
     await store.close();
   });
 
@@ -87,33 +91,35 @@ describe("Hub trace SQLite query source", () => {
     const project = manifest("prj_hub_runs_01");
     const hash = "sha256:" + "b".repeat(64);
     const events = eventChain(project.projectId, 4, (seq) => {
-      if (seq === 1) return {
-        runId: "run_hub_evidence_01",
-        sessionId: "ses_hub_evidence_01",
-        type: "context.selected",
-        payload: {
-          documentId: "doc_agents_01",
-          reasonCode: "path_rule",
-          ruleId: "rule_agents_01",
-          required: true,
-          scope: "project",
-        },
-      };
-      if (seq === 2) return {
-        runId: "run_hub_evidence_01",
-        sessionId: "ses_hub_evidence_02",
-        type: "verification.completed",
-        payload: {
-          verificationId: "ver_aaaaaaaaaaaaaaaa",
-          suiteId: "project.check",
-          suiteHash: hash,
-          repositoryRevision: hash,
-          status: "passed",
-          resultArtifactId: "art_" + "b".repeat(64),
-          resultContentHash: hash,
-          nonPassedCommandIds: [],
-        },
-      };
+      if (seq === 1)
+        return {
+          runId: "run_hub_evidence_01",
+          sessionId: "ses_hub_evidence_01",
+          type: "context.selected",
+          payload: {
+            documentId: "doc_agents_01",
+            reasonCode: "path_rule",
+            ruleId: "rule_agents_01",
+            required: true,
+            scope: "project",
+          },
+        };
+      if (seq === 2)
+        return {
+          runId: "run_hub_evidence_01",
+          sessionId: "ses_hub_evidence_02",
+          type: "verification.completed",
+          payload: {
+            verificationId: "ver_aaaaaaaaaaaaaaaa",
+            suiteId: "project.check",
+            suiteHash: hash,
+            repositoryRevision: hash,
+            status: "passed",
+            resultArtifactId: "art_" + "b".repeat(64),
+            resultContentHash: hash,
+            nonPassedCommandIds: [],
+          },
+        };
       return { runId: `run_hub_page_0${seq - 1}` };
     });
     await registerStore(store, project);
@@ -168,7 +174,9 @@ describe("Hub trace SQLite query source", () => {
       after = page.relations.nextCursor ?? undefined;
     } while (after !== undefined);
     expect(runGraphTypes.sort()).toEqual([
-      "completed_verification", "contains_run", "selected_document",
+      "completed_verification",
+      "contains_run",
+      "selected_document",
     ]);
     await store.close();
   });
@@ -180,72 +188,79 @@ describe("Hub trace SQLite query source", () => {
     const resultHash = `sha256:${"b".repeat(64)}`;
     const provider = { kind: "provider", provider: "codex" } as const;
     const events = eventChain(project.projectId, 6, (seq) => {
-      if (seq === 1) return {
-        type: "adapter.started",
-        actor: provider,
-        payload: {
-          adapterId: "lervo/codex",
-          adapterVersion: "1",
-          providerSessionId: "provider-session-1",
-          executionMode: "read_only",
-          capabilities: {},
-        },
-      };
-      if (seq === 2) return {
-        type: "context.selected",
-        payload: {
-          documentId: "doc_context_00000001",
-          reasonCode: "role_required",
-          ruleId: "developer.instructions",
-          required: true,
-          scope: { kind: "full" },
-        },
-      };
-      if (seq === 3) return {
-        type: "document.loaded",
-        payload: {
-          evidenceReceiptId: "ctx_loaded_00000001",
-          documentId: "doc_context_00000001",
-          contentHash,
-          byteCount: 10,
-          scope: { kind: "full" },
-          sourceRevision: "working-tree:1",
-        },
-      };
-      if (seq === 4) return {
-        type: "context.injected",
-        actor: provider,
-        payload: {
-          receiptId: "ctx_adapter_00000001",
-          evidenceReceiptIds: ["ctx_injected_00000001"],
-          envelopeId: "envelope-1",
-          documentIds: ["doc_context_00000001"],
-          targetTurnId: "target-turn-1",
-          contextGeneration: 0,
-          adapterId: "lervo/codex",
-          providerSessionId: "provider-session-1",
-          documents: [{
-            evidenceReceiptId: "ctx_injected_00000001",
+      if (seq === 1)
+        return {
+          type: "adapter.started",
+          actor: provider,
+          payload: {
+            adapterId: "lervo/codex",
+            adapterVersion: "1",
+            providerSessionId: "provider-session-1",
+            executionMode: "read_only",
+            capabilities: {},
+          },
+        };
+      if (seq === 2)
+        return {
+          type: "context.selected",
+          payload: {
+            documentId: "doc_context_00000001",
+            reasonCode: "role_required",
+            ruleId: "developer.instructions",
+            required: true,
+            scope: { kind: "full" },
+          },
+        };
+      if (seq === 3)
+        return {
+          type: "document.loaded",
+          payload: {
+            evidenceReceiptId: "ctx_loaded_00000001",
             documentId: "doc_context_00000001",
             contentHash,
+            byteCount: 10,
             scope: { kind: "full" },
-          }],
-        },
-      };
-      if (seq === 5) return {
-        type: "adapter.result.captured",
-        actor: provider,
-        payload: {
-          adapterId: "lervo/codex",
-          providerSessionId: "provider-session-1",
-          targetTurnId: "target-turn-1",
-          providerTurnId: "provider-turn-1",
-          resultDigest: resultHash,
-          byteCount: 10,
-          mediaType: "text/markdown; charset=utf-8",
-          referenceTelemetry: "supported",
-        },
-      };
+            sourceRevision: "working-tree:1",
+          },
+        };
+      if (seq === 4)
+        return {
+          type: "context.injected",
+          actor: provider,
+          payload: {
+            receiptId: "ctx_adapter_00000001",
+            evidenceReceiptIds: ["ctx_injected_00000001"],
+            envelopeId: "envelope-1",
+            documentIds: ["doc_context_00000001"],
+            targetTurnId: "target-turn-1",
+            contextGeneration: 0,
+            adapterId: "lervo/codex",
+            providerSessionId: "provider-session-1",
+            documents: [
+              {
+                evidenceReceiptId: "ctx_injected_00000001",
+                documentId: "doc_context_00000001",
+                contentHash,
+                scope: { kind: "full" },
+              },
+            ],
+          },
+        };
+      if (seq === 5)
+        return {
+          type: "adapter.result.captured",
+          actor: provider,
+          payload: {
+            adapterId: "lervo/codex",
+            providerSessionId: "provider-session-1",
+            targetTurnId: "target-turn-1",
+            providerTurnId: "provider-turn-1",
+            resultDigest: resultHash,
+            byteCount: 10,
+            mediaType: "text/markdown; charset=utf-8",
+            referenceTelemetry: "supported",
+          },
+        };
       return {
         type: "run.completed",
         payload: {
@@ -280,16 +295,20 @@ describe("Hub trace SQLite query source", () => {
     const project = manifest("prj_hub_graph_rebuild_01");
     const store = await HubSyncSQLiteStore.open({ path });
     await registerStore(store, project);
-    await acceptEvents(store, project, eventChain(project.projectId, 1, () => ({
-      type: "context.selected",
-      payload: {
-        documentId: "doc_graph_rebuild_01",
-        reasonCode: "path_rule",
-        ruleId: "rule_graph_rebuild_01",
-        required: true,
-        scope: "project",
-      },
-    })));
+    await acceptEvents(
+      store,
+      project,
+      eventChain(project.projectId, 1, () => ({
+        type: "context.selected",
+        payload: {
+          documentId: "doc_graph_rebuild_01",
+          reasonCode: "path_rule",
+          ruleId: "rule_graph_rebuild_01",
+          required: true,
+          scope: "project",
+        },
+      })),
+    );
     await store.close();
 
     const raw = new DatabaseSync(path);
@@ -318,33 +337,37 @@ describe("Hub trace SQLite query source", () => {
     const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
     const project = manifest("prj_hub_knowledge_graph_01");
     const hash = `sha256:${"a".repeat(64)}`;
-    const events = eventChain(project.projectId, 2, (seq) => seq === 1 ? {
-      type: "deliberation.completed",
-      payload: {
-        deliberationId: "dlb_graph001",
-        outcomeId: "dlo_aaaaaaaaaaaaaaaa",
-        status: "converged",
-        lastRound: 1,
-        decisionArtifactId: "dla_aaaaaaaaaaaaaaaa",
-        unresolvedBlockingObjectionIds: [],
-        failurePhase: null,
-        failureCode: null,
-      },
-    } : {
-      type: "knowledge.candidate.created",
-      payload: {
-        candidateId: "knc_aaaaaaaaaaaaaaaa",
-        claimDigest: hash,
-        paths: ["src/knowledge-graph.ts"],
-        evidenceIds: ["evt_hub_hub_knowledge_graph_01_01"],
-        sourceOutcomeId: "dlo_aaaaaaaaaaaaaaaa",
-        decisionArtifactId: "dla_aaaaaaaaaaaaaaaa",
-        verificationArtifactIds: ["dla_bbbbbbbbbbbbbbbb"],
-        verifiedRevision: hash,
-        candidateArtifactId: `art_${"a".repeat(64)}`,
-        candidateContentHash: hash,
-      },
-    });
+    const events = eventChain(project.projectId, 2, (seq) =>
+      seq === 1
+        ? {
+            type: "deliberation.completed",
+            payload: {
+              deliberationId: "dlb_graph001",
+              outcomeId: "dlo_aaaaaaaaaaaaaaaa",
+              status: "converged",
+              lastRound: 1,
+              decisionArtifactId: "dla_aaaaaaaaaaaaaaaa",
+              unresolvedBlockingObjectionIds: [],
+              failurePhase: null,
+              failureCode: null,
+            },
+          }
+        : {
+            type: "knowledge.candidate.created",
+            payload: {
+              candidateId: "knc_aaaaaaaaaaaaaaaa",
+              claimDigest: hash,
+              paths: ["src/knowledge-graph.ts"],
+              evidenceIds: ["evt_hub_hub_knowledge_graph_01_01"],
+              sourceOutcomeId: "dlo_aaaaaaaaaaaaaaaa",
+              decisionArtifactId: "dla_aaaaaaaaaaaaaaaa",
+              verificationArtifactIds: ["dla_bbbbbbbbbbbbbbbb"],
+              verifiedRevision: hash,
+              candidateArtifactId: `art_${"a".repeat(64)}`,
+              candidateContentHash: hash,
+            },
+          },
+    );
     await registerStore(store, project);
     await acceptEvents(store, project, events);
 
@@ -367,9 +390,7 @@ describe("Hub trace SQLite query source", () => {
       projectId: project.projectId,
       focus: { kind: "event", id: events[0]!.eventId },
     });
-    expect(evidence.relations.items).toEqual([
-      expect.objectContaining({ type: "cites_event" }),
-    ]);
+    expect(evidence.relations.items).toEqual([expect.objectContaining({ type: "cites_event" })]);
     await store.close();
   });
 
@@ -377,10 +398,14 @@ describe("Hub trace SQLite query source", () => {
     const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
     const project = manifest("prj_hub_sessions_01");
     await registerStore(store, project);
-    await acceptEvents(store, project, eventChain(project.projectId, 20, (seq) => ({
-      runId: "run_hub_sessions_01",
-      sessionId: `ses_hub_sessions_${String(seq).padStart(2, "0")}`,
-    })));
+    await acceptEvents(
+      store,
+      project,
+      eventChain(project.projectId, 20, (seq) => ({
+        runId: "run_hub_sessions_01",
+        sessionId: `ses_hub_sessions_${String(seq).padStart(2, "0")}`,
+      })),
+    );
     const trace = await new HubTraceReader(store).getProject({
       destinationId,
       projectId: project.projectId,

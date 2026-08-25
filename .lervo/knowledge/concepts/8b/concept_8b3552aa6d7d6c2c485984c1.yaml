@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_6234586de12c2cedb2bcc920
+  - uv_0bce96c2b5a3aadc973eb8cb
 title: "ADR-0012: Provider-neutral result artifacts"
 type: decision

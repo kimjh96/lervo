@@ -3,11 +3,7 @@ import { resolve } from "node:path";
 import type { ProjectManifest } from "@lervo/schemas";
 import { parse } from "yaml";
 
-import {
-  createDefaultManifest,
-  parseAndValidateYaml,
-  serializeYaml,
-} from "./config.js";
+import { createDefaultManifest, parseAndValidateYaml, serializeYaml } from "./config.js";
 import { serializeDecisionTaxonomy, validateDecisionTaxonomy } from "./decision-taxonomy.js";
 import { planDocumentStorage } from "./document-init-plan.js";
 import { contentHash, readEntry } from "./filesystem.js";
@@ -20,37 +16,59 @@ import {
   LervoProjectError,
 } from "./types.js";
 
-const managedDirectories = [
-  lervoRelativePaths.root,
-  lervoRelativePaths.knowledge,
-] as const;
+const managedDirectories = [lervoRelativePaths.root, lervoRelativePaths.knowledge] as const;
 
 function validateKnowledgePolicyContent(content: string): void {
   let value: unknown;
-  try { value = parse(content); } catch {
-    throw new LervoProjectError("invalid_yaml", ".lervo/knowledge/policy.yaml must contain valid YAML.");
+  try {
+    value = parse(content);
+  } catch {
+    throw new LervoProjectError(
+      "invalid_yaml",
+      ".lervo/knowledge/policy.yaml must contain valid YAML.",
+    );
   }
-  const policy = value as { schemaVersion?: unknown; policyId?: unknown; publicationRoot?: unknown; publication?: Record<string, unknown>; exclude?: unknown; limits?: Record<string, unknown> } | null;
+  const policy = value as {
+    schemaVersion?: unknown;
+    policyId?: unknown;
+    publicationRoot?: unknown;
+    publication?: Record<string, unknown>;
+    exclude?: unknown;
+    limits?: Record<string, unknown>;
+  } | null;
   if (
-    policy === null || typeof policy !== "object" || policy.schemaVersion !== 1 ||
-    typeof policy.policyId !== "string" || typeof policy.publicationRoot !== "string" ||
-    !Array.isArray(policy.exclude) || !policy.exclude.every((item) => typeof item === "string") ||
-    (policy.publication !== undefined && (
-      policy.publication.language !== "en" ||
-      !Number.isSafeInteger(policy.publication.maxNavigationEntries) ||
-      !Number.isSafeInteger(policy.publication.maxNavigationBytes)
-    )) ||
-    policy.limits === undefined || !Number.isSafeInteger(policy.limits.maxFiles) ||
-    !Number.isSafeInteger(policy.limits.maxFileBytes) || !Number.isSafeInteger(policy.limits.maxTotalBytes)
+    policy === null ||
+    typeof policy !== "object" ||
+    policy.schemaVersion !== 1 ||
+    typeof policy.policyId !== "string" ||
+    typeof policy.publicationRoot !== "string" ||
+    !Array.isArray(policy.exclude) ||
+    !policy.exclude.every((item) => typeof item === "string") ||
+    (policy.publication !== undefined &&
+      (policy.publication.language !== "en" ||
+        !Number.isSafeInteger(policy.publication.maxNavigationEntries) ||
+        !Number.isSafeInteger(policy.publication.maxNavigationBytes))) ||
+    policy.limits === undefined ||
+    !Number.isSafeInteger(policy.limits.maxFiles) ||
+    !Number.isSafeInteger(policy.limits.maxFileBytes) ||
+    !Number.isSafeInteger(policy.limits.maxTotalBytes)
   ) {
-    throw new LervoProjectError("contract_invalid", ".lervo/knowledge/policy.yaml does not satisfy the repository knowledge policy contract.");
+    throw new LervoProjectError(
+      "contract_invalid",
+      ".lervo/knowledge/policy.yaml does not satisfy the repository knowledge policy contract.",
+    );
   }
 }
 
 function validateDecisionTaxonomyContent(content: string): void {
   let value: unknown;
-  try { value = parse(content); } catch {
-    throw new LervoProjectError("invalid_yaml", ".lervo/knowledge/document-layout.yaml must contain valid YAML.");
+  try {
+    value = parse(content);
+  } catch {
+    throw new LervoProjectError(
+      "invalid_yaml",
+      ".lervo/knowledge/document-layout.yaml must contain valid YAML.",
+    );
   }
   validateDecisionTaxonomy(value);
 }
@@ -125,12 +143,14 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
       root,
       status: "blocked",
       projectManifest: null,
-      operations: [{
-        kind: "directory",
-        path: lervoRelativePaths.root,
-        action: "conflict",
-        reason: `The ${previousBrandRelativePaths.root} path from the previous product name exists. Lervo will neither convert it automatically nor use it alongside ${lervoRelativePaths.root}. Preserve the existing state and use the explicit brand migration.`,
-      }],
+      operations: [
+        {
+          kind: "directory",
+          path: lervoRelativePaths.root,
+          action: "conflict",
+          reason: `The ${previousBrandRelativePaths.root} path from the previous product name exists. Lervo will neither convert it automatically nor use it alongside ${lervoRelativePaths.root}. Preserve the existing state and use the explicit brand migration.`,
+        },
+      ],
     };
   }
 
@@ -227,20 +247,18 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
       desiredContent: serializeDecisionTaxonomy(),
       validateExisting: validateDecisionTaxonomyContent,
     }),
-    ...await planDocumentStorage(root),
+    ...(await planDocumentStorage(root)),
     await planManagedFile({
       root,
       path: lervoRelativePaths.gitignore,
-      desiredContent: "state/\n",
+      desiredContent: "data/\nstate/\n",
     }),
   );
 
   return {
     schemaVersion: 1,
     root,
-    status: operations.some((operation) => operation.action === "conflict")
-      ? "blocked"
-      : "ready",
+    status: operations.some((operation) => operation.action === "conflict") ? "blocked" : "ready",
     projectManifest,
     operations,
   };

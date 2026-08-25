@@ -86,15 +86,17 @@ describe("search rollout action", () => {
       assessments: [assessment],
       observedThrough: new Date("2026-08-20T08:07:00.000Z"),
     });
-    expect(() => assertSearchRolloutActionEligibility({
-      actionPolicy,
-      rolloutPolicy,
-      review,
-      currentQualitySnapshot: changed,
-      currentSelectionTransitionId: rolloutTarget.selectionTransitionId,
-      operatorId: "operator_search",
-      actedAt: new Date("2026-08-20T08:07:00.000Z"),
-    })).toThrow(/current quality input/);
+    expect(() =>
+      assertSearchRolloutActionEligibility({
+        actionPolicy,
+        rolloutPolicy,
+        review,
+        currentQualitySnapshot: changed,
+        currentSelectionTransitionId: rolloutTarget.selectionTransitionId,
+        operatorId: "operator_search",
+        actedAt: new Date("2026-08-20T08:07:00.000Z"),
+      }),
+    ).toThrow(/current quality input/);
   });
 
   it("uses a separate operator scope and engine policy for rollback actions", () => {
@@ -123,13 +125,15 @@ describe("search rollout action", () => {
       engineActivationPolicyId: enginePolicy.policyId,
       allowedOperatorIds: ["operator_search"],
     });
-    expect(() => createSearchRolloutActionPolicy({
-      rolloutPolicy,
-      engineActivationPolicy: enginePolicy,
-      action: "execute_rollback",
-      allowedOperatorIds: ["operator_other"],
-      authoredBy: "operator_other",
-      createdAt: new Date("2026-08-20T08:02:00.000Z"),
-    })).toThrow(/operator scope/);
+    expect(() =>
+      createSearchRolloutActionPolicy({
+        rolloutPolicy,
+        engineActivationPolicy: enginePolicy,
+        action: "execute_rollback",
+        allowedOperatorIds: ["operator_other"],
+        authoredBy: "operator_other",
+        createdAt: new Date("2026-08-20T08:02:00.000Z"),
+      }),
+    ).toThrow(/operator scope/);
   });
 });

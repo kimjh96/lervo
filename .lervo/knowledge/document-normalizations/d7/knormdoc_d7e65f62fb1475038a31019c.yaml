@@ -1,0 +1,29 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_98454f326d432f72cfb07dd8
+outputLanguage: en
+outputs:
+  - byteCount: 4036
+    contentHash: sha256:e08dff2d0ccbdcab9fdb043018cfa514dcc174381e3d0de9d435f464f98daeaf
+    path: docs/decisions/operations/storage/0004-project-storage-bootstrap.md
+    userRegionHash: sha256:e08dff2d0ccbdcab9fdb043018cfa514dcc174381e3d0de9d435f464f98daeaf
+profile: decision_record
+recordId: knormdoc_d7e65f62fb1475038a31019c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:87045162787ac3842019d83ba2d4d9d6e6aa1fc28060ce887a0dda4454e59ad6
+sourcePath: docs/decisions/operations/storage/0004-project-storage-bootstrap.md
+sourceUnitVersionIds:
+  - uv_271abfe73638ebb45e27df45
+  - uv_5947457319bdb88aee0a1d21
+  - uv_ad67dc1a5be581da0834beee
+  - uv_b2d5db2c72b62a8826f7c12c
+  - uv_b6ddcfd5aef39ed8196d81f2
+  - uv_e026487af96410f3192a714e
+  - uv_f59dda7af05d267da6ac4d7e

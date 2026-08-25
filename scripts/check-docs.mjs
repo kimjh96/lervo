@@ -11,22 +11,40 @@ const lifecycleDocuments = [
   "docs/roadmap/v0.md",
 ];
 async function markdownUnder(directory) {
-  const entries = await readdir(resolve(repositoryRoot, directory), { withFileTypes: true, recursive: true });
+  const entries = await readdir(resolve(repositoryRoot, directory), {
+    withFileTypes: true,
+    recursive: true,
+  });
   return entries
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-    .map((entry) => `${entry.parentPath.slice(repositoryRoot.length + 1).split("\\").join("/")}/${entry.name}`)
+    .map(
+      (entry) =>
+        `${entry.parentPath
+          .slice(repositoryRoot.length + 1)
+          .split("\\")
+          .join("/")}/${entry.name}`,
+    )
     .sort();
 }
-const decisionTaxonomy = parse(await readFile(resolve(repositoryRoot, ".lervo/knowledge/document-layout.yaml"), "utf8"));
+const decisionTaxonomy = parse(
+  await readFile(resolve(repositoryRoot, ".lervo/knowledge/document-layout.yaml"), "utf8"),
+);
 if (
-  decisionTaxonomy?.schemaVersion !== 1 || typeof decisionTaxonomy.decisionRoot !== "string" ||
-  !Number.isSafeInteger(decisionTaxonomy.maxLeafDocuments) || !Array.isArray(decisionTaxonomy.routes) ||
+  decisionTaxonomy?.schemaVersion !== 1 ||
+  typeof decisionTaxonomy.decisionRoot !== "string" ||
+  !Number.isSafeInteger(decisionTaxonomy.maxLeafDocuments) ||
+  !Array.isArray(decisionTaxonomy.routes) ||
   !decisionTaxonomy.routes.every((route) => typeof route?.path === "string")
-) throw new Error(".lervo/knowledge/document-layout.yaml does not satisfy the documentation lifecycle contract.");
+)
+  throw new Error(
+    ".lervo/knowledge/document-layout.yaml does not satisfy the documentation lifecycle contract.",
+  );
 const adrDocuments = await markdownUnder(decisionTaxonomy.decisionRoot);
-const migrationDocuments = (await readdir(resolve(repositoryRoot, "docs/migrations"), {
-  withFileTypes: true,
-}))
+const migrationDocuments = (
+  await readdir(resolve(repositoryRoot, "docs/migrations"), {
+    withFileTypes: true,
+  })
+)
   .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
   .map((entry) => `docs/migrations/${entry.name}`)
   .sort();
@@ -38,7 +56,9 @@ const knowledgeDesignDocuments = (
         .map((entry) => `${directory}/${entry.name}`),
     ),
   )
-).flat().sort();
+)
+  .flat()
+  .sort();
 const markdownDocuments = [
   "README.md",
   "AGENTS.md",
@@ -51,20 +71,32 @@ const markdownDocuments = [
 
 const failures = [];
 const decisionLeafCounts = new Map();
-const allowedDecisionLeaves = new Set(decisionTaxonomy.routes.map((route) => `${decisionTaxonomy.decisionRoot}/${route.path}`));
+const allowedDecisionLeaves = new Set(
+  decisionTaxonomy.routes.map((route) => `${decisionTaxonomy.decisionRoot}/${route.path}`),
+);
 for (const document of adrDocuments.filter((path) => /(?:^|\/)\d{4}-.+\.md$/u.test(path))) {
   const parent = dirname(document);
-  if (!allowedDecisionLeaves.has(parent)) failures.push(`${document}: decision parent is not an allowed taxonomy route.`);
+  if (!allowedDecisionLeaves.has(parent))
+    failures.push(`${document}: decision parent is not an allowed taxonomy route.`);
   decisionLeafCounts.set(parent, (decisionLeafCounts.get(parent) ?? 0) + 1);
 }
 for (const [directory, count] of decisionLeafCounts) {
-  if (count > decisionTaxonomy.maxLeafDocuments) failures.push(`${directory}: ${count} decision documents exceeds the ${decisionTaxonomy.maxLeafDocuments}-file leaf bound; add a semantic route.`);
+  if (count > decisionTaxonomy.maxLeafDocuments)
+    failures.push(
+      `${directory}: ${count} decision documents exceeds the ${decisionTaxonomy.maxLeafDocuments}-file leaf bound; add a semantic route.`,
+    );
 }
 for (const legacyRoot of decisionTaxonomy.legacyRoots ?? []) {
   try {
-    const legacy = await readdir(resolve(repositoryRoot, legacyRoot), { withFileTypes: true, recursive: true });
-    if (legacy.some((entry) => entry.isFile() && /^\d{4}-.+\.md$/u.test(entry.name))) failures.push(`${legacyRoot}: legacy ADR storage is retired; run lervo migrate knowledge.`);
-  } catch { /* absent is canonical */ }
+    const legacy = await readdir(resolve(repositoryRoot, legacyRoot), {
+      withFileTypes: true,
+      recursive: true,
+    });
+    if (legacy.some((entry) => entry.isFile() && /^\d{4}-.+\.md$/u.test(entry.name)))
+      failures.push(`${legacyRoot}: legacy ADR storage is retired; run lervo migrate knowledge.`);
+  } catch {
+    /* absent is canonical */
+  }
 }
 const documentBounds = new Map([
   ["README.md", { bytes: 12_288, lines: 160 }],
@@ -79,7 +111,9 @@ const rootMarkdown = (await readdir(repositoryRoot, { withFileTypes: true }))
   .sort();
 for (const path of rootMarkdown) {
   if (!["README.md", "AGENTS.md", "CLAUDE.md"].includes(path)) {
-    failures.push(`${path}: root Markdown is not an approved short entrypoint; move the concern to docs/.`);
+    failures.push(
+      `${path}: root Markdown is not an approved short entrypoint; move the concern to docs/.`,
+    );
   }
 }
 
@@ -100,10 +134,14 @@ for (const document of markdownDocuments) {
   const byteCount = Buffer.byteLength(content);
   const lineCount = content === "" ? 0 : content.split(/\r?\n/u).length;
   if (byteCount > bounds.bytes) {
-    failures.push(`${document}: ${byteCount} bytes exceeds the ${bounds.bytes}-byte document bound; split independent concerns.`);
+    failures.push(
+      `${document}: ${byteCount} bytes exceeds the ${bounds.bytes}-byte document bound; split independent concerns.`,
+    );
   }
   if (lineCount > bounds.lines) {
-    failures.push(`${document}: ${lineCount} lines exceeds the ${bounds.lines}-line document bound; split independent concerns.`);
+    failures.push(
+      `${document}: ${lineCount} lines exceeds the ${bounds.lines}-line document bound; split independent concerns.`,
+    );
   }
   const links = content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g);
   for (const match of links) {

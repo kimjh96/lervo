@@ -20,15 +20,19 @@ function parseArguments(args) {
   const values = new Map();
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
-    if (![
-      "--release-directory",
-      "--repository",
-      "--tag",
-      "--source-digest",
-      "--dist-tag",
-      "--output",
-      "--trusted-root",
-    ].includes(name) || values.has(name) || index + 1 >= args.length) {
+    if (
+      ![
+        "--release-directory",
+        "--repository",
+        "--tag",
+        "--source-digest",
+        "--dist-tag",
+        "--output",
+        "--trusted-root",
+      ].includes(name) ||
+      values.has(name) ||
+      index + 1 >= args.length
+    ) {
       failArguments();
     }
     values.set(name, args[index + 1]);
@@ -63,7 +67,9 @@ try {
   const { options, outputPath } = parseArguments(process.argv.slice(2));
   const authorization = await authorizeCliReleasePublication(options);
   await writeReleasePublicationAuthorization(outputPath, authorization);
-  console.log(`CLI release publication eligibility check passed (${authorization.target.package}@${authorization.target.version}, ${authorization.target.distTag})`);
+  console.log(
+    `CLI release publication eligibility check passed (${authorization.target.package}@${authorization.target.version}, ${authorization.target.distTag})`,
+  );
 } catch (error) {
   if (
     error instanceof ReleasePublicationAuthorizationError ||
@@ -73,7 +79,9 @@ try {
   ) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_publication_authorization_failed: The release publication eligibility check could not be completed.");
+    console.error(
+      "release_publication_authorization_failed: The release publication eligibility check could not be completed.",
+    );
   }
   process.exitCode = 1;
 }

@@ -1,21 +1,25 @@
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { access, lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
-import { delimiter, dirname, relative, resolve, sep } from "node:path";
+import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
+import { dirname, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 import { createTerminalCoverageReport } from "@lervo/diagnostics";
 import type { EventDraft } from "@lervo/event-contract";
 import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
-import { validateSchema, type EventEnvelope, type TerminalTurnDeclaredEventPayload } from "@lervo/schemas";
+import {
+  validateSchema,
+  type EventEnvelope,
+  type TerminalTurnDeclaredEventPayload,
+} from "@lervo/schemas";
 import {
   canonicalJson,
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
   createRepositoryLayoutMigrationPlan,
-  createTerminalIntegrationPlan,
   formatWorkstreamContext,
+  inspectTerminalIntegration,
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   queryRepositoryKnowledge,
@@ -28,7 +32,8 @@ import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
-export const terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract 1";
+export const terminalUsage =
+  "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 
 type HookEvent = "UserPromptSubmit" | "Stop";
 
@@ -57,6 +62,7 @@ type ParsedHookInput = {
   event: HookEvent;
   providerSessionId: string;
   providerTurnId: string | null;
+  stopHookActive: boolean;
   prompt?: string;
   lastAssistantMessage?: string | null;
 };
@@ -103,7 +109,7 @@ interface PreparedTurnExpectation {
 
 interface TerminalActivationReceipt {
   schemaVersion: 1;
-  contractId: "lervo_terminal_hooks_v1";
+  contractId: "lervo_terminal_hooks_v1" | "lervo_terminal_hooks_v2";
   provider: TerminalIntegrationProvider;
   hookEvent: HookEvent;
   result: "context_prepared" | "completion_allowed" | "completion_blocked";
@@ -128,7 +134,8 @@ async function repositoryRootFrom(start: string): Promise<string> {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
     const parent = dirname(current);
-    if (parent === current) throw new Error("No initialized Lervo repository contains the hook working directory.");
+    if (parent === current)
+      throw new Error("No initialized Lervo repository contains the hook working directory.");
     current = parent;
   }
 }
@@ -147,7 +154,11 @@ function truncateUtf8(value: string, maximumBytes: number): string {
   return value.slice(0, end);
 }
 
-async function loadHit(root: string, hit: KnowledgeQueryHit, remainingBytes: number): Promise<{ content: string; scope: "full" | "prefix" } | null> {
+async function loadHit(
+  root: string,
+  hit: KnowledgeQueryHit,
+  remainingBytes: number,
+): Promise<{ content: string; scope: "full" | "prefix" } | null> {
   const target = resolve(root, hit.path);
   const child = relative(root, target);
   if (child === ".." || child.startsWith(`..${sep}`) || remainingBytes <= 0) return null;
@@ -158,12 +169,23 @@ async function loadHit(root: string, hit: KnowledgeQueryHit, remainingBytes: num
     if (!before.isFile() || before.isSymbolicLink() || before.size > 131_072) return null;
     const bytes = await handle.readFile();
     const after = await handle.stat();
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size || sha256(bytes) !== hit.contentHash) return null;
+    if (
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.size !== after.size ||
+      before.mtimeMs !== after.mtimeMs ||
+      bytes.byteLength !== before.size ||
+      sha256(bytes) !== hit.contentHash
+    )
+      return null;
     const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     if (Buffer.byteLength(content) <= remainingBytes) return { content, scope: "full" };
     const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
     if (remainingBytes <= noticeBytes) return null;
-    return { content: `${truncateUtf8(content, remainingBytes - noticeBytes)}${TRUNCATION_NOTICE}`, scope: "prefix" };
+    return {
+      content: `${truncateUtf8(content, remainingBytes - noticeBytes)}${TRUNCATION_NOTICE}`,
+      scope: "prefix",
+    };
   } catch {
     return null;
   } finally {
@@ -171,7 +193,12 @@ async function loadHit(root: string, hit: KnowledgeQueryHit, remainingBytes: num
   }
 }
 
-async function promptContext(root: string, prompt: string, provider: TerminalIntegrationProvider, observationId: string): Promise<{
+async function promptContext(
+  root: string,
+  prompt: string,
+  provider: TerminalIntegrationProvider,
+  observationId: string,
+): Promise<{
   additionalContext: string;
   sourceSnapshotId: string;
   recommendationCount: number;
@@ -190,26 +217,38 @@ async function promptContext(root: string, prompt: string, provider: TerminalInt
     collectLocalKnowledgeSources(root),
     captureRepositorySnapshot(root),
   ]);
-  const result = await queryRepositoryKnowledge({ repositoryRoot: root, query: prompt, limit: 6, supplementalSources });
+  const result = await queryRepositoryKnowledge({
+    repositoryRoot: root,
+    query: prompt,
+    limit: 6,
+    supplementalSources,
+  });
   const workstreamStorage = await openProjectStorage(root);
   let currentWorkstream;
-  try { currentWorkstream = await verifiedCurrentWorkstream(workstreamStorage); }
-  finally { await workstreamStorage.close(); }
-  const workstream = currentWorkstream === null ? null : (() => {
-    const full = formatWorkstreamContext(currentWorkstream);
-    const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
-    const context = Buffer.byteLength(full) <= MAXIMUM_WORKSTREAM_CONTEXT_BYTES
-      ? full
-      : `${truncateUtf8(full, MAXIMUM_WORKSTREAM_CONTEXT_BYTES - noticeBytes)}${TRUNCATION_NOTICE}`;
-    return {
-      workstreamId: currentWorkstream.workstreamId,
-      revision: currentWorkstream.revision,
-      snapshotHash: sha256(`${canonicalJson(currentWorkstream)}\n`),
-      scope: context === full ? "full" as const : "prefix" as const,
-      deliveredByteCount: Buffer.byteLength(context),
-      context,
-    };
-  })();
+  try {
+    currentWorkstream = await verifiedCurrentWorkstream(workstreamStorage);
+  } finally {
+    await workstreamStorage.close();
+  }
+  const workstream =
+    currentWorkstream === null
+      ? null
+      : (() => {
+          const full = formatWorkstreamContext(currentWorkstream);
+          const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
+          const context =
+            Buffer.byteLength(full) <= MAXIMUM_WORKSTREAM_CONTEXT_BYTES
+              ? full
+              : `${truncateUtf8(full, MAXIMUM_WORKSTREAM_CONTEXT_BYTES - noticeBytes)}${TRUNCATION_NOTICE}`;
+          return {
+            workstreamId: currentWorkstream.workstreamId,
+            revision: currentWorkstream.revision,
+            snapshotHash: sha256(`${canonicalJson(currentWorkstream)}\n`),
+            scope: context === full ? ("full" as const) : ("prefix" as const),
+            deliveredByteCount: Buffer.byteLength(context),
+            context,
+          };
+        })();
   const preamble = [
     "Lervo terminal integration v1 queried this repository for the current user prompt.",
     `sourceSnapshotId: ${result.sourceSnapshotId}`,
@@ -223,7 +262,9 @@ async function promptContext(root: string, prompt: string, provider: TerminalInt
   ].join("\n\n");
   const sections: string[] = [];
   const documents: PreparedDocument[] = [];
-  let usedBytes = Buffer.byteLength(preamble) + (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount);
+  let usedBytes =
+    Buffer.byteLength(preamble) +
+    (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount);
   for (const hit of result.hits) {
     const sectionPrefix = [
       `## ${hit.path}`,
@@ -232,8 +273,13 @@ async function promptContext(root: string, prompt: string, provider: TerminalInt
       "",
     ].join("\n");
     const separatorBytes = Buffer.byteLength("\n\n");
-    const availableBytes = MAXIMUM_CONTEXT_BYTES - usedBytes - separatorBytes - Buffer.byteLength(sectionPrefix);
-    const content = await loadHit(root, hit, Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES));
+    const availableBytes =
+      MAXIMUM_CONTEXT_BYTES - usedBytes - separatorBytes - Buffer.byteLength(sectionPrefix);
+    const content = await loadHit(
+      root,
+      hit,
+      Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES),
+    );
     if (content === null) continue;
     const section = `${sectionPrefix}${content.content}`;
     sections.push(section);
@@ -249,17 +295,41 @@ async function promptContext(root: string, prompt: string, provider: TerminalInt
     usedBytes += separatorBytes + Buffer.byteLength(section);
     if (MAXIMUM_CONTEXT_BYTES - usedBytes <= 512) break;
   }
-  const fallback = "No matching publication was found. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
-  const additionalContext = [preamble, ...(workstream === null ? [] : [workstream.context]), sections.length === 0 ? fallback : sections.join("\n\n")].join("\n\n");
-  if (Buffer.byteLength(additionalContext) > MAXIMUM_CONTEXT_BYTES) throw new Error("Prepared provider context exceeds the bounded output limit.");
-  return { additionalContext, sourceSnapshotId: result.sourceSnapshotId, recommendationCount: result.hits.length, documents, repositoryRevision: repositorySnapshot.revision, workstream };
+  const fallback =
+    "No matching publication was found. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
+  const additionalContext = [
+    preamble,
+    ...(workstream === null ? [] : [workstream.context]),
+    sections.length === 0 ? fallback : sections.join("\n\n"),
+  ].join("\n\n");
+  if (Buffer.byteLength(additionalContext) > MAXIMUM_CONTEXT_BYTES)
+    throw new Error("Prepared provider context exceeds the bounded output limit.");
+  return {
+    additionalContext,
+    sourceSnapshotId: result.sourceSnapshotId,
+    recommendationCount: result.hits.length,
+    documents,
+    repositoryRevision: repositorySnapshot.revision,
+    workstream,
+  };
 }
 
-function activationPath(root: string, provider: TerminalIntegrationProvider, event: HookEvent): string {
-  return resolve(root, ".lervo/state/terminal-integration", `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`);
+function activationPath(
+  root: string,
+  provider: TerminalIntegrationProvider,
+  event: HookEvent,
+): string {
+  return resolve(
+    root,
+    ".lervo/state/terminal-integration",
+    `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`,
+  );
 }
 
-async function writeActivationReceipt(root: string, receipt: TerminalActivationReceipt): Promise<void> {
+async function writeActivationReceipt(
+  root: string,
+  receipt: TerminalActivationReceipt,
+): Promise<void> {
   const directory = resolve(root, ".lervo/state/terminal-integration");
   try {
     await mkdir(directory, { mode: 0o700 });
@@ -267,12 +337,17 @@ async function writeActivationReceipt(root: string, receipt: TerminalActivationR
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
   const stats = await lstat(directory);
-  if (!stats.isDirectory() || stats.isSymbolicLink()) throw new Error("Unsafe terminal activation state directory.");
+  if (!stats.isDirectory() || stats.isSymbolicLink())
+    throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root, receipt.provider, receipt.hookEvent);
   const temporary = resolve(directory, `.activation-${randomUUID()}.tmp`);
   let handle;
   try {
-    handle = await open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0), 0o600);
+    handle = await open(
+      temporary,
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
+      0o600,
+    );
     await handle.writeFile(`${JSON.stringify(receipt)}\n`);
     await handle.sync();
     await handle.close();
@@ -293,31 +368,67 @@ async function readActivationReceipts(root: string): Promise<TerminalActivationR
         const stats = await lstat(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
         const value = JSON.parse(await readFile(path, "utf8")) as TerminalActivationReceipt;
-        if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v1" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string") receipts.push(value);
+        if (
+          value.schemaVersion === 1 &&
+          value.contractId === "lervo_terminal_hooks_v2" &&
+          value.provider === provider &&
+          value.hookEvent === event &&
+          typeof value.occurredAt === "string"
+        )
+          receipts.push(value);
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT" && !(error instanceof SyntaxError))
+          throw error;
       }
     }
   }
-  return receipts.sort((left, right) => left.provider.localeCompare(right.provider) || left.hookEvent.localeCompare(right.hookEvent));
+  return receipts.sort(
+    (left, right) =>
+      left.provider.localeCompare(right.provider) || left.hookEvent.localeCompare(right.hookEvent),
+  );
 }
 
-async function inspectRuntimeActivation(root: string, receipts: TerminalActivationReceipt[]): Promise<LifecycleInspection["runtimeActivation"]> {
+async function inspectRuntimeActivation(
+  root: string,
+  receipts: TerminalActivationReceipt[],
+): Promise<LifecycleInspection["runtimeActivation"]> {
   const storage = await openProjectStorage(root);
   try {
     const observations: LifecycleInspection["runtimeActivation"]["observations"] = [];
     for (const provider of ["codex", "claude"] as const) {
       for (const hookEvent of ["UserPromptSubmit", "Stop"] as const) {
-        const receipt = receipts.find((item) => item.provider === provider && item.hookEvent === hookEvent);
-        const event = receipt?.observationEventId === undefined ? null : storage.events.get(receipt.observationEventId);
-        const expectedType = hookEvent === "UserPromptSubmit" ? "terminal.context.prepared" : "terminal.turn.observed";
-        const observed = receipt !== undefined && event !== null && event.type === expectedType && event.actor.kind === "provider" && event.actor.provider === provider && event.occurredAt === receipt.occurredAt;
-        observations.push({ provider, hookEvent, status: observed ? "observed" : "not_observed", occurredAt: observed ? receipt.occurredAt : null });
+        const receipt = receipts.find(
+          (item) => item.provider === provider && item.hookEvent === hookEvent,
+        );
+        const event =
+          receipt?.observationEventId === undefined
+            ? null
+            : storage.events.get(receipt.observationEventId);
+        const expectedType =
+          hookEvent === "UserPromptSubmit" ? "terminal.context.prepared" : "terminal.turn.observed";
+        const observed =
+          receipt !== undefined &&
+          event !== null &&
+          event.type === expectedType &&
+          event.actor.kind === "provider" &&
+          event.actor.provider === provider &&
+          event.occurredAt === receipt.occurredAt;
+        observations.push({
+          provider,
+          hookEvent,
+          status: observed ? "observed" : "not_observed",
+          occurredAt: observed ? receipt.occurredAt : null,
+        });
       }
     }
     const observedCount = observations.filter((item) => item.status === "observed").length;
     return {
-      status: observedCount === observations.length ? "observed" : observedCount === 0 ? "not_observed" : "partial",
+      status:
+        observedCount === observations.length
+          ? "observed"
+          : observedCount === 0
+            ? "not_observed"
+            : "partial",
       evidenceMeaning: "hook_endpoint_observed_not_provider_authorship",
       observations,
     };
@@ -344,11 +455,13 @@ function latestTurnDeclaration(
   contextEventId: string,
   provider: TerminalIntegrationProvider,
 ): { event: EventEnvelope; payload: TerminalTurnDeclaredEventPayload } | null {
-  const declarations = allEvents(events).filter((event) =>
-    event.type === "terminal.turn.declared" &&
-    event.actor.kind === "agent" &&
-    event.actor.provider === provider &&
-    event.payload.contextEventId === contextEventId);
+  const declarations = allEvents(events).filter(
+    (event) =>
+      event.type === "terminal.turn.declared" &&
+      event.actor.kind === "agent" &&
+      event.actor.provider === provider &&
+      event.payload.contextEventId === contextEventId,
+  );
   const event = declarations.at(-1);
   if (event === undefined) return null;
   const validation = validateSchema("terminalTurnDeclaredEventPayload", event.payload);
@@ -360,34 +473,55 @@ function deliberationDeclarationMatches(
   events: ProjectStorage["events"],
   declaration: TerminalTurnDeclaredEventPayload,
 ): boolean {
-  if (declaration.deliberationDisposition === "not_requested") return declaration.deliberationId === null;
-  const completed = allEvents(events).filter((event) =>
-    event.type === "deliberation.completed" && event.payload.deliberationId === declaration.deliberationId).at(-1);
+  if (declaration.deliberationDisposition === "not_requested")
+    return declaration.deliberationId === null;
+  const completed = allEvents(events)
+    .filter(
+      (event) =>
+        event.type === "deliberation.completed" &&
+        event.payload.deliberationId === declaration.deliberationId,
+    )
+    .at(-1);
   if (completed === undefined) return false;
   const status = completed.payload.status;
-  return (declaration.deliberationDisposition === "completed" && status === "converged") ||
+  return (
+    (declaration.deliberationDisposition === "completed" && status === "converged") ||
     (declaration.deliberationDisposition === "no_consensus" && status === "no_consensus") ||
-    (declaration.deliberationDisposition === "failed" && status === "failed");
+    (declaration.deliberationDisposition === "failed" && status === "failed")
+  );
 }
 
-function activationReadiness(runtime: LifecycleInspection["runtimeActivation"]): LifecycleInspection["activationReadiness"] {
+function activationReadiness(
+  runtime: LifecycleInspection["runtimeActivation"],
+): LifecycleInspection["activationReadiness"] {
   const missingProviders = (["codex", "claude"] as const).filter((provider) =>
-    runtime.observations.some((item) => item.provider === provider && item.status === "not_observed"));
-  const actions: LifecycleInspection["activationReadiness"]["actions"] = missingProviders.map((provider) => provider === "codex"
-    ? {
-        provider,
-        code: "codex_hook_review_or_activation_required",
-        instruction: "Open Codex in this repository, run /hooks, review and trust the Lervo UserPromptSubmit and Stop command hooks, then submit one prompt and complete one turn.",
-      }
-    : {
-        provider,
-        code: "claude_hook_activation_required",
-        instruction: "Open Claude Code in this repository, submit one prompt, and complete one turn so both installed Lervo hooks are observed.",
-      });
+    runtime.observations.some(
+      (item) => item.provider === provider && item.status === "not_observed",
+    ),
+  );
+  const actions: LifecycleInspection["activationReadiness"]["actions"] = missingProviders.map(
+    (provider) =>
+      provider === "codex"
+        ? {
+            provider,
+            code: "codex_hook_review_or_activation_required",
+            instruction:
+              "Open Codex in this repository, run /hooks, review and trust the Lervo UserPromptSubmit and Stop command hooks, then submit one prompt and complete one turn.",
+          }
+        : {
+            provider,
+            code: "claude_hook_activation_required",
+            instruction:
+              "Open Claude Code in this repository, submit one prompt, and complete one turn so both installed Lervo hooks are observed.",
+          },
+  );
   return { status: actions.length === 0 ? "ready" : "action_required", actions };
 }
 
-async function inspectLifecycle(root: string, expected?: PreparedTurnExpectation): Promise<LifecycleInspection> {
+async function inspectLifecycle(
+  root: string,
+  expected?: PreparedTurnExpectation,
+): Promise<LifecycleInspection> {
   const [supplementalSources, currentRepository] = await Promise.all([
     collectLocalKnowledgeSources(root),
     captureRepositorySnapshot(root),
@@ -398,19 +532,15 @@ async function inspectLifecycle(root: string, expected?: PreparedTurnExpectation
     changed: expected !== undefined && expected.repositoryRevision !== currentRepository.revision,
   };
   const issues: LifecycleInspection["issues"] = [];
-  const executableAvailable = (await Promise.all((process.env.PATH ?? "").split(delimiter).filter(Boolean).map(async (directory) => {
-    try {
-      await access(resolve(directory, process.platform === "win32" ? "lervo.cmd" : "lervo"), constants.X_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  }))).some(Boolean);
-  if (!executableAvailable) issues.push({ code: "terminal_executable_unavailable", command: "install the built Lervo CLI in the provider process PATH" });
   try {
     const handoff = await lstat(resolve(root, "HANDOFF.md"));
-    if (handoff.isFile() && !handoff.isSymbolicLink()) issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
-    else issues.push({ code: "legacy_root_handoff_unsafe", command: "review HANDOFF.md and run lervo migrate knowledge" });
+    if (handoff.isFile() && !handoff.isSymbolicLink())
+      issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
+    else
+      issues.push({
+        code: "legacy_root_handoff_unsafe",
+        command: "review HANDOFF.md and run lervo migrate knowledge",
+      });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
@@ -422,13 +552,23 @@ async function inspectLifecycle(root: string, expected?: PreparedTurnExpectation
       issues.push({ code: "workstream_missing", command: "lervo workstream start --stdin" });
     } else if (checkpointRequired && expected !== undefined && current !== null) {
       if (expected.workstreamId !== null && current.workstreamId !== expected.workstreamId) {
-        issues.push({ code: "workstream_identity_changed", command: "lervo workstream current --json" });
+        issues.push({
+          code: "workstream_identity_changed",
+          command: "lervo workstream current --json",
+        });
       } else if (expected.revision !== null && current.revision <= expected.revision) {
-        issues.push({ code: "workstream_checkpoint_required", command: "lervo workstream update --stdin" });
+        issues.push({
+          code: "workstream_checkpoint_required",
+          command: "lervo workstream update --stdin",
+        });
       }
     }
     if (expected !== undefined && repositoryChange.changed) {
-      const declaration = latestTurnDeclaration(workstreamStorage.events, expected.contextEventId, expected.provider);
+      const declaration = latestTurnDeclaration(
+        workstreamStorage.events,
+        expected.contextEventId,
+        expected.provider,
+      );
       if (declaration === null) {
         issues.push({
           code: "turn_declaration_missing",
@@ -442,16 +582,32 @@ async function inspectLifecycle(root: string, expected?: PreparedTurnExpectation
           });
         }
         if (declaration.payload.canonicalizationDisposition === "not_applicable_read_only") {
-          issues.push({ code: "canonicalization_disposition_invalid", command: "review canonical repository sources and redeclare the turn" });
+          issues.push({
+            code: "canonicalization_disposition_invalid",
+            command: "review canonical repository sources and redeclare the turn",
+          });
         }
         if (declaration.payload.knowledgeDisposition === "not_applicable_read_only") {
-          issues.push({ code: "knowledge_disposition_invalid", command: "run lervo migrate knowledge and redeclare the turn" });
+          issues.push({
+            code: "knowledge_disposition_invalid",
+            command: "run lervo migrate knowledge and redeclare the turn",
+          });
         }
-        if (declaration.payload.canonicalizationDisposition === "pending_user_approval" || declaration.payload.knowledgeDisposition === "pending_user_approval") {
-          issues.push({ code: "turn_approval_pending", command: "obtain the required user decision before applying or completing the repository change" });
+        if (
+          declaration.payload.canonicalizationDisposition === "pending_user_approval" ||
+          declaration.payload.knowledgeDisposition === "pending_user_approval"
+        ) {
+          issues.push({
+            code: "turn_approval_pending",
+            command:
+              "obtain the required user decision before applying or completing the repository change",
+          });
         }
         if (!deliberationDeclarationMatches(workstreamStorage.events, declaration.payload)) {
-          issues.push({ code: "deliberation_declaration_invalid", command: "complete or accurately redeclare the requested deliberation lifecycle" });
+          issues.push({
+            code: "deliberation_declaration_invalid",
+            command: "complete or accurately redeclare the requested deliberation lifecycle",
+          });
         }
       }
     }
@@ -460,22 +616,60 @@ async function inspectLifecycle(root: string, expected?: PreparedTurnExpectation
   } finally {
     await workstreamStorage.close();
   }
-  const terminal = await createTerminalIntegrationPlan(root);
-  if (terminal.status !== "current") issues.push({ code: terminal.status === "blocked" ? "terminal_integration_blocked" : "terminal_integration_stale", command: "lervo migrate knowledge" });
-  const layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root, supplementalSources });
-  if (layout.status !== "current") issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
+  const terminal = await inspectTerminalIntegration(root);
+  if (terminal.status !== "current")
+    issues.push({
+      code:
+        terminal.status === "blocked"
+          ? "terminal_integration_blocked"
+          : "terminal_integration_stale",
+      command: "lervo migrate knowledge",
+    });
+  const layout = await createRepositoryLayoutMigrationPlan({
+    repositoryRoot: root,
+    supplementalSources,
+  });
+  if (layout.status !== "current")
+    issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
   if (layout.status === "current") {
-    const bridge = await createKnowledgeInstructionBridgePlan({ repositoryRoot: root, provider: "claude", supplementalSources });
-    if (bridge.status !== "current") issues.push({ code: `claude_instruction_bridge_${bridge.status}`, command: "lervo migrate knowledge" });
+    const bridge = await createKnowledgeInstructionBridgePlan({
+      repositoryRoot: root,
+      provider: "claude",
+      supplementalSources,
+    });
+    if (bridge.status !== "current")
+      issues.push({
+        code: `claude_instruction_bridge_${bridge.status}`,
+        command: "lervo migrate knowledge",
+      });
   }
-  if (layout.status === "current" && issues.every((item) => !item.code.startsWith("claude_instruction_bridge_"))) {
-    const structural = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate", supplementalSources });
-    if (structural.operations.some((item) => item.action !== "unchanged")) issues.push({ code: `repository_knowledge_${structural.status}`, command: "lervo migrate knowledge" });
+  if (
+    layout.status === "current" &&
+    issues.every((item) => !item.code.startsWith("claude_instruction_bridge_"))
+  ) {
+    const structural = await createKnowledgeMigrationPlan({
+      repositoryRoot: root,
+      mode: "migrate",
+      supplementalSources,
+    });
+    if (structural.operations.some((item) => item.action !== "unchanged"))
+      issues.push({
+        code: `repository_knowledge_${structural.status}`,
+        command: "lervo migrate knowledge",
+      });
   }
   const lint = await lintRepositoryKnowledge(root, { supplementalSources });
-  if (!lint.valid) issues.push({ code: "repository_knowledge_lint_failed", command: "lervo knowledge lint" });
-  const normalization = await inspectConfiguredDocumentNormalization({ repositoryRoot: root, supplementalSources });
-  if (normalization.pendingDocuments.length > 0) issues.push({ code: "document_normalization_pending", command: "lervo migrate knowledge --provider codex" });
+  if (!lint.valid)
+    issues.push({ code: "repository_knowledge_lint_failed", command: "lervo knowledge lint" });
+  const normalization = await inspectConfiguredDocumentNormalization({
+    repositoryRoot: root,
+    supplementalSources,
+  });
+  if (normalization.pendingDocuments.length > 0)
+    issues.push({
+      code: "document_normalization_pending",
+      command: "lervo migrate knowledge --provider codex",
+    });
   const activation = await readActivationReceipts(root);
   const runtimeActivation = await inspectRuntimeActivation(root, activation);
   return {
@@ -491,25 +685,60 @@ async function inspectLifecycle(root: string, expected?: PreparedTurnExpectation
 }
 
 function parseHookInput(value: string): ParsedHookInput {
-  if (Buffer.byteLength(value) > 256 * 1024) throw new Error("Hook input exceeds the bounded input limit.");
+  if (Buffer.byteLength(value) > 256 * 1024)
+    throw new Error("Hook input exceeds the bounded input limit.");
   const parsed = JSON.parse(value) as {
     hook_event_name?: unknown;
     session_id?: unknown;
     turn_id?: unknown;
     prompt?: unknown;
+    stop_hook_active?: unknown;
     last_assistant_message?: unknown;
   };
-  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop") throw new Error("Unsupported provider hook event.");
-  if (typeof parsed.session_id !== "string" || parsed.session_id.trim() === "" || parsed.session_id.length > 512) throw new Error("The provider session coordinate is missing or invalid.");
-  if (parsed.turn_id !== undefined && (typeof parsed.turn_id !== "string" || parsed.turn_id.trim() === "" || parsed.turn_id.length > 512)) throw new Error("The provider turn coordinate is invalid.");
-  if (parsed.hook_event_name === "UserPromptSubmit" && (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "" || parsed.prompt.length > 64 * 1024)) throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
-  if (parsed.hook_event_name === "Stop" && parsed.last_assistant_message !== undefined && parsed.last_assistant_message !== null && typeof parsed.last_assistant_message !== "string") throw new Error("The provider completion message is invalid.");
+  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
+    throw new Error("Unsupported provider hook event.");
+  if (
+    typeof parsed.session_id !== "string" ||
+    parsed.session_id.trim() === "" ||
+    parsed.session_id.length > 512
+  )
+    throw new Error("The provider session coordinate is missing or invalid.");
+  if (
+    parsed.turn_id !== undefined &&
+    (typeof parsed.turn_id !== "string" ||
+      parsed.turn_id.trim() === "" ||
+      parsed.turn_id.length > 512)
+  )
+    throw new Error("The provider turn coordinate is invalid.");
+  if (
+    parsed.hook_event_name === "UserPromptSubmit" &&
+    (typeof parsed.prompt !== "string" ||
+      parsed.prompt.trim() === "" ||
+      parsed.prompt.length > 64 * 1024)
+  )
+    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
+  if (
+    parsed.hook_event_name === "Stop" &&
+    parsed.stop_hook_active !== undefined &&
+    typeof parsed.stop_hook_active !== "boolean"
+  )
+    throw new Error("The provider Stop continuation state is invalid.");
+  if (
+    parsed.hook_event_name === "Stop" &&
+    parsed.last_assistant_message !== undefined &&
+    parsed.last_assistant_message !== null &&
+    typeof parsed.last_assistant_message !== "string"
+  )
+    throw new Error("The provider completion message is invalid.");
   return {
     event: parsed.hook_event_name,
     providerSessionId: parsed.session_id,
     providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
+    stopHookActive: parsed.stop_hook_active === true,
     ...(typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {}),
-    ...(parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string" ? { lastAssistantMessage: parsed.last_assistant_message } : {}),
+    ...(parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string"
+      ? { lastAssistantMessage: parsed.last_assistant_message }
+      : {}),
   };
 }
 
@@ -524,9 +753,15 @@ function digestSuffix(digest: string): string {
   return digest.slice("sha256:".length, "sha256:".length + 24);
 }
 
-function unmanagedCoordinates(provider: TerminalIntegrationProvider, input: ParsedHookInput): UnmanagedCoordinates {
+function unmanagedCoordinates(
+  provider: TerminalIntegrationProvider,
+  input: ParsedHookInput,
+): UnmanagedCoordinates {
   const providerSessionDigest = sha256(`${provider}\0${input.providerSessionId}`);
-  const providerTurnDigest = input.providerTurnId === null ? null : sha256(`${provider}\0${input.providerSessionId}\0${input.providerTurnId}`);
+  const providerTurnDigest =
+    input.providerTurnId === null
+      ? null
+      : sha256(`${provider}\0${input.providerSessionId}\0${input.providerTurnId}`);
   const suffix = digestSuffix(providerSessionDigest);
   return {
     runId: `run_unmanaged_${suffix}`,
@@ -542,7 +777,13 @@ function newIdentifier(prefix: "evt" | "tobs" | "tdecl"): string {
 
 function assertRepositoryRelativePath(path: string): void {
   const normalized = path.replaceAll("\\", "/");
-  if (path === "" || normalized.startsWith("/") || /^[A-Za-z]:\//u.test(normalized) || normalized.split("/").includes("..")) throw new Error("Prepared context contains an unsafe repository path.");
+  if (
+    path === "" ||
+    normalized.startsWith("/") ||
+    /^[A-Za-z]:\//u.test(normalized) ||
+    normalized.split("/").includes("..")
+  )
+    throw new Error("Prepared context contains an unsafe repository path.");
 }
 
 function eventDraft(input: {
@@ -581,30 +822,32 @@ async function recordPreparedContext(input: {
   input.context.documents.forEach((document) => assertRepositoryRelativePath(document.path));
   const storage = await openProjectStorage(input.root);
   try {
-    const result = storage.events.append(eventDraft({
-      projectId: storage.manifest.projectId,
-      coordinates: input.coordinates,
-      provider: input.provider,
-      type: "terminal.context.prepared",
-      occurredAt: input.occurredAt,
-      payload: {
-        observationId: input.observationId,
-        executionMode: "unmanaged",
-        providerSessionDigest: input.coordinates.providerSessionDigest,
-        providerTurnDigest: input.coordinates.providerTurnDigest,
-        sourceSnapshotId: input.context.sourceSnapshotId,
-        repositoryRevision: input.context.repositoryRevision,
-        queryDigest: sha256(input.prompt),
-        contextHash: sha256(input.context.additionalContext),
-        recommendationCount: input.context.recommendationCount,
-        loadedDocuments: input.context.documents,
-        workstreamId: input.context.workstream?.workstreamId ?? null,
-        workstreamRevision: input.context.workstream?.revision ?? null,
-        workstreamSnapshotHash: input.context.workstream?.snapshotHash ?? null,
-        workstreamScope: input.context.workstream?.scope ?? null,
-        workstreamDeliveredByteCount: input.context.workstream?.deliveredByteCount ?? null,
-      },
-    }));
+    const result = storage.events.append(
+      eventDraft({
+        projectId: storage.manifest.projectId,
+        coordinates: input.coordinates,
+        provider: input.provider,
+        type: "terminal.context.prepared",
+        occurredAt: input.occurredAt,
+        payload: {
+          observationId: input.observationId,
+          executionMode: "unmanaged",
+          providerSessionDigest: input.coordinates.providerSessionDigest,
+          providerTurnDigest: input.coordinates.providerTurnDigest,
+          sourceSnapshotId: input.context.sourceSnapshotId,
+          repositoryRevision: input.context.repositoryRevision,
+          queryDigest: sha256(input.prompt),
+          contextHash: sha256(input.context.additionalContext),
+          recommendationCount: input.context.recommendationCount,
+          loadedDocuments: input.context.documents,
+          workstreamId: input.context.workstream?.workstreamId ?? null,
+          workstreamRevision: input.context.workstream?.revision ?? null,
+          workstreamSnapshotHash: input.context.workstream?.snapshotHash ?? null,
+          workstreamScope: input.context.workstream?.scope ?? null,
+          workstreamDeliveredByteCount: input.context.workstream?.deliveredByteCount ?? null,
+        },
+      }),
+    );
     return result.event.eventId;
   } finally {
     await storage.close();
@@ -623,10 +866,19 @@ function findLatestPreparedContext(
     if (batch.length === 0) break;
     for (const event of batch) {
       afterSeq = event.seq;
-      if (event.type !== "terminal.context.prepared" || event.actor.kind !== "provider" || event.actor.provider !== provider) continue;
+      if (
+        event.type !== "terminal.context.prepared" ||
+        event.actor.kind !== "provider" ||
+        event.actor.provider !== provider
+      )
+        continue;
       const payload = event.payload as Record<string, unknown>;
       if (payload.providerSessionDigest !== coordinates.providerSessionDigest) continue;
-      if (coordinates.providerTurnDigest !== null && payload.providerTurnDigest !== coordinates.providerTurnDigest) continue;
+      if (
+        coordinates.providerTurnDigest !== null &&
+        payload.providerTurnDigest !== coordinates.providerTurnDigest
+      )
+        continue;
       found = event;
     }
     if (batch.length < 1000) break;
@@ -638,20 +890,27 @@ async function preparedTurnExpectation(
   root: string,
   coordinates: UnmanagedCoordinates,
   provider: TerminalIntegrationProvider,
-): Promise<PreparedTurnExpectation> {
+): Promise<PreparedTurnExpectation | null> {
   const storage = await openProjectStorage(root);
   try {
     const context = findLatestPreparedContext(storage.events, coordinates, provider);
-    if (context === null) throw new Error("No matching prepared terminal context exists for this provider turn.");
+    if (context === null) return null;
     const payload = context.payload as Record<string, unknown>;
     const workstreamId = payload.workstreamId;
     const revision = payload.workstreamRevision;
     const repositoryRevision = payload.repositoryRevision;
     const bothNull = workstreamId === null && revision === null;
-    const bothPresent = typeof workstreamId === "string" && Number.isSafeInteger(revision) && Number(revision) >= 1;
-    if (!bothNull && !bothPresent) throw new Error("Prepared workstream coordinates are incomplete.");
-    if (typeof repositoryRevision !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(repositoryRevision)) throw new Error("Prepared repository revision is invalid.");
-    if (typeof payload.observationId !== "string") throw new Error("Prepared terminal observation coordinate is invalid.");
+    const bothPresent =
+      typeof workstreamId === "string" && Number.isSafeInteger(revision) && Number(revision) >= 1;
+    if (!bothNull && !bothPresent)
+      throw new Error("Prepared workstream coordinates are incomplete.");
+    if (
+      typeof repositoryRevision !== "string" ||
+      !/^sha256:[a-f0-9]{64}$/u.test(repositoryRevision)
+    )
+      throw new Error("Prepared repository revision is invalid.");
+    if (typeof payload.observationId !== "string")
+      throw new Error("Prepared terminal observation coordinate is invalid.");
     return {
       contextEventId: context.eventId,
       observationId: payload.observationId,
@@ -665,11 +924,18 @@ async function preparedTurnExpectation(
   }
 }
 
-function observedReferences(lastAssistantMessage: string | null | undefined, documents: PreparedDocument[]): PreparedDocument[] {
+function observedReferences(
+  lastAssistantMessage: string | null | undefined,
+  documents: PreparedDocument[],
+): PreparedDocument[] {
   if (typeof lastAssistantMessage !== "string") return [];
-  const expected = new Map(documents.map((document) => [`${document.conceptId}\0${document.contentHash}`, document]));
+  const expected = new Map(
+    documents.map((document) => [`${document.conceptId}\0${document.contentHash}`, document]),
+  );
   const observed = new Map<string, PreparedDocument>();
-  for (const match of lastAssistantMessage.matchAll(new RegExp(EVIDENCE_TOKEN.source, EVIDENCE_TOKEN.flags))) {
+  for (const match of lastAssistantMessage.matchAll(
+    new RegExp(EVIDENCE_TOKEN.source, EVIDENCE_TOKEN.flags),
+  )) {
     const key = `${match[1]}\0${match[2]}`;
     const document = expected.get(key);
     if (document !== undefined) observed.set(key, document);
@@ -688,9 +954,11 @@ async function recordObservedTurn(input: {
   const storage = await openProjectStorage(input.root);
   try {
     const context = findLatestPreparedContext(storage.events, input.coordinates, input.provider);
-    if (context === null) throw new Error("No matching prepared terminal context exists for this provider turn.");
+    if (context === null)
+      throw new Error("No matching prepared terminal context exists for this provider turn.");
     const payload = context.payload as Record<string, unknown>;
-    if (!Array.isArray(payload.loadedDocuments)) throw new Error("Prepared terminal context evidence is incomplete.");
+    if (!Array.isArray(payload.loadedDocuments))
+      throw new Error("Prepared terminal context evidence is incomplete.");
     const documents = payload.loadedDocuments as unknown as PreparedDocument[];
     for (const document of documents) assertRepositoryRelativePath(document.path);
     const references = observedReferences(input.hookInput.lastAssistantMessage, documents);
@@ -698,50 +966,58 @@ async function recordObservedTurn(input: {
     const referenceEventIds = references.map(() => newIdentifier("evt"));
     const turnEventId = newIdentifier("evt");
     storage.events.transact((transaction) => {
-      references.forEach((document, index) => transaction.append(eventDraft({
-        eventId: referenceEventIds[index]!,
-        projectId: storage.manifest.projectId,
-        coordinates: input.coordinates,
-        provider: input.provider,
-        type: "terminal.reference.observed",
-        occurredAt: input.occurredAt,
-        payload: {
-          observationId: newIdentifier("tobs"),
-          contextEventId: context.eventId,
-          conceptId: document.conceptId,
-          path: document.path,
-          contentHash: document.contentHash,
-          scope: document.scope,
-          referenceKind: "output_citation",
-          providerSessionDigest: input.coordinates.providerSessionDigest,
-          providerTurnDigest: input.coordinates.providerTurnDigest,
-        },
-      })));
-      transaction.append(eventDraft({
-        eventId: turnEventId,
-        projectId: storage.manifest.projectId,
-        coordinates: input.coordinates,
-        provider: input.provider,
-        type: "terminal.turn.observed",
-        occurredAt: input.occurredAt,
-        payload: {
-          observationId: newIdentifier("tobs"),
-          contextEventId: context.eventId,
-          referenceEventIds,
-          referenceCount: references.length,
-          referenceTelemetry: typeof input.hookInput.lastAssistantMessage === "string" ? "observed" : "unavailable",
-          lifecycleStatus: input.lifecycle.status,
-          completionResult: input.lifecycle.status === "current" ? "allowed" : "blocked",
-          repositoryRevisionBefore: input.lifecycle.repositoryChange.beforeRevision,
-          repositoryRevisionAfter: input.lifecycle.repositoryChange.afterRevision,
-          repositoryChanged: input.lifecycle.repositoryChange.changed,
-          finalWorkstreamId: finalWorkstream?.workstreamId ?? null,
-          finalWorkstreamRevision: finalWorkstream?.revision ?? null,
-          finalWorkstreamSnapshotHash: finalWorkstream === null ? null : sha256(`${canonicalJson(finalWorkstream)}\n`),
-          providerSessionDigest: input.coordinates.providerSessionDigest,
-          providerTurnDigest: input.coordinates.providerTurnDigest,
-        },
-      }));
+      references.forEach((document, index) =>
+        transaction.append(
+          eventDraft({
+            eventId: referenceEventIds[index]!,
+            projectId: storage.manifest.projectId,
+            coordinates: input.coordinates,
+            provider: input.provider,
+            type: "terminal.reference.observed",
+            occurredAt: input.occurredAt,
+            payload: {
+              observationId: newIdentifier("tobs"),
+              contextEventId: context.eventId,
+              conceptId: document.conceptId,
+              path: document.path,
+              contentHash: document.contentHash,
+              scope: document.scope,
+              referenceKind: "output_citation",
+              providerSessionDigest: input.coordinates.providerSessionDigest,
+              providerTurnDigest: input.coordinates.providerTurnDigest,
+            },
+          }),
+        ),
+      );
+      transaction.append(
+        eventDraft({
+          eventId: turnEventId,
+          projectId: storage.manifest.projectId,
+          coordinates: input.coordinates,
+          provider: input.provider,
+          type: "terminal.turn.observed",
+          occurredAt: input.occurredAt,
+          payload: {
+            observationId: newIdentifier("tobs"),
+            contextEventId: context.eventId,
+            referenceEventIds,
+            referenceCount: references.length,
+            referenceTelemetry:
+              typeof input.hookInput.lastAssistantMessage === "string" ? "observed" : "unavailable",
+            lifecycleStatus: input.lifecycle.status,
+            completionResult: input.lifecycle.status === "current" ? "allowed" : "blocked",
+            repositoryRevisionBefore: input.lifecycle.repositoryChange.beforeRevision,
+            repositoryRevisionAfter: input.lifecycle.repositoryChange.afterRevision,
+            repositoryChanged: input.lifecycle.repositoryChange.changed,
+            finalWorkstreamId: finalWorkstream?.workstreamId ?? null,
+            finalWorkstreamRevision: finalWorkstream?.revision ?? null,
+            finalWorkstreamSnapshotHash:
+              finalWorkstream === null ? null : sha256(`${canonicalJson(finalWorkstream)}\n`),
+            providerSessionDigest: input.coordinates.providerSessionDigest,
+            providerTurnDigest: input.coordinates.providerTurnDigest,
+          },
+        }),
+      );
     });
     return { eventId: turnEventId, referenceCount: references.length };
   } finally {
@@ -749,23 +1025,64 @@ async function recordObservedTurn(input: {
   }
 }
 
-function parseTurnDeclarationDraft(value: string): Pick<
+function parseTurnDeclarationDraft(
+  value: string,
+): Pick<
   TerminalTurnDeclaredEventPayload,
-  "taskMode" | "canonicalizationDisposition" | "knowledgeDisposition" | "deliberationDisposition" | "deliberationId"
+  | "taskMode"
+  | "canonicalizationDisposition"
+  | "knowledgeDisposition"
+  | "deliberationDisposition"
+  | "deliberationId"
 > {
-  if (Buffer.byteLength(value) > 16 * 1024) throw new Error("The terminal turn declaration exceeds 16 KiB.");
+  if (Buffer.byteLength(value) > 16 * 1024)
+    throw new Error("The terminal turn declaration exceeds 16 KiB.");
   const parsed = JSON.parse(value) as Record<string, unknown>;
-  const allowed = new Set(["taskMode", "canonicalizationDisposition", "knowledgeDisposition", "deliberationDisposition", "deliberationId"]);
-  if (parsed === null || Array.isArray(parsed) || Object.keys(parsed).some((key) => !allowed.has(key))) throw new Error("The terminal turn declaration contains unsupported fields.");
+  const allowed = new Set([
+    "taskMode",
+    "canonicalizationDisposition",
+    "knowledgeDisposition",
+    "deliberationDisposition",
+    "deliberationId",
+  ]);
+  if (
+    parsed === null ||
+    Array.isArray(parsed) ||
+    Object.keys(parsed).some((key) => !allowed.has(key))
+  )
+    throw new Error("The terminal turn declaration contains unsupported fields.");
   const taskModes = ["inquiry", "change", "review", "continuation", "approval_response"] as const;
-  const canonicalization = ["not_applicable_read_only", "canonical_sources_current", "canonical_sources_updated", "pending_user_approval"] as const;
-  const knowledge = ["not_applicable_read_only", "current", "refreshed", "pending_user_approval"] as const;
+  const canonicalization = [
+    "not_applicable_read_only",
+    "canonical_sources_current",
+    "canonical_sources_updated",
+    "pending_user_approval",
+  ] as const;
+  const knowledge = [
+    "not_applicable_read_only",
+    "current",
+    "refreshed",
+    "pending_user_approval",
+  ] as const;
   const deliberation = ["not_requested", "completed", "no_consensus", "failed"] as const;
-  if (!taskModes.includes(parsed.taskMode as typeof taskModes[number])) throw new Error("The terminal taskMode is invalid.");
-  if (!canonicalization.includes(parsed.canonicalizationDisposition as typeof canonicalization[number])) throw new Error("The canonicalizationDisposition is invalid.");
-  if (!knowledge.includes(parsed.knowledgeDisposition as typeof knowledge[number])) throw new Error("The knowledgeDisposition is invalid.");
-  if (!deliberation.includes(parsed.deliberationDisposition as typeof deliberation[number])) throw new Error("The deliberationDisposition is invalid.");
-  if (parsed.deliberationId !== null && (typeof parsed.deliberationId !== "string" || !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.deliberationId))) throw new Error("The deliberationId is invalid.");
+  if (!taskModes.includes(parsed.taskMode as (typeof taskModes)[number]))
+    throw new Error("The terminal taskMode is invalid.");
+  if (
+    !canonicalization.includes(
+      parsed.canonicalizationDisposition as (typeof canonicalization)[number],
+    )
+  )
+    throw new Error("The canonicalizationDisposition is invalid.");
+  if (!knowledge.includes(parsed.knowledgeDisposition as (typeof knowledge)[number]))
+    throw new Error("The knowledgeDisposition is invalid.");
+  if (!deliberation.includes(parsed.deliberationDisposition as (typeof deliberation)[number]))
+    throw new Error("The deliberationDisposition is invalid.");
+  if (
+    parsed.deliberationId !== null &&
+    (typeof parsed.deliberationId !== "string" ||
+      !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.deliberationId))
+  )
+    throw new Error("The deliberationId is invalid.");
   return parsed as ReturnType<typeof parseTurnDeclarationDraft>;
 }
 
@@ -777,28 +1094,58 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
       strict: true,
       allowPositionals: false,
       options: {
-        provider: { type: "string" }, observation: { type: "string" }, stdin: { type: "boolean" },
-        root: { type: "string" }, json: { type: "boolean" },
+        provider: { type: "string" },
+        observation: { type: "string" },
+        stdin: { type: "boolean" },
+        root: { type: "string" },
+        json: { type: "boolean" },
       },
     });
-    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude") throw new Error("--provider must be codex or claude.");
-    if (typeof parsed.values.observation !== "string" || !/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.values.observation)) throw new Error("--observation is invalid.");
-    if (!parsed.values.stdin || io.stdin === undefined) throw new Error("The declaration must be supplied through --stdin.");
+    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
+      throw new Error("--provider must be codex or claude.");
+    if (
+      typeof parsed.values.observation !== "string" ||
+      !/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.values.observation)
+    )
+      throw new Error("--observation is invalid.");
+    if (!parsed.values.stdin || io.stdin === undefined)
+      throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
     const root = await repositoryRootFrom(resolve(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root);
-    const context = allEvents(storage.events).filter((event) =>
-      event.type === "terminal.context.prepared" &&
-      event.actor.kind === "provider" && event.actor.provider === parsed.values.provider &&
-      event.payload.observationId === parsed.values.observation).at(-1);
+    const context = allEvents(storage.events)
+      .filter(
+        (event) =>
+          event.type === "terminal.context.prepared" &&
+          event.actor.kind === "provider" &&
+          event.actor.provider === parsed.values.provider &&
+          event.payload.observationId === parsed.values.observation,
+      )
+      .at(-1);
     if (context === undefined) throw new Error("No matching prepared terminal observation exists.");
     const contextRevision = context.payload.repositoryRevision;
-    if (typeof contextRevision !== "string") throw new Error("The prepared terminal observation has no repository revision.");
+    if (typeof contextRevision !== "string")
+      throw new Error("The prepared terminal observation has no repository revision.");
     const repository = await captureRepositorySnapshot(root);
     const repositoryChanged = contextRevision !== repository.revision;
-    if (repositoryChanged && draft.taskMode === "inquiry") throw new Error("An inquiry declaration cannot bind changed repository bytes.");
-    if (repositoryChanged && (draft.canonicalizationDisposition === "not_applicable_read_only" || draft.knowledgeDisposition === "not_applicable_read_only")) throw new Error("A repository-changing turn requires canonicalization and knowledge dispositions.");
-    if (!repositoryChanged && (draft.canonicalizationDisposition !== "not_applicable_read_only" || draft.knowledgeDisposition !== "not_applicable_read_only")) throw new Error("An unchanged turn must use read-only canonicalization and knowledge dispositions.");
+    if (repositoryChanged && draft.taskMode === "inquiry")
+      throw new Error("An inquiry declaration cannot bind changed repository bytes.");
+    if (
+      repositoryChanged &&
+      (draft.canonicalizationDisposition === "not_applicable_read_only" ||
+        draft.knowledgeDisposition === "not_applicable_read_only")
+    )
+      throw new Error(
+        "A repository-changing turn requires canonicalization and knowledge dispositions.",
+      );
+    if (
+      !repositoryChanged &&
+      (draft.canonicalizationDisposition !== "not_applicable_read_only" ||
+        draft.knowledgeDisposition !== "not_applicable_read_only")
+    )
+      throw new Error(
+        "An unchanged turn must use read-only canonicalization and knowledge dispositions.",
+      );
     const occurredAt = new Date().toISOString();
     const payload: TerminalTurnDeclaredEventPayload = {
       declarationId: newIdentifier("tdecl"),
@@ -808,28 +1155,40 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
       declaredAt: occurredAt,
     };
     const validation = validateSchema("terminalTurnDeclaredEventPayload", payload);
-    if (!validation.valid) throw new Error("The terminal turn declaration does not satisfy the bounded contract.");
-    if (!deliberationDeclarationMatches(storage.events, payload)) throw new Error("The declared deliberation result is not bound to a matching completed deliberation event.");
+    if (!validation.valid)
+      throw new Error("The terminal turn declaration does not satisfy the bounded contract.");
+    if (!deliberationDeclarationMatches(storage.events, payload))
+      throw new Error(
+        "The declared deliberation result is not bound to a matching completed deliberation event.",
+      );
     const providerSessionDigest = context.payload.providerSessionDigest;
     const providerTurnDigest = context.payload.providerTurnDigest;
-    if (typeof providerSessionDigest !== "string" || (providerTurnDigest !== null && typeof providerTurnDigest !== "string")) throw new Error("The prepared provider coordinates are invalid.");
-    const recorded = storage.events.append(eventDraft({
-      projectId: storage.manifest.projectId,
-      coordinates: {
-        runId: context.runId,
-        sessionId: context.sessionId,
-        providerSessionDigest,
-        providerTurnDigest,
-      },
-      provider: parsed.values.provider,
-      actorKind: "agent",
-      type: "terminal.turn.declared",
-      occurredAt,
-      payload,
-    }));
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, ...payload }, null, 2)}\n`
-      : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\n`);
+    if (
+      typeof providerSessionDigest !== "string" ||
+      (providerTurnDigest !== null && typeof providerTurnDigest !== "string")
+    )
+      throw new Error("The prepared provider coordinates are invalid.");
+    const recorded = storage.events.append(
+      eventDraft({
+        projectId: storage.manifest.projectId,
+        coordinates: {
+          runId: context.runId,
+          sessionId: context.sessionId,
+          providerSessionDigest,
+          providerTurnDigest,
+        },
+        provider: parsed.values.provider,
+        actorKind: "agent",
+        type: "terminal.turn.declared",
+        occurredAt,
+        payload,
+      }),
+    );
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, ...payload }, null, 2)}\n`
+        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\n`,
+    );
     return 0;
   } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n${terminalUsage}\n`);
@@ -841,10 +1200,21 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
 
 async function runHook(args: string[], io: CliIo): Promise<number> {
   try {
-    const parsed = parseArgs({ args, strict: true, allowPositionals: false, options: { provider: { type: "string" }, contract: { type: "string" } } });
-    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude") throw new Error("--provider must be codex or claude.");
+    const parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: false,
+      options: { provider: { type: "string" }, contract: { type: "string" } },
+    });
+    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
+      throw new Error("--provider must be codex or claude.");
     const provider = parsed.values.provider;
-    if (parsed.values.contract !== "1") throw new Error("Unsupported terminal integration contract.");
+    if (parsed.values.contract !== "1" && parsed.values.contract !== "2")
+      throw new Error("Unsupported terminal integration contract.");
+    const contractId =
+      parsed.values.contract === "2"
+        ? ("lervo_terminal_hooks_v2" as const)
+        : ("lervo_terminal_hooks_v1" as const);
     if (io.stdin === undefined) throw new Error("Provider hook input is unavailable.");
     const input = parseHookInput(await io.stdin());
     const root = await repositoryRootFrom(io.cwd);
@@ -853,10 +1223,18 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
     if (input.event === "UserPromptSubmit") {
       const observationId = newIdentifier("tobs");
       const context = await promptContext(root, input.prompt!, provider, observationId);
-      const observationEventId = await recordPreparedContext({ root, provider, coordinates, prompt: input.prompt!, observationId, context, occurredAt });
+      const observationEventId = await recordPreparedContext({
+        root,
+        provider,
+        coordinates,
+        prompt: input.prompt!,
+        observationId,
+        context,
+        occurredAt,
+      });
       await writeActivationReceipt(root, {
         schemaVersion: 1,
-        contractId: "lervo_terminal_hooks_v1",
+        contractId,
         provider,
         hookEvent: input.event,
         result: "context_prepared",
@@ -869,27 +1247,73 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
         repositoryRevision: context.repositoryRevision,
         observationEventId,
       });
-      io.stdout(`${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context.additionalContext } })}\n`);
+      io.stdout(
+        `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context.additionalContext } })}\n`,
+      );
       return 0;
     }
     const expectation = await preparedTurnExpectation(root, coordinates, provider);
+    if (expectation === null) {
+      if (input.stopHookActive) {
+        io.stdout("{}\n");
+        return 0;
+      }
+      io.stdout(
+        `${JSON.stringify({
+          decision: "block",
+          reason:
+            "Lervo terminal integration became active after this turn started, so no matching start observation exists. Continue once to establish the current repository context; the unobserved turn remains unmanaged and no preparation or completion evidence is claimed.",
+        })}\n`,
+      );
+      return 0;
+    }
     const lifecycle = await inspectLifecycle(root, expectation);
-    const observation = await recordObservedTurn({ root, provider, coordinates, hookInput: input, lifecycle, occurredAt });
+    const observation = await recordObservedTurn({
+      root,
+      provider,
+      coordinates,
+      hookInput: input,
+      lifecycle,
+      occurredAt,
+    });
     if (lifecycle.status === "current") {
-      await writeActivationReceipt(root, { schemaVersion: 1, contractId: "lervo_terminal_hooks_v1", provider, hookEvent: input.event, result: "completion_allowed", occurredAt, observationEventId: observation.eventId, referenceCount: observation.referenceCount });
+      await writeActivationReceipt(root, {
+        schemaVersion: 1,
+        contractId,
+        provider,
+        hookEvent: input.event,
+        result: "completion_allowed",
+        occurredAt,
+        observationEventId: observation.eventId,
+        referenceCount: observation.referenceCount,
+      });
       io.stdout("{}\n");
       return 0;
     }
     const reason = [
       "Lervo blocked terminal completion because the repository lifecycle is not current.",
-      ...lifecycle.issues.map((item) => `${item.code}: run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`),
+      ...lifecycle.issues.map(
+        (item) =>
+          `${item.code}: run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
+      ),
       "Complete the required migration or lint work, then try to finish again.",
     ].join("\n");
-    await writeActivationReceipt(root, { schemaVersion: 1, contractId: "lervo_terminal_hooks_v1", provider, hookEvent: input.event, result: "completion_blocked", occurredAt, observationEventId: observation.eventId, referenceCount: observation.referenceCount });
+    await writeActivationReceipt(root, {
+      schemaVersion: 1,
+      contractId,
+      provider,
+      hookEvent: input.event,
+      result: "completion_blocked",
+      occurredAt,
+      observationEventId: observation.eventId,
+      referenceCount: observation.referenceCount,
+    });
     io.stdout(`${JSON.stringify({ decision: "block", reason })}\n`);
     return 0;
   } catch {
-    io.stderr("Lervo terminal integration failed closed without exposing prompt or provider configuration content.\n");
+    io.stderr(
+      "Lervo terminal integration failed closed without exposing prompt or provider configuration content.\n",
+    );
     return 2;
   }
 }
@@ -908,9 +1332,15 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
         json: { type: "boolean" },
       },
     });
-    if (parsed.values.provider !== undefined && parsed.values.provider !== "codex" && parsed.values.provider !== "claude") throw new Error("--provider must be codex or claude.");
+    if (
+      parsed.values.provider !== undefined &&
+      parsed.values.provider !== "codex" &&
+      parsed.values.provider !== "claude"
+    )
+      throw new Error("--provider must be codex or claude.");
     const limit = parsed.values.limit === undefined ? 20 : Number(parsed.values.limit);
-    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new Error("--limit must be an integer between 1 and 100.");
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+      throw new Error("--limit must be an integer between 1 and 100.");
     const root = await repositoryRootFrom(resolve(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root);
     const report = createTerminalCoverageReport({
@@ -925,12 +1355,15 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
       io.stdout("No unmanaged terminal context observations were found.\n");
     } else {
       const lines = report.reports.map((item) => {
-        const referenced = item.coverage.explicitReference.value === null
-          ? item.coverage.explicitReference.reason
-          : `${item.coverage.explicitReference.numerator}/${item.coverage.explicitReference.denominator}`;
+        const referenced =
+          item.coverage.explicitReference.value === null
+            ? item.coverage.explicitReference.reason
+            : `${item.coverage.explicitReference.numerator}/${item.coverage.explicitReference.denominator}`;
         return `  ${item.provider} ${item.occurredAt}: prepared=${item.documents.length}; referenced=${referenced}; completion=${item.completion.result}`;
       });
-      io.stdout(`Unmanaged terminal context observations: ${report.reports.length}\n${lines.join("\n")}\nManaged delivery and internal use remain unsupported for direct provider execution.\n`);
+      io.stdout(
+        `Unmanaged terminal context observations: ${report.reports.length}\n${lines.join("\n")}\nManaged delivery and internal use remain unsupported for direct provider execution.\n`,
+      );
     }
     return 0;
   } catch (error) {
@@ -947,19 +1380,28 @@ export async function runTerminalCommand(args: string[], io: CliIo): Promise<num
   if (args[0] === "coverage") return runCoverage(args.slice(1), io);
   if (args[0] === "status") {
     try {
-      const parsed = parseArgs({ args: args.slice(1), strict: true, allowPositionals: false, options: { root: { type: "string" }, json: { type: "boolean" } } });
+      const parsed = parseArgs({
+        args: args.slice(1),
+        strict: true,
+        allowPositionals: false,
+        options: { root: { type: "string" }, json: { type: "boolean" } },
+      });
       const root = await repositoryRootFrom(resolve(io.cwd, parsed.values.root ?? "."));
       const result = await inspectLifecycle(root);
-      io.stdout(parsed.values.json
-        ? `${JSON.stringify(result, null, 2)}\n`
-        : [
-            `Lervo terminal lifecycle: ${result.status}`,
-            `Hook endpoint observation: ${result.runtimeActivation.status} (does not prove provider authorship)`,
-            `Activation readiness: ${result.activationReadiness.status}`,
-            ...result.issues.map((item) => `  ${item.code}: ${item.command}`),
-            ...result.activationReadiness.actions.map((item) => `  ${item.provider} [${item.code}]: ${item.instruction}`),
-            "",
-          ].join("\n"));
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify(result, null, 2)}\n`
+          : [
+              `Lervo terminal lifecycle: ${result.status}`,
+              `Hook endpoint observation: ${result.runtimeActivation.status} (does not prove provider authorship)`,
+              `Activation readiness: ${result.activationReadiness.status}`,
+              ...result.issues.map((item) => `  ${item.code}: ${item.command}`),
+              ...result.activationReadiness.actions.map(
+                (item) => `  ${item.provider} [${item.code}]: ${item.instruction}`,
+              ),
+              "",
+            ].join("\n"),
+      );
       return result.status === "current" && result.activationReadiness.status === "ready" ? 0 : 1;
     } catch (error) {
       io.stderr(`${error instanceof Error ? error.message : String(error)}\n${terminalUsage}\n`);

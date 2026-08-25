@@ -19,9 +19,7 @@ export interface EvaluateDocumentStalenessInput {
 
 export type EvaluateDocumentStalenessResult = DocumentStalenessResult;
 
-export type DocumentStalenessErrorCode =
-  | "invalid_staleness_request"
-  | "staleness_contract_invalid";
+export type DocumentStalenessErrorCode = "invalid_staleness_request" | "staleness_contract_invalid";
 
 export class DocumentStalenessError extends Error {
   constructor(

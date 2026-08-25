@@ -6,10 +6,12 @@ import { destinationId, manifest, registration } from "./fixture.js";
 
 describe("Hub project registration contract", () => {
   it("requires explicit Hub sync and keeps identity stable across metadata refreshes", () => {
-    expect(() => registration({
-      ...manifest(),
-      dataPolicy: defaultProjectDataPolicy,
-    })).toThrowError(expect.objectContaining({ code: "project_sync_disabled" }));
+    expect(() =>
+      registration({
+        ...manifest(),
+        dataPolicy: defaultProjectDataPolicy,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "project_sync_disabled" }));
 
     const original = registration(manifest());
     const first = planProjectRegistration({
@@ -41,35 +43,43 @@ describe("Hub project registration contract", () => {
     expect(renamed.projectManifestHash).not.toBe(original.projectManifestHash);
     expect(updated.response.status).toBe("updated");
 
-    const differentIdentity = registration(manifest(undefined, {
-      createdAt: "2026-08-19T00:00:01.000Z",
-    }));
-    expect(() => planProjectRegistration({
-      current: updated.state,
-      request: differentIdentity,
-      acceptedAt: "2026-08-19T01:00:05.000Z",
-    })).toThrowError(expect.objectContaining({ code: "registration_identity_conflict" }));
+    const differentIdentity = registration(
+      manifest(undefined, {
+        createdAt: "2026-08-19T00:00:01.000Z",
+      }),
+    );
+    expect(() =>
+      planProjectRegistration({
+        current: updated.state,
+        request: differentIdentity,
+        acceptedAt: "2026-08-19T01:00:05.000Z",
+      }),
+    ).toThrowError(expect.objectContaining({ code: "registration_identity_conflict" }));
   });
 
   it("rejects transport fields outside the registration and acknowledgement schemas", () => {
     const request = registration(manifest());
-    expect(validateSchema("projectRegistrationRequest", {
-      ...request,
-      credential: "must-not-enter-contract",
-    }).valid).toBe(false);
-    expect(validateSchema("eventSyncAcknowledgement", {
-      schemaVersion: 1,
-      batchId: `hsb_${"a".repeat(64)}`,
-      registrationId: request.registrationId,
-      projectId: request.project.projectId,
-      destinationId,
-      status: "accepted",
-      acceptedEventIds: ["evt_sync_schema_01"],
-      insertedCount: 1,
-      duplicateCount: 0,
-      cursor: { seq: 1, eventHash: null },
-      bufferedEventCount: 0,
-      acknowledgedAt: "2026-08-19T01:00:00.000Z",
-    }).valid).toBe(false);
+    expect(
+      validateSchema("projectRegistrationRequest", {
+        ...request,
+        credential: "must-not-enter-contract",
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateSchema("eventSyncAcknowledgement", {
+        schemaVersion: 1,
+        batchId: `hsb_${"a".repeat(64)}`,
+        registrationId: request.registrationId,
+        projectId: request.project.projectId,
+        destinationId,
+        status: "accepted",
+        acceptedEventIds: ["evt_sync_schema_01"],
+        insertedCount: 1,
+        duplicateCount: 0,
+        cursor: { seq: 1, eventHash: null },
+        bufferedEventCount: 0,
+        acknowledgedAt: "2026-08-19T01:00:00.000Z",
+      }).valid,
+    ).toBe(false);
   });
 });

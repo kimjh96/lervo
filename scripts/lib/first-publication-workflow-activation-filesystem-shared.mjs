@@ -61,7 +61,11 @@ export async function syncWorkflowActivationDirectory(path) {
   }
 }
 
-export async function assertWorkflowActivationContents(files, side, onFailure = workflowActivationFailed) {
+export async function assertWorkflowActivationContents(
+  files,
+  side,
+  onFailure = workflowActivationFailed,
+) {
   for (const file of files) {
     let contents;
     try {
@@ -93,10 +97,15 @@ export async function removeWorkflowActivationTransaction(transactionRoot) {
 export async function rollbackWorkflowActivation(transactionRoot, workflowFile) {
   const paths = workflowActivationPaths(transactionRoot);
   if (await workflowActivationPathExists(paths.original)) {
-    await assertWorkflowActivationContents([{
-      path: paths.original,
-      binding: workflowFile.binding,
-    }], "before");
+    await assertWorkflowActivationContents(
+      [
+        {
+          path: paths.original,
+          binding: workflowFile.binding,
+        },
+      ],
+      "before",
+    );
     await rm(workflowFile.path, { force: true });
     await rename(paths.original, workflowFile.path);
     await syncWorkflowActivationDirectory(transactionRoot);

@@ -1,6 +1,5 @@
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import { validateReleasePublicationAuthorization } from "./release-publication-authorization.mjs";
 import {
   trustedPublisherEnvironment,
   trustedPublisherWorkflow,
@@ -48,12 +47,19 @@ function fail(code = "first_publication_bootstrap_input_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)) {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
+  ) {
     fail();
   }
   const milliseconds = Date.parse(value);
@@ -64,8 +70,14 @@ function timestamp(value) {
 function validateApproval(approval, authorization, observedAt) {
   if (
     !exactKeys(approval, [
-      "schemaVersion", "approvalId", "decision", "approvedAt", "expiresAt",
-      "approver", "target", "confirmations",
+      "schemaVersion",
+      "approvalId",
+      "decision",
+      "approvedAt",
+      "expiresAt",
+      "approver",
+      "target",
+      "confirmations",
     ]) ||
     approval.schemaVersion !== 1 ||
     !approvalIdPattern.test(approval.approvalId ?? "") ||
@@ -73,13 +85,19 @@ function validateApproval(approval, authorization, observedAt) {
     !exactKeys(approval.approver, ["kind", "id"]) ||
     approval.approver.kind !== "user" ||
     typeof approval.approver.id !== "string" ||
-    approval.approver.id.length < 1 || approval.approver.id.length > 150 ||
+    approval.approver.id.length < 1 ||
+    approval.approver.id.length > 150 ||
     !exactKeys(approval.target, [
-      "package", "repository", "license", "scopeOwner", "publicationAuthorizationDigest",
+      "package",
+      "repository",
+      "license",
+      "scopeOwner",
+      "publicationAuthorizationDigest",
     ]) ||
     approval.target.package !== "@lervo/cli" ||
     typeof approval.target.license !== "string" ||
-    approval.target.license.length < 1 || approval.target.license.length > 128 ||
+    approval.target.license.length < 1 ||
+    approval.target.license.length > 128 ||
     approval.target.license === "UNLICENSED" ||
     !exactKeys(approval.target.scopeOwner, ["kind", "name"]) ||
     !["organization", "user"].includes(approval.target.scopeOwner.kind) ||
@@ -87,13 +105,16 @@ function validateApproval(approval, authorization, observedAt) {
     approval.target.publicationAuthorizationDigest !== authorization.authorizationDigest ||
     !Array.isArray(approval.confirmations) ||
     canonicalJson([...approval.confirmations].sort()) !== canonicalJson(requiredConfirmations)
-  ) fail("first_publication_approval_invalid");
+  )
+    fail("first_publication_approval_invalid");
   const approvedAt = timestamp(approval.approvedAt);
   const expiresAt = timestamp(approval.expiresAt);
   if (
-    approvedAt > observedAt || expiresAt <= observedAt ||
+    approvedAt > observedAt ||
+    expiresAt <= observedAt ||
     expiresAt - approvedAt > firstPublicationApprovalMaximumLifetimeMs
-  ) fail("first_publication_approval_expired");
+  )
+    fail("first_publication_approval_expired");
 }
 
 export function validateFirstPublicationApproval({

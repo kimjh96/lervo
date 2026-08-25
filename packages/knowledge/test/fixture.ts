@@ -7,11 +7,7 @@ import type { DoctorInspection } from "@lervo/diagnostics";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { DeliberationArtifact, DeliberationOutcome, EventEnvelope } from "@lervo/schemas";
 
-import {
-  convergedHistory,
-  outcome,
-  policy,
-} from "../../deliberation/test/fixtures.js";
+import { convergedHistory, outcome, policy } from "../../deliberation/test/fixtures.js";
 import { createKnowledgeCandidates } from "../src/index.js";
 
 export const policyVersion =
@@ -77,8 +73,9 @@ export function seedConvergedEvents(input: {
   artifacts: readonly DeliberationArtifact[];
   result: Extract<DeliberationOutcome, { status: "converged" }>;
 }): EventEnvelope {
-  const evidenceIds = [...new Set(input.artifacts.flatMap((artifact) =>
-    artifact.evidenceEventIds))];
+  const evidenceIds = [
+    ...new Set(input.artifacts.flatMap((artifact) => artifact.evidenceEventIds)),
+  ];
   for (const [index, eventId] of evidenceIds.entries()) {
     input.events.append({
       eventId,

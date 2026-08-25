@@ -7,10 +7,7 @@ import type {
 } from "@lervo/schemas";
 import { validateSchema } from "@lervo/schemas";
 
-import {
-  calculateWritingPublicationPermitId,
-  writingPolicyHash,
-} from "./integrity.js";
+import { calculateWritingPublicationPermitId, writingPolicyHash } from "./integrity.js";
 import { WritingPublicationError, type WritingEvaluationArtifactCoordinate } from "./types.js";
 
 export function createWritingPublicationPermit(input: {
@@ -68,7 +65,9 @@ export function validateWritingPublicationPermit(input: {
     input.permit.permitId !== calculateWritingPublicationPermitId(input.permit) ||
     input.permit.surface !== input.surface ||
     !input.contract.surfaces.includes(input.surface) ||
-    !Number.isFinite(issuedAt) || !Number.isFinite(checkedAt) || issuedAt < checkedAt ||
+    !Number.isFinite(issuedAt) ||
+    !Number.isFinite(checkedAt) ||
+    issuedAt < checkedAt ||
     input.permit.writingPolicyId !== input.contract.writingPolicyId ||
     input.permit.writingPolicyHash !== writingPolicyHash(input.contract) ||
     input.permit.evaluationId !== input.evaluation.evaluationId ||

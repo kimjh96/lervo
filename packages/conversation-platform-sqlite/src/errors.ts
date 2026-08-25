@@ -1,9 +1,5 @@
 export type ConversationPlatformSQLiteErrorCode =
-  | "closed"
-  | "conflicting_binding"
-  | "integrity_failed"
-  | "mapping_not_found"
-  | "write_failed";
+  "closed" | "conflicting_binding" | "integrity_failed" | "mapping_not_found" | "write_failed";
 
 export class ConversationPlatformSQLiteError extends Error {
   constructor(

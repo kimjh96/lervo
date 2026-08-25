@@ -22,6 +22,9 @@ export class LocalSearchEvaluationComparisonStore {
     evidence: SearchEvaluationComparisonEvidence,
   ): Promise<void> {
     assertSearchEvaluationComparison(comparison, evidence);
-    await writeObservation(resolve(this.comparisonsPath, `${comparison.comparisonId}.json`), comparison);
+    await writeObservation(
+      resolve(this.comparisonsPath, `${comparison.comparisonId}.json`),
+      comparison,
+    );
   }
 }

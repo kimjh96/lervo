@@ -1,19 +1,17 @@
 import { isAbsolute } from "node:path";
 
-import { createFileFirstPublicationReservationStore } from
-  "./file-first-publication-reservation-store.mjs";
+import { createFileFirstPublicationReservationStore } from "./file-first-publication-reservation-store.mjs";
 import {
   validateFirstPublicationArmingAuthorization,
   validateFirstPublicationArmingAuthorizationDocument,
-} from
-  "./first-publication-arming-authorization.mjs";
+} from "./first-publication-arming-authorization.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { readFirstPublicationContractFiles } from
-  "./first-publication-contract-files.mjs";
-import { firstPublicationReservationId, validateFirstPublicationReservation } from
-  "./first-publication-reservation.mjs";
-import { validateStoredFirstPublicationTerminal } from
-  "./first-publication-store-records.mjs";
+import { readFirstPublicationContractFiles } from "./first-publication-contract-files.mjs";
+import {
+  firstPublicationReservationId,
+  validateFirstPublicationReservation,
+} from "./first-publication-reservation.mjs";
+import { validateStoredFirstPublicationTerminal } from "./first-publication-store-records.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 import {
   assertReleaseFilesUnchanged,
@@ -50,20 +48,19 @@ function validateSnapshot(snapshot, sources) {
     snapshot.terminal.retry !== "forbidden" ||
     snapshot.terminal.reservationId !== snapshot.reservation.reservationId ||
     snapshot.terminal.reservationDigest !== snapshot.reservation.reservationDigest
-  ) fail();
+  )
+    fail();
   return snapshot;
 }
 
-export async function readFirstPublicationReconciliationSources(
-  options,
-  dependencies = {},
-) {
+export async function readFirstPublicationReconciliationSources(options, dependencies = {}) {
   if (
     !isAbsolute(options?.publicationAuthorizationPath ?? "") ||
     !isAbsolute(options?.bootstrapPath ?? "") ||
     !isAbsolute(options?.armingAuthorizationPath ?? "") ||
     !isAbsolute(options?.reservationRoot ?? "")
-  ) fail();
+  )
+    fail();
   const contracts = await readFirstPublicationContractFiles(options);
   let armingContents;
   try {
@@ -81,8 +78,8 @@ export async function readFirstPublicationReconciliationSources(
     ...contracts,
     checkedAt: armingAuthorization.validity.armedAt,
   });
-  const createStore = dependencies.createReservationStore ??
-    createFileFirstPublicationReservationStore;
+  const createStore =
+    dependencies.createReservationStore ?? createFileFirstPublicationReservationStore;
   const store = createStore({ rootDirectory: options.reservationRoot });
   const reservationId = firstPublicationReservationId(contracts.bootstrap);
   let snapshot;
@@ -104,11 +101,13 @@ export async function readFirstPublicationReconciliationSources(
     assertUnchanged: async () => {
       await Promise.all([
         contracts.assertUnchanged(),
-        assertReleaseFilesUnchanged([{
-          path: options.armingAuthorizationPath,
-          contents: armingContents,
-          maximumSize: maximumInputBytes,
-        }]),
+        assertReleaseFilesUnchanged([
+          {
+            path: options.armingAuthorizationPath,
+            contents: armingContents,
+            maximumSize: maximumInputBytes,
+          },
+        ]),
       ]);
       const current = validateSnapshot(await store.inspect(reservationId), {
         ...contracts,

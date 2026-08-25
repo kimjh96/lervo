@@ -1,4 +1,4 @@
-import { basename, isAbsolute, resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 import { slsaProvenanceType, validateCliReleaseTag } from "./cli-release-attestation.mjs";
 import {
@@ -42,10 +42,7 @@ export async function verifyCliReleaseAttestations(options, dependencies = {}) {
       "The release attestation verification input is invalid.",
     );
   }
-  const releaseManifestPath = resolve(
-    options.releaseDirectory,
-    "release-artifact-manifest.json",
-  );
+  const releaseManifestPath = resolve(options.releaseDirectory, "release-artifact-manifest.json");
   const releaseManifestContents = await readRegularReleaseFile(
     releaseManifestPath,
     maximumSizes.document,
@@ -103,9 +100,10 @@ export async function verifyCliReleaseAttestations(options, dependencies = {}) {
   parseBundlePreflight(provenanceBundleContents);
   parseBundlePreflight(sbomBundleContents);
 
-  const trustedRootContents = options.trustedRootPath === undefined
-    ? undefined
-    : await readRegularReleaseFile(options.trustedRootPath, maximumSizes.trustedRoot);
+  const trustedRootContents =
+    options.trustedRootPath === undefined
+      ? undefined
+      : await readRegularReleaseFile(options.trustedRootPath, maximumSizes.trustedRoot);
   const policy = createGitHubReleaseTrustPolicy(options);
   const subjects = sortReleaseSubjects([
     createReleaseSubject(tarballName, tarballContents),
@@ -139,13 +137,21 @@ export async function verifyCliReleaseAttestations(options, dependencies = {}) {
     { path: paths.tarball, contents: tarballContents, maximumSize: maximumSizes.tarball },
     { path: paths.manifest, contents: releaseManifestContents, maximumSize: maximumSizes.document },
     { path: paths.sbom, contents: sbomContents, maximumSize: maximumSizes.document },
-    { path: paths.provenanceBundle, contents: provenanceBundleContents, maximumSize: maximumSizes.bundle },
+    {
+      path: paths.provenanceBundle,
+      contents: provenanceBundleContents,
+      maximumSize: maximumSizes.bundle,
+    },
     { path: paths.sbomBundle, contents: sbomBundleContents, maximumSize: maximumSizes.bundle },
-    ...(trustedRootContents === undefined ? [] : [{
-      path: options.trustedRootPath,
-      contents: trustedRootContents,
-      maximumSize: maximumSizes.trustedRoot,
-    }]),
+    ...(trustedRootContents === undefined
+      ? []
+      : [
+          {
+            path: options.trustedRootPath,
+            contents: trustedRootContents,
+            maximumSize: maximumSizes.trustedRoot,
+          },
+        ]),
   ]);
   return {
     schemaVersion: 1,

@@ -97,12 +97,7 @@ const commonProperties = {
         uniqueItems: true,
       },
     },
-    required: [
-      "contextGeneration",
-      "sharedContextIds",
-      "loadedReceiptIds",
-      "injectedReceiptIds",
-    ],
+    required: ["contextGeneration", "sharedContextIds", "loadedReceiptIds", "injectedReceiptIds"],
     additionalProperties: false,
   },
   previousArtifactIds: {
@@ -188,13 +183,7 @@ const objectionArtifactSchema = {
               blocking: { type: "boolean" },
               status: { const: "open" },
             },
-            required: [
-              "objectionId",
-              "objectionDigest",
-              "targetClaimIds",
-              "blocking",
-              "status",
-            ],
+            required: ["objectionId", "objectionDigest", "targetClaimIds", "blocking", "status"],
             additionalProperties: false,
           },
           maxItems: 100,

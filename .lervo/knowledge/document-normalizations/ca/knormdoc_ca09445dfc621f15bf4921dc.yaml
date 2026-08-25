@@ -1,0 +1,28 @@
+candidateId: knorm_fcf7c6145ff9d232dcdd5402
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d8da124983814fec038d1f55
+outputLanguage: en
+outputs:
+  - byteCount: 4088
+    contentHash: sha256:5fb930cd435468e13486d23255c3a423c7765a142965a65829d97444284b1590
+    path: docs/decisions/operations/services/0203-read-only-repository-node-onboarding-reconciliation.md
+    userRegionHash: sha256:5fb930cd435468e13486d23255c3a423c7765a142965a65829d97444284b1590
+profile: decision_record
+recordId: knormdoc_ca09445dfc621f15bf4921dc
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:7aa0d76739696b85f9c7108079c4022623864dfc4342f7acc2e27c07ccb6c43e
+sourcePath: docs/decisions/operations/services/0203-read-only-repository-node-onboarding-reconciliation.md
+sourceUnitVersionIds:
+  - uv_4bb6bb1a015c2efd941a8ff7
+  - uv_62bff30ba4af47301ba726c8
+  - uv_6c98f187be835c39d0675cd4
+  - uv_b503d2466e131363ee46020d
+  - uv_d5611f01e156986b6240b693
+  - uv_f3a94fb0c999212ff667b8c3

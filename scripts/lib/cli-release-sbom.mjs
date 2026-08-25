@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import {
-  createPnpmProductionGraph,
-  pnpmPackageSha512,
-} from "./pnpm-production-graph.mjs";
+import { createPnpmProductionGraph, pnpmPackageSha512 } from "./pnpm-production-graph.mjs";
 
 const nativeSuffixes = [
   "darwin-arm64",
@@ -34,7 +31,8 @@ function packageIdentity(coordinate) {
   const separator = coordinate.lastIndexOf("@");
   const fullName = coordinate.slice(0, separator);
   const version = coordinate.slice(separator + 1);
-  if (!fullName || !version) fail("release_sbom_component_invalid", "The SBOM package coordinates are invalid.");
+  if (!fullName || !version)
+    fail("release_sbom_component_invalid", "The SBOM package coordinates are invalid.");
   if (fullName.startsWith("@")) {
     const [group, name, ...rest] = fullName.split("/");
     if (!group || !name || rest.length > 0) {
@@ -69,30 +67,41 @@ function componentFromCoordinate(coordinate, options = {}) {
 }
 
 function nativeCoordinates(families) {
-  if (
-    families.length !== 1 ||
-    families[0].prefix !== "@anthropic-ai/claude-agent-sdk-"
-  ) {
+  if (families.length !== 1 || families[0].prefix !== "@anthropic-ai/claude-agent-sdk-") {
     fail("release_sbom_native_family_invalid", "The SBOM native dependency family is invalid.");
   }
-  return nativeSuffixes.map((suffix) =>
-    `${families[0].prefix}${suffix}@${families[0].version}`
-  ).sort();
+  return nativeSuffixes
+    .map((suffix) => `${families[0].prefix}${suffix}@${families[0].version}`)
+    .sort();
 }
 
 function assertSourceConsistency(releaseManifest, graph, lockfile) {
-  const required = graph.nodes.filter(({ optional }) => !optional).map(({ coordinate }) => coordinate);
+  const required = graph.nodes
+    .filter(({ optional }) => !optional)
+    .map(({ coordinate }) => coordinate);
   if (canonicalJson(required) !== canonicalJson(releaseManifest.dependencies.portable)) {
-    fail("release_sbom_portable_closure_mismatch", "The SBOM production closure differs from the release manifest.");
+    fail(
+      "release_sbom_portable_closure_mismatch",
+      "The SBOM production closure differs from the release manifest.",
+    );
   }
-  const optional = graph.nodes.filter(({ optional }) => optional).map(({ coordinate }) => coordinate);
-  if (canonicalJson(optional) !== canonicalJson(
-    nativeCoordinates(releaseManifest.dependencies.platformSpecificFamilies),
-  )) {
-    fail("release_sbom_optional_closure_mismatch", "The SBOM optional closure differs from the approved native family.");
+  const optional = graph.nodes
+    .filter(({ optional }) => optional)
+    .map(({ coordinate }) => coordinate);
+  if (
+    canonicalJson(optional) !==
+    canonicalJson(nativeCoordinates(releaseManifest.dependencies.platformSpecificFamilies))
+  ) {
+    fail(
+      "release_sbom_optional_closure_mismatch",
+      "The SBOM optional closure differs from the approved native family.",
+    );
   }
   if (canonicalJson(graph.roots) !== canonicalJson(releaseManifest.directDependencies)) {
-    fail("release_sbom_roots_mismatch", "The SBOM direct dependencies differ from the release manifest.");
+    fail(
+      "release_sbom_roots_mismatch",
+      "The SBOM direct dependencies differ from the release manifest.",
+    );
   }
   const graphCoordinates = new Set(graph.nodes.map(({ coordinate }) => coordinate));
   for (const coordinate of releaseManifest.bundle.externalPackages) {
@@ -104,7 +113,8 @@ function rootComponent(releaseManifest) {
   const coordinate = `${releaseManifest.artifact.name}@${releaseManifest.artifact.version}`;
   const component = componentFromCoordinate(coordinate, { application: true });
   const bundleFile = releaseManifest.archive.files.find(({ path }) => path === "dist/bin.js");
-  if (!bundleFile) fail("release_sbom_bundle_hash_missing", "The SBOM bundle-hash source is missing.");
+  if (!bundleFile)
+    fail("release_sbom_bundle_hash_missing", "The SBOM bundle-hash source is missing.");
   return {
     ...component,
     hashes: [{ alg: "SHA-256", content: bundleFile.sha256.slice("sha256:".length) }],
@@ -130,8 +140,10 @@ export function releaseSbomSerialNumber(sbom) {
   bytes[6] = (bytes[6] & 0x0f) | 0x50;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = bytes.toString("hex");
-  return `urn:uuid:${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
-    `${hex.slice(16, 20)}-${hex.slice(20)}`;
+  return (
+    `urn:uuid:${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
+    `${hex.slice(16, 20)}-${hex.slice(20)}`
+  );
 }
 
 export function createCliReleaseSbom(releaseManifest, lockfile) {
@@ -139,32 +151,40 @@ export function createCliReleaseSbom(releaseManifest, lockfile) {
   assertSourceConsistency(releaseManifest, graph, lockfile);
   const bundled = new Set(releaseManifest.bundle.externalPackages);
   const graphCoordinates = new Set(graph.nodes.map(({ coordinate }) => coordinate));
-  const bundledOnly = releaseManifest.bundle.externalPackages.filter((coordinate) =>
-    !graphCoordinates.has(coordinate)
+  const bundledOnly = releaseManifest.bundle.externalPackages.filter(
+    (coordinate) => !graphCoordinates.has(coordinate),
   );
   const components = [
     ...releaseManifest.bundle.workspacePackages.map((coordinate) =>
-      componentFromCoordinate(coordinate, { bundled: true, scope: "required" })
+      componentFromCoordinate(coordinate, { bundled: true, scope: "required" }),
     ),
-    ...graph.nodes.map((node) => componentFromCoordinate(node.coordinate, {
-      bundled: bundled.has(node.coordinate),
-      locked: true,
-      scope: node.optional ? "optional" : "required",
-      sha512: node.sha512,
-    })),
-    ...bundledOnly.map((coordinate) => componentFromCoordinate(coordinate, {
-      bundled: true,
-      locked: true,
-      scope: "required",
-      sha512: pnpmPackageSha512(lockfile, coordinate),
-    })),
+    ...graph.nodes.map((node) =>
+      componentFromCoordinate(node.coordinate, {
+        bundled: bundled.has(node.coordinate),
+        locked: true,
+        scope: node.optional ? "optional" : "required",
+        sha512: node.sha512,
+      }),
+    ),
+    ...bundledOnly.map((coordinate) =>
+      componentFromCoordinate(coordinate, {
+        bundled: true,
+        locked: true,
+        scope: "required",
+        sha512: pnpmPackageSha512(lockfile, coordinate),
+      }),
+    ),
   ].sort((left, right) => left["bom-ref"].localeCompare(right["bom-ref"]));
   const root = rootComponent(releaseManifest);
-  const rootDependencies = [...new Set([
-    ...graph.roots,
-    ...releaseManifest.bundle.workspacePackages,
-    ...releaseManifest.bundle.externalPackages,
-  ].map((coordinate) => packageIdentity(coordinate).purl))].sort();
+  const rootDependencies = [
+    ...new Set(
+      [
+        ...graph.roots,
+        ...releaseManifest.bundle.workspacePackages,
+        ...releaseManifest.bundle.externalPackages,
+      ].map((coordinate) => packageIdentity(coordinate).purl),
+    ),
+  ].sort();
   const dependencies = [
     { ref: root["bom-ref"], dependsOn: rootDependencies },
     ...graph.nodes.map((node) => ({
@@ -228,12 +248,18 @@ export function validateCliReleaseSbom(sbom, releaseManifest, lockfile) {
     fail("release_sbom_invalid", "The CLI release SBOM structure is invalid.");
   }
   if (Object.hasOwn(sbom.metadata ?? {}, "timestamp")) {
-    fail("release_sbom_nondeterministic_metadata", "The CLI release SBOM contains nondeterministic metadata.");
+    fail(
+      "release_sbom_nondeterministic_metadata",
+      "The CLI release SBOM contains nondeterministic metadata.",
+    );
   }
   const expected = createCliReleaseSbom(releaseManifest, lockfile);
   const differences = releaseSbomDifferences(expected, sbom);
   if (differences.length > 0) {
-    fail("release_sbom_mismatch", `The CLI release SBOM differs from the approved source: ${differences.join(", ")}`);
+    fail(
+      "release_sbom_mismatch",
+      `The CLI release SBOM differs from the approved source: ${differences.join(", ")}`,
+    );
   }
   return sbom;
 }

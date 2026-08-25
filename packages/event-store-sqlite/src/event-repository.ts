@@ -55,7 +55,10 @@ export class SQLiteEventRepository {
       seqValue !== undefined &&
       (typeof seqValue !== "number" || !Number.isSafeInteger(seqValue))
     ) {
-      throw new EventStoreError("integrity_failed", "The event tail sequence is not a safe integer.");
+      throw new EventStoreError(
+        "integrity_failed",
+        "The event tail sequence is not a safe integer.",
+      );
     }
     const seq = typeof seqValue === "number" ? seqValue + 1 : 1;
     const previousHash = tailRow ? requireString(tailRow, "event_hash") : null;
@@ -78,26 +81,30 @@ export class SQLiteEventRepository {
           .join("; "),
       );
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO events (
         event_id, project_id, seq, run_id, session_id, type, occurred_at,
         actor_json, schema_version, policy_version, payload_json, previous_hash, event_hash
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      event.eventId,
-      event.projectId,
-      event.seq,
-      event.runId,
-      event.sessionId,
-      event.type,
-      event.occurredAt,
-      canonicalJson(event.actor),
-      event.schemaVersion,
-      event.policyVersion,
-      canonicalJson(event.payload),
-      event.previousHash,
-      event.eventHash,
-    );
+    `,
+      )
+      .run(
+        event.eventId,
+        event.projectId,
+        event.seq,
+        event.runId,
+        event.sessionId,
+        event.type,
+        event.occurredAt,
+        canonicalJson(event.actor),
+        event.schemaVersion,
+        event.policyVersion,
+        canonicalJson(event.payload),
+        event.previousHash,
+        event.eventHash,
+      );
     return { event, inserted: true, redactions: sanitized.redactions };
   }
 
@@ -129,9 +136,7 @@ export class SQLiteEventRepository {
           )
           .all(this.projectId, options.runId, afterSeq, limit)
       : this.database
-          .prepare(
-            "SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?",
-          )
+          .prepare("SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?")
           .all(this.projectId, afterSeq, limit);
     return rows.map(rowToEvent);
   }

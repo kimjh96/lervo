@@ -12,11 +12,15 @@ const SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CONTEXT_ID = "22222222-2222-4222-8222-222222222222";
 const TURN_ID = "33333333-3333-4333-8333-333333333333";
 
-function fakeSdk(options: {
-  alterReplay?: boolean;
-  acknowledgeSyntheticWithLifecycle?: boolean;
-  hangOnReturn?: boolean;
-} = {}) {
+function fakeSdk(
+  options: {
+    alterReplay?: boolean;
+    acknowledgeSyntheticWithLifecycle?: boolean;
+    hangOnReturn?: boolean;
+    mcpStatuses?: Array<{ name: string; status: "connected" }>;
+    plugins?: Array<{ name: string; path: string; version?: string }>;
+  } = {},
+) {
   const state = {
     startupParams: undefined as Parameters<typeof startup>[0] | undefined,
     interrupted: false,
@@ -35,7 +39,10 @@ function fakeSdk(options: {
             uuid: "44444444-4444-4444-8444-444444444444",
           };
           for await (const message of input) {
-            if (options.acknowledgeSyntheticWithLifecycle === true && message.shouldQuery === false) {
+            if (
+              options.acknowledgeSyntheticWithLifecycle === true &&
+              message.shouldQuery === false
+            ) {
               yield {
                 type: "command_lifecycle",
                 state: "started",
@@ -62,7 +69,10 @@ function fakeSdk(options: {
               };
               continue;
             }
-            if (options.acknowledgeSyntheticWithLifecycle === true && message.shouldQuery !== false) {
+            if (
+              options.acknowledgeSyntheticWithLifecycle === true &&
+              message.shouldQuery !== false
+            ) {
               yield {
                 type: "command_lifecycle",
                 state: "started",
@@ -88,6 +98,14 @@ function fakeSdk(options: {
           ...(options.hangOnReturn === true
             ? { return: () => new Promise<never>(() => undefined) }
             : {}),
+          mcpServerStatus: async () => options.mcpStatuses ?? [],
+          reloadPlugins: async () => ({
+            commands: [],
+            agents: [],
+            plugins: options.plugins ?? [],
+            mcpServers: options.mcpStatuses ?? [],
+            error_count: 0,
+          }),
         }) as unknown as Query;
       },
       close() {
@@ -180,6 +198,112 @@ describe("Claude Agent SDK client", () => {
     await client.interrupt();
     expect(fake.state.interrupted).toBe(true);
     await client.close();
+  });
+
+  it("configures isolated MCP and plugin activation and confirms their loaded state", async () => {
+    const credential = "LERVO_TEST_MCP_TOKEN";
+    const previous = process.env[credential];
+    process.env[credential] = "secret-test-token";
+    try {
+      const fake = fakeSdk({
+        mcpStatuses: [{ name: "research-search", status: "connected" }],
+        plugins: [{ name: "reviewer", path: "/immutable/reviewer", version: "2.0.0" }],
+      });
+      const client = await ClaudeSdkAgentClient.connect(
+        {
+          ...clientOptions(),
+          capabilityActivations: [
+            {
+              kind: "capability_activation_request",
+              schemaVersion: 1,
+              capabilityId: "research/search",
+              capabilityKind: "mcp_server",
+              version: "1.0.0",
+              contentHash: `sha256:${"a".repeat(64)}`,
+              runtime: {
+                kind: "mcp_http",
+                serverName: "research-search",
+                url: "https://mcp.example.test/",
+                bearerTokenCredential: credential,
+                timeoutMs: 5000,
+              },
+            },
+            {
+              kind: "capability_activation_request",
+              schemaVersion: 1,
+              capabilityId: "plugins/reviewer",
+              capabilityKind: "provider_plugin",
+              version: "2.0.0",
+              contentHash: `sha256:${"b".repeat(64)}`,
+              runtime: {
+                kind: "provider_plugin",
+                provider: "claude",
+                pluginRoot: "/immutable/reviewer",
+                pluginManifestPath: ".claude-plugin/plugin.json",
+              },
+            },
+          ],
+        },
+        fake.sdkStartup,
+      );
+      await client.appendContext("managed context");
+      await client.confirmCapabilities();
+
+      expect(fake.state.startupParams?.options).toMatchObject({
+        strictMcpConfig: true,
+        settingSources: [],
+        mcpServers: {
+          "research-search": {
+            type: "http",
+            url: "https://mcp.example.test/",
+            headers: { Authorization: "Bearer secret-test-token" },
+            alwaysLoad: true,
+          },
+        },
+        plugins: [{ type: "local", path: "/immutable/reviewer", skipMcpDiscovery: true }],
+      });
+      await client.close();
+    } finally {
+      if (previous === undefined) delete process.env[credential];
+      else process.env[credential] = previous;
+    }
+  });
+
+  it("preserves a missing MCP credential as an activation failure", async () => {
+    const credential = "LERVO_TEST_MISSING_MCP_TOKEN";
+    const previous = process.env[credential];
+    delete process.env[credential];
+    try {
+      await expect(
+        ClaudeSdkAgentClient.connect(
+          {
+            ...clientOptions(),
+            capabilityActivations: [
+              {
+                kind: "capability_activation_request",
+                schemaVersion: 1,
+                capabilityId: "research/private-search",
+                capabilityKind: "mcp_server",
+                version: "1.0.0",
+                contentHash: `sha256:${"c".repeat(64)}`,
+                runtime: {
+                  kind: "mcp_http",
+                  serverName: "private-search",
+                  url: "https://mcp.example.test/",
+                  bearerTokenCredential: credential,
+                  timeoutMs: 5_000,
+                },
+              },
+            ],
+          },
+          fakeSdk().sdkStartup,
+        ),
+      ).rejects.toMatchObject({
+        code: "capability_activation_failed",
+      });
+    } finally {
+      if (previous !== undefined) process.env[credential] = previous;
+    }
   });
 
   it("accepts and suppresses the SDK lifecycle acknowledgement for synthetic context", async () => {

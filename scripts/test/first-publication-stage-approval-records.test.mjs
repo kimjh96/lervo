@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createFileFirstPublicationStageApprovalStore } from
-  "../lib/file-first-publication-stage-approval-store.mjs";
+import { createFileFirstPublicationStageApprovalStore } from "../lib/file-first-publication-stage-approval-store.mjs";
 import {
   bindFirstPublicationStageApprovalTerminal,
   createFirstPublicationStageApprovalAttempt,
@@ -16,8 +14,7 @@ import {
   validateFirstPublicationStageApprovalTerminal,
 } from "../lib/first-publication-stage-approval-records.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
-import { createFirstPublicationStageApprovalFixture } from
-  "./fixtures/first-publication-stage-approval.mjs";
+import { createFirstPublicationStageApprovalFixture } from "./fixtures/first-publication-stage-approval.mjs";
 
 describe("first-publication stage approval durable records", () => {
   it("stores one immutable attempt and one separate success terminal", async () => {
@@ -48,10 +45,10 @@ describe("first-publication stage approval durable records", () => {
       assert.equal((await stat(resultDirectory)).mode & 0o777, 0o700);
       assert.equal((await stat(resolve(resultDirectory, "attempt.json"))).mode & 0o777, 0o600);
       assert.equal((await stat(resolve(resultDirectory, "terminal.json"))).mode & 0o777, 0o600);
-      assert.deepEqual(JSON.parse(await readFile(
-        resolve(resultDirectory, "attempt.json"),
-        "utf8",
-      )), attempt);
+      assert.deepEqual(
+        JSON.parse(await readFile(resolve(resultDirectory, "attempt.json"), "utf8")),
+        attempt,
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -76,8 +73,7 @@ describe("first-publication stage approval durable records", () => {
       });
       assert.equal(aborted.retry, "new_authorization_required");
       assert.equal(unknown.retry, "forbidden");
-      assert.equal(unknown.reconciliation,
-        "authenticated_public_release_observation_required");
+      assert.equal(unknown.reconciliation, "authenticated_public_release_observation_required");
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -104,11 +100,16 @@ describe("first-publication stage approval durable records", () => {
         completedAt: "2026-08-21T10:18:00Z",
       });
       await store.markUnknown(terminal);
-      await assert.rejects(store.complete(createFirstPublicationStageApprovalTerminal({
-        attempt,
-        state: "aborted_before_approval",
-        completedAt: "2026-08-21T10:18:01Z",
-      })), { code: "first_publication_stage_approval_already_terminal" });
+      await assert.rejects(
+        store.complete(
+          createFirstPublicationStageApprovalTerminal({
+            attempt,
+            state: "aborted_before_approval",
+            completedAt: "2026-08-21T10:18:01Z",
+          }),
+        ),
+        { code: "first_publication_stage_approval_already_terminal" },
+      );
       const forged = structuredClone(terminal);
       forged.retry = "allowed";
       const { terminalDigest: _digest, ...body } = forged;

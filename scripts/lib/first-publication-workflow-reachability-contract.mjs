@@ -21,16 +21,25 @@ export function validateWorkflowReachabilityReleaseTag(releaseTag) {
 
 export function validateGitHubDefaultBranch(defaultBranch) {
   if (
-    typeof defaultBranch !== "string" || defaultBranch.length < 1 ||
-    defaultBranch.length > 255 || defaultBranch.startsWith("/") ||
-    defaultBranch.endsWith("/") || defaultBranch.endsWith(".") ||
-    defaultBranch.endsWith(".lock") || defaultBranch.includes("..") ||
-    defaultBranch.includes("@{") || defaultBranch.includes("//") ||
+    typeof defaultBranch !== "string" ||
+    defaultBranch.length < 1 ||
+    defaultBranch.length > 255 ||
+    defaultBranch.startsWith("/") ||
+    defaultBranch.endsWith("/") ||
+    defaultBranch.endsWith(".") ||
+    defaultBranch.endsWith(".lock") ||
+    defaultBranch.includes("..") ||
+    defaultBranch.includes("@{") ||
+    defaultBranch.includes("//") ||
     /[\u0000-\u0020~^:?*[\\\u007f]/u.test(defaultBranch)
-  ) throw new TypeError("default branch is invalid");
+  )
+    throw new TypeError("default branch is invalid");
   return defaultBranch;
 }
 
 export function encodeGitHubReferencePath(reference) {
-  return reference.split("/").map((part) => encodeURIComponent(part)).join("/");
+  return reference
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
 }

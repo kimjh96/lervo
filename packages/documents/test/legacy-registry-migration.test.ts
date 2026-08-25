@@ -40,19 +40,20 @@ async function fixtureRoot(registry: DocumentRegistry): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-legacy-registry-plan-"));
   roots.push(root);
   await mkdir(resolve(root, ".lervo"));
-  await writeFile(
-    resolve(root, ".lervo/documents.yaml"),
-    `${JSON.stringify(registry, null, 2)}\n`,
-  );
+  await writeFile(resolve(root, ".lervo/documents.yaml"), `${JSON.stringify(registry, null, 2)}\n`);
   return root;
 }
 
 async function treeSnapshot(root: string, current = root): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
-  for (const entry of (await readdir(current, { withFileTypes: true }))
-    .sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const entry of (await readdir(current, { withFileTypes: true })).sort((left, right) =>
+    left.name.localeCompare(right.name),
+  )) {
     const absolute = resolve(current, entry.name);
-    const path = absolute.slice(root.length + 1).split("\\").join("/");
+    const path = absolute
+      .slice(root.length + 1)
+      .split("\\")
+      .join("/");
     if (entry.isDirectory()) Object.assign(result, await treeSnapshot(root, absolute));
     else if (entry.isFile()) result[path] = hash(await readFile(absolute));
     else result[path] = `other:${entry.name}`;
@@ -101,9 +102,9 @@ describe("legacy document registry structural migration dry-run", () => {
       ]),
     });
     expect(result.plan.archiveTarget.path).toBe(
-      `.lervo/archive/document-registries/sha256/${
-        result.plan.source.contentHash.slice("sha256:".length)
-      }.yaml`,
+      `.lervo/archive/document-registries/sha256/${result.plan.source.contentHash.slice(
+        "sha256:".length,
+      )}.yaml`,
     );
     expect(result.plan.entries.map((entry) => entry.documentId)).toEqual([
       "doc_guide_0000001",
@@ -132,11 +133,12 @@ describe("legacy document registry structural migration dry-run", () => {
       expect(hash(bytes as Uint8Array)).toBe(artifact.contentHash);
       expect(bytes?.byteLength).toBe(artifact.byteCount);
       expect(artifact.sourceRegistryHash).toBe(result.plan.source.contentHash);
-      expect(result.plan.entries.find((entry) => entry.documentId === artifact.documentId))
-        .toMatchObject({
-          artifactId: artifact.artifactId,
-          artifactHash: artifact.contentHash,
-        });
+      expect(
+        result.plan.entries.find((entry) => entry.documentId === artifact.documentId),
+      ).toMatchObject({
+        artifactId: artifact.artifactId,
+        artifactHash: artifact.contentHash,
+      });
     }
     expect(await treeSnapshot(root)).toEqual(before);
     await expect(access(resolve(root, ".lervo/archive"))).rejects.toThrow();
@@ -172,8 +174,7 @@ describe("legacy document registry structural migration dry-run", () => {
     expect(changed.plan.planId).not.toBe(first.plan.planId);
     expect(changed.plan.source.contentHash).not.toBe(first.plan.source.contentHash);
     expect(changed.plan.archiveTarget.path).not.toBe(first.plan.archiveTarget.path);
-    expect(changed.entryArtifacts[0]?.contentHash)
-      .not.toBe(first.entryArtifacts[0]?.contentHash);
+    expect(changed.entryArtifacts[0]?.contentHash).not.toBe(first.entryArtifacts[0]?.contentHash);
   });
 
   it("reports active-layout, archive, and duplicate ownership conflicts without changing them", async () => {
@@ -202,22 +203,26 @@ describe("legacy document registry structural migration dry-run", () => {
       generatedAt: "2026-08-19T03:00:00Z",
     });
     expect(conflicted.plan.outcome).toBe("conflict");
-    expect(conflicted.plan.warnings).toEqual(expect.arrayContaining([
-      "archive_target_conflict",
-      "duplicate_legacy_document_path",
-      "legacy_and_sharded_layout_conflict",
-      "sidecar_target_conflict",
-    ]));
+    expect(conflicted.plan.warnings).toEqual(
+      expect.arrayContaining([
+        "archive_target_conflict",
+        "duplicate_legacy_document_path",
+        "legacy_and_sharded_layout_conflict",
+        "sidecar_target_conflict",
+      ]),
+    );
     expect(await treeSnapshot(root)).toEqual(before);
   });
 
   it("rejects invalid or linked legacy registries instead of treating them as migrated", async () => {
     const invalidRoot = await fixtureRoot({ schemaVersion: 1, documents: {} });
     await writeFile(resolve(invalidRoot, ".lervo/documents.yaml"), "not: a registry\n");
-    await expect(createLegacyRegistryMigrationDryRun({
-      repositoryRoot: invalidRoot,
-      generatedAt: "2026-08-19T03:00:00Z",
-    })).rejects.toMatchObject({ code: "invalid_legacy_registry" });
+    await expect(
+      createLegacyRegistryMigrationDryRun({
+        repositoryRoot: invalidRoot,
+        generatedAt: "2026-08-19T03:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_legacy_registry" });
 
     const unsafeReferenceRoot = await fixtureRoot({
       schemaVersion: 1,
@@ -245,9 +250,11 @@ describe("legacy document registry structural migration dry-run", () => {
       resolve(linkedRoot, "outside.yaml"),
       resolve(linkedRoot, ".lervo/documents.yaml"),
     );
-    await expect(createLegacyRegistryMigrationDryRun({
-      repositoryRoot: linkedRoot,
-      generatedAt: "2026-08-19T03:00:00Z",
-    })).rejects.toMatchObject({ code: "unsafe_source" });
+    await expect(
+      createLegacyRegistryMigrationDryRun({
+        repositoryRoot: linkedRoot,
+        generatedAt: "2026-08-19T03:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "unsafe_source" });
   });
 });

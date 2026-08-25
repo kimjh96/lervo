@@ -1,13 +1,17 @@
-import { maximumAnnotatedTagDepth, validateWorkflowReachabilityCommit } from
-  "./first-publication-workflow-reachability-contract.mjs";
+import {
+  maximumAnnotatedTagDepth,
+  validateWorkflowReachabilityCommit,
+} from "./first-publication-workflow-reachability-contract.mjs";
 import { getGitHubApiJson } from "./github-read-only-api.mjs";
 
 function tagObject(response, expectedSha) {
   if (
-    response?.sha !== expectedSha || response.object === null ||
+    response?.sha !== expectedSha ||
+    response.object === null ||
     typeof response.object !== "object" ||
     !["commit", "tag"].includes(response.object.type)
-  ) return undefined;
+  )
+    return undefined;
   try {
     return {
       type: response.object.type,

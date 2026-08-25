@@ -13,7 +13,10 @@ import type {
   RepositorySourceUnit,
 } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
-import { extractJavaScriptSymbolSpans, JAVASCRIPT_SOURCE_UNIT_ADAPTER } from "./javascript-source-units.js";
+import {
+  extractJavaScriptSymbolSpans,
+  JAVASCRIPT_SOURCE_UNIT_ADAPTER,
+} from "./javascript-source-units.js";
 import { extractCssSymbolSpans, CSS_SOURCE_UNIT_ADAPTER } from "./css-source-units.js";
 import { extractJsonKeySpans, JSON_SOURCE_UNIT_ADAPTER } from "./json-source-units.js";
 import { extractYamlKeySpans, YAML_SOURCE_UNIT_ADAPTER } from "./yaml-source-units.js";
@@ -25,19 +28,49 @@ import {
   GIT_REVISION_SOURCE_ADAPTER,
   GIT_REVISION_SOURCE_PATH,
   observeGitHeadRevision,
-  type GitRevisionObservation,
   type ObserveGitRevision,
 } from "./git-revision-source.js";
 import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
 
 const binaryExtensions = new Set([
-  ".7z", ".a", ".avi", ".bin", ".bmp", ".class", ".db", ".dll", ".dylib",
-  ".exe", ".gif", ".gz", ".ico", ".jar", ".jpeg", ".jpg", ".lockb", ".mov",
-  ".mp3", ".mp4", ".o", ".pdf", ".png", ".pyc", ".sqlite", ".sqlite3", ".tar",
-  ".ttf", ".wasm", ".webp", ".woff", ".woff2", ".xz", ".zip",
+  ".7z",
+  ".a",
+  ".avi",
+  ".bin",
+  ".bmp",
+  ".class",
+  ".db",
+  ".dll",
+  ".dylib",
+  ".exe",
+  ".gif",
+  ".gz",
+  ".ico",
+  ".jar",
+  ".jpeg",
+  ".jpg",
+  ".lockb",
+  ".mov",
+  ".mp3",
+  ".mp4",
+  ".o",
+  ".pdf",
+  ".png",
+  ".pyc",
+  ".sqlite",
+  ".sqlite3",
+  ".tar",
+  ".ttf",
+  ".wasm",
+  ".webp",
+  ".woff",
+  ".woff2",
+  ".xz",
+  ".zip",
 ]);
 
-const secretName = /(^|\/)(\.env(?:\.|$)|[^/]*(?:secret|credential|token)[^/]*|id_[dr]sa|[^/]*\.(?:pem|key|p12|pfx))$/i;
+const secretName =
+  /(^|\/)(\.env(?:\.|$)|[^/]*(?:secret|credential|token)[^/]*|id_[dr]sa|[^/]*\.(?:pem|key|p12|pfx))$/i;
 const decisionDocumentName = /(?:^|\/)(?:adr|decisions)(?:\/[^/]+)*\/\d{4}-.+\.md$/iu;
 
 function secretCandidatePath(path: string): boolean {
@@ -46,13 +79,35 @@ function secretCandidatePath(path: string): boolean {
 const instructionName = /(^|\/)(GEMINI\.md)$/i;
 const testPath = /(^|\/)(test|tests|__tests__)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/i;
 const schemaPath = /(^|\/)(schemas?|migrations?)\/|\.schema\.json$/i;
-const buildName = /(^|\/)(package\.json|pnpm-workspace\.yaml|Cargo\.toml|go\.mod|Makefile|Dockerfile|docker-compose[^/]*|.*\.(?:gradle|csproj|sln))$/i;
+const buildName =
+  /(^|\/)(package\.json|pnpm-workspace\.yaml|Cargo\.toml|go\.mod|Makefile|Dockerfile|docker-compose[^/]*|.*\.(?:gradle|csproj|sln))$/i;
 const logPath = /(^|\/)(logs?|traces?)\/|\.(?:log|out)$/i;
 const configExtension = new Set([".json", ".jsonc", ".yaml", ".yml", ".toml", ".ini"]);
 const codeExtension = new Set([
-  ".c", ".cc", ".cpp", ".cs", ".css", ".go", ".h", ".hpp", ".html", ".java",
-  ".js", ".jsx", ".kt", ".m", ".php", ".py", ".rb", ".rs", ".sh", ".sql",
-  ".swift", ".ts", ".tsx", ".vue",
+  ".c",
+  ".cc",
+  ".cpp",
+  ".cs",
+  ".css",
+  ".go",
+  ".h",
+  ".hpp",
+  ".html",
+  ".java",
+  ".js",
+  ".jsx",
+  ".kt",
+  ".m",
+  ".php",
+  ".py",
+  ".rb",
+  ".rs",
+  ".sh",
+  ".sql",
+  ".swift",
+  ".ts",
+  ".tsx",
+  ".vue",
 ]);
 
 export function repositorySourceKindForPath(path: string): RepositorySourceKind {
@@ -60,7 +115,8 @@ export function repositorySourceKindForPath(path: string): RepositorySourceKind 
   if (decisionDocumentName.test(path)) return "documentation";
   const agentArtifact = repositoryAgentArtifactForPath(path);
   if (agentArtifact?.role === "behavioral_instruction") return "instruction";
-  if (agentArtifact?.role === "skill" || agentArtifact?.role === "skill_resource") return "skill_contract";
+  if (agentArtifact?.role === "skill" || agentArtifact?.role === "skill_resource")
+    return "skill_contract";
   if (agentArtifact?.role === "legacy_command") return "agent_workflow";
   if (agentArtifact?.role === "agent_definition") return "agent_definition";
   if (agentArtifact?.role === "execution_policy") return "execution_policy";
@@ -80,7 +136,9 @@ export function repositorySourceKindForPath(path: string): RepositorySourceKind 
 
 function globExpression(pattern: string): RegExp {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^${escaped.replaceAll("**", "\u0000").replaceAll("*", "[^/]*").replaceAll("\u0000", ".*")}$`);
+  return new RegExp(
+    `^${escaped.replaceAll("**", "\u0000").replaceAll("*", "[^/]*").replaceAll("\u0000", ".*")}$`,
+  );
 }
 
 function excluded(path: string, patterns: readonly string[]): boolean {
@@ -90,18 +148,24 @@ function excluded(path: string, patterns: readonly string[]): boolean {
   });
 }
 
-export function repositoryPathCanRemainIncluded(path: string, policy: RepositoryKnowledgePolicy): boolean {
+export function repositoryPathCanRemainIncluded(
+  path: string,
+  policy: RepositoryKnowledgePolicy,
+): boolean {
   return !excluded(path, policy.exclude) && !secretCandidatePath(path);
 }
 
 export function repositorySourceClassificationForPath(path: string): "ordinary" | "sensitive" {
   if (decisionDocumentName.test(path)) return "ordinary";
-  if (repositoryAgentArtifactForPath(path)?.contentHandling === "local_inventory_only") return "sensitive";
+  if (repositoryAgentArtifactForPath(path)?.contentHandling === "local_inventory_only")
+    return "sensitive";
   if (logPath.test(path)) return "sensitive";
   return /(^|\/)(SECURITY|PRIVATE)(\.md)?$/i.test(path) ? "sensitive" : "ordinary";
 }
 
-function agentArtifactFields(path: string): Pick<RepositorySource, "agentArtifact"> | Record<string, never> {
+function agentArtifactFields(
+  path: string,
+): Pick<RepositorySource, "agentArtifact"> | Record<string, never> {
   const agentArtifact = repositoryAgentArtifactForPath(path);
   return agentArtifact === undefined ? {} : { agentArtifact };
 }
@@ -112,12 +176,23 @@ async function safeReadFile(path: string, expectedSize: number): Promise<Uint8Ar
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.size !== expectedSize) {
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} changed during the scan.`);
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_unsafe",
+        `${path} changed during the scan.`,
+      );
     }
     const bytes = await handle.readFile();
     const after = await handle.stat();
-    if (after.dev !== before.dev || after.ino !== before.ino || after.size !== before.size || after.mtimeMs !== before.mtimeMs) {
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} changed during the scan.`);
+    if (
+      after.dev !== before.dev ||
+      after.ino !== before.ino ||
+      after.size !== before.size ||
+      after.mtimeMs !== before.mtimeMs
+    ) {
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_unsafe",
+        `${path} changed during the scan.`,
+      );
     }
     return bytes;
   } finally {
@@ -178,7 +253,10 @@ function unit(input: {
   };
 }
 
-function coordinateMap(value: string, offsets: number[]): Map<number, { byte: number; line: number }> {
+function coordinateMap(
+  value: string,
+  offsets: number[],
+): Map<number, { byte: number; line: number }> {
   const sorted = [...new Set(offsets)].sort((left, right) => left - right);
   const output = new Map<number, { byte: number; line: number }>();
   let previous = 0;
@@ -186,7 +264,10 @@ function coordinateMap(value: string, offsets: number[]): Map<number, { byte: nu
   let line = 1;
   for (const offset of sorted) {
     if (!Number.isSafeInteger(offset) || offset < previous || offset > value.length) {
-      throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The source unit coordinates are invalid.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_unit_extraction_failed",
+        "The source unit coordinates are invalid.",
+      );
     }
     const segment = value.slice(previous, offset);
     byte += Buffer.byteLength(segment);
@@ -197,32 +278,49 @@ function coordinateMap(value: string, offsets: number[]): Map<number, { byte: nu
   return output;
 }
 
-function yamlKeyUnits(projectId: string, source: RepositorySource & { content: string; contentHash: string }): RepositorySourceUnit[] {
+function yamlKeyUnits(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+): RepositorySourceUnit[] {
   const extension = extname(source.path).toLowerCase();
   if (extension !== ".yaml" && extension !== ".yml") return [];
   const spans = extractYamlKeySpans(source.content);
-  const coordinates = coordinateMap(source.content, spans.flatMap((span) => [span.startCharacter, span.endCharacter]));
-  return spans.map((span) => unit({
-    projectId,
-    source,
-    unitKind: "config_key",
-    locator: span.locator,
-    startCharacter: span.startCharacter,
-    endCharacter: span.endCharacter,
-    startByte: coordinates.get(span.startCharacter)!.byte,
-    endByte: coordinates.get(span.endCharacter)!.byte,
-    startLine: coordinates.get(span.startCharacter)!.line,
-    endLine: coordinates.get(span.endCharacter)!.line,
-    title: span.pointer,
-    adapter: YAML_SOURCE_UNIT_ADAPTER,
-    versionBinding: "unit",
-  }));
+  const coordinates = coordinateMap(
+    source.content,
+    spans.flatMap((span) => [span.startCharacter, span.endCharacter]),
+  );
+  return spans.map((span) =>
+    unit({
+      projectId,
+      source,
+      unitKind: "config_key",
+      locator: span.locator,
+      startCharacter: span.startCharacter,
+      endCharacter: span.endCharacter,
+      startByte: coordinates.get(span.startCharacter)!.byte,
+      endByte: coordinates.get(span.endCharacter)!.byte,
+      startLine: coordinates.get(span.startCharacter)!.line,
+      endLine: coordinates.get(span.endCharacter)!.line,
+      title: span.pointer,
+      adapter: YAML_SOURCE_UNIT_ADAPTER,
+      versionBinding: "unit",
+    }),
+  );
 }
 
-function markdownUnits(projectId: string, source: RepositorySource & { content: string; contentHash: string }): RepositorySourceUnit[] {
+function markdownUnits(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+): RepositorySourceUnit[] {
   const headings = [...source.content.matchAll(/^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/gm)];
-  const ranges = headings.map((match, index) => ({ start: match.index, end: headings[index + 1]?.index ?? source.content.length }));
-  const coordinates = coordinateMap(source.content, ranges.flatMap(({ start, end }) => [start, end]));
+  const ranges = headings.map((match, index) => ({
+    start: match.index,
+    end: headings[index + 1]?.index ?? source.content.length,
+  }));
+  const coordinates = coordinateMap(
+    source.content,
+    ranges.flatMap(({ start, end }) => [start, end]),
+  );
   return headings.map((match, index) => {
     const start = match.index;
     const end = ranges[index]?.end ?? source.content.length;
@@ -252,65 +350,86 @@ function markdownUnits(projectId: string, source: RepositorySource & { content: 
   });
 }
 
-function codeSymbolUnits(projectId: string, source: RepositorySource & { content: string; contentHash: string }): RepositorySourceUnit[] {
+function codeSymbolUnits(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+): RepositorySourceUnit[] {
   if (!/[.][cm]?[jt]sx?$/.test(source.path)) return [];
   const spans = extractJavaScriptSymbolSpans(source.content, source.path);
-  const coordinates = coordinateMap(source.content, spans.flatMap((span) => [span.startCharacter, span.endCharacter]));
-  return spans.map((span) => unit({
-    projectId,
-    source,
-    unitKind: "code_symbol",
-    locator: span.locator,
-    startCharacter: span.startCharacter,
-    endCharacter: span.endCharacter,
-    startByte: coordinates.get(span.startCharacter)!.byte,
-    endByte: coordinates.get(span.endCharacter)!.byte,
-    startLine: coordinates.get(span.startCharacter)!.line,
-    endLine: coordinates.get(span.endCharacter)!.line,
-    title: span.qualifiedName,
-    adapter: JAVASCRIPT_SOURCE_UNIT_ADAPTER,
-    versionBinding: "unit",
-  }));
-}
-
-function jsonKeyUnits(projectId: string, source: RepositorySource & { content: string; contentHash: string }): RepositorySourceUnit[] {
-  if (extname(source.path).toLowerCase() !== ".json") return [];
-  const spans = extractJsonKeySpans(source.content);
-  const coordinates = coordinateMap(source.content, spans.flatMap((span) => [span.startCharacter, span.endCharacter]));
-  return spans.map((span) => unit({
-    projectId,
-    source,
-    unitKind: "config_key",
-    locator: span.locator,
-    startCharacter: span.startCharacter,
-    endCharacter: span.endCharacter,
-    startByte: coordinates.get(span.startCharacter)!.byte,
-    endByte: coordinates.get(span.endCharacter)!.byte,
-    startLine: coordinates.get(span.startCharacter)!.line,
-    endLine: coordinates.get(span.endCharacter)!.line,
-    title: span.pointer,
-    adapter: JSON_SOURCE_UNIT_ADAPTER,
-    versionBinding: "unit",
-  }));
-}
-
-function extractUnits(projectId: string, source: RepositorySource & { content: string; contentHash: string }): RepositorySourceUnit[] {
-  if (source.kind === "revision_metadata") {
-    return [unit({
+  const coordinates = coordinateMap(
+    source.content,
+    spans.flatMap((span) => [span.startCharacter, span.endCharacter]),
+  );
+  return spans.map((span) =>
+    unit({
       projectId,
       source,
-      unitKind: "revision",
-      locator: "revision:HEAD",
-      startCharacter: 0,
-      endCharacter: source.content.length,
-      startByte: 0,
-      endByte: Buffer.byteLength(source.content),
-      startLine: 1,
-      endLine: 1,
-      title: "Git HEAD commit",
-      adapter: GIT_REVISION_SOURCE_ADAPTER,
+      unitKind: "code_symbol",
+      locator: span.locator,
+      startCharacter: span.startCharacter,
+      endCharacter: span.endCharacter,
+      startByte: coordinates.get(span.startCharacter)!.byte,
+      endByte: coordinates.get(span.endCharacter)!.byte,
+      startLine: coordinates.get(span.startCharacter)!.line,
+      endLine: coordinates.get(span.endCharacter)!.line,
+      title: span.qualifiedName,
+      adapter: JAVASCRIPT_SOURCE_UNIT_ADAPTER,
       versionBinding: "unit",
-    })];
+    }),
+  );
+}
+
+function jsonKeyUnits(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+): RepositorySourceUnit[] {
+  if (extname(source.path).toLowerCase() !== ".json") return [];
+  const spans = extractJsonKeySpans(source.content);
+  const coordinates = coordinateMap(
+    source.content,
+    spans.flatMap((span) => [span.startCharacter, span.endCharacter]),
+  );
+  return spans.map((span) =>
+    unit({
+      projectId,
+      source,
+      unitKind: "config_key",
+      locator: span.locator,
+      startCharacter: span.startCharacter,
+      endCharacter: span.endCharacter,
+      startByte: coordinates.get(span.startCharacter)!.byte,
+      endByte: coordinates.get(span.endCharacter)!.byte,
+      startLine: coordinates.get(span.startCharacter)!.line,
+      endLine: coordinates.get(span.endCharacter)!.line,
+      title: span.pointer,
+      adapter: JSON_SOURCE_UNIT_ADAPTER,
+      versionBinding: "unit",
+    }),
+  );
+}
+
+function extractUnits(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+): RepositorySourceUnit[] {
+  if (source.kind === "revision_metadata") {
+    return [
+      unit({
+        projectId,
+        source,
+        unitKind: "revision",
+        locator: "revision:HEAD",
+        startCharacter: 0,
+        endCharacter: source.content.length,
+        startByte: 0,
+        endByte: Buffer.byteLength(source.content),
+        startLine: 1,
+        endLine: 1,
+        title: "Git HEAD commit",
+        adapter: GIT_REVISION_SOURCE_ADAPTER,
+        versionBinding: "unit",
+      }),
+    ];
   }
   const fileUnit = unit({
     projectId,
@@ -323,29 +442,38 @@ function extractUnits(projectId: string, source: RepositorySource & { content: s
     endLine: source.content.split("\n").length,
     title: basename(source.path),
   });
-  const cssSpans = source.path.toLocaleLowerCase().endsWith(".css") ? extractCssSymbolSpans(source.content) : [];
-  const cssCoordinates = coordinateMap(source.content, cssSpans.flatMap((span) => [span.startCharacter, span.endCharacter]));
+  const cssSpans = source.path.toLocaleLowerCase().endsWith(".css")
+    ? extractCssSymbolSpans(source.content)
+    : [];
+  const cssCoordinates = coordinateMap(
+    source.content,
+    cssSpans.flatMap((span) => [span.startCharacter, span.endCharacter]),
+  );
   return [
     fileUnit,
-    ...(source.path.endsWith(".md") || source.path.endsWith(".mdx") ? markdownUnits(projectId, source) : []),
+    ...(source.path.endsWith(".md") || source.path.endsWith(".mdx")
+      ? markdownUnits(projectId, source)
+      : []),
     ...codeSymbolUnits(projectId, source),
     ...jsonKeyUnits(projectId, source),
     ...yamlKeyUnits(projectId, source),
-    ...cssSpans.map((span) => unit({
-      projectId,
-      source,
-      unitKind: "code_symbol",
-      locator: span.locator,
-      startCharacter: span.startCharacter,
-      endCharacter: span.endCharacter,
-      startByte: cssCoordinates.get(span.startCharacter)!.byte,
-      endByte: cssCoordinates.get(span.endCharacter)!.byte,
-      startLine: cssCoordinates.get(span.startCharacter)!.line,
-      endLine: cssCoordinates.get(span.endCharacter)!.line,
-      title: span.title,
-      adapter: CSS_SOURCE_UNIT_ADAPTER,
-      versionBinding: "unit",
-    })),
+    ...cssSpans.map((span) =>
+      unit({
+        projectId,
+        source,
+        unitKind: "code_symbol",
+        locator: span.locator,
+        startCharacter: span.startCharacter,
+        endCharacter: span.endCharacter,
+        startByte: cssCoordinates.get(span.startCharacter)!.byte,
+        endByte: cssCoordinates.get(span.endCharacter)!.byte,
+        startLine: cssCoordinates.get(span.startCharacter)!.line,
+        endLine: cssCoordinates.get(span.endCharacter)!.line,
+        title: span.title,
+        adapter: CSS_SOURCE_UNIT_ADAPTER,
+        versionBinding: "unit",
+      }),
+    ),
   ];
 }
 
@@ -358,7 +486,10 @@ export async function scanRepositoryKnowledge(input: {
   supplementalSources?: readonly RepositorySupplementalSource[];
 }): Promise<RepositoryKnowledgeScan> {
   const root = resolve(input.repositoryRoot);
-  const sourceLineages = await loadDocumentMoveLineages({ repositoryRoot: root, projectId: input.projectId });
+  const sourceLineages = await loadDocumentMoveLineages({
+    repositoryRoot: root,
+    projectId: input.projectId,
+  });
   const observeRevision = input.observeRevision ?? observeGitHeadRevision;
   const revisionBefore = await observeRevision(root);
   const sources: RepositorySource[] = [];
@@ -375,7 +506,10 @@ export async function scanRepositoryKnowledge(input: {
       const identityFields = identityPath === undefined ? {} : { identityPath };
       const sourceId = stableId("src", { projectId: input.projectId, path: identityPath ?? path });
       if (path.startsWith("../") || path === "..") {
-        throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} escapes the repository root.`);
+        throw new RepositoryKnowledgeError(
+          "knowledge_source_unsafe",
+          `${path} escapes the repository root.`,
+        );
       }
       if (excluded(path, input.policy.exclude)) {
         if (entry.isFile() || entry.isSymbolicLink()) {
@@ -416,7 +550,10 @@ export async function scanRepositoryKnowledge(input: {
       if (!entry.isFile()) continue;
       visitedFiles += 1;
       if (visitedFiles > input.policy.limits.maxFiles) {
-        throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The repository file count exceeds the policy limit.");
+        throw new RepositoryKnowledgeError(
+          "knowledge_source_limit_exceeded",
+          "The repository file count exceeds the policy limit.",
+        );
       }
       const stats = await lstat(absolute);
       const id = sourceId;
@@ -424,30 +561,90 @@ export async function scanRepositoryKnowledge(input: {
         continue;
       }
       if (secretCandidatePath(path)) {
-        sources.push({ sourceId: id, path, ...identityFields, kind: repositorySourceKindForPath(path), ...agentArtifactFields(path), status: "excluded", classification: "secret_candidate", byteCount: stats.size, contentHash: null, reason: "secret_candidate_bytes_not_read" });
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: repositorySourceKindForPath(path),
+          ...agentArtifactFields(path),
+          status: "excluded",
+          classification: "secret_candidate",
+          byteCount: stats.size,
+          contentHash: null,
+          reason: "secret_candidate_bytes_not_read",
+        });
         continue;
       }
       if (stats.size > input.policy.limits.maxFileBytes) {
-        sources.push({ sourceId: id, path, ...identityFields, kind: repositorySourceKindForPath(path), ...agentArtifactFields(path), status: "unsupported", classification: "unsupported", byteCount: stats.size, contentHash: null, reason: "file_size_limit" });
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: repositorySourceKindForPath(path),
+          ...agentArtifactFields(path),
+          status: "unsupported",
+          classification: "unsupported",
+          byteCount: stats.size,
+          contentHash: null,
+          reason: "file_size_limit",
+        });
         continue;
       }
       if (binaryExtensions.has(extname(path).toLowerCase())) {
-        sources.push({ sourceId: id, path, ...identityFields, kind: "other", ...agentArtifactFields(path), status: "unsupported", classification: "unsupported", byteCount: stats.size, contentHash: null, reason: "binary_file" });
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: "other",
+          ...agentArtifactFields(path),
+          status: "unsupported",
+          classification: "unsupported",
+          byteCount: stats.size,
+          contentHash: null,
+          reason: "binary_file",
+        });
         continue;
       }
       const bytes = await safeReadFile(absolute, stats.size);
       if (bytes.includes(0)) {
-        sources.push({ sourceId: id, path, ...identityFields, kind: "other", ...agentArtifactFields(path), status: "unsupported", classification: "unsupported", byteCount: bytes.byteLength, contentHash: null, reason: "binary_content" });
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: "other",
+          ...agentArtifactFields(path),
+          status: "unsupported",
+          classification: "unsupported",
+          byteCount: bytes.byteLength,
+          contentHash: null,
+          reason: "binary_content",
+        });
         continue;
       }
       let content: string;
-      try { content = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch {
-        sources.push({ sourceId: id, path, ...identityFields, kind: "other", ...agentArtifactFields(path), status: "unsupported", classification: "unsupported", byteCount: bytes.byteLength, contentHash: null, reason: "invalid_utf8" });
+      try {
+        content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      } catch {
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: "other",
+          ...agentArtifactFields(path),
+          status: "unsupported",
+          classification: "unsupported",
+          byteCount: bytes.byteLength,
+          contentHash: null,
+          reason: "invalid_utf8",
+        });
         continue;
       }
       includedBytes += bytes.byteLength;
       if (includedBytes > input.policy.limits.maxTotalBytes) {
-        throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
+        throw new RepositoryKnowledgeError(
+          "knowledge_source_limit_exceeded",
+          "Read source bytes exceed the policy limit.",
+        );
       }
       sources.push({
         sourceId: id,
@@ -471,12 +668,18 @@ export async function scanRepositoryKnowledge(input: {
       "The repository revision changed during the scan.",
     );
   }
-  const revisionSourceId = stableId("src", { projectId: input.projectId, path: GIT_REVISION_SOURCE_PATH });
+  const revisionSourceId = stableId("src", {
+    projectId: input.projectId,
+    path: GIT_REVISION_SOURCE_PATH,
+  });
   if (revisionBefore.status === "observed") {
     const revisionBytes = Buffer.byteLength(revisionBefore.content);
     includedBytes += revisionBytes;
     if (includedBytes > input.policy.limits.maxTotalBytes) {
-      throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_limit_exceeded",
+        "Read source bytes exceed the policy limit.",
+      );
     }
     sources.push({
       sourceId: revisionSourceId,
@@ -503,33 +706,47 @@ export async function scanRepositoryKnowledge(input: {
     });
   }
   const supplementalByPath = new Map<string, RepositorySupplementalSource>();
-  for (const supplemental of [...(input.supplementalSources ?? [])].sort((left, right) => left.path.localeCompare(right.path))) {
+  for (const supplemental of [...(input.supplementalSources ?? [])].sort((left, right) =>
+    left.path.localeCompare(right.path),
+  )) {
     if (
-      !/^@(?:verification|event)\/[a-z][a-z0-9_]{2,150}$/u.test(supplemental.path)
-      || supplemental.content.includes("\0")
-      || !/^[a-z][a-z0-9._+-]{2,127}$/u.test(supplemental.adapter)
-      || supplemental.locator.length === 0
-      || supplemental.locator.length > 300
-      || supplemental.title.length === 0
-      || supplemental.title.length > 300
-      || supplementalByPath.has(supplemental.path)
-      || sources.some((source) => source.path === supplemental.path)
-      || (supplemental.kind === "verification_result" && supplemental.unitKind !== "verification")
-      || (supplemental.kind === "execution_event" && supplemental.unitKind !== "event")
+      !/^@(?:verification|event)\/[a-z][a-z0-9_]{2,150}$/u.test(supplemental.path) ||
+      supplemental.content.includes("\0") ||
+      !/^[a-z][a-z0-9._+-]{2,127}$/u.test(supplemental.adapter) ||
+      supplemental.locator.length === 0 ||
+      supplemental.locator.length > 300 ||
+      supplemental.title.length === 0 ||
+      supplemental.title.length > 300 ||
+      supplementalByPath.has(supplemental.path) ||
+      sources.some((source) => source.path === supplemental.path) ||
+      (supplemental.kind === "verification_result" && supplemental.unitKind !== "verification") ||
+      (supplemental.kind === "execution_event" && supplemental.unitKind !== "event")
     ) {
-      throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The supplemental evidence source contract is invalid.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_evidence_source_invalid",
+        "The supplemental evidence source contract is invalid.",
+      );
     }
     visitedFiles += 1;
     if (visitedFiles > input.policy.limits.maxFiles) {
-      throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The repository source count exceeds the policy limit.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_limit_exceeded",
+        "The repository source count exceeds the policy limit.",
+      );
     }
     const byteCount = Buffer.byteLength(supplemental.content);
     if (byteCount > input.policy.limits.maxFileBytes) {
-      throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "A supplemental evidence source exceeds the file byte limit.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_limit_exceeded",
+        "A supplemental evidence source exceeds the file byte limit.",
+      );
     }
     includedBytes += byteCount;
     if (includedBytes > input.policy.limits.maxTotalBytes) {
-      throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_limit_exceeded",
+        "Read source bytes exceed the policy limit.",
+      );
     }
     supplementalByPath.set(supplemental.path, supplemental);
     sources.push({
@@ -546,10 +763,19 @@ export async function scanRepositoryKnowledge(input: {
   }
   sources.sort((left, right) => left.path.localeCompare(right.path));
   if (new Set(sources.map((source) => source.sourceId)).size !== sources.length) {
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "Document move lineage and the current source path conflict under the same source identity.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_unsafe",
+      "Document move lineage and the current source path conflict under the same source identity.",
+    );
   }
-  const included = sources.filter((source): source is RepositorySource & { content: string; contentHash: string } => source.status === "included" && source.content !== undefined && source.contentHash !== null);
-  const skillDescriptors = await extractSkillContractUnitDescriptors({ repositoryRoot: root, sources: included });
+  const included = sources.filter(
+    (source): source is RepositorySource & { content: string; contentHash: string } =>
+      source.status === "included" && source.content !== undefined && source.contentHash !== null,
+  );
+  const skillDescriptors = await extractSkillContractUnitDescriptors({
+    repositoryRoot: root,
+    sources: included,
+  });
   const skillDescriptorByPath = new Map<string, typeof skillDescriptors>();
   for (const descriptor of skillDescriptors) {
     const values = skillDescriptorByPath.get(descriptor.path) ?? [];
@@ -558,62 +784,96 @@ export async function scanRepositoryKnowledge(input: {
   }
   const units = included.flatMap((source) => {
     const supplemental = supplementalByPath.get(source.path);
-    if (supplemental === undefined) return [
-      ...extractUnits(input.projectId, source),
-      ...(skillDescriptorByPath.get(source.path) ?? []).map((descriptor) => unit({
+    if (supplemental === undefined)
+      return [
+        ...extractUnits(input.projectId, source),
+        ...(skillDescriptorByPath.get(source.path) ?? []).map((descriptor) =>
+          unit({
+            projectId: input.projectId,
+            source,
+            unitKind: "skill_contract",
+            locator: descriptor.locator,
+            startCharacter: 0,
+            endCharacter: source.content.length,
+            startByte: 0,
+            endByte: source.byteCount,
+            startLine: 1,
+            endLine: source.content.split("\n").length,
+            title: descriptor.title,
+            adapter: SKILL_CONTRACT_SOURCE_UNIT_ADAPTER,
+            versionBinding: "unit",
+          }),
+        ),
+      ];
+    return [
+      unit({
         projectId: input.projectId,
         source,
-        unitKind: "skill_contract",
-        locator: descriptor.locator,
+        unitKind: supplemental.unitKind,
+        locator: supplemental.locator,
         startCharacter: 0,
         endCharacter: source.content.length,
         startByte: 0,
         endByte: source.byteCount,
         startLine: 1,
         endLine: source.content.split("\n").length,
-        title: descriptor.title,
-        adapter: SKILL_CONTRACT_SOURCE_UNIT_ADAPTER,
+        title: supplemental.title,
+        adapter: supplemental.adapter,
         versionBinding: "unit",
-      })),
+      }),
     ];
-    return [unit({
-      projectId: input.projectId,
-      source,
-      unitKind: supplemental.unitKind,
-      locator: supplemental.locator,
-      startCharacter: 0,
-      endCharacter: source.content.length,
-      startByte: 0,
-      endByte: source.byteCount,
-      startLine: 1,
-      endLine: source.content.split("\n").length,
-      title: supplemental.title,
-      adapter: supplemental.adapter,
-      versionBinding: "unit",
-    })];
   });
-  units.sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
+  units.sort(
+    (left, right) =>
+      left.unitId.localeCompare(right.unitId) ||
+      left.unitVersionId.localeCompare(right.unitVersionId),
+  );
   for (const lineage of sourceLineages.records.filter((item) => item.activeTerminal)) {
     const source = included.find((item) => item.path === lineage.value.toPath);
     if (source?.contentHash !== lineage.value.sourceContentHash) continue;
-    const sourceUnitIds = units.filter((item) => item.sourceId === source.sourceId).map((item) => item.unitId).sort();
+    const sourceUnitIds = units
+      .filter((item) => item.sourceId === source.sourceId)
+      .map((item) => item.unitId)
+      .sort();
     const bindingDigest = sha256(canonicalJson(sourceUnitIds));
-    if (sourceUnitIds.length !== lineage.value.sourceUnitCount || bindingDigest !== lineage.value.sourceUnitBindingDigest) {
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", `The document move lineage ${lineage.value.lineageId} source-unit binding differs from the current exact moved bytes (${sourceUnitIds.length}/${lineage.value.sourceUnitCount}, ${bindingDigest}/${lineage.value.sourceUnitBindingDigest}).`);
+    if (
+      sourceUnitIds.length !== lineage.value.sourceUnitCount ||
+      bindingDigest !== lineage.value.sourceUnitBindingDigest
+    ) {
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_unsafe",
+        `The document move lineage ${lineage.value.lineageId} source-unit binding differs from the current exact moved bytes (${sourceUnitIds.length}/${lineage.value.sourceUnitCount}, ${bindingDigest}/${lineage.value.sourceUnitBindingDigest}).`,
+      );
     }
   }
   const snapshotMaterials = sources.map(({ content: _content, ...source }) => source);
-  const contentSnapshotMaterials = snapshotMaterials.filter((source) =>
-    source.kind !== "revision_metadata" && source.kind !== "verification_result" && source.kind !== "execution_event");
-  const contentUnitVersions = units.filter((unit) =>
-    unit.unitKind !== "revision" && unit.unitKind !== "verification" && unit.unitKind !== "event").map((unit) => unit.unitVersionId);
+  const contentSnapshotMaterials = snapshotMaterials.filter(
+    (source) =>
+      source.kind !== "revision_metadata" &&
+      source.kind !== "verification_result" &&
+      source.kind !== "execution_event",
+  );
+  const contentUnitVersions = units
+    .filter(
+      (unit) =>
+        unit.unitKind !== "revision" &&
+        unit.unitKind !== "verification" &&
+        unit.unitKind !== "event",
+    )
+    .map((unit) => unit.unitVersionId);
   return {
     schemaVersion: 1,
     projectId: input.projectId,
     policyId: input.policy.policyId,
     scannerBuild: "repository-scanner-v1",
-    snapshotId: stableId("ksnap", { sources: snapshotMaterials, units: units.map((item) => item.unitVersionId) }),
-    contentSnapshotId: stableId("ksnap", { sources: contentSnapshotMaterials, units: contentUnitVersions }),
+    snapshotId: stableId("ksnap", {
+      sources: snapshotMaterials,
+      units: units.map((item) => item.unitVersionId),
+    }),
+    contentSnapshotId: stableId("ksnap", {
+      sources: contentSnapshotMaterials,
+      units: contentUnitVersions,
+    }),
     coverage: {
       included: included.length,
       excluded: sources.filter((source) => source.status === "excluded").length,
@@ -639,38 +899,78 @@ export function relocateRepositoryKnowledgeScanSource(input: {
   toPath: string;
 }): RepositoryKnowledgeScan {
   const source = input.scan.sources.find((item) => item.path === input.fromPath);
-  if (source?.status !== "included" || source.content === undefined || source.contentHash === null || input.scan.sources.some((item) => item.path === input.toPath)) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The document move cannot be projected onto the current scan.");
+  if (
+    source?.status !== "included" ||
+    source.content === undefined ||
+    source.contentHash === null ||
+    input.scan.sources.some((item) => item.path === input.toPath)
+  ) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The document move cannot be projected onto the current scan.",
+    );
   }
   const identityPath = source.identityPath ?? source.path;
-  const sources = input.scan.sources.map((item): RepositorySource => item.sourceId === source.sourceId
-    ? {
-        sourceId: item.sourceId,
-        path: input.toPath,
-        identityPath,
-        kind: repositorySourceKindForPath(input.toPath),
-        ...agentArtifactFields(input.toPath),
-        status: item.status,
-        classification: repositorySourceClassificationForPath(input.toPath),
-        byteCount: item.byteCount,
-        contentHash: item.contentHash,
-        ...(item.reason === undefined ? {} : { reason: item.reason }),
-        ...(item.content === undefined ? {} : { content: item.content }),
-        ...(item.origin === undefined ? {} : { origin: item.origin }),
-      }
-    : item).sort((left, right) => left.path.localeCompare(right.path));
-  const units = input.scan.units.map((item) => item.sourceId === source.sourceId
-    ? { ...item, path: input.toPath, ...(item.unitKind === "file" ? { title: basename(input.toPath) } : {}) }
-    : item).sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
+  const sources = input.scan.sources
+    .map((item): RepositorySource =>
+      item.sourceId === source.sourceId
+        ? {
+            sourceId: item.sourceId,
+            path: input.toPath,
+            identityPath,
+            kind: repositorySourceKindForPath(input.toPath),
+            ...agentArtifactFields(input.toPath),
+            status: item.status,
+            classification: repositorySourceClassificationForPath(input.toPath),
+            byteCount: item.byteCount,
+            contentHash: item.contentHash,
+            ...(item.reason === undefined ? {} : { reason: item.reason }),
+            ...(item.content === undefined ? {} : { content: item.content }),
+            ...(item.origin === undefined ? {} : { origin: item.origin }),
+          }
+        : item,
+    )
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const units = input.scan.units
+    .map((item) =>
+      item.sourceId === source.sourceId
+        ? {
+            ...item,
+            path: input.toPath,
+            ...(item.unitKind === "file" ? { title: basename(input.toPath) } : {}),
+          }
+        : item,
+    )
+    .sort(
+      (left, right) =>
+        left.unitId.localeCompare(right.unitId) ||
+        left.unitVersionId.localeCompare(right.unitVersionId),
+    );
   const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
-  const contentSnapshotMaterials = snapshotMaterials.filter((item) =>
-    item.kind !== "revision_metadata" && item.kind !== "verification_result" && item.kind !== "execution_event");
-  const contentUnitVersions = units.filter((item) =>
-    item.unitKind !== "revision" && item.unitKind !== "verification" && item.unitKind !== "event").map((item) => item.unitVersionId);
+  const contentSnapshotMaterials = snapshotMaterials.filter(
+    (item) =>
+      item.kind !== "revision_metadata" &&
+      item.kind !== "verification_result" &&
+      item.kind !== "execution_event",
+  );
+  const contentUnitVersions = units
+    .filter(
+      (item) =>
+        item.unitKind !== "revision" &&
+        item.unitKind !== "verification" &&
+        item.unitKind !== "event",
+    )
+    .map((item) => item.unitVersionId);
   return {
     ...input.scan,
-    snapshotId: stableId("ksnap", { sources: snapshotMaterials, units: units.map((item) => item.unitVersionId) }),
-    contentSnapshotId: stableId("ksnap", { sources: contentSnapshotMaterials, units: contentUnitVersions }),
+    snapshotId: stableId("ksnap", {
+      sources: snapshotMaterials,
+      units: units.map((item) => item.unitVersionId),
+    }),
+    contentSnapshotId: stableId("ksnap", {
+      sources: contentSnapshotMaterials,
+      units: contentUnitVersions,
+    }),
     sources,
     units,
   };
@@ -685,10 +985,17 @@ export function splitRepositoryKnowledgeScanSource(input: {
 }): RepositoryKnowledgeScan {
   const source = input.scan.sources.find((item) => item.path === input.sourcePath);
   if (
-    source?.status !== "included" || source.content === undefined || source.contentHash === null ||
+    source?.status !== "included" ||
+    source.content === undefined ||
+    source.contentHash === null ||
     input.scan.sources.some((item) => item.path === input.destinationPath) ||
-    input.sourceContent.length === 0 || input.destinationContent.length === 0
-  ) throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The document split cannot be projected onto the current scan.");
+    input.sourceContent.length === 0 ||
+    input.destinationContent.length === 0
+  )
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The document split cannot be projected onto the current scan.",
+    );
   const updatedSource: RepositorySource & { content: string; contentHash: string } = {
     sourceId: source.sourceId,
     path: source.path,
@@ -720,16 +1027,36 @@ export function splitRepositoryKnowledgeScanSource(input: {
     ...input.scan.units.filter((item) => item.sourceId !== source.sourceId),
     ...extractUnits(input.scan.projectId, updatedSource),
     ...extractUnits(input.scan.projectId, destinationSource),
-  ].sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
+  ].sort(
+    (left, right) =>
+      left.unitId.localeCompare(right.unitId) ||
+      left.unitVersionId.localeCompare(right.unitVersionId),
+  );
   const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
-  const contentSnapshotMaterials = snapshotMaterials.filter((item) =>
-    item.kind !== "revision_metadata" && item.kind !== "verification_result" && item.kind !== "execution_event");
-  const contentUnitVersions = units.filter((item) =>
-    item.unitKind !== "revision" && item.unitKind !== "verification" && item.unitKind !== "event").map((item) => item.unitVersionId);
+  const contentSnapshotMaterials = snapshotMaterials.filter(
+    (item) =>
+      item.kind !== "revision_metadata" &&
+      item.kind !== "verification_result" &&
+      item.kind !== "execution_event",
+  );
+  const contentUnitVersions = units
+    .filter(
+      (item) =>
+        item.unitKind !== "revision" &&
+        item.unitKind !== "verification" &&
+        item.unitKind !== "event",
+    )
+    .map((item) => item.unitVersionId);
   return {
     ...input.scan,
-    snapshotId: stableId("ksnap", { sources: snapshotMaterials, units: units.map((item) => item.unitVersionId) }),
-    contentSnapshotId: stableId("ksnap", { sources: contentSnapshotMaterials, units: contentUnitVersions }),
+    snapshotId: stableId("ksnap", {
+      sources: snapshotMaterials,
+      units: units.map((item) => item.unitVersionId),
+    }),
+    contentSnapshotId: stableId("ksnap", {
+      sources: contentSnapshotMaterials,
+      units: contentUnitVersions,
+    }),
     coverage: { ...input.scan.coverage, included: input.scan.coverage.included + 1 },
     sources,
     units,
@@ -742,16 +1069,20 @@ export function upsertRepositoryKnowledgeScanSource(input: {
   content: string;
 }): RepositoryKnowledgeScan {
   const existing = input.scan.sources.find((item) => item.path === input.path);
-  if (existing !== undefined && (
-    existing.status !== "included" || existing.content === undefined || existing.contentHash === null
-  )) {
+  if (
+    existing !== undefined &&
+    (existing.status !== "included" ||
+      existing.content === undefined ||
+      existing.contentHash === null)
+  ) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The instruction bridge target cannot be projected safely onto the current scan.",
     );
   }
   const source: RepositorySource & { content: string; contentHash: string } = {
-    sourceId: existing?.sourceId ?? stableId("src", { projectId: input.scan.projectId, path: input.path }),
+    sourceId:
+      existing?.sourceId ?? stableId("src", { projectId: input.scan.projectId, path: input.path }),
     path: input.path,
     ...(existing?.identityPath === undefined ? {} : { identityPath: existing.identityPath }),
     kind: repositorySourceKindForPath(input.path),
@@ -762,27 +1093,47 @@ export function upsertRepositoryKnowledgeScanSource(input: {
     contentHash: sha256(input.content),
     content: input.content,
   };
-  const sources = [
-    ...input.scan.sources.filter((item) => item.path !== input.path),
-    source,
-  ].sort((left, right) => left.path.localeCompare(right.path));
+  const sources = [...input.scan.sources.filter((item) => item.path !== input.path), source].sort(
+    (left, right) => left.path.localeCompare(right.path),
+  );
   const units = [
     ...input.scan.units.filter((item) => item.sourceId !== existing?.sourceId),
     ...extractUnits(input.scan.projectId, source),
-  ].sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
+  ].sort(
+    (left, right) =>
+      left.unitId.localeCompare(right.unitId) ||
+      left.unitVersionId.localeCompare(right.unitVersionId),
+  );
   const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
-  const contentSnapshotMaterials = snapshotMaterials.filter((item) =>
-    item.kind !== "revision_metadata" && item.kind !== "verification_result" && item.kind !== "execution_event");
-  const contentUnitVersions = units.filter((item) =>
-    item.unitKind !== "revision" && item.unitKind !== "verification" && item.unitKind !== "event").map((item) => item.unitVersionId);
+  const contentSnapshotMaterials = snapshotMaterials.filter(
+    (item) =>
+      item.kind !== "revision_metadata" &&
+      item.kind !== "verification_result" &&
+      item.kind !== "execution_event",
+  );
+  const contentUnitVersions = units
+    .filter(
+      (item) =>
+        item.unitKind !== "revision" &&
+        item.unitKind !== "verification" &&
+        item.unitKind !== "event",
+    )
+    .map((item) => item.unitVersionId);
   return {
     ...input.scan,
-    snapshotId: stableId("ksnap", { sources: snapshotMaterials, units: units.map((item) => item.unitVersionId) }),
-    contentSnapshotId: stableId("ksnap", { sources: contentSnapshotMaterials, units: contentUnitVersions }),
+    snapshotId: stableId("ksnap", {
+      sources: snapshotMaterials,
+      units: units.map((item) => item.unitVersionId),
+    }),
+    contentSnapshotId: stableId("ksnap", {
+      sources: contentSnapshotMaterials,
+      units: contentUnitVersions,
+    }),
     coverage: {
       ...input.scan.coverage,
       included: input.scan.coverage.included + (existing === undefined ? 1 : 0),
-      includedBytes: input.scan.coverage.includedBytes - (existing?.byteCount ?? 0) + source.byteCount,
+      includedBytes:
+        input.scan.coverage.includedBytes - (existing?.byteCount ?? 0) + source.byteCount,
     },
     sources,
     units,
@@ -798,10 +1149,19 @@ export function mergeRepositoryKnowledgeScanSources(input: {
   const source = input.scan.sources.find((item) => item.path === input.sourcePath);
   const destination = input.scan.sources.find((item) => item.path === input.destinationPath);
   if (
-    source?.status !== "included" || source.content === undefined || source.contentHash === null ||
-    destination?.status !== "included" || destination.content === undefined || destination.contentHash === null ||
-    source.sourceId === destination.sourceId || input.destinationContent.length === 0
-  ) throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The document merge cannot be projected onto the current scan.");
+    source?.status !== "included" ||
+    source.content === undefined ||
+    source.contentHash === null ||
+    destination?.status !== "included" ||
+    destination.content === undefined ||
+    destination.contentHash === null ||
+    source.sourceId === destination.sourceId ||
+    input.destinationContent.length === 0
+  )
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The document merge cannot be projected onto the current scan.",
+    );
   const updatedDestination: RepositorySource & { content: string; contentHash: string } = {
     sourceId: destination.sourceId,
     path: destination.path,
@@ -814,22 +1174,46 @@ export function mergeRepositoryKnowledgeScanSources(input: {
     content: input.destinationContent,
   };
   const sources = [
-    ...input.scan.sources.filter((item) => item.sourceId !== source.sourceId && item.sourceId !== destination.sourceId),
+    ...input.scan.sources.filter(
+      (item) => item.sourceId !== source.sourceId && item.sourceId !== destination.sourceId,
+    ),
     updatedDestination,
   ].sort((left, right) => left.path.localeCompare(right.path));
   const units = [
-    ...input.scan.units.filter((item) => item.sourceId !== source.sourceId && item.sourceId !== destination.sourceId),
+    ...input.scan.units.filter(
+      (item) => item.sourceId !== source.sourceId && item.sourceId !== destination.sourceId,
+    ),
     ...extractUnits(input.scan.projectId, updatedDestination),
-  ].sort((left, right) => left.unitId.localeCompare(right.unitId) || left.unitVersionId.localeCompare(right.unitVersionId));
+  ].sort(
+    (left, right) =>
+      left.unitId.localeCompare(right.unitId) ||
+      left.unitVersionId.localeCompare(right.unitVersionId),
+  );
   const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
-  const contentSnapshotMaterials = snapshotMaterials.filter((item) =>
-    item.kind !== "revision_metadata" && item.kind !== "verification_result" && item.kind !== "execution_event");
-  const contentUnitVersions = units.filter((item) =>
-    item.unitKind !== "revision" && item.unitKind !== "verification" && item.unitKind !== "event").map((item) => item.unitVersionId);
+  const contentSnapshotMaterials = snapshotMaterials.filter(
+    (item) =>
+      item.kind !== "revision_metadata" &&
+      item.kind !== "verification_result" &&
+      item.kind !== "execution_event",
+  );
+  const contentUnitVersions = units
+    .filter(
+      (item) =>
+        item.unitKind !== "revision" &&
+        item.unitKind !== "verification" &&
+        item.unitKind !== "event",
+    )
+    .map((item) => item.unitVersionId);
   return {
     ...input.scan,
-    snapshotId: stableId("ksnap", { sources: snapshotMaterials, units: units.map((item) => item.unitVersionId) }),
-    contentSnapshotId: stableId("ksnap", { sources: contentSnapshotMaterials, units: contentUnitVersions }),
+    snapshotId: stableId("ksnap", {
+      sources: snapshotMaterials,
+      units: units.map((item) => item.unitVersionId),
+    }),
+    contentSnapshotId: stableId("ksnap", {
+      sources: contentSnapshotMaterials,
+      units: contentUnitVersions,
+    }),
     coverage: { ...input.scan.coverage, included: input.scan.coverage.included - 1 },
     sources,
     units,

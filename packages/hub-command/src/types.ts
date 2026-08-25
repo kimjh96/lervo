@@ -117,19 +117,18 @@ export interface HubCommandArtifactCleanupCycleClaimInput {
 
 export type HubCommandArtifactCleanupScheduleClaim =
   | {
-    status: "claimed";
-    leaseId: string;
-    inventoryCursor: string | null;
-    leaseExpiresAt: string;
-  }
+      status: "claimed";
+      leaseId: string;
+      inventoryCursor: string | null;
+      leaseExpiresAt: string;
+    }
   | {
-    status: "waiting";
-    reason: "not_due" | "leased";
-    nextAttemptAt: string;
-  };
+      status: "waiting";
+      reason: "not_due" | "leased";
+      nextAttemptAt: string;
+    };
 
-export interface HubCommandArtifactCleanupCycleCompletion
-  extends HubCommandArtifactCleanupCounts {
+export interface HubCommandArtifactCleanupCycleCompletion extends HubCommandArtifactCleanupCounts {
   workerId: string;
   leaseId: string;
   completedAt: string;
@@ -149,9 +148,7 @@ export interface HubCommandArtifactCleanupScheduleStore {
   claimArtifactCleanupCycle(
     input: HubCommandArtifactCleanupCycleClaimInput,
   ): Promise<HubCommandArtifactCleanupScheduleClaim>;
-  completeArtifactCleanupCycle(
-    input: HubCommandArtifactCleanupCycleCompletion,
-  ): Promise<void>;
+  completeArtifactCleanupCycle(input: HubCommandArtifactCleanupCycleCompletion): Promise<void>;
   failArtifactCleanupCycle(input: HubCommandArtifactCleanupCycleFailure): Promise<void>;
 }
 

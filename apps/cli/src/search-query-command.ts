@@ -52,19 +52,27 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
     });
     const store = await LocalSearchObservationStore.open(root);
     await store.recordAttempt(attempt);
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify({
-        ...response,
-        selectionTransitionId: operational.selectionTransitionId,
-        verificationReceiptId: operational.verificationReceiptId,
-        attemptId: attempt.attemptId,
-      }, null, 2)}\n`
-      : formatSearchResponse(response, attempt.attemptId));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(
+            {
+              ...response,
+              selectionTransitionId: operational.selectionTransitionId,
+              verificationReceiptId: operational.verificationReceiptId,
+              attemptId: attempt.attemptId,
+            },
+            null,
+            2,
+          )}\n`
+        : formatSearchResponse(response, attempt.attemptId),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not complete the search. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not complete the search. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

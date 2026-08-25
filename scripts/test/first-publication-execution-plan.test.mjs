@@ -28,16 +28,19 @@ describe("first-publication execution plan", () => {
     assert.throws(() => {
       firstPublicationCancellationBoundaries[0].outcome = "silently_retry";
     });
-    assert.deepEqual(plan.steps.map(({ id }) => id), [
-      "validate_execution_inputs",
-      "prepare_interactive_publisher",
-      "reobserve_public_package_absence",
-      "create_durable_reservation",
-      "revalidate_release_artifact",
-      "attempt_publication",
-      "verify_registry_result",
-      "record_terminal_result",
-    ]);
+    assert.deepEqual(
+      plan.steps.map(({ id }) => id),
+      [
+        "validate_execution_inputs",
+        "prepare_interactive_publisher",
+        "reobserve_public_package_absence",
+        "create_durable_reservation",
+        "revalidate_release_artifact",
+        "attempt_publication",
+        "verify_registry_result",
+        "record_terminal_result",
+      ],
+    );
     assert.equal(validateFirstPublicationExecutionPlan(plan, source), plan);
   });
 
@@ -63,7 +66,8 @@ describe("first-publication execution plan", () => {
       {
         id: "direct_publication_intent",
         timing: "before_reservation",
-        phrase: "I will publish @lervo/cli@0.1.0 once with interactive 2FA and will not use a bypass token",
+        phrase:
+          "I will publish @lervo/cli@0.1.0 once with interactive 2FA and will not use a bypass token",
         declinedOutcome: "no_state_change",
       },
       {
@@ -81,10 +85,14 @@ describe("first-publication execution plan", () => {
       approvalId: "apr_plan0005",
       tarballContents: Buffer.from("another-release"),
     });
-    assert.throws(() => createFirstPublicationExecutionPlan({
-      bootstrap: source.bootstrap,
-      publicationAuthorization: other.publicationAuthorization,
-    }), { code: "first_publication_execution_plan_authorization_mismatch" });
+    assert.throws(
+      () =>
+        createFirstPublicationExecutionPlan({
+          bootstrap: source.bootstrap,
+          publicationAuthorization: other.publicationAuthorization,
+        }),
+      { code: "first_publication_execution_plan_authorization_mismatch" },
+    );
 
     const plan = createFirstPublicationExecutionPlan(source);
     plan.status = "armed";

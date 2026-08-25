@@ -5,6 +5,7 @@ import {
 
 export interface ManagedProviderRunDeadlines {
   snapshotMs: number;
+  capabilityActivationMs: number;
   providerTurnMs: number;
   streamDrainMs: number;
   adapterStopMs: number;
@@ -12,6 +13,7 @@ export interface ManagedProviderRunDeadlines {
 
 export const defaultManagedProviderRunDeadlines: ManagedProviderRunDeadlines = {
   snapshotMs: 30_000,
+  capabilityActivationMs: 30_000,
   providerTurnMs: 10 * 60_000,
   streamDrainMs: 5_000,
   adapterStopMs: 10_000,

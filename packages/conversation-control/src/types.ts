@@ -3,10 +3,7 @@ import type { ConversationResponder } from "@lervo/interaction";
 import type { ConversationInboundEvent, WritingContract } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import type { WritingSemanticEvaluator } from "@lervo/writing";
-import type {
-  ConversationDeliberationStatus,
-  ConversationDeliberationSummary,
-} from "@lervo/conversation-deliberation-contract";
+import type { ConversationDeliberationSummary } from "@lervo/conversation-deliberation-contract";
 
 export type {
   ConversationDeliberationStatus,

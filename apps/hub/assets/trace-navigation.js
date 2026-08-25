@@ -18,8 +18,6 @@ export function loadFirstPage(options) {
 }
 
 export function moveCursorPage(options, direction) {
-  const operation = direction === "next"
-    ? options.pager.nextPage()
-    : options.pager.previousPage();
+  const operation = direction === "next" ? options.pager.nextPage() : options.pager.previousPage();
   return perform(options, operation);
 }

@@ -17,14 +17,8 @@ import {
   RemoteCommandDeliveryError,
   type RemoteCommandDeliveryErrorCode,
 } from "./delivery-transport.js";
-import {
-  RemoteCommandRuntimeError,
-  type RemoteCommandRuntimeErrorCode,
-} from "./errors.js";
-import {
-  type RemoteCommandClock,
-  type RemoteCommandHandler,
-} from "./types.js";
+import { RemoteCommandRuntimeError, type RemoteCommandRuntimeErrorCode } from "./errors.js";
+import { type RemoteCommandClock, type RemoteCommandHandler } from "./types.js";
 
 const TERMINAL_REJECTIONS = new Set<RemoteCommandRuntimeErrorCode>([
   "invalid_command",
@@ -96,8 +90,9 @@ export type RemoteCommandReconnectCycleResult =
 const systemClock: RemoteCommandClock = { now: () => new Date().toISOString() };
 
 function sameTarget(left: RemoteCommandTarget, right: RemoteCommandTarget): boolean {
-  return left.projectId === right.projectId &&
-    left.projectIdentityHash === right.projectIdentityHash;
+  return (
+    left.projectId === right.projectId && left.projectIdentityHash === right.projectIdentityHash
+  );
 }
 
 function timestamp(clock: RemoteCommandClock): { value: string; milliseconds: number } {
@@ -124,11 +119,15 @@ function resolveConfiguration(options: RemoteCommandReconnectWorkerOptions) {
     !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(options.destinationId) ||
     !/^sha256:[a-f0-9]{64}$/.test(options.expectedPeerIdentityHash) ||
     !/^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(options.nodeId) ||
-    !Number.isSafeInteger(leaseDurationMs) || leaseDurationMs < 1_000 ||
+    !Number.isSafeInteger(leaseDurationMs) ||
+    leaseDurationMs < 1_000 ||
     leaseDurationMs > 5 * 60_000 ||
-    !Number.isSafeInteger(retryDelayMs) || retryDelayMs < 1_000 ||
+    !Number.isSafeInteger(retryDelayMs) ||
+    retryDelayMs < 1_000 ||
     retryDelayMs > 60 * 60_000 ||
-    !Number.isSafeInteger(limit) || limit < 1 || limit > 16
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > 16
   ) {
     throw new RemoteCommandRuntimeError(
       "invalid_runtime_configuration",
@@ -269,13 +268,9 @@ export async function runRemoteCommandReconnectCycle(
       else if (handled.receipt.outcome === "executed") executedCount += 1;
       else failedCount += 1;
     } catch (error) {
-      if (
-        !(error instanceof RemoteCommandRuntimeError) ||
-        !TERMINAL_REJECTIONS.has(error.code)
-      ) {
-        const code = error instanceof RemoteCommandRuntimeError
-          ? error.code
-          : "replay_store_failed";
+      if (!(error instanceof RemoteCommandRuntimeError) || !TERMINAL_REJECTIONS.has(error.code)) {
+        const code =
+          error instanceof RemoteCommandRuntimeError ? error.code : "replay_store_failed";
         return {
           status: "local_deferred",
           failureCode: code,

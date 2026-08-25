@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c1b958d873e3d09683ae8a70
+freshness: current
+ownership: user
+path: docs/decisions/operations/services/0203-read-only-repository-node-onboarding-reconciliation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_cac16c2ee81e6b016f252925
+title: "ADR-0203: Read-only repository Node onboarding reconciliation"
+type: decision

@@ -4,15 +4,14 @@ import { parseArgs } from "node:util";
 import { loadProjectManifest } from "@lervo/project";
 import { readLocalSearchRolloutActionStatus } from "@lervo/search-local";
 
-import {
-  searchArgumentError,
-  searchErrorCode,
-  searchPageLimit,
-} from "./search-command-common.js";
+import { searchArgumentError, searchErrorCode, searchPageLimit } from "./search-command-common.js";
 import { formatSearchRolloutActionStatus } from "./search-rollout-format.js";
 import type { CliIo } from "./types.js";
 
-export async function runSearchRolloutActionStatusCommand(args: string[], io: CliIo): Promise<number> {
+export async function runSearchRolloutActionStatusCommand(
+  args: string[],
+  io: CliIo,
+): Promise<number> {
   let parsed;
   try {
     parsed = parseArgs({
@@ -47,14 +46,18 @@ export async function runSearchRolloutActionStatusCommand(args: string[], io: Cl
       ...(limit === undefined ? {} : { limit }),
       ...(parsed.values.cursor === undefined ? {} : { cursor: parsed.values.cursor }),
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(status, null, 2)}\n`
-      : formatSearchRolloutActionStatus(status));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(status, null, 2)}\n`
+        : formatSearchRolloutActionStatus(status),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not read search rollout action status. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not read search rollout action status. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

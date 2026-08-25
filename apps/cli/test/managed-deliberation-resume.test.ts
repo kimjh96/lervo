@@ -1,33 +1,17 @@
-import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { defaultEnglishWritingContract } from "@lervo/core";
-import {
-  QueuedConversationDeliberationBackend,
-  reconcileConversationDeliberation,
-  runConversationDeliberationResumeWorkerCycle,
-  runConversationDeliberationWorkerCycle,
-} from "@lervo/conversation-control";
-import {
-  SQLiteConversationDeliberationJobStore,
-  SQLiteConversationDeliberationResumeJobStore,
-} from "@lervo/conversation-deliberation-sqlite";
+import { runConversationDeliberationResumeWorkerCycle } from "@lervo/conversation-control";
+import { SQLiteConversationDeliberationResumeJobStore } from "@lervo/conversation-deliberation-sqlite";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createManagedConversationDeliberationExecutionAdapter } from
-  "../src/conversation-deliberation-executor.js";
-import { createManagedConversationDeliberationReconciliationSource } from
-  "../src/conversation-deliberation-reconciliation.js";
-import { createManagedConversationDeliberationResumeExecutionAdapter } from
-  "../src/conversation-deliberation-resume-executor.js";
+import { createManagedConversationDeliberationResumeExecutionAdapter } from "../src/conversation-deliberation-resume-executor.js";
 import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
 import {
   createAssignedManagedDeliberationExecutor,
   createManagedDeliberationExecutor,
   DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
-import { parseSemanticEvaluation } from "../src/managed-deliberation-runner.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { runCli } from "../src/main.js";
 import { prepareRunVerification } from "../src/run-verification.js";
@@ -38,7 +22,6 @@ import {
   repository,
   semanticPass,
   sequence,
-  writeFourRolePolicy,
 } from "./managed-deliberation-test-fixture.js";
 
 afterEach(cleanupManagedDeliberationFixtures);
@@ -107,26 +90,29 @@ describe("managed CLI deliberation resume", () => {
         try {
           await contender({ repositoryRoot: root, resumeDeliberationId: id });
         } catch (error) {
-          concurrentResumeBlocked = (error as { code?: unknown }).code ===
-            "deliberation_in_progress";
+          concurrentResumeBlocked =
+            (error as { code?: unknown }).code === "deliberation_in_progress";
         }
         throw new DeliberationProcessInterruptedError("fixture interruption");
       },
     });
 
-    await expect(interrupted({
-      repositoryRoot: root,
-      proposerProvider: "codex",
-      reviewerProvider: "claude",
-      verificationSuiteIds: ["project.default"],
-      topic: "Resume deliberation interrupted after an approved review.",
-    })).rejects.toThrow("fixture interruption");
+    await expect(
+      interrupted({
+        repositoryRoot: root,
+        proposerProvider: "codex",
+        reviewerProvider: "claude",
+        verificationSuiteIds: ["project.default"],
+        topic: "Resume deliberation interrupted after an approved review.",
+      }),
+    ).rejects.toThrow("fixture interruption");
     expect(concurrentResumeBlocked).toBe(true);
 
     const before = await openProjectStorage(root);
     const beforeEvents = before.events.list({ limit: 1000 });
-    expect(beforeEvents.filter((event) => event.type === "deliberation.artifact.recorded"))
-      .toHaveLength(2);
+    expect(
+      beforeEvents.filter((event) => event.type === "deliberation.artifact.recorded"),
+    ).toHaveLength(2);
     expect(beforeEvents.some((event) => event.type === "deliberation.completed")).toBe(false);
     expect(await inspectManagedDeliberation({ storage: before, deliberationId })).toMatchObject({
       sourceStatus: "consistent",
@@ -138,28 +124,40 @@ describe("managed CLI deliberation resume", () => {
     await before.close();
 
     let traceOutput = "";
-    expect(await runCli(["trace", "--deliberation", deliberationId], {
-      cwd: root,
-      stdout: (message) => { traceOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["trace", "--deliberation", deliberationId], {
+        cwd: root,
+        stdout: (message) => {
+          traceOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     expect(traceOutput).toContain("eligible to resume after approval");
     expect(traceOutput).toContain("deliberation.artifact.recorded");
 
     let doctorOutput = "";
-    expect(await runCli(["doctor", "--deliberation", deliberationId], {
-      cwd: root,
-      stdout: (message) => { doctorOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["doctor", "--deliberation", deliberationId], {
+        cwd: root,
+        stdout: (message) => {
+          doctorOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     expect(doctorOutput).toContain("revalidate every source when resuming");
 
     let statusOutput = "";
-    expect(await runCli(["deliberate", "status", deliberationId], {
-      cwd: root,
-      stdout: (message) => { statusOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["deliberate", "status", deliberationId], {
+        cwd: root,
+        stdout: (message) => {
+          statusOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     expect(statusOutput).toContain("eligible to resume after approval");
 
     const resumeDependencies = {
@@ -172,21 +170,23 @@ describe("managed CLI deliberation resume", () => {
       projects: [{ projectId: "prj_wrongproject1", repositoryRoot: root }],
       executeAssignedResume: createAssignedManagedDeliberationExecutor(resumeDependencies),
     });
-    await expect(mismatchedResume.execute({
-      operation: "resume",
-      projectId: "prj_wrongproject1",
-      sourceEventId: `cve_${"6".repeat(64)}`,
-      deliberationId,
-      requestHash: `sha256:${"5".repeat(64)}`,
-      principalHash: `sha256:${"4".repeat(64)}`,
-      requestedAt: now().toISOString(),
-      state: "leased",
-      attemptCount: 1,
-      leaseExpiresAt: now().toISOString(),
-      summary: null,
-      failureCode: null,
-      reconciliation: null,
-    })).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
+    await expect(
+      mismatchedResume.execute({
+        operation: "resume",
+        projectId: "prj_wrongproject1",
+        sourceEventId: `cve_${"6".repeat(64)}`,
+        deliberationId,
+        requestHash: `sha256:${"5".repeat(64)}`,
+        principalHash: `sha256:${"4".repeat(64)}`,
+        requestedAt: now().toISOString(),
+        state: "leased",
+        attemptCount: 1,
+        leaseExpiresAt: now().toISOString(),
+        summary: null,
+        failureCode: null,
+        reconciliation: null,
+      }),
+    ).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
     const resumeQueue = await SQLiteConversationDeliberationResumeJobStore.open({
       path: resolve(root, ".lervo/state/conversation-deliberation-resumes.sqlite"),
     });
@@ -208,7 +208,8 @@ describe("managed CLI deliberation resume", () => {
       workerId: "managed-conversation-resume-worker",
       now,
     });
-    if (resumedCycle.status !== "settled") throw new Error("The resumed conversation deliberation queue did not settle.");
+    if (resumedCycle.status !== "settled")
+      throw new Error("The resumed conversation deliberation queue did not settle.");
     const result = resumedCycle.summary;
 
     expect(result).toMatchObject({ deliberationId, status: "converged", artifactCount: 4 });
@@ -216,8 +217,9 @@ describe("managed CLI deliberation resume", () => {
     const after = await openProjectStorage(root);
     const events = after.events.list({ limit: 1000 });
     expect(events.filter((event) => event.type === "deliberation.started")).toHaveLength(1);
-    expect(events.filter((event) => event.type === "deliberation.artifact.recorded"))
-      .toHaveLength(4);
+    expect(events.filter((event) => event.type === "deliberation.artifact.recorded")).toHaveLength(
+      4,
+    );
     expect(events.filter((event) => event.type === "verification.completed")).toHaveLength(1);
     expect(events.filter((event) => event.type === "deliberation.completed")).toHaveLength(1);
     expect(after.events.verifyIntegrity().valid).toBe(true);
@@ -231,8 +233,8 @@ describe("managed CLI deliberation resume", () => {
     resumeQueue.close();
 
     const resumed = createManagedDeliberationExecutor(resumeDependencies);
-    await expect(resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId }))
-      .rejects.toThrow("snapshot");
+    await expect(
+      resumed({ repositoryRoot: root, resumeDeliberationId: deliberationId }),
+    ).rejects.toThrow("snapshot");
   });
-
 });

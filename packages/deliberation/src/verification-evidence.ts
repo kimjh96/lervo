@@ -1,13 +1,7 @@
-import {
-  validateVerificationResult,
-  verificationResultBytes,
-} from "@lervo/verification-contract";
+import { validateVerificationResult, verificationResultBytes } from "@lervo/verification-contract";
 
 import { deliberationSha256 } from "./integrity.js";
-import {
-  DeliberationError,
-  type DeliberationVerificationEvidence,
-} from "./types.js";
+import { DeliberationError, type DeliberationVerificationEvidence } from "./types.js";
 
 export function verificationEvidenceById(
   evidence: readonly DeliberationVerificationEvidence[],

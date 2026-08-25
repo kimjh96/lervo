@@ -9,15 +9,11 @@ import type {
 
 import { canonicalJsonBytes, sha256 } from "./hash.js";
 
-export function migrationCandidateBytes(
-  candidate: DocumentMigrationCandidate,
-): Uint8Array {
+export function migrationCandidateBytes(candidate: DocumentMigrationCandidate): Uint8Array {
   return canonicalJsonBytes(candidate);
 }
 
-export function managedBlockPatchCandidateBytes(
-  candidate: ManagedBlockPatchCandidate,
-): Uint8Array {
+export function managedBlockPatchCandidateBytes(candidate: ManagedBlockPatchCandidate): Uint8Array {
   return canonicalJsonBytes(candidate);
 }
 
@@ -49,8 +45,9 @@ export function calculateMigrationPlanId(
 }
 
 export function legacyRegistryEntryBytes(
-  artifact: Omit<LegacyRegistryEntryArtifact, "artifactId" | "contentHash" | "byteCount"> |
-    LegacyRegistryEntryArtifact,
+  artifact:
+    | Omit<LegacyRegistryEntryArtifact, "artifactId" | "contentHash" | "byteCount">
+    | LegacyRegistryEntryArtifact,
 ): Uint8Array {
   const value = artifact as Partial<LegacyRegistryEntryArtifact> & Record<string, unknown>;
   const {
@@ -63,8 +60,7 @@ export function legacyRegistryEntryBytes(
 }
 
 export function calculateLegacyRegistryMigrationPlanId(
-  plan: Omit<LegacyRegistryMigrationPlan, "planId" | "generatedAt"> |
-    LegacyRegistryMigrationPlan,
+  plan: Omit<LegacyRegistryMigrationPlan, "planId" | "generatedAt"> | LegacyRegistryMigrationPlan,
 ): string {
   const value = plan as Partial<LegacyRegistryMigrationPlan> & Record<string, unknown>;
   const { planId: _planId, generatedAt: _generatedAt, ...content } = value;

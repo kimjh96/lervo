@@ -22,14 +22,20 @@ export async function reviewLocalSearchRollout(input: {
 }): Promise<SearchRolloutReview> {
   const evidence = await loadVerifiedSearchSelectionQualityEvidence(input);
   const current = evidence.history.at(-1);
-  if (current === undefined || current.activationId !== input.selectionTransitionId ||
-    current.selected.mode !== "candidate") {
+  if (
+    current === undefined ||
+    current.activationId !== input.selectionTransitionId ||
+    current.selected.mode !== "candidate"
+  ) {
     throw new SearchLocalError(
       "rollout_review_not_eligible",
       "Only the transition of the currently selected candidate search engine can be reviewed for rollout.",
     );
   }
-  const review = await loadStoredSearchCandidateReview(input.repositoryRoot, current.selected.reviewId);
+  const review = await loadStoredSearchCandidateReview(
+    input.repositoryRoot,
+    current.selected.reviewId,
+  );
   if (review.schemaVersion !== 2) {
     throw new SearchLocalError(
       "rollout_review_not_eligible",
@@ -46,10 +52,13 @@ export async function reviewLocalSearchRollout(input: {
     );
   }
   const attemptIds = new Set(attempts.map((attempt) => attempt.attemptId));
-  const assessments = evidence.assessments.filter((assessment) => attemptIds.has(assessment.attemptId));
-  const rolloutPolicy = input.policyId === undefined
-    ? null
-    : await loadSearchRolloutReviewPolicy(input.repositoryRoot, input.policyId);
+  const assessments = evidence.assessments.filter((assessment) =>
+    attemptIds.has(assessment.attemptId),
+  );
+  const rolloutPolicy =
+    input.policyId === undefined
+      ? null
+      : await loadSearchRolloutReviewPolicy(input.repositoryRoot, input.policyId);
   const rolloutReview = createSearchRolloutReview({
     projectId: input.projectId,
     target: {

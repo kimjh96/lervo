@@ -1,8 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createCliFirstPublicationWorkflowExecutionEvidence } from
-  "../../lib/cli-first-publication-workflow-execution.mjs";
+import { createCliFirstPublicationWorkflowExecutionEvidence } from "../../lib/cli-first-publication-workflow-execution.mjs";
 import {
   createReleaseStageAttempt,
   createReleaseStageTerminal,
@@ -15,12 +14,9 @@ import {
   workflowExecutionAttempt,
   workflowExecutionRunId,
 } from "./first-publication-workflow-execution.mjs";
-import { workflowReleaseTag } from
-  "./first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./first-publication-workflow-activation.mjs";
+import { workflowReleaseTag } from "./first-publication-workflow-reachability.mjs";
+import { workflowRemoteSourceCommit } from "./first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./first-publication-workflow-activation.mjs";
 import { createZipArchive } from "./zip-archive.mjs";
 
 function acceptedReceipt(authorization) {
@@ -53,9 +49,7 @@ export function createStageResultArchive({
     authorization,
     state: terminalState,
     completedAt: "2026-08-21T10:11:00Z",
-    ...(terminalState === "staged"
-      ? { receipt: acceptedReceipt(authorization) }
-      : {}),
+    ...(terminalState === "staged" ? { receipt: acceptedReceipt(authorization) } : {}),
   });
   const documents = new Map([
     ["attempt.json", Buffer.from(`${JSON.stringify(attempt, null, 2)}\n`)],
@@ -76,8 +70,8 @@ export async function createFirstPublicationStageResultFixture(stageOptions = {}
     sizeInBytes: stage.archiveContents.length,
     digest: sha256(stage.archiveContents),
   };
-  const workflowExecutionReport =
-    await createCliFirstPublicationWorkflowExecutionEvidence({
+  const workflowExecutionReport = await createCliFirstPublicationWorkflowExecutionEvidence(
+    {
       repository: workflowActivationRepository,
       sourceCommit: workflowRemoteSourceCommit,
       releaseTag: workflowReleaseTag,
@@ -85,14 +79,13 @@ export async function createFirstPublicationStageResultFixture(stageOptions = {}
       attempt: workflowExecutionAttempt,
       reachabilityReportPath: fixture.reachabilityReportPath,
       online: true,
-    }, {
+    },
+    {
       observeExecution: async () => matchingWorkflowExecutionObservation({ artifact }),
       clock: () => "2026-08-21T10:13:00Z",
-    });
-  const workflowExecutionReportPath = resolve(
-    fixture.root,
-    "workflow-execution.json",
+    },
   );
+  const workflowExecutionReportPath = resolve(fixture.root, "workflow-execution.json");
   await writeFile(
     workflowExecutionReportPath,
     `${JSON.stringify(workflowExecutionReport, null, 2)}\n`,

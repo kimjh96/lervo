@@ -124,16 +124,14 @@ export function assertConversationParticipationDecision(input: {
     decision.decisionId !== calculateConversationParticipationDecisionId(content) ||
     (decision.action === "respond") !== responseReason ||
     !relevanceMatches ||
-    (input.event !== undefined && (
-      decision.eventId !== input.event.eventId ||
-      decision.projectId !== input.event.target.projectId ||
-      decision.conversationId !== input.event.target.conversationId
-    )) ||
-    (input.policy !== undefined && (
-      decision.policyId !== input.policy.policyId ||
-      decision.projectId !== input.policy.projectId ||
-      decision.roleId !== input.policy.roleId
-    ))
+    (input.event !== undefined &&
+      (decision.eventId !== input.event.eventId ||
+        decision.projectId !== input.event.target.projectId ||
+        decision.conversationId !== input.event.target.conversationId)) ||
+    (input.policy !== undefined &&
+      (decision.policyId !== input.policy.policyId ||
+        decision.projectId !== input.policy.projectId ||
+        decision.roleId !== input.policy.roleId))
   ) {
     throw new ConversationContractError(
       "invalid_participation_decision",

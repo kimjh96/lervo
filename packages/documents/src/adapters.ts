@@ -5,11 +5,7 @@ import type { DocumentRegistry } from "@lervo/schemas";
 import { digestSuffix } from "./hash.js";
 import { parseLegacyDocumentRegistry } from "./legacy-registry.js";
 import { parseManagedMarkdownBlocks } from "./managed-block-parser.js";
-import type {
-  DocumentImportAdapter,
-  DocumentImportDraft,
-  DocumentImportSource,
-} from "./types.js";
+import type { DocumentImportAdapter, DocumentImportDraft, DocumentImportSource } from "./types.js";
 
 function documentId(path: string): string {
   return `doc_${digestSuffix(`document-path\0${path}`)}`;
@@ -39,8 +35,8 @@ function mdxDraft(source: DocumentImportSource): DocumentImportDraft {
     };
   }
   const previousProductPrefix = "ro" + "ven";
-  const containsMarker = text.includes("<!-- lervo:") ||
-    text.includes(`<!-- ${previousProductPrefix}:`);
+  const containsMarker =
+    text.includes("<!-- lervo:") || text.includes(`<!-- ${previousProductPrefix}:`);
   const warnings = ["profile_requires_review", "mdx_semantics_not_parsed"];
   if (source.byteCount >= 32768) warnings.push("split_recommended");
   if (containsMarker) warnings.push("marker_structure_not_verified");
@@ -105,9 +101,11 @@ export const markdownImportAdapter: DocumentImportAdapter = {
     return extension === ".md" || extension === ".mdx";
   },
   inspect(source) {
-    return [posix.extname(source.path).toLowerCase() === ".mdx"
-      ? mdxDraft(source)
-      : markdownDraft(source)];
+    return [
+      posix.extname(source.path).toLowerCase() === ".mdx"
+        ? mdxDraft(source)
+        : markdownDraft(source),
+    ];
   },
 };
 
@@ -131,7 +129,9 @@ function legacyDraft(
   const record = registry.documents[documentIdValue];
   if (record === undefined) return invalidLegacyDraft("invalid_legacy_registry");
   if (
-    record.path === "." || record.path.endsWith("/") || record.path.includes("\\") ||
+    record.path === "." ||
+    record.path.endsWith("/") ||
+    record.path.includes("\\") ||
     posix.normalize(record.path) !== record.path
   ) {
     return invalidLegacyDraft("invalid_legacy_registry_layout", documentIdValue);

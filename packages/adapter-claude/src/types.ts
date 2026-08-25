@@ -1,5 +1,9 @@
 import type { startup } from "@anthropic-ai/claude-agent-sdk";
-import type { AdapterSession, AdapterTurn } from "@lervo/schemas";
+import type {
+  AdapterCapabilityActivationRequest,
+  AdapterSession,
+  AdapterTurn,
+} from "@lervo/schemas";
 
 export type ClaudePermissionMode = "default" | "plan" | "dontAsk";
 
@@ -26,11 +30,13 @@ export interface ClaudeAgentClientStartOptions {
   requestTimeoutMs: number;
   createMessageId: () => string;
   tools?: string[];
+  capabilityActivations?: readonly AdapterCapabilityActivationRequest[];
 }
 
 export interface ClaudeAgentClient {
   attachToolUseHandler(handler: ClaudeToolUseHandler): void;
   appendContext(content: string): Promise<void>;
+  confirmCapabilities?(): Promise<void>;
   startTurn(turnId: string, instructions: string): Promise<void>;
   interrupt(): Promise<void>;
   messages(signal: AbortSignal): AsyncIterable<unknown>;
@@ -68,6 +74,8 @@ export interface ClaudeSessionState {
   activeTurn?: AdapterTurn;
   activeProviderTurnId?: string;
   eventStreamClaimed: boolean;
+  capabilityActivations: AdapterCapabilityActivationRequest[];
+  activationConfirmed: boolean;
 }
 
 export type ClaudeAdapterErrorCode =
@@ -76,11 +84,15 @@ export type ClaudeAdapterErrorCode =
   | "session_mismatch"
   | "session_stopped"
   | "context_materialization_failed"
+  | "capability_activation_failed"
   | "provider_protocol_failed"
   | "provider_process_failed";
 
 export class ClaudeAdapterError extends Error {
-  constructor(readonly code: ClaudeAdapterErrorCode, message: string) {
+  constructor(
+    readonly code: ClaudeAdapterErrorCode,
+    message: string,
+  ) {
     super(message);
     this.name = "ClaudeAdapterError";
   }

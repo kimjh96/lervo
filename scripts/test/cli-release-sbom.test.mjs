@@ -1,14 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 
-import {
-  createCliReleaseSbom,
-  validateCliReleaseSbom,
-} from "../lib/cli-release-sbom.mjs";
-import {
-  createPnpmProductionGraph,
-  pnpmPackageSha512,
-} from "../lib/pnpm-production-graph.mjs";
+import { createCliReleaseSbom, validateCliReleaseSbom } from "../lib/cli-release-sbom.mjs";
+import { createPnpmProductionGraph, pnpmPackageSha512 } from "../lib/pnpm-production-graph.mjs";
 
 const nativeSuffixes = [
   "darwin-arm64",
@@ -33,13 +27,10 @@ function fixture() {
   const sdkName = "@anthropic-ai/claude-agent-sdk";
   const sdkVersion = "1.0.0";
   const sdkCoordinate = `${sdkName}@${sdkVersion}`;
-  const nativeCoordinates = nativeSuffixes.map(
-    (suffix) => `${sdkName}-${suffix}@${sdkVersion}`,
+  const nativeCoordinates = nativeSuffixes.map((suffix) => `${sdkName}-${suffix}@${sdkVersion}`);
+  const optionalDependencies = Object.fromEntries(
+    nativeSuffixes.map((suffix) => [`${sdkName}-${suffix}`, sdkVersion]),
   );
-  const optionalDependencies = Object.fromEntries(nativeSuffixes.map((suffix) => [
-    `${sdkName}-${suffix}`,
-    sdkVersion,
-  ]));
   const packages = {
     [sdkCoordinate]: packageEntry(1),
     "yaml@2.9.0": packageEntry(2),
@@ -83,10 +74,12 @@ function fixture() {
     dependencies: {
       portable: [sdkCoordinate],
       portableDigest: `sha256:${"d".repeat(64)}`,
-      platformSpecificFamilies: [{
-        prefix: `${sdkName}-`,
-        version: sdkVersion,
-      }],
+      platformSpecificFamilies: [
+        {
+          prefix: `${sdkName}-`,
+          version: sdkVersion,
+        },
+      ],
     },
   };
   return { lockfile, nativeCoordinates, releaseManifest, sdkCoordinate };
@@ -106,16 +99,18 @@ describe("pnpm production graph", () => {
       graph.nodes.filter(({ optional }) => optional).map(({ coordinate }) => coordinate),
       [...nativeCoordinates].sort(),
     );
-    assert.equal(graph.nodes.some(({ coordinate }) => coordinate === "dev-only@9.0.0"), false);
+    assert.equal(
+      graph.nodes.some(({ coordinate }) => coordinate === "dev-only@9.0.0"),
+      false,
+    );
   });
 
   it("rejects missing or malformed lockfile integrity", () => {
     const { lockfile, sdkCoordinate } = fixture();
     delete lockfile.packages[sdkCoordinate].resolution.integrity;
-    assert.throws(
-      () => pnpmPackageSha512(lockfile, sdkCoordinate),
-      { code: "release_sbom_lock_integrity_missing" },
-    );
+    assert.throws(() => pnpmPackageSha512(lockfile, sdkCoordinate), {
+      code: "release_sbom_lock_integrity_missing",
+    });
   });
 });
 
@@ -130,10 +125,7 @@ describe("CLI release SBOM", () => {
       sbom.serialNumber,
       /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
     );
-    assert.equal(
-      createCliReleaseSbom(releaseManifest, lockfile).serialNumber,
-      sbom.serialNumber,
-    );
+    assert.equal(createCliReleaseSbom(releaseManifest, lockfile).serialNumber, sbom.serialNumber);
     assert.equal(Object.hasOwn(sbom.metadata, "timestamp"), false);
     assert.equal(sbom.components.length, 11);
     assert.equal(
@@ -162,20 +154,18 @@ describe("CLI release SBOM", () => {
     const { lockfile, releaseManifest } = fixture();
     const sbom = createCliReleaseSbom(releaseManifest, lockfile);
     sbom.components[0].scope = sbom.components[0].scope === "optional" ? "required" : "optional";
-    assert.throws(
-      () => validateCliReleaseSbom(sbom, releaseManifest, lockfile),
-      { code: "release_sbom_mismatch" },
-    );
+    assert.throws(() => validateCliReleaseSbom(sbom, releaseManifest, lockfile), {
+      code: "release_sbom_mismatch",
+    });
   });
 
   it("rejects timestamps even if the remaining inventory is unchanged", () => {
     const { lockfile, releaseManifest } = fixture();
     const sbom = createCliReleaseSbom(releaseManifest, lockfile);
     sbom.metadata.timestamp = "2026-08-20T00:00:00.000Z";
-    assert.throws(
-      () => validateCliReleaseSbom(sbom, releaseManifest, lockfile),
-      { code: "release_sbom_nondeterministic_metadata" },
-    );
+    assert.throws(() => validateCliReleaseSbom(sbom, releaseManifest, lockfile), {
+      code: "release_sbom_nondeterministic_metadata",
+    });
   });
 
   it("changes the deterministic serial when the inventory bytes change", () => {

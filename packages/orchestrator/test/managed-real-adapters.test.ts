@@ -92,11 +92,13 @@ class AcceptanceCodexClient implements CodexAppServerClient {
               type: "fileChange",
               id: "codex-managed-change",
               status: "inProgress",
-              changes: [{
-                path: resolve(this.managedRoot, "src/result.ts"),
-                kind: { type: "add" },
-                diff: "private patch",
-              }],
+              changes: [
+                {
+                  path: resolve(this.managedRoot, "src/result.ts"),
+                  kind: { type: "add" },
+                  diff: "private patch",
+                },
+              ],
             },
           },
         },
@@ -150,11 +152,13 @@ class AcceptanceCodexClient implements CodexAppServerClient {
             type: "fileChange",
             id: "codex-managed-change",
             status: "completed",
-            changes: [{
-              path: resolve(this.managedRoot, "src/result.ts"),
-              kind: { type: "add" },
-              diff: "private patch",
-            }],
+            changes: [
+              {
+                path: resolve(this.managedRoot, "src/result.ts"),
+                kind: { type: "add" },
+                diff: "private patch",
+              },
+            ],
           },
         },
       },
@@ -230,11 +234,7 @@ class AcceptanceClaudeClient implements ClaudeAgentClient {
         file_path: resolve(this.managedRoot, "src/result.ts"),
         content: "export const managed = true;\n",
       };
-      const allowed = await this.toolUseHandler?.authorize(
-        "Write",
-        input,
-        "claude-managed-write",
-      );
+      const allowed = await this.toolUseHandler?.authorize("Write", input, "claude-managed-write");
       if (allowed !== true) throw new Error("managed write denied");
       await writeFile(input.file_path, input.content);
       await this.toolUseHandler?.complete("Write", input, "claude-managed-write", "completed");
@@ -278,12 +278,14 @@ describe("managed coordinator with production adapters", () => {
 
     expect(result.status).toBe("completed");
     expect(result.session.executionMode).toBe("read_only");
-    expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
-      .toBe("Complete");
+    expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8")).toBe(
+      "Complete",
+    );
     expect(JSON.stringify(data.store.list({ runId }))).not.toContain("Complete");
     expect(client.startOptions).toMatchObject({ sandbox: "read-only", approvalPolicy: "never" });
-    expect(data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload)
-      .toMatchObject({ executionMode: "read_only" });
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload,
+    ).toMatchObject({ executionMode: "read_only" });
     data.store.close();
   });
 
@@ -319,15 +321,17 @@ describe("managed coordinator with production adapters", () => {
     }).run({ ...providerRunInput(), repositoryRoot: data.root });
 
     expect(result.status).toBe("completed");
-    expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
-      .toBe("Complete");
+    expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8")).toBe(
+      "Complete",
+    );
     expect(JSON.stringify(data.store.list({ runId }))).not.toContain("Complete");
     expect(startOptions).toMatchObject({
       permissionMode: "plan",
       tools: ["Read", "Glob", "Grep"],
     });
-    expect(data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload)
-      .toMatchObject({ executionMode: "read_only" });
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload,
+    ).toMatchObject({ executionMode: "read_only" });
     data.store.close();
   });
 
@@ -360,7 +364,10 @@ describe("managed coordinator with production adapters", () => {
     expect(result.managedChanges).toEqual([
       expect.objectContaining({ path: "src/result.ts", changeKind: "created" }),
     ]);
-    expect(client.startOptions).toMatchObject({ sandbox: "read-only", approvalPolicy: "on-request" });
+    expect(client.startOptions).toMatchObject({
+      sandbox: "read-only",
+      approvalPolicy: "on-request",
+    });
     expect(data.store.list({ runId }).map((event) => event.type)).not.toContain(
       "unmanaged_change.detected",
     );

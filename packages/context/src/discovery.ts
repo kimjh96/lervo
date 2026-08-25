@@ -2,10 +2,7 @@ import type { DocumentRegistry } from "@lervo/schemas";
 
 import { repositoryFileExists } from "./filesystem.js";
 import { compareCanonicalText, documentIdForPath, instructionPathsFor } from "./paths.js";
-import {
-  type ContextDocumentCandidate,
-  ContextPreparationError,
-} from "./types.js";
+import { type ContextDocumentCandidate, ContextPreparationError } from "./types.js";
 
 function registryCandidates(registry: DocumentRegistry): Map<string, ContextDocumentCandidate> {
   const candidates = new Map<string, ContextDocumentCandidate>();
@@ -18,18 +15,16 @@ function registryCandidates(registry: DocumentRegistry): Map<string, ContextDocu
       );
     }
     candidates.set(document.path, {
-        documentId,
-        path: document.path,
-        connectedPaths: document.connectedPaths,
-        source: "registry" as const,
+      documentId,
+      path: document.path,
+      connectedPaths: document.connectedPaths,
+      source: "registry" as const,
     });
   }
   return candidates;
 }
 
-export function candidatesFromRegistry(
-  registry: DocumentRegistry,
-): ContextDocumentCandidate[] {
+export function candidatesFromRegistry(registry: DocumentRegistry): ContextDocumentCandidate[] {
   return [...registryCandidates(registry).values()].sort((left, right) =>
     compareCanonicalText(left.path, right.path),
   );

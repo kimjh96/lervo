@@ -78,7 +78,10 @@ export async function applyLocalSearchRolloutAction(input: {
     },
   });
   if (activation.schemaVersion !== 3) {
-    throw new SearchLocalError("observation_invalid", "The search rollout rollback transition has no action evidence.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search rollout rollback transition has no action evidence.",
+    );
   }
   return activation;
 }

@@ -39,7 +39,10 @@ function baseTrustKeys(
     return {
       source: key,
       keyId,
-      publicKeyFile: resolve(baseDirectory, configText(key.publicKeyFile, `${label}.publicKeyFile`)),
+      publicKeyFile: resolve(
+        baseDirectory,
+        configText(key.publicKeyFile, `${label}.publicKeyFile`),
+      ),
     };
   });
 }
@@ -54,13 +57,18 @@ function commandTrustKeys(value: unknown, baseDirectory: string) {
 function policyTrustKeys(value: unknown, baseDirectory: string) {
   return baseTrustKeys(value, baseDirectory, "policy").map(({ source, keyId, publicKeyFile }) => {
     if (
-      !Array.isArray(source.purposes) || source.purposes.length < 1 || source.purposes.length > 3 ||
+      !Array.isArray(source.purposes) ||
+      source.purposes.length < 1 ||
+      source.purposes.length > 3 ||
       new Set(source.purposes).size !== source.purposes.length ||
       !source.purposes.every((purpose) =>
-        ["snapshot", "approval", "revocation"].includes(String(purpose))
+        ["snapshot", "approval", "revocation"].includes(String(purpose)),
       )
     ) {
-      throw new NodeRuntimeError("invalid_config", "remoteCommands.policyKeys purposes is invalid.");
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "remoteCommands.policyKeys purposes is invalid.",
+      );
     }
     return {
       keyId,
@@ -75,7 +83,11 @@ export function parseRemoteCommandTrustConfig(
   baseDirectory: string,
 ): Pick<NonNullable<NodeRuntimeConfig["remoteCommands"]>, "commandKeys" | "policyKeys"> {
   const source = configRecord(value, "remote command trust snapshot");
-  exactConfigKeys(source, ["schemaVersion", "commandKeys", "policyKeys"], "remote command trust snapshot");
+  exactConfigKeys(
+    source,
+    ["schemaVersion", "commandKeys", "policyKeys"],
+    "remote command trust snapshot",
+  );
   if (source.schemaVersion !== 1) {
     throw new NodeRuntimeError(
       "invalid_config",
@@ -112,21 +124,25 @@ export function parseRemoteCommandConfig(
   baseDirectory: string,
 ): NonNullable<NodeRuntimeConfig["remoteCommands"]> {
   const source = configRecord(value, "remoteCommands");
-  exactConfigKeys(source, [
-    "nodeId",
-    "trustFile",
-    "commandKeys",
-    "policyKeys",
-    "providerHost",
-    "idlePollIntervalMs",
-    "leaseDurationMs",
-    "retryDelayMs",
-    "limit",
-    "requestTimeoutMs",
-    "maxResponseBytes",
-    "maxLifetimeMs",
-    "clockSkewMs",
-  ], "remoteCommands");
+  exactConfigKeys(
+    source,
+    [
+      "nodeId",
+      "trustFile",
+      "commandKeys",
+      "policyKeys",
+      "providerHost",
+      "idlePollIntervalMs",
+      "leaseDurationMs",
+      "retryDelayMs",
+      "limit",
+      "requestTimeoutMs",
+      "maxResponseBytes",
+      "maxLifetimeMs",
+      "clockSkewMs",
+    ],
+    "remoteCommands",
+  );
   const nodeId = configText(source.nodeId, "remoteCommands.nodeId");
   if (!NODE_PATTERN.test(nodeId)) {
     throw new NodeRuntimeError("invalid_config", "remoteCommands.nodeId is invalid.");
@@ -139,14 +155,13 @@ export function parseRemoteCommandConfig(
       "remoteCommands must use exactly one of trustFile or commandKeys plus policyKeys.",
     );
   }
-  let trust: Pick<NonNullable<NodeRuntimeConfig["remoteCommands"]>,
-    "trustFile" | "commandKeys" | "policyKeys">;
+  let trust: Pick<
+    NonNullable<NodeRuntimeConfig["remoteCommands"]>,
+    "trustFile" | "commandKeys" | "policyKeys"
+  >;
   if (hasTrustFile) {
     trust = {
-      trustFile: resolve(
-        baseDirectory,
-        configText(source.trustFile, "remoteCommands.trustFile"),
-      ),
+      trustFile: resolve(baseDirectory, configText(source.trustFile, "remoteCommands.trustFile")),
     };
   } else {
     trust = {
@@ -159,7 +174,9 @@ export function parseRemoteCommandConfig(
     const host = configRecord(source.providerHost, "remoteCommands.providerHost");
     exactConfigKeys(host, ["providers", "roles", "developerSkills"], "remoteCommands.providerHost");
     if (
-      !Array.isArray(host.providers) || host.providers.length < 1 || host.providers.length > 2 ||
+      !Array.isArray(host.providers) ||
+      host.providers.length < 1 ||
+      host.providers.length > 2 ||
       new Set(host.providers).size !== host.providers.length ||
       host.providers.some((provider) => provider !== "codex" && provider !== "claude")
     ) {
@@ -169,10 +186,12 @@ export function parseRemoteCommandConfig(
       );
     }
     if (
-      !Array.isArray(host.roles) || host.roles.length < 1 || host.roles.length > 16 ||
+      !Array.isArray(host.roles) ||
+      host.roles.length < 1 ||
+      host.roles.length > 16 ||
       new Set(host.roles).size !== host.roles.length ||
-      host.roles.some((roleId) =>
-        typeof roleId !== "string" || roleId.length > 100 || !ROLE_PATTERN.test(roleId)
+      host.roles.some(
+        (roleId) => typeof roleId !== "string" || roleId.length > 100 || !ROLE_PATTERN.test(roleId),
       )
     ) {
       throw new NodeRuntimeError(
@@ -181,10 +200,12 @@ export function parseRemoteCommandConfig(
       );
     }
     if (
-      !Array.isArray(host.developerSkills) || host.developerSkills.length > 16 ||
+      !Array.isArray(host.developerSkills) ||
+      host.developerSkills.length > 16 ||
       new Set(host.developerSkills).size !== host.developerSkills.length ||
-      host.developerSkills.some((skillId) =>
-        typeof skillId !== "string" || skillId.length > 150 || !SKILL_PATTERN.test(skillId)
+      host.developerSkills.some(
+        (skillId) =>
+          typeof skillId !== "string" || skillId.length > 150 || !SKILL_PATTERN.test(skillId),
       )
     ) {
       throw new NodeRuntimeError(

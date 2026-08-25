@@ -43,21 +43,33 @@ async function storeAndVerifyArtifact(input: {
   try {
     const stored = await input.artifacts.put(input.bytes);
     if (input.expectedUri !== undefined && stored.uri !== input.expectedUri) {
-      throw new HubCommandError("artifact_integrity_failed", "The Hub command artifact URI differs from the source.");
+      throw new HubCommandError(
+        "artifact_integrity_failed",
+        "The Hub command artifact URI differs from the source.",
+      );
     }
     const restored = await input.artifacts.get(stored.uri);
     if (
-      !(restored instanceof Uint8Array) || stored.contentHash !== input.contentHash ||
+      !(restored instanceof Uint8Array) ||
+      stored.contentHash !== input.contentHash ||
       stored.byteCount !== input.bytes.byteLength ||
       hashHubCommandValue(restored) !== input.contentHash ||
       restored.byteLength !== input.bytes.byteLength
-    ) throw new HubCommandError("artifact_integrity_failed", "Hub command artifact verification failed.");
+    )
+      throw new HubCommandError(
+        "artifact_integrity_failed",
+        "Hub command artifact verification failed.",
+      );
     return stored.uri;
   } catch (error) {
     if (error instanceof HubCommandError) throw error;
-    throw new HubCommandError("artifact_store_failed", "The Hub command artifact could not be stored.", {
-      cause: error,
-    });
+    throw new HubCommandError(
+      "artifact_store_failed",
+      "The Hub command artifact could not be stored.",
+      {
+        cause: error,
+      },
+    );
   }
 }
 
@@ -76,8 +88,8 @@ export async function authorHubCommand(input: {
   const bytes = new TextEncoder().encode(input.request.request);
   const authorSubjectHash = validateHubCommandAuthoringInput({ ...input, bytes });
   const authoredAtMs = Date.parse(input.authoredAt);
-  const artifactRetentionMs = input.artifactRetentionMs ??
-    DEFAULT_HUB_COMMAND_ARTIFACT_RETENTION_MS;
+  const artifactRetentionMs =
+    input.artifactRetentionMs ?? DEFAULT_HUB_COMMAND_ARTIFACT_RETENTION_MS;
   if (
     !Number.isSafeInteger(artifactRetentionMs) ||
     artifactRetentionMs < input.request.lifetimeMs ||
@@ -152,7 +164,10 @@ export async function authorHubCommand(input: {
   const envelope = input.signer.sign(command);
   assertSignedRemoteCommand(envelope);
   if (envelope.command.commandId !== command.commandId) {
-    throw new HubCommandError("invalid_request", "The Hub command signer returned a different command.");
+    throw new HubCommandError(
+      "invalid_request",
+      "The Hub command signer returned a different command.",
+    );
   }
   const record: HubCommandAuthorshipRecord = {
     ...coordinate,

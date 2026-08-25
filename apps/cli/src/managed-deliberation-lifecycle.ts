@@ -57,9 +57,12 @@ export async function executeManagedDeliberationLifecycle(input: {
       executionFailure === undefined
         ? "Project storage could not be closed after deliberation."
         : "Project storage also could not be closed after deliberation failed.",
-      { cause: executionFailure === undefined
-        ? cleanupFailure
-        : new AggregateError([executionFailure, cleanupFailure]) },
+      {
+        cause:
+          executionFailure === undefined
+            ? cleanupFailure
+            : new AggregateError([executionFailure, cleanupFailure]),
+      },
     );
   }
   if (executionFailure !== undefined) throw executionFailure;

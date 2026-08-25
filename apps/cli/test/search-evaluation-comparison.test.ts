@@ -25,21 +25,31 @@ afterEach(cleanupSearchComparisonRepositories);
 describe("local search evaluation candidate comparison", () => {
   it("lists the allowlisted candidate and compares a ready bundle through the CLI", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "tinyartifact"), await reviewedCase(root, "zephyrcontext")];
+    const cases = [
+      await reviewedCase(root, "tinyartifact"),
+      await reviewedCase(root, "zephyrcontext"),
+    ];
     await bundle(root, "researcher.cli", 2, cases);
 
     const listed = await command(root, ["search", "candidates", "--json"]);
     expect(listed.code, listed.error).toBe(0);
     expect(JSON.parse(listed.output)).toEqual({
-      candidates: [{
-        candidateId: "bm25f-v1",
-        engine: { id: "bm25f", version: 1 },
-        adapterBuildId: expect.stringMatching(/^sebuild_[a-f0-9]{24}$/),
-      }],
+      candidates: [
+        {
+          candidateId: "bm25f-v1",
+          engine: { id: "bm25f", version: 1 },
+          adapterBuildId: expect.stringMatching(/^sebuild_[a-f0-9]{24}$/),
+        },
+      ],
     });
 
     const compared = await command(root, [
-      "search", "compare", "researcher.cli", "--candidate", "bm25f-v1", "--json",
+      "search",
+      "compare",
+      "researcher.cli",
+      "--candidate",
+      "bm25f-v1",
+      "--json",
     ]);
     expect(compared.code, compared.error).toBe(0);
     const comparisonOutput = JSON.parse(compared.output) as {
@@ -56,11 +66,19 @@ describe("local search evaluation candidate comparison", () => {
       },
     });
     expect(compared.output).not.toContain("zephyrcontext");
-    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"))).toHaveLength(1);
+    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"))).toHaveLength(
+      1,
+    );
 
     const reviewed = await command(root, [
-      "search", "review", comparisonOutput.comparison.comparisonId,
-      "--decision", "more-samples", "--reviewer", "reviewer_search", "--json",
+      "search",
+      "review",
+      comparisonOutput.comparison.comparisonId,
+      "--decision",
+      "more-samples",
+      "--reviewer",
+      "reviewer_search",
+      "--json",
     ]);
     expect(reviewed.code, reviewed.error).toBe(0);
     const reviewOutput = JSON.parse(reviewed.output) as { reviewId: string };
@@ -77,17 +95,35 @@ describe("local search evaluation candidate comparison", () => {
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toHaveLength(1);
 
     const policyCreated = await command(root, [
-      "search", "engine", "policy", "create",
-      "--reviewer", "reviewer_search", "--operator", "operator_search",
-      "--author", "operator_search", "--candidate", "bm25f-v1", "--json",
+      "search",
+      "engine",
+      "policy",
+      "create",
+      "--reviewer",
+      "reviewer_search",
+      "--operator",
+      "operator_search",
+      "--author",
+      "operator_search",
+      "--candidate",
+      "bm25f-v1",
+      "--json",
     ]);
     expect(policyCreated.code, policyCreated.error).toBe(0);
     const policyId = (JSON.parse(policyCreated.output) as { policyId: string }).policyId;
-    expect(await readdir(resolve(root, ".lervo/search-engine-policies"))).toEqual([`${policyId}.yaml`]);
+    expect(await readdir(resolve(root, ".lervo/search-engine-policies"))).toEqual([
+      `${policyId}.yaml`,
+    ]);
 
     const ineligibleActivation = await command(root, [
-      "search", "engine", "activate", reviewOutput.reviewId,
-      "--policy", policyId, "--operator", "operator_search",
+      "search",
+      "engine",
+      "activate",
+      reviewOutput.reviewId,
+      "--policy",
+      policyId,
+      "--operator",
+      "operator_search",
     ]);
     expect(ineligibleActivation.code).toBe(1);
     expect(ineligibleActivation.error).toContain("engine_activation_not_eligible");
@@ -111,15 +147,24 @@ describe("local search evaluation candidate comparison", () => {
     });
 
     const unsupportedAdoption = await command(root, [
-      "search", "review", comparisonOutput.comparison.comparisonId,
-      "--decision", "adopt", "--reviewer", "reviewer_search",
+      "search",
+      "review",
+      comparisonOutput.comparison.comparisonId,
+      "--decision",
+      "adopt",
+      "--reviewer",
+      "reviewer_search",
     ]);
     expect(unsupportedAdoption.code).toBe(1);
     expect(unsupportedAdoption.error).toContain("candidate_review_not_eligible");
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toHaveLength(1);
 
     const unknown = await command(root, [
-      "search", "compare", "researcher.cli", "--candidate", "module:/tmp/candidate.js",
+      "search",
+      "compare",
+      "researcher.cli",
+      "--candidate",
+      "module:/tmp/candidate.js",
     ]);
     expect(unknown.code).toBe(1);
     expect(unknown.error).toContain("evaluation_candidate_not_registered");
@@ -127,7 +172,10 @@ describe("local search evaluation candidate comparison", () => {
 
   it("records two engine runs and publishes the query-free comparison last", async () => {
     const root = await repository();
-    const cases = [await reviewedCase(root, "tinyartifact"), await reviewedCase(root, "zephyrcontext")];
+    const cases = [
+      await reviewedCase(root, "tinyartifact"),
+      await reviewedCase(root, "zephyrcontext"),
+    ];
     await bundle(root, "researcher.discovery", 2, cases);
     const project = await loadProjectManifest(root);
     let builds = 0;
@@ -136,7 +184,9 @@ describe("local search evaluation candidate comparison", () => {
       repositoryRoot: root,
       projectId: project.projectId,
       bundleId: "researcher.discovery",
-      candidateEngine: candidateEngine(() => { builds += 1; }),
+      candidateEngine: candidateEngine(() => {
+        builds += 1;
+      }),
       evaluatedAt: new Date("2026-08-20T04:00:00.000Z"),
     });
 
@@ -152,7 +202,9 @@ describe("local search evaluation candidate comparison", () => {
     });
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-runs"))).toHaveLength(2);
     expect(await readdir(resolve(root, ".lervo/state/search/evaluation-results"))).toHaveLength(4);
-    const comparisonFiles = await readdir(resolve(root, ".lervo/state/search/evaluation-comparisons"));
+    const comparisonFiles = await readdir(
+      resolve(root, ".lervo/state/search/evaluation-comparisons"),
+    );
     expect(comparisonFiles).toEqual([`${output.comparison.comparisonId}.json`]);
     expect(JSON.stringify(output.comparison)).not.toContain("zephyrcontext");
   });
@@ -165,13 +217,17 @@ describe("local search evaluation candidate comparison", () => {
     let builds = 0;
     await rm(resolve(root, "docs/search-context.md"));
 
-    await expect(runLocalSearchEvaluationComparison({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      bundleId: "designer.review",
-      candidateEngine: candidateEngine(() => { builds += 1; }),
-      evaluatedAt: new Date("2026-08-20T04:01:00.000Z"),
-    })).rejects.toMatchObject({ code: "evaluation_comparison_not_ready" });
+    await expect(
+      runLocalSearchEvaluationComparison({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        bundleId: "designer.review",
+        candidateEngine: candidateEngine(() => {
+          builds += 1;
+        }),
+        evaluatedAt: new Date("2026-08-20T04:01:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "evaluation_comparison_not_ready" });
 
     expect(builds).toBe(0);
     expect(await observationEntries(root)).not.toContain("evaluation-comparisons");
@@ -179,7 +235,11 @@ describe("local search evaluation candidate comparison", () => {
     expect(await observationEntries(root)).not.toContain("evaluation-results");
 
     const cliResult = await command(root, [
-      "search", "compare", "designer.review", "--candidate", "bm25f-v1",
+      "search",
+      "compare",
+      "designer.review",
+      "--candidate",
+      "bm25f-v1",
     ]);
     expect(cliResult.code).toBe(1);
     expect(cliResult.error).toContain("evaluation_comparison_not_ready");
@@ -192,13 +252,15 @@ describe("local search evaluation candidate comparison", () => {
     await bundle(root, "marketer.claims", 1, cases);
     const project = await loadProjectManifest(root);
 
-    await expect(runLocalSearchEvaluationComparison({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      bundleId: "marketer.claims",
-      candidateEngine: candidateEngine(() => {}, true),
-      evaluatedAt: new Date("2026-08-20T04:02:00.000Z"),
-    })).rejects.toMatchObject({ code: "evaluation_candidate_failed" });
+    await expect(
+      runLocalSearchEvaluationComparison({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        bundleId: "marketer.claims",
+        candidateEngine: candidateEngine(() => {}, true),
+        evaluatedAt: new Date("2026-08-20T04:02:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "evaluation_candidate_failed" });
 
     expect(await observationEntries(root)).not.toContain("evaluation-comparisons");
     expect(await observationEntries(root)).not.toContain("evaluation-runs");
@@ -209,7 +271,10 @@ describe("local search evaluation candidate comparison", () => {
     const root = await repository();
     const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.recovery", 1, cases);
-    await writeFile(resolve(root, "docs/search-context.md"), "# Other document\n\nCurrent content unrelated to the evaluation query.\n");
+    await writeFile(
+      resolve(root, "docs/search-context.md"),
+      "# Other document\n\nCurrent content unrelated to the evaluation query.\n",
+    );
     const project = await loadProjectManifest(root);
     const engine = recoveringCandidateEngine("zephyrcontext", "doc_cli_search_context");
     const compared = await runLocalSearchEvaluationComparison({
@@ -221,21 +286,23 @@ describe("local search evaluation candidate comparison", () => {
     });
     expect(compared.comparison).toMatchObject({ baselineWins: 0, candidateWins: 1, ties: 0 });
 
-    await expect(reviewLocalSearchCandidate({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      comparisonId: compared.comparison.comparisonId,
-      registration: {
-        candidateId: "fixture-v1",
-        engine: {
-          ...engine,
-          adapterBuildId: contentId("sebuild", { adapter: "fixture_candidate", revision: 2 }),
+    await expect(
+      reviewLocalSearchCandidate({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        comparisonId: compared.comparison.comparisonId,
+        registration: {
+          candidateId: "fixture-v1",
+          engine: {
+            ...engine,
+            adapterBuildId: contentId("sebuild", { adapter: "fixture_candidate", revision: 2 }),
+          },
         },
-      },
-      reviewerId: "reviewer_search",
-      reviewedAt: new Date("2026-08-20T04:30:00.000Z"),
-      decision: "adopt_candidate",
-    })).rejects.toMatchObject({ code: "evaluation_candidate_build_mismatch" });
+        reviewerId: "reviewer_search",
+        reviewedAt: new Date("2026-08-20T04:30:00.000Z"),
+        decision: "adopt_candidate",
+      }),
+    ).rejects.toMatchObject({ code: "evaluation_candidate_build_mismatch" });
 
     const review = await reviewLocalSearchCandidate({
       repositoryRoot: root,
@@ -253,8 +320,9 @@ describe("local search evaluation candidate comparison", () => {
       verification: { comparisonIntegrity: "verified", candidateReplay: "matched" },
       activationState: "not_applied",
     });
-    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews")))
-      .toEqual([`${review.reviewId}.json`]);
+    expect(await readdir(resolve(root, ".lervo/state/search/evaluation-reviews"))).toEqual([
+      `${review.reviewId}.json`,
+    ]);
   });
 
   it("does not publish a review when the current corpus no longer matches the comparison", async () => {
@@ -262,16 +330,29 @@ describe("local search evaluation candidate comparison", () => {
     const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.changed-corpus", 1, cases);
     const compared = await command(root, [
-      "search", "compare", "researcher.changed-corpus", "--candidate", "bm25f-v1", "--json",
+      "search",
+      "compare",
+      "researcher.changed-corpus",
+      "--candidate",
+      "bm25f-v1",
+      "--json",
     ]);
     expect(compared.code, compared.error).toBe(0);
     const comparisonId = (JSON.parse(compared.output) as { comparison: { comparisonId: string } })
       .comparison.comparisonId;
-    await writeFile(resolve(root, "docs/search-context.md"), "# Document changed after comparison\n\nThe current corpus is different.\n");
+    await writeFile(
+      resolve(root, "docs/search-context.md"),
+      "# Document changed after comparison\n\nThe current corpus is different.\n",
+    );
 
     const reviewed = await command(root, [
-      "search", "review", comparisonId,
-      "--decision", "reject", "--reviewer", "reviewer_search",
+      "search",
+      "review",
+      comparisonId,
+      "--decision",
+      "reject",
+      "--reviewer",
+      "reviewer_search",
     ]);
 
     expect(reviewed.code).toBe(1);

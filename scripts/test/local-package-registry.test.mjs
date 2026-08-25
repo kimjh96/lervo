@@ -24,18 +24,14 @@ describe("local package registry boundary", () => {
   });
 
   it("removes inherited registry configuration and credentials", () => {
-    const environment = isolatedRegistryEnvironment(
-      "/fixture/npmrc",
-      "/fixture/cache",
-      {
-        PATH: "/bin",
-        NPM_CONFIG_REGISTRY: "https://unexpected.invalid/",
-        npm_config_proxy: "https://unexpected.invalid/",
-        NPM_TOKEN: "secret",
-        NODE_AUTH_TOKEN: "secret",
-        PNPM_TOKEN: "secret",
-      },
-    );
+    const environment = isolatedRegistryEnvironment("/fixture/npmrc", "/fixture/cache", {
+      PATH: "/bin",
+      NPM_CONFIG_REGISTRY: "https://unexpected.invalid/",
+      npm_config_proxy: "https://unexpected.invalid/",
+      NPM_TOKEN: "secret",
+      NODE_AUTH_TOKEN: "secret",
+      PNPM_TOKEN: "secret",
+    });
     assert.equal(environment.PATH, "/bin");
     assert.equal(environment.NPM_CONFIG_REGISTRY, undefined);
     assert.equal(environment.npm_config_proxy, undefined);

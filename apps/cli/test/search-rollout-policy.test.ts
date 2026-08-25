@@ -23,11 +23,24 @@ describe("search rollout policy commands", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T09:50:00.000Z"));
     const created = await command(root, [
-      "search", "rollout", "policy", "create",
-      "--reviewer", "reviewer_rollout", "--author", "reviewer_rollout",
-      "--candidate", "bm25f-v1",
-      "--keep-min-assessments", "3", "--keep-max-failures", "0",
-      "--rollback-min-assessments", "3", "--rollback-min-failures", "1",
+      "search",
+      "rollout",
+      "policy",
+      "create",
+      "--reviewer",
+      "reviewer_rollout",
+      "--author",
+      "reviewer_rollout",
+      "--candidate",
+      "bm25f-v1",
+      "--keep-min-assessments",
+      "3",
+      "--keep-max-failures",
+      "0",
+      "--rollback-min-assessments",
+      "3",
+      "--rollback-min-failures",
+      "1",
       "--json",
     ]);
     vi.useRealTimers();
@@ -42,7 +55,9 @@ describe("search rollout policy commands", () => {
   });
 
   it("rejects an ineligible decision, accepts a bound decision, and only reports policy checks", async () => {
-    const { root, project, activation } = await prepareSelectedSearchCandidate("researcher.rollout-policy");
+    const { root, project, activation } = await prepareSelectedSearchCandidate(
+      "researcher.rollout-policy",
+    );
     const restrictive = createSearchRolloutReviewPolicy({
       projectId: project.projectId,
       allowedReviewerIds: ["reviewer_rollout"],
@@ -71,14 +86,30 @@ describe("search rollout policy commands", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:03:00.000Z"));
     const rejected = await command(root, [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "keep", "--reviewer", "reviewer_rollout",
-      "--policy", restrictive.policyId, "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "keep",
+      "--reviewer",
+      "reviewer_rollout",
+      "--policy",
+      restrictive.policyId,
+      "--json",
     ]);
     const accepted = await command(root, [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "keep", "--reviewer", "reviewer_rollout",
-      "--policy", permissive.policyId, "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "keep",
+      "--reviewer",
+      "reviewer_rollout",
+      "--policy",
+      permissive.policyId,
+      "--json",
     ]);
     vi.useRealTimers();
 
@@ -96,16 +127,29 @@ describe("search rollout policy commands", () => {
       rolloutPolicyId: permissive.policyId,
       effect: { selectionChange: "not_applied" },
     });
-    expect(await readdir(resolve(root, ".lervo/state/search/rollout-reviews")))
-      .toEqual([`${review.rolloutReviewId}.json`]);
+    expect(await readdir(resolve(root, ".lervo/state/search/rollout-reviews"))).toEqual([
+      `${review.rolloutReviewId}.json`,
+    ]);
 
     const checked = await command(root, [
-      "search", "rollout", "policy", "check", review.rolloutReviewId,
-      "--policy", permissive.policyId, "--json",
+      "search",
+      "rollout",
+      "policy",
+      "check",
+      review.rolloutReviewId,
+      "--policy",
+      permissive.policyId,
+      "--json",
     ]);
     const mismatched = await command(root, [
-      "search", "rollout", "policy", "check", review.rolloutReviewId,
-      "--policy", restrictive.policyId, "--json",
+      "search",
+      "rollout",
+      "policy",
+      "check",
+      review.rolloutReviewId,
+      "--policy",
+      restrictive.policyId,
+      "--json",
     ]);
     expect(checked.code, checked.error).toBe(0);
     expect(JSON.parse(checked.output)).toMatchObject({
@@ -126,14 +170,16 @@ describe("search rollout policy commands", () => {
     vi.useRealTimers();
     expect(status.code, status.error).toBe(0);
     expect(JSON.parse(status.output)).toMatchObject({
-      reviews: [{
-        review: {
-          schemaVersion: 2,
-          rolloutPolicyId: permissive.policyId,
-          thresholdPolicyState: "bound",
+      reviews: [
+        {
+          review: {
+            schemaVersion: 2,
+            rolloutPolicyId: permissive.policyId,
+            thresholdPolicyState: "bound",
+          },
+          qualityInputState: "unchanged",
         },
-        qualityInputState: "unchanged",
-      }],
+      ],
       reviewDecisionSelection: "not_performed",
     });
   });

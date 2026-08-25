@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ca4b60b762baefb2593019b4
+  - uv_27697721b95f92fc0ffd16eb
 title: "ADR-0164: User Runtime Service Management with Explicit Writes"
 type: decision

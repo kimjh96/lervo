@@ -30,10 +30,7 @@ export async function validateContextSnapshot(input: {
   );
   const superseded = new Set(
     input.publications
-      .filter(
-        (publication) =>
-          publication.projectId === input.loaded.plan.coordinates.projectId,
-      )
+      .filter((publication) => publication.projectId === input.loaded.plan.coordinates.projectId)
       .filter((publication) => Date.parse(publication.publishedAt) <= input.at.getTime())
       .map((publication) => publication.supersedesSharedContextId)
       .filter((id): id is string => id !== null),

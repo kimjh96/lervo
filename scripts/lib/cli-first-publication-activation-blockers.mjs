@@ -12,8 +12,7 @@ export async function inspectCliFirstPublicationActivationBlockers(
   dependencies = {},
 ) {
   const readSources = dependencies.readSources ?? readFirstPublicationActivationSources;
-  const createReport = dependencies.createReport ??
-    createFirstPublicationActivationBlockerReport;
+  const createReport = dependencies.createReport ?? createFirstPublicationActivationBlockerReport;
   const sources = await readSources(paths);
   const report = await createReport(sources);
   validateFirstPublicationActivationBlockerReport(report, sources);

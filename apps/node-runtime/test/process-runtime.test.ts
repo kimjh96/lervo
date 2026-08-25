@@ -2,10 +2,7 @@ import { EventEmitter } from "node:events";
 
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  attachNodeRuntimeSignalHandlers,
-  type NodeRuntimeDeployment,
-} from "../src/index.js";
+import { attachNodeRuntimeSignalHandlers, type NodeRuntimeDeployment } from "../src/index.js";
 
 function deployment(overrides: Partial<NodeRuntimeDeployment> = {}): NodeRuntimeDeployment {
   return {
@@ -47,7 +44,9 @@ describe("Node runtime process signals", () => {
     }));
     const binding = attachNodeRuntimeSignalHandlers(
       deployment({
-        reloadRuntimeMaterials: async () => { throw new Error("private material reload failure"); },
+        reloadRuntimeMaterials: async () => {
+          throw new Error("private material reload failure");
+        },
         close,
       }),
       signals,

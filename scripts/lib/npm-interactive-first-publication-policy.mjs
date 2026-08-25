@@ -31,14 +31,19 @@ export function containsNpmCredential(environment) {
   return Object.entries(environment ?? {}).some(([name, value]) => {
     if (typeof value !== "string" || value.length === 0) return false;
     const normalized = name.toLowerCase();
-    return ["npm_token", "node_auth_token", "pnpm_token"].includes(normalized) ||
+    return (
+      ["npm_token", "node_auth_token", "pnpm_token"].includes(normalized) ||
       (normalized.startsWith("npm_config_") &&
-        ["auth", "otp", "token"].some((part) => normalized.includes(part)));
+        ["auth", "otp", "token"].some((part) => normalized.includes(part)))
+    );
   });
 }
 
 export function npmInteractiveFirstPublicationEnvironmentReasons({
-  environment = {}, stdinIsTTY, stdoutIsTTY, stderrIsTTY,
+  environment = {},
+  stdinIsTTY,
+  stdoutIsTTY,
+  stderrIsTTY,
 }) {
   const found = [];
   if (!stdinIsTTY || !stdoutIsTTY || !stderrIsTTY) found.push("terminal_not_interactive");
@@ -60,7 +65,10 @@ export function createNpmInteractiveFirstPublicationObservation({
   profileObserved = true,
 }) {
   const found = npmInteractiveFirstPublicationEnvironmentReasons({
-    environment, stdinIsTTY, stdoutIsTTY, stderrIsTTY,
+    environment,
+    stdinIsTTY,
+    stdoutIsTTY,
+    stderrIsTTY,
   });
   if (!clientObserved) found.push("npm_client_unavailable");
   else if (!isSupportedNpmInteractiveClient(npmVersion)) found.push("npm_client_unsupported");
@@ -72,13 +80,20 @@ export function createNpmInteractiveFirstPublicationObservation({
 }
 
 export function createNpmInteractiveFirstPublicationObservationFromReasons(found) {
-  if (!Array.isArray(found) || found.some((reason) => !reasons.has(reason)) ||
-      new Set(found).size !== found.length) {
+  if (
+    !Array.isArray(found) ||
+    found.some((reason) => !reasons.has(reason)) ||
+    new Set(found).size !== found.length
+  ) {
     throw new TypeError("npm interactive first-publication reasons are invalid");
   }
-  const state = found.some((reason) => [
-    "npm_client_unavailable", "npm_profile_unavailable",
-  ].includes(reason)) ? "unavailable" : found.length === 0 ? "ready" : "blocked";
+  const state = found.some((reason) =>
+    ["npm_client_unavailable", "npm_profile_unavailable"].includes(reason),
+  )
+    ? "unavailable"
+    : found.length === 0
+      ? "ready"
+      : "blocked";
   return {
     schemaVersion: 1,
     source: "npm_interactive_first_publication",
@@ -96,10 +111,12 @@ export function validateNpmInteractiveFirstPublicationObservation(observation) {
     observation.reasons.some((reason) => !reasons.has(reason)) ||
     new Set(observation.reasons).size !== observation.reasons.length ||
     (observation.state === "ready") !== (observation.reasons.length === 0) ||
-    (observation.state === "unavailable") !== observation.reasons.some((reason) => [
-      "npm_client_unavailable", "npm_profile_unavailable",
-    ].includes(reason)) ||
+    (observation.state === "unavailable") !==
+      observation.reasons.some((reason) =>
+        ["npm_client_unavailable", "npm_profile_unavailable"].includes(reason),
+      ) ||
     Object.keys(observation).length !== 4
-  ) throw new TypeError("npm interactive first-publication observation is invalid");
+  )
+    throw new TypeError("npm interactive first-publication observation is invalid");
   return observation;
 }

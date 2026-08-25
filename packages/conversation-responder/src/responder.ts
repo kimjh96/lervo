@@ -20,8 +20,8 @@ export class ManagedConversationResponder implements ManagedConversationResponde
   private readonly providerSessions;
 
   constructor(private readonly options: ManagedConversationResponderOptions) {
-    this.providerSessions = options.providerSessions ??
-      new MemoryConversationProviderSessionRegistry();
+    this.providerSessions =
+      options.providerSessions ?? new MemoryConversationProviderSessionRegistry();
   }
 
   async respond(input: ManagedConversationResponseRequest) {
@@ -73,7 +73,7 @@ export class ManagedConversationResponder implements ManagedConversationResponde
       targetTurnId: plan.targetTurnId,
       publications: plan.publications,
     });
-    let claimed = false;
+    let claimed: boolean;
     try {
       claimed = await this.providerSessions.claim({
         projectId: run.session.projectId,

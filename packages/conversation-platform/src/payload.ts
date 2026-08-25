@@ -1,12 +1,12 @@
 import { ConversationPlatformError } from "./types.js";
 
-export function parseBoundedJson(
-  body: Uint8Array,
-  maximumBytes = 256 * 1024,
-): unknown {
+export function parseBoundedJson(body: Uint8Array, maximumBytes = 256 * 1024): unknown {
   if (
-    !Number.isSafeInteger(maximumBytes) || maximumBytes < 1 || maximumBytes > 4 * 1024 * 1024 ||
-    body.byteLength < 1 || body.byteLength > maximumBytes
+    !Number.isSafeInteger(maximumBytes) ||
+    maximumBytes < 1 ||
+    maximumBytes > 4 * 1024 * 1024 ||
+    body.byteLength < 1 ||
+    body.byteLength > maximumBytes
   ) {
     throw new ConversationPlatformError(
       "invalid_platform_payload",
@@ -34,16 +34,9 @@ export function objectValue(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-export function requiredString(
-  value: unknown,
-  label: string,
-  maximumLength = 512,
-): string {
+export function requiredString(value: unknown, label: string, maximumLength = 512): string {
   if (typeof value !== "string" || value.length < 1 || value.length > maximumLength) {
-    throw new ConversationPlatformError(
-      "invalid_platform_payload",
-      `${label} value is invalid.`,
-    );
+    throw new ConversationPlatformError("invalid_platform_payload", `${label} value is invalid.`);
   }
   return value;
 }

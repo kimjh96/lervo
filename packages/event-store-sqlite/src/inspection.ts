@@ -60,8 +60,10 @@ export async function inspectExistingEventStore(input: {
     }
     const version = database.prepare("PRAGMA user_version;").get()?.user_version;
     if (
-      typeof version !== "number" || !Number.isSafeInteger(version) ||
-      version < 1 || version > storageSchemaVersion
+      typeof version !== "number" ||
+      !Number.isSafeInteger(version) ||
+      version < 1 ||
+      version > storageSchemaVersion
     ) {
       throw new EventStoreError(
         "integrity_failed",
@@ -87,7 +89,8 @@ export async function inspectExistingEventStore(input: {
       const event = rowToEvent(row);
       eventCount += 1;
       if (
-        event.seq !== eventCount || event.previousHash !== previousHash ||
+        event.seq !== eventCount ||
+        event.previousHash !== previousHash ||
         event.eventHash !== computeEventHash(eventWithoutHash(event))
       ) {
         throw new EventStoreError(

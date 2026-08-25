@@ -13,43 +13,39 @@ export function preparedContextEventSpecs(loaded: LoadedContext): ManagedEventSp
   const recommended = recommendedContextEventSpecs(loaded);
   const selected = loaded.plan.evidence
     .filter((evidence) => evidence.state === "selected")
-    .map(
-      (evidence): ManagedEventSpec => ({
-        type: "context.selected",
-        occurredAt: evidence.recordedAt,
-        actor: systemActor,
-        payload: {
-          documentId: evidence.documentId,
-          reasonCode: evidence.reasonCode,
-          ruleId: evidence.ruleId,
-          required: evidence.required,
-          scope: evidence.scope,
-          ...(evidence.knowledgeContext === undefined
-            ? {}
-            : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
-        },
-      }),
-    );
+    .map((evidence): ManagedEventSpec => ({
+      type: "context.selected",
+      occurredAt: evidence.recordedAt,
+      actor: systemActor,
+      payload: {
+        documentId: evidence.documentId,
+        reasonCode: evidence.reasonCode,
+        ruleId: evidence.ruleId,
+        required: evidence.required,
+        scope: evidence.scope,
+        ...(evidence.knowledgeContext === undefined
+          ? {}
+          : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
+      },
+    }));
   const loadedEvents = loaded.evidence
     .filter((evidence) => evidence.state === "loaded")
-    .map(
-      (evidence): ManagedEventSpec => ({
-        type: "document.loaded",
-        occurredAt: evidence.recordedAt,
-        actor: systemActor,
-        payload: {
-          evidenceReceiptId: evidence.receiptId,
-          documentId: evidence.documentId,
-          contentHash: evidence.contentHash,
-          byteCount: evidence.byteCount,
-          scope: evidence.scope,
-          sourceRevision: evidence.sourceRevision,
-          ...(evidence.knowledgeContext === undefined
-            ? {}
-            : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
-        },
-      }),
-    );
+    .map((evidence): ManagedEventSpec => ({
+      type: "document.loaded",
+      occurredAt: evidence.recordedAt,
+      actor: systemActor,
+      payload: {
+        evidenceReceiptId: evidence.receiptId,
+        documentId: evidence.documentId,
+        contentHash: evidence.contentHash,
+        byteCount: evidence.byteCount,
+        scope: evidence.scope,
+        sourceRevision: evidence.sourceRevision,
+        ...(evidence.knowledgeContext === undefined
+          ? {}
+          : { knowledgeContext: structuredClone(evidence.knowledgeContext) }),
+      },
+    }));
   return [...recommended, ...selected, ...loadedEvents];
 }
 

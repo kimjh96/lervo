@@ -17,8 +17,12 @@ function fail(code, message) {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 export function assertFirstPublicationWorkflowExecutionBinding({
@@ -34,8 +38,10 @@ export function assertFirstPublicationWorkflowExecutionBinding({
     reachabilityReport.target.repository !== repository ||
     reachabilityReport.target.sourceCommit !== sourceCommit ||
     reachabilityReport.target.releaseTag !== releaseTag ||
-    !Number.isSafeInteger(runId) || runId <= 0 ||
-    !Number.isSafeInteger(attempt) || attempt <= 0
+    !Number.isSafeInteger(runId) ||
+    runId <= 0 ||
+    !Number.isSafeInteger(attempt) ||
+    attempt <= 0
   ) {
     fail(
       "first_publication_workflow_execution_source_mismatch",
@@ -57,36 +63,82 @@ function validateObservation(observation, input) {
   const artifact = observation.artifact;
   if (
     !exactKeys(observation, [
-      "schemaVersion", "source", "state", "repository", "sourceCommit",
-      "releaseTag", "workflow", "run", "job", "artifact", "runStability",
-    ]) || observation.schemaVersion !== 1 ||
+      "schemaVersion",
+      "source",
+      "state",
+      "repository",
+      "sourceCommit",
+      "releaseTag",
+      "workflow",
+      "run",
+      "job",
+      "artifact",
+      "runStability",
+    ]) ||
+    observation.schemaVersion !== 1 ||
     observation.source !== "github_actions_workflow_execution" ||
     observation.repository !== input.repository ||
     observation.sourceCommit !== input.sourceCommit ||
     observation.releaseTag !== input.releaseTag ||
     !exactKeys(observation.workflow, ["id", "path", "state"]) ||
     !exactKeys(run, [
-      "id", "attempt", "runNumber", "workflowId", "workflowPath", "event",
-      "status", "conclusion", "headBranch", "headSha", "createdAt", "startedAt",
+      "id",
+      "attempt",
+      "runNumber",
+      "workflowId",
+      "workflowPath",
+      "event",
+      "status",
+      "conclusion",
+      "headBranch",
+      "headSha",
+      "createdAt",
+      "startedAt",
       "updatedAt",
-    ]) || !exactKeys(job, [
-      "id", "runId", "name", "headSha", "status", "conclusion", "startedAt",
-      "completedAt", "stage", "resultUpload",
-    ]) || !exactKeys(artifact, [
-      "id", "name", "sizeInBytes", "digest", "expired", "createdAt", "expiresAt",
-    ]) || run.id !== input.runId || run.attempt !== input.attempt ||
-    run.workflowId !== observation.workflow.id || run.headSha !== input.sourceCommit ||
-    run.headBranch !== input.releaseTag || run.event !== "workflow_dispatch" ||
-    run.status !== "completed" || run.conclusion !== "success" ||
-    job.runId !== input.runId || job.headSha !== input.sourceCommit ||
-    job.name !== workflowExecutionJobName || job.status !== "completed" ||
+    ]) ||
+    !exactKeys(job, [
+      "id",
+      "runId",
+      "name",
+      "headSha",
+      "status",
+      "conclusion",
+      "startedAt",
+      "completedAt",
+      "stage",
+      "resultUpload",
+    ]) ||
+    !exactKeys(artifact, [
+      "id",
+      "name",
+      "sizeInBytes",
+      "digest",
+      "expired",
+      "createdAt",
+      "expiresAt",
+    ]) ||
+    run.id !== input.runId ||
+    run.attempt !== input.attempt ||
+    run.workflowId !== observation.workflow.id ||
+    run.headSha !== input.sourceCommit ||
+    run.headBranch !== input.releaseTag ||
+    run.event !== "workflow_dispatch" ||
+    run.status !== "completed" ||
+    run.conclusion !== "success" ||
+    job.runId !== input.runId ||
+    job.headSha !== input.sourceCommit ||
+    job.name !== workflowExecutionJobName ||
+    job.status !== "completed" ||
     job.conclusion !== "success" ||
-    job.stage?.name !== workflowStageStepName || job.stage.status !== "completed" ||
+    job.stage?.name !== workflowStageStepName ||
+    job.stage.status !== "completed" ||
     job.stage.conclusion !== "success" ||
     job.resultUpload?.name !== workflowResultUploadStepName ||
-    job.resultUpload.status !== "completed" || job.resultUpload.conclusion !== "success" ||
+    job.resultUpload.status !== "completed" ||
+    job.resultUpload.conclusion !== "success" ||
     artifact.name !== workflowExecutionArtifactName(input.releaseTag, input.attempt) ||
-    artifact.expired !== false || observation.workflow.state !== "active" ||
+    artifact.expired !== false ||
+    observation.workflow.state !== "active" ||
     observation.runStability !== "rechecked_unchanged"
   ) {
     fail(
@@ -101,10 +153,7 @@ export function createFirstPublicationWorkflowExecutionEvidence(input) {
   assertFirstPublicationWorkflowExecutionBinding(input);
   const report = createFirstPublicationWorkflowExecutionReport({
     ...input,
-    workflowExecutionObservation: validateObservation(
-      input.workflowExecutionObservation,
-      input,
-    ),
+    workflowExecutionObservation: validateObservation(input.workflowExecutionObservation, input),
   });
   return validateFirstPublicationWorkflowExecutionReportDocument(report);
 }

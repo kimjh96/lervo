@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_900b2f3c84181ebe974f143d
+  - uv_61161199ea2fcadbfa0bc614
 title: "ADR-0162: Reloadable Hub Cryptographic Material and Service Definitions"
 type: decision

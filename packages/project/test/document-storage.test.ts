@@ -1,13 +1,4 @@
-import {
-  access,
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { access, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -82,12 +73,8 @@ describe("sharded document storage", () => {
       "doc_skill_guide_01",
     ]);
     const registry = await loadDocumentRegistry(root);
-    expect(Object.keys(registry.documents)).toEqual([
-      "doc_architecture_01",
-      "doc_skill_guide_01",
-    ]);
-    expect(registry.documents.doc_architecture_01?.path)
-      .toBe("docs/architecture/context.md");
+    expect(Object.keys(registry.documents)).toEqual(["doc_architecture_01", "doc_skill_guide_01"]);
+    expect(registry.documents.doc_architecture_01?.path).toBe("docs/architecture/context.md");
   });
 
   it("accepts only the standard bounded managed block contract", async () => {

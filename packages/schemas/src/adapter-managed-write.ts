@@ -47,12 +47,7 @@ export const adapterManagedWriteRequestSchema = {
     ...adapterManagedWriteCoordinates,
     requestedAt: timestampSchema,
   },
-  required: [
-    "kind",
-    "schemaVersion",
-    ...adapterManagedWriteCoordinateFields,
-    "requestedAt",
-  ],
+  required: ["kind", "schemaVersion", ...adapterManagedWriteCoordinateFields, "requestedAt"],
   additionalProperties: false,
 } as const;
 
@@ -110,4 +105,3 @@ export const adapterManagedWriteCompletionSchema = {
 export type AdapterManagedWriteRequest = FromSchema<typeof adapterManagedWriteRequestSchema>;
 export type AdapterManagedWriteDecision = FromSchema<typeof adapterManagedWriteDecisionSchema>;
 export type AdapterManagedWriteCompletion = FromSchema<typeof adapterManagedWriteCompletionSchema>;
-

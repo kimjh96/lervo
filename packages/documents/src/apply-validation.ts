@@ -5,17 +5,12 @@ import {
   type DocumentMigrationCandidateArtifact,
   type DocumentMigrationPlan,
 } from "@lervo/schemas";
-import {
-  validateDocumentManifest,
-  validateDocumentManifestSet,
-} from "@lervo/project";
+import { validateDocumentManifest, validateDocumentManifestSet } from "@lervo/project";
 import { stringify } from "yaml";
 
 import { canonicalJsonBytes, sha256 } from "./hash.js";
 import { calculateMigrationPlanId, migrationCandidateBytes } from "./integrity.js";
-import {
-  DocumentMigrationError,
-} from "./types.js";
+import { DocumentMigrationError } from "./types.js";
 
 export interface PreparedMigrationSidecar {
   documentId: string;
@@ -46,7 +41,10 @@ function validatedArtifacts(input: {
   artifacts: readonly DocumentMigrationCandidateArtifact[];
 }): Map<string, DocumentMigrationCandidateArtifact> {
   const planEntries = new Map(input.plan.candidates.map((entry) => [entry.candidateId, entry]));
-  if (planEntries.size !== input.plan.candidates.length || input.artifacts.length !== planEntries.size) {
+  if (
+    planEntries.size !== input.plan.candidates.length ||
+    input.artifacts.length !== planEntries.size
+  ) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
       "The migration plan and candidate artifact count or IDs do not match.",
@@ -65,11 +63,15 @@ function validatedArtifacts(input: {
     const actualHash = sha256(bytes);
     const entry = planEntries.get(candidate.candidateId);
     if (
-      artifacts.has(candidate.candidateId) || entry === undefined ||
-      artifact.contentHash !== actualHash || artifact.byteCount !== bytes.byteLength ||
+      artifacts.has(candidate.candidateId) ||
+      entry === undefined ||
+      artifact.contentHash !== actualHash ||
+      artifact.byteCount !== bytes.byteLength ||
       artifact.artifactId !== `art_${actualHash.slice("sha256:".length, "sha256:".length + 16)}` ||
-      entry.artifactId !== artifact.artifactId || entry.artifactHash !== artifact.contentHash ||
-      entry.sourcePath !== candidate.source.path || entry.sourceHash !== candidate.source.contentHash
+      entry.artifactId !== artifact.artifactId ||
+      entry.artifactHash !== artifact.contentHash ||
+      entry.sourcePath !== candidate.source.path ||
+      entry.sourceHash !== candidate.source.contentHash
     ) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
@@ -82,9 +84,12 @@ function validatedArtifacts(input: {
 }
 
 function sidecarFromDecision(input: {
-  decision: Extract<DocumentMigrationApproval["decisions"][number], {
-    action: "approve_sidecar";
-  }>;
+  decision: Extract<
+    DocumentMigrationApproval["decisions"][number],
+    {
+      action: "approve_sidecar";
+    }
+  >;
   entry: DocumentMigrationPlan["candidates"][number];
   artifact: DocumentMigrationCandidateArtifact;
   sourcePaths: ReadonlySet<string>;
@@ -92,8 +97,10 @@ function sidecarFromDecision(input: {
   const candidate = input.artifact.candidate;
   const entry = input.entry;
   if (
-    entry.action !== "create_sidecar" || entry.target === null ||
-    entry.target.expected.kind !== "missing" || candidate.proposal === null ||
+    entry.action !== "create_sidecar" ||
+    entry.target === null ||
+    entry.target.expected.kind !== "missing" ||
+    candidate.proposal === null ||
     input.decision.manifest.documentId !== candidate.proposal.documentId ||
     input.decision.manifest.record.path !== candidate.proposal.documentPath ||
     entry.target.path !== `.lervo/documents/${input.decision.manifest.documentId}.yaml` ||
@@ -156,7 +163,9 @@ export function prepareMigrationApproval(input: {
     Date.parse(input.plan.generatedAt) > Date.parse(input.approval.approvedAt) ||
     Date.parse(input.approval.approvedAt) > Date.parse(input.appliedAt)
   ) {
-    invalidApproval("The migration plan, approval, and apply time have inconsistent ordering or coordinates.");
+    invalidApproval(
+      "The migration plan, approval, and apply time have inconsistent ordering or coordinates.",
+    );
   }
 
   const artifacts = validatedArtifacts({
@@ -168,7 +177,9 @@ export function prepareMigrationApproval(input: {
     decisions.size !== input.approval.decisions.length ||
     decisions.size !== input.plan.candidates.length
   ) {
-    invalidApproval("Every migration candidate must have exactly one non-duplicated approval decision.");
+    invalidApproval(
+      "Every migration candidate must have exactly one non-duplicated approval decision.",
+    );
   }
   const sourcePaths = new Set(input.plan.sources.map((source) => source.path));
   const sidecars: PreparedMigrationSidecar[] = [];
@@ -177,22 +188,27 @@ export function prepareMigrationApproval(input: {
     const decision = decisions.get(entry.candidateId);
     const artifact = artifacts.get(entry.candidateId);
     if (
-      decision === undefined || artifact === undefined ||
+      decision === undefined ||
+      artifact === undefined ||
       decision.artifactId !== artifact.artifactId ||
       decision.artifactHash !== artifact.contentHash
     ) {
-      invalidApproval("The approval decision candidate artifact coordinates differ from the dry-run result.");
+      invalidApproval(
+        "The approval decision candidate artifact coordinates differ from the dry-run result.",
+      );
     }
     if (decision.action === "skip") {
       skippedCandidateIds.push(entry.candidateId);
       continue;
     }
-    sidecars.push(sidecarFromDecision({
-      decision,
-      entry,
-      artifact,
-      sourcePaths,
-    }));
+    sidecars.push(
+      sidecarFromDecision({
+        decision,
+        entry,
+        artifact,
+        sourcePaths,
+      }),
+    );
   }
   if (sidecars.length === 0) {
     invalidApproval("A metadata-only apply requires at least one approved sidecar.");
@@ -221,10 +237,11 @@ export function prepareMigrationApproval(input: {
     approvalDigest: sha256(canonicalJsonBytes(input.approval)),
     sidecars,
     skippedCandidateIds,
-    sourceHashes: [...new Set(input.plan.sources.map((source) => source.contentHash))]
-      .sort(compareText),
-    candidateArtifactHashes: [...new Set(
-      input.candidateArtifacts.map((artifact) => artifact.contentHash),
-    )].sort(compareText),
+    sourceHashes: [...new Set(input.plan.sources.map((source) => source.contentHash))].sort(
+      compareText,
+    ),
+    candidateArtifactHashes: [
+      ...new Set(input.candidateArtifacts.map((artifact) => artifact.contentHash)),
+    ].sort(compareText),
   };
 }

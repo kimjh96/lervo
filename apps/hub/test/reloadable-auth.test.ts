@@ -6,12 +6,14 @@ const first = "first-bearer-token-aaaaaaaaaaaaaaaa";
 const second = "second-bearer-token-bbbbbbbbbbbbbbb";
 
 function credential(token: string, principalId: string) {
-  return [{
-    token,
-    principalId,
-    permissions: ["trace.read" as const],
-    projects: [],
-  }];
+  return [
+    {
+      token,
+      principalId,
+      permissions: ["trace.read" as const],
+      projects: [],
+    },
+  ];
 }
 
 describe("reloadable Hub bearer authentication", () => {

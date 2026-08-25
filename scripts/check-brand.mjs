@@ -38,10 +38,12 @@ const previousMarkerAllowlist = new Set([
 const brandCheckPath = "scripts/check-brand.mjs";
 
 for (const path of requiredDocuments) {
-  if (!existsSync(resolve(repositoryRoot, path))) failures.push(`Required Lervo document is missing: ${path}`);
+  if (!existsSync(resolve(repositoryRoot, path)))
+    failures.push(`Required Lervo document is missing: ${path}`);
 }
 for (const path of retiredDocuments) {
-  if (existsSync(resolve(repositoryRoot, path))) failures.push(`A document with the previous name remains: ${path}`);
+  if (existsSync(resolve(repositoryRoot, path)))
+    failures.push(`A document with the previous name remains: ${path}`);
 }
 
 const packagePaths = [
@@ -73,16 +75,24 @@ for (const path of packagePaths) {
   }
 }
 
-const cliPackage = JSON.parse(readFileSync(resolve(repositoryRoot, "apps/cli/package.json"), "utf8"));
-if (cliPackage.bin?.lervo !== "./dist/bin.js" || Object.keys(cliPackage.bin ?? {}).length !== 1) {
-  failures.push("The CLI package must expose only the lervo binary.");
+const cliPackage = JSON.parse(
+  readFileSync(resolve(repositoryRoot, "apps/cli/package.json"), "utf8"),
+);
+if (
+  cliPackage.bin?.lervo !== "./dist/bin.js" ||
+  cliPackage.bin?.["lervo-node"] !== "./dist/node-runtime.js" ||
+  Object.keys(cliPackage.bin ?? {}).length !== 2
+) {
+  failures.push("The CLI package must expose the lervo and lervo-node binaries.");
 }
 
 const trackedAndNewFiles = execFileSync(
   "git",
   ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
   { cwd: repositoryRoot, encoding: "utf8" },
-).split("\0").filter(Boolean);
+)
+  .split("\0")
+  .filter(Boolean);
 
 for (const path of trackedAndNewFiles) {
   const absolutePath = resolve(repositoryRoot, path);
@@ -108,8 +118,10 @@ for (const path of trackedAndNewFiles) {
     if (previousMarkerAllowlist.has(path)) {
       withoutPreviousIdentity = withoutPreviousIdentity.replaceAll("<!-- roven:", "");
     }
-    if (withoutPreviousIdentity.includes("roven") ||
-        (!previousBrandAllowlist.has(path) && !previousMarkerAllowlist.has(path))) {
+    if (
+      withoutPreviousIdentity.includes("roven") ||
+      (!previousBrandAllowlist.has(path) && !previousMarkerAllowlist.has(path))
+    ) {
       failures.push(`${path}: a disallowed lowercase previous identifier remains.`);
     }
   }

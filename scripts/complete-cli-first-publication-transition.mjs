@@ -5,10 +5,8 @@ import {
   writeFirstPublicationTransitionReceipt,
 } from "./lib/cli-first-publication-transition.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
-import { ReleasePublicationAuthorizationError } from
-  "./lib/release-publication-authorization.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
+import { ReleasePublicationAuthorizationError } from "./lib/release-publication-authorization.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -18,12 +16,7 @@ function failArguments() {
 }
 
 function parseArguments(args) {
-  const commonNames = [
-    "--publication-authorization",
-    "--bootstrap",
-    "--workflow",
-    "--output",
-  ];
+  const commonNames = ["--publication-authorization", "--bootstrap", "--workflow", "--output"];
   const resolutionNames = [
     "--reservation-root",
     "--reconciliation-report",
@@ -38,8 +31,12 @@ function parseArguments(args) {
     "--stage-approval-reconciliation",
   ];
   const allowed = [
-    ...commonNames, "--arming-authorization", "--execution-receipt",
-    ...resolutionNames, ...stageNames, "--stage-approval-bundle",
+    ...commonNames,
+    "--arming-authorization",
+    "--execution-receipt",
+    ...resolutionNames,
+    ...stageNames,
+    "--stage-approval-bundle",
   ];
   const values = new Map();
   let online = false;
@@ -52,9 +49,12 @@ function parseArguments(args) {
     }
     const value = args[index + 1];
     if (
-      !allowed.includes(name) || values.has(name) || value === undefined ||
+      !allowed.includes(name) ||
+      values.has(name) ||
+      value === undefined ||
       value.startsWith("--")
-    ) failArguments();
+    )
+      failArguments();
     values.set(name, value);
     index += 1;
   }
@@ -71,8 +71,7 @@ function parseArguments(args) {
     [execution, resolution, stageApproval].filter(Boolean).length !== 1 ||
     arming !== (execution || resolution) ||
     (execution && resolutionNames.some((name) => values.has(name))) ||
-    ((execution || resolution) &&
-      (stageNames.some((name) => values.has(name)) || stageBundle)) ||
+    ((execution || resolution) && (stageNames.some((name) => values.has(name)) || stageBundle)) ||
     (!execution && resolutionNames.some((name) => values.has(name)) && !resolution) ||
     (!stageDirect && stageNames.some((name) => values.has(name))) ||
     (stageDirect && stageBundle) ||
@@ -81,7 +80,8 @@ function parseArguments(args) {
     (stageDirect && !stageNames.every((name) => isAbsolute(values.get(name) ?? ""))) ||
     (stageBundle && !isAbsolute(values.get("--stage-approval-bundle") ?? "")) ||
     (arming && !isAbsolute(values.get("--arming-authorization") ?? ""))
-  ) failArguments();
+  )
+    failArguments();
   const options = {
     online,
     publicationAuthorizationPath: values.get("--publication-authorization"),
@@ -106,9 +106,7 @@ function parseArguments(args) {
     options.stageApprovalDecisionPath = values.get("--stage-approval-decision");
     options.stageApprovalAuthorizationPath = values.get("--stage-approval-authorization");
     options.stageApprovalResultDirectory = values.get("--stage-approval-result-directory");
-    options.stageApprovalReconciliationPath = values.get(
-      "--stage-approval-reconciliation",
-    );
+    options.stageApprovalReconciliationPath = values.get("--stage-approval-reconciliation");
   } else {
     options.stageApprovalBundlePath = values.get("--stage-approval-bundle");
   }
@@ -119,11 +117,12 @@ try {
   const { options, outputPath } = parseArguments(process.argv.slice(2));
   const receipt = await completeCliFirstPublicationTransition(options);
   await writeFirstPublicationTransitionReceipt(outputPath, receipt);
-  const evidence = receipt.publicationEvidence.type === "execution_receipt"
-    ? "publication execution receipt"
-    : receipt.publicationEvidence.type === "reconciliation_resolution"
-      ? "reviewed result reconciliation"
-      : "verified npm stage approval reconciliation";
+  const evidence =
+    receipt.publicationEvidence.type === "execution_receipt"
+      ? "publication execution receipt"
+      : receipt.publicationEvidence.type === "reconciliation_resolution"
+        ? "reviewed result reconciliation"
+        : "verified npm stage approval reconciliation";
   console.log(
     `CLI first-publication transition complete (${evidence}, Trusted Publisher stage-only transition)`,
   );
@@ -132,9 +131,11 @@ try {
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError ||
     error instanceof ReleasePublicationAuthorizationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_transition_failed: The CLI first-publication transition could not be completed.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_transition_failed: The CLI first-publication transition could not be completed.",
+    );
   process.exitCode = 1;
 }

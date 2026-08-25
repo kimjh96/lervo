@@ -8,10 +8,7 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import {
-  documentManifestSchema,
-  type DocumentManifest,
-} from "./document-manifest.js";
+import { documentManifestSchema, type DocumentManifest } from "./document-manifest.js";
 import { migrationPlanIdSchema } from "./document-migration.js";
 
 const reasonCodeSchema = {
@@ -56,13 +53,7 @@ const skipLegacyEntryDecisionSchema = {
     action: { const: "skip" },
     reasonCode: reasonCodeSchema,
   },
-  required: [
-    "documentId",
-    "artifactId",
-    "artifactHash",
-    "action",
-    "reasonCode",
-  ],
+  required: ["documentId", "artifactId", "artifactHash", "action", "reasonCode"],
   additionalProperties: false,
 } as const;
 
@@ -93,14 +84,7 @@ export const legacyRegistryMigrationApprovalSchema = {
       maxItems: 4096,
     },
   },
-  required: [
-    "schemaVersion",
-    "approvalId",
-    "planId",
-    "approvedAt",
-    "approver",
-    "decisions",
-  ],
+  required: ["schemaVersion", "approvalId", "planId", "approvedAt", "approver", "decisions"],
   additionalProperties: false,
 } as const;
 
@@ -116,8 +100,7 @@ const appliedLegacySidecarSchema = {
 
 export const legacyRegistryMigrationAppliedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id:
-    "https://schemas.lervo.dev/v0/legacy-registry-migration-applied-event-payload.schema.json",
+  $id: "https://schemas.lervo.dev/v0/legacy-registry-migration-applied-event-payload.schema.json",
   title: "Lervo legacy document registry migration applied event payload",
   type: "object",
   properties: {
@@ -232,8 +215,7 @@ type ApproveLegacySidecarDecisionMetadata = FromSchema<
 >;
 type SkipLegacyEntryDecision = FromSchema<typeof skipLegacyEntryDecisionSchema>;
 export type LegacyRegistryMigrationApprovalDecision =
-  | (ApproveLegacySidecarDecisionMetadata & { manifest: DocumentManifest })
-  | SkipLegacyEntryDecision;
+  (ApproveLegacySidecarDecisionMetadata & { manifest: DocumentManifest }) | SkipLegacyEntryDecision;
 export type LegacyRegistryMigrationApproval = Omit<
   FromSchema<typeof legacyRegistryMigrationApprovalSchema>,
   "decisions"

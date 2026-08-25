@@ -1,7 +1,8 @@
 import { canonicalDigest } from "./release-artifact-manifest.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 
-const repositoryPattern = /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?\/[A-Za-z0-9_.-]{1,100}$/u;
+const repositoryPattern =
+  /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?\/[A-Za-z0-9_.-]{1,100}$/u;
 
 export const trustedPublisherEnvironment = "npm-release";
 export const trustedPublisherWorkflow = "cli-release-matrix.yml";
@@ -26,7 +27,8 @@ export function validateReadinessRepository(repository) {
     typeof repository !== "string" ||
     !repositoryPattern.test(repository) ||
     repository.includes("..")
-  ) fail();
+  )
+    fail();
   return repository;
 }
 
@@ -50,7 +52,8 @@ export function inspectTrustedPublisherPackage(manifest, repository) {
     !/^\d+\.\d+\.\d+$/u.test(manifest?.version ?? "") ||
     manifest.private !== false ||
     manifest.publishConfig?.access !== "public"
-  ) reasons.push("package_identity_invalid");
+  )
+    reasons.push("package_identity_invalid");
   const expectedRepository = `git+https://github.com/${repository}.git`;
   if (manifest?.repository === undefined) {
     reasons.push("package_repository_missing");
@@ -83,13 +86,17 @@ export function inspectTrustedPublisherInactiveWorkflow(workflow) {
   const jobs = workflow?.jobs;
   const strings = workflowStrings(jobs);
   const hasPublishCommand = strings.some((value) =>
-    /(?:^|\s)npm\s+(?:publish|stage\s+publish)(?:\s|$)|release:publication:(?:publish|stage)/u.test(value)
+    /(?:^|\s)npm\s+(?:publish|stage\s+publish)(?:\s|$)|release:publication:(?:publish|stage)/u.test(
+      value,
+    ),
   );
-  const hasPublishEnvironment = jobs !== null &&
+  const hasPublishEnvironment =
+    jobs !== null &&
     typeof jobs === "object" &&
-    Object.values(jobs).some((job) =>
-      job?.environment === trustedPublisherEnvironment ||
-      job?.environment?.name === trustedPublisherEnvironment
+    Object.values(jobs).some(
+      (job) =>
+        job?.environment === trustedPublisherEnvironment ||
+        job?.environment?.name === trustedPublisherEnvironment,
     );
   const reasons = [];
   if (jobs === null || typeof jobs !== "object" || Array.isArray(jobs)) {
@@ -140,7 +147,8 @@ function inspectNpmObservation(observation, repository) {
     !Array.isArray(observation.permissions) ||
     observation.permissions.length !== 1 ||
     observation.permissions[0] !== "createStagedPackage"
-  ) reasons.push("npm_publisher_permission_mismatch");
+  )
+    reasons.push("npm_publisher_permission_mismatch");
   return [access, check("npm_trusted_publisher", reasons)];
 }
 
@@ -159,10 +167,13 @@ function inspectGitHubObservation(observation, repository) {
     observation.state !== "observed" ||
     observation.repository !== repository ||
     observation.environment !== trustedPublisherEnvironment
-  ) fail();
+  )
+    fail();
   const reasons = [];
-  if (!Number.isSafeInteger(observation.requiredReviewerCount) ||
-      observation.requiredReviewerCount < 1) {
+  if (
+    !Number.isSafeInteger(observation.requiredReviewerCount) ||
+    observation.requiredReviewerCount < 1
+  ) {
     reasons.push("github_required_reviewer_missing");
   }
   if (observation.preventSelfReview !== true) reasons.push("github_self_review_allowed");
@@ -170,7 +181,8 @@ function inspectGitHubObservation(observation, repository) {
     !Array.isArray(observation.tagPolicies) ||
     observation.tagPolicies.length !== 1 ||
     observation.tagPolicies[0] !== "v*"
-  ) reasons.push("github_release_tag_policy_mismatch");
+  )
+    reasons.push("github_release_tag_policy_mismatch");
   return check("github_environment", reasons);
 }
 
@@ -183,9 +195,12 @@ export function createTrustedPublisherReadinessReport({
 }) {
   validateReadinessRepository(repository);
   if (
-    packageManifest === null || typeof packageManifest !== "object" ||
-    workflow === null || typeof workflow !== "object"
-  ) fail();
+    packageManifest === null ||
+    typeof packageManifest !== "object" ||
+    workflow === null ||
+    typeof workflow !== "object"
+  )
+    fail();
   const checks = [
     inspectTrustedPublisherPackage(packageManifest, repository),
     inspectTrustedPublisherInactiveWorkflow(workflow),

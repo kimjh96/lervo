@@ -39,7 +39,10 @@ export function sameSession(left: AdapterSession, right: AdapterSession): boolea
 export function assertAdapterMessage(value: unknown, label: string): void {
   const result = validateSchema("adapter", value);
   if (!result.valid) {
-    throw new ClaudeAdapterError("invalid_request", `${label} does not satisfy the adapter schema.`);
+    throw new ClaudeAdapterError(
+      "invalid_request",
+      `${label} does not satisfy the adapter schema.`,
+    );
   }
 }
 

@@ -2,10 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import {
-  type EventDraft,
-  SQLiteEventStore,
-} from "@lervo/event-store-sqlite";
+import { type EventDraft, SQLiteEventStore } from "@lervo/event-store-sqlite";
 import {
   defaultProjectDataPolicy,
   type OutboundEventBatch,
@@ -27,8 +24,7 @@ import {
 export const destinationId = "hub:primary";
 export const peerIdentityHash =
   "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
-const policyVersion =
-  "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 export const manifest: ProjectManifest = {
   schemaVersion: 1,
@@ -88,9 +84,7 @@ export function appendEvents(
         transaction.enqueue({
           eventId: event.eventId,
           destinationId,
-          enqueuedAt: new Date(
-            Date.parse("2026-08-19T00:01:00.000Z") + seq * 1_000,
-          ).toISOString(),
+          enqueuedAt: new Date(Date.parse("2026-08-19T00:01:00.000Z") + seq * 1_000).toISOString(),
         });
       }
     });

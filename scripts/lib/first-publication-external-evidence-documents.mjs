@@ -17,23 +17,33 @@ function fail(code) {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 export function firstPublicationEvidenceTimestamp(value, code) {
   if (
     typeof value !== "string" ||
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
-  ) fail(code);
+  )
+    fail(code);
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) fail(code);
   return milliseconds;
 }
 
 function validActor(actor) {
-  return exactKeys(actor, ["kind", "id"]) && actor.kind === "user" &&
-    typeof actor.id === "string" && actor.id.length > 0 && actor.id.length <= 150;
+  return (
+    exactKeys(actor, ["kind", "id"]) &&
+    actor.kind === "user" &&
+    typeof actor.id === "string" &&
+    actor.id.length > 0 &&
+    actor.id.length <= 150
+  );
 }
 
 function validPostTarget(documentTarget, postApplyReport) {
@@ -43,34 +53,41 @@ function validPostTarget(documentTarget, postApplyReport) {
   } catch {
     return false;
   }
-  return documentTarget.package === postApplyReport?.target?.package &&
+  return (
+    documentTarget.package === postApplyReport?.target?.package &&
     repository === postApplyReport.target.repository &&
     documentTarget.license === postApplyReport.target.license &&
-    documentTarget.postApplyReportDigest === postApplyReport.reportDigest;
+    documentTarget.postApplyReportDigest === postApplyReport.reportDigest
+  );
 }
 
-export function validateFirstPublicationLicenseApproval(
-  approval,
-  postApplyReport,
-  checkedAt,
-) {
+export function validateFirstPublicationLicenseApproval(approval, postApplyReport, checkedAt) {
   const code = "first_publication_external_evidence_license_approval_invalid";
   const approvedAt = firstPublicationEvidenceTimestamp(approval?.approvedAt, code);
   const checkedAtMs = firstPublicationEvidenceTimestamp(checkedAt, code);
   if (
     !exactKeys(approval, [
-      "schemaVersion", "evidenceType", "approvalId", "decision", "approvedAt",
-      "approver", "target", "basis",
-    ]) || approval.schemaVersion !== 1 ||
+      "schemaVersion",
+      "evidenceType",
+      "approvalId",
+      "decision",
+      "approvedAt",
+      "approver",
+      "target",
+      "basis",
+    ]) ||
+    approval.schemaVersion !== 1 ||
     approval.evidenceType !== "first_publication_license_approval" ||
     !licenseApprovalIdPattern.test(approval.approvalId ?? "") ||
     approval.decision !== "approve_public_distribution_license" ||
-    approval.basis !== "operator_attestation" || !validActor(approval.approver) ||
-    !exactKeys(approval.target, [
-      "package", "repository", "license", "postApplyReportDigest",
-    ]) || !digestPattern.test(approval.target.postApplyReportDigest ?? "") ||
-    !validPostTarget(approval.target, postApplyReport) || approvedAt > checkedAtMs
-  ) fail(code);
+    approval.basis !== "operator_attestation" ||
+    !validActor(approval.approver) ||
+    !exactKeys(approval.target, ["package", "repository", "license", "postApplyReportDigest"]) ||
+    !digestPattern.test(approval.target.postApplyReportDigest ?? "") ||
+    !validPostTarget(approval.target, postApplyReport) ||
+    approvedAt > checkedAtMs
+  )
+    fail(code);
   return approval;
 }
 
@@ -85,13 +102,22 @@ export function validateFirstPublicationScopeControlConfirmation(
   const checkedAtMs = firstPublicationEvidenceTimestamp(checkedAt, code);
   if (
     !exactKeys(confirmation, [
-      "schemaVersion", "evidenceType", "confirmationId", "decision", "confirmedAt",
-      "expiresAt", "confirmer", "target", "basis",
-    ]) || confirmation.schemaVersion !== 1 ||
+      "schemaVersion",
+      "evidenceType",
+      "confirmationId",
+      "decision",
+      "confirmedAt",
+      "expiresAt",
+      "confirmer",
+      "target",
+      "basis",
+    ]) ||
+    confirmation.schemaVersion !== 1 ||
     confirmation.evidenceType !== "first_publication_npm_scope_control_confirmation" ||
     !scopeConfirmationIdPattern.test(confirmation.confirmationId ?? "") ||
     confirmation.decision !== "confirm_npm_scope_control" ||
-    confirmation.basis !== "operator_attestation" || !validActor(confirmation.confirmer) ||
+    confirmation.basis !== "operator_attestation" ||
+    !validActor(confirmation.confirmer) ||
     !exactKeys(confirmation.target, ["package", "scopeOwner", "postApplyReportDigest"]) ||
     confirmation.target.package !== postApplyReport?.target?.package ||
     !exactKeys(confirmation.target.scopeOwner, ["kind", "name"]) ||
@@ -99,8 +125,10 @@ export function validateFirstPublicationScopeControlConfirmation(
     confirmation.target.scopeOwner.name !== "lervo" ||
     confirmation.target.postApplyReportDigest !== postApplyReport.reportDigest ||
     !digestPattern.test(confirmation.target.postApplyReportDigest ?? "") ||
-    confirmedAt > checkedAtMs || expiresAt <= checkedAtMs ||
+    confirmedAt > checkedAtMs ||
+    expiresAt <= checkedAtMs ||
     expiresAt - confirmedAt > firstPublicationApprovalMaximumLifetimeMs
-  ) fail(code);
+  )
+    fail(code);
   return confirmation;
 }

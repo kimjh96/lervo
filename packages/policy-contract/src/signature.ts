@@ -21,7 +21,10 @@ import { assertPolicySnapshot } from "./snapshot.js";
 
 export type PolicySignaturePurpose = "snapshot" | "approval" | "revocation";
 
-function signatureOriginal(purpose: PolicySignaturePurpose, original: SignedPolicyOriginal): object {
+function signatureOriginal(
+  purpose: PolicySignaturePurpose,
+  original: SignedPolicyOriginal,
+): object {
   if (purpose === "snapshot") return { snapshot: original };
   if (purpose === "approval") return { approval: original };
   return { revocation: original };
@@ -33,18 +36,24 @@ export function policySigningBytes(input: {
   keyId: string;
 }): Uint8Array {
   assertKeyId(input.keyId);
-  return Buffer.from(canonicalJson({
-    domain: `lervo.policy.${input.purpose}.v1`,
-    algorithm: "ed25519",
-    keyId: input.keyId,
-    ...signatureOriginal(input.purpose, clone(input.original)),
-  }), "utf8");
+  return Buffer.from(
+    canonicalJson({
+      domain: `lervo.policy.${input.purpose}.v1`,
+      algorithm: "ed25519",
+      keyId: input.keyId,
+      ...signatureOriginal(input.purpose, clone(input.original)),
+    }),
+    "utf8",
+  );
 }
 
 function createSignature(keyId: string, signature: Uint8Array) {
   assertKeyId(keyId);
   if (signature.byteLength !== 64) {
-    throw new PolicyContractError("invalid_policy_signature", "An Ed25519 signature must be 64 bytes.");
+    throw new PolicyContractError(
+      "invalid_policy_signature",
+      "An Ed25519 signature must be 64 bytes.",
+    );
   }
   return {
     algorithm: "ed25519" as const,
@@ -70,7 +79,10 @@ export function createSignedPolicySnapshot(input: {
 
 export function assertSignedPolicySnapshot(envelope: SignedPolicySnapshot): void {
   if (!validateSchema("signedPolicySnapshot", envelope).valid) {
-    throw new PolicyContractError("invalid_policy_signature", "The signed policy snapshot is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_signature",
+      "The signed policy snapshot is invalid.",
+    );
   }
   assertPolicySnapshot(envelope.snapshot);
   assertSignatureEncoding(envelope);
@@ -92,7 +104,10 @@ export function createSignedPolicyApproval(input: {
 
 export function assertSignedPolicyApproval(envelope: SignedPolicyApproval): void {
   if (!validateSchema("signedPolicyApproval", envelope).valid) {
-    throw new PolicyContractError("invalid_policy_signature", "The signed policy approval is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_signature",
+      "The signed policy approval is invalid.",
+    );
   }
   assertSignatureEncoding(envelope);
 }
@@ -115,7 +130,10 @@ export function assertSignedPolicyApprovalRevocation(
   envelope: SignedPolicyApprovalRevocation,
 ): void {
   if (!validateSchema("signedPolicyApprovalRevocation", envelope).valid) {
-    throw new PolicyContractError("invalid_policy_signature", "The signed policy revocation is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_signature",
+      "The signed policy revocation is invalid.",
+    );
   }
   assertSignatureEncoding(envelope);
 }

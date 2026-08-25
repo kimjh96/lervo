@@ -42,9 +42,16 @@ export async function runSearchReviewCommand(args: string[], io: CliIo): Promise
     io.stderr(searchArgumentError(error));
     return 1;
   }
-  const decision = parsed.values.decision === undefined ? undefined : DECISIONS[parsed.values.decision];
-  if (parsed.positionals.length !== 1 || decision === undefined || parsed.values.reviewer === undefined) {
-    io.stderr(`A comparison ID, adopt|reject|more-samples decision, and reviewer ID are required.\n${searchUsage}\n`);
+  const decision =
+    parsed.values.decision === undefined ? undefined : DECISIONS[parsed.values.decision];
+  if (
+    parsed.positionals.length !== 1 ||
+    decision === undefined ||
+    parsed.values.reviewer === undefined
+  ) {
+    io.stderr(
+      `A comparison ID, adopt|reject|more-samples decision, and reviewer ID are required.\n${searchUsage}\n`,
+    );
     return 1;
   }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
@@ -60,12 +67,18 @@ export async function runSearchReviewCommand(args: string[], io: CliIo): Promise
       reviewedAt: new Date(),
       decision,
     });
-    io.stdout(parsed.values.json ? `${JSON.stringify(review, null, 2)}\n` : formatSearchCandidateReview(review));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(review, null, 2)}\n`
+        : formatSearchCandidateReview(review),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not complete the search candidate review. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not complete the search candidate review. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

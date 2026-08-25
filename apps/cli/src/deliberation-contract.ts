@@ -1,14 +1,7 @@
 import { createHash } from "node:crypto";
 
-import {
-  calculateDeliberationOutcomeId,
-  deliberationPolicyHash,
-} from "@lervo/deliberation";
-import type {
-  DeliberationArtifact,
-  DeliberationOutcome,
-  DeliberationPolicy,
-} from "@lervo/schemas";
+import { calculateDeliberationOutcomeId, deliberationPolicyHash } from "@lervo/deliberation";
+import type { DeliberationArtifact, DeliberationOutcome, DeliberationPolicy } from "@lervo/schemas";
 
 import { deliberationLanguageFor } from "./deliberation-language.js";
 
@@ -28,7 +21,10 @@ export function reviewDetails(input: {
   locale: string;
 }): Extract<DeliberationArtifact, { kind: "objection" }>["details"] {
   const language = deliberationLanguageFor(input.locale);
-  const firstLine = input.content.split(/\r?\n/u).find((line) => line.trim().length > 0)?.trim();
+  const firstLine = input.content
+    .split(/\r?\n/u)
+    .find((line) => line.trim().length > 0)
+    ?.trim();
   if (firstLine === language.verdict.approved) {
     return { reviewStatus: "approved", objections: [] };
   }
@@ -39,13 +35,15 @@ export function reviewDetails(input: {
   }
   return {
     reviewStatus: "changes_requested",
-    objections: [{
-      objectionId: coordinate("obj", `${input.roleId}:${input.contentHash}`),
-      objectionDigest: input.contentHash,
-      targetClaimIds: [input.claimId],
-      blocking: true,
-      status: "open",
-    }],
+    objections: [
+      {
+        objectionId: coordinate("obj", `${input.roleId}:${input.contentHash}`),
+        objectionDigest: input.contentHash,
+        targetClaimIds: [input.claimId],
+        blocking: true,
+        status: "open",
+      },
+    ],
   };
 }
 
@@ -66,8 +64,9 @@ function baseOutcome(input: {
     artifactIds: input.history.map((artifact) => artifact.deliberationArtifactId),
     lastConfirmedArtifactId: input.history.at(-1)?.deliberationArtifactId ?? null,
     passedVerificationArtifactIds: input.history
-      .filter((artifact) =>
-        artifact.kind === "verification" && artifact.details.status === "passed")
+      .filter(
+        (artifact) => artifact.kind === "verification" && artifact.details.status === "passed",
+      )
       .map((artifact) => artifact.deliberationArtifactId),
     completedAt: input.completedAt,
   };

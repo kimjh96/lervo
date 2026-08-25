@@ -1,13 +1,5 @@
 import assert from "node:assert/strict";
-import {
-  access,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -24,7 +16,7 @@ async function collectFiles(directory, prefix = "") {
     if (prefix === "" && entry.name === "node_modules") continue;
     const path = prefix ? `${prefix}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      paths.push(...await collectFiles(resolve(directory, entry.name), path));
+      paths.push(...(await collectFiles(resolve(directory, entry.name), path)));
     } else {
       paths.push(path);
     }
@@ -35,22 +27,18 @@ async function collectFiles(directory, prefix = "") {
 async function installTarball(consumerRoot, tarballPath) {
   await writeFile(
     resolve(consumerRoot, "package.json"),
-    `${JSON.stringify({
-      name: "lervo-packed-cli-consumer",
-      version: "0.0.0",
-      private: true,
-    }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        name: "lervo-packed-cli-consumer",
+        version: "0.0.0",
+        private: true,
+      },
+      null,
+      2,
+    )}\n`,
     "utf8",
   );
-  await runPnpm(
-    [
-      "add",
-      "--prefer-offline",
-      "--save-exact",
-      tarballPath,
-    ],
-    { cwd: consumerRoot },
-  );
+  await runPnpm(["add", "--prefer-offline", "--save-exact", tarballPath], { cwd: consumerRoot });
 }
 
 async function verifyInstalledPackage(consumerRoot, expectedManifest) {
@@ -68,43 +56,54 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
   assert.deepEqual(manifest.publishConfig, expectedManifest.publishConfig);
   assert.equal(manifest.private, false);
   assert.deepEqual(manifest.engines, { node: ">=22.13" });
-  assert.deepEqual(manifest.bin, { lervo: "./dist/bin.js" });
-  assert.deepEqual(manifest.files, ["README.md", "dist/bin.js"]);
+  assert.deepEqual(manifest.bin, {
+    lervo: "./dist/bin.js",
+    "lervo-node": "./dist/node-runtime.js",
+  });
+  assert.deepEqual(manifest.files, [
+    "README.md",
+    "dist/bin.js",
+    "dist/node-runtime.js",
+    "dist/terminal-hook.js",
+  ]);
   assert.deepEqual(manifest.dependencies, {
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
     "@anthropic-ai/sdk": "0.117.1",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "zod": "4.4.3",
+    zod: "4.4.3",
   });
   assert.equal(Object.hasOwn(manifest, "main"), false);
   assert.equal(Object.hasOwn(manifest, "types"), false);
   assert.equal(JSON.stringify(manifest).includes("workspace:"), false);
   assert.equal(
     ["preinstall", "install", "postinstall"].some((name) =>
-      Object.hasOwn(manifest.scripts ?? {}, name)
+      Object.hasOwn(manifest.scripts ?? {}, name),
     ),
     false,
   );
-  assert.deepEqual(
-    await collectFiles(packageRoot),
-    ["README.md", "dist/bin.js", "package.json"],
-  );
-  assert.deepEqual(
-    (await readdir(resolve(consumerRoot, "node_modules/@lervo"))).sort(),
-    ["cli"],
-  );
+  assert.deepEqual(await collectFiles(packageRoot), [
+    "README.md",
+    "dist/bin.js",
+    "dist/node-runtime.js",
+    "dist/terminal-hook.js",
+    "package.json",
+  ]);
+  assert.deepEqual((await readdir(resolve(consumerRoot, "node_modules/@lervo"))).sort(), ["cli"]);
 
   const entry = await readFile(resolve(packageRoot, "dist/bin.js"), "utf8");
   assert.equal(entry.startsWith("#!/usr/bin/env node\n"), true);
+  const terminalHook = await readFile(resolve(packageRoot, "dist/terminal-hook.js"), "utf8");
+  assert.equal(terminalHook.startsWith("#!/usr/bin/env node\n"), true);
+  const nodeRuntime = await readFile(resolve(packageRoot, "dist/node-runtime.js"), "utf8");
+  assert.equal(nodeRuntime.startsWith("#!/usr/bin/env node\n"), true);
   const shimName = process.platform === "win32" ? "lervo.CMD" : "lervo";
   await access(resolve(consumerRoot, "node_modules/.bin", shimName));
+  const nodeShimName = process.platform === "win32" ? "lervo-node.CMD" : "lervo-node";
+  await access(resolve(consumerRoot, "node_modules/.bin", nodeShimName));
 }
 
 async function verifyPackageGuide(consumerRoot) {
-  const guide = await readFile(
-    resolve(consumerRoot, "node_modules/@lervo/cli/README.md"),
-    "utf8",
-  );
+  const guide = await readFile(resolve(consumerRoot, "node_modules/@lervo/cli/README.md"), "utf8");
   assert.ok(Buffer.byteLength(guide, "utf8") <= 4 * 1024);
   assert.equal(guide.startsWith("# @lervo/cli\n"), true);
   assert.deepEqual(
@@ -127,7 +126,10 @@ async function verifyPackageGuide(consumerRoot) {
   ]) {
     assert.equal(guide.includes(requiredText), true);
   }
-  assert.match(guide, /\b(?:works?|operates?|runs?) without a Hub\b|\bdo(?:es)? not require a Hub\b/u);
+  assert.match(
+    guide,
+    /\b(?:works?|operates?|runs?) without a Hub\b|\bdo(?:es)? not require a Hub\b/u,
+  );
 }
 
 async function runConsumerCli(consumerRoot, args) {
@@ -146,10 +148,7 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion) {
   assert.equal(report.defaultMode, "page");
   assert.deepEqual(report.deprecations, []);
 
-  const initialized = await runConsumerCli(
-    consumerRoot,
-    ["init", "--name", "packed-cli-smoke"],
-  );
+  const initialized = await runConsumerCli(consumerRoot, ["init", "--name", "packed-cli-smoke"]);
   assert.equal(initialized.stderr, "");
   await access(resolve(consumerRoot, ".lervo/project.yaml"));
 }

@@ -21,6 +21,9 @@ export const roleEvaluationCategories = [
   "brand_compliance",
   "design_token_usage",
   "accessibility",
+  "writing_quality",
+  "novelty",
+  "feasibility",
 ] as const;
 
 export const roleEvaluationMethods = [
@@ -146,10 +149,7 @@ export const roleEvaluationResultSchema = {
     byteCount: { type: "integer", minimum: 1, maximum: 4_194_304 },
     mediaType: {
       type: "string",
-      enum: [
-        "text/markdown; charset=utf-8",
-        "application/json; charset=utf-8",
-      ],
+      enum: ["text/markdown; charset=utf-8", "application/json; charset=utf-8"],
     },
     evaluatedAt: timestampSchema,
     checks: {

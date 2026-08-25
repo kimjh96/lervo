@@ -3,12 +3,9 @@ import { rm } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from
-  "../lib/cli-first-publication-package-metadata-candidate.mjs";
-import { readFirstPublicationActivationSources } from
-  "../lib/first-publication-activation-sources.mjs";
-import { createFirstPublicationMetadataDecision } from
-  "../lib/first-publication-metadata-decision.mjs";
+import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from "../lib/cli-first-publication-package-metadata-candidate.mjs";
+import { readFirstPublicationActivationSources } from "../lib/first-publication-activation-sources.mjs";
+import { createFirstPublicationMetadataDecision } from "../lib/first-publication-metadata-decision.mjs";
 import {
   createFirstPublicationPackageMetadataApplyPermit,
   validateFirstPublicationPackageMetadataApplyPermit,
@@ -100,10 +97,9 @@ describe("first-publication package metadata apply permit", () => {
     const { prepared, input } = await evidence();
     try {
       input.candidateResult.outputBytes = Buffer.from("{}\n");
-      assert.throws(
-        () => createFirstPublicationPackageMetadataApplyPermit(input),
-        { code: "first_publication_package_metadata_apply_permit_invalid" },
-      );
+      assert.throws(() => createFirstPublicationPackageMetadataApplyPermit(input), {
+        code: "first_publication_package_metadata_apply_permit_invalid",
+      });
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -116,10 +112,9 @@ describe("first-publication package metadata apply permit", () => {
       permit.authority.packageManifest = "replace_any_source";
       const { permitDigest: _discarded, ...body } = permit;
       permit.permitDigest = canonicalDigest(body);
-      assert.throws(
-        () => validateFirstPublicationPackageMetadataApplyPermit(permit, input),
-        { code: "first_publication_package_metadata_apply_permit_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationPackageMetadataApplyPermit(permit, input), {
+        code: "first_publication_package_metadata_apply_permit_invalid",
+      });
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }

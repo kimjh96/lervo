@@ -1,18 +1,12 @@
 import type { ContextArtifactPort } from "@lervo/context-delivery";
-import type {
-  VerificationResult,
-  VerificationSuite,
-} from "@lervo/schemas";
+import type { VerificationResult, VerificationSuite } from "@lervo/schemas";
 import {
   validateVerificationResult,
   verificationResultBytes,
   verificationSha256,
 } from "@lervo/verification-contract";
 
-import {
-  verificationCompletedSpec,
-  verificationStartedSpec,
-} from "./provider-run-events.js";
+import { verificationCompletedSpec, verificationStartedSpec } from "./provider-run-events.js";
 import {
   ManagedProviderRunError,
   type ManagedProjectVerification,
@@ -44,8 +38,9 @@ async function validateVerificationOriginal(input: {
   validateVerificationResult(input.verification.result, input.suite);
   const { result, resultArtifact } = input.verification;
   const outputArtifacts = result.commands.flatMap((command) =>
-    [command.stdoutArtifact, command.stderrArtifact]
-      .filter((artifact): artifact is VerificationOutputArtifact => artifact !== null),
+    [command.stdoutArtifact, command.stderrArtifact].filter(
+      (artifact): artifact is VerificationOutputArtifact => artifact !== null,
+    ),
   );
   await validateOutputOriginals(outputArtifacts, input.artifactStore);
   let bytes: Uint8Array;
@@ -60,8 +55,7 @@ async function validateVerificationOriginal(input: {
   }
   if (
     result.repositoryRevision !== input.repositoryRevision ||
-    resultArtifact.mediaType !==
-      "application/vnd.lervo.verification-result+json; charset=utf-8" ||
+    resultArtifact.mediaType !== "application/vnd.lervo.verification-result+json; charset=utf-8" ||
     resultArtifact.contentHash !== verificationSha256(bytes) ||
     resultArtifact.artifactId !== `art_${resultArtifact.contentHash.slice(7)}` ||
     resultArtifact.uri !== `lervo-cas://sha256/${resultArtifact.contentHash.slice(7)}` ||
@@ -110,11 +104,13 @@ export async function runManagedProjectVerifications(
 ): Promise<ManagedProjectVerification[]> {
   const results: ManagedProjectVerification[] = [];
   for (const suite of input.suites) {
-    input.append([verificationStartedSpec({
-      suite,
-      repositoryRevision: input.repositoryRevision,
-      occurredAt: input.time(),
-    })]);
+    input.append([
+      verificationStartedSpec({
+        suite,
+        repositoryRevision: input.repositoryRevision,
+        occurredAt: input.time(),
+      }),
+    ]);
     const verification = await input.verifier.verify({
       suite: structuredClone(suite),
       repositoryRoot: input.repositoryRoot,
@@ -127,11 +123,13 @@ export async function runManagedProjectVerifications(
       repositoryRevision: input.repositoryRevision,
       artifactStore: input.artifactStore,
     });
-    input.append([verificationCompletedSpec({
-      result: verification.result,
-      resultArtifactId: verification.resultArtifact.artifactId,
-      resultContentHash: verification.resultArtifact.contentHash,
-    })]);
+    input.append([
+      verificationCompletedSpec({
+        result: verification.result,
+        resultArtifactId: verification.resultArtifact.artifactId,
+        resultContentHash: verification.resultArtifact.contentHash,
+      }),
+    ]);
     results.push(structuredClone(verification));
     if (verification.result.status === "cancelled") break;
   }
@@ -145,12 +143,10 @@ export async function runRequiredProjectVerifications(
 ): Promise<ManagedProjectVerification[]> {
   const verifications = await runManagedProjectVerifications(input);
   if (verifications.some((item) => item.result.status === "cancelled")) {
-    throw new ManagedProviderRunError(
-      "cancelled",
-      "Project verification was cancelled.",
-    );
+    throw new ManagedProviderRunError("cancelled", "Project verification was cancelled.");
   }
-  const failed = verifications.length !== input.suites.length ||
+  const failed =
+    verifications.length !== input.suites.length ||
     verifications.some((item) => item.result.status !== "passed");
   if (failed && input.failureDisposition === "fail_run") {
     const failedSuiteIds = verifications

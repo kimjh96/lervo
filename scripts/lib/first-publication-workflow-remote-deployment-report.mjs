@@ -30,8 +30,12 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -100,60 +104,96 @@ export function validateFirstPublicationWorkflowRemoteDeploymentReportDocument(r
   } catch {
     fail();
   }
-  const validTarget = exactKeys(report.target, [
-    "repository", "sourceCommit", "workflowPath", "package", "environment",
-  ]) && report.target.workflowPath === remoteReleaseWorkflowPath &&
+  const validTarget =
+    exactKeys(report.target, [
+      "repository",
+      "sourceCommit",
+      "workflowPath",
+      "package",
+      "environment",
+    ]) &&
+    report.target.workflowPath === remoteReleaseWorkflowPath &&
     report.target.package === "@lervo/cli" &&
     report.target.environment === trustedPublisherEnvironment;
-  const validLocal = exactKeys(report.local, [
-    "postApplyReportDigest", "postApplyObservedAt", "workflowSha256",
-  ]) && digestPattern.test(report.local.postApplyReportDigest ?? "") &&
+  const validLocal =
+    exactKeys(report.local, ["postApplyReportDigest", "postApplyObservedAt", "workflowSha256"]) &&
+    digestPattern.test(report.local.postApplyReportDigest ?? "") &&
     digestPattern.test(report.local.workflowSha256 ?? "");
-  const validRemote = exactKeys(report.remote, [
-    "source", "observedAt", "gitBlobSha", "byteCount", "sha256",
-  ]) && report.remote.source === "github_repository_workflow" &&
+  const validRemote =
+    exactKeys(report.remote, ["source", "observedAt", "gitBlobSha", "byteCount", "sha256"]) &&
+    report.remote.source === "github_repository_workflow" &&
     blobShaPattern.test(report.remote.gitBlobSha ?? "") &&
-    Number.isSafeInteger(report.remote.byteCount) && report.remote.byteCount > 0 &&
+    Number.isSafeInteger(report.remote.byteCount) &&
+    report.remote.byteCount > 0 &&
     report.remote.byteCount <= maximumRemoteWorkflowBytes &&
     digestPattern.test(report.remote.sha256 ?? "") &&
     report.remote.sha256 === report.local.workflowSha256;
-  const validChecks = Array.isArray(report.checks) &&
-    report.checks.length === checkIds.length && report.checks.every((check, index) =>
-      exactKeys(check, ["id", "status"]) && check.id === checkIds[index] &&
-      check.status === "ready"
+  const validChecks =
+    Array.isArray(report.checks) &&
+    report.checks.length === checkIds.length &&
+    report.checks.every(
+      (check, index) =>
+        exactKeys(check, ["id", "status"]) &&
+        check.id === checkIds[index] &&
+        check.status === "ready",
     );
-  const validLimitations = exactKeys(report.limitations, [
-    "localReportAuthenticity", "sourceCommitReachability", "defaultBranch",
-    "releaseTag", "workflowExecution", "stageSubmission", "publicAvailability",
-  ]) && canonicalJson(report.limitations) === canonicalJson({
-    localReportAuthenticity: "not_verified",
-    sourceCommitReachability: "exact_commit_only",
-    defaultBranch: "not_verified",
-    releaseTag: "not_verified",
-    workflowExecution: "not_observed",
-    stageSubmission: "not_observed",
-    publicAvailability: "not_observed",
-  });
-  const validSideEffects = exactKeys(report.sideEffects, [
-    "files", "githubSettings", "workflowDispatch", "publication",
-  ]) && canonicalJson(report.sideEffects) === canonicalJson({
-    files: "not_changed",
-    githubSettings: "not_changed",
-    workflowDispatch: "not_attempted",
-    publication: "not_attempted",
-  });
+  const validLimitations =
+    exactKeys(report.limitations, [
+      "localReportAuthenticity",
+      "sourceCommitReachability",
+      "defaultBranch",
+      "releaseTag",
+      "workflowExecution",
+      "stageSubmission",
+      "publicAvailability",
+    ]) &&
+    canonicalJson(report.limitations) ===
+      canonicalJson({
+        localReportAuthenticity: "not_verified",
+        sourceCommitReachability: "exact_commit_only",
+        defaultBranch: "not_verified",
+        releaseTag: "not_verified",
+        workflowExecution: "not_observed",
+        stageSubmission: "not_observed",
+        publicAvailability: "not_observed",
+      });
+  const validSideEffects =
+    exactKeys(report.sideEffects, ["files", "githubSettings", "workflowDispatch", "publication"]) &&
+    canonicalJson(report.sideEffects) ===
+      canonicalJson({
+        files: "not_changed",
+        githubSettings: "not_changed",
+        workflowDispatch: "not_attempted",
+        publication: "not_attempted",
+      });
   if (
     !exactKeys(report, [
-      "schemaVersion", "status", "evidenceType", "target", "local", "remote",
-      "checks", "remoteSource", "limitations", "sideEffects", "evidenceDigest",
-    ]) || report.schemaVersion !== 1 || report.status !== "evidence_bound" ||
+      "schemaVersion",
+      "status",
+      "evidenceType",
+      "target",
+      "local",
+      "remote",
+      "checks",
+      "remoteSource",
+      "limitations",
+      "sideEffects",
+      "evidenceDigest",
+    ]) ||
+    report.schemaVersion !== 1 ||
+    report.status !== "evidence_bound" ||
     report.evidenceType !== "first_publication_stage_only_workflow_remote_source" ||
     report.remoteSource !== "exact_workflow_present_at_source_commit" ||
-    !validTarget || !validLocal || !validRemote || !validChecks ||
-    !validLimitations || !validSideEffects ||
+    !validTarget ||
+    !validLocal ||
+    !validRemote ||
+    !validChecks ||
+    !validLimitations ||
+    !validSideEffects ||
     !digestPattern.test(report.evidenceDigest ?? "") ||
     timestamp(report.remote.observedAt) < timestamp(report.local.postApplyObservedAt)
-  ) fail();
+  )
+    fail();
   const { evidenceDigest, ...body } = report;
   if (evidenceDigest !== canonicalDigest(body)) fail();
   return report;

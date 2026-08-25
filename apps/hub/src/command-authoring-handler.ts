@@ -42,15 +42,21 @@ export async function handleHubCommandSubmission(input: {
     authoredAt: input.authoredAt,
     request,
   });
-  sendHubJson(input.response, authored.status === "created" ? 201 : 200, {
-    schemaVersion: 1,
-    status: authored.status,
-    destinationId: input.destinationId,
-    target: authored.record.target,
-    deliveryId: authored.record.deliveryId,
-    queuedAt: authored.record.queuedAt,
-    envelope: authored.record.envelope,
-  }, input.maxResponseBytes, input.identityHeaders);
+  sendHubJson(
+    input.response,
+    authored.status === "created" ? 201 : 200,
+    {
+      schemaVersion: 1,
+      status: authored.status,
+      destinationId: input.destinationId,
+      target: authored.record.target,
+      deliveryId: authored.record.deliveryId,
+      queuedAt: authored.record.queuedAt,
+      envelope: authored.record.envelope,
+    },
+    input.maxResponseBytes,
+    input.identityHeaders,
+  );
 }
 
 export async function handleHubCommandArtifactDownload(input: {

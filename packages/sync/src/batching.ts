@@ -3,8 +3,9 @@ import { type OutboxDelivery } from "@lervo/storage-contract";
 export function partitionContiguousDeliveries(
   deliveries: readonly OutboxDelivery[],
 ): OutboxDelivery[][] {
-  const sorted = [...deliveries].sort((left, right) =>
-    left.event.seq - right.event.seq || left.event.eventId.localeCompare(right.event.eventId)
+  const sorted = [...deliveries].sort(
+    (left, right) =>
+      left.event.seq - right.event.seq || left.event.eventId.localeCompare(right.event.eventId),
   );
   const groups: OutboxDelivery[][] = [];
   for (const delivery of sorted) {

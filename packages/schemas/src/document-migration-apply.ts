@@ -8,14 +8,8 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import {
-  documentManifestSchema,
-  type DocumentManifest,
-} from "./document-manifest.js";
-import {
-  migrationCandidateIdSchema,
-  migrationPlanIdSchema,
-} from "./document-migration.js";
+import { documentManifestSchema, type DocumentManifest } from "./document-manifest.js";
+import { migrationCandidateIdSchema, migrationPlanIdSchema } from "./document-migration.js";
 
 const approvalIdSchema = {
   type: "string",
@@ -209,20 +203,15 @@ export const documentMigrationApplyReceiptSchema = {
 } as const;
 
 type ApprovalMetadata = FromSchema<typeof approvalMetadataSchema>;
-type ApproveSidecarDecisionMetadata = FromSchema<
-  typeof approveSidecarDecisionMetadataSchema
->;
+type ApproveSidecarDecisionMetadata = FromSchema<typeof approveSidecarDecisionMetadataSchema>;
 type SkipDecision = FromSchema<typeof skipDecisionSchema>;
 
 export type DocumentMigrationApprovalDecision =
-  | (ApproveSidecarDecisionMetadata & { manifest: DocumentManifest })
-  | SkipDecision;
+  (ApproveSidecarDecisionMetadata & { manifest: DocumentManifest }) | SkipDecision;
 export type DocumentMigrationApproval = ApprovalMetadata & {
   decisions: DocumentMigrationApprovalDecision[];
 };
 export type DocumentMigrationAppliedEventPayload = FromSchema<
   typeof documentMigrationAppliedEventPayloadSchema
 >;
-export type DocumentMigrationApplyReceipt = FromSchema<
-  typeof documentMigrationApplyReceiptSchema
->;
+export type DocumentMigrationApplyReceipt = FromSchema<typeof documentMigrationApplyReceiptSchema>;

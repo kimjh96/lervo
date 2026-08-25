@@ -18,13 +18,18 @@ function fail(code = "release_stage_publication_record_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function validTimestamp(value) {
-  return typeof value === "string" && timestampPattern.test(value) &&
-    Number.isFinite(Date.parse(value));
+  return (
+    typeof value === "string" && timestampPattern.test(value) && Number.isFinite(Date.parse(value))
+  );
 }
 
 function bodyWithoutDigest(record, digestName) {
@@ -37,26 +42,38 @@ function validateStageCoordinates(target, artifact) {
   if (
     !exactKeys(target, ["registry", "package", "version", "distTag", "access"]) ||
     target.registry !== "https://registry.npmjs.org/" ||
-    target.package !== "@lervo/cli" || !/^\d+\.\d+\.\d+$/u.test(target.version ?? "") ||
-    !["latest", "next"].includes(target.distTag) || target.access !== "public" ||
+    target.package !== "@lervo/cli" ||
+    !/^\d+\.\d+\.\d+$/u.test(target.version ?? "") ||
+    !["latest", "next"].includes(target.distTag) ||
+    target.access !== "public" ||
     !exactKeys(artifact, ["file", "sha256", "registryIntegrity", "registryShasum"]) ||
     artifact.file !== `lervo-cli-${target.version}.tgz` ||
     !sha256Pattern.test(artifact.sha256 ?? "") ||
     !sha512IntegrityPattern.test(artifact.registryIntegrity ?? "") ||
     !sha1Pattern.test(artifact.registryShasum ?? "")
-  ) fail("release_stage_publication_record_invalid");
+  )
+    fail("release_stage_publication_record_invalid");
 }
 
 export function validateReleaseStageReceipt(receipt, authorization) {
   validateReleasePublicationAuthorization(authorization);
   if (
     !exactKeys(receipt, [
-      "schemaVersion", "status", "operation", "target", "artifact", "evidence",
-    ]) || receipt.schemaVersion !== 1 || receipt.status !== "stage_submission_accepted" ||
-    receipt.operation !== "npm_stage_publish" || receipt.evidence !== "npm_cli_exit_zero" ||
+      "schemaVersion",
+      "status",
+      "operation",
+      "target",
+      "artifact",
+      "evidence",
+    ]) ||
+    receipt.schemaVersion !== 1 ||
+    receipt.status !== "stage_submission_accepted" ||
+    receipt.operation !== "npm_stage_publish" ||
+    receipt.evidence !== "npm_cli_exit_zero" ||
     canonicalJson(receipt.target) !== canonicalJson(authorization.target) ||
     canonicalJson(receipt.artifact) !== canonicalJson(authorization.artifact)
-  ) fail("release_stage_publication_receipt_invalid");
+  )
+    fail("release_stage_publication_receipt_invalid");
   return receipt;
 }
 
@@ -79,16 +96,26 @@ export function createReleaseStageAttempt({ authorization, reservedAt }) {
 export function validateReleaseStageAttempt(attempt) {
   if (
     !exactKeys(attempt, [
-      "schemaVersion", "state", "operation", "authorizationDigest", "target", "artifact",
-      "reservedAt", "retry", "attemptDigest",
-    ]) || attempt.schemaVersion !== 1 || attempt.state !== "reserved" ||
+      "schemaVersion",
+      "state",
+      "operation",
+      "authorizationDigest",
+      "target",
+      "artifact",
+      "reservedAt",
+      "retry",
+      "attemptDigest",
+    ]) ||
+    attempt.schemaVersion !== 1 ||
+    attempt.state !== "reserved" ||
     attempt.operation !== "npm_stage_publish" ||
     !digestPattern.test(attempt.authorizationDigest ?? "") ||
     !validTimestamp(attempt.reservedAt) ||
     attempt.retry !== "forbidden_without_reconciliation" ||
     !digestPattern.test(attempt.attemptDigest ?? "") ||
     attempt.attemptDigest !== canonicalDigest(bodyWithoutDigest(attempt, "attemptDigest"))
-  ) fail("release_stage_publication_attempt_invalid");
+  )
+    fail("release_stage_publication_attempt_invalid");
   validateStageCoordinates(attempt.target, attempt.artifact);
   return attempt;
 }
@@ -105,7 +132,8 @@ export function createReleaseStageTerminal({
   if (
     attempt.authorizationDigest !== authorization.authorizationDigest ||
     !validTimestamp(completedAt)
-  ) fail();
+  )
+    fail();
   let body;
   if (state === "staged") {
     validateReleaseStageReceipt(receipt, authorization);
@@ -146,31 +174,38 @@ export function createReleaseStageTerminal({
 }
 
 export function validateReleaseStageTerminal(terminal) {
-  const common = [
-    "schemaVersion", "state", "attemptDigest", "authorizationDigest", "completedAt",
-  ];
-  const validShape = terminal?.state === "staged"
-    ? exactKeys(terminal, [
-      ...common, "receipt", "review", "publicAvailability", "retry", "terminalDigest",
-    ]) && terminal.review === "required_with_2fa" &&
-      terminal.publicAvailability === "not_claimed" && terminal.retry === "forbidden"
-    : terminal?.state === "stage_outcome_unknown"
+  const common = ["schemaVersion", "state", "attemptDigest", "authorizationDigest", "completedAt"];
+  const validShape =
+    terminal?.state === "staged"
       ? exactKeys(terminal, [
-        ...common, "reconciliation", "retry", "terminalDigest",
-      ]) && terminal.reconciliation === "authenticated_npm_stage_review_required" &&
+          ...common,
+          "receipt",
+          "review",
+          "publicAvailability",
+          "retry",
+          "terminalDigest",
+        ]) &&
+        terminal.review === "required_with_2fa" &&
+        terminal.publicAvailability === "not_claimed" &&
         terminal.retry === "forbidden"
-      : terminal?.state === "aborted_before_stage"
-        ? exactKeys(terminal, [...common, "retry", "terminalDigest"]) &&
-          terminal.retry === "new_authorization_required"
-        : false;
+      : terminal?.state === "stage_outcome_unknown"
+        ? exactKeys(terminal, [...common, "reconciliation", "retry", "terminalDigest"]) &&
+          terminal.reconciliation === "authenticated_npm_stage_review_required" &&
+          terminal.retry === "forbidden"
+        : terminal?.state === "aborted_before_stage"
+          ? exactKeys(terminal, [...common, "retry", "terminalDigest"]) &&
+            terminal.retry === "new_authorization_required"
+          : false;
   if (
-    !validShape || terminal.schemaVersion !== 1 ||
+    !validShape ||
+    terminal.schemaVersion !== 1 ||
     !digestPattern.test(terminal.attemptDigest ?? "") ||
     !digestPattern.test(terminal.authorizationDigest ?? "") ||
     !validTimestamp(terminal.completedAt) ||
     !digestPattern.test(terminal.terminalDigest ?? "") ||
     terminal.terminalDigest !== canonicalDigest(bodyWithoutDigest(terminal, "terminalDigest"))
-  ) fail("release_stage_publication_terminal_invalid");
+  )
+    fail("release_stage_publication_terminal_invalid");
   return terminal;
 }
 
@@ -183,13 +218,20 @@ export function validateReleaseStageResultRecords({ attempt, terminal }) {
     Date.parse(terminal.completedAt) < Date.parse(attempt.reservedAt) ||
     terminal.state !== "staged" ||
     !exactKeys(terminal.receipt, [
-      "schemaVersion", "status", "operation", "target", "artifact", "evidence",
-    ]) || terminal.receipt.schemaVersion !== 1 ||
+      "schemaVersion",
+      "status",
+      "operation",
+      "target",
+      "artifact",
+      "evidence",
+    ]) ||
+    terminal.receipt.schemaVersion !== 1 ||
     terminal.receipt.status !== "stage_submission_accepted" ||
     terminal.receipt.operation !== "npm_stage_publish" ||
     terminal.receipt.evidence !== "npm_cli_exit_zero" ||
     canonicalJson(terminal.receipt.target) !== canonicalJson(attempt.target) ||
     canonicalJson(terminal.receipt.artifact) !== canonicalJson(attempt.artifact)
-  ) fail("release_stage_publication_result_invalid");
+  )
+    fail("release_stage_publication_result_invalid");
   return { attempt, terminal };
 }

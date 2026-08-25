@@ -1,11 +1,7 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import {
-  createDoctorReport,
-  type DoctorReport,
-  type DoctorScope,
-} from "@lervo/diagnostics";
+import { createDoctorReport, type DoctorReport, type DoctorScope } from "@lervo/diagnostics";
 import { loadProjectManifest } from "@lervo/project";
 
 import {
@@ -26,21 +22,36 @@ export const doctorUsage =
 
 function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string {
   switch (checkId) {
-    case "event_chain": return "event source";
-    case "knowledge_candidates": return "knowledge candidate evidence";
-    case "knowledge_reviews": return "knowledge review evidence";
-    case "verified_knowledge": return "verified knowledge evidence";
-    case "knowledge_staleness": return "knowledge staleness evidence";
-    case "document_registry": return "document registry";
-    case "document_sources": return "document source files";
-    case "skill_packages": return "skill packages";
-    case "skill_lock": return "skill resolution lock";
-    case "provider_codex_runtime": return "Codex executable";
-    case "provider_claude_runtime": return "Claude executable";
-    case "search_engine_selection": return "search engine selection";
-    case "search_rollout_policies": return "search rollout policies";
-    case "search_rollout_reviews": return "search rollout reviews";
-    case "search_rollout_actions": return "search rollout actions";
+    case "event_chain":
+      return "event source";
+    case "knowledge_candidates":
+      return "knowledge candidate evidence";
+    case "knowledge_reviews":
+      return "knowledge review evidence";
+    case "verified_knowledge":
+      return "verified knowledge evidence";
+    case "knowledge_staleness":
+      return "knowledge staleness evidence";
+    case "document_registry":
+      return "document registry";
+    case "document_sources":
+      return "document source files";
+    case "skill_packages":
+      return "skill packages";
+    case "skill_lock":
+      return "skill resolution lock";
+    case "provider_codex_runtime":
+      return "Codex executable";
+    case "provider_claude_runtime":
+      return "Claude executable";
+    case "search_engine_selection":
+      return "search engine selection";
+    case "search_rollout_policies":
+      return "search rollout policies";
+    case "search_rollout_reviews":
+      return "search rollout reviews";
+    case "search_rollout_actions":
+      return "search rollout actions";
   }
 }
 
@@ -52,9 +63,10 @@ function statusLabel(status: DoctorReport["checks"][number]["status"]): string {
 
 export function formatDoctorReport(report: DoctorReport): string {
   const limitedScopeLabel = doctorScopeLabel(report.scope);
-  const reportLabel = report.scope === "all"
-    ? "Lervo diagnostic report"
-    : `Lervo ${limitedScopeLabel} diagnostic report`;
+  const reportLabel =
+    report.scope === "all"
+      ? "Lervo diagnostic report"
+      : `Lervo ${limitedScopeLabel} diagnostic report`;
   const lines = [
     `${reportLabel}: ${
       report.status === "healthy"
@@ -64,18 +76,24 @@ export function formatDoctorReport(report: DoctorReport): string {
           : "some items could not be determined"
     }`,
     ...(report.scope !== "all"
-      ? [`  Limited scope: only ${limitedScopeLabel} items were checked; this is not the overall project status.`]
+      ? [
+          `  Limited scope: only ${limitedScopeLabel} items were checked; this is not the overall project status.`,
+        ]
       : []),
-    ...report.checks.map((check) =>
-      `  ${statusLabel(check.status)}  ${checkLabel(check.checkId)} (${check.observedCount})${
-        check.version === undefined ? "" : ` · ${check.version}`
-      }`),
+    ...report.checks.map(
+      (check) =>
+        `  ${statusLabel(check.status)}  ${checkLabel(check.checkId)} (${check.observedCount})${
+          check.version === undefined ? "" : ` · ${check.version}`
+        }`,
+    ),
   ];
   if (report.issues.length > 0) {
     lines.push(
       "Items to review:",
-      ...report.issues.map((item) =>
-        `  ${item.code}${item.eventId === null ? "" : ` · ${item.eventId}`}: ${item.message}`),
+      ...report.issues.map(
+        (item) =>
+          `  ${item.code}${item.eventId === null ? "" : ` · ${item.eventId}`}: ${item.message}`,
+      ),
     );
   }
   if (report.recoveryGuidance.length > 0) {
@@ -135,9 +153,11 @@ export async function runDoctorCommand(
         storage,
         deliberationId: parsed.values.deliberation,
       });
-      io.stdout(parsed.values.json
-        ? `${JSON.stringify(inspection, null, 2)}\n`
-        : formatDeliberationInspection(inspection));
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify(inspection, null, 2)}\n`
+          : formatDeliberationInspection(inspection),
+      );
       return inspection.sourceStatus === "consistent" ? 0 : 1;
     }
     let report: DoctorReport;
@@ -155,13 +175,14 @@ export async function runDoctorCommand(
       });
     } else {
       storage = await services.openProjectStorage(repositoryRoot);
-      const inspections = scope === "knowledge"
-        ? []
-        : await services.inspectDoctorEnvironment({
-          repositoryRoot: storage.paths.repositoryRoot,
-          projectId: storage.manifest.projectId,
-          scope,
-        });
+      const inspections =
+        scope === "knowledge"
+          ? []
+          : await services.inspectDoctorEnvironment({
+              repositoryRoot: storage.paths.repositoryRoot,
+              projectId: storage.manifest.projectId,
+              scope,
+            });
       report = await createDoctorReport({
         projectId: storage.manifest.projectId,
         events: storage.events,
@@ -170,17 +191,20 @@ export async function runDoctorCommand(
         scope,
       });
     }
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(report, null, 2)}\n`
-      : formatDoctorReport(report));
+    io.stdout(
+      parsed.values.json ? `${JSON.stringify(report, null, 2)}\n` : formatDoctorReport(report),
+    );
     return report.status === "healthy" ? 0 : 1;
   } catch (error) {
-    const code = typeof (error as { code?: unknown })?.code === "string"
-      ? (error as { code: string }).code
-      : "doctor_failed";
-    io.stderr(`Could not diagnose Lervo state. (${code}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    const code =
+      typeof (error as { code?: unknown })?.code === "string"
+        ? (error as { code: string }).code
+        : "doctor_failed";
+    io.stderr(
+      `Could not diagnose Lervo state. (${code}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   } finally {
     await storage?.close().catch(() => undefined);

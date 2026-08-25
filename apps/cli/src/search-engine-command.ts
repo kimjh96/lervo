@@ -12,6 +12,8 @@ export async function runSearchEngineCommand(args: string[], io: CliIo): Promise
   if (args[0] === "refresh") return runSearchEngineRefreshCommand(args.slice(1), io);
   if (args[0] === "rollback") return runSearchEngineRollbackCommand(args.slice(1), io);
   if (args[0] === "status") return runSearchEngineStatusCommand(args.slice(1), io);
-  io.stderr(`The search engine action must be policy, activate, refresh, rollback, or status.\n${searchUsage}\n`);
+  io.stderr(
+    `The search engine action must be policy, activate, refresh, rollback, or status.\n${searchUsage}\n`,
+  );
   return 1;
 }

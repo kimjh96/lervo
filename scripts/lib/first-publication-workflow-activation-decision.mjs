@@ -21,8 +21,12 @@ function fail(code = "first_publication_workflow_activation_decision_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function milliseconds(value) {
@@ -69,27 +73,31 @@ export function createFirstPublicationWorkflowActivationDecision(input) {
   return { ...decision, decisionDigest: canonicalDigest(decision) };
 }
 
-export function validateFirstPublicationWorkflowActivationDecision(
-  decision,
-  { checkedAt } = {},
-) {
+export function validateFirstPublicationWorkflowActivationDecision(decision, { checkedAt } = {}) {
   const value = body(decision ?? {});
   const decidedAt = milliseconds(decision?.decidedAt);
   const expiresAt = milliseconds(decision?.expiresAt);
   if (
     !exactKeys(decision, [...Object.keys(value), "decisionDigest"]) ||
-    decision.schemaVersion !== 1 || !decisionIdPattern.test(decision.decisionId ?? "") ||
+    decision.schemaVersion !== 1 ||
+    !decisionIdPattern.test(decision.decisionId ?? "") ||
     decision.decisionType !== "first_publication_stage_only_workflow_activation" ||
     decision.actorKind !== "human_operator" ||
     decision.decision !== "approve_exact_workflow_activation" ||
     !exactKeys(decision.binding, [
-      "candidateDigest", "packageSourceSha256", "workflowSourceSha256", "outputSha256",
-    ]) || Object.values(decision.binding).some((digest) => !digestPattern.test(digest ?? "")) ||
+      "candidateDigest",
+      "packageSourceSha256",
+      "workflowSourceSha256",
+      "outputSha256",
+    ]) ||
+    Object.values(decision.binding).some((digest) => !digestPattern.test(digest ?? "")) ||
     canonicalJson(decision.confirmations) !== canonicalJson(workflowActivationConfirmations) ||
-    expiresAt <= decidedAt || expiresAt - decidedAt > maximumLifetimeMilliseconds ||
+    expiresAt <= decidedAt ||
+    expiresAt - decidedAt > maximumLifetimeMilliseconds ||
     !digestPattern.test(decision.decisionDigest ?? "") ||
     decision.decisionDigest !== canonicalDigest(value)
-  ) fail();
+  )
+    fail();
   if (checkedAt !== undefined) {
     const checked = milliseconds(checkedAt);
     if (checked < decidedAt || checked >= expiresAt) {

@@ -30,12 +30,18 @@ export async function runSearchEngineStatusCommand(args: string[], io: CliIo): P
       projectId: manifest.projectId,
       registry: searchCandidateRegistry,
     });
-    io.stdout(parsed.values.json ? `${JSON.stringify(status, null, 2)}\n` : formatSearchEngineStatus(status));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(status, null, 2)}\n`
+        : formatSearchEngineStatus(status),
+    );
     return status.resolverState === "ready" ? 0 : 1;
   } catch (error) {
-    io.stderr(`Could not read search engine selection status. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not read search engine selection status. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

@@ -1,7 +1,6 @@
 import { isAbsolute } from "node:path";
 
-import { readFirstPublicationContractFiles } from
-  "./first-publication-contract-files.mjs";
+import { readFirstPublicationContractFiles } from "./first-publication-contract-files.mjs";
 import {
   createFirstPublicationExecutionPlan,
   validateFirstPublicationExecutionPlan,
@@ -16,8 +15,11 @@ function fail() {
 }
 
 export async function createCliFirstPublicationExecutionPlan(options, dependencies = {}) {
-  if (!isAbsolute(options?.publicationAuthorizationPath ?? "") ||
-      !isAbsolute(options?.bootstrapPath ?? "")) fail();
+  if (
+    !isAbsolute(options?.publicationAuthorizationPath ?? "") ||
+    !isAbsolute(options?.bootstrapPath ?? "")
+  )
+    fail();
   const readSources = dependencies.readSources ?? readFirstPublicationContractFiles;
   const createPlan = dependencies.createPlan ?? createFirstPublicationExecutionPlan;
   const sources = await readSources(options);

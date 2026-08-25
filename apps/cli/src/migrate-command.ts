@@ -9,9 +9,10 @@ import {
 
 import type { CliIo } from "./types.js";
 import { runKnowledgeMigration } from "./knowledge-command.js";
+import { runCapabilityCommand } from "./capability-command.js";
 
 export const migrateUsage =
-  "  lervo migrate identity [--root <path>] [--apply <plan-id>] [--json]\n  lervo migrate knowledge [--root <path>] [--continuation-source <relative-markdown-path>] [--provider <codex|claude>|--candidate <candidate-id>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--approve-item ...] [--json]";
+  "  lervo migrate identity [--root <path>] [--apply <plan-id>] [--json]\n  lervo migrate capabilities [--root <path>] [--apply --approval <plan-id>] [--json]\n  lervo migrate knowledge [--root <path>] [--continuation-source <relative-markdown-path>] [--provider <codex|claude>|--candidate <candidate-id>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--approve-item ...] [--json]";
 
 export function formatIdentityMigrationPlan(plan: IdentityMigrationPlan): string {
   const lines = [
@@ -24,13 +25,16 @@ export function formatIdentityMigrationPlan(plan: IdentityMigrationPlan): string
       `Events to preserve: ${plan.preservedEventCount}`,
       `CAS objects verified: ${plan.verifiedCasObjectCount}`,
       ...(plan.documentDisposition === "archive_previous_metadata"
-        ? ["Document metadata using the previous marker will be archived byte-for-byte and the active registry will remain empty."]
+        ? [
+            "Document metadata using the previous marker will be archived byte-for-byte and the active registry will remain empty.",
+          ]
         : []),
       "No files have been changed.",
       `Run again with --apply ${plan.planId} to apply this plan.`,
     );
   } else {
-    for (const item of plan.blockers) lines.push(`  review required [${item.code}] ${item.message}`);
+    for (const item of plan.blockers)
+      lines.push(`  review required [${item.code}] ${item.message}`);
   }
   return `${lines.join("\n")}\n`;
 }
@@ -38,6 +42,9 @@ export function formatIdentityMigrationPlan(plan: IdentityMigrationPlan): string
 export async function runMigrateCommand(args: string[], io: CliIo): Promise<number> {
   if (args[0] === "knowledge") {
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "migrate" });
+  }
+  if (args[0] === "capabilities" || args[0] === "capability") {
+    return runCapabilityCommand(["migrate", ...args.slice(1)], io);
   }
   if (args[0] !== "identity") {
     io.stderr(`Specify a supported migration type.\n${migrateUsage}\n`);
@@ -69,11 +76,15 @@ export async function runMigrateCommand(args: string[], io: CliIo): Promise<numb
   try {
     const plan = await createIdentityMigrationPlan(resolve(io.cwd, values.root ?? "."));
     if (values.apply === undefined) {
-      io.stdout(values.json ? `${JSON.stringify(plan, null, 2)}\n` : formatIdentityMigrationPlan(plan));
+      io.stdout(
+        values.json ? `${JSON.stringify(plan, null, 2)}\n` : formatIdentityMigrationPlan(plan),
+      );
       return plan.status === "ready" ? 0 : 1;
     }
     if (values.apply !== plan.planId) {
-      io.stderr("The requested plan ID does not match the current read-only plan. Review the plan again.\n");
+      io.stderr(
+        "The requested plan ID does not match the current read-only plan. Review the plan again.\n",
+      );
       return 1;
     }
     const receipt = await applyIdentityMigration(plan);

@@ -5,11 +5,8 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import {
-  executeFirstPublicationBootstrap,
-} from "../lib/first-publication-execution.mjs";
-import { validateFirstPublicationExecutionReceipt } from
-  "../lib/first-publication-execution-receipt.mjs";
+import { executeFirstPublicationBootstrap } from "../lib/first-publication-execution.mjs";
+import { validateFirstPublicationExecutionReceipt } from "../lib/first-publication-execution-receipt.mjs";
 import {
   createFirstPublicationTransitionReport,
   stageOnlyWorkflowSteps,
@@ -75,37 +72,38 @@ async function executeFixture({ storeOverrides, publish, contents = tarballConte
   const events = [];
   await writeFile(resolve(releaseDirectory, source.artifact.file), contents);
   try {
-    const receipt = await executeFirstPublicationBootstrap({
-      bootstrap: source.bootstrap,
-      armingAuthorization: source.armingAuthorization,
-      publicationAuthorization: source.publicationAuthorization,
-      releaseDirectory,
-    }, {
-      reservationStore: memoryStore(events, storeOverrides),
-      observePackage: async () => {
-        events.push("observe");
-        return registryMissing();
+    const receipt = await executeFirstPublicationBootstrap(
+      {
+        bootstrap: source.bootstrap,
+        armingAuthorization: source.armingAuthorization,
+        publicationAuthorization: source.publicationAuthorization,
+        releaseDirectory,
       },
-      publish: publish ?? (async ({ target, artifact }) => {
-        events.push("publish");
-        return {
-          registry: target.registry,
-          package: target.package,
-          version: target.version,
-          distTag: target.distTag,
-          registryIntegrity: artifact.registryIntegrity,
-          registryShasum: artifact.registryShasum,
-        };
-      }),
-      clock: (() => {
-        const values = [
-          "2026-08-21T03:00:45Z",
-          "2026-08-21T03:01:00Z",
-          "2026-08-21T03:02:00Z",
-        ];
-        return () => values.shift();
-      })(),
-    });
+      {
+        reservationStore: memoryStore(events, storeOverrides),
+        observePackage: async () => {
+          events.push("observe");
+          return registryMissing();
+        },
+        publish:
+          publish ??
+          (async ({ target, artifact }) => {
+            events.push("publish");
+            return {
+              registry: target.registry,
+              package: target.package,
+              version: target.version,
+              distTag: target.distTag,
+              registryIntegrity: artifact.registryIntegrity,
+              registryShasum: artifact.registryShasum,
+            };
+          }),
+        clock: (() => {
+          const values = ["2026-08-21T03:00:45Z", "2026-08-21T03:01:00Z", "2026-08-21T03:02:00Z"];
+          return () => values.shift();
+        })(),
+      },
+    );
     return { ...source, receipt, events };
   } finally {
     await rm(releaseDirectory, { recursive: true, force: true });
@@ -202,35 +200,46 @@ describe("first-publication execution", () => {
     delete legacy.reservation.armingAuthorizationDigest;
     const { executionReceiptDigest: _legacyDigest, ...legacyBody } = legacy;
     legacy.executionReceiptDigest = canonicalDigest(legacyBody);
-    assert.throws(() => validateFirstPublicationExecutionReceipt(legacy, {
-      bootstrap: executed.bootstrap,
-      armingAuthorization: executed.armingAuthorization,
-      publicationAuthorization: executed.publicationAuthorization,
-    }), { code: "first_publication_execution_receipt_invalid" });
+    assert.throws(
+      () =>
+        validateFirstPublicationExecutionReceipt(legacy, {
+          bootstrap: executed.bootstrap,
+          armingAuthorization: executed.armingAuthorization,
+          publicationAuthorization: executed.publicationAuthorization,
+        }),
+      { code: "first_publication_execution_receipt_invalid" },
+    );
   });
 
   it("does not reserve or publish when package absence is not confirmed", async () => {
     const source = fixture();
     let writes = 0;
     await assert.rejects(
-      executeFirstPublicationBootstrap({
-        bootstrap: source.bootstrap,
-        armingAuthorization: source.armingAuthorization,
-        publicationAuthorization: source.publicationAuthorization,
-        releaseDirectory: "/release",
-      }, {
-        reservationStore: memoryStore([], {
-          reserve: async () => { writes += 1; },
-        }),
-        observePackage: async () => ({
-          schemaVersion: 1,
-          source: "npm_public_registry",
-          state: "existing",
-          package: "@lervo/cli",
-        }),
-        publish: async () => { writes += 1; },
-        clock: () => "2026-08-21T03:01:00Z",
-      }),
+      executeFirstPublicationBootstrap(
+        {
+          bootstrap: source.bootstrap,
+          armingAuthorization: source.armingAuthorization,
+          publicationAuthorization: source.publicationAuthorization,
+          releaseDirectory: "/release",
+        },
+        {
+          reservationStore: memoryStore([], {
+            reserve: async () => {
+              writes += 1;
+            },
+          }),
+          observePackage: async () => ({
+            schemaVersion: 1,
+            source: "npm_public_registry",
+            state: "existing",
+            package: "@lervo/cli",
+          }),
+          publish: async () => {
+            writes += 1;
+          },
+          clock: () => "2026-08-21T03:01:00Z",
+        },
+      ),
       { code: "first_publication_package_not_available" },
     );
     assert.equal(writes, 0);
@@ -240,8 +249,14 @@ describe("first-publication execution", () => {
     let publishCalls = 0;
     await assert.rejects(
       executeFixture({
-        storeOverrides: { reserve: async () => { throw new Error("already reserved"); } },
-        publish: async () => { publishCalls += 1; },
+        storeOverrides: {
+          reserve: async () => {
+            throw new Error("already reserved");
+          },
+        },
+        publish: async () => {
+          publishCalls += 1;
+        },
       }),
       { code: "first_publication_reservation_failed" },
     );
@@ -280,7 +295,9 @@ describe("first-publication execution", () => {
             return unknown;
           },
         },
-        publish: async () => { throw new Error("connection ended after upload"); },
+        publish: async () => {
+          throw new Error("connection ended after upload");
+        },
       }),
       { code: "first_publication_outcome_unknown" },
     );
@@ -368,40 +385,41 @@ describe("first-publication stage-only transition", () => {
     const executed = await executeFixture();
     const broadNpm = transitionInput(executed);
     broadNpm.npmObservation.permissions = ["createPackage", "createStagedPackage"];
-    assert.deepEqual(
-      createFirstPublicationTransitionReport(broadNpm).checks[2].reasons,
-      ["npm_publisher_permission_mismatch"],
-    );
+    assert.deepEqual(createFirstPublicationTransitionReport(broadNpm).checks[2].reasons, [
+      "npm_publisher_permission_mismatch",
+    ]);
     assert.throws(
-      () => createFirstPublicationTransitionReceipt({
-        ...broadNpm,
-        completedAt: broadNpm.observedAt,
-      }),
+      () =>
+        createFirstPublicationTransitionReceipt({
+          ...broadNpm,
+          completedAt: broadNpm.observedAt,
+        }),
       { code: "first_publication_transition_not_ready" },
     );
 
     const direct = transitionInput(executed);
     direct.workflow.jobs["publish-cli"].steps.push({ run: "npm publish package.tgz" });
     assert.ok(
-      createFirstPublicationTransitionReport(direct).checks[1].reasons
-        .includes("direct_publish_command_present"),
+      createFirstPublicationTransitionReport(direct).checks[1].reasons.includes(
+        "direct_publish_command_present",
+      ),
     );
 
     const missingResult = transitionInput(executed);
-    missingResult.workflow.jobs["publish-cli"].steps =
-      missingResult.workflow.jobs["publish-cli"].steps.filter(({ name }) =>
-        name !== "Upload stage publication result");
+    missingResult.workflow.jobs["publish-cli"].steps = missingResult.workflow.jobs[
+      "publish-cli"
+    ].steps.filter(({ name }) => name !== "Upload stage publication result");
     assert.ok(
-      createFirstPublicationTransitionReport(missingResult).checks[1].reasons
-        .includes("stage_result_upload_invalid"),
+      createFirstPublicationTransitionReport(missingResult).checks[1].reasons.includes(
+        "stage_result_upload_invalid",
+      ),
     );
 
     const selfReview = transitionInput(executed);
     selfReview.githubObservation.preventSelfReview = false;
-    assert.deepEqual(
-      createFirstPublicationTransitionReport(selfReview).checks[3].reasons,
-      ["github_self_review_allowed"],
-    );
+    assert.deepEqual(createFirstPublicationTransitionReport(selfReview).checks[3].reasons, [
+      "github_self_review_allowed",
+    ]);
   });
 
   it("rejects a redigested completion that was not derived from current evidence", async () => {
@@ -415,16 +433,17 @@ describe("first-publication stage-only transition", () => {
     const { transitionReceiptDigest: _oldDigest, ...body } = receipt;
     receipt.transitionReceiptDigest = canonicalDigest(body);
     assert.throws(
-      () => validateFirstPublicationTransitionReceipt(receipt, {
-        bootstrap: input.bootstrap,
-        armingAuthorization: input.armingAuthorization,
-        publicationAuthorization: input.publicationAuthorization,
-        publicationEvidence: input.publicationEvidence,
-        publicReleaseObservation: input.publicReleaseObservation,
-        workflow: input.workflow,
-        npmObservation: input.npmObservation,
-        githubObservation: input.githubObservation,
-      }),
+      () =>
+        validateFirstPublicationTransitionReceipt(receipt, {
+          bootstrap: input.bootstrap,
+          armingAuthorization: input.armingAuthorization,
+          publicationAuthorization: input.publicationAuthorization,
+          publicationEvidence: input.publicationEvidence,
+          publicReleaseObservation: input.publicReleaseObservation,
+          workflow: input.workflow,
+          npmObservation: input.npmObservation,
+          githubObservation: input.githubObservation,
+        }),
       { code: "first_publication_transition_receipt_invalid" },
     );
   });

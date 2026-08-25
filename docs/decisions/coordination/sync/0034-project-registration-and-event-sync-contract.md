@@ -11,7 +11,7 @@ The SQLite outbox atomically enqueues events and manages leases, retries, and ac
 
 ### Identity and mutable manifest
 
-- Registration includes the complete `ProjectManifest`, identity hash, manifest hash, destination, request time, and sync policy. It includes no repository source or credentials.
+- Registration includes the complete `ProjectManifest`, identity hash, manifest hash, destination, request time, and sync policy, but no repository source or credentials.
 - Require `hubSyncEnabled=true` and `eventPayloadMode=allowlist`; artifact transfer is `none`.
 - Identity hashes `schemaVersion`, `projectId`, and `createdAt`. The registration ID is the full canonical SHA-256 of destination plus identity.
 - Name or policy changes update the same identity. A different creation identity at the same coordinates conflicts.
@@ -44,7 +44,7 @@ The Node accepts only an acknowledgement matching every coordinate. It may ackno
 | `invalid_acknowledgement` | The response proves neither request nor counts; do not acknowledge local leases. |
 | `invalid_sync_state` | Stored registration, events, and cursor disagree; produce no response. |
 
-Add no local event. Emitting `sync.acknowledged` on the same outbound chain would recursively create sync work; outbox state remains the local receipt until a local-only stream or exclusion rule exists. Failures contain machine codes, not manifests or payloads.
+Add no local event. Emitting `sync.acknowledged` on the same outbound chain would recursively create sync work; the outbox remains the local receipt until a local-only stream or exclusion rule exists. Failures contain machine codes, not manifests or payloads.
 
 Fixtures cover registration isolation, update, and disablement; reverse batch arrival and later cursor advancement; exact duplicate replay; project, sequence, hash, range, and acknowledgement tampering; and allowlist rejection.
 

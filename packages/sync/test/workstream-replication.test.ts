@@ -1,7 +1,4 @@
-import type {
-  WorkstreamReplicationPublishRequest,
-  WorkstreamSnapshot,
-} from "@lervo/schemas";
+import type { WorkstreamReplicationPublishRequest, WorkstreamSnapshot } from "@lervo/schemas";
 import { createProjectRegistrationRequest } from "@lervo/sync-contract";
 import { describe, expect, it, vi } from "vitest";
 
@@ -32,7 +29,12 @@ function snapshot(revision: number): WorkstreamSnapshot {
     references: [],
     pendingDecisions: [],
     pendingApprovals: [],
-    origin: { kind: "created", sourceArtifactId: null, sourceContentHash: null, sourcePathDigest: null },
+    origin: {
+      kind: "created",
+      sourceArtifactId: null,
+      sourceContentHash: null,
+      sourcePathDigest: null,
+    },
     updatedAt: `2026-08-24T00:00:0${revision}.000Z`,
   };
 }
@@ -55,7 +57,9 @@ function head(value: WorkstreamSnapshot, hash: string, previous: string | null) 
   };
 }
 
-function local(chain: LocalWorkstreamRevision[]): WorkstreamReplicationLocalPort & { importCurrent: ReturnType<typeof vi.fn> } {
+function local(
+  chain: LocalWorkstreamRevision[],
+): WorkstreamReplicationLocalPort & { importCurrent: ReturnType<typeof vi.fn> } {
   return {
     readRevisionChain: async () => structuredClone(chain),
     importCurrent: vi.fn(async () => undefined),
@@ -64,34 +68,44 @@ function local(chain: LocalWorkstreamRevision[]): WorkstreamReplicationLocalPort
 
 describe("workstream replication cycle", () => {
   it("imports a newer unique head after publishing local ancestry", async () => {
-    const registration = createProjectRegistrationRequest({ manifest, destinationId, requestedAt: "2026-08-24T00:00:00.000Z" });
+    const registration = createProjectRegistrationRequest({
+      manifest,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
     const first = snapshot(1);
     const second = snapshot(2);
-    const state = local([{ snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null }]);
+    const state = local([
+      { snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null },
+    ]);
     const transport: AuthenticatedWorkstreamHubTransport = {
-      publishWorkstream: async (request: WorkstreamReplicationPublishRequest) => response({
-        schemaVersion: 1,
-        status: "duplicate",
-        projectId: request.projectId,
-        repositoryIdentityHash: request.repositoryIdentityHash,
-        heads: [head(second, secondHash, firstHash)],
-      }),
-      readWorkstream: async () => response({
-        schemaVersion: 1,
-        status: "current",
-        projectId: registration.project.projectId,
-        repositoryIdentityHash: registration.projectIdentityHash,
-        heads: [head(second, secondHash, firstHash)],
-        snapshot: second,
-      }),
+      publishWorkstream: async (request: WorkstreamReplicationPublishRequest) =>
+        response({
+          schemaVersion: 1,
+          status: "duplicate",
+          projectId: request.projectId,
+          repositoryIdentityHash: request.repositoryIdentityHash,
+          heads: [head(second, secondHash, firstHash)],
+        }),
+      readWorkstream: async () =>
+        response({
+          schemaVersion: 1,
+          status: "current",
+          projectId: registration.project.projectId,
+          repositoryIdentityHash: registration.projectIdentityHash,
+          heads: [head(second, secondHash, firstHash)],
+          snapshot: second,
+        }),
     };
-    await expect(runWorkstreamReplicationCycle({
-      local: state,
-      transport,
-      registration,
-      destinationId,
-      expectedPeerIdentityHash: peerIdentityHash,
-    })).resolves.toEqual({ status: "imported", publishedCount: 0, imported: true, headCount: 1 });
+    await expect(
+      runWorkstreamReplicationCycle({
+        local: state,
+        transport,
+        registration,
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+      }),
+    ).resolves.toEqual({ status: "imported", publishedCount: 0, imported: true, headCount: 1 });
     expect(state.importCurrent).toHaveBeenCalledWith({
       snapshot: second,
       snapshotContentHash: secondHash,
@@ -100,35 +114,48 @@ describe("workstream replication cycle", () => {
   });
 
   it("preserves divergent heads and never imports a winner", async () => {
-    const registration = createProjectRegistrationRequest({ manifest, destinationId, requestedAt: "2026-08-24T00:00:00.000Z" });
+    const registration = createProjectRegistrationRequest({
+      manifest,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
     const first = snapshot(1);
     const second = snapshot(2);
-    const state = local([{ snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null }]);
-    const heads = [head(second, secondHash, firstHash), head({ ...second, title: "Branch" }, branchHash, firstHash)];
+    const state = local([
+      { snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null },
+    ]);
+    const heads = [
+      head(second, secondHash, firstHash),
+      head({ ...second, title: "Branch" }, branchHash, firstHash),
+    ];
     const transport: AuthenticatedWorkstreamHubTransport = {
-      publishWorkstream: async () => response({
-        schemaVersion: 1,
-        status: "divergent",
-        projectId: registration.project.projectId,
-        repositoryIdentityHash: registration.projectIdentityHash,
-        heads,
-      }),
-      readWorkstream: async () => response({
-        schemaVersion: 1,
-        status: "divergent",
-        projectId: registration.project.projectId,
-        repositoryIdentityHash: registration.projectIdentityHash,
-        heads,
-        snapshot: null,
-      }),
+      publishWorkstream: async () =>
+        response({
+          schemaVersion: 1,
+          status: "divergent",
+          projectId: registration.project.projectId,
+          repositoryIdentityHash: registration.projectIdentityHash,
+          heads,
+        }),
+      readWorkstream: async () =>
+        response({
+          schemaVersion: 1,
+          status: "divergent",
+          projectId: registration.project.projectId,
+          repositoryIdentityHash: registration.projectIdentityHash,
+          heads,
+          snapshot: null,
+        }),
     };
-    await expect(runWorkstreamReplicationCycle({
-      local: state,
-      transport,
-      registration,
-      destinationId,
-      expectedPeerIdentityHash: peerIdentityHash,
-    })).resolves.toEqual({ status: "divergent", publishedCount: 1, imported: false, headCount: 2 });
+    await expect(
+      runWorkstreamReplicationCycle({
+        local: state,
+        transport,
+        registration,
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+      }),
+    ).resolves.toEqual({ status: "divergent", publishedCount: 1, imported: false, headCount: 2 });
     expect(state.importCurrent).not.toHaveBeenCalled();
   });
 });

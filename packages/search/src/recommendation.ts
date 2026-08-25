@@ -20,10 +20,15 @@ function buildBatch(input: {
   maximumSelections: number;
 }): SearchRecommendationBatch {
   assertSearchAttempt(input.attempt);
-  if (!Number.isSafeInteger(input.recommendationLimit) || input.recommendationLimit < 1 ||
+  if (
+    !Number.isSafeInteger(input.recommendationLimit) ||
+    input.recommendationLimit < 1 ||
     input.recommendationLimit > MAX_RECOMMENDATIONS ||
-    !Number.isSafeInteger(input.maximumSelections) || input.maximumSelections < 0 ||
-    input.maximumSelections > MAX_SELECTIONS || input.maximumSelections > input.recommendationLimit) {
+    !Number.isSafeInteger(input.maximumSelections) ||
+    input.maximumSelections < 0 ||
+    input.maximumSelections > MAX_SELECTIONS ||
+    input.maximumSelections > input.recommendationLimit
+  ) {
     invalid("The search recommendation or selection limit is invalid.");
   }
   const cores = input.attempt.hits
@@ -85,11 +90,19 @@ export function createSearchRecommendationBatch(input: {
 }
 
 export function assertSearchRecommendationBatch(batch: SearchRecommendationBatch): void {
-  if (typeof batch !== "object" || batch === null || batch.schemaVersion !== 1 ||
-    typeof batch.attempt !== "object" || batch.attempt === null ||
-    typeof batch.selectionPolicy !== "object" || batch.selectionPolicy === null ||
-    batch.selectionPolicy.id !== "top_ranked" || batch.selectionPolicy.version !== 1 ||
-    !Array.isArray(batch.recommendations) || !Array.isArray(batch.selectedRecommendationIds)) {
+  if (
+    typeof batch !== "object" ||
+    batch === null ||
+    batch.schemaVersion !== 1 ||
+    typeof batch.attempt !== "object" ||
+    batch.attempt === null ||
+    typeof batch.selectionPolicy !== "object" ||
+    batch.selectionPolicy === null ||
+    batch.selectionPolicy.id !== "top_ranked" ||
+    batch.selectionPolicy.version !== 1 ||
+    !Array.isArray(batch.recommendations) ||
+    !Array.isArray(batch.selectedRecommendationIds)
+  ) {
     invalid("The search recommendation batch contract is invalid.");
   }
   const expected = buildBatch({

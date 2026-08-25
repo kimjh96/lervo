@@ -1,12 +1,7 @@
 import { createHash } from "node:crypto";
 
-import {
-  assertConversationOutboundMessage,
-} from "@lervo/conversation-contract";
-import type {
-  ConversationContentReference,
-  ConversationOutboundMessage,
-} from "@lervo/schemas";
+import { assertConversationOutboundMessage } from "@lervo/conversation-contract";
+import type { ConversationContentReference, ConversationOutboundMessage } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { ConversationPlatformError } from "./types.js";
@@ -41,10 +36,13 @@ export async function storeConversationText(input: {
     const stored = await input.artifactStore.put(bytes);
     const restored = new Uint8Array(await input.artifactStore.get(stored.uri));
     if (
-      stored.uri !== uri(contentHash) || stored.contentHash !== contentHash ||
-      stored.byteCount !== bytes.byteLength || hash(restored) !== contentHash ||
+      stored.uri !== uri(contentHash) ||
+      stored.contentHash !== contentHash ||
+      stored.byteCount !== bytes.byteLength ||
+      hash(restored) !== contentHash ||
       decode(restored) !== input.content
-    ) throw new Error("stored conversation artifact mismatch");
+    )
+      throw new Error("stored conversation artifact mismatch");
     return {
       artifactId: `art_${contentHash.slice("sha256:".length)}`,
       contentHash,
@@ -67,12 +65,16 @@ export async function readConversationOutboundText(input: {
 }): Promise<string> {
   try {
     assertConversationOutboundMessage({ outbound: input.message });
-    const bytes = new Uint8Array(await input.artifactStore.get(uri(input.message.content.contentHash)));
+    const bytes = new Uint8Array(
+      await input.artifactStore.get(uri(input.message.content.contentHash)),
+    );
     if (
       bytes.byteLength !== input.message.content.byteCount ||
-      bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_CONVERSATION_BYTES ||
+      bytes.byteLength < 1 ||
+      bytes.byteLength > MAXIMUM_CONVERSATION_BYTES ||
       hash(bytes) !== input.message.content.contentHash
-    ) throw new Error("outbound conversation artifact mismatch");
+    )
+      throw new Error("outbound conversation artifact mismatch");
     return decode(bytes);
   } catch (error) {
     throw new ConversationPlatformError(

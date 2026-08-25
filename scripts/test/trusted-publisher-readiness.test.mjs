@@ -71,7 +71,10 @@ describe("trusted publisher readiness contract", () => {
     const second = createTrustedPublisherReadinessReport(input);
     assert.equal(first.status, "ready");
     assert.equal(first.readinessDigest, second.readinessDigest);
-    assert.equal(first.checks.every(({ status }) => status === "ready"), true);
+    assert.equal(
+      first.checks.every(({ status }) => status === "ready"),
+      true,
+    );
   });
 
   it("keeps missing observations unknown and unresolved local identity blocked", () => {
@@ -92,11 +95,10 @@ describe("trusted publisher readiness contract", () => {
       "package_registry_unpinned",
     ]);
     assert.equal(report.checks[1].status, "ready");
-    assert.deepEqual(report.checks.slice(2).map(({ status }) => status), [
-      "unknown",
-      "unknown",
-      "unknown",
-    ]);
+    assert.deepEqual(
+      report.checks.slice(2).map(({ status }) => status),
+      ["unknown", "unknown", "unknown"],
+    );
   });
 
   it("keeps public package absence separate from unobserved npm trust", () => {
@@ -113,9 +115,7 @@ describe("trusted publisher readiness contract", () => {
       githubObservation: githubObservation(),
     });
     assert.deepEqual(report.checks[2].reasons, ["npm_public_package_not_visible"]);
-    assert.deepEqual(report.checks[3].reasons, [
-      "npm_trust_not_observed",
-    ]);
+    assert.deepEqual(report.checks[3].reasons, ["npm_trust_not_observed"]);
     assert.equal(report.checks[3].status, "unknown");
     assert.equal(report.checks[4].status, "ready");
   });
@@ -152,12 +152,11 @@ describe("trusted publisher readiness contract", () => {
   });
 
   it("the repository command reports the current blockers without network access", () => {
-    const result = spawnSync(process.execPath, [
-      "scripts/check-cli-trusted-publisher-readiness.mjs",
-      "--repository",
-      repository,
-      "--json",
-    ], { cwd: repositoryRoot, encoding: "utf8" });
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/check-cli-trusted-publisher-readiness.mjs", "--repository", repository, "--json"],
+      { cwd: repositoryRoot, encoding: "utf8" },
+    );
     assert.equal(result.status, 1);
     assert.equal(result.stderr, "");
     const report = JSON.parse(result.stdout);
@@ -172,16 +171,18 @@ describe("trusted publisher readiness contract", () => {
 
   it("the default orchestrator never invokes online observers", async () => {
     const unexpected = async () => assert.fail("online observer must not run");
-    const report = await checkCliTrustedPublisherReadiness({ repository }, {
-      observeNpmTrustedPublisher: unexpected,
-      observeGitHubPublisherEnvironment: unexpected,
-    });
+    const report = await checkCliTrustedPublisherReadiness(
+      { repository },
+      {
+        observeNpmTrustedPublisher: unexpected,
+        observeGitHubPublisherEnvironment: unexpected,
+      },
+    );
     assert.equal(report.status, "blocked");
-    assert.deepEqual(report.checks.slice(2).map(({ status }) => status), [
-      "unknown",
-      "unknown",
-      "unknown",
-    ]);
+    assert.deepEqual(
+      report.checks.slice(2).map(({ status }) => status),
+      ["unknown", "unknown", "unknown"],
+    );
   });
 });
 
@@ -270,14 +271,16 @@ describe("GitHub environment observer", () => {
           return {
             stdout: JSON.stringify({
               name: "npm-release",
-              protection_rules: [{
-                type: "required_reviewers",
-                prevent_self_review: true,
-                reviewers: [
-                  { type: "User", reviewer: { login: "release-reviewer" } },
-                  { type: "Team", reviewer: { slug: "maintainers" } },
-                ],
-              }],
+              protection_rules: [
+                {
+                  type: "required_reviewers",
+                  prevent_self_review: true,
+                  reviewers: [
+                    { type: "User", reviewer: { login: "release-reviewer" } },
+                    { type: "Team", reviewer: { slug: "maintainers" } },
+                  ],
+                },
+              ],
               deployment_branch_policy: {
                 protected_branches: false,
                 custom_branch_policies: true,
@@ -298,7 +301,10 @@ describe("GitHub environment observer", () => {
     assert.deepEqual(observation, githubObservation());
     assert.equal(JSON.stringify(observation).includes("release-reviewer"), false);
     assert.equal(calls.length, 2);
-    assert.equal(calls.every((args) => args[0] === "api" && args[2] === "GET"), true);
+    assert.equal(
+      calls.every((args) => args[0] === "api" && args[2] === "GET"),
+      true,
+    );
   });
 
   it("returns a bounded unavailable observation when the environment cannot be read", async () => {

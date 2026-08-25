@@ -1,10 +1,7 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
-import {
-  ManagedContextCoverageError,
-  projectManagedContextCoverage,
-} from "../src/index.js";
+import { ManagedContextCoverageError, projectManagedContextCoverage } from "../src/index.js";
 
 const hash = `sha256:${"a".repeat(64)}`;
 const resultHash = `sha256:${"b".repeat(64)}`;
@@ -36,13 +33,18 @@ function event(
 function completeEvents(): EventEnvelope[] {
   const provider = { kind: "provider", provider: "codex" } as const;
   return [
-    event(1, "adapter.started", {
-      adapterId: "lervo/codex",
-      adapterVersion: "1",
-      providerSessionId: "provider-session-1",
-      executionMode: "read_only",
-      capabilities: {},
-    }, provider),
+    event(
+      1,
+      "adapter.started",
+      {
+        adapterId: "lervo/codex",
+        adapterVersion: "1",
+        providerSessionId: "provider-session-1",
+        executionMode: "read_only",
+        capabilities: {},
+      },
+      provider,
+    ),
     event(2, "context.recommended", { documentId: "doc_context_00000001" }),
     event(3, "context.selected", {
       documentId: "doc_context_00000001",
@@ -66,48 +68,65 @@ function completeEvents(): EventEnvelope[] {
       scope,
       sourceRevision: "working-tree:1",
     }),
-    event(6, "context.injected", {
-      receiptId: "ctx_adapter_00000001",
-      evidenceReceiptIds: ["ctx_injected_00000001"],
-      envelopeId: "envelope-1",
-      documentIds: ["doc_context_00000001"],
-      targetTurnId: "target-turn-1",
-      contextGeneration: 0,
-      adapterId: "lervo/codex",
-      providerSessionId: "provider-session-1",
-      documents: [{
-        evidenceReceiptId: "ctx_injected_00000001",
+    event(
+      6,
+      "context.injected",
+      {
+        receiptId: "ctx_adapter_00000001",
+        evidenceReceiptIds: ["ctx_injected_00000001"],
+        envelopeId: "envelope-1",
+        documentIds: ["doc_context_00000001"],
+        targetTurnId: "target-turn-1",
+        contextGeneration: 0,
+        adapterId: "lervo/codex",
+        providerSessionId: "provider-session-1",
+        documents: [
+          {
+            evidenceReceiptId: "ctx_injected_00000001",
+            documentId: "doc_context_00000001",
+            contentHash: hash,
+            scope,
+          },
+        ],
+      },
+      provider,
+    ),
+    event(
+      7,
+      "adapter.result.captured",
+      {
+        adapterId: "lervo/codex",
+        providerSessionId: "provider-session-1",
+        targetTurnId: "target-turn-1",
+        providerTurnId: "provider-turn-1",
+        resultDigest: resultHash,
+        byteCount: 20,
+        mediaType: "text/markdown; charset=utf-8",
+        referenceTelemetry: "supported",
+      },
+      provider,
+    ),
+    event(
+      8,
+      "context.referenced",
+      {
+        evidenceReceiptId: "ctx_reference_0000001",
+        injectedEvidenceReceiptId: "ctx_injected_00000001",
+        adapterReceiptId: "ctx_adapter_00000001",
+        sourceEventId: "evt_coverage_00000007",
         documentId: "doc_context_00000001",
         contentHash: hash,
         scope,
-      }],
-    }, provider),
-    event(7, "adapter.result.captured", {
-      adapterId: "lervo/codex",
-      providerSessionId: "provider-session-1",
-      targetTurnId: "target-turn-1",
-      providerTurnId: "provider-turn-1",
-      resultDigest: resultHash,
-      byteCount: 20,
-      mediaType: "text/markdown; charset=utf-8",
-      referenceTelemetry: "supported",
-    }, provider),
-    event(8, "context.referenced", {
-      evidenceReceiptId: "ctx_reference_0000001",
-      injectedEvidenceReceiptId: "ctx_injected_00000001",
-      adapterReceiptId: "ctx_adapter_00000001",
-      sourceEventId: "evt_coverage_00000007",
-      documentId: "doc_context_00000001",
-      contentHash: hash,
-      scope,
-      provider: "codex",
-      providerSessionId: "provider-session-1",
-      targetTurnId: "target-turn-1",
-      providerTurnId: "provider-turn-1",
-      contextGeneration: 0,
-      referenceKind: "output_citation",
-      citation: `lervo-e4:doc_context_00000001:${hash}`,
-    }, provider),
+        provider: "codex",
+        providerSessionId: "provider-session-1",
+        targetTurnId: "target-turn-1",
+        providerTurnId: "provider-turn-1",
+        contextGeneration: 0,
+        referenceKind: "output_citation",
+        citation: `lervo-e4:doc_context_00000001:${hash}`,
+      },
+      provider,
+    ),
     event(9, "run.completed", {}),
   ];
 }
@@ -145,13 +164,18 @@ describe("managed context coverage projector", () => {
   it("keeps unresolved required versions and unsupported reference telemetry nullable", () => {
     const provider = { kind: "provider", provider: "claude" } as const;
     const report = projectManagedContextCoverage([
-      event(1, "adapter.started", {
-        adapterId: "lervo/claude",
-        adapterVersion: "1",
-        providerSessionId: "provider-session-1",
-        executionMode: "read_only",
-        capabilities: {},
-      }, provider),
+      event(
+        1,
+        "adapter.started",
+        {
+          adapterId: "lervo/claude",
+          adapterVersion: "1",
+          providerSessionId: "provider-session-1",
+          executionMode: "read_only",
+          capabilities: {},
+        },
+        provider,
+      ),
       event(2, "context.selected", {
         documentId: "doc_context_00000001",
         reasonCode: "role_required",
@@ -172,10 +196,15 @@ describe("managed context coverage projector", () => {
 
   it("rejects E4 that is not bound to its E3 document version", () => {
     const events = completeEvents();
-    events[7] = event(8, "context.referenced", {
-      ...events[7]!.payload,
-      contentHash: `sha256:${"c".repeat(64)}`,
-    }, { kind: "provider", provider: "codex" });
+    events[7] = event(
+      8,
+      "context.referenced",
+      {
+        ...events[7]!.payload,
+        contentHash: `sha256:${"c".repeat(64)}`,
+      },
+      { kind: "provider", provider: "codex" },
+    );
     expect(() => projectManagedContextCoverage(events)).toThrow(ManagedContextCoverageError);
   });
 });

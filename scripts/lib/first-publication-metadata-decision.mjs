@@ -15,9 +15,14 @@ function fail() {
 
 function validateLicense(value) {
   if (
-    typeof value !== "string" || value.length < 1 || value.length > licenseMaximumLength ||
-    value !== value.trim() || value === "UNLICENSED" || /[\p{Cc}\p{Cf}]/u.test(value)
-  ) fail();
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > licenseMaximumLength ||
+    value !== value.trim() ||
+    value === "UNLICENSED" ||
+    /[\p{Cc}\p{Cf}]/u.test(value)
+  )
+    fail();
   return value;
 }
 
@@ -28,10 +33,7 @@ function decisionBody({ repository, license, scopeOwnerKind, scopeOwnerName }) {
   } catch {
     fail();
   }
-  if (
-    !["organization", "user"].includes(scopeOwnerKind) ||
-    scopeOwnerName !== "lervo"
-  ) fail();
+  if (!["organization", "user"].includes(scopeOwnerKind) || scopeOwnerName !== "lervo") fail();
   return {
     schemaVersion: 1,
     decisionType: "first_publication_metadata_selection",

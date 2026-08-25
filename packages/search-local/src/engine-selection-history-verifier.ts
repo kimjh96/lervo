@@ -28,8 +28,15 @@ async function loadActivationEvidence(
   repositoryRoot: string,
   selection: SearchEngineSelection,
 ): Promise<ActivationEvidence> {
-  if (selection.mode !== "candidate" || selection.reviewId === null || selection.comparisonId === null) {
-    throw new SearchLocalError("observation_invalid", "The candidate search engine selection has no review or comparison coordinates.");
+  if (
+    selection.mode !== "candidate" ||
+    selection.reviewId === null ||
+    selection.comparisonId === null
+  ) {
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The candidate search engine selection has no review or comparison coordinates.",
+    );
   }
   const [review, comparison] = await Promise.all([
     loadStoredSearchCandidateReview(repositoryRoot, selection.reviewId),
@@ -49,18 +56,28 @@ export async function verifySearchEngineSelectionHistory(input: {
   const policiesById = new Map(policies.map((policy) => [policy.policyId, policy]));
   let attempts = input.attempts;
   let assessments = input.assessments;
-  if (input.history.some((activation) => activation.schemaVersion === 3) &&
-    (attempts === undefined || assessments === undefined)) {
+  if (
+    input.history.some((activation) => activation.schemaVersion === 3) &&
+    (attempts === undefined || assessments === undefined)
+  ) {
     const store = await LocalSearchObservationStore.openExisting(input.repositoryRoot);
-    [attempts, assessments] = store === null
-      ? [[], []]
-      : await Promise.all([store.listAttempts(), store.listAssessments()]);
+    [attempts, assessments] =
+      store === null
+        ? [[], []]
+        : await Promise.all([store.listAttempts(), store.listAssessments()]);
   }
   let previous: SearchEngineActivation | null = null;
   for (const activation of input.history) {
     const policy: SearchEngineActivationPolicy | undefined = policiesById.get(activation.policyId);
-    if (policy === undefined || policy.projectId !== input.projectId || activation.projectId !== input.projectId) {
-      throw new SearchLocalError("engine_selection_unavailable", "The search engine selection has no policy or project coordinates.");
+    if (
+      policy === undefined ||
+      policy.projectId !== input.projectId ||
+      activation.projectId !== input.projectId
+    ) {
+      throw new SearchLocalError(
+        "engine_selection_unavailable",
+        "The search engine selection has no policy or project coordinates.",
+      );
     }
     assertSearchEngineActivationOperator(policy, activation.operatorId);
     if (activation.action === "activate_candidate" || activation.action === "refresh_candidate") {
@@ -70,24 +87,44 @@ export async function verifySearchEngineSelectionHistory(input: {
         review: evidence.review,
         comparison: evidence.comparison,
       });
-      if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
-        throw new SearchLocalError("observation_invalid", "The search engine selection differs from the review and comparison sources.");
+      if (
+        !sameSearchEngineSelection(
+          activation.selected,
+          candidateSearchEngineSelection(evidence.review),
+        )
+      ) {
+        throw new SearchLocalError(
+          "observation_invalid",
+          "The search engine selection differs from the review and comparison sources.",
+        );
       }
     } else {
       if (previous === null) {
-        throw new SearchLocalError("observation_invalid", "The first search engine selection transition cannot be a rollback.");
+        throw new SearchLocalError(
+          "observation_invalid",
+          "The first search engine selection transition cannot be a rollback.",
+        );
       }
-      const evidence = activation.selected.mode === "candidate"
-        ? await loadActivationEvidence(input.repositoryRoot, activation.selected)
-        : undefined;
+      const evidence =
+        activation.selected.mode === "candidate"
+          ? await loadActivationEvidence(input.repositoryRoot, activation.selected)
+          : undefined;
       if (evidence !== undefined) {
         assertSearchEngineActivationEvidence({
           policy,
           review: evidence.review,
           comparison: evidence.comparison,
         });
-        if (!sameSearchEngineSelection(activation.selected, candidateSearchEngineSelection(evidence.review))) {
-          throw new SearchLocalError("observation_invalid", "The rollback selection differs from the review and comparison sources.");
+        if (
+          !sameSearchEngineSelection(
+            activation.selected,
+            candidateSearchEngineSelection(evidence.review),
+          )
+        ) {
+          throw new SearchLocalError(
+            "observation_invalid",
+            "The rollback selection differs from the review and comparison sources.",
+          );
         }
       }
       if (activation.schemaVersion === 3) {

@@ -60,9 +60,9 @@ export interface DocumentImportAdapter {
     readonly version: string;
   };
   supports(path: string): boolean;
-  inspect(source: DocumentImportSource):
-    | readonly DocumentImportDraft[]
-    | Promise<readonly DocumentImportDraft[]>;
+  inspect(
+    source: DocumentImportSource,
+  ): readonly DocumentImportDraft[] | Promise<readonly DocumentImportDraft[]>;
 }
 
 export interface DocumentMigrationDryRun {
@@ -111,9 +111,7 @@ export interface ApplyLegacyRegistryMigrationInput {
   approval: LegacyRegistryMigrationApproval;
   eventRecorder: DurableLegacyRegistryMigrationEventRecorder;
   appliedAt?: string;
-  failureInjector?: (
-    checkpoint: LegacyRegistryMigrationCheckpoint,
-  ) => void | Promise<void>;
+  failureInjector?: (checkpoint: LegacyRegistryMigrationCheckpoint) => void | Promise<void>;
 }
 
 export type ApplyLegacyRegistryMigrationResult = LegacyRegistryMigrationApplyReceipt;

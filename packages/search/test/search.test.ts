@@ -57,10 +57,12 @@ describe("deterministic lexical search baseline", () => {
     const reversed = new LexicalSearchIndex(sources().reverse());
 
     expect(reversed.indexId).toBe(forward.indexId);
-    expect(forward.indexId).toBe(contentId("sidx", {
-      engine: SEARCH_ENGINE,
-      sources: prepareSearchCorpus(sources()).indexSources,
-    }));
+    expect(forward.indexId).toBe(
+      contentId("sidx", {
+        engine: SEARCH_ENGINE,
+        sources: prepareSearchCorpus(sources()).indexSources,
+      }),
+    );
     expect(reversed.search("recovery")).toEqual(forward.search("recovery"));
   });
 
@@ -68,14 +70,18 @@ describe("deterministic lexical search baseline", () => {
     const changed = sources();
     changed[0] = { ...changed[0]!, contentHash: `sha256:${"c".repeat(64)}` };
 
-    expect(new LexicalSearchIndex(changed).indexId).not.toBe(new LexicalSearchIndex(sources()).indexId);
+    expect(new LexicalSearchIndex(changed).indexId).not.toBe(
+      new LexicalSearchIndex(sources()).indexId,
+    );
   });
 
   it("binds ranking metadata and searchable text to the index identity", () => {
     const changed = sources();
     changed[0] = { ...changed[0]!, title: "Different title", labels: ["changed"] };
 
-    expect(new LexicalSearchIndex(changed).indexId).not.toBe(new LexicalSearchIndex(sources()).indexId);
+    expect(new LexicalSearchIndex(changed).indexId).not.toBe(
+      new LexicalSearchIndex(sources()).indexId,
+    );
   });
 
   it("records only a query digest and bounded result coordinates", () => {
@@ -111,13 +117,18 @@ describe("deterministic lexical search baseline", () => {
     });
 
     expect(attempt).toMatchObject({ engine: response.engine, selectionTransitionId });
-    expect(batch.recommendations[0]).toMatchObject({ engine: response.engine, selectionTransitionId });
-    expect(() => createSearchAttempt({
-      projectId: "prj_search_01",
-      observedAt: new Date("2026-08-20T04:00:00.000Z"),
-      nonce: "8".repeat(32),
-      response,
-    })).toThrow(/selection transition ID/);
+    expect(batch.recommendations[0]).toMatchObject({
+      engine: response.engine,
+      selectionTransitionId,
+    });
+    expect(() =>
+      createSearchAttempt({
+        projectId: "prj_search_01",
+        observedAt: new Date("2026-08-20T04:00:00.000Z"),
+        nonce: "8".repeat(32),
+        response,
+      }),
+    ).toThrow(/selection transition ID/);
   });
 
   it("requires explicit assessment and never turns failures into an embedding decision", () => {
@@ -140,10 +151,12 @@ describe("deterministic lexical search baseline", () => {
         assessedAt: new Date("2026-08-20T04:01:00.000Z"),
         assessor: "human",
         outcome: "accepted",
-        selectedSources: [{
-          sourceKind: acceptedAttempt.hits[0]!.sourceKind,
-          sourceId: acceptedAttempt.hits[0]!.sourceId,
-        }],
+        selectedSources: [
+          {
+            sourceKind: acceptedAttempt.hits[0]!.sourceKind,
+            sourceId: acceptedAttempt.hits[0]!.sourceId,
+          },
+        ],
       }),
       createSearchAssessment({
         attempt: failedAttempt,
@@ -187,28 +200,33 @@ describe("deterministic lexical search baseline", () => {
       assessedAt: new Date("2026-08-20T04:01:00.000Z"),
       assessor: "human",
       outcome: "accepted",
-      selectedSources: [{
-        sourceKind: candidateAttempt.hits[0]!.sourceKind,
-        sourceId: candidateAttempt.hits[0]!.sourceId,
-      }],
+      selectedSources: [
+        {
+          sourceKind: candidateAttempt.hits[0]!.sourceKind,
+          sourceId: candidateAttempt.hits[0]!.sourceId,
+        },
+      ],
     });
     const adapterBuildId = contentId("sebuild", { adapter: "fixture_candidate", revision: 1 });
     const report = createSearchSelectionQualityReport({
       attempts: [baselineAttempt, candidateAttempt],
       assessments: [assessment],
-      coordinates: [{
-        selectionTransitionId: null,
-        engine: SEARCH_ENGINE,
-        selectionState: "implicit_baseline",
-        adapterBuildId: null,
-        buildEvidenceState: "not_applicable",
-      }, {
-        selectionTransitionId,
-        engine: candidateAttempt.engine,
-        selectionState: "candidate",
-        adapterBuildId,
-        buildEvidenceState: "bound",
-      }],
+      coordinates: [
+        {
+          selectionTransitionId: null,
+          engine: SEARCH_ENGINE,
+          selectionState: "implicit_baseline",
+          adapterBuildId: null,
+          buildEvidenceState: "not_applicable",
+        },
+        {
+          selectionTransitionId,
+          engine: candidateAttempt.engine,
+          selectionState: "candidate",
+          adapterBuildId,
+          buildEvidenceState: "bound",
+        },
+      ],
     });
 
     expect(report).toMatchObject({
@@ -218,68 +236,87 @@ describe("deterministic lexical search baseline", () => {
       rolloutDecision: "not_determined",
       rollbackDecision: "not_determined",
       embeddingDecision: "not_determined",
-      selections: [{
-        selectionState: "implicit_baseline",
-        totalAttempts: 1,
-        assessedAttempts: 0,
-        evidenceState: "insufficient_assessment",
-      }, {
-        selectionTransitionId,
-        adapterBuildId,
-        totalAttempts: 1,
-        acceptedAttempts: 1,
-        evidenceState: "no_failures_observed",
-      }],
+      selections: [
+        {
+          selectionState: "implicit_baseline",
+          totalAttempts: 1,
+          assessedAttempts: 0,
+          evidenceState: "insufficient_assessment",
+        },
+        {
+          selectionTransitionId,
+          adapterBuildId,
+          totalAttempts: 1,
+          acceptedAttempts: 1,
+          evidenceState: "no_failures_observed",
+        },
+      ],
     });
-    expect(() => createSearchSelectionQualityReport({
-      attempts: [candidateAttempt],
-      assessments: [assessment],
-      coordinates: [],
-    })).toThrow(/selection transition or engine quality coordinates/);
-    expect(createSearchSelectionQualityReport({
-      attempts: [candidateAttempt],
-      assessments: [assessment],
-      coordinates: [{
-        selectionTransitionId,
-        engine: candidateAttempt.engine,
-        selectionState: "candidate",
-        adapterBuildId: null,
-        buildEvidenceState: "legacy_unbound",
-      }],
-    }).selections[0]).toMatchObject({
+    expect(() =>
+      createSearchSelectionQualityReport({
+        attempts: [candidateAttempt],
+        assessments: [assessment],
+        coordinates: [],
+      }),
+    ).toThrow(/selection transition or engine quality coordinates/);
+    expect(
+      createSearchSelectionQualityReport({
+        attempts: [candidateAttempt],
+        assessments: [assessment],
+        coordinates: [
+          {
+            selectionTransitionId,
+            engine: candidateAttempt.engine,
+            selectionState: "candidate",
+            adapterBuildId: null,
+            buildEvidenceState: "legacy_unbound",
+          },
+        ],
+      }).selections[0],
+    ).toMatchObject({
       buildEvidenceState: "legacy_unbound",
       adapterBuildId: null,
       acceptedAttempts: 1,
     });
-    expect(() => createSearchSelectionQualityReport({
-      attempts: [candidateAttempt],
-      assessments: [assessment],
-      coordinates: [{
-        selectionTransitionId,
-        engine: { id: "different_candidate", version: 1 },
-        selectionState: "candidate",
-        adapterBuildId,
-        buildEvidenceState: "bound",
-      }],
-    })).toThrow(/engine quality coordinates/);
-    expect(() => createSearchSelectionQualityReport({
-      attempts: [],
-      assessments: [],
-      coordinates: [{
-        selectionTransitionId: null,
-        engine: SEARCH_ENGINE,
-        selectionState: "implicit_baseline",
-        adapterBuildId: null,
-        buildEvidenceState: "not_applicable",
-      }],
-    })).toThrow(/coordinates exist without a search attempt/);
+    expect(() =>
+      createSearchSelectionQualityReport({
+        attempts: [candidateAttempt],
+        assessments: [assessment],
+        coordinates: [
+          {
+            selectionTransitionId,
+            engine: { id: "different_candidate", version: 1 },
+            selectionState: "candidate",
+            adapterBuildId,
+            buildEvidenceState: "bound",
+          },
+        ],
+      }),
+    ).toThrow(/engine quality coordinates/);
+    expect(() =>
+      createSearchSelectionQualityReport({
+        attempts: [],
+        assessments: [],
+        coordinates: [
+          {
+            selectionTransitionId: null,
+            engine: SEARCH_ENGINE,
+            selectionState: "implicit_baseline",
+            adapterBuildId: null,
+            buildEvidenceState: "not_applicable",
+          },
+        ],
+      }),
+    ).toThrow(/coordinates exist without a search attempt/);
   });
 
   it("rejects an unsafe repository path and an unbounded query", () => {
-    expect(() => new LexicalSearchIndex([{ ...sources()[0]!, path: "../secret.md" }]))
-      .toThrow(/source coordinates/);
-    expect(() => new LexicalSearchIndex(sources()).search("word ".repeat(33)))
-      .toThrow(/between 1 and 32/);
+    expect(() => new LexicalSearchIndex([{ ...sources()[0]!, path: "../secret.md" }])).toThrow(
+      /source coordinates/,
+    );
+    expect(() => new LexicalSearchIndex(sources()).search("word ".repeat(33))).toThrow(
+      /between 1 and 32/,
+    );
   });
 
   it("does not accept no_results as a label when the attempt returned a result", () => {
@@ -290,13 +327,15 @@ describe("deterministic lexical search baseline", () => {
       response: new LexicalSearchIndex(sources()).search("recovery"),
     });
 
-    expect(() => createSearchAssessment({
-      attempt,
-      assessedAt: new Date("2026-08-20T04:01:00.000Z"),
-      assessor: "human",
-      outcome: "failed",
-      failureReason: "no_results",
-    })).toThrow(/target attempt/);
+    expect(() =>
+      createSearchAssessment({
+        attempt,
+        assessedAt: new Date("2026-08-20T04:01:00.000Z"),
+        assessor: "human",
+        outcome: "failed",
+        failureReason: "no_results",
+      }),
+    ).toThrow(/target attempt/);
   });
 
   it("keeps source kind in assessment coordinates when IDs overlap", () => {
@@ -307,13 +346,15 @@ describe("deterministic lexical search baseline", () => {
       response: new LexicalSearchIndex(sources()).search("recovery"),
     });
 
-    expect(() => createSearchAssessment({
-      attempt,
-      assessedAt: new Date("2026-08-20T04:01:00.000Z"),
-      assessor: "human",
-      outcome: "accepted",
-      selectedSources: [{ sourceKind: "skill", sourceId: attempt.hits[0]!.sourceId }],
-    })).toThrow(/target attempt/);
+    expect(() =>
+      createSearchAssessment({
+        attempt,
+        assessedAt: new Date("2026-08-20T04:01:00.000Z"),
+        assessor: "human",
+        outcome: "accepted",
+        selectedSources: [{ sourceKind: "skill", sourceId: attempt.hits[0]!.sourceId }],
+      }),
+    ).toThrow(/target attempt/);
   });
 
   it("creates a bounded recommendation batch and keeps selection distinct", () => {
@@ -332,9 +373,11 @@ describe("deterministic lexical search baseline", () => {
     expect(batch.recommendations).toHaveLength(2);
     expect(batch.selectedRecommendationIds).toEqual([batch.recommendations[0]!.recommendationId]);
     expect(JSON.stringify(batch.recommendations)).not.toContain("document recovery");
-    expect(() => assertSearchRecommendationBatch({
-      ...batch,
-      selectedRecommendationIds: [batch.recommendations[1]!.recommendationId],
-    })).toThrow(/source search attempt/);
+    expect(() =>
+      assertSearchRecommendationBatch({
+        ...batch,
+        selectedRecommendationIds: [batch.recommendations[1]!.recommendationId],
+      }),
+    ).toThrow(/source search attempt/);
   });
 });

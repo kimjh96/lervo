@@ -20,6 +20,9 @@ describe("Codex stdio app-server client", () => {
     await client.injectItems(thread.threadId, [
       { type: "message", role: "developer", content: [{ type: "input_text", text: "context" }] },
     ]);
+    await expect(client.listConnectedMcpServers(thread.threadId)).resolves.toEqual([
+      "research-search",
+    ]);
     const turn = await client.startTurn(thread.threadId, "fixture task");
     const controller = new AbortController();
     const iterator = client.notifications(controller.signal)[Symbol.asyncIterator]();

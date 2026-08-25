@@ -17,7 +17,8 @@ export async function storeCandidate(
       stored.byteCount !== bytes.byteLength ||
       knowledgeSha256(reloaded) !== stored.contentHash ||
       !Buffer.from(reloaded).equals(Buffer.from(bytes))
-    ) throw new Error("candidate CAS mismatch");
+    )
+      throw new Error("candidate CAS mismatch");
   } catch (error) {
     throw new KnowledgeError(
       "artifact_storage_failed",

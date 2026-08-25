@@ -20,7 +20,15 @@ const preparedDocumentSchema = {
     assurance: { type: "string", enum: ["unreviewed", "human_reviewed"] },
     freshness: { type: "string", enum: ["current", "stale", "unknown"] },
   },
-  required: ["conceptId", "path", "contentHash", "scope", "deliveredByteCount", "assurance", "freshness"],
+  required: [
+    "conceptId",
+    "path",
+    "contentHash",
+    "scope",
+    "deliveredByteCount",
+    "assurance",
+    "freshness",
+  ],
   additionalProperties: false,
 } as const;
 
@@ -43,9 +51,60 @@ export const terminalContextPreparedEventPayloadSchema = {
     workstreamRevision: { anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }] },
     workstreamSnapshotHash: { anyOf: [sha256Schema, { type: "null" }] },
     workstreamScope: { anyOf: [{ type: "string", enum: ["full", "prefix"] }, { type: "null" }] },
-    workstreamDeliveredByteCount: { anyOf: [{ type: "integer", minimum: 1, maximum: 8192 }, { type: "null" }] },
+    workstreamDeliveredByteCount: {
+      anyOf: [{ type: "integer", minimum: 1, maximum: 8192 }, { type: "null" }],
+    },
   },
-  required: ["observationId", "executionMode", "providerSessionDigest", "providerTurnDigest", "sourceSnapshotId", "repositoryRevision", "queryDigest", "contextHash", "recommendationCount", "loadedDocuments", "workstreamId", "workstreamRevision", "workstreamSnapshotHash", "workstreamScope", "workstreamDeliveredByteCount"],
+  required: [
+    "observationId",
+    "executionMode",
+    "providerSessionDigest",
+    "providerTurnDigest",
+    "sourceSnapshotId",
+    "queryDigest",
+    "contextHash",
+    "recommendationCount",
+    "loadedDocuments",
+  ],
+  dependentRequired: {
+    repositoryRevision: [
+      "workstreamId",
+      "workstreamRevision",
+      "workstreamSnapshotHash",
+      "workstreamScope",
+      "workstreamDeliveredByteCount",
+    ],
+    workstreamId: [
+      "workstreamRevision",
+      "workstreamSnapshotHash",
+      "workstreamScope",
+      "workstreamDeliveredByteCount",
+    ],
+    workstreamRevision: [
+      "workstreamId",
+      "workstreamSnapshotHash",
+      "workstreamScope",
+      "workstreamDeliveredByteCount",
+    ],
+    workstreamSnapshotHash: [
+      "workstreamId",
+      "workstreamRevision",
+      "workstreamScope",
+      "workstreamDeliveredByteCount",
+    ],
+    workstreamScope: [
+      "workstreamId",
+      "workstreamRevision",
+      "workstreamSnapshotHash",
+      "workstreamDeliveredByteCount",
+    ],
+    workstreamDeliveredByteCount: [
+      "workstreamId",
+      "workstreamRevision",
+      "workstreamSnapshotHash",
+      "workstreamScope",
+    ],
+  },
   additionalProperties: false,
 } as const;
 
@@ -64,7 +123,17 @@ export const terminalReferenceObservedEventPayloadSchema = {
     providerSessionDigest: sha256Schema,
     providerTurnDigest: optionalTurnDigestSchema,
   },
-  required: ["observationId", "contextEventId", "conceptId", "path", "contentHash", "scope", "referenceKind", "providerSessionDigest", "providerTurnDigest"],
+  required: [
+    "observationId",
+    "contextEventId",
+    "conceptId",
+    "path",
+    "contentHash",
+    "scope",
+    "referenceKind",
+    "providerSessionDigest",
+    "providerTurnDigest",
+  ],
   additionalProperties: false,
 } as const;
 
@@ -83,16 +152,78 @@ export const terminalTurnObservedEventPayloadSchema = {
     repositoryRevisionBefore: sha256Schema,
     repositoryRevisionAfter: sha256Schema,
     repositoryChanged: { type: "boolean" },
-    finalWorkstreamId: { anyOf: [{ type: "string", pattern: "^wks_[a-f0-9]{24}$" }, { type: "null" }] },
+    finalWorkstreamId: {
+      anyOf: [{ type: "string", pattern: "^wks_[a-f0-9]{24}$" }, { type: "null" }],
+    },
     finalWorkstreamRevision: { anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }] },
     finalWorkstreamSnapshotHash: { anyOf: [sha256Schema, { type: "null" }] },
     providerSessionDigest: sha256Schema,
     providerTurnDigest: optionalTurnDigestSchema,
   },
-  required: ["observationId", "contextEventId", "referenceEventIds", "referenceCount", "referenceTelemetry", "lifecycleStatus", "completionResult", "repositoryRevisionBefore", "repositoryRevisionAfter", "repositoryChanged", "finalWorkstreamId", "finalWorkstreamRevision", "finalWorkstreamSnapshotHash", "providerSessionDigest", "providerTurnDigest"],
+  required: [
+    "observationId",
+    "contextEventId",
+    "referenceEventIds",
+    "referenceCount",
+    "referenceTelemetry",
+    "lifecycleStatus",
+    "completionResult",
+    "providerSessionDigest",
+    "providerTurnDigest",
+  ],
+  dependentRequired: {
+    repositoryRevisionBefore: [
+      "repositoryRevisionAfter",
+      "repositoryChanged",
+      "finalWorkstreamId",
+      "finalWorkstreamRevision",
+      "finalWorkstreamSnapshotHash",
+    ],
+    repositoryRevisionAfter: [
+      "repositoryRevisionBefore",
+      "repositoryChanged",
+      "finalWorkstreamId",
+      "finalWorkstreamRevision",
+      "finalWorkstreamSnapshotHash",
+    ],
+    repositoryChanged: [
+      "repositoryRevisionBefore",
+      "repositoryRevisionAfter",
+      "finalWorkstreamId",
+      "finalWorkstreamRevision",
+      "finalWorkstreamSnapshotHash",
+    ],
+    finalWorkstreamId: [
+      "repositoryRevisionBefore",
+      "repositoryRevisionAfter",
+      "repositoryChanged",
+      "finalWorkstreamRevision",
+      "finalWorkstreamSnapshotHash",
+    ],
+    finalWorkstreamRevision: [
+      "repositoryRevisionBefore",
+      "repositoryRevisionAfter",
+      "repositoryChanged",
+      "finalWorkstreamId",
+      "finalWorkstreamSnapshotHash",
+    ],
+    finalWorkstreamSnapshotHash: [
+      "repositoryRevisionBefore",
+      "repositoryRevisionAfter",
+      "repositoryChanged",
+      "finalWorkstreamId",
+      "finalWorkstreamRevision",
+    ],
+  },
   additionalProperties: false,
 } as const;
 
-export type TerminalContextPreparedEventPayload = FromSchema<typeof terminalContextPreparedEventPayloadSchema>;
-export type TerminalReferenceObservedEventPayload = FromSchema<typeof terminalReferenceObservedEventPayloadSchema>;
-export type TerminalTurnObservedEventPayload = FromSchema<typeof terminalTurnObservedEventPayloadSchema>;
+export type TerminalContextPreparedEventPayload = FromSchema<
+  typeof terminalContextPreparedEventPayloadSchema
+>;
+export type TerminalReferenceObservedEventPayload = FromSchema<
+  typeof terminalReferenceObservedEventPayloadSchema
+>;
+export type TerminalTurnObservedEventPayload = FromSchema<
+  typeof terminalTurnObservedEventPayloadSchema
+>;

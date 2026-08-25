@@ -7,8 +7,7 @@ import {
   validateFirstPublicationArmingAuthorization,
   validateFirstPublicationArmingAuthorizationDocument,
 } from "../lib/first-publication-arming-authorization.mjs";
-import { executeFirstPublicationBootstrap } from
-  "../lib/first-publication-execution.mjs";
+import { executeFirstPublicationBootstrap } from "../lib/first-publication-execution.mjs";
 import {
   createFirstPublicationReservation,
   firstPublicationReservationId,
@@ -52,39 +51,54 @@ describe("first-publication arming authorization", () => {
     assert.equal(authorization.execution.publisherEntryPoint, "not_exposed");
     assert.equal(JSON.stringify(authorization).includes(source.armingDecision.actor.id), false);
     assert.equal(validateFirstPublicationArmingAuthorizationDocument(authorization), authorization);
-    assert.equal(validateFirstPublicationArmingAuthorization(authorization, {
-      bootstrap: source.bootstrap,
-      publicationAuthorization: source.publicationAuthorization,
-      checkedAt: "2026-08-21T03:01:00Z",
-    }), authorization);
+    assert.equal(
+      validateFirstPublicationArmingAuthorization(authorization, {
+        bootstrap: source.bootstrap,
+        publicationAuthorization: source.publicationAuthorization,
+        checkedAt: "2026-08-21T03:01:00Z",
+      }),
+      authorization,
+    );
   });
 
   it("rejects a decision for another plan and a decision that already expired", () => {
     const source = fixture();
     const mismatched = structuredClone(source.armingDecision);
     mismatched.target.executionPlanDigest = `sha256:${"f".repeat(64)}`;
-    assert.throws(() => createFirstPublicationArmingAuthorization({
-      bootstrap: source.bootstrap,
-      publicationAuthorization: source.publicationAuthorization,
-      decision: mismatched,
-      armedAt: "2026-08-21T03:00:30Z",
-    }), { code: "first_publication_arming_decision_invalid" });
+    assert.throws(
+      () =>
+        createFirstPublicationArmingAuthorization({
+          bootstrap: source.bootstrap,
+          publicationAuthorization: source.publicationAuthorization,
+          decision: mismatched,
+          armedAt: "2026-08-21T03:00:30Z",
+        }),
+      { code: "first_publication_arming_decision_invalid" },
+    );
 
     const expired = structuredClone(source.armingDecision);
     expired.expiresAt = "2026-08-21T03:00:30Z";
-    assert.throws(() => createFirstPublicationArmingAuthorization({
-      bootstrap: source.bootstrap,
-      publicationAuthorization: source.publicationAuthorization,
-      decision: expired,
-      armedAt: "2026-08-21T03:00:30Z",
-    }), { code: "first_publication_arming_decision_invalid" });
+    assert.throws(
+      () =>
+        createFirstPublicationArmingAuthorization({
+          bootstrap: source.bootstrap,
+          publicationAuthorization: source.publicationAuthorization,
+          decision: expired,
+          armedAt: "2026-08-21T03:00:30Z",
+        }),
+      { code: "first_publication_arming_decision_invalid" },
+    );
 
-    assert.throws(() => createFirstPublicationArmingAuthorization({
-      bootstrap: source.bootstrap,
-      publicationAuthorization: source.publicationAuthorization,
-      decision: source.armingDecision,
-      armedAt: "2026-08-21T03:09:00Z",
-    }), { code: "first_publication_arming_authorization_expired" });
+    assert.throws(
+      () =>
+        createFirstPublicationArmingAuthorization({
+          bootstrap: source.bootstrap,
+          publicationAuthorization: source.publicationAuthorization,
+          decision: source.armingDecision,
+          armedAt: "2026-08-21T03:09:00Z",
+        }),
+      { code: "first_publication_arming_authorization_expired" },
+    );
   });
 
   it("rejects a redigested document that exposes a publisher entry point", () => {
@@ -93,19 +107,17 @@ describe("first-publication arming authorization", () => {
     forged.execution.publisherEntryPoint = "available";
     const { armingAuthorizationDigest: _oldDigest, ...body } = forged;
     forged.armingAuthorizationDigest = canonicalDigest(body);
-    assert.throws(
-      () => validateFirstPublicationArmingAuthorizationDocument(forged),
-      { code: "first_publication_arming_authorization_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationArmingAuthorizationDocument(forged), {
+      code: "first_publication_arming_authorization_invalid",
+    });
 
     const longLived = structuredClone(source.armingAuthorization);
     longLived.validity.validUntil = "2026-08-21T03:08:00Z";
     const { armingAuthorizationDigest: _discarded, ...longBody } = longLived;
     longLived.armingAuthorizationDigest = canonicalDigest(longBody);
-    assert.throws(
-      () => validateFirstPublicationArmingAuthorizationDocument(longLived),
-      { code: "first_publication_arming_authorization_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationArmingAuthorizationDocument(longLived), {
+      code: "first_publication_arming_authorization_invalid",
+    });
   });
 
   it("binds the authorization digest while keeping one reservation ID per bootstrap", () => {
@@ -136,32 +148,50 @@ describe("first-publication arming authorization", () => {
     delete legacy.armingAuthorizationDigest;
     const { reservationDigest: _legacyDigest, ...legacyBody } = legacy;
     legacy.reservationDigest = canonicalDigest(legacyBody);
-    assert.throws(() => validateFirstPublicationReservation(legacy, {
-      bootstrap: source.bootstrap,
-      armingAuthorization: source.armingAuthorization,
-      publicationAuthorization: source.publicationAuthorization,
-    }), { code: "first_publication_reservation_invalid" });
+    assert.throws(
+      () =>
+        validateFirstPublicationReservation(legacy, {
+          bootstrap: source.bootstrap,
+          armingAuthorization: source.armingAuthorization,
+          publicationAuthorization: source.publicationAuthorization,
+        }),
+      { code: "first_publication_reservation_invalid" },
+    );
   });
 
   it("rejects missing authorization before preparing, observing, or reserving", async () => {
     const source = fixture();
     let downstreamCalls = 0;
-    await assert.rejects(executeFirstPublicationBootstrap({
-      bootstrap: source.bootstrap,
-      publicationAuthorization: source.publicationAuthorization,
-      releaseDirectory: "/release",
-    }, {
-      preparePublish: async () => { downstreamCalls += 1; },
-      observePackage: async () => { downstreamCalls += 1; },
-      reservationStore: {
-        reserve: async () => { downstreamCalls += 1; },
-        complete: async () => {},
-        abort: async () => {},
-        markUnknown: async () => {},
-      },
-      publish: async () => { downstreamCalls += 1; },
-      clock: () => "2026-08-21T03:01:00Z",
-    }), { code: "first_publication_arming_authorization_invalid" });
+    await assert.rejects(
+      executeFirstPublicationBootstrap(
+        {
+          bootstrap: source.bootstrap,
+          publicationAuthorization: source.publicationAuthorization,
+          releaseDirectory: "/release",
+        },
+        {
+          preparePublish: async () => {
+            downstreamCalls += 1;
+          },
+          observePackage: async () => {
+            downstreamCalls += 1;
+          },
+          reservationStore: {
+            reserve: async () => {
+              downstreamCalls += 1;
+            },
+            complete: async () => {},
+            abort: async () => {},
+            markUnknown: async () => {},
+          },
+          publish: async () => {
+            downstreamCalls += 1;
+          },
+          clock: () => "2026-08-21T03:01:00Z",
+        },
+      ),
+      { code: "first_publication_arming_authorization_invalid" },
+    );
     assert.equal(downstreamCalls, 0);
   });
 
@@ -169,30 +199,40 @@ describe("first-publication arming authorization", () => {
     const source = fixture();
     const calls = [];
     const times = ["2026-08-21T03:05:14Z", "2026-08-21T03:05:15Z"];
-    await assert.rejects(executeFirstPublicationBootstrap({
-      bootstrap: source.bootstrap,
-      armingAuthorization: source.armingAuthorization,
-      publicationAuthorization: source.publicationAuthorization,
-      releaseDirectory: "/release",
-    }, {
-      observePackage: async () => {
-        calls.push("observe");
-        return {
-          schemaVersion: 1,
-          source: "npm_public_registry",
-          state: "not_found",
-          package: "@lervo/cli",
-        };
-      },
-      reservationStore: {
-        reserve: async () => { calls.push("reserve"); },
-        complete: async () => {},
-        abort: async () => {},
-        markUnknown: async () => {},
-      },
-      publish: async () => { calls.push("publish"); },
-      clock: () => times.shift(),
-    }), { code: "first_publication_arming_authorization_invalid" });
+    await assert.rejects(
+      executeFirstPublicationBootstrap(
+        {
+          bootstrap: source.bootstrap,
+          armingAuthorization: source.armingAuthorization,
+          publicationAuthorization: source.publicationAuthorization,
+          releaseDirectory: "/release",
+        },
+        {
+          observePackage: async () => {
+            calls.push("observe");
+            return {
+              schemaVersion: 1,
+              source: "npm_public_registry",
+              state: "not_found",
+              package: "@lervo/cli",
+            };
+          },
+          reservationStore: {
+            reserve: async () => {
+              calls.push("reserve");
+            },
+            complete: async () => {},
+            abort: async () => {},
+            markUnknown: async () => {},
+          },
+          publish: async () => {
+            calls.push("publish");
+          },
+          clock: () => times.shift(),
+        },
+      ),
+      { code: "first_publication_arming_authorization_invalid" },
+    );
     assert.deepEqual(calls, ["observe"]);
   });
 });

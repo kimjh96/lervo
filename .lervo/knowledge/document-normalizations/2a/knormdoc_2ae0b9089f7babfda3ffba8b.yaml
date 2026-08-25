@@ -1,0 +1,29 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_aecd7d839d6c10165bc3ecc8
+outputLanguage: en
+outputs:
+  - byteCount: 3297
+    contentHash: sha256:39ee31cef65f888d7d3e1a274c0f6a27b2f0d19777bcd00fd2c822d2f1a4c5e7
+    path: docs/decisions/execution/providers/0012-provider-result-artifacts.md
+    userRegionHash: sha256:39ee31cef65f888d7d3e1a274c0f6a27b2f0d19777bcd00fd2c822d2f1a4c5e7
+profile: decision_record
+recordId: knormdoc_2ae0b9089f7babfda3ffba8b
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:9b80397f403da630a02503e65b7fba613dc2b97ea5750abdce1dd2c1da6145a7
+sourcePath: docs/decisions/execution/providers/0012-provider-result-artifacts.md
+sourceUnitVersionIds:
+  - uv_728e2390a23b4f6ebbf7db71
+  - uv_735a5cc9df08fad09a00f54d
+  - uv_8f3e8200214f6a7cf3dd93b5
+  - uv_cd4b50824748a9af9b64c6d2
+  - uv_f9c873696e85fc8308319405
+  - uv_f9e65a7625fcece11f03675b
+  - uv_fdd69cec5ead5423d698b54a

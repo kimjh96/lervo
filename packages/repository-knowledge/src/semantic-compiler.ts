@@ -41,7 +41,14 @@ export interface SemanticCompilerResponse {
   concepts: Array<{
     localKey: string;
     title: string;
-    type: "concept" | "decision" | "invariant" | "procedure" | "responsibility" | "dependency" | "open_question";
+    type:
+      | "concept"
+      | "decision"
+      | "invariant"
+      | "procedure"
+      | "responsibility"
+      | "dependency"
+      | "open_question";
     summary: string;
     claims: Array<{
       localKey: string;
@@ -131,7 +138,9 @@ export interface KnowledgeCompilationCandidate {
   }>;
 }
 
-function compilationMaterials(candidate: Omit<KnowledgeCompilationCandidate, "schemaVersion" | "compilationId">): unknown {
+function compilationMaterials(
+  candidate: Omit<KnowledgeCompilationCandidate, "schemaVersion" | "compilationId">,
+): unknown {
   return {
     sourceSnapshotId: candidate.sourceSnapshotId,
     source: candidate.source,
@@ -159,14 +168,18 @@ const MAX_RESPONSE_RELATIONS = 256;
 const KEY = /^[a-z][a-z0-9_-]{0,63}$/;
 
 function sourceUnitData(scan: RepositoryKnowledgeScan): SemanticCompilerSourceUnit[] {
-  const sources = new Map(scan.sources
-    .filter((source) =>
-      source.status === "included" &&
-      source.classification === "ordinary" &&
-      source.agentArtifact?.contentHandling !== "local_inventory_only" &&
-      source.content !== undefined &&
-      source.contentHash !== null)
-    .map((source) => [source.sourceId, source]));
+  const sources = new Map(
+    scan.sources
+      .filter(
+        (source) =>
+          source.status === "included" &&
+          source.classification === "ordinary" &&
+          source.agentArtifact?.contentHandling !== "local_inventory_only" &&
+          source.content !== undefined &&
+          source.contentHash !== null,
+      )
+      .map((source) => [source.sourceId, source]),
+  );
   const bySource = new Map<string, RepositorySourceUnit[]>();
   for (const unit of scan.units) {
     const values = bySource.get(unit.sourceId) ?? [];
@@ -182,18 +195,23 @@ function sourceUnitData(scan: RepositoryKnowledgeScan): SemanticCompilerSourceUn
     if (source?.content === undefined) return [];
     const bytes = Buffer.from(source.content);
     const snippet = bytes.subarray(unit.range.startByte, unit.range.endByte).toString("utf8");
-    return [{
-      unitVersionId: unit.unitVersionId,
-      unitKind: unit.unitKind,
-      path: unit.path,
-      locator: unit.locator,
-      contentHash: unit.unitHash,
-      untrustedSourceData: snippet,
-    }];
+    return [
+      {
+        unitVersionId: unit.unitVersionId,
+        unitKind: unit.unitKind,
+        path: unit.path,
+        locator: unit.locator,
+        contentHash: unit.unitHash,
+        untrustedSourceData: snippet,
+      },
+    ];
   });
 }
 
-function shardUnits(scan: RepositoryKnowledgeScan, outputLanguage: string): SemanticCompilerEnvelope[] {
+function shardUnits(
+  scan: RepositoryKnowledgeScan,
+  outputLanguage: string,
+): SemanticCompilerEnvelope[] {
   const units = sourceUnitData(scan);
   const shards: SemanticCompilerSourceUnit[][] = [];
   let current: SemanticCompilerSourceUnit[] = [];
@@ -201,9 +219,15 @@ function shardUnits(scan: RepositoryKnowledgeScan, outputLanguage: string): Sema
   for (const unit of units) {
     const unitBytes = Buffer.byteLength(unit.untrustedSourceData);
     if (unitBytes > MAX_SHARD_BYTES) {
-      throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "A semantic compiler source unit exceeds the shard byte limit.");
+      throw new RepositoryKnowledgeError(
+        "knowledge_source_limit_exceeded",
+        "A semantic compiler source unit exceeds the shard byte limit.",
+      );
     }
-    if (current.length > 0 && (current.length >= MAX_SHARD_UNITS || bytes + unitBytes > MAX_SHARD_BYTES)) {
+    if (
+      current.length > 0 &&
+      (current.length >= MAX_SHARD_UNITS || bytes + unitBytes > MAX_SHARD_BYTES)
+    ) {
       shards.push(current);
       current = [];
       bytes = 0;
@@ -213,7 +237,12 @@ function shardUnits(scan: RepositoryKnowledgeScan, outputLanguage: string): Sema
   }
   if (current.length > 0) shards.push(current);
   return shards.map((sourceUnits) => {
-    const shardId = stableId("kshard", { snapshotId: scan.snapshotId, outputLanguage, unitVersions: sourceUnits.map((unit) => unit.unitVersionId), partitioner: "semantic-shards-v1" });
+    const shardId = stableId("kshard", {
+      snapshotId: scan.snapshotId,
+      outputLanguage,
+      unitVersions: sourceUnits.map((unit) => unit.unitVersionId),
+      partitioner: "semantic-shards-v1",
+    });
     return {
       schemaVersion: 1,
       shardId,
@@ -233,51 +262,110 @@ function shardUnits(scan: RepositoryKnowledgeScan, outputLanguage: string): Sema
   });
 }
 
-function requiredResponse(value: unknown, envelope: SemanticCompilerEnvelope): SemanticCompilerResponse {
+function requiredResponse(
+  value: unknown,
+  envelope: SemanticCompilerEnvelope,
+): SemanticCompilerResponse {
   const response = value as Partial<SemanticCompilerResponse> | null;
   const allowedEvidence = new Set(envelope.sourceUnits.map((unit) => unit.unitVersionId));
   const telemetry = response?.telemetry;
   if (
-    response === null || typeof response !== "object" || response.schemaVersion !== 1 ||
-    !Array.isArray(response.concepts) || response.concepts.length > MAX_RESPONSE_CONCEPTS ||
-    !Array.isArray(response.relations) || response.relations.length > MAX_RESPONSE_RELATIONS ||
-    telemetry === undefined || telemetry.complete !== true ||
-    [telemetry.filesystemReads, telemetry.filesystemWrites, telemetry.shellProcesses, telemetry.networkRequests, telemetry.externalActions, telemetry.toolCalls]
-      .some((count) => count !== 0)
-  ) throw new RepositoryKnowledgeError("knowledge_compile_policy_violation", "The semantic compiler did not prove the no-capability contract.");
+    response === null ||
+    typeof response !== "object" ||
+    response.schemaVersion !== 1 ||
+    !Array.isArray(response.concepts) ||
+    response.concepts.length > MAX_RESPONSE_CONCEPTS ||
+    !Array.isArray(response.relations) ||
+    response.relations.length > MAX_RESPONSE_RELATIONS ||
+    telemetry === undefined ||
+    telemetry.complete !== true ||
+    [
+      telemetry.filesystemReads,
+      telemetry.filesystemWrites,
+      telemetry.shellProcesses,
+      telemetry.networkRequests,
+      telemetry.externalActions,
+      telemetry.toolCalls,
+    ].some((count) => count !== 0)
+  )
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_policy_violation",
+      "The semantic compiler did not prove the no-capability contract.",
+    );
   const conceptKeys = new Set<string>();
   for (const concept of response.concepts) {
     if (
-      concept === null || typeof concept !== "object" ||
-      !KEY.test(concept.localKey) || conceptKeys.has(concept.localKey) ||
-      typeof concept.title !== "string" || concept.title.length < 1 || concept.title.length > 160 ||
-      typeof concept.summary !== "string" || concept.summary.length < 1 || concept.summary.length > 2_000 ||
-      !["concept", "decision", "invariant", "procedure", "responsibility", "dependency", "open_question"].includes(concept.type) ||
-      !Array.isArray(concept.claims) || concept.claims.length > 64
-    ) throw new RepositoryKnowledgeError("knowledge_compile_failed", "A semantic compiler concept does not satisfy the contract.");
+      concept === null ||
+      typeof concept !== "object" ||
+      !KEY.test(concept.localKey) ||
+      conceptKeys.has(concept.localKey) ||
+      typeof concept.title !== "string" ||
+      concept.title.length < 1 ||
+      concept.title.length > 160 ||
+      typeof concept.summary !== "string" ||
+      concept.summary.length < 1 ||
+      concept.summary.length > 2_000 ||
+      ![
+        "concept",
+        "decision",
+        "invariant",
+        "procedure",
+        "responsibility",
+        "dependency",
+        "open_question",
+      ].includes(concept.type) ||
+      !Array.isArray(concept.claims) ||
+      concept.claims.length > 64
+    )
+      throw new RepositoryKnowledgeError(
+        "knowledge_compile_failed",
+        "A semantic compiler concept does not satisfy the contract.",
+      );
     conceptKeys.add(concept.localKey);
     const claimKeys = new Set<string>();
     for (const claim of concept.claims) {
       if (
-        claim === null || typeof claim !== "object" ||
-        !KEY.test(claim.localKey) || claimKeys.has(claim.localKey) ||
-        typeof claim.statement !== "string" || claim.statement.length < 1 || claim.statement.length > 2_000 ||
-        !Array.isArray(claim.evidenceUnitVersionIds) || claim.evidenceUnitVersionIds.length < 1 ||
-        claim.evidenceUnitVersionIds.some((id) => typeof id !== "string" || !allowedEvidence.has(id)) ||
+        claim === null ||
+        typeof claim !== "object" ||
+        !KEY.test(claim.localKey) ||
+        claimKeys.has(claim.localKey) ||
+        typeof claim.statement !== "string" ||
+        claim.statement.length < 1 ||
+        claim.statement.length > 2_000 ||
+        !Array.isArray(claim.evidenceUnitVersionIds) ||
+        claim.evidenceUnitVersionIds.length < 1 ||
+        claim.evidenceUnitVersionIds.some(
+          (id) => typeof id !== "string" || !allowedEvidence.has(id),
+        ) ||
         new Set(claim.evidenceUnitVersionIds).size !== claim.evidenceUnitVersionIds.length
-      ) throw new RepositoryKnowledgeError("knowledge_compile_failed", "Semantic compiler claim provenance does not satisfy the contract.");
+      )
+        throw new RepositoryKnowledgeError(
+          "knowledge_compile_failed",
+          "Semantic compiler claim provenance does not satisfy the contract.",
+        );
       claimKeys.add(claim.localKey);
     }
   }
   for (const relation of response.relations) {
     if (
-      relation === null || typeof relation !== "object" ||
-      !conceptKeys.has(relation.fromConceptKey) || !conceptKeys.has(relation.toConceptKey) ||
-      !["depends_on", "constrains", "related_to", "supersedes", "contradicts"].includes(relation.type) ||
-      !Array.isArray(relation.evidenceUnitVersionIds) || relation.evidenceUnitVersionIds.length < 1 ||
-      relation.evidenceUnitVersionIds.some((id) => typeof id !== "string" || !allowedEvidence.has(id)) ||
+      relation === null ||
+      typeof relation !== "object" ||
+      !conceptKeys.has(relation.fromConceptKey) ||
+      !conceptKeys.has(relation.toConceptKey) ||
+      !["depends_on", "constrains", "related_to", "supersedes", "contradicts"].includes(
+        relation.type,
+      ) ||
+      !Array.isArray(relation.evidenceUnitVersionIds) ||
+      relation.evidenceUnitVersionIds.length < 1 ||
+      relation.evidenceUnitVersionIds.some(
+        (id) => typeof id !== "string" || !allowedEvidence.has(id),
+      ) ||
       new Set(relation.evidenceUnitVersionIds).size !== relation.evidenceUnitVersionIds.length
-    ) throw new RepositoryKnowledgeError("knowledge_compile_failed", "Semantic compiler relation provenance does not satisfy the contract.");
+    )
+      throw new RepositoryKnowledgeError(
+        "knowledge_compile_failed",
+        "Semantic compiler relation provenance does not satisfy the contract.",
+      );
   }
   const normalized = structuredClone(response as SemanticCompilerResponse);
   for (const concept of normalized.concepts) {
@@ -286,11 +374,14 @@ function requiredResponse(value: unknown, envelope: SemanticCompilerEnvelope): S
   }
   normalized.concepts.sort((left, right) => left.localKey.localeCompare(right.localKey));
   for (const relation of normalized.relations) relation.evidenceUnitVersionIds.sort();
-  normalized.relations.sort((left, right) =>
-    left.fromConceptKey.localeCompare(right.fromConceptKey) ||
-    left.toConceptKey.localeCompare(right.toConceptKey) ||
-    left.type.localeCompare(right.type) ||
-    left.evidenceUnitVersionIds.join("\u0000").localeCompare(right.evidenceUnitVersionIds.join("\u0000")),
+  normalized.relations.sort(
+    (left, right) =>
+      left.fromConceptKey.localeCompare(right.fromConceptKey) ||
+      left.toConceptKey.localeCompare(right.toConceptKey) ||
+      left.type.localeCompare(right.type) ||
+      left.evidenceUnitVersionIds
+        .join("\u0000")
+        .localeCompare(right.evidenceUnitVersionIds.join("\u0000")),
   );
   return normalized;
 }
@@ -303,66 +394,107 @@ export async function compileRepositoryKnowledgeCandidate(input: {
   outputLanguage?: string;
 }): Promise<KnowledgeCompilationCandidate> {
   if (!/^sha256:[a-f0-9]{64}$/.test(input.policyHash)) {
-    throw new RepositoryKnowledgeError("knowledge_compile_policy_violation", "The semantic compilation policy hash is invalid.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_policy_violation",
+      "The semantic compilation policy hash is invalid.",
+    );
   }
   if (
-    (input.compiler.descriptor.provider !== "codex" && input.compiler.descriptor.provider !== "claude") ||
+    (input.compiler.descriptor.provider !== "codex" &&
+      input.compiler.descriptor.provider !== "claude") ||
     input.compiler.descriptor.isolation !== "external_no_capabilities" ||
     !/^[a-z][a-z0-9._-]{2,63}$/.test(input.compiler.descriptor.compilerId) ||
     input.compiler.descriptor.compilerVersion.length === 0 ||
     !/^sha256:[a-f0-9]{64}$/.test(input.compiler.descriptor.compilerBuildId)
   ) {
-    throw new RepositoryKnowledgeError("knowledge_compile_policy_violation", "The semantic compiler isolation contract is invalid.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_policy_violation",
+      "The semantic compiler isolation contract is invalid.",
+    );
   }
   const outputLanguage = input.outputLanguage ?? "en";
   if (outputLanguage !== "en") {
-    throw new RepositoryKnowledgeError("knowledge_compile_policy_violation", `Unsupported semantic publication language: ${outputLanguage}`);
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_policy_violation",
+      `Unsupported semantic publication language: ${outputLanguage}`,
+    );
   }
   const envelopes = shardUnits(input.scan, outputLanguage);
-  const compiled: Array<{ envelope: SemanticCompilerEnvelope; response: SemanticCompilerResponse }> = [];
+  const compiled: Array<{
+    envelope: SemanticCompilerEnvelope;
+    response: SemanticCompilerResponse;
+  }> = [];
   for (const envelope of envelopes) {
-    if (input.signal.aborted) throw input.signal.reason ?? new Error("semantic compilation cancelled");
-    const response = requiredResponse(await input.compiler.compile(structuredClone(envelope), input.signal), envelope);
+    if (input.signal.aborted)
+      throw input.signal.reason ?? new Error("semantic compilation cancelled");
+    const response = requiredResponse(
+      await input.compiler.compile(structuredClone(envelope), input.signal),
+      envelope,
+    );
     compiled.push({ envelope, response });
   }
-  const concepts = compiled.flatMap(({ envelope, response }) => response.concepts.map((concept) => {
-    const conceptId = stableId("concept_candidate", { compilationSource: input.scan.snapshotId, shardId: envelope.shardId, localKey: concept.localKey, compiler: input.compiler.descriptor });
-    return {
-      conceptId,
-      title: concept.title,
-      type: concept.type,
-      summary: concept.summary,
-      assurance: "unreviewed" as const,
-      claims: concept.claims.map((claim) => ({
-        claimId: stableId("claim_candidate", { conceptId, localKey: claim.localKey }),
-        statement: claim.statement,
-        statementDigest: sha256(claim.statement),
-        evidenceUnitVersionIds: [...claim.evidenceUnitVersionIds].sort(),
+  const concepts = compiled.flatMap(({ envelope, response }) =>
+    response.concepts.map((concept) => {
+      const conceptId = stableId("concept_candidate", {
+        compilationSource: input.scan.snapshotId,
+        shardId: envelope.shardId,
+        localKey: concept.localKey,
+        compiler: input.compiler.descriptor,
+      });
+      return {
+        conceptId,
+        title: concept.title,
+        type: concept.type,
+        summary: concept.summary,
         assurance: "unreviewed" as const,
-      })),
-    };
-  }));
+        claims: concept.claims.map((claim) => ({
+          claimId: stableId("claim_candidate", { conceptId, localKey: claim.localKey }),
+          statement: claim.statement,
+          statementDigest: sha256(claim.statement),
+          evidenceUnitVersionIds: [...claim.evidenceUnitVersionIds].sort(),
+          assurance: "unreviewed" as const,
+        })),
+      };
+    }),
+  );
   const conceptByShardKey = new Map<string, string>();
   let conceptCursor = 0;
   for (const item of compiled) {
     for (const concept of item.response.concepts) {
-      conceptByShardKey.set(`${item.envelope.shardId}:${concept.localKey}`, concepts[conceptCursor]?.conceptId ?? "");
+      conceptByShardKey.set(
+        `${item.envelope.shardId}:${concept.localKey}`,
+        concepts[conceptCursor]?.conceptId ?? "",
+      );
       conceptCursor += 1;
     }
   }
-  const relations = compiled.flatMap(({ envelope, response }) => response.relations.map((relation) => {
-    const fromConceptId = conceptByShardKey.get(`${envelope.shardId}:${relation.fromConceptKey}`) ?? "";
-    const toConceptId = conceptByShardKey.get(`${envelope.shardId}:${relation.toConceptKey}`) ?? "";
-    return {
-      relationId: stableId("relation_candidate", { fromConceptId, toConceptId, type: relation.type, evidence: [...relation.evidenceUnitVersionIds].sort() }),
-      fromConceptId,
-      toConceptId,
-      type: relation.type,
-      evidenceUnitVersionIds: [...relation.evidenceUnitVersionIds].sort(),
-      assurance: "unreviewed" as const,
-    };
-  }));
-  const coverage = { shardCount: envelopes.length, compiledShardCount: compiled.length, unitCount: envelopes.reduce((count, envelope) => count + envelope.sourceUnits.length, 0), complete: true as const };
+  const relations = compiled.flatMap(({ envelope, response }) =>
+    response.relations.map((relation) => {
+      const fromConceptId =
+        conceptByShardKey.get(`${envelope.shardId}:${relation.fromConceptKey}`) ?? "";
+      const toConceptId =
+        conceptByShardKey.get(`${envelope.shardId}:${relation.toConceptKey}`) ?? "";
+      return {
+        relationId: stableId("relation_candidate", {
+          fromConceptId,
+          toConceptId,
+          type: relation.type,
+          evidence: [...relation.evidenceUnitVersionIds].sort(),
+        }),
+        fromConceptId,
+        toConceptId,
+        type: relation.type,
+        evidenceUnitVersionIds: [...relation.evidenceUnitVersionIds].sort(),
+        assurance: "unreviewed" as const,
+      };
+    }),
+  );
+  const coverage = {
+    shardCount: envelopes.length,
+    compiledShardCount: compiled.length,
+    unitCount: envelopes.reduce((count, envelope) => count + envelope.sourceUnits.length, 0),
+    complete: true as const,
+  };
   const shardIds = envelopes.map((envelope) => envelope.shardId);
   const source = {
     scannerBuild: input.scan.scannerBuild,
@@ -370,7 +502,9 @@ export async function compileRepositoryKnowledgeCandidate(input: {
     policyHash: input.policyHash,
     partitionerBuild: "semantic-shards-v1" as const,
   };
-  const coverageDigest = sha256(canonicalJson({ inventoryCoverage: input.scan.coverage, coverage, shardIds }));
+  const coverageDigest = sha256(
+    canonicalJson({ inventoryCoverage: input.scan.coverage, coverage, shardIds }),
+  );
   const content: Omit<KnowledgeCompilationCandidate, "schemaVersion" | "compilationId"> = {
     sourceSnapshotId: input.scan.snapshotId,
     source,

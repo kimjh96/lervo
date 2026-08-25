@@ -312,9 +312,7 @@ export const documentMigrationPlanSchema = {
   additionalProperties: false,
 } as const;
 
-export type DocumentMigrationCandidate = FromSchema<
-  typeof documentMigrationCandidateSchema
->;
+export type DocumentMigrationCandidate = FromSchema<typeof documentMigrationCandidateSchema>;
 export type DocumentMigrationCandidateArtifact = FromSchema<
   typeof documentMigrationCandidateArtifactSchema
 >;

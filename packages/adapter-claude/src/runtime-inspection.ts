@@ -1,15 +1,14 @@
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 
-import {
-  inspectProviderExecutable,
-  type ProviderRuntimeInspection,
-} from "@lervo/adapter-contract";
+import { inspectProviderExecutable, type ProviderRuntimeInspection } from "@lervo/adapter-contract";
 
 function usesMusl(): boolean {
-  const report = process.report?.getReport() as {
-    header?: { glibcVersionRuntime?: string };
-  } | undefined;
+  const report = process.report?.getReport() as
+    | {
+        header?: { glibcVersionRuntime?: string };
+      }
+    | undefined;
   return process.platform === "linux" && report?.header?.glibcVersionRuntime === undefined;
 }
 
@@ -50,9 +49,7 @@ export async function inspectClaudeRuntime(
       status: "unknown",
       source: executable === undefined ? "bundled" : "configured",
       version: null,
-      reasonCode: nativePackageName() === null
-        ? "unsupported_platform"
-        : "executable_not_found",
+      reasonCode: nativePackageName() === null ? "unsupported_platform" : "executable_not_found",
     };
   }
   return inspectProviderExecutable({

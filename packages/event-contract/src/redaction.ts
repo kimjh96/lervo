@@ -37,9 +37,16 @@ export const eventPayloadAllowlists = {
     "selectionPolicyId",
     "selectionPolicyVersion",
     "selectionMaximum",
-    "knowledgeContext"
+    "knowledgeContext",
   ],
-  "context.selected": ["documentId", "reasonCode", "ruleId", "required", "scope", "knowledgeContext"],
+  "context.selected": [
+    "documentId",
+    "reasonCode",
+    "ruleId",
+    "required",
+    "scope",
+    "knowledgeContext",
+  ],
   "document.loaded": [
     "evidenceReceiptId",
     "documentId",
@@ -47,7 +54,7 @@ export const eventPayloadAllowlists = {
     "byteCount",
     "scope",
     "sourceRevision",
-    "knowledgeContext"
+    "knowledgeContext",
   ],
   "context.injected": [
     "receiptId",
@@ -58,7 +65,7 @@ export const eventPayloadAllowlists = {
     "contextGeneration",
     "adapterId",
     "providerSessionId",
-    "documents"
+    "documents",
   ],
   "adapter.result.captured": [
     "adapterId",
@@ -68,7 +75,7 @@ export const eventPayloadAllowlists = {
     "resultDigest",
     "byteCount",
     "mediaType",
-    "referenceTelemetry"
+    "referenceTelemetry",
   ],
   "context.referenced": [
     "evidenceReceiptId",
@@ -84,7 +91,7 @@ export const eventPayloadAllowlists = {
     "providerTurnId",
     "contextGeneration",
     "referenceKind",
-    "citation"
+    "citation",
   ],
   "context.invalidated": ["documentIds", "reason", "contextGeneration"],
   "context.published": [
@@ -94,7 +101,7 @@ export const eventPayloadAllowlists = {
     "producerRoleId",
     "audienceMode",
     "allowedRoleIds",
-    "expiresAt"
+    "expiresAt",
   ],
   "handoff.created": [
     "handoffId",
@@ -102,18 +109,132 @@ export const eventPayloadAllowlists = {
     "toRoleId",
     "sharedContextIds",
     "evidenceEventIds",
-    "requestDigest"
+    "requestDigest",
+  ],
+  "agent.registered": [
+    "agentId",
+    "roleId",
+    "roleVersion",
+    "roleContractHash",
+    "roleProfileHash",
+    "capabilityHash",
+    "provider",
+    "parentAgentId",
+    "delegationDepth",
+  ],
+  "agent.status.changed": ["agentId", "previousStatus", "status", "revision"],
+  "assignment.created": [
+    "assignmentId",
+    "taskType",
+    "roleId",
+    "roleVersion",
+    "roleContractHash",
+    "priority",
+    "dependencyIds",
+    "expectedPathDigest",
+    "acceptanceDigest",
+    "verificationDigest",
+    "workstreamId",
+  ],
+  "assignment.claimed": [
+    "assignmentId",
+    "agentId",
+    "leaseId",
+    "generation",
+    "expiresAt",
+    "expectedPathDigest",
+  ],
+  "assignment.lease.renewed": ["assignmentId", "agentId", "leaseId", "generation", "expiresAt"],
+  "assignment.handoff.recorded": [
+    "assignmentId",
+    "handoffId",
+    "fromAgentId",
+    "toAgentId",
+    "requestDigest",
+    "artifactIds",
+    "artifactHashes",
+    "contextEvidenceEventIds",
+  ],
+  "assignment.completed": [
+    "assignmentId",
+    "agentId",
+    "status",
+    "verificationStatus",
+    "artifactIds",
+    "artifactHashes",
+    "failureCode",
+  ],
+  "public_readme.improvement.applied": [
+    "operation",
+    "planId",
+    "operationId",
+    "sourceHash",
+    "outputHash",
+    "profileId",
+    "language",
+    "audienceDigest",
+    "intentDigest",
+    "protectedCoordinateDigest",
+    "protectedCoordinateCount",
+    "changedCoordinateCount",
+    "approvalHash",
+    "appliedAt",
   ],
   "adapter.started": [
     "adapterId",
     "adapterVersion",
     "providerSessionId",
     "executionMode",
-    "capabilities"
+    "capabilities",
   ],
   "adapter.stopped": ["adapterId", "providerSessionId", "status"],
   "capability.requested": ["capability", "targetDigest", "risk"],
   "capability.decided": ["capability", "decision", "policyRuleId", "approvalId"],
+  "capability.activated": [
+    "capabilityId",
+    "capabilityKind",
+    "version",
+    "contentHash",
+    "adapterId",
+    "providerSessionId",
+    "evidence",
+    "activationDigest",
+  ],
+  "capability.recommended": [
+    "capabilityId",
+    "capabilityKind",
+    "version",
+    "contentHash",
+    "score",
+    "reasonCodes",
+    "queryDigest",
+  ],
+  "capability.selected": ["capabilityId", "capabilityKind", "version", "contentHash", "reason"],
+  "capability.loaded": [
+    "capabilityId",
+    "capabilityKind",
+    "version",
+    "contentHash",
+    "sourceKind",
+    "validationDigest",
+  ],
+  "capability.invoked": [
+    "capabilityId",
+    "capabilityKind",
+    "version",
+    "contentHash",
+    "providerItemDigest",
+    "inputDigest",
+  ],
+  "capability.completed": [
+    "capabilityId",
+    "capabilityKind",
+    "version",
+    "contentHash",
+    "providerItemDigest",
+    "status",
+    "durationMs",
+  ],
   "tool.called": ["toolName", "inputDigest", "status", "durationMs"],
   "command.executed": [
     "commandDigest",
@@ -121,7 +242,7 @@ export const eventPayloadAllowlists = {
     "status",
     "exitCode",
     "outputDigest",
-    "durationMs"
+    "durationMs",
   ],
   "file.changed": ["path", "beforeHash", "afterHash", "changeKind"],
   "skill.resolved": ["skillId", "source", "version", "contentHash", "trustStatus"],
@@ -136,14 +257,14 @@ export const eventPayloadAllowlists = {
     "status",
     "resultArtifactId",
     "resultContentHash",
-    "nonPassedCommandIds"
+    "nonPassedCommandIds",
   ],
   "deliberation.started": [
     "deliberationId",
     "policyId",
     "policyHash",
     "participantRoleIds",
-    "maxRounds"
+    "maxRounds",
   ],
   "deliberation.artifact.recorded": [
     "deliberationId",
@@ -153,7 +274,7 @@ export const eventPayloadAllowlists = {
     "producerRoleId",
     "artifactId",
     "contentHash",
-    "writingPermitId"
+    "writingPermitId",
   ],
   "deliberation.completed": [
     "deliberationId",
@@ -163,7 +284,7 @@ export const eventPayloadAllowlists = {
     "decisionArtifactId",
     "unresolvedBlockingObjectionIds",
     "failurePhase",
-    "failureCode"
+    "failureCode",
   ],
   "knowledge.candidate.created": [
     "candidateId",
@@ -175,7 +296,7 @@ export const eventPayloadAllowlists = {
     "verificationArtifactIds",
     "verifiedRevision",
     "candidateArtifactId",
-    "candidateContentHash"
+    "candidateContentHash",
   ],
   "knowledge.candidate.reviewed": [
     "candidateId",
@@ -188,7 +309,7 @@ export const eventPayloadAllowlists = {
     "policyVersion",
     "itemApprovalDigest",
     "repositoryRevision",
-    "resolvedConflictCandidateIds"
+    "resolvedConflictCandidateIds",
   ],
   "knowledge.reconciliation.reviewed": [
     "compilationId",
@@ -208,7 +329,7 @@ export const eventPayloadAllowlists = {
     "skippedDispositionIds",
     "dispositionListTruncated",
     "dispositionCount",
-    "reviewedAt"
+    "reviewedAt",
   ],
   "knowledge.verified": [
     "knowledgeId",
@@ -220,7 +341,7 @@ export const eventPayloadAllowlists = {
     "paths",
     "verifiedRevision",
     "knowledgeArtifactId",
-    "knowledgeContentHash"
+    "knowledgeContentHash",
   ],
   "knowledge.stale.detected": [
     "knowledgeId",
@@ -231,7 +352,7 @@ export const eventPayloadAllowlists = {
     "changedPaths",
     "missingPaths",
     "resultArtifactId",
-    "resultContentHash"
+    "resultContentHash",
   ],
   "knowledge.materialization.applied": [
     "operation",
@@ -258,7 +379,7 @@ export const eventPayloadAllowlists = {
     "afterRegistryDigest",
     "validationReportId",
     "validationReportHash",
-    "appliedAt"
+    "appliedAt",
   ],
   "terminal.integration.applied": [
     "operation",
@@ -267,8 +388,10 @@ export const eventPayloadAllowlists = {
     "providers",
     "targetPathDigests",
     "targetAfterHashes",
+    "runtimePathDigest",
+    "runtimeAfterHash",
     "approvalHash",
-    "appliedAt"
+    "appliedAt",
   ],
   "terminal.context.prepared": [
     "observationId",
@@ -285,7 +408,7 @@ export const eventPayloadAllowlists = {
     "workstreamRevision",
     "workstreamSnapshotHash",
     "workstreamScope",
-    "workstreamDeliveredByteCount"
+    "workstreamDeliveredByteCount",
   ],
   "terminal.turn.declared": [
     "declarationId",
@@ -296,7 +419,7 @@ export const eventPayloadAllowlists = {
     "knowledgeDisposition",
     "deliberationDisposition",
     "deliberationId",
-    "declaredAt"
+    "declaredAt",
   ],
   "terminal.reference.observed": [
     "observationId",
@@ -307,7 +430,7 @@ export const eventPayloadAllowlists = {
     "scope",
     "referenceKind",
     "providerSessionDigest",
-    "providerTurnDigest"
+    "providerTurnDigest",
   ],
   "terminal.turn.observed": [
     "observationId",
@@ -324,7 +447,7 @@ export const eventPayloadAllowlists = {
     "finalWorkstreamRevision",
     "finalWorkstreamSnapshotHash",
     "providerSessionDigest",
-    "providerTurnDigest"
+    "providerTurnDigest",
   ],
   "workstream.snapshot.recorded": [
     "workstreamId",
@@ -336,7 +459,7 @@ export const eventPayloadAllowlists = {
     "previousSnapshotContentHash",
     "sourceArtifactId",
     "sourceContentHash",
-    "recordedAt"
+    "recordedAt",
   ],
   "document.stale.detected": ["documentId", "reason", "verifiedRevision", "currentRevision"],
   "document.migration.applied": [
@@ -352,7 +475,7 @@ export const eventPayloadAllowlists = {
     "entryArtifactHashes",
     "archiveContentHash",
     "sidecars",
-    "appliedAt"
+    "appliedAt",
   ],
   "project.identity.migrated": [
     "planId",
@@ -361,7 +484,7 @@ export const eventPayloadAllowlists = {
     "preservedEventHeadHash",
     "verifiedCasObjectCount",
     "documentDisposition",
-    "migratedAt"
+    "migratedAt",
   ],
   "unmanaged_change.detected": ["paths", "beforeRevision", "afterRevision", "detectedAt"],
   "sync.acknowledged": ["eventIds", "hubId", "acknowledgedAt"],
@@ -384,10 +507,7 @@ const sensitiveFragments = [
 const unsafeObjectKeys = new Set(["__proto__", "constructor", "prototype"]);
 
 export type RedactionErrorCode =
-  | "cyclic_payload"
-  | "invalid_payload"
-  | "non_finite_number"
-  | "unsupported_value";
+  "cyclic_payload" | "invalid_payload" | "non_finite_number" | "unsupported_value";
 
 export class RedactionError extends Error {
   constructor(
@@ -411,7 +531,10 @@ export interface SanitizedPayload {
 }
 
 function normalizedKey(key: string): string {
-  return key.normalize("NFKC").replace(/[^a-z0-9]/gi, "").toLowerCase();
+  return key
+    .normalize("NFKC")
+    .replace(/[^a-z0-9]/gi, "")
+    .toLowerCase();
 }
 
 export function isSensitivePayloadKey(key: string): boolean {
@@ -430,11 +553,7 @@ function sanitizeNested(
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      throw new RedactionError(
-        "non_finite_number",
-        path,
-        `${path} can store only finite numbers.`,
-      );
+      throw new RedactionError("non_finite_number", path, `${path} can store only finite numbers.`);
     }
     return Object.is(value, -0) ? 0 : value;
   }
@@ -465,10 +584,7 @@ function sanitizeNested(
         `${path} can store only plain JSON objects.`,
       );
     }
-    const output: Record<string, JsonValue> = Object.create(null) as Record<
-      string,
-      JsonValue
-    >;
+    const output: Record<string, JsonValue> = Object.create(null) as Record<string, JsonValue>;
     for (const [key, nestedValue] of Object.entries(value)) {
       const nestedPath = `${path}.${key}`;
       if (unsafeObjectKeys.has(key)) {
@@ -492,10 +608,7 @@ export function sanitizeEventPayload(
   payload: Readonly<Record<string, unknown>>,
 ): SanitizedPayload {
   const allowed = new Set<string>(eventPayloadAllowlists[type]);
-  const sanitized: Record<string, JsonValue> = Object.create(null) as Record<
-    string,
-    JsonValue
-  >;
+  const sanitized: Record<string, JsonValue> = Object.create(null) as Record<string, JsonValue>;
   const redactions: RedactionRecord[] = [];
   const ancestors = new WeakSet<object>();
 
@@ -518,44 +631,50 @@ export function sanitizeEventPayload(
 
   const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;
-  const invalidArtifactCoordinate = !invalidSchema && type === "deliberation.artifact.recorded" &&
+  const invalidArtifactCoordinate =
+    !invalidSchema &&
+    type === "deliberation.artifact.recorded" &&
     !deliberationArtifactCoordinateMatches(
       sanitized as unknown as DeliberationArtifactRecordedEventPayload,
     );
-  const invalidCandidateCoordinate = !invalidSchema && type === "knowledge.candidate.created" &&
+  const invalidCandidateCoordinate =
+    !invalidSchema &&
+    type === "knowledge.candidate.created" &&
     !knowledgeCandidateCoordinateMatches(
       sanitized as unknown as KnowledgeCandidateCreatedEventPayload,
     );
-  const invalidKnowledgeCoordinate = !invalidSchema && (
-    (type === "knowledge.candidate.reviewed" && !reviewCoordinateMatches(
-      sanitized as unknown as KnowledgeCandidateReviewedEventPayload,
-    )) ||
-    (type === "knowledge.reconciliation.reviewed" && !reconciliationReviewCoordinateMatches(
-      sanitized as unknown as KnowledgeReconciliationReviewedEventPayload,
-    )) ||
-    (type === "knowledge.verified" && !verifiedCoordinateMatches(
-      sanitized as unknown as KnowledgeVerifiedEventPayload,
-    )) ||
-    (type === "knowledge.stale.detected" && !staleCoordinateMatches(
-      sanitized as unknown as KnowledgeStaleDetectedEventPayload,
-    ))
-  );
-  const invalidVerificationCoordinate = !invalidSchema &&
-    type === "verification.completed" && !verificationCoordinateMatches(
-      sanitized as unknown as VerificationCompletedEventPayload,
-    );
-  const invalidRunCompletedCoordinate = !invalidSchema &&
-    type === "run.completed" && !runCompletedCoordinateMatches(
-      sanitized as unknown as RunCompletedEventPayload,
-    );
-  const invalidWorkstreamCoordinate = !invalidSchema &&
-    type === "workstream.snapshot.recorded" && !workstreamCoordinateMatches(
-      sanitized as unknown as WorkstreamSnapshotRecordedEventPayload,
-    );
+  const invalidKnowledgeCoordinate =
+    !invalidSchema &&
+    ((type === "knowledge.candidate.reviewed" &&
+      !reviewCoordinateMatches(sanitized as unknown as KnowledgeCandidateReviewedEventPayload)) ||
+      (type === "knowledge.reconciliation.reviewed" &&
+        !reconciliationReviewCoordinateMatches(
+          sanitized as unknown as KnowledgeReconciliationReviewedEventPayload,
+        )) ||
+      (type === "knowledge.verified" &&
+        !verifiedCoordinateMatches(sanitized as unknown as KnowledgeVerifiedEventPayload)) ||
+      (type === "knowledge.stale.detected" &&
+        !staleCoordinateMatches(sanitized as unknown as KnowledgeStaleDetectedEventPayload)));
+  const invalidVerificationCoordinate =
+    !invalidSchema &&
+    type === "verification.completed" &&
+    !verificationCoordinateMatches(sanitized as unknown as VerificationCompletedEventPayload);
+  const invalidRunCompletedCoordinate =
+    !invalidSchema &&
+    type === "run.completed" &&
+    !runCompletedCoordinateMatches(sanitized as unknown as RunCompletedEventPayload);
+  const invalidWorkstreamCoordinate =
+    !invalidSchema &&
+    type === "workstream.snapshot.recorded" &&
+    !workstreamCoordinateMatches(sanitized as unknown as WorkstreamSnapshotRecordedEventPayload);
   if (
-    invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate ||
-    invalidKnowledgeCoordinate || invalidVerificationCoordinate ||
-    invalidRunCompletedCoordinate || invalidWorkstreamCoordinate
+    invalidSchema ||
+    invalidArtifactCoordinate ||
+    invalidCandidateCoordinate ||
+    invalidKnowledgeCoordinate ||
+    invalidVerificationCoordinate ||
+    invalidRunCompletedCoordinate ||
+    invalidWorkstreamCoordinate
   ) {
     throw new RedactionError(
       "invalid_payload",
@@ -568,6 +687,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "capability.activated": "capabilityActivatedEventPayload",
   "context.recommended": "contextRecommendationEventPayload",
   "context.injected": "managedContextInjectedEventPayload",
   "adapter.result.captured": "adapterResultCapturedEventPayload",
@@ -600,23 +720,28 @@ function deliberationArtifactCoordinateMatches(
 function knowledgeCandidateCoordinateMatches(
   payload: KnowledgeCandidateCreatedEventPayload,
 ): boolean {
-  return payload.candidateArtifactId ===
-    `art_${payload.candidateContentHash.slice("sha256:".length)}`;
+  return (
+    payload.candidateArtifactId === `art_${payload.candidateContentHash.slice("sha256:".length)}`
+  );
 }
 
 function workstreamCoordinateMatches(payload: WorkstreamSnapshotRecordedEventPayload): boolean {
-  return payload.snapshotArtifactId === `art_${payload.snapshotContentHash.slice("sha256:".length)}` &&
+  return (
+    payload.snapshotArtifactId === `art_${payload.snapshotContentHash.slice("sha256:".length)}` &&
     (payload.sourceArtifactId === null
       ? payload.sourceContentHash === null
-      : payload.sourceContentHash !== null && payload.sourceArtifactId === `art_${payload.sourceContentHash.slice("sha256:".length)}`) &&
+      : payload.sourceContentHash !== null &&
+        payload.sourceArtifactId === `art_${payload.sourceContentHash.slice("sha256:".length)}`) &&
     (["legacy_handoff_migration", "legacy_continuation_migration"].includes(payload.changeKind)
       ? payload.sourceArtifactId !== null && payload.sourceContentHash !== null
-      : payload.sourceArtifactId === null && payload.sourceContentHash === null);
+      : payload.sourceArtifactId === null && payload.sourceContentHash === null)
+  );
 }
 
 function reviewCoordinateMatches(payload: KnowledgeCandidateReviewedEventPayload): boolean {
-  return payload.approvalArtifactId ===
-    `art_${payload.approvalContentHash.slice("sha256:".length)}`;
+  return (
+    payload.approvalArtifactId === `art_${payload.approvalContentHash.slice("sha256:".length)}`
+  );
 }
 
 function reconciliationReviewCoordinateMatches(
@@ -624,35 +749,38 @@ function reconciliationReviewCoordinateMatches(
 ): boolean {
   const accepted = new Set(payload.acceptedDispositionIds);
   const listedCount = payload.acceptedDispositionIds.length + payload.skippedDispositionIds.length;
-  return payload.reviewArtifactId ===
-    `art_${payload.reviewArtifactHash.slice("sha256:".length)}` &&
+  return (
+    payload.reviewArtifactId === `art_${payload.reviewArtifactHash.slice("sha256:".length)}` &&
     payload.skippedDispositionIds.every((id) => !accepted.has(id)) &&
-    listedCount <= 256 && payload.dispositionCount >= listedCount &&
-    payload.dispositionListTruncated === (payload.dispositionCount > listedCount) &&
+    listedCount <= 256 &&
+    payload.dispositionCount >= listedCount &&
+    payload.dispositionListTruncated === payload.dispositionCount > listedCount &&
     (payload.decision === "approved"
       ? payload.acceptedDispositionIds.length > 0
-      : payload.acceptedDispositionIds.length === 0);
+      : payload.acceptedDispositionIds.length === 0)
+  );
 }
 
 function verifiedCoordinateMatches(payload: KnowledgeVerifiedEventPayload): boolean {
-  return payload.knowledgeArtifactId ===
-    `art_${payload.knowledgeContentHash.slice("sha256:".length)}`;
+  return (
+    payload.knowledgeArtifactId === `art_${payload.knowledgeContentHash.slice("sha256:".length)}`
+  );
 }
 
 function staleCoordinateMatches(payload: KnowledgeStaleDetectedEventPayload): boolean {
-  return payload.resultArtifactId ===
-    `art_${payload.resultContentHash.slice("sha256:".length)}`;
+  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
 }
 
 function verificationCoordinateMatches(payload: VerificationCompletedEventPayload): boolean {
-  return payload.resultArtifactId ===
-    `art_${payload.resultContentHash.slice("sha256:".length)}`;
+  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
 }
 
 function runCompletedCoordinateMatches(payload: RunCompletedEventPayload): boolean {
   const resultArtifactId = `art_${payload.resultDigest.slice("sha256:".length)}`;
-  return payload.artifactIds.includes(resultArtifactId) &&
+  return (
+    payload.artifactIds.includes(resultArtifactId) &&
     (payload.verificationStatus === "not_run"
       ? payload.artifactIds.length === 1
-      : payload.artifactIds.length >= 2);
+      : payload.artifactIds.length >= 2)
+  );
 }

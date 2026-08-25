@@ -28,7 +28,9 @@ async function open() {
   return { path, store: await SQLiteConversationDeliberationJobStore.open({ path }) };
 }
 
-function request(overrides: Partial<Parameters<QueuedConversationDeliberationBackend["start"]>[0]> = {}) {
+function request(
+  overrides: Partial<Parameters<QueuedConversationDeliberationBackend["start"]>[0]> = {},
+) {
   return {
     projectId: "prj_deliberation01",
     principalId: "operator:reviewer",
@@ -46,9 +48,11 @@ describe("durable conversation deliberation queue", () => {
     let current = store;
     const firstBackend = new QueuedConversationDeliberationBackend(current);
     const first = await firstBackend.start(request());
-    const duplicate = await firstBackend.start(request({
-      requestedAt: "2026-08-22T00:00:01.000Z",
-    }));
+    const duplicate = await firstBackend.start(
+      request({
+        requestedAt: "2026-08-22T00:00:01.000Z",
+      }),
+    );
 
     expect(duplicate).toEqual(first);
     expect(first).toMatchObject({ status: "running", nextAction: "wait" });
@@ -75,12 +79,14 @@ describe("durable conversation deliberation queue", () => {
       principalHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
     });
     expect(execute.mock.calls[0]?.[0]).not.toHaveProperty("principalId");
-    await expect(new QueuedConversationDeliberationBackend(current).inspect({
-      projectId: "prj_deliberation01",
-      principalId: "operator:reader",
-      deliberationId: first.deliberationId,
-      inspectedAt: "2026-08-22T00:02:00.000Z",
-    })).resolves.toEqual({
+    await expect(
+      new QueuedConversationDeliberationBackend(current).inspect({
+        projectId: "prj_deliberation01",
+        principalId: "operator:reader",
+        deliberationId: first.deliberationId,
+        inspectedAt: "2026-08-22T00:02:00.000Z",
+      }),
+    ).resolves.toEqual({
       deliberationId: first.deliberationId,
       status: "converged",
       artifactCount: 7,
@@ -89,15 +95,21 @@ describe("durable conversation deliberation queue", () => {
     current.close();
 
     const database = new DatabaseSync(path);
-    const row = database.prepare(`
+    const row = database
+      .prepare(
+        `
       SELECT principal_hash, topic FROM conversation_deliberation_jobs
       WHERE deliberation_id = ?
-    `).get(first.deliberationId);
+    `,
+      )
+      .get(first.deliberationId);
     expect(row?.principal_hash).not.toBe("operator:reviewer");
     expect(row?.topic).toBe("Review the deployment structure.");
-    expect(() => database.prepare(
-      "DELETE FROM conversation_deliberation_jobs WHERE deliberation_id = ?",
-    ).run(first.deliberationId)).toThrow("cannot be deleted");
+    expect(() =>
+      database
+        .prepare("DELETE FROM conversation_deliberation_jobs WHERE deliberation_id = ?")
+        .run(first.deliberationId),
+    ).toThrow("cannot be deleted");
     database.close();
   });
 
@@ -134,31 +146,39 @@ describe("durable conversation deliberation queue", () => {
 
     current = await SQLiteConversationDeliberationJobStore.open({ path });
     const execute = vi.fn();
-    await expect(runConversationDeliberationWorkerCycle({
-      store: current,
-      executor: { execute },
-      workerId: "replacement-worker",
-      now: () => new Date("2026-08-22T00:01:12.000Z"),
-    })).resolves.toEqual({ status: "idle" });
-    await expect(new QueuedConversationDeliberationBackend(current).inspect({
-      projectId: "prj_deliberation01",
-      principalId: "operator:reader",
-      deliberationId: started.deliberationId,
-      inspectedAt: "2026-08-22T00:01:12.000Z",
-    })).resolves.toMatchObject({ status: "running", nextAction: "wait" });
-    await expect(runConversationDeliberationWorkerCycle({
-      store: current,
-      executor: { execute },
-      workerId: "replacement-worker",
-      now: () => new Date("2026-08-22T00:01:16.000Z"),
-    })).resolves.toEqual({ status: "idle" });
+    await expect(
+      runConversationDeliberationWorkerCycle({
+        store: current,
+        executor: { execute },
+        workerId: "replacement-worker",
+        now: () => new Date("2026-08-22T00:01:12.000Z"),
+      }),
+    ).resolves.toEqual({ status: "idle" });
+    await expect(
+      new QueuedConversationDeliberationBackend(current).inspect({
+        projectId: "prj_deliberation01",
+        principalId: "operator:reader",
+        deliberationId: started.deliberationId,
+        inspectedAt: "2026-08-22T00:01:12.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "running", nextAction: "wait" });
+    await expect(
+      runConversationDeliberationWorkerCycle({
+        store: current,
+        executor: { execute },
+        workerId: "replacement-worker",
+        now: () => new Date("2026-08-22T00:01:16.000Z"),
+      }),
+    ).resolves.toEqual({ status: "idle" });
     expect(execute).not.toHaveBeenCalled();
-    await expect(new QueuedConversationDeliberationBackend(current).inspect({
-      projectId: "prj_deliberation01",
-      principalId: "operator:reader",
-      deliberationId: started.deliberationId,
-      inspectedAt: "2026-08-22T00:01:16.000Z",
-    })).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
+    await expect(
+      new QueuedConversationDeliberationBackend(current).inspect({
+        projectId: "prj_deliberation01",
+        principalId: "operator:reader",
+        deliberationId: started.deliberationId,
+        inspectedAt: "2026-08-22T00:01:16.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
     current.close();
   });
 
@@ -169,22 +189,26 @@ describe("durable conversation deliberation queue", () => {
     const execute = vi.fn(async () => {
       throw new Error("provider detail must not escape");
     });
-    await expect(runConversationDeliberationWorkerCycle({
-      store,
-      executor: { execute },
-      workerId: "conversation-worker-1",
-      now: () => new Date("2026-08-22T00:01:00.000Z"),
-    })).resolves.toEqual({
+    await expect(
+      runConversationDeliberationWorkerCycle({
+        store,
+        executor: { execute },
+        workerId: "conversation-worker-1",
+        now: () => new Date("2026-08-22T00:01:00.000Z"),
+      }),
+    ).resolves.toEqual({
       status: "uncertain",
       deliberationId: started.deliberationId,
       failureCode: "deliberation_execution_uncertain",
     });
-    await expect(runConversationDeliberationWorkerCycle({
-      store,
-      executor: { execute },
-      workerId: "conversation-worker-1",
-      now: () => new Date("2026-08-22T00:02:00.000Z"),
-    })).resolves.toEqual({ status: "idle" });
+    await expect(
+      runConversationDeliberationWorkerCycle({
+        store,
+        executor: { execute },
+        workerId: "conversation-worker-1",
+        now: () => new Date("2026-08-22T00:02:00.000Z"),
+      }),
+    ).resolves.toEqual({ status: "idle" });
     expect(execute).toHaveBeenCalledOnce();
     store.close();
   });
@@ -197,26 +221,29 @@ describe("durable conversation deliberation queue", () => {
     const { store } = await open();
     const backend = new QueuedConversationDeliberationBackend(store);
     const started = await backend.start(request());
-    await expect(runConversationDeliberationWorkerCycle({
-      store,
-      executor: {
-        execute: async () => ({
-          deliberationId: started.deliberationId,
-          status,
-          artifactCount: 1,
-          nextAction,
-        }),
-      },
-      workerId: "conversation-worker-1",
-      now: () => new Date("2026-08-22T00:01:00.000Z"),
-    })).resolves.toMatchObject({ status: "uncertain" });
-    await expect(backend.inspect({
-      projectId: "prj_deliberation01",
-      principalId: "operator:reader",
-      deliberationId: started.deliberationId,
-      inspectedAt: "2026-08-22T00:02:00.000Z",
-    })).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
+    await expect(
+      runConversationDeliberationWorkerCycle({
+        store,
+        executor: {
+          execute: async () => ({
+            deliberationId: started.deliberationId,
+            status,
+            artifactCount: 1,
+            nextAction,
+          }),
+        },
+        workerId: "conversation-worker-1",
+        now: () => new Date("2026-08-22T00:01:00.000Z"),
+      }),
+    ).resolves.toMatchObject({ status: "uncertain" });
+    await expect(
+      backend.inspect({
+        projectId: "prj_deliberation01",
+        principalId: "operator:reader",
+        deliberationId: started.deliberationId,
+        inspectedAt: "2026-08-22T00:02:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
     store.close();
   });
-
 });

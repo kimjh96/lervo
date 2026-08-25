@@ -46,8 +46,11 @@ export async function reviewKnowledgeCandidate(
     );
   }
   const resolvedConflictCandidateIds = sortedUnique(input.resolvedConflictCandidateIds);
-  if (resolvedConflictCandidateIds.some((candidateId) =>
-    !input.candidate.conflictCandidateIds.includes(candidateId))) {
+  if (
+    resolvedConflictCandidateIds.some(
+      (candidateId) => !input.candidate.conflictCandidateIds.includes(candidateId),
+    )
+  ) {
     throw new KnowledgeError(
       "review_contract_invalid",
       "conflicts_unresolved",
@@ -55,7 +58,8 @@ export async function reviewKnowledgeCandidate(
     );
   }
   if (
-    input.decision === "approved" && input.policy.requireResolvedConflicts &&
+    input.decision === "approved" &&
+    input.policy.requireResolvedConflicts &&
     JSON.stringify(resolvedConflictCandidateIds) !==
       JSON.stringify([...input.candidate.conflictCandidateIds].sort())
   ) {
@@ -97,9 +101,15 @@ export async function reviewKnowledgeCandidate(
       "A review approval dated before candidate creation cannot be recorded.",
     );
   }
-  if (input.events.list().some((event) =>
-    event.type === "knowledge.candidate.reviewed" &&
-    event.payload.approvalId === approval.approvalId)) {
+  if (
+    input.events
+      .list()
+      .some(
+        (event) =>
+          event.type === "knowledge.candidate.reviewed" &&
+          event.payload.approvalId === approval.approvalId,
+      )
+  ) {
     throw new KnowledgeError(
       "review_contract_invalid",
       "approval_already_recorded",

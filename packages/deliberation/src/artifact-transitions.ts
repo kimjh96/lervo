@@ -45,14 +45,23 @@ function applyObjection(
 ): void {
   if (
     (artifact.details.reviewStatus === "approved" && artifact.details.objections.length > 0) ||
-    (artifact.details.reviewStatus === "changes_requested" && artifact.details.objections.length === 0)
-  ) historyInvalid("objection_state_mismatch", "The review status and objection list are inconsistent.");
+    (artifact.details.reviewStatus === "changes_requested" &&
+      artifact.details.objections.length === 0)
+  )
+    historyInvalid(
+      "objection_state_mismatch",
+      "The review status and objection list are inconsistent.",
+    );
   if (artifact.details.reviewStatus === "approved") {
     if (
       state.lastProposalOrRevisionArtifactId === null ||
       !artifact.previousArtifactIds.includes(state.lastProposalOrRevisionArtifactId) ||
       artifact.producer.roleId === state.lastProposalOrRevisionRoleId
-    ) historyInvalid("independent_review_missing", "The independent approval review does not directly reference the current proposal or revision.");
+    )
+      historyInvalid(
+        "independent_review_missing",
+        "The independent approval review does not directly reference the current proposal or revision.",
+      );
     state.lastApprovedReviewIndex = artifactIndex;
   }
   for (const objection of artifact.details.objections) {
@@ -60,7 +69,10 @@ function applyObjection(
       historyInvalid("duplicate_objection", "The objection ID is duplicated.");
     }
     if (objection.targetClaimIds.some((claimId) => !state.claims.has(claimId))) {
-      historyInvalid("objection_state_mismatch", "The objection targets a claim that does not exist.");
+      historyInvalid(
+        "objection_state_mismatch",
+        "The objection targets a claim that does not exist.",
+      );
     }
     state.objections.set(objection.objectionId, {
       blocking: objection.blocking,
@@ -80,9 +92,14 @@ function applyRevision(
   state.lastProposalOrRevisionRoleId = artifact.producer.roleId;
   const revised = state.artifactsById.get(artifact.details.revisesArtifactId);
   if (
-    !revised || (revised.kind !== "proposal" && revised.kind !== "revision") ||
+    !revised ||
+    (revised.kind !== "proposal" && revised.kind !== "revision") ||
     !artifact.previousArtifactIds.includes(revised.deliberationArtifactId)
-  ) historyInvalid("revision_link_invalid", "The revision does not link directly to the preceding proposal or revision.");
+  )
+    historyInvalid(
+      "revision_link_invalid",
+      "The revision does not link directly to the preceding proposal or revision.",
+    );
   if (!hasUniqueClaimIds(artifact.details.claims)) {
     historyInvalid("duplicate_claim", "The revision contains duplicate claim IDs.");
   }
@@ -90,9 +107,14 @@ function applyRevision(
   for (const objectionId of artifact.details.resolvesObjectionIds) {
     const objection = state.objections.get(objectionId);
     if (
-      !objection || objection.resolved ||
+      !objection ||
+      objection.resolved ||
       objection.targetClaimIds.some((claimId) => !revisedClaimIds.has(claimId))
-    ) historyInvalid("revision_resolution_invalid", "The revision's objection-resolution coordinates or modified claim scope are invalid.");
+    )
+      historyInvalid(
+        "revision_resolution_invalid",
+        "The revision's objection-resolution coordinates or modified claim scope are invalid.",
+      );
     objection.resolved = true;
   }
   for (const claim of artifact.details.claims) state.claims.set(claim.claimId, claim.claimDigest);
@@ -105,12 +127,18 @@ function applyVerification(
 ): void {
   if (
     !hasUniqueClaimIds(artifact.details.targetClaims) ||
-    artifact.details.targetClaims.some((claim) =>
-      state.claims.get(claim.claimId) !== claim.claimDigest)
-  ) historyInvalid("stale_claim_verification", "The verification targets a version other than the current claim version.");
+    artifact.details.targetClaims.some(
+      (claim) => state.claims.get(claim.claimId) !== claim.claimDigest,
+    )
+  )
+    historyInvalid(
+      "stale_claim_verification",
+      "The verification targets a version other than the current claim version.",
+    );
   const evidence = verificationById.get(artifact.details.verificationId);
   if (
-    !evidence || evidence.result.suiteId !== artifact.details.suiteId ||
+    !evidence ||
+    evidence.result.suiteId !== artifact.details.suiteId ||
     evidence.result.status !== artifact.details.status ||
     evidence.resultArtifact.artifactId !== artifact.details.resultArtifactId ||
     evidence.resultArtifact.contentHash !== artifact.details.resultHash
@@ -124,7 +152,8 @@ function applyVerification(
   if (evidence.result.status !== "passed") return;
   state.passedVerificationArtifactIds.push(artifact.deliberationArtifactId);
   state.passedVerificationSuiteIds.add(evidence.result.suiteId);
-  const coveredClaims = state.passedClaimIdsBySuite.get(evidence.result.suiteId) ?? new Set<string>();
+  const coveredClaims =
+    state.passedClaimIdsBySuite.get(evidence.result.suiteId) ?? new Set<string>();
   for (const claim of artifact.details.targetClaims) coveredClaims.add(claim.claimId);
   state.passedClaimIdsBySuite.set(evidence.result.suiteId, coveredClaims);
 }
@@ -133,18 +162,32 @@ function applyDecision(
   state: DeliberationHistoryState,
   artifact: Extract<DeliberationArtifact, { kind: "decision" }>,
 ): void {
-  if (state.decision !== null) historyInvalid("duplicate_decision", "Only one decision artifact may be recorded.");
+  if (state.decision !== null)
+    historyInvalid("duplicate_decision", "Only one decision artifact may be recorded.");
   if (artifact.details.adoptedClaimIds.some((claimId) => !state.claims.has(claimId))) {
     historyInvalid("decision_claim_invalid", "The decision adopts a claim that does not exist.");
   }
-  if (!exactSet(artifact.details.verificationArtifactIds, new Set(state.passedVerificationArtifactIds))) {
-    historyInvalid("decision_verification_mismatch", "The decision verification list differs from the actual passing results.");
+  if (
+    !exactSet(
+      artifact.details.verificationArtifactIds,
+      new Set(state.passedVerificationArtifactIds),
+    )
+  ) {
+    historyInvalid(
+      "decision_verification_mismatch",
+      "The decision verification list differs from the actual passing results.",
+    );
   }
-  const openBlocking = new Set([...state.objections.entries()]
-    .filter(([, value]) => value.blocking && !value.resolved)
-    .map(([id]) => id));
+  const openBlocking = new Set(
+    [...state.objections.entries()]
+      .filter(([, value]) => value.blocking && !value.resolved)
+      .map(([id]) => id),
+  );
   if (!exactSet(artifact.details.unresolvedObjectionIds, openBlocking)) {
-    historyInvalid("objection_state_mismatch", "The decision's unresolved objection list differs from the actual objection state.");
+    historyInvalid(
+      "objection_state_mismatch",
+      "The decision's unresolved objection list differs from the actual objection state.",
+    );
   }
   state.decision = artifact;
 }
@@ -161,11 +204,22 @@ export function applyArtifactTransition(input: {
 }): void {
   const { state, artifact, artifactIndex, verificationById } = input;
   switch (artifact.kind) {
-    case "proposal": applyProposal(state, artifact, artifactIndex); break;
-    case "objection": applyObjection(state, artifact, artifactIndex); break;
-    case "revision": applyRevision(state, artifact, artifactIndex); break;
-    case "verification": applyVerification(state, artifact, verificationById); break;
-    case "decision": applyDecision(state, artifact); break;
-    default: assertNever(artifact);
+    case "proposal":
+      applyProposal(state, artifact, artifactIndex);
+      break;
+    case "objection":
+      applyObjection(state, artifact, artifactIndex);
+      break;
+    case "revision":
+      applyRevision(state, artifact, artifactIndex);
+      break;
+    case "verification":
+      applyVerification(state, artifact, verificationById);
+      break;
+    case "decision":
+      applyDecision(state, artifact);
+      break;
+    default:
+      assertNever(artifact);
   }
 }

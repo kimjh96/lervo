@@ -115,7 +115,9 @@ describe("search engine activation policy and rollback", () => {
 
   it("rejects unauthorized, under-threshold, repeated, and broken-chain activation", async () => {
     const fixture = await activationFixture();
-    const create = (overrides: Partial<Parameters<typeof createSearchEngineCandidateActivation>[0]> = {}) =>
+    const create = (
+      overrides: Partial<Parameters<typeof createSearchEngineCandidateActivation>[0]> = {},
+    ) =>
       createSearchEngineCandidateActivation({
         ...fixture,
         previous: null,
@@ -124,32 +126,38 @@ describe("search engine activation policy and rollback", () => {
         ...overrides,
       });
     expect(() => create({ operatorId: "operator_other" })).toThrow(/operator/);
-    expect(() => create({
-      policy: createSearchEngineActivationPolicy({
-        projectId: fixture.comparison.projectId,
-        allowedReviewerIds: ["reviewer_other"],
-        allowedOperatorIds: ["operator_search"],
-        allowedCandidateIds: ["fixture-v1"],
-        minimumCandidateWins: 1,
-        authoredBy: "operator_search",
-        createdAt: new Date("2026-08-20T05:01:00.000Z"),
+    expect(() =>
+      create({
+        policy: createSearchEngineActivationPolicy({
+          projectId: fixture.comparison.projectId,
+          allowedReviewerIds: ["reviewer_other"],
+          allowedOperatorIds: ["operator_search"],
+          allowedCandidateIds: ["fixture-v1"],
+          minimumCandidateWins: 1,
+          authoredBy: "operator_search",
+          createdAt: new Date("2026-08-20T05:01:00.000Z"),
+        }),
       }),
-    })).toThrow(/do not satisfy the search engine activation policy/);
-    expect(() => create({
-      policy: createSearchEngineActivationPolicy({
-        projectId: fixture.comparison.projectId,
-        allowedReviewerIds: ["reviewer_search"],
-        allowedOperatorIds: ["operator_search"],
-        allowedCandidateIds: ["fixture-v1"],
-        minimumCandidateWins: 2,
-        authoredBy: "operator_search",
-        createdAt: new Date("2026-08-20T05:02:00.000Z"),
+    ).toThrow(/do not satisfy the search engine activation policy/);
+    expect(() =>
+      create({
+        policy: createSearchEngineActivationPolicy({
+          projectId: fixture.comparison.projectId,
+          allowedReviewerIds: ["reviewer_search"],
+          allowedOperatorIds: ["operator_search"],
+          allowedCandidateIds: ["fixture-v1"],
+          minimumCandidateWins: 2,
+          authoredBy: "operator_search",
+          createdAt: new Date("2026-08-20T05:02:00.000Z"),
+        }),
       }),
-    })).toThrow(/do not satisfy the search engine activation policy/);
+    ).toThrow(/do not satisfy the search engine activation policy/);
     const activation = create();
     expect(() => create({ previous: activation })).toThrow(/refresh/);
     expect(() => assertSearchEngineActivation({ ...activation, sequence: 2 }, null)).toThrow();
-    expect(() => assertSearchEngineActivation({ ...activation, projectId: "prj_other" }, activation)).toThrow();
+    expect(() =>
+      assertSearchEngineActivation({ ...activation, projectId: "prj_other" }, activation),
+    ).toThrow();
   });
 
   it("refreshes only the selected candidate evidence and keeps baseline as the safe fallback", async () => {
@@ -204,13 +212,15 @@ describe("search engine activation policy and rollback", () => {
       selected: { mode: "baseline" },
     });
     expect(() => assertSearchEngineActivation(refresh, activation)).not.toThrow();
-    expect(() => createSearchEngineCandidateRefresh({
-      policy: fixture.policy,
-      review: fixture.review,
-      comparison: fixture.comparison,
-      previous: activation,
-      operatorId: "operator_search",
-      decidedAt: new Date("2026-08-20T07:00:00.000Z"),
-    })).toThrow(/same review and comparison sources/);
+    expect(() =>
+      createSearchEngineCandidateRefresh({
+        policy: fixture.policy,
+        review: fixture.review,
+        comparison: fixture.comparison,
+        previous: activation,
+        operatorId: "operator_search",
+        decidedAt: new Date("2026-08-20T07:00:00.000Z"),
+      }),
+    ).toThrow(/same review and comparison sources/);
   });
 });

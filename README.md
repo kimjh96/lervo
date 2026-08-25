@@ -20,10 +20,11 @@ pnpm install
 pnpm build
 npm install --global ./apps/cli
 lervo init
-lervo migrate knowledge --json
 ```
 
-Review the plan, then apply its exact current ID:
+For an existing repository, install the intended CLI release, run `lervo upgrade`, then apply its exact plan. It converges repository-owned stages and stops at user or provider authority; see the [upgrade roadmap](docs/roadmap/onboarding/repository-upgrade.md).
+
+Production `lervo init` continues generated-only knowledge, instruction, hook-runtime, and initial-agent stages automatically. It stops only when existing user bytes, provider configuration, native hook trust, or external credentials require their own authority and prints that bounded pending action. Commands remain available:
 
 ```bash
 lervo migrate knowledge --apply <plan-id> --json
@@ -34,7 +35,7 @@ lervo knowledge lint --json
 lervo knowledge query "managed provider" --json
 ```
 
-Rerun `lervo migrate knowledge` after each staged apply until current. A reviewed stage adds Lervo-owned `UserPromptSubmit` and `Stop` handlers to Codex and Claude project configuration. Existing settings and hooks remain; disabled, malformed, or conflicting hooks block migration.
+Rerun `lervo migrate knowledge` after each staged apply until current. A reviewed stage adds Lervo-owned `UserPromptSubmit` and `Stop` handlers to Codex and Claude project configuration. The handlers use a repository-local, integrity-checked runtime generated from the installed CLI, so provider shells do not need a global `lervo` on `PATH` and repository subdirectories work. Existing settings and hooks remain; disabled, malformed, or conflicting hooks block migration. Later generated-runtime upgrades reconcile without approval unless provider configuration must also change.
 
 The global install uses the built checkout. To install an archive, run `pnpm --dir apps/cli pack --pack-destination <directory>`, then install its `.tgz` with `npm install --global <archive>`.
 
@@ -57,6 +58,48 @@ After terminal-hook migration, the apply result reports one explicit Codex actio
 
 Direct sessions remain unmanaged. Use `lervo run` for managed capabilities, writes, delivery receipts, and verification evidence.
 
+## Agent workforce
+
+Developer, researcher, marketer, designer, writer, and ideation are versioned built-in templates. A repository may add validated custom roles under `.lervo/roles/`, specialize or compose existing roles, and use them through the same managed run boundary. Repository agents and subagents share one durable lifecycle; assignments on disjoint paths can run concurrently, while overlapping scopes are rejected before provider execution. Leases, dependencies, exact role-contract hashes, verification suites, and artifact-hash handoffs make work resumable without assuming shared conversation memory.
+
+Ask the working agent in ordinary Korean or English to hire, assign, inspect, hand off, resolve, suspend, or retire. Repository instructions direct it to perform unambiguous workforce bookkeeping itself. `lervo workforce plan --request <text>` is the privacy-bounded inspection surface and persists only a request digest when an operation later records evidence.
+
+Inspect built-in and repository roles with `lervo role list`; use `lervo role show --role <role-id>` or `lervo role validate` to verify exact versions and hashes. The custom-role directory is created only with its first role source.
+
+## Capability packages
+
+Lervo manages versioned project or user capability packages for skills, MCP servers, provider plugins, and exact bundles. Local use does not require a Hub. Validation and installation are plan-first; resolution writes an exact lock and does not claim activation or use.
+
+Verified discovery metadata lets a managed agent recommend and select a relevant package from the natural-language task when no explicit or role-default package was chosen. Evidence keeps recommendation, selection, verified loading, provider activation, skill invocation, and completion separate. A skill's exact rehashed `SKILL.md` is included in the managed turn; Lervo still makes no claim about model attention or semantic reliance.
+
+```bash
+lervo capability validate --from ./my-capability
+lervo capability install --from ./my-capability --scope project
+lervo capability install --from ./my-capability --scope project \
+  --apply --approval <plan-hash>
+lervo capability list --scope all
+lervo capability resolve --capability research/web-search --provider codex
+lervo migrate capabilities
+lervo migrate capabilities --apply --approval <plan-id>
+```
+
+Roles may set `defaultCapabilityPackages`, and `lervo agent hire --capability <id>` binds exact versions and hashes. Subagents inherit their parent's set and cannot expand it. Managed runs accept `--capability <id>` and reject workforce capability drift before provider creation. Skill entrypoints continue through the existing skill contract. Codex and Claude managed runs configure selected MCP servers and native plugins locally, require provider-confirmed connection or load before the task turn, and report activation separately from invocation or use.
+
+Hub sharing is optional, never automatic, and excludes secret material. `publish` and `pull` support authorized project scope or explicitly public scope, require a content-bound plan plus `--apply --approval`, and read the bearer only from `LERVO_HUB_TOKEN` or `--token-env <NAME>`.
+
+Hub capability records are structured by content class, package kind, manifest version, file count, total bytes, and secret exclusion. Document sharing uses shared-context metadata plus CAS bytes, while repository knowledge uses OKF bundles; these are not opaque interchangeable uploads.
+
+```bash
+lervo capability publish --from ./my-capability --hub https://hub.example \
+  --share public
+lervo capability pull --id research/web-search --version 1.0.0 \
+  --hub https://hub.example --share public --scope project
+```
+
+## Repository Node fleet
+
+Hub-enabled repositories use distinct repository-node services and health records. `lervo repository node plan` is read-only; exact `repository node apply` installs or transactionally upgrades the shipped self-contained runtime and commits the owner-only fleet registry only after stable complete readiness. `lervo repository node status` reports service, event sync, workstream replication, remote control, freshness, and recovery per project. Local execution continues when the optional Hub is unavailable.
+
 ## Current workstream
 
 Mutable continuation state stays out of root documentation. Migration searches safely included Markdown across the repository for content-shaped continuation candidates; names and locations are signals, not contracts. One unambiguous or explicitly selected source becomes a reviewed revisioned local workstream, while ambiguous sources remain untouched. Repositories without prior continuation documents start from the first agent checkpoint. Exact legacy bytes remain in CAS, and durable facts remain in canonical docs.
@@ -71,6 +114,8 @@ lervo workstream update --from next-workstream.json --apply <plan-id>
 ```
 
 The start command is a recovery and inspection surface, not routine user bookkeeping. Direct Codex and Claude hooks tell the working agent to create or advance the checkpoint, and Stop fails closed until the revision advances. Managed runs load a present current workstream with E1–E3 evidence. Unmanaged hooks prepare verified bounded state without claiming acceptance or use.
+
+Durable records live under `.lervo/data`; rebuildable projections live under `.lervo/state`. Inspect with `lervo state status`; reset through the plan-first `lervo state reset`. See the [state lifecycle specification](docs/specifications/execution/state-lifecycle.md).
 
 ## Repository knowledge
 
@@ -97,7 +142,10 @@ Agent guidance: [AGENTS.md](AGENTS.md).
 
 ## Development
 
+Commit messages follow [the repository commit convention](docs/foundation/commit-convention.md). Source and configuration files follow the [code convention](docs/foundation/code-convention.md).
+
 ```bash
+pnpm quality:check
 pnpm typecheck
 pnpm test
 pnpm docs:check

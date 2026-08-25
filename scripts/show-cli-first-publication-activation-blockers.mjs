@@ -1,10 +1,7 @@
-import { inspectCliFirstPublicationActivationBlockers } from
-  "./lib/cli-first-publication-activation-blockers.mjs";
-import { formatFirstPublicationActivationBlockerReport } from
-  "./lib/first-publication-activation-blocker-formatter.mjs";
+import { inspectCliFirstPublicationActivationBlockers } from "./lib/cli-first-publication-activation-blockers.mjs";
+import { formatFirstPublicationActivationBlockerReport } from "./lib/first-publication-activation-blocker-formatter.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -22,16 +19,20 @@ function parseArguments(args) {
 try {
   const { json } = parseArguments(process.argv.slice(2));
   const report = await inspectCliFirstPublicationActivationBlockers();
-  process.stdout.write(json
-    ? `${JSON.stringify(report, null, 2)}\n`
-    : formatFirstPublicationActivationBlockerReport(report));
+  process.stdout.write(
+    json
+      ? `${JSON.stringify(report, null, 2)}\n`
+      : formatFirstPublicationActivationBlockerReport(report),
+  );
 } catch (error) {
   if (
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_activation_blocker_failed: CLI first-publication activation blockers could not be determined.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_activation_blocker_failed: CLI first-publication activation blockers could not be determined.",
+    );
   process.exitCode = 1;
 }

@@ -13,8 +13,11 @@ export function assertRoleArtifactPublishable(input: {
   contentHash: string;
 }): void {
   assertRoleEvaluationResult({ definition: input.definition, result: input.result });
-  if (input.result.overallStatus !== "passed" ||
-    input.result.artifactId !== input.artifactId || input.result.contentHash !== input.contentHash) {
+  if (
+    input.result.overallStatus !== "passed" ||
+    input.result.artifactId !== input.artifactId ||
+    input.result.contentHash !== input.contentHash
+  ) {
     throw new RoleContractError(
       "role_publication_blocked",
       "A role artifact can be published only after every required evaluation bound to that artifact passes.",
@@ -38,19 +41,30 @@ export async function readPublishableRoleArtifact(input: {
   try {
     bytes = new Uint8Array(await input.artifactStore.get(uri));
   } catch (error) {
-    throw new RoleContractError("role_publication_blocked", "The role artifact CAS source could not be read.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new RoleContractError(
+      "role_publication_blocked",
+      "The role artifact CAS source could not be read.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
   if (bytes.byteLength !== input.result.byteCount || contentHash !== input.result.contentHash) {
-    throw new RoleContractError("role_publication_blocked", "The role artifact CAS source size or hash does not match.");
+    throw new RoleContractError(
+      "role_publication_blocked",
+      "The role artifact CAS source size or hash does not match.",
+    );
   }
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch (error) {
-    throw new RoleContractError("role_publication_blocked", "The role artifact is not valid UTF-8.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new RoleContractError(
+      "role_publication_blocked",
+      "The role artifact is not valid UTF-8.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
 }

@@ -11,8 +11,16 @@ import {
 } from "./types.js";
 
 type FieldName = SearchHit["matchedFields"][number];
-interface IndexedField { name: FieldName; normalized: string; termFrequency: ReadonlyMap<string, number>; weight: number }
-interface IndexedSource { input: SearchSourceInput; fields: IndexedField[] }
+interface IndexedField {
+  name: FieldName;
+  normalized: string;
+  termFrequency: ReadonlyMap<string, number>;
+  weight: number;
+}
+interface IndexedSource {
+  input: SearchSourceInput;
+  fields: IndexedField[];
+}
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -33,7 +41,8 @@ function scoreField(indexed: IndexedField, queryTerms: readonly string[], phrase
   for (const queryTerm of queryTerms) {
     const exactCount = indexed.termFrequency.get(queryTerm) ?? 0;
     if (exactCount > 0) score += indexed.weight * exactCount;
-    else if (indexed.normalized.includes(queryTerm)) score += Math.max(1, Math.floor(indexed.weight / 2));
+    else if (indexed.normalized.includes(queryTerm))
+      score += Math.max(1, Math.floor(indexed.weight / 2));
   }
   return score;
 }
@@ -61,20 +70,32 @@ export class LexicalSearchIndex {
 
   search(query: string, limit = 10): SearchResponse {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_MAX_RESULTS) {
-      throw new SearchError("invalid_query", `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`);
+      throw new SearchError(
+        "invalid_query",
+        `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`,
+      );
     }
     const terms = [...new Set(searchTerms(query, "invalid_query"))];
     const queryIdentity = identifySearchQuery(query);
     const phrase = normalizeSearchText(query);
-    const scored = this.sources.map(({ input, fields }) => {
-      const fieldScores = fields.map((item) => ({ item, score: scoreField(item, terms, phrase) }));
-      const score = fieldScores.reduce((sum, item) => sum + item.score, 0);
-      const matchedFields = [...new Set(fieldScores.filter((item) => item.score > 0).map((item) => item.item.name))]
-        .sort() as SearchHit["matchedFields"];
-      return { input, score, matchedFields };
-    }).filter((item) => item.score > 0)
-      .sort((left, right) => right.score - left.score ||
-        compareText(searchSourceKey(left.input), searchSourceKey(right.input)))
+    const scored = this.sources
+      .map(({ input, fields }) => {
+        const fieldScores = fields.map((item) => ({
+          item,
+          score: scoreField(item, terms, phrase),
+        }));
+        const score = fieldScores.reduce((sum, item) => sum + item.score, 0);
+        const matchedFields = [
+          ...new Set(fieldScores.filter((item) => item.score > 0).map((item) => item.item.name)),
+        ].sort() as SearchHit["matchedFields"];
+        return { input, score, matchedFields };
+      })
+      .filter((item) => item.score > 0)
+      .sort(
+        (left, right) =>
+          right.score - left.score ||
+          compareText(searchSourceKey(left.input), searchSourceKey(right.input)),
+      )
       .slice(0, limit);
     const hits: SearchHit[] = scored.map((item, index) => ({
       source: {

@@ -6,11 +6,7 @@ import {
   evaluateKnowledgeStaleness,
   recordKnowledgeStaleness,
 } from "../src/index.js";
-import {
-  healthyDoctorEnvironmentInspections,
-  removeStores,
-  sequence,
-} from "./fixture.js";
+import { healthyDoctorEnvironmentInspections, removeStores, sequence } from "./fixture.js";
 import {
   changedHash,
   laterRevision,
@@ -33,17 +29,19 @@ describe("verified knowledge staleness", () => {
       },
     });
     expect(current).toMatchObject({ status: "current", reasons: [] });
-    await expect(recordKnowledgeStaleness({
-      knowledge: fixture.promoted.knowledge,
-      knowledgeArtifact: fixture.promoted.knowledgeArtifact,
-      result: current,
-      runId: "run_knowledge_stale",
-      sessionId: "ses_knowledge_stale",
-      policyVersion: promotionPolicy.policyVersion,
-      events: fixture.storage.events,
-      artifactStore: fixture.storage.artifacts,
-      createEventId: sequence("evt_stale"),
-    })).rejects.toMatchObject({ reason: "staleness_not_stale" });
+    await expect(
+      recordKnowledgeStaleness({
+        knowledge: fixture.promoted.knowledge,
+        knowledgeArtifact: fixture.promoted.knowledgeArtifact,
+        result: current,
+        runId: "run_knowledge_stale",
+        sessionId: "ses_knowledge_stale",
+        policyVersion: promotionPolicy.policyVersion,
+        events: fixture.storage.events,
+        artifactStore: fixture.storage.artifacts,
+        createEventId: sequence("evt_stale"),
+      }),
+    ).rejects.toMatchObject({ reason: "staleness_not_stale" });
 
     const stale = evaluateKnowledgeStaleness({
       knowledge: fixture.promoted.knowledge,
@@ -70,12 +68,14 @@ describe("verified knowledge staleness", () => {
       createEventId: sequence("evt_stale"),
     });
     expect(recorded.recordedEvent.type).toBe("knowledge.stale.detected");
-    await expect(createDoctorReport({
-      projectId: fixture.promoted.knowledge.projectId,
-      events: fixture.storage.events,
-      artifacts: fixture.storage.artifacts,
-      inspections: healthyDoctorEnvironmentInspections,
-    })).resolves.toMatchObject({
+    await expect(
+      createDoctorReport({
+        projectId: fixture.promoted.knowledge.projectId,
+        events: fixture.storage.events,
+        artifacts: fixture.storage.artifacts,
+        inspections: healthyDoctorEnvironmentInspections,
+      }),
+    ).resolves.toMatchObject({
       status: "healthy",
       checks: expect.arrayContaining([
         { checkId: "verified_knowledge", status: "healthy", observedCount: 1 },
@@ -103,30 +103,34 @@ describe("verified knowledge staleness", () => {
       ...contradictoryContent,
       resultId: calculateKnowledgeStalenessResultId(contradictoryContent),
     };
-    await expect(recordKnowledgeStaleness({
-      knowledge: fixture.promoted.knowledge,
-      knowledgeArtifact: fixture.promoted.knowledgeArtifact,
-      result: contradictory,
-      runId: "run_knowledge_stale",
-      sessionId: "ses_knowledge_stale",
-      policyVersion: promotionPolicy.policyVersion,
-      events: fixture.storage.events,
-      artifactStore: fixture.storage.artifacts,
-      createEventId: sequence("evt_contradictory"),
-    })).rejects.toMatchObject({ reason: "staleness_schema_invalid" });
+    await expect(
+      recordKnowledgeStaleness({
+        knowledge: fixture.promoted.knowledge,
+        knowledgeArtifact: fixture.promoted.knowledgeArtifact,
+        result: contradictory,
+        runId: "run_knowledge_stale",
+        sessionId: "ses_knowledge_stale",
+        policyVersion: promotionPolicy.policyVersion,
+        events: fixture.storage.events,
+        artifactStore: fixture.storage.artifacts,
+        createEventId: sequence("evt_contradictory"),
+      }),
+    ).rejects.toMatchObject({ reason: "staleness_schema_invalid" });
     fixture.storage.events.close();
   });
 
   it("marks the exact review due instant stale", async () => {
     const fixture = await promotedFixture();
-    expect(evaluateKnowledgeStaleness({
-      knowledge: fixture.promoted.knowledge,
-      evaluatedAt: "2026-09-18T01:00:00Z",
-      currentSnapshot: {
-        revision: laterRevision,
-        files: { "src/decision.ts": pathHash },
-      },
-    })).toMatchObject({ status: "stale", reasons: ["review_interval_elapsed"] });
+    expect(
+      evaluateKnowledgeStaleness({
+        knowledge: fixture.promoted.knowledge,
+        evaluatedAt: "2026-09-18T01:00:00Z",
+        currentSnapshot: {
+          revision: laterRevision,
+          files: { "src/decision.ts": pathHash },
+        },
+      }),
+    ).toMatchObject({ status: "stale", reasons: ["review_interval_elapsed"] });
     fixture.storage.events.close();
   });
 });

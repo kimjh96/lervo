@@ -11,8 +11,7 @@ const currentStateMessages = {
 };
 
 export function formatFirstPublicationMetadataChange(change, { currentState = false } = {}) {
-  const message = changeMessages[change.field]?.(change.value) ??
-    `Set the ${change.field} value.`;
+  const message = changeMessages[change.field]?.(change.value) ?? `Set the ${change.field} value.`;
   if (!currentState) return message;
   const state = currentStateMessages[change.currentState] ?? "Change the current value.";
   return `${message} ${state}`;

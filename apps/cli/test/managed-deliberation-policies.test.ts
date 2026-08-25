@@ -1,35 +1,21 @@
-import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { defaultEnglishWritingContract } from "@lervo/core";
 import {
   QueuedConversationDeliberationBackend,
   reconcileConversationDeliberation,
-  runConversationDeliberationResumeWorkerCycle,
   runConversationDeliberationWorkerCycle,
 } from "@lervo/conversation-control";
-import {
-  SQLiteConversationDeliberationJobStore,
-  SQLiteConversationDeliberationResumeJobStore,
-} from "@lervo/conversation-deliberation-sqlite";
+import { SQLiteConversationDeliberationJobStore } from "@lervo/conversation-deliberation-sqlite";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createManagedConversationDeliberationExecutionAdapter } from
-  "../src/conversation-deliberation-executor.js";
-import { createManagedConversationDeliberationReconciliationSource } from
-  "../src/conversation-deliberation-reconciliation.js";
-import { createManagedConversationDeliberationResumeExecutionAdapter } from
-  "../src/conversation-deliberation-resume-executor.js";
-import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
+import { createManagedConversationDeliberationExecutionAdapter } from "../src/conversation-deliberation-executor.js";
+import { createManagedConversationDeliberationReconciliationSource } from "../src/conversation-deliberation-reconciliation.js";
 import {
   createAssignedManagedDeliberationExecutor,
   createManagedDeliberationExecutor,
-  DeliberationProcessInterruptedError,
 } from "../src/managed-deliberation.js";
-import { parseSemanticEvaluation } from "../src/managed-deliberation-runner.js";
 import type { RunProvider } from "../src/managed-run.js";
-import { runCli } from "../src/main.js";
 import { prepareRunVerification } from "../src/run-verification.js";
 import {
   cleanupManagedDeliberationFixtures,
@@ -71,12 +57,13 @@ describe("managed CLI deliberation policies", () => {
       createId: nextId,
       now,
       runner: {
-        createAdapter: ({ provider }) => new FixtureDeliberationAdapter(
-          provider,
-          `provider-session-${nextId("session")}`,
-          queues[provider].shift() ?? "",
-          nextId("ctx"),
-        ),
+        createAdapter: ({ provider }) =>
+          new FixtureDeliberationAdapter(
+            provider,
+            `provider-session-${nextId("session")}`,
+            queues[provider].shift() ?? "",
+            nextId("ctx"),
+          ),
         createId: nextId,
         now,
         prepareVerification: prepareRunVerification,
@@ -105,7 +92,8 @@ describe("managed CLI deliberation policies", () => {
       workerId: "managed-conversation-worker",
       now,
     });
-    if (cycle.status !== "settled") throw new Error("The conversation deliberation queue did not settle.");
+    if (cycle.status !== "settled")
+      throw new Error("The conversation deliberation queue did not settle.");
     const result = cycle.summary;
 
     expect(result.deliberationId).toBe(started.deliberationId);
@@ -120,27 +108,37 @@ describe("managed CLI deliberation policies", () => {
     const sessions = events
       .filter((event) => event.type === "adapter.started")
       .map((event) => event.payload.providerSessionId);
-    expect(new Set(events.flatMap((event) => event.type === "run.requested" &&
-      event.payload.role !== "deliberation-writing-evaluator"
-      ? [event.payload.role]
-      : []))).toEqual(new Set([
-      "product-planner",
-      "maintainability-reviewer",
-      "evidence-reviewer",
-      "project-verifier",
-    ]));
+    expect(
+      new Set(
+        events.flatMap((event) =>
+          event.type === "run.requested" && event.payload.role !== "deliberation-writing-evaluator"
+            ? [event.payload.role]
+            : [],
+        ),
+      ),
+    ).toEqual(
+      new Set([
+        "product-planner",
+        "maintainability-reviewer",
+        "evidence-reviewer",
+        "project-verifier",
+      ]),
+    );
     expect(sessions).toHaveLength(10);
     expect(new Set(sessions).size).toBe(10);
     expect(storage.events.verifyIntegrity().valid).toBe(true);
     await storage.close();
-    await expect(backend.start({
-      projectId: "prj_cli_deliberation",
-      principalId: "operator:reviewer",
-      sourceEventId: `cve_${"a".repeat(64)}`,
-      policyId: "deliberation_product-review",
-      topic: "Decide how multiple specialist roles independently inspect the same public evidence.",
-      requestedAt: "2026-08-21T00:00:00.000Z",
-    })).resolves.toMatchObject({
+    await expect(
+      backend.start({
+        projectId: "prj_cli_deliberation",
+        principalId: "operator:reviewer",
+        sourceEventId: `cve_${"a".repeat(64)}`,
+        policyId: "deliberation_product-review",
+        topic:
+          "Decide how multiple specialist roles independently inspect the same public evidence.",
+        requestedAt: "2026-08-21T00:00:00.000Z",
+      }),
+    ).resolves.toMatchObject({
       deliberationId: started.deliberationId,
       status: "converged",
     });
@@ -158,12 +156,14 @@ describe("managed CLI deliberation policies", () => {
       requestedAt: "2026-08-21T00:00:00.000Z",
     });
     expect(replacement.deliberationId).toBe(started.deliberationId);
-    await expect(runConversationDeliberationWorkerCycle({
-      store: replacementQueue,
-      executor: adapter,
-      workerId: "replacement-managed-worker",
-      now,
-    })).resolves.toMatchObject({
+    await expect(
+      runConversationDeliberationWorkerCycle({
+        store: replacementQueue,
+        executor: adapter,
+        workerId: "replacement-managed-worker",
+        now,
+      }),
+    ).resolves.toMatchObject({
       status: "uncertain",
       deliberationId: started.deliberationId,
     });
@@ -184,10 +184,12 @@ describe("managed CLI deliberation policies", () => {
         artifactCount: 5,
       },
     });
-    await expect(replacementQueue.inspect({
-      projectId: "prj_cli_deliberation",
-      deliberationId: replacement.deliberationId,
-    })).resolves.toMatchObject({
+    await expect(
+      replacementQueue.inspect({
+        projectId: "prj_cli_deliberation",
+        deliberationId: replacement.deliberationId,
+      }),
+    ).resolves.toMatchObject({
       state: "settled",
       failureCode: null,
       reconciliation: {
@@ -197,31 +199,36 @@ describe("managed CLI deliberation policies", () => {
     });
     replacementQueue.close();
     const unchanged = await openProjectStorage(root);
-    expect(unchanged.events.list({ limit: 1000 })
-      .filter((event) => event.type === "deliberation.started")).toHaveLength(1);
+    expect(
+      unchanged.events
+        .list({ limit: 1000 })
+        .filter((event) => event.type === "deliberation.started"),
+    ).toHaveLength(1);
     expect(unchanged.events.verifyIntegrity().valid).toBe(true);
     await unchanged.close();
     const mismatchedProject = createManagedConversationDeliberationExecutionAdapter({
       projects: [{ projectId: "prj_wrongproject1", repositoryRoot: root }],
       executeAssigned: executor,
     });
-    await expect(mismatchedProject.execute({
-      operation: "start",
-      projectId: "prj_wrongproject1",
-      sourceEventId: `cve_${"d".repeat(64)}`,
-      deliberationId: `dlb_${"e".repeat(32)}`,
-      requestHash: `sha256:${"f".repeat(64)}`,
-      principalHash: `sha256:${"1".repeat(64)}`,
-      policyId: "deliberation_product-review",
-      topic: "Do not start a provider in a mismatched repository.",
-      requestedAt: "2026-08-21T00:11:00.000Z",
-      state: "leased",
-      attemptCount: 1,
-      leaseExpiresAt: "2026-08-21T00:16:00.000Z",
-      summary: null,
-      failureCode: null,
-      reconciliation: null,
-    })).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
+    await expect(
+      mismatchedProject.execute({
+        operation: "start",
+        projectId: "prj_wrongproject1",
+        sourceEventId: `cve_${"d".repeat(64)}`,
+        deliberationId: `dlb_${"e".repeat(32)}`,
+        requestHash: `sha256:${"f".repeat(64)}`,
+        principalHash: `sha256:${"1".repeat(64)}`,
+        policyId: "deliberation_product-review",
+        topic: "Do not start a provider in a mismatched repository.",
+        requestedAt: "2026-08-21T00:11:00.000Z",
+        state: "leased",
+        attemptCount: 1,
+        leaseExpiresAt: "2026-08-21T00:16:00.000Z",
+        summary: null,
+        failureCode: null,
+        reconciliation: null,
+      }),
+    ).rejects.toMatchObject({ code: "deliberation_project_mismatch" });
   });
 
   it("stops as no_consensus after the second blocking review", async () => {
@@ -248,12 +255,13 @@ describe("managed CLI deliberation policies", () => {
       createId: nextId,
       now,
       runner: {
-        createAdapter: ({ provider }) => new FixtureDeliberationAdapter(
-          provider,
-          `provider-session-${nextId("session")}`,
-          queues[provider].shift() ?? "",
-          nextId("ctx"),
-        ),
+        createAdapter: ({ provider }) =>
+          new FixtureDeliberationAdapter(
+            provider,
+            `provider-session-${nextId("session")}`,
+            queues[provider].shift() ?? "",
+            nextId("ctx"),
+          ),
         createId: nextId,
         now,
         prepareVerification: prepareRunVerification,
@@ -276,8 +284,9 @@ describe("managed CLI deliberation policies", () => {
     const storage = await openProjectStorage(root);
     const events = storage.events.list({ limit: 1000 });
     expect(events.some((event) => event.type === "verification.started")).toBe(false);
-    expect(events.filter((event) => event.type === "deliberation.completed")[0]?.payload)
-      .toMatchObject({ status: "no_consensus" });
+    expect(
+      events.filter((event) => event.type === "deliberation.completed")[0]?.payload,
+    ).toMatchObject({ status: "no_consensus" });
     await storage.close();
   });
 
@@ -299,32 +308,39 @@ describe("managed CLI deliberation policies", () => {
       createId: nextId,
       now,
       runner: {
-        createAdapter: ({ provider }) => new FixtureDeliberationAdapter(
-          provider,
-          `provider-session-${nextId("session")}`,
-          queues[provider].shift() ?? "",
-          nextId("ctx"),
-        ),
+        createAdapter: ({ provider }) =>
+          new FixtureDeliberationAdapter(
+            provider,
+            `provider-session-${nextId("session")}`,
+            queues[provider].shift() ?? "",
+            nextId("ctx"),
+          ),
         createId: nextId,
         now,
         prepareVerification: prepareRunVerification,
       },
     });
 
-    await expect(executor({
-      repositoryRoot: root,
-      proposerProvider: "codex",
-      reviewerProvider: "claude",
-      verificationSuiteIds: ["project.default"],
-      topic: "Do not infer approval from free-form prose.",
-    })).rejects.toThrow("The first review line must be 'Verdict: approved' or 'Verdict: revision required'");
+    await expect(
+      executor({
+        repositoryRoot: root,
+        proposerProvider: "codex",
+        reviewerProvider: "claude",
+        verificationSuiteIds: ["project.default"],
+        topic: "Do not infer approval from free-form prose.",
+      }),
+    ).rejects.toThrow(
+      "The first review line must be 'Verdict: approved' or 'Verdict: revision required'",
+    );
 
     const storage = await openProjectStorage(root);
     const events = storage.events.list({ limit: 1000 });
-    expect(events.filter((event) => event.type === "deliberation.artifact.recorded"))
-      .toHaveLength(1);
-    expect(events.filter((event) => event.type === "deliberation.completed")[0]?.payload)
-      .toMatchObject({ status: "failed", failureCode: "deliberation_failed" });
+    expect(events.filter((event) => event.type === "deliberation.artifact.recorded")).toHaveLength(
+      1,
+    );
+    expect(
+      events.filter((event) => event.type === "deliberation.completed")[0]?.payload,
+    ).toMatchObject({ status: "failed", failureCode: "deliberation_failed" });
     expect(events.some((event) => event.type === "verification.started")).toBe(false);
     await storage.close();
   });

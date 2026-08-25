@@ -1,17 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from
-  "../../lib/cli-first-publication-package-metadata-candidate.mjs";
-import { readFirstPublicationActivationSources } from
-  "../../lib/first-publication-activation-sources.mjs";
-import {
-  readFirstPublicationPackageMetadataApplySources,
-} from "../../lib/first-publication-package-metadata-apply-sources.mjs";
-import { createFirstPublicationMetadataDecision } from
-  "../../lib/first-publication-metadata-decision.mjs";
-import { createFirstPublicationPackageMetadataApplyPermit } from
-  "../../lib/first-publication-package-metadata-apply-permit.mjs";
+import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from "../../lib/cli-first-publication-package-metadata-candidate.mjs";
+import { readFirstPublicationActivationSources } from "../../lib/first-publication-activation-sources.mjs";
+import { readFirstPublicationPackageMetadataApplySources } from "../../lib/first-publication-package-metadata-apply-sources.mjs";
+import { createFirstPublicationMetadataDecision } from "../../lib/first-publication-metadata-decision.mjs";
+import { createFirstPublicationPackageMetadataApplyPermit } from "../../lib/first-publication-package-metadata-apply-permit.mjs";
 import {
   createFirstPublicationPackageMetadataDerivedRelease,
   parseFirstPublicationPackageMetadataLockfile,
@@ -20,8 +14,7 @@ import {
   createFirstPublicationPackageMetadataApplyPlan,
   createFirstPublicationPackageMetadataApplyReceipt,
 } from "../../lib/first-publication-package-metadata-apply-transaction.mjs";
-import { applyFirstPublicationPackageMetadataFiles } from
-  "../../lib/first-publication-package-metadata-apply-filesystem.mjs";
+import { applyFirstPublicationPackageMetadataFiles } from "../../lib/first-publication-package-metadata-apply-filesystem.mjs";
 import { releaseArtifactDigest } from "../../lib/release-artifact-manifest.mjs";
 import {
   activationRepository,
@@ -70,10 +63,12 @@ export async function createMetadataApplyFixture() {
   const permitPath = resolve(prepared.root, "permit.json");
   const transactionRoot = resolve(prepared.root, ".metadata-apply-transaction");
   await Promise.all([
-    readFile(resolve(activationRepositoryRoot, "apps/cli/release-sbom.cdx.json"))
-      .then((contents) => writeFile(paths.releaseSbomPath, contents)),
-    readFile(resolve(activationRepositoryRoot, "pnpm-lock.yaml"))
-      .then((contents) => writeFile(paths.lockfilePath, contents)),
+    readFile(resolve(activationRepositoryRoot, "apps/cli/release-sbom.cdx.json")).then((contents) =>
+      writeFile(paths.releaseSbomPath, contents),
+    ),
+    readFile(resolve(activationRepositoryRoot, "pnpm-lock.yaml")).then((contents) =>
+      writeFile(paths.lockfilePath, contents),
+    ),
   ]);
   const selected = decision();
   const activationSources = await readFirstPublicationActivationSources(paths);

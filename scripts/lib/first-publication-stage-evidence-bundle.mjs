@@ -13,17 +13,26 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 export function validateFirstPublicationStageEvidenceBundleRelativePath(value) {
   if (
-    typeof value !== "string" || value.length === 0 ||
-    Buffer.byteLength(value, "utf8") > 512 || value.includes("\0") ||
-    value.includes("\\") || isAbsolute(value) || posix.isAbsolute(value) ||
+    typeof value !== "string" ||
+    value.length === 0 ||
+    Buffer.byteLength(value, "utf8") > 512 ||
+    value.includes("\0") ||
+    value.includes("\\") ||
+    isAbsolute(value) ||
+    posix.isAbsolute(value) ||
     win32.isAbsolute(value)
-  ) fail();
+  )
+    fail();
   const segments = value.split("/");
   if (segments.some((segment) => segment.length === 0 || [".", ".."].includes(segment))) {
     fail();
@@ -32,16 +41,20 @@ export function validateFirstPublicationStageEvidenceBundleRelativePath(value) {
 }
 
 function fileReference(value) {
-  return exactKeys(value, ["path", "digest"]) &&
+  return (
+    exactKeys(value, ["path", "digest"]) &&
     validateFirstPublicationStageEvidenceBundleRelativePath(value.path) &&
-    digestPattern.test(value.digest ?? "");
+    digestPattern.test(value.digest ?? "")
+  );
 }
 
 function resultReference(value) {
-  return exactKeys(value, ["directory", "attemptDigest", "terminalDigest"]) &&
+  return (
+    exactKeys(value, ["directory", "attemptDigest", "terminalDigest"]) &&
     validateFirstPublicationStageEvidenceBundleRelativePath(value.directory) &&
     digestPattern.test(value.attemptDigest ?? "") &&
-    digestPattern.test(value.terminalDigest ?? "");
+    digestPattern.test(value.terminalDigest ?? "")
+  );
 }
 
 function body(bundle) {
@@ -62,9 +75,7 @@ export function createFirstPublicationStageEvidenceBundle({ paths, evidenceSet }
     sourceOwnership: "referenced_primary_documents",
     sources: {
       stageReviewReport: {
-        path: validateFirstPublicationStageEvidenceBundleRelativePath(
-          paths.stageReviewReport,
-        ),
+        path: validateFirstPublicationStageEvidenceBundleRelativePath(paths.stageReviewReport),
         digest: evidenceSet.stageReviewReport.evidenceDigest,
       },
       decision: {
@@ -76,16 +87,12 @@ export function createFirstPublicationStageEvidenceBundle({ paths, evidenceSet }
         digest: evidenceSet.authorization.authorizationDigest,
       },
       approvalResult: {
-        directory: validateFirstPublicationStageEvidenceBundleRelativePath(
-          paths.resultDirectory,
-        ),
+        directory: validateFirstPublicationStageEvidenceBundleRelativePath(paths.resultDirectory),
         attemptDigest: evidenceSet.attempt.attemptDigest,
         terminalDigest: evidenceSet.terminal.terminalDigest,
       },
       reconciliationReport: {
-        path: validateFirstPublicationStageEvidenceBundleRelativePath(
-          paths.reconciliationReport,
-        ),
+        path: validateFirstPublicationStageEvidenceBundleRelativePath(paths.reconciliationReport),
         digest: evidenceSet.reconciliationReport.evidenceDigest,
       },
     },
@@ -106,14 +113,20 @@ export function validateFirstPublicationStageEvidenceBundleDocument(bundle) {
     bundle.pathBase !== "manifest_directory" ||
     bundle.sourceOwnership !== "referenced_primary_documents" ||
     !exactKeys(sources, [
-      "stageReviewReport", "decision", "authorization", "approvalResult",
+      "stageReviewReport",
+      "decision",
+      "authorization",
+      "approvalResult",
       "reconciliationReport",
-    ]) || !fileReference(sources.stageReviewReport) ||
-    !fileReference(sources.decision) || !fileReference(sources.authorization) ||
+    ]) ||
+    !fileReference(sources.stageReviewReport) ||
+    !fileReference(sources.decision) ||
+    !fileReference(sources.authorization) ||
     !resultReference(sources.approvalResult) ||
     !fileReference(sources.reconciliationReport) ||
     !digestPattern.test(bundle.bundleDigest ?? "") ||
     bundle.bundleDigest !== canonicalDigest(value)
-  ) fail();
+  )
+    fail();
   return bundle;
 }

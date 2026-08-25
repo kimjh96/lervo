@@ -20,10 +20,7 @@ function assertCurrentGeneration(input: InjectLoadedContextInput): void {
   }
 }
 
-async function assertFreshSnapshot(
-  input: InjectLoadedContextInput,
-  at: Date,
-): Promise<void> {
+async function assertFreshSnapshot(input: InjectLoadedContextInput, at: Date): Promise<void> {
   const freshness = await validateContextSnapshot({
     repositoryRoot: input.repositoryRoot,
     loaded: input.loaded,
@@ -54,13 +51,9 @@ export async function injectLoadedContext(
     targetTurnId: input.targetTurnId,
     contextGeneration: input.contextGeneration,
     createdAt,
-    ...(input.deliveryPolicy === undefined
-      ? {}
-      : { deliveryPolicy: input.deliveryPolicy }),
+    ...(input.deliveryPolicy === undefined ? {} : { deliveryPolicy: input.deliveryPolicy }),
     ...(input.artifactStore === undefined ? {} : { artifactStore: input.artifactStore }),
-    ...(input.createEnvelopeId === undefined
-      ? {}
-      : { createEnvelopeId: input.createEnvelopeId }),
+    ...(input.createEnvelopeId === undefined ? {} : { createEnvelopeId: input.createEnvelopeId }),
   });
 
   assertCurrentGeneration(input);

@@ -16,7 +16,10 @@ function targetPath(root: string, path: string): string {
   const target = resolve(root, path);
   const fromRoot = relative(root, target);
   if (fromRoot === ".." || fromRoot.startsWith(`..${sep}`)) {
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", `Output path escapes the repository: ${path}`);
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_unsafe",
+      `Output path escapes the repository: ${path}`,
+    );
   }
   return target;
 }
@@ -29,7 +32,10 @@ async function assertSafeParent(root: string, target: string): Promise<void> {
     try {
       const stats = await lstat(cursor);
       if (!stats.isDirectory() || stats.isSymbolicLink()) {
-        throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${cursor} is not a safe output directory.`);
+        throw new RepositoryKnowledgeError(
+          "knowledge_source_unsafe",
+          `${cursor} is not a safe output directory.`,
+        );
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
@@ -41,9 +47,11 @@ async function assertSafeParent(root: string, target: string): Promise<void> {
 async function pruneEmptyParents(root: string, start: string): Promise<void> {
   let parent = start;
   while (parent !== root && relative(root, parent) !== ".lervo") {
-    try { await rmdir(parent); }
-    catch (error) {
-      if (["ENOENT", "ENOTEMPTY", "EEXIST"].includes((error as NodeJS.ErrnoException).code ?? "")) return;
+    try {
+      await rmdir(parent);
+    } catch (error) {
+      if (["ENOENT", "ENOTEMPTY", "EEXIST"].includes((error as NodeJS.ErrnoException).code ?? ""))
+        return;
       throw error;
     }
     parent = dirname(parent);
@@ -75,21 +83,39 @@ async function preflight(root: string, operation: KnowledgeMigrationOperation): 
   const hash = await currentHash(target);
   if (operation.action === "delete") {
     if (hash !== operation.expectedCurrentHash) {
-      throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} changed after the plan was created.`);
+      throw new RepositoryKnowledgeError(
+        "knowledge_plan_stale",
+        `${operation.path} changed after the plan was created.`,
+      );
     }
     return;
   }
   if (operation.action === "create" && hash !== null) {
-    throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} was created after the plan was created.`);
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      `${operation.path} was created after the plan was created.`,
+    );
   }
-  if ((operation.action === "update" || operation.action === "unchanged") && hash !== operation.expectedCurrentHash) {
-    throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} changed after the plan was created.`);
+  if (
+    (operation.action === "update" || operation.action === "unchanged") &&
+    hash !== operation.expectedCurrentHash
+  ) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      `${operation.path} changed after the plan was created.`,
+    );
   }
   if (operation.action === "unchanged" && hash !== operation.desiredHash) {
-    throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} has an invalid unchanged disposition.`);
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      `${operation.path} has an invalid unchanged disposition.`,
+    );
   }
   if (operation.content !== undefined && sha256(operation.content) !== operation.desiredHash) {
-    throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} has an invalid planned content hash.`);
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      `${operation.path} has an invalid planned content hash.`,
+    );
   }
 }
 
@@ -100,10 +126,17 @@ export async function applyKnowledgeMigrationPlan(
   options: RepositoryKnowledgeScanOptions = {},
 ): Promise<KnowledgeMaterializationReceipt> {
   if (plan.schemaVersion !== 1 || plan.status !== "ready") {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The repository knowledge plan is not applicable.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The repository knowledge plan is not applicable.",
+    );
   }
   const root = resolve(plan.repositoryRoot);
-  const currentPlan = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: plan.mode, supplementalSources: options.supplementalSources });
+  const currentPlan = await createKnowledgeMigrationPlan({
+    repositoryRoot: root,
+    mode: plan.mode,
+    supplementalSources: options.supplementalSources,
+  });
   if (currentPlan.planId !== plan.planId) {
     throw new RepositoryKnowledgeError(
       "knowledge_plan_stale",
@@ -112,11 +145,20 @@ export async function applyKnowledgeMigrationPlan(
   }
   for (const operation of plan.operations) await preflight(root, operation);
 
-  const changed = plan.operations.filter((operation) => operation.action === "create" || operation.action === "update" || operation.action === "delete");
+  const changed = plan.operations.filter(
+    (operation) =>
+      operation.action === "create" ||
+      operation.action === "update" ||
+      operation.action === "delete",
+  );
   const stagingParent = resolve(root, ".lervo/state/knowledge");
   await mkdir(stagingParent, { recursive: true });
   const staging = await mkdtemp(resolve(stagingParent, "apply-"));
-  const installed: Array<{ operation: KnowledgeMigrationOperation; target: string; backup: string | null }> = [];
+  const installed: Array<{
+    operation: KnowledgeMigrationOperation;
+    target: string;
+    backup: string | null;
+  }> = [];
   const receipt: KnowledgeMaterializationReceipt = {
     schemaVersion: 1,
     type: "knowledge.materialization.applied",
@@ -124,16 +166,27 @@ export async function applyKnowledgeMigrationPlan(
     projectId: plan.projectId,
     sourceSnapshotId: plan.sourceSnapshotId,
     appliedAt: now.toISOString(),
-    created: plan.operations.filter((operation) => operation.action === "create").map((operation) => operation.path),
-    updated: plan.operations.filter((operation) => operation.action === "update").map((operation) => operation.path),
-    unchanged: plan.operations.filter((operation) => operation.action === "unchanged").map((operation) => operation.path),
-    deleted: plan.operations.filter((operation) => operation.action === "delete").map((operation) => operation.path),
+    created: plan.operations
+      .filter((operation) => operation.action === "create")
+      .map((operation) => operation.path),
+    updated: plan.operations
+      .filter((operation) => operation.action === "update")
+      .map((operation) => operation.path),
+    unchanged: plan.operations
+      .filter((operation) => operation.action === "unchanged")
+      .map((operation) => operation.path),
+    deleted: plan.operations
+      .filter((operation) => operation.action === "delete")
+      .map((operation) => operation.path),
   };
   try {
     for (const operation of changed) {
       if (operation.action === "delete") continue;
       if (operation.content === undefined) {
-        throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} has no content to apply.`);
+        throw new RepositoryKnowledgeError(
+          "knowledge_plan_stale",
+          `${operation.path} has no content to apply.`,
+        );
       }
       const staged = resolve(staging, "new", operation.path);
       await mkdir(dirname(staged), { recursive: true });
@@ -162,7 +215,11 @@ export async function applyKnowledgeMigrationPlan(
     for (const operation of changed.filter((item) => item.action === "delete")) {
       let parent = dirname(targetPath(root, operation.path));
       while (parent !== root && relative(root, parent) !== ".lervo") {
-        try { await rmdir(parent); } catch { break; }
+        try {
+          await rmdir(parent);
+        } catch {
+          break;
+        }
         parent = dirname(parent);
       }
     }
@@ -174,7 +231,10 @@ export async function applyKnowledgeMigrationPlan(
     }
     throw error instanceof RepositoryKnowledgeError
       ? error
-      : new RepositoryKnowledgeError("knowledge_apply_failed", error instanceof Error ? error.message : String(error));
+      : new RepositoryKnowledgeError(
+          "knowledge_apply_failed",
+          error instanceof Error ? error.message : String(error),
+        );
   } finally {
     await rm(staging, { recursive: true, force: true });
     await pruneEmptyParents(root, stagingParent);
@@ -191,14 +251,24 @@ export async function applyKnowledgeFileOperations<T>(input: {
 }): Promise<T> {
   const root = resolve(input.repositoryRoot);
   for (const operation of input.operations) await preflight(root, operation);
-  const changed = input.operations.filter((operation) => operation.action === "create" || operation.action === "update");
+  const changed = input.operations.filter(
+    (operation) => operation.action === "create" || operation.action === "update",
+  );
   const stagingParent = resolve(root, ".lervo/state/knowledge");
   await mkdir(stagingParent, { recursive: true });
   const staging = await mkdtemp(resolve(stagingParent, "apply-"));
-  const installed: Array<{ operation: KnowledgeFileOperation; target: string; backup: string | null }> = [];
+  const installed: Array<{
+    operation: KnowledgeFileOperation;
+    target: string;
+    backup: string | null;
+  }> = [];
   try {
     for (const operation of changed) {
-      if (operation.content === undefined) throw new RepositoryKnowledgeError("knowledge_plan_stale", `${operation.path} has no content to apply.`);
+      if (operation.content === undefined)
+        throw new RepositoryKnowledgeError(
+          "knowledge_plan_stale",
+          `${operation.path} has no content to apply.`,
+        );
       const staged = resolve(staging, "new", operation.path);
       await mkdir(dirname(staged), { recursive: true });
       await writeFile(staged, operation.content, { encoding: "utf8", flag: "wx" });
@@ -214,8 +284,9 @@ export async function applyKnowledgeFileOperations<T>(input: {
         await mkdir(dirname(backup), { recursive: true });
         await rename(target, backup);
       }
-      try { await rename(staged, target); }
-      catch (error) {
+      try {
+        await rename(staged, target);
+      } catch (error) {
         if (backup !== null) await rename(backup, target).catch(() => undefined);
         throw error;
       }
@@ -231,7 +302,10 @@ export async function applyKnowledgeFileOperations<T>(input: {
     }
     throw error instanceof RepositoryKnowledgeError
       ? error
-      : new RepositoryKnowledgeError("knowledge_apply_failed", error instanceof Error ? error.message : String(error));
+      : new RepositoryKnowledgeError(
+          "knowledge_apply_failed",
+          error instanceof Error ? error.message : String(error),
+        );
   } finally {
     await rm(staging, { recursive: true, force: true });
     await pruneEmptyParents(root, stagingParent);

@@ -9,6 +9,7 @@ import {
   applyDocumentNormalizationPlan,
   compileConfiguredDocumentNormalizationCandidate,
   createDocumentNormalizationPlan,
+  lintRepositoryKnowledge,
   loadDocumentNormalizationCandidate,
   sha256,
   stableId,
@@ -22,7 +23,13 @@ const roots: string[] = [];
 async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-document-normalization-"));
   roots.push(root);
-  await applyInitPlan(await createInitPlan({ root, projectId: "prj_document_normalization", now: new Date("2026-08-24T00:00:00.000Z") }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_document_normalization",
+      now: new Date("2026-08-24T00:00:00.000Z"),
+    }),
+  );
   return root;
 }
 
@@ -45,24 +52,72 @@ function compiler(calls: DocumentNormalizationEnvelope[]): RepositoryDocumentNor
         schemaVersion: 1,
         documents: envelope.documents.map((document) => {
           const units = document.sourceUnits.map((unit) => unit.index);
-          if (document.profile === "portable_skill") return {
-            sourcePath: document.path,
-            outputs: [{
-              path: document.path,
-              content: "---\nname: deploy-check\ndescription: Check a deployment without changing it.\n---\n# Deployment check\n\n## Workflow\n\n1. Inspect the deployment.\n2. Report evidence.\n",
-              coveredUnitIndexes: units,
-            }],
-          };
+          if (document.profile === "portable_skill")
+            return {
+              sourcePath: document.path,
+              outputs: [
+                {
+                  path: document.path,
+                  content:
+                    "---\nname: deploy-check\ndescription: Check a deployment without changing it.\n---\n# Deployment check\n\n## Workflow\n\n1. Inspect the deployment.\n2. Report evidence.\n",
+                  coveredUnitIndexes: units,
+                },
+              ],
+            };
           return {
             sourcePath: document.path,
             outputs: [
-              { path: document.path, content: "# Runtime guide\n\nUse the focused topics below.\n\n- [Start](runtime-guide/start.md)\n", coveredUnitIndexes: [units[0]!] },
-              { path: "docs/operations/runtime-guide/start.md", content: "# Start the runtime\n\nRun `pnpm start` and verify readiness.\n", coveredUnitIndexes: units },
+              {
+                path: document.path,
+                content:
+                  "# Runtime guide\n\nUse the focused topics below.\n\n- [Start](runtime-guide/start.md)\n",
+                coveredUnitIndexes: [units[0]!],
+              },
+              {
+                path: "docs/operations/runtime-guide/start.md",
+                content: "# Start the runtime\n\nRun `pnpm start` and verify readiness.\n",
+                coveredUnitIndexes: units,
+              },
             ],
           };
         }),
-        telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+        telemetry: {
+          filesystemReads: 0,
+          filesystemWrites: 0,
+          shellProcesses: 0,
+          networkRequests: 0,
+          externalActions: 0,
+          toolCalls: 0,
+          complete: true,
+        },
       };
+    },
+  };
+}
+
+function normalizedResponse(
+  envelope: DocumentNormalizationEnvelope,
+): DocumentNormalizationResponse {
+  return {
+    schemaVersion: 1,
+    documents: envelope.documents.map((document) => ({
+      sourcePath: document.path,
+      outputs: [
+        {
+          path: document.path,
+          content: `# Normalized guide\n\nKeep ${document.path} current.\n`,
+          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+        },
+      ],
+    })),
+    telemetry: {
+      filesystemReads: 0,
+      filesystemWrites: 0,
+      shellProcesses: 0,
+      networkRequests: 0,
+      externalActions: 0,
+      toolCalls: 0,
+      complete: true,
     },
   };
 }
@@ -72,13 +127,26 @@ describe("document content normalization", () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });
     await mkdir(resolve(root, ".agents/skills/deploy-check"), { recursive: true });
-    await writeFile(resolve(root, "docs/operations/runtime-guide.md"), "# Runtime notes\n\n## Start\n\nRun `pnpm start`.\n\n## Check\n\nVerify readiness.\n");
-    await writeFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "---\nname: deploy-check\ndescription: Old deployment checker.\n---\n# Old skill\n\nInspect deployment status.\n");
+    await writeFile(
+      resolve(root, "docs/operations/runtime-guide.md"),
+      "# Runtime notes\n\n## Start\n\nRun `pnpm start`.\n\n## Check\n\nVerify readiness.\n",
+    );
+    await writeFile(
+      resolve(root, ".agents/skills/deploy-check/SKILL.md"),
+      "---\nname: deploy-check\ndescription: Old deployment checker.\n---\n# Old skill\n\nInspect deployment status.\n",
+    );
     const calls: DocumentNormalizationEnvelope[] = [];
     const normalizer = compiler(calls);
 
-    const candidate = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
-    expect(candidate).toMatchObject({ coverage: { eligibleDocuments: 2, normalizedDocuments: 2, complete: true }, assurance: "unreviewed" });
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    expect(candidate).toMatchObject({
+      coverage: { eligibleDocuments: 2, normalizedDocuments: 2, complete: true },
+      assurance: "unreviewed",
+    });
     expect(calls).toHaveLength(1);
     calls.length = 0;
     const progress: string[] = [];
@@ -91,25 +159,56 @@ describe("document content normalization", () => {
     expect(resumed.candidateId).toBe(candidate.candidateId);
     expect(calls).toHaveLength(0);
     expect(progress).toEqual(["started", "cache_hit"]);
-    const plan = await createDocumentNormalizationPlan({ repositoryRoot: root, candidate, now: new Date("2026-08-24T01:00:00.000Z") });
+    const plan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate,
+      now: new Date("2026-08-24T01:00:00.000Z"),
+    });
     expect(plan.status).toBe("review_required");
-    await expect(applyDocumentNormalizationPlan({ plan, candidate, approvals: [], now: new Date("2026-08-24T01:00:00.000Z"), recordApplied: () => undefined })).rejects.toMatchObject({ code: "knowledge_approval_required" });
+    await expect(
+      applyDocumentNormalizationPlan({
+        plan,
+        candidate,
+        approvals: [],
+        now: new Date("2026-08-24T01:00:00.000Z"),
+        recordApplied: () => undefined,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_approval_required" });
 
     const receipt = await applyDocumentNormalizationPlan({
       plan,
       candidate,
-      approvals: plan.items.map((item) => ({ operationId: item.operationId, approvalHash: item.approvalHash })),
+      approvals: plan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
       now: new Date("2026-08-24T01:00:00.000Z"),
       recordApplied: () => undefined,
     });
-    expect(receipt).toMatchObject({ operation: "normalize_documents", normalizedDocumentCount: 2, outputDocumentCount: 3 });
-    expect(await readFile(resolve(root, "docs/operations/runtime-guide.md"), "utf8")).toContain("Use the focused topics below");
-    expect(await readFile(resolve(root, "docs/operations/runtime-guide/start.md"), "utf8")).toContain("pnpm start");
-    expect(await readFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "utf8")).toContain("name: deploy-check");
-    await expect(access(resolve(root, ".lervo/knowledge/document-normalizations"))).resolves.toBeUndefined();
+    expect(receipt).toMatchObject({
+      operation: "normalize_documents",
+      normalizedDocumentCount: 2,
+      outputDocumentCount: 3,
+    });
+    expect(await readFile(resolve(root, "docs/operations/runtime-guide.md"), "utf8")).toContain(
+      "Use the focused topics below",
+    );
+    expect(
+      await readFile(resolve(root, "docs/operations/runtime-guide/start.md"), "utf8"),
+    ).toContain("pnpm start");
+    expect(await readFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "utf8")).toContain(
+      "name: deploy-check",
+    );
+    await expect(
+      access(resolve(root, ".lervo/knowledge/document-normalizations")),
+    ).resolves.toBeUndefined();
 
     calls.length = 0;
-    const current = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
+    const current = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
     expect(current.items).toEqual([]);
     expect(current.coverage.eligibleDocuments).toBe(0);
     expect(calls).toHaveLength(0);
@@ -118,41 +217,84 @@ describe("document content normalization", () => {
   it("rejects a skill rewrite that changes the portable skill identity", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".agents/skills/deploy-check"), { recursive: true });
-    await writeFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "---\nname: deploy-check\ndescription: Check deployment.\n---\n# Check\n\nInspect status.\n");
-    const invalid = compiler([]);
-    invalid.normalize = async (envelope) => ({
-      schemaVersion: 1,
-      documents: envelope.documents.map((document) => ({ sourcePath: document.path, outputs: [{ path: document.path, content: "---\nname: renamed-skill\ndescription: Changed.\n---\n# Changed\n", coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }] })),
-      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
-    });
-
-    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
-  });
-
-  it("rejects trailing whitespace introduced by a document normalizer", async () => {
-    const root = await repository();
-    await mkdir(resolve(root, "docs/operations"), { recursive: true });
-    await writeFile(resolve(root, "docs/operations/runtime-guide.md"), "# Runtime notes\n\nKeep the runtime current.\n");
+    await writeFile(
+      resolve(root, ".agents/skills/deploy-check/SKILL.md"),
+      "---\nname: deploy-check\ndescription: Check deployment.\n---\n# Check\n\nInspect status.\n",
+    );
     const invalid = compiler([]);
     invalid.normalize = async (envelope) => ({
       schemaVersion: 1,
       documents: envelope.documents.map((document) => ({
         sourcePath: document.path,
-        outputs: [{
-          path: document.path,
-          content: "# Runtime guide\n\nStatus: `active`  \n",
-          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-        }],
+        outputs: [
+          {
+            path: document.path,
+            content: "---\nname: renamed-skill\ndescription: Changed.\n---\n# Changed\n",
+            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+          },
+        ],
       })),
-      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+      telemetry: {
+        filesystemReads: 0,
+        filesystemWrites: 0,
+        shellProcesses: 0,
+        networkRequests: 0,
+        externalActions: 0,
+        toolCalls: 0,
+        complete: true,
+      },
     });
 
-    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: invalid,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
   });
 
-  it("rejects a trailing blank line introduced by a document normalizer", async () => {
+  it("rejects trailing whitespace introduced by a document normalizer", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(
+      resolve(root, "docs/operations/runtime-guide.md"),
+      "# Runtime notes\n\nKeep the runtime current.\n",
+    );
+    const invalid = compiler([]);
+    invalid.normalize = async (envelope) => ({
+      schemaVersion: 1,
+      documents: envelope.documents.map((document) => ({
+        sourcePath: document.path,
+        outputs: [
+          {
+            path: document.path,
+            content: "# Runtime guide\n\nStatus: `active`  \n",
+            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+          },
+        ],
+      })),
+      telemetry: {
+        filesystemReads: 0,
+        filesystemWrites: 0,
+        shellProcesses: 0,
+        networkRequests: 0,
+        externalActions: 0,
+        toolCalls: 0,
+        complete: true,
+      },
+    });
+
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: invalid,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+  });
+
+  it("excludes the public root README from required normalization and preserves its bytes", async () => {
     const root = await repository();
     await writeFile(resolve(root, "README.md"), "# Project\n\nStart here.\n");
     const invalid = compiler([]);
@@ -160,60 +302,138 @@ describe("document content normalization", () => {
       schemaVersion: 1,
       documents: envelope.documents.map((document) => ({
         sourcePath: document.path,
-        outputs: [{
-          path: document.path,
-          content: "# Project\n\nStart here.\n\n",
-          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-        }],
+        outputs: [
+          {
+            path: document.path,
+            content: "# Project\n\nStart here.\n\n",
+            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+          },
+        ],
       })),
-      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+      telemetry: {
+        filesystemReads: 0,
+        filesystemWrites: 0,
+        shellProcesses: 0,
+        networkRequests: 0,
+        externalActions: 0,
+        toolCalls: 0,
+        complete: true,
+      },
     });
 
-    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    const before = await readFile(resolve(root, "README.md"), "utf8");
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: invalid,
+      signal: new AbortController().signal,
+    });
+    expect(candidate.items).toEqual([]);
+    expect(candidate.coverage.eligibleDocuments).toBe(0);
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(before);
+  });
+
+  it("does not report a historical root README normalization as stale", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Current public README\n");
+    const recordId = "knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa";
+    const directory = resolve(root, ".lervo/knowledge/document-normalizations/aa");
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      resolve(directory, `${recordId}.yaml`),
+      [
+        `recordId: ${recordId}`,
+        "schemaVersion: 1",
+        "outputLanguage: en",
+        "formatVersion: lervo.document.v1",
+        "sourcePath: README.md",
+        `sourceContentHash: ${sha256("# Historical public README\n")}`,
+        "resourceBindings: []",
+        "outputs:",
+        "  - path: README.md",
+        `    contentHash: ${sha256("# Historical public README\n")}`,
+        "",
+      ].join("\n"),
+    );
+
+    const lint = await lintRepositoryKnowledge(root);
+    expect(lint.issues).not.toContainEqual(
+      expect.objectContaining({ code: "document_normalization_stale" }),
+    );
   });
 
   it("preserves repository lifecycle metadata byte-for-byte", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/roadmap"), { recursive: true });
-    await writeFile(resolve(root, "docs/roadmap/v0.md"), "# Roadmap\n\nStatus: `complete`\nAs of: 2026-08-24\n\n## Scope\n\nDone.\n");
+    await writeFile(
+      resolve(root, "docs/roadmap/v0.md"),
+      "# Roadmap\n\nStatus: `complete`\nAs of: 2026-08-24\n\n## Scope\n\nDone.\n",
+    );
     const invalid = compiler([]);
     invalid.normalize = async (envelope) => ({
       schemaVersion: 1,
       documents: envelope.documents.map((document) => ({
         sourcePath: document.path,
-        outputs: [{
-          path: document.path,
-          content: "# Roadmap\n\n- Status: `complete`\n- As of: 2026-08-24\n\n## Scope\n\nDone.\n",
-          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-        }],
+        outputs: [
+          {
+            path: document.path,
+            content:
+              "# Roadmap\n\n- Status: `complete`\n- As of: 2026-08-24\n\n## Scope\n\nDone.\n",
+            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+          },
+        ],
       })),
-      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+      telemetry: {
+        filesystemReads: 0,
+        filesystemWrites: 0,
+        shellProcesses: 0,
+        networkRequests: 0,
+        externalActions: 0,
+        toolCalls: 0,
+        complete: true,
+      },
     });
 
-    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: invalid, signal: new AbortController().signal }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: invalid,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
   });
 
   it("uses the portable skill package directory as identity when legacy SKILL.md has no frontmatter", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".agents/skills/deploy-check"), { recursive: true });
-    await writeFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "# Legacy check\n\nInspect deployment status.\n");
+    await writeFile(
+      resolve(root, ".agents/skills/deploy-check/SKILL.md"),
+      "# Legacy check\n\nInspect deployment status.\n",
+    );
     const calls: DocumentNormalizationEnvelope[] = [];
     const normalizer = compiler(calls);
 
-    const candidate = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
 
-    expect(calls[0]?.documents[0]).toMatchObject({ profile: "portable_skill", requiredSkillName: "deploy-check" });
+    expect(calls[0]?.documents[0]).toMatchObject({
+      profile: "portable_skill",
+      requiredSkillName: "deploy-check",
+    });
     expect(candidate.items[0]?.outputs[0]?.content).toContain("name: deploy-check");
   });
 
-  it("requires root README agent routing and rewrites non-portable wiki links", async () => {
+  it("keeps agent routing outside the public README while rewriting internal non-portable wiki links", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/instructions"), { recursive: true });
     await writeFile(resolve(root, "README.md"), "# Project\n\nUse CLAUDE.md for development.\n");
     await writeFile(resolve(root, "AGENTS.md"), "# Agent instructions\n\nPreserve user work.\n");
-    await writeFile(resolve(root, "docs/instructions/voice.md"), "# Voice\n\nFollow [[visual-language]].\n");
+    await writeFile(
+      resolve(root, "docs/instructions/voice.md"),
+      "# Voice\n\nFollow [[visual-language]].\n",
+    );
     const observed: DocumentNormalizationEnvelope[] = [];
     const normalizer: RepositoryDocumentNormalizationCompiler = {
       descriptor: compiler([]).descriptor,
@@ -223,89 +443,244 @@ describe("document content normalization", () => {
           schemaVersion: 1,
           documents: envelope.documents.map((document) => ({
             sourcePath: document.path,
-            outputs: [{
-              path: document.path,
-              content: document.path === "README.md"
-                ? "# Project\n\nRead AGENTS.md before development.\n"
-                : document.path.endsWith("voice.md")
-                  ? "# Voice\n\nFollow [[visual-language]].\n"
-                  : "# Agent instructions\n\nPreserve user work.\n",
-              coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-            }],
+            outputs: [
+              {
+                path: document.path,
+                content:
+                  document.path === "README.md"
+                    ? "# Project\n\nRead AGENTS.md before development.\n"
+                    : document.path.endsWith("voice.md")
+                      ? "# Voice\n\nFollow [[visual-language]].\n"
+                      : "# Agent instructions\n\nPreserve user work.\n",
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
           })),
-          telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
         };
       },
     };
 
-    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
-    expect(observed.flatMap((envelope) => envelope.documents).find((document) => document.path === "README.md")?.constraints)
-      .toMatchObject({
-        requiredAgentInstructionPath: "AGENTS.md",
-        allowSiblingTopicSplit: false,
-        allowedSplitPrefix: null,
-      });
-    expect(observed.flatMap((envelope) => envelope.documents).find((document) => document.path.endsWith("voice.md"))?.constraints)
-      .toMatchObject({ rewriteWikiLinksAsMarkdown: true });
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    expect(
+      observed
+        .flatMap((envelope) => envelope.documents)
+        .find((document) => document.path === "README.md"),
+    ).toBeUndefined();
+    expect(
+      observed
+        .flatMap((envelope) => envelope.documents)
+        .find((document) => document.path.endsWith("voice.md"))?.constraints,
+    ).toMatchObject({ rewriteWikiLinksAsMarkdown: true });
 
     normalizer.normalize = async (envelope) => ({
       schemaVersion: 1,
       documents: envelope.documents.map((document) => ({
         sourcePath: document.path,
-        outputs: [{
-          path: document.path,
-          content: document.path === "README.md"
-            ? "# Project\n\nRead the development guide.\n"
-            : document.path.endsWith("voice.md")
-              ? "# Voice\n\nFollow [visual language](visual-language.md).\n"
-              : "# Agent instructions\n\nPreserve user work.\n",
-          coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-        }],
+        outputs: [
+          {
+            path: document.path,
+            content:
+              document.path === "README.md"
+                ? "# Project\n\nRead the development guide.\n"
+                : document.path.endsWith("voice.md")
+                  ? "# Voice\n\nFollow [visual language](visual-language.md).\n"
+                  : "# Agent instructions\n\nPreserve user work.\n",
+            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+          },
+        ],
       })),
-      telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+      telemetry: {
+        filesystemReads: 0,
+        filesystemWrites: 0,
+        shellProcesses: 0,
+        networkRequests: 0,
+        externalActions: 0,
+        toolCalls: 0,
+        complete: true,
+      },
     });
-    await expect(compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    expect(candidate.items.map((item) => item.sourcePath)).not.toContain("README.md");
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(
+      "# Project\n\nUse CLAUDE.md for development.\n",
+    );
+  });
+
+  it("rejects a normalized repository document that changes a Markdown link target", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/architecture"), { recursive: true });
+    await writeFile(
+      resolve(root, "docs/architecture/system.md"),
+      "# System\n\nSee [the decision](../decisions/0041-signed-command.md).\n",
+    );
+    const invalid: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        return {
+          schemaVersion: 1,
+          documents: envelope.documents.map((document) => ({
+            sourcePath: document.path,
+            outputs: [
+              {
+                path: document.path,
+                content: "# System\n\nSee [the decision](../decisions/0041-command.md).\n",
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
+          })),
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        };
+      },
+    };
+
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: invalid,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
   });
 
   it("keeps lifecycle current across managed-block refreshes and replaces stale records", async () => {
     const root = await repository();
-    const frontmatter = "---\ndescription: Repository instructions.\nglobs: \"**/*.ts\"\n---\n\n";
-    const beforeBlock = "<!-- lervo:begin block=routes schema=1 -->\n- Read [old](docs/old.md).\n<!-- lervo:end block=routes -->";
-    const afterBlock = "<!-- lervo:begin block=routes schema=1 -->\n- Read [new](docs/new.md).\n<!-- lervo:end block=routes -->";
-    await writeFile(resolve(root, "AGENTS.md"), `${frontmatter}# Agent instructions\n\nPreserve user work.\n\n${beforeBlock}\n`);
+    const frontmatter = '---\ndescription: Repository instructions.\nglobs: "**/*.ts"\n---\n\n';
+    const beforeBlock =
+      "<!-- lervo:begin block=routes schema=1 -->\n- Read [old](docs/old.md).\n<!-- lervo:end block=routes -->";
+    const afterBlock =
+      "<!-- lervo:begin block=routes schema=1 -->\n- Read [new](docs/new.md).\n<!-- lervo:end block=routes -->";
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      `${frontmatter}# Agent instructions\n\nPreserve user work.\n\n${beforeBlock}\n`,
+    );
     const normalizer: RepositoryDocumentNormalizationCompiler = {
       descriptor: compiler([]).descriptor,
       async normalize(envelope) {
         return {
           schemaVersion: 1,
-          documents: envelope.documents.map((document) => ({ sourcePath: document.path, outputs: [{ path: document.path, content: `${frontmatter}# Agent instructions\n\nPreserve user work.\n\n${document.untrustedSourceData.includes("docs/new.md") ? afterBlock : beforeBlock}\n`, coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }] })),
-          telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+          documents: envelope.documents.map((document) => ({
+            sourcePath: document.path,
+            outputs: [
+              {
+                path: document.path,
+                content: `${frontmatter}# Agent instructions\n\nPreserve user work.\n\n${document.untrustedSourceData.includes("docs/new.md") ? afterBlock : beforeBlock}\n`,
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
+          })),
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
         };
       },
     };
-    const first = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
-    const firstPlan = await createDocumentNormalizationPlan({ repositoryRoot: root, candidate: first, now: new Date("2026-08-24T02:00:00.000Z") });
-    await applyDocumentNormalizationPlan({ plan: firstPlan, candidate: first, approvals: firstPlan.items.map((item) => ({ operationId: item.operationId, approvalHash: item.approvalHash })), now: new Date("2026-08-24T02:00:00.000Z"), recordApplied: () => undefined });
+    const first = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    const firstPlan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate: first,
+      now: new Date("2026-08-24T02:00:00.000Z"),
+    });
+    await applyDocumentNormalizationPlan({
+      plan: firstPlan,
+      candidate: first,
+      approvals: firstPlan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-08-24T02:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
 
-    await writeFile(resolve(root, "AGENTS.md"), `${frontmatter}# Agent instructions\n\nPreserve user work.\n\n${afterBlock}\n`);
-    const current = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      `${frontmatter}# Agent instructions\n\nPreserve user work.\n\n${afterBlock}\n`,
+    );
+    const current = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
     expect(current.items).toEqual([]);
 
-    await writeFile(resolve(root, "AGENTS.md"), `${frontmatter}# Agent instructions\n\nPreserve user work and tests.\n\n${afterBlock}\n`);
-    const replacement = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
-    const replacementPlan = await createDocumentNormalizationPlan({ repositoryRoot: root, candidate: replacement, now: new Date("2026-08-24T03:00:00.000Z") });
-    expect(replacementPlan.operations.filter((operation) => operation.action === "delete")).toHaveLength(1);
-    const receipt = await applyDocumentNormalizationPlan({ plan: replacementPlan, candidate: replacement, approvals: replacementPlan.items.map((item) => ({ operationId: item.operationId, approvalHash: item.approvalHash })), now: new Date("2026-08-24T03:00:00.000Z"), recordApplied: () => undefined });
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      `${frontmatter}# Agent instructions\n\nPreserve user work and tests.\n\n${afterBlock}\n`,
+    );
+    const replacement = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    const replacementPlan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate: replacement,
+      now: new Date("2026-08-24T03:00:00.000Z"),
+    });
+    expect(
+      replacementPlan.operations.filter((operation) => operation.action === "delete"),
+    ).toHaveLength(1);
+    const receipt = await applyDocumentNormalizationPlan({
+      plan: replacementPlan,
+      candidate: replacement,
+      approvals: replacementPlan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-08-24T03:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
     expect(receipt.deleted).toHaveLength(1);
   });
 
   it("rejects an unsafe stored candidate even when its outer candidate ID is rebound", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });
-    await writeFile(resolve(root, "docs/operations/runtime-guide.md"), "# Runtime notes\n\n## Start\n\nRun `pnpm start`.\n");
-    const candidate = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: compiler([]), signal: new AbortController().signal });
+    await writeFile(
+      resolve(root, "docs/operations/runtime-guide.md"),
+      "# Runtime notes\n\n## Start\n\nRun `pnpm start`.\n",
+    );
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: compiler([]),
+      signal: new AbortController().signal,
+    });
     const invalid = structuredClone(candidate);
     invalid.items[0]!.outputs[0]!.path = "../escape.md";
     const { schemaVersion: _schemaVersion, candidateId: _candidateId, ...materials } = invalid;
@@ -313,42 +688,162 @@ describe("document content normalization", () => {
     const shard = invalid.candidateId.slice("knorm_".length, "knorm_".length + 2);
     const directory = resolve(root, ".lervo/state/knowledge/normalization-candidates", shard);
     await mkdir(directory, { recursive: true });
-    await writeFile(resolve(directory, `${invalid.candidateId}.json`), `${JSON.stringify(invalid)}\n`);
+    await writeFile(
+      resolve(directory, `${invalid.candidateId}.json`),
+      `${JSON.stringify(invalid)}\n`,
+    );
 
-    await expect(loadDocumentNormalizationCandidate({ repositoryRoot: root, candidateId: invalid.candidateId }))
-      .rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    await expect(
+      loadDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        candidateId: invalid.candidateId,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
   });
 
   it("runs large normalization sets with bounded shard concurrency", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });
-    await Promise.all(Array.from({ length: 25 }, (_, index) => writeFile(
-      resolve(root, `docs/operations/guide-${String(index).padStart(2, "0")}.md`),
-      `# Guide ${index}\n\nKeep this guide current.\n`,
-    )));
+    await Promise.all(
+      Array.from({ length: 25 }, (_, index) =>
+        writeFile(
+          resolve(root, `docs/operations/guide-${String(index).padStart(2, "0")}.md`),
+          `# Guide ${index}\n\nKeep this guide current.\n`,
+        ),
+      ),
+    );
     let active = 0;
     let maximumActive = 0;
+    let maximumDocuments = 0;
     const normalizer: RepositoryDocumentNormalizationCompiler = {
       descriptor: compiler([]).descriptor,
       async normalize(envelope) {
         active += 1;
         maximumActive = Math.max(maximumActive, active);
+        maximumDocuments = Math.max(maximumDocuments, envelope.documents.length);
         await new Promise((resolveDelay) => setTimeout(resolveDelay, 20));
         active -= 1;
         return {
           schemaVersion: 1,
           documents: envelope.documents.map((document) => ({
             sourcePath: document.path,
-            outputs: [{ path: document.path, content: `# Normalized ${document.path}\n`, coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }],
+            outputs: [
+              {
+                path: document.path,
+                content: `# Normalized ${document.path}\n`,
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
           })),
-          telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
         };
       },
     };
 
-    const candidate = await compileConfiguredDocumentNormalizationCandidate({ repositoryRoot: root, compiler: normalizer, signal: new AbortController().signal });
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
 
     expect(candidate.items).toHaveLength(25);
     expect(maximumActive).toBe(3);
+    expect(maximumDocuments).toBeLessThanOrEqual(2);
+  });
+
+  it("reuses an exact document result after an unrelated repository snapshot change", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(
+      resolve(root, "docs/operations/cache.md"),
+      "# Cache\n\nKeep the cache current.\n",
+    );
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        calls.push(envelope);
+        return normalizedResponse(envelope);
+      },
+    };
+
+    const first = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    expect(calls.map((envelope) => envelope.documents.length)).toEqual([1]);
+    calls.length = 0;
+    await writeFile(resolve(root, "runtime.ts"), "export const runtime = true;\n");
+    const progress: string[] = [];
+    const second = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+      onShardProgress: ({ status }) => progress.push(status),
+    });
+
+    expect(second.sourceSnapshotId).not.toBe(first.sourceSnapshotId);
+    expect(second.items.map((item) => item.sourcePath)).toEqual(["docs/operations/cache.md"]);
+    expect(calls).toHaveLength(0);
+    expect(progress).toEqual(["started", "cache_hit"]);
+  });
+
+  it("splits a failed batch, persists each successful document, and retries only the missing document", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/alpha.md"), "# Alpha\n\nKeep alpha current.\n");
+    await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nKeep beta current.\n");
+    const calls: string[][] = [];
+    let failBeta = true;
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        const paths = envelope.documents.map((document) => document.path);
+        calls.push(paths);
+        if (paths.length > 1) throw new Error("bounded batch failure");
+        if (failBeta && paths[0] === "docs/operations/beta.md") throw new Error("beta failure");
+        return normalizedResponse(envelope);
+      },
+    };
+    const firstProgress: string[] = [];
+
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+        onShardProgress: ({ status }) => firstProgress.push(status),
+      }),
+    ).rejects.toThrow("beta failure");
+    expect(calls).toEqual([
+      ["docs/operations/alpha.md", "docs/operations/beta.md"],
+      ["docs/operations/alpha.md"],
+      ["docs/operations/beta.md"],
+    ]);
+    expect(firstProgress).toContain("split_retry");
+
+    failBeta = false;
+    calls.length = 0;
+    const secondProgress: Array<{ status: string; cached: number }> = [];
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+      onShardProgress: ({ status, cachedDocumentCount }) =>
+        secondProgress.push({ status, cached: cachedDocumentCount }),
+    });
+
+    expect(candidate.items).toHaveLength(2);
+    expect(calls).toEqual([["docs/operations/beta.md"]]);
+    expect(secondProgress).toContainEqual({ status: "completed", cached: 1 });
   });
 });

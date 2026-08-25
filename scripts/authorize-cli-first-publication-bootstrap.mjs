@@ -25,12 +25,17 @@ function parseArguments(args) {
       online = true;
       continue;
     }
-    if (![
-      "--release-directory",
-      "--publication-authorization",
-      "--external-evidence",
-      "--output",
-    ].includes(name) || values.has(name) || index + 1 >= args.length) failArguments();
+    if (
+      ![
+        "--release-directory",
+        "--publication-authorization",
+        "--external-evidence",
+        "--output",
+      ].includes(name) ||
+      values.has(name) ||
+      index + 1 >= args.length
+    )
+      failArguments();
     values.set(name, args[index + 1]);
     index += 1;
   }

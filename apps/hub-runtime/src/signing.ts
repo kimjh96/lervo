@@ -22,7 +22,10 @@ export interface LoadedHubRuntimeSigning {
   command: LoadedHubRuntimeSigner<Ed25519RemoteCommandSigner>;
 }
 
-function signingSnapshot(value: unknown, baseDirectory: string): NonNullable<HubRuntimeConfig["signing"]> {
+function signingSnapshot(
+  value: unknown,
+  baseDirectory: string,
+): NonNullable<HubRuntimeConfig["signing"]> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new HubRuntimeError("invalid_config", "The Hub signing snapshot is invalid.");
   }
@@ -30,14 +33,17 @@ function signingSnapshot(value: unknown, baseDirectory: string): NonNullable<Hub
   if (
     Object.keys(source).some((key) => !["schemaVersion", "policy", "command"].includes(key)) ||
     source.schemaVersion !== 1
-  ) throw new HubRuntimeError("invalid_config", "The Hub signing snapshot contract is invalid.");
+  )
+    throw new HubRuntimeError("invalid_config", "The Hub signing snapshot contract is invalid.");
   return {
     policy: parseHubRuntimeSigningConfig(source.policy, baseDirectory, "signing.policy"),
     command: parseHubRuntimeSigningConfig(source.command, baseDirectory, "signing.command"),
   };
 }
 
-async function loadSigningConfig(config: HubRuntimeConfig): Promise<NonNullable<HubRuntimeConfig["signing"]>> {
+async function loadSigningConfig(
+  config: HubRuntimeConfig,
+): Promise<NonNullable<HubRuntimeConfig["signing"]>> {
   if (config.signing !== undefined) return structuredClone(config.signing);
   if (config.signingFile === undefined) {
     throw new HubRuntimeError("invalid_config", "No Hub signing source was provided.");
@@ -68,7 +74,9 @@ async function privateKey(config: HubRuntimeSigningConfig) {
   }
 }
 
-export async function loadHubRuntimeSigning(config: HubRuntimeConfig): Promise<LoadedHubRuntimeSigning> {
+export async function loadHubRuntimeSigning(
+  config: HubRuntimeConfig,
+): Promise<LoadedHubRuntimeSigning> {
   const signing = await loadSigningConfig(config);
   try {
     const [policy, command] = await Promise.all([
@@ -118,8 +126,12 @@ export function assertHubRuntimeSigningReplacement(
 
 export class ReloadablePolicySigner {
   constructor(private current: LoadedHubRuntimeSigner<Ed25519PolicySigner>) {}
-  get keyId(): string { return this.current.signer.keyId; }
-  replace(candidate: LoadedHubRuntimeSigner<Ed25519PolicySigner>): void { this.current = candidate; }
+  get keyId(): string {
+    return this.current.signer.keyId;
+  }
+  replace(candidate: LoadedHubRuntimeSigner<Ed25519PolicySigner>): void {
+    this.current = candidate;
+  }
   signSnapshot(value: Parameters<Ed25519PolicySigner["signSnapshot"]>[0]) {
     const signer = this.current.signer;
     return signer.signSnapshot(value);
@@ -136,8 +148,12 @@ export class ReloadablePolicySigner {
 
 export class ReloadableCommandSigner {
   constructor(private current: LoadedHubRuntimeSigner<Ed25519RemoteCommandSigner>) {}
-  get keyId(): string { return this.current.signer.keyId; }
-  replace(candidate: LoadedHubRuntimeSigner<Ed25519RemoteCommandSigner>): void { this.current = candidate; }
+  get keyId(): string {
+    return this.current.signer.keyId;
+  }
+  replace(candidate: LoadedHubRuntimeSigner<Ed25519RemoteCommandSigner>): void {
+    this.current = candidate;
+  }
   sign(value: Parameters<Ed25519RemoteCommandSigner["sign"]>[0]) {
     const signer = this.current.signer;
     return signer.sign(value);

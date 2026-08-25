@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e0628e42a8a19702dddc7d3e
+outputLanguage: en
+outputs:
+  - byteCount: 3998
+    contentHash: sha256:7776a0b203b000fa222893e0ea23bd2823a66bb8efb463705a0edbb48a2cf20e
+    path: docs/decisions/coordination/sync/0036-durable-hub-sync-store.md
+    userRegionHash: sha256:7776a0b203b000fa222893e0ea23bd2823a66bb8efb463705a0edbb48a2cf20e
+profile: decision_record
+recordId: knormdoc_4289388409280109ee0e6171
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:934b47f88da45e69df90587331b04a73c8b6b42f2e786a9d4664b31f3d80c546
+sourcePath: docs/decisions/coordination/sync/0036-durable-hub-sync-store.md
+sourceUnitVersionIds:
+  - uv_17dd4aab66a68fe0c4685e1b
+  - uv_2c45610c9d30622d3f8fbc29
+  - uv_557b48f9d50c0c63dd8a89cf
+  - uv_665cc20f474227075d0382a9
+  - uv_a2e3ba252a3b2fd0f162827e
+  - uv_b88bd264983d8ea0bd04cb41
+  - uv_bb68d9e5a06f568bf0ff7754
+  - uv_f2b7e04fa331bcfede988125

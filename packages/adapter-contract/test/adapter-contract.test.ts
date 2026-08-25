@@ -92,8 +92,7 @@ class FixtureAdapter implements ProviderAdapter {
       executionMode: request.executionMode,
       effectiveCapabilities: {
         ...this.descriptor.capabilities,
-        fileChanges:
-          request.executionMode === "managed_write" ? "supported" : "unsupported",
+        fileChanges: request.executionMode === "managed_write" ? "supported" : "unsupported",
       },
       startedAt: "2026-08-18T00:00:01Z",
     };
@@ -175,10 +174,7 @@ class FixtureAdapter implements ProviderAdapter {
     };
   }
 
-  async getTurnResult(
-    session: AdapterSession,
-    turn: AdapterTurn,
-  ): Promise<AdapterTurnResult> {
+  async getTurnResult(session: AdapterSession, turn: AdapterTurn): Promise<AdapterTurnResult> {
     const content = "fixture result";
     const bytes = Buffer.from(content, "utf8");
     return {
@@ -199,10 +195,7 @@ class FixtureAdapter implements ProviderAdapter {
     };
   }
 
-  async stop(
-    session: AdapterSession,
-    request: AdapterStopRequest,
-  ): Promise<AdapterStopResult> {
+  async stop(session: AdapterSession, request: AdapterStopRequest): Promise<AdapterStopResult> {
     return {
       kind: "stop_result",
       schemaVersion: 1,
@@ -256,8 +249,7 @@ function fixture(provider: string) {
       {
         documentId: "doc_writing_policy",
         path: ".lervo/policies/writing.ko-KR.json",
-        contentHash:
-          "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        contentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         byteCount: 84,
         scope: { kind: "full" },
         delivery: { kind: "inline", content: "fixture writing policy" },
@@ -294,6 +286,34 @@ describe.each(["codex", "claude"])("%s common adapter contract", (provider) => {
     const report = await evaluateAdapterContract(new FixtureAdapter(provider), fixture(provider));
     expect(report).toEqual({ passed: true, violations: [] });
   });
+
+  it("requires an exact provider confirmation for every requested activation", async () => {
+    const data = fixture(provider);
+    data.startRequest.capabilityActivations = [
+      {
+        kind: "capability_activation_request",
+        schemaVersion: 1,
+        capabilityId: "research/search",
+        capabilityKind: "mcp_server",
+        version: "1.0.0",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        runtime: {
+          kind: "mcp_http",
+          serverName: "research-search",
+          url: "https://mcp.example.test/",
+          bearerTokenCredential: null,
+          timeoutMs: 5000,
+        },
+      },
+    ];
+    const report = await evaluateAdapterContract(new FixtureAdapter(provider), data);
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({
+        code: "session_mismatch",
+        detail: expect.stringContaining("activation receipt count"),
+      }),
+    );
+  });
 });
 
 describe("adapter contract evidence integrity", () => {
@@ -320,7 +340,9 @@ describe("adapter contract evidence integrity", () => {
         signal: AbortSignal,
       ): AsyncIterable<AdapterNormalizedEvent> {
         yield* super.events(session, signal);
-        await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+        await new Promise<void>((resolve) =>
+          signal.addEventListener("abort", () => resolve(), { once: true }),
+        );
       }
     }
 
@@ -335,7 +357,9 @@ describe("adapter contract evidence integrity", () => {
         _session: AdapterSession,
         signal: AbortSignal,
       ): AsyncIterable<AdapterNormalizedEvent> {
-        await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+        await new Promise<void>((resolve) =>
+          signal.addEventListener("abort", () => resolve(), { once: true }),
+        );
       }
     }
     const silentFixture = { ...fixture("codex"), eventTimeoutMs: 20 };
@@ -412,9 +436,7 @@ describe("adapter contract evidence integrity", () => {
     );
 
     expect(report.passed).toBe(false);
-    expect(report.violations).toContainEqual(
-      expect.objectContaining({ code: "session_mismatch" }),
-    );
+    expect(report.violations).toContainEqual(expect.objectContaining({ code: "session_mismatch" }));
   });
 
   it("rejects a Claude envelope that names a writing policy without its document", async () => {
@@ -424,10 +446,7 @@ describe("adapter contract evidence integrity", () => {
         (document) => document.documentId !== "doc_writing_policy",
       );
 
-    const report = await evaluateAdapterContract(
-      new FixtureAdapter("claude"),
-      incompleteFixture,
-    );
+    const report = await evaluateAdapterContract(new FixtureAdapter("claude"), incompleteFixture);
 
     expect(report.passed).toBe(false);
     expect(report.violations).toContainEqual(
@@ -439,10 +458,7 @@ describe("adapter contract evidence integrity", () => {
     const backdatedFixture = fixture("codex");
     backdatedFixture.contextEnvelope.createdAt = "2026-08-17T23:59:59Z";
 
-    const report = await evaluateAdapterContract(
-      new FixtureAdapter("codex"),
-      backdatedFixture,
-    );
+    const report = await evaluateAdapterContract(new FixtureAdapter("codex"), backdatedFixture);
     expect(report.violations).toContainEqual(
       expect.objectContaining({ code: "context_envelope_mismatch" }),
     );
@@ -463,9 +479,7 @@ describe("adapter contract evidence integrity", () => {
       new UnannouncedTurnAdapter("codex"),
       fixture("codex"),
     );
-    expect(report.violations).toContainEqual(
-      expect.objectContaining({ code: "turn_mismatch" }),
-    );
+    expect(report.violations).toContainEqual(expect.objectContaining({ code: "turn_mismatch" }));
   });
 
   it("rejects session capabilities that exceed the adapter descriptor", async () => {
@@ -482,12 +496,7 @@ describe("adapter contract evidence integrity", () => {
       }
     }
 
-    const report = await evaluateAdapterContract(
-      new OverbroadSessionAdapter(),
-      fixture("claude"),
-    );
-    expect(report.violations).toContainEqual(
-      expect.objectContaining({ code: "session_mismatch" }),
-    );
+    const report = await evaluateAdapterContract(new OverbroadSessionAdapter(), fixture("claude"));
+    expect(report.violations).toContainEqual(expect.objectContaining({ code: "session_mismatch" }));
   });
 });

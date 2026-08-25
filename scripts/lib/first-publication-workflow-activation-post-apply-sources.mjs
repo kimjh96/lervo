@@ -45,9 +45,12 @@ function parseCanonicalJson(contents) {
     fail();
   }
   if (
-    value === null || typeof value !== "object" || Array.isArray(value) ||
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
     !contents.equals(Buffer.from(`${JSON.stringify(value, null, 2)}\n`))
-  ) fail();
+  )
+    fail();
   return value;
 }
 
@@ -67,22 +70,24 @@ function parseWorkflow(contents) {
     fail();
   }
   if (
-    document.errors.length > 0 || document.warnings.length > 0 ||
-    workflow === null || typeof workflow !== "object" || Array.isArray(workflow)
-  ) fail();
+    document.errors.length > 0 ||
+    document.warnings.length > 0 ||
+    workflow === null ||
+    typeof workflow !== "object" ||
+    Array.isArray(workflow)
+  )
+    fail();
   return workflow;
 }
 
-export async function readFirstPublicationWorkflowActivationPostApplySources(
-  paths,
-  receiptPath,
-) {
+export async function readFirstPublicationWorkflowActivationPostApplySources(paths, receiptPath) {
   if (
     !isAbsolute(paths?.packageManifestPath ?? "") ||
     !isAbsolute(paths?.cliPackageManifestPath ?? "") ||
     !isAbsolute(paths?.workflowPath ?? "") ||
     !isAbsolute(receiptPath ?? "")
-  ) fail();
+  )
+    fail();
   let rootPackageContents;
   let cliPackageContents;
   let workflowContents;

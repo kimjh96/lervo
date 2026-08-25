@@ -1,9 +1,11 @@
 const stepLabels = {
   validate_execution_inputs: "Revalidate execution inputs.",
-  prepare_interactive_publisher: "Complete interactive npm publication preparation and the first human confirmation.",
+  prepare_interactive_publisher:
+    "Complete interactive npm publication preparation and the first human confirmation.",
   reobserve_public_package_absence: "Recheck that the package is absent from public npm.",
   create_durable_reservation: "Store a one-time reservation that prevents duplicate execution.",
-  revalidate_release_artifact: "Revalidate that the publication artifact is unchanged after reservation.",
+  revalidate_release_artifact:
+    "Revalidate that the publication artifact is unchanged after reservation.",
   attempt_publication: "Attempt the first npm publication once.",
   verify_registry_result: "Verify the publication result and distribution tag on npm.",
   record_terminal_result: "Record the verified terminal result in the reservation store.",
@@ -33,7 +35,10 @@ export function formatFirstPublicationExecutionPlan(plan) {
   }
   lines.push("", "Human confirmations:");
   for (const confirmation of plan.confirmations) {
-    const timing = confirmation.timing === "before_reservation" ? "Before reservation" : "After the publication attempt";
+    const timing =
+      confirmation.timing === "before_reservation"
+        ? "Before reservation"
+        : "After the publication attempt";
     lines.push(`- ${timing}: ${confirmation.phrase}`);
   }
   lines.push("", "Cancellation boundaries:");

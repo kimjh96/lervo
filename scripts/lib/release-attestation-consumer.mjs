@@ -47,16 +47,17 @@ function normalizedSubjects(subjects) {
   if (
     !Array.isArray(subjects) ||
     subjects.length === 0 ||
-    subjects.some((subject) =>
-      subject === null ||
-      typeof subject !== "object" ||
-      typeof subject.name !== "string" ||
-      subject.name.length === 0 ||
-      subject.digest === null ||
-      typeof subject.digest !== "object" ||
-      Object.keys(subject.digest).length !== 1 ||
-      typeof subject.digest.sha256 !== "string" ||
-      !sha256Pattern.test(subject.digest.sha256)
+    subjects.some(
+      (subject) =>
+        subject === null ||
+        typeof subject !== "object" ||
+        typeof subject.name !== "string" ||
+        subject.name.length === 0 ||
+        subject.digest === null ||
+        typeof subject.digest !== "object" ||
+        Object.keys(subject.digest).length !== 1 ||
+        typeof subject.digest.sha256 !== "string" ||
+        !sha256Pattern.test(subject.digest.sha256),
     )
   ) {
     failReleaseVerification(
@@ -91,8 +92,8 @@ export function validateVerifiedAttestationResults(results, expected) {
     typeof verification?.signature?.certificate !== "object" ||
     !Array.isArray(verification?.verifiedTimestamps) ||
     verification.verifiedTimestamps.length === 0 ||
-    verification.verifiedTimestamps.some((timestamp) =>
-      timestamp === null || typeof timestamp !== "object"
+    verification.verifiedTimestamps.some(
+      (timestamp) => timestamp === null || typeof timestamp !== "object",
     ) ||
     statement === null ||
     typeof statement !== "object" ||

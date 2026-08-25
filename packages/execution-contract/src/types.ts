@@ -1,4 +1,5 @@
 import type {
+  AdapterCapabilityActivationReceipt,
   AdapterSession,
   AdapterTurn,
   ContextEvidence,
@@ -40,6 +41,7 @@ export interface ManagedProviderRunResult {
   terminalEventId: string;
   resultArtifact: ManagedProviderResultArtifact;
   contextEvidence: readonly ContextEvidence[];
+  capabilityActivations: AdapterCapabilityActivationReceipt[];
   managedChanges: ManagedFileChangeEvidence[];
   contextGeneration: number;
   beforeRevision: string;

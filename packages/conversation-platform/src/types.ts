@@ -116,8 +116,7 @@ export interface ConversationPlatformIdentityPort {
 }
 
 export type PlatformIngressResult =
-  | { status: "accepted"; event: ConversationInboundEvent }
-  | { status: "ignored"; reason: string };
+  { status: "accepted"; event: ConversationInboundEvent } | { status: "ignored"; reason: string };
 
 export class ConversationPlatformError extends Error {
   constructor(

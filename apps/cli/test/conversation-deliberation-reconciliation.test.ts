@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectStorage } from "@lervo/project-storage";
 
-import {
-  interpretManagedDeliberationInspection,
-} from "../src/conversation-deliberation-reconciliation.js";
+import { interpretManagedDeliberationInspection } from "../src/conversation-deliberation-reconciliation.js";
 import type { DeliberationInspectionReport } from "../src/deliberation-inspection.js";
 import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
 
@@ -31,10 +29,7 @@ function report(
   };
 }
 
-function interpret(
-  value: DeliberationInspectionReport,
-  operation: "start" | "resume" = "start",
-) {
+function interpret(value: DeliberationInspectionReport, operation: "start" | "resume" = "start") {
   return interpretManagedDeliberationInspection({
     job: {
       operation,
@@ -70,41 +65,61 @@ describe("managed conversation deliberation reconciliation mapping", () => {
         nextAction: "resume",
       },
     });
-    expect(interpret(interrupted, "resume"))
-      .toEqual({ status: "not_confirmed", reason: "history_incomplete" });
+    expect(interpret(interrupted, "resume")).toEqual({
+      status: "not_confirmed",
+      reason: "history_incomplete",
+    });
   });
 
   it("does not infer an outcome while a lease is active", () => {
-    expect(interpret(report({
-      phase: "running_after_approval",
-      completionStatus: null,
-      checkpoint: "readable",
-      lease: "active",
-      resume: "blocked_running",
-    }))).toEqual({ status: "not_confirmed", reason: "active_execution" });
+    expect(
+      interpret(
+        report({
+          phase: "running_after_approval",
+          completionStatus: null,
+          checkpoint: "readable",
+          lease: "active",
+          resume: "blocked_running",
+        }),
+      ),
+    ).toEqual({ status: "not_confirmed", reason: "active_execution" });
   });
 
   it("keeps incomplete and inconsistent history separate", () => {
-    expect(interpret(report({
-      sourceStatus: "incomplete",
-      phase: "rounds",
-      completionStatus: null,
-      checkpoint: "missing",
-      resume: "not_available",
-      issues: [{
-        code: "deliberation_history_incomplete",
-        message: "The deliberation did not finish.",
-      }],
-    }))).toEqual({ status: "not_confirmed", reason: "history_incomplete" });
-    expect(interpret(report({
-      sourceStatus: "inconsistent",
-      issues: [{
-        code: "deliberation_history_invalid",
-        message: "The deliberation history does not match.",
-      }],
-    }))).toEqual({ status: "not_confirmed", reason: "source_inconsistent" });
-    expect(interpret(report({ projectId: "prj_otherproject1" })))
-      .toEqual({ status: "not_confirmed", reason: "source_inconsistent" });
+    expect(
+      interpret(
+        report({
+          sourceStatus: "incomplete",
+          phase: "rounds",
+          completionStatus: null,
+          checkpoint: "missing",
+          resume: "not_available",
+          issues: [
+            {
+              code: "deliberation_history_incomplete",
+              message: "The deliberation did not finish.",
+            },
+          ],
+        }),
+      ),
+    ).toEqual({ status: "not_confirmed", reason: "history_incomplete" });
+    expect(
+      interpret(
+        report({
+          sourceStatus: "inconsistent",
+          issues: [
+            {
+              code: "deliberation_history_invalid",
+              message: "The deliberation history does not match.",
+            },
+          ],
+        }),
+      ),
+    ).toEqual({ status: "not_confirmed", reason: "source_inconsistent" });
+    expect(interpret(report({ projectId: "prj_otherproject1" }))).toEqual({
+      status: "not_confirmed",
+      reason: "source_inconsistent",
+    });
   });
 
   it("rejects a broken project event hash chain before reading deliberation history", async () => {
@@ -113,7 +128,8 @@ describe("managed conversation deliberation reconciliation mapping", () => {
         verifyIntegrity: () => ({ valid: false }),
       },
     } as unknown as ProjectStorage;
-    await expect(inspectManagedDeliberation({ storage, deliberationId }))
-      .rejects.toMatchObject({ code: "deliberation_history_invalid" });
+    await expect(inspectManagedDeliberation({ storage, deliberationId })).rejects.toMatchObject({
+      code: "deliberation_history_invalid",
+    });
   });
 });

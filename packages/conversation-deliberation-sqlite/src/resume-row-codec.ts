@@ -76,19 +76,27 @@ function decodeReconciliation(
   const item = decoded as Partial<ConversationDeliberationResumeJobReconciliation> & {
     schemaVersion?: unknown;
   };
-  const uncertainAtMs = typeof item.uncertainAt === "string"
-    ? conversationDeliberationMilliseconds(item.uncertainAt, "deliberation resume uncertainty")
-    : -1;
-  const reconciledAtMs = typeof item.reconciledAt === "string"
-    ? conversationDeliberationMilliseconds(item.reconciledAt, "deliberation resume reconciliation")
-    : -1;
+  const uncertainAtMs =
+    typeof item.uncertainAt === "string"
+      ? conversationDeliberationMilliseconds(item.uncertainAt, "deliberation resume uncertainty")
+      : -1;
+  const reconciledAtMs =
+    typeof item.reconciledAt === "string"
+      ? conversationDeliberationMilliseconds(
+          item.reconciledAt,
+          "deliberation resume reconciliation",
+        )
+      : -1;
   if (
-    item.schemaVersion !== 1 || typeof item.sourceKind !== "string" ||
+    item.schemaVersion !== 1 ||
+    typeof item.sourceKind !== "string" ||
     !conversationDeliberationPatterns.reconciliationSourceKind.test(item.sourceKind) ||
-    typeof item.evidenceHash !== "string" || !hashPattern.test(item.evidenceHash) ||
+    typeof item.evidenceHash !== "string" ||
+    !hashPattern.test(item.evidenceHash) ||
     (item.priorFailureCode !== "resume_worker_lease_expired" &&
       item.priorFailureCode !== "deliberation_resume_execution_uncertain") ||
-    uncertainAtMs < requestedAtMs || reconciledAtMs < uncertainAtMs
+    uncertainAtMs < requestedAtMs ||
+    reconciledAtMs < uncertainAtMs
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
@@ -104,7 +112,9 @@ function decodeReconciliation(
   };
 }
 
-export function decodeConversationDeliberationResumeJob(row: Row): ConversationDeliberationResumeJob {
+export function decodeConversationDeliberationResumeJob(
+  row: Row,
+): ConversationDeliberationResumeJob {
   const projectId = text(row, "project_id");
   const sourceEventId = text(row, "source_event_id");
   const deliberationId = text(row, "deliberation_id");
@@ -119,8 +129,10 @@ export function decodeConversationDeliberationResumeJob(row: Row): ConversationD
   const leaseExpiresAt = nullableText(row, "lease_expires_at");
   const leaseExpiresAtMs = nullableInteger(row, "lease_expires_at_ms");
   const terminalAt = nullableText(row, "terminal_at");
-  const failureCode = nullableText(row, "failure_code") as
-    ConversationDeliberationResumeJobFailureCode | null;
+  const failureCode = nullableText(
+    row,
+    "failure_code",
+  ) as ConversationDeliberationResumeJobFailureCode | null;
   const reconciliation = decodeReconciliation(
     nullableText(row, "reconciliation_json"),
     requestedAtMs,
@@ -129,12 +141,15 @@ export function decodeConversationDeliberationResumeJob(row: Row): ConversationD
     !conversationDeliberationPatterns.projectId.test(projectId) ||
     !conversationDeliberationPatterns.sourceEventId.test(sourceEventId) ||
     !conversationDeliberationPatterns.deliberationId.test(deliberationId) ||
-    !hashPattern.test(requestHash) || !hashPattern.test(principalHash) ||
-    !(new Set(["queued", "leased", "settled", "uncertain"])).has(state) ||
-    attemptCount < 0 || attemptCount > 100_000 ||
+    !hashPattern.test(requestHash) ||
+    !hashPattern.test(principalHash) ||
+    !new Set(["queued", "leased", "settled", "uncertain"]).has(state) ||
+    attemptCount < 0 ||
+    attemptCount > 100_000 ||
     (leaseId !== null && !/^cdr_[A-Za-z0-9_-]{32}$/u.test(leaseId)) ||
     (leaseOwner !== null && !conversationDeliberationPatterns.workerId.test(leaseOwner)) ||
-    (failureCode !== null && failureCode !== "resume_worker_lease_expired" &&
+    (failureCode !== null &&
+      failureCode !== "resume_worker_lease_expired" &&
       failureCode !== "deliberation_resume_execution_uncertain") ||
     (reconciliation !== null && state !== "settled")
   ) {
@@ -143,23 +158,33 @@ export function decodeConversationDeliberationResumeJob(row: Row): ConversationD
       "The conversation deliberation resume queue record is invalid.",
     );
   }
-  if (conversationDeliberationMilliseconds(requestedAt, "deliberation resume request") !== requestedAtMs) {
+  if (
+    conversationDeliberationMilliseconds(requestedAt, "deliberation resume request") !==
+    requestedAtMs
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation resume queue request time coordinates differ.",
     );
   }
-  if (leaseExpiresAt !== null && (
-    leaseExpiresAtMs === null ||
-    conversationDeliberationMilliseconds(leaseExpiresAt, "deliberation resume lease expiration") !== leaseExpiresAtMs
-  )) {
+  if (
+    leaseExpiresAt !== null &&
+    (leaseExpiresAtMs === null ||
+      conversationDeliberationMilliseconds(
+        leaseExpiresAt,
+        "deliberation resume lease expiration",
+      ) !== leaseExpiresAtMs)
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation resume queue lease time coordinates differ.",
     );
   }
-  if (terminalAt !== null &&
-    conversationDeliberationMilliseconds(terminalAt, "deliberation resume queue settlement") < requestedAtMs) {
+  if (
+    terminalAt !== null &&
+    conversationDeliberationMilliseconds(terminalAt, "deliberation resume queue settlement") <
+      requestedAtMs
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation resume queue settlement is earlier than the request.",

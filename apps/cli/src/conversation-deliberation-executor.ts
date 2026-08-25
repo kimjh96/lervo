@@ -27,13 +27,16 @@ export function createManagedConversationDeliberationExecutionAdapter(options: {
   const executeAssigned = options.executeAssigned ?? createAssignedManagedDeliberationExecutor();
 
   return {
-    async execute(job: Readonly<ConversationDeliberationJob>): Promise<ConversationDeliberationSummary> {
+    async execute(
+      job: Readonly<ConversationDeliberationJob>,
+    ): Promise<ConversationDeliberationSummary> {
       const repositoryRoot = projects.require(job.projectId);
       if (
         job.state !== "leased" ||
         !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(job.deliberationId) ||
         !/^deliberation_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(job.policyId) ||
-        job.topic.trim().length === 0 || job.topic.length > 4_096
+        job.topic.trim().length === 0 ||
+        job.topic.length > 4_096
       ) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",
@@ -52,7 +55,8 @@ export function createManagedConversationDeliberationExecutionAdapter(options: {
       if (
         outcome.deliberationId !== job.deliberationId ||
         !Number.isSafeInteger(outcome.artifactCount) ||
-        outcome.artifactCount < 0 || outcome.artifactCount > 10_000
+        outcome.artifactCount < 0 ||
+        outcome.artifactCount > 10_000
       ) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",

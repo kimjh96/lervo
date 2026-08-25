@@ -1,10 +1,13 @@
 import type { HubPolicySourceStore } from "@lervo/hub-policy";
 import type { HubRemoteCommandQueueInspectionStore } from "@lervo/hub-sync";
 
-export interface HubCommandControlSource extends
-  HubRemoteCommandQueueInspectionStore,
-  Pick<HubPolicySourceStore,
-    "getCurrentPolicySnapshot" | "getPolicyCommand" | "pullPolicyBundle"> {}
+export interface HubCommandControlSource
+  extends
+    HubRemoteCommandQueueInspectionStore,
+    Pick<
+      HubPolicySourceStore,
+      "getCurrentPolicySnapshot" | "getPolicyCommand" | "pullPolicyBundle"
+    > {}
 
 export interface HubCommandApprovalOption {
   capability: string;
@@ -54,10 +57,7 @@ export interface HubCommandReview {
 
 export class HubControlError extends Error {
   constructor(
-    readonly code:
-      | "command_not_found"
-      | "invalid_control_request"
-      | "source_inconsistent",
+    readonly code: "command_not_found" | "invalid_control_request" | "source_inconsistent",
     message: string,
     options?: ErrorOptions,
   ) {

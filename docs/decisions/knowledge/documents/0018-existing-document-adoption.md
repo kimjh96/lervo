@@ -5,7 +5,7 @@ Decision date: 2026-08-19
 
 ## Context
 
-Repositories may already contain README, AGENTS, CLAUDE, ADR, MDX, AsciiDoc, custom front matter, and legacy Lervo registries. Starting with a standard managed-block parser could force Lervo markers into those sources or mutate user content. `lervo init` creates only a safe project layout; adoption requires format and ownership analysis plus explicit approval.
+Repositories may already contain README, AGENTS, CLAUDE, ADR, MDX, AsciiDoc, custom front matter, and legacy Lervo registries. Starting with a standard managed-block parser could add Lervo markers or mutate user content. `lervo init` creates only a safe project layout; adoption requires format and ownership analysis plus explicit approval.
 
 ## Decision
 
@@ -24,13 +24,13 @@ No later stage may modify user documents until earlier contract tests and source
 
 ### Scanner and adapters
 
-- Core scanning owns roots, exclusions, file/count/byte limits, safe full reads, source hashes, and deterministic order. Reject absolute or escaping paths, symlinks, non-files, and files that change during reading. Exclude `.git`, dependency directories, and `.lervo/state` by default.
-- `DocumentImportAdapter` exposes identity/version, supported extensions, and detection. It receives only relative paths and scanner bytes, with no filesystem or event-write port.
-- Return format, ownership, proposed document/profile/relations and markers, confidence, and warnings. Markdown, MDX, AsciiDoc, legacy-registry, and custom adapters share one contract suite.
+- Core scanning owns roots, exclusions, file/count/byte limits, safe full reads, source hashes, and deterministic ordering. Reject absolute or escaping paths, symlinks, non-files, and files that change while read. Exclude `.git`, dependency directories, and `.lervo/state` by default.
+- `DocumentImportAdapter` exposes identity/version, supported extensions, and detection. It receives only relative paths and scanner bytes, without filesystem or event-write ports.
+- Adapters return format, ownership, proposed document/profile/relations and markers, confidence, and warnings. Markdown, MDX, AsciiDoc, legacy-registry, and custom adapters share one contract suite.
 
 ### Hash-bound candidates and plans
 
-Each `MigrationCandidate` records source path, format, hash, byte count, detected ownership, proposed document/profile/relations, confidence/warnings, an `observed` or `review_required` state, and candidate artifact ID/hash. Store one artifact per source; never append candidates to one document.
+Each `MigrationCandidate` records the source path, format, hash, byte count, detected ownership, proposed document/profile/relations, confidence/warnings, an `observed` or `review_required` state, and candidate artifact ID/hash. Store one artifact per source; never append candidates to one document.
 
 `MigrationPlan` binds candidate artifacts, proposed sidecar paths, expected target absence/hash, creation time, and approval coordinates. Dry-run writes nothing. Before apply, recheck every source hash and target layout. Any change makes the entire plan `stale`; ID, path, or target conflicts make it `conflict`; never apply partially.
 
@@ -41,7 +41,7 @@ Each `MigrationCandidate` records source path, format, hash, byte count, detecte
 - Body moves, conversion, marker insertion, and splitting require a separate structural patch bound to source/target snapshots, preservation of bytes outside blocks, and explicit approval.
 - Legacy `.lervo/documents.yaml` sharding follows the same rule and never runs implicitly during init.
 
-Approval binds the plan ID and every candidate artifact ID/hash exactly once as either `skip` with a reason or `approve_sidecar` with a final `DocumentManifest`. Apply cannot invent owner, locale, review cycle, or verified revision. Approval time cannot follow apply time, and document/source/target coordinates must match the candidate.
+Approval binds the plan ID and every candidate artifact ID/hash exactly once as either `skip` with a reason or `approve_sidecar` with a final `DocumentManifest`. Apply cannot invent owner, locale, review cycle, or verified revision. Approval time cannot follow apply time. Document, source, and target coordinates must match the candidate.
 
 ### Atomic sidecar apply
 
@@ -49,7 +49,7 @@ Approval binds the plan ID and every candidate artifact ID/hash exactly once as 
 - Re-read all source bytes, targets, and the current `.lervo/documents/` snapshot; reject changes or conflicts involving IDs, paths, or relations.
 - Build and sync sidecars in isolated staging. Create a transaction marker before publication; loaders reject layouts while it exists.
 - Publish all sidecars, verify the complete snapshot, durably commit `document.migration.applied`, then remove the marker.
-- The event recorder must commit before success and must not commit when returning failure. Before event commit, roll back every created file after content-hash verification. After commit, cleanup failure leaves a fail-closed marker and no normal receipt.
+- The event recorder must commit before success and must not commit when returning failure. Before event commit, roll back every created file after verifying its content hash. After commit, cleanup failure leaves a fail-closed marker and no normal receipt.
 - Legacy registry and active shard directory cannot coexist. Metadata-only apply against a legacy layout is `migration_conflict`.
 
 ### Legacy registry structural migration
@@ -61,7 +61,7 @@ Approval binds the plan ID and every candidate artifact ID/hash exactly once as 
 - Bind the plan to the new directory and sidecar targets and to each referenced document's missing/file/unsafe snapshot. Missing references are review warnings. Unsafe snapshots, duplicate or noncanonical paths, and conflicting archive bytes are conflicts. Do not infer managed-block or generated ownership without parser evidence.
 - Approval handles every entry artifact exactly once and preserves each approved `DocumentRecord` in its final manifest.
 - Stage archive and sidecars, close loaders with `.lervo/.document-migration.lock`, publish the directory atomically, deactivate the legacy file into staging, recheck references and snapshot, commit durable completion, then remove the marker.
-- Before event commit, verified rollback restores legacy bytes and removes new archive or empty directories. Unverifiable rollback leaves `rollback_failed`; cleanup failure after commit leaves `migration_finalization_failed`. Failure-injection fixtures cover every transition.
+- Before event commit, verified rollback restores legacy bytes and removes the new archive or empty directories. Unverifiable rollback leaves `rollback_failed`; cleanup failure after commit leaves `migration_finalization_failed`. Failure-injection fixtures cover every transition.
 
 ### Event, states, and privacy
 

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9009e8112413d8f2f3c4ba95
+freshness: current
+ownership: user
+path: docs/decisions/operations/services/0202-repository-node-fleet-identity-and-registry.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_5158d1a94d1c7b0bbc6eb992
+title: "ADR-0202: Repository Node fleet identity and registry foundation"
+type: decision

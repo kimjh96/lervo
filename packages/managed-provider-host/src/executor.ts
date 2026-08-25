@@ -28,8 +28,9 @@ function sameTarget(
   left: ManagedProviderHostOptions["target"],
   right: ManagedProviderHostOptions["target"],
 ): boolean {
-  return left.projectId === right.projectId &&
-    left.projectIdentityHash === right.projectIdentityHash;
+  return (
+    left.projectId === right.projectId && left.projectIdentityHash === right.projectIdentityHash
+  );
 }
 
 export class ManagedRemoteProviderHost implements ManagedProviderHost {
@@ -40,15 +41,19 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
   private readonly openStorage: NonNullable<ManagedProviderHostOptions["openStorage"]>;
   private readonly loadRegistry: NonNullable<ManagedProviderHostOptions["loadRegistry"]>;
   private readonly resolveSkills: NonNullable<ManagedProviderHostOptions["resolveSkills"]>;
-  private readonly prepareVerification: NonNullable<ManagedProviderHostOptions["prepareVerification"]>;
+  private readonly prepareVerification: NonNullable<
+    ManagedProviderHostOptions["prepareVerification"]
+  >;
   private running = false;
 
   constructor(private readonly options: ManagedProviderHostOptions) {
     if (
-      options.providers.length < 1 || options.providers.length > 16 ||
+      options.providers.length < 1 ||
+      options.providers.length > 16 ||
       new Set(options.providers).size !== options.providers.length ||
       options.providers.some((provider) => !PROVIDER_PATTERN.test(provider)) ||
-      options.roles.length < 1 || options.roles.length > 16 ||
+      options.roles.length < 1 ||
+      options.roles.length > 16 ||
       new Set(options.roles).size !== options.roles.length ||
       options.roles.some((roleId) => !options.roleRegistry.roleIds().includes(roleId))
     ) {
@@ -64,7 +69,8 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
     this.openStorage = options.openStorage ?? openProjectStorage;
     this.loadRegistry = options.loadRegistry ?? loadDocumentRegistry;
     this.resolveSkills = options.resolveSkills ?? resolveManagedProviderHostSkills;
-    this.prepareVerification = options.prepareVerification ?? prepareManagedProviderHostVerification;
+    this.prepareVerification =
+      options.prepareVerification ?? prepareManagedProviderHostVerification;
   }
 
   async execute(input: Parameters<ManagedProviderHost["execute"]>[0]) {
@@ -85,8 +91,10 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
   private async executeOne(input: Parameters<ManagedProviderHost["execute"]>[0]) {
     const command = input.command;
     if (
-      command.action.kind !== "managed_run" || !this.roles.has(command.action.roleId) ||
-      !this.providers.has(command.action.provider) || input.request.trim().length === 0 ||
+      command.action.kind !== "managed_run" ||
+      !this.roles.has(command.action.roleId) ||
+      !this.providers.has(command.action.provider) ||
+      input.request.trim().length === 0 ||
       digest(input.request) !== command.action.request.contentHash ||
       input.policyAuthorization === null
     ) {
@@ -107,15 +115,14 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
     }
     let expectedPaths: string[];
     try {
-      if (
-        input.approvedRepositoryPaths.length < 1 ||
-        input.approvedRepositoryPaths.length > 16
-      ) throw new Error("bounded paths required");
+      if (input.approvedRepositoryPaths.length < 1 || input.approvedRepositoryPaths.length > 16)
+        throw new Error("bounded paths required");
       expectedPaths = input.approvedRepositoryPaths.map(normalizeRepositoryPath);
       if (
         new Set(expectedPaths).size !== expectedPaths.length ||
         expectedPaths.some((path, index) => path !== input.approvedRepositoryPaths[index])
-      ) throw new Error("unique normalized paths required");
+      )
+        throw new Error("unique normalized paths required");
     } catch (error) {
       throw new ManagedProviderHostError(
         "managed_approval_scope_invalid",
@@ -133,7 +140,10 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         projectId: storage.manifest.projectId,
         projectIdentityHash: calculateProjectIdentityHash(storage.manifest),
       };
-      if (!sameTarget(actualTarget, this.options.target) || !sameTarget(command.target, actualTarget)) {
+      if (
+        !sameTarget(actualTarget, this.options.target) ||
+        !sameTarget(command.target, actualTarget)
+      ) {
         throw new ManagedProviderHostError(
           "managed_project_mismatch",
           "The managed provider host project identity differs from the remote command.",
@@ -179,10 +189,12 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
           sessionId,
           roleId: role.roleId,
         },
-        policyVersion: digest(JSON.stringify({
-          role,
-          policySnapshotId: input.policyAuthorization.policySnapshotId,
-        })),
+        policyVersion: digest(
+          JSON.stringify({
+            role,
+            policySnapshotId: input.policyAuthorization.policySnapshotId,
+          }),
+        ),
         approvalVerifier: this.options.approvalVerifier,
         createEventId: () => this.createId("evt"),
         projectVerifier: verification.verifier,
@@ -232,9 +244,10 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         "managed_cleanup_failed",
         "Project storage could not be closed after the managed provider run.",
         {
-          cause: executionFailure === undefined
-            ? cleanupFailure
-            : new AggregateError([executionFailure, cleanupFailure]),
+          cause:
+            executionFailure === undefined
+              ? cleanupFailure
+              : new AggregateError([executionFailure, cleanupFailure]),
         },
       );
     }

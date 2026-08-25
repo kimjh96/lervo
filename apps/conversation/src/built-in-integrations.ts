@@ -1,11 +1,5 @@
-import {
-  DiscordConversationAdapter,
-  DiscordRestDelivery,
-} from "@lervo/adapter-discord";
-import {
-  SlackConversationAdapter,
-  SlackWebApiDelivery,
-} from "@lervo/adapter-slack";
+import { DiscordConversationAdapter, DiscordRestDelivery } from "@lervo/adapter-discord";
+import { SlackConversationAdapter, SlackWebApiDelivery } from "@lervo/adapter-slack";
 
 import type {
   ConversationApplicationOptions,
@@ -30,12 +24,16 @@ function slackIntegration(
         replay: context.deliveryReplay,
         ...(context.now === undefined ? {} : { now: context.now }),
         ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-        ...(deployment.requestTimeoutMs === undefined ? {} : {
-          requestTimeoutMs: deployment.requestTimeoutMs,
-        }),
-        ...(deployment.maxResponseBytes === undefined ? {} : {
-          maxResponseBytes: deployment.maxResponseBytes,
-        }),
+        ...(deployment.requestTimeoutMs === undefined
+          ? {}
+          : {
+              requestTimeoutMs: deployment.requestTimeoutMs,
+            }),
+        ...(deployment.maxResponseBytes === undefined
+          ? {}
+          : {
+              maxResponseBytes: deployment.maxResponseBytes,
+            }),
       });
       return new SlackConversationAdapter({
         integrationId: deployment.integrationId,
@@ -64,12 +62,16 @@ function discordIntegration(
         replay: context.deliveryReplay,
         ...(context.now === undefined ? {} : { now: context.now }),
         ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-        ...(deployment.requestTimeoutMs === undefined ? {} : {
-          requestTimeoutMs: deployment.requestTimeoutMs,
-        }),
-        ...(deployment.maxResponseBytes === undefined ? {} : {
-          maxResponseBytes: deployment.maxResponseBytes,
-        }),
+        ...(deployment.requestTimeoutMs === undefined
+          ? {}
+          : {
+              requestTimeoutMs: deployment.requestTimeoutMs,
+            }),
+        ...(deployment.maxResponseBytes === undefined
+          ? {}
+          : {
+              maxResponseBytes: deployment.maxResponseBytes,
+            }),
       });
       return new DiscordConversationAdapter({
         integrationId: deployment.integrationId,

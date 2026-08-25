@@ -16,10 +16,18 @@ export function projectExecutionRelations(
       }
       return;
     case "context.selected":
-      builder.add("selected_document", run, builder.node("document", requiredText(payload, "documentId")));
+      builder.add(
+        "selected_document",
+        run,
+        builder.node("document", requiredText(payload, "documentId")),
+      );
       return;
     case "document.loaded":
-      builder.add("loaded_document", run, builder.node("document", requiredText(payload, "documentId")));
+      builder.add(
+        "loaded_document",
+        run,
+        builder.node("document", requiredText(payload, "documentId")),
+      );
       return;
     case "context.injected":
       for (const id of requiredTexts(payload, "documentIds")) {
@@ -29,7 +37,11 @@ export function projectExecutionRelations(
     case "context.published": {
       const context = builder.node("shared_context", requiredText(payload, "sharedContextId"));
       builder.add("published_context", run, context);
-      builder.add("references_document", context, builder.node("document", requiredText(payload, "documentId")));
+      builder.add(
+        "references_document",
+        context,
+        builder.node("document", requiredText(payload, "documentId")),
+      );
       return;
     }
     case "handoff.created": {
@@ -46,12 +58,20 @@ export function projectExecutionRelations(
       return;
     }
     case "file.changed":
-      builder.add("changed_path", run, builder.node("repository_path", requiredText(payload, "path")));
+      builder.add(
+        "changed_path",
+        run,
+        builder.node("repository_path", requiredText(payload, "path")),
+      );
       return;
     case "verification.completed": {
       const verification = builder.node("verification", requiredText(payload, "verificationId"));
       builder.add("completed_verification", run, verification);
-      builder.add("produced_artifact", verification, builder.node("artifact", requiredText(payload, "resultArtifactId")));
+      builder.add(
+        "produced_artifact",
+        verification,
+        builder.node("artifact", requiredText(payload, "resultArtifactId")),
+      );
       return;
     }
     case "deliberation.started": {
@@ -64,10 +84,21 @@ export function projectExecutionRelations(
     }
     case "deliberation.artifact.recorded": {
       const deliberation = builder.node("deliberation", requiredText(payload, "deliberationId"));
-      const recorded = builder.node("deliberation_artifact", requiredText(payload, "deliberationArtifactId"));
+      const recorded = builder.node(
+        "deliberation_artifact",
+        requiredText(payload, "deliberationArtifactId"),
+      );
       builder.add("recorded_artifact", deliberation, recorded);
-      builder.add("stored_as", recorded, builder.node("artifact", requiredText(payload, "artifactId")));
-      builder.add("produced_by", recorded, builder.node("role", requiredText(payload, "producerRoleId")));
+      builder.add(
+        "stored_as",
+        recorded,
+        builder.node("artifact", requiredText(payload, "artifactId")),
+      );
+      builder.add(
+        "produced_by",
+        recorded,
+        builder.node("role", requiredText(payload, "producerRoleId")),
+      );
       return;
     }
     case "deliberation.completed": {

@@ -5,20 +5,20 @@ Decision date: 2026-08-19
 
 ## Context
 
-Parser-verified boundaries do not authorize writes. Reviewers need a source-bound candidate that shows the change and proves preservation of user-owned bytes. Stale output cannot apply after source changes. Metadata holds hashes; complete output bytes remain locally reviewable instead of entering events.
+Parser-verified boundaries do not authorize writes. Reviewers need a source-bound candidate that shows the change and proves preservation of user-owned bytes. Stale output cannot apply after source changes. Metadata holds hashes; complete output bytes remain locally reviewable rather than entering events.
 
 ## Decision
 
-`@lervo/documents` exposes filesystem-free `createManagedBlockPatchCandidate`, which accepts a scanner-verified source path, hash, byte count and bytes, a current block ID, and replacement bytes. It:
+`@lervo/documents` exposes filesystem-free `createManagedBlockPatchCandidate`. It accepts a scanner-verified source path, hash, byte count and bytes, a current block ID, and replacement bytes. It:
 
 1. Verifies the source digest and byte count.
 2. Requires a fully valid CommonMark parse with exactly one target block.
 3. Requires marker family `lervo_v1`; legacy markers remain read-only.
 4. Replaces only the content byte range.
 5. Re-parses output and proves unchanged block order, IDs, families, and marker bytes.
-6. Proves that all bytes before and after target content are unchanged and that content equals the replacement.
+6. Proves that all bytes before and after the target content are unchanged and that the content equals the replacement.
 
-Replacement must be valid UTF-8 and no larger than 8 KiB. Empty content is allowed. Reject replacements that break the standalone end marker, inject managed markers, change structure, or equal the current bytes.
+Replacement must be valid UTF-8 and at most 8 KiB. Empty content is allowed. Reject replacements that break the standalone end marker, inject managed markers, change structure, or equal the current bytes.
 
 Return:
 

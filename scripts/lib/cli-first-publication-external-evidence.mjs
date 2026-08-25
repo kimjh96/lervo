@@ -1,16 +1,12 @@
-import { verifyCliFirstPublicationPackageMetadataPostApply } from
-  "./cli-first-publication-package-metadata-post-apply.mjs";
+import { verifyCliFirstPublicationPackageMetadataPostApply } from "./cli-first-publication-package-metadata-post-apply.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import {
   createFirstPublicationExternalEvidenceReport,
   validateFirstPublicationExternalEvidenceReport,
 } from "./first-publication-external-evidence-report.mjs";
-import { validateFirstPublicationExternalEvidenceLocalInputs } from
-  "./first-publication-external-evidence-policy.mjs";
-import { readFirstPublicationExternalEvidenceSources } from
-  "./first-publication-external-evidence-sources.mjs";
-import { firstPublicationPackageMetadataPostApplySourcePaths } from
-  "./first-publication-package-metadata-post-apply-sources.mjs";
+import { validateFirstPublicationExternalEvidenceLocalInputs } from "./first-publication-external-evidence-policy.mjs";
+import { readFirstPublicationExternalEvidenceSources } from "./first-publication-external-evidence-sources.mjs";
+import { firstPublicationPackageMetadataPostApplySourcePaths } from "./first-publication-package-metadata-post-apply-sources.mjs";
 import { observeNpmPublicPackage } from "./npm-public-package-observer.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 
@@ -29,16 +25,12 @@ export async function inspectCliFirstPublicationExternalEvidence(
   dependencies = {},
 ) {
   const readSources = dependencies.readSources ?? readFirstPublicationExternalEvidenceSources;
-  const verifyPostApply = dependencies.verifyPostApply ??
-    verifyCliFirstPublicationPackageMetadataPostApply;
+  const verifyPostApply =
+    dependencies.verifyPostApply ?? verifyCliFirstPublicationPackageMetadataPostApply;
   const observePackage = dependencies.observePackage ?? observeNpmPublicPackage;
   const now = dependencies.now ?? (() => new Date().toISOString());
   const sources = await readSources(options);
-  const currentPostApply = await verifyPostApply(
-    options.receiptPath,
-    metadataPaths,
-    dependencies,
-  );
+  const currentPostApply = await verifyPostApply(options.receiptPath, metadataPaths, dependencies);
   assertPostApplyReportMatches(sources.postApplyReport, currentPostApply);
   validateFirstPublicationExternalEvidenceLocalInputs({
     ...sources,
@@ -46,11 +38,7 @@ export async function inspectCliFirstPublicationExternalEvidence(
   });
   const packageObservation = await observePackage();
   const observedAt = now();
-  const finalPostApply = await verifyPostApply(
-    options.receiptPath,
-    metadataPaths,
-    dependencies,
-  );
+  const finalPostApply = await verifyPostApply(options.receiptPath, metadataPaths, dependencies);
   assertPostApplyReportMatches(currentPostApply, finalPostApply);
   assertPostApplyReportMatches(sources.postApplyReport, finalPostApply);
   const input = {

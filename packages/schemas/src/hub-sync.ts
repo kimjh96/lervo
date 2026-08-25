@@ -1,11 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import {
-  projectIdSchema,
-  schemaVersionSchema,
-  sha256Schema,
-  timestampSchema,
-} from "./common.js";
+import { projectIdSchema, schemaVersionSchema, sha256Schema, timestampSchema } from "./common.js";
 import { eventEnvelopeSchema } from "./event.js";
 import { projectManifestSchema } from "./project.js";
 
@@ -193,14 +188,10 @@ export type ProjectRegistrationRequest = FromSchema<
   typeof projectRegistrationRequestSchema,
   { references: [typeof projectManifestSchema] }
 >;
-export type ProjectRegistrationResponse = FromSchema<
-  typeof projectRegistrationResponseSchema
->;
+export type ProjectRegistrationResponse = FromSchema<typeof projectRegistrationResponseSchema>;
 export type OutboundEventBatch = FromSchema<
   typeof outboundEventBatchSchema,
   { references: [typeof eventEnvelopeSchema] }
 >;
-export type EventSyncAcknowledgement = FromSchema<
-  typeof eventSyncAcknowledgementSchema
->;
+export type EventSyncAcknowledgement = FromSchema<typeof eventSyncAcknowledgementSchema>;
 export type EventSyncCursor = ProjectRegistrationResponse["cursor"];

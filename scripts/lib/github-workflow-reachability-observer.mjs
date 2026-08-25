@@ -1,7 +1,4 @@
-import {
-  defaultGitHubCliExecute,
-  getGitHubApiJson,
-} from "./github-read-only-api.mjs";
+import { defaultGitHubCliExecute, getGitHubApiJson } from "./github-read-only-api.mjs";
 import {
   encodeGitHubReferencePath,
   maximumRemoteCliPackageBytes,
@@ -10,8 +7,7 @@ import {
   validateWorkflowReachabilityCommit,
   validateWorkflowReachabilityReleaseTag,
 } from "./first-publication-workflow-reachability-contract.mjs";
-import { normalizeGitHubRepositoryFileResponse } from
-  "./github-repository-file-response.mjs";
+import { normalizeGitHubRepositoryFileResponse } from "./github-repository-file-response.mjs";
 import { resolveGitHubTagCommit } from "./github-tag-commit-resolver.mjs";
 import { canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
@@ -37,10 +33,12 @@ function repositoryMetadata(response) {
 
 function reference(response, expectedRef, allowedTypes) {
   if (
-    response?.ref !== expectedRef || response.object === null ||
+    response?.ref !== expectedRef ||
+    response.object === null ||
     typeof response.object !== "object" ||
     !allowedTypes.includes(response.object.type)
-  ) return undefined;
+  )
+    return undefined;
   try {
     return {
       type: response.object.type,
@@ -58,22 +56,24 @@ function comparison(response, sourceCommit, defaultHeadCommit) {
   if (
     response?.base_commit?.sha !== sourceCommit ||
     !["ahead", "identical", "behind", "diverged"].includes(status) ||
-    !Number.isSafeInteger(aheadBy) || aheadBy < 0 ||
-    !Number.isSafeInteger(behindBy) || behindBy < 0
-  ) return undefined;
+    !Number.isSafeInteger(aheadBy) ||
+    aheadBy < 0 ||
+    !Number.isSafeInteger(behindBy) ||
+    behindBy < 0
+  )
+    return undefined;
   try {
     validateWorkflowReachabilityCommit(response?.merge_base_commit?.sha);
   } catch {
     return undefined;
   }
-  const countsMatchTargets = sourceCommit === defaultHeadCommit
-    ? aheadBy === 0 && behindBy === 0
-    : aheadBy > 0 && behindBy === 0;
+  const countsMatchTargets =
+    sourceCommit === defaultHeadCommit
+      ? aheadBy === 0 && behindBy === 0
+      : aheadBy > 0 && behindBy === 0;
   const reachable = response.merge_base_commit.sha === sourceCommit && countsMatchTargets;
   return {
-    relation: reachable
-      ? "source_commit_ancestor_or_equal"
-      : "source_commit_not_ancestor",
+    relation: reachable ? "source_commit_ancestor_or_equal" : "source_commit_not_ancestor",
     commitsAhead: aheadBy,
   };
 }
@@ -88,35 +88,22 @@ export async function observeGitHubWorkflowReachability({
   validateReadinessRepository(repository);
   validateWorkflowReachabilityCommit(sourceCommit);
   validateWorkflowReachabilityReleaseTag(releaseTag);
-  const get = (path) => getGitHubApiJson(
-    execute,
-    path,
-    environment,
-    maximumResponseBytes,
-  );
+  const get = (path) => getGitHubApiJson(execute, path, environment, maximumResponseBytes);
   try {
     const metadata = repositoryMetadata(await get(`repos/${repository}`));
     if (metadata === undefined) return unavailable("response_invalid");
     const packageFile = normalizeGitHubRepositoryFileResponse(
-      await get(
-        `repos/${repository}/contents/${remoteCliPackagePath}?ref=${sourceCommit}`,
-      ),
+      await get(`repos/${repository}/contents/${remoteCliPackagePath}?ref=${sourceCommit}`),
       { path: remoteCliPackagePath, maximumBytes: maximumRemoteCliPackageBytes },
     );
     if (packageFile === undefined) return unavailable("response_invalid");
     const branchPath = encodeGitHubReferencePath(metadata.defaultBranch);
     const branchRefPath = `repos/${repository}/git/ref/heads/${branchPath}`;
     const tagRefPath = `repos/${repository}/git/ref/tags/${releaseTag}`;
-    const branchRef = reference(
-      await get(branchRefPath),
-      `refs/heads/${metadata.defaultBranch}`,
-      ["commit"],
-    );
-    const tagRef = reference(
-      await get(tagRefPath),
-      `refs/tags/${releaseTag}`,
-      ["commit", "tag"],
-    );
+    const branchRef = reference(await get(branchRefPath), `refs/heads/${metadata.defaultBranch}`, [
+      "commit",
+    ]);
+    const tagRef = reference(await get(tagRefPath), `refs/tags/${releaseTag}`, ["commit", "tag"]);
     if (branchRef === undefined || tagRef === undefined) {
       return unavailable("response_invalid");
     }
@@ -130,8 +117,7 @@ export async function observeGitHubWorkflowReachability({
     if (tag === undefined) return unavailable("response_invalid");
     const relation = comparison(
       await get(
-        `repos/${repository}/compare/${sourceCommit}...${branchRef.sha}` +
-        "?per_page=1&page=1",
+        `repos/${repository}/compare/${sourceCommit}...${branchRef.sha}` + "?per_page=1&page=1",
       ),
       sourceCommit,
       branchRef.sha,
@@ -139,25 +125,21 @@ export async function observeGitHubWorkflowReachability({
     if (relation === undefined) return unavailable("response_invalid");
     const [metadataAfter, branchAfter, tagAfter] = await Promise.all([
       get(`repos/${repository}`).then(repositoryMetadata),
-      get(branchRefPath).then((value) => reference(
-        value,
-        `refs/heads/${metadata.defaultBranch}`,
-        ["commit"],
-      )),
-      get(tagRefPath).then((value) => reference(
-        value,
-        `refs/tags/${releaseTag}`,
-        ["commit", "tag"],
-      )),
+      get(branchRefPath).then((value) =>
+        reference(value, `refs/heads/${metadata.defaultBranch}`, ["commit"]),
+      ),
+      get(tagRefPath).then((value) =>
+        reference(value, `refs/tags/${releaseTag}`, ["commit", "tag"]),
+      ),
     ]);
-    if (
-      metadataAfter === undefined || branchAfter === undefined || tagAfter === undefined
-    ) return unavailable("response_invalid");
+    if (metadataAfter === undefined || branchAfter === undefined || tagAfter === undefined)
+      return unavailable("response_invalid");
     if (
       canonicalJson(metadataAfter) !== canonicalJson(metadata) ||
       canonicalJson(branchAfter) !== canonicalJson(branchRef) ||
       canonicalJson(tagAfter) !== canonicalJson(tagRef)
-    ) return unavailable("references_changed");
+    )
+      return unavailable("references_changed");
     return {
       schemaVersion: 1,
       source: "github_repository_reachability",

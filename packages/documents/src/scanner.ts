@@ -36,11 +36,14 @@ function isExcluded(path: string, configured: ReadonlySet<string>): boolean {
 
 function validateLimits(limits: DocumentScanLimits): void {
   if (
-    !Number.isSafeInteger(limits.maximumFiles) || limits.maximumFiles < 1 ||
+    !Number.isSafeInteger(limits.maximumFiles) ||
+    limits.maximumFiles < 1 ||
     limits.maximumFiles > defaultDocumentScanLimits.maximumFiles ||
-    !Number.isSafeInteger(limits.maximumFileBytes) || limits.maximumFileBytes < 1 ||
+    !Number.isSafeInteger(limits.maximumFileBytes) ||
+    limits.maximumFileBytes < 1 ||
     limits.maximumFileBytes > defaultDocumentScanLimits.maximumFileBytes ||
-    !Number.isSafeInteger(limits.maximumTotalBytes) || limits.maximumTotalBytes < 1 ||
+    !Number.isSafeInteger(limits.maximumTotalBytes) ||
+    limits.maximumTotalBytes < 1 ||
     limits.maximumTotalBytes > defaultDocumentScanLimits.maximumTotalBytes
   ) {
     throw new DocumentMigrationError(
@@ -88,7 +91,7 @@ async function listFiles(input: {
     );
   }
   if (before.isFile()) return [input.path];
-  if (!before.isDirectory() || await realpath(absolute) !== absolute) {
+  if (!before.isDirectory() || (await realpath(absolute)) !== absolute) {
     throw new DocumentMigrationError(
       "unsafe_source",
       `The document scan path must be a real file or directory: ${input.path}`,
@@ -97,8 +100,10 @@ async function listFiles(input: {
   const entries = await readdir(absolute, { withFileTypes: true });
   const after = await lstat(absolute, { bigint: true });
   if (
-    before.dev !== after.dev || before.ino !== after.ino ||
-    before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+    before.dev !== after.dev ||
+    before.ino !== after.ino ||
+    before.mtimeNs !== after.mtimeNs ||
+    before.ctimeNs !== after.ctimeNs
   ) {
     throw new DocumentMigrationError(
       "unsafe_source",
@@ -115,7 +120,7 @@ async function listFiles(input: {
         `The document scan path contains a symbolic link: ${path}`,
       );
     }
-    files.push(...await listFiles({ ...input, path }));
+    files.push(...(await listFiles({ ...input, path })));
   }
   return files;
 }

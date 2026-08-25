@@ -51,6 +51,10 @@ class FakeClaudeClient implements ClaudeAgentClient {
     });
   }
 
+  async confirmCapabilities() {
+    this.calls.push({ method: "confirmCapabilities", value: null });
+  }
+
   async startTurn(turnId: string, instructions: string) {
     this.calls.push({ method: "startTurn", value: { turnId, instructions } });
     this.messageList.push(
@@ -161,7 +165,9 @@ class FakeClaudeClient implements ClaudeAgentClient {
         index += 1;
         continue;
       }
-      await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+      await new Promise<void>((resolve) =>
+        signal.addEventListener("abort", () => resolve(), { once: true }),
+      );
     }
   }
 
@@ -313,6 +319,45 @@ describe("Claude managed adapter", () => {
     });
   });
 
+  it("returns activation receipts only after the Claude client confirms provider state", async () => {
+    const client = new FakeClaudeClient();
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start({
+      ...data.startRequest,
+      capabilityActivations: [
+        {
+          kind: "capability_activation_request",
+          schemaVersion: 1,
+          capabilityId: "plugins/reviewer",
+          capabilityKind: "provider_plugin",
+          version: "2.0.0",
+          contentHash: `sha256:${"b".repeat(64)}`,
+          runtime: {
+            kind: "provider_plugin",
+            provider: "claude",
+            pluginRoot: "/immutable/reviewer",
+            pluginManifestPath: ".claude-plugin/plugin.json",
+          },
+        },
+      ],
+    });
+    await instance.injectContext(session, data.contextEnvelope);
+    const receipts = await instance.confirmCapabilityActivation(session);
+
+    expect(client.calls.map((call) => call.method)).toEqual([
+      "appendContext",
+      "confirmCapabilities",
+    ]);
+    expect(receipts).toEqual([
+      expect.objectContaining({
+        capabilityId: "plugins/reviewer",
+        evidence: "plugin_loaded",
+        providerSessionId: session.providerSessionId,
+      }),
+    ]);
+  });
+
   it("routes Write through the managed bridge without exposing tool content", async () => {
     class RecordingBridge implements ProviderManagedWriteBridge {
       requests: AdapterManagedWriteRequest[] = [];
@@ -425,7 +470,9 @@ describe("Claude managed adapter", () => {
     const session = await start(instance);
     const envelope = fixture().contextEnvelope;
     envelope.documents[0]!.delivery = { kind: "inline", content: "changed source" };
-    await expect(instance.injectContext(session, envelope)).rejects.toBeInstanceOf(ClaudeAdapterError);
+    await expect(instance.injectContext(session, envelope)).rejects.toBeInstanceOf(
+      ClaudeAdapterError,
+    );
     expect(client.calls).toEqual([]);
   });
 

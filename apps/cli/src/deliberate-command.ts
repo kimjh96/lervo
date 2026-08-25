@@ -2,9 +2,7 @@ import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import type {
-  ManagedDeliberationOutcome,
-} from "./managed-deliberation.js";
+import type { ManagedDeliberationOutcome } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
 import {
@@ -35,7 +33,8 @@ async function runDeliberationStatusCommand(
         json: { type: "boolean" },
       },
     });
-    if (parsed.positionals.length !== 1) throw new Error("Exactly one deliberation ID is required.");
+    if (parsed.positionals.length !== 1)
+      throw new Error("Exactly one deliberation ID is required.");
   } catch (error) {
     io.stderr(`${error instanceof Error ? error.message : String(error)}\n${deliberateUsage}\n`);
     return 1;
@@ -47,14 +46,18 @@ async function runDeliberationStatusCommand(
       storage,
       deliberationId: parsed.positionals[0]!,
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(report, null, 2)}\n`
-      : formatDeliberationInspection(report));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(report, null, 2)}\n`
+        : formatDeliberationInspection(report),
+    );
     return report.sourceStatus === "consistent" ? 0 : 1;
   } catch (error) {
-    io.stderr(`Could not inspect deliberation status. (${errorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not inspect deliberation status. (${errorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   } finally {
     await storage?.close().catch(() => undefined);
@@ -69,7 +72,9 @@ function errorCode(error: unknown): string {
 }
 
 async function automaticVerificationSuite(repositoryRoot: string): Promise<string> {
-  const entries = await readdir(resolve(repositoryRoot, ".lervo/verifications"), { withFileTypes: true });
+  const entries = await readdir(resolve(repositoryRoot, ".lervo/verifications"), {
+    withFileTypes: true,
+  });
   const suiteIds = entries
     .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
     .map((entry) => entry.name.slice(0, -".yaml".length))
@@ -77,9 +82,14 @@ async function automaticVerificationSuite(repositoryRoot: string): Promise<strin
   if (suiteIds.includes("repository.default")) return "repository.default";
   const nonPilot = suiteIds.filter((suiteId) => !suiteId.startsWith("lervo.pilot."));
   if (nonPilot.length === 1) return nonPilot[0]!;
-  throw Object.assign(new Error("Automatic deliberation requires a repository.default verification suite or exactly one non-pilot suite."), {
-    code: "deliberation_verification_ambiguous",
-  });
+  throw Object.assign(
+    new Error(
+      "Automatic deliberation requires a repository.default verification suite or exactly one non-pilot suite.",
+    ),
+    {
+      code: "deliberation_verification_ambiguous",
+    },
+  );
 }
 
 function reason(outcome: ManagedDeliberationOutcome): string {
@@ -90,25 +100,27 @@ function reason(outcome: ManagedDeliberationOutcome): string {
 }
 
 export function formatDeliberationOutcome(outcome: ManagedDeliberationOutcome): string {
-  const lines = outcome.status === "converged"
-    ? [
-      "Deliberation reached a decision.",
-      ...outcome.participants.map((participant) =>
-        `- ${participant.name}: ${participant.provider}`),
-      `- Recorded artifacts: ${outcome.artifactCount}`,
-      "",
-      "Final decision:",
-      outcome.finalContent,
-    ]
-    : [
-      "Deliberation did not reach consensus.",
-      `- Reason: ${reason(outcome)}`,
-      `- Recorded artifacts: ${outcome.artifactCount}`,
-      "- The no-consensus result was not treated as a decision or verified knowledge.",
-      "",
-      "Last review:",
-      outcome.finalContent,
-    ];
+  const lines =
+    outcome.status === "converged"
+      ? [
+          "Deliberation reached a decision.",
+          ...outcome.participants.map(
+            (participant) => `- ${participant.name}: ${participant.provider}`,
+          ),
+          `- Recorded artifacts: ${outcome.artifactCount}`,
+          "",
+          "Final decision:",
+          outcome.finalContent,
+        ]
+      : [
+          "Deliberation did not reach consensus.",
+          `- Reason: ${reason(outcome)}`,
+          `- Recorded artifacts: ${outcome.artifactCount}`,
+          "- The no-consensus result was not treated as a decision or verified knowledge.",
+          "",
+          "Last review:",
+          outcome.finalContent,
+        ];
   return `${lines.join("\n")}\n`;
 }
 
@@ -160,14 +172,29 @@ export async function runDeliberateCommand(
   const inlineMode =
     (proposer !== "codex" && proposer !== "claude") ||
     (reviewer !== "codex" && reviewer !== "claude") ||
-    proposer === reviewer || verificationSuiteIds.length === 0;
+    proposer === reviewer ||
+    verificationSuiteIds.length === 0;
   const invalidMode = resumeMode
-    ? topic.length > 0 || storedPolicyMode || automaticMode || caller !== undefined || proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
-    : topic.length === 0 || (automaticMode
-      ? (caller !== "codex" && caller !== "claude") || storedPolicyMode || proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
-      : storedPolicyMode
-        ? caller !== undefined || proposer !== undefined || reviewer !== undefined || verificationSuiteIds.length > 0
-        : caller !== undefined || inlineMode);
+    ? topic.length > 0 ||
+      storedPolicyMode ||
+      automaticMode ||
+      caller !== undefined ||
+      proposer !== undefined ||
+      reviewer !== undefined ||
+      verificationSuiteIds.length > 0
+    : topic.length === 0 ||
+      (automaticMode
+        ? (caller !== "codex" && caller !== "claude") ||
+          storedPolicyMode ||
+          proposer !== undefined ||
+          reviewer !== undefined ||
+          verificationSuiteIds.length > 0
+        : storedPolicyMode
+          ? caller !== undefined ||
+            proposer !== undefined ||
+            reviewer !== undefined ||
+            verificationSuiteIds.length > 0
+          : caller !== undefined || inlineMode);
   if (invalidMode) {
     io.stderr(
       `Provide one resume ID, a stored policy with a topic, or distinct proposer and reviewer providers with a verification suite and topic.\n${deliberateUsage}\n`,
@@ -176,37 +203,43 @@ export async function runDeliberateCommand(
   }
   try {
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-    const outcome = await services.executeManagedDeliberation(resumeMode
-      ? { repositoryRoot, resumeDeliberationId }
-      : automaticMode
-        ? {
-            repositoryRoot,
-            proposerProvider: caller as RunProvider,
-            reviewerProvider: (caller === "codex" ? "claude" : "codex") as RunProvider,
-            verificationSuiteIds: [await automaticVerificationSuite(repositoryRoot)],
-            topic,
-          }
-      : storedPolicyMode
-        ? { repositoryRoot, policyId, topic }
-        : {
-        repositoryRoot,
-        proposerProvider: proposer as RunProvider,
-        reviewerProvider: reviewer as RunProvider,
-        verificationSuiteIds,
-        topic,
-        });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(outcome, null, 2)}\n`
-      : formatDeliberationOutcome(outcome));
+    const outcome = await services.executeManagedDeliberation(
+      resumeMode
+        ? { repositoryRoot, resumeDeliberationId }
+        : automaticMode
+          ? {
+              repositoryRoot,
+              proposerProvider: caller as RunProvider,
+              reviewerProvider: (caller === "codex" ? "claude" : "codex") as RunProvider,
+              verificationSuiteIds: [await automaticVerificationSuite(repositoryRoot)],
+              topic,
+            }
+          : storedPolicyMode
+            ? { repositoryRoot, policyId, topic }
+            : {
+                repositoryRoot,
+                proposerProvider: proposer as RunProvider,
+                reviewerProvider: reviewer as RunProvider,
+                verificationSuiteIds,
+                topic,
+              },
+    );
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(outcome, null, 2)}\n`
+        : formatDeliberationOutcome(outcome),
+    );
     return outcome.status === "converged" ? 0 : 2;
   } catch (error) {
     const failure = {
       code: errorCode(error),
       message: error instanceof Error ? error.message : "Could not run deliberation.",
     };
-    io.stderr(parsed.values.json
-      ? `${JSON.stringify(failure)}\n`
-      : `Could not run deliberation. (${failure.code}) ${failure.message}\n`);
+    io.stderr(
+      parsed.values.json
+        ? `${JSON.stringify(failure)}\n`
+        : `Could not run deliberation. (${failure.code}) ${failure.message}\n`,
+    );
     return 1;
   }
 }

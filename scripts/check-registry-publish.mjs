@@ -13,20 +13,23 @@ import { packCliArtifact } from "./lib/packed-cli-artifact.mjs";
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
 async function publishCli(tarballPath, registryUrl, environment) {
-  return runPnpm([
-    "publish",
-    tarballPath,
-    "--registry",
-    registryUrl,
-    "--tag",
-    "preflight",
-    "--access",
-    "public",
-    "--no-git-checks",
-  ], {
-    cwd: dirname(tarballPath),
-    env: environment,
-  });
+  return runPnpm(
+    [
+      "publish",
+      tarballPath,
+      "--registry",
+      registryUrl,
+      "--tag",
+      "preflight",
+      "--access",
+      "public",
+      "--no-git-checks",
+    ],
+    {
+      cwd: dirname(tarballPath),
+      env: environment,
+    },
+  );
 }
 
 async function expectPublishConflict(tarballPath, registryUrl, environment) {
@@ -44,12 +47,10 @@ async function expectPublishConflict(tarballPath, registryUrl, environment) {
 }
 
 async function viewJson(args, registryUrl, environment, cwd) {
-  const { stdout } = await runPnpm([
-    ...args,
-    "--registry",
-    registryUrl,
-    "--json",
-  ], { cwd, env: environment });
+  const { stdout } = await runPnpm([...args, "--registry", registryUrl, "--json"], {
+    cwd,
+    env: environment,
+  });
   return JSON.parse(stdout);
 }
 
@@ -69,23 +70,22 @@ async function verifyPublishedMetadata(manifest, registryUrl, environment, cwd) 
 }
 
 async function verifyDistTags(expected, registryUrl, environment, cwd) {
-  const tags = await viewJson(
-    ["view", "@lervo/cli", "dist-tags"],
-    registryUrl,
-    environment,
-    cwd,
-  );
+  const tags = await viewJson(["view", "@lervo/cli", "dist-tags"], registryUrl, environment, cwd);
   assert.deepEqual(tags, expected);
 }
 
 async function installPublishedCli(consumerRoot, version, registryUrl, environment) {
   await writeFile(
     resolve(consumerRoot, "package.json"),
-    `${JSON.stringify({
-      name: "lervo-registry-consumer",
-      version: "0.0.0",
-      private: true,
-    }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        name: "lervo-registry-consumer",
+        version: "0.0.0",
+        private: true,
+      },
+      null,
+      2,
+    )}\n`,
     "utf8",
   );
   await writeFile(
@@ -93,12 +93,10 @@ async function installPublishedCli(consumerRoot, version, registryUrl, environme
     `registry=https://registry.npmjs.org/\n@lervo:registry=${registryUrl}/\n`,
     "utf8",
   );
-  await runPnpm([
-    "add",
-    "--prefer-offline",
-    "--save-exact",
-    `@lervo/cli@${version}`,
-  ], { cwd: consumerRoot, env: environment });
+  await runPnpm(["add", "--prefer-offline", "--save-exact", `@lervo/cli@${version}`], {
+    cwd: consumerRoot,
+    env: environment,
+  });
 
   const installedManifest = await readJson(
     resolve(consumerRoot, "node_modules/@lervo/cli/package.json"),
@@ -150,20 +148,10 @@ async function main() {
       environment,
       archiveRoot,
     );
-    await installPublishedCli(
-      consumerRoot,
-      cliManifest.version,
-      registry.url,
-      environment,
-    );
+    await installPublishedCli(consumerRoot, cliManifest.version, registry.url, environment);
     await expectPublishConflict(tarballPath, registry.url, environment);
     assert.equal(
-      await verifyPublishedMetadata(
-        cliManifest,
-        registry.url,
-        environment,
-        archiveRoot,
-      ),
+      await verifyPublishedMetadata(cliManifest, registry.url, environment, archiveRoot),
       integrity,
     );
   } finally {
@@ -178,6 +166,8 @@ try {
   await main();
 } catch (error) {
   if (process.env.LERVO_REGISTRY_PREFLIGHT_DEBUG === "1") console.error(error);
-  console.error("registry_publish_preflight_failed: The CLI registry publication preflight could not be completed.");
+  console.error(
+    "registry_publish_preflight_failed: The CLI registry publication preflight could not be completed.",
+  );
   process.exitCode = 1;
 }

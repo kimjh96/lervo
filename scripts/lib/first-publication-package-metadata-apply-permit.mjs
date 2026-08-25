@@ -1,8 +1,6 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationMetadataDecision } from
-  "./first-publication-metadata-decision.mjs";
-import { validateFirstPublicationPackageMetadataCandidate } from
-  "./first-publication-package-metadata-candidate.mjs";
+import { validateFirstPublicationMetadataDecision } from "./first-publication-metadata-decision.mjs";
+import { validateFirstPublicationPackageMetadataCandidate } from "./first-publication-package-metadata-candidate.mjs";
 import { canonicalDigest, canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
@@ -24,14 +22,17 @@ function fail(code = "first_publication_package_metadata_apply_permit_invalid") 
 
 function validateReview(review, candidate) {
   if (
-    review === null || typeof review !== "object" || Array.isArray(review) ||
-    canonicalJson(Object.keys(review).sort()) !== canonicalJson([
-      "actorKind",
-      "candidateDigest",
-      "confirmation",
-      "outputSha256",
-      "packageSourceSha256",
-    ]) ||
+    review === null ||
+    typeof review !== "object" ||
+    Array.isArray(review) ||
+    canonicalJson(Object.keys(review).sort()) !==
+      canonicalJson([
+        "actorKind",
+        "candidateDigest",
+        "confirmation",
+        "outputSha256",
+        "packageSourceSha256",
+      ]) ||
     review?.confirmation !== "reviewed_exact_candidate" ||
     review.actorKind !== "human_operator" ||
     !digestPattern.test(review.candidateDigest ?? "") ||
@@ -40,7 +41,8 @@ function validateReview(review, candidate) {
     review.candidateDigest !== candidate.candidateDigest ||
     review.packageSourceSha256 !== candidate.sources.packageSourceSha256 ||
     review.outputSha256 !== candidate.output.sha256
-  ) fail("first_publication_package_metadata_apply_review_invalid");
+  )
+    fail("first_publication_package_metadata_apply_review_invalid");
 }
 
 function permitBody({ candidateResult, candidateSources, decision, review }) {
@@ -66,7 +68,8 @@ function permitBody({ candidateResult, candidateSources, decision, review }) {
     sha256(outputBytes) !== candidate.output.sha256 ||
     candidate.target?.package !== decision.target.package ||
     candidate.sources?.metadataDecisionDigest !== decision.metadataDecisionDigest
-  ) fail();
+  )
+    fail();
   validateReview(review, candidate);
   return {
     schemaVersion: 1,

@@ -1,11 +1,7 @@
 import type { AdapterSession } from "@lervo/schemas";
 
 import { assertAdapterMessage, clone, sameSession } from "./adapter-validation.js";
-import {
-  CodexAdapterError,
-  type CodexAppServerClient,
-  type CodexSessionState,
-} from "./types.js";
+import { CodexAdapterError, type CodexAppServerClient, type CodexSessionState } from "./types.js";
 
 export class CodexSessionRegistry {
   private readonly sessions = new Map<string, CodexSessionState>();
@@ -14,7 +10,11 @@ export class CodexSessionRegistry {
     return this.sessions.has(providerSessionId);
   }
 
-  add(session: AdapterSession, client: CodexAppServerClient): void {
+  add(
+    session: AdapterSession,
+    client: CodexAppServerClient,
+    capabilityActivations: CodexSessionState["capabilityActivations"],
+  ): void {
     if (this.has(session.providerSessionId)) {
       throw new CodexAdapterError("provider_protocol_failed", "The Codex thread ID is duplicated.");
     }
@@ -25,6 +25,8 @@ export class CodexSessionRegistry {
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
       eventStreamClaimed: false,
+      capabilityActivations: structuredClone(capabilityActivations),
+      activationConfirmed: false,
     });
   }
 
@@ -35,7 +37,10 @@ export class CodexSessionRegistry {
       throw new CodexAdapterError("session_not_found", "The managed Codex session was not found.");
     }
     if (!sameSession(state.session, session)) {
-      throw new CodexAdapterError("session_mismatch", "The Codex session coordinates differ from their initial values.");
+      throw new CodexAdapterError(
+        "session_mismatch",
+        "The Codex session coordinates differ from their initial values.",
+      );
     }
     return state;
   }

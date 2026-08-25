@@ -26,20 +26,30 @@ export class DeliberationLeaseError extends Error {
 
 function pathFor(stateRoot: string, deliberationId: string): string {
   if (!idPattern.test(deliberationId)) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "The deliberation lease ID is invalid.");
+    throw new DeliberationLeaseError(
+      "deliberation_lease_invalid",
+      "The deliberation lease ID is invalid.",
+    );
   }
   return resolve(stateRoot, "deliberations", deliberationId, "checkpoints", "active.json");
 }
 
 function parseLease(bytes: Uint8Array, deliberationId: string): DeliberationLease {
-  const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as
-    Partial<DeliberationLease> | null;
+  const value = JSON.parse(
+    new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+  ) as Partial<DeliberationLease> | null;
   if (
-    value === null || value.schemaVersion !== 1 || value.deliberationId !== deliberationId ||
-    typeof value.ownerId !== "string" || !/^dlw_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(value.ownerId) ||
-    !Number.isSafeInteger(value.processId) || value.processId! < 1 ||
-    typeof value.acquiredAt !== "string" || !Number.isFinite(Date.parse(value.acquiredAt))
-  ) throw new Error("invalid lease");
+    value === null ||
+    value.schemaVersion !== 1 ||
+    value.deliberationId !== deliberationId ||
+    typeof value.ownerId !== "string" ||
+    !/^dlw_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(value.ownerId) ||
+    !Number.isSafeInteger(value.processId) ||
+    value.processId! < 1 ||
+    typeof value.acquiredAt !== "string" ||
+    !Number.isFinite(Date.parse(value.acquiredAt))
+  )
+    throw new Error("invalid lease");
   return value as DeliberationLease;
 }
 
@@ -53,8 +63,13 @@ async function readLease(path: string, deliberationId: string): Promise<Delibera
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
+    if (
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.size !== after.size ||
+      before.mtimeNs !== after.mtimeNs ||
+      before.ctimeNs !== after.ctimeNs
+    ) {
       throw new Error("lease changed");
     }
     return parseLease(bytes, deliberationId);
@@ -74,7 +89,10 @@ async function writeLease(path: string, lease: DeliberationLease): Promise<boole
   const directoryPath = dirname(path);
   const deliberationRoot = await lstat(dirname(directoryPath));
   if (!deliberationRoot.isDirectory() || deliberationRoot.isSymbolicLink()) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "The deliberation run directory is unsafe.");
+    throw new DeliberationLeaseError(
+      "deliberation_lease_invalid",
+      "The deliberation run directory is unsafe.",
+    );
   }
   try {
     await mkdir(directoryPath, { mode: 0o700 });
@@ -83,7 +101,10 @@ async function writeLease(path: string, lease: DeliberationLease): Promise<boole
   }
   const directory = await lstat(directoryPath);
   if (!directory.isDirectory() || directory.isSymbolicLink()) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "The deliberation lease directory is unsafe.");
+    throw new DeliberationLeaseError(
+      "deliberation_lease_invalid",
+      "The deliberation lease directory is unsafe.",
+    );
   }
   let handle;
   try {
@@ -128,7 +149,10 @@ export async function acquireDeliberationLease(input: {
   if (current === null) {
     if (await writeLease(path, lease)) return { ownerId: input.ownerId };
   } else if (!input.recoverStale || processIsAlive(current.processId)) {
-    throw new DeliberationLeaseError("deliberation_in_progress", "Deliberation is running in another process.");
+    throw new DeliberationLeaseError(
+      "deliberation_in_progress",
+      "Deliberation is running in another process.",
+    );
   } else {
     const stalePath = resolve(dirname(path), `stale-${input.ownerId}.json`);
     try {
@@ -141,7 +165,10 @@ export async function acquireDeliberationLease(input: {
       return { ownerId: input.ownerId };
     }
   }
-  throw new DeliberationLeaseError("deliberation_in_progress", "Another process acquired the deliberation resume lease first.");
+  throw new DeliberationLeaseError(
+    "deliberation_in_progress",
+    "Another process acquired the deliberation resume lease first.",
+  );
 }
 
 export async function releaseDeliberationLease(input: {
@@ -153,7 +180,10 @@ export async function releaseDeliberationLease(input: {
   const current = await readLease(path, input.deliberationId);
   if (current === null) return;
   if (current.ownerId !== input.ownerId || current.processId !== process.pid) {
-    throw new DeliberationLeaseError("deliberation_lease_invalid", "A deliberation lease owned by another run cannot be released.");
+    throw new DeliberationLeaseError(
+      "deliberation_lease_invalid",
+      "A deliberation lease owned by another run cannot be released.",
+    );
   }
   await unlink(path);
 }
@@ -162,7 +192,10 @@ export async function inspectDeliberationLease(input: {
   stateRoot: string;
   deliberationId: string;
 }): Promise<"missing" | "active" | "stale"> {
-  const lease = await readLease(pathFor(input.stateRoot, input.deliberationId), input.deliberationId);
+  const lease = await readLease(
+    pathFor(input.stateRoot, input.deliberationId),
+    input.deliberationId,
+  );
   if (lease === null) return "missing";
   return processIsAlive(lease.processId) ? "active" : "stale";
 }
@@ -186,6 +219,8 @@ export async function withDeliberationLease<T>(input: {
     try {
       await releaseDeliberationLease(input);
     } catch (error) {
+      // A release failure must replace an otherwise successful result so no stale lease is hidden.
+      // eslint-disable-next-line no-unsafe-finally
       if (!workFailed) throw error;
     }
   }

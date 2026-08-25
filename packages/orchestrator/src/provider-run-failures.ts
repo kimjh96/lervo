@@ -19,6 +19,7 @@ export interface RunFailure {
 const priority: Record<ManagedProviderRunFailureCode, number> = {
   telemetry_recording_failed: 100,
   artifact_storage_failed: 95,
+  capability_activation_failed: 92,
   provider_stop_failed: 90,
   provider_write_failed: 85,
   unmanaged_change_detected: 80,
@@ -44,14 +45,14 @@ function retryable(code: ManagedProviderRunFailureCode): boolean {
   );
 }
 
-function failureCodeForPhase(
-  phase: ManagedProviderRunPhase,
-): ManagedProviderRunFailureCode {
+function failureCodeForPhase(phase: ManagedProviderRunPhase): ManagedProviderRunFailureCode {
   switch (phase) {
     case "adapter_start":
       return "provider_start_failed";
     case "approval_preflight":
       return "approval_required";
+    case "capability_activation":
+      return "capability_activation_failed";
     case "turn_start":
     case "provider_turn":
       return "provider_turn_failed";
@@ -76,15 +77,28 @@ function failureCodeForPhase(
   }
 }
 
-export function classifyRunFailure(
-  error: unknown,
-  phase: ManagedProviderRunPhase,
-): RunFailure {
+export function classifyRunFailure(error: unknown, phase: ManagedProviderRunPhase): RunFailure {
   if (error instanceof ManagedProviderRunError) {
     return {
       error,
       phase: error.originPhase ?? phase,
       retryable: retryable(error.code),
+    };
+  }
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "capability_activation_failed"
+  ) {
+    return {
+      error: new ManagedProviderRunError(
+        "capability_activation_failed",
+        "The requested provider capabilities could not be activated.",
+        { cause: error },
+      ),
+      phase,
+      retryable: false,
     };
   }
   if (error instanceof TelemetryWriteError) {
@@ -139,11 +153,9 @@ export function classifyRunFailure(
   }
   if (error instanceof RepositorySnapshotError) {
     return {
-      error: new ManagedProviderRunError(
-        "repository_snapshot_failed",
-        error.message,
-        { cause: error },
-      ),
+      error: new ManagedProviderRunError("repository_snapshot_failed", error.message, {
+        cause: error,
+      }),
       phase,
       retryable: false,
     };

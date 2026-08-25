@@ -16,10 +16,13 @@ export async function packCliArtifact(archiveRoot, expectedVersion) {
   const report = JSON.parse(stdout);
   assert.equal(report.name, "@lervo/cli");
   assert.equal(report.version, expectedVersion);
-  assert.deepEqual(
-    report.files.map(({ path }) => path).sort(),
-    ["README.md", "dist/bin.js", "package.json"],
-  );
+  assert.deepEqual(report.files.map(({ path }) => path).sort(), [
+    "README.md",
+    "dist/bin.js",
+    "dist/node-runtime.js",
+    "dist/terminal-hook.js",
+    "package.json",
+  ]);
   assert.equal(basename(report.filename), `lervo-cli-${expectedVersion}.tgz`);
   assert.equal(relative(archiveRoot, report.filename), basename(report.filename));
   await access(report.filename);

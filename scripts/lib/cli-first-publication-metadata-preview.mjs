@@ -2,8 +2,7 @@ import {
   firstPublicationActivationSourcePaths,
   readFirstPublicationActivationSources,
 } from "./first-publication-activation-sources.mjs";
-import { validateFirstPublicationMetadataDecision } from
-  "./first-publication-metadata-decision.mjs";
+import { validateFirstPublicationMetadataDecision } from "./first-publication-metadata-decision.mjs";
 import {
   createFirstPublicationMetadataPreview,
   validateFirstPublicationMetadataPreview,

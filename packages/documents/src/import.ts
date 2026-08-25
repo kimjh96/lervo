@@ -54,12 +54,10 @@ function candidateFromDraft(
   importer: { adapterId: string; version: string },
 ): DocumentMigrationCandidate {
   if (
-    (draft.proposal === null && (
-      draft.disposition !== "observed" || draft.detectedOwnership !== "unknown"
-    )) ||
-    (draft.disposition === "ready_for_approval" && (
-      draft.proposal === null || draft.confidence === "low" || draft.confidence === "none"
-    ))
+    (draft.proposal === null &&
+      (draft.disposition !== "observed" || draft.detectedOwnership !== "unknown")) ||
+    (draft.disposition === "ready_for_approval" &&
+      (draft.proposal === null || draft.confidence === "low" || draft.confidence === "none"))
   ) {
     throw new DocumentMigrationError(
       "invalid_adapter_contract",
@@ -81,9 +79,7 @@ function candidateFromDraft(
   const locator = draft.locator ?? `candidate-${index}`;
   const candidate: DocumentMigrationCandidate = {
     schemaVersion: 1,
-    candidateId: `migc_${digestSuffix(
-      `${source.path}\0${source.contentHash}\0${locator}`,
-    )}`,
+    candidateId: `migc_${digestSuffix(`${source.path}\0${source.contentHash}\0${locator}`)}`,
     importer,
     source: {
       path: source.path,
@@ -95,19 +91,22 @@ function candidateFromDraft(
     disposition: draft.disposition,
     confidence: draft.confidence,
     detectedOwnership: draft.detectedOwnership,
-    proposal: draft.proposal === null
-      ? null
-      : {
-          documentId: draft.proposal.documentId,
-          documentPath: draft.proposal.documentPath,
-          profileId: draft.proposal.profileId,
-          relations: {
-            supersedesDocumentIds: [...draft.proposal.relations.supersedesDocumentIds]
-              .sort(compareText),
-            relatedDocumentIds: [...draft.proposal.relations.relatedDocumentIds]
-              .sort(compareText),
+    proposal:
+      draft.proposal === null
+        ? null
+        : {
+            documentId: draft.proposal.documentId,
+            documentPath: draft.proposal.documentPath,
+            profileId: draft.proposal.profileId,
+            relations: {
+              supersedesDocumentIds: [...draft.proposal.relations.supersedesDocumentIds].sort(
+                compareText,
+              ),
+              relatedDocumentIds: [...draft.proposal.relations.relatedDocumentIds].sort(
+                compareText,
+              ),
+            },
           },
-        },
     warnings: [...new Set(draft.warnings)].sort(compareText),
   };
   if (!validateSchema("documentMigrationCandidate", candidate).valid) {
@@ -119,9 +118,10 @@ function candidateFromDraft(
   return candidate;
 }
 
-function materializeCandidate(
-  candidate: DocumentMigrationCandidate,
-): { artifact: DocumentMigrationCandidateArtifact; bytes: Uint8Array } {
+function materializeCandidate(candidate: DocumentMigrationCandidate): {
+  artifact: DocumentMigrationCandidateArtifact;
+  bytes: Uint8Array;
+} {
   const bytes = migrationCandidateBytes(candidate);
   const contentHash = sha256(bytes);
   const artifact: DocumentMigrationCandidateArtifact = {
@@ -149,7 +149,7 @@ export async function importDocumentSources(input: {
 }> {
   validateAdapters(input.adapters);
   const adapters = [...input.adapters].sort((left, right) =>
-    compareText(left.descriptor.adapterId, right.descriptor.adapterId)
+    compareText(left.descriptor.adapterId, right.descriptor.adapterId),
   );
   const materialized: Array<{
     artifact: DocumentMigrationCandidateArtifact;
@@ -197,7 +197,8 @@ export async function importDocumentSources(input: {
       }
       importer = { ...adapter.descriptor };
       if (
-        sha256(adapterBytes) !== source.contentHash || drafts.length === 0 ||
+        sha256(adapterBytes) !== source.contentHash ||
+        drafts.length === 0 ||
         drafts.length > MAX_MIGRATION_CANDIDATES
       ) {
         throw new DocumentMigrationError(

@@ -20,18 +20,27 @@ describe("agent surface migration CLI", () => {
     await mkdir(resolve(root, ".agents/rules"), { recursive: true });
     await writeFile(resolve(root, "AGENTS.md"), "# Instructions\n");
     await writeFile(resolve(root, ".claude/rules/api.md"), "# API behavior\n");
-    await writeFile(resolve(root, ".claude/settings.json"), '{"fixture":"do-not-print-this-setting"}\n');
+    await writeFile(
+      resolve(root, ".claude/settings.json"),
+      '{"fixture":"do-not-print-this-setting"}\n',
+    );
     await writeFile(resolve(root, ".agents/rules/custom.md"), "# Custom convention\n");
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
 
     expect(await runCli(["init"], io)).toBe(0);
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge"], io), errors.join("")).toBe(0);
     const output = messages.join("");
     expect(output).toContain("Plan status: item approvals required");
-    expect(output).toContain(".claude/rules/api.md -> docs/instructions/architecture/api.md (instruction)");
+    expect(output).toContain(
+      ".claude/rules/api.md -> docs/instructions/architecture/api.md (instruction)",
+    );
     expect(output).toContain("approval: kdocop_");
     expect(output).not.toContain("do-not-print-this-setting");
     expect(errors).toEqual([]);

@@ -1,14 +1,8 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "@lervo/event-contract";
-import {
-  handleWorkstreamPublish,
-  handleWorkstreamRead,
-} from "@lervo/hub-sync";
-import type {
-  WorkstreamReplicationPublishRequest,
-  WorkstreamSnapshot,
-} from "@lervo/schemas";
+import { handleWorkstreamPublish, handleWorkstreamRead } from "@lervo/hub-sync";
+import type { WorkstreamReplicationPublishRequest, WorkstreamSnapshot } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { HubSyncSQLiteStore } from "../src/index.js";
@@ -77,42 +71,64 @@ describe("Hub workstream replication SQLite", () => {
     await registerStore(store, project);
 
     const first = publication(project, snapshot(1, "Initial workstream"), null);
-    await expect(handleWorkstreamPublish({
-      store,
-      destinationId,
-      request: first,
-      publishedAt: "2026-08-24T01:00:00.000Z",
-    })).resolves.toMatchObject({ status: "created", heads: [{ revision: 1 }] });
-    await expect(handleWorkstreamPublish({
-      store,
-      destinationId,
-      request: first,
-      publishedAt: "2026-08-24T01:00:01.000Z",
-    })).resolves.toMatchObject({ status: "duplicate", heads: [{ revision: 1 }] });
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: first,
+        publishedAt: "2026-08-24T01:00:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "created", heads: [{ revision: 1 }] });
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: first,
+        publishedAt: "2026-08-24T01:00:01.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "duplicate", heads: [{ revision: 1 }] });
 
-    const secondA = publication(project, snapshot(2, "Node A continuation"), first.snapshotContentHash);
-    await expect(handleWorkstreamPublish({
-      store,
-      destinationId,
-      request: secondA,
-      publishedAt: "2026-08-24T01:01:00.000Z",
-    })).resolves.toMatchObject({ status: "fast_forwarded", heads: [{ revision: 2 }] });
-    const secondB = publication(project, snapshot(2, "Node B continuation"), first.snapshotContentHash);
-    await expect(handleWorkstreamPublish({
-      store,
-      destinationId,
-      request: secondB,
-      publishedAt: "2026-08-24T01:02:00.000Z",
-    })).resolves.toMatchObject({ status: "divergent", heads: [{ revision: 2 }, { revision: 2 }] });
+    const secondA = publication(
+      project,
+      snapshot(2, "Node A continuation"),
+      first.snapshotContentHash,
+    );
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: secondA,
+        publishedAt: "2026-08-24T01:01:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "fast_forwarded", heads: [{ revision: 2 }] });
+    const secondB = publication(
+      project,
+      snapshot(2, "Node B continuation"),
+      first.snapshotContentHash,
+    );
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: secondB,
+        publishedAt: "2026-08-24T01:02:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "divergent", heads: [{ revision: 2 }, { revision: 2 }] });
 
     await store.close();
     store = await HubSyncSQLiteStore.open({ path });
-    await expect(handleWorkstreamRead({
-      store,
-      destinationId,
-      projectId: project.projectId,
-      repositoryIdentityHash: first.repositoryIdentityHash,
-    })).resolves.toMatchObject({ status: "divergent", snapshot: null, heads: [{ revision: 2 }, { revision: 2 }] });
+    await expect(
+      handleWorkstreamRead({
+        store,
+        destinationId,
+        projectId: project.projectId,
+        repositoryIdentityHash: first.repositoryIdentityHash,
+      }),
+    ).resolves.toMatchObject({
+      status: "divergent",
+      snapshot: null,
+      heads: [{ revision: 2 }, { revision: 2 }],
+    });
     await store.close();
   });
 
@@ -121,18 +137,22 @@ describe("Hub workstream replication SQLite", () => {
     const project = manifest("prj_workstream_hub_02");
     await registerStore(store, project);
     const second = publication(project, snapshot(2, "Missing parent"), `sha256:${"f".repeat(64)}`);
-    await expect(handleWorkstreamPublish({
-      store,
-      destinationId,
-      request: second,
-      publishedAt: "2026-08-24T01:00:00.000Z",
-    })).rejects.toMatchObject({ code: "unknown_parent" });
-    await expect(handleWorkstreamRead({
-      store,
-      destinationId,
-      projectId: project.projectId,
-      repositoryIdentityHash: `sha256:${"e".repeat(64)}`,
-    })).rejects.toMatchObject({ code: "registration_required" });
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: second,
+        publishedAt: "2026-08-24T01:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "unknown_parent" });
+    await expect(
+      handleWorkstreamRead({
+        store,
+        destinationId,
+        projectId: project.projectId,
+        repositoryIdentityHash: `sha256:${"e".repeat(64)}`,
+      }),
+    ).rejects.toMatchObject({ code: "registration_required" });
     await store.close();
   });
 });

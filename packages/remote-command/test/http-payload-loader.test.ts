@@ -55,17 +55,26 @@ describe("authenticated remote command HTTP payload loader", () => {
     };
     await expect(loader(request).load(reference)).resolves.toEqual(bytes);
 
-    expect(requestedUrl).toContain(`/projects/prj_payload_test_01/artifacts/${reference.artifactId}`);
+    expect(requestedUrl).toContain(
+      `/projects/prj_payload_test_01/artifacts/${reference.artifactId}`,
+    );
     expect(requestedUrl).toContain("nodeId=node_payload_test_01");
-    expect(requestedInit?.headers).toMatchObject({ authorization: expect.stringMatching(/^Bearer /) });
+    expect(requestedInit?.headers).toMatchObject({
+      authorization: expect.stringMatching(/^Bearer /),
+    });
   });
 
   it("rejects identity, length and content hash drift", async () => {
-    await expect(loader(async () => response(bytes, {
-      "x-lervo-hub-identity": `sha256:${"d".repeat(64)}`,
-    })).load(reference)).rejects.toThrow("coordinates");
-    await expect(loader(async () => response(bytes.slice(0, -1))).load(reference))
-      .rejects.toThrow("size");
+    await expect(
+      loader(async () =>
+        response(bytes, {
+          "x-lervo-hub-identity": `sha256:${"d".repeat(64)}`,
+        }),
+      ).load(reference),
+    ).rejects.toThrow("coordinates");
+    await expect(loader(async () => response(bytes.slice(0, -1))).load(reference)).rejects.toThrow(
+      "size",
+    );
     const changed = bytes.slice();
     changed[0] = 0x41;
     await expect(loader(async () => response(changed)).load(reference)).rejects.toThrow("hash");

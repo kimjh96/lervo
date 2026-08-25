@@ -2,18 +2,15 @@ import { writeFile } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { readFirstPublicationTransitionSources } from
-  "./first-publication-transition-sources.mjs";
-import { createFirstPublicationTransitionReport } from
-  "./first-publication-transition-policy.mjs";
+import { readFirstPublicationTransitionSources } from "./first-publication-transition-sources.mjs";
+import { createFirstPublicationTransitionReport } from "./first-publication-transition-policy.mjs";
 import {
   createFirstPublicationTransitionReceipt,
   validateFirstPublicationTransitionReceipt,
   validateFirstPublicationTransitionReceiptDocument,
 } from "./first-publication-transition.mjs";
 import { observeGitHubPublisherEnvironment } from "./github-environment-observer.mjs";
-import { observeFirstPublicationReconciliation } from
-  "./npm-first-publication-reconciliation-observer.mjs";
+import { observeFirstPublicationReconciliation } from "./npm-first-publication-reconciliation-observer.mjs";
 import { observeNpmTrustedPublisher } from "./npm-trust-observer.mjs";
 
 function fail(code = "first_publication_transition_input_invalid") {
@@ -24,7 +21,8 @@ function fail(code = "first_publication_transition_input_invalid") {
 }
 
 function validOptions(options) {
-  const common = options?.online === true &&
+  const common =
+    options?.online === true &&
     isAbsolute(options.publicationAuthorizationPath ?? "") &&
     isAbsolute(options.bootstrapPath ?? "") &&
     isAbsolute(options.workflowPath ?? "");
@@ -44,25 +42,31 @@ function validOptions(options) {
   ];
   const stageBundle = options.stageApprovalBundlePath;
   if (options.evidenceType === "execution_receipt") {
-    return isAbsolute(options.armingAuthorizationPath ?? "") &&
+    return (
+      isAbsolute(options.armingAuthorizationPath ?? "") &&
       isAbsolute(options.executionReceiptPath ?? "") &&
       resolutionValues.every((value) => value === undefined) &&
-      stageValues.every((value) => value === undefined) && stageBundle === undefined;
+      stageValues.every((value) => value === undefined) &&
+      stageBundle === undefined
+    );
   }
   if (options.evidenceType === "reconciliation_resolution") {
-    return isAbsolute(options.armingAuthorizationPath ?? "") &&
+    return (
+      isAbsolute(options.armingAuthorizationPath ?? "") &&
       options.executionReceiptPath === undefined &&
       resolutionValues.every((value) => isAbsolute(value ?? "")) &&
-      stageValues.every((value) => value === undefined) && stageBundle === undefined;
+      stageValues.every((value) => value === undefined) &&
+      stageBundle === undefined
+    );
   }
-  return options.evidenceType === "stage_approval_reconciliation" &&
+  return (
+    options.evidenceType === "stage_approval_reconciliation" &&
     options.armingAuthorizationPath === undefined &&
     options.executionReceiptPath === undefined &&
     resolutionValues.every((value) => value === undefined) &&
-    ((stageValues.every((value) => isAbsolute(value ?? "")) &&
-      stageBundle === undefined) ||
-      (stageValues.every((value) => value === undefined) &&
-        isAbsolute(stageBundle ?? "")));
+    ((stageValues.every((value) => isAbsolute(value ?? "")) && stageBundle === undefined) ||
+      (stageValues.every((value) => value === undefined) && isAbsolute(stageBundle ?? "")))
+  );
 }
 
 export async function completeCliFirstPublicationTransition(options, dependencies = {}) {
@@ -70,8 +74,8 @@ export async function completeCliFirstPublicationTransition(options, dependencie
     fail(options?.online === true ? undefined : "first_publication_transition_online_required");
   }
   const readSources = dependencies.readSources ?? readFirstPublicationTransitionSources;
-  const observePublicRelease = dependencies.observePublicRelease ??
-    observeFirstPublicationReconciliation;
+  const observePublicRelease =
+    dependencies.observePublicRelease ?? observeFirstPublicationReconciliation;
   const observeNpm = dependencies.observeNpm ?? observeNpmTrustedPublisher;
   const observeGitHub = dependencies.observeGitHub ?? observeGitHubPublisherEnvironment;
   const clock = dependencies.clock ?? (() => new Date().toISOString());

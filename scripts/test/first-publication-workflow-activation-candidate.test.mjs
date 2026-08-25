@@ -11,8 +11,7 @@ import {
   stagePublicationPackageScript,
   validateFirstPublicationWorkflowActivationCandidate,
 } from "../lib/first-publication-workflow-activation-candidate.mjs";
-import { inspectFirstPublicationStageOnlyWorkflow } from
-  "../lib/first-publication-transition-policy.mjs";
+import { inspectFirstPublicationStageOnlyWorkflow } from "../lib/first-publication-transition-policy.mjs";
 import { canonicalDigest, sha256 } from "../lib/release-artifact-manifest.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -130,8 +129,9 @@ describe("first-publication stage-only workflow activation candidate", () => {
   it("rejects a source without the attested release producer", async () => {
     const input = await candidateInput();
     delete input.workflow.jobs["attested-cli"];
-    const text = input.workflowSnapshot.contents.toString("utf8")
-      .replace(/\n  attested-cli:[\s\S]*$/u, "\n");
+    const text = input.workflowSnapshot.contents
+      .toString("utf8")
+      .replace(/\n {2}attested-cli:[\s\S]*$/u, "\n");
     input.workflowSnapshot = sourceSnapshot(Buffer.from(text));
     assert.throws(() => createFirstPublicationWorkflowActivationCandidate(input), {
       code: "first_publication_workflow_activation_candidate_invalid",
@@ -145,8 +145,9 @@ describe("first-publication stage-only workflow activation candidate", () => {
       code: "first_publication_workflow_activation_candidate_invalid",
     });
     const crlf = await candidateInput();
-    const contents = Buffer.from(crlf.workflowSnapshot.contents.toString("utf8")
-      .replaceAll("\n", "\r\n"));
+    const contents = Buffer.from(
+      crlf.workflowSnapshot.contents.toString("utf8").replaceAll("\n", "\r\n"),
+    );
     crlf.workflow = parse(contents.toString("utf8"));
     crlf.workflowSnapshot = sourceSnapshot(contents);
     assert.throws(() => createFirstPublicationWorkflowActivationCandidate(crlf), {
@@ -160,15 +161,13 @@ describe("first-publication stage-only workflow activation candidate", () => {
     promoted.candidate.sideEffects.writesAllowed = true;
     const { candidateDigest: _old, ...body } = promoted.candidate;
     promoted.candidate.candidateDigest = canonicalDigest(body);
-    assert.throws(
-      () => validateFirstPublicationWorkflowActivationCandidate(promoted, input),
-      { code: "first_publication_workflow_activation_candidate_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationWorkflowActivationCandidate(promoted, input), {
+      code: "first_publication_workflow_activation_candidate_invalid",
+    });
     const changed = createFirstPublicationWorkflowActivationCandidate(input);
     changed.outputBytes = Buffer.from("name: changed\n");
-    assert.throws(
-      () => validateFirstPublicationWorkflowActivationCandidate(changed, input),
-      { code: "first_publication_workflow_activation_candidate_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationWorkflowActivationCandidate(changed, input), {
+      code: "first_publication_workflow_activation_candidate_invalid",
+    });
   });
 });

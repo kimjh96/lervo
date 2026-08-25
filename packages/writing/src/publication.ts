@@ -8,10 +8,7 @@ import {
 } from "./artifact.js";
 import { createWritingEvaluation, validateWritingEvaluation } from "./evaluation.js";
 import { writingEvaluationBytes } from "./integrity.js";
-import {
-  createWritingPublicationPermit,
-  validateWritingPublicationPermit,
-} from "./permit.js";
+import { createWritingPublicationPermit, validateWritingPublicationPermit } from "./permit.js";
 import type {
   EvaluateWritingPublicationInput,
   ReadPublishableWritingInput,
@@ -22,7 +19,10 @@ import { WritingPublicationError } from "./types.js";
 function validTimestamp(now: () => Date): string {
   const value = now();
   if (Number.isNaN(value.getTime())) {
-    throw new WritingPublicationError("invalid_writing_request", "The writing verification time is invalid.");
+    throw new WritingPublicationError(
+      "invalid_writing_request",
+      "The writing verification time is invalid.",
+    );
   }
   return value.toISOString();
 }

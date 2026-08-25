@@ -25,17 +25,26 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   const url = new URL(value);
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
-    url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
-  ) throw new Error("The remote command artifact Hub URL must be an HTTPS URL without credentials or a query.");
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
+  )
+    throw new Error(
+      "The remote command artifact Hub URL must be an HTTPS URL without credentials or a query.",
+    );
   return url;
 }
 
 async function boundedBytes(response: Response, maximum: number): Promise<Uint8Array> {
   const declared = response.headers.get("content-length");
   if (declared === null || !/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) !== maximum) {
-    throw new Error("The remote command artifact response size differs from the source coordinates.");
+    throw new Error(
+      "The remote command artifact response size differs from the source coordinates.",
+    );
   }
-  if (response.body === null) throw new Error("The remote command artifact response body is missing.");
+  if (response.body === null)
+    throw new Error("The remote command artifact response body is missing.");
   const reader = response.body.getReader();
   const output = new Uint8Array(maximum);
   let offset = 0;
@@ -57,9 +66,12 @@ function assertPayloadReference(reference: RemoteCommandPayloadReference): void 
   if (
     !/^art_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(reference.artifactId) ||
     !HASH_PATTERN.test(reference.contentHash) ||
-    !Number.isSafeInteger(reference.byteCount) || reference.byteCount < 1 ||
-    reference.byteCount > 65_536 || reference.mediaType !== "text/plain; charset=utf-8"
-  ) throw new Error("The remote command artifact reference is invalid.");
+    !Number.isSafeInteger(reference.byteCount) ||
+    reference.byteCount < 1 ||
+    reference.byteCount > 65_536 ||
+    reference.mediaType !== "text/plain; charset=utf-8"
+  )
+    throw new Error("The remote command artifact reference is invalid.");
 }
 
 export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteCommandPayloadLoader {
@@ -70,16 +82,22 @@ export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteComman
   constructor(private readonly options: RemoteCommandHttpPayloadLoaderOptions) {
     this.baseUrl = configuredUrl(options.baseUrl, options.allowInsecureHttpForTests === true);
     if (
-      options.bearerToken.length < 32 || options.bearerToken.length > 4_096 ||
+      options.bearerToken.length < 32 ||
+      options.bearerToken.length > 4_096 ||
       !/^[\x21-\x7e]+$/.test(options.bearerToken) ||
       !HASH_PATTERN.test(options.expectedHubIdentityHash) ||
-      !DESTINATION_PATTERN.test(options.destinationId) || !NODE_PATTERN.test(options.nodeId) ||
+      !DESTINATION_PATTERN.test(options.destinationId) ||
+      !NODE_PATTERN.test(options.nodeId) ||
       !PROJECT_PATTERN.test(options.target.projectId) ||
       !HASH_PATTERN.test(options.target.projectIdentityHash)
-    ) throw new Error("The remote command artifact HTTP loader configuration is invalid.");
+    )
+      throw new Error("The remote command artifact HTTP loader configuration is invalid.");
     this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
-    if (!Number.isSafeInteger(this.requestTimeoutMs) || this.requestTimeoutMs < 10 ||
-      this.requestTimeoutMs > 300_000) {
+    if (
+      !Number.isSafeInteger(this.requestTimeoutMs) ||
+      this.requestTimeoutMs < 10 ||
+      this.requestTimeoutMs > 300_000
+    ) {
       throw new Error("The remote command artifact HTTP timeout is invalid.");
     }
     this.request = options.fetch ?? globalThis.fetch;
@@ -106,7 +124,8 @@ export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteComman
         redirect: "error",
         signal: controller.signal,
       });
-      if (response.status !== 200) throw new Error("The remote command artifact Hub response status is invalid.");
+      if (response.status !== 200)
+        throw new Error("The remote command artifact Hub response status is invalid.");
       if (
         response.headers.get("x-lervo-hub-identity") !== this.options.expectedHubIdentityHash ||
         response.headers.get("x-lervo-artifact-id") !== reference.artifactId ||
@@ -114,12 +133,16 @@ export class AuthenticatedRemoteCommandHttpPayloadLoader implements RemoteComman
         response.headers.get("content-type")?.toLowerCase() !== reference.mediaType
       ) {
         await response.body?.cancel();
-        throw new Error("The remote command artifact Hub response coordinates differ from the request.");
+        throw new Error(
+          "The remote command artifact Hub response coordinates differ from the request.",
+        );
       }
       const bytes = await boundedBytes(response, reference.byteCount);
       const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
       if (contentHash !== reference.contentHash) {
-        throw new Error("The remote command artifact response hash differs from the source coordinates.");
+        throw new Error(
+          "The remote command artifact response hash differs from the source coordinates.",
+        );
       }
       new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       return bytes;

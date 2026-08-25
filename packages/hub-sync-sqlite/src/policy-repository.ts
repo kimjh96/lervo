@@ -77,21 +77,31 @@ export class HubPolicySQLiteRepository {
       snapshot.target.projectId !== input.target.projectId ||
       snapshot.target.projectIdentityHash !== input.target.projectIdentityHash
     ) {
-      throw new HubPolicyError("policy_identity_mismatch", "The policy snapshot target differs from the request.");
+      throw new HubPolicyError(
+        "policy_identity_mismatch",
+        "The policy snapshot target differs from the request.",
+      );
     }
-    const existing = this.database.prepare(`
+    const existing = this.database
+      .prepare(
+        `
       SELECT sequence, snapshot_id, envelope_json, published_at
       FROM hub_policy_snapshots
       WHERE destination_id = ? AND project_id = ?
         AND (snapshot_id = ? OR sequence = ?)
-    `).all(input.destinationId, input.target.projectId, snapshot.snapshotId, snapshot.sequence);
+    `,
+      )
+      .all(input.destinationId, input.target.projectId, snapshot.snapshotId, snapshot.sequence);
     if (existing.length !== 0) {
       if (
         existing.length !== 1 ||
         stringField(existing[0]!, "snapshot_id") !== snapshot.snapshotId ||
         stringField(existing[0]!, "envelope_json") !== canonicalJson(input.envelope)
       ) {
-        throw new HubPolicyError("policy_snapshot_conflict", "The policy snapshot sequence conflicts.");
+        throw new HubPolicyError(
+          "policy_snapshot_conflict",
+          "The policy snapshot sequence conflicts.",
+        );
       }
       return {
         status: "duplicate",
@@ -105,23 +115,30 @@ export class HubPolicySQLiteRepository {
       snapshot.sequence !== (head?.snapshot.sequence ?? 0) + 1 ||
       snapshot.previousSnapshotId !== (head?.snapshot.snapshotId ?? null)
     ) {
-      throw new HubPolicyError("policy_snapshot_conflict", "The policy snapshot continuity coordinates differ from the current Hub head.");
+      throw new HubPolicyError(
+        "policy_snapshot_conflict",
+        "The policy snapshot continuity coordinates differ from the current Hub head.",
+      );
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_policy_snapshots (
         destination_id, project_id, sequence, snapshot_id, envelope_json,
         issued_at, expires_at, published_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      input.destinationId,
-      input.target.projectId,
-      snapshot.sequence,
-      snapshot.snapshotId,
-      canonicalJson(input.envelope),
-      snapshot.issuedAt,
-      snapshot.expiresAt,
-      input.publishedAt,
-    );
+    `,
+      )
+      .run(
+        input.destinationId,
+        input.target.projectId,
+        snapshot.sequence,
+        snapshot.snapshotId,
+        canonicalJson(input.envelope),
+        snapshot.issuedAt,
+        snapshot.expiresAt,
+        input.publishedAt,
+      );
     return {
       status: "published",
       policySnapshotId: snapshot.snapshotId,
@@ -140,14 +157,21 @@ export class HubPolicySQLiteRepository {
     assertPolicyPublishedAt(input.publishedAt);
     assertSignedPolicyApproval(input.envelope);
     const approval = input.envelope.approval;
-    const existing = this.database.prepare(`
+    const existing = this.database
+      .prepare(
+        `
       SELECT approval_id, snapshot_id, envelope_json, published_at
       FROM hub_policy_approvals
       WHERE destination_id = ? AND project_id = ? AND approval_id = ?
-    `).get(input.destinationId, input.target.projectId, approval.approvalId);
+    `,
+      )
+      .get(input.destinationId, input.target.projectId, approval.approvalId);
     if (existing !== undefined) {
       if (stringField(existing, "envelope_json") !== canonicalJson(input.envelope)) {
-        throw new HubPolicyError("policy_snapshot_conflict", "A different source exists for the same policy approval ID.");
+        throw new HubPolicyError(
+          "policy_snapshot_conflict",
+          "A different source exists for the same policy approval ID.",
+        );
       }
       return {
         status: "duplicate",
@@ -158,34 +182,54 @@ export class HubPolicySQLiteRepository {
     }
     const snapshot = this.source.currentSnapshot(input.destinationId, input.target);
     if (snapshot === null || snapshot.snapshot.snapshotId !== approval.snapshotId) {
-      throw new HubPolicyError("policy_snapshot_conflict", "The policy approval snapshot is not the current Hub head.");
+      throw new HubPolicyError(
+        "policy_snapshot_conflict",
+        "The policy approval snapshot is not the current Hub head.",
+      );
     }
     const binding = this.source.command(input.destinationId, input.target, approval.commandId);
     if (binding === null) {
-      throw new HubPolicyError("policy_command_not_found", "The policy approval command is missing.");
+      throw new HubPolicyError(
+        "policy_command_not_found",
+        "The policy approval command is missing.",
+      );
     }
     this.assertApprovalBinding(input.envelope, snapshot, binding);
-    const count = integerField(this.database.prepare(`
+    const count = integerField(
+      this.database
+        .prepare(
+          `
       SELECT COUNT(*) AS count FROM hub_policy_approvals
       WHERE destination_id = ? AND project_id = ? AND snapshot_id = ?
-    `).get(input.destinationId, input.target.projectId, approval.snapshotId)!, "count");
+    `,
+        )
+        .get(input.destinationId, input.target.projectId, approval.snapshotId)!,
+      "count",
+    );
     if (count >= MAX_POLICY_APPROVALS) {
-      throw new HubPolicyError("policy_capacity_exceeded", "The policy approval limit for one snapshot was exceeded.");
+      throw new HubPolicyError(
+        "policy_capacity_exceeded",
+        "The policy approval limit for one snapshot was exceeded.",
+      );
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_policy_approvals (
         approval_id, destination_id, project_id, snapshot_id,
         command_id, envelope_json, published_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      approval.approvalId,
-      input.destinationId,
-      input.target.projectId,
-      approval.snapshotId,
-      approval.commandId,
-      canonicalJson(input.envelope),
-      input.publishedAt,
-    );
+    `,
+      )
+      .run(
+        approval.approvalId,
+        input.destinationId,
+        input.target.projectId,
+        approval.snapshotId,
+        approval.commandId,
+        canonicalJson(input.envelope),
+        input.publishedAt,
+      );
     return {
       status: "published",
       policySnapshotId: approval.snapshotId,
@@ -207,9 +251,13 @@ export class HubPolicySQLiteRepository {
         commandSignerKeyId: binding.commandSignerKeyId,
       });
     } catch (error) {
-      throw new HubPolicyError("invalid_policy_request", "The policy approval source relation is invalid.", {
-        cause: error,
-      });
+      throw new HubPolicyError(
+        "invalid_policy_request",
+        "The policy approval source relation is invalid.",
+        {
+          cause: error,
+        },
+      );
     }
   }
 
@@ -223,24 +271,31 @@ export class HubPolicySQLiteRepository {
     assertPolicyPublishedAt(input.publishedAt);
     assertSignedPolicyApprovalRevocation(input.envelope);
     const revocation = input.envelope.revocation;
-    const existing = this.database.prepare(`
+    const existing = this.database
+      .prepare(
+        `
       SELECT revocation_id, approval_id, envelope_json, published_at
       FROM hub_policy_revocations
       WHERE destination_id = ? AND project_id = ?
         AND (revocation_id = ? OR approval_id = ?)
-    `).all(
-      input.destinationId,
-      input.target.projectId,
-      revocation.revocationId,
-      revocation.approvalId,
-    );
+    `,
+      )
+      .all(
+        input.destinationId,
+        input.target.projectId,
+        revocation.revocationId,
+        revocation.approvalId,
+      );
     if (existing.length !== 0) {
       if (
         existing.length !== 1 ||
         stringField(existing[0]!, "revocation_id") !== revocation.revocationId ||
         stringField(existing[0]!, "envelope_json") !== canonicalJson(input.envelope)
       ) {
-        throw new HubPolicyError("policy_snapshot_conflict", "The policy approval has a different revocation.");
+        throw new HubPolicyError(
+          "policy_snapshot_conflict",
+          "The policy approval has a different revocation.",
+        );
       }
       const approval = this.source.approval(
         input.destinationId,
@@ -254,22 +309,28 @@ export class HubPolicySQLiteRepository {
         publishedAt: stringField(existing[0]!, "published_at"),
       };
     }
-    const approval = this.source.approval(
-      input.destinationId,
-      input.target,
-      revocation.approvalId,
-    );
+    const approval = this.source.approval(input.destinationId, input.target, revocation.approvalId);
     if (approval === null) {
-      throw new HubPolicyError("policy_approval_not_found", "The policy approval to revoke is missing.");
+      throw new HubPolicyError(
+        "policy_approval_not_found",
+        "The policy approval to revoke is missing.",
+      );
     }
     try {
       assertPolicyApprovalRevocation({ revocation, approval: approval.approval });
     } catch (error) {
-      throw new HubPolicyError("invalid_policy_request", "The policy revocation source relation is invalid.", {
-        cause: error,
-      });
+      throw new HubPolicyError(
+        "invalid_policy_request",
+        "The policy revocation source relation is invalid.",
+        {
+          cause: error,
+        },
+      );
     }
-    const count = integerField(this.database.prepare(`
+    const count = integerField(
+      this.database
+        .prepare(
+          `
       SELECT COUNT(*) AS count FROM hub_policy_revocations AS revocation
       JOIN hub_policy_approvals AS approval
         ON approval.destination_id = revocation.destination_id
@@ -277,23 +338,34 @@ export class HubPolicySQLiteRepository {
        AND approval.approval_id = revocation.approval_id
       WHERE approval.destination_id = ? AND approval.project_id = ?
         AND approval.snapshot_id = ?
-    `).get(input.destinationId, input.target.projectId, approval.approval.snapshotId)!, "count");
+    `,
+        )
+        .get(input.destinationId, input.target.projectId, approval.approval.snapshotId)!,
+      "count",
+    );
     if (count >= MAX_POLICY_REVOCATIONS) {
-      throw new HubPolicyError("policy_capacity_exceeded", "The policy revocation limit for one snapshot was exceeded.");
+      throw new HubPolicyError(
+        "policy_capacity_exceeded",
+        "The policy revocation limit for one snapshot was exceeded.",
+      );
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_policy_revocations (
         revocation_id, approval_id, destination_id, project_id,
         envelope_json, published_at
       ) VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      revocation.revocationId,
-      revocation.approvalId,
-      input.destinationId,
-      input.target.projectId,
-      canonicalJson(input.envelope),
-      input.publishedAt,
-    );
+    `,
+      )
+      .run(
+        revocation.revocationId,
+        revocation.approvalId,
+        input.destinationId,
+        input.target.projectId,
+        canonicalJson(input.envelope),
+        input.publishedAt,
+      );
     return {
       status: "published",
       policySnapshotId: approval.approval.snapshotId,

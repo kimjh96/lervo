@@ -7,11 +7,13 @@ import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
 import { collectExecutionEventSources } from "../src/execution-event-source.js";
 
-function event(payload: Record<string, unknown> = {
-  requestDigest: `sha256:${"a".repeat(64)}`,
-  role: "developer",
-  risk: "low",
-}): EventEnvelope {
+function event(
+  payload: Record<string, unknown> = {
+    requestDigest: `sha256:${"a".repeat(64)}`,
+    role: "developer",
+    risk: "low",
+  },
+): EventEnvelope {
   const withoutHash: Omit<EventEnvelope, "eventHash"> = {
     eventId: "evt_executionfixture",
     projectId: "prj_executionfixture",
@@ -32,7 +34,8 @@ function event(payload: Record<string, unknown> = {
 function store(value: EventEnvelope): Pick<EventStore, "latest" | "list" | "verifyIntegrity"> {
   return {
     latest: () => value,
-    list: (options) => value.seq > (options?.afterSeq ?? 0) ? [value].slice(0, options?.limit) : [],
+    list: (options) =>
+      value.seq > (options?.afterSeq ?? 0) ? [value].slice(0, options?.limit) : [],
     verifyIntegrity: () => ({ valid: true, eventCount: 1, headHash: value.eventHash }),
   };
 }
@@ -41,14 +44,16 @@ describe("execution event knowledge source", () => {
   it("turns one validated privacy-allowlisted chain event into a canonical supplemental unit", async () => {
     const value = event();
     const sources = collectExecutionEventSources({ events: store(value) });
-    expect(sources).toEqual([expect.objectContaining({
-      path: `@event/${value.eventId}`,
-      kind: "execution_event",
-      origin: "execution_event_store",
-      unitKind: "event",
-      locator: `event:${value.eventId}`,
-      content: `${canonicalJson(value)}\n`,
-    })]);
+    expect(sources).toEqual([
+      expect.objectContaining({
+        path: `@event/${value.eventId}`,
+        kind: "execution_event",
+        origin: "execution_event_store",
+        unitKind: "event",
+        locator: `event:${value.eventId}`,
+        content: `${canonicalJson(value)}\n`,
+      }),
+    ]);
     const root = await mkdtemp(resolve(tmpdir(), "lervo-execution-event-source-"));
     try {
       const scan = await scanRepositoryKnowledge({
@@ -72,8 +77,15 @@ describe("execution event knowledge source", () => {
 
   it("fails closed when a rehashed event contains a payload field outside the event allowlist", () => {
     const privateValue = "private-event-fixture";
-    const value = event({ requestDigest: `sha256:${"a".repeat(64)}`, role: "developer", risk: "low", prompt: privateValue });
-    expect(() => collectExecutionEventSources({ events: store(value) })).toThrowError(expect.objectContaining({ code: "knowledge_evidence_source_invalid" }));
+    const value = event({
+      requestDigest: `sha256:${"a".repeat(64)}`,
+      role: "developer",
+      risk: "low",
+      prompt: privateValue,
+    });
+    expect(() => collectExecutionEventSources({ events: store(value) })).toThrowError(
+      expect.objectContaining({ code: "knowledge_evidence_source_invalid" }),
+    );
     expect(() => collectExecutionEventSources({ events: store(value) })).not.toThrow(privateValue);
   });
 });

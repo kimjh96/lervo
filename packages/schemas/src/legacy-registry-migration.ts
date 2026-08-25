@@ -185,9 +185,5 @@ export const legacyRegistryMigrationPlanSchema = {
   additionalProperties: false,
 } as const;
 
-export type LegacyRegistryEntryArtifact = FromSchema<
-  typeof legacyRegistryEntryArtifactSchema
->;
-export type LegacyRegistryMigrationPlan = FromSchema<
-  typeof legacyRegistryMigrationPlanSchema
->;
+export type LegacyRegistryEntryArtifact = FromSchema<typeof legacyRegistryEntryArtifactSchema>;
+export type LegacyRegistryMigrationPlan = FromSchema<typeof legacyRegistryMigrationPlanSchema>;

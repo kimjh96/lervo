@@ -24,11 +24,17 @@ export type ParsedSlackIngress =
 function slackTimestamp(value: unknown): string {
   const source = requiredString(value, "Slack message timestamp", 32);
   if (!/^[0-9]{1,12}(?:\.[0-9]{1,6})?$/.test(source)) {
-    throw new ConversationPlatformError("invalid_platform_payload", "The Slack timestamp is invalid.");
+    throw new ConversationPlatformError(
+      "invalid_platform_payload",
+      "The Slack timestamp is invalid.",
+    );
   }
   const milliseconds = Number(source) * 1_000;
   if (!Number.isFinite(milliseconds)) {
-    throw new ConversationPlatformError("invalid_platform_payload", "The Slack timestamp is invalid.");
+    throw new ConversationPlatformError(
+      "invalid_platform_payload",
+      "The Slack timestamp is invalid.",
+    );
   }
   return new Date(milliseconds).toISOString();
 }
@@ -47,13 +53,19 @@ export function parseSlackIngress(input: {
   const outer = objectValue(input.value);
   const type = requiredString(outer.type, "Slack outer event type", 64);
   if (type === "url_verification") {
-    return { kind: "challenge", challenge: requiredString(outer.challenge, "Slack challenge", 512) };
+    return {
+      kind: "challenge",
+      challenge: requiredString(outer.challenge, "Slack challenge", 512),
+    };
   }
   if (type !== "event_callback") return { kind: "ignored", reason: "unsupported_outer_event" };
   const appId = requiredString(outer.api_app_id, "Slack app ID", 128);
   const teamId = requiredString(outer.team_id, "Slack team ID", 128);
   if (appId !== input.apiAppId || !input.allowedTeamIds.has(teamId)) {
-    throw new ConversationPlatformError("platform_authentication_failed", "The Slack app or team scope does not match.");
+    throw new ConversationPlatformError(
+      "platform_authentication_failed",
+      "The Slack app or team scope does not match.",
+    );
   }
   const eventId = requiredString(outer.event_id, "Slack event ID", 128);
   const event = objectValue(outer.event);
@@ -66,9 +78,8 @@ export function parseSlackIngress(input: {
     return { kind: "ignored", reason: "unsupported_message_subtype" };
   }
   const messageTs = requiredString(event.ts, "Slack message ID", 32);
-  const threadTs = event.thread_ts === undefined
-    ? null
-    : requiredString(event.thread_ts, "Slack thread ID", 32);
+  const threadTs =
+    event.thread_ts === undefined ? null : requiredString(event.thread_ts, "Slack thread ID", 32);
   const text = requiredString(event.text, "Slack message text", 65_536);
   const bot = subtype === "bot_message" || event.bot_id !== undefined;
   return {

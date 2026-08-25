@@ -31,19 +31,32 @@ export async function runLocalSearchEvaluationComparison(input: {
   evaluatedAt: Date;
 }): Promise<LocalSearchEvaluationComparisonOutput> {
   const availableCases = await loadSearchEvaluationCases(input.repositoryRoot);
-  const bundles = await loadSearchEvaluationBundles({ repositoryRoot: input.repositoryRoot, cases: availableCases });
+  const bundles = await loadSearchEvaluationBundles({
+    repositoryRoot: input.repositoryRoot,
+    cases: availableCases,
+  });
   const bundle = bundles.find((item) => item.bundleId === input.bundleId);
   if (bundle === undefined || bundle.projectId !== input.projectId) {
-    throw new SearchLocalError("evaluation_bundle_invalid", "The search evaluation bundle to compare was not found or belongs to a different project.");
+    throw new SearchLocalError(
+      "evaluation_bundle_invalid",
+      "The search evaluation bundle to compare was not found or belongs to a different project.",
+    );
   }
   const coverage = createSearchEvaluationCoverage(bundle, availableCases);
   if (coverage.comparisonReadiness !== "ready") {
-    throw new SearchLocalError("evaluation_comparison_not_ready", "The candidate search will not run because the sample is insufficient.");
+    throw new SearchLocalError(
+      "evaluation_comparison_not_ready",
+      "The candidate search will not run because the sample is insufficient.",
+    );
   }
   const corpus = await loadRegisteredDocumentCorpus(input.repositoryRoot);
   const cases = selectSearchEvaluationCases(availableCases, coverage.activeCaseIds);
   const baselineIndex = new LexicalSearchIndex(corpus);
-  const baseline = await executeSearchEvaluation({ index: baselineIndex, cases, evaluatedAt: input.evaluatedAt });
+  const baseline = await executeSearchEvaluation({
+    index: baselineIndex,
+    cases,
+    evaluatedAt: input.evaluatedAt,
+  });
   const candidate = await executeLocalSearchCandidate({
     engine: input.candidateEngine,
     corpus,

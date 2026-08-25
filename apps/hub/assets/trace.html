@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Lervo Trace</title>
-    <link rel="stylesheet" href="/assets/trace-base.css">
-    <link rel="stylesheet" href="/assets/trace-workspace.css">
-    <link rel="stylesheet" href="/assets/trace-responsive.css">
-    <link rel="stylesheet" href="/assets/trace-graph.css">
+    <link rel="stylesheet" href="/assets/trace-base.css" />
+    <link rel="stylesheet" href="/assets/trace-workspace.css" />
+    <link rel="stylesheet" href="/assets/trace-responsive.css" />
+    <link rel="stylesheet" href="/assets/trace-graph.css" />
     <script type="module" src="/assets/trace.js"></script>
   </head>
   <body>
@@ -24,18 +24,31 @@
       <div>
         <p class="eyebrow">Hub connection</p>
         <h1 id="connection-title">Open traces with an access token</h1>
-        <p class="supporting">The token is kept only in this tab's memory and is never stored in the URL or browser storage.</p>
+        <p class="supporting">
+          The token is kept only in this tab's memory and is never stored in the URL or browser
+          storage.
+        </p>
       </div>
       <form id="auth-form" class="auth-form">
         <label for="token">Access token</label>
         <div class="auth-controls">
-          <input id="token" type="password" minlength="32" maxlength="4096"
-            autocomplete="off" autocapitalize="none" spellcheck="false" required>
+          <input
+            id="token"
+            type="password"
+            minlength="32"
+            maxlength="4096"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+          />
           <button type="submit">Connect</button>
           <button id="disconnect" class="secondary" type="button" hidden>Disconnect</button>
         </div>
       </form>
-      <p id="connection-status" class="status" role="status" aria-live="polite">Enter an access token.</p>
+      <p id="connection-status" class="status" role="status" aria-live="polite">
+        Enter an access token.
+      </p>
     </section>
 
     <main id="workspace" class="workspace" hidden>
@@ -81,7 +94,9 @@
           </div>
           <span id="events-page" class="page-label"></span>
         </header>
-        <p id="events-help" class="column-help">Select a run to inspect selection evidence and verification results in order.</p>
+        <p id="events-help" class="column-help">
+          Select a run to inspect selection evidence and verification results in order.
+        </p>
         <div id="events-state" class="pane-state" role="status"></div>
         <ol id="events-list" class="event-list"></ol>
         <nav class="pagination" aria-label="Event pages">
@@ -98,7 +113,9 @@
           </div>
           <span id="graph-page" class="page-label"></span>
         </header>
-        <p id="graph-help" class="column-help">Select a project to inspect explicitly recorded relationships.</p>
+        <p id="graph-help" class="column-help">
+          Select a project to inspect explicitly recorded relationships.
+        </p>
         <div id="graph-state" class="pane-state" role="status"></div>
         <div id="graph-viewport" class="graph-viewport"></div>
         <nav class="pagination" aria-label="Knowledge graph relationship pages">

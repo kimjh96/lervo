@@ -10,8 +10,7 @@ import {
   validateFirstPublicationReconciliationReportDocument,
   validateFirstPublicationReconciliationReportSources,
 } from "../lib/first-publication-reconciliation-reader.mjs";
-import { createFirstPublicationReservation } from
-  "../lib/first-publication-reservation.mjs";
+import { createFirstPublicationReservation } from "../lib/first-publication-reservation.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
@@ -56,7 +55,10 @@ describe("first-publication unknown outcome reconciliation", () => {
     const input = evidence();
     const report = createFirstPublicationReconciliationReport(input);
     assert.equal(report.outcome, "published");
-    assert.deepEqual(report.checks.map(({ status }) => status), ["matched", "matched"]);
+    assert.deepEqual(
+      report.checks.map(({ status }) => status),
+      ["matched", "matched"],
+    );
     assert.equal(report.binding.terminalRecordDigest, canonicalDigest(input.terminal));
     assert.deepEqual(report.disposition, {
       reservation: "unchanged",
@@ -78,28 +80,38 @@ describe("first-publication unknown outcome reconciliation", () => {
     });
     const report = createFirstPublicationReconciliationReport(input);
     assert.equal(report.outcome, "not_observed");
-    assert.deepEqual(report.checks.map(({ status }) => status), [
-      "not_observed", "not_observed",
-    ]);
+    assert.deepEqual(
+      report.checks.map(({ status }) => status),
+      ["not_observed", "not_observed"],
+    );
     assert.equal(report.disposition.terminal, "unchanged");
     validateFirstPublicationReconciliationReportDocument(report);
   });
 
   it.each([
-    ["mismatched release", {
-      versionMetadata: {
-        state: "found",
-        registryIntegrity: `sha512-${"A".repeat(86)}==`,
-        registryShasum: "1".repeat(40),
+    [
+      "mismatched release",
+      {
+        versionMetadata: {
+          state: "found",
+          registryIntegrity: `sha512-${"A".repeat(86)}==`,
+          registryShasum: "1".repeat(40),
+        },
       },
-    }],
+    ],
     ["version without the target tag", { distTagValue: { state: "not_found" } }],
-    ["tag without version metadata", {
-      versionMetadata: { state: "not_found" },
-      distTagValue: { state: "found", version: "0.1.0" },
-    }],
+    [
+      "tag without version metadata",
+      {
+        versionMetadata: { state: "not_found" },
+        distTagValue: { state: "found", version: "0.1.0" },
+      },
+    ],
   ])("keeps an inconsistent %s outcome unknown", (_name, overrides) => {
-    assert.equal(createFirstPublicationReconciliationReport(evidence(overrides)).outcome, "unknown");
+    assert.equal(
+      createFirstPublicationReconciliationReport(evidence(overrides)).outcome,
+      "unknown",
+    );
   });
 
   it("keeps an unavailable public registry outcome unknown", () => {
@@ -115,9 +127,10 @@ describe("first-publication unknown outcome reconciliation", () => {
     };
     const report = createFirstPublicationReconciliationReport(input);
     assert.equal(report.outcome, "unknown");
-    assert.deepEqual(report.checks.flatMap(({ reasons }) => reasons), [
-      "registry_unavailable", "registry_unavailable",
-    ]);
+    assert.deepEqual(
+      report.checks.flatMap(({ reasons }) => reasons),
+      ["registry_unavailable", "registry_unavailable"],
+    );
     validateFirstPublicationReconciliationReportDocument(report);
   });
 

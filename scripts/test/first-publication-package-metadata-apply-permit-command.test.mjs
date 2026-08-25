@@ -5,18 +5,12 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { inspectCliFirstPublicationPackageMetadataApplyPermit } from
-  "../lib/cli-first-publication-package-metadata-apply-permit.mjs";
-import { createValidatedFirstPublicationPackageMetadataCandidate } from
-  "../lib/cli-first-publication-package-metadata-candidate.mjs";
-import { readFirstPublicationActivationSources } from
-  "../lib/first-publication-activation-sources.mjs";
-import { createFirstPublicationMetadataDecision } from
-  "../lib/first-publication-metadata-decision.mjs";
-import { createFirstPublicationPackageMetadataApplyPermit } from
-  "../lib/first-publication-package-metadata-apply-permit.mjs";
-import { formatFirstPublicationPackageMetadataApplyPermit } from
-  "../lib/first-publication-package-metadata-apply-permit-formatter.mjs";
+import { inspectCliFirstPublicationPackageMetadataApplyPermit } from "../lib/cli-first-publication-package-metadata-apply-permit.mjs";
+import { createValidatedFirstPublicationPackageMetadataCandidate } from "../lib/cli-first-publication-package-metadata-candidate.mjs";
+import { readFirstPublicationActivationSources } from "../lib/first-publication-activation-sources.mjs";
+import { createFirstPublicationMetadataDecision } from "../lib/first-publication-metadata-decision.mjs";
+import { createFirstPublicationPackageMetadataApplyPermit } from "../lib/first-publication-package-metadata-apply-permit.mjs";
+import { formatFirstPublicationPackageMetadataApplyPermit } from "../lib/first-publication-package-metadata-apply-permit-formatter.mjs";
 import {
   activationRepository,
   activationRepositoryRoot,
@@ -26,10 +20,14 @@ import {
 const command = "scripts/show-cli-first-publication-package-metadata-apply-permit.mjs";
 const candidateCommand = "scripts/show-cli-first-publication-package-metadata-candidate.mjs";
 const decisionArguments = [
-  "--repository", activationRepository,
-  "--license", "Apache-2.0",
-  "--scope-owner-kind", "organization",
-  "--scope-owner-name", "lervo",
+  "--repository",
+  activationRepository,
+  "--license",
+  "Apache-2.0",
+  "--scope-owner-kind",
+  "organization",
+  "--scope-owner-name",
+  "lervo",
 ];
 
 function decision() {
@@ -64,9 +62,12 @@ function currentPermitArguments() {
   const candidate = JSON.parse(result.stdout);
   return [
     ...decisionArguments,
-    "--reviewed-candidate-digest", candidate.candidateDigest,
-    "--reviewed-source-sha256", candidate.sources.packageSourceSha256,
-    "--reviewed-output-sha256", candidate.output.sha256,
+    "--reviewed-candidate-digest",
+    candidate.candidateDigest,
+    "--reviewed-source-sha256",
+    candidate.sources.packageSourceSha256,
+    "--reviewed-output-sha256",
+    candidate.output.sha256,
     "--confirm-reviewed-candidate",
   ];
 }
@@ -104,18 +105,16 @@ describe("first-publication package metadata apply permit command", () => {
   it("rejects source changes made while the permit is built", async () => {
     const { prepared, selected, review } = await preparedEvidence();
     try {
-      await assert.rejects(inspectCliFirstPublicationPackageMetadataApplyPermit(
-        selected,
-        review,
-        prepared.paths,
-        {
+      await assert.rejects(
+        inspectCliFirstPublicationPackageMetadataApplyPermit(selected, review, prepared.paths, {
           createPermit: async (input) => {
             const permit = createFirstPublicationPackageMetadataApplyPermit(input);
             await writeFile(prepared.paths.packageManifestPath, "{}\n");
             return permit;
           },
-        },
-      ), { code: "release_attestation_release_set_changed" });
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -187,10 +186,7 @@ describe("first-publication package metadata apply permit command", () => {
     const result = run(command, args);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, "");
-    assert.match(
-      result.stderr,
-      /^first_publication_package_metadata_apply_review_invalid:/u,
-    );
+    assert.match(result.stderr, /^first_publication_package_metadata_apply_review_invalid:/u);
     assert.equal(result.stderr.includes(secret), false);
   });
 });

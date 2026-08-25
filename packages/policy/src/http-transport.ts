@@ -19,7 +19,10 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
   const url = new URL(value);
   if (
     (url.protocol !== "https:" && !(allowInsecure && url.protocol === "http:")) ||
-    url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
   ) {
     throw new Error("The policy Hub URL must be an HTTPS URL without credentials or a query.");
   }
@@ -28,7 +31,10 @@ function configuredUrl(value: string, allowInsecure: boolean): URL {
 
 async function boundedJson(response: Response, maxBytes: number): Promise<unknown> {
   const declared = response.headers.get("content-length");
-  if (declared !== null && (/^(0|[1-9][0-9]*)$/.test(declared) === false || Number(declared) > maxBytes)) {
+  if (
+    declared !== null &&
+    (/^(0|[1-9][0-9]*)$/.test(declared) === false || Number(declared) > maxBytes)
+  ) {
     throw new Error("The policy Hub response size is invalid.");
   }
   if (response.body === null) throw new Error("The policy Hub response body is missing.");
@@ -67,22 +73,26 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
   constructor(private readonly options: PolicyHttpTransportOptions) {
     this.baseUrl = configuredUrl(options.baseUrl, options.allowInsecureHttpForTests === true);
     if (
-      options.bearerToken.length < 32 || options.bearerToken.length > 4_096 ||
+      options.bearerToken.length < 32 ||
+      options.bearerToken.length > 4_096 ||
       !/^[\x21-\x7e]+$/.test(options.bearerToken) ||
       !/^sha256:[a-f0-9]{64}$/.test(options.expectedHubIdentityHash)
-    ) throw new Error("The policy HTTP transport credential or Hub identity is invalid.");
+    )
+      throw new Error("The policy HTTP transport credential or Hub identity is invalid.");
     this.maxResponseBytes = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
     if (
       !Number.isSafeInteger(this.maxResponseBytes) ||
       this.maxResponseBytes < 1_024 ||
       this.maxResponseBytes > 16_777_216
-    ) throw new Error("The policy HTTP transport response limit is invalid.");
+    )
+      throw new Error("The policy HTTP transport response limit is invalid.");
     this.requestTimeoutMs = options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     if (
       !Number.isSafeInteger(this.requestTimeoutMs) ||
       this.requestTimeoutMs < 10 ||
       this.requestTimeoutMs > 300_000
-    ) throw new Error("The policy HTTP transport request timeout is invalid.");
+    )
+      throw new Error("The policy HTTP transport request timeout is invalid.");
     this.request = options.fetch ?? globalThis.fetch;
   }
 
@@ -134,15 +144,22 @@ export class AuthenticatedPolicyHttpTransport implements AuthenticatedPolicyHubT
       }
       const body = await boundedJson(response, this.maxResponseBytes);
       if (
-        typeof body !== "object" || body === null ||
-        !("schemaVersion" in body) || body.schemaVersion !== 1 ||
-        !("destinationId" in body) || body.destinationId !== input.destinationId ||
-        !("target" in body) || typeof body.target !== "object" || body.target === null ||
-        !("projectId" in body.target) || body.target.projectId !== input.target.projectId ||
+        typeof body !== "object" ||
+        body === null ||
+        !("schemaVersion" in body) ||
+        body.schemaVersion !== 1 ||
+        !("destinationId" in body) ||
+        body.destinationId !== input.destinationId ||
+        !("target" in body) ||
+        typeof body.target !== "object" ||
+        body.target === null ||
+        !("projectId" in body.target) ||
+        body.target.projectId !== input.target.projectId ||
         !("projectIdentityHash" in body.target) ||
         body.target.projectIdentityHash !== input.target.projectIdentityHash ||
         !("bundle" in body)
-      ) throw new Error("The policy Hub response coordinates differ from the request.");
+      )
+        throw new Error("The policy Hub response coordinates differ from the request.");
       return {
         authentication: {
           status: "verified",

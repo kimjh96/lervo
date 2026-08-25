@@ -46,24 +46,28 @@
         "path": ".lervo/documents",
         "expected": { "kind": "missing" }
       },
-      "referencedDocuments": [{
-        "documentId": "doc_readme_000001",
-        "path": "README.md",
-        "snapshot": {
-          "kind": "file",
-          "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-          "byteCount": 128
+      "referencedDocuments": [
+        {
+          "documentId": "doc_readme_000001",
+          "path": "README.md",
+          "snapshot": {
+            "kind": "file",
+            "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "byteCount": 128
+          }
         }
-      }],
-      "entries": [{
-        "documentId": "doc_readme_000001",
-        "artifactId": "art_aaaaaaaaaaaaaaaa",
-        "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "target": {
-          "path": ".lervo/documents/doc_readme_000001.yaml",
-          "expected": { "kind": "missing" }
+      ],
+      "entries": [
+        {
+          "documentId": "doc_readme_000001",
+          "artifactId": "art_aaaaaaaaaaaaaaaa",
+          "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target": {
+            "path": ".lervo/documents/doc_readme_000001.yaml",
+            "expected": { "kind": "missing" }
+          }
         }
-      }],
+      ],
       "warnings": ["legacy_content_policy_requires_review"]
     }
   },
@@ -76,13 +80,15 @@
       "planId": "migp_aaaaaaaaaaaaaaaa",
       "approvedAt": "2026-08-19T04:00:00Z",
       "approver": { "kind": "user", "id": "reviewer" },
-      "decisions": [{
-        "documentId": "doc_readme_000001",
-        "artifactId": "art_aaaaaaaaaaaaaaaa",
-        "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "action": "skip",
-        "reasonCode": "excluded_by_reviewer"
-      }]
+      "decisions": [
+        {
+          "documentId": "doc_readme_000001",
+          "artifactId": "art_aaaaaaaaaaaaaaaa",
+          "artifactHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "action": "skip",
+          "reasonCode": "excluded_by_reviewer"
+        }
+      ]
     }
   },
   {
@@ -94,7 +100,9 @@
       "approvalId": "apr_legacy_000001",
       "approvalDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "sourceRegistryHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "entryArtifactHashes": ["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+      "entryArtifactHashes": [
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
       "archiveContentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "beforeLayoutHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "afterLayoutHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
@@ -129,7 +137,9 @@
         "approvalId": "apr_legacy_000001",
         "approvalDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "sourceRegistryHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "entryArtifactHashes": ["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+        "entryArtifactHashes": [
+          "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ],
         "archiveContentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "beforeLayoutHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "afterLayoutHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",

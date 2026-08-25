@@ -2,10 +2,7 @@ import { chmod, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import {
-  prepareOwnerOnlyDatabasePath,
-  readOwnerOnlyText,
-} from "@lervo/runtime-security";
+import { prepareOwnerOnlyDatabasePath, readOwnerOnlyText } from "@lervo/runtime-security";
 import { afterEach, describe, expect, it } from "vitest";
 
 const roots: string[] = [];
@@ -27,8 +24,9 @@ describe("shared runtime security files", () => {
     await writeFile(secret, "a".repeat(32), { mode: 0o600 });
     await chmod(secret, 0o600);
     await expect(readOwnerOnlyText(secret, 128)).resolves.toBe("a".repeat(32));
-    await expect(prepareOwnerOnlyDatabasePath(resolve(directory, "state/events.sqlite")))
-      .resolves.toBe(resolve(directory, "state/events.sqlite"));
+    await expect(
+      prepareOwnerOnlyDatabasePath(resolve(directory, "state/events.sqlite")),
+    ).resolves.toBe(resolve(directory, "state/events.sqlite"));
   });
 
   it("rejects a file readable by another OS account", async () => {

@@ -9,11 +9,7 @@ import {
   ReloadableNodeRuntimeTrust,
   type NodeRuntimeConfig,
 } from "../src/index.js";
-import {
-  ownerFile,
-  removeTemporaryRoots,
-  temporaryRoot,
-} from "./fixture.js";
+import { ownerFile, removeTemporaryRoots, temporaryRoot } from "./fixture.js";
 
 afterEach(removeTemporaryRoots);
 
@@ -30,12 +26,15 @@ describe("Node runtime trust snapshot", () => {
   it("requires a strict owner-only external snapshot", async () => {
     const root = await temporaryRoot();
     const trustFile = resolve(root, "node-trust.json");
-    await ownerFile(trustFile, JSON.stringify({
-      schemaVersion: 1,
-      commandKeys: [],
-      policyKeys: [],
-      unknown: true,
-    }));
+    await ownerFile(
+      trustFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        commandKeys: [],
+        policyKeys: [],
+        unknown: true,
+      }),
+    );
     const commands = {
       nodeId: "node_runtime_control_01",
       trustFile,
@@ -66,15 +65,19 @@ describe("Node runtime trust snapshot", () => {
     const trustFile = resolve(root, "node-trust.json");
     const snapshot = (suffix: "01" | "02") => ({
       schemaVersion: 1,
-      commandKeys: [{
-        keyId: `key_command_runtime_${suffix}`,
-        publicKeyFile: `keys/command-${suffix}.pem`,
-      }],
-      policyKeys: [{
-        keyId: `key_policy_runtime_${suffix}`,
-        publicKeyFile: `keys/policy-${suffix}.pem`,
-        purposes: ["snapshot", "approval", "revocation"],
-      }],
+      commandKeys: [
+        {
+          keyId: `key_command_runtime_${suffix}`,
+          publicKeyFile: `keys/command-${suffix}.pem`,
+        },
+      ],
+      policyKeys: [
+        {
+          keyId: `key_policy_runtime_${suffix}`,
+          publicKeyFile: `keys/policy-${suffix}.pem`,
+          purposes: ["snapshot", "approval", "revocation"],
+        },
+      ],
     });
     await ownerFile(trustFile, JSON.stringify(snapshot("01")));
     const commands = {
@@ -84,28 +87,36 @@ describe("Node runtime trust snapshot", () => {
     const trust = new ReloadableNodeRuntimeTrust(await loadNodeRuntimeTrust(commands), target);
     const message = Buffer.from("node trust rotation fixture");
     const firstCommand = await trust.commandTrustStore.find("key_command_runtime_01");
-    expect(await firstCommand?.verify({
-      message,
-      signature: sign(null, message, initialCommand.privateKey),
-    })).toBe(true);
+    expect(
+      await firstCommand?.verify({
+        message,
+        signature: sign(null, message, initialCommand.privateKey),
+      }),
+    ).toBe(true);
 
     await ownerFile(trustFile, JSON.stringify(snapshot("02")));
     trust.replace(await loadNodeRuntimeTrust(commands));
     expect(await trust.commandTrustStore.find("key_command_runtime_01")).toBeNull();
-    expect(await firstCommand?.verify({
-      message,
-      signature: sign(null, message, initialCommand.privateKey),
-    })).toBe(true);
+    expect(
+      await firstCommand?.verify({
+        message,
+        signature: sign(null, message, initialCommand.privateKey),
+      }),
+    ).toBe(true);
     const nextCommand = await trust.commandTrustStore.find("key_command_runtime_02");
     const nextPolicy = await trust.policyTrustStore.find("key_policy_runtime_02");
-    expect(await nextCommand?.verify({
-      message,
-      signature: sign(null, message, rotatedCommand.privateKey),
-    })).toBe(true);
-    expect(await nextPolicy?.verify({
-      message,
-      signature: sign(null, message, rotatedPolicy.privateKey),
-    })).toBe(true);
+    expect(
+      await nextCommand?.verify({
+        message,
+        signature: sign(null, message, rotatedCommand.privateKey),
+      }),
+    ).toBe(true);
+    expect(
+      await nextPolicy?.verify({
+        message,
+        signature: sign(null, message, rotatedPolicy.privateKey),
+      }),
+    ).toBe(true);
   });
 
   it("rejects different public material under a previously observed key ID", async () => {
@@ -117,28 +128,36 @@ describe("Node runtime trust snapshot", () => {
     await ownerFile(resolve(keyDirectory, "command.pem"), publicPem(first));
     await ownerFile(resolve(keyDirectory, "policy.pem"), publicPem(first));
     const trustFile = resolve(root, "node-trust.json");
-    await ownerFile(trustFile, JSON.stringify({
-      schemaVersion: 1,
-      commandKeys: [{ keyId: "key_command_runtime_01", publicKeyFile: "keys/command.pem" }],
-      policyKeys: [{
-        keyId: "key_policy_runtime_01",
-        publicKeyFile: "keys/policy.pem",
-        purposes: ["snapshot"],
-      }],
-    }));
+    await ownerFile(
+      trustFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        commandKeys: [{ keyId: "key_command_runtime_01", publicKeyFile: "keys/command.pem" }],
+        policyKeys: [
+          {
+            keyId: "key_policy_runtime_01",
+            publicKeyFile: "keys/policy.pem",
+            purposes: ["snapshot"],
+          },
+        ],
+      }),
+    );
     const commands = {
       nodeId: "node_runtime_control_01",
       trustFile,
     } as NonNullable<NodeRuntimeConfig["remoteCommands"]>;
     const trust = new ReloadableNodeRuntimeTrust(await loadNodeRuntimeTrust(commands), target);
     await ownerFile(resolve(keyDirectory, "command.pem"), publicPem(replacement));
-    await expect(loadNodeRuntimeTrust(commands).then((candidate) => trust.replace(candidate)))
-      .rejects.toMatchObject({ code: "invalid_config" });
+    await expect(
+      loadNodeRuntimeTrust(commands).then((candidate) => trust.replace(candidate)),
+    ).rejects.toMatchObject({ code: "invalid_config" });
     const signer = await trust.commandTrustStore.find("key_command_runtime_01");
     const message = Buffer.from("retained trust fixture");
-    expect(await signer?.verify({
-      message,
-      signature: sign(null, message, first.privateKey),
-    })).toBe(true);
+    expect(
+      await signer?.verify({
+        message,
+        signature: sign(null, message, first.privateKey),
+      }),
+    ).toBe(true);
   });
 });

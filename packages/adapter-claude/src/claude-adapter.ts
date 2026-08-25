@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
 import {
@@ -10,6 +10,8 @@ import {
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
+  type AdapterCapabilityActivationReceipt,
+  type AdapterCapabilityActivationRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
   type AdapterSession,
@@ -32,9 +34,7 @@ import {
 } from "./adapter-validation.js";
 import { buildManagedContextMessage } from "./context-message.js";
 import { ClaudeEventNormalizer } from "./normalize.js";
-import {
-  ClaudeManagedWriteController,
-} from "./managed-write.js";
+import { ClaudeManagedWriteController } from "./managed-write.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
 import { captureClaudeTurnResult } from "./turn-result.js";
@@ -88,16 +88,17 @@ export class ClaudeAdapter implements ProviderAdapter {
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
     assertAdapterMessage(request, "Claude start request");
     if (request.adapterId !== this.descriptor.adapterId) {
-      throw new ClaudeAdapterError("session_mismatch", "The start request adapter ID does not identify Claude.");
+      throw new ClaudeAdapterError(
+        "session_mismatch",
+        "The start request adapter ID does not identify Claude.",
+      );
     }
     const permissionMode =
       this.options.permissionMode ??
       (request.executionMode === "managed_write" ? "default" : "plan");
     const tools = [
       ...(this.options.tools ??
-        (request.executionMode === "managed_write"
-          ? MANAGED_WRITE_TOOLS
-          : READ_ONLY_TOOLS)),
+        (request.executionMode === "managed_write" ? MANAGED_WRITE_TOOLS : READ_ONLY_TOOLS)),
     ];
     const allowedTools =
       request.executionMode === "managed_write" ? MANAGED_WRITE_TOOLS : READ_ONLY_TOOLS;
@@ -112,8 +113,12 @@ export class ClaudeAdapter implements ProviderAdapter {
         "The Claude managed session execution mode is inconsistent with its permission and tool settings.",
       );
     }
-    const providerSessionId = this.uuid(this.createProviderSessionId(), "Claude provider session ID");
-    const client = await this.createClient(providerSessionId, permissionMode, tools);
+    const providerSessionId = this.uuid(
+      this.createProviderSessionId(),
+      "Claude provider session ID",
+    );
+    const activations = request.capabilityActivations ?? [];
+    const client = await this.createClient(providerSessionId, permissionMode, tools, activations);
     try {
       const session: AdapterSession = {
         kind: "session",
@@ -130,18 +135,42 @@ export class ClaudeAdapter implements ProviderAdapter {
         effectiveCapabilities: {
           ...this.descriptor.capabilities,
           commandExecution: "unsupported",
-          fileChanges:
-            request.executionMode === "managed_write" ? "supported" : "unsupported",
+          fileChanges: request.executionMode === "managed_write" ? "supported" : "unsupported",
         },
         startedAt: timestamp(this.now, "Claude session start time", request.requestedAt),
       };
       assertAdapterMessage(session, "Claude session");
-      this.sessions.add(session, client);
+      this.sessions.add(session, client, activations);
       return clone(session);
     } catch (error) {
       await client.close().catch(() => undefined);
       throw error;
     }
+  }
+
+  async confirmCapabilityActivation(
+    session: AdapterSession,
+  ): Promise<AdapterCapabilityActivationReceipt[]> {
+    const state = this.sessions.get(session);
+    if (state.activationConfirmed) {
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "Capability activation can be confirmed only once.",
+      );
+    }
+    if (state.capabilityActivations.length > 0) {
+      if (state.client.confirmCapabilities === undefined) {
+        throw new ClaudeAdapterError(
+          "capability_activation_failed",
+          "The Claude client cannot confirm capability state.",
+        );
+      }
+      await state.client.confirmCapabilities();
+    }
+    state.activationConfirmed = true;
+    return state.capabilityActivations.map((activation) =>
+      this.activationReceipt(session, activation),
+    );
   }
 
   async injectContext(
@@ -151,7 +180,10 @@ export class ClaudeAdapter implements ProviderAdapter {
     const state = this.sessions.get(session);
     assertAdapterMessage(envelope, "Claude context envelope");
     if (state.injectedTargetTurnIds.has(envelope.targetTurnId)) {
-      throw new ClaudeAdapterError("invalid_request", "Context cannot be injected twice into the same target turn.");
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "Context cannot be injected twice into the same target turn.",
+      );
     }
     const content = await buildManagedContextMessage(
       clone(state.session),
@@ -195,7 +227,10 @@ export class ClaudeAdapter implements ProviderAdapter {
   ): Promise<void> {
     const state = this.sessions.get(session);
     if (state.managedWrites !== undefined) {
-      throw new ClaudeAdapterError("invalid_request", "A managed write bridge is already attached.");
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "A managed write bridge is already attached.",
+      );
     }
     state.managedWrites = new ClaudeManagedWriteController({
       session: state.session,
@@ -221,13 +256,25 @@ export class ClaudeAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new ClaudeAdapterError("session_mismatch", "The turn request does not match the managed Claude session.");
+      throw new ClaudeAdapterError(
+        "session_mismatch",
+        "The turn request does not match the managed Claude session.",
+      );
     }
     if (!state.injectedTargetTurnIds.has(request.targetTurnId)) {
-      throw new ClaudeAdapterError("invalid_request", "The current target turn has no controlled context receipt.");
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "The current target turn has no controlled context receipt.",
+      );
     }
-    if (state.startedTargetTurnIds.has(request.targetTurnId) || state.activeProviderTurnId !== undefined) {
-      throw new ClaudeAdapterError("invalid_request", "The Claude turn has already started or is still active.");
+    if (
+      state.startedTargetTurnIds.has(request.targetTurnId) ||
+      state.activeProviderTurnId !== undefined
+    ) {
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "The Claude turn has already started or is still active.",
+      );
     }
     const providerTurnId = this.uuid(this.createProviderMessageId(), "Claude provider turn ID");
     state.activeProviderTurnId = providerTurnId;
@@ -260,10 +307,16 @@ export class ClaudeAdapter implements ProviderAdapter {
     return clone(turn);
   }
 
-  async *events(session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent> {
+  async *events(
+    session: AdapterSession,
+    signal: AbortSignal,
+  ): AsyncIterable<AdapterNormalizedEvent> {
     const state = this.sessions.get(session);
     if (state.eventStreamClaimed) {
-      throw new ClaudeAdapterError("invalid_request", "The Claude event stream can be opened only once per session.");
+      throw new ClaudeAdapterError(
+        "invalid_request",
+        "The Claude event stream can be opened only once per session.",
+      );
     }
     state.eventStreamClaimed = true;
     const normalizer = new ClaudeEventNormalizer({
@@ -314,10 +367,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     }
   }
 
-  async getTurnResult(
-    session: AdapterSession,
-    turn: AdapterTurn,
-  ): Promise<AdapterTurnResult> {
+  async getTurnResult(session: AdapterSession, turn: AdapterTurn): Promise<AdapterTurnResult> {
     const state = this.sessions.get(session);
     assertAdapterMessage(turn, "Claude turn");
     if (
@@ -327,7 +377,10 @@ export class ClaudeAdapter implements ProviderAdapter {
       turn.sessionId !== session.sessionId ||
       turn.providerSessionId !== session.providerSessionId
     ) {
-      throw new ClaudeAdapterError("session_mismatch", "The turn result request does not match the Claude session.");
+      throw new ClaudeAdapterError(
+        "session_mismatch",
+        "The turn result request does not match the Claude session.",
+      );
     }
     const captured = state.turnResults.get(turn.providerTurnId);
     if (captured === undefined) {
@@ -351,7 +404,10 @@ export class ClaudeAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new ClaudeAdapterError("session_mismatch", "The stop request does not match the managed Claude session.");
+      throw new ClaudeAdapterError(
+        "session_mismatch",
+        "The stop request does not match the managed Claude session.",
+      );
     }
     let stopFailure: ClaudeAdapterError | undefined;
     try {
@@ -388,6 +444,7 @@ export class ClaudeAdapter implements ProviderAdapter {
     providerSessionId: string,
     permissionMode: ClaudePermissionMode,
     tools: readonly string[],
+    capabilityActivations: readonly AdapterCapabilityActivationRequest[],
   ) {
     const clientOptions = {
       providerSessionId,
@@ -398,9 +455,50 @@ export class ClaudeAdapter implements ProviderAdapter {
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
       createMessageId: this.createProviderMessageId,
       tools: [...tools],
+      capabilityActivations: structuredClone(capabilityActivations),
     };
     if (this.options.clientFactory !== undefined) return this.options.clientFactory(clientOptions);
     return ClaudeSdkAgentClient.connect(clientOptions, this.options.sdkStartup);
+  }
+
+  private activationReceipt(
+    session: AdapterSession,
+    activation: AdapterCapabilityActivationRequest,
+  ): AdapterCapabilityActivationReceipt {
+    const evidence = activation.capabilityKind === "mcp_server" ? "mcp_connected" : "plugin_loaded";
+    const receipt: AdapterCapabilityActivationReceipt = {
+      kind: "capability_activation_receipt",
+      schemaVersion: 1,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      capabilityId: activation.capabilityId,
+      capabilityKind: activation.capabilityKind,
+      version: activation.version,
+      contentHash: activation.contentHash,
+      evidence,
+      activationDigest: `sha256:${createHash("sha256")
+        .update(
+          JSON.stringify({
+            capabilityId: activation.capabilityId,
+            version: activation.version,
+            contentHash: activation.contentHash,
+            adapterId: session.adapterId,
+            providerSessionId: session.providerSessionId,
+            evidence,
+          }),
+        )
+        .digest("hex")}`,
+      confirmedAt: timestamp(
+        this.now,
+        "Claude capability activation confirmation time",
+        session.startedAt,
+      ),
+    };
+    assertAdapterMessage(receipt, "Claude capability activation receipt");
+    return receipt;
   }
 
   private uuid(value: string, label: string): string {

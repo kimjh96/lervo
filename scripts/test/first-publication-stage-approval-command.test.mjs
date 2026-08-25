@@ -5,26 +5,18 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { authorizeCliFirstPublicationStageApproval } from
-  "../lib/cli-first-publication-stage-approval.mjs";
-import { parseFirstPublicationStageApprovalArguments } from
-  "../lib/first-publication-stage-approval-cli-arguments.mjs";
-import { createFirstPublicationStageApprovalDecision } from
-  "../lib/first-publication-stage-approval-decision.mjs";
-import { formatFirstPublicationStageApprovalAuthorization } from
-  "../lib/first-publication-stage-approval-formatter.mjs";
-import { createFirstPublicationStageReviewFixture } from
-  "./fixtures/first-publication-stage-review.mjs";
+import { authorizeCliFirstPublicationStageApproval } from "../lib/cli-first-publication-stage-approval.mjs";
+import { parseFirstPublicationStageApprovalArguments } from "../lib/first-publication-stage-approval-cli-arguments.mjs";
+import { createFirstPublicationStageApprovalDecision } from "../lib/first-publication-stage-approval-decision.mjs";
+import { formatFirstPublicationStageApprovalAuthorization } from "../lib/first-publication-stage-approval-formatter.mjs";
+import { createFirstPublicationStageReviewFixture } from "./fixtures/first-publication-stage-review.mjs";
 import {
   workflowExecutionAttempt,
   workflowExecutionRunId,
 } from "./fixtures/first-publication-workflow-execution.mjs";
-import { workflowReleaseTag } from
-  "./fixtures/first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./fixtures/first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./fixtures/first-publication-workflow-activation.mjs";
+import { workflowReleaseTag } from "./fixtures/first-publication-workflow-reachability.mjs";
+import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./fixtures/first-publication-workflow-activation.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 
@@ -71,11 +63,16 @@ describe("first-publication stage approval authorization command", () => {
       assert.deepEqual(JSON.parse(await readFile(value.outputPath, "utf8")), authorization);
       assert.deepEqual(await readFile(value.stageReviewReportPath), reportBefore);
       assert.deepEqual(await readFile(value.decisionPath), decisionBefore);
-      assert.match(formatFirstPublicationStageApprovalAuthorization(authorization),
-        /npm approve, reject, and public-status checks have not been performed/u);
-      await assert.rejects(authorizeCliFirstPublicationStageApproval(input(value), {
-        clock: () => "2026-08-21T10:16:30Z",
-      }), { code: "first_publication_stage_approval_output_exists" });
+      assert.match(
+        formatFirstPublicationStageApprovalAuthorization(authorization),
+        /npm approve, reject, and public-status checks have not been performed/u,
+      );
+      await assert.rejects(
+        authorizeCliFirstPublicationStageApproval(input(value), {
+          clock: () => "2026-08-21T10:16:30Z",
+        }),
+        { code: "first_publication_stage_approval_output_exists" },
+      );
     } finally {
       await rm(value.root, { recursive: true, force: true });
     }
@@ -84,22 +81,24 @@ describe("first-publication stage approval authorization command", () => {
   it("rejects source races before creating the authorization output", async () => {
     const value = await fixture();
     try {
-      await assert.rejects(authorizeCliFirstPublicationStageApproval(input(value), {
-        clock: () => "2026-08-21T10:16:30Z",
-        readSources: async (...args) => {
-          const { readFirstPublicationStageApprovalAuthorizationSources } = await import(
-            "../lib/first-publication-stage-approval-sources.mjs"
-          );
-          const sources = await readFirstPublicationStageApprovalAuthorizationSources(...args);
-          return {
-            ...sources,
-            assertUnchanged: async () => {
-              await writeFile(value.decisionPath, "{}\n");
-              await sources.assertUnchanged();
-            },
-          };
-        },
-      }), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        authorizeCliFirstPublicationStageApproval(input(value), {
+          clock: () => "2026-08-21T10:16:30Z",
+          readSources: async (...args) => {
+            const { readFirstPublicationStageApprovalAuthorizationSources } =
+              await import("../lib/first-publication-stage-approval-sources.mjs");
+            const sources = await readFirstPublicationStageApprovalAuthorizationSources(...args);
+            return {
+              ...sources,
+              assertUnchanged: async () => {
+                await writeFile(value.decisionPath, "{}\n");
+                await sources.assertUnchanged();
+              },
+            };
+          },
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
       await assert.rejects(readFile(value.outputPath));
     } finally {
       await rm(value.root, { recursive: true, force: true });
@@ -108,28 +107,38 @@ describe("first-publication stage approval authorization command", () => {
 
   it("accepts only exact write coordinates and absolute paths", () => {
     const valid = [
-      "--repository", workflowActivationRepository,
-      "--source-commit", workflowRemoteSourceCommit,
-      "--release-tag", workflowReleaseTag,
-      "--run-id", String(workflowExecutionRunId),
-      "--attempt", String(workflowExecutionAttempt),
-      "--stage-review-report", "/tmp/stage-review.json",
-      "--decision", "/tmp/decision.json",
-      "--output", "/tmp/authorization.json",
-      "--write", "--json",
+      "--repository",
+      workflowActivationRepository,
+      "--source-commit",
+      workflowRemoteSourceCommit,
+      "--release-tag",
+      workflowReleaseTag,
+      "--run-id",
+      String(workflowExecutionRunId),
+      "--attempt",
+      String(workflowExecutionAttempt),
+      "--stage-review-report",
+      "/tmp/stage-review.json",
+      "--decision",
+      "/tmp/decision.json",
+      "--output",
+      "/tmp/authorization.json",
+      "--write",
+      "--json",
     ];
     assert.equal(parseFirstPublicationStageApprovalArguments(valid).write, true);
     for (const args of [
       [],
       valid.filter((value) => value !== "--write"),
-      valid.map((value) => value === "/tmp/decision.json" ? "relative" : value),
+      valid.map((value) => (value === "/tmp/decision.json" ? "relative" : value)),
       [...valid, "--online"],
       [...valid, "--output", "/tmp/other.json"],
     ]) {
-      const result = spawnSync(process.execPath, [
-        "scripts/authorize-cli-first-publication-stage-approval.mjs",
-        ...args,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/authorize-cli-first-publication-stage-approval.mjs", ...args],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_stage_approval_arguments_invalid:/u);

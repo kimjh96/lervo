@@ -17,6 +17,22 @@ import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider failure boundaries", () => {
+  it("preserves capability activation failures raised while starting a provider", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude", { failActivationAtStart: true });
+    const run = coordinator(adapter, data.root, data.store).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "capability_activation_failed" });
+    expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+      failureCode: "capability_activation_failed",
+      retryable: false,
+    });
+    data.store.close();
+  });
+
   it("rejects a terminal signal that belongs to another provider turn", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex", { terminalTurnId: "foreign-turn" });
@@ -53,18 +69,12 @@ describe("managed provider failure boundaries", () => {
   it("fails closed before persisting signals beyond the configured provider bound", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex", { extraToolEvents: 3 });
-    const run = coordinator(
-      adapter,
-      data.root,
-      data.store,
-      undefined,
-      undefined,
-      undefined,
-      4,
-    ).run({
-      ...providerRunInput(),
-      repositoryRoot: data.root,
-    });
+    const run = coordinator(adapter, data.root, data.store, undefined, undefined, undefined, 4).run(
+      {
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      },
+    );
 
     await expect(run).rejects.toMatchObject({ code: "provider_stream_failed" });
     expect(adapter.stopReason).toBe("failed");
@@ -78,15 +88,9 @@ describe("managed provider failure boundaries", () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");
 
-    expect(() => coordinator(
-      adapter,
-      data.root,
-      data.store,
-      undefined,
-      undefined,
-      undefined,
-      0,
-    )).toThrow(expect.objectContaining({ code: "contract_validation_failed" }));
+    expect(() =>
+      coordinator(adapter, data.root, data.store, undefined, undefined, undefined, 0),
+    ).toThrow(expect.objectContaining({ code: "contract_validation_failed" }));
     expect(adapter.calls).not.toContain("start");
     expect(data.store.list({ runId })).toHaveLength(0);
     data.store.close();
@@ -108,11 +112,9 @@ describe("managed provider failure boundaries", () => {
   it("keeps telemetry failure distinct from provider stop failure", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");
-    const run = coordinator(
-      adapter,
-      data.root,
-      failOnEventType(data.store, "adapter.stopped"),
-    ).run({ ...providerRunInput(), repositoryRoot: data.root });
+    const run = coordinator(adapter, data.root, failOnEventType(data.store, "adapter.stopped")).run(
+      { ...providerRunInput(), repositoryRoot: data.root },
+    );
 
     await expect(run).rejects.toMatchObject({ code: "telemetry_recording_failed" });
     expect(adapter.calls.at(-1)).toBe("stop");
@@ -231,4 +233,3 @@ describe("managed provider failure boundaries", () => {
     data.store.close();
   });
 });
-

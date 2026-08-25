@@ -35,7 +35,13 @@ export function createHubHealthHttpHandler(options: HubHealthHttpHandlerOptions)
       return;
     }
     if (url.pathname === "/v1/health/live") {
-      sendHubJson(response, 200, { schemaVersion: 1, status: "live" }, HEALTH_RESPONSE_BYTES, headers);
+      sendHubJson(
+        response,
+        200,
+        { schemaVersion: 1, status: "live" },
+        HEALTH_RESPONSE_BYTES,
+        headers,
+      );
       return;
     }
     if (url.pathname !== "/v1/health/ready") {
@@ -52,11 +58,17 @@ export function createHubHealthHttpHandler(options: HubHealthHttpHandlerOptions)
         headers,
       );
     } catch {
-      sendHubJson(response, 503, {
-        schemaVersion: 1,
-        status: "not_ready",
-        failureCode: "storage_unavailable",
-      }, HEALTH_RESPONSE_BYTES, headers);
+      sendHubJson(
+        response,
+        503,
+        {
+          schemaVersion: 1,
+          status: "not_ready",
+          failureCode: "storage_unavailable",
+        },
+        HEALTH_RESPONSE_BYTES,
+        headers,
+      );
     }
   };
 }

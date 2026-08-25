@@ -1,11 +1,17 @@
 function reviewEndpoint(coordinates) {
-  const url = new URL(`/v1/control/projects/${encodeURIComponent(coordinates.projectId)}/commands/${encodeURIComponent(coordinates.deliveryId)}`, location.origin);
+  const url = new URL(
+    `/v1/control/projects/${encodeURIComponent(coordinates.projectId)}/commands/${encodeURIComponent(coordinates.deliveryId)}`,
+    location.origin,
+  );
   url.searchParams.set("destinationId", coordinates.destinationId);
   return url;
 }
 
 function approvalEndpoint(review) {
-  const url = new URL(`/v1/policy/projects/${encodeURIComponent(review.projectId)}/approvals`, location.origin);
+  const url = new URL(
+    `/v1/policy/projects/${encodeURIComponent(review.projectId)}/approvals`,
+    location.origin,
+  );
   url.searchParams.set("destinationId", review.destinationId);
   url.searchParams.set("projectIdentityHash", review.projectIdentityHash);
   return url;
@@ -15,9 +21,11 @@ async function readResponse(response, operation) {
   if (response.ok) return response.json();
   if (response.status === 401) throw new Error("The token could not be authenticated.");
   if (response.status === 403) {
-    throw new Error(operation === "review"
-      ? "The conversation participant does not match the Hub token principal, or the token lacks read access."
-      : "This token does not have approval permission.");
+    throw new Error(
+      operation === "review"
+        ? "The conversation participant does not match the Hub token principal, or the token lacks read access."
+        : "This token does not have approval permission.",
+    );
   }
   if (response.status === 404) throw new Error("The command to review was not found.");
   throw new Error("The Hub could not process the request.");

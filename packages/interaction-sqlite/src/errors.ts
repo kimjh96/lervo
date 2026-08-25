@@ -1,9 +1,5 @@
 export type InteractionSQLiteErrorCode =
-  | "closed"
-  | "capacity_exceeded"
-  | "integrity_failed"
-  | "lease_mismatch"
-  | "write_failed";
+  "closed" | "capacity_exceeded" | "integrity_failed" | "lease_mismatch" | "write_failed";
 
 export class InteractionSQLiteError extends Error {
   constructor(

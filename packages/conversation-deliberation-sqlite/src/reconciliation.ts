@@ -25,8 +25,12 @@ function sameSummary(
   left: NonNullable<ReturnType<typeof decodeConversationDeliberationSummary>>,
   right: ReconciliationInput["summary"],
 ): boolean {
-  return left.deliberationId === right.deliberationId && left.status === right.status &&
-    left.artifactCount === right.artifactCount && left.nextAction === right.nextAction;
+  return (
+    left.deliberationId === right.deliberationId &&
+    left.status === right.status &&
+    left.artifactCount === right.artifactCount &&
+    left.nextAction === right.nextAction
+  );
 }
 
 function rollback(database: DatabaseSync, error: unknown): never {
@@ -56,15 +60,20 @@ export function reconcileConversationDeliberationRecord(
   },
 ): void {
   assertConversationDeliberationLookup(input);
-  if (!conversationDeliberationPatterns.reconciliationSourceKind.test(input.sourceKind) ||
+  if (
+    !conversationDeliberationPatterns.reconciliationSourceKind.test(input.sourceKind) ||
     !/^sha256:[a-f0-9]{64}$/u.test(input.requestHash) ||
-    !/^sha256:[a-f0-9]{64}$/u.test(input.evidenceHash)) {
+    !/^sha256:[a-f0-9]{64}$/u.test(input.evidenceHash)
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation queue reconciliation coordinates are invalid.",
     );
   }
-  const reconciledAtMs = conversationDeliberationMilliseconds(input.reconciledAt, "deliberation reconciliation");
+  const reconciledAtMs = conversationDeliberationMilliseconds(
+    input.reconciledAt,
+    "deliberation reconciliation",
+  );
   const encodedSummary = JSON.stringify(input.summary);
   decodeConversationDeliberationSummary(encodedSummary, input.deliberationId);
   if (input.summary.status === "unknown") {
@@ -76,10 +85,14 @@ export function reconcileConversationDeliberationRecord(
 
   database.exec("BEGIN IMMEDIATE;");
   try {
-    const row = database.prepare(`
+    const row = database
+      .prepare(
+        `
       SELECT * FROM ${options.table}
       WHERE project_id = ? AND deliberation_id = ? AND request_hash = ?
-    `).get(input.projectId, input.deliberationId, input.requestHash);
+    `,
+      )
+      .get(input.projectId, input.deliberationId, input.requestHash);
     if (row === undefined) {
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",
@@ -88,7 +101,9 @@ export function reconcileConversationDeliberationRecord(
     }
     const job = options.decode(row);
     if (
-      job.state === "settled" && job.reconciliation !== null && job.summary !== null &&
+      job.state === "settled" &&
+      job.reconciliation !== null &&
+      job.summary !== null &&
       sameSummary(job.summary, input.summary)
     ) {
       database.exec("COMMIT;");
@@ -101,8 +116,10 @@ export function reconcileConversationDeliberationRecord(
       );
     }
     const uncertainAt = row.terminal_at;
-    if (typeof uncertainAt !== "string" ||
-      reconciledAtMs < conversationDeliberationMilliseconds(uncertainAt, "deliberation uncertainty")) {
+    if (
+      typeof uncertainAt !== "string" ||
+      reconciledAtMs < conversationDeliberationMilliseconds(uncertainAt, "deliberation uncertainty")
+    ) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
         "The conversation deliberation queue reconciliation is earlier than the uncertain state.",
@@ -116,20 +133,24 @@ export function reconcileConversationDeliberationRecord(
       uncertainAt,
       reconciledAt: input.reconciledAt,
     });
-    const updated = database.prepare(`
+    const updated = database
+      .prepare(
+        `
       UPDATE ${options.table} SET
         state = 'settled', summary_json = ?, failure_code = NULL,
         terminal_at = ?, reconciliation_json = ?
       WHERE project_id = ? AND deliberation_id = ? AND request_hash = ?
         AND state = 'uncertain'
-    `).run(
-      encodedSummary,
-      input.reconciledAt,
-      reconciliation,
-      input.projectId,
-      input.deliberationId,
-      input.requestHash,
-    );
+    `,
+      )
+      .run(
+        encodedSummary,
+        input.reconciledAt,
+        reconciliation,
+        input.projectId,
+        input.deliberationId,
+        input.requestHash,
+      );
     if (updated.changes !== 1) {
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",

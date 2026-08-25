@@ -30,8 +30,10 @@ export async function applyDocumentMigration(
 ): Promise<ApplyDocumentMigrationResult> {
   const appliedAt = input.appliedAt ?? new Date().toISOString();
   if (
-    !TIMESTAMP.test(appliedAt) || Number.isNaN(Date.parse(appliedAt)) ||
-    input.eventRecorder === null || typeof input.eventRecorder?.record !== "function"
+    !TIMESTAMP.test(appliedAt) ||
+    Number.isNaN(Date.parse(appliedAt)) ||
+    input.eventRecorder === null ||
+    typeof input.eventRecorder?.record !== "function"
   ) {
     throw new DocumentMigrationError(
       "invalid_approval",

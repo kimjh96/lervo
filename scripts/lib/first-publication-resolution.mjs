@@ -3,8 +3,7 @@ import {
   validateFirstPublicationReconciliationReportDocument,
   validateFirstPublicationReconciliationReportSources,
 } from "./first-publication-reconciliation-reader.mjs";
-import { validateFirstPublicationResolutionDecision } from
-  "./first-publication-resolution-decision.mjs";
+import { validateFirstPublicationResolutionDecision } from "./first-publication-resolution-decision.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 
@@ -43,8 +42,12 @@ function fail(code = "first_publication_resolution_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -74,27 +77,34 @@ export function validateFirstPublicationResolutionDocument(resolution) {
   const resolutionBody = body(resolution ?? {});
   timestamp(resolution?.resolvedAt);
   try {
-    validateFirstPublicationReconciliationReportDocument(
-      resolution?.freshReconciliationReport,
-    );
+    validateFirstPublicationReconciliationReportDocument(resolution?.freshReconciliationReport);
   } catch {
     fail();
   }
   if (
     !exactKeys(resolution, [...Object.keys(resolutionBody), "resolutionDigest"]) ||
-    resolution.schemaVersion !== 1 || resolution.status !== "transition_review_eligible" ||
+    resolution.schemaVersion !== 1 ||
+    resolution.status !== "transition_review_eligible" ||
     resolution.resolutionType !== "reconciled_first_publication" ||
     !exactKeys(resolution.target, ["registry", "package", "version", "distTag", "access"]) ||
-    resolution.target.registry !== npmPublicRegistry || resolution.target.package !== "@lervo/cli" ||
+    resolution.target.registry !== npmPublicRegistry ||
+    resolution.target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(resolution.target.version ?? "") ||
     !["latest", "next"].includes(resolution.target.distTag) ||
     resolution.target.access !== "public" ||
     !exactKeys(resolution.binding, [
-      "bootstrapDigest", "armingAuthorizationDigest", "publicationAuthorizationDigest",
-      "reservationId", "reservationDigest", "terminalRecordDigest",
-      "reviewedReconciliationReportDigest", "freshReconciliationReportDigest",
-      "decisionId", "decisionDigest",
-    ]) || !digestPattern.test(resolution.binding.bootstrapDigest ?? "") ||
+      "bootstrapDigest",
+      "armingAuthorizationDigest",
+      "publicationAuthorizationDigest",
+      "reservationId",
+      "reservationDigest",
+      "terminalRecordDigest",
+      "reviewedReconciliationReportDigest",
+      "freshReconciliationReportDigest",
+      "decisionId",
+      "decisionDigest",
+    ]) ||
+    !digestPattern.test(resolution.binding.bootstrapDigest ?? "") ||
     !digestPattern.test(resolution.binding.armingAuthorizationDigest ?? "") ||
     !digestPattern.test(resolution.binding.publicationAuthorizationDigest ?? "") ||
     !reservationIdPattern.test(resolution.binding.reservationId ?? "") ||
@@ -110,13 +120,16 @@ export function validateFirstPublicationResolutionDocument(resolution) {
     resolution.freshReconciliationReport.observation.observedAt !== resolution.resolvedAt ||
     canonicalJson(resolution.authority) !== canonicalJson(authority) ||
     canonicalJson(resolution.requiredAtTransition) !== canonicalJson(freshChecks) ||
-    canonicalJson(resolution.preservedState) !== canonicalJson({
-      terminal: "publication_unknown",
-      terminalMutation: "forbidden",
-    }) || canonicalJson(resolution.sideEffects) !== canonicalJson(sideEffects) ||
+    canonicalJson(resolution.preservedState) !==
+      canonicalJson({
+        terminal: "publication_unknown",
+        terminalMutation: "forbidden",
+      }) ||
+    canonicalJson(resolution.sideEffects) !== canonicalJson(sideEffects) ||
     !digestPattern.test(resolution.resolutionDigest ?? "") ||
     resolution.resolutionDigest !== canonicalDigest(resolutionBody)
-  ) fail();
+  )
+    fail();
   return resolution;
 }
 
@@ -146,7 +159,8 @@ export function createFirstPublicationResolution({
     timestamp(freshReconciliationReport.observation.observedAt) <
       timestamp(reconciliationReport.observation.observedAt) ||
     timestamp(resolvedAt) < timestamp(freshReconciliationReport.observation.observedAt)
-  ) fail("first_publication_resolution_fresh_observation_required");
+  )
+    fail("first_publication_resolution_fresh_observation_required");
   validateFirstPublicationResolutionDecision(decision, {
     reconciliationReport,
     checkedAt: resolvedAt,

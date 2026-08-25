@@ -34,7 +34,9 @@ function jsonValue(value: unknown): Json {
 }
 
 export function digest(value: unknown): string {
-  return `sha256:${createHash("sha256").update(JSON.stringify(jsonValue(value))).digest("hex")}`;
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(jsonValue(value)))
+    .digest("hex")}`;
 }
 
 export function eventTime(
@@ -71,7 +73,12 @@ export function repositoryPath(root: string, value: unknown): string | null {
   if (source === undefined || source.includes("\0")) return null;
   const candidate = isAbsolute(source) ? relative(root, source) : normalize(source);
   const portable = candidate.split(sep).join("/");
-  if (portable.length === 0 || portable === "." || portable === ".." || portable.startsWith("../")) {
+  if (
+    portable.length === 0 ||
+    portable === "." ||
+    portable === ".." ||
+    portable.startsWith("../")
+  ) {
     return null;
   }
   return portable;

@@ -5,12 +5,9 @@ import {
   inspectFirstPublicationStageOnlyWorkflow,
   stagePublicationPackageScript,
 } from "./first-publication-stage-only-policy.mjs";
-import { validateFirstPublicationWorkflowActivationReceiptDocument } from
-  "./first-publication-workflow-activation-receipt.mjs";
-import { validateFirstPublicationWorkflowActivationPostApplyReportDocument } from
-  "./first-publication-workflow-activation-post-apply-report.mjs";
-import { canonicalDigest, canonicalJson, sha256 } from
-  "./release-artifact-manifest.mjs";
+import { validateFirstPublicationWorkflowActivationReceiptDocument } from "./first-publication-workflow-activation-receipt.mjs";
+import { validateFirstPublicationWorkflowActivationPostApplyReportDocument } from "./first-publication-workflow-activation-post-apply-report.mjs";
+import { canonicalDigest, canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 import {
   inspectTrustedPublisherPackage,
@@ -43,8 +40,8 @@ function timestamp(value) {
 }
 
 function stageCommandCheck(rootPackage) {
-  const ready = rootPackage?.scripts?.["release:publication:stage"] ===
-    stagePublicationPackageScript;
+  const ready =
+    rootPackage?.scripts?.["release:publication:stage"] === stagePublicationPackageScript;
   return {
     id: "stage_publication_command",
     status: ready ? "ready" : "blocked",
@@ -52,10 +49,7 @@ function stageCommandCheck(rootPackage) {
   };
 }
 
-export function assertFirstPublicationWorkflowActivationReceiptOutput(
-  receipt,
-  workflowSnapshot,
-) {
+export function assertFirstPublicationWorkflowActivationReceiptOutput(receipt, workflowSnapshot) {
   if (
     !Buffer.isBuffer(workflowSnapshot?.contents) ||
     workflowSnapshot.byteCount !== workflowSnapshot.contents.length ||
@@ -96,10 +90,7 @@ function reportBody(input) {
     inspectTrustedPublisherPackage(input.cliPackage, input.repository),
     inspectFirstPublicationStageOnlyWorkflow(input.workflow),
     inspectFirstPublicationNpmStageTrust(input.npmObservation, input.repository),
-    inspectFirstPublicationGitHubStageEnvironment(
-      input.githubObservation,
-      input.repository,
-    ),
+    inspectFirstPublicationGitHubStageEnvironment(input.githubObservation, input.repository),
   ];
   if (checks.some(({ status }) => status !== "ready")) {
     fail(

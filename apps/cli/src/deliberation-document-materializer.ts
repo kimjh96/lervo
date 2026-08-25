@@ -18,10 +18,14 @@ export function repositoryRelativePath(root: string, path: string): string {
 
 function safePathSegment(value: string, label: string): string {
   if (
-    value.length === 0 || value === "." || value === ".." ||
-    value.includes("/") || value.includes("\\") ||
+    value.length === 0 ||
+    value === "." ||
+    value === ".." ||
+    value.includes("/") ||
+    value.includes("\\") ||
     /[\u0000-\u001f\u007f]/u.test(value)
-  ) throw new Error(`${label} is not a safe single path segment.`);
+  )
+    throw new Error(`${label} is not a safe single path segment.`);
   return value;
 }
 
@@ -40,7 +44,10 @@ export async function materializeDeliberationDocument(input: {
   if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) {
     throw new Error("The deliberation runtime document root is not a safe directory.");
   }
-  const directoryName = safePathSegment(input.directoryName, "Deliberation document directory name");
+  const directoryName = safePathSegment(
+    input.directoryName,
+    "Deliberation document directory name",
+  );
   const filename = safePathSegment(input.filename, "Deliberation document filename");
   const temporary = await mkdtemp(resolve(input.deliberationRoot, ".document-"));
   const finalDirectory = resolve(input.deliberationRoot, directoryName);
@@ -55,11 +62,10 @@ export async function materializeDeliberationDocument(input: {
   try {
     await Promise.all([
       writeFile(contentPath, input.content, { flag: "wx", mode: 0o600 }),
-      writeFile(
-        resolve(temporary, "manifest.json"),
-        `${JSON.stringify(manifest, null, 2)}\n`,
-        { flag: "wx", mode: 0o600 },
-      ),
+      writeFile(resolve(temporary, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, {
+        flag: "wx",
+        mode: 0o600,
+      }),
     ]);
     await rename(temporary, finalDirectory);
   } catch (error) {

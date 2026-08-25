@@ -46,9 +46,12 @@ for (const [name, manifest] of manifests) {
       failures.push(`${name} package must not depend on ${dependency} app`);
     }
     if (
-      name.endsWith("-contract") && target !== undefined &&
-      dependency !== "@lervo/schemas" && !dependency.endsWith("-contract")
-    ) failures.push(`${name} contract must not depend on ${dependency} implementation`);
+      name.endsWith("-contract") &&
+      target !== undefined &&
+      dependency !== "@lervo/schemas" &&
+      !dependency.endsWith("-contract")
+    )
+      failures.push(`${name} contract must not depend on ${dependency} implementation`);
   }
 }
 

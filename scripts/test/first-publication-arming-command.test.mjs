@@ -10,8 +10,7 @@ import {
   authorizeCliFirstPublicationArming,
   writeFirstPublicationArmingAuthorization,
 } from "../lib/cli-first-publication-arming.mjs";
-import { readFirstPublicationArmingSources } from
-  "../lib/first-publication-arming-sources.mjs";
+import { readFirstPublicationArmingSources } from "../lib/first-publication-arming-sources.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -63,10 +62,9 @@ describe("first-publication arming command", () => {
       const outputPath = resolve(prepared.root, "arming.json");
       await writeFirstPublicationArmingAuthorization(outputPath, authorization);
       assert.deepEqual(JSON.parse(await readFile(outputPath, "utf8")), authorization);
-      await assert.rejects(
-        writeFirstPublicationArmingAuthorization(outputPath, authorization),
-        { code: "EEXIST" },
-      );
+      await assert.rejects(writeFirstPublicationArmingAuthorization(outputPath, authorization), {
+        code: "EEXIST",
+      });
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -91,14 +89,20 @@ describe("first-publication arming command", () => {
 
     const changed = await sources();
     try {
-      await assert.rejects(authorizeCliFirstPublicationArming(changed.options, {
-        now: () => "2026-08-21T03:00:30Z",
-        readSources: async (options) => {
-          const result = await readFirstPublicationArmingSources(options);
-          await writeFile(options.decisionPath, `${JSON.stringify({ changed: true }, null, 2)}\n`);
-          return result;
-        },
-      }), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        authorizeCliFirstPublicationArming(changed.options, {
+          now: () => "2026-08-21T03:00:30Z",
+          readSources: async (options) => {
+            const result = await readFirstPublicationArmingSources(options);
+            await writeFile(
+              options.decisionPath,
+              `${JSON.stringify({ changed: true }, null, 2)}\n`,
+            );
+            return result;
+          },
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(changed.root, { recursive: true, force: true });
     }
@@ -107,25 +111,46 @@ describe("first-publication arming command", () => {
   it("rejects relative, duplicate, online, and unknown arguments before source reads", () => {
     const cases = [
       [
-        "--publication-authorization", "relative.json", "--bootstrap", "/bootstrap.json",
-        "--decision", "/decision.json", "--output", "/arming.json",
+        "--publication-authorization",
+        "relative.json",
+        "--bootstrap",
+        "/bootstrap.json",
+        "--decision",
+        "/decision.json",
+        "--output",
+        "/arming.json",
       ],
       [
-        "--publication-authorization", "/publication.json", "--bootstrap", "/bootstrap.json",
-        "--decision", "/decision.json", "--decision", "/other.json",
-        "--output", "/arming.json",
+        "--publication-authorization",
+        "/publication.json",
+        "--bootstrap",
+        "/bootstrap.json",
+        "--decision",
+        "/decision.json",
+        "--decision",
+        "/other.json",
+        "--output",
+        "/arming.json",
       ],
       [
-        "--publication-authorization", "/publication.json", "--bootstrap", "/bootstrap.json",
-        "--decision", "/decision.json", "--output", "/arming.json", "--online",
+        "--publication-authorization",
+        "/publication.json",
+        "--bootstrap",
+        "/bootstrap.json",
+        "--decision",
+        "/decision.json",
+        "--output",
+        "/arming.json",
+        "--online",
       ],
       ["--unknown"],
     ];
     for (const args of cases) {
-      const result = spawnSync(process.execPath, [
-        "scripts/authorize-cli-first-publication-arming.mjs",
-        ...args,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/authorize-cli-first-publication-arming.mjs", ...args],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_arming_arguments_invalid:/u);

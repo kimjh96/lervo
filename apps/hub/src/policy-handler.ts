@@ -17,24 +17,14 @@ import {
 } from "@lervo/schemas";
 
 import type { HubRequestAuthenticator } from "./auth.js";
-import {
-  HubHttpRequestTooLargeError,
-  readBoundedJsonBody,
-} from "./body.js";
-import {
-  matchHubPolicyRoute,
-  policyQuery,
-} from "./policy-request.js";
+import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
+import { matchHubPolicyRoute, policyQuery } from "./policy-request.js";
 import {
   assertEmptyHubRequestBody,
   InvalidHubHttpRequestError,
   singleAuthorizationHeader,
 } from "./request.js";
-import {
-  resolveHubHttpMaxResponseBytes,
-  sendHubError,
-  sendHubJson,
-} from "./response.js";
+import { resolveHubHttpMaxResponseBytes, sendHubError, sendHubJson } from "./response.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 262_144;
 
@@ -115,7 +105,9 @@ export function createHubPolicyHttpHandler(options: HubPolicyHttpHandlerOptions)
         });
         return;
       }
-      const principal = await options.authenticator.authenticate(singleAuthorizationHeader(request));
+      const principal = await options.authenticator.authenticate(
+        singleAuthorizationHeader(request),
+      );
       if (principal === null) {
         sendHubError(response, 401, "unauthorized", maxResponseBytes, {
           ...identityHeaders,
@@ -124,14 +116,17 @@ export function createHubPolicyHttpHandler(options: HubPolicyHttpHandlerOptions)
         return;
       }
       const query = policyQuery(url.searchParams, route.kind === "bundle");
-      const inScope = principal.projects.some((project) =>
-        project.destinationId === query.destinationId && project.projectId === route.projectId
+      const inScope = principal.projects.some(
+        (project) =>
+          project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
-      const permitted = route.kind === "bundle"
-        ? principal.permissions.includes("policy.read")
-        : route.kind === "snapshots"
-          ? principal.permissions.includes("policy.write")
-          : principal.permissions.includes("approval.write") || principal.permissions.includes("policy.write");
+      const permitted =
+        route.kind === "bundle"
+          ? principal.permissions.includes("policy.read")
+          : route.kind === "snapshots"
+            ? principal.permissions.includes("policy.write")
+            : principal.permissions.includes("approval.write") ||
+              principal.permissions.includes("policy.write");
       if (!inScope || !permitted) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
         return;
@@ -147,12 +142,18 @@ export function createHubPolicyHttpHandler(options: HubPolicyHttpHandlerOptions)
           target,
           currentSnapshotId: query.currentSnapshotId,
         });
-        sendHubJson(response, 200, {
-          schemaVersion: 1,
-          destinationId: query.destinationId,
-          target,
-          bundle,
-        }, maxResponseBytes, identityHeaders);
+        sendHubJson(
+          response,
+          200,
+          {
+            schemaVersion: 1,
+            destinationId: query.destinationId,
+            target,
+            bundle,
+          },
+          maxResponseBytes,
+          identityHeaders,
+        );
         return;
       }
 
@@ -217,10 +218,16 @@ export function createHubPolicyHttpHandler(options: HubPolicyHttpHandlerOptions)
           },
         });
       }
-      sendHubJson(response, result.status === "published" ? 201 : 200, {
-        schemaVersion: 1,
-        result,
-      }, maxResponseBytes, identityHeaders);
+      sendHubJson(
+        response,
+        result.status === "published" ? 201 : 200,
+        {
+          schemaVersion: 1,
+          result,
+        },
+        maxResponseBytes,
+        identityHeaders,
+      );
     } catch (error) {
       if (error instanceof HubHttpRequestTooLargeError) {
         sendHubError(response, 413, "request_too_large", maxResponseBytes, identityHeaders);

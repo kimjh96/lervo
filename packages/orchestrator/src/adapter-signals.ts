@@ -1,8 +1,4 @@
-import {
-  type AdapterNormalizedEvent,
-  type AdapterSession,
-  validateSchema,
-} from "@lervo/schemas";
+import { type AdapterNormalizedEvent, type AdapterSession, validateSchema } from "@lervo/schemas";
 
 import { ManagedContextError, type ManagedRunCoordinates } from "./types.js";
 

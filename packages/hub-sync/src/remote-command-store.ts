@@ -7,11 +7,7 @@ import {
 } from "@lervo/schemas";
 
 export type HubRemoteCommandQueueStatus =
-  | "pending"
-  | "leased"
-  | "completed"
-  | "rejected"
-  | "expired";
+  "pending" | "leased" | "completed" | "rejected" | "expired";
 
 export interface HubRemoteCommandEnqueueResult {
   status: "queued" | "duplicate";

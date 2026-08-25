@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@lervo/project": "workspace:*"
+    "@lervo/project": "workspace:*",
+    "@lervo/sync-contract": "workspace:*"
   }
 }

@@ -151,7 +151,8 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
     await Promise.race([
       this.started,
       new Promise<void>((resolveAbort) =>
-        signal.addEventListener("abort", () => resolveAbort(), { once: true })),
+        signal.addEventListener("abort", () => resolveAbort(), { once: true }),
+      ),
     ]);
     if (signal.aborted || this.turn === undefined) return;
     yield {
@@ -196,7 +197,6 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
   }
 }
 
-
 export function sequence() {
   let value = 0;
   return (prefix: string) => `${prefix}_${String(++value).padStart(16, "0")}`;
@@ -214,11 +214,13 @@ export function clock() {
 export async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-deliberation-"));
   roots.push(root);
-  await applyInitPlan(await createInitPlan({
-    root,
-    projectId: "prj_cli_deliberation",
-    now: new Date("2026-08-21T00:00:00Z"),
-  }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_cli_deliberation",
+      now: new Date("2026-08-21T00:00:00Z"),
+    }),
+  );
   await mkdir(resolve(root, "src"));
   await mkdir(resolve(root, ".lervo/verifications"));
   await writeFile(

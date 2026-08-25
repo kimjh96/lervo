@@ -56,7 +56,10 @@ export class PolicyBackedRemoteCommandPolicy {
   > {
     const evaluatedAtMs = Date.parse(input.evaluatedAt);
     if (!Number.isFinite(evaluatedAtMs)) {
-      throw new PolicyRuntimeError("policy_evaluation_failed", "The policy evaluation time is invalid.");
+      throw new PolicyRuntimeError(
+        "policy_evaluation_failed",
+        "The policy evaluation time is invalid.",
+      );
     }
     let localDecisions;
     let envelope;
@@ -66,24 +69,38 @@ export class PolicyBackedRemoteCommandPolicy {
         this.options.store.getCurrentSnapshot(),
       ]);
     } catch (error) {
-      throw new PolicyRuntimeError("policy_store_failed", "Could not read the policy evaluation source.", { cause: error });
+      throw new PolicyRuntimeError(
+        "policy_store_failed",
+        "Could not read the policy evaluation source.",
+        { cause: error },
+      );
     }
     if (!Array.isArray(localDecisions) || localDecisions.length < 1 || localDecisions.length > 7) {
-      throw new PolicyRuntimeError("policy_evaluation_failed", "The local capability policy result is invalid.");
+      throw new PolicyRuntimeError(
+        "policy_evaluation_failed",
+        "The local capability policy result is invalid.",
+      );
     }
     const capabilitySet = new Set<string>();
     for (const entry of localDecisions) {
       if (
         capabilitySet.has(entry.capability) ||
         !["allow", "deny", "require_approval"].includes(entry.decision)
-      ) throw new PolicyRuntimeError("policy_evaluation_failed", "The local capability policy result is duplicated or invalid.");
+      )
+        throw new PolicyRuntimeError(
+          "policy_evaluation_failed",
+          "The local capability policy result is duplicated or invalid.",
+        );
       capabilitySet.add(entry.capability);
     }
 
     const snapshot = envelope?.snapshot ?? null;
     if (snapshot !== null) {
       assertPolicySnapshot(snapshot);
-      if (evaluatedAtMs < Date.parse(snapshot.issuedAt) || evaluatedAtMs > Date.parse(snapshot.expiresAt)) {
+      if (
+        evaluatedAtMs < Date.parse(snapshot.issuedAt) ||
+        evaluatedAtMs > Date.parse(snapshot.expiresAt)
+      ) {
         return { status: "denied", reasonCode: "hub_policy_not_current" };
       }
       await verifyPolicyEnvelope({
@@ -99,20 +116,27 @@ export class PolicyBackedRemoteCommandPolicy {
     const approvalIds: string[] = [];
     let approvedRepositoryPaths: string[] = [];
     for (const entry of localDecisions) {
-      const hubRule = snapshot?.rules.find((rule) =>
-        rule.roleId === input.command.action.roleId &&
-        rule.risk === input.command.action.risk &&
-        rule.capability === entry.capability
+      const hubRule = snapshot?.rules.find(
+        (rule) =>
+          rule.roleId === input.command.action.roleId &&
+          rule.risk === input.command.action.risk &&
+          rule.capability === entry.capability,
       );
-      const decision = hubRule === undefined
-        ? entry.decision
-        : stricter(entry.decision, hubRule.decision);
+      const decision =
+        hubRule === undefined ? entry.decision : stricter(entry.decision, hubRule.decision);
       if (decision === "deny") {
-        return { status: "denied", reasonCode: hubRule?.decision === "deny" ? "hub_policy_denied" : "local_policy_denied" };
+        return {
+          status: "denied",
+          reasonCode: hubRule?.decision === "deny" ? "hub_policy_denied" : "local_policy_denied",
+        };
       }
       if (decision !== "require_approval") continue;
       if (snapshot === null) {
-        return { status: "approval_required", reasonCode: "approval_snapshot_missing", capability: entry.capability };
+        return {
+          status: "approval_required",
+          reasonCode: "approval_snapshot_missing",
+          capability: entry.capability,
+        };
       }
       let states;
       try {
@@ -123,7 +147,9 @@ export class PolicyBackedRemoteCommandPolicy {
           capability: entry.capability,
         });
       } catch (error) {
-        throw new PolicyRuntimeError("policy_store_failed", "Could not read the policy approval.", { cause: error });
+        throw new PolicyRuntimeError("policy_store_failed", "Could not read the policy approval.", {
+          cause: error,
+        });
       }
       let accepted: string | null = null;
       for (const state of states) {
@@ -170,20 +196,25 @@ export class PolicyBackedRemoteCommandPolicy {
           approval.commandHash !== calculateRemoteCommandHash(input.command) ||
           evaluatedAtMs < Date.parse(approval.grantedAt) ||
           evaluatedAtMs > Date.parse(approval.expiresAt) ||
-          (state.revocation !== null && evaluatedAtMs >= Date.parse(state.revocation.revocation.revokedAt))
-        ) continue;
+          (state.revocation !== null &&
+            evaluatedAtMs >= Date.parse(state.revocation.revocation.revokedAt))
+        )
+          continue;
         accepted = approval.approvalId;
         break;
       }
       if (accepted === null) {
-        return { status: "approval_required", reasonCode: "active_approval_missing", capability: entry.capability };
+        return {
+          status: "approval_required",
+          reasonCode: "active_approval_missing",
+          capability: entry.capability,
+        };
       }
       approvalIds.push(accepted);
       if (entry.capability === "filesystem.write") {
         const approved = states.find((state) => state.approval.approval.approvalId === accepted);
-        approvedRepositoryPaths = approved === undefined
-          ? []
-          : [...approved.approval.approval.repositoryPaths];
+        approvedRepositoryPaths =
+          approved === undefined ? [] : [...approved.approval.approval.repositoryPaths];
       }
     }
     return {

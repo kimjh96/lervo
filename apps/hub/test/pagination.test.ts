@@ -4,13 +4,17 @@ import { createCursorPager } from "../assets/trace-pagination.js";
 
 describe("Hub trace web cursor pager", () => {
   it("replaces the current page and can return to the previous cursor", async () => {
-    const load = vi.fn(async (cursor: string | null) => cursor === null ? {
-      items: ["first page"],
-      nextCursor: "cursor-two",
-    } : {
-      items: ["second page"],
-      nextCursor: null,
-    });
+    const load = vi.fn(async (cursor: string | null) =>
+      cursor === null
+        ? {
+            items: ["first page"],
+            nextCursor: "cursor-two",
+          }
+        : {
+            items: ["second page"],
+            nextCursor: null,
+          },
+    );
     const pager = createCursorPager(load);
 
     await expect(pager.firstPage()).resolves.toMatchObject({

@@ -70,10 +70,7 @@ function coversScope(actual: ContextScope, required: ContextScope): boolean {
   return required.sections.every((section) => actualSections.has(section));
 }
 
-function isSameContext(
-  evidence: ContextEvidence,
-  coordinates: ContextCoordinates,
-): boolean {
+function isSameContext(evidence: ContextEvidence, coordinates: ContextCoordinates): boolean {
   return (
     evidence.projectId === coordinates.projectId &&
     evidence.runId === coordinates.runId &&
@@ -107,9 +104,7 @@ export function evaluateWriteContext(input: {
   requiredDocuments: readonly RequiredContextDocument[];
   evidence: readonly ContextEvidence[];
 }): WriteContextDecision {
-  const relevantEvidence = input.evidence.filter((item) =>
-    isSameContext(item, input.coordinates),
-  );
+  const relevantEvidence = input.evidence.filter((item) => isSameContext(item, input.coordinates));
   const missing: Array<{
     documentId: string;
     reason: ContextGateFailureReason;
@@ -162,8 +157,7 @@ export function evaluateWriteContext(input: {
       validChainLevels.push("E2");
       missing.push({
         documentId: requiredDocument.documentId,
-        reason:
-          injectedCandidates.length > 0 ? "stale_context_generation" : "not_injected",
+        reason: injectedCandidates.length > 0 ? "stale_context_generation" : "not_injected",
       });
       continue;
     }

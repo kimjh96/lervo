@@ -20,17 +20,11 @@ export function requireOutboxIdentifier(value: unknown, field: string): string {
 
 export function requireOutboxTimestamp(value: unknown, field: string): string {
   if (typeof value !== "string" || !timezonePattern.test(value)) {
-    throw new EventStoreError(
-      "invalid_outbox_request",
-      `${field} must be a valid ISO 8601 time.`,
-    );
+    throw new EventStoreError("invalid_outbox_request", `${field} must be a valid ISO 8601 time.`);
   }
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) {
-    throw new EventStoreError(
-      "invalid_outbox_request",
-      `${field} must be a valid ISO 8601 time.`,
-    );
+    throw new EventStoreError("invalid_outbox_request", `${field} must be a valid ISO 8601 time.`);
   }
   return new Date(milliseconds).toISOString();
 }
@@ -51,12 +45,7 @@ export function requireOutboxPositiveInteger(
   field: string,
   maximum: number,
 ): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 1 ||
-    value > maximum
-  ) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1 || value > maximum) {
     throw new EventStoreError(
       "invalid_outbox_request",
       `${field} must be a safe integer between 1 and ${maximum}.`,

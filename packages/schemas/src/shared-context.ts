@@ -76,7 +76,7 @@ export const sharedContextPublicationSchema = {
         "finding",
         "artifact_summary",
         "verification_result",
-        "status_summary"
+        "status_summary",
       ],
     },
     documentId: documentIdSchema,
@@ -119,7 +119,7 @@ export const sharedContextPublicationSchema = {
     "evidenceEventIds",
     "publishedAt",
     "expiresAt",
-    "supersedesSharedContextId"
+    "supersedesSharedContextId",
   ],
   allOf: [
     {
@@ -197,7 +197,7 @@ export const handoffBundleSchema = {
     "requestDigest",
     "sharedContextIds",
     "evidenceEventIds",
-    "createdAt"
+    "createdAt",
   ],
   additionalProperties: false,
 } as const;

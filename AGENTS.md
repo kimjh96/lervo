@@ -1,7 +1,5 @@
 # Lervo Agent Instructions
 
-These instructions apply to every coding agent in this repository.
-
 ## Before changing anything
 
 Read only the relevant entrypoints and linked ADRs:
@@ -14,39 +12,46 @@ Read only the relevant entrypoints and linked ADRs:
 
 Do not load the entire ADR history by default.
 
+Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
+
+Follow [the repository code convention](docs/foundation/code-convention.md). ESLint owns code quality and Prettier owns formatting. Run `pnpm quality:check` for source or configuration changes, keeping broad automatic-fix diffs within the task.
+
 ## Invariants
 
 1. Local execution must work without a Hub.
 2. Keep provider behavior behind adapters. Core execution and evidence contracts must not depend on Codex or Claude.
 3. Keep `selected`, `loaded`, `injected`, and `used` distinct. Claim only what telemetry proves.
-4. Treat Markdown, repository state, skill definitions, verification results, and execution events as canonical. Graphs, search indexes, and embeddings are rebuildable projections.
+4. Markdown, repository state, skill definitions, verification results, and execution events are canonical. Graphs, search indexes, and embeddings are rebuildable projections.
 5. Keep Lervo-managed and user-owned blocks separate. Never overwrite user-owned content automatically.
 6. Mark unobservable direct provider work as `unmanaged`.
-7. Keep entrypoints short. Move independent concerns into separately linked files instead of appending history.
+7. Keep entrypoints short; move independent concerns into linked files.
 8. Generate English documentation through a versioned language boundary by default.
-9. Create feature directories only when writing their first artifact.
+9. Create feature directories only with their first artifact.
 
 ## Change contract
 
 - Update affected documentation and roadmap completion criteria when a design decision changes.
-- For every new event or state, define its name, required fields, privacy handling, and failure meaning.
+- For each new event or state, define its name, required fields, privacy handling, and failure meaning.
 - Run common contract tests for provider adapters.
 - Run relevant tests and document lifecycle checks before finishing implementation.
-- For repository-wide knowledge lifecycle changes, run `lervo migrate knowledge`, then verify with `lervo knowledge lint`.
+- For repository-wide knowledge lifecycle changes, run `lervo migrate knowledge`, then `lervo knowledge lint`.
 
 ## Environment lookup
 
 Before requesting mutable connection or device details, inspect `.lervo/environment-sources/` and `.lervo/environment-targets/`, then refresh observations with `lervo environment query --target <target-id> --json`.
 
-Do not infer current validity from an old conversation or observation. Ask only if candidates conflict, validation fails, or required authority is missing. Keep secrets out of tracked manifests and `.lervo/state/` out of source documentation.
+Do not infer current validity from old conversations or observations. Ask only when candidates conflict, validation fails, or authority is missing. Keep secrets out of tracked manifests and `.lervo/state/` out of source documentation.
 
 ## Fresh-clone continuation
 
-If a fresh clone has no local or Hub-imported current workstream, recover the next bounded scope from `docs/roadmap/v0.md` and its linked active or planned roadmap. Do not ask the user for a bookkeeping command or assume there is no prior work. Create the recovered first checkpoint before changing repository bytes.
+If a fresh clone has no local or Hub-imported current workstream, recover the next bounded scope from `docs/roadmap/v0.md` and its linked active or planned roadmap. Do not ask the user for a bookkeeping command or assume no prior work. Create the recovered checkpoint before changing repository bytes.
 
 <!-- lervo:begin block=repository_instruction_routes schema=1 -->
 ## Repository instruction routes
 
 - Read the verified current state with `lervo workstream current --context` before continuing repository work.
 - Before completing a terminal turn, create the first bounded checkpoint with `lervo workstream start` or advance the existing snapshot with `lervo workstream update`; perform this agent bookkeeping without asking the user to run it.
+- Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into `lervo agent`, `lervo assignment`, and workstream operations yourself; when authority or scope is ambiguous, record one bounded pending decision instead of guessing or asking for a bookkeeping command.
+- Resolve roles with `lervo role list|show|validate`; treat the six built-ins as templates, author a lazy `.lervo/roles/<role-id>.json` source when a requested repository role does not exist, and never bypass version, hash, capability, verification, or ancestry validation.
+- Register every subagent with its parent and apply the same durable identity, scoped lease, path-conflict, evidence, verification, and finalization contracts used for root agents.
 <!-- lervo:end block=repository_instruction_routes -->

@@ -24,12 +24,14 @@ export function parseFirstPublicationWorkflowReachabilityArguments(args) {
       continue;
     }
     if (
-      ![
-        "--repository", "--source-commit", "--release-tag",
-        "--remote-evidence-report",
-      ].includes(name) || values.has(name) || index + 1 >= args.length ||
+      !["--repository", "--source-commit", "--release-tag", "--remote-evidence-report"].includes(
+        name,
+      ) ||
+      values.has(name) ||
+      index + 1 >= args.length ||
       args[index + 1].startsWith("--")
-    ) fail();
+    )
+      fail();
     values.set(name, args[index + 1]);
     index += 1;
   }
@@ -40,9 +42,11 @@ export function parseFirstPublicationWorkflowReachabilityArguments(args) {
     fail();
   }
   if (
-    !flags.has("--online") || values.size !== 4 ||
+    !flags.has("--online") ||
+    values.size !== 4 ||
     !isAbsolute(values.get("--remote-evidence-report") ?? "")
-  ) fail();
+  )
+    fail();
   return {
     repository: values.get("--repository"),
     sourceCommit: values.get("--source-commit"),

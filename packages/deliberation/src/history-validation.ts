@@ -7,10 +7,7 @@ import {
   createDeliberationHistoryState,
   type DeliberationHistoryAnalysis,
 } from "./history-state.js";
-import {
-  DeliberationError,
-  type DeliberationVerificationEvidence,
-} from "./types.js";
+import { DeliberationError, type DeliberationVerificationEvidence } from "./types.js";
 import { verificationEvidenceById } from "./verification-evidence.js";
 
 export function analyzeDeliberationHistory(input: {
@@ -38,13 +35,19 @@ export function analyzeDeliberationHistory(input: {
       "No further deliberation artifacts may be recorded after a decision.",
     );
   }
-  const recordedVerificationIds = new Set(input.artifacts
-    .filter((artifact): artifact is Extract<DeliberationArtifact, { kind: "verification" }> =>
-      artifact.kind === "verification")
-    .map((artifact) => artifact.details.verificationId));
+  const recordedVerificationIds = new Set(
+    input.artifacts
+      .filter(
+        (artifact): artifact is Extract<DeliberationArtifact, { kind: "verification" }> =>
+          artifact.kind === "verification",
+      )
+      .map((artifact) => artifact.details.verificationId),
+  );
   if (
     verificationById.size !== recordedVerificationIds.size ||
-    [...verificationById.keys()].some((verificationId) => !recordedVerificationIds.has(verificationId))
+    [...verificationById.keys()].some(
+      (verificationId) => !recordedVerificationIds.has(verificationId),
+    )
   ) {
     throw new DeliberationError(
       "verification_evidence_invalid",
@@ -64,8 +67,7 @@ export function analyzeDeliberationHistory(input: {
     passedVerificationArtifactIds: state.passedVerificationArtifactIds,
     passedVerificationSuiteIds: state.passedVerificationSuiteIds,
     passedClaimIdsBySuite: state.passedClaimIdsBySuite,
-    independentReviewApproved:
-      state.lastApprovedReviewIndex > state.lastProposalOrRevisionIndex,
+    independentReviewApproved: state.lastApprovedReviewIndex > state.lastProposalOrRevisionIndex,
     decision: state.decision,
   };
 }

@@ -55,17 +55,18 @@ export async function readFirstPublicationActivationSources({
         sha256: sha256(releaseContents),
       },
     },
-    assertUnchanged: () => assertReleaseFilesUnchanged([
-      {
-        path: packageManifestPath,
-        contents: packageContents,
-        maximumSize: maximumSourceBytes,
-      },
-      {
-        path: releaseManifestPath,
-        contents: releaseContents,
-        maximumSize: maximumSourceBytes,
-      },
-    ]),
+    assertUnchanged: () =>
+      assertReleaseFilesUnchanged([
+        {
+          path: packageManifestPath,
+          contents: packageContents,
+          maximumSize: maximumSourceBytes,
+        },
+        {
+          path: releaseManifestPath,
+          contents: releaseContents,
+          maximumSize: maximumSourceBytes,
+        },
+      ]),
   };
 }

@@ -63,21 +63,11 @@ export function createNpmTrustedPublisher({
           "--ignore-scripts",
         ]);
       } catch {
-        fail(
-          "npm_publication_failed",
-          "The npm registry publication could not be completed.",
-        );
+        fail("npm_publication_failed", "The npm registry publication could not be completed.");
       }
       const coordinate = `${target.package}@${target.version}`;
       const [metadata, tags] = await Promise.all([
-        executeJson(client, [
-          "view",
-          coordinate,
-          "dist",
-          "--registry",
-          target.registry,
-          "--json",
-        ]),
+        executeJson(client, ["view", coordinate, "dist", "--registry", target.registry, "--json"]),
         executeJson(client, [
           "view",
           target.package,

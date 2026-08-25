@@ -28,8 +28,10 @@ function validatePostApplyTarget(postApplyReport, authorization) {
     target.version !== authorization.target.version ||
     target.registry !== npmPublicRegistry ||
     target.repository !== authorization.release.repository ||
-    typeof target.license !== "string" || target.license === "UNLICENSED"
-  ) fail("first_publication_external_evidence_target_mismatch");
+    typeof target.license !== "string" ||
+    target.license === "UNLICENSED"
+  )
+    fail("first_publication_external_evidence_target_mismatch");
 }
 
 export function validateFirstPublicationExternalEvidenceLocalInputs(input) {
@@ -56,22 +58,25 @@ export function validateFirstPublicationExternalEvidenceLocalInputs(input) {
     approvedTarget.license !== input.postApplyReport.target.license ||
     canonicalJson(approvedTarget.scopeOwner) !==
       canonicalJson(input.scopeConfirmation.target.scopeOwner)
-  ) fail("first_publication_external_evidence_target_mismatch");
+  )
+    fail("first_publication_external_evidence_target_mismatch");
   return authorization;
 }
 
 export function validateFirstPublicationExternalPackageObservation(observation) {
   if (
-    canonicalJson(observation) !== canonicalJson({
+    canonicalJson(observation) !==
+    canonicalJson({
       schemaVersion: 1,
       source: "npm_public_registry",
       state: "not_found",
       package: "@lervo/cli",
     })
   ) {
-    const code = observation?.state === "unavailable"
-      ? "first_publication_external_evidence_observation_unavailable"
-      : "first_publication_external_evidence_package_not_available";
+    const code =
+      observation?.state === "unavailable"
+        ? "first_publication_external_evidence_observation_unavailable"
+        : "first_publication_external_evidence_package_not_available";
     fail(code);
   }
   return observation;

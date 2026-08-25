@@ -15,9 +15,8 @@ function check(id, reasons) {
 
 function repositoryUrl(value, missing) {
   if (missing) return { state: "missing", coordinate: null };
-  const match = typeof value === "string"
-    ? /^git\+https:\/\/github\.com\/(.+)\.git$/u.exec(value)
-    : null;
+  const match =
+    typeof value === "string" ? /^git\+https:\/\/github\.com\/(.+)\.git$/u.exec(value) : null;
   if (match === null) return { state: "invalid", coordinate: null };
   try {
     return { state: "resolved", coordinate: validateReadinessRepository(match[1]) };
@@ -46,9 +45,11 @@ function repositoryCheck(packageSource, releaseSource) {
     reasons.push(`release_repository_${releaseSource.state}`);
   }
   if (
-    packageSource.coordinate !== null && releaseSource.coordinate !== null &&
+    packageSource.coordinate !== null &&
+    releaseSource.coordinate !== null &&
     packageSource.coordinate !== releaseSource.coordinate
-  ) reasons.push("repository_mismatch");
+  )
+    reasons.push("repository_mismatch");
   return check("repository_metadata", reasons);
 }
 
@@ -61,10 +62,13 @@ export function inspectFirstPublicationActivationLocalMetadata({
   releaseManifest,
 }) {
   if (
-    packageManifest === null || typeof packageManifest !== "object" ||
+    packageManifest === null ||
+    typeof packageManifest !== "object" ||
     Array.isArray(packageManifest) ||
-    releaseManifest?.artifact === null || typeof releaseManifest?.artifact !== "object"
-  ) fail();
+    releaseManifest?.artifact === null ||
+    typeof releaseManifest?.artifact !== "object"
+  )
+    fail();
   const releaseArtifact = releaseManifest.artifact;
   const packageSource = packageRepository(packageManifest);
   const releaseSource = releaseRepository(releaseManifest);
@@ -81,9 +85,11 @@ export function inspectFirstPublicationActivationLocalMetadata({
   if (!resolvedLicense(packageManifest.license)) licenseReasons.push("package_license_unresolved");
   if (!resolvedLicense(releaseArtifact.license)) licenseReasons.push("release_license_unresolved");
   if (
-    resolvedLicense(packageManifest.license) && resolvedLicense(releaseArtifact.license) &&
+    resolvedLicense(packageManifest.license) &&
+    resolvedLicense(releaseArtifact.license) &&
     packageManifest.license !== releaseArtifact.license
-  ) licenseReasons.push("license_mismatch");
+  )
+    licenseReasons.push("license_mismatch");
   const publicationReasons = [];
   if (packageManifest.publishConfig?.registry !== npmPublicRegistry) {
     publicationReasons.push("package_registry_unpinned");
@@ -107,19 +113,18 @@ export function inspectFirstPublicationActivationLocalMetadata({
     target: {
       package: "@lervo/cli",
       version: releaseArtifact.version,
-      repository: packageSource.coordinate !== null &&
-          packageSource.coordinate === releaseSource.coordinate
-        ? packageSource.coordinate
-        : null,
-      license: resolvedLicense(packageManifest.license) &&
-          packageManifest.license === releaseArtifact.license
-        ? packageManifest.license
-        : null,
+      repository:
+        packageSource.coordinate !== null && packageSource.coordinate === releaseSource.coordinate
+          ? packageSource.coordinate
+          : null,
+      license:
+        resolvedLicense(packageManifest.license) &&
+        packageManifest.license === releaseArtifact.license
+          ? packageManifest.license
+          : null,
       registry: npmPublicRegistry,
     },
-    localStatus: localChecks.every(({ status }) => status === "ready")
-      ? "ready"
-      : "blocked",
+    localStatus: localChecks.every(({ status }) => status === "ready") ? "ready" : "blocked",
     localChecks,
   };
 }

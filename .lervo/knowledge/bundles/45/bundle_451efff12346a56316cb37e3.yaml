@@ -65,6 +65,10 @@ conceptIds:
   - concept_f2ddfc4c03fe68c469af82a8
   - concept_16e79645ec154cda625be977
   - concept_d5adb624b5b6b3c47c87913f
+  - concept_6a9f1f36f46f27219fa02431
+  - concept_b8aaaeedac2d8fdde0dc0599
+  - concept_08060cbbb15ec0a95ab9b77f
+  - concept_e210e836159bfd3b52fdbe80
   - concept_a9403cf94746a5a4781d8331
   - concept_357eb042cbc3d8eac0b49667
   - concept_2e9ab73dda5fe79fafd96c9e
@@ -86,6 +90,9 @@ conceptIds:
   - concept_0d2a9bd229dcaf1b55b4ab6d
   - concept_2c5de560b3657b7e92827572
   - concept_0669015f6f3ddb1c4e67c588
+  - concept_80b2ef8f1358db629c5a96f7
+  - concept_5200f1a79f912ec183f64278
+  - concept_2af95e1d2d6a2745e39d718a
   - concept_f9b875d23b9ad659f85bef0a
   - concept_a4dbcd14bfc6f81364cbae7a
   - concept_ec427a44c137d3ad8fe55394
@@ -104,6 +111,7 @@ conceptIds:
   - concept_8e722f79fa54a5c0ed037151
   - concept_5103031348aa7a68fe127e7a
   - concept_9fc3fda7af8b9b4e931702ff
+  - concept_0f8e44d6bc1aeb140411cba4
   - concept_801093fb34a393667b4c5e4a
   - concept_d8c55b8dbd8e1cfd28c3dbbb
   - concept_bd07dd1e803be63a07376e1a
@@ -135,8 +143,13 @@ conceptIds:
   - concept_64048a2da5c5af53e95026df
   - concept_b86e3447c9b4020ba5139cee
   - concept_e2dcd0704d0e312e7e65576f
+  - concept_9009e8112413d8f2f3c4ba95
+  - concept_c1b958d873e3d09683ae8a70
+  - concept_641ca11fb0c553423e2519a3
+  - concept_16a1a8837dd70508e1e8e1d3
   - concept_7326545a62acc8b0acc39156
   - concept_c64c8bff551c925b6a74d2d0
+  - concept_335306e22c604a6450950ca8
   - concept_5ce43e13480e75ed2ae11270
   - concept_cccfeac0a3be7dd31170a4f0
   - concept_014942d292aed60b1a9fbdeb
@@ -218,6 +231,8 @@ conceptIds:
   - concept_83dffd0999e9c9139b80bafb
   - concept_06a8d6d8a1a3c2382f7b683a
   - concept_839a0575afa59f77bd292d47
+  - concept_7816e384607982e32d2dbfc2
+  - concept_8e6d95a0da9a93e240f7494f
   - concept_3fdbc2a0544c1da918a67f20
   - concept_06a1a6c7c1bee51428422108
   - concept_b2c3d6175aacb8a0b8bab95f
@@ -226,14 +241,18 @@ conceptIds:
   - concept_edbfa7cb206aacd7c29c5569
   - concept_482fd3194473fd5e247c10a8
   - concept_6d4bc9bf166d68e8aaca358f
+  - concept_6b8f7e8d517550390f875ccb
   - concept_0958a131af9dbe7ee0191703
   - concept_817451fcd1cb028b44a543e7
   - concept_61cca6dc890774adfedb32c0
+  - concept_edf8e78df8102e5b7da36ae7
+  - concept_b8672403ff18293e57f5644c
+  - concept_4e1cd73bdcb5de88152bf39e
   - concept_15b94950eeba49838970665f
   - concept_da7064c356eb58fc6fdb6167
 entryPath: docs/knowledge/index.md
 publicationLanguage: en
 publicationRoot: docs/knowledge
 schemaVersion: 1
-sourceSnapshotId: ksnap_a1c326d95c258895bf56d065
+sourceSnapshotId: ksnap_1993f786a2670b1288bf81c2
 title: Repository knowledge

@@ -27,12 +27,26 @@ const roots: string[] = [];
 async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-compilation-comparison-"));
   roots.push(root);
-  await writeFile(resolve(root, "README.md"), "# Runtime\n\nThe runtime is local-first and policy-bound.\n");
-  await applyInitPlan(await createInitPlan({ root, projectId: "prj_compilation_comparison", now: new Date("2026-08-23T04:00:00.000Z") }));
+  await writeFile(
+    resolve(root, "README.md"),
+    "# Runtime\n\nThe runtime is local-first and policy-bound.\n",
+  );
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_compilation_comparison",
+      now: new Date("2026-08-23T04:00:00.000Z"),
+    }),
+  );
   return root;
 }
 
-function compiler(provider: "codex" | "claude", statements: string[], includeRelation = false, titlePrefix = "Concept"): RepositorySemanticCompiler {
+function compiler(
+  provider: "codex" | "claude",
+  statements: string[],
+  includeRelation = false,
+  titlePrefix = "Concept",
+): RepositorySemanticCompiler {
   return {
     descriptor: {
       compilerId: `fixture.${provider}.semantic`,
@@ -53,12 +67,17 @@ function compiler(provider: "codex" | "claude", statements: string[], includeRel
       return {
         schemaVersion: 1,
         concepts,
-        relations: includeRelation && concepts.length > 1 ? [{
-          fromConceptKey: concepts[0]!.localKey,
-          toConceptKey: concepts[1]!.localKey,
-          type: "depends_on",
-          evidenceUnitVersionIds: [evidence],
-        }] : [],
+        relations:
+          includeRelation && concepts.length > 1
+            ? [
+                {
+                  fromConceptKey: concepts[0]!.localKey,
+                  toConceptKey: concepts[1]!.localKey,
+                  type: "depends_on",
+                  evidenceUnitVersionIds: [evidence],
+                },
+              ]
+            : [],
         telemetry: {
           filesystemReads: 0,
           filesystemWrites: 0,
@@ -91,7 +110,12 @@ async function compilePair(input: {
   const claude = await compileRepositoryKnowledgeCandidate({
     scan,
     policyHash,
-    compiler: compiler("claude", input.claudeStatements, input.includeRelation, input.claudeTitlePrefix),
+    compiler: compiler(
+      "claude",
+      input.claudeStatements,
+      input.includeRelation,
+      input.claudeTitlePrefix,
+    ),
     signal: new AbortController().signal,
   });
   await storeKnowledgeCompilationCandidate({ repositoryRoot: input.root, candidate: codex });
@@ -125,7 +149,9 @@ describe("Codex-Claude semantic compilation comparison", () => {
       claims: { codexCount: 2, claudeCount: 2, exactSharedSignatureCount: 2 },
       relations: { codexCount: 1, claudeCount: 1, exactSharedSignatureCount: 1 },
     });
-    expect(result.claims.groups.every((group) => group.presence === "both" && group.multiplicityMatch)).toBe(true);
+    expect(
+      result.claims.groups.every((group) => group.presence === "both" && group.multiplicityMatch),
+    ).toBe(true);
     expect(JSON.stringify(result)).not.toContain("The runtime is local-first.");
     expect(JSON.stringify(result)).not.toContain("README.md");
   });
@@ -148,26 +174,41 @@ describe("Codex-Claude semantic compilation comparison", () => {
       claudeCompilationId: pair.claude.compilationId,
     });
     expect(first.status).toBe("partial_overlap");
-    expect(first.claims.groups.map((group) => group.presence).sort()).toEqual(["both", "claude_only", "codex_only"]);
+    expect(first.claims.groups.map((group) => group.presence).sort()).toEqual([
+      "both",
+      "claude_only",
+      "codex_only",
+    ]);
     expect(second).toEqual(first);
     expect(first.comparisonId).toMatch(/^kcompare_[a-f0-9]{24}$/);
   });
 
   it("rejects provider-coordinate mistakes and stale repository bindings", async () => {
     const root = await repository();
-    const pair = await compilePair({ root, codexStatements: ["Exact claim."], claudeStatements: ["Exact claim."] });
-    await expect(compareKnowledgeCompilationCandidates({
-      repositoryRoot: root,
-      codexCompilationId: pair.claude.compilationId,
-      claudeCompilationId: pair.codex.compilationId,
-    })).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    const pair = await compilePair({
+      root,
+      codexStatements: ["Exact claim."],
+      claudeStatements: ["Exact claim."],
+    });
+    await expect(
+      compareKnowledgeCompilationCandidates({
+        repositoryRoot: root,
+        codexCompilationId: pair.claude.compilationId,
+        claudeCompilationId: pair.codex.compilationId,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
 
-    await writeFile(resolve(root, "README.md"), "# Runtime\n\nThe source changed after compilation.\n");
-    await expect(compareKnowledgeCompilationCandidates({
-      repositoryRoot: root,
-      codexCompilationId: pair.codex.compilationId,
-      claudeCompilationId: pair.claude.compilationId,
-    })).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+    await writeFile(
+      resolve(root, "README.md"),
+      "# Runtime\n\nThe source changed after compilation.\n",
+    );
+    await expect(
+      compareKnowledgeCompilationCandidates({
+        repositoryRoot: root,
+        codexCompilationId: pair.codex.compilationId,
+        claudeCompilationId: pair.claude.compilationId,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
   });
 
   it("creates only an unreviewed exact-overlap candidate bound to both source artifacts", async () => {
@@ -202,27 +243,40 @@ describe("Codex-Claude semantic compilation comparison", () => {
     expect(merged.candidate.concepts).toHaveLength(1);
     expect(merged.candidate.concepts[0]?.claims[0]?.statement).toBe("Shared exact claim.");
     expect(merged.candidate.concepts[0]?.assurance).toBe("unreviewed");
-    const receipt = await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate: merged.candidate });
-    expect((await loadKnowledgeCompilationCandidate({ repositoryRoot: root, compilationId: receipt.compilationId })).candidate).toEqual(merged.candidate);
-
-    await expect(createCrossProviderExactMergeCandidate({
+    const receipt = await storeKnowledgeCompilationCandidate({
       repositoryRoot: root,
-      codexCompilationId: pair.codex.compilationId,
-      claudeCompilationId: pair.claude.compilationId,
-      comparisonId: "kcompare_000000000000000000000000",
-    })).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+      candidate: merged.candidate,
+    });
+    expect(
+      (
+        await loadKnowledgeCompilationCandidate({
+          repositoryRoot: root,
+          compilationId: receipt.compilationId,
+        })
+      ).candidate,
+    ).toEqual(merged.candidate);
+
+    await expect(
+      createCrossProviderExactMergeCandidate({
+        repositoryRoot: root,
+        codexCompilationId: pair.codex.compilationId,
+        claudeCompilationId: pair.claude.compilationId,
+        comparisonId: "kcompare_000000000000000000000000",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
   });
 
   it("observes same-build repeatability without claiming semantic truth", async () => {
     const root = await repository();
     const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
     const policyHash = sha256(canonicalJson(policy));
-    const compile = async (statement: string): Promise<KnowledgeCompilationCandidate> => compileRepositoryKnowledgeCandidate({
-      scan,
-      policyHash,
-      compiler: compiler("codex", [statement]),
-      signal: new AbortController().signal,
-    });
+    const compile = async (statement: string): Promise<KnowledgeCompilationCandidate> =>
+      compileRepositoryKnowledgeCandidate({
+        scan,
+        policyHash,
+        compiler: compiler("codex", [statement]),
+        signal: new AbortController().signal,
+      });
     const baseline = await compile("Stable exact claim.");
     const stableRepeat = await compile("Stable exact claim.");
     const divergentRepeat = await compile("Different generated wording.");
@@ -239,7 +293,12 @@ describe("Codex-Claude semantic compilation comparison", () => {
       baselineCompilationId: baseline.compilationId,
       candidateCompilationId: divergentRepeat.compilationId,
     });
-    expect(stable).toMatchObject({ status: "stable", observationBasis: "candidate_artifacts_only", interpretation: "same_build_output_stability_only", assurance: "unreviewed" });
+    expect(stable).toMatchObject({
+      status: "stable",
+      observationBasis: "candidate_artifacts_only",
+      interpretation: "same_build_output_stability_only",
+      assurance: "unreviewed",
+    });
     expect(divergent.status).toBe("divergent");
     expect(stable.observationId).toMatch(/^kstability_[a-f0-9]{24}$/);
     expect(JSON.stringify(divergent)).not.toContain("Different generated wording.");
@@ -268,9 +327,15 @@ describe("Codex-Claude semantic compilation comparison", () => {
       comparisonId: comparison.comparisonId,
     });
     expect(merged.candidate.concepts).toHaveLength(1);
-    expect(merged.candidate.concepts[0]?.title).toMatch(/^Cross-provider exact claim [a-f0-9]{12}$/);
-    expect(merged.candidate.concepts[0]?.claims[0]?.statement).toBe("The same evidence-bound claim.");
-    await expect(storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate: merged.candidate })).resolves.toMatchObject({ created: true });
+    expect(merged.candidate.concepts[0]?.title).toMatch(
+      /^Cross-provider exact claim [a-f0-9]{12}$/,
+    );
+    expect(merged.candidate.concepts[0]?.claims[0]?.statement).toBe(
+      "The same evidence-bound claim.",
+    );
+    await expect(
+      storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate: merged.candidate }),
+    ).resolves.toMatchObject({ created: true });
   });
 
   it("runs the same isolated compiler twice for a live stability gate", async () => {
@@ -292,7 +357,10 @@ describe("Codex-Claude semantic compilation comparison", () => {
       signal: new AbortController().signal,
     });
     expect(calls).toBe(2);
-    expect(result.observation).toMatchObject({ status: "stable", observationBasis: "two_compile_calls_completed" });
+    expect(result.observation).toMatchObject({
+      status: "stable",
+      observationBasis: "two_compile_calls_completed",
+    });
     expect(result.baseline.compilationId).toBe(result.candidate.compilationId);
   });
 });

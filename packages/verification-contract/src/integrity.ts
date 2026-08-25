@@ -1,11 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "@lervo/event-contract";
-import type {
-  VerificationCommand,
-  VerificationResult,
-  VerificationSuite,
-} from "@lervo/schemas";
+import type { VerificationCommand, VerificationResult, VerificationSuite } from "@lervo/schemas";
 
 export function verificationSha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;

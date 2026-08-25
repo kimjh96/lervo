@@ -9,9 +9,14 @@ const identity = `sha256:${"8".repeat(64)}`;
 const servers: ReturnType<typeof createHubServer>[] = [];
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) => {
-    server.close((error) => error === undefined ? resolve() : reject(error));
-  })));
+  await Promise.all(
+    servers.splice(0).map(
+      (server) =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => (error === undefined ? resolve() : reject(error)));
+        }),
+    ),
+  );
 });
 
 async function start(checkReady: () => Promise<unknown>): Promise<string> {
@@ -46,7 +51,9 @@ describe("Hub health HTTP API", () => {
   });
 
   it("returns a fixed secret-free not-ready response when the storage check fails", async () => {
-    const base = await start(async () => { throw new Error("private database path"); });
+    const base = await start(async () => {
+      throw new Error("private database path");
+    });
     const response = await fetch(`${base}/v1/health/ready`);
 
     expect(response.status).toBe(503);

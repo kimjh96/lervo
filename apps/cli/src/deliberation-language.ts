@@ -24,9 +24,11 @@ const englishDeliberationLanguage = {
     proposerName: "Proposal and decision",
     proposerDescription: "Produces evidence-backed proposals, revisions, and the final decision.",
     reviewerName: "Independent review and verification",
-    reviewerDescription: "Reviews proposals independently and explains repository verification results.",
+    reviewerDescription:
+      "Reviews proposals independently and explains repository verification results.",
     evaluatorName: "English writing evaluator",
-    evaluatorDescription: "Evaluates whether publishable text satisfies the writing contract in a separate pass.",
+    evaluatorDescription:
+      "Evaluates whether publishable text satisfies the writing contract in a separate pass.",
   },
 } as const satisfies DeliberationLanguagePack;
 

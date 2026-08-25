@@ -31,7 +31,10 @@ export function assertReplayCoordinate(coordinate: RemoteCommandReplayCoordinate
 function stringField(row: Record<string, unknown>, field: string): string {
   const value = row[field];
   if (typeof value !== "string") {
-    throw new RemoteCommandSQLiteError("integrity_failed", "The remote command replay row is invalid.");
+    throw new RemoteCommandSQLiteError(
+      "integrity_failed",
+      "The remote command replay row is invalid.",
+    );
   }
   return value;
 }
@@ -39,7 +42,10 @@ function stringField(row: Record<string, unknown>, field: string): string {
 function nullableStringField(row: Record<string, unknown>, field: string): string | null {
   const value = row[field];
   if (value !== null && typeof value !== "string") {
-    throw new RemoteCommandSQLiteError("integrity_failed", "The remote command replay row is invalid.");
+    throw new RemoteCommandSQLiteError(
+      "integrity_failed",
+      "The remote command replay row is invalid.",
+    );
   }
   return value;
 }

@@ -13,11 +13,11 @@ export async function readJson(path) {
 }
 
 export async function runInstalledCli(cliEntry, args, cwd) {
-  const { stdout, stderr } = await execFileAsync(
-    process.execPath,
-    [cliEntry, ...args],
-    { cwd, encoding: "utf8", maxBuffer: 1024 * 1024 },
-  );
+  const { stdout, stderr } = await execFileAsync(process.execPath, [cliEntry, ...args], {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+  });
   return { stdout, stderr };
 }
 
@@ -47,7 +47,7 @@ export async function deployBuiltCli(target) {
 }
 
 export async function importBuiltWorkspacePackage(packageName) {
-  return import(pathToFileURL(
-    resolve(repositoryRoot, `packages/${packageName}/dist/index.js`),
-  ).href);
+  return import(
+    pathToFileURL(resolve(repositoryRoot, `packages/${packageName}/dist/index.js`)).href
+  );
 }

@@ -1,7 +1,4 @@
-import {
-  DoctorReportCompatibilityError,
-  readDoctorReport,
-} from "@lervo/diagnostics";
+import { DoctorReportCompatibilityError, readDoctorReport } from "@lervo/diagnostics";
 import { describe, expect, it } from "vitest";
 
 const report = {
@@ -9,34 +6,44 @@ const report = {
   projectId: "prj_01234567",
   scope: "search",
   status: "unknown",
-  checks: [{
-    checkId: "search_engine_selection",
-    status: "healthy",
-    observedCount: 1,
-  }, {
-    checkId: "search_rollout_policies",
-    status: "healthy",
-    observedCount: 3,
-  }, {
-    checkId: "search_rollout_reviews",
-    status: "unknown",
-    observedCount: 0,
-  }, {
-    checkId: "search_rollout_actions",
-    status: "unknown",
-    observedCount: 0,
-  }],
-  issues: [{
-    code: "search_rollout_review_unavailable",
-    eventId: null,
-    message: "The prerequisite search check could not be completed.",
-  }],
-  recoveryGuidance: [{
-    issueCode: "search_rollout_review_unavailable",
-    actionCode: "resolve_search_review_prerequisites",
-    message: "Resolve the search engine selection and policy issues first, then diagnose the rollout review again.",
-    actionState: "not_performed",
-  }],
+  checks: [
+    {
+      checkId: "search_engine_selection",
+      status: "healthy",
+      observedCount: 1,
+    },
+    {
+      checkId: "search_rollout_policies",
+      status: "healthy",
+      observedCount: 3,
+    },
+    {
+      checkId: "search_rollout_reviews",
+      status: "unknown",
+      observedCount: 0,
+    },
+    {
+      checkId: "search_rollout_actions",
+      status: "unknown",
+      observedCount: 0,
+    },
+  ],
+  issues: [
+    {
+      code: "search_rollout_review_unavailable",
+      eventId: null,
+      message: "The prerequisite search check could not be completed.",
+    },
+  ],
+  recoveryGuidance: [
+    {
+      issueCode: "search_rollout_review_unavailable",
+      actionCode: "resolve_search_review_prerequisites",
+      message:
+        "Resolve the search engine selection and policy issues first, then diagnose the rollout review again.",
+      actionState: "not_performed",
+    },
+  ],
 } as const;
 
 describe("doctor report compatibility contract", () => {
@@ -70,26 +77,41 @@ describe("doctor report compatibility contract", () => {
   it.each([
     ["missing schemaVersion", (({ schemaVersion: _, ...value }) => value)(report)],
     ["non-integer schemaVersion", { ...report, schemaVersion: "1" }],
-    ["unknown controlled value", {
-      ...report,
-      checks: [{ ...report.checks[0], checkId: "future_search_check" }],
-    }],
-    ["missing required collection", {
-      ...report,
-      recoveryGuidance: undefined,
-    }],
-    ["scope and checks disagree", {
-      ...report,
-      checks: report.checks.slice(0, 3),
-    }],
-    ["aggregate status disagrees", {
-      ...report,
-      status: "healthy",
-    }],
-    ["recovery guidance is not derived from issues", {
-      ...report,
-      recoveryGuidance: [],
-    }],
+    [
+      "unknown controlled value",
+      {
+        ...report,
+        checks: [{ ...report.checks[0], checkId: "future_search_check" }],
+      },
+    ],
+    [
+      "missing required collection",
+      {
+        ...report,
+        recoveryGuidance: undefined,
+      },
+    ],
+    [
+      "scope and checks disagree",
+      {
+        ...report,
+        checks: report.checks.slice(0, 3),
+      },
+    ],
+    [
+      "aggregate status disagrees",
+      {
+        ...report,
+        status: "healthy",
+      },
+    ],
+    [
+      "recovery guidance is not derived from issues",
+      {
+        ...report,
+        recoveryGuidance: [],
+      },
+    ],
   ])("rejects invalid v1 input: %s", (_name, value) => {
     expect(() => readDoctorReport(value)).toThrowError(
       expect.objectContaining<Partial<DoctorReportCompatibilityError>>({
@@ -99,9 +121,11 @@ describe("doctor report compatibility contract", () => {
   });
 
   it("does not include report contents in validation errors", () => {
-    expect(() => readDoctorReport({
-      ...report,
-      schemaVersion: "private-token",
-    })).toThrowError("The required structure of doctor report v1 is invalid.");
+    expect(() =>
+      readDoctorReport({
+        ...report,
+        schemaVersion: "private-token",
+      }),
+    ).toThrowError("The required structure of doctor report v1 is invalid.");
   });
 });

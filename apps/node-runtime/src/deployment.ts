@@ -3,6 +3,7 @@ import { lstat } from "node:fs/promises";
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
+import { openProjectStorage } from "@lervo/project-storage";
 import {
   AuthenticatedHubHttpTransport,
   runOutboundSyncLoop,
@@ -13,17 +14,17 @@ import {
   type SyncCycleResult,
   type SyncHttpTransportOptions,
 } from "@lervo/sync";
-import { calculateProjectIdentityHash, createProjectRegistrationRequest } from "@lervo/sync-contract";
+import {
+  calculateProjectIdentityHash,
+  createProjectRegistrationRequest,
+} from "@lervo/sync-contract";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
 import { loadNodeBearerToken, ReloadableNodeBearerToken } from "./credentials.js";
 import { NodeRuntimeError } from "./errors.js";
 import { createNodeRuntimeHealthPublisher } from "./health.js";
-import {
-  createNodeRuntimeDeployment,
-  type NodeRuntimeDeployment,
-} from "./lifecycle.js";
+import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
 import {
   openNodeRemoteControlRuntime,
   type NodeRemoteCommandPorts,
@@ -71,6 +72,8 @@ export async function openNodeRuntime(
         "Hub sync is not enabled by the project data policy.",
       );
     }
+    const preparedStorage = await openProjectStorage(validated.repositoryRoot);
+    await preparedStorage.close();
     const bearerToken = new ReloadableNodeBearerToken(
       await loadNodeBearerToken(validated.hub.bearerTokenFile),
     );
@@ -78,7 +81,10 @@ export async function openNodeRuntime(
       paths.state,
       validated.remoteCommands !== undefined,
     );
-    store = await SQLiteEventStore.open({ path: paths.eventDatabase, projectId: manifest.projectId });
+    store = await SQLiteEventStore.open({
+      path: paths.eventDatabase,
+      projectId: manifest.projectId,
+    });
     const artifacts = await FileSystemCas.open(paths.cas);
     const target = {
       projectId: manifest.projectId,
@@ -99,7 +105,7 @@ export async function openNodeRuntime(
         config: validated,
         token: () => bearerToken.current(),
         target,
-        stateDirectory: paths.state,
+        stateDirectory: paths.data,
         ports: {
           ...ports.remoteCommands,
           onCycle: async (result) => {
@@ -116,18 +122,24 @@ export async function openNodeRuntime(
       expectedHubIdentityHash: validated.hub.hubIdentityHash,
       destinationId: validated.hub.destinationId,
       target,
-      ...(validated.sync.requestTimeoutMs === undefined ? {} : {
-        requestTimeoutMs: validated.sync.requestTimeoutMs,
-      }),
-      ...(validated.sync.maxRequestBytes === undefined ? {} : {
-        maxRequestBytes: validated.sync.maxRequestBytes,
-      }),
-      ...(validated.sync.maxResponseBytes === undefined ? {} : {
-        maxResponseBytes: validated.sync.maxResponseBytes,
-      }),
+      ...(validated.sync.requestTimeoutMs === undefined
+        ? {}
+        : {
+            requestTimeoutMs: validated.sync.requestTimeoutMs,
+          }),
+      ...(validated.sync.maxRequestBytes === undefined
+        ? {}
+        : {
+            maxRequestBytes: validated.sync.maxRequestBytes,
+          }),
+      ...(validated.sync.maxResponseBytes === undefined
+        ? {}
+        : {
+            maxResponseBytes: validated.sync.maxResponseBytes,
+          }),
     });
-    const createTransport = ports.createTransport ?? ((options) =>
-      new AuthenticatedHubHttpTransport(options));
+    const createTransport =
+      ports.createTransport ?? ((options) => new AuthenticatedHubHttpTransport(options));
     const transport: AuthenticatedHubTransport = {
       registerProject(request) {
         return createTransport(transportOptions()).registerProject(request);
@@ -138,14 +150,16 @@ export async function openNodeRuntime(
     };
     const workstreamTransport: AuthenticatedWorkstreamHubTransport = {
       publishWorkstream(request) {
-        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport & Partial<AuthenticatedWorkstreamHubTransport>;
+        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
+          Partial<AuthenticatedWorkstreamHubTransport>;
         if (typeof candidate.publishWorkstream !== "function") {
           throw new Error("The configured Hub transport does not support workstream publication.");
         }
         return candidate.publishWorkstream(request);
       },
       readWorkstream() {
-        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport & Partial<AuthenticatedWorkstreamHubTransport>;
+        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
+          Partial<AuthenticatedWorkstreamHubTransport>;
         if (typeof candidate.readWorkstream !== "function") {
           throw new Error("The configured Hub transport does not support workstream reads.");
         }
@@ -165,67 +179,89 @@ export async function openNodeRuntime(
       destinationId: validated.hub.destinationId,
       expectedPeerIdentityHash: validated.hub.hubIdentityHash,
       workerId: validated.sync.workerId,
-      ...(validated.sync.leaseDurationMs === undefined ? {} : {
-        leaseDurationMs: validated.sync.leaseDurationMs,
-      }),
-      ...(validated.sync.retryDelayMs === undefined ? {} : {
-        retryDelayMs: validated.sync.retryDelayMs,
-      }),
-      ...(validated.sync.batchLimit === undefined ? {} : {
-        batchLimit: validated.sync.batchLimit,
-      }),
+      ...(validated.sync.leaseDurationMs === undefined
+        ? {}
+        : {
+            leaseDurationMs: validated.sync.leaseDurationMs,
+          }),
+      ...(validated.sync.retryDelayMs === undefined
+        ? {}
+        : {
+            retryDelayMs: validated.sync.retryDelayMs,
+          }),
+      ...(validated.sync.batchLimit === undefined
+        ? {}
+        : {
+            batchLimit: validated.sync.batchLimit,
+          }),
     };
     await health.initialize();
-    return createNodeRuntimeDeployment(store, (signal) => runOutboundSyncLoop({
-      worker,
-      signal,
-      ...(validated.sync.idlePollIntervalMs === undefined ? {} : {
-        idlePollIntervalMs: validated.sync.idlePollIntervalMs,
-      }),
-      ...(ports.wait === undefined ? {} : { wait: ports.wait }),
-      ...(ports.nowMilliseconds === undefined ? {} : { nowMilliseconds: ports.nowMilliseconds }),
-      onCycle: async (result) => {
-        await health.observeSync(result);
-        if (result.status === "idle" || result.status === "synchronized") {
-          try {
-            const replication = await runWorkstreamReplicationCycle({
-              local: localWorkstreams,
-              transport: workstreamTransport,
-              registration: createProjectRegistrationRequest({
-                manifest,
-                destinationId: validated.hub.destinationId,
-                requestedAt: new Date().toISOString(),
+    return createNodeRuntimeDeployment(
+      store,
+      (signal) =>
+        runOutboundSyncLoop({
+          worker,
+          signal,
+          ...(validated.sync.idlePollIntervalMs === undefined
+            ? {}
+            : {
+                idlePollIntervalMs: validated.sync.idlePollIntervalMs,
               }),
-              destinationId: validated.hub.destinationId,
-              expectedPeerIdentityHash: validated.hub.hubIdentityHash,
-            });
-            await health.observeWorkstreamReplication(replication);
-          } catch (error) {
-            const code = typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
-              ? error.code
-              : "workstream_replication_failed";
-            await health.observeWorkstreamReplicationFailure(code);
-          }
-        } else {
-          await health.observeWorkstreamReplicationFailure(result.failureCode);
-        }
-        await ports.onCycle?.(result);
+          ...(ports.wait === undefined ? {} : { wait: ports.wait }),
+          ...(ports.nowMilliseconds === undefined
+            ? {}
+            : { nowMilliseconds: ports.nowMilliseconds }),
+          onCycle: async (result) => {
+            await health.observeSync(result);
+            if (result.status === "idle" || result.status === "synchronized") {
+              try {
+                const replication = await runWorkstreamReplicationCycle({
+                  local: localWorkstreams,
+                  transport: workstreamTransport,
+                  registration: createProjectRegistrationRequest({
+                    manifest,
+                    destinationId: validated.hub.destinationId,
+                    requestedAt: new Date().toISOString(),
+                  }),
+                  destinationId: validated.hub.destinationId,
+                  expectedPeerIdentityHash: validated.hub.hubIdentityHash,
+                });
+                await health.observeWorkstreamReplication(replication);
+              } catch (error) {
+                const code =
+                  typeof error === "object" &&
+                  error !== null &&
+                  "code" in error &&
+                  typeof error.code === "string"
+                    ? error.code
+                    : "workstream_replication_failed";
+                await health.observeWorkstreamReplicationFailure(code);
+              }
+            } else {
+              await health.observeWorkstreamReplicationFailure(result.failureCode);
+            }
+            await ports.onCycle?.(result);
+          },
+        }),
+      remoteControl ?? null,
+      async () => {
+        const next = await loadNodeBearerToken(validated.hub.bearerTokenFile);
+        bearerToken.replace(next);
       },
-    }), remoteControl ?? null, async () => {
-      const next = await loadNodeBearerToken(validated.hub.bearerTokenFile);
-      bearerToken.replace(next);
-    }, async () => {
-      const [nextToken, nextTrust] = await Promise.all([
-        loadNodeBearerToken(validated.hub.bearerTokenFile),
-        validated.remoteCommands === undefined
-          ? Promise.resolve(undefined)
-          : loadNodeRuntimeTrust(validated.remoteCommands),
-      ]);
-      if (nextTrust !== undefined) {
-        runtimeTrust!.replace(nextTrust);
-      }
-      bearerToken.replace(nextToken);
-    }, health);
+      async () => {
+        const [nextToken, nextTrust] = await Promise.all([
+          loadNodeBearerToken(validated.hub.bearerTokenFile),
+          validated.remoteCommands === undefined
+            ? Promise.resolve(undefined)
+            : loadNodeRuntimeTrust(validated.remoteCommands),
+        ]);
+        if (nextTrust !== undefined) {
+          runtimeTrust!.replace(nextTrust);
+        }
+        bearerToken.replace(nextToken);
+      },
+      health,
+    );
   } catch (error) {
     const cleanupErrors: unknown[] = [];
     try {
@@ -239,9 +275,13 @@ export async function openNodeRuntime(
       cleanupErrors.push(cleanupError);
     }
     if (cleanupErrors.length > 0) {
-      throw new NodeRuntimeError("startup_failed", "Could not close the repository after Node runtime startup failed.", {
-        cause: new AggregateError([error, ...cleanupErrors]),
-      });
+      throw new NodeRuntimeError(
+        "startup_failed",
+        "Could not close the repository after Node runtime startup failed.",
+        {
+          cause: new AggregateError([error, ...cleanupErrors]),
+        },
+      );
     }
     if (error instanceof NodeRuntimeError) throw error;
     throw new NodeRuntimeError("startup_failed", "Could not open the Node runtime configuration.", {

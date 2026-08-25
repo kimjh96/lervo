@@ -7,7 +7,12 @@ import type { CliIo } from "./types.js";
 export async function runSearchCandidatesCommand(args: string[], io: CliIo): Promise<number> {
   let parsed;
   try {
-    parsed = parseArgs({ args, strict: true, allowPositionals: true, options: { json: { type: "boolean" } } });
+    parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: true,
+      options: { json: { type: "boolean" } },
+    });
   } catch (error) {
     io.stderr(searchArgumentError(error));
     return 1;
@@ -17,12 +22,16 @@ export async function runSearchCandidatesCommand(args: string[], io: CliIo): Pro
     return 1;
   }
   const candidates = searchCandidateRegistry.list();
-  io.stdout(parsed.values.json
-    ? `${JSON.stringify({ candidates }, null, 2)}\n`
-    : [
-      "Registered search candidates:",
-      ...candidates.map((item) =>
-        `  ${item.candidateId} · ${item.engine.id}-v${item.engine.version} · build ${item.adapterBuildId}`),
-    ].join("\n") + "\n");
+  io.stdout(
+    parsed.values.json
+      ? `${JSON.stringify({ candidates }, null, 2)}\n`
+      : [
+          "Registered search candidates:",
+          ...candidates.map(
+            (item) =>
+              `  ${item.candidateId} · ${item.engine.id}-v${item.engine.version} · build ${item.adapterBuildId}`,
+          ),
+        ].join("\n") + "\n",
+  );
   return 0;
 }

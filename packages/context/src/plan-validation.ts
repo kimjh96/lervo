@@ -4,11 +4,7 @@ import {
   type KnowledgeContextMetadata,
 } from "@lervo/schemas";
 
-import {
-  type ContextPlan,
-  ContextPreparationError,
-  type PlannedContextDocument,
-} from "./types.js";
+import { type ContextPlan, ContextPreparationError, type PlannedContextDocument } from "./types.js";
 
 function invalid(message: string): never {
   throw new ContextPreparationError("invalid_context_plan", message);
@@ -19,9 +15,13 @@ function metadataEqual(
   right: KnowledgeContextMetadata | undefined,
 ): boolean {
   if (left === undefined || right === undefined) return left === right;
-  return left.conceptId === right.conceptId && left.assurance === right.assurance &&
-    left.freshness === right.freshness && left.sourceSnapshotId === right.sourceSnapshotId &&
-    left.impactReportId === right.impactReportId;
+  return (
+    left.conceptId === right.conceptId &&
+    left.assurance === right.assurance &&
+    left.freshness === right.freshness &&
+    left.sourceSnapshotId === right.sourceSnapshotId &&
+    left.impactReportId === right.impactReportId
+  );
 }
 
 function validateDocumentEvidence(
@@ -54,25 +54,28 @@ function validateDocumentEvidence(
         metadataEqual(item.knowledgeContext, document.knowledgeContext),
     );
     if (!selected) {
-      invalid(`The E1 selection reason ${reason.ruleId} for ${document.documentId} is missing from the plan.`);
+      invalid(
+        `The E1 selection reason ${reason.ruleId} for ${document.documentId} is missing from the plan.`,
+      );
     }
   }
 }
 
 function validateRecommendationEvidence(plan: ContextPlan): void {
   const recommendedEvidence = plan.evidence.filter((item) => item.state === "recommended");
-  const recommendations = new Map(
-    recommendedEvidence.map((item) => [item.recommendationId, item]),
-  );
+  const recommendations = new Map(recommendedEvidence.map((item) => [item.recommendationId, item]));
   if (recommendations.size !== recommendedEvidence.length) {
     invalid("The context plan contains duplicate search recommendation evidence.");
   }
   for (const recommendation of recommendations.values()) {
     const discovered = plan.evidence.some(
-      (item) => item.state === "discovered" && item.documentId === recommendation.documentId &&
+      (item) =>
+        item.state === "discovered" &&
+        item.documentId === recommendation.documentId &&
         metadataEqual(item.knowledgeContext, recommendation.knowledgeContext),
     );
-    if (!discovered) invalid(`The search-recommended document has no E0 discovery: ${recommendation.documentId}`);
+    if (!discovered)
+      invalid(`The search-recommended document has no E0 discovery: ${recommendation.documentId}`);
   }
   for (const document of plan.documents) {
     for (const reason of document.reasons) {
@@ -81,10 +84,15 @@ function validateRecommendationEvidence(plan: ContextPlan): void {
       const recommendation = reason.ruleId.startsWith(prefix)
         ? recommendations.get(reason.ruleId.slice(prefix.length))
         : undefined;
-      if (recommendation === undefined || recommendation.documentId !== document.documentId ||
+      if (
+        recommendation === undefined ||
+        recommendation.documentId !== document.documentId ||
         recommendation.sourceContentHash !== document.expectedContentHash ||
-        !metadataEqual(recommendation.knowledgeContext, document.knowledgeContext)) {
-        invalid(`The search recommendation selection evidence differs from the plan document: ${document.documentId}`);
+        !metadataEqual(recommendation.knowledgeContext, document.knowledgeContext)
+      ) {
+        invalid(
+          `The search recommendation selection evidence differs from the plan document: ${document.documentId}`,
+        );
       }
     }
   }
@@ -105,27 +113,35 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
   }
 
   for (const evidence of plan.evidence) {
-    if (evidence.state !== "discovered" && evidence.state !== "recommended" &&
-      evidence.state !== "selected") {
-      invalid(`A context plan can contain only discovery, recommendation, and E1 evidence: ${evidence.receiptId}`);
+    if (
+      evidence.state !== "discovered" &&
+      evidence.state !== "recommended" &&
+      evidence.state !== "selected"
+    ) {
+      invalid(
+        `A context plan can contain only discovery, recommendation, and E1 evidence: ${evidence.receiptId}`,
+      );
     }
     if (
       evidence.projectId !== plan.coordinates.projectId ||
       evidence.runId !== plan.coordinates.runId ||
       evidence.sessionId !== plan.coordinates.sessionId
     ) {
-      invalid(`The context plan evidence has different run/session coordinates: ${evidence.receiptId}`);
+      invalid(
+        `The context plan evidence has different run/session coordinates: ${evidence.receiptId}`,
+      );
     }
     if (evidence.state === "selected") {
       const document = plan.documents.find(
         (candidate) => candidate.documentId === evidence.documentId,
       );
       if (!document) {
-        invalid(`The selection evidence references a document not in the plan: ${evidence.documentId}`);
+        invalid(
+          `The selection evidence references a document not in the plan: ${evidence.documentId}`,
+        );
       }
       const reasonExists = document.reasons.some(
-        (reason) =>
-          reason.reasonCode === evidence.reasonCode && reason.ruleId === evidence.ruleId,
+        (reason) => reason.reasonCode === evidence.reasonCode && reason.ruleId === evidence.ruleId,
       );
       if (
         !reasonExists ||
@@ -133,7 +149,9 @@ export function validateContextPlanForLoading(plan: ContextPlan): void {
         !contextScopesEqual(evidence.scope, document.scope) ||
         !metadataEqual(evidence.knowledgeContext, document.knowledgeContext)
       ) {
-        invalid(`The selection evidence differs from the plan selection reason: ${evidence.receiptId}`);
+        invalid(
+          `The selection evidence differs from the plan selection reason: ${evidence.receiptId}`,
+        );
       }
     }
   }

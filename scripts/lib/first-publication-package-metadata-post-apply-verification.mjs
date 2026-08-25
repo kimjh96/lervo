@@ -1,9 +1,7 @@
 import { validateCliReleaseSbom } from "./cli-release-sbom.mjs";
-import { inspectFirstPublicationActivationLocalMetadata } from
-  "./first-publication-activation-local-policy.mjs";
+import { inspectFirstPublicationActivationLocalMetadata } from "./first-publication-activation-local-policy.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationPackageMetadataApplyReceiptDocument } from
-  "./first-publication-package-metadata-apply-receipt.mjs";
+import { validateFirstPublicationPackageMetadataApplyReceiptDocument } from "./first-publication-package-metadata-apply-receipt.mjs";
 import {
   canonicalDigest,
   canonicalJson,
@@ -11,12 +9,22 @@ import {
   validateReleaseArtifactManifest,
 } from "./release-artifact-manifest.mjs";
 
-const externalRequirements = Object.freeze([
-  { id: "license_approval", status: "required", reason: "explicit_approval_required" },
-  { id: "public_package_availability", status: "required", reason: "online_observation_required" },
-  { id: "scope_control_confirmation", status: "required", reason: "scope_owner_confirmation_required" },
-  { id: "first_publication_approval", status: "required", reason: "explicit_approval_required" },
-].map(Object.freeze));
+const externalRequirements = Object.freeze(
+  [
+    { id: "license_approval", status: "required", reason: "explicit_approval_required" },
+    {
+      id: "public_package_availability",
+      status: "required",
+      reason: "online_observation_required",
+    },
+    {
+      id: "scope_control_confirmation",
+      status: "required",
+      reason: "scope_owner_confirmation_required",
+    },
+    { id: "first_publication_approval", status: "required", reason: "explicit_approval_required" },
+  ].map(Object.freeze),
+);
 
 const sideEffects = Object.freeze({
   files: "not_changed",

@@ -4,8 +4,7 @@ import type { SearchRolloutQualitySnapshot, SearchRolloutReview } from "./rollou
 import type { SearchRolloutCurrentSelection } from "./rollout-status-types.js";
 
 export type SearchRolloutActionStatusRecord =
-  | SearchRolloutKeepAcknowledgement
-  | SearchEngineRolloutRollback;
+  SearchRolloutKeepAcknowledgement | SearchEngineRolloutRollback;
 
 export interface SearchRolloutActionStatusEvidence {
   record: SearchRolloutActionStatusRecord;

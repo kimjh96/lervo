@@ -1,9 +1,7 @@
 import { type SchemaName, validateSchema } from "@lervo/schemas";
 
 export type ReportCompatibilityFailure =
-  | "invalid_semantics"
-  | "invalid_structure"
-  | "unsupported_version";
+  "invalid_semantics" | "invalid_structure" | "unsupported_version";
 
 export function readVersionedReport<T>(input: {
   value: unknown;
@@ -14,11 +12,7 @@ export function readVersionedReport<T>(input: {
   error: (failure: ReportCompatibilityFailure, message: string) => Error;
 }): T {
   const version = schemaVersionOf(input.value);
-  if (
-    typeof version === "number" &&
-    Number.isInteger(version) &&
-    version !== input.schemaVersion
-  ) {
+  if (typeof version === "number" && Number.isInteger(version) && version !== input.schemaVersion) {
     throw input.error(
       "unsupported_version",
       `Unsupported ${input.reportName} schemaVersion: ${String(version)}`,

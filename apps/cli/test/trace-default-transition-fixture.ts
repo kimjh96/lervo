@@ -22,12 +22,10 @@ export interface TraceDefaultTransitionFixture {
 const fixtureEventCount = 51;
 const fixtureRunId = "run_trace_transition_01";
 
-export async function createTraceDefaultTransitionFixture(): Promise<
-  TraceDefaultTransitionFixture
-> {
+export async function createTraceDefaultTransitionFixture(): Promise<TraceDefaultTransitionFixture> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-trace-transition-"));
   const silentIo = { cwd: root, stdout: () => undefined, stderr: () => undefined };
-  if (await runCli(["init"], silentIo) !== 0) {
+  if ((await runCli(["init"], silentIo)) !== 0) {
     await rm(root, { recursive: true, force: true });
     throw new Error("The trace transition fixture could not be initialized.");
   }
@@ -77,14 +75,15 @@ export async function createTraceDefaultTransitionFixture(): Promise<
     async trace(args) {
       let stdout = "";
       let stderr = "";
-      const exitCode = await runCli(
-        ["trace", ...args],
-        {
-          cwd: root,
-          stdout: (message) => { stdout += message; },
-          stderr: (message) => { stderr += message; },
+      const exitCode = await runCli(["trace", ...args], {
+        cwd: root,
+        stdout: (message) => {
+          stdout += message;
         },
-      );
+        stderr: (message) => {
+          stderr += message;
+        },
+      });
       return { exitCode, stdout, stderr };
     },
     async dispose() {

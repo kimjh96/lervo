@@ -6,18 +6,17 @@ import {
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
 
-import {
-  decideConversationParticipation,
-  requiresConversationRelevance,
-} from "../src/index.js";
+import { decideConversationParticipation, requiresConversationRelevance } from "../src/index.js";
 
-function event(input: {
-  mentioned?: boolean;
-  kind?: "message.created" | "signal.raised";
-  signalCode?: string | null;
-  actorKind?: "human" | "agent" | "system";
-  automationDepth?: number;
-} = {}) {
+function event(
+  input: {
+    mentioned?: boolean;
+    kind?: "message.created" | "signal.raised";
+    signalCode?: string | null;
+    actorKind?: "human" | "agent" | "system";
+    automationDepth?: number;
+  } = {},
+) {
   const actorKind = input.actorKind ?? "human";
   return createConversationInboundEvent({
     sourceEventKeyHash: hashConversationSourceEventKey("source-1"),
@@ -50,13 +49,15 @@ function event(input: {
   });
 }
 
-function policy(input: {
-  mode?: "mention_only" | "relevant" | "proactive" | "silent";
-  cooldownSeconds?: number;
-  maxResponsesPerHour?: number;
-  maxAutomationDepth?: number;
-  conversationIds?: string[];
-} = {}) {
+function policy(
+  input: {
+    mode?: "mention_only" | "relevant" | "proactive" | "silent";
+    cooldownSeconds?: number;
+    maxResponsesPerHour?: number;
+    maxAutomationDepth?: number;
+    conversationIds?: string[];
+  } = {},
+) {
   return createConversationParticipationPolicy({
     projectId: "prj_project01",
     roleId: "role_reviewer",
@@ -120,35 +121,49 @@ describe("conversation participation", () => {
   it("responds only to subscribed proactive signals", () => {
     const subscribed = event({ kind: "signal.raised", signalCode: "review.requested" });
     const ignored = event({ kind: "signal.raised", signalCode: "build.completed" });
-    expect(decide({ event: subscribed, policy: policy({ mode: "proactive" }) }))
-      .toMatchObject({ action: "respond", reason: "proactive_signal" });
-    expect(decide({ event: ignored, policy: policy({ mode: "proactive" }) }))
-      .toMatchObject({ action: "observe", reason: "signal_not_subscribed" });
+    expect(decide({ event: subscribed, policy: policy({ mode: "proactive" }) })).toMatchObject({
+      action: "respond",
+      reason: "proactive_signal",
+    });
+    expect(decide({ event: ignored, policy: policy({ mode: "proactive" }) })).toMatchObject({
+      action: "observe",
+      reason: "signal_not_subscribed",
+    });
   });
 
   it("applies automation depth, cooldown, and hourly response bounds", () => {
-    expect(requiresConversationRelevance({
-      event: event({ automationDepth: 2 }),
-      policy: policy({ maxAutomationDepth: 2 }),
-    })).toBe(false);
-    expect(requiresConversationRelevance({
-      event: event({ actorKind: "agent" }),
-      policy: policy(),
-    })).toBe(false);
-    expect(decide({
-      event: event({ mentioned: true, automationDepth: 2 }),
-      policy: policy({ maxAutomationDepth: 2 }),
-    })).toMatchObject({ action: "observe", reason: "automation_depth_exceeded" });
-    expect(decide({
-      event: event({ mentioned: true }),
-      policy: policy({ cooldownSeconds: 60 }),
-      latestResponseAt: "2026-08-20T00:00:00.000Z",
-    })).toMatchObject({ action: "observe", reason: "cooldown" });
-    expect(decide({
-      event: event({ mentioned: true }),
-      policy: policy({ maxResponsesPerHour: 1 }),
-      responsesInLastHour: 1,
-    })).toMatchObject({ action: "observe", reason: "rate_limited" });
+    expect(
+      requiresConversationRelevance({
+        event: event({ automationDepth: 2 }),
+        policy: policy({ maxAutomationDepth: 2 }),
+      }),
+    ).toBe(false);
+    expect(
+      requiresConversationRelevance({
+        event: event({ actorKind: "agent" }),
+        policy: policy(),
+      }),
+    ).toBe(false);
+    expect(
+      decide({
+        event: event({ mentioned: true, automationDepth: 2 }),
+        policy: policy({ maxAutomationDepth: 2 }),
+      }),
+    ).toMatchObject({ action: "observe", reason: "automation_depth_exceeded" });
+    expect(
+      decide({
+        event: event({ mentioned: true }),
+        policy: policy({ cooldownSeconds: 60 }),
+        latestResponseAt: "2026-08-20T00:00:00.000Z",
+      }),
+    ).toMatchObject({ action: "observe", reason: "cooldown" });
+    expect(
+      decide({
+        event: event({ mentioned: true }),
+        policy: policy({ maxResponsesPerHour: 1 }),
+        responsesInLastHour: 1,
+      }),
+    ).toMatchObject({ action: "observe", reason: "rate_limited" });
   });
 
   it("rejects a policy that does not cover the conversation before work starts", () => {

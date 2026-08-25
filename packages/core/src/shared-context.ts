@@ -1,8 +1,4 @@
-import type {
-  HandoffBundle,
-  RoleProfile,
-  SharedContextPublication,
-} from "@lervo/schemas";
+import type { HandoffBundle, RoleProfile, SharedContextPublication } from "@lervo/schemas";
 
 import type { RequiredContextDocument } from "./assurance.js";
 

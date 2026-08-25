@@ -1,10 +1,7 @@
 import { validateSchema, type VerifiedKnowledge } from "@lervo/schemas";
 
 import { storeKnowledgeArtifact } from "./artifact-storage.js";
-import {
-  calculateVerifiedKnowledgeId,
-  verifiedKnowledgeBytes,
-} from "./integrity.js";
+import { calculateVerifiedKnowledgeId, verifiedKnowledgeBytes } from "./integrity.js";
 import { validatePromotionInput } from "./promotion-validation.js";
 import {
   KnowledgeError,
@@ -43,20 +40,20 @@ export async function promoteKnowledgeCandidate(
       path,
       contentHash: input.currentSnapshot.files[path]!,
     })),
-    evidenceEventIds: [...new Set([
-      ...input.candidate.evidence.eventIds,
-      candidateEvent.eventId,
-      reviewEvent.eventId,
-    ])].sort(),
+    evidenceEventIds: [
+      ...new Set([
+        ...input.candidate.evidence.eventIds,
+        candidateEvent.eventId,
+        reviewEvent.eventId,
+      ]),
+    ].sort(),
     verifiedRevision: input.currentSnapshot.revision,
     reviewIntervalDays: input.candidate.reviewIntervalDays,
     verifiedAt: input.review.approval.reviewedAt,
   };
   const knowledge = {
     ...content,
-    knowledgeId: calculateVerifiedKnowledgeId(
-      content as Omit<VerifiedKnowledge, "knowledgeId">,
-    ),
+    knowledgeId: calculateVerifiedKnowledgeId(content as Omit<VerifiedKnowledge, "knowledgeId">),
   } as VerifiedKnowledge;
   if (!validateSchema("verifiedKnowledge", knowledge).valid) {
     throw new KnowledgeError(
@@ -65,10 +62,16 @@ export async function promoteKnowledgeCandidate(
       "The verified knowledge source does not satisfy the schema.",
     );
   }
-  if (input.events.list().some((event) =>
-    event.type === "knowledge.verified" &&
-    (event.payload.knowledgeId === knowledge.knowledgeId ||
-      event.payload.candidateId === input.candidate.candidateId))) {
+  if (
+    input.events
+      .list()
+      .some(
+        (event) =>
+          event.type === "knowledge.verified" &&
+          (event.payload.knowledgeId === knowledge.knowledgeId ||
+            event.payload.candidateId === input.candidate.candidateId),
+      )
+  ) {
     throw new KnowledgeError(
       "promotion_not_eligible",
       "knowledge_already_recorded",

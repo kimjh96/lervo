@@ -29,7 +29,10 @@ import {
   runWorkstreamReplicationCycle,
   type SyncHttpTransportOptions,
 } from "@lervo/sync";
-import { calculateProjectIdentityHash, createProjectRegistrationRequest } from "@lervo/sync-contract";
+import {
+  calculateProjectIdentityHash,
+  createProjectRegistrationRequest,
+} from "@lervo/sync-contract";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -60,9 +63,16 @@ const secondaryNodeRuntimeDestinationId = "hub:node-runtime-test:secondary";
 
 afterEach(async () => {
   await Promise.all(deployments.splice(0).map((deployment) => deployment.close()));
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) =>
-    server.close((error) => error === undefined ? resolve() : reject(error))
-  )));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolve, reject) =>
+            server.close((error) => (error === undefined ? resolve() : reject(error))),
+          ),
+      ),
+  );
   await Promise.all(hubStores.splice(0).map((store) => store.close()));
   await removeTemporaryRoots();
 });
@@ -78,15 +88,17 @@ function localHttpTransport(options: SyncHttpTransportOptions): AuthenticatedHub
 async function startHub(path: string, port: number): Promise<HubSyncSQLiteStore> {
   const store = await HubSyncSQLiteStore.open({ path });
   hubStores.push(store);
-  const authenticator = new ConfiguredBearerAuthenticator([{
-    token: nodeRuntimeToken,
-    principalId: "node:runtime-test",
-    permissions: ["sync.write", "workstream.read", "workstream.write"],
-    projects: [
-      { destinationId: nodeRuntimeDestinationId, projectId: nodeRuntimeProjectId },
-      { destinationId: secondaryNodeRuntimeDestinationId, projectId: nodeRuntimeProjectId },
-    ],
-  }]);
+  const authenticator = new ConfiguredBearerAuthenticator([
+    {
+      token: nodeRuntimeToken,
+      principalId: "node:runtime-test",
+      permissions: ["sync.write", "workstream.read", "workstream.write"],
+      projects: [
+        { destinationId: nodeRuntimeDestinationId, projectId: nodeRuntimeProjectId },
+        { destinationId: secondaryNodeRuntimeDestinationId, projectId: nodeRuntimeProjectId },
+      ],
+    },
+  ]);
   const server = createHubServer({
     trace: { authenticator, source: store },
     sync: { authenticator, store, hubIdentityHash: nodeRuntimeHubIdentityHash },
@@ -125,15 +137,25 @@ describe("installed Node sync runtime", () => {
       references: [],
       pendingDecisions: [],
       pendingApprovals: [],
-      origin: { kind: "created", sourceArtifactId: null, sourceContentHash: null, sourcePathDigest: null },
+      origin: {
+        kind: "created",
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+      },
       updatedAt: "2026-08-24T00:00:00.000Z",
     };
     const content = `${canonicalJson(snapshot)}\n`;
     const snapshotContentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
-    const workstreamPath = resolve(firstFixture.repositoryRoot, ".lervo/state/workstreams/current.json");
+    const workstreamPath = resolve(
+      firstFixture.repositoryRoot,
+      ".lervo/state/workstreams/current.json",
+    );
     await mkdir(resolve(workstreamPath, ".."), { recursive: true });
     await writeFile(workstreamPath, content);
-    const artifacts = await FileSystemCas.open(resolve(firstFixture.repositoryRoot, ".lervo/state/cas"));
+    const artifacts = await FileSystemCas.open(
+      resolve(firstFixture.repositoryRoot, ".lervo/data/cas"),
+    );
     await artifacts.put(content);
     const events = await SQLiteEventStore.open({
       path: firstFixture.databasePath,
@@ -167,7 +189,10 @@ describe("installed Node sync runtime", () => {
     const hub = await startHub(`${hubRoot}/hub.sqlite`, port);
     const runOneCycle = async (fixture: typeof firstFixture, destination: string) => {
       const project = await loadProjectManifest(fixture.repositoryRoot);
-      const target = { projectId: project.projectId, projectIdentityHash: calculateProjectIdentityHash(project) };
+      const target = {
+        projectId: project.projectId,
+        projectIdentityHash: calculateProjectIdentityHash(project),
+      };
       const transport = localHttpTransport({
         baseUrl: `https://127.0.0.1:${port}/`,
         bearerToken: nodeRuntimeToken,
@@ -181,9 +206,19 @@ describe("installed Node sync runtime", () => {
         requestedAt: "2026-08-24T00:00:00.000Z",
       });
       await transport.registerProject(registration);
-      const localEvents = await SQLiteEventStore.open({ path: fixture.databasePath, projectId: project.projectId });
-      const localArtifacts = await FileSystemCas.open(resolve(fixture.repositoryRoot, ".lervo/state/cas"));
-      const local = new NodeWorkstreamReplicationLocalPort(fixture.repositoryRoot, project.projectId, localEvents, localArtifacts);
+      const localEvents = await SQLiteEventStore.open({
+        path: fixture.databasePath,
+        projectId: project.projectId,
+      });
+      const localArtifacts = await FileSystemCas.open(
+        resolve(fixture.repositoryRoot, ".lervo/data/cas"),
+      );
+      const local = new NodeWorkstreamReplicationLocalPort(
+        fixture.repositoryRoot,
+        project.projectId,
+        localEvents,
+        localArtifacts,
+      );
       try {
         await runOutboundSyncCycle({
           store: localEvents,
@@ -204,27 +239,40 @@ describe("installed Node sync runtime", () => {
         localEvents.close();
       }
     };
-    await expect(runOneCycle(firstFixture, nodeRuntimeDestinationId)).resolves.toMatchObject({ status: "published", publishedCount: 1 });
-    await expect(hub.readWorkstream({
-      destinationId: nodeRuntimeDestinationId,
-      projectId: nodeRuntimeProjectId,
-      repositoryIdentityHash: calculateProjectIdentityHash(await loadProjectManifest(firstFixture.repositoryRoot)),
-    })).resolves.toMatchObject({ status: "current", snapshot });
+    await expect(runOneCycle(firstFixture, nodeRuntimeDestinationId)).resolves.toMatchObject({
+      status: "published",
+      publishedCount: 1,
+    });
+    await expect(
+      hub.readWorkstream({
+        destinationId: nodeRuntimeDestinationId,
+        projectId: nodeRuntimeProjectId,
+        repositoryIdentityHash: calculateProjectIdentityHash(
+          await loadProjectManifest(firstFixture.repositoryRoot),
+        ),
+      }),
+    ).resolves.toMatchObject({ status: "current", snapshot });
 
     let secondNode!: NodeRuntimeDeployment;
     secondNode = await openNodeRuntime(await loadNodeRuntimeConfig(secondFixture.configPath), {
       createTransport: localHttpTransport,
       onCycle(result) {
         if (result.status === "idle" || result.status === "synchronized") {
-          queueMicrotask(() => { void secondNode.close(); });
+          queueMicrotask(() => {
+            void secondNode.close();
+          });
         }
       },
     });
     deployments.push(secondNode);
     await secondNode.start();
     await expect(secondNode.closed).resolves.toMatchObject({ status: "stopped" });
-    await expect(readFile(resolve(secondFixture.repositoryRoot, ".lervo/state/workstreams/current.json"), "utf8"))
-      .resolves.toBe(content);
+    await expect(
+      readFile(
+        resolve(secondFixture.repositoryRoot, ".lervo/state/workstreams/current.json"),
+        "utf8",
+      ),
+    ).resolves.toBe(content);
     const importedEvents = await SQLiteEventStore.open({
       path: secondFixture.databasePath,
       projectId: nodeRuntimeProjectId,
@@ -246,9 +294,8 @@ describe("installed Node sync runtime", () => {
     const firstPolicy = generateKeyPairSync("ed25519");
     const nextCommand = generateKeyPairSync("ed25519");
     const nextPolicy = generateKeyPairSync("ed25519");
-    const publicPem = (key: ReturnType<typeof generateKeyPairSync>["publicKey"]) => String(
-      key.export({ type: "spki", format: "pem" }),
-    );
+    const publicPem = (key: ReturnType<typeof generateKeyPairSync>["publicKey"]) =>
+      String(key.export({ type: "spki", format: "pem" }));
     await Promise.all([
       ownerFile(resolve(keyDirectory, "command-01.pem"), publicPem(firstCommand.publicKey)),
       ownerFile(resolve(keyDirectory, "policy-01.pem"), publicPem(firstPolicy.publicKey)),
@@ -258,15 +305,19 @@ describe("installed Node sync runtime", () => {
     const trustPath = resolve(root, "node-trust.json");
     const snapshot = (suffix: "01" | "02") => ({
       schemaVersion: 1,
-      commandKeys: [{
-        keyId: `key_command_runtime_${suffix}`,
-        publicKeyFile: `keys/command-${suffix}.pem`,
-      }],
-      policyKeys: [{
-        keyId: `key_policy_runtime_${suffix}`,
-        publicKeyFile: `keys/policy-${suffix}.pem`,
-        purposes: ["snapshot", "approval", "revocation"],
-      }],
+      commandKeys: [
+        {
+          keyId: `key_command_runtime_${suffix}`,
+          publicKeyFile: `keys/command-${suffix}.pem`,
+        },
+      ],
+      policyKeys: [
+        {
+          keyId: `key_policy_runtime_${suffix}`,
+          publicKeyFile: `keys/policy-${suffix}.pem`,
+          purposes: ["snapshot", "approval", "revocation"],
+        },
+      ],
     });
     await ownerFile(trustPath, JSON.stringify(snapshot("01")));
     const configured = structuredClone(fixture.value);
@@ -279,10 +330,12 @@ describe("installed Node sync runtime", () => {
     const deployment = await openNodeRuntime(parseNodeRuntimeConfig(configured, root), {
       createTransport: localHttpTransport,
       remoteCommands: {
-        executor: { execute: async () => ({
-          runId: "run_node_runtime_reload_01",
-          completedAt: "2026-08-22T00:00:00.000Z",
-        }) },
+        executor: {
+          execute: async () => ({
+            runId: "run_node_runtime_reload_01",
+            completedAt: "2026-08-22T00:00:00.000Z",
+          }),
+        },
         localPolicy: { resolve: async () => [] },
       },
     });
@@ -298,7 +351,9 @@ describe("installed Node sync runtime", () => {
       code: "runtime_material_reload_failed",
     });
     let closed = false;
-    void deployment.closed.then(() => { closed = true; });
+    void deployment.closed.then(() => {
+      closed = true;
+    });
     await Promise.resolve();
     expect(closed).toBe(false);
   });
@@ -351,7 +406,9 @@ describe("installed Node sync runtime", () => {
         }
         if (phase === "rotated" && observedTokens.includes(rotatedNodeRuntimeToken)) {
           phase = "done";
-          queueMicrotask(() => { void deployment.close(); });
+          queueMicrotask(() => {
+            void deployment.close();
+          });
         }
       },
     });
@@ -373,7 +430,11 @@ describe("installed Node sync runtime", () => {
     offline = await openNodeRuntime(config, {
       createTransport: localHttpTransport,
       wait: {
-        wait: async () => { queueMicrotask(() => { void offline.close(); }); },
+        wait: async () => {
+          queueMicrotask(() => {
+            void offline.close();
+          });
+        },
       },
     });
     deployments.push(offline);
@@ -395,7 +456,9 @@ describe("installed Node sync runtime", () => {
       createTransport: localHttpTransport,
       onCycle(result) {
         if (result.status === "synchronized") {
-          queueMicrotask(() => { void online.close(); });
+          queueMicrotask(() => {
+            void online.close();
+          });
         }
       },
     });
@@ -433,7 +496,9 @@ describe("installed Node sync runtime", () => {
       stderr: (message) => stderr.push(message),
       createTransport: localHttpTransport,
       wait: {
-        wait: async () => { signals.emit("SIGTERM"); },
+        wait: async () => {
+          signals.emit("SIGTERM");
+        },
       },
     });
 
@@ -451,7 +516,9 @@ describe("installed Node sync runtime", () => {
     const fixture = await nodeRuntimeFixture(root, await availablePort());
     const deployment = await openNodeRuntime(await loadNodeRuntimeConfig(fixture.configPath), {
       createTransport: localHttpTransport,
-      onCycle: () => { throw new Error("private observer failure"); },
+      onCycle: () => {
+        throw new Error("private observer failure");
+      },
     });
     deployments.push(deployment);
     await deployment.start();
@@ -474,23 +541,35 @@ describe("installed Node sync runtime", () => {
     const policyKeys = generateKeyPairSync("ed25519");
     const keyDirectory = resolve(root, "keys");
     await mkdir(keyDirectory, { mode: 0o700 });
-    await ownerFile(resolve(keyDirectory, "command.pem"), String(commandKeys.publicKey.export({
-      type: "spki",
-      format: "pem",
-    })));
-    await ownerFile(resolve(keyDirectory, "policy.pem"), String(policyKeys.publicKey.export({
-      type: "spki",
-      format: "pem",
-    })));
+    await ownerFile(
+      resolve(keyDirectory, "command.pem"),
+      String(
+        commandKeys.publicKey.export({
+          type: "spki",
+          format: "pem",
+        }),
+      ),
+    );
+    await ownerFile(
+      resolve(keyDirectory, "policy.pem"),
+      String(
+        policyKeys.publicKey.export({
+          type: "spki",
+          format: "pem",
+        }),
+      ),
+    );
     const configured = structuredClone(fixture.value);
     configured.remoteCommands = {
       nodeId: "node_runtime_control_01",
       commandKeys: [{ keyId: "key_command_runtime_01", publicKeyFile: "keys/command.pem" }],
-      policyKeys: [{
-        keyId: "key_policy_runtime_01",
-        publicKeyFile: "keys/policy.pem",
-        purposes: ["snapshot", "approval", "revocation"],
-      }],
+      policyKeys: [
+        {
+          keyId: "key_policy_runtime_01",
+          publicKeyFile: "keys/policy.pem",
+          purposes: ["snapshot", "approval", "revocation"],
+        },
+      ],
       idlePollIntervalMs: 100,
       retryDelayMs: 1_000,
       maxLifetimeMs: 15 * 60_000,
@@ -507,47 +586,58 @@ describe("installed Node sync runtime", () => {
       "key_command_runtime_01",
       commandKeys.privateKey,
     );
-    const envelope = commandSigner.sign(createRemoteCommand({
-      idempotencyKey: "idk_node_runtime_control_01",
-      nonce: Buffer.alloc(32, 4).toString("base64url"),
-      issuedAt: "2026-08-22T00:00:00.000Z",
-      expiresAt: "2026-08-22T00:10:00.000Z",
-      target,
-      action: {
-        kind: "managed_run",
-        roleId: "developer",
-        provider: "codex",
-        risk: "medium",
-        verificationSuiteIds: ["repo.check"],
-        request: {
-          artifactId: "art_node_runtime_control_01",
-          contentHash: `sha256:${createHash("sha256").update(requestBytes).digest("hex")}`,
-          byteCount: requestBytes.byteLength,
-          mediaType: "text/plain; charset=utf-8",
+    const envelope = commandSigner.sign(
+      createRemoteCommand({
+        idempotencyKey: "idk_node_runtime_control_01",
+        nonce: Buffer.alloc(32, 4).toString("base64url"),
+        issuedAt: "2026-08-22T00:00:00.000Z",
+        expiresAt: "2026-08-22T00:10:00.000Z",
+        target,
+        action: {
+          kind: "managed_run",
+          roleId: "developer",
+          provider: "codex",
+          risk: "medium",
+          verificationSuiteIds: ["repo.check"],
+          request: {
+            artifactId: "art_node_runtime_control_01",
+            contentHash: `sha256:${createHash("sha256").update(requestBytes).digest("hex")}`,
+            byteCount: requestBytes.byteLength,
+            mediaType: "text/plain; charset=utf-8",
+          },
         },
-      },
-    }));
+      }),
+    );
     const policySigner = new Ed25519PolicySigner("key_policy_runtime_01", policyKeys.privateKey);
     const bundle = {
-      snapshot: policySigner.signSnapshot(createPolicySnapshot({
-        target,
-        sequence: 1,
-        previousSnapshotId: null,
-        issuedAt: "2026-08-22T00:00:00.000Z",
-        expiresAt: "2026-08-22T01:00:00.000Z",
-        rules: [{
-          ruleId: "polr_node_runtime_control_01",
-          roleId: "developer",
-          risk: "medium",
-          capability: "filesystem.write",
-          repositoryPaths: ["src/result.ts"],
-          decision: "allow",
-        }],
-      })),
+      snapshot: policySigner.signSnapshot(
+        createPolicySnapshot({
+          target,
+          sequence: 1,
+          previousSnapshotId: null,
+          issuedAt: "2026-08-22T00:00:00.000Z",
+          expiresAt: "2026-08-22T01:00:00.000Z",
+          rules: [
+            {
+              ruleId: "polr_node_runtime_control_01",
+              roleId: "developer",
+              risk: "medium",
+              capability: "filesystem.write",
+              repositoryPaths: ["src/result.ts"],
+              decision: "allow",
+            },
+          ],
+        }),
+      ),
       approvals: [],
       revocations: [],
     };
-    const clock = { value: "2026-08-22T00:01:00.000Z", now() { return this.value; } };
+    const clock = {
+      value: "2026-08-22T00:01:00.000Z",
+      now() {
+        return this.value;
+      },
+    };
     let loseAcknowledgement = true;
     let leaseSequence = 0;
     const executor = vi.fn(async () => ({
@@ -557,7 +647,9 @@ describe("installed Node sync runtime", () => {
     const remotePorts = () => ({
       executor: { execute: executor },
       localPolicy: {
-        resolve: async () => [{ capability: "filesystem.write" as const, decision: "allow" as const }],
+        resolve: async () => [
+          { capability: "filesystem.write" as const, decision: "allow" as const },
+        ],
       },
       clock,
       createPolicyTransport: () => ({
@@ -571,10 +663,7 @@ describe("installed Node sync runtime", () => {
         }),
       }),
       createCommandTransport: () => ({
-        pullRemoteCommands: async (input: {
-          destinationId: string;
-          nodeId: string;
-        }) => {
+        pullRemoteCommands: async (input: { destinationId: string; nodeId: string }) => {
           leaseSequence += 1;
           const leasedAt = clock.value;
           const lease = createRemoteCommandLease({
@@ -621,7 +710,11 @@ describe("installed Node sync runtime", () => {
       createTransport: localHttpTransport,
       remoteCommands: {
         ...remotePorts(),
-        onCycle: () => { queueMicrotask(() => { void first.close(); }); },
+        onCycle: () => {
+          queueMicrotask(() => {
+            void first.close();
+          });
+        },
       },
     });
     deployments.push(first);
@@ -641,7 +734,11 @@ describe("installed Node sync runtime", () => {
       createTransport: localHttpTransport,
       remoteCommands: {
         ...remotePorts(),
-        onCycle: () => { queueMicrotask(() => { void second.close(); }); },
+        onCycle: () => {
+          queueMicrotask(() => {
+            void second.close();
+          });
+        },
       },
     });
     deployments.push(second);

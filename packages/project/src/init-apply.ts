@@ -18,7 +18,10 @@ function resolveManagedPath(root: string, path: string): string {
   if (fromLervoRoot === "" || (!fromLervoRoot.startsWith(`..${sep}`) && fromLervoRoot !== "..")) {
     return target;
   }
-  throw new LervoProjectError("unsafe_path", `The path is not managed by the initialization plan: ${path}`);
+  throw new LervoProjectError(
+    "unsafe_path",
+    `The path is not managed by the initialization plan: ${path}`,
+  );
 }
 
 async function preflightOperation(root: string, operation: InitOperation): Promise<void> {
@@ -37,12 +40,18 @@ async function preflightOperation(root: string, operation: InitOperation): Promi
   }
   if (operation.kind === "directory") {
     if (entry.kind !== "directory") {
-      throw new LervoProjectError("plan_stale", `${operation.path} changed after the plan was generated.`);
+      throw new LervoProjectError(
+        "plan_stale",
+        `${operation.path} changed after the plan was generated.`,
+      );
     }
     return;
   }
   if (entry.kind !== "file" || contentHash(entry.content) !== operation.expectedContentHash) {
-    throw new LervoProjectError("plan_stale", `${operation.path} changed after the plan was generated.`);
+    throw new LervoProjectError(
+      "plan_stale",
+      `${operation.path} changed after the plan was generated.`,
+    );
   }
 }
 
@@ -97,7 +106,10 @@ async function applyIncrementallyWithRollback(plan: InitPlan): Promise<void> {
 
 export async function applyInitPlan(plan: InitPlan): Promise<InitApplyResult> {
   if (plan.schemaVersion !== 1) {
-    throw new LervoProjectError("contract_invalid", "The initialization plan version is unsupported.");
+    throw new LervoProjectError(
+      "contract_invalid",
+      "The initialization plan version is unsupported.",
+    );
   }
   if (plan.status === "blocked" || plan.projectManifest === null) {
     const conflicts = plan.operations
@@ -114,7 +126,9 @@ export async function applyInitPlan(plan: InitPlan): Promise<InitApplyResult> {
 
   for (const operation of plan.operations) await preflightOperation(plan.root, operation);
 
-  const rootOperation = plan.operations.find((operation) => operation.path === lervoRelativePaths.root);
+  const rootOperation = plan.operations.find(
+    (operation) => operation.path === lervoRelativePaths.root,
+  );
   if (rootOperation?.action === "create") await applyFreshTree(plan);
   else await applyIncrementallyWithRollback(plan);
 

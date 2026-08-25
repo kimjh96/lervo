@@ -47,7 +47,10 @@ export async function runSearchAssessmentCommand(args: string[], io: CliIo): Pro
     io.stderr(searchArgumentError(error));
     return 1;
   }
-  if (parsed.positionals.length !== 1 || !["accepted", "failed"].includes(parsed.values.outcome ?? "")) {
+  if (
+    parsed.positionals.length !== 1 ||
+    !["accepted", "failed"].includes(parsed.values.outcome ?? "")
+  ) {
     io.stderr(`A search attempt ID and accepted or failed outcome are required.\n${searchUsage}\n`);
     return 1;
   }
@@ -64,7 +67,8 @@ export async function runSearchAssessmentCommand(args: string[], io: CliIo): Pro
     ]);
     if (store === null) throw new Error("No search attempt is recorded.");
     const attempt = await store.readAttempt(parsed.positionals[0]!);
-    if (attempt.projectId !== manifest.projectId) throw new Error("The search attempt project coordinate does not match.");
+    if (attempt.projectId !== manifest.projectId)
+      throw new Error("The search attempt project coordinate does not match.");
     const assessment = createSearchAssessment({
       attempt,
       assessedAt: new Date(),
@@ -75,14 +79,18 @@ export async function runSearchAssessmentCommand(args: string[], io: CliIo): Pro
       expectedSources: sourceCoordinates(parsed.values.expected),
     });
     await store.recordAssessment(assessment);
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(assessment, null, 2)}\n`
-      : formatSearchAssessment(assessment));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(assessment, null, 2)}\n`
+        : formatSearchAssessment(assessment),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not record the search assessment. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not record the search assessment. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

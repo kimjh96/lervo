@@ -1,10 +1,6 @@
 import { type IncomingMessage, type ServerResponse } from "node:http";
 
-import {
-  HubProjectScopedTraceReader,
-  HubTraceError,
-  type HubTraceSource,
-} from "@lervo/hub-trace";
+import { HubProjectScopedTraceReader, HubTraceError, type HubTraceSource } from "@lervo/hub-trace";
 
 import { type HubRequestAuthenticator } from "./auth.js";
 import {
@@ -23,11 +19,7 @@ import {
   runEventQuery,
   singleAuthorizationHeader,
 } from "./request.js";
-import {
-  resolveHubHttpMaxResponseBytes,
-  sendHubError,
-  sendHubJson,
-} from "./response.js";
+import { resolveHubHttpMaxResponseBytes, sendHubError, sendHubJson } from "./response.js";
 
 export interface HubTraceHttpHandlerOptions {
   authenticator: HubRequestAuthenticator;
@@ -77,7 +69,9 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
         sendHubError(response, 404, "not_found", maxResponseBytes);
         return;
       }
-      const principal = await options.authenticator.authenticate(singleAuthorizationHeader(request));
+      const principal = await options.authenticator.authenticate(
+        singleAuthorizationHeader(request),
+      );
       if (principal === null) {
         sendHubError(response, 401, "unauthorized", maxResponseBytes, {
           "www-authenticate": "Bearer",
@@ -99,22 +93,33 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
       }
       if (matchedRoute.kind === "projects") {
         const result = await reader.listProjects(projectListQuery(url.searchParams));
-        sendHubJson(response, 200, {
-          schemaVersion: 1,
-          projects: result.items,
-          nextCursor: result.nextCursor === null ? null : encodeProjectCursor(result.nextCursor),
-        }, maxResponseBytes);
+        sendHubJson(
+          response,
+          200,
+          {
+            schemaVersion: 1,
+            projects: result.items,
+            nextCursor: result.nextCursor === null ? null : encodeProjectCursor(result.nextCursor),
+          },
+          maxResponseBytes,
+        );
         return;
       }
 
       if (matchedRoute.kind === "project") {
         const result = await reader.getProject(projectRunQuery(matchedRoute, url.searchParams));
-        sendHubJson(response, 200, {
-          schemaVersion: 1,
-          project: result.project,
-          runs: result.runs.items,
-          nextCursor: result.runs.nextCursor === null ? null : encodeRunCursor(result.runs.nextCursor),
-        }, maxResponseBytes);
+        sendHubJson(
+          response,
+          200,
+          {
+            schemaVersion: 1,
+            project: result.project,
+            runs: result.runs.items,
+            nextCursor:
+              result.runs.nextCursor === null ? null : encodeRunCursor(result.runs.nextCursor),
+          },
+          maxResponseBytes,
+        );
         return;
       }
 
@@ -131,28 +136,40 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
           addNode(relation.from);
           addNode(relation.to);
         }
-        sendHubJson(response, 200, {
-          schemaVersion: 1,
-          project: result.project,
-          focus: result.focus,
-          nodes: [...nodes.values()],
-          relations: result.relations.items,
-          nextCursor: result.relations.nextCursor === null
-            ? null
-            : encodeKnowledgeGraphCursor(result.relations.nextCursor),
-        }, maxResponseBytes);
+        sendHubJson(
+          response,
+          200,
+          {
+            schemaVersion: 1,
+            project: result.project,
+            focus: result.focus,
+            nodes: [...nodes.values()],
+            relations: result.relations.items,
+            nextCursor:
+              result.relations.nextCursor === null
+                ? null
+                : encodeKnowledgeGraphCursor(result.relations.nextCursor),
+          },
+          maxResponseBytes,
+        );
         return;
       }
 
       const result = await reader.getRun(runEventQuery(matchedRoute, url.searchParams));
-      sendHubJson(response, 200, {
-        schemaVersion: 1,
-        project: result.project,
-        run: result.run,
-        contextCoverage: result.contextCoverage,
-        events: result.events.items,
-        nextCursor: result.events.nextCursor === null ? null : encodeEventCursor(result.events.nextCursor),
-      }, maxResponseBytes);
+      sendHubJson(
+        response,
+        200,
+        {
+          schemaVersion: 1,
+          project: result.project,
+          run: result.run,
+          contextCoverage: result.contextCoverage,
+          events: result.events.items,
+          nextCursor:
+            result.events.nextCursor === null ? null : encodeEventCursor(result.events.nextCursor),
+        },
+        maxResponseBytes,
+      );
     } catch (error) {
       if (error instanceof InvalidHubHttpRequestError) {
         sendHubError(response, 400, "invalid_request", maxResponseBytes);

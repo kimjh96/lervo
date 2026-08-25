@@ -46,7 +46,9 @@ const requestBytes = new TextEncoder().encode(requestText);
 
 class MutableClock {
   constructor(public value: string) {}
-  now(): string { return this.value; }
+  now(): string {
+    return this.value;
+  }
 }
 
 class FixturePolicyTransport implements AuthenticatedPolicyHubTransport {
@@ -100,21 +102,29 @@ function command(nonceByte = 1, idempotencyKey = "idk_policy_approval_01"): Remo
   });
 }
 
-function snapshot(input: { sequence?: number; previousSnapshotId?: string | null; decision?: CapabilityDecision } = {}) {
+function snapshot(
+  input: {
+    sequence?: number;
+    previousSnapshotId?: string | null;
+    decision?: CapabilityDecision;
+  } = {},
+) {
   return createPolicySnapshot({
     target,
     sequence: input.sequence ?? 1,
     previousSnapshotId: input.previousSnapshotId ?? null,
     issuedAt: "2026-08-19T00:00:00.000Z",
     expiresAt: "2026-08-19T01:00:00.000Z",
-    rules: [{
-      ruleId: `polr_developer_write_${input.sequence ?? 1}`,
-      roleId: "developer",
-      risk: "medium",
-      capability: "filesystem.write",
-      repositoryPaths: ["src/result.ts"],
-      decision: input.decision ?? "require_approval",
-    }],
+    rules: [
+      {
+        ruleId: `polr_developer_write_${input.sequence ?? 1}`,
+        roleId: "developer",
+        risk: "medium",
+        capability: "filesystem.write",
+        repositoryPaths: ["src/result.ts"],
+        decision: input.decision ?? "require_approval",
+      },
+    ],
   });
 }
 
@@ -131,11 +141,13 @@ function remoteReceiver(input: {
     envelope: signer.sign(input.command),
     receiver: new RemoteCommandReceiver({
       target,
-      trustStore: new ConfiguredEd25519RemoteCommandTrustStore([{
-        keyId: signer.keyId,
-        publicKey: input.remotePublicKey,
-        projects: [target],
-      }]),
+      trustStore: new ConfiguredEd25519RemoteCommandTrustStore([
+        {
+          keyId: signer.keyId,
+          publicKey: input.remotePublicKey,
+          projects: [target],
+        },
+      ]),
       replayStore: new InMemoryRemoteCommandReplayStore(),
       policy: input.policy,
       payloadLoader: { load: async () => requestBytes },
@@ -155,12 +167,14 @@ function trustStore(input: {
   publicKey: ReturnType<typeof generateKeyPairSync>["publicKey"];
   purposes?: Array<"snapshot" | "approval" | "revocation">;
 }) {
-  return new ConfiguredEd25519PolicyTrustStore([{
-    keyId: "key_policy_fixture",
-    publicKey: input.publicKey,
-    projects: [target],
-    purposes: input.purposes ?? ["snapshot", "approval", "revocation"],
-  }]);
+  return new ConfiguredEd25519PolicyTrustStore([
+    {
+      keyId: "key_policy_fixture",
+      publicKey: input.publicKey,
+      projects: [target],
+      purposes: input.purposes ?? ["snapshot", "approval", "revocation"],
+    },
+  ]);
 }
 
 async function sync(input: {
@@ -198,12 +212,16 @@ describe("durable Hub policy and approval lifecycle", () => {
     const path = await databasePath();
     let store = await SQLitePolicyStateStore.open({ path, target });
 
-    await expect(sync({ store, transport, publicKey: policyKeys.publicKey, clock })).resolves.toMatchObject({
+    await expect(
+      sync({ store, transport, publicKey: policyKeys.publicKey, clock }),
+    ).resolves.toMatchObject({
       status: "applied",
       approvalCount: 0,
     });
     const localPolicy = {
-      resolve: async () => [{ capability: "filesystem.write" as const, decision: "allow" as const }],
+      resolve: async () => [
+        { capability: "filesystem.write" as const, decision: "allow" as const },
+      ],
     };
     const configuredTrustStore = trustStore({ publicKey: policyKeys.publicKey });
     let policy = new PolicyBackedRemoteCommandPolicy({
@@ -220,7 +238,9 @@ describe("durable Hub policy and approval lifecycle", () => {
       remotePublicKey: remoteKeys.publicKey,
       execute,
     });
-    await expect(fixture.receiver.handle(fixture.envelope)).rejects.toMatchObject({ code: "approval_required" });
+    await expect(fixture.receiver.handle(fixture.envelope)).rejects.toMatchObject({
+      code: "approval_required",
+    });
     expect(execute).not.toHaveBeenCalled();
 
     const approverIdentity = "alice@example.invalid";
@@ -240,15 +260,19 @@ describe("durable Hub policy and approval lifecycle", () => {
       revocations: [],
     };
     clock.value = "2026-08-19T00:02:00.000Z";
-    await expect(sync({ store, transport, publicKey: policyKeys.publicKey, clock })).resolves.toMatchObject({
+    await expect(
+      sync({ store, transport, publicKey: policyKeys.publicKey, clock }),
+    ).resolves.toMatchObject({
       status: "applied",
       approvalCount: 1,
     });
-    await expect(policy.authorize({
-      command: remoteCommand,
-      signerKeyId: "key_remote_other",
-      evaluatedAt: clock.value,
-    })).resolves.toMatchObject({ status: "approval_required" });
+    await expect(
+      policy.authorize({
+        command: remoteCommand,
+        signerKeyId: "key_remote_other",
+        evaluatedAt: clock.value,
+      }),
+    ).resolves.toMatchObject({ status: "approval_required" });
     store.close();
 
     store = await SQLitePolicyStateStore.open({ path, target });
@@ -307,11 +331,13 @@ describe("durable Hub policy and approval lifecycle", () => {
       approvalId: approval.approvalId,
       policySnapshotId: policySnapshot.snapshotId,
     });
-    await expect(verifier.verify({
-      ...verificationInput,
-      expectedPaths: ["src/unapproved.ts"],
-      requestedPath: "src/unapproved.ts",
-    })).resolves.toEqual({
+    await expect(
+      verifier.verify({
+        ...verificationInput,
+        expectedPaths: ["src/unapproved.ts"],
+        requestedPath: "src/unapproved.ts",
+      }),
+    ).resolves.toEqual({
       approved: false,
       reasonCode: "active_approval_missing",
     });
@@ -328,17 +354,21 @@ describe("durable Hub policy and approval lifecycle", () => {
     };
     clock.value = "2026-08-19T00:04:00.000Z";
     await sync({ store, transport, publicKey: policyKeys.publicKey, clock });
-    await expect(verifier.verify({
-      ...verificationInput,
-      evaluatedAt: clock.value,
-    })).resolves.toEqual({
+    await expect(
+      verifier.verify({
+        ...verificationInput,
+        evaluatedAt: clock.value,
+      }),
+    ).resolves.toEqual({
       approved: false,
       reasonCode: "active_approval_missing",
     });
-    await expect(verifier.verify({
-      ...verificationInput,
-      evaluatedAt: "2026-08-19T00:10:00.001Z",
-    })).resolves.toEqual({
+    await expect(
+      verifier.verify({
+        ...verificationInput,
+        evaluatedAt: "2026-08-19T00:10:00.001Z",
+      }),
+    ).resolves.toEqual({
       approved: false,
       reasonCode: "remote_command_not_current",
     });
@@ -389,7 +419,13 @@ describe("durable Hub policy and approval lifecycle", () => {
       trustStore: trustStore({ publicKey: policyKeys.publicKey }),
       localPolicy: { resolve: async () => [{ capability: "filesystem.write", decision: "allow" }] },
     });
-    await expect(requirePolicy.authorize({ command: remoteCommand, signerKeyId: "key_remote_policy", evaluatedAt: clock.value })).resolves.toMatchObject({
+    await expect(
+      requirePolicy.authorize({
+        command: remoteCommand,
+        signerKeyId: "key_remote_policy",
+        evaluatedAt: clock.value,
+      }),
+    ).resolves.toMatchObject({
       status: "approval_required",
     });
     const denyPolicy = new PolicyBackedRemoteCommandPolicy({
@@ -397,11 +433,23 @@ describe("durable Hub policy and approval lifecycle", () => {
       trustStore: trustStore({ publicKey: policyKeys.publicKey }),
       localPolicy: { resolve: async () => [{ capability: "filesystem.write", decision: "deny" }] },
     });
-    await expect(denyPolicy.authorize({ command: remoteCommand, signerKeyId: "key_remote_policy", evaluatedAt: "2026-08-19T00:01:30.000Z" })).resolves.toEqual({
+    await expect(
+      denyPolicy.authorize({
+        command: remoteCommand,
+        signerKeyId: "key_remote_policy",
+        evaluatedAt: "2026-08-19T00:01:30.000Z",
+      }),
+    ).resolves.toEqual({
       status: "denied",
       reasonCode: "local_policy_denied",
     });
-    await expect(requirePolicy.authorize({ command: remoteCommand, signerKeyId: "key_remote_policy", evaluatedAt: "2026-08-19T00:05:00.001Z" })).resolves.toMatchObject({
+    await expect(
+      requirePolicy.authorize({
+        command: remoteCommand,
+        signerKeyId: "key_remote_policy",
+        evaluatedAt: "2026-08-19T00:05:00.001Z",
+      }),
+    ).resolves.toMatchObject({
       status: "approval_required",
     });
     store.close();
@@ -411,25 +459,33 @@ describe("durable Hub policy and approval lifecycle", () => {
     const policyKeys = generateKeyPairSync("ed25519");
     const signer = new Ed25519PolicySigner("key_policy_fixture", policyKeys.privateKey);
     const first = snapshot();
-    const second = snapshot({ sequence: 2, previousSnapshotId: first.snapshotId, decision: "deny" });
+    const second = snapshot({
+      sequence: 2,
+      previousSnapshotId: first.snapshotId,
+      decision: "deny",
+    });
     const transport = new FixturePolicyTransport();
     const clock = new MutableClock("2026-08-19T00:01:00.000Z");
     const store = await SQLitePolicyStateStore.open({ path: await databasePath(), target });
     transport.bundle = { snapshot: signer.signSnapshot(first), approvals: [], revocations: [] };
-    await expect(sync({
-      store,
-      transport,
-      publicKey: policyKeys.publicKey,
-      clock,
-      purposes: ["approval"],
-    })).rejects.toMatchObject({ code: "policy_signer_purpose_denied" });
+    await expect(
+      sync({
+        store,
+        transport,
+        publicKey: policyKeys.publicKey,
+        clock,
+        purposes: ["approval"],
+      }),
+    ).rejects.toMatchObject({ code: "policy_signer_purpose_denied" });
     await expect(store.getCurrentSnapshot()).resolves.toBeNull();
 
     await sync({ store, transport, publicKey: policyKeys.publicKey, clock });
     transport.bundle = { snapshot: signer.signSnapshot(second), approvals: [], revocations: [] };
     await sync({ store, transport, publicKey: policyKeys.publicKey, clock });
     transport.bundle = { snapshot: signer.signSnapshot(first), approvals: [], revocations: [] };
-    await expect(sync({ store, transport, publicKey: policyKeys.publicKey, clock })).rejects.toMatchObject({
+    await expect(
+      sync({ store, transport, publicKey: policyKeys.publicKey, clock }),
+    ).rejects.toMatchObject({
       code: "policy_store_failed",
     });
     await expect(store.getCurrentSnapshot()).resolves.toMatchObject({
@@ -444,13 +500,17 @@ describe("durable Hub policy and approval lifecycle", () => {
     const store = await SQLitePolicyStateStore.open({ path: await databasePath(), target });
     const clock = new MutableClock("2026-08-19T00:01:00.000Z");
     transport.offline = true;
-    await expect(sync({ store, transport, publicKey: policyKeys.publicKey, clock })).resolves.toEqual({
+    await expect(
+      sync({ store, transport, publicKey: policyKeys.publicKey, clock }),
+    ).resolves.toEqual({
       status: "offline",
       failureCode: "hub_unavailable",
     });
     transport.offline = false;
     transport.peerHash = `sha256:${"e".repeat(64)}`;
-    await expect(sync({ store, transport, publicKey: policyKeys.publicKey, clock })).resolves.toEqual({
+    await expect(
+      sync({ store, transport, publicKey: policyKeys.publicKey, clock }),
+    ).resolves.toEqual({
       status: "offline",
       failureCode: "transport_authentication_failed",
     });

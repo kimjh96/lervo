@@ -1,11 +1,5 @@
-import type {
-  ClaudeAgentClient,
-  ClaudeToolUseHandler,
-} from "@lervo/adapter-claude";
-import type {
-  CodexAppServerClient,
-  CodexThreadStartOptions,
-} from "@lervo/adapter-codex";
+import type { ClaudeAgentClient, ClaudeToolUseHandler } from "@lervo/adapter-claude";
+import type { CodexAppServerClient, CodexThreadStartOptions } from "@lervo/adapter-codex";
 
 const waiters = new WeakMap<unknown[], () => void>();
 
@@ -42,9 +36,7 @@ export class ConversationCodexClient implements CodexAppServerClient {
     private readonly turnId: string,
     private readonly result: string,
   ) {
-    this.notificationsList = [
-      { method: "thread/started", params: { thread: { id: threadId } } },
-    ];
+    this.notificationsList = [{ method: "thread/started", params: { thread: { id: threadId } } }];
   }
 
   async startThread(options: CodexThreadStartOptions) {
@@ -80,8 +72,12 @@ export class ConversationCodexClient implements CodexAppServerClient {
   async respondFileChangeApproval() {}
   async interruptTurn() {}
   async unsubscribe() {}
-  notifications(signal: AbortSignal) { return drain(this.notificationsList, signal); }
-  async close() { this.closed = true; }
+  notifications(signal: AbortSignal) {
+    return drain(this.notificationsList, signal);
+  }
+  async close() {
+    this.closed = true;
+  }
 }
 
 export class ConversationClaudeClient implements ClaudeAgentClient {
@@ -135,6 +131,10 @@ export class ConversationClaudeClient implements ClaudeAgentClient {
   }
 
   async interrupt() {}
-  messages(signal: AbortSignal) { return drain(this.messageList, signal); }
-  async close() { this.closed = true; }
+  messages(signal: AbortSignal) {
+    return drain(this.messageList, signal);
+  }
+  async close() {
+    this.closed = true;
+  }
 }

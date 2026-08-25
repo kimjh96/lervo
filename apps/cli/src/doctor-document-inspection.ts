@@ -4,9 +4,7 @@ import { loadDocumentRegistry } from "@lervo/project";
 
 import { doctorInspection, doctorIssue } from "./doctor-inspection-result.js";
 
-export async function inspectDoctorDocuments(
-  repositoryRoot: string,
-): Promise<DoctorInspection[]> {
+export async function inspectDoctorDocuments(repositoryRoot: string): Promise<DoctorInspection[]> {
   let registry;
   try {
     registry = await loadDocumentRegistry(repositoryRoot);
@@ -39,10 +37,12 @@ export async function inspectDoctorDocuments(
       documents.length,
       failed === 0
         ? []
-        : [doctorIssue(
-          "document_source_invalid",
-          `Could not read ${failed} registered document sources as safe regular files.`,
-        )],
+        : [
+            doctorIssue(
+              "document_source_invalid",
+              `Could not read ${failed} registered document sources as safe regular files.`,
+            ),
+          ],
     ),
   ];
 }

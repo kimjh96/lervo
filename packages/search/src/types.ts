@@ -192,7 +192,11 @@ export type SearchErrorCode =
   | "invalid_rollout_status";
 
 export class SearchError extends Error {
-  constructor(readonly code: SearchErrorCode, message: string, options?: ErrorOptions) {
+  constructor(
+    readonly code: SearchErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = "SearchError";
   }

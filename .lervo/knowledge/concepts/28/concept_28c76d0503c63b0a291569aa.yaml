@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d181d81ac45efb16fde996a4
+  - uv_91efbf122336dd550eb2d846
 title: "ADR-0018: Existing-document adoption and safe migration"
 type: decision

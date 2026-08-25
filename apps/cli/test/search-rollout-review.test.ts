@@ -36,8 +36,15 @@ describe("search rollout review command", () => {
     const { root, project, activation, policy, registry } =
       await prepareSelectedSearchCandidate("researcher.rollout");
     const args = [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "keep", "--reviewer", "reviewer_rollout", "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "keep",
+      "--reviewer",
+      "reviewer_rollout",
+      "--json",
     ];
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:03:00.000Z"));
@@ -56,12 +63,20 @@ describe("search rollout review command", () => {
       qualitySnapshot: { totalAttempts: 1, assessedAttempts: 1 },
       effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
     });
-    expect((JSON.parse(repeated.output) as { rolloutReviewId: string }).rolloutReviewId)
-      .toBe(review.rolloutReviewId);
-    expect(await readdir(resolve(root, ".lervo/state/search/rollout-reviews")))
-      .toEqual([`${review.rolloutReviewId}.json`]);
-    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
-    const path = resolve(root, ".lervo/state/search/rollout-reviews", `${review.rolloutReviewId}.json`);
+    expect((JSON.parse(repeated.output) as { rolloutReviewId: string }).rolloutReviewId).toBe(
+      review.rolloutReviewId,
+    );
+    expect(await readdir(resolve(root, ".lervo/state/search/rollout-reviews"))).toEqual([
+      `${review.rolloutReviewId}.json`,
+    ]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+    ]);
+    const path = resolve(
+      root,
+      ".lervo/state/search/rollout-reviews",
+      `${review.rolloutReviewId}.json`,
+    );
     const originalBytes = await readFile(path, "utf8");
     expect(originalBytes).not.toContain("zephyrcontext");
     expect(originalBytes).not.toContain("docs/search-context.md");
@@ -69,15 +84,30 @@ describe("search rollout review command", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:04:00.000Z"));
     const second = await command(root, [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "more-assessments", "--reviewer", "reviewer_second", "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "more-assessments",
+      "--reviewer",
+      "reviewer_second",
+      "--json",
     ]);
     vi.setSystemTime(new Date("2026-08-20T10:05:00.000Z"));
-    const firstPage = await command(root, ["search", "rollout", "status", "--limit", "1", "--json"]);
+    const firstPage = await command(root, [
+      "search",
+      "rollout",
+      "status",
+      "--limit",
+      "1",
+      "--json",
+    ]);
     vi.useRealTimers();
     expect(second.code, second.error).toBe(0);
     expect(firstPage.code, firstPage.error).toBe(0);
-    const secondReviewId = (JSON.parse(second.output) as { rolloutReviewId: string }).rolloutReviewId;
+    const secondReviewId = (JSON.parse(second.output) as { rolloutReviewId: string })
+      .rolloutReviewId;
     const firstStatus = JSON.parse(firstPage.output) as {
       currentSelection: { selectionState: string; selectionTransitionId: string };
       reviewCount: number;
@@ -91,13 +121,18 @@ describe("search rollout review command", () => {
       effect: { selectionChange: string };
     };
     expect(firstStatus).toMatchObject({
-      currentSelection: { selectionState: "candidate", selectionTransitionId: activation.activationId },
+      currentSelection: {
+        selectionState: "candidate",
+        selectionTransitionId: activation.activationId,
+      },
       reviewCount: 2,
-      reviews: [{
-        review: { rolloutReviewId: secondReviewId, decision: "more_assessments_required" },
-        qualityInputState: "unchanged",
-        selectionRelation: "current_selection",
-      }],
+      reviews: [
+        {
+          review: { rolloutReviewId: secondReviewId, decision: "more_assessments_required" },
+          qualityInputState: "unchanged",
+          selectionRelation: "current_selection",
+        },
+      ],
       nextCursor: secondReviewId,
       reviewDecisionSelection: "not_performed",
       effect: { selectionChange: "not_applied" },
@@ -105,7 +140,14 @@ describe("search rollout review command", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:05:00.000Z"));
     const nextPage = await command(root, [
-      "search", "rollout", "status", "--limit", "1", "--cursor", firstStatus.nextCursor, "--json",
+      "search",
+      "rollout",
+      "status",
+      "--limit",
+      "1",
+      "--cursor",
+      firstStatus.nextCursor,
+      "--json",
     ]);
     vi.useRealTimers();
     expect(nextPage.code, nextPage.error).toBe(0);
@@ -150,14 +192,27 @@ describe("search rollout review command", () => {
     expect(changedStatus.reviewDecisionSelection).toBe("not_performed");
 
     const rolledBack = await command(root, [
-      "search", "engine", "rollback", "--policy", policy.policyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "engine",
+      "rollback",
+      "--policy",
+      policy.policyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     expect(rolledBack.code, rolledBack.error).toBe(0);
     expect(await readFile(path, "utf8")).toBe(originalBytes);
     const historical = await command(root, [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "rollback", "--reviewer", "reviewer_rollout", "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "rollback",
+      "--reviewer",
+      "reviewer_rollout",
+      "--json",
     ]);
     expect(historical.code).toBe(1);
     expect(historical.error).toContain("rollout_review_not_eligible");
@@ -175,9 +230,12 @@ describe("search rollout review command", () => {
       effect: { rollback: string };
     };
     expect(rollbackStatus.currentSelection.selectionState).toBe("recorded_baseline");
-    expect(rollbackStatus.reviews.every((item) => item.selectionRelation === "historical_selection")).toBe(true);
-    expect(rollbackStatus.reviews.find((item) => item.review.rolloutReviewId === review.rolloutReviewId))
-      .toMatchObject({ review: { effect: { rollback: "not_executed" } } });
+    expect(
+      rollbackStatus.reviews.every((item) => item.selectionRelation === "historical_selection"),
+    ).toBe(true);
+    expect(
+      rollbackStatus.reviews.find((item) => item.review.rolloutReviewId === review.rolloutReviewId),
+    ).toMatchObject({ review: { effect: { rollback: "not_executed" } } });
     expect(rollbackStatus.effect.rollback).toBe("not_executed");
   });
 });

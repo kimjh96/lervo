@@ -14,19 +14,13 @@ import {
 } from "./outbox-lifecycle.js";
 import { authenticatedResponseBody } from "./peer-response.js";
 import { registerProject } from "./project-registration.js";
-import {
-  registrationFailureCode,
-  RetryableSyncFailure,
-} from "./retry-failure.js";
+import { registrationFailureCode, RetryableSyncFailure } from "./retry-failure.js";
 import {
   calculateNextAttemptAt,
   clockTimestamp,
   resolveWorkerConfiguration,
 } from "./runtime-configuration.js";
-import {
-  type OutboundSyncWorkerOptions,
-  type SyncCycleResult,
-} from "./types.js";
+import { type OutboundSyncWorkerOptions, type SyncCycleResult } from "./types.js";
 
 async function sendBatch(input: {
   options: OutboundSyncWorkerOptions;

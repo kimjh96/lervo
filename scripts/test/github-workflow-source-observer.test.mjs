@@ -42,9 +42,13 @@ describe("GitHub workflow source observer", () => {
     assert.equal(calls.length, 1);
     assert.equal(calls[0].command, "gh");
     assert.deepEqual(calls[0].args, [
-      "api", "--method", "GET",
-      "--header", "Accept: application/vnd.github+json",
-      "--header", "X-GitHub-Api-Version: 2026-03-10",
+      "api",
+      "--method",
+      "GET",
+      "--header",
+      "Accept: application/vnd.github+json",
+      "--header",
+      "X-GitHub-Api-Version: 2026-03-10",
       `repos/${repository}/contents/${remoteReleaseWorkflowPath}?ref=${sourceCommit}`,
     ]);
     assert.equal(calls[0].options.env.GH_PROMPT_DISABLED, "1");
@@ -95,13 +99,16 @@ describe("GitHub workflow source observer", () => {
     assert.equal(unavailable.reason, "authentication_or_workflow_unavailable");
 
     let calls = 0;
-    await assert.rejects(observeGitHubWorkflowSource({
-      repository,
-      sourceCommit: "C".repeat(40),
-      execute: async () => {
-        calls += 1;
-      },
-    }), TypeError);
+    await assert.rejects(
+      observeGitHubWorkflowSource({
+        repository,
+        sourceCommit: "C".repeat(40),
+        execute: async () => {
+          calls += 1;
+        },
+      }),
+      TypeError,
+    );
     assert.equal(calls, 0);
   });
 });

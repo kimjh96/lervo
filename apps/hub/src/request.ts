@@ -35,8 +35,10 @@ export class InvalidHubHttpRequestError extends Error {}
 export function matchHubTraceRoute(pathname: string): HubTraceHttpRoute | null {
   const segments = pathname.split("/");
   if (
-    segments[0] !== "" || segments[1] !== "v1" ||
-    segments[2] !== "trace" || segments[3] !== "projects"
+    segments[0] !== "" ||
+    segments[1] !== "v1" ||
+    segments[2] !== "trace" ||
+    segments[3] !== "projects"
   ) {
     return null;
   }
@@ -194,9 +196,10 @@ export function knowledgeGraphQuery(
   if ((requestedKind === undefined) !== (requestedId === undefined)) {
     throw new InvalidHubHttpRequestError();
   }
-  const focus = requestedKind === undefined
-    ? { kind: "project" as const, id: coordinate.projectId }
-    : { kind: requestedKind as KnowledgeGraphNodeKind, id: requestedId! };
+  const focus =
+    requestedKind === undefined
+      ? { kind: "project" as const, id: coordinate.projectId }
+      : { kind: requestedKind as KnowledgeGraphNodeKind, id: requestedId! };
   if (!knowledgeGraphNodeKinds.includes(focus.kind)) throw new InvalidHubHttpRequestError();
   try {
     assertKnowledgeGraphNode(focus);

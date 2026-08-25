@@ -16,12 +16,9 @@ import {
   workflowExecutionAttempt,
   workflowExecutionRunId,
 } from "./fixtures/first-publication-workflow-execution.mjs";
-import { workflowReleaseTag } from
-  "./fixtures/first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./fixtures/first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./fixtures/first-publication-workflow-activation.mjs";
+import { workflowReleaseTag } from "./fixtures/first-publication-workflow-reachability.mjs";
+import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./fixtures/first-publication-workflow-activation.mjs";
 
 function input(fixture, overrides = {}) {
   return {
@@ -44,12 +41,10 @@ describe("first-publication npm stage result evidence", () => {
       const evidenceInput = input(fixture);
       const report = createFirstPublicationStageResultEvidence(evidenceInput);
       assert.equal(report.status, "evidence_bound");
-      assert.equal(report.stageResult,
-        "npm_cli_reported_stage_submission_accepted");
+      assert.equal(report.stageResult, "npm_cli_reported_stage_submission_accepted");
       assert.equal(report.stage.receiptEvidence, "npm_cli_exit_zero");
       assert.equal(report.stage.review, "required_with_2fa");
-      assert.equal(report.limitations.npmStageSubmissionProof,
-        "npm_cli_exit_zero_only");
+      assert.equal(report.limitations.npmStageSubmissionProof, "npm_cli_exit_zero_only");
       assert.equal(report.limitations.npmTwoFactorApproval, "not_observed");
       assert.equal(report.sideEffects.artifactDownload, "performed_read_only");
       assert.equal(validateFirstPublicationStageResultEvidence(report, evidenceInput), report);
@@ -60,16 +55,12 @@ describe("first-publication npm stage result evidence", () => {
 
   it("rejects unknown outcomes and package versions different from the workflow target", async () => {
     for (const [options, code] of [
-      [{ terminalState: "stage_outcome_unknown" },
-        "first_publication_stage_result_record_invalid"],
+      [{ terminalState: "stage_outcome_unknown" }, "first_publication_stage_result_record_invalid"],
       [{ version: "0.1.1" }, "first_publication_stage_result_source_mismatch"],
     ]) {
       const fixture = await createFirstPublicationStageResultFixture(options);
       try {
-        assert.throws(
-          () => createFirstPublicationStageResultEvidence(input(fixture)),
-          { code },
-        );
+        assert.throws(() => createFirstPublicationStageResultEvidence(input(fixture)), { code });
       } finally {
         await rm(fixture.root, { recursive: true, force: true });
       }
@@ -84,9 +75,12 @@ describe("first-publication npm stage result evidence", () => {
       const { evidenceDigest: _upstreamDigest, ...upstreamBody } = forgedUpstream;
       forgedUpstream.evidenceDigest = canonicalDigest(upstreamBody);
       assert.throws(
-        () => createFirstPublicationStageResultEvidence(input(fixture, {
-          workflowExecutionReport: forgedUpstream,
-        })),
+        () =>
+          createFirstPublicationStageResultEvidence(
+            input(fixture, {
+              workflowExecutionReport: forgedUpstream,
+            }),
+          ),
         { code: "first_publication_workflow_execution_report_invalid" },
       );
 

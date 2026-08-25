@@ -8,12 +8,7 @@ import { calculateProjectIdentityHash } from "@lervo/sync-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { HubSyncSQLiteStore } from "../src/index.js";
-import {
-  databasePath,
-  manifest,
-  registerStore,
-  removeTemporaryRoots,
-} from "./fixture.js";
+import { databasePath, manifest, registerStore, removeTemporaryRoots } from "./fixture.js";
 
 afterEach(removeTemporaryRoots);
 
@@ -53,11 +48,15 @@ describe("Hub command authorship SQLite transaction", () => {
       request: "request referencing the same artifact",
     };
 
-    await expect(authorHubCommand({ ...common, request })).resolves.toMatchObject({ status: "created" });
-    await expect(authorHubCommand({
-      ...common,
-      request: { ...request, idempotencyKey: "idk_command_author_02" },
-    })).resolves.toMatchObject({ status: "created" });
+    await expect(authorHubCommand({ ...common, request })).resolves.toMatchObject({
+      status: "created",
+    });
+    await expect(
+      authorHubCommand({
+        ...common,
+        request: { ...request, idempotencyKey: "idk_command_author_02" },
+      }),
+    ).resolves.toMatchObject({ status: "created" });
     await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
 
     const fault = new DatabaseSync(path);
@@ -67,16 +66,24 @@ describe("Hub command authorship SQLite transaction", () => {
       BEGIN SELECT RAISE(ABORT, 'fixture authorship failure'); END;
     `);
     fault.close();
-    await expect(authorHubCommand({
-      ...common,
-      request: { ...request, idempotencyKey: "idk_command_author_03", request: "new orphan candidate" },
-    })).rejects.toMatchObject({ code: "write_failed" });
+    await expect(
+      authorHubCommand({
+        ...common,
+        request: {
+          ...request,
+          idempotencyKey: "idk_command_author_03",
+          request: "new orphan candidate",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "write_failed" });
 
     const inspection = new DatabaseSync(path, { readOnly: true });
-    expect(inspection.prepare("SELECT COUNT(*) AS count FROM hub_remote_commands").get())
-      .toEqual({ count: 2 });
-    expect(inspection.prepare("SELECT COUNT(*) AS count FROM hub_remote_command_authorships").get())
-      .toEqual({ count: 2 });
+    expect(inspection.prepare("SELECT COUNT(*) AS count FROM hub_remote_commands").get()).toEqual({
+      count: 2,
+    });
+    expect(
+      inspection.prepare("SELECT COUNT(*) AS count FROM hub_remote_command_authorships").get(),
+    ).toEqual({ count: 2 });
     inspection.close();
     await store.close();
   });

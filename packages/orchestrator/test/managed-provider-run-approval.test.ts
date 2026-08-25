@@ -58,17 +58,19 @@ describe("managed provider approval", () => {
     const adapter = new FakeManagedAdapter("codex");
     const input = providerRunInput();
 
-    await expect(coordinator(adapter, data.root, data.store).run({
-      ...input,
-      repositoryRoot: data.root,
-      context: {
-        ...input.context,
-        role: {
-          ...role,
-          capabilities: { ...role.capabilities, "filesystem.write": "require_approval" },
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        context: {
+          ...input.context,
+          role: {
+            ...role,
+            capabilities: { ...role.capabilities, "filesystem.write": "require_approval" },
+          },
         },
-      },
-    })).rejects.toMatchObject({ code: "approval_required" });
+      }),
+    ).rejects.toMatchObject({ code: "approval_required" });
 
     expect(adapter.calls).toEqual([]);
     expect(data.store.list({ runId }).at(-1)).toMatchObject({
@@ -84,31 +86,26 @@ describe("managed provider approval", () => {
     const authorization = approvalAuthorization();
     const input = providerRunInput();
 
-    await expect(coordinator(
-      adapter,
-      data.root,
-      data.store,
-      undefined,
-      undefined,
-      {
+    await expect(
+      coordinator(adapter, data.root, data.store, undefined, undefined, {
         verify: async () => ({
           approved: true,
           approvalId: `apr_${"f".repeat(64)}`,
           policySnapshotId: authorization.policySnapshotId,
         }),
-      },
-    ).run({
-      ...input,
-      repositoryRoot: data.root,
-      approvalAuthorization: authorization,
-      context: {
-        ...input.context,
-        role: {
-          ...role,
-          capabilities: { ...role.capabilities, "filesystem.write": "require_approval" },
+      }).run({
+        ...input,
+        repositoryRoot: data.root,
+        approvalAuthorization: authorization,
+        context: {
+          ...input.context,
+          role: {
+            ...role,
+            capabilities: { ...role.capabilities, "filesystem.write": "require_approval" },
+          },
         },
-      },
-    })).rejects.toMatchObject({ code: "approval_required" });
+      }),
+    ).rejects.toMatchObject({ code: "approval_required" });
 
     expect(adapter.calls).toEqual([]);
     data.store.close();
@@ -125,22 +122,17 @@ describe("managed provider approval", () => {
       },
     });
     const authorization = approvalAuthorization();
-    const verify = vi.fn(async (
-      _input: Parameters<ManagedCapabilityApprovalVerifier["verify"]>[0],
-    ) => ({
-      approved: true as const,
-      approvalId: authorization.approvalIds[0]!,
-      policySnapshotId: authorization.policySnapshotId,
-    }));
+    const verify = vi.fn(
+      async (_input: Parameters<ManagedCapabilityApprovalVerifier["verify"]>[0]) => ({
+        approved: true as const,
+        approvalId: authorization.approvalIds[0]!,
+        policySnapshotId: authorization.policySnapshotId,
+      }),
+    );
     const input = providerRunInput();
-    const result = await coordinator(
-      adapter,
-      data.root,
-      data.store,
-      undefined,
-      undefined,
-      { verify },
-    ).run({
+    const result = await coordinator(adapter, data.root, data.store, undefined, undefined, {
+      verify,
+    }).run({
       ...input,
       repositoryRoot: data.root,
       approvalAuthorization: authorization,
@@ -158,10 +150,7 @@ describe("managed provider approval", () => {
     ]);
     expect(result.session.executionMode).toBe("managed_write");
     expect(verify).toHaveBeenCalledTimes(2);
-    expect(verify.mock.calls.map(([call]) => call.requestedPath)).toEqual([
-      null,
-      "src/result.ts",
-    ]);
+    expect(verify.mock.calls.map(([call]) => call.requestedPath)).toEqual([null, "src/result.ts"]);
     expect(
       data.store.list({ runId }).find((event) => event.type === "capability.decided")?.payload,
     ).toMatchObject({
@@ -185,42 +174,37 @@ describe("managed provider approval", () => {
     const authorization = approvalAuthorization();
     let calls = 0;
     const verifier: ManagedCapabilityApprovalVerifier = {
-      verify: async () => ++calls === 1
-        ? {
-            approved: true,
-            approvalId: authorization.approvalIds[0]!,
-            policySnapshotId: authorization.policySnapshotId,
-          }
-        : { approved: false, reasonCode: "active_approval_missing" },
+      verify: async () =>
+        ++calls === 1
+          ? {
+              approved: true,
+              approvalId: authorization.approvalIds[0]!,
+              policySnapshotId: authorization.policySnapshotId,
+            }
+          : { approved: false, reasonCode: "active_approval_missing" },
     };
     const input = providerRunInput();
 
-    await expect(coordinator(
-      adapter,
-      data.root,
-      data.store,
-      undefined,
-      undefined,
-      verifier,
-    ).run({
-      ...input,
-      repositoryRoot: data.root,
-      approvalAuthorization: authorization,
-      context: {
-        ...input.context,
-        role: {
-          ...role,
-          capabilities: { ...role.capabilities, "filesystem.write": "require_approval" },
+    await expect(
+      coordinator(adapter, data.root, data.store, undefined, undefined, verifier).run({
+        ...input,
+        repositoryRoot: data.root,
+        approvalAuthorization: authorization,
+        context: {
+          ...input.context,
+          role: {
+            ...role,
+            capabilities: { ...role.capabilities, "filesystem.write": "require_approval" },
+          },
         },
-      },
-    })).rejects.toMatchObject({ code: "provider_write_failed" });
+      }),
+    ).rejects.toMatchObject({ code: "provider_write_failed" });
 
     expect(calls).toBe(2);
-    expect(data.store.list({ runId }).find(
-      (event) => event.type === "capability.decided",
-    )?.payload).toMatchObject({ decision: "require_approval", approvalId: null });
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "capability.decided")?.payload,
+    ).toMatchObject({ decision: "require_approval", approvalId: null });
     await expect(access(resolve(data.root, "src/result.ts"))).rejects.toThrow();
     data.store.close();
   });
 });
-

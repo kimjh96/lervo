@@ -56,7 +56,9 @@ function review(): HubCommandReview {
       snapshotId: `pols_${"d".repeat(64)}`,
       maximumExpiresAt: "2026-08-20T00:50:00.000Z",
       hadRevokedApproval: false,
-      options: [{ capability: "filesystem.write", repositoryPaths: ["src/result.ts"], approvalId: null }],
+      options: [
+        { capability: "filesystem.write", repositoryPaths: ["src/result.ts"], approvalId: null },
+      ],
     },
     inspectedAt: "2026-08-20T00:05:00.000Z",
   };
@@ -117,9 +119,11 @@ describe("conversation command control", () => {
     });
     expect(parseConversationControlCommand(`Please approve command ${deliveryId}`)).toBeNull();
     expect(parseConversationControlCommand(`/lervo approve ${deliveryId}`)).toBeNull();
-    expect(parseConversationControlCommand(
-      "/lervo deliberate start deliberation_product-review -- Review the deployment structure.",
-    )).toEqual({
+    expect(
+      parseConversationControlCommand(
+        "/lervo deliberate start deliberation_product-review -- Review the deployment structure.",
+      ),
+    ).toEqual({
       operation: "deliberation_start",
       policyId: "deliberation_product-review",
       topic: "Review the deployment structure.",
@@ -132,7 +136,9 @@ describe("conversation command control", () => {
       operation: "deliberation_resume",
       deliberationId: "dlb_chat0001",
     });
-    expect(parseConversationControlCommand("Have Lervo agents discuss the deployment structure")).toBeNull();
+    expect(
+      parseConversationControlCommand("Have Lervo agents discuss the deployment structure"),
+    ).toBeNull();
   });
 
   it("routes deliberation start and status through one platform-neutral port", async () => {
@@ -180,9 +186,9 @@ describe("conversation command control", () => {
       decidedAt: "2026-08-20T00:04:30.000Z",
     });
     const candidate = await responder.respond({ event, policy, decision });
-    const body = Buffer.from(await artifacts.get(
-      `lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`,
-    )).toString("utf8");
+    const body = Buffer.from(
+      await artifacts.get(`lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`),
+    ).toString("utf8");
 
     expect(start).toHaveBeenCalledWith({
       event,
@@ -234,9 +240,9 @@ describe("conversation command control", () => {
       policy,
       decision,
     });
-    const body = Buffer.from(await artifacts.get(
-      `lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`,
-    )).toString("utf8");
+    const body = Buffer.from(
+      await artifacts.get(`lervo-cas://sha256/${candidate.content.contentHash.slice(7)}`),
+    ).toString("utf8");
 
     expect(inspect).toHaveBeenCalledOnce();
     expect(body).toContain("No approval was created in this conversation.");
@@ -253,13 +259,15 @@ describe("conversation command control", () => {
       reader: { inspect } as never,
       reviewGrants: grants,
       reviewBaseUrl: "https://hub.example/control",
-      bindings: [{
-        projectId: "prj_control01",
-        participantId: "ptc_human001",
-        principalId: "operator:reviewer",
-        destinationId: "hub:primary",
-        permissions: ["command.read", "approval.review"],
-      }],
+      bindings: [
+        {
+          projectId: "prj_control01",
+          participantId: "ptc_human001",
+          principalId: "operator:reviewer",
+          destinationId: "hub:primary",
+          permissions: ["command.read", "approval.review"],
+        },
+      ],
     });
     const { event } = await fixtureMessage(`/lervo approval ${deliveryId}`);
     const result = await control.inspect({
@@ -271,22 +279,26 @@ describe("conversation command control", () => {
     const fragment = new URLSearchParams(new URL(result.reviewUrl!).hash.slice(1));
     const grant = fragment.get("reviewGrant")!;
 
-    expect(grants.verify({
-      grant,
-      principalId: "operator:reviewer",
-      destinationId: "hub:primary",
-      projectId: "prj_control01",
-      deliveryId,
-      verifiedAt: "2026-08-20T00:06:00.000Z",
-    })).toBe(true);
-    expect(grants.verify({
-      grant,
-      principalId: "operator:someone-else",
-      destinationId: "hub:primary",
-      projectId: "prj_control01",
-      deliveryId,
-      verifiedAt: "2026-08-20T00:06:00.000Z",
-    })).toBe(false);
+    expect(
+      grants.verify({
+        grant,
+        principalId: "operator:reviewer",
+        destinationId: "hub:primary",
+        projectId: "prj_control01",
+        deliveryId,
+        verifiedAt: "2026-08-20T00:06:00.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      grants.verify({
+        grant,
+        principalId: "operator:someone-else",
+        destinationId: "hub:primary",
+        projectId: "prj_control01",
+        deliveryId,
+        verifiedAt: "2026-08-20T00:06:00.000Z",
+      }),
+    ).toBe(false);
   });
 
   it("binds deliberation operations to the human project principal", async () => {
@@ -314,12 +326,14 @@ describe("conversation command control", () => {
     };
     const control = new ConfiguredConversationDeliberationControl({
       backend,
-      bindings: [{
-        projectId: "prj_control01",
-        participantId: "ptc_human001",
-        principalId: "operator:reviewer",
-        permissions: ["deliberation.start", "deliberation.resume", "deliberation.read"],
-      }],
+      bindings: [
+        {
+          projectId: "prj_control01",
+          participantId: "ptc_human001",
+          principalId: "operator:reviewer",
+          permissions: ["deliberation.start", "deliberation.resume", "deliberation.read"],
+        },
+      ],
     });
     const { event } = await fixtureMessage(
       "/lervo deliberate start deliberation_product-review -- Review the deployment structure.",
@@ -352,14 +366,19 @@ describe("conversation command control", () => {
       deliberationId: "dlb_chat0001",
       requestedAt: "2026-08-20T00:06:00.000Z",
     });
-    expect(() => new ConfiguredConversationDeliberationControl({
-      backend,
-      bindings: [{
-        projectId: "prj_control01",
-        participantId: "ptc_human001",
-        principalId: "operator:reviewer",
-        permissions: ["deliberation.delete" as never],
-      }],
-    })).toThrow("binding");
+    expect(
+      () =>
+        new ConfiguredConversationDeliberationControl({
+          backend,
+          bindings: [
+            {
+              projectId: "prj_control01",
+              participantId: "ptc_human001",
+              principalId: "operator:reviewer",
+              permissions: ["deliberation.delete" as never],
+            },
+          ],
+        }),
+    ).toThrow("binding");
   });
 });

@@ -12,8 +12,12 @@ function fail(code) {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 export function validateStoredFirstPublicationReservation(record) {
@@ -29,34 +33,39 @@ export function validateStoredFirstPublicationReservation(record) {
   };
   if (
     !exactKeys(record, [...Object.keys(body), "reservationDigest"]) ||
-    record.schemaVersion !== 2 || !reservationIdPattern.test(record.reservationId ?? "") ||
-    record.state !== "reserved" || !digestPattern.test(record.bootstrapDigest ?? "") ||
+    record.schemaVersion !== 2 ||
+    !reservationIdPattern.test(record.reservationId ?? "") ||
+    record.state !== "reserved" ||
+    !digestPattern.test(record.bootstrapDigest ?? "") ||
     !digestPattern.test(record.armingAuthorizationDigest ?? "") ||
     !digestPattern.test(record.publicationAuthorizationDigest ?? "") ||
     !/^[a-f0-9]{64}$/u.test(record.artifactSha256 ?? "") ||
     !digestPattern.test(record.reservationDigest ?? "") ||
     record.reservationDigest !== canonicalDigest(body) ||
     !Number.isFinite(Date.parse(record.reservedAt ?? ""))
-  ) fail("first_publication_reservation_invalid");
+  )
+    fail("first_publication_reservation_invalid");
   return record;
 }
 
 export function validateStoredFirstPublicationTerminal(record) {
   if (
-    record?.state === "published" && exactKeys(record, [
-      "reservationId", "reservationDigest", "state", "executionReceiptDigest",
-    ]) && reservationIdPattern.test(record.reservationId ?? "") &&
+    record?.state === "published" &&
+    exactKeys(record, ["reservationId", "reservationDigest", "state", "executionReceiptDigest"]) &&
+    reservationIdPattern.test(record.reservationId ?? "") &&
     digestPattern.test(record.reservationDigest ?? "") &&
     digestPattern.test(record.executionReceiptDigest ?? "")
-  ) return record;
+  )
+    return record;
   if (
     ["aborted_before_publication", "publication_unknown"].includes(record?.state) &&
     exactKeys(record, ["reservationId", "reservationDigest", "state", "retry"]) &&
     reservationIdPattern.test(record.reservationId ?? "") &&
     digestPattern.test(record.reservationDigest ?? "") &&
-    record.retry === (record.state === "publication_unknown" ? "forbidden" :
-      "new_bootstrap_required")
-  ) return record;
+    record.retry ===
+      (record.state === "publication_unknown" ? "forbidden" : "new_bootstrap_required")
+  )
+    return record;
   fail("first_publication_terminal_invalid");
 }
 
@@ -72,8 +81,10 @@ export function createFirstPublicationTerminalEnvelope(record) {
 export function validateFirstPublicationTerminalEnvelope(envelope) {
   if (
     !exactKeys(envelope, ["schemaVersion", "record", "recordDigest"]) ||
-    envelope.schemaVersion !== 1 || !digestPattern.test(envelope.recordDigest ?? "") ||
+    envelope.schemaVersion !== 1 ||
+    !digestPattern.test(envelope.recordDigest ?? "") ||
     envelope.recordDigest !== canonicalDigest(envelope.record)
-  ) fail("first_publication_store_corrupt");
+  )
+    fail("first_publication_store_corrupt");
   return validateStoredFirstPublicationTerminal(envelope.record);
 }

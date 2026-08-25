@@ -6,12 +6,9 @@ import { describe, it } from "vitest";
 import {
   createFirstPublicationPackageMetadataDerivedRelease,
   generateFirstPublicationPackageMetadataDerivedRelease,
-} from
-  "../lib/first-publication-package-metadata-derived-release.mjs";
-import { generateFirstPublicationPackageMetadataPostApplyRelease } from
-  "../lib/first-publication-package-metadata-post-apply-release.mjs";
-import { canonicalDigest, releaseArtifactDigest } from
-  "../lib/release-artifact-manifest.mjs";
+} from "../lib/first-publication-package-metadata-derived-release.mjs";
+import { generateFirstPublicationPackageMetadataPostApplyRelease } from "../lib/first-publication-package-metadata-post-apply-release.mjs";
+import { canonicalDigest, releaseArtifactDigest } from "../lib/release-artifact-manifest.mjs";
 import {
   applyMetadataFixture,
   createMetadataApplyFixture,
@@ -28,10 +25,14 @@ describe("first-publication package metadata derived release", () => {
         lockfile: fixture.lockfile,
         candidateResult: fixture.candidateEvidence.candidateResult,
       });
-      assert.deepEqual(generated.outputBytes.releaseManifest,
-        fixture.derivedRelease.outputBytes.releaseManifest);
-      assert.deepEqual(generated.outputBytes.releaseSbom,
-        fixture.derivedRelease.outputBytes.releaseSbom);
+      assert.deepEqual(
+        generated.outputBytes.releaseManifest,
+        fixture.derivedRelease.outputBytes.releaseManifest,
+      );
+      assert.deepEqual(
+        generated.outputBytes.releaseSbom,
+        fixture.derivedRelease.outputBytes.releaseSbom,
+      );
       assert.deepEqual(await readFile(fixture.paths.packageManifestPath), before);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
@@ -83,15 +84,19 @@ describe("first-publication package metadata derived release", () => {
       generated.archive.files[0].size += 1;
       generated.archive.contentDigest = canonicalDigest(generated.archive.files);
       generated.artifactDigest = releaseArtifactDigest(generated);
-      assert.throws(() => createFirstPublicationPackageMetadataDerivedRelease({
-        currentReleaseManifest: fixture.sources.releaseManifest,
-        currentReleaseSbom: fixture.sources.releaseSbom,
-        lockfile: fixture.lockfile,
-        candidateResult: fixture.candidateEvidence.candidateResult,
-        generatedReleaseManifest: generated,
-      }), {
-        code: "first_publication_package_metadata_release_regeneration_invalid",
-      });
+      assert.throws(
+        () =>
+          createFirstPublicationPackageMetadataDerivedRelease({
+            currentReleaseManifest: fixture.sources.releaseManifest,
+            currentReleaseSbom: fixture.sources.releaseSbom,
+            lockfile: fixture.lockfile,
+            candidateResult: fixture.candidateEvidence.candidateResult,
+            generatedReleaseManifest: generated,
+          }),
+        {
+          code: "first_publication_package_metadata_release_regeneration_invalid",
+        },
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -102,15 +107,19 @@ describe("first-publication package metadata derived release", () => {
     try {
       const stale = structuredClone(fixture.sources.releaseSbom);
       stale.serialNumber = "urn:uuid:00000000-0000-5000-8000-000000000000";
-      assert.throws(() => createFirstPublicationPackageMetadataDerivedRelease({
-        currentReleaseManifest: fixture.sources.releaseManifest,
-        currentReleaseSbom: stale,
-        lockfile: fixture.lockfile,
-        candidateResult: fixture.candidateEvidence.candidateResult,
-        generatedReleaseManifest: fixture.derivedRelease.releaseManifest,
-      }), {
-        code: "first_publication_package_metadata_release_regeneration_invalid",
-      });
+      assert.throws(
+        () =>
+          createFirstPublicationPackageMetadataDerivedRelease({
+            currentReleaseManifest: fixture.sources.releaseManifest,
+            currentReleaseSbom: stale,
+            lockfile: fixture.lockfile,
+            candidateResult: fixture.candidateEvidence.candidateResult,
+            generatedReleaseManifest: fixture.derivedRelease.releaseManifest,
+          }),
+        {
+          code: "first_publication_package_metadata_release_regeneration_invalid",
+        },
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

@@ -7,10 +7,7 @@ import {
   handleRemoteCommandLease,
   type HubRemoteCommandQueueStore,
 } from "@lervo/hub-sync";
-import {
-  type RemoteCommandDeliveryAcknowledgement,
-  validateSchema,
-} from "@lervo/schemas";
+import { type RemoteCommandDeliveryAcknowledgement, validateSchema } from "@lervo/schemas";
 
 import type { HubRequestAuthenticator } from "./auth.js";
 import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
@@ -50,7 +47,8 @@ function requestLimit(value: number | undefined): number {
 
 function currentTime(now: () => Date): string {
   const value = now();
-  if (!Number.isFinite(value.getTime())) throw new Error("The Hub remote command clock is invalid.");
+  if (!Number.isFinite(value.getTime()))
+    throw new Error("The Hub remote command clock is invalid.");
   return value.toISOString();
 }
 
@@ -82,7 +80,9 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
         });
         return;
       }
-      const principal = await options.authenticator.authenticate(singleAuthorizationHeader(request));
+      const principal = await options.authenticator.authenticate(
+        singleAuthorizationHeader(request),
+      );
       if (principal === null) {
         sendHubError(response, 401, "unauthorized", maxResponseBytes, {
           ...identityHeaders,
@@ -92,8 +92,9 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
       }
       if (route.kind === "submissions") {
         const query = remoteCommandAuthoringQuery(url.searchParams);
-        const inScope = principal.projects.some((project) =>
-          project.destinationId === query.destinationId && project.projectId === route.projectId
+        const inScope = principal.projects.some(
+          (project) =>
+            project.destinationId === query.destinationId && project.projectId === route.projectId,
         );
         if (!inScope || !principal.permissions.includes("command.write")) {
           sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
@@ -122,11 +123,13 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
       }
 
       const query = remoteCommandQuery(url.searchParams);
-      const inScope = principal.projects.some((project) =>
-        project.destinationId === query.destinationId && project.projectId === route.projectId
+      const inScope = principal.projects.some(
+        (project) =>
+          project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
       if (
-        !inScope || !principal.permissions.includes("command.delivery") ||
+        !inScope ||
+        !principal.permissions.includes("command.delivery") ||
         principal.principalId !== query.nodeId
       ) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
@@ -167,13 +170,19 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
           leaseDurationMs: leaseRequest.leaseDurationMs,
           limit: leaseRequest.limit,
         });
-        sendHubJson(response, 200, {
-          schemaVersion: 1,
-          destinationId: query.destinationId,
-          target,
-          nodeId: query.nodeId,
-          leases,
-        }, maxResponseBytes, identityHeaders);
+        sendHubJson(
+          response,
+          200,
+          {
+            schemaVersion: 1,
+            destinationId: query.destinationId,
+            target,
+            nodeId: query.nodeId,
+            leases,
+          },
+          maxResponseBytes,
+          identityHeaders,
+        );
         return;
       }
       if (!validateSchema("remoteCommandDeliveryAcknowledgement", body).valid) {
@@ -187,13 +196,19 @@ export function createHubRemoteCommandHttpHandler(options: HubRemoteCommandHttpH
         acknowledgement: structuredClone(body as RemoteCommandDeliveryAcknowledgement),
         confirmedAt: at,
       });
-      sendHubJson(response, 200, {
-        schemaVersion: 1,
-        destinationId: query.destinationId,
-        target,
-        nodeId: query.nodeId,
-        confirmation,
-      }, maxResponseBytes, identityHeaders);
+      sendHubJson(
+        response,
+        200,
+        {
+          schemaVersion: 1,
+          destinationId: query.destinationId,
+          target,
+          nodeId: query.nodeId,
+          confirmation,
+        },
+        maxResponseBytes,
+        identityHeaders,
+      );
     } catch (error) {
       if (error instanceof HubHttpRequestTooLargeError) {
         sendHubError(response, 413, "request_too_large", maxResponseBytes, identityHeaders);

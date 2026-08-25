@@ -24,7 +24,9 @@ export function createKnowledgeGraphController(options) {
     setPagination("graph", result.navigation);
     setPaneState(
       options.ui.state,
-      relations.length === 0 ? "This item has no connected relationships." : `${relations.length} relationships`,
+      relations.length === 0
+        ? "This item has no connected relationships."
+        : `${relations.length} relationships`,
     );
     options.ui.help.textContent = `Relationships one step away from ${focus.kind} · ${focus.id}.`;
   }
@@ -36,7 +38,8 @@ export function createKnowledgeGraphController(options) {
     options.ui.viewport.replaceChildren();
     options.emptyNavigation("graph");
     const currentPager = createCursorPager((cursor) =>
-      options.api.getKnowledgeGraph(project, targetFocus, cursor, options.pageLimit));
+      options.api.getKnowledgeGraph(project, targetFocus, cursor, options.pageLimit),
+    );
     pager = currentPager;
     await loadFirstPage({
       pager: currentPager,
@@ -52,15 +55,18 @@ export function createKnowledgeGraphController(options) {
   async function navigate(direction) {
     if (pager === null) return;
     const currentPager = pager;
-    await moveCursorPage({
-      pager: currentPager,
-      prefix: "graph",
-      stateElement: options.ui.state,
-      loadingMessage: "Loading explicit relationships.",
-      isCurrent: () => pager === currentPager,
-      apply: (result) => applyPage(currentPager, result),
-      onError: (error) => options.onError(options.ui.state, error),
-    }, direction);
+    await moveCursorPage(
+      {
+        pager: currentPager,
+        prefix: "graph",
+        stateElement: options.ui.state,
+        loadingMessage: "Loading explicit relationships.",
+        isCurrent: () => pager === currentPager,
+        apply: (result) => applyPage(currentPager, result),
+        onError: (error) => options.onError(options.ui.state, error),
+      },
+      direction,
+    );
   }
 
   return { clear, navigate, selectFocus };

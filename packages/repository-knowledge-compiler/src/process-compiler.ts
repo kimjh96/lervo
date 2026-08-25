@@ -10,7 +10,6 @@ import {
   type DocumentNormalizationResponse,
   type RepositoryDocumentNormalizationCompiler,
   type RepositorySemanticCompiler,
-  type SemanticCompilerEnvelope,
   type SemanticCompilerResponse,
 } from "@lervo/repository-knowledge";
 
@@ -24,7 +23,8 @@ export interface CreateProcessSemanticCompilerOptions {
 }
 
 interface ProcessResult {
-  status: "completed" | "failed" | "timed_out" | "cancelled" | "output_limit_exceeded" | "spawn_failed";
+  status:
+    "completed" | "failed" | "timed_out" | "cancelled" | "output_limit_exceeded" | "spawn_failed";
   exitCode: number | null;
   stdout: string;
   stderr: string;
@@ -34,9 +34,37 @@ const ADAPTER_VERSION = "1";
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 180_000;
 const LOCAL_KEY = "^[a-z][a-z0-9_-]{0,63}$";
-const CONCEPT_TYPES = ["concept", "decision", "invariant", "procedure", "responsibility", "dependency", "open_question"] as const;
-const RELATION_TYPES = ["depends_on", "constrains", "related_to", "supersedes", "contradicts"] as const;
-const NORMALIZATION_PROFILE = ["human_readme", "agent_instruction", "provider_bridge", "portable_skill", "skill_reference", "decision_record", "product_document", "architecture_document", "specification_document", "roadmap_document", "instruction_document", "handoff_document", "repository_document"] as const;
+const CONCEPT_TYPES = [
+  "concept",
+  "decision",
+  "invariant",
+  "procedure",
+  "responsibility",
+  "dependency",
+  "open_question",
+] as const;
+const RELATION_TYPES = [
+  "depends_on",
+  "constrains",
+  "related_to",
+  "supersedes",
+  "contradicts",
+] as const;
+const NORMALIZATION_PROFILE = [
+  "human_readme",
+  "agent_instruction",
+  "provider_bridge",
+  "portable_skill",
+  "skill_reference",
+  "decision_record",
+  "product_document",
+  "architecture_document",
+  "specification_document",
+  "roadmap_document",
+  "instruction_document",
+  "handoff_document",
+  "repository_document",
+] as const;
 
 const providerResponseSchema = {
   type: "object",
@@ -127,7 +155,10 @@ const documentNormalizationResponseSchema = {
                 path: { type: "string", minLength: 1, maxLength: 1024 },
                 content: { type: "string", minLength: 1, maxLength: 32768 },
                 coveredUnitIndexes: {
-                  type: "array", minItems: 1, maxItems: 512, uniqueItems: true,
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 512,
+                  uniqueItems: true,
                   items: { type: "integer", minimum: 0, maximum: 20000 },
                 },
               },
@@ -195,9 +226,30 @@ const codexDisabledFeatures = [
 function processEnvironment(): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {};
   for (const name of [
-    "PATH", "Path", "HOME", "USER", "LOGNAME", "SHELL", "USERPROFILE", "USERNAME", "APPDATA", "LOCALAPPDATA", "XDG_CONFIG_HOME",
-    "CODEX_HOME", "CLAUDE_CONFIG_DIR", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "OPENAI_API_KEY",
-    "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE", "SSL_CERT_DIR", "TMPDIR", "TEMP", "TMP",
+    "PATH",
+    "Path",
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "USERPROFILE",
+    "USERNAME",
+    "APPDATA",
+    "LOCALAPPDATA",
+    "XDG_CONFIG_HOME",
+    "CODEX_HOME",
+    "CLAUDE_CONFIG_DIR",
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "OPENAI_API_KEY",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "TMPDIR",
+    "TEMP",
+    "TMP",
   ]) {
     const value = process.env[name];
     if (value !== undefined) result[name] = value;
@@ -263,7 +315,9 @@ async function runProcess(input: {
     };
     child.stdout?.on("data", (chunk: Buffer) => capture(stdout, chunk));
     child.stderr?.on("data", (chunk: Buffer) => capture(stderr, chunk));
-    child.once("error", () => { spawnFailed = true; });
+    child.once("error", () => {
+      spawnFailed = true;
+    });
     const timeout = setTimeout(() => {
       if (forced === null) {
         forced = "timed_out";
@@ -284,7 +338,12 @@ async function runProcess(input: {
       clearTimeout(timeout);
       input.signal?.removeEventListener("abort", abort);
       const status = forced ?? (spawnFailed ? "spawn_failed" : code === 0 ? "completed" : "failed");
-      finish({ status, exitCode: code, stdout: Buffer.concat(stdout).toString("utf8"), stderr: Buffer.concat(stderr).toString("utf8") });
+      finish({
+        status,
+        exitCode: code,
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"),
+      });
     });
     if (input.stdin !== undefined) child.stdin?.end(input.stdin);
   });
@@ -306,7 +365,9 @@ function parsedJson(value: string, message: string): unknown {
   }
 }
 
-function observedResponse<T extends { telemetry: SemanticCompilerResponse["telemetry"] }>(value: unknown): T {
+function observedResponse<T extends { telemetry: SemanticCompilerResponse["telemetry"] }>(
+  value: unknown,
+): T {
   const raw = value as Omit<T, "telemetry">;
   return {
     ...raw,
@@ -332,7 +393,10 @@ function parseProviderResultText(value: string, provider: "Codex" | "Claude"): u
     const start = candidate.indexOf("{");
     const end = candidate.lastIndexOf("}");
     if (start < 0 || end <= start) throw compileFailure(`${provider} final response is not JSON.`);
-    return parsedJson(candidate.slice(start, end + 1), `${provider} final response is not a single JSON object.`);
+    return parsedJson(
+      candidate.slice(start, end + 1),
+      `${provider} final response is not a single JSON object.`,
+    );
   }
 }
 
@@ -347,22 +411,40 @@ async function assertCodexHasNoModelTools(input: {
 }): Promise<void> {
   const result = await runProcess({
     executable: input.executable,
-    arguments: ["debug", "prompt-input", "-c", "mcp_servers={}", ...codexFeatureArguments(), "Lervo no-tool capability probe."],
+    arguments: [
+      "debug",
+      "prompt-input",
+      "-c",
+      "mcp_servers={}",
+      ...codexFeatureArguments(),
+      "Lervo no-tool capability probe.",
+    ],
     cwd: input.cwd,
     timeoutMs: Math.min(input.timeoutMs, 30_000),
     maxOutputBytes: 2 * 1024 * 1024,
   });
-  if (result.status !== "completed") throw policyFailure("The Codex model-input capability probe did not complete.");
-  const items = parsedJson(result.stdout, "The Codex model-input capability probe did not return JSON.");
-  if (!Array.isArray(items) || items.some((item) => {
-    const value = item as { type?: unknown } | null;
-    return value === null || typeof value !== "object" || value.type !== "message";
-  })) {
-    throw policyFailure("The Codex model input contains a disallowed tool or capability definition.");
+  if (result.status !== "completed")
+    throw policyFailure("The Codex model-input capability probe did not complete.");
+  const items = parsedJson(
+    result.stdout,
+    "The Codex model-input capability probe did not return JSON.",
+  );
+  if (
+    !Array.isArray(items) ||
+    items.some((item) => {
+      const value = item as { type?: unknown } | null;
+      return value === null || typeof value !== "object" || value.type !== "message";
+    })
+  ) {
+    throw policyFailure(
+      "The Codex model input contains a disallowed tool or capability definition.",
+    );
   }
 }
 
-function parseCodexOutput<T extends { telemetry: SemanticCompilerResponse["telemetry"] } = SemanticCompilerResponse>(stdout: string): T {
+function parseCodexOutput<
+  T extends { telemetry: SemanticCompilerResponse["telemetry"] } = SemanticCompilerResponse,
+>(stdout: string): T {
   let finalText: string | null = null;
   for (const line of stdout.split(/\r?\n/u).filter((item) => item.trim() !== "")) {
     const event = parsedJson(line, "Codex did not return a valid JSONL event stream.") as {
@@ -372,11 +454,16 @@ function parseCodexOutput<T extends { telemetry: SemanticCompilerResponse["telem
     if (event.type === "item.started" || event.type === "item.completed") {
       const itemType = event.item?.type;
       if (
-        event.type === "item.completed" && itemType === "error" &&
-        (event.item as { message?: unknown } | undefined)?.message === "Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`."
-      ) continue;
+        event.type === "item.completed" &&
+        itemType === "error" &&
+        (event.item as { message?: unknown } | undefined)?.message ===
+          "Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`."
+      )
+        continue;
       if (itemType !== "reasoning" && itemType !== "agent_message") {
-        throw policyFailure("A disallowed tool or capability event was observed during the Codex run.");
+        throw policyFailure(
+          "A disallowed tool or capability event was observed during the Codex run.",
+        );
       }
       if (event.type === "item.completed" && itemType === "agent_message") {
         if (typeof event.item?.text !== "string" || finalText !== null) {
@@ -394,7 +481,9 @@ function parseCodexOutput<T extends { telemetry: SemanticCompilerResponse["telem
   return observedResponse<T>(parseProviderResultText(finalText, "Codex"));
 }
 
-function parseClaudeOutput<T extends { telemetry: SemanticCompilerResponse["telemetry"] } = SemanticCompilerResponse>(stdout: string): T {
+function parseClaudeOutput<
+  T extends { telemetry: SemanticCompilerResponse["telemetry"] } = SemanticCompilerResponse,
+>(stdout: string): T {
   const wrapper = parsedJson(stdout, "Claude did not return a valid JSON result.") as {
     is_error?: unknown;
     result?: unknown;
@@ -403,24 +492,49 @@ function parseClaudeOutput<T extends { telemetry: SemanticCompilerResponse["tele
     num_turns?: unknown;
     usage?: { server_tool_use?: { web_search_requests?: unknown; web_fetch_requests?: unknown } };
   };
-  if (wrapper.permission_denials !== undefined && (!Array.isArray(wrapper.permission_denials) || wrapper.permission_denials.length > 0)) {
+  if (
+    wrapper.permission_denials !== undefined &&
+    (!Array.isArray(wrapper.permission_denials) || wrapper.permission_denials.length > 0)
+  ) {
     throw policyFailure("A capability permission request was observed during the Claude run.");
   }
   const serverTools = wrapper.usage?.server_tool_use;
   if (
-    wrapper.is_error !== false || wrapper.stop_reason !== "end_turn" || wrapper.num_turns !== 1 ||
-    (serverTools?.web_search_requests ?? 0) !== 0 || (serverTools?.web_fetch_requests ?? 0) !== 0
+    wrapper.is_error !== false ||
+    wrapper.stop_reason !== "end_turn" ||
+    wrapper.num_turns !== 1 ||
+    (serverTools?.web_search_requests ?? 0) !== 0 ||
+    (serverTools?.web_fetch_requests ?? 0) !== 0
   ) {
     throw policyFailure("The Claude run did not prove the single-turn no-tool contract.");
   }
-  if (typeof wrapper.result !== "string") throw compileFailure("The Claude final response is missing.");
+  if (typeof wrapper.result !== "string")
+    throw compileFailure("The Claude final response is missing.");
   return observedResponse<T>(parseProviderResultText(wrapper.result, "Claude"));
 }
 
-async function compilerVersion(input: { executable: string; cwd: string; timeoutMs: number }): Promise<string> {
-  const result = await runProcess({ executable: input.executable, arguments: ["--version"], cwd: input.cwd, timeoutMs: Math.min(input.timeoutMs, 10_000), maxOutputBytes: 16 * 1024 });
-  const version = `${result.stdout}\n${result.stderr}`.split(/\r?\n/u).map((line) => line.trim()).find(Boolean);
-  if (result.status !== "completed" || version === undefined || version.length > 200 || /[^\x20-\x7e]/u.test(version)) {
+async function compilerVersion(input: {
+  executable: string;
+  cwd: string;
+  timeoutMs: number;
+}): Promise<string> {
+  const result = await runProcess({
+    executable: input.executable,
+    arguments: ["--version"],
+    cwd: input.cwd,
+    timeoutMs: Math.min(input.timeoutMs, 10_000),
+    maxOutputBytes: 16 * 1024,
+  });
+  const version = `${result.stdout}\n${result.stderr}`
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .find(Boolean);
+  if (
+    result.status !== "completed" ||
+    version === undefined ||
+    version.length > 200 ||
+    /[^\x20-\x7e]/u.test(version)
+  ) {
     throw compileFailure("The provider compiler executable version could not be determined.");
   }
   return version;
@@ -438,7 +552,8 @@ export async function createProcessSemanticCompiler(
   let version: string;
   try {
     version = await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
-    if (options.provider === "codex") await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
+    if (options.provider === "codex")
+      await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
   } finally {
     await rm(probeDirectory, { recursive: true, force: true });
   }
@@ -449,7 +564,10 @@ export async function createProcessSemanticCompiler(
     model: options.model ?? "provider-default",
     compilerInstructionHash: sha256(compilerInstruction),
     responseSchemaHash: sha256(canonicalJson(providerResponseSchema)),
-    disabledCapabilities: options.provider === "codex" ? codexDisabledFeatures : ["all-built-in-tools", "all-mcp", "all-customizations"],
+    disabledCapabilities:
+      options.provider === "codex"
+        ? codexDisabledFeatures
+        : ["all-built-in-tools", "all-mcp", "all-customizations"],
   };
   return {
     descriptor: {
@@ -462,26 +580,69 @@ export async function createProcessSemanticCompiler(
     async compile(envelope, signal) {
       const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-semantic-`));
       try {
-        const prompt = canonicalJson({ instruction: compilerInstruction, responseSchema: providerResponseSchema, envelope });
-        const arguments_ = options.provider === "claude"
-          ? [
-              "--print", "--output-format", "json", "--input-format", "text", "--tools", "", "--safe-mode",
-              "--disable-slash-commands", "--strict-mcp-config", "--mcp-config", "{\"mcpServers\":{}}", "--setting-sources", "",
-              "--no-session-persistence", "--no-chrome", "--permission-mode", "dontAsk",
-              "--system-prompt", compilerInstruction,
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-            ]
-          : [
-              "exec", "--ignore-user-config", "--ignore-rules", "--strict-config", "--ephemeral",
-              "--sandbox", "read-only", "--skip-git-repo-check", "--json",
-              "-c", "mcp_servers={}", ...codexFeatureArguments(),
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-              "-",
-            ];
-        const result = await runProcess({ executable, arguments: arguments_, cwd: directory, stdin: prompt, signal, timeoutMs });
-        if (result.status === "cancelled") throw signal.reason ?? compileFailure("Semantic compilation was cancelled.");
-        if (result.status !== "completed") throw compileFailure(`The semantic compiler process did not complete (${result.status}).`);
-        return options.provider === "claude" ? parseClaudeOutput(result.stdout) : parseCodexOutput(result.stdout);
+        const prompt = canonicalJson({
+          instruction: compilerInstruction,
+          responseSchema: providerResponseSchema,
+          envelope,
+        });
+        const arguments_ =
+          options.provider === "claude"
+            ? [
+                "--print",
+                "--output-format",
+                "json",
+                "--input-format",
+                "text",
+                "--tools",
+                "",
+                "--safe-mode",
+                "--disable-slash-commands",
+                "--strict-mcp-config",
+                "--mcp-config",
+                '{"mcpServers":{}}',
+                "--setting-sources",
+                "",
+                "--no-session-persistence",
+                "--no-chrome",
+                "--permission-mode",
+                "dontAsk",
+                "--system-prompt",
+                compilerInstruction,
+                ...(options.model === undefined ? [] : ["--model", options.model]),
+              ]
+            : [
+                "exec",
+                "--ignore-user-config",
+                "--ignore-rules",
+                "--strict-config",
+                "--ephemeral",
+                "--sandbox",
+                "read-only",
+                "--skip-git-repo-check",
+                "--json",
+                "-c",
+                "mcp_servers={}",
+                ...codexFeatureArguments(),
+                ...(options.model === undefined ? [] : ["--model", options.model]),
+                "-",
+              ];
+        const result = await runProcess({
+          executable,
+          arguments: arguments_,
+          cwd: directory,
+          stdin: prompt,
+          signal,
+          timeoutMs,
+        });
+        if (result.status === "cancelled")
+          throw signal.reason ?? compileFailure("Semantic compilation was cancelled.");
+        if (result.status !== "completed")
+          throw compileFailure(
+            `The semantic compiler process did not complete (${result.status}).`,
+          );
+        return options.provider === "claude"
+          ? parseClaudeOutput(result.stdout)
+          : parseCodexOutput(result.stdout);
       } finally {
         await rm(directory, { recursive: true, force: true });
       }
@@ -497,13 +658,16 @@ export async function createProcessDocumentNormalizationCompiler(
   const executable = options.executable ?? options.provider;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000) {
-    throw compileFailure("The document normalizer timeout must be between 1 second and 10 minutes.");
+    throw compileFailure(
+      "The document normalizer timeout must be between 1 second and 10 minutes.",
+    );
   }
   const probeDirectory = await mkdtemp(resolve(tmpdir(), "lervo-normalization-probe-"));
   let version: string;
   try {
     version = await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
-    if (options.provider === "codex") await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
+    if (options.provider === "codex")
+      await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
   } finally {
     await rm(probeDirectory, { recursive: true, force: true });
   }
@@ -514,7 +678,10 @@ export async function createProcessDocumentNormalizationCompiler(
     model: options.model ?? "provider-default",
     compilerInstructionHash: sha256(documentNormalizationInstruction),
     responseSchemaHash: sha256(canonicalJson(documentNormalizationResponseSchema)),
-    disabledCapabilities: options.provider === "codex" ? codexDisabledFeatures : ["all-built-in-tools", "all-mcp", "all-customizations"],
+    disabledCapabilities:
+      options.provider === "codex"
+        ? codexDisabledFeatures
+        : ["all-built-in-tools", "all-mcp", "all-customizations"],
   };
   return {
     descriptor: {
@@ -525,27 +692,71 @@ export async function createProcessDocumentNormalizationCompiler(
       isolation: "external_no_capabilities",
     },
     async normalize(envelope, signal) {
-      const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-normalization-`));
+      const directory = await mkdtemp(
+        resolve(tmpdir(), `lervo-${options.provider}-normalization-`),
+      );
       try {
-        const prompt = canonicalJson({ instruction: documentNormalizationInstruction, responseSchema: documentNormalizationResponseSchema, envelope });
-        const arguments_ = options.provider === "claude"
-          ? [
-              "--print", "--output-format", "json", "--input-format", "text", "--tools", "", "--safe-mode",
-              "--disable-slash-commands", "--strict-mcp-config", "--mcp-config", "{\"mcpServers\":{}}", "--setting-sources", "",
-              "--no-session-persistence", "--no-chrome", "--permission-mode", "dontAsk",
-              "--system-prompt", documentNormalizationInstruction,
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-            ]
-          : [
-              "exec", "--ignore-user-config", "--ignore-rules", "--strict-config", "--ephemeral",
-              "--sandbox", "read-only", "--skip-git-repo-check", "--json",
-              "-c", "mcp_servers={}", ...codexFeatureArguments(),
-              ...(options.model === undefined ? [] : ["--model", options.model]),
-              "-",
-            ];
-        const result = await runProcess({ executable, arguments: arguments_, cwd: directory, stdin: prompt, signal, timeoutMs, maxOutputBytes: MAX_OUTPUT_BYTES });
-        if (result.status === "cancelled") throw signal.reason ?? compileFailure("Document normalization was cancelled.");
-        if (result.status !== "completed") throw compileFailure(`The document normalizer process did not complete (${result.status}).`);
+        const prompt = canonicalJson({
+          instruction: documentNormalizationInstruction,
+          responseSchema: documentNormalizationResponseSchema,
+          envelope,
+        });
+        const arguments_ =
+          options.provider === "claude"
+            ? [
+                "--print",
+                "--output-format",
+                "json",
+                "--input-format",
+                "text",
+                "--tools",
+                "",
+                "--safe-mode",
+                "--disable-slash-commands",
+                "--strict-mcp-config",
+                "--mcp-config",
+                '{"mcpServers":{}}',
+                "--setting-sources",
+                "",
+                "--no-session-persistence",
+                "--no-chrome",
+                "--permission-mode",
+                "dontAsk",
+                "--system-prompt",
+                documentNormalizationInstruction,
+                ...(options.model === undefined ? [] : ["--model", options.model]),
+              ]
+            : [
+                "exec",
+                "--ignore-user-config",
+                "--ignore-rules",
+                "--strict-config",
+                "--ephemeral",
+                "--sandbox",
+                "read-only",
+                "--skip-git-repo-check",
+                "--json",
+                "-c",
+                "mcp_servers={}",
+                ...codexFeatureArguments(),
+                ...(options.model === undefined ? [] : ["--model", options.model]),
+                "-",
+              ];
+        const result = await runProcess({
+          executable,
+          arguments: arguments_,
+          cwd: directory,
+          stdin: prompt,
+          signal,
+          timeoutMs,
+          maxOutputBytes: MAX_OUTPUT_BYTES,
+        });
+        if (result.status === "cancelled")
+          throw signal.reason ?? compileFailure("Document normalization was cancelled.");
+        if (result.status !== "completed")
+          throw compileFailure(
+            `The document normalizer process did not complete (${result.status}).`,
+          );
         return options.provider === "claude"
           ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout)
           : parseCodexOutput<DocumentNormalizationResponse>(result.stdout);

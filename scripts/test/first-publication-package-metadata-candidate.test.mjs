@@ -2,12 +2,9 @@ import assert from "node:assert/strict";
 
 import { describe, it } from "vitest";
 
-import { createFirstPublicationMetadataDecision } from
-  "../lib/first-publication-metadata-decision.mjs";
-import { cliEnglishDescription } from
-  "../lib/first-publication-metadata-decision.mjs";
-import { createFirstPublicationMetadataPreview } from
-  "../lib/first-publication-metadata-preview.mjs";
+import { createFirstPublicationMetadataDecision } from "../lib/first-publication-metadata-decision.mjs";
+import { cliEnglishDescription } from "../lib/first-publication-metadata-decision.mjs";
+import { createFirstPublicationMetadataPreview } from "../lib/first-publication-metadata-preview.mjs";
 import {
   createFirstPublicationPackageMetadataCandidate,
   validateFirstPublicationPackageMetadataCandidate,
@@ -94,8 +91,10 @@ describe("first-publication package metadata candidate", () => {
     assert.equal(result.candidate.status, "review_required");
     assert.equal(result.candidate.writesAllowed, false);
     assert.equal(result.candidate.output.sha256, sha256(result.outputBytes));
-    assert.equal(result.candidate.sources.packageSourceSha256,
-      sha256(input.sourceSnapshots.packageManifest.contents));
+    assert.equal(
+      result.candidate.sources.packageSourceSha256,
+      sha256(input.sourceSnapshots.packageManifest.contents),
+    );
     assert.match(result.candidate.candidateDigest, /^sha256:[a-f0-9]{64}$/u);
   });
 
@@ -108,10 +107,9 @@ describe("first-publication package metadata candidate", () => {
 
   it("rejects a candidate when no package fields need changing", async () => {
     const input = candidateInput(await alignedSources());
-    assert.throws(
-      () => createFirstPublicationPackageMetadataCandidate(input),
-      { code: "first_publication_package_metadata_patch_no_changes" },
-    );
+    assert.throws(() => createFirstPublicationPackageMetadataCandidate(input), {
+      code: "first_publication_package_metadata_patch_no_changes",
+    });
   });
 
   it("rejects non-canonical source bytes instead of silently reformatting them", async () => {
@@ -122,19 +120,17 @@ describe("first-publication package metadata candidate", () => {
       byteCount: contents.length,
       sha256: sha256(contents),
     };
-    assert.throws(
-      () => createFirstPublicationPackageMetadataCandidate(input),
-      { code: "first_publication_package_metadata_source_format_unsupported" },
-    );
+    assert.throws(() => createFirstPublicationPackageMetadataCandidate(input), {
+      code: "first_publication_package_metadata_source_format_unsupported",
+    });
   });
 
   it("rejects source snapshot metadata that does not match its bytes", async () => {
     const input = candidateInput(await currentActivationSources());
     input.sourceSnapshots.packageManifest.byteCount += 1;
-    assert.throws(
-      () => createFirstPublicationPackageMetadataCandidate(input),
-      { code: "first_publication_package_metadata_candidate_invalid" },
-    );
+    assert.throws(() => createFirstPublicationPackageMetadataCandidate(input), {
+      code: "first_publication_package_metadata_candidate_invalid",
+    });
   });
 
   it("rejects a redigested claim that the candidate may write", async () => {
@@ -143,19 +139,17 @@ describe("first-publication package metadata candidate", () => {
     result.candidate.writesAllowed = true;
     const { candidateDigest: _discarded, ...body } = result.candidate;
     result.candidate.candidateDigest = canonicalDigest(body);
-    assert.throws(
-      () => validateFirstPublicationPackageMetadataCandidate(result, input),
-      { code: "first_publication_package_metadata_candidate_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationPackageMetadataCandidate(result, input), {
+      code: "first_publication_package_metadata_candidate_invalid",
+    });
   });
 
   it("rejects output bytes that do not match the bound digest", async () => {
     const input = candidateInput(await currentActivationSources());
     const result = createFirstPublicationPackageMetadataCandidate(input);
     result.outputBytes = Buffer.from("{}\n");
-    assert.throws(
-      () => validateFirstPublicationPackageMetadataCandidate(result, input),
-      { code: "first_publication_package_metadata_candidate_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationPackageMetadataCandidate(result, input), {
+      code: "first_publication_package_metadata_candidate_invalid",
+    });
   });
 });

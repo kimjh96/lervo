@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7816e384607982e32d2dbfc2
+freshness: current
+ownership: user
+path: docs/foundation/code-convention.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_5c9ef683e684a75972ad5cd5
+title: Code convention
+type: concept

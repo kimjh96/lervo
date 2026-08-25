@@ -1,0 +1,24 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6d5bcdc14d50e3e74d3a821e
+outputLanguage: en
+outputs:
+  - byteCount: 1724
+    contentHash: sha256:e40a8a848c9a1d4aaf57711575372634bd51129c1e729d2a610252089a452345
+    path: docs/evidence/pilots/managed-context-grounding.md
+    userRegionHash: sha256:e40a8a848c9a1d4aaf57711575372634bd51129c1e729d2a610252089a452345
+profile: repository_document
+recordId: knormdoc_f5f7f8971efc072591726d2d
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:dffcf12131f175b4f38357e2e04adf0b96ae83954f840d3ce2bbd96e5133fb5c
+sourcePath: docs/evidence/pilots/managed-context-grounding.md
+sourceUnitVersionIds:
+  - uv_9904b22adef790787be733dc
+  - uv_b06f8bc5952908e8ca4765f5

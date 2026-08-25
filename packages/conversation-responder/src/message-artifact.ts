@@ -16,10 +16,8 @@ export async function readConversationMessage(input: {
   const uri = `lervo-cas://sha256/${input.content.contentHash.slice("sha256:".length)}`;
   try {
     const bytes = new Uint8Array(await input.artifactStore.get(uri));
-    if (
-      bytes.byteLength !== input.content.byteCount ||
-      sha256(bytes) !== input.content.contentHash
-    ) throw new Error("message bytes mismatch");
+    if (bytes.byteLength !== input.content.byteCount || sha256(bytes) !== input.content.contentHash)
+      throw new Error("message bytes mismatch");
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch (error) {
     throw new ManagedConversationResponseError(

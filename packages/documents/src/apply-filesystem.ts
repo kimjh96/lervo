@@ -61,7 +61,10 @@ export async function publishMigrationSidecars(input: {
     await syncDirectory(documentDirectory);
     phase = "publish";
     for (const sidecar of input.sidecars) {
-      await link(resolve(staging, basename(sidecar.path)), absoluteRepositoryPath(input.root, sidecar.path));
+      await link(
+        resolve(staging, basename(sidecar.path)),
+        absoluteRepositoryPath(input.root, sidecar.path),
+      );
       created.push(sidecar);
     }
     await syncDirectory(documentDirectory);
@@ -71,12 +74,14 @@ export async function publishMigrationSidecars(input: {
     await input.eventRecorder.record(structuredClone(input.event));
     eventRecorded = true;
     phase = "finalize";
-    if (!await removeFileIfUnchanged({
-      root: input.root,
-      path: markerRelative,
-      contentHash: markerHash,
-      maximumBytes: 4096,
-    })) {
+    if (
+      !(await removeFileIfUnchanged({
+        root: input.root,
+        path: markerRelative,
+        contentHash: markerHash,
+        maximumBytes: 4096,
+      }))
+    ) {
       throw new DocumentMigrationError(
         "migration_finalization_failed",
         "The transaction marker could not be removed safely after recording the migration event.",

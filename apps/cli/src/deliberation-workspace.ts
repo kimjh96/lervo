@@ -103,9 +103,12 @@ export class DeliberationWorkspace {
   }): Promise<DeliberationWorkspace> {
     const root = resolve(input.stateRoot, "deliberations", input.deliberationId);
     const stats = await lstat(root);
-    if (input.snapshot.schemaVersion !== 1 || !stats.isDirectory() || stats.isSymbolicLink() ||
-      JSON.stringify(input.participantRoleIds) !==
-        JSON.stringify(input.snapshot.participantRoleIds)) {
+    if (
+      input.snapshot.schemaVersion !== 1 ||
+      !stats.isDirectory() ||
+      stats.isSymbolicLink() ||
+      JSON.stringify(input.participantRoleIds) !== JSON.stringify(input.snapshot.participantRoleIds)
+    ) {
       throw new Error("The deliberation workspace snapshot directory or participant roles differ.");
     }
     const workspace = new DeliberationWorkspace(
@@ -124,15 +127,20 @@ export class DeliberationWorkspace {
       const relativePath = repositoryRelativePath(input.repositoryRoot, path);
       const file = await lstat(path);
       if (
-        !file.isFile() || file.isSymbolicLink() || relativePath !== record.path ||
-        !relativePath.startsWith(expectedPrefix) || record.kind !== "generated" ||
+        !file.isFile() ||
+        file.isSymbolicLink() ||
+        relativePath !== record.path ||
+        !relativePath.startsWith(expectedPrefix) ||
+        record.kind !== "generated" ||
         record.ownership.mode !== "lervo_generated"
       ) {
         throw new Error("A generated document path in the deliberation workspace is unsafe.");
       }
       const bytes = await readFile(path);
       if (deliberationContentHash(bytes) !== record.verifiedRevision) {
-        throw new Error("Generated document bytes in the deliberation workspace differ from the snapshot.");
+        throw new Error(
+          "Generated document bytes in the deliberation workspace differ from the snapshot.",
+        );
       }
       workspace.documents[documentId] = structuredClone(record);
       workspace.generatedDocumentIds.add(documentId);
@@ -143,7 +151,10 @@ export class DeliberationWorkspace {
       writingRecord.verifiedRevision !== input.snapshot.writingPolicyContentHash ||
       deliberationContentHash(`${JSON.stringify(input.writingContract, null, 2)}\n`) !==
         input.snapshot.writingPolicyContentHash
-    ) throw new Error("The writing contract in the deliberation workspace differs from the snapshot.");
+    )
+      throw new Error(
+        "The writing contract in the deliberation workspace differs from the snapshot.",
+      );
     for (const context of input.snapshot.contexts) workspace.rememberContext(context);
     return workspace;
   }
@@ -155,8 +166,12 @@ export class DeliberationWorkspace {
       participantRoleIds: [...this.participantRoleIds],
       writingPolicyDocumentId: this.writingPolicyDocumentId,
       writingPolicyContentHash: this.writingPolicyContentHash,
-      generatedDocuments: Object.fromEntries([...this.generatedDocumentIds].map((documentId) =>
-        [documentId, structuredClone(this.documents[documentId]!) ])),
+      generatedDocuments: Object.fromEntries(
+        [...this.generatedDocumentIds].map((documentId) => [
+          documentId,
+          structuredClone(this.documents[documentId]!),
+        ]),
+      ),
       contexts: structuredClone(this.contexts),
     };
   }

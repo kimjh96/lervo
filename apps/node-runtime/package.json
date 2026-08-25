@@ -28,6 +28,7 @@
     "@lervo/policy": "workspace:*",
     "@lervo/policy-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "@lervo/remote-command": "workspace:*",
     "@lervo/remote-command-sqlite": "workspace:*",

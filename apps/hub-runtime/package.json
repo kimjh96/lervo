@@ -18,6 +18,7 @@
     "build": "tsc --project tsconfig.json && node scripts/build-bundle.mjs"
   },
   "dependencies": {
+    "@lervo/capabilities": "workspace:*",
     "@lervo/cas": "workspace:*",
     "@lervo/hub": "workspace:*",
     "@lervo/hub-control": "workspace:*",

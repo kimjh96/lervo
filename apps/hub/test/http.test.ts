@@ -6,7 +6,6 @@ import {
   allowedProject,
   closeHubTestServers,
   credentials,
-  secondProject,
   startHubTestServer,
   token,
   traceSource,
@@ -39,7 +38,7 @@ describe("Hub trace HTTP API", () => {
 
     const first = await fetch(`${base}/v1/trace/projects?limit=1`, { headers });
     expect(first.status).toBe(200);
-    const firstBody = await first.json() as {
+    const firstBody = (await first.json()) as {
       projects: HubProjectTraceSummary[];
       nextCursor: string;
     };
@@ -106,28 +105,30 @@ describe("Hub trace HTTP API", () => {
       },
       contextCoverage: null,
       events: {
-        items: [{
-          chainPosition: "buffered",
-          event: {
-            eventId: "evt_allowed01",
-            projectId: allowedProject.projectId,
-            runId: "run_allowed01",
-            sessionId: "ses_allowed01",
-            seq: 1,
-            type: "run.requested",
-            occurredAt: "2026-08-19T00:00:01.000Z",
-            actor: { kind: "user" },
-            schemaVersion: 1,
-            policyVersion: "sha256:" + "d".repeat(64),
-            payload: {
-              requestDigest: "sha256:" + "e".repeat(64),
-              role: "developer",
-              risk: "low",
+        items: [
+          {
+            chainPosition: "buffered",
+            event: {
+              eventId: "evt_allowed01",
+              projectId: allowedProject.projectId,
+              runId: "run_allowed01",
+              sessionId: "ses_allowed01",
+              seq: 1,
+              type: "run.requested",
+              occurredAt: "2026-08-19T00:00:01.000Z",
+              actor: { kind: "user" },
+              schemaVersion: 1,
+              policyVersion: "sha256:" + "d".repeat(64),
+              payload: {
+                requestDigest: "sha256:" + "e".repeat(64),
+                role: "developer",
+                risk: "low",
+              },
+              previousHash: null,
+              eventHash: "sha256:" + "f".repeat(64),
             },
-            previousHash: null,
-            eventHash: "sha256:" + "f".repeat(64),
           },
-        }],
+        ],
         nextCursor: null,
       },
     });
@@ -155,13 +156,15 @@ describe("Hub trace HTTP API", () => {
       events: [{ chainPosition: "buffered" }],
       nextCursor: null,
     });
-    expect(querySource.getRun).toHaveBeenCalledWith(expect.objectContaining({
-      scope: { mode: "projects", projects: credentials[0]!.projects },
-      destinationId: "hub:primary",
-      projectId: "prj_allowed01",
-      runId: "run_allowed01",
-      limit: 50,
-    }));
+    expect(querySource.getRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: { mode: "projects", projects: credentials[0]!.projects },
+        destinationId: "hub:primary",
+        projectId: "prj_allowed01",
+        runId: "run_allowed01",
+        limit: 50,
+      }),
+    );
   });
 
   it("serves only a bounded focused knowledge graph through the authorized source", async () => {
@@ -178,20 +181,22 @@ describe("Hub trace HTTP API", () => {
       project: allowedProject,
       focus,
       relations: {
-        items: [{
-          schemaVersion: 1,
-          relationId,
-          projectId: allowedProject.projectId,
-          type: "contains_run",
-          from: focus,
-          to: target,
-          evidence: {
-            eventId: "evt_allowed01",
-            eventType: "run.requested",
-            runId: target.id,
-            seq: 1,
+        items: [
+          {
+            schemaVersion: 1,
+            relationId,
+            projectId: allowedProject.projectId,
+            type: "contains_run",
+            from: focus,
+            to: target,
+            evidence: {
+              eventId: "evt_allowed01",
+              eventType: "run.requested",
+              runId: target.id,
+              seq: 1,
+            },
           },
-        }],
+        ],
         nextCursor: { relationId },
       },
     });
@@ -202,7 +207,7 @@ describe("Hub trace HTTP API", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json() as {
+    const body = (await response.json()) as {
       focus: { kind: string; id: string };
       nodes: Array<{ kind: string; id: string }>;
       relations: Array<{ relationId: string; type: string }>;
@@ -210,8 +215,9 @@ describe("Hub trace HTTP API", () => {
     };
     expect(body.focus).toEqual(focus);
     expect(body.nodes).toEqual([focus, target]);
-    expect(body.relations).toEqual([{ relationId, type: "contains_run" }].map((item) =>
-      expect.objectContaining(item)));
+    expect(body.relations).toEqual(
+      [{ relationId, type: "contains_run" }].map((item) => expect.objectContaining(item)),
+    );
     expect(typeof body.nextCursor).toBe("string");
     expect(querySource.getKnowledgeGraph).toHaveBeenCalledWith({
       scope: { mode: "projects", projects: credentials[0]!.projects },
@@ -231,10 +237,12 @@ describe("Hub trace HTTP API", () => {
       { headers: { authorization: `Bearer ${token}` } },
     );
     expect(next.status).toBe(200);
-    expect(querySource.getKnowledgeGraph).toHaveBeenLastCalledWith(expect.objectContaining({
-      after: { relationId },
-      focus,
-    }));
+    expect(querySource.getKnowledgeGraph).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        after: { relationId },
+        focus,
+      }),
+    );
   });
 
   it("rejects malformed queries and mismatched cursors before reading details", async () => {
@@ -244,8 +252,9 @@ describe("Hub trace HTTP API", () => {
 
     const unknown = await fetch(`${base}/v1/trace/projects?unknown=1`, { headers });
     expect(unknown.status).toBe(400);
-    const eventCursor = Buffer.from(JSON.stringify({ v: 1, kind: "event", seq: 1 }))
-      .toString("base64url");
+    const eventCursor = Buffer.from(JSON.stringify({ v: 1, kind: "event", seq: 1 })).toString(
+      "base64url",
+    );
     const mismatched = await fetch(
       `${base}/v1/trace/projects/prj_allowed01?destinationId=hub%3Aprimary&cursor=${eventCursor}`,
       { headers },

@@ -24,8 +24,15 @@ export function assertSearchEngineIdentity(
   engine: SearchEngineIdentity,
   errorCode: SearchErrorCode = "invalid_evaluation_engine",
 ): void {
-  if (typeof engine !== "object" || engine === null || !SEARCH_ENGINE_ID_PATTERN.test(engine.id) ||
-    engine.id.length > 64 || !Number.isSafeInteger(engine.version) || engine.version < 1 || engine.version > 1_000_000) {
+  if (
+    typeof engine !== "object" ||
+    engine === null ||
+    !SEARCH_ENGINE_ID_PATTERN.test(engine.id) ||
+    engine.id.length > 64 ||
+    !Number.isSafeInteger(engine.version) ||
+    engine.version < 1 ||
+    engine.version > 1_000_000
+  ) {
     throw new SearchError(errorCode, "The search evaluation engine coordinates are invalid.");
   }
 }

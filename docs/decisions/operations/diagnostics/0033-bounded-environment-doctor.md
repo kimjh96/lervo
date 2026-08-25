@@ -5,7 +5,7 @@
 
 ## Context
 
-The original doctor checked event chains and knowledge sources but could appear to certify documents, skills, and provider runtimes it never inspected. Corruption must be distinguished from unavailable readiness evidence. A successful provider version command proves neither authentication nor a managed session.
+The original doctor checked event chains and knowledge sources but could appear to certify documents, skills, and provider runtimes it had not inspected. Corruption must be distinguished from unavailable readiness evidence. A successful provider version command proves neither authentication nor a managed session.
 
 ## Decision
 
@@ -20,7 +20,9 @@ Add these checks:
 - `provider_codex_runtime`: configured Codex executable version
 - `provider_claude_runtime`: Agent SDK bundled executable version
 
-Each check is `healthy` when completed and valid, `unhealthy` when directly verified as missing, corrupt, or stale, and `unknown` when a prerequisite or runtime is missing or a probe fails. No skills and no lock is healthy; packages without a lock are unknown. When a lock exists, rerun the common resolver using its recorded runtime and requested IDs, then compare every selection and rejection. This detects changed hashes and newly available higher-priority candidates.
+A check is `healthy` when completed and valid, `unhealthy` when directly verified as missing, corrupt, or stale, and `unknown` when a prerequisite or runtime is missing or a probe fails. No skills and no lock is healthy; packages without a lock are unknown.
+
+When a lock exists, rerun the common resolver with its recorded runtime and requested IDs, then compare every selection and rejection. This detects changed hashes and newly available higher-priority candidates.
 
 Overall-state precedence is `unhealthy`, `unknown`, then `healthy`. Exit 0 only when every check is healthy; `unknown` never means healthy.
 

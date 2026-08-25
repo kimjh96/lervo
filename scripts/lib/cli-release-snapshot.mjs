@@ -15,20 +15,19 @@ const cliRoot = resolve(repositoryRoot, "apps/cli");
 const cliManifestPath = resolve(cliRoot, "package.json");
 const bundleMetafilePath = resolve(cliRoot, "dist/bin.metafile.json");
 const bundleOutputPath = "apps/cli/dist/bin.js";
-const publicContentPaths = new Set(["README.md", "dist/bin.js"]);
+const publicContentPaths = new Set([
+  "README.md",
+  "dist/bin.js",
+  "dist/node-runtime.js",
+  "dist/terminal-hook.js",
+]);
 const builtinModuleNames = new Set([
   ...builtinModules,
   ...builtinModules.map((name) => `node:${name}`),
 ]);
 
 async function readPackFileList() {
-  const { stdout } = await runPnpm([
-    "--filter",
-    "@lervo/cli",
-    "pack",
-    "--dry-run",
-    "--json",
-  ]);
+  const { stdout } = await runPnpm(["--filter", "@lervo/cli", "pack", "--dry-run", "--json"]);
   const report = JSON.parse(stdout);
   if (report.name !== "@lervo/cli" || !Array.isArray(report.files)) {
     throw new ReleaseArtifactManifestError(
@@ -97,27 +96,45 @@ async function createBundleSnapshot() {
     );
   }
 
-  const packageDirectories = [...new Set(
-    Object.keys(metafile.inputs ?? {})
-      .map((path) => path.match(/^packages\/([^/]+)\/dist\//)?.[1])
-      .filter(Boolean),
-  )].sort();
-  const workspacePackages = (await Promise.all(packageDirectories.map(async (directory) => {
-    const manifest = await readJson(resolve(repositoryRoot, "packages", directory, "package.json"));
-    return `${manifest.name}@${manifest.version}`;
-  }))).sort();
-  const externalPackageRoots = [...new Set(
-    Object.keys(metafile.inputs ?? {}).map(bundledPackageRoot).filter(Boolean),
-  )].sort();
-  const externalPackages = (await Promise.all(externalPackageRoots.map(async (packageRoot) => {
-    const manifest = await readJson(resolve(repositoryRoot, packageRoot, "package.json"));
-    return `${manifest.name}@${manifest.version}`;
-  }))).sort();
-  const externalImports = [...new Set(
-    output.imports
-      .filter(({ external, path }) => external && !builtinModuleNames.has(path))
-      .map(({ path }) => externalPackageName(path)),
-  )].sort();
+  const packageDirectories = [
+    ...new Set(
+      Object.keys(metafile.inputs ?? {})
+        .map((path) => path.match(/^packages\/([^/]+)\/dist\//)?.[1])
+        .filter(Boolean),
+    ),
+  ].sort();
+  const workspacePackages = (
+    await Promise.all(
+      packageDirectories.map(async (directory) => {
+        const manifest = await readJson(
+          resolve(repositoryRoot, "packages", directory, "package.json"),
+        );
+        return `${manifest.name}@${manifest.version}`;
+      }),
+    )
+  ).sort();
+  const externalPackageRoots = [
+    ...new Set(
+      Object.keys(metafile.inputs ?? {})
+        .map(bundledPackageRoot)
+        .filter(Boolean),
+    ),
+  ].sort();
+  const externalPackages = (
+    await Promise.all(
+      externalPackageRoots.map(async (packageRoot) => {
+        const manifest = await readJson(resolve(repositoryRoot, packageRoot, "package.json"));
+        return `${manifest.name}@${manifest.version}`;
+      }),
+    )
+  ).sort();
+  const externalImports = [
+    ...new Set(
+      output.imports
+        .filter(({ external, path }) => external && !builtinModuleNames.has(path))
+        .map(({ path }) => externalPackageName(path)),
+    ),
+  ].sort();
   const bundle = {
     entry: "apps/cli/src/bin.ts",
     output: "dist/bin.js",

@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 
-import {
-  assertLoadedContextIntegrity,
-  type LoadedContext,
-} from "@lervo/context";
+import { assertLoadedContextIntegrity, type LoadedContext } from "@lervo/context";
 import { type AdapterSession, validateSchema } from "@lervo/schemas";
 
 import { ContextDeliveryError } from "./types.js";
@@ -35,10 +32,7 @@ export function validateLoadedContext(loaded: LoadedContext): void {
   }
 }
 
-export function assertSessionCoordinates(
-  loaded: LoadedContext,
-  session: AdapterSession,
-): void {
+export function assertSessionCoordinates(loaded: LoadedContext, session: AdapterSession): void {
   const coordinates = loaded.plan.coordinates;
   if (
     coordinates.projectId !== session.projectId ||

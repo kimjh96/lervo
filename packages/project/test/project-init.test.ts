@@ -51,7 +51,10 @@ describe("Lervo project initialization", () => {
     expect(result.created).toContain(".lervo/project.yaml");
     expect(result.created).toContain(".lervo/knowledge/policy.yaml");
     expect(result.created).toContain(".lervo/knowledge/document-layout.yaml");
-    expect(result.created).toEqual(expect.arrayContaining([".lervo", ".lervo/knowledge", ".lervo/.gitignore"]));
+    expect(result.created).toEqual(
+      expect.arrayContaining([".lervo", ".lervo/knowledge", ".lervo/.gitignore"]),
+    );
+    expect(await readFile(resolve(root, ".lervo/.gitignore"), "utf8")).toBe("data/\nstate/\n");
     expect(result.created).toHaveLength(6);
     await expect(access(resolve(root, ".lervo/documents"))).rejects.toThrow();
     await expect(access(resolve(root, ".lervo/verifications"))).rejects.toThrow();
@@ -63,7 +66,10 @@ describe("Lervo project initialization", () => {
     expect(knowledgePolicy).toContain("  - '**/.cxx/**'\n");
     expect(knowledgePolicy).toContain("  - '**/build-device/**'\n");
     expect(knowledgePolicy).toContain("  language: en\n");
-    const decisionTaxonomy = await readFile(resolve(root, ".lervo/knowledge/document-layout.yaml"), "utf8");
+    const decisionTaxonomy = await readFile(
+      resolve(root, ".lervo/knowledge/document-layout.yaml"),
+      "utf8",
+    );
     expect(decisionTaxonomy).toContain("decisionRoot: docs/decisions\n");
     expect(decisionTaxonomy).toContain("maxLeafDocuments: 24\n");
     expect(decisionTaxonomy).toContain("id: architecture\n");
@@ -88,9 +94,7 @@ describe("Lervo project initialization", () => {
       await writeFile(resolve(root, path), content, "utf8");
     }
 
-    await applyInitPlan(
-      await createInitPlan({ root, projectId: "prj_01234567" }),
-    );
+    await applyInitPlan(await createInitPlan({ root, projectId: "prj_01234567" }));
 
     for (const [path, content] of documents) {
       await expect(readFile(resolve(root, path), "utf8")).resolves.toBe(content);
@@ -123,18 +127,28 @@ describe("Lervo project initialization", () => {
 
     const plan = await createInitPlan({ root });
     expect(plan.status).toBe("blocked");
-    expect(plan.operations).toContainEqual(expect.objectContaining({ path: ".lervo/knowledge/policy.yaml", action: "conflict" }));
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({ path: ".lervo/knowledge/policy.yaml", action: "conflict" }),
+    );
     await expect(applyInitPlan(plan)).rejects.toMatchObject({ code: "init_conflict" });
   });
 
   it("blocks an invalid existing decision taxonomy", async () => {
     const root = await temporaryRepository();
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_01234567" }));
-    await writeFile(resolve(root, ".lervo/knowledge/document-layout.yaml"), "schemaVersion: 1\nroutes: []\n");
+    await writeFile(
+      resolve(root, ".lervo/knowledge/document-layout.yaml"),
+      "schemaVersion: 1\nroutes: []\n",
+    );
 
     const plan = await createInitPlan({ root });
     expect(plan.status).toBe("blocked");
-    expect(plan.operations).toContainEqual(expect.objectContaining({ path: ".lervo/knowledge/document-layout.yaml", action: "conflict" }));
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({
+        path: ".lervo/knowledge/document-layout.yaml",
+        action: "conflict",
+      }),
+    );
     await expect(applyInitPlan(plan)).rejects.toMatchObject({ code: "init_conflict" });
   });
 
@@ -195,10 +209,13 @@ describe("Lervo project initialization", () => {
     const plan = await createInitPlan({ root, projectId: "prj_01234567" });
 
     expect(plan.status).toBe("ready");
-    expect(plan.operations.some((operation) => operation.path === ".lervo/verifications")).toBe(false);
+    expect(plan.operations.some((operation) => operation.path === ".lervo/verifications")).toBe(
+      false,
+    );
     await applyInitPlan(plan);
-    await expect(readFile(resolve(root, ".lervo/verifications"), "utf8"))
-      .resolves.toBe("user-owned bytes\n");
+    await expect(readFile(resolve(root, ".lervo/verifications"), "utf8")).resolves.toBe(
+      "user-owned bytes\n",
+    );
     await expect(access(resolve(root, ".lervo/project.yaml"))).resolves.toBeUndefined();
   });
 

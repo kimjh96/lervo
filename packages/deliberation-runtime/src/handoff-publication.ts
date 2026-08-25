@@ -31,7 +31,8 @@ export function publishDeliberationHandoff(input: {
   const { publication, handoff } = input.request;
   const artifact = input.artifact;
   if (
-    artifact === undefined || input.artifactEventId === undefined ||
+    artifact === undefined ||
+    input.artifactEventId === undefined ||
     !validateSchema("sharedContext", publication).valid ||
     publication.projectId !== artifact.projectId ||
     publication.contentHash !== artifact.content.contentHash ||
@@ -47,7 +48,8 @@ export function publishDeliberationHandoff(input: {
       "The shared-context publication differs from the recorded deliberation artifact.",
     );
   }
-  const audienceAllowsRecipient = publication.audience.mode === "project" ||
+  const audienceAllowsRecipient =
+    publication.audience.mode === "project" ||
     publication.audience.roleIds.includes(handoff.toRoleId);
   if (
     !validateSchema("handoffBundle", handoff).valid ||
@@ -83,43 +85,40 @@ export function publishDeliberationHandoff(input: {
     );
   }
   const publicationSpec = {
-      type: "context.published",
-      coordinates,
-      occurredAt: publication.publishedAt,
-      actor: { kind: "agent", provider: artifact.producer.provider },
-      payload: {
-        sharedContextId: publication.sharedContextId,
-        documentId: publication.documentId,
-        contentHash: publication.contentHash,
-        producerRoleId: artifact.producer.roleId,
-        audienceMode: publication.audience.mode,
-        allowedRoleIds: publication.audience.mode === "roles"
-          ? publication.audience.roleIds
-          : [],
-        expiresAt: publication.expiresAt,
-      },
-    } as const;
+    type: "context.published",
+    coordinates,
+    occurredAt: publication.publishedAt,
+    actor: { kind: "agent", provider: artifact.producer.provider },
+    payload: {
+      sharedContextId: publication.sharedContextId,
+      documentId: publication.documentId,
+      contentHash: publication.contentHash,
+      producerRoleId: artifact.producer.roleId,
+      audienceMode: publication.audience.mode,
+      allowedRoleIds: publication.audience.mode === "roles" ? publication.audience.roleIds : [],
+      expiresAt: publication.expiresAt,
+    },
+  } as const;
   const handoffSpec = {
-      type: "handoff.created",
-      coordinates,
-      occurredAt: handoff.createdAt,
-      actor: { kind: "agent", provider: artifact.producer.provider },
-      payload: {
-        handoffId: handoff.handoffId,
-        fromRoleId: handoff.from.roleId,
-        toRoleId: handoff.toRoleId,
-        sharedContextIds: handoff.sharedContextIds,
-        evidenceEventIds: handoff.evidenceEventIds,
-        requestDigest: handoff.requestDigest,
-      },
-    } as const;
-  const recorded = input.recordedPublication === undefined
-    ? input.recorder.appendMany([publicationSpec, handoffSpec])
-    : input.recorder.appendMany([handoffSpec]);
+    type: "handoff.created",
+    coordinates,
+    occurredAt: handoff.createdAt,
+    actor: { kind: "agent", provider: artifact.producer.provider },
+    payload: {
+      handoffId: handoff.handoffId,
+      fromRoleId: handoff.from.roleId,
+      toRoleId: handoff.toRoleId,
+      sharedContextIds: handoff.sharedContextIds,
+      evidenceEventIds: handoff.evidenceEventIds,
+      requestDigest: handoff.requestDigest,
+    },
+  } as const;
+  const recorded =
+    input.recordedPublication === undefined
+      ? input.recorder.appendMany([publicationSpec, handoffSpec])
+      : input.recorder.appendMany([handoffSpec]);
   const publishedEvent = input.recordedPublication?.event ?? recorded[0]!;
-  const handoffEvent = input.recordedPublication === undefined
-    ? recorded[1]!
-    : recorded[0]!;
+  const handoffEvent = input.recordedPublication === undefined ? recorded[1]! : recorded[0]!;
   return {
     publication: clone(publication),
     handoff: clone(handoff),

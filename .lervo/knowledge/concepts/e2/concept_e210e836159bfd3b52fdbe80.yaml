@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e210e836159bfd3b52fdbe80
+freshness: current
+ownership: user
+path: docs/decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_dff7e60b02ca306ab90f174b
+title: "ADR-0212: Natural-language capability lifecycle"
+type: decision

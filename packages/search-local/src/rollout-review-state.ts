@@ -24,13 +24,17 @@ export function rolloutAttemptEvidence(
   assessments: VerifiedSearchSelectionQualityEvidence["assessments"],
   through?: Date,
 ) {
-  const selectedAttempts = attempts.filter((attempt) =>
-    attempt.selectionTransitionId === review.target.selectionTransitionId &&
-    (through === undefined || Date.parse(attempt.observedAt) <= through.getTime()));
+  const selectedAttempts = attempts.filter(
+    (attempt) =>
+      attempt.selectionTransitionId === review.target.selectionTransitionId &&
+      (through === undefined || Date.parse(attempt.observedAt) <= through.getTime()),
+  );
   const attemptIds = new Set(selectedAttempts.map((attempt) => attempt.attemptId));
-  const selectedAssessments = assessments.filter((assessment) =>
-    attemptIds.has(assessment.attemptId) &&
-    (through === undefined || Date.parse(assessment.assessedAt) <= through.getTime()));
+  const selectedAssessments = assessments.filter(
+    (assessment) =>
+      attemptIds.has(assessment.attemptId) &&
+      (through === undefined || Date.parse(assessment.assessedAt) <= through.getTime()),
+  );
   return { attempts: selectedAttempts, assessments: selectedAssessments };
 }
 
@@ -39,13 +43,21 @@ export function assertRolloutReviewTarget(
   activation: VerifiedSearchSelectionQualityEvidence["history"][number] | undefined,
   candidateReview: SearchCandidateReview,
 ): void {
-  if (activation === undefined || activation.selected.mode !== "candidate" ||
-    activation.projectId !== review.projectId || activation.selected.candidateId !== review.target.candidateId ||
+  if (
+    activation === undefined ||
+    activation.selected.mode !== "candidate" ||
+    activation.projectId !== review.projectId ||
+    activation.selected.candidateId !== review.target.candidateId ||
     activation.selected.reviewId !== review.target.candidateReviewId ||
-    !sameSearchEngine(activation.selected.engine, review.target.engine) || candidateReview.schemaVersion !== 2 ||
+    !sameSearchEngine(activation.selected.engine, review.target.engine) ||
+    candidateReview.schemaVersion !== 2 ||
     candidateReview.reviewId !== review.target.candidateReviewId ||
-    candidateReview.candidateAdapterBuildId !== review.target.adapterBuildId) {
-    throw new SearchLocalError("observation_invalid", "The search rollout review target differs from the selection and candidate review sources.");
+    candidateReview.candidateAdapterBuildId !== review.target.adapterBuildId
+  ) {
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search rollout review target differs from the selection and candidate review sources.",
+    );
   }
 }
 
@@ -78,7 +90,10 @@ export function createRolloutCurrentSelection(
   }
   const review = candidateReviews.get(current.selected.reviewId);
   if (review === undefined) {
-    throw new SearchLocalError("observation_invalid", "The current candidate search review source was not found.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The current candidate search review source was not found.",
+    );
   }
   return {
     selectionTransitionId: current.activationId,
@@ -106,7 +121,10 @@ export async function loadVerifiedLocalSearchRolloutReviewState(input: {
     loadStoredSearchRolloutReview(input.repositoryRoot, input.rolloutReviewId),
   ]);
   if (review.projectId !== input.projectId) {
-    throw new SearchLocalError("observation_invalid", "The search rollout review has different project coordinates.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search rollout review has different project coordinates.",
+    );
   }
   const [candidateReview, rolloutPolicy] = await Promise.all([
     loadStoredSearchCandidateReview(input.repositoryRoot, review.target.candidateReviewId),
@@ -115,7 +133,10 @@ export async function loadVerifiedLocalSearchRolloutReviewState(input: {
       : Promise.resolve(null),
   ]);
   if (rolloutPolicy !== null && rolloutPolicy.projectId !== input.projectId) {
-    throw new SearchLocalError("observation_invalid", "The search rollout review policy has different project coordinates.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search rollout review policy has different project coordinates.",
+    );
   }
   const activation = qualityEvidence.history.find(
     (item) => item.activationId === review.target.selectionTransitionId,

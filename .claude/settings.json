@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "lervo terminal hook --provider claude --contract 1",
+            "command": "node \"$(git rev-parse --show-toplevel)/.lervo/generated/terminal-hooks/runtime-v2.mjs\" --provider claude --contract 2",
             "timeout": 30
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "lervo terminal hook --provider claude --contract 1",
+            "command": "node \"$(git rev-parse --show-toplevel)/.lervo/generated/terminal-hooks/runtime-v2.mjs\" --provider claude --contract 2",
             "timeout": 30
           }
         ]

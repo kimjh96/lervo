@@ -28,14 +28,16 @@ export const projectIdentityMigratedEventPayloadSchema = {
     "documentDisposition",
     "migratedAt",
   ],
-  allOf: [{
-    if: {
-      properties: { preservedEventCount: { const: 0 } },
-      required: ["preservedEventCount"],
+  allOf: [
+    {
+      if: {
+        properties: { preservedEventCount: { const: 0 } },
+        required: ["preservedEventCount"],
+      },
+      then: { properties: { preservedEventHeadHash: { type: "null" } } },
+      else: { properties: { preservedEventHeadHash: sha256Schema } },
     },
-    then: { properties: { preservedEventHeadHash: { type: "null" } } },
-    else: { properties: { preservedEventHeadHash: sha256Schema } },
-  }],
+  ],
   additionalProperties: false,
 } as const;
 

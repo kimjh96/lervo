@@ -49,7 +49,10 @@ async function repository(): Promise<string> {
   expect(await runCli(["init"], silent)).toBe(0);
   await mkdir(resolve(root, "docs"));
   await mkdir(resolve(root, ".lervo/documents"));
-  await writeFile(resolve(root, "docs/search-guide.md"), "# Search operations guide\n\nPeople evaluate search failures.\n");
+  await writeFile(
+    resolve(root, "docs/search-guide.md"),
+    "# Search operations guide\n\nPeople evaluate search failures.\n",
+  );
   await writeFile(
     resolve(root, ".lervo/documents/doc_search_guide_01.yaml"),
     serializeYaml(manifest()),
@@ -65,11 +68,15 @@ describe("lervo search vertical slice", () => {
   it("reports zero observations without creating search state", async () => {
     const root = await repository();
     let output = "";
-    expect(await runCli(["search", "report", "--json"], {
-      cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["search", "report", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          output += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     expect(JSON.parse(output)).toMatchObject({ totalAttempts: 0, assessedAttempts: 0 });
     await expect(access(resolve(root, ".lervo/state/search"))).rejects.toThrow();
   });
@@ -80,22 +87,44 @@ describe("lervo search vertical slice", () => {
     let queryError = "";
     const queryCode = await runCli(["search", "search failures", "--json"], {
       cwd: root,
-      stdout: (message) => { queryOutput += message; },
-      stderr: (message) => { queryError += message; },
+      stdout: (message) => {
+        queryOutput += message;
+      },
+      stderr: (message) => {
+        queryError += message;
+      },
     });
     expect(queryCode, queryError).toBe(0);
-    const response = JSON.parse(queryOutput) as { attemptId: string; hits: Array<{ source: { sourceId: string } }> };
+    const response = JSON.parse(queryOutput) as {
+      attemptId: string;
+      hits: Array<{ source: { sourceId: string } }>;
+    };
     expect(response.hits[0]?.source.sourceId).toBe("doc_search_guide_01");
 
     let assessmentOutput = "";
-    expect(await runCli([
-      "search", "assess", response.attemptId, "--outcome", "failed",
-      "--reason", "insufficient_context", "--expected", "document:doc_missing_guide_01", "--json",
-    ], {
-      cwd: root,
-      stdout: (message) => { assessmentOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(
+        [
+          "search",
+          "assess",
+          response.attemptId,
+          "--outcome",
+          "failed",
+          "--reason",
+          "insufficient_context",
+          "--expected",
+          "document:doc_missing_guide_01",
+          "--json",
+        ],
+        {
+          cwd: root,
+          stdout: (message) => {
+            assessmentOutput += message;
+          },
+          stderr: () => undefined,
+        },
+      ),
+    ).toBe(0);
     expect(JSON.parse(assessmentOutput)).toMatchObject({
       attemptId: response.attemptId,
       outcome: "failed",
@@ -103,22 +132,38 @@ describe("lervo search vertical slice", () => {
       expectedSources: [{ sourceKind: "document", sourceId: "doc_missing_guide_01" }],
     });
     let conflictError = "";
-    expect(await runCli([
-      "search", "assess", response.attemptId, "--outcome", "accepted",
-      "--selected", "document:doc_search_guide_01",
-    ], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: (message) => { conflictError += message; },
-    })).toBe(1);
+    expect(
+      await runCli(
+        [
+          "search",
+          "assess",
+          response.attemptId,
+          "--outcome",
+          "accepted",
+          "--selected",
+          "document:doc_search_guide_01",
+        ],
+        {
+          cwd: root,
+          stdout: () => undefined,
+          stderr: (message) => {
+            conflictError += message;
+          },
+        },
+      ),
+    ).toBe(1);
     expect(conflictError).toContain("observation_conflict");
 
     let reportOutput = "";
-    expect(await runCli(["search", "report", "--json"], {
-      cwd: root,
-      stdout: (message) => { reportOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["search", "report", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          reportOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     expect(JSON.parse(reportOutput)).toMatchObject({
       totalAttempts: 1,
       failedAttempts: 1,
@@ -131,10 +176,14 @@ describe("lervo search vertical slice", () => {
     );
     expect(stored).not.toContain("search failures");
     expect(stored).not.toContain("docs/search-guide.md");
-    expect((await stat(resolve(root, ".lervo/state/search/attempts", `${response.attemptId}.json`))).mode & 0o777)
-      .toBe(0o600);
-    expect((await stat(resolve(root, ".lervo/state/search/assessments", `${response.attemptId}.json`))).mode & 0o777)
-      .toBe(0o600);
+    expect(
+      (await stat(resolve(root, ".lervo/state/search/attempts", `${response.attemptId}.json`)))
+        .mode & 0o777,
+    ).toBe(0o600);
+    expect(
+      (await stat(resolve(root, ".lervo/state/search/assessments", `${response.attemptId}.json`)))
+        .mode & 0o777,
+    ).toBe(0o600);
   });
 
   it("does not record an assessment inferred only from an empty result", async () => {
@@ -143,16 +192,20 @@ describe("lervo search vertical slice", () => {
     const queryCode = await runCli(["search", "nonexistent-search-term"], {
       cwd: root,
       stdout: () => undefined,
-      stderr: (message) => { queryError += message; },
+      stderr: (message) => {
+        queryError += message;
+      },
     });
     expect(queryCode, queryError).toBe(0);
 
     const reportMessages: string[] = [];
-    expect(await runCli(["search", "report", "--json"], {
-      cwd: root,
-      stdout: (message) => reportMessages.push(message),
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["search", "report", "--json"], {
+        cwd: root,
+        stdout: (message) => reportMessages.push(message),
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     expect(JSON.parse(reportMessages.join(""))).toMatchObject({
       totalAttempts: 1,
       assessedAttempts: 0,
@@ -167,21 +220,29 @@ describe("lervo search vertical slice", () => {
     await writeFile(resolve(root, "outside.md"), "# Search failures\n");
     await symlink(resolve(root, "outside.md"), resolve(root, "docs/search-guide.md"));
     let sourceError = "";
-    expect(await runCli(["search", "search failures"], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: (message) => { sourceError += message; },
-    })).toBe(1);
+    expect(
+      await runCli(["search", "search failures"], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (message) => {
+          sourceError += message;
+        },
+      }),
+    ).toBe(1);
     expect(sourceError).toContain("corpus_read_failed");
 
     await rm(resolve(root, "docs/search-guide.md"));
     await writeFile(resolve(root, "docs/search-guide.md"), "# Search failures\n");
     let queryOutput = "";
-    expect(await runCli(["search", "search failures", "--json"], {
-      cwd: root,
-      stdout: (message) => { queryOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["search", "search failures", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          queryOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     const { attemptId } = JSON.parse(queryOutput) as { attemptId: string };
     const attemptPath = resolve(root, ".lervo/state/search/attempts", `${attemptId}.json`);
     const attempt = JSON.parse(await readFile(attemptPath, "utf8")) as { queryDigest: string };
@@ -189,11 +250,15 @@ describe("lervo search vertical slice", () => {
     await writeFile(attemptPath, JSON.stringify(attempt));
 
     let reportError = "";
-    expect(await runCli(["search", "report"], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: (message) => { reportError += message; },
-    })).toBe(1);
+    expect(
+      await runCli(["search", "report"], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (message) => {
+          reportError += message;
+        },
+      }),
+    ).toBe(1);
     expect(reportError).toContain("invalid_attempt");
   });
 });

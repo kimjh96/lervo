@@ -15,11 +15,13 @@ describe("conversation provider session registry", () => {
     };
 
     await expect(registry.claim(coordinates)).resolves.toBe(true);
-    await expect(registry.claim({
-      ...coordinates,
-      runId: "run_planner",
-      sessionId: "ses_planner",
-      roleId: "planner",
-    })).resolves.toBe(false);
+    await expect(
+      registry.claim({
+        ...coordinates,
+        runId: "run_planner",
+        sessionId: "ses_planner",
+        roleId: "planner",
+      }),
+    ).resolves.toBe(false);
   });
 });

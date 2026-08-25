@@ -1,21 +1,25 @@
 import assert from "node:assert/strict";
-import { chmod, lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from
-  "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createFileFirstPublicationReservationStore } from
-  "../lib/file-first-publication-reservation-store.mjs";
-import { executeFirstPublicationBootstrap } from
-  "../lib/first-publication-execution.mjs";
-import { createFirstPublicationExecutionPlan } from
-  "../lib/first-publication-execution-plan.mjs";
-import { createFirstPublicationReservation } from
-  "../lib/first-publication-reservation.mjs";
-import { prepareNpmInteractiveFirstPublisher } from
-  "../lib/npm-interactive-first-publisher.mjs";
+import { createFileFirstPublicationReservationStore } from "../lib/file-first-publication-reservation-store.mjs";
+import { executeFirstPublicationBootstrap } from "../lib/first-publication-execution.mjs";
+import { createFirstPublicationExecutionPlan } from "../lib/first-publication-execution-plan.mjs";
+import { createFirstPublicationReservation } from "../lib/first-publication-reservation.mjs";
+import { prepareNpmInteractiveFirstPublisher } from "../lib/npm-interactive-first-publisher.mjs";
 import { npmPublicRegistry } from "../lib/release-publication-authorization.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
@@ -122,9 +126,9 @@ describe("file first-publication reservation store", () => {
         retry: "forbidden",
       });
       assert.deepEqual(result, completion(reserved));
-      const stored = JSON.parse(await readFile(
-        resolve(root, reserved.reservationId, "terminal.json"),
-      ));
+      const stored = JSON.parse(
+        await readFile(resolve(root, reserved.reservationId, "terminal.json")),
+      );
       assert.deepEqual(stored.record, completion(reserved));
       assert.match(stored.recordDigest, /^sha256:[a-f0-9]{64}$/u);
     } finally {
@@ -196,10 +200,12 @@ function successfulExecute(source, calls) {
       return { stdout: JSON.stringify({ tfa: { mode: "auth-and-writes", pending: false } }) };
     }
     if (args[0] === "view" && args[2] === "dist") {
-      return { stdout: JSON.stringify({
-        integrity: source.artifact.registryIntegrity,
-        shasum: source.artifact.registryShasum,
-      }) };
+      return {
+        stdout: JSON.stringify({
+          integrity: source.artifact.registryIntegrity,
+          shasum: source.artifact.registryShasum,
+        }),
+      };
     }
     if (args[0] === "view" && args[2] === "dist-tags") {
       return { stdout: JSON.stringify({ latest: source.bootstrap.target.version }) };
@@ -214,49 +220,52 @@ describe("npm interactive first publisher", () => {
     const calls = [];
     const confirmations = [];
     let temporaryRoot;
-    const session = await prepareNpmInteractiveFirstPublisher({
-      bootstrap: source.bootstrap,
-      armingAuthorization: source.armingAuthorization,
-      userConfigPath: "/home/release/.npmrc",
-    }, {
-      execute: successfulExecute(source, calls),
-      confirm: async (request) => {
-        confirmations.push(request);
-        return request.phrase;
+    const session = await prepareNpmInteractiveFirstPublisher(
+      {
+        bootstrap: source.bootstrap,
+        armingAuthorization: source.armingAuthorization,
+        userConfigPath: "/home/release/.npmrc",
       },
-      runInteractive: async (_command, args, options) => {
-        temporaryRoot = options.cwd;
-        assert.equal(options.stdio, undefined);
-        assert.equal(options.env.npm_config_provenance, undefined);
-        assert.equal(options.env.NPM_CONFIG_USERCONFIG, "/home/release/.npmrc");
-        assert.deepEqual(args, [
-          "publish",
-          "/release/lervo-cli-0.1.0.tgz",
-          "--registry",
-          npmPublicRegistry,
-          "--tag",
-          "latest",
-          "--access",
-          "public",
-          "--ignore-scripts",
-        ]);
-        assert.equal(args.includes("--otp"), false);
+      {
+        execute: successfulExecute(source, calls),
+        confirm: async (request) => {
+          confirmations.push(request);
+          return request.phrase;
+        },
+        runInteractive: async (_command, args, options) => {
+          temporaryRoot = options.cwd;
+          assert.equal(options.stdio, undefined);
+          assert.equal(options.env.npm_config_provenance, undefined);
+          assert.equal(options.env.NPM_CONFIG_USERCONFIG, "/home/release/.npmrc");
+          assert.deepEqual(args, [
+            "publish",
+            "/release/lervo-cli-0.1.0.tgz",
+            "--registry",
+            npmPublicRegistry,
+            "--tag",
+            "latest",
+            "--access",
+            "public",
+            "--ignore-scripts",
+          ]);
+          assert.equal(args.includes("--otp"), false);
+        },
+        environment: { npm_config_provenance: "false" },
+        stdinIsTTY: true,
+        stdoutIsTTY: true,
+        stderrIsTTY: true,
       },
-      environment: { npm_config_provenance: "false" },
-      stdinIsTTY: true,
-      stdoutIsTTY: true,
-      stderrIsTTY: true,
-    });
+    );
     const receipt = await session.publish({
       target: source.bootstrap.target,
       artifact: source.bootstrap.release.artifact,
       tarballPath: "/release/lervo-cli-0.1.0.tgz",
     });
     assert.equal(receipt.version, "0.1.0");
-    assert.deepEqual(confirmations.map(({ phase }) => phase), [
-      "before_publication",
-      "second_factor_attestation",
-    ]);
+    assert.deepEqual(
+      confirmations.map(({ phase }) => phase),
+      ["before_publication", "second_factor_attestation"],
+    );
     assert.deepEqual(
       confirmations.map(({ phrase }) => phrase),
       createFirstPublicationExecutionPlan({
@@ -278,50 +287,83 @@ describe("npm interactive first publisher", () => {
       stdoutIsTTY: true,
       stderrIsTTY: true,
     };
-    await assert.rejects(prepareNpmInteractiveFirstPublisher({
-      bootstrap: source.bootstrap,
-      userConfigPath: "/home/release/.npmrc",
-    }, { ...base, stdinIsTTY: false, environment: {} }), {
-      code: "npm_interactive_first_publication_preflight_failed",
-    });
-    await assert.rejects(prepareNpmInteractiveFirstPublisher({
-      bootstrap: source.bootstrap,
-      userConfigPath: "/home/release/.npmrc",
-    }, { ...base, environment: { NPM_CONFIG_OTP: "secret" } }), {
-      code: "npm_interactive_first_publication_preflight_failed",
-    });
-    await assert.rejects(prepareNpmInteractiveFirstPublisher({
-      bootstrap: source.bootstrap,
-      userConfigPath: "/home/release/.npmrc",
-    }, {
-      ...base,
-      environment: {},
-      execute: async (_command, args) => args[0] === "--version"
-        ? { stdout: "11.17.0\n" }
-        : { stdout: JSON.stringify({ tfa: { mode: "auth-only", pending: false } }) },
-    }), { code: "npm_interactive_first_publication_2fa_not_ready" });
+    await assert.rejects(
+      prepareNpmInteractiveFirstPublisher(
+        {
+          bootstrap: source.bootstrap,
+          userConfigPath: "/home/release/.npmrc",
+        },
+        { ...base, stdinIsTTY: false, environment: {} },
+      ),
+      {
+        code: "npm_interactive_first_publication_preflight_failed",
+      },
+    );
+    await assert.rejects(
+      prepareNpmInteractiveFirstPublisher(
+        {
+          bootstrap: source.bootstrap,
+          userConfigPath: "/home/release/.npmrc",
+        },
+        { ...base, environment: { NPM_CONFIG_OTP: "secret" } },
+      ),
+      {
+        code: "npm_interactive_first_publication_preflight_failed",
+      },
+    );
+    await assert.rejects(
+      prepareNpmInteractiveFirstPublisher(
+        {
+          bootstrap: source.bootstrap,
+          userConfigPath: "/home/release/.npmrc",
+        },
+        {
+          ...base,
+          environment: {},
+          execute: async (_command, args) =>
+            args[0] === "--version"
+              ? { stdout: "11.17.0\n" }
+              : { stdout: JSON.stringify({ tfa: { mode: "auth-only", pending: false } }) },
+        },
+      ),
+      { code: "npm_interactive_first_publication_2fa_not_ready" },
+    );
   });
 
   it("runs interactive preparation before observing or reserving", async () => {
     const source = fixture();
     let downstreamCalls = 0;
-    await assert.rejects(executeFirstPublicationBootstrap({
-      bootstrap: source.bootstrap,
-      armingAuthorization: source.armingAuthorization,
-      publicationAuthorization: source.publicationAuthorization,
-      releaseDirectory: "/release",
-    }, {
-      preparePublish: async () => { throw new Error("operator declined"); },
-      observePackage: async () => { downstreamCalls += 1; },
-      reservationStore: {
-        reserve: async () => { downstreamCalls += 1; },
-        complete: async () => {},
-        abort: async () => {},
-        markUnknown: async () => {},
-      },
-      publish: async () => { downstreamCalls += 1; },
-      clock: () => "2026-08-21T03:01:00Z",
-    }), { message: "operator declined" });
+    await assert.rejects(
+      executeFirstPublicationBootstrap(
+        {
+          bootstrap: source.bootstrap,
+          armingAuthorization: source.armingAuthorization,
+          publicationAuthorization: source.publicationAuthorization,
+          releaseDirectory: "/release",
+        },
+        {
+          preparePublish: async () => {
+            throw new Error("operator declined");
+          },
+          observePackage: async () => {
+            downstreamCalls += 1;
+          },
+          reservationStore: {
+            reserve: async () => {
+              downstreamCalls += 1;
+            },
+            complete: async () => {},
+            abort: async () => {},
+            markUnknown: async () => {},
+          },
+          publish: async () => {
+            downstreamCalls += 1;
+          },
+          clock: () => "2026-08-21T03:01:00Z",
+        },
+      ),
+      { message: "operator declined" },
+    );
     assert.equal(downstreamCalls, 0);
   });
 });

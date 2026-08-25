@@ -5,10 +5,8 @@ import {
   createFirstPublicationReconciliationReport,
   validateFirstPublicationReconciliationReport,
 } from "./first-publication-reconciliation.mjs";
-import { readFirstPublicationReconciliationSources } from
-  "./first-publication-reconciliation-sources.mjs";
-import { observeFirstPublicationReconciliation } from
-  "./npm-first-publication-reconciliation-observer.mjs";
+import { readFirstPublicationReconciliationSources } from "./first-publication-reconciliation-sources.mjs";
+import { observeFirstPublicationReconciliation } from "./npm-first-publication-reconciliation-observer.mjs";
 
 function fail(code = "first_publication_reconciliation_input_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -24,7 +22,8 @@ export async function reconcileCliFirstPublication(options, dependencies = {}) {
     !isAbsolute(options.bootstrapPath ?? "") ||
     !isAbsolute(options.armingAuthorizationPath ?? "") ||
     !isAbsolute(options.reservationRoot ?? "")
-  ) fail(options?.online === true ? undefined : "first_publication_reconciliation_online_required");
+  )
+    fail(options?.online === true ? undefined : "first_publication_reconciliation_online_required");
   const readSources = dependencies.readSources ?? readFirstPublicationReconciliationSources;
   const observe = dependencies.observe ?? observeFirstPublicationReconciliation;
   const clock = dependencies.clock ?? (() => new Date().toISOString());

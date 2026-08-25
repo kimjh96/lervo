@@ -45,10 +45,12 @@ const deliberationPermissions = new Set([
 export class ConfiguredConversationDeliberationControl implements ConversationDeliberationPort {
   private readonly bindings = new Map<string, ConversationDeliberationPrincipalBinding>();
 
-  constructor(private readonly options: {
-    backend: ConversationDeliberationBackend;
-    bindings: readonly ConversationDeliberationPrincipalBinding[];
-  }) {
+  constructor(
+    private readonly options: {
+      backend: ConversationDeliberationBackend;
+      bindings: readonly ConversationDeliberationPrincipalBinding[];
+    },
+  ) {
     for (const binding of options.bindings) {
       if (
         !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(binding.projectId) ||
@@ -57,10 +59,11 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
         binding.permissions.length === 0 ||
         new Set(binding.permissions).size !== binding.permissions.length ||
         binding.permissions.some((permission) => !deliberationPermissions.has(permission))
-      ) throw new ConversationControlError(
-        "control_command_invalid",
-        "The conversation deliberation principal binding is invalid.",
-      );
+      )
+        throw new ConversationControlError(
+          "control_command_invalid",
+          "The conversation deliberation principal binding is invalid.",
+        );
       const bindingKey = key(binding.projectId, binding.participantId);
       if (this.bindings.has(bindingKey)) {
         throw new ConversationControlError(

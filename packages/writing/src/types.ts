@@ -47,9 +47,7 @@ export interface SemanticWritingEvaluationResponse {
 }
 
 export interface WritingSemanticEvaluator {
-  evaluate(
-    request: SemanticWritingEvaluationRequest,
-  ): Promise<SemanticWritingEvaluationResponse>;
+  evaluate(request: SemanticWritingEvaluationRequest): Promise<SemanticWritingEvaluationResponse>;
 }
 
 export type SemanticEvaluationStatus = "completed" | "not_run" | "failed" | "invalid";

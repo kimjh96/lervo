@@ -19,12 +19,20 @@ function query(parameters) {
 async function readJson(response) {
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.startsWith("application/json")) {
-    throw new TraceApiError(response.status, "invalid_response", "Could not validate the Hub response format.");
+    throw new TraceApiError(
+      response.status,
+      "invalid_response",
+      "Could not validate the Hub response format.",
+    );
   }
   try {
     return await response.json();
   } catch {
-    throw new TraceApiError(response.status, "invalid_response", "Could not read the Hub response.");
+    throw new TraceApiError(
+      response.status,
+      "invalid_response",
+      "Could not read the Hub response.",
+    );
   }
 }
 
@@ -50,13 +58,16 @@ export function createTraceApi(readToken) {
     const body = await readJson(response);
     if (!response.ok) {
       const code = typeof body?.error?.code === "string" ? body.error.code : "request_failed";
-      const message = typeof body?.error?.message === "string"
-        ? body.error.message
-        : "Could not load the trace.";
+      const message =
+        typeof body?.error?.message === "string" ? body.error.message : "Could not load the trace.";
       throw new TraceApiError(response.status, code, message);
     }
     if (body?.schemaVersion !== 1) {
-      throw new TraceApiError(response.status, "invalid_response", "The Hub response is not supported.");
+      throw new TraceApiError(
+        response.status,
+        "invalid_response",
+        "The Hub response is not supported.",
+      );
     }
     return body;
   }
@@ -67,30 +78,36 @@ export function createTraceApi(readToken) {
     },
     getProject(project, cursor, limit) {
       const projectId = encodeURIComponent(project.projectId);
-      return request(`/v1/trace/projects/${projectId}${query({
-        destinationId: project.destinationId,
-        cursor,
-        limit,
-      })}`);
+      return request(
+        `/v1/trace/projects/${projectId}${query({
+          destinationId: project.destinationId,
+          cursor,
+          limit,
+        })}`,
+      );
     },
     getRun(project, runId, cursor, limit) {
       const projectId = encodeURIComponent(project.projectId);
       const encodedRunId = encodeURIComponent(runId);
-      return request(`/v1/trace/projects/${projectId}/runs/${encodedRunId}${query({
-        destinationId: project.destinationId,
-        cursor,
-        limit,
-      })}`);
+      return request(
+        `/v1/trace/projects/${projectId}/runs/${encodedRunId}${query({
+          destinationId: project.destinationId,
+          cursor,
+          limit,
+        })}`,
+      );
     },
     getKnowledgeGraph(project, focus, cursor, limit) {
       const projectId = encodeURIComponent(project.projectId);
-      return request(`/v1/trace/projects/${projectId}/graph${query({
-        destinationId: project.destinationId,
-        focusKind: focus.kind,
-        focusId: focus.id,
-        cursor,
-        limit,
-      })}`);
+      return request(
+        `/v1/trace/projects/${projectId}/graph${query({
+          destinationId: project.destinationId,
+          focusKind: focus.kind,
+          focusId: focus.id,
+          cursor,
+          limit,
+        })}`,
+      );
     },
   };
 }

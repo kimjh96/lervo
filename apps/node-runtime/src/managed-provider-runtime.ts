@@ -47,10 +47,7 @@ export function createManagedProviderRemoteCommandPorts(
         if (
           !roles.has(command.action.roleId) ||
           !providers.has(command.action.provider as "codex" | "claude") ||
-          roleRegistry.resolve(
-            command.action.roleId,
-            command.action.verificationSuiteIds,
-          ) === null
+          roleRegistry.resolve(command.action.roleId, command.action.verificationSuiteIds) === null
         ) {
           return [{ capability: "filesystem.write", decision: "deny" }];
         }
@@ -61,24 +58,25 @@ export function createManagedProviderRemoteCommandPorts(
         ];
       },
     },
-    createExecutor: ({ target, approvalVerifier }) => new ManagedRemoteProviderHost({
-      repositoryRoot: config.repositoryRoot,
-      target,
-      providers: providerHost.providers,
-      roles: providerHost.roles,
-      roleRegistry,
-      approvalVerifier,
-      adapterFactory: {
-        create: ({ provider, repositoryRoot, resolveArtifact }) => {
-          if (!providers.has(provider as "codex" | "claude")) return null;
-          if (dependencies.createAdapter !== undefined) {
-            return dependencies.createAdapter({ provider, repositoryRoot, resolveArtifact });
-          }
-          return provider === "codex"
-            ? new CodexAdapter({ repositoryRoot, resolveArtifact })
-            : new ClaudeAdapter({ repositoryRoot, resolveArtifact });
+    createExecutor: ({ target, approvalVerifier }) =>
+      new ManagedRemoteProviderHost({
+        repositoryRoot: config.repositoryRoot,
+        target,
+        providers: providerHost.providers,
+        roles: providerHost.roles,
+        roleRegistry,
+        approvalVerifier,
+        adapterFactory: {
+          create: ({ provider, repositoryRoot, resolveArtifact }) => {
+            if (!providers.has(provider as "codex" | "claude")) return null;
+            if (dependencies.createAdapter !== undefined) {
+              return dependencies.createAdapter({ provider, repositoryRoot, resolveArtifact });
+            }
+            return provider === "codex"
+              ? new CodexAdapter({ repositoryRoot, resolveArtifact })
+              : new ClaudeAdapter({ repositoryRoot, resolveArtifact });
+          },
         },
-      },
-    }),
+      }),
   };
 }

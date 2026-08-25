@@ -16,9 +16,13 @@ export async function readOwnerOnlyFile(path: string, maximumBytes: number): Pro
   try {
     handle = await open(absolutePath, constants.O_RDONLY | constants.O_NOFOLLOW);
     const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size < 1 ||
+    if (
+      !before.isFile() ||
+      before.isSymbolicLink() ||
+      before.size < 1 ||
       before.size > maximumBytes ||
-      (process.platform !== "win32" && (before.mode & 0o077) !== 0)) {
+      (process.platform !== "win32" && (before.mode & 0o077) !== 0)
+    ) {
       throw new RuntimeSecurityError(
         "unsafe_file",
         "A secure file must be a regular file within the size limit and readable only by its owner.",
@@ -27,11 +31,17 @@ export async function readOwnerOnlyFile(path: string, maximumBytes: number): Pro
     const bytes = await handle.readFile();
     const after = await handle.stat();
     if (
-      bytes.byteLength !== before.size || after.size !== before.size ||
-      after.dev !== before.dev || after.ino !== before.ino || after.mtimeMs !== before.mtimeMs
+      bytes.byteLength !== before.size ||
+      after.size !== before.size ||
+      after.dev !== before.dev ||
+      after.ino !== before.ino ||
+      after.mtimeMs !== before.mtimeMs
     ) {
       bytes.fill(0);
-      throw new RuntimeSecurityError("unsafe_file", "The secure file changed while it was being read.");
+      throw new RuntimeSecurityError(
+        "unsafe_file",
+        "The secure file changed while it was being read.",
+      );
     }
     return bytes;
   } catch (error) {

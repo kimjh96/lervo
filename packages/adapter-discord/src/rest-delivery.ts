@@ -9,7 +9,11 @@ import {
   type ConversationPlatformDeliveryReplayPort,
 } from "@lervo/conversation-platform";
 
-import type { DiscordDeliveryPort, DiscordDeliveryRequest, DiscordDeliveryResult } from "./types.js";
+import type {
+  DiscordDeliveryPort,
+  DiscordDeliveryRequest,
+  DiscordDeliveryResult,
+} from "./types.js";
 
 export interface DiscordRestDeliveryOptions {
   integrationId: string;
@@ -35,9 +39,12 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
   private readonly apiBaseUrl: string;
 
   constructor(private readonly options: DiscordRestDeliveryOptions) {
-    if (!/^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(options.integrationId) ||
-      options.botToken.length < 20 || options.botToken.length > 4_096 ||
-      !/^[\x21-\x7e]+$/.test(options.botToken)) {
+    if (
+      !/^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(options.integrationId) ||
+      options.botToken.length < 20 ||
+      options.botToken.length > 4_096 ||
+      !/^[\x21-\x7e]+$/.test(options.botToken)
+    ) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
         "The Discord integration or bot credential is invalid.",
@@ -51,7 +58,10 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
 
   async send(input: DiscordDeliveryRequest): Promise<DiscordDeliveryResult> {
     if (!/^[0-9]{1,32}$/.test(input.channelId) || [...input.content].length > 2_000) {
-      throw new ConversationPlatformError("platform_delivery_failed", "The Discord channel or content is invalid.");
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "The Discord channel or content is invalid.",
+      );
     }
     const nonce = createHash("sha256").update(input.outboundId).digest("base64url").slice(0, 25);
     const body = {
@@ -59,15 +69,21 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       nonce,
       enforce_nonce: true,
       allowed_mentions: { parse: [], replied_user: false },
-      ...(input.replyToMessageId === null ? {} : {
-        message_reference: { message_id: input.replyToMessageId, fail_if_not_exists: false },
-      }),
+      ...(input.replyToMessageId === null
+        ? {}
+        : {
+            message_reference: { message_id: input.replyToMessageId, fail_if_not_exists: false },
+          }),
     };
-    const requestHash = `sha256:${createHash("sha256").update(JSON.stringify({
-      guildId: input.guildId,
-      channelId: input.channelId,
-      body,
-    })).digest("hex")}`;
+    const requestHash = `sha256:${createHash("sha256")
+      .update(
+        JSON.stringify({
+          guildId: input.guildId,
+          channelId: input.channelId,
+          body,
+        }),
+      )
+      .digest("hex")}`;
     const result = await deliverPlatformMessageWithReplay({
       platform: "discord",
       integrationId: this.options.integrationId,
@@ -75,26 +91,36 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       requestHash,
       attemptedAt: this.now().toISOString(),
       replay: this.options.replay,
-      unknownMessage: "The Discord delivery result is unknown, so the message was not resent. Operator review is required.",
+      unknownMessage:
+        "The Discord delivery result is unknown, so the message was not resent. Operator review is required.",
       conflictMessage: "A different request is bound to the same Discord outbound ID.",
       rejectedMessage: "The Discord API rejected message delivery.",
       failureMessage: "The Discord delivery result could not be verified safely.",
       send: async () => {
-        const response = object(await postPlatformJson({
-          url: `${this.apiBaseUrl}/channels/${encodeURIComponent(input.channelId)}/messages`,
-          headers: { authorization: `Bot ${this.options.botToken}` },
-          body,
-          ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
-          ...(this.options.requestTimeoutMs === undefined ? {} : {
-            requestTimeoutMs: this.options.requestTimeoutMs,
+        const response = object(
+          await postPlatformJson({
+            url: `${this.apiBaseUrl}/channels/${encodeURIComponent(input.channelId)}/messages`,
+            headers: { authorization: `Bot ${this.options.botToken}` },
+            body,
+            ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
+            ...(this.options.requestTimeoutMs === undefined
+              ? {}
+              : {
+                  requestTimeoutMs: this.options.requestTimeoutMs,
+                }),
+            ...(this.options.maxResponseBytes === undefined
+              ? {}
+              : {
+                  maxResponseBytes: this.options.maxResponseBytes,
+                }),
+            allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
           }),
-          ...(this.options.maxResponseBytes === undefined ? {} : {
-            maxResponseBytes: this.options.maxResponseBytes,
-          }),
-          allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
-        }));
-        if (typeof response.id !== "string" || !/^[0-9]{1,32}$/.test(response.id) ||
-          response.channel_id !== input.channelId) {
+        );
+        if (
+          typeof response.id !== "string" ||
+          !/^[0-9]{1,32}$/.test(response.id) ||
+          response.channel_id !== input.channelId
+        ) {
           throw new Error("Discord delivery response mismatch");
         }
         const deliveredAt = this.now().toISOString();

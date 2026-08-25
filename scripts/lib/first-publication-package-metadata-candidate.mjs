@@ -1,10 +1,7 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { canonicalDigest, canonicalJson, sha256 } from
-  "./release-artifact-manifest.mjs";
-import { validateFirstPublicationMetadataPreview } from
-  "./first-publication-metadata-preview.mjs";
-import { createFirstPublicationPackageMetadataOutput } from
-  "./first-publication-package-metadata-output.mjs";
+import { canonicalDigest, canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
+import { validateFirstPublicationMetadataPreview } from "./first-publication-metadata-preview.mjs";
+import { createFirstPublicationPackageMetadataOutput } from "./first-publication-package-metadata-output.mjs";
 
 const sideEffects = Object.freeze({
   metadata: "not_changed",
@@ -37,7 +34,8 @@ function candidateBody({ packageManifest, releaseManifest, decision, preview, so
     packageSnapshot.byteCount !== packageSnapshot.contents.length ||
     packageSnapshot.sha256 !== sha256(packageSnapshot.contents) ||
     preview.sources.packageManifestDigest !== canonicalDigest(packageManifest)
-  ) fail();
+  )
+    fail();
   const generated = createFirstPublicationPackageMetadataOutput({
     packageManifest,
     packageSourceContents: packageSnapshot.contents,
@@ -90,6 +88,7 @@ export function validateFirstPublicationPackageMetadataCandidate(result, sources
     canonicalJson(result?.candidate) !== canonicalJson(expected.candidate) ||
     !Buffer.isBuffer(result?.outputBytes) ||
     !result.outputBytes.equals(expected.outputBytes)
-  ) fail();
+  )
+    fail();
   return result;
 }

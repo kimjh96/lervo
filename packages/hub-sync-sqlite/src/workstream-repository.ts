@@ -53,13 +53,16 @@ export class HubWorkstreamSQLiteRepository {
     publishedAt: string;
   }): WorkstreamReplicationPublishResponse {
     const { request } = input;
-    const registration = this.database.prepare(`
+    const registration = this.database
+      .prepare(
+        `
       SELECT registration_id, identity_hash
       FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
-    `).get(input.destinationId, request.projectId) as
-      | { registration_id: string; identity_hash: string }
-      | undefined;
+    `,
+      )
+      .get(input.destinationId, request.projectId) as
+      { registration_id: string; identity_hash: string } | undefined;
     if (
       registration === undefined ||
       registration.registration_id !== request.registrationId ||
@@ -78,7 +81,11 @@ export class HubWorkstreamSQLiteRepository {
         "The workstream snapshot content hash is invalid.",
       );
     }
-    const existing = this.revision(request.projectId, request.repositoryIdentityHash, request.snapshotContentHash);
+    const existing = this.revision(
+      request.projectId,
+      request.repositoryIdentityHash,
+      request.snapshotContentHash,
+    );
     if (existing !== undefined) {
       if (
         existing.previous_snapshot_content_hash !== request.previousSnapshotContentHash ||
@@ -96,7 +103,10 @@ export class HubWorkstreamSQLiteRepository {
     let parent: RevisionRow | undefined;
     if (request.previousSnapshotContentHash === null) {
       if (request.snapshot.revision !== 1) {
-        throw new HubWorkstreamReplicationError("unknown_parent", "A root workstream snapshot must be revision 1.");
+        throw new HubWorkstreamReplicationError(
+          "unknown_parent",
+          "A root workstream snapshot must be revision 1.",
+        );
       }
     } else {
       parent = this.revision(
@@ -133,33 +143,41 @@ export class HubWorkstreamSQLiteRepository {
       );
     }
     if (replacesHead) {
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         UPDATE hub_workstream_revisions SET is_head = 0
         WHERE project_id = ? AND repository_identity_hash = ?
           AND snapshot_content_hash = ? AND is_head = 1
-      `).run(
-        request.projectId,
-        request.repositoryIdentityHash,
-        request.previousSnapshotContentHash,
-      );
+      `,
+        )
+        .run(
+          request.projectId,
+          request.repositoryIdentityHash,
+          request.previousSnapshotContentHash,
+        );
     }
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       INSERT INTO hub_workstream_revisions (
         project_id, repository_identity_hash,
         snapshot_content_hash, previous_snapshot_content_hash,
         workstream_id, revision, status, snapshot_json, published_at, is_head
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-    `).run(
-      request.projectId,
-      request.repositoryIdentityHash,
-      request.snapshotContentHash,
-      request.previousSnapshotContentHash,
-      request.snapshot.workstreamId,
-      request.snapshot.revision,
-      request.snapshot.status,
-      serialized,
-      input.publishedAt,
-    );
+    `,
+      )
+      .run(
+        request.projectId,
+        request.repositoryIdentityHash,
+        request.snapshotContentHash,
+        request.previousSnapshotContentHash,
+        request.snapshot.workstreamId,
+        request.snapshot.revision,
+        request.snapshot.status,
+        serialized,
+        input.publishedAt,
+      );
     const status = total === 0 ? "created" : nextHeadCount > 1 ? "divergent" : "fast_forwarded";
     return this.response(status, request.projectId, request.repositoryIdentityHash);
   }
@@ -169,10 +187,14 @@ export class HubWorkstreamSQLiteRepository {
     projectId: string;
     repositoryIdentityHash: string;
   }): WorkstreamReplicationReadResponse {
-    const registration = this.database.prepare(`
+    const registration = this.database
+      .prepare(
+        `
       SELECT identity_hash FROM hub_projects
       WHERE destination_id = ? AND project_id = ?
-    `).get(input.destinationId, input.projectId) as { identity_hash: string } | undefined;
+    `,
+      )
+      .get(input.destinationId, input.projectId) as { identity_hash: string } | undefined;
     if (registration === undefined || registration.identity_hash !== input.repositoryIdentityHash) {
       throw new HubWorkstreamReplicationError(
         "registration_required",
@@ -202,7 +224,10 @@ export class HubWorkstreamSQLiteRepository {
     }
     const snapshot = JSON.parse(heads[0]!.snapshot_json) as unknown;
     if (!validateSchema("workstreamSnapshot", snapshot).valid) {
-      throw new HubWorkstreamReplicationError("workstream_conflict", "The stored workstream snapshot is invalid.");
+      throw new HubWorkstreamReplicationError(
+        "workstream_conflict",
+        "The stored workstream snapshot is invalid.",
+      );
     }
     return {
       schemaVersion: 1,
@@ -215,20 +240,33 @@ export class HubWorkstreamSQLiteRepository {
   }
 
   auditAll(): void {
-    const rows = this.database.prepare(`
+    const rows = this.database
+      .prepare(
+        `
       SELECT project_id, repository_identity_hash, snapshot_content_hash,
         previous_snapshot_content_hash, workstream_id, revision, status,
         snapshot_json, published_at, is_head
       FROM hub_workstream_revisions
       ORDER BY project_id, repository_identity_hash, revision, snapshot_content_hash
-    `).all() as unknown as Array<RevisionRow & { project_id: string; repository_identity_hash: string }>;
-    const rowByKey = new Map(rows.map((row) => [
-      `${row.project_id}\0${row.repository_identity_hash}\0${row.snapshot_content_hash}`,
-      row,
-    ]));
-    const parentsWithChildren = new Set(rows
-      .filter((row) => row.previous_snapshot_content_hash !== null)
-      .map((row) => `${row.project_id}\0${row.repository_identity_hash}\0${row.previous_snapshot_content_hash}`));
+    `,
+      )
+      .all() as unknown as Array<
+      RevisionRow & { project_id: string; repository_identity_hash: string }
+    >;
+    const rowByKey = new Map(
+      rows.map((row) => [
+        `${row.project_id}\0${row.repository_identity_hash}\0${row.snapshot_content_hash}`,
+        row,
+      ]),
+    );
+    const parentsWithChildren = new Set(
+      rows
+        .filter((row) => row.previous_snapshot_content_hash !== null)
+        .map(
+          (row) =>
+            `${row.project_id}\0${row.repository_identity_hash}\0${row.previous_snapshot_content_hash}`,
+        ),
+    );
     const headCounts = new Map<string, number>();
     for (const row of rows) {
       const snapshot = JSON.parse(row.snapshot_json) as unknown;
@@ -238,9 +276,13 @@ export class HubWorkstreamSQLiteRepository {
       const typed = snapshot as WorkstreamSnapshot;
       const key = `${row.project_id}\0${row.repository_identity_hash}\0${row.snapshot_content_hash}`;
       const expectedHead = parentsWithChildren.has(key) ? 0 : 1;
-      const registration = this.database.prepare(`
+      const registration = this.database
+        .prepare(
+          `
         SELECT 1 FROM hub_projects WHERE project_id = ? AND identity_hash = ? LIMIT 1
-      `).get(row.project_id, row.repository_identity_hash);
+      `,
+        )
+        .get(row.project_id, row.repository_identity_hash);
       if (
         registration === undefined ||
         contentHash(row.snapshot_json) !== row.snapshot_content_hash ||
@@ -249,7 +291,8 @@ export class HubWorkstreamSQLiteRepository {
         typed.status !== row.status ||
         row.is_head !== expectedHead ||
         !Number.isFinite(Date.parse(row.published_at))
-      ) throw new Error("A stored Hub workstream revision binding is invalid.");
+      )
+        throw new Error("A stored Hub workstream revision binding is invalid.");
       if (row.previous_snapshot_content_hash === null) {
         if (row.revision !== 1) throw new Error("A Hub workstream root revision is invalid.");
       } else {
@@ -261,7 +304,8 @@ export class HubWorkstreamSQLiteRepository {
           parent.workstream_id !== row.workstream_id ||
           parent.revision + 1 !== row.revision ||
           canonicalJson(parentSnapshot.origin) !== canonicalJson(typed.origin)
-        ) throw new Error("A Hub workstream ancestry binding is invalid.");
+        )
+          throw new Error("A Hub workstream ancestry binding is invalid.");
       }
       if (row.is_head === 1) {
         const group = `${row.project_id}\0${row.repository_identity_hash}`;
@@ -288,33 +332,48 @@ export class HubWorkstreamSQLiteRepository {
   }
 
   private revision(projectId: string, identityHash: string, hash: string): RevisionRow | undefined {
-    return this.database.prepare(`
+    return this.database
+      .prepare(
+        `
       SELECT snapshot_content_hash, previous_snapshot_content_hash, workstream_id,
         revision, status, snapshot_json, published_at, is_head
       FROM hub_workstream_revisions
       WHERE project_id = ? AND repository_identity_hash = ?
         AND snapshot_content_hash = ?
-    `).get(projectId, identityHash, hash) as RevisionRow | undefined;
+    `,
+      )
+      .get(projectId, identityHash, hash) as RevisionRow | undefined;
   }
 
   private heads(projectId: string, identityHash: string): RevisionRow[] {
-    return this.database.prepare(`
+    return this.database
+      .prepare(
+        `
       SELECT snapshot_content_hash, previous_snapshot_content_hash, workstream_id,
         revision, status, snapshot_json, published_at, is_head
       FROM hub_workstream_revisions
       WHERE project_id = ? AND repository_identity_hash = ? AND is_head = 1
       ORDER BY revision DESC, snapshot_content_hash ASC
       LIMIT ${MAX_HEADS + 1}
-    `).all(projectId, identityHash) as unknown as RevisionRow[];
+    `,
+      )
+      .all(projectId, identityHash) as unknown as RevisionRow[];
   }
 
   private countRevisions(projectId: string, identityHash: string): number {
-    const value = this.database.prepare(`
+    const value = this.database
+      .prepare(
+        `
       SELECT COUNT(*) AS count FROM hub_workstream_revisions
       WHERE project_id = ? AND repository_identity_hash = ?
-    `).get(projectId, identityHash)?.count;
+    `,
+      )
+      .get(projectId, identityHash)?.count;
     if (typeof value !== "number") {
-      throw new HubWorkstreamReplicationError("workstream_conflict", "The workstream revision count is invalid.");
+      throw new HubWorkstreamReplicationError(
+        "workstream_conflict",
+        "The workstream revision count is invalid.",
+      );
     }
     return value;
   }

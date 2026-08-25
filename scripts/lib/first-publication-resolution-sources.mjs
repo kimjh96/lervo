@@ -1,12 +1,9 @@
 import { isAbsolute } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationReconciliationReportSources } from
-  "./first-publication-reconciliation-reader.mjs";
-import { readFirstPublicationReconciliationSources } from
-  "./first-publication-reconciliation-sources.mjs";
-import { validateFirstPublicationResolutionDecision } from
-  "./first-publication-resolution-decision.mjs";
+import { validateFirstPublicationReconciliationReportSources } from "./first-publication-reconciliation-reader.mjs";
+import { readFirstPublicationReconciliationSources } from "./first-publication-reconciliation-sources.mjs";
+import { validateFirstPublicationResolutionDecision } from "./first-publication-resolution-decision.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
@@ -36,7 +33,8 @@ export async function readFirstPublicationResolutionSources(options, dependencie
   if (
     !isAbsolute(options?.reconciliationReportPath ?? "") ||
     !isAbsolute(options?.decisionPath ?? "")
-  ) fail();
+  )
+    fail();
   const sources = await readFirstPublicationReconciliationSources(options, dependencies);
   let reportContents;
   let decisionContents;

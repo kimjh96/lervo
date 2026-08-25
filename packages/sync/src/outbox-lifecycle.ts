@@ -11,10 +11,11 @@ export function assertClaimedDeliveries(input: {
 }): void {
   if (
     input.deliveries.length > input.limit ||
-    input.deliveries.some((delivery) =>
-      delivery.destinationId !== input.destinationId ||
-      delivery.status !== "leased" ||
-      delivery.lease?.workerId !== input.workerId
+    input.deliveries.some(
+      (delivery) =>
+        delivery.destinationId !== input.destinationId ||
+        delivery.status !== "leased" ||
+        delivery.lease?.workerId !== input.workerId,
     )
   ) {
     throw new SyncWorkerError(

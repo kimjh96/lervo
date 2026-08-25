@@ -10,8 +10,7 @@ import {
   readRegularReleaseFile,
 } from "./release-attestation-file-set.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
-import { maximumRemoteWorkflowBytes } from
-  "./first-publication-workflow-remote-source-contract.mjs";
+import { maximumRemoteWorkflowBytes } from "./first-publication-workflow-remote-source-contract.mjs";
 
 const maximumReportBytes = 64 * 1024;
 
@@ -30,10 +29,7 @@ export async function readFirstPublicationWorkflowRemoteDeploymentSources(
   paths,
   postApplyReportPath,
 ) {
-  if (
-    !isAbsolute(paths?.workflowPath ?? "") ||
-    !isAbsolute(postApplyReportPath ?? "")
-  ) fail();
+  if (!isAbsolute(paths?.workflowPath ?? "") || !isAbsolute(postApplyReportPath ?? "")) fail();
   let workflowContents;
   let reportContents;
   try {
@@ -64,9 +60,6 @@ export async function readFirstPublicationWorkflowRemoteDeploymentSources(
     postApplyReport,
     workflowSnapshot,
     reportSnapshot,
-    assertUnchanged: () => assertReleaseFilesUnchanged([
-      workflowSnapshot,
-      reportSnapshot,
-    ]),
+    assertUnchanged: () => assertReleaseFilesUnchanged([workflowSnapshot, reportSnapshot]),
   };
 }

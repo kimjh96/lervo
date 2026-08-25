@@ -46,13 +46,17 @@ function fixture() {
     get: vi.fn(async (uri: string) => bytes.get(uri)!.slice()),
   };
   const store: HubCommandAuthoringStore = {
-    async findAuthorship() { return record === null ? null : structuredClone(record); },
+    async findAuthorship() {
+      return record === null ? null : structuredClone(record);
+    },
     async commitAuthorship(input) {
       if (record !== null) return { status: "duplicate", record: structuredClone(record) };
       record = structuredClone(input);
       return { status: "created", record: structuredClone(input) };
     },
-    async findLeasedArtifact() { return null; },
+    async findLeasedArtifact() {
+      return null;
+    },
   };
   const keys = generateKeyPairSync("ed25519");
   const signer = {
@@ -61,7 +65,11 @@ function fixture() {
       return createSignedRemoteCommandEnvelope({
         command,
         keyId: this.keyId,
-        signature: sign(null, remoteCommandSigningBytes({ command, keyId: this.keyId }), keys.privateKey),
+        signature: sign(
+          null,
+          remoteCommandSigningBytes({ command, keyId: this.keyId }),
+          keys.privateKey,
+        ),
       });
     },
   };
@@ -82,7 +90,12 @@ describe("Hub command authoring", () => {
     };
 
     const first = await authorHubCommand(input);
-    const retry = await authorHubCommand({ ...input, nonce: () => { throw new Error("retry nonce"); } });
+    const retry = await authorHubCommand({
+      ...input,
+      nonce: () => {
+        throw new Error("retry nonce");
+      },
+    });
 
     expect(first.status).toBe("created");
     expect(retry).toEqual({ status: "duplicate", record: first.record });
@@ -108,24 +121,28 @@ describe("Hub command authoring", () => {
     };
     await authorHubCommand({ ...common, request });
 
-    await expect(authorHubCommand({
-      ...common,
-      request: { ...request, request: "request with changed content" },
-    })).rejects.toMatchObject({ code: "idempotency_conflict" });
+    await expect(
+      authorHubCommand({
+        ...common,
+        request: { ...request, request: "request with changed content" },
+      }),
+    ).rejects.toMatchObject({ code: "idempotency_conflict" });
     expect(setup.artifacts.put).toHaveBeenCalledTimes(2);
   });
 
   it("does not allow artifact retention shorter than command lifetime", async () => {
     const setup = fixture();
-    await expect(authorHubCommand({
-      ...setup,
-      destinationId,
-      target,
-      principalId: "operator:authoring-test",
-      authoredAt: "2026-08-22T00:00:00.000Z",
-      request,
-      artifactRetentionMs: 60_000,
-    })).rejects.toMatchObject({ code: "invalid_request" });
+    await expect(
+      authorHubCommand({
+        ...setup,
+        destinationId,
+        target,
+        principalId: "operator:authoring-test",
+        authoredAt: "2026-08-22T00:00:00.000Z",
+        request,
+        artifactRetentionMs: 60_000,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_request" });
     expect(setup.artifacts.put).not.toHaveBeenCalled();
   });
 });

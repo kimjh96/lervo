@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-08-18
 
+Path amendment: [ADR-0213](0213-deletable-derived-state-boundary.md) moves durable event and CAS storage to `.lervo/data`. The original `.lervo/state` paths below describe the initial v0 layout and remain migration input only.
+
 ## Context
 
 Local execution evidence must remain complete without a Hub and recover ordering and links after restart. Raw prompts and document bodies must remain separate from event metadata. Appends, retries, and artifacts require immutable, idempotent storage.
@@ -11,11 +13,11 @@ Local execution evidence must remain complete without a Hub and recover ordering
 
 ### SQLite event store
 
-- Store events in `.lervo/state/events.sqlite` with project identity and schema-version metadata. Use the built-in `node:sqlite` synchronous API from Node.js 22.13 and a single writer; review this choice when upgrading Node.js.
-- Allocate a project-wide sequence beginning at 1. The first event has no predecessor; each later event records the previous project event hash.
+- Store events in `.lervo/state/events.sqlite` with project identity and schema-version metadata. Use the built-in synchronous `node:sqlite` API from Node.js 22.13 and a single writer; review this choice when upgrading Node.js.
+- Allocate a project-wide sequence starting at 1. The first event has no predecessor; every later event records the previous project event hash.
 - Compute `eventHash` as SHA-256 over canonical, key-sorted JSON of the complete envelope except `eventHash`; array order is significant. The shared event contract owns canonicalization.
 - Sanitize payloads through an allowlist and remove sensitive fields before the transaction.
-- `transact` is synchronous and rejects nested or asynchronous callbacks. Append resolves the tail, assigns sequence and hashes, validates the schema, inserts, and rolls back the entire callback on failure.
+- `transact` is synchronous and rejects nested or asynchronous callbacks. Append resolves the tail, assigns the sequence and hashes, validates the schema, and inserts. Any failure rolls back the entire callback.
 - Use `user_version` migrations. Version 2 preserves events and adds the outbox and indexes.
 - Event IDs are unique. Repeating an ID with the same sanitized event returns the existing record; different content fails with `event_id_conflict`.
 - Triggers prohibit event updates and deletion. Enable WAL, `FULL` synchronous mode, foreign keys, and a five-second busy timeout without extensions.

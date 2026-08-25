@@ -43,7 +43,7 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
     }
     treeHash.update(canonicalJson(["directory", relativeDirectory]));
     const entries = await readdir(directory, { withFileTypes: true });
-    entries.sort((left, right) => left.name === right.name ? 0 : left.name < right.name ? -1 : 1);
+    entries.sort((left, right) => (left.name === right.name ? 0 : left.name < right.name ? -1 : 1));
     for (const entry of entries) {
       const relativePath = relativeDirectory
         ? posix.join(relativeDirectory, entry.name)
@@ -78,9 +78,12 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
       }
       const fileAfter = await lstat(absolutePath, { bigint: true });
       if (
-        !fileAfter.isFile() || fileAfter.isSymbolicLink() ||
-        fileBefore.dev !== fileAfter.dev || fileBefore.ino !== fileAfter.ino ||
-        fileBefore.size !== fileAfter.size || fileBefore.mtimeNs !== fileAfter.mtimeNs ||
+        !fileAfter.isFile() ||
+        fileAfter.isSymbolicLink() ||
+        fileBefore.dev !== fileAfter.dev ||
+        fileBefore.ino !== fileAfter.ino ||
+        fileBefore.size !== fileAfter.size ||
+        fileBefore.mtimeNs !== fileAfter.mtimeNs ||
         fileBefore.ctimeNs !== fileAfter.ctimeNs
       ) {
         throw new SourceTreeScanError(
@@ -88,17 +91,17 @@ export async function snapshotSourceTree(root: string): Promise<SourceTreeSnapsh
           `${relativePath} changed while it was being read. Stop active tools and check again.`,
         );
       }
-      treeHash.update(canonicalJson([
-        "file",
-        relativePath,
-        size,
-        `sha256:${contentHash.digest("hex")}`,
-      ]));
+      treeHash.update(
+        canonicalJson(["file", relativePath, size, `sha256:${contentHash.digest("hex")}`]),
+      );
     }
     const after = await lstat(directory, { bigint: true });
     if (
-      !after.isDirectory() || after.isSymbolicLink() || before.dev !== after.dev ||
-      before.ino !== after.ino || before.mtimeNs !== after.mtimeNs ||
+      !after.isDirectory() ||
+      after.isSymbolicLink() ||
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.mtimeNs !== after.mtimeNs ||
       before.ctimeNs !== after.ctimeNs
     ) {
       throw new SourceTreeScanError(

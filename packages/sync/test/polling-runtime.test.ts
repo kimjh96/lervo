@@ -1,8 +1,5 @@
 import type { AuthenticatedHubTransport } from "@lervo/sync";
-import {
-  runOutboundSyncLoop,
-  type OutboundSyncPollingWaitPort,
-} from "@lervo/sync";
+import { runOutboundSyncLoop, type OutboundSyncPollingWaitPort } from "@lervo/sync";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -17,7 +14,10 @@ import {
 
 afterEach(removeTemporaryStores);
 
-function worker(store: Awaited<ReturnType<typeof openStore>>, transport: AuthenticatedHubTransport) {
+function worker(
+  store: Awaited<ReturnType<typeof openStore>>,
+  transport: AuthenticatedHubTransport,
+) {
   return {
     store,
     transport,
@@ -42,12 +42,14 @@ describe("outbound sync polling lifecycle", () => {
       },
     };
 
-    await expect(runOutboundSyncLoop({
-      worker: worker(store, new HubFixtureTransport("registration_unavailable")),
-      signal: controller.signal,
-      wait,
-      nowMilliseconds: () => Date.parse("2026-08-19T02:00:00.000Z"),
-    })).resolves.toMatchObject({
+    await expect(
+      runOutboundSyncLoop({
+        worker: worker(store, new HubFixtureTransport("registration_unavailable")),
+        signal: controller.signal,
+        wait,
+        nowMilliseconds: () => Date.parse("2026-08-19T02:00:00.000Z"),
+      }),
+    ).resolves.toMatchObject({
       status: "stopped",
       cycleCount: 1,
       lastCycle: { status: "registration_deferred", failureCode: "hub_unavailable" },
@@ -79,12 +81,14 @@ describe("outbound sync polling lifecycle", () => {
       },
     };
 
-    await expect(runOutboundSyncLoop({
-      worker: worker(store, transport),
-      signal: controller.signal,
-      wait,
-      idlePollIntervalMs: 750,
-    })).resolves.toMatchObject({ cycleCount: 1, lastCycle: { status: "idle" } });
+    await expect(
+      runOutboundSyncLoop({
+        worker: worker(store, transport),
+        signal: controller.signal,
+        wait,
+        idlePollIntervalMs: 750,
+      }),
+    ).resolves.toMatchObject({ cycleCount: 1, lastCycle: { status: "idle" } });
     expect(maximumActive).toBe(1);
     store.close();
   });

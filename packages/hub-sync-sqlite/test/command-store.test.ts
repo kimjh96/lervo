@@ -1,9 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 
-import {
-  handleOutboundEventBatch,
-  handleProjectRegistration,
-} from "@lervo/hub-sync";
+import { handleOutboundEventBatch, handleProjectRegistration } from "@lervo/hub-sync";
 import {
   planOutboundEventAcceptance,
   planProjectRegistration,
@@ -40,13 +37,16 @@ describe("Hub sync SQLite command store", () => {
     await first.close();
 
     const reopened = await HubSyncSQLiteStore.open({ path });
-    await expect(registerStore(reopened, project, "2026-08-19T03:00:00.000Z"))
-      .resolves.toMatchObject({ status: "unchanged" });
-    await expect(registerStore(
-      reopened,
-      manifest(project.projectId, { name: "renamed-project" }),
-      "2026-08-19T04:00:00.000Z",
-    )).resolves.toMatchObject({ status: "updated" });
+    await expect(
+      registerStore(reopened, project, "2026-08-19T03:00:00.000Z"),
+    ).resolves.toMatchObject({ status: "unchanged" });
+    await expect(
+      registerStore(
+        reopened,
+        manifest(project.projectId, { name: "renamed-project" }),
+        "2026-08-19T04:00:00.000Z",
+      ),
+    ).resolves.toMatchObject({ status: "updated" });
     await reopened.close();
   });
 
@@ -104,8 +104,9 @@ describe("Hub sync SQLite command store", () => {
     const request = registration(project);
     const registered = planProjectRegistration({ current: null, request, acceptedAt });
     let reference: ProjectSyncState = registered.state;
-    await expect(handleProjectRegistration({ store, request, acceptedAt }))
-      .resolves.toEqual(registered.response);
+    await expect(handleProjectRegistration({ store, request, acceptedAt })).resolves.toEqual(
+      registered.response,
+    );
 
     const events = eventChain(project.projectId, 4);
     for (const selected of [events.slice(2), events.slice(0, 2), events.slice(2)]) {
@@ -116,8 +117,9 @@ describe("Hub sync SQLite command store", () => {
         acknowledgedAt: acceptedAt,
       });
       reference = planned.state;
-      await expect(handleOutboundEventBatch({ store, batch: outbound, acknowledgedAt: acceptedAt }))
-        .resolves.toEqual(planned.acknowledgement);
+      await expect(
+        handleOutboundEventBatch({ store, batch: outbound, acknowledgedAt: acceptedAt }),
+      ).resolves.toEqual(planned.acknowledgement);
     }
     await store.close();
   });
@@ -135,7 +137,9 @@ describe("Hub sync SQLite command store", () => {
     `);
     fault.close();
 
-    await expect(acceptEvents(store, project, events)).rejects.toMatchObject({ code: "write_failed" });
+    await expect(acceptEvents(store, project, events)).rejects.toMatchObject({
+      code: "write_failed",
+    });
     await expect(store.checkIntegrity()).resolves.toMatchObject({ eventCount: 0 });
     const recovery = new DatabaseSync(path);
     recovery.exec("DROP TRIGGER fixture_fail_cursor;");
@@ -148,12 +152,18 @@ describe("Hub sync SQLite command store", () => {
     const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
     const project = manifest();
     await registerStore(store, project);
-    await expect(registerStore(store, manifest(project.projectId, {
-      createdAt: "2026-08-20T00:00:00.000Z",
-    }))).rejects.toMatchObject({ code: "registration_identity_conflict" });
+    await expect(
+      registerStore(
+        store,
+        manifest(project.projectId, {
+          createdAt: "2026-08-20T00:00:00.000Z",
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "registration_identity_conflict" });
     const missing = manifest("prj_hub_missing_01");
-    await expect(acceptEvents(store, missing, eventChain(missing.projectId, 1)))
-      .rejects.toMatchObject({ code: "registration_required" });
+    await expect(
+      acceptEvents(store, missing, eventChain(missing.projectId, 1)),
+    ).rejects.toMatchObject({ code: "registration_required" });
     await store.close();
   });
 });

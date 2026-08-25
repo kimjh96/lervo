@@ -1,10 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import {
-  calculateDeliberationOutcomeId,
-  deliberationPolicyHash,
-} from "@lervo/deliberation";
+import { calculateDeliberationOutcomeId, deliberationPolicyHash } from "@lervo/deliberation";
 import type {
   DeliberationOutcome,
   DeliberationPolicy,

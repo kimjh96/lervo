@@ -14,14 +14,10 @@ import {
   type EventType,
   type ProjectManifest,
 } from "@lervo/schemas";
-import {
-  createOutboundEventBatch,
-  createProjectRegistrationRequest,
-} from "@lervo/sync-contract";
+import { createOutboundEventBatch, createProjectRegistrationRequest } from "@lervo/sync-contract";
 
 export const destinationId = "hub:primary";
-const policyVersion =
-  "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const temporaryRoots: string[] = [];
 
 export function manifest(
@@ -51,10 +47,7 @@ export async function removeTemporaryRoots(): Promise<void> {
   );
 }
 
-export function registration(
-  project: ProjectManifest,
-  requestedAt = "2026-08-19T01:00:00.000Z",
-) {
+export function registration(project: ProjectManifest, requestedAt = "2026-08-19T01:00:00.000Z") {
   return createProjectRegistrationRequest({
     manifest: project,
     destinationId,
@@ -102,10 +95,7 @@ export function eventChain(
   return events;
 }
 
-export function batch(
-  project: ProjectManifest,
-  events: readonly EventEnvelope[],
-) {
+export function batch(project: ProjectManifest, events: readonly EventEnvelope[]) {
   return createOutboundEventBatch({
     registration: registration(project),
     events,

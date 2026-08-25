@@ -1,10 +1,7 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageApprovalEvidenceSet } from
-  "./first-publication-stage-approval-evidence-set.mjs";
-import { validateFirstPublicationStageEvidenceBundleDocument } from
-  "./first-publication-stage-evidence-bundle.mjs";
-import { validateFirstPublicationTransitionReceiptDocument } from
-  "./first-publication-transition.mjs";
+import { validateFirstPublicationStageApprovalEvidenceSet } from "./first-publication-stage-approval-evidence-set.mjs";
+import { validateFirstPublicationStageEvidenceBundleDocument } from "./first-publication-stage-evidence-bundle.mjs";
+import { validateFirstPublicationTransitionReceiptDocument } from "./first-publication-transition.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
@@ -41,13 +38,21 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
-  if (typeof value !== "string" || !timestampPattern.test(value) ||
-      !Number.isFinite(Date.parse(value))) fail();
+  if (
+    typeof value !== "string" ||
+    !timestampPattern.test(value) ||
+    !Number.isFinite(Date.parse(value))
+  )
+    fail();
   return Date.parse(value);
 }
 
@@ -66,11 +71,14 @@ function assertCompletionBinding({ bundle, evidenceSet, transitionReceipt }) {
     evidence.digest !== evidenceSet.reconciliationReport.evidenceDigest ||
     evidence.evidenceAt !== evidenceSet.reconciliationReport.npm.observedAt ||
     target.registry !== attempt.stage.registry ||
-    target.package !== attempt.target.package || target.version !== attempt.target.version ||
-    target.distTag !== attempt.stage.distTag || target.access !== "public" ||
+    target.package !== attempt.target.package ||
+    target.version !== attempt.target.version ||
+    target.distTag !== attempt.stage.distTag ||
+    target.access !== "public" ||
     artifact.registryIntegrity !== attempt.artifact.registryIntegrity ||
     artifact.registryShasum !== attempt.artifact.registryShasum
-  ) fail();
+  )
+    fail();
 }
 
 function body(report) {
@@ -132,26 +140,35 @@ export function validateFirstPublicationCompletionInspectionDocument(report) {
   const evidence = provenance?.publicationEvidence;
   if (
     !exactKeys(report, [...Object.keys(value), "inspectionDigest"]) ||
-    report.schemaVersion !== 1 || report.status !== "completion_recorded" ||
+    report.schemaVersion !== 1 ||
+    report.status !== "completion_recorded" ||
     report.inspectionType !== "first_publication_stage_completion" ||
     timestamp(report.inspectedAt) < timestamp(completion?.completedAt) ||
     !exactKeys(completion, ["state", "bootstrapState", "mode", "completedAt"]) ||
-    completion.state !== "completed" || completion.bootstrapState !== "consumed" ||
+    completion.state !== "completed" ||
+    completion.bootstrapState !== "consumed" ||
     completion.mode !== "trusted_publisher_stage_only" ||
     !exactKeys(provenance, [
-      "stageBundleDigest", "transitionReceiptDigest", "publicationEvidence",
-    ]) || !digestPattern.test(provenance.stageBundleDigest ?? "") ||
+      "stageBundleDigest",
+      "transitionReceiptDigest",
+      "publicationEvidence",
+    ]) ||
+    !digestPattern.test(provenance.stageBundleDigest ?? "") ||
     !digestPattern.test(provenance.transitionReceiptDigest ?? "") ||
     !exactKeys(evidence, ["type", "digest", "evidenceAt", "basis"]) ||
     evidence.type !== "stage_approval_reconciliation" ||
     evidence.basis !== "npm_stage_approval_reconciliation_verified" ||
     !digestPattern.test(evidence.digest ?? "") ||
     timestamp(completion?.completedAt) < timestamp(evidence.evidenceAt) ||
-    !Array.isArray(report.checks) || report.checks.length !== checkIds.length ||
-    report.checks.some((check, index) =>
-      !exactKeys(check, ["id", "status"]) || check.id !== checkIds[index] ||
-      check.status !== "verified"
-    ) || report.manualActionScope !== "recorded_first_publication_transition" ||
+    !Array.isArray(report.checks) ||
+    report.checks.length !== checkIds.length ||
+    report.checks.some(
+      (check, index) =>
+        !exactKeys(check, ["id", "status"]) ||
+        check.id !== checkIds[index] ||
+        check.status !== "verified",
+    ) ||
+    report.manualActionScope !== "recorded_first_publication_transition" ||
     !Array.isArray(report.remainingManualActions) ||
     report.remainingManualActions.length !== 0 ||
     !exactKeys(report.limitations, Object.keys(inspectionLimitations)) ||
@@ -160,6 +177,7 @@ export function validateFirstPublicationCompletionInspectionDocument(report) {
     canonicalJson(report.sideEffects) !== canonicalJson(inspectionSideEffects) ||
     !digestPattern.test(report.inspectionDigest ?? "") ||
     report.inspectionDigest !== canonicalDigest(value)
-  ) fail();
+  )
+    fail();
   return report;
 }

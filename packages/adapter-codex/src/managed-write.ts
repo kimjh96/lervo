@@ -132,11 +132,7 @@ export function captureCodexWriteCompletion(input: {
     return null;
   }
   const status =
-    item.status === "completed"
-      ? "completed"
-      : item.status === "declined"
-        ? "declined"
-        : "failed";
+    item.status === "completed" ? "completed" : item.status === "declined" ? "declined" : "failed";
   return createManagedWriteCompletion({
     request: input.request,
     status,

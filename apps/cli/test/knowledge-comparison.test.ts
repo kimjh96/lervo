@@ -29,7 +29,11 @@ describe("Codex-Claude knowledge comparison CLI", () => {
     await writeFile(resolve(root, "README.md"), "# Runtime\n\nPrivate comparison fixture body.\n");
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
     const policyHash = sha256(canonicalJson(policy));
@@ -45,30 +49,66 @@ describe("Codex-Claude knowledge comparison CLI", () => {
         },
         compile: async (envelope): Promise<SemanticCompilerResponse> => ({
           schemaVersion: 1,
-          concepts: [{
-            localKey: "runtime",
-            title: "Runtime",
-            type: "concept",
-            summary: "A candidate that remains unreviewed.",
-            claims: [{
-              localKey: "local",
-              statement: "Exact shared statement that must not be copied into the comparison.",
-              evidenceUnitVersionIds: [envelope.sourceUnits[0]!.unitVersionId],
-            }],
-          }],
+          concepts: [
+            {
+              localKey: "runtime",
+              title: "Runtime",
+              type: "concept",
+              summary: "A candidate that remains unreviewed.",
+              claims: [
+                {
+                  localKey: "local",
+                  statement: "Exact shared statement that must not be copied into the comparison.",
+                  evidenceUnitVersionIds: [envelope.sourceUnits[0]!.unitVersionId],
+                },
+              ],
+            },
+          ],
           relations: [],
-          telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
         }),
       };
-      const candidate = await compileRepositoryKnowledgeCandidate({ scan, policyHash, compiler, signal: new AbortController().signal });
+      const candidate = await compileRepositoryKnowledgeCandidate({
+        scan,
+        policyHash,
+        compiler,
+        signal: new AbortController().signal,
+      });
       await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
       candidates[provider] = candidate.compilationId;
     }
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "compare", "--codex", candidates.codex, "--claude", candidates.claude, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "compare",
+          "--codex",
+          candidates.codex,
+          "--claude",
+          candidates.claude,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     const output = messages.join("");
-    const comparison = JSON.parse(output) as { comparisonId: string; status: string; interpretation: string; assurance: string; claims: { exactSharedSignatureCount: number } };
+    const comparison = JSON.parse(output) as {
+      comparisonId: string;
+      status: string;
+      interpretation: string;
+      assurance: string;
+      claims: { exactSharedSignatureCount: number };
+    };
     expect(comparison).toMatchObject({
       status: "exact_match",
       interpretation: "exact_digest_overlap_only",
@@ -80,36 +120,116 @@ describe("Codex-Claude knowledge comparison CLI", () => {
     expect(output).not.toContain(root);
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "stability", "--baseline", candidates.codex, "--candidate", candidates.codex, "--json"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ status: "stable", provider: "codex", assurance: "unreviewed" });
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "stability",
+          "--baseline",
+          candidates.codex,
+          "--candidate",
+          candidates.codex,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      status: "stable",
+      provider: "codex",
+      assurance: "unreviewed",
+    });
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "merge-candidate", "--comparison", comparison.comparisonId, "--codex", candidates.codex, "--claude", candidates.claude, "--json"], io)).toBe(0);
-    const merged = JSON.parse(messages.join("")) as { receipt: { compilationId: string; assurance: string }; comparisonId: string };
-    expect(merged).toMatchObject({ comparisonId: comparison.comparisonId, receipt: { assurance: "unreviewed" } });
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "merge-candidate",
+          "--comparison",
+          comparison.comparisonId,
+          "--codex",
+          candidates.codex,
+          "--claude",
+          candidates.claude,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const merged = JSON.parse(messages.join("")) as {
+      receipt: { compilationId: string; assurance: string };
+      comparisonId: string;
+    };
+    expect(merged).toMatchObject({
+      comparisonId: comparison.comparisonId,
+      receipt: { assurance: "unreviewed" },
+    });
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "reconcile", merged.receipt.compilationId, "--json"], io)).toBe(0);
+    expect(
+      await runCli(["knowledge", "reconcile", merged.receipt.compilationId, "--json"], io),
+    ).toBe(0);
     const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string };
     messages.length = 0;
-    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.comparison", "--write", "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        ["knowledge", "review-policy", "--reviewer", "human.comparison", "--write", "--json"],
+        io,
+      ),
+    ).toBe(0);
     const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
     messages.length = 0;
-    expect(await runCli(["knowledge", "review", merged.receipt.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.comparison", "--accept-all-safe", "--json"], io)).toBe(0);
-    const reviewId = (JSON.parse(messages.join("")) as { review: { reviewId: string } }).review.reviewId;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          merged.receipt.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.comparison",
+          "--accept-all-safe",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const reviewId = (JSON.parse(messages.join("")) as { review: { reviewId: string } }).review
+      .reviewId;
     messages.length = 0;
     expect(await runCli(["knowledge", "materialize", reviewId, "--json"], io)).toBe(0);
     const materializationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", reviewId, "--apply", materializationPlanId, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        ["knowledge", "materialize", reviewId, "--apply", materializationPlanId, "--json"],
+        io,
+      ),
+    ).toBe(0);
     messages.length = 0;
     expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
     const storage = await openProjectStorage(root);
     try {
-      expect(storage.events.list().some((event) => event.type === "knowledge.reconciliation.reviewed")).toBe(true);
-      expect(storage.events.list().some((event) => event.type === "knowledge.materialization.applied" && event.payload.operation === "semantic")).toBe(true);
-    } finally { await storage.close(); }
+      expect(
+        storage.events.list().some((event) => event.type === "knowledge.reconciliation.reviewed"),
+      ).toBe(true);
+      expect(
+        storage.events
+          .list()
+          .some(
+            (event) =>
+              event.type === "knowledge.materialization.applied" &&
+              event.payload.operation === "semantic",
+          ),
+      ).toBe(true);
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 });

@@ -19,7 +19,9 @@ export function exactConfigKeys(
 
 export function configText(value: unknown, label: string): string {
   if (
-    typeof value !== "string" || value.length < 1 || value.length > 4_096 ||
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 4_096 ||
     value.includes("\0")
   ) {
     throw new NodeRuntimeError("invalid_config", `${label} is invalid.`);

@@ -65,9 +65,7 @@ export function registry(includeProposal = false): DocumentRegistry {
     schemaVersion: 1,
     documents: {
       doc_writing_policy: documentRecord("docs/writing.json"),
-      ...(includeProposal
-        ? { [proposalDocumentId]: documentRecord(proposalPath) }
-        : {}),
+      ...(includeProposal ? { [proposalDocumentId]: documentRecord(proposalPath) } : {}),
     },
   };
 }
@@ -138,7 +136,10 @@ export async function createRuntimeFixture(): Promise<RuntimeFixture> {
     mkdir(resolve(root, "src"), { recursive: true }),
   ]);
   await Promise.all([
-    writeFile(resolve(root, "AGENTS.md"), "Deliberation participants check evidence and answer in English.\n"),
+    writeFile(
+      resolve(root, "AGENTS.md"),
+      "Deliberation participants check evidence and answer in English.\n",
+    ),
     writeFile(resolve(root, "docs/writing.json"), writingPolicyContent),
   ]);
   return {
@@ -187,9 +188,10 @@ export function managedInput(input: {
     repositoryRoot: input.root,
     requestDigest: hash(`${input.role.roleId}:request`),
     risk: "low",
-    instructions: input.role.roleId === "proposer"
-      ? "Write a design proposal with supporting evidence."
-      : "Review the proposal and describe any blocking objection concretely.",
+    instructions:
+      input.role.roleId === "proposer"
+        ? "Write a design proposal with supporting evidence."
+        : "Review the proposal and describe any blocking objection concretely.",
     targetTurnId: `target-${input.role.roleId}-0001`,
     context: {
       registry: registry(input.includeProposal),
@@ -197,9 +199,8 @@ export function managedInput(input: {
       expectedPaths: ["src/decision.ts"],
       documentRules: { "writing.policy": ["doc_writing_policy"] },
       publications,
-      handoffs: input.handoff === undefined
-        ? []
-        : [{ bundle: input.handoff, producerRole: proposerRole }],
+      handoffs:
+        input.handoff === undefined ? [] : [{ bundle: input.handoff, producerRole: proposerRole }],
       createReceiptId: sequence(`ctx_${input.role.roleId}_e12`),
     },
     writingPolicy: {
@@ -271,6 +272,5 @@ export function policyWithProviders(
 export const policy = policyWithProviders("codex", "codex");
 
 export async function cleanupFixtures(): Promise<void> {
-  await Promise.all(roots.splice(0).map((root) =>
-    rm(root, { recursive: true, force: true })));
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }

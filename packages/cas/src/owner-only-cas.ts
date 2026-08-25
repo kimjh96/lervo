@@ -20,7 +20,10 @@ async function secureDirectory(path: string): Promise<void> {
 export class OwnerOnlyFileSystemCas implements ArtifactStore {
   readonly root: string;
 
-  private constructor(root: string, private readonly delegate: FileSystemCas) {
+  private constructor(
+    root: string,
+    private readonly delegate: FileSystemCas,
+  ) {
     this.root = root;
   }
 
@@ -34,7 +37,8 @@ export class OwnerOnlyFileSystemCas implements ArtifactStore {
 
   private async secure(result: ArtifactPutResult): Promise<ArtifactPutResult> {
     const hash = URI_PATTERN.exec(result.uri)?.[1];
-    if (hash === undefined) throw new CasError("invalid_uri", "The CAS returned an unsupported URI.");
+    if (hash === undefined)
+      throw new CasError("invalid_uri", "The CAS returned an unsupported URI.");
     const prefix = resolve(this.root, "sha256", hash.slice(0, 2));
     await secureDirectory(prefix);
     await chmod(resolve(prefix, hash.slice(2)), 0o600);
@@ -57,23 +61,31 @@ export class OwnerOnlyFileSystemCas implements ArtifactStore {
     return this.delegate.has(uri);
   }
 
-  async listObjects(options: {
-    after?: string;
-    limit?: number;
-    maximumScannedObjects?: number;
-  } = {}): Promise<{
+  async listObjects(
+    options: {
+      after?: string;
+      limit?: number;
+      maximumScannedObjects?: number;
+    } = {},
+  ): Promise<{
     items: Array<{ uri: string; byteCount: number; modifiedAt: string }>;
     nextCursor: string | null;
   }> {
     const limit = options.limit ?? 100;
     const maximumScannedObjects = options.maximumScannedObjects ?? 100_000;
-    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000 ||
-      !Number.isSafeInteger(maximumScannedObjects) || maximumScannedObjects < limit ||
-      maximumScannedObjects > 1_000_000) {
+    if (
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 1_000 ||
+      !Number.isSafeInteger(maximumScannedObjects) ||
+      maximumScannedObjects < limit ||
+      maximumScannedObjects > 1_000_000
+    ) {
       throw new CasError("capacity_exceeded", "The CAS inventory query limit is invalid.");
     }
     const afterHash = options.after === undefined ? "" : URI_PATTERN.exec(options.after)?.[1];
-    if (afterHash === undefined) throw new CasError("invalid_uri", "The CAS inventory cursor is invalid.");
+    if (afterHash === undefined)
+      throw new CasError("invalid_uri", "The CAS inventory cursor is invalid.");
     const selected: string[] = [];
     let scanned = 0;
     const root = await opendir(resolve(this.root, "sha256"));
@@ -85,7 +97,10 @@ export class OwnerOnlyFileSystemCas implements ArtifactStore {
       for await (const objectEntry of directory) {
         scanned += 1;
         if (scanned > maximumScannedObjects) {
-          throw new CasError("capacity_exceeded", "The CAS inventory exceeds the allowed scan limit.");
+          throw new CasError(
+            "capacity_exceeded",
+            "The CAS inventory exceeds the allowed scan limit.",
+          );
         }
         const hash = `${prefixEntry.name}${objectEntry.name}`;
         if (!/^[a-f0-9]{64}$/.test(hash) || !objectEntry.isFile()) {
@@ -98,12 +113,14 @@ export class OwnerOnlyFileSystemCas implements ArtifactStore {
       }
     }
     const page = selected.slice(0, limit);
-    const items = await Promise.all(page.map(async (hash) => {
-      const uri = `lervo-cas://sha256/${hash}`;
-      const bytes = await this.delegate.get(uri);
-      const metadata = await stat(resolve(this.root, "sha256", hash.slice(0, 2), hash.slice(2)));
-      return { uri, byteCount: bytes.byteLength, modifiedAt: metadata.mtime.toISOString() };
-    }));
+    const items = await Promise.all(
+      page.map(async (hash) => {
+        const uri = `lervo-cas://sha256/${hash}`;
+        const bytes = await this.delegate.get(uri);
+        const metadata = await stat(resolve(this.root, "sha256", hash.slice(0, 2), hash.slice(2)));
+        return { uri, byteCount: bytes.byteLength, modifiedAt: metadata.mtime.toISOString() };
+      }),
+    );
     return {
       items,
       nextCursor: selected.length > limit ? items.at(-1)!.uri : null,

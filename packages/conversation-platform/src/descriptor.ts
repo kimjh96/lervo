@@ -1,15 +1,9 @@
 import { createHash } from "node:crypto";
 
 import { assertConversationAdapterDescriptor } from "@lervo/conversation-contract";
-import type {
-  ConversationAdapterCapability,
-  ConversationAdapterDescriptor,
-} from "@lervo/schemas";
+import type { ConversationAdapterCapability, ConversationAdapterDescriptor } from "@lervo/schemas";
 
-import {
-  ConversationPlatformError,
-  type ConversationPlatformKind,
-} from "./types.js";
+import { ConversationPlatformError, type ConversationPlatformKind } from "./types.js";
 
 export function createPlatformConversationDescriptor(input: {
   integrationId: string;
@@ -41,7 +35,8 @@ export function createPlatformConversationDescriptor(input: {
     integrationId: input.integrationId,
     adapterKind: input.platform,
     instanceIdentityHash: `sha256:${createHash("sha256")
-      .update(input.instanceIdentity, "utf8").digest("hex")}`,
+      .update(input.instanceIdentity, "utf8")
+      .digest("hex")}`,
     capabilities,
   };
   assertConversationAdapterDescriptor(descriptor);

@@ -37,22 +37,24 @@ export async function readFirstPublicationExternalEvidenceSources(paths) {
   if (sourceIds.some((id) => !isAbsolute(paths?.[`${id}Path`] ?? ""))) fail();
   let contents;
   try {
-    contents = await Promise.all(sourceIds.map((id) =>
-      readRegularReleaseFile(paths[`${id}Path`], maximumInputBytes)
-    ));
+    contents = await Promise.all(
+      sourceIds.map((id) => readRegularReleaseFile(paths[`${id}Path`], maximumInputBytes)),
+    );
   } catch {
     fail();
   }
-  const documents = Object.fromEntries(sourceIds.map((id, index) => [
-    id,
-    parseJson(contents[index]),
-  ]));
+  const documents = Object.fromEntries(
+    sourceIds.map((id, index) => [id, parseJson(contents[index])]),
+  );
   return {
     ...documents,
-    assertUnchanged: () => assertReleaseFilesUnchanged(sourceIds.map((id, index) => ({
-      path: paths[`${id}Path`],
-      contents: contents[index],
-      maximumSize: maximumInputBytes,
-    }))),
+    assertUnchanged: () =>
+      assertReleaseFilesUnchanged(
+        sourceIds.map((id, index) => ({
+          path: paths[`${id}Path`],
+          contents: contents[index],
+          maximumSize: maximumInputBytes,
+        })),
+      ),
   };
 }

@@ -71,7 +71,9 @@ class ManagedCodexClient implements CodexAppServerClient {
     return { threadId: "codex-host-session" };
   }
 
-  async injectItems() { this.contextInjectionCount += 1; }
+  async injectItems() {
+    this.contextInjectionCount += 1;
+  }
 
   async startTurn(threadId: string) {
     const path = this.paths[this.turnSequence];
@@ -80,51 +82,53 @@ class ManagedCodexClient implements CodexAppServerClient {
     const turnId = `codex-host-turn-${this.turnSequence}`;
     const itemId = `codex-host-write-${this.turnSequence}`;
     this.activeWrite = { path, turnId, itemId };
-    setImmediate(() => this.queue.push(
-      {
-        method: "turn/started",
-        params: { threadId, turn: { id: turnId } },
-      },
-      {
-        method: "item/started",
-        params: {
-          threadId,
-          turnId,
-          item: {
-            type: "fileChange",
-            id: itemId,
-            status: "inProgress",
-            changes: [{
-              path: resolve(this.root, path),
-              kind: { type: "add" },
-              diff: "fixture diff",
-            }],
+    setImmediate(() =>
+      this.queue.push(
+        {
+          method: "turn/started",
+          params: { threadId, turn: { id: turnId } },
+        },
+        {
+          method: "item/started",
+          params: {
+            threadId,
+            turnId,
+            item: {
+              type: "fileChange",
+              id: itemId,
+              status: "inProgress",
+              changes: [
+                {
+                  path: resolve(this.root, path),
+                  kind: { type: "add" },
+                  diff: "fixture diff",
+                },
+              ],
+            },
           },
         },
-      },
-      {
-        id: "codex-host-approval",
-        method: "item/fileChange/requestApproval",
-        params: {
-          threadId,
-          turnId,
-          itemId,
+        {
+          id: "codex-host-approval",
+          method: "item/fileChange/requestApproval",
+          params: {
+            threadId,
+            turnId,
+            itemId,
+          },
         },
-      },
-    ));
+      ),
+    );
     return { turnId };
   }
 
-  async respondFileChangeApproval(
-    _requestId: string | number,
-    decision: "accept" | "decline",
-  ) {
+  async respondFileChangeApproval(_requestId: string | number, decision: "accept" | "decline") {
     if (decision !== "accept") return;
     const active = this.activeWrite;
     if (active === undefined) throw new Error("fixture has no active write");
-    const content = active.path === "src/result.ts"
-      ? "export const remote = true;\n"
-      : "export const other = true;\n";
+    const content =
+      active.path === "src/result.ts"
+        ? "export const remote = true;\n"
+        : "export const other = true;\n";
     await writeFile(resolve(this.root, active.path), content);
     this.queue.push(
       {
@@ -136,11 +140,13 @@ class ManagedCodexClient implements CodexAppServerClient {
             type: "fileChange",
             id: active.itemId,
             status: "completed",
-            changes: [{
-              path: resolve(this.root, active.path),
-              kind: { type: "add" },
-              diff: "fixture diff",
-            }],
+            changes: [
+              {
+                path: resolve(this.root, active.path),
+                kind: { type: "add" },
+                diff: "fixture diff",
+              },
+            ],
           },
         },
       },
@@ -169,37 +175,44 @@ class ManagedCodexClient implements CodexAppServerClient {
 
   async interruptTurn() {}
   async unsubscribe() {}
-  notifications(signal: AbortSignal) { return this.queue.iterate(signal); }
+  notifications(signal: AbortSignal) {
+    return this.queue.iterate(signal);
+  }
   async close() {}
 }
 
 async function repository() {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-managed-host-"));
   roots.push(root);
-  await applyInitPlan(await createInitPlan({
-    root,
-    projectId: "prj_managed_host_01",
-    now: new Date("2026-08-22T00:00:00.000Z"),
-  }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_managed_host_01",
+      now: new Date("2026-08-22T00:00:00.000Z"),
+    }),
+  );
   await mkdir(resolve(root, "src"));
   await mkdir(resolve(root, ".lervo/verifications"));
   await writeFile(resolve(root, "AGENTS.md"), "Change only the approved file.\n");
-  await writeFile(resolve(root, ".lervo/verifications/repo.check.yaml"), [
-    "schemaVersion: 1",
-    "suiteId: repo.check",
-    "stopOnFailure: true",
-    "commands:",
-    "  - commandId: verify-result",
-    "    executable: node",
-    "    arguments:",
-    "      - -e",
-    `      - ${JSON.stringify("process.exit(require('node:fs').existsSync('src/result.ts') ? 0 : 1)")}`,
-    "    cwd: .",
-    "    timeoutMs: 10000",
-    "    maxOutputBytes: 4096",
-    "    environmentVariableNames: []",
-    "",
-  ].join("\n"));
+  await writeFile(
+    resolve(root, ".lervo/verifications/repo.check.yaml"),
+    [
+      "schemaVersion: 1",
+      "suiteId: repo.check",
+      "stopOnFailure: true",
+      "commands:",
+      "  - commandId: verify-result",
+      "    executable: node",
+      "    arguments:",
+      "      - -e",
+      `      - ${JSON.stringify("process.exit(require('node:fs').existsSync('src/result.ts') ? 0 : 1)")}`,
+      "    cwd: .",
+      "    timeoutMs: 10000",
+      "    maxOutputBytes: 4096",
+      "    environmentVariableNames: []",
+      "",
+    ].join("\n"),
+  );
   const storage = await openProjectStorage(root);
   const target = {
     projectId: storage.manifest.projectId,
@@ -210,41 +223,44 @@ async function repository() {
 }
 
 async function projectSkill(root: string, projectId: string, roleId: string): Promise<void> {
-  const platform = process.platform === "darwin" || process.platform === "linux" ||
-      process.platform === "win32"
-    ? process.platform
-    : "darwin";
+  const platform =
+    process.platform === "darwin" || process.platform === "linux" || process.platform === "win32"
+      ? process.platform
+      : "darwin";
   const directory = resolve(root, ".agents/skills/repository-testing");
   await mkdir(directory, { recursive: true });
   await writeFile(resolve(directory, "SKILL.md"), "# Repository testing\nTest procedure.\n");
   const contentHash = await hashSkillPackage(directory);
-  await writeFile(resolve(directory, "lervo-skill.json"), `${JSON.stringify({
-    schemaVersion: 1,
-    skillId: "repository/testing",
-    version: "1.0.0",
-    contentHash,
-    source: {
-      kind: "project",
-      uri: "declared://repository-testing",
-      publisher: { id: "fixture", name: "Fixture" },
-    },
-    supportedRoles: [roleId],
-    compatibility: {
-      providers: { mode: "any" },
-      minimumRuntimeVersion: "0.1.0",
-      platforms: [platform],
-      requiredTools: [],
-      unknownIsCompatible: false,
-    },
-    requiredCapabilities: ["filesystem.read"],
-    contracts: {
-      inputSchemaRef: "lervo-schema://skill/input/v1",
-      outputSchemaRef: "lervo-schema://skill/output/v1",
-    },
-    trust: { level: "untrusted", signatureStatus: "unsigned" },
-    enabledScope: { kind: "projects", projectIds: [projectId] },
-    pinned: true,
-  })}\n`);
+  await writeFile(
+    resolve(directory, "lervo-skill.json"),
+    `${JSON.stringify({
+      schemaVersion: 1,
+      skillId: "repository/testing",
+      version: "1.0.0",
+      contentHash,
+      source: {
+        kind: "project",
+        uri: "declared://repository-testing",
+        publisher: { id: "fixture", name: "Fixture" },
+      },
+      supportedRoles: [roleId],
+      compatibility: {
+        providers: { mode: "any" },
+        minimumRuntimeVersion: "0.1.0",
+        platforms: [platform],
+        requiredTools: [],
+        unknownIsCompatible: false,
+      },
+      requiredCapabilities: ["filesystem.read"],
+      contracts: {
+        inputSchemaRef: "lervo-schema://skill/input/v1",
+        outputSchemaRef: "lervo-schema://skill/output/v1",
+      },
+      trust: { level: "untrusted", signatureStatus: "unsigned" },
+      enabledScope: { kind: "projects", projectIds: [projectId] },
+      pinned: true,
+    })}\n`,
+  );
 }
 
 function ids() {
@@ -304,24 +320,28 @@ describe("managed remote provider host", () => {
       approvalVerifier: { verify },
       createId: ids(),
       adapterFactory: {
-        create: ({ repositoryRoot, resolveArtifact }) => new CodexAdapter({
-          repositoryRoot,
-          resolveArtifact,
-          clientFactory: async () => new ManagedCodexClient(repositoryRoot),
-        }),
+        create: ({ repositoryRoot, resolveArtifact }) =>
+          new CodexAdapter({
+            repositoryRoot,
+            resolveArtifact,
+            clientFactory: async () => new ManagedCodexClient(repositoryRoot),
+          }),
       },
     });
 
-    await expect(host.execute({
-      command,
-      request,
-      authorizedAt: "2026-08-22T00:01:00.000Z",
-      policyAuthorization: authorization,
-      approvedRepositoryPaths: ["src/result.ts"],
-    })).resolves.toMatchObject({ runId: expect.stringMatching(/^run_host/) });
+    await expect(
+      host.execute({
+        command,
+        request,
+        authorizedAt: "2026-08-22T00:01:00.000Z",
+        policyAuthorization: authorization,
+        approvedRepositoryPaths: ["src/result.ts"],
+      }),
+    ).resolves.toMatchObject({ runId: expect.stringMatching(/^run_host/) });
 
-    expect(await readFile(resolve(fixture.root, "src/result.ts"), "utf8"))
-      .toBe("export const remote = true;\n");
+    expect(await readFile(resolve(fixture.root, "src/result.ts"), "utf8")).toBe(
+      "export const remote = true;\n",
+    );
     expect(verify).toHaveBeenCalledTimes(2);
     expect(verify.mock.calls.map(([input]) => input.requestedPath)).toEqual([
       null,
@@ -331,10 +351,12 @@ describe("managed remote provider host", () => {
     const events = storage.events.list();
     await storage.close();
     expect(events.map((event) => event.type)).toContain("run.completed");
-    expect(events.find((event) => event.type === "run.completed")?.payload)
-      .toMatchObject({ verificationStatus: "passed" });
-    expect(events.find((event) => event.type === "capability.decided")?.payload)
-      .toMatchObject({ approvalId });
+    expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
+      verificationStatus: "passed",
+    });
+    expect(events.find((event) => event.type === "capability.decided")?.payload).toMatchObject({
+      approvalId,
+    });
     expect(JSON.stringify(events)).not.toContain(request);
     expect(JSON.stringify(events)).not.toContain("Remote task complete");
   });
@@ -370,12 +392,14 @@ describe("managed remote provider host", () => {
       policySnapshotId: snapshotId,
     }));
     const client = new ManagedCodexClient(fixture.root, ["src/other.ts", "src/result.ts"]);
-    const roleRegistry = new ManagedProviderHostRoleRegistry([{
-      ...createRemoteDeveloperRole(["repo.check"]),
-      roleId: "maintainer",
-      name: "Maintainer",
-      defaultSkills: ["repository/testing"],
-    }]);
+    const roleRegistry = new ManagedProviderHostRoleRegistry([
+      {
+        ...createRemoteDeveloperRole(["repo.check"]),
+        roleId: "maintainer",
+        name: "Maintainer",
+        defaultSkills: ["repository/testing"],
+      },
+    ]);
     const host = new ManagedRemoteProviderHost({
       repositoryRoot: fixture.root,
       target: fixture.target,
@@ -385,33 +409,38 @@ describe("managed remote provider host", () => {
       approvalVerifier: { verify },
       createId: ids(),
       adapterFactory: {
-        create: ({ repositoryRoot, resolveArtifact }) => new CodexAdapter({
-          repositoryRoot,
-          resolveArtifact,
-          clientFactory: async () => client,
-        }),
+        create: ({ repositoryRoot, resolveArtifact }) =>
+          new CodexAdapter({
+            repositoryRoot,
+            resolveArtifact,
+            clientFactory: async () => client,
+          }),
       },
     });
 
-    await expect(host.execute({
-      command,
-      request,
-      authorizedAt: "2026-08-22T00:01:00.000Z",
-      policyAuthorization: {
-        schemaVersion: 1,
-        source: "remote_command",
+    await expect(
+      host.execute({
         command,
-        commandSignerKeyId: "key_managed_provider_host_01",
-        policySnapshotId: snapshotId,
-        approvalIds: [approvalId],
-      },
-      approvedRepositoryPaths: ["src/other.ts", "src/result.ts"],
-    })).resolves.toMatchObject({ runId: expect.stringMatching(/^run_host/) });
+        request,
+        authorizedAt: "2026-08-22T00:01:00.000Z",
+        policyAuthorization: {
+          schemaVersion: 1,
+          source: "remote_command",
+          command,
+          commandSignerKeyId: "key_managed_provider_host_01",
+          policySnapshotId: snapshotId,
+          approvalIds: [approvalId],
+        },
+        approvedRepositoryPaths: ["src/other.ts", "src/result.ts"],
+      }),
+    ).resolves.toMatchObject({ runId: expect.stringMatching(/^run_host/) });
 
-    expect(await readFile(resolve(fixture.root, "src/other.ts"), "utf8"))
-      .toBe("export const other = true;\n");
-    expect(await readFile(resolve(fixture.root, "src/result.ts"), "utf8"))
-      .toBe("export const remote = true;\n");
+    expect(await readFile(resolve(fixture.root, "src/other.ts"), "utf8")).toBe(
+      "export const other = true;\n",
+    );
+    expect(await readFile(resolve(fixture.root, "src/result.ts"), "utf8")).toBe(
+      "export const remote = true;\n",
+    );
     expect(client.contextInjectionCount).toBe(2);
     expect(verify).toHaveBeenCalledTimes(3);
     expect(verify.mock.calls.map(([input]) => input.requestedPath)).toEqual([
@@ -422,21 +451,27 @@ describe("managed remote provider host", () => {
     const storage = await openProjectStorage(fixture.root);
     const events = storage.events.list();
     await storage.close();
-    expect(events.filter((event) => event.type === "context.injected").map((event) =>
-      event.payload.contextGeneration)).toEqual([0, 1]);
-    expect(events.filter((event) => event.type === "file.changed").map((event) =>
-      event.payload.path)).toEqual(["src/other.ts", "src/result.ts"]);
+    expect(
+      events
+        .filter((event) => event.type === "context.injected")
+        .map((event) => event.payload.contextGeneration),
+    ).toEqual([0, 1]);
+    expect(
+      events.filter((event) => event.type === "file.changed").map((event) => event.payload.path),
+    ).toEqual(["src/other.ts", "src/result.ts"]);
     expect(events.find((event) => event.type === "skill.resolved")?.payload).toMatchObject({
       skillId: "repository/testing",
       version: "1.0.0",
       source: "project",
       trustStatus: "untrusted",
     });
-    expect(events.find((event) => event.type === "run.completed")?.payload)
-      .toMatchObject({ verificationStatus: "passed" });
+    expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
+      verificationStatus: "passed",
+    });
     expect(JSON.stringify(events)).not.toContain("Test procedure.");
-    await expect(readSkillLock(resolve(fixture.root, ".lervo/skills.lock")))
-      .resolves.toMatchObject({ entries: [{ skillId: "repository/testing" }] });
+    await expect(readSkillLock(resolve(fixture.root, ".lervo/skills.lock"))).resolves.toMatchObject(
+      { entries: [{ skillId: "repository/testing" }] },
+    );
   });
 
   it("rejects duplicate approval paths before opening project storage", async () => {
@@ -448,8 +483,14 @@ describe("managed remote provider host", () => {
       roles: ["developer"],
       roleRegistry: new ManagedProviderHostRoleRegistry(),
       approvalVerifier: { verify: async () => ({ approved: false, reasonCode: "unused" }) },
-      openStorage: async () => { throw new Error("project storage must not open"); },
-      adapterFactory: { create: () => { throw new Error("provider must not start"); } },
+      openStorage: async () => {
+        throw new Error("project storage must not open");
+      },
+      adapterFactory: {
+        create: () => {
+          throw new Error("provider must not start");
+        },
+      },
     });
     const request = "Reject duplicate path approvals.";
     const bytes = new TextEncoder().encode(request);
@@ -473,19 +514,21 @@ describe("managed remote provider host", () => {
         },
       },
     });
-    await expect(host.execute({
-      command,
-      request,
-      authorizedAt: "2026-08-22T00:01:00.000Z",
-      policyAuthorization: {
-        schemaVersion: 1,
-        source: "remote_command",
+    await expect(
+      host.execute({
         command,
-        commandSignerKeyId: "key_managed_provider_host_01",
-        policySnapshotId: snapshotId,
-        approvalIds: [approvalId],
-      },
-      approvedRepositoryPaths: ["src/result.ts", "src/result.ts"],
-    })).rejects.toMatchObject({ code: "managed_approval_scope_invalid" });
+        request,
+        authorizedAt: "2026-08-22T00:01:00.000Z",
+        policyAuthorization: {
+          schemaVersion: 1,
+          source: "remote_command",
+          command,
+          commandSignerKeyId: "key_managed_provider_host_01",
+          policySnapshotId: snapshotId,
+          approvalIds: [approvalId],
+        },
+        approvedRepositoryPaths: ["src/result.ts", "src/result.ts"],
+      }),
+    ).rejects.toMatchObject({ code: "managed_approval_scope_invalid" });
   });
 });

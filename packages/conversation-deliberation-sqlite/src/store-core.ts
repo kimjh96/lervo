@@ -8,8 +8,7 @@ import {
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 
 export type ConversationDeliberationQueueTable =
-  | "conversation_deliberation_jobs"
-  | "conversation_deliberation_resume_jobs";
+  "conversation_deliberation_jobs" | "conversation_deliberation_resume_jobs";
 
 export function resolveConversationDeliberationMaximumRecords(
   value: number | undefined,
@@ -60,9 +59,9 @@ export function checkConversationDeliberationQueueIntegrity(input: {
     );
   }
   const required = new Set(input.requiredSchema);
-  for (const row of input.database.prepare(
-    "SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')",
-  ).iterate()) {
+  for (const row of input.database
+    .prepare("SELECT name FROM sqlite_schema WHERE type IN ('trigger', 'index')")
+    .iterate()) {
     if (typeof row.name === "string") required.delete(row.name);
   }
   if (required.size > 0) {
@@ -99,9 +98,7 @@ export function rollbackConversationDeliberationQueueTransaction(
     );
   }
   if (error instanceof ConversationDeliberationSQLiteError) throw error;
-  throw new ConversationDeliberationSQLiteError(
-    "write_failed",
-    `${label} transaction failed.`,
-    { cause: error },
-  );
+  throw new ConversationDeliberationSQLiteError("write_failed", `${label} transaction failed.`, {
+    cause: error,
+  });
 }

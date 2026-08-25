@@ -1,22 +1,24 @@
 # Natural-language terminal development flow
 
-Status: `in_progress`
+Status: `complete`
 Started: 2026-08-24
+Completed: 2026-08-25
 
 ## Objective
 
-Let users ask Codex or Claude ordinary repository questions and request implementations without typing Lervo commands, while preserving verifiable continuation, canonical documentation, knowledge freshness, approvals, optional cross-provider deliberation, and honest unmanaged evidence.
+Allow users to ask Codex or Claude ordinary repository questions and request implementations without Lervo commands while preserving verifiable continuation, canonical documentation, knowledge freshness, approvals, optional cross-provider deliberation, and honest unmanaged evidence.
 
 ## Acceptance matrix
 
 | Flow | Required result | Status |
-|---|---|---|
-| Read-only inquiry | Context is prepared; no artificial workstream revision or finalization declaration is required. | complete |
-| Repository change | Exact repository revision change requires an agent/provider workstream checkpoint and bounded turn declaration. | complete |
-| Canonicalization | Agent declares current or updated canonical sources; objective lifecycle checks independently reject stale knowledge. | complete |
-| User decisions | Current workstream carries bounded unresolved choices and approvals for natural-language resolution in a later turn. | complete |
+| --- | --- | --- |
+| Read-only inquiry | Prepare context without requiring an artificial workstream revision or finalization declaration. | complete |
+| Repository change | Require an agent/provider workstream checkpoint and bounded turn declaration for an exact repository revision change. | complete |
+| Canonicalization | The agent declares current or updated canonical sources; objective lifecycle checks independently reject stale knowledge. | complete |
+| User decisions | The current workstream carries bounded unresolved choices and approvals for natural-language resolution in a later turn. | complete |
 | Optional deliberation | Explicit task-level Codex-Claude deliberation uses an automatically resolved managed verification suite and binds the completed event. | complete |
-| Shiflo pilot | Current CLI is installed, migrated, and exercised through native hook endpoints without manual Lervo bookkeeping; actual provider authorship remains distinguishable from the synthetic endpoint check. | complete |
+| Shiflo pilot | The current CLI is installed, migrated, and exercised through native hook endpoints without manual Lervo bookkeeping; actual provider authorship remains distinguishable from the synthetic endpoint check. | complete |
+| Mid-turn hook activation | A Stop first activated after its turn began recovers through valid JSON without a failed hook or fabricated observation. | complete |
 | Cross-node continuation | Authorized repository-scoped Hub replication transfers exact workstream snapshots, preserves divergent heads, and never transfers user authority. | complete |
 
 ## Non-claims

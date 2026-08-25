@@ -1,7 +1,4 @@
-import {
-  canonicalJson,
-  computeEventHash,
-} from "@lervo/event-contract";
+import { canonicalJson, computeEventHash } from "@lervo/event-contract";
 import {
   readTraceReport,
   type TraceReport,
@@ -10,8 +7,7 @@ import {
 import { describe, expect, it } from "vitest";
 
 function event(
-  input: Omit<TraceReport["events"][number], "eventHash"> |
-    TraceReport["events"][number],
+  input: Omit<TraceReport["events"][number], "eventHash"> | TraceReport["events"][number],
 ): TraceReport["events"][number] {
   const { eventHash: _eventHash, ...withoutHash } = input as TraceReport["events"][number];
   return { ...withoutHash, eventHash: computeEventHash(withoutHash) };
@@ -88,30 +84,42 @@ describe("trace report compatibility contract", () => {
 
   it.each([
     ["missing schemaVersion", (({ schemaVersion: _, ...value }) => value)(validReport())],
-    ["event hash mismatch", (() => {
-      const value = validReport();
-      value.events[0]!.eventHash = `sha256:${"f".repeat(64)}`;
-      return value;
-    })()],
-    ["non-allowlisted payload", (() => {
-      const value = validReport();
-      const changed = { ...value.events[0]!, payload: { secret: "private-token" } };
-      value.events[0] = event(changed);
-      return value;
-    })()],
-    ["different run event", (() => {
-      const value = validReport();
-      const changed = { ...value.events[1]!, runId: "run_87654321" };
-      value.events[1] = event(changed);
-      return value;
-    })()],
-    ["broken consecutive link", (() => {
-      const value = validReport();
-      const changed = { ...value.events[1]!, previousHash: `sha256:${"d".repeat(64)}` };
-      value.events[1] = event(changed);
-      value.integrity.headHash = value.events[1]!.eventHash;
-      return value;
-    })()],
+    [
+      "event hash mismatch",
+      (() => {
+        const value = validReport();
+        value.events[0]!.eventHash = `sha256:${"f".repeat(64)}`;
+        return value;
+      })(),
+    ],
+    [
+      "non-allowlisted payload",
+      (() => {
+        const value = validReport();
+        const changed = { ...value.events[0]!, payload: { secret: "private-token" } };
+        value.events[0] = event(changed);
+        return value;
+      })(),
+    ],
+    [
+      "different run event",
+      (() => {
+        const value = validReport();
+        const changed = { ...value.events[1]!, runId: "run_87654321" };
+        value.events[1] = event(changed);
+        return value;
+      })(),
+    ],
+    [
+      "broken consecutive link",
+      (() => {
+        const value = validReport();
+        const changed = { ...value.events[1]!, previousHash: `sha256:${"d".repeat(64)}` };
+        value.events[1] = event(changed);
+        value.integrity.headHash = value.events[1]!.eventHash;
+        return value;
+      })(),
+    ],
     ["aggregate status mismatch", { ...validReport(), status: "incomplete" }],
     ["time range mismatch", { ...validReport(), lastOccurredAt: "2026-08-20T00:00:02Z" }],
     ["session order mismatch", { ...validReport(), sessionIds: ["ses_87654321"] }],

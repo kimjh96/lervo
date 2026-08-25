@@ -63,5 +63,8 @@ export async function extractSkillContractUnitDescriptors(input: {
       });
     }
   }
-  return descriptors.sort((left, right) => left.path.localeCompare(right.path) || left.locator.localeCompare(right.locator));
+  return descriptors.sort(
+    (left, right) =>
+      left.path.localeCompare(right.path) || left.locator.localeCompare(right.locator),
+  );
 }

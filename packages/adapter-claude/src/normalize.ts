@@ -45,7 +45,10 @@ export class ClaudeEventNormalizer {
     if (message === undefined) return [];
     const sessionId = text(message.session_id);
     if (sessionId !== undefined && sessionId !== this.options.session.providerSessionId) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude event session ID does not match.");
+      throw new ClaudeAdapterError(
+        "provider_protocol_failed",
+        "The Claude event session ID does not match.",
+      );
     }
 
     if (message.type === "system" && message.subtype === "init") {
@@ -63,7 +66,9 @@ export class ClaudeEventNormalizer {
       const providerTurnId = this.options.activeProviderTurnId();
       const providerItemId = text(message.uuid);
       if (providerTurnId === undefined || providerItemId === undefined) {
-        return [this.providerError("unbound_compaction", message, eventTime(message, this.options.now))];
+        return [
+          this.providerError("unbound_compaction", message, eventTime(message, this.options.now)),
+        ];
       }
       return [
         this.event(
@@ -78,18 +83,22 @@ export class ClaudeEventNormalizer {
       const commandUuid = text(message.command_uuid);
       if (providerTurnId === undefined) return [];
       if (commandUuid !== providerTurnId) {
-        return [this.providerError(
-          "unbound_turn_start",
-          message.state,
-          eventTime(message, this.options.now),
-        )];
+        return [
+          this.providerError(
+            "unbound_turn_start",
+            message.state,
+            eventTime(message, this.options.now),
+          ),
+        ];
       }
       return this.turnStarted(providerTurnId, message);
     }
     if (message.type === "user" && message.isReplay === true) {
       const providerTurnId = this.options.activeProviderTurnId();
       const uuid = text(message.uuid);
-      return message.shouldQuery !== false && providerTurnId !== undefined && uuid === providerTurnId
+      return message.shouldQuery !== false &&
+        providerTurnId !== undefined &&
+        uuid === providerTurnId
         ? this.turnStarted(providerTurnId, message)
         : [];
     }
@@ -105,16 +114,20 @@ export class ClaudeEventNormalizer {
   ): AdapterNormalizedEvent[] {
     if (this.startedProviderTurns.has(providerTurnId)) return [];
     this.startedProviderTurns.add(providerTurnId);
-    return [this.event(
-      "provider.turn.started",
-      { providerTurnId },
-      eventTime(message, this.options.now),
-    )];
+    return [
+      this.event("provider.turn.started", { providerTurnId }, eventTime(message, this.options.now)),
+    ];
   }
 
   private assistant(message: Record<string, unknown>): AdapterNormalizedEvent[] {
     if (message.parent_tool_use_id !== null && message.parent_tool_use_id !== undefined) {
-      return [this.providerError("unmanaged_subagent_signal", message.parent_tool_use_id, eventTime(message, this.options.now))];
+      return [
+        this.providerError(
+          "unmanaged_subagent_signal",
+          message.parent_tool_use_id,
+          eventTime(message, this.options.now),
+        ),
+      ];
     }
     const providerError = text(message.error);
     if (providerError !== undefined) {
@@ -123,7 +136,9 @@ export class ClaudeEventNormalizer {
           `claude_${providerError}`,
           { error: providerError },
           eventTime(message, this.options.now),
-          providerError === "rate_limit" || providerError === "overloaded" || providerError === "server_error",
+          providerError === "rate_limit" ||
+            providerError === "overloaded" ||
+            providerError === "server_error",
         ),
       ];
     }
@@ -142,7 +157,13 @@ export class ClaudeEventNormalizer {
 
   private toolResults(message: Record<string, unknown>): AdapterNormalizedEvent[] {
     if (message.parent_tool_use_id !== null && message.parent_tool_use_id !== undefined) {
-      return [this.providerError("unmanaged_subagent_signal", message.parent_tool_use_id, eventTime(message, this.options.now))];
+      return [
+        this.providerError(
+          "unmanaged_subagent_signal",
+          message.parent_tool_use_id,
+          eventTime(message, this.options.now),
+        ),
+      ];
     }
     return toolResultBlocks(message).map((block) => this.completedTool(message, block));
   }
@@ -152,7 +173,8 @@ export class ClaudeEventNormalizer {
     block: Record<string, unknown>,
   ): AdapterNormalizedEvent {
     const providerItemId = text(block.tool_use_id);
-    const pending = providerItemId === undefined ? undefined : this.pendingTools.get(providerItemId);
+    const pending =
+      providerItemId === undefined ? undefined : this.pendingTools.get(providerItemId);
     if (providerItemId === undefined || pending === undefined) {
       return this.providerError("unbound_tool_result", block, eventTime(message, this.options.now));
     }
@@ -164,7 +186,11 @@ export class ClaudeEventNormalizer {
       const input = asRecord(pending.input);
       const command = text(input?.command);
       if (command === undefined) {
-        return this.providerError("invalid_provider_command", pending.input, eventTime(message, this.options.now));
+        return this.providerError(
+          "invalid_provider_command",
+          pending.input,
+          eventTime(message, this.options.now),
+        );
       }
       return this.event(
         "provider.command.executed",
@@ -197,8 +223,17 @@ export class ClaudeEventNormalizer {
     const active = this.options.activeProviderTurnId();
     const reported = text(message.user_message_uuid);
     const providerTurnId = reported ?? active;
-    if (providerTurnId === undefined || (active !== undefined && reported !== undefined && reported !== active)) {
-      return [this.providerError("unbound_turn_result", message.subtype, eventTime(message, this.options.now))];
+    if (
+      providerTurnId === undefined ||
+      (active !== undefined && reported !== undefined && reported !== active)
+    ) {
+      return [
+        this.providerError(
+          "unbound_turn_result",
+          message.subtype,
+          eventTime(message, this.options.now),
+        ),
+      ];
     }
     if (message.subtype === "success" && message.is_error === false) {
       return [

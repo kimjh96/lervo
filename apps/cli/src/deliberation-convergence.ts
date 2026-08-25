@@ -1,26 +1,11 @@
 import type { DeliberationVerificationEvidence } from "@lervo/deliberation";
-import {
-  DeliberationRuntime,
-  type DeliberationTurnResult,
-} from "@lervo/deliberation-runtime";
+import { DeliberationRuntime, type DeliberationTurnResult } from "@lervo/deliberation-runtime";
 import type { DeliberationPolicy } from "@lervo/schemas";
 
-import {
-  createConvergedOutcome,
-  createNoConsensusOutcome,
-} from "./deliberation-contract.js";
-import {
-  decisionPrompt,
-  verificationPrompt,
-} from "./deliberation-prompts.js";
-import type {
-  DeliberationExecutionPlan,
-  DeliberationParticipant,
-} from "./deliberation-roles.js";
-import {
-  presentDeliberationOutcome,
-  recordDeliberationTurn,
-} from "./deliberation-turn.js";
+import { createConvergedOutcome, createNoConsensusOutcome } from "./deliberation-contract.js";
+import { decisionPrompt, verificationPrompt } from "./deliberation-prompts.js";
+import type { DeliberationExecutionPlan, DeliberationParticipant } from "./deliberation-roles.js";
+import { presentDeliberationOutcome, recordDeliberationTurn } from "./deliberation-turn.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type {
   ManagedDeliberationOutcome,
@@ -143,8 +128,9 @@ export async function completeApprovedDeliberation(input: {
     details: {
       decisionOwnerRoleId: input.proposer.role.roleId,
       adoptedClaimIds: [input.currentClaim.claimId],
-      verificationArtifactIds: verificationTurns.map((turn) =>
-        turn.artifact.deliberationArtifactId),
+      verificationArtifactIds: verificationTurns.map(
+        (turn) => turn.artifact.deliberationArtifactId,
+      ),
       unresolvedObjectionIds: [],
     },
     previousArtifactIds: [
@@ -162,10 +148,5 @@ export async function completeApprovedDeliberation(input: {
     decisionArtifactId: decision.artifact.deliberationArtifactId,
   });
   input.runtime.complete(outcome);
-  return presentDeliberationOutcome(
-    input.plan,
-    outcome,
-    input.runtime.history(),
-    decision.content,
-  );
+  return presentDeliberationOutcome(input.plan, outcome, input.runtime.history(), decision.content);
 }

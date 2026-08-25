@@ -4,10 +4,7 @@ import { inspectContextEnvelopeBinding } from "@lervo/adapter-contract";
 import type { AdapterContextEnvelope } from "@lervo/schemas";
 
 import { materializeContextDocuments } from "./materialize.js";
-import {
-  type BuildContextEnvelopeInput,
-  ContextDeliveryError,
-} from "./types.js";
+import { type BuildContextEnvelopeInput, ContextDeliveryError } from "./types.js";
 import {
   assertGeneration,
   assertSessionCoordinates,

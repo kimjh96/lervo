@@ -24,7 +24,9 @@ async function approve(option, button) {
     await api.approve(currentReview, option);
     currentReview = await api.loadReview();
     renderControlReview(currentReview, approve);
-    setStatus("The signed approval was created. The Node will reevaluate the command after synchronizing policy.");
+    setStatus(
+      "The signed approval was created. The Node will reevaluate the command after synchronizing policy.",
+    );
   } catch (error) {
     button.disabled = false;
     setStatus(error instanceof Error ? error.message : "Approval failed.", true);

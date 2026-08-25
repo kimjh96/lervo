@@ -10,14 +10,10 @@ import {
   resolveCliFirstPublication,
   writeFirstPublicationResolution,
 } from "../lib/cli-first-publication-resolution.mjs";
-import { createFileFirstPublicationReservationStore } from
-  "../lib/file-first-publication-reservation-store.mjs";
-import { createFirstPublicationReconciliationReport } from
-  "../lib/first-publication-reconciliation.mjs";
-import { createFirstPublicationReservation } from
-  "../lib/first-publication-reservation.mjs";
-import { firstPublicationResolutionConfirmations } from
-  "../lib/first-publication-resolution-decision.mjs";
+import { createFileFirstPublicationReservationStore } from "../lib/file-first-publication-reservation-store.mjs";
+import { createFirstPublicationReconciliationReport } from "../lib/first-publication-reconciliation.mjs";
+import { createFirstPublicationReservation } from "../lib/first-publication-reservation.mjs";
+import { firstPublicationResolutionConfirmations } from "../lib/first-publication-resolution-decision.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
@@ -85,11 +81,13 @@ async function commandFixture({ canonical = true } = {}) {
     reconciliationReportPath: resolve(root, "reconciliation.json"),
     decisionPath: resolve(root, "decision.json"),
   };
-  const serialize = (value) => canonical
-    ? `${JSON.stringify(value, null, 2)}\n`
-    : `${JSON.stringify(value)}\n`;
+  const serialize = (value) =>
+    canonical ? `${JSON.stringify(value, null, 2)}\n` : `${JSON.stringify(value)}\n`;
   await Promise.all([
-    writeFile(paths.publicationAuthorizationPath, `${JSON.stringify(source.publicationAuthorization)}\n`),
+    writeFile(
+      paths.publicationAuthorizationPath,
+      `${JSON.stringify(source.publicationAuthorization)}\n`,
+    ),
     writeFile(paths.bootstrapPath, `${JSON.stringify(source.bootstrap)}\n`),
     writeFile(paths.armingAuthorizationPath, `${JSON.stringify(source.armingAuthorization)}\n`),
     writeFile(paths.reconciliationReportPath, serialize(reconciliationReport)),
@@ -125,8 +123,10 @@ describe("first-publication resolution command orchestration", () => {
       });
       const outputPath = resolve(prepared.root, "resolution.json");
       await writeFirstPublicationResolution(outputPath, resolution);
-      assert.equal(JSON.parse(await readFile(outputPath, "utf8")).status,
-        "transition_review_eligible");
+      assert.equal(
+        JSON.parse(await readFile(outputPath, "utf8")).status,
+        "transition_review_eligible",
+      );
       await assert.rejects(writeFirstPublicationResolution(outputPath, resolution), {
         code: "first_publication_resolution_output_exists",
       });
@@ -145,10 +145,13 @@ describe("first-publication resolution command orchestration", () => {
         versionMetadata: { state: "not_found" },
         distTagValue: { state: "not_found" },
       };
-      await assert.rejects(resolveCliFirstPublication(prepared.options, {
-        observe: async () => missing,
-        clock: () => "2026-08-21T03:03:00Z",
-      }), { code: "first_publication_resolution_fresh_observation_required" });
+      await assert.rejects(
+        resolveCliFirstPublication(prepared.options, {
+          observe: async () => missing,
+          clock: () => "2026-08-21T03:03:00Z",
+        }),
+        { code: "first_publication_resolution_fresh_observation_required" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -157,13 +160,16 @@ describe("first-publication resolution command orchestration", () => {
   it("rejects a reviewed source changed during fresh observation", async () => {
     const prepared = await commandFixture();
     try {
-      await assert.rejects(resolveCliFirstPublication(prepared.options, {
-        observe: async () => {
-          await writeFile(prepared.paths.decisionPath, "{}\n");
-          return matchingObservation(prepared.source);
-        },
-        clock: () => "2026-08-21T03:03:00Z",
-      }), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        resolveCliFirstPublication(prepared.options, {
+          observe: async () => {
+            await writeFile(prepared.paths.decisionPath, "{}\n");
+            return matchingObservation(prepared.source);
+          },
+          clock: () => "2026-08-21T03:03:00Z",
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -172,9 +178,12 @@ describe("first-publication resolution command orchestration", () => {
   it("requires canonical reviewed report and decision files", async () => {
     const prepared = await commandFixture({ canonical: false });
     try {
-      await assert.rejects(resolveCliFirstPublication(prepared.options, {
-        observe: async () => assert.fail("observer must not run"),
-      }), { code: "first_publication_resolution_source_invalid" });
+      await assert.rejects(
+        resolveCliFirstPublication(prepared.options, {
+          observe: async () => assert.fail("observer must not run"),
+        }),
+        { code: "first_publication_resolution_source_invalid" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -186,9 +195,12 @@ describe("first-publication resolution command orchestration", () => {
       const decision = JSON.parse(await readFile(prepared.paths.decisionPath, "utf8"));
       decision.target.reconciliationReportDigest = `sha256:${"a".repeat(64)}`;
       await writeFile(prepared.paths.decisionPath, `${JSON.stringify(decision, null, 2)}\n`);
-      await assert.rejects(resolveCliFirstPublication(prepared.options, {
-        observe: async () => assert.fail("observer must not run"),
-      }), { code: "first_publication_resolution_decision_invalid" });
+      await assert.rejects(
+        resolveCliFirstPublication(prepared.options, {
+          observe: async () => assert.fail("observer must not run"),
+        }),
+        { code: "first_publication_resolution_decision_invalid" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -196,29 +208,46 @@ describe("first-publication resolution command orchestration", () => {
 
   it("requires online before reading sources", async () => {
     let reads = 0;
-    await assert.rejects(resolveCliFirstPublication({
-      online: false,
-      publicationAuthorizationPath: "/publication.json",
-      bootstrapPath: "/bootstrap.json",
-      armingAuthorizationPath: "/arming.json",
-      reservationRoot: "/reservations",
-      reconciliationReportPath: "/report.json",
-      decisionPath: "/decision.json",
-    }, { readSources: async () => { reads += 1; } }), {
-      code: "first_publication_resolution_online_required",
-    });
+    await assert.rejects(
+      resolveCliFirstPublication(
+        {
+          online: false,
+          publicationAuthorizationPath: "/publication.json",
+          bootstrapPath: "/bootstrap.json",
+          armingAuthorizationPath: "/arming.json",
+          reservationRoot: "/reservations",
+          reconciliationReportPath: "/report.json",
+          decisionPath: "/decision.json",
+        },
+        {
+          readSources: async () => {
+            reads += 1;
+          },
+        },
+      ),
+      {
+        code: "first_publication_resolution_online_required",
+      },
+    );
     assert.equal(reads, 0);
   });
 
   it("rejects incomplete, duplicate, unknown, and offline executable arguments", () => {
     const base = [
-      "--publication-authorization", "/publication.json",
-      "--bootstrap", "/bootstrap.json",
-      "--arming-authorization", "/arming.json",
-      "--reservation-root", "/reservations",
-      "--reconciliation-report", "/report.json",
-      "--decision", "/decision.json",
-      "--output", "/resolution.json",
+      "--publication-authorization",
+      "/publication.json",
+      "--bootstrap",
+      "/bootstrap.json",
+      "--arming-authorization",
+      "/arming.json",
+      "--reservation-root",
+      "/reservations",
+      "--reconciliation-report",
+      "/report.json",
+      "--decision",
+      "/decision.json",
+      "--output",
+      "/resolution.json",
     ];
     for (const args of [
       base,
@@ -226,10 +255,11 @@ describe("first-publication resolution command orchestration", () => {
       [...base, "--online", "--unknown"],
       [...base.slice(0, -2), "--online"],
     ]) {
-      const result = spawnSync(process.execPath, [
-        "scripts/resolve-cli-first-publication-reconciliation.mjs",
-        ...args,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/resolve-cli-first-publication-reconciliation.mjs", ...args],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_resolution_arguments_invalid:/u);

@@ -15,8 +15,11 @@ export async function prepareOwnerOnlyDatabasePath(path: string): Promise<string
   try {
     await mkdir(parent, { recursive: true, mode: 0o700 });
     const parentMetadata = await lstat(parent);
-    if (!parentMetadata.isDirectory() || parentMetadata.isSymbolicLink() ||
-      !ownerOnly(parentMetadata.mode)) {
+    if (
+      !parentMetadata.isDirectory() ||
+      parentMetadata.isSymbolicLink() ||
+      !ownerOnly(parentMetadata.mode)
+    ) {
       throw new Error("unsafe database directory");
     }
     const handle = await open(

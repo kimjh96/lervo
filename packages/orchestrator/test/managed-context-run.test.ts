@@ -139,10 +139,7 @@ describe("managed context gate orchestration", () => {
         targetTurnId: "turn-compaction",
         publications: [],
         injectContext: async (session, envelope) => {
-          run.invalidateContext(
-            "context_compacted",
-            new Date("2026-08-18T01:02:30Z"),
-          );
+          run.invalidateContext("context_compacted", new Date("2026-08-18T01:02:30Z"));
           return receiptFor(session, envelope);
         },
         now: () => new Date("2026-08-18T01:02:00Z"),
@@ -156,9 +153,7 @@ describe("managed context gate orchestration", () => {
       phase: "awaiting_context",
       contextGeneration: 1,
     });
-    expect(fixture.store.list().map((event) => event.type)).not.toContain(
-      "context.injected",
-    );
+    expect(fixture.store.list().map((event) => event.type)).not.toContain("context.injected");
     expect(fixture.store.list().at(-1)?.payload).toMatchObject({
       reason: "context_compacted",
       contextGeneration: 0,
@@ -244,21 +239,13 @@ describe("managed context gate orchestration", () => {
       },
     };
 
-    expect(
-      run.handleAdapterEvent(
-        fixture.session,
-        event,
-        new Date("2026-08-18T01:04:00Z"),
-      ),
-    ).toBe(true);
+    expect(run.handleAdapterEvent(fixture.session, event, new Date("2026-08-18T01:04:00Z"))).toBe(
+      true,
+    );
     expect(run.snapshot()).toMatchObject({ phase: "awaiting_context", contextGeneration: 1 });
-    expect(
-      run.handleAdapterEvent(
-        fixture.session,
-        event,
-        new Date("2026-08-18T01:05:00Z"),
-      ),
-    ).toBe(false);
+    expect(run.handleAdapterEvent(fixture.session, event, new Date("2026-08-18T01:05:00Z"))).toBe(
+      false,
+    );
     expect(run.snapshot().contextGeneration).toBe(1);
     expect(fixture.store.list().at(-1)?.payload).toMatchObject({
       reason: "context_compacted",
@@ -288,11 +275,7 @@ describe("managed context gate orchestration", () => {
       },
     };
     expect(() =>
-      run.handleAdapterEvent(
-        fixture.session,
-        event,
-        new Date("2026-08-18T01:04:00Z"),
-      ),
+      run.handleAdapterEvent(fixture.session, event, new Date("2026-08-18T01:04:00Z")),
     ).toThrow(expect.objectContaining({ code: "context_contract_invalid" }));
     expect(run.snapshot()).toMatchObject({ phase: "context_injected", contextGeneration: 0 });
     fixture.store.close();
@@ -367,36 +350,36 @@ describe("managed context gate orchestration", () => {
   it.each([
     ["deny", "capability_denied"],
     ["require_approval", "approval_required"],
-  ] as const)("does not let valid E3 override the role write policy %s", async (
-    writePolicy,
-    expectedFailure,
-  ) => {
-    const fixture = await createManagedFixture();
-    const run = fixture.createRun();
-    await prepareFixtureContext(run, fixture.root, {
-      ...role,
-      capabilities: { ...role.capabilities, "filesystem.write": writePolicy },
-    });
-    await injectFixtureContext(run, fixture.session);
+  ] as const)(
+    "does not let valid E3 override the role write policy %s",
+    async (writePolicy, expectedFailure) => {
+      const fixture = await createManagedFixture();
+      const run = fixture.createRun();
+      await prepareFixtureContext(run, fixture.root, {
+        ...role,
+        capabilities: { ...role.capabilities, "filesystem.write": writePolicy },
+      });
+      await injectFixtureContext(run, fixture.session);
 
-    const decision = await run.authorizeFileWrite({
-      path: "src/result.ts",
-      targetDigest,
-      risk: "low",
-      publications: [],
-      occurredAt: new Date("2026-08-18T01:04:00Z"),
-    });
-    expect(decision).toMatchObject({
-      allowed: false,
-      assurance: "E3",
-      failure: expectedFailure,
-    });
-    expect(fixture.store.list().at(-1)?.payload).toMatchObject({
-      capability: "filesystem.write",
-      decision: writePolicy,
-    });
-    fixture.store.close();
-  });
+      const decision = await run.authorizeFileWrite({
+        path: "src/result.ts",
+        targetDigest,
+        risk: "low",
+        publications: [],
+        occurredAt: new Date("2026-08-18T01:04:00Z"),
+      });
+      expect(decision).toMatchObject({
+        allowed: false,
+        assurance: "E3",
+        failure: expectedFailure,
+      });
+      expect(fixture.store.list().at(-1)?.payload).toMatchObject({
+        capability: "filesystem.write",
+        decision: writePolicy,
+      });
+      fixture.store.close();
+    },
+  );
 
   it("rolls back partial context telemetry and permanently fails closed", async () => {
     const fixture = await createManagedFixture();
@@ -430,9 +413,7 @@ describe("managed context gate orchestration", () => {
 
   it("invalidates an existing E3 when capability telemetry cannot commit", async () => {
     const fixture = await createManagedFixture();
-    const run = fixture.createRun(
-      failOnEventType(fixture.store, "capability.decided"),
-    );
+    const run = fixture.createRun(failOnEventType(fixture.store, "capability.decided"));
     await prepareFixtureContext(run, fixture.root);
     await injectFixtureContext(run, fixture.session);
     const eventCountBeforeRequest = fixture.store.list().length;

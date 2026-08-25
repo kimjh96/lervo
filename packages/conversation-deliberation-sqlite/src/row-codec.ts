@@ -63,10 +63,7 @@ function nullableInteger(row: Row, key: string): number | null {
 export function conversationDeliberationMilliseconds(value: string, label: string): number {
   const result = Date.parse(value);
   if (!Number.isSafeInteger(result) || result < 0) {
-    throw new ConversationDeliberationSQLiteError(
-      "integrity_failed",
-      `${label} time is invalid.`,
-    );
+    throw new ConversationDeliberationSQLiteError("integrity_failed", `${label} time is invalid.`);
   }
   return result;
 }
@@ -87,19 +84,24 @@ export function decodeConversationDeliberationSummary(
     );
   }
   const item = decoded as Partial<ConversationDeliberationSummary>;
-  const action = ({
-    running: "wait",
-    unknown: "none",
-    interrupted: "resume",
-    converged: "none",
-    no_consensus: "none",
-    failed: "none",
-  } as const)[item.status as ConversationDeliberationSummary["status"]];
+  const action = (
+    {
+      running: "wait",
+      unknown: "none",
+      interrupted: "resume",
+      converged: "none",
+      no_consensus: "none",
+      failed: "none",
+    } as const
+  )[item.status as ConversationDeliberationSummary["status"]];
   if (
-    item.deliberationId !== deliberationId || action === undefined ||
+    item.deliberationId !== deliberationId ||
+    action === undefined ||
     item.status === "running" ||
-    item.nextAction !== action || !Number.isSafeInteger(item.artifactCount) ||
-    item.artifactCount! < 0 || item.artifactCount! > 10_000
+    item.nextAction !== action ||
+    !Number.isSafeInteger(item.artifactCount) ||
+    item.artifactCount! < 0 ||
+    item.artifactCount! > 10_000
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
@@ -113,7 +115,10 @@ export function assertConversationDeliberationLookup(input: {
   projectId: string;
   deliberationId: string;
 }): void {
-  if (!projectIdPattern.test(input.projectId) || !deliberationIdPattern.test(input.deliberationId)) {
+  if (
+    !projectIdPattern.test(input.projectId) ||
+    !deliberationIdPattern.test(input.deliberationId)
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation queue query coordinates are invalid.",
@@ -139,19 +144,24 @@ function decodeReconciliation(
   const item = decoded as Partial<ConversationDeliberationJobReconciliation> & {
     schemaVersion?: unknown;
   };
-  const uncertainAtMs = typeof item.uncertainAt === "string"
-    ? conversationDeliberationMilliseconds(item.uncertainAt, "deliberation uncertainty")
-    : -1;
-  const reconciledAtMs = typeof item.reconciledAt === "string"
-    ? conversationDeliberationMilliseconds(item.reconciledAt, "deliberation reconciliation")
-    : -1;
+  const uncertainAtMs =
+    typeof item.uncertainAt === "string"
+      ? conversationDeliberationMilliseconds(item.uncertainAt, "deliberation uncertainty")
+      : -1;
+  const reconciledAtMs =
+    typeof item.reconciledAt === "string"
+      ? conversationDeliberationMilliseconds(item.reconciledAt, "deliberation reconciliation")
+      : -1;
   if (
-    item.schemaVersion !== 1 || typeof item.sourceKind !== "string" ||
+    item.schemaVersion !== 1 ||
+    typeof item.sourceKind !== "string" ||
     !conversationDeliberationPatterns.reconciliationSourceKind.test(item.sourceKind) ||
-    typeof item.evidenceHash !== "string" || !hashPattern.test(item.evidenceHash) ||
+    typeof item.evidenceHash !== "string" ||
+    !hashPattern.test(item.evidenceHash) ||
     (item.priorFailureCode !== "worker_lease_expired" &&
       item.priorFailureCode !== "deliberation_execution_uncertain") ||
-    uncertainAtMs < requestedAtMs || reconciledAtMs < uncertainAtMs
+    uncertainAtMs < requestedAtMs ||
+    reconciledAtMs < uncertainAtMs
   ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
@@ -183,22 +193,31 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
   const leaseId = nullableText(row, "lease_id");
   const leaseOwner = nullableText(row, "lease_owner");
   const terminalAt = nullableText(row, "terminal_at");
-  const failureCode = nullableText(row, "failure_code") as ConversationDeliberationJobFailureCode | null;
+  const failureCode = nullableText(
+    row,
+    "failure_code",
+  ) as ConversationDeliberationJobFailureCode | null;
   const requestedAtMs = integer(row, "requested_at_ms");
   const reconciliation = decodeReconciliation(
     nullableText(row, "reconciliation_json"),
     requestedAtMs,
   );
   if (
-    !projectIdPattern.test(projectId) || !eventIdPattern.test(sourceEventId) ||
-    !deliberationIdPattern.test(deliberationId) || !hashPattern.test(requestHash) ||
-    !hashPattern.test(principalHash) || !policyIdPattern.test(policyId) ||
-    topic.length < 1 || topic.length > 4_096 ||
-    !(new Set(["queued", "leased", "settled", "uncertain"])).has(state) ||
-    attemptCount < 0 || attemptCount > 100_000 ||
+    !projectIdPattern.test(projectId) ||
+    !eventIdPattern.test(sourceEventId) ||
+    !deliberationIdPattern.test(deliberationId) ||
+    !hashPattern.test(requestHash) ||
+    !hashPattern.test(principalHash) ||
+    !policyIdPattern.test(policyId) ||
+    topic.length < 1 ||
+    topic.length > 4_096 ||
+    !new Set(["queued", "leased", "settled", "uncertain"]).has(state) ||
+    attemptCount < 0 ||
+    attemptCount > 100_000 ||
     (leaseId !== null && !/^cdl_[A-Za-z0-9_-]{32}$/u.test(leaseId)) ||
     (leaseOwner !== null && !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u.test(leaseOwner)) ||
-    (failureCode !== null && failureCode !== "worker_lease_expired" &&
+    (failureCode !== null &&
+      failureCode !== "worker_lease_expired" &&
       failureCode !== "deliberation_execution_uncertain") ||
     (reconciliation !== null && state !== "settled")
   ) {
@@ -213,17 +232,22 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
       "The conversation deliberation queue request time coordinates differ.",
     );
   }
-  if (leaseExpiresAt !== null && (
-    leaseExpiresAtMs === null ||
-    conversationDeliberationMilliseconds(leaseExpiresAt, "deliberation lease expiration") !== leaseExpiresAtMs
-  )) {
+  if (
+    leaseExpiresAt !== null &&
+    (leaseExpiresAtMs === null ||
+      conversationDeliberationMilliseconds(leaseExpiresAt, "deliberation lease expiration") !==
+        leaseExpiresAtMs)
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation queue lease time coordinates differ.",
     );
   }
-  if (terminalAt !== null &&
-    conversationDeliberationMilliseconds(terminalAt, "deliberation queue settlement") < requestedAtMs) {
+  if (
+    terminalAt !== null &&
+    conversationDeliberationMilliseconds(terminalAt, "deliberation queue settlement") <
+      requestedAtMs
+  ) {
     throw new ConversationDeliberationSQLiteError(
       "integrity_failed",
       "The conversation deliberation queue settlement is earlier than the request.",
@@ -248,7 +272,10 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
     state,
     attemptCount,
     leaseExpiresAt,
-    summary: decodeConversationDeliberationSummary(nullableText(row, "summary_json"), deliberationId),
+    summary: decodeConversationDeliberationSummary(
+      nullableText(row, "summary_json"),
+      deliberationId,
+    ),
     failureCode,
     reconciliation,
   };

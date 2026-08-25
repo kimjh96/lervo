@@ -25,14 +25,19 @@ export function parseRemoteCommandTimestamp(value: string, label: string): numbe
 
 export function isRemoteCommandTarget(target: unknown): target is RemoteCommandTarget {
   if (
-    typeof target !== "object" || target === null ||
-    !("projectId" in target) || typeof target.projectId !== "string" ||
-    !("projectIdentityHash" in target) || typeof target.projectIdentityHash !== "string"
+    typeof target !== "object" ||
+    target === null ||
+    !("projectId" in target) ||
+    typeof target.projectId !== "string" ||
+    !("projectIdentityHash" in target) ||
+    typeof target.projectIdentityHash !== "string"
   ) {
     return false;
   }
-  return /^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(target.projectId) &&
-    /^sha256:[a-f0-9]{64}$/.test(target.projectIdentityHash);
+  return (
+    /^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(target.projectId) &&
+    /^sha256:[a-f0-9]{64}$/.test(target.projectIdentityHash)
+  );
 }
 
 export function assertRemoteCommandTarget(target: RemoteCommandTarget): void {
@@ -48,8 +53,9 @@ export function sameRemoteCommandTarget(
   left: RemoteCommandTarget,
   right: RemoteCommandTarget,
 ): boolean {
-  return left.projectId === right.projectId &&
-    left.projectIdentityHash === right.projectIdentityHash;
+  return (
+    left.projectId === right.projectId && left.projectIdentityHash === right.projectIdentityHash
+  );
 }
 
 function resolveDuration(

@@ -53,10 +53,12 @@
           "mode": "lervo_generated",
           "userContentAllowed": false,
           "manifestPath": ".lervo/generated/manifests/doc_generated_0001.json",
-          "inputs": [{
-            "sourceId": "project-policy",
-            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-          }]
+          "inputs": [
+            {
+              "sourceId": "project-policy",
+              "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
         }
       },
       "contentPolicy": {
@@ -118,23 +120,27 @@
       "writesAllowed": false,
       "approvalStatus": "not_requested",
       "outcome": "review_required",
-      "sources": [{
-        "path": "README.md",
-        "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "byteCount": 120
-      }],
-      "candidates": [{
-        "candidateId": "migc_aaaaaaaaaaaaaaaa",
-        "artifactId": "art_candidate000001",
-        "artifactHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "sourcePath": "README.md",
-        "sourceHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "action": "create_sidecar",
-        "target": {
-          "path": ".lervo/documents/doc_readme_000001.yaml",
-          "expected": { "kind": "missing" }
+      "sources": [
+        {
+          "path": "README.md",
+          "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "byteCount": 120
         }
-      }],
+      ],
+      "candidates": [
+        {
+          "candidateId": "migc_aaaaaaaaaaaaaaaa",
+          "artifactId": "art_candidate000001",
+          "artifactHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "sourcePath": "README.md",
+          "sourceHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "action": "create_sidecar",
+          "target": {
+            "path": ".lervo/documents/doc_readme_000001.yaml",
+            "expected": { "kind": "missing" }
+          }
+        }
+      ],
       "warnings": ["candidate_review_required"]
     }
   }

@@ -47,15 +47,15 @@ export function createFirstPublicationArtifactObservation(publicationAuthorizati
   );
   return canonicalJson(artifact) === canonicalJson(authorization.artifact)
     ? {
-      schemaVersion: 1,
-      source: "first_publication_artifact",
-      state: "verified",
-      artifactSha256: artifact.sha256,
-    }
+        schemaVersion: 1,
+        source: "first_publication_artifact",
+        state: "verified",
+        artifactSha256: artifact.sha256,
+      }
     : {
-      schemaVersion: 1,
-      source: "first_publication_artifact",
-      state: "changed",
-      artifactSha256: artifact.sha256,
-    };
+        schemaVersion: 1,
+        source: "first_publication_artifact",
+        state: "changed",
+        artifactSha256: artifact.sha256,
+      };
 }

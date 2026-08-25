@@ -5,14 +5,10 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { inspectCliFirstPublicationPackageMetadataCandidate } from
-  "../lib/cli-first-publication-package-metadata-candidate.mjs";
-import { createFirstPublicationMetadataDecision } from
-  "../lib/first-publication-metadata-decision.mjs";
-import { createFirstPublicationPackageMetadataCandidate } from
-  "../lib/first-publication-package-metadata-candidate.mjs";
-import { formatFirstPublicationPackageMetadataCandidate } from
-  "../lib/first-publication-package-metadata-candidate-formatter.mjs";
+import { inspectCliFirstPublicationPackageMetadataCandidate } from "../lib/cli-first-publication-package-metadata-candidate.mjs";
+import { createFirstPublicationMetadataDecision } from "../lib/first-publication-metadata-decision.mjs";
+import { createFirstPublicationPackageMetadataCandidate } from "../lib/first-publication-package-metadata-candidate.mjs";
+import { formatFirstPublicationPackageMetadataCandidate } from "../lib/first-publication-package-metadata-candidate-formatter.mjs";
 import { sha256 } from "../lib/release-artifact-manifest.mjs";
 import {
   activationRepository,
@@ -22,10 +18,14 @@ import {
 
 const command = "scripts/show-cli-first-publication-package-metadata-candidate.mjs";
 const validArguments = [
-  "--repository", activationRepository,
-  "--license", "Apache-2.0",
-  "--scope-owner-kind", "organization",
-  "--scope-owner-name", "lervo",
+  "--repository",
+  activationRepository,
+  "--license",
+  "Apache-2.0",
+  "--scope-owner-kind",
+  "organization",
+  "--scope-owner-name",
+  "lervo",
 ];
 
 function decision() {
@@ -65,17 +65,16 @@ describe("first-publication package metadata candidate command", () => {
   it("rejects source changes made while the candidate is built", async () => {
     const prepared = await createActivationSourceFiles();
     try {
-      await assert.rejects(inspectCliFirstPublicationPackageMetadataCandidate(
-        decision(),
-        prepared.paths,
-        {
+      await assert.rejects(
+        inspectCliFirstPublicationPackageMetadataCandidate(decision(), prepared.paths, {
           createCandidate: async (input) => {
             const result = createFirstPublicationPackageMetadataCandidate(input);
             await writeFile(prepared.paths.packageManifestPath, "{}\n");
             return result;
           },
-        },
-      ), { code: "release_attestation_release_set_changed" });
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -144,7 +143,8 @@ describe("first-publication package metadata candidate command", () => {
     const secret = "secret-license-value";
     const result = run([
       ...validArguments.slice(0, 2),
-      "--license", `${secret}\nunsafe`,
+      "--license",
+      `${secret}\nunsafe`,
       ...validArguments.slice(4),
     ]);
     assert.equal(result.status, 1);

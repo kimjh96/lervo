@@ -18,8 +18,8 @@ export async function checkCliTrustedPublisherReadiness(
   dependencies = {},
 ) {
   const observeNpm = dependencies.observeNpmTrustedPublisher ?? observeNpmTrustedPublisher;
-  const observeGitHub = dependencies.observeGitHubPublisherEnvironment ??
-    observeGitHubPublisherEnvironment;
+  const observeGitHub =
+    dependencies.observeGitHubPublisherEnvironment ?? observeGitHubPublisherEnvironment;
   let packageManifest;
   let workflow;
   try {
@@ -34,10 +34,7 @@ export async function checkCliTrustedPublisherReadiness(
     );
   }
   const [npmObservation, githubObservation] = online
-    ? await Promise.all([
-        observeNpm(),
-        observeGitHub({ repository }),
-      ])
+    ? await Promise.all([observeNpm(), observeGitHub({ repository })])
     : [undefined, undefined];
   return createTrustedPublisherReadinessReport({
     repository,
@@ -59,24 +56,31 @@ const checkLabels = {
 const reasonMessages = {
   package_identity_invalid: "The public CLI package identity differs from the current contract.",
   package_repository_missing: "package.json has no GitHub repository URL.",
-  package_repository_mismatch: "The package.json repository URL differs from the selected repository.",
+  package_repository_mismatch:
+    "The package.json repository URL differs from the selected repository.",
   package_license_unresolved: "The license for public distribution is unresolved.",
   package_registry_unpinned: "publishConfig does not pin the public npm registry.",
   package_provenance_disabled: "npm provenance is disabled.",
   release_workflow_invalid: "The CLI release workflow structure is invalid.",
-  publish_job_already_active: "The real npm publication job is active before readiness is confirmed.",
+  publish_job_already_active:
+    "The real npm publication job is active before readiness is confirmed.",
   npm_observation_missing: "The online npm check was not run.",
   npm_observation_unavailable: "The npm configuration could not be inspected read-only.",
   npm_public_package_not_visible: "@lervo/cli is not visible in the public npm registry.",
-  npm_trust_not_observed: "npm Trusted Publisher was not checked because the public package is not visible.",
+  npm_trust_not_observed:
+    "npm Trusted Publisher was not checked because the public package is not visible.",
   npm_trusted_publisher_missing: "npm Trusted Publisher is not configured.",
   npm_publisher_provider_mismatch: "The npm publisher is not configured for GitHub Actions.",
-  npm_publisher_repository_mismatch: "The npm publisher repository differs from the selected repository.",
-  npm_publisher_workflow_mismatch: "The npm publisher workflow file differs from the release workflow.",
+  npm_publisher_repository_mismatch:
+    "The npm publisher repository differs from the selected repository.",
+  npm_publisher_workflow_mismatch:
+    "The npm publisher workflow file differs from the release workflow.",
   npm_publisher_environment_mismatch: "The npm publisher environment differs from npm-release.",
-  npm_publisher_permission_mismatch: "The npm publisher permission is not limited to stage publication.",
+  npm_publisher_permission_mismatch:
+    "The npm publisher permission is not limited to stage publication.",
   github_observation_missing: "The online GitHub environment check was not run.",
-  github_observation_unavailable: "The GitHub publication environment could not be inspected read-only.",
+  github_observation_unavailable:
+    "The GitHub publication environment could not be inspected read-only.",
   github_environment_missing: "The GitHub npm-release environment is missing.",
   github_required_reviewer_missing: "The npm-release environment has no required reviewer.",
   github_self_review_allowed: "The initiating actor can approve their own publication.",
@@ -87,11 +91,8 @@ export function formatTrustedPublisherReadiness(report) {
   const state = report.status === "ready" ? "ready" : "blocked";
   const lines = [`CLI Trusted Publisher readiness: ${state}`];
   for (const item of report.checks) {
-    const itemState = item.status === "ready"
-      ? "ready"
-      : item.status === "unknown"
-        ? "unknown"
-        : "blocked";
+    const itemState =
+      item.status === "ready" ? "ready" : item.status === "unknown" ? "unknown" : "blocked";
     lines.push(`- ${checkLabels[item.id]}: ${itemState}`);
     for (const reason of item.reasons) {
       lines.push(`  ${reasonMessages[reason] ?? "A readiness condition could not be verified."}`);

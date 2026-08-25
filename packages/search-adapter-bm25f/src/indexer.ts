@@ -55,21 +55,26 @@ function field(name: FieldName, value: string, weight: number): IndexedField | n
 }
 
 function weightedFrequency(source: IndexedSource, term: string): number {
-  return source.fields.reduce((sum, item) => sum + (item.frequencies.get(term) ?? 0) * item.weight, 0);
+  return source.fields.reduce(
+    (sum, item) => sum + (item.frequencies.get(term) ?? 0) * item.weight,
+    0,
+  );
 }
 
 function inverseDocumentFrequency(total: number, matching: number): number {
-  return Math.max(1, Math.floor((total + 1) * 1_000_000 / (matching + 1)));
+  return Math.max(1, Math.floor(((total + 1) * 1_000_000) / (matching + 1)));
 }
 
 function resultSetHash(hits: readonly SearchHit[]): string {
-  return canonicalHash(hits.map((hit) => ({
-    sourceKind: hit.source.kind,
-    sourceId: hit.source.sourceId,
-    contentHash: hit.source.contentHash,
-    rank: hit.rank,
-    score: hit.score,
-  })));
+  return canonicalHash(
+    hits.map((hit) => ({
+      sourceKind: hit.source.kind,
+      sourceId: hit.source.sourceId,
+      contentHash: hit.source.contentHash,
+      rank: hit.rank,
+      score: hit.score,
+    })),
+  );
 }
 
 export class Bm25fSearchIndex implements SearchEvaluationIndexPort {
@@ -88,8 +93,11 @@ export class Bm25fSearchIndex implements SearchEvaluationIndexPort {
         ...input.labels.map((label) => field("label", label, 10)),
         field("text", input.text, 2),
       ].filter((item): item is IndexedField => item !== null);
-      const length = fields.reduce((sum, item) =>
-        sum + [...item.frequencies.values()].reduce((fieldSum, count) => fieldSum + count, 0), 0);
+      const length = fields.reduce(
+        (sum, item) =>
+          sum + [...item.frequencies.values()].reduce((fieldSum, count) => fieldSum + count, 0),
+        0,
+      );
       return { input, fields, length };
     });
     const totalLength = this.sources.reduce((sum, source) => sum + source.length, 0);
@@ -104,32 +112,52 @@ export class Bm25fSearchIndex implements SearchEvaluationIndexPort {
 
   search(query: string, limit = 10): SearchResponse {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_MAX_RESULTS) {
-      throw new SearchError("invalid_query", `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`);
+      throw new SearchError(
+        "invalid_query",
+        `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`,
+      );
     }
     const terms = [...new Set(searchTerms(query, "invalid_query"))];
     const phrase = normalizeSearchText(query);
-    const documentFrequencies = new Map(terms.map((term) => [
-      term,
-      this.sources.filter((source) => weightedFrequency(source, term) > 0).length,
-    ]));
-    const scored = this.sources.map((source) => {
-      let score = 0;
-      for (const term of terms) {
-        const frequency = weightedFrequency(source, term);
-        if (frequency === 0) continue;
-        const lengthNormalization = 8 + Math.floor(4 * source.length / this.averageLength);
-        const saturation = Math.floor(frequency * 2_000 / (frequency + lengthNormalization));
-        score += Math.floor(
-          inverseDocumentFrequency(this.sources.length, documentFrequencies.get(term)!) * saturation / 1_000,
-        );
-      }
-      const matchedFields = [...new Set(source.fields.filter((item) =>
-        item.normalized.includes(phrase) || terms.some((term) => item.frequencies.has(term)))
-        .map((item) => item.name))].sort() as SearchHit["matchedFields"];
-      return { source, score, matchedFields };
-    }).filter((item) => item.score > 0)
-      .sort((left, right) => right.score - left.score ||
-        compareText(searchSourceKey(left.source.input), searchSourceKey(right.source.input)))
+    const documentFrequencies = new Map(
+      terms.map((term) => [
+        term,
+        this.sources.filter((source) => weightedFrequency(source, term) > 0).length,
+      ]),
+    );
+    const scored = this.sources
+      .map((source) => {
+        let score = 0;
+        for (const term of terms) {
+          const frequency = weightedFrequency(source, term);
+          if (frequency === 0) continue;
+          const lengthNormalization = 8 + Math.floor((4 * source.length) / this.averageLength);
+          const saturation = Math.floor((frequency * 2_000) / (frequency + lengthNormalization));
+          score += Math.floor(
+            (inverseDocumentFrequency(this.sources.length, documentFrequencies.get(term)!) *
+              saturation) /
+              1_000,
+          );
+        }
+        const matchedFields = [
+          ...new Set(
+            source.fields
+              .filter(
+                (item) =>
+                  item.normalized.includes(phrase) ||
+                  terms.some((term) => item.frequencies.has(term)),
+              )
+              .map((item) => item.name),
+          ),
+        ].sort() as SearchHit["matchedFields"];
+        return { source, score, matchedFields };
+      })
+      .filter((item) => item.score > 0)
+      .sort(
+        (left, right) =>
+          right.score - left.score ||
+          compareText(searchSourceKey(left.source.input), searchSourceKey(right.source.input)),
+      )
       .slice(0, limit);
     const hits: SearchHit[] = scored.map((item, index) => ({
       source: {

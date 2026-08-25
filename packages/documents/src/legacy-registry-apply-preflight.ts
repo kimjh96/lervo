@@ -3,10 +3,7 @@ import { resolve } from "node:path";
 
 import type { LegacyRegistryMigrationPlan } from "@lervo/schemas";
 
-import {
-  captureSidecarDirectorySnapshot,
-  sameSidecarSnapshot,
-} from "./apply-preflight.js";
+import { captureSidecarDirectorySnapshot, sameSidecarSnapshot } from "./apply-preflight.js";
 import { inspectTargetFile, readStableFile } from "./filesystem.js";
 import { canonicalJsonBytes, sha256 } from "./hash.js";
 import {
@@ -30,8 +27,7 @@ function samePathSnapshot(
   if (left.kind === "file" && right.kind === "file") {
     return left.contentHash === right.contentHash && left.byteCount === right.byteCount;
   }
-  return left.kind === "unsafe" && right.kind === "unsafe" &&
-    left.reasonCode === right.reasonCode;
+  return left.kind === "unsafe" && right.kind === "unsafe" && left.reasonCode === right.reasonCode;
 }
 
 async function requireMissingMarker(root: string): Promise<void> {
@@ -51,7 +47,9 @@ export async function revalidateReferencedDocuments(
   for (const reference of plan.referencedDocuments) {
     const current = await snapshotLegacyMigrationPath(root, reference.path, 4 * 1024 * 1024);
     if (!samePathSnapshot(current, reference.snapshot)) {
-      stale(`A legacy registry referenced document changed after the dry run: ${reference.documentId}`);
+      stale(
+        `A legacy registry referenced document changed after the dry run: ${reference.documentId}`,
+      );
     }
   }
 }
@@ -81,11 +79,7 @@ export async function revalidateLegacyRegistryPlanBefore(
   if (!samePathSnapshot(archive, plan.archiveTarget.expected)) {
     stale("The legacy registry archive target changed after the dry run.");
   }
-  const directory = await snapshotLegacyMigrationPath(
-    root,
-    plan.manifestDirectory.path,
-    64 * 1024,
-  );
+  const directory = await snapshotLegacyMigrationPath(root, plan.manifestDirectory.path, 64 * 1024);
   if (!samePathSnapshot(directory, plan.manifestDirectory.expected)) {
     stale("The document manifest directory changed after the dry run.");
   }
@@ -121,16 +115,13 @@ export async function verifyLegacyRegistryReadyForTransition(
   }
   const archive = await snapshotLegacyMigrationPath(root, plan.archiveTarget.path, 4 * 1024 * 1024);
   if (
-    archive.kind !== "file" || archive.contentHash !== plan.source.contentHash ||
+    archive.kind !== "file" ||
+    archive.contentHash !== plan.source.contentHash ||
     archive.byteCount !== plan.source.byteCount
   ) {
     stale("The staged legacy registry archive differs from the source.");
   }
-  const directory = await snapshotLegacyMigrationPath(
-    root,
-    plan.manifestDirectory.path,
-    64 * 1024,
-  );
+  const directory = await snapshotLegacyMigrationPath(root, plan.manifestDirectory.path, 64 * 1024);
   if (directory.kind !== "missing") {
     stale("The document manifest directory appeared before sidecar publication.");
   }
@@ -144,7 +135,9 @@ export async function verifyLegacyRegistryPublished(input: {
 }): Promise<void> {
   const source = await inspectTargetFile(input.root, input.plan.source.path, 4 * 1024 * 1024);
   if (source.kind !== "missing") {
-    stale("The legacy registry source path was not deactivated according to the approved disposition.");
+    stale(
+      "The legacy registry source path was not deactivated according to the approved disposition.",
+    );
   }
   const archive = await snapshotLegacyMigrationPath(
     input.root,
@@ -166,8 +159,9 @@ export async function verifyLegacyRegistryPublished(input: {
 }
 
 export async function legacyRegistrySourceIsMissing(root: string): Promise<boolean> {
-  return (await inspectTargetFile(root, ".lervo/documents.yaml", 4 * 1024 * 1024)).kind ===
-    "missing";
+  return (
+    (await inspectTargetFile(root, ".lervo/documents.yaml", 4 * 1024 * 1024)).kind === "missing"
+  );
 }
 
 export async function isExactSidecarDirectory(input: {
@@ -187,15 +181,18 @@ export function structuralLayoutHash(input: {
   sourceRegistryHash?: string;
   sidecars?: ReadonlyMap<string, string>;
 }): string {
-  return sha256(canonicalJsonBytes({
-    mode: input.mode,
-    sourceRegistryHash: input.sourceRegistryHash,
-    sidecars: input.sidecars === undefined
-      ? []
-      : [...input.sidecars]
-        .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
-        .map(([path, contentHash]) => ({ path, contentHash })),
-  }));
+  return sha256(
+    canonicalJsonBytes({
+      mode: input.mode,
+      sourceRegistryHash: input.sourceRegistryHash,
+      sidecars:
+        input.sidecars === undefined
+          ? []
+          : [...input.sidecars]
+              .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+              .map(([path, contentHash]) => ({ path, contentHash })),
+    }),
+  );
 }
 
 export async function assertSafeLervoDirectory(root: string): Promise<void> {

@@ -49,12 +49,15 @@ function markerBytesEqual(
   outputBytes: Uint8Array,
   outputBlock: ParsedManagedBlock,
 ): boolean {
-  return bytesEqual(
-    slice(sourceBytes, sourceBlock.startMarkerRange.start, sourceBlock.startMarkerRange.end),
-    slice(outputBytes, outputBlock.startMarkerRange.start, outputBlock.startMarkerRange.end),
-  ) && bytesEqual(
-    slice(sourceBytes, sourceBlock.endMarkerRange.start, sourceBlock.endMarkerRange.end),
-    slice(outputBytes, outputBlock.endMarkerRange.start, outputBlock.endMarkerRange.end),
+  return (
+    bytesEqual(
+      slice(sourceBytes, sourceBlock.startMarkerRange.start, sourceBlock.startMarkerRange.end),
+      slice(outputBytes, outputBlock.startMarkerRange.start, outputBlock.startMarkerRange.end),
+    ) &&
+    bytesEqual(
+      slice(sourceBytes, sourceBlock.endMarkerRange.start, sourceBlock.endMarkerRange.end),
+      slice(outputBytes, outputBlock.endMarkerRange.start, outputBlock.endMarkerRange.end),
+    )
   );
 }
 
@@ -64,13 +67,18 @@ function sameBlockTopology(
   outputBytes: Uint8Array,
   outputBlocks: readonly ParsedManagedBlock[],
 ): boolean {
-  return sourceBlocks.length === outputBlocks.length && sourceBlocks.every((sourceBlock, index) => {
-    const outputBlock = outputBlocks[index];
-    return outputBlock !== undefined &&
-      sourceBlock.blockId === outputBlock.blockId &&
-      sourceBlock.markerFamily === outputBlock.markerFamily &&
-      markerBytesEqual(sourceBytes, sourceBlock, outputBytes, outputBlock);
-  });
+  return (
+    sourceBlocks.length === outputBlocks.length &&
+    sourceBlocks.every((sourceBlock, index) => {
+      const outputBlock = outputBlocks[index];
+      return (
+        outputBlock !== undefined &&
+        sourceBlock.blockId === outputBlock.blockId &&
+        sourceBlock.markerFamily === outputBlock.markerFamily &&
+        markerBytesEqual(sourceBytes, sourceBlock, outputBytes, outputBlock)
+      );
+    })
+  );
 }
 
 function validateRequest(input: CreateManagedBlockPatchCandidateInput): string {
@@ -119,8 +127,10 @@ export function createManagedBlockPatchCandidate(
   const replacementBytes = new Uint8Array(input.replacementBytes);
   validateReplacement(replacementBytes);
 
-  if (input.source.byteCount !== sourceBytes.byteLength ||
-      input.source.contentHash !== sha256(sourceBytes)) {
+  if (
+    input.source.byteCount !== sourceBytes.byteLength ||
+    input.source.contentHash !== sha256(sourceBytes)
+  ) {
     throw new ManagedBlockPatchError(
       "source_changed",
       "The managed block patch source differs from the byte count or hash bound to the request.",
@@ -174,12 +184,15 @@ export function createManagedBlockPatchCandidate(
     slice(outputBytes, outputSuffixStart),
   );
   if (
-    parsedOutput.status !== "valid" || outputTarget === undefined ||
+    parsedOutput.status !== "valid" ||
+    outputTarget === undefined ||
     !sameBlockTopology(sourceBytes, parsedSource.blocks, outputBytes, parsedOutput.blocks) ||
     !bytesEqual(
       slice(outputBytes, outputTarget.contentRange.start, outputTarget.contentRange.end),
       replacementBytes,
-    ) || !prefixUnchanged || !suffixUnchanged
+    ) ||
+    !prefixUnchanged ||
+    !suffixUnchanged
   ) {
     throw new ManagedBlockPatchError(
       "output_structure_invalid",

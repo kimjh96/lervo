@@ -1,4 +1,6 @@
 export * from "./adapter.js";
+export * from "./capability-package.js";
+export * from "./capability-activation.js";
 export * from "./common.js";
 export * from "./context-evidence.js";
 export * from "./context-recommendation.js";

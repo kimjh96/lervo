@@ -1,7 +1,4 @@
-import {
-  type AdapterContextEnvelope,
-  cloneContextScope,
-} from "@lervo/schemas";
+import { type AdapterContextEnvelope, cloneContextScope } from "@lervo/schemas";
 import type { LoadedContext } from "@lervo/context";
 
 import { createInlineThresholdPolicy } from "./delivery-policy.js";

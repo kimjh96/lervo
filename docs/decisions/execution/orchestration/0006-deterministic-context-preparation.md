@@ -5,7 +5,7 @@
 
 ## Context
 
-M0 distinguished selection (E1) from loading (E2), but no implementation selected and safely read repository documents. Multiple rules may select one document, specialist handoffs must compose with path rules, and neither a filename nor an unsafe symlink proves reading. Selection policy must remain separate from the event store, CAS, provider adapter, and execution lifecycle.
+M0 separated selection (E1) from loading (E2), but no implementation selected and safely read repository documents. Multiple rules may select one document, specialist handoffs must compose with path rules, and neither a filename nor an unsafe symlink proves reading. Selection policy must remain separate from the event store, CAS, provider adapter, and execution lifecycle.
 
 ## Decision
 
@@ -18,19 +18,19 @@ Event append, CAS, adapter envelopes, and E3 remain outside the package. Selecti
 ### Deterministic selection
 
 - Normalize expected paths as repository-relative paths using `/`; reject absolute paths, `..`, and NUL.
-- Select each `AGENTS.md` from the root through the nearest ancestor of an expected changed file, excluding sibling instructions.
-- For an unregistered instruction document, derive a stable `doc_path_...` ID from a SHA-256 prefix of its normalized path; prefer the registered ID when available.
+- Select every `AGENTS.md` from the root through the nearest ancestor of each expected changed file; exclude sibling instructions.
+- For an unregistered instruction document, derive a stable `doc_path_...` ID from a SHA-256 prefix of its normalized path. Prefer its registered ID when available.
 - Match registry `connectedPaths` against expected paths with Node.js `path.matchesGlob`.
-- Treat `repository.instructions` and `path.instructions` as built-in role rules; resolve other required rules through a document-ID map.
-- Read a document selected by multiple rules once, while retaining one E1 receipt per reason.
-- Discover readable shared context as E0, but automatically require only publications referenced by a valid handoff.
+- Treat `repository.instructions` and `path.instructions` as built-in role rules. Resolve other required rules through a document-ID map.
+- Read a document selected by multiple rules once, but retain one E1 receipt per reason.
+- Discover readable shared context as E0. Automatically require only publications referenced by a valid handoff.
 - Treat duplicate document paths, shared-context IDs, or handoff IDs; unresolved required rules; and conflicting expected hashes as contract errors.
 
 ### Safe E2 loading
 
 E1 never contains the current content hash. Produce E2 only after reading all bytes and computing SHA-256 and byte count.
 
-Validate the repository root and every path component with `lstat`; reject symlinks and non-file/non-directory entries. Open the final file with `O_NOFOLLOW`. Compare device, inode, size, mtime, and ctime before and after reading, then confirm the path still resolves to the same inode and canonical path. A handoff document's bytes must match its publication hash.
+Validate the repository root and every path component with `lstat`; reject symlinks and non-file/non-directory entries. Open the final file with `O_NOFOLLOW`. Compare device, inode, size, mtime, and ctime before and after reading, then confirm that the path still resolves to the same inode and canonical path. A handoff document's bytes must match its publication hash.
 
 Before E2, validate that the plan contains only current project/run/session E0/E1 evidence and that every document and reason belongs to it. Reject cross-run receipts and plans containing old E2/E3. This package owns integrity validation for the `LoadedContext` plan, documents, and E0–E2 evidence. Array order is non-semantic; match by ID.
 
@@ -38,9 +38,9 @@ Failure to load any document returns neither `LoadedContext` nor a partial E2 se
 
 ### Snapshot invalidation
 
-Immediately before use, revalidate loaded files and publications. Return distinct machine reasons for absence, unsafe paths, content changes, unpublished, expired, or replaced publications, revoked access, changed document IDs, and hash changes. Cross-project publications cannot affect replacement relations in this project.
+Immediately before use, revalidate loaded files and publications. Return distinct machine reasons for absent or unsafe paths; content changes; unpublished, expired, or replaced publications; revoked access; changed document IDs; and hash changes. Cross-project publications cannot affect replacement relations in this project.
 
-Reasons contain no source body. The orchestrator records document ID and reason in `context.invalidated`, closes write capability with `required_context_missing`, and prepares context again.
+Reasons contain no source body. The orchestrator records the document ID and reason in `context.invalidated`, closes write capability with `required_context_missing`, and prepares context again.
 
 ### Failures and privacy
 

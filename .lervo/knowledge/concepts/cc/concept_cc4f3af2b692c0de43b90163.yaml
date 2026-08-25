@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_a778d6d0521c019bc82d4d02
+  - uv_0e09ac56ba2ac3f601c269e0
 title: "ADR-0016: Local skill resolution and per-run lock"
 type: decision

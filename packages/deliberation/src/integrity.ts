@@ -1,11 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "@lervo/event-contract";
-import type {
-  DeliberationArtifact,
-  DeliberationOutcome,
-  DeliberationPolicy,
-} from "@lervo/schemas";
+import type { DeliberationArtifact, DeliberationOutcome, DeliberationPolicy } from "@lervo/schemas";
 
 export function deliberationSha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;

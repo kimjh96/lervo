@@ -9,13 +9,20 @@ import { registerSearchContextDocument } from "./search-context-fixture.js";
 
 const roots: string[] = [];
 
-async function command(root: string, args: string[]): Promise<{ code: number; output: string; error: string }> {
+async function command(
+  root: string,
+  args: string[],
+): Promise<{ code: number; output: string; error: string }> {
   let output = "";
   let error = "";
   const code = await runCli(args, {
     cwd: root,
-    stdout: (message) => { output += message; },
-    stderr: (message) => { error += message; },
+    stdout: (message) => {
+      output += message;
+    },
+    stderr: (message) => {
+      error += message;
+    },
   });
   return { code, output, error };
 }
@@ -33,8 +40,13 @@ async function reviewedCase(root: string, query: string): Promise<string> {
   expect(searched.code, searched.error).toBe(0);
   const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
   const assessed = await command(root, [
-    "search", "assess", attemptId, "--outcome", "accepted",
-    "--selected", "document:doc_cli_search_context",
+    "search",
+    "assess",
+    attemptId,
+    "--outcome",
+    "accepted",
+    "--selected",
+    "document:doc_cli_search_context",
   ]);
   expect(assessed.code, assessed.error).toBe(0);
   const created = await command(root, ["search", "case", attemptId, "--query", query, "--json"]);
@@ -53,9 +65,21 @@ describe("lervo search evaluation bundles", () => {
     const activeCaseId = await reviewedCase(root, "zephyrcontext");
 
     const sufficient = await command(root, [
-      "search", "bundle", "create", "researcher.discovery",
-      "--role", "researcher", "--task-type", "source-discovery", "--minimum-cases", "1",
-      "--case", activeCaseId, "--replace", `${oldCaseId}:${activeCaseId}`, "--json",
+      "search",
+      "bundle",
+      "create",
+      "researcher.discovery",
+      "--role",
+      "researcher",
+      "--task-type",
+      "source-discovery",
+      "--minimum-cases",
+      "1",
+      "--case",
+      activeCaseId,
+      "--replace",
+      `${oldCaseId}:${activeCaseId}`,
+      "--json",
     ]);
     expect(sufficient.code, sufficient.error).toBe(0);
     expect(JSON.parse(sufficient.output)).toMatchObject({
@@ -66,14 +90,27 @@ describe("lervo search evaluation bundles", () => {
     expect(sufficient.output).not.toContain("zephyrcontext");
 
     const insufficient = await command(root, [
-      "search", "bundle", "create", "designer.context",
-      "--role", "designer", "--task-type", "context-review", "--minimum-cases", "2",
-      "--case", activeCaseId,
+      "search",
+      "bundle",
+      "create",
+      "designer.context",
+      "--role",
+      "designer",
+      "--task-type",
+      "context-review",
+      "--minimum-cases",
+      "2",
+      "--case",
+      activeCaseId,
     ]);
     expect(insufficient.code, insufficient.error).toBe(0);
 
     const readyReport = await command(root, [
-      "search", "bundle", "report", "researcher.discovery", "--json",
+      "search",
+      "bundle",
+      "report",
+      "researcher.discovery",
+      "--json",
     ]);
     expect(readyReport.code, readyReport.error).toBe(0);
     expect(JSON.parse(readyReport.output).coverages[0]).toMatchObject({
@@ -85,7 +122,11 @@ describe("lervo search evaluation bundles", () => {
     });
 
     const blockedReport = await command(root, [
-      "search", "bundle", "report", "designer.context", "--json",
+      "search",
+      "bundle",
+      "report",
+      "designer.context",
+      "--json",
     ]);
     expect(blockedReport.code).toBe(1);
     expect(blockedReport.error).toBe("");
@@ -97,7 +138,11 @@ describe("lervo search evaluation bundles", () => {
     });
 
     const insufficientEvaluation = await command(root, [
-      "search", "evaluate", "--bundle", "designer.context", "--json",
+      "search",
+      "evaluate",
+      "--bundle",
+      "designer.context",
+      "--json",
     ]);
     expect(insufficientEvaluation.code).toBe(1);
     expect(insufficientEvaluation.error).toBe("");
@@ -107,7 +152,11 @@ describe("lervo search evaluation bundles", () => {
     });
 
     const evaluated = await command(root, [
-      "search", "evaluate", "--bundle", "researcher.discovery", "--json",
+      "search",
+      "evaluate",
+      "--bundle",
+      "researcher.discovery",
+      "--json",
     ]);
     expect(evaluated.code, evaluated.error).toBe(0);
     const evaluation = JSON.parse(evaluated.output) as {
@@ -120,9 +169,13 @@ describe("lervo search evaluation bundles", () => {
     expect(evaluation.results).toHaveLength(1);
     expect(evaluated.output).not.toContain("zephyrcontext");
 
-    const bundleFiles = (await readdir(resolve(root, ".lervo/search-evaluations")))
-      .filter((name) => name.endsWith(".bundle.yaml"));
-    expect(bundleFiles).toEqual(["designer.context.bundle.yaml", "researcher.discovery.bundle.yaml"]);
+    const bundleFiles = (await readdir(resolve(root, ".lervo/search-evaluations"))).filter((name) =>
+      name.endsWith(".bundle.yaml"),
+    );
+    expect(bundleFiles).toEqual([
+      "designer.context.bundle.yaml",
+      "researcher.discovery.bundle.yaml",
+    ]);
   });
 
   it("rejects a replacement cycle and a duplicate role/task scope", async () => {
@@ -130,20 +183,55 @@ describe("lervo search evaluation bundles", () => {
     const first = await reviewedCase(root, "tinyartifact");
     const second = await reviewedCase(root, "zephyrcontext");
     const cyclic = await command(root, [
-      "search", "bundle", "create", "general.cycle",
-      "--role", "general", "--task-type", "cycle", "--minimum-cases", "1",
-      "--replace", `${first}:${second}`, "--replace", `${second}:${first}`,
+      "search",
+      "bundle",
+      "create",
+      "general.cycle",
+      "--role",
+      "general",
+      "--task-type",
+      "cycle",
+      "--minimum-cases",
+      "1",
+      "--replace",
+      `${first}:${second}`,
+      "--replace",
+      `${second}:${first}`,
     ]);
     expect(cyclic.code).toBe(1);
     expect(cyclic.error).toContain("contain a cycle");
 
-    expect((await command(root, [
-      "search", "bundle", "create", "general.primary",
-      "--role", "general", "--task-type", "review", "--minimum-cases", "1", "--case", first,
-    ])).code).toBe(0);
+    expect(
+      (
+        await command(root, [
+          "search",
+          "bundle",
+          "create",
+          "general.primary",
+          "--role",
+          "general",
+          "--task-type",
+          "review",
+          "--minimum-cases",
+          "1",
+          "--case",
+          first,
+        ])
+      ).code,
+    ).toBe(0);
     const duplicate = await command(root, [
-      "search", "bundle", "create", "general.secondary",
-      "--role", "general", "--task-type", "review", "--minimum-cases", "1", "--case", second,
+      "search",
+      "bundle",
+      "create",
+      "general.secondary",
+      "--role",
+      "general",
+      "--task-type",
+      "review",
+      "--minimum-cases",
+      "1",
+      "--case",
+      second,
     ]);
     expect(duplicate.code).toBe(1);
     expect(duplicate.error).toContain("same role and task type");

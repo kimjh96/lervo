@@ -97,14 +97,16 @@ describe("managed block patch candidate", () => {
       },
     });
     expect(JSON.parse(decoder.decode(result.candidateBytes))).toEqual(result.artifact.candidate);
-    expect(calculateManagedBlockPatchCandidateId(result.artifact.candidate))
-      .toBe(result.artifact.candidate.candidateId);
+    expect(calculateManagedBlockPatchCandidateId(result.artifact.candidate)).toBe(
+      result.artifact.candidate.candidateId,
+    );
 
     const before = parseManagedMarkdownBlocks(input.bytes);
     const after = parseManagedMarkdownBlocks(result.outputBytes);
     expect(after.status).toBe("valid");
-    expect(after.blocks.map((block) => [block.blockId, block.markerFamily]))
-      .toEqual(before.blocks.map((block) => [block.blockId, block.markerFamily]));
+    expect(after.blocks.map((block) => [block.blockId, block.markerFamily])).toEqual(
+      before.blocks.map((block) => [block.blockId, block.markerFamily]),
+    );
     const beforeTarget = before.blocks.find((block) => block.blockId === "summary");
     const afterTarget = after.blocks.find((block) => block.blockId === "summary");
     expect(result.outputBytes.slice(0, afterTarget?.contentRange.start)).toEqual(
@@ -140,7 +142,11 @@ describe("managed block patch candidate", () => {
       make: () => {
         const input = source("README.md", fixtureSource());
         input.bytes[0] = 0x23;
-        return { source: input, blockId: "summary", replacementBytes: encoder.encode("New content\r\n") };
+        return {
+          source: input,
+          blockId: "summary",
+          replacementBytes: encoder.encode("New content\r\n"),
+        };
       },
       code: "source_changed",
     },
@@ -230,12 +236,14 @@ describe("managed block patch candidate", () => {
       make: () => ({
         source: source("README.md", fixtureSource()),
         blockId: "summary",
-        replacementBytes: encoder.encode([
-          "<!-- lervo:begin block=injected schema=1 -->",
-          "injected",
-          "<!-- lervo:end block=injected -->",
-          "",
-        ].join("\n")),
+        replacementBytes: encoder.encode(
+          [
+            "<!-- lervo:begin block=injected schema=1 -->",
+            "injected",
+            "<!-- lervo:end block=injected -->",
+            "",
+          ].join("\n"),
+        ),
       }),
       code: "output_structure_invalid",
     },
@@ -246,17 +254,22 @@ describe("managed block patch candidate", () => {
   });
 
   it("never writes a patch against previous-product markers", () => {
-    const legacy = source("README.md", [
-      `<!-- ${previousProductPrefix}:begin block=summary schema=1 -->`,
-      "legacy content",
-      `<!-- ${previousProductPrefix}:end block=summary -->`,
-      "",
-    ].join("\n"));
+    const legacy = source(
+      "README.md",
+      [
+        `<!-- ${previousProductPrefix}:begin block=summary schema=1 -->`,
+        "legacy content",
+        `<!-- ${previousProductPrefix}:end block=summary -->`,
+        "",
+      ].join("\n"),
+    );
 
-    expect(() => createManagedBlockPatchCandidate({
-      source: legacy,
-      blockId: "summary",
-      replacementBytes: encoder.encode("new content\n"),
-    })).toThrowError(expect.objectContaining({ code: "legacy_marker_not_writable" }));
+    expect(() =>
+      createManagedBlockPatchCandidate({
+        source: legacy,
+        blockId: "summary",
+        replacementBytes: encoder.encode("new content\n"),
+      }),
+    ).toThrowError(expect.objectContaining({ code: "legacy_marker_not_writable" }));
   });
 });

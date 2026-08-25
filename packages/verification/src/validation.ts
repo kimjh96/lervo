@@ -42,7 +42,9 @@ export async function resolveVerificationWorkingDirectories(
       const stats = await lstat(target);
       const realTarget = await realpath(target);
       if (
-        !isWithin(root, target) || !stats.isDirectory() || stats.isSymbolicLink() ||
+        !isWithin(root, target) ||
+        !stats.isDirectory() ||
+        stats.isSymbolicLink() ||
         realTarget !== expectedRealTarget
       ) {
         throw new Error("unsafe cwd");

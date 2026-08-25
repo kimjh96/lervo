@@ -10,16 +10,27 @@ export const terminalTurnDeclaredEventPayloadSchema = {
     declarationId: { type: "string", pattern: "^tdecl_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$" },
     contextEventId: eventIdSchema,
     repositoryRevision: sha256Schema,
-    taskMode: { type: "string", enum: ["inquiry", "change", "review", "continuation", "approval_response"] },
+    taskMode: {
+      type: "string",
+      enum: ["inquiry", "change", "review", "continuation", "approval_response"],
+    },
     canonicalizationDisposition: {
       type: "string",
-      enum: ["not_applicable_read_only", "canonical_sources_current", "canonical_sources_updated", "pending_user_approval"],
+      enum: [
+        "not_applicable_read_only",
+        "canonical_sources_current",
+        "canonical_sources_updated",
+        "pending_user_approval",
+      ],
     },
     knowledgeDisposition: {
       type: "string",
       enum: ["not_applicable_read_only", "current", "refreshed", "pending_user_approval"],
     },
-    deliberationDisposition: { type: "string", enum: ["not_requested", "completed", "no_consensus", "failed"] },
+    deliberationDisposition: {
+      type: "string",
+      enum: ["not_requested", "completed", "no_consensus", "failed"],
+    },
     deliberationId: {
       anyOf: [
         { type: "string", pattern: "^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$" },
@@ -41,7 +52,10 @@ export const terminalTurnDeclaredEventPayloadSchema = {
   ],
   allOf: [
     {
-      if: { properties: { deliberationDisposition: { const: "not_requested" } }, required: ["deliberationDisposition"] },
+      if: {
+        properties: { deliberationDisposition: { const: "not_requested" } },
+        required: ["deliberationDisposition"],
+      },
       then: { properties: { deliberationId: { type: "null" } } },
       else: { properties: { deliberationId: { type: "string" } } },
     },
@@ -49,4 +63,6 @@ export const terminalTurnDeclaredEventPayloadSchema = {
   additionalProperties: false,
 } as const;
 
-export type TerminalTurnDeclaredEventPayload = FromSchema<typeof terminalTurnDeclaredEventPayloadSchema>;
+export type TerminalTurnDeclaredEventPayload = FromSchema<
+  typeof terminalTurnDeclaredEventPayloadSchema
+>;

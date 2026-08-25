@@ -3,8 +3,7 @@ import {
   bindFirstPublicationStageApprovalTerminal,
   validateFirstPublicationStageApprovalAttempt,
 } from "./first-publication-stage-approval-records.mjs";
-import { inspectFirstPublicationPublicRelease } from
-  "./first-publication-public-release-policy.mjs";
+import { inspectFirstPublicationPublicRelease } from "./first-publication-public-release-policy.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
@@ -18,13 +17,21 @@ function fail(code = "first_publication_stage_approval_reconciliation_invalid") 
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
-  if (typeof value !== "string" || !timestampPattern.test(value) ||
-      !Number.isFinite(Date.parse(value))) fail();
+  if (
+    typeof value !== "string" ||
+    !timestampPattern.test(value) ||
+    !Number.isFinite(Date.parse(value))
+  )
+    fail();
   return Date.parse(value);
 }
 
@@ -39,8 +46,7 @@ function stageCheck(stage) {
       reasons: ["approval_stage_still_present"],
     };
   }
-  if (["ambiguous", "replacement_observed"].includes(stage?.state) &&
-      exactKeys(stage, ["state"])) {
+  if (["ambiguous", "replacement_observed"].includes(stage?.state) && exactKeys(stage, ["state"])) {
     return {
       id: "approval_stage_absent",
       status: "unknown",
@@ -86,7 +92,8 @@ export function createFirstPublicationStageApprovalReconciliationReport({
     stageReviewReport?.evidenceDigest !== authorization?.binding?.stageReviewEvidenceDigest ||
     observation?.schemaVersion !== 1 ||
     observation.source !== "npm_stage_approval_reconciliation" ||
-    observation.state !== "observed" || observation.registry !== attempt.stage.registry ||
+    observation.state !== "observed" ||
+    observation.registry !== attempt.stage.registry ||
     observation.package !== attempt.target.package ||
     observation.version !== attempt.target.version ||
     observation.distTag !== attempt.stage.distTag ||
@@ -94,7 +101,8 @@ export function createFirstPublicationStageApprovalReconciliationReport({
     observation.userConfig !== "rechecked_unchanged" ||
     observation.temporaryFiles !== "removed" ||
     timestamp(observedAt) < timestamp(terminal.completedAt)
-  ) fail();
+  )
+    fail();
   let release;
   try {
     release = inspectFirstPublicationPublicRelease({
@@ -152,10 +160,7 @@ export function createFirstPublicationStageApprovalReconciliationReport({
   return { ...body, evidenceDigest: canonicalDigest(body) };
 }
 
-export function validateFirstPublicationStageApprovalReconciliationReport(
-  report,
-  evidence,
-) {
+export function validateFirstPublicationStageApprovalReconciliationReport(report, evidence) {
   const expected = createFirstPublicationStageApprovalReconciliationReport(evidence);
   if (canonicalJson(report) !== canonicalJson(expected)) fail();
   return report;
@@ -168,47 +173,79 @@ export function validateFirstPublicationStageApprovalReconciliationReportDocumen
   const npm = report?.npm;
   if (
     !exactKeys(report, [
-      "schemaVersion", "status", "evidenceType", "outcome", "target", "binding",
-      "npm", "checks", "limitations", "sideEffects", "evidenceDigest",
-    ]) || report.schemaVersion !== 1 || report.status !== "evidence_bound" ||
+      "schemaVersion",
+      "status",
+      "evidenceType",
+      "outcome",
+      "target",
+      "binding",
+      "npm",
+      "checks",
+      "limitations",
+      "sideEffects",
+      "evidenceDigest",
+    ]) ||
+    report.schemaVersion !== 1 ||
+    report.status !== "evidence_bound" ||
     report.evidenceType !== "first_publication_npm_stage_approval_reconciliation" ||
-    !["public_release_confirmed", "approval_not_confirmed", "unknown"].includes(
-      report.outcome,
-    ) || !exactKeys(binding, [
-      "stageReviewEvidenceDigest", "authorizationDigest", "attemptDigest",
-      "terminalDigest", "terminalState", "stage", "artifact",
-    ]) || [
-      binding.stageReviewEvidenceDigest, binding.authorizationDigest,
-      binding.attemptDigest, binding.terminalDigest,
+    !["public_release_confirmed", "approval_not_confirmed", "unknown"].includes(report.outcome) ||
+    !exactKeys(binding, [
+      "stageReviewEvidenceDigest",
+      "authorizationDigest",
+      "attemptDigest",
+      "terminalDigest",
+      "terminalState",
+      "stage",
+      "artifact",
+    ]) ||
+    [
+      binding.stageReviewEvidenceDigest,
+      binding.authorizationDigest,
+      binding.attemptDigest,
+      binding.terminalDigest,
     ].some((value) => !digestPattern.test(value ?? "")) ||
-    !["approval_command_completed", "approval_outcome_unknown"].includes(
-      binding.terminalState,
-    ) || !exactKeys(binding.stage, ["registry", "idDigest", "distTag"]) ||
+    !["approval_command_completed", "approval_outcome_unknown"].includes(binding.terminalState) ||
+    !exactKeys(binding.stage, ["registry", "idDigest", "distTag"]) ||
     binding.stage.registry !== "https://registry.npmjs.org/" ||
     !digestPattern.test(binding.stage.idDigest ?? "") ||
     !["latest", "next"].includes(binding.stage.distTag) ||
-    !exactKeys(binding.artifact, [
-      "byteCount", "sha256", "registryIntegrity", "registryShasum",
-    ]) || !Number.isSafeInteger(binding.artifact.byteCount) ||
+    !exactKeys(binding.artifact, ["byteCount", "sha256", "registryIntegrity", "registryShasum"]) ||
+    !Number.isSafeInteger(binding.artifact.byteCount) ||
     binding.artifact.byteCount <= 0 ||
     !/^[a-f0-9]{64}$/u.test(binding.artifact.sha256 ?? "") ||
     !/^sha512-[A-Za-z0-9+/]{86}==$/u.test(binding.artifact.registryIntegrity ?? "") ||
     !/^[a-f0-9]{40}$/u.test(binding.artifact.registryShasum ?? "") ||
     !exactKeys(report.target, [
-      "repository", "sourceCommit", "releaseTag", "package", "version",
-      "workflowPath", "runId", "attempt",
-    ]) || report.target.package !== "@lervo/cli" ||
+      "repository",
+      "sourceCommit",
+      "releaseTag",
+      "package",
+      "version",
+      "workflowPath",
+      "runId",
+      "attempt",
+    ]) ||
+    report.target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(report.target.version ?? "") ||
     report.target.releaseTag !== `v${report.target.version}` ||
     !exactKeys(npm, [
-      "observedAt", "registry", "publicRelease", "approvalStage",
-      "stageListStability", "userConfig", "temporaryFiles",
-    ]) || timestamp(npm.observedAt) < 0 || npm.registry !== "https://registry.npmjs.org/" ||
+      "observedAt",
+      "registry",
+      "publicRelease",
+      "approvalStage",
+      "stageListStability",
+      "userConfig",
+      "temporaryFiles",
+    ]) ||
+    timestamp(npm.observedAt) < 0 ||
+    npm.registry !== "https://registry.npmjs.org/" ||
     npm.stageListStability !== "rechecked_unchanged" ||
-    npm.userConfig !== "rechecked_unchanged" || npm.temporaryFiles !== "removed" ||
+    npm.userConfig !== "rechecked_unchanged" ||
+    npm.temporaryFiles !== "removed" ||
     !digestPattern.test(report.evidenceDigest ?? "") ||
     report.evidenceDigest !== canonicalDigest(body)
-  ) fail("first_publication_stage_approval_reconciliation_report_invalid");
+  )
+    fail("first_publication_stage_approval_reconciliation_report_invalid");
   let release;
   let approvalStage;
   try {
@@ -249,6 +286,7 @@ export function validateFirstPublicationStageApprovalReconciliationReportDocumen
     report.outcome !== outcome(release, approvalStage) ||
     canonicalJson(report.limitations) !== canonicalJson(limitations) ||
     canonicalJson(report.sideEffects) !== canonicalJson(sideEffects)
-  ) fail("first_publication_stage_approval_reconciliation_report_invalid");
+  )
+    fail("first_publication_stage_approval_reconciliation_report_invalid");
   return report;
 }

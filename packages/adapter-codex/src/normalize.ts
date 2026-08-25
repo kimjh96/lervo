@@ -60,7 +60,11 @@ export class CodexEventNormalizer {
       const providerTurnId = text(turn?.id);
       return providerTurnId === undefined
         ? null
-        : this.event("provider.turn.started", { providerTurnId }, eventTime(message, params, this.options.now));
+        : this.event(
+            "provider.turn.started",
+            { providerTurnId },
+            eventTime(message, params, this.options.now),
+          );
     }
     if (method === "turn/completed") return this.completedTurn(message, params);
     if (method === "item/completed") return this.completedItem(message, params);
@@ -169,11 +173,19 @@ export class CodexEventNormalizer {
       );
     }
     if (item.type === "fileChange") return this.fileChange(message, params, item, providerItemId);
-    if (item.type === "mcpToolCall" || item.type === "dynamicToolCall" || item.type === "collabAgentToolCall") {
+    if (
+      item.type === "mcpToolCall" ||
+      item.type === "dynamicToolCall" ||
+      item.type === "collabAgentToolCall"
+    ) {
       const tool = text(item.tool);
       const server = item.type === "mcpToolCall" ? text(item.server) : undefined;
       const status = lifecycleStatus(item.status);
-      if (tool === undefined || status === null || (item.type === "mcpToolCall" && server === undefined)) {
+      if (
+        tool === undefined ||
+        status === null ||
+        (item.type === "mcpToolCall" && server === undefined)
+      ) {
         return this.providerError("invalid_provider_item", item, message, params);
       }
       const toolName = item.type === "mcpToolCall" ? `${server}/${tool}` : tool;
@@ -199,7 +211,9 @@ export class CodexEventNormalizer {
     providerItemId: string,
   ): AdapterNormalizedEvent {
     const changes = Array.isArray(item.changes) ? item.changes : [];
-    const records = changes.map(asRecord).filter((change): change is Record<string, unknown> => change !== undefined);
+    const records = changes
+      .map(asRecord)
+      .filter((change): change is Record<string, unknown> => change !== undefined);
     const paths = records.map((change) => repositoryPath(this.options.repositoryRoot, change.path));
     const status = lifecycleStatus(item.status);
     if (paths.length === 0 || paths.some((path) => path === null) || status === null) {

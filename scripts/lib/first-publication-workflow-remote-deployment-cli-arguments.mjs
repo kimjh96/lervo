@@ -23,16 +23,21 @@ export function parseFirstPublicationWorkflowRemoteDeploymentArguments(args) {
     }
     if (
       !["--repository", "--source-commit", "--post-apply-report"].includes(name) ||
-      values.has(name) || index + 1 >= args.length || args[index + 1].startsWith("--")
-    ) fail();
+      values.has(name) ||
+      index + 1 >= args.length ||
+      args[index + 1].startsWith("--")
+    )
+      fail();
     values.set(name, args[index + 1]);
     index += 1;
   }
   if (
-    !flags.has("--online") || values.size !== 3 ||
+    !flags.has("--online") ||
+    values.size !== 3 ||
     !sourceCommitPattern.test(values.get("--source-commit") ?? "") ||
     !isAbsolute(values.get("--post-apply-report") ?? "")
-  ) fail();
+  )
+    fail();
   return {
     repository: values.get("--repository"),
     sourceCommit: values.get("--source-commit"),

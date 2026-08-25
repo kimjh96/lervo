@@ -23,17 +23,27 @@ export async function inspectDoctorKnowledge(input: {
   }
   const events = input.events.list();
   const candidateEvents = events.filter((event) => event.type === "knowledge.candidate.created");
-  const candidateIssues = await Promise.all(candidateEvents.map((event) =>
-    inspectCandidate({ event, events, artifacts: input.artifacts })));
+  const candidateIssues = await Promise.all(
+    candidateEvents.map((event) => inspectCandidate({ event, events, artifacts: input.artifacts })),
+  );
   const reviewEvents = events.filter((event) => event.type === "knowledge.candidate.reviewed");
-  const reviewIssues = await Promise.all(reviewEvents.map((event) =>
-    inspectKnowledgeReview({ event, events, artifacts: input.artifacts })));
+  const reviewIssues = await Promise.all(
+    reviewEvents.map((event) =>
+      inspectKnowledgeReview({ event, events, artifacts: input.artifacts }),
+    ),
+  );
   const verifiedEvents = events.filter((event) => event.type === "knowledge.verified");
-  const verifiedIssues = await Promise.all(verifiedEvents.map((event) =>
-    inspectVerifiedKnowledge({ event, events, artifacts: input.artifacts })));
+  const verifiedIssues = await Promise.all(
+    verifiedEvents.map((event) =>
+      inspectVerifiedKnowledge({ event, events, artifacts: input.artifacts }),
+    ),
+  );
   const stalenessEvents = events.filter((event) => event.type === "knowledge.stale.detected");
-  const stalenessIssues = await Promise.all(stalenessEvents.map((event) =>
-    inspectKnowledgeStaleness({ event, events, artifacts: input.artifacts })));
+  const stalenessIssues = await Promise.all(
+    stalenessEvents.map((event) =>
+      inspectKnowledgeStaleness({ event, events, artifacts: input.artifacts }),
+    ),
+  );
   issues.push(
     ...candidateIssues.flat(),
     ...reviewIssues.flat(),

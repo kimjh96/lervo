@@ -56,15 +56,18 @@ export function createHubControlHttpHandler(options: HubControlHttpHandlerOption
         return;
       }
       const destinationId = controlDestination(url.searchParams);
-      const principal = await options.authenticator.authenticate(singleAuthorizationHeader(request));
+      const principal = await options.authenticator.authenticate(
+        singleAuthorizationHeader(request),
+      );
       if (principal === null) {
         sendHubError(response, 401, "unauthorized", maximum, {
           "www-authenticate": "Bearer",
         });
         return;
       }
-      const inScope = principal.projects.some((project) =>
-        project.destinationId === destinationId && project.projectId === route.projectId
+      const inScope = principal.projects.some(
+        (project) =>
+          project.destinationId === destinationId && project.projectId === route.projectId,
       );
       if (!inScope || !principal.permissions.includes("command.read")) {
         sendHubError(response, 403, "forbidden", maximum);
@@ -72,14 +75,17 @@ export function createHubControlHttpHandler(options: HubControlHttpHandlerOption
       }
       const at = inspectedAt(now);
       const reviewGrant = singleReviewGrant(request);
-      if (reviewGrant === null || !options.reviewGrants.verify({
-        grant: reviewGrant,
-        principalId: principal.principalId,
-        destinationId,
-        projectId: route.projectId,
-        deliveryId: route.deliveryId,
-        verifiedAt: at,
-      })) {
+      if (
+        reviewGrant === null ||
+        !options.reviewGrants.verify({
+          grant: reviewGrant,
+          principalId: principal.principalId,
+          destinationId,
+          projectId: route.projectId,
+          deliveryId: route.deliveryId,
+          verifiedAt: at,
+        })
+      ) {
         sendHubError(response, 403, "forbidden", maximum);
         return;
       }
@@ -91,8 +97,10 @@ export function createHubControlHttpHandler(options: HubControlHttpHandlerOption
       });
       sendHubJson(response, 200, review, maximum);
     } catch (error) {
-      if (error instanceof InvalidHubHttpRequestError ||
-        (error instanceof HubControlError && error.code === "invalid_control_request")) {
+      if (
+        error instanceof InvalidHubHttpRequestError ||
+        (error instanceof HubControlError && error.code === "invalid_control_request")
+      ) {
         sendHubError(response, 400, "invalid_request", maximum);
       } else if (error instanceof HubControlError && error.code === "command_not_found") {
         sendHubError(response, 404, "not_found", maximum);

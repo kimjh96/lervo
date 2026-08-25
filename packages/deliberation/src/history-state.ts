@@ -16,11 +16,14 @@ export interface DeliberationHistoryAnalysis {
 export interface DeliberationHistoryState {
   artifactsById: Map<string, DeliberationArtifact>;
   claims: Map<string, string>;
-  objections: Map<string, {
-    blocking: boolean;
-    resolved: boolean;
-    targetClaimIds: readonly string[];
-  }>;
+  objections: Map<
+    string,
+    {
+      blocking: boolean;
+      resolved: boolean;
+      targetClaimIds: readonly string[];
+    }
+  >;
   runRoles: Map<string, string>;
   sessionRoles: Map<string, string>;
   receiptSessions: Map<string, string>;

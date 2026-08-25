@@ -5,8 +5,7 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { observeNpmStagedPackageReview } from
-  "../lib/npm-staged-package-review-observer.mjs";
+import { observeNpmStagedPackageReview } from "../lib/npm-staged-package-review-observer.mjs";
 import {
   createReleasePublicationArtifact,
   npmPublicRegistry,
@@ -80,11 +79,20 @@ describe("npm staged package review observer", () => {
       assert.equal(observation.stage.shasum, artifact.registryShasum);
       assert.equal(JSON.stringify(observation).includes(stageId), false);
       assert.equal(JSON.stringify(observation).includes("private-user"), false);
-      assert.deepEqual(commands.map((args) => args.slice(0, 2)), [
-        ["--version"], ["stage", "list"], ["stage", "view"],
-        ["stage", "download"], ["stage", "view"],
-      ]);
-      assert.equal(commands.flat().some((value) => ["approve", "reject"].includes(value)), false);
+      assert.deepEqual(
+        commands.map((args) => args.slice(0, 2)),
+        [
+          ["--version"],
+          ["stage", "list"],
+          ["stage", "view"],
+          ["stage", "download"],
+          ["stage", "view"],
+        ],
+      );
+      assert.equal(
+        commands.flat().some((value) => ["approve", "reject"].includes(value)),
+        false,
+      );
       await assert.rejects(access(temporaryDirectory));
     } finally {
       await rm(files.root, { recursive: true, force: true });
@@ -99,17 +107,23 @@ describe("npm staged package review observer", () => {
         const execute = async (_command, args, options) => {
           if (args[0] === "--version") return { stdout: "11.18.0\n" };
           if (args[1] === "list") {
-            return { stdout: JSON.stringify(scenario === "duplicate"
-              ? [stage(), stage({ id: "223e4567-e89b-42d3-a456-426614174000" })]
-              : [stage()]) };
+            return {
+              stdout: JSON.stringify(
+                scenario === "duplicate"
+                  ? [stage(), stage({ id: "223e4567-e89b-42d3-a456-426614174000" })]
+                  : [stage()],
+              ),
+            };
           }
           if (args[1] === "view") {
             viewCount += 1;
-            return { stdout: JSON.stringify(
-              scenario === "changed" && viewCount === 2
-                ? stage({ createdAt: "2026-08-21T10:12:00Z" })
-                : stage(),
-            ) };
+            return {
+              stdout: JSON.stringify(
+                scenario === "changed" && viewCount === 2
+                  ? stage({ createdAt: "2026-08-21T10:12:00Z" })
+                  : stage(),
+              ),
+            };
           }
           if (args[1] === "download") {
             await writeFile(
@@ -125,11 +139,14 @@ describe("npm staged package review observer", () => {
           environment: { PATH: process.env.PATH },
         });
         assert.equal(result.state, "unavailable");
-        assert.equal(result.reason, {
-          duplicate: "stage_ambiguous",
-          changed: "stage_changed",
-          tarball: "tarball_mismatch",
-        }[scenario]);
+        assert.equal(
+          result.reason,
+          {
+            duplicate: "stage_ambiguous",
+            changed: "stage_changed",
+            tarball: "tarball_mismatch",
+          }[scenario],
+        );
       } finally {
         await rm(files.root, { recursive: true, force: true });
       }
@@ -141,7 +158,9 @@ describe("npm staged package review observer", () => {
     try {
       let called = false;
       const result = await observeNpmStagedPackageReview(input(files.userConfigPath), {
-        execute: async () => { called = true; },
+        execute: async () => {
+          called = true;
+        },
         environment: { NPM_TOKEN: "secret" },
       });
       assert.equal(result.reason, "environment_invalid");

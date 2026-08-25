@@ -4,7 +4,12 @@ import type {
   SearchEvaluationSourceRank,
   SearchEvaluationStatus,
 } from "./evaluation-types.js";
-import { searchSourceKinds, SEARCH_MAX_RESULTS, SearchError, type SearchAssessmentSource } from "./types.js";
+import {
+  searchSourceKinds,
+  SEARCH_MAX_RESULTS,
+  SearchError,
+  type SearchAssessmentSource,
+} from "./types.js";
 import { SOURCE_ID_PATTERN } from "./validation.js";
 
 export const SEARCH_EVALUATION_CASE_PATTERN = /^sec_[a-f0-9]{24}$/;
@@ -23,17 +28,30 @@ export function normalizeEvaluationSources(
   values: readonly SearchAssessmentSource[],
   code: "invalid_evaluation_case" | "invalid_evaluation_result",
 ): SearchAssessmentSource[] {
-  if (!Array.isArray(values) || values.length < 1 || values.length > SEARCH_MAX_RESULTS ||
-    values.some((source) => !searchSourceKinds.includes(source.sourceKind) ||
-      !SOURCE_ID_PATTERN.test(source.sourceId))) {
-    throw new SearchError(code, "The expected source coordinates in the search evaluation bundle are invalid.");
+  if (
+    !Array.isArray(values) ||
+    values.length < 1 ||
+    values.length > SEARCH_MAX_RESULTS ||
+    values.some(
+      (source) =>
+        !searchSourceKinds.includes(source.sourceKind) || !SOURCE_ID_PATTERN.test(source.sourceId),
+    )
+  ) {
+    throw new SearchError(
+      code,
+      "The expected source coordinates in the search evaluation bundle are invalid.",
+    );
   }
   const unique = new Map(values.map((source) => [evaluationSourceKey(source), { ...source }]));
   if (unique.size !== values.length) {
-    throw new SearchError(code, "Expected source coordinates in the search evaluation bundle are duplicated.");
+    throw new SearchError(
+      code,
+      "Expected source coordinates in the search evaluation bundle are duplicated.",
+    );
   }
   return [...unique.values()].sort((left, right) =>
-    compareText(evaluationSourceKey(left), evaluationSourceKey(right)));
+    compareText(evaluationSourceKey(left), evaluationSourceKey(right)),
+  );
 }
 
 export function assertOrderedEvaluationSources(
@@ -41,12 +59,21 @@ export function assertOrderedEvaluationSources(
   code: "invalid_evaluation_case" | "invalid_evaluation_result",
 ): void {
   const normalized = normalizeEvaluationSources(values, code);
-  if (normalized.some((source, index) => evaluationSourceKey(source) !== evaluationSourceKey(values[index]!))) {
-    throw new SearchError(code, "The expected source order in the search evaluation bundle is not canonical.");
+  if (
+    normalized.some(
+      (source, index) => evaluationSourceKey(source) !== evaluationSourceKey(values[index]!),
+    )
+  ) {
+    throw new SearchError(
+      code,
+      "The expected source order in the search evaluation bundle is not canonical.",
+    );
   }
 }
 
-interface RankedSource extends SearchAssessmentSource { rank: number }
+interface RankedSource extends SearchAssessmentSource {
+  rank: number;
+}
 
 export function measureSearchExpectation(
   expectation: SearchEvaluationExpectation,
@@ -61,11 +88,13 @@ export function measureSearchExpectation(
     ...source,
     rank: hitRanks.get(evaluationSourceKey(source)) ?? null,
   }));
-  const withinRank = expectedSourceRanks.filter((source) =>
-    source.rank !== null && source.rank <= expectation.maximumRank);
-  const passed = expectation.matchMode === "any"
-    ? withinRank.length > 0
-    : withinRank.length === expectedSourceRanks.length;
+  const withinRank = expectedSourceRanks.filter(
+    (source) => source.rank !== null && source.rank <= expectation.maximumRank,
+  );
+  const passed =
+    expectation.matchMode === "any"
+      ? withinRank.length > 0
+      : withinRank.length === expectedSourceRanks.length;
   const failureReason = passed
     ? null
     : hits.length === 0

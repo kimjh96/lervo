@@ -6,20 +6,23 @@ const token = "lervo-test-token-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 describe("configured Hub bearer authentication", () => {
   it("returns a defensive principal copy only for an exact bearer token", async () => {
-    const authenticator = new ConfiguredBearerAuthenticator([{
-      token,
-      principalId: "operator:test",
-      permissions: ["trace.read"],
-      projects: [{ destinationId: "hub:primary", projectId: "prj_allowed01" }],
-    }]);
+    const authenticator = new ConfiguredBearerAuthenticator([
+      {
+        token,
+        principalId: "operator:test",
+        permissions: ["trace.read"],
+        projects: [{ destinationId: "hub:primary", projectId: "prj_allowed01" }],
+      },
+    ]);
 
     await expect(authenticator.authenticate(`Bearer ${token}`)).resolves.toEqual({
       principalId: "operator:test",
       permissions: ["trace.read"],
       projects: [{ destinationId: "hub:primary", projectId: "prj_allowed01" }],
     });
-    await expect(authenticator.authenticate("Bearer wrong-token-value-that-is-long-enough-0000"))
-      .resolves.toBeNull();
+    await expect(
+      authenticator.authenticate("Bearer wrong-token-value-that-is-long-enough-0000"),
+    ).resolves.toBeNull();
     await expect(authenticator.authenticate(undefined)).resolves.toBeNull();
 
     const first = await authenticator.authenticate(`Bearer ${token}`);
@@ -31,17 +34,27 @@ describe("configured Hub bearer authentication", () => {
 
   it("rejects unsafe credential configuration at startup", () => {
     expect(() => new ConfiguredBearerAuthenticator([])).toThrow("At least one");
-    expect(() => new ConfiguredBearerAuthenticator([{
-      token: "short",
-      principalId: "operator:test",
-      permissions: ["trace.read"],
-      projects: [],
-    }])).toThrow("token format");
-    expect(() => new ConfiguredBearerAuthenticator([{
-      token,
-      principalId: "operator:test",
-      permissions: ["trace.read"],
-      projects: [{ destinationId: "hub:primary", projectId: "wrong" }],
-    }])).toThrow("project coordinate");
+    expect(
+      () =>
+        new ConfiguredBearerAuthenticator([
+          {
+            token: "short",
+            principalId: "operator:test",
+            permissions: ["trace.read"],
+            projects: [],
+          },
+        ]),
+    ).toThrow("token format");
+    expect(
+      () =>
+        new ConfiguredBearerAuthenticator([
+          {
+            token,
+            principalId: "operator:test",
+            permissions: ["trace.read"],
+            projects: [{ destinationId: "hub:primary", projectId: "wrong" }],
+          },
+        ]),
+    ).toThrow("project coordinate");
   });
 });

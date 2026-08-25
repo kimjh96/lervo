@@ -53,10 +53,14 @@ export async function readFirstPublicationWorkflowActivationSources({
     fail();
   }
   if (
-    packageManifest === null || typeof packageManifest !== "object" ||
-    Array.isArray(packageManifest) || workflow === null || typeof workflow !== "object" ||
+    packageManifest === null ||
+    typeof packageManifest !== "object" ||
+    Array.isArray(packageManifest) ||
+    workflow === null ||
+    typeof workflow !== "object" ||
     Array.isArray(workflow)
-  ) fail();
+  )
+    fail();
   const packageFile = snapshot(packageManifestPath, packageContents, maximumPackageBytes);
   const workflowFile = snapshot(workflowPath, workflowContents, maximumWorkflowBytes);
   return {

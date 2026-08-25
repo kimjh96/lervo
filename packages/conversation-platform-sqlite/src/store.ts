@@ -19,24 +19,28 @@ import { ConversationPlatformSQLiteError } from "./errors.js";
 import { ConversationPlatformReplayRepository } from "./replay-repository.js";
 import type { SQLiteConversationPlatformStoreOptions } from "./types.js";
 
-export class SQLiteConversationPlatformStore implements
-  ConversationPlatformIdentityPort,
-  ConversationPlatformDeliveryReplayPort {
+export class SQLiteConversationPlatformStore
+  implements ConversationPlatformIdentityPort, ConversationPlatformDeliveryReplayPort
+{
   readonly path: string;
   private readonly bindings: ConversationPlatformBindingRepository;
   private readonly correlations: ConversationPlatformCorrelationRepository;
   private readonly replay: ConversationPlatformReplayRepository;
   private closed = false;
 
-  private constructor(path: string, private readonly database: DatabaseSync) {
+  private constructor(
+    path: string,
+    private readonly database: DatabaseSync,
+  ) {
     this.path = path;
     this.bindings = new ConversationPlatformBindingRepository(database);
     this.correlations = new ConversationPlatformCorrelationRepository(database);
     this.replay = new ConversationPlatformReplayRepository(database);
   }
 
-  static async open(options: SQLiteConversationPlatformStoreOptions):
-    Promise<SQLiteConversationPlatformStore> {
+  static async open(
+    options: SQLiteConversationPlatformStoreOptions,
+  ): Promise<SQLiteConversationPlatformStore> {
     const path = await ensureConversationPlatformDatabasePath(options.path);
     const database = new DatabaseSync(path, {
       enableForeignKeyConstraints: true,
@@ -109,7 +113,10 @@ export class SQLiteConversationPlatformStore implements
 
   private assertOpen(): void {
     if (this.closed) {
-      throw new ConversationPlatformSQLiteError("closed", "The conversation platform store is closed.");
+      throw new ConversationPlatformSQLiteError(
+        "closed",
+        "The conversation platform store is closed.",
+      );
     }
   }
 }

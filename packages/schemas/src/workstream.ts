@@ -73,7 +73,9 @@ export const workstreamSnapshotSchema = {
             minItems: 2,
             maxItems: 8,
           },
-          recommendedChoiceId: { anyOf: [{ type: "string", pattern: "^[a-z][a-z0-9_-]{0,63}$" }, { type: "null" }] },
+          recommendedChoiceId: {
+            anyOf: [{ type: "string", pattern: "^[a-z][a-z0-9_-]{0,63}$" }, { type: "null" }],
+          },
           blocking: { type: "boolean" },
         },
         required: ["decisionId", "question", "choices", "recommendedChoiceId", "blocking"],
@@ -87,7 +89,10 @@ export const workstreamSnapshotSchema = {
         type: "object",
         properties: {
           approvalId: { type: "string", pattern: "^wapr_[a-f0-9]{16}$" },
-          kind: { type: "string", enum: ["repository_bytes", "managed_write", "external_action", "deployment"] },
+          kind: {
+            type: "string",
+            enum: ["repository_bytes", "managed_write", "external_action", "deployment"],
+          },
           summary: { type: "string", minLength: 1, maxLength: 1024 },
           bindingHash: sha256Schema,
           blocking: { type: "boolean" },
@@ -137,7 +142,15 @@ export const workstreamSnapshotRecordedEventPayloadSchema = {
     status: { type: "string", enum: ["active", "blocked", "completed"] },
     changeKind: {
       type: "string",
-      enum: ["legacy_handoff_migration", "legacy_continuation_migration", "user_start", "user_update", "agent_start", "agent_update", "hub_replication_import"],
+      enum: [
+        "legacy_handoff_migration",
+        "legacy_continuation_migration",
+        "user_start",
+        "user_update",
+        "agent_start",
+        "agent_update",
+        "hub_replication_import",
+      ],
     },
     snapshotArtifactId: artifactIdSchema,
     snapshotContentHash: sha256Schema,

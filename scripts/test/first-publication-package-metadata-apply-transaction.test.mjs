@@ -3,9 +3,7 @@ import { access, chmod, lstat, readFile, rm, writeFile } from "node:fs/promises"
 
 import { describe, it } from "vitest";
 
-import {
-  applyFirstPublicationPackageMetadataFiles,
-} from "../lib/first-publication-package-metadata-apply-filesystem.mjs";
+import { applyFirstPublicationPackageMetadataFiles } from "../lib/first-publication-package-metadata-apply-filesystem.mjs";
 import {
   createFirstPublicationPackageMetadataApplyReceipt,
   validateFirstPublicationPackageMetadataApplyPlan,
@@ -42,30 +40,21 @@ describe("first-publication package metadata apply transaction", () => {
     const fixture = await createMetadataApplyFixture();
     try {
       assert.equal(fixture.planResult.plan.status, "ready_to_apply");
-      assert.deepEqual(fixture.planResult.plan.files.map(({ id }) => id), [
-        "packageManifest",
-        "releaseManifest",
-        "releaseSbom",
-      ]);
-      assert.deepEqual(fixture.planResult.plan.readOnlySources.map(({ id }) => id), [
-        "lockfile",
-        "permit",
-      ]);
-      assert.equal(
-        fixture.planResult.plan.strategy.synchronousFailure,
-        "rollback_all_files",
+      assert.deepEqual(
+        fixture.planResult.plan.files.map(({ id }) => id),
+        ["packageManifest", "releaseManifest", "releaseSbom"],
       );
-      const receipt = createFirstPublicationPackageMetadataApplyReceipt(
-        fixture.planResult.plan,
+      assert.deepEqual(
+        fixture.planResult.plan.readOnlySources.map(({ id }) => id),
+        ["lockfile", "permit"],
       );
+      assert.equal(fixture.planResult.plan.strategy.synchronousFailure, "rollback_all_files");
+      const receipt = createFirstPublicationPackageMetadataApplyReceipt(fixture.planResult.plan);
       assert.equal(receipt.status, "applied");
       assert.equal(receipt.effects.releaseManifest, "regenerated");
       assert.equal(receipt.effects.releaseSbom, "regenerated");
       assert.equal(
-        validateFirstPublicationPackageMetadataApplyReceipt(
-          receipt,
-          fixture.planResult.plan,
-        ),
+        validateFirstPublicationPackageMetadataApplyReceipt(receipt, fixture.planResult.plan),
         receipt,
       );
     } finally {
@@ -77,8 +66,12 @@ describe("first-publication package metadata apply transaction", () => {
     const fixture = await createMetadataApplyFixture();
     try {
       const forged = structuredClone(fixture.planResult);
-      forged.outputBytes = Object.fromEntries(Object.entries(fixture.planResult.outputBytes)
-        .map(([id, contents]) => [id, Buffer.from(contents)]));
+      forged.outputBytes = Object.fromEntries(
+        Object.entries(fixture.planResult.outputBytes).map(([id, contents]) => [
+          id,
+          Buffer.from(contents),
+        ]),
+      );
       forged.plan.strategy.compareAndSwap = "package_only";
       const { planDigest: _discarded, ...body } = forged.plan;
       forged.plan.planDigest = canonicalDigest(body);
@@ -94,9 +87,7 @@ describe("first-publication package metadata apply transaction", () => {
   it("publishes all three outputs and removes its journal", async () => {
     const fixture = await createMetadataApplyFixture();
     try {
-      const result = await applyFirstPublicationPackageMetadataFiles(
-        applyFilesystemInput(fixture),
-      );
+      const result = await applyFirstPublicationPackageMetadataFiles(applyFilesystemInput(fixture));
       assert.deepEqual(result, {
         journal: "removed",
         rollback: "not_required",
@@ -117,13 +108,13 @@ describe("first-publication package metadata apply transaction", () => {
     const fixture = await createMetadataApplyFixture();
     try {
       await chmod(fixture.paths.packageManifestPath, 0o640);
-      const beforeModes = await Promise.all(Object.values(fixture.targets).map(async (path) =>
-        (await lstat(path)).mode & 0o777
-      ));
+      const beforeModes = await Promise.all(
+        Object.values(fixture.targets).map(async (path) => (await lstat(path)).mode & 0o777),
+      );
       await applyFirstPublicationPackageMetadataFiles(applyFilesystemInput(fixture));
-      const afterModes = await Promise.all(Object.values(fixture.targets).map(async (path) =>
-        (await lstat(path)).mode & 0o777
-      ));
+      const afterModes = await Promise.all(
+        Object.values(fixture.targets).map(async (path) => (await lstat(path)).mode & 0o777),
+      );
       assert.deepEqual(afterModes, beforeModes);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
@@ -144,12 +135,14 @@ describe("first-publication package metadata apply transaction", () => {
       const fixture = await createMetadataApplyFixture();
       try {
         const before = await beforeBytes(fixture);
-        await assert.rejects(applyFirstPublicationPackageMetadataFiles(
-          applyFilesystemInput(fixture),
-          { failureInjector: (current) => {
-            if (current === checkpoint) throw new Error(`fail:${checkpoint}`);
-          } },
-        ), { code: "first_publication_package_metadata_apply_failed" });
+        await assert.rejects(
+          applyFirstPublicationPackageMetadataFiles(applyFilesystemInput(fixture), {
+            failureInjector: (current) => {
+              if (current === checkpoint) throw new Error(`fail:${checkpoint}`);
+            },
+          }),
+          { code: "first_publication_package_metadata_apply_failed" },
+        );
         assert.deepEqual(await beforeBytes(fixture), before);
         await missing(fixture.transactionRoot);
       } finally {

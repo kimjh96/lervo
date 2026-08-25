@@ -1,7 +1,11 @@
 import { candidateSemanticDigest } from "./candidate-signatures.js";
 import { loadCurrentKnowledgeCompilationPair } from "./compilation-binding.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { compileRepositoryKnowledgeCandidate, type KnowledgeCompilationCandidate, type RepositorySemanticCompiler } from "./semantic-compiler.js";
+import {
+  compileRepositoryKnowledgeCandidate,
+  type KnowledgeCompilationCandidate,
+  type RepositorySemanticCompiler,
+} from "./semantic-compiler.js";
 import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
 import type { RepositoryKnowledgeScan } from "./types.js";
 
@@ -76,7 +80,10 @@ function observation(input: {
     ...counts(input.candidate),
   };
   const materials = {
-    status: baselineSemanticDigest === candidateSemanticDigestValue ? "stable" as const : "divergent" as const,
+    status:
+      baselineSemanticDigest === candidateSemanticDigestValue
+        ? ("stable" as const)
+        : ("divergent" as const),
     provider: input.baselineCandidate.compiler.provider as "codex" | "claude",
     sourceSnapshotId: input.baselineCandidate.sourceSnapshotId,
     policyHash: input.policyHash,
@@ -101,16 +108,22 @@ export async function observeKnowledgeCompilationStability(input: {
     repositoryRoot: input.repositoryRoot,
     firstCompilationId: input.baselineCompilationId,
     secondCompilationId: input.candidateCompilationId,
-    ...(input.supplementalSources === undefined ? {} : { supplementalSources: input.supplementalSources }),
+    ...(input.supplementalSources === undefined
+      ? {}
+      : { supplementalSources: input.supplementalSources }),
   });
   const baselineCandidate = pair.first.candidate;
   const repeatedCandidate = pair.second.candidate;
   if (
-    (baselineCandidate.compiler.provider !== "codex" && baselineCandidate.compiler.provider !== "claude") ||
+    (baselineCandidate.compiler.provider !== "codex" &&
+      baselineCandidate.compiler.provider !== "claude") ||
     baselineCandidate.compiler.provider !== repeatedCandidate.compiler.provider ||
     canonicalJson(baselineCandidate.compiler) !== canonicalJson(repeatedCandidate.compiler)
   ) {
-    throw new RepositoryKnowledgeError("knowledge_compile_failed", "A stability observation requires two candidates from the same Codex or Claude compiler build.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_failed",
+      "A stability observation requires two candidates from the same Codex or Claude compiler build.",
+    );
   }
   return observation({
     baselineCandidate,
@@ -130,7 +143,8 @@ export async function runKnowledgeCompilationStabilityGate(input: {
 }): Promise<KnowledgeCompilationStabilityGateResult> {
   const baseline = await compileRepositoryKnowledgeCandidate(input);
   const candidate = await compileRepositoryKnowledgeCandidate(input);
-  const artifactHash = (value: KnowledgeCompilationCandidate): string => sha256(`${canonicalJson(value)}\n`);
+  const artifactHash = (value: KnowledgeCompilationCandidate): string =>
+    sha256(`${canonicalJson(value)}\n`);
   return {
     baseline,
     candidate,

@@ -49,7 +49,8 @@ export class ClaudeInputStream implements AsyncIterable<SDKUserMessage> {
   private ended = false;
 
   push(value: SDKUserMessage): void {
-    if (this.ended) throw new ClaudeAdapterError("session_stopped", "The Claude input stream has ended.");
+    if (this.ended)
+      throw new ClaudeAdapterError("session_stopped", "The Claude input stream has ended.");
     this.values.push(value);
     this.wake();
   }
@@ -89,12 +90,18 @@ export class ClaudeReplayTracker {
 
   expect(uuid: string, expectedContent: string, shouldQuery: boolean): Promise<void> {
     if (this.pending.has(uuid)) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude input UUID is duplicated.");
+      throw new ClaudeAdapterError(
+        "provider_protocol_failed",
+        "The Claude input UUID is duplicated.",
+      );
     }
     const replay = { ...deferred(), expectedContent, shouldQuery, lifecycleStarted: false };
     this.pending.set(uuid, replay);
     return Promise.all([
-      this.withTimeout(this.initialized.promise, "Claude initialization acknowledgement timed out."),
+      this.withTimeout(
+        this.initialized.promise,
+        "Claude initialization acknowledgement timed out.",
+      ),
       this.withTimeout(replay.promise, "Claude input acknowledgement timed out."),
     ]).then(() => undefined);
   }
@@ -103,15 +110,16 @@ export class ClaudeReplayTracker {
     const value = record(message);
     const sessionId = value?.session_id;
     if (typeof sessionId === "string" && sessionId !== this.providerSessionId) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "The Claude message session ID does not match.");
+      throw new ClaudeAdapterError(
+        "provider_protocol_failed",
+        "The Claude message session ID does not match.",
+      );
     }
     if (value?.type === "system" && value.subtype === "init") {
       this.initialized.resolve();
       return false;
     }
-    if (
-      value?.type === "command_lifecycle" && typeof value.command_uuid === "string"
-    ) {
+    if (value?.type === "command_lifecycle" && typeof value.command_uuid === "string") {
       const pending = this.pending.get(value.command_uuid);
       if (pending !== undefined) {
         if (pending.shouldQuery === false) {
@@ -131,16 +139,21 @@ export class ClaudeReplayTracker {
       }
     }
     if (
-      value?.type === "result" && value.subtype === "success" && value.is_error === false &&
-      value.num_turns === 0 && value.user_message_uuid === undefined &&
-      [...this.pending.values()].filter((pending) =>
-        pending.shouldQuery === false && pending.lifecycleStarted
+      value?.type === "result" &&
+      value.subtype === "success" &&
+      value.is_error === false &&
+      value.num_turns === 0 &&
+      value.user_message_uuid === undefined &&
+      [...this.pending.values()].filter(
+        (pending) => pending.shouldQuery === false && pending.lifecycleStarted,
       ).length === 1
     ) {
       return true;
     }
     if (
-      value?.type === "result" && value.subtype === "success" && value.is_error === false &&
+      value?.type === "result" &&
+      value.subtype === "success" &&
+      value.is_error === false &&
       typeof value.user_message_uuid === "string"
     ) {
       const pending = this.pending.get(value.user_message_uuid);
@@ -158,7 +171,10 @@ export class ClaudeReplayTracker {
     this.pending.delete(value.uuid);
     if (messageText(value) !== pending.expectedContent) {
       pending.reject(
-        new ClaudeAdapterError("provider_protocol_failed", "The input acknowledged by Claude differs from the input sent."),
+        new ClaudeAdapterError(
+          "provider_protocol_failed",
+          "The input acknowledged by Claude differs from the input sent.",
+        ),
       );
       return false;
     }

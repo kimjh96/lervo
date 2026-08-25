@@ -38,10 +38,12 @@ export function calculateRemoteCommandDeliveryId(input: {
     );
   }
   assertSignedRemoteCommand(input.envelope);
-  return `rcd_${sha256(canonicalJson({
-    destinationId: input.destinationId,
-    envelope: input.envelope,
-  })).slice("sha256:".length)}`;
+  return `rcd_${sha256(
+    canonicalJson({
+      destinationId: input.destinationId,
+      envelope: input.envelope,
+    }),
+  ).slice("sha256:".length)}`;
 }
 
 export function createRemoteCommandLease(input: {
@@ -77,10 +79,11 @@ export function assertRemoteCommandLease(input: {
   }
   assertSignedRemoteCommand(input.lease.envelope);
   if (
-    input.lease.deliveryId !== calculateRemoteCommandDeliveryId({
-      destinationId: input.destinationId,
-      envelope: input.lease.envelope,
-    }) ||
+    input.lease.deliveryId !==
+      calculateRemoteCommandDeliveryId({
+        destinationId: input.destinationId,
+        envelope: input.lease.envelope,
+      }) ||
     Date.parse(input.lease.leaseExpiresAt) <= Date.parse(input.lease.leasedAt)
   ) {
     throw new RemoteCommandContractError(
@@ -223,9 +226,8 @@ export function assertRemoteCommandDeliveryConfirmation(input: {
     input.confirmation.commandId !== input.acknowledgement.commandId ||
     input.confirmation.acknowledgementHash !==
       calculateRemoteCommandAcknowledgementHash(input.acknowledgement) ||
-    input.confirmation.disposition !== input.acknowledgement.disposition
-    || Date.parse(input.confirmation.confirmedAt) <
-      Date.parse(input.acknowledgement.acknowledgedAt)
+    input.confirmation.disposition !== input.acknowledgement.disposition ||
+    Date.parse(input.confirmation.confirmedAt) < Date.parse(input.acknowledgement.acknowledgedAt)
   ) {
     throw new RemoteCommandContractError(
       "invalid_delivery_confirmation",

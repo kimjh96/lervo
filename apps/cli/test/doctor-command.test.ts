@@ -40,11 +40,13 @@ async function temporaryRepository(): Promise<string> {
 }
 
 async function initializeRepository(root: string): Promise<void> {
-  expect(await runCli(["init"], {
-    cwd: root,
-    stdout: () => undefined,
-    stderr: () => undefined,
-  })).toBe(0);
+  expect(
+    await runCli(["init"], {
+      cwd: root,
+      stdout: () => undefined,
+      stderr: () => undefined,
+    }),
+  ).toBe(0);
 }
 
 async function appendBrokenKnowledgeCandidate(root: string): Promise<void> {
@@ -69,7 +71,8 @@ async function appendBrokenKnowledgeCandidate(root: string): Promise<void> {
       verificationArtifactIds: ["dla_1111111111111111"],
       verifiedRevision: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       candidateArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      candidateContentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      candidateContentHash:
+        "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     },
   });
   await storage.close();
@@ -86,21 +89,37 @@ describe("lervo doctor command", () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     let healthyOutput = "";
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { healthyOutput += message; },
-      stderr: () => undefined,
-    }, doctorServices)).toBe(0);
+    expect(
+      await runCli(
+        ["doctor"],
+        {
+          cwd: root,
+          stdout: (message) => {
+            healthyOutput += message;
+          },
+          stderr: () => undefined,
+        },
+        doctorServices,
+      ),
+    ).toBe(0);
     expect(healthyOutput).toContain("checked items are healthy");
     expect(healthyOutput).not.toContain("Next checks:");
 
     await appendBrokenKnowledgeCandidate(root);
     let issueOutput = "";
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { issueOutput += message; },
-      stderr: () => undefined,
-    }, doctorServices)).toBe(1);
+    expect(
+      await runCli(
+        ["doctor"],
+        {
+          cwd: root,
+          stdout: (message) => {
+            issueOutput += message;
+          },
+          stderr: () => undefined,
+        },
+        doctorServices,
+      ),
+    ).toBe(1);
     expect(issueOutput).toContain("candidate_artifact_invalid");
     expect(issueOutput).toContain("issues found");
   });
@@ -109,8 +128,7 @@ describe("lervo doctor command", () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     const inspections = structuredClone(healthyEnvironmentInspections);
-    const codex = inspections.find((item) =>
-      item.check.checkId === "provider_codex_runtime")!;
+    const codex = inspections.find((item) => item.check.checkId === "provider_codex_runtime")!;
     codex.check.status = "unknown";
     codex.check.observedCount = 0;
     codex.issues.push({
@@ -120,13 +138,21 @@ describe("lervo doctor command", () => {
     });
     let output = "";
 
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: () => undefined,
-    }, {
-      inspectDoctorEnvironment: async () => inspections,
-    })).toBe(1);
+    expect(
+      await runCli(
+        ["doctor"],
+        {
+          cwd: root,
+          stdout: (message) => {
+            output += message;
+          },
+          stderr: () => undefined,
+        },
+        {
+          inspectDoctorEnvironment: async () => inspections,
+        },
+      ),
+    ).toBe(1);
     expect(output).toContain("some items could not be determined");
     expect(output).toContain("unknown  Codex executable");
     expect(output).toContain("provider_executable_missing");
@@ -136,8 +162,7 @@ describe("lervo doctor command", () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     const inspections = structuredClone(healthyEnvironmentInspections);
-    const actions = inspections.find((item) =>
-      item.check.checkId === "search_rollout_actions")!;
+    const actions = inspections.find((item) => item.check.checkId === "search_rollout_actions")!;
     actions.check.status = "unhealthy";
     actions.issues.push({
       code: "search_rollout_action_invalid",
@@ -146,13 +171,21 @@ describe("lervo doctor command", () => {
     });
     let output = "";
 
-    expect(await runCli(["doctor"], {
-      cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: () => undefined,
-    }, {
-      inspectDoctorEnvironment: async () => inspections,
-    })).toBe(1);
+    expect(
+      await runCli(
+        ["doctor"],
+        {
+          cwd: root,
+          stdout: (message) => {
+            output += message;
+          },
+          stderr: () => undefined,
+        },
+        {
+          inspectDoctorEnvironment: async () => inspections,
+        },
+      ),
+    ).toBe(1);
     expect(output).toContain("unhealthy  search rollout actions");
     expect(output).toContain("search_rollout_action_invalid");
     expect(output).toContain("Next checks:");
@@ -160,21 +193,30 @@ describe("lervo doctor command", () => {
     expect(output).toContain("No automatic fixes or state changes were performed");
 
     let jsonOutput = "";
-    expect(await runCli(["doctor", "--json"], {
-      cwd: root,
-      stdout: (message) => { jsonOutput += message; },
-      stderr: () => undefined,
-    }, {
-      inspectDoctorEnvironment: async () => inspections,
-    })).toBe(1);
+    expect(
+      await runCli(
+        ["doctor", "--json"],
+        {
+          cwd: root,
+          stdout: (message) => {
+            jsonOutput += message;
+          },
+          stderr: () => undefined,
+        },
+        {
+          inspectDoctorEnvironment: async () => inspections,
+        },
+      ),
+    ).toBe(1);
     expect(JSON.parse(jsonOutput)).toMatchObject({
       schemaVersion: 1,
-      recoveryGuidance: [{
-        issueCode: "search_rollout_action_invalid",
-        actionCode: "inspect_search_action",
-        actionState: "not_performed",
-      }],
+      recoveryGuidance: [
+        {
+          issueCode: "search_rollout_action_invalid",
+          actionCode: "inspect_search_action",
+          actionState: "not_performed",
+        },
+      ],
     });
   });
-
 });

@@ -74,10 +74,7 @@ export type RemoteCommandReservationDecision =
 export interface RemoteCommandReplayStore {
   inspect(coordinate: RemoteCommandReplayCoordinate): Promise<RemoteCommandReplayDecision>;
   reserve(coordinate: RemoteCommandReplayCoordinate): Promise<RemoteCommandReservationDecision>;
-  complete(input: {
-    reservationId: string;
-    receipt: RemoteCommandExecutionReceipt;
-  }): Promise<void>;
+  complete(input: { reservationId: string; receipt: RemoteCommandExecutionReceipt }): Promise<void>;
 }
 
 export interface RemoteCommandHandlingResult {

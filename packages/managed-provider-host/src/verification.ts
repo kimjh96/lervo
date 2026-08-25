@@ -1,12 +1,6 @@
-import {
-  captureRepositorySnapshot,
-  type ManagedProjectVerifier,
-} from "@lervo/orchestrator";
+import { captureRepositorySnapshot, type ManagedProjectVerifier } from "@lervo/orchestrator";
 import type { ArtifactStore } from "@lervo/storage-contract";
-import {
-  loadVerificationSuite,
-  runVerificationSuite,
-} from "@lervo/verification";
+import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
 
 export interface PreparedManagedProviderHostVerification {
   suites: Awaited<ReturnType<typeof loadVerificationSuite>>[];

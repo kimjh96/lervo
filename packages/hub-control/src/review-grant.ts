@@ -18,7 +18,8 @@ export interface HubControlReviewGrantCoordinate {
 
 function instant(value: string): number {
   const milliseconds = Date.parse(value);
-  if (!Number.isFinite(milliseconds)) throw new Error("The Hub control review grant time is invalid.");
+  if (!Number.isFinite(milliseconds))
+    throw new Error("The Hub control review grant time is invalid.");
   return milliseconds;
 }
 
@@ -34,8 +35,12 @@ function message(input: HubControlReviewGrantCoordinate, expiresAtSeconds: numbe
 }
 
 function validCoordinate(input: HubControlReviewGrantCoordinate): boolean {
-  return PRINCIPAL_ID.test(input.principalId) && DESTINATION_ID.test(input.destinationId) &&
-    PROJECT_ID.test(input.projectId) && DELIVERY_ID.test(input.deliveryId);
+  return (
+    PRINCIPAL_ID.test(input.principalId) &&
+    DESTINATION_ID.test(input.destinationId) &&
+    PROJECT_ID.test(input.projectId) &&
+    DELIVERY_ID.test(input.deliveryId)
+  );
 }
 
 export class HubControlReviewGrants {
@@ -46,16 +51,24 @@ export class HubControlReviewGrants {
     this.secret = Buffer.from(secret);
     this.ttlSeconds = options.ttlSeconds ?? DEFAULT_TTL_SECONDS;
     if (this.secret.byteLength < MINIMUM_SECRET_BYTES) {
-      throw new Error(`The Hub control review grant secret must be at least ${MINIMUM_SECRET_BYTES} bytes.`);
+      throw new Error(
+        `The Hub control review grant secret must be at least ${MINIMUM_SECRET_BYTES} bytes.`,
+      );
     }
-    if (!Number.isSafeInteger(this.ttlSeconds) || this.ttlSeconds < 1 ||
-      this.ttlSeconds > MAXIMUM_TTL_SECONDS) {
-      throw new Error(`The Hub control review grant TTL must be between 1 and ${MAXIMUM_TTL_SECONDS} seconds.`);
+    if (
+      !Number.isSafeInteger(this.ttlSeconds) ||
+      this.ttlSeconds < 1 ||
+      this.ttlSeconds > MAXIMUM_TTL_SECONDS
+    ) {
+      throw new Error(
+        `The Hub control review grant TTL must be between 1 and ${MAXIMUM_TTL_SECONDS} seconds.`,
+      );
     }
   }
 
   issue(input: HubControlReviewGrantCoordinate & { issuedAt: string }): string {
-    if (!validCoordinate(input)) throw new Error("The Hub control review grant coordinates are invalid.");
+    if (!validCoordinate(input))
+      throw new Error("The Hub control review grant coordinates are invalid.");
     const expiresAtSeconds = Math.floor(instant(input.issuedAt) / 1_000) + this.ttlSeconds;
     const digest = createHmac("sha256", this.secret)
       .update(message(input, expiresAtSeconds), "utf8")
@@ -63,17 +76,22 @@ export class HubControlReviewGrants {
     return `hcrg_${expiresAtSeconds}_${digest}`;
   }
 
-  verify(input: HubControlReviewGrantCoordinate & {
-    grant: string;
-    verifiedAt: string;
-  }): boolean {
+  verify(
+    input: HubControlReviewGrantCoordinate & {
+      grant: string;
+      verifiedAt: string;
+    },
+  ): boolean {
     if (!validCoordinate(input)) return false;
     const match = GRANT_PATTERN.exec(input.grant);
     if (match === null) return false;
     const expiresAtSeconds = Number(match[1]);
     const verifiedAtSeconds = Math.floor(instant(input.verifiedAt) / 1_000);
-    if (verifiedAtSeconds < expiresAtSeconds - this.ttlSeconds ||
-      verifiedAtSeconds > expiresAtSeconds) return false;
+    if (
+      verifiedAtSeconds < expiresAtSeconds - this.ttlSeconds ||
+      verifiedAtSeconds > expiresAtSeconds
+    )
+      return false;
     const expected = createHmac("sha256", this.secret)
       .update(message(input, expiresAtSeconds), "utf8")
       .digest();

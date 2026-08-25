@@ -6,7 +6,8 @@ export const MAX_HUB_HTTP_MAX_RESPONSE_BYTES = 16_777_216;
 export function resolveHubHttpMaxResponseBytes(value: number | undefined): number {
   const resolved = value ?? DEFAULT_HUB_HTTP_MAX_RESPONSE_BYTES;
   if (
-    !Number.isSafeInteger(resolved) || resolved < 1_024 ||
+    !Number.isSafeInteger(resolved) ||
+    resolved < 1_024 ||
     resolved > MAX_HUB_HTTP_MAX_RESPONSE_BYTES
   ) {
     throw new Error(

@@ -13,7 +13,12 @@ export interface HubRuntimeCliPorts {
 }
 
 function configArgument(args: readonly string[]): string {
-  if (args.length !== 2 || args[0] !== "--config" || args[1] === undefined || args[1].length === 0) {
+  if (
+    args.length !== 2 ||
+    args[0] !== "--config" ||
+    args[1] === undefined ||
+    args[1].length === 0
+  ) {
     throw new HubRuntimeError("invalid_arguments", "Usage: lervo-hub --config <config.json>");
   }
   return args[1];
@@ -29,7 +34,8 @@ export async function runHubRuntimeCli(
     const signals = attachHubRuntimeSignalHandlers(
       deployment,
       ports.signals ?? process,
-      (failureCode) => ports.stderr(`Failed to reload Lervo Hub runtime material (${failureCode}).\n`),
+      (failureCode) =>
+        ports.stderr(`Failed to reload Lervo Hub runtime material (${failureCode}).\n`),
     );
     try {
       const address = await deployment.listen();
@@ -45,9 +51,10 @@ export async function runHubRuntimeCli(
       await deployment.close().catch(() => undefined);
     }
   } catch (error) {
-    const failure = error instanceof HubRuntimeError
-      ? error
-      : new HubRuntimeError("startup_failed", "Could not start Lervo Hub.", { cause: error });
+    const failure =
+      error instanceof HubRuntimeError
+        ? error
+        : new HubRuntimeError("startup_failed", "Could not start Lervo Hub.", { cause: error });
     ports.stderr(`Lervo Hub error (${failure.code}): ${failure.message}\n`);
     return 1;
   }

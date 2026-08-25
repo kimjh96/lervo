@@ -47,7 +47,8 @@ export async function readFirstPublicationPackageMetadataSourceSet(
     !isAbsolute(paths?.lockfilePath ?? "") ||
     !isAbsolute(evidencePath ?? "") ||
     !["permit", "receipt"].includes(evidenceId)
-  ) failure();
+  )
+    failure();
   let activationSources;
   let sbomContents;
   let lockfileContents;

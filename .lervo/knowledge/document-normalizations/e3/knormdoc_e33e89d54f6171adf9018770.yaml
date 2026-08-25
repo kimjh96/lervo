@@ -1,0 +1,27 @@
+candidateId: knorm_f41aa97f3640f015e2d32a1c
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_04fa2897f92424159f0c3461
+outputLanguage: en
+outputs:
+  - byteCount: 2528
+    contentHash: sha256:427a28e11bad4b6e12a0ec48083012a47480ae6c39b63aa5f46ae6a018cdca06
+    path: docs/decisions/operations/storage/0213-deletable-derived-state-boundary.md
+    userRegionHash: sha256:427a28e11bad4b6e12a0ec48083012a47480ae6c39b63aa5f46ae6a018cdca06
+profile: decision_record
+recordId: knormdoc_e33e89d54f6171adf9018770
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:427a28e11bad4b6e12a0ec48083012a47480ae6c39b63aa5f46ae6a018cdca06
+sourcePath: docs/decisions/operations/storage/0213-deletable-derived-state-boundary.md
+sourceUnitVersionIds:
+  - uv_5ccd63437f183b99f6e64287
+  - uv_97a5ac40ba1b594c9d15631a
+  - uv_e47925b9bd8a339b6818217e
+  - uv_e83ffe70bccc691a411f8495
+  - uv_f550a1107dfe7c7066939467

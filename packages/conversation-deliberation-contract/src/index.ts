@@ -1,10 +1,5 @@
 export type ConversationDeliberationStatus =
-  | "running"
-  | "unknown"
-  | "interrupted"
-  | "converged"
-  | "no_consensus"
-  | "failed";
+  "running" | "unknown" | "interrupted" | "converged" | "no_consensus" | "failed";
 
 export interface ConversationDeliberationSummary {
   deliberationId: string;
@@ -15,11 +10,9 @@ export interface ConversationDeliberationSummary {
 
 export type ConversationDeliberationJobState = "queued" | "leased" | "settled" | "uncertain";
 export type ConversationDeliberationJobFailureCode =
-  | "worker_lease_expired"
-  | "deliberation_execution_uncertain";
+  "worker_lease_expired" | "deliberation_execution_uncertain";
 export type ConversationDeliberationResumeJobFailureCode =
-  | "resume_worker_lease_expired"
-  | "deliberation_resume_execution_uncertain";
+  "resume_worker_lease_expired" | "deliberation_resume_execution_uncertain";
 
 export interface ConversationDeliberationReconciliationRecord<TFailureCode extends string> {
   sourceKind: string;
@@ -86,38 +79,88 @@ export interface ConversationDeliberationReconciliationStore {
   }): Promise<void>;
 }
 
-export interface ConversationDeliberationJobStore
-  extends ConversationDeliberationReconciliationStore {
-  enqueue(input: Omit<ConversationDeliberationJob,
-    "operation" | "state" | "attemptCount" | "leaseExpiresAt" | "summary" | "failureCode" |
-    "reconciliation">): Promise<ConversationDeliberationJob>;
-  inspect(input: { projectId: string; deliberationId: string }):
-    Promise<ConversationDeliberationJob | null>;
-  claim(input: { workerId: string; claimedAt: string; leaseDurationMs: number }):
-    Promise<{ leaseId: string; job: ConversationDeliberationJob } | null>;
-  renew(input: { deliberationId: string; leaseId: string; renewedAt: string;
-    leaseDurationMs: number }): Promise<void>;
-  settle(input: { deliberationId: string; leaseId: string; settledAt: string;
-    summary: ConversationDeliberationSummary }): Promise<void>;
-  markUncertain(input: { deliberationId: string; leaseId: string; failedAt: string;
-    failureCode: ConversationDeliberationJobFailureCode }): Promise<void>;
+export interface ConversationDeliberationJobStore extends ConversationDeliberationReconciliationStore {
+  enqueue(
+    input: Omit<
+      ConversationDeliberationJob,
+      | "operation"
+      | "state"
+      | "attemptCount"
+      | "leaseExpiresAt"
+      | "summary"
+      | "failureCode"
+      | "reconciliation"
+    >,
+  ): Promise<ConversationDeliberationJob>;
+  inspect(input: {
+    projectId: string;
+    deliberationId: string;
+  }): Promise<ConversationDeliberationJob | null>;
+  claim(input: {
+    workerId: string;
+    claimedAt: string;
+    leaseDurationMs: number;
+  }): Promise<{ leaseId: string; job: ConversationDeliberationJob } | null>;
+  renew(input: {
+    deliberationId: string;
+    leaseId: string;
+    renewedAt: string;
+    leaseDurationMs: number;
+  }): Promise<void>;
+  settle(input: {
+    deliberationId: string;
+    leaseId: string;
+    settledAt: string;
+    summary: ConversationDeliberationSummary;
+  }): Promise<void>;
+  markUncertain(input: {
+    deliberationId: string;
+    leaseId: string;
+    failedAt: string;
+    failureCode: ConversationDeliberationJobFailureCode;
+  }): Promise<void>;
 }
 
-export interface ConversationDeliberationResumeJobStore
-  extends ConversationDeliberationReconciliationStore {
-  enqueue(input: Omit<ConversationDeliberationResumeJob,
-    "operation" | "state" | "attemptCount" | "leaseExpiresAt" | "summary" | "failureCode" |
-    "reconciliation">): Promise<ConversationDeliberationResumeJob>;
-  inspect(input: { projectId: string; deliberationId: string }):
-    Promise<ConversationDeliberationResumeJob | null>;
-  claim(input: { workerId: string; claimedAt: string; leaseDurationMs: number }):
-    Promise<{ leaseId: string; job: ConversationDeliberationResumeJob } | null>;
-  renew(input: { deliberationId: string; leaseId: string; renewedAt: string;
-    leaseDurationMs: number }): Promise<void>;
-  settle(input: { deliberationId: string; leaseId: string; settledAt: string;
-    summary: ConversationDeliberationSummary }): Promise<void>;
-  markUncertain(input: { deliberationId: string; leaseId: string; failedAt: string;
-    failureCode: ConversationDeliberationResumeJobFailureCode }): Promise<void>;
+export interface ConversationDeliberationResumeJobStore extends ConversationDeliberationReconciliationStore {
+  enqueue(
+    input: Omit<
+      ConversationDeliberationResumeJob,
+      | "operation"
+      | "state"
+      | "attemptCount"
+      | "leaseExpiresAt"
+      | "summary"
+      | "failureCode"
+      | "reconciliation"
+    >,
+  ): Promise<ConversationDeliberationResumeJob>;
+  inspect(input: {
+    projectId: string;
+    deliberationId: string;
+  }): Promise<ConversationDeliberationResumeJob | null>;
+  claim(input: {
+    workerId: string;
+    claimedAt: string;
+    leaseDurationMs: number;
+  }): Promise<{ leaseId: string; job: ConversationDeliberationResumeJob } | null>;
+  renew(input: {
+    deliberationId: string;
+    leaseId: string;
+    renewedAt: string;
+    leaseDurationMs: number;
+  }): Promise<void>;
+  settle(input: {
+    deliberationId: string;
+    leaseId: string;
+    settledAt: string;
+    summary: ConversationDeliberationSummary;
+  }): Promise<void>;
+  markUncertain(input: {
+    deliberationId: string;
+    leaseId: string;
+    failedAt: string;
+    failureCode: ConversationDeliberationResumeJobFailureCode;
+  }): Promise<void>;
 }
 
 export interface ConversationDeliberationExecutionPort {
@@ -125,7 +168,9 @@ export interface ConversationDeliberationExecutionPort {
 }
 
 export interface ConversationDeliberationResumeExecutionPort {
-  execute(job: Readonly<ConversationDeliberationResumeJob>): Promise<ConversationDeliberationSummary>;
+  execute(
+    job: Readonly<ConversationDeliberationResumeJob>,
+  ): Promise<ConversationDeliberationSummary>;
 }
 
 export const conversationDeliberationPatterns = {

@@ -32,12 +32,20 @@ function validateInput(input: {
   const cleanedAtMs = timestamp(input.cleanedAt, "artifact cleanedAt");
   if (
     !WORKER_PATTERN.test(input.workerId) ||
-    !Number.isSafeInteger(input.leaseDurationMs) || input.leaseDurationMs < 1_000 ||
+    !Number.isSafeInteger(input.leaseDurationMs) ||
+    input.leaseDurationMs < 1_000 ||
     input.leaseDurationMs > 5 * 60_000 ||
-    !Number.isSafeInteger(input.orphanGraceMs) || input.orphanGraceMs < 60_000 ||
+    !Number.isSafeInteger(input.orphanGraceMs) ||
+    input.orphanGraceMs < 60_000 ||
     input.orphanGraceMs > 30 * 24 * 60 * 60_000 ||
-    !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100
-  ) throw new HubCommandError("invalid_request", "The artifact cleanup execution scope is invalid.");
+    !Number.isSafeInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > 100
+  )
+    throw new HubCommandError(
+      "invalid_request",
+      "The artifact cleanup execution scope is invalid.",
+    );
   return cleanedAtMs;
 }
 
@@ -126,7 +134,8 @@ export async function cleanupHubCommandArtifacts(input: {
         claim,
         now,
       });
-      purged.deleted ? result.deletedCount += 1 : result.alreadyMissingCount += 1;
+      if (purged.deleted) result.deletedCount += 1;
+      else result.alreadyMissingCount += 1;
       result.purgedDeliveryCount += purged.purgedDeliveryCount;
       if (purged.continuationRecommended) result.continuationRecommended = true;
     } catch {
@@ -142,9 +151,11 @@ export async function cleanupHubCommandArtifacts(input: {
   const inventory = await input.artifacts.listObjects({
     ...(input.inventoryCursor === undefined ? {} : { after: input.inventoryCursor }),
     limit: remaining,
-    ...(input.maximumScannedObjects === undefined ? {} : {
-      maximumScannedObjects: input.maximumScannedObjects,
-    }),
+    ...(input.maximumScannedObjects === undefined
+      ? {}
+      : {
+          maximumScannedObjects: input.maximumScannedObjects,
+        }),
   });
   result.nextInventoryCursor = inventory.nextCursor;
   result.continuationRecommended ||= inventory.nextCursor !== null;
@@ -172,7 +183,8 @@ export async function cleanupHubCommandArtifacts(input: {
         claim,
         now,
       });
-      purged.deleted ? result.deletedCount += 1 : result.alreadyMissingCount += 1;
+      if (purged.deleted) result.deletedCount += 1;
+      else result.alreadyMissingCount += 1;
       result.purgedDeliveryCount += purged.purgedDeliveryCount;
       if (purged.orphanPurged) result.orphanPurgedCount += 1;
       if (purged.continuationRecommended) result.continuationRecommended = true;

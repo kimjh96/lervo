@@ -85,8 +85,7 @@ async function captureAfterSnapshot(
   if (input.before === undefined) return undefined;
   try {
     const after = await withinDeadline({
-      operation: () =>
-        input.captureSnapshot(input.repositoryRoot, input.snapshotPolicy),
+      operation: () => input.captureSnapshot(input.repositoryRoot, input.snapshotPolicy),
       timeoutMs: input.deadlines.snapshotMs,
       failureCode: "repository_snapshot_failed",
       label: "post-run repository snapshot",

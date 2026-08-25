@@ -25,9 +25,7 @@ export interface AuthenticatedRemoteCommandHubTransport {
     limit: number;
   }): Promise<unknown>;
 
-  acknowledgeRemoteCommand(
-    acknowledgement: RemoteCommandDeliveryAcknowledgement,
-  ): Promise<unknown>;
+  acknowledgeRemoteCommand(acknowledgement: RemoteCommandDeliveryAcknowledgement): Promise<unknown>;
 }
 
 export function authenticatedRemoteCommandBody(input: {
@@ -36,8 +34,10 @@ export function authenticatedRemoteCommandBody(input: {
   expectedPeerIdentityHash: string;
 }): unknown {
   if (
-    typeof input.response !== "object" || input.response === null ||
-    !("authentication" in input.response) || !("body" in input.response) ||
+    typeof input.response !== "object" ||
+    input.response === null ||
+    !("authentication" in input.response) ||
+    !("body" in input.response) ||
     typeof input.response.authentication !== "object" ||
     input.response.authentication === null
   ) {

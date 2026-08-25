@@ -34,10 +34,20 @@ export async function runConversationDeliveryCycle(input: {
   if (
     !input.adapter.descriptor.capabilities.includes("messages.send") ||
     !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(input.workerId) ||
-    !Number.isSafeInteger(leaseDurationMs) || leaseDurationMs < 1_000 || leaseDurationMs > 300_000 ||
-    !Number.isSafeInteger(retryDelayMs) || retryDelayMs < 1_000 || retryDelayMs > 3_600_000 ||
-    !Number.isSafeInteger(limit) || limit < 1 || limit > 16
-  ) throw new InteractionError("invalid_interaction_request", "The conversation delivery configuration is invalid.");
+    !Number.isSafeInteger(leaseDurationMs) ||
+    leaseDurationMs < 1_000 ||
+    leaseDurationMs > 300_000 ||
+    !Number.isSafeInteger(retryDelayMs) ||
+    retryDelayMs < 1_000 ||
+    retryDelayMs > 3_600_000 ||
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > 16
+  )
+    throw new InteractionError(
+      "invalid_interaction_request",
+      "The conversation delivery configuration is invalid.",
+    );
   const clock = input.clock ?? (() => new Date());
   const claimedAt = now(clock);
   let leases;
@@ -50,9 +60,13 @@ export async function runConversationDeliveryCycle(input: {
       limit,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "The conversation outbox claim failed.", {
-      cause: error,
-    });
+    throw new InteractionError(
+      "interaction_store_failed",
+      "The conversation outbox claim failed.",
+      {
+        cause: error,
+      },
+    );
   }
   let deliveredCount = 0;
   let retryScheduledCount = 0;

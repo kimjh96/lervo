@@ -61,10 +61,9 @@ describe("GitHub release attestation verifier adapter", () => {
       { repository: "lervo-dev/lervo", tag: "main", sourceDigest },
       { repository: "lervo-dev/lervo", tag: "v0.1.0", sourceDigest: "a".repeat(39) },
     ]) {
-      assert.throws(
-        () => createGitHubReleaseTrustPolicy(input),
-        { code: "release_attestation_trust_policy_invalid" },
-      );
+      assert.throws(() => createGitHubReleaseTrustPolicy(input), {
+        code: "release_attestation_trust_policy_invalid",
+      });
     }
   });
 

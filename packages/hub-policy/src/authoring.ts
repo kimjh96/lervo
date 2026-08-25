@@ -37,11 +37,9 @@ export function hashPolicyApproverSubject(input: {
 }
 
 function wrapContractError(label: string, error: unknown): HubPolicyError {
-  return new HubPolicyError(
-    "invalid_policy_request",
-    `${label} contract is invalid.`,
-    { cause: error instanceof Error ? error : undefined },
-  );
+  return new HubPolicyError("invalid_policy_request", `${label} contract is invalid.`, {
+    cause: error instanceof Error ? error : undefined,
+  });
 }
 
 function assertPublishedBeforeExpiry(publishedAt: string, expiresAt: string): void {
@@ -104,7 +102,10 @@ export async function authorPolicyApproval(input: {
 }): Promise<HubPolicyPublishResult> {
   assertPublishedBeforeExpiry(input.request.publishedAt, input.request.expiresAt);
   if (!COMMAND_ID_PATTERN.test(input.request.commandId)) {
-    throw new HubPolicyError("invalid_policy_request", "The policy approval command ID is invalid.");
+    throw new HubPolicyError(
+      "invalid_policy_request",
+      "The policy approval command ID is invalid.",
+    );
   }
   const [snapshot, binding] = await Promise.all([
     input.store.getCurrentPolicySnapshot({
@@ -118,10 +119,16 @@ export async function authorPolicyApproval(input: {
     }),
   ]);
   if (snapshot === null) {
-    throw new HubPolicyError("policy_snapshot_conflict", "No current policy snapshot is available for approval.");
+    throw new HubPolicyError(
+      "policy_snapshot_conflict",
+      "No current policy snapshot is available for approval.",
+    );
   }
   if (binding === null) {
-    throw new HubPolicyError("policy_command_not_found", "The remote command to approve is absent from the Hub queue.");
+    throw new HubPolicyError(
+      "policy_command_not_found",
+      "The remote command to approve is absent from the Hub queue.",
+    );
   }
   let approval;
   try {
@@ -159,7 +166,10 @@ export async function authorPolicyRevocation(input: {
   };
 }): Promise<HubPolicyPublishResult> {
   if (!APPROVAL_ID_PATTERN.test(input.request.approvalId)) {
-    throw new HubPolicyError("invalid_policy_request", "The policy revocation approval ID is invalid.");
+    throw new HubPolicyError(
+      "invalid_policy_request",
+      "The policy revocation approval ID is invalid.",
+    );
   }
   const envelope = await input.store.getPolicyApproval({
     destinationId: input.request.destinationId,
@@ -167,7 +177,10 @@ export async function authorPolicyRevocation(input: {
     approvalId: input.request.approvalId,
   });
   if (envelope === null) {
-    throw new HubPolicyError("policy_approval_not_found", "The policy approval to revoke was not found.");
+    throw new HubPolicyError(
+      "policy_approval_not_found",
+      "The policy approval to revoke was not found.",
+    );
   }
   let revocation;
   try {

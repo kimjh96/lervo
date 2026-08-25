@@ -24,7 +24,10 @@ export function createPolicySnapshot(
 
 export function assertPolicySnapshot(snapshot: PolicySnapshot): void {
   if (!validateSchema("policySnapshot", snapshot).valid) {
-    throw new PolicyContractError("invalid_policy_snapshot", "The policy snapshot contract is invalid.");
+    throw new PolicyContractError(
+      "invalid_policy_snapshot",
+      "The policy snapshot contract is invalid.",
+    );
   }
   const { snapshotId: _snapshotId, ...content } = snapshot;
   const coordinateSet = new Set<string>();

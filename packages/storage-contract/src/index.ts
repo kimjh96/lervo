@@ -102,9 +102,7 @@ export interface OutboxTransaction extends EventStoreTransaction {
   claim(request: ClaimOutboxRequest): OutboxDelivery[];
   acknowledge(request: AcknowledgeOutboxRequest): AcknowledgeOutboxResult;
   reschedule(request: RescheduleOutboxRequest): RescheduleOutboxResult;
-  purgeAcknowledged(
-    request: PurgeAcknowledgedOutboxRequest,
-  ): PurgeAcknowledgedOutboxResult;
+  purgeAcknowledged(request: PurgeAcknowledgedOutboxRequest): PurgeAcknowledgedOutboxResult;
 }
 
 /**
@@ -126,9 +124,7 @@ export interface OutboxStore extends EventStore<OutboxTransaction> {
   claim(request: ClaimOutboxRequest): OutboxDelivery[];
   acknowledge(request: AcknowledgeOutboxRequest): AcknowledgeOutboxResult;
   reschedule(request: RescheduleOutboxRequest): RescheduleOutboxResult;
-  purgeAcknowledged(
-    request: PurgeAcknowledgedOutboxRequest,
-  ): PurgeAcknowledgedOutboxResult;
+  purgeAcknowledged(request: PurgeAcknowledgedOutboxRequest): PurgeAcknowledgedOutboxResult;
   listOutbox(options?: ListOutboxOptions): OutboxDelivery[];
 }
 

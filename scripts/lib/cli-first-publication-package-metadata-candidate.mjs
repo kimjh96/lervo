@@ -6,8 +6,7 @@ import {
   createFirstPublicationPackageMetadataCandidate,
   validateFirstPublicationPackageMetadataCandidate,
 } from "./first-publication-package-metadata-candidate.mjs";
-import { validateFirstPublicationMetadataDecision } from
-  "./first-publication-metadata-decision.mjs";
+import { validateFirstPublicationMetadataDecision } from "./first-publication-metadata-decision.mjs";
 import {
   createFirstPublicationMetadataPreview,
   validateFirstPublicationMetadataPreview,
@@ -20,8 +19,8 @@ export async function createValidatedFirstPublicationPackageMetadataCandidateEvi
 ) {
   validateFirstPublicationMetadataDecision(decision);
   const createPreview = dependencies.createPreview ?? createFirstPublicationMetadataPreview;
-  const createCandidate = dependencies.createCandidate ??
-    createFirstPublicationPackageMetadataCandidate;
+  const createCandidate =
+    dependencies.createCandidate ?? createFirstPublicationPackageMetadataCandidate;
   const previewInput = { ...sources, decision };
   const preview = await createPreview(previewInput);
   validateFirstPublicationMetadataPreview(preview, previewInput);

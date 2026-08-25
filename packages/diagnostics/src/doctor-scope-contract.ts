@@ -39,9 +39,7 @@ const environmentCheckIdsByScope = {
   ...environmentCheckIds,
 } as const satisfies Record<DoctorScope, readonly DoctorCheck["checkId"][]>;
 
-export function doctorCheckIdsForScope(
-  scope: DoctorScope,
-): readonly DoctorCheck["checkId"][] {
+export function doctorCheckIdsForScope(scope: DoctorScope): readonly DoctorCheck["checkId"][] {
   return checkIdsByScope[scope];
 }
 

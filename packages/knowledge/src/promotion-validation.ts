@@ -1,8 +1,4 @@
-import {
-  validateSchema,
-  type EventEnvelope,
-  type KnowledgeReviewApproval,
-} from "@lervo/schemas";
+import { validateSchema, type EventEnvelope } from "@lervo/schemas";
 
 import { verifyKnowledgeCandidateOriginal } from "./candidate-original.js";
 import {
@@ -11,10 +7,7 @@ import {
   knowledgeReviewApprovalBytes,
   knowledgeSha256,
 } from "./integrity.js";
-import {
-  KnowledgeError,
-  type PromoteKnowledgeCandidateInput,
-} from "./types.js";
+import { KnowledgeError, type PromoteKnowledgeCandidateInput } from "./types.js";
 
 function sameStrings(left: readonly string[], right: readonly string[]): boolean {
   return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
@@ -63,7 +56,8 @@ export async function validatePromotionInput(
   }
   const storedReviewEvent = input.events.get(recordedEvent.eventId);
   if (
-    storedReviewEvent === null || storedReviewEvent.eventHash !== recordedEvent.eventHash ||
+    storedReviewEvent === null ||
+    storedReviewEvent.eventHash !== recordedEvent.eventHash ||
     storedReviewEvent.type !== "knowledge.candidate.reviewed" ||
     storedReviewEvent.payload.approvalId !== approval.approvalId ||
     storedReviewEvent.payload.approvalContentHash !== approvalArtifact.contentHash ||
@@ -89,8 +83,7 @@ export async function validatePromotionInput(
     approval.projectId !== input.candidate.projectId ||
     approval.policy.policyId !== input.policy.policyId ||
     approval.policy.policyVersion !== input.policy.policyVersion ||
-    calculateKnowledgePromotionPolicyVersion(approval.policy) !==
-      approval.policy.policyVersion ||
+    calculateKnowledgePromotionPolicyVersion(approval.policy) !== approval.policy.policyVersion ||
     JSON.stringify(approval.policy) !== JSON.stringify(input.policy) ||
     !input.policy.allowedReviewerIds.includes(approval.reviewer.reviewerId)
   ) {

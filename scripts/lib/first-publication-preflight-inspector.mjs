@@ -1,27 +1,25 @@
-import { observeFirstPublicationArtifact } from
-  "./first-publication-artifact-observer.mjs";
-import { createFirstPublicationPreflightReport } from
-  "./first-publication-preflight.mjs";
+import { observeFirstPublicationArtifact } from "./first-publication-artifact-observer.mjs";
+import { createFirstPublicationPreflightReport } from "./first-publication-preflight.mjs";
 import { firstPublicationReservationId } from "./first-publication-reservation.mjs";
 
-export async function inspectFirstPublicationPreflight({
-  bootstrap,
-  publicationAuthorization,
-  releaseDirectory,
-}, {
-  reservationStore,
-  observePackage,
-  observeNpm,
-  observeArtifact = observeFirstPublicationArtifact,
-  clock = () => new Date().toISOString(),
-}) {
+export async function inspectFirstPublicationPreflight(
+  { bootstrap, publicationAuthorization, releaseDirectory },
+  {
+    reservationStore,
+    observePackage,
+    observeNpm,
+    observeArtifact = observeFirstPublicationArtifact,
+    clock = () => new Date().toISOString(),
+  },
+) {
   if (
     typeof reservationStore?.observe !== "function" ||
     typeof observePackage !== "function" ||
     typeof observeNpm !== "function" ||
     typeof observeArtifact !== "function" ||
     typeof clock !== "function"
-  ) throw new TypeError("first-publication preflight inspector ports are invalid");
+  )
+    throw new TypeError("first-publication preflight inspector ports are invalid");
   const reservationId = firstPublicationReservationId(bootstrap);
   const [artifactObservation, packageObservation, reservationObservation, npmObservation] =
     await Promise.all([

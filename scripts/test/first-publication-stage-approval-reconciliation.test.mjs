@@ -33,17 +33,20 @@ describe("first-publication stage approval reconciliation evidence", () => {
       const input = evidence(fixture);
       const report = createFirstPublicationStageApprovalReconciliationReport(input);
       assert.equal(report.outcome, "public_release_confirmed");
-      assert.deepEqual(report.checks.map(({ status }) => status), [
-        "matched", "matched", "matched",
-      ]);
+      assert.deepEqual(
+        report.checks.map(({ status }) => status),
+        ["matched", "matched", "matched"],
+      );
       assert.equal(report.binding.terminalState, "approval_command_completed");
       assert.equal(report.sideEffects.stageApprove, "not_attempted");
-      assert.equal(validateFirstPublicationStageApprovalReconciliationReport(
+      assert.equal(
+        validateFirstPublicationStageApprovalReconciliationReport(report, input),
         report,
-        input,
-      ), report);
-      assert.equal(validateFirstPublicationStageApprovalReconciliationReportDocument(report),
-        report);
+      );
+      assert.equal(
+        validateFirstPublicationStageApprovalReconciliationReportDocument(report),
+        report,
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -59,17 +62,23 @@ describe("first-publication stage approval reconciliation evidence", () => {
         distTagValue: { state: "not_found" },
       });
       const notConfirmed = createFirstPublicationStageApprovalReconciliationReport(
-        evidence(fixture, matchingStageApprovalReconciliationObservation(fixture, {
-          publicRelease: missing,
-          stage: { state: "present" },
-        })),
+        evidence(
+          fixture,
+          matchingStageApprovalReconciliationObservation(fixture, {
+            publicRelease: missing,
+            stage: { state: "present" },
+          }),
+        ),
       );
       assert.equal(notConfirmed.outcome, "approval_not_confirmed");
       assert.equal(notConfirmed.limitations.automaticRetryAuthority, "not_granted");
       const inconsistent = createFirstPublicationStageApprovalReconciliationReport(
-        evidence(fixture, matchingStageApprovalReconciliationObservation(fixture, {
-          stage: { state: "present" },
-        })),
+        evidence(
+          fixture,
+          matchingStageApprovalReconciliationObservation(fixture, {
+            stage: { state: "present" },
+          }),
+        ),
       );
       assert.equal(inconsistent.outcome, "unknown");
     } finally {

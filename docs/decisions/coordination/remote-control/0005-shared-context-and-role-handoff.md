@@ -33,9 +33,7 @@ Because v0 had not published role manifests into user repositories, these fields
 
 ### Evidence at the receiving role
 
-Publication or handoff creation does not prove that the recipient read the material.
-
-The receiving role must:
+Publication or handoff creation does not prove that the recipient read the material. The receiving role must:
 
 1. Select each document with `reasonCode=handoff`, producing E1.
 2. Re-read the current bytes and verify the hash in its own run and session, producing E2.

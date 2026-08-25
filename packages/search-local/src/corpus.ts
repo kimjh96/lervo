@@ -25,9 +25,13 @@ function title(text: string): string | undefined {
   return undefined;
 }
 
-export async function loadRegisteredDocumentCorpus(repositoryRoot: string): Promise<SearchSourceInput[]> {
+export async function loadRegisteredDocumentCorpus(
+  repositoryRoot: string,
+): Promise<SearchSourceInput[]> {
   const registry = await loadDocumentRegistry(repositoryRoot);
-  const entries = Object.entries(registry.documents).sort(([left], [right]) => compareText(left, right));
+  const entries = Object.entries(registry.documents).sort(([left], [right]) =>
+    compareText(left, right),
+  );
   let totalBytes = 0;
   const sources: SearchSourceInput[] = [];
   for (const [documentId, record] of entries) {
@@ -43,18 +47,28 @@ export async function loadRegisteredDocumentCorpus(repositoryRoot: string): Prom
     }
     totalBytes += bytes.byteLength;
     if (totalBytes > MAX_TOTAL_BYTES) {
-      throw new SearchLocalError("corpus_limit_exceeded", "The registered-document corpus exceeds the total byte limit.");
+      throw new SearchLocalError(
+        "corpus_limit_exceeded",
+        "The registered-document corpus exceeds the total byte limit.",
+      );
     }
     let text: string;
     try {
       text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     } catch (error) {
-      throw new SearchLocalError("corpus_read_failed", `The registered document is not UTF-8: ${documentId}`, {
-        cause: error instanceof Error ? error : undefined,
-      });
+      throw new SearchLocalError(
+        "corpus_read_failed",
+        `The registered document is not UTF-8: ${documentId}`,
+        {
+          cause: error instanceof Error ? error : undefined,
+        },
+      );
     }
     if (text.length === 0) {
-      throw new SearchLocalError("corpus_read_failed", `The registered document is empty: ${documentId}`);
+      throw new SearchLocalError(
+        "corpus_read_failed",
+        `The registered document is empty: ${documentId}`,
+      );
     }
     const heading = title(text);
     sources.push({

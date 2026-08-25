@@ -52,6 +52,9 @@
 @media (prefers-reduced-motion: no-preference) {
   button,
   .item-button {
-    transition: border-color 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      filter 120ms ease;
   }
 }

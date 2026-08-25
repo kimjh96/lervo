@@ -19,9 +19,7 @@ function fail() {
   );
 }
 
-export async function readFirstPublicationStageResultSources(
-  workflowExecutionReportPath,
-) {
+export async function readFirstPublicationStageResultSources(workflowExecutionReportPath) {
   if (!isAbsolute(workflowExecutionReportPath ?? "")) fail();
   let contents;
   try {

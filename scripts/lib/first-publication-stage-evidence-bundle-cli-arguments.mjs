@@ -11,8 +11,12 @@ function fail() {
 
 export function parseFirstPublicationStageEvidenceBundleArguments(args) {
   const names = [
-    "--stage-review-report", "--decision", "--authorization",
-    "--result-directory", "--reconciliation-report", "--output",
+    "--stage-review-report",
+    "--decision",
+    "--authorization",
+    "--result-directory",
+    "--reconciliation-report",
+    "--output",
   ];
   const values = new Map();
   let write = false;
@@ -27,15 +31,17 @@ export function parseFirstPublicationStageEvidenceBundleArguments(args) {
       continue;
     }
     const value = args[index + 1];
-    if (!names.includes(name) || values.has(name) || value === undefined ||
-        value.startsWith("--")) fail();
+    if (!names.includes(name) || values.has(name) || value === undefined || value.startsWith("--"))
+      fail();
     values.set(name, value);
     index += 1;
   }
   if (
-    !write || values.size !== names.length ||
+    !write ||
+    values.size !== names.length ||
     names.some((name) => !isAbsolute(values.get(name) ?? ""))
-  ) fail();
+  )
+    fail();
   return {
     stageReviewReportPath: values.get("--stage-review-report"),
     decisionPath: values.get("--decision"),

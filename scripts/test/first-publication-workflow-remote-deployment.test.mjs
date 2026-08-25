@@ -7,16 +7,14 @@ import {
   createFirstPublicationWorkflowRemoteDeploymentEvidence,
   validateFirstPublicationWorkflowRemoteDeploymentEvidence,
 } from "../lib/first-publication-workflow-remote-deployment-evidence.mjs";
-import { readFirstPublicationWorkflowRemoteDeploymentSources } from
-  "../lib/first-publication-workflow-remote-deployment-sources.mjs";
+import { readFirstPublicationWorkflowRemoteDeploymentSources } from "../lib/first-publication-workflow-remote-deployment-sources.mjs";
 import { canonicalDigest, sha256 } from "../lib/release-artifact-manifest.mjs";
 import {
   createWorkflowRemoteDeploymentFixture,
   matchingRemoteWorkflowObservation,
   workflowRemoteSourceCommit,
 } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./fixtures/first-publication-workflow-activation.mjs";
+import { workflowActivationRepository } from "./fixtures/first-publication-workflow-activation.mjs";
 
 async function evidenceInput(fixture, overrides = {}) {
   const sources = await readFirstPublicationWorkflowRemoteDeploymentSources(
@@ -43,7 +41,10 @@ describe("first-publication workflow remote deployment evidence", () => {
       const report = createFirstPublicationWorkflowRemoteDeploymentEvidence(input);
       assert.equal(report.status, "evidence_bound");
       assert.equal(report.remoteSource, "exact_workflow_present_at_source_commit");
-      assert.equal(report.checks.every(({ status }) => status === "ready"), true);
+      assert.equal(
+        report.checks.every(({ status }) => status === "ready"),
+        true,
+      );
       assert.equal(report.limitations.sourceCommitReachability, "exact_commit_only");
       assert.equal(report.limitations.defaultBranch, "not_verified");
       assert.equal(report.limitations.releaseTag, "not_verified");
@@ -52,10 +53,7 @@ describe("first-publication workflow remote deployment evidence", () => {
       assert.equal(report.sideEffects.workflowDispatch, "not_attempted");
       assert.equal(report.sideEffects.publication, "not_attempted");
       assert.equal("contents" in report.remote, false);
-      assert.equal(validateFirstPublicationWorkflowRemoteDeploymentEvidence(
-        report,
-        input,
-      ), report);
+      assert.equal(validateFirstPublicationWorkflowRemoteDeploymentEvidence(report, input), report);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -66,35 +64,38 @@ describe("first-publication workflow remote deployment evidence", () => {
     try {
       const input = await evidenceInput(fixture);
       assert.throws(
-        () => createFirstPublicationWorkflowRemoteDeploymentEvidence({
-          ...input,
-          repository: "other/repository",
-        }),
+        () =>
+          createFirstPublicationWorkflowRemoteDeploymentEvidence({
+            ...input,
+            repository: "other/repository",
+          }),
         { code: "first_publication_workflow_remote_deployment_source_mismatch" },
       );
       assert.throws(
-        () => createFirstPublicationWorkflowRemoteDeploymentEvidence({
-          ...input,
-          remoteObservation: {
-            ...input.remoteObservation,
-            sourceCommit: "e".repeat(40),
-          },
-        }),
+        () =>
+          createFirstPublicationWorkflowRemoteDeploymentEvidence({
+            ...input,
+            remoteObservation: {
+              ...input.remoteObservation,
+              sourceCommit: "e".repeat(40),
+            },
+          }),
         { code: "first_publication_workflow_remote_deployment_observation_invalid" },
       );
-      const changed = Buffer.from(input.remoteObservation.contents.toString().replace(
-        "name:", "name: ",
-      ));
+      const changed = Buffer.from(
+        input.remoteObservation.contents.toString().replace("name:", "name: "),
+      );
       assert.throws(
-        () => createFirstPublicationWorkflowRemoteDeploymentEvidence({
-          ...input,
-          remoteObservation: {
-            ...input.remoteObservation,
-            contents: changed,
-            byteCount: changed.length,
-            sha256: sha256(changed),
-          },
-        }),
+        () =>
+          createFirstPublicationWorkflowRemoteDeploymentEvidence({
+            ...input,
+            remoteObservation: {
+              ...input.remoteObservation,
+              contents: changed,
+              byteCount: changed.length,
+              sha256: sha256(changed),
+            },
+          }),
         { code: "first_publication_workflow_remote_deployment_bytes_mismatch" },
       );
     } finally {
@@ -106,16 +107,13 @@ describe("first-publication workflow remote deployment evidence", () => {
     const fixture = await createWorkflowRemoteDeploymentFixture();
     try {
       const input = await evidenceInput(fixture);
-      const forged = structuredClone(
-        createFirstPublicationWorkflowRemoteDeploymentEvidence(input),
-      );
+      const forged = structuredClone(createFirstPublicationWorkflowRemoteDeploymentEvidence(input));
       forged.limitations.defaultBranch = "verified";
       const { evidenceDigest: _digest, ...body } = forged;
       forged.evidenceDigest = canonicalDigest(body);
-      assert.throws(
-        () => validateFirstPublicationWorkflowRemoteDeploymentEvidence(forged, input),
-        { code: "first_publication_workflow_remote_deployment_report_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationWorkflowRemoteDeploymentEvidence(forged, input), {
+        code: "first_publication_workflow_remote_deployment_report_invalid",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -125,26 +123,24 @@ describe("first-publication workflow remote deployment evidence", () => {
     const fixture = await createWorkflowRemoteDeploymentFixture();
     try {
       const current = await readFile(fixture.paths.workflowPath, "utf8");
-      const changed = Buffer.from(current.replaceAll(
-        "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-        `actions/checkout@${"b".repeat(40)}`,
-      ));
+      const changed = Buffer.from(
+        current.replaceAll(
+          "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+          `actions/checkout@${"b".repeat(40)}`,
+        ),
+      );
       await writeFile(fixture.paths.workflowPath, changed);
       const forged = structuredClone(fixture.postApplyReport);
       forged.sources.workflowSha256 = sha256(changed);
       const { reportDigest: _digest, ...body } = forged;
       forged.reportDigest = canonicalDigest(body);
-      await writeFile(
-        fixture.postApplyReportPath,
-        `${JSON.stringify(forged, null, 2)}\n`,
-      );
+      await writeFile(fixture.postApplyReportPath, `${JSON.stringify(forged, null, 2)}\n`);
       const input = await evidenceInput(fixture, {
         remoteObservation: await matchingRemoteWorkflowObservation(fixture),
       });
-      assert.throws(
-        () => createFirstPublicationWorkflowRemoteDeploymentEvidence(input),
-        { code: "first_publication_workflow_remote_deployment_not_ready" },
-      );
+      assert.throws(() => createFirstPublicationWorkflowRemoteDeploymentEvidence(input), {
+        code: "first_publication_workflow_remote_deployment_not_ready",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

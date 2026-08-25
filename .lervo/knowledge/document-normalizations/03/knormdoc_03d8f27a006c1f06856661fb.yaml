@@ -1,0 +1,31 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_904131f8b946c1ff69bb0c3f
+outputLanguage: en
+outputs:
+  - byteCount: 5005
+    contentHash: sha256:b91ac185c420d5a042fcee0188d95e97d814972143f4f35c6d7f7908213444d1
+    path: docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md
+    userRegionHash: sha256:b91ac185c420d5a042fcee0188d95e97d814972143f4f35c6d7f7908213444d1
+profile: decision_record
+recordId: knormdoc_03d8f27a006c1f06856661fb
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:fc54078d1ec09f4d890b624e57ee58d89161384ae1c25f5c9dc7f8b500003ca3
+sourcePath: docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md
+sourceUnitVersionIds:
+  - uv_3b3e180ecd0b9de0d50559ac
+  - uv_459f4186592cad94f7098a69
+  - uv_5840d4abe7aa23cb97095b4b
+  - uv_890a47c5fba22e9a2b1d0e1d
+  - uv_b62a28da317795147c43cab2
+  - uv_ce0b4ed58007d7517e69f839
+  - uv_d23ac85b9968329f9d32486a
+  - uv_d62993df1f36cdfc48b50480
+  - uv_d8c196beaba56e9e4bd664d5

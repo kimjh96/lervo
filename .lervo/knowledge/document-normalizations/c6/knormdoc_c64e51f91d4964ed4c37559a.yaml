@@ -1,0 +1,31 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6db73f760351e04e18d92ec9
+outputLanguage: en
+outputs:
+  - byteCount: 5063
+    contentHash: sha256:26505e3020bce75c606e7392a2c34004d414fce904f49f1ecb47eb93d96512dc
+    path: docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md
+    userRegionHash: sha256:26505e3020bce75c606e7392a2c34004d414fce904f49f1ecb47eb93d96512dc
+profile: decision_record
+recordId: knormdoc_c64e51f91d4964ed4c37559a
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:cc8b086b0583d09f341714a69c0f7045c3b89bd69b5162973edbd605fdcdb89e
+sourcePath: docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md
+sourceUnitVersionIds:
+  - uv_05b75bb0d0fbdb4cfa829b7a
+  - uv_2f75ac4dfc7dc1e26d75679f
+  - uv_564cb211df62ca6a741fbd55
+  - uv_5bf875b1c5d28b35f7789c2d
+  - uv_7248a6603b8bfa93ad0de6c4
+  - uv_9cc7fb2f002f398dae0ec2fc
+  - uv_afaa4b8fcde94ef9caf01c69
+  - uv_e3a099fb0abc1e6b50519031
+  - uv_e4ea0dd4b5c8ff9734a61ef4

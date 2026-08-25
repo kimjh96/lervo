@@ -1,7 +1,4 @@
-import {
-  ContextDeliveryError,
-  type ContextDeliveryPolicy,
-} from "./types.js";
+import { ContextDeliveryError, type ContextDeliveryPolicy } from "./types.js";
 
 const defaultInlineByteLimit = 64 * 1024;
 
@@ -15,9 +12,7 @@ export function createInlineThresholdPolicy(
     );
   }
   return (candidate) =>
-    candidate.inlineContentAvailable && candidate.byteCount <= inlineByteLimit
-      ? "inline"
-      : "cas";
+    candidate.inlineContentAvailable && candidate.byteCount <= inlineByteLimit ? "inline" : "cas";
 }
 
 export const inlineContextDelivery: ContextDeliveryPolicy = () => "inline";

@@ -16,23 +16,27 @@ import {
 
 describe("first-publication activation blocker report", () => {
   it("separates current local blockers from external requirements", async () => {
-    const report = createFirstPublicationActivationBlockerReport(
-      await currentActivationSources(),
-    );
+    const report = createFirstPublicationActivationBlockerReport(await currentActivationSources());
     assert.equal(report.status, "blocked");
     assert.equal(report.activation, "not_implemented");
     assert.equal(report.localStatus, "blocked");
-    assert.deepEqual(report.localChecks.map(({ id, status }) => ({ id, status })), [
-      { id: "package_identity", status: "ready" },
-      { id: "repository_metadata", status: "blocked" },
-      { id: "license_metadata", status: "blocked" },
-      { id: "publication_metadata", status: "blocked" },
-    ]);
-    assert.deepEqual(report.externalRequirements.map(({ id, status }) => ({ id, status })), [
-      { id: "public_package_availability", status: "required" },
-      { id: "npm_scope_control", status: "required" },
-      { id: "first_publication_approval", status: "required" },
-    ]);
+    assert.deepEqual(
+      report.localChecks.map(({ id, status }) => ({ id, status })),
+      [
+        { id: "package_identity", status: "ready" },
+        { id: "repository_metadata", status: "blocked" },
+        { id: "license_metadata", status: "blocked" },
+        { id: "publication_metadata", status: "blocked" },
+      ],
+    );
+    assert.deepEqual(
+      report.externalRequirements.map(({ id, status }) => ({ id, status })),
+      [
+        { id: "public_package_availability", status: "required" },
+        { id: "npm_scope_control", status: "required" },
+        { id: "first_publication_approval", status: "required" },
+      ],
+    );
     assert.equal(report.sideEffects.metadata, "not_changed");
   });
 
@@ -55,7 +59,10 @@ describe("first-publication activation blocker report", () => {
     assert.equal(report.localStatus, "ready");
     assert.equal(report.status, "blocked");
     assert.equal(report.activation, "not_implemented");
-    assert.equal(report.externalRequirements.every(({ status }) => status === "required"), true);
+    assert.equal(
+      report.externalRequirements.every(({ status }) => status === "required"),
+      true,
+    );
   });
 
   it("reports conflicting local metadata instead of choosing one source", async () => {
@@ -84,9 +91,8 @@ describe("first-publication activation blocker report", () => {
     forged.status = "ready";
     const { blockerReportDigest: _discarded, ...body } = forged;
     forged.blockerReportDigest = canonicalDigest(body);
-    assert.throws(
-      () => validateFirstPublicationActivationBlockerReport(forged, sources),
-      { code: "first_publication_activation_blocker_report_invalid" },
-    );
+    assert.throws(() => validateFirstPublicationActivationBlockerReport(forged, sources), {
+      code: "first_publication_activation_blocker_report_invalid",
+    });
   });
 });

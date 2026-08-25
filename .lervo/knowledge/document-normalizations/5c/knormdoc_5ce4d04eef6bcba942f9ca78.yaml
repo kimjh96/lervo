@@ -1,0 +1,26 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f7c7bd55232744b08a8afccb
+outputLanguage: en
+outputs:
+  - byteCount: 2333
+    contentHash: sha256:265d68d0a9287eeec637b0087914605d32fde2ac898831aadffbe4ad5610504d
+    path: docs/roadmap/natural-language-terminal-flow.md
+    userRegionHash: sha256:265d68d0a9287eeec637b0087914605d32fde2ac898831aadffbe4ad5610504d
+profile: roadmap_document
+recordId: knormdoc_5ce4d04eef6bcba942f9ca78
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:9e5911d16fc478b19ad2ee97923d60c53e71db0e70ce0fd38f2c9949b9caa870
+sourcePath: docs/roadmap/natural-language-terminal-flow.md
+sourceUnitVersionIds:
+  - uv_4ab87f734fc7af0d5fc7cda4
+  - uv_82bb3f31c5e5cc8a7e3af81e
+  - uv_a212a15cc6b256c0c6afb79b
+  - uv_ea8f30127e12591f74743023

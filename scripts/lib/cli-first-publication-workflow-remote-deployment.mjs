@@ -1,6 +1,8 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { observeGitHubWorkflowSource, validateRemoteWorkflowSourceCommit } from
-  "./github-workflow-source-observer.mjs";
+import {
+  observeGitHubWorkflowSource,
+  validateRemoteWorkflowSourceCommit,
+} from "./github-workflow-source-observer.mjs";
 import {
   assertFirstPublicationWorkflowRemoteLocalBinding,
   createFirstPublicationWorkflowRemoteDeploymentEvidence,
@@ -25,8 +27,7 @@ async function inspectClear(inspectTransaction, transactionRoot) {
   try {
     state = await inspectTransaction(transactionRoot);
   } catch (error) {
-    if (error?.code ===
-      "first_publication_workflow_activation_post_apply_transaction_invalid") {
+    if (error?.code === "first_publication_workflow_activation_post_apply_transaction_invalid") {
       fail(
         "first_publication_workflow_remote_deployment_transaction_invalid",
         "The workflow-activation transaction state could not be determined.",
@@ -62,14 +63,14 @@ export async function createCliFirstPublicationWorkflowRemoteDeploymentEvidence(
       "The CLI stage-only workflow remote-deployment evidence input is invalid.",
     );
   }
-  const transactionRoot = dependencies.transactionRoot ??
-    firstPublicationWorkflowActivationTransactionRoot;
-  const inspectTransaction = dependencies.inspectTransaction ??
-    inspectFirstPublicationWorkflowActivationTransactionState;
+  const transactionRoot =
+    dependencies.transactionRoot ?? firstPublicationWorkflowActivationTransactionRoot;
+  const inspectTransaction =
+    dependencies.inspectTransaction ?? inspectFirstPublicationWorkflowActivationTransactionState;
   await inspectClear(inspectTransaction, transactionRoot);
   const paths = dependencies.paths ?? firstPublicationWorkflowRemoteDeploymentPaths;
-  const readSources = dependencies.readSources ??
-    readFirstPublicationWorkflowRemoteDeploymentSources;
+  const readSources =
+    dependencies.readSources ?? readFirstPublicationWorkflowRemoteDeploymentSources;
   const sources = await readSources(paths, postApplyReportPath);
   const binding = {
     repository,

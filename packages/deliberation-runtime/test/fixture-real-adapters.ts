@@ -1,11 +1,5 @@
-import type {
-  ClaudeAgentClient,
-  ClaudeToolUseHandler,
-} from "@lervo/adapter-claude";
-import type {
-  CodexAppServerClient,
-  CodexThreadStartOptions,
-} from "@lervo/adapter-codex";
+import type { ClaudeAgentClient, ClaudeToolUseHandler } from "@lervo/adapter-claude";
+import type { CodexAppServerClient, CodexThreadStartOptions } from "@lervo/adapter-codex";
 
 const waiters = new WeakMap<unknown[], () => void>();
 
@@ -41,9 +35,7 @@ export class DeliberationCodexClient implements CodexAppServerClient {
     private readonly turnId: string,
     private readonly result: string,
   ) {
-    this.notificationsList = [
-      { method: "thread/started", params: { thread: { id: threadId } } },
-    ];
+    this.notificationsList = [{ method: "thread/started", params: { thread: { id: threadId } } }];
   }
 
   async startThread(options: CodexThreadStartOptions) {

@@ -15,15 +15,29 @@ import {
 
 const roots: string[] = [];
 
-async function repository(): Promise<{ root: string; documentPath: string; documentBytes: string }> {
+async function repository(): Promise<{
+  root: string;
+  documentPath: string;
+  documentBytes: string;
+}> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-document-structure-delete-"));
   roots.push(root);
   const documentPath = "retired.md";
   const documentBytes = "# Retired\n\nThese exact bytes must survive rollback.\n";
   await writeFile(resolve(root, documentPath), documentBytes);
-  await applyInitPlan(await createInitPlan({ root, projectId: "prj_structure_delete", now: new Date("2026-08-23T00:00:00.000Z") }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_structure_delete",
+      now: new Date("2026-08-23T00:00:00.000Z"),
+    }),
+  );
   const migration = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" });
-  await applyKnowledgeMigrationPlan(migration, new Date("2026-08-23T00:01:00.000Z"), () => undefined);
+  await applyKnowledgeMigrationPlan(
+    migration,
+    new Date("2026-08-23T00:01:00.000Z"),
+    () => undefined,
+  );
   return { root, documentPath, documentBytes };
 }
 
@@ -38,20 +52,28 @@ describe("user document structure deletion", () => {
     const sidecar = plan.operations.find((operation) => operation.action === "update")!.path;
     const sidecarBefore = await readFile(resolve(root, sidecar));
     const last = plan.operations.length - 1;
-    await expect(applyKnowledgeDocumentDeletionPlan({
-      plan,
-      approvedOperationId: plan.operationId,
-      approvedHash: plan.approvalHash,
-      now: new Date("2026-08-23T00:02:00.000Z"),
-      recordApplied: () => undefined,
-      failureInjector: (checkpoint) => checkpoint === `published:${last}` ? "interrupt" : undefined,
-    })).rejects.toMatchObject({ code: "knowledge_recovery_required" });
+    await expect(
+      applyKnowledgeDocumentDeletionPlan({
+        plan,
+        approvedOperationId: plan.operationId,
+        approvedHash: plan.approvalHash,
+        now: new Date("2026-08-23T00:02:00.000Z"),
+        recordApplied: () => undefined,
+        failureInjector: (checkpoint) =>
+          checkpoint === `published:${last}` ? "interrupt" : undefined,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_recovery_required" });
 
-    const recovered = await recoverKnowledgeMaterialization({ repositoryRoot: root, eventRecorded: () => false });
+    const recovered = await recoverKnowledgeMaterialization({
+      repositoryRoot: root,
+      eventRecorded: () => false,
+    });
     expect(recovered).toMatchObject({ planId: plan.planId, disposition: "rolled_back" });
     expect(await readFile(resolve(root, documentPath), "utf8")).toBe(documentBytes);
     expect(await readFile(resolve(root, sidecar))).toEqual(sidecarBefore);
-    expect((await createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath })).planId).toBe(plan.planId);
+    expect(
+      (await createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath })).planId,
+    ).toBe(plan.planId);
   });
 
   it("rolls back every byte when the required event recorder fails", async () => {
@@ -59,13 +81,17 @@ describe("user document structure deletion", () => {
     const plan = await createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath });
     const sidecar = plan.operations.find((operation) => operation.action === "update")!.path;
     const sidecarBefore = await readFile(resolve(root, sidecar));
-    await expect(applyKnowledgeDocumentDeletionPlan({
-      plan,
-      approvedOperationId: plan.operationId,
-      approvedHash: plan.approvalHash,
-      now: new Date("2026-08-23T00:02:00.000Z"),
-      recordApplied: () => { throw new Error("event unavailable"); },
-    })).rejects.toMatchObject({ code: "knowledge_apply_failed" });
+    await expect(
+      applyKnowledgeDocumentDeletionPlan({
+        plan,
+        approvedOperationId: plan.operationId,
+        approvedHash: plan.approvalHash,
+        now: new Date("2026-08-23T00:02:00.000Z"),
+        recordApplied: () => {
+          throw new Error("event unavailable");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_apply_failed" });
     expect(await readFile(resolve(root, documentPath), "utf8")).toBe(documentBytes);
     expect(await readFile(resolve(root, sidecar))).toEqual(sidecarBefore);
   });
@@ -73,12 +99,21 @@ describe("user document structure deletion", () => {
   it("rejects unregistered, generated, and repository-external targets without deleting bytes", async () => {
     const { root } = await repository();
     await writeFile(resolve(root, "unregistered.md"), "# Unregistered\n");
-    await expect(createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath: "unregistered.md" }))
-      .rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
-    await expect(createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath: "docs/knowledge/index.md" }))
-      .rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
-    await expect(createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath: "../outside.md" }))
-      .rejects.toMatchObject({ code: "knowledge_source_unsafe" });
+    await expect(
+      createKnowledgeDocumentDeletionPlan({
+        repositoryRoot: root,
+        documentPath: "unregistered.md",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
+    await expect(
+      createKnowledgeDocumentDeletionPlan({
+        repositoryRoot: root,
+        documentPath: "docs/knowledge/index.md",
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
+    await expect(
+      createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath: "../outside.md" }),
+    ).rejects.toMatchObject({ code: "knowledge_source_unsafe" });
     expect(await readFile(resolve(root, "unregistered.md"), "utf8")).toBe("# Unregistered\n");
   });
 });

@@ -9,10 +9,7 @@ import {
 } from "@lervo/repository-knowledge/workstream";
 import { validateSchema, type WorkstreamSnapshotRecordedEventPayload } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
-import type {
-  LocalWorkstreamRevision,
-  WorkstreamReplicationLocalPort,
-} from "@lervo/sync";
+import type { LocalWorkstreamRevision, WorkstreamReplicationLocalPort } from "@lervo/sync";
 
 function artifactUri(contentHash: string): string {
   return `lervo-cas://sha256/${contentHash.slice("sha256:".length)}`;
@@ -42,9 +39,12 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
 
   async readRevisionChain(): Promise<LocalWorkstreamRevision[]> {
     const current = await readCurrentWorkstreamState(this.repositoryRoot);
-    const recorded = allEvents(this.events).filter((event) => event.type === "workstream.snapshot.recorded");
+    const recorded = allEvents(this.events).filter(
+      (event) => event.type === "workstream.snapshot.recorded",
+    );
     if (current === null) {
-      if (recorded.length !== 0) throw new Error("The recorded current workstream projection is missing.");
+      if (recorded.length !== 0)
+        throw new Error("The recorded current workstream projection is missing.");
       return [];
     }
     const byHash = new Map<string, WorkstreamSnapshotRecordedEventPayload>();
@@ -58,7 +58,8 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
       latest.snapshotContentHash !== current.contentHash ||
       latest.workstreamId !== current.snapshot.workstreamId ||
       latest.revision !== current.snapshot.revision
-    ) throw new Error("The current workstream differs from its latest event.");
+    )
+      throw new Error("The current workstream differs from its latest event.");
 
     const reverse: LocalWorkstreamRevision[] = [];
     let nextHash: string | null = current.contentHash;
@@ -69,17 +70,23 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
       const payload = byHash.get(nextHash);
       if (payload === undefined) break;
       const uri = artifactUri(nextHash);
-      if (!(await this.artifacts.has(uri))) throw new Error("A local workstream snapshot artifact is missing.");
+      if (!(await this.artifacts.has(uri)))
+        throw new Error("A local workstream snapshot artifact is missing.");
       const bytes = await this.artifacts.get(uri);
       const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       let snapshot: unknown;
-      try { snapshot = JSON.parse(content); } catch { throw new Error("A local workstream snapshot artifact is not JSON."); }
+      try {
+        snapshot = JSON.parse(content);
+      } catch {
+        throw new Error("A local workstream snapshot artifact is not JSON.");
+      }
       if (
         !validateSchema("workstreamSnapshot", snapshot).valid ||
         `${canonicalJson(snapshot)}\n` !== content ||
         (snapshot as { workstreamId: string }).workstreamId !== payload.workstreamId ||
         (snapshot as { revision: number }).revision !== payload.revision
-      ) throw new Error("A local workstream snapshot artifact does not match its event.");
+      )
+        throw new Error("A local workstream snapshot artifact does not match its event.");
       reverse.push({
         snapshot: snapshot as LocalWorkstreamRevision["snapshot"],
         snapshotContentHash: payload.snapshotContentHash,

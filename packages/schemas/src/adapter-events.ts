@@ -161,7 +161,9 @@ const providerEventPayloadRules = [
           properties: {
             providerItemId: { type: "string", minLength: 1 },
             commandDigest: sha256Schema,
-            cwdRelative: { anyOf: [repositoryRelativePathSchema, { const: "." }, { type: "null" }] },
+            cwdRelative: {
+              anyOf: [repositoryRelativePathSchema, { const: "." }, { type: "null" }],
+            },
             status: { type: "string", enum: ["in_progress", "completed", "failed", "declined"] },
             exitCode: { anyOf: [{ type: "integer" }, { type: "null" }] },
             outputDigest: { anyOf: [sha256Schema, { type: "null" }] },
@@ -174,7 +176,7 @@ const providerEventPayloadRules = [
             "status",
             "exitCode",
             "outputDigest",
-            "durationMs"
+            "durationMs",
           ],
           additionalProperties: false,
         },
@@ -226,7 +228,7 @@ const providerEventPayloadRules = [
             "outputTokens",
             "reasoningOutputTokens",
             "totalTokens",
-            "contextWindow"
+            "contextWindow",
           ],
           additionalProperties: false,
         },
@@ -276,7 +278,7 @@ export const adapterNormalizedEventSchema = {
     "providerSessionId",
     "type",
     "occurredAt",
-    "payload"
+    "payload",
   ],
   allOf: providerEventPayloadRules,
   additionalProperties: false,
@@ -284,4 +286,3 @@ export const adapterNormalizedEventSchema = {
 
 export type AdapterNormalizedEvent = FromSchema<typeof adapterNormalizedEventSchema>;
 export type AdapterNormalizedEventType = (typeof adapterNormalizedEventTypes)[number];
-

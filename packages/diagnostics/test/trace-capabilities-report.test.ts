@@ -85,10 +85,12 @@ describe("trace capabilities report contract", () => {
 
   it("requires exactly one non-explicit mode and makes it the default", () => {
     const report = createTraceCapabilitiesReport();
-    expect(() => readTraceCapabilitiesReport({
-      ...report,
-      modes: report.modes.map((mode) => ({ ...mode, explicit: true })),
-    })).toThrowError(expect.objectContaining({ code: "trace_capabilities_report_invalid" }));
+    expect(() =>
+      readTraceCapabilitiesReport({
+        ...report,
+        modes: report.modes.map((mode) => ({ ...mode, explicit: true })),
+      }),
+    ).toThrowError(expect.objectContaining({ code: "trace_capabilities_report_invalid" }));
   });
 
   it("continues to read the historical 0.0.x implicit-full capability report", () => {
@@ -105,16 +107,17 @@ describe("trace capabilities report contract", () => {
           eventTypeFilter: false,
           cursorContinuation: false,
         },
-        ...current.modes.map((mode) =>
-          mode.mode === "page" ? { ...mode, explicit: true } : mode),
+        ...current.modes.map((mode) => (mode.mode === "page" ? { ...mode, explicit: true } : mode)),
       ],
-      deprecations: [{
-        code: "trace_implicit_full_deprecated",
-        mode: "implicit_full" as const,
-        replacementMode: "full" as const,
-        changesIn: "0.1.0",
-        nextDefaultMode: "page" as const,
-      }],
+      deprecations: [
+        {
+          code: "trace_implicit_full_deprecated",
+          mode: "implicit_full" as const,
+          replacementMode: "full" as const,
+          changesIn: "0.1.0",
+          nextDefaultMode: "page" as const,
+        },
+      ],
     };
 
     expect(readTraceCapabilitiesReport(historical)).toBe(historical);

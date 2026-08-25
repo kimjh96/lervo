@@ -16,7 +16,10 @@ export async function loadVerificationSuite(
   suiteId: string,
 ): Promise<VerificationSuite> {
   if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
-    throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
+    throw new VerificationError(
+      "invalid_verification_suite",
+      "The verification suite ID is invalid.",
+    );
   }
   const root = resolve(repositoryRoot);
   const directory = resolve(root, ".lervo/verifications");
@@ -24,8 +27,9 @@ export async function loadVerificationSuite(
     const stats = await lstat(directory);
     const expectedDirectory = resolve(await realpath(root), ".lervo/verifications");
     if (
-      !stats.isDirectory() || stats.isSymbolicLink() ||
-      await realpath(directory) !== expectedDirectory
+      !stats.isDirectory() ||
+      stats.isSymbolicLink() ||
+      (await realpath(directory)) !== expectedDirectory
     ) {
       throw new Error("unsafe directory");
     }
@@ -50,29 +54,49 @@ export async function loadVerificationSuite(
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     if (
-      before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.size !== after.size ||
+      before.mtimeNs !== after.mtimeNs ||
+      before.ctimeNs !== after.ctimeNs
     ) {
-      throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
+      throw new VerificationError(
+        "verification_layout_invalid",
+        "The verification suite changed while it was being read.",
+      );
     }
     let value: unknown;
     try {
       value = parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     } catch (error) {
-      throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
+      throw new VerificationError(
+        "invalid_verification_suite",
+        "The verification suite YAML could not be read.",
+        { cause: error },
+      );
     }
     const suite = value as VerificationSuite;
     validateVerificationSuite(suite);
     if (suite.suiteId !== suiteId) {
-      throw new VerificationError("invalid_verification_suite", "The verification suite filename and suite ID differ.");
+      throw new VerificationError(
+        "invalid_verification_suite",
+        "The verification suite filename and suite ID differ.",
+      );
     }
     return structuredClone(suite);
   } catch (error) {
     if (error instanceof VerificationError) throw error;
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new VerificationError("verification_suite_not_found", `Verification suite ${suiteId} was not found.`);
+      throw new VerificationError(
+        "verification_suite_not_found",
+        `Verification suite ${suiteId} was not found.`,
+      );
     }
-    throw new VerificationError("verification_layout_invalid", "The verification suite file could not be read safely.", { cause: error });
+    throw new VerificationError(
+      "verification_layout_invalid",
+      "The verification suite file could not be read safely.",
+      { cause: error },
+    );
   } finally {
     await handle?.close();
   }

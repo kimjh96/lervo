@@ -123,11 +123,15 @@ export class FixtureProviderAdapter implements ProviderAdapter {
     return structuredClone(this.turn);
   }
 
-  async *events(session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent> {
+  async *events(
+    session: AdapterSession,
+    signal: AbortSignal,
+  ): AsyncIterable<AdapterNormalizedEvent> {
     await Promise.race([
       this.turnStarted,
       new Promise<void>((resolve) =>
-        signal.addEventListener("abort", () => resolve(), { once: true })),
+        signal.addEventListener("abort", () => resolve(), { once: true }),
+      ),
     ]);
     if (signal.aborted || this.turn === undefined) return;
     for (let index = 0; index < this.extraToolEvents; index += 1) {

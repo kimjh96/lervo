@@ -5,9 +5,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { HubControlReviewGrants } from "@lervo/hub-control";
-import {
-  authorPolicySnapshot,
-} from "@lervo/hub-policy";
+import { authorPolicySnapshot } from "@lervo/hub-policy";
 import { handleProjectRegistration, handleRemoteCommandEnqueue } from "@lervo/hub-sync";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import { Ed25519PolicySigner } from "@lervo/policy";
@@ -33,9 +31,16 @@ const stores: HubSyncSQLiteStore[] = [];
 const servers: ReturnType<typeof createHubServer>[] = [];
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((done, reject) =>
-    server.close((error) => error === undefined ? done() : reject(error))
-  )));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((done, reject) =>
+            server.close((error) => (error === undefined ? done() : reject(error))),
+          ),
+      ),
+  );
   await Promise.all(stores.splice(0).map((store) => store.close()));
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -105,8 +110,10 @@ describe("Hub command approval control", () => {
     const queued = await handleRemoteCommandEnqueue({
       store,
       destinationId,
-      envelope: new Ed25519RemoteCommandSigner("key_control_command_01", commandKeys.privateKey)
-        .sign(command),
+      envelope: new Ed25519RemoteCommandSigner(
+        "key_control_command_01",
+        commandKeys.privateKey,
+      ).sign(command),
       queuedAt: "2026-08-20T00:00:01.000Z",
     });
 
@@ -118,21 +125,24 @@ describe("Hub command approval control", () => {
       request: {
         destinationId,
         target,
-        rules: [{
-          ruleId: "polr_control_write",
-          roleId: "developer",
-          risk: "medium",
-          capability: "filesystem.write",
-          repositoryPaths: ["src/result.ts"],
-          decision: "require_approval",
-        }, {
-          ruleId: "polr_control_shell",
-          roleId: "developer",
-          risk: "medium",
-          capability: "shell.execute",
-          repositoryPaths: ["scripts/check.sh"],
-          decision: "require_approval",
-        }],
+        rules: [
+          {
+            ruleId: "polr_control_write",
+            roleId: "developer",
+            risk: "medium",
+            capability: "filesystem.write",
+            repositoryPaths: ["src/result.ts"],
+            decision: "require_approval",
+          },
+          {
+            ruleId: "polr_control_shell",
+            roleId: "developer",
+            risk: "medium",
+            capability: "shell.execute",
+            repositoryPaths: ["scripts/check.sh"],
+            decision: "require_approval",
+          },
+        ],
         issuedAt: "2026-08-20T00:01:00.000Z",
         expiresAt: "2026-08-20T00:50:00.000Z",
         publishedAt: "2026-08-20T00:01:00.000Z",
@@ -196,15 +206,23 @@ describe("Hub command approval control", () => {
     );
     reviewUrl.searchParams.set("destinationId", destinationId);
 
-    expect((await fetch(reviewUrl, {
-      headers: { authorization: `Bearer ${reviewerToken}` },
-    })).status).toBe(403);
-    expect((await fetch(reviewUrl, {
-      headers: {
-        authorization: `Bearer ${otherToken}`,
-        "x-lervo-control-review": grant,
-      },
-    })).status).toBe(403);
+    expect(
+      (
+        await fetch(reviewUrl, {
+          headers: { authorization: `Bearer ${reviewerToken}` },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(reviewUrl, {
+          headers: {
+            authorization: `Bearer ${otherToken}`,
+            "x-lervo-control-review": grant,
+          },
+        })
+      ).status,
+    ).toBe(403);
 
     const reviewResponse = await fetch(reviewUrl, {
       headers: {
@@ -213,7 +231,7 @@ describe("Hub command approval control", () => {
       },
     });
     expect(reviewResponse.status).toBe(200);
-    const initialReview = await reviewResponse.json() as {
+    const initialReview = (await reviewResponse.json()) as {
       projectIdentityHash: string;
       delivery: { commandId: string };
       approval: { state: string; options: unknown[]; maximumExpiresAt: string };
@@ -246,36 +264,48 @@ describe("Hub command approval control", () => {
       expiresAt: initialReview.approval.maximumExpiresAt,
     };
     expect((await fetch(approvalUrl, post(readerToken, approvalBody))).status).toBe(403);
-    expect((await store.pullPolicyBundle({
-      destinationId,
-      target,
-      currentSnapshotId: null,
-    }))?.approvals).toHaveLength(0);
+    expect(
+      (
+        await store.pullPolicyBundle({
+          destinationId,
+          target,
+          currentSnapshotId: null,
+        })
+      )?.approvals,
+    ).toHaveLength(0);
 
     const firstApprovalResponse = await fetch(approvalUrl, post(reviewerToken, approvalBody));
     expect(firstApprovalResponse.status).toBe(201);
-    const firstApproval = await firstApprovalResponse.json() as {
+    const firstApproval = (await firstApprovalResponse.json()) as {
       result: { originalId: string };
     };
-    expect((await store.pullPolicyBundle({
-      destinationId,
-      target,
-      currentSnapshotId: null,
-    }))?.approvals).toHaveLength(1);
+    expect(
+      (
+        await store.pullPolicyBundle({
+          destinationId,
+          target,
+          currentSnapshotId: null,
+        })
+      )?.approvals,
+    ).toHaveLength(1);
     const partialResponse = await fetch(reviewUrl, {
       headers: {
         authorization: `Bearer ${reviewerToken}`,
         "x-lervo-control-review": grant,
       },
     });
-    expect((await partialResponse.json() as { approval: { state: string } }).approval.state)
-      .toBe("partially_approved");
+    expect(((await partialResponse.json()) as { approval: { state: string } }).approval.state).toBe(
+      "partially_approved",
+    );
 
-    const secondApprovalResponse = await fetch(approvalUrl, post(reviewerToken, {
-      ...approvalBody,
-      capability: "shell.execute",
-      repositoryPaths: ["scripts/check.sh"],
-    }));
+    const secondApprovalResponse = await fetch(
+      approvalUrl,
+      post(reviewerToken, {
+        ...approvalBody,
+        capability: "shell.execute",
+        repositoryPaths: ["scripts/check.sh"],
+      }),
+    );
     expect(secondApprovalResponse.status).toBe(201);
     const approvedResponse = await fetch(reviewUrl, {
       headers: {
@@ -283,17 +313,25 @@ describe("Hub command approval control", () => {
         "x-lervo-control-review": grant,
       },
     });
-    expect((await approvedResponse.json() as { approval: { state: string } }).approval.state)
-      .toBe("approved");
+    expect(
+      ((await approvedResponse.json()) as { approval: { state: string } }).approval.state,
+    ).toBe("approved");
 
     const revocationUrl = new URL(`/v1/policy/projects/${project.projectId}/revocations`, base);
     revocationUrl.searchParams.set("destinationId", destinationId);
     revocationUrl.searchParams.set("projectIdentityHash", projectIdentityHash);
-    expect((await fetch(revocationUrl, post(reviewerToken, {
-      schemaVersion: 1,
-      approvalId: firstApproval.result.originalId,
-      reasonCode: "security_policy_changed",
-    }))).status).toBe(201);
+    expect(
+      (
+        await fetch(
+          revocationUrl,
+          post(reviewerToken, {
+            schemaVersion: 1,
+            approvalId: firstApproval.result.originalId,
+            reasonCode: "security_policy_changed",
+          }),
+        )
+      ).status,
+    ).toBe(201);
     const revokedResponse = await fetch(reviewUrl, {
       headers: {
         authorization: `Bearer ${reviewerToken}`,

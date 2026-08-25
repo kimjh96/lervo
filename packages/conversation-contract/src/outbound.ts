@@ -85,19 +85,17 @@ export function assertConversationOutboundMessage(input: {
     outbound.publicationPermit.artifactId !== outbound.content.artifactId ||
     outbound.publicationPermit.contentHash !== outbound.content.contentHash ||
     Date.parse(outbound.createdAt) < Date.parse(outbound.publicationPermit.issuedAt) ||
-    (input.event !== undefined && (
-      outbound.sourceEventId !== input.event.eventId ||
-      outbound.target.integrationId !== input.event.target.integrationId ||
-      outbound.target.projectId !== input.event.target.projectId ||
-      outbound.target.conversationId !== input.event.target.conversationId ||
-      outbound.target.threadId !== input.event.target.threadId ||
-      outbound.automationDepth !== input.event.automationDepth + 1 ||
-      Date.parse(outbound.createdAt) < Date.parse(input.event.occurredAt)
-    )) ||
-    (input.policy !== undefined && (
-      outbound.policyId !== input.policy.policyId ||
-      outbound.actor.roleId !== input.policy.roleId
-    ))
+    (input.event !== undefined &&
+      (outbound.sourceEventId !== input.event.eventId ||
+        outbound.target.integrationId !== input.event.target.integrationId ||
+        outbound.target.projectId !== input.event.target.projectId ||
+        outbound.target.conversationId !== input.event.target.conversationId ||
+        outbound.target.threadId !== input.event.target.threadId ||
+        outbound.automationDepth !== input.event.automationDepth + 1 ||
+        Date.parse(outbound.createdAt) < Date.parse(input.event.occurredAt))) ||
+    (input.policy !== undefined &&
+      (outbound.policyId !== input.policy.policyId ||
+        outbound.actor.roleId !== input.policy.roleId))
   ) {
     throw new ConversationContractError(
       "invalid_outbound_message",

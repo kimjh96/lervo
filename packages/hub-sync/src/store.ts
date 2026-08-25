@@ -30,7 +30,6 @@ export interface HubSyncCommandStore {
     batch: OutboundEventBatch;
     acknowledgedAt: string;
   }): Promise<EventSyncAcknowledgement>;
-
 }
 
 export interface HubWorkstreamReplicationStore {

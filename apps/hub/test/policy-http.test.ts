@@ -22,10 +22,7 @@ import {
 } from "@lervo/sync-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  ConfiguredBearerAuthenticator,
-  createHubServer,
-} from "../src/index.js";
+import { ConfiguredBearerAuthenticator, createHubServer } from "../src/index.js";
 import { traceSource } from "./http-fixture.js";
 
 const roots: string[] = [];
@@ -36,9 +33,16 @@ const writerToken = "hub-policy-writer-token-aaaaaaaaaaaaaaaaaaaaaaaa";
 const readerToken = "hub-policy-reader-token-bbbbbbbbbbbbbbbbbbbbbbbb";
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((done, reject) =>
-    server.close((error) => error === undefined ? done() : reject(error))
-  )));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((done, reject) =>
+            server.close((error) => (error === undefined ? done() : reject(error))),
+          ),
+      ),
+  );
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -135,7 +139,11 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
     let hubStore = await HubSyncSQLiteStore.open({ path: hubPath });
     await handleProjectRegistration({
       store: hubStore,
-      request: createProjectRegistrationRequest({ manifest, destinationId, requestedAt: "2026-08-19T00:00:00.000Z" }),
+      request: createProjectRegistrationRequest({
+        manifest,
+        destinationId,
+        requestedAt: "2026-08-19T00:00:00.000Z",
+      }),
       acceptedAt: "2026-08-19T00:00:00.000Z",
     });
     const command = createRemoteCommand({
@@ -168,50 +176,66 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
     const snapshotUrl = endpoint(base, "snapshots", identityHash);
     const snapshotBody = {
       schemaVersion: 1,
-      rules: [{
-        ruleId: "polr_policy_http_write",
-        roleId: "developer",
-        risk: "medium",
-        capability: "filesystem.write",
-        repositoryPaths: ["src/result.ts"],
-        decision: "require_approval",
-      }],
+      rules: [
+        {
+          ruleId: "polr_policy_http_write",
+          roleId: "developer",
+          risk: "medium",
+          capability: "filesystem.write",
+          repositoryPaths: ["src/result.ts"],
+          decision: "require_approval",
+        },
+      ],
       expiresAt: "2026-08-19T01:00:00.000Z",
     };
 
     expect((await fetch(snapshotUrl, json(readerToken, snapshotBody))).status).toBe(403);
-    expect((await fetch(snapshotUrl, json("invalid-token-that-is-long-enough-000000", snapshotBody))).status)
-      .toBe(401);
-    expect((await fetch(snapshotUrl, json(writerToken, {
-      ...snapshotBody,
-      issuedAt: "2026-08-18T00:00:00.000Z",
-    }))).status).toBe(400);
+    expect(
+      (await fetch(snapshotUrl, json("invalid-token-that-is-long-enough-000000", snapshotBody)))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await fetch(
+          snapshotUrl,
+          json(writerToken, {
+            ...snapshotBody,
+            issuedAt: "2026-08-18T00:00:00.000Z",
+          }),
+        )
+      ).status,
+    ).toBe(400);
     await expect(hubStore.getCurrentPolicySnapshot({ destinationId, target })).resolves.toBeNull();
 
     const snapshotResponse = await fetch(snapshotUrl, json(writerToken, snapshotBody));
     expect(snapshotResponse.status).toBe(201);
     expect(snapshotResponse.headers.get("x-lervo-hub-identity")).toBe(hubIdentityHash);
-    const snapshotResult = await snapshotResponse.json() as {
+    const snapshotResult = (await snapshotResponse.json()) as {
       result: { policySnapshotId: string };
     };
-    await expect(hubStore.getCurrentPolicySnapshot({ destinationId, target })).resolves.toMatchObject({
+    await expect(
+      hubStore.getCurrentPolicySnapshot({ destinationId, target }),
+    ).resolves.toMatchObject({
       snapshot: { issuedAt: "2026-08-19T00:05:00.000Z" },
     });
-    const approvalResponse = await fetch(endpoint(base, "approvals", identityHash), json(writerToken, {
-      schemaVersion: 1,
-      commandId: command.commandId,
-      capability: "filesystem.write",
-      repositoryPaths: ["src/result.ts"],
-      expiresAt: "2026-08-19T00:40:00.000Z",
-    }));
+    const approvalResponse = await fetch(
+      endpoint(base, "approvals", identityHash),
+      json(writerToken, {
+        schemaVersion: 1,
+        commandId: command.commandId,
+        capability: "filesystem.write",
+        repositoryPaths: ["src/result.ts"],
+        expiresAt: "2026-08-19T00:40:00.000Z",
+      }),
+    );
     expect(approvalResponse.status).toBe(201);
-    const approvalResult = await approvalResponse.json() as {
+    const approvalResult = (await approvalResponse.json()) as {
       result: { originalId: string };
     };
 
-    await new Promise<void>((done, reject) => servers.shift()!.close((error) =>
-      error === undefined ? done() : reject(error)
-    ));
+    await new Promise<void>((done, reject) =>
+      servers.shift()!.close((error) => (error === undefined ? done() : reject(error))),
+    );
     await hubStore.close();
     hubStore = await HubSyncSQLiteStore.open({ path: hubPath });
     base = await start({ store: hubStore, signer });
@@ -226,21 +250,25 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
       expectedHubIdentityHash: hubIdentityHash,
       allowInsecureHttpForTests: true,
     });
-    const trustStore = new ConfiguredEd25519PolicyTrustStore([{
-      keyId: signer.keyId,
-      publicKey: policyKeys.publicKey,
-      projects: [target],
-      purposes: ["snapshot", "approval", "revocation"],
-    }]);
-    await expect(runPolicySyncCycle({
-      destinationId,
-      expectedPeerIdentityHash: hubIdentityHash,
-      target,
-      transport,
-      trustStore,
-      store: nodeStore,
-      clock: { now: () => "2026-08-19T00:06:00.000Z" },
-    })).resolves.toMatchObject({
+    const trustStore = new ConfiguredEd25519PolicyTrustStore([
+      {
+        keyId: signer.keyId,
+        publicKey: policyKeys.publicKey,
+        projects: [target],
+        purposes: ["snapshot", "approval", "revocation"],
+      },
+    ]);
+    await expect(
+      runPolicySyncCycle({
+        destinationId,
+        expectedPeerIdentityHash: hubIdentityHash,
+        target,
+        transport,
+        trustStore,
+        store: nodeStore,
+        clock: { now: () => "2026-08-19T00:06:00.000Z" },
+      }),
+    ).resolves.toMatchObject({
       status: "applied",
       snapshotId: snapshotResult.result.policySnapshotId,
       approvalCount: 1,
@@ -249,21 +277,26 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
       revocation: null,
     });
 
-    const revocationResponse = await fetch(endpoint(base, "revocations", identityHash), json(writerToken, {
-      schemaVersion: 1,
-      approvalId: approvalResult.result.originalId,
-      reasonCode: "cancelled",
-    }));
+    const revocationResponse = await fetch(
+      endpoint(base, "revocations", identityHash),
+      json(writerToken, {
+        schemaVersion: 1,
+        approvalId: approvalResult.result.originalId,
+        reasonCode: "cancelled",
+      }),
+    );
     expect(revocationResponse.status).toBe(201);
-    await expect(runPolicySyncCycle({
-      destinationId,
-      expectedPeerIdentityHash: hubIdentityHash,
-      target,
-      transport,
-      trustStore,
-      store: nodeStore,
-      clock: { now: () => "2026-08-19T00:08:00.000Z" },
-    })).resolves.toMatchObject({ status: "applied", revocationCount: 1 });
+    await expect(
+      runPolicySyncCycle({
+        destinationId,
+        expectedPeerIdentityHash: hubIdentityHash,
+        target,
+        transport,
+        trustStore,
+        store: nodeStore,
+        clock: { now: () => "2026-08-19T00:08:00.000Z" },
+      }),
+    ).resolves.toMatchObject({ status: "applied", revocationCount: 1 });
     await expect(nodeStore.getApproval(approvalResult.result.originalId)).resolves.toMatchObject({
       revocation: { revocation: { reasonCode: "cancelled" } },
     });
@@ -292,16 +325,23 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
     const hubStore = await HubSyncSQLiteStore.open({ path: resolve(fixtureRoot, "hub.sqlite") });
     await handleProjectRegistration({
       store: hubStore,
-      request: createProjectRegistrationRequest({ manifest, destinationId, requestedAt: "2026-08-19T00:00:00.000Z" }),
+      request: createProjectRegistrationRequest({
+        manifest,
+        destinationId,
+        requestedAt: "2026-08-19T00:00:00.000Z",
+      }),
       acceptedAt: "2026-08-19T00:00:00.000Z",
     });
     const base = await start({ store: hubStore, signer, maxRequestBytes: 1_024 });
-    const oversized = await fetch(endpoint(base, "snapshots", identityHash), json(writerToken, {
-      schemaVersion: 1,
-      rules: [],
-      padding: "x".repeat(2_000),
-      expiresAt: "2026-08-19T01:00:00.000Z",
-    }));
+    const oversized = await fetch(
+      endpoint(base, "snapshots", identityHash),
+      json(writerToken, {
+        schemaVersion: 1,
+        rules: [],
+        padding: "x".repeat(2_000),
+        expiresAt: "2026-08-19T01:00:00.000Z",
+      }),
+    );
     expect(oversized.status).toBe(413);
 
     const nodeStore = await SQLitePolicyStateStore.open({
@@ -314,30 +354,35 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
       expectedHubIdentityHash: `sha256:${"8".repeat(64)}`,
       allowInsecureHttpForTests: true,
     });
-    await expect(runPolicySyncCycle({
-      destinationId,
-      expectedPeerIdentityHash: `sha256:${"8".repeat(64)}`,
-      target,
-      transport: wrongPeerTransport,
-      trustStore: new ConfiguredEd25519PolicyTrustStore([{
-        keyId: signer.keyId,
-        publicKey: keys.publicKey,
-        projects: [target],
-        purposes: ["snapshot"],
-      }]),
-      store: nodeStore,
-    })).resolves.toEqual({
+    await expect(
+      runPolicySyncCycle({
+        destinationId,
+        expectedPeerIdentityHash: `sha256:${"8".repeat(64)}`,
+        target,
+        transport: wrongPeerTransport,
+        trustStore: new ConfiguredEd25519PolicyTrustStore([
+          {
+            keyId: signer.keyId,
+            publicKey: keys.publicKey,
+            projects: [target],
+            purposes: ["snapshot"],
+          },
+        ]),
+        store: nodeStore,
+      }),
+    ).resolves.toEqual({
       status: "offline",
       failureCode: "transport_authentication_failed",
     });
     const stalledFetch = ((
       _input: Parameters<typeof fetch>[0],
       init?: Parameters<typeof fetch>[1],
-    ) => new Promise<Response>((_resolve, reject) => {
-      init?.signal?.addEventListener("abort", () => reject(new Error("request aborted")), {
-        once: true,
-      });
-    })) as typeof fetch;
+    ) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("request aborted")), {
+          once: true,
+        });
+      })) as typeof fetch;
     const timeoutTransport = new AuthenticatedPolicyHttpTransport({
       baseUrl: "https://hub.example.test/",
       bearerToken: readerToken,
@@ -345,12 +390,14 @@ describe("authenticated Hub policy HTTP vertical slice", () => {
       requestTimeoutMs: 10,
       fetch: stalledFetch,
     });
-    await expect(timeoutTransport.pullPolicyBundle({
-      destinationId,
-      target,
-      currentSnapshotId: null,
-      requestedAt: "2026-08-19T00:06:00.000Z",
-    })).rejects.toThrow("request aborted");
+    await expect(
+      timeoutTransport.pullPolicyBundle({
+        destinationId,
+        target,
+        currentSnapshotId: null,
+        requestedAt: "2026-08-19T00:06:00.000Z",
+      }),
+    ).rejects.toThrow("request aborted");
     await nodeStore.close();
     await hubStore.close();
   });

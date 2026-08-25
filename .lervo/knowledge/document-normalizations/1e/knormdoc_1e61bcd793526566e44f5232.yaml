@@ -1,0 +1,28 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_911ffbebe94565177e03f759
+outputLanguage: en
+outputs:
+  - byteCount: 4322
+    contentHash: sha256:a85eb8ee2ad41d2f4aee19ee7101bf3f958d48dfb1695aa0a091a92e9bd27fea
+    path: docs/decisions/coordination/deliberation/0026-structured-deliberation-contracts.md
+    userRegionHash: sha256:a85eb8ee2ad41d2f4aee19ee7101bf3f958d48dfb1695aa0a091a92e9bd27fea
+profile: decision_record
+recordId: knormdoc_1e61bcd793526566e44f5232
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:781db0afff1f1937d428b44993e473116fc3b2eecf96ad5842fabd0033dad5f4
+sourcePath: docs/decisions/coordination/deliberation/0026-structured-deliberation-contracts.md
+sourceUnitVersionIds:
+  - uv_29805e9c8298ccdd8d0fb68c
+  - uv_644756e658eedba7ac1553c5
+  - uv_7f920b1265811a9063c3a1e4
+  - uv_8f8dea535a93333c959e3ac2
+  - uv_ca3b329394c0e73b297acd97
+  - uv_f6f3715ae4f64a65bc2f5dc9

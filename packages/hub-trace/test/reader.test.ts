@@ -69,37 +69,47 @@ describe("Hub trace reader", () => {
     });
     expect(querySource.listProjects).not.toHaveBeenCalled();
 
-    await expect(reader.getRun({
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-      runId: "run_trace_01",
-      after: { seq: 0 },
-    })).rejects.toMatchObject({ code: "invalid_query" });
+    await expect(
+      reader.getRun({
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+        runId: "run_trace_01",
+        after: { seq: 0 },
+      }),
+    ).rejects.toMatchObject({ code: "invalid_query" });
     expect(querySource.getRun).not.toHaveBeenCalled();
   });
 
   it("keeps project and run not-found states explicit", async () => {
-    const reader = new HubTraceReader(source({
-      getProject: vi.fn(async () => null),
-      getRun: vi.fn(async () => null),
-    }));
+    const reader = new HubTraceReader(
+      source({
+        getProject: vi.fn(async () => null),
+        getRun: vi.fn(async () => null),
+      }),
+    );
 
-    await expect(reader.getProject({
-      destinationId: project.destinationId,
-      projectId: "prj_missing_trace_01",
-    })).rejects.toMatchObject({ code: "project_not_found" });
-    await expect(reader.getRun({
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-      runId: "run_missing_trace_01",
-    })).rejects.toMatchObject({ code: "run_not_found" });
+    await expect(
+      reader.getProject({
+        destinationId: project.destinationId,
+        projectId: "prj_missing_trace_01",
+      }),
+    ).rejects.toMatchObject({ code: "project_not_found" });
+    await expect(
+      reader.getRun({
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+        runId: "run_missing_trace_01",
+      }),
+    ).rejects.toMatchObject({ code: "run_not_found" });
   });
 
   it("returns a defensive copy of source results", async () => {
     const shared = { items: [project], nextCursor: null };
-    const reader = new HubTraceReader(source({
-      listProjects: vi.fn(async () => shared),
-    }));
+    const reader = new HubTraceReader(
+      source({
+        listProjects: vi.fn(async () => shared),
+      }),
+    );
     const result = await reader.listProjects();
     result.items[0]!.projectName = "mutated";
     expect(shared.items[0]!.projectName).toBe("trace-reader");
@@ -107,9 +117,11 @@ describe("Hub trace reader", () => {
 
   it("rejects a source that ignores the page limit", async () => {
     const oversized = Array.from({ length: 2 }, () => project);
-    const reader = new HubTraceReader(source({
-      listProjects: vi.fn(async () => ({ items: oversized, nextCursor: null })),
-    }));
+    const reader = new HubTraceReader(
+      source({
+        listProjects: vi.fn(async () => ({ items: oversized, nextCursor: null })),
+      }),
+    );
     await expect(reader.listProjects({ limit: 1 })).rejects.toMatchObject({
       code: "source_inconsistent",
     });
@@ -139,20 +151,26 @@ describe("Hub trace reader", () => {
 
   it("rejects a project outside the authorized scope before calling the source", async () => {
     const querySource = source();
-    const reader = new HubProjectScopedTraceReader(querySource, [{
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-    }]);
+    const reader = new HubProjectScopedTraceReader(querySource, [
+      {
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+      },
+    ]);
 
-    await expect(reader.getProject({
-      destinationId: project.destinationId,
-      projectId: "prj_forbidden",
-    })).rejects.toMatchObject({ code: "project_forbidden" });
-    await expect(reader.getRun({
-      destinationId: project.destinationId,
-      projectId: "prj_forbidden",
-      runId: "run_forbidden",
-    })).rejects.toMatchObject({ code: "project_forbidden" });
+    await expect(
+      reader.getProject({
+        destinationId: project.destinationId,
+        projectId: "prj_forbidden",
+      }),
+    ).rejects.toMatchObject({ code: "project_forbidden" });
+    await expect(
+      reader.getRun({
+        destinationId: project.destinationId,
+        projectId: "prj_forbidden",
+        runId: "run_forbidden",
+      }),
+    ).rejects.toMatchObject({ code: "project_forbidden" });
 
     expect(querySource.getProject).not.toHaveBeenCalled();
     expect(querySource.getRun).not.toHaveBeenCalled();
@@ -165,10 +183,12 @@ describe("Hub trace reader", () => {
         nextCursor: null,
       })),
     });
-    const reader = new HubProjectScopedTraceReader(querySource, [{
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-    }]);
+    const reader = new HubProjectScopedTraceReader(querySource, [
+      {
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+      },
+    ]);
 
     await expect(reader.listProjects()).rejects.toMatchObject({
       code: "source_inconsistent",
@@ -204,22 +224,31 @@ describe("Hub trace reader", () => {
         relations: { items: [relation], nextCursor: null },
       })),
     });
-    const reader = new HubProjectScopedTraceReader(querySource, [{
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-    }]);
-
-    await expect(reader.getKnowledgeGraph({
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-      focus,
-      limit: 1,
-    })).resolves.toMatchObject({ relations: { items: [{ type: "contains_run" }] } });
-    expect(querySource.getKnowledgeGraph).toHaveBeenCalledWith({
-      scope: { mode: "projects", projects: [{
+    const reader = new HubProjectScopedTraceReader(querySource, [
+      {
         destinationId: project.destinationId,
         projectId: project.projectId,
-      }] },
+      },
+    ]);
+
+    await expect(
+      reader.getKnowledgeGraph({
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+        focus,
+        limit: 1,
+      }),
+    ).resolves.toMatchObject({ relations: { items: [{ type: "contains_run" }] } });
+    expect(querySource.getKnowledgeGraph).toHaveBeenCalledWith({
+      scope: {
+        mode: "projects",
+        projects: [
+          {
+            destinationId: project.destinationId,
+            projectId: project.projectId,
+          },
+        ],
+      },
       destinationId: project.destinationId,
       projectId: project.projectId,
       focus,
@@ -234,24 +263,30 @@ describe("Hub trace reader", () => {
         nextCursor: null,
       },
     });
-    await expect(reader.getKnowledgeGraph({
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-      focus,
-    })).rejects.toMatchObject({ code: "source_inconsistent" });
+    await expect(
+      reader.getKnowledgeGraph({
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+        focus,
+      }),
+    ).rejects.toMatchObject({ code: "source_inconsistent" });
   });
 
   it("rejects unauthorized graph focus before calling the source", async () => {
     const querySource = source();
-    const reader = new HubProjectScopedTraceReader(querySource, [{
-      destinationId: project.destinationId,
-      projectId: project.projectId,
-    }]);
-    await expect(reader.getKnowledgeGraph({
-      destinationId: project.destinationId,
-      projectId: "prj_forbidden",
-      focus: { kind: "project", id: "prj_forbidden" },
-    })).rejects.toMatchObject({ code: "project_forbidden" });
+    const reader = new HubProjectScopedTraceReader(querySource, [
+      {
+        destinationId: project.destinationId,
+        projectId: project.projectId,
+      },
+    ]);
+    await expect(
+      reader.getKnowledgeGraph({
+        destinationId: project.destinationId,
+        projectId: "prj_forbidden",
+        focus: { kind: "project", id: "prj_forbidden" },
+      }),
+    ).rejects.toMatchObject({ code: "project_forbidden" });
     expect(querySource.getKnowledgeGraph).not.toHaveBeenCalled();
   });
 });

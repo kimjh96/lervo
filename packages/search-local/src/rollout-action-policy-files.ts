@@ -31,7 +31,10 @@ export async function loadSearchRolloutActionPolicies(repositoryRoot: string) {
   return loadLocalPolicyFiles({ repositoryRoot, contract });
 }
 
-export async function loadSearchRolloutActionPolicy(repositoryRoot: string, actionPolicyId: string) {
+export async function loadSearchRolloutActionPolicy(
+  repositoryRoot: string,
+  actionPolicyId: string,
+) {
   return loadLocalPolicyFile({ repositoryRoot, policyId: actionPolicyId, contract });
 }
 

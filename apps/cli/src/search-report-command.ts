@@ -32,12 +32,18 @@ export async function runSearchReportCommand(args: string[], io: CliIo): Promise
       repositoryRoot: root,
       projectId: manifest.projectId,
     });
-    io.stdout(parsed.values.json ? `${JSON.stringify(report, null, 2)}\n` : formatSearchQualityReport(report));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(report, null, 2)}\n`
+        : formatSearchQualityReport(report),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not read the search quality observation. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not read the search quality observation. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

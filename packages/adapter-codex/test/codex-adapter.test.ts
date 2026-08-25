@@ -50,6 +50,11 @@ class FakeCodexClient implements CodexAppServerClient {
     this.calls.push({ method: "injectItems", value: { threadId, items: structuredClone(items) } });
   }
 
+  async listConnectedMcpServers(threadId: string) {
+    this.calls.push({ method: "listConnectedMcpServers", value: threadId });
+    return ["research-search"];
+  }
+
   async startTurn(threadId: string, instructions: string) {
     this.calls.push({ method: "startTurn", value: { threadId, instructions } });
     this.notificationsList.push(
@@ -146,10 +151,7 @@ class FakeCodexClient implements CodexAppServerClient {
     this.calls.push({ method: "interruptTurn", value: { threadId, turnId } });
   }
 
-  async respondFileChangeApproval(
-    requestId: CodexServerRequestId,
-    decision: "accept" | "decline",
-  ) {
+  async respondFileChangeApproval(requestId: CodexServerRequestId, decision: "accept" | "decline") {
     this.calls.push({ method: "respondFileChangeApproval", value: { requestId, decision } });
   }
 
@@ -165,7 +167,9 @@ class FakeCodexClient implements CodexAppServerClient {
         index += 1;
         continue;
       }
-      await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+      await new Promise<void>((resolve) =>
+        signal.addEventListener("abort", () => resolve(), { once: true }),
+      );
     }
   }
 
@@ -185,7 +189,10 @@ function clock() {
   };
 }
 
-function adapter(client: FakeCodexClient, overrides: Partial<ConstructorParameters<typeof CodexAdapter>[0]> = {}) {
+function adapter(
+  client: FakeCodexClient,
+  overrides: Partial<ConstructorParameters<typeof CodexAdapter>[0]> = {},
+) {
   let eventSequence = 0;
   return new CodexAdapter({
     repositoryRoot: "/repo",
@@ -306,6 +313,70 @@ describe("Codex managed adapter", () => {
     expect(managed.effectiveCapabilities.fileChanges).toBe("supported");
   });
 
+  it("passes exact MCP and plugin configuration and returns provider-bound activation receipts", async () => {
+    const client = new FakeCodexClient();
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start({
+      ...data.startRequest,
+      capabilityActivations: [
+        {
+          kind: "capability_activation_request",
+          schemaVersion: 1,
+          capabilityId: "research/search",
+          capabilityKind: "mcp_server",
+          version: "1.0.0",
+          contentHash: `sha256:${"a".repeat(64)}`,
+          runtime: {
+            kind: "mcp_stdio",
+            serverName: "research-search",
+            command: "node",
+            arguments: ["/immutable/server.mjs"],
+            credentialNames: [],
+            timeoutMs: 5000,
+          },
+        },
+        {
+          kind: "capability_activation_request",
+          schemaVersion: 1,
+          capabilityId: "plugins/reviewer",
+          capabilityKind: "provider_plugin",
+          version: "2.0.0",
+          contentHash: `sha256:${"b".repeat(64)}`,
+          runtime: {
+            kind: "provider_plugin",
+            provider: "codex",
+            pluginRoot: "/immutable/reviewer",
+            pluginManifestPath: ".codex-plugin/plugin.json",
+          },
+        },
+      ],
+    });
+    await instance.injectContext(session, data.contextEnvelope);
+    const receipts = await instance.confirmCapabilityActivation(session);
+
+    expect(client.calls[0]).toMatchObject({
+      method: "startThread",
+      value: {
+        config: {
+          mcp_servers: {
+            "research-search": { command: "node", args: ["/immutable/server.mjs"], env: {} },
+          },
+        },
+        selectedCapabilityRoots: [
+          {
+            id: "plugins/reviewer@2.0.0",
+            location: { type: "environment", path: "/immutable/reviewer" },
+          },
+        ],
+      },
+    });
+    expect(receipts.map((item) => item.evidence)).toEqual(["mcp_connected", "plugin_loaded"]);
+    expect(receipts.every((item) => item.providerSessionId === session.providerSessionId)).toBe(
+      true,
+    );
+  });
+
   it("binds a file-change server approval to the managed write bridge", async () => {
     class RecordingBridge implements ProviderManagedWriteBridge {
       requests: AdapterManagedWriteRequest[] = [];
@@ -347,7 +418,12 @@ describe("Codex managed adapter", () => {
         params: {
           threadId: session.providerSessionId,
           turnId: "codex-turn-1",
-          item: { type: "fileChange", id: "change-managed", status: "inProgress", changes: [change] },
+          item: {
+            type: "fileChange",
+            id: "change-managed",
+            status: "inProgress",
+            changes: [change],
+          },
         },
       },
       {
@@ -365,7 +441,12 @@ describe("Codex managed adapter", () => {
         params: {
           threadId: session.providerSessionId,
           turnId: "codex-turn-1",
-          item: { type: "fileChange", id: "change-managed", status: "completed", changes: [change] },
+          item: {
+            type: "fileChange",
+            id: "change-managed",
+            status: "completed",
+            changes: [change],
+          },
         },
       },
       {
@@ -451,7 +532,9 @@ describe("Codex managed adapter", () => {
     const session = await started(instance);
     const envelope = fixture().contextEnvelope;
     envelope.documents[0]!.delivery = { kind: "inline", content: "changed source" };
-    await expect(instance.injectContext(session, envelope)).rejects.toBeInstanceOf(CodexAdapterError);
+    await expect(instance.injectContext(session, envelope)).rejects.toBeInstanceOf(
+      CodexAdapterError,
+    );
     expect(client.calls.some((call) => call.method === "injectItems")).toBe(false);
   });
 

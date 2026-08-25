@@ -24,24 +24,48 @@ function nodeText(node: PositionedNode): string {
   return (node.children ?? []).map(nodeText).join("");
 }
 
-export function splitMarkdownHeadingSubtree(content: string, requestedLocator: string): MarkdownHeadingSplit {
+export function splitMarkdownHeadingSubtree(
+  content: string,
+  requestedLocator: string,
+): MarkdownHeadingSplit {
   if (!requestedLocator.startsWith("heading:") || requestedLocator.length > 500) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The split heading locator must use the heading:<path> format.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The split heading locator must use the heading:<path> format.",
+    );
   }
   let root: PositionedNode;
-  try { root = fromMarkdown(content) as PositionedNode; }
-  catch { throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "Markdown cannot be parsed safely as CommonMark structure."); }
+  try {
+    root = fromMarkdown(content) as PositionedNode;
+  } catch {
+    throw new RepositoryKnowledgeError(
+      "knowledge_unit_extraction_failed",
+      "Markdown cannot be parsed safely as CommonMark structure.",
+    );
+  }
   const headings = (root.children ?? []).filter((node) => node.type === "heading");
   if (headings.length < 2 || headings.length > 4096) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The split source requires at least two bounded CommonMark headings.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The split source requires at least two bounded CommonMark headings.",
+    );
   }
   const stack: Array<{ depth: number; title: string }> = [];
   const descriptors = headings.map((node, index) => {
     const depth = node.depth ?? 0;
     const title = nodeText(node).trim();
     const startCharacter = node.position?.start?.offset;
-    if (depth < 1 || depth > 6 || title.length === 0 || title.length > 300 || !Number.isSafeInteger(startCharacter)) {
-      throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The split heading has invalid CommonMark coordinates.");
+    if (
+      depth < 1 ||
+      depth > 6 ||
+      title.length === 0 ||
+      title.length > 300 ||
+      !Number.isSafeInteger(startCharacter)
+    ) {
+      throw new RepositoryKnowledgeError(
+        "knowledge_unit_extraction_failed",
+        "The split heading has invalid CommonMark coordinates.",
+      );
     }
     while (stack.length > 0 && stack[stack.length - 1]!.depth >= depth) stack.pop();
     const locator = `heading:${[...stack.map((item) => item.title), title].join(" > ")}`;
@@ -50,7 +74,12 @@ export function splitMarkdownHeadingSubtree(content: string, requestedLocator: s
   });
   const matches = descriptors.filter((item) => item.locator === requestedLocator);
   if (matches.length !== 1) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", matches.length === 0 ? "The split heading locator was not found." : "The split heading locator is ambiguous because it is duplicated.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      matches.length === 0
+        ? "The split heading locator was not found."
+        : "The split heading locator is ambiguous because it is duplicated.",
+    );
   }
   const selected = matches[0]!;
   const next = descriptors.slice(selected.index + 1).find((item) => item.depth <= selected.depth);
@@ -60,8 +89,16 @@ export function splitMarkdownHeadingSubtree(content: string, requestedLocator: s
   const bytes = Buffer.from(content);
   const destinationBytes = bytes.subarray(startByte, endByte);
   const sourceBytes = Buffer.concat([bytes.subarray(0, startByte), bytes.subarray(endByte)]);
-  if (startByte <= 0 || endByte <= startByte || sourceBytes.byteLength === 0 || destinationBytes.byteLength === 0) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The selected heading subtree must leave both source and destination non-empty.");
+  if (
+    startByte <= 0 ||
+    endByte <= startByte ||
+    sourceBytes.byteLength === 0 ||
+    destinationBytes.byteLength === 0
+  ) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The selected heading subtree must leave both source and destination non-empty.",
+    );
   }
   return {
     locator: selected.locator,

@@ -1,9 +1,5 @@
 import { validateDeliberationOutcome } from "@lervo/deliberation";
-import {
-  validateSchema,
-  type EventEnvelope,
-  type KnowledgeCandidate,
-} from "@lervo/schemas";
+import { validateSchema, type EventEnvelope, type KnowledgeCandidate } from "@lervo/schemas";
 
 import {
   currentClaims,
@@ -39,10 +35,9 @@ export async function createKnowledgeCandidates(
     );
   }
   validateOutcomeEvent(input);
-  const artifactsById = new Map(input.artifacts.map((artifact) => [
-    artifact.deliberationArtifactId,
-    artifact,
-  ]));
+  const artifactsById = new Map(
+    input.artifacts.map((artifact) => [artifact.deliberationArtifactId, artifact]),
+  );
   const decision = artifactsById.get(input.outcome.decisionArtifactId);
   if (decision?.kind !== "decision") {
     throw new KnowledgeError(
@@ -52,10 +47,9 @@ export async function createKnowledgeCandidates(
     );
   }
   await verifyDecisionContent(input, decision);
-  const evidenceByVerificationId = new Map(input.verificationEvidence.map((item) => [
-    item.result.verificationId,
-    item,
-  ]));
+  const evidenceByVerificationId = new Map(
+    input.verificationEvidence.map((item) => [item.result.verificationId, item]),
+  );
   const claims = currentClaims(input.artifacts);
   const events = input.events.list();
   const decisionEvent = recordedArtifactEvent(events, decision);
@@ -87,8 +81,7 @@ export async function createKnowledgeCandidates(
         "There is no evidence verifying the accepted claim.",
       );
     }
-    const revisions = uniqueSorted(verifications.map((item) =>
-      item.value.repositoryRevision));
+    const revisions = uniqueSorted(verifications.map((item) => item.value.repositoryRevision));
     if (revisions.length !== 1) {
       throw new KnowledgeError(
         "candidate_evidence_invalid",
@@ -97,7 +90,8 @@ export async function createKnowledgeCandidates(
       );
     }
     const verificationEvents = verifications.map((item) =>
-      recordedArtifactEvent(events, item.verificationArtifact));
+      recordedArtifactEvent(events, item.verificationArtifact),
+    );
     const evidenceEventIds = uniqueSorted([
       input.outcomeEvent.eventId,
       decisionEvent.eventId,
@@ -131,14 +125,14 @@ export async function createKnowledgeCandidates(
       },
       verifiedRevision: revisions[0]!,
       reviewIntervalDays: input.reviewIntervalDays,
-      conflictCandidateIds: uniqueSorted(
-        input.conflictCandidateIdsByClaimId?.[claimId] ?? [],
-      ),
+      conflictCandidateIds: uniqueSorted(input.conflictCandidateIdsByClaimId?.[claimId] ?? []),
       createdAt: input.outcome.completedAt,
     };
     const candidate = {
       ...withoutId,
-      candidateId: calculateKnowledgeCandidateId(withoutId as Omit<KnowledgeCandidate, "candidateId">),
+      candidateId: calculateKnowledgeCandidateId(
+        withoutId as Omit<KnowledgeCandidate, "candidateId">,
+      ),
     } as KnowledgeCandidate;
     if (
       !validateSchema("knowledgeCandidate", candidate).valid ||
@@ -150,9 +144,13 @@ export async function createKnowledgeCandidates(
         "The generated knowledge candidate does not satisfy its schema or self-reference contract.",
       );
     }
-    if (events.some((event) =>
-      event.type === "knowledge.candidate.created" &&
-      event.payload.candidateId === candidate.candidateId)) {
+    if (
+      events.some(
+        (event) =>
+          event.type === "knowledge.candidate.created" &&
+          event.payload.candidateId === candidate.candidateId,
+      )
+    ) {
       throw new KnowledgeError(
         "candidate_contract_invalid",
         "candidate_already_recorded",
@@ -164,31 +162,36 @@ export async function createKnowledgeCandidates(
 
   let recordedEvents: EventEnvelope[];
   try {
-    recordedEvents = input.events.transact((transaction) => drafts.map((draft, index) =>
-      transaction.append({
-        eventId: input.createEventId(),
-        projectId: input.outcome.projectId,
-        runId: decision.producer.runId,
-        sessionId: decision.producer.sessionId,
-        type: "knowledge.candidate.created",
-        occurredAt: input.outcome.completedAt,
-        actor: { kind: "agent", provider: decision.producer.provider },
-        schemaVersion: 1,
-        policyVersion: input.policyVersion,
-        payload: {
-          candidateId: draft.candidate.candidateId,
-          claimDigest: draft.candidate.claim.claimDigest,
-          paths: draft.candidate.paths,
-          evidenceIds: draft.candidate.evidence.eventIds,
-          sourceOutcomeId: draft.candidate.source.outcomeId,
-          decisionArtifactId: draft.candidate.source.decisionArtifactId,
-          verificationArtifactIds: draft.candidate.evidence.verifications.map((item) =>
-            item.verificationArtifactId),
-          verifiedRevision: draft.candidate.verifiedRevision,
-          candidateArtifactId: draft.candidateArtifact.artifactId,
-          candidateContentHash: draft.candidateArtifact.contentHash,
-        },
-      }).event));
+    recordedEvents = input.events.transact((transaction) =>
+      drafts.map(
+        (draft) =>
+          transaction.append({
+            eventId: input.createEventId(),
+            projectId: input.outcome.projectId,
+            runId: decision.producer.runId,
+            sessionId: decision.producer.sessionId,
+            type: "knowledge.candidate.created",
+            occurredAt: input.outcome.completedAt,
+            actor: { kind: "agent", provider: decision.producer.provider },
+            schemaVersion: 1,
+            policyVersion: input.policyVersion,
+            payload: {
+              candidateId: draft.candidate.candidateId,
+              claimDigest: draft.candidate.claim.claimDigest,
+              paths: draft.candidate.paths,
+              evidenceIds: draft.candidate.evidence.eventIds,
+              sourceOutcomeId: draft.candidate.source.outcomeId,
+              decisionArtifactId: draft.candidate.source.decisionArtifactId,
+              verificationArtifactIds: draft.candidate.evidence.verifications.map(
+                (item) => item.verificationArtifactId,
+              ),
+              verifiedRevision: draft.candidate.verifiedRevision,
+              candidateArtifactId: draft.candidateArtifact.artifactId,
+              candidateContentHash: draft.candidateArtifact.contentHash,
+            },
+          }).event,
+      ),
+    );
   } catch (error) {
     throw new KnowledgeError(
       "event_recording_failed",

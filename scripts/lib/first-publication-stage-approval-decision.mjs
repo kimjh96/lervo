@@ -14,15 +14,16 @@ export const stageApprovalConfirmations = Object.freeze([
 ]);
 
 function fail(code = "first_publication_stage_approval_decision_invalid") {
-  throw new FirstPublicationBootstrapError(
-    code,
-    "The CLI npm stage approval decision is invalid.",
-  );
+  throw new FirstPublicationBootstrapError(code, "The CLI npm stage approval decision is invalid.");
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function milliseconds(value) {
@@ -66,30 +67,34 @@ export function createFirstPublicationStageApprovalDecision(input) {
   return validateFirstPublicationStageApprovalDecision(decision);
 }
 
-export function validateFirstPublicationStageApprovalDecision(
-  decision,
-  { checkedAt } = {},
-) {
+export function validateFirstPublicationStageApprovalDecision(decision, { checkedAt } = {}) {
   const value = body(decision ?? {});
   const decidedAt = milliseconds(decision?.decidedAt);
   const expiresAt = milliseconds(decision?.expiresAt);
   if (
     !exactKeys(decision, [...Object.keys(value), "decisionDigest"]) ||
-    decision.schemaVersion !== 1 || !decisionIdPattern.test(decision.decisionId ?? "") ||
+    decision.schemaVersion !== 1 ||
+    !decisionIdPattern.test(decision.decisionId ?? "") ||
     decision.decisionType !== "first_publication_npm_stage_approval" ||
     decision.actorKind !== "human_operator" ||
     decision.decision !== "approve_exact_staged_package" ||
     !exactKeys(decision.binding, [
-      "stageReviewEvidenceDigest", "stageIdDigest", "package", "version",
-    ]) || !digestPattern.test(decision.binding.stageReviewEvidenceDigest ?? "") ||
+      "stageReviewEvidenceDigest",
+      "stageIdDigest",
+      "package",
+      "version",
+    ]) ||
+    !digestPattern.test(decision.binding.stageReviewEvidenceDigest ?? "") ||
     !digestPattern.test(decision.binding.stageIdDigest ?? "") ||
     decision.binding.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(decision.binding.version ?? "") ||
     canonicalJson(decision.confirmations) !== canonicalJson(stageApprovalConfirmations) ||
-    expiresAt <= decidedAt || expiresAt - decidedAt > maximumLifetimeMilliseconds ||
+    expiresAt <= decidedAt ||
+    expiresAt - decidedAt > maximumLifetimeMilliseconds ||
     !digestPattern.test(decision.decisionDigest ?? "") ||
     decision.decisionDigest !== canonicalDigest(value)
-  ) fail();
+  )
+    fail();
   if (checkedAt !== undefined) {
     const checked = milliseconds(checkedAt);
     if (checked < decidedAt || checked >= expiresAt) {

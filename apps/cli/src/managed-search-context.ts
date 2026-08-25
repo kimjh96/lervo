@@ -16,10 +16,7 @@ import {
   type SearchAttempt,
   type SearchRecommendationBatch,
 } from "@lervo/search";
-import {
-  LocalSearchObservationStore,
-  runLocalOperationalSearch,
-} from "@lervo/search-local";
+import { LocalSearchObservationStore, runLocalOperationalSearch } from "@lervo/search-local";
 import type { ContextEvidence } from "@lervo/schemas";
 import type { DocumentRegistry } from "@lervo/schemas";
 
@@ -59,8 +56,10 @@ function derivedNonce(nonce: string): string {
 }
 
 export function managedSearchQuery(query: string, fallbackQuery: string): string {
-  const terms = normalizeSearchText(query).match(/[\p{L}\p{N}]+/gu) ??
-    normalizeSearchText(fallbackQuery).match(/[\p{L}\p{N}]+/gu) ?? [];
+  const terms =
+    normalizeSearchText(query).match(/[\p{L}\p{N}]+/gu) ??
+    normalizeSearchText(fallbackQuery).match(/[\p{L}\p{N}]+/gu) ??
+    [];
   const selected: string[] = [];
   for (const term of terms.slice(0, 32)) {
     const candidate = [...selected, term].join(" ");
@@ -74,7 +73,9 @@ export function managedSearchQuery(query: string, fallbackQuery: string): string
     break;
   }
   if (selected.length === 0 || selected[0]!.length === 0) {
-    throw new TypeError("No searchable alphanumeric terms were found in the task request and expected path.");
+    throw new TypeError(
+      "No searchable alphanumeric terms were found in the task request and expected path.",
+    );
   }
   return selected.join(" ");
 }
@@ -126,35 +127,37 @@ export async function prepareManagedSearchContext(input: {
     if (!documentIdByPath.has(path)) documentIdByPath.set(path, documentIdForPath(path));
   }
   const additionalCandidates: ContextDocumentCandidate[] = [];
-  const knowledgeSources = await Promise.all(knowledge.hits.map(async (hit) => {
-    const bytes = await readRepositoryFile(input.repositoryRoot, hit.path, 131_072);
-    if (digestBytes(bytes) !== hit.contentHash) {
-      throw new TypeError(`Publication bytes changed after the knowledge query: ${hit.path}`);
-    }
-    const documentId = documentIdByPath.get(hit.path) ?? knowledgeDocumentId(hit.conceptId);
-    additionalCandidates.push({
-      documentId,
-      path: hit.path,
-      connectedPaths: [],
-      source: "knowledge",
-      knowledgeContext: {
-        conceptId: hit.conceptId,
-        assurance: hit.assurance,
-        freshness: hit.freshness,
-        sourceSnapshotId: knowledge.sourceSnapshotId,
-        impactReportId: knowledge.impactReportId,
-      },
-    });
-    return {
-      kind: "document" as const,
-      sourceId: documentId,
-      contentHash: hit.contentHash,
-      path: hit.path,
-      title: hit.title,
-      labels: ["repository_knowledge", hit.assurance, hit.freshness],
-      text: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
-    };
-  }));
+  const knowledgeSources = await Promise.all(
+    knowledge.hits.map(async (hit) => {
+      const bytes = await readRepositoryFile(input.repositoryRoot, hit.path, 131_072);
+      if (digestBytes(bytes) !== hit.contentHash) {
+        throw new TypeError(`Publication bytes changed after the knowledge query: ${hit.path}`);
+      }
+      const documentId = documentIdByPath.get(hit.path) ?? knowledgeDocumentId(hit.conceptId);
+      additionalCandidates.push({
+        documentId,
+        path: hit.path,
+        connectedPaths: [],
+        source: "knowledge",
+        knowledgeContext: {
+          conceptId: hit.conceptId,
+          assurance: hit.assurance,
+          freshness: hit.freshness,
+          sourceSnapshotId: knowledge.sourceSnapshotId,
+          impactReportId: knowledge.impactReportId,
+        },
+      });
+      return {
+        kind: "document" as const,
+        sourceId: documentId,
+        contentHash: hit.contentHash,
+        path: hit.path,
+        title: hit.title,
+        labels: ["repository_knowledge", hit.assurance, hit.freshness],
+        text: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+      };
+    }),
+  );
   const knowledgeResponse = new LexicalSearchIndex(knowledgeSources).search(query, 5);
   const knowledgeAttempt = createSearchAttempt({
     projectId: input.projectId,
@@ -179,7 +182,9 @@ export async function prepareManagedSearchContext(input: {
     recommendationBatch,
     attempts: [attempt, knowledgeAttempt],
     recommendationBatches: [recommendationBatch, knowledgeRecommendationBatch],
-    additionalCandidates: additionalCandidates.sort((left, right) => left.path.localeCompare(right.path)),
+    additionalCandidates: additionalCandidates.sort((left, right) =>
+      left.path.localeCompare(right.path),
+    ),
     knowledgeAttempt,
   };
 }
@@ -189,19 +194,32 @@ export function summarizeManagedSearchContext(
   knowledgeAttemptId: string,
   evidence: readonly ContextEvidence[],
 ): ManagedSearchContextSummary {
-  const recommendedDocumentIds = new Set(evidence
-    .filter((item) => item.state === "recommended")
-    .map((item) => item.documentId));
-  const selectedDocumentIds = [...new Set(evidence
-    .filter((item) => item.state === "selected" && item.reasonCode === "search_recommendation")
-    .map((item) => item.documentId))].sort();
-  const selectedKnowledgeConceptIds = [...new Set(evidence
-    .filter((item) => item.state === "selected" && item.reasonCode === "search_recommendation")
-    .flatMap((item) => item.knowledgeContext === undefined ? [] : [item.knowledgeContext.conceptId]))]
-    .sort();
-  const recommendedKnowledgeConceptIds = new Set(evidence
-    .filter((item) => item.state === "recommended")
-    .flatMap((item) => item.knowledgeContext === undefined ? [] : [item.knowledgeContext.conceptId]));
+  const recommendedDocumentIds = new Set(
+    evidence.filter((item) => item.state === "recommended").map((item) => item.documentId),
+  );
+  const selectedDocumentIds = [
+    ...new Set(
+      evidence
+        .filter((item) => item.state === "selected" && item.reasonCode === "search_recommendation")
+        .map((item) => item.documentId),
+    ),
+  ].sort();
+  const selectedKnowledgeConceptIds = [
+    ...new Set(
+      evidence
+        .filter((item) => item.state === "selected" && item.reasonCode === "search_recommendation")
+        .flatMap((item) =>
+          item.knowledgeContext === undefined ? [] : [item.knowledgeContext.conceptId],
+        ),
+    ),
+  ].sort();
+  const recommendedKnowledgeConceptIds = new Set(
+    evidence
+      .filter((item) => item.state === "recommended")
+      .flatMap((item) =>
+        item.knowledgeContext === undefined ? [] : [item.knowledgeContext.conceptId],
+      ),
+  );
   return {
     attemptId,
     knowledgeAttemptId,

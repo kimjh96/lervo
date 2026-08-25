@@ -1,11 +1,6 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 
-const valueArguments = [
-  "--repository",
-  "--license",
-  "--scope-owner-kind",
-  "--scope-owner-name",
-];
+const valueArguments = ["--repository", "--license", "--scope-owner-kind", "--scope-owner-name"];
 
 const permitValueArguments = [
   "--reviewed-candidate-digest",
@@ -24,7 +19,8 @@ const commandErrors = {
   },
   permit: {
     code: "first_publication_package_metadata_apply_permit_arguments_invalid",
-    message: "The CLI first-publication package metadata apply-permit command arguments are invalid.",
+    message:
+      "The CLI first-publication package metadata apply-permit command arguments are invalid.",
   },
 };
 
@@ -54,21 +50,21 @@ export function parseFirstPublicationMetadataArguments(args, command) {
     }
     const value = args[index + 1];
     if (
-      ![
-        ...valueArguments,
-        ...(command === "permit" ? permitValueArguments : []),
-      ].includes(name) || values.has(name) ||
-      value === undefined || value.startsWith("--")
-    ) fail(command);
+      ![...valueArguments, ...(command === "permit" ? permitValueArguments : [])].includes(name) ||
+      values.has(name) ||
+      value === undefined ||
+      value.startsWith("--")
+    )
+      fail(command);
     values.set(name, value);
     index += 1;
   }
   if (
     !valueArguments.every((name) => values.has(name)) ||
-    (command === "permit" && (
-      !reviewConfirmed || !permitValueArguments.every((name) => values.has(name))
-    ))
-  ) fail(command);
+    (command === "permit" &&
+      (!reviewConfirmed || !permitValueArguments.every((name) => values.has(name))))
+  )
+    fail(command);
   const parsed = {
     output,
     decisionInput: {

@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_01ba79da3f071edfb986ec25
+outputLanguage: en
+outputs:
+  - byteCount: 5406
+    contentHash: sha256:9440c4951d00a295ea463fba21ee757d6c901f064ad2284747b43a05651032f5
+    path: docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md
+    userRegionHash: sha256:9440c4951d00a295ea463fba21ee757d6c901f064ad2284747b43a05651032f5
+profile: repository_document
+recordId: knormdoc_03976a40e818534221def0a7
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:83ff06cc22cc142857ef6b98fcc699f057e5b1153ee5f115adf3a5d40e931ccb
+sourcePath: docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md
+sourceUnitVersionIds:
+  - uv_073daf703a07036c6d47125d
+  - uv_2669dcf6b0cc8d92a8856406
+  - uv_47e524692b7401bff8890cb5
+  - uv_4a30a581ff5a1ed37a0fac8f
+  - uv_a004018d5d290e1e0f0c7c77
+  - uv_daa1d033ac65dd3b3c7dad4e
+  - uv_dd916cd9965d164713c85140
+  - uv_e74a2838066f802c86835b19

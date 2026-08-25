@@ -2,11 +2,7 @@ import { type RemoteCommandTarget } from "@lervo/schemas";
 
 import { PolicyRuntimeError } from "./errors.js";
 import { verifyPolicyBundle } from "./bundle-verifier.js";
-import {
-  type PolicyBundle,
-  type PolicyStateStore,
-  type PolicyTrustStore,
-} from "./types.js";
+import { type PolicyBundle, type PolicyStateStore, type PolicyTrustStore } from "./types.js";
 
 export interface AuthenticatedPolicyHubTransport {
   pullPolicyBundle(input: {
@@ -27,44 +23,68 @@ export interface PolicySyncOptions {
   clock?: { now(): string };
 }
 
-function body(input: {
-  response: unknown;
-  destinationId: string;
-  peerHash: string;
-}): unknown {
+function body(input: { response: unknown; destinationId: string; peerHash: string }): unknown {
   if (
-    typeof input.response !== "object" || input.response === null ||
-    !("authentication" in input.response) || !("body" in input.response) ||
-    typeof input.response.authentication !== "object" || input.response.authentication === null
-  ) throw new PolicyRuntimeError("transport_authentication_failed", "The policy transport authentication response is missing.");
+    typeof input.response !== "object" ||
+    input.response === null ||
+    !("authentication" in input.response) ||
+    !("body" in input.response) ||
+    typeof input.response.authentication !== "object" ||
+    input.response.authentication === null
+  )
+    throw new PolicyRuntimeError(
+      "transport_authentication_failed",
+      "The policy transport authentication response is missing.",
+    );
   const auth = input.response.authentication as Record<string, unknown>;
   if (
-    auth.status !== "verified" || auth.destinationId !== input.destinationId ||
+    auth.status !== "verified" ||
+    auth.destinationId !== input.destinationId ||
     auth.peerIdentityHash !== input.peerHash
-  ) throw new PolicyRuntimeError("transport_authentication_failed", "The policy transport peer differs.");
+  )
+    throw new PolicyRuntimeError(
+      "transport_authentication_failed",
+      "The policy transport peer differs.",
+    );
   return input.response.body;
 }
 
 export async function runPolicySyncCycle(options: PolicySyncOptions): Promise<
   | { status: "offline"; failureCode: "hub_unavailable" | "transport_authentication_failed" }
   | { status: "unchanged"; snapshotId: string | null }
-  | { status: "applied" | "duplicate"; snapshotId: string; approvalCount: number; revocationCount: number }
+  | {
+      status: "applied" | "duplicate";
+      snapshotId: string;
+      approvalCount: number;
+      revocationCount: number;
+    }
 > {
   if (
     !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(options.destinationId) ||
     !/^sha256:[a-f0-9]{64}$/.test(options.expectedPeerIdentityHash) ||
     !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(options.target.projectId) ||
     !/^sha256:[a-f0-9]{64}$/.test(options.target.projectIdentityHash)
-  ) throw new PolicyRuntimeError("invalid_runtime_configuration", "The policy sync configuration is invalid.");
+  )
+    throw new PolicyRuntimeError(
+      "invalid_runtime_configuration",
+      "The policy sync configuration is invalid.",
+    );
   const now = (options.clock ?? { now: () => new Date().toISOString() }).now();
   if (!Number.isFinite(Date.parse(now))) {
-    throw new PolicyRuntimeError("invalid_runtime_configuration", "The policy sync clock is invalid.");
+    throw new PolicyRuntimeError(
+      "invalid_runtime_configuration",
+      "The policy sync clock is invalid.",
+    );
   }
   let current;
   try {
     current = await options.store.getCurrentSnapshot();
   } catch (error) {
-    throw new PolicyRuntimeError("policy_store_failed", "Could not read the current policy snapshot.", { cause: error });
+    throw new PolicyRuntimeError(
+      "policy_store_failed",
+      "Could not read the current policy snapshot.",
+      { cause: error },
+    );
   }
   let response;
   try {
@@ -79,7 +99,11 @@ export async function runPolicySyncCycle(options: PolicySyncOptions): Promise<
   }
   let received;
   try {
-    received = body({ response, destinationId: options.destinationId, peerHash: options.expectedPeerIdentityHash });
+    received = body({
+      response,
+      destinationId: options.destinationId,
+      peerHash: options.expectedPeerIdentityHash,
+    });
   } catch (error) {
     if (error instanceof PolicyRuntimeError && error.code === "transport_authentication_failed") {
       return { status: "offline", failureCode: error.code };
@@ -99,6 +123,10 @@ export async function runPolicySyncCycle(options: PolicySyncOptions): Promise<
   try {
     return await options.store.applyVerifiedBundle(verified);
   } catch (error) {
-    throw new PolicyRuntimeError("policy_store_failed", "Could not store the verified policy bundle.", { cause: error });
+    throw new PolicyRuntimeError(
+      "policy_store_failed",
+      "Could not store the verified policy bundle.",
+      { cause: error },
+    );
   }
 }

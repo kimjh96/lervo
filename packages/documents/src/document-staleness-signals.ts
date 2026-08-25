@@ -48,9 +48,7 @@ function changedScopePaths(
   after: ReadonlyMap<string, string>,
 ): string[] {
   const paths = new Set([...before.keys(), ...after.keys()]);
-  return [...paths]
-    .filter((path) => before.get(path) !== after.get(path))
-    .sort(compareText);
+  return [...paths].filter((path) => before.get(path) !== after.get(path)).sort(compareText);
 }
 
 function unavailableRevisionSignals(
@@ -139,9 +137,10 @@ export function evaluateRevisionStaleness(
 function expectedInputs(manifest: DocumentManifest): ExpectedInput[] {
   const ownership = manifest.record.ownership;
   if (ownership.mode === "user") return [];
-  const inputs = ownership.mode === "managed_blocks"
-    ? ownership.blocks.flatMap((block) => block.inputs)
-    : ownership.inputs;
+  const inputs =
+    ownership.mode === "managed_blocks"
+      ? ownership.blocks.flatMap((block) => block.inputs)
+      : ownership.inputs;
   const expected = new Map<string, string>();
   for (const input of inputs) {
     if (expected.has(input.sourceId)) {
@@ -165,11 +164,15 @@ function validateObservations(
   const result = new Map<string, ManagedInputObservation>();
   for (const observation of observations) {
     if (
-      observation.sourceId.length < 1 || observation.sourceId.length > 200 ||
-      result.has(observation.sourceId) || !expectedIds.has(observation.sourceId) ||
+      observation.sourceId.length < 1 ||
+      observation.sourceId.length > 200 ||
+      result.has(observation.sourceId) ||
+      !expectedIds.has(observation.sourceId) ||
       (observation.status === "available" && !isContentHash(observation.contentHash))
     ) {
-      invalidStalenessRequest("The managed input observation does not satisfy the manifest and common contract.");
+      invalidStalenessRequest(
+        "The managed input observation does not satisfy the manifest and common contract.",
+      );
     }
     result.set(observation.sourceId, observation);
   }
@@ -211,9 +214,12 @@ export function evaluateManagedInputStaleness(
   if (unobservedSourceIds.length > 0) reasons.push("managed_input_unobserved");
   return {
     signal: {
-      status: changedSourceIds.length > 0 || missingSourceIds.length > 0
-        ? "stale"
-        : unobservedSourceIds.length > 0 ? "unknown" : "current",
+      status:
+        changedSourceIds.length > 0 || missingSourceIds.length > 0
+          ? "stale"
+          : unobservedSourceIds.length > 0
+            ? "unknown"
+            : "current",
       changedSourceIds,
       missingSourceIds,
       unobservedSourceIds,

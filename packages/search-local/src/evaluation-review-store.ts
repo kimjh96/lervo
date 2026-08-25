@@ -19,25 +19,40 @@ export async function loadStoredSearchCandidateReview(
   reviewId: string,
 ): Promise<SearchCandidateReview> {
   if (!SEARCH_CANDIDATE_REVIEW_PATTERN.test(reviewId)) {
-    throw new SearchLocalError("candidate_review_not_found", "The search candidate review ID is invalid.");
+    throw new SearchLocalError(
+      "candidate_review_not_found",
+      "The search candidate review ID is invalid.",
+    );
   }
   const directory = await existingObservationSubdirectory(repositoryRoot, "evaluation-reviews");
   if (directory === null) {
-    throw new SearchLocalError("candidate_review_not_found", "The search candidate review source was not found.");
+    throw new SearchLocalError(
+      "candidate_review_not_found",
+      "The search candidate review source was not found.",
+    );
   }
   let review: SearchCandidateReview;
   try {
     review = await readObservation<SearchCandidateReview>(resolve(directory, `${reviewId}.json`));
   } catch (error) {
-    if (error instanceof SearchLocalError && error.code === "observation_read_failed" &&
-      (error.cause as NodeJS.ErrnoException | undefined)?.code === "ENOENT") {
-      throw new SearchLocalError("candidate_review_not_found", "The search candidate review source was not found.");
+    if (
+      error instanceof SearchLocalError &&
+      error.code === "observation_read_failed" &&
+      (error.cause as NodeJS.ErrnoException | undefined)?.code === "ENOENT"
+    ) {
+      throw new SearchLocalError(
+        "candidate_review_not_found",
+        "The search candidate review source was not found.",
+      );
     }
     throw error;
   }
   assertSearchCandidateReview(review);
   if (review.reviewId !== reviewId) {
-    throw new SearchLocalError("observation_invalid", "The search candidate review ID does not match the file coordinates.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search candidate review ID does not match the file coordinates.",
+    );
   }
   return review;
 }

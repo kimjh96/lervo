@@ -66,13 +66,15 @@ describe("conversation deliberation reconciliation storage", () => {
       },
     }));
 
-    await expect(reconcileConversationDeliberation({
-      store,
-      source: { inspect },
-      projectId: "prj_deliberation01",
-      deliberationId: started.deliberationId,
-      now: () => new Date("2026-08-22T00:02:00.000Z"),
-    })).resolves.toMatchObject({
+    await expect(
+      reconcileConversationDeliberation({
+        store,
+        source: { inspect },
+        projectId: "prj_deliberation01",
+        deliberationId: started.deliberationId,
+        now: () => new Date("2026-08-22T00:02:00.000Z"),
+      }),
+    ).resolves.toMatchObject({
       status: "reconciled",
       summary: { status: "converged", artifactCount: 5 },
     });
@@ -91,21 +93,25 @@ describe("conversation deliberation reconciliation storage", () => {
         reconciledAt: "2026-08-22T00:02:00.000Z",
       },
     });
-    await expect(store.reconcile({
-      projectId: "prj_deliberation01",
-      deliberationId: started.deliberationId,
-      requestHash: repaired!.requestHash,
-      sourceKind: "another_project_inspection_v1",
-      evidenceHash: `sha256:${"c".repeat(64)}`,
-      reconciledAt: "2026-08-22T00:02:01.000Z",
-      summary: repaired!.summary!,
-    })).resolves.toBeUndefined();
-    await expect(reconcileConversationDeliberation({
-      store,
-      source: { inspect },
-      projectId: "prj_deliberation01",
-      deliberationId: started.deliberationId,
-    })).resolves.toMatchObject({ status: "not_uncertain" });
+    await expect(
+      store.reconcile({
+        projectId: "prj_deliberation01",
+        deliberationId: started.deliberationId,
+        requestHash: repaired!.requestHash,
+        sourceKind: "another_project_inspection_v1",
+        evidenceHash: `sha256:${"c".repeat(64)}`,
+        reconciledAt: "2026-08-22T00:02:01.000Z",
+        summary: repaired!.summary!,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      reconcileConversationDeliberation({
+        store,
+        source: { inspect },
+        projectId: "prj_deliberation01",
+        deliberationId: started.deliberationId,
+      }),
+    ).resolves.toMatchObject({ status: "not_uncertain" });
     expect(inspect).toHaveBeenCalledOnce();
     store.close();
   });
@@ -113,38 +119,44 @@ describe("conversation deliberation reconciliation storage", () => {
   it("keeps active or incomplete authoritative history uncertain", async () => {
     const { store } = await open();
     const started = await uncertain(store);
-    await expect(reconcileConversationDeliberation({
-      store,
-      source: {
-        inspect: async () => ({ status: "not_confirmed", reason: "active_execution" }),
-      },
-      projectId: "prj_deliberation01",
-      deliberationId: started.deliberationId,
-      now: () => new Date("2026-08-22T00:02:00.000Z"),
-    })).resolves.toEqual({ status: "not_confirmed", reason: "active_execution" });
-    await expect(reconcileConversationDeliberation({
-      store,
-      source: {
-        inspect: async () => ({
-          status: "confirmed",
-          sourceKind: "fixture_project_inspection_v1",
-          evidenceHash: `sha256:${"d".repeat(64)}`,
-          summary: {
-            deliberationId: started.deliberationId,
-            status: "unknown",
-            artifactCount: 0,
-            nextAction: "none",
-          },
-        }),
-      },
-      projectId: "prj_deliberation01",
-      deliberationId: started.deliberationId,
-      now: () => new Date("2026-08-22T00:02:01.000Z"),
-    })).rejects.toMatchObject({ code: "deliberation_source_failed" });
-    await expect(store.inspect({
-      projectId: "prj_deliberation01",
-      deliberationId: started.deliberationId,
-    })).resolves.toMatchObject({ state: "uncertain", summary: null, reconciliation: null });
+    await expect(
+      reconcileConversationDeliberation({
+        store,
+        source: {
+          inspect: async () => ({ status: "not_confirmed", reason: "active_execution" }),
+        },
+        projectId: "prj_deliberation01",
+        deliberationId: started.deliberationId,
+        now: () => new Date("2026-08-22T00:02:00.000Z"),
+      }),
+    ).resolves.toEqual({ status: "not_confirmed", reason: "active_execution" });
+    await expect(
+      reconcileConversationDeliberation({
+        store,
+        source: {
+          inspect: async () => ({
+            status: "confirmed",
+            sourceKind: "fixture_project_inspection_v1",
+            evidenceHash: `sha256:${"d".repeat(64)}`,
+            summary: {
+              deliberationId: started.deliberationId,
+              status: "unknown",
+              artifactCount: 0,
+              nextAction: "none",
+            },
+          }),
+        },
+        projectId: "prj_deliberation01",
+        deliberationId: started.deliberationId,
+        now: () => new Date("2026-08-22T00:02:01.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "deliberation_source_failed" });
+    await expect(
+      store.inspect({
+        projectId: "prj_deliberation01",
+        deliberationId: started.deliberationId,
+      }),
+    ).resolves.toMatchObject({ state: "uncertain", summary: null, reconciliation: null });
     store.close();
   });
 
@@ -186,10 +198,12 @@ describe("conversation deliberation reconciliation storage", () => {
     legacy.close();
 
     const store = await SQLiteConversationDeliberationJobStore.open({ path });
-    await expect(store.inspect({
-      projectId: "prj_deliberation01",
-      deliberationId: "dlb_legacyqueue0001",
-    })).resolves.toMatchObject({
+    await expect(
+      store.inspect({
+        projectId: "prj_deliberation01",
+        deliberationId: "dlb_legacyqueue0001",
+      }),
+    ).resolves.toMatchObject({
       state: "uncertain",
       failureCode: "worker_lease_expired",
       reconciliation: null,
@@ -208,10 +222,12 @@ describe("conversation deliberation reconciliation storage", () => {
         nextAction: "none",
       },
     });
-    await expect(store.inspect({
-      projectId: "prj_deliberation01",
-      deliberationId: "dlb_legacyqueue0001",
-    })).resolves.toMatchObject({
+    await expect(
+      store.inspect({
+        projectId: "prj_deliberation01",
+        deliberationId: "dlb_legacyqueue0001",
+      }),
+    ).resolves.toMatchObject({
       state: "settled",
       summary: { status: "failed" },
       reconciliation: { priorFailureCode: "worker_lease_expired" },
@@ -219,8 +235,12 @@ describe("conversation deliberation reconciliation storage", () => {
     store.close();
     const migrated = new DatabaseSync(path);
     expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(2);
-    expect(migrated.prepare("PRAGMA table_info(conversation_deliberation_jobs)").all()
-      .some((column) => column.name === "reconciliation_json")).toBe(true);
+    expect(
+      migrated
+        .prepare("PRAGMA table_info(conversation_deliberation_jobs)")
+        .all()
+        .some((column) => column.name === "reconciliation_json"),
+    ).toBe(true);
     migrated.close();
   });
 });

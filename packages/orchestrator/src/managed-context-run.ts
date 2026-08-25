@@ -37,9 +37,7 @@ function copy<T>(value: T): T {
   return structuredClone(value);
 }
 
-function snapshotPrepareInput(
-  input: ManagedPrepareContextInput,
-): ManagedPrepareContextInput {
+function snapshotPrepareInput(input: ManagedPrepareContextInput): ManagedPrepareContextInput {
   const { createReceiptId, ...values } = input;
   return {
     ...copy(values),
@@ -174,10 +172,7 @@ export class ManagedContextRun {
     this.state.invalidate(occurredAt);
   }
 
-  invalidateContext(
-    reason: "context_compacted" | "session_restarted",
-    occurredAt: Date,
-  ): void {
+  invalidateContext(reason: "context_compacted" | "session_restarted", occurredAt: Date): void {
     this.state.assertOperational();
     if (this.state.requiredDocumentIds.length === 0) {
       throw new ManagedContextError("invalid_state", "There is no managed context to invalidate.");
@@ -210,14 +205,10 @@ export class ManagedContextRun {
 
   async authorizeFileWrite(input: FileWriteRequest): Promise<ManagedWriteDecision> {
     const snapshot = copy(input);
-    return this.runExclusive("authorize_file_write", () =>
-      this.writes.authorize(snapshot),
-    );
+    return this.runExclusive("authorize_file_write", () => this.writes.authorize(snapshot));
   }
 
   async recordFileChange(input: FileChangeRecord): Promise<ManagedFileChangeEvidence> {
-    return this.runExclusive("record_file_change", () =>
-      this.writes.recordChange(copy(input)),
-    );
+    return this.runExclusive("record_file_change", () => this.writes.recordChange(copy(input)));
   }
 }

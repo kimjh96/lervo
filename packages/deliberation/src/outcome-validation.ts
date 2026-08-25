@@ -1,10 +1,7 @@
 import { validateSchema } from "@lervo/schemas";
 
 import { analyzeDeliberationHistory } from "./history-validation.js";
-import {
-  calculateDeliberationOutcomeId,
-  deliberationPolicyHash,
-} from "./integrity.js";
+import { calculateDeliberationOutcomeId, deliberationPolicyHash } from "./integrity.js";
 import { validateDeliberationPolicy } from "./policy-validation.js";
 import {
   DeliberationError,
@@ -13,7 +10,9 @@ import {
 } from "./types.js";
 
 function exactArray(actual: readonly string[], expected: readonly string[]): boolean {
-  return actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+  return (
+    actual.length === expected.length && actual.every((value, index) => value === expected[index])
+  );
 }
 
 function requiredVerificationsPassed(
@@ -23,16 +22,11 @@ function requiredVerificationsPassed(
   return required.every((suiteId) => passed.has(suiteId));
 }
 
-function outcomeInvalid(
-  reason: DeliberationErrorReason,
-  message: string,
-): never {
+function outcomeInvalid(reason: DeliberationErrorReason, message: string): never {
   throw new DeliberationError("outcome_contract_invalid", reason, message);
 }
 
-export function validateDeliberationOutcome(
-  input: ValidateDeliberationOutcomeInput,
-): void {
+export function validateDeliberationOutcome(input: ValidateDeliberationOutcomeInput): void {
   validateDeliberationPolicy(input.policy);
   if (!validateSchema("deliberationOutcome", input.outcome).valid) {
     throw new DeliberationError(
@@ -44,28 +38,25 @@ export function validateDeliberationOutcome(
   const analysis = analyzeDeliberationHistory(input);
   const outcome = input.outcome;
   const completedAt = Date.parse(outcome.completedAt);
-  const lastCreatedAt = input.artifacts.length === 0
-    ? Number.NEGATIVE_INFINITY
-    : Date.parse(input.artifacts.at(-1)!.createdAt);
+  const lastCreatedAt =
+    input.artifacts.length === 0
+      ? Number.NEGATIVE_INFINITY
+      : Date.parse(input.artifacts.at(-1)!.createdAt);
   const expectedLastRound = input.artifacts.length === 0 ? 1 : analysis.lastRound;
   if (
-    outcome.projectId !== input.policy.projectId || outcome.policyId !== input.policy.policyId ||
+    outcome.projectId !== input.policy.projectId ||
+    outcome.policyId !== input.policy.policyId ||
     outcome.policyHash !== deliberationPolicyHash(input.policy) ||
     outcome.deliberationId !== input.deliberationId ||
     (input.artifacts.length > 0 && outcome.deliberationId !== analysis.deliberationId) ||
     outcome.lastRound !== expectedLastRound ||
     !exactArray(outcome.artifactIds, analysis.artifactIds) ||
     outcome.lastConfirmedArtifactId !== analysis.lastArtifactId ||
-    !Number.isFinite(completedAt) || completedAt < lastCreatedAt ||
+    !Number.isFinite(completedAt) ||
+    completedAt < lastCreatedAt ||
     outcome.outcomeId !== calculateDeliberationOutcomeId(outcome) ||
-    !exactArray(
-      outcome.passedVerificationArtifactIds,
-      analysis.passedVerificationArtifactIds,
-    ) ||
-    !exactArray(
-      outcome.unresolvedBlockingObjectionIds,
-      analysis.openBlockingObjectionIds,
-    )
+    !exactArray(outcome.passedVerificationArtifactIds, analysis.passedVerificationArtifactIds) ||
+    !exactArray(outcome.unresolvedBlockingObjectionIds, analysis.openBlockingObjectionIds)
   ) {
     throw new DeliberationError(
       "outcome_contract_invalid",
@@ -78,28 +69,40 @@ export function validateDeliberationOutcome(
     analysis.passedVerificationSuiteIds,
   );
   if (outcome.status === "converged") {
-    const adoptedClaimsVerified = analysis.decision !== null &&
+    const adoptedClaimsVerified =
+      analysis.decision !== null &&
       input.policy.requiredVerificationSuiteIds.every((suiteId) => {
         const coveredClaims = analysis.passedClaimIdsBySuite.get(suiteId);
-        return coveredClaims !== undefined && analysis.decision!.details.adoptedClaimIds.every(
-          (claimId) => coveredClaims.has(claimId),
+        return (
+          coveredClaims !== undefined &&
+          analysis.decision!.details.adoptedClaimIds.every((claimId) => coveredClaims.has(claimId))
         );
       });
     if (
       analysis.decision === null ||
       outcome.decisionArtifactId !== analysis.decision.deliberationArtifactId
-    ) outcomeInvalid("decision_missing", "The decision owner's final decision is missing.");
+    )
+      outcomeInvalid("decision_missing", "The decision owner's final decision is missing.");
     if (analysis.openBlockingObjectionIds.length !== 0) {
       outcomeInvalid("blocking_objection_unresolved", "An unresolved blocking objection remains.");
     }
     if (!passedRequired) {
-      outcomeInvalid("required_verification_missing", "A required verification suite has not passed.");
+      outcomeInvalid(
+        "required_verification_missing",
+        "A required verification suite has not passed.",
+      );
     }
     if (!analysis.independentReviewApproved) {
-      outcomeInvalid("independent_review_missing", "The latest proposal or revision lacks independent approval.");
+      outcomeInvalid(
+        "independent_review_missing",
+        "The latest proposal or revision lacks independent approval.",
+      );
     }
     if (!adoptedClaimsVerified) {
-      outcomeInvalid("adopted_claim_unverified", "The adopted current claim version has not been verified by every required suite.");
+      outcomeInvalid(
+        "adopted_claim_unverified",
+        "The adopted current claim version has not been verified by every required suite.",
+      );
     }
     return;
   }

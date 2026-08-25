@@ -5,9 +5,7 @@ import {
   type ConversationDeliberationJobStore,
 } from "@lervo/conversation-deliberation-contract";
 
-import {
-  migrateConversationDeliberationDatabase,
-} from "./database.js";
+import { migrateConversationDeliberationDatabase } from "./database.js";
 import { ConversationDeliberationSQLiteError } from "./errors.js";
 import {
   claimConversationDeliberationJob,
@@ -76,7 +74,10 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
 
   async enqueue(input: Parameters<ConversationDeliberationJobStore["enqueue"]>[0]) {
     this.assertOpen();
-    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "deliberation request");
+    const requestedAtMs = conversationDeliberationMilliseconds(
+      input.requestedAt,
+      "deliberation request",
+    );
     const candidate = decodeConversationDeliberationJob({
       project_id: input.projectId,
       source_event_id: input.sourceEventId,
@@ -100,10 +101,14 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
     });
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const row = this.database.prepare(`
+      const row = this.database
+        .prepare(
+          `
         SELECT * FROM conversation_deliberation_jobs
         WHERE project_id = ? AND source_event_id = ?
-      `).get(input.projectId, input.sourceEventId);
+      `,
+        )
+        .get(input.projectId, input.sourceEventId);
       if (row !== undefined) {
         const existing = decodeConversationDeliberationJob(row);
         if (
@@ -118,9 +123,9 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
         this.database.exec("COMMIT;");
         return existing;
       }
-      const count = this.database.prepare(
-        "SELECT COUNT(*) AS count FROM conversation_deliberation_jobs",
-      ).get()?.count;
+      const count = this.database
+        .prepare("SELECT COUNT(*) AS count FROM conversation_deliberation_jobs")
+        .get()?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new ConversationDeliberationSQLiteError(
           "integrity_failed",
@@ -133,7 +138,9 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
           "The conversation deliberation queue capacity was exceeded.",
         );
       }
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         INSERT INTO conversation_deliberation_jobs (
           project_id, source_event_id, deliberation_id, request_hash, principal_hash,
           policy_id, topic, requested_at, requested_at_ms, state, attempt_count,
@@ -141,17 +148,19 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
           summary_json, failure_code, terminal_at, reconciliation_json
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0,
           NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
-      `).run(
-        candidate.projectId,
-        candidate.sourceEventId,
-        candidate.deliberationId,
-        candidate.requestHash,
-        candidate.principalHash,
-        candidate.policyId,
-        candidate.topic,
-        candidate.requestedAt,
-        requestedAtMs,
-      );
+      `,
+        )
+        .run(
+          candidate.projectId,
+          candidate.sourceEventId,
+          candidate.deliberationId,
+          candidate.requestHash,
+          candidate.principalHash,
+          candidate.policyId,
+          candidate.topic,
+          candidate.requestedAt,
+          requestedAtMs,
+        );
       this.database.exec("COMMIT;");
       return candidate;
     } catch (error) {
@@ -162,10 +171,14 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
   async inspect(input: Parameters<ConversationDeliberationJobStore["inspect"]>[0]) {
     this.assertOpen();
     assertConversationDeliberationLookup(input);
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT * FROM conversation_deliberation_jobs
       WHERE project_id = ? AND deliberation_id = ?
-    `).get(input.projectId, input.deliberationId);
+    `,
+      )
+      .get(input.projectId, input.deliberationId);
     return row === undefined ? null : decodeConversationDeliberationJob(row);
   }
 
@@ -249,5 +262,4 @@ export class SQLiteConversationDeliberationJobStore implements ConversationDelib
       leaseConfiguration.label,
     );
   }
-
 }

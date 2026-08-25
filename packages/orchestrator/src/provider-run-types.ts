@@ -1,24 +1,16 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
+import type { ManagedProjectVerification } from "@lervo/execution-contract";
 import type {
-  ManagedProjectVerification,
-  ManagedProviderRunResult,
-} from "@lervo/execution-contract";
-import type {
+  AdapterCapabilityActivationRequest,
   ManagedRunApprovalAuthorization,
   VerificationSuite,
 } from "@lervo/schemas";
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
-import type {
-  ManagedContextRunOptions,
-  ManagedPrepareContextInput,
-} from "./types.js";
-import type {
-  CaptureRepositorySnapshot,
-  RepositorySnapshotPolicy,
-} from "./repository-snapshot.js";
+import type { ManagedContextRunOptions, ManagedPrepareContextInput } from "./types.js";
+import type { CaptureRepositorySnapshot, RepositorySnapshotPolicy } from "./repository-snapshot.js";
 
 export type {
   ManagedProjectVerification,
@@ -30,6 +22,7 @@ export type {
 export type ManagedProviderRunFailureCode =
   | "cancelled"
   | "approval_required"
+  | "capability_activation_failed"
   | "artifact_storage_failed"
   | "context_injection_failed"
   | "context_preparation_failed"
@@ -70,9 +63,8 @@ export class ManagedProviderRunError extends Error {
     super(message, options);
     this.name = "ManagedProviderRunError";
     this.paths = options?.paths === undefined ? [] : [...options.paths];
-    this.relatedFailures = options?.relatedFailures === undefined
-      ? []
-      : structuredClone(options.relatedFailures);
+    this.relatedFailures =
+      options?.relatedFailures === undefined ? [] : structuredClone(options.relatedFailures);
     this.originPhase = options?.originPhase;
   }
 }
@@ -94,18 +86,36 @@ export interface ManagedProviderRunInput {
   risk: string;
   instructions: string;
   targetTurnId: string;
-  context: Omit<
-    ManagedPrepareContextInput,
-    "repositoryRoot" | "sourceRevision" | "recordedAt"
-  >;
+  context: Omit<ManagedPrepareContextInput, "repositoryRoot" | "sourceRevision" | "recordedAt">;
   writingPolicy: ResolvedWritingPolicy | null;
   resolvedSkills: readonly ManagedResolvedSkill[];
+  resolvedCapabilities?: readonly ManagedResolvedCapability[];
+  capabilityRecommendations?: readonly ManagedCapabilityRecommendation[];
+  capabilityActivations?: readonly AdapterCapabilityActivationRequest[];
   verificationSuites?: readonly VerificationSuite[];
   signal?: AbortSignal;
   createEnvelopeId?: () => string;
   createEvidenceReceiptId?: () => string;
   createTargetTurnId?: () => string;
   approvalAuthorization?: ManagedRunApprovalAuthorization;
+}
+
+export interface ManagedResolvedCapability {
+  capabilityId: string;
+  capabilityKind: "skill" | "mcp_server" | "provider_plugin" | "bundle";
+  version: string;
+  contentHash: string;
+  sourceKind: "project" | "user";
+  selectionReason: "explicit" | "role_default" | "natural_language" | "dependency";
+}
+
+export interface ManagedCapabilityRecommendation {
+  capabilityId: string;
+  capabilityKind: "skill" | "mcp_server" | "provider_plugin" | "bundle";
+  version: string;
+  contentHash: string;
+  score: number;
+  reasonCodes: readonly string[];
 }
 
 export interface ManagedResolvedSkill {

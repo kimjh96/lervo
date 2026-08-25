@@ -2,10 +2,7 @@ import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import {
-  type DeliberationWorkflowSource,
-  validateSchema,
-} from "@lervo/schemas";
+import { type DeliberationWorkflowSource, validateSchema } from "@lervo/schemas";
 import { parse } from "yaml";
 
 const maximumPolicyBytes = 64 * 1024;
@@ -29,9 +26,7 @@ function sameSet(actual: readonly string[], expected: readonly string[]): boolea
   return actual.length === expected.length && expected.every((value) => actual.includes(value));
 }
 
-export function validateDeliberationWorkflowSource(
-  source: DeliberationWorkflowSource,
-): void {
+export function validateDeliberationWorkflowSource(source: DeliberationWorkflowSource): void {
   if (!validateSchema("deliberationWorkflowSource", source).valid) {
     throw new DeliberationPolicySourceError(
       "deliberation_policy_invalid",
@@ -40,25 +35,34 @@ export function validateDeliberationWorkflowSource(
   }
   const roleIds = source.participants.map((participant) => participant.roleId);
   const proposers = source.participants.filter((participant) =>
-    participant.responsibilities.includes("proposer"));
+    participant.responsibilities.includes("proposer"),
+  );
   const owners = source.participants.filter((participant) =>
-    participant.responsibilities.includes("decision_owner"));
+    participant.responsibilities.includes("decision_owner"),
+  );
   const reviewers = source.participants.filter((participant) =>
-    participant.responsibilities.includes("reviewer"));
+    participant.responsibilities.includes("reviewer"),
+  );
   const verifiers = source.participants.filter((participant) =>
-    participant.responsibilities.includes("verifier"));
+    participant.responsibilities.includes("verifier"),
+  );
   const proposer = proposers[0];
   const verifier = verifiers[0];
   if (
     new Set(roleIds).size !== roleIds.length ||
-    source.participants.some((participant) =>
-      participant.provider !== "codex" && participant.provider !== "claude") ||
+    source.participants.some(
+      (participant) => participant.provider !== "codex" && participant.provider !== "claude",
+    ) ||
     new Set(source.participants.map((participant) => participant.provider)).size < 2 ||
-    proposers.length !== 1 || owners.length !== 1 || proposer?.roleId !== owners[0]?.roleId ||
-    proposer === undefined || !sameSet(proposer.responsibilities, ["proposer", "decision_owner"]) ||
-    reviewers.length === 0 || reviewers.some((participant) =>
-      !sameSet(participant.responsibilities, ["reviewer"])) ||
-    verifiers.length !== 1 || verifier === undefined ||
+    proposers.length !== 1 ||
+    owners.length !== 1 ||
+    proposer?.roleId !== owners[0]?.roleId ||
+    proposer === undefined ||
+    !sameSet(proposer.responsibilities, ["proposer", "decision_owner"]) ||
+    reviewers.length === 0 ||
+    reviewers.some((participant) => !sameSet(participant.responsibilities, ["reviewer"])) ||
+    verifiers.length !== 1 ||
+    verifier === undefined ||
     !sameSet(verifier.responsibilities, ["verifier"]) ||
     reviewers.some((participant) => participant.roleId === verifier.roleId)
   ) {
@@ -84,7 +88,11 @@ export async function loadDeliberationWorkflowSource(
   try {
     const stats = await lstat(directory);
     const expected = resolve(await realpath(root), ".lervo/deliberations");
-    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath(directory) !== expected) {
+    if (
+      !stats.isDirectory() ||
+      stats.isSymbolicLink() ||
+      (await realpath(directory)) !== expected
+    ) {
       throw new Error("unsafe directory");
     }
   } catch (error) {
@@ -109,8 +117,11 @@ export async function loadDeliberationWorkflowSource(
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     if (
-      before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.size !== after.size ||
+      before.mtimeNs !== after.mtimeNs ||
+      before.ctimeNs !== after.ctimeNs
     ) {
       throw new DeliberationPolicySourceError(
         "deliberation_policy_layout_invalid",

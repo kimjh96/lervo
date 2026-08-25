@@ -8,16 +8,9 @@ import {
   ReleaseArtifactManifestError,
   validateReleaseArtifactManifest,
 } from "./lib/release-artifact-manifest.mjs";
-import {
-  deployBuiltCli,
-  readJson,
-  repositoryRoot,
-} from "./lib/installed-cli.mjs";
+import { deployBuiltCli, readJson, repositoryRoot } from "./lib/installed-cli.mjs";
 
-const releaseManifestPath = resolve(
-  repositoryRoot,
-  "apps/cli/release-artifact-manifest.json",
-);
+const releaseManifestPath = resolve(repositoryRoot, "apps/cli/release-artifact-manifest.json");
 const writeMode = process.argv.slice(2).includes("--write");
 
 async function main() {
@@ -27,11 +20,13 @@ async function main() {
     await deployBuiltCli(deploymentRoot);
     let expected;
     if (!writeMode) expected = validateReleaseArtifactManifest(await readJson(releaseManifestPath));
-    const actual = validateReleaseArtifactManifest(await createCliReleaseManifest(
-      deploymentRoot,
-      expected?.dependencies.platformSpecificFamilies ?? [],
-      writeMode,
-    ));
+    const actual = validateReleaseArtifactManifest(
+      await createCliReleaseManifest(
+        deploymentRoot,
+        expected?.dependencies.platformSpecificFamilies ?? [],
+        writeMode,
+      ),
+    );
     if (writeMode) {
       await writeFile(releaseManifestPath, `${JSON.stringify(actual, null, 2)}\n`, "utf8");
       console.log("Updated the CLI release artifact manifest.");
@@ -46,7 +41,7 @@ async function main() {
     }
     console.log(
       `CLI release artifact check passed (${actual.archive.fileCount} files, ` +
-      `${actual.dependencies.portable.length} portable dependencies)`,
+        `${actual.dependencies.portable.length} portable dependencies)`,
     );
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
@@ -59,7 +54,9 @@ try {
   if (error instanceof ReleaseArtifactManifestError) {
     console.error(`${error.code}: ${error.message}`);
   } else {
-    console.error("release_artifact_check_failed: The release artifact check could not be completed.");
+    console.error(
+      "release_artifact_check_failed: The release artifact check could not be completed.",
+    );
   }
   process.exitCode = 1;
 }

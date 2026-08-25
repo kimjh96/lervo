@@ -8,44 +8,46 @@
       "planId": "migp_aaaaaaaaaaaaaaaa",
       "approvedAt": "2026-08-19T01:00:00Z",
       "approver": { "kind": "user", "id": "maintainer" },
-      "decisions": [{
-        "candidateId": "migc_bbbbbbbbbbbbbbbb",
-        "artifactId": "art_candidate000001",
-        "artifactHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "action": "approve_sidecar",
-        "manifest": {
-          "schemaVersion": 1,
-          "documentId": "doc_readme_000001",
-          "record": {
-            "path": "README.md",
-            "kind": "canonical",
-            "responsibleParty": { "kind": "team", "id": "maintainers" },
-            "connectedPaths": ["src"],
-            "verifiedRevision": "git:fixture",
-            "verifiedAt": "2026-08-19T00:00:00Z",
-            "reviewIntervalDays": 30,
-            "ownership": { "mode": "user" }
-          },
-          "contentPolicy": {
-            "mode": "user_managed",
-            "mediaType": "text/markdown; charset=utf-8",
-            "profileId": "imported-markdown/v1",
-            "locale": "ko-KR",
-            "audience": "human",
-            "metadataPlacement": "sidecar",
-            "historyMode": "separate_documents",
-            "splitStrategy": "topic_documents",
-            "automaticWrites": false,
-            "splitRecommendedAtBytes": 32768,
-            "oversizeReviewAtBytes": 65536,
-            "overflowAction": "report_split_recommended"
-          },
-          "relations": {
-            "supersedesDocumentIds": [],
-            "relatedDocumentIds": []
+      "decisions": [
+        {
+          "candidateId": "migc_bbbbbbbbbbbbbbbb",
+          "artifactId": "art_candidate000001",
+          "artifactHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "action": "approve_sidecar",
+          "manifest": {
+            "schemaVersion": 1,
+            "documentId": "doc_readme_000001",
+            "record": {
+              "path": "README.md",
+              "kind": "canonical",
+              "responsibleParty": { "kind": "team", "id": "maintainers" },
+              "connectedPaths": ["src"],
+              "verifiedRevision": "git:fixture",
+              "verifiedAt": "2026-08-19T00:00:00Z",
+              "reviewIntervalDays": 30,
+              "ownership": { "mode": "user" }
+            },
+            "contentPolicy": {
+              "mode": "user_managed",
+              "mediaType": "text/markdown; charset=utf-8",
+              "profileId": "imported-markdown/v1",
+              "locale": "ko-KR",
+              "audience": "human",
+              "metadataPlacement": "sidecar",
+              "historyMode": "separate_documents",
+              "splitStrategy": "topic_documents",
+              "automaticWrites": false,
+              "splitRecommendedAtBytes": 32768,
+              "oversizeReviewAtBytes": 65536,
+              "overflowAction": "report_split_recommended"
+            },
+            "relations": {
+              "supersedesDocumentIds": [],
+              "relatedDocumentIds": []
+            }
           }
         }
-      }]
+      ]
     }
   },
   {
@@ -58,11 +60,15 @@
       "beforeLayoutHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "afterLayoutHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "sourceHashes": ["sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
-      "candidateArtifactHashes": ["sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"],
-      "sidecars": [{
-        "documentId": "doc_readme_000001",
-        "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      }],
+      "candidateArtifactHashes": [
+        "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      ],
+      "sidecars": [
+        {
+          "documentId": "doc_readme_000001",
+          "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
       "appliedAt": "2026-08-19T02:00:00Z"
     }
   },
@@ -76,11 +82,13 @@
       "approvalId": "apr_migration_0001",
       "approvalDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "appliedAt": "2026-08-19T02:00:00Z",
-      "created": [{
-        "documentId": "doc_readme_000001",
-        "path": ".lervo/documents/doc_readme_000001.yaml",
-        "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      }],
+      "created": [
+        {
+          "documentId": "doc_readme_000001",
+          "path": ".lervo/documents/doc_readme_000001.yaml",
+          "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
       "skippedCandidateIds": [],
       "eventPayload": {
         "planId": "migp_aaaaaaaaaaaaaaaa",
@@ -89,11 +97,15 @@
         "beforeLayoutHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "afterLayoutHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         "sourceHashes": ["sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
-        "candidateArtifactHashes": ["sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"],
-        "sidecars": [{
-          "documentId": "doc_readme_000001",
-          "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-        }],
+        "candidateArtifactHashes": [
+          "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ],
+        "sidecars": [
+          {
+            "documentId": "doc_readme_000001",
+            "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        ],
         "appliedAt": "2026-08-19T02:00:00Z"
       }
     }

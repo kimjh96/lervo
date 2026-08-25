@@ -1,14 +1,10 @@
 import { isAbsolute } from "node:path";
 
-import { checkCliFirstPublicationPreflight } from
-  "./lib/cli-first-publication-preflight.mjs";
-import { formatFirstPublicationPreflight } from
-  "./lib/first-publication-preflight-formatter.mjs";
+import { checkCliFirstPublicationPreflight } from "./lib/cli-first-publication-preflight.mjs";
+import { formatFirstPublicationPreflight } from "./lib/first-publication-preflight-formatter.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
-import { ReleasePublicationAuthorizationError } from
-  "./lib/release-publication-authorization.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
+import { ReleasePublicationAuthorizationError } from "./lib/release-publication-authorization.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -29,13 +25,18 @@ function parseArguments(args) {
       else json = true;
       continue;
     }
-    if (![
-      "--release-directory",
-      "--publication-authorization",
-      "--bootstrap",
-      "--reservation-root",
-      "--user-config",
-    ].includes(name) || values.has(name) || index + 1 >= args.length) failArguments();
+    if (
+      ![
+        "--release-directory",
+        "--publication-authorization",
+        "--bootstrap",
+        "--reservation-root",
+        "--user-config",
+      ].includes(name) ||
+      values.has(name) ||
+      index + 1 >= args.length
+    )
+      failArguments();
     values.set(name, args[index + 1]);
     index += 1;
   }
@@ -61,18 +62,20 @@ function parseArguments(args) {
 try {
   const { json, ...options } = parseArguments(process.argv.slice(2));
   const report = await checkCliFirstPublicationPreflight(options);
-  process.stdout.write(json
-    ? `${JSON.stringify(report, null, 2)}\n`
-    : formatFirstPublicationPreflight(report));
+  process.stdout.write(
+    json ? `${JSON.stringify(report, null, 2)}\n` : formatFirstPublicationPreflight(report),
+  );
   if (report.status !== "ready") process.exitCode = 1;
 } catch (error) {
   if (
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError ||
     error instanceof ReleasePublicationAuthorizationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_preflight_failed: The CLI first-publication preflight could not be completed.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_preflight_failed: The CLI first-publication preflight could not be completed.",
+    );
   process.exitCode = 1;
 }

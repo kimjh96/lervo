@@ -62,12 +62,14 @@ describe("Hub command artifact lifecycle", () => {
     });
     expect(second.record.artifactUri).toBe(first.record.artifactUri);
 
-    await expect(store.claimExpiredArtifacts({
-      workerId: "gc:test",
-      claimedAt: "2026-08-22T00:00:02.500Z",
-      leaseDurationMs: 60_000,
-      limit: 10,
-    })).resolves.toEqual([]);
+    await expect(
+      store.claimExpiredArtifacts({
+        workerId: "gc:test",
+        claimedAt: "2026-08-22T00:00:02.500Z",
+        leaseDurationMs: 60_000,
+        limit: 10,
+      }),
+    ).resolves.toEqual([]);
     const [claim] = await store.claimExpiredArtifacts({
       workerId: "gc:test",
       claimedAt: "2026-08-22T00:00:03.000Z",
@@ -92,11 +94,13 @@ describe("Hub command artifact lifecycle", () => {
       purgedDeliveryCount: 2,
       continuationRecommended: false,
     });
-    await expect(store.completeArtifactPurge({
-      claimId: claim!.claimId,
-      workerId: claim!.workerId,
-      completedAt: "2026-08-22T00:00:03.200Z",
-    })).resolves.toEqual({ ...completion, status: "duplicate" });
+    await expect(
+      store.completeArtifactPurge({
+        claimId: claim!.claimId,
+        workerId: claim!.workerId,
+        completedAt: "2026-08-22T00:00:03.200Z",
+      }),
+    ).resolves.toEqual({ ...completion, status: "duplicate" });
     await expect(artifacts.has(first.record.artifactUri)).resolves.toBe(false);
 
     const expiredRetry = await authorHubCommand({ ...common, store, request });
@@ -118,10 +122,14 @@ describe("Hub command artifact lifecycle", () => {
     await store.close();
     const tampered = new DatabaseSync(path);
     tampered.exec("DROP TRIGGER hub_remote_command_artifact_retentions_no_update;");
-    tampered.prepare(`
+    tampered
+      .prepare(
+        `
       UPDATE hub_remote_command_artifact_retentions SET artifact_uri = ?
       WHERE delivery_id = ?
-    `).run(`lervo-cas://sha256/${"f".repeat(64)}`, recreated.record.deliveryId);
+    `,
+      )
+      .run(`lervo-cas://sha256/${"f".repeat(64)}`, recreated.record.deliveryId);
     tampered.exec(`
       CREATE TRIGGER hub_remote_command_artifact_retentions_no_update
         BEFORE UPDATE ON hub_remote_command_artifact_retentions
@@ -153,26 +161,32 @@ describe("Hub command artifact lifecycle", () => {
       put: artifacts.put.bind(artifacts),
       get: artifacts.get.bind(artifacts),
       listObjects: artifacts.listObjects.bind(artifacts),
-      async deleteObject() { throw new Error("fixture delete failed"); },
+      async deleteObject() {
+        throw new Error("fixture delete failed");
+      },
     };
-    await expect(cleanupHubCommandArtifacts({
-      repository: store,
-      artifacts: failingArtifacts,
-      workerId: "gc:test",
-      cleanedAt: "2026-08-22T00:00:00.000Z",
-      orphanGraceMs: 24 * 60 * 60_000,
-      limit: 10,
-    })).resolves.toMatchObject({ claimedCount: 1, deletedCount: 0, failureCount: 1 });
+    await expect(
+      cleanupHubCommandArtifacts({
+        repository: store,
+        artifacts: failingArtifacts,
+        workerId: "gc:test",
+        cleanedAt: "2026-08-22T00:00:00.000Z",
+        orphanGraceMs: 24 * 60 * 60_000,
+        limit: 10,
+      }),
+    ).resolves.toMatchObject({ claimedCount: 1, deletedCount: 0, failureCount: 1 });
     await expect(artifacts.has(orphan.uri)).resolves.toBe(true);
 
-    await expect(cleanupHubCommandArtifacts({
-      repository: store,
-      artifacts,
-      workerId: "gc:test",
-      cleanedAt: "2026-08-22T00:00:00.000Z",
-      orphanGraceMs: 24 * 60 * 60_000,
-      limit: 10,
-    })).resolves.toMatchObject({
+    await expect(
+      cleanupHubCommandArtifacts({
+        repository: store,
+        artifacts,
+        workerId: "gc:test",
+        cleanedAt: "2026-08-22T00:00:00.000Z",
+        orphanGraceMs: 24 * 60 * 60_000,
+        limit: 10,
+      }),
+    ).resolves.toMatchObject({
       claimedCount: 1,
       deletedCount: 1,
       orphanPurgedCount: 1,
@@ -270,49 +284,59 @@ describe("Hub command artifact lifecycle", () => {
     });
     expect(first).toBeDefined();
     await artifacts.deleteObject(first!.artifactUri);
-    await expect(store.completeArtifactPurge({
-      claimId: first!.claimId,
-      workerId: first!.workerId,
-      completedAt: "2026-08-22T00:00:01.100Z",
-    })).resolves.toEqual({
+    await expect(
+      store.completeArtifactPurge({
+        claimId: first!.claimId,
+        workerId: first!.workerId,
+        completedAt: "2026-08-22T00:00:01.100Z",
+      }),
+    ).resolves.toEqual({
       status: "partial",
       kind: "expired",
       purgedDeliveryCount: 100,
       continuationRecommended: true,
     });
     const inspection = new DatabaseSync(path, { readOnly: true });
-    const remaining = inspection.prepare(`
+    const remaining = inspection
+      .prepare(
+        `
       SELECT authorship.idempotency_key
       FROM hub_remote_command_authorships AS authorship
       LEFT JOIN hub_remote_command_artifact_purges AS purge
         ON purge.delivery_id = authorship.delivery_id
       WHERE purge.delivery_id IS NULL
-    `).get() as { idempotency_key: string };
+    `,
+      )
+      .get() as { idempotency_key: string };
     inspection.close();
-    await expect(store.findAuthorship({
-      destinationId: "hub:primary",
-      target,
-      idempotencyKey: remaining.idempotency_key,
-    })).resolves.toMatchObject({ artifactLifecycleStatus: "cleanup_claimed" });
-    await expect(authorHubCommand({
-      store,
-      artifacts,
-      signer,
-      destinationId: "hub:primary",
-      target,
-      principalId: "operator:artifact-lifecycle",
-      authoredAt: "2026-08-22T00:00:01.150Z",
-      nonce: () => Buffer.alloc(32, 102).toString("base64url"),
-      request: {
-        idempotencyKey: "idk_bounded_refs_blocked",
-        lifetimeMs: 1_000,
-        roleId: "developer",
-        provider: "codex",
-        risk: "low",
-        verificationSuiteIds: ["repo.check"],
-        request: "shared source text cleaned in batches of 100",
-      },
-    })).rejects.toMatchObject({ code: "artifact_cleanup_conflict" });
+    await expect(
+      store.findAuthorship({
+        destinationId: "hub:primary",
+        target,
+        idempotencyKey: remaining.idempotency_key,
+      }),
+    ).resolves.toMatchObject({ artifactLifecycleStatus: "cleanup_claimed" });
+    await expect(
+      authorHubCommand({
+        store,
+        artifacts,
+        signer,
+        destinationId: "hub:primary",
+        target,
+        principalId: "operator:artifact-lifecycle",
+        authoredAt: "2026-08-22T00:00:01.150Z",
+        nonce: () => Buffer.alloc(32, 102).toString("base64url"),
+        request: {
+          idempotencyKey: "idk_bounded_refs_blocked",
+          lifetimeMs: 1_000,
+          roleId: "developer",
+          provider: "codex",
+          risk: "low",
+          verificationSuiteIds: ["repo.check"],
+          request: "shared source text cleaned in batches of 100",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "artifact_cleanup_conflict" });
 
     const [second] = await store.claimExpiredArtifacts({
       workerId: "gc:bounded",
@@ -322,35 +346,39 @@ describe("Hub command artifact lifecycle", () => {
     });
     expect(second).toBeDefined();
     await expect(artifacts.deleteObject(second!.artifactUri)).resolves.toEqual({ deleted: true });
-    await expect(store.completeArtifactPurge({
-      claimId: second!.claimId,
-      workerId: second!.workerId,
-      completedAt: "2026-08-22T00:00:01.300Z",
-    })).resolves.toEqual({
+    await expect(
+      store.completeArtifactPurge({
+        claimId: second!.claimId,
+        workerId: second!.workerId,
+        completedAt: "2026-08-22T00:00:01.300Z",
+      }),
+    ).resolves.toEqual({
       status: "completed",
       kind: "expired",
       purgedDeliveryCount: 1,
       continuationRecommended: false,
     });
-    await expect(authorHubCommand({
-      store,
-      artifacts,
-      signer,
-      destinationId: "hub:primary",
-      target,
-      principalId: "operator:artifact-lifecycle",
-      authoredAt: "2026-08-22T00:00:02.000Z",
-      nonce: () => Buffer.alloc(32, 103).toString("base64url"),
-      request: {
-        idempotencyKey: "idk_bounded_refs_after",
-        lifetimeMs: 1_000,
-        roleId: "developer",
-        provider: "codex",
-        risk: "low",
-        verificationSuiteIds: ["repo.check"],
-        request: "shared source text cleaned in batches of 100",
-      },
-    })).resolves.toMatchObject({ status: "created" });
+    await expect(
+      authorHubCommand({
+        store,
+        artifacts,
+        signer,
+        destinationId: "hub:primary",
+        target,
+        principalId: "operator:artifact-lifecycle",
+        authoredAt: "2026-08-22T00:00:02.000Z",
+        nonce: () => Buffer.alloc(32, 103).toString("base64url"),
+        request: {
+          idempotencyKey: "idk_bounded_refs_after",
+          lifetimeMs: 1_000,
+          roleId: "developer",
+          provider: "codex",
+          risk: "low",
+          verificationSuiteIds: ["repo.check"],
+          request: "shared source text cleaned in batches of 100",
+        },
+      }),
+    ).resolves.toMatchObject({ status: "created" });
     await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await store.close();
   }, 15_000);

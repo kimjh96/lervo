@@ -5,8 +5,7 @@ import type { AdapterContextEnvelope, AdapterSession } from "@lervo/schemas";
 import { inspectContextEnvelopeBinding } from "./context-binding.js";
 
 export type ContextMaterializationFailureCode =
-  | "session_mismatch"
-  | "context_materialization_failed";
+  "session_mismatch" | "context_materialization_failed";
 
 export class ContextMaterializationError extends Error {
   constructor(

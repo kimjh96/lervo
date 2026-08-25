@@ -4,18 +4,17 @@ import type { EventDraft } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
-import {
-  DeliberationRuntimeError,
-  type DeliberationRuntimeCoordinates,
-} from "./types.js";
+import { DeliberationRuntimeError, type DeliberationRuntimeCoordinates } from "./types.js";
 
 export interface DeliberationEventSpec {
-  type: Extract<EventDraft["type"],
+  type: Extract<
+    EventDraft["type"],
     | "deliberation.started"
     | "deliberation.artifact.recorded"
     | "deliberation.completed"
     | "context.published"
-    | "handoff.created">;
+    | "handoff.created"
+  >;
   coordinates: DeliberationRuntimeCoordinates;
   occurredAt: string;
   actor: EventDraft["actor"];

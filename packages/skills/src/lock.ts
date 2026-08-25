@@ -18,7 +18,7 @@ function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   return `{${Object.entries(value as Record<string, unknown>)
-    .sort(([left], [right]) => left === right ? 0 : left < right ? -1 : 1)
+    .sort(([left], [right]) => (left === right ? 0 : left < right ? -1 : 1))
     .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
     .join(",")}}`;
 }
@@ -31,7 +31,10 @@ function assertLock(lock: SkillLock): void {
     );
   }
   if (new Set(lock.entries.map((entry) => entry.skillId)).size !== lock.entries.length) {
-    throw new SkillResolutionError("invalid_skill_lock", "skills.lock contains a duplicate skillId.");
+    throw new SkillResolutionError(
+      "invalid_skill_lock",
+      "skills.lock contains a duplicate skillId.",
+    );
   }
 }
 

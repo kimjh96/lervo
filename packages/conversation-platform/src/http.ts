@@ -20,8 +20,14 @@ export function assertPlatformHttpLimits(input: {
 }): void {
   const maximum = input.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
   const timeoutMs = input.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
-  if (!Number.isSafeInteger(maximum) || maximum < 1_024 || maximum > 4 * 1024 * 1024 ||
-    !Number.isSafeInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 300_000) {
+  if (
+    !Number.isSafeInteger(maximum) ||
+    maximum < 1_024 ||
+    maximum > 4 * 1024 * 1024 ||
+    !Number.isSafeInteger(timeoutMs) ||
+    timeoutMs < 10 ||
+    timeoutMs > 300_000
+  ) {
     throw new ConversationPlatformError(
       "invalid_platform_configuration",
       "The platform API response-size or request-timeout setting is invalid.",
@@ -33,7 +39,10 @@ export function platformApiUrl(value: string, allowInsecureHttpForTests = false)
   const url = new URL(value);
   if (
     (url.protocol !== "https:" && !(allowInsecureHttpForTests && url.protocol === "http:")) ||
-    url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== ""
+    url.username !== "" ||
+    url.password !== "" ||
+    url.search !== "" ||
+    url.hash !== ""
   ) {
     throw new ConversationPlatformError(
       "invalid_platform_configuration",

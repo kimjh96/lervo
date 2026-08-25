@@ -4,7 +4,11 @@ import { projectIdSchema, sha256Schema, timestampSchema } from "./common.js";
 import { workstreamSnapshotSchema } from "./workstream.js";
 
 const registrationIdSchema = { type: "string", pattern: "^hpr_[a-f0-9]{64}$" } as const;
-const { $id: _workstreamId, $schema: _workstreamMeta, ...embeddedWorkstreamSnapshotSchema } = workstreamSnapshotSchema;
+const {
+  $id: _workstreamId,
+  $schema: _workstreamMeta,
+  ...embeddedWorkstreamSnapshotSchema
+} = workstreamSnapshotSchema;
 
 export const workstreamReplicationPublishRequestSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -19,7 +23,15 @@ export const workstreamReplicationPublishRequestSchema = {
     previousSnapshotContentHash: { anyOf: [sha256Schema, { type: "null" }] },
     snapshot: embeddedWorkstreamSnapshotSchema,
   },
-  required: ["schemaVersion", "registrationId", "projectId", "repositoryIdentityHash", "snapshotContentHash", "previousSnapshotContentHash", "snapshot"],
+  required: [
+    "schemaVersion",
+    "registrationId",
+    "projectId",
+    "repositoryIdentityHash",
+    "snapshotContentHash",
+    "previousSnapshotContentHash",
+    "snapshot",
+  ],
   additionalProperties: false,
 } as const;
 
@@ -33,7 +45,14 @@ const replicatedWorkstreamHeadSchema = {
     previousSnapshotContentHash: { anyOf: [sha256Schema, { type: "null" }] },
     publishedAt: timestampSchema,
   },
-  required: ["workstreamId", "revision", "status", "snapshotContentHash", "previousSnapshotContentHash", "publishedAt"],
+  required: [
+    "workstreamId",
+    "revision",
+    "status",
+    "snapshotContentHash",
+    "previousSnapshotContentHash",
+    "publishedAt",
+  ],
   additionalProperties: false,
 } as const;
 
@@ -73,7 +92,12 @@ export const workstreamReplicationReadResponseSchema = {
     },
     {
       if: { properties: { status: { const: "current" } }, required: ["status"] },
-      then: { properties: { heads: { type: "array", minItems: 1, maxItems: 1 }, snapshot: embeddedWorkstreamSnapshotSchema } },
+      then: {
+        properties: {
+          heads: { type: "array", minItems: 1, maxItems: 1 },
+          snapshot: embeddedWorkstreamSnapshotSchema,
+        },
+      },
     },
     {
       if: { properties: { status: { const: "divergent" } }, required: ["status"] },
@@ -82,7 +106,13 @@ export const workstreamReplicationReadResponseSchema = {
   ],
 } as const;
 
-export type WorkstreamReplicationPublishRequest = FromSchema<typeof workstreamReplicationPublishRequestSchema>;
-export type WorkstreamReplicationPublishResponse = FromSchema<typeof workstreamReplicationPublishResponseSchema>;
-export type WorkstreamReplicationReadResponse = FromSchema<typeof workstreamReplicationReadResponseSchema>;
+export type WorkstreamReplicationPublishRequest = FromSchema<
+  typeof workstreamReplicationPublishRequestSchema
+>;
+export type WorkstreamReplicationPublishResponse = FromSchema<
+  typeof workstreamReplicationPublishResponseSchema
+>;
+export type WorkstreamReplicationReadResponse = FromSchema<
+  typeof workstreamReplicationReadResponseSchema
+>;
 export type ReplicatedWorkstreamHead = FromSchema<typeof replicatedWorkstreamHeadSchema>;

@@ -30,11 +30,8 @@ function draft(index = 1, overrides: Partial<EventDraft> = {}): EventDraft {
     schemaVersion: 1,
     policyVersion,
     payload: {
-      resultDigest:
-        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      artifactIds: [
-        "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      ],
+      resultDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      artifactIds: ["art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
       verificationStatus: "not_run",
     },
     ...overrides,
@@ -258,9 +255,7 @@ describe("SQLite transactional outbox", () => {
       acknowledgedAt: "2026-08-18T00:02:01Z",
     });
 
-    expect(
-      store.purgeAcknowledged({ before: "2026-08-18T00:03:00Z" }),
-    ).toEqual({ deleted: 1 });
+    expect(store.purgeAcknowledged({ before: "2026-08-18T00:03:00Z" })).toEqual({ deleted: 1 });
     expect(store.listOutbox()).toEqual([
       expect.objectContaining({ event: pendingEvent, status: "pending" }),
     ]);
@@ -389,10 +384,7 @@ describe("SQLite transactional outbox", () => {
       leaseDurationMs: 1_000,
       limit: 2,
     });
-    expect(claimed.map((item) => item.event.eventId)).toEqual([
-      second.eventId,
-      third.eventId,
-    ]);
+    expect(claimed.map((item) => item.event.eventId)).toEqual([second.eventId, third.eventId]);
     store.close();
   });
 
@@ -404,9 +396,7 @@ describe("SQLite transactional outbox", () => {
 
     const legacy = new DatabaseSync(path);
     legacy.exec("DROP TABLE outbox; PRAGMA user_version = 1;");
-    legacy
-      .prepare("UPDATE store_meta SET value = '1' WHERE key = 'storage_schema_version'")
-      .run();
+    legacy.prepare("UPDATE store_meta SET value = '1' WHERE key = 'storage_schema_version'").run();
     legacy.close();
 
     const migrated = await SQLiteEventStore.open({ path, projectId });

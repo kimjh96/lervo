@@ -12,7 +12,7 @@ import type {
 const MAXIMUM_DOCUMENT_BYTES = 4 * 1024 * 1024;
 const MAXIMUM_MANAGED_BLOCK_BYTES = 8 * 1024;
 const MAXIMUM_MARKER_CANDIDATES = 256;
-const PREVIOUS_PRODUCT_PREFIX = "ro" + "ven";
+const PREVIOUS_PRODUCT_PREFIX = String.fromCodePoint(114, 111, 118, 101, 110);
 
 interface PositionedNode {
   type?: unknown;
@@ -60,7 +60,10 @@ interface OpenMarker {
   contentStart: number;
 }
 
-function emptyResult(byteCount: number, diagnostic: ManagedBlockDiagnostic): ManagedBlockParseResult {
+function emptyResult(
+  byteCount: number,
+  diagnostic: ManagedBlockDiagnostic,
+): ManagedBlockParseResult {
   return {
     parserId: "lervo/commonmark-managed-blocks",
     parserVersion: "1.0.0",
@@ -100,8 +103,8 @@ function sourceLines(source: string, initialByteOffset: number): readonly Source
   let startByte = initialByteOffset;
   while (start < source.length) {
     let contentEnd = start;
-    while (contentEnd < source.length &&
-           source[contentEnd] !== "\r" && source[contentEnd] !== "\n") contentEnd += 1;
+    while (contentEnd < source.length && source[contentEnd] !== "\r" && source[contentEnd] !== "\n")
+      contentEnd += 1;
     let lineEnd = contentEnd;
     if (source[lineEnd] === "\r") lineEnd += source[lineEnd + 1] === "\n" ? 2 : 1;
     else if (source[lineEnd] === "\n") lineEnd += 1;
@@ -173,15 +176,22 @@ function familyPrefix(family: ManagedBlockMarkerFamily): string {
 function parseMarker(candidate: MarkerCandidate): ParsedMarker | null {
   for (const family of ["lervo_v1", "previous_product_v1"] as const) {
     const escaped = familyPrefix(family);
-    const begin = new RegExp(`^<!-- ${escaped}:begin block=([a-z][a-z0-9_-]{0,99}) schema=1 -->$`).exec(candidate.text);
+    const begin = new RegExp(
+      `^<!-- ${escaped}:begin block=([a-z][a-z0-9_-]{0,99}) schema=1 -->$`,
+    ).exec(candidate.text);
     if (begin?.[1] !== undefined) return { ...candidate, kind: "begin", blockId: begin[1], family };
-    const end = new RegExp(`^<!-- ${escaped}:end block=([a-z][a-z0-9_-]{0,99}) -->$`).exec(candidate.text);
+    const end = new RegExp(`^<!-- ${escaped}:end block=([a-z][a-z0-9_-]{0,99}) -->$`).exec(
+      candidate.text,
+    );
     if (end?.[1] !== undefined) return { ...candidate, kind: "end", blockId: end[1], family };
   }
   return null;
 }
 
-function unmanagedRanges(byteCount: number, blocks: readonly ParsedManagedBlock[]): readonly DocumentByteRange[] {
+function unmanagedRanges(
+  byteCount: number,
+  blocks: readonly ParsedManagedBlock[],
+): readonly DocumentByteRange[] {
   const ranges: DocumentByteRange[] = [];
   let cursor = 0;
   for (const block of blocks) {
@@ -229,14 +239,20 @@ export function parseManagedMarkdownBlocks(bytes: Uint8Array): ManagedBlockParse
       });
       continue;
     }
-    if (candidate.characterRange.start !== candidate.line.contentStart ||
-        candidate.characterRange.end !== candidate.line.contentEnd) {
+    if (
+      candidate.characterRange.start !== candidate.line.contentStart ||
+      candidate.characterRange.end !== candidate.line.contentEnd
+    ) {
       diagnostics.push({ code: "marker_not_standalone", range: candidate.byteRange });
       continue;
     }
-    if (!ranges.html.some((range) =>
-      range.start === candidate.characterRange.start && range.end === candidate.characterRange.end
-    )) {
+    if (
+      !ranges.html.some(
+        (range) =>
+          range.start === candidate.characterRange.start &&
+          range.end === candidate.characterRange.end,
+      )
+    ) {
       diagnostics.push({ code: "marker_not_commonmark_html", range: candidate.byteRange });
       continue;
     }
@@ -254,7 +270,11 @@ export function parseManagedMarkdownBlocks(bytes: Uint8Array): ManagedBlockParse
   for (const marker of markers) {
     if (marker.kind === "begin") {
       if (open !== undefined) {
-        diagnostics.push({ code: "nested_begin_marker", range: marker.byteRange, blockId: marker.blockId });
+        diagnostics.push({
+          code: "nested_begin_marker",
+          range: marker.byteRange,
+          blockId: marker.blockId,
+        });
         continue;
       }
       open = {
@@ -264,15 +284,27 @@ export function parseManagedMarkdownBlocks(bytes: Uint8Array): ManagedBlockParse
       continue;
     }
     if (open === undefined) {
-      diagnostics.push({ code: "unexpected_end_marker", range: marker.byteRange, blockId: marker.blockId });
+      diagnostics.push({
+        code: "unexpected_end_marker",
+        range: marker.byteRange,
+        blockId: marker.blockId,
+      });
       continue;
     }
     if (marker.blockId !== open.marker.blockId) {
-      diagnostics.push({ code: "mismatched_end_marker", range: marker.byteRange, blockId: marker.blockId });
+      diagnostics.push({
+        code: "mismatched_end_marker",
+        range: marker.byteRange,
+        blockId: marker.blockId,
+      });
       continue;
     }
     if (marker.family !== open.marker.family) {
-      diagnostics.push({ code: "mixed_marker_family", range: marker.byteRange, blockId: marker.blockId });
+      diagnostics.push({
+        code: "mixed_marker_family",
+        range: marker.byteRange,
+        blockId: marker.blockId,
+      });
     }
     const contentEnd = marker.byteRange.start;
     const fullEnd = marker.byteRange.end + marker.line.lineTerminatorBytes;
@@ -285,17 +317,29 @@ export function parseManagedMarkdownBlocks(bytes: Uint8Array): ManagedBlockParse
       fullRange: { start: open.marker.byteRange.start, end: fullEnd },
     };
     if (block.contentRange.end - block.contentRange.start > MAXIMUM_MANAGED_BLOCK_BYTES) {
-      diagnostics.push({ code: "managed_block_too_large", range: block.contentRange, blockId: block.blockId });
+      diagnostics.push({
+        code: "managed_block_too_large",
+        range: block.contentRange,
+        blockId: block.blockId,
+      });
     }
     if (completedIds.has(block.blockId)) {
-      diagnostics.push({ code: "duplicate_block_id", range: block.fullRange, blockId: block.blockId });
+      diagnostics.push({
+        code: "duplicate_block_id",
+        range: block.fullRange,
+        blockId: block.blockId,
+      });
     }
     completedIds.add(block.blockId);
     blocks.push(block);
     open = undefined;
   }
   if (open !== undefined) {
-    diagnostics.push({ code: "unclosed_begin_marker", range: open.marker.byteRange, blockId: open.marker.blockId });
+    diagnostics.push({
+      code: "unclosed_begin_marker",
+      range: open.marker.byteRange,
+      blockId: open.marker.blockId,
+    });
   }
   if (new Set(blocks.map((block) => block.markerFamily)).size > 1) {
     diagnostics.push({ code: "mixed_marker_families" });

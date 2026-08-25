@@ -20,7 +20,9 @@ export function baselineSearchEngineSelection(): BaselineSearchEngineSelection {
   };
 }
 
-export function candidateSearchEngineSelection(review: SearchCandidateReview): CandidateSearchEngineSelection {
+export function candidateSearchEngineSelection(
+  review: SearchCandidateReview,
+): CandidateSearchEngineSelection {
   return {
     mode: "candidate",
     candidateId: review.candidateId,
@@ -30,28 +32,57 @@ export function candidateSearchEngineSelection(review: SearchCandidateReview): C
   };
 }
 
-export function sameSearchEngineSelection(left: SearchEngineSelection, right: SearchEngineSelection): boolean {
-  return left.mode === right.mode && left.candidateId === right.candidateId &&
-    sameSearchEngine(left.engine, right.engine) && left.reviewId === right.reviewId &&
-    left.comparisonId === right.comparisonId;
+export function sameSearchEngineSelection(
+  left: SearchEngineSelection,
+  right: SearchEngineSelection,
+): boolean {
+  return (
+    left.mode === right.mode &&
+    left.candidateId === right.candidateId &&
+    sameSearchEngine(left.engine, right.engine) &&
+    left.reviewId === right.reviewId &&
+    left.comparisonId === right.comparisonId
+  );
 }
 
 export function assertSearchEngineSelection(selection: SearchEngineSelection): void {
-  if (typeof selection !== "object" || selection === null || !["baseline", "candidate"].includes(selection.mode)) {
-    throw new SearchError("invalid_engine_activation", "The search engine selection coordinates are invalid.");
+  if (
+    typeof selection !== "object" ||
+    selection === null ||
+    !["baseline", "candidate"].includes(selection.mode)
+  ) {
+    throw new SearchError(
+      "invalid_engine_activation",
+      "The search engine selection coordinates are invalid.",
+    );
   }
   assertSearchEngineIdentity(selection.engine, "invalid_engine_activation");
   if (selection.mode === "baseline") {
-    if (selection.candidateId !== null || selection.reviewId !== null || selection.comparisonId !== null ||
-      !sameSearchEngine(selection.engine, SEARCH_ENGINE)) {
-      throw new SearchError("invalid_engine_activation", "The baseline search engine selection coordinates are invalid.");
+    if (
+      selection.candidateId !== null ||
+      selection.reviewId !== null ||
+      selection.comparisonId !== null ||
+      !sameSearchEngine(selection.engine, SEARCH_ENGINE)
+    ) {
+      throw new SearchError(
+        "invalid_engine_activation",
+        "The baseline search engine selection coordinates are invalid.",
+      );
     }
     return;
   }
-  if (selection.candidateId === null || !SEARCH_CANDIDATE_ID_PATTERN.test(selection.candidateId) ||
-    selection.reviewId === null || !SEARCH_CANDIDATE_REVIEW_PATTERN.test(selection.reviewId) ||
-    selection.comparisonId === null || !SEARCH_EVALUATION_COMPARISON_PATTERN.test(selection.comparisonId) ||
-    sameSearchEngine(selection.engine, SEARCH_ENGINE)) {
-    throw new SearchError("invalid_engine_activation", "The candidate search engine selection coordinates are invalid.");
+  if (
+    selection.candidateId === null ||
+    !SEARCH_CANDIDATE_ID_PATTERN.test(selection.candidateId) ||
+    selection.reviewId === null ||
+    !SEARCH_CANDIDATE_REVIEW_PATTERN.test(selection.reviewId) ||
+    selection.comparisonId === null ||
+    !SEARCH_EVALUATION_COMPARISON_PATTERN.test(selection.comparisonId) ||
+    sameSearchEngine(selection.engine, SEARCH_ENGINE)
+  ) {
+    throw new SearchError(
+      "invalid_engine_activation",
+      "The candidate search engine selection coordinates are invalid.",
+    );
   }
 }

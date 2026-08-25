@@ -2,11 +2,7 @@ import {
   validateManagedProviderRunEvidence,
   type ManagedProviderRunResult,
 } from "@lervo/execution-contract";
-import type {
-  DeliberationArtifact,
-  EventEnvelope,
-  SharedContextPublication,
-} from "@lervo/schemas";
+import type { DeliberationArtifact, EventEnvelope, SharedContextPublication } from "@lervo/schemas";
 
 import { DeliberationRuntimeError } from "./types.js";
 
@@ -40,13 +36,14 @@ export function validateManagedRunContextEvidence(input: {
     );
   }
   for (const previous of input.previousArtifacts) {
-    const publication = input.sharedContextPublications.find((candidate) =>
-      candidate.projectId === previous.projectId &&
-      candidate.contentHash === previous.content.contentHash &&
-      candidate.producer.kind === "agent" &&
-      candidate.producer.roleId === previous.producer.roleId &&
-      candidate.producer.runId === previous.producer.runId &&
-      candidate.producer.sessionId === previous.producer.sessionId,
+    const publication = input.sharedContextPublications.find(
+      (candidate) =>
+        candidate.projectId === previous.projectId &&
+        candidate.contentHash === previous.content.contentHash &&
+        candidate.producer.kind === "agent" &&
+        candidate.producer.roleId === previous.producer.roleId &&
+        candidate.producer.runId === previous.producer.runId &&
+        candidate.producer.sessionId === previous.producer.sessionId,
     );
     if (publication === undefined) {
       throw new DeliberationRuntimeError(

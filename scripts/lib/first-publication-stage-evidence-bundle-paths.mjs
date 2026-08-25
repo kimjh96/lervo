@@ -1,8 +1,7 @@
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageEvidenceBundleRelativePath } from
-  "./first-publication-stage-evidence-bundle.mjs";
+import { validateFirstPublicationStageEvidenceBundleRelativePath } from "./first-publication-stage-evidence-bundle.mjs";
 
 function fail() {
   throw new FirstPublicationBootstrapError(
@@ -11,10 +10,7 @@ function fail() {
   );
 }
 
-export function makeFirstPublicationStageEvidenceBundleRelativePath(
-  manifestPath,
-  sourcePath,
-) {
+export function makeFirstPublicationStageEvidenceBundleRelativePath(manifestPath, sourcePath) {
   if (!isAbsolute(manifestPath ?? "") || !isAbsolute(sourcePath ?? "")) fail();
   const value = relative(dirname(manifestPath), sourcePath).split(sep).join("/");
   try {
@@ -24,10 +20,7 @@ export function makeFirstPublicationStageEvidenceBundleRelativePath(
   }
 }
 
-export function resolveFirstPublicationStageEvidenceBundlePath(
-  manifestPath,
-  relativePath,
-) {
+export function resolveFirstPublicationStageEvidenceBundlePath(manifestPath, relativePath) {
   if (!isAbsolute(manifestPath ?? "")) fail();
   try {
     validateFirstPublicationStageEvidenceBundleRelativePath(relativePath);

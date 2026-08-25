@@ -85,8 +85,7 @@ export interface LoadedContext {
   loadedAt: string;
 }
 
-export interface PrepareContextInput
-  extends Omit<CreateContextPlanInput, "instructionDocuments"> {
+export interface PrepareContextInput extends Omit<CreateContextPlanInput, "instructionDocuments"> {
   repositoryRoot: string;
   sourceRevision: string;
 }
@@ -112,8 +111,7 @@ export interface ContextInvalidation {
 }
 
 export type ContextSnapshotValidation =
-  | { valid: true; invalidations: [] }
-  | { valid: false; invalidations: ContextInvalidation[] };
+  { valid: true; invalidations: [] } | { valid: false; invalidations: ContextInvalidation[] };
 
 export type ContextPreparationErrorCode =
   | "content_expectation_conflict"

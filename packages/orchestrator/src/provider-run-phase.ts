@@ -5,6 +5,7 @@ export type ManagedProviderRunPhase =
   | "adapter_start"
   | "context_prepare"
   | "context_inject"
+  | "capability_activation"
   | "write_bridge"
   | "provider_write"
   | "turn_start"

@@ -23,7 +23,10 @@ export function createRoleEvaluationResult(input: {
   assertRoleDefinition(input.definition);
   const result = buildRoleEvaluationResult(input);
   if (!validateSchema("roleEvaluationResult", result).valid) {
-    throw new RoleContractError("evaluation_result_invalid", "The role evaluation result schema is invalid.");
+    throw new RoleContractError(
+      "evaluation_result_invalid",
+      "The role evaluation result schema is invalid.",
+    );
   }
   return structuredClone(result);
 }
@@ -44,8 +47,10 @@ export function assertRoleEvaluationResult(input: {
     evaluatedAt: result.evaluatedAt,
     observations: result.checks.map(({ method: _method, ...check }) => check),
   });
-  if (!validateSchema("roleEvaluationResult", result).valid ||
-    JSON.stringify(result) !== JSON.stringify(recreated)) {
+  if (
+    !validateSchema("roleEvaluationResult", result).valid ||
+    JSON.stringify(result) !== JSON.stringify(recreated)
+  ) {
     throw new RoleContractError(
       "evaluation_result_invalid",
       "The role evaluation result schema, ID, bundle, or status differs from the reconstructed source.",
@@ -63,27 +68,49 @@ function buildRoleEvaluationResult(input: {
   evaluatedAt: string;
   observations: readonly RoleEvaluationObservation[];
 }): RoleEvaluationResult {
-  const byCheck = new Map(input.observations.map((observation) => [observation.checkId, observation]));
-  if (byCheck.size !== input.observations.length ||
-    input.observations.length !== input.definition.evaluation.checks.length) {
-    throw new RoleContractError("evaluation_result_invalid", "The role evaluation check set does not match.");
+  const byCheck = new Map(
+    input.observations.map((observation) => [observation.checkId, observation]),
+  );
+  if (
+    byCheck.size !== input.observations.length ||
+    input.observations.length !== input.definition.evaluation.checks.length
+  ) {
+    throw new RoleContractError(
+      "evaluation_result_invalid",
+      "The role evaluation check set does not match.",
+    );
   }
   const checks = input.definition.evaluation.checks.map((check) => {
     const observation = byCheck.get(check.checkId);
-    if (observation === undefined ||
-      (observation.status === "not_run") !== (observation.evidence.length === 0)) {
-      throw new RoleContractError("evaluation_result_invalid", "The role evaluation evidence is invalid.");
+    if (
+      observation === undefined ||
+      (observation.status === "not_run") !== (observation.evidence.length === 0)
+    ) {
+      throw new RoleContractError(
+        "evaluation_result_invalid",
+        "The role evaluation evidence is invalid.",
+      );
     }
     const evidence = [...observation.evidence].sort((left, right) =>
-      `${left.artifactId}\0${left.contentHash}`.localeCompare(`${right.artifactId}\0${right.contentHash}`));
-    if (new Set(evidence.map((item) => `${item.artifactId}\0${item.contentHash}`)).size !==
-      evidence.length) {
-      throw new RoleContractError("evaluation_result_invalid", "The role evaluation evidence contains duplicates.");
+      `${left.artifactId}\0${left.contentHash}`.localeCompare(
+        `${right.artifactId}\0${right.contentHash}`,
+      ),
+    );
+    if (
+      new Set(evidence.map((item) => `${item.artifactId}\0${item.contentHash}`)).size !==
+      evidence.length
+    ) {
+      throw new RoleContractError(
+        "evaluation_result_invalid",
+        "The role evaluation evidence contains duplicates.",
+      );
     }
     const semantic = check.method === "separate_semantic";
-    if (semantic !== (observation.evaluatorRunId !== null) ||
+    if (
+      semantic !== (observation.evaluatorRunId !== null) ||
       semantic !== (observation.evaluatorRoleId !== null) ||
-      (semantic && observation.evaluatorRunId === input.producerRunId)) {
+      (semantic && observation.evaluatorRunId === input.producerRunId)
+    ) {
       throw new RoleContractError(
         "evaluation_result_invalid",
         "A separate semantic evaluation must bind to an evaluator run and role distinct from the producer run.",
@@ -92,10 +119,10 @@ function buildRoleEvaluationResult(input: {
     return { ...structuredClone(observation), evidence, method: check.method };
   });
   const overallStatus = checks.some((check) => check.status === "failed")
-    ? "failed" as const
+    ? ("failed" as const)
     : checks.some((check) => check.status === "not_run")
-      ? "incomplete" as const
-      : "passed" as const;
+      ? ("incomplete" as const)
+      : ("passed" as const);
   const content: Omit<RoleEvaluationResult, "resultId"> = {
     schemaVersion: 1,
     bundleId: input.definition.evaluation.bundleId,

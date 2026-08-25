@@ -2,17 +2,13 @@ import assert from "node:assert/strict";
 
 import { describe, it } from "vitest";
 
-import {
-  createFirstPublicationReconciliationReport,
-} from "../lib/first-publication-reconciliation.mjs";
+import { createFirstPublicationReconciliationReport } from "../lib/first-publication-reconciliation.mjs";
 import {
   validateFirstPublicationReconciliationReportDocument,
   validateFirstPublicationReconciliationReportSources,
 } from "../lib/first-publication-reconciliation-reader.mjs";
-import { createFirstPublicationReservation } from
-  "../lib/first-publication-reservation.mjs";
-import { firstPublicationResolutionConfirmations } from
-  "../lib/first-publication-resolution-decision.mjs";
+import { createFirstPublicationReservation } from "../lib/first-publication-reservation.mjs";
+import { firstPublicationResolutionConfirmations } from "../lib/first-publication-resolution-decision.mjs";
 import {
   createFirstPublicationResolution,
   validateFirstPublicationResolution,
@@ -91,10 +87,7 @@ describe("first-publication reconciliation resolution", () => {
   it("binds reviewed and fresh published reports without recovering an execution receipt", () => {
     const evidence = resolutionEvidence();
     validateFirstPublicationReconciliationReportDocument(evidence.reconciliationReport);
-    validateFirstPublicationReconciliationReportSources(
-      evidence.reconciliationReport,
-      evidence,
-    );
+    validateFirstPublicationReconciliationReportSources(evidence.reconciliationReport, evidence);
     const resolution = createFirstPublicationResolution(evidence);
     assert.equal(resolution.status, "transition_review_eligible");
     assert.deepEqual(resolution.authority, {
@@ -116,10 +109,7 @@ describe("first-publication reconciliation resolution", () => {
       resolution.binding.freshReconciliationReportDigest,
       evidence.freshReconciliationReport.reconciliationReportDigest,
     );
-    assert.deepEqual(
-      resolution.freshReconciliationReport,
-      evidence.freshReconciliationReport,
-    );
+    assert.deepEqual(resolution.freshReconciliationReport, evidence.freshReconciliationReport);
     const { freshReconciliationReport: _embedded, ...sources } = evidence;
     validateFirstPublicationResolution(resolution, sources);
   });

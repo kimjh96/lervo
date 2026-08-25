@@ -5,13 +5,13 @@ import { createSecureContext } from "node:tls";
 
 import { OwnerOnlyFileSystemCas } from "@lervo/cas";
 import {
-  ConfiguredBearerAuthenticator,
   ReloadableBearerAuthenticator,
   attachHubArtifactCleanupLifecycle,
   createHubRequestListener,
   createHubServerWithArtifactCleanup,
   type HubArtifactCleanupLifecycleResult,
 } from "@lervo/hub";
+import { FileSystemCapabilityRegistry } from "@lervo/capabilities";
 import { HubControlReviewGrants } from "@lervo/hub-control";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 
@@ -55,9 +55,9 @@ export interface HubRuntimeDeployment {
 
 async function closeServer(server: HubRuntimeServer): Promise<void> {
   if (!server.listening) return;
-  await new Promise<void>((resolve, reject) => server.close((error) =>
-    error === undefined ? resolve() : reject(error)
-  ));
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error === undefined ? resolve() : reject(error))),
+  );
 }
 
 class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
@@ -74,8 +74,9 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
     private readonly listenAddress: HubRuntimeConfig["listen"],
     private readonly store: HubSyncSQLiteStore,
     private readonly server: HubRuntimeServer,
-    private readonly artifactCleanup:
-      ReturnType<typeof createHubServerWithArtifactCleanup>["artifactCleanup"],
+    private readonly artifactCleanup: ReturnType<
+      typeof createHubServerWithArtifactCleanup
+    >["artifactCleanup"],
     private readonly protocol: "http" | "https",
     private readonly reloadCredentialSnapshot: () => Promise<void>,
     private readonly reloadMaterialSnapshot: () => Promise<void>,
@@ -97,7 +98,9 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
 
   markArtifactCleanupFailure(): void {
     this.failureCode ??= "artifact_cleanup_runtime_failed";
-    queueMicrotask(() => { void this.close(); });
+    queueMicrotask(() => {
+      void this.close();
+    });
   }
 
   async listen(): Promise<HubRuntimeListeningAddress> {
@@ -140,10 +143,12 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
 
   reloadCredentials(): Promise<void> {
     if (this.closePromise !== null) {
-      return Promise.reject(new HubRuntimeError(
-        "credential_reload_failed",
-        "Cannot reload Hub runtime credentials while the runtime is shutting down.",
-      ));
+      return Promise.reject(
+        new HubRuntimeError(
+          "credential_reload_failed",
+          "Cannot reload Hub runtime credentials while the runtime is shutting down.",
+        ),
+      );
     }
     if (this.reloadPromise === null) {
       const operation = this.reloadCredentialSnapshot().catch((error) => {
@@ -154,19 +159,23 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
         );
       });
       this.reloadPromise = operation;
-      void operation.finally(() => {
-        if (this.reloadPromise === operation) this.reloadPromise = null;
-      }).catch(() => undefined);
+      void operation
+        .finally(() => {
+          if (this.reloadPromise === operation) this.reloadPromise = null;
+        })
+        .catch(() => undefined);
     }
     return this.reloadPromise;
   }
 
   reloadRuntimeMaterials(): Promise<void> {
     if (this.closePromise !== null) {
-      return Promise.reject(new HubRuntimeError(
-        "runtime_material_reload_failed",
-        "Cannot reload Hub runtime material while the runtime is shutting down.",
-      ));
+      return Promise.reject(
+        new HubRuntimeError(
+          "runtime_material_reload_failed",
+          "Cannot reload Hub runtime material while the runtime is shutting down.",
+        ),
+      );
     }
     if (this.materialReloadPromise === null) {
       const operation = this.reloadMaterialSnapshot().catch((error) => {
@@ -177,9 +186,11 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
         );
       });
       this.materialReloadPromise = operation;
-      void operation.finally(() => {
-        if (this.materialReloadPromise === operation) this.materialReloadPromise = null;
-      }).catch(() => undefined);
+      void operation
+        .finally(() => {
+          if (this.materialReloadPromise === operation) this.materialReloadPromise = null;
+        })
+        .catch(() => undefined);
     }
     return this.materialReloadPromise;
   }
@@ -213,9 +224,13 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
         ? { status: "stopped", artifactCleanup }
         : { status: "failed", failureCode: this.failureCode, artifactCleanup };
     } catch (error) {
-      throw new HubRuntimeError("shutdown_failed", "Could not close the Hub runtime repository safely.", {
-        cause: error,
-      });
+      throw new HubRuntimeError(
+        "shutdown_failed",
+        "Could not close the Hub runtime repository safely.",
+        {
+          cause: error,
+        },
+      );
     }
   }
 }
@@ -225,7 +240,9 @@ interface LoadedTlsMaterial {
   privateKey: Buffer;
 }
 
-async function loadTlsMaterial(config: NonNullable<HubRuntimeConfig["tls"]>): Promise<LoadedTlsMaterial> {
+async function loadTlsMaterial(
+  config: NonNullable<HubRuntimeConfig["tls"]>,
+): Promise<LoadedTlsMaterial> {
   const [certificate, privateKey] = await Promise.all([
     readOwnerOnlyFile(config.certificatePath, MAXIMUM_TLS_CERTIFICATE_BYTES),
     readOwnerOnlyFile(config.privateKeyPath, MAXIMUM_TLS_PRIVATE_KEY_BYTES),
@@ -249,12 +266,19 @@ function clearTlsMaterial(material: LoadedTlsMaterial | undefined): void {
 
 export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRuntimeDeployment> {
   try {
-    if ((config.tls === undefined && config.listen.host !== "127.0.0.1" && config.listen.host !== "::1") ||
-      typeof config.listen.host !== "string" || config.listen.host.length < 1 ||
-      config.listen.host.length > 255 || config.listen.host.trim() !== config.listen.host ||
+    if (
+      (config.tls === undefined &&
+        config.listen.host !== "127.0.0.1" &&
+        config.listen.host !== "::1") ||
+      typeof config.listen.host !== "string" ||
+      config.listen.host.length < 1 ||
+      config.listen.host.length > 255 ||
+      config.listen.host.trim() !== config.listen.host ||
       /[\s/\\]/u.test(config.listen.host) ||
-      !Number.isSafeInteger(config.listen.port) || config.listen.port < 1 ||
-      config.listen.port > 65_535) {
+      !Number.isSafeInteger(config.listen.port) ||
+      config.listen.port < 1 ||
+      config.listen.port > 65_535
+    ) {
       throw new HubRuntimeError(
         "invalid_config",
         "A Hub runtime without TLS may listen only on a valid loopback address.",
@@ -269,9 +293,11 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
     let reviewGrants: HubControlReviewGrants;
     try {
       reviewGrants = new HubControlReviewGrants(reviewSecret, {
-        ...(config.control.reviewGrantTtlSeconds === undefined ? {} : {
-          ttlSeconds: config.control.reviewGrantTtlSeconds,
-        }),
+        ...(config.control.reviewGrantTtlSeconds === undefined
+          ? {}
+          : {
+              ttlSeconds: config.control.reviewGrantTtlSeconds,
+            }),
       });
     } finally {
       reviewSecret.fill(0);
@@ -287,6 +313,9 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
     const store = await HubSyncSQLiteStore.open({ path: databasePath });
     try {
       const artifacts = await OwnerOnlyFileSystemCas.open(config.storage.commandCasPath);
+      const capabilities = new FileSystemCapabilityRegistry(
+        config.storage.capabilityRegistryPath ?? `${config.storage.commandCasPath}-capabilities`,
+      );
       let deployment!: DefaultHubRuntimeDeployment;
       const serverOptions = {
         health: {
@@ -294,6 +323,11 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
           checkReady: () => store.checkIntegrity(),
         },
         trace: { authenticator, source: store },
+        capabilities: {
+          authenticator,
+          registry: capabilities,
+          hubIdentityHash: config.identity.hubIdentityHash,
+        },
         sync: {
           authenticator,
           store,
@@ -331,11 +365,14 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
       } else {
         const tls = await loadTlsMaterial(config.tls);
         try {
-          server = createSecureServer({
-            cert: tls.certificate,
-            key: tls.privateKey,
-            minVersion: "TLSv1.3",
-          }, createHubRequestListener(serverOptions));
+          server = createSecureServer(
+            {
+              cert: tls.certificate,
+              key: tls.privateKey,
+              minVersion: "TLSv1.3",
+            },
+            createHubRequestListener(serverOptions),
+          );
         } finally {
           clearTlsMaterial(tls);
         }

@@ -30,7 +30,8 @@ export async function observeGitHubPublisherEnvironment({
     environmentResponse?.name !== trustedPublisherEnvironment ||
     !Array.isArray(environmentResponse.protection_rules) ||
     environmentResponse.deployment_branch_policy?.custom_branch_policies !== true
-  ) return unavailable("response_invalid");
+  )
+    return unavailable("response_invalid");
   let policyResponse;
   try {
     policyResponse = await getGitHubApiJson(
@@ -46,7 +47,8 @@ export async function observeGitHubPublisherEnvironment({
     policyResponse.total_count > 100 ||
     !Array.isArray(policyResponse.branch_policies) ||
     policyResponse.branch_policies.length !== policyResponse.total_count
-  ) return unavailable("response_invalid");
+  )
+    return unavailable("response_invalid");
   const reviewerRules = environmentResponse.protection_rules.filter(
     ({ type }) => type === "required_reviewers",
   );
@@ -61,7 +63,8 @@ export async function observeGitHubPublisherEnvironment({
     repository,
     environment: trustedPublisherEnvironment,
     requiredReviewerCount,
-    preventSelfReview: reviewerRules.length > 0 &&
+    preventSelfReview:
+      reviewerRules.length > 0 &&
       reviewerRules.every(({ prevent_self_review: value }) => value === true),
     tagPolicies: policyResponse.branch_policies
       .filter(({ type }) => type === "tag")

@@ -1,13 +1,7 @@
 import { validateSchema, type KnowledgeStalenessResult } from "@lervo/schemas";
 
-import {
-  calculateKnowledgeStalenessResultId,
-  calculateVerifiedKnowledgeId,
-} from "./integrity.js";
-import {
-  KnowledgeError,
-  type EvaluateKnowledgeStalenessInput,
-} from "./types.js";
+import { calculateKnowledgeStalenessResultId, calculateVerifiedKnowledgeId } from "./integrity.js";
+import { KnowledgeError, type EvaluateKnowledgeStalenessInput } from "./types.js";
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 
@@ -67,16 +61,16 @@ export function evaluateKnowledgeStaleness(
     projectId: input.knowledge.projectId,
     knowledgeId: input.knowledge.knowledgeId,
     evaluatedAt: new Date(evaluatedAtMs).toISOString(),
-    status: reviewStale || pathsStale ? "stale" as const : "current" as const,
+    status: reviewStale || pathsStale ? ("stale" as const) : ("current" as const),
     verifiedRevision: input.knowledge.verifiedRevision,
     currentRevision: input.currentSnapshot.revision,
     signals: {
       reviewInterval: {
-        status: reviewStale ? "stale" as const : "current" as const,
+        status: reviewStale ? ("stale" as const) : ("current" as const),
         dueAt: new Date(dueAtMs).toISOString(),
       },
       paths: {
-        status: pathsStale ? "stale" as const : "current" as const,
+        status: pathsStale ? ("stale" as const) : ("current" as const),
         changedPaths,
         missingPaths,
       },

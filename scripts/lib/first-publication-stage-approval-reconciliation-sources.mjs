@@ -1,16 +1,13 @@
 import { isAbsolute } from "node:path";
 
-import { createFileFirstPublicationStageApprovalStore } from
-  "./file-first-publication-stage-approval-store.mjs";
+import { createFileFirstPublicationStageApprovalStore } from "./file-first-publication-stage-approval-store.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageApprovalAuthorization } from
-  "./first-publication-stage-approval-authorization.mjs";
+import { validateFirstPublicationStageApprovalAuthorization } from "./first-publication-stage-approval-authorization.mjs";
 import {
   bindFirstPublicationStageApprovalTerminal,
   validateFirstPublicationStageApprovalAttempt,
 } from "./first-publication-stage-approval-records.mjs";
-import { readFirstPublicationStageApprovalExecutionSources } from
-  "./first-publication-stage-approval-sources.mjs";
+import { readFirstPublicationStageApprovalExecutionSources } from "./first-publication-stage-approval-sources.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 
 function fail(code = "first_publication_stage_approval_reconciliation_source_invalid") {
@@ -24,10 +21,10 @@ function validateSnapshot(snapshot, sources) {
   validateFirstPublicationStageApprovalAttempt(snapshot?.attempt);
   bindFirstPublicationStageApprovalTerminal(snapshot?.terminal, snapshot.attempt);
   if (
-    !["approval_command_completed", "approval_outcome_unknown"].includes(
-      snapshot.terminal.state,
-    ) || snapshot.attempt.authorizationDigest !== sources.authorization.authorizationDigest
-  ) fail();
+    !["approval_command_completed", "approval_outcome_unknown"].includes(snapshot.terminal.state) ||
+    snapshot.attempt.authorizationDigest !== sources.authorization.authorizationDigest
+  )
+    fail();
   return snapshot;
 }
 
@@ -36,8 +33,8 @@ export async function readFirstPublicationStageApprovalReconciliationSources(
   dependencies = {},
 ) {
   if (!isAbsolute(options?.resultDirectory ?? "")) fail();
-  const readSources = dependencies.readExecutionSources ??
-    readFirstPublicationStageApprovalExecutionSources;
+  const readSources =
+    dependencies.readExecutionSources ?? readFirstPublicationStageApprovalExecutionSources;
   const sources = await readSources(
     options.stageReviewReportPath,
     options.decisionPath,
@@ -48,8 +45,7 @@ export async function readFirstPublicationStageApprovalReconciliationSources(
     decision: sources.decision,
     authorizedAt: sources.authorization?.validity?.authorizedAt,
   });
-  const createStore = dependencies.createStore ??
-    createFileFirstPublicationStageApprovalStore;
+  const createStore = dependencies.createStore ?? createFileFirstPublicationStageApprovalStore;
   const store = createStore({ rootDirectory: options.resultDirectory });
   let snapshot;
   try {

@@ -29,22 +29,32 @@ function initialCursor(): EventSyncCursor {
 }
 
 function validTimestamp(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value) &&
-    Number.isFinite(Date.parse(value));
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value) &&
+    Number.isFinite(Date.parse(value))
+  );
 }
 
 export function assertProjectSyncState(state: ProjectSyncState): void {
   assertProjectRegistrationRequest(state.registration.request);
-  if (!validTimestamp(state.registration.registeredAt) || !validTimestamp(state.registration.updatedAt)) {
+  if (
+    !validTimestamp(state.registration.registeredAt) ||
+    !validTimestamp(state.registration.updatedAt)
+  ) {
     throw new SyncContractError("invalid_sync_state", "The project registration time is invalid.");
   }
-  if (!Number.isSafeInteger(state.cursor.seq) || state.cursor.seq < 0 || (
-    state.cursor.seq === 0
+  if (
+    !Number.isSafeInteger(state.cursor.seq) ||
+    state.cursor.seq < 0 ||
+    (state.cursor.seq === 0
       ? state.cursor.eventHash !== null
       : typeof state.cursor.eventHash !== "string" ||
-        !/^sha256:[a-f0-9]{64}$/u.test(state.cursor.eventHash)
-  )) {
-    throw new SyncContractError("invalid_sync_state", "The event synchronization cursor is invalid.");
+        !/^sha256:[a-f0-9]{64}$/u.test(state.cursor.eventHash))
+  ) {
+    throw new SyncContractError(
+      "invalid_sync_state",
+      "The event synchronization cursor is invalid.",
+    );
   }
   const seenIds = new Set<string>();
   const bySeq = new Map<number, EventEnvelope>();
@@ -52,13 +62,20 @@ export function assertProjectSyncState(state: ProjectSyncState): void {
   for (const event of state.events) {
     assertSyncableEvent(event);
     if (event.projectId !== state.registration.request.project.projectId) {
-      throw new SyncContractError("invalid_sync_state", "An event stored by the Hub differs from the project contract.");
+      throw new SyncContractError(
+        "invalid_sync_state",
+        "An event stored by the Hub differs from the project contract.",
+      );
     }
     if (seenIds.has(event.eventId) || (previous !== undefined && event.seq <= previous.seq)) {
-      throw new SyncContractError("invalid_sync_state", "Hub event coordinates are duplicated or unsorted.");
+      throw new SyncContractError(
+        "invalid_sync_state",
+        "Hub event coordinates are duplicated or unsorted.",
+      );
     }
     if (
-      previous !== undefined && event.seq === previous.seq + 1 &&
+      previous !== undefined &&
+      event.seq === previous.seq + 1 &&
       event.previousHash !== previous.eventHash
     ) {
       throw new SyncContractError("invalid_sync_state", "Hub event hash chains conflict.");
@@ -71,12 +88,18 @@ export function assertProjectSyncState(state: ProjectSyncState): void {
   for (let seq = 1; seq <= state.cursor.seq; seq += 1) {
     const event = bySeq.get(seq);
     if (event === undefined || event.previousHash !== cursorHash) {
-      throw new SyncContractError("invalid_sync_state", "The continuous source event before the Hub cursor is missing.");
+      throw new SyncContractError(
+        "invalid_sync_state",
+        "The continuous source event before the Hub cursor is missing.",
+      );
     }
     cursorHash = event.eventHash;
   }
   if (state.cursor.eventHash !== cursorHash) {
-    throw new SyncContractError("invalid_sync_state", "The Hub cursor hash differs from the continuous source event.");
+    throw new SyncContractError(
+      "invalid_sync_state",
+      "The Hub cursor hash differs from the continuous source event.",
+    );
   }
 }
 
@@ -136,7 +159,12 @@ export function planOutboundEventAcceptance(input: {
     const atSeq = bySeq.get(event.seq);
     const atId = byId.get(event.eventId);
     if (atSeq !== undefined || atId !== undefined) {
-      if (atSeq === undefined || atId === undefined || !sameEvent(atSeq, event) || !sameEvent(atId, event)) {
+      if (
+        atSeq === undefined ||
+        atId === undefined ||
+        !sameEvent(atSeq, event) ||
+        !sameEvent(atId, event)
+      ) {
         throw new SyncContractError(
           "event_chain_conflict",
           "A different source already exists for the same project's event sequence or event ID.",

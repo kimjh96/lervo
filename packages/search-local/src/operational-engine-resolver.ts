@@ -64,10 +64,15 @@ async function resolveOperationalSearchEngineFromHistory(input: {
   try {
     await verifySearchEngineSelectionHistory({ ...input, history });
   } catch (error) {
-    if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable") throw error;
-    throw new SearchLocalError("engine_selection_unavailable", "Could not safely verify the search engine selection chain.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable")
+      throw error;
+    throw new SearchLocalError(
+      "engine_selection_unavailable",
+      "Could not safely verify the search engine selection chain.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
   const selection = current.selected;
   if (selection.mode === "baseline") {
@@ -87,8 +92,14 @@ async function resolveOperationalSearchEngineFromHistory(input: {
       registry: input.registry,
     });
     const index = evidence.index;
-    if (!sameSearchEngine(index.engine, selection.engine) || index.indexId !== evidence.comparison.candidate.indexId) {
-      throw new SearchLocalError("engine_selection_unavailable", "The current index of the selected search engine differs from the verified comparison source.");
+    if (
+      !sameSearchEngine(index.engine, selection.engine) ||
+      index.indexId !== evidence.comparison.candidate.indexId
+    ) {
+      throw new SearchLocalError(
+        "engine_selection_unavailable",
+        "The current index of the selected search engine differs from the verified comparison source.",
+      );
     }
     return {
       selection,
@@ -98,10 +109,15 @@ async function resolveOperationalSearchEngineFromHistory(input: {
       verificationReceipt: evidence.verificationReceipt,
     };
   } catch (error) {
-    if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable") throw error;
-    throw new SearchLocalError("engine_selection_unavailable", "The current candidate search engine selection cannot be used safely.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable")
+      throw error;
+    throw new SearchLocalError(
+      "engine_selection_unavailable",
+      "The current candidate search engine selection cannot be used safely.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
 }
 
@@ -140,8 +156,13 @@ export async function inspectOperationalSearchEngine(input: {
     return {
       ...recorded,
       resolverState: "unavailable",
-      failureCode: typeof error === "object" && error !== null && "code" in error &&
-        typeof error.code === "string" ? error.code : "engine_selection_unavailable",
+      failureCode:
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : "engine_selection_unavailable",
       verificationReceiptId: null,
     };
   }
@@ -155,13 +176,21 @@ export async function runLocalOperationalSearch(input: {
   limit: number;
 }): Promise<OperationalSearchResult> {
   if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > SEARCH_MAX_RESULTS) {
-    throw new SearchError("invalid_query", `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`);
+    throw new SearchError(
+      "invalid_query",
+      `The search result limit must be between 1 and ${SEARCH_MAX_RESULTS}.`,
+    );
   }
   identifySearchQuery(input.query);
   const resolved = await resolveOperationalSearchEngine(input);
   try {
     const response = await resolved.index.search(input.query, input.limit);
-    assertSearchResponse({ response, index: resolved.index, query: input.query, limit: input.limit });
+    assertSearchResponse({
+      response,
+      index: resolved.index,
+      query: input.query,
+      limit: input.limit,
+    });
     return {
       selection: structuredClone(resolved.selection),
       selectionTransitionId: resolved.selectionTransitionId,
@@ -169,8 +198,12 @@ export async function runLocalOperationalSearch(input: {
       verificationReceiptId: resolved.verificationReceipt?.receiptId ?? null,
     };
   } catch (error) {
-    throw new SearchLocalError("engine_selection_unavailable", "The selected search engine did not produce a valid response.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchLocalError(
+      "engine_selection_unavailable",
+      "The selected search engine did not produce a valid response.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
 }

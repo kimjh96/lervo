@@ -1,20 +1,11 @@
-import { createFirstPublicationExecutionReceipt } from
-  "../../lib/first-publication-execution-receipt.mjs";
-import { createFirstPublicationReconciliationReport } from
-  "../../lib/first-publication-reconciliation.mjs";
-import { createFirstPublicationReservation } from
-  "../../lib/first-publication-reservation.mjs";
-import { firstPublicationResolutionConfirmations } from
-  "../../lib/first-publication-resolution-decision.mjs";
-import { createFirstPublicationResolution } from
-  "../../lib/first-publication-resolution.mjs";
-import { stageOnlyWorkflowSteps } from
-  "../../lib/first-publication-transition-policy.mjs";
+import { createFirstPublicationExecutionReceipt } from "../../lib/first-publication-execution-receipt.mjs";
+import { createFirstPublicationReconciliationReport } from "../../lib/first-publication-reconciliation.mjs";
+import { createFirstPublicationReservation } from "../../lib/first-publication-reservation.mjs";
+import { firstPublicationResolutionConfirmations } from "../../lib/first-publication-resolution-decision.mjs";
+import { createFirstPublicationResolution } from "../../lib/first-publication-resolution.mjs";
+import { stageOnlyWorkflowSteps } from "../../lib/first-publication-transition-policy.mjs";
 import { canonicalDigest } from "../../lib/release-artifact-manifest.mjs";
-import {
-  createFirstPublicationFixture,
-  firstPublicationRepository,
-} from "./first-publication.mjs";
+import { createFirstPublicationFixture, firstPublicationRepository } from "./first-publication.mjs";
 
 export function matchingFirstPublicationPublicObservation(source) {
   return {

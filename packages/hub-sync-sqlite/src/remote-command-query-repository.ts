@@ -21,13 +21,17 @@ export class HubRemoteCommandQuerySQLiteRepository {
   constructor(private readonly database: DatabaseSync) {}
 
   get(deliveryId: string): HubRemoteCommandDeliveryState | null {
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT delivery_id, destination_id, project_id, command_id, command_hash,
         envelope_json, status, attempt_count, queued_at, queued_at_ms,
         issued_at, issued_at_ms, expires_at, expires_at_ms,
         acknowledgement_json, acknowledgement_hash, terminal_at
       FROM hub_remote_commands WHERE delivery_id = ?
-    `).get(deliveryId);
+    `,
+      )
+      .get(deliveryId);
     if (row === undefined) return null;
     const envelope = parseStoredRemoteCommandEnvelope(row);
     const destinationId = stringField(row, "destination_id");
@@ -114,9 +118,13 @@ export class HubRemoteCommandQuerySQLiteRepository {
   }
 
   auditAll(): void {
-    const rows = this.database.prepare(`
+    const rows = this.database
+      .prepare(
+        `
       SELECT delivery_id FROM hub_remote_commands ORDER BY delivery_id ASC
-    `).all();
+    `,
+      )
+      .all();
     for (const row of rows) {
       const deliveryId = stringField(row, "delivery_id");
       if (this.get(deliveryId) === null) {

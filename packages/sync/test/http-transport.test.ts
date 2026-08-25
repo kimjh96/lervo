@@ -1,7 +1,4 @@
-import {
-  defaultProjectDataPolicy,
-  type ProjectManifest,
-} from "@lervo/schemas";
+import { defaultProjectDataPolicy, type ProjectManifest } from "@lervo/schemas";
 import {
   calculateProjectIdentityHash,
   createProjectRegistrationRequest,
@@ -32,14 +29,20 @@ const options = {
 
 describe("authenticated Hub sync HTTP transport", () => {
   it("requires HTTPS unless a local fixture explicitly allows HTTP", () => {
-    expect(() => new AuthenticatedHubHttpTransport({
-      ...options,
-      baseUrl: "http://hub.example.test/",
-    })).toThrow("HTTPS URL");
-    expect(() => new AuthenticatedHubHttpTransport({
-      ...options,
-      baseUrl: "https://user:secret@hub.example.test/",
-    })).toThrow("HTTPS URL");
+    expect(
+      () =>
+        new AuthenticatedHubHttpTransport({
+          ...options,
+          baseUrl: "http://hub.example.test/",
+        }),
+    ).toThrow("HTTPS URL");
+    expect(
+      () =>
+        new AuthenticatedHubHttpTransport({
+          ...options,
+          baseUrl: "https://user:secret@hub.example.test/",
+        }),
+    ).toThrow("HTTPS URL");
   });
 
   it("rejects request coordinate drift before making a network call", async () => {
@@ -50,19 +53,24 @@ describe("authenticated Hub sync HTTP transport", () => {
       destinationId: "hub:other",
       requestedAt: "2026-08-22T00:00:00.000Z",
     });
-    await expect(transport.registerProject(registration)).rejects.toThrow("differ from the transport configuration");
+    await expect(transport.registerProject(registration)).rejects.toThrow(
+      "differ from the transport configuration",
+    );
     expect(request).not.toHaveBeenCalled();
   });
 
   it("keeps the validated credential and coordinates even if caller-owned options change", async () => {
     const mutable = structuredClone(options);
-    const request = vi.fn<typeof fetch>(async () => new Response("{}", {
-      status: 201,
-      headers: {
-        "content-type": "application/json",
-        "x-lervo-hub-identity": options.expectedHubIdentityHash,
-      },
-    }));
+    const request = vi.fn<typeof fetch>(
+      async () =>
+        new Response("{}", {
+          status: 201,
+          headers: {
+            "content-type": "application/json",
+            "x-lervo-hub-identity": options.expectedHubIdentityHash,
+          },
+        }),
+    );
     const transport = new AuthenticatedHubHttpTransport({ ...mutable, fetch: request });
     const registration = createProjectRegistrationRequest({
       manifest,
@@ -79,21 +87,22 @@ describe("authenticated Hub sync HTTP transport", () => {
     const [url, init] = request.mock.calls[0]!;
     expect(String(url)).toContain(`/projects/${manifest.projectId}/registration`);
     expect(String(url)).toContain("destinationId=hub%3Async-http");
-    expect(new Headers(init?.headers).get("authorization")).toBe(
-      `Bearer ${options.bearerToken}`,
-    );
+    expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${options.bearerToken}`);
   });
 
   it("returns an unverified proof without parsing a response from another Hub", async () => {
     const transport = new AuthenticatedHubHttpTransport({
       ...options,
-      fetch: vi.fn(async () => new Response("not-json-and-must-not-be-trusted", {
-        status: 201,
-        headers: {
-          "content-type": "application/json",
-          "x-lervo-hub-identity": `sha256:${"8".repeat(64)}`,
-        },
-      })),
+      fetch: vi.fn(
+        async () =>
+          new Response("not-json-and-must-not-be-trusted", {
+            status: 201,
+            headers: {
+              "content-type": "application/json",
+              "x-lervo-hub-identity": `sha256:${"8".repeat(64)}`,
+            },
+          }),
+      ),
     });
     const registration = createProjectRegistrationRequest({
       manifest,
@@ -111,7 +120,10 @@ describe("authenticated Hub sync HTTP transport", () => {
   });
 
   it("aborts a stalled request at the configured timeout", async () => {
-    const stalledFetch = ((_input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+    const stalledFetch = ((
+      _input: Parameters<typeof fetch>[0],
+      init?: Parameters<typeof fetch>[1],
+    ) =>
       new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener("abort", () => reject(new Error("request aborted")), {
           once: true,
@@ -134,14 +146,17 @@ describe("authenticated Hub sync HTTP transport", () => {
     const transport = new AuthenticatedHubHttpTransport({
       ...options,
       maxResponseBytes: 1_024,
-      fetch: vi.fn(async () => new Response("{}", {
-        status: 201,
-        headers: {
-          "content-length": "2048",
-          "content-type": "application/json",
-          "x-lervo-hub-identity": options.expectedHubIdentityHash,
-        },
-      })),
+      fetch: vi.fn(
+        async () =>
+          new Response("{}", {
+            status: 201,
+            headers: {
+              "content-length": "2048",
+              "content-type": "application/json",
+              "x-lervo-hub-identity": options.expectedHubIdentityHash,
+            },
+          }),
+      ),
     });
     const registration = createProjectRegistrationRequest({
       manifest,

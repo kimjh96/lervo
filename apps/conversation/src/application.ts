@@ -33,16 +33,24 @@ function uniqueIntegrations(
     throw new Error("A conversation deployment requires at least one unique integration.");
   }
   const configured = new Map(deployments.map((item) => [item.integrationId, item.platform]));
-  if ([...options.conversations, ...options.participants, ...(options.threads ?? [])]
-    .some((binding) => configured.get(binding.integrationId) !== binding.platform)) {
+  if (
+    [...options.conversations, ...options.participants, ...(options.threads ?? [])].some(
+      (binding) => configured.get(binding.integrationId) !== binding.platform,
+    )
+  ) {
     throw new Error("A conversation binding references an integration that is not deployed.");
   }
   for (const deployment of deployments) {
-    if (deployment.platform !== null && (
-      !options.conversations.some((binding) => binding.integrationId === deployment.integrationId) ||
-      !options.participants.some((binding) => binding.integrationId === deployment.integrationId)
-    )) {
-      throw new Error("Each deployed conversation integration requires address and participant bindings.");
+    if (
+      deployment.platform !== null &&
+      (!options.conversations.some(
+        (binding) => binding.integrationId === deployment.integrationId,
+      ) ||
+        !options.participants.some((binding) => binding.integrationId === deployment.integrationId))
+    ) {
+      throw new Error(
+        "Each deployed conversation integration requires address and participant bindings.",
+      );
     }
   }
 }
@@ -65,46 +73,54 @@ export async function openConversationApplication(
     const deliberationOptions = options.deliberations;
     if (deliberationOptions !== undefined) {
       if (deliberationOptions.bindings.length === 0) {
-        throw new Error("A conversation deliberation deployment requires at least one principal binding.");
+        throw new Error(
+          "A conversation deliberation deployment requires at least one principal binding.",
+        );
       }
       if (
         deliberationOptions.bindings.some((binding) =>
-          binding.permissions.includes("deliberation.resume")) &&
+          binding.permissions.includes("deliberation.resume"),
+        ) &&
         deliberationOptions.resumeExecutor === undefined
       ) {
         throw new Error("Conversation deliberation resume permission requires a resume executor.");
       }
       deliberationStore = await SQLiteConversationDeliberationJobStore.open({
         path: resolve(options.dataDirectory, "deliberations.sqlite"),
-        ...(deliberationOptions.maxRecords === undefined ? {} : {
-          maxRecords: deliberationOptions.maxRecords,
-        }),
+        ...(deliberationOptions.maxRecords === undefined
+          ? {}
+          : {
+              maxRecords: deliberationOptions.maxRecords,
+            }),
       });
       if (deliberationOptions.resumeExecutor !== undefined) {
         resumeStore = await SQLiteConversationDeliberationResumeJobStore.open({
           path: resolve(options.dataDirectory, "deliberation-resumes.sqlite"),
-          ...(deliberationOptions.maxRecords === undefined ? {} : {
-            maxRecords: deliberationOptions.maxRecords,
-          }),
+          ...(deliberationOptions.maxRecords === undefined
+            ? {}
+            : {
+                maxRecords: deliberationOptions.maxRecords,
+              }),
         });
       }
     }
-    const deliberations = deliberationOptions === undefined || deliberationStore === null
-      ? null
-      : new ConfiguredConversationDeliberationControl({
-          backend: new QueuedConversationDeliberationBackend(
-            deliberationStore,
-            resumeStore ?? undefined,
-          ),
-          bindings: deliberationOptions.bindings,
-        });
-    const reconciliation = deliberationOptions?.reconciliationSource === undefined ||
-      deliberationStore === null
-      ? null
-      : {
-          source: deliberationOptions.reconciliationSource,
-          store: deliberationStore,
-        };
+    const deliberations =
+      deliberationOptions === undefined || deliberationStore === null
+        ? null
+        : new ConfiguredConversationDeliberationControl({
+            backend: new QueuedConversationDeliberationBackend(
+              deliberationStore,
+              resumeStore ?? undefined,
+            ),
+            bindings: deliberationOptions.bindings,
+          });
+    const reconciliation =
+      deliberationOptions?.reconciliationSource === undefined || deliberationStore === null
+        ? null
+        : {
+            source: deliberationOptions.reconciliationSource,
+            store: deliberationStore,
+          };
     const adapters = new Map<string, ConversationAdapter>();
     for (const deployment of integrationDeployments) {
       const adapter = await deployment.create({
@@ -117,21 +133,26 @@ export async function openConversationApplication(
       assertConversationAdapterDescriptor(adapter.descriptor);
       if (
         adapter.descriptor.integrationId !== deployment.integrationId ||
-        (deployment.platform !== null &&
-          adapter.descriptor.adapterKind !== deployment.platform)
+        (deployment.platform !== null && adapter.descriptor.adapterKind !== deployment.platform)
       ) {
-        throw new Error("The conversation adapter descriptor does not match deployment coordinates.");
+        throw new Error(
+          "The conversation adapter descriptor does not match deployment coordinates.",
+        );
       }
       adapters.set(deployment.integrationId, adapter);
     }
-    const slackAdapters = new Map([...adapters].filter(
-      (entry): entry is [string, SlackConversationAdapter] =>
-        entry[1] instanceof SlackConversationAdapter,
-    ));
-    const discordAdapters = new Map([...adapters].filter(
-      (entry): entry is [string, DiscordConversationAdapter] =>
-        entry[1] instanceof DiscordConversationAdapter,
-    ));
+    const slackAdapters = new Map(
+      [...adapters].filter(
+        (entry): entry is [string, SlackConversationAdapter] =>
+          entry[1] instanceof SlackConversationAdapter,
+      ),
+    );
+    const discordAdapters = new Map(
+      [...adapters].filter(
+        (entry): entry is [string, DiscordConversationAdapter] =>
+          entry[1] instanceof DiscordConversationAdapter,
+      ),
+    );
     return {
       adapters,
       slackAdapters,
@@ -146,41 +167,46 @@ export async function openConversationApplication(
           executor: deliberationOptions.executor,
           workerId: deliberationOptions.workerId,
           ...(options.now === undefined ? {} : { now: options.now }),
-          ...(deliberationOptions.leaseDurationMs === undefined ? {} : {
-            leaseDurationMs: deliberationOptions.leaseDurationMs,
-          }),
+          ...(deliberationOptions.leaseDurationMs === undefined
+            ? {}
+            : {
+                leaseDurationMs: deliberationOptions.leaseDurationMs,
+              }),
         });
       },
       runDeliberationResumeWorkerCycle: async () => {
-        if (
-          deliberationOptions?.resumeExecutor === undefined || resumeStore === null
-        ) return { status: "idle" };
+        if (deliberationOptions?.resumeExecutor === undefined || resumeStore === null)
+          return { status: "idle" };
         return runConversationDeliberationResumeWorkerCycle({
           store: resumeStore,
           executor: deliberationOptions.resumeExecutor,
-          workerId: deliberationOptions.resumeWorkerId ??
+          workerId:
+            deliberationOptions.resumeWorkerId ??
             `${deliberationOptions.workerId.slice(0, 120)}:resume`,
           ...(options.now === undefined ? {} : { now: options.now }),
-          ...(deliberationOptions.leaseDurationMs === undefined ? {} : {
-            leaseDurationMs: deliberationOptions.leaseDurationMs,
-          }),
+          ...(deliberationOptions.leaseDurationMs === undefined
+            ? {}
+            : {
+                leaseDurationMs: deliberationOptions.leaseDurationMs,
+              }),
         });
       },
-      reconcileDeliberation: reconciliation === null
-        ? null
-        : async (input) => {
-            let store: ConversationDeliberationReconciliationStore = reconciliation.store;
-            if (resumeStore !== null && await resumeStore.inspect(input) !== null) {
-              store = resumeStore;
-            }
-            return reconcileConversationDeliberation({
-              store,
-              source: reconciliation.source,
-              projectId: input.projectId,
-              deliberationId: input.deliberationId,
-              ...(options.now === undefined ? {} : { now: options.now }),
-            });
-          },
+      reconcileDeliberation:
+        reconciliation === null
+          ? null
+          : async (input) => {
+              let store: ConversationDeliberationReconciliationStore = reconciliation.store;
+              if (resumeStore !== null && (await resumeStore.inspect(input)) !== null) {
+                store = resumeStore;
+              }
+              return reconcileConversationDeliberation({
+                store,
+                source: reconciliation.source,
+                projectId: input.projectId,
+                deliberationId: input.deliberationId,
+                ...(options.now === undefined ? {} : { now: options.now }),
+              });
+            },
       close: () => {
         resumeStore?.close();
         deliberationStore?.close();

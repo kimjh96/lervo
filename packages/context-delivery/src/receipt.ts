@@ -8,10 +8,7 @@ import {
   validateSchema,
 } from "@lervo/schemas";
 
-import {
-  ContextDeliveryError,
-  type VerifyContextReceiptInput,
-} from "./types.js";
+import { ContextDeliveryError, type VerifyContextReceiptInput } from "./types.js";
 import { assertGeneration } from "./validation.js";
 
 type InjectedEvidence = Extract<ContextEvidence, { state: "injected" }>;
@@ -140,9 +137,10 @@ function createInjectedEvidence(input: {
   });
 }
 
-export function verifyContextReceipt(
-  input: VerifyContextReceiptInput,
-): { receipt: AdapterContextReceipt; evidence: InjectedEvidence[] } {
+export function verifyContextReceipt(input: VerifyContextReceiptInput): {
+  receipt: AdapterContextReceipt;
+  evidence: InjectedEvidence[];
+} {
   assertGeneration(input.expectedContextGeneration, "expectedContextGeneration");
   const binding = inspectContextReceiptBinding({
     session: input.session,

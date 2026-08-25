@@ -18,7 +18,8 @@ const statusMessages = {
 const reasonMessages = {
   registry_unavailable: "The public npm response could not be verified safely.",
   target_version_not_observed: "Metadata for the target version is not visible.",
-  exact_release_mismatch: "The target version exposes metadata that differs from the approved publication artifact.",
+  exact_release_mismatch:
+    "The target version exposes metadata that differs from the approved publication artifact.",
   target_dist_tag_not_observed: "The target dist-tag does not point to the approved version.",
 };
 

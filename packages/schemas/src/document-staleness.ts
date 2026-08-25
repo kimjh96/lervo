@@ -89,12 +89,7 @@ export const documentStalenessResultSchema = {
             missingSourceIds: sourceIdListSchema,
             unobservedSourceIds: sourceIdListSchema,
           },
-          required: [
-            "status",
-            "changedSourceIds",
-            "missingSourceIds",
-            "unobservedSourceIds",
-          ],
+          required: ["status", "changedSourceIds", "missingSourceIds", "unobservedSourceIds"],
           additionalProperties: false,
         },
       },

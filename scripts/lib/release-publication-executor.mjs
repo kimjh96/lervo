@@ -65,11 +65,13 @@ export async function executeAuthorizedReleasePublication(
       "The registry publication result could not be reconciled with the eligibility document.",
     );
   }
-  await assertReleaseFilesUnchanged([{
-    path: tarballPath,
-    contents: tarballContents,
-    maximumSize: releaseVerificationMaximumSizes.tarball,
-  }]);
+  await assertReleaseFilesUnchanged([
+    {
+      path: tarballPath,
+      contents: tarballContents,
+      maximumSize: releaseVerificationMaximumSizes.tarball,
+    },
+  ]);
   return {
     schemaVersion: 1,
     status: "published",

@@ -5,8 +5,7 @@ import type { DoctorReport } from "./types.js";
 export const doctorReportSchemaVersion = 1 as const;
 
 export type DoctorReportCompatibilityErrorCode =
-  | "doctor_report_invalid"
-  | "doctor_report_schema_unsupported";
+  "doctor_report_invalid" | "doctor_report_schema_unsupported";
 
 export class DoctorReportCompatibilityError extends Error {
   constructor(
@@ -25,11 +24,12 @@ export function readDoctorReport(value: unknown): DoctorReport {
     schemaVersion: doctorReportSchemaVersion,
     reportName: "doctor report",
     semantics: isDoctorReportSemanticallyValid,
-    error: (failure, message) => new DoctorReportCompatibilityError(
-      failure === "unsupported_version"
-        ? "doctor_report_schema_unsupported"
-        : "doctor_report_invalid",
-      message,
-    ),
+    error: (failure, message) =>
+      new DoctorReportCompatibilityError(
+        failure === "unsupported_version"
+          ? "doctor_report_schema_unsupported"
+          : "doctor_report_invalid",
+        message,
+      ),
   });
 }

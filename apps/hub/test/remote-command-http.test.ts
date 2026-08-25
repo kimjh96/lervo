@@ -37,18 +37,28 @@ const nodeToken = "hub-command-node-token-aaaaaaaaaaaaaaaaaaaaaaaa";
 const observerToken = "hub-command-observer-token-bbbbbbbbbbbbbbbbbbbbb";
 const writerToken = "hub-command-writer-token-cccccccccccccccccccccc";
 const requestText = "Execute the task delivered over HTTP exactly once.";
-const requestBytes = new TextEncoder().encode(requestText);
 
 class MutableClock {
   constructor(public value: string) {}
-  now(): string { return this.value; }
-  date(): Date { return new Date(this.value); }
+  now(): string {
+    return this.value;
+  }
+  date(): Date {
+    return new Date(this.value);
+  }
 }
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((done, reject) =>
-    server.close((error) => error === undefined ? done() : reject(error))
-  )));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((done, reject) =>
+            server.close((error) => (error === undefined ? done() : reject(error))),
+          ),
+      ),
+  );
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -105,9 +115,11 @@ async function start(
       store,
       hubIdentityHash,
       now: () => clock.date(),
-      ...(authoring === undefined ? {} : {
-        authoring: { store, artifacts: authoring.artifacts, signer: authoring.signer },
-      }),
+      ...(authoring === undefined
+        ? {}
+        : {
+            authoring: { store, artifacts: authoring.artifacts, signer: authoring.signer },
+          }),
       ...(maxRequestBytes === undefined ? {} : { maxRequestBytes }),
     },
   });
@@ -123,9 +135,9 @@ async function start(
 async function stopLatestServer(): Promise<void> {
   const server = servers.pop();
   if (server === undefined) return;
-  await new Promise<void>((done, reject) => server.close((error) =>
-    error === undefined ? done() : reject(error)
-  ));
+  await new Promise<void>((done, reject) =>
+    server.close((error) => (error === undefined ? done() : reject(error))),
+  );
 }
 
 describe("authenticated remote command HTTP delivery", () => {
@@ -152,7 +164,10 @@ describe("authenticated remote command HTTP delivery", () => {
     const clock = new MutableClock("2026-08-19T00:01:00.000Z");
     const artifacts = await OwnerOnlyFileSystemCas.open(resolve(root, "command-artifacts"));
     let baseUrl = await start(hub, clock, undefined, { artifacts, signer });
-    const submissionUrl = new URL(`v1/commands/projects/${manifest.projectId}/submissions`, baseUrl);
+    const submissionUrl = new URL(
+      `v1/commands/projects/${manifest.projectId}/submissions`,
+      baseUrl,
+    );
     submissionUrl.searchParams.set("destinationId", destinationId);
     submissionUrl.searchParams.set("projectIdentityHash", target.projectIdentityHash);
     const submissionBody = {
@@ -165,39 +180,48 @@ describe("authenticated remote command HTTP delivery", () => {
       verificationSuiteIds: ["repo.check"],
       request: requestText,
     };
-    const submit = (body: unknown) => fetch(submissionUrl, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${writerToken}`,
-        "content-type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify(body),
-    });
+    const submit = (body: unknown) =>
+      fetch(submissionUrl, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${writerToken}`,
+          "content-type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(body),
+      });
     const firstSubmission = await submit(submissionBody);
     expect(firstSubmission.status).toBe(201);
-    const firstSubmissionBody = await firstSubmission.json() as {
+    const firstSubmissionBody = (await firstSubmission.json()) as {
       deliveryId: string;
       envelope: { command: { commandId: string } };
     };
     const duplicateSubmission = await submit(submissionBody);
     expect(duplicateSubmission.status).toBe(200);
-    const duplicateSubmissionBody = await duplicateSubmission.json() as typeof firstSubmissionBody & {
-      status: string;
-    };
+    const duplicateSubmissionBody =
+      (await duplicateSubmission.json()) as typeof firstSubmissionBody & {
+        status: string;
+      };
     expect(duplicateSubmissionBody).toMatchObject({
       status: "duplicate",
       deliveryId: firstSubmissionBody.deliveryId,
       envelope: firstSubmissionBody.envelope,
     });
-    await expect(submit({ ...submissionBody, request: "different request" }).then((response) => response.status))
-      .resolves.toBe(409);
+    await expect(
+      submit({ ...submissionBody, request: "different request" }).then(
+        (response) => response.status,
+      ),
+    ).resolves.toBe(409);
     const queued = { deliveryId: firstSubmissionBody.deliveryId };
     const inspection = new DatabaseSync(hubPath, { readOnly: true });
-    const storedCoordinates = inspection.prepare(`
+    const storedCoordinates = inspection
+      .prepare(
+        `
       SELECT authorship.*, command.envelope_json
       FROM hub_remote_command_authorships AS authorship
       JOIN hub_remote_commands AS command ON command.delivery_id = authorship.delivery_id
-    `).get();
+    `,
+      )
+      .get();
     inspection.close();
     expect(JSON.stringify(storedCoordinates)).not.toContain(requestText);
     expect(storedCoordinates).toMatchObject({
@@ -220,27 +244,30 @@ describe("authenticated remote command HTTP delivery", () => {
       runId: "run_command_http_01",
       completedAt: clock.value,
     }));
-    const makeReceiver = () => new RemoteCommandReceiver({
-      target,
-      trustStore: new ConfiguredEd25519RemoteCommandTrustStore([{
-        keyId: signer.keyId,
-        publicKey: keys.publicKey,
-        projects: [target],
-      }]),
-      replayStore: replay,
-      policy: { authorize: async () => ({ status: "approved" }) },
-      payloadLoader: new AuthenticatedRemoteCommandHttpPayloadLoader({
-        baseUrl,
-        bearerToken: nodeToken,
-        expectedHubIdentityHash: hubIdentityHash,
-        destinationId,
-        nodeId,
+    const makeReceiver = () =>
+      new RemoteCommandReceiver({
         target,
-        allowInsecureHttpForTests: true,
-      }),
-      executor: { execute: executor },
-      clock,
-    });
+        trustStore: new ConfiguredEd25519RemoteCommandTrustStore([
+          {
+            keyId: signer.keyId,
+            publicKey: keys.publicKey,
+            projects: [target],
+          },
+        ]),
+        replayStore: replay,
+        policy: { authorize: async () => ({ status: "approved" }) },
+        payloadLoader: new AuthenticatedRemoteCommandHttpPayloadLoader({
+          baseUrl,
+          bearerToken: nodeToken,
+          expectedHubIdentityHash: hubIdentityHash,
+          destinationId,
+          nodeId,
+          target,
+          allowInsecureHttpForTests: true,
+        }),
+        executor: { execute: executor },
+        clock,
+      });
     const makeTransport = (fetchImplementation?: typeof fetch) =>
       new AuthenticatedRemoteCommandHttpTransport({
         baseUrl,
@@ -264,11 +291,12 @@ describe("authenticated remote command HTTP delivery", () => {
       retryDelayMs: 5_000,
     });
 
-    await expect(runRemoteCommandReconnectCycle(worker(makeTransport(lossyFetch))))
-      .resolves.toMatchObject({
-        status: "acknowledgement_pending",
-        acknowledgedCount: 0,
-      });
+    await expect(
+      runRemoteCommandReconnectCycle(worker(makeTransport(lossyFetch))),
+    ).resolves.toMatchObject({
+      status: "acknowledgement_pending",
+      acknowledgedCount: 0,
+    });
     expect(executor).toHaveBeenCalledTimes(1);
     await expect(hub.getRemoteCommandDelivery(queued.deliveryId)).resolves.toMatchObject({
       status: "leased",
@@ -321,36 +349,47 @@ describe("authenticated remote command HTTP delivery", () => {
       "key_command_http_02",
       generateKeyPairSync("ed25519").privateKey,
     );
-    const baseUrl = await start(
-      hub,
-      new MutableClock("2026-08-19T00:01:00.000Z"),
-      1_024,
-      { artifacts, signer },
-    );
+    const baseUrl = await start(hub, new MutableClock("2026-08-19T00:01:00.000Z"), 1_024, {
+      artifacts,
+      signer,
+    });
     const url = new URL(`v1/commands/projects/${manifest.projectId}/leases`, baseUrl);
     url.searchParams.set("destinationId", destinationId);
     url.searchParams.set("projectIdentityHash", target.projectIdentityHash);
     url.searchParams.set("nodeId", nodeId);
     const oversized = JSON.stringify({ schemaVersion: 1, padding: "x".repeat(2_000) });
-    const request = (token: string, body: string) => fetch(url, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body,
-    });
+    const request = (token: string, body: string) =>
+      fetch(url, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body,
+      });
 
-    await expect(request(observerToken, oversized).then((response) => response.status)).resolves.toBe(403);
-    await expect(request(nodeToken, oversized).then((response) => response.status)).resolves.toBe(413);
+    await expect(
+      request(observerToken, oversized).then((response) => response.status),
+    ).resolves.toBe(403);
+    await expect(request(nodeToken, oversized).then((response) => response.status)).resolves.toBe(
+      413,
+    );
 
-    const submissionUrl = new URL(`v1/commands/projects/${manifest.projectId}/submissions`, baseUrl);
+    const submissionUrl = new URL(
+      `v1/commands/projects/${manifest.projectId}/submissions`,
+      baseUrl,
+    );
     submissionUrl.searchParams.set("destinationId", destinationId);
     submissionUrl.searchParams.set("projectIdentityHash", target.projectIdentityHash);
-    const submitOversized = (credential: string) => fetch(submissionUrl, {
-      method: "POST",
-      headers: { authorization: `Bearer ${credential}`, "content-type": "application/json" },
-      body: oversized,
-    });
-    await expect(submitOversized(observerToken).then((response) => response.status)).resolves.toBe(403);
-    await expect(submitOversized(writerToken).then((response) => response.status)).resolves.toBe(413);
+    const submitOversized = (credential: string) =>
+      fetch(submissionUrl, {
+        method: "POST",
+        headers: { authorization: `Bearer ${credential}`, "content-type": "application/json" },
+        body: oversized,
+      });
+    await expect(submitOversized(observerToken).then((response) => response.status)).resolves.toBe(
+      403,
+    );
+    await expect(submitOversized(writerToken).then((response) => response.status)).resolves.toBe(
+      413,
+    );
 
     const artifactUrl = new URL(
       `v1/commands/projects/${manifest.projectId}/artifacts/art_${"a".repeat(64)}`,
@@ -359,19 +398,25 @@ describe("authenticated remote command HTTP delivery", () => {
     artifactUrl.searchParams.set("destinationId", destinationId);
     artifactUrl.searchParams.set("projectIdentityHash", target.projectIdentityHash);
     artifactUrl.searchParams.set("nodeId", nodeId);
-    await expect(fetch(artifactUrl, {
-      headers: { authorization: `Bearer ${observerToken}` },
-    }).then((response) => response.status)).resolves.toBe(403);
-    await expect(fetch(artifactUrl, {
-      headers: { authorization: `Bearer ${nodeToken}` },
-    }).then((response) => response.status)).resolves.toBe(404);
+    await expect(
+      fetch(artifactUrl, {
+        headers: { authorization: `Bearer ${observerToken}` },
+      }).then((response) => response.status),
+    ).resolves.toBe(403);
+    await expect(
+      fetch(artifactUrl, {
+        headers: { authorization: `Bearer ${nodeToken}` },
+      }).then((response) => response.status),
+    ).resolves.toBe(404);
     const wrongNode = new URL(url);
     wrongNode.searchParams.set("nodeId", "node_command_http_02");
-    await expect(fetch(wrongNode, {
-      method: "POST",
-      headers: { authorization: `Bearer ${nodeToken}`, "content-type": "application/json" },
-      body: JSON.stringify({ schemaVersion: 1, leaseDurationMs: 30_000, limit: 1 }),
-    }).then((response) => response.status)).resolves.toBe(403);
+    await expect(
+      fetch(wrongNode, {
+        method: "POST",
+        headers: { authorization: `Bearer ${nodeToken}`, "content-type": "application/json" },
+        body: JSON.stringify({ schemaVersion: 1, leaseDurationMs: 30_000, limit: 1 }),
+      }).then((response) => response.status),
+    ).resolves.toBe(403);
 
     const wrongPeer = new AuthenticatedRemoteCommandHttpTransport({
       baseUrl,
@@ -382,15 +427,17 @@ describe("authenticated remote command HTTP delivery", () => {
       target,
       allowInsecureHttpForTests: true,
     });
-    await expect(runRemoteCommandReconnectCycle({
-      destinationId,
-      expectedPeerIdentityHash: `sha256:${"6".repeat(64)}`,
-      nodeId,
-      target,
-      transport: wrongPeer,
-      handler: { handle: vi.fn() },
-      clock: { now: () => "2026-08-19T00:01:00.001Z" },
-    })).resolves.toMatchObject({
+    await expect(
+      runRemoteCommandReconnectCycle({
+        destinationId,
+        expectedPeerIdentityHash: `sha256:${"6".repeat(64)}`,
+        nodeId,
+        target,
+        transport: wrongPeer,
+        handler: { handle: vi.fn() },
+        clock: { now: () => "2026-08-19T00:01:00.001Z" },
+      }),
+    ).resolves.toMatchObject({
       status: "offline",
       failureCode: "transport_authentication_failed",
     });

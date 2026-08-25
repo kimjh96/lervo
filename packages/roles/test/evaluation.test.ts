@@ -36,21 +36,26 @@ describe("role evaluation result", () => {
     });
 
     expect(result.overallStatus).toBe("passed");
-    expect(result.checks.map((check) => check.checkId))
-      .toEqual(definition.evaluation.checks.map((check) => check.checkId));
+    expect(result.checks.map((check) => check.checkId)).toEqual(
+      definition.evaluation.checks.map((check) => check.checkId),
+    );
     expect(() => assertRoleEvaluationResult({ definition, result })).not.toThrow();
-    expect(() => assertRoleArtifactPublishable({
-      definition,
-      result,
-      artifactId,
-      contentHash,
-    })).not.toThrow();
-    expect(() => assertRoleArtifactPublishable({
-      definition,
-      result,
-      artifactId,
-      contentHash: `sha256:${"e".repeat(64)}`,
-    })).toThrow(/published/);
+    expect(() =>
+      assertRoleArtifactPublishable({
+        definition,
+        result,
+        artifactId,
+        contentHash,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertRoleArtifactPublishable({
+        definition,
+        result,
+        artifactId,
+        contentHash: `sha256:${"e".repeat(64)}`,
+      }),
+    ).toThrow(/published/);
   });
 
   it("keeps failed and not-run checks distinct and never promotes incomplete work", () => {
@@ -82,50 +87,58 @@ describe("role evaluation result", () => {
 
     expect(incomplete.overallStatus).toBe("incomplete");
     expect(failed.overallStatus).toBe("failed");
-    expect(() => assertRoleArtifactPublishable({
-      definition,
-      result: incomplete,
-      artifactId,
-      contentHash,
-    })).toThrow(/published/);
+    expect(() =>
+      assertRoleArtifactPublishable({
+        definition,
+        result: incomplete,
+        artifactId,
+        contentHash,
+      }),
+    ).toThrow(/published/);
   });
 
   it("rejects missing evidence, missing checks and tampered result identity", () => {
     const definition = getBuiltInRoleDefinition("designer");
     const missingEvidence = observations("designer");
     missingEvidence[0] = { ...missingEvidence[0]!, evidence: [] };
-    expect(() => createRoleEvaluationResult({
-      definition,
-      artifactId,
-      contentHash,
-      byteCount: 32,
-      mediaType,
-      producerRunId: "run_designer_0001",
-      evaluatedAt: "2026-08-20T01:00:00.000Z",
-      observations: missingEvidence,
-    })).toThrow(/evidence/);
+    expect(() =>
+      createRoleEvaluationResult({
+        definition,
+        artifactId,
+        contentHash,
+        byteCount: 32,
+        mediaType,
+        producerRunId: "run_designer_0001",
+        evaluatedAt: "2026-08-20T01:00:00.000Z",
+        observations: missingEvidence,
+      }),
+    ).toThrow(/evidence/);
     const sameRun = observations("designer");
     sameRun[0] = { ...sameRun[0]!, evaluatorRunId: "run_designer_0001" };
-    expect(() => createRoleEvaluationResult({
-      definition,
-      artifactId,
-      contentHash,
-      byteCount: 32,
-      mediaType,
-      producerRunId: "run_designer_0001",
-      evaluatedAt: "2026-08-20T01:00:00.000Z",
-      observations: sameRun,
-    })).toThrow(/distinct from the producer run/);
-    expect(() => createRoleEvaluationResult({
-      definition,
-      artifactId,
-      contentHash,
-      byteCount: 32,
-      mediaType,
-      producerRunId: "run_designer_0001",
-      evaluatedAt: "2026-08-20T01:00:00.000Z",
-      observations: observations("designer").slice(1),
-    })).toThrow(/check/);
+    expect(() =>
+      createRoleEvaluationResult({
+        definition,
+        artifactId,
+        contentHash,
+        byteCount: 32,
+        mediaType,
+        producerRunId: "run_designer_0001",
+        evaluatedAt: "2026-08-20T01:00:00.000Z",
+        observations: sameRun,
+      }),
+    ).toThrow(/distinct from the producer run/);
+    expect(() =>
+      createRoleEvaluationResult({
+        definition,
+        artifactId,
+        contentHash,
+        byteCount: 32,
+        mediaType,
+        producerRunId: "run_designer_0001",
+        evaluatedAt: "2026-08-20T01:00:00.000Z",
+        observations: observations("designer").slice(1),
+      }),
+    ).toThrow(/check/);
 
     const valid = createRoleEvaluationResult({
       definition,
@@ -159,23 +172,28 @@ describe("role evaluation result", () => {
       observations: observations("researcher"),
     });
 
-    await expect(readPublishableRoleArtifact({ definition, result, artifactStore: artifacts }))
-      .resolves.toBe(content);
+    await expect(
+      readPublishableRoleArtifact({ definition, result, artifactStore: artifacts }),
+    ).resolves.toBe(content);
     const corruptedStore = {
       put: artifacts.put.bind(artifacts),
       putStream: artifacts.putStream.bind(artifacts),
       has: artifacts.has.bind(artifacts),
       get: async () => new TextEncoder().encode(`${content} tampered`),
     };
-    await expect(readPublishableRoleArtifact({
-      definition,
-      result,
-      artifactStore: corruptedStore,
-    })).rejects.toThrow(/size or hash/);
-    await expect(readPublishableRoleArtifact({
-      definition,
-      result: { ...result, byteCount: result.byteCount + 1 },
-      artifactStore: artifacts,
-    })).rejects.toThrow(/ID|size/);
+    await expect(
+      readPublishableRoleArtifact({
+        definition,
+        result,
+        artifactStore: corruptedStore,
+      }),
+    ).rejects.toThrow(/size or hash/);
+    await expect(
+      readPublishableRoleArtifact({
+        definition,
+        result: { ...result, byteCount: result.byteCount + 1 },
+        artifactStore: artifacts,
+      }),
+    ).rejects.toThrow(/ID|size/);
   });
 });

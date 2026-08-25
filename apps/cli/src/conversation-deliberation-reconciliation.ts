@@ -21,9 +21,9 @@ function digest(value: unknown): string {
   return `sha256:${createHash("sha256").update(canonicalJson(value)).digest("hex")}`;
 }
 
-type ReconciliationSourceResult = Awaited<ReturnType<
-  ConversationDeliberationReconciliationSourcePort["inspect"]
->>;
+type ReconciliationSourceResult = Awaited<
+  ReturnType<ConversationDeliberationReconciliationSourcePort["inspect"]>
+>;
 
 export function interpretManagedDeliberationInspection(input: {
   job: Readonly<ConversationDeliberationReconciliationTarget>;
@@ -32,9 +32,11 @@ export function interpretManagedDeliberationInspection(input: {
 }): ReconciliationSourceResult {
   const { job, report } = input;
   if (
-    report.projectId !== job.projectId || report.deliberationId !== job.deliberationId ||
+    report.projectId !== job.projectId ||
+    report.deliberationId !== job.deliberationId ||
     report.sourceStatus === "inconsistent"
-  ) return { status: "not_confirmed", reason: "source_inconsistent" };
+  )
+    return { status: "not_confirmed", reason: "source_inconsistent" };
   if (report.sourceStatus === "incomplete") {
     return { status: "not_confirmed", reason: "history_incomplete" };
   }
@@ -59,7 +61,8 @@ export function interpretManagedDeliberationInspection(input: {
   if (
     report.phase === "interrupted_after_approval" &&
     job.operation === "start" &&
-    report.resume === "candidate" && report.checkpoint === "readable" &&
+    report.resume === "candidate" &&
+    report.checkpoint === "readable" &&
     report.lease !== "active"
   ) {
     return {

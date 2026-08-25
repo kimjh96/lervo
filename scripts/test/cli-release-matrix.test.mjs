@@ -4,10 +4,7 @@ import { resolve } from "node:path";
 import { describe, it } from "vitest";
 import { parse } from "yaml";
 
-const workflowPath = resolve(
-  import.meta.dirname,
-  "../../.github/workflows/cli-release-matrix.yml",
-);
+const workflowPath = resolve(import.meta.dirname, "../../.github/workflows/cli-release-matrix.yml");
 
 async function readWorkflow() {
   return parse(await readFile(workflowPath, "utf8"));
@@ -24,22 +21,21 @@ describe("CLI release matrix workflow", () => {
     assert.deepEqual(workflow.permissions, { contents: "read" });
     const job = workflow.jobs["packed-cli"];
     assert.equal(job.strategy["fail-fast"], false);
-    assert.deepEqual(job.strategy.matrix.os, [
-      "ubuntu-latest",
-      "macos-latest",
-      "windows-latest",
-    ]);
+    assert.deepEqual(job.strategy.matrix.os, ["ubuntu-latest", "macos-latest", "windows-latest"]);
     assert.equal(job["timeout-minutes"], 20);
   });
 
   it("pins setup actions and the minimum supported Node release", async () => {
     const workflow = await readWorkflow();
     const steps = workflow.jobs["packed-cli"].steps;
-    assert.deepEqual(steps.slice(0, 3).map(({ uses }) => uses), [
-      "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
-      "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
-    ]);
+    assert.deepEqual(
+      steps.slice(0, 3).map(({ uses }) => uses),
+      [
+        "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+        "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
+      ],
+    );
     assert.equal(steps[0].with["persist-credentials"], false);
     assert.equal(steps[1].with["node-version"], "22.13.0");
     assert.equal(steps[1].with["package-manager-cache"], false);
@@ -47,9 +43,7 @@ describe("CLI release matrix workflow", () => {
 
   it("builds once and checks both the release manifest and consumer install", async () => {
     const workflow = await readWorkflow();
-    const commands = workflow.jobs["packed-cli"].steps
-      .map(({ run }) => run)
-      .filter(Boolean);
+    const commands = workflow.jobs["packed-cli"].steps.map(({ run }) => run).filter(Boolean);
     assert.deepEqual(commands, [
       "pnpm install --frozen-lockfile",
       "pnpm build",
@@ -64,10 +58,7 @@ describe("CLI release matrix workflow", () => {
   it("signs exact release subjects only for a manually selected tag", async () => {
     const workflow = await readWorkflow();
     const job = workflow.jobs["attested-cli"];
-    assert.equal(
-      job.if,
-      "github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'",
-    );
+    assert.equal(job.if, "github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'");
     assert.equal(job.needs, "packed-cli");
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.permissions, {
@@ -87,7 +78,7 @@ describe("CLI release matrix workflow", () => {
     const prepare = job.steps.find(({ name }) => name === "Prepare exact release subjects");
     assert.equal(
       prepare.run,
-      "pnpm release:attestation:prepare \"${RUNNER_TEMP}/lervo-release\" --expected-tag \"${GITHUB_REF_NAME}\"",
+      'pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release" --expected-tag "${GITHUB_REF_NAME}"',
     );
     const provenance = job.steps.find(({ id }) => id === "build-attestation");
     assert.deepEqual(provenance.with["subject-path"].trim().split("\n"), [
@@ -97,17 +88,14 @@ describe("CLI release matrix workflow", () => {
     ]);
     const sbom = job.steps.find(({ id }) => id === "sbom-attestation");
     assert.equal(sbom.with["subject-path"], "${{ runner.temp }}/lervo-release/*.tgz");
-    assert.equal(
-      sbom.with["sbom-path"],
-      "${{ runner.temp }}/lervo-release/release-sbom.cdx.json",
-    );
+    assert.equal(sbom.with["sbom-path"], "${{ runner.temp }}/lervo-release/release-sbom.cdx.json");
     const verify = job.steps.find(
       ({ name }) => name === "Verify release attestations as a consumer",
     );
     assert.deepEqual(verify.env, { GH_TOKEN: "${{ github.token }}" });
     assert.equal(
       verify.run,
-      "pnpm release:attestation:verify --release-directory \"${RUNNER_TEMP}/lervo-release\" --repository \"${GITHUB_REPOSITORY}\" --tag \"${GITHUB_REF_NAME}\" --source-digest \"${GITHUB_SHA}\"",
+      'pnpm release:attestation:verify --release-directory "${RUNNER_TEMP}/lervo-release" --repository "${GITHUB_REPOSITORY}" --tag "${GITHUB_REF_NAME}" --source-digest "${GITHUB_SHA}"',
     );
     const authorize = job.steps.find(
       ({ name }) => name === "Authorize exact npm publication coordinates",
@@ -115,7 +103,7 @@ describe("CLI release matrix workflow", () => {
     assert.deepEqual(authorize.env, { GH_TOKEN: "${{ github.token }}" });
     assert.equal(
       authorize.run,
-      "pnpm release:publication:authorize --release-directory \"${RUNNER_TEMP}/lervo-release\" --repository \"${GITHUB_REPOSITORY}\" --tag \"${GITHUB_REF_NAME}\" --source-digest \"${GITHUB_SHA}\" --dist-tag latest --output \"${RUNNER_TEMP}/lervo-publication-authorization.json\"",
+      'pnpm release:publication:authorize --release-directory "${RUNNER_TEMP}/lervo-release" --repository "${GITHUB_REPOSITORY}" --tag "${GITHUB_REF_NAME}" --source-digest "${GITHUB_SHA}" --dist-tag latest --output "${RUNNER_TEMP}/lervo-publication-authorization.json"',
     );
     const upload = job.steps.find(
       ({ name }) => name === "Upload release files, signed bundles, and publication authorization",

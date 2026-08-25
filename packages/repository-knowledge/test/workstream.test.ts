@@ -24,7 +24,13 @@ const roots: string[] = [];
 async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-workstream-"));
   roots.push(root);
-  await applyInitPlan(await createInitPlan({ root, projectId: "prj_workstream_test", now: new Date("2026-08-24T00:00:00.000Z") }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_workstream_test",
+      now: new Date("2026-08-24T00:00:00.000Z"),
+    }),
+  );
   return root;
 }
 
@@ -48,7 +54,12 @@ describe("repository workstreams", () => {
       references: [],
       pendingDecisions: [],
       pendingApprovals: [],
-      origin: { kind: "created" as const, sourceArtifactId: null, sourceContentHash: null, sourcePathDigest: null },
+      origin: {
+        kind: "created" as const,
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+      },
       updatedAt: "2026-08-24T00:40:00.000Z",
     };
     const canonicalContent = `${canonicalJson(snapshot)}\n`;
@@ -60,17 +71,26 @@ describe("repository workstreams", () => {
       previousSnapshotContentHash: `sha256:${"a".repeat(64)}`,
     });
     expect(plan.status).toBe("ready");
-    await applyReplicatedWorkstreamImportPlan({ plan, now: new Date(), recordApplied: () => undefined });
-    expect(await readCurrentWorkstream(root)).toMatchObject({ revision: 4, title: "Remote continuation" });
+    await applyReplicatedWorkstreamImportPlan({
+      plan,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    expect(await readCurrentWorkstream(root)).toMatchObject({
+      revision: 4,
+      title: "Remote continuation",
+    });
     const rollback = { ...snapshot, revision: 3, updatedAt: "2026-08-24T00:30:00.000Z" };
     const rollbackContent = `${canonicalJson(rollback)}\n`;
-    await expect(createReplicatedWorkstreamImportPlan({
-      repositoryRoot: root,
-      projectId: "prj_workstream_test",
-      snapshot: rollback,
-      snapshotContentHash: sha256(rollbackContent),
-      previousSnapshotContentHash: `sha256:${"b".repeat(64)}`,
-    })).resolves.toMatchObject({ status: "blocked", blockers: [{ code: "non_advancing_revision" }] });
+    await expect(
+      createReplicatedWorkstreamImportPlan({
+        repositoryRoot: root,
+        projectId: "prj_workstream_test",
+        snapshot: rollback,
+        snapshotContentHash: sha256(rollbackContent),
+        previousSnapshotContentHash: `sha256:${"b".repeat(64)}`,
+      }),
+    ).resolves.toMatchObject({ status: "blocked", blockers: [{ code: "non_advancing_revision" }] });
   });
 
   it("starts structured continuation state without a legacy document", async () => {
@@ -86,11 +106,34 @@ describe("repository workstreams", () => {
       references: [{ path: "docs/specifications/execution.md", label: "Execution contract" }],
       updatedAt: "2026-08-24T00:30:00.000Z",
     };
-    const plan = await createWorkstreamStartPlan({ repositoryRoot: root, projectId: "prj_workstream_test", draft });
-    expect(plan).toMatchObject({ status: "ready", planKind: "workstream_start", snapshot: { revision: 1, origin: { kind: "created" } } });
-    await applyWorkstreamStartPlan({ plan, now: new Date("2026-08-24T00:31:00.000Z"), recordApplied: () => undefined });
-    expect(await readCurrentWorkstream(root)).toMatchObject({ title: "Repository continuity", revision: 1 });
-    expect((await createWorkstreamStartPlan({ repositoryRoot: root, projectId: "prj_workstream_test", draft })).status).toBe("blocked");
+    const plan = await createWorkstreamStartPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      draft,
+    });
+    expect(plan).toMatchObject({
+      status: "ready",
+      planKind: "workstream_start",
+      snapshot: { revision: 1, origin: { kind: "created" } },
+    });
+    await applyWorkstreamStartPlan({
+      plan,
+      now: new Date("2026-08-24T00:31:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    expect(await readCurrentWorkstream(root)).toMatchObject({
+      title: "Repository continuity",
+      revision: 1,
+    });
+    expect(
+      (
+        await createWorkstreamStartPlan({
+          repositoryRoot: root,
+          projectId: "prj_workstream_test",
+          draft,
+        })
+      ).status,
+    ).toBe("blocked");
   });
 
   it("atomically replaces a root HANDOFF with structured current state and retires its lifecycle record", async () => {
@@ -117,14 +160,33 @@ describe("repository workstreams", () => {
       "",
     ].join("\n");
     await writeFile(resolve(root, "HANDOFF.md"), handoff);
-    await writeFile(resolve(root, "AGENTS.md"), "# Agents\n\nWhen continuing, read `HANDOFF.md` first.\n");
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      "# Agents\n\nWhen continuing, read `HANDOFF.md` first.\n",
+    );
     await mkdir(resolve(root, "docs/knowledge"), { recursive: true });
-    await writeFile(resolve(root, "docs/knowledge/index.md"), "# Generated\n\n[Handoff](../../HANDOFF.md)\n");
+    await writeFile(
+      resolve(root, "docs/knowledge/index.md"),
+      "# Generated\n\n[Handoff](../../HANDOFF.md)\n",
+    );
     await mkdir(resolve(root, ".lervo/knowledge/document-normalizations/aa"), { recursive: true });
-    await writeFile(resolve(root, ".lervo/knowledge/document-normalizations/aa/knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa.yaml"), "schemaVersion: 1\nrecordId: knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa\nsourcePath: HANDOFF.md\n");
+    await writeFile(
+      resolve(
+        root,
+        ".lervo/knowledge/document-normalizations/aa/knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa.yaml",
+      ),
+      "schemaVersion: 1\nrecordId: knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa\nsourcePath: HANDOFF.md\n",
+    );
 
-    const plan = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
-    expect(plan).toMatchObject({ status: "review_required", sourcePath: "HANDOFF.md", referenceUpdates: [{ path: "AGENTS.md", replacementCount: 1 }] });
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
+    expect(plan).toMatchObject({
+      status: "review_required",
+      sourcePath: "HANDOFF.md",
+      referenceUpdates: [{ path: "AGENTS.md", replacementCount: 1 }],
+    });
     expect(plan.removedNormalizationRecords).toHaveLength(1);
     let artifacts: { sourceContent: string; snapshotContent: string } | undefined;
     await applyHandoffWorkstreamMigrationPlan({
@@ -132,13 +194,26 @@ describe("repository workstreams", () => {
       approvedOperationId: plan.operationId!,
       approvedHash: plan.approvalHash!,
       now: new Date("2026-08-24T01:00:00.000Z"),
-      recordApplied: (_receipt, value) => { artifacts = value; },
+      recordApplied: (_receipt, value) => {
+        artifacts = value;
+      },
     });
 
     await expect(access(resolve(root, "HANDOFF.md"))).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(access(resolve(root, ".lervo/knowledge/document-normalizations/aa/knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa.yaml"))).rejects.toMatchObject({ code: "ENOENT" });
-    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain("run `lervo workstream current` first");
-    expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain("HANDOFF.md");
+    await expect(
+      access(
+        resolve(
+          root,
+          ".lervo/knowledge/document-normalizations/aa/knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa.yaml",
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain(
+      "run `lervo workstream current` first",
+    );
+    expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain(
+      "HANDOFF.md",
+    );
     const current = await readCurrentWorkstream(root);
     expect(current).toMatchObject({
       status: "active",
@@ -146,26 +221,44 @@ describe("repository workstreams", () => {
       objective: "Finish the bounded atlas migration.",
       nextActions: ["Read docs/architecture/atlas.md.", "Run the focused tests."],
       notes: ["Current deployment state: Preview is deployed."],
-      references: [{ path: "docs/architecture/atlas.md", label: "Architecture: docs/architecture/atlas.md" }],
+      references: [
+        { path: "docs/architecture/atlas.md", label: "Architecture: docs/architecture/atlas.md" },
+      ],
       origin: { kind: "legacy_continuation", sourceContentHash: plan.sourceContentHash },
     });
     expect(artifacts?.sourceContent).toBe(handoff);
     expect(JSON.parse(artifacts!.snapshotContent)).toEqual(current);
-    expect((await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" })).status).toBe("current");
+    expect(
+      (
+        await createHandoffWorkstreamMigrationPlan({
+          repositoryRoot: root,
+          projectId: "prj_workstream_test",
+        })
+      ).status,
+    ).toBe("current");
   });
 
   it("rewrites root HANDOFF references as natural workstream access instructions", async () => {
     const root = await repository();
-    await writeFile(resolve(root, "HANDOFF.md"), "# Current handoff\n\n## Current objective\n\nContinue safely.\n");
-    await writeFile(resolve(root, "AGENTS.md"), [
-      "# Agents",
-      "",
-      "Before editing, read the root `HANDOFF.md` and the architecture guide.",
-      "Follow root `HANDOFF.md` for current behavior.",
-      "",
-    ].join("\n"));
+    await writeFile(
+      resolve(root, "HANDOFF.md"),
+      "# Current handoff\n\n## Current objective\n\nContinue safely.\n",
+    );
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      [
+        "# Agents",
+        "",
+        "Before editing, read the root `HANDOFF.md` and the architecture guide.",
+        "Follow root `HANDOFF.md` for current behavior.",
+        "",
+      ].join("\n"),
+    );
 
-    const plan = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
     await applyHandoffWorkstreamMigrationPlan({
       plan,
       approvedOperationId: plan.operationId!,
@@ -174,37 +267,53 @@ describe("repository workstreams", () => {
       recordApplied: () => undefined,
     });
 
-    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toBe([
-      "# Agents",
-      "",
-      "Before editing, run `lervo workstream current` and the architecture guide.",
-      "Follow the current workstream from `lervo workstream current` for current behavior.",
-      "",
-    ].join("\n"));
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toBe(
+      [
+        "# Agents",
+        "",
+        "Before editing, run `lervo workstream current` and the architecture guide.",
+        "Follow the current workstream from `lervo workstream current` for current behavior.",
+        "",
+      ].join("\n"),
+    );
   });
 
   it("discovers continuation state by content anywhere in the repository", async () => {
     const root = await repository();
     await mkdir(resolve(root, "notes/team"), { recursive: true });
-    await writeFile(resolve(root, "notes/team/cobalt.md"), [
-      "# Cobalt delivery",
-      "",
-      "## Current objective",
-      "",
-      "Complete the provider-neutral checkpoint.",
-      "",
-      "## Next actions",
-      "",
-      "- Exercise a fresh terminal session.",
-      "",
-    ].join("\n"));
-    await writeFile(resolve(root, "notes/index.md"), "# Notes\n\n[Current delivery](team/cobalt.md)\n");
-    const plan = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
+    await writeFile(
+      resolve(root, "notes/team/cobalt.md"),
+      [
+        "# Cobalt delivery",
+        "",
+        "## Current objective",
+        "",
+        "Complete the provider-neutral checkpoint.",
+        "",
+        "## Next actions",
+        "",
+        "- Exercise a fresh terminal session.",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      resolve(root, "notes/index.md"),
+      "# Notes\n\n[Current delivery](team/cobalt.md)\n",
+    );
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
     expect(plan).toMatchObject({
       planKind: "continuation_workstream",
       status: "review_required",
       sourcePath: "notes/team/cobalt.md",
-      candidates: [{ path: "notes/team/cobalt.md", signals: expect.arrayContaining(["objective_section", "next_action_section"]) }],
+      candidates: [
+        {
+          path: "notes/team/cobalt.md",
+          signals: expect.arrayContaining(["objective_section", "next_action_section"]),
+        },
+      ],
     });
     await applyHandoffWorkstreamMigrationPlan({
       plan,
@@ -213,48 +322,110 @@ describe("repository workstreams", () => {
       now: new Date(),
       recordApplied: () => undefined,
     });
-    expect(await readFile(resolve(root, "notes/team/cobalt.md"), "utf8")).toContain("Complete the provider-neutral checkpoint.");
-    expect(await readFile(resolve(root, "notes/index.md"), "utf8")).toContain("lervo workstream current");
-    expect(await readCurrentWorkstream(root)).toMatchObject({ objective: "Complete the provider-neutral checkpoint.", origin: { kind: "legacy_continuation" } });
-    expect((await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" })).status).toBe("current");
+    expect(await readFile(resolve(root, "notes/team/cobalt.md"), "utf8")).toContain(
+      "Complete the provider-neutral checkpoint.",
+    );
+    expect(await readFile(resolve(root, "notes/index.md"), "utf8")).toContain(
+      "lervo workstream current",
+    );
+    expect(await readCurrentWorkstream(root)).toMatchObject({
+      objective: "Complete the provider-neutral checkpoint.",
+      origin: { kind: "legacy_continuation" },
+    });
+    expect(
+      (
+        await createHandoffWorkstreamMigrationPlan({
+          repositoryRoot: root,
+          projectId: "prj_workstream_test",
+        })
+      ).status,
+    ).toBe("current");
   });
 
   it("does not merge ambiguous repository-wide continuation candidates", async () => {
     const root = await repository();
     await mkdir(resolve(root, "team/a"), { recursive: true });
     await mkdir(resolve(root, "team/b"), { recursive: true });
-    const body = (name: string) => `# ${name}\n\n## Objective\n\nContinue ${name}.\n\n## Next actions\n\n- Verify ${name}.\n`;
+    const body = (name: string) =>
+      `# ${name}\n\n## Objective\n\nContinue ${name}.\n\n## Next actions\n\n- Verify ${name}.\n`;
     await writeFile(resolve(root, "team/a/state.md"), body("A"));
     await writeFile(resolve(root, "team/b/progress.md"), body("B"));
-    const plan = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
-    expect(plan).toMatchObject({ status: "blocked", blockers: [{ code: "ambiguous_continuation_sources" }] });
-    expect(plan.candidates.map((item) => item.path)).toEqual(["team/b/progress.md", "team/a/state.md"]);
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
+    expect(plan).toMatchObject({
+      status: "blocked",
+      blockers: [{ code: "ambiguous_continuation_sources" }],
+    });
+    expect(plan.candidates.map((item) => item.path)).toEqual([
+      "team/b/progress.md",
+      "team/a/state.md",
+    ]);
   });
 
   it("does not promote historical candidates over an existing verified workstream", async () => {
     const root = await repository();
-    const draft = { schemaVersion: 1, status: "active", title: "Current task", objective: "Keep the current identity.", nextActions: [], blockers: [], notes: [], references: [], updatedAt: "2026-08-24T02:10:00.000Z" };
-    const start = await createWorkstreamStartPlan({ repositoryRoot: root, projectId: "prj_workstream_test", draft });
-    await applyWorkstreamStartPlan({ plan: start, now: new Date(), recordApplied: () => undefined });
+    const draft = {
+      schemaVersion: 1,
+      status: "active",
+      title: "Current task",
+      objective: "Keep the current identity.",
+      nextActions: [],
+      blockers: [],
+      notes: [],
+      references: [],
+      updatedAt: "2026-08-24T02:10:00.000Z",
+    };
+    const start = await createWorkstreamStartPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      draft,
+    });
+    await applyWorkstreamStartPlan({
+      plan: start,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
     await mkdir(resolve(root, "docs/repository/history"), { recursive: true });
-    await writeFile(resolve(root, "docs/repository/history/old-session.md"), "# Old session\n\n## Objective\n\nOld work.\n\n## Next actions\n\n- Historical action.\n");
-    const plan = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
-    expect(plan).toMatchObject({ status: "current", workstream: null, candidates: [{ path: "docs/repository/history/old-session.md" }] });
+    await writeFile(
+      resolve(root, "docs/repository/history/old-session.md"),
+      "# Old session\n\n## Objective\n\nOld work.\n\n## Next actions\n\n- Historical action.\n",
+    );
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
+    expect(plan).toMatchObject({
+      status: "current",
+      workstream: null,
+      candidates: [{ path: "docs/repository/history/old-session.md" }],
+    });
     expect(await readCurrentWorkstream(root)).toMatchObject({ title: "Current task", revision: 1 });
   });
 
   it("rolls back state, references, records, and source when event recording fails", async () => {
     const root = await repository();
-    await writeFile(resolve(root, "HANDOFF.md"), "# Recovery handoff\n\n## Current objective\n\nPreserve all bytes.\n");
+    await writeFile(
+      resolve(root, "HANDOFF.md"),
+      "# Recovery handoff\n\n## Current objective\n\nPreserve all bytes.\n",
+    );
     await writeFile(resolve(root, "AGENTS.md"), "# Agents\n\nRead `HANDOFF.md`.\n");
-    const plan = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
-    await expect(applyHandoffWorkstreamMigrationPlan({
-      plan,
-      approvedOperationId: plan.operationId!,
-      approvedHash: plan.approvalHash!,
-      now: new Date(),
-      recordApplied: () => { throw new Error("event unavailable"); },
-    })).rejects.toMatchObject({ code: "knowledge_apply_failed" });
+    const plan = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
+    await expect(
+      applyHandoffWorkstreamMigrationPlan({
+        plan,
+        approvedOperationId: plan.operationId!,
+        approvedHash: plan.approvalHash!,
+        now: new Date(),
+        recordApplied: () => {
+          throw new Error("event unavailable");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_apply_failed" });
     expect(await readFile(resolve(root, "HANDOFF.md"), "utf8")).toContain("Preserve all bytes");
     expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain("HANDOFF.md");
     expect(await readCurrentWorkstream(root)).toBeNull();
@@ -262,8 +433,14 @@ describe("repository workstreams", () => {
 
   it("requires an exact revision increment for explicit updates", async () => {
     const root = await repository();
-    await writeFile(resolve(root, "HANDOFF.md"), "# Update handoff\n\n## Current objective\n\nShip the first slice.\n");
-    const migration = await createHandoffWorkstreamMigrationPlan({ repositoryRoot: root, projectId: "prj_workstream_test" });
+    await writeFile(
+      resolve(root, "HANDOFF.md"),
+      "# Update handoff\n\n## Current objective\n\nShip the first slice.\n",
+    );
+    const migration = await createHandoffWorkstreamMigrationPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+    });
     await applyHandoffWorkstreamMigrationPlan({
       plan: migration,
       approvedOperationId: migration.operationId!,
@@ -272,11 +449,29 @@ describe("repository workstreams", () => {
       recordApplied: () => undefined,
     });
     const current = (await readCurrentWorkstream(root))!;
-    const desired = { ...current, revision: 2, status: "completed" as const, nextActions: [], updatedAt: "2026-08-24T02:00:00.000Z" };
-    const plan = await createWorkstreamUpdatePlan({ repositoryRoot: root, projectId: "prj_workstream_test", snapshot: desired });
+    const desired = {
+      ...current,
+      revision: 2,
+      status: "completed" as const,
+      nextActions: [],
+      updatedAt: "2026-08-24T02:00:00.000Z",
+    };
+    const plan = await createWorkstreamUpdatePlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      snapshot: desired,
+    });
     expect(plan.status).toBe("ready");
     await applyWorkstreamUpdatePlan({ plan, now: new Date(), recordApplied: () => undefined });
     expect(await readCurrentWorkstream(root)).toMatchObject({ revision: 2, status: "completed" });
-    expect((await createWorkstreamUpdatePlan({ repositoryRoot: root, projectId: "prj_workstream_test", snapshot: desired })).status).toBe("blocked");
+    expect(
+      (
+        await createWorkstreamUpdatePlan({
+          repositoryRoot: root,
+          projectId: "prj_workstream_test",
+          snapshot: desired,
+        })
+      ).status,
+    ).toBe("blocked");
   });
 });

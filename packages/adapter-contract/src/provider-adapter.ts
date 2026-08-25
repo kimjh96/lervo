@@ -1,6 +1,7 @@
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
+  type AdapterCapabilityActivationReceipt,
   type AdapterManagedWriteCompletion,
   type AdapterManagedWriteDecision,
   type AdapterManagedWriteRequest,
@@ -30,6 +31,9 @@ export interface ProviderAdapter {
     session: AdapterSession,
     envelope: AdapterContextEnvelope,
   ): Promise<AdapterContextReceipt>;
+  confirmCapabilityActivation?(
+    session: AdapterSession,
+  ): Promise<AdapterCapabilityActivationReceipt[]>;
   attachManagedWriteBridge(
     session: AdapterSession,
     bridge: ProviderManagedWriteBridge,

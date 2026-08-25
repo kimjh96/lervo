@@ -55,10 +55,12 @@ export interface PolicyStateStore {
 }
 
 export interface LocalCommandCapabilityPolicy {
-  resolve(command: RemoteCommand): Promise<Array<{
-    capability: PolicyApproval["capability"];
-    decision: CapabilityDecision;
-  }>>;
+  resolve(command: RemoteCommand): Promise<
+    Array<{
+      capability: PolicyApproval["capability"];
+      decision: CapabilityDecision;
+    }>
+  >;
 }
 
 export interface ManagedRunApprovalVerificationInput {
@@ -88,7 +90,5 @@ export type ManagedRunApprovalVerificationResult =
     };
 
 export interface ManagedRunApprovalVerifier {
-  verify(
-    input: ManagedRunApprovalVerificationInput,
-  ): Promise<ManagedRunApprovalVerificationResult>;
+  verify(input: ManagedRunApprovalVerificationInput): Promise<ManagedRunApprovalVerificationResult>;
 }

@@ -10,8 +10,7 @@ import {
   createFirstPublicationWorkflowActivationPostApplyReport,
   validateFirstPublicationWorkflowActivationPostApplyReport,
 } from "./first-publication-workflow-activation-post-apply-verification.mjs";
-import { validateFirstPublicationWorkflowActivationReceiptDocument } from
-  "./first-publication-workflow-activation-receipt.mjs";
+import { validateFirstPublicationWorkflowActivationReceiptDocument } from "./first-publication-workflow-activation-receipt.mjs";
 import {
   assertFirstPublicationWorkflowActivationTransactionClear,
   firstPublicationWorkflowActivationTransactionRoot,
@@ -34,16 +33,16 @@ export async function verifyCliFirstPublicationWorkflowActivationPostApply(
     );
   }
   validateReadinessRepository(repository);
-  const transactionRoot = dependencies.transactionRoot ??
-    firstPublicationWorkflowActivationTransactionRoot;
-  const inspectTransaction = dependencies.inspectTransaction ??
-    inspectFirstPublicationWorkflowActivationTransactionState;
+  const transactionRoot =
+    dependencies.transactionRoot ?? firstPublicationWorkflowActivationTransactionRoot;
+  const inspectTransaction =
+    dependencies.inspectTransaction ?? inspectFirstPublicationWorkflowActivationTransactionState;
   assertFirstPublicationWorkflowActivationTransactionClear(
     await inspectTransaction(transactionRoot),
   );
   const paths = dependencies.paths ?? firstPublicationWorkflowActivationPostApplyPaths;
-  const readSources = dependencies.readSources ??
-    readFirstPublicationWorkflowActivationPostApplySources;
+  const readSources =
+    dependencies.readSources ?? readFirstPublicationWorkflowActivationPostApplySources;
   const sources = await readSources(paths, receiptPath);
   validateFirstPublicationWorkflowActivationReceiptDocument(sources.receipt);
   assertFirstPublicationWorkflowActivationReceiptOutput(

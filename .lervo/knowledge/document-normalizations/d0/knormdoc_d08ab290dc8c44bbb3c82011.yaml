@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_34b5a369649956986869106a
+outputLanguage: en
+outputs:
+  - byteCount: 4357
+    contentHash: sha256:705f9621bdde6904bf983a4b5620304dcc6a9aeb8d1b385224e9d74fbdf3de52
+    path: docs/decisions/coordination/sync/0034-project-registration-and-event-sync-contract.md
+    userRegionHash: sha256:705f9621bdde6904bf983a4b5620304dcc6a9aeb8d1b385224e9d74fbdf3de52
+profile: decision_record
+recordId: knormdoc_d08ab290dc8c44bbb3c82011
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:77b65a0d11e330acf4aa9635b7b4551692fe10fbd7d2505a844afae220e3d512
+sourcePath: docs/decisions/coordination/sync/0034-project-registration-and-event-sync-contract.md
+sourceUnitVersionIds:
+  - uv_30bca13cc69433a18f06c253
+  - uv_6558ddf36bcbef9d6e2338ef
+  - uv_942c340d2ca08b8addf6e24a
+  - uv_a3c4e7131ea9c371840a65e1
+  - uv_b4bb7464a1289acfb66e52ea
+  - uv_c18c72ca5110238560d038ac
+  - uv_db9ce8f5e85079e58e981ef4
+  - uv_f5324cc50f0419706150d036

@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type { ProviderAdapter } from "@lervo/adapter-contract";
+import { assertAssignmentExecutionAuthority, completeAssignment } from "@lervo/agent-workforce";
+import type { WorkforceAgent } from "@lervo/agent-workforce";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
 import { documentIdForPath, normalizeRepositoryPath } from "@lervo/context";
@@ -12,21 +14,17 @@ import {
   type ManagedProjectVerification,
 } from "@lervo/orchestrator";
 import { loadDocumentRegistry } from "@lervo/project";
-import {
-  openProjectStorage,
-  type ProjectStorage,
-} from "@lervo/project-storage";
+import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
+import type { AdapterCapabilityActivationReceipt } from "@lervo/schemas";
+import { resolveRoleContract } from "@lervo/roles";
 import {
   evaluateWritingPublication,
   type WritingPublicationResult,
   type WritingSemanticEvaluator,
 } from "@lervo/writing";
 
-import {
-  createDeveloperRole,
-  createDeveloperTurnInstructions,
-} from "./developer-role.js";
+import { createDeveloperRole, createDeveloperTurnInstructions } from "./developer-role.js";
 import {
   createLocalProviderWritingEvaluator,
   type LocalProviderWritingEvaluatorInput,
@@ -37,11 +35,11 @@ import {
   type ManagedSearchContextSummary,
 } from "./managed-search-context.js";
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
+import { resolveRunCapabilities } from "./run-capabilities.js";
+import type { ResolvedCapability } from "@lervo/capabilities";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
-import {
-  prepareRunVerification,
-  type PreparedRunVerification,
-} from "./run-verification.js";
+import { recordWorkforceEvent } from "./workforce-events.js";
+import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
 
 export type RunProvider = "codex" | "claude";
 
@@ -52,11 +50,17 @@ export interface ManagedRunRequest {
   instructions: string;
   risk: string;
   skillIds?: readonly string[];
+  capabilityIds?: readonly string[];
   verificationSuiteIds: readonly string[];
+  workforce?: { assignmentId: string; agentId: string; leaseId: string };
+  roleId?: string;
 }
 
 export interface ManagedRunOutcome {
   provider: RunProvider;
+  roleId: string;
+  roleVersion: string;
+  roleContractHash: string;
   projectId: string;
   runId: string;
   sessionId: string;
@@ -66,6 +70,8 @@ export interface ManagedRunOutcome {
   verificationStatus: "passed" | "failed" | "not_run";
   verifications: readonly ManagedProjectVerification[];
   resolvedSkills: readonly ResolvedRunSkill[];
+  resolvedCapabilities: readonly ResolvedCapability[];
+  activatedCapabilities: readonly AdapterCapabilityActivationReceipt[];
   searchContext: ManagedSearchContextSummary;
 }
 
@@ -78,10 +84,9 @@ export interface ManagedRunDependencies {
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
   userSkillRoot?: string;
+  userCapabilityRoot?: string;
   semanticEvaluator?: WritingSemanticEvaluator;
-  createSemanticEvaluator?: (
-    input: LocalProviderWritingEvaluatorInput,
-  ) => WritingSemanticEvaluator;
+  createSemanticEvaluator?: (input: LocalProviderWritingEvaluatorInput) => WritingSemanticEvaluator;
   now?: () => Date;
   createSearchNonce?: () => string;
   prepareVerification?(input: {
@@ -126,14 +131,19 @@ export function createManagedRunExecutor(
   return async (request) => {
     const expectedPath = normalizeRepositoryPath(request.expectedPath);
     const instructions = request.instructions.trim();
-    const skillIds = [...new Set(request.skillIds ?? [])].sort();
+    let skillIds = [...new Set(request.skillIds ?? [])].sort();
+    const requestedCapabilityIds = [...new Set(request.capabilityIds ?? [])].sort();
     const verificationSuiteIds = [...request.verificationSuiteIds].sort();
+    const roleId = request.roleId ?? "developer";
     if (
-      instructions.length === 0 || request.risk.trim().length === 0 ||
+      instructions.length === 0 ||
+      request.risk.trim().length === 0 ||
       new Set(verificationSuiteIds).size !== verificationSuiteIds.length ||
-      verificationSuiteIds.length === 0 || verificationSuiteIds.length > 16 ||
-      verificationSuiteIds.some((suiteId) =>
-        !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(suiteId) || suiteId.length > 150)
+      verificationSuiteIds.length === 0 ||
+      verificationSuiteIds.length > 16 ||
+      verificationSuiteIds.some(
+        (suiteId) => !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/.test(suiteId) || suiteId.length > 150,
+      )
     ) {
       throw new TypeError(
         "A task request, risk level, and 1 to 16 unique verification suites are required.",
@@ -145,24 +155,97 @@ export function createManagedRunExecutor(
     let executionFailure: unknown;
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
+      const roleContract = await resolveRoleContract(storage.paths.repositoryRoot, roleId);
+      let workforceAgent: WorkforceAgent | undefined;
+      if (request.workforce !== undefined) {
+        const authority = await assertAssignmentExecutionAuthority({
+          repositoryRoot: storage.paths.repositoryRoot,
+          assignmentId: request.workforce.assignmentId,
+          agentId: request.workforce.agentId,
+          leaseId: request.workforce.leaseId,
+          provider: request.provider,
+          expectedPaths: [expectedPath],
+          verificationSuiteIds,
+          now: dependencies.now?.() ?? new Date(),
+        });
+        workforceAgent = authority.agent;
+        if (
+          authority.assignment.roleId !== roleId ||
+          authority.assignment.roleVersion !== roleContract.version ||
+          authority.assignment.roleContractHash !== roleContract.contractHash
+        )
+          throw new TypeError(
+            "The managed runner role differs from the leased assignment contract.",
+          );
+      }
       const knowledgePolicy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
       const writingContract = writingContractForLanguage(knowledgePolicy.publication.language);
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
-      const role = createDeveloperRole(skillIds, verificationSuiteIds);
+      const role =
+        roleId === "developer"
+          ? createDeveloperRole(skillIds, verificationSuiteIds)
+          : structuredClone(roleContract.definition.profile);
+      role.defaultSkills = [...skillIds];
+      role.verification.suiteIds = [...verificationSuiteIds];
+      const capabilityIds =
+        requestedCapabilityIds.length === 0
+          ? [...(role.defaultCapabilityPackages ?? [])]
+          : requestedCapabilityIds;
+      const runCapabilities = await resolveRunCapabilities({
+        repositoryRoot: storage.paths.repositoryRoot,
+        projectId: storage.manifest.projectId,
+        provider: request.provider,
+        role,
+        capabilityIds,
+        query: instructions,
+        generatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
+        ...(dependencies.userCapabilityRoot === undefined
+          ? {}
+          : { userRoot: dependencies.userCapabilityRoot }),
+      });
+      if (request.workforce !== undefined) {
+        const bound = new Map(
+          (workforceAgent?.capabilityPackages ?? []).map((item) => [item.capabilityId, item]),
+        );
+        if (
+          runCapabilities.capabilities.some((item) => {
+            const exact = bound.get(item.capabilityId);
+            return (
+              exact === undefined ||
+              exact.version !== item.version ||
+              exact.contentHash !== item.contentHash
+            );
+          })
+        )
+          throw new TypeError(
+            "The managed run capability package set exceeds or differs from the hired agent contract.",
+          );
+      }
+      skillIds = [...new Set([...skillIds, ...runCapabilities.skillIds])].sort();
+      role.defaultSkills = [...skillIds];
       const currentWorkstream = await verifiedCurrentWorkstream(storage);
       const workstreamPath = ".lervo/state/workstreams/current.json";
       const workstreamDocumentId = documentIdForPath(workstreamPath);
-      if (currentWorkstream !== null) role.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
-      const providerInstructions = createDeveloperTurnInstructions(instructions);
-      const verification = await (
-        dependencies.prepareVerification ?? prepareRunVerification
-      )({
+      if (currentWorkstream !== null)
+        role.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
+      const baseProviderInstructions =
+        roleId === "developer"
+          ? createDeveloperTurnInstructions(instructions)
+          : [
+              instructions,
+              "",
+              "Lervo managed role contract:",
+              role.description,
+              `Return an artifact satisfying ${role.outputContract.schemaRef}.`,
+              "Do not claim approvals, evidence, or external effects that are not present in the supplied context.",
+            ].join("\n");
+      const verification = await (dependencies.prepareVerification ?? prepareRunVerification)({
         repositoryRoot: storage.paths.repositoryRoot,
         suiteIds: verificationSuiteIds,
         artifactStore: storage.artifacts,
         ...(dependencies.now === undefined ? {} : { now: dependencies.now }),
       });
-      const resolvedSkills = await resolveRunSkills({
+      const preparedSkills = await resolveRunSkills({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
         provider: request.provider,
@@ -171,8 +254,24 @@ export function createManagedRunExecutor(
         ...(dependencies.userSkillRoot === undefined
           ? {}
           : { userSkillRoot: dependencies.userSkillRoot }),
+        ...(dependencies.userCapabilityRoot === undefined
+          ? {}
+          : { userCapabilityRoot: dependencies.userCapabilityRoot }),
         generatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
       });
+      const resolvedSkills = preparedSkills.resolved;
+      const providerInstructions = [
+        baseProviderInstructions,
+        ...preparedSkills.instructionBlocks.map((skill) =>
+          [
+            "",
+            `Lervo verified skill invocation: ${skill.skillId}@${skill.version} (${skill.contentHash})`,
+            "Follow these package-bound instructions for this turn:",
+            skill.content,
+            `End Lervo verified skill invocation: ${skill.skillId}`,
+          ].join("\n"),
+        ),
+      ].join("\n");
       const policyVersion = digest(JSON.stringify(role));
       const runId = dependencies.createId("run");
       const sessionId = dependencies.createId("ses");
@@ -220,20 +319,50 @@ export function createManagedRunExecutor(
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
-          documentRules: currentWorkstream === null ? {} : { "repository.workstream": [workstreamDocumentId] },
+          documentRules:
+            currentWorkstream === null ? {} : { "repository.workstream": [workstreamDocumentId] },
           additionalCandidates: [
             ...searchContext.additionalCandidates,
-            ...(currentWorkstream === null ? [] : [{
-              documentId: workstreamDocumentId,
-              path: workstreamPath,
-              connectedPaths: [],
-              source: "workstream" as const,
-            }]),
+            ...(currentWorkstream === null
+              ? []
+              : [
+                  {
+                    documentId: workstreamDocumentId,
+                    path: workstreamPath,
+                    connectedPaths: [],
+                    source: "workstream" as const,
+                  },
+                ]),
           ],
           createReceiptId: () => dependencies.createId("ctx"),
         },
         writingPolicy: null,
         resolvedSkills,
+        resolvedCapabilities: runCapabilities.capabilities.map((item) => ({
+          capabilityId: item.capabilityId,
+          capabilityKind: item.kind,
+          version: item.version,
+          contentHash: item.contentHash,
+          sourceKind: item.sourceKind,
+          selectionReason: runCapabilities.recommendations.some(
+            (recommendation) => recommendation.capabilityId === item.capabilityId,
+          )
+            ? ("natural_language" as const)
+            : capabilityIds.includes(item.capabilityId)
+              ? requestedCapabilityIds.length > 0
+                ? ("explicit" as const)
+                : ("role_default" as const)
+              : ("dependency" as const),
+        })),
+        capabilityRecommendations: runCapabilities.recommendations.map((item) => ({
+          capabilityId: item.capabilityId,
+          capabilityKind: item.kind,
+          version: item.version,
+          contentHash: item.contentHash,
+          score: item.score,
+          reasonCodes: item.reasonCodes,
+        })),
+        capabilityActivations: runCapabilities.activations,
         verificationSuites: verification.suites,
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
@@ -262,6 +391,9 @@ export function createManagedRunExecutor(
       );
       outcome = {
         provider: request.provider,
+        roleId,
+        roleVersion: roleContract.version,
+        roleContractHash: roleContract.contractHash,
         projectId: storage.manifest.projectId,
         runId,
         sessionId,
@@ -271,12 +403,37 @@ export function createManagedRunExecutor(
         verificationStatus: result.verificationStatus,
         verifications: result.verifications,
         resolvedSkills,
+        resolvedCapabilities: runCapabilities.capabilities,
+        activatedCapabilities: result.capabilityActivations,
         searchContext: summarizeManagedSearchContext(
           searchContext.attempt.attemptId,
           searchContext.knowledgeAttempt.attemptId,
           result.contextEvidence,
         ),
       };
+      if (request.workforce !== undefined) {
+        await completeAssignment({
+          repositoryRoot: storage.paths.repositoryRoot,
+          assignmentId: request.workforce.assignmentId,
+          agentId: request.workforce.agentId,
+          leaseId: request.workforce.leaseId,
+          resultArtifacts: [
+            {
+              artifactId: result.resultArtifact.artifactId,
+              contentHash: result.resultArtifact.contentHash,
+            },
+          ],
+          verificationStatus:
+            result.verificationStatus === "passed" && writingPublication.status === "allowed"
+              ? "passed"
+              : "failed",
+          ...(result.verificationStatus === "passed" && writingPublication.status === "allowed"
+            ? {}
+            : { failureCode: "managed_run_not_publishable" }),
+          now: dependencies.now?.() ?? new Date(),
+          recordEvent: (event) => recordWorkforceEvent(storage!, event),
+        });
+      }
     } catch (error) {
       executionFailure = error;
     }

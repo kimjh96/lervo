@@ -42,14 +42,18 @@ export async function runSearchEngineRollbackCommand(args: string[], io: CliIo):
       decidedAt: new Date(),
       registry: searchCandidateRegistry,
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(activation, null, 2)}\n`
-      : formatSearchEngineActivation(activation));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(activation, null, 2)}\n`
+        : formatSearchEngineActivation(activation),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not record the search engine rollback. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not record the search engine rollback. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

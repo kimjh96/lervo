@@ -44,8 +44,7 @@ function reasonsEqual(
   left: readonly ContextSelectionReason[],
   right: readonly ContextSelectionReason[],
 ): boolean {
-  const key = (reason: ContextSelectionReason): string =>
-    `${reason.reasonCode}\0${reason.ruleId}`;
+  const key = (reason: ContextSelectionReason): string => `${reason.reasonCode}\0${reason.ruleId}`;
   return stringSetsEqual(left.map(key), right.map(key));
 }
 
@@ -54,15 +53,16 @@ function metadataEqual(
   right: KnowledgeContextMetadata | undefined,
 ): boolean {
   if (left === undefined || right === undefined) return left === right;
-  return left.conceptId === right.conceptId && left.assurance === right.assurance &&
-    left.freshness === right.freshness && left.sourceSnapshotId === right.sourceSnapshotId &&
-    left.impactReportId === right.impactReportId;
+  return (
+    left.conceptId === right.conceptId &&
+    left.assurance === right.assurance &&
+    left.freshness === right.freshness &&
+    left.sourceSnapshotId === right.sourceSnapshotId &&
+    left.impactReportId === right.impactReportId
+  );
 }
 
-function planEvidenceEqual(
-  left: PlanEvidence,
-  right: ContextEvidence | undefined,
-): boolean {
+function planEvidenceEqual(left: PlanEvidence, right: ContextEvidence | undefined): boolean {
   if (
     right === undefined ||
     left.state !== right.state ||
@@ -79,15 +79,22 @@ function planEvidenceEqual(
     return left.path === right.path && metadataEqual(left.knowledgeContext, right.knowledgeContext);
   }
   if (left.state === "recommended" && right.state === "recommended") {
-    return left.recommendationId === right.recommendationId &&
-      left.batchId === right.batchId && left.sourceAttemptId === right.sourceAttemptId &&
-      left.engineId === right.engineId && left.engineVersion === right.engineVersion &&
-      left.indexId === right.indexId && left.resultSetHash === right.resultSetHash &&
-      left.sourceContentHash === right.sourceContentHash && left.rank === right.rank &&
-      left.score === right.score && left.selectionPolicyId === right.selectionPolicyId &&
+    return (
+      left.recommendationId === right.recommendationId &&
+      left.batchId === right.batchId &&
+      left.sourceAttemptId === right.sourceAttemptId &&
+      left.engineId === right.engineId &&
+      left.engineVersion === right.engineVersion &&
+      left.indexId === right.indexId &&
+      left.resultSetHash === right.resultSetHash &&
+      left.sourceContentHash === right.sourceContentHash &&
+      left.rank === right.rank &&
+      left.score === right.score &&
+      left.selectionPolicyId === right.selectionPolicyId &&
       left.selectionPolicyVersion === right.selectionPolicyVersion &&
       left.selectionMaximum === right.selectionMaximum &&
-      metadataEqual(left.knowledgeContext, right.knowledgeContext);
+      metadataEqual(left.knowledgeContext, right.knowledgeContext)
+    );
   }
   return (
     left.state === "selected" &&
@@ -109,11 +116,7 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
   }
   const planCreatedAt = Date.parse(loaded.plan.createdAt);
   const loadedAt = Date.parse(loaded.loadedAt);
-  if (
-    !Number.isFinite(planCreatedAt) ||
-    !Number.isFinite(loadedAt) ||
-    loadedAt < planCreatedAt
-  ) {
+  if (!Number.isFinite(planCreatedAt) || !Number.isFinite(loadedAt) || loadedAt < planCreatedAt) {
     invalid("The LoadedContext plan/E2 time ordering is invalid.");
   }
   if (loaded.documents.length !== loaded.plan.documents.length) {
@@ -182,12 +185,19 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
   }
 
   if (loaded.evidence.length !== loaded.plan.evidence.length + loaded.documents.length) {
-    invalid("The LoadedContext evidence count differs from the discovery/recommendation/E1/E2 chain.");
+    invalid(
+      "The LoadedContext evidence count differs from the discovery/recommendation/E1/E2 chain.",
+    );
   }
   for (const evidence of loaded.plan.evidence) {
-    if (evidence.state !== "discovered" && evidence.state !== "recommended" &&
-      evidence.state !== "selected") {
-      invalid(`A context plan can contain only discovery, recommendation, and E1 evidence: ${evidence.receiptId}`);
+    if (
+      evidence.state !== "discovered" &&
+      evidence.state !== "recommended" &&
+      evidence.state !== "selected"
+    ) {
+      invalid(
+        `A context plan can contain only discovery, recommendation, and E1 evidence: ${evidence.receiptId}`,
+      );
     }
     if (!planEvidenceEqual(evidence, evidenceById.get(evidence.receiptId))) {
       invalid(`The context plan evidence changed: ${evidence.receiptId}`);

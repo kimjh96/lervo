@@ -1,10 +1,7 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ContextHandoffInput, DocumentRuleMap } from "@lervo/context";
 import type { ResolvedWritingPolicy } from "@lervo/context-delivery";
-import type {
-  ConversationReplyCandidate,
-  ConversationResponder,
-} from "@lervo/interaction";
+import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ManagedResolvedSkill } from "@lervo/orchestrator";
 import type {
   ConversationInboundEvent,

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_75f87a7f2d6582ff923088f9
+  - uv_024677b956cbe78f68a98eb1
 title: "ADR-0009: Codex app-server managed adapter"
 type: decision

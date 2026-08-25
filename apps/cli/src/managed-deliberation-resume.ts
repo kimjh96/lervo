@@ -16,9 +16,7 @@ import { readApprovedDeliberationCheckpoint } from "./deliberation-checkpoint.js
 import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import { createFailedOutcome } from "./deliberation-contract.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
-import {
-  withDeliberationLease,
-} from "./deliberation-lease.js";
+import { withDeliberationLease } from "./deliberation-lease.js";
 import {
   createInlineDeliberationExecutionPlan,
   createStoredDeliberationExecutionPlan,
@@ -69,18 +67,24 @@ async function restoreTurnResult(input: {
   artifactId: string;
   storage: ProjectStorage;
 }): Promise<DeliberationTurnResult> {
-  const artifact = input.snapshot.artifacts.find((item) =>
-    item.deliberationArtifactId === input.artifactId);
-  const recorded = input.snapshot.recordedEvents.find((item) =>
-    item.artifactId === input.artifactId);
+  const artifact = input.snapshot.artifacts.find(
+    (item) => item.deliberationArtifactId === input.artifactId,
+  );
+  const recorded = input.snapshot.recordedEvents.find(
+    (item) => item.artifactId === input.artifactId,
+  );
   const event = recorded === undefined ? null : input.storage.events.get(recorded.eventId);
   if (artifact === undefined || event?.type !== "deliberation.artifact.recorded") {
-    throw new Error("The artifact event in the deliberation resume checkpoint could not be restored.");
+    throw new Error(
+      "The artifact event in the deliberation resume checkpoint could not be restored.",
+    );
   }
   const bytes = await input.storage.artifacts.get(artifact.content.uri);
   const digest = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
   if (digest !== artifact.content.contentHash || bytes.byteLength !== artifact.content.byteCount) {
-    throw new Error("The artifact bytes in the deliberation resume checkpoint do not match their CAS coordinates.");
+    throw new Error(
+      "The artifact bytes in the deliberation resume checkpoint do not match their CAS coordinates.",
+    );
   }
   const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   return { artifact: structuredClone(artifact), content, recordedEvent: event };
@@ -108,31 +112,40 @@ export async function resumeManagedDeliberationWithStorage(
         ...checkpoint.request,
       } as InlineManagedDeliberationRequest | StoredManagedDeliberationRequest;
       const knowledgePolicy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
-      const writingContract = dependencies.writingContract ??
+      const writingContract =
+        dependencies.writingContract ??
         writingContractForLanguage(knowledgePolicy.publication.language);
       const plan = await restorePlan(originalRequest, storage, writingContract);
       const policy = plan.policy;
       if (deliberationPolicyHash(policy) !== checkpoint.policyHash) {
         throw new Error("The policy changed after the deliberation resume checkpoint.");
       }
-      const checkpointHandoffIds = new Set(checkpoint.runtime.handoffs.map((item) => item.handoffId));
-      const contextHandoffIds = new Set(checkpoint.workspace.contexts.map((item) =>
-        item.handoff.handoffId));
+      const checkpointHandoffIds = new Set(
+        checkpoint.runtime.handoffs.map((item) => item.handoffId),
+      );
+      const contextHandoffIds = new Set(
+        checkpoint.workspace.contexts.map((item) => item.handoff.handoffId),
+      );
       if (
         contextHandoffIds.size !== checkpoint.workspace.contexts.length ||
         contextHandoffIds.size !== checkpointHandoffIds.size ||
         [...checkpointHandoffIds].some((handoffId) => !contextHandoffIds.has(handoffId))
-      ) throw new Error("Workspace handoffs in the deliberation resume checkpoint differ from runtime state.");
+      )
+        throw new Error(
+          "Workspace handoffs in the deliberation resume checkpoint differ from runtime state.",
+        );
       for (const context of checkpoint.workspace.contexts) {
-        const runtimePublication = checkpoint.runtime.publications.find((item) =>
-          item.publication.sharedContextId === context.publication.sharedContextId);
-        const runtimeHandoff = checkpoint.runtime.handoffs.find((item) =>
-          item.handoffId === context.handoff.handoffId);
-        const handoffEvent = runtimeHandoff === undefined
-          ? null
-          : storage.events.get(runtimeHandoff.eventId);
-        const participant = plan.participants.find((item) =>
-          item.role.roleId === context.producerRole.roleId);
+        const runtimePublication = checkpoint.runtime.publications.find(
+          (item) => item.publication.sharedContextId === context.publication.sharedContextId,
+        );
+        const runtimeHandoff = checkpoint.runtime.handoffs.find(
+          (item) => item.handoffId === context.handoff.handoffId,
+        );
+        const handoffEvent =
+          runtimeHandoff === undefined ? null : storage.events.get(runtimeHandoff.eventId);
+        const participant = plan.participants.find(
+          (item) => item.role.roleId === context.producerRole.roleId,
+        );
         if (
           runtimePublication === undefined ||
           JSON.stringify(runtimePublication.publication) !== JSON.stringify(context.publication) ||
@@ -143,7 +156,10 @@ export async function resumeManagedDeliberationWithStorage(
             JSON.stringify(context.handoff.sharedContextIds) ||
           participant === undefined ||
           JSON.stringify(participant.role) !== JSON.stringify(context.producerRole)
-        ) throw new Error("Published context sources in the deliberation resume checkpoint disagree.");
+        )
+          throw new Error(
+            "Published context sources in the deliberation resume checkpoint disagree.",
+          );
       }
       const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
       const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
@@ -179,27 +195,36 @@ export async function resumeManagedDeliberationWithStorage(
         artifactId: checkpoint.latestClaimArtifactId,
         storage,
       });
-      const approvedReviews = await Promise.all(checkpoint.approvedReviewArtifactIds.map(
-        (artifactId) => restoreTurnResult({ snapshot: checkpoint.runtime, artifactId, storage }),
-      ));
+      const approvedReviews = await Promise.all(
+        checkpoint.approvedReviewArtifactIds.map((artifactId) =>
+          restoreTurnResult({ snapshot: checkpoint.runtime, artifactId, storage }),
+        ),
+      );
       const claim = latestClaimArtifact.artifact;
-      const claimValues = claim.kind === "proposal" || claim.kind === "revision"
-        ? claim.details.claims
-        : [];
+      const claimValues =
+        claim.kind === "proposal" || claim.kind === "revision" ? claim.details.claims : [];
       const approvedRoleIds = approvedReviews.map((review) => review.artifact.producer.roleId);
       const expectedReviewerRoleIds = plan.reviewers.map((reviewer) => reviewer.role.roleId);
       if (
-        !claimValues.some((item) => item.claimId === checkpoint.currentClaim.claimId &&
-          item.claimDigest === checkpoint.currentClaim.claimDigest) ||
+        !claimValues.some(
+          (item) =>
+            item.claimId === checkpoint.currentClaim.claimId &&
+            item.claimDigest === checkpoint.currentClaim.claimDigest,
+        ) ||
         approvedReviews.length !== expectedReviewerRoleIds.length ||
         new Set(approvedRoleIds).size !== expectedReviewerRoleIds.length ||
         expectedReviewerRoleIds.some((roleId) => !approvedRoleIds.includes(roleId)) ||
-        approvedReviews.some((review) =>
-          review.artifact.kind !== "objection" ||
-          review.artifact.round !== claim.round ||
-          review.artifact.details.reviewStatus !== "approved" ||
-          !review.artifact.previousArtifactIds.includes(claim.deliberationArtifactId))
-      ) throw new Error("The deliberation resume checkpoint does not reference every approval for the latest claim.");
+        approvedReviews.some(
+          (review) =>
+            review.artifact.kind !== "objection" ||
+            review.artifact.round !== claim.round ||
+            review.artifact.details.reviewStatus !== "approved" ||
+            !review.artifact.previousArtifactIds.includes(claim.deliberationArtifactId),
+        )
+      )
+        throw new Error(
+          "The deliberation resume checkpoint does not reference every approval for the latest claim.",
+        );
       try {
         return await completeApprovedDeliberation({
           request: originalRequest,
@@ -219,14 +244,16 @@ export async function resumeManagedDeliberationWithStorage(
         });
       } catch (error) {
         try {
-          runtime.complete(createFailedOutcome({
-            deliberationId: checkpoint.deliberationId,
-            policy,
-            history: runtime.history(),
-            completedAt: dependencies.now().toISOString(),
-            unresolvedBlockingObjectionIds: [],
-            code: failureCode(error),
-          }));
+          runtime.complete(
+            createFailedOutcome({
+              deliberationId: checkpoint.deliberationId,
+              policy,
+              history: runtime.history(),
+              completedAt: dependencies.now().toISOString(),
+              unresolvedBlockingObjectionIds: [],
+              code: failureCode(error),
+            }),
+          );
         } catch {
           // Preserve the original failure instead of presenting incomplete history as completed.
         }

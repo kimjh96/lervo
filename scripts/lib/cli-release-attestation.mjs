@@ -31,7 +31,7 @@ function descriptor(name, mediaType, contents) {
 
 function sortedDescriptors(descriptors) {
   return descriptors.sort((left, right) =>
-    left.name < right.name ? -1 : left.name > right.name ? 1 : 0
+    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
   );
 }
 
@@ -146,22 +146,25 @@ export function createLocalCliReleaseStatement({
 }
 
 function descriptorsValid(descriptors) {
-  return Array.isArray(descriptors) &&
+  return (
+    Array.isArray(descriptors) &&
     descriptors.length > 0 &&
-    descriptors.every((item, index) =>
-      item !== null &&
-      typeof item === "object" &&
-      typeof item.name === "string" &&
-      item.name.length > 0 &&
-      (index === 0 || descriptors[index - 1].name < item.name) &&
-      typeof item.mediaType === "string" &&
-      item.mediaType.length > 0 &&
-      item.digest !== null &&
-      typeof item.digest === "object" &&
-      Object.keys(item.digest).length === 1 &&
-      typeof item.digest.sha256 === "string" &&
-      sha256Pattern.test(item.digest.sha256)
-    );
+    descriptors.every(
+      (item, index) =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof item.name === "string" &&
+        item.name.length > 0 &&
+        (index === 0 || descriptors[index - 1].name < item.name) &&
+        typeof item.mediaType === "string" &&
+        item.mediaType.length > 0 &&
+        item.digest !== null &&
+        typeof item.digest === "object" &&
+        Object.keys(item.digest).length === 1 &&
+        typeof item.digest.sha256 === "string" &&
+        sha256Pattern.test(item.digest.sha256),
+    )
+  );
 }
 
 export function validateLocalCliReleaseStatement(statement, inputs) {

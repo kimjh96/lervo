@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { canonicalJson } from "@lervo/event-contract";
 import type {
+  AdapterCapabilityActivationReceipt,
   AdapterDescriptor,
   AdapterNormalizedEvent,
   AdapterSession,
@@ -12,7 +13,9 @@ import { verificationSuiteHash } from "@lervo/verification-contract";
 
 import type { ManagedEventSpec } from "./telemetry.js";
 import type {
+  ManagedCapabilityRecommendation,
   ManagedProviderResultArtifact,
+  ManagedResolvedCapability,
   ManagedResolvedSkill,
 } from "./provider-run-types.js";
 
@@ -71,6 +74,87 @@ export function skillResolvedSpecs(
   }));
 }
 
+export function skillInvokedSpecs(
+  skills: readonly ManagedResolvedSkill[],
+  inputDigest: string,
+  occurredAt: string,
+): ManagedEventSpec[] {
+  return skills.map((skill) => ({
+    type: "skill.invoked",
+    occurredAt,
+    actor: systemActor,
+    payload: { skillId: skill.skillId, version: skill.version, inputDigest, capabilities: [] },
+  }));
+}
+
+export function skillCompletedSpecs(
+  skills: readonly ManagedResolvedSkill[],
+  artifactId: string,
+  outputDigest: string,
+  occurredAt: string,
+): ManagedEventSpec[] {
+  return skills.map((skill) => ({
+    type: "skill.completed",
+    occurredAt,
+    actor: systemActor,
+    payload: {
+      skillId: skill.skillId,
+      version: skill.version,
+      status: "completed",
+      artifactIds: [artifactId],
+      outputDigest,
+    },
+  }));
+}
+
+export function capabilityResolutionSpecs(input: {
+  recommendations: readonly ManagedCapabilityRecommendation[];
+  capabilities: readonly ManagedResolvedCapability[];
+  queryDigest: string;
+  occurredAt: string;
+}): ManagedEventSpec[] {
+  return [
+    ...input.recommendations.map((item) => ({
+      type: "capability.recommended" as const,
+      occurredAt: input.occurredAt,
+      actor: systemActor,
+      payload: { ...item, queryDigest: input.queryDigest },
+    })),
+    ...input.capabilities.flatMap((item) => [
+      {
+        type: "capability.selected" as const,
+        occurredAt: input.occurredAt,
+        actor: systemActor,
+        payload: {
+          capabilityId: item.capabilityId,
+          capabilityKind: item.capabilityKind,
+          version: item.version,
+          contentHash: item.contentHash,
+          reason: item.selectionReason,
+        },
+      },
+      {
+        type: "capability.loaded" as const,
+        occurredAt: input.occurredAt,
+        actor: systemActor,
+        payload: {
+          capabilityId: item.capabilityId,
+          capabilityKind: item.capabilityKind,
+          version: item.version,
+          contentHash: item.contentHash,
+          sourceKind: item.sourceKind,
+          validationDigest: digest({
+            capabilityId: item.capabilityId,
+            version: item.version,
+            contentHash: item.contentHash,
+            sourceKind: item.sourceKind,
+          }),
+        },
+      },
+    ]),
+  ];
+}
+
 export function adapterStartedSpec(
   descriptor: AdapterDescriptor,
   session: AdapterSession,
@@ -87,6 +171,27 @@ export function adapterStartedSpec(
       capabilities: session.effectiveCapabilities,
     },
   };
+}
+
+export function capabilityActivatedSpecs(
+  receipts: readonly AdapterCapabilityActivationReceipt[],
+  provider: string,
+): ManagedEventSpec[] {
+  return receipts.map((receipt) => ({
+    type: "capability.activated",
+    occurredAt: receipt.confirmedAt,
+    actor: { kind: "provider", provider },
+    payload: {
+      capabilityId: receipt.capabilityId,
+      capabilityKind: receipt.capabilityKind,
+      version: receipt.version,
+      contentHash: receipt.contentHash,
+      adapterId: receipt.adapterId,
+      providerSessionId: receipt.providerSessionId,
+      evidence: receipt.evidence,
+      activationDigest: receipt.activationDigest,
+    },
+  }));
 }
 
 export function adapterStoppedSpec(
@@ -141,6 +246,57 @@ export function providerSignalSpec(
   return null;
 }
 
+export function capabilityInvocationSpecs(input: {
+  event: AdapterNormalizedEvent;
+  requests: readonly import("@lervo/schemas").AdapterCapabilityActivationRequest[];
+  receipts: readonly AdapterCapabilityActivationReceipt[];
+  provider: string;
+  recordedAt: string;
+}): ManagedEventSpec[] {
+  if (input.event.type !== "provider.tool.called") return [];
+  const payload = input.event.payload as {
+    providerItemId: string;
+    toolName: string;
+    inputDigest: string;
+    status: "in_progress" | "completed" | "failed" | "declined";
+    durationMs: number | null;
+  };
+  const receiptIds = new Set(input.receipts.map((item) => item.capabilityId));
+  const request = input.requests.find((item) => {
+    if (
+      !receiptIds.has(item.capabilityId) ||
+      (item.runtime.kind !== "mcp_stdio" && item.runtime.kind !== "mcp_http")
+    )
+      return false;
+    return payload.toolName.startsWith(`mcp__${item.runtime.serverName}__`);
+  });
+  if (request === undefined) return [];
+  const base = {
+    capabilityId: request.capabilityId,
+    capabilityKind: request.capabilityKind,
+    version: request.version,
+    contentHash: request.contentHash,
+    providerItemDigest: digest(payload.providerItemId),
+  };
+  if (payload.status === "in_progress")
+    return [
+      {
+        type: "capability.invoked",
+        occurredAt: input.recordedAt,
+        actor: { kind: "provider", provider: input.provider },
+        payload: { ...base, inputDigest: payload.inputDigest },
+      },
+    ];
+  return [
+    {
+      type: "capability.completed",
+      occurredAt: input.recordedAt,
+      actor: { kind: "provider", provider: input.provider },
+      payload: { ...base, status: payload.status, durationMs: payload.durationMs },
+    },
+  ];
+}
+
 export function unmanagedChangeSpec(input: {
   paths: readonly string[];
   beforeRevision: string;
@@ -167,10 +323,9 @@ export function runCompletedSpec(input: {
     actor: systemActor,
     payload: {
       resultDigest: input.resultArtifact.contentHash,
-      artifactIds: [...new Set([
-        input.resultArtifact.artifactId,
-        ...input.verificationArtifactIds,
-      ])],
+      artifactIds: [
+        ...new Set([input.resultArtifact.artifactId, ...input.verificationArtifactIds]),
+      ],
       verificationStatus: input.verificationStatus,
     },
   };

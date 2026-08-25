@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_618fbfc66103c169c6591b1f
+  - uv_7d2151accd23aa6b36a4a5f4
 title: "@lervo/cli"
 type: concept

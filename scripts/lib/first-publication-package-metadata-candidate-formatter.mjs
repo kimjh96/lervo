@@ -1,5 +1,4 @@
-import { formatFirstPublicationMetadataChange } from
-  "./first-publication-metadata-change-formatter.mjs";
+import { formatFirstPublicationMetadataChange } from "./first-publication-metadata-change-formatter.mjs";
 
 export function formatFirstPublicationPackageMetadataCandidate(candidate) {
   const lines = [

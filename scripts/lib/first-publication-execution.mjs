@@ -1,18 +1,13 @@
 import { isAbsolute } from "node:path";
 
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import { createFirstPublicationExecutionReceipt } from
-  "./first-publication-execution-receipt.mjs";
-import { createFirstPublicationReservation } from
-  "./first-publication-reservation.mjs";
+import { createFirstPublicationExecutionReceipt } from "./first-publication-execution-receipt.mjs";
+import { createFirstPublicationReservation } from "./first-publication-reservation.mjs";
 import { executeAuthorizedReleasePublication } from "./release-publication-executor.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
-import { validateFirstPublicationArmingAuthorization } from
-  "./first-publication-arming-authorization.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationArmingAuthorization } from "./first-publication-arming-authorization.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import { validateReleasePublicationAuthorization } from "./release-publication-authorization.mjs";
 
 function fail(code, message = "The CLI first-publication execution input is invalid.") {
   throw new FirstPublicationBootstrapError(code, message);
@@ -64,14 +59,17 @@ export async function executeFirstPublicationBootstrap(
   const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
   if (
     authorization.authorizationDigest !== bootstrap.release.publicationAuthorizationDigest ||
-    typeof releaseDirectory !== "string" || !isAbsolute(releaseDirectory) ||
-    typeof observePackage !== "function" || typeof publish !== "function" ||
+    typeof releaseDirectory !== "string" ||
+    !isAbsolute(releaseDirectory) ||
+    typeof observePackage !== "function" ||
+    typeof publish !== "function" ||
     (preparePublish !== undefined && typeof preparePublish !== "function") ||
     typeof reservationStore?.reserve !== "function" ||
     typeof reservationStore.complete !== "function" ||
     typeof reservationStore.abort !== "function" ||
     typeof reservationStore.markUnknown !== "function"
-  ) fail("first_publication_execution_input_invalid");
+  )
+    fail("first_publication_execution_input_invalid");
   validateFirstPublicationArmingAuthorization(armingAuthorization, {
     bootstrap,
     publicationAuthorization: authorization,
@@ -80,9 +78,12 @@ export async function executeFirstPublicationBootstrap(
   if (preparePublish !== undefined) await preparePublish();
   const observation = await observePackage();
   if (
-    observation?.schemaVersion !== 1 || observation.source !== "npm_public_registry" ||
-    observation.state !== "not_found" || observation.package !== bootstrap.target.package
-  ) fail("first_publication_package_not_available");
+    observation?.schemaVersion !== 1 ||
+    observation.source !== "npm_public_registry" ||
+    observation.state !== "not_found" ||
+    observation.package !== bootstrap.target.package
+  )
+    fail("first_publication_package_not_available");
   const reservedAt = clock();
   validateFirstPublicationArmingAuthorization(armingAuthorization, {
     bootstrap,
@@ -101,20 +102,26 @@ export async function executeFirstPublicationBootstrap(
     }
   } catch (error) {
     if (error instanceof FirstPublicationBootstrapError) throw error;
-    fail("first_publication_reservation_failed", "The CLI first-publication reservation could not be acquired.");
+    fail(
+      "first_publication_reservation_failed",
+      "The CLI first-publication reservation could not be acquired.",
+    );
   }
   let publicationStarted = false;
   let publicationReport;
   try {
-    publicationReport = await executeAuthorizedReleasePublication({
-      authorization,
-      releaseDirectory,
-    }, {
-      publish: async (input) => {
-        publicationStarted = true;
-        return publish(input);
+    publicationReport = await executeAuthorizedReleasePublication(
+      {
+        authorization,
+        releaseDirectory,
       },
-    });
+      {
+        publish: async (input) => {
+          publicationStarted = true;
+          return publish(input);
+        },
+      },
+    );
   } catch (error) {
     if (!publicationStarted) {
       await abortBeforePublication(reservationStore, reservation);

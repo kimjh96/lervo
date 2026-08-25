@@ -1,17 +1,9 @@
 import { defaultEnglishWritingContract } from "@lervo/core";
-import type {
-  EventEnvelope,
-} from "@lervo/schemas";
+import type { EventEnvelope } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  DeliberationRuntime,
-  validateManagedRunContextEvidence,
-} from "../src/index.js";
-import {
-  materializeProposalContext,
-  noConsensusOutcome,
-} from "./deliberation-scenario.js";
+import { DeliberationRuntime, validateManagedRunContextEvidence } from "../src/index.js";
+import { materializeProposalContext, noConsensusOutcome } from "./deliberation-scenario.js";
 import {
   claimId,
   cleanupFixtures,
@@ -65,14 +57,15 @@ describe("same-provider independent role deliberation runtime", () => {
       details: { claims: [{ claimId, claimDigest: hash("bounded-run-events") }] },
       previousArtifactIds: [],
       sharedContextPublications: [],
-      executeManagedRun: () => coordinator({
-        fixture,
-        adapter,
-        role: proposerRole,
-        runId: "run_proposer_many_events",
-        sessionId: "ses_proposer_many_events",
-        now,
-      }).run(managedInput({ root: fixture.root, role: proposerRole })),
+      executeManagedRun: () =>
+        coordinator({
+          fixture,
+          adapter,
+          role: proposerRole,
+          runId: "run_proposer_many_events",
+          sessionId: "ses_proposer_many_events",
+          now,
+        }).run(managedInput({ root: fixture.root, role: proposerRole })),
       writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
@@ -121,10 +114,13 @@ describe("same-provider independent role deliberation runtime", () => {
       details: { claims: [{ claimId, claimDigest: hash("independent-contexts") }] },
       previousArtifactIds: [],
       sharedContextPublications: [],
-      executeManagedRun: () => proposalRun.run(managedInput({
-        root: fixture.root,
-        role: proposerRole,
-      })),
+      executeManagedRun: () =>
+        proposalRun.run(
+          managedInput({
+            root: fixture.root,
+            role: proposerRole,
+          }),
+        ),
       writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
@@ -150,14 +146,18 @@ describe("same-provider independent role deliberation runtime", () => {
       publication,
       handoff: proposerHandoff,
     });
-    expect(() => runtime.publishHandoff({
-      artifactId: proposal.artifact.deliberationArtifactId,
-      publication,
-      handoff: proposerHandoff,
-    })).toThrowError(expect.objectContaining({
-      code: "runtime_state_invalid",
-      reason: "handoff_already_published",
-    }));
+    expect(() =>
+      runtime.publishHandoff({
+        artifactId: proposal.artifact.deliberationArtifactId,
+        publication,
+        handoff: proposerHandoff,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "runtime_state_invalid",
+        reason: "handoff_already_published",
+      }),
+    );
 
     const reviewerAdapter = new FixtureProviderAdapter(
       "codex-session-reviewer",
@@ -176,33 +176,40 @@ describe("same-provider independent role deliberation runtime", () => {
       round: 1,
       details: {
         reviewStatus: "changes_requested",
-        objections: [{
-          objectionId,
-          objectionDigest: hash("event-evidence-required"),
-          targetClaimIds: [claimId],
-          blocking: true,
-          status: "open",
-        }],
+        objections: [
+          {
+            objectionId,
+            objectionDigest: hash("event-evidence-required"),
+            targetClaimIds: [claimId],
+            blocking: true,
+            status: "open",
+          },
+        ],
       },
       previousArtifactIds: [proposal.artifact.deliberationArtifactId],
       sharedContextPublications: [publication],
-      executeManagedRun: () => reviewerRun.run(managedInput({
-        root: fixture.root,
-        role: reviewerRole,
-        includeProposal: true,
-        publications: [publication],
-        handoff,
-      })),
+      executeManagedRun: () =>
+        reviewerRun.run(
+          managedInput({
+            root: fixture.root,
+            role: reviewerRole,
+            includeProposal: true,
+            publications: [publication],
+            handoff,
+          }),
+        ),
       writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
-    runtime.complete(noConsensusOutcome({
-      policy,
-      proposal,
-      review,
-      completedAt: now().toISOString(),
-    }));
+    runtime.complete(
+      noConsensusOutcome({
+        policy,
+        proposal,
+        review,
+        completedAt: now().toISOString(),
+      }),
+    );
 
     expect(proposal.artifact.producer).toMatchObject({
       provider: "codex",
@@ -215,11 +222,13 @@ describe("same-provider independent role deliberation runtime", () => {
       sessionId: "ses_reviewer_0001",
     });
     expect(proposal.artifact.producer.sessionId).not.toBe(review.artifact.producer.sessionId);
-    const providerSessions = eventsOfType(fixture.events.list(), "adapter.started")
-      .map((event) => event.payload.providerSessionId);
+    const providerSessions = eventsOfType(fixture.events.list(), "adapter.started").map(
+      (event) => event.payload.providerSessionId,
+    );
     expect(new Set(providerSessions).size).toBe(2);
-    expect(proposerAdapter.injectedEnvelopes[0]?.writingPolicyDocumentId)
-      .toBe("doc_writing_policy");
+    expect(proposerAdapter.injectedEnvelopes[0]?.writingPolicyDocumentId).toBe(
+      "doc_writing_policy",
+    );
     expect(reviewerAdapter.injectedEnvelopes[0]?.documents).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -228,8 +237,7 @@ describe("same-provider independent role deliberation runtime", () => {
         }),
       ]),
     );
-    expect(review.artifact.inputContext.sharedContextIds)
-      .toEqual([publication.sharedContextId]);
+    expect(review.artifact.inputContext.sharedContextIds).toEqual([publication.sharedContextId]);
     const proposalReceipts = new Set([
       ...proposal.artifact.inputContext.loadedReceiptIds,
       ...proposal.artifact.inputContext.injectedReceiptIds,
@@ -241,14 +249,17 @@ describe("same-provider independent role deliberation runtime", () => {
     expect(reviewReceipts.some((receiptId) => proposalReceipts.has(receiptId))).toBe(false);
 
     const events = fixture.events.list();
-    expect(events.filter((event) => event.type === "deliberation.artifact.recorded"))
-      .toHaveLength(2);
-    expect(events.map((event) => event.type)).toEqual(expect.arrayContaining([
-      "deliberation.started",
-      "context.published",
-      "handoff.created",
-      "deliberation.completed",
-    ]));
+    expect(events.filter((event) => event.type === "deliberation.artifact.recorded")).toHaveLength(
+      2,
+    );
+    expect(events.map((event) => event.type)).toEqual(
+      expect.arrayContaining([
+        "deliberation.started",
+        "context.published",
+        "handoff.created",
+        "deliberation.completed",
+      ]),
+    );
     expect(events.filter((event) => event.type === "context.published")).toHaveLength(1);
     expect(events.filter((event) => event.type === "handoff.created")).toHaveLength(2);
     expect(JSON.stringify(events)).not.toContain(proposal.content);
@@ -277,22 +288,23 @@ describe("same-provider independent role deliberation runtime", () => {
     if (loaded === undefined) throw new Error("fixture E2 receipt missing");
     loaded.receiptId = "ctx_forged_receipt_0001";
 
-    expect(() => validateManagedRunContextEvidence({
-      run: tampered,
-      events: fixture.events.list({ runId: run.session.runId }),
-      previousArtifacts: [],
-      sharedContextPublications: [],
-    })).toThrowError(expect.objectContaining({
-      code: "context_evidence_invalid",
-      reason: "receipt_event_mismatch",
-    }));
+    expect(() =>
+      validateManagedRunContextEvidence({
+        run: tampered,
+        events: fixture.events.list({ runId: run.session.runId }),
+        previousArtifacts: [],
+        sharedContextPublications: [],
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "context_evidence_invalid",
+        reason: "receipt_event_mismatch",
+      }),
+    );
     fixture.events.close();
   });
 });
 
-function eventsOfType(
-  events: readonly EventEnvelope[],
-  type: string,
-) {
+function eventsOfType(events: readonly EventEnvelope[], type: string) {
   return events.filter((event) => event.type === type);
 }

@@ -23,10 +23,7 @@ import {
 import { writingPolicyHash } from "@lervo/writing-contract";
 
 import { validateManagedRunContextEvidence } from "./context-evidence-binding.js";
-import {
-  DeliberationRuntimeError,
-  type DeliberationArtifactDetails,
-} from "./types.js";
+import { DeliberationRuntimeError, type DeliberationArtifactDetails } from "./types.js";
 
 export async function publishDeliberationArtifact<K extends DeliberationArtifactKind>(input: {
   deliberationId: string;
@@ -55,13 +52,16 @@ export async function publishDeliberationArtifact<K extends DeliberationArtifact
       "The deliberation policy and writing publication policy differ.",
     );
   }
-  const publication = await evaluateWritingPublication({
-    artifact: input.run.resultArtifact,
-    contract: input.writingContract,
-    surface: input.policy.publication.surface,
-    artifactStore: input.artifactStore,
-    semanticEvaluator: input.semanticEvaluator,
-  }, { now: () => new Date(input.createdAt) });
+  const publication = await evaluateWritingPublication(
+    {
+      artifact: input.run.resultArtifact,
+      contract: input.writingContract,
+      surface: input.policy.publication.surface,
+      artifactStore: input.artifactStore,
+      semanticEvaluator: input.semanticEvaluator,
+    },
+    { now: () => new Date(input.createdAt) },
+  );
   if (publication.status !== "allowed") {
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",

@@ -5,13 +5,8 @@ import {
   inspectFirstPublicationStageOnlyWorkflow,
   stagePublicationPackageScript,
 } from "./first-publication-stage-only-policy.mjs";
-import {
-  canonicalDigest,
-  canonicalJson,
-  sha256,
-} from "./release-artifact-manifest.mjs";
-import { inspectTrustedPublisherInactiveWorkflow } from
-  "./trusted-publisher-readiness.mjs";
+import { canonicalDigest, canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
+import { inspectTrustedPublisherInactiveWorkflow } from "./trusted-publisher-readiness.mjs";
 
 export { stagePublicationPackageScript };
 
@@ -63,17 +58,23 @@ function fail(code = "first_publication_workflow_activation_candidate_invalid") 
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function snapshot(snapshot) {
   if (
     !exactKeys(snapshot, ["contents", "byteCount", "sha256"]) ||
-    !Buffer.isBuffer(snapshot.contents) || snapshot.contents.length === 0 ||
+    !Buffer.isBuffer(snapshot.contents) ||
+    snapshot.contents.length === 0 ||
     snapshot.byteCount !== snapshot.contents.length ||
     snapshot.sha256 !== sha256(snapshot.contents)
-  ) fail();
+  )
+    fail();
   return snapshot;
 }
 
@@ -90,9 +91,11 @@ function packageManifest(input) {
     canonicalJson(parsed) !== canonicalJson(input.packageManifest) ||
     parsed?.scripts?.["release:publication:stage"] !== stagePublicationPackageScript
   ) {
-    fail(parsed?.scripts?.["release:publication:stage"] === undefined
-      ? "first_publication_workflow_activation_stage_command_missing"
-      : "first_publication_workflow_activation_source_format_unsupported");
+    fail(
+      parsed?.scripts?.["release:publication:stage"] === undefined
+        ? "first_publication_workflow_activation_stage_command_missing"
+        : "first_publication_workflow_activation_source_format_unsupported",
+    );
   }
   return source;
 }
@@ -111,29 +114,35 @@ function workflowDocument(input) {
     if (error instanceof FirstPublicationBootstrapError) throw error;
     fail("first_publication_workflow_activation_source_format_unsupported");
   }
-  if (
-    document.errors.length > 0 || document.warnings.length > 0 || !isMap(document.contents)
-  ) fail("first_publication_workflow_activation_source_format_unsupported");
+  if (document.errors.length > 0 || document.warnings.length > 0 || !isMap(document.contents))
+    fail("first_publication_workflow_activation_source_format_unsupported");
   const jobsPairs = document.contents.items.filter(({ key }) => key?.value === "jobs");
   const jobs = jobsPairs[0]?.value;
   const workflow = document.toJS();
   if (
-    jobsPairs.length !== 1 || !isMap(jobs) ||
-    !Array.isArray(jobs.range) || !Number.isSafeInteger(jobs.range[1]) ||
-    jobs.range[1] <= 0 || text[jobs.range[1] - 1] !== "\n" ||
+    jobsPairs.length !== 1 ||
+    !isMap(jobs) ||
+    !Array.isArray(jobs.range) ||
+    !Number.isSafeInteger(jobs.range[1]) ||
+    jobs.range[1] <= 0 ||
+    text[jobs.range[1] - 1] !== "\n" ||
     canonicalJson(workflow) !== canonicalJson(input.workflow)
-  ) fail("first_publication_workflow_activation_source_format_unsupported");
+  )
+    fail("first_publication_workflow_activation_source_format_unsupported");
   const inactive = inspectTrustedPublisherInactiveWorkflow(workflow);
   if (inactive.status !== "ready") {
-    fail(inactive.reasons.includes("publish_job_already_active")
-      ? "first_publication_workflow_activation_already_active"
-      : "first_publication_workflow_activation_candidate_invalid");
+    fail(
+      inactive.reasons.includes("publish_job_already_active")
+        ? "first_publication_workflow_activation_already_active"
+        : "first_publication_workflow_activation_candidate_invalid",
+    );
   }
   if (
     workflow.jobs?.["attested-cli"] === null ||
     typeof workflow.jobs?.["attested-cli"] !== "object" ||
     Array.isArray(workflow.jobs?.["attested-cli"])
-  ) fail();
+  )
+    fail();
   return { source, text, document, jobs, workflow };
 }
 
@@ -169,10 +178,8 @@ export function createFirstPublicationWorkflowActivationCandidate(input) {
   const withoutCandidate = structuredClone(outputWorkflow);
   delete withoutCandidate?.jobs?.["publish-cli"];
   const ready = inspectFirstPublicationStageOnlyWorkflow(outputWorkflow);
-  if (
-    canonicalJson(withoutCandidate) !== canonicalJson(workflow) ||
-    ready.status !== "ready"
-  ) fail();
+  if (canonicalJson(withoutCandidate) !== canonicalJson(workflow) || ready.status !== "ready")
+    fail();
   const body = {
     schemaVersion: 1,
     status: "review_required",
@@ -209,16 +216,20 @@ export function validateFirstPublicationWorkflowActivationCandidate(result, inpu
   const candidate = result?.candidate;
   const body = candidateBody(candidate ?? {});
   if (
-    !exactKeys(result, ["candidate", "outputBytes"]) || !Buffer.isBuffer(result.outputBytes) ||
+    !exactKeys(result, ["candidate", "outputBytes"]) ||
+    !Buffer.isBuffer(result.outputBytes) ||
     !exactKeys(candidate, [...Object.keys(body), "candidateDigest"]) ||
-    candidate.schemaVersion !== 1 || candidate.status !== "review_required" ||
+    candidate.schemaVersion !== 1 ||
+    candidate.status !== "review_required" ||
     candidate.candidateType !== "first_publication_stage_only_workflow_activation" ||
     candidate.candidateDigest !== canonicalDigest(body)
-  ) fail();
+  )
+    fail();
   const expected = createFirstPublicationWorkflowActivationCandidate(input);
   if (
     canonicalJson(candidate) !== canonicalJson(expected.candidate) ||
     !result.outputBytes.equals(expected.outputBytes)
-  ) fail();
+  )
+    fail();
   return result;
 }

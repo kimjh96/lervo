@@ -1,0 +1,30 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_66c8bbdbccbf02216eae44af
+outputLanguage: en
+outputs:
+  - byteCount: 6035
+    contentHash: sha256:6a950ccb941f8b9315c4abfd96e423f3dd1a96dcbb6ede4d3e29b10047f34488
+    path: docs/decisions/execution/providers/0011-managed-provider-run-lifecycle.md
+    userRegionHash: sha256:6a950ccb941f8b9315c4abfd96e423f3dd1a96dcbb6ede4d3e29b10047f34488
+profile: decision_record
+recordId: knormdoc_d341e532e34817ac8ba689f4
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:420a715d1b2fd206c61f5aed18fc26761a42ab7027c03c3fdca183069b93e76c
+sourcePath: docs/decisions/execution/providers/0011-managed-provider-run-lifecycle.md
+sourceUnitVersionIds:
+  - uv_2f62a870a5695c0ea6c71902
+  - uv_47e74500fbd59d556f05b176
+  - uv_48a190e6dfad11540472c47a
+  - uv_79a21ac93389ac4260ff2350
+  - uv_b3facba8debd0fe30cbd1e1e
+  - uv_bec04782979f09a998c78eea
+  - uv_ca94501fa30d097ddbae67be
+  - uv_de8b0d86ebf74fd8e9a8c9b2

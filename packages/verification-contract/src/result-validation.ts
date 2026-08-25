@@ -27,10 +27,7 @@ function validateArtifact(
   artifact: NonNullable<VerificationCommandResult["stdoutArtifact"]>,
 ): void {
   const digest = artifact.contentHash.slice("sha256:".length);
-  if (
-    artifact.artifactId !== `art_${digest}` ||
-    artifact.uri !== `lervo-cas://sha256/${digest}`
-  ) {
+  if (artifact.artifactId !== `art_${digest}` || artifact.uri !== `lervo-cas://sha256/${digest}`) {
     invalidResult("The verification output artifact coordinates do not match the content hash.");
   }
 }
@@ -50,17 +47,26 @@ function expectedFailureCode(
 function validateCommandResult(result: VerificationCommandResult): void {
   if (result.status === "not_run") {
     if (
-      result.exitCode !== null || result.startedAt !== null || result.completedAt !== null ||
-      result.durationMs !== null || result.stdoutArtifact !== null || result.stderrArtifact !== null ||
+      result.exitCode !== null ||
+      result.startedAt !== null ||
+      result.completedAt !== null ||
+      result.durationMs !== null ||
+      result.stdoutArtifact !== null ||
+      result.stderrArtifact !== null ||
       (result.failureCode !== "blocked_by_previous_failure" && result.failureCode !== "cancelled")
     ) {
-      invalidResult("A verification command that was not run has execution evidence or lacks a reason.");
+      invalidResult(
+        "A verification command that was not run has execution evidence or lacks a reason.",
+      );
     }
     return;
   }
   if (
-    result.startedAt === null || result.completedAt === null || result.durationMs === null ||
-    result.stdoutArtifact === null || result.stderrArtifact === null
+    result.startedAt === null ||
+    result.completedAt === null ||
+    result.durationMs === null ||
+    result.stdoutArtifact === null ||
+    result.stderrArtifact === null
   ) {
     invalidResult("A completed verification command is missing times or an output artifact.");
   }
@@ -74,17 +80,23 @@ function validateCommandResult(result: VerificationCommandResult): void {
     (result.status === "passed" && result.exitCode !== 0) ||
     (result.status === "failed" && (result.exitCode === null || result.exitCode === 0))
   ) {
-    invalidResult("The verification command status is inconsistent with its exit code or failure reason.");
+    invalidResult(
+      "The verification command status is inconsistent with its exit code or failure reason.",
+    );
   }
 }
 
 function expectedOverallStatus(
   commands: readonly VerificationCommandResult[],
 ): VerificationResult["status"] {
-  if (commands.some((command) =>
-    command.status === "cancelled" ||
-    (command.status === "not_run" && command.failureCode === "cancelled")
-  )) return "cancelled";
+  if (
+    commands.some(
+      (command) =>
+        command.status === "cancelled" ||
+        (command.status === "not_run" && command.failureCode === "cancelled"),
+    )
+  )
+    return "cancelled";
   return commands.every((command) => command.status === "passed") ? "passed" : "failed";
 }
 
@@ -103,7 +115,8 @@ export function validateVerificationResult(
     invalidResult("Verification cannot complete before it starts.");
   }
   if (
-    result.suiteId !== suite.suiteId || result.suiteHash !== verificationSuiteHash(suite) ||
+    result.suiteId !== suite.suiteId ||
+    result.suiteHash !== verificationSuiteHash(suite) ||
     result.commands.length !== suite.commands.length
   ) {
     invalidResult("The verification result does not match the executed suite.");
@@ -130,6 +143,8 @@ export function validateVerificationResult(
     result.status !== expectedOverallStatus(result.commands) ||
     result.verificationId !== calculateVerificationId(result)
   ) {
-    invalidResult("The overall verification status or result ID differs from the command evidence.");
+    invalidResult(
+      "The overall verification status or result ID differs from the command evidence.",
+    );
   }
 }

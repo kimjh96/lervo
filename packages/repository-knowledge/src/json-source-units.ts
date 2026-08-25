@@ -26,11 +26,13 @@ function escapedPointerPart(value: string): string {
 }
 
 function validRange(node: Node, sourceLength: number): boolean {
-  return Number.isSafeInteger(node.offset)
-    && Number.isSafeInteger(node.length)
-    && node.offset >= 0
-    && node.length >= 0
-    && node.offset + node.length <= sourceLength;
+  return (
+    Number.isSafeInteger(node.offset) &&
+    Number.isSafeInteger(node.length) &&
+    node.offset >= 0 &&
+    node.length >= 0 &&
+    node.offset + node.length <= sourceLength
+  );
 }
 
 export function extractJsonKeySpans(source: string): JsonKeySpan[] {
@@ -59,13 +61,14 @@ export function extractJsonKeySpans(source: string): JsonKeySpan[] {
       for (const property of current.node.children ?? []) {
         const [keyNode, valueNode, ...unexpected] = property.children ?? [];
         if (
-          property.type !== "property"
-          || unexpected.length > 0
-          || keyNode?.type !== "string"
-          || typeof keyNode.value !== "string"
-          || valueNode === undefined
-          || !validRange(property, source.length)
-        ) return fail();
+          property.type !== "property" ||
+          unexpected.length > 0 ||
+          keyNode?.type !== "string" ||
+          typeof keyNode.value !== "string" ||
+          valueNode === undefined ||
+          !validRange(property, source.length)
+        )
+          return fail();
         if (seen.has(keyNode.value)) return fail();
         seen.add(keyNode.value);
 
@@ -79,7 +82,8 @@ export function extractJsonKeySpans(source: string): JsonKeySpan[] {
           endCharacter: property.offset + property.length,
         });
         if (spans.length > MAX_JSON_KEY_UNITS) return fail();
-        if (valueNode.type === "object" || valueNode.type === "array") stack.push({ node: valueNode, parts });
+        if (valueNode.type === "object" || valueNode.type === "array")
+          stack.push({ node: valueNode, parts });
       }
       continue;
     }

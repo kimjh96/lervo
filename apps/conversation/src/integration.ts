@@ -21,5 +21,7 @@ export interface ConversationIntegrationContext {
 export interface ConversationIntegrationDeployment {
   integrationId: string;
   platform: ConversationPlatformKind | null;
-  create(context: ConversationIntegrationContext): ConversationAdapter | Promise<ConversationAdapter>;
+  create(
+    context: ConversationIntegrationContext,
+  ): ConversationAdapter | Promise<ConversationAdapter>;
 }

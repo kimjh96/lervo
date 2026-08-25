@@ -39,13 +39,7 @@ export const hubPolicyApprovalWriteRequestSchema = {
     },
     expiresAt: timestampSchema,
   },
-  required: [
-    "schemaVersion",
-    "commandId",
-    "capability",
-    "repositoryPaths",
-    "expiresAt",
-  ],
+  required: ["schemaVersion", "commandId", "capability", "repositoryPaths", "expiresAt"],
   additionalProperties: false,
 } as const;
 
@@ -63,12 +57,8 @@ export const hubPolicyRevocationWriteRequestSchema = {
   additionalProperties: false,
 } as const;
 
-export type HubPolicySnapshotWriteRequest = FromSchema<
-  typeof hubPolicySnapshotWriteRequestSchema
->;
-export type HubPolicyApprovalWriteRequest = FromSchema<
-  typeof hubPolicyApprovalWriteRequestSchema
->;
+export type HubPolicySnapshotWriteRequest = FromSchema<typeof hubPolicySnapshotWriteRequestSchema>;
+export type HubPolicyApprovalWriteRequest = FromSchema<typeof hubPolicyApprovalWriteRequestSchema>;
 export type HubPolicyRevocationWriteRequest = FromSchema<
   typeof hubPolicyRevocationWriteRequestSchema
 >;

@@ -31,7 +31,9 @@ export class LocalSearchObservationStore {
 
   static async openExisting(repositoryRoot: string): Promise<LocalSearchObservationStore | null> {
     const paths = await existingObservationDirectories(repositoryRoot);
-    return paths === null ? null : new LocalSearchObservationStore(paths.attempts, paths.assessments);
+    return paths === null
+      ? null
+      : new LocalSearchObservationStore(paths.attempts, paths.assessments);
   }
 
   async recordAttempt(attempt: SearchAttempt): Promise<void> {
@@ -43,25 +45,38 @@ export class LocalSearchObservationStore {
     if (!/^sat_[a-f0-9]{24}$/.test(attemptId)) {
       throw new SearchLocalError("observation_invalid", "The search attempt ID is invalid.");
     }
-    const attempt = await readObservation<SearchAttempt>(resolve(this.attemptsPath, `${attemptId}.json`));
+    const attempt = await readObservation<SearchAttempt>(
+      resolve(this.attemptsPath, `${attemptId}.json`),
+    );
     assertSearchAttempt(attempt);
     if (attempt.attemptId !== attemptId) {
-      throw new SearchLocalError("observation_invalid", "The search attempt filename does not match the source ID.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search attempt filename does not match the source ID.",
+      );
     }
     return attempt;
   }
 
   async recordAssessment(assessment: SearchAssessment): Promise<void> {
     assertSearchAssessment(assessment, await this.readAttempt(assessment.attemptId));
-    await writeObservation(resolve(this.assessmentsPath, `${assessment.attemptId}.json`), assessment);
+    await writeObservation(
+      resolve(this.assessmentsPath, `${assessment.attemptId}.json`),
+      assessment,
+    );
   }
 
   async readAssessment(attemptId: string): Promise<SearchAssessment> {
     const attempt = await this.readAttempt(attemptId);
-    const assessment = await readObservation<SearchAssessment>(resolve(this.assessmentsPath, `${attemptId}.json`));
+    const assessment = await readObservation<SearchAssessment>(
+      resolve(this.assessmentsPath, `${attemptId}.json`),
+    );
     assertSearchAssessment(assessment, attempt);
     if (assessment.attemptId !== attemptId) {
-      throw new SearchLocalError("observation_invalid", "The search assessment filename does not match the target attempt ID.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The search assessment filename does not match the target attempt ID.",
+      );
     }
     return assessment;
   }

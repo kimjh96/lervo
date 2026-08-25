@@ -1,4 +1,4 @@
-export function formatFirstPublicationStageApprovalExecution(terminal) {
+export function formatFirstPublicationStageApprovalExecution(_terminal) {
   return [
     "CLI npm stage approval command complete",
     "- npm CLI result: exit code 0",

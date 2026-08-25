@@ -76,11 +76,7 @@ export function inspectTurnResultBinding(input: {
   }
   const producedAt = Date.parse(input.result.producedAt);
   const acceptedAt = Date.parse(input.turn.acceptedAt);
-  if (
-    !Number.isFinite(producedAt) ||
-    !Number.isFinite(acceptedAt) ||
-    producedAt < acceptedAt
-  ) {
+  if (!Number.isFinite(producedAt) || !Number.isFinite(acceptedAt) || producedAt < acceptedAt) {
     violations.push({
       code: "result_time_invalid",
       detail: "The turn result time precedes the turn acceptance time.",

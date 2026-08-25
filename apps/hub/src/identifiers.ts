@@ -1,8 +1,4 @@
-import {
-  projectIdSchema,
-  runIdSchema,
-  syncDestinationIdSchema,
-} from "@lervo/schemas";
+import { projectIdSchema, runIdSchema, syncDestinationIdSchema } from "@lervo/schemas";
 
 export const HUB_PRINCIPAL_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/;
 export const HUB_DESTINATION_ID_PATTERN = new RegExp(syncDestinationIdSchema.pattern);

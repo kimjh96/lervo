@@ -17,10 +17,12 @@
           "mode": "lervo_generated",
           "userContentAllowed": false,
           "manifestPath": ".lervo/generated/manifests/doc_generated_0001.json",
-          "inputs": [{
-            "sourceId": "project-policy",
-            "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-          }]
+          "inputs": [
+            {
+              "sourceId": "project-policy",
+              "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
         }
       },
       "contentPolicy": {

@@ -5,11 +5,7 @@ import { basename, relative, resolve, sep } from "node:path";
 
 import { validateSchema, type SkillManifest } from "@lervo/schemas";
 
-import {
-  SkillResolutionError,
-  type DiscoveredSkill,
-  type LocalSkillSourceKind,
-} from "./types.js";
+import { SkillResolutionError, type DiscoveredSkill, type LocalSkillSourceKind } from "./types.js";
 
 const MANIFEST_NAME = "lervo-skill.json";
 const MAX_PACKAGE_FILES = 256;
@@ -34,10 +30,7 @@ function assertWithin(root: string, path: string): void {
   }
 }
 
-async function regularFile(
-  path: string,
-  maximumBytes = MAX_PACKAGE_BYTES,
-): Promise<Uint8Array> {
+async function regularFile(path: string, maximumBytes = MAX_PACKAGE_BYTES): Promise<Uint8Array> {
   const before = await lstat(path);
   if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes) {
     throw new SkillResolutionError(
@@ -95,8 +88,12 @@ async function listContentFiles(root: string, current = root): Promise<string[]>
         "Symbolic links are not allowed inside a skill package.",
       );
     }
-    if (entry.isDirectory()) files.push(...await listContentFiles(root, path));
-    else if (entry.isFile() && relative(root, path) !== MANIFEST_NAME) files.push(path);
+    if (entry.isDirectory()) files.push(...(await listContentFiles(root, path)));
+    else if (
+      entry.isFile() &&
+      ![MANIFEST_NAME, "lervo-capability.json"].includes(relative(root, path))
+    )
+      files.push(path);
     else if (!entry.isFile()) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
@@ -161,7 +158,8 @@ async function readCandidate(input: {
   if (
     input.requestedSkillIds !== undefined &&
     (typeof rawSkillId !== "string" || !input.requestedSkillIds.has(rawSkillId))
-  ) return null;
+  )
+    return null;
   if (!validateSchema("skill", manifest).valid) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
@@ -169,7 +167,10 @@ async function readCandidate(input: {
     );
   }
   const typedManifest = manifest as SkillManifest;
-  if (typedManifest.source.kind !== input.sourceKind) {
+  if (
+    typedManifest.source.kind !== input.sourceKind &&
+    !["organization", "external"].includes(typedManifest.source.kind)
+  ) {
     throw new SkillResolutionError(
       "invalid_skill_manifest",
       "The skill manifest source kind differs from its actual discovery location.",
@@ -217,9 +218,8 @@ export async function discoverSkillRoot(input: {
     throw error;
   }
   const candidates: DiscoveredSkill[] = [];
-  const requestedSkillIds = input.requestedSkillIds === undefined
-    ? undefined
-    : new Set(input.requestedSkillIds);
+  const requestedSkillIds =
+    input.requestedSkillIds === undefined ? undefined : new Set(input.requestedSkillIds);
   for (const entry of entries.sort((left, right) => compareText(left.name, right.name))) {
     if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
     const directoryPath = resolve(input.root, entry.name);

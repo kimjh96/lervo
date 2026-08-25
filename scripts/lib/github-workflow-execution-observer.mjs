@@ -1,7 +1,4 @@
-import {
-  defaultGitHubCliExecute,
-  getGitHubApiJson,
-} from "./github-read-only-api.mjs";
+import { defaultGitHubCliExecute, getGitHubApiJson } from "./github-read-only-api.mjs";
 import {
   maximumWorkflowExecutionResponseBytes,
   validateWorkflowExecutionCoordinate,
@@ -11,10 +8,8 @@ import {
 import {
   validateWorkflowReachabilityCommit,
   validateWorkflowReachabilityReleaseTag,
-} from
-  "./first-publication-workflow-reachability-contract.mjs";
-import { remoteReleaseWorkflowPath } from
-  "./first-publication-workflow-remote-source-contract.mjs";
+} from "./first-publication-workflow-reachability-contract.mjs";
+import { remoteReleaseWorkflowPath } from "./first-publication-workflow-remote-source-contract.mjs";
 import {
   normalizeExactGitHubResultSet,
   normalizeGitHubWorkflow,
@@ -34,7 +29,6 @@ function unavailable(reason) {
   };
 }
 
-
 export async function observeGitHubWorkflowExecution({
   repository,
   sourceCommit,
@@ -49,33 +43,28 @@ export async function observeGitHubWorkflowExecution({
   validateWorkflowReachabilityReleaseTag(releaseTag);
   validateWorkflowExecutionCoordinate(runId);
   validateWorkflowExecutionCoordinate(attempt);
-  const get = (path) => getGitHubApiJson(
-    execute,
-    path,
-    environment,
-    maximumWorkflowExecutionResponseBytes,
-  );
+  const get = (path) =>
+    getGitHubApiJson(execute, path, environment, maximumWorkflowExecutionResponseBytes);
   const workflowPath = encodeURIComponent(remoteReleaseWorkflowPath);
   const runPath = `repos/${repository}/actions/runs/${runId}`;
   try {
-    const observedWorkflow = normalizeGitHubWorkflow(await get(
-      `repos/${repository}/actions/workflows/${workflowPath}`,
-    ));
-    const before = normalizeGitHubWorkflowRun(await get(runPath));
-    const selectedAttempt = normalizeGitHubWorkflowRun(
-      await get(`${runPath}/attempts/${attempt}`),
+    const observedWorkflow = normalizeGitHubWorkflow(
+      await get(`repos/${repository}/actions/workflows/${workflowPath}`),
     );
+    const before = normalizeGitHubWorkflowRun(await get(runPath));
+    const selectedAttempt = normalizeGitHubWorkflowRun(await get(`${runPath}/attempts/${attempt}`));
     if (observedWorkflow === undefined || before === undefined || selectedAttempt === undefined) {
       return unavailable("response_invalid");
     }
     if (
-      observedWorkflow.id !== before.workflowId || before.id !== runId ||
-      selectedAttempt.id !== runId || before.attempt !== attempt ||
+      observedWorkflow.id !== before.workflowId ||
+      before.id !== runId ||
+      selectedAttempt.id !== runId ||
+      before.attempt !== attempt ||
       canonicalJson(before) !== canonicalJson(selectedAttempt)
-    ) return unavailable("run_or_attempt_mismatch");
-    const jobsResponse = await get(
-      `${runPath}/attempts/${attempt}/jobs?per_page=100&page=1`,
-    );
+    )
+      return unavailable("run_or_attempt_mismatch");
+    const jobsResponse = await get(`${runPath}/attempts/${attempt}/jobs?per_page=100&page=1`);
     const jobs = normalizeExactGitHubResultSet(jobsResponse, "jobs");
     if (jobs === undefined) return unavailable("result_set_invalid");
     const matchingJobs = jobs.filter(({ name }) => name === workflowExecutionJobName);
@@ -85,7 +74,7 @@ export async function observeGitHubWorkflowExecution({
     const expectedArtifactName = workflowExecutionArtifactName(releaseTag, attempt);
     const artifactsResponse = await get(
       `${runPath}/artifacts?name=${encodeURIComponent(expectedArtifactName)}` +
-      "&per_page=100&page=1",
+        "&per_page=100&page=1",
     );
     const artifacts = normalizeExactGitHubResultSet(artifactsResponse, "artifacts");
     if (artifacts === undefined) return unavailable("result_set_invalid");

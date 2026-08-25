@@ -45,7 +45,9 @@ function manifest(): DocumentManifest {
 async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-search-evaluation-cli-"));
   roots.push(root);
-  expect(await runCli(["init"], { cwd: root, stdout: () => undefined, stderr: () => undefined })).toBe(0);
+  expect(
+    await runCli(["init"], { cwd: root, stdout: () => undefined, stderr: () => undefined }),
+  ).toBe(0);
   await mkdir(resolve(root, "docs"));
   await mkdir(resolve(root, ".lervo/documents"));
   await writeFile(
@@ -59,13 +61,20 @@ async function repository(): Promise<string> {
   return root;
 }
 
-async function jsonCommand(root: string, args: string[]): Promise<{ code: number; output: string; error: string }> {
+async function jsonCommand(
+  root: string,
+  args: string[],
+): Promise<{ code: number; output: string; error: string }> {
   let output = "";
   let error = "";
   const code = await runCli(args, {
     cwd: root,
-    stdout: (message) => { output += message; },
-    stderr: (message) => { error += message; },
+    stdout: (message) => {
+      output += message;
+    },
+    stderr: (message) => {
+      error += message;
+    },
   });
   return { code, output, error };
 }
@@ -83,14 +92,28 @@ describe("lervo search reusable evaluation", () => {
     const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
 
     const assessed = await jsonCommand(root, [
-      "search", "assess", attemptId, "--outcome", "accepted",
-      "--selected", "document:doc_search_eval_guide",
-      "--expected", "document:doc_search_eval_guide", "--json",
+      "search",
+      "assess",
+      attemptId,
+      "--outcome",
+      "accepted",
+      "--selected",
+      "document:doc_search_eval_guide",
+      "--expected",
+      "document:doc_search_eval_guide",
+      "--json",
     ]);
     expect(assessed.code, assessed.error).toBe(0);
 
     const created = await jsonCommand(root, [
-      "search", "case", attemptId, "--query", query, "--maximum-rank", "3", "--json",
+      "search",
+      "case",
+      attemptId,
+      "--query",
+      query,
+      "--maximum-rank",
+      "3",
+      "--json",
     ]);
     expect(created.code, created.error).toBe(0);
     const evaluationCase = JSON.parse(created.output) as { caseId: string };
@@ -100,10 +123,17 @@ describe("lervo search reusable evaluation", () => {
 
     const passing = await jsonCommand(root, ["search", "evaluate", "--json"]);
     expect(passing.code, passing.error).toBe(0);
-    expect(JSON.parse(passing.output).run).toMatchObject({ passedCases: 1, failedCases: 0, regressions: 0 });
+    expect(JSON.parse(passing.output).run).toMatchObject({
+      passedCases: 1,
+      failedCases: 0,
+      regressions: 0,
+    });
     expect(passing.output).not.toContain(query);
 
-    await writeFile(resolve(root, "docs/search-evaluation.md"), "# Entirely different guide\n\nUnrelated content.\n");
+    await writeFile(
+      resolve(root, "docs/search-evaluation.md"),
+      "# Entirely different guide\n\nUnrelated content.\n",
+    );
     const regressed = await jsonCommand(root, ["search", "evaluate", "--json"]);
     expect(regressed.code).toBe(1);
     expect(regressed.error).toBe("");
@@ -118,8 +148,12 @@ describe("lervo search reusable evaluation", () => {
     expect(resultFiles).toHaveLength(2);
     expect(runFiles).toHaveLength(2);
     const state = await Promise.all([
-      ...resultFiles.map((name) => readFile(resolve(root, ".lervo/state/search/evaluation-results", name), "utf8")),
-      ...runFiles.map((name) => readFile(resolve(root, ".lervo/state/search/evaluation-runs", name), "utf8")),
+      ...resultFiles.map((name) =>
+        readFile(resolve(root, ".lervo/state/search/evaluation-results", name), "utf8"),
+      ),
+      ...runFiles.map((name) =>
+        readFile(resolve(root, ".lervo/state/search/evaluation-runs", name), "utf8"),
+      ),
     ]);
     expect(state.join("\n")).not.toContain(query);
   });
@@ -129,9 +163,19 @@ describe("lervo search reusable evaluation", () => {
     const query = "quasar zephyr";
     const searched = await jsonCommand(root, ["search", query, "--json"]);
     const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
-    expect((await jsonCommand(root, [
-      "search", "assess", attemptId, "--outcome", "failed", "--reason", "no_results",
-    ])).code).toBe(0);
+    expect(
+      (
+        await jsonCommand(root, [
+          "search",
+          "assess",
+          attemptId,
+          "--outcome",
+          "failed",
+          "--reason",
+          "no_results",
+        ])
+      ).code,
+    ).toBe(0);
 
     const created = await jsonCommand(root, ["search", "case", attemptId, "--query", query]);
     expect(created.code).toBe(1);
@@ -144,16 +188,35 @@ describe("lervo search reusable evaluation", () => {
     const query = "alphafailure";
     const searched = await jsonCommand(root, ["search", query, "--json"]);
     const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
-    expect((await jsonCommand(root, [
-      "search", "assess", attemptId, "--outcome", "accepted",
-      "--selected", "document:doc_search_eval_guide",
-    ])).code).toBe(0);
+    expect(
+      (
+        await jsonCommand(root, [
+          "search",
+          "assess",
+          attemptId,
+          "--outcome",
+          "accepted",
+          "--selected",
+          "document:doc_search_eval_guide",
+        ])
+      ).code,
+    ).toBe(0);
     const created = await jsonCommand(root, [
-      "search", "case", attemptId, "--query", query, "--maximum-rank", "3", "--json",
+      "search",
+      "case",
+      attemptId,
+      "--query",
+      query,
+      "--maximum-rank",
+      "3",
+      "--json",
     ]);
     const caseId = (JSON.parse(created.output) as { caseId: string }).caseId;
     const casePath = resolve(root, ".lervo/search-evaluations", `${caseId}.yaml`);
-    await writeFile(casePath, (await readFile(casePath, "utf8")).replace("maximumRank: 3", "maximumRank: 4"));
+    await writeFile(
+      casePath,
+      (await readFile(casePath, "utf8")).replace("maximumRank: 3", "maximumRank: 4"),
+    );
 
     const evaluated = await jsonCommand(root, ["search", "evaluate"]);
     expect(evaluated.code).toBe(1);

@@ -19,16 +19,17 @@ import {
   adapterManagedWriteDecisionSchema,
   adapterManagedWriteRequestSchema,
 } from "./adapter-managed-write.js";
-import {
-  adapterNormalizedEventSchema,
-  adapterNormalizedEventTypes,
-} from "./adapter-events.js";
+import { adapterNormalizedEventSchema } from "./adapter-events.js";
 import {
   adapterExecutionModeSchema,
   adapterIdSchema,
   capabilityMatrixSchema,
 } from "./adapter-primitives.js";
 import { knowledgeContextSchema } from "./knowledge-context.js";
+import {
+  adapterCapabilityActivationReceiptSchema,
+  adapterCapabilityActivationRequestSchema,
+} from "./capability-activation.js";
 
 export {
   adapterManagedWriteCompletionSchema,
@@ -40,14 +41,8 @@ export type {
   AdapterManagedWriteDecision,
   AdapterManagedWriteRequest,
 } from "./adapter-managed-write.js";
-export {
-  adapterNormalizedEventSchema,
-  adapterNormalizedEventTypes,
-} from "./adapter-events.js";
-export type {
-  AdapterNormalizedEvent,
-  AdapterNormalizedEventType,
-} from "./adapter-events.js";
+export { adapterNormalizedEventSchema, adapterNormalizedEventTypes } from "./adapter-events.js";
+export type { AdapterNormalizedEvent, AdapterNormalizedEventType } from "./adapter-events.js";
 
 export const adapterDescriptorSchema = {
   type: "object",
@@ -59,14 +54,7 @@ export const adapterDescriptorSchema = {
     provider: providerSchema,
     capabilities: capabilityMatrixSchema,
   },
-  required: [
-    "kind",
-    "schemaVersion",
-    "adapterId",
-    "adapterVersion",
-    "provider",
-    "capabilities"
-  ],
+  required: ["kind", "schemaVersion", "adapterId", "adapterVersion", "provider", "capabilities"],
   additionalProperties: false,
 } as const;
 
@@ -85,6 +73,11 @@ export const adapterStartRequestSchema = {
     },
     requestDigest: sha256Schema,
     executionMode: adapterExecutionModeSchema,
+    capabilityActivations: {
+      type: "array",
+      items: adapterCapabilityActivationRequestSchema,
+      maxItems: 128,
+    },
     requestedAt: timestampSchema,
   },
   required: [
@@ -98,7 +91,7 @@ export const adapterStartRequestSchema = {
     "writingPolicyId",
     "requestDigest",
     "executionMode",
-    "requestedAt"
+    "requestedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -135,7 +128,7 @@ export const adapterSessionSchema = {
     "providerSessionId",
     "executionMode",
     "effectiveCapabilities",
-    "startedAt"
+    "startedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -216,7 +209,7 @@ export const adapterContextEnvelopeSchema = {
     "targetTurnId",
     "contextGeneration",
     "documents",
-    "createdAt"
+    "createdAt",
   ],
   allOf: [
     {
@@ -295,7 +288,7 @@ export const adapterContextReceiptSchema = {
     "contextGeneration",
     "controlledInput",
     "documents",
-    "acceptedAt"
+    "acceptedAt",
   ],
   allOf: [
     {
@@ -338,7 +331,7 @@ export const adapterTurnRequestSchema = {
     "providerSessionId",
     "targetTurnId",
     "instructions",
-    "requestedAt"
+    "requestedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -367,7 +360,7 @@ export const adapterTurnSchema = {
     "providerSessionId",
     "targetTurnId",
     "providerTurnId",
-    "acceptedAt"
+    "acceptedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -404,7 +397,7 @@ export const adapterTurnResultSchema = {
     "content",
     "contentHash",
     "byteCount",
-    "producedAt"
+    "producedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -431,7 +424,7 @@ export const adapterStopRequestSchema = {
     "sessionId",
     "providerSessionId",
     "reason",
-    "requestedAt"
+    "requestedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -458,7 +451,7 @@ export const adapterStopResultSchema = {
     "sessionId",
     "providerSessionId",
     "status",
-    "stoppedAt"
+    "stoppedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -471,6 +464,7 @@ export const adapterContractMessageSchema = {
     adapterDescriptorSchema,
     adapterStartRequestSchema,
     adapterSessionSchema,
+    adapterCapabilityActivationReceiptSchema,
     adapterContextEnvelopeSchema,
     adapterContextReceiptSchema,
     adapterTurnRequestSchema,

@@ -100,18 +100,20 @@ describe("search evaluation sample bundles", () => {
     const duplicateQuery = evaluationCase({ query: "duplicate-sample", nonce: "f", minute: 6 });
     const terminal = evaluationCase({ query: "terminal-sample", nonce: "1", minute: 7 });
 
-    expect(() => createSearchEvaluationBundle({
-      bundleId: "general.cycle",
-      projectId: first.projectId,
-      roleId: "general",
-      taskType: "cycle-check",
-      minimumActiveCases: 1,
-      activeCaseIds: [terminal.caseId],
-      replacements: [
-        { replacedCaseId: first.caseId, replacementCaseId: duplicateQuery.caseId },
-        { replacedCaseId: duplicateQuery.caseId, replacementCaseId: first.caseId },
-      ],
-    })).toThrow(/contain a cycle/);
+    expect(() =>
+      createSearchEvaluationBundle({
+        bundleId: "general.cycle",
+        projectId: first.projectId,
+        roleId: "general",
+        taskType: "cycle-check",
+        minimumActiveCases: 1,
+        activeCaseIds: [terminal.caseId],
+        replacements: [
+          { replacedCaseId: first.caseId, replacementCaseId: duplicateQuery.caseId },
+          { replacedCaseId: duplicateQuery.caseId, replacementCaseId: first.caseId },
+        ],
+      }),
+    ).toThrow(/contain a cycle/);
 
     const duplicateBundle = createSearchEvaluationBundle({
       bundleId: "general.duplicate",
@@ -121,9 +123,12 @@ describe("search evaluation sample bundles", () => {
       minimumActiveCases: 2,
       activeCaseIds: [first.caseId, duplicateQuery.caseId],
     });
-    expect(() => assertSearchEvaluationBundle(duplicateBundle, [first, duplicateQuery]))
-      .toThrow(/same search query cannot be counted more than once/);
-    expect(() => assertSearchEvaluationBundle(duplicateBundle, [first])).toThrow(/missing case or a case from another project/);
+    expect(() => assertSearchEvaluationBundle(duplicateBundle, [first, duplicateQuery])).toThrow(
+      /same search query cannot be counted more than once/,
+    );
+    expect(() => assertSearchEvaluationBundle(duplicateBundle, [first])).toThrow(
+      /missing case or a case from another project/,
+    );
   });
 
   it("rejects changed bundle and coverage content", () => {
@@ -138,7 +143,9 @@ describe("search evaluation sample bundles", () => {
     });
     const coverage = createSearchEvaluationCoverage(bundle, [only]);
 
-    expect(() => assertSearchEvaluationBundle({ ...bundle, minimumActiveCases: 2 })).toThrow(/hash/);
+    expect(() => assertSearchEvaluationBundle({ ...bundle, minimumActiveCases: 2 })).toThrow(
+      /hash/,
+    );
     expect(() => assertSearchEvaluationCoverage({ ...coverage, shortfall: 1 })).toThrow();
   });
 });

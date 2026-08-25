@@ -8,20 +8,22 @@ const sha256Pattern = /^[a-f0-9]{64}$/u;
 const integrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 
 function fail(code = "first_publication_stage_approval_record_invalid") {
-  throw new FirstPublicationBootstrapError(
-    code,
-    "The CLI npm stage approval record is invalid.",
-  );
+  throw new FirstPublicationBootstrapError(code, "The CLI npm stage approval record is invalid.");
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
-  return typeof value === "string" && timestampPattern.test(value) &&
-    Number.isFinite(Date.parse(value));
+  return (
+    typeof value === "string" && timestampPattern.test(value) && Number.isFinite(Date.parse(value))
+  );
 }
 
 function withoutDigest(value, name) {
@@ -33,35 +35,42 @@ function withoutDigest(value, name) {
 function validateCoordinates(target, stage, artifact) {
   if (
     !exactKeys(target, [
-      "repository", "sourceCommit", "releaseTag", "package", "version",
-      "workflowPath", "runId", "attempt",
-    ]) || target.package !== "@lervo/cli" ||
+      "repository",
+      "sourceCommit",
+      "releaseTag",
+      "package",
+      "version",
+      "workflowPath",
+      "runId",
+      "attempt",
+    ]) ||
+    target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(target.version ?? "") ||
     target.releaseTag !== `v${target.version}` ||
     !exactKeys(stage, ["registry", "idDigest", "distTag"]) ||
     stage.registry !== "https://registry.npmjs.org/" ||
     !digestPattern.test(stage.idDigest ?? "") ||
     !["latest", "next"].includes(stage.distTag) ||
-    !exactKeys(artifact, [
-      "byteCount", "sha256", "registryIntegrity", "registryShasum",
-    ]) || !Number.isSafeInteger(artifact.byteCount) || artifact.byteCount <= 0 ||
+    !exactKeys(artifact, ["byteCount", "sha256", "registryIntegrity", "registryShasum"]) ||
+    !Number.isSafeInteger(artifact.byteCount) ||
+    artifact.byteCount <= 0 ||
     artifact.byteCount > 64 * 1024 * 1024 ||
     !sha256Pattern.test(artifact.sha256 ?? "") ||
     !integrityPattern.test(artifact.registryIntegrity ?? "") ||
     !sha1Pattern.test(artifact.registryShasum ?? "")
-  ) fail();
+  )
+    fail();
 }
 
-export function createFirstPublicationStageApprovalAttempt({
-  authorization,
-  reservedAt,
-}) {
+export function createFirstPublicationStageApprovalAttempt({ authorization, reservedAt }) {
   if (
-    authorization?.schemaVersion !== 1 || authorization.status !== "approval_authorized" ||
+    authorization?.schemaVersion !== 1 ||
+    authorization.status !== "approval_authorized" ||
     authorization.authorizationType !== "first_publication_npm_stage_approval" ||
     !digestPattern.test(authorization.authorizationDigest ?? "") ||
     !timestamp(reservedAt)
-  ) fail();
+  )
+    fail();
   const body = {
     schemaVersion: 1,
     state: "reserved",
@@ -84,16 +93,27 @@ export function createFirstPublicationStageApprovalAttempt({
 export function validateFirstPublicationStageApprovalAttempt(attempt) {
   if (
     !exactKeys(attempt, [
-      "schemaVersion", "state", "operation", "authorizationDigest", "target",
-      "stage", "artifact", "reservedAt", "retry", "attemptDigest",
-    ]) || attempt.schemaVersion !== 1 || attempt.state !== "reserved" ||
+      "schemaVersion",
+      "state",
+      "operation",
+      "authorizationDigest",
+      "target",
+      "stage",
+      "artifact",
+      "reservedAt",
+      "retry",
+      "attemptDigest",
+    ]) ||
+    attempt.schemaVersion !== 1 ||
+    attempt.state !== "reserved" ||
     attempt.operation !== "npm_stage_approve" ||
     !digestPattern.test(attempt.authorizationDigest ?? "") ||
     !timestamp(attempt.reservedAt) ||
     attempt.retry !== "forbidden_without_reconciliation" ||
     !digestPattern.test(attempt.attemptDigest ?? "") ||
     attempt.attemptDigest !== canonicalDigest(withoutDigest(attempt, "attemptDigest"))
-  ) fail("first_publication_stage_approval_attempt_invalid");
+  )
+    fail("first_publication_stage_approval_attempt_invalid");
   validateCoordinates(attempt.target, attempt.stage, attempt.artifact);
   return attempt;
 }
@@ -167,32 +187,38 @@ export function createFirstPublicationStageApprovalTerminal({
 }
 
 export function validateFirstPublicationStageApprovalTerminal(terminal) {
-  const common = [
-    "schemaVersion", "state", "attemptDigest", "authorizationDigest", "completedAt",
-  ];
-  const shape = terminal?.state === "approval_command_completed"
-    ? exactKeys(terminal, [
-      ...common, "receipt", "publicAvailability", "verification", "retry",
-      "terminalDigest",
-    ]) && terminal.publicAvailability === "not_claimed" &&
-      terminal.verification === "authenticated_public_registry_required" &&
-      terminal.retry === "forbidden"
-    : terminal?.state === "approval_outcome_unknown"
+  const common = ["schemaVersion", "state", "attemptDigest", "authorizationDigest", "completedAt"];
+  const shape =
+    terminal?.state === "approval_command_completed"
       ? exactKeys(terminal, [
-        ...common, "reconciliation", "retry", "terminalDigest",
-      ]) && terminal.reconciliation ===
-        "authenticated_public_release_observation_required" && terminal.retry === "forbidden"
-      : terminal?.state === "aborted_before_approval"
-        ? exactKeys(terminal, [...common, "retry", "terminalDigest"]) &&
-          terminal.retry === "new_authorization_required"
-        : false;
+          ...common,
+          "receipt",
+          "publicAvailability",
+          "verification",
+          "retry",
+          "terminalDigest",
+        ]) &&
+        terminal.publicAvailability === "not_claimed" &&
+        terminal.verification === "authenticated_public_registry_required" &&
+        terminal.retry === "forbidden"
+      : terminal?.state === "approval_outcome_unknown"
+        ? exactKeys(terminal, [...common, "reconciliation", "retry", "terminalDigest"]) &&
+          terminal.reconciliation === "authenticated_public_release_observation_required" &&
+          terminal.retry === "forbidden"
+        : terminal?.state === "aborted_before_approval"
+          ? exactKeys(terminal, [...common, "retry", "terminalDigest"]) &&
+            terminal.retry === "new_authorization_required"
+          : false;
   if (
-    !shape || terminal.schemaVersion !== 1 ||
+    !shape ||
+    terminal.schemaVersion !== 1 ||
     !digestPattern.test(terminal.attemptDigest ?? "") ||
     !digestPattern.test(terminal.authorizationDigest ?? "") ||
-    !timestamp(terminal.completedAt) || !digestPattern.test(terminal.terminalDigest ?? "") ||
+    !timestamp(terminal.completedAt) ||
+    !digestPattern.test(terminal.terminalDigest ?? "") ||
     terminal.terminalDigest !== canonicalDigest(withoutDigest(terminal, "terminalDigest"))
-  ) fail("first_publication_stage_approval_terminal_invalid");
+  )
+    fail("first_publication_stage_approval_terminal_invalid");
   return terminal;
 }
 
@@ -204,9 +230,9 @@ export function bindFirstPublicationStageApprovalTerminal(terminal, attempt) {
     terminal.authorizationDigest !== attempt.authorizationDigest ||
     Date.parse(terminal.completedAt) < Date.parse(attempt.reservedAt) ||
     (terminal.state === "approval_command_completed" &&
-      canonicalJson(terminal.receipt) !== canonicalJson(
-        createFirstPublicationStageApprovalReceipt(attempt),
-      ))
-  ) fail("first_publication_stage_approval_terminal_conflict");
+      canonicalJson(terminal.receipt) !==
+        canonicalJson(createFirstPublicationStageApprovalReceipt(attempt)))
+  )
+    fail("first_publication_stage_approval_terminal_conflict");
   return terminal;
 }

@@ -4,10 +4,7 @@ import { defaultEnglishWritingContract } from "@lervo/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DeliberationRuntime } from "../src/index.js";
-import {
-  materializeProposalContext,
-  noConsensusOutcome,
-} from "./deliberation-scenario.js";
+import { materializeProposalContext, noConsensusOutcome } from "./deliberation-scenario.js";
 import {
   claimId,
   cleanupFixtures,
@@ -27,10 +24,7 @@ import {
   reviewerRole,
   sequence,
 } from "./fixture.js";
-import {
-  DeliberationClaudeClient,
-  DeliberationCodexClient,
-} from "./fixture-real-adapters.js";
+import { DeliberationClaudeClient, DeliberationCodexClient } from "./fixture-real-adapters.js";
 
 const CLAUDE_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CLAUDE_TURN_ID = "22222222-2222-4222-8222-222222222222";
@@ -87,10 +81,13 @@ describe("cross-provider deliberation runtime", () => {
       details: { claims: [{ claimId, claimDigest: hash("provider-neutral-artifact") }] },
       previousArtifactIds: [],
       sharedContextPublications: [],
-      executeManagedRun: () => proposalRun.run(managedInput({
-        root: fixture.root,
-        role: proposerRole,
-      })),
+      executeManagedRun: () =>
+        proposalRun.run(
+          managedInput({
+            root: fixture.root,
+            role: proposerRole,
+          }),
+        ),
       writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
@@ -136,33 +133,40 @@ describe("cross-provider deliberation runtime", () => {
       round: 1,
       details: {
         reviewStatus: "changes_requested",
-        objections: [{
-          objectionId,
-          objectionDigest: hash("cross-provider-evidence-required"),
-          targetClaimIds: [claimId],
-          blocking: true,
-          status: "open",
-        }],
+        objections: [
+          {
+            objectionId,
+            objectionDigest: hash("cross-provider-evidence-required"),
+            targetClaimIds: [claimId],
+            blocking: true,
+            status: "open",
+          },
+        ],
       },
       previousArtifactIds: [proposal.artifact.deliberationArtifactId],
       sharedContextPublications: [publication],
-      executeManagedRun: () => reviewRun.run(managedInput({
-        root: fixture.root,
-        role: reviewerRole,
-        includeProposal: true,
-        publications: [publication],
-        handoff,
-      })),
+      executeManagedRun: () =>
+        reviewRun.run(
+          managedInput({
+            root: fixture.root,
+            role: reviewerRole,
+            includeProposal: true,
+            publications: [publication],
+            handoff,
+          }),
+        ),
       writingContract: defaultEnglishWritingContract,
       semanticEvaluator: passingEvaluator(),
     });
 
-    runtime.complete(noConsensusOutcome({
-      policy,
-      proposal,
-      review,
-      completedAt: now().toISOString(),
-    }));
+    runtime.complete(
+      noConsensusOutcome({
+        policy,
+        proposal,
+        review,
+        completedAt: now().toISOString(),
+      }),
+    );
 
     expect(proposal.artifact.producer).toMatchObject({
       provider: "codex",
@@ -179,16 +183,16 @@ describe("cross-provider deliberation runtime", () => {
     const claudeContext = JSON.parse(claudeClient.appendedContexts[0] ?? "null") as {
       documents?: Array<{ documentId: string; contentHash: string; content: string }>;
     };
-    expect(claudeContext.documents).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        documentId: proposalDocumentId,
-        contentHash: proposal.artifact.content.contentHash,
-        content: proposalContent,
-      }),
-    ]));
-    expect(review.artifact.inputContext.sharedContextIds).toEqual([
-      publication.sharedContextId,
-    ]);
+    expect(claudeContext.documents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: proposalDocumentId,
+          contentHash: proposal.artifact.content.contentHash,
+          content: proposalContent,
+        }),
+      ]),
+    );
+    expect(review.artifact.inputContext.sharedContextIds).toEqual([publication.sharedContextId]);
     expect(codexClient.injectedItems).toHaveLength(1);
     expect(codexClient.closed).toBe(true);
     expect(claudeClient.closed).toBe(true);
@@ -196,17 +200,22 @@ describe("cross-provider deliberation runtime", () => {
     const events = fixture.events.list();
     const startEvents = events.filter((event) => event.type === "adapter.started");
     const starts = startEvents.map((event) => event.payload);
-    expect(startEvents).toEqual(expect.arrayContaining([
-      expect.objectContaining({ actor: { kind: "provider", provider: "codex" } }),
-      expect.objectContaining({ actor: { kind: "provider", provider: "claude" } }),
-    ]));
-    expect(starts).toEqual(expect.arrayContaining([
-      expect.objectContaining({ adapterId: "lervo/codex" }),
-      expect.objectContaining({ adapterId: "lervo/claude" }),
-    ]));
+    expect(startEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ actor: { kind: "provider", provider: "codex" } }),
+        expect.objectContaining({ actor: { kind: "provider", provider: "claude" } }),
+      ]),
+    );
+    expect(starts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ adapterId: "lervo/codex" }),
+        expect.objectContaining({ adapterId: "lervo/claude" }),
+      ]),
+    );
     expect(new Set(starts.map((payload) => payload.providerSessionId)).size).toBe(2);
-    expect(events.filter((event) => event.type === "deliberation.artifact.recorded"))
-      .toHaveLength(2);
+    expect(events.filter((event) => event.type === "deliberation.artifact.recorded")).toHaveLength(
+      2,
+    );
     expect(JSON.stringify(events)).not.toContain(proposalContent);
     expect(JSON.stringify(events)).not.toContain(reviewContent);
     expect(fixture.events.verifyIntegrity().valid).toBe(true);
@@ -257,27 +266,33 @@ describe("cross-provider deliberation runtime", () => {
       throw new Error("writing evaluation must not run");
     });
 
-    await expect(runtime.executeTurn({
-      kind: "proposal",
-      round: 1,
-      details: { claims: [{ claimId, claimDigest: hash("wrong-provider") }] },
-      previousArtifactIds: [],
-      sharedContextPublications: [],
-      executeManagedRun: () => run.run(managedInput({
-        root: fixture.root,
-        role: proposerRole,
-      })),
-      writingContract: defaultEnglishWritingContract,
-      semanticEvaluator: { evaluate },
-    })).rejects.toMatchObject({
+    await expect(
+      runtime.executeTurn({
+        kind: "proposal",
+        round: 1,
+        details: { claims: [{ claimId, claimDigest: hash("wrong-provider") }] },
+        previousArtifactIds: [],
+        sharedContextPublications: [],
+        executeManagedRun: () =>
+          run.run(
+            managedInput({
+              root: fixture.root,
+              role: proposerRole,
+            }),
+          ),
+        writingContract: defaultEnglishWritingContract,
+        semanticEvaluator: { evaluate },
+      }),
+    ).rejects.toMatchObject({
       code: "artifact_publication_failed",
       reason: "provider_not_allowed",
     });
 
     expect(evaluate).not.toHaveBeenCalled();
     expect(runtime.history()).toEqual([]);
-    expect(fixture.events.list().map((event) => event.type))
-      .not.toContain("deliberation.artifact.recorded");
+    expect(fixture.events.list().map((event) => event.type)).not.toContain(
+      "deliberation.artifact.recorded",
+    );
     expect(claudeClient.closed).toBe(true);
     expect(fixture.events.verifyIntegrity().valid).toBe(true);
     fixture.events.close();

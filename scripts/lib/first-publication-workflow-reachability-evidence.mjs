@@ -13,8 +13,7 @@ import {
   createFirstPublicationWorkflowReachabilityReport,
   validateFirstPublicationWorkflowReachabilityReportDocument,
 } from "./first-publication-workflow-reachability-report.mjs";
-import { validateFirstPublicationWorkflowRemoteDeploymentReportDocument } from
-  "./first-publication-workflow-remote-deployment-report.mjs";
+import { validateFirstPublicationWorkflowRemoteDeploymentReportDocument } from "./first-publication-workflow-remote-deployment-report.mjs";
 import { canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 import {
   inspectTrustedPublisherPackage,
@@ -85,25 +84,31 @@ function validateObservation(observation, input) {
       "GitHub default-branch and release-tag reachability could not be confirmed.",
     );
   }
-  const exactKeys = (value, keys) => value !== null && typeof value === "object" &&
-    !Array.isArray(value) && canonicalJson(Object.keys(value).sort()) ===
-      canonicalJson([...keys].sort());
+  const exactKeys = (value, keys) =>
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
   if (
     !exactKeys(observation, [
-      "schemaVersion", "source", "state", "repository", "sourceCommit",
-      "defaultBranch", "releaseTag", "sourcePackage", "referenceStability",
-    ]) || observation.schemaVersion !== 1 ||
+      "schemaVersion",
+      "source",
+      "state",
+      "repository",
+      "sourceCommit",
+      "defaultBranch",
+      "releaseTag",
+      "sourcePackage",
+      "referenceStability",
+    ]) ||
+    observation.schemaVersion !== 1 ||
     observation.source !== "github_repository_reachability" ||
     observation.repository !== input.repository ||
     observation.sourceCommit !== input.sourceCommit ||
     observation.referenceStability !== "rechecked_unchanged" ||
-    !exactKeys(observation.defaultBranch, [
-      "name", "headCommit", "relation", "commitsAhead",
-    ]) || !exactKeys(observation.releaseTag, [
-      "name", "kind", "annotatedDepth", "commit",
-    ]) || !exactKeys(observation.sourcePackage, [
-      "path", "blobSha", "byteCount", "sha256", "contents",
-    ])
+    !exactKeys(observation.defaultBranch, ["name", "headCommit", "relation", "commitsAhead"]) ||
+    !exactKeys(observation.releaseTag, ["name", "kind", "annotatedDepth", "commit"]) ||
+    !exactKeys(observation.sourcePackage, ["path", "blobSha", "byteCount", "sha256", "contents"])
   ) {
     fail(
       "first_publication_workflow_reachability_observation_invalid",
@@ -124,15 +129,19 @@ function validateObservation(observation, input) {
   const branch = observation.defaultBranch;
   const tag = observation.releaseTag;
   const sourcePackage = observation.sourcePackage;
-  const validShape = Number.isSafeInteger(branch.commitsAhead) &&
-    branch.commitsAhead >= 0 && ["lightweight", "annotated"].includes(tag.kind) &&
+  const validShape =
+    Number.isSafeInteger(branch.commitsAhead) &&
+    branch.commitsAhead >= 0 &&
+    ["lightweight", "annotated"].includes(tag.kind) &&
     Number.isSafeInteger(tag.annotatedDepth) &&
     ((tag.kind === "lightweight" && tag.annotatedDepth === 0) ||
-      (tag.kind === "annotated" && tag.annotatedDepth >= 1 &&
+      (tag.kind === "annotated" &&
+        tag.annotatedDepth >= 1 &&
         tag.annotatedDepth <= maximumAnnotatedTagDepth)) &&
     sourcePackage.path === remoteCliPackagePath &&
     /^[a-f0-9]{40}$/u.test(sourcePackage.blobSha ?? "") &&
-    Buffer.isBuffer(sourcePackage.contents) && sourcePackage.contents.length > 0 &&
+    Buffer.isBuffer(sourcePackage.contents) &&
+    sourcePackage.contents.length > 0 &&
     sourcePackage.contents.length <= maximumRemoteCliPackageBytes &&
     sourcePackage.byteCount === sourcePackage.contents.length &&
     sourcePackage.sha256 === sha256(sourcePackage.contents);
@@ -142,10 +151,7 @@ function validateObservation(observation, input) {
       "The GitHub ref-reachability observation is invalid.",
     );
   }
-  if (
-    branch.relation !== "source_commit_ancestor_or_equal" ||
-    tag.commit !== input.sourceCommit
-  ) {
+  if (branch.relation !== "source_commit_ancestor_or_equal" || tag.commit !== input.sourceCommit) {
     fail(
       "first_publication_workflow_reachability_not_ready",
       "The source commit is not bound to both the default branch and the exact release tag.",
@@ -167,17 +173,12 @@ function validatedInput(input) {
   assertFirstPublicationWorkflowReachabilityBinding(input);
   return {
     ...input,
-    reachabilityObservation: validateObservation(
-      input.reachabilityObservation,
-      input,
-    ),
+    reachabilityObservation: validateObservation(input.reachabilityObservation, input),
   };
 }
 
 export function createFirstPublicationWorkflowReachabilityEvidence(input) {
-  const report = createFirstPublicationWorkflowReachabilityReport(
-    validatedInput(input),
-  );
+  const report = createFirstPublicationWorkflowReachabilityReport(validatedInput(input));
   return validateFirstPublicationWorkflowReachabilityReportDocument(report);
 }
 

@@ -1,14 +1,12 @@
 import { isAbsolute } from "node:path";
 
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
 } from "./release-attestation-file-set.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import { validateReleasePublicationAuthorization } from "./release-publication-authorization.mjs";
 
 const maximumInputBytes = 64 * 1024;
 
@@ -31,8 +29,7 @@ export async function readFirstPublicationContractFiles({
   publicationAuthorizationPath,
   bootstrapPath,
 }) {
-  if (!isAbsolute(publicationAuthorizationPath ?? "") ||
-      !isAbsolute(bootstrapPath ?? "")) fail();
+  if (!isAbsolute(publicationAuthorizationPath ?? "") || !isAbsolute(bootstrapPath ?? "")) fail();
   const [authorizationContents, bootstrapContents] = await Promise.all([
     readRegularReleaseFile(publicationAuthorizationPath, maximumInputBytes),
     readRegularReleaseFile(bootstrapPath, maximumInputBytes),
@@ -42,17 +39,18 @@ export async function readFirstPublicationContractFiles({
       parseJson(authorizationContents),
     ),
     bootstrap: validateFirstPublicationBootstrapAuthorization(parseJson(bootstrapContents)),
-    assertUnchanged: () => assertReleaseFilesUnchanged([
-      {
-        path: publicationAuthorizationPath,
-        contents: authorizationContents,
-        maximumSize: maximumInputBytes,
-      },
-      {
-        path: bootstrapPath,
-        contents: bootstrapContents,
-        maximumSize: maximumInputBytes,
-      },
-    ]),
+    assertUnchanged: () =>
+      assertReleaseFilesUnchanged([
+        {
+          path: publicationAuthorizationPath,
+          contents: authorizationContents,
+          maximumSize: maximumInputBytes,
+        },
+        {
+          path: bootstrapPath,
+          contents: bootstrapContents,
+          maximumSize: maximumInputBytes,
+        },
+      ]),
   };
 }

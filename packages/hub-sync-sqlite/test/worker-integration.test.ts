@@ -1,35 +1,15 @@
-import {
-  type EventDraft,
-  SQLiteEventStore,
-} from "@lervo/event-store-sqlite";
-import {
-  handleOutboundEventBatch,
-  handleProjectRegistration,
-} from "@lervo/hub-sync";
+import { type EventDraft, SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { handleOutboundEventBatch, handleProjectRegistration } from "@lervo/hub-sync";
 import { HubTraceReader } from "@lervo/hub-trace";
-import {
-  type OutboundEventBatch,
-  type ProjectRegistrationRequest,
-} from "@lervo/schemas";
-import {
-  type AuthenticatedHubTransport,
-  runOutboundSyncCycle,
-  type SyncClock,
-} from "@lervo/sync";
+import { type OutboundEventBatch, type ProjectRegistrationRequest } from "@lervo/schemas";
+import { type AuthenticatedHubTransport, runOutboundSyncCycle, type SyncClock } from "@lervo/sync";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { HubSyncSQLiteStore } from "../src/index.js";
-import {
-  databasePath,
-  destinationId,
-  manifest,
-  removeTemporaryRoots,
-} from "./fixture.js";
+import { databasePath, destinationId, manifest, removeTemporaryRoots } from "./fixture.js";
 
-const peerIdentityHash =
-  "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
-const policyVersion =
-  "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const peerIdentityHash = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 class MutableClock implements SyncClock {
   constructor(public value = "2026-08-19T02:00:00.000Z") {}
@@ -56,11 +36,13 @@ class DirectHubTransport implements AuthenticatedHubTransport {
   }
 
   async registerProject(request: ProjectRegistrationRequest): Promise<unknown> {
-    return this.response(await handleProjectRegistration({
-      store: this.hub,
-      request,
-      acceptedAt: request.requestedAt,
-    }));
+    return this.response(
+      await handleProjectRegistration({
+        store: this.hub,
+        request,
+        acceptedAt: request.requestedAt,
+      }),
+    );
   }
 
   async sendEventBatch(batch: OutboundEventBatch): Promise<unknown> {
@@ -136,11 +118,13 @@ describe("Node worker to durable Hub integration", () => {
       rescheduledCount: 2,
     });
     const trace = new HubTraceReader(hub);
-    await expect(trace.getRun({
-      destinationId,
-      projectId: project.projectId,
-      runId: "run_full_sync_01",
-    })).resolves.toMatchObject({
+    await expect(
+      trace.getRun({
+        destinationId,
+        projectId: project.projectId,
+        runId: "run_full_sync_01",
+      }),
+    ).resolves.toMatchObject({
       project: { cursor: { seq: 2 } },
       events: { items: [{ event: { seq: 1 } }, { event: { seq: 2 } }] },
     });

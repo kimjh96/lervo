@@ -55,12 +55,14 @@ export async function revalidateMigrationTargets(
     if (candidate.target === null) continue;
     const current = await inspectTargetFile(root, candidate.target.path, 64 * 1024);
     const expected = candidate.target.expected;
-    const matches = expected.kind === "missing"
-      ? current.kind === "missing"
-      : expected.kind === "unsafe"
-        ? current.kind === "unsafe" && current.reasonCode === expected.reasonCode
-        : current.kind === "file" && current.bytes.byteLength === expected.byteCount &&
-          sha256(current.bytes) === expected.contentHash;
+    const matches =
+      expected.kind === "missing"
+        ? current.kind === "missing"
+        : expected.kind === "unsafe"
+          ? current.kind === "unsafe" && current.reasonCode === expected.reasonCode
+          : current.kind === "file" &&
+            current.bytes.byteLength === expected.byteCount &&
+            sha256(current.bytes) === expected.contentHash;
     if (!matches) stale(`The sidecar target changed after the dry run: ${candidate.target.path}`);
   }
 }
@@ -73,7 +75,11 @@ export async function captureSidecarDirectorySnapshot(
   let before;
   try {
     before = await lstat(directory, { bigint: true });
-    if (!before.isDirectory() || before.isSymbolicLink() || await realpath(directory) !== directory) {
+    if (
+      !before.isDirectory() ||
+      before.isSymbolicLink() ||
+      (await realpath(directory)) !== directory
+    ) {
       throw new Error("unsafe document directory");
     }
   } catch (error) {
@@ -106,8 +112,10 @@ export async function captureSidecarDirectorySnapshot(
   }
   const after = await lstat(directory, { bigint: true });
   if (
-    before.dev !== after.dev || before.ino !== after.ino ||
-    before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+    before.dev !== after.dev ||
+    before.ino !== after.ino ||
+    before.mtimeNs !== after.mtimeNs ||
+    before.ctimeNs !== after.ctimeNs
   ) {
     stale("The document manifest directory changed while it was being snapshotted.");
   }
@@ -126,11 +134,13 @@ export function sameSidecarSnapshot(
 }
 
 export function sidecarSnapshotHash(snapshot: ReadonlyMap<string, string>): string {
-  return sha256(canonicalJsonBytes(
-    [...snapshot]
-      .sort(([left], [right]) => compareText(left, right))
-      .map(([path, contentHash]) => ({ path, contentHash })),
-  ));
+  return sha256(
+    canonicalJsonBytes(
+      [...snapshot]
+        .sort(([left], [right]) => compareText(left, right))
+        .map(([path, contentHash]) => ({ path, contentHash })),
+    ),
+  );
 }
 
 export function expectedPublishedSnapshot(

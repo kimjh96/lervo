@@ -1,7 +1,4 @@
-import type {
-  DoctorCheck,
-  DoctorIssue,
-} from "@lervo/schemas";
+import type { DoctorCheck, DoctorIssue } from "@lervo/schemas";
 
 export type {
   DoctorCheck,

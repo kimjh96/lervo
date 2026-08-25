@@ -20,15 +20,10 @@ import {
   writeApprovedDeliberationCheckpoint,
   type ApprovedDeliberationCheckpoint,
 } from "./deliberation-checkpoint.js";
-import {
-  createFailedOutcome,
-} from "./deliberation-contract.js";
+import { createFailedOutcome } from "./deliberation-contract.js";
 import { executeDeliberationRounds } from "./deliberation-rounds.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
-import {
-  acquireDeliberationLease,
-  releaseDeliberationLease,
-} from "./deliberation-lease.js";
+import { acquireDeliberationLease, releaseDeliberationLease } from "./deliberation-lease.js";
 import { resumeManagedDeliberationWithStorage } from "./managed-deliberation-resume.js";
 import {
   createInlineDeliberationExecutionPlan,
@@ -81,8 +76,7 @@ export type ManagedDeliberationRequest =
   | ResumeManagedDeliberationRequest;
 
 export type StartManagedDeliberationRequest =
-  | InlineManagedDeliberationRequest
-  | StoredManagedDeliberationRequest;
+  InlineManagedDeliberationRequest | StoredManagedDeliberationRequest;
 
 export interface ManagedDeliberationOutcome {
   deliberationId: string;
@@ -139,9 +133,14 @@ export class DeliberationProcessInterruptedError extends Error {
 }
 
 function validSuites(suites: readonly string[]): boolean {
-  return suites.length > 0 && suites.length <= 16 &&
-    new Set(suites).size === suites.length && suites.every((suiteId) =>
-      suiteId.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(suiteId));
+  return (
+    suites.length > 0 &&
+    suites.length <= 16 &&
+    new Set(suites).size === suites.length &&
+    suites.every(
+      (suiteId) => suiteId.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(suiteId),
+    )
+  );
 }
 
 function assertRequest(request: ManagedDeliberationRequest): void {
@@ -156,7 +155,9 @@ function assertRequest(request: ManagedDeliberationRequest): void {
   }
   const topicIsValid = request.topic.trim().length > 0 && request.topic.length <= 20_000;
   const stored = typeof request.policyId === "string";
-  const inlineValid = !stored && request.proposerProvider !== request.reviewerProvider &&
+  const inlineValid =
+    !stored &&
+    request.proposerProvider !== request.reviewerProvider &&
     validSuites(request.verificationSuiteIds);
   if (!topicIsValid || (!stored && !inlineValid)) {
     throw new ManagedDeliberationError(
@@ -350,8 +351,9 @@ async function executeWithStorage(
         runtime: runtime.snapshot(),
         workspace: workspace.snapshot(),
         latestClaimArtifactId: rounds.latestClaimArtifact.artifact.deliberationArtifactId,
-        approvedReviewArtifactIds: rounds.approvedReviews.map((review) =>
-          review.artifact.deliberationArtifactId),
+        approvedReviewArtifactIds: rounds.approvedReviews.map(
+          (review) => review.artifact.deliberationArtifactId,
+        ),
         currentClaim: rounds.currentClaim,
         createdAt: dependencies.now().toISOString(),
       },
@@ -384,14 +386,16 @@ async function executeWithStorage(
   } catch (error) {
     if (!completed && !(error instanceof DeliberationProcessInterruptedError)) {
       try {
-        runtime.complete(createFailedOutcome({
-          deliberationId,
-          policy,
-          history: runtime.history(),
-          completedAt: dependencies.now().toISOString(),
-          unresolvedBlockingObjectionIds: openBlockingObjections,
-          code: errorCode(error),
-        }));
+        runtime.complete(
+          createFailedOutcome({
+            deliberationId,
+            policy,
+            history: runtime.history(),
+            completedAt: dependencies.now().toISOString(),
+            unresolvedBlockingObjectionIds: openBlockingObjections,
+            code: errorCode(error),
+          }),
+        );
       } catch {
         // Preserve the original failure instead of presenting incomplete history as completed.
       }

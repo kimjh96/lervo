@@ -45,7 +45,10 @@ function normalizePreviousRecord(record: Record<string, unknown>): boolean {
     ownership.mode = "lervo_generated";
     changed = true;
   }
-  if (typeof ownership?.manifestPath === "string" && ownership.manifestPath.startsWith(`.${previous}/`)) {
+  if (
+    typeof ownership?.manifestPath === "string" &&
+    ownership.manifestPath.startsWith(`.${previous}/`)
+  ) {
     ownership.manifestPath = `.lervo/${ownership.manifestPath.slice(previous.length + 2)}`;
     changed = true;
   }
@@ -80,7 +83,11 @@ function normalizePreviousDocument(value: unknown): { value: unknown; changed: b
       changed = true;
     }
   }
-  if (root.documents !== null && typeof root.documents === "object" && !Array.isArray(root.documents)) {
+  if (
+    root.documents !== null &&
+    typeof root.documents === "object" &&
+    !Array.isArray(root.documents)
+  ) {
     for (const record of Object.values(root.documents as Record<string, unknown>)) {
       if (record !== null && typeof record === "object" && !Array.isArray(record)) {
         changed = normalizePreviousRecord(record as Record<string, unknown>) || changed;
@@ -90,7 +97,10 @@ function normalizePreviousDocument(value: unknown): { value: unknown; changed: b
   return { value: copy, changed };
 }
 
-function readManifest(content: string, fileName: string): {
+function readManifest(
+  content: string,
+  fileName: string,
+): {
   manifest: DocumentManifest;
   previous: boolean;
 } {
@@ -120,20 +130,18 @@ export async function inspectDocuments(sourceRoot: string): Promise<DocumentInsp
   }
   if (directoryKind === "directory" && registryKind === "missing") {
     const entries = await readdir(directory, { withFileTypes: true });
-    if (entries.length > 4_096) throw new Error("The document manifest count exceeds the safe limit.");
+    if (entries.length > 4_096)
+      throw new Error("The document manifest count exceeds the safe limit.");
     const manifests: DocumentManifest[] = [];
     let previous = false;
     for (const entry of entries.sort((left, right) =>
-      left.name === right.name ? 0 : left.name < right.name ? -1 : 1
+      left.name === right.name ? 0 : left.name < right.name ? -1 : 1,
     )) {
       if (!entry.isFile() || entry.isSymbolicLink() || !DOCUMENT_FILE_PATTERN.test(entry.name)) {
         throw new Error("The document manifest directory contains an entry outside the contract.");
       }
       const path = resolve(directory, entry.name);
-      const read = readManifest(
-        await readStableUtf8File(path, 64 * 1024),
-        basename(path),
-      );
+      const read = readManifest(await readStableUtf8File(path, 64 * 1024), basename(path));
       previous ||= read.previous;
       manifests.push(read.manifest);
     }
@@ -154,5 +162,7 @@ export async function inspectDocuments(sourceRoot: string): Promise<DocumentInsp
       return { disposition: "archive_previous_metadata", archiveSourceName: "documents.yaml" };
     }
   }
-  throw new Error("The storage format cannot be resolved between document manifests and the legacy registry.");
+  throw new Error(
+    "The storage format cannot be resolved between document manifests and the legacy registry.",
+  );
 }

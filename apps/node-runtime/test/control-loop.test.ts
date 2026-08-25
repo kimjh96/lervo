@@ -15,9 +15,13 @@ describe("Node remote control loop", () => {
       }),
       runCommandCycle,
       wait: {
-        wait: async () => { abort.abort(); },
+        wait: async () => {
+          abort.abort();
+        },
       },
-      onCycle: (cycle) => { results.push(cycle); },
+      onCycle: (cycle) => {
+        results.push(cycle);
+      },
     });
 
     expect(result).toMatchObject({
@@ -45,7 +49,9 @@ describe("Node remote control loop", () => {
         order.push("command");
         return { status: "idle", leasedCount: 0, acknowledgedCount: 0 };
       },
-      onCycle: () => { abort.abort(); },
+      onCycle: () => {
+        abort.abort();
+      },
     });
 
     expect(order).toEqual(["policy", "command"]);

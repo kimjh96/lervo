@@ -29,12 +29,16 @@ export async function loadVerifiedSearchSelectionQualityEvidence(input: {
     LocalSearchObservationStore.openExisting(input.repositoryRoot),
     loadSearchEngineActivationHistory(input.repositoryRoot),
   ]);
-  const [attempts, assessments]: [SearchAttempt[], SearchAssessment[]] = store === null
-    ? [[], []]
-    : await Promise.all([store.listAttempts(), store.listAssessments()]);
-  if (attempts.some((attempt) => attempt.projectId !== input.projectId) ||
-    assessments.some((assessment) => assessment.projectId !== input.projectId)) {
-    throw new SearchLocalError("observation_invalid", "The search quality source has project coordinates that differ from the current manifest.");
+  const [attempts, assessments]: [SearchAttempt[], SearchAssessment[]] =
+    store === null ? [[], []] : await Promise.all([store.listAttempts(), store.listAssessments()]);
+  if (
+    attempts.some((attempt) => attempt.projectId !== input.projectId) ||
+    assessments.some((assessment) => assessment.projectId !== input.projectId)
+  ) {
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search quality source has project coordinates that differ from the current manifest.",
+    );
   }
   if (history.length > 0) {
     await verifySearchEngineSelectionHistory({
@@ -61,7 +65,10 @@ export async function loadVerifiedSearchSelectionQualityEvidence(input: {
     if (coordinates.has(attempt.selectionTransitionId)) continue;
     const activation = activations.get(attempt.selectionTransitionId);
     if (activation === undefined) {
-      throw new SearchLocalError("observation_invalid", "The selection transition referenced by the search attempt was not found.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The selection transition referenced by the search attempt was not found.",
+      );
     }
     const selection = activation.selected;
     if (selection.mode === "baseline") {

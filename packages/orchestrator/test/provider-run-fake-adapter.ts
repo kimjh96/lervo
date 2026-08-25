@@ -1,5 +1,6 @@
 import type { ProviderAdapter, ProviderManagedWriteBridge } from "@lervo/adapter-contract";
 import type {
+  AdapterCapabilityActivationReceipt,
   AdapterContextEnvelope,
   AdapterContextReceipt,
   AdapterDescriptor,
@@ -18,8 +19,7 @@ import {
 
 import { projectId, runId, sessionId } from "./fixture.js";
 
-const requestDigest =
-  "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const requestDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 export class FakeManagedAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
@@ -30,6 +30,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
   private turn: import("@lervo/schemas").AdapterTurn | undefined;
   private envelope: AdapterContextEnvelope | undefined;
   private writeBridge: ProviderManagedWriteBridge | undefined;
+  private startRequest: AdapterStartRequest | undefined;
   private releaseTurn!: () => void;
   private readonly turnStarted = new Promise<void>((resolve) => {
     this.releaseTurn = resolve;
@@ -51,6 +52,8 @@ export class FakeManagedAdapter implements ProviderAdapter {
       hangOnStop?: boolean;
       invalidStopCoordinates?: boolean;
       failResult?: boolean;
+      failActivation?: boolean;
+      failActivationAtStart?: boolean;
       resultContent?: (envelope: AdapterContextEnvelope) => string;
       managedWrite?: {
         path: string;
@@ -86,6 +89,12 @@ export class FakeManagedAdapter implements ProviderAdapter {
 
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
     this.calls.push("start");
+    if (this.options.failActivationAtStart === true) {
+      throw Object.assign(new Error("activation failed during provider start"), {
+        code: "capability_activation_failed",
+      });
+    }
+    this.startRequest = structuredClone(request);
     this.session = {
       kind: "session",
       schemaVersion: 1,
@@ -100,12 +109,39 @@ export class FakeManagedAdapter implements ProviderAdapter {
       executionMode: request.executionMode,
       effectiveCapabilities: {
         ...this.descriptor.capabilities,
-        fileChanges:
-          request.executionMode === "managed_write" ? "supported" : "unsupported",
+        fileChanges: request.executionMode === "managed_write" ? "supported" : "unsupported",
       },
       startedAt: request.requestedAt,
     };
     return structuredClone(this.session!);
+  }
+
+  async confirmCapabilityActivation(
+    session: AdapterSession,
+  ): Promise<AdapterCapabilityActivationReceipt[]> {
+    const requests = this.startRequest?.capabilityActivations ?? [];
+    if (requests.length === 0) return [];
+    this.calls.push("confirmCapabilityActivation");
+    if (this.options.failActivation === true) throw new Error("activation failed");
+    return requests.map((request) => ({
+      kind: "capability_activation_receipt" as const,
+      schemaVersion: 1 as const,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      capabilityId: request.capabilityId,
+      capabilityKind: request.capabilityKind,
+      version: request.version,
+      contentHash: request.contentHash,
+      evidence:
+        request.capabilityKind === "mcp_server"
+          ? ("mcp_connected" as const)
+          : ("plugin_loaded" as const),
+      activationDigest: `sha256:${"d".repeat(64)}`,
+      confirmedAt: session.startedAt,
+    }));
   }
 
   async injectContext(
@@ -175,7 +211,10 @@ export class FakeManagedAdapter implements ProviderAdapter {
     return structuredClone(this.turn);
   }
 
-  async *events(_session: AdapterSession, signal: AbortSignal): AsyncIterable<AdapterNormalizedEvent> {
+  async *events(
+    _session: AdapterSession,
+    signal: AbortSignal,
+  ): AsyncIterable<AdapterNormalizedEvent> {
     const base = () => ({
       kind: "normalized_event" as const,
       schemaVersion: 1 as const,
@@ -193,7 +232,9 @@ export class FakeManagedAdapter implements ProviderAdapter {
     };
     await Promise.race([
       this.turnStarted,
-      new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })),
+      new Promise<void>((resolve) =>
+        signal.addEventListener("abort", () => resolve(), { once: true }),
+      ),
     ]);
     if (signal.aborted) return;
     yield {

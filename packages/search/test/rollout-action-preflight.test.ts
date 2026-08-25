@@ -62,16 +62,18 @@ describe("search rollout action preflight", () => {
       observedThrough: checkedAt,
     });
 
-    expect(createSearchRolloutActionPreflight({
-      actionPolicy: fixture.actionPolicy,
-      rolloutPolicy: fixture.rolloutPolicy,
-      review: fixture.review,
-      currentQualitySnapshot,
-      currentSelectionTransitionId: rolloutTarget.selectionTransitionId,
-      requestedAction: "acknowledge_keep",
-      operatorId: "operator_search",
-      checkedAt,
-    })).toMatchObject({
+    expect(
+      createSearchRolloutActionPreflight({
+        actionPolicy: fixture.actionPolicy,
+        rolloutPolicy: fixture.rolloutPolicy,
+        review: fixture.review,
+        currentQualitySnapshot,
+        currentSelectionTransitionId: rolloutTarget.selectionTransitionId,
+        requestedAction: "acknowledge_keep",
+        operatorId: "operator_search",
+        checkedAt,
+      }),
+    ).toMatchObject({
       eligibility: "eligible",
       failureReasons: [],
       qualityInputState: "unchanged",
@@ -135,7 +137,10 @@ describe("search rollout action preflight", () => {
       checkedAt,
     });
 
-    expect(result.failureReasons).toEqual(["requested_action_mismatch", "review_decision_mismatch"]);
+    expect(result.failureReasons).toEqual([
+      "requested_action_mismatch",
+      "review_decision_mismatch",
+    ]);
     expect(result.eligibility).toBe("ineligible");
   });
 });

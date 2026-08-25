@@ -1,17 +1,10 @@
 import { lstat, readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
-import type {
-  DocumentManifest,
-  DocumentRecord,
-  DocumentRegistry,
-} from "@lervo/schemas";
+import type { DocumentManifest, DocumentRecord, DocumentRegistry } from "@lervo/schemas";
 
 import { parseAndValidateYaml } from "./config.js";
-import {
-  validateDocumentManifest,
-  validateDocumentManifestSet,
-} from "./document-validation.js";
+import { validateDocumentManifest, validateDocumentManifestSet } from "./document-validation.js";
 import { readEntry } from "./filesystem.js";
 import { resolveProjectPaths } from "./layout.js";
 import { LervoProjectError } from "./types.js";
@@ -31,18 +24,27 @@ async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
   }
   const entries = await readdir(path, { withFileTypes: true });
   if (entries.length > MAX_DOCUMENT_MANIFESTS) {
-    fail("contract_invalid", "The document manifest count exceeds the safe per-project lookup limit.");
+    fail(
+      "contract_invalid",
+      "The document manifest count exceeds the safe per-project lookup limit.",
+    );
   }
   const manifests: DocumentManifest[] = [];
   for (const entry of entries.sort((left, right) =>
-    left.name === right.name ? 0 : left.name < right.name ? -1 : 1
+    left.name === right.name ? 0 : left.name < right.name ? -1 : 1,
   )) {
     if (!entry.isFile() || entry.isSymbolicLink() || !DOCUMENT_FILE_PATTERN.test(entry.name)) {
-      fail("document_layout_conflict", "The document manifest directory contains an entry outside the contract.");
+      fail(
+        "document_layout_conflict",
+        "The document manifest directory contains an entry outside the contract.",
+      );
     }
     const manifestEntry = await readEntry(resolve(path, entry.name), MAX_DOCUMENT_MANIFEST_BYTES);
     if (manifestEntry.kind !== "file") {
-      fail("document_layout_conflict", `${entry.name} cannot be read safely as a document manifest.`);
+      fail(
+        "document_layout_conflict",
+        `${entry.name} cannot be read safely as a document manifest.`,
+      );
     }
     const manifest = parseAndValidateYaml<DocumentManifest>(
       "documentManifest",
@@ -53,11 +55,17 @@ async function loadShardedManifests(path: string): Promise<DocumentManifest[]> {
   }
   const after = await lstat(path, { bigint: true });
   if (
-    !after.isDirectory() || after.isSymbolicLink() ||
-    before.dev !== after.dev || before.ino !== after.ino ||
-    before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+    !after.isDirectory() ||
+    after.isSymbolicLink() ||
+    before.dev !== after.dev ||
+    before.ino !== after.ino ||
+    before.mtimeNs !== after.mtimeNs ||
+    before.ctimeNs !== after.ctimeNs
   ) {
-    fail("document_layout_conflict", "The document manifest directory changed while it was being read.");
+    fail(
+      "document_layout_conflict",
+      "The document manifest directory changed while it was being read.",
+    );
   }
   validateDocumentManifestSet(manifests);
   return manifests;
@@ -127,5 +135,8 @@ export async function loadDocumentRegistry(root: string): Promise<DocumentRegist
   if (storage.documents.kind === "missing" && storage.legacy.kind === "missing") {
     return { schemaVersion: 1, documents: {} };
   }
-  fail("document_layout_conflict", "The documents directory and legacy documents.yaml cannot be used together.");
+  fail(
+    "document_layout_conflict",
+    "The documents directory and legacy documents.yaml cannot be used together.",
+  );
 }

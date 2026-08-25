@@ -56,11 +56,13 @@ export class SQLiteOutboxRepository {
       );
     }
     this.database
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO outbox (
           event_id, destination_id, enqueued_at, available_at
         ) VALUES (?, ?, ?, ?)
-      `)
+      `,
+      )
       .run(eventId, destinationId, enqueuedAt, availableAt);
     return { inserted: true };
   }
@@ -81,7 +83,8 @@ export class SQLiteOutboxRepository {
     const leaseExpiresAt = new Date(Date.parse(claimedAt) + leaseDurationMs).toISOString();
     const candidates = destinationId
       ? this.database
-          .prepare(`
+          .prepare(
+            `
             SELECT event_id, destination_id
             FROM outbox
             WHERE acknowledged_at IS NULL
@@ -90,10 +93,12 @@ export class SQLiteOutboxRepository {
               AND destination_id = ?
             ORDER BY available_at, enqueued_at, event_id, destination_id
             LIMIT ?
-          `)
+          `,
+          )
           .all(claimedAt, claimedAt, destinationId, limit)
       : this.database
-          .prepare(`
+          .prepare(
+            `
             SELECT event_id, destination_id
             FROM outbox
             WHERE acknowledged_at IS NULL
@@ -101,7 +106,8 @@ export class SQLiteOutboxRepository {
               AND (lease_owner IS NULL OR lease_expires_at <= ?)
             ORDER BY available_at, enqueued_at, event_id, destination_id
             LIMIT ?
-          `)
+          `,
+          )
           .all(claimedAt, claimedAt, limit);
 
     const deliveries: OutboxDelivery[] = [];
@@ -147,14 +153,18 @@ export class SQLiteOutboxRepository {
     const row = this.database
       .prepare("SELECT * FROM outbox WHERE event_id = ? AND destination_id = ?")
       .get(eventId, destinationId);
-    if (!row) throw new EventStoreError("outbox_not_found", "The outbox item to acknowledge is missing.");
+    if (!row)
+      throw new EventStoreError("outbox_not_found", "The outbox item to acknowledge is missing.");
     if (row.acknowledged_at !== null) return { acknowledged: false };
     if (
       row.lease_owner !== workerId ||
       typeof row.lease_started_at !== "string" ||
       typeof row.lease_expires_at !== "string"
     ) {
-      throw new EventStoreError("outbox_lease_conflict", "The lease is not held by the current worker.");
+      throw new EventStoreError(
+        "outbox_lease_conflict",
+        "The lease is not held by the current worker.",
+      );
     }
     if (acknowledgedAt < row.lease_started_at || row.lease_expires_at <= acknowledgedAt) {
       throw new EventStoreError(
@@ -163,12 +173,14 @@ export class SQLiteOutboxRepository {
       );
     }
     this.database
-      .prepare(`
+      .prepare(
+        `
         UPDATE outbox
         SET acknowledged_at = ?, lease_owner = NULL,
             lease_started_at = NULL, lease_expires_at = NULL
         WHERE event_id = ? AND destination_id = ?
-      `)
+      `,
+      )
       .run(acknowledgedAt, eventId, destinationId);
     return { acknowledged: true };
   }
@@ -204,24 +216,25 @@ export class SQLiteOutboxRepository {
       );
     }
     this.database
-      .prepare(`
+      .prepare(
+        `
         UPDATE outbox
         SET available_at = ?, lease_owner = NULL,
             lease_started_at = NULL, lease_expires_at = NULL,
             last_failure_code = ?, last_failed_at = ?
         WHERE event_id = ? AND destination_id = ?
-      `)
+      `,
+      )
       .run(availableAt, failureCode, failedAt, eventId, destinationId);
     return { rescheduled: true };
   }
 
-  purgeAcknowledged(
-    request: PurgeAcknowledgedOutboxRequest,
-  ): PurgeAcknowledgedOutboxResult {
+  purgeAcknowledged(request: PurgeAcknowledgedOutboxRequest): PurgeAcknowledgedOutboxResult {
     const before = requireOutboxTimestamp(request.before, "before");
     const limit = requireOutboxPositiveInteger(request.limit ?? 100, "limit", 1_000);
     const result = this.database
-      .prepare(`
+      .prepare(
+        `
         DELETE FROM outbox
         WHERE rowid IN (
           SELECT rowid
@@ -230,7 +243,8 @@ export class SQLiteOutboxRepository {
           ORDER BY acknowledged_at, event_id, destination_id
           LIMIT ?
         )
-      `)
+      `,
+      )
       .run(before, limit);
     return { deleted: Number(result.changes) };
   }
@@ -249,7 +263,8 @@ export class SQLiteOutboxRepository {
       parameters.push(destinationId);
     }
     if (status === "pending") clauses.push("o.acknowledged_at IS NULL AND o.lease_owner IS NULL");
-    else if (status === "leased") clauses.push("o.acknowledged_at IS NULL AND o.lease_owner IS NOT NULL");
+    else if (status === "leased")
+      clauses.push("o.acknowledged_at IS NULL AND o.lease_owner IS NOT NULL");
     else if (status === "acknowledged") clauses.push("o.acknowledged_at IS NOT NULL");
     else if (status !== undefined) {
       throw new EventStoreError("invalid_outbox_request", "The outbox status is unsupported.");

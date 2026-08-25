@@ -11,14 +11,16 @@ function object(value) {
 
 function normalizeStage(value) {
   if (
-    !object(value) || !uuidPattern.test(value.id ?? "") ||
+    !object(value) ||
+    !uuidPattern.test(value.id ?? "") ||
     value.packageName !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(value.version ?? "") ||
     !["latest", "next"].includes(value.tag) ||
     !timestampPattern.test(value.createdAt ?? "") ||
     !Number.isFinite(Date.parse(value.createdAt)) ||
     !sha1Pattern.test(value.shasum ?? "")
-  ) throw new TypeError("npm stage response is invalid");
+  )
+    throw new TypeError("npm stage response is invalid");
   return {
     id: value.id,
     idDigest: sha256(value.id),
@@ -57,10 +59,15 @@ export function parseNpmStageView(stdout) {
 }
 
 export function sameNpmStage(left, right) {
-  return left.id === right.id && left.idDigest === right.idDigest &&
-    left.package === right.package && left.version === right.version &&
-    left.distTag === right.distTag && left.createdAt === right.createdAt &&
-    left.shasum === right.shasum;
+  return (
+    left.id === right.id &&
+    left.idDigest === right.idDigest &&
+    left.package === right.package &&
+    left.version === right.version &&
+    left.distTag === right.distTag &&
+    left.createdAt === right.createdAt &&
+    left.shasum === right.shasum
+  );
 }
 
 export function publicNpmStage(stage) {

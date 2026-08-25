@@ -10,10 +10,8 @@ import {
   validateWorkflowReachabilityCommit,
   validateWorkflowReachabilityReleaseTag,
 } from "./first-publication-workflow-reachability-contract.mjs";
-import { validateFirstPublicationWorkflowReachabilityReportDocument } from
-  "./first-publication-workflow-reachability-report.mjs";
-import { remoteReleaseWorkflowPath } from
-  "./first-publication-workflow-remote-source-contract.mjs";
+import { validateFirstPublicationWorkflowReachabilityReportDocument } from "./first-publication-workflow-reachability-report.mjs";
+import { remoteReleaseWorkflowPath } from "./first-publication-workflow-remote-source-contract.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
@@ -39,8 +37,12 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -55,10 +57,14 @@ function positive(value) {
 }
 
 function validStep(step, name) {
-  return exactKeys(step, [
-    "name", "number", "status", "conclusion", "startedAt", "completedAt",
-  ]) && step.name === name && positive(step.number) && step.status === "completed" &&
-    step.conclusion === "success" && timestamp(step.completedAt) >= timestamp(step.startedAt);
+  return (
+    exactKeys(step, ["name", "number", "status", "conclusion", "startedAt", "completedAt"]) &&
+    step.name === name &&
+    positive(step.number) &&
+    step.status === "completed" &&
+    step.conclusion === "success" &&
+    timestamp(step.completedAt) >= timestamp(step.startedAt)
+  );
 }
 
 export function createFirstPublicationWorkflowExecutionReport({
@@ -79,8 +85,7 @@ export function createFirstPublicationWorkflowExecutionReport({
     upstream: {
       reachabilityEvidenceDigest: reachabilityReport.evidenceDigest,
       reachabilityObservedAt: reachabilityReport.github.observedAt,
-      remoteDeploymentEvidenceDigest:
-        reachabilityReport.upstream.remoteDeploymentEvidenceDigest,
+      remoteDeploymentEvidenceDigest: reachabilityReport.upstream.remoteDeploymentEvidenceDigest,
       workflowSha256: reachabilityReport.upstream.workflowSha256,
     },
     github: {
@@ -129,57 +134,119 @@ export function validateFirstPublicationWorkflowExecutionReportDocument(report) 
   } catch {
     fail();
   }
-  const validTarget = exactKeys(target, [
-    "repository", "sourceCommit", "releaseTag", "package", "version",
-    "workflowPath", "runId", "attempt",
-  ]) && target.package === "@lervo/cli" &&
+  const validTarget =
+    exactKeys(target, [
+      "repository",
+      "sourceCommit",
+      "releaseTag",
+      "package",
+      "version",
+      "workflowPath",
+      "runId",
+      "attempt",
+    ]) &&
+    target.package === "@lervo/cli" &&
     target.workflowPath === remoteReleaseWorkflowPath &&
-    commitPattern.test(target.sourceCommit ?? "") && positive(target.runId) &&
+    commitPattern.test(target.sourceCommit ?? "") &&
+    positive(target.runId) &&
     positive(target.attempt);
-  const validUpstream = exactKeys(upstream, [
-    "reachabilityEvidenceDigest", "reachabilityObservedAt",
-    "remoteDeploymentEvidenceDigest", "workflowSha256",
-  ]) && digestPattern.test(upstream.reachabilityEvidenceDigest ?? "") &&
+  const validUpstream =
+    exactKeys(upstream, [
+      "reachabilityEvidenceDigest",
+      "reachabilityObservedAt",
+      "remoteDeploymentEvidenceDigest",
+      "workflowSha256",
+    ]) &&
+    digestPattern.test(upstream.reachabilityEvidenceDigest ?? "") &&
     digestPattern.test(upstream.remoteDeploymentEvidenceDigest ?? "") &&
     digestPattern.test(upstream.workflowSha256 ?? "");
-  const validWorkflow = exactKeys(workflow, ["id", "path", "state"]) &&
-    positive(workflow.id) && workflow.path === remoteReleaseWorkflowPath &&
+  const validWorkflow =
+    exactKeys(workflow, ["id", "path", "state"]) &&
+    positive(workflow.id) &&
+    workflow.path === remoteReleaseWorkflowPath &&
     workflow.state === "active";
-  const validRun = exactKeys(run, [
-    "id", "attempt", "runNumber", "workflowId", "workflowPath", "event",
-    "status", "conclusion", "headBranch", "headSha", "createdAt", "startedAt",
-    "updatedAt",
-  ]) && run.id === target?.runId && run.attempt === target?.attempt &&
-    positive(run.runNumber) && run.workflowId === workflow?.id &&
-    run.workflowPath === remoteReleaseWorkflowPath && run.event === "workflow_dispatch" &&
-    run.status === "completed" && run.conclusion === "success" &&
-    run.headBranch === target?.releaseTag && run.headSha === target?.sourceCommit &&
+  const validRun =
+    exactKeys(run, [
+      "id",
+      "attempt",
+      "runNumber",
+      "workflowId",
+      "workflowPath",
+      "event",
+      "status",
+      "conclusion",
+      "headBranch",
+      "headSha",
+      "createdAt",
+      "startedAt",
+      "updatedAt",
+    ]) &&
+    run.id === target?.runId &&
+    run.attempt === target?.attempt &&
+    positive(run.runNumber) &&
+    run.workflowId === workflow?.id &&
+    run.workflowPath === remoteReleaseWorkflowPath &&
+    run.event === "workflow_dispatch" &&
+    run.status === "completed" &&
+    run.conclusion === "success" &&
+    run.headBranch === target?.releaseTag &&
+    run.headSha === target?.sourceCommit &&
     timestamp(run.startedAt) >= timestamp(run.createdAt) &&
     timestamp(run.updatedAt) >= timestamp(run.startedAt);
-  const validJob = exactKeys(job, [
-    "id", "runId", "name", "headSha", "status", "conclusion", "startedAt",
-    "completedAt", "stage", "resultUpload",
-  ]) && positive(job.id) && job.runId === target?.runId &&
-    job.name === workflowExecutionJobName && job.headSha === target?.sourceCommit &&
-    job.status === "completed" && job.conclusion === "success" &&
+  const validJob =
+    exactKeys(job, [
+      "id",
+      "runId",
+      "name",
+      "headSha",
+      "status",
+      "conclusion",
+      "startedAt",
+      "completedAt",
+      "stage",
+      "resultUpload",
+    ]) &&
+    positive(job.id) &&
+    job.runId === target?.runId &&
+    job.name === workflowExecutionJobName &&
+    job.headSha === target?.sourceCommit &&
+    job.status === "completed" &&
+    job.conclusion === "success" &&
     timestamp(job.completedAt) >= timestamp(job.startedAt) &&
     validStep(job.stage, workflowStageStepName) &&
     validStep(job.resultUpload, workflowResultUploadStepName);
-  const validArtifact = exactKeys(artifact, [
-    "id", "name", "sizeInBytes", "digest", "expired", "createdAt", "expiresAt",
-  ]) && positive(artifact.id) && positive(artifact.sizeInBytes) &&
+  const validArtifact =
+    exactKeys(artifact, [
+      "id",
+      "name",
+      "sizeInBytes",
+      "digest",
+      "expired",
+      "createdAt",
+      "expiresAt",
+    ]) &&
+    positive(artifact.id) &&
+    positive(artifact.sizeInBytes) &&
     artifact.sizeInBytes <= maximumWorkflowExecutionArtifactBytes &&
     artifact.name === `lervo-cli-stage-${target?.releaseTag}-${target?.attempt}` &&
-    digestPattern.test(artifact.digest ?? "") && artifact.expired === false &&
+    digestPattern.test(artifact.digest ?? "") &&
+    artifact.expired === false &&
     timestamp(artifact.expiresAt) > timestamp(artifact.createdAt);
-  const validGitHub = exactKeys(github, [
-    "observedAt", "workflow", "run", "job", "artifact", "runStability",
-  ]) && validWorkflow && validRun && validJob && validArtifact &&
+  const validGitHub =
+    exactKeys(github, ["observedAt", "workflow", "run", "job", "artifact", "runStability"]) &&
+    validWorkflow &&
+    validRun &&
+    validJob &&
+    validArtifact &&
     github.runStability === "rechecked_unchanged";
-  const validChecks = Array.isArray(report?.checks) &&
-    report.checks.length === checkIds.length && report.checks.every((check, index) =>
-      exactKeys(check, ["id", "status"]) && check.id === checkIds[index] &&
-      check.status === "ready"
+  const validChecks =
+    Array.isArray(report?.checks) &&
+    report.checks.length === checkIds.length &&
+    report.checks.every(
+      (check, index) =>
+        exactKeys(check, ["id", "status"]) &&
+        check.id === checkIds[index] &&
+        check.status === "ready",
     );
   const limitations = {
     upstreamEvidenceAuthenticity: "not_verified",
@@ -199,19 +266,34 @@ export function validateFirstPublicationWorkflowExecutionReportDocument(report) 
   };
   if (
     !exactKeys(report, [
-      "schemaVersion", "status", "evidenceType", "target", "upstream", "github",
-      "checks", "execution", "limitations", "sideEffects", "evidenceDigest",
-    ]) || report.schemaVersion !== 1 || report.status !== "evidence_bound" ||
+      "schemaVersion",
+      "status",
+      "evidenceType",
+      "target",
+      "upstream",
+      "github",
+      "checks",
+      "execution",
+      "limitations",
+      "sideEffects",
+      "evidenceDigest",
+    ]) ||
+    report.schemaVersion !== 1 ||
+    report.status !== "evidence_bound" ||
     report.evidenceType !== "first_publication_stage_only_workflow_execution" ||
     report.execution !== "exact_attempt_completed_success_with_stage_result_artifact" ||
-    !validTarget || !validUpstream || !validGitHub || !validChecks ||
+    !validTarget ||
+    !validUpstream ||
+    !validGitHub ||
+    !validChecks ||
     !exactKeys(report.limitations, Object.keys(limitations)) ||
     canonicalJson(report.limitations) !== canonicalJson(limitations) ||
     !exactKeys(report.sideEffects, Object.keys(sideEffects)) ||
     canonicalJson(report.sideEffects) !== canonicalJson(sideEffects) ||
     !digestPattern.test(report.evidenceDigest ?? "") ||
     timestamp(github.observedAt) < timestamp(upstream.reachabilityObservedAt)
-  ) fail();
+  )
+    fail();
   const { evidenceDigest, ...body } = report;
   if (evidenceDigest !== canonicalDigest(body)) fail();
   return report;

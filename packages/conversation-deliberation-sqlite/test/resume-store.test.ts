@@ -98,31 +98,41 @@ describe("durable conversation deliberation resume queue", () => {
       artifactCount: 4,
       nextAction: "none" as const,
     }));
-    await expect(runConversationDeliberationResumeWorkerCycle({
-      store: resumes,
-      executor: { execute },
-      workerId: "resume-worker",
-      now: () => new Date("2026-08-22T00:04:00.000Z"),
-    })).resolves.toMatchObject({ status: "settled", deliberationId: first.deliberationId });
+    await expect(
+      runConversationDeliberationResumeWorkerCycle({
+        store: resumes,
+        executor: { execute },
+        workerId: "resume-worker",
+        now: () => new Date("2026-08-22T00:04:00.000Z"),
+      }),
+    ).resolves.toMatchObject({ status: "settled", deliberationId: first.deliberationId });
     expect(execute).toHaveBeenCalledOnce();
-    await expect(backend.inspect({
-      projectId,
-      principalId: "operator:reader",
-      deliberationId: first.deliberationId,
-      inspectedAt: "2026-08-22T00:05:00.000Z",
-    })).resolves.toMatchObject({ status: "converged", artifactCount: 4 });
+    await expect(
+      backend.inspect({
+        projectId,
+        principalId: "operator:reader",
+        deliberationId: first.deliberationId,
+        inspectedAt: "2026-08-22T00:05:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "converged", artifactCount: 4 });
     resumes.close();
     state.starts.close();
 
     const database = new DatabaseSync(state.resumePath);
-    const row = database.prepare(`
+    const row = database
+      .prepare(
+        `
       SELECT principal_hash FROM conversation_deliberation_resume_jobs
       WHERE deliberation_id = ?
-    `).get(first.deliberationId);
+    `,
+      )
+      .get(first.deliberationId);
     expect(row?.principal_hash).not.toBe("operator:reviewer");
-    expect(() => database.prepare(
-      "DELETE FROM conversation_deliberation_resume_jobs WHERE deliberation_id = ?",
-    ).run(first.deliberationId)).toThrow("cannot be deleted");
+    expect(() =>
+      database
+        .prepare("DELETE FROM conversation_deliberation_resume_jobs WHERE deliberation_id = ?")
+        .run(first.deliberationId),
+    ).toThrow("cannot be deleted");
     database.close();
   });
 
@@ -135,13 +145,15 @@ describe("durable conversation deliberation resume queue", () => {
       deliberationId: state.started.deliberationId,
       requestedAt: "2026-08-22T00:03:00.000Z",
     });
-    await expect(state.backend.resume({
-      projectId,
-      principalId: "operator:reviewer",
-      sourceEventId: `cve_${"d".repeat(64)}`,
-      deliberationId: state.started.deliberationId,
-      requestedAt: "2026-08-22T00:03:01.000Z",
-    })).rejects.toMatchObject({ code: "deliberation_resume_conflict" });
+    await expect(
+      state.backend.resume({
+        projectId,
+        principalId: "operator:reviewer",
+        sourceEventId: `cve_${"d".repeat(64)}`,
+        deliberationId: state.started.deliberationId,
+        requestedAt: "2026-08-22T00:03:01.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "deliberation_resume_conflict" });
     state.resumes.close();
     state.starts.close();
   });
@@ -162,57 +174,65 @@ describe("durable conversation deliberation resume queue", () => {
     });
     if (lease === null) throw new Error("The resume queue lease is missing.");
     const execute = vi.fn();
-    await expect(runConversationDeliberationResumeWorkerCycle({
-      store: state.resumes,
-      executor: { execute },
-      workerId: "replacement-resume-worker",
-      now: () => new Date("2026-08-22T00:04:11.000Z"),
-    })).resolves.toEqual({ status: "idle" });
+    await expect(
+      runConversationDeliberationResumeWorkerCycle({
+        store: state.resumes,
+        executor: { execute },
+        workerId: "replacement-resume-worker",
+        now: () => new Date("2026-08-22T00:04:11.000Z"),
+      }),
+    ).resolves.toEqual({ status: "idle" });
     expect(execute).not.toHaveBeenCalled();
-    await expect(state.backend.inspect({
-      projectId,
-      principalId: "operator:reader",
-      deliberationId: state.started.deliberationId,
-      inspectedAt: "2026-08-22T00:04:11.000Z",
-    })).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
-    await expect(reconcileConversationDeliberation({
-      store: state.resumes,
-      source: {
-        inspect: async () => ({
-          status: "confirmed",
-          sourceKind: "fixture_project_inspection_v1",
-          evidenceHash: `sha256:${"6".repeat(64)}`,
-          summary: {
-            deliberationId: state.started.deliberationId,
-            status: "interrupted",
-            artifactCount: 2,
-            nextAction: "resume",
-          },
-        }),
-      },
-      projectId,
-      deliberationId: state.started.deliberationId,
-      now: () => new Date("2026-08-22T00:04:30.000Z"),
-    })).rejects.toMatchObject({ code: "integrity_failed" });
-    await expect(reconcileConversationDeliberation({
-      store: state.resumes,
-      source: {
-        inspect: async () => ({
-          status: "confirmed",
-          sourceKind: "fixture_project_inspection_v1",
-          evidenceHash: `sha256:${"f".repeat(64)}`,
-          summary: {
-            deliberationId: state.started.deliberationId,
-            status: "converged",
-            artifactCount: 4,
-            nextAction: "none",
-          },
-        }),
-      },
-      projectId,
-      deliberationId: state.started.deliberationId,
-      now: () => new Date("2026-08-22T00:05:00.000Z"),
-    })).resolves.toMatchObject({ status: "reconciled", summary: { status: "converged" } });
+    await expect(
+      state.backend.inspect({
+        projectId,
+        principalId: "operator:reader",
+        deliberationId: state.started.deliberationId,
+        inspectedAt: "2026-08-22T00:04:11.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "unknown", nextAction: "none" });
+    await expect(
+      reconcileConversationDeliberation({
+        store: state.resumes,
+        source: {
+          inspect: async () => ({
+            status: "confirmed",
+            sourceKind: "fixture_project_inspection_v1",
+            evidenceHash: `sha256:${"6".repeat(64)}`,
+            summary: {
+              deliberationId: state.started.deliberationId,
+              status: "interrupted",
+              artifactCount: 2,
+              nextAction: "resume",
+            },
+          }),
+        },
+        projectId,
+        deliberationId: state.started.deliberationId,
+        now: () => new Date("2026-08-22T00:04:30.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "integrity_failed" });
+    await expect(
+      reconcileConversationDeliberation({
+        store: state.resumes,
+        source: {
+          inspect: async () => ({
+            status: "confirmed",
+            sourceKind: "fixture_project_inspection_v1",
+            evidenceHash: `sha256:${"f".repeat(64)}`,
+            summary: {
+              deliberationId: state.started.deliberationId,
+              status: "converged",
+              artifactCount: 4,
+              nextAction: "none",
+            },
+          }),
+        },
+        projectId,
+        deliberationId: state.started.deliberationId,
+        now: () => new Date("2026-08-22T00:05:00.000Z"),
+      }),
+    ).resolves.toMatchObject({ status: "reconciled", summary: { status: "converged" } });
     state.resumes.close();
     state.starts.close();
   });

@@ -56,10 +56,5 @@ export function createDeveloperRole(
 }
 
 export function createDeveloperTurnInstructions(task: string): string {
-  return [
-    task,
-    "",
-    "Lervo managed result protocol:",
-    developerResultProtocol,
-  ].join("\n");
+  return [task, "", "Lervo managed result protocol:", developerResultProtocol].join("\n");
 }

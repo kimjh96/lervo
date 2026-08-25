@@ -23,15 +23,22 @@ function identity(stats: FileIdentity): FileIdentity {
 }
 
 function sameIdentity(left: FileIdentity, right: FileIdentity): boolean {
-  return left.dev === right.dev && left.ino === right.ino &&
-    left.size === right.size && left.mtimeNs === right.mtimeNs &&
-    left.ctimeNs === right.ctimeNs;
+  return (
+    left.dev === right.dev &&
+    left.ino === right.ino &&
+    left.size === right.size &&
+    left.mtimeNs === right.mtimeNs &&
+    left.ctimeNs === right.ctimeNs
+  );
 }
 
 export function normalizeScanPath(path: string): string {
   if (
-    path.length === 0 || path.includes("\0") || path.includes("\\") ||
-    isAbsolute(path) || /^[A-Za-z]:[\\/]/.test(path)
+    path.length === 0 ||
+    path.includes("\0") ||
+    path.includes("\\") ||
+    isAbsolute(path) ||
+    /^[A-Za-z]:[\\/]/.test(path)
   ) {
     throw new DocumentMigrationError(
       "invalid_scan_request",
@@ -115,8 +122,10 @@ export async function readStableFile(
     const after = identity(await handle.stat({ bigint: true }));
     const finalPathStats = await lstat(absolute, { bigint: true });
     if (
-      !sameIdentity(before, after) || !sameIdentity(after, identity(finalPathStats)) ||
-      finalPathStats.isSymbolicLink() || await realpath(absolute) !== absolute
+      !sameIdentity(before, after) ||
+      !sameIdentity(after, identity(finalPathStats)) ||
+      finalPathStats.isSymbolicLink() ||
+      (await realpath(absolute)) !== absolute
     ) {
       throw new DocumentMigrationError(
         "unsafe_source",
@@ -141,13 +150,11 @@ export async function inspectTargetFile(
   path: string,
   maximumBytes: number,
 ): Promise<
-  | { kind: "missing" }
-  | { kind: "file"; bytes: Uint8Array }
-  | { kind: "unsafe"; reasonCode: string }
+  { kind: "missing" } | { kind: "file"; bytes: Uint8Array } | { kind: "unsafe"; reasonCode: string }
 > {
   const normalized = normalizeScanPath(path);
   const segments = normalized.split("/");
-  for (const [index, segment] of segments.entries()) {
+  for (const [index] of segments.entries()) {
     const current = resolve(root, ...segments.slice(0, index + 1));
     try {
       const stats = await lstat(current);

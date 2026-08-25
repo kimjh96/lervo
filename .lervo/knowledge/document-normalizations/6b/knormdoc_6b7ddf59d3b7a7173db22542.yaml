@@ -1,0 +1,26 @@
+candidateId: knorm_fcf7c6145ff9d232dcdd5402
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_940065ec82ff150c211e15a5
+outputLanguage: en
+outputs:
+  - byteCount: 2392
+    contentHash: sha256:381c839306b0e9bff2da1536dcbf8fea882423ea36a6e47abaf9efe5a4bed6c0
+    path: docs/decisions/coordination/remote-control/0162-reloadable-hub-cryptographic-material-and-service-definitions.md
+    userRegionHash: sha256:381c839306b0e9bff2da1536dcbf8fea882423ea36a6e47abaf9efe5a4bed6c0
+profile: decision_record
+recordId: knormdoc_6b7ddf59d3b7a7173db22542
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:75a0530060cc7928b94715ffd09efa7a423ade8c165b6c359440425742132171
+sourcePath: docs/decisions/coordination/remote-control/0162-reloadable-hub-cryptographic-material-and-service-definitions.md
+sourceUnitVersionIds:
+  - uv_5039954a210fd8c714879481
+  - uv_689ba6fb99a7749050c1eb62
+  - uv_6de37d04572ba576da51de77
+  - uv_a6ab5d7263bc276a9660a22f

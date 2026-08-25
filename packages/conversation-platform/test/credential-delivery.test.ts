@@ -10,12 +10,15 @@ type Begin = Parameters<ConversationPlatformDeliveryReplayPort["begin"]>[0];
 type Complete = Parameters<ConversationPlatformDeliveryReplayPort["complete"]>[0];
 
 class MemoryReplay implements ConversationPlatformDeliveryReplayPort {
-  private readonly records = new Map<string, {
-    hash: string;
-    status: "sending" | "unknown" | "rejected" | "delivered";
-    externalMessageKey?: string;
-    deliveredAt?: string;
-  }>();
+  private readonly records = new Map<
+    string,
+    {
+      hash: string;
+      status: "sending" | "unknown" | "rejected" | "delivered";
+      externalMessageKey?: string;
+      deliveredAt?: string;
+    }
+  >();
 
   async begin(input: Begin): Promise<PlatformDeliveryReplayDecision> {
     const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
@@ -44,14 +47,16 @@ class MemoryReplay implements ConversationPlatformDeliveryReplayPort {
     });
   }
 
-  async markUnknown(input: Parameters<ConversationPlatformDeliveryReplayPort["markUnknown"]>[0]):
-    Promise<void> {
+  async markUnknown(
+    input: Parameters<ConversationPlatformDeliveryReplayPort["markUnknown"]>[0],
+  ): Promise<void> {
     const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
     this.records.set(key, { hash: input.requestHash, status: "unknown" });
   }
 
-  async markRejected(input: Parameters<ConversationPlatformDeliveryReplayPort["markRejected"]>[0]):
-    Promise<void> {
+  async markRejected(
+    input: Parameters<ConversationPlatformDeliveryReplayPort["markRejected"]>[0],
+  ): Promise<void> {
     const key = `${input.platform}:${input.integrationId}:${input.outboundId}`;
     this.records.set(key, { hash: input.requestHash, status: "rejected" });
   }
@@ -119,10 +124,13 @@ describe("credential-backed platform delivery", () => {
       });
       expect(typeof body.nonce).toBe("string");
       expect((body.nonce as string).length).toBeLessThanOrEqual(25);
-      return new Response(JSON.stringify({
-        id: "423456789012345678",
-        channel_id: "223456789012345678",
-      }), { status: 200, headers: { "content-type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          id: "423456789012345678",
+          channel_id: "223456789012345678",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
     });
     const delivery = new DiscordRestDelivery({
       integrationId: "itg_discord01",
@@ -151,7 +159,9 @@ describe("credential-backed platform delivery", () => {
 
   it("does not resend when the first API result is ambiguous", async () => {
     const replay = new MemoryReplay();
-    const request = vi.fn(async () => { throw new Error("connection reset after write"); });
+    const request = vi.fn(async () => {
+      throw new Error("connection reset after write");
+    });
     const credential = `xoxb-${"private".repeat(8)}`;
     const delivery = new SlackWebApiDelivery({
       integrationId: "itg_slack001",
@@ -173,17 +183,25 @@ describe("credential-backed platform delivery", () => {
     await expect(delivery.send(input)).rejects.toMatchObject({ code: "platform_delivery_failed" });
     await expect(delivery.send(input)).rejects.toThrow("Operator review is required");
     expect(request).toHaveBeenCalledOnce();
-    try { await delivery.send(input); } catch (error) {
+    try {
+      await delivery.send(input);
+    } catch (error) {
       expect(String(error)).not.toContain(credential);
     }
   });
 
   it("keeps an explicit Slack rejection distinct from an unknown response", async () => {
     const replay = new MemoryReplay();
-    const request = vi.fn(async () => new Response(JSON.stringify({
-      ok: false,
-      error: "channel_not_found",
-    }), { status: 200, headers: { "content-type": "application/json" } }));
+    const request = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ok: false,
+            error: "channel_not_found",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
     const delivery = new SlackWebApiDelivery({
       integrationId: "itg_slack001",
       botToken: `xoxb-${"s".repeat(40)}`,

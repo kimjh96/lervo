@@ -1,9 +1,15 @@
 export type EnvironmentScope = "project" | "user" | "organization";
 export type EnvironmentSharing = "local_only" | "normalized_observations";
 export type EnvironmentAdmissionDecision = "auto_register" | "review_required" | "deny";
-export type JsonValue = null | boolean | number | string | JsonValue[] | {
-  [key: string]: JsonValue;
-};
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | {
+      [key: string]: JsonValue;
+    };
 
 export interface EnvironmentSourceManifest {
   schemaVersion: 1;

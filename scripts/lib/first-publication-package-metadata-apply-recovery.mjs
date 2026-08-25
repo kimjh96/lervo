@@ -13,19 +13,26 @@ import {
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 
 function validateJournal(journal) {
-  const validBindings = Array.isArray(journal?.files) && journal.files.every((file) =>
-    Number.isSafeInteger(file?.before?.byteCount) && file.before.byteCount > 0 &&
-    /^sha256:[a-f0-9]{64}$/u.test(file.before.sha256 ?? "") &&
-    Number.isSafeInteger(file?.after?.byteCount) && file.after.byteCount > 0 &&
-    /^sha256:[a-f0-9]{64}$/u.test(file.after.sha256 ?? "")
-  );
+  const validBindings =
+    Array.isArray(journal?.files) &&
+    journal.files.every(
+      (file) =>
+        Number.isSafeInteger(file?.before?.byteCount) &&
+        file.before.byteCount > 0 &&
+        /^sha256:[a-f0-9]{64}$/u.test(file.before.sha256 ?? "") &&
+        Number.isSafeInteger(file?.after?.byteCount) &&
+        file.after.byteCount > 0 &&
+        /^sha256:[a-f0-9]{64}$/u.test(file.after.sha256 ?? ""),
+    );
   if (
     journal?.schemaVersion !== 1 ||
     journal.transactionType !== "first_publication_package_metadata_apply" ||
     !/^sha256:[a-f0-9]{64}$/u.test(journal.planDigest ?? "") ||
-    !Number.isSafeInteger(journal.ownerPid) || journal.ownerPid < 1 ||
+    !Number.isSafeInteger(journal.ownerPid) ||
+    journal.ownerPid < 1 ||
     !["preparing", "staged", "publishing", "committed"].includes(journal.phase) ||
-    !validBindings || journal.files.length !== 3 ||
+    !validBindings ||
+    journal.files.length !== 3 ||
     canonicalJson(journal.files.map(({ id, relativePath }) => ({ id, relativePath }))) !==
       canonicalJson([
         { id: "packageManifest", relativePath: "apps/cli/package.json" },
@@ -55,12 +62,15 @@ function processIsAlive(pid) {
 export async function recoverFirstPublicationPackageMetadataFiles({ transactionRoot, targets }) {
   if (
     !isAbsolute(transactionRoot ?? "") ||
-    targets === null || typeof targets !== "object" ||
-    ["packageManifest", "releaseManifest", "releaseSbom"].some((id) =>
-      !isAbsolute(targets?.[id] ?? "")
-    ) || new Set(Object.values(targets)).size !== 3
-  ) metadataApplyFailed();
-  if (!await metadataApplyPathExists(transactionRoot)) {
+    targets === null ||
+    typeof targets !== "object" ||
+    ["packageManifest", "releaseManifest", "releaseSbom"].some(
+      (id) => !isAbsolute(targets?.[id] ?? ""),
+    ) ||
+    new Set(Object.values(targets)).size !== 3
+  )
+    metadataApplyFailed();
+  if (!(await metadataApplyPathExists(transactionRoot))) {
     failMetadataApply(
       "first_publication_package_metadata_apply_recovery_not_found",
       "There is no CLI first-publication package metadata apply transaction to recover.",
@@ -68,7 +78,9 @@ export async function recoverFirstPublicationPackageMetadataFiles({ transactionR
   }
   let journal;
   try {
-    journal = JSON.parse(await readFile(resolve(transactionRoot, metadataApplyJournalName), "utf8"));
+    journal = JSON.parse(
+      await readFile(resolve(transactionRoot, metadataApplyJournalName), "utf8"),
+    );
   } catch {
     failMetadataApply(
       "first_publication_package_metadata_apply_journal_invalid",

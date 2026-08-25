@@ -37,14 +37,17 @@ function isoTimestamp(value: unknown): string {
   const timestamp = requiredString(value, "Discord message timestamp", 64);
   const milliseconds = Date.parse(timestamp);
   if (!Number.isFinite(milliseconds)) {
-    throw new ConversationPlatformError("invalid_platform_payload", "The Discord message timestamp is invalid.");
+    throw new ConversationPlatformError(
+      "invalid_platform_payload",
+      "The Discord message timestamp is invalid.",
+    );
   }
   return new Date(milliseconds).toISOString();
 }
 
-export function parseDiscordGatewayPayload(value: unknown):
-  | { kind: "not_dispatch" }
-  | ParsedDiscordGateway {
+export function parseDiscordGatewayPayload(
+  value: unknown,
+): { kind: "not_dispatch" } | ParsedDiscordGateway {
   const payload = objectValue(value);
   if (payload.op !== 0 || !Number.isSafeInteger(payload.s) || (payload.s as number) < 0) {
     return { kind: "not_dispatch" };
@@ -58,9 +61,10 @@ export function parseDiscordGatewayPayload(value: unknown):
   const author = objectValue(message.author);
   const bot = author.bot === true;
   const mentionValues = Array.isArray(message.mentions) ? message.mentions : [];
-  const reference = message.message_reference === undefined || message.message_reference === null
-    ? null
-    : objectValue(message.message_reference);
+  const reference =
+    message.message_reference === undefined || message.message_reference === null
+      ? null
+      : objectValue(message.message_reference);
   return {
     kind: "message",
     sequence,
@@ -69,13 +73,14 @@ export function parseDiscordGatewayPayload(value: unknown):
     channelId: snowflake(message.channel_id, "Discord channel ID"),
     guildId: optionalSnowflake(message.guild_id, "Discord guild ID"),
     participantKey: `${bot ? "bot" : "user"}:${snowflake(author.id, "Discord author ID")}`,
-    mentionedParticipantKeys: mentionValues.map((item) =>
-      `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
+    mentionedParticipantKeys: mentionValues.map(
+      (item) => `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
     ),
     actorKindHint: bot ? "agent" : "human",
-    replyToMessageId: reference === null
-      ? null
-      : optionalSnowflake(reference.message_id, "Discord reply message ID"),
+    replyToMessageId:
+      reference === null
+        ? null
+        : optionalSnowflake(reference.message_id, "Discord reply message ID"),
     content: requiredString(message.content, "Discord message content", 65_536),
     occurredAt: isoTimestamp(message.timestamp),
   };

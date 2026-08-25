@@ -2,10 +2,8 @@ import assert from "node:assert/strict";
 
 import { describe, it } from "vitest";
 
-import { observeGitHubWorkflowReachability } from
-  "../lib/github-workflow-reachability-observer.mjs";
-import { remoteCliPackagePath } from
-  "../lib/first-publication-workflow-reachability-contract.mjs";
+import { observeGitHubWorkflowReachability } from "../lib/github-workflow-reachability-observer.mjs";
+import { remoteCliPackagePath } from "../lib/first-publication-workflow-reachability-contract.mjs";
 import { sha256 } from "../lib/release-artifact-manifest.mjs";
 
 const repository = "lervo-dev/lervo";
@@ -24,50 +22,73 @@ function route(overrides = {}) {
     calls.push({ command, args, options, path });
     if (path === `repos/${repository}`) {
       repositoryReads += 1;
-      return { stdout: JSON.stringify(overrides.repository?.(repositoryReads) ?? {
-        default_branch: "main",
-      }) };
+      return {
+        stdout: JSON.stringify(
+          overrides.repository?.(repositoryReads) ?? {
+            default_branch: "main",
+          },
+        ),
+      };
     }
-    if (path ===
-      `repos/${repository}/contents/${remoteCliPackagePath}?ref=${sourceCommit}`) {
-      return { stdout: JSON.stringify(overrides.sourcePackage ?? {
-        type: "file",
-        path: remoteCliPackagePath,
-        encoding: "base64",
-        size: sourcePackage.length,
-        sha: "f".repeat(40),
-        content: sourcePackage.toString("base64"),
-      }) };
+    if (path === `repos/${repository}/contents/${remoteCliPackagePath}?ref=${sourceCommit}`) {
+      return {
+        stdout: JSON.stringify(
+          overrides.sourcePackage ?? {
+            type: "file",
+            path: remoteCliPackagePath,
+            encoding: "base64",
+            size: sourcePackage.length,
+            sha: "f".repeat(40),
+            content: sourcePackage.toString("base64"),
+          },
+        ),
+      };
     }
     if (path === `repos/${repository}/git/ref/heads/main`) {
       branchReads += 1;
-      return { stdout: JSON.stringify(overrides.branch?.(branchReads) ?? {
-        ref: "refs/heads/main",
-        object: { type: "commit", sha: defaultHead },
-      }) };
+      return {
+        stdout: JSON.stringify(
+          overrides.branch?.(branchReads) ?? {
+            ref: "refs/heads/main",
+            object: { type: "commit", sha: defaultHead },
+          },
+        ),
+      };
     }
     if (path === `repos/${repository}/git/ref/tags/${releaseTag}`) {
       tagReads += 1;
-      return { stdout: JSON.stringify(overrides.tag?.(tagReads) ?? {
-        ref: `refs/tags/${releaseTag}`,
-        object: { type: "commit", sha: sourceCommit },
-      }) };
+      return {
+        stdout: JSON.stringify(
+          overrides.tag?.(tagReads) ?? {
+            ref: `refs/tags/${releaseTag}`,
+            object: { type: "commit", sha: sourceCommit },
+          },
+        ),
+      };
     }
     if (path.startsWith(`repos/${repository}/git/tags/`)) {
       const sha = path.split("/").at(-1);
-      return { stdout: JSON.stringify(overrides.tagObject?.(sha) ?? {
-        sha,
-        object: { type: "commit", sha: sourceCommit },
-      }) };
+      return {
+        stdout: JSON.stringify(
+          overrides.tagObject?.(sha) ?? {
+            sha,
+            object: { type: "commit", sha: sourceCommit },
+          },
+        ),
+      };
     }
     if (path.startsWith(`repos/${repository}/compare/`)) {
-      return { stdout: JSON.stringify(overrides.comparison ?? {
-        status: "ahead",
-        ahead_by: 2,
-        behind_by: 0,
-        base_commit: { sha: sourceCommit },
-        merge_base_commit: { sha: sourceCommit },
-      }) };
+      return {
+        stdout: JSON.stringify(
+          overrides.comparison ?? {
+            status: "ahead",
+            ahead_by: 2,
+            behind_by: 0,
+            base_commit: { sha: sourceCommit },
+            merge_base_commit: { sha: sourceCommit },
+          },
+        ),
+      };
     }
     throw new Error(`unexpected route: ${path}`);
   };
@@ -112,11 +133,21 @@ describe("GitHub workflow reachability observer", () => {
       referenceStability: "rechecked_unchanged",
     });
     assert.equal(fixture.calls.length, 8);
-    assert.equal(fixture.calls.every(({ command }) => command === "gh"), true);
-    assert.equal(fixture.calls.every(({ args }) =>
-      args[0] === "api" && args[2] === "GET"), true);
-    assert.equal(fixture.calls.some(({ path }) => path ===
-      `repos/${repository}/compare/${sourceCommit}...${defaultHead}?per_page=1&page=1`), true);
+    assert.equal(
+      fixture.calls.every(({ command }) => command === "gh"),
+      true,
+    );
+    assert.equal(
+      fixture.calls.every(({ args }) => args[0] === "api" && args[2] === "GET"),
+      true,
+    );
+    assert.equal(
+      fixture.calls.some(
+        ({ path }) =>
+          path === `repos/${repository}/compare/${sourceCommit}...${defaultHead}?per_page=1&page=1`,
+      ),
+      true,
+    );
     assert.equal(fixture.calls[0].options.env.GH_TOKEN, "test-token");
   });
 
@@ -128,10 +159,16 @@ describe("GitHub workflow reachability observer", () => {
         ref: `refs/tags/${releaseTag}`,
         object: { type: "tag", sha: first },
       }),
-      tagObject: (sha) => sha === first
-        ? { sha, tag: releaseTag, message: "private note", tagger: { name: "actor" },
-          object: { type: "tag", sha: second } }
-        : { sha, object: { type: "commit", sha: sourceCommit } },
+      tagObject: (sha) =>
+        sha === first
+          ? {
+              sha,
+              tag: releaseTag,
+              message: "private note",
+              tagger: { name: "actor" },
+              object: { type: "tag", sha: second },
+            }
+          : { sha, object: { type: "commit", sha: sourceCommit } },
     });
     const observation = await observeGitHubWorkflowReachability({
       repository,
@@ -170,8 +207,7 @@ describe("GitHub workflow reachability observer", () => {
       execute: fixture.execute,
     });
     assert.equal(observation.defaultBranch.headCommit, sourceCommit);
-    assert.equal(observation.defaultBranch.relation,
-      "source_commit_ancestor_or_equal");
+    assert.equal(observation.defaultBranch.relation, "source_commit_ancestor_or_equal");
     assert.equal(observation.defaultBranch.commitsAhead, 0);
   });
 
@@ -202,14 +238,18 @@ describe("GitHub workflow reachability observer", () => {
 
   it("fails closed when the default branch or tag ref moves during observation", async () => {
     for (const overrides of [
-      { branch: (read) => ({
-        ref: "refs/heads/main",
-        object: { type: "commit", sha: read === 1 ? defaultHead : "a".repeat(40) },
-      }) },
-      { tag: (read) => ({
-        ref: `refs/tags/${releaseTag}`,
-        object: { type: "commit", sha: read === 1 ? sourceCommit : "a".repeat(40) },
-      }) },
+      {
+        branch: (read) => ({
+          ref: "refs/heads/main",
+          object: { type: "commit", sha: read === 1 ? defaultHead : "a".repeat(40) },
+        }),
+      },
+      {
+        tag: (read) => ({
+          ref: `refs/tags/${releaseTag}`,
+          object: { type: "commit", sha: read === 1 ? sourceCommit : "a".repeat(40) },
+        }),
+      },
       { repository: (read) => ({ default_branch: read === 1 ? "main" : "trunk" }) },
     ]) {
       const fixture = route(overrides);
@@ -226,9 +266,17 @@ describe("GitHub workflow reachability observer", () => {
 
   it("bounds invalid responses, deep tag chains, failures, and invalid input", async () => {
     const invalid = route({ repository: () => ({ default_branch: "../unsafe" }) });
-    assert.equal((await observeGitHubWorkflowReachability({
-      repository, sourceCommit, releaseTag, execute: invalid.execute,
-    })).reason, "response_invalid");
+    assert.equal(
+      (
+        await observeGitHubWorkflowReachability({
+          repository,
+          sourceCommit,
+          releaseTag,
+          execute: invalid.execute,
+        })
+      ).reason,
+      "response_invalid",
+    );
 
     const tagShas = ["1", "2", "3", "4", "5", "6"].map((value) => value.repeat(40));
     const deep = route({
@@ -241,25 +289,40 @@ describe("GitHub workflow reachability observer", () => {
         object: { type: "tag", sha: tagShas[tagShas.indexOf(sha) + 1] },
       }),
     });
-    assert.equal((await observeGitHubWorkflowReachability({
-      repository, sourceCommit, releaseTag, execute: deep.execute,
-    })).reason, "response_invalid");
+    assert.equal(
+      (
+        await observeGitHubWorkflowReachability({
+          repository,
+          sourceCommit,
+          releaseTag,
+          execute: deep.execute,
+        })
+      ).reason,
+      "response_invalid",
+    );
 
     const failed = await observeGitHubWorkflowReachability({
       repository,
       sourceCommit,
       releaseTag,
-      execute: async () => { throw new Error("credential and raw response"); },
+      execute: async () => {
+        throw new Error("credential and raw response");
+      },
     });
     assert.equal(failed.reason, "authentication_or_references_unavailable");
 
     let calls = 0;
-    await assert.rejects(observeGitHubWorkflowReachability({
-      repository,
-      sourceCommit: "C".repeat(40),
-      releaseTag,
-      execute: async () => { calls += 1; },
-    }), TypeError);
+    await assert.rejects(
+      observeGitHubWorkflowReachability({
+        repository,
+        sourceCommit: "C".repeat(40),
+        releaseTag,
+        execute: async () => {
+          calls += 1;
+        },
+      }),
+      TypeError,
+    );
     assert.equal(calls, 0);
   });
 });

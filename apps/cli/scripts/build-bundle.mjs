@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { build } from "esbuild";
@@ -26,6 +26,40 @@ const result = await build({
   platform: "node",
   target: "node22.13",
 });
+
+await build({
+  absWorkingDir: repositoryRoot,
+  entryPoints: ["apps/cli/src/terminal-hook-bin.ts"],
+  outfile: "apps/cli/dist/terminal-hook.js",
+  bundle: true,
+  banner: {
+    js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
+  },
+  format: "esm",
+  legalComments: "none",
+  logLevel: "silent",
+  mainFields: ["module", "main"],
+  platform: "node",
+  target: "node22.13",
+});
+
+await build({
+  absWorkingDir: repositoryRoot,
+  entryPoints: ["apps/node-runtime/src/bin.ts"],
+  outfile: "apps/cli/dist/node-runtime.js",
+  bundle: true,
+  banner: {
+    js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
+  },
+  format: "esm",
+  legalComments: "none",
+  logLevel: "silent",
+  mainFields: ["module", "main"],
+  platform: "node",
+  target: "node22.13",
+});
+
+await chmod(resolve(outputDirectory, "node-runtime.js"), 0o755);
 
 await writeFile(
   resolve(outputDirectory, "bin.metafile.json"),

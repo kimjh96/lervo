@@ -23,11 +23,7 @@ export class KnowledgeGraphRelationBuilder {
     return node;
   }
 
-  add(
-    type: KnowledgeGraphRelationType,
-    from: KnowledgeGraphNode,
-    to: KnowledgeGraphNode,
-  ): void {
+  add(type: KnowledgeGraphRelationType, from: KnowledgeGraphNode, to: KnowledgeGraphNode): void {
     const relation: KnowledgeGraphRelation = {
       schemaVersion: 1,
       relationId: calculateKnowledgeGraphRelationId({
@@ -52,7 +48,8 @@ export class KnowledgeGraphRelationBuilder {
   }
 
   result(): KnowledgeGraphRelation[] {
-    return [...this.relations.values()].sort((left, right) =>
-      left.relationId.localeCompare(right.relationId)).map((relation) => structuredClone(relation));
+    return [...this.relations.values()]
+      .sort((left, right) => left.relationId.localeCompare(right.relationId))
+      .map((relation) => structuredClone(relation));
   }
 }

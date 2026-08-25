@@ -37,13 +37,18 @@ describe("deliberation runtime snapshot restoration", () => {
     const malformed = original.snapshot();
     malformed.recordedEvents = [null] as unknown as typeof malformed.recordedEvents;
 
-    expect(() => new DeliberationRuntime({
-      ...options,
-      resumeSnapshot: malformed,
-    })).toThrow(expect.objectContaining({
-      code: "runtime_state_invalid",
-      reason: "runtime_snapshot_invalid",
-    }));
+    expect(
+      () =>
+        new DeliberationRuntime({
+          ...options,
+          resumeSnapshot: malformed,
+        }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "runtime_state_invalid",
+        reason: "runtime_snapshot_invalid",
+      }),
+    );
     fixture.events.close();
   });
 });

@@ -1,7 +1,4 @@
-import {
-  createDoctorRecoveryGuidance,
-  type DoctorIssue,
-} from "@lervo/diagnostics";
+import { createDoctorRecoveryGuidance, type DoctorIssue } from "@lervo/diagnostics";
 import { describe, expect, it } from "vitest";
 
 describe("doctor recovery guidance", () => {
@@ -35,19 +32,22 @@ describe("doctor recovery guidance", () => {
       {
         issueCode: "search_rollout_action_invalid",
         actionCode: "inspect_search_action",
-        message: "Check the relation between the search rollout action and its policy, review, and quality evidence.",
+        message:
+          "Check the relation between the search rollout action and its policy, review, and quality evidence.",
         actionState: "not_performed",
       },
       {
         issueCode: "search_rollout_action_unavailable",
         actionCode: "resolve_search_action_prerequisites",
-        message: "Resolve the search selection, policy, and review issues first, then diagnose the rollout action again.",
+        message:
+          "Resolve the search selection, policy, and review issues first, then diagnose the rollout action again.",
         actionState: "not_performed",
       },
       {
         issueCode: "provider_executable_missing",
         actionCode: "check_provider_executable",
-        message: "Check the installation status and executable-path configuration of the affected agent.",
+        message:
+          "Check the installation status and executable-path configuration of the affected agent.",
         actionState: "not_performed",
       },
     ]);

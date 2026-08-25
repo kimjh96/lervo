@@ -38,38 +38,34 @@ function unavailable(reason) {
 }
 
 function matchingArtifact(actual, expected) {
-  return actual.file === expected.file && actual.sha256 === expected.sha256 &&
+  return (
+    actual.file === expected.file &&
+    actual.sha256 === expected.sha256 &&
     actual.registryIntegrity === expected.registryIntegrity &&
-    actual.registryShasum === expected.registryShasum;
+    actual.registryShasum === expected.registryShasum
+  );
 }
 
-export async function observeNpmStagedPackageReview({
-  registry,
-  packageName,
-  version,
-  expectedArtifact,
-  userConfigPath,
-}, {
-  execute = executeFile,
-  environment = process.env,
-  npmCommand = "npm",
-} = {}) {
+export async function observeNpmStagedPackageReview(
+  { registry, packageName, version, expectedArtifact, userConfigPath },
+  { execute = executeFile, environment = process.env, npmCommand = "npm" } = {},
+) {
   if (
-    registry !== npmPublicRegistry || packageName !== "@lervo/cli" ||
+    registry !== npmPublicRegistry ||
+    packageName !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(version ?? "") ||
     expectedArtifact?.file !== `lervo-cli-${version}.tgz` ||
-    !isAbsolute(userConfigPath ?? "") || typeof execute !== "function"
-  ) throw new TypeError("npm staged package review observer input is invalid");
+    !isAbsolute(userConfigPath ?? "") ||
+    typeof execute !== "function"
+  )
+    throw new TypeError("npm staged package review observer input is invalid");
   if (npmStageEnvironmentReasons({ environment }).length > 0) {
     return unavailable("environment_invalid");
   }
 
   let userConfigContents;
   try {
-    userConfigContents = await readRegularReleaseFile(
-      userConfigPath,
-      maximumUserConfigBytes,
-    );
+    userConfigContents = await readRegularReleaseFile(userConfigPath, maximumUserConfigBytes);
   } catch {
     return unavailable("user_config_unavailable");
   }
@@ -109,9 +105,11 @@ export async function observeNpmStagedPackageReview({
     let selected;
     if (!result) {
       try {
-        const { stdout } = await execute(npmCommand, [
-          "stage", "list", packageName, "--registry", registry, "--json",
-        ], options);
+        const { stdout } = await execute(
+          npmCommand,
+          ["stage", "list", packageName, "--registry", registry, "--json"],
+          options,
+        );
         selected = parseNpmStageList(stdout, version);
         if (selected.state === "unavailable") result = unavailable(selected.reason);
       } catch {
@@ -122,9 +120,11 @@ export async function observeNpmStagedPackageReview({
     let firstView;
     if (!result) {
       try {
-        const { stdout } = await execute(npmCommand, [
-          "stage", "view", selected.stage.id, "--registry", registry, "--json",
-        ], options);
+        const { stdout } = await execute(
+          npmCommand,
+          ["stage", "view", selected.stage.id, "--registry", registry, "--json"],
+          options,
+        );
         firstView = parseNpmStageView(stdout);
         if (!sameNpmStage(selected.stage, firstView)) {
           result = unavailable("stage_view_mismatch");
@@ -137,32 +137,33 @@ export async function observeNpmStagedPackageReview({
     let artifact;
     if (!result) {
       try {
-        await execute(npmCommand, [
-          "stage", "download", selected.stage.id, "--registry", registry, "--json",
-        ], options);
+        await execute(
+          npmCommand,
+          ["stage", "download", selected.stage.id, "--registry", registry, "--json"],
+          options,
+        );
         const expectedDownload = `lervo-cli-${version}-${selected.stage.id}.tgz`;
         const entries = await readdir(downloadDirectory, { withFileTypes: true });
-        if (
-          entries.length !== 1 || entries[0].name !== expectedDownload ||
-          !entries[0].isFile()
-        ) throw new TypeError("npm stage download set is invalid");
+        if (entries.length !== 1 || entries[0].name !== expectedDownload || !entries[0].isFile())
+          throw new TypeError("npm stage download set is invalid");
         const downloadPath = resolve(downloadDirectory, expectedDownload);
         const metadata = await lstat(downloadPath);
-        if (!metadata.isFile() || metadata.size <= 0 ||
-            metadata.size > releaseVerificationMaximumSizes.tarball) {
+        if (
+          !metadata.isFile() ||
+          metadata.size <= 0 ||
+          metadata.size > releaseVerificationMaximumSizes.tarball
+        ) {
           throw new TypeError("npm stage download is invalid");
         }
         const contents = await readRegularReleaseFile(
           downloadPath,
           releaseVerificationMaximumSizes.tarball,
         );
-        artifact = createReleasePublicationArtifact(
-          `lervo-cli-${version}.tgz`,
-          version,
-          contents,
-        );
-        if (!matchingArtifact(artifact, expectedArtifact) ||
-            artifact.registryShasum !== selected.stage.shasum) {
+        artifact = createReleasePublicationArtifact(`lervo-cli-${version}.tgz`, version, contents);
+        if (
+          !matchingArtifact(artifact, expectedArtifact) ||
+          artifact.registryShasum !== selected.stage.shasum
+        ) {
           result = unavailable("tarball_mismatch");
         }
       } catch {
@@ -172,9 +173,11 @@ export async function observeNpmStagedPackageReview({
 
     if (!result) {
       try {
-        const { stdout } = await execute(npmCommand, [
-          "stage", "view", selected.stage.id, "--registry", registry, "--json",
-        ], options);
+        const { stdout } = await execute(
+          npmCommand,
+          ["stage", "view", selected.stage.id, "--registry", registry, "--json"],
+          options,
+        );
         if (!sameNpmStage(firstView, parseNpmStageView(stdout))) {
           result = unavailable("stage_changed");
         }
@@ -183,11 +186,13 @@ export async function observeNpmStagedPackageReview({
       }
     }
     try {
-      await assertReleaseFilesUnchanged([{
-        path: userConfigPath,
-        contents: userConfigContents,
-        maximumSize: maximumUserConfigBytes,
-      }]);
+      await assertReleaseFilesUnchanged([
+        {
+          path: userConfigPath,
+          contents: userConfigContents,
+          maximumSize: maximumUserConfigBytes,
+        },
+      ]);
     } catch {
       result = unavailable("user_config_changed");
     }
@@ -200,10 +205,9 @@ export async function observeNpmStagedPackageReview({
       version,
       stage: publicNpmStage(selected.stage),
       tarball: {
-        byteCount: (await lstat(resolve(
-          downloadDirectory,
-          `lervo-cli-${version}-${selected.stage.id}.tgz`,
-        ))).size,
+        byteCount: (
+          await lstat(resolve(downloadDirectory, `lervo-cli-${version}-${selected.stage.id}.tgz`))
+        ).size,
         sha256: artifact.sha256,
         registryIntegrity: artifact.registryIntegrity,
         registryShasum: artifact.registryShasum,

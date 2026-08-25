@@ -1,11 +1,10 @@
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 
-export const stagePublicationPackageScript =
-  "node scripts/stage-cli-release-publication.mjs";
+export const stagePublicationPackageScript = "node scripts/stage-cli-release-publication.mjs";
 export const stageOnlyPublicationCommand =
-  "pnpm release:publication:stage --release-directory \"${RUNNER_TEMP}/lervo-release\" " +
-  "--publication-authorization \"${RUNNER_TEMP}/lervo-publication-authorization.json\" " +
-  "--result-directory \"${RUNNER_TEMP}/lervo-stage-publication\"";
+  'pnpm release:publication:stage --release-directory "${RUNNER_TEMP}/lervo-release" ' +
+  '--publication-authorization "${RUNNER_TEMP}/lervo-publication-authorization.json" ' +
+  '--result-directory "${RUNNER_TEMP}/lervo-stage-publication"';
 export const stageOnlyRunCommands = Object.freeze([
   "pnpm install --frozen-lockfile",
   stageOnlyPublicationCommand,
@@ -21,33 +20,35 @@ export const stageResultUploadStep = Object.freeze({
     "retention-days": 30,
   }),
 });
-export const stageOnlyWorkflowSteps = Object.freeze([
-  {
-    name: "Check out repository",
-    uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-    with: Object.freeze({ "persist-credentials": false }),
-  },
-  {
-    name: "Set up Node",
-    uses: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
-    with: Object.freeze({ "node-version": "22.14.0", "package-manager-cache": false }),
-  },
-  {
-    name: "Set up pnpm",
-    uses: "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
-  },
-  {
-    name: "Download exact release files",
-    uses: "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
-    with: Object.freeze({
-      name: "lervo-cli-${{ github.ref_name }}",
-      path: "${{ runner.temp }}",
-    }),
-  },
-  { name: "Install dependencies", run: "pnpm install --frozen-lockfile" },
-  { name: "Stage exact CLI package", run: stageOnlyPublicationCommand },
-  stageResultUploadStep,
-].map((step) => Object.freeze(step)));
+export const stageOnlyWorkflowSteps = Object.freeze(
+  [
+    {
+      name: "Check out repository",
+      uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+      with: Object.freeze({ "persist-credentials": false }),
+    },
+    {
+      name: "Set up Node",
+      uses: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+      with: Object.freeze({ "node-version": "22.14.0", "package-manager-cache": false }),
+    },
+    {
+      name: "Set up pnpm",
+      uses: "pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9",
+    },
+    {
+      name: "Download exact release files",
+      uses: "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+      with: Object.freeze({
+        name: "lervo-cli-${{ github.ref_name }}",
+        path: "${{ runner.temp }}",
+      }),
+    },
+    { name: "Install dependencies", run: "pnpm install --frozen-lockfile" },
+    { name: "Stage exact CLI package", run: stageOnlyPublicationCommand },
+    stageResultUploadStep,
+  ].map((step) => Object.freeze(step)),
+);
 
 function strings(value, output = []) {
   if (typeof value === "string") output.push(value);
@@ -74,10 +75,14 @@ export function inspectFirstPublicationStageOnlyWorkflow(workflow) {
   if (job.needs !== "attested-cli") reasons.push("stage_job_attestation_dependency_invalid");
   if (job["runs-on"] !== "ubuntu-latest") reasons.push("stage_job_runner_invalid");
   if (job.environment !== "npm-release") reasons.push("stage_job_environment_invalid");
-  if (canonicalJson(job.permissions) !== canonicalJson({
-    contents: "read",
-    "id-token": "write",
-  })) reasons.push("stage_job_permissions_invalid");
+  if (
+    canonicalJson(job.permissions) !==
+    canonicalJson({
+      contents: "read",
+      "id-token": "write",
+    })
+  )
+    reasons.push("stage_job_permissions_invalid");
   if (!Array.isArray(job.steps)) reasons.push("stage_job_steps_invalid");
   if (canonicalJson(job.steps) !== canonicalJson(stageOnlyWorkflowSteps)) {
     reasons.push("stage_job_steps_contract_invalid");
@@ -95,30 +100,42 @@ export function inspectFirstPublicationStageOnlyWorkflow(workflow) {
     reasons.push("stage_result_upload_invalid");
   }
   const jobStrings = strings(job);
-  if (jobStrings.some((value) =>
-    /(?:^|\s)npm\s+(?:publish|stage\s+publish)(?:\s|$)|release:publication:publish/u.test(value)
-  )) reasons.push("direct_publish_command_present");
+  if (
+    jobStrings.some((value) =>
+      /(?:^|\s)npm\s+(?:publish|stage\s+publish)(?:\s|$)|release:publication:publish/u.test(value),
+    )
+  )
+    reasons.push("direct_publish_command_present");
   const environments = [
     job.env,
     ...(Array.isArray(job.steps) ? job.steps.map(({ env }) => env) : []),
   ].filter((value) => value !== undefined);
-  if (environments.some((environment) =>
-    environment === null || typeof environment !== "object" || Array.isArray(environment) ||
-    Object.keys(environment).some((name) =>
-      ["npm_token", "node_auth_token"].includes(name.toLowerCase()) ||
-      (name.toLowerCase().startsWith("npm_config_") &&
-        name.toLowerCase().includes("auth"))
+  if (
+    environments.some(
+      (environment) =>
+        environment === null ||
+        typeof environment !== "object" ||
+        Array.isArray(environment) ||
+        Object.keys(environment).some(
+          (name) =>
+            ["npm_token", "node_auth_token"].includes(name.toLowerCase()) ||
+            (name.toLowerCase().startsWith("npm_config_") && name.toLowerCase().includes("auth")),
+        ),
     )
-  )) reasons.push("registry_write_credential_present");
+  )
+    reasons.push("registry_write_credential_present");
   return check("stage_only_workflow", [...new Set(reasons)]);
 }
 
 export function inspectFirstPublicationNpmStageTrust(observation, repository) {
   const reasons = [];
   if (
-    observation?.schemaVersion !== 1 || observation.source !== "npm_trust" ||
-    observation.state !== "configured" || observation.package !== "@lervo/cli"
-  ) return check("npm_trusted_publisher", ["npm_trusted_publisher_not_observed"]);
+    observation?.schemaVersion !== 1 ||
+    observation.source !== "npm_trust" ||
+    observation.state !== "configured" ||
+    observation.package !== "@lervo/cli"
+  )
+    return check("npm_trusted_publisher", ["npm_trusted_publisher_not_observed"]);
   if (observation.provider !== "github") reasons.push("npm_publisher_provider_mismatch");
   if (observation.repository !== repository) reasons.push("npm_publisher_repository_mismatch");
   if (observation.workflow !== "cli-release-matrix.yml") {
@@ -136,12 +153,17 @@ export function inspectFirstPublicationNpmStageTrust(observation, repository) {
 export function inspectFirstPublicationGitHubStageEnvironment(observation, repository) {
   const reasons = [];
   if (
-    observation?.schemaVersion !== 1 || observation.source !== "github_environment" ||
-    observation.state !== "observed" || observation.repository !== repository ||
+    observation?.schemaVersion !== 1 ||
+    observation.source !== "github_environment" ||
+    observation.state !== "observed" ||
+    observation.repository !== repository ||
     observation.environment !== "npm-release"
-  ) return check("github_environment", ["github_environment_not_observed"]);
-  if (!Number.isSafeInteger(observation.requiredReviewerCount) ||
-      observation.requiredReviewerCount < 1) {
+  )
+    return check("github_environment", ["github_environment_not_observed"]);
+  if (
+    !Number.isSafeInteger(observation.requiredReviewerCount) ||
+    observation.requiredReviewerCount < 1
+  ) {
     reasons.push("github_required_reviewer_missing");
   }
   if (observation.preventSelfReview !== true) reasons.push("github_self_review_allowed");

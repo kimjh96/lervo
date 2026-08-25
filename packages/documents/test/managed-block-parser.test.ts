@@ -32,26 +32,28 @@ describe("managed Markdown block parser", () => {
       status: "valid",
       byteCount: original.byteLength,
       diagnostics: [],
-      blocks: [{
-        blockId: "summary",
-        markerFamily: "lervo_v1",
-        startMarkerRange: {
-          start: byteOffset(source, startCharacter),
-          end: byteOffset(source, startCharacter + startMarker.length),
+      blocks: [
+        {
+          blockId: "summary",
+          markerFamily: "lervo_v1",
+          startMarkerRange: {
+            start: byteOffset(source, startCharacter),
+            end: byteOffset(source, startCharacter + startMarker.length),
+          },
+          contentRange: {
+            start: byteOffset(source, contentCharacter),
+            end: byteOffset(source, endCharacter),
+          },
+          endMarkerRange: {
+            start: byteOffset(source, endCharacter),
+            end: byteOffset(source, endCharacter + endMarker.length),
+          },
+          fullRange: {
+            start: byteOffset(source, startCharacter),
+            end: byteOffset(source, fullEndCharacter),
+          },
         },
-        contentRange: {
-          start: byteOffset(source, contentCharacter),
-          end: byteOffset(source, endCharacter),
-        },
-        endMarkerRange: {
-          start: byteOffset(source, endCharacter),
-          end: byteOffset(source, endCharacter + endMarker.length),
-        },
-        fullRange: {
-          start: byteOffset(source, startCharacter),
-          end: byteOffset(source, fullEndCharacter),
-        },
-      }],
+      ],
       unmanagedRanges: [
         { start: 0, end: byteOffset(source, startCharacter) },
         { start: byteOffset(source, fullEndCharacter), end: original.byteLength },
@@ -60,8 +62,9 @@ describe("managed Markdown block parser", () => {
     expect(original).toEqual(snapshot);
     const block = result.blocks[0];
     expect(block).toBeDefined();
-    expect(new TextDecoder().decode(original.slice(block?.contentRange.start, block?.contentRange.end)))
-      .toBe(content);
+    expect(
+      new TextDecoder().decode(original.slice(block?.contentRange.start, block?.contentRange.end)),
+    ).toBe(content);
   });
 
   it("preserves a UTF-8 byte-order mark and recognizes CommonMark CR line endings", () => {
@@ -80,13 +83,15 @@ describe("managed Markdown block parser", () => {
     const endMarkerEnd = source.indexOf("-->", endMarker) + 3;
     expect(result).toMatchObject({
       status: "valid",
-      blocks: [{
-        blockId: "bom",
-        fullRange: {
-          start: byteOffset(source, markerStart),
-          end: byteOffset(source, endMarkerEnd + 1),
+      blocks: [
+        {
+          blockId: "bom",
+          fullRange: {
+            start: byteOffset(source, markerStart),
+            end: byteOffset(source, endMarkerEnd + 1),
+          },
         },
-      }],
+      ],
       unmanagedRanges: [
         { start: 0, end: 3 },
         { start: byteOffset(source, endMarkerEnd + 1), end: input.byteLength },
@@ -136,7 +141,9 @@ describe("managed Markdown block parser", () => {
     const result = parseManagedMarkdownBlocks(bytes(source));
 
     expect(result.status).toBe("valid");
-    expect(result.blocks).toMatchObject([{ blockId: "context", markerFamily: "previous_product_v1" }]);
+    expect(result.blocks).toMatchObject([
+      { blockId: "context", markerFamily: "previous_product_v1" },
+    ]);
   });
 
   it.each([
@@ -163,10 +170,9 @@ describe("managed Markdown block parser", () => {
     },
     {
       name: "mismatched end",
-      source: [
-        "<!-- lervo:begin block=one schema=1 -->",
-        "<!-- lervo:end block=two -->",
-      ].join("\n"),
+      source: ["<!-- lervo:begin block=one schema=1 -->", "<!-- lervo:end block=two -->"].join(
+        "\n",
+      ),
       code: "mismatched_end_marker",
     },
     {
@@ -240,8 +246,9 @@ describe("managed Markdown block parser", () => {
       "a".repeat(8193),
       "<!-- lervo:end block=large -->",
     ].join("\n");
-    expect(parseManagedMarkdownBlocks(bytes(oversizedBlock)).diagnostics)
-      .toEqual(expect.arrayContaining([expect.objectContaining({ code: "managed_block_too_large" })]));
+    expect(parseManagedMarkdownBlocks(bytes(oversizedBlock)).diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "managed_block_too_large" })]),
+    );
 
     const oversizedInput = new Uint8Array(4 * 1024 * 1024 + 1);
     expect(parseManagedMarkdownBlocks(oversizedInput)).toMatchObject({

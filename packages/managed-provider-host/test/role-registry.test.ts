@@ -26,27 +26,33 @@ describe("managed provider host role registry", () => {
   });
 
   it("rejects overrides and profiles that widen the remote capability boundary", () => {
-    expect(() => new ManagedProviderHostRoleRegistry([
-      createRemoteDeveloperRole(["repo.check"]),
-    ])).toThrow(ManagedProviderHostRoleRegistryError);
+    expect(
+      () => new ManagedProviderHostRoleRegistry([createRemoteDeveloperRole(["repo.check"])]),
+    ).toThrow(ManagedProviderHostRoleRegistryError);
 
-    expect(() => new ManagedProviderHostRoleRegistry([{
-      ...createRemoteDeveloperRole(["repo.check"]),
-      roleId: "researcher",
-      capabilities: {
-        ...createRemoteDeveloperRole(["repo.check"]).capabilities,
-        "network.access": "require_approval",
-      },
-    }])).toThrow(ManagedProviderHostRoleRegistryError);
+    expect(
+      () =>
+        new ManagedProviderHostRoleRegistry([
+          {
+            ...createRemoteDeveloperRole(["repo.check"]),
+            roleId: "researcher",
+            capabilities: {
+              ...createRemoteDeveloperRole(["repo.check"]).capabilities,
+              "network.access": "require_approval",
+            },
+          },
+        ]),
+    ).toThrow(ManagedProviderHostRoleRegistryError);
 
-    expect(() => new ManagedProviderHostRoleRegistry([], [
-      "repository/testing", "repository/testing",
-    ])).toThrow(ManagedProviderHostRoleRegistryError);
+    expect(
+      () => new ManagedProviderHostRoleRegistry([], ["repository/testing", "repository/testing"]),
+    ).toThrow(ManagedProviderHostRoleRegistryError);
   });
 
   it("binds configured developer skills into each resolved role clone", () => {
     const registry = new ManagedProviderHostRoleRegistry([], ["repository/testing"]);
-    expect(registry.resolve("developer", ["repo.check"])?.defaultSkills)
-      .toEqual(["repository/testing"]);
+    expect(registry.resolve("developer", ["repo.check"])?.defaultSkills).toEqual([
+      "repository/testing",
+    ]);
   });
 });

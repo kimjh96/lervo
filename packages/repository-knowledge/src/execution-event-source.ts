@@ -33,6 +33,12 @@ const executionEventTypes = new Set<EventType>([
   "adapter.stopped",
   "capability.requested",
   "capability.decided",
+  "capability.activated",
+  "capability.recommended",
+  "capability.selected",
+  "capability.loaded",
+  "capability.invoked",
+  "capability.completed",
   "tool.called",
   "command.executed",
   "file.changed",
@@ -63,9 +69,10 @@ function canonicalEvent(event: EventEnvelope): string {
     return fail();
   }
   if (
-    sanitized.redactions.length !== 0
-    || canonicalEventJson(sanitized.payload) !== canonicalEventJson(event.payload)
-  ) return fail();
+    sanitized.redactions.length !== 0 ||
+    canonicalEventJson(sanitized.payload) !== canonicalEventJson(event.payload)
+  )
+    return fail();
   try {
     return `${canonicalEventJson(event)}\n`;
   } catch {
@@ -84,7 +91,8 @@ export function collectExecutionEventSources(input: {
     return fail();
   }
   if (latest === null) return [];
-  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE) return fail();
+  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE)
+    return fail();
 
   const sources: RepositorySupplementalSource[] = [];
   const eventIds = new Set<string>();

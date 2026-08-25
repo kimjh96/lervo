@@ -4,10 +4,7 @@ import {
   type ProjectRegistrationRequest,
   type ProjectRegistrationResponse,
 } from "@lervo/schemas";
-import {
-  assertOutboundEventBatch,
-  assertProjectRegistrationRequest,
-} from "@lervo/sync-contract";
+import { assertOutboundEventBatch, assertProjectRegistrationRequest } from "@lervo/sync-contract";
 
 import { type HubSyncCommandStore } from "./store.js";
 

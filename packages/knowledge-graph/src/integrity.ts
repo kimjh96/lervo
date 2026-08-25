@@ -9,17 +9,16 @@ import type {
   KnowledgeGraphRelation,
   KnowledgeGraphRelationType,
 } from "./types.js";
-import {
-  assertKnowledgeGraphNode,
-  knowledgeGraphRelationTypes,
-} from "./types.js";
+import { assertKnowledgeGraphNode, knowledgeGraphRelationTypes } from "./types.js";
 
 interface RelationEndpoints {
   from: readonly KnowledgeGraphNodeKind[];
   to: readonly KnowledgeGraphNodeKind[];
 }
 
-export const knowledgeGraphRelationEndpoints: Readonly<Record<KnowledgeGraphRelationType, RelationEndpoints>> = {
+export const knowledgeGraphRelationEndpoints: Readonly<
+  Record<KnowledgeGraphRelationType, RelationEndpoints>
+> = {
   affects_path: { from: ["knowledge_candidate"], to: ["repository_path"] },
   approved_by: { from: ["knowledge"], to: ["knowledge_review"] },
   changed_path: { from: ["run", "knowledge"], to: ["repository_path"] },
@@ -64,8 +63,12 @@ export const knowledgeGraphRelationEndpoints: Readonly<Record<KnowledgeGraphRela
 };
 
 function validText(value: unknown, maxLength: number): value is string {
-  return typeof value === "string" && value.length > 0 && value.length <= maxLength &&
-    !/[\u0000-\u001f\u007f]/.test(value);
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= maxLength &&
+    !/[\u0000-\u001f\u007f]/.test(value)
+  );
 }
 
 export function calculateKnowledgeGraphRelationId(input: {
@@ -85,8 +88,11 @@ export function calculateKnowledgeGraphRelationId(input: {
 }
 
 export function assertKnowledgeGraphRelationIntegrity(relation: KnowledgeGraphRelation): void {
-  if (relation.schemaVersion !== 1 || !validText(relation.projectId, 256) ||
-    !knowledgeGraphRelationTypes.includes(relation.type)) {
+  if (
+    relation.schemaVersion !== 1 ||
+    !validText(relation.projectId, 256) ||
+    !knowledgeGraphRelationTypes.includes(relation.type)
+  ) {
     throw new Error("The knowledge graph relation base coordinates are invalid.");
   }
   assertKnowledgeGraphNode(relation.from);
@@ -95,17 +101,24 @@ export function assertKnowledgeGraphRelationIntegrity(relation: KnowledgeGraphRe
   if (!endpoints.from.includes(relation.from.kind) || !endpoints.to.includes(relation.to.kind)) {
     throw new Error("The knowledge graph relation direction and node kinds are inconsistent.");
   }
-  if (!validText(relation.evidence.eventId, 256) ||
+  if (
+    !validText(relation.evidence.eventId, 256) ||
     !eventTypes.includes(relation.evidence.eventType) ||
     !validText(relation.evidence.runId, 256) ||
-    !Number.isSafeInteger(relation.evidence.seq) || relation.evidence.seq < 1) {
+    !Number.isSafeInteger(relation.evidence.seq) ||
+    relation.evidence.seq < 1
+  ) {
     throw new Error("The knowledge graph relation evidence coordinates are invalid.");
   }
-  if ((relation.from.kind === "project" && relation.from.id !== relation.projectId) ||
+  if (
+    (relation.from.kind === "project" && relation.from.id !== relation.projectId) ||
     (relation.to.kind === "project" && relation.to.id !== relation.projectId) ||
     (relation.from.kind === "run" && relation.from.id !== relation.evidence.runId) ||
-    (relation.to.kind === "run" && relation.to.id !== relation.evidence.runId)) {
-    throw new Error("The knowledge graph relation project and run nodes differ from the evidence coordinates.");
+    (relation.to.kind === "run" && relation.to.id !== relation.evidence.runId)
+  ) {
+    throw new Error(
+      "The knowledge graph relation project and run nodes differ from the evidence coordinates.",
+    );
   }
   const expected = calculateKnowledgeGraphRelationId(relation);
   if (relation.relationId !== expected) {

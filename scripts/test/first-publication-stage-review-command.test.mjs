@@ -5,16 +5,11 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createCliFirstPublicationStageReviewEvidence } from
-  "../lib/cli-first-publication-stage-review.mjs";
-import { createCliFirstPublicationStageResultEvidence } from
-  "../lib/cli-first-publication-stage-result.mjs";
-import { parseFirstPublicationStageReviewArguments } from
-  "../lib/first-publication-stage-review-cli-arguments.mjs";
-import { formatFirstPublicationStageReviewEvidence } from
-  "../lib/first-publication-stage-review-formatter.mjs";
-import { validateFirstPublicationStageReviewReportDocument } from
-  "../lib/first-publication-stage-review-report.mjs";
+import { createCliFirstPublicationStageReviewEvidence } from "../lib/cli-first-publication-stage-review.mjs";
+import { createCliFirstPublicationStageResultEvidence } from "../lib/cli-first-publication-stage-result.mjs";
+import { parseFirstPublicationStageReviewArguments } from "../lib/first-publication-stage-review-cli-arguments.mjs";
+import { formatFirstPublicationStageReviewEvidence } from "../lib/first-publication-stage-review-formatter.mjs";
+import { validateFirstPublicationStageReviewReportDocument } from "../lib/first-publication-stage-review-report.mjs";
 import { canonicalDigest, sha256 } from "../lib/release-artifact-manifest.mjs";
 import {
   createFirstPublicationStageResultFixture,
@@ -24,29 +19,29 @@ import {
   workflowExecutionAttempt,
   workflowExecutionRunId,
 } from "./fixtures/first-publication-workflow-execution.mjs";
-import { workflowReleaseTag } from
-  "./fixtures/first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./fixtures/first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./fixtures/first-publication-workflow-activation.mjs";
+import { workflowReleaseTag } from "./fixtures/first-publication-workflow-reachability.mjs";
+import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./fixtures/first-publication-workflow-activation.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 
 async function fixture() {
   const value = await createFirstPublicationStageResultFixture();
-  const stageResultReport = await createCliFirstPublicationStageResultEvidence({
-    repository: workflowActivationRepository,
-    sourceCommit: workflowRemoteSourceCommit,
-    releaseTag: workflowReleaseTag,
-    runId: workflowExecutionRunId,
-    attempt: workflowExecutionAttempt,
-    workflowExecutionReportPath: value.workflowExecutionReportPath,
-    online: true,
-  }, {
-    observeStageResult: async () => matchingStageResultObservation(value),
-    clock: () => "2026-08-21T10:14:00Z",
-  });
+  const stageResultReport = await createCliFirstPublicationStageResultEvidence(
+    {
+      repository: workflowActivationRepository,
+      sourceCommit: workflowRemoteSourceCommit,
+      releaseTag: workflowReleaseTag,
+      runId: workflowExecutionRunId,
+      attempt: workflowExecutionAttempt,
+      workflowExecutionReportPath: value.workflowExecutionReportPath,
+      online: true,
+    },
+    {
+      observeStageResult: async () => matchingStageResultObservation(value),
+      clock: () => "2026-08-21T10:14:00Z",
+    },
+  );
   const stageResultReportPath = resolve(value.root, "stage-result.json");
   const npmUserConfigPath = resolve(value.root, "user.npmrc");
   await writeFile(stageResultReportPath, `${JSON.stringify(stageResultReport, null, 2)}\n`);
@@ -81,20 +76,23 @@ function observation(value) {
 }
 
 function createEvidence(value, overrides = {}) {
-  return createCliFirstPublicationStageReviewEvidence({
-    repository: workflowActivationRepository,
-    sourceCommit: workflowRemoteSourceCommit,
-    releaseTag: workflowReleaseTag,
-    runId: workflowExecutionRunId,
-    attempt: workflowExecutionAttempt,
-    stageResultReportPath: value.stageResultReportPath,
-    npmUserConfigPath: value.npmUserConfigPath,
-    online: true,
-  }, {
-    observe: async () => observation(value),
-    clock: () => "2026-08-21T10:15:00Z",
-    ...overrides,
-  });
+  return createCliFirstPublicationStageReviewEvidence(
+    {
+      repository: workflowActivationRepository,
+      sourceCommit: workflowRemoteSourceCommit,
+      releaseTag: workflowReleaseTag,
+      runId: workflowExecutionRunId,
+      attempt: workflowExecutionAttempt,
+      stageResultReportPath: value.stageResultReportPath,
+      npmUserConfigPath: value.npmUserConfigPath,
+      online: true,
+    },
+    {
+      observe: async () => observation(value),
+      clock: () => "2026-08-21T10:15:00Z",
+      ...overrides,
+    },
+  );
 }
 
 describe("first-publication staged package review command", () => {
@@ -109,10 +107,7 @@ describe("first-publication staged package review command", () => {
       assert.equal(report.sideEffects.stageApprove, "not_attempted");
       assert.equal(JSON.stringify(report).includes("123e4567"), false);
       assert.deepEqual(await readFile(value.stageResultReportPath), before);
-      assert.match(
-        formatFirstPublicationStageReviewEvidence(report),
-        /did not approve or reject/u,
-      );
+      assert.match(formatFirstPublicationStageReviewEvidence(report), /did not approve or reject/u);
 
       const legacy = structuredClone(report);
       legacy.schemaVersion = 1;
@@ -128,25 +123,31 @@ describe("first-publication staged package review command", () => {
   it("rejects source races and unavailable observations", async () => {
     const changed = await fixture();
     try {
-      await assert.rejects(createEvidence(changed, {
-        observe: async () => {
-          await writeFile(changed.stageResultReportPath, "{}\n");
-          return observation(changed);
-        },
-      }), { code: "release_attestation_release_set_changed" });
+      await assert.rejects(
+        createEvidence(changed, {
+          observe: async () => {
+            await writeFile(changed.stageResultReportPath, "{}\n");
+            return observation(changed);
+          },
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(changed.root, { recursive: true, force: true });
     }
     const unavailable = await fixture();
     try {
-      await assert.rejects(createEvidence(unavailable, {
-        observe: async () => ({
-          schemaVersion: 1,
-          source: "npm_staged_package_review",
-          state: "unavailable",
-          reason: "stage_not_found",
+      await assert.rejects(
+        createEvidence(unavailable, {
+          observe: async () => ({
+            schemaVersion: 1,
+            source: "npm_staged_package_review",
+            state: "unavailable",
+            reason: "stage_not_found",
+          }),
         }),
-      }), { code: "first_publication_stage_review_not_ready" });
+        { code: "first_publication_stage_review_not_ready" },
+      );
     } finally {
       await rm(unavailable.root, { recursive: true, force: true });
     }
@@ -154,28 +155,39 @@ describe("first-publication staged package review command", () => {
 
   it("accepts only complete read-only online coordinates", () => {
     const valid = [
-      "--repository", workflowActivationRepository,
-      "--source-commit", workflowRemoteSourceCommit,
-      "--release-tag", workflowReleaseTag,
-      "--run-id", String(workflowExecutionRunId),
-      "--attempt", String(workflowExecutionAttempt),
-      "--stage-result-report", "/tmp/stage-result.json",
-      "--npm-user-config", "/tmp/user.npmrc",
-      "--online", "--json",
+      "--repository",
+      workflowActivationRepository,
+      "--source-commit",
+      workflowRemoteSourceCommit,
+      "--release-tag",
+      workflowReleaseTag,
+      "--run-id",
+      String(workflowExecutionRunId),
+      "--attempt",
+      String(workflowExecutionAttempt),
+      "--stage-result-report",
+      "/tmp/stage-result.json",
+      "--npm-user-config",
+      "/tmp/user.npmrc",
+      "--online",
+      "--json",
     ];
-    assert.equal(parseFirstPublicationStageReviewArguments(valid).attempt,
-      workflowExecutionAttempt);
+    assert.equal(
+      parseFirstPublicationStageReviewArguments(valid).attempt,
+      workflowExecutionAttempt,
+    );
     for (const args of [
       [],
       valid.filter((value) => value !== "--online"),
-      valid.map((value) => value === "/tmp/user.npmrc" ? "relative" : value),
+      valid.map((value) => (value === "/tmp/user.npmrc" ? "relative" : value)),
       [...valid, "--approve"],
       [...valid, "--npm-user-config", "/tmp/other.npmrc"],
     ]) {
-      const result = spawnSync(process.execPath, [
-        "scripts/show-cli-first-publication-stage-review-evidence.mjs",
-        ...args,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/show-cli-first-publication-stage-review-evidence.mjs", ...args],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^first_publication_stage_review_arguments_invalid:/u);

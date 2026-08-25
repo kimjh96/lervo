@@ -85,11 +85,13 @@ describe("search rollout status", () => {
       schemaVersion: 1,
       reviewCount: 2,
       pageLimit: 1,
-      reviews: [{
-        review: { rolloutReviewId: secondReview.rolloutReviewId },
-        qualityInputState: "unchanged",
-        selectionRelation: "current_selection",
-      }],
+      reviews: [
+        {
+          review: { rolloutReviewId: secondReview.rolloutReviewId },
+          qualityInputState: "unchanged",
+          selectionRelation: "current_selection",
+        },
+      ],
       nextCursor: secondReview.rolloutReviewId,
       reviewDecisionSelection: "not_performed",
       effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
@@ -118,8 +120,9 @@ describe("search rollout status", () => {
       qualityInputState: "changed",
       currentQualitySnapshot: { totalAttempts: 2 },
     });
-    expect(() => createSearchRolloutStatusPage({ ...input, cursor: `srrv_${"f".repeat(24)}` }))
-      .toThrow(/cursor/);
+    expect(() =>
+      createSearchRolloutStatusPage({ ...input, cursor: `srrv_${"f".repeat(24)}` }),
+    ).toThrow(/cursor/);
     expect(() => createSearchRolloutStatusPage({ ...input, limit: 51 })).toThrow(/query input/);
   });
 

@@ -22,17 +22,24 @@ function compareText(left: string, right: string): number {
 }
 
 function validSource(value: unknown): value is SearchAssessmentSource {
-  return typeof value === "object" && value !== null &&
+  return (
+    typeof value === "object" &&
+    value !== null &&
     searchSourceKinds.includes((value as SearchAssessmentSource).sourceKind) &&
-    SOURCE_ID_PATTERN.test((value as SearchAssessmentSource).sourceId);
+    SOURCE_ID_PATTERN.test((value as SearchAssessmentSource).sourceId)
+  );
 }
 
 function sources(values: readonly SearchAssessmentSource[]): SearchAssessmentSource[] {
   if (values.length > SEARCH_MAX_RESULTS || values.some((source) => !validSource(source))) {
-    throw new SearchError("invalid_assessment", "The search assessment source coordinates are invalid.");
+    throw new SearchError(
+      "invalid_assessment",
+      "The search assessment source coordinates are invalid.",
+    );
   }
-  return [...new Map(values.map((source) => [sourceKey(source), { ...source }])).values()]
-    .sort((left, right) => compareText(sourceKey(left), sourceKey(right)));
+  return [...new Map(values.map((source) => [sourceKey(source), { ...source }])).values()].sort(
+    (left, right) => compareText(sourceKey(left), sourceKey(right)),
+  );
 }
 
 function validSources(value: unknown): value is SearchAssessmentSource[] {
@@ -42,7 +49,10 @@ function validSources(value: unknown): value is SearchAssessmentSource[] {
     if (!validSource(source)) return false;
     keys.push(sourceKey(source));
   }
-  return new Set(keys).size === keys.length && keys.every((key, index) => index === 0 || keys[index - 1]! < key);
+  return (
+    new Set(keys).size === keys.length &&
+    keys.every((key, index) => index === 0 || keys[index - 1]! < key)
+  );
 }
 
 export function createSearchAssessment(input: {
@@ -74,34 +84,60 @@ export function createSearchAssessment(input: {
   return assessment;
 }
 
-export function assertSearchAssessment(assessment: SearchAssessment, attempt?: SearchAttempt): void {
-  if (assessment.schemaVersion !== 1 || !ASSESSMENT_PATTERN.test(assessment.assessmentId) ||
-    !SEARCH_ATTEMPT_PATTERN.test(assessment.attemptId) || !SOURCE_ID_PATTERN.test(assessment.projectId) ||
+export function assertSearchAssessment(
+  assessment: SearchAssessment,
+  attempt?: SearchAttempt,
+): void {
+  if (
+    assessment.schemaVersion !== 1 ||
+    !ASSESSMENT_PATTERN.test(assessment.assessmentId) ||
+    !SEARCH_ATTEMPT_PATTERN.test(assessment.attemptId) ||
+    !SOURCE_ID_PATTERN.test(assessment.projectId) ||
     !["human", "verification"].includes(assessment.assessor) ||
     !["accepted", "failed"].includes(assessment.outcome) ||
-    !validSources(assessment.selectedSources) || !validSources(assessment.expectedSources)) {
+    !validSources(assessment.selectedSources) ||
+    !validSources(assessment.expectedSources)
+  ) {
     throw new SearchError("invalid_assessment", "The search assessment contract is invalid.");
   }
   assertTimestamp(assessment.assessedAt, "invalid_assessment");
   if (assessment.outcome === "accepted") {
     if (assessment.failureReason !== null || assessment.selectedSources.length === 0) {
-      throw new SearchError("invalid_assessment", "An accepted assessment requires a selected source.");
+      throw new SearchError(
+        "invalid_assessment",
+        "An accepted assessment requires a selected source.",
+      );
     }
-  } else if (assessment.failureReason === null || !searchFailureReasons.includes(assessment.failureReason)) {
-    throw new SearchError("invalid_assessment", "A failed assessment requires a controlled failure reason.");
+  } else if (
+    assessment.failureReason === null ||
+    !searchFailureReasons.includes(assessment.failureReason)
+  ) {
+    throw new SearchError(
+      "invalid_assessment",
+      "A failed assessment requires a controlled failure reason.",
+    );
   }
   if (attempt !== undefined) {
     assertSearchAttempt(attempt);
     const resultSources = new Set(attempt.hits.map((hit) => sourceKey(hit)));
-    if (assessment.attemptId !== attempt.attemptId || assessment.projectId !== attempt.projectId ||
+    if (
+      assessment.attemptId !== attempt.attemptId ||
+      assessment.projectId !== attempt.projectId ||
       Date.parse(assessment.assessedAt) < Date.parse(attempt.observedAt) ||
       assessment.selectedSources.some((source) => !resultSources.has(sourceKey(source))) ||
-      (assessment.failureReason === "no_results" && attempt.hits.length !== 0)) {
-      throw new SearchError("invalid_assessment", "The search assessment does not match its target attempt.");
+      (assessment.failureReason === "no_results" && attempt.hits.length !== 0)
+    ) {
+      throw new SearchError(
+        "invalid_assessment",
+        "The search assessment does not match its target attempt.",
+      );
     }
   }
   const { schemaVersion: _schema, assessmentId: _id, ...core } = assessment;
   if (contentId("sas", core) !== assessment.assessmentId) {
-    throw new SearchError("invalid_assessment", "The search assessment ID does not match its content.");
+    throw new SearchError(
+      "invalid_assessment",
+      "The search assessment ID does not match its content.",
+    );
   }
 }

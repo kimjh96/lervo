@@ -99,9 +99,7 @@ describe("managed write common contract", () => {
     value.decision.decidedAt = "2026-08-19T00:00:00Z";
     value.completion.completedAt = "2026-08-19T00:00:00Z";
     expect(evaluateManagedWriteContract(value).violations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: "write_response_time_invalid" }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ code: "write_response_time_invalid" })]),
     );
   });
 

@@ -1,10 +1,5 @@
-import {
-  createConversationOutboundMessage,
-} from "@lervo/conversation-contract";
-import type {
-  ConversationInboundEvent,
-  ConversationParticipationPolicy,
-} from "@lervo/schemas";
+import { createConversationOutboundMessage } from "@lervo/conversation-contract";
+import type { ConversationInboundEvent, ConversationParticipationPolicy } from "@lervo/schemas";
 
 import { InteractionError } from "./errors.js";
 import {
@@ -52,9 +47,17 @@ export async function handleConversationEvent(input: {
   if (
     !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(input.workerId) ||
     !/^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(input.agentParticipantId) ||
-    !Number.isSafeInteger(leaseDurationMs) || leaseDurationMs < 1_000 || leaseDurationMs > 300_000 ||
-    !Number.isSafeInteger(retryDelayMs) || retryDelayMs < 1_000 || retryDelayMs > 3_600_000
-  ) throw new InteractionError("invalid_interaction_request", "The interaction runtime configuration is invalid.");
+    !Number.isSafeInteger(leaseDurationMs) ||
+    leaseDurationMs < 1_000 ||
+    leaseDurationMs > 300_000 ||
+    !Number.isSafeInteger(retryDelayMs) ||
+    retryDelayMs < 1_000 ||
+    retryDelayMs > 3_600_000
+  )
+    throw new InteractionError(
+      "invalid_interaction_request",
+      "The interaction runtime configuration is invalid.",
+    );
   assertConversationParticipationScope({
     event: input.event,
     policy: input.policy,
@@ -88,17 +91,23 @@ export async function handleConversationEvent(input: {
       at: claimedAt,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "The participation window query failed.", {
-      cause: error,
-    });
+    throw new InteractionError(
+      "interaction_store_failed",
+      "The participation window query failed.",
+      {
+        cause: error,
+      },
+    );
   }
   let relevance: "not_checked" | "relevant" | "not_relevant" | "unknown" = "not_checked";
-  if (requiresConversationRelevance({
-    event: input.event,
-    policy: input.policy,
-    window,
-    at: claimedAt,
-  })) {
+  if (
+    requiresConversationRelevance({
+      event: input.event,
+      policy: input.policy,
+      window,
+      at: claimedAt,
+    })
+  ) {
     if (input.relevanceEvaluator === undefined) {
       relevance = "unknown";
     } else {
@@ -139,7 +148,11 @@ export async function handleConversationEvent(input: {
         availableAt: nextAttemptAt,
         failureCode: "response_generation_failed",
       });
-      return { status: "retry_scheduled", failureCode: "response_generation_failed", nextAttemptAt };
+      return {
+        status: "retry_scheduled",
+        failureCode: "response_generation_failed",
+        nextAttemptAt,
+      };
     }
     try {
       await input.publicationVerifier.verify({
@@ -183,9 +196,13 @@ export async function handleConversationEvent(input: {
       outbound,
     });
   } catch (error) {
-    throw new InteractionError("interaction_store_failed", "The conversation decision commit failed.", {
-      cause: error,
-    });
+    throw new InteractionError(
+      "interaction_store_failed",
+      "The conversation decision commit failed.",
+      {
+        cause: error,
+      },
+    );
   }
   return { status: "completed", decision, outbound };
 }

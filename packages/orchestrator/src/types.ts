@@ -1,10 +1,7 @@
 import type { InjectLoadedContextInput } from "@lervo/context-delivery";
 import type { PrepareContextInput } from "@lervo/context";
 import type { WriteContextDecision } from "@lervo/core";
-import type {
-  ManagedRunApprovalAuthorization,
-  SharedContextPublication,
-} from "@lervo/schemas";
+import type { ManagedRunApprovalAuthorization, SharedContextPublication } from "@lervo/schemas";
 import type { EventStoreTransaction } from "@lervo/storage-contract";
 
 export interface ManagedEventStore {
@@ -66,18 +63,11 @@ export interface ManagedContextSnapshot {
   requiredDocumentIds: readonly string[];
 }
 
-export type ManagedPrepareContextInput = Omit<
-  PrepareContextInput,
-  "coordinates" | "policyVersion"
->;
+export type ManagedPrepareContextInput = Omit<PrepareContextInput, "coordinates" | "policyVersion">;
 
 export type ManagedInjectContextInput = Omit<
   InjectLoadedContextInput,
-  | "repositoryRoot"
-  | "loaded"
-  | "contextGeneration"
-  | "getCurrentContextGeneration"
-  | "publications"
+  "repositoryRoot" | "loaded" | "contextGeneration" | "getCurrentContextGeneration" | "publications"
 > & {
   publications: readonly SharedContextPublication[];
 };
@@ -166,7 +156,11 @@ const failureByErrorCode = {
 export class ManagedContextError extends Error {
   readonly failure: (typeof failureByErrorCode)[ManagedContextErrorCode];
 
-  constructor(readonly code: ManagedContextErrorCode, message: string, options?: ErrorOptions) {
+  constructor(
+    readonly code: ManagedContextErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = "ManagedContextError";
     this.failure = failureByErrorCode[code];

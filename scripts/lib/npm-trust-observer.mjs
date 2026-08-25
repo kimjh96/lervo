@@ -63,14 +63,11 @@ export async function observeNpmTrustedPublisher({
   }
   let stdout;
   try {
-    ({ stdout } = await execute(npmCommand, [
-      "trust",
-      "list",
-      "@lervo/cli",
-      "--registry",
-      npmPublicRegistry,
-      "--json",
-    ], options));
+    ({ stdout } = await execute(
+      npmCommand,
+      ["trust", "list", "@lervo/cli", "--registry", npmPublicRegistry, "--json"],
+      options,
+    ));
   } catch {
     return unavailable("authentication_or_registry_unavailable");
   }
@@ -89,10 +86,13 @@ export async function observeNpmTrustedPublisher({
     return unavailable("response_invalid");
   }
   if (
-    value === null || typeof value !== "object" || Array.isArray(value) ||
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
     typeof value.type !== "string" ||
     !Array.isArray(value.permissions)
-  ) return unavailable("response_invalid");
+  )
+    return unavailable("response_invalid");
   return {
     schemaVersion: 1,
     source: "npm_trust",

@@ -6,12 +6,7 @@ import type {
 } from "@lervo/conversation-platform";
 
 import { ConversationPlatformSQLiteError } from "./errors.js";
-import {
-  assertExternal,
-  assertIdentifier,
-  assertPlatform,
-  assertTimestamp,
-} from "./validation.js";
+import { assertExternal, assertIdentifier, assertPlatform, assertTimestamp } from "./validation.js";
 
 type BeginInput = Parameters<ConversationPlatformDeliveryReplayPort["begin"]>[0];
 type CompleteInput = Parameters<ConversationPlatformDeliveryReplayPort["complete"]>[0];
@@ -35,29 +30,49 @@ export class ConversationPlatformReplayRepository {
     try {
       const current = this.find(input);
       if (current === null) {
-        this.database.prepare(`
+        this.database
+          .prepare(
+            `
           INSERT INTO delivery_replay (
             platform, integration_id, outbound_id, request_hash, status, attempted_at,
             external_message_key, delivered_at
           ) VALUES (?, ?, ?, ?, 'sending', ?, NULL, NULL)
-        `).run(input.platform, input.integrationId, input.outboundId, input.requestHash,
-          input.attemptedAt);
+        `,
+          )
+          .run(
+            input.platform,
+            input.integrationId,
+            input.outboundId,
+            input.requestHash,
+            input.attemptedAt,
+          );
         this.database.exec("COMMIT;");
         return { status: "reserved" };
       }
       this.database.exec("COMMIT;");
       if (current.request_hash !== input.requestHash) return { status: "conflict" };
-      if (current.status === "unknown" || current.status === "sending") return { status: "unknown" };
+      if (current.status === "unknown" || current.status === "sending")
+        return { status: "unknown" };
       if (current.status === "rejected") return { status: "rejected" };
       if (current.external_message_key === null || current.delivered_at === null) {
-        throw new ConversationPlatformSQLiteError("integrity_failed", "The completed delivery replay is corrupted.");
+        throw new ConversationPlatformSQLiteError(
+          "integrity_failed",
+          "The completed delivery replay is corrupted.",
+        );
       }
       assertExternal(current.external_message_key, "external message key");
       assertTimestamp(current.delivered_at, "deliveredAt");
-      return { status: "delivered", externalMessageKey: current.external_message_key,
-        deliveredAt: current.delivered_at };
+      return {
+        status: "delivered",
+        externalMessageKey: current.external_message_key,
+        deliveredAt: current.delivered_at,
+      };
     } catch (error) {
-      try { this.database.exec("ROLLBACK;"); } catch { /* transaction may already be committed */ }
+      try {
+        this.database.exec("ROLLBACK;");
+      } catch {
+        /* transaction may already be committed */
+      }
       throw this.wrap(error);
     }
   }
@@ -67,18 +82,35 @@ export class ConversationPlatformReplayRepository {
     assertExternal(input.externalMessageKey, "external message key");
     assertTimestamp(input.deliveredAt, "deliveredAt");
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         UPDATE delivery_replay SET status = 'delivered', external_message_key = ?, delivered_at = ?
         WHERE platform = ? AND integration_id = ? AND outbound_id = ? AND request_hash = ?
           AND status = 'sending'
-      `).run(input.externalMessageKey, input.deliveredAt, input.platform, input.integrationId,
-        input.outboundId, input.requestHash);
+      `,
+        )
+        .run(
+          input.externalMessageKey,
+          input.deliveredAt,
+          input.platform,
+          input.integrationId,
+          input.outboundId,
+          input.requestHash,
+        );
       if (result.changes === 1) return;
       const current = this.find(input);
-      if (current?.status === "delivered" && current.request_hash === input.requestHash &&
+      if (
+        current?.status === "delivered" &&
+        current.request_hash === input.requestHash &&
         current.external_message_key === input.externalMessageKey &&
-        current.delivered_at === input.deliveredAt) return;
-      throw new ConversationPlatformSQLiteError("conflicting_binding", "The delivery completion record differs from the existing value.");
+        current.delivered_at === input.deliveredAt
+      )
+        return;
+      throw new ConversationPlatformSQLiteError(
+        "conflicting_binding",
+        "The delivery completion record differs from the existing value.",
+      );
     } catch (error) {
       throw this.wrap(error);
     }
@@ -87,16 +119,27 @@ export class ConversationPlatformReplayRepository {
   markUnknown(input: UnknownInput): void {
     this.validateCoordinate(input);
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         UPDATE delivery_replay SET status = 'unknown'
         WHERE platform = ? AND integration_id = ? AND outbound_id = ? AND request_hash = ?
           AND status = 'sending'
-      `).run(input.platform, input.integrationId, input.outboundId, input.requestHash);
+      `,
+        )
+        .run(input.platform, input.integrationId, input.outboundId, input.requestHash);
       if (result.changes === 1) return;
       const current = this.find(input);
-      if (current !== null && current.request_hash === input.requestHash &&
-        (current.status === "unknown" || current.status === "delivered")) return;
-      throw new ConversationPlatformSQLiteError("conflicting_binding", "The unknown-delivery record differs from the existing value.");
+      if (
+        current !== null &&
+        current.request_hash === input.requestHash &&
+        (current.status === "unknown" || current.status === "delivered")
+      )
+        return;
+      throw new ConversationPlatformSQLiteError(
+        "conflicting_binding",
+        "The unknown-delivery record differs from the existing value.",
+      );
     } catch (error) {
       throw this.wrap(error);
     }
@@ -109,25 +152,48 @@ export class ConversationPlatformReplayRepository {
   private markTerminalFailure(input: RejectedInput, status: "rejected"): void {
     this.validateCoordinate(input);
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         UPDATE delivery_replay SET status = ?
         WHERE platform = ? AND integration_id = ? AND outbound_id = ? AND request_hash = ?
           AND status = 'sending'
-      `).run(status, input.platform, input.integrationId, input.outboundId, input.requestHash);
+      `,
+        )
+        .run(status, input.platform, input.integrationId, input.outboundId, input.requestHash);
       if (result.changes === 1) return;
       const current = this.find(input);
-      if (current !== null && current.request_hash === input.requestHash && current.status === status) return;
-      throw new ConversationPlatformSQLiteError("conflicting_binding", "The rejected-delivery record differs from the existing value.");
+      if (
+        current !== null &&
+        current.request_hash === input.requestHash &&
+        current.status === status
+      )
+        return;
+      throw new ConversationPlatformSQLiteError(
+        "conflicting_binding",
+        "The rejected-delivery record differs from the existing value.",
+      );
     } catch (error) {
       throw this.wrap(error);
     }
   }
 
-  private find(input: { platform: string; integrationId: string; outboundId: string }): ReplayRow | null {
-    return (this.database.prepare(`
+  private find(input: {
+    platform: string;
+    integrationId: string;
+    outboundId: string;
+  }): ReplayRow | null {
+    return (
+      (this.database
+        .prepare(
+          `
       SELECT request_hash, status, external_message_key, delivered_at FROM delivery_replay
       WHERE platform = ? AND integration_id = ? AND outbound_id = ?
-    `).get(input.platform, input.integrationId, input.outboundId) as ReplayRow | undefined) ?? null;
+    `,
+        )
+        .get(input.platform, input.integrationId, input.outboundId) as ReplayRow | undefined) ??
+      null
+    );
   }
 
   private validateCoordinate(input: {

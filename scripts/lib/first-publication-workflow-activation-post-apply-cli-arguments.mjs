@@ -20,16 +20,17 @@ export function parseFirstPublicationWorkflowActivationPostApplyArguments(args) 
       continue;
     }
     if (
-      !["--repository", "--receipt"].includes(name) || values.has(name) ||
-      index + 1 >= args.length || args[index + 1].startsWith("--")
-    ) fail();
+      !["--repository", "--receipt"].includes(name) ||
+      values.has(name) ||
+      index + 1 >= args.length ||
+      args[index + 1].startsWith("--")
+    )
+      fail();
     values.set(name, args[index + 1]);
     index += 1;
   }
-  if (
-    !flags.has("--online") || values.size !== 2 ||
-    !isAbsolute(values.get("--receipt") ?? "")
-  ) fail();
+  if (!flags.has("--online") || values.size !== 2 || !isAbsolute(values.get("--receipt") ?? ""))
+    fail();
   return {
     repository: values.get("--repository"),
     receiptPath: values.get("--receipt"),

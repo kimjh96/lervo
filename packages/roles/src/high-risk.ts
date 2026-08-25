@@ -1,8 +1,4 @@
-import {
-  type DeliberationPolicy,
-  type HighRiskRoleWorkflow,
-  validateSchema,
-} from "@lervo/schemas";
+import { type DeliberationPolicy, type HighRiskRoleWorkflow, validateSchema } from "@lervo/schemas";
 import { validateDeliberationPolicy } from "@lervo/deliberation";
 
 import { assertRoleDefinition } from "./definition.js";
@@ -20,8 +16,9 @@ interface HighRiskRoleParticipant {
 }
 
 function requiredSuites(definitions: readonly RoleDefinition[]): string[] {
-  return [...new Set(definitions.flatMap((definition) =>
-    definition.profile.verification.suiteIds))].sort();
+  return [
+    ...new Set(definitions.flatMap((definition) => definition.profile.verification.suiteIds)),
+  ].sort();
 }
 
 export function createHighRiskRoleWorkflow(input: {
@@ -35,11 +32,7 @@ export function createHighRiskRoleWorkflow(input: {
   const roles = [input.primary, input.reviewer, input.verifier];
   for (const role of roles) assertRoleDefinition(role.definition);
   const primaryRoleId = input.primary.definition.profile.roleId;
-  const responsibilities = [
-    ["proposer", "decision_owner"],
-    ["reviewer"],
-    ["verifier"],
-  ] as const;
+  const responsibilities = [["proposer", "decision_owner"], ["reviewer"], ["verifier"]] as const;
   const deliberationPolicy: DeliberationPolicy = {
     schemaVersion: 1,
     policyId: `deliberation_high-risk-${primaryRoleId}`,
@@ -93,15 +86,18 @@ export function assertHighRiskRoleWorkflow(input: {
 }): void {
   const { workflow } = input;
   for (const definition of input.definitions) assertRoleDefinition(definition);
-  const definitions = new Map(input.definitions.map((definition) =>
-    [definition.profile.roleId, definition]));
-  if (!validateSchema("highRiskRoleWorkflow", workflow).valid ||
+  const definitions = new Map(
+    input.definitions.map((definition) => [definition.profile.roleId, definition]),
+  );
+  if (
+    !validateSchema("highRiskRoleWorkflow", workflow).valid ||
     workflow.workflowId !== calculateHighRiskRoleWorkflowId(workflow) ||
     workflow.projectId !== workflow.deliberationPolicy.projectId ||
     workflow.primaryRoleId !== workflow.deliberationPolicy.decisionOwnerRoleId ||
     workflow.deliberationPolicy.maxRounds > 5 ||
     definitions.size !== input.definitions.length ||
-    definitions.size !== workflow.roleBindings.length) {
+    definitions.size !== workflow.roleBindings.length
+  ) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
       "The high-risk role workflow schema, ID, project, decision owner, or round count is invalid.",
@@ -117,18 +113,26 @@ export function assertHighRiskRoleWorkflow(input: {
     );
   }
   const roleIds = workflow.roleBindings.map((binding) => binding.roleId);
-  const primary = workflow.roleBindings.find((binding) => binding.roleId === workflow.primaryRoleId);
+  const primary = workflow.roleBindings.find(
+    (binding) => binding.roleId === workflow.primaryRoleId,
+  );
   const reviewers = workflow.roleBindings.filter((binding) =>
-    binding.responsibilities.includes("reviewer"));
+    binding.responsibilities.includes("reviewer"),
+  );
   const verifiers = workflow.roleBindings.filter((binding) =>
-    binding.responsibilities.includes("verifier"));
-  if (new Set(roleIds).size !== roleIds.length || primary === undefined ||
+    binding.responsibilities.includes("verifier"),
+  );
+  if (
+    new Set(roleIds).size !== roleIds.length ||
+    primary === undefined ||
     !primary.responsibilities.includes("proposer") ||
     !primary.responsibilities.includes("decision_owner") ||
-    reviewers.length !== 1 || verifiers.length !== 1 ||
+    reviewers.length !== 1 ||
+    verifiers.length !== 1 ||
     reviewers[0]!.roleId === workflow.primaryRoleId ||
     verifiers[0]!.roleId === workflow.primaryRoleId ||
-    reviewers[0]!.roleId === verifiers[0]!.roleId) {
+    reviewers[0]!.roleId === verifiers[0]!.roleId
+  ) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
       "A high-risk workflow must have distinct proposal and decision ownership, independent review, and verification roles.",
@@ -136,21 +140,27 @@ export function assertHighRiskRoleWorkflow(input: {
   }
   for (const binding of workflow.roleBindings) {
     const definition = definitions.get(binding.roleId);
-    const participant = workflow.deliberationPolicy.participants.find((item) =>
-      item.roleId === binding.roleId);
-    if (definition === undefined || participant === undefined ||
+    const participant = workflow.deliberationPolicy.participants.find(
+      (item) => item.roleId === binding.roleId,
+    );
+    if (
+      definition === undefined ||
+      participant === undefined ||
       binding.roleProfileHash !== roleProfileHash(definition.profile) ||
       binding.evaluationBundleId !== definition.evaluation.bundleId ||
       binding.evaluationBundleHash !== roleEvaluationBundleHash(definition.evaluation) ||
-      JSON.stringify(binding.responsibilities) !== JSON.stringify(participant.responsibilities)) {
+      JSON.stringify(binding.responsibilities) !== JSON.stringify(participant.responsibilities)
+    ) {
       throw new RoleContractError(
         "high_risk_workflow_invalid",
         "The high-risk workflow RoleProfile, evaluation bundle, or deliberation participant binding does not match.",
       );
     }
   }
-  if (JSON.stringify(workflow.deliberationPolicy.requiredVerificationSuiteIds) !==
-    JSON.stringify(requiredSuites(input.definitions))) {
+  if (
+    JSON.stringify(workflow.deliberationPolicy.requiredVerificationSuiteIds) !==
+    JSON.stringify(requiredSuites(input.definitions))
+  ) {
     throw new RoleContractError(
       "high_risk_workflow_invalid",
       "The high-risk workflow does not require every role-specific project verification.",

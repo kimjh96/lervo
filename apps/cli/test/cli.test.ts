@@ -1,4 +1,4 @@
-import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -40,8 +40,12 @@ describe("lervo CLI identity", () => {
       ["--version"],
       {
         cwd: "/missing/repository/is-not-required",
-        stdout: (message) => { output += message; },
-        stderr: (message) => { errors += message; },
+        stdout: (message) => {
+          output += message;
+        },
+        stderr: (message) => {
+          errors += message;
+        },
       },
       {
         openProjectStorage: async () => {
@@ -59,11 +63,15 @@ describe("lervo CLI identity", () => {
 
   it("rejects extra version arguments", async () => {
     let errors = "";
-    expect(await runCli(["--version", "extra"], {
-      cwd: process.cwd(),
-      stdout: () => undefined,
-      stderr: (message) => { errors += message; },
-    })).toBe(1);
+    expect(
+      await runCli(["--version", "extra"], {
+        cwd: process.cwd(),
+        stdout: () => undefined,
+        stderr: (message) => {
+          errors += message;
+        },
+      }),
+    ).toBe(1);
     expect(errors).toContain("does not accept additional arguments");
   });
 });
@@ -100,6 +108,22 @@ describe("lervo init CLI", () => {
     expect(messages.join("")).toContain("Initialized the Lervo project.");
     expect(messages.join("")).toContain("The project is already initialized.");
   });
+
+  it("advances safe onboarding stages from init and stops at provider authority", async () => {
+    const root = await temporaryRepository();
+    const messages: string[] = [];
+    expect(
+      await runCli(["init", "--onboard"], {
+        cwd: root,
+        stdout: (message: string) => messages.push(message),
+        stderr: (message: string) => messages.push(message),
+      }),
+    ).toBe(0);
+    expect(messages.join("")).toContain("Onboarding: pending_authority");
+    expect(messages.join("")).toContain("initial agent: agt_");
+    await expect(access(resolve(root, "docs/knowledge/index.md"))).resolves.toBeUndefined();
+    await expect(access(resolve(root, "AGENTS.md"))).resolves.toBeUndefined();
+  });
 });
 
 describe("lervo migrate identity CLI", () => {
@@ -110,8 +134,12 @@ describe("lervo migrate identity CLI", () => {
 
     const exitCode = await runCli(["migrate", "identity"], {
       cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: (message) => { errors += message; },
+      stdout: (message) => {
+        output += message;
+      },
+      stderr: (message) => {
+        errors += message;
+      },
     });
 
     expect(exitCode).toBe(1);
@@ -137,14 +165,21 @@ describe("lervo repository knowledge CLI", () => {
 
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
-    const plan = JSON.parse(messages.join("")) as { planId: string; operations: Array<{ content?: unknown }> };
+    const plan = JSON.parse(messages.join("")) as {
+      planId: string;
+      operations: Array<{ content?: unknown }>;
+    };
     expect(plan.operations.every((operation) => operation.content === undefined)).toBe(true);
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
 
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ type: "knowledge.materialization.applied" });
-    expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain("Repository knowledge");
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      type: "knowledge.materialization.applied",
+    });
+    expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain(
+      "Repository knowledge",
+    );
 
     messages.length = 0;
     expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
@@ -152,11 +187,19 @@ describe("lervo repository knowledge CLI", () => {
 
     messages.length = 0;
     expect(await runCli(["knowledge", "query", "--json", "repository"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ semantics: "recommended", hits: [expect.objectContaining({ path: "docs/knowledge/index.md" })] });
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      semantics: "recommended",
+      hits: [expect.objectContaining({ path: "docs/knowledge/index.md" })],
+    });
 
     messages.length = 0;
     expect(await runCli(["knowledge", "impact", "--json"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ status: "current", lineageComplete: true, summary: { current: 0, stale: 0, unknown: 0, affectedConcepts: 0 }, items: [] });
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      status: "current",
+      lineageComplete: true,
+      summary: { current: 0, stale: 0, unknown: 0, affectedConcepts: 0 },
+      items: [],
+    });
 
     messages.length = 0;
     expect(await runCli(["knowledge", "refresh-candidate", "--json"], io)).toBe(0);
@@ -169,7 +212,9 @@ describe("lervo repository knowledge CLI", () => {
 
     const storage = await openProjectStorage(root);
     try {
-      expect(storage.events.list().some((event) => event.type === "knowledge.materialization.applied")).toBe(true);
+      expect(
+        storage.events.list().some((event) => event.type === "knowledge.materialization.applied"),
+      ).toBe(true);
     } finally {
       await storage.close();
     }
@@ -180,7 +225,9 @@ describe("lervo repository knowledge CLI", () => {
     const root = await temporaryRepository();
     const executable = resolve(root, "claude-fixture.mjs");
     await writeFile(resolve(root, "main.ts"), "export const runtime = 'local';\n");
-    await writeFile(executable, `#!/usr/bin/env node
+    await writeFile(
+      executable,
+      `#!/usr/bin/env node
 const args = process.argv.slice(2);
 if (args.includes("--version")) { console.log("claude-fixture 1.0.0"); process.exit(0); }
 let input = "";
@@ -189,7 +236,9 @@ const envelope = JSON.parse(input).envelope;
 const evidence = envelope.sourceUnits[0].unitVersionId;
 const response = { schemaVersion: 1, concepts: [{ localKey: "runtime", title: "Runtime", type: "concept", summary: "A source-backed runtime candidate.", claims: [{ localKey: "local", statement: "The repository declares a runtime source.", evidenceUnitVersionIds: [evidence] }] }], relations: [] };
 console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), permission_denials: [], stop_reason: "end_turn", num_turns: 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } } }));
-`, { mode: 0o700 });
+`,
+      { mode: 0o700 },
+    );
     await chmod(executable, 0o700);
     const messages: string[] = [];
     const errors: string[] = [];
@@ -200,39 +249,132 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     };
     expect(await runCli(["init"], io)).toBe(0);
     messages.length = 0;
-    expect(await runCli(["knowledge", "compile", "--provider", "claude", "--executable", executable, "--json"], io)).toBe(0);
-    const output = JSON.parse(messages.join("")) as { receipt: { compilationId: string; artifactPath: string; assurance: string }; coverage: { complete: boolean } };
-    expect(output).toMatchObject({ receipt: { assurance: "unreviewed" }, coverage: { complete: true } });
-    expect(JSON.parse(await readFile(resolve(root, output.receipt.artifactPath), "utf8"))).toMatchObject({ concepts: [{ assurance: "unreviewed" }] });
+    expect(
+      await runCli(
+        ["knowledge", "compile", "--provider", "claude", "--executable", executable, "--json"],
+        io,
+      ),
+    ).toBe(0);
+    const output = JSON.parse(messages.join("")) as {
+      receipt: { compilationId: string; artifactPath: string; assurance: string };
+      coverage: { complete: boolean };
+    };
+    expect(output).toMatchObject({
+      receipt: { assurance: "unreviewed" },
+      coverage: { complete: true },
+    });
+    expect(
+      JSON.parse(await readFile(resolve(root, output.receipt.artifactPath), "utf8")),
+    ).toMatchObject({ concepts: [{ assurance: "unreviewed" }] });
     messages.length = 0;
-    expect(await runCli(["knowledge", "reconcile", "--json", output.receipt.compilationId], io)).toBe(0);
-    const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string; status: string; dispositions: Array<{ action: string; review: string }> };
-    expect(reconciliation).toMatchObject({ status: "ready", dispositions: [{ action: "create_generated", review: "not_required" }] });
+    expect(
+      await runCli(["knowledge", "reconcile", "--json", output.receipt.compilationId], io),
+    ).toBe(0);
+    const reconciliation = JSON.parse(messages.join("")) as {
+      reconciliationPlanId: string;
+      status: string;
+      dispositions: Array<{ action: string; review: string }>;
+    };
+    expect(reconciliation).toMatchObject({
+      status: "ready",
+      dispositions: [{ action: "create_generated", review: "not_required" }],
+    });
     const storage = await openProjectStorage(root);
     try {
-      expect(storage.events.list().some((event) => event.type === "knowledge.candidate.created" || event.type === "knowledge.materialization.applied")).toBe(false);
+      expect(
+        storage.events
+          .list()
+          .some(
+            (event) =>
+              event.type === "knowledge.candidate.created" ||
+              event.type === "knowledge.materialization.applied",
+          ),
+      ).toBe(false);
     } finally {
       await storage.close();
     }
     messages.length = 0;
-    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.fixture", "--write", "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        ["knowledge", "review-policy", "--reviewer", "human.fixture", "--write", "--json"],
+        io,
+      ),
+    ).toBe(0);
     const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
     messages.length = 0;
-    expect(await runCli(["knowledge", "review", output.receipt.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.fixture", "--accept-all-safe", "--json"], io)).toBe(0);
-    const review = JSON.parse(messages.join("")) as { review: { reviewId: string }; eventId: string };
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          output.receipt.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.fixture",
+          "--accept-all-safe",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const review = JSON.parse(messages.join("")) as {
+      review: { reviewId: string };
+      eventId: string;
+    };
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(0);
-    const semanticPlan = JSON.parse(messages.join("")) as { planId: string; createdConceptIds: string[] };
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(
+      0,
+    );
+    const semanticPlan = JSON.parse(messages.join("")) as {
+      planId: string;
+      createdConceptIds: string[];
+    };
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--apply", semanticPlan.planId, "--json"], io), messages.join("")).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "semantic", type: "knowledge.materialization.applied" });
-    expect(await readFile(resolve(root, `docs/knowledge/semantic/${semanticPlan.createdConceptIds[0]}.md`), "utf8")).toContain("Human-reviewed semantic publication");
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "materialize",
+          review.review.reviewId,
+          "--apply",
+          semanticPlan.planId,
+          "--json",
+        ],
+        io,
+      ),
+      messages.join(""),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      operation: "semantic",
+      type: "knowledge.materialization.applied",
+    });
+    expect(
+      await readFile(
+        resolve(root, `docs/knowledge/semantic/${semanticPlan.createdConceptIds[0]}.md`),
+        "utf8",
+      ),
+    ).toContain("Human-reviewed semantic publication");
     const finalStorage = await openProjectStorage(root);
     try {
-      const reviewEvent = finalStorage.events.list().find((event) => event.type === "knowledge.reconciliation.reviewed");
+      const reviewEvent = finalStorage.events
+        .list()
+        .find((event) => event.type === "knowledge.reconciliation.reviewed");
       expect(reviewEvent?.payload).not.toHaveProperty("reviewerId");
-      expect(finalStorage.events.list().some((event) => event.type === "knowledge.materialization.applied" && event.payload.operation === "semantic")).toBe(true);
-    } finally { await finalStorage.close(); }
+      expect(
+        finalStorage.events
+          .list()
+          .some(
+            (event) =>
+              event.type === "knowledge.materialization.applied" &&
+              event.payload.operation === "semantic",
+          ),
+      ).toBe(true);
+    } finally {
+      await finalStorage.close();
+    }
     expect(errors).toEqual([]);
   });
 
@@ -242,47 +384,127 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     await writeFile(resolve(root, "README.md"), readme);
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const structuralPlan = JSON.parse(messages.join("")) as { planId: string };
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", structuralPlan.planId, "--json"], io)).toBe(0);
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", structuralPlan.planId, "--json"], io),
+    ).toBe(0);
 
     const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
-    const evidence = scan.units.find((unit) => unit.path === "README.md" && unit.unitKind === "markdown_section")!;
+    const evidence = scan.units.find(
+      (unit) => unit.path === "README.md" && unit.unitKind === "markdown_section",
+    )!;
     const candidate = await compileRepositoryKnowledgeCandidate({
       scan,
       policyHash: sha256(canonicalJson(policy)),
       compiler: {
-        descriptor: { compilerId: "claude.semantic.fixture", compilerVersion: "1", compilerBuildId: `sha256:${"a".repeat(64)}`, provider: "claude", isolation: "external_no_capabilities" },
-        compile: async () => ({ schemaVersion: 1, concepts: [{ localKey: "existing", title: "Existing Runtime", type: "concept", summary: "Reviewed existing publication.", claims: [{ localKey: "linked", statement: "Quasar linkage is reviewed.", evidenceUnitVersionIds: [evidence.unitVersionId] }] }], relations: [], telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true } }),
+        descriptor: {
+          compilerId: "claude.semantic.fixture",
+          compilerVersion: "1",
+          compilerBuildId: `sha256:${"a".repeat(64)}`,
+          provider: "claude",
+          isolation: "external_no_capabilities",
+        },
+        compile: async () => ({
+          schemaVersion: 1,
+          concepts: [
+            {
+              localKey: "existing",
+              title: "Existing Runtime",
+              type: "concept",
+              summary: "Reviewed existing publication.",
+              claims: [
+                {
+                  localKey: "linked",
+                  statement: "Quasar linkage is reviewed.",
+                  evidenceUnitVersionIds: [evidence.unitVersionId],
+                },
+              ],
+            },
+          ],
+          relations: [],
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        }),
       },
       signal: new AbortController().signal,
     });
     await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
     messages.length = 0;
     expect(await runCli(["knowledge", "reconcile", "--json", candidate.compilationId], io)).toBe(0);
-    const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string; dispositions: Array<{ action: string }> };
-    expect(reconciliation.dispositions).toEqual([expect.objectContaining({ action: "register_existing" })]);
+    const reconciliation = JSON.parse(messages.join("")) as {
+      reconciliationPlanId: string;
+      dispositions: Array<{ action: string }>;
+    };
+    expect(reconciliation.dispositions).toEqual([
+      expect.objectContaining({ action: "register_existing" }),
+    ]);
     messages.length = 0;
-    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.owner", "--write", "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        ["knowledge", "review-policy", "--reviewer", "human.owner", "--write", "--json"],
+        io,
+      ),
+    ).toBe(0);
     const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
     messages.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--json"], io)).toBe(0);
-    const reviewId = (JSON.parse(messages.join("")) as { review: { reviewId: string } }).review.reviewId;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.owner",
+          "--accept-all-safe",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const reviewId = (JSON.parse(messages.join("")) as { review: { reviewId: string } }).review
+      .reviewId;
     messages.length = 0;
     expect(await runCli(["knowledge", "materialize", reviewId, "--json"], io)).toBe(0);
     const planId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", reviewId, "--apply", planId, "--json"], io)).toBe(0);
+    expect(
+      await runCli(["knowledge", "materialize", reviewId, "--apply", planId, "--json"], io),
+    ).toBe(0);
     expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(readme);
-    const claimFiles = await listKnowledgeArtifactPaths({ root, directory: ".lervo/knowledge/claims", extension: "yaml", maximumFiles: 20_000 });
-    expect(await readFile(resolve(root, claimFiles[0]!), "utf8")).toContain(`evidenceUnitIds:\n  - ${evidence.unitId}`);
+    const claimFiles = await listKnowledgeArtifactPaths({
+      root,
+      directory: ".lervo/knowledge/claims",
+      extension: "yaml",
+      maximumFiles: 20_000,
+    });
+    expect(await readFile(resolve(root, claimFiles[0]!), "utf8")).toContain(
+      `evidenceUnitIds:\n  - ${evidence.unitId}`,
+    );
     messages.length = 0;
     expect(await runCli(["knowledge", "query", "--json", "quasar"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ hits: [expect.objectContaining({ path: "README.md", assurance: "human_reviewed" })] });
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      hits: [expect.objectContaining({ path: "README.md", assurance: "human_reviewed" })],
+    });
     expect(errors).toEqual([]);
   });
 
@@ -291,27 +513,100 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     await writeFile(resolve(root, "main.ts"), "export const local = true;\n");
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
     const candidate = await compileRepositoryKnowledgeCandidate({
       scan,
       policyHash: sha256(canonicalJson(policy)),
       compiler: {
-        descriptor: { compilerId: "claude.semantic.fixture", compilerVersion: "1", compilerBuildId: `sha256:${"c".repeat(64)}`, provider: "claude", isolation: "external_no_capabilities" },
+        descriptor: {
+          compilerId: "claude.semantic.fixture",
+          compilerVersion: "1",
+          compilerBuildId: `sha256:${"c".repeat(64)}`,
+          provider: "claude",
+          isolation: "external_no_capabilities",
+        },
         compile: async (envelope) => {
           const evidenceUnitVersionId = envelope.sourceUnits[0]!.unitVersionId;
-          return ({
-          schemaVersion: 1,
-          concepts: [
-            { localKey: "duplicate_left", title: "Duplicate left", type: "concept", summary: "First duplicate.", claims: [{ localKey: "same_left", statement: "The same bounded claim.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
-            { localKey: "duplicate_right", title: "Duplicate right", type: "concept", summary: "Second duplicate.", claims: [{ localKey: "same_right", statement: "The same bounded claim.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
-            { localKey: "mode_a", title: "Mode A", type: "concept", summary: "First contradictory view.", claims: [{ localKey: "a", statement: "The mode is A.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
-            { localKey: "mode_b", title: "Mode B", type: "concept", summary: "Second contradictory view.", claims: [{ localKey: "b", statement: "The mode is B.", evidenceUnitVersionIds: [evidenceUnitVersionId] }] },
-          ],
-          relations: [{ fromConceptKey: "mode_a", toConceptKey: "mode_b", type: "contradicts", evidenceUnitVersionIds: [evidenceUnitVersionId] }],
-          telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true },
-          });
+          return {
+            schemaVersion: 1,
+            concepts: [
+              {
+                localKey: "duplicate_left",
+                title: "Duplicate left",
+                type: "concept",
+                summary: "First duplicate.",
+                claims: [
+                  {
+                    localKey: "same_left",
+                    statement: "The same bounded claim.",
+                    evidenceUnitVersionIds: [evidenceUnitVersionId],
+                  },
+                ],
+              },
+              {
+                localKey: "duplicate_right",
+                title: "Duplicate right",
+                type: "concept",
+                summary: "Second duplicate.",
+                claims: [
+                  {
+                    localKey: "same_right",
+                    statement: "The same bounded claim.",
+                    evidenceUnitVersionIds: [evidenceUnitVersionId],
+                  },
+                ],
+              },
+              {
+                localKey: "mode_a",
+                title: "Mode A",
+                type: "concept",
+                summary: "First contradictory view.",
+                claims: [
+                  {
+                    localKey: "a",
+                    statement: "The mode is A.",
+                    evidenceUnitVersionIds: [evidenceUnitVersionId],
+                  },
+                ],
+              },
+              {
+                localKey: "mode_b",
+                title: "Mode B",
+                type: "concept",
+                summary: "Second contradictory view.",
+                claims: [
+                  {
+                    localKey: "b",
+                    statement: "The mode is B.",
+                    evidenceUnitVersionIds: [evidenceUnitVersionId],
+                  },
+                ],
+              },
+            ],
+            relations: [
+              {
+                fromConceptKey: "mode_a",
+                toConceptKey: "mode_b",
+                type: "contradicts",
+                evidenceUnitVersionIds: [evidenceUnitVersionId],
+              },
+            ],
+            telemetry: {
+              filesystemReads: 0,
+              filesystemWrites: 0,
+              shellProcesses: 0,
+              networkRequests: 0,
+              externalActions: 0,
+              toolCalls: 0,
+              complete: true,
+            },
+          };
         },
       },
       signal: new AbortController().signal,
@@ -321,50 +616,185 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(await runCli(["knowledge", "reconcile", "--json", candidate.compilationId], io)).toBe(0);
     const reconciliation = JSON.parse(messages.join("")) as {
       reconciliationPlanId: string;
-      dispositions: Array<{ dispositionId: string; subjectId: string; action: string; resolutionOptions: Array<{ resolutionHash: string }> }>;
+      dispositions: Array<{
+        dispositionId: string;
+        subjectId: string;
+        action: string;
+        resolutionOptions: Array<{ resolutionHash: string }>;
+      }>;
     };
     const bySubject = new Map(reconciliation.dispositions.map((item) => [item.subjectId, item]));
-    const selectedSubjects = [candidate.concepts[0]!.conceptId, candidate.concepts[2]!.conceptId, candidate.concepts[3]!.conceptId, candidate.relations[0]!.relationId];
+    const selectedSubjects = [
+      candidate.concepts[0]!.conceptId,
+      candidate.concepts[2]!.conceptId,
+      candidate.concepts[3]!.conceptId,
+      candidate.relations[0]!.relationId,
+    ];
     const selections = selectedSubjects.map((subjectId) => {
       const disposition = bySubject.get(subjectId)!;
       return `${disposition.dispositionId}=${disposition.resolutionOptions[0]!.resolutionHash}`;
     });
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.resolver", "--policy-id", "knowledge_conflict.skip", "--write", "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review-policy",
+          "--reviewer",
+          "human.resolver",
+          "--policy-id",
+          "knowledge_conflict.skip",
+          "--write",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     const skipPolicyPath = (JSON.parse(messages.join("")) as { path: string }).path;
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", skipPolicyPath, "--reviewer", "human.resolver", "--resolve-item", selections[0]!, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          skipPolicyPath,
+          "--reviewer",
+          "human.resolver",
+          "--resolve-item",
+          selections[0]!,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(errors.join("")).toContain("policy authorization");
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.resolver", "--policy-id", "knowledge_conflict.resolve", "--allow-conflict-resolution", "--write", "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review-policy",
+          "--reviewer",
+          "human.resolver",
+          "--policy-id",
+          "knowledge_conflict.resolve",
+          "--allow-conflict-resolution",
+          "--write",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     const resolutionPolicyPath = (JSON.parse(messages.join("")) as { path: string }).path;
     const duplicateRight = bySubject.get(candidate.concepts[1]!.conceptId)!;
     const duplicateRightSelection = `${duplicateRight.dispositionId}=${duplicateRight.resolutionOptions[0]!.resolutionHash}`;
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", resolutionPolicyPath, "--reviewer", "human.resolver", "--resolve-item", selections[0]!, "--resolve-item", duplicateRightSelection, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          resolutionPolicyPath,
+          "--reviewer",
+          "human.resolver",
+          "--resolve-item",
+          selections[0]!,
+          "--resolve-item",
+          duplicateRightSelection,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(errors.join("")).toContain("Only one concept");
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", resolutionPolicyPath, "--reviewer", "human.resolver", "--resolve-item", selections[3]!, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          resolutionPolicyPath,
+          "--reviewer",
+          "human.resolver",
+          "--resolve-item",
+          selections[3]!,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(errors.join("")).toContain("endpoint");
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", resolutionPolicyPath, "--reviewer", "human.resolver", ...selections.flatMap((selection) => ["--resolve-item", selection]), "--json"], io)).toBe(0);
-    const review = JSON.parse(messages.join("")) as { review: { reviewId: string; itemApprovals: Array<{ action: string }> } };
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          resolutionPolicyPath,
+          "--reviewer",
+          "human.resolver",
+          ...selections.flatMap((selection) => ["--resolve-item", selection]),
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const review = JSON.parse(messages.join("")) as {
+      review: { reviewId: string; itemApprovals: Array<{ action: string }> };
+    };
     expect(review.review.itemApprovals).toHaveLength(4);
-    expect(review.review.itemApprovals.every((item) => item.action === "resolve_conflict")).toBe(true);
+    expect(review.review.itemApprovals.every((item) => item.action === "resolve_conflict")).toBe(
+      true,
+    );
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(0);
-    const materialization = JSON.parse(messages.join("")) as { planId: string; createdConceptIds: string[]; relationIds: string[] };
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(
+      0,
+    );
+    const materialization = JSON.parse(messages.join("")) as {
+      planId: string;
+      createdConceptIds: string[];
+      relationIds: string[];
+    };
     expect(materialization.createdConceptIds).toHaveLength(3);
     expect(materialization.relationIds).toHaveLength(1);
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--apply", materialization.planId, "--json"], io), errors.join("")).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "materialize",
+          review.review.reviewId,
+          "--apply",
+          materialization.planId,
+          "--json",
+        ],
+        io,
+      ),
+      errors.join(""),
+    ).toBe(0);
     expect(errors).toEqual([]);
   });
 
@@ -374,7 +804,11 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     await writeFile(resolve(root, "seed.txt"), "seed\n");
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     await mkdir(resolve(root, "docs/research"), { recursive: true });
     await writeFile(resolve(root, documentPath), "# Retired note\n\nExact user bytes to remove.\n");
@@ -382,27 +816,77 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
+      0,
+    );
 
     messages.length = 0;
     expect(await runCli(["knowledge", "structure", "delete", documentPath, "--json"], io)).toBe(0);
-    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; deprecatedConceptIds: string[]; operations: Array<{ path: string; action: string; content?: string }> };
+    const plan = JSON.parse(messages.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      deprecatedConceptIds: string[];
+      operations: Array<{ path: string; action: string; content?: string }>;
+    };
     expect(plan.deprecatedConceptIds).toHaveLength(1);
-    expect(plan.operations).toContainEqual(expect.objectContaining({ path: documentPath, action: "delete" }));
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({ path: documentPath, action: "delete" }),
+    );
     expect(plan.operations.every((operation) => operation.content === undefined)).toBe(true);
     expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "delete", documentPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "delete",
+          documentPath,
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=sha256:${"0".repeat(64)}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(errors.join("")).toContain("exact approval hash");
     expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "delete", documentPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "delete",
+          documentPath,
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=${plan.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     await expect(access(resolve(root, documentPath))).rejects.toMatchObject({ code: "ENOENT" });
-    const conceptBytes = await readFile(resolve(root, shardedKnowledgeArtifactPath(".lervo/knowledge/concepts", plan.deprecatedConceptIds[0]!, "yaml")), "utf8");
+    const conceptBytes = await readFile(
+      resolve(
+        root,
+        shardedKnowledgeArtifactPath(
+          ".lervo/knowledge/concepts",
+          plan.deprecatedConceptIds[0]!,
+          "yaml",
+        ),
+      ),
+      "utf8",
+    );
     expect(conceptBytes).toContain("publicationStatus: deprecated");
     expect(conceptBytes).toContain("kind: document_deleted");
 
@@ -416,13 +900,26 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(await runCli(["knowledge", "refresh", "--apply", refreshPlanId, "--json"], io)).toBe(0);
     messages.length = 0;
     expect(await runCli(["knowledge", "query", "--json", "Retired note"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits).toEqual([]);
+    expect(
+      (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits,
+    ).toEqual([]);
     const storage = await openProjectStorage(root);
     try {
-      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_delete");
-      expect(event?.payload).toMatchObject({ planId: plan.planId, deprecatedConceptIds: plan.deprecatedConceptIds });
+      const event = storage.events
+        .list()
+        .find(
+          (item) =>
+            item.type === "knowledge.materialization.applied" &&
+            item.payload.operation === "document_structure_delete",
+        );
+      expect(event?.payload).toMatchObject({
+        planId: plan.planId,
+        deprecatedConceptIds: plan.deprecatedConceptIds,
+      });
       expect(JSON.stringify(event?.payload)).not.toContain(documentPath);
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 
@@ -433,31 +930,80 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     await writeFile(resolve(root, "seed.txt"), "seed\n");
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     await mkdir(resolve(root, "docs/research"), { recursive: true });
-    await writeFile(resolve(root, sourcePath), "# Movable guide\n\nExact user bytes remain unchanged.\n");
+    await writeFile(
+      resolve(root, sourcePath),
+      "# Movable guide\n\nExact user bytes remain unchanged.\n",
+    );
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
+      0,
+    );
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--json"], io)).toBe(0);
-    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; preservedConceptIds: string[]; operations: Array<{ action: string; content?: string }> };
+    expect(
+      await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--json"], io),
+    ).toBe(0);
+    const plan = JSON.parse(messages.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      preservedConceptIds: string[];
+      operations: Array<{ action: string; content?: string }>;
+    };
     expect(plan.preservedConceptIds).toHaveLength(1);
     expect(plan.operations.some((item) => item.action === "move")).toBe(true);
     expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "move",
+          sourcePath,
+          destinationPath,
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=sha256:${"0".repeat(64)}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toContain("Exact user bytes");
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "move", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "move",
+          sourcePath,
+          destinationPath,
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=${plan.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
     expect(await readFile(resolve(root, destinationPath), "utf8")).toContain("Exact user bytes");
     messages.length = 0;
@@ -465,17 +1011,35 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
     messages.length = 0;
     expect(await runCli(["knowledge", "query", "--json", "Movable guide"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits[0]).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
+    expect(
+      (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
+        .hits[0],
+    ).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
     messages.length = 0;
     expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every((item) => item.action === "unchanged")).toBe(true);
+    expect(
+      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
+        (item) => item.action === "unchanged",
+      ),
+    ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
-      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_move");
-      expect(event?.payload).toMatchObject({ planId: plan.planId, updatedConceptIds: plan.preservedConceptIds });
+      const event = storage.events
+        .list()
+        .find(
+          (item) =>
+            item.type === "knowledge.materialization.applied" &&
+            item.payload.operation === "document_structure_move",
+        );
+      expect(event?.payload).toMatchObject({
+        planId: plan.planId,
+        updatedConceptIds: plan.preservedConceptIds,
+      });
       expect(JSON.stringify(event?.payload)).not.toContain(sourcePath);
       expect(JSON.stringify(event?.payload)).not.toContain(destinationPath);
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 
@@ -483,12 +1047,17 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     const root = await temporaryRepository();
     const sourcePath = "docs/research/guide.md";
     const destinationPath = "docs/research/extracted.md";
-    const original = "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n## Tail\n\nKeep tail.\n";
+    const original =
+      "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n## Tail\n\nKeep tail.\n";
     const remainder = "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Tail\n\nKeep tail.\n";
     const extracted = "## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n";
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     await mkdir(resolve(root, "docs/research"), { recursive: true });
     await writeFile(resolve(root, sourcePath), original);
@@ -496,24 +1065,82 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
+      0,
+    );
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "structure", "split", sourcePath, destinationPath, "--at-heading", "heading:Guide > Extract", "--json"], io)).toBe(0);
-    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; createdConceptIds: string[]; operations: Array<{ ownership: string; content?: string }> };
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "split",
+          sourcePath,
+          destinationPath,
+          "--at-heading",
+          "heading:Guide > Extract",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const plan = JSON.parse(messages.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      createdConceptIds: string[];
+      operations: Array<{ ownership: string; content?: string }>;
+    };
     expect(plan.createdConceptIds).toHaveLength(1);
     expect(plan.operations.some((item) => item.ownership === "user")).toBe(true);
     expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "split", sourcePath, destinationPath, "--at-heading", "heading:Guide > Extract", "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "split",
+          sourcePath,
+          destinationPath,
+          "--at-heading",
+          "heading:Guide > Extract",
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=sha256:${"0".repeat(64)}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(original);
     await expect(access(resolve(root, destinationPath))).rejects.toMatchObject({ code: "ENOENT" });
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "split", sourcePath, destinationPath, "--at-heading", "heading:Guide > Extract", "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "split",
+          sourcePath,
+          destinationPath,
+          "--at-heading",
+          "heading:Guide > Extract",
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=${plan.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(remainder);
     expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(extracted);
     messages.length = 0;
@@ -521,18 +1148,36 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
     messages.length = 0;
     expect(await runCli(["knowledge", "query", "--json", "Extract"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits[0]).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
+    expect(
+      (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
+        .hits[0],
+    ).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
     messages.length = 0;
     expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every((item) => item.action === "unchanged")).toBe(true);
+    expect(
+      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
+        (item) => item.action === "unchanged",
+      ),
+    ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
-      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_split");
-      expect(event?.payload).toMatchObject({ planId: plan.planId, createdConceptIds: plan.createdConceptIds });
+      const event = storage.events
+        .list()
+        .find(
+          (item) =>
+            item.type === "knowledge.materialization.applied" &&
+            item.payload.operation === "document_structure_split",
+        );
+      expect(event?.payload).toMatchObject({
+        planId: plan.planId,
+        createdConceptIds: plan.createdConceptIds,
+      });
       expect(JSON.stringify(event?.payload)).not.toContain(sourcePath);
       expect(JSON.stringify(event?.payload)).not.toContain(destinationPath);
       expect(JSON.stringify(event?.payload)).not.toContain("Move this");
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 
@@ -547,17 +1192,32 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     await writeFile(resolve(root, destinationPath), destination);
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(0);
+    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
+      0,
+    );
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--json"], io)).toBe(0);
-    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; preservedConceptIds: string[]; deprecatedConceptIds: string[]; operations: Array<{ action: string; ownership?: string; content?: string }> };
+    expect(
+      await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--json"], io),
+    ).toBe(0);
+    const plan = JSON.parse(messages.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      preservedConceptIds: string[];
+      deprecatedConceptIds: string[];
+      operations: Array<{ action: string; ownership?: string; content?: string }>;
+    };
     expect(plan.preservedConceptIds).toHaveLength(1);
     expect(plan.deprecatedConceptIds).toHaveLength(1);
     expect(plan.operations.some((item) => item.action === "delete")).toBe(true);
@@ -565,13 +1225,45 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "merge",
+          sourcePath,
+          destinationPath,
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=sha256:${"0".repeat(64)}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(source);
     expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(destination);
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "structure", "merge", sourcePath, destinationPath, "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "structure",
+          "merge",
+          sourcePath,
+          destinationPath,
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=${plan.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
     await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
     expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(destination + source);
     messages.length = 0;
@@ -579,58 +1271,138 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(JSON.parse(messages.join(""))).toMatchObject({ valid: true });
     messages.length = 0;
     expect(await runCli(["knowledge", "query", "--json", "Source-only body"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> }).hits[0]).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
+    expect(
+      (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
+        .hits[0],
+    ).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
     messages.length = 0;
     expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
-    expect((JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every((item) => item.action === "unchanged")).toBe(true);
+    expect(
+      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
+        (item) => item.action === "unchanged",
+      ),
+    ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
-      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "document_structure_merge");
-      expect(event?.payload).toMatchObject({ planId: plan.planId, deprecatedConceptIds: plan.deprecatedConceptIds });
+      const event = storage.events
+        .list()
+        .find(
+          (item) =>
+            item.type === "knowledge.materialization.applied" &&
+            item.payload.operation === "document_structure_merge",
+        );
+      expect(event?.payload).toMatchObject({
+        planId: plan.planId,
+        deprecatedConceptIds: plan.deprecatedConceptIds,
+      });
       expect(JSON.stringify(event?.payload)).not.toContain(sourcePath);
       expect(JSON.stringify(event?.payload)).not.toContain(destinationPath);
       expect(JSON.stringify(event?.payload)).not.toContain("Source-only body");
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 
   it("creates and records a privacy-bounded Claude instruction bridge", async () => {
     const root = await temporaryRepository();
-    await writeFile(resolve(root, "AGENTS.md"), "# Canonical agent policy\n\nRepository instructions.\n");
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      "# Canonical agent policy\n\nRepository instructions.\n",
+    );
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--json"], io)).toBe(0);
-    const plan = JSON.parse(messages.join("")) as { planId: string; operationId: string; approvalHash: string; target: { action: string }; operations: Array<{ content?: string }> };
+    expect(
+      await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--json"], io),
+    ).toBe(0);
+    const plan = JSON.parse(messages.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      target: { action: string };
+      operations: Array<{ content?: string }>;
+    };
     expect(plan.target.action).toBe("create");
     expect(plan.operations.every((item) => item.content === undefined)).toBe(true);
     await expect(access(resolve(root, "CLAUDE.md"))).rejects.toMatchObject({ code: "ENOENT" });
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--apply", plan.planId, "--approve-item", `${plan.operationId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "instruction",
+          "bridge",
+          "--provider",
+          "claude",
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=sha256:${"0".repeat(64)}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(errors.join("")).toContain("exact approval hash");
     await expect(access(resolve(root, "CLAUDE.md"))).rejects.toMatchObject({ code: "ENOENT" });
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "instruction", "bridge", "--provider", "claude", "--apply", plan.planId, "--approve-item", `${plan.operationId}=${plan.approvalHash}`, "--json"], io), errors.join("")).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "instruction",
+          "bridge",
+          "--provider",
+          "claude",
+          "--apply",
+          plan.planId,
+          "--approve-item",
+          `${plan.operationId}=${plan.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+      errors.join(""),
+    ).toBe(0);
     expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toContain("@AGENTS.md\n");
-    const receipt = JSON.parse(messages.join("")) as { canonicalPathDigest: string; targetPathDigest: string };
+    const receipt = JSON.parse(messages.join("")) as {
+      canonicalPathDigest: string;
+      targetPathDigest: string;
+    };
     expect(receipt.canonicalPathDigest).toMatch(/^sha256:/);
     expect(receipt.targetPathDigest).toMatch(/^sha256:/);
 
     const storage = await openProjectStorage(root);
     try {
-      const event = storage.events.list().find((item) => item.type === "knowledge.materialization.applied" && item.payload.operation === "instruction_bridge_update");
-      expect(event?.payload).toMatchObject({ planId: plan.planId, compilerId: "lervo.instruction-bridge" });
+      const event = storage.events
+        .list()
+        .find(
+          (item) =>
+            item.type === "knowledge.materialization.applied" &&
+            item.payload.operation === "instruction_bridge_update",
+        );
+      expect(event?.payload).toMatchObject({
+        planId: plan.planId,
+        compilerId: "lervo.instruction-bridge",
+      });
       expect(JSON.stringify(event?.payload)).not.toContain("AGENTS.md");
       expect(JSON.stringify(event?.payload)).not.toContain("CLAUDE.md");
       expect(JSON.stringify(event?.payload)).not.toContain("Repository instructions");
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 
@@ -642,61 +1414,206 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     await writeFile(resolve(root, "README.md"), readme);
     const messages: string[] = [];
     const errors: string[] = [];
-    const io = { cwd: root, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], io)).toBe(0);
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const structuralPlan = JSON.parse(messages.join("")) as { planId: string };
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", structuralPlan.planId, "--json"], io)).toBe(0);
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", structuralPlan.planId, "--json"], io),
+    ).toBe(0);
 
     const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
-    const evidence = scan.units.find((unit) => unit.path === "README.md" && unit.unitKind === "markdown_section")!;
+    const evidence = scan.units.find(
+      (unit) => unit.path === "README.md" && unit.unitKind === "markdown_section",
+    )!;
     const candidate = await compileRepositoryKnowledgeCandidate({
       scan,
       policyHash: sha256(canonicalJson(policy)),
       compiler: {
-        descriptor: { compilerId: "claude.semantic.fixture", compilerVersion: "1", compilerBuildId: `sha256:${"b".repeat(64)}`, provider: "claude", isolation: "external_no_capabilities" },
-        compile: async () => ({ schemaVersion: 1, concepts: [{ localKey: "existing", title: "Existing Runtime", type: "concept", summary: "Reviewed managed summary.", claims: [{ localKey: "linked", statement: "Managed block replacement is reviewed.", evidenceUnitVersionIds: [evidence.unitVersionId] }] }], relations: [], telemetry: { filesystemReads: 0, filesystemWrites: 0, shellProcesses: 0, networkRequests: 0, externalActions: 0, toolCalls: 0, complete: true } }),
+        descriptor: {
+          compilerId: "claude.semantic.fixture",
+          compilerVersion: "1",
+          compilerBuildId: `sha256:${"b".repeat(64)}`,
+          provider: "claude",
+          isolation: "external_no_capabilities",
+        },
+        compile: async () => ({
+          schemaVersion: 1,
+          concepts: [
+            {
+              localKey: "existing",
+              title: "Existing Runtime",
+              type: "concept",
+              summary: "Reviewed managed summary.",
+              claims: [
+                {
+                  localKey: "linked",
+                  statement: "Managed block replacement is reviewed.",
+                  evidenceUnitVersionIds: [evidence.unitVersionId],
+                },
+              ],
+            },
+          ],
+          relations: [],
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        }),
       },
       signal: new AbortController().signal,
     });
     await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
     messages.length = 0;
     expect(await runCli(["knowledge", "reconcile", "--json", candidate.compilationId], io)).toBe(0);
-    const reconciliation = JSON.parse(messages.join("")) as { reconciliationPlanId: string; status: string; dispositions: Array<{ dispositionId: string; action: string; patch: null | { outputHash: string } }> };
+    const reconciliation = JSON.parse(messages.join("")) as {
+      reconciliationPlanId: string;
+      status: string;
+      dispositions: Array<{
+        dispositionId: string;
+        action: string;
+        patch: null | { outputHash: string };
+      }>;
+    };
     expect(reconciliation.status).toBe("review_required");
-    expect(reconciliation.dispositions.map((item) => item.action).sort()).toEqual(["propose_user_patch", "register_existing"]);
+    expect(reconciliation.dispositions.map((item) => item.action).sort()).toEqual([
+      "propose_user_patch",
+      "register_existing",
+    ]);
     const patch = reconciliation.dispositions.find((item) => item.action === "propose_user_patch")!;
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "review-policy", "--reviewer", "human.owner", "--write", "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        ["knowledge", "review-policy", "--reviewer", "human.owner", "--write", "--json"],
+        io,
+      ),
+    ).toBe(0);
     const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
     messages.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--json"], io)).toBe(0);
-    const safeOnly = JSON.parse(messages.join("")) as { review: { itemApprovals: unknown[]; skippedDispositionIds: string[] } };
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.owner",
+          "--accept-all-safe",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const safeOnly = JSON.parse(messages.join("")) as {
+      review: { itemApprovals: unknown[]; skippedDispositionIds: string[] };
+    };
     expect(safeOnly.review.itemApprovals).toEqual([]);
     expect(safeOnly.review.skippedDispositionIds).toContain(patch.dispositionId);
     expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(readme);
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--approve-item", `${patch.dispositionId}=sha256:${"0".repeat(64)}`, "--json"], io)).toBe(1);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.owner",
+          "--accept-all-safe",
+          "--approve-item",
+          `${patch.dispositionId}=sha256:${"0".repeat(64)}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
     expect(errors.join("")).toContain("exact output hash");
     expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(readme);
 
     messages.length = 0;
     errors.length = 0;
-    expect(await runCli(["knowledge", "review", candidate.compilationId, "--plan", reconciliation.reconciliationPlanId, "--policy", policyPath, "--reviewer", "human.owner", "--accept-all-safe", "--approve-item", `${patch.dispositionId}=${patch.patch!.outputHash}`, "--json"], io)).toBe(0);
-    const reviewed = JSON.parse(messages.join("")) as { review: { reviewId: string; itemApprovals: Array<{ dispositionId: string; outputHash: string }> } };
-    expect(reviewed.review.itemApprovals).toEqual([{ dispositionId: patch.dispositionId, action: "apply_managed_block_patch", outputHash: patch.patch!.outputHash }]);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          candidate.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.owner",
+          "--accept-all-safe",
+          "--approve-item",
+          `${patch.dispositionId}=${patch.patch!.outputHash}`,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const reviewed = JSON.parse(messages.join("")) as {
+      review: {
+        reviewId: string;
+        itemApprovals: Array<{ dispositionId: string; outputHash: string }>;
+      };
+    };
+    expect(reviewed.review.itemApprovals).toEqual([
+      {
+        dispositionId: patch.dispositionId,
+        action: "apply_managed_block_patch",
+        outputHash: patch.patch!.outputHash,
+      },
+    ]);
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", reviewed.review.reviewId, "--json"], io)).toBe(0);
-    const semanticPlan = JSON.parse(messages.join("")) as { planId: string; userPatchCount: number; operations: Array<{ path: string; ownership: string }> };
+    expect(await runCli(["knowledge", "materialize", reviewed.review.reviewId, "--json"], io)).toBe(
+      0,
+    );
+    const semanticPlan = JSON.parse(messages.join("")) as {
+      planId: string;
+      userPatchCount: number;
+      operations: Array<{ path: string; ownership: string }>;
+    };
     expect(semanticPlan.userPatchCount).toBe(1);
-    expect(semanticPlan.operations).toContainEqual(expect.objectContaining({ path: "README.md", ownership: "managed_blocks" }));
+    expect(semanticPlan.operations).toContainEqual(
+      expect.objectContaining({ path: "README.md", ownership: "managed_blocks" }),
+    );
     messages.length = 0;
-    expect(await runCli(["knowledge", "materialize", reviewed.review.reviewId, "--apply", semanticPlan.planId, "--json"], io)).toBe(0);
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "materialize",
+          reviewed.review.reviewId,
+          "--apply",
+          semanticPlan.planId,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
 
     const after = await readFile(resolve(root, "README.md"), "utf8");
     const prefixEnd = readme.indexOf(startMarker) + startMarker.length;
@@ -707,12 +1624,17 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     expect(after).toContain("Managed block replacement is reviewed.");
     const storage = await openProjectStorage(root);
     try {
-      const reviewEvent = storage.events.list().filter((event) => event.type === "knowledge.reconciliation.reviewed").at(-1)!;
+      const reviewEvent = storage.events
+        .list()
+        .filter((event) => event.type === "knowledge.reconciliation.reviewed")
+        .at(-1)!;
       expect(reviewEvent.payload).toHaveProperty("itemApprovalDigest");
       expect(reviewEvent.payload).not.toHaveProperty("reviewerId");
       expect(JSON.stringify(reviewEvent.payload)).not.toContain("README.md");
       expect(JSON.stringify(reviewEvent.payload)).not.toContain("Managed block replacement");
-    } finally { await storage.close(); }
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 
@@ -722,41 +1644,86 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
     const exchangeParent = await temporaryRepository();
     const messages: string[] = [];
     const errors: string[] = [];
-    const sourceIo = { cwd: source, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const sourceIo = {
+      cwd: source,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     expect(await runCli(["init"], sourceIo)).toBe(0);
-    await writeFile(resolve(source, "README.md"), "# Exchange fixture\n\nPortable quasar knowledge.\n");
+    await writeFile(
+      resolve(source, "README.md"),
+      "# Exchange fixture\n\nPortable quasar knowledge.\n",
+    );
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], sourceIo)).toBe(0);
     const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], sourceIo)).toBe(0);
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], sourceIo),
+    ).toBe(0);
     messages.length = 0;
     const bundle = resolve(exchangeParent, "bundle");
-    expect(await runCli(["knowledge", "export", "okf", "--output", bundle, "--json"], sourceIo)).toBe(0);
+    expect(
+      await runCli(["knowledge", "export", "okf", "--output", bundle, "--json"], sourceIo),
+    ).toBe(0);
     const exported = JSON.parse(messages.join("")) as { bundleDigest: string };
 
-    const targetIo = { cwd: target, stdout: (message: string) => messages.push(message), stderr: (message: string) => errors.push(message) };
+    const targetIo = {
+      cwd: target,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
     messages.length = 0;
     expect(await runCli(["init"], targetIo)).toBe(0);
     messages.length = 0;
     expect(await runCli(["knowledge", "import", "okf", bundle, "--json"], targetIo)).toBe(0);
-    const importPlan = JSON.parse(messages.join("")) as { planId: string; candidateId: string; targetPath: string; bundleDigest: string };
+    const importPlan = JSON.parse(messages.join("")) as {
+      planId: string;
+      candidateId: string;
+      targetPath: string;
+      bundleDigest: string;
+    };
     expect(importPlan.bundleDigest).toBe(exported.bundleDigest);
     await expect(access(resolve(target, importPlan.targetPath))).rejects.toThrow();
     messages.length = 0;
-    expect(await runCli(["knowledge", "import", "okf", bundle, "--apply", importPlan.planId, "--json"], targetIo)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ candidateId: importPlan.candidateId, created: true, localAssurance: "unreviewed" });
+    expect(
+      await runCli(
+        ["knowledge", "import", "okf", bundle, "--apply", importPlan.planId, "--json"],
+        targetIo,
+      ),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      candidateId: importPlan.candidateId,
+      created: true,
+      localAssurance: "unreviewed",
+    });
 
     messages.length = 0;
-    expect(await runCli(["knowledge", "okf", "query", bundle, "quasar", "--json"], targetIo)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ semantics: "recommended", hits: [expect.objectContaining({ localAssurance: "unreviewed" })] });
+    expect(await runCli(["knowledge", "okf", "query", bundle, "quasar", "--json"], targetIo)).toBe(
+      0,
+    );
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      semantics: "recommended",
+      hits: [expect.objectContaining({ localAssurance: "unreviewed" })],
+    });
     const roundtrip = resolve(exchangeParent, "roundtrip");
     messages.length = 0;
-    expect(await runCli(["knowledge", "okf", "re-export", importPlan.candidateId, "--output", roundtrip, "--json"], targetIo)).toBe(0);
+    expect(
+      await runCli(
+        ["knowledge", "okf", "re-export", importPlan.candidateId, "--output", roundtrip, "--json"],
+        targetIo,
+      ),
+    ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ bundleDigest: exported.bundleDigest });
-    expect(await readFile(resolve(roundtrip, "index.md"), "utf8")).toBe(await readFile(resolve(bundle, "index.md"), "utf8"));
+    expect(await readFile(resolve(roundtrip, "index.md"), "utf8")).toBe(
+      await readFile(resolve(bundle, "index.md"), "utf8"),
+    );
     const storage = await openProjectStorage(target);
-    try { expect(storage.events.list()).toEqual([]); } finally { await storage.close(); }
+    try {
+      expect(storage.events.list()).toEqual([]);
+    } finally {
+      await storage.close();
+    }
     expect(errors).toEqual([]);
   });
 });
@@ -771,7 +1738,9 @@ describe("lervo run CLI arguments", () => {
       {
         cwd: root,
         stdout: () => undefined,
-        stderr: (message) => { errorOutput += message; },
+        stderr: (message) => {
+          errorOutput += message;
+        },
       },
       {
         executeManagedRun: async () => {
@@ -783,7 +1752,9 @@ describe("lervo run CLI arguments", () => {
 
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
-    expect(errorOutput).toContain("A provider, path, verification suite, and task request are required");
+    expect(errorOutput).toContain(
+      "A provider, path, verification suite, and task request are required",
+    );
   });
 });
 
@@ -796,10 +1767,12 @@ describe("lervo deliberate CLI", () => {
     const exitCode = await runCli(
       ["deliberate", "--auto", "--caller", "claude", "Review the proposed UX writing change."],
       { cwd: root, stdout: () => undefined, stderr: () => undefined },
-      { executeManagedDeliberation: async (input) => {
-        request = input;
-        throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
-      } },
+      {
+        executeManagedDeliberation: async (input) => {
+          request = input;
+          throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
+        },
+      },
     );
     expect(exitCode).toBe(1);
     expect(request).toEqual({
@@ -815,12 +1788,22 @@ describe("lervo deliberate CLI", () => {
     let called = false;
     let errors = "";
     const exitCode = await runCli(
-      ["deliberate", "--proposer", "codex", "--reviewer", "codex",
-        "--verification", "project.default", "topic"],
+      [
+        "deliberate",
+        "--proposer",
+        "codex",
+        "--reviewer",
+        "codex",
+        "--verification",
+        "project.default",
+        "topic",
+      ],
       {
         cwd: process.cwd(),
         stdout: () => undefined,
-        stderr: (message) => { errors += message; },
+        stderr: (message) => {
+          errors += message;
+        },
       },
       {
         executeManagedDeliberation: async () => {
@@ -861,13 +1844,21 @@ describe("lervo deliberate CLI", () => {
   it("does not mix a stored policy with inline providers", async () => {
     let called = false;
     const exitCode = await runCli(
-      ["deliberate", "--policy", "deliberation_product-review",
-        "--proposer", "codex", "review topic"],
+      [
+        "deliberate",
+        "--policy",
+        "deliberation_product-review",
+        "--proposer",
+        "codex",
+        "review topic",
+      ],
       { cwd: process.cwd(), stdout: () => undefined, stderr: () => undefined },
-      { executeManagedDeliberation: async () => {
-        called = true;
-        throw new Error("must not run");
-      } },
+      {
+        executeManagedDeliberation: async () => {
+          called = true;
+          throw new Error("must not run");
+        },
+      },
     );
     expect(exitCode).toBe(1);
     expect(called).toBe(false);
@@ -878,10 +1869,12 @@ describe("lervo deliberate CLI", () => {
     const exitCode = await runCli(
       ["deliberate", "--resume", "dlb_12345678"],
       { cwd: "/work/repository", stdout: () => undefined, stderr: () => undefined },
-      { executeManagedDeliberation: async (input) => {
-        request = input;
-        throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
-      } },
+      {
+        executeManagedDeliberation: async (input) => {
+          request = input;
+          throw Object.assign(new Error("stop after parse"), { code: "fixture_stop" });
+        },
+      },
     );
     expect(exitCode).toBe(1);
     expect(request).toEqual({
@@ -898,17 +1891,20 @@ describe("lervo deliberate CLI", () => {
       artifactCount: 4,
       finalContent: "A conclusion reached through independent review and actual verification.",
       providers: { proposer: "codex", reviewer: "claude" },
-      participants: [{
-        roleId: "deliberation-proposer",
-        name: "Proposal and decision role",
-        provider: "codex",
-        responsibilities: ["proposer", "decision_owner"],
-      }, {
-        roleId: "deliberation-reviewer",
-        name: "Independent review and verification role",
-        provider: "claude",
-        responsibilities: ["reviewer", "verifier"],
-      }],
+      participants: [
+        {
+          roleId: "deliberation-proposer",
+          name: "Proposal and decision role",
+          provider: "codex",
+          responsibilities: ["proposer", "decision_owner"],
+        },
+        {
+          roleId: "deliberation-reviewer",
+          name: "Independent review and verification role",
+          provider: "claude",
+          responsibilities: ["reviewer", "verifier"],
+        },
+      ],
       outcome: {
         schemaVersion: 1,
         outcomeId: "dlo_0000000000000001",
@@ -929,11 +1925,21 @@ describe("lervo deliberate CLI", () => {
       },
     };
     const exitCode = await runCli(
-      ["deliberate", "--proposer", "codex", "--reviewer", "claude",
-        "--verification", "project.default", "topic to review"],
+      [
+        "deliberate",
+        "--proposer",
+        "codex",
+        "--reviewer",
+        "claude",
+        "--verification",
+        "project.default",
+        "topic to review",
+      ],
       {
         cwd: process.cwd(),
-        stdout: (message) => { output += message; },
+        stdout: (message) => {
+          output += message;
+        },
         stderr: () => undefined,
       },
       { executeManagedDeliberation: async () => outcome },
@@ -955,8 +1961,12 @@ describe("lervo trace CLI", () => {
       ["trace", "--capabilities"],
       {
         cwd: "/missing/repository/is-not-required",
-        stdout: (message) => { output += message; },
-        stderr: (message) => { errors += message; },
+        stdout: (message) => {
+          output += message;
+        },
+        stderr: (message) => {
+          errors += message;
+        },
       },
       {
         openProjectStorage: async () => {
@@ -983,20 +1993,26 @@ describe("lervo trace CLI", () => {
     });
 
     let explicitJsonOutput = "";
-    expect(await runCli(
-      ["trace", "--capabilities", "--json"],
-      {
-        cwd: "/missing/repository/is-not-required",
-        stdout: (message) => { explicitJsonOutput += message; },
-        stderr: (message) => { errors += message; },
-      },
-      {
-        openProjectStorage: async () => {
-          storageOpened = true;
-          throw new Error("storage must not open");
+    expect(
+      await runCli(
+        ["trace", "--capabilities", "--json"],
+        {
+          cwd: "/missing/repository/is-not-required",
+          stdout: (message) => {
+            explicitJsonOutput += message;
+          },
+          stderr: (message) => {
+            errors += message;
+          },
         },
-      },
-    )).toBe(0);
+        {
+          openProjectStorage: async () => {
+            storageOpened = true;
+            throw new Error("storage must not open");
+          },
+        },
+      ),
+    ).toBe(0);
     expect(JSON.parse(explicitJsonOutput)).toEqual(JSON.parse(output));
     expect(storageOpened).toBe(false);
     expect(errors).toBe("");
@@ -1004,11 +2020,13 @@ describe("lervo trace CLI", () => {
 
   it("traces the latest run from append-only local events", async () => {
     const root = await temporaryRepository();
-    expect(await runCli(["init"], {
-      cwd: root,
-      stdout: () => undefined,
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["init"], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     const storage = await openProjectStorage(root);
     const common = {
       projectId: storage.manifest.projectId,
@@ -1046,8 +2064,12 @@ describe("lervo trace CLI", () => {
     let defaultErrors = "";
     const code = await runCli(["trace", "last"], {
       cwd: root,
-      stdout: (message) => { output += message; },
-      stderr: (message) => { defaultErrors += message; },
+      stdout: (message) => {
+        output += message;
+      },
+      stderr: (message) => {
+        defaultErrors += message;
+      },
     });
 
     expect(code).toBe(0);
@@ -1059,11 +2081,17 @@ describe("lervo trace CLI", () => {
 
     let jsonOutput = "";
     let jsonErrors = "";
-    expect(await runCli(["trace", "last", "--json"], {
-      cwd: root,
-      stdout: (message) => { jsonOutput += message; },
-      stderr: (message) => { jsonErrors += message; },
-    })).toBe(0);
+    expect(
+      await runCli(["trace", "last", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          jsonOutput += message;
+        },
+        stderr: (message) => {
+          jsonErrors += message;
+        },
+      }),
+    ).toBe(0);
     expect(JSON.parse(jsonOutput)).toMatchObject({
       schemaVersion: 1,
       runId: "run_cli_trace_0001",
@@ -1074,11 +2102,17 @@ describe("lervo trace CLI", () => {
 
     let explicitFullOutput = "";
     let explicitFullErrors = "";
-    expect(await runCli(["trace", "last", "--full", "--json"], {
-      cwd: root,
-      stdout: (message) => { explicitFullOutput += message; },
-      stderr: (message) => { explicitFullErrors += message; },
-    })).toBe(0);
+    expect(
+      await runCli(["trace", "last", "--full", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          explicitFullOutput += message;
+        },
+        stderr: (message) => {
+          explicitFullErrors += message;
+        },
+      }),
+    ).toBe(0);
     expect(JSON.parse(explicitFullOutput)).toMatchObject({
       schemaVersion: 1,
       runId: "run_cli_trace_0001",
@@ -1089,35 +2123,48 @@ describe("lervo trace CLI", () => {
 
     let firstPageOutput = "";
     let firstPageErrors = "";
-    expect(await runCli(["trace", "last", "--page-size", "1", "--json"], {
-      cwd: root,
-      stdout: (message) => { firstPageOutput += message; },
-      stderr: (message) => { firstPageErrors += message; },
-    })).toBe(0);
+    expect(
+      await runCli(["trace", "last", "--page-size", "1", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          firstPageOutput += message;
+        },
+        stderr: (message) => {
+          firstPageErrors += message;
+        },
+      }),
+    ).toBe(0);
     const firstPage = JSON.parse(firstPageOutput);
     expect(firstPage.events.map((event: { seq: number }) => event.seq)).toEqual([1]);
     expect(firstPage.page.hasMore).toBe(true);
     expect(firstPageErrors).toBe("");
 
     let secondPageOutput = "";
-    expect(await runCli(["trace", "--cursor", firstPage.page.nextCursor, "--json"], {
-      cwd: root,
-      stdout: (message) => { secondPageOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["trace", "--cursor", firstPage.page.nextCursor, "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          secondPageOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     const secondPage = JSON.parse(secondPageOutput);
     expect(secondPage.events.map((event: { seq: number }) => event.seq)).toEqual([2]);
     expect(secondPage.page.hasMore).toBe(false);
 
     let filteredOutput = "";
-    expect(await runCli(["trace", "last", "--event-type", "run.completed", "--json"], {
-      cwd: root,
-      stdout: (message) => { filteredOutput += message; },
-      stderr: () => undefined,
-    })).toBe(0);
+    expect(
+      await runCli(["trace", "last", "--event-type", "run.completed", "--json"], {
+        cwd: root,
+        stdout: (message) => {
+          filteredOutput += message;
+        },
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
     const filtered = JSON.parse(filteredOutput);
     expect(filtered.filter).toEqual({ eventTypes: ["run.completed"] });
     expect(filtered.events.map((event: { seq: number }) => event.seq)).toEqual([2]);
   });
-
 });

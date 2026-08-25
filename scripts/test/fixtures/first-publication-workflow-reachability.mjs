@@ -1,43 +1,36 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createCliFirstPublicationWorkflowRemoteDeploymentEvidence } from
-  "../../lib/cli-first-publication-workflow-remote-deployment.mjs";
+import { createCliFirstPublicationWorkflowRemoteDeploymentEvidence } from "../../lib/cli-first-publication-workflow-remote-deployment.mjs";
 import {
   createWorkflowRemoteDeploymentFixture,
   matchingRemoteWorkflowObservation,
   workflowRemoteSourceCommit,
 } from "./first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./first-publication-workflow-activation.mjs";
+import { workflowActivationRepository } from "./first-publication-workflow-activation.mjs";
 import { sha256 } from "../../lib/release-artifact-manifest.mjs";
-import { remoteCliPackagePath } from
-  "../../lib/first-publication-workflow-reachability-contract.mjs";
+import { remoteCliPackagePath } from "../../lib/first-publication-workflow-reachability-contract.mjs";
 
 export const workflowReleaseTag = "v0.1.0";
 
 export async function createWorkflowReachabilityFixture() {
   const fixture = await createWorkflowRemoteDeploymentFixture();
-  const remoteEvidenceReport =
-    await createCliFirstPublicationWorkflowRemoteDeploymentEvidence({
+  const remoteEvidenceReport = await createCliFirstPublicationWorkflowRemoteDeploymentEvidence(
+    {
       repository: workflowActivationRepository,
       sourceCommit: workflowRemoteSourceCommit,
       postApplyReportPath: fixture.postApplyReportPath,
       online: true,
-    }, {
+    },
+    {
       paths: { workflowPath: fixture.paths.workflowPath },
       transactionRoot: fixture.transactionRoot,
       observeRemote: async () => matchingRemoteWorkflowObservation(fixture),
       clock: () => "2026-08-21T10:07:00Z",
-    });
-  const remoteEvidenceReportPath = resolve(
-    fixture.root,
-    "workflow-remote-evidence.json",
+    },
   );
-  await writeFile(
-    remoteEvidenceReportPath,
-    `${JSON.stringify(remoteEvidenceReport, null, 2)}\n`,
-  );
+  const remoteEvidenceReportPath = resolve(fixture.root, "workflow-remote-evidence.json");
+  await writeFile(remoteEvidenceReportPath, `${JSON.stringify(remoteEvidenceReport, null, 2)}\n`);
   const cliPackageContents = await readFile(fixture.paths.cliPackageManifestPath);
   return {
     ...fixture,

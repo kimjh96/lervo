@@ -12,47 +12,79 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function validateObservation(observation, target) {
   if (
     observation?.schemaVersion !== 1 ||
     observation.source !== "npm_public_registry_reconciliation" ||
-    observation.package !== target.package || observation.version !== target.version ||
+    observation.package !== target.package ||
+    observation.version !== target.version ||
     observation.distTag !== target.distTag
-  ) fail();
+  )
+    fail();
   if (observation.state === "unavailable") {
-    if (!exactKeys(observation, [
-      "schemaVersion", "source", "state", "package", "version", "distTag", "reason",
-    ]) || observation.reason !== "registry_unavailable") fail();
+    if (
+      !exactKeys(observation, [
+        "schemaVersion",
+        "source",
+        "state",
+        "package",
+        "version",
+        "distTag",
+        "reason",
+      ]) ||
+      observation.reason !== "registry_unavailable"
+    )
+      fail();
     return observation;
   }
   if (
-    observation.state !== "observed" || !exactKeys(observation, [
-      "schemaVersion", "source", "state", "package", "version", "distTag",
-      "versionMetadata", "distTagValue",
-    ]) || !exactKeys(observation.versionMetadata,
+    observation.state !== "observed" ||
+    !exactKeys(observation, [
+      "schemaVersion",
+      "source",
+      "state",
+      "package",
+      "version",
+      "distTag",
+      "versionMetadata",
+      "distTagValue",
+    ]) ||
+    !exactKeys(
+      observation.versionMetadata,
       observation.versionMetadata?.state === "found"
         ? ["state", "registryIntegrity", "registryShasum"]
-        : ["state"]) ||
+        : ["state"],
+    ) ||
     !["found", "not_found"].includes(observation.versionMetadata.state) ||
-    !exactKeys(observation.distTagValue,
-      observation.distTagValue?.state === "found" ? ["state", "version"] : ["state"]) ||
+    !exactKeys(
+      observation.distTagValue,
+      observation.distTagValue?.state === "found" ? ["state", "version"] : ["state"],
+    ) ||
     !["found", "not_found"].includes(observation.distTagValue.state)
-  ) fail();
+  )
+    fail();
   if (
     observation.versionMetadata.state === "found" &&
     (!sha512IntegrityPattern.test(observation.versionMetadata.registryIntegrity ?? "") ||
       !sha1Pattern.test(observation.versionMetadata.registryShasum ?? ""))
-  ) fail();
+  )
+    fail();
   if (
     observation.distTagValue.state === "found" &&
     (typeof observation.distTagValue.version !== "string" ||
-      observation.distTagValue.version.length < 1 || observation.distTagValue.version.length > 128 ||
+      observation.distTagValue.version.length < 1 ||
+      observation.distTagValue.version.length > 128 ||
       /[\p{Cc}\p{Cf}]/u.test(observation.distTagValue.version))
-  ) fail();
+  )
+    fail();
   return observation;
 }
 
@@ -68,15 +100,18 @@ function checks(observation, artifact, target) {
     ];
   }
   const version = observation.versionMetadata;
-  const versionMatches = version.state === "found" &&
+  const versionMatches =
+    version.state === "found" &&
     version.registryIntegrity === artifact.registryIntegrity &&
     version.registryShasum === artifact.registryShasum;
-  const versionCheck = version.state === "not_found"
-    ? check("exact_version", "not_observed", ["target_version_not_observed"])
-    : versionMatches
-      ? check("exact_version", "matched")
-      : check("exact_version", "unknown", ["exact_release_mismatch"]);
-  const tagMatches = observation.distTagValue.state === "found" &&
+  const versionCheck =
+    version.state === "not_found"
+      ? check("exact_version", "not_observed", ["target_version_not_observed"])
+      : versionMatches
+        ? check("exact_version", "matched")
+        : check("exact_version", "unknown", ["exact_release_mismatch"]);
+  const tagMatches =
+    observation.distTagValue.state === "found" &&
     observation.distTagValue.version === target.version;
   const tagCheck = tagMatches
     ? check("target_dist_tag", "matched")
@@ -86,16 +121,12 @@ function checks(observation, artifact, target) {
 
 function outcome(foundChecks) {
   if (foundChecks.every(({ status }) => status === "matched")) return "published";
-  if (foundChecks[0].status === "not_observed" &&
-      foundChecks[1].status === "not_observed") return "not_observed";
+  if (foundChecks[0].status === "not_observed" && foundChecks[1].status === "not_observed")
+    return "not_observed";
   return "unknown";
 }
 
-export function inspectFirstPublicationPublicRelease({
-  observation,
-  target,
-  artifact,
-}) {
+export function inspectFirstPublicationPublicRelease({ observation, target, artifact }) {
   validateObservation(observation, target);
   const foundChecks = checks(observation, artifact, target);
   return { outcome: outcome(foundChecks), checks: foundChecks };

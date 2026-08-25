@@ -40,11 +40,9 @@ export class NativeChatConversationAdapter {
 
   constructor(options: NativeChatAdapterOptions) {
     assertSecretKey(options.instanceIdentity, "Native chat instance identity");
-    const capabilities = [...(options.capabilities ?? [
-      "messages.receive",
-      "messages.send",
-      "threads",
-    ])].sort();
+    const capabilities = [
+      ...(options.capabilities ?? ["messages.receive", "messages.send", "threads"]),
+    ].sort();
     this.descriptor = {
       schemaVersion: 1,
       integrationId: options.integrationId,
@@ -105,7 +103,8 @@ export class NativeChatConversationAdapter {
       if (
         !Number.isFinite(Date.parse(delivered.deliveredAt)) ||
         Date.parse(delivered.deliveredAt) < Date.parse(message.createdAt)
-      ) throw new Error("invalid delivery timestamp");
+      )
+        throw new Error("invalid delivery timestamp");
       const receipt: ConversationDeliveryReceipt = {
         schemaVersion: 1,
         outboundId: message.outboundId,

@@ -1,8 +1,6 @@
 type JsonPrimitive = boolean | number | string | null;
 export type CanonicalJsonValue =
-  | JsonPrimitive
-  | CanonicalJsonValue[]
-  | { [key: string]: CanonicalJsonValue };
+  JsonPrimitive | CanonicalJsonValue[] | { [key: string]: CanonicalJsonValue };
 
 function serializeCanonical(value: unknown, ancestors: WeakSet<object>): string {
   if (value === null || typeof value === "boolean" || typeof value === "string") {
@@ -15,7 +13,8 @@ function serializeCanonical(value: unknown, ancestors: WeakSet<object>): string 
     return JSON.stringify(Object.is(value, -0) ? 0 : value);
   }
   if (Array.isArray(value)) {
-    if (ancestors.has(value)) throw new TypeError("Canonical JSON does not allow cyclic references.");
+    if (ancestors.has(value))
+      throw new TypeError("Canonical JSON does not allow cyclic references.");
     ancestors.add(value);
     try {
       return `[${value.map((item) => serializeCanonical(item, ancestors)).join(",")}]`;

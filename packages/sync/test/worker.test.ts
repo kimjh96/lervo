@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  runOutboundSyncCycle,
-  type AuthenticatedHubTransport,
-} from "../src/index.js";
+import { runOutboundSyncCycle, type AuthenticatedHubTransport } from "../src/index.js";
 import {
   appendEvents,
   destinationId,
@@ -102,7 +99,9 @@ describe("outbound sync worker", () => {
       sendEventBatch: transport.sendEventBatch.bind(transport),
     };
 
-    await expect(runOutboundSyncCycle(workerOptions(store, conflictingTransport))).rejects.toMatchObject({
+    await expect(
+      runOutboundSyncCycle(workerOptions(store, conflictingTransport)),
+    ).rejects.toMatchObject({
       code: "outbox_update_failed",
     });
     store.close();

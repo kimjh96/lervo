@@ -1,19 +1,14 @@
 import { createHash } from "node:crypto";
 import { isAbsolute, resolve } from "node:path";
 
-import {
-  validateDeliveredReleaseSbom,
-} from "./release-attestation-consumer.mjs";
+import { validateDeliveredReleaseSbom } from "./release-attestation-consumer.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
   releaseVerificationMaximumSizes as maximumSizes,
   validateExactReleaseDirectory,
 } from "./release-attestation-file-set.mjs";
-import {
-  canonicalJson,
-  validateReleaseArtifactManifest,
-} from "./release-artifact-manifest.mjs";
+import { canonicalJson, validateReleaseArtifactManifest } from "./release-artifact-manifest.mjs";
 import {
   createReleasePublicationArtifact,
   ReleasePublicationAuthorizationError,
@@ -45,10 +40,8 @@ export async function readReleaseStagePublicationSources({
   releaseDirectory,
   publicationAuthorizationPath,
 }) {
-  if (
-    !isAbsolute(releaseDirectory ?? "") ||
-    !isAbsolute(publicationAuthorizationPath ?? "")
-  ) fail("release_stage_publication_source_input_invalid");
+  if (!isAbsolute(releaseDirectory ?? "") || !isAbsolute(publicationAuthorizationPath ?? ""))
+    fail("release_stage_publication_source_input_invalid");
   const authorizationContents = await readRegularReleaseFile(
     publicationAuthorizationPath,
     maximumAuthorizationBytes,
@@ -91,10 +84,7 @@ export async function readReleaseStagePublicationSources({
   let manifest;
   try {
     manifest = validateReleaseArtifactManifest(parseJson(manifestContents));
-    validateDeliveredReleaseSbom(
-      parseJson(sbomContents),
-      authorization.target.version,
-    );
+    validateDeliveredReleaseSbom(parseJson(sbomContents), authorization.target.version);
   } catch (error) {
     if (error?.code) throw error;
     fail();
@@ -114,17 +104,23 @@ export async function readReleaseStagePublicationSources({
     expectedSubjects.get(tarballName) !== sha256(tarballContents) ||
     expectedSubjects.get("release-artifact-manifest.json") !== sha256(manifestContents) ||
     expectedSubjects.get("release-sbom.cdx.json") !== sha256(sbomContents)
-  ) fail("release_stage_publication_source_mismatch");
+  )
+    fail("release_stage_publication_source_mismatch");
   const snapshots = [
-    { path: paths.authorization, contents: authorizationContents,
-      maximumSize: maximumAuthorizationBytes },
+    {
+      path: paths.authorization,
+      contents: authorizationContents,
+      maximumSize: maximumAuthorizationBytes,
+    },
     { path: paths.tarball, contents: tarballContents, maximumSize: maximumSizes.tarball },
     { path: paths.manifest, contents: manifestContents, maximumSize: maximumSizes.document },
     { path: paths.sbom, contents: sbomContents, maximumSize: maximumSizes.document },
-    { path: paths.provenanceBundle, contents: provenanceContents,
-      maximumSize: maximumSizes.bundle },
-    { path: paths.sbomBundle, contents: sbomBundleContents,
-      maximumSize: maximumSizes.bundle },
+    {
+      path: paths.provenanceBundle,
+      contents: provenanceContents,
+      maximumSize: maximumSizes.bundle,
+    },
+    { path: paths.sbomBundle, contents: sbomBundleContents, maximumSize: maximumSizes.bundle },
   ];
   return {
     authorization,

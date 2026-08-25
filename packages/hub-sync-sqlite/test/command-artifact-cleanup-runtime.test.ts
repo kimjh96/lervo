@@ -19,11 +19,13 @@ describe("Hub command artifact cleanup runtime", () => {
       leaseDurationMs: 60_000,
     });
     expect(first).toMatchObject({ status: "claimed", inventoryCursor: null });
-    await expect(store.claimArtifactCleanupCycle({
-      workerId: "hub:cleanup-b",
-      claimedAt: "2026-08-22T00:00:01.000Z",
-      leaseDurationMs: 60_000,
-    })).resolves.toEqual({
+    await expect(
+      store.claimArtifactCleanupCycle({
+        workerId: "hub:cleanup-b",
+        claimedAt: "2026-08-22T00:00:01.000Z",
+        leaseDurationMs: 60_000,
+      }),
+    ).resolves.toEqual({
       status: "waiting",
       reason: "leased",
       nextAttemptAt: "2026-08-22T00:01:00.000Z",
@@ -44,11 +46,13 @@ describe("Hub command artifact cleanup runtime", () => {
       nextCycleAt: "2026-08-22T00:02:00.500Z",
       failureCode: "artifact_cleanup_cycle_failed",
     });
-    await expect(store.claimArtifactCleanupCycle({
-      workerId: "hub:cleanup-a",
-      claimedAt: "2026-08-22T00:02:00.000Z",
-      leaseDurationMs: 60_000,
-    })).resolves.toEqual({
+    await expect(
+      store.claimArtifactCleanupCycle({
+        workerId: "hub:cleanup-a",
+        claimedAt: "2026-08-22T00:02:00.000Z",
+        leaseDurationMs: 60_000,
+      }),
+    ).resolves.toEqual({
       status: "waiting",
       reason: "not_due",
       nextAttemptAt: "2026-08-22T00:02:00.500Z",
@@ -60,20 +64,22 @@ describe("Hub command artifact cleanup runtime", () => {
     });
     expect(next.status).toBe("claimed");
     const cursor = `lervo-cas://sha256/${"a".repeat(64)}`;
-    await expect(store.completeArtifactCleanupCycle({
-      workerId: "hub:cleanup-a",
-      leaseId: next.status === "claimed" ? next.leaseId : "unreachable",
-      completedAt: "2026-08-22T00:02:01.000Z",
-      nextCycleAt: "2026-08-22T01:02:01.000Z",
-      inventoryCursor: cursor,
-      claimedCount: 1,
-      deletedCount: 1,
-      alreadyMissingCount: 0,
-      purgedDeliveryCount: 101,
-      orphanPurgedCount: 0,
-      failureCount: 0,
-      continuationRecommended: true,
-    })).rejects.toMatchObject({ code: "invalid_request" });
+    await expect(
+      store.completeArtifactCleanupCycle({
+        workerId: "hub:cleanup-a",
+        leaseId: next.status === "claimed" ? next.leaseId : "unreachable",
+        completedAt: "2026-08-22T00:02:01.000Z",
+        nextCycleAt: "2026-08-22T01:02:01.000Z",
+        inventoryCursor: cursor,
+        claimedCount: 1,
+        deletedCount: 1,
+        alreadyMissingCount: 0,
+        purgedDeliveryCount: 101,
+        orphanPurgedCount: 0,
+        failureCount: 0,
+        continuationRecommended: true,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_request" });
     await store.completeArtifactCleanupCycle({
       workerId: "hub:cleanup-a",
       leaseId: next.status === "claimed" ? next.leaseId : "unreachable",
@@ -91,11 +97,13 @@ describe("Hub command artifact cleanup runtime", () => {
     await store.close();
 
     store = await HubSyncSQLiteStore.open({ path });
-    await expect(store.claimArtifactCleanupCycle({
-      workerId: "hub:cleanup-b",
-      claimedAt: "2026-08-22T01:02:01.000Z",
-      leaseDurationMs: 60_000,
-    })).resolves.toMatchObject({ status: "claimed", inventoryCursor: cursor });
+    await expect(
+      store.claimArtifactCleanupCycle({
+        workerId: "hub:cleanup-b",
+        claimedAt: "2026-08-22T01:02:01.000Z",
+        leaseDurationMs: 60_000,
+      }),
+    ).resolves.toMatchObject({ status: "claimed", inventoryCursor: cursor });
     await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await store.close();
   });
@@ -135,10 +143,16 @@ describe("Hub command artifact cleanup runtime", () => {
     });
     expect(delays).toEqual([60_000]);
     const inspection = new DatabaseSync(path, { readOnly: true });
-    expect(inspection.prepare(`
+    expect(
+      inspection
+        .prepare(
+          `
       SELECT cycle_count, last_status, last_claimed_count, last_failure_code
       FROM hub_remote_command_artifact_cleanup_runtime
-    `).get()).toEqual({
+    `,
+        )
+        .get(),
+    ).toEqual({
       cycle_count: 1,
       last_status: "completed",
       last_claimed_count: 0,
@@ -157,17 +171,27 @@ describe("Hub command artifact cleanup runtime", () => {
       schedule: store,
       repository: store,
       artifacts: {
-        async put() { throw new Error("not called"); },
-        async get() { throw new Error("not called"); },
-        async listObjects() { throw new Error(secret); },
-        async deleteObject() { throw new Error("not called"); },
+        async put() {
+          throw new Error("not called");
+        },
+        async get() {
+          throw new Error("not called");
+        },
+        async listObjects() {
+          throw new Error(secret);
+        },
+        async deleteObject() {
+          throw new Error("not called");
+        },
       },
       workerId: "hub:cleanup-failure",
       signal: controller.signal,
       now: () => "2026-08-22T00:00:00.000Z",
       retryDelayMs: 1_000,
       wait: {
-        wait: async () => { controller.abort(); },
+        wait: async () => {
+          controller.abort();
+        },
       },
     });
     expect(result).toMatchObject({
@@ -178,9 +202,9 @@ describe("Hub command artifact cleanup runtime", () => {
       },
     });
     const inspection = new DatabaseSync(path, { readOnly: true });
-    const row = inspection.prepare(
-      "SELECT * FROM hub_remote_command_artifact_cleanup_runtime",
-    ).get();
+    const row = inspection
+      .prepare("SELECT * FROM hub_remote_command_artifact_cleanup_runtime")
+      .get();
     inspection.close();
     expect(row).toMatchObject({
       last_status: "failed",

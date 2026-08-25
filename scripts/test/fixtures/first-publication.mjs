@@ -1,13 +1,8 @@
-import { createFirstPublicationBootstrapAuthorization } from
-  "../../lib/first-publication-bootstrap-authorization.mjs";
-import { createFirstPublicationArmingAuthorization } from
-  "../../lib/first-publication-arming-authorization.mjs";
-import { firstPublicationArmingConfirmations } from
-  "../../lib/first-publication-arming-decision.mjs";
-import { createFirstPublicationExecutionPlan } from
-  "../../lib/first-publication-execution-plan.mjs";
-import { createFirstPublicationExternalEvidenceReport } from
-  "../../lib/first-publication-external-evidence-report.mjs";
+import { createFirstPublicationBootstrapAuthorization } from "../../lib/first-publication-bootstrap-authorization.mjs";
+import { createFirstPublicationArmingAuthorization } from "../../lib/first-publication-arming-authorization.mjs";
+import { firstPublicationArmingConfirmations } from "../../lib/first-publication-arming-decision.mjs";
+import { createFirstPublicationExecutionPlan } from "../../lib/first-publication-execution-plan.mjs";
+import { createFirstPublicationExternalEvidenceReport } from "../../lib/first-publication-external-evidence-report.mjs";
 import {
   createReleasePublicationArtifact,
   createReleasePublicationAuthorization,

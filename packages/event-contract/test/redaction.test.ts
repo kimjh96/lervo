@@ -1,11 +1,100 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  RedactionError,
-  sanitizeEventPayload,
-} from "../src/index.js";
+import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps exact activation evidence while excluding provider configuration and credentials", () => {
+    const payload = {
+      capabilityId: "research/search",
+      capabilityKind: "mcp_server",
+      version: "1.0.0",
+      contentHash: `sha256:${"a".repeat(64)}`,
+      adapterId: "lervo/codex",
+      providerSessionId: "thread-1",
+      evidence: "mcp_connected",
+      activationDigest: `sha256:${"b".repeat(64)}`,
+    };
+    const result = sanitizeEventPayload("capability.activated", {
+      ...payload,
+      command: "private command",
+      url: "https://private.example/",
+      credentialNames: ["PRIVATE_TOKEN"],
+      credentialValue: "private secret",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(result.redactions).toEqual(
+      expect.arrayContaining([
+        { path: "$.command", reason: "not_allowlisted" },
+        { path: "$.url", reason: "not_allowlisted" },
+        { path: "$.credentialNames", reason: "not_allowlisted" },
+        { path: "$.credentialValue", reason: "not_allowlisted" },
+      ]),
+    );
+  });
+
+  it("keeps versioned role bindings while excluding role source and profile content", () => {
+    const payload = {
+      agentId: `agt_${"a".repeat(24)}`,
+      roleId: "legal-researcher",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"b".repeat(64)}`,
+      roleProfileHash: `sha256:${"c".repeat(64)}`,
+      capabilityHash: `sha256:${"d".repeat(64)}`,
+      provider: "any",
+      parentAgentId: null,
+      delegationDepth: 0,
+    };
+    const result = sanitizeEventPayload("agent.registered", {
+      ...payload,
+      sourcePath: ".lervo/roles/legal-researcher.json",
+      description: "private role prose",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
+  });
+
+  it("keeps immutable terminal observations valid across additive coordinate revisions", () => {
+    const prepared = {
+      observationId: "tobs_context_01234567",
+      executionMode: "unmanaged",
+      providerSessionDigest: `sha256:${"a".repeat(64)}`,
+      providerTurnDigest: null,
+      sourceSnapshotId: `ksnap_${"b".repeat(24)}`,
+      queryDigest: `sha256:${"c".repeat(64)}`,
+      contextHash: `sha256:${"d".repeat(64)}`,
+      recommendationCount: 0,
+      loadedDocuments: [],
+    };
+    const observed = {
+      observationId: "tobs_turn_0123456789",
+      contextEventId: "evt_context_01234567",
+      referenceEventIds: [],
+      referenceCount: 0,
+      referenceTelemetry: "unavailable",
+      lifecycleStatus: "current",
+      completionResult: "allowed",
+      providerSessionDigest: `sha256:${"e".repeat(64)}`,
+      providerTurnDigest: null,
+    };
+
+    expect(sanitizeEventPayload("terminal.context.prepared", prepared).payload).toEqual(prepared);
+    expect(sanitizeEventPayload("terminal.turn.observed", observed).payload).toEqual(observed);
+    expect(() =>
+      sanitizeEventPayload("terminal.context.prepared", {
+        ...prepared,
+        workstreamId: null,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(() =>
+      sanitizeEventPayload("terminal.turn.observed", {
+        ...observed,
+        repositoryChanged: false,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("keeps bounded unmanaged coordinates while excluding provider text", () => {
     const result = sanitizeEventPayload("terminal.context.prepared", {
       observationId: "tobs_context_01234567",
@@ -17,7 +106,17 @@ describe("event payload privacy boundary", () => {
       queryDigest: `sha256:${"c".repeat(64)}`,
       contextHash: `sha256:${"d".repeat(64)}`,
       recommendationCount: 1,
-      loadedDocuments: [{ conceptId: `concept_${"e".repeat(24)}`, path: "docs/knowledge/cache.md", contentHash: `sha256:${"f".repeat(64)}`, scope: "full", deliveredByteCount: 42, assurance: "human_reviewed", freshness: "current" }],
+      loadedDocuments: [
+        {
+          conceptId: `concept_${"e".repeat(24)}`,
+          path: "docs/knowledge/cache.md",
+          contentHash: `sha256:${"f".repeat(64)}`,
+          scope: "full",
+          deliveredByteCount: 42,
+          assurance: "human_reviewed",
+          freshness: "current",
+        },
+      ],
       workstreamId: null,
       workstreamRevision: null,
       workstreamSnapshotHash: null,
@@ -29,11 +128,13 @@ describe("event payload privacy boundary", () => {
     });
     expect(result.payload).toMatchObject({ executionMode: "unmanaged", recommendationCount: 1 });
     expect(JSON.stringify(result.payload)).not.toContain("private");
-    expect(result.redactions).toEqual(expect.arrayContaining([
-      { path: "$.prompt", reason: "not_allowlisted" },
-      { path: "$.lastAssistantMessage", reason: "not_allowlisted" },
-      { path: "$.providerSessionId", reason: "not_allowlisted" },
-    ]));
+    expect(result.redactions).toEqual(
+      expect.arrayContaining([
+        { path: "$.prompt", reason: "not_allowlisted" },
+        { path: "$.lastAssistantMessage", reason: "not_allowlisted" },
+        { path: "$.providerSessionId", reason: "not_allowlisted" },
+      ]),
+    );
   });
 
   it("stores only content-addressed workstream coordinates", () => {
@@ -51,9 +152,18 @@ describe("event payload privacy boundary", () => {
       sourceContentHash: sourceHash,
       recordedAt: "2026-08-24T00:00:00.000Z",
     };
-    expect(sanitizeEventPayload("workstream.snapshot.recorded", { ...payload, objective: "private objective" }).payload).toEqual(payload);
-    expect(() => sanitizeEventPayload("workstream.snapshot.recorded", { ...payload, snapshotArtifactId: `art_${"d".repeat(64)}` }))
-      .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(
+      sanitizeEventPayload("workstream.snapshot.recorded", {
+        ...payload,
+        objective: "private objective",
+      }).payload,
+    ).toEqual(payload);
+    expect(() =>
+      sanitizeEventPayload("workstream.snapshot.recorded", {
+        ...payload,
+        snapshotArtifactId: `art_${"d".repeat(64)}`,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
   });
 
   it("keeps only bounded agent-declared terminal disposition coordinates", () => {
@@ -68,7 +178,10 @@ describe("event payload privacy boundary", () => {
       deliberationId: null,
       declaredAt: "2026-08-24T00:00:00.000Z",
     };
-    const result = sanitizeEventPayload("terminal.turn.declared", { ...payload, summary: "private provider prose" });
+    const result = sanitizeEventPayload("terminal.turn.declared", {
+      ...payload,
+      summary: "private provider prose",
+    });
     expect(result.payload).toEqual(payload);
     expect(JSON.stringify(result.payload)).not.toContain("private");
   });
@@ -94,11 +207,19 @@ describe("event payload privacy boundary", () => {
       dispositionCount: 2,
       reviewedAt: "2026-08-22T00:00:00.000Z",
     };
-    const result = sanitizeEventPayload("knowledge.reconciliation.reviewed", { ...payload, reviewerId: "private.human", prompt: "private" });
+    const result = sanitizeEventPayload("knowledge.reconciliation.reviewed", {
+      ...payload,
+      reviewerId: "private.human",
+      prompt: "private",
+    });
     expect(result.payload).toEqual(payload);
     expect(result.payload).not.toHaveProperty("reviewerId");
-    expect(() => sanitizeEventPayload("knowledge.reconciliation.reviewed", { ...payload, reviewArtifactId: `art_${"9".repeat(64)}` }))
-      .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(() =>
+      sanitizeEventPayload("knowledge.reconciliation.reviewed", {
+        ...payload,
+        reviewArtifactId: `art_${"9".repeat(64)}`,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
   });
 
   it("binds run completion to provider and verification result artifacts", () => {
@@ -111,18 +232,26 @@ describe("event payload privacy boundary", () => {
       verificationStatus: "passed",
     };
     expect(sanitizeEventPayload("run.completed", completed).payload).toEqual(completed);
-    expect(() => sanitizeEventPayload("run.completed", {
-      ...completed,
-      artifactIds: completed.artifactIds.slice(1),
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
-    expect(() => sanitizeEventPayload("run.completed", {
-      ...completed,
-      verificationStatus: "not_run",
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(() =>
+      sanitizeEventPayload("run.completed", {
+        ...completed,
+        artifactIds: completed.artifactIds.slice(1),
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
+    expect(() =>
+      sanitizeEventPayload("run.completed", {
+        ...completed,
+        verificationStatus: "not_run",
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
   });
 
   it("removes separator, camelCase, and compatibility-form secret keys", () => {
@@ -141,7 +270,7 @@ describe("event payload privacy boundary", () => {
         authorizationHeader: "secret-7",
         passwordHash: "secret-8",
         credentialValue: "secret-9",
-        "ｐａｓｓｗｏｒｄ": "secret-10",
+        ｐａｓｓｗｏｒｄ: "secret-10",
         toolCalls: "supported",
       },
     });
@@ -154,7 +283,9 @@ describe("event payload privacy boundary", () => {
       capabilities: { toolCalls: "supported" },
     });
     expect(JSON.stringify(result.payload)).not.toContain("secret-");
-    expect(result.redactions.filter((record) => record.reason === "sensitive_key")).toHaveLength(10);
+    expect(result.redactions.filter((record) => record.reason === "sensitive_key")).toHaveLength(
+      10,
+    );
   });
 
   it("rejects cyclic payloads instead of partially storing them", () => {
@@ -320,11 +451,13 @@ describe("event payload privacy boundary", () => {
     expect(result.payload).toEqual(recommendation);
     expect(JSON.stringify(result.payload)).not.toContain("private");
     const { sourceAttemptId: _missing, ...incomplete } = recommendation;
-    expect(() => sanitizeEventPayload("context.recommended", incomplete))
-      .toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(() => sanitizeEventPayload("context.recommended", incomplete)).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }),
+    );
     const { selectionTransitionId: _legacyMissing, ...legacyRecommendation } = recommendation;
-    expect(sanitizeEventPayload("context.recommended", legacyRecommendation).payload)
-      .toEqual(legacyRecommendation);
+    expect(sanitizeEventPayload("context.recommended", legacyRecommendation).payload).toEqual(
+      legacyRecommendation,
+    );
   });
 
   it("keeps migration hashes but removes reviewer and source path details", () => {
@@ -338,10 +471,12 @@ describe("event payload privacy boundary", () => {
       candidateArtifactHashes: [
         "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       ],
-      sidecars: [{
-        documentId: "doc_readme_000001",
-        contentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      }],
+      sidecars: [
+        {
+          documentId: "doc_readme_000001",
+          contentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        },
+      ],
       appliedAt: "2026-08-19T02:00:00Z",
       approverId: "private-reviewer",
       sourcePaths: ["README.md"],
@@ -376,8 +511,7 @@ describe("event payload privacy boundary", () => {
 
     expect(result.payload).toMatchObject({
       migrationKind: "legacy_registry_structural",
-      sourceRegistryHash:
-        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      sourceRegistryHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     });
     expect(result.payload).not.toHaveProperty("archivePath");
     expect(result.payload).not.toHaveProperty("sourcePath");
@@ -407,10 +541,12 @@ describe("event payload privacy boundary", () => {
       documentDisposition: "archive_previous_metadata",
       migratedAt: "2026-08-22T05:00:00Z",
     });
-    expect(() => sanitizeEventPayload("project.identity.migrated", {
-      ...result.payload,
-      preservedEventHeadHash: null,
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(() =>
+      sanitizeEventPayload("project.identity.migrated", {
+        ...result.payload,
+        preservedEventHeadHash: null,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
   });
 
   it("keeps deliberation coordinates without artifact bodies or provider diagnostics", () => {
@@ -442,38 +578,50 @@ describe("event payload privacy boundary", () => {
   });
 
   it("rejects incomplete or status-inconsistent deliberation payloads", () => {
-    expect(() => sanitizeEventPayload("deliberation.started", {
-      deliberationId: "dlb_architecture_0001",
-      policyId: "deliberation_architecture-review",
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(() =>
+      sanitizeEventPayload("deliberation.started", {
+        deliberationId: "dlb_architecture_0001",
+        policyId: "deliberation_architecture-review",
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
 
-    expect(() => sanitizeEventPayload("deliberation.completed", {
-      deliberationId: "dlb_architecture_0001",
-      outcomeId: "dlo_0123456789abcdef",
-      status: "converged",
-      lastRound: 2,
-      decisionArtifactId: null,
-      unresolvedBlockingObjectionIds: [],
-      failurePhase: null,
-      failureCode: null,
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(() =>
+      sanitizeEventPayload("deliberation.completed", {
+        deliberationId: "dlb_architecture_0001",
+        outcomeId: "dlo_0123456789abcdef",
+        status: "converged",
+        lastRound: 2,
+        decisionArtifactId: null,
+        unresolvedBlockingObjectionIds: [],
+        failurePhase: null,
+        failureCode: null,
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
 
-    expect(() => sanitizeEventPayload("deliberation.artifact.recorded", {
-      deliberationId: "dlb_architecture_0001",
-      deliberationArtifactId: "dla_0123456789abcdef",
-      kind: "proposal",
-      round: 1,
-      producerRoleId: "architect",
-      artifactId: "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      writingPermitId: "wpp_0123456789abcdef",
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(() =>
+      sanitizeEventPayload("deliberation.artifact.recorded", {
+        deliberationId: "dlb_architecture_0001",
+        deliberationArtifactId: "dla_0123456789abcdef",
+        kind: "proposal",
+        round: 1,
+        producerRoleId: "architect",
+        artifactId: "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        writingPermitId: "wpp_0123456789abcdef",
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
   });
 
   it("accepts a complete failed deliberation payload without raw diagnostics", () => {
@@ -512,28 +660,35 @@ describe("event payload privacy boundary", () => {
       verificationArtifactIds: ["dla_1111111111111111"],
       verifiedRevision: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       candidateArtifactId: "art_cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      candidateContentHash: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      candidateContentHash:
+        "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       rawContent: "private knowledge body",
       providerResponse: "private provider response",
     });
 
     expect(result.payload.candidateId).toBe("knc_0123456789abcdef");
     expect(JSON.stringify(result.payload)).not.toContain("private");
-    expect(() => sanitizeEventPayload("knowledge.candidate.created", {
-      ...result.payload,
-      candidateArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(() =>
+      sanitizeEventPayload("knowledge.candidate.created", {
+        ...result.payload,
+        candidateArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
   });
 
   it("keeps review, verified, and stale coordinates without reviewer identity", () => {
     const review = sanitizeEventPayload("knowledge.candidate.reviewed", {
       candidateId: "knc_0123456789abcdef",
-      candidateContentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      candidateContentHash:
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       approvalId: "knr_0123456789abcdef",
       approvalArtifactId: "art_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      approvalContentHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      approvalContentHash:
+        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       decision: "approved",
       policyId: "knowledge_human-review",
       policyVersion: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -543,20 +698,27 @@ describe("event payload privacy boundary", () => {
     });
     expect(JSON.stringify(review.payload)).not.toContain("private@example.com");
 
-    expect(() => sanitizeEventPayload("knowledge.verified", {
-      knowledgeId: "knw_0123456789abcdef",
-      candidateId: "knc_0123456789abcdef",
-      candidateContentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      approvalId: "knr_0123456789abcdef",
-      approvalContentHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      claimDigest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      paths: ["src/decision.ts"],
-      verifiedRevision: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      knowledgeArtifactId: "art_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-      knowledgeContentHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(() =>
+      sanitizeEventPayload("knowledge.verified", {
+        knowledgeId: "knw_0123456789abcdef",
+        candidateId: "knc_0123456789abcdef",
+        candidateContentHash:
+          "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        approvalId: "knr_0123456789abcdef",
+        approvalContentHash:
+          "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        claimDigest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        paths: ["src/decision.ts"],
+        verifiedRevision: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        knowledgeArtifactId: "art_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        knowledgeContentHash:
+          "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
   });
 
   it("keeps verification result coordinates without commands or output", () => {
@@ -579,13 +741,18 @@ describe("event payload privacy boundary", () => {
       nonPassedCommandIds: [],
       rawOutput: "private output",
     };
-    expect(JSON.stringify(sanitizeEventPayload("verification.completed", completed).payload))
-      .not.toContain("private output");
-    expect(() => sanitizeEventPayload("verification.completed", {
-      ...completed,
-      resultArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    })).toThrowError(expect.objectContaining<Partial<RedactionError>>({
-      code: "invalid_payload",
-    }));
+    expect(
+      JSON.stringify(sanitizeEventPayload("verification.completed", completed).payload),
+    ).not.toContain("private output");
+    expect(() =>
+      sanitizeEventPayload("verification.completed", {
+        ...completed,
+        resultArtifactId: "art_dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<RedactionError>>({
+        code: "invalid_payload",
+      }),
+    );
   });
 });

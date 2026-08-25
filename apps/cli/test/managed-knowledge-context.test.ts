@@ -3,10 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { applyInitPlan, createInitPlan, loadDocumentRegistry } from "@lervo/project";
-import {
-  documentIdForPath,
-  prepareContext,
-} from "@lervo/context";
+import { documentIdForPath, prepareContext } from "@lervo/context";
 import {
   applyKnowledgeMigrationPlan,
   createKnowledgeMigrationPlan,
@@ -26,8 +23,14 @@ describe("managed repository knowledge context", () => {
   it("creates a separate observed attempt and provider-context candidates with bounded metadata", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-managed-knowledge-"));
     roots.push(root);
-    await writeFile(root + "/README.md", "# Runtime\n\nManaged provider execution stays local-first.\n");
-    await writeFile(root + "/AGENTS.md", "# Agent instructions\n\nKeep managed provider runtime work local first.\n");
+    await writeFile(
+      root + "/README.md",
+      "# Runtime\n\nManaged provider execution stays local-first.\n",
+    );
+    await writeFile(
+      root + "/AGENTS.md",
+      "# Agent instructions\n\nKeep managed provider runtime work local first.\n",
+    );
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_managedknowledge" }));
     const plan = await createKnowledgeMigrationPlan({ repositoryRoot: root });
     await applyKnowledgeMigrationPlan(plan, new Date("2026-08-22T01:00:00Z"), () => undefined);
@@ -48,20 +51,23 @@ describe("managed repository knowledge context", () => {
     expect(prepared.knowledgeAttempt.attemptId).not.toBe(prepared.attempt.attemptId);
     expect(prepared.recommendationBatches).toHaveLength(2);
     expect(prepared.additionalCandidates.length).toBeGreaterThan(0);
-    expect(prepared.additionalCandidates).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        source: "knowledge",
-        knowledgeContext: expect.objectContaining({
-          sourceSnapshotId: plan.sourceSnapshotId,
-          impactReportId: expect.stringMatching(/^kimpact_[a-f0-9]{24}$/),
-          assurance: "unreviewed",
-          freshness: "current",
+    expect(prepared.additionalCandidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "knowledge",
+          knowledgeContext: expect.objectContaining({
+            sourceSnapshotId: plan.sourceSnapshotId,
+            impactReportId: expect.stringMatching(/^kimpact_[a-f0-9]{24}$/),
+            assurance: "unreviewed",
+            freshness: "current",
+          }),
         }),
-      }),
-    ]));
+      ]),
+    );
     expect(prepared.recommendationBatches[1]!.recommendations.length).toBeGreaterThan(0);
-    expect(prepared.additionalCandidates.find((candidate) => candidate.path === "AGENTS.md"))
-      .toMatchObject({ documentId: documentIdForPath("AGENTS.md"), source: "knowledge" });
+    expect(
+      prepared.additionalCandidates.find((candidate) => candidate.path === "AGENTS.md"),
+    ).toMatchObject({ documentId: documentIdForPath("AGENTS.md"), source: "knowledge" });
 
     const role = createDeveloperRole([], ["managed.knowledge.fixture"]);
     const loaded = await prepareContext({
@@ -87,12 +93,14 @@ describe("managed repository knowledge context", () => {
     const agentsDocuments = loaded.documents.filter((document) => document.path === "AGENTS.md");
     expect(agentsDocuments).toHaveLength(1);
     expect(agentsDocuments[0]?.knowledgeContext).toBeDefined();
-    expect(loaded.evidence).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        documentId: documentIdForPath("AGENTS.md"),
-        state: "discovered",
-        knowledgeContext: agentsDocuments[0]?.knowledgeContext,
-      }),
-    ]));
+    expect(loaded.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: documentIdForPath("AGENTS.md"),
+          state: "discovered",
+          knowledgeContext: agentsDocuments[0]?.knowledgeContext,
+        }),
+      ]),
+    );
   });
 });

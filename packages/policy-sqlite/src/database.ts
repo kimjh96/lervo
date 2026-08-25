@@ -10,7 +10,10 @@ export async function ensurePolicyDatabasePath(path: string): Promise<string> {
   try {
     const stats = await lstat(absolute);
     if (stats.isSymbolicLink() || !stats.isFile()) {
-      throw new PolicySQLiteError("integrity_failed", "The policy SQLite path must be a regular file.");
+      throw new PolicySQLiteError(
+        "integrity_failed",
+        "The policy SQLite path must be a regular file.",
+      );
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

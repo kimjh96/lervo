@@ -1,8 +1,6 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageApprovalDecision } from
-  "./first-publication-stage-approval-decision.mjs";
-import { validateFirstPublicationStageReviewReportDocument } from
-  "./first-publication-stage-review-report.mjs";
+import { validateFirstPublicationStageApprovalDecision } from "./first-publication-stage-approval-decision.mjs";
+import { validateFirstPublicationStageReviewReportDocument } from "./first-publication-stage-review-report.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 
 const maximumReviewAgeMilliseconds = 10 * 60 * 1000;
@@ -31,18 +29,22 @@ function authorizationBody({ stageReviewReport, decision, authorizedAt }) {
   const authorized = milliseconds(authorizedAt);
   const decidedAt = milliseconds(decision.decidedAt);
   if (
-    authorized < observedAt || authorized - observedAt > maximumReviewAgeMilliseconds ||
+    authorized < observedAt ||
+    authorized - observedAt > maximumReviewAgeMilliseconds ||
     decidedAt < observedAt ||
     decision.binding.stageReviewEvidenceDigest !== stageReviewReport.evidenceDigest ||
     decision.binding.stageIdDigest !== stageReviewReport.npm.stage.idDigest ||
     decision.binding.package !== stageReviewReport.target.package ||
     decision.binding.version !== stageReviewReport.target.version
-  ) fail("first_publication_stage_approval_review_mismatch");
-  const expiresAt = new Date(Math.min(
-    authorized + maximumAuthorizationLifetimeMilliseconds,
-    milliseconds(decision.expiresAt),
-    observedAt + maximumReviewAgeMilliseconds,
-  )).toISOString();
+  )
+    fail("first_publication_stage_approval_review_mismatch");
+  const expiresAt = new Date(
+    Math.min(
+      authorized + maximumAuthorizationLifetimeMilliseconds,
+      milliseconds(decision.expiresAt),
+      observedAt + maximumReviewAgeMilliseconds,
+    ),
+  ).toISOString();
   return {
     schemaVersion: 1,
     status: "approval_authorized",
@@ -95,7 +97,8 @@ export function validateFirstPublicationStageApprovalAuthorization(
     if (
       checked < milliseconds(authorization.validity.authorizedAt) ||
       checked >= milliseconds(authorization.validity.expiresAt)
-    ) fail("first_publication_stage_approval_authorization_expired");
+    )
+      fail("first_publication_stage_approval_authorization_expired");
   }
   return authorization;
 }

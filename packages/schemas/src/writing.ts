@@ -1,10 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import {
-  localeSchema,
-  schemaVersionSchema,
-  writingPolicyIdSchema,
-} from "./common.js";
+import { localeSchema, schemaVersionSchema, writingPolicyIdSchema } from "./common.js";
 
 export const deterministicWritingCheckIds = [
   "forbid_em_dash",
@@ -96,7 +92,7 @@ export const writingContractSchema = {
         "completeSentences",
         "cohesiveParagraphs",
         "oneMainFactPerSentence",
-        "avoidTranslationeseAndFragments"
+        "avoidTranslationeseAndFragments",
       ],
       additionalProperties: false,
     },
@@ -116,7 +112,7 @@ export const writingContractSchema = {
         "preserveMachineIdentifiers",
         "explainInternalTermsAtFirstUse",
         "preferConcreteVerbs",
-        "forbiddenVagueTerms"
+        "forbiddenVagueTerms",
       ],
       additionalProperties: false,
     },
@@ -127,11 +123,7 @@ export const writingContractSchema = {
         stateObjectAndActionDirectly: { const: true },
         stateWhenNoActionIsNeeded: { const: true },
       },
-      required: [
-        "abstractActors",
-        "stateObjectAndActionDirectly",
-        "stateWhenNoActionIsNeeded"
-      ],
+      required: ["abstractActors", "stateObjectAndActionDirectly", "stateWhenNoActionIsNeeded"],
       additionalProperties: false,
     },
     evidence: {
@@ -144,7 +136,7 @@ export const writingContractSchema = {
       required: [
         "majorClaimsRequireEvidence",
         "distinguishRunFromNotRun",
-        "keepRawLogsOutOfPrimaryProse"
+        "keepRawLogsOutOfPrimaryProse",
       ],
       additionalProperties: false,
     },
@@ -188,7 +180,7 @@ export const writingContractSchema = {
         "semanticChecks",
         "semanticEvaluationMode",
         "requiresPassedEvaluation",
-        "failureDisposition"
+        "failureDisposition",
       ],
       additionalProperties: false,
     },
@@ -204,7 +196,7 @@ export const writingContractSchema = {
     "terminology",
     "actions",
     "evidence",
-    "verification"
+    "verification",
   ],
   additionalProperties: false,
 } as const;

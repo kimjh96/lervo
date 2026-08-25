@@ -43,12 +43,18 @@ export async function runSearchRolloutStatusCommand(args: string[], io: CliIo): 
       ...(limit === undefined ? {} : { limit }),
       ...(parsed.values.cursor === undefined ? {} : { cursor: parsed.values.cursor }),
     });
-    io.stdout(parsed.values.json ? `${JSON.stringify(status, null, 2)}\n` : formatSearchRolloutStatus(status));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(status, null, 2)}\n`
+        : formatSearchRolloutStatus(status),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not read search rollout review status. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not read search rollout review status. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

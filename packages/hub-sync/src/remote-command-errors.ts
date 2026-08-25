@@ -14,11 +14,7 @@ export class HubRemoteCommandRequestError extends Error {
   }
 }
 
-export type HubRemoteCommandFailureKind =
-  | "invalid_request"
-  | "not_found"
-  | "conflict"
-  | "internal";
+export type HubRemoteCommandFailureKind = "invalid_request" | "not_found" | "conflict" | "internal";
 
 export type HubRemoteCommandStoreErrorCode =
   | "remote_command_ack_invalid"
@@ -50,6 +46,7 @@ export function classifyHubRemoteCommandFailure(error: unknown): HubRemoteComman
     code === "remote_command_identity_mismatch" ||
     code === "remote_command_conflict" ||
     code === "remote_command_ack_invalid"
-  ) return "conflict";
+  )
+    return "conflict";
   return "internal";
 }

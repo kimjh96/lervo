@@ -57,7 +57,9 @@ export function evaluateWritingGate(input: {
   if (!hasSeparateSemanticEvaluator) missingChecks.push("semantic_evaluator");
 
   if (
-    coordinateMismatch || missingChecks.length > 0 || failedChecks.length > 0 ||
+    coordinateMismatch ||
+    missingChecks.length > 0 ||
+    failedChecks.length > 0 ||
     input.evaluation.overallStatus !== "passed"
   ) {
     return {

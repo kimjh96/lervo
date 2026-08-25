@@ -73,9 +73,11 @@ export interface ConversationApplication {
   deliberations: ConversationDeliberationPort | null;
   runDeliberationWorkerCycle(): Promise<ConversationDeliberationWorkerCycleResult>;
   runDeliberationResumeWorkerCycle(): Promise<ConversationDeliberationResumeWorkerCycleResult>;
-  reconcileDeliberation: ((input: {
-    projectId: string;
-    deliberationId: string;
-  }) => Promise<ConversationDeliberationReconciliationResult>) | null;
+  reconcileDeliberation:
+    | ((input: {
+        projectId: string;
+        deliberationId: string;
+      }) => Promise<ConversationDeliberationReconciliationResult>)
+    | null;
   close(): void;
 }

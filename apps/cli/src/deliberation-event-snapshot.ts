@@ -1,9 +1,5 @@
 import type { EventEnvelope } from "@lervo/schemas";
-import {
-  EventReadError,
-  visitEventSnapshot,
-  type EventStore,
-} from "@lervo/storage-contract";
+import { EventReadError, visitEventSnapshot, type EventStore } from "@lervo/storage-contract";
 
 export const maximumDeliberationTraceEvents = 1_000;
 
@@ -27,11 +23,14 @@ function scanSnapshot(input: {
     });
   } catch (error) {
     if (!(error instanceof EventReadError)) throw error;
-    throw Object.assign(new Error("The deliberation diagnostic event snapshot could not be read completely.", {
-      cause: error,
-    }), {
-      code: "deliberation_history_invalid",
-    });
+    throw Object.assign(
+      new Error("The deliberation diagnostic event snapshot could not be read completely.", {
+        cause: error,
+      }),
+      {
+        code: "deliberation_history_invalid",
+      },
+    );
   }
 }
 
@@ -59,12 +58,21 @@ export function readDeliberationEventSnapshot(input: {
         matchedCheckpointEventIds.add(event.eventId);
         relatedRunIds.add(event.runId);
       }
-      if (event.type === "deliberation.started" &&
-        event.payload.deliberationId === input.deliberationId) started.push(event);
-      if (event.type === "deliberation.artifact.recorded" &&
-        event.payload.deliberationId === input.deliberationId) artifacts.push(event);
-      if (event.type === "deliberation.completed" &&
-        event.payload.deliberationId === input.deliberationId) completed.push(event);
+      if (
+        event.type === "deliberation.started" &&
+        event.payload.deliberationId === input.deliberationId
+      )
+        started.push(event);
+      if (
+        event.type === "deliberation.artifact.recorded" &&
+        event.payload.deliberationId === input.deliberationId
+      )
+        artifacts.push(event);
+      if (
+        event.type === "deliberation.completed" &&
+        event.payload.deliberationId === input.deliberationId
+      )
+        completed.push(event);
       if (started.length + artifacts.length + completed.length > maximumDeliberationTraceEvents) {
         throw Object.assign(new Error("The deliberation trace contains more than 1,000 events."), {
           code: "deliberation_trace_too_large",
@@ -73,9 +81,12 @@ export function readDeliberationEventSnapshot(input: {
     },
   });
   if (matchedCheckpointEventIds.size !== input.checkpointEventIds.size) {
-    throw Object.assign(new Error("The deliberation checkpoint events do not match the current snapshot."), {
-      code: "deliberation_history_invalid",
-    });
+    throw Object.assign(
+      new Error("The deliberation checkpoint events do not match the current snapshot."),
+      {
+        code: "deliberation_history_invalid",
+      },
+    );
   }
   [...started, ...artifacts, ...completed].forEach((event) => relatedRunIds.add(event.runId));
 

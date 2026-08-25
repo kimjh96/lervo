@@ -22,7 +22,7 @@ function fixture() {
     type: "module",
     node: ">=22.13",
     bin: "dist/bin.js",
-    files: ["README.md", "dist/bin.js"],
+    files: ["README.md", "dist/bin.js", "dist/node-runtime.js", "dist/terminal-hook.js"],
   };
   const directDependencies = [
     "@anthropic-ai/claude-agent-sdk@0.3.226",
@@ -85,6 +85,16 @@ function fixture() {
       size: 10,
       sha256: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     },
+    {
+      path: "dist/node-runtime.js",
+      size: 9,
+      sha256: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    },
+    {
+      path: "dist/terminal-hook.js",
+      size: 8,
+      sha256: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    },
   ];
   const portable = ["@anthropic-ai/claude-agent-sdk@0.3.226", "yaml@2.9.0"];
   const platformSpecificFamilies = [{ prefix: "native-", version: "1.0.0" }];
@@ -96,7 +106,7 @@ function fixture() {
     archive: {
       rootFiles: ["package.json"],
       files,
-      fileCount: 3,
+      fileCount: 5,
       contentDigest: canonicalDigest(files),
     },
     dependencies: {
@@ -127,55 +137,49 @@ describe("release artifact manifest", () => {
   it("rejects a changed file without a matching content digest", () => {
     const manifest = fixture();
     manifest.archive.files[0].size += 1;
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_archive_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_archive_invalid",
+    });
   });
 
   it("rejects a public CLI without the supported Node range", () => {
     const manifest = fixture();
     manifest.artifact.node = ">=20";
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_identity_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_identity_invalid",
+    });
   });
 
   it("rejects incomplete public package metadata", () => {
     const manifest = fixture();
     manifest.artifact.keywords.pop();
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_identity_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_identity_invalid",
+    });
   });
 
   it("rejects an archive without the package guide", () => {
     const manifest = fixture();
     manifest.archive.files.shift();
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_archive_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_archive_invalid",
+    });
   });
 
   it("rejects an incomplete Claude SDK peer set", () => {
     const manifest = fixture();
     manifest.directDependencies.splice(1, 1);
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_dependencies_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_dependencies_invalid",
+    });
   });
 
   it("rejects a missing dependency even if a stale artifact digest remains", () => {
     const manifest = fixture();
     manifest.dependencies.portable.pop();
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_closure_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_closure_invalid",
+    });
   });
 
   it("rejects a private workspace package in the installed closure", () => {
@@ -190,10 +194,9 @@ describe("release artifact manifest", () => {
       portableDependenciesDigest: manifest.dependencies.portableDigest,
       platformSpecificFamilies: manifest.dependencies.platformSpecificFamilies,
     });
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_closure_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_closure_invalid",
+    });
   });
 
   it("rejects a new external bundle import", () => {
@@ -207,19 +210,17 @@ describe("release artifact manifest", () => {
       externalImports: manifest.bundle.externalImports,
     };
     manifest.bundle.bundleDigest = canonicalDigest(bundleFields);
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_bundle_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_bundle_invalid",
+    });
   });
 
   it("rejects an unreviewed bundled external package", () => {
     const manifest = fixture();
     manifest.bundle.externalPackages.push("new-package@1.0.0");
-    assert.throws(
-      () => validateReleaseArtifactManifest(manifest),
-      { code: "release_artifact_bundle_invalid" },
-    );
+    assert.throws(() => validateReleaseArtifactManifest(manifest), {
+      code: "release_artifact_bundle_invalid",
+    });
   });
 
   it("reports bounded sections instead of copying changed content", () => {

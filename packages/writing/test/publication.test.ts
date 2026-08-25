@@ -60,7 +60,10 @@ afterEach(async () => {
 describe("writing publication boundary", () => {
   it("publishes only after separate semantic checks and revalidates the stored permit", async () => {
     const store = await openCas();
-    const artifact = await storeWriting(store, "The task is complete. The change scope and verification result were checked together.");
+    const artifact = await storeWriting(
+      store,
+      "The task is complete. The change scope and verification result were checked together.",
+    );
     const result = await evaluateWritingPublication(
       {
         artifact,
@@ -82,15 +85,17 @@ describe("writing publication boundary", () => {
       phase: "separate_pass",
     });
     expect(await store.has(result.evaluationArtifact.uri)).toBe(true);
-    await expect(readPublishableWritingArtifact({
-      artifact,
-      evaluation: result.evaluation,
-      evaluationArtifact: result.evaluationArtifact,
-      permit: result.permit,
-      contract: defaultEnglishWritingContract,
-      surface: "chat",
-      artifactStore: store,
-    })).resolves.toBe(result.content);
+    await expect(
+      readPublishableWritingArtifact({
+        artifact,
+        evaluation: result.evaluation,
+        evaluationArtifact: result.evaluationArtifact,
+        permit: result.permit,
+        contract: defaultEnglishWritingContract,
+        surface: "chat",
+        artifactStore: store,
+      }),
+    ).resolves.toBe(result.content);
   });
 
   it("fails closed when no semantic evaluator is available", async () => {
@@ -117,13 +122,15 @@ describe("writing publication boundary", () => {
     const artifact = await storeWriting(store, "");
     const evaluate = vi.fn(passingEvaluator().evaluate);
 
-    await expect(evaluateWritingPublication({
-      artifact,
-      contract: defaultEnglishWritingContract,
-      surface: "chat",
-      artifactStore: store,
-      semanticEvaluator: { evaluate },
-    })).rejects.toMatchObject({ code: "artifact_contract_invalid" });
+    await expect(
+      evaluateWritingPublication({
+        artifact,
+        contract: defaultEnglishWritingContract,
+        surface: "chat",
+        artifactStore: store,
+        semanticEvaluator: { evaluate },
+      }),
+    ).rejects.toMatchObject({ code: "artifact_contract_invalid" });
     expect(evaluate).not.toHaveBeenCalled();
   });
 
@@ -144,11 +151,13 @@ describe("writing publication boundary", () => {
 
     expect(evaluate).not.toHaveBeenCalled();
     expect(result.status).toBe("blocked");
-    expect(result.failedChecks).toEqual(expect.arrayContaining([
-      "forbid_em_dash",
-      "forbid_abstract_action_subject",
-      "forbid_vague_terms",
-    ]));
+    expect(result.failedChecks).toEqual(
+      expect.arrayContaining([
+        "forbid_em_dash",
+        "forbid_abstract_action_subject",
+        "forbid_vague_terms",
+      ]),
+    );
   });
 
   it("records an invalid separate response as incomplete without exposing content", async () => {
@@ -181,10 +190,11 @@ describe("writing publication boundary", () => {
       content: null,
       semanticEvaluationStatus: "invalid",
     });
-    expect(result.evaluation.checks.filter((check) => check.kind === "semantic"))
-      .toEqual(expect.arrayContaining([
+    expect(result.evaluation.checks.filter((check) => check.kind === "semantic")).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({ status: "not_run", evidenceDigest: null }),
-      ]));
+      ]),
+    );
   });
 
   it("turns a structurally malformed evaluator response into an invalid attempt", async () => {
@@ -234,15 +244,18 @@ describe("writing publication boundary", () => {
       artifactStore: store,
     };
 
-    await expect(readPublishableWritingArtifact({ ...base, surface: "documentation" }))
-      .rejects.toMatchObject({ code: "publication_permit_invalid" });
+    await expect(
+      readPublishableWritingArtifact({ ...base, surface: "documentation" }),
+    ).rejects.toMatchObject({ code: "publication_permit_invalid" });
     const changedPolicy = structuredClone(defaultEnglishWritingContract) as WritingContract;
     changedPolicy.terminology.forbiddenVagueTerms.push("roughly");
-    await expect(readPublishableWritingArtifact({ ...base, contract: changedPolicy }))
-      .rejects.toMatchObject({ code: "publication_permit_invalid" });
+    await expect(
+      readPublishableWritingArtifact({ ...base, contract: changedPolicy }),
+    ).rejects.toMatchObject({ code: "publication_permit_invalid" });
     const otherArtifact = await storeWriting(store, "A different result.");
-    await expect(readPublishableWritingArtifact({ ...base, artifact: otherArtifact }))
-      .rejects.toMatchObject({ code: "publication_permit_invalid" });
+    await expect(
+      readPublishableWritingArtifact({ ...base, artifact: otherArtifact }),
+    ).rejects.toMatchObject({ code: "publication_permit_invalid" });
   });
 
   it("treats an evaluator exception as a failed attempt without persisting its error text", async () => {
@@ -254,7 +267,11 @@ describe("writing publication boundary", () => {
         contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
-        semanticEvaluator: { evaluate: async () => { throw new Error("private evaluator detail"); } },
+        semanticEvaluator: {
+          evaluate: async () => {
+            throw new Error("private evaluator detail");
+          },
+        },
       },
       { now: () => checkedAt },
     );

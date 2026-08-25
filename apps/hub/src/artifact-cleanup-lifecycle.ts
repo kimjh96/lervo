@@ -28,7 +28,10 @@ export function attachHubArtifactCleanupLifecycle(input: {
   onFailure?: (failureCode: "artifact_cleanup_runtime_failed") => void | Promise<void>;
 }): HubArtifactCleanupLifecycle {
   if (attachedServers.has(input.server)) {
-    throw new HubCommandError("invalid_request", "A cleanup lifecycle can be attached to a Hub server only once.");
+    throw new HubCommandError(
+      "invalid_request",
+      "A cleanup lifecycle can be attached to a Hub server only once.",
+    );
   }
   attachedServers.add(input.server);
   const controller = new AbortController();

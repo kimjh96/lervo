@@ -5,17 +5,11 @@ import {
   type LegacyRegistryMigrationApproval,
   type LegacyRegistryMigrationPlan,
 } from "@lervo/schemas";
-import {
-  validateDocumentManifest,
-  validateDocumentManifestSet,
-} from "@lervo/project";
+import { validateDocumentManifest, validateDocumentManifestSet } from "@lervo/project";
 import { stringify } from "yaml";
 
 import { canonicalJsonBytes, sha256 } from "./hash.js";
-import {
-  calculateLegacyRegistryMigrationPlanId,
-  legacyRegistryEntryBytes,
-} from "./integrity.js";
+import { calculateLegacyRegistryMigrationPlanId, legacyRegistryEntryBytes } from "./integrity.js";
 import { DocumentMigrationError } from "./types.js";
 
 export interface PreparedLegacySidecar {
@@ -89,13 +83,18 @@ function validateEntryArtifacts(input: {
     const entry = entries.get(artifact.documentId);
     const reference = references.get(artifact.documentId);
     if (
-      artifacts.has(artifact.documentId) || entry === undefined || reference === undefined ||
+      artifacts.has(artifact.documentId) ||
+      entry === undefined ||
+      reference === undefined ||
       artifact.sourceRegistryHash !== input.plan.source.contentHash ||
-      artifact.contentHash !== actualHash || artifact.byteCount !== bytes.byteLength ||
+      artifact.contentHash !== actualHash ||
+      artifact.byteCount !== bytes.byteLength ||
       artifact.artifactId !== `art_${actualHash.slice("sha256:".length, "sha256:".length + 16)}` ||
-      entry.artifactId !== artifact.artifactId || entry.artifactHash !== artifact.contentHash ||
+      entry.artifactId !== artifact.artifactId ||
+      entry.artifactHash !== artifact.contentHash ||
       entry.target.path !== `.lervo/documents/${artifact.documentId}.yaml` ||
-      entry.target.expected.kind !== "missing" || reference.path !== artifact.record.path
+      entry.target.expected.kind !== "missing" ||
+      reference.path !== artifact.record.path
     ) {
       throw new DocumentMigrationError(
         "invalid_migration_artifact",
@@ -170,17 +169,17 @@ export function prepareLegacyRegistryMigration(input: {
       "A legacy registry layout migration plan in conflict state cannot be applied.",
     );
   }
-  const expectedArchivePath = `.lervo/archive/document-registries/sha256/${
-    input.plan.source.contentHash.slice("sha256:".length)
-  }.yaml`;
+  const expectedArchivePath = `.lervo/archive/document-registries/sha256/${input.plan.source.contentHash.slice(
+    "sha256:".length,
+  )}.yaml`;
   const archiveExpected = input.plan.archiveTarget.expected;
   if (
     input.plan.archiveTarget.path !== expectedArchivePath ||
     archiveExpected.kind === "unsafe" ||
-    (archiveExpected.kind === "file" && (
-      archiveExpected.contentHash !== input.plan.source.contentHash ||
-      archiveExpected.byteCount !== input.plan.source.byteCount
-    )) || input.plan.manifestDirectory.expected.kind !== "missing"
+    (archiveExpected.kind === "file" &&
+      (archiveExpected.contentHash !== input.plan.source.contentHash ||
+        archiveExpected.byteCount !== input.plan.source.byteCount)) ||
+    input.plan.manifestDirectory.expected.kind !== "missing"
   ) {
     throw new DocumentMigrationError(
       "invalid_migration_artifact",
@@ -195,22 +194,25 @@ export function prepareLegacyRegistryMigration(input: {
     Date.parse(input.plan.generatedAt) > Date.parse(input.approval.approvedAt) ||
     Date.parse(input.approval.approvedAt) > Date.parse(input.appliedAt)
   ) {
-    invalidApproval("The layout migration plan, approval, and apply time have inconsistent ordering or coordinates.");
+    invalidApproval(
+      "The layout migration plan, approval, and apply time have inconsistent ordering or coordinates.",
+    );
   }
 
   const artifacts = validateEntryArtifacts({
     plan: input.plan,
     entryArtifacts: input.entryArtifacts,
   });
-  const decisions = new Map(input.approval.decisions.map((decision) => [
-    decision.documentId,
-    decision,
-  ]));
+  const decisions = new Map(
+    input.approval.decisions.map((decision) => [decision.documentId, decision]),
+  );
   if (
     decisions.size !== input.approval.decisions.length ||
     decisions.size !== input.plan.entries.length
   ) {
-    invalidApproval("Every legacy registry entry must have exactly one non-duplicated approval decision.");
+    invalidApproval(
+      "Every legacy registry entry must have exactly one non-duplicated approval decision.",
+    );
   }
 
   const sidecars: PreparedLegacySidecar[] = [];
@@ -219,11 +221,14 @@ export function prepareLegacyRegistryMigration(input: {
     const artifact = artifacts.get(entry.documentId);
     const decision = decisions.get(entry.documentId);
     if (
-      artifact === undefined || decision === undefined ||
+      artifact === undefined ||
+      decision === undefined ||
       decision.artifactId !== artifact.artifactId ||
       decision.artifactHash !== artifact.contentHash
     ) {
-      invalidApproval("The approval decision legacy entry artifact coordinates differ from the dry-run result.");
+      invalidApproval(
+        "The approval decision legacy entry artifact coordinates differ from the dry-run result.",
+      );
     }
     if (decision.action === "skip") {
       skippedDocumentIds.push(entry.documentId);
@@ -246,8 +251,8 @@ export function prepareLegacyRegistryMigration(input: {
     approvalDigest: sha256(canonicalJsonBytes(input.approval)),
     sidecars,
     skippedDocumentIds,
-    entryArtifactHashes: [...new Set(
-      input.entryArtifacts.map((artifact) => artifact.contentHash),
-    )].sort(compareText),
+    entryArtifactHashes: [
+      ...new Set(input.entryArtifacts.map((artifact) => artifact.contentHash)),
+    ].sort(compareText),
   };
 }

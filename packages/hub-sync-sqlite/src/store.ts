@@ -78,26 +78,26 @@ import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
 
-export class HubSyncSQLiteStore implements
-  HubSyncCommandStore,
-  HubSyncIntegrityStore,
-  HubSyncLifecycle,
-  HubWorkstreamReplicationStore,
-  HubRemoteCommandQueueStore,
-  HubRemoteCommandQueueInspectionStore,
-  HubTraceSource,
-  HubPolicySourceStore,
-  HubCommandAuthoringStore,
-  HubCommandArtifactLifecycleRepository,
-  HubCommandArtifactCleanupScheduleStore
+export class HubSyncSQLiteStore
+  implements
+    HubSyncCommandStore,
+    HubSyncIntegrityStore,
+    HubSyncLifecycle,
+    HubWorkstreamReplicationStore,
+    HubRemoteCommandQueueStore,
+    HubRemoteCommandQueueInspectionStore,
+    HubTraceSource,
+    HubPolicySourceStore,
+    HubCommandAuthoringStore,
+    HubCommandArtifactLifecycleRepository,
+    HubCommandArtifactCleanupScheduleStore
 {
   readonly path: string;
   private closed = false;
   private readonly auditRepository: HubAuditSQLiteRepository;
   private readonly commandAuthorshipRepository: HubCommandAuthorshipSQLiteRepository;
   private readonly commandArtifactLifecycleRepository: HubCommandArtifactLifecycleSQLiteRepository;
-  private readonly commandArtifactCleanupRuntimeRepository:
-    HubCommandArtifactCleanupRuntimeSQLiteRepository;
+  private readonly commandArtifactCleanupRuntimeRepository: HubCommandArtifactCleanupRuntimeSQLiteRepository;
   private readonly eventInboxRepository: HubEventInboxSQLiteRepository;
   private readonly registrationRepository: HubRegistrationSQLiteRepository;
   private readonly remoteCommandRepository: HubRemoteCommandSQLiteRepository;
@@ -108,12 +108,16 @@ export class HubSyncSQLiteStore implements
   private readonly transactionRunner: SQLiteTransactionRunner;
   private readonly workstreamRepository: HubWorkstreamSQLiteRepository;
 
-  private constructor(path: string, private readonly database: DatabaseSync) {
+  private constructor(
+    path: string,
+    private readonly database: DatabaseSync,
+  ) {
     this.path = path;
     this.auditRepository = new HubAuditSQLiteRepository(database);
     this.commandAuthorshipRepository = new HubCommandAuthorshipSQLiteRepository(database);
-    this.commandArtifactLifecycleRepository =
-      new HubCommandArtifactLifecycleSQLiteRepository(database);
+    this.commandArtifactLifecycleRepository = new HubCommandArtifactLifecycleSQLiteRepository(
+      database,
+    );
     this.commandArtifactCleanupRuntimeRepository =
       new HubCommandArtifactCleanupRuntimeSQLiteRepository(database);
     this.eventInboxRepository = new HubEventInboxSQLiteRepository(database);
@@ -224,7 +228,8 @@ export class HubSyncSQLiteStore implements
   } | null> {
     this.assertOpen();
     return this.transactionRunner.read(() =>
-      this.commandAuthorshipRepository.findLeasedArtifact(input));
+      this.commandAuthorshipRepository.findLeasedArtifact(input),
+    );
   }
 
   async claimExpiredArtifacts(input: {
@@ -235,7 +240,8 @@ export class HubSyncSQLiteStore implements
   }): Promise<HubCommandArtifactPurgeClaim[]> {
     this.assertOpen();
     return this.transactionRunner.write(() =>
-      this.commandArtifactLifecycleRepository.claimExpired(input));
+      this.commandArtifactLifecycleRepository.claimExpired(input),
+    );
   }
 
   async claimOrphanArtifact(input: {
@@ -247,7 +253,8 @@ export class HubSyncSQLiteStore implements
   }): Promise<HubCommandArtifactPurgeClaim | null> {
     this.assertOpen();
     return this.transactionRunner.write(() =>
-      this.commandArtifactLifecycleRepository.claimOrphan(input));
+      this.commandArtifactLifecycleRepository.claimOrphan(input),
+    );
   }
 
   async completeArtifactPurge(input: {
@@ -262,7 +269,8 @@ export class HubSyncSQLiteStore implements
   }> {
     this.assertOpen();
     return this.transactionRunner.write(() =>
-      this.commandArtifactLifecycleRepository.complete(input));
+      this.commandArtifactLifecycleRepository.complete(input),
+    );
   }
 
   async releaseArtifactPurgeClaim(input: {
@@ -279,14 +287,17 @@ export class HubSyncSQLiteStore implements
   ): Promise<HubCommandArtifactCleanupScheduleClaim> {
     this.assertOpen();
     return this.transactionRunner.write(() =>
-      this.commandArtifactCleanupRuntimeRepository.claim(input));
+      this.commandArtifactCleanupRuntimeRepository.claim(input),
+    );
   }
 
   async completeArtifactCleanupCycle(
     input: HubCommandArtifactCleanupCycleCompletion,
   ): Promise<void> {
     this.assertOpen();
-    this.transactionRunner.write(() => this.commandArtifactCleanupRuntimeRepository.complete(input));
+    this.transactionRunner.write(() =>
+      this.commandArtifactCleanupRuntimeRepository.complete(input),
+    );
   }
 
   async failArtifactCleanupCycle(input: HubCommandArtifactCleanupCycleFailure): Promise<void> {
@@ -330,7 +341,8 @@ export class HubSyncSQLiteStore implements
   }): Promise<SignedPolicySnapshot | null> {
     this.assertOpen();
     return this.transactionRunner.read(() =>
-      this.policyRepository.currentSnapshot(input.destinationId, input.target));
+      this.policyRepository.currentSnapshot(input.destinationId, input.target),
+    );
   }
 
   async getPolicyCommand(input: {
@@ -340,7 +352,8 @@ export class HubSyncSQLiteStore implements
   }): Promise<HubPolicyCommandBinding | null> {
     this.assertOpen();
     return this.transactionRunner.read(() =>
-      this.policyRepository.command(input.destinationId, input.target, input.commandId));
+      this.policyRepository.command(input.destinationId, input.target, input.commandId),
+    );
   }
 
   async getPolicyApproval(input: {
@@ -350,7 +363,8 @@ export class HubSyncSQLiteStore implements
   }): Promise<SignedPolicyApproval | null> {
     this.assertOpen();
     return this.transactionRunner.read(() =>
-      this.policyRepository.approval(input.destinationId, input.target, input.approvalId));
+      this.policyRepository.approval(input.destinationId, input.target, input.approvalId),
+    );
   }
 
   async publishPolicySnapshot(input: {
@@ -456,7 +470,9 @@ export class HubSyncSQLiteStore implements
     try {
       this.workstreamRepository.auditAll();
     } catch (error) {
-      throw new HubSyncStoreError("integrity_failed", "The Hub workstream revision audit failed.", { cause: error });
+      throw new HubSyncStoreError("integrity_failed", "The Hub workstream revision audit failed.", {
+        cause: error,
+      });
     }
     this.auditRepository.assertGlobalCounts(coordinates.length, eventCount);
     return { valid: true, projectCount: coordinates.length, eventCount };
@@ -493,9 +509,9 @@ export class HubSyncSQLiteStore implements
       "hub_workstream_revisions_identity_immutable",
       "hub_workstream_revisions_no_delete",
     ]);
-    for (const row of this.database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type = 'trigger'",
-    ).all()) {
+    for (const row of this.database
+      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
+      .all()) {
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
@@ -522,7 +538,10 @@ export class HubSyncSQLiteStore implements
     this.assertOpen();
     const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
     if (typeof mode !== "string") {
-      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite journal mode cannot be read.");
+      throw new HubSyncStoreError(
+        "integrity_failed",
+        "The Hub sync SQLite journal mode cannot be read.",
+      );
     }
     return mode;
   }

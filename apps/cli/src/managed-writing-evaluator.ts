@@ -15,10 +15,7 @@ import type {
   AdapterStopRequest,
   AdapterTurn,
 } from "@lervo/schemas";
-import type {
-  SemanticWritingEvaluationRequest,
-  WritingSemanticEvaluator,
-} from "@lervo/writing";
+import type { SemanticWritingEvaluationRequest, WritingSemanticEvaluator } from "@lervo/writing";
 
 import type { RunProvider } from "./managed-run.js";
 import { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
@@ -39,7 +36,7 @@ function digest(value: string | Uint8Array): string {
 function evaluationInstructions(request: SemanticWritingEvaluationRequest): string {
   return [
     "Evaluate the JSON request below under the injected Lervo protocol.",
-    "Return this exact shape: {\"checks\":[{\"checkId\":\"...\",\"status\":\"passed|failed\",\"violationCount\":0}]}",
+    'Return this exact shape: {"checks":[{"checkId":"...","status":"passed|failed","violationCount":0}]}',
     "Preserve check order, include every check exactly once, use zero violations for passed, and a positive count for failed.",
     "",
     JSON.stringify({
@@ -67,7 +64,8 @@ async function waitForTerminal(
       if (
         event.type === "provider.turn.failed" &&
         event.payload.providerTurnId === turn.providerTurnId
-      ) throw new Error("The writing evaluator provider turn failed.");
+      )
+        throw new Error("The writing evaluator provider turn failed.");
       if (
         event.type === "provider.turn.completed" &&
         event.payload.providerTurnId === turn.providerTurnId
@@ -158,46 +156,56 @@ export function createLocalProviderWritingEvaluator(
           writingPolicyDocumentId: null,
           targetTurnId,
           contextGeneration: 0,
-          documents: [{
-            documentId: "doc_writing_evaluation_protocol_v1",
-            path: ".lervo/protocols/writing-semantic-evaluation-v1.md",
-            contentHash: protocolHash,
-            byteCount: Buffer.byteLength(PROTOCOL, "utf8"),
-            scope: { kind: "full" },
-            delivery: { kind: "inline", content: PROTOCOL },
-          }],
+          documents: [
+            {
+              documentId: "doc_writing_evaluation_protocol_v1",
+              path: ".lervo/protocols/writing-semantic-evaluation-v1.md",
+              contentHash: protocolHash,
+              byteCount: Buffer.byteLength(PROTOCOL, "utf8"),
+              scope: { kind: "full" },
+              delivery: { kind: "inline", content: PROTOCOL },
+            },
+          ],
           createdAt: input.now().toISOString(),
         };
         await adapter.injectContext(session, envelope);
         await adapter.attachManagedWriteBridge(session, {
-          authorize: async (writeRequest) => createManagedWriteDecision({
-            request: writeRequest,
-            decision: "deny",
-            reasonCode: "capability_denied",
-            decidedAt: input.now().toISOString(),
-          }),
+          authorize: async (writeRequest) =>
+            createManagedWriteDecision({
+              request: writeRequest,
+              decision: "deny",
+              reasonCode: "capability_denied",
+              decidedAt: input.now().toISOString(),
+            }),
           complete: async () => {
             throw new Error("A read-only writing evaluator cannot report a completed write.");
           },
         });
         let accepted: AdapterTurn | undefined;
-        const turn = await adapter.startTurn(session, {
-          kind: "turn_request",
-          schemaVersion: 1,
-          adapterId: adapter.descriptor.adapterId,
-          projectId: input.projectId,
-          runId,
-          sessionId,
-          providerSessionId: session.providerSessionId,
-          targetTurnId,
-          instructions,
-          requestedAt: input.now().toISOString(),
-        }, (value) => {
-          if (accepted !== undefined) throw new Error("The writing evaluator accepted one turn twice.");
-          accepted = structuredClone(value);
-        });
+        const turn = await adapter.startTurn(
+          session,
+          {
+            kind: "turn_request",
+            schemaVersion: 1,
+            adapterId: adapter.descriptor.adapterId,
+            projectId: input.projectId,
+            runId,
+            sessionId,
+            providerSessionId: session.providerSessionId,
+            targetTurnId,
+            instructions,
+            requestedAt: input.now().toISOString(),
+          },
+          (value) => {
+            if (accepted !== undefined)
+              throw new Error("The writing evaluator accepted one turn twice.");
+            accepted = structuredClone(value);
+          },
+        );
         if (accepted === undefined || JSON.stringify(accepted) !== JSON.stringify(turn)) {
-          throw new Error("The writing evaluator turn acceptance does not match the returned turn.");
+          throw new Error(
+            "The writing evaluator turn acceptance does not match the returned turn.",
+          );
         }
         await waitForTerminal(adapter, session, turn);
         const result = await adapter.getTurnResult(session, turn);
@@ -236,6 +244,8 @@ export function createLocalProviderWritingEvaluator(
           cleanupFailure ??= error;
         }
         if (cleanupFailure !== undefined) {
+          // Fail closed: evaluator cleanup failure must block publication of an otherwise valid result.
+          // eslint-disable-next-line no-unsafe-finally
           throw new Error("The local writing evaluator could not be cleaned up safely.", {
             cause: cleanupFailure,
           });

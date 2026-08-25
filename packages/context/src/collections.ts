@@ -1,9 +1,6 @@
 import type { SharedContextPublication } from "@lervo/schemas";
 
-import {
-  type ContextHandoffInput,
-  ContextPreparationError,
-} from "./types.js";
+import { type ContextHandoffInput, ContextPreparationError } from "./types.js";
 
 export function indexPublications(
   publications: readonly SharedContextPublication[],

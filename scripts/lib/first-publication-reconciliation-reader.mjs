@@ -1,15 +1,13 @@
-import { validateFirstPublicationArmingAuthorization } from
-  "./first-publication-arming-authorization.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationArmingAuthorization } from "./first-publication-arming-authorization.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationReservation } from
-  "./first-publication-reservation.mjs";
-import { validateStoredFirstPublicationTerminal } from
-  "./first-publication-store-records.mjs";
+import { validateFirstPublicationReservation } from "./first-publication-reservation.mjs";
+import { validateStoredFirstPublicationTerminal } from "./first-publication-store-records.mjs";
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
-import { npmPublicRegistry, validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import {
+  npmPublicRegistry,
+  validateReleasePublicationAuthorization,
+} from "./release-publication-authorization.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
 const reservationIdPattern = /^fpr_[a-f0-9]{24}$/u;
@@ -37,8 +35,12 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -65,31 +67,46 @@ function tagCheck(status, reason) {
 }
 
 const allowedChecks = new Map([
-  [canonicalJson([
-    versionCheck("matched"), tagCheck("matched"),
-  ]), "published"],
-  [canonicalJson([
-    versionCheck("not_observed", "target_version_not_observed"),
-    tagCheck("not_observed", "target_dist_tag_not_observed"),
-  ]), "not_observed"],
-  [canonicalJson([
-    versionCheck("unknown", "registry_unavailable"),
-    tagCheck("unknown", "registry_unavailable"),
-  ]), "unknown"],
-  [canonicalJson([
-    versionCheck("unknown", "exact_release_mismatch"), tagCheck("matched"),
-  ]), "unknown"],
-  [canonicalJson([
-    versionCheck("unknown", "exact_release_mismatch"),
-    tagCheck("not_observed", "target_dist_tag_not_observed"),
-  ]), "unknown"],
-  [canonicalJson([
-    versionCheck("matched"),
-    tagCheck("not_observed", "target_dist_tag_not_observed"),
-  ]), "unknown"],
-  [canonicalJson([
-    versionCheck("not_observed", "target_version_not_observed"), tagCheck("matched"),
-  ]), "unknown"],
+  [canonicalJson([versionCheck("matched"), tagCheck("matched")]), "published"],
+  [
+    canonicalJson([
+      versionCheck("not_observed", "target_version_not_observed"),
+      tagCheck("not_observed", "target_dist_tag_not_observed"),
+    ]),
+    "not_observed",
+  ],
+  [
+    canonicalJson([
+      versionCheck("unknown", "registry_unavailable"),
+      tagCheck("unknown", "registry_unavailable"),
+    ]),
+    "unknown",
+  ],
+  [
+    canonicalJson([versionCheck("unknown", "exact_release_mismatch"), tagCheck("matched")]),
+    "unknown",
+  ],
+  [
+    canonicalJson([
+      versionCheck("unknown", "exact_release_mismatch"),
+      tagCheck("not_observed", "target_dist_tag_not_observed"),
+    ]),
+    "unknown",
+  ],
+  [
+    canonicalJson([
+      versionCheck("matched"),
+      tagCheck("not_observed", "target_dist_tag_not_observed"),
+    ]),
+    "unknown",
+  ],
+  [
+    canonicalJson([
+      versionCheck("not_observed", "target_version_not_observed"),
+      tagCheck("matched"),
+    ]),
+    "unknown",
+  ],
 ]);
 
 function reportBody(report) {
@@ -112,16 +129,24 @@ export function validateFirstPublicationReconciliationReportDocument(report) {
   timestamp(report?.observation?.observedAt);
   if (
     !exactKeys(report, [...Object.keys(body), "reconciliationReportDigest"]) ||
-    report.schemaVersion !== 1 || report.outcome !== expectedOutcome ||
+    report.schemaVersion !== 1 ||
+    report.outcome !== expectedOutcome ||
     report.advisoryOnly !== true ||
     !exactKeys(report.target, ["registry", "package", "version", "distTag", "access"]) ||
-    report.target.registry !== npmPublicRegistry || report.target.package !== "@lervo/cli" ||
+    report.target.registry !== npmPublicRegistry ||
+    report.target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(report.target.version ?? "") ||
-    !["latest", "next"].includes(report.target.distTag) || report.target.access !== "public" ||
+    !["latest", "next"].includes(report.target.distTag) ||
+    report.target.access !== "public" ||
     !exactKeys(report.binding, [
-      "bootstrapDigest", "armingAuthorizationDigest", "publicationAuthorizationDigest",
-      "reservationId", "reservationDigest", "terminalRecordDigest",
-    ]) || !digestPattern.test(report.binding.bootstrapDigest ?? "") ||
+      "bootstrapDigest",
+      "armingAuthorizationDigest",
+      "publicationAuthorizationDigest",
+      "reservationId",
+      "reservationDigest",
+      "terminalRecordDigest",
+    ]) ||
+    !digestPattern.test(report.binding.bootstrapDigest ?? "") ||
     !digestPattern.test(report.binding.armingAuthorizationDigest ?? "") ||
     !digestPattern.test(report.binding.publicationAuthorizationDigest ?? "") ||
     !reservationIdPattern.test(report.binding.reservationId ?? "") ||
@@ -133,17 +158,15 @@ export function validateFirstPublicationReconciliationReportDocument(report) {
     canonicalJson(report.limitations) !== canonicalJson(limitations) ||
     !digestPattern.test(report.reconciliationReportDigest ?? "") ||
     report.reconciliationReportDigest !== canonicalDigest(body)
-  ) fail();
+  )
+    fail();
   return report;
 }
 
-export function validateFirstPublicationReconciliationReportSources(report, {
-  bootstrap,
-  armingAuthorization,
-  publicationAuthorization,
-  reservation,
-  terminal,
-}) {
+export function validateFirstPublicationReconciliationReportSources(
+  report,
+  { bootstrap, armingAuthorization, publicationAuthorization, reservation, terminal },
+) {
   validateFirstPublicationReconciliationReportDocument(report);
   validateFirstPublicationBootstrapAuthorization(bootstrap);
   const authorization = validateReleasePublicationAuthorization(publicationAuthorization);
@@ -166,8 +189,10 @@ export function validateFirstPublicationReconciliationReportSources(report, {
     report.binding.reservationId !== reservation.reservationId ||
     report.binding.reservationDigest !== reservation.reservationDigest ||
     report.binding.terminalRecordDigest !== canonicalDigest(terminal) ||
-    terminal.state !== "publication_unknown" || terminal.retry !== "forbidden" ||
+    terminal.state !== "publication_unknown" ||
+    terminal.retry !== "forbidden" ||
     timestamp(report.observation.observedAt) < timestamp(reservation.reservedAt)
-  ) fail();
+  )
+    fail();
   return report;
 }

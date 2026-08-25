@@ -11,9 +11,7 @@ import type {
 export type ContextDeliveryKind = "inline" | "cas";
 
 export type ContextDeliveryFailure =
-  | "artifact_storage_failed"
-  | "contract_validation_failed"
-  | "required_context_missing";
+  "artifact_storage_failed" | "contract_validation_failed" | "required_context_missing";
 
 export type ContextDeliveryErrorCode =
   | "artifact_store_required"

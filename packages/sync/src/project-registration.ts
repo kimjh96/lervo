@@ -1,6 +1,4 @@
-import {
-  type ProjectRegistrationResponse,
-} from "@lervo/schemas";
+import { type ProjectRegistrationResponse } from "@lervo/schemas";
 import {
   assertProjectRegistrationResponse,
   createProjectRegistrationRequest,

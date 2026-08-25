@@ -61,11 +61,9 @@ function wrapWriteFailure(error: unknown): ManagedProviderRunError {
       : error;
   }
   if (error instanceof ManagedContextError && error.code === "telemetry_recording_failed") {
-    return writeError(
-      "telemetry_recording_failed",
-      "Failed to record managed write telemetry.",
-      { cause: error },
-    );
+    return writeError("telemetry_recording_failed", "Failed to record managed write telemetry.", {
+      cause: error,
+    });
   }
   return writeError(
     "provider_write_failed",
@@ -108,7 +106,8 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
 
   beginTurn(expectedPath: string): void {
     if (
-      this.activeExpectedPath !== undefined || this.approvals.size > 0 ||
+      this.activeExpectedPath !== undefined ||
+      this.approvals.size > 0 ||
       !this.options.plan.allowedPaths.includes(expectedPath) ||
       this.completed.some((change) => change.path === expectedPath)
     ) {
@@ -121,9 +120,7 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
     this.completedBeforeTurn = this.completed.length;
   }
 
-  async authorize(
-    request: AdapterManagedWriteRequest,
-  ): Promise<AdapterManagedWriteDecision> {
+  async authorize(request: AdapterManagedWriteRequest): Promise<AdapterManagedWriteDecision> {
     assertAdapterMessage(request, "Managed write request");
     const turn = this.options.currentTurn();
     if (turn === undefined) {
@@ -210,15 +207,11 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
         "The approved provider file change was not completed.",
       );
     }
-    const afterHash = await readManagedFileHash(
-      this.options.repositoryRoot,
-      approved.request.path,
-    );
+    const afterHash = await readManagedFileHash(this.options.repositoryRoot, approved.request.path);
     const observedKind = changeKind(approved.permit.expectedBeforeHash, afterHash);
     if (
       observedKind === null ||
-      (approved.request.changeKind !== "upsert" &&
-        observedKind !== approved.request.changeKind)
+      (approved.request.changeKind !== "upsert" && observedKind !== approved.request.changeKind)
     ) {
       throw writeError(
         "provider_write_failed",
@@ -245,8 +238,10 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
   assertTurnSettled(expectedPath: string): void {
     const changes = this.completed.slice(this.completedBeforeTurn);
     if (
-      this.activeExpectedPath !== expectedPath || this.approvals.size > 0 ||
-      changes.length !== this.options.plan.pathsPerTurn || changes[0]?.path !== expectedPath
+      this.activeExpectedPath !== expectedPath ||
+      this.approvals.size > 0 ||
+      changes.length !== this.options.plan.pathsPerTurn ||
+      changes[0]?.path !== expectedPath
     ) {
       throw writeError(
         "provider_write_failed",
@@ -259,7 +254,8 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
 
   assertSettled(): void {
     if (
-      this.approvals.size > 0 || this.activeExpectedPath !== undefined ||
+      this.approvals.size > 0 ||
+      this.activeExpectedPath !== undefined ||
       this.completed.length < this.options.plan.minimumVerifiedChanges ||
       this.completed.length > this.options.plan.maximumVerifiedChanges
     ) {
@@ -277,10 +273,7 @@ export class ManagedProviderWriteBridge implements ProviderManagedWriteBridge {
   private date(): Date {
     const value = this.options.now();
     if (!Number.isFinite(value.getTime())) {
-      throw writeError(
-        "contract_validation_failed",
-        "The managed write bridge time is invalid.",
-      );
+      throw writeError("contract_validation_failed", "The managed write bridge time is invalid.");
     }
     return new Date(value.getTime());
   }

@@ -13,8 +13,10 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import type { WritingSemanticEvaluator } from "@lervo/writing";
 import type { DeliberationVerificationEvidence } from "@lervo/deliberation";
 
-export type DeliberationArtifactDetails<K extends DeliberationArtifactKind> =
-  Extract<DeliberationArtifact, { kind: K }>["details"];
+export type DeliberationArtifactDetails<K extends DeliberationArtifactKind> = Extract<
+  DeliberationArtifact,
+  { kind: K }
+>["details"];
 
 export type DeliberationRuntimeErrorCode =
   | "artifact_publication_failed"

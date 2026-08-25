@@ -68,10 +68,14 @@ describe("remote command contract", () => {
   it("binds an Ed25519 signature to the key id and canonical command", () => {
     const command = createRemoteCommand(commandInput());
     const { privateKey } = generateKeyPairSync("ed25519");
-    const signature = sign(null, remoteCommandSigningBytes({
-      command,
-      keyId: "key_hub_fixture",
-    }), privateKey);
+    const signature = sign(
+      null,
+      remoteCommandSigningBytes({
+        command,
+        keyId: "key_hub_fixture",
+      }),
+      privateKey,
+    );
     const envelope = createSignedRemoteCommandEnvelope({
       command,
       keyId: "key_hub_fixture",
@@ -80,29 +84,34 @@ describe("remote command contract", () => {
 
     expect(envelope.signature).toMatchObject({ algorithm: "ed25519" });
     expect(envelope.signature.value).toHaveLength(86);
-    expect(remoteCommandSigningBytes({ command, keyId: "key_hub_fixture" }))
-      .not.toEqual(remoteCommandSigningBytes({ command, keyId: "key_other_fixture" }));
+    expect(remoteCommandSigningBytes({ command, keyId: "key_hub_fixture" })).not.toEqual(
+      remoteCommandSigningBytes({ command, keyId: "key_other_fixture" }),
+    );
   });
 
   it("rejects a forged command id and a receipt for a different command", () => {
     const command = createRemoteCommand(commandInput());
-    expect(() => assertRemoteCommand({
-      ...command,
-      commandId: `rcm_${"0".repeat(64)}`,
-    })).toThrowError(expect.objectContaining({ code: "invalid_command" }));
+    expect(() =>
+      assertRemoteCommand({
+        ...command,
+        commandId: `rcm_${"0".repeat(64)}`,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_command" }));
 
-    expect(() => assertRemoteCommandExecutionReceipt({
-      command,
-      receipt: {
-        schemaVersion: 1,
-        commandId: command.commandId,
-        commandHash: `sha256:${"0".repeat(64)}`,
-        idempotencyKey: command.idempotencyKey,
-        processedAt: "2026-08-19T00:01:00.000Z",
-        outcome: "executed",
-        runId: "run_remote_fixture",
-      },
-    })).toThrowError(expect.objectContaining({ code: "invalid_execution_receipt" }));
+    expect(() =>
+      assertRemoteCommandExecutionReceipt({
+        command,
+        receipt: {
+          schemaVersion: 1,
+          commandId: command.commandId,
+          commandHash: `sha256:${"0".repeat(64)}`,
+          idempotencyKey: command.idempotencyKey,
+          processedAt: "2026-08-19T00:01:00.000Z",
+          outcome: "executed",
+          runId: "run_remote_fixture",
+        },
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_execution_receipt" }));
 
     expect(calculateRemoteCommandHash(command)).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
@@ -110,10 +119,14 @@ describe("remote command contract", () => {
   it("binds a durable lease, acknowledgement, and confirmation to one delivery", () => {
     const command = createRemoteCommand(commandInput());
     const { privateKey } = generateKeyPairSync("ed25519");
-    const signature = sign(null, remoteCommandSigningBytes({
-      command,
-      keyId: "key_hub_fixture",
-    }), privateKey);
+    const signature = sign(
+      null,
+      remoteCommandSigningBytes({
+        command,
+        keyId: "key_hub_fixture",
+      }),
+      privateKey,
+    );
     const envelope = createSignedRemoteCommandEnvelope({
       command,
       keyId: "key_hub_fixture",
@@ -148,26 +161,32 @@ describe("remote command contract", () => {
       confirmedAt: "2026-08-19T00:01:11.000Z",
     });
 
-    expect(lease.deliveryId).toBe(calculateRemoteCommandDeliveryId({
-      destinationId,
-      envelope,
-    }));
+    expect(lease.deliveryId).toBe(
+      calculateRemoteCommandDeliveryId({
+        destinationId,
+        envelope,
+      }),
+    );
     expect(confirmation).toMatchObject({
       deliveryId: lease.deliveryId,
       commandId: command.commandId,
       disposition: "completed",
       status: "accepted",
     });
-    expect(() => assertRemoteCommandDeliveryConfirmation({
-      acknowledgement,
-      confirmation: { ...confirmation, commandId: `rcm_${"0".repeat(64)}` },
-    })).toThrowError(expect.objectContaining({ code: "invalid_delivery_confirmation" }));
+    expect(() =>
+      assertRemoteCommandDeliveryConfirmation({
+        acknowledgement,
+        confirmation: { ...confirmation, commandId: `rcm_${"0".repeat(64)}` },
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_delivery_confirmation" }));
     if (acknowledgement.disposition !== "completed") throw new Error("unreachable fixture");
-    expect(() => createCompletedRemoteCommandAcknowledgement({
-      destinationId,
-      lease,
-      acknowledgedAt: "2026-08-19T00:01:31.000Z",
-      receipt: acknowledgement.receipt,
-    })).toThrowError(expect.objectContaining({ code: "invalid_delivery_acknowledgement" }));
+    expect(() =>
+      createCompletedRemoteCommandAcknowledgement({
+        destinationId,
+        lease,
+        acknowledgedAt: "2026-08-19T00:01:31.000Z",
+        receipt: acknowledgement.receipt,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_delivery_acknowledgement" }));
   });
 });

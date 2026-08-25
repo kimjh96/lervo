@@ -4,10 +4,7 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  createNodeRuntimeHealthPublisher,
-  type NodeRuntimeHealthSnapshot,
-} from "../src/index.js";
+import { createNodeRuntimeHealthPublisher, type NodeRuntimeHealthSnapshot } from "../src/index.js";
 
 const roots: string[] = [];
 

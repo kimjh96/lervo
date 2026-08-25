@@ -29,14 +29,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function requiredRecord(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) {
-    throw new CodexAdapterError("provider_protocol_failed", "The Codex response has an invalid shape.");
+    throw new CodexAdapterError(
+      "provider_protocol_failed",
+      "The Codex response has an invalid shape.",
+    );
   }
   return value;
 }
 
 function requiredString(value: unknown): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new CodexAdapterError("provider_protocol_failed", "The Codex response identifier is missing.");
+    throw new CodexAdapterError(
+      "provider_protocol_failed",
+      "The Codex response identifier is missing.",
+    );
   }
   return value;
 }
@@ -86,10 +92,38 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
         approvalPolicy: options.approvalPolicy,
         sandbox: options.sandbox,
         ...(options.model === undefined ? {} : { model: options.model }),
+        ...(options.config === undefined ? {} : { config: structuredClone(options.config) }),
+        ...(options.selectedCapabilityRoots === undefined
+          ? {}
+          : { selectedCapabilityRoots: structuredClone(options.selectedCapabilityRoots) }),
       }),
     );
     const thread = requiredRecord(result.thread);
     return { threadId: requiredString(thread.id) };
+  }
+
+  async listConnectedMcpServers(threadId: string): Promise<string[]> {
+    const result = requiredRecord(
+      await this.request("mcpServerStatus/list", {
+        threadId,
+        detail: "toolsAndAuthOnly",
+      }),
+    );
+    if (!Array.isArray(result.data)) {
+      throw new CodexAdapterError(
+        "provider_protocol_failed",
+        "The Codex MCP status response is invalid.",
+      );
+    }
+    return result.data.flatMap((item) => {
+      if (!isRecord(item) || typeof item.name !== "string") {
+        throw new CodexAdapterError(
+          "provider_protocol_failed",
+          "The Codex MCP server status is invalid.",
+        );
+      }
+      return isRecord(item.serverInfo) ? [item.name] : [];
+    });
   }
 
   async injectItems(threadId: string, items: readonly unknown[]): Promise<void> {
@@ -165,7 +199,10 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       const timer = setTimeout(() => {
         this.pending.delete(id);
         reject(
-          new CodexAdapterError("provider_protocol_failed", "The Codex app-server response timed out."),
+          new CodexAdapterError(
+            "provider_protocol_failed",
+            "The Codex app-server response timed out.",
+          ),
         );
       }, this.requestTimeoutMs);
       this.pending.set(id, { resolve, reject, timer });
@@ -200,7 +237,10 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       clearTimeout(pending.timer);
       if (Object.hasOwn(message, "error")) {
         pending.reject(
-          new CodexAdapterError("provider_protocol_failed", "The Codex app-server request was rejected."),
+          new CodexAdapterError(
+            "provider_protocol_failed",
+            "The Codex app-server request was rejected.",
+          ),
         );
       } else {
         pending.resolve(message.result);

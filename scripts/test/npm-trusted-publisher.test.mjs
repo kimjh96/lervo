@@ -36,10 +36,13 @@ describe("npm trusted publisher adapter", () => {
       if (args[0] === "--version") return { stdout: "11.17.0\n", stderr: "" };
       if (args[0] === "publish") return { stdout: "+ @lervo/cli@0.1.0\n", stderr: "" };
       if (args[2] === "dist") {
-        return { stdout: JSON.stringify({
-          integrity: input.artifact.registryIntegrity,
-          shasum: input.artifact.registryShasum,
-        }), stderr: "" };
+        return {
+          stdout: JSON.stringify({
+            integrity: input.artifact.registryIntegrity,
+            shasum: input.artifact.registryShasum,
+          }),
+          stderr: "",
+        };
       }
       return { stdout: JSON.stringify({ latest: "0.1.0" }), stderr: "" };
     };
@@ -62,10 +65,7 @@ describe("npm trusted publisher adapter", () => {
       "--ignore-scripts",
     ]);
     assert.notEqual(calls[1].options.cwd, process.cwd());
-    assert.equal(
-      calls[1].options.env.NPM_CONFIG_USERCONFIG.startsWith(calls[1].options.cwd),
-      true,
-    );
+    assert.equal(calls[1].options.env.NPM_CONFIG_USERCONFIG.startsWith(calls[1].options.cwd), true);
     assert.equal(
       calls[1].options.env.NPM_CONFIG_GLOBALCONFIG.startsWith(calls[1].options.cwd),
       true,
@@ -111,10 +111,13 @@ describe("npm trusted publisher adapter", () => {
       if (args[0] === "--version") return { stdout: "11.5.1\n", stderr: "" };
       if (args[0] === "publish") return { stdout: "published\n", stderr: "" };
       if (args[2] === "dist") {
-        return { stdout: JSON.stringify({
-          integrity: `sha512-${"B".repeat(86)}==`,
-          shasum: input.artifact.registryShasum,
-        }), stderr: "" };
+        return {
+          stdout: JSON.stringify({
+            integrity: `sha512-${"B".repeat(86)}==`,
+            shasum: input.artifact.registryShasum,
+          }),
+          stderr: "",
+        };
       }
       return { stdout: JSON.stringify({ latest: "0.1.0" }), stderr: "" };
     };

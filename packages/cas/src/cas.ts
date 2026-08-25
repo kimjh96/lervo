@@ -7,11 +7,7 @@ import { type ArtifactStore } from "@lervo/storage-contract";
 const uriPattern = /^lervo-cas:\/\/sha256\/([a-f0-9]{64})$/;
 
 export type CasErrorCode =
-  | "capacity_exceeded"
-  | "corrupt_object"
-  | "invalid_uri"
-  | "not_found"
-  | "unsafe_path";
+  "capacity_exceeded" | "corrupt_object" | "invalid_uri" | "not_found" | "unsafe_path";
 
 export class CasError extends Error {
   constructor(
@@ -90,10 +86,7 @@ export class FileSystemCas implements ArtifactStore {
     }
     const bytes = await readFile(path);
     if (digest(bytes) !== hash) {
-      throw new CasError(
-        "corrupt_object",
-        `CAS object hash mismatch: ${uriForDigest(hash)}`,
-      );
+      throw new CasError("corrupt_object", `CAS object hash mismatch: ${uriForDigest(hash)}`);
     }
     return bytes;
   }
@@ -114,8 +107,7 @@ export class FileSystemCas implements ArtifactStore {
     let created = false;
     try {
       for await (const chunk of chunks) {
-        const bytes =
-          typeof chunk === "string" ? Buffer.from(chunk, "utf8") : Buffer.from(chunk);
+        const bytes = typeof chunk === "string" ? Buffer.from(chunk, "utf8") : Buffer.from(chunk);
         hashState.update(bytes);
         byteCount += bytes.byteLength;
         let offset = 0;

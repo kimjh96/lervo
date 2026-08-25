@@ -1,6 +1,4 @@
-import type {
-  ManagedBlockPatchCandidateArtifact,
-} from "@lervo/schemas";
+import type { ManagedBlockPatchCandidateArtifact } from "@lervo/schemas";
 
 import type { ScannedDocumentSource } from "./types.js";
 

@@ -4,7 +4,10 @@ import {
   candidateRelationSignatureEntries,
   type CandidateSignatureEntry,
 } from "./candidate-signatures.js";
-import { loadCurrentKnowledgeCompilationPair, type CurrentKnowledgeCompilationPair } from "./compilation-binding.js";
+import {
+  loadCurrentKnowledgeCompilationPair,
+  type CurrentKnowledgeCompilationPair,
+} from "./compilation-binding.js";
 import { stableId } from "./integrity.js";
 import { RepositoryKnowledgeError, type RepositoryKnowledgeScanOptions } from "./types.js";
 
@@ -25,11 +28,14 @@ export interface KnowledgeCompilationComparisonResult {
   sourceSnapshotId: string;
   policyHash: string;
   coverageDigest: string;
-  candidates: Record<ComparisonProvider, {
-    compilationId: string;
-    artifactHash: string;
-    compilerBuildId: string;
-  }>;
+  candidates: Record<
+    ComparisonProvider,
+    {
+      compilationId: string;
+      artifactHash: string;
+      compilerBuildId: string;
+    }
+  >;
   concepts: {
     codexCount: number;
     claudeCount: number;
@@ -66,24 +72,32 @@ function comparisonGroups(input: {
       grouped.set(entry.signature, current);
     }
   }
-  return [...grouped.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([signature, values]) => {
-    values.codex.sort();
-    values.claude.sort();
-    return {
-      signature,
-      presence: values.codex.length > 0 && values.claude.length > 0
-        ? "both"
-        : values.codex.length > 0 ? "codex_only" : "claude_only",
-      multiplicityMatch: values.codex.length === values.claude.length,
-      codexSubjectIds: values.codex,
-      claudeSubjectIds: values.claude,
-    };
-  });
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([signature, values]) => {
+      values.codex.sort();
+      values.claude.sort();
+      return {
+        signature,
+        presence:
+          values.codex.length > 0 && values.claude.length > 0
+            ? "both"
+            : values.codex.length > 0
+              ? "codex_only"
+              : "claude_only",
+        multiplicityMatch: values.codex.length === values.claude.length,
+        codexSubjectIds: values.codex,
+        claudeSubjectIds: values.claude,
+      };
+    });
 }
 
-function comparisonStatus(groups: KnowledgeCompilationComparisonGroup[]): KnowledgeCompilationComparisonResult["status"] {
+function comparisonStatus(
+  groups: KnowledgeCompilationComparisonGroup[],
+): KnowledgeCompilationComparisonResult["status"] {
   if (groups.length === 0) return "empty";
-  if (groups.every((group) => group.presence === "both" && group.multiplicityMatch)) return "exact_match";
+  if (groups.every((group) => group.presence === "both" && group.multiplicityMatch))
+    return "exact_match";
   return groups.some((group) => group.presence === "both") ? "partial_overlap" : "disjoint";
 }
 
@@ -95,7 +109,10 @@ export function compareCurrentKnowledgeCompilationPair(
   const codex = codexLoaded.candidate;
   const claude = claudeLoaded.candidate;
   if (codex.compiler.provider !== "codex" || claude.compiler.provider !== "claude") {
-    throw new RepositoryKnowledgeError("knowledge_compile_failed", "Codex and Claude candidates must each use the correct provider coordinates.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_failed",
+      "Codex and Claude candidates must each use the correct provider coordinates.",
+    );
   }
   const policyHash = pair.policyHash;
 
@@ -106,11 +123,17 @@ export function compareCurrentKnowledgeCompilationPair(
   const codexRelations = candidateRelationSignatureEntries(codex);
   const claudeRelations = candidateRelationSignatureEntries(claude);
   if (
-    codexConcepts.length > MAX_COMPARISON_SUBJECTS || claudeConcepts.length > MAX_COMPARISON_SUBJECTS ||
-    codexClaims.length > MAX_COMPARISON_SUBJECTS || claudeClaims.length > MAX_COMPARISON_SUBJECTS ||
-    codexRelations.length > MAX_COMPARISON_SUBJECTS || claudeRelations.length > MAX_COMPARISON_SUBJECTS
+    codexConcepts.length > MAX_COMPARISON_SUBJECTS ||
+    claudeConcepts.length > MAX_COMPARISON_SUBJECTS ||
+    codexClaims.length > MAX_COMPARISON_SUBJECTS ||
+    claudeClaims.length > MAX_COMPARISON_SUBJECTS ||
+    codexRelations.length > MAX_COMPARISON_SUBJECTS ||
+    claudeRelations.length > MAX_COMPARISON_SUBJECTS
   ) {
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The cross-provider comparison subject limit was exceeded.");
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_limit_exceeded",
+      "The cross-provider comparison subject limit was exceeded.",
+    );
   }
   const conceptGroups = comparisonGroups({ codex: codexConcepts, claude: claudeConcepts });
   const claimGroups = comparisonGroups({ codex: codexClaims, claude: claudeClaims });
@@ -176,7 +199,9 @@ export async function compareKnowledgeCompilationCandidates(input: {
     repositoryRoot: input.repositoryRoot,
     firstCompilationId: input.codexCompilationId,
     secondCompilationId: input.claudeCompilationId,
-    ...(input.supplementalSources === undefined ? {} : { supplementalSources: input.supplementalSources }),
+    ...(input.supplementalSources === undefined
+      ? {}
+      : { supplementalSources: input.supplementalSources }),
   });
   return compareCurrentKnowledgeCompilationPair(pair);
 }

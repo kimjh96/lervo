@@ -52,21 +52,24 @@ function itemButton(title, id, metrics, selected, onSelect) {
 export function renderProjects(element, projects, selectedProject, onSelect) {
   clear(element);
   for (const project of projects) {
-    const selected = selectedProject !== null &&
+    const selected =
+      selectedProject !== null &&
       selectedProject.destinationId === project.destinationId &&
       selectedProject.projectId === project.projectId;
     const item = document.createElement("li");
-    item.append(itemButton(
-      project.projectName,
-      project.projectId,
-      [
-        `${project.runCount} runs`,
-        `${project.storedEventCount} events`,
-        `${project.bufferedEventCount} buffered`,
-      ],
-      selected,
-      () => onSelect(project),
-    ));
+    item.append(
+      itemButton(
+        project.projectName,
+        project.projectId,
+        [
+          `${project.runCount} runs`,
+          `${project.storedEventCount} events`,
+          `${project.bufferedEventCount} buffered`,
+        ],
+        selected,
+        () => onSelect(project),
+      ),
+    );
     element.append(item);
   }
 }
@@ -75,17 +78,19 @@ export function renderRuns(element, runs, selectedRunId, onSelect) {
   clear(element);
   for (const run of runs) {
     const item = document.createElement("li");
-    item.append(itemButton(
-      formattedTime(run.firstOccurredAt),
-      run.runId,
-      [
-        `${run.sessionCount} sessions`,
-        `${run.eventCount} events`,
-        `${run.bufferedEventCount} buffered`,
-      ],
-      selectedRunId === run.runId,
-      () => onSelect(run),
-    ));
+    item.append(
+      itemButton(
+        formattedTime(run.firstOccurredAt),
+        run.runId,
+        [
+          `${run.sessionCount} sessions`,
+          `${run.eventCount} events`,
+          `${run.bufferedEventCount} buffered`,
+        ],
+        selectedRunId === run.runId,
+        () => onSelect(run),
+      ),
+    );
     element.append(item);
   }
 }
@@ -103,8 +108,13 @@ export function renderEvents(element, events) {
       text("h3", eventLabel(event.type), "event-title"),
       text("p", `#${event.seq} · ${formattedTime(event.occurredAt)}`, "event-meta"),
     );
-    const badgeText = traceEvent.chainPosition === "buffered" ? "Awaiting chain link" : "Continuous history";
-    const badge = text("span", badgeText, `badge${traceEvent.chainPosition === "buffered" ? " buffered" : ""}`);
+    const badgeText =
+      traceEvent.chainPosition === "buffered" ? "Awaiting chain link" : "Continuous history";
+    const badge = text(
+      "span",
+      badgeText,
+      `badge${traceEvent.chainPosition === "buffered" ? " buffered" : ""}`,
+    );
     heading.append(titleGroup, badge);
     item.append(heading);
 

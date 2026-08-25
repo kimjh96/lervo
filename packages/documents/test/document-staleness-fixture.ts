@@ -7,14 +7,16 @@ export const HASH_B = `sha256:${"b".repeat(64)}`;
 export const HASH_C = `sha256:${"c".repeat(64)}`;
 export const HASH_D = `sha256:${"d".repeat(64)}`;
 
-export function userManifest(overrides: {
-  documentId?: string;
-  path?: string;
-  verifiedRevision?: string;
-  verifiedAt?: string;
-  reviewIntervalDays?: number;
-  connectedPaths?: string[];
-} = {}): DocumentManifest {
+export function userManifest(
+  overrides: {
+    documentId?: string;
+    path?: string;
+    verifiedRevision?: string;
+    verifiedAt?: string;
+    reviewIntervalDays?: number;
+    connectedPaths?: string[];
+  } = {},
+): DocumentManifest {
   return {
     schemaVersion: 1,
     documentId: overrides.documentId ?? "doc_readme_000001",
@@ -46,9 +48,11 @@ export function userManifest(overrides: {
   };
 }
 
-export function managedManifest(inputs: Array<{ sourceId: string; contentHash: string }> = [
-  { sourceId: "policy", contentHash: HASH_A },
-]): DocumentManifest {
+export function managedManifest(
+  inputs: Array<{ sourceId: string; contentHash: string }> = [
+    { sourceId: "policy", contentHash: HASH_A },
+  ],
+): DocumentManifest {
   return {
     schemaVersion: 1,
     documentId: "doc_managed_00001",
@@ -63,12 +67,14 @@ export function managedManifest(inputs: Array<{ sourceId: string; contentHash: s
       ownership: {
         mode: "managed_blocks",
         outsideManagedBlocks: "preserve",
-        blocks: [{
-          blockId: "context",
-          startMarker: "<!-- lervo:begin block=context schema=1 -->",
-          endMarker: "<!-- lervo:end block=context -->",
-          inputs,
-        }],
+        blocks: [
+          {
+            blockId: "context",
+            startMarker: "<!-- lervo:begin block=context schema=1 -->",
+            endMarker: "<!-- lervo:end block=context -->",
+            inputs,
+          },
+        ],
       },
     },
     contentPolicy: {

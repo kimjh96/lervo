@@ -16,7 +16,8 @@ export function createPlatformDeliveryReceipt(input: {
   deliveredAt: string;
 }): ConversationDeliveryReceipt {
   if (
-    input.externalMessageKey.length < 1 || input.externalMessageKey.length > 512 ||
+    input.externalMessageKey.length < 1 ||
+    input.externalMessageKey.length > 512 ||
     !Number.isFinite(Date.parse(input.deliveredAt)) ||
     Date.parse(input.deliveredAt) < Date.parse(input.message.createdAt)
   ) {
@@ -30,7 +31,8 @@ export function createPlatformDeliveryReceipt(input: {
     outboundId: input.message.outboundId,
     integrationId: input.descriptor.integrationId,
     deliveryKeyHash: `sha256:${createHash("sha256")
-      .update(input.externalMessageKey, "utf8").digest("hex")}`,
+      .update(input.externalMessageKey, "utf8")
+      .digest("hex")}`,
     deliveredAt: input.deliveredAt,
   };
   assertConversationDeliveryReceipt({

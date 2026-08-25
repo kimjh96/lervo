@@ -56,7 +56,10 @@ function failureCode(status: Exclude<VerificationCommandResult["status"], "not_r
 function validClock(now: () => Date): Date {
   const value = now();
   if (Number.isNaN(value.getTime())) {
-    throw new VerificationError("invalid_verification_request", "The verification clock is invalid.");
+    throw new VerificationError(
+      "invalid_verification_request",
+      "The verification clock is invalid.",
+    );
   }
   return value;
 }
@@ -100,10 +103,12 @@ export async function runVerificationSuite(
 
   for (const command of input.suite.commands) {
     if (blockedBy !== null) {
-      commands.push(notRunResult(
-        command,
-        blockedBy === "cancelled" ? "cancelled" : "blocked_by_previous_failure",
-      ));
+      commands.push(
+        notRunResult(
+          command,
+          blockedBy === "cancelled" ? "cancelled" : "blocked_by_previous_failure",
+        ),
+      );
       continue;
     }
     const raw = await executeVerificationCommand({
@@ -134,7 +139,10 @@ export async function runVerificationSuite(
 
   const completedAt = validClock(now);
   if (completedAt.getTime() < startedAt.getTime()) {
-    throw new VerificationError("invalid_verification_request", "Verification cannot complete before it starts.");
+    throw new VerificationError(
+      "invalid_verification_request",
+      "Verification cannot complete before it starts.",
+    );
   }
   const afterRevision = await captureRevision(input);
   if (afterRevision !== beforeRevision) {
@@ -143,10 +151,15 @@ export async function runVerificationSuite(
       "The repository snapshot changed while verification commands were running.",
     );
   }
-  const status = commands.some((command) =>
-    command.status === "cancelled" ||
-    (command.status === "not_run" && command.failureCode === "cancelled")
-  ) ? "cancelled" : commands.every((command) => command.status === "passed") ? "passed" : "failed";
+  const status = commands.some(
+    (command) =>
+      command.status === "cancelled" ||
+      (command.status === "not_run" && command.failureCode === "cancelled"),
+  )
+    ? "cancelled"
+    : commands.every((command) => command.status === "passed")
+      ? "passed"
+      : "failed";
   const resultContent: Omit<VerificationResult, "verificationId"> = {
     schemaVersion: 1,
     suiteId: input.suite.suiteId,

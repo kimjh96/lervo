@@ -6,11 +6,9 @@ import { basename, resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { stageCliReleasePublication } from
-  "../lib/cli-release-stage-publication.mjs";
+import { stageCliReleasePublication } from "../lib/cli-release-stage-publication.mjs";
 import { createReleaseSubject } from "../lib/release-attestation-consumer.mjs";
-import { readReleaseStagePublicationSources } from
-  "../lib/release-stage-publication-sources.mjs";
+import { readReleaseStagePublicationSources } from "../lib/release-stage-publication-sources.mjs";
 import {
   createReleasePublicationArtifact,
   createReleasePublicationAuthorization,
@@ -24,13 +22,17 @@ async function releaseFixture() {
   const packageManifest = JSON.parse(
     await readFile(resolve(repositoryRoot, "apps/cli/package.json"), "utf8"),
   );
-  const result = spawnSync(process.execPath, [
-    "scripts/check-cli-release-attestation.mjs",
-    "--prepare",
-    releaseDirectory,
-    "--expected-tag",
-    `v${packageManifest.version}`,
-  ], { cwd: repositoryRoot, encoding: "utf8" });
+  const result = spawnSync(
+    process.execPath,
+    [
+      "scripts/check-cli-release-attestation.mjs",
+      "--prepare",
+      releaseDirectory,
+      "--expected-tag",
+      `v${packageManifest.version}`,
+    ],
+    { cwd: repositoryRoot, encoding: "utf8" },
+  );
   assert.equal(result.status, 0, result.stderr);
   const attestationDirectory = resolve(releaseDirectory, "attestations");
   await mkdir(attestationDirectory);
@@ -44,8 +46,9 @@ async function releaseFixture() {
     resolve(releaseDirectory, "release-artifact-manifest.json"),
     resolve(releaseDirectory, "release-sbom.cdx.json"),
   ];
-  const subjects = await Promise.all(subjectPaths.map(async (path) =>
-    createReleaseSubject(basename(path), await readFile(path))));
+  const subjects = await Promise.all(
+    subjectPaths.map(async (path) => createReleaseSubject(basename(path), await readFile(path))),
+  );
   const tarballContents = await readFile(tarballPath);
   const artifact = createReleasePublicationArtifact(
     basename(tarballPath),
@@ -67,10 +70,7 @@ async function releaseFixture() {
     },
   });
   const publicationAuthorizationPath = resolve(root, "publication-authorization.json");
-  await writeFile(
-    publicationAuthorizationPath,
-    `${JSON.stringify(authorization, null, 2)}\n`,
-  );
+  await writeFile(publicationAuthorizationPath, `${JSON.stringify(authorization, null, 2)}\n`);
   return {
     root,
     releaseDirectory,
@@ -100,10 +100,10 @@ describe("CLI release stage publication command boundary", () => {
         prepareStage: async ({ target, artifact, tarballPath }) => {
           assert.deepEqual(target, fixture.authorization.target);
           assert.deepEqual(artifact, fixture.authorization.artifact);
-          assert.equal(tarballPath, resolve(
-            fixture.releaseDirectory,
-            fixture.authorization.artifact.file,
-          ));
+          assert.equal(
+            tarballPath,
+            resolve(fixture.releaseDirectory, fixture.authorization.artifact.file),
+          );
           return {
             stage: async () => {
               calls += 1;
@@ -141,10 +141,11 @@ describe("CLI release stage publication command boundary", () => {
       ["--result-directory", "/tmp/a", "--result-directory", "/tmp/b"],
       ["--online", "yes"],
     ]) {
-      const result = spawnSync(process.execPath, [
-        "scripts/stage-cli-release-publication.mjs",
-        ...args,
-      ], { cwd: repositoryRoot, encoding: "utf8" });
+      const result = spawnSync(
+        process.execPath,
+        ["scripts/stage-cli-release-publication.mjs", ...args],
+        { cwd: repositoryRoot, encoding: "utf8" },
+      );
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
       assert.match(result.stderr, /^release_stage_publication_arguments_invalid:/u);

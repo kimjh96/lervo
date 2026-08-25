@@ -13,8 +13,13 @@ function invalidSuite(message: string): never {
 
 function isSafeRelativePath(path: string): boolean {
   if (path === ".") return true;
-  return path.length > 0 && !isAbsolute(path) && !path.includes("\\") &&
-    !path.endsWith("/") && path.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+  return (
+    path.length > 0 &&
+    !isAbsolute(path) &&
+    !path.includes("\\") &&
+    !path.endsWith("/") &&
+    path.split("/").every((part) => part !== "" && part !== "." && part !== "..")
+  );
 }
 
 export function validateVerificationSuite(suite: VerificationSuite): void {
@@ -28,11 +33,16 @@ export function validateVerificationSuite(suite: VerificationSuite): void {
     }
     commandIds.add(command.commandId);
     if (
-      command.executable.includes("\0") || command.arguments.some((item) => item.includes("\0")) ||
-      !(BARE_EXECUTABLE.test(command.executable) ||
-        (command.executable.startsWith("./") && isSafeRelativePath(command.executable.slice(2))))
+      command.executable.includes("\0") ||
+      command.arguments.some((item) => item.includes("\0")) ||
+      !(
+        BARE_EXECUTABLE.test(command.executable) ||
+        (command.executable.startsWith("./") && isSafeRelativePath(command.executable.slice(2)))
+      )
     ) {
-      invalidSuite("The verification executable or argument does not satisfy the safe execution contract.");
+      invalidSuite(
+        "The verification executable or argument does not satisfy the safe execution contract.",
+      );
     }
     if (!isSafeRelativePath(command.cwd)) {
       invalidSuite("The verification command cwd is not a safe repository-relative path.");

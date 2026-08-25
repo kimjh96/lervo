@@ -1,8 +1,5 @@
 import { computeEventHash } from "@lervo/event-contract";
-import {
-  createTraceReport,
-  maximumTraceReportEvents,
-} from "@lervo/diagnostics";
+import { createTraceReport, maximumTraceReportEvents } from "@lervo/diagnostics";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore, ListEventsOptions } from "@lervo/storage-contract";
 import { describe, expect, it, vi } from "vitest";
@@ -40,10 +37,12 @@ function events(count: number, runIdAt: (index: number) => string): EventEnvelop
 }
 
 function eventStore(source: EventEnvelope[]): EventStore {
-  const list = vi.fn((options: ListEventsOptions = {}) => source
-    .filter((event) => options.runId === undefined || event.runId === options.runId)
-    .filter((event) => event.seq > (options.afterSeq ?? 0))
-    .slice(0, options.limit ?? 100));
+  const list = vi.fn((options: ListEventsOptions = {}) =>
+    source
+      .filter((event) => options.runId === undefined || event.runId === options.runId)
+      .filter((event) => event.seq > (options.afterSeq ?? 0))
+      .slice(0, options.limit ?? 100),
+  );
   return {
     latest: () => source.at(-1) ?? null,
     list,
@@ -57,8 +56,7 @@ function eventStore(source: EventEnvelope[]): EventStore {
 
 describe("bounded trace source reads", () => {
   it("selects last from the actual head instead of the default 100-event page", () => {
-    const source = events(101, (index) =>
-      index === 101 ? "run_latest_0001" : "run_earlier_001");
+    const source = events(101, (index) => (index === 101 ? "run_latest_0001" : "run_earlier_001"));
     const store = eventStore(source);
 
     const report = createTraceReport({
@@ -78,10 +76,12 @@ describe("bounded trace source reads", () => {
   it("fails explicitly instead of returning a truncated full report", () => {
     const source = events(maximumTraceReportEvents + 1, () => "run_oversize_01");
 
-    expect(() => createTraceReport({
-      projectId: "prj_01234567",
-      events: eventStore(source),
-      selector: "run_oversize_01",
-    })).toThrowError(expect.objectContaining({ code: "trace_result_too_large" }));
+    expect(() =>
+      createTraceReport({
+        projectId: "prj_01234567",
+        events: eventStore(source),
+        selector: "run_oversize_01",
+      }),
+    ).toThrowError(expect.objectContaining({ code: "trace_result_too_large" }));
   });
 });

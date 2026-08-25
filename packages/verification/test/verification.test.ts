@@ -1,10 +1,4 @@
-import {
-  access,
-  mkdir,
-  readFile,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { access, mkdir, symlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -84,17 +78,17 @@ describe("project verification", () => {
     const first = execution.result.commands[0]!;
     expect(await artifactText(artifacts, first.stdoutArtifact!.uri)).toBe("useful output");
     expect(await artifactText(artifacts, first.stderrArtifact!.uri)).toBe("warning output");
-    expect(JSON.parse(await artifactText(artifacts, execution.resultArtifact.uri)))
-      .toEqual(execution.result);
-    expect(execution.resultArtifact.mediaType)
-      .toBe("application/vnd.lervo.verification-result+json; charset=utf-8");
+    expect(JSON.parse(await artifactText(artifacts, execution.resultArtifact.uri))).toEqual(
+      execution.result,
+    );
+    expect(execution.resultArtifact.mediaType).toBe(
+      "application/vnd.lervo.verification-result+json; charset=utf-8",
+    );
   });
 
   it("keeps command text and output out of result metadata", async () => {
     const { root, artifacts } = await temporaryRepository();
-    const definition = suite([
-      command("privacy", 'process.stdout.write("raw-secret-output")'),
-    ]);
+    const definition = suite([command("privacy", 'process.stdout.write("raw-secret-output")')]);
 
     const execution = await runVerificationSuite({
       suite: definition,
@@ -173,11 +167,13 @@ describe("project verification", () => {
     });
     expect(noisyResult.result).toMatchObject({
       status: "failed",
-      commands: [{
-        status: "output_limit_exceeded",
-        failureCode: "output_limit_exceeded",
-        stdoutArtifact: { byteCount: 1024 },
-      }],
+      commands: [
+        {
+          status: "output_limit_exceeded",
+          failureCode: "output_limit_exceeded",
+          stdoutArtifact: { byteCount: 1024 },
+        },
+      ],
     });
   });
 
@@ -205,56 +201,65 @@ describe("project verification", () => {
   it("requires the requested repository snapshot before and after command execution", async () => {
     const beforeMismatch = await temporaryRepository();
     const marker = resolve(beforeMismatch.root, "must-not-run.txt");
-    await expect(runVerificationSuite({
-      suite: suite([
-        command("unit-tests", 'require("node:fs").writeFileSync("must-not-run.txt", "bad")'),
-      ]),
-      repositoryRoot: beforeMismatch.root,
-      repositoryRevision: REPOSITORY_REVISION,
-      captureRepositoryRevision: async () => `sha256:${"b".repeat(64)}`,
-      artifactStore: beforeMismatch.artifacts,
-    })).rejects.toMatchObject({ code: "repository_snapshot_mismatch" });
+    await expect(
+      runVerificationSuite({
+        suite: suite([
+          command("unit-tests", 'require("node:fs").writeFileSync("must-not-run.txt", "bad")'),
+        ]),
+        repositoryRoot: beforeMismatch.root,
+        repositoryRevision: REPOSITORY_REVISION,
+        captureRepositoryRevision: async () => `sha256:${"b".repeat(64)}`,
+        artifactStore: beforeMismatch.artifacts,
+      }),
+    ).rejects.toMatchObject({ code: "repository_snapshot_mismatch" });
     await expect(access(marker)).rejects.toThrow();
 
     const changed = await temporaryRepository();
     const revisions = [REPOSITORY_REVISION, `sha256:${"c".repeat(64)}`];
-    await expect(runVerificationSuite({
-      suite: suite([command("unit-tests", "process.exit(0)")]),
-      repositoryRoot: changed.root,
-      repositoryRevision: REPOSITORY_REVISION,
-      captureRepositoryRevision: async () => revisions.shift()!,
-      artifactStore: changed.artifacts,
-    })).rejects.toMatchObject({ code: "repository_changed_during_verification" });
+    await expect(
+      runVerificationSuite({
+        suite: suite([command("unit-tests", "process.exit(0)")]),
+        repositoryRoot: changed.root,
+        repositoryRevision: REPOSITORY_REVISION,
+        captureRepositoryRevision: async () => revisions.shift()!,
+        artifactStore: changed.artifacts,
+      }),
+    ).rejects.toMatchObject({ code: "repository_changed_during_verification" });
   });
 
   it("rejects duplicate commands and a symlinked working directory before execution", async () => {
     const { root, artifacts } = await temporaryRepository();
     const duplicate = command("same", "process.exit(0)");
-    await expect(runVerificationSuite({
-      suite: suite([duplicate, duplicate]),
-      repositoryRoot: root,
-      repositoryRevision: REPOSITORY_REVISION,
-      captureRepositoryRevision: stableRepositoryRevision,
-      artifactStore: artifacts,
-    })).rejects.toMatchObject({ code: "invalid_verification_suite" });
+    await expect(
+      runVerificationSuite({
+        suite: suite([duplicate, duplicate]),
+        repositoryRoot: root,
+        repositoryRevision: REPOSITORY_REVISION,
+        captureRepositoryRevision: stableRepositoryRevision,
+        artifactStore: artifacts,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_verification_suite" });
 
     const outside = resolve(root, "outside");
     await mkdir(outside);
     await symlink(outside, resolve(root, "linked"));
-    await expect(runVerificationSuite({
-      suite: suite([command("linked", "process.exit(0)", { cwd: "linked" })]),
-      repositoryRoot: root,
-      repositoryRevision: REPOSITORY_REVISION,
-      captureRepositoryRevision: stableRepositoryRevision,
-      artifactStore: artifacts,
-    })).rejects.toMatchObject({ code: "command_working_directory_invalid" });
+    await expect(
+      runVerificationSuite({
+        suite: suite([command("linked", "process.exit(0)", { cwd: "linked" })]),
+        repositoryRoot: root,
+        repositoryRevision: REPOSITORY_REVISION,
+        captureRepositoryRevision: stableRepositoryRevision,
+        artifactStore: artifacts,
+      }),
+    ).rejects.toMatchObject({ code: "command_working_directory_invalid" });
   });
 
   it("does not return a verification result when CAS read-back verification fails", async () => {
     const { root } = await temporaryRepository();
     const brokenStore: ArtifactStore = {
       async put(content) {
-        const byteCount = typeof content === "string" ? Buffer.byteLength(content) : content.byteLength;
+        const byteCount =
+          typeof content === "string" ? Buffer.byteLength(content) : content.byteLength;
         return {
           uri: `lervo-cas://sha256/${"b".repeat(64)}`,
           contentHash: `sha256:${"b".repeat(64)}`,
@@ -273,12 +278,14 @@ describe("project verification", () => {
       },
     };
 
-    await expect(runVerificationSuite({
-      suite: suite([command("unit-tests", "process.exit(0)")]),
-      repositoryRoot: root,
-      repositoryRevision: REPOSITORY_REVISION,
-      captureRepositoryRevision: stableRepositoryRevision,
-      artifactStore: brokenStore,
-    })).rejects.toMatchObject({ code: "artifact_storage_failed" });
+    await expect(
+      runVerificationSuite({
+        suite: suite([command("unit-tests", "process.exit(0)")]),
+        repositoryRoot: root,
+        repositoryRevision: REPOSITORY_REVISION,
+        captureRepositoryRevision: stableRepositoryRevision,
+        artifactStore: brokenStore,
+      }),
+    ).rejects.toMatchObject({ code: "artifact_storage_failed" });
   });
 });

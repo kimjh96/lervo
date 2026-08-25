@@ -45,7 +45,10 @@ export function createRemoteCommand(
 
 export function assertRemoteCommand(command: RemoteCommand): void {
   if (!validateSchema("remoteCommand", command).valid) {
-    throw new RemoteCommandContractError("invalid_command", "The remote command contract is invalid.");
+    throw new RemoteCommandContractError(
+      "invalid_command",
+      "The remote command contract is invalid.",
+    );
   }
   const { commandId: _commandId, ...content } = command;
   if (command.commandId !== calculateRemoteCommandId(content)) {
@@ -78,12 +81,15 @@ export function remoteCommandSigningBytes(input: {
       "The remote command signature key ID is invalid.",
     );
   }
-  return Buffer.from(canonicalJson({
-    domain: "lervo.remote-command.v1",
-    algorithm: "ed25519",
-    keyId: input.keyId,
-    command: input.command,
-  }), "utf8");
+  return Buffer.from(
+    canonicalJson({
+      domain: "lervo.remote-command.v1",
+      algorithm: "ed25519",
+      keyId: input.keyId,
+      command: input.command,
+    }),
+    "utf8",
+  );
 }
 
 export function createSignedRemoteCommandEnvelope(input: {
@@ -119,10 +125,7 @@ export function assertSignedRemoteCommand(envelope: SignedRemoteCommand): void {
   }
   assertRemoteCommand(envelope.command);
   const signature = Buffer.from(envelope.signature.value, "base64url");
-  if (
-    signature.byteLength !== 64 ||
-    signature.toString("base64url") !== envelope.signature.value
-  ) {
+  if (signature.byteLength !== 64 || signature.toString("base64url") !== envelope.signature.value) {
     throw new RemoteCommandContractError(
       "invalid_signature_envelope",
       "The remote command signature encoding is invalid.",

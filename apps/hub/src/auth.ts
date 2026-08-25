@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 
-import {
-  HUB_TRACE_MAX_PROJECT_SCOPE,
-  type HubProjectTraceCursor,
-} from "@lervo/hub-trace";
+import { HUB_TRACE_MAX_PROJECT_SCOPE, type HubProjectTraceCursor } from "@lervo/hub-trace";
 
 import {
   HUB_DESTINATION_ID_PATTERN,
@@ -30,7 +27,9 @@ export type HubPermission =
   | "command.read"
   | "command.write"
   | "command.delivery"
-  | "approval.write";
+  | "approval.write"
+  | "capability.read"
+  | "capability.publish";
 
 export interface HubRequestAuthenticator {
   authenticate(authorization: string | undefined): Promise<HubAuthenticatedPrincipal | null>;
@@ -61,28 +60,38 @@ function validateCredential(credential: HubBearerCredential): void {
     credential.permissions.length < 1 ||
     new Set(credential.permissions).size !== credential.permissions.length ||
     !credential.permissions.every((permission) =>
-      ([
-        "trace.read",
-        "sync.write",
-        "workstream.read",
-        "workstream.write",
-        "policy.read",
-        "policy.write",
-        "command.read",
-        "command.write",
-        "command.delivery",
-        "approval.write",
-      ] as HubPermission[]).includes(permission)
+      (
+        [
+          "trace.read",
+          "sync.write",
+          "workstream.read",
+          "workstream.write",
+          "policy.read",
+          "policy.write",
+          "command.read",
+          "command.write",
+          "command.delivery",
+          "approval.write",
+          "capability.read",
+          "capability.publish",
+        ] as HubPermission[]
+      ).includes(permission),
     )
   ) {
     throw new Error("A Hub bearer credential permission is invalid.");
   }
-  if (!Array.isArray(credential.projects) || credential.projects.length > HUB_TRACE_MAX_PROJECT_SCOPE) {
-    throw new Error(`A Hub bearer credential may scope at most ${HUB_TRACE_MAX_PROJECT_SCOPE} projects.`);
+  if (
+    !Array.isArray(credential.projects) ||
+    credential.projects.length > HUB_TRACE_MAX_PROJECT_SCOPE
+  ) {
+    throw new Error(
+      `A Hub bearer credential may scope at most ${HUB_TRACE_MAX_PROJECT_SCOPE} projects.`,
+    );
   }
   for (const project of credential.projects) {
     if (
-      typeof project !== "object" || project === null ||
+      typeof project !== "object" ||
+      project === null ||
       !HUB_DESTINATION_ID_PATTERN.test(project.destinationId) ||
       !HUB_PROJECT_ID_PATTERN.test(project.projectId)
     ) {

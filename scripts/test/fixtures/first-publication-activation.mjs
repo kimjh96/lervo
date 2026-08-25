@@ -33,7 +33,7 @@ export function replaceActivationReleaseArtifact(releaseManifest, changes) {
 }
 
 export async function createActivationSourceFiles(sources) {
-  const resolvedSources = sources ?? await currentActivationSources();
+  const resolvedSources = sources ?? (await currentActivationSources());
   const root = await mkdtemp(resolve(tmpdir(), "lervo-activation-blockers-"));
   const paths = {
     packageManifestPath: resolve(root, "package.json"),

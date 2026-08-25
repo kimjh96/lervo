@@ -9,7 +9,12 @@ function parseVersion(value: string): [number, number, number, string[]] {
   const core = prereleaseIndex === -1 ? version : version.slice(0, prereleaseIndex);
   const prerelease = prereleaseIndex === -1 ? "" : version.slice(prereleaseIndex + 1);
   const [major = "0", minor = "0", patch = "0"] = core.split(".");
-  return [Number(major), Number(minor), Number(patch), prerelease === "" ? [] : prerelease.split(".")];
+  return [
+    Number(major),
+    Number(minor),
+    Number(patch),
+    prerelease === "" ? [] : prerelease.split("."),
+  ];
 }
 
 export function compareSemver(left: string, right: string): number {
@@ -49,12 +54,15 @@ export function rejectionReason(
     manifest.enabledScope.kind === "disabled" ||
     (manifest.enabledScope.kind === "projects" &&
       !manifest.enabledScope.projectIds.includes(runtime.projectId))
-  ) return "scope_disabled";
+  )
+    return "scope_disabled";
   if (
     manifest.compatibility.providers.mode === "allowlist" &&
     !manifest.compatibility.providers.providers.includes(runtime.provider)
-  ) return "provider_incompatible";
-  if (!manifest.supportedRoles.includes(runtime.roleId)) return "role_incompatible";
+  )
+    return "provider_incompatible";
+  if (!manifest.supportedRoles.includes("*") && !manifest.supportedRoles.includes(runtime.roleId))
+    return "role_incompatible";
   if (compareSemver(runtime.runtimeVersion, manifest.compatibility.minimumRuntimeVersion) < 0) {
     return "runtime_incompatible";
   }

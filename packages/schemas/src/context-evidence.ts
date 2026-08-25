@@ -93,14 +93,7 @@ export const contextEvidenceSchema = {
         reasonCode: { type: "string", enum: selectionReasonCodes },
         ruleId: { type: "string", minLength: 1 },
       },
-      required: [
-        ...commonRequired,
-        "required",
-        "scope",
-        "policyVersion",
-        "reasonCode",
-        "ruleId"
-      ],
+      required: [...commonRequired, "required", "scope", "policyVersion", "reasonCode", "ruleId"],
       additionalProperties: false,
     },
     {
@@ -113,13 +106,7 @@ export const contextEvidenceSchema = {
         byteCount: { type: "integer", minimum: 0 },
         sourceRevision: { type: "string", minLength: 1 },
       },
-      required: [
-        ...commonRequired,
-        "scope",
-        "contentHash",
-        "byteCount",
-        "sourceRevision"
-      ],
+      required: [...commonRequired, "scope", "contentHash", "byteCount", "sourceRevision"],
       additionalProperties: false,
     },
     {
@@ -149,7 +136,7 @@ export const contextEvidenceSchema = {
         "envelopeId",
         "targetTurnId",
         "contextGeneration",
-        "controlledInput"
+        "controlledInput",
       ],
       additionalProperties: false,
     },
@@ -187,7 +174,7 @@ export const contextEvidenceSchema = {
         "injectedEvidenceReceiptId",
         "sourceEventId",
         "referenceKind",
-        "citation"
+        "citation",
       ],
       additionalProperties: false,
     },

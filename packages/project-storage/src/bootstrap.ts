@@ -5,6 +5,7 @@ import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { type OutboxStore } from "@lervo/storage-contract";
 
 import { validateProjectStorageLayout, validateRepositoryRoot } from "./layout.js";
+import { migrateLegacyDurableState } from "./durable-layout.js";
 import {
   type CloseableArtifactStore,
   type ProjectStorage,
@@ -66,11 +67,12 @@ export function createProjectStorageOpener(
     const paths = resolveProjectPaths(root);
     await validateRepositoryRoot(paths);
     const manifest = await loadProjectManifest(paths.repositoryRoot);
-    try {
-      await mkdir(paths.state, { mode: 0o700 });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    }
+    await Promise.all([
+      mkdir(paths.data, { recursive: true, mode: 0o700 }),
+      mkdir(paths.state, { recursive: true, mode: 0o700 }),
+    ]);
+    await validateProjectStorageLayout(paths);
+    await migrateLegacyDurableState(paths, manifest.projectId);
     await validateProjectStorageLayout(paths);
     const events = await backends.openEventStore({
       path: paths.eventDatabase,

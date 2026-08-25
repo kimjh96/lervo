@@ -5,24 +5,24 @@
 
 ## Context
 
-A Node completes local outbox rows only after a batch-bound Hub acknowledgement. If the Hub responds after only mutating memory, or commits registration, events, and cursor separately, restart can lose accepted events or leave the cursor ahead after the Node stops retrying. Domain reduction must remain separate from SQLite mechanics.
+A Node completes local outbox rows only after a batch-bound Hub acknowledgement. Responding after only mutating memory can lose accepted events on restart. Committing registration, events, and cursor separately can leave the cursor ahead after the Node stops retrying. Domain reduction must remain separate from SQLite mechanics.
 
 ## Decision
 
 ### Reducer, handler, and adapter
 
 - `@lervo/sync-contract` purely computes the next state and response candidate.
-- `@lervo/hub-sync` reads the current project, invokes the reducer, and stores the next state through a synchronous transaction port. It returns a registration response or acknowledgement only after commit and rejects asynchronous callbacks.
-- `@lervo/hub-sync-sqlite` owns schemas, migrations, transactions, and integrity for projects, the event inbox, and the cursor—not HTTP, authentication, authorization, or UI.
-- Transport must authenticate and authorize before invoking the handler. The storage interface is not proof of either.
+- `@lervo/hub-sync` reads the current project, invokes the reducer, and stores the next state through a synchronous transaction port. It rejects asynchronous callbacks and returns a registration response or acknowledgement only after commit.
+- `@lervo/hub-sync-sqlite` owns schemas, migrations, transactions, and integrity for projects, the event inbox, and the cursor. It does not own HTTP, authentication, authorization, or UI.
+- Transport must authenticate and authorize before invoking the handler. The storage interface proves neither.
 
 ### Stored source and coordinates
 
-- The lookup and conflict key is `(destinationId, projectId)`, not registration ID alone.
-- A different creation identity at those coordinates reaches the reducer and conflicts. Same-identity manifest changes update request and hash while preserving events and cursor.
+- Use `(destinationId, projectId)`, not registration ID alone, as the lookup and conflict key.
+- At those coordinates, a different creation identity reaches the reducer and conflicts. Same-identity manifest changes update the request and hash while preserving events and cursor.
 - `hub_projects` stores the full registration request, registration or update time, and cursor. `hub_events` stores full allowlisted envelopes by project sequence.
 - Revalidate indexes, event IDs, hashes, sequences, and JSON on open and write.
-- Event rows are trigger-protected and append-only. Project rows cannot be deleted; registration snapshots and cursors change only transactionally.
+- Trigger-protect event rows as append-only. Project rows cannot be deleted. Registration snapshots and cursors change only transactionally.
 
 ### One commit for registration, inbox, and cursor
 

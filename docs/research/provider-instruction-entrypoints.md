@@ -10,7 +10,7 @@ Lervo keeps repository knowledge provider-neutral, but coding agents discover di
 ## Entrypoint comparison
 
 | Ecosystem | Repository entrypoint | Discovery and hierarchy | Lervo treatment |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | AGENTS.md open format | Directory-scoped `AGENTS.md` | Plain Markdown convention; the closest file scopes a subtree | Provider-neutral canonical instructions |
 | OpenAI Codex | `AGENTS.override.md` / `AGENTS.md` plus configured fallbacks | Combines files from repository root to current directory; closer instructions apply later; default aggregate limit is 32 KiB | Reads root and scoped AGENTS natively; no Codex bridge |
 | Anthropic Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | User, project, local, and managed-policy layers; expands `@path` imports outside code spans | Thin root CLAUDE managed block imports root AGENTS |
@@ -24,7 +24,7 @@ Primary sources: [AGENTS.md](https://agents.md/), [OpenAI Codex AGENTS.md](https
 Entrypoints do not cover every skill, workflow, policy, hook, or client setting.
 
 | Surface | Meaning | Migration disposition |
-|---|---|---|
+| --- | --- | --- |
 | `AGENTS.md`, `AGENTS.override.md` | Codex behavioral instructions | Preserve canonical and subtree sources |
 | `.agents/skills/<name>/SKILL.md` | Portable Agent Skill | Validate the skill contract and preserve resources |
 | `.codex/rules/*.rules` | Codex command policy | Local inventory only; never merge with prose instructions |

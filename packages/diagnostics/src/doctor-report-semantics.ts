@@ -21,13 +21,17 @@ export function isDoctorReportSemanticallyValid(report: DoctorReport): boolean {
   if (report.status !== expectedStatus(report.checks)) return false;
 
   const expectedGuidance = createDoctorRecoveryGuidance(report.issues);
-  return report.recoveryGuidance.length === expectedGuidance.length &&
+  return (
+    report.recoveryGuidance.length === expectedGuidance.length &&
     report.recoveryGuidance.every((guidance, index) => {
       const expected = expectedGuidance[index];
-      return expected !== undefined &&
+      return (
+        expected !== undefined &&
         guidance.issueCode === expected.issueCode &&
         guidance.actionCode === expected.actionCode &&
         guidance.message === expected.message &&
-        guidance.actionState === expected.actionState;
-    });
+        guidance.actionState === expected.actionState
+      );
+    })
+  );
 }

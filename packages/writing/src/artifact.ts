@@ -22,9 +22,12 @@ export async function readWritingArtifact(
   const expected = expectedCoordinates(artifact.contentHash);
   if (
     artifact.mediaType !== "text/markdown; charset=utf-8" ||
-    !SHA256.test(artifact.contentHash) || !Number.isSafeInteger(artifact.byteCount) ||
-    artifact.byteCount < 1 || artifact.byteCount > MAXIMUM_WRITING_BYTES ||
-    artifact.artifactId !== expected.artifactId || artifact.uri !== expected.uri
+    !SHA256.test(artifact.contentHash) ||
+    !Number.isSafeInteger(artifact.byteCount) ||
+    artifact.byteCount < 1 ||
+    artifact.byteCount > MAXIMUM_WRITING_BYTES ||
+    artifact.artifactId !== expected.artifactId ||
+    artifact.uri !== expected.uri
   ) {
     throw new WritingPublicationError(
       "artifact_contract_invalid",
@@ -33,10 +36,7 @@ export async function readWritingArtifact(
   }
   try {
     const bytes = new Uint8Array(await store.get(artifact.uri));
-    if (
-      bytes.byteLength !== artifact.byteCount ||
-      writingSha256(bytes) !== artifact.contentHash
-    ) {
+    if (bytes.byteLength !== artifact.byteCount || writingSha256(bytes) !== artifact.contentHash) {
       throw new Error("artifact bytes mismatch");
     }
     return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -60,8 +60,10 @@ export async function storeWritingEvaluation(
     const stored = await store.put(bytes);
     const restored = new Uint8Array(await store.get(stored.uri));
     if (
-      stored.uri !== expected.uri || stored.contentHash !== expectedHash ||
-      stored.byteCount !== bytes.byteLength || restored.byteLength !== bytes.byteLength ||
+      stored.uri !== expected.uri ||
+      stored.contentHash !== expectedHash ||
+      stored.byteCount !== bytes.byteLength ||
+      restored.byteLength !== bytes.byteLength ||
       !Buffer.from(restored).equals(Buffer.from(bytes))
     ) {
       throw new Error("evaluation artifact verification failed");
@@ -92,10 +94,13 @@ export async function verifyEvaluationArtifact(
     const restored = new Uint8Array(await store.get(artifact.uri));
     if (
       artifact.mediaType !== "application/vnd.lervo.writing-evaluation+json; charset=utf-8" ||
-      artifact.artifactId !== expected.artifactId || artifact.uri !== expected.uri ||
-      artifact.contentHash !== expectedHash || artifact.byteCount !== expectedBytes.byteLength ||
+      artifact.artifactId !== expected.artifactId ||
+      artifact.uri !== expected.uri ||
+      artifact.contentHash !== expectedHash ||
+      artifact.byteCount !== expectedBytes.byteLength ||
       !Buffer.from(restored).equals(Buffer.from(expectedBytes))
-    ) throw new Error("evaluation artifact mismatch");
+    )
+      throw new Error("evaluation artifact mismatch");
   } catch (error) {
     throw new WritingPublicationError(
       "publication_permit_invalid",

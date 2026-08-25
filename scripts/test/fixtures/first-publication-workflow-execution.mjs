@@ -1,10 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createCliFirstPublicationWorkflowReachabilityEvidence } from
-  "../../lib/cli-first-publication-workflow-reachability.mjs";
-import { remoteReleaseWorkflowPath } from
-  "../../lib/first-publication-workflow-remote-source-contract.mjs";
+import { createCliFirstPublicationWorkflowReachabilityEvidence } from "../../lib/cli-first-publication-workflow-reachability.mjs";
+import { remoteReleaseWorkflowPath } from "../../lib/first-publication-workflow-remote-source-contract.mjs";
 import {
   workflowExecutionArtifactName,
   workflowExecutionJobName,
@@ -16,33 +14,30 @@ import {
   matchingWorkflowReachabilityObservation,
   workflowReleaseTag,
 } from "./first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./first-publication-workflow-activation.mjs";
+import { workflowRemoteSourceCommit } from "./first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./first-publication-workflow-activation.mjs";
 
 export const workflowExecutionRunId = 12_345_678;
 export const workflowExecutionAttempt = 2;
 
 export async function createWorkflowExecutionFixture() {
   const fixture = await createWorkflowReachabilityFixture();
-  const reachabilityReport =
-    await createCliFirstPublicationWorkflowReachabilityEvidence({
+  const reachabilityReport = await createCliFirstPublicationWorkflowReachabilityEvidence(
+    {
       repository: workflowActivationRepository,
       sourceCommit: workflowRemoteSourceCommit,
       releaseTag: workflowReleaseTag,
       remoteEvidenceReportPath: fixture.remoteEvidenceReportPath,
       online: true,
-    }, {
+    },
+    {
       paths: { cliPackageManifestPath: fixture.paths.cliPackageManifestPath },
       observeReachability: async () => matchingWorkflowReachabilityObservation(fixture),
       clock: () => "2026-08-21T10:08:00Z",
-    });
-  const reachabilityReportPath = resolve(fixture.root, "workflow-reachability.json");
-  await writeFile(
-    reachabilityReportPath,
-    `${JSON.stringify(reachabilityReport, null, 2)}\n`,
+    },
   );
+  const reachabilityReportPath = resolve(fixture.root, "workflow-reachability.json");
+  await writeFile(reachabilityReportPath, `${JSON.stringify(reachabilityReport, null, 2)}\n`);
   return { ...fixture, reachabilityReport, reachabilityReportPath };
 }
 
@@ -102,10 +97,7 @@ export function matchingWorkflowExecutionObservation(overrides = {}) {
     },
     artifact: {
       id: 99,
-      name: workflowExecutionArtifactName(
-        workflowReleaseTag,
-        workflowExecutionAttempt,
-      ),
+      name: workflowExecutionArtifactName(workflowReleaseTag, workflowExecutionAttempt),
       sizeInBytes: 4_096,
       digest: `sha256:${"a".repeat(64)}`,
       expired: false,

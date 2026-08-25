@@ -29,12 +29,19 @@ function unsupported() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)) {
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
+  ) {
     invalid();
   }
   const milliseconds = Date.parse(value);
@@ -70,30 +77,47 @@ export function validateFirstPublicationBootstrapAuthorization(bootstrap) {
     !digestPattern.test(bootstrap.bootstrapDigest ?? "") ||
     bootstrap.bootstrapDigest !== canonicalDigest(body) ||
     !exactKeys(bootstrap.target, ["registry", "package", "version", "distTag", "access"]) ||
-    bootstrap.target.registry !== npmPublicRegistry || bootstrap.target.package !== "@lervo/cli" ||
+    bootstrap.target.registry !== npmPublicRegistry ||
+    bootstrap.target.package !== "@lervo/cli" ||
     !semanticVersionPattern.test(bootstrap.target.version ?? "") ||
-    !["latest", "next"].includes(bootstrap.target.distTag) || bootstrap.target.access !== "public" ||
+    !["latest", "next"].includes(bootstrap.target.distTag) ||
+    bootstrap.target.access !== "public" ||
     !exactKeys(bootstrap.identity, ["repository", "license", "scopeOwner"]) ||
-    typeof bootstrap.identity.license !== "string" || bootstrap.identity.license.length < 1 ||
-    bootstrap.identity.license.length > 128 || bootstrap.identity.license === "UNLICENSED" ||
+    typeof bootstrap.identity.license !== "string" ||
+    bootstrap.identity.license.length < 1 ||
+    bootstrap.identity.license.length > 128 ||
+    bootstrap.identity.license === "UNLICENSED" ||
     !exactKeys(bootstrap.identity.scopeOwner, ["kind", "name"]) ||
     !["organization", "user"].includes(bootstrap.identity.scopeOwner.kind) ||
     bootstrap.identity.scopeOwner.name !== "lervo" ||
     !exactKeys(bootstrap.release, [
-      "publicationAuthorizationDigest", "artifact", "tag", "sourceDigest",
-    ]) || !digestPattern.test(bootstrap.release.publicationAuthorizationDigest ?? "") ||
+      "publicationAuthorizationDigest",
+      "artifact",
+      "tag",
+      "sourceDigest",
+    ]) ||
+    !digestPattern.test(bootstrap.release.publicationAuthorizationDigest ?? "") ||
     !exactKeys(bootstrap.release.artifact, [
-      "file", "sha256", "registryIntegrity", "registryShasum",
-    ]) || bootstrap.release.artifact.file !== `lervo-cli-${bootstrap.target.version}.tgz` ||
+      "file",
+      "sha256",
+      "registryIntegrity",
+      "registryShasum",
+    ]) ||
+    bootstrap.release.artifact.file !== `lervo-cli-${bootstrap.target.version}.tgz` ||
     !/^[a-f0-9]{64}$/u.test(bootstrap.release.artifact.sha256 ?? "") ||
     !sha512IntegrityPattern.test(bootstrap.release.artifact.registryIntegrity ?? "") ||
     !sha1Pattern.test(bootstrap.release.artifact.registryShasum ?? "") ||
     bootstrap.release.tag !== `v${bootstrap.target.version}` ||
     !sourceDigestPattern.test(bootstrap.release.sourceDigest ?? "") ||
     !exactKeys(bootstrap.evidence, [
-      "externalEvidenceReportDigest", "postApplyReportDigest", "receiptDigest",
-      "licenseApprovalDigest", "scopeConfirmationDigest", "firstPublicationApprovalDigest",
-      "checkedAt", "validUntil",
+      "externalEvidenceReportDigest",
+      "postApplyReportDigest",
+      "receiptDigest",
+      "licenseApprovalDigest",
+      "scopeConfirmationDigest",
+      "firstPublicationApprovalDigest",
+      "checkedAt",
+      "validUntil",
     ]) ||
     !digestPattern.test(bootstrap.evidence.externalEvidenceReportDigest ?? "") ||
     !digestPattern.test(bootstrap.evidence.postApplyReportDigest ?? "") ||
@@ -103,13 +127,16 @@ export function validateFirstPublicationBootstrapAuthorization(bootstrap) {
     !digestPattern.test(bootstrap.evidence.firstPublicationApprovalDigest ?? "") ||
     !exactKeys(bootstrap.registryObservation, ["state", "observedAt", "validUntil"]) ||
     bootstrap.registryObservation.state !== "public_package_not_found" ||
-    evidenceCheckedAt > observedAt || evidenceCheckedAt >= evidenceValidUntil ||
-    observedAt >= validUntil || observedAt >= evidenceValidUntil ||
+    evidenceCheckedAt > observedAt ||
+    evidenceCheckedAt >= evidenceValidUntil ||
+    observedAt >= validUntil ||
+    observedAt >= evidenceValidUntil ||
     validUntil > evidenceValidUntil ||
     validUntil - observedAt > firstPublicationRegistryObservationLifetimeMs ||
     canonicalJson(bootstrap.execution) !== canonicalJson(firstPublicationExecution) ||
     canonicalJson(bootstrap.transition) !== canonicalJson(firstPublicationTransition)
-  ) invalid();
+  )
+    invalid();
   try {
     validateReadinessRepository(bootstrap.identity.repository);
   } catch {

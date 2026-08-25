@@ -79,11 +79,7 @@ export function rowToOutboxDelivery(row: SqliteRow): OutboxDelivery {
   if (leaseStartedAt !== null) {
     requireStoredOutboxTimestamp(leaseStartedAt, "leaseStartedAt");
   }
-  if (
-    leaseStartedAt !== null &&
-    leaseExpiresAt !== null &&
-    leaseStartedAt >= leaseExpiresAt
-  ) {
+  if (leaseStartedAt !== null && leaseExpiresAt !== null && leaseStartedAt >= leaseExpiresAt) {
     throw new EventStoreError("integrity_failed", "The outbox lease time range is invalid.");
   }
   if (failureCode !== null && !isOutboxFailureCode(failureCode)) {
@@ -107,10 +103,7 @@ export function rowToOutboxDelivery(row: SqliteRow): OutboxDelivery {
       leaseOwner === null || leaseStartedAt === null || leaseExpiresAt === null
         ? null
         : { workerId: leaseOwner, claimedAt: leaseStartedAt, expiresAt: leaseExpiresAt },
-    lastFailure:
-      failureCode === null || failedAt === null
-        ? null
-        : { code: failureCode, failedAt },
+    lastFailure: failureCode === null || failedAt === null ? null : { code: failureCode, failedAt },
     acknowledgedAt,
   };
 }

@@ -20,7 +20,8 @@ import {
 const roots: string[] = [];
 const sourcePath = "guide.md";
 const destinationPath = "guides/extracted.md";
-const original = "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n## Tail\n\nKeep tail.\n";
+const original =
+  "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n## Tail\n\nKeep tail.\n";
 const extracted = "## Extract\n\nMove this.\n\n### Nested\n\nMove nested too.\n\n";
 const remainder = "# Guide\n\nIntro.\n\n## Keep\n\nKeep this.\n\n## Tail\n\nKeep tail.\n";
 
@@ -28,9 +29,19 @@ async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-document-structure-split-"));
   roots.push(root);
   await writeFile(resolve(root, sourcePath), original);
-  await applyInitPlan(await createInitPlan({ root, projectId: "prj_structure_split", now: new Date("2026-08-23T00:00:00.000Z") }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId: "prj_structure_split",
+      now: new Date("2026-08-23T00:00:00.000Z"),
+    }),
+  );
   const migration = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" });
-  await applyKnowledgeMigrationPlan(migration, new Date("2026-08-23T00:01:00.000Z"), () => undefined);
+  await applyKnowledgeMigrationPlan(
+    migration,
+    new Date("2026-08-23T00:01:00.000Z"),
+    () => undefined,
+  );
   return root;
 }
 
@@ -41,57 +52,139 @@ afterEach(async () => {
 describe("user document structure split", () => {
   it("partitions one CommonMark heading subtree exactly and refreshes navigation atomically", async () => {
     const root = await repository();
-    const plan = await createKnowledgeDocumentSplitPlan({ repositoryRoot: root, sourcePath, destinationPath, headingLocator: "heading:Guide > Extract" });
-    expect(plan.destination.byteCount + plan.source.afterByteCount).toBe(plan.source.beforeByteCount);
+    const plan = await createKnowledgeDocumentSplitPlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+      headingLocator: "heading:Guide > Extract",
+    });
+    expect(plan.destination.byteCount + plan.source.afterByteCount).toBe(
+      plan.source.beforeByteCount,
+    );
     expect(plan.createdConceptIds).toHaveLength(1);
-    await applyKnowledgeDocumentSplitPlan({ plan, approvedOperationId: plan.operationId, approvedHash: plan.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => undefined });
-    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(remainder);
-    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(extracted);
-    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
-    expect((await queryRepositoryKnowledge({ repositoryRoot: root, query: "Extract" })).hits[0]).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
-    expect((await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" })).operations.filter((item) => item.action !== "unchanged")).toEqual([]);
-  });
-
-  it("restores both user outputs, lineage, sidecars, and navigation after interruption", async () => {
-    const root = await repository();
-    const plan = await createKnowledgeDocumentSplitPlan({ repositoryRoot: root, sourcePath, destinationPath, headingLocator: "heading:Guide > Extract" });
-    const changedCount = plan.operations.filter((item) => item.action === "create" || item.action === "update").length;
-    await expect(applyKnowledgeDocumentSplitPlan({
+    await applyKnowledgeDocumentSplitPlan({
       plan,
       approvedOperationId: plan.operationId,
       approvedHash: plan.approvalHash,
       now: new Date("2026-08-23T00:02:00.000Z"),
       recordApplied: () => undefined,
-      failureInjector: (checkpoint) => checkpoint === `published:${changedCount - 1}` ? "interrupt" : undefined,
-    })).rejects.toMatchObject({ code: "knowledge_recovery_required" });
-    expect((await recoverKnowledgeMaterialization({ repositoryRoot: root, eventRecorded: () => false })).disposition).toBe("rolled_back");
+    });
+    expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(remainder);
+    expect(await readFile(resolve(root, destinationPath), "utf8")).toBe(extracted);
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+    expect(
+      (await queryRepositoryKnowledge({ repositoryRoot: root, query: "Extract" })).hits[0],
+    ).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
+    expect(
+      (
+        await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" })
+      ).operations.filter((item) => item.action !== "unchanged"),
+    ).toEqual([]);
+  });
+
+  it("restores both user outputs, lineage, sidecars, and navigation after interruption", async () => {
+    const root = await repository();
+    const plan = await createKnowledgeDocumentSplitPlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+      headingLocator: "heading:Guide > Extract",
+    });
+    const changedCount = plan.operations.filter(
+      (item) => item.action === "create" || item.action === "update",
+    ).length;
+    await expect(
+      applyKnowledgeDocumentSplitPlan({
+        plan,
+        approvedOperationId: plan.operationId,
+        approvedHash: plan.approvalHash,
+        now: new Date("2026-08-23T00:02:00.000Z"),
+        recordApplied: () => undefined,
+        failureInjector: (checkpoint) =>
+          checkpoint === `published:${changedCount - 1}` ? "interrupt" : undefined,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_recovery_required" });
+    expect(
+      (await recoverKnowledgeMaterialization({ repositoryRoot: root, eventRecorded: () => false }))
+        .disposition,
+    ).toBe("rolled_back");
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(original);
     await expect(access(resolve(root, destinationPath))).rejects.toMatchObject({ code: "ENOENT" });
-    expect((await createKnowledgeDocumentSplitPlan({ repositoryRoot: root, sourcePath, destinationPath, headingLocator: "heading:Guide > Extract" })).planId).toBe(plan.planId);
+    expect(
+      (
+        await createKnowledgeDocumentSplitPlan({
+          repositoryRoot: root,
+          sourcePath,
+          destinationPath,
+          headingLocator: "heading:Guide > Extract",
+        })
+      ).planId,
+    ).toBe(plan.planId);
   });
 
   it("rolls back every user and generated byte when event recording fails", async () => {
     const root = await repository();
-    const plan = await createKnowledgeDocumentSplitPlan({ repositoryRoot: root, sourcePath, destinationPath, headingLocator: "heading:Guide > Extract" });
-    await expect(applyKnowledgeDocumentSplitPlan({ plan, approvedOperationId: plan.operationId, approvedHash: plan.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => { throw new Error("event unavailable"); } })).rejects.toMatchObject({ code: "knowledge_apply_failed" });
+    const plan = await createKnowledgeDocumentSplitPlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+      headingLocator: "heading:Guide > Extract",
+    });
+    await expect(
+      applyKnowledgeDocumentSplitPlan({
+        plan,
+        approvedOperationId: plan.operationId,
+        approvedHash: plan.approvalHash,
+        now: new Date("2026-08-23T00:02:00.000Z"),
+        recordApplied: () => {
+          throw new Error("event unavailable");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_apply_failed" });
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(original);
     await expect(access(resolve(root, destinationPath))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("fails closed when persisted split lineage is tampered", async () => {
     const root = await repository();
-    const plan = await createKnowledgeDocumentSplitPlan({ repositoryRoot: root, sourcePath, destinationPath, headingLocator: "heading:Guide > Extract" });
-    await applyKnowledgeDocumentSplitPlan({ plan, approvedOperationId: plan.operationId, approvedHash: plan.approvalHash, now: new Date("2026-08-23T00:02:00.000Z"), recordApplied: () => undefined });
-    const lineagePath = resolve(root, shardedKnowledgeArtifactPath(".lervo/knowledge/source-lineage", plan.lineageId, "yaml"));
+    const plan = await createKnowledgeDocumentSplitPlan({
+      repositoryRoot: root,
+      sourcePath,
+      destinationPath,
+      headingLocator: "heading:Guide > Extract",
+    });
+    await applyKnowledgeDocumentSplitPlan({
+      plan,
+      approvedOperationId: plan.operationId,
+      approvedHash: plan.approvalHash,
+      now: new Date("2026-08-23T00:02:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    const lineagePath = resolve(
+      root,
+      shardedKnowledgeArtifactPath(".lervo/knowledge/source-lineage", plan.lineageId, "yaml"),
+    );
     const lineage = await readFile(lineagePath, "utf8");
-    await writeFile(lineagePath, lineage.replace(`sourceBeforeByteCount: ${plan.source.beforeByteCount}`, "sourceBeforeByteCount: 1"));
-    await expect(lintRepositoryKnowledge(root)).rejects.toMatchObject({ code: "knowledge_source_unsafe" });
+    await writeFile(
+      lineagePath,
+      lineage.replace(
+        `sourceBeforeByteCount: ${plan.source.beforeByteCount}`,
+        "sourceBeforeByteCount: 1",
+      ),
+    );
+    await expect(lintRepositoryKnowledge(root)).rejects.toMatchObject({
+      code: "knowledge_source_unsafe",
+    });
   });
 
   it("uses CommonMark headings and rejects code-fence lookalikes or ambiguous locators", () => {
     const fenced = "# Root\n\n```md\n## Fake\n```\n\n## Real\n\nBody.\n";
-    expect(splitMarkdownHeadingSubtree(fenced, "heading:Root > Real").destinationContent).toBe("## Real\n\nBody.\n");
+    expect(splitMarkdownHeadingSubtree(fenced, "heading:Root > Real").destinationContent).toBe(
+      "## Real\n\nBody.\n",
+    );
     expect(() => splitMarkdownHeadingSubtree(fenced, "heading:Root > Fake")).toThrow("not found");
-    expect(() => splitMarkdownHeadingSubtree("# Root\n\n## Same\nA\n\n## Same\nB\n", "heading:Root > Same")).toThrow("duplicated");
+    expect(() =>
+      splitMarkdownHeadingSubtree("# Root\n\n## Same\nA\n\n## Same\nB\n", "heading:Root > Same"),
+    ).toThrow("duplicated");
   });
 });

@@ -1,9 +1,7 @@
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
 
-import {
-  readDeliberationEventSnapshot,
-} from "./deliberation-event-snapshot.js";
+import { readDeliberationEventSnapshot } from "./deliberation-event-snapshot.js";
 import {
   DeliberationCheckpointError,
   readApprovedDeliberationCheckpoint,
@@ -26,8 +24,10 @@ export interface DeliberationInspectionReport {
   lease: "missing" | "active" | "stale";
   resume: "not_available" | "blocked_running" | "candidate" | "completed";
   issues: Array<{
-    code: "deliberation_history_incomplete" | "deliberation_history_invalid" |
-      "deliberation_checkpoint_invalid";
+    code:
+      | "deliberation_history_incomplete"
+      | "deliberation_history_invalid"
+      | "deliberation_checkpoint_invalid";
     message: string;
   }>;
   events: EventEnvelope[];
@@ -55,16 +55,22 @@ export async function inspectManagedDeliberation(input: {
     });
     checkpoint = "readable";
   } catch (error) {
-    if (!(error instanceof DeliberationCheckpointError) ||
-      error.code !== "deliberation_checkpoint_not_found") checkpoint = "invalid";
+    if (
+      !(error instanceof DeliberationCheckpointError) ||
+      error.code !== "deliberation_checkpoint_not_found"
+    )
+      checkpoint = "invalid";
   }
-  const checkpointEventIds = checkpointValue === null ? [] : [
-    checkpointValue.runtime.startedEventId,
-    ...checkpointValue.runtime.recordedEvents.map((item) => item.eventId),
-    ...checkpointValue.runtime.publications.map((item) => item.eventId),
-    ...checkpointValue.runtime.handoffs.map((item) => item.eventId),
-    ...checkpointValue.runtime.artifacts.flatMap((artifact) => artifact.evidenceEventIds),
-  ];
+  const checkpointEventIds =
+    checkpointValue === null
+      ? []
+      : [
+          checkpointValue.runtime.startedEventId,
+          ...checkpointValue.runtime.recordedEvents.map((item) => item.eventId),
+          ...checkpointValue.runtime.publications.map((item) => item.eventId),
+          ...checkpointValue.runtime.handoffs.map((item) => item.eventId),
+          ...checkpointValue.runtime.artifacts.flatMap((artifact) => artifact.evidenceEventIds),
+        ];
   const { started, artifacts, completed, traceEvents } = readDeliberationEventSnapshot({
     events: input.storage.events,
     eventCount: integrity.eventCount,
@@ -89,15 +95,22 @@ export async function inspectManagedDeliberation(input: {
     checkpoint = "invalid";
   }
   const terminalStatus = completed[0]?.payload.status;
-  const validTerminalStatus = completed.length === 0 || terminalStatus === "converged" ||
-    terminalStatus === "no_consensus" || terminalStatus === "failed";
-  const structurallyInvalid = started.length !== 1 || completed.length > 1 ||
-    (completed.length === 1 && artifacts.length === 0) || !validTerminalStatus;
+  const validTerminalStatus =
+    completed.length === 0 ||
+    terminalStatus === "converged" ||
+    terminalStatus === "no_consensus" ||
+    terminalStatus === "failed";
+  const structurallyInvalid =
+    started.length !== 1 ||
+    completed.length > 1 ||
+    (completed.length === 1 && artifacts.length === 0) ||
+    !validTerminalStatus;
   const issues: DeliberationInspectionReport["issues"] = [];
   if (structurallyInvalid) {
     issues.push({
       code: "deliberation_history_invalid",
-      message: "The relationships among deliberation start, artifact, and completion events are invalid.",
+      message:
+        "The relationships among deliberation start, artifact, and completion events are invalid.",
     });
   }
   if (checkpoint === "invalid") {
@@ -113,16 +126,18 @@ export async function inspectManagedDeliberation(input: {
       message: "Deliberation has not completed and has no approved checkpoint.",
     });
   }
-  const phase = terminal !== undefined
-    ? "completed"
-    : checkpoint === "readable" && lease === "active"
-      ? "running_after_approval"
-      : checkpoint === "readable"
-        ? "interrupted_after_approval"
-        : "rounds";
-  const completionStatus = terminal?.type === "deliberation.completed" && validTerminalStatus
-    ? terminalStatus as "converged" | "no_consensus" | "failed"
-    : null;
+  const phase =
+    terminal !== undefined
+      ? "completed"
+      : checkpoint === "readable" && lease === "active"
+        ? "running_after_approval"
+        : checkpoint === "readable"
+          ? "interrupted_after_approval"
+          : "rounds";
+  const completionStatus =
+    terminal?.type === "deliberation.completed" && validTerminalStatus
+      ? (terminalStatus as "converged" | "no_consensus" | "failed")
+      : null;
   const lastRound = artifacts.reduce<number | null>((maximum, event) => {
     const round = event.type === "deliberation.artifact.recorded" ? event.payload.round : null;
     return typeof round === "number" ? Math.max(maximum ?? 0, round) : maximum;
@@ -133,30 +148,37 @@ export async function inspectManagedDeliberation(input: {
     deliberationId: input.deliberationId,
     sourceStatus: issues.some((issue) => issue.code !== "deliberation_history_incomplete")
       ? "inconsistent"
-      : issues.length > 0 ? "incomplete" : "consistent",
+      : issues.length > 0
+        ? "incomplete"
+        : "consistent",
     phase,
     completionStatus,
     artifactCount: artifacts.length,
     lastRound,
     checkpoint,
     lease,
-    resume: terminal !== undefined
-      ? "completed"
-      : checkpoint !== "readable"
-        ? "not_available"
-        : lease === "active" ? "blocked_running" : "candidate",
+    resume:
+      terminal !== undefined
+        ? "completed"
+        : checkpoint !== "readable"
+          ? "not_available"
+          : lease === "active"
+            ? "blocked_running"
+            : "candidate",
     issues,
     events: traceEvents,
   };
 }
 
 export function formatDeliberationInspection(report: DeliberationInspectionReport): string {
-  const phase = ({
-    rounds: "review rounds active or interrupted",
-    running_after_approval: "verification and decision active after approval",
-    interrupted_after_approval: "eligible to resume after approval",
-    completed: "completed",
-  } as const)[report.phase];
+  const phase = (
+    {
+      rounds: "review rounds active or interrupted",
+      running_after_approval: "verification and decision active after approval",
+      interrupted_after_approval: "eligible to resume after approval",
+      completed: "completed",
+    } as const
+  )[report.phase];
   const lines = [
     `Deliberation inspection: ${report.deliberationId}`,
     `Status: ${phase}`,
@@ -165,14 +187,18 @@ export function formatDeliberationInspection(report: DeliberationInspectionRepor
     `Resume assessment: ${report.resume === "candidate" ? "revalidate every source when resuming" : report.resume === "blocked_running" ? "blocked because a process is active" : report.resume === "completed" ? "unavailable because deliberation completed" : "unavailable because no approved checkpoint exists"}`,
   ];
   if (report.issues.length > 0) {
-    lines.push("Items to inspect:", ...report.issues.map((issue) => `  ${issue.code}: ${issue.message}`));
+    lines.push(
+      "Items to inspect:",
+      ...report.issues.map((issue) => `  ${issue.code}: ${issue.message}`),
+    );
   }
   return `${lines.join("\n")}\n`;
 }
 
 export function formatDeliberationTrace(report: DeliberationInspectionReport): string {
   const summary = formatDeliberationInspection(report).trimEnd();
-  const events = report.events.map((event) =>
-    `  ${event.seq}. ${event.type} · ${event.occurredAt} · run ${event.runId}`);
+  const events = report.events.map(
+    (event) => `  ${event.seq}. ${event.type} · ${event.occurredAt} · run ${event.runId}`,
+  );
   return `${summary}\nEvents (${events.length}):\n${events.join("\n")}\n`;
 }

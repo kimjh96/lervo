@@ -5,17 +5,10 @@ import {
   type CodexAppServerClient,
   type CodexThreadStartOptions,
 } from "@lervo/adapter-codex";
-import type {
-  AdapterContextEnvelope,
-  AdapterStartRequest,
-} from "@lervo/schemas";
+import type { AdapterContextEnvelope, AdapterStartRequest } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
-import {
-  ClaudeAdapter,
-  type ClaudeAgentClient,
-  type ClaudeToolUseHandler,
-} from "../src/index.js";
+import { ClaudeAdapter, type ClaudeAgentClient, type ClaudeToolUseHandler } from "../src/index.js";
 
 function sha(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;

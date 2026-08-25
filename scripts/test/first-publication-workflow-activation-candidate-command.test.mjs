@@ -7,14 +7,12 @@ import { resolve } from "node:path";
 import { describe, it } from "vitest";
 import { parse } from "yaml";
 
-import { inspectCliFirstPublicationWorkflowActivationCandidate } from
-  "../lib/cli-first-publication-workflow-activation-candidate.mjs";
+import { inspectCliFirstPublicationWorkflowActivationCandidate } from "../lib/cli-first-publication-workflow-activation-candidate.mjs";
 import {
   createFirstPublicationWorkflowActivationCandidate,
   stagePublicationPackageScript,
 } from "../lib/first-publication-workflow-activation-candidate.mjs";
-import { formatFirstPublicationWorkflowActivationCandidate } from
-  "../lib/first-publication-workflow-activation-candidate-formatter.mjs";
+import { formatFirstPublicationWorkflowActivationCandidate } from "../lib/first-publication-workflow-activation-candidate-formatter.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 const command = "scripts/show-cli-first-publication-workflow-activation-candidate.mjs";
@@ -29,9 +27,10 @@ async function sourceFixture() {
   };
   await Promise.all([
     writeFile(paths.packageManifestPath, `${JSON.stringify(packageManifest, null, 2)}\n`),
-    writeFile(paths.workflowPath, await readFile(
-      resolve(repositoryRoot, ".github/workflows/cli-release-matrix.yml"),
-    )),
+    writeFile(
+      paths.workflowPath,
+      await readFile(resolve(repositoryRoot, ".github/workflows/cli-release-matrix.yml")),
+    ),
   ]);
   return { root, paths };
 }
@@ -46,12 +45,17 @@ describe("first-publication workflow activation candidate command", () => {
       ]);
       const result = await inspectCliFirstPublicationWorkflowActivationCandidate(prepared.paths);
       assert.equal(result.candidate.status, "review_required");
-      assert.equal(parse(result.outputBytes.toString("utf8")).jobs["publish-cli"].environment,
-        "npm-release");
-      assert.deepEqual(await Promise.all([
-        readFile(prepared.paths.packageManifestPath),
-        readFile(prepared.paths.workflowPath),
-      ]), before);
+      assert.equal(
+        parse(result.outputBytes.toString("utf8")).jobs["publish-cli"].environment,
+        "npm-release",
+      );
+      assert.deepEqual(
+        await Promise.all([
+          readFile(prepared.paths.packageManifestPath),
+          readFile(prepared.paths.workflowPath),
+        ]),
+        before,
+      );
       const output = formatFirstPublicationWorkflowActivationCandidate(result.candidate);
       assert.match(output, /Adds one publish-cli job/u);
       assert.match(output, /cannot yet be applied to the source workflow/u);
@@ -64,16 +68,16 @@ describe("first-publication workflow activation candidate command", () => {
   it("rejects source changes made while the candidate is built", async () => {
     const prepared = await sourceFixture();
     try {
-      await assert.rejects(inspectCliFirstPublicationWorkflowActivationCandidate(
-        prepared.paths,
-        {
+      await assert.rejects(
+        inspectCliFirstPublicationWorkflowActivationCandidate(prepared.paths, {
           createCandidate: async (input) => {
             const result = createFirstPublicationWorkflowActivationCandidate(input);
             await writeFile(prepared.paths.workflowPath, "name: changed\n");
             return result;
           },
-        },
-      ), { code: "release_attestation_release_set_changed" });
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -93,10 +97,9 @@ describe("first-publication workflow activation candidate command", () => {
     const prepared = await sourceFixture();
     try {
       await writeFile(prepared.paths.workflowPath, "x".repeat(256 * 1024 + 1));
-      await assert.rejects(
-        inspectCliFirstPublicationWorkflowActivationCandidate(prepared.paths),
-        { code: "first_publication_workflow_activation_source_invalid" },
-      );
+      await assert.rejects(inspectCliFirstPublicationWorkflowActivationCandidate(prepared.paths), {
+        code: "first_publication_workflow_activation_source_invalid",
+      });
     } finally {
       await rm(prepared.root, { recursive: true, force: true });
     }
@@ -116,8 +119,10 @@ describe("first-publication workflow activation candidate command", () => {
       });
       assert.equal(result.status, 1);
       assert.equal(result.stdout, "");
-      assert.match(result.stderr,
-        /^first_publication_workflow_activation_candidate_arguments_invalid:/u);
+      assert.match(
+        result.stderr,
+        /^first_publication_workflow_activation_candidate_arguments_invalid:/u,
+      );
     }
   });
 });

@@ -16,7 +16,8 @@ export const absoluteMaximumProviderSignals = 10_000;
 export function resolveMaximumProviderSignals(value: number | undefined): number {
   const resolved = value ?? defaultMaximumProviderSignals;
   if (
-    !Number.isSafeInteger(resolved) || resolved < 1 ||
+    !Number.isSafeInteger(resolved) ||
+    resolved < 1 ||
     resolved > absoluteMaximumProviderSignals
   ) {
     throw new ManagedProviderRunError(
@@ -115,10 +116,12 @@ export function startProviderSignalMonitor(input: {
       if (terminal !== undefined) return Promise.resolve(structuredClone(terminal));
       if (failure !== undefined) return Promise.reject(failure);
       if (ended) {
-        return Promise.reject(new ManagedProviderRunError(
-          "provider_stream_failed",
-          "The provider event stream ended before the next turn result.",
-        ));
+        return Promise.reject(
+          new ManagedProviderRunError(
+            "provider_stream_failed",
+            "The provider event stream ended before the next turn result.",
+          ),
+        );
       }
       return new Promise<AdapterNormalizedEvent>((resolve, reject) => {
         waiters.push({ resolve, reject });

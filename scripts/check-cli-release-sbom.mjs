@@ -38,7 +38,7 @@ async function main() {
   validateCliReleaseSbom(await readJson(releaseSbomPath), releaseManifest, lockfile);
   console.log(
     `CLI release SBOM check passed (${expected.components.length} components, ` +
-    `${expected.dependencies.length} dependency nodes)`,
+      `${expected.dependencies.length} dependency nodes)`,
   );
 }
 

@@ -20,36 +20,39 @@ const execFileAsync = promisify(execFile);
 const maximumUserConfigBytes = 64 * 1024;
 
 function withoutNpmConfiguration(environment) {
-  return Object.fromEntries(Object.entries(environment).filter(
-    ([name]) => !name.toLowerCase().startsWith("npm_config_"),
-  ));
+  return Object.fromEntries(
+    Object.entries(environment).filter(([name]) => !name.toLowerCase().startsWith("npm_config_")),
+  );
 }
 
-export async function observeNpmInteractiveFirstPublication({
-  registry,
-  userConfigPath,
-}, {
-  execute = execFileAsync,
-  environment = process.env,
-  npmCommand = "npm",
-  stdinIsTTY = process.stdin.isTTY === true,
-  stdoutIsTTY = process.stdout.isTTY === true,
-  stderrIsTTY = process.stderr.isTTY === true,
-} = {}) {
-  if (registry !== npmPublicRegistry || !isAbsolute(userConfigPath ?? "") ||
-      typeof execute !== "function") {
+export async function observeNpmInteractiveFirstPublication(
+  { registry, userConfigPath },
+  {
+    execute = execFileAsync,
+    environment = process.env,
+    npmCommand = "npm",
+    stdinIsTTY = process.stdin.isTTY === true,
+    stdoutIsTTY = process.stdout.isTTY === true,
+    stderrIsTTY = process.stderr.isTTY === true,
+  } = {},
+) {
+  if (
+    registry !== npmPublicRegistry ||
+    !isAbsolute(userConfigPath ?? "") ||
+    typeof execute !== "function"
+  ) {
     throw new TypeError("npm interactive first-publication observer input is invalid");
   }
   const environmentReasons = npmInteractiveFirstPublicationEnvironmentReasons({
-    environment, stdinIsTTY, stdoutIsTTY, stderrIsTTY,
+    environment,
+    stdinIsTTY,
+    stdoutIsTTY,
+    stderrIsTTY,
   });
   if (environmentReasons.length > 0) {
     return createNpmInteractiveFirstPublicationObservationFromReasons(environmentReasons);
   }
-  const userConfigContents = await readRegularReleaseFile(
-    userConfigPath,
-    maximumUserConfigBytes,
-  );
+  const userConfigContents = await readRegularReleaseFile(userConfigPath, maximumUserConfigBytes);
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "lervo-first-preflight-"));
   const globalConfigPath = resolve(temporaryRoot, "global.npmrc");
   await writeFile(globalConfigPath, "", { encoding: "utf8", mode: 0o600 });
@@ -85,9 +88,11 @@ export async function observeNpmInteractiveFirstPublication({
     if (!observation) {
       let profile;
       try {
-        const { stdout } = await execute(npmCommand, [
-          "profile", "get", "--registry", registry, "--json",
-        ], options);
+        const { stdout } = await execute(
+          npmCommand,
+          ["profile", "get", "--registry", registry, "--json"],
+          options,
+        );
         profile = JSON.parse(stdout);
       } catch {
         observation = createNpmInteractiveFirstPublicationObservationFromReasons([
@@ -103,11 +108,13 @@ export async function observeNpmInteractiveFirstPublication({
         stderrIsTTY,
       });
     }
-    await assertReleaseFilesUnchanged([{
-      path: userConfigPath,
-      contents: userConfigContents,
-      maximumSize: maximumUserConfigBytes,
-    }]);
+    await assertReleaseFilesUnchanged([
+      {
+        path: userConfigPath,
+        contents: userConfigContents,
+        maximumSize: maximumUserConfigBytes,
+      },
+    ]);
     return observation;
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true });

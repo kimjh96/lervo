@@ -47,18 +47,22 @@ function normalized(value: string): string {
   return result;
 }
 
-function range(node: ChildNode, contentLength: number): { startCharacter: number; endCharacter: number } {
+function range(
+  node: ChildNode,
+  contentLength: number,
+): { startCharacter: number; endCharacter: number } {
   const startCharacter = node.source?.start?.offset;
   const endCharacter = node.source?.end?.offset;
   if (
-    !Number.isSafeInteger(startCharacter)
-    || !Number.isSafeInteger(endCharacter)
-    || startCharacter === undefined
-    || endCharacter === undefined
-    || startCharacter < 0
-    || endCharacter <= startCharacter
-    || endCharacter > contentLength
-  ) return fail();
+    !Number.isSafeInteger(startCharacter) ||
+    !Number.isSafeInteger(endCharacter) ||
+    startCharacter === undefined ||
+    endCharacter === undefined ||
+    startCharacter < 0 ||
+    endCharacter <= startCharacter ||
+    endCharacter > contentLength
+  )
+    return fail();
   return { startCharacter, endCharacter };
 }
 
@@ -86,35 +90,50 @@ export function extractCssSymbolSpans(content: string): CssSymbolSpan[] {
       if (node.type === "rule") {
         const identity = normalized(node.selector);
         const baseLocator = locator(ancestors, "rule", identity);
-        candidates.push({ baseLocator, title: `CSS rule ${identity}`, ...range(node, content.length) });
+        candidates.push({
+          baseLocator,
+          title: `CSS rule ${identity}`,
+          ...range(node, content.length),
+        });
         visit(node, [...ancestors, `rule:${identity}`], depth + 1);
         continue;
       }
       if (node.type === "atrule") {
         const name = node.name.toLocaleLowerCase();
-        const identity = node.params.trim() === "" ? `@${name}` : `@${name} ${normalized(node.params)}`;
+        const identity =
+          node.params.trim() === "" ? `@${name}` : `@${name} ${normalized(node.params)}`;
         if (namedAtRules.has(name)) {
-          candidates.push({ baseLocator: locator(ancestors, "at-rule", identity), title: `CSS ${identity}`, ...range(node, content.length) });
+          candidates.push({
+            baseLocator: locator(ancestors, "at-rule", identity),
+            title: `CSS ${identity}`,
+            ...range(node, content.length),
+          });
         }
         if (node.nodes !== undefined) visit(node, [...ancestors, `at-rule:${identity}`], depth + 1);
         continue;
       }
       if (node.type === "decl" && node.prop.startsWith("--")) {
         const identity = normalized(node.prop);
-        candidates.push({ baseLocator: locator(ancestors, "custom-property", identity), title: `CSS custom property ${identity}`, ...range(node, content.length) });
+        candidates.push({
+          baseLocator: locator(ancestors, "custom-property", identity),
+          title: `CSS custom property ${identity}`,
+          ...range(node, content.length),
+        });
       }
     }
   };
   visit(root, [], 1);
   const counts = new Map<string, number>();
-  for (const item of candidates) counts.set(item.baseLocator, (counts.get(item.baseLocator) ?? 0) + 1);
+  for (const item of candidates)
+    counts.set(item.baseLocator, (counts.get(item.baseLocator) ?? 0) + 1);
   const occurrences = new Map<string, number>();
   return candidates.map(({ baseLocator, ...item }) => {
     const occurrence = occurrences.get(baseLocator) ?? 0;
     occurrences.set(baseLocator, occurrence + 1);
     return {
       ...item,
-      locator: counts.get(baseLocator) === 1 ? baseLocator : `${baseLocator}/occurrence=${occurrence}`,
+      locator:
+        counts.get(baseLocator) === 1 ? baseLocator : `${baseLocator}/occurrence=${occurrence}`,
     };
   });
 }

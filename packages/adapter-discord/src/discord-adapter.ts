@@ -35,11 +35,10 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       new Set(options.allowedGuildIds).size !== options.allowedGuildIds.length ||
       options.allowedGuildIds.some((guildId) => !/^[0-9]{1,32}$/.test(guildId)) ||
       (options.allowedGuildIds.length === 0 && !options.allowDirectMessages) ||
-      (options.maximumGatewayPayloadBytes !== undefined && (
-        !Number.isSafeInteger(options.maximumGatewayPayloadBytes) ||
-        options.maximumGatewayPayloadBytes < 1 ||
-        options.maximumGatewayPayloadBytes > 4 * 1024 * 1024
-      ))
+      (options.maximumGatewayPayloadBytes !== undefined &&
+        (!Number.isSafeInteger(options.maximumGatewayPayloadBytes) ||
+          options.maximumGatewayPayloadBytes < 1 ||
+          options.maximumGatewayPayloadBytes > 4 * 1024 * 1024))
     ) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
@@ -60,9 +59,14 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
 
   async receiveGatewayDispatch(input: DiscordGatewayDispatch): Promise<DiscordIngressResult> {
     if (!this.descriptor.capabilities.includes("messages.receive")) {
-      throw new ConversationPlatformError("unsupported_platform_event", "Discord message reception is disabled.");
+      throw new ConversationPlatformError(
+        "unsupported_platform_event",
+        "Discord message reception is disabled.",
+      );
     }
-    const parsed = parseDiscordGatewayPayload(parseBoundedJson(input.body, this.maximumPayloadBytes));
+    const parsed = parseDiscordGatewayPayload(
+      parseBoundedJson(input.body, this.maximumPayloadBytes),
+    );
     if (parsed.kind === "not_dispatch") {
       return { status: "ignored", reason: "not_a_dispatch" };
     }
@@ -94,7 +98,10 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       (parsed.guildId === null && !this.options.allowDirectMessages) ||
       (parsed.guildId !== null && !this.guilds.has(parsed.guildId))
     ) {
-      throw new ConversationPlatformError("platform_authentication_failed", "The Discord guild or DM scope does not match.");
+      throw new ConversationPlatformError(
+        "platform_authentication_failed",
+        "The Discord guild or DM scope does not match.",
+      );
     }
     let identity;
     try {
@@ -122,24 +129,24 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       artifactStore: this.options.artifactStore,
     });
     const event = createConversationInboundEvent({
-        sourceEventKeyHash: hashConversationSourceEventKey(
-          `${parsed.guildId ?? "dm"}:${parsed.messageId}`,
-        ),
-        target: {
-          integrationId: this.descriptor.integrationId,
-          projectId: identity.projectId,
-          conversationId: identity.conversationId,
-          threadId: identity.threadId,
-        },
-        kind: "message.created",
-        actor: identity.actor,
-        content,
-        mentions: identity.mentions,
-        replyToEventId: identity.replyToEventId,
-        signalCode: null,
-        automationDepth: identity.automationDepth,
-        occurredAt: parsed.occurredAt,
-      });
+      sourceEventKeyHash: hashConversationSourceEventKey(
+        `${parsed.guildId ?? "dm"}:${parsed.messageId}`,
+      ),
+      target: {
+        integrationId: this.descriptor.integrationId,
+        projectId: identity.projectId,
+        conversationId: identity.conversationId,
+        threadId: identity.threadId,
+      },
+      kind: "message.created",
+      actor: identity.actor,
+      content,
+      mentions: identity.mentions,
+      replyToEventId: identity.replyToEventId,
+      signalCode: null,
+      automationDepth: identity.automationDepth,
+      occurredAt: parsed.occurredAt,
+    });
     try {
       await this.options.identity.recordInbound({
         platform: "discord",
@@ -165,7 +172,10 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
 
   async deliver(message: ConversationOutboundMessage): Promise<ConversationDeliveryReceipt> {
     if (!this.descriptor.capabilities.includes("messages.send")) {
-      throw new ConversationPlatformError("platform_delivery_failed", "Discord message delivery is disabled.");
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "Discord message delivery is disabled.",
+      );
     }
     return deliverDiscordConversationMessage({
       descriptor: this.descriptor,

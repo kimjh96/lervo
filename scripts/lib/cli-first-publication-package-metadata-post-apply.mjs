@@ -1,14 +1,12 @@
 import { parse } from "yaml";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationPackageMetadataApplyReceiptDocument } from
-  "./first-publication-package-metadata-apply-receipt.mjs";
+import { validateFirstPublicationPackageMetadataApplyReceiptDocument } from "./first-publication-package-metadata-apply-receipt.mjs";
 import {
   firstPublicationPackageMetadataPostApplySourcePaths,
   readFirstPublicationPackageMetadataPostApplySources,
 } from "./first-publication-package-metadata-post-apply-sources.mjs";
-import { generateFirstPublicationPackageMetadataPostApplyRelease } from
-  "./first-publication-package-metadata-post-apply-release.mjs";
+import { generateFirstPublicationPackageMetadataPostApplyRelease } from "./first-publication-package-metadata-post-apply-release.mjs";
 import {
   createFirstPublicationPackageMetadataPostApplyReport,
   validateFirstPublicationPackageMetadataPostApplyReport,
@@ -35,30 +33,33 @@ export async function verifyCliFirstPublicationPackageMetadataPostApply(
   paths = firstPublicationPackageMetadataPostApplySourcePaths,
   dependencies = {},
 ) {
-  const inspectTransaction = dependencies.inspectTransaction ??
-    inspectFirstPublicationPackageMetadataTransactionState;
+  const inspectTransaction =
+    dependencies.inspectTransaction ?? inspectFirstPublicationPackageMetadataTransactionState;
   const transactionState = await inspectTransaction(
     dependencies.transactionRoot ?? firstPublicationPackageMetadataTransactionRoot,
   );
   assertFirstPublicationPackageMetadataTransactionClear(transactionState);
-  const readSources = dependencies.readSources ??
-    readFirstPublicationPackageMetadataPostApplySources;
+  const readSources =
+    dependencies.readSources ?? readFirstPublicationPackageMetadataPostApplySources;
   const sources = await readSources(paths, receiptPath);
   validateFirstPublicationPackageMetadataApplyReceiptDocument(sources.receipt);
-  const generateRelease = dependencies.generateRelease ??
-    generateFirstPublicationPackageMetadataPostApplyRelease;
-  const generatedReleaseManifest = await generateRelease({
-    packageManifest: sources.packageManifest,
-    releaseManifest: sources.releaseManifest,
-  }, dependencies);
+  const generateRelease =
+    dependencies.generateRelease ?? generateFirstPublicationPackageMetadataPostApplyRelease;
+  const generatedReleaseManifest = await generateRelease(
+    {
+      packageManifest: sources.packageManifest,
+      releaseManifest: sources.releaseManifest,
+    },
+    dependencies,
+  );
   const input = {
     ...sources,
     transactionState,
     generatedReleaseManifest,
     lockfile: parseLockfile(sources.sourceSnapshots.lockfile.contents),
   };
-  const createReport = dependencies.createReport ??
-    createFirstPublicationPackageMetadataPostApplyReport;
+  const createReport =
+    dependencies.createReport ?? createFirstPublicationPackageMetadataPostApplyReport;
   const report = await createReport(input);
   validateFirstPublicationPackageMetadataPostApplyReport(report, input);
   await sources.assertUnchanged();

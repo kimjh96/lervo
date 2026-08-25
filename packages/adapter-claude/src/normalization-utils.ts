@@ -29,12 +29,15 @@ function jsonValue(value: unknown): Json {
 }
 
 export function digest(value: unknown): string {
-  return `sha256:${createHash("sha256").update(JSON.stringify(jsonValue(value))).digest("hex")}`;
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(jsonValue(value)))
+    .digest("hex")}`;
 }
 
 export function eventTime(message: Record<string, unknown>, now: () => Date): string {
   const source = text(message.timestamp) ?? text(message.processed_at);
-  if (source !== undefined && Number.isFinite(Date.parse(source))) return new Date(source).toISOString();
+  if (source !== undefined && Number.isFinite(Date.parse(source)))
+    return new Date(source).toISOString();
   return now().toISOString();
 }
 

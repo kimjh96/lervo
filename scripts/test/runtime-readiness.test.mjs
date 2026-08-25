@@ -4,13 +4,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterAll, describe, it } from "vitest";
 
-import {
-  checkRuntimeReadiness,
-  RuntimeReadinessError,
-} from "../check-runtime-readiness.mjs";
+import { checkRuntimeReadiness, RuntimeReadinessError } from "../check-runtime-readiness.mjs";
 
 const roots = [];
-afterAll(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
+afterAll(async () =>
+  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
+);
 
 async function ownerSnapshot(value) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-readiness-test-"));
@@ -37,30 +36,43 @@ function nodeSnapshot(overrides = {}) {
 describe("runtime readiness preflight", () => {
   it("accepts a ready live Node snapshot and rejects a stale process", async () => {
     const path = await ownerSnapshot(nodeSnapshot());
-    assert.deepEqual(await checkRuntimeReadiness([
-      "--runtime", "node", "--snapshot", path,
-    ], { processProbe: () => undefined }), { runtime: "node", status: "ready" });
-    assert.deepEqual(await checkRuntimeReadiness([
-      "--runtime", "node", "--snapshot", path,
-    ], { processProbe: () => { throw new Error("missing"); } }), {
-      runtime: "node",
-      status: "not_ready",
-      failureCode: "process_unavailable",
-    });
+    assert.deepEqual(
+      await checkRuntimeReadiness(["--runtime", "node", "--snapshot", path], {
+        processProbe: () => undefined,
+      }),
+      { runtime: "node", status: "ready" },
+    );
+    assert.deepEqual(
+      await checkRuntimeReadiness(["--runtime", "node", "--snapshot", path], {
+        processProbe: () => {
+          throw new Error("missing");
+        },
+      }),
+      {
+        runtime: "node",
+        status: "not_ready",
+        failureCode: "process_unavailable",
+      },
+    );
   });
 
   it("reports starting and degraded Node states without copying component details", async () => {
-    const path = await ownerSnapshot(nodeSnapshot({
-      status: "degraded",
-      sync: { status: "unavailable", failureCode: "hub_unavailable" },
-    }));
-    assert.deepEqual(await checkRuntimeReadiness([
-      "--runtime", "node", "--snapshot", path,
-    ], { processProbe: () => undefined }), {
-      runtime: "node",
-      status: "not_ready",
-      failureCode: "runtime_degraded",
-    });
+    const path = await ownerSnapshot(
+      nodeSnapshot({
+        status: "degraded",
+        sync: { status: "unavailable", failureCode: "hub_unavailable" },
+      }),
+    );
+    assert.deepEqual(
+      await checkRuntimeReadiness(["--runtime", "node", "--snapshot", path], {
+        processProbe: () => undefined,
+      }),
+      {
+        runtime: "node",
+        status: "not_ready",
+        failureCode: "runtime_degraded",
+      },
+    );
   });
 
   it("requires an owner-only regular Node snapshot", async () => {
@@ -75,19 +87,25 @@ describe("runtime readiness preflight", () => {
   it("verifies the Hub identity and fixed readiness response", async () => {
     const identity = `sha256:${"7".repeat(64)}`;
     const args = ["--runtime", "hub", "--url", "https://hub.example/", "--hub-identity", identity];
-    assert.deepEqual(await checkRuntimeReadiness(args, {
-      hubRequest: async () => ({
-        statusCode: 200,
-        identity,
-        body: JSON.stringify({ schemaVersion: 1, status: "ready" }),
+    assert.deepEqual(
+      await checkRuntimeReadiness(args, {
+        hubRequest: async () => ({
+          statusCode: 200,
+          identity,
+          body: JSON.stringify({ schemaVersion: 1, status: "ready" }),
+        }),
       }),
-    }), { runtime: "hub", status: "ready" });
-    assert.deepEqual(await checkRuntimeReadiness(args, {
-      hubRequest: async () => ({
-        statusCode: 200,
-        identity: `sha256:${"6".repeat(64)}`,
-        body: JSON.stringify({ schemaVersion: 1, status: "ready" }),
+      { runtime: "hub", status: "ready" },
+    );
+    assert.deepEqual(
+      await checkRuntimeReadiness(args, {
+        hubRequest: async () => ({
+          statusCode: 200,
+          identity: `sha256:${"6".repeat(64)}`,
+          body: JSON.stringify({ schemaVersion: 1, status: "ready" }),
+        }),
       }),
-    }), { runtime: "hub", status: "not_ready", failureCode: "peer_identity_mismatch" });
+      { runtime: "hub", status: "not_ready", failureCode: "peer_identity_mismatch" },
+    );
   });
 });

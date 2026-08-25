@@ -14,10 +14,18 @@ export function validateHistoryCoordinates(
   const createdAt = Date.parse(artifact.createdAt);
   if (
     state.artifactsById.has(artifact.deliberationArtifactId) ||
-    artifact.round < state.previousRound || createdAt < state.previousTime
-  ) historyInvalid("artifact_order_invalid", "The deliberation artifact order, ID, or time is inconsistent.");
+    artifact.round < state.previousRound ||
+    createdAt < state.previousTime
+  )
+    historyInvalid(
+      "artifact_order_invalid",
+      "The deliberation artifact order, ID, or time is inconsistent.",
+    );
   if (state.deliberationId !== null && artifact.deliberationId !== state.deliberationId) {
-    historyInvalid("history_coordinate_mismatch", "The deliberation history contains a different deliberation ID.");
+    historyInvalid(
+      "history_coordinate_mismatch",
+      "The deliberation history contains a different deliberation ID.",
+    );
   }
   state.deliberationId ??= artifact.deliberationId;
   state.previousRound = artifact.round;
@@ -41,7 +49,10 @@ export function validateHistoryCoordinates(
   ]) {
     const existingSession = state.receiptSessions.get(receiptId);
     if (existingSession !== undefined && existingSession !== producerSession) {
-      historyInvalid("cross_role_receipt_reuse", "Sessions for different roles reused the same context receipt.");
+      historyInvalid(
+        "cross_role_receipt_reuse",
+        "Sessions for different roles reused the same context receipt.",
+      );
     }
     state.receiptSessions.set(receiptId, producerSession);
   }
@@ -49,7 +60,10 @@ export function validateHistoryCoordinates(
   for (const previousId of artifact.previousArtifactIds) {
     const previous = state.artifactsById.get(previousId);
     if (!previous || previous.round > artifact.round) {
-      historyInvalid("artifact_order_invalid", "The artifact references a previous artifact that has not yet been finalized.");
+      historyInvalid(
+        "artifact_order_invalid",
+        "The artifact references a previous artifact that has not yet been finalized.",
+      );
     }
   }
 }

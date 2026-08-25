@@ -6,10 +6,8 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createFileReleaseStagePublicationStore } from
-  "../lib/file-release-stage-publication-store.mjs";
-import { executeReleaseStagePublication } from
-  "../lib/release-stage-publication-execution.mjs";
+import { createFileReleaseStagePublicationStore } from "../lib/file-release-stage-publication-store.mjs";
+import { executeReleaseStagePublication } from "../lib/release-stage-publication-execution.mjs";
 import {
   createReleasePublicationArtifact,
   createReleasePublicationAuthorization,
@@ -65,29 +63,31 @@ describe("release stage publication execution", () => {
       const sourceFixture = fixture();
       const resultDirectory = resolve(root, "result");
       const events = [];
-      const terminal = await executeReleaseStagePublication({
-        authorization: sourceFixture.authorization,
-        releaseDirectory: root,
-        tarballPath: resolve(root, sourceFixture.artifact.file),
-        assertUnchanged: async () => events.push("snapshot"),
-      }, {
-        store: createFileReleaseStagePublicationStore({ rootDirectory: resultDirectory }),
-        prepareStage: async () => ({
-          stage: async () => {
-            events.push("stage");
-            assert.equal(events.filter((event) => event === "snapshot").length, 2);
-            const attempt = JSON.parse(await readFile(
-              resolve(resultDirectory, "attempt.json"),
-              "utf8",
-            ));
-            assert.equal(attempt.state, "reserved");
-            assert.equal(attempt.retry, "forbidden_without_reconciliation");
-            return receipt(sourceFixture.authorization);
-          },
-          dispose: async () => events.push("dispose"),
-        }),
-        clock: sequenceClock("2026-08-21T05:00:00Z", "2026-08-21T05:01:00Z"),
-      });
+      const terminal = await executeReleaseStagePublication(
+        {
+          authorization: sourceFixture.authorization,
+          releaseDirectory: root,
+          tarballPath: resolve(root, sourceFixture.artifact.file),
+          assertUnchanged: async () => events.push("snapshot"),
+        },
+        {
+          store: createFileReleaseStagePublicationStore({ rootDirectory: resultDirectory }),
+          prepareStage: async () => ({
+            stage: async () => {
+              events.push("stage");
+              assert.equal(events.filter((event) => event === "snapshot").length, 2);
+              const attempt = JSON.parse(
+                await readFile(resolve(resultDirectory, "attempt.json"), "utf8"),
+              );
+              assert.equal(attempt.state, "reserved");
+              assert.equal(attempt.retry, "forbidden_without_reconciliation");
+              return receipt(sourceFixture.authorization);
+            },
+            dispose: async () => events.push("dispose"),
+          }),
+          clock: sequenceClock("2026-08-21T05:00:00Z", "2026-08-21T05:01:00Z"),
+        },
+      );
       assert.equal(terminal.state, "staged");
       assert.equal(terminal.publicAvailability, "not_claimed");
       assert.equal(terminal.review, "required_with_2fa");
@@ -109,19 +109,27 @@ describe("release stage publication execution", () => {
     try {
       const sourceFixture = fixture();
       const resultDirectory = resolve(root, "result");
-      await assert.rejects(executeReleaseStagePublication({
-        authorization: sourceFixture.authorization,
-        releaseDirectory: root,
-        tarballPath: resolve(root, sourceFixture.artifact.file),
-        assertUnchanged: async () => {},
-      }, {
-        store: createFileReleaseStagePublicationStore({ rootDirectory: resultDirectory }),
-        prepareStage: async () => ({
-          stage: async () => { throw new Error("lost response"); },
-          dispose: async () => {},
-        }),
-        clock: sequenceClock("2026-08-21T05:00:00Z", "2026-08-21T05:01:00Z"),
-      }), { code: "release_stage_publication_outcome_unknown" });
+      await assert.rejects(
+        executeReleaseStagePublication(
+          {
+            authorization: sourceFixture.authorization,
+            releaseDirectory: root,
+            tarballPath: resolve(root, sourceFixture.artifact.file),
+            assertUnchanged: async () => {},
+          },
+          {
+            store: createFileReleaseStagePublicationStore({ rootDirectory: resultDirectory }),
+            prepareStage: async () => ({
+              stage: async () => {
+                throw new Error("lost response");
+              },
+              dispose: async () => {},
+            }),
+            clock: sequenceClock("2026-08-21T05:00:00Z", "2026-08-21T05:01:00Z"),
+          },
+        ),
+        { code: "release_stage_publication_outcome_unknown" },
+      );
       const terminal = JSON.parse(await readFile(resolve(resultDirectory, "terminal.json")));
       assert.equal(terminal.state, "stage_outcome_unknown");
       assert.equal(terminal.retry, "forbidden");
@@ -138,25 +146,31 @@ describe("release stage publication execution", () => {
       const resultDirectory = resolve(root, "result");
       let snapshots = 0;
       let stageCalls = 0;
-      await assert.rejects(executeReleaseStagePublication({
-        authorization: sourceFixture.authorization,
-        releaseDirectory: root,
-        tarballPath: resolve(root, sourceFixture.artifact.file),
-        assertUnchanged: async () => {
-          snapshots += 1;
-          if (snapshots === 2) throw new Error("source changed");
-        },
-      }, {
-        store: createFileReleaseStagePublicationStore({ rootDirectory: resultDirectory }),
-        prepareStage: async () => ({
-          stage: async () => {
-            stageCalls += 1;
-            return receipt(sourceFixture.authorization);
+      await assert.rejects(
+        executeReleaseStagePublication(
+          {
+            authorization: sourceFixture.authorization,
+            releaseDirectory: root,
+            tarballPath: resolve(root, sourceFixture.artifact.file),
+            assertUnchanged: async () => {
+              snapshots += 1;
+              if (snapshots === 2) throw new Error("source changed");
+            },
           },
-          dispose: async () => {},
-        }),
-        clock: sequenceClock("2026-08-21T05:00:00Z", "2026-08-21T05:01:00Z"),
-      }), /source changed/u);
+          {
+            store: createFileReleaseStagePublicationStore({ rootDirectory: resultDirectory }),
+            prepareStage: async () => ({
+              stage: async () => {
+                stageCalls += 1;
+                return receipt(sourceFixture.authorization);
+              },
+              dispose: async () => {},
+            }),
+            clock: sequenceClock("2026-08-21T05:00:00Z", "2026-08-21T05:01:00Z"),
+          },
+        ),
+        /source changed/u,
+      );
       assert.equal(stageCalls, 0);
       const terminal = JSON.parse(await readFile(resolve(resultDirectory, "terminal.json")));
       assert.equal(terminal.state, "aborted_before_stage");

@@ -15,9 +15,9 @@ export function isSupportedNpmStageClient(value) {
 }
 
 export function withoutNpmConfiguration(environment) {
-  return Object.fromEntries(Object.entries(environment).filter(
-    ([name]) => !name.toLowerCase().startsWith("npm_config_"),
-  ));
+  return Object.fromEntries(
+    Object.entries(environment).filter(([name]) => !name.toLowerCase().startsWith("npm_config_")),
+  );
 }
 
 export function npmStageEnvironmentReasons({
@@ -32,8 +32,7 @@ export function npmStageEnvironmentReasons({
   if (interactive && (!stdinIsTTY || !stdoutIsTTY || !stderrIsTTY)) {
     reasons.push("terminal_not_interactive");
   }
-  if (interactive &&
-      (environment.CI === "true" || environment.GITHUB_ACTIONS === "true")) {
+  if (interactive && (environment.CI === "true" || environment.GITHUB_ACTIONS === "true")) {
     reasons.push("automation_environment_detected");
   }
   return reasons;

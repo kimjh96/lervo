@@ -45,12 +45,13 @@ function fail(): never {
 
 function range(node: AstNode, sourceLength: number): { start: number; end: number } | undefined {
   if (
-    !Number.isSafeInteger(node.start)
-    || !Number.isSafeInteger(node.end)
-    || (node.start ?? -1) < 0
-    || (node.end ?? sourceLength + 1) < (node.start ?? 0)
-    || (node.end ?? sourceLength + 1) > sourceLength
-  ) return undefined;
+    !Number.isSafeInteger(node.start) ||
+    !Number.isSafeInteger(node.end) ||
+    (node.start ?? -1) < 0 ||
+    (node.end ?? sourceLength + 1) < (node.start ?? 0) ||
+    (node.end ?? sourceLength + 1) > sourceLength
+  )
+    return undefined;
   return { start: node.start as number, end: node.end as number };
 }
 
@@ -58,9 +59,14 @@ function name(node: AstNode | null | undefined): string | undefined {
   if (node?.type === "Identifier" && typeof node.name === "string") return node.name;
   if (node?.type === "PrivateName") {
     const identifier = node.id;
-    return identifier?.type === "Identifier" && typeof identifier.name === "string" ? `#${identifier.name}` : undefined;
+    return identifier?.type === "Identifier" && typeof identifier.name === "string"
+      ? `#${identifier.name}`
+      : undefined;
   }
-  if ((node?.type === "StringLiteral" || node?.type === "NumericLiteral") && (typeof node.value === "string" || typeof node.value === "number")) {
+  if (
+    (node?.type === "StringLiteral" || node?.type === "NumericLiteral") &&
+    (typeof node.value === "string" || typeof node.value === "number")
+  ) {
     return String(node.value);
   }
   return undefined;
@@ -87,7 +93,8 @@ function bindingNames(node: AstNode | null | undefined): string[] {
     if (current.type === "ObjectPattern") {
       for (const property of current.properties ?? []) {
         if (property.type === "RestElement") {
-          if (property.argument !== null && property.argument !== undefined) stack.push(property.argument);
+          if (property.argument !== null && property.argument !== undefined)
+            stack.push(property.argument);
         } else if (property.value !== null && typeof property.value === "object") {
           stack.push(property.value as AstNode);
         }
@@ -113,17 +120,27 @@ function locator(parts: string[]): string {
 
 function statementList(node: AstNode | AstNode[] | null | undefined): AstNode[] {
   if (Array.isArray(node)) return node;
-  if (node?.type === "Program" || node?.type === "TSModuleBlock") return Array.isArray(node.body) ? node.body : [];
+  if (node?.type === "Program" || node?.type === "TSModuleBlock")
+    return Array.isArray(node.body) ? node.body : [];
   return [];
 }
 
 export function extractJavaScriptSymbolSpans(source: string, path: string): JavaScriptSymbolSpan[] {
   const extension = extname(path).toLowerCase();
-  const typescript = extension === ".ts" || extension === ".tsx" || extension === ".mts" || extension === ".cts";
-  const jsx = extension === ".js" || extension === ".jsx" || extension === ".mjs" || extension === ".cjs" || extension === ".tsx";
-  const sourceType = extension === ".mjs" || extension === ".mts" ? "module"
-    : extension === ".cjs" ? "commonjs"
-      : "unambiguous";
+  const typescript =
+    extension === ".ts" || extension === ".tsx" || extension === ".mts" || extension === ".cts";
+  const jsx =
+    extension === ".js" ||
+    extension === ".jsx" ||
+    extension === ".mjs" ||
+    extension === ".cjs" ||
+    extension === ".tsx";
+  const sourceType =
+    extension === ".mjs" || extension === ".mts"
+      ? "module"
+      : extension === ".cjs"
+        ? "commonjs"
+        : "unambiguous";
   let program: AstNode;
   try {
     const parsed = parse(source, {
@@ -144,8 +161,12 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
   }
 
   const spans = new Map<string, JavaScriptSymbolSpan>();
-  const work: Array<{ node: AstNode; prefix: string[]; rangeNode?: AstNode; fallbackName?: string }> = statementList(program)
-    .map((node) => ({ node, prefix: [] }));
+  const work: Array<{
+    node: AstNode;
+    prefix: string[];
+    rangeNode?: AstNode;
+    fallbackName?: string;
+  }> = statementList(program).map((node) => ({ node, prefix: [] }));
   const add = (parts: string[], node: AstNode): void => {
     if (parts.length === 0 || parts.length > MAX_SYMBOL_DEPTH) return fail();
     const coordinates = range(node, source.length);
@@ -184,26 +205,37 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
 
     if (node.type === "VariableDeclaration") {
       for (const declaration of node.declarations ?? []) {
-        for (const binding of bindingNames(declaration.id)) add([...current.prefix, binding], effectiveRange);
+        for (const binding of bindingNames(declaration.id))
+          add([...current.prefix, binding], effectiveRange);
       }
       continue;
     }
 
-    if (node.type === "FunctionDeclaration" || node.type === "TSDeclareFunction" || node.type === "TSTypeAliasDeclaration") {
+    if (
+      node.type === "FunctionDeclaration" ||
+      node.type === "TSDeclareFunction" ||
+      node.type === "TSTypeAliasDeclaration"
+    ) {
       const symbolName = name(node.id) ?? current.fallbackName;
       if (symbolName !== undefined) add([...current.prefix, symbolName], effectiveRange);
       continue;
     }
 
-    if (node.type === "ClassDeclaration" || node.type === "TSInterfaceDeclaration" || node.type === "TSEnumDeclaration") {
+    if (
+      node.type === "ClassDeclaration" ||
+      node.type === "TSInterfaceDeclaration" ||
+      node.type === "TSEnumDeclaration"
+    ) {
       const symbolName = name(node.id) ?? current.fallbackName;
       if (symbolName === undefined) continue;
       const parts = [...current.prefix, symbolName];
       add(parts, effectiveRange);
       const body = node.body;
-      const members = Array.isArray(body) ? body
-        : body !== null && typeof body === "object" ? (body.body as AstNode[] | undefined) ?? body.members ?? []
-          : node.members ?? [];
+      const members = Array.isArray(body)
+        ? body
+        : body !== null && typeof body === "object"
+          ? ((body.body as AstNode[] | undefined) ?? body.members ?? [])
+          : (node.members ?? []);
       for (const member of members) {
         const memberName = name(member.key ?? member.id);
         if (memberName !== undefined) add([...parts, memberName], member);
@@ -217,8 +249,10 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
       const parts = [...current.prefix, symbolName];
       add(parts, effectiveRange);
       const body = node.body;
-      if (!Array.isArray(body) && body?.type === "TSModuleDeclaration") work.push({ node: body, prefix: parts });
-      else for (const statement of statementList(body)) work.push({ node: statement, prefix: parts });
+      if (!Array.isArray(body) && body?.type === "TSModuleDeclaration")
+        work.push({ node: body, prefix: parts });
+      else
+        for (const statement of statementList(body)) work.push({ node: statement, prefix: parts });
     }
   }
 

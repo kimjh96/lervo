@@ -41,18 +41,26 @@ export async function runSearchCompareCommand(args: string[], io: CliIo): Promis
       candidateEngine,
       evaluatedAt: new Date(),
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify({
-        comparison: output.comparison,
-        baseline: output.baseline.run,
-        candidate: output.candidate.run,
-      }, null, 2)}\n`
-      : formatSearchEvaluationComparison(output.comparison));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(
+            {
+              comparison: output.comparison,
+              baseline: output.baseline.run,
+              candidate: output.candidate.run,
+            },
+            null,
+            2,
+          )}\n`
+        : formatSearchEvaluationComparison(output.comparison),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not complete the search candidate comparison. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not complete the search candidate comparison. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

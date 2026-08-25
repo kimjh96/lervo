@@ -1,4 +1,14 @@
-import { access, mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  rmdir,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -12,10 +22,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import type { DocumentManifest } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  applyIdentityMigration,
-  createIdentityMigrationPlan,
-} from "../src/index.js";
+import { applyIdentityMigration, createIdentityMigrationPlan } from "../src/index.js";
 
 const roots: string[] = [];
 const projectId = "prj_identity_0001";
@@ -33,13 +40,17 @@ async function previousVersionRepository(): Promise<{
   artifactUri: string;
 }> {
   const root = await temporaryRepository();
-  await applyInitPlan(await createInitPlan({
-    root,
-    projectId,
-    now: new Date("2026-08-18T00:00:00Z"),
-  }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      projectId,
+      now: new Date("2026-08-18T00:00:00Z"),
+    }),
+  );
   const storage = await openProjectStorage(root);
-  const artifact = await storage.artifacts.put("Evidence source text preserved independently of the name");
+  const artifact = await storage.artifacts.put(
+    "Evidence source text preserved independently of the name",
+  );
   const event = storage.events.append({
     eventId: "evt_identity_source_01",
     projectId,
@@ -57,6 +68,13 @@ async function previousVersionRepository(): Promise<{
     },
   }).event;
   await storage.close();
+  await mkdir(resolve(root, ".lervo/state"), { recursive: true });
+  await rename(
+    resolve(root, ".lervo/data/events.sqlite"),
+    resolve(root, ".lervo/state/events.sqlite"),
+  );
+  await rename(resolve(root, ".lervo/data/cas"), resolve(root, ".lervo/state/cas"));
+  await rm(resolve(root, ".lervo/data"), { recursive: true, force: true });
   for (const directory of [
     "verifications",
     "deliberations",
@@ -64,9 +82,10 @@ async function previousVersionRepository(): Promise<{
     "search-engine-policies",
     "search-rollout-policies",
     "search-rollout-action-policies",
-  ]) await rmdir(resolve(root, ".lervo", directory)).catch((error: NodeJS.ErrnoException) => {
-    if (error.code !== "ENOENT") throw error;
-  });
+  ])
+    await rmdir(resolve(root, ".lervo", directory)).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+    });
   await rename(resolve(root, ".lervo"), resolve(root, ".roven"));
   return { root, eventHash: event.eventHash, artifactUri: artifact.uri };
 }
@@ -122,8 +141,9 @@ describe("project identity migration", () => {
       type: "project.identity.migrated",
       previousHash: fixture.eventHash,
     });
-    expect(Buffer.from(await storage.artifacts.get(fixture.artifactUri)).toString("utf8"))
-      .toBe("Evidence source text preserved independently of the name");
+    expect(Buffer.from(await storage.artifacts.get(fixture.artifactUri)).toString("utf8")).toBe(
+      "Evidence source text preserved independently of the name",
+    );
     await storage.close();
   });
 
@@ -149,7 +169,9 @@ describe("project identity migration", () => {
     const receipt = await applyIdentityMigration(tampered);
 
     expect(receipt.projectId).toBe(projectId);
-    await expect(access(resolve(fixture.root, "../lervo-identity-escape-fixture"))).rejects.toThrow();
+    await expect(
+      access(resolve(fixture.root, "../lervo-identity-escape-fixture")),
+    ).rejects.toThrow();
   });
 
   it("archives previous managed document metadata without rewriting the user document", async () => {
@@ -171,12 +193,14 @@ describe("project identity migration", () => {
         ownership: {
           mode: "managed_blocks",
           outsideManagedBlocks: "preserve",
-          blocks: [{
-            blockId: "summary",
-            startMarker: `<!-- lervo:begin block=summary schema=1 -->`,
-            endMarker: `<!-- lervo:end block=summary -->`,
-            inputs: [{ sourceId: "fixture", contentHash: policyVersion }],
-          }],
+          blocks: [
+            {
+              blockId: "summary",
+              startMarker: `<!-- lervo:begin block=summary schema=1 -->`,
+              endMarker: `<!-- lervo:end block=summary -->`,
+              inputs: [{ sourceId: "fixture", contentHash: policyVersion }],
+            },
+          ],
         },
       },
       contentPolicy: {
@@ -206,8 +230,12 @@ describe("project identity migration", () => {
 
     expect(await readFile(resolve(fixture.root, "README.md"), "utf8")).toBe(documentBytes);
     expect(receipt.documentArchivePath).not.toBeNull();
-    expect(await readFile(resolve(fixture.root, receipt.documentArchivePath!, "doc_identity_0001.yaml"), "utf8"))
-      .toBe(previousManifest);
+    expect(
+      await readFile(
+        resolve(fixture.root, receipt.documentArchivePath!, "doc_identity_0001.yaml"),
+        "utf8",
+      ),
+    ).toBe(previousManifest);
     await expect(loadDocumentManifests(fixture.root)).resolves.toEqual([]);
   });
 

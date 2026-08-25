@@ -26,13 +26,17 @@ async function prepareReleaseFixture() {
   const packageManifest = JSON.parse(
     await readFile(resolve(repositoryRoot, "apps/cli/package.json"), "utf8"),
   );
-  const result = spawnSync(process.execPath, [
-    "scripts/check-cli-release-attestation.mjs",
-    "--prepare",
-    releaseDirectory,
-    "--expected-tag",
-    `v${packageManifest.version}`,
-  ], { cwd: repositoryRoot, encoding: "utf8" });
+  const result = spawnSync(
+    process.execPath,
+    [
+      "scripts/check-cli-release-attestation.mjs",
+      "--prepare",
+      releaseDirectory,
+      "--expected-tag",
+      `v${packageManifest.version}`,
+    ],
+    { cwd: repositoryRoot, encoding: "utf8" },
+  );
   assert.equal(result.status, 0, result.stderr);
   const attestationDirectory = resolve(releaseDirectory, "attestations");
   await mkdir(attestationDirectory);
@@ -48,14 +52,16 @@ async function prepareReleaseFixture() {
 }
 
 function verifiedResult(statement) {
-  return [{
-    attestation: {},
-    verificationResult: {
-      signature: { certificate: {} },
-      verifiedTimestamps: [{}],
-      statement,
+  return [
+    {
+      attestation: {},
+      verificationResult: {
+        signature: { certificate: {} },
+        verifiedTimestamps: [{}],
+        statement,
+      },
     },
-  }];
+  ];
 }
 
 describe("CLI release attestation consumer orchestration", () => {
@@ -63,69 +69,80 @@ describe("CLI release attestation consumer orchestration", () => {
     const fixture = await prepareReleaseFixture();
     const calls = [];
     try {
-      const report = await verifyCliReleaseAttestations({
-        releaseDirectory: fixture.releaseDirectory,
-        repository,
-        tag: fixture.tag,
-        sourceDigest,
-      }, {
-        verifyGitHubAttestation: async (input) => {
-          calls.push(input);
-          const tarballContents = await readFile(input.artifactPath);
-          const tarballSubject = createReleaseSubject(
-            basename(input.artifactPath),
-            tarballContents,
-          );
-          if (input.predicateType === slsaProvenanceType) {
-            return verifiedResult({
-              _type: inTotoStatementType,
-              subject: [
-                tarballSubject,
-                createReleaseSubject(
-                  "release-artifact-manifest.json",
-                  await readFile(resolve(fixture.releaseDirectory, "release-artifact-manifest.json")),
-                ),
-                createReleaseSubject(
-                  "release-sbom.cdx.json",
-                  await readFile(resolve(fixture.releaseDirectory, "release-sbom.cdx.json")),
-                ),
-              ],
-              predicateType: slsaProvenanceType,
-              predicate: {},
-            });
-          }
-          return verifiedResult({
-            _type: inTotoStatementType,
-            subject: [tarballSubject],
-            predicateType: cyclonedxPredicateType,
-            predicate: JSON.parse(
-              await readFile(resolve(fixture.releaseDirectory, "release-sbom.cdx.json"), "utf8"),
-            ),
-          });
-        },
-      });
-
-      assert.equal(report.status, "verified");
-      assert.equal(report.subjects.length, 3);
-      assert.deepEqual(calls.map(({ predicateType }) => predicateType), [
-        slsaProvenanceType,
-        cyclonedxPredicateType,
-      ]);
-      assert.equal(calls.every(({ policy }) => policy.sourceDigest === sourceDigest), true);
-
-      await writeFile(resolve(fixture.releaseDirectory, "unexpected.txt"), "extra");
-      await assert.rejects(
-        verifyCliReleaseAttestations({
+      const report = await verifyCliReleaseAttestations(
+        {
           releaseDirectory: fixture.releaseDirectory,
           repository,
           tag: fixture.tag,
           sourceDigest,
-        }, {
-          verifyGitHubAttestation: async () => {
-            calls.push("unexpected verifier call");
-            return [];
+        },
+        {
+          verifyGitHubAttestation: async (input) => {
+            calls.push(input);
+            const tarballContents = await readFile(input.artifactPath);
+            const tarballSubject = createReleaseSubject(
+              basename(input.artifactPath),
+              tarballContents,
+            );
+            if (input.predicateType === slsaProvenanceType) {
+              return verifiedResult({
+                _type: inTotoStatementType,
+                subject: [
+                  tarballSubject,
+                  createReleaseSubject(
+                    "release-artifact-manifest.json",
+                    await readFile(
+                      resolve(fixture.releaseDirectory, "release-artifact-manifest.json"),
+                    ),
+                  ),
+                  createReleaseSubject(
+                    "release-sbom.cdx.json",
+                    await readFile(resolve(fixture.releaseDirectory, "release-sbom.cdx.json")),
+                  ),
+                ],
+                predicateType: slsaProvenanceType,
+                predicate: {},
+              });
+            }
+            return verifiedResult({
+              _type: inTotoStatementType,
+              subject: [tarballSubject],
+              predicateType: cyclonedxPredicateType,
+              predicate: JSON.parse(
+                await readFile(resolve(fixture.releaseDirectory, "release-sbom.cdx.json"), "utf8"),
+              ),
+            });
           },
-        }),
+        },
+      );
+
+      assert.equal(report.status, "verified");
+      assert.equal(report.subjects.length, 3);
+      assert.deepEqual(
+        calls.map(({ predicateType }) => predicateType),
+        [slsaProvenanceType, cyclonedxPredicateType],
+      );
+      assert.equal(
+        calls.every(({ policy }) => policy.sourceDigest === sourceDigest),
+        true,
+      );
+
+      await writeFile(resolve(fixture.releaseDirectory, "unexpected.txt"), "extra");
+      await assert.rejects(
+        verifyCliReleaseAttestations(
+          {
+            releaseDirectory: fixture.releaseDirectory,
+            repository,
+            tag: fixture.tag,
+            sourceDigest,
+          },
+          {
+            verifyGitHubAttestation: async () => {
+              calls.push("unexpected verifier call");
+              return [];
+            },
+          },
+        ),
         { code: "release_attestation_release_set_invalid" },
       );
       assert.equal(calls.length, 2);
@@ -146,17 +163,20 @@ describe("CLI release attestation consumer orchestration", () => {
         }),
       );
       await assert.rejects(
-        verifyCliReleaseAttestations({
-          releaseDirectory: fixture.releaseDirectory,
-          repository,
-          tag: fixture.tag,
-          sourceDigest,
-        }, {
-          verifyGitHubAttestation: async () => {
-            calls += 1;
-            return [];
+        verifyCliReleaseAttestations(
+          {
+            releaseDirectory: fixture.releaseDirectory,
+            repository,
+            tag: fixture.tag,
+            sourceDigest,
           },
-        }),
+          {
+            verifyGitHubAttestation: async () => {
+              calls += 1;
+              return [];
+            },
+          },
+        ),
         { code: "release_attestation_unsigned_untrusted" },
       );
       assert.equal(calls, 0);

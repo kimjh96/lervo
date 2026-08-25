@@ -31,10 +31,12 @@ function compareText(left: string, right: string): number {
 }
 
 function candidateOrder(left: DiscoveredSkill, right: DiscoveredSkill): number {
-  return priority(left) - priority(right) ||
+  return (
+    priority(left) - priority(right) ||
     compareSemver(right.manifest.version, left.manifest.version) ||
     compareText(left.manifest.contentHash, right.manifest.contentHash) ||
-    compareText(left.source.uri, right.source.uri);
+    compareText(left.source.uri, right.source.uri)
+  );
 }
 
 export function resolveSkills(input: {
@@ -49,7 +51,10 @@ export function resolveSkills(input: {
   for (const skillId of requestedIds) {
     const matching = input.candidates.filter((candidate) => candidate.manifest.skillId === skillId);
     if (matching.length === 0) {
-      throw new SkillResolutionError("skill_not_found", `Requested skill '${skillId}' was not found.`);
+      throw new SkillResolutionError(
+        "skill_not_found",
+        `Requested skill '${skillId}' was not found.`,
+      );
     }
     const compatible: DiscoveredSkill[] = [];
     for (const candidate of matching) {
@@ -69,11 +74,14 @@ export function resolveSkills(input: {
     }
     compatible.sort(candidateOrder);
     const winner = compatible[0]!;
-    const sameRank = compatible.filter((candidate) =>
-      priority(candidate) === priority(winner) &&
-      compareSemver(candidate.manifest.version, winner.manifest.version) === 0
+    const sameRank = compatible.filter(
+      (candidate) =>
+        priority(candidate) === priority(winner) &&
+        compareSemver(candidate.manifest.version, winner.manifest.version) === 0,
     );
-    if (sameRank.some((candidate) => candidate.manifest.contentHash !== winner.manifest.contentHash)) {
+    if (
+      sameRank.some((candidate) => candidate.manifest.contentHash !== winner.manifest.contentHash)
+    ) {
       throw new SkillResolutionError(
         "ambiguous_skill_selection",
         `Skill '${skillId}' has different content at the same priority and version.`,
@@ -82,18 +90,21 @@ export function resolveSkills(input: {
     selected.push(winner);
     for (const candidate of compatible) {
       if (candidate === winner) continue;
-      rejected.push(rejection(
-        candidate,
-        priority(candidate) === priority(winner) ? "version_shadowed" : "source_shadowed",
-      ));
+      rejected.push(
+        rejection(
+          candidate,
+          priority(candidate) === priority(winner) ? "version_shadowed" : "source_shadowed",
+        ),
+      );
     }
   }
-  rejected.sort((left, right) =>
-    compareText(left.skillId, right.skillId) ||
-    compareText(left.sourceKind, right.sourceKind) ||
-    compareSemver(right.version, left.version) ||
-    compareText(left.contentHash, right.contentHash) ||
-    compareText(left.reasonCode, right.reasonCode)
+  rejected.sort(
+    (left, right) =>
+      compareText(left.skillId, right.skillId) ||
+      compareText(left.sourceKind, right.sourceKind) ||
+      compareSemver(right.version, left.version) ||
+      compareText(left.contentHash, right.contentHash) ||
+      compareText(left.reasonCode, right.reasonCode),
   );
   const lock: SkillLock = {
     schemaVersion: 1,
@@ -105,7 +116,9 @@ export function resolveSkills(input: {
       runtimeVersion: input.runtime.runtimeVersion,
       platform: input.runtime.platform,
       availableTools: [...new Set(input.runtime.availableTools)].sort(),
-      allowedCapabilities: [...new Set(input.runtime.allowedCapabilities)].sort() as SkillLock["runtime"]["allowedCapabilities"],
+      allowedCapabilities: [
+        ...new Set(input.runtime.allowedCapabilities),
+      ].sort() as SkillLock["runtime"]["allowedCapabilities"],
     },
     entries: selected.map((candidate) => ({
       skillId: candidate.manifest.skillId,

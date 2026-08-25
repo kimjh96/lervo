@@ -11,10 +11,8 @@ import {
   validateFirstPublicationResolution,
   validateFirstPublicationResolutionDocument,
 } from "./first-publication-resolution.mjs";
-import { readFirstPublicationResolutionSources } from
-  "./first-publication-resolution-sources.mjs";
-import { observeFirstPublicationReconciliation } from
-  "./npm-first-publication-reconciliation-observer.mjs";
+import { readFirstPublicationResolutionSources } from "./first-publication-resolution-sources.mjs";
+import { observeFirstPublicationReconciliation } from "./npm-first-publication-reconciliation-observer.mjs";
 
 function fail(code = "first_publication_resolution_input_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -32,7 +30,8 @@ export async function resolveCliFirstPublication(options, dependencies = {}) {
     !isAbsolute(options.reservationRoot ?? "") ||
     !isAbsolute(options.reconciliationReportPath ?? "") ||
     !isAbsolute(options.decisionPath ?? "")
-  ) fail(options?.online === true ? undefined : "first_publication_resolution_online_required");
+  )
+    fail(options?.online === true ? undefined : "first_publication_resolution_online_required");
   const readSources = dependencies.readSources ?? readFirstPublicationResolutionSources;
   const observe = dependencies.observe ?? observeFirstPublicationReconciliation;
   const clock = dependencies.clock ?? (() => new Date().toISOString());

@@ -2,9 +2,8 @@ const utf8 = new TextDecoder("utf-8", { fatal: true });
 
 export async function readSyncHttpJson(response: Response, maximumBytes: number): Promise<unknown> {
   const declared = response.headers.get("content-length");
-  if (declared !== null && (
-    !/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > maximumBytes
-  )) throw new Error("The Hub synchronization response size is invalid.");
+  if (declared !== null && (!/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > maximumBytes))
+    throw new Error("The Hub synchronization response size is invalid.");
   if (response.body === null) throw new Error("The Hub synchronization response body is missing.");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];

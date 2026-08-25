@@ -14,11 +14,14 @@
     "node": ">=22.13"
   },
   "bin": {
-    "lervo": "./dist/bin.js"
+    "lervo": "./dist/bin.js",
+    "lervo-node": "./dist/node-runtime.js"
   },
   "files": [
     "README.md",
-    "dist/bin.js"
+    "dist/bin.js",
+    "dist/node-runtime.js",
+    "dist/terminal-hook.js"
   ],
   "publishConfig": {
     "access": "public"
@@ -33,6 +36,8 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@lervo/agent-workforce": "workspace:*",
+    "@lervo/capabilities": "workspace:*",
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
@@ -48,12 +53,14 @@
     "@lervo/environment-adapter-tailscale": "workspace:*",
     "@lervo/identity-migration": "workspace:*",
     "@lervo/knowledge-okf": "workspace:*",
+    "@lervo/node-runtime": "workspace:*",
     "@lervo/orchestrator": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
     "@lervo/repository-registry": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "@lervo/repository-knowledge-compiler": "workspace:*",
+    "@lervo/roles": "workspace:*",
     "@lervo/search": "workspace:*",
     "@lervo/search-adapter-bm25f": "workspace:*",
     "@lervo/search-local": "workspace:*",

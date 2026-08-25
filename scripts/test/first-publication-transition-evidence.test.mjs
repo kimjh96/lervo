@@ -3,29 +3,24 @@ import { rm } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { resolveFirstPublicationTransitionEvidence } from
-  "../lib/first-publication-transition-evidence.mjs";
-import { createFirstPublicationTransitionReport } from
-  "../lib/first-publication-transition-policy.mjs";
+import { resolveFirstPublicationTransitionEvidence } from "../lib/first-publication-transition-evidence.mjs";
+import { createFirstPublicationTransitionReport } from "../lib/first-publication-transition-policy.mjs";
 import {
   createFirstPublicationTransitionReceipt,
   validateFirstPublicationTransitionReceipt,
   validateFirstPublicationTransitionReceiptDocument,
 } from "../lib/first-publication-transition.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
-import { createFirstPublicationStageApprovalReconciliationReport } from
-  "../lib/first-publication-stage-approval-reconciliation.mjs";
+import { createFirstPublicationStageApprovalReconciliationReport } from "../lib/first-publication-stage-approval-reconciliation.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 import {
   createFirstPublicationStageApprovalReconciliationFixture,
   matchingStageApprovalReconciliationObservation,
 } from "./fixtures/first-publication-stage-approval-reconciliation.mjs";
-import { workflowRemoteSourceCommit } from
-  "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
 import {
   createFirstPublicationTransitionControls as controls,
   createFirstPublicationTransitionFixture as evidenceFixture,
-  matchingFirstPublicationPublicObservation as matchingObservation,
 } from "./fixtures/first-publication-transition.mjs";
 
 describe("first-publication transition evidence union", () => {
@@ -39,15 +34,14 @@ describe("first-publication transition evidence union", () => {
         source.publicationAuthorization.authorizationDigest,
         stage.publicationAuthorization.authorizationDigest,
       );
-      const reconciliationReport =
-        createFirstPublicationStageApprovalReconciliationReport({
-          stageReviewReport: stage.stageReviewReport,
-          authorization: stage.authorization,
-          attempt: stage.attempt,
-          terminal: stage.terminal,
-          observation: matchingStageApprovalReconciliationObservation(stage),
-          observedAt: "2026-08-21T10:20:00Z",
-        });
+      const reconciliationReport = createFirstPublicationStageApprovalReconciliationReport({
+        stageReviewReport: stage.stageReviewReport,
+        authorization: stage.authorization,
+        attempt: stage.attempt,
+        terminal: stage.terminal,
+        observation: matchingStageApprovalReconciliationObservation(stage),
+        observedAt: "2026-08-21T10:20:00Z",
+      });
       const publicationEvidence = {
         type: "stage_approval_reconciliation",
         reconciliationReport,
@@ -68,8 +62,7 @@ describe("first-publication transition evidence union", () => {
       });
       assert.equal(receipt.schemaVersion, 3);
       assert.equal(receipt.publicationEvidence.type, "stage_approval_reconciliation");
-      assert.equal(receipt.publicationEvidence.basis,
-        "npm_stage_approval_reconciliation_verified");
+      assert.equal(receipt.publicationEvidence.basis, "npm_stage_approval_reconciliation_verified");
       validateFirstPublicationTransitionReceipt(receipt, controlsInput);
 
       const unconfirmed = structuredClone(publicationEvidence);
@@ -102,8 +95,7 @@ describe("first-publication transition evidence union", () => {
     );
     assert.deepEqual(executionReceipt.bootstrap, resolutionReceipt.bootstrap);
     assert.deepEqual(executionReceipt.publicRelease, resolutionReceipt.publicRelease);
-    const { reportDigest: _executionReport, ...executionTransition } =
-      executionReceipt.transition;
+    const { reportDigest: _executionReport, ...executionTransition } = executionReceipt.transition;
     const { reportDigest: _resolutionReport, ...resolutionTransition } =
       resolutionReceipt.transition;
     assert.notEqual(_executionReport, _resolutionReport);
@@ -125,12 +117,17 @@ describe("first-publication transition evidence union", () => {
       assert.equal(report.status, "blocked");
       assert.equal(report.checks[0].id, "exact_public_release");
       assert.deepEqual(report.checks[0].reasons, [
-        "target_version_not_observed", "target_dist_tag_not_observed",
+        "target_version_not_observed",
+        "target_dist_tag_not_observed",
       ]);
-      assert.throws(() => createFirstPublicationTransitionReceipt({
-        ...input,
-        completedAt: input.observedAt,
-      }), { code: "first_publication_transition_not_ready" });
+      assert.throws(
+        () =>
+          createFirstPublicationTransitionReceipt({
+            ...input,
+            completedAt: input.observedAt,
+          }),
+        { code: "first_publication_transition_not_ready" },
+      );
     }
   });
 
@@ -145,14 +142,28 @@ describe("first-publication transition evidence union", () => {
 
   it("rejects mixed, incomplete, and source-mismatched union members", () => {
     const source = evidenceFixture();
-    assert.throws(() => resolveFirstPublicationTransitionEvidence({
-      ...source.executionEvidence,
-      resolution: source.resolutionEvidence.resolution,
-    }, source), { code: "first_publication_transition_evidence_invalid" });
-    assert.throws(() => resolveFirstPublicationTransitionEvidence({
-      type: "reconciliation_resolution",
-      resolution: source.resolutionEvidence.resolution,
-    }, source), { code: "first_publication_transition_evidence_invalid" });
+    assert.throws(
+      () =>
+        resolveFirstPublicationTransitionEvidence(
+          {
+            ...source.executionEvidence,
+            resolution: source.resolutionEvidence.resolution,
+          },
+          source,
+        ),
+      { code: "first_publication_transition_evidence_invalid" },
+    );
+    assert.throws(
+      () =>
+        resolveFirstPublicationTransitionEvidence(
+          {
+            type: "reconciliation_resolution",
+            resolution: source.resolutionEvidence.resolution,
+          },
+          source,
+        ),
+      { code: "first_publication_transition_evidence_invalid" },
+    );
     const wrong = structuredClone(source.resolutionEvidence);
     wrong.terminal.reservationDigest = `sha256:${"a".repeat(64)}`;
     assert.throws(() => resolveFirstPublicationTransitionEvidence(wrong, source), {

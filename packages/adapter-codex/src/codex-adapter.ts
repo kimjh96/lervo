@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
 import {
@@ -9,6 +10,8 @@ import {
 import {
   type AdapterContextEnvelope,
   type AdapterContextReceipt,
+  type AdapterCapabilityActivationReceipt,
+  type AdapterCapabilityActivationRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
   type AdapterSession,
@@ -35,10 +38,7 @@ import { CodexEventNormalizer } from "./normalize.js";
 import { CodexSessionRegistry } from "./session-registry.js";
 import { CodexManagedWriteController } from "./managed-write.js";
 import { captureCodexTurnResult } from "./turn-result.js";
-import {
-  CodexAdapterError,
-  type CodexAdapterOptions,
-} from "./types.js";
+import { CodexAdapterError, type CodexAdapterOptions } from "./types.js";
 
 export class CodexAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor = {
@@ -75,7 +75,10 @@ export class CodexAdapter implements ProviderAdapter {
   async start(request: AdapterStartRequest): Promise<AdapterSession> {
     assertAdapterMessage(request, "Codex start request");
     if (request.adapterId !== this.descriptor.adapterId) {
-      throw new CodexAdapterError("session_mismatch", "The start request adapter ID does not identify Codex.");
+      throw new CodexAdapterError(
+        "session_mismatch",
+        "The start request adapter ID does not identify Codex.",
+      );
     }
     const sandbox = this.options.sandbox ?? "read-only";
     const approvalPolicy =
@@ -94,11 +97,61 @@ export class CodexAdapter implements ProviderAdapter {
     }
     const client = await this.createClient();
     try {
+      const activations = request.capabilityActivations ?? [];
+      const mcpServers: Record<string, unknown> = {};
+      const selectedCapabilityRoots: NonNullable<
+        import("./types.js").CodexThreadStartOptions["selectedCapabilityRoots"]
+      > = [];
+      for (const activation of activations) {
+        const runtime = activation.runtime;
+        if (runtime.kind === "provider_plugin") {
+          if (runtime.provider !== "codex") {
+            throw new CodexAdapterError(
+              "invalid_request",
+              "A provider plugin targets a different provider.",
+            );
+          }
+          selectedCapabilityRoots.push({
+            id: `${activation.capabilityId}@${activation.version}`,
+            location: {
+              type: "environment",
+              environmentId: "lervo-local",
+              path: runtime.pluginRoot,
+            },
+          });
+        } else if (runtime.kind === "mcp_stdio") {
+          mcpServers[runtime.serverName] = {
+            command: runtime.command,
+            args: [...runtime.arguments],
+            env: this.credentials(runtime.credentialNames),
+            startup_timeout_sec: runtime.timeoutMs / 1000,
+          };
+        } else {
+          mcpServers[runtime.serverName] = {
+            url: runtime.url,
+            ...(runtime.bearerTokenCredential === null
+              ? {}
+              : { bearer_token_env_var: runtime.bearerTokenCredential }),
+            startup_timeout_sec: runtime.timeoutMs / 1000,
+          };
+          if (
+            runtime.bearerTokenCredential !== null &&
+            process.env[runtime.bearerTokenCredential] === undefined
+          ) {
+            throw new CodexAdapterError(
+              "capability_activation_failed",
+              "A required MCP credential is unavailable.",
+            );
+          }
+        }
+      }
       const thread = await client.startThread({
         cwd: this.repositoryRoot,
         approvalPolicy,
         sandbox,
         ...(this.options.model === undefined ? {} : { model: this.options.model }),
+        ...(Object.keys(mcpServers).length === 0 ? {} : { config: { mcp_servers: mcpServers } }),
+        ...(selectedCapabilityRoots.length === 0 ? {} : { selectedCapabilityRoots }),
       });
       const session: AdapterSession = {
         kind: "session",
@@ -114,18 +167,55 @@ export class CodexAdapter implements ProviderAdapter {
         executionMode: request.executionMode,
         effectiveCapabilities: {
           ...this.descriptor.capabilities,
-          fileChanges:
-            request.executionMode === "managed_write" ? "supported" : "unsupported",
+          fileChanges: request.executionMode === "managed_write" ? "supported" : "unsupported",
         },
         startedAt: timestamp(this.now, "Codex session start time", request.requestedAt),
       };
       assertAdapterMessage(session, "Codex session");
-      this.sessions.add(session, client);
+      this.sessions.add(session, client, activations);
       return clone(session);
     } catch (error) {
       await client.close().catch(() => undefined);
       throw error;
     }
+  }
+
+  async confirmCapabilityActivation(
+    session: AdapterSession,
+  ): Promise<AdapterCapabilityActivationReceipt[]> {
+    const state = this.sessions.get(session);
+    if (state.activationConfirmed) {
+      throw new CodexAdapterError(
+        "invalid_request",
+        "Capability activation can be confirmed only once.",
+      );
+    }
+    const mcpNames = state.capabilityActivations.flatMap((activation) =>
+      activation.runtime.kind === "mcp_stdio" || activation.runtime.kind === "mcp_http"
+        ? [activation.runtime.serverName]
+        : [],
+    );
+    if (mcpNames.length > 0 && state.client.listConnectedMcpServers === undefined) {
+      throw new CodexAdapterError(
+        "capability_activation_failed",
+        "The Codex client cannot confirm MCP connection state.",
+      );
+    }
+    const connected = new Set(
+      mcpNames.length === 0
+        ? []
+        : await state.client.listConnectedMcpServers!(session.providerSessionId),
+    );
+    if (mcpNames.some((name) => !connected.has(name))) {
+      throw new CodexAdapterError(
+        "capability_activation_failed",
+        "Codex did not report every requested MCP server as connected.",
+      );
+    }
+    state.activationConfirmed = true;
+    return state.capabilityActivations.map((activation) =>
+      this.activationReceipt(session, activation),
+    );
   }
 
   async injectContext(
@@ -135,7 +225,10 @@ export class CodexAdapter implements ProviderAdapter {
     const state = this.sessions.get(session);
     assertAdapterMessage(envelope, "Codex context envelope");
     if (state.injectedTargetTurnIds.has(envelope.targetTurnId)) {
-      throw new CodexAdapterError("invalid_request", "Context cannot be injected twice into the same target turn.");
+      throw new CodexAdapterError(
+        "invalid_request",
+        "Context cannot be injected twice into the same target turn.",
+      );
     }
     const items = await buildManagedContextItems(
       clone(state.session),
@@ -205,15 +298,30 @@ export class CodexAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new CodexAdapterError("session_mismatch", "The turn request does not match the managed Codex session.");
+      throw new CodexAdapterError(
+        "session_mismatch",
+        "The turn request does not match the managed Codex session.",
+      );
     }
     if (!state.injectedTargetTurnIds.has(request.targetTurnId)) {
-      throw new CodexAdapterError("invalid_request", "The current target turn has no controlled context receipt.");
+      throw new CodexAdapterError(
+        "invalid_request",
+        "The current target turn has no controlled context receipt.",
+      );
     }
-    if (state.startedTargetTurnIds.has(request.targetTurnId) || state.activeProviderTurnId !== undefined) {
-      throw new CodexAdapterError("invalid_request", "The Codex turn has already started or is still active.");
+    if (
+      state.startedTargetTurnIds.has(request.targetTurnId) ||
+      state.activeProviderTurnId !== undefined
+    ) {
+      throw new CodexAdapterError(
+        "invalid_request",
+        "The Codex turn has already started or is still active.",
+      );
     }
-    const providerTurn = await state.client.startTurn(session.providerSessionId, request.instructions);
+    const providerTurn = await state.client.startTurn(
+      session.providerSessionId,
+      request.instructions,
+    );
     state.activeProviderTurnId = providerTurn.turnId;
     state.startedTargetTurnIds.add(request.targetTurnId);
     const turn: AdapterTurn = {
@@ -240,7 +348,10 @@ export class CodexAdapter implements ProviderAdapter {
   ): AsyncIterable<AdapterNormalizedEvent> {
     const state = this.sessions.get(session);
     if (state.eventStreamClaimed) {
-      throw new CodexAdapterError("invalid_request", "The Codex event stream can be opened only once per session.");
+      throw new CodexAdapterError(
+        "invalid_request",
+        "The Codex event stream can be opened only once per session.",
+      );
     }
     state.eventStreamClaimed = true;
     const normalizer = new CodexEventNormalizer({
@@ -283,7 +394,9 @@ export class CodexAdapter implements ProviderAdapter {
         method: "error",
         params: {
           threadId: session.providerSessionId,
-          error: { code: error instanceof CodexAdapterError ? error.code : "provider_process_failed" },
+          error: {
+            code: error instanceof CodexAdapterError ? error.code : "provider_process_failed",
+          },
           willRetry: false,
         },
       });
@@ -291,10 +404,7 @@ export class CodexAdapter implements ProviderAdapter {
     }
   }
 
-  async getTurnResult(
-    session: AdapterSession,
-    turn: AdapterTurn,
-  ): Promise<AdapterTurnResult> {
+  async getTurnResult(session: AdapterSession, turn: AdapterTurn): Promise<AdapterTurnResult> {
     const state = this.sessions.get(session);
     assertAdapterMessage(turn, "Codex turn");
     if (
@@ -304,7 +414,10 @@ export class CodexAdapter implements ProviderAdapter {
       turn.sessionId !== session.sessionId ||
       turn.providerSessionId !== session.providerSessionId
     ) {
-      throw new CodexAdapterError("session_mismatch", "The turn result request does not match the Codex session.");
+      throw new CodexAdapterError(
+        "session_mismatch",
+        "The turn result request does not match the Codex session.",
+      );
     }
     const captured = state.turnResults.get(turn.providerTurnId);
     if (captured === undefined) {
@@ -328,7 +441,10 @@ export class CodexAdapter implements ProviderAdapter {
       request.sessionId !== session.sessionId ||
       request.providerSessionId !== session.providerSessionId
     ) {
-      throw new CodexAdapterError("session_mismatch", "The stop request does not match the managed Codex session.");
+      throw new CodexAdapterError(
+        "session_mismatch",
+        "The stop request does not match the managed Codex session.",
+      );
     }
     let stopFailure: CodexAdapterError | undefined;
     try {
@@ -369,5 +485,60 @@ export class CodexAdapter implements ProviderAdapter {
       cwd: this.repositoryRoot,
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
     });
+  }
+
+  private credentials(names: readonly string[]): Record<string, string> {
+    const values: Record<string, string> = {};
+    for (const name of names) {
+      const value = process.env[name];
+      if (value === undefined) {
+        throw new CodexAdapterError(
+          "capability_activation_failed",
+          "A required MCP credential is unavailable.",
+        );
+      }
+      values[name] = value;
+    }
+    return values;
+  }
+
+  private activationReceipt(
+    session: AdapterSession,
+    activation: AdapterCapabilityActivationRequest,
+  ): AdapterCapabilityActivationReceipt {
+    const evidence = activation.capabilityKind === "mcp_server" ? "mcp_connected" : "plugin_loaded";
+    const receipt: AdapterCapabilityActivationReceipt = {
+      kind: "capability_activation_receipt",
+      schemaVersion: 1,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      capabilityId: activation.capabilityId,
+      capabilityKind: activation.capabilityKind,
+      version: activation.version,
+      contentHash: activation.contentHash,
+      evidence,
+      activationDigest: `sha256:${createHash("sha256")
+        .update(
+          JSON.stringify({
+            capabilityId: activation.capabilityId,
+            version: activation.version,
+            contentHash: activation.contentHash,
+            adapterId: session.adapterId,
+            providerSessionId: session.providerSessionId,
+            evidence,
+          }),
+        )
+        .digest("hex")}`,
+      confirmedAt: timestamp(
+        this.now,
+        "Codex capability activation confirmation time",
+        session.startedAt,
+      ),
+    };
+    assertAdapterMessage(receipt, "Codex capability activation receipt");
+    return receipt;
   }
 }

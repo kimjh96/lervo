@@ -18,13 +18,31 @@ describe("TailscaleEnvironmentAdapter", () => {
     const rawId = "n123-provider-secret-identity";
     const adapter = new TailscaleEnvironmentAdapter({
       executables: ["fixture-tailscale"],
-      runner: async () => ({ stdout: JSON.stringify({
-        BackendState: "Running",
-        Self: { ID: "self-id", HostName: "mac", DNSName: "mac.tail.example.", OS: "macOS", Online: true, TailscaleIPs: ["100.64.0.1"], UserID: 123 },
-        Peer: {
-          opaqueMapKey: { ID: rawId, HostName: "windows", DNSName: "windows.tail.example.", OS: "windows", Online: true, Active: true, TailscaleIPs: ["100.64.0.2"] },
-        },
-      }) }),
+      runner: async () => ({
+        stdout: JSON.stringify({
+          BackendState: "Running",
+          Self: {
+            ID: "self-id",
+            HostName: "mac",
+            DNSName: "mac.tail.example.",
+            OS: "macOS",
+            Online: true,
+            TailscaleIPs: ["100.64.0.1"],
+            UserID: 123,
+          },
+          Peer: {
+            opaqueMapKey: {
+              ID: rawId,
+              HostName: "windows",
+              DNSName: "windows.tail.example.",
+              OS: "windows",
+              Online: true,
+              Active: true,
+              TailscaleIPs: ["100.64.0.2"],
+            },
+          },
+        }),
+      }),
     });
     const result = await adapter.query({ source });
     expect(result.status).toBe("available");
@@ -46,12 +64,16 @@ describe("TailscaleEnvironmentAdapter", () => {
   it("returns a bounded failure code instead of command output", async () => {
     const adapter = new TailscaleEnvironmentAdapter({
       executables: ["fixture-tailscale"],
-      runner: async () => { throw Object.assign(new Error("sensitive stderr"), { code: "EACCES" }); },
+      runner: async () => {
+        throw Object.assign(new Error("sensitive stderr"), { code: "EACCES" });
+      },
     });
     expect(await adapter.query({ source })).toEqual({
       status: "unavailable",
       subjects: [],
-      verification: [{ kind: "source_session", status: "unavailable", failureCode: "source_command_failed" }],
+      verification: [
+        { kind: "source_session", status: "unavailable", failureCode: "source_command_failed" },
+      ],
     });
   });
 });

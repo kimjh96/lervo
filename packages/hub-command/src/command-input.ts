@@ -46,32 +46,43 @@ export function validateHubCommandAuthoringInput(input: {
 }): string {
   const { request, bytes } = input;
   if (
-    typeof input.destinationId !== "string" || typeof input.principalId !== "string" ||
+    typeof input.destinationId !== "string" ||
+    typeof input.principalId !== "string" ||
     typeof input.authoredAt !== "string" ||
-    !DESTINATION_PATTERN.test(input.destinationId) || !Number.isFinite(Date.parse(input.authoredAt)) ||
+    !DESTINATION_PATTERN.test(input.destinationId) ||
+    !Number.isFinite(Date.parse(input.authoredAt)) ||
     !PRINCIPAL_PATTERN.test(input.principalId) ||
     typeof input.target?.projectId !== "string" ||
     !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(input.target.projectId) ||
     typeof input.target.projectIdentityHash !== "string" ||
     !/^sha256:[a-f0-9]{64}$/.test(input.target.projectIdentityHash) ||
-    typeof request.idempotencyKey !== "string" || typeof request.lifetimeMs !== "number" ||
-    typeof request.request !== "string" || typeof request.roleId !== "string" ||
-    typeof request.provider !== "string" || typeof request.risk !== "string" ||
+    typeof request.idempotencyKey !== "string" ||
+    typeof request.lifetimeMs !== "number" ||
+    typeof request.request !== "string" ||
+    typeof request.roleId !== "string" ||
+    typeof request.provider !== "string" ||
+    typeof request.risk !== "string" ||
     !IDEMPOTENCY_PATTERN.test(request.idempotencyKey) ||
-    !Number.isSafeInteger(request.lifetimeMs) || request.lifetimeMs < 1_000 ||
-    request.lifetimeMs > 5 * 60_000 || bytes.byteLength < 1 || bytes.byteLength > 65_536 ||
+    !Number.isSafeInteger(request.lifetimeMs) ||
+    request.lifetimeMs < 1_000 ||
+    request.lifetimeMs > 5 * 60_000 ||
+    bytes.byteLength < 1 ||
+    bytes.byteLength > 65_536 ||
     request.request.includes("\u0000") ||
     new TextDecoder("utf-8", { fatal: true }).decode(bytes) !== request.request ||
     !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(request.roleId) ||
     request.roleId.length > 100 ||
-    !/^[a-z][a-z0-9_-]*$/u.test(request.provider) || request.provider.length > 64 ||
+    !/^[a-z][a-z0-9_-]*$/u.test(request.provider) ||
+    request.provider.length > 64 ||
     !["low", "medium", "high"].includes(request.risk) ||
     !Array.isArray(request.verificationSuiteIds) ||
-    request.verificationSuiteIds.length < 1 || request.verificationSuiteIds.length > 16 ||
+    request.verificationSuiteIds.length < 1 ||
+    request.verificationSuiteIds.length > 16 ||
     new Set(request.verificationSuiteIds).size !== request.verificationSuiteIds.length ||
-    !request.verificationSuiteIds.every((id) =>
-      id.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(id)
+    !request.verificationSuiteIds.every(
+      (id) => id.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(id),
     )
-  ) throw new HubCommandError("invalid_request", "The Hub command authoring request is invalid.");
+  )
+    throw new HubCommandError("invalid_request", "The Hub command authoring request is invalid.");
   return hashHubCommandValue(`${input.target.projectIdentityHash}\0${input.principalId}`);
 }

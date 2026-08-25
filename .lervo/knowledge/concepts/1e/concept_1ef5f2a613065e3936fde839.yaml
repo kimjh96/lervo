@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_fb4cdbbfd7003235ae54f89e
+  - uv_9bd79d3ea2ac4d527091f307
 title: "ADR-0005: Shared Context and Role Handoff"
 type: decision

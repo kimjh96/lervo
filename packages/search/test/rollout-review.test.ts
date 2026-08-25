@@ -95,18 +95,22 @@ describe("search rollout review", () => {
     });
     const later = rolloutAttempt("4".repeat(32), "2026-08-20T05:00:30.000Z");
 
-    expect(() => verifySearchRolloutReview(review, {
-      attempts: [first, later],
-      assessments: [],
-    })).toThrow(/source quality input/);
-    expect(() => createSearchRolloutReview({
-      projectId: "prj_search_01",
-      target: { ...rolloutTarget, selectionTransitionId: `seact_${"d".repeat(24)}` },
-      attempts: [first],
-      assessments: [],
-      reviewerId: "reviewer_rollout",
-      reviewedAt: new Date("2026-08-20T05:01:00.000Z"),
-      decision: "rollback_recommended",
-    })).toThrow(/target selection or timestamp/);
+    expect(() =>
+      verifySearchRolloutReview(review, {
+        attempts: [first, later],
+        assessments: [],
+      }),
+    ).toThrow(/source quality input/);
+    expect(() =>
+      createSearchRolloutReview({
+        projectId: "prj_search_01",
+        target: { ...rolloutTarget, selectionTransitionId: `seact_${"d".repeat(24)}` },
+        attempts: [first],
+        assessments: [],
+        reviewerId: "reviewer_rollout",
+        reviewedAt: new Date("2026-08-20T05:01:00.000Z"),
+        decision: "rollback_recommended",
+      }),
+    ).toThrow(/target selection or timestamp/);
   });
 });

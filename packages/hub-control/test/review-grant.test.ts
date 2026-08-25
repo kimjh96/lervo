@@ -16,32 +16,42 @@ describe("Hub control review grant", () => {
 
     expect(grant).toMatch(/^hcrg_[0-9]{10}_[a-f0-9]{64}$/);
     expect(grant).not.toContain(coordinate.principalId);
-    expect(grants.verify({
-      ...coordinate,
-      grant,
-      verifiedAt: "2026-08-20T00:10:00.000Z",
-    })).toBe(true);
-    expect(grants.verify({
-      ...coordinate,
-      principalId: "operator:different",
-      grant,
-      verifiedAt: "2026-08-20T00:01:00.000Z",
-    })).toBe(false);
-    expect(grants.verify({
-      ...coordinate,
-      deliveryId: `rcd_${"b".repeat(64)}`,
-      grant,
-      verifiedAt: "2026-08-20T00:01:00.000Z",
-    })).toBe(false);
-    expect(grants.verify({
-      ...coordinate,
-      grant,
-      verifiedAt: "2026-08-19T23:59:59.000Z",
-    })).toBe(false);
-    expect(grants.verify({
-      ...coordinate,
-      grant,
-      verifiedAt: "2026-08-20T00:10:01.000Z",
-    })).toBe(false);
+    expect(
+      grants.verify({
+        ...coordinate,
+        grant,
+        verifiedAt: "2026-08-20T00:10:00.000Z",
+      }),
+    ).toBe(true);
+    expect(
+      grants.verify({
+        ...coordinate,
+        principalId: "operator:different",
+        grant,
+        verifiedAt: "2026-08-20T00:01:00.000Z",
+      }),
+    ).toBe(false);
+    expect(
+      grants.verify({
+        ...coordinate,
+        deliveryId: `rcd_${"b".repeat(64)}`,
+        grant,
+        verifiedAt: "2026-08-20T00:01:00.000Z",
+      }),
+    ).toBe(false);
+    expect(
+      grants.verify({
+        ...coordinate,
+        grant,
+        verifiedAt: "2026-08-19T23:59:59.000Z",
+      }),
+    ).toBe(false);
+    expect(
+      grants.verify({
+        ...coordinate,
+        grant,
+        verifiedAt: "2026-08-20T00:10:01.000Z",
+      }),
+    ).toBe(false);
   });
 });

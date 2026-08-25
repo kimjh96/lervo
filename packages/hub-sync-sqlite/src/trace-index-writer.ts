@@ -32,13 +32,14 @@ export class HubTraceIndexSQLiteWriter {
     `);
     let addedRunCount = 0;
     for (const event of events) {
-      const inserted = insertRun.run(
-        coordinate.destinationId,
-        coordinate.projectId,
-        event.runId,
-        event.seq,
-        event.seq,
-      ).changes === 1;
+      const inserted =
+        insertRun.run(
+          coordinate.destinationId,
+          coordinate.projectId,
+          event.runId,
+          event.seq,
+          event.seq,
+        ).changes === 1;
       if (inserted) {
         addedRunCount += 1;
       } else {
@@ -50,13 +51,14 @@ export class HubTraceIndexSQLiteWriter {
           event.runId,
         );
       }
-      const sessionInserted = insertSession.run(
-        coordinate.destinationId,
-        coordinate.projectId,
-        event.runId,
-        event.sessionId,
-        event.seq,
-      ).changes === 1;
+      const sessionInserted =
+        insertSession.run(
+          coordinate.destinationId,
+          coordinate.projectId,
+          event.runId,
+          event.sessionId,
+          event.seq,
+        ).changes === 1;
       if (!sessionInserted) {
         updateSession.run(
           event.seq,
@@ -76,17 +78,16 @@ export class HubTraceIndexSQLiteWriter {
     nextCursorSeq: number,
   ): void {
     if (nextCursorSeq <= previousCursorSeq) return;
-    const rows = this.database.prepare(`
+    const rows = this.database
+      .prepare(
+        `
       SELECT json_extract(event_json, '$.runId') AS run_id, COUNT(*) AS added_count
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq > ? AND seq <= ?
       GROUP BY json_extract(event_json, '$.runId')
-    `).all(
-      coordinate.destinationId,
-      coordinate.projectId,
-      previousCursorSeq,
-      nextCursorSeq,
-    );
+    `,
+      )
+      .all(coordinate.destinationId, coordinate.projectId, previousCursorSeq, nextCursorSeq);
     const update = this.database.prepare(`
       UPDATE hub_runs
       SET continuous_event_count = continuous_event_count + ?

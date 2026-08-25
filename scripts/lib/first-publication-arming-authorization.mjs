@@ -6,8 +6,7 @@ import {
   firstPublicationTransition,
   FirstPublicationBootstrapError,
 } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import {
   createFirstPublicationExecutionPlan,
   firstPublicationExecutionFreshChecks,
@@ -34,15 +33,20 @@ function fail(code = "first_publication_arming_authorization_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
   if (
     typeof value !== "string" ||
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
-  ) fail();
+  )
+    fail();
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) fail();
   return milliseconds;
@@ -74,39 +78,52 @@ export function validateFirstPublicationArmingAuthorizationDocument(armingAuthor
   const validUntil = timestamp(armingAuthorization?.validity?.validUntil);
   if (
     !exactKeys(armingAuthorization, [
-      ...Object.keys(authorizationBody), "armingAuthorizationDigest",
-    ]) || armingAuthorization.schemaVersion !== 1 ||
+      ...Object.keys(authorizationBody),
+      "armingAuthorizationDigest",
+    ]) ||
+    armingAuthorization.schemaVersion !== 1 ||
     armingAuthorization.status !== "armed" ||
     armingAuthorization.authorizationType !== "first_publication_manual_once" ||
     !exactKeys(armingAuthorization.target, [
-      "registry", "package", "version", "distTag", "access",
-    ]) || armingAuthorization.target.package !== "@lervo/cli" ||
+      "registry",
+      "package",
+      "version",
+      "distTag",
+      "access",
+    ]) ||
+    armingAuthorization.target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(armingAuthorization.target.version ?? "") ||
     armingAuthorization.target.registry !== npmPublicRegistry ||
     !["latest", "next"].includes(armingAuthorization.target.distTag) ||
     armingAuthorization.target.access !== "public" ||
     !exactKeys(armingAuthorization.binding, [
-      "bootstrapDigest", "publicationAuthorizationDigest", "executionPlanDigest",
-      "decisionId", "decisionDigest",
-    ]) || !digestPattern.test(armingAuthorization.binding.bootstrapDigest ?? "") ||
+      "bootstrapDigest",
+      "publicationAuthorizationDigest",
+      "executionPlanDigest",
+      "decisionId",
+      "decisionDigest",
+    ]) ||
+    !digestPattern.test(armingAuthorization.binding.bootstrapDigest ?? "") ||
     !digestPattern.test(armingAuthorization.binding.publicationAuthorizationDigest ?? "") ||
     !digestPattern.test(armingAuthorization.binding.executionPlanDigest ?? "") ||
-    !/^arm_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(
-      armingAuthorization.binding.decisionId ?? "",
-    ) || !digestPattern.test(armingAuthorization.binding.decisionDigest ?? "") ||
+    !/^arm_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(armingAuthorization.binding.decisionId ?? "") ||
+    !digestPattern.test(armingAuthorization.binding.decisionDigest ?? "") ||
     !exactKeys(armingAuthorization.validity, ["armedAt", "validUntil"]) ||
-    armedAt >= validUntil || validUntil - armedAt > firstPublicationArmingMaximumLifetimeMs ||
-    canonicalJson(armingAuthorization.execution) !== canonicalJson({
-      mode: "manual_interactive_once",
-      consumption: "durable_reservation",
-      requiresFreshChecks: firstPublicationExecutionFreshChecks,
-      publisherEntryPoint: "not_exposed",
-    }) || canonicalJson(armingAuthorization.transition) !==
-      canonicalJson(firstPublicationTransition) ||
+    armedAt >= validUntil ||
+    validUntil - armedAt > firstPublicationArmingMaximumLifetimeMs ||
+    canonicalJson(armingAuthorization.execution) !==
+      canonicalJson({
+        mode: "manual_interactive_once",
+        consumption: "durable_reservation",
+        requiresFreshChecks: firstPublicationExecutionFreshChecks,
+        publisherEntryPoint: "not_exposed",
+      }) ||
+    canonicalJson(armingAuthorization.transition) !== canonicalJson(firstPublicationTransition) ||
     canonicalJson(armingAuthorization.sideEffects) !== canonicalJson(sideEffects) ||
     !digestPattern.test(armingAuthorization.armingAuthorizationDigest ?? "") ||
     armingAuthorization.armingAuthorizationDigest !== canonicalDigest(authorizationBody)
-  ) fail();
+  )
+    fail();
   return armingAuthorization;
 }
 
@@ -123,7 +140,8 @@ export function createFirstPublicationArmingAuthorization({
   if (
     armedAtMs < timestamp(bootstrap.registryObservation.observedAt) ||
     armedAtMs >= timestamp(bootstrap.registryObservation.validUntil)
-  ) fail("first_publication_arming_authorization_expired");
+  )
+    fail("first_publication_arming_authorization_expired");
   validateFirstPublicationArmingDecision(decision, {
     bootstrap,
     executionPlan: plan,
@@ -178,11 +196,13 @@ export function validateFirstPublicationArmingAuthorization(
       authorization.authorizationDigest ||
     armingAuthorization.binding.executionPlanDigest !== plan.executionPlanDigest ||
     armedAt < timestamp(bootstrap.registryObservation.observedAt) ||
-    armedAt > checkedAtMs || checkedAtMs >= validUntil ||
+    armedAt > checkedAtMs ||
+    checkedAtMs >= validUntil ||
     validUntil > timestamp(bootstrap.registryObservation.validUntil) ||
     canonicalJson(armingAuthorization.execution.requiresFreshChecks) !==
       canonicalJson(plan.preflight.requiredAtExecution) ||
     canonicalJson(armingAuthorization.transition) !== canonicalJson(bootstrap.transition)
-  ) fail();
+  )
+    fail();
   return armingAuthorization;
 }

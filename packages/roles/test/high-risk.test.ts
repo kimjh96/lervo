@@ -45,12 +45,16 @@ describe("high-risk cross-role workflow", () => {
       "role.research.artifact",
     ]);
     expect(workflow.roleBindings.map((binding) => binding.responsibilities)).toEqual([
-      ["proposer", "decision_owner"], ["reviewer"], ["verifier"],
+      ["proposer", "decision_owner"],
+      ["reviewer"],
+      ["verifier"],
     ]);
-    expect(() => assertHighRiskRoleWorkflow({
-      workflow,
-      definitions: Object.values(definitions),
-    })).not.toThrow();
+    expect(() =>
+      assertHighRiskRoleWorkflow({
+        workflow,
+        definitions: Object.values(definitions),
+      }),
+    ).not.toThrow();
 
     const swapped = createHighRiskRoleWorkflow({
       projectId: "prj_role_workflow_01",
@@ -69,10 +73,12 @@ describe("high-risk cross-role workflow", () => {
       publication,
     });
     expect(swapped.workflowId).not.toBe(workflow.workflowId);
-    expect(() => assertHighRiskRoleWorkflow({
-      workflow: swapped,
-      definitions: Object.values(definitions),
-    })).not.toThrow();
+    expect(() =>
+      assertHighRiskRoleWorkflow({
+        workflow: swapped,
+        definitions: Object.values(definitions),
+      }),
+    ).not.toThrow();
   });
 
   it("rejects same-role review, excessive rounds and tampered evaluation binding", () => {
@@ -80,30 +86,45 @@ describe("high-risk cross-role workflow", () => {
     const researcher = getBuiltInRoleDefinition("researcher");
     const designer = getBuiltInRoleDefinition("designer");
     const common = { projectId: "prj_role_workflow_01", publication };
-    expect(() => createHighRiskRoleWorkflow({
-      ...common,
-      primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
-      reviewer: { definition: marketer, providerSelection: { mode: "fixed", provider: "claude" } },
-      verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
-    })).toThrow(/different|schema/);
-    expect(() => createHighRiskRoleWorkflow({
-      ...common,
-      primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
-      reviewer: { definition: researcher, providerSelection: { mode: "fixed", provider: "claude" } },
-      verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
-      maxRounds: 6,
-    })).toThrow(/round count/);
+    expect(() =>
+      createHighRiskRoleWorkflow({
+        ...common,
+        primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
+        reviewer: {
+          definition: marketer,
+          providerSelection: { mode: "fixed", provider: "claude" },
+        },
+        verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
+      }),
+    ).toThrow(/different|schema/);
+    expect(() =>
+      createHighRiskRoleWorkflow({
+        ...common,
+        primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
+        reviewer: {
+          definition: researcher,
+          providerSelection: { mode: "fixed", provider: "claude" },
+        },
+        verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
+        maxRounds: 6,
+      }),
+    ).toThrow(/round count/);
 
     const workflow = createHighRiskRoleWorkflow({
       ...common,
       primary: { definition: marketer, providerSelection: { mode: "fixed", provider: "codex" } },
-      reviewer: { definition: researcher, providerSelection: { mode: "fixed", provider: "claude" } },
+      reviewer: {
+        definition: researcher,
+        providerSelection: { mode: "fixed", provider: "claude" },
+      },
       verifier: { definition: designer, providerSelection: { mode: "fixed", provider: "codex" } },
     });
     workflow.roleBindings[0]!.evaluationBundleHash = `sha256:${"d".repeat(64)}`;
-    expect(() => assertHighRiskRoleWorkflow({
-      workflow,
-      definitions: [marketer, researcher, designer],
-    })).toThrow(/ID|binding/);
+    expect(() =>
+      assertHighRiskRoleWorkflow({
+        workflow,
+        definitions: [marketer, researcher, designer],
+      }),
+    ).toThrow(/ID|binding/);
   });
 });

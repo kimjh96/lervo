@@ -40,7 +40,9 @@ export function formatFirstPublicationActivationBlockerReport(report) {
     "Checks from local files:",
   ];
   for (const item of report.localChecks) {
-    lines.push(`- ${checkLabels[item.id] ?? item.id}: ${item.status === "ready" ? "ready" : "action required"}`);
+    lines.push(
+      `- ${checkLabels[item.id] ?? item.id}: ${item.status === "ready" ? "ready" : "action required"}`,
+    );
     for (const reason of item.reasons) {
       lines.push(`  ${reasonMessages[reason] ?? "The local configuration must be reviewed."}`);
     }

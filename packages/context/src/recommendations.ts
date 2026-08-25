@@ -40,19 +40,27 @@ export function applySearchRecommendationBatches(input: {
   candidates: ReadonlyMap<string, ContextDocumentCandidate>;
   accumulator: ContextSelectionAccumulator;
 }): AppliedSearchRecommendation[] {
-  if (input.batches.length > MAX_BATCHES) invalid("The number of search recommendation batches exceeds the allowed limit.");
+  if (input.batches.length > MAX_BATCHES)
+    invalid("The number of search recommendation batches exceeds the allowed limit.");
   const batchIds = new Set<string>();
   const recommendationIds = new Set<string>();
   const applied: AppliedSearchRecommendation[] = [];
-  for (const batch of [...input.batches].sort((left, right) => compareText(left.batchId, right.batchId))) {
+  for (const batch of [...input.batches].sort((left, right) =>
+    compareText(left.batchId, right.batchId),
+  )) {
     try {
       assertSearchRecommendationBatch(batch);
     } catch (error) {
       invalid("The search recommendation batch does not match the source search attempt.", error);
     }
-    if (batchIds.has(batch.batchId) || batch.attempt.projectId !== input.coordinates.projectId ||
-      Date.parse(batch.attempt.observedAt) > input.recordedAt.getTime()) {
-      invalid("The search recommendation batch ID, project, or time coordinates differ from the current context.");
+    if (
+      batchIds.has(batch.batchId) ||
+      batch.attempt.projectId !== input.coordinates.projectId ||
+      Date.parse(batch.attempt.observedAt) > input.recordedAt.getTime()
+    ) {
+      invalid(
+        "The search recommendation batch ID, project, or time coordinates differ from the current context.",
+      );
     }
     batchIds.add(batch.batchId);
     const selected = new Set(batch.selectedRecommendationIds);
@@ -66,7 +74,9 @@ export function applySearchRecommendationBatches(input: {
       }
       const candidate = input.candidates.get(recommendation.documentId);
       if (candidate === undefined) {
-        invalid(`The search-recommended document is not in the registry: ${recommendation.documentId}`);
+        invalid(
+          `The search-recommended document is not in the registry: ${recommendation.documentId}`,
+        );
       }
       input.accumulator.discover(candidate);
       if (selected.has(recommendation.recommendationId)) {

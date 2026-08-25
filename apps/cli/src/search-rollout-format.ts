@@ -18,63 +18,79 @@ function decisionLabel(decision: SearchRolloutReviewDecision): string {
 }
 
 export function formatSearchRolloutActionPolicy(policy: SearchRolloutActionPolicy): string {
-  return [
-    `Search rollout action policy created: ${policy.actionPolicyId}`,
-    `  Action: ${policy.action === "acknowledge_keep" ? "acknowledge keep" : "execute rollback"}`,
-    `  Allowed operators ${policy.allowedOperatorIds.length} · review policy ${policy.rolloutPolicyId}`,
-    `  Engine policy: ${policy.engineActivationPolicyId ?? "not used"}`,
-    `  File: .lervo/search-rollout-action-policies/${policy.actionPolicyId}.yaml`,
-  ].join("\n") + "\n";
+  return (
+    [
+      `Search rollout action policy created: ${policy.actionPolicyId}`,
+      `  Action: ${policy.action === "acknowledge_keep" ? "acknowledge keep" : "execute rollback"}`,
+      `  Allowed operators ${policy.allowedOperatorIds.length} · review policy ${policy.rolloutPolicyId}`,
+      `  Engine policy: ${policy.engineActivationPolicyId ?? "not used"}`,
+      `  File: .lervo/search-rollout-action-policies/${policy.actionPolicyId}.yaml`,
+    ].join("\n") + "\n"
+  );
 }
 
 export function formatSearchRolloutActionResult(
   result: SearchRolloutKeepAcknowledgement | SearchEngineRolloutRollback,
 ): string {
   if (result.schemaVersion === 1) {
-    return [
-      `Search candidate keep acknowledgement recorded: ${result.acknowledgementId}`,
-      `  Rollout review: ${result.rolloutReviewId}`,
-      `  operator: ${result.operatorId}`,
-      "  The current search engine selection was not changed, and this record is not an approval.",
-    ].join("\n") + "\n";
+    return (
+      [
+        `Search candidate keep acknowledgement recorded: ${result.acknowledgementId}`,
+        `  Rollout review: ${result.rolloutReviewId}`,
+        `  operator: ${result.operatorId}`,
+        "  The current search engine selection was not changed, and this record is not an approval.",
+      ].join("\n") + "\n"
+    );
   }
-  return [
-    `Search rollout rollback recorded: ${result.activationId}`,
-    `  Rollout review: ${result.rolloutAction.rolloutReviewId}`,
-    `  ${result.previousSelection.engine.id}-v${result.previousSelection.engine.version}` +
-      ` → ${result.selected.engine.id}-v${result.selected.engine.version}`,
-    `  Operator: ${result.operatorId} · selection transition ${result.sequence}`,
-    "  The review, action policy, and checked quality input are recorded with this rollback transition.",
-  ].join("\n") + "\n";
+  return (
+    [
+      `Search rollout rollback recorded: ${result.activationId}`,
+      `  Rollout review: ${result.rolloutAction.rolloutReviewId}`,
+      `  ${result.previousSelection.engine.id}-v${result.previousSelection.engine.version}` +
+        ` → ${result.selected.engine.id}-v${result.selected.engine.version}`,
+      `  Operator: ${result.operatorId} · selection transition ${result.sequence}`,
+      "  The review, action policy, and checked quality input are recorded with this rollback transition.",
+    ].join("\n") + "\n"
+  );
 }
 
 export function formatSearchRolloutActionStatus(status: SearchRolloutActionStatusPage): string {
-  const selection = status.currentSelection.selectionState === "implicit_baseline"
-    ? "default lexical selection without a transition"
-    : status.currentSelection.selectionState === "recorded_baseline"
-      ? `recorded baseline · ${status.currentSelection.selectionTransitionId}`
-      : `${status.currentSelection.engine.id}-v${status.currentSelection.engine.version}` +
-        ` · ${status.currentSelection.selectionTransitionId}`;
-  return [
-    "Search rollout action status:",
-    `  Current selection: ${selection}`,
-    `  Action sources ${status.actionCount} · this page ${status.actions.length}`,
-    ...status.actions.flatMap((item) => [
-      `  ${item.actionId} · ${item.action === "acknowledge_keep" ? "acknowledge keep" : "execute rollback"}`,
-      `    Review ${item.review.rolloutReviewId} · quality input ${
-        item.qualityInputState === "unchanged" ? "unchanged" : "changed"}`,
-      `    Review target ${item.reviewSelectionRelation === "current_selection" ? "current selection" : "historical selection"}` +
-        (item.actionTransitionRelation === "not_applicable"
-          ? " · no separate selection transition"
-          : ` · rollback result ${
-            item.actionTransitionRelation === "current_selection" ? "current selection" : "historical selection"}`),
-    ]),
-    status.nextCursor === null ? "  No next page" : `  Next cursor: ${status.nextCursor}`,
-    "  This query does not choose an action automatically or execute a rollback or approval.",
-  ].join("\n") + "\n";
+  const selection =
+    status.currentSelection.selectionState === "implicit_baseline"
+      ? "default lexical selection without a transition"
+      : status.currentSelection.selectionState === "recorded_baseline"
+        ? `recorded baseline · ${status.currentSelection.selectionTransitionId}`
+        : `${status.currentSelection.engine.id}-v${status.currentSelection.engine.version}` +
+          ` · ${status.currentSelection.selectionTransitionId}`;
+  return (
+    [
+      "Search rollout action status:",
+      `  Current selection: ${selection}`,
+      `  Action sources ${status.actionCount} · this page ${status.actions.length}`,
+      ...status.actions.flatMap((item) => [
+        `  ${item.actionId} · ${item.action === "acknowledge_keep" ? "acknowledge keep" : "execute rollback"}`,
+        `    Review ${item.review.rolloutReviewId} · quality input ${
+          item.qualityInputState === "unchanged" ? "unchanged" : "changed"
+        }`,
+        `    Review target ${item.reviewSelectionRelation === "current_selection" ? "current selection" : "historical selection"}` +
+          (item.actionTransitionRelation === "not_applicable"
+            ? " · no separate selection transition"
+            : ` · rollback result ${
+                item.actionTransitionRelation === "current_selection"
+                  ? "current selection"
+                  : "historical selection"
+              }`),
+      ]),
+      status.nextCursor === null ? "  No next page" : `  Next cursor: ${status.nextCursor}`,
+      "  This query does not choose an action automatically or execute a rollback or approval.",
+    ].join("\n") + "\n"
+  );
 }
 
-const preflightFailureLabels: Record<SearchRolloutActionPreflight["failureReasons"][number], string> = {
+const preflightFailureLabels: Record<
+  SearchRolloutActionPreflight["failureReasons"][number],
+  string
+> = {
   requested_action_mismatch: "requested action differs from policy action",
   action_policy_not_active: "action policy is not active yet",
   review_not_active: "review time has not arrived",
@@ -89,17 +105,20 @@ const preflightFailureLabels: Record<SearchRolloutActionPreflight["failureReason
 };
 
 export function formatSearchRolloutActionPreflight(result: SearchRolloutActionPreflight): string {
-  const reasons = result.failureReasons.length === 0
-    ? "none"
-    : result.failureReasons.map((reason) => preflightFailureLabels[reason]).join(", ");
-  return [
-    `Search rollout action preflight: ${result.rolloutReviewId}`,
-    `  Requested action: ${result.requestedAction === "acknowledge_keep" ? "acknowledge keep" : "execute rollback"}`,
-    `  Eligible: ${result.eligibility === "eligible" ? "yes" : "no"}`,
-    `  Quality input: ${result.qualityInputState === "unchanged" ? "unchanged" : "changed"}`,
-    `  Unsatisfied reasons: ${reasons}`,
-    "  This check does not acknowledge a keep, change a selection, execute a rollback, or grant approval.",
-  ].join("\n") + "\n";
+  const reasons =
+    result.failureReasons.length === 0
+      ? "none"
+      : result.failureReasons.map((reason) => preflightFailureLabels[reason]).join(", ");
+  return (
+    [
+      `Search rollout action preflight: ${result.rolloutReviewId}`,
+      `  Requested action: ${result.requestedAction === "acknowledge_keep" ? "acknowledge keep" : "execute rollback"}`,
+      `  Eligible: ${result.eligibility === "eligible" ? "yes" : "no"}`,
+      `  Quality input: ${result.qualityInputState === "unchanged" ? "unchanged" : "changed"}`,
+      `  Unsatisfied reasons: ${reasons}`,
+      "  This check does not acknowledge a keep, change a selection, execute a rollback, or grant approval.",
+    ].join("\n") + "\n"
+  );
 }
 
 export function formatSearchRolloutReview(review: SearchRolloutReview): string {
@@ -115,16 +134,18 @@ export function formatSearchRolloutReview(review: SearchRolloutReview): string {
 }
 
 export function formatSearchRolloutPolicy(policy: SearchRolloutReviewPolicy): string {
-  return [
-    `Search rollout review policy created: ${policy.policyId}`,
-    `  Allowed reviewers ${policy.allowedReviewerIds.length} · candidates ${policy.allowedCandidateIds.join(", ")}`,
-    `  Keep candidate: at least ${policy.rules.keepCandidate.minimumAssessedAttempts} assessed` +
-      ` · at most ${policy.rules.keepCandidate.maximumFailedAttempts} failed`,
-    `  Recommend rollback: at least ${policy.rules.rollbackRecommended.minimumAssessedAttempts} assessed` +
-      ` · at least ${policy.rules.rollbackRecommended.minimumFailedAttempts} failed`,
-    `  File: .lervo/search-rollout-policies/${policy.policyId}.yaml`,
-    "  This policy assesses review eligibility only; it does not choose a decision or change the search engine.",
-  ].join("\n") + "\n";
+  return (
+    [
+      `Search rollout review policy created: ${policy.policyId}`,
+      `  Allowed reviewers ${policy.allowedReviewerIds.length} · candidates ${policy.allowedCandidateIds.join(", ")}`,
+      `  Keep candidate: at least ${policy.rules.keepCandidate.minimumAssessedAttempts} assessed` +
+        ` · at most ${policy.rules.keepCandidate.maximumFailedAttempts} failed`,
+      `  Recommend rollback: at least ${policy.rules.rollbackRecommended.minimumAssessedAttempts} assessed` +
+        ` · at least ${policy.rules.rollbackRecommended.minimumFailedAttempts} failed`,
+      `  File: .lervo/search-rollout-policies/${policy.policyId}.yaml`,
+      "  This policy assesses review eligibility only; it does not choose a decision or change the search engine.",
+    ].join("\n") + "\n"
+  );
 }
 
 const failureLabels: Record<SearchRolloutPolicyAssessment["failureReasons"][number], string> = {
@@ -138,27 +159,38 @@ const failureLabels: Record<SearchRolloutPolicyAssessment["failureReasons"][numb
   too_few_failed_attempts: "too few failures to recommend rollback",
 };
 
-export function formatSearchRolloutPolicyAssessment(assessment: SearchRolloutPolicyAssessment): string {
-  const reasons = assessment.failureReasons.length === 0
-    ? "none"
-    : assessment.failureReasons.map((reason) => failureLabels[reason]).join(", ");
-  return [
-    `Search rollout review policy check: ${assessment.rolloutReviewId}`,
-    `  Policy binding: ${assessment.policyBindingState === "bound" ? "matched" :
-      assessment.policyBindingState === "legacy_unbound" ? "legacy unbound review" : "different policy"}`,
-    `  Recorded decision: ${assessment.reviewDecisionEligibility === "eligible" ? "eligible" : "ineligible"}`,
-    `  Unsatisfied reasons: ${reasons}`,
-    "  This check does not choose a decision or execute approval, rollback, or search-engine changes.",
-  ].join("\n") + "\n";
+export function formatSearchRolloutPolicyAssessment(
+  assessment: SearchRolloutPolicyAssessment,
+): string {
+  const reasons =
+    assessment.failureReasons.length === 0
+      ? "none"
+      : assessment.failureReasons.map((reason) => failureLabels[reason]).join(", ");
+  return (
+    [
+      `Search rollout review policy check: ${assessment.rolloutReviewId}`,
+      `  Policy binding: ${
+        assessment.policyBindingState === "bound"
+          ? "matched"
+          : assessment.policyBindingState === "legacy_unbound"
+            ? "legacy unbound review"
+            : "different policy"
+      }`,
+      `  Recorded decision: ${assessment.reviewDecisionEligibility === "eligible" ? "eligible" : "ineligible"}`,
+      `  Unsatisfied reasons: ${reasons}`,
+      "  This check does not choose a decision or execute approval, rollback, or search-engine changes.",
+    ].join("\n") + "\n"
+  );
 }
 
 export function formatSearchRolloutStatus(status: SearchRolloutStatusPage): string {
-  const selection = status.currentSelection.selectionState === "implicit_baseline"
-    ? "default lexical selection without a transition"
-    : status.currentSelection.selectionState === "recorded_baseline"
-      ? `recorded baseline · ${status.currentSelection.selectionTransitionId}`
-      : `${status.currentSelection.engine.id}-v${status.currentSelection.engine.version}` +
-        ` · ${status.currentSelection.selectionTransitionId}`;
+  const selection =
+    status.currentSelection.selectionState === "implicit_baseline"
+      ? "default lexical selection without a transition"
+      : status.currentSelection.selectionState === "recorded_baseline"
+        ? `recorded baseline · ${status.currentSelection.selectionTransitionId}`
+        : `${status.currentSelection.engine.id}-v${status.currentSelection.engine.version}` +
+          ` · ${status.currentSelection.selectionTransitionId}`;
   const lines = [
     "Search rollout review status:",
     `  Current selection: ${selection}`,

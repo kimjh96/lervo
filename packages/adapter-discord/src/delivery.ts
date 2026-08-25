@@ -40,7 +40,8 @@ export async function deliverDiscordConversationMessage(input: {
       [...content].length > 2_000 ||
       (guildId === null && !input.allowDirectMessages) ||
       (guildId !== null && !input.allowedGuildIds.has(guildId))
-    ) throw new Error("Discord delivery scope or content limit mismatch");
+    )
+      throw new Error("Discord delivery scope or content limit mismatch");
     const delivered = await input.delivery.send({
       outboundId: input.message.outboundId,
       guildId,

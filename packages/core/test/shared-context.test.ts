@@ -61,9 +61,7 @@ function researcherRole(allowedRoleIds = ["marketer"]): RoleProfile {
   };
 }
 
-function publication(
-  overrides: Partial<SharedContextPublication> = {},
-): SharedContextPublication {
+function publication(overrides: Partial<SharedContextPublication> = {}): SharedContextPublication {
   return {
     schemaVersion: 1,
     sharedContextId: "scx_research_finding",
@@ -256,10 +254,7 @@ describe("shared context and role handoff", () => {
     ).toMatchObject({
       allowed: false,
       failure: "contract_validation_failed",
-      violations: [
-        { code: "producer_role_mismatch" },
-        { code: "context_expired" },
-      ],
+      violations: [{ code: "producer_role_mismatch" }, { code: "context_expired" }],
     });
   });
 

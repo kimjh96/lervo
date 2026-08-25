@@ -4,8 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { ReleasePublicationAuthorizationError } from
-  "./release-publication-authorization.mjs";
+import { ReleasePublicationAuthorizationError } from "./release-publication-authorization.mjs";
 
 const execFileAsync = promisify(execFile);
 const minimumNodeVersion = [22, 14, 0];
@@ -32,15 +31,18 @@ function containsRegistryWriteCredential(environment) {
   return Object.entries(environment).some(([name, value]) => {
     if (typeof value !== "string" || value.length === 0) return false;
     const normalized = name.toLowerCase();
-    return normalized === "npm_token" ||
+    return (
+      normalized === "npm_token" ||
       normalized === "node_auth_token" ||
-      (normalized.startsWith("npm_config_") && normalized.includes("auth"));
+      (normalized.startsWith("npm_config_") && normalized.includes("auth"))
+    );
   });
 }
 
 function withoutAmbientNpmConfiguration(environment) {
-  return Object.fromEntries(Object.entries(environment).filter(([name]) =>
-    !name.toLowerCase().startsWith("npm_config_")));
+  return Object.fromEntries(
+    Object.entries(environment).filter(([name]) => !name.toLowerCase().startsWith("npm_config_")),
+  );
 }
 
 export function validateNpmTrustedPublishingEnvironment(
@@ -74,10 +76,13 @@ export async function prepareIsolatedNpmTrustedPublishingClient({
 }) {
   validateNpmTrustedPublishingEnvironment(environment, nodeVersion);
   if (
-    !Array.isArray(minimumNpmVersion) || minimumNpmVersion.length !== 3 ||
+    !Array.isArray(minimumNpmVersion) ||
+    minimumNpmVersion.length !== 3 ||
     minimumNpmVersion.some((part) => !Number.isSafeInteger(part) || part < 0) ||
-    typeof execute !== "function" || typeof npmCommand !== "string" ||
-    npmCommand.length === 0 || typeof temporaryPrefix !== "string" ||
+    typeof execute !== "function" ||
+    typeof npmCommand !== "string" ||
+    npmCommand.length === 0 ||
+    typeof temporaryPrefix !== "string" ||
     temporaryPrefix.length === 0
   ) {
     fail(

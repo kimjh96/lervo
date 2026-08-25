@@ -1,7 +1,4 @@
-import {
-  HUB_DESTINATION_ID_PATTERN,
-  HUB_PROJECT_ID_PATTERN,
-} from "./identifiers.js";
+import { HUB_DESTINATION_ID_PATTERN, HUB_PROJECT_ID_PATTERN } from "./identifiers.js";
 import { InvalidHubHttpRequestError } from "./request.js";
 
 export { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
@@ -17,9 +14,13 @@ export type HubPolicyHttpRoute = {
 export function matchHubPolicyRoute(pathname: string): HubPolicyHttpRoute | null {
   const segments = pathname.split("/");
   if (
-    segments.length !== 6 || segments[0] !== "" || segments[1] !== "v1" ||
-    segments[2] !== "policy" || segments[3] !== "projects"
-  ) return null;
+    segments.length !== 6 ||
+    segments[0] !== "" ||
+    segments[1] !== "v1" ||
+    segments[2] !== "policy" ||
+    segments[3] !== "projects"
+  )
+    return null;
   let projectId: string;
   try {
     projectId = decodeURIComponent(segments[4]!);
@@ -28,9 +29,12 @@ export function matchHubPolicyRoute(pathname: string): HubPolicyHttpRoute | null
   }
   if (!HUB_PROJECT_ID_PATTERN.test(projectId)) throw new InvalidHubHttpRequestError();
   const kind = segments[5];
-  if (!(["bundle", "snapshots", "approvals", "revocations"] as const).includes(
-    kind as HubPolicyHttpRoute["kind"],
-  )) return null;
+  if (
+    !(["bundle", "snapshots", "approvals", "revocations"] as const).includes(
+      kind as HubPolicyHttpRoute["kind"],
+    )
+  )
+    return null;
   return { kind: kind as HubPolicyHttpRoute["kind"], projectId };
 }
 
@@ -53,13 +57,12 @@ export function policyQuery(parameters: URLSearchParams, includeCursor: boolean)
   }
   const destinationId = one(parameters, "destinationId", true)!;
   const projectIdentityHash = one(parameters, "projectIdentityHash", true)!;
-  const currentSnapshotId = includeCursor
-    ? one(parameters, "currentSnapshotId", false)
-    : null;
+  const currentSnapshotId = includeCursor ? one(parameters, "currentSnapshotId", false) : null;
   if (
     !HUB_DESTINATION_ID_PATTERN.test(destinationId) ||
     !HASH_PATTERN.test(projectIdentityHash) ||
     (currentSnapshotId !== null && !SNAPSHOT_ID_PATTERN.test(currentSnapshotId))
-  ) throw new InvalidHubHttpRequestError();
+  )
+    throw new InvalidHubHttpRequestError();
   return { destinationId, projectIdentityHash, currentSnapshotId };
 }

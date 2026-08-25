@@ -25,8 +25,8 @@ function isRemoteManagedRole(profile: RoleProfile): boolean {
     profile.roleId.length <= 100 &&
     profile.defaultSkills.length <= 16 &&
     new Set(profile.defaultSkills).size === profile.defaultSkills.length &&
-    profile.defaultSkills.every((skillId) =>
-      skillId.length <= 150 && SKILL_ID_PATTERN.test(skillId)
+    profile.defaultSkills.every(
+      (skillId) => skillId.length <= 150 && SKILL_ID_PATTERN.test(skillId),
     ) &&
     profile.outputContract.presentation.audience === "machine" &&
     profile.outputContract.presentation.writingPolicyId === null &&
@@ -58,9 +58,7 @@ export class ManagedProviderHostRoleRegistry {
     if (
       developerSkillIds.length > 16 ||
       new Set(developerSkillIds).size !== developerSkillIds.length ||
-      developerSkillIds.some((skillId) =>
-        skillId.length > 150 || !SKILL_ID_PATTERN.test(skillId)
-      )
+      developerSkillIds.some((skillId) => skillId.length > 150 || !SKILL_ID_PATTERN.test(skillId))
     ) {
       throw new ManagedProviderHostRoleRegistryError(
         "The managed provider host developer skill ID is invalid.",
@@ -75,8 +73,10 @@ export class ManagedProviderHostRoleRegistry {
     for (const source of customProfiles) {
       const profile = clone(source);
       if (
-        !ROLE_ID_PATTERN.test(profile.roleId) || profile.roleId === "developer" ||
-        this.profiles.has(profile.roleId) || !isRemoteManagedRole(profile)
+        !ROLE_ID_PATTERN.test(profile.roleId) ||
+        profile.roleId === "developer" ||
+        this.profiles.has(profile.roleId) ||
+        !isRemoteManagedRole(profile)
       ) {
         throw new ManagedProviderHostRoleRegistryError(
           "The managed provider host custom role profile does not satisfy the safe remote-execution contract.",
@@ -95,10 +95,8 @@ export class ManagedProviderHostRoleRegistry {
       return createRemoteDeveloperRole(verificationSuiteIds, this.developerSkillIds);
     }
     const profile = this.profiles.get(roleId);
-    if (
-      profile === undefined ||
-      !sameValues(profile.verification.suiteIds, verificationSuiteIds)
-    ) return null;
+    if (profile === undefined || !sameValues(profile.verification.suiteIds, verificationSuiteIds))
+      return null;
     return clone(profile);
   }
 }

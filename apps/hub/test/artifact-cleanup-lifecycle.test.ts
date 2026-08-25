@@ -5,16 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import { attachHubArtifactCleanupLifecycle } from "../src/index.js";
 
 function close(server: ReturnType<typeof createServer>): Promise<void> {
-  return new Promise((resolve, reject) => server.close((error) =>
-    error === undefined ? resolve() : reject(error)
-  ));
+  return new Promise((resolve, reject) =>
+    server.close((error) => (error === undefined ? resolve() : reject(error))),
+  );
 }
 
 describe("Hub artifact cleanup server lifecycle", () => {
   it("starts on listening and stops the wait when the HTTP server closes", async () => {
     const server = createServer((_request, response) => response.end());
     let waiting!: () => void;
-    const waitStarted = new Promise<void>((resolve) => { waiting = resolve; });
+    const waitStarted = new Promise<void>((resolve) => {
+      waiting = resolve;
+    });
     const claim = vi.fn(async () => ({
       status: "waiting" as const,
       reason: "not_due" as const,
@@ -25,29 +27,51 @@ describe("Hub artifact cleanup server lifecycle", () => {
       runtime: {
         schedule: {
           claimArtifactCleanupCycle: claim,
-          async completeArtifactCleanupCycle() { throw new Error("not called"); },
-          async failArtifactCleanupCycle() { throw new Error("not called"); },
+          async completeArtifactCleanupCycle() {
+            throw new Error("not called");
+          },
+          async failArtifactCleanupCycle() {
+            throw new Error("not called");
+          },
         },
         repository: {
-          async claimExpiredArtifacts() { throw new Error("not called"); },
-          async claimOrphanArtifact() { throw new Error("not called"); },
-          async completeArtifactPurge() { throw new Error("not called"); },
-          async releaseArtifactPurgeClaim() { throw new Error("not called"); },
+          async claimExpiredArtifacts() {
+            throw new Error("not called");
+          },
+          async claimOrphanArtifact() {
+            throw new Error("not called");
+          },
+          async completeArtifactPurge() {
+            throw new Error("not called");
+          },
+          async releaseArtifactPurgeClaim() {
+            throw new Error("not called");
+          },
         },
         artifacts: {
-          async put() { throw new Error("not called"); },
-          async get() { throw new Error("not called"); },
-          async listObjects() { throw new Error("not called"); },
-          async deleteObject() { throw new Error("not called"); },
+          async put() {
+            throw new Error("not called");
+          },
+          async get() {
+            throw new Error("not called");
+          },
+          async listObjects() {
+            throw new Error("not called");
+          },
+          async deleteObject() {
+            throw new Error("not called");
+          },
         },
         workerId: "hub:server-lifecycle",
         now: () => "2026-08-22T00:00:00.000Z",
         wait: {
           wait: async (_delay, signal) => {
             waiting();
-            await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), {
-              once: true,
-            }));
+            await new Promise<void>((resolve) =>
+              signal.addEventListener("abort", () => resolve(), {
+                once: true,
+              }),
+            );
           },
         },
       },
@@ -72,21 +96,43 @@ describe("Hub artifact cleanup server lifecycle", () => {
       server,
       runtime: {
         schedule: {
-          async claimArtifactCleanupCycle() { throw new Error("database password"); },
-          async completeArtifactCleanupCycle() { throw new Error("not called"); },
-          async failArtifactCleanupCycle() { throw new Error("not called"); },
+          async claimArtifactCleanupCycle() {
+            throw new Error("database password");
+          },
+          async completeArtifactCleanupCycle() {
+            throw new Error("not called");
+          },
+          async failArtifactCleanupCycle() {
+            throw new Error("not called");
+          },
         },
         repository: {
-          async claimExpiredArtifacts() { throw new Error("not called"); },
-          async claimOrphanArtifact() { throw new Error("not called"); },
-          async completeArtifactPurge() { throw new Error("not called"); },
-          async releaseArtifactPurgeClaim() { throw new Error("not called"); },
+          async claimExpiredArtifacts() {
+            throw new Error("not called");
+          },
+          async claimOrphanArtifact() {
+            throw new Error("not called");
+          },
+          async completeArtifactPurge() {
+            throw new Error("not called");
+          },
+          async releaseArtifactPurgeClaim() {
+            throw new Error("not called");
+          },
         },
         artifacts: {
-          async put() { throw new Error("not called"); },
-          async get() { throw new Error("not called"); },
-          async listObjects() { throw new Error("not called"); },
-          async deleteObject() { throw new Error("not called"); },
+          async put() {
+            throw new Error("not called");
+          },
+          async get() {
+            throw new Error("not called");
+          },
+          async listObjects() {
+            throw new Error("not called");
+          },
+          async deleteObject() {
+            throw new Error("not called");
+          },
         },
         workerId: "hub:server-failure",
       },

@@ -45,14 +45,18 @@ export function requiresConversationRelevance(input: {
     input.event.automationDepth + 1 > input.policy.maxAutomationDepth ||
     (input.window !== undefined &&
       input.window.responsesInLastHour >= input.policy.maxResponsesPerHour) ||
-    (input.window?.latestResponseAt !== null && input.window?.latestResponseAt !== undefined &&
+    (input.window?.latestResponseAt !== null &&
+      input.window?.latestResponseAt !== undefined &&
       input.at !== undefined &&
-      Date.parse(input.at) < Date.parse(input.window.latestResponseAt) +
-        input.policy.cooldownSeconds * 1_000)
-  ) return false;
-  return input.event.kind === "message.created" &&
+      Date.parse(input.at) <
+        Date.parse(input.window.latestResponseAt) + input.policy.cooldownSeconds * 1_000)
+  )
+    return false;
+  return (
+    input.event.kind === "message.created" &&
     !input.event.mentions.roleIds.includes(input.policy.roleId) &&
-    (input.policy.mode === "relevant" || input.policy.mode === "proactive");
+    (input.policy.mode === "relevant" || input.policy.mode === "proactive")
+  );
 }
 
 export function decideConversationParticipation(input: {
@@ -93,7 +97,8 @@ export function decideConversationParticipation(input: {
     relevance = "not_checked";
   } else if (input.event.kind === "signal.raised") {
     if (
-      input.policy.mode === "proactive" && input.event.signalCode !== null &&
+      input.policy.mode === "proactive" &&
+      input.event.signalCode !== null &&
       input.policy.signalCodes.includes(input.event.signalCode)
     ) {
       reason = "proactive_signal";
@@ -117,27 +122,31 @@ export function decideConversationParticipation(input: {
     relevance = "unknown";
   }
 
-  const triggered = reason === "mentioned" || reason === "relevant" ||
-    reason === "proactive_signal";
+  const triggered =
+    reason === "mentioned" || reason === "relevant" || reason === "proactive_signal";
   if (triggered && input.window.latestResponseAt !== null) {
-    const cooldownUntil = Date.parse(input.window.latestResponseAt) +
-      input.policy.cooldownSeconds * 1_000;
+    const cooldownUntil =
+      Date.parse(input.window.latestResponseAt) + input.policy.cooldownSeconds * 1_000;
     if (decidedAtMs < cooldownUntil) {
       reason = "cooldown";
       relevance = "not_checked";
     }
   }
-  if (triggered && reason !== "cooldown" &&
-    input.window.responsesInLastHour >= input.policy.maxResponsesPerHour) {
+  if (
+    triggered &&
+    reason !== "cooldown" &&
+    input.window.responsesInLastHour >= input.policy.maxResponsesPerHour
+  ) {
     reason = "rate_limited";
     relevance = "not_checked";
   }
   return createConversationParticipationDecision({
     event: input.event,
     policy: input.policy,
-    action: reason === "mentioned" || reason === "relevant" || reason === "proactive_signal"
-      ? "respond"
-      : "observe",
+    action:
+      reason === "mentioned" || reason === "relevant" || reason === "proactive_signal"
+        ? "respond"
+        : "observe",
     reason,
     relevance,
     decidedAt: input.decidedAt,

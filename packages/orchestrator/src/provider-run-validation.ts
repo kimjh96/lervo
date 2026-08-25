@@ -1,4 +1,6 @@
 import type {
+  AdapterCapabilityActivationReceipt,
+  AdapterCapabilityActivationRequest,
   AdapterCapabilityMatrix,
   AdapterNormalizedEvent,
   AdapterSession,
@@ -24,6 +26,45 @@ export function assertAdapterMessage(value: unknown, label: string): void {
   }
 }
 
+export function assertCapabilityActivationReceipts(input: {
+  requests: readonly AdapterCapabilityActivationRequest[];
+  receipts: readonly AdapterCapabilityActivationReceipt[];
+  session: AdapterSession;
+}): void {
+  const expected = new Map(input.requests.map((request) => [request.capabilityId, request]));
+  const receivedIds = new Set<string>();
+  if (input.receipts.length !== input.requests.length) {
+    throw new ManagedProviderRunError(
+      "capability_activation_failed",
+      "The provider did not confirm every requested capability activation.",
+    );
+  }
+  for (const receipt of input.receipts) {
+    assertAdapterMessage(receipt, "Capability activation receipt");
+    const request = expected.get(receipt.capabilityId);
+    if (
+      request === undefined ||
+      receivedIds.has(receipt.capabilityId) ||
+      receipt.adapterId !== input.session.adapterId ||
+      receipt.projectId !== input.session.projectId ||
+      receipt.runId !== input.session.runId ||
+      receipt.sessionId !== input.session.sessionId ||
+      receipt.providerSessionId !== input.session.providerSessionId ||
+      receipt.capabilityKind !== request.capabilityKind ||
+      receipt.version !== request.version ||
+      receipt.contentHash !== request.contentHash ||
+      (request.capabilityKind === "mcp_server" && receipt.evidence !== "mcp_connected") ||
+      (request.capabilityKind === "provider_plugin" && receipt.evidence !== "plugin_loaded")
+    ) {
+      throw new ManagedProviderRunError(
+        "capability_activation_failed",
+        "A provider capability activation receipt differs from its exact request or session binding.",
+      );
+    }
+    receivedIds.add(receipt.capabilityId);
+  }
+}
+
 function expectedWritingPolicyId(input: ManagedProviderRunInput): string | null {
   const presentation = input.context.role.outputContract.presentation;
   return presentation.audience === "machine" ? null : presentation.writingPolicyId;
@@ -34,6 +75,7 @@ export function validateManagedProviderRunInput(
   options: Pick<ManagedProviderRunOptions, "coordinates" | "projectVerifier">,
 ): void {
   const skillIds = input.resolvedSkills.map((skill) => skill.skillId);
+  const capabilityActivations = input.capabilityActivations ?? [];
   const roleSkillIds = [...input.context.role.defaultSkills].sort();
   const resolvedSkillIds = [...skillIds].sort();
   const writeDecision = input.context.role.capabilities["filesystem.write"];
@@ -50,10 +92,19 @@ export function validateManagedProviderRunInput(
     new Set(skillIds).size !== skillIds.length ||
     roleSkillIds.length !== resolvedSkillIds.length ||
     roleSkillIds.some((skillId, index) => skillId !== resolvedSkillIds[index]) ||
-    input.resolvedSkills.some((skill) =>
-      !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/.test(skill.skillId) ||
-      !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(skill.version) ||
-      !/^sha256:[a-f0-9]{64}$/.test(skill.contentHash)
+    input.resolvedSkills.some(
+      (skill) =>
+        !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/.test(skill.skillId) ||
+        !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(
+          skill.version,
+        ) ||
+        !/^sha256:[a-f0-9]{64}$/.test(skill.contentHash),
+    ) ||
+    capabilityActivations.length > 128 ||
+    new Set(capabilityActivations.map((item) => item.capabilityId)).size !==
+      capabilityActivations.length ||
+    capabilityActivations.some(
+      (item) => !validateSchema("adapterCapabilityActivationRequest", item).valid,
     )
   ) {
     throw new ManagedProviderRunError(
@@ -175,6 +226,7 @@ export function createAdapterStartRequest(input: {
         ? "managed_write"
         : "read_only",
     requestedAt: input.requestedAt,
+    capabilityActivations: [...structuredClone(input.run.capabilityActivations ?? [])],
   };
   assertAdapterMessage(request, "Adapter start request");
   return request;
@@ -213,10 +265,7 @@ export function assertManagedSession(input: {
   }
 }
 
-export function assertTerminalTurn(
-  turn: AdapterTurn,
-  event: AdapterNormalizedEvent,
-): void {
+export function assertTerminalTurn(turn: AdapterTurn, event: AdapterNormalizedEvent): void {
   if (
     (event.type !== "provider.turn.completed" && event.type !== "provider.turn.failed") ||
     event.payload.providerTurnId !== turn.providerTurnId

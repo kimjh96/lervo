@@ -1,0 +1,35 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_88b3636ea23f92ce2dd262a7
+outputLanguage: en
+outputs:
+  - byteCount: 7966
+    contentHash: sha256:4d3391d493bc88b6eb78c67fd245db277a02b19696789f755a6649dc72ea0426
+    path: docs/decisions/foundation/0001-m0-contracts-and-data-defaults.md
+    userRegionHash: sha256:4d3391d493bc88b6eb78c67fd245db277a02b19696789f755a6649dc72ea0426
+profile: decision_record
+recordId: knormdoc_12e7787f3f49251934d39f18
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:0fe51848a8f92225b2ae950aec42d15b93ed36d38b47da06b4b86e94356f5451
+sourcePath: docs/decisions/foundation/0001-m0-contracts-and-data-defaults.md
+sourceUnitVersionIds:
+  - uv_283c637e19d6649e9803585d
+  - uv_65226c05ea1fb43d20ee3e96
+  - uv_68875682907d6ab58fb42056
+  - uv_6b011e8e897cc1040517b853
+  - uv_79b80d0d5227fec7f50b1bc8
+  - uv_829628b5767f6ca2fbe25662
+  - uv_9027e705483da8d34fd787b6
+  - uv_afd222db0a287d495638b0b8
+  - uv_b7611d8f904d1c9cc1dafb9e
+  - uv_ba68766b08d3705c9d50e32d
+  - uv_c2f8b6495ceca3b9007a883c
+  - uv_c87aec6ed901748fcd4e5a4f
+  - uv_db8066faff6cd771ef05317a

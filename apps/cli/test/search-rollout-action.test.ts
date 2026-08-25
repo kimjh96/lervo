@@ -43,8 +43,13 @@ describe("search rollout action commands", () => {
   });
 
   it("acknowledges an unchanged keep review and executes only a fresh rollback review", async () => {
-    const { root, project, activation, policy: enginePolicy, registry } =
-      await prepareSelectedSearchCandidate("researcher.rollout-action");
+    const {
+      root,
+      project,
+      activation,
+      policy: enginePolicy,
+      registry,
+    } = await prepareSelectedSearchCandidate("researcher.rollout-action");
     const rolloutPolicy = createSearchRolloutReviewPolicy({
       projectId: project.projectId,
       allowedReviewerIds: ["reviewer_rollout"],
@@ -61,21 +66,52 @@ describe("search rollout action commands", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:03:00.000Z"));
     const keepReviewResult = await command(root, [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "keep", "--reviewer", "reviewer_rollout",
-      "--policy", rolloutPolicy.policyId, "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "keep",
+      "--reviewer",
+      "reviewer_rollout",
+      "--policy",
+      rolloutPolicy.policyId,
+      "--json",
     ]);
     vi.setSystemTime(new Date("2026-08-20T10:03:30.000Z"));
     const keepPolicyResult = await command(root, [
-      "search", "rollout", "action", "policy", "create",
-      "--review-policy", rolloutPolicy.policyId, "--action", "keep",
-      "--operator", "operator_search", "--author", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "policy",
+      "create",
+      "--review-policy",
+      rolloutPolicy.policyId,
+      "--action",
+      "keep",
+      "--operator",
+      "operator_search",
+      "--author",
+      "operator_search",
+      "--json",
     ]);
     const rollbackPolicyResult = await command(root, [
-      "search", "rollout", "action", "policy", "create",
-      "--review-policy", rolloutPolicy.policyId, "--action", "rollback",
-      "--engine-policy", enginePolicy.policyId,
-      "--operator", "operator_search", "--author", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "policy",
+      "create",
+      "--review-policy",
+      rolloutPolicy.policyId,
+      "--action",
+      "rollback",
+      "--engine-policy",
+      enginePolicy.policyId,
+      "--operator",
+      "operator_search",
+      "--author",
+      "operator_search",
+      "--json",
     ]);
     vi.useRealTimers();
     expect(keepReviewResult.code, keepReviewResult.error).toBe(0);
@@ -89,14 +125,32 @@ describe("search rollout action commands", () => {
     vi.setSystemTime(new Date("2026-08-20T10:04:00.000Z"));
     const searchStateBeforeCheck = await readdir(resolve(root, ".lervo/state/search"));
     const deniedCheck = await command(root, [
-      "search", "rollout", "action", "check", keepReview.rolloutReviewId,
-      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
-      "--operator", "operator_other", "--json",
+      "search",
+      "rollout",
+      "action",
+      "check",
+      keepReview.rolloutReviewId,
+      "--action",
+      "keep",
+      "--policy",
+      keepPolicy.actionPolicyId,
+      "--operator",
+      "operator_other",
+      "--json",
     ]);
     const eligibleCheck = await command(root, [
-      "search", "rollout", "action", "check", keepReview.rolloutReviewId,
-      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "check",
+      keepReview.rolloutReviewId,
+      "--action",
+      "keep",
+      "--policy",
+      keepPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     expect(deniedCheck.code, deniedCheck.error).toBe(0);
     expect(JSON.parse(deniedCheck.output)).toMatchObject({
@@ -116,16 +170,36 @@ describe("search rollout action commands", () => {
       },
     });
     expect(await readdir(resolve(root, ".lervo/state/search"))).toEqual(searchStateBeforeCheck);
-    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+    ]);
     const unauthorized = await command(root, [
-      "search", "rollout", "action", "apply", keepReview.rolloutReviewId,
-      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
-      "--operator", "operator_other", "--json",
+      "search",
+      "rollout",
+      "action",
+      "apply",
+      keepReview.rolloutReviewId,
+      "--action",
+      "keep",
+      "--policy",
+      keepPolicy.actionPolicyId,
+      "--operator",
+      "operator_other",
+      "--json",
     ]);
     const acknowledged = await command(root, [
-      "search", "rollout", "action", "apply", keepReview.rolloutReviewId,
-      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "apply",
+      keepReview.rolloutReviewId,
+      "--action",
+      "keep",
+      "--policy",
+      keepPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     vi.useRealTimers();
     expect(unauthorized.code).toBe(1);
@@ -136,8 +210,12 @@ describe("search rollout action commands", () => {
       rolloutReviewId: keepReview.rolloutReviewId,
       effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
     });
-    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
-    expect(await readdir(resolve(root, ".lervo/state/search/rollout-acknowledgements"))).toHaveLength(1);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+    ]);
+    expect(
+      await readdir(resolve(root, ".lervo/state/search/rollout-acknowledgements")),
+    ).toHaveLength(1);
 
     const operational = await runLocalOperationalSearch({
       repositoryRoot: root,
@@ -167,34 +245,81 @@ describe("search rollout action commands", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:07:00.000Z"));
     const staleCheck = await command(root, [
-      "search", "rollout", "action", "check", keepReview.rolloutReviewId,
-      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "check",
+      keepReview.rolloutReviewId,
+      "--action",
+      "keep",
+      "--policy",
+      keepPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     const staleKeep = await command(root, [
-      "search", "rollout", "action", "apply", keepReview.rolloutReviewId,
-      "--action", "keep", "--policy", keepPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "apply",
+      keepReview.rolloutReviewId,
+      "--action",
+      "keep",
+      "--policy",
+      keepPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     vi.setSystemTime(new Date("2026-08-20T10:08:00.000Z"));
     const rollbackReviewResult = await command(root, [
-      "search", "rollout", "review", activation.activationId,
-      "--decision", "rollback", "--reviewer", "reviewer_rollout",
-      "--policy", rolloutPolicy.policyId, "--json",
+      "search",
+      "rollout",
+      "review",
+      activation.activationId,
+      "--decision",
+      "rollback",
+      "--reviewer",
+      "reviewer_rollout",
+      "--policy",
+      rolloutPolicy.policyId,
+      "--json",
     ]);
     vi.setSystemTime(new Date("2026-08-20T10:09:00.000Z"));
-    const rollbackReviewId = (JSON.parse(rollbackReviewResult.output) as { rolloutReviewId: string }).rolloutReviewId;
+    const rollbackReviewId = (
+      JSON.parse(rollbackReviewResult.output) as { rolloutReviewId: string }
+    ).rolloutReviewId;
     const rollbackCheck = await command(root, [
-      "search", "rollout", "action", "check", rollbackReviewId,
-      "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
-    ]);
-    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
-    const rolledBack = await command(root, [
-      "search", "rollout", "action", "apply",
+      "search",
+      "rollout",
+      "action",
+      "check",
       rollbackReviewId,
-      "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "--action",
+      "rollback",
+      "--policy",
+      rollbackPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
+    ]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+    ]);
+    const rolledBack = await command(root, [
+      "search",
+      "rollout",
+      "action",
+      "apply",
+      rollbackReviewId,
+      "--action",
+      "rollback",
+      "--policy",
+      rollbackPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     vi.useRealTimers();
 
@@ -220,7 +345,11 @@ describe("search rollout action commands", () => {
       schemaVersion: number;
       activationId: string;
       selected: { mode: string };
-      rolloutAction: { rolloutReviewId: string; actionPolicyId: string; qualityInputDigest: string };
+      rolloutAction: {
+        rolloutReviewId: string;
+        actionPolicyId: string;
+        qualityInputDigest: string;
+      };
     };
     expect(rollback).toMatchObject({
       schemaVersion: 3,
@@ -228,24 +357,45 @@ describe("search rollout action commands", () => {
       selected: { mode: "baseline" },
       rolloutAction: {
         actionPolicyId: rollbackPolicy.actionPolicyId,
-        rolloutReviewId: (JSON.parse(rollbackReviewResult.output) as { rolloutReviewId: string }).rolloutReviewId,
+        rolloutReviewId: (JSON.parse(rollbackReviewResult.output) as { rolloutReviewId: string })
+          .rolloutReviewId,
       },
     });
     expect(rollback.rolloutAction.qualityInputDigest).toMatch(/^sha256:/);
-    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections")))
-      .toEqual(["baseline.json", `${activation.activationId}.json`]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+      `${activation.activationId}.json`,
+    ]);
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:10:00.000Z"));
     const repeatedCheck = await command(root, [
-      "search", "rollout", "action", "check", rollback.rolloutAction.rolloutReviewId,
-      "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "check",
+      rollback.rolloutAction.rolloutReviewId,
+      "--action",
+      "rollback",
+      "--policy",
+      rollbackPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     const repeated = await command(root, [
-      "search", "rollout", "action", "apply", rollback.rolloutAction.rolloutReviewId,
-      "--action", "rollback", "--policy", rollbackPolicy.actionPolicyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "rollout",
+      "action",
+      "apply",
+      rollback.rolloutAction.rolloutReviewId,
+      "--action",
+      "rollback",
+      "--policy",
+      rollbackPolicy.actionPolicyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     vi.useRealTimers();
     expect(repeatedCheck.code, repeatedCheck.error).toBe(0);
@@ -259,7 +409,13 @@ describe("search rollout action commands", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:11:00.000Z"));
     const firstPage = await command(root, [
-      "search", "rollout", "action", "status", "--limit", "1", "--json",
+      "search",
+      "rollout",
+      "action",
+      "status",
+      "--limit",
+      "1",
+      "--json",
     ]);
     vi.useRealTimers();
     expect(firstPage.code, firstPage.error).toBe(0);
@@ -276,29 +432,40 @@ describe("search rollout action commands", () => {
     };
     expect(firstStatus).toMatchObject({
       actionCount: 2,
-      actions: [{
-        actionId: rollback.activationId,
-        action: "execute_rollback",
-        reviewSelectionRelation: "historical_selection",
-        actionTransitionRelation: "current_selection",
-      }],
+      actions: [
+        {
+          actionId: rollback.activationId,
+          action: "execute_rollback",
+          reviewSelectionRelation: "historical_selection",
+          actionTransitionRelation: "current_selection",
+        },
+      ],
       nextCursor: rollback.activationId,
       actionSelection: "not_performed",
     });
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:11:00.000Z"));
     const nextPage = await command(root, [
-      "search", "rollout", "action", "status", "--limit", "1",
-      "--cursor", firstStatus.nextCursor, "--json",
+      "search",
+      "rollout",
+      "action",
+      "status",
+      "--limit",
+      "1",
+      "--cursor",
+      firstStatus.nextCursor,
+      "--json",
     ]);
     vi.useRealTimers();
     expect(nextPage.code, nextPage.error).toBe(0);
     expect(JSON.parse(nextPage.output)).toMatchObject({
-      actions: [{
-        action: "acknowledge_keep",
-        reviewSelectionRelation: "historical_selection",
-        actionTransitionRelation: "not_applicable",
-      }],
+      actions: [
+        {
+          action: "acknowledge_keep",
+          reviewSelectionRelation: "historical_selection",
+          actionTransitionRelation: "not_applicable",
+        },
+      ],
       nextCursor: null,
       effect: { selectionChange: "not_applied", rollback: "not_executed", approval: "not_granted" },
     });
@@ -306,21 +473,37 @@ describe("search rollout action commands", () => {
     const acknowledgementDirectory = resolve(root, ".lervo/state/search/rollout-acknowledgements");
     const acknowledgementName = (await readdir(acknowledgementDirectory))[0]!;
     const acknowledgementPath = resolve(acknowledgementDirectory, acknowledgementName);
-    const forgedAcknowledgement = JSON.parse(await readFile(acknowledgementPath, "utf8")) as
-      Record<string, unknown> & { acknowledgementId: string; qualityInputDigest: string };
+    const forgedAcknowledgement = JSON.parse(await readFile(acknowledgementPath, "utf8")) as Record<
+      string,
+      unknown
+    > & { acknowledgementId: string; qualityInputDigest: string };
     forgedAcknowledgement.qualityInputDigest = `sha256:${"f".repeat(64)}`;
-    const { schemaVersion: _ackSchema, acknowledgementId: _ackId, ...ackCore } = forgedAcknowledgement;
+    const {
+      schemaVersion: _ackSchema,
+      acknowledgementId: _ackId,
+      ...ackCore
+    } = forgedAcknowledgement;
     forgedAcknowledgement.acknowledgementId = contentId("srack", ackCore);
     const forgedAcknowledgementPath = resolve(
       acknowledgementDirectory,
       `${forgedAcknowledgement.acknowledgementId}.json`,
     );
     await rename(acknowledgementPath, forgedAcknowledgementPath);
-    await writeFile(forgedAcknowledgementPath, `${JSON.stringify(forgedAcknowledgement)}\n`, "utf8");
+    await writeFile(
+      forgedAcknowledgementPath,
+      `${JSON.stringify(forgedAcknowledgement)}\n`,
+      "utf8",
+    );
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T10:12:00.000Z"));
     const hiddenBrokenEvidence = await command(root, [
-      "search", "rollout", "action", "status", "--limit", "1", "--json",
+      "search",
+      "rollout",
+      "action",
+      "status",
+      "--limit",
+      "1",
+      "--json",
     ]);
     vi.useRealTimers();
     expect(hiddenBrokenEvidence.code).toBe(1);

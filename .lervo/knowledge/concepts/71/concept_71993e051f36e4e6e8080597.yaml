@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_1922280709913ff292bded6b
+  - uv_a837510a918cd65bec4f41e9
 title: "ADR-0196: Fail-Closed Provider Terminal Integration"
 type: decision

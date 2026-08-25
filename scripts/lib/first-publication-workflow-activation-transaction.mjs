@@ -1,10 +1,7 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationWorkflowActivationPermit } from
-  "./first-publication-workflow-activation-permit.mjs";
-import { validateFirstPublicationWorkflowActivationReceiptDocument } from
-  "./first-publication-workflow-activation-receipt.mjs";
-import { canonicalDigest, canonicalJson, sha256 } from
-  "./release-artifact-manifest.mjs";
+import { validateFirstPublicationWorkflowActivationPermit } from "./first-publication-workflow-activation-permit.mjs";
+import { validateFirstPublicationWorkflowActivationReceiptDocument } from "./first-publication-workflow-activation-receipt.mjs";
+import { canonicalDigest, canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 
 function fail(code = "first_publication_workflow_activation_plan_invalid") {
   throw new FirstPublicationBootstrapError(
@@ -15,10 +12,12 @@ function fail(code = "first_publication_workflow_activation_plan_invalid") {
 
 function binding(id, relativePath, snapshot) {
   if (
-    !Buffer.isBuffer(snapshot?.contents) || snapshot.contents.length < 1 ||
+    !Buffer.isBuffer(snapshot?.contents) ||
+    snapshot.contents.length < 1 ||
     snapshot.byteCount !== snapshot.contents.length ||
     snapshot.sha256 !== sha256(snapshot.contents)
-  ) fail();
+  )
+    fail();
   return {
     id,
     relativePath,
@@ -43,9 +42,11 @@ export function createFirstPublicationWorkflowActivationPlan({
   const outputBytes = permitInput.candidateResult.outputBytes;
   const workflowSource = permitInput.candidateInput.workflowSnapshot;
   if (
-    !Buffer.isBuffer(outputBytes) || outputBytes.length < 1 ||
+    !Buffer.isBuffer(outputBytes) ||
+    outputBytes.length < 1 ||
     permit.readiness.report.readinessDigest !== permitInput.readinessReport.readinessDigest
-  ) fail();
+  )
+    fail();
   const body = {
     schemaVersion: 1,
     status: "ready_to_apply",
@@ -96,7 +97,8 @@ export function validateFirstPublicationWorkflowActivationPlan(result, input) {
     canonicalJson(result?.plan) !== canonicalJson(expected.plan) ||
     !Buffer.isBuffer(result?.outputBytes) ||
     !result.outputBytes.equals(expected.outputBytes)
-  ) fail();
+  )
+    fail();
   return result;
 }
 
@@ -106,7 +108,8 @@ export function createFirstPublicationWorkflowActivationReceipt(plan, appliedAt)
     plan.transactionType !== "first_publication_stage_only_workflow_activation" ||
     plan.planDigest !== canonicalDigest(planBody(plan)) ||
     !Number.isFinite(Date.parse(appliedAt ?? ""))
-  ) fail("first_publication_workflow_activation_receipt_invalid");
+  )
+    fail("first_publication_workflow_activation_receipt_invalid");
   const body = {
     schemaVersion: 1,
     status: "applied",

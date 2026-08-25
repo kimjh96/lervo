@@ -8,16 +8,16 @@ import {
 } from "./release-attestation-consumer.mjs";
 
 const execFileAsync = promisify(execFile);
-const repositoryPattern = /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?\/[A-Za-z0-9_.-]{1,100}$/u;
+const repositoryPattern =
+  /^[A-Za-z0-9](?:[A-Za-z0-9_.-]{0,98}[A-Za-z0-9])?\/[A-Za-z0-9_.-]{1,100}$/u;
 const sourceDigestPattern = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
 
 export const githubOidcIssuer = "https://token.actions.githubusercontent.com";
 export const releaseWorkflowPath = ".github/workflows/cli-release-matrix.yml";
 
 export function createGitHubReleaseTrustPolicy({ repository, tag, sourceDigest }) {
-  const repositoryName = typeof repository === "string"
-    ? repository.slice(repository.indexOf("/") + 1)
-    : "";
+  const repositoryName =
+    typeof repository === "string" ? repository.slice(repository.indexOf("/") + 1) : "";
   if (
     typeof repository !== "string" ||
     !repositoryPattern.test(repository) ||
@@ -39,8 +39,7 @@ export function createGitHubReleaseTrustPolicy({ repository, tag, sourceDigest }
     tag,
     sourceDigest,
     sourceRef,
-    certificateIdentity:
-      `https://github.com/${repository}/${releaseWorkflowPath}@${sourceRef}`,
+    certificateIdentity: `https://github.com/${repository}/${releaseWorkflowPath}@${sourceRef}`,
   };
 }
 
@@ -84,9 +83,7 @@ export function createGitHubVerificationArguments({
     "--deny-self-hosted-runners",
     "--predicate-type",
     predicateType,
-    ...(trustedRootPath === undefined
-      ? []
-      : ["--custom-trusted-root", trustedRootPath]),
+    ...(trustedRootPath === undefined ? [] : ["--custom-trusted-root", trustedRootPath]),
     "--format",
     "json",
   ];

@@ -22,13 +22,20 @@ export const CANDIDATE_ADAPTER_BUILD_ID = contentId("sebuild", {
   revision: 1,
 });
 
-export async function command(root: string, args: string[]): Promise<{ code: number; output: string; error: string }> {
+export async function command(
+  root: string,
+  args: string[],
+): Promise<{ code: number; output: string; error: string }> {
   let output = "";
   let error = "";
   const code = await runCli(args, {
     cwd: root,
-    stdout: (message) => { output += message; },
-    stderr: (message) => { error += message; },
+    stdout: (message) => {
+      output += message;
+    },
+    stderr: (message) => {
+      error += message;
+    },
   });
   return { code, output, error };
 }
@@ -45,32 +52,60 @@ export async function reviewedCase(root: string, query: string): Promise<string>
   const searched = await command(root, ["search", query, "--json"]);
   expect(searched.code, searched.error).toBe(0);
   const attemptId = (JSON.parse(searched.output) as { attemptId: string }).attemptId;
-  expect((await command(root, [
-    "search", "assess", attemptId, "--outcome", "accepted",
-    "--selected", "document:doc_cli_search_context",
-  ])).code).toBe(0);
+  expect(
+    (
+      await command(root, [
+        "search",
+        "assess",
+        attemptId,
+        "--outcome",
+        "accepted",
+        "--selected",
+        "document:doc_cli_search_context",
+      ])
+    ).code,
+  ).toBe(0);
   const created = await command(root, ["search", "case", attemptId, "--query", query, "--json"]);
   expect(created.code, created.error).toBe(0);
   return (JSON.parse(created.output) as { caseId: string }).caseId;
 }
 
-export async function bundle(root: string, id: string, minimum: number, caseIds: string[]): Promise<void> {
+export async function bundle(
+  root: string,
+  id: string,
+  minimum: number,
+  caseIds: string[],
+): Promise<void> {
   const created = await command(root, [
-    "search", "bundle", "create", id,
-    "--role", id.split(".")[0]!, "--task-type", id.split(".")[1]!,
-    "--minimum-cases", String(minimum), ...caseIds.flatMap((caseId) => ["--case", caseId]),
+    "search",
+    "bundle",
+    "create",
+    id,
+    "--role",
+    id.split(".")[0]!,
+    "--task-type",
+    id.split(".")[1]!,
+    "--minimum-cases",
+    String(minimum),
+    ...caseIds.flatMap((caseId) => ["--case", caseId]),
   ]);
   expect(created.code, created.error).toBe(0);
 }
 
-export function candidateEngine(onBuild: () => void, wrongIndex = false): SearchEvaluationEnginePort {
+export function candidateEngine(
+  onBuild: () => void,
+  wrongIndex = false,
+): SearchEvaluationEnginePort {
   return {
     engine: CANDIDATE_ENGINE,
     adapterBuildId: CANDIDATE_ADAPTER_BUILD_ID,
     async buildIndex(sources) {
       onBuild();
       const lexical = new LexicalSearchIndex(sources);
-      const indexId = contentId("sidx", { engine: CANDIDATE_ENGINE, corpusDigest: lexical.corpusDigest });
+      const indexId = contentId("sidx", {
+        engine: CANDIDATE_ENGINE,
+        corpusDigest: lexical.corpusDigest,
+      });
       return {
         engine: CANDIDATE_ENGINE,
         indexId,
@@ -97,7 +132,10 @@ export function recoveringCandidateEngine(
     async buildIndex(sources) {
       onBuild();
       const lexical = new LexicalSearchIndex(sources);
-      const indexId = contentId("sidx", { engine: CANDIDATE_ENGINE, corpusDigest: lexical.corpusDigest });
+      const indexId = contentId("sidx", {
+        engine: CANDIDATE_ENGINE,
+        corpusDigest: lexical.corpusDigest,
+      });
       return {
         engine: CANDIDATE_ENGINE,
         indexId,
@@ -105,24 +143,32 @@ export function recoveringCandidateEngine(
           const response = lexical.search(query, limit);
           if (query !== recoveredQuery) return { ...response, engine: CANDIDATE_ENGINE, indexId };
           const source = sources.find((item) => item.sourceId === sourceId)!;
-          const hits: SearchHit[] = [{
-            source: { kind: source.kind, sourceId: source.sourceId, contentHash: source.contentHash },
-            rank: 1,
-            score: 1,
-            matchedFields: ["text"],
-          }];
+          const hits: SearchHit[] = [
+            {
+              source: {
+                kind: source.kind,
+                sourceId: source.sourceId,
+                contentHash: source.contentHash,
+              },
+              rank: 1,
+              score: 1,
+              matchedFields: ["text"],
+            },
+          ];
           return {
             ...response,
             engine: CANDIDATE_ENGINE,
             indexId,
             hits,
-            resultSetHash: canonicalHash(hits.map((hit) => ({
-              sourceKind: hit.source.kind,
-              sourceId: hit.source.sourceId,
-              contentHash: hit.source.contentHash,
-              rank: hit.rank,
-              score: hit.score,
-            }))),
+            resultSetHash: canonicalHash(
+              hits.map((hit) => ({
+                sourceKind: hit.source.kind,
+                sourceId: hit.source.sourceId,
+                contentHash: hit.source.contentHash,
+                rank: hit.rank,
+                score: hit.score,
+              })),
+            ),
           };
         },
       };

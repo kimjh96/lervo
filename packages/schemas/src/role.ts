@@ -1,5 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
+import { capabilityPackageIdSchema } from "./capability-package.js";
 import {
   localeSchema,
   repositoryRelativePathSchema,
@@ -85,7 +86,7 @@ export const roleProfileSchema = {
         "network.access",
         "external.message",
         "deploy",
-        "data.mutate"
+        "data.mutate",
       ],
       additionalProperties: false,
     },
@@ -93,6 +94,12 @@ export const roleProfileSchema = {
       type: "array",
       items: skillIdSchema,
       uniqueItems: true,
+    },
+    defaultCapabilityPackages: {
+      type: "array",
+      items: capabilityPackageIdSchema,
+      uniqueItems: true,
+      maxItems: 64,
     },
     outputContract: {
       type: "object",
@@ -131,13 +138,7 @@ export const roleProfileSchema = {
           ],
         },
       },
-      required: [
-        "artifactKind",
-        "schemaRef",
-        "pathTemplate",
-        "citationsRequired",
-        "presentation"
-      ],
+      required: ["artifactKind", "schemaRef", "pathTemplate", "citationsRequired", "presentation"],
       additionalProperties: false,
     },
     verification: {
@@ -184,7 +185,7 @@ export const roleProfileSchema = {
     "defaultSkills",
     "outputContract",
     "verification",
-    "handoff"
+    "handoff",
   ],
   additionalProperties: false,
 } as const;

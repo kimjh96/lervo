@@ -79,7 +79,10 @@ export class RemoteCommandReceiver {
       );
     }
     if (signer === null) {
-      throw new RemoteCommandRuntimeError("unknown_signer", "The remote command signer is not trusted.");
+      throw new RemoteCommandRuntimeError(
+        "unknown_signer",
+        "The remote command signer is not trusted.",
+      );
     }
     if (
       signer.keyId !== keyId ||
@@ -95,7 +98,7 @@ export class RemoteCommandReceiver {
       );
     }
 
-    let verified = false;
+    let verified: boolean;
     try {
       verified = await signer.verify({
         message: remoteCommandSigningBytes({ command, keyId }),
@@ -105,7 +108,10 @@ export class RemoteCommandReceiver {
       verified = false;
     }
     if (!verified) {
-      throw new RemoteCommandRuntimeError("invalid_signature", "Remote command signature verification failed.");
+      throw new RemoteCommandRuntimeError(
+        "invalid_signature",
+        "Remote command signature verification failed.",
+      );
     }
     if (!signer.projects.some((project) => sameRemoteCommandTarget(project, command.target))) {
       throw new RemoteCommandRuntimeError(
@@ -114,7 +120,10 @@ export class RemoteCommandReceiver {
       );
     }
     if (!sameRemoteCommandTarget(command.target, this.target)) {
-      throw new RemoteCommandRuntimeError("target_mismatch", "The remote command target is not the current project.");
+      throw new RemoteCommandRuntimeError(
+        "target_mismatch",
+        "The remote command target is not the current project.",
+      );
     }
 
     const commandHash = calculateRemoteCommandHash(command);
@@ -152,7 +161,10 @@ export class RemoteCommandReceiver {
       );
     }
     if (nowMs + this.clockSkewMs < issuedAtMs) {
-      throw new RemoteCommandRuntimeError("command_not_yet_valid", "The remote command issue time has not arrived yet.");
+      throw new RemoteCommandRuntimeError(
+        "command_not_yet_valid",
+        "The remote command issue time has not arrived yet.",
+      );
     }
     if (nowMs - this.clockSkewMs > expiresAtMs) {
       throw new RemoteCommandRuntimeError("command_expired", "The remote command has expired.");
@@ -173,7 +185,10 @@ export class RemoteCommandReceiver {
       );
     }
     if (policyDecision?.status === "denied" && typeof policyDecision.reasonCode === "string") {
-      throw new RemoteCommandRuntimeError("policy_denied", "The remote command was denied by local policy.");
+      throw new RemoteCommandRuntimeError(
+        "policy_denied",
+        "The remote command was denied by local policy.",
+      );
     }
     if (
       policyDecision?.status === "approval_required" &&
@@ -240,9 +255,8 @@ export class RemoteCommandReceiver {
         command: clone(command),
         request,
         authorizedAt: now,
-        policyAuthorization: policyDecision.authorization === undefined
-          ? null
-          : clone(policyDecision.authorization),
+        policyAuthorization:
+          policyDecision.authorization === undefined ? null : clone(policyDecision.authorization),
         approvedRepositoryPaths: Array.isArray(policyDecision.approvedRepositoryPaths)
           ? [...policyDecision.approvedRepositoryPaths]
           : [],

@@ -27,7 +27,11 @@ import {
 import { SQLiteRemoteCommandReplayStore } from "@lervo/remote-command-sqlite";
 import { type RemoteCommandTarget } from "@lervo/schemas";
 
-import { runRemoteControlLoop, type RemoteControlCycleResult, type RemoteControlLoopResult } from "./control-loop.js";
+import {
+  runRemoteControlLoop,
+  type RemoteControlCycleResult,
+  type RemoteControlLoopResult,
+} from "./control-loop.js";
 import { type NodeRuntimeConfig } from "./config-types.js";
 import { NodeRuntimeError } from "./errors.js";
 import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
@@ -70,9 +74,11 @@ function httpOptions(input: {
     destinationId: input.config.hub.destinationId,
     nodeId: commands.nodeId,
     target: structuredClone(input.target),
-    ...(commands.requestTimeoutMs === undefined ? {} : {
-      requestTimeoutMs: commands.requestTimeoutMs,
-    }),
+    ...(commands.requestTimeoutMs === undefined
+      ? {}
+      : {
+          requestTimeoutMs: commands.requestTimeoutMs,
+        }),
   };
 }
 
@@ -91,10 +97,9 @@ export async function openNodeRemoteControlRuntime(input: {
   let policyStore: SQLitePolicyStateStore | undefined;
   let replayStore: SQLiteRemoteCommandReplayStore | undefined;
   try {
-    const trust = input.trust ?? new ReloadableNodeRuntimeTrust(
-      await loadNodeRuntimeTrust(commands),
-      input.target,
-    );
+    const trust =
+      input.trust ??
+      new ReloadableNodeRuntimeTrust(await loadNodeRuntimeTrust(commands), input.target);
     const commandTrust = trust.commandTrustStore;
     const policyTrust = trust.policyTrustStore;
     policyStore = await SQLitePolicyStateStore.open({
@@ -115,16 +120,21 @@ export async function openNodeRemoteControlRuntime(input: {
       store: policyStore,
       trustStore: policyTrust,
     });
-    const executor = input.ports.executor ?? input.ports.createExecutor!({
-      target: structuredClone(input.target),
-      approvalVerifier,
-    });
-    const createPolicyTransport = input.ports.createPolicyTransport ?? ((options) =>
-      new AuthenticatedPolicyHttpTransport(options));
-    const createCommandTransport = input.ports.createCommandTransport ?? ((options) =>
-      new AuthenticatedRemoteCommandHttpTransport(options));
-    const createPayloadLoader = input.ports.createPayloadLoader ?? ((options) =>
-      new AuthenticatedRemoteCommandHttpPayloadLoader(options));
+    const executor =
+      input.ports.executor ??
+      input.ports.createExecutor!({
+        target: structuredClone(input.target),
+        approvalVerifier,
+      });
+    const createPolicyTransport =
+      input.ports.createPolicyTransport ??
+      ((options) => new AuthenticatedPolicyHttpTransport(options));
+    const createCommandTransport =
+      input.ports.createCommandTransport ??
+      ((options) => new AuthenticatedRemoteCommandHttpTransport(options));
+    const createPayloadLoader =
+      input.ports.createPayloadLoader ??
+      ((options) => new AuthenticatedRemoteCommandHttpPayloadLoader(options));
     const currentHttp = () => httpOptions({ ...input, token: input.token() });
     const policyTransport: AuthenticatedPolicyHubTransport = {
       pullPolicyBundle(request) {
@@ -133,12 +143,16 @@ export async function openNodeRemoteControlRuntime(input: {
           baseUrl: commonHttp.baseUrl,
           bearerToken: commonHttp.bearerToken,
           expectedHubIdentityHash: commonHttp.expectedHubIdentityHash,
-          ...(commands.requestTimeoutMs === undefined ? {} : {
-            requestTimeoutMs: commands.requestTimeoutMs,
-          }),
-          ...(commands.maxResponseBytes === undefined ? {} : {
-            maxResponseBytes: commands.maxResponseBytes,
-          }),
+          ...(commands.requestTimeoutMs === undefined
+            ? {}
+            : {
+                requestTimeoutMs: commands.requestTimeoutMs,
+              }),
+          ...(commands.maxResponseBytes === undefined
+            ? {}
+            : {
+                maxResponseBytes: commands.maxResponseBytes,
+              }),
         }).pullPolicyBundle(request);
       },
     };
@@ -146,17 +160,21 @@ export async function openNodeRemoteControlRuntime(input: {
       pullRemoteCommands(request) {
         return createCommandTransport({
           ...currentHttp(),
-          ...(commands.maxResponseBytes === undefined ? {} : {
-            maxResponseBytes: commands.maxResponseBytes,
-          }),
+          ...(commands.maxResponseBytes === undefined
+            ? {}
+            : {
+                maxResponseBytes: commands.maxResponseBytes,
+              }),
         }).pullRemoteCommands(request);
       },
       acknowledgeRemoteCommand(acknowledgement) {
         return createCommandTransport({
           ...currentHttp(),
-          ...(commands.maxResponseBytes === undefined ? {} : {
-            maxResponseBytes: commands.maxResponseBytes,
-          }),
+          ...(commands.maxResponseBytes === undefined
+            ? {}
+            : {
+                maxResponseBytes: commands.maxResponseBytes,
+              }),
         }).acknowledgeRemoteCommand(acknowledgement);
       },
     };
@@ -184,39 +202,50 @@ export async function openNodeRemoteControlRuntime(input: {
     const openedPolicyStore = policyStore;
     const openedReplayStore = replayStore;
     return {
-      run: (signal) => runRemoteControlLoop({
-        signal,
-        runPolicyCycle: () => runPolicySyncCycle({
-          destinationId: input.config.hub.destinationId,
-          expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
-          target: input.target,
-          transport: policyTransport,
-          trustStore: policyTrust,
-          store: openedPolicyStore,
-          clock,
-        }),
-        runCommandCycle: () => runRemoteCommandReconnectCycle({
-          destinationId: input.config.hub.destinationId,
-          expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
-          nodeId: commands.nodeId,
-          target: input.target,
-          transport: commandTransport,
-          handler: receiver,
-          clock,
-          ...(commands.leaseDurationMs === undefined ? {} : { leaseDurationMs: commands.leaseDurationMs }),
+      run: (signal) =>
+        runRemoteControlLoop({
+          signal,
+          runPolicyCycle: () =>
+            runPolicySyncCycle({
+              destinationId: input.config.hub.destinationId,
+              expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
+              target: input.target,
+              transport: policyTransport,
+              trustStore: policyTrust,
+              store: openedPolicyStore,
+              clock,
+            }),
+          runCommandCycle: () =>
+            runRemoteCommandReconnectCycle({
+              destinationId: input.config.hub.destinationId,
+              expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
+              nodeId: commands.nodeId,
+              target: input.target,
+              transport: commandTransport,
+              handler: receiver,
+              clock,
+              ...(commands.leaseDurationMs === undefined
+                ? {}
+                : { leaseDurationMs: commands.leaseDurationMs }),
+              ...(commands.retryDelayMs === undefined
+                ? {}
+                : { retryDelayMs: commands.retryDelayMs }),
+              ...(commands.limit === undefined ? {} : { limit: commands.limit }),
+            }),
+          ...(commands.idlePollIntervalMs === undefined
+            ? {}
+            : {
+                idlePollIntervalMs: commands.idlePollIntervalMs,
+              }),
           ...(commands.retryDelayMs === undefined ? {} : { retryDelayMs: commands.retryDelayMs }),
-          ...(commands.limit === undefined ? {} : { limit: commands.limit }),
+          ...(input.ports.wait === undefined ? {} : { wait: input.ports.wait }),
+          ...(input.ports.nowMilliseconds === undefined
+            ? {}
+            : {
+                nowMilliseconds: input.ports.nowMilliseconds,
+              }),
+          ...(input.ports.onCycle === undefined ? {} : { onCycle: input.ports.onCycle }),
         }),
-        ...(commands.idlePollIntervalMs === undefined ? {} : {
-          idlePollIntervalMs: commands.idlePollIntervalMs,
-        }),
-        ...(commands.retryDelayMs === undefined ? {} : { retryDelayMs: commands.retryDelayMs }),
-        ...(input.ports.wait === undefined ? {} : { wait: input.ports.wait }),
-        ...(input.ports.nowMilliseconds === undefined ? {} : {
-          nowMilliseconds: input.ports.nowMilliseconds,
-        }),
-        ...(input.ports.onCycle === undefined ? {} : { onCycle: input.ports.onCycle }),
-      }),
       close() {
         const errors: unknown[] = [];
         try {
@@ -245,9 +274,13 @@ export async function openNodeRemoteControlRuntime(input: {
       cleanupErrors.push(cleanupError);
     }
     if (cleanupErrors.length > 0) {
-      throw new NodeRuntimeError("startup_failed", "Could not close the repository after remote-control startup failed.", {
-        cause: new AggregateError([error, ...cleanupErrors]),
-      });
+      throw new NodeRuntimeError(
+        "startup_failed",
+        "Could not close the repository after remote-control startup failed.",
+        {
+          cause: new AggregateError([error, ...cleanupErrors]),
+        },
+      );
     }
     if (error instanceof NodeRuntimeError) throw error;
     throw new NodeRuntimeError("startup_failed", "Could not open the remote-control runtime.", {

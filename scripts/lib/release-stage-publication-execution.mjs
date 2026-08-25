@@ -39,21 +39,21 @@ async function markUnknown(store, attempt, authorization, clock) {
 
 export async function executeReleaseStagePublication(
   source,
-  {
-    store,
-    prepareStage,
-    clock = () => new Date().toISOString(),
-  },
+  { store, prepareStage, clock = () => new Date().toISOString() },
 ) {
   const authorization = validateReleasePublicationAuthorization(source?.authorization);
   if (
     !isAbsolute(source?.releaseDirectory ?? "") ||
     !isAbsolute(source?.tarballPath ?? "") ||
     typeof source.assertUnchanged !== "function" ||
-    typeof store?.reserve !== "function" || typeof store.complete !== "function" ||
-    typeof store.abort !== "function" || typeof store.markUnknown !== "function" ||
-    typeof prepareStage !== "function" || typeof clock !== "function"
-  ) fail("release_stage_publication_execution_input_invalid");
+    typeof store?.reserve !== "function" ||
+    typeof store.complete !== "function" ||
+    typeof store.abort !== "function" ||
+    typeof store.markUnknown !== "function" ||
+    typeof prepareStage !== "function" ||
+    typeof clock !== "function"
+  )
+    fail("release_stage_publication_execution_input_invalid");
 
   const publisherInput = {
     target: authorization.target,
@@ -62,9 +62,12 @@ export async function executeReleaseStagePublication(
   };
   const prepared = await prepareStage(publisherInput);
   if (
-    prepared === null || typeof prepared !== "object" ||
-    typeof prepared.stage !== "function" || typeof prepared.dispose !== "function"
-  ) fail("release_stage_publication_publisher_invalid");
+    prepared === null ||
+    typeof prepared !== "object" ||
+    typeof prepared.stage !== "function" ||
+    typeof prepared.dispose !== "function"
+  )
+    fail("release_stage_publication_publisher_invalid");
 
   let attempt;
   try {

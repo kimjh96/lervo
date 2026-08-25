@@ -11,11 +11,15 @@ export class HubCursorSQLiteRepository {
   constructor(private readonly database: DatabaseSync) {}
 
   eventAt(coordinate: HubProjectCoordinate, seq: number): EventEnvelope | undefined {
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT seq, event_id, event_hash, previous_hash, event_json
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq = ?
-    `).get(coordinate.destinationId, coordinate.projectId, seq);
+    `,
+      )
+      .get(coordinate.destinationId, coordinate.projectId, seq);
     return row === undefined ? undefined : decodeStoredEvent(row);
   }
 
@@ -31,7 +35,9 @@ export class HubCursorSQLiteRepository {
         "The event after the Hub cursor does not connect to the current hash chain.",
       );
     }
-    const firstAfterGap = this.database.prepare(`
+    const firstAfterGap = this.database
+      .prepare(
+        `
       SELECT MIN(event.seq) AS first_after_gap
       FROM hub_events AS event
       LEFT JOIN hub_events AS previous
@@ -40,23 +46,35 @@ export class HubCursorSQLiteRepository {
        AND previous.seq = event.seq - 1
       WHERE event.destination_id = ? AND event.project_id = ?
         AND event.seq > ? AND previous.seq IS NULL
-    `).get(coordinate.destinationId, coordinate.projectId, current.seq + 1)?.first_after_gap;
+    `,
+      )
+      .get(coordinate.destinationId, coordinate.projectId, current.seq + 1)?.first_after_gap;
     const lastSeq = this.lastContinuousSeq(coordinate, current.seq, firstAfterGap);
     const last = this.eventAt(coordinate, lastSeq);
     if (last === undefined) {
-      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite cursor event is missing.");
+      throw new HubSyncStoreError(
+        "integrity_failed",
+        "The Hub sync SQLite cursor event is missing.",
+      );
     }
     return { seq: last.seq, eventHash: last.eventHash };
   }
 
   countEventsAfter(coordinate: HubProjectCoordinate, seq: number): number {
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT COUNT(*) AS event_count
       FROM hub_events
       WHERE destination_id = ? AND project_id = ? AND seq > ?
-    `).get(coordinate.destinationId, coordinate.projectId, seq);
+    `,
+      )
+      .get(coordinate.destinationId, coordinate.projectId, seq);
     if (row === undefined) {
-      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite event count cannot be read.");
+      throw new HubSyncStoreError(
+        "integrity_failed",
+        "The Hub sync SQLite event count cannot be read.",
+      );
     }
     return integerField(row, "event_count");
   }
@@ -70,13 +88,20 @@ export class HubCursorSQLiteRepository {
       return firstAfterGap - 2;
     }
     if (firstAfterGap !== null && firstAfterGap !== undefined) {
-      throw new HubSyncStoreError("integrity_failed", "The Hub sync SQLite gap coordinates are invalid.");
+      throw new HubSyncStoreError(
+        "integrity_failed",
+        "The Hub sync SQLite gap coordinates are invalid.",
+      );
     }
-    const maximum = this.database.prepare(`
+    const maximum = this.database
+      .prepare(
+        `
       SELECT MAX(seq) AS maximum_seq
       FROM hub_events
       WHERE destination_id = ? AND project_id = ?
-    `).get(coordinate.destinationId, coordinate.projectId);
+    `,
+      )
+      .get(coordinate.destinationId, coordinate.projectId);
     return maximum === undefined ? currentSeq : integerField(maximum, "maximum_seq");
   }
 }

@@ -1,19 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 
-import {
-  defaultProjectDataPolicy,
-  type ProjectManifest,
-  validateSchema,
-} from "@lervo/schemas";
+import { defaultProjectDataPolicy, type ProjectManifest, validateSchema } from "@lervo/schemas";
 import { parse, stringify } from "yaml";
 
 import { readEntry } from "./filesystem.js";
 import { resolveProjectPaths } from "./layout.js";
-import {
-  type CreateInitPlanOptions,
-  LervoProjectError,
-} from "./types.js";
+import { type CreateInitPlanOptions, LervoProjectError } from "./types.js";
 
 function formatValidationErrors(
   errors: ReadonlyArray<{ instancePath: string; message?: string }>,
@@ -54,8 +47,7 @@ export function createDefaultManifest(
 ): ProjectManifest {
   const manifest: ProjectManifest = {
     schemaVersion: 1,
-    projectId:
-      options.projectId ?? `prj_${randomUUID().replaceAll("-", "").slice(0, 16)}`,
+    projectId: options.projectId ?? `prj_${randomUUID().replaceAll("-", "").slice(0, 16)}`,
     name: options.name ?? (basename(root) || "project"),
     root: ".",
     createdAt: (options.now ?? new Date()).toISOString(),
@@ -74,10 +66,7 @@ export function createDefaultManifest(
 async function assertLervoDirectory(path: string): Promise<void> {
   const lervoDirectory = await readEntry(path);
   if (lervoDirectory.kind === "missing") {
-    throw new LervoProjectError(
-      "not_initialized",
-      `${path} does not exist. Run lervo init first.`,
-    );
+    throw new LervoProjectError("not_initialized", `${path} does not exist. Run lervo init first.`);
   }
   if (lervoDirectory.kind !== "directory") {
     throw new LervoProjectError(

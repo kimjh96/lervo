@@ -1,6 +1,13 @@
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 
 import { adapterContractMessageSchema } from "./adapter.js";
+import { capabilityLockSchema, capabilityPackageManifestSchema } from "./capability-package.js";
+import {
+  adapterCapabilityActivationReceiptSchema,
+  adapterCapabilityActivationRequestSchema,
+  capabilityActivatedEventPayloadSchema,
+  mcpRuntimeDescriptorSchema,
+} from "./capability-activation.js";
 import { contextEvidenceSchema } from "./context-evidence.js";
 import { contextRecommendationEventPayloadSchema } from "./context-recommendation.js";
 import { conversationAdapterDescriptorSchema } from "./conversation.js";
@@ -101,10 +108,7 @@ import {
   signedRemoteCommandSchema,
 } from "./remote-command.js";
 import { roleProfileSchema } from "./role.js";
-import {
-  roleEvaluationBundleSchema,
-  roleEvaluationResultSchema,
-} from "./role-evaluation.js";
+import { roleEvaluationBundleSchema, roleEvaluationResultSchema } from "./role-evaluation.js";
 import { highRiskRoleWorkflowSchema } from "./high-risk-role-workflow.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -162,21 +166,21 @@ ajv.addSchema(deliberationPolicySchema);
 ajv.addSchema(managedContextCoverageReportSchema);
 
 const validators = {
+  capabilityPackageManifest: ajv.compile(capabilityPackageManifestSchema),
+  capabilityLock: ajv.compile(capabilityLockSchema),
+  mcpRuntimeDescriptor: ajv.compile(mcpRuntimeDescriptorSchema),
+  adapterCapabilityActivationRequest: ajv.compile(adapterCapabilityActivationRequestSchema),
+  adapterCapabilityActivationReceipt: ajv.compile(adapterCapabilityActivationReceiptSchema),
+  capabilityActivatedEventPayload: ajv.compile(capabilityActivatedEventPayloadSchema),
   project: ajv.getSchema(projectManifestSchema.$id)!,
-  projectIdentityMigratedEventPayload: ajv.compile(
-    projectIdentityMigratedEventPayloadSchema,
-  ),
+  projectIdentityMigratedEventPayload: ajv.compile(projectIdentityMigratedEventPayloadSchema),
   policySnapshot: ajv.getSchema(policySnapshotSchema.$id)!,
   signedPolicySnapshot: ajv.getSchema(signedPolicySnapshotSchema.$id)!,
   policyApproval: ajv.getSchema(policyApprovalSchema.$id)!,
   signedPolicyApproval: ajv.getSchema(signedPolicyApprovalSchema.$id)!,
   policyApprovalRevocation: ajv.getSchema(policyApprovalRevocationSchema.$id)!,
-  signedPolicyApprovalRevocation: ajv.getSchema(
-    signedPolicyApprovalRevocationSchema.$id,
-  )!,
-  managedRunApprovalAuthorization: ajv.getSchema(
-    managedRunApprovalAuthorizationSchema.$id,
-  )!,
+  signedPolicyApprovalRevocation: ajv.getSchema(signedPolicyApprovalRevocationSchema.$id)!,
+  managedRunApprovalAuthorization: ajv.getSchema(managedRunApprovalAuthorizationSchema.$id)!,
   event: ajv.getSchema(eventEnvelopeSchema.$id)!,
   projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),
@@ -189,9 +193,7 @@ const validators = {
   signedRemoteCommand: ajv.getSchema(signedRemoteCommandSchema.$id)!,
   remoteCommandExecutionReceipt: ajv.getSchema(remoteCommandExecutionReceiptSchema.$id)!,
   remoteCommandLease: ajv.compile(remoteCommandLeaseSchema),
-  remoteCommandDeliveryAcknowledgement: ajv.compile(
-    remoteCommandDeliveryAcknowledgementSchema,
-  ),
+  remoteCommandDeliveryAcknowledgement: ajv.compile(remoteCommandDeliveryAcknowledgementSchema),
   remoteCommandDeliveryConfirmation: ajv.compile(remoteCommandDeliveryConfirmationSchema),
   legacyRegistryEntryArtifact: ajv.compile(legacyRegistryEntryArtifactSchema),
   legacyRegistryMigrationPlan: ajv.compile(legacyRegistryMigrationPlanSchema),
@@ -199,9 +201,7 @@ const validators = {
   legacyRegistryMigrationAppliedEventPayload: ajv.compile(
     legacyRegistryMigrationAppliedEventPayloadSchema,
   ),
-  legacyRegistryMigrationApplyReceipt: ajv.compile(
-    legacyRegistryMigrationApplyReceiptSchema,
-  ),
+  legacyRegistryMigrationApplyReceipt: ajv.compile(legacyRegistryMigrationApplyReceiptSchema),
   contextEvidence: ajv.compile(contextEvidenceSchema),
   contextRecommendationEventPayload: ajv.compile(contextRecommendationEventPayloadSchema),
   conversationAdapterDescriptor: ajv.compile(conversationAdapterDescriptorSchema),
@@ -242,9 +242,7 @@ const validators = {
   terminalReferenceObservedEventPayload: ajv.compile(terminalReferenceObservedEventPayloadSchema),
   terminalTurnObservedEventPayload: ajv.compile(terminalTurnObservedEventPayloadSchema),
   workstreamSnapshot: ajv.compile(workstreamSnapshotSchema),
-  workstreamSnapshotRecordedEventPayload: ajv.compile(
-    workstreamSnapshotRecordedEventPayloadSchema,
-  ),
+  workstreamSnapshotRecordedEventPayload: ajv.compile(workstreamSnapshotRecordedEventPayloadSchema),
   workstreamReplicationPublishRequest: ajv.compile(workstreamReplicationPublishRequestSchema),
   workstreamReplicationPublishResponse: ajv.compile(workstreamReplicationPublishResponseSchema),
   workstreamReplicationReadResponse: ajv.compile(workstreamReplicationReadResponseSchema),
@@ -253,9 +251,7 @@ const validators = {
   doctorReport: ajv.compile(doctorReportSchema),
   documentManifest: ajv.getSchema(documentManifestSchema.$id)!,
   documentMigrationApproval: ajv.compile(documentMigrationApprovalSchema),
-  documentMigrationAppliedEventPayload: ajv.compile(
-    documentMigrationAppliedEventPayloadSchema,
-  ),
+  documentMigrationAppliedEventPayload: ajv.compile(documentMigrationAppliedEventPayloadSchema),
   documentMigrationApplyReceipt: ajv.compile(documentMigrationApplyReceiptSchema),
   documentMigrationCandidate: ajv.compile(documentMigrationCandidateSchema),
   documentMigrationCandidateArtifact: ajv.compile(documentMigrationCandidateArtifactSchema),
@@ -267,35 +263,26 @@ const validators = {
   knowledgeReviewApproval: ajv.compile(knowledgeReviewApprovalSchema),
   verifiedKnowledge: ajv.compile(verifiedKnowledgeSchema),
   knowledgeStalenessResult: ajv.compile(knowledgeStalenessResultSchema),
-  knowledgeCandidateCreatedEventPayload: ajv.compile(
-    knowledgeCandidateCreatedEventPayloadSchema,
-  ),
-  knowledgeCandidateReviewedEventPayload: ajv.compile(
-    knowledgeCandidateReviewedEventPayloadSchema,
-  ),
+  knowledgeCandidateCreatedEventPayload: ajv.compile(knowledgeCandidateCreatedEventPayloadSchema),
+  knowledgeCandidateReviewedEventPayload: ajv.compile(knowledgeCandidateReviewedEventPayloadSchema),
   knowledgeReconciliationReviewedEventPayload: ajv.compile(
     knowledgeReconciliationReviewedEventPayloadSchema,
   ),
   knowledgeVerifiedEventPayload: ajv.compile(knowledgeVerifiedEventPayloadSchema),
-  knowledgeStaleDetectedEventPayload: ajv.compile(
-    knowledgeStaleDetectedEventPayloadSchema,
-  ),
+  knowledgeStaleDetectedEventPayload: ajv.compile(knowledgeStaleDetectedEventPayloadSchema),
   writingContract: ajv.compile(writingContractSchema),
   writingEvaluation: ajv.compile(writingEvaluationSchema),
   writingPublicationPermit: ajv.compile(writingPublicationPermitSchema),
   verificationSuite: ajv.compile(verificationSuiteSchema),
   verificationResult: ajv.compile(verificationResultSchema),
   verificationStartedEventPayload: ajv.compile(verificationStartedEventPayloadSchema),
-  verificationCompletedEventPayload: ajv.compile(
-    verificationCompletedEventPayloadSchema,
-  ),
+  verificationCompletedEventPayload: ajv.compile(verificationCompletedEventPayloadSchema),
 } satisfies Record<string, ValidateFunction>;
 
 export type SchemaName = keyof typeof validators;
 
 export type ValidationResult =
-  | { valid: true; errors: [] }
-  | { valid: false; errors: ErrorObject[] };
+  { valid: true; errors: [] } | { valid: false; errors: ErrorObject[] };
 
 export function validateSchema(name: SchemaName, value: unknown): ValidationResult {
   const validator = validators[name];

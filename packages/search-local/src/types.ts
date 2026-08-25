@@ -40,7 +40,11 @@ export type SearchLocalErrorCode =
   | "rollout_action_policy_write_failed";
 
 export class SearchLocalError extends Error {
-  constructor(readonly code: SearchLocalErrorCode, message: string, options?: ErrorOptions) {
+  constructor(
+    readonly code: SearchLocalErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = "SearchLocalError";
   }

@@ -30,6 +30,8 @@ const PERMISSIONS = new Set<HubPermission>([
   "command.write",
   "command.delivery",
   "approval.write",
+  "capability.read",
+  "capability.publish",
 ]);
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -46,7 +48,12 @@ function exact(value: Record<string, unknown>, keys: readonly string[], label: s
 }
 
 function text(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.length < 1 || value.length > 4_096 || value.includes("\0")) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 4_096 ||
+    value.includes("\0")
+  ) {
     throw new HubRuntimeError("invalid_config", `${label} is invalid.`);
   }
   return value;
@@ -80,7 +87,8 @@ export function parseHubRuntimeSigningConfig(
   const source = record(value, label);
   exact(source, ["keyId", "privateKeyPath"], label);
   const keyId = text(source.keyId, `${label}.keyId`);
-  if (!KEY_ID.test(keyId)) throw new HubRuntimeError("invalid_config", `${label}.keyId is invalid.`);
+  if (!KEY_ID.test(keyId))
+    throw new HubRuntimeError("invalid_config", `${label}.keyId is invalid.`);
   return {
     keyId,
     privateKeyPath: configuredPath(source.privateKeyPath, base, `${label}.privateKeyPath`),
@@ -89,14 +97,22 @@ export function parseHubRuntimeSigningConfig(
 
 export function parseHubBearerCredentials(value: unknown): HubBearerCredential[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 256) {
-    throw new HubRuntimeError("invalid_config", "credentials must contain between 1 and 256 entries.");
+    throw new HubRuntimeError(
+      "invalid_config",
+      "credentials must contain between 1 and 256 entries.",
+    );
   }
   return value.map((item, index) => {
     const source = record(item, `credentials[${index}]`);
     exact(source, ["token", "principalId", "permissions", "projects"], `credentials[${index}]`);
-    if (!Array.isArray(source.permissions) || source.permissions.length < 1 ||
-      source.permissions.some((permission) => typeof permission !== "string" ||
-        !PERMISSIONS.has(permission as HubPermission))) {
+    if (
+      !Array.isArray(source.permissions) ||
+      source.permissions.length < 1 ||
+      source.permissions.some(
+        (permission) =>
+          typeof permission !== "string" || !PERMISSIONS.has(permission as HubPermission),
+      )
+    ) {
       throw new HubRuntimeError("invalid_config", `credentials[${index}].permissions is invalid.`);
     }
     if (!Array.isArray(source.projects)) {
@@ -120,16 +136,20 @@ export function parseHubBearerCredentials(value: unknown): HubBearerCredential[]
 
 function cleanup(value: unknown): HubRuntimeCleanupConfig {
   const source = record(value, "cleanup");
-  exact(source, [
-    "workerId",
-    "leaseDurationMs",
-    "cycleIntervalMs",
-    "continuationDelayMs",
-    "retryDelayMs",
-    "orphanGraceMs",
-    "limit",
-    "maximumScannedObjects",
-  ], "cleanup");
+  exact(
+    source,
+    [
+      "workerId",
+      "leaseDurationMs",
+      "cycleIntervalMs",
+      "continuationDelayMs",
+      "retryDelayMs",
+      "orphanGraceMs",
+      "limit",
+      "maximumScannedObjects",
+    ],
+    "cleanup",
+  );
   const workerId = text(source.workerId, "cleanup.workerId");
   if (!WORKER_ID.test(workerId)) {
     throw new HubRuntimeError("invalid_config", "cleanup.workerId is invalid.");
@@ -160,19 +180,30 @@ function cleanup(value: unknown): HubRuntimeCleanupConfig {
 
 export function parseHubRuntimeConfig(value: unknown, baseDirectory: string): HubRuntimeConfig {
   const source = record(value, "Hub runtime config");
-  exact(source, [
-    "schemaVersion", "listen", "tls", "storage", "identity", "credentials", "credentialsFile", "signing", "signingFile", "control", "cleanup",
-  ], "Hub runtime config");
+  exact(
+    source,
+    [
+      "schemaVersion",
+      "listen",
+      "tls",
+      "storage",
+      "identity",
+      "credentials",
+      "credentialsFile",
+      "signing",
+      "signingFile",
+      "control",
+      "cleanup",
+    ],
+    "Hub runtime config",
+  );
   if (source.schemaVersion !== 1) {
     throw new HubRuntimeError("invalid_config", "Hub runtime config schemaVersion must be 1.");
   }
   const listen = record(source.listen, "listen");
   exact(listen, ["host", "port"], "listen");
   const listenHost = text(listen.host, "listen.host");
-  if (
-    listenHost.length > 255 || listenHost.trim() !== listenHost ||
-    /[\s/\\]/u.test(listenHost)
-  ) {
+  if (listenHost.length > 255 || listenHost.trim() !== listenHost || /[\s/\\]/u.test(listenHost)) {
     throw new HubRuntimeError("invalid_config", "listen.host is invalid.");
   }
   const tlsSource = source.tls === undefined ? undefined : record(source.tls, "tls");
@@ -184,7 +215,7 @@ export function parseHubRuntimeConfig(value: unknown, baseDirectory: string): Hu
     );
   }
   const storage = record(source.storage, "storage");
-  exact(storage, ["databasePath", "commandCasPath"], "storage");
+  exact(storage, ["databasePath", "commandCasPath", "capabilityRegistryPath"], "storage");
   const identity = record(source.identity, "identity");
   exact(identity, ["hubIdentityHash"], "identity");
   const hubIdentityHash = text(identity.hubIdentityHash, "identity.hubIdentityHash");
@@ -230,30 +261,67 @@ export function parseHubRuntimeConfig(value: unknown, baseDirectory: string): Hu
       host: listenHost,
       port: integer(listen.port, 1, 65_535, "listen.port"),
     },
-    ...(tlsSource === undefined ? {} : {
-      tls: {
-        certificatePath: configuredPath(tlsSource.certificatePath, baseDirectory, "tls.certificatePath"),
-        privateKeyPath: configuredPath(tlsSource.privateKeyPath, baseDirectory, "tls.privateKeyPath"),
-      },
-    }),
+    ...(tlsSource === undefined
+      ? {}
+      : {
+          tls: {
+            certificatePath: configuredPath(
+              tlsSource.certificatePath,
+              baseDirectory,
+              "tls.certificatePath",
+            ),
+            privateKeyPath: configuredPath(
+              tlsSource.privateKeyPath,
+              baseDirectory,
+              "tls.privateKeyPath",
+            ),
+          },
+        }),
     storage: {
       databasePath: configuredPath(storage.databasePath, baseDirectory, "storage.databasePath"),
-      commandCasPath: configuredPath(storage.commandCasPath, baseDirectory, "storage.commandCasPath"),
+      commandCasPath: configuredPath(
+        storage.commandCasPath,
+        baseDirectory,
+        "storage.commandCasPath",
+      ),
+      ...(storage.capabilityRegistryPath === undefined
+        ? {}
+        : {
+            capabilityRegistryPath: configuredPath(
+              storage.capabilityRegistryPath,
+              baseDirectory,
+              "storage.capabilityRegistryPath",
+            ),
+          }),
     },
     identity: { hubIdentityHash },
     ...(parsedCredentials === undefined ? {} : { credentials: parsedCredentials }),
-    ...(hasCredentialsFile ? {
-      credentialsFile: configuredPath(source.credentialsFile, baseDirectory, "credentialsFile"),
-    } : {}),
-    ...(signingSource === undefined ? {} : {
-      signing: {
-        policy: parseHubRuntimeSigningConfig(signingSource.policy, baseDirectory, "signing.policy"),
-        command: parseHubRuntimeSigningConfig(signingSource.command, baseDirectory, "signing.command"),
-      },
-    }),
-    ...(hasSigningFile ? {
-      signingFile: configuredPath(source.signingFile, baseDirectory, "signingFile"),
-    } : {}),
+    ...(hasCredentialsFile
+      ? {
+          credentialsFile: configuredPath(source.credentialsFile, baseDirectory, "credentialsFile"),
+        }
+      : {}),
+    ...(signingSource === undefined
+      ? {}
+      : {
+          signing: {
+            policy: parseHubRuntimeSigningConfig(
+              signingSource.policy,
+              baseDirectory,
+              "signing.policy",
+            ),
+            command: parseHubRuntimeSigningConfig(
+              signingSource.command,
+              baseDirectory,
+              "signing.command",
+            ),
+          },
+        }),
+    ...(hasSigningFile
+      ? {
+          signingFile: configuredPath(source.signingFile, baseDirectory, "signingFile"),
+        }
+      : {}),
     control: {
       reviewGrantSecretPath: configuredPath(
         controlSource.reviewGrantSecretPath,

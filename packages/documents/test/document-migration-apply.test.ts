@@ -1,24 +1,9 @@
-import {
-  access,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
-import {
-  applyInitPlan,
-  createInitPlan,
-  loadDocumentManifests,
-} from "@lervo/project";
-import type {
-  DocumentManifest,
-  DocumentMigrationApproval,
-} from "@lervo/schemas";
+import { applyInitPlan, createInitPlan, loadDocumentManifests } from "@lervo/project";
+import type { DocumentManifest, DocumentMigrationApproval } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -42,19 +27,18 @@ async function initializedRoot(files: Record<string, string>): Promise<string> {
     await mkdir(dirname(resolve(root, path)), { recursive: true });
     await writeFile(resolve(root, path), content);
   }
-  await applyInitPlan(await createInitPlan({
-    root,
-    name: "migration-fixture",
-    projectId: "prj_migration_01",
-    now: new Date("2026-08-19T00:00:00Z"),
-  }));
+  await applyInitPlan(
+    await createInitPlan({
+      root,
+      name: "migration-fixture",
+      projectId: "prj_migration_01",
+      now: new Date("2026-08-19T00:00:00Z"),
+    }),
+  );
   return root;
 }
 
-function manifestFor(
-  dryRun: DocumentMigrationDryRun,
-  candidateId: string,
-): DocumentManifest {
+function manifestFor(dryRun: DocumentMigrationDryRun, candidateId: string): DocumentManifest {
   const candidate = dryRun.candidateArtifacts.find(
     (artifact) => artifact.candidate.candidateId === candidateId,
   )?.candidate;
@@ -156,29 +140,37 @@ describe("metadata-only document migration apply", () => {
       candidateArtifacts: planned.candidateArtifacts,
       approval: approvalFor(planned),
       appliedAt: "2026-08-19T02:00:00Z",
-      eventRecorder: { record: (event) => { events.push(structuredClone(event)); } },
+      eventRecorder: {
+        record: (event) => {
+          events.push(structuredClone(event));
+        },
+      },
     });
 
     expect(receipt.created).toHaveLength(2);
     expect(receipt.skippedCandidateIds).toEqual([]);
-    expect(events).toEqual([{
-      type: "document.migration.applied",
-      payload: receipt.eventPayload,
-    }]);
+    expect(events).toEqual([
+      {
+        type: "document.migration.applied",
+        payload: receipt.eventPayload,
+      },
+    ]);
     expect(events[0]?.payload).not.toHaveProperty("approver");
     expect(events[0]?.payload).not.toHaveProperty("sourcePaths");
-    expect(events[0]?.payload.beforeLayoutHash).not.toBe(
-      events[0]?.payload.afterLayoutHash,
-    );
+    expect(events[0]?.payload.beforeLayoutHash).not.toBe(events[0]?.payload.afterLayoutHash);
     expect(await readFile(resolve(root, "README.md"))).toEqual(beforeReadme);
     expect(await readFile(resolve(root, "docs/guide.md"))).toEqual(beforeGuide);
-    expect((await loadDocumentManifests(root)).map((manifest) => manifest.documentId).sort())
-      .toEqual(receipt.created.map((item) => item.documentId).sort());
-    expect((await readdir(resolve(root, ".lervo", "documents"))).sort())
-      .toEqual(receipt.created.map((item) => `${item.documentId}.yaml`).sort());
-    expect((await readdir(resolve(root, ".lervo"))).some(
-      (name) => name.startsWith(".document-migration-"),
-    )).toBe(false);
+    expect(
+      (await loadDocumentManifests(root)).map((manifest) => manifest.documentId).sort(),
+    ).toEqual(receipt.created.map((item) => item.documentId).sort());
+    expect((await readdir(resolve(root, ".lervo", "documents"))).sort()).toEqual(
+      receipt.created.map((item) => `${item.documentId}.yaml`).sort(),
+    );
+    expect(
+      (await readdir(resolve(root, ".lervo"))).some((name) =>
+        name.startsWith(".document-migration-"),
+      ),
+    ).toBe(false);
   });
 
   it("rejects changed sources and targets without writing or recording success", async () => {
@@ -186,13 +178,19 @@ describe("metadata-only document migration apply", () => {
     const sourcePlan = await dryRun(sourceRoot, ["README.md"]);
     await writeFile(resolve(sourceRoot, "README.md"), "# After\n");
     let sourceEvents = 0;
-    await expect(applyDocumentMigration({
-      repositoryRoot: sourceRoot,
-      plan: sourcePlan.plan,
-      candidateArtifacts: sourcePlan.candidateArtifacts,
-      approval: approvalFor(sourcePlan),
-      eventRecorder: { record: () => { sourceEvents += 1; } },
-    })).rejects.toMatchObject({ code: "plan_stale" });
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: sourceRoot,
+        plan: sourcePlan.plan,
+        candidateArtifacts: sourcePlan.candidateArtifacts,
+        approval: approvalFor(sourcePlan),
+        eventRecorder: {
+          record: () => {
+            sourceEvents += 1;
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "plan_stale" });
     expect(sourceEvents).toBe(0);
     await expect(access(resolve(sourceRoot, ".lervo", "documents"))).rejects.toThrow();
 
@@ -202,63 +200,74 @@ describe("metadata-only document migration apply", () => {
     if (target === null || target === undefined) throw new Error("fixture target is missing");
     await mkdir(dirname(resolve(targetRoot, target.path)), { recursive: true });
     await writeFile(resolve(targetRoot, target.path), "user-owned target bytes\n");
-    await expect(applyDocumentMigration({
-      repositoryRoot: targetRoot,
-      plan: targetPlan.plan,
-      candidateArtifacts: targetPlan.candidateArtifacts,
-      approval: approvalFor(targetPlan),
-      eventRecorder: { record: () => undefined },
-    })).rejects.toMatchObject({ code: "plan_stale" });
-    expect(await readFile(resolve(targetRoot, target.path), "utf8"))
-      .toBe("user-owned target bytes\n");
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: targetRoot,
+        plan: targetPlan.plan,
+        candidateArtifacts: targetPlan.candidateArtifacts,
+        approval: approvalFor(targetPlan),
+        eventRecorder: { record: () => undefined },
+      }),
+    ).rejects.toMatchObject({ code: "plan_stale" });
+    expect(await readFile(resolve(targetRoot, target.path), "utf8")).toBe(
+      "user-owned target bytes\n",
+    );
   });
 
   it("rejects tampered plans, artifacts, and mismatched reviewed manifests", async () => {
     const root = await initializedRoot({ "README.md": "# Integrity\n" });
     const planned = await dryRun(root, ["README.md"]);
-    await expect(applyDocumentMigration({
-      repositoryRoot: root,
-      plan: { ...planned.plan, warnings: ["tampered_warning"] },
-      candidateArtifacts: planned.candidateArtifacts,
-      approval: approvalFor(planned),
-      appliedAt: "2026-08-19T02:00:00Z",
-      eventRecorder: { record: () => undefined },
-    })).rejects.toMatchObject({ code: "invalid_migration_artifact" });
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: root,
+        plan: { ...planned.plan, warnings: ["tampered_warning"] },
+        candidateArtifacts: planned.candidateArtifacts,
+        approval: approvalFor(planned),
+        appliedAt: "2026-08-19T02:00:00Z",
+        eventRecorder: { record: () => undefined },
+      }),
+    ).rejects.toMatchObject({ code: "invalid_migration_artifact" });
 
     const tamperedArtifacts = structuredClone(planned.candidateArtifacts);
     tamperedArtifacts[0]!.candidate.warnings.push("tampered_warning");
-    await expect(applyDocumentMigration({
-      repositoryRoot: root,
-      plan: planned.plan,
-      candidateArtifacts: tamperedArtifacts,
-      approval: approvalFor(planned),
-      appliedAt: "2026-08-19T02:00:00Z",
-      eventRecorder: { record: () => undefined },
-    })).rejects.toMatchObject({ code: "invalid_migration_artifact" });
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: root,
+        plan: planned.plan,
+        candidateArtifacts: tamperedArtifacts,
+        approval: approvalFor(planned),
+        appliedAt: "2026-08-19T02:00:00Z",
+        eventRecorder: { record: () => undefined },
+      }),
+    ).rejects.toMatchObject({ code: "invalid_migration_artifact" });
 
     const prematureApproval = approvalFor(planned);
     prematureApproval.approvedAt = "2026-08-19T00:00:00Z";
-    await expect(applyDocumentMigration({
-      repositoryRoot: root,
-      plan: planned.plan,
-      candidateArtifacts: planned.candidateArtifacts,
-      approval: prematureApproval,
-      appliedAt: "2026-08-19T02:00:00Z",
-      eventRecorder: { record: () => undefined },
-    })).rejects.toMatchObject({ code: "invalid_approval" });
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: root,
+        plan: planned.plan,
+        candidateArtifacts: planned.candidateArtifacts,
+        approval: prematureApproval,
+        appliedAt: "2026-08-19T02:00:00Z",
+        eventRecorder: { record: () => undefined },
+      }),
+    ).rejects.toMatchObject({ code: "invalid_approval" });
 
     const approval = approvalFor(planned);
     const approved = approval.decisions[0];
     if (approved?.action !== "approve_sidecar") throw new Error("fixture approval is missing");
     approved.manifest.record.path = "docs/other.md";
-    await expect(applyDocumentMigration({
-      repositoryRoot: root,
-      plan: planned.plan,
-      candidateArtifacts: planned.candidateArtifacts,
-      approval,
-      appliedAt: "2026-08-19T02:00:00Z",
-      eventRecorder: { record: () => undefined },
-    })).rejects.toMatchObject({ code: "invalid_approval" });
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: root,
+        plan: planned.plan,
+        candidateArtifacts: planned.candidateArtifacts,
+        approval,
+        appliedAt: "2026-08-19T02:00:00Z",
+        eventRecorder: { record: () => undefined },
+      }),
+    ).rejects.toMatchObject({ code: "invalid_approval" });
     await expect(access(resolve(root, ".lervo", "documents"))).rejects.toThrow();
   });
 
@@ -268,19 +277,27 @@ describe("metadata-only document migration apply", () => {
       "b.md": "# B\n",
     });
     const planned = await dryRun(root, ["a.md", "b.md"]);
-    await expect(applyDocumentMigration({
-      repositoryRoot: root,
-      plan: planned.plan,
-      candidateArtifacts: planned.candidateArtifacts,
-      approval: approvalFor(planned),
-      appliedAt: "2026-08-19T02:00:00Z",
-      eventRecorder: { record: () => { throw new Error("fixture telemetry failure"); } },
-    })).rejects.toMatchObject({ code: "telemetry_recording_failed" });
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: root,
+        plan: planned.plan,
+        candidateArtifacts: planned.candidateArtifacts,
+        approval: approvalFor(planned),
+        appliedAt: "2026-08-19T02:00:00Z",
+        eventRecorder: {
+          record: () => {
+            throw new Error("fixture telemetry failure");
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: "telemetry_recording_failed" });
 
     await expect(access(resolve(root, ".lervo", "documents"))).rejects.toThrow();
-    expect((await readdir(resolve(root, ".lervo"))).some(
-      (name) => name.startsWith(".document-migration-"),
-    )).toBe(false);
+    expect(
+      (await readdir(resolve(root, ".lervo"))).some((name) =>
+        name.startsWith(".document-migration-"),
+      ),
+    ).toBe(false);
     expect(await readFile(resolve(root, "a.md"), "utf8")).toBe("# A\n");
     expect(await readFile(resolve(root, "b.md"), "utf8")).toBe("# B\n");
   });
@@ -306,14 +323,17 @@ describe("metadata-only document migration apply", () => {
     await writeFile(resolve(root, ".lervo", "documents.yaml"), `${JSON.stringify(legacy)}\n`);
     await writeFile(resolve(root, "guide.txt"), "legacy source\n");
     const planned = await dryRun(root, [".lervo/documents.yaml", "guide.txt"]);
-    await expect(applyDocumentMigration({
-      repositoryRoot: root,
-      plan: planned.plan,
-      candidateArtifacts: planned.candidateArtifacts,
-      approval: approvalFor(planned),
-      eventRecorder: { record: () => undefined },
-    })).rejects.toMatchObject({ code: "migration_conflict" });
-    expect(await readFile(resolve(root, ".lervo", "documents.yaml"), "utf8"))
-      .toBe(`${JSON.stringify(legacy)}\n`);
+    await expect(
+      applyDocumentMigration({
+        repositoryRoot: root,
+        plan: planned.plan,
+        candidateArtifacts: planned.candidateArtifacts,
+        approval: approvalFor(planned),
+        eventRecorder: { record: () => undefined },
+      }),
+    ).rejects.toMatchObject({ code: "migration_conflict" });
+    expect(await readFile(resolve(root, ".lervo", "documents.yaml"), "utf8")).toBe(
+      `${JSON.stringify(legacy)}\n`,
+    );
   });
 });

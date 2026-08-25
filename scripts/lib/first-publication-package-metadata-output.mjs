@@ -30,10 +30,16 @@ function withoutAllowedFields(value) {
 
 function applyChange(output, change) {
   if (
-    change?.source !== "package_manifest" || change.operation !== "set" ||
+    change?.source !== "package_manifest" ||
+    change.operation !== "set" ||
     !allowedFields.includes(change.field)
-  ) fail();
-  if (change.field === "description" || change.field === "repository" || change.field === "license") {
+  )
+    fail();
+  if (
+    change.field === "description" ||
+    change.field === "repository" ||
+    change.field === "license"
+  ) {
     output[change.field] = structuredClone(change.value);
     return;
   }
@@ -58,8 +64,9 @@ export function createFirstPublicationPackageMetadataOutput({
   for (const change of preview.packageManifestChanges) applyChange(outputManifest, change);
   if (
     canonicalJson(withoutAllowedFields(outputManifest)) !==
-      canonicalJson(withoutAllowedFields(packageManifest))
-  ) fail();
+    canonicalJson(withoutAllowedFields(packageManifest))
+  )
+    fail();
   const outputBytes = Buffer.from(`${JSON.stringify(outputManifest, null, 2)}\n`, "utf8");
   return {
     outputBytes,

@@ -5,14 +5,10 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createCliFirstPublicationStageEvidenceBundle } from
-  "../lib/cli-first-publication-stage-evidence-bundle.mjs";
-import { validateFirstPublicationStageEvidenceBundleDocument } from
-  "../lib/first-publication-stage-evidence-bundle.mjs";
-import { readFirstPublicationStageEvidenceBundleSources } from
-  "../lib/first-publication-stage-evidence-bundle-sources.mjs";
-import { createFirstPublicationStageApprovalReconciliationReport } from
-  "../lib/first-publication-stage-approval-reconciliation.mjs";
+import { createCliFirstPublicationStageEvidenceBundle } from "../lib/cli-first-publication-stage-evidence-bundle.mjs";
+import { validateFirstPublicationStageEvidenceBundleDocument } from "../lib/first-publication-stage-evidence-bundle.mjs";
+import { readFirstPublicationStageEvidenceBundleSources } from "../lib/first-publication-stage-evidence-bundle-sources.mjs";
+import { createFirstPublicationStageApprovalReconciliationReport } from "../lib/first-publication-stage-approval-reconciliation.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
 import {
   createFirstPublicationStageApprovalReconciliationFixture,
@@ -33,10 +29,7 @@ async function fixture() {
   });
   const reconciliationReportPath = resolve(stage.root, "reconciliation.json");
   const outputPath = resolve(stage.root, "stage-evidence-bundle.json");
-  await writeFile(
-    reconciliationReportPath,
-    `${JSON.stringify(reconciliationReport, null, 2)}\n`,
-  );
+  await writeFile(reconciliationReportPath, `${JSON.stringify(reconciliationReport, null, 2)}\n`);
   const input = {
     stageReviewReportPath: stage.stageReviewReportPath,
     decisionPath: stage.decisionPath,
@@ -58,8 +51,10 @@ describe("first-publication stage evidence bundle manifest", () => {
       assert.equal(bundle.sourceOwnership, "referenced_primary_documents");
       assert.equal(bundle.sources.decision.path, "decision.json");
       assert.equal(bundle.sources.approvalResult.directory, "approval-result");
-      assert.equal(bundle.sources.reconciliationReport.digest,
-        value.reconciliationReport.evidenceDigest);
+      assert.equal(
+        bundle.sources.reconciliationReport.digest,
+        value.reconciliationReport.evidenceDigest,
+      );
       const serialized = JSON.stringify(bundle);
       assert.equal(serialized.includes(value.stage.root), false);
       assert.equal(serialized.includes("@lervo/cli"), false);
@@ -67,16 +62,15 @@ describe("first-publication stage evidence bundle manifest", () => {
       if (process.platform !== "win32") {
         assert.equal((await stat(value.outputPath)).mode & 0o777, 0o600);
       }
-      const sources = await readFirstPublicationStageEvidenceBundleSources(
-        value.outputPath,
+      const sources = await readFirstPublicationStageEvidenceBundleSources(value.outputPath);
+      assert.equal(
+        sources.reconciliationReport.evidenceDigest,
+        value.reconciliationReport.evidenceDigest,
       );
-      assert.equal(sources.reconciliationReport.evidenceDigest,
-        value.reconciliationReport.evidenceDigest);
       await sources.assertUnchanged();
-      await assert.rejects(
-        createCliFirstPublicationStageEvidenceBundle(value.input),
-        { code: "first_publication_stage_evidence_bundle_output_exists" },
-      );
+      await assert.rejects(createCliFirstPublicationStageEvidenceBundle(value.input), {
+        code: "first_publication_stage_evidence_bundle_output_exists",
+      });
     } finally {
       await rm(value.stage.root, { recursive: true, force: true });
     }
@@ -87,9 +81,7 @@ describe("first-publication stage evidence bundle manifest", () => {
     try {
       await createCliFirstPublicationStageEvidenceBundle(changed.input);
       await writeFile(changed.stage.decisionPath, "{}\n");
-      await assert.rejects(
-        readFirstPublicationStageEvidenceBundleSources(changed.outputPath),
-      );
+      await assert.rejects(readFirstPublicationStageEvidenceBundleSources(changed.outputPath));
     } finally {
       await rm(changed.stage.root, { recursive: true, force: true });
     }
@@ -109,14 +101,10 @@ describe("first-publication stage evidence bundle manifest", () => {
       mismatched.sources.decision.digest = `sha256:${"f".repeat(64)}`;
       const { bundleDigest: _old, ...mismatchedBody } = mismatched;
       mismatched.bundleDigest = canonicalDigest(mismatchedBody);
-      await writeFile(
-        traversal.outputPath,
-        `${JSON.stringify(mismatched, null, 2)}\n`,
-      );
-      await assert.rejects(
-        readFirstPublicationStageEvidenceBundleSources(traversal.outputPath),
-        { code: "first_publication_stage_evidence_bundle_source_mismatch" },
-      );
+      await writeFile(traversal.outputPath, `${JSON.stringify(mismatched, null, 2)}\n`);
+      await assert.rejects(readFirstPublicationStageEvidenceBundleSources(traversal.outputPath), {
+        code: "first_publication_stage_evidence_bundle_source_mismatch",
+      });
     } finally {
       await rm(traversal.stage.root, { recursive: true, force: true });
     }
@@ -127,10 +115,9 @@ describe("first-publication stage evidence bundle manifest", () => {
     try {
       await createCliFirstPublicationStageEvidenceBundle(value.input);
       await chmod(value.outputPath, 0o644);
-      await assert.rejects(
-        readFirstPublicationStageEvidenceBundleSources(value.outputPath),
-        { code: "first_publication_stage_evidence_bundle_source_invalid" },
-      );
+      await assert.rejects(readFirstPublicationStageEvidenceBundleSources(value.outputPath), {
+        code: "first_publication_stage_evidence_bundle_source_invalid",
+      });
     } finally {
       await rm(value.stage.root, { recursive: true, force: true });
     }
@@ -141,12 +128,20 @@ describe("first-publication stage evidence bundle manifest", () => {
     const outside = resolve(value.stage.root, "nested", "bundle.json");
     try {
       let reads = 0;
-      await assert.rejects(createCliFirstPublicationStageEvidenceBundle({
-        ...value.input,
-        outputPath: outside,
-      }, {
-        readSources: async () => { reads += 1; },
-      }), { code: "first_publication_stage_evidence_bundle_path_invalid" });
+      await assert.rejects(
+        createCliFirstPublicationStageEvidenceBundle(
+          {
+            ...value.input,
+            outputPath: outside,
+          },
+          {
+            readSources: async () => {
+              reads += 1;
+            },
+          },
+        ),
+        { code: "first_publication_stage_evidence_bundle_path_invalid" },
+      );
       assert.equal(reads, 0);
       await assert.rejects(access(outside), { code: "ENOENT" });
     } finally {
@@ -158,29 +153,37 @@ describe("first-publication stage evidence bundle manifest", () => {
     const value = await fixture();
     try {
       const args = [
-        "--stage-review-report", value.input.stageReviewReportPath,
-        "--decision", value.input.decisionPath,
-        "--authorization", value.input.authorizationPath,
-        "--result-directory", value.input.resultDirectory,
-        "--reconciliation-report", value.input.reconciliationReportPath,
-        "--output", value.input.outputPath,
+        "--stage-review-report",
+        value.input.stageReviewReportPath,
+        "--decision",
+        value.input.decisionPath,
+        "--authorization",
+        value.input.authorizationPath,
+        "--result-directory",
+        value.input.resultDirectory,
+        "--reconciliation-report",
+        value.input.reconciliationReportPath,
+        "--output",
+        value.input.outputPath,
       ];
       for (const invalid of [
         args,
         [...args, "--write", "--write"],
         [...args.slice(0, -2), "--write"],
-        [...args.map((item) => item === value.input.decisionPath ? "decision.json" : item),
-          "--write"],
+        [
+          ...args.map((item) => (item === value.input.decisionPath ? "decision.json" : item)),
+          "--write",
+        ],
         [...args, "--write", "--online"],
       ]) {
-        const result = spawnSync(process.execPath, [
-          "scripts/create-cli-first-publication-stage-evidence-bundle.mjs",
-          ...invalid,
-        ], { cwd: repositoryRoot, encoding: "utf8" });
+        const result = spawnSync(
+          process.execPath,
+          ["scripts/create-cli-first-publication-stage-evidence-bundle.mjs", ...invalid],
+          { cwd: repositoryRoot, encoding: "utf8" },
+        );
         assert.equal(result.status, 1);
         assert.equal(result.stdout, "");
-        assert.match(result.stderr,
-          /^first_publication_stage_evidence_bundle_arguments_invalid:/u);
+        assert.match(result.stderr, /^first_publication_stage_evidence_bundle_arguments_invalid:/u);
       }
     } finally {
       await rm(value.stage.root, { recursive: true, force: true });

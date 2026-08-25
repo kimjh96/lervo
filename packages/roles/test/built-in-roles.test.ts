@@ -7,11 +7,18 @@ import {
 } from "../src/index.js";
 
 describe("built-in multi-discipline roles", () => {
-  it("defines researcher, marketer and designer as distinct executable contracts", () => {
+  it("defines the complete initial workforce as distinct executable contracts", () => {
     const definitions = listBuiltInRoleDefinitions();
-    expect(definitions.map((definition) => definition.profile.roleId))
-      .toEqual(["designer", "marketer", "researcher"]);
-    for (const definition of definitions) expect(() => assertRoleDefinition(definition)).not.toThrow();
+    expect(definitions.map((definition) => definition.profile.roleId)).toEqual([
+      "developer",
+      "designer",
+      "ideation",
+      "marketer",
+      "researcher",
+      "writer",
+    ]);
+    for (const definition of definitions)
+      expect(() => assertRoleDefinition(definition)).not.toThrow();
 
     const researcher = getBuiltInRoleDefinition("researcher");
     const marketer = getBuiltInRoleDefinition("marketer");
@@ -20,13 +27,20 @@ describe("built-in multi-discipline roles", () => {
     expect(marketer.profile.capabilities["external.message"]).toBe("require_approval");
     expect(designer.profile.capabilities["filesystem.write"]).toBe("require_approval");
     expect(researcher.evaluation.checks.map((check) => check.category)).toEqual([
-      "artifact_schema", "citation_integrity", "claim_support", "source_traceability",
+      "artifact_schema",
+      "citation_integrity",
+      "claim_support",
+      "source_traceability",
     ]);
     expect(marketer.evaluation.checks.map((check) => check.category)).toEqual([
-      "artifact_schema", "brand_compliance", "claim_support",
+      "artifact_schema",
+      "brand_compliance",
+      "claim_support",
     ]);
     expect(designer.evaluation.checks.map((check) => check.category)).toEqual([
-      "accessibility", "artifact_schema", "design_token_usage",
+      "accessibility",
+      "artifact_schema",
+      "design_token_usage",
     ]);
   });
 

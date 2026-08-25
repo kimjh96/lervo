@@ -32,7 +32,9 @@
       "actor": { "kind": "user" },
       "schemaVersion": 1,
       "policyVersion": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "payload": { "requestDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      "payload": {
+        "requestDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
       "previousHash": null,
       "eventHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     }

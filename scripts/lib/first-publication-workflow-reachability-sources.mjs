@@ -10,8 +10,7 @@ import {
   readRegularReleaseFile,
 } from "./release-attestation-file-set.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
-import { maximumRemoteCliPackageBytes } from
-  "./first-publication-workflow-reachability-contract.mjs";
+import { maximumRemoteCliPackageBytes } from "./first-publication-workflow-reachability-contract.mjs";
 
 const maximumReportBytes = 64 * 1024;
 
@@ -33,7 +32,8 @@ export async function readFirstPublicationWorkflowReachabilitySources(
   if (
     !isAbsolute(paths?.cliPackageManifestPath ?? "") ||
     !isAbsolute(remoteEvidenceReportPath ?? "")
-  ) fail();
+  )
+    fail();
   let packageContents;
   let reportContents;
   try {
@@ -67,9 +67,6 @@ export async function readFirstPublicationWorkflowReachabilitySources(
     remoteEvidenceReport,
     packageSnapshot,
     reportSnapshot,
-    assertUnchanged: () => assertReleaseFilesUnchanged([
-      packageSnapshot,
-      reportSnapshot,
-    ]),
+    assertUnchanged: () => assertReleaseFilesUnchanged([packageSnapshot, reportSnapshot]),
   };
 }

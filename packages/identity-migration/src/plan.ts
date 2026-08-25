@@ -77,9 +77,9 @@ export async function createIdentityMigrationPlan(
   let documentDisposition: IdentityMigrationPlan["documentDisposition"] = "create_empty";
   let documentArchiveSourceName: "documents" | "documents.yaml" | null = null;
   const missingCurrentDirectories: string[] = [];
-  const missingCurrentFiles: Array<{ path: ".lervo/.gitignore"; content: "state/\n" }> = [];
+  const missingCurrentFiles: Array<{ path: ".lervo/.gitignore"; content: "data/\nstate/\n" }> = [];
 
-  if (await entryKind(root) !== "directory") {
+  if ((await entryKind(root)) !== "directory") {
     blocker(blockers, "repository_invalid", "The target must be a real repository directory.");
     const withoutId: Omit<IdentityMigrationPlan, "planId"> = {
       schemaVersion: 1,
@@ -109,14 +109,19 @@ export async function createIdentityMigrationPlan(
   } else if (sourceKind !== "directory") {
     blocker(blockers, "source_unsafe", "The previous managed path must be a real directory.");
   }
-  if (await entryKind(targetRoot) !== "missing") {
-    blocker(blockers, "target_exists", "The current managed path already exists, so the two states will not be merged.");
+  if ((await entryKind(targetRoot)) !== "missing") {
+    blocker(
+      blockers,
+      "target_exists",
+      "The current managed path already exists, so the two states will not be merged.",
+    );
   }
 
   if (sourceKind === "directory") {
     try {
       const manifestPath = resolve(sourceRoot, "project.yaml");
-      if (await entryKind(manifestPath) !== "file") throw new Error("project.yaml does not exist.");
+      if ((await entryKind(manifestPath)) !== "file")
+        throw new Error("project.yaml does not exist.");
       const manifest = parseAndValidateYaml<ProjectManifest>(
         "project",
         await readStableUtf8File(manifestPath, 4 * 1024 * 1024),
@@ -136,27 +141,40 @@ export async function createIdentityMigrationPlan(
     for (const name of CURRENT_DIRECTORIES) {
       const kind = await entryKind(resolve(sourceRoot, name));
       if (kind === "missing") {
-        if (name === "documents" && (
-          await entryKind(resolve(sourceRoot, "documents.yaml")) === "file" ||
-          documentDisposition === "archive_previous_metadata"
-        )) continue;
+        if (
+          name === "documents" &&
+          ((await entryKind(resolve(sourceRoot, "documents.yaml"))) === "file" ||
+            documentDisposition === "archive_previous_metadata")
+        )
+          continue;
         missingCurrentDirectories.push(`${TARGET_DIRECTORY}/${name}`);
       } else if (kind !== "directory") {
-        blocker(blockers, "source_unsafe", `${name} in the previous managed path is not a real directory.`);
+        blocker(
+          blockers,
+          "source_unsafe",
+          `${name} in the previous managed path is not a real directory.`,
+        );
       }
     }
     const gitignoreKind = await entryKind(resolve(sourceRoot, ".gitignore"));
     if (gitignoreKind === "missing") {
-      missingCurrentFiles.push({ path: ".lervo/.gitignore", content: "state/\n" });
+      missingCurrentFiles.push({ path: ".lervo/.gitignore", content: "data/\nstate/\n" });
     } else if (gitignoreKind !== "file") {
-      blocker(blockers, "source_unsafe", ".gitignore in the previous managed path is not a regular file.");
+      blocker(
+        blockers,
+        "source_unsafe",
+        ".gitignore in the previous managed path is not a regular file.",
+      );
     }
 
     const eventDatabase = resolve(sourceRoot, "state/events.sqlite");
     const eventKind = await entryKind(eventDatabase);
     const sidecars = ["-wal", "-shm", "-journal"];
-    if ((await Promise.all(sidecars.map((suffix) => entryKind(`${eventDatabase}${suffix}`))))
-      .some((kind) => kind !== "missing")) {
+    if (
+      (await Promise.all(sidecars.map((suffix) => entryKind(`${eventDatabase}${suffix}`)))).some(
+        (kind) => kind !== "missing",
+      )
+    ) {
       blocker(
         blockers,
         "event_store_active",
@@ -211,7 +229,8 @@ export async function createIdentityMigrationPlan(
     }
     if (
       documentDisposition === "archive_previous_metadata" &&
-      documentArchiveSourceName !== null && sourceTreeHash !== null
+      documentArchiveSourceName !== null &&
+      sourceTreeHash !== null
     ) {
       const archiveTarget = resolve(
         sourceRoot,
@@ -219,7 +238,7 @@ export async function createIdentityMigrationPlan(
         sourceTreeHash.slice(7),
         documentArchiveSourceName,
       );
-      if (await entryKind(archiveTarget) !== "missing") {
+      if ((await entryKind(archiveTarget)) !== "missing") {
         blocker(
           blockers,
           "source_unsafe",
@@ -234,9 +253,8 @@ export async function createIdentityMigrationPlan(
     repositoryRoot: root,
     sourceDirectory: SOURCE_DIRECTORY,
     targetDirectory: TARGET_DIRECTORY,
-    status: blockers.length === 0 && projectId !== null && sourceTreeHash !== null
-      ? "ready"
-      : "blocked",
+    status:
+      blockers.length === 0 && projectId !== null && sourceTreeHash !== null ? "ready" : "blocked",
     projectId,
     sourceTreeHash,
     sourceFileCount,
@@ -247,7 +265,8 @@ export async function createIdentityMigrationPlan(
     verifiedCasObjectCount,
     documentDisposition,
     documentArchivePath:
-      documentDisposition === "archive_previous_metadata" && sourceTreeHash !== null &&
+      documentDisposition === "archive_previous_metadata" &&
+      sourceTreeHash !== null &&
       documentArchiveSourceName !== null
         ? `${TARGET_DIRECTORY}/archive/identity/${sourceTreeHash.slice(7)}/${documentArchiveSourceName}`
         : null,

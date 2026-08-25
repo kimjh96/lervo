@@ -18,11 +18,11 @@ Make every managed run explain which repository documents were selected, loaded,
 - Work outside a Lervo-managed lifecycle is `unmanaged` and has no managed context-coverage claim.
 - ADR-0197 reconstructs unmanaged preparation and exact final-output token references. It leaves managed delivery and internal use unsupported and cannot satisfy this roadmap's E1-E4 criteria.
 
-E3 proves delivery of exact bytes as controlled model input, not attention, understanding, agreement, or internal use. Internal states remain `unknown` unless future provider telemetry independently verifies them.
+E3 proves exact-byte delivery as controlled model input, not attention, understanding, agreement, or internal use. Internal states remain `unknown` unless independently verified by future provider telemetry.
 
 ## Required report
 
-One provider-neutral run-context report appears in local trace output and the Hub trace read model. It includes:
+A provider-neutral run-context report appears in local trace output and the Hub trace read model. Rebuilt from canonical execution events and content-addressed evidence, it includes:
 
 - every observed document and its highest valid evidence level;
 - every selection reason and policy rule identifier;
@@ -30,16 +30,16 @@ One provider-neutral run-context report appears in local trace output and the Hu
 - explicit references bound to a source event and exact injected version;
 - missing stages and controlled failure reasons;
 - `managed` or `unmanaged` run status;
-- capability flags distinguishing unsupported telemetry from supported telemetry with no observation.
+- capability flags that distinguish unsupported telemetry from supported telemetry with no observation.
 
-The report is rebuilt from canonical execution events and content-addressed evidence. Event payloads exclude raw prompts, document bodies, unrestricted provider output, credentials, and absolute paths.
+Event payloads exclude raw prompts, document bodies, unrestricted provider output, credentials, and absolute paths.
 
 ## Coverage definitions
 
 Metrics remain separate and use unique document versions, not event counts.
 
 | Metric | Definition | Availability |
-|---|---|---|
+| --- | --- | --- |
 | Delivery coverage | Required current document versions with valid E3 / required current document versions | Required for managed writes |
 | Reference coverage | Injected current document versions with validated E4 / injected current document versions | Nullable until the provider supplies verifiable reference evidence |
 | Relevance coverage | Reviewed expected document versions selected / reviewed expected document versions | Available only with reviewed ground truth |

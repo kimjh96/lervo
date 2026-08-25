@@ -1,14 +1,10 @@
 import { isAbsolute } from "node:path";
 
-import { reconcileCliFirstPublication } from
-  "./lib/cli-first-publication-reconciliation.mjs";
+import { reconcileCliFirstPublication } from "./lib/cli-first-publication-reconciliation.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { formatFirstPublicationReconciliation } from
-  "./lib/first-publication-reconciliation-formatter.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
-import { ReleasePublicationAuthorizationError } from
-  "./lib/release-publication-authorization.mjs";
+import { formatFirstPublicationReconciliation } from "./lib/first-publication-reconciliation-formatter.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
+import { ReleasePublicationAuthorizationError } from "./lib/release-publication-authorization.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -37,9 +33,12 @@ function parseArguments(args) {
     }
     const value = args[index + 1];
     if (
-      !allowed.includes(name) || values.has(name) || value === undefined ||
+      !allowed.includes(name) ||
+      values.has(name) ||
+      value === undefined ||
       value.startsWith("--")
-    ) failArguments();
+    )
+      failArguments();
     values.set(name, value);
     index += 1;
   }
@@ -57,17 +56,19 @@ function parseArguments(args) {
 try {
   const { json, ...options } = parseArguments(process.argv.slice(2));
   const report = await reconcileCliFirstPublication(options);
-  process.stdout.write(json
-    ? `${JSON.stringify(report, null, 2)}\n`
-    : formatFirstPublicationReconciliation(report));
+  process.stdout.write(
+    json ? `${JSON.stringify(report, null, 2)}\n` : formatFirstPublicationReconciliation(report),
+  );
 } catch (error) {
   if (
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError ||
     error instanceof ReleasePublicationAuthorizationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_reconciliation_failed: The CLI first-publication result could not be reconciled.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_reconciliation_failed: The CLI first-publication result could not be reconciled.",
+    );
   process.exitCode = 1;
 }

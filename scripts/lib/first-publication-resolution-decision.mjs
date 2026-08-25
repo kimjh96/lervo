@@ -23,8 +23,12 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -44,17 +48,32 @@ export function validateFirstPublicationResolutionDecision(
   const checkedAtMs = timestamp(checkedAt);
   if (
     !exactKeys(decision, [
-      "schemaVersion", "decisionId", "decision", "decidedAt", "expiresAt",
-      "actor", "target", "confirmations",
-    ]) || decision.schemaVersion !== 1 || !decisionIdPattern.test(decision.decisionId ?? "") ||
+      "schemaVersion",
+      "decisionId",
+      "decision",
+      "decidedAt",
+      "expiresAt",
+      "actor",
+      "target",
+      "confirmations",
+    ]) ||
+    decision.schemaVersion !== 1 ||
+    !decisionIdPattern.test(decision.decisionId ?? "") ||
     decision.decision !== "authorize_reconciled_publication_transition_review" ||
-    !exactKeys(decision.actor, ["kind", "id"]) || decision.actor.kind !== "user" ||
-    typeof decision.actor.id !== "string" || decision.actor.id.length < 1 ||
+    !exactKeys(decision.actor, ["kind", "id"]) ||
+    decision.actor.kind !== "user" ||
+    typeof decision.actor.id !== "string" ||
+    decision.actor.id.length < 1 ||
     decision.actor.id.length > 150 ||
     !exactKeys(decision.target, [
-      "package", "version", "bootstrapDigest", "reservationDigest",
-      "terminalRecordDigest", "reconciliationReportDigest",
-    ]) || decision.target.package !== reconciliationReport?.target?.package ||
+      "package",
+      "version",
+      "bootstrapDigest",
+      "reservationDigest",
+      "terminalRecordDigest",
+      "reconciliationReportDigest",
+    ]) ||
+    decision.target.package !== reconciliationReport?.target?.package ||
     decision.target.version !== reconciliationReport.target.version ||
     decision.target.bootstrapDigest !== reconciliationReport.binding.bootstrapDigest ||
     decision.target.reservationDigest !== reconciliationReport.binding.reservationDigest ||
@@ -65,9 +84,12 @@ export function validateFirstPublicationResolutionDecision(
     canonicalJson(decision.confirmations) !==
       canonicalJson(firstPublicationResolutionConfirmations) ||
     reconciliationReport.outcome !== "published" ||
-    decidedAt < observedAt || decidedAt - observedAt > firstPublicationResolutionMaximumLifetimeMs ||
-    decidedAt > checkedAtMs || expiresAt <= checkedAtMs ||
+    decidedAt < observedAt ||
+    decidedAt - observedAt > firstPublicationResolutionMaximumLifetimeMs ||
+    decidedAt > checkedAtMs ||
+    expiresAt <= checkedAtMs ||
     expiresAt - observedAt > firstPublicationResolutionMaximumLifetimeMs
-  ) fail();
+  )
+    fail();
   return decision;
 }

@@ -6,37 +6,38 @@ import {
   createFirstPublicationStageReviewEvidence,
   validateFirstPublicationStageReviewEvidence,
 } from "./first-publication-stage-review-evidence.mjs";
-import { readFirstPublicationStageReviewSources } from
-  "./first-publication-stage-review-sources.mjs";
-import { validateWorkflowExecutionCoordinate } from
-  "./first-publication-workflow-execution-contract.mjs";
+import { readFirstPublicationStageReviewSources } from "./first-publication-stage-review-sources.mjs";
+import { validateWorkflowExecutionCoordinate } from "./first-publication-workflow-execution-contract.mjs";
 import {
   validateWorkflowReachabilityCommit,
   validateWorkflowReachabilityReleaseTag,
 } from "./first-publication-workflow-reachability-contract.mjs";
 import { repositoryRoot } from "./installed-cli.mjs";
-import { observeNpmStagedPackageReview } from
-  "./npm-staged-package-review-observer.mjs";
+import { observeNpmStagedPackageReview } from "./npm-staged-package-review-observer.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
 function fail(code, message) {
   throw new FirstPublicationBootstrapError(code, message);
 }
 
-export async function createCliFirstPublicationStageReviewEvidence({
-  repository,
-  sourceCommit,
-  releaseTag,
-  runId,
-  attempt,
-  stageResultReportPath,
-  npmUserConfigPath,
-  online,
-}, dependencies = {}) {
-  if (online !== true) fail(
-    "first_publication_stage_review_online_required",
-    "CLI npm staged-package review evidence requires online verification.",
-  );
+export async function createCliFirstPublicationStageReviewEvidence(
+  {
+    repository,
+    sourceCommit,
+    releaseTag,
+    runId,
+    attempt,
+    stageResultReportPath,
+    npmUserConfigPath,
+    online,
+  },
+  dependencies = {},
+) {
+  if (online !== true)
+    fail(
+      "first_publication_stage_review_online_required",
+      "CLI npm staged-package review evidence requires online verification.",
+    );
   try {
     validateReadinessRepository(repository);
     validateWorkflowReachabilityCommit(sourceCommit);
@@ -61,19 +62,24 @@ export async function createCliFirstPublicationStageReviewEvidence({
   };
   assertFirstPublicationStageReviewBinding(binding);
   const observe = dependencies.observe ?? observeNpmStagedPackageReview;
-  const observation = await observe({
-    registry: sources.stageResultReport.stage.target.registry,
-    packageName: sources.stageResultReport.stage.target.package,
-    version: sources.stageResultReport.stage.target.version,
-    expectedArtifact: sources.stageResultReport.stage.artifact,
-    userConfigPath: npmUserConfigPath,
-  }, {
-    npmCommand: dependencies.npmCommand ?? resolve(
-      repositoryRoot,
-      process.platform === "win32" ? "node_modules/.bin/npm.cmd" : "node_modules/.bin/npm",
-    ),
-    ...(dependencies.observerDependencies ?? {}),
-  });
+  const observation = await observe(
+    {
+      registry: sources.stageResultReport.stage.target.registry,
+      packageName: sources.stageResultReport.stage.target.package,
+      version: sources.stageResultReport.stage.target.version,
+      expectedArtifact: sources.stageResultReport.stage.artifact,
+      userConfigPath: npmUserConfigPath,
+    },
+    {
+      npmCommand:
+        dependencies.npmCommand ??
+        resolve(
+          repositoryRoot,
+          process.platform === "win32" ? "node_modules/.bin/npm.cmd" : "node_modules/.bin/npm",
+        ),
+      ...(dependencies.observerDependencies ?? {}),
+    },
+  );
   const observedAt = (dependencies.clock ?? (() => new Date().toISOString()))();
   await sources.assertUnchanged();
   const input = { ...binding, observation, observedAt };

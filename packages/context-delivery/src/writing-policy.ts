@@ -1,13 +1,8 @@
 import { type WritingContract, validateSchema } from "@lervo/schemas";
 
-import {
-  type BuildContextEnvelopeInput,
-  ContextDeliveryError,
-} from "./types.js";
+import { type BuildContextEnvelopeInput, ContextDeliveryError } from "./types.js";
 
-export function resolveWritingPolicyDocumentId(
-  input: BuildContextEnvelopeInput,
-): string | null {
+export function resolveWritingPolicyDocumentId(input: BuildContextEnvelopeInput): string | null {
   const { writingPolicy, session } = input;
   if (session.writingPolicyId === null) {
     if (writingPolicy !== null) {

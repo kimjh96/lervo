@@ -15,7 +15,9 @@ import {
 const GUIDE_HASH = `sha256:${"a".repeat(64)}`;
 const OTHER_HASH = `sha256:${"b".repeat(64)}`;
 
-function corpus(guideText = "Operational guidance for evaluating search failures."): SearchSourceInput[] {
+function corpus(
+  guideText = "Operational guidance for evaluating search failures.",
+): SearchSourceInput[] {
   return [
     {
       kind: "document",
@@ -83,24 +85,31 @@ describe("reusable search evaluation", () => {
         referenceStatus: "passed",
       },
     });
-    expect(() => createSearchEvaluationCase({
-      attempt,
-      assessment,
-      query: "evaluating failures",
-      maximumRank: 3,
-      sources: [{ sourceKind: "document", sourceId: "doc_unreviewed_01" }],
-    })).toThrow(/expected or accepted by the reviewer/);
-    expect(() => createSearchEvaluationCase({
-      attempt,
-      assessment,
-      query: "evaluating failures",
-      maximumRank: attempt.requestedLimit + 1,
-    })).toThrow(/result limit observed/);
+    expect(() =>
+      createSearchEvaluationCase({
+        attempt,
+        assessment,
+        query: "evaluating failures",
+        maximumRank: 3,
+        sources: [{ sourceKind: "document", sourceId: "doc_unreviewed_01" }],
+      }),
+    ).toThrow(/expected or accepted by the reviewer/);
+    expect(() =>
+      createSearchEvaluationCase({
+        attempt,
+        assessment,
+        query: "evaluating failures",
+        maximumRank: attempt.requestedLimit + 1,
+      }),
+    ).toThrow(/result limit observed/);
   });
 
   it("detects a regression without making an embedding decision", () => {
     const { evaluationCase } = reviewedCase();
-    const current = new LexicalSearchIndex(corpus("No relevant terms remain.")).search("evaluating failures", 50);
+    const current = new LexicalSearchIndex(corpus("No relevant terms remain.")).search(
+      "evaluating failures",
+      50,
+    );
     const result = createSearchEvaluationResult({
       evaluationCase,
       response: current,
@@ -128,7 +137,10 @@ describe("reusable search evaluation", () => {
   });
 
   it("observes an improvement from a reviewed failed attempt", () => {
-    const response = new LexicalSearchIndex(corpus("No relevant terms")).search("evaluating failures", 10);
+    const response = new LexicalSearchIndex(corpus("No relevant terms")).search(
+      "evaluating failures",
+      10,
+    );
     const attempt = createSearchAttempt({
       projectId: "prj_search_eval_01",
       observedAt: new Date("2026-08-20T05:00:00.000Z"),
@@ -161,17 +173,21 @@ describe("reusable search evaluation", () => {
 
   it("rejects a different query and content tampering", () => {
     const { attempt, assessment, evaluationCase } = reviewedCase();
-    expect(() => createSearchEvaluationCase({
-      attempt,
-      assessment,
-      query: "different query",
-      maximumRank: 3,
-    })).toThrow(/query coordinates/);
+    expect(() =>
+      createSearchEvaluationCase({
+        attempt,
+        assessment,
+        query: "different query",
+        maximumRank: 3,
+      }),
+    ).toThrow(/query coordinates/);
 
-    expect(() => assertSearchEvaluationCase({
-      ...evaluationCase,
-      expectation: { ...evaluationCase.expectation, maximumRank: 4 },
-    })).toThrow(/ID does not match its content/);
+    expect(() =>
+      assertSearchEvaluationCase({
+        ...evaluationCase,
+        expectation: { ...evaluationCase.expectation, maximumRank: 4 },
+      }),
+    ).toThrow(/ID does not match its content/);
 
     const result = createSearchEvaluationResult({
       evaluationCase,

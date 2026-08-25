@@ -15,10 +15,7 @@ import {
   type WorkstreamReplicationPublishRequest,
   validateSchema,
 } from "@lervo/schemas";
-import {
-  calculateProjectRegistrationId,
-  SyncContractError,
-} from "@lervo/sync-contract";
+import { calculateProjectRegistrationId, SyncContractError } from "@lervo/sync-contract";
 
 import type { HubRequestAuthenticator } from "./auth.js";
 import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
@@ -46,7 +43,14 @@ function workstreamError(
 ): void {
   if (error.code === "invalid_workstream") {
     sendHubError(response, 400, "invalid_request", maximum, headers);
-  } else if (["registration_required", "unknown_parent", "head_limit_exceeded", "workstream_conflict"].includes(error.code)) {
+  } else if (
+    [
+      "registration_required",
+      "unknown_parent",
+      "head_limit_exceeded",
+      "workstream_conflict",
+    ].includes(error.code)
+  ) {
     sendHubError(response, 409, "conflict", maximum, headers);
   } else {
     sendHubError(response, 500, "internal_error", maximum, headers);
@@ -73,13 +77,15 @@ function syncError(
   maximum: number,
   headers: Record<string, string>,
 ): void {
-  if (["invalid_registration", "invalid_event_batch", "project_sync_disabled"].includes(error.code)) {
+  if (
+    ["invalid_registration", "invalid_event_batch", "project_sync_disabled"].includes(error.code)
+  ) {
     sendHubError(response, 400, "invalid_request", maximum, headers);
-  } else if ([
-    "registration_identity_conflict",
-    "registration_required",
-    "event_chain_conflict",
-  ].includes(error.code)) {
+  } else if (
+    ["registration_identity_conflict", "registration_required", "event_chain_conflict"].includes(
+      error.code,
+    )
+  ) {
     sendHubError(response, 409, "conflict", maximum, headers);
   } else {
     sendHubError(response, 500, "internal_error", maximum, headers);
@@ -106,9 +112,10 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
         return;
       }
-      const acceptedMethod = route.kind === "workstreams"
-        ? request.method === "GET" || request.method === "POST"
-        : request.method === "POST";
+      const acceptedMethod =
+        route.kind === "workstreams"
+          ? request.method === "GET" || request.method === "POST"
+          : request.method === "POST";
       if (!acceptedMethod) {
         sendHubError(response, 405, "method_not_allowed", maxResponseBytes, {
           ...identityHeaders,
@@ -117,7 +124,9 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         return;
       }
       const query = hubSyncQuery(url.searchParams);
-      const principal = await options.authenticator.authenticate(singleAuthorizationHeader(request));
+      const principal = await options.authenticator.authenticate(
+        singleAuthorizationHeader(request),
+      );
       if (principal === null) {
         sendHubError(response, 401, "unauthorized", maxResponseBytes, {
           ...identityHeaders,
@@ -125,12 +134,16 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         });
         return;
       }
-      const inScope = principal.projects.some((project) =>
-        project.destinationId === query.destinationId && project.projectId === route.projectId
+      const inScope = principal.projects.some(
+        (project) =>
+          project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
-      const requiredPermission = route.kind === "workstreams"
-        ? request.method === "GET" ? "workstream.read" : "workstream.write"
-        : "sync.write";
+      const requiredPermission =
+        route.kind === "workstreams"
+          ? request.method === "GET"
+            ? "workstream.read"
+            : "workstream.write"
+          : "sync.write";
       if (!inScope || !principal.permissions.includes(requiredPermission)) {
         sendHubError(response, 403, "forbidden", maxResponseBytes, identityHeaders);
         return;
@@ -162,7 +175,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
           registration.project.projectId !== route.projectId ||
           registration.projectIdentityHash !== query.projectIdentityHash ||
           registration.registrationId !== expectedRegistrationId
-        ) throw new InvalidHubHttpRequestError();
+        )
+          throw new InvalidHubHttpRequestError();
         const result = await handleProjectRegistration({
           store: options.store,
           request: registration,
@@ -187,14 +201,21 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
           publication.projectId !== route.projectId ||
           publication.repositoryIdentityHash !== query.projectIdentityHash ||
           publication.registrationId !== expectedRegistrationId
-        ) throw new InvalidHubHttpRequestError();
+        )
+          throw new InvalidHubHttpRequestError();
         const result = await handleWorkstreamPublish({
           store: options.store,
           destinationId: query.destinationId,
           request: publication,
           publishedAt: acceptedAt,
         });
-        sendHubJson(response, result.status === "created" ? 201 : 200, result, maxResponseBytes, identityHeaders);
+        sendHubJson(
+          response,
+          result.status === "created" ? 201 : 200,
+          result,
+          maxResponseBytes,
+          identityHeaders,
+        );
         return;
       }
 
@@ -203,9 +224,11 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
       }
       const batch = body as OutboundEventBatch;
       if (
-        batch.destinationId !== query.destinationId || batch.projectId !== route.projectId ||
+        batch.destinationId !== query.destinationId ||
+        batch.projectId !== route.projectId ||
         batch.registrationId !== expectedRegistrationId
-      ) throw new InvalidHubHttpRequestError();
+      )
+        throw new InvalidHubHttpRequestError();
       const acknowledgement = await handleOutboundEventBatch({
         store: options.store,
         batch,

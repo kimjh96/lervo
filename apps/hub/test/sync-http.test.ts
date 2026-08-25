@@ -7,12 +7,12 @@ import { resolve } from "node:path";
 import { SQLiteEventStore, type EventDraft } from "@lervo/event-store-sqlite";
 import { canonicalJson } from "@lervo/event-contract";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
-import { defaultProjectDataPolicy, type ProjectManifest, type WorkstreamSnapshot } from "@lervo/schemas";
 import {
-  AuthenticatedHubHttpTransport,
-  runOutboundSyncCycle,
-  type SyncClock,
-} from "@lervo/sync";
+  defaultProjectDataPolicy,
+  type ProjectManifest,
+  type WorkstreamSnapshot,
+} from "@lervo/schemas";
+import { AuthenticatedHubHttpTransport, runOutboundSyncCycle, type SyncClock } from "@lervo/sync";
 import {
   calculateProjectIdentityHash,
   createProjectRegistrationRequest,
@@ -32,7 +32,9 @@ const policyVersion = `sha256:${"a".repeat(64)}`;
 
 class MutableClock implements SyncClock {
   constructor(public value = "2026-08-22T02:00:00.000Z") {}
-  now(): string { return this.value; }
+  now(): string {
+    return this.value;
+  }
 }
 
 function manifest(): ProjectManifest {
@@ -72,25 +74,35 @@ async function fixtureRoot(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) =>
-    server.close((error) => error === undefined ? resolve() : reject(error))
-  )));
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolve, reject) =>
+            server.close((error) => (error === undefined ? resolve() : reject(error))),
+          ),
+      ),
+  );
   await Promise.all(hubStores.splice(0).map((store) => store.close()));
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 async function start(store: HubSyncSQLiteStore, project: ProjectManifest): Promise<string> {
-  const authenticator = new ConfiguredBearerAuthenticator([{
-    token: syncToken,
-    principalId: "node:sync-http",
-    permissions: ["sync.write", "trace.read", "workstream.read", "workstream.write"],
-    projects: [{ destinationId, projectId: project.projectId }],
-  }, {
-    token: traceOnlyToken,
-    principalId: "operator:trace-only",
-    permissions: ["trace.read"],
-    projects: [{ destinationId, projectId: project.projectId }],
-  }]);
+  const authenticator = new ConfiguredBearerAuthenticator([
+    {
+      token: syncToken,
+      principalId: "node:sync-http",
+      permissions: ["sync.write", "trace.read", "workstream.read", "workstream.write"],
+      projects: [{ destinationId, projectId: project.projectId }],
+    },
+    {
+      token: traceOnlyToken,
+      principalId: "operator:trace-only",
+      permissions: ["trace.read"],
+      projects: [{ destinationId, projectId: project.projectId }],
+    },
+  ]);
   const server = createHubServer({
     trace: { authenticator, source: store },
     sync: {
@@ -144,20 +156,27 @@ describe("authenticated Hub event sync HTTP", () => {
       references: [],
       pendingDecisions: [],
       pendingApprovals: [],
-      origin: { kind: "created", sourceArtifactId: null, sourceContentHash: null, sourcePathDigest: null },
+      origin: {
+        kind: "created",
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+      },
       updatedAt: "2026-08-24T00:01:00.000Z",
     };
     const content = `${canonicalJson(snapshot)}\n`;
     const snapshotContentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
-    await expect(transport.publishWorkstream({
-      schemaVersion: 1,
-      registrationId: registered.registrationId,
-      projectId: project.projectId,
-      repositoryIdentityHash: identity,
-      snapshotContentHash,
-      previousSnapshotContentHash: null,
-      snapshot,
-    })).resolves.toMatchObject({
+    await expect(
+      transport.publishWorkstream({
+        schemaVersion: 1,
+        registrationId: registered.registrationId,
+        projectId: project.projectId,
+        repositoryIdentityHash: identity,
+        snapshotContentHash,
+        previousSnapshotContentHash: null,
+        snapshot,
+      }),
+    ).resolves.toMatchObject({
       authentication: { status: "verified" },
       body: { status: "created", heads: [{ snapshotContentHash }] },
     });
@@ -256,10 +275,7 @@ describe("authenticated Hub event sync HTTP", () => {
       destinationId,
       requestedAt: "2026-08-22T02:00:00.000Z",
     });
-    const endpoint = new URL(
-      `v1/sync/projects/${project.projectId}/registration`,
-      baseUrl,
-    );
+    const endpoint = new URL(`v1/sync/projects/${project.projectId}/registration`, baseUrl);
     endpoint.searchParams.set("destinationId", destinationId);
     endpoint.searchParams.set("projectIdentityHash", registration.projectIdentityHash);
     const forbidden = await fetch(endpoint, {

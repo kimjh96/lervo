@@ -28,8 +28,10 @@ export async function applyLegacyRegistryMigration(
 ): Promise<ApplyLegacyRegistryMigrationResult> {
   const appliedAt = input.appliedAt ?? new Date().toISOString();
   if (
-    !TIMESTAMP.test(appliedAt) || Number.isNaN(Date.parse(appliedAt)) ||
-    input.eventRecorder === null || typeof input.eventRecorder?.record !== "function" ||
+    !TIMESTAMP.test(appliedAt) ||
+    Number.isNaN(Date.parse(appliedAt)) ||
+    input.eventRecorder === null ||
+    typeof input.eventRecorder?.record !== "function" ||
     (input.failureInjector !== undefined && typeof input.failureInjector !== "function")
   ) {
     throw new DocumentMigrationError(
@@ -134,9 +136,7 @@ export async function applyLegacyRegistryMigration(
         expectedSidecars,
       });
     },
-    ...(input.failureInjector === undefined
-      ? {}
-      : { failureInjector: input.failureInjector }),
+    ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),
   });
   return structuredClone(receipt);
 }

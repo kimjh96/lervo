@@ -9,20 +9,12 @@ function invalid(message: string): never {
 }
 
 function validateRepositoryPath(path: string, label: string): void {
-  if (
-    path === "." ||
-    path.endsWith("/") ||
-    path.includes("\\") ||
-    posix.normalize(path) !== path
-  ) {
+  if (path === "." || path.endsWith("/") || path.includes("\\") || posix.normalize(path) !== path) {
     invalid(`${label} must be a normalized repository-relative path.`);
   }
 }
 
-export function validateDocumentManifest(
-  manifest: DocumentManifest,
-  fileName: string,
-): void {
+export function validateDocumentManifest(manifest: DocumentManifest, fileName: string): void {
   if (fileName !== `${manifest.documentId}.yaml`) {
     invalid(`${fileName} does not match its documentId.`);
   }
@@ -69,9 +61,7 @@ export function validateDocumentManifest(
   }
 }
 
-export function validateDocumentManifestSet(
-  manifests: readonly DocumentManifest[],
-): void {
+export function validateDocumentManifestSet(manifests: readonly DocumentManifest[]): void {
   const documentIds = new Set(manifests.map((manifest) => manifest.documentId));
   const paths = new Set<string>();
   for (const manifest of manifests) {

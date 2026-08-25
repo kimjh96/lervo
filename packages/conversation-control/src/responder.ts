@@ -16,13 +16,18 @@ import { ConversationControlError } from "./types.js";
 function timestamp(now: () => Date): string {
   const value = now();
   if (!Number.isFinite(value.getTime())) {
-    throw new ConversationControlError("control_command_invalid", "The conversation control time is invalid.");
+    throw new ConversationControlError(
+      "control_command_invalid",
+      "The conversation control time is invalid.",
+    );
   }
   return value.toISOString();
 }
 
-async function readMessage(options: ConversationControlResponderOptions,
-  event: ConversationInboundEvent): Promise<string> {
+async function readMessage(
+  options: ConversationControlResponderOptions,
+  event: ConversationInboundEvent,
+): Promise<string> {
   const uri = `lervo-cas://sha256/${event.content.contentHash.slice("sha256:".length)}`;
   try {
     const bytes = new Uint8Array(await options.artifactStore.get(uri));
@@ -40,8 +45,10 @@ async function readMessage(options: ConversationControlResponderOptions,
   }
 }
 
-async function storeWriting(options: ConversationControlResponderOptions,
-  content: string): Promise<WritingArtifactCoordinate> {
+async function storeWriting(
+  options: ConversationControlResponderOptions,
+  content: string,
+): Promise<WritingArtifactCoordinate> {
   const bytes = Buffer.from(content, "utf8");
   const stored = await options.artifactStore.put(bytes);
   return {
@@ -60,8 +67,9 @@ export class ConversationControlResponder {
     this.now = options.now ?? (() => new Date());
   }
 
-  async respond(input: Parameters<import("@lervo/interaction").ConversationResponder["respond"]>[0]):
-    Promise<ConversationReplyCandidate> {
+  async respond(
+    input: Parameters<import("@lervo/interaction").ConversationResponder["respond"]>[0],
+  ): Promise<ConversationReplyCandidate> {
     const parsed = parseConversationControlCommand(await readMessage(this.options, input.event));
     if (parsed === null) {
       throw new ConversationControlError(
@@ -79,13 +87,16 @@ export class ConversationControlResponder {
         at: inspectedAt,
       }),
     );
-    const publication = await evaluateWritingPublication({
-      artifact,
-      contract: this.options.writingContract,
-      surface: "chat",
-      artifactStore: this.options.artifactStore,
-      semanticEvaluator: this.options.semanticEvaluator,
-    }, { now: this.now });
+    const publication = await evaluateWritingPublication(
+      {
+        artifact,
+        contract: this.options.writingContract,
+        surface: "chat",
+        artifactStore: this.options.artifactStore,
+        semanticEvaluator: this.options.semanticEvaluator,
+      },
+      { now: this.now },
+    );
     if (publication.status !== "allowed") {
       throw new ConversationControlError(
         "writing_publication_blocked",

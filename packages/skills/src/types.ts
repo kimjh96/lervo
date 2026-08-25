@@ -1,8 +1,4 @@
-import type {
-  SkillLock,
-  SkillLockRejection,
-  SkillManifest,
-} from "@lervo/schemas";
+import type { SkillLock, SkillLockRejection, SkillManifest } from "@lervo/schemas";
 
 export type LocalSkillSourceKind = "project" | "user";
 export type RuntimePlatform = "darwin" | "linux" | "win32";

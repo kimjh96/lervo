@@ -56,12 +56,14 @@ export async function readLocalSearchRolloutActionStatus(input: {
   const currentSelection = createRolloutCurrentSelection(qualityEvidence.history, candidateReviews);
   const records = [...acknowledgements, ...rollbacks];
   const evidence: SearchRolloutActionStatusEvidence[] = records.map((record) => {
-    const reviewId = record.schemaVersion === 1
-      ? record.rolloutReviewId
-      : record.rolloutAction.rolloutReviewId;
+    const reviewId =
+      record.schemaVersion === 1 ? record.rolloutReviewId : record.rolloutAction.rolloutReviewId;
     const review = reviews.get(reviewId);
     if (review === undefined || review.projectId !== input.projectId) {
-      throw new SearchLocalError("observation_invalid", "The review source for the search rollout action was not found.");
+      throw new SearchLocalError(
+        "observation_invalid",
+        "The review source for the search rollout action was not found.",
+      );
     }
     const currentEvidence = rolloutActionEvidenceThrough(
       review,

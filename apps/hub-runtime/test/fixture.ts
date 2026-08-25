@@ -78,9 +78,9 @@ export async function availablePort(): Promise<number> {
   });
   const address = server.address();
   if (address === null || typeof address === "string") throw new Error("test port unavailable");
-  await new Promise<void>((resolve, reject) => server.close((error) =>
-    error === undefined ? resolve() : reject(error)
-  ));
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error === undefined ? resolve() : reject(error))),
+  );
   return address.port;
 }
 
@@ -94,10 +94,13 @@ export async function enableRuntimeSigningFile(
   fixture: { configPath: string; value: Record<string, unknown> },
 ): Promise<void> {
   const signing = fixture.value.signing;
-  await ownerFile(resolve(root, "signing.json"), JSON.stringify({
-    schemaVersion: 1,
-    ...(signing as Record<string, unknown>),
-  }));
+  await ownerFile(
+    resolve(root, "signing.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      ...(signing as Record<string, unknown>),
+    }),
+  );
   delete fixture.value.signing;
   fixture.value.signingFile = "signing.json";
   await ownerFile(fixture.configPath, JSON.stringify(fixture.value));
@@ -117,42 +120,53 @@ export async function writeRotatedRuntimeSigning(
   const command = generateKeyPairSync("ed25519");
   const policyKeyId = options.policyKeyId ?? "key_runtime_policy_02";
   const commandKeyId = options.commandKeyId ?? "key_runtime_command_02";
-  await ownerFile(resolve(root, "policy-rotated.pem"), policy.privateKey.export({
-    type: "pkcs8",
-    format: "pem",
-  }));
-  await ownerFile(resolve(root, "command-rotated.pem"), command.privateKey.export({
-    type: "pkcs8",
-    format: "pem",
-  }));
-  await ownerFile(resolve(root, "signing.json"), JSON.stringify({
-    schemaVersion: 1,
-    policy: { keyId: policyKeyId, privateKeyPath: "policy-rotated.pem" },
-    command: { keyId: commandKeyId, privateKeyPath: "command-rotated.pem" },
-  }));
+  await ownerFile(
+    resolve(root, "policy-rotated.pem"),
+    policy.privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }),
+  );
+  await ownerFile(
+    resolve(root, "command-rotated.pem"),
+    command.privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }),
+  );
+  await ownerFile(
+    resolve(root, "signing.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      policy: { keyId: policyKeyId, privateKeyPath: "policy-rotated.pem" },
+      command: { keyId: commandKeyId, privateKeyPath: "command-rotated.pem" },
+    }),
+  );
   return { policyKeyId, commandKeyId };
 }
 
 function credentialSnapshot(token: string): Record<string, unknown> {
   return {
     schemaVersion: 1,
-    credentials: [{
-      token,
-      principalId: "operator:runtime-test",
-      permissions: [
-        "trace.read",
-        "sync.write",
-        "workstream.read",
-        "workstream.write",
-        "policy.read",
-        "policy.write",
-        "command.read",
-        "command.write",
-        "command.delivery",
-        "approval.write",
-      ],
-      projects: [{ destinationId: runtimeDestinationId, projectId: runtimeProjectId }],
-    }],
+    credentials: [
+      {
+        token,
+        principalId: "operator:runtime-test",
+        permissions: [
+          "trace.read",
+          "sync.write",
+          "workstream.read",
+          "workstream.write",
+          "policy.read",
+          "policy.write",
+          "command.read",
+          "command.write",
+          "command.delivery",
+          "approval.write",
+        ],
+        projects: [{ destinationId: runtimeDestinationId, projectId: runtimeProjectId }],
+      },
+    ],
   };
 }
 
@@ -170,21 +184,30 @@ export async function enableRuntimeTls(
   await ownerFile(fixture.configPath, JSON.stringify(fixture.value));
 }
 
-export async function runtimeConfigFixture(root: string, port: number): Promise<{
+export async function runtimeConfigFixture(
+  root: string,
+  port: number,
+): Promise<{
   configPath: string;
   databasePath: string;
   value: Record<string, unknown>;
 }> {
   const policyKeys = generateKeyPairSync("ed25519");
   const commandKeys = generateKeyPairSync("ed25519");
-  await ownerFile(resolve(root, "policy.pem"), policyKeys.privateKey.export({
-    type: "pkcs8",
-    format: "pem",
-  }));
-  await ownerFile(resolve(root, "command.pem"), commandKeys.privateKey.export({
-    type: "pkcs8",
-    format: "pem",
-  }));
+  await ownerFile(
+    resolve(root, "policy.pem"),
+    policyKeys.privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }),
+  );
+  await ownerFile(
+    resolve(root, "command.pem"),
+    commandKeys.privateKey.export({
+      type: "pkcs8",
+      format: "pem",
+    }),
+  );
   await ownerFile(resolve(root, "review.secret"), Buffer.alloc(32, 7));
   await writeRuntimeCredentials(root, runtimeToken);
   const value = {

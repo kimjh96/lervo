@@ -3,12 +3,9 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 
 import { describe, it } from "vitest";
 
-import { verifyCliFirstPublicationPackageMetadataPostApply } from
-  "../lib/cli-first-publication-package-metadata-post-apply.mjs";
-import { parseFirstPublicationPackageMetadataPostApplyArguments } from
-  "../lib/first-publication-package-metadata-post-apply-cli-arguments.mjs";
-import { formatFirstPublicationPackageMetadataPostApplyReport } from
-  "../lib/first-publication-package-metadata-post-apply-formatter.mjs";
+import { verifyCliFirstPublicationPackageMetadataPostApply } from "../lib/cli-first-publication-package-metadata-post-apply.mjs";
+import { parseFirstPublicationPackageMetadataPostApplyArguments } from "../lib/first-publication-package-metadata-post-apply-cli-arguments.mjs";
+import { formatFirstPublicationPackageMetadataPostApplyReport } from "../lib/first-publication-package-metadata-post-apply-formatter.mjs";
 import {
   applyMetadataFixture,
   createMetadataApplyFixture,
@@ -16,9 +13,14 @@ import {
 
 describe("first-publication package metadata post-apply command", () => {
   it("requires one absolute receipt and rejects online mode", () => {
-    assert.deepEqual(parseFirstPublicationPackageMetadataPostApplyArguments([
-      "--receipt", "/tmp/receipt.json", "--json",
-    ]), { receiptPath: "/tmp/receipt.json", json: true });
+    assert.deepEqual(
+      parseFirstPublicationPackageMetadataPostApplyArguments([
+        "--receipt",
+        "/tmp/receipt.json",
+        "--json",
+      ]),
+      { receiptPath: "/tmp/receipt.json", json: true },
+    );
     for (const args of [
       [],
       ["--receipt", "relative.json"],
@@ -26,10 +28,9 @@ describe("first-publication package metadata post-apply command", () => {
       ["--receipt", "/tmp/a", "--online"],
       ["--receipt", "/tmp/a", "--json", "--json"],
     ]) {
-      assert.throws(
-        () => parseFirstPublicationPackageMetadataPostApplyArguments(args),
-        { code: "first_publication_package_metadata_post_apply_arguments_invalid" },
-      );
+      assert.throws(() => parseFirstPublicationPackageMetadataPostApplyArguments(args), {
+        code: "first_publication_package_metadata_post_apply_arguments_invalid",
+      });
     }
   });
 
@@ -65,17 +66,20 @@ describe("first-publication package metadata post-apply command", () => {
     try {
       await mkdir(fixture.transactionRoot);
       let reads = 0;
-      await assert.rejects(verifyCliFirstPublicationPackageMetadataPostApply(
-        "/tmp/unused-receipt.json",
-        fixture.paths,
-        {
-          transactionRoot: fixture.transactionRoot,
-          readSources: async () => {
-            reads += 1;
-            throw new Error("must not read");
+      await assert.rejects(
+        verifyCliFirstPublicationPackageMetadataPostApply(
+          "/tmp/unused-receipt.json",
+          fixture.paths,
+          {
+            transactionRoot: fixture.transactionRoot,
+            readSources: async () => {
+              reads += 1;
+              throw new Error("must not read");
+            },
           },
-        },
-      ), { code: "first_publication_package_metadata_post_apply_transaction_pending" });
+        ),
+        { code: "first_publication_package_metadata_post_apply_transaction_pending" },
+      );
       assert.equal(reads, 0);
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
@@ -86,17 +90,16 @@ describe("first-publication package metadata post-apply command", () => {
     const fixture = await createMetadataApplyFixture();
     try {
       const applied = await applyMetadataFixture(fixture);
-      await assert.rejects(verifyCliFirstPublicationPackageMetadataPostApply(
-        applied.receiptPath,
-        fixture.paths,
-        {
+      await assert.rejects(
+        verifyCliFirstPublicationPackageMetadataPostApply(applied.receiptPath, fixture.paths, {
           transactionRoot: fixture.transactionRoot,
           generateRelease: async () => {
             await writeFile(fixture.paths.lockfilePath, "lockfileVersion: 'changed'\n");
             return fixture.derivedRelease.releaseManifest;
           },
-        },
-      ), { code: "release_attestation_release_set_changed" });
+        }),
+        { code: "release_attestation_release_set_changed" },
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -106,17 +109,16 @@ describe("first-publication package metadata post-apply command", () => {
     const fixture = await createMetadataApplyFixture();
     try {
       const applied = await applyMetadataFixture(fixture);
-      await assert.rejects(verifyCliFirstPublicationPackageMetadataPostApply(
-        applied.receiptPath,
-        fixture.paths,
-        {
+      await assert.rejects(
+        verifyCliFirstPublicationPackageMetadataPostApply(applied.receiptPath, fixture.paths, {
           transactionRoot: fixture.transactionRoot,
           generateRelease: async () => {
             await mkdir(fixture.transactionRoot);
             return fixture.derivedRelease.releaseManifest;
           },
-        },
-      ), { code: "first_publication_package_metadata_post_apply_transaction_pending" });
+        }),
+        { code: "first_publication_package_metadata_post_apply_transaction_pending" },
+      );
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

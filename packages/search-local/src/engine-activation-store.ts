@@ -1,10 +1,6 @@
 import { resolve } from "node:path";
 
-import {
-  assertSearchEngineActivation,
-  SEARCH_ENGINE_ACTIVATION_PATTERN,
-  type SearchEngineActivation,
-} from "@lervo/search";
+import { assertSearchEngineActivation, type SearchEngineActivation } from "@lervo/search";
 
 import {
   existingObservationSubdirectory,
@@ -29,9 +25,14 @@ export async function loadSearchEngineActivationHistory(
     expectedFileName: (activation) => `${activation.previousActivationId ?? "baseline"}.json`,
   });
   if (activations.length > MAX_ACTIVATIONS) {
-    throw new SearchLocalError("observation_limit_exceeded", "The number of search engine selection transitions exceeds 256.");
+    throw new SearchLocalError(
+      "observation_limit_exceeded",
+      "The number of search engine selection transitions exceeds 256.",
+    );
   }
-  const byPrevious = new Map(activations.map((activation) => [activation.previousActivationId, activation]));
+  const byPrevious = new Map(
+    activations.map((activation) => [activation.previousActivationId, activation]),
+  );
   const ordered: SearchEngineActivation[] = [];
   let previous: SearchEngineActivation | null = null;
   while (true) {
@@ -42,7 +43,10 @@ export async function loadSearchEngineActivationHistory(
     previous = next;
   }
   if (ordered.length !== activations.length) {
-    throw new SearchLocalError("observation_invalid", "The search engine selection transitions do not form one continuous chain.");
+    throw new SearchLocalError(
+      "observation_invalid",
+      "The search engine selection transitions do not form one continuous chain.",
+    );
   }
   return ordered;
 }
@@ -65,7 +69,10 @@ export async function recordSearchEngineActivation(
     await writeObservation(path, activation);
   } catch (error) {
     if ((error as { code?: unknown }).code === "observation_conflict") {
-      throw new SearchLocalError("engine_activation_conflict", "Another activation has already started from the same previous selection.");
+      throw new SearchLocalError(
+        "engine_activation_conflict",
+        "Another activation has already started from the same previous selection.",
+      );
     }
     throw error;
   }

@@ -1,10 +1,8 @@
 import { isAbsolute } from "node:path";
 
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationStageApprovalEvidenceSet } from
-  "./first-publication-stage-approval-evidence-set.mjs";
-import { readFirstPublicationStageApprovalReconciliationSources } from
-  "./first-publication-stage-approval-reconciliation-sources.mjs";
+import { validateFirstPublicationStageApprovalEvidenceSet } from "./first-publication-stage-approval-evidence-set.mjs";
+import { readFirstPublicationStageApprovalReconciliationSources } from "./first-publication-stage-approval-reconciliation-sources.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
@@ -27,10 +25,7 @@ function parseJson(contents) {
   }
 }
 
-export async function readFirstPublicationStageEvidenceSetSources(
-  options,
-  dependencies = {},
-) {
+export async function readFirstPublicationStageEvidenceSetSources(options, dependencies = {}) {
   if (!isAbsolute(options?.reconciliationReportPath ?? "")) fail();
   let reportContents;
   try {
@@ -41,14 +36,17 @@ export async function readFirstPublicationStageEvidenceSetSources(
   } catch {
     fail();
   }
-  const readStageSources = dependencies.readStageSources ??
-    readFirstPublicationStageApprovalReconciliationSources;
-  const stageSources = await readStageSources({
-    stageReviewReportPath: options.stageReviewReportPath,
-    decisionPath: options.decisionPath,
-    authorizationPath: options.authorizationPath,
-    resultDirectory: options.resultDirectory,
-  }, dependencies);
+  const readStageSources =
+    dependencies.readStageSources ?? readFirstPublicationStageApprovalReconciliationSources;
+  const stageSources = await readStageSources(
+    {
+      stageReviewReportPath: options.stageReviewReportPath,
+      decisionPath: options.decisionPath,
+      authorizationPath: options.authorizationPath,
+      resultDirectory: options.resultDirectory,
+    },
+    dependencies,
+  );
   const evidenceSet = {
     reconciliationReport: parseJson(reportContents),
     stageReviewReport: stageSources.stageReviewReport,
@@ -63,11 +61,13 @@ export async function readFirstPublicationStageEvidenceSetSources(
     assertUnchanged: async () => {
       await Promise.all([
         stageSources.assertUnchanged(),
-        assertReleaseFilesUnchanged([{
-          path: options.reconciliationReportPath,
-          contents: reportContents,
-          maximumSize: maximumReconciliationReportBytes,
-        }]),
+        assertReleaseFilesUnchanged([
+          {
+            path: options.reconciliationReportPath,
+            contents: reportContents,
+            maximumSize: maximumReconciliationReportBytes,
+          },
+        ]),
       ]);
     },
   };

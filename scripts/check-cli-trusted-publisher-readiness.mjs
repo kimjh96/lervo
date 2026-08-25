@@ -40,9 +40,9 @@ function parseArguments(args) {
 try {
   const { json, ...options } = parseArguments(process.argv.slice(2));
   const report = await checkCliTrustedPublisherReadiness(options);
-  process.stdout.write(json
-    ? `${JSON.stringify(report, null, 2)}\n`
-    : formatTrustedPublisherReadiness(report));
+  process.stdout.write(
+    json ? `${JSON.stringify(report, null, 2)}\n` : formatTrustedPublisherReadiness(report),
+  );
   if (report.status !== "ready") process.exitCode = 1;
 } catch (error) {
   if (error instanceof TrustedPublisherReadinessError) {

@@ -38,8 +38,10 @@ export async function runConversationDeliberationWorkerCycle(options: {
     executionFailureCode: "deliberation_execution_uncertain",
     workerId: options.workerId,
     ...(options.now === undefined ? {} : { now: options.now }),
-    ...(options.leaseDurationMs === undefined ? {} : {
-      leaseDurationMs: options.leaseDurationMs,
-    }),
+    ...(options.leaseDurationMs === undefined
+      ? {}
+      : {
+          leaseDurationMs: options.leaseDurationMs,
+        }),
   });
 }

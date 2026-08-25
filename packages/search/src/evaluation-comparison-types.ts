@@ -31,10 +31,7 @@ interface SearchEvaluationComparisonBase {
   candidateWins: number;
   ties: number;
   observedOutcome:
-    | "baseline_better_observed"
-    | "candidate_better_observed"
-    | "mixed"
-    | "no_difference_observed";
+    "baseline_better_observed" | "candidate_better_observed" | "mixed" | "no_difference_observed";
   candidateDecision: "not_determined";
   embeddingDecision: "not_determined";
 }
@@ -48,4 +45,5 @@ export interface CurrentSearchEvaluationComparison extends SearchEvaluationCompa
   candidateAdapterBuildId: string;
 }
 
-export type SearchEvaluationComparison = LegacySearchEvaluationComparison | CurrentSearchEvaluationComparison;
+export type SearchEvaluationComparison =
+  LegacySearchEvaluationComparison | CurrentSearchEvaluationComparison;

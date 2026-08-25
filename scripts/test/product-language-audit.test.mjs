@@ -16,7 +16,10 @@ describe("product language audit", () => {
       await mkdir(resolve(root, "docs/knowledge"), { recursive: true });
       await writeFile(resolve(root, "README.md"), "# \uC608\uC2DC\n");
       await writeFile(resolve(root, "apps/cli/src/main.ts"), "const message = '\uC2E4\uD589';\n");
-      await writeFile(resolve(root, "packages/example/test/example.test.ts"), "const fixture = '\uAC80\uC99D';\n");
+      await writeFile(
+        resolve(root, "packages/example/test/example.test.ts"),
+        "const fixture = '\uAC80\uC99D';\n",
+      );
       await writeFile(resolve(root, "docs/knowledge/index.md"), "# \uC9C0\uC2DD\n");
       await writeFile(resolve(root, "apps/cli/src/english.ts"), "const message = 'run';\n");
 
@@ -28,12 +31,19 @@ describe("product language audit", () => {
         runtime_surface: { fileCount: 1, lineCount: 1 },
         test_fixture: { fileCount: 1, lineCount: 1 },
       });
-      assert.deepEqual(report.findings.map(({ path, category, lineNumbers }) => ({ path, category, lineNumbers })), [
-        { path: "README.md", category: "documentation", lineNumbers: [1] },
-        { path: "apps/cli/src/main.ts", category: "runtime_surface", lineNumbers: [1] },
-        { path: "docs/knowledge/index.md", category: "generated_knowledge", lineNumbers: [1] },
-        { path: "packages/example/test/example.test.ts", category: "test_fixture", lineNumbers: [1] },
-      ]);
+      assert.deepEqual(
+        report.findings.map(({ path, category, lineNumbers }) => ({ path, category, lineNumbers })),
+        [
+          { path: "README.md", category: "documentation", lineNumbers: [1] },
+          { path: "apps/cli/src/main.ts", category: "runtime_surface", lineNumbers: [1] },
+          { path: "docs/knowledge/index.md", category: "generated_knowledge", lineNumbers: [1] },
+          {
+            path: "packages/example/test/example.test.ts",
+            category: "test_fixture",
+            lineNumbers: [1],
+          },
+        ],
+      );
       assert.equal(JSON.stringify(report).includes("\uC2E4\uD589"), false);
     } finally {
       await rm(root, { recursive: true, force: true });

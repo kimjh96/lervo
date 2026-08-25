@@ -40,11 +40,10 @@ async function validateOptionalRealDirectory(path: string, label: string): Promi
   }
 }
 
-export async function validateProjectStorageLayout(
-  paths: LervoProjectPaths,
-): Promise<void> {
+export async function validateProjectStorageLayout(paths: LervoProjectPaths): Promise<void> {
   await requireRealDirectory(paths.repositoryRoot, "Repository root");
   await requireRealDirectory(paths.lervoRoot, "Lervo configuration path");
+  await requireRealDirectory(paths.data, "Lervo durable data path");
   await requireRealDirectory(paths.state, "Lervo state path");
   await validateOptionalRealDirectory(paths.cas, "CAS path");
   await validateOptionalRealDirectory(resolve(paths.cas, "sha256"), "CAS object path");

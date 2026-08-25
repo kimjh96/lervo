@@ -38,9 +38,10 @@ export function managedResultReferenceSpecs(input: {
   );
   const createReceiptId = input.createEvidenceReceiptId ?? defaultReceiptId;
   const evidence: ReferencedEvidence[] = referenced.map((document) => {
-    const injectedEvidence = input.injected.e3Evidence.find((candidate) =>
-      candidate.documentId === document.documentId &&
-      candidate.contentHash === document.contentHash
+    const injectedEvidence = input.injected.e3Evidence.find(
+      (candidate) =>
+        candidate.documentId === document.documentId &&
+        candidate.contentHash === document.contentHash,
     );
     if (injectedEvidence === undefined) {
       throw new ManagedProviderRunError(

@@ -8,10 +8,7 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import {
-  conversationContentReferenceSchema,
-  conversationTargetSchema,
-} from "./conversation.js";
+import { conversationContentReferenceSchema, conversationTargetSchema } from "./conversation.js";
 
 export const conversationInboundEventSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -125,6 +122,4 @@ export const conversationInboundEventSchema = {
   additionalProperties: false,
 } as const;
 
-export type ConversationInboundEvent = FromSchema<
-  typeof conversationInboundEventSchema
->;
+export type ConversationInboundEvent = FromSchema<typeof conversationInboundEventSchema>;

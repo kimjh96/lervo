@@ -7,11 +7,9 @@ import {
   createFirstPublicationExternalEvidenceReport,
   validateFirstPublicationExternalEvidenceReport,
 } from "../lib/first-publication-external-evidence-report.mjs";
-import { validateFirstPublicationExternalEvidenceReportDocument } from
-  "../lib/first-publication-external-evidence-reader.mjs";
+import { validateFirstPublicationExternalEvidenceReportDocument } from "../lib/first-publication-external-evidence-reader.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
-import { createExternalEvidenceFixture } from
-  "./fixtures/first-publication-external-evidence.mjs";
+import { createExternalEvidenceFixture } from "./fixtures/first-publication-external-evidence.mjs";
 
 function reportInput(fixture) {
   return {
@@ -30,8 +28,10 @@ describe("first-publication external requirement evidence report", () => {
       assert.equal(report.activation, "not_implemented");
       assert.equal(report.arming, "not_armed");
       assert.deepEqual(report.target.scopeOwner, { kind: "organization", name: "lervo" });
-      assert.equal(report.evidence.publicPackageAvailability.validUntil,
-        "2026-08-21T03:10:00.000Z");
+      assert.equal(
+        report.evidence.publicPackageAvailability.validUntil,
+        "2026-08-21T03:10:00.000Z",
+      );
       assert.equal(report.validity.validUntil, "2026-08-21T03:10:00.000Z");
       assert.deepEqual(report.requirements, [
         { id: "license_approval", status: "bound" },
@@ -54,17 +54,15 @@ describe("first-publication external requirement evidence report", () => {
       const licenseInput = reportInput(fixture);
       licenseInput.licenseApproval = structuredClone(licenseInput.licenseApproval);
       licenseInput.licenseApproval.target.postApplyReportDigest = `sha256:${"a".repeat(64)}`;
-      assert.throws(
-        () => createFirstPublicationExternalEvidenceReport(licenseInput),
-        { code: "first_publication_external_evidence_license_approval_invalid" },
-      );
+      assert.throws(() => createFirstPublicationExternalEvidenceReport(licenseInput), {
+        code: "first_publication_external_evidence_license_approval_invalid",
+      });
       const scopeInput = reportInput(fixture);
       scopeInput.scopeConfirmation = structuredClone(scopeInput.scopeConfirmation);
       scopeInput.scopeConfirmation.target.scopeOwner.name = "another";
-      assert.throws(
-        () => createFirstPublicationExternalEvidenceReport(scopeInput),
-        { code: "first_publication_external_evidence_scope_confirmation_invalid" },
-      );
+      assert.throws(() => createFirstPublicationExternalEvidenceReport(scopeInput), {
+        code: "first_publication_external_evidence_scope_confirmation_invalid",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -76,19 +74,17 @@ describe("first-publication external requirement evidence report", () => {
       const expired = reportInput(fixture);
       expired.scopeConfirmation = structuredClone(expired.scopeConfirmation);
       expired.scopeConfirmation.expiresAt = fixture.observedAt;
-      assert.throws(
-        () => createFirstPublicationExternalEvidenceReport(expired),
-        { code: "first_publication_external_evidence_scope_confirmation_invalid" },
-      );
+      assert.throws(() => createFirstPublicationExternalEvidenceReport(expired), {
+        code: "first_publication_external_evidence_scope_confirmation_invalid",
+      });
       const existing = reportInput(fixture);
       existing.packageObservation = {
         ...existing.packageObservation,
         state: "existing",
       };
-      assert.throws(
-        () => createFirstPublicationExternalEvidenceReport(existing),
-        { code: "first_publication_external_evidence_package_not_available" },
-      );
+      assert.throws(() => createFirstPublicationExternalEvidenceReport(existing), {
+        code: "first_publication_external_evidence_package_not_available",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -100,10 +96,9 @@ describe("first-publication external requirement evidence report", () => {
       const input = reportInput(fixture);
       input.firstPublicationApproval = structuredClone(input.firstPublicationApproval);
       input.firstPublicationApproval.target.license = "MIT";
-      assert.throws(
-        () => createFirstPublicationExternalEvidenceReport(input),
-        { code: "first_publication_external_evidence_target_mismatch" },
-      );
+      assert.throws(() => createFirstPublicationExternalEvidenceReport(input), {
+        code: "first_publication_external_evidence_target_mismatch",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -117,10 +112,9 @@ describe("first-publication external requirement evidence report", () => {
       forged.activation = "ready";
       const { evidenceReportDigest: _discarded, ...body } = forged;
       forged.evidenceReportDigest = canonicalDigest(body);
-      assert.throws(
-        () => validateFirstPublicationExternalEvidenceReport(forged, input),
-        { code: "first_publication_external_evidence_report_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationExternalEvidenceReport(forged, input), {
+        code: "first_publication_external_evidence_report_invalid",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }
@@ -135,10 +129,9 @@ describe("first-publication external requirement evidence report", () => {
       forged.limitations.releaseArtifact = "verified";
       const { evidenceReportDigest: _discarded, ...body } = forged;
       forged.evidenceReportDigest = canonicalDigest(body);
-      assert.throws(
-        () => validateFirstPublicationExternalEvidenceReportDocument(forged),
-        { code: "first_publication_external_evidence_report_invalid" },
-      );
+      assert.throws(() => validateFirstPublicationExternalEvidenceReportDocument(forged), {
+        code: "first_publication_external_evidence_report_invalid",
+      });
     } finally {
       await rm(fixture.root, { recursive: true, force: true });
     }

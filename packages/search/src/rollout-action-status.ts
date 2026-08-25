@@ -28,33 +28,38 @@ function recordCoordinates(record: SearchRolloutActionStatusRecord): {
 } {
   return record.schemaVersion === 1
     ? {
-      actionId: record.acknowledgementId,
-      action: "acknowledge_keep",
-      actedAt: record.acknowledgedAt,
-      rolloutReviewId: record.rolloutReviewId,
-      selectionTransitionId: record.selectionTransitionId,
-      qualityInputDigest: record.qualityInputDigest,
-      rolloutPolicyId: record.rolloutPolicyId,
-    }
+        actionId: record.acknowledgementId,
+        action: "acknowledge_keep",
+        actedAt: record.acknowledgedAt,
+        rolloutReviewId: record.rolloutReviewId,
+        selectionTransitionId: record.selectionTransitionId,
+        qualityInputDigest: record.qualityInputDigest,
+        rolloutPolicyId: record.rolloutPolicyId,
+      }
     : {
-      actionId: record.activationId,
-      action: "execute_rollback",
-      actedAt: record.decidedAt,
-      rolloutReviewId: record.rolloutAction.rolloutReviewId,
-      selectionTransitionId: record.previousActivationId!,
-      qualityInputDigest: record.rolloutAction.qualityInputDigest,
-      rolloutPolicyId: record.rolloutAction.rolloutPolicyId,
-    };
+        actionId: record.activationId,
+        action: "execute_rollback",
+        actedAt: record.decidedAt,
+        rolloutReviewId: record.rolloutAction.rolloutReviewId,
+        selectionTransitionId: record.previousActivationId!,
+        qualityInputDigest: record.rolloutAction.qualityInputDigest,
+        rolloutPolicyId: record.rolloutAction.rolloutPolicyId,
+      };
 }
 
-function compareNewest(left: SearchRolloutActionStatusEvidence, right: SearchRolloutActionStatusEvidence): number {
+function compareNewest(
+  left: SearchRolloutActionStatusEvidence,
+  right: SearchRolloutActionStatusEvidence,
+): number {
   const leftCoordinates = recordCoordinates(left.record);
   const rightCoordinates = recordCoordinates(right.record);
   const time = Date.parse(rightCoordinates.actedAt) - Date.parse(leftCoordinates.actedAt);
   if (time !== 0) return time;
   return leftCoordinates.actionId < rightCoordinates.actionId
     ? 1
-    : leftCoordinates.actionId > rightCoordinates.actionId ? -1 : 0;
+    : leftCoordinates.actionId > rightCoordinates.actionId
+      ? -1
+      : 0;
 }
 
 function assertEvidence(input: {
@@ -68,26 +73,36 @@ function assertEvidence(input: {
   assertSearchRolloutReview(review);
   assertSearchRolloutQualitySnapshot(currentQualitySnapshot);
   const coordinates = recordCoordinates(record);
-  const actionPolicyId = record.schemaVersion === 1
-    ? record.actionPolicyId
-    : record.rolloutAction.actionPolicyId;
-  const invalidKeep = record.schemaVersion === 1 && (
-    record.selectionTransitionId !== review.target.selectionTransitionId ||
-    record.rolloutPolicyId !== (review.schemaVersion === 2 ? review.rolloutPolicyId : null)
-  );
-  const invalidRollback = record.schemaVersion === 3 && (
-    record.action !== "rollback" || record.previousActivationId !== review.target.selectionTransitionId ||
-    record.rollbackOfActivationId !== review.target.selectionTransitionId ||
-    record.rolloutAction.rolloutPolicyId !== (review.schemaVersion === 2 ? review.rolloutPolicyId : null)
-  );
-  if (record.projectId !== input.projectId || review.projectId !== input.projectId ||
+  const actionPolicyId =
+    record.schemaVersion === 1 ? record.actionPolicyId : record.rolloutAction.actionPolicyId;
+  const invalidKeep =
+    record.schemaVersion === 1 &&
+    (record.selectionTransitionId !== review.target.selectionTransitionId ||
+      record.rolloutPolicyId !== (review.schemaVersion === 2 ? review.rolloutPolicyId : null));
+  const invalidRollback =
+    record.schemaVersion === 3 &&
+    (record.action !== "rollback" ||
+      record.previousActivationId !== review.target.selectionTransitionId ||
+      record.rollbackOfActivationId !== review.target.selectionTransitionId ||
+      record.rolloutAction.rolloutPolicyId !==
+        (review.schemaVersion === 2 ? review.rolloutPolicyId : null));
+  if (
+    record.projectId !== input.projectId ||
+    review.projectId !== input.projectId ||
     currentQualitySnapshot.observedThrough !== input.observedAt.toISOString() ||
-    coordinates.rolloutReviewId !== review.rolloutReviewId || review.schemaVersion !== 2 ||
+    coordinates.rolloutReviewId !== review.rolloutReviewId ||
+    review.schemaVersion !== 2 ||
     coordinates.qualityInputDigest !== review.qualitySnapshot.inputDigest ||
     Date.parse(coordinates.actedAt) < Date.parse(review.reviewedAt) ||
     Date.parse(coordinates.actedAt) > input.observedAt.getTime() ||
-    !/^srapol_[a-f0-9]{24}$/.test(actionPolicyId) || invalidKeep || invalidRollback) {
-    throw new SearchError("invalid_rollout_action_status", "The search rollout action status evidence relation is invalid.");
+    !/^srapol_[a-f0-9]{24}$/.test(actionPolicyId) ||
+    invalidKeep ||
+    invalidRollback
+  ) {
+    throw new SearchError(
+      "invalid_rollout_action_status",
+      "The search rollout action status evidence relation is invalid.",
+    );
   }
   return coordinates;
 }
@@ -101,28 +116,53 @@ export function createSearchRolloutActionStatusPage(input: {
   cursor?: string;
 }): SearchRolloutActionStatusPage {
   const limit = input.limit ?? SEARCH_ROLLOUT_ACTION_STATUS_DEFAULT_LIMIT;
-  const validCursor = input.cursor === undefined || SEARCH_ROLLOUT_ACKNOWLEDGEMENT_PATTERN.test(input.cursor) ||
+  const validCursor =
+    input.cursor === undefined ||
+    SEARCH_ROLLOUT_ACKNOWLEDGEMENT_PATTERN.test(input.cursor) ||
     /^seact_[a-f0-9]{24}$/.test(input.cursor);
-  if (!SOURCE_ID_PATTERN.test(input.projectId) || !Number.isFinite(input.observedAt.getTime()) ||
-    !Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_ROLLOUT_ACTION_STATUS_MAX_LIMIT || !validCursor) {
-    throw new SearchError("invalid_rollout_action_status", "The search rollout action status query input is invalid.");
+  if (
+    !SOURCE_ID_PATTERN.test(input.projectId) ||
+    !Number.isFinite(input.observedAt.getTime()) ||
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > SEARCH_ROLLOUT_ACTION_STATUS_MAX_LIMIT ||
+    !validCursor
+  ) {
+    throw new SearchError(
+      "invalid_rollout_action_status",
+      "The search rollout action status query input is invalid.",
+    );
   }
   assertSearchRolloutCurrentSelection(input.currentSelection);
   const seen = new Set<string>();
-  const sorted = input.evidence.map((evidence) => {
-    const cloned = structuredClone(evidence);
-    const coordinates = assertEvidence({ projectId: input.projectId, observedAt: input.observedAt, evidence: cloned });
-    if (seen.has(coordinates.actionId)) {
-      throw new SearchError("invalid_rollout_action_status", "The search rollout action status contains duplicate sources.");
-    }
-    seen.add(coordinates.actionId);
-    return cloned;
-  }).sort(compareNewest);
+  const sorted = input.evidence
+    .map((evidence) => {
+      const cloned = structuredClone(evidence);
+      const coordinates = assertEvidence({
+        projectId: input.projectId,
+        observedAt: input.observedAt,
+        evidence: cloned,
+      });
+      if (seen.has(coordinates.actionId)) {
+        throw new SearchError(
+          "invalid_rollout_action_status",
+          "The search rollout action status contains duplicate sources.",
+        );
+      }
+      seen.add(coordinates.actionId);
+      return cloned;
+    })
+    .sort(compareNewest);
   let start = 0;
   if (input.cursor !== undefined) {
-    const cursorIndex = sorted.findIndex((item) => recordCoordinates(item.record).actionId === input.cursor);
+    const cursorIndex = sorted.findIndex(
+      (item) => recordCoordinates(item.record).actionId === input.cursor,
+    );
     if (cursorIndex < 0) {
-      throw new SearchError("invalid_rollout_action_status", "The search rollout action status cursor was not found.");
+      throw new SearchError(
+        "invalid_rollout_action_status",
+        "The search rollout action status cursor was not found.",
+      );
     }
     start = cursorIndex + 1;
   }
@@ -134,17 +174,20 @@ export function createSearchRolloutActionStatusPage(input: {
       actionId: coordinates.actionId,
       action: coordinates.action,
       actedAt: coordinates.actedAt,
-      qualityInputState: coordinates.qualityInputDigest === evidence.currentQualitySnapshot.inputDigest
-        ? "unchanged"
-        : "changed",
-      reviewSelectionRelation: coordinates.selectionTransitionId === input.currentSelection.selectionTransitionId
-        ? "current_selection"
-        : "historical_selection",
-      actionTransitionRelation: evidence.record.schemaVersion === 1
-        ? "not_applicable"
-        : evidence.record.activationId === input.currentSelection.selectionTransitionId
+      qualityInputState:
+        coordinates.qualityInputDigest === evidence.currentQualitySnapshot.inputDigest
+          ? "unchanged"
+          : "changed",
+      reviewSelectionRelation:
+        coordinates.selectionTransitionId === input.currentSelection.selectionTransitionId
           ? "current_selection"
           : "historical_selection",
+      actionTransitionRelation:
+        evidence.record.schemaVersion === 1
+          ? "not_applicable"
+          : evidence.record.activationId === input.currentSelection.selectionTransitionId
+            ? "current_selection"
+            : "historical_selection",
     };
   });
   return {

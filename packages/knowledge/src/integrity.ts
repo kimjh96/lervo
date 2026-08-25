@@ -37,17 +37,17 @@ export function knowledgeReviewApprovalBytes(value: KnowledgeReviewApproval): Ui
 export function calculateKnowledgeReviewApprovalId(
   value: Omit<KnowledgeReviewApproval, "approvalId"> | KnowledgeReviewApproval,
 ): string {
-  return `knr_${knowledgeSha256(canonicalJson(
-    contentWithoutId(value, "approvalId" as keyof typeof value),
-  )).slice(7, 23)}`;
+  return `knr_${knowledgeSha256(
+    canonicalJson(contentWithoutId(value, "approvalId" as keyof typeof value)),
+  ).slice(7, 23)}`;
 }
 
 export function calculateKnowledgePromotionPolicyVersion(
   value: Omit<KnowledgePromotionPolicy, "policyVersion"> | KnowledgePromotionPolicy,
 ): string {
-  return knowledgeSha256(canonicalJson(
-    contentWithoutId(value, "policyVersion" as keyof typeof value),
-  ));
+  return knowledgeSha256(
+    canonicalJson(contentWithoutId(value, "policyVersion" as keyof typeof value)),
+  );
 }
 
 export function verifiedKnowledgeBytes(value: VerifiedKnowledge): Uint8Array {
@@ -57,9 +57,9 @@ export function verifiedKnowledgeBytes(value: VerifiedKnowledge): Uint8Array {
 export function calculateVerifiedKnowledgeId(
   value: Omit<VerifiedKnowledge, "knowledgeId"> | VerifiedKnowledge,
 ): string {
-  return `knw_${knowledgeSha256(canonicalJson(
-    contentWithoutId(value, "knowledgeId" as keyof typeof value),
-  )).slice(7, 23)}`;
+  return `knw_${knowledgeSha256(
+    canonicalJson(contentWithoutId(value, "knowledgeId" as keyof typeof value)),
+  ).slice(7, 23)}`;
 }
 
 export function knowledgeStalenessResultBytes(value: KnowledgeStalenessResult): Uint8Array {
@@ -69,7 +69,7 @@ export function knowledgeStalenessResultBytes(value: KnowledgeStalenessResult): 
 export function calculateKnowledgeStalenessResultId(
   value: Omit<KnowledgeStalenessResult, "resultId"> | KnowledgeStalenessResult,
 ): string {
-  return `kst_${knowledgeSha256(canonicalJson(
-    contentWithoutId(value, "resultId" as keyof typeof value),
-  )).slice(7, 23)}`;
+  return `kst_${knowledgeSha256(
+    canonicalJson(contentWithoutId(value, "resultId" as keyof typeof value)),
+  ).slice(7, 23)}`;
 }

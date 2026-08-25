@@ -1,12 +1,13 @@
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 
 export const firstPublicationSecondFactorPhrase = "I completed the 2FA confirmation";
 
 export function firstPublicationIntentPhrase(bootstrap) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
-  return `I will publish ${bootstrap.target.package}@${bootstrap.target.version} once ` +
-    "with interactive 2FA and will not use a bypass token";
+  return (
+    `I will publish ${bootstrap.target.package}@${bootstrap.target.version} once ` +
+    "with interactive 2FA and will not use a bypass token"
+  );
 }
 
 export function firstPublicationOperatorConfirmations(bootstrap) {

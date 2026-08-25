@@ -65,8 +65,7 @@ export interface DiscordConversationAdapterOptions {
 }
 
 export type DiscordIngressResult =
-  | { status: "accepted"; event: ConversationInboundEvent }
-  | { status: "ignored"; reason: string };
+  { status: "accepted"; event: ConversationInboundEvent } | { status: "ignored"; reason: string };
 
 export interface DiscordConversationAdapterPort {
   receiveGatewayDispatch(input: DiscordGatewayDispatch): Promise<DiscordIngressResult>;

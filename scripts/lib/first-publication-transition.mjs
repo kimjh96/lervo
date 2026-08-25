@@ -1,9 +1,7 @@
 import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { createFirstPublicationTransitionReport } from
-  "./first-publication-transition-policy.mjs";
+import { createFirstPublicationTransitionReport } from "./first-publication-transition-policy.mjs";
 import { npmPublicRegistry } from "./release-publication-authorization.mjs";
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
@@ -30,8 +28,12 @@ function body(receipt) {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -66,8 +68,8 @@ export function createFirstPublicationTransitionReceipt({
   });
   if (transitionReport.status !== "ready") fail("first_publication_transition_not_ready");
   const receiptBody = {
-    schemaVersion: transitionReport.publicationEvidence.type ===
-        "stage_approval_reconciliation" ? 3 : 2,
+    schemaVersion:
+      transitionReport.publicationEvidence.type === "stage_approval_reconciliation" ? 3 : 2,
     status: "completed",
     bootstrap: {
       state: "consumed",
@@ -98,8 +100,14 @@ export function createFirstPublicationTransitionReceipt({
 export function validateFirstPublicationTransitionReceipt(
   receipt,
   {
-    bootstrap, armingAuthorization, publicationAuthorization, publicationEvidence,
-    publicReleaseObservation, workflow, npmObservation, githubObservation,
+    bootstrap,
+    armingAuthorization,
+    publicationAuthorization,
+    publicationEvidence,
+    publicReleaseObservation,
+    workflow,
+    npmObservation,
+    githubObservation,
   },
 ) {
   validateFirstPublicationBootstrapAuthorization(bootstrap);
@@ -125,22 +133,23 @@ export function validateFirstPublicationTransitionReceiptDocument(receipt) {
   const publicRelease = receipt?.publicRelease;
   const transition = receipt?.transition;
   if (
-    receipt === null || typeof receipt !== "object" || Array.isArray(receipt) ||
+    receipt === null ||
+    typeof receipt !== "object" ||
+    Array.isArray(receipt) ||
     canonicalJson(Object.keys(receipt).sort()) !==
       canonicalJson([...Object.keys(receiptBody), "transitionReceiptDigest"].sort()) ||
-    ![2, 3].includes(receipt.schemaVersion) || receipt.status !== "completed" ||
+    ![2, 3].includes(receipt.schemaVersion) ||
+    receipt.status !== "completed" ||
     !exactKeys(receipt.bootstrap, ["state", "bootstrapDigest"]) ||
     receipt.bootstrap.state !== "consumed" ||
     !digestPattern.test(receipt.bootstrap.bootstrapDigest ?? "") ||
     !exactKeys(evidence, ["type", "digest", "evidenceAt", "basis"]) ||
-    ![
-      "execution_receipt", "reconciliation_resolution", "stage_approval_reconciliation",
-    ].includes(evidence.type) ||
-    (receipt.schemaVersion === 3) !==
-      (evidence.type === "stage_approval_reconciliation") ||
+    !["execution_receipt", "reconciliation_resolution", "stage_approval_reconciliation"].includes(
+      evidence.type,
+    ) ||
+    (receipt.schemaVersion === 3) !== (evidence.type === "stage_approval_reconciliation") ||
     !digestPattern.test(evidence.digest ?? "") ||
-    (evidence.type === "execution_receipt" &&
-      evidence.basis !== "publisher_receipt_verified") ||
+    (evidence.type === "execution_receipt" && evidence.basis !== "publisher_receipt_verified") ||
     (evidence.type === "reconciliation_resolution" &&
       evidence.basis !== "public_registry_reconciliation_reviewed") ||
     (evidence.type === "stage_approval_reconciliation" &&
@@ -156,7 +165,12 @@ export function validateFirstPublicationTransitionReceiptDocument(receipt) {
     !registryIntegrityPattern.test(publicRelease.artifact.registryIntegrity ?? "") ||
     !registryShasumPattern.test(publicRelease.artifact.registryShasum ?? "") ||
     !exactKeys(transition, [
-      "completedAt", "reportDigest", "mode", "workflow", "environment", "permission",
+      "completedAt",
+      "reportDigest",
+      "mode",
+      "workflow",
+      "environment",
+      "permission",
       "directPublish",
     ]) ||
     !digestPattern.test(transition.reportDigest ?? "") ||
@@ -169,6 +183,7 @@ export function validateFirstPublicationTransitionReceiptDocument(receipt) {
     transition.completedAt !== publicRelease.observedAt ||
     !digestPattern.test(receipt.transitionReceiptDigest ?? "") ||
     receipt.transitionReceiptDigest !== canonicalDigest(receiptBody)
-  ) fail();
+  )
+    fail();
   return receipt;
 }

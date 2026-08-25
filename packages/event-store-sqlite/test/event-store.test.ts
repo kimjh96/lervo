@@ -35,8 +35,7 @@ function draft(overrides: Partial<EventDraft> = {}): EventDraft {
     schemaVersion: 1,
     policyVersion,
     payload: {
-      requestDigest:
-        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      requestDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       role: "developer",
       rawPrompt: "source text that must not be stored",
     },
@@ -88,15 +87,16 @@ describe("SQLite append-only event store", () => {
     const result = store.append(draft());
 
     expect(result.event.payload).toEqual({
-      requestDigest:
-        "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      requestDigest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       role: "developer",
     });
     expect(result.redactions).toContainEqual({
       path: "$.rawPrompt",
       reason: "not_allowlisted",
     });
-    expect(JSON.stringify(store.get(result.event.eventId))).not.toContain("source text that must not be stored");
+    expect(JSON.stringify(store.get(result.event.eventId))).not.toContain(
+      "source text that must not be stored",
+    );
     store.close();
   });
 
@@ -197,7 +197,8 @@ describe("SQLite append-only event store", () => {
 
     expect(first.append(draft()).event.seq).toBe(1);
     expect(
-      second.append(draft({ eventId: "evt_12345678", occurredAt: "2026-08-18T00:00:01Z" })).event.seq,
+      second.append(draft({ eventId: "evt_12345678", occurredAt: "2026-08-18T00:00:01Z" })).event
+        .seq,
     ).toBe(2);
     expect(first.verifyIntegrity().eventCount).toBe(2);
     first.close();
@@ -255,27 +256,31 @@ describe("SQLite append-only event store", () => {
 
     const raw = new DatabaseSync(path);
     raw.exec("BEGIN IMMEDIATE;");
-    raw.prepare(`
+    raw
+      .prepare(
+        `
       INSERT INTO events (
         event_id, project_id, seq, run_id, session_id, type, occurred_at,
         actor_json, schema_version, policy_version, payload_json,
         previous_hash, event_hash
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      "evt_99999999",
-      projectId,
-      1,
-      "run_01234567",
-      "ses_01234567",
-      "run.requested",
-      "2026-08-18T00:00:00Z",
-      '{"kind":"user"}',
-      1,
-      policyVersion,
-      "{}",
-      null,
-      "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-    );
+    `,
+      )
+      .run(
+        "evt_99999999",
+        projectId,
+        1,
+        "run_01234567",
+        "ses_01234567",
+        "run.requested",
+        "2026-08-18T00:00:00Z",
+        '{"kind":"user"}',
+        1,
+        policyVersion,
+        "{}",
+        null,
+        "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      );
     raw.close();
 
     const reopened = await SQLiteEventStore.open({ path, projectId });
@@ -296,18 +301,27 @@ describe("SQLite append-only event store", () => {
       process.stdout.write("READY\\n");
       setInterval(() => {}, 10_000);
     `;
-    const child = spawn(process.execPath, ["--input-type=module", "-e", script, path, projectId, policyVersion], {
-      stdio: ["ignore", "pipe", "inherit"],
-    });
+    const child = spawn(
+      process.execPath,
+      ["--input-type=module", "-e", script, path, projectId, policyVersion],
+      {
+        stdio: ["ignore", "pipe", "inherit"],
+      },
+    );
     try {
       await new Promise<void>((resolveReady, rejectReady) => {
-        const timer = setTimeout(() => rejectReady(new Error("writer child did not become ready")), 2_000);
+        const timer = setTimeout(
+          () => rejectReady(new Error("writer child did not become ready")),
+          2_000,
+        );
         const settle = (callback: () => void) => {
           clearTimeout(timer);
           callback();
         };
         child.once("error", (error) => settle(() => rejectReady(error)));
-        child.once("exit", (code) => settle(() => rejectReady(new Error(`writer child exited before ready: ${String(code)}`))));
+        child.once("exit", (code) =>
+          settle(() => rejectReady(new Error(`writer child exited before ready: ${String(code)}`))),
+        );
         child.stdout.once("data", (chunk) => {
           if (String(chunk).includes("READY")) settle(resolveReady);
           else settle(() => rejectReady(new Error(`unexpected child output: ${String(chunk)}`)));
@@ -330,9 +344,9 @@ describe("SQLite append-only event store", () => {
     const store = await SQLiteEventStore.open({ path, projectId });
     store.close();
 
-    await expect(
-      SQLiteEventStore.open({ path, projectId: "prj_99999999" }),
-    ).rejects.toMatchObject({ code: "project_mismatch" });
+    await expect(SQLiteEventStore.open({ path, projectId: "prj_99999999" })).rejects.toMatchObject({
+      code: "project_mismatch",
+    });
   });
 
   it("rejects updates and deletes at the SQLite boundary", async () => {
@@ -343,13 +357,11 @@ describe("SQLite append-only event store", () => {
 
     const raw = new DatabaseSync(path);
     expect(() =>
-      raw.prepare("UPDATE events SET payload_json = '{}' WHERE event_id = ?").run(
-        "evt_01234567",
-      ),
+      raw.prepare("UPDATE events SET payload_json = '{}' WHERE event_id = ?").run("evt_01234567"),
     ).toThrow("events are append-only");
-    expect(() =>
-      raw.prepare("DELETE FROM events WHERE event_id = ?").run("evt_01234567"),
-    ).toThrow("events are append-only");
+    expect(() => raw.prepare("DELETE FROM events WHERE event_id = ?").run("evt_01234567")).toThrow(
+      "events are append-only",
+    );
     raw.close();
   });
 
@@ -361,10 +373,9 @@ describe("SQLite append-only event store", () => {
 
     const raw = new DatabaseSync(path);
     raw.exec("DROP TRIGGER events_no_update;");
-    raw.prepare("UPDATE events SET payload_json = ? WHERE event_id = ?").run(
-      '{"role":"tampered"}',
-      "evt_01234567",
-    );
+    raw
+      .prepare("UPDATE events SET payload_json = ? WHERE event_id = ?")
+      .run('{"role":"tampered"}', "evt_01234567");
     raw.close();
 
     await expect(SQLiteEventStore.open({ path, projectId })).rejects.toMatchObject({

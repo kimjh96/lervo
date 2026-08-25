@@ -49,8 +49,11 @@ async function readSources(stageReviewReportPath, decisionPath, authorizationPat
       ? undefined
       : readSource(authorizationPath, maximumAuthorizationBytes),
   ]);
-  const snapshots = [report.snapshot, decision.snapshot,
-    ...(authorization === undefined ? [] : [authorization.snapshot])];
+  const snapshots = [
+    report.snapshot,
+    decision.snapshot,
+    ...(authorization === undefined ? [] : [authorization.snapshot]),
+  ];
   return {
     stageReviewReport: report.value,
     decision: decision.value,

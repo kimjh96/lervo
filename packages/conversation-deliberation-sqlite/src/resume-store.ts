@@ -16,7 +16,10 @@ import {
 import { reconcileConversationDeliberationRecord } from "./reconciliation.js";
 import { migrateConversationDeliberationResumeDatabase } from "./resume-database.js";
 import { decodeConversationDeliberationResumeJob } from "./resume-row-codec.js";
-import { assertConversationDeliberationLookup, conversationDeliberationMilliseconds } from "./row-codec.js";
+import {
+  assertConversationDeliberationLookup,
+  conversationDeliberationMilliseconds,
+} from "./row-codec.js";
 import {
   checkConversationDeliberationQueueIntegrity,
   openConversationDeliberationQueueDatabase,
@@ -35,8 +38,7 @@ const leaseConfiguration: LeaseStoreConfiguration<
   decode: decodeConversationDeliberationResumeJob,
 };
 
-export class SQLiteConversationDeliberationResumeJobStore
-implements ConversationDeliberationResumeJobStore {
+export class SQLiteConversationDeliberationResumeJobStore implements ConversationDeliberationResumeJobStore {
   readonly path: string;
   private closed = false;
 
@@ -72,7 +74,10 @@ implements ConversationDeliberationResumeJobStore {
 
   async enqueue(input: Parameters<ConversationDeliberationResumeJobStore["enqueue"]>[0]) {
     this.assertOpen();
-    const requestedAtMs = conversationDeliberationMilliseconds(input.requestedAt, "deliberation resume request");
+    const requestedAtMs = conversationDeliberationMilliseconds(
+      input.requestedAt,
+      "deliberation resume request",
+    );
     const candidate = decodeConversationDeliberationResumeJob({
       project_id: input.projectId,
       source_event_id: input.sourceEventId,
@@ -94,14 +99,20 @@ implements ConversationDeliberationResumeJobStore {
     });
     this.database.exec("BEGIN IMMEDIATE;");
     try {
-      const sameEvent = this.database.prepare(`
+      const sameEvent = this.database
+        .prepare(
+          `
         SELECT * FROM conversation_deliberation_resume_jobs
         WHERE project_id = ? AND source_event_id = ?
-      `).get(input.projectId, input.sourceEventId);
+      `,
+        )
+        .get(input.projectId, input.sourceEventId);
       if (sameEvent !== undefined) {
         const existing = decodeConversationDeliberationResumeJob(sameEvent);
-        if (existing.requestHash !== input.requestHash ||
-          existing.deliberationId !== input.deliberationId) {
+        if (
+          existing.requestHash !== input.requestHash ||
+          existing.deliberationId !== input.deliberationId
+        ) {
           throw new ConversationDeliberationSQLiteError(
             "deliberation_resume_conflict",
             "The same conversation event was used for a different deliberation resume request.",
@@ -110,19 +121,23 @@ implements ConversationDeliberationResumeJobStore {
         this.database.exec("COMMIT;");
         return existing;
       }
-      const sameDeliberation = this.database.prepare(`
+      const sameDeliberation = this.database
+        .prepare(
+          `
         SELECT 1 FROM conversation_deliberation_resume_jobs
         WHERE project_id = ? AND deliberation_id = ?
-      `).get(input.projectId, input.deliberationId);
+      `,
+        )
+        .get(input.projectId, input.deliberationId);
       if (sameDeliberation !== undefined) {
         throw new ConversationDeliberationSQLiteError(
           "deliberation_resume_conflict",
           "This deliberation already has a different resume request.",
         );
       }
-      const count = this.database.prepare(
-        "SELECT COUNT(*) AS count FROM conversation_deliberation_resume_jobs",
-      ).get()?.count;
+      const count = this.database
+        .prepare("SELECT COUNT(*) AS count FROM conversation_deliberation_resume_jobs")
+        .get()?.count;
       if (typeof count !== "number" || !Number.isSafeInteger(count)) {
         throw new ConversationDeliberationSQLiteError(
           "integrity_failed",
@@ -135,22 +150,26 @@ implements ConversationDeliberationResumeJobStore {
           "The conversation deliberation resume queue capacity was exceeded.",
         );
       }
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         INSERT INTO conversation_deliberation_resume_jobs (
           project_id, source_event_id, deliberation_id, request_hash, principal_hash,
           requested_at, requested_at_ms, state, attempt_count, lease_id, lease_owner,
           lease_expires_at, lease_expires_at_ms, summary_json, failure_code,
           terminal_at, reconciliation_json
         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
-      `).run(
-        candidate.projectId,
-        candidate.sourceEventId,
-        candidate.deliberationId,
-        candidate.requestHash,
-        candidate.principalHash,
-        candidate.requestedAt,
-        requestedAtMs,
-      );
+      `,
+        )
+        .run(
+          candidate.projectId,
+          candidate.sourceEventId,
+          candidate.deliberationId,
+          candidate.requestHash,
+          candidate.principalHash,
+          candidate.requestedAt,
+          requestedAtMs,
+        );
       this.database.exec("COMMIT;");
       return candidate;
     } catch (error) {
@@ -161,10 +180,14 @@ implements ConversationDeliberationResumeJobStore {
   async inspect(input: Parameters<ConversationDeliberationResumeJobStore["inspect"]>[0]) {
     this.assertOpen();
     assertConversationDeliberationLookup(input);
-    const row = this.database.prepare(`
+    const row = this.database
+      .prepare(
+        `
       SELECT * FROM conversation_deliberation_resume_jobs
       WHERE project_id = ? AND deliberation_id = ?
-    `).get(input.projectId, input.deliberationId);
+    `,
+      )
+      .get(input.projectId, input.deliberationId);
     return row === undefined ? null : decodeConversationDeliberationResumeJob(row);
   }
 
@@ -195,7 +218,9 @@ implements ConversationDeliberationResumeJobStore {
     });
   }
 
-  async markUncertain(input: Parameters<ConversationDeliberationResumeJobStore["markUncertain"]>[0]) {
+  async markUncertain(
+    input: Parameters<ConversationDeliberationResumeJobStore["markUncertain"]>[0],
+  ) {
     this.assertOpen();
     markConversationDeliberationJobUncertain({
       database: this.database,
@@ -242,10 +267,11 @@ implements ConversationDeliberationResumeJobStore {
   }
 
   private assertOpen(): void {
-    if (this.closed) throw new ConversationDeliberationSQLiteError(
-      "closed",
-      "The conversation deliberation resume queue is closed.",
-    );
+    if (this.closed)
+      throw new ConversationDeliberationSQLiteError(
+        "closed",
+        "The conversation deliberation resume queue is closed.",
+      );
   }
 
   private rollback(error: unknown): never {
@@ -255,5 +281,4 @@ implements ConversationDeliberationResumeJobStore {
       leaseConfiguration.label,
     );
   }
-
 }

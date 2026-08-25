@@ -183,18 +183,20 @@ function verificationEvidence(): DeliberationVerificationEvidence {
     startedAt: "2026-08-19T00:00:08Z",
     completedAt: "2026-08-19T00:00:09Z",
     status: "passed",
-    commands: [{
-      commandId: command.commandId,
-      commandDigest: verificationCommandDigest(command),
-      status: "passed",
-      exitCode: 0,
-      startedAt: "2026-08-19T00:00:08Z",
-      completedAt: "2026-08-19T00:00:09Z",
-      durationMs: 1000,
-      stdoutArtifact: outputArtifact,
-      stderrArtifact: outputArtifact,
-      failureCode: null,
-    }],
+    commands: [
+      {
+        commandId: command.commandId,
+        commandDigest: verificationCommandDigest(command),
+        status: "passed",
+        exitCode: 0,
+        startedAt: "2026-08-19T00:00:08Z",
+        completedAt: "2026-08-19T00:00:09Z",
+        durationMs: 1000,
+        stdoutArtifact: outputArtifact,
+        stderrArtifact: outputArtifact,
+        failureCode: null,
+      },
+    ],
   };
   const result: VerificationResult = {
     ...resultContent,
@@ -222,26 +224,41 @@ export function convergedHistory(): {
 } {
   const evidence = verificationEvidence();
   const proposal = artifact({
-    kind: "proposal", round: 1, roleId: "architect", sessionId: "ses_architect_0001",
-    provider: "codex", previousArtifactIds: [], sequence: 1,
+    kind: "proposal",
+    round: 1,
+    roleId: "architect",
+    sessionId: "ses_architect_0001",
+    provider: "codex",
+    previousArtifactIds: [],
+    sequence: 1,
     details: { claims: [{ claimId, claimDigest: deliberationSha256("claim:v1") }] },
   });
   const changesRequested = artifact({
-    kind: "objection", round: 1, roleId: "reviewer", sessionId: "ses_reviewer_0001",
-    provider: "claude", previousArtifactIds: [proposal.deliberationArtifactId], sequence: 2,
+    kind: "objection",
+    round: 1,
+    roleId: "reviewer",
+    sessionId: "ses_reviewer_0001",
+    provider: "claude",
+    previousArtifactIds: [proposal.deliberationArtifactId],
+    sequence: 2,
     details: {
       reviewStatus: "changes_requested",
-      objections: [{
-        objectionId,
-        objectionDigest: deliberationSha256("objection"),
-        targetClaimIds: [claimId],
-        blocking: true,
-        status: "open",
-      }],
+      objections: [
+        {
+          objectionId,
+          objectionDigest: deliberationSha256("objection"),
+          targetClaimIds: [claimId],
+          blocking: true,
+          status: "open",
+        },
+      ],
     },
   });
   const revision = artifact({
-    kind: "revision", round: 2, roleId: "architect", sessionId: "ses_architect_0002",
+    kind: "revision",
+    round: 2,
+    roleId: "architect",
+    sessionId: "ses_architect_0002",
     provider: "codex",
     previousArtifactIds: [proposal.deliberationArtifactId, changesRequested.deliberationArtifactId],
     sequence: 3,
@@ -252,13 +269,23 @@ export function convergedHistory(): {
     },
   });
   const approved = artifact({
-    kind: "objection", round: 2, roleId: "reviewer", sessionId: "ses_reviewer_0002",
-    provider: "claude", previousArtifactIds: [revision.deliberationArtifactId], sequence: 4,
+    kind: "objection",
+    round: 2,
+    roleId: "reviewer",
+    sessionId: "ses_reviewer_0002",
+    provider: "claude",
+    previousArtifactIds: [revision.deliberationArtifactId],
+    sequence: 4,
     details: { reviewStatus: "approved", objections: [] },
   });
   const verification = artifact({
-    kind: "verification", round: 2, roleId: "verifier", sessionId: "ses_verifier_0001",
-    provider: "claude", previousArtifactIds: [approved.deliberationArtifactId], sequence: 5,
+    kind: "verification",
+    round: 2,
+    roleId: "verifier",
+    sessionId: "ses_verifier_0001",
+    provider: "claude",
+    previousArtifactIds: [approved.deliberationArtifactId],
+    sequence: 5,
     details: {
       verificationId: evidence.result.verificationId,
       suiteId: evidence.result.suiteId,
@@ -269,8 +296,13 @@ export function convergedHistory(): {
     },
   });
   const decision = artifact({
-    kind: "decision", round: 2, roleId: "lead", sessionId: "ses_lead_0001",
-    provider: "codex", previousArtifactIds: [verification.deliberationArtifactId], sequence: 6,
+    kind: "decision",
+    round: 2,
+    roleId: "lead",
+    sessionId: "ses_lead_0001",
+    provider: "codex",
+    previousArtifactIds: [verification.deliberationArtifactId],
+    sequence: 6,
     details: {
       decisionOwnerRoleId: "lead",
       adoptedClaimIds: [claimId],
@@ -278,14 +310,17 @@ export function convergedHistory(): {
       unresolvedObjectionIds: [],
     },
   });
-  return { artifacts: [proposal, changesRequested, revision, approved, verification, decision], evidence };
+  return {
+    artifacts: [proposal, changesRequested, revision, approved, verification, decision],
+    evidence,
+  };
 }
 
 export function outcome(input: {
   artifacts: readonly DeliberationArtifact[];
   status: DeliberationOutcome["status"];
-  reason?: "max_rounds_reached" | "blocking_objections_unresolved" |
-    "required_verification_not_passed";
+  reason?:
+    "max_rounds_reached" | "blocking_objections_unresolved" | "required_verification_not_passed";
   decisionArtifactId?: string | null;
   passedVerificationArtifactIds?: string[];
   unresolvedBlockingObjectionIds?: string[];

@@ -46,6 +46,4 @@ export const writingPublicationPermitSchema = {
   ...writingPublicationPermitValueSchema,
 } as const;
 
-export type WritingPublicationPermit = FromSchema<
-  typeof writingPublicationPermitSchema
->;
+export type WritingPublicationPermit = FromSchema<typeof writingPublicationPermitSchema>;

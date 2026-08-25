@@ -84,12 +84,18 @@ async function runCreate(args: string[], io: CliIo): Promise<number> {
       createdAt: new Date(),
     });
     await recordSearchRolloutReviewPolicy(root, policy);
-    io.stdout(parsed.values.json ? `${JSON.stringify(policy, null, 2)}\n` : formatSearchRolloutPolicy(policy));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(policy, null, 2)}\n`
+        : formatSearchRolloutPolicy(policy),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not create the search rollout review policy. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not create the search rollout review policy. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }
@@ -124,14 +130,18 @@ async function runCheck(args: string[], io: CliIo): Promise<number> {
       policyId: parsed.values.policy,
       rolloutReviewId: parsed.positionals[0]!,
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(assessment, null, 2)}\n`
-      : formatSearchRolloutPolicyAssessment(assessment));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(assessment, null, 2)}\n`
+        : formatSearchRolloutPolicyAssessment(assessment),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not check whether the search rollout review satisfies policy. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not check whether the search rollout review satisfies policy. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

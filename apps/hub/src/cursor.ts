@@ -21,10 +21,7 @@ function encode(payload: Record<string, string | number>): string {
 }
 
 function decode(value: string, kind: CursorKind): Record<string, unknown> {
-  if (
-    value.length === 0 || value.length > MAX_CURSOR_LENGTH ||
-    !BASE64URL_PATTERN.test(value)
-  ) {
+  if (value.length === 0 || value.length > MAX_CURSOR_LENGTH || !BASE64URL_PATTERN.test(value)) {
     throw new Error("The cursor format is invalid.");
   }
   let text: string;
@@ -43,7 +40,9 @@ function decode(value: string, kind: CursorKind): Record<string, unknown> {
     throw new Error("The cursor format is invalid.");
   }
   if (
-    typeof parsed !== "object" || parsed === null || Array.isArray(parsed) ||
+    typeof parsed !== "object" ||
+    parsed === null ||
+    Array.isArray(parsed) ||
     (parsed as Record<string, unknown>).v !== 1 ||
     (parsed as Record<string, unknown>).kind !== kind
   ) {
@@ -79,8 +78,10 @@ export function decodeProjectCursor(value: string): HubProjectTraceCursor {
   const cursor = decode(value, "project");
   if (
     !hasExactKeys(cursor, ["v", "kind", "destinationId", "projectId"]) ||
-    !nonEmptyText(cursor.destinationId) || !HUB_DESTINATION_ID_PATTERN.test(cursor.destinationId) ||
-    !nonEmptyText(cursor.projectId) || !HUB_PROJECT_ID_PATTERN.test(cursor.projectId)
+    !nonEmptyText(cursor.destinationId) ||
+    !HUB_DESTINATION_ID_PATTERN.test(cursor.destinationId) ||
+    !nonEmptyText(cursor.projectId) ||
+    !HUB_PROJECT_ID_PATTERN.test(cursor.projectId)
   ) {
     throw new Error("The project cursor format is invalid.");
   }
@@ -95,7 +96,8 @@ export function decodeRunCursor(value: string): HubRunTraceCursor {
   const cursor = decode(value, "run");
   if (
     !hasExactKeys(cursor, ["v", "kind", "firstSeq", "runId"]) ||
-    !positiveInteger(cursor.firstSeq) || !nonEmptyText(cursor.runId) ||
+    !positiveInteger(cursor.firstSeq) ||
+    !nonEmptyText(cursor.runId) ||
     !HUB_RUN_ID_PATTERN.test(cursor.runId)
   ) {
     throw new Error("The run cursor format is invalid.");
@@ -121,8 +123,11 @@ export function encodeKnowledgeGraphCursor(cursor: HubKnowledgeGraphCursor): str
 
 export function decodeKnowledgeGraphCursor(value: string): HubKnowledgeGraphCursor {
   const cursor = decode(value, "graph");
-  if (!hasExactKeys(cursor, ["v", "kind", "relationId"]) ||
-    !nonEmptyText(cursor.relationId) || !/^kgr_[a-f0-9]{16}$/.test(cursor.relationId)) {
+  if (
+    !hasExactKeys(cursor, ["v", "kind", "relationId"]) ||
+    !nonEmptyText(cursor.relationId) ||
+    !/^kgr_[a-f0-9]{16}$/.test(cursor.relationId)
+  ) {
     throw new Error("The knowledge graph cursor format is invalid.");
   }
   return { relationId: cursor.relationId };

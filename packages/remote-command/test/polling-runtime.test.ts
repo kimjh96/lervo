@@ -36,16 +36,22 @@ describe("remote command reconnect polling lifecycle", () => {
       },
     };
     const transport: AuthenticatedRemoteCommandHubTransport = {
-      pullRemoteCommands: async () => { throw new Error("offline"); },
-      acknowledgeRemoteCommand: async () => { throw new Error("not called"); },
+      pullRemoteCommands: async () => {
+        throw new Error("offline");
+      },
+      acknowledgeRemoteCommand: async () => {
+        throw new Error("not called");
+      },
     };
 
-    await expect(runRemoteCommandReconnectLoop({
-      worker: worker(transport),
-      signal: controller.signal,
-      wait,
-      nowMilliseconds: () => Date.parse("2026-08-19T00:00:00.000Z"),
-    })).resolves.toMatchObject({
+    await expect(
+      runRemoteCommandReconnectLoop({
+        worker: worker(transport),
+        signal: controller.signal,
+        wait,
+        nowMilliseconds: () => Date.parse("2026-08-19T00:00:00.000Z"),
+      }),
+    ).resolves.toMatchObject({
       status: "stopped",
       cycleCount: 1,
       lastCycle: { status: "offline", failureCode: "hub_unavailable" },
@@ -78,15 +84,19 @@ describe("remote command reconnect polling lifecycle", () => {
       },
     };
 
-    await expect(runRemoteCommandReconnectLoop({
-      worker: worker({
-        pullRemoteCommands: pull,
-        acknowledgeRemoteCommand: async () => { throw new Error("not called"); },
+    await expect(
+      runRemoteCommandReconnectLoop({
+        worker: worker({
+          pullRemoteCommands: pull,
+          acknowledgeRemoteCommand: async () => {
+            throw new Error("not called");
+          },
+        }),
+        signal: controller.signal,
+        wait,
+        idlePollIntervalMs: 750,
       }),
-      signal: controller.signal,
-      wait,
-      idlePollIntervalMs: 750,
-    })).resolves.toMatchObject({ cycleCount: 1, lastCycle: { status: "idle" } });
+    ).resolves.toMatchObject({ cycleCount: 1, lastCycle: { status: "idle" } });
     expect(pull).toHaveBeenCalledTimes(1);
     expect(maximumActive).toBe(1);
   });

@@ -16,6 +16,8 @@ import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import { validateSchema, type SkillManifest } from "@lervo/schemas";
 import { hashSkillPackage } from "@lervo/skills";
+import { hashCapabilityFiles } from "@lervo/capabilities";
+import type { CapabilityPackageManifest } from "@lervo/schemas";
 import type { WritingSemanticEvaluator } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -77,6 +79,12 @@ class ManagedCodexClient implements CodexAppServerClient {
 
   async injectItems() {}
 
+  async listConnectedMcpServers() {
+    const config = this.startOptions.at(-1)?.config as
+      { mcp_servers?: Record<string, unknown> } | undefined;
+    return Object.keys(config?.mcp_servers ?? {});
+  }
+
   async startTurn(threadId: string) {
     setImmediate(() => {
       this.queue.push(
@@ -93,11 +101,13 @@ class ManagedCodexClient implements CodexAppServerClient {
               type: "fileChange",
               id: "codex-cli-write",
               status: "inProgress",
-              changes: [{
-                path: resolve(this.root, "src/result.ts"),
-                kind: { type: "add" },
-                diff: "private fixture diff",
-              }],
+              changes: [
+                {
+                  path: resolve(this.root, "src/result.ts"),
+                  kind: { type: "add" },
+                  diff: "private fixture diff",
+                },
+              ],
             },
           },
         },
@@ -115,10 +125,7 @@ class ManagedCodexClient implements CodexAppServerClient {
     return { turnId: "codex-cli-turn" };
   }
 
-  async respondFileChangeApproval(
-    _requestId: string | number,
-    decision: "accept" | "decline",
-  ) {
+  async respondFileChangeApproval(_requestId: string | number, decision: "accept" | "decline") {
     if (decision !== "accept") return;
     await writeFile(resolve(this.root, "src/result.ts"), "export const cli = true;\n");
     this.queue.push(
@@ -131,11 +138,13 @@ class ManagedCodexClient implements CodexAppServerClient {
             type: "fileChange",
             id: "codex-cli-write",
             status: "completed",
-            changes: [{
-              path: resolve(this.root, "src/result.ts"),
-              kind: { type: "add" },
-              diff: "private fixture diff",
-            }],
+            changes: [
+              {
+                path: resolve(this.root, "src/result.ts"),
+                kind: { type: "add" },
+                diff: "private fixture diff",
+              },
+            ],
           },
         },
       },
@@ -192,19 +201,10 @@ class ManagedClaudeClient implements ClaudeAgentClient {
       file_path: resolve(this.root, "src/result.ts"),
       content: "export const cli = true;\n",
     };
-    const allowed = await this.handler?.authorize(
-      "Write",
-      toolInput,
-      "claude-cli-write",
-    );
+    const allowed = await this.handler?.authorize("Write", toolInput, "claude-cli-write");
     if (allowed !== true) throw new Error("fixture write denied");
     await writeFile(toolInput.file_path, toolInput.content);
-    await this.handler?.complete(
-      "Write",
-      toolInput,
-      "claude-cli-write",
-      "completed",
-    );
+    await this.handler?.complete("Write", toolInput, "claude-cli-write", "completed");
     this.queue.push(
       {
         type: "user",
@@ -319,7 +319,136 @@ async function createProjectSkill(root: string): Promise<{
   return { manifest, original, path };
 }
 
-function identifierFactory(): (prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn") => string {
+async function createProjectSkillCapability(
+  root: string,
+): Promise<{ capability: CapabilityPackageManifest; skill: SkillManifest }> {
+  const path = resolve(root, ".lervo/capabilities/packages/repository%2Ftesting-cap@1.0.0");
+  await mkdir(path, { recursive: true });
+  const content = "# Capability skill\nUse the exact managed skill route.\n";
+  await writeFile(resolve(path, "SKILL.md"), content);
+  const contentHash = hashCapabilityFiles([
+    { path: "SKILL.md", bytes: new TextEncoder().encode(content) },
+  ]);
+  const skill: SkillManifest = {
+    schemaVersion: 1,
+    skillId: "repository/capability-testing",
+    version: "1.0.0",
+    contentHash,
+    source: {
+      kind: "project",
+      uri: ".lervo/capabilities",
+      publisher: { id: "local-fixture", name: "Local Fixture" },
+    },
+    supportedRoles: ["developer"],
+    compatibility: {
+      providers: { mode: "allowlist", providers: ["codex"] },
+      minimumRuntimeVersion: "0.1.0",
+      platforms: [process.platform as "darwin" | "linux" | "win32"],
+      requiredTools: ["shell"],
+      unknownIsCompatible: false,
+    },
+    requiredCapabilities: ["filesystem.read", "shell.execute"],
+    contracts: {
+      inputSchemaRef: "lervo-schema://skill/input/v1",
+      outputSchemaRef: "lervo-schema://skill/output/v1",
+    },
+    trust: { level: "untrusted", signatureStatus: "unsigned" },
+    enabledScope: { kind: "user" },
+    pinned: false,
+  };
+  const capability: CapabilityPackageManifest = {
+    schemaVersion: 1,
+    capabilityId: "repository/testing-cap",
+    kind: "skill",
+    version: "1.0.0",
+    contentHash,
+    source: {
+      kind: "project",
+      uri: ".lervo/capabilities",
+      publisher: { id: "local-fixture", name: "Local Fixture" },
+    },
+    compatibility: {
+      providers: { mode: "allowlist", providers: ["codex"] },
+      minimumRuntimeVersion: "0.1.0",
+      platforms: [process.platform as "darwin" | "linux" | "win32"],
+    },
+    requiredPermissions: ["filesystem.read", "shell.execute"],
+    dependencies: [],
+    discovery: {
+      displayName: "Repository test skill",
+      summary: "Use the packaged repository testing workflow",
+      keywords: ["repository", "testing"],
+      intents: ["Use the packaged repository testing workflow"],
+      autoSelect: true,
+    },
+    entrypoint: { kind: "skill", skillId: skill.skillId, manifestPath: "lervo-skill.json" },
+    activation: "explicit",
+    publication: { defaultVisibility: "local", secretMaterial: "excluded" },
+  };
+  await writeFile(resolve(path, "lervo-skill.json"), `${JSON.stringify(skill)}\n`);
+  await writeFile(resolve(path, "lervo-capability.json"), `${JSON.stringify(capability)}\n`);
+  return { capability, skill };
+}
+
+async function createProjectMcpCapability(root: string): Promise<CapabilityPackageManifest> {
+  const path = resolve(root, ".lervo/capabilities/packages/repository%2Fsearch-mcp@1.0.0");
+  await mkdir(path, { recursive: true });
+  const schema = new TextEncoder().encode("{}\n");
+  const runtime = new TextEncoder().encode(
+    JSON.stringify({
+      schemaVersion: 1,
+      serverName: "repository-search",
+      transport: {
+        kind: "stdio",
+        command: "node",
+        entrypointPath: "server.mjs",
+        arguments: [],
+        timeoutMs: 5000,
+      },
+    }),
+  );
+  const server = new TextEncoder().encode("process.stdin.resume();\n");
+  const files = [
+    { path: "configuration.schema.json", bytes: schema },
+    { path: "lervo-mcp.json", bytes: runtime },
+    { path: "server.mjs", bytes: server },
+  ];
+  const capability: CapabilityPackageManifest = {
+    schemaVersion: 1,
+    capabilityId: "repository/search-mcp",
+    kind: "mcp_server",
+    version: "1.0.0",
+    contentHash: hashCapabilityFiles(files),
+    source: {
+      kind: "project",
+      uri: ".lervo/capabilities",
+      publisher: { id: "local-fixture", name: "Local Fixture" },
+    },
+    compatibility: {
+      providers: { mode: "allowlist", providers: ["codex"] },
+      minimumRuntimeVersion: "0.1.0",
+      platforms: [process.platform as "darwin" | "linux" | "win32"],
+    },
+    requiredPermissions: ["filesystem.read", "shell.execute"],
+    dependencies: [],
+    entrypoint: {
+      kind: "mcp_server",
+      adapterId: "mcp.stdio",
+      configurationSchemaRef: "configuration.schema.json",
+      runtimeDescriptorPath: "lervo-mcp.json",
+      credentialNames: [],
+    },
+    activation: "explicit",
+    publication: { defaultVisibility: "local", secretMaterial: "excluded" },
+  };
+  for (const file of files) await writeFile(resolve(path, file.path), file.bytes);
+  await writeFile(resolve(path, "lervo-capability.json"), `${JSON.stringify(capability)}\n`);
+  return capability;
+}
+
+function identifierFactory(): (
+  prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn",
+) => string {
   let sequence = 0;
   return (prefix) => `${prefix}_cli${String(++sequence).padStart(8, "0")}`;
 }
@@ -344,15 +473,100 @@ afterEach(async () => {
 });
 
 describe("lervo run vertical slice", () => {
+  it("executes a repository-specialized role through the managed provider boundary", async () => {
+    const root = await createRepository();
+    await writeVerificationSuite(root, "process.exit(0)");
+    await mkdir(resolve(root, ".lervo/roles"), { recursive: true });
+    await writeFile(
+      resolve(root, ".lervo/roles/review-developer.json"),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          kind: "lervo_repository_role",
+          roleId: "review-developer",
+          version: "1.0.0",
+          extends: [],
+          profile: {
+            name: "Review Developer",
+            description: "Runs a repository-defined implementation review contract.",
+            requestTypes: ["implementation.review"],
+            requiredInputs: [],
+            contextPolicy: {
+              requiredDocumentRuleIds: ["repository.instructions"],
+              minimumAssurance: "E3",
+              referencesRequired: true,
+            },
+            capabilities: {
+              "filesystem.read": "allow",
+              "filesystem.write": "allow",
+              "shell.execute": "allow",
+              "network.access": "deny",
+              "external.message": "deny",
+              deploy: "deny",
+              "data.mutate": "deny",
+            },
+            defaultSkills: [],
+            outputContract: {
+              artifactKind: "review_result",
+              schemaRef: "lervo-schema://roles/review-result/v1",
+              pathTemplate: ".lervo/generated/review/{runId}.json",
+              citationsRequired: false,
+              presentation: { audience: "machine", writingPolicyId: null },
+            },
+            verification: { suiteIds: ["project.default"], failureDisposition: "fail_run" },
+            handoff: {
+              allowedRoleIds: ["developer"],
+              evidenceLinksRequired: true,
+              sharedContextRequired: true,
+            },
+          },
+          checks: [
+            {
+              checkId: "review.project",
+              category: "artifact_schema",
+              method: "project_verification",
+              requirement: "The repository review suite must pass.",
+              verificationSuiteId: "project.default",
+              evidenceRequired: true,
+            },
+          ],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({ repositoryRoot, resolveArtifact, clientFactory: async () => client }),
+    });
+    const outcome = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      roleId: "review-developer",
+      expectedPath: "src/result.ts",
+      instructions: "Review the implementation boundary",
+      risk: "low",
+      verificationSuiteIds: ["project.default"],
+    });
+    expect(outcome).toMatchObject({
+      roleId: "review-developer",
+      roleVersion: "1.0.0",
+      roleContractHash: expect.stringMatching(/^sha256:/u),
+      verificationStatus: "passed",
+    });
+  });
+
   it.each(["codex", "claude"] as const)(
     "runs one managed %s change through project storage and the production adapter",
     async (provider) => {
       const root = await createRepository();
       await registerSearchContextDocument(root);
       const client =
-        provider === "codex"
-          ? new ManagedCodexClient(root)
-          : new ManagedClaudeClient(root);
+        provider === "codex" ? new ManagedCodexClient(root) : new ManagedClaudeClient(root);
       const executeManagedRun = createManagedRunExecutor({
         openStorage: openProjectStorage,
         createId: identifierFactory(),
@@ -376,13 +590,23 @@ describe("lervo run vertical slice", () => {
       let errorOutput = "";
       const exitCode = await runCli(
         [
-          "run", "--provider", provider, "--path", "src/result.ts",
-          "--verification", "project.default", "Implement a small file",
+          "run",
+          "--provider",
+          provider,
+          "--path",
+          "src/result.ts",
+          "--verification",
+          "project.default",
+          "Implement a small file",
         ],
         {
           cwd: root,
-          stdout: (message) => { output += message; },
-          stderr: (message) => { errorOutput += message; },
+          stdout: (message) => {
+            output += message;
+          },
+          stderr: (message) => {
+            errorOutput += message;
+          },
         },
         { executeManagedRun },
       );
@@ -396,8 +620,9 @@ describe("lervo run vertical slice", () => {
       expect(output).toContain("recommended 1 · selected 1");
       expect(output).toContain("Documents selected from search: doc_cli_search_context");
       expect(output).toContain("--selected document:doc_cli_search_context");
-      expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
-        .toBe("export const cli = true;\n");
+      expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(
+        "export const cli = true;\n",
+      );
       expect(client.closed).toBe(true);
 
       const storage = await openProjectStorage(root);
@@ -412,8 +637,9 @@ describe("lervo run vertical slice", () => {
         documentId: "doc_cli_search_context",
         selectionPolicyId: "top_ranked",
       });
-      expect(events.find((event) => event.type === "run.completed")?.payload)
-        .toMatchObject({ verificationStatus: "passed" });
+      expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
+        verificationStatus: "passed",
+      });
       const knowledgeSources = await collectLocalKnowledgeSources(root);
       expect(knowledgeSources.filter((source) => source.kind === "verification_result")).toEqual([
         expect.objectContaining({
@@ -423,9 +649,12 @@ describe("lervo run vertical slice", () => {
           unitKind: "verification",
         }),
       ]);
-      expect(knowledgeSources.some((source) =>
-        source.kind === "execution_event" && source.origin === "execution_event_store"))
-        .toBe(true);
+      expect(
+        knowledgeSources.some(
+          (source) =>
+            source.kind === "execution_event" && source.origin === "execution_event_store",
+        ),
+      ).toBe(true);
       const serialized = JSON.stringify(events);
       expect(serialized).not.toContain("Implement a small file");
       expect(serialized).not.toContain("CLI task complete");
@@ -438,9 +667,9 @@ describe("lervo run vertical slice", () => {
       );
       expect(searchAttempt).not.toContain("Implement a small file");
       expect(searchAttempt).not.toContain("docs/search-context.md");
-      await expect(access(
-        resolve(root, ".lervo/state/search/assessments", `${sourceAttemptId}.json`),
-      )).rejects.toThrow();
+      await expect(
+        access(resolve(root, ".lervo/state/search/assessments", `${sourceAttemptId}.json`)),
+      ).rejects.toThrow();
     },
   );
 
@@ -462,13 +691,23 @@ describe("lervo run vertical slice", () => {
     let errorOutput = "";
     const exitCode = await runCli(
       [
-        "run", "--provider", "codex", "--path", "src/result.ts",
-        "--verification", "project.default", "Implement a small file",
+        "run",
+        "--provider",
+        "codex",
+        "--path",
+        "src/result.ts",
+        "--verification",
+        "project.default",
+        "Implement a small file",
       ],
       {
         cwd: root,
-        stdout: (message) => { output += message; },
-        stderr: (message) => { errorOutput += message; },
+        stdout: (message) => {
+          output += message;
+        },
+        stderr: (message) => {
+          errorOutput += message;
+        },
       },
       { executeManagedRun },
     );
@@ -478,14 +717,15 @@ describe("lervo run vertical slice", () => {
     expect(output).toContain("Writing publication verification: failed");
     expect(output).toContain("The provider result was not published.");
     expect(output).not.toContain("CLI task complete");
-    expect(await readFile(resolve(root, "src/result.ts"), "utf8"))
-      .toBe("export const cli = true;\n");
+    expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(
+      "export const cli = true;\n",
+    );
     const storage = await openProjectStorage(root);
     expect(storage.events.list().map((event) => event.type)).toContain("run.completed");
     await storage.close();
   });
 
-  it("locks and records a resolved skill without claiming invocation", async () => {
+  it("locks, invokes, and records verified skill instructions without claiming semantic reliance", async () => {
     const root = await createRepository();
     const skill = await createProjectSkill(root);
     const userSkillRoot = await mkdtemp(resolve(tmpdir(), "lervo-user-skills-"));
@@ -521,8 +761,12 @@ describe("lervo run vertical slice", () => {
       ],
       {
         cwd: root,
-        stdout: (message) => { output += message; },
-        stderr: (message) => { errorOutput += message; },
+        stdout: (message) => {
+          output += message;
+        },
+        stderr: (message) => {
+          errorOutput += message;
+        },
       },
       { executeManagedRun },
     );
@@ -530,16 +774,18 @@ describe("lervo run vertical slice", () => {
     expect(exitCode).toBe(0);
     expect(errorOutput).toBe("");
     expect(output).toContain("repository/testing@1.2.0 (project)");
-    expect(output).toContain("does not claim that a skill was invoked or used");
+    expect(output).toContain("Verified skill instructions were invoked by Lervo");
     expect(await readFile(resolve(skill.path, "SKILL.md"), "utf8")).toBe(skill.original);
     const lock: unknown = JSON.parse(await readFile(resolve(root, ".lervo/skills.lock"), "utf8"));
     expect(validateSchema("skillLock", lock).valid).toBe(true);
     expect(lock).toMatchObject({
-      entries: [{
-        skillId: "repository/testing",
-        contentHash: skill.manifest.contentHash,
-        source: { kind: "project", uri: ".agents/skills/repository-testing" },
-      }],
+      entries: [
+        {
+          skillId: "repository/testing",
+          contentHash: skill.manifest.contentHash,
+          source: { kind: "project", uri: ".agents/skills/repository-testing" },
+        },
+      ],
     });
 
     const storage = await openProjectStorage(root);
@@ -552,8 +798,8 @@ describe("lervo run vertical slice", () => {
       "skill.resolved",
       "adapter.started",
     ]);
-    expect(eventTypes).not.toContain("skill.invoked");
-    expect(eventTypes).not.toContain("skill.completed");
+    expect(eventTypes).toContain("skill.invoked");
+    expect(eventTypes).toContain("skill.completed");
     const resolved = events.find((event) => event.type === "skill.resolved");
     expect(resolved?.payload).toEqual({
       skillId: "repository/testing",
@@ -564,6 +810,131 @@ describe("lervo run vertical slice", () => {
     });
     expect(JSON.stringify(resolved)).not.toContain("Local Fixture");
     expect(JSON.stringify(resolved)).not.toContain(".agents/skills");
+  });
+
+  it("routes a resolved skill capability through the existing skill lock without claiming activation", async () => {
+    const root = await createRepository();
+    const value = await createProjectSkillCapability(root);
+    const userSkillRoot = await mkdtemp(resolve(tmpdir(), "lervo-user-skills-"));
+    temporaryRoots.push(userSkillRoot);
+    const userCapabilityRoot = await mkdtemp(resolve(tmpdir(), "lervo-user-capabilities-"));
+    temporaryRoots.push(userCapabilityRoot);
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      userSkillRoot,
+      userCapabilityRoot,
+      now: () => new Date("2026-08-19T00:00:00Z"),
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({ repositoryRoot, resolveArtifact, clientFactory: async () => client }),
+    });
+    const outcome = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      expectedPath: "src/result.ts",
+      instructions: "Use the packaged skill",
+      risk: "medium",
+      capabilityIds: [value.capability.capabilityId],
+      verificationSuiteIds: ["project.default"],
+    });
+    expect(outcome.resolvedCapabilities[0]).toMatchObject({
+      capabilityId: value.capability.capabilityId,
+      activationStatus: "resolved",
+    });
+    expect(outcome.resolvedSkills[0]).toMatchObject({
+      skillId: value.skill.skillId,
+      contentHash: value.skill.contentHash,
+    });
+    expect(
+      validateSchema(
+        "capabilityLock",
+        JSON.parse(await readFile(resolve(root, ".lervo/capabilities.lock"), "utf8")),
+      ).valid,
+    ).toBe(true);
+    expect(
+      validateSchema(
+        "skillLock",
+        JSON.parse(await readFile(resolve(root, ".lervo/skills.lock"), "utf8")),
+      ).valid,
+    ).toBe(true);
+  });
+
+  it("selects a verified skill capability from natural-language intent and records every observable stage", async () => {
+    const root = await createRepository();
+    const value = await createProjectSkillCapability(root);
+    const userCapabilityRoot = await mkdtemp(resolve(tmpdir(), "lervo-user-capabilities-"));
+    temporaryRoots.push(userCapabilityRoot);
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      userCapabilityRoot,
+      now: () => new Date("2026-08-19T00:00:00Z"),
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({ repositoryRoot, resolveArtifact, clientFactory: async () => client }),
+    });
+    const outcome = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      expectedPath: "src/result.ts",
+      instructions: "Use the packaged repository testing workflow",
+      risk: "medium",
+      verificationSuiteIds: ["project.default"],
+    });
+    expect(outcome.resolvedCapabilities).toEqual([
+      expect.objectContaining({ capabilityId: value.capability.capabilityId }),
+    ]);
+    const storage = await openProjectStorage(root);
+    const events = storage.events.list();
+    await storage.close();
+    expect(events.find((event) => event.type === "capability.recommended")?.payload).toMatchObject({
+      capabilityId: value.capability.capabilityId,
+      reasonCodes: expect.arrayContaining(["intent_phrase"]),
+    });
+    expect(events.find((event) => event.type === "capability.selected")?.payload).toMatchObject({
+      reason: "natural_language",
+    });
+    expect(events.map((event) => event.type)).toEqual(
+      expect.arrayContaining(["capability.loaded", "skill.invoked", "skill.completed"]),
+    );
+  });
+
+  it("activates a resolved MCP capability before the Codex managed turn", async () => {
+    const root = await createRepository();
+    const capability = await createProjectMcpCapability(root);
+    const client = new ManagedCodexClient(root);
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      now: () => new Date("2026-08-19T00:00:00Z"),
+      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
+        new CodexAdapter({ repositoryRoot, resolveArtifact, clientFactory: async () => client }),
+    });
+    const outcome = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      expectedPath: "src/result.ts",
+      instructions: "Use the packaged MCP server",
+      risk: "medium",
+      capabilityIds: [capability.capabilityId],
+      verificationSuiteIds: ["project.default"],
+    });
+
+    expect(outcome.activatedCapabilities).toEqual([
+      expect.objectContaining({ capabilityId: capability.capabilityId, evidence: "mcp_connected" }),
+    ]);
+    expect(client.startOptions[0]).toMatchObject({
+      config: { mcp_servers: { "repository-search": { command: "node" } } },
+    });
+    const storage = await openProjectStorage(root);
+    expect(
+      storage.events.list().filter((event) => event.type === "capability.activated"),
+    ).toHaveLength(1);
+    await storage.close();
   });
 
   it("closes project storage after a provider startup failure", async () => {
@@ -620,14 +991,16 @@ describe("lervo run vertical slice", () => {
         }),
     });
 
-    await expect(executeManagedRun({
-      repositoryRoot: root,
-      provider: "codex",
-      expectedPath: "src/result.ts",
-      instructions: "verification failure fixture",
-      risk: "medium",
-      verificationSuiteIds: ["project.default"],
-    })).rejects.toMatchObject({
+    await expect(
+      executeManagedRun({
+        repositoryRoot: root,
+        provider: "codex",
+        expectedPath: "src/result.ts",
+        instructions: "verification failure fixture",
+        risk: "medium",
+        verificationSuiteIds: ["project.default"],
+      }),
+    ).rejects.toMatchObject({
       code: "verification_failed",
       message: expect.stringContaining("project.default"),
     });
@@ -636,10 +1009,13 @@ describe("lervo run vertical slice", () => {
     const events = storage.events.list();
     await storage.close();
     expect(events.map((event) => event.type)).toContain("verification.started");
-    expect(events.find((event) => event.type === "verification.completed")?.payload)
-      .toMatchObject({ status: "failed", nonPassedCommandIds: ["verify-result"] });
-    expect(events.find((event) => event.type === "run.failed")?.payload)
-      .toMatchObject({ failureCode: "verification_failed" });
+    expect(events.find((event) => event.type === "verification.completed")?.payload).toMatchObject({
+      status: "failed",
+      nonPassedCommandIds: ["verify-result"],
+    });
+    expect(events.find((event) => event.type === "run.failed")?.payload).toMatchObject({
+      failureCode: "verification_failed",
+    });
     expect(events.map((event) => event.type)).not.toContain("run.completed");
     expect(JSON.stringify(events)).not.toContain("process.exit(7)");
   });

@@ -12,8 +12,7 @@ import {
   firstPublicationWorkflowReachabilityPaths,
   readFirstPublicationWorkflowReachabilitySources,
 } from "./first-publication-workflow-reachability-sources.mjs";
-import { observeGitHubWorkflowReachability } from
-  "./github-workflow-reachability-observer.mjs";
+import { observeGitHubWorkflowReachability } from "./github-workflow-reachability-observer.mjs";
 import { validateReadinessRepository } from "./trusted-publisher-readiness.mjs";
 
 function fail(code, message) {
@@ -41,8 +40,7 @@ export async function createCliFirstPublicationWorkflowReachabilityEvidence(
     );
   }
   const paths = dependencies.paths ?? firstPublicationWorkflowReachabilityPaths;
-  const readSources = dependencies.readSources ??
-    readFirstPublicationWorkflowReachabilitySources;
+  const readSources = dependencies.readSources ?? readFirstPublicationWorkflowReachabilitySources;
   const sources = await readSources(paths, remoteEvidenceReportPath);
   const binding = {
     repository,
@@ -53,8 +51,7 @@ export async function createCliFirstPublicationWorkflowReachabilityEvidence(
     packageSnapshot: sources.packageSnapshot,
   };
   assertFirstPublicationWorkflowReachabilityBinding(binding);
-  const observeReachability = dependencies.observeReachability ??
-    observeGitHubWorkflowReachability;
+  const observeReachability = dependencies.observeReachability ?? observeGitHubWorkflowReachability;
   const reachabilityObservation = await observeReachability({
     repository,
     sourceCommit,

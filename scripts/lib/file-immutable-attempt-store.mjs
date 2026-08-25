@@ -15,11 +15,7 @@ async function syncDirectory(path) {
 }
 
 async function writeDurable(path, value) {
-  const handle = await open(
-    path,
-    constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY,
-    0o600,
-  );
+  const handle = await open(path, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
   try {
     await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`, "utf8");
     await handle.sync();
@@ -38,10 +34,13 @@ export function createFileImmutableAttemptStore({
   codes,
 }) {
   if (
-    !isAbsolute(rootDirectory ?? "") || typeof validateAttempt !== "function" ||
-    typeof validateTerminal !== "function" || typeof bindTerminal !== "function" ||
+    !isAbsolute(rootDirectory ?? "") ||
+    typeof validateAttempt !== "function" ||
+    typeof validateTerminal !== "function" ||
+    typeof bindTerminal !== "function" ||
     typeof fail !== "function"
-  ) fail(codes.inputInvalid);
+  )
+    fail(codes.inputInvalid);
   const attemptPath = resolve(rootDirectory, "attempt.json");
   const terminalPath = resolve(rootDirectory, "terminal.json");
 
@@ -53,9 +52,11 @@ export function createFileImmutableAttemptStore({
       fail(codes.invalid);
     }
     if (
-      !metadata.isDirectory() || metadata.isSymbolicLink() ||
+      !metadata.isDirectory() ||
+      metadata.isSymbolicLink() ||
       (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
-    ) fail(codes.unsafe);
+    )
+      fail(codes.unsafe);
   }
 
   async function readRecord(path) {
@@ -66,10 +67,13 @@ export function createFileImmutableAttemptStore({
       fail(codes.invalid);
     }
     if (
-      !metadata.isFile() || metadata.isSymbolicLink() || metadata.size <= 0 ||
+      !metadata.isFile() ||
+      metadata.isSymbolicLink() ||
+      metadata.size <= 0 ||
       metadata.size > maximumRecordBytes ||
       (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
-    ) fail(codes.unsafe);
+    )
+      fail(codes.unsafe);
     try {
       return JSON.parse(await readFile(path, "utf8"));
     } catch {

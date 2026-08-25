@@ -1,7 +1,4 @@
-import {
-  inspectProviderExecutable,
-  type ProviderRuntimeInspection,
-} from "@lervo/adapter-contract";
+import { inspectProviderExecutable, type ProviderRuntimeInspection } from "@lervo/adapter-contract";
 
 export async function inspectCodexRuntime(
   executable = "codex",

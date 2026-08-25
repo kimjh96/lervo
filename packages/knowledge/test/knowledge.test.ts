@@ -8,10 +8,7 @@ import {
   outcome,
   policy,
 } from "../../deliberation/test/fixtures.js";
-import {
-  createKnowledgeCandidates,
-  knowledgeCandidateBytes,
-} from "../src/index.js";
+import { createKnowledgeCandidates, knowledgeCandidateBytes } from "../src/index.js";
 import {
   createCandidateFixture,
   healthyDoctorEnvironmentInspections,
@@ -47,33 +44,39 @@ describe("knowledge candidate creation", () => {
     });
     expect(JSON.stringify(storage.events.list())).not.toContain("decision:lead:2:6");
     expect(storage.events.verifyIntegrity().valid).toBe(true);
-    await expect(createDoctorReport({
-      projectId: policy.projectId,
-      events: storage.events,
-      artifacts: storage.artifacts,
-      inspections: [],
-    })).rejects.toThrow("Doctor environment checks are missing");
-    await expect(createDoctorReport({
-      projectId: policy.projectId,
-      events: storage.events,
-      artifacts: storage.artifacts,
-      inspections: healthyDoctorEnvironmentInspections,
-    })).resolves.toMatchObject({ status: "healthy", issues: [] });
+    await expect(
+      createDoctorReport({
+        projectId: policy.projectId,
+        events: storage.events,
+        artifacts: storage.artifacts,
+        inspections: [],
+      }),
+    ).rejects.toThrow("Doctor environment checks are missing");
+    await expect(
+      createDoctorReport({
+        projectId: policy.projectId,
+        events: storage.events,
+        artifacts: storage.artifacts,
+        inspections: healthyDoctorEnvironmentInspections,
+      }),
+    ).resolves.toMatchObject({ status: "healthy", issues: [] });
 
-    await expect(createKnowledgeCandidates({
-      deliberationId: result.deliberationId,
-      policy,
-      artifacts: history.artifacts,
-      verificationEvidence: [history.evidence],
-      outcome: result,
-      outcomeEvent,
-      pathsByClaimId: { clm_architecture_0001: ["src/decision.ts"] },
-      reviewIntervalDays: 30,
-      policyVersion,
-      events: storage.events,
-      artifactStore: storage.artifacts,
-      createEventId: sequence("evt_duplicate"),
-    })).rejects.toMatchObject({
+    await expect(
+      createKnowledgeCandidates({
+        deliberationId: result.deliberationId,
+        policy,
+        artifacts: history.artifacts,
+        verificationEvidence: [history.evidence],
+        outcome: result,
+        outcomeEvent,
+        pathsByClaimId: { clm_architecture_0001: ["src/decision.ts"] },
+        reviewIntervalDays: 30,
+        policyVersion,
+        events: storage.events,
+        artifactStore: storage.artifacts,
+        createEventId: sequence("evt_duplicate"),
+      }),
+    ).rejects.toMatchObject({
       code: "candidate_contract_invalid",
       reason: "candidate_already_recorded",
     });
@@ -97,20 +100,22 @@ describe("knowledge candidate creation", () => {
           : {}),
       });
 
-      await expect(createKnowledgeCandidates({
-        deliberationId: result.deliberationId,
-        policy,
-        artifacts,
-        verificationEvidence: [],
-        outcome: result,
-        outcomeEvent: {} as EventEnvelope,
-        pathsByClaimId: {},
-        reviewIntervalDays: 30,
-        policyVersion,
-        events: storage.events,
-        artifactStore: storage.artifacts,
-        createEventId: sequence("evt_ineligible"),
-      })).rejects.toMatchObject({
+      await expect(
+        createKnowledgeCandidates({
+          deliberationId: result.deliberationId,
+          policy,
+          artifacts,
+          verificationEvidence: [],
+          outcome: result,
+          outcomeEvent: {} as EventEnvelope,
+          pathsByClaimId: {},
+          reviewIntervalDays: 30,
+          policyVersion,
+          events: storage.events,
+          artifactStore: storage.artifacts,
+          createEventId: sequence("evt_ineligible"),
+        }),
+      ).rejects.toMatchObject({
         code: "candidate_not_eligible",
         reason: "outcome_not_converged",
       });

@@ -41,13 +41,14 @@ async function candidatePlanEntry(
   }
   const path = `.lervo/documents/${candidate.proposal.documentId}.yaml`;
   const inspected = await inspectTargetFile(root, path, 64 * 1024);
-  const expected = inspected.kind === "file"
-    ? {
-        kind: "file" as const,
-        contentHash: sha256(inspected.bytes),
-        byteCount: inspected.bytes.byteLength,
-      }
-    : inspected;
+  const expected =
+    inspected.kind === "file"
+      ? {
+          kind: "file" as const,
+          contentHash: sha256(inspected.bytes),
+          byteCount: inspected.bytes.byteLength,
+        }
+      : inspected;
   return {
     candidateId: candidate.candidateId,
     artifactId: artifact.artifactId,
@@ -73,9 +74,9 @@ function planWarnings(
     const candidate = artifact.candidate;
     if (candidate.disposition !== "ready_for_approval") {
       reviewRequired = true;
-      warnings.add(candidate.disposition === "observed"
-        ? "observed_source"
-        : "candidate_review_required");
+      warnings.add(
+        candidate.disposition === "observed" ? "observed_source" : "candidate_review_required",
+      );
     }
     if (candidate.proposal === null) continue;
     if (
@@ -134,9 +135,7 @@ export async function createDocumentMigrationDryRun(input: {
   );
   entries.sort((left, right) => {
     const sourceOrder = compareText(left.sourcePath, right.sourcePath);
-    return sourceOrder === 0
-      ? compareText(left.candidateId, right.candidateId)
-      : sourceOrder;
+    return sourceOrder === 0 ? compareText(left.candidateId, right.candidateId) : sourceOrder;
   });
   const summary = planWarnings(
     imported.artifacts,
@@ -149,10 +148,10 @@ export async function createDocumentMigrationDryRun(input: {
     writesAllowed: false as const,
     approvalStatus: "not_requested" as const,
     outcome: summary.conflict
-      ? "conflict" as const
+      ? ("conflict" as const)
       : summary.reviewRequired
-        ? "review_required" as const
-        : "ready_for_review" as const,
+        ? ("review_required" as const)
+        : ("ready_for_review" as const),
     sources: sources.map(({ path, contentHash, byteCount }) => ({ path, contentHash, byteCount })),
     candidates: entries,
     warnings: summary.warnings,

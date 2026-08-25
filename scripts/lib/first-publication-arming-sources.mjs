@@ -1,7 +1,6 @@
 import { isAbsolute } from "node:path";
 
-import { readFirstPublicationContractFiles } from
-  "./first-publication-contract-files.mjs";
+import { readFirstPublicationContractFiles } from "./first-publication-contract-files.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import {
   assertReleaseFilesUnchanged,
@@ -33,10 +32,7 @@ export async function readFirstPublicationArmingSources(options) {
   const contracts = await readFirstPublicationContractFiles(options);
   let decisionContents;
   try {
-    decisionContents = await readRegularReleaseFile(
-      options.decisionPath,
-      maximumInputBytes,
-    );
+    decisionContents = await readRegularReleaseFile(options.decisionPath, maximumInputBytes);
   } catch {
     fail();
   }
@@ -47,11 +43,13 @@ export async function readFirstPublicationArmingSources(options) {
     assertUnchanged: async () => {
       await Promise.all([
         contracts.assertUnchanged(),
-        assertReleaseFilesUnchanged([{
-          path: options.decisionPath,
-          contents: decisionContents,
-          maximumSize: maximumInputBytes,
-        }]),
+        assertReleaseFilesUnchanged([
+          {
+            path: options.decisionPath,
+            contents: decisionContents,
+            maximumSize: maximumInputBytes,
+          },
+        ]),
       ]);
     },
   };

@@ -1,6 +1,4 @@
-import {
-  prepareIsolatedNpmTrustedPublishingClient,
-} from "./npm-trusted-publishing-client.mjs";
+import { prepareIsolatedNpmTrustedPublishingClient } from "./npm-trusted-publishing-client.mjs";
 import {
   npmPublicRegistry,
   ReleasePublicationAuthorizationError,
@@ -14,26 +12,22 @@ function fail(code, message) {
 
 export async function prepareNpmTrustedStagePublisher(
   { target, artifact, tarballPath },
-  {
-    environment = process.env,
-    execute,
-    npmCommand = "npm",
-    nodeVersion = process.version,
-  } = {},
+  { environment = process.env, execute, npmCommand = "npm", nodeVersion = process.version } = {},
 ) {
   if (
-    target?.registry !== npmPublicRegistry || target.package !== "@lervo/cli" ||
+    target?.registry !== npmPublicRegistry ||
+    target.package !== "@lervo/cli" ||
     !/^\d+\.\d+\.\d+$/u.test(target.version ?? "") ||
-    !["latest", "next"].includes(target.distTag) || target.access !== "public" ||
+    !["latest", "next"].includes(target.distTag) ||
+    target.access !== "public" ||
     artifact?.file !== `lervo-cli-${target.version}.tgz` ||
-    typeof artifact.sha256 !== "string" || typeof artifact.registryIntegrity !== "string" ||
-    typeof artifact.registryShasum !== "string" || typeof tarballPath !== "string" ||
+    typeof artifact.sha256 !== "string" ||
+    typeof artifact.registryIntegrity !== "string" ||
+    typeof artifact.registryShasum !== "string" ||
+    typeof tarballPath !== "string" ||
     tarballPath.length === 0
   ) {
-    fail(
-      "npm_trusted_stage_target_invalid",
-      "The npm stage Trusted Publishing target is invalid.",
-    );
+    fail("npm_trusted_stage_target_invalid", "The npm stage Trusted Publishing target is invalid.");
   }
   const client = await prepareIsolatedNpmTrustedPublishingClient({
     environment,

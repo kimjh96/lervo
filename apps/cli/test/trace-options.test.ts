@@ -13,13 +13,9 @@ describe("trace command options", () => {
       json: true,
       request: { kind: "first_page", selector: "run_01234567" },
     });
-    expect(parseTraceCommandOptions([
-      "last",
-      "--page-size",
-      "25",
-      "--event-type",
-      "run.failed",
-    ])).toMatchObject({
+    expect(
+      parseTraceCommandOptions(["last", "--page-size", "25", "--event-type", "run.failed"]),
+    ).toMatchObject({
       request: {
         kind: "first_page",
         selector: "last",

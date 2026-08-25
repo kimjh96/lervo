@@ -41,10 +41,13 @@ export class DeliberationRuntime {
   private readonly verificationEvidence: DeliberationVerificationEvidence[] = [];
   private readonly recordedEvents = new Map<string, string>();
   private readonly providerSessionRoles = new Map<string, string>();
-  private readonly publishedArtifacts = new Map<string, {
-    publication: SharedContextPublication;
-    event: EventEnvelope;
-  }>();
+  private readonly publishedArtifacts = new Map<
+    string,
+    {
+      publication: SharedContextPublication;
+      event: EventEnvelope;
+    }
+  >();
   private readonly publishedHandoffIds = new Set<string>();
   private readonly publishedHandoffEvents = new Map<string, string>();
   private startedEventId: string | null = null;
@@ -114,8 +117,9 @@ export class DeliberationRuntime {
     input: ExecuteDeliberationTurnInput<K>,
   ): Promise<DeliberationTurnResult> {
     const previousArtifacts = input.previousArtifactIds.map((artifactId) => {
-      const artifact = this.artifacts.find((candidate) =>
-        candidate.deliberationArtifactId === artifactId);
+      const artifact = this.artifacts.find(
+        (candidate) => candidate.deliberationArtifactId === artifactId,
+      );
       if (artifact === undefined) {
         throw new DeliberationRuntimeError(
           "runtime_state_invalid",
@@ -126,11 +130,7 @@ export class DeliberationRuntime {
       return artifact;
     });
     const run = await input.executeManagedRun();
-    if (!policyAllowsProvider(
-      this.options.policy,
-      run.session.roleId,
-      run.session.provider,
-    )) {
+    if (!policyAllowsProvider(this.options.policy, run.session.roleId, run.session.provider)) {
       throw new DeliberationRuntimeError(
         "artifact_publication_failed",
         "provider_not_allowed",
@@ -161,9 +161,10 @@ export class DeliberationRuntime {
       );
     }
     const evidence = input.verificationEvidence;
-    const nextEvidence = evidence === undefined
-      ? this.verificationEvidence
-      : [...this.verificationEvidence, clone(evidence)];
+    const nextEvidence =
+      evidence === undefined
+        ? this.verificationEvidence
+        : [...this.verificationEvidence, clone(evidence)];
     const createdAt = this.time();
     const published = await publishDeliberationArtifact({
       deliberationId: this.options.deliberationId,
@@ -223,8 +224,9 @@ export class DeliberationRuntime {
     const recordedPublication = this.publishedArtifacts.get(input.artifactId);
     const result = publishDeliberationHandoff({
       request: input,
-      artifact: this.artifacts.find((candidate) =>
-        candidate.deliberationArtifactId === input.artifactId),
+      artifact: this.artifacts.find(
+        (candidate) => candidate.deliberationArtifactId === input.artifactId,
+      ),
       artifactEventId: this.recordedEvents.get(input.artifactId),
       policy: this.options.policy,
       recorder: this.recorder,
@@ -287,8 +289,10 @@ export class DeliberationRuntime {
       startedEventId: this.startedEventId!,
       artifacts: this.artifacts,
       verificationEvidence: this.verificationEvidence,
-      providerSessionRoles: [...this.providerSessionRoles].map(
-        ([providerSessionId, roleId]) => ({ providerSessionId, roleId })),
+      providerSessionRoles: [...this.providerSessionRoles].map(([providerSessionId, roleId]) => ({
+        providerSessionId,
+        roleId,
+      })),
       recordedEvents: [...this.recordedEvents].map(([artifactId, eventId]) => ({
         artifactId,
         eventId,

@@ -26,17 +26,13 @@ export async function prepareContext(input: PrepareContextInput): Promise<Loaded
       : { recommendationBatches: input.recommendationBatches }),
     policyVersion: input.policyVersion,
     recordedAt: input.recordedAt,
-    ...(input.createReceiptId === undefined
-      ? {}
-      : { createReceiptId: input.createReceiptId }),
+    ...(input.createReceiptId === undefined ? {} : { createReceiptId: input.createReceiptId }),
   });
   return loadContextPlan({
     repositoryRoot: input.repositoryRoot,
     plan,
     sourceRevision: input.sourceRevision,
     recordedAt: input.recordedAt,
-    ...(input.createReceiptId === undefined
-      ? {}
-      : { createReceiptId: input.createReceiptId }),
+    ...(input.createReceiptId === undefined ? {} : { createReceiptId: input.createReceiptId }),
   });
 }

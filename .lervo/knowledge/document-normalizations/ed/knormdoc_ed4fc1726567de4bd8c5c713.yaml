@@ -1,0 +1,31 @@
+candidateId: knorm_3b73e7b5abd7559264f30dc8
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f094173ab63a594037d7b081
+outputLanguage: en
+outputs:
+  - byteCount: 5889
+    contentHash: sha256:66fe6f96f4799329c0aeb2f7f942ff6e34d38cc0cba051e0ee4a545060f2eafd
+    path: docs/roadmap/context-grounding-coverage.md
+    userRegionHash: sha256:66fe6f96f4799329c0aeb2f7f942ff6e34d38cc0cba051e0ee4a545060f2eafd
+profile: roadmap_document
+recordId: knormdoc_ed4fc1726567de4bd8c5c713
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:a6fcdb645a8697316201099500db05229ca417fab7d4dc1d3903f9ca643fc36e
+sourcePath: docs/roadmap/context-grounding-coverage.md
+sourceUnitVersionIds:
+  - uv_008ada741ae9105e74e65a10
+  - uv_29a4b1144b0b9e73fed52d17
+  - uv_5858ac0515e2a8193a8b605f
+  - uv_63bedce374578272dbbc4420
+  - uv_64e460fa2f3a5c4ca4878b0a
+  - uv_b1dcbfe0ce44ea37e418a2fa
+  - uv_cb189b682aff31441087a0e5
+  - uv_e926412b795ccf8cff3cbba0
+  - uv_f9810a3bc1809f8918b6d7d2

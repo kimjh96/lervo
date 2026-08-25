@@ -62,9 +62,10 @@ async function createSkill(input: {
     },
     supportedRoles: ["developer"],
     compatibility: {
-      providers: input.provider === undefined
-        ? { mode: "any" }
-        : { mode: "allowlist", providers: [input.provider] },
+      providers:
+        input.provider === undefined
+          ? { mode: "any" }
+          : { mode: "allowlist", providers: [input.provider] },
       minimumRuntimeVersion: input.minimumRuntimeVersion ?? "0.1.0",
       platforms: ["darwin"],
       requiredTools: input.requiredTools ?? ["shell"],
@@ -127,18 +128,22 @@ describe("local skill resolution", () => {
       sourceKind: "user",
       sourceUriPrefix: "~/.agents/skills",
     });
-    expect(resolveSkills({
-      requestedSkillIds: ["repository/testing"],
-      candidates: [...projectCandidates, ...userCandidates],
-      runtime: runtime(),
-      generatedAt: "2026-08-19T00:00:00Z",
-    }).lock.entries[0]).toMatchObject({ version: "1.0.0", pinned: true });
-    expect(resolveSkills({
-      requestedSkillIds: ["repository/testing"],
-      candidates: userCandidates,
-      runtime: runtime(),
-      generatedAt: "2026-08-19T00:00:00Z",
-    }).lock.entries[0]).toMatchObject({ version: "3.0.0", source: { kind: "user" } });
+    expect(
+      resolveSkills({
+        requestedSkillIds: ["repository/testing"],
+        candidates: [...projectCandidates, ...userCandidates],
+        runtime: runtime(),
+        generatedAt: "2026-08-19T00:00:00Z",
+      }).lock.entries[0],
+    ).toMatchObject({ version: "1.0.0", pinned: true });
+    expect(
+      resolveSkills({
+        requestedSkillIds: ["repository/testing"],
+        candidates: userCandidates,
+        runtime: runtime(),
+        generatedAt: "2026-08-19T00:00:00Z",
+      }).lock.entries[0],
+    ).toMatchObject({ version: "3.0.0", source: { kind: "user" } });
     expect(compareSemver("1.0.0-alpha-beta", "1.0.0-alpha")).toBeGreaterThan(0);
   });
 
@@ -159,16 +164,16 @@ describe("local skill resolution", () => {
       version: "9.0.0",
     });
     const candidates = [
-      ...await discoverSkillRoot({
+      ...(await discoverSkillRoot({
         root: projectRoot,
         sourceKind: "project",
         sourceUriPrefix: ".agents/skills",
-      }),
-      ...await discoverSkillRoot({
+      })),
+      ...(await discoverSkillRoot({
         root: userRoot,
         sourceKind: "user",
         sourceUriPrefix: "~/.agents/skills",
-      }),
+      })),
     ];
     const result = resolveSkills({
       requestedSkillIds: ["repository/testing", "repository/testing"],
@@ -177,17 +182,22 @@ describe("local skill resolution", () => {
       generatedAt: "2026-08-19T00:00:00Z",
     });
 
-    expect(result.lock.entries).toMatchObject([{
-      version: "1.0.0",
-      source: { kind: "project", uri: ".agents/skills/testing-project" },
-    }]);
-    expect(result.lock.rejected).toMatchObject([{
-      version: "9.0.0",
-      sourceKind: "user",
-      reasonCode: "source_shadowed",
-    }]);
-    expect(await readFile(resolve(project.directoryPath, "SKILL.md"), "utf8"))
-      .toBe(project.original);
+    expect(result.lock.entries).toMatchObject([
+      {
+        version: "1.0.0",
+        source: { kind: "project", uri: ".agents/skills/testing-project" },
+      },
+    ]);
+    expect(result.lock.rejected).toMatchObject([
+      {
+        version: "9.0.0",
+        sourceKind: "user",
+        reasonCode: "source_shadowed",
+      },
+    ]);
+    expect(await readFile(resolve(project.directoryPath, "SKILL.md"), "utf8")).toBe(
+      project.original,
+    );
   });
 
   it("fails closed when no candidate is compatible and preserves the reason", async () => {
@@ -223,20 +233,31 @@ describe("local skill resolution", () => {
     const root = await temporaryRoot();
     const changed = await createSkill({ root, directory: "changed", sourceKind: "project" });
     await writeFile(resolve(changed.directoryPath, "SKILL.md"), "tampered\n");
-    await expect(discoverSkillRoot({
-      root,
-      sourceKind: "project",
-      sourceUriPrefix: ".agents/skills",
-    })).rejects.toMatchObject({ code: "content_hash_mismatch" });
+    await expect(
+      discoverSkillRoot({
+        root,
+        sourceKind: "project",
+        sourceUriPrefix: ".agents/skills",
+      }),
+    ).rejects.toMatchObject({ code: "content_hash_mismatch" });
 
     const symlinkRoot = await temporaryRoot();
-    const linked = await createSkill({ root: symlinkRoot, directory: "linked", sourceKind: "project" });
-    await symlink(resolve(linked.directoryPath, "SKILL.md"), resolve(linked.directoryPath, "alias.md"));
-    await expect(discoverSkillRoot({
+    const linked = await createSkill({
       root: symlinkRoot,
+      directory: "linked",
       sourceKind: "project",
-      sourceUriPrefix: ".agents/skills",
-    })).rejects.toMatchObject({ code: "unsafe_skill_package" });
+    });
+    await symlink(
+      resolve(linked.directoryPath, "SKILL.md"),
+      resolve(linked.directoryPath, "alias.md"),
+    );
+    await expect(
+      discoverSkillRoot({
+        root: symlinkRoot,
+        sourceKind: "project",
+        sourceUriPrefix: ".agents/skills",
+      }),
+    ).rejects.toMatchObject({ code: "unsafe_skill_package" });
   });
 
   it("keeps an equivalent lock timestamp and refuses to overwrite an invalid lock", async () => {

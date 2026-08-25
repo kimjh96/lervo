@@ -6,8 +6,7 @@ import type { TracePageReport } from "./types.js";
 export const tracePageReportSchemaVersion = 1 as const;
 
 export type TracePageReportCompatibilityErrorCode =
-  | "trace_page_report_invalid"
-  | "trace_page_report_schema_unsupported";
+  "trace_page_report_invalid" | "trace_page_report_schema_unsupported";
 
 export class TracePageReportCompatibilityError extends Error {
   constructor(
@@ -26,30 +25,30 @@ function pageSemanticsAreValid(report: TracePageReport): boolean {
   if (
     page.returnedCount !== events.length ||
     report.integrity.eventCount < last.seq ||
-    (report.integrity.eventCount === last.seq &&
-      report.integrity.headHash !== last.eventHash) ||
+    (report.integrity.eventCount === last.seq && report.integrity.headHash !== last.eventHash) ||
     first.seq <= page.afterSeq ||
     (page.afterSeq === 0) !== (page.afterEventHash === null) ||
     (first.seq === page.afterSeq + 1 &&
-      page.afterEventHash !== null && first.previousHash !== page.afterEventHash) ||
+      page.afterEventHash !== null &&
+      first.previousHash !== page.afterEventHash) ||
     page.hasMore !== (page.nextCursor !== null)
   ) {
     return false;
   }
   if (
     report.filter !== undefined &&
-    (
-      events.some((event) => !report.filter!.eventTypes.includes(event.type)) ||
-      report.filter.eventTypes.some((eventType, index) =>
-        index > 0 && report.filter!.eventTypes[index - 1]! >= eventType)
-    )
+    (events.some((event) => !report.filter!.eventTypes.includes(event.type)) ||
+      report.filter.eventTypes.some(
+        (eventType, index) => index > 0 && report.filter!.eventTypes[index - 1]! >= eventType,
+      ))
   ) {
     return false;
   }
   if (page.nextCursor === null) return true;
   const cursor = decodeTraceCursor(page.nextCursor);
   const filterEventTypes = report.filter?.eventTypes;
-  return cursor !== null &&
+  return (
+    cursor !== null &&
     cursor.projectId === report.projectId &&
     cursor.runId === report.runId &&
     cursor.eventCount === report.integrity.eventCount &&
@@ -61,7 +60,8 @@ function pageSemanticsAreValid(report: TracePageReport): boolean {
       ? cursor.eventTypes === undefined
       : cursor.eventTypes !== undefined &&
         cursor.eventTypes.length === filterEventTypes.length &&
-        cursor.eventTypes.every((eventType, index) => eventType === filterEventTypes[index]));
+        cursor.eventTypes.every((eventType, index) => eventType === filterEventTypes[index]))
+  );
 }
 
 export function readTracePageReport(value: unknown): TracePageReport {
@@ -73,11 +73,12 @@ export function readTracePageReport(value: unknown): TracePageReport {
     semantics: (report) =>
       areTraceEventsValid(report.events, report.projectId, report.runId) &&
       pageSemanticsAreValid(report),
-    error: (failure, message) => new TracePageReportCompatibilityError(
-      failure === "unsupported_version"
-        ? "trace_page_report_schema_unsupported"
-        : "trace_page_report_invalid",
-      message,
-    ),
+    error: (failure, message) =>
+      new TracePageReportCompatibilityError(
+        failure === "unsupported_version"
+          ? "trace_page_report_schema_unsupported"
+          : "trace_page_report_invalid",
+        message,
+      ),
   });
 }

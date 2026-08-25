@@ -39,7 +39,7 @@ export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.
     "Pods",
     "vendor",
   ]),
-  excludedPaths: Object.freeze([".lervo/state"]),
+  excludedPaths: Object.freeze([".lervo/data", ".lervo/state"]),
   maxEntries: 20_000,
   maxBytes: 256 * 1024 * 1024,
 });
@@ -111,9 +111,7 @@ export async function captureRepositorySnapshot(
     const rootStats = await lstat(root);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error("unsafe root");
   } catch {
-    throw new RepositorySnapshotError(
-      "The repository snapshot root is not a safe real directory.",
-    );
+    throw new RepositorySnapshotError("The repository snapshot root is not a safe real directory.");
   }
   const files: Record<string, string> = Object.create(null) as Record<string, string>;
   let fileCount = 0;
@@ -124,9 +122,7 @@ export async function captureRepositorySnapshot(
     try {
       entries = await readdir(directory, { withFileTypes: true });
     } catch {
-      throw new RepositorySnapshotError(
-        "Could not read the repository snapshot.",
-      );
+      throw new RepositorySnapshotError("Could not read the repository snapshot.");
     }
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
@@ -141,9 +137,7 @@ export async function captureRepositorySnapshot(
       }
       fileCount += 1;
       if (fileCount > resolvedPolicy.maxEntries) {
-        throw new RepositorySnapshotError(
-          "The repository snapshot file-count limit was exceeded.",
-        );
+        throw new RepositorySnapshotError("The repository snapshot file-count limit was exceeded.");
       }
       if (entry.isSymbolicLink()) {
         const target = await readlink(absolutePath);
@@ -169,17 +163,14 @@ export async function captureRepositorySnapshot(
         }
         byteCount += bytes.byteLength;
         if (byteCount > resolvedPolicy.maxBytes) {
-          throw new RepositorySnapshotError(
-            "The repository snapshot byte limit was exceeded.",
-          );
+          throw new RepositorySnapshotError("The repository snapshot byte limit was exceeded.");
         }
         files[path] = sha256(bytes);
       } catch (error) {
         if (error instanceof RepositorySnapshotError) throw error;
-        throw new RepositorySnapshotError(
-          "Could not snapshot the repository file safely.",
-          { cause: error },
-        );
+        throw new RepositorySnapshotError("Could not snapshot the repository file safely.", {
+          cause: error,
+        });
       }
     }
   }
@@ -199,9 +190,7 @@ export function changedRepositoryPaths(
   after: RepositorySnapshot,
 ): string[] {
   const paths = new Set([...Object.keys(before.files), ...Object.keys(after.files)]);
-  return [...paths]
-    .filter((path) => before.files[path] !== after.files[path])
-    .sort();
+  return [...paths].filter((path) => before.files[path] !== after.files[path]).sort();
 }
 
 export interface ManagedRepositoryChangeInspection {

@@ -83,7 +83,8 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
   }
 
   private assertOpen(): void {
-    if (this.closed) throw new InteractionSQLiteError("closed", "The Interaction SQLite store is closed.");
+    if (this.closed)
+      throw new InteractionSQLiteError("closed", "The Interaction SQLite store is closed.");
   }
 
   async claimInbound(input: {
@@ -121,7 +122,10 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
       }
       const outbound = this.outbox.readForSource(input.event, input.policy.roleId);
       if ((decision.action === "respond") !== (outbound !== null)) {
-        throw new InteractionSQLiteError("integrity_failed", "The decision and outbox relation differs.");
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The decision and outbox relation differs.",
+        );
       }
       return { status: "completed", decision, outbound };
     });
@@ -148,7 +152,10 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     this.transaction.write(() => {
       const event = this.inbox.leasedEvent(input);
       if ((input.decision.action === "respond") !== (input.outbound !== null)) {
-        throw new InteractionSQLiteError("integrity_failed", "The participation action and outbound presence do not agree.");
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The participation action and outbound presence do not agree.",
+        );
       }
       this.decisions.insert({
         event,
@@ -215,13 +222,19 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
   checkIntegrity(): InteractionSQLiteIntegrityReport {
     this.assertOpen();
     if (this.database.prepare("PRAGMA quick_check;").get()?.quick_check !== "ok") {
-      throw new InteractionSQLiteError("integrity_failed", "The Interaction SQLite quick_check failed.");
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The Interaction SQLite quick_check failed.",
+      );
     }
-    const version = this.database.prepare(
-      "SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'",
-    ).get()?.value;
+    const version = this.database
+      .prepare("SELECT value FROM interaction_meta WHERE key = 'storage_schema_version'")
+      .get()?.value;
     if (version !== String(interactionSQLiteSchemaVersion)) {
-      throw new InteractionSQLiteError("integrity_failed", "The Interaction SQLite metadata is invalid.");
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The Interaction SQLite metadata is invalid.",
+      );
     }
     const requiredTriggers = new Set([
       "conversation_inbox_identity_immutable",
@@ -233,13 +246,16 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
       "conversation_outbox_lifecycle_guard",
       "conversation_outbox_no_delete",
     ]);
-    for (const row of this.database.prepare(
-      "SELECT name FROM sqlite_schema WHERE type = 'trigger'",
-    ).all()) {
+    for (const row of this.database
+      .prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'")
+      .all()) {
       if (typeof row.name === "string") requiredTriggers.delete(row.name);
     }
     if (requiredTriggers.size !== 0) {
-      throw new InteractionSQLiteError("integrity_failed", "An Interaction append-only trigger is missing.");
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "An Interaction append-only trigger is missing.",
+      );
     }
     return this.counts();
   }
@@ -248,7 +264,10 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     this.assertOpen();
     this.checkIntegrity();
     if (this.database.prepare("PRAGMA foreign_key_check;").all().length !== 0) {
-      throw new InteractionSQLiteError("integrity_failed", "An Interaction foreign key is corrupted.");
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "An Interaction foreign key is corrupted.",
+      );
     }
     const inbox = this.inbox.auditAll();
     this.decisions.auditAll();
@@ -260,7 +279,10 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
         (coordinate.status === "completed") !== (decision !== null) ||
         (decision?.action === "respond") !== (outbound !== null)
       ) {
-        throw new InteractionSQLiteError("integrity_failed", "The Interaction completion source relation differs.");
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The Interaction completion source relation differs.",
+        );
       }
     }
     return this.counts();
@@ -270,7 +292,10 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     const count = (table: string): number => {
       const value = this.database.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get()?.count;
       if (typeof value !== "number" || !Number.isSafeInteger(value)) {
-        throw new InteractionSQLiteError("integrity_failed", "The Interaction row count is invalid.");
+        throw new InteractionSQLiteError(
+          "integrity_failed",
+          "The Interaction row count is invalid.",
+        );
       }
       return value;
     };

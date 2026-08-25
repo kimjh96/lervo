@@ -10,9 +10,7 @@ import {
 } from "./durable-filesystem.js";
 import { absoluteRepositoryPath } from "./filesystem.js";
 import { sha256 } from "./hash.js";
-import {
-  LEGACY_MIGRATION_MARKER_PATH,
-} from "./legacy-registry-apply-preflight.js";
+import { LEGACY_MIGRATION_MARKER_PATH } from "./legacy-registry-apply-preflight.js";
 import type { PreparedLegacySidecar } from "./legacy-registry-apply-validation.js";
 import { rollbackLegacyRegistryTransition } from "./legacy-registry-rollback.js";
 import {
@@ -43,9 +41,7 @@ export async function publishLegacyRegistryMigration(input: {
   eventRecorder: DurableLegacyRegistryMigrationEventRecorder;
   verifyBeforeTransition: () => Promise<void>;
   verifyAfterTransition: () => Promise<void>;
-  failureInjector?: (
-    checkpoint: LegacyRegistryMigrationCheckpoint,
-  ) => void | Promise<void>;
+  failureInjector?: (checkpoint: LegacyRegistryMigrationCheckpoint) => void | Promise<void>;
 }): Promise<void> {
   const lervoDirectory = absoluteRepositoryPath(input.root, ".lervo");
   const stagingRelative = `.lervo/.legacy-document-migration-${input.planId}-${randomUUID()}`;
@@ -124,10 +120,7 @@ export async function publishLegacyRegistryMigration(input: {
     await invokeCheckpoint(input.failureInjector, "sidecars_published");
 
     phase = "deactivate";
-    await rename(
-      absoluteRepositoryPath(input.root, ".lervo/documents.yaml"),
-      stagedSource,
-    );
+    await rename(absoluteRepositoryPath(input.root, ".lervo/documents.yaml"), stagedSource);
     sourceDeactivated = true;
     await syncDirectory(lervoDirectory);
     await invokeCheckpoint(input.failureInjector, "legacy_deactivated");
@@ -143,12 +136,14 @@ export async function publishLegacyRegistryMigration(input: {
     phase = "finalize";
     await rm(staging, { recursive: true });
     stagingCreated = false;
-    if (!await removeFileIfUnchanged({
-      root: input.root,
-      path: LEGACY_MIGRATION_MARKER_PATH,
-      contentHash: markerHash,
-      maximumBytes: 4096,
-    })) {
+    if (
+      !(await removeFileIfUnchanged({
+        root: input.root,
+        path: LEGACY_MIGRATION_MARKER_PATH,
+        contentHash: markerHash,
+        maximumBytes: 4096,
+      }))
+    ) {
       throw new DocumentMigrationError(
         "migration_finalization_failed",
         "The transaction marker could not be removed safely after recording the layout migration event.",
@@ -175,7 +170,7 @@ export async function publishLegacyRegistryMigration(input: {
   } catch (error) {
     if (eventRecorded) {
       throw error instanceof DocumentMigrationError &&
-          error.code === "migration_finalization_failed"
+        error.code === "migration_finalization_failed"
         ? error
         : new DocumentMigrationError(
             "migration_finalization_failed",

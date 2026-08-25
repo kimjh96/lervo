@@ -12,8 +12,12 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
@@ -26,20 +30,38 @@ function timestamp(value) {
 export function validateFirstPublicationWorkflowActivationReceiptDocument(receipt) {
   if (
     !exactKeys(receipt, [
-      "schemaVersion", "status", "receiptType", "planDigest", "permitDigest",
-      "readinessDigest", "controlsRecheckedAt", "workflow", "appliedAt",
-      "activation", "externalSettings", "publication", "receiptDigest",
-    ]) || receipt.schemaVersion !== 1 || receipt.status !== "applied" ||
+      "schemaVersion",
+      "status",
+      "receiptType",
+      "planDigest",
+      "permitDigest",
+      "readinessDigest",
+      "controlsRecheckedAt",
+      "workflow",
+      "appliedAt",
+      "activation",
+      "externalSettings",
+      "publication",
+      "receiptDigest",
+    ]) ||
+    receipt.schemaVersion !== 1 ||
+    receipt.status !== "applied" ||
     receipt.receiptType !== "first_publication_stage_only_workflow_activation" ||
-    ![receipt.planDigest, receipt.permitDigest, receipt.readinessDigest, receipt.receiptDigest]
-      .every((digest) => digestPattern.test(digest ?? "")) ||
+    ![
+      receipt.planDigest,
+      receipt.permitDigest,
+      receipt.readinessDigest,
+      receipt.receiptDigest,
+    ].every((digest) => digestPattern.test(digest ?? "")) ||
     !exactKeys(receipt.workflow, ["byteCount", "sha256"]) ||
-    !Number.isSafeInteger(receipt.workflow.byteCount) || receipt.workflow.byteCount < 1 ||
+    !Number.isSafeInteger(receipt.workflow.byteCount) ||
+    receipt.workflow.byteCount < 1 ||
     !digestPattern.test(receipt.workflow.sha256 ?? "") ||
     receipt.activation !== "stage_only_workflow_active" ||
     receipt.externalSettings !== "observed_not_changed" ||
     receipt.publication !== "not_attempted"
-  ) fail();
+  )
+    fail();
   if (timestamp(receipt.appliedAt) < timestamp(receipt.controlsRecheckedAt)) fail();
   const { receiptDigest, ...body } = receipt;
   if (receiptDigest !== canonicalDigest(body)) fail();

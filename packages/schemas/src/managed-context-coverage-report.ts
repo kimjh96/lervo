@@ -145,8 +145,14 @@ export const managedContextCoverageReportSchema = {
     capabilities: {
       type: "object",
       properties: {
-        controlledContextDelivery: { type: "string", enum: ["observed", "supported_no_observation"] },
-        explicitOutputReference: { type: "string", enum: ["observed", "supported_no_observation", "unavailable"] },
+        controlledContextDelivery: {
+          type: "string",
+          enum: ["observed", "supported_no_observation"],
+        },
+        explicitOutputReference: {
+          type: "string",
+          enum: ["observed", "supported_no_observation", "unavailable"],
+        },
         internalUse: { const: "unsupported" },
       },
       required: ["controlledContextDelivery", "explicitOutputReference", "internalUse"],
@@ -181,7 +187,5 @@ export const managedContextCoverageReportSchema = {
   additionalProperties: false,
 } as const;
 
-export type ManagedContextCoverageReport = FromSchema<
-  typeof managedContextCoverageReportSchema
->;
+export type ManagedContextCoverageReport = FromSchema<typeof managedContextCoverageReportSchema>;
 export type ManagedContextDocumentCoverage = ManagedContextCoverageReport["documents"][number];

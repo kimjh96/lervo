@@ -95,19 +95,34 @@ export class KnowledgeGraphContractError extends Error {
 
 function isSafeRepositoryPath(value: string): boolean {
   if (value === ".") return true;
-  return !value.startsWith("/") && !/^[A-Za-z]:/.test(value) && !value.includes("\\") &&
-    !value.endsWith("/") && value.split("/").every((part) => part !== "" && part !== "." && part !== "..");
+  return (
+    !value.startsWith("/") &&
+    !/^[A-Za-z]:/.test(value) &&
+    !value.includes("\\") &&
+    !value.endsWith("/") &&
+    value.split("/").every((part) => part !== "" && part !== "." && part !== "..")
+  );
 }
 
 export function assertKnowledgeGraphNode(node: KnowledgeGraphNode): void {
-  if (!knowledgeGraphNodeKinds.includes(node.kind) ||
-    typeof node.id !== "string" || node.id.length < 1 || node.id.length > 500 ||
+  if (
+    !knowledgeGraphNodeKinds.includes(node.kind) ||
+    typeof node.id !== "string" ||
+    node.id.length < 1 ||
+    node.id.length > 500 ||
     /[\u0000-\u001f\u007f]/.test(node.id) ||
-    (node.kind === "repository_path" && !isSafeRepositoryPath(node.id))) {
-    throw new KnowledgeGraphContractError("invalid_node", "The knowledge graph node coordinates are invalid.");
+    (node.kind === "repository_path" && !isSafeRepositoryPath(node.id))
+  ) {
+    throw new KnowledgeGraphContractError(
+      "invalid_node",
+      "The knowledge graph node coordinates are invalid.",
+    );
   }
 }
 
-export function sameKnowledgeGraphNode(left: KnowledgeGraphNode, right: KnowledgeGraphNode): boolean {
+export function sameKnowledgeGraphNode(
+  left: KnowledgeGraphNode,
+  right: KnowledgeGraphNode,
+): boolean {
   return left.kind === right.kind && left.id === right.id;
 }

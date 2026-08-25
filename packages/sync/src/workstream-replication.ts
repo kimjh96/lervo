@@ -29,7 +29,8 @@ export type WorkstreamReplicationCycleResult =
 
 export class WorkstreamReplicationCycleError extends Error {
   constructor(
-    readonly code: "hub_unavailable" | "invalid_hub_response" | "local_state_invalid" | "replication_conflict",
+    readonly code:
+      "hub_unavailable" | "invalid_hub_response" | "local_state_invalid" | "replication_conflict",
     message: string,
     options?: ErrorOptions,
   ) {
@@ -65,7 +66,11 @@ export async function runWorkstreamReplicationCycle(input: {
   try {
     revisions = await input.local.readRevisionChain();
   } catch (error) {
-    throw new WorkstreamReplicationCycleError("local_state_invalid", "The local workstream chain is invalid.", { cause: error });
+    throw new WorkstreamReplicationCycleError(
+      "local_state_invalid",
+      "The local workstream chain is invalid.",
+      { cause: error },
+    );
   }
   let publishedCount = 0;
   for (const revision of revisions) {
@@ -82,7 +87,11 @@ export async function runWorkstreamReplicationCycle(input: {
     try {
       response = await input.transport.publishWorkstream(request);
     } catch (error) {
-      throw new WorkstreamReplicationCycleError("hub_unavailable", "The Hub workstream publication failed.", { cause: error });
+      throw new WorkstreamReplicationCycleError(
+        "hub_unavailable",
+        "The Hub workstream publication failed.",
+        { cause: error },
+      );
     }
     const body = bodyOf({
       response,
@@ -90,14 +99,20 @@ export async function runWorkstreamReplicationCycle(input: {
       expectedPeerIdentityHash: input.expectedPeerIdentityHash,
     });
     if (!validateSchema("workstreamReplicationPublishResponse", body).valid) {
-      throw new WorkstreamReplicationCycleError("invalid_hub_response", "The Hub workstream publication response is invalid.");
+      throw new WorkstreamReplicationCycleError(
+        "invalid_hub_response",
+        "The Hub workstream publication response is invalid.",
+      );
     }
     const result = body as WorkstreamReplicationPublishResponse;
     if (
       result.projectId !== input.registration.project.projectId ||
       result.repositoryIdentityHash !== input.registration.projectIdentityHash
     ) {
-      throw new WorkstreamReplicationCycleError("invalid_hub_response", "The Hub workstream publication response coordinates are invalid.");
+      throw new WorkstreamReplicationCycleError(
+        "invalid_hub_response",
+        "The Hub workstream publication response coordinates are invalid.",
+      );
     }
     if (result.status !== "duplicate") publishedCount += 1;
   }
@@ -106,7 +121,11 @@ export async function runWorkstreamReplicationCycle(input: {
   try {
     readResponse = await input.transport.readWorkstream();
   } catch (error) {
-    throw new WorkstreamReplicationCycleError("hub_unavailable", "The Hub workstream query failed.", { cause: error });
+    throw new WorkstreamReplicationCycleError(
+      "hub_unavailable",
+      "The Hub workstream query failed.",
+      { cause: error },
+    );
   }
   const body = bodyOf({
     response: readResponse,
@@ -114,18 +133,27 @@ export async function runWorkstreamReplicationCycle(input: {
     expectedPeerIdentityHash: input.expectedPeerIdentityHash,
   });
   if (!validateSchema("workstreamReplicationReadResponse", body).valid) {
-    throw new WorkstreamReplicationCycleError("invalid_hub_response", "The Hub workstream query response is invalid.");
+    throw new WorkstreamReplicationCycleError(
+      "invalid_hub_response",
+      "The Hub workstream query response is invalid.",
+    );
   }
   const remote = body as WorkstreamReplicationReadResponse;
   if (
     remote.projectId !== input.registration.project.projectId ||
     remote.repositoryIdentityHash !== input.registration.projectIdentityHash
   ) {
-    throw new WorkstreamReplicationCycleError("invalid_hub_response", "The Hub workstream query response coordinates are invalid.");
+    throw new WorkstreamReplicationCycleError(
+      "invalid_hub_response",
+      "The Hub workstream query response coordinates are invalid.",
+    );
   }
   if (remote.status === "not_found") {
     if (revisions.length !== 0) {
-      throw new WorkstreamReplicationCycleError("replication_conflict", "The Hub lost a successfully published workstream revision.");
+      throw new WorkstreamReplicationCycleError(
+        "replication_conflict",
+        "The Hub lost a successfully published workstream revision.",
+      );
     }
     return { status: "absent", publishedCount: 0, imported: false, headCount: 0 };
   }
@@ -133,7 +161,10 @@ export async function runWorkstreamReplicationCycle(input: {
     return { status: "divergent", publishedCount, imported: false, headCount: remote.heads.length };
   }
   if (remote.snapshot === null || remote.heads.length !== 1) {
-    throw new WorkstreamReplicationCycleError("invalid_hub_response", "The current Hub workstream response is incomplete.");
+    throw new WorkstreamReplicationCycleError(
+      "invalid_hub_response",
+      "The current Hub workstream response is incomplete.",
+    );
   }
   const head = remote.heads[0]!;
   const localCurrent = revisions.at(-1) ?? null;
@@ -162,7 +193,11 @@ export async function runWorkstreamReplicationCycle(input: {
       previousSnapshotContentHash: head.previousSnapshotContentHash,
     });
   } catch (error) {
-    throw new WorkstreamReplicationCycleError("local_state_invalid", "The replicated workstream could not be committed locally.", { cause: error });
+    throw new WorkstreamReplicationCycleError(
+      "local_state_invalid",
+      "The replicated workstream could not be committed locally.",
+      { cause: error },
+    );
   }
   return { status: "imported", publishedCount, imported: true, headCount: 1 };
 }

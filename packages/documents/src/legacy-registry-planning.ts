@@ -12,12 +12,12 @@ import { sha256 } from "./hash.js";
 import { legacyRegistryEntryBytes } from "./integrity.js";
 import { DocumentMigrationError } from "./types.js";
 
-export type LegacyMigrationPathSnapshot =
-  LegacyRegistryMigrationPlan["archiveTarget"]["expected"];
+export type LegacyMigrationPathSnapshot = LegacyRegistryMigrationPlan["archiveTarget"]["expected"];
 
 export function canonicalLegacyRecordPath(path: string): boolean {
-  return path !== "." && !path.endsWith("/") && !path.includes("\\") &&
-    posix.normalize(path) === path;
+  return (
+    path !== "." && !path.endsWith("/") && !path.includes("\\") && posix.normalize(path) === path
+  );
 }
 
 export function legacyRecordWarnings(record: DocumentRecord): string[] {

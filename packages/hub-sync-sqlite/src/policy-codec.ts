@@ -32,9 +32,13 @@ export function assertRegisteredPolicyProject(
   destinationId: string,
   target: RemoteCommandTarget,
 ): void {
-  const row = database.prepare(`
+  const row = database
+    .prepare(
+      `
     SELECT identity_hash FROM hub_projects WHERE destination_id = ? AND project_id = ?
-  `).get(destinationId, target.projectId);
+  `,
+    )
+    .get(destinationId, target.projectId);
   if (row === undefined) {
     throw new HubPolicyError(
       "policy_registration_required",
@@ -62,7 +66,10 @@ export function parsePolicySnapshot(row: SQLiteRow): SignedPolicySnapshot {
     envelope.snapshot.snapshotId !== stringField(row, "snapshot_id") ||
     envelope.snapshot.sequence !== integerField(row, "sequence")
   ) {
-    throw new HubSyncStoreError("integrity_failed", "The duplicate Hub policy snapshot coordinates differ.");
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The duplicate Hub policy snapshot coordinates differ.",
+    );
   }
   return structuredClone(envelope);
 }
@@ -75,7 +82,10 @@ export function assertPolicySnapshotTarget(
     envelope.snapshot.target.projectId !== target.projectId ||
     envelope.snapshot.target.projectIdentityHash !== target.projectIdentityHash
   ) {
-    throw new HubSyncStoreError("integrity_failed", "The Hub policy snapshot target differs from the project.");
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The Hub policy snapshot target differs from the project.",
+    );
   }
 }
 
@@ -97,7 +107,10 @@ export function parsePolicyApproval(
     envelope.approval.snapshotId !== stringField(row, "snapshot_id") ||
     envelope.approval.commandId !== stringField(row, "command_id")
   ) {
-    throw new HubSyncStoreError("integrity_failed", "The duplicate Hub policy approval coordinates differ.");
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The duplicate Hub policy approval coordinates differ.",
+    );
   }
   return structuredClone(envelope);
 }
@@ -114,15 +127,22 @@ export function parsePolicyRevocation(
       approval: approval.approval,
     });
   } catch (error) {
-    throw new HubSyncStoreError("integrity_failed", "The Hub policy revocation source is invalid.", {
-      cause: error,
-    });
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The Hub policy revocation source is invalid.",
+      {
+        cause: error,
+      },
+    );
   }
   if (
     envelope.revocation.revocationId !== stringField(row, "revocation_id") ||
     envelope.revocation.approvalId !== stringField(row, "approval_id")
   ) {
-    throw new HubSyncStoreError("integrity_failed", "The duplicate Hub policy revocation coordinates differ.");
+    throw new HubSyncStoreError(
+      "integrity_failed",
+      "The duplicate Hub policy revocation coordinates differ.",
+    );
   }
   return structuredClone(envelope);
 }

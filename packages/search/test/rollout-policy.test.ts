@@ -104,16 +104,18 @@ describe("search rollout review policy", () => {
       reviewDecisionEligibility: "eligible",
       decisionSelection: "not_performed",
     });
-    expect(() => createSearchRolloutReviewPolicy({
-      projectId: "prj_search_01",
-      allowedReviewerIds: ["reviewer_rollout"],
-      allowedCandidateIds: [rolloutTarget.candidateId],
-      keepMinimumAssessedAttempts: 1,
-      keepMaximumFailedAttempts: 1,
-      rollbackMinimumAssessedAttempts: 1,
-      rollbackMinimumFailedAttempts: 1,
-      authoredBy: "reviewer_rollout",
-      createdAt: new Date("2026-08-20T09:00:00.000Z"),
-    })).toThrow(/decision criteria/);
+    expect(() =>
+      createSearchRolloutReviewPolicy({
+        projectId: "prj_search_01",
+        allowedReviewerIds: ["reviewer_rollout"],
+        allowedCandidateIds: [rolloutTarget.candidateId],
+        keepMinimumAssessedAttempts: 1,
+        keepMaximumFailedAttempts: 1,
+        rollbackMinimumAssessedAttempts: 1,
+        rollbackMinimumFailedAttempts: 1,
+        authoredBy: "reviewer_rollout",
+        createdAt: new Date("2026-08-20T09:00:00.000Z"),
+      }),
+    ).toThrow(/decision criteria/);
   });
 });

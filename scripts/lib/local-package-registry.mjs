@@ -36,7 +36,7 @@ export async function startLocalPackageRegistry(registryRoot) {
     url: `http://127.0.0.1:${address.port}`,
     async close() {
       await new Promise((resolve, reject) => {
-        server.close((error) => error ? reject(error) : resolve());
+        server.close((error) => (error ? reject(error) : resolve()));
       });
     },
   };

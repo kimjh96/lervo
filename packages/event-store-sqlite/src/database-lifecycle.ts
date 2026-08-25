@@ -28,9 +28,7 @@ export function bindDatabaseMetadata(database: DatabaseSync, projectId: string):
     const getMeta = database.prepare("SELECT value FROM store_meta WHERE key = ?");
     const storedVersion = getMeta.get("storage_schema_version")?.value;
     const storedProjectId = getMeta.get("project_id")?.value;
-    const insertMeta = database.prepare(
-      "INSERT INTO store_meta (key, value) VALUES (?, ?)",
-    );
+    const insertMeta = database.prepare("INSERT INTO store_meta (key, value) VALUES (?, ?)");
     if (storedVersion === undefined) {
       insertMeta.run("storage_schema_version", String(storageSchemaVersion));
     } else {
@@ -46,10 +44,9 @@ export function bindDatabaseMetadata(database: DatabaseSync, projectId: string):
         );
       }
       if (parsedVersion < storageSchemaVersion) {
-        database.prepare("UPDATE store_meta SET value = ? WHERE key = ?").run(
-          String(storageSchemaVersion),
-          "storage_schema_version",
-        );
+        database
+          .prepare("UPDATE store_meta SET value = ? WHERE key = ?")
+          .run(String(storageSchemaVersion), "storage_schema_version");
       }
     }
     if (storedProjectId === undefined) {

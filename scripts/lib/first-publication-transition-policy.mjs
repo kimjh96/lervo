@@ -1,11 +1,8 @@
 import { canonicalDigest } from "./release-artifact-manifest.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { inspectFirstPublicationPublicRelease } from
-  "./first-publication-public-release-policy.mjs";
-import { resolveFirstPublicationTransitionEvidence } from
-  "./first-publication-transition-evidence.mjs";
+import { inspectFirstPublicationPublicRelease } from "./first-publication-public-release-policy.mjs";
+import { resolveFirstPublicationTransitionEvidence } from "./first-publication-transition-evidence.mjs";
 import {
   inspectFirstPublicationGitHubStageEnvironment,
   inspectFirstPublicationNpmStageTrust,
@@ -66,18 +63,15 @@ export function createFirstPublicationTransitionReport({
     target: bootstrap.target,
     artifact: bootstrap.release.artifact,
   });
-  const publicReleaseReasons = [...new Set(
-    publicRelease.checks.flatMap(({ reasons }) => reasons),
-  )];
+  const publicReleaseReasons = [...new Set(publicRelease.checks.flatMap(({ reasons }) => reasons))];
   const checks = [
-    check("exact_public_release",
-      publicRelease.outcome === "published" ? [] : publicReleaseReasons),
+    check(
+      "exact_public_release",
+      publicRelease.outcome === "published" ? [] : publicReleaseReasons,
+    ),
     inspectFirstPublicationStageOnlyWorkflow(workflow),
     inspectFirstPublicationNpmStageTrust(npmObservation, bootstrap.identity.repository),
-    inspectFirstPublicationGitHubStageEnvironment(
-      githubObservation,
-      bootstrap.identity.repository,
-    ),
+    inspectFirstPublicationGitHubStageEnvironment(githubObservation, bootstrap.identity.repository),
   ];
   const body = {
     schemaVersion: 2,

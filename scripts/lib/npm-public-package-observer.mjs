@@ -11,9 +11,7 @@ function observation(state, reason) {
   };
 }
 
-export async function observeNpmPublicPackage({
-  request = globalThis.fetch,
-} = {}) {
+export async function observeNpmPublicPackage({ request = globalThis.fetch } = {}) {
   let response;
   try {
     response = await request(packageUrl, {

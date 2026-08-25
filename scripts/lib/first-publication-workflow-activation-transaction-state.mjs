@@ -13,9 +13,7 @@ function fail(code, message) {
   throw new FirstPublicationBootstrapError(code, message);
 }
 
-export async function inspectFirstPublicationWorkflowActivationTransactionState(
-  transactionRoot,
-) {
+export async function inspectFirstPublicationWorkflowActivationTransactionState(transactionRoot) {
   if (!isAbsolute(transactionRoot ?? "")) {
     fail(
       "first_publication_workflow_activation_post_apply_transaction_invalid",

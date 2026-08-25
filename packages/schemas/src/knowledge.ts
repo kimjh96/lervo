@@ -76,13 +76,7 @@ export const knowledgeCandidateSchema = {
         decisionArtifactId: deliberationArtifactIdSchema,
         decisionContent: artifactCoordinateSchema,
       },
-      required: [
-        "kind",
-        "deliberationId",
-        "outcomeId",
-        "decisionArtifactId",
-        "decisionContent",
-      ],
+      required: ["kind", "deliberationId", "outcomeId", "decisionArtifactId", "decisionContent"],
       additionalProperties: false,
     },
     paths: {

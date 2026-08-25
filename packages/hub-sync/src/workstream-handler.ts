@@ -9,7 +9,12 @@ import type { HubWorkstreamReplicationStore } from "./store.js";
 
 export class HubWorkstreamReplicationError extends Error {
   constructor(
-    readonly code: "invalid_workstream" | "registration_required" | "unknown_parent" | "head_limit_exceeded" | "workstream_conflict",
+    readonly code:
+      | "invalid_workstream"
+      | "registration_required"
+      | "unknown_parent"
+      | "head_limit_exceeded"
+      | "workstream_conflict",
     message: string,
   ) {
     super(message);
@@ -28,7 +33,10 @@ export async function handleWorkstreamPublish(input: {
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u.test(input.publishedAt) ||
     !Number.isFinite(Date.parse(input.publishedAt))
   ) {
-    throw new HubWorkstreamReplicationError("invalid_workstream", "The workstream replication request is invalid.");
+    throw new HubWorkstreamReplicationError(
+      "invalid_workstream",
+      "The workstream replication request is invalid.",
+    );
   }
   return input.store.publishWorkstream({
     destinationId: input.destinationId,

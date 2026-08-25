@@ -14,12 +14,9 @@ import {
   workflowExecutionAttempt,
   workflowExecutionRunId,
 } from "./fixtures/first-publication-workflow-execution.mjs";
-import { workflowReleaseTag } from
-  "./fixtures/first-publication-workflow-reachability.mjs";
-import { workflowRemoteSourceCommit } from
-  "./fixtures/first-publication-workflow-remote-deployment.mjs";
-import { workflowActivationRepository } from
-  "./fixtures/first-publication-workflow-activation.mjs";
+import { workflowReleaseTag } from "./fixtures/first-publication-workflow-reachability.mjs";
+import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowActivationRepository } from "./fixtures/first-publication-workflow-activation.mjs";
 
 function input(fixture, overrides = {}) {
   return {
@@ -64,9 +61,12 @@ describe("first-publication workflow execution evidence", () => {
     const fixture = await createWorkflowExecutionFixture();
     try {
       assert.throws(
-        () => createFirstPublicationWorkflowExecutionEvidence(input(fixture, {
-          attempt: 1,
-        })),
+        () =>
+          createFirstPublicationWorkflowExecutionEvidence(
+            input(fixture, {
+              attempt: 1,
+            }),
+          ),
         { code: "first_publication_workflow_execution_observation_invalid" },
       );
       for (const workflowExecutionObservation of [
@@ -90,9 +90,12 @@ describe("first-publication workflow execution evidence", () => {
         }),
       ]) {
         assert.throws(
-          () => createFirstPublicationWorkflowExecutionEvidence(input(fixture, {
-            workflowExecutionObservation,
-          })),
+          () =>
+            createFirstPublicationWorkflowExecutionEvidence(
+              input(fixture, {
+                workflowExecutionObservation,
+              }),
+            ),
           { code: "first_publication_workflow_execution_observation_invalid" },
         );
       }
@@ -109,9 +112,12 @@ describe("first-publication workflow execution evidence", () => {
       const { evidenceDigest: _upstreamDigest, ...upstreamBody } = forgedUpstream;
       forgedUpstream.evidenceDigest = canonicalDigest(upstreamBody);
       assert.throws(
-        () => createFirstPublicationWorkflowExecutionEvidence(input(fixture, {
-          reachabilityReport: forgedUpstream,
-        })),
+        () =>
+          createFirstPublicationWorkflowExecutionEvidence(
+            input(fixture, {
+              reachabilityReport: forgedUpstream,
+            }),
+          ),
         { code: "first_publication_workflow_reachability_report_invalid" },
       );
 
@@ -123,10 +129,7 @@ describe("first-publication workflow execution evidence", () => {
       const { evidenceDigest: _reportDigest, ...reportBody } = forgedReport;
       forgedReport.evidenceDigest = canonicalDigest(reportBody);
       assert.throws(
-        () => validateFirstPublicationWorkflowExecutionEvidence(
-          forgedReport,
-          evidenceInput,
-        ),
+        () => validateFirstPublicationWorkflowExecutionEvidence(forgedReport, evidenceInput),
         { code: "first_publication_workflow_execution_report_invalid" },
       );
     } finally {

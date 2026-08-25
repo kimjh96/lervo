@@ -5,10 +5,8 @@ import {
   writeFirstPublicationArmingAuthorization,
 } from "./lib/cli-first-publication-arming.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
-import { ReleasePublicationAuthorizationError } from
-  "./lib/release-publication-authorization.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
+import { ReleasePublicationAuthorizationError } from "./lib/release-publication-authorization.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -19,19 +17,17 @@ function failArguments() {
 
 function parseArguments(args) {
   const values = new Map();
-  const allowed = [
-    "--publication-authorization",
-    "--bootstrap",
-    "--decision",
-    "--output",
-  ];
+  const allowed = ["--publication-authorization", "--bootstrap", "--decision", "--output"];
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
     const value = args[index + 1];
     if (
-      !allowed.includes(name) || values.has(name) || value === undefined ||
+      !allowed.includes(name) ||
+      values.has(name) ||
+      value === undefined ||
       value.startsWith("--")
-    ) failArguments();
+    )
+      failArguments();
     values.set(name, value);
     index += 1;
   }
@@ -58,9 +54,11 @@ try {
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError ||
     error instanceof ReleasePublicationAuthorizationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_arming_failed: The CLI first-publication execution authorization could not be created.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_arming_failed: The CLI first-publication execution authorization could not be created.",
+    );
   process.exitCode = 1;
 }

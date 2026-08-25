@@ -28,18 +28,23 @@ export function isTraceReportSemanticallyValid(report: TraceReport): boolean {
   const sessionIds = [...new Set(events.map((event) => event.sessionId))];
   if (report.contextCoverage !== undefined) {
     try {
-      if (canonicalJson(report.contextCoverage) !== canonicalJson(projectManagedContextCoverage(events))) {
+      if (
+        canonicalJson(report.contextCoverage) !==
+        canonicalJson(projectManagedContextCoverage(events))
+      ) {
         return false;
       }
     } catch {
       return false;
     }
   }
-  return report.status === expectedTraceStatus(events) &&
+  return (
+    report.status === expectedTraceStatus(events) &&
     report.firstOccurredAt === events[0]!.occurredAt &&
     report.lastOccurredAt === last.occurredAt &&
     report.sessionIds.length === sessionIds.length &&
-    report.sessionIds.every((sessionId, index) => sessionId === sessionIds[index]);
+    report.sessionIds.every((sessionId, index) => sessionId === sessionIds[index])
+  );
 }
 
 export function areTraceEventsValid(
@@ -48,14 +53,18 @@ export function areTraceEventsValid(
   runId: string,
 ): boolean {
   try {
-    if (events.some((event) => {
-      const sanitized = sanitizeEventPayload(event.type, event.payload);
-      return event.projectId !== projectId ||
-        event.runId !== runId ||
-        event.eventHash !== computeEventHash(eventWithoutHash(event)) ||
-        sanitized.redactions.length !== 0 ||
-        canonicalJson(sanitized.payload) !== canonicalJson(event.payload);
-    })) {
+    if (
+      events.some((event) => {
+        const sanitized = sanitizeEventPayload(event.type, event.payload);
+        return (
+          event.projectId !== projectId ||
+          event.runId !== runId ||
+          event.eventHash !== computeEventHash(eventWithoutHash(event)) ||
+          sanitized.redactions.length !== 0 ||
+          canonicalJson(sanitized.payload) !== canonicalJson(event.payload)
+        );
+      })
+    ) {
       return false;
     }
   } catch {

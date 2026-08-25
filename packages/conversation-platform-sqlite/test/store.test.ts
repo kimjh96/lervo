@@ -22,14 +22,16 @@ async function databasePath(): Promise<string> {
 
 const options = (path: string) => ({
   path,
-  conversations: [{
-    platform: "slack" as const,
-    integrationId,
-    tenantKey: "T123",
-    conversationKey: "C123",
-    projectId: "prj_platform01",
-    conversationId: "cnv_platform01",
-  }],
+  conversations: [
+    {
+      platform: "slack" as const,
+      integrationId,
+      tenantKey: "T123",
+      conversationKey: "C123",
+      projectId: "prj_platform01",
+      conversationId: "cnv_platform01",
+    },
+  ],
   participants: [
     {
       platform: "slack" as const,
@@ -130,18 +132,20 @@ describe("SQLite conversation platform state", () => {
     legacy.close();
 
     const store = await SQLiteConversationPlatformStore.open(options(path));
-    await expect(store.mapInbound({
-      platform: "slack",
-      integrationId,
-      tenantKey: "T123",
-      conversationKey: "C123",
-      threadKey: "legacy-thread",
-      sourceMessageKey: "legacy-message-1",
-      replyToMessageKey: null,
-      participantKey: "user:U123",
-      mentionedParticipantKeys: [],
-      actorKindHint: "human",
-    })).resolves.toMatchObject({
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: "legacy-thread",
+        sourceMessageKey: "legacy-message-1",
+        replyToMessageKey: null,
+        participantKey: "user:U123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "human",
+      }),
+    ).resolves.toMatchObject({
       projectId: "prj_platform01",
       threadId: "thd_legacy_thread_01",
       automationDepth: 2,
@@ -149,16 +153,21 @@ describe("SQLite conversation platform state", () => {
     store.close();
     const migrated = new DatabaseSync(path, { readOnly: true });
     expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(2);
-    expect(migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings")
-      .get()?.count).toBe(1);
-    expect(migrated.prepare("SELECT COUNT(*) AS count FROM participant_bindings")
-      .get()?.count).toBe(2);
-    expect(migrated.prepare("SELECT thread_id FROM thread_bindings").get()?.thread_id)
-      .toBe("thd_legacy_thread_01");
-    expect(migrated.prepare("SELECT automation_depth FROM message_correlations")
-      .get()?.automation_depth).toBe(2);
-    expect(migrated.prepare("SELECT status, external_message_key FROM delivery_replay").get())
-      .toEqual({ status: "delivered", external_message_key: "legacy-delivery-1" });
+    expect(
+      migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings").get()?.count,
+    ).toBe(1);
+    expect(
+      migrated.prepare("SELECT COUNT(*) AS count FROM participant_bindings").get()?.count,
+    ).toBe(2);
+    expect(migrated.prepare("SELECT thread_id FROM thread_bindings").get()?.thread_id).toBe(
+      "thd_legacy_thread_01",
+    );
+    expect(
+      migrated.prepare("SELECT automation_depth FROM message_correlations").get()?.automation_depth,
+    ).toBe(2);
+    expect(
+      migrated.prepare("SELECT status, external_message_key FROM delivery_replay").get(),
+    ).toEqual({ status: "delivered", external_message_key: "legacy-delivery-1" });
     migrated.close();
   });
 
@@ -166,35 +175,41 @@ describe("SQLite conversation platform state", () => {
     const path = await databasePath();
     const store = await SQLiteConversationPlatformStore.open({
       path,
-      conversations: [{
+      conversations: [
+        {
+          platform: "teams",
+          integrationId: "itg_platform02",
+          tenantKey: "tenant-1",
+          conversationKey: "channel-1",
+          projectId: "prj_platform01",
+          conversationId: "cnv_platform01",
+        },
+      ],
+      participants: [
+        {
+          platform: "teams",
+          integrationId: "itg_platform02",
+          tenantKey: "tenant-1",
+          participantKey: "user-1",
+          actor: { kind: "human", participantId: "ptc_platform01", roleId: null },
+        },
+      ],
+    });
+
+    await expect(
+      store.mapInbound({
         platform: "teams",
         integrationId: "itg_platform02",
         tenantKey: "tenant-1",
         conversationKey: "channel-1",
-        projectId: "prj_platform01",
-        conversationId: "cnv_platform01",
-      }],
-      participants: [{
-        platform: "teams",
-        integrationId: "itg_platform02",
-        tenantKey: "tenant-1",
+        threadKey: null,
+        sourceMessageKey: "message-1",
+        replyToMessageKey: null,
         participantKey: "user-1",
-        actor: { kind: "human", participantId: "ptc_platform01", roleId: null },
-      }],
-    });
-
-    await expect(store.mapInbound({
-      platform: "teams",
-      integrationId: "itg_platform02",
-      tenantKey: "tenant-1",
-      conversationKey: "channel-1",
-      threadKey: null,
-      sourceMessageKey: "message-1",
-      replyToMessageKey: null,
-      participantKey: "user-1",
-      mentionedParticipantKeys: [],
-      actorKindHint: "human",
-    })).resolves.toMatchObject({
+        mentionedParticipantKeys: [],
+        actorKindHint: "human",
+      }),
+    ).resolves.toMatchObject({
       projectId: "prj_platform01",
       conversationId: "cnv_platform01",
     });
@@ -251,17 +266,19 @@ describe("SQLite conversation platform state", () => {
     });
     expect(reply.threadId).toBe(first.threadId);
     expect(reply.replyToEventId).toBe(eventId);
-    await expect(store.mapOutbound({
-      platform: "slack",
-      integrationId,
-      target: {
+    await expect(
+      store.mapOutbound({
+        platform: "slack",
         integrationId,
-        projectId: "prj_platform01",
-        conversationId: "cnv_platform01",
-        threadId: first.threadId,
-      },
-      actor: { kind: "agent", participantId: "ptc_platform02", roleId: "reviewer" },
-    })).resolves.toMatchObject({
+        target: {
+          integrationId,
+          projectId: "prj_platform01",
+          conversationId: "cnv_platform01",
+          threadId: first.threadId,
+        },
+        actor: { kind: "agent", participantId: "ptc_platform02", roleId: "reviewer" },
+      }),
+    ).resolves.toMatchObject({
       tenantKey: "T123",
       conversationKey: "C123",
       threadKey: "1710000000.000100",
@@ -296,82 +313,113 @@ describe("SQLite conversation platform state", () => {
       conversations: [],
       participants: [],
     });
-    await expect(store.mapInbound({
-      platform: "slack",
-      integrationId,
-      tenantKey: "T123",
-      conversationKey: "C123",
-      threadKey: null,
-      sourceMessageKey: "1710000005.000100",
-      replyToMessageKey: null,
-      participantKey: "user:U123",
-      mentionedParticipantKeys: [],
-      actorKindHint: "human",
-    })).rejects.toMatchObject({ code: "mapping_not_found" });
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "1710000005.000100",
+        replyToMessageKey: null,
+        participantKey: "user:U123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "human",
+      }),
+    ).rejects.toMatchObject({ code: "mapping_not_found" });
     store.close();
   });
 
   it("keeps uncertain sends blocked and successful receipts replayable across restart", async () => {
     const path = await databasePath();
     let store = await SQLiteConversationPlatformStore.open(options(path));
-    await expect(store.begin({
-      platform: "slack", integrationId, outboundId, requestHash,
-      attemptedAt: "2026-08-20T00:00:00.000Z",
-    })).resolves.toEqual({ status: "reserved" });
+    await expect(
+      store.begin({
+        platform: "slack",
+        integrationId,
+        outboundId,
+        requestHash,
+        attemptedAt: "2026-08-20T00:00:00.000Z",
+      }),
+    ).resolves.toEqual({ status: "reserved" });
     store.close();
     store = await SQLiteConversationPlatformStore.open(options(path));
-    await expect(store.begin({
-      platform: "slack", integrationId, outboundId, requestHash,
-      attemptedAt: "2026-08-20T00:00:01.000Z",
-    })).resolves.toEqual({ status: "unknown" });
+    await expect(
+      store.begin({
+        platform: "slack",
+        integrationId,
+        outboundId,
+        requestHash,
+        attemptedAt: "2026-08-20T00:00:01.000Z",
+      }),
+    ).resolves.toEqual({ status: "unknown" });
 
     const deliveredOutbound = `cvo_${"e".repeat(64)}`;
     await store.begin({
-      platform: "slack", integrationId, outboundId: deliveredOutbound, requestHash,
+      platform: "slack",
+      integrationId,
+      outboundId: deliveredOutbound,
+      requestHash,
       attemptedAt: "2026-08-20T00:00:02.000Z",
     });
     await store.complete({
-      platform: "slack", integrationId, outboundId: deliveredOutbound, requestHash,
+      platform: "slack",
+      integrationId,
+      outboundId: deliveredOutbound,
+      requestHash,
       externalMessageKey: "1710000004.000100",
       deliveredAt: "2026-08-20T00:00:03.000Z",
     });
     store.close();
     store = await SQLiteConversationPlatformStore.open(options(path));
-    await expect(store.begin({
-      platform: "slack", integrationId, outboundId: deliveredOutbound, requestHash,
-      attemptedAt: "2026-08-20T00:00:04.000Z",
-    })).resolves.toEqual({
+    await expect(
+      store.begin({
+        platform: "slack",
+        integrationId,
+        outboundId: deliveredOutbound,
+        requestHash,
+        attemptedAt: "2026-08-20T00:00:04.000Z",
+      }),
+    ).resolves.toEqual({
       status: "delivered",
       externalMessageKey: "1710000004.000100",
       deliveredAt: "2026-08-20T00:00:03.000Z",
     });
-    await expect(store.begin({
-      platform: "slack", integrationId, outboundId: deliveredOutbound,
-      requestHash: `sha256:${"f".repeat(64)}`,
-      attemptedAt: "2026-08-20T00:00:04.000Z",
-    })).resolves.toEqual({ status: "conflict" });
+    await expect(
+      store.begin({
+        platform: "slack",
+        integrationId,
+        outboundId: deliveredOutbound,
+        requestHash: `sha256:${"f".repeat(64)}`,
+        attemptedAt: "2026-08-20T00:00:04.000Z",
+      }),
+    ).resolves.toEqual({ status: "conflict" });
     store.close();
   });
 
   it("rejects actor and configuration remapping instead of overwriting it", async () => {
     const path = await databasePath();
     const store = await SQLiteConversationPlatformStore.open(options(path));
-    await expect(store.mapInbound({
-      platform: "slack",
-      integrationId,
-      tenantKey: "T123",
-      conversationKey: "C123",
-      threadKey: null,
-      sourceMessageKey: "1710000001.000100",
-      replyToMessageKey: null,
-      participantKey: "bot:B123",
-      mentionedParticipantKeys: [],
-      actorKindHint: "human",
-    })).rejects.toMatchObject({ code: "conflicting_binding" });
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "1710000001.000100",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "human",
+      }),
+    ).rejects.toMatchObject({ code: "conflicting_binding" });
     store.close();
-    await expect(SQLiteConversationPlatformStore.open({
-      ...options(path),
-      conversations: [{ ...options(path).conversations[0]!, projectId: "prj_platform02" }],
-    })).rejects.toMatchObject({ code: "conflicting_binding" });
+    await expect(
+      SQLiteConversationPlatformStore.open({
+        ...options(path),
+        conversations: [{ ...options(path).conversations[0]!, projectId: "prj_platform02" }],
+      }),
+    ).rejects.toMatchObject({ code: "conflicting_binding" });
   });
 });

@@ -20,8 +20,9 @@ export interface ApprovedDeliberationCheckpoint {
   schemaVersion: 1;
   deliberationId: string;
   policyHash: string;
-  request: Omit<InlineManagedDeliberationRequest, "repositoryRoot"> |
-    Omit<StoredManagedDeliberationRequest, "repositoryRoot">;
+  request:
+    | Omit<InlineManagedDeliberationRequest, "repositoryRoot">
+    | Omit<StoredManagedDeliberationRequest, "repositoryRoot">;
   runtimeCoordinates: DeliberationRuntimeCoordinates;
   runtime: DeliberationRuntimeSnapshot;
   workspace: DeliberationWorkspaceSnapshot;
@@ -58,25 +59,42 @@ function checkpointPath(stateRoot: string, deliberationId: string): string {
 function validCheckpointRequest(value: unknown): boolean {
   if (value === null || typeof value !== "object") return false;
   const request = value as Record<string, unknown>;
-  if (typeof request.topic !== "string" || request.topic.trim().length === 0 ||
-    request.topic.length > 20_000) return false;
+  if (
+    typeof request.topic !== "string" ||
+    request.topic.trim().length === 0 ||
+    request.topic.length > 20_000
+  )
+    return false;
   if (typeof request.policyId === "string") {
-    return request.proposerProvider === undefined && request.reviewerProvider === undefined &&
-      request.verificationSuiteIds === undefined;
+    return (
+      request.proposerProvider === undefined &&
+      request.reviewerProvider === undefined &&
+      request.verificationSuiteIds === undefined
+    );
   }
   const suites = request.verificationSuiteIds;
-  return (request.proposerProvider === "codex" || request.proposerProvider === "claude") &&
+  return (
+    (request.proposerProvider === "codex" || request.proposerProvider === "claude") &&
     (request.reviewerProvider === "codex" || request.reviewerProvider === "claude") &&
-    request.proposerProvider !== request.reviewerProvider && Array.isArray(suites) &&
-    suites.length > 0 && suites.length <= 16 && new Set(suites).size === suites.length &&
-    suites.every((suite) => typeof suite === "string");
+    request.proposerProvider !== request.reviewerProvider &&
+    Array.isArray(suites) &&
+    suites.length > 0 &&
+    suites.length <= 16 &&
+    new Set(suites).size === suites.length &&
+    suites.every((suite) => typeof suite === "string")
+  );
 }
 
-function validateCheckpoint(value: unknown, deliberationId: string): ApprovedDeliberationCheckpoint {
+function validateCheckpoint(
+  value: unknown,
+  deliberationId: string,
+): ApprovedDeliberationCheckpoint {
   const checkpoint = value as Partial<ApprovedDeliberationCheckpoint> | null;
   if (
-    checkpoint === null || typeof checkpoint !== "object" ||
-    checkpoint.schemaVersion !== 1 || checkpoint.deliberationId !== deliberationId ||
+    checkpoint === null ||
+    typeof checkpoint !== "object" ||
+    checkpoint.schemaVersion !== 1 ||
+    checkpoint.deliberationId !== deliberationId ||
     typeof checkpoint.policyHash !== "string" ||
     checkpoint.runtime?.deliberationId !== deliberationId ||
     checkpoint.runtime.policyHash !== checkpoint.policyHash ||
@@ -181,9 +199,13 @@ export async function readApprovedDeliberationCheckpoint(input: {
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     if (
-      before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
-    ) throw new Error("checkpoint changed");
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      before.size !== after.size ||
+      before.mtimeNs !== after.mtimeNs ||
+      before.ctimeNs !== after.ctimeNs
+    )
+      throw new Error("checkpoint changed");
     return validateCheckpoint(
       JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)),
       input.deliberationId,

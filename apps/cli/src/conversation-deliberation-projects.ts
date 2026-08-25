@@ -24,8 +24,10 @@ export class ManagedConversationDeliberationProjects {
       const repositoryRoot = resolve(binding.repositoryRoot);
       if (
         !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(binding.projectId) ||
-        !isAbsolute(binding.repositoryRoot) || binding.repositoryRoot.includes("\0") ||
-        this.projects.has(binding.projectId) || repositoryRoots.has(repositoryRoot)
+        !isAbsolute(binding.repositoryRoot) ||
+        binding.repositoryRoot.includes("\0") ||
+        this.projects.has(binding.projectId) ||
+        repositoryRoots.has(repositoryRoot)
       ) {
         throw new ManagedConversationDeliberationExecutionError(
           "deliberation_job_invalid",

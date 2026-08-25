@@ -34,23 +34,30 @@ function responseIsValid(
   requiredIds: readonly string[],
 ): response is SemanticWritingEvaluationResponse {
   if (
-    !isRecord(response) || !isRecord(response.evaluator) || !Array.isArray(response.checks) ||
+    !isRecord(response) ||
+    !isRecord(response.evaluator) ||
+    !Array.isArray(response.checks) ||
     (response.evaluator.kind !== "model" && response.evaluator.kind !== "human") ||
     typeof response.evaluator.evaluatorId !== "string" ||
     !/^[A-Za-z0-9][A-Za-z0-9._/-]{0,149}$/.test(response.evaluator.evaluatorId) ||
     response.checks.length !== requiredIds.length
-  ) return false;
+  )
+    return false;
   const seen = new Set<string>();
   for (const check of response.checks) {
     if (
-      !isRecord(check) || typeof check.checkId !== "string" ||
-      !requiredIds.includes(check.checkId) || seen.has(check.checkId) ||
+      !isRecord(check) ||
+      typeof check.checkId !== "string" ||
+      !requiredIds.includes(check.checkId) ||
+      seen.has(check.checkId) ||
       (check.status !== "passed" && check.status !== "failed") ||
       typeof check.violationCount !== "number" ||
-      !Number.isSafeInteger(check.violationCount) || check.violationCount < 0 ||
+      !Number.isSafeInteger(check.violationCount) ||
+      check.violationCount < 0 ||
       (check.status === "passed" && check.violationCount !== 0) ||
       (check.status === "failed" && check.violationCount === 0)
-    ) return false;
+    )
+      return false;
     seen.add(check.checkId);
   }
   return true;
@@ -82,7 +89,12 @@ export async function runSemanticEvaluation(input: {
   } catch {
     return { status: "failed", evaluator: null, checks: notRunChecks(input.contract) };
   }
-  if (!responseIsValid(response, required.map((check) => check.checkId))) {
+  if (
+    !responseIsValid(
+      response,
+      required.map((check) => check.checkId),
+    )
+  ) {
     return { status: "invalid", evaluator: null, checks: notRunChecks(input.contract) };
   }
   const evaluator = { ...response.evaluator, phase: "separate_pass" as const };
@@ -90,15 +102,19 @@ export async function runSemanticEvaluation(input: {
   return {
     status: "completed",
     evaluator,
-    checks: required.map(({ checkId }) => checksById.get(checkId)!).map((check) => ({
-      ...check,
-      kind: "semantic" as const,
-      evidenceDigest: writingSha256(canonicalJson({
-        evaluator,
-        artifactId: input.artifact.artifactId,
-        contentHash: input.artifact.contentHash,
-        check,
+    checks: required
+      .map(({ checkId }) => checksById.get(checkId)!)
+      .map((check) => ({
+        ...check,
+        kind: "semantic" as const,
+        evidenceDigest: writingSha256(
+          canonicalJson({
+            evaluator,
+            artifactId: input.artifact.artifactId,
+            contentHash: input.artifact.contentHash,
+            check,
+          }),
+        ),
       })),
-    })),
   };
 }

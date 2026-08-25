@@ -41,14 +41,24 @@ function fail(code, message, options) {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).sort().join("\0") === [...keys].sort().join("\0")
+  );
 }
 
 function safeRelativePath(path) {
-  return typeof path === "string" && path.length > 0 && path.length <= 1024 &&
-    !isAbsolute(path) && !path.includes("\\") && !/[\0\r\n]/u.test(path) &&
-    path.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+  return (
+    typeof path === "string" &&
+    path.length > 0 &&
+    path.length <= 1024 &&
+    !isAbsolute(path) &&
+    !path.includes("\\") &&
+    !/[\0\r\n]/u.test(path) &&
+    path.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..")
+  );
 }
 
 function platformLibc() {
@@ -84,7 +94,8 @@ async function walk(root, directory, entries, excluded) {
     const absolute = resolve(directory, child.name);
     const path = relative(root, absolute).split(sep).join("/");
     if (excluded.has(path)) continue;
-    if (!safeRelativePath(path)) fail("node_distribution_path_invalid", "A path inside the distribution is unsafe.");
+    if (!safeRelativePath(path))
+      fail("node_distribution_path_invalid", "A path inside the distribution is unsafe.");
     const info = await lstat(absolute);
     if (info.isDirectory()) {
       await walk(root, absolute, entries, excluded);
@@ -92,14 +103,24 @@ async function walk(root, directory, entries, excluded) {
     }
     if (info.isSymbolicLink()) {
       const target = await readlink(absolute);
-      if (isAbsolute(target) || /[\0\r\n]/u.test(target) || !inside(root, resolve(dirname(absolute), target))) {
-        fail("node_distribution_symlink_invalid", "A distribution symbolic link points outside the distribution root.");
+      if (
+        isAbsolute(target) ||
+        /[\0\r\n]/u.test(target) ||
+        !inside(root, resolve(dirname(absolute), target))
+      ) {
+        fail(
+          "node_distribution_symlink_invalid",
+          "A distribution symbolic link points outside the distribution root.",
+        );
       }
       entries.push({ path, kind: "symlink", target });
       continue;
     }
     if (!info.isFile() || info.size > maximumArchiveBytes) {
-      fail("node_distribution_file_invalid", "The distribution contains a non-regular entry or an oversized file.");
+      fail(
+        "node_distribution_file_invalid",
+        "The distribution contains a non-regular entry or an oversized file.",
+      );
     }
     const bytes = await readFile(absolute);
     entries.push({
@@ -109,25 +130,30 @@ async function walk(root, directory, entries, excluded) {
       mode: info.mode & 0o777,
       sha256: sha256(bytes),
     });
-    if (entries.length > maximumFiles) fail("node_distribution_limit_exceeded", "The distribution file count exceeds the limit.");
+    if (entries.length > maximumFiles)
+      fail("node_distribution_limit_exceeded", "The distribution file count exceeds the limit.");
   }
 }
 
 export async function collectDistributionEntries(root, excluded = new Set()) {
   const entries = [];
   await walk(resolve(root), resolve(root), entries, excluded);
-  return entries.sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+  return entries.sort((left, right) =>
+    left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
+  );
 }
 
 function packageIdentity(coordinate) {
   const separator = coordinate.lastIndexOf("@");
   const fullName = coordinate.slice(0, separator);
   const version = coordinate.slice(separator + 1);
-  if (!fullName || !version) fail("node_distribution_dependency_invalid", "The dependency coordinates are invalid.");
+  if (!fullName || !version)
+    fail("node_distribution_dependency_invalid", "The dependency coordinates are invalid.");
   const [group, name] = fullName.startsWith("@") ? fullName.split("/") : [undefined, fullName];
-  const purl = group === undefined
-    ? `pkg:npm/${encodeURIComponent(name)}@${encodeURIComponent(version)}`
-    : `pkg:npm/${encodeURIComponent(group)}/${encodeURIComponent(name)}@${encodeURIComponent(version)}`;
+  const purl =
+    group === undefined
+      ? `pkg:npm/${encodeURIComponent(name)}@${encodeURIComponent(version)}`
+      : `pkg:npm/${encodeURIComponent(group)}/${encodeURIComponent(name)}@${encodeURIComponent(version)}`;
   return { fullName, version, ...(group === undefined ? {} : { group }), name, purl };
 }
 
@@ -159,8 +185,14 @@ export function createNodeDistributionSbom(version, coordinates, bundleSha256) {
       };
     }),
     dependencies: [
-      { ref: rootRef, dependsOn: coordinates.map((coordinate) => packageIdentity(coordinate).purl) },
-      ...coordinates.map((coordinate) => ({ ref: packageIdentity(coordinate).purl, dependsOn: [] })),
+      {
+        ref: rootRef,
+        dependsOn: coordinates.map((coordinate) => packageIdentity(coordinate).purl),
+      },
+      ...coordinates.map((coordinate) => ({
+        ref: packageIdentity(coordinate).purl,
+        dependsOn: [],
+      })),
     ],
   };
 }
@@ -171,7 +203,9 @@ export async function installedDependencyCoordinates(root) {
 }
 
 export function createNodeDistributionManifest(input) {
-  const files = [...input.files].sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+  const files = [...input.files].sort((left, right) =>
+    left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
+  );
   const dependencies = [...input.dependencies].sort();
   return {
     schemaVersion: 1,
@@ -195,40 +229,107 @@ export function createNodeDistributionManifest(input) {
 }
 
 export function validateNodeDistributionManifest(value) {
-  if (!exactKeys(value, ["schemaVersion", "kind", "runtimeVersion", "platform", "node", "entrypoint", "sbom", "files", "contentDigest", "dependencies", "dependencyDigest", "claims"]) ||
-    value.schemaVersion !== 1 || value.kind !== "lervo_node_distribution" ||
-    !versionPattern.test(value.runtimeVersion) || value.node !== ">=22.13" || value.entrypoint !== "dist/bin.js" ||
-    !exactKeys(value.platform, ["os", "arch", "libc"]) || !["darwin", "linux", "win32"].includes(value.platform.os) ||
-    !["arm64", "x64"].includes(value.platform.arch) || !["none", "glibc", "musl"].includes(value.platform.libc) ||
-    !exactKeys(value.sbom, ["path", "sha256"]) || value.sbom.path !== "sbom.cdx.json" || !digestPattern.test(value.sbom.sha256) ||
-    !Array.isArray(value.files) || value.files.length < 3 || value.files.length > maximumFiles ||
-    !Array.isArray(value.dependencies) || value.dependencies.length < 1 || value.dependencies.length > 512 ||
-    !exactKeys(value.claims, ["registryRequiredAtInstall", "sourceCheckoutRequiredAtInstall", "containsOperationalSecrets", "serviceActivated"]) ||
-    Object.values(value.claims).some((claim) => claim !== false)) {
-    fail("node_distribution_manifest_invalid", "The Node distribution manifest structure is invalid.");
+  if (
+    !exactKeys(value, [
+      "schemaVersion",
+      "kind",
+      "runtimeVersion",
+      "platform",
+      "node",
+      "entrypoint",
+      "sbom",
+      "files",
+      "contentDigest",
+      "dependencies",
+      "dependencyDigest",
+      "claims",
+    ]) ||
+    value.schemaVersion !== 1 ||
+    value.kind !== "lervo_node_distribution" ||
+    !versionPattern.test(value.runtimeVersion) ||
+    value.node !== ">=22.13" ||
+    value.entrypoint !== "dist/bin.js" ||
+    !exactKeys(value.platform, ["os", "arch", "libc"]) ||
+    !["darwin", "linux", "win32"].includes(value.platform.os) ||
+    !["arm64", "x64"].includes(value.platform.arch) ||
+    !["none", "glibc", "musl"].includes(value.platform.libc) ||
+    !exactKeys(value.sbom, ["path", "sha256"]) ||
+    value.sbom.path !== "sbom.cdx.json" ||
+    !digestPattern.test(value.sbom.sha256) ||
+    !Array.isArray(value.files) ||
+    value.files.length < 3 ||
+    value.files.length > maximumFiles ||
+    !Array.isArray(value.dependencies) ||
+    value.dependencies.length < 1 ||
+    value.dependencies.length > 512 ||
+    !exactKeys(value.claims, [
+      "registryRequiredAtInstall",
+      "sourceCheckoutRequiredAtInstall",
+      "containsOperationalSecrets",
+      "serviceActivated",
+    ]) ||
+    Object.values(value.claims).some((claim) => claim !== false)
+  ) {
+    fail(
+      "node_distribution_manifest_invalid",
+      "The Node distribution manifest structure is invalid.",
+    );
   }
   const paths = [];
   for (const entry of value.files) {
     if (entry?.kind === "file") {
-      if (!exactKeys(entry, ["path", "kind", "size", "mode", "sha256"]) || !safeRelativePath(entry.path) ||
-        !Number.isInteger(entry.size) || entry.size < 0 || entry.size > maximumArchiveBytes ||
-        !Number.isInteger(entry.mode) || entry.mode < 0 || entry.mode > 0o777 || !digestPattern.test(entry.sha256)) {
+      if (
+        !exactKeys(entry, ["path", "kind", "size", "mode", "sha256"]) ||
+        !safeRelativePath(entry.path) ||
+        !Number.isInteger(entry.size) ||
+        entry.size < 0 ||
+        entry.size > maximumArchiveBytes ||
+        !Number.isInteger(entry.mode) ||
+        entry.mode < 0 ||
+        entry.mode > 0o777 ||
+        !digestPattern.test(entry.sha256)
+      ) {
         fail("node_distribution_manifest_invalid", "A Node distribution file manifest is invalid.");
       }
     } else if (entry?.kind === "symlink") {
-      if (!exactKeys(entry, ["path", "kind", "target"]) || !safeRelativePath(entry.path) || typeof entry.target !== "string" ||
-        entry.target.length < 1 || entry.target.length > 1024 || isAbsolute(entry.target) || /[\0\r\n]/u.test(entry.target)) {
-        fail("node_distribution_manifest_invalid", "A Node distribution symbolic-link manifest is invalid.");
+      if (
+        !exactKeys(entry, ["path", "kind", "target"]) ||
+        !safeRelativePath(entry.path) ||
+        typeof entry.target !== "string" ||
+        entry.target.length < 1 ||
+        entry.target.length > 1024 ||
+        isAbsolute(entry.target) ||
+        /[\0\r\n]/u.test(entry.target)
+      ) {
+        fail(
+          "node_distribution_manifest_invalid",
+          "A Node distribution symbolic-link manifest is invalid.",
+        );
       }
-    } else fail("node_distribution_manifest_invalid", "A Node distribution manifest entry kind is invalid.");
+    } else
+      fail(
+        "node_distribution_manifest_invalid",
+        "A Node distribution manifest entry kind is invalid.",
+      );
     paths.push(entry.path);
   }
-  if (paths.some((path, index) => index > 0 && paths[index - 1] >= path) ||
+  if (
+    paths.some((path, index) => index > 0 && paths[index - 1] >= path) ||
     value.contentDigest !== canonicalDigest(value.files) ||
-    value.dependencies.some((coordinate, index) => typeof coordinate !== "string" || (index > 0 && value.dependencies[index - 1] >= coordinate)) ||
+    value.dependencies.some(
+      (coordinate, index) =>
+        typeof coordinate !== "string" ||
+        (index > 0 && value.dependencies[index - 1] >= coordinate),
+    ) ||
     value.dependencyDigest !== canonicalDigest(value.dependencies) ||
-    !paths.includes("dist/bin.js") || !paths.includes("package.json") || !paths.includes("sbom.cdx.json")) {
-    fail("node_distribution_manifest_invalid", "The Node distribution manifest digest, ordering, or required files are invalid.");
+    !paths.includes("dist/bin.js") ||
+    !paths.includes("package.json") ||
+    !paths.includes("sbom.cdx.json")
+  ) {
+    fail(
+      "node_distribution_manifest_invalid",
+      "The Node distribution manifest digest, ordering, or required files are invalid.",
+    );
   }
   return value;
 }
@@ -247,14 +348,37 @@ export function createNodeDistributionArtifact(input) {
 }
 
 export function validateNodeDistributionArtifact(value) {
-  if (!exactKeys(value, ["schemaVersion", "kind", "runtimeVersion", "platform", "archiveFileName", "byteCount", "sha256", "manifestSha256"]) ||
-    value.schemaVersion !== 1 || value.kind !== "lervo_node_distribution_artifact" || !versionPattern.test(value.runtimeVersion) ||
-    !exactKeys(value.platform, ["os", "arch", "libc"]) || !["darwin", "linux", "win32"].includes(value.platform.os) ||
-    !["arm64", "x64"].includes(value.platform.arch) || !["none", "glibc", "musl"].includes(value.platform.libc) || typeof value.archiveFileName !== "string" ||
-    basename(value.archiveFileName) !== value.archiveFileName || !value.archiveFileName.endsWith(".tar.gz") ||
-    !Number.isInteger(value.byteCount) || value.byteCount < 1 || value.byteCount > maximumArchiveBytes ||
-    !digestPattern.test(value.sha256) || !digestPattern.test(value.manifestSha256)) {
-    fail("node_distribution_artifact_invalid", "The Node distribution artifact descriptor is invalid.");
+  if (
+    !exactKeys(value, [
+      "schemaVersion",
+      "kind",
+      "runtimeVersion",
+      "platform",
+      "archiveFileName",
+      "byteCount",
+      "sha256",
+      "manifestSha256",
+    ]) ||
+    value.schemaVersion !== 1 ||
+    value.kind !== "lervo_node_distribution_artifact" ||
+    !versionPattern.test(value.runtimeVersion) ||
+    !exactKeys(value.platform, ["os", "arch", "libc"]) ||
+    !["darwin", "linux", "win32"].includes(value.platform.os) ||
+    !["arm64", "x64"].includes(value.platform.arch) ||
+    !["none", "glibc", "musl"].includes(value.platform.libc) ||
+    typeof value.archiveFileName !== "string" ||
+    basename(value.archiveFileName) !== value.archiveFileName ||
+    !value.archiveFileName.endsWith(".tar.gz") ||
+    !Number.isInteger(value.byteCount) ||
+    value.byteCount < 1 ||
+    value.byteCount > maximumArchiveBytes ||
+    !digestPattern.test(value.sha256) ||
+    !digestPattern.test(value.manifestSha256)
+  ) {
+    fail(
+      "node_distribution_artifact_invalid",
+      "The Node distribution artifact descriptor is invalid.",
+    );
   }
   return value;
 }
@@ -262,7 +386,8 @@ export function validateNodeDistributionArtifact(value) {
 function archiveEntryPath(raw) {
   const path = raw.replace(/^\.\//u, "").replace(/\/$/u, "");
   if (path === "") return null;
-  if (!safeRelativePath(path)) fail("node_distribution_archive_invalid", "The archive contains an unsafe path.");
+  if (!safeRelativePath(path))
+    fail("node_distribution_archive_invalid", "The archive contains an unsafe path.");
   return path;
 }
 
@@ -275,17 +400,26 @@ async function inspectArchivePaths(archive) {
       timeout: 30_000,
     }));
   } catch (error) {
-    fail("node_distribution_archive_invalid", "The Node distribution archive listing could not be read safely.", { cause: error });
+    fail(
+      "node_distribution_archive_invalid",
+      "The Node distribution archive listing could not be read safely.",
+      { cause: error },
+    );
   }
   const paths = stdout.split("\n").filter(Boolean).map(archiveEntryPath).filter(Boolean);
-  if (paths.length > maximumFiles * 2 || new Set(paths).size !== paths.length || !paths.includes(manifestName)) {
+  if (
+    paths.length > maximumFiles * 2 ||
+    new Set(paths).size !== paths.length ||
+    !paths.includes(manifestName)
+  ) {
     fail("node_distribution_archive_invalid", "The Node distribution archive path set is invalid.");
   }
 }
 
 async function parseJsonFile(path, maximumBytes, code) {
   const info = await lstat(path);
-  if (!info.isFile() || info.isSymbolicLink() || info.size > maximumBytes) fail(code, "The verification source file is unsafe.");
+  if (!info.isFile() || info.isSymbolicLink() || info.size > maximumBytes)
+    fail(code, "The verification source file is unsafe.");
   try {
     const bytes = await readFile(path);
     return { bytes, value: JSON.parse(bytes.toString("utf8")) };
@@ -308,44 +442,105 @@ export async function verifyNodeDistributionArchive(input) {
     parseJsonFile(artifactPath, 64 * 1024, "node_distribution_artifact_invalid"),
   ]);
   const artifact = validateNodeDistributionArtifact(artifactSource.value);
-  if (!archiveInfo.isFile() || archiveInfo.isSymbolicLink() || archiveInfo.size !== artifact.byteCount ||
-    basename(archive) !== artifact.archiveFileName || await sha256File(archive) !== artifact.sha256 ||
-    !digestPattern.test(input.expectedSha256) || input.expectedSha256 !== artifact.sha256) {
-    fail("node_distribution_digest_mismatch", "The Node distribution archive differs from the declared SHA-256.");
+  if (
+    !archiveInfo.isFile() ||
+    archiveInfo.isSymbolicLink() ||
+    archiveInfo.size !== artifact.byteCount ||
+    basename(archive) !== artifact.archiveFileName ||
+    (await sha256File(archive)) !== artifact.sha256 ||
+    !digestPattern.test(input.expectedSha256) ||
+    input.expectedSha256 !== artifact.sha256
+  ) {
+    fail(
+      "node_distribution_digest_mismatch",
+      "The Node distribution archive differs from the declared SHA-256.",
+    );
   }
   await inspectArchivePaths(archive);
-  const temporaryRoot = await mkdtemp(resolve(input.stagingParent ?? tmpdir(), ".lervo-node-verify-"));
+  const temporaryRoot = await mkdtemp(
+    resolve(input.stagingParent ?? tmpdir(), ".lervo-node-verify-"),
+  );
   const payloadRoot = resolve(temporaryRoot, "payload");
   try {
     await mkdir(payloadRoot);
-    await execFileAsync("tar", ["-xzf", archive, "-C", payloadRoot], { timeout: 60_000, maxBuffer: 1024 * 1024 });
-    const manifestSource = await parseJsonFile(resolve(payloadRoot, manifestName), 64 * 1024 * 1024, "node_distribution_manifest_invalid");
+    await execFileAsync("tar", ["-xzf", archive, "-C", payloadRoot], {
+      timeout: 60_000,
+      maxBuffer: 1024 * 1024,
+    });
+    const manifestSource = await parseJsonFile(
+      resolve(payloadRoot, manifestName),
+      64 * 1024 * 1024,
+      "node_distribution_manifest_invalid",
+    );
     const manifest = validateNodeDistributionManifest(manifestSource.value);
-    if (sha256(manifestSource.bytes) !== artifact.manifestSha256 || manifest.runtimeVersion !== artifact.runtimeVersion ||
-      canonicalJson(manifest.platform) !== canonicalJson(artifact.platform)) {
-      fail("node_distribution_manifest_mismatch", "The archive and content manifest coordinates differ.");
+    if (
+      sha256(manifestSource.bytes) !== artifact.manifestSha256 ||
+      manifest.runtimeVersion !== artifact.runtimeVersion ||
+      canonicalJson(manifest.platform) !== canonicalJson(artifact.platform)
+    ) {
+      fail(
+        "node_distribution_manifest_mismatch",
+        "The archive and content manifest coordinates differ.",
+      );
     }
     const actualFiles = await collectDistributionEntries(payloadRoot, new Set([manifestName]));
-    if (canonicalJson(actualFiles) !== canonicalJson(manifest.files)) fail("node_distribution_content_mismatch", "Files inside the archive differ from the content manifest.");
+    if (canonicalJson(actualFiles) !== canonicalJson(manifest.files))
+      fail(
+        "node_distribution_content_mismatch",
+        "Files inside the archive differ from the content manifest.",
+      );
     const sbomBytes = await readFile(resolve(payloadRoot, manifest.sbom.path));
-    if (sha256(sbomBytes) !== manifest.sbom.sha256) fail("node_distribution_sbom_mismatch", "The Node distribution SBOM differs from the manifest.");
+    if (sha256(sbomBytes) !== manifest.sbom.sha256)
+      fail(
+        "node_distribution_sbom_mismatch",
+        "The Node distribution SBOM differs from the manifest.",
+      );
     const dependencies = await installedDependencyCoordinates(payloadRoot);
-    if (canonicalJson(dependencies) !== canonicalJson(manifest.dependencies)) fail("node_distribution_dependency_mismatch", "The installed dependency closure differs from the manifest.");
+    if (canonicalJson(dependencies) !== canonicalJson(manifest.dependencies))
+      fail(
+        "node_distribution_dependency_mismatch",
+        "The installed dependency closure differs from the manifest.",
+      );
     const nativePackage = nativeClaudePackageName(manifest.platform);
-    if (nativePackage === null || !dependencies.includes(`${nativePackage}@0.3.226`)) fail("node_distribution_native_runtime_mismatch", "The Claude native runtime for the target platform is missing.");
+    if (nativePackage === null || !dependencies.includes(`${nativePackage}@0.3.226`))
+      fail(
+        "node_distribution_native_runtime_mismatch",
+        "The Claude native runtime for the target platform is missing.",
+      );
     await access(resolve(payloadRoot, manifest.entrypoint), constants.X_OK);
-    if (input.requireCurrentPlatform && canonicalJson(manifest.platform) !== canonicalJson(currentDistributionPlatform())) {
-      fail("node_distribution_platform_mismatch", "The Node distribution differs from the current operating system, CPU, or libc.");
+    if (
+      input.requireCurrentPlatform &&
+      canonicalJson(manifest.platform) !== canonicalJson(currentDistributionPlatform())
+    ) {
+      fail(
+        "node_distribution_platform_mismatch",
+        "The Node distribution differs from the current operating system, CPU, or libc.",
+      );
     }
     if (input.smoke) {
-      const result = await execFileAsync(process.execPath, [resolve(payloadRoot, manifest.entrypoint)], {
-        cwd: payloadRoot,
-        encoding: "utf8",
-        maxBuffer: 64 * 1024,
-        timeout: 10_000,
-      }).catch((error) => ({ stdout: error.stdout ?? "", stderr: error.stderr ?? "", code: error.code }));
-      if (result.stdout !== "" || result.stderr !== "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json>\n") {
-        fail("node_distribution_smoke_failed", "The isolated Node distribution entrypoint did not start as expected.");
+      const result = await execFileAsync(
+        process.execPath,
+        [resolve(payloadRoot, manifest.entrypoint)],
+        {
+          cwd: payloadRoot,
+          encoding: "utf8",
+          maxBuffer: 64 * 1024,
+          timeout: 10_000,
+        },
+      ).catch((error) => ({
+        stdout: error.stdout ?? "",
+        stderr: error.stderr ?? "",
+        code: error.code,
+      }));
+      if (
+        result.stdout !== "" ||
+        result.stderr !==
+          "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json>\n"
+      ) {
+        fail(
+          "node_distribution_smoke_failed",
+          "The isolated Node distribution entrypoint did not start as expected.",
+        );
       }
     }
     return { artifact, manifest, payloadRoot, temporaryRoot };
@@ -361,11 +556,15 @@ export async function ensureExecutable(path) {
 }
 
 export async function safeOutputPath(path) {
-  if (!isAbsolute(path) || /[\0\r\n]/u.test(path)) fail("node_distribution_arguments_invalid", "The output path must be a safe absolute path.");
+  if (!isAbsolute(path) || /[\0\r\n]/u.test(path))
+    fail("node_distribution_arguments_invalid", "The output path must be a safe absolute path.");
   const parent = dirname(resolve(path));
   const parentInfo = await lstat(parent);
   if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink()) {
-    fail("node_distribution_arguments_invalid", "The output parent must be a real directory, not a symbolic link.");
+    fail(
+      "node_distribution_arguments_invalid",
+      "The output parent must be a real directory, not a symbolic link.",
+    );
   }
   const canonicalPath = resolve(await realpath(parent), basename(path));
   try {

@@ -3,7 +3,6 @@ import type { FromSchema } from "json-schema-to-ts";
 import {
   artifactIdSchema,
   conversationIdSchema,
-  conversationParticipantIdSchema,
   conversationThreadIdSchema,
   integrationIdSchema,
   projectIdSchema,
@@ -83,11 +82,7 @@ export const conversationAdapterDescriptorSchema = {
   additionalProperties: false,
 } as const;
 
-export type ConversationContentReference = FromSchema<
-  typeof conversationContentReferenceSchema
->;
+export type ConversationContentReference = FromSchema<typeof conversationContentReferenceSchema>;
 export type ConversationTarget = FromSchema<typeof conversationTargetSchema>;
 export type ConversationAdapterCapability = (typeof conversationAdapterCapabilities)[number];
-export type ConversationAdapterDescriptor = FromSchema<
-  typeof conversationAdapterDescriptorSchema
->;
+export type ConversationAdapterDescriptor = FromSchema<typeof conversationAdapterDescriptorSchema>;

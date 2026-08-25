@@ -22,16 +22,16 @@ export async function inspectDoctorSkills(input: {
   let candidates: DiscoveredSkill[];
   try {
     candidates = [
-      ...await discoverSkillRoot({
+      ...(await discoverSkillRoot({
         root: resolve(input.repositoryRoot, ".agents/skills"),
         sourceKind: "project",
         sourceUriPrefix: ".agents/skills",
-      }),
-      ...await discoverSkillRoot({
+      })),
+      ...(await discoverSkillRoot({
         root: input.userSkillRoot ?? resolve(homedir(), ".agents/skills"),
         sourceKind: "user",
         sourceUriPrefix: "~/.agents/skills",
-      }),
+      })),
     ];
   } catch {
     return [
@@ -72,10 +72,12 @@ export async function inspectDoctorSkills(input: {
         0,
         candidates.length === 0
           ? []
-          : [doctorIssue(
-            "skill_lock_missing",
-            "Skill packages exist, but no per-run resolution record exists in skills.lock yet.",
-          )],
+          : [
+              doctorIssue(
+                "skill_lock_missing",
+                "Skill packages exist, but no per-run resolution record exists in skills.lock yet.",
+              ),
+            ],
       ),
     ];
   }
@@ -108,10 +110,12 @@ export async function inspectDoctorSkills(input: {
       stale ? "unhealthy" : "healthy",
       lock.entries.length,
       stale
-        ? [doctorIssue(
-          "skill_lock_stale",
-          "The skills.lock project or current skill resolution differs from the recorded source.",
-        )]
+        ? [
+            doctorIssue(
+              "skill_lock_stale",
+              "The skills.lock project or current skill resolution differs from the recorded source.",
+            ),
+          ]
         : [],
     ),
   ];

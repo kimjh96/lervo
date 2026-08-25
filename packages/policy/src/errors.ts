@@ -11,7 +11,11 @@ export type PolicyRuntimeErrorCode =
   | "policy_evaluation_failed";
 
 export class PolicyRuntimeError extends Error {
-  constructor(readonly code: PolicyRuntimeErrorCode, message: string, options?: ErrorOptions) {
+  constructor(
+    readonly code: PolicyRuntimeErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = "PolicyRuntimeError";
   }

@@ -53,7 +53,9 @@ export const defaultRepositoryKnowledgePolicy: RepositoryKnowledgePolicy = {
   },
 };
 
-export function serializeRepositoryKnowledgePolicy(policy = defaultRepositoryKnowledgePolicy): string {
+export function serializeRepositoryKnowledgePolicy(
+  policy = defaultRepositoryKnowledgePolicy,
+): string {
   return stringify(policy, { lineWidth: 0 });
 }
 
@@ -65,19 +67,33 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
   const item = value as Partial<RepositoryKnowledgePolicy> | null;
   const publication = item?.publication ?? defaultRepositoryKnowledgePolicy.publication;
   if (
-    item === null || typeof item !== "object" || item.schemaVersion !== 1 ||
-    typeof item.policyId !== "string" || !/^[a-z][a-z0-9._-]{2,63}$/.test(item.policyId) ||
-    typeof item.publicationRoot !== "string" || item.publicationRoot.length === 0 ||
-    item.publicationRoot.startsWith("/") || item.publicationRoot.split("/").includes("..") ||
-    typeof publication !== "object" || publication === null ||
+    item === null ||
+    typeof item !== "object" ||
+    item.schemaVersion !== 1 ||
+    typeof item.policyId !== "string" ||
+    !/^[a-z][a-z0-9._-]{2,63}$/.test(item.policyId) ||
+    typeof item.publicationRoot !== "string" ||
+    item.publicationRoot.length === 0 ||
+    item.publicationRoot.startsWith("/") ||
+    item.publicationRoot.split("/").includes("..") ||
+    typeof publication !== "object" ||
+    publication === null ||
     typeof publication.language !== "string" ||
     !supportedRepositoryPublicationLanguages.includes(publication.language as "en") ||
-    !Number.isSafeInteger(publication.maxNavigationEntries) || publication.maxNavigationEntries < 4 || publication.maxNavigationEntries > 128 ||
-    !Number.isSafeInteger(publication.maxNavigationBytes) || publication.maxNavigationBytes < 1024 || publication.maxNavigationBytes > 65_536 ||
-    !isStringArray(item.exclude) || item.limits === undefined ||
-    !Number.isSafeInteger(item.limits.maxFiles) || item.limits.maxFiles < 1 ||
-    !Number.isSafeInteger(item.limits.maxFileBytes) || item.limits.maxFileBytes < 1 ||
-    !Number.isSafeInteger(item.limits.maxTotalBytes) || item.limits.maxTotalBytes < 1
+    !Number.isSafeInteger(publication.maxNavigationEntries) ||
+    publication.maxNavigationEntries < 4 ||
+    publication.maxNavigationEntries > 128 ||
+    !Number.isSafeInteger(publication.maxNavigationBytes) ||
+    publication.maxNavigationBytes < 1024 ||
+    publication.maxNavigationBytes > 65_536 ||
+    !isStringArray(item.exclude) ||
+    item.limits === undefined ||
+    !Number.isSafeInteger(item.limits.maxFiles) ||
+    item.limits.maxFiles < 1 ||
+    !Number.isSafeInteger(item.limits.maxFileBytes) ||
+    item.limits.maxFileBytes < 1 ||
+    !Number.isSafeInteger(item.limits.maxTotalBytes) ||
+    item.limits.maxTotalBytes < 1
   ) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
@@ -87,7 +103,9 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
   return { ...(item as RepositoryKnowledgePolicy), publication: { ...publication } };
 }
 
-export async function loadRepositoryKnowledgePolicy(root: string): Promise<RepositoryKnowledgePolicy> {
+export async function loadRepositoryKnowledgePolicy(
+  root: string,
+): Promise<RepositoryKnowledgePolicy> {
   const path = resolve(root, ".lervo/knowledge/policy.yaml");
   let bytes: string;
   try {

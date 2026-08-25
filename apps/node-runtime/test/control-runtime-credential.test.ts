@@ -28,23 +28,35 @@ describe("Node remote control bearer token snapshots", () => {
     const policyKeys = generateKeyPairSync("ed25519");
     const keyDirectory = resolve(root, "keys");
     await mkdir(keyDirectory, { mode: 0o700 });
-    await ownerFile(resolve(keyDirectory, "command.pem"), String(commandKeys.publicKey.export({
-      type: "spki",
-      format: "pem",
-    })));
-    await ownerFile(resolve(keyDirectory, "policy.pem"), String(policyKeys.publicKey.export({
-      type: "spki",
-      format: "pem",
-    })));
+    await ownerFile(
+      resolve(keyDirectory, "command.pem"),
+      String(
+        commandKeys.publicKey.export({
+          type: "spki",
+          format: "pem",
+        }),
+      ),
+    );
+    await ownerFile(
+      resolve(keyDirectory, "policy.pem"),
+      String(
+        policyKeys.publicKey.export({
+          type: "spki",
+          format: "pem",
+        }),
+      ),
+    );
     const configured = structuredClone(fixture.value);
     configured.remoteCommands = {
       nodeId: "node_runtime_credential_01",
       commandKeys: [{ keyId: "key_command_credential_01", publicKeyFile: "keys/command.pem" }],
-      policyKeys: [{
-        keyId: "key_policy_credential_01",
-        publicKeyFile: "keys/policy.pem",
-        purposes: ["snapshot", "approval", "revocation"],
-      }],
+      policyKeys: [
+        {
+          keyId: "key_policy_credential_01",
+          publicKeyFile: "keys/policy.pem",
+          purposes: ["snapshot", "approval", "revocation"],
+        },
+      ],
       idlePollIntervalMs: 100,
       retryDelayMs: 1_000,
     };
@@ -106,10 +118,14 @@ describe("Node remote control bearer token snapshots", () => {
           };
         },
         createPayloadLoader: () => ({
-          load: async () => { throw new Error("unexpected payload load"); },
+          load: async () => {
+            throw new Error("unexpected payload load");
+          },
         }),
         wait: {
-          wait: async () => { abort.abort(); },
+          wait: async () => {
+            abort.abort();
+          },
         },
       },
     });

@@ -13,10 +13,7 @@ import type {
 
 import { asRecord, digest, repositoryPath, text } from "./normalization-utils.js";
 import { assertAdapterMessage, clone } from "./adapter-validation.js";
-import {
-  ClaudeAdapterError,
-  type ClaudeManagedWriteHandler,
-} from "./types.js";
+import { ClaudeAdapterError, type ClaudeManagedWriteHandler } from "./types.js";
 
 export function createClaudeManagedWriteRequest(input: {
   session: AdapterSession;
@@ -30,11 +27,7 @@ export function createClaudeManagedWriteRequest(input: {
   const toolInput = asRecord(input.toolInput);
   const path = repositoryPath(input.repositoryRoot, toolInput?.file_path);
   const changeKind =
-    input.toolName === "Write"
-      ? "upsert"
-      : input.toolName === "Edit"
-        ? "modified"
-        : null;
+    input.toolName === "Write" ? "upsert" : input.toolName === "Edit" ? "modified" : null;
   if (path === null || changeKind === null || text(input.toolUseId) === undefined) {
     throw new ClaudeAdapterError(
       "invalid_request",
@@ -80,7 +73,10 @@ export class ClaudeManagedWriteController implements ClaudeManagedWriteHandler {
   async authorize(toolName: string, toolInput: unknown, toolUseId: string): Promise<boolean> {
     const turn = this.options.activeTurn();
     if (turn === undefined) {
-      throw new ClaudeAdapterError("provider_protocol_failed", "A write tool was requested outside a turn.");
+      throw new ClaudeAdapterError(
+        "provider_protocol_failed",
+        "A write tool was requested outside a turn.",
+      );
     }
     const request = createClaudeManagedWriteRequest({
       session: this.options.session,

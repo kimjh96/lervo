@@ -2,10 +2,7 @@ import type {
   ConversationPublicationVerifier,
   ConversationReplyCandidate,
 } from "@lervo/interaction";
-import type {
-  ConversationInboundEvent,
-  ConversationParticipationPolicy,
-} from "@lervo/schemas";
+import type { ConversationInboundEvent, ConversationParticipationPolicy } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import { readPublishableWritingArtifact } from "@lervo/writing";
 
@@ -13,10 +10,12 @@ import type { ConversationWritingContractResolver } from "./types.js";
 import { ManagedConversationResponseError } from "./types.js";
 
 export class VerifiedConversationPublication implements ConversationPublicationVerifier {
-  constructor(private readonly options: {
-    artifactStore: ArtifactStore;
-    resolveWritingContract: ConversationWritingContractResolver;
-  }) {}
+  constructor(
+    private readonly options: {
+      artifactStore: ArtifactStore;
+      resolveWritingContract: ConversationWritingContractResolver;
+    },
+  ) {}
 
   async verify(input: {
     candidate: ConversationReplyCandidate;

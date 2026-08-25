@@ -36,15 +36,14 @@ describe("operational search engine selection", () => {
     const root = await repository();
     const cases = [await reviewedCase(root, "zephyrcontext")];
     await bundle(root, "researcher.activation", 1, cases);
-    const comparedDocument = "# Other document\n\nCurrent content unrelated to the evaluation query.\n";
+    const comparedDocument =
+      "# Other document\n\nCurrent content unrelated to the evaluation query.\n";
     await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
     const project = await loadProjectManifest(root);
     let candidateBuilds = 0;
-    const engine = recoveringCandidateEngine(
-      "zephyrcontext",
-      "doc_cli_search_context",
-      () => { candidateBuilds += 1; },
-    );
+    const engine = recoveringCandidateEngine("zephyrcontext", "doc_cli_search_context", () => {
+      candidateBuilds += 1;
+    });
     const registry = new SearchEvaluationEngineRegistry([{ candidateId: "fixture-v1", engine }]);
     const compared = await runLocalSearchEvaluationComparison({
       repositoryRoot: root,
@@ -72,16 +71,21 @@ describe("operational search engine selection", () => {
       createdAt: new Date("2026-08-20T09:30:00.000Z"),
     });
     await recordSearchEngineActivationPolicy(root, policy);
-    await writeFile(resolve(root, "docs/search-context.md"), "# Changed after review\n\nThe current corpus is different.\n");
-    await expect(activateLocalSearchCandidate({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      reviewId: review.reviewId,
-      policyId: policy.policyId,
-      operatorId: "operator_search",
-      decidedAt: new Date("2026-08-20T09:59:00.000Z"),
-      registry,
-    })).rejects.toMatchObject({ code: "invalid_evaluation_comparison" });
+    await writeFile(
+      resolve(root, "docs/search-context.md"),
+      "# Changed after review\n\nThe current corpus is different.\n",
+    );
+    await expect(
+      activateLocalSearchCandidate({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        reviewId: review.reviewId,
+        policyId: policy.policyId,
+        operatorId: "operator_search",
+        decidedAt: new Date("2026-08-20T09:59:00.000Z"),
+        registry,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_evaluation_comparison" });
     expect(await observationEntries(root)).not.toContain("engine-selections");
     await writeFile(resolve(root, "docs/search-context.md"), comparedDocument);
     const activation = await activateLocalSearchCandidate({
@@ -94,7 +98,9 @@ describe("operational search engine selection", () => {
       registry,
     });
 
-    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual(["baseline.json"]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+    ]);
     const selected = await command(root, ["search", "engine", "status", "--json"]);
     expect(selected.code).toBe(1);
     expect(selected.error).toBe("");
@@ -122,20 +128,24 @@ describe("operational search engine selection", () => {
     expect(candidateBuilds).toBe(buildsBeforeOperationalSearch + 1);
     expect(await observationEntries(root)).not.toContain("engine-verifications");
     const buildsBeforeMismatch = candidateBuilds;
-    const changedBuildRegistry = new SearchEvaluationEngineRegistry([{
-      candidateId: "fixture-v1",
-      engine: {
-        ...engine,
-        adapterBuildId: contentId("sebuild", { adapter: "fixture_candidate", revision: 2 }),
+    const changedBuildRegistry = new SearchEvaluationEngineRegistry([
+      {
+        candidateId: "fixture-v1",
+        engine: {
+          ...engine,
+          adapterBuildId: contentId("sebuild", { adapter: "fixture_candidate", revision: 2 }),
+        },
       },
-    }]);
-    await expect(runLocalOperationalSearch({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      registry: changedBuildRegistry,
-      query: "zephyrcontext",
-      limit: 5,
-    })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
+    ]);
+    await expect(
+      runLocalOperationalSearch({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        registry: changedBuildRegistry,
+        query: "zephyrcontext",
+        limit: 5,
+      }),
+    ).rejects.toMatchObject({ code: "engine_selection_unavailable" });
     expect(candidateBuilds).toBe(buildsBeforeMismatch);
     const managed = await prepareManagedSearchContext({
       repositoryRoot: root,
@@ -160,14 +170,19 @@ describe("operational search engine selection", () => {
     expect(unavailable.error).toContain("engine_selection_unavailable");
     expect(unavailable.output).toBe("");
 
-    await writeFile(resolve(root, "docs/search-context.md"), "# Changed again\n\nThe corpus changed after selection.\n");
-    await expect(runLocalOperationalSearch({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      registry,
-      query: "zephyrcontext",
-      limit: 5,
-    })).rejects.toMatchObject({ code: "engine_selection_unavailable" });
+    await writeFile(
+      resolve(root, "docs/search-context.md"),
+      "# Changed again\n\nThe corpus changed after selection.\n",
+    );
+    await expect(
+      runLocalOperationalSearch({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        registry,
+        query: "zephyrcontext",
+        limit: 5,
+      }),
+    ).rejects.toMatchObject({ code: "engine_selection_unavailable" });
 
     const refreshedComparison = await runLocalSearchEvaluationComparison({
       repositoryRoot: root,
@@ -186,13 +201,21 @@ describe("operational search engine selection", () => {
       decision: "adopt_candidate",
     });
     const unavailableRefresh = await command(root, [
-      "search", "engine", "refresh", refreshedReview.reviewId,
-      "--policy", policy.policyId, "--operator", "operator_search", "--json",
+      "search",
+      "engine",
+      "refresh",
+      refreshedReview.reviewId,
+      "--policy",
+      policy.policyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     expect(unavailableRefresh.code).toBe(1);
     expect(unavailableRefresh.error).toContain("evaluation_candidate_not_registered");
-    expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))))
-      .toEqual(["baseline.json"]);
+    expect(await readdir(resolve(root, ".lervo/state/search/engine-selections"))).toEqual([
+      "baseline.json",
+    ]);
 
     const refresh = await refreshLocalSearchCandidate({
       repositoryRoot: root,
@@ -214,21 +237,29 @@ describe("operational search engine selection", () => {
       fallbackSelection: { mode: "baseline" },
       fallbackActivationId: null,
     });
-    await expect(runLocalOperationalSearch({
-      repositoryRoot: root,
-      projectId: project.projectId,
-      registry,
-      query: "zephyrcontext",
-      limit: 5,
-    })).resolves.toMatchObject({
+    await expect(
+      runLocalOperationalSearch({
+        repositoryRoot: root,
+        projectId: project.projectId,
+        registry,
+        query: "zephyrcontext",
+        limit: 5,
+      }),
+    ).resolves.toMatchObject({
       selectionTransitionId: refresh.activationId,
       response: { engine: CANDIDATE_ENGINE },
       verificationReceiptId: expect.stringMatching(/^sevrf_[a-f0-9]{24}$/),
     });
 
     const rolledBack = await command(root, [
-      "search", "engine", "rollback", "--policy", policy.policyId,
-      "--operator", "operator_search", "--json",
+      "search",
+      "engine",
+      "rollback",
+      "--policy",
+      policy.policyId,
+      "--operator",
+      "operator_search",
+      "--json",
     ]);
     expect(rolledBack.code, rolledBack.error).toBe(0);
     expect(JSON.parse(rolledBack.output)).toMatchObject({
@@ -237,18 +268,16 @@ describe("operational search engine selection", () => {
       selected: { mode: "baseline", engine: { id: "lexical", version: 1 } },
       recordState: "selection_recorded",
     });
-    expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))).sort())
-      .toEqual([
-        `${activation.activationId}.json`,
-        `${refresh.activationId}.json`,
-        "baseline.json",
-      ].sort());
+    expect((await readdir(resolve(root, ".lervo/state/search/engine-selections"))).sort()).toEqual(
+      [`${activation.activationId}.json`, `${refresh.activationId}.json`, "baseline.json"].sort(),
+    );
 
     const searched = await command(root, ["search", "zephyrcontext", "--json"]);
     expect(searched.code, searched.error).toBe(0);
     expect(JSON.parse(searched.output)).toMatchObject({
       engine: { id: "lexical", version: 1 },
-      selectionTransitionId: (JSON.parse(rolledBack.output) as { activationId: string }).activationId,
+      selectionTransitionId: (JSON.parse(rolledBack.output) as { activationId: string })
+        .activationId,
     });
   });
 });

@@ -32,11 +32,15 @@ function assertTarget(target: RemoteCommandTarget): void {
   if (
     !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(target.projectId) ||
     !/^sha256:[a-f0-9]{64}$/.test(target.projectIdentityHash)
-  ) throw new Error("The trusted policy project scope is invalid.");
+  )
+    throw new Error("The trusted policy project scope is invalid.");
 }
 
 export class Ed25519PolicySigner {
-  constructor(readonly keyId: string, private readonly privateKey: KeyObject) {
+  constructor(
+    readonly keyId: string,
+    private readonly privateKey: KeyObject,
+  ) {
     assertKeyId(keyId);
     assertKey(privateKey, "private");
   }
@@ -45,11 +49,15 @@ export class Ed25519PolicySigner {
     return createSignedPolicySnapshot({
       snapshot,
       keyId: this.keyId,
-      signature: sign(null, policySigningBytes({
-        purpose: "snapshot",
-        original: snapshot,
-        keyId: this.keyId,
-      }), this.privateKey),
+      signature: sign(
+        null,
+        policySigningBytes({
+          purpose: "snapshot",
+          original: snapshot,
+          keyId: this.keyId,
+        }),
+        this.privateKey,
+      ),
     });
   }
 
@@ -57,11 +65,15 @@ export class Ed25519PolicySigner {
     return createSignedPolicyApproval({
       approval,
       keyId: this.keyId,
-      signature: sign(null, policySigningBytes({
-        purpose: "approval",
-        original: approval,
-        keyId: this.keyId,
-      }), this.privateKey),
+      signature: sign(
+        null,
+        policySigningBytes({
+          purpose: "approval",
+          original: approval,
+          keyId: this.keyId,
+        }),
+        this.privateKey,
+      ),
     });
   }
 
@@ -69,11 +81,15 @@ export class Ed25519PolicySigner {
     return createSignedPolicyApprovalRevocation({
       revocation,
       keyId: this.keyId,
-      signature: sign(null, policySigningBytes({
-        purpose: "revocation",
-        original: revocation,
-        keyId: this.keyId,
-      }), this.privateKey),
+      signature: sign(
+        null,
+        policySigningBytes({
+          purpose: "revocation",
+          original: revocation,
+          keyId: this.keyId,
+        }),
+        this.privateKey,
+      ),
     });
   }
 }
@@ -103,18 +119,19 @@ export class ConfiguredEd25519PolicyTrustStore implements PolicyTrustStore {
       for (const project of key.projects) {
         assertTarget(project);
         const coordinate = `${project.projectId}\u0000${project.projectIdentityHash}`;
-        if (projectCoordinates.has(coordinate)) throw new Error("A trusted policy project scope is duplicated.");
+        if (projectCoordinates.has(coordinate))
+          throw new Error("A trusted policy project scope is duplicated.");
         projectCoordinates.add(coordinate);
       }
-      const purposes: PolicySignaturePurpose[] = [
-        ...new Set<PolicySignaturePurpose>(key.purposes),
-      ];
+      const purposes: PolicySignaturePurpose[] = [...new Set<PolicySignaturePurpose>(key.purposes)];
       if (
-        purposes.length !== key.purposes.length || purposes.length < 1 ||
+        purposes.length !== key.purposes.length ||
+        purposes.length < 1 ||
         !purposes.every((purpose) =>
-          (["snapshot", "approval", "revocation"] as PolicySignaturePurpose[]).includes(purpose)
+          (["snapshot", "approval", "revocation"] as PolicySignaturePurpose[]).includes(purpose),
         )
-      ) throw new Error("The trusted policy key purpose is invalid.");
+      )
+        throw new Error("The trusted policy key purpose is invalid.");
       const publicKey = key.publicKey;
       this.signers.set(key.keyId, {
         keyId: key.keyId,

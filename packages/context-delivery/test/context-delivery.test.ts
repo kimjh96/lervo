@@ -57,10 +57,12 @@ describe("provider-neutral context delivery", () => {
       now: () => new Date("2026-08-18T01:02:00Z"),
     });
 
-    expect(injected.envelope.documents.find((item) => item.documentId === documentId)?.knowledgeContext)
-      .toEqual(knowledgeContext);
-    expect(injected.e3Evidence.find((item) => item.documentId === documentId)?.knowledgeContext)
-      .toEqual(knowledgeContext);
+    expect(
+      injected.envelope.documents.find((item) => item.documentId === documentId)?.knowledgeContext,
+    ).toEqual(knowledgeContext);
+    expect(
+      injected.e3Evidence.find((item) => item.documentId === documentId)?.knowledgeContext,
+    ).toEqual(knowledgeContext);
   });
 
   it("creates E3 only after an exact controlled receipt including the writing policy", async () => {
@@ -78,8 +80,9 @@ describe("provider-neutral context delivery", () => {
       createEvidenceReceiptId: receiptFactory("ctx_e3"),
     });
 
-    expect(injected.envelope.documents.every((document) => document.delivery.kind === "inline"))
-      .toBe(true);
+    expect(
+      injected.envelope.documents.every((document) => document.delivery.kind === "inline"),
+    ).toBe(true);
     expect(injected.envelope.documents.map((document) => document.documentId)).toContain(
       writingPolicyDocumentId,
     );
@@ -94,9 +97,7 @@ describe("provider-neutral context delivery", () => {
         }),
       ]),
     );
-    expect(injected.evidence.slice(0, input.loaded.evidence.length)).toEqual(
-      input.loaded.evidence,
-    );
+    expect(injected.evidence.slice(0, input.loaded.evidence.length)).toEqual(input.loaded.evidence);
     for (const evidence of injected.e3Evidence) {
       const envelopeDocument = injected.envelope.documents.find(
         (document) => document.documentId === evidence.documentId,
@@ -346,8 +347,7 @@ describe("provider-neutral context delivery", () => {
           session.roleId = "mutated-role";
           envelope.documents[0] = {
             ...envelope.documents[0]!,
-            contentHash:
-              "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            contentHash: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
           };
           return receiptFor(session, envelope);
         },

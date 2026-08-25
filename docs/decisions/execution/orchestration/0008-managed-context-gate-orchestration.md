@@ -5,7 +5,7 @@
 
 ## Context
 
-Context preparation produces E1/E2 and delivery produces verified E3, but an execution owner must commit that evidence and evaluate one gate before the first file write. Caller-assembled evidence could open capabilities before telemetry commits, let E3 override a role denial, or reuse stale receipts after compaction or source changes.
+Context preparation produces E1/E2 and delivery produces verified E3, but an execution owner must commit that evidence and evaluate one gate before the first file write. Caller-assembled evidence could open capabilities before telemetry commits, allow E3 to override a role denial, or reuse stale receipts after compaction or source changes.
 
 ## Decision
 

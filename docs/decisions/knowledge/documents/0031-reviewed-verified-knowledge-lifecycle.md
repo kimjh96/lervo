@@ -11,13 +11,13 @@ A converged candidate is not automatically verified project knowledge. Promotion
 
 ### Separate review and promotion sources
 
-- `KnowledgePromotionPolicy` identifies allowed human reviewers and conflict requirements. Its version hashes the canonical snapshot excluding version.
+- `KnowledgePromotionPolicy` identifies allowed human reviewers and conflict requirements. Its version hashes the canonical snapshot excluding the version.
 - Immutable CAS `KnowledgeReviewApproval` binds the candidate ID/hash, approve/reject decision, reviewer, policy snapshot, reviewed revision, resolved conflicts, and time. Its ID hashes the remaining canonical content, including reviewer and policy.
 - `knowledge.candidate.reviewed` records only candidate, approval, policy, and revision IDs/hashes. Reviewer identity remains in local approval CAS. Rejections are review sources but cannot authorize promotion.
 
 ### Verified source binds approval and current paths
 
-Promotion revalidates candidate CAS/event/evidence/decision sources and approval CAS/review event. It requires a currently allowed reviewer, an `approved` decision, all required conflicts resolved, identical candidate/approval/current revision coordinates, and every affected path present.
+Promotion revalidates candidate CAS/event/evidence/decision sources and approval CAS/review event. It requires a currently allowed reviewer, an `approved` decision, resolution of every required conflict, identical candidate/approval/current revision coordinates, and presence of every affected path.
 
 The verified source records candidate/approval CAS coordinates, claim digest, per-path baseline hashes, evidence events, verified revision, review interval, and time. `knowledge.verified` records only the source ID/hash. Candidate, approval, and user documents are immutable.
 
@@ -25,7 +25,7 @@ The verified source records candidate/approval CAS coordinates, claim digest, pe
 
 Knowledge remains `current` when all connected hashes match and review is not due, even if the repository revision changed. It becomes `stale` when a connected path changes or disappears, or when the due time arrives.
 
-Store a small derived CAS result containing overall state, two signals, changed/missing paths, and fixed reasons. Reject contradictory combinations. Do not emit events for `current`; emit `knowledge.stale.detected` only for stale results.
+Store a small derived CAS result containing overall state, two signals, changed/missing paths, and fixed reasons. Reject contradictory combinations. Emit no event for `current`; emit `knowledge.stale.detected` only for stale results.
 
 ### Events and failures
 
@@ -47,4 +47,4 @@ SQLite/CAS fixtures cover authorized approval and promotion; unauthorized, rejec
 
 ## Consequences
 
-Promotion binds human approval to current repository evidence. Each source remains a separate CAS object instead of contributing to an ever-growing knowledge file.
+Promotion binds human approval to current repository evidence. Each source remains a separate CAS object rather than contributing to an ever-growing knowledge file.

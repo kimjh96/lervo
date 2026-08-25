@@ -1,6 +1,4 @@
-import {
-  ReleaseAttestationVerificationError,
-} from "./lib/release-attestation-consumer.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
 import { verifyCliReleaseAttestations } from "./lib/cli-release-attestation-consumer.mjs";
 import { ReleaseAttestationError } from "./lib/cli-release-attestation.mjs";
 import { ReleaseArtifactManifestError } from "./lib/release-artifact-manifest.mjs";
@@ -22,24 +20,23 @@ function parseArguments(args) {
       json = true;
       continue;
     }
-    if (![
-      "--release-directory",
-      "--repository",
-      "--tag",
-      "--source-digest",
-      "--trusted-root",
-    ].includes(name) || values.has(name) || index + 1 >= args.length) {
+    if (
+      ![
+        "--release-directory",
+        "--repository",
+        "--tag",
+        "--source-digest",
+        "--trusted-root",
+      ].includes(name) ||
+      values.has(name) ||
+      index + 1 >= args.length
+    ) {
       failArguments();
     }
     values.set(name, args[index + 1]);
     index += 1;
   }
-  for (const name of [
-    "--release-directory",
-    "--repository",
-    "--tag",
-    "--source-digest",
-  ]) {
+  for (const name of ["--release-directory", "--repository", "--tag", "--source-digest"]) {
     if (!values.has(name)) failArguments();
   }
   return {

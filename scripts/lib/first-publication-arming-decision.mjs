@@ -1,6 +1,5 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationBootstrapAuthorization } from
-  "./first-publication-bootstrap-reader.mjs";
+import { validateFirstPublicationBootstrapAuthorization } from "./first-publication-bootstrap-reader.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
 
 export const firstPublicationArmingMaximumLifetimeMs = 5 * 60 * 1000;
@@ -24,15 +23,20 @@ function fail(code = "first_publication_arming_decision_invalid") {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function timestamp(value) {
   if (
     typeof value !== "string" ||
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value)
-  ) fail();
+  )
+    fail();
   const milliseconds = Date.parse(value);
   if (!Number.isFinite(milliseconds)) fail();
   return milliseconds;
@@ -48,30 +52,44 @@ export function validateFirstPublicationArmingDecision(
   const checkedAtMs = timestamp(checkedAt);
   if (
     !exactKeys(decision, [
-      "schemaVersion", "decisionId", "decision", "decidedAt", "expiresAt",
-      "actor", "target", "confirmations",
-    ]) || decision.schemaVersion !== 1 ||
+      "schemaVersion",
+      "decisionId",
+      "decision",
+      "decidedAt",
+      "expiresAt",
+      "actor",
+      "target",
+      "confirmations",
+    ]) ||
+    decision.schemaVersion !== 1 ||
     !decisionIdPattern.test(decision.decisionId ?? "") ||
     decision.decision !== "authorize_first_publication_once" ||
-    !exactKeys(decision.actor, ["kind", "id"]) || decision.actor.kind !== "user" ||
-    typeof decision.actor.id !== "string" || decision.actor.id.length < 1 ||
+    !exactKeys(decision.actor, ["kind", "id"]) ||
+    decision.actor.kind !== "user" ||
+    typeof decision.actor.id !== "string" ||
+    decision.actor.id.length < 1 ||
     decision.actor.id.length > 150 ||
     !exactKeys(decision.target, [
-      "package", "version", "bootstrapDigest", "publicationAuthorizationDigest",
+      "package",
+      "version",
+      "bootstrapDigest",
+      "publicationAuthorizationDigest",
       "executionPlanDigest",
-    ]) || decision.target.package !== bootstrap.target.package ||
+    ]) ||
+    decision.target.package !== bootstrap.target.package ||
     decision.target.version !== bootstrap.target.version ||
     decision.target.bootstrapDigest !== bootstrap.bootstrapDigest ||
     decision.target.publicationAuthorizationDigest !==
       bootstrap.release.publicationAuthorizationDigest ||
     decision.target.executionPlanDigest !== executionPlan?.executionPlanDigest ||
     !digestPattern.test(decision.target.executionPlanDigest ?? "") ||
-    canonicalJson(decision.confirmations) !==
-      canonicalJson(firstPublicationArmingConfirmations) ||
+    canonicalJson(decision.confirmations) !== canonicalJson(firstPublicationArmingConfirmations) ||
     decidedAt < timestamp(bootstrap.registryObservation.observedAt) ||
-    decidedAt > checkedAtMs || expiresAt <= checkedAtMs ||
+    decidedAt > checkedAtMs ||
+    expiresAt <= checkedAtMs ||
     expiresAt > timestamp(bootstrap.registryObservation.validUntil) ||
     expiresAt - decidedAt > firstPublicationArmingMaximumLifetimeMs
-  ) fail();
+  )
+    fail();
   return decision;
 }

@@ -28,23 +28,33 @@ function digest(encoded: string): string {
 function isTraceCursorPayload(value: unknown): value is TraceCursorPayload {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const payload = value as Partial<TraceCursorPayload>;
-  return payload.schemaVersion === 1 &&
-    typeof payload.projectId === "string" && idPattern.test(payload.projectId) &&
-    typeof payload.runId === "string" && idPattern.test(payload.runId) &&
-    Number.isSafeInteger(payload.eventCount) && payload.eventCount! >= 1 &&
-    typeof payload.headHash === "string" && hashPattern.test(payload.headHash) &&
-    Number.isSafeInteger(payload.afterSeq) && payload.afterSeq! >= 1 &&
-    typeof payload.afterEventHash === "string" && hashPattern.test(payload.afterEventHash) &&
-    Number.isSafeInteger(payload.limit) && payload.limit! >= 1 && payload.limit! <= 100 &&
-    (payload.eventTypes === undefined || (
-      Array.isArray(payload.eventTypes) &&
-      payload.eventTypes.length >= 1 &&
-      new Set(payload.eventTypes).size === payload.eventTypes.length &&
-      payload.eventTypes.every((eventType) => eventTypeSet.has(eventType)) &&
-      payload.eventTypes.every((eventType, index) =>
-        index === 0 || payload.eventTypes![index - 1]! < eventType)
-    )) &&
-    Object.keys(payload).length === (payload.eventTypes === undefined ? 8 : 9);
+  return (
+    payload.schemaVersion === 1 &&
+    typeof payload.projectId === "string" &&
+    idPattern.test(payload.projectId) &&
+    typeof payload.runId === "string" &&
+    idPattern.test(payload.runId) &&
+    Number.isSafeInteger(payload.eventCount) &&
+    payload.eventCount! >= 1 &&
+    typeof payload.headHash === "string" &&
+    hashPattern.test(payload.headHash) &&
+    Number.isSafeInteger(payload.afterSeq) &&
+    payload.afterSeq! >= 1 &&
+    typeof payload.afterEventHash === "string" &&
+    hashPattern.test(payload.afterEventHash) &&
+    Number.isSafeInteger(payload.limit) &&
+    payload.limit! >= 1 &&
+    payload.limit! <= 100 &&
+    (payload.eventTypes === undefined ||
+      (Array.isArray(payload.eventTypes) &&
+        payload.eventTypes.length >= 1 &&
+        new Set(payload.eventTypes).size === payload.eventTypes.length &&
+        payload.eventTypes.every((eventType) => eventTypeSet.has(eventType)) &&
+        payload.eventTypes.every(
+          (eventType, index) => index === 0 || payload.eventTypes![index - 1]! < eventType,
+        ))) &&
+    Object.keys(payload).length === (payload.eventTypes === undefined ? 8 : 9)
+  );
 }
 
 export function createTraceCursor(payload: TraceCursorPayload): string {

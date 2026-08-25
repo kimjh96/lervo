@@ -103,11 +103,7 @@ export const documentRecordSchema = {
     verifiedAt: timestampSchema,
     reviewIntervalDays: { type: "integer", minimum: 1 },
     ownership: {
-      oneOf: [
-        userOwnershipSchema,
-        managedBlocksOwnershipSchema,
-        lervoGeneratedOwnershipSchema,
-      ],
+      oneOf: [userOwnershipSchema, managedBlocksOwnershipSchema, lervoGeneratedOwnershipSchema],
     },
   },
   required: [
@@ -118,7 +114,7 @@ export const documentRecordSchema = {
     "verifiedRevision",
     "verifiedAt",
     "reviewIntervalDays",
-    "ownership"
+    "ownership",
   ],
   allOf: [
     {

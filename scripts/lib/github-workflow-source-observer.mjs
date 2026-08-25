@@ -6,8 +6,7 @@ import {
   remoteReleaseWorkflowPath,
   validateRemoteWorkflowSourceCommit,
 } from "./first-publication-workflow-remote-source-contract.mjs";
-import { normalizeGitHubRepositoryFileResponse } from
-  "./github-repository-file-response.mjs";
+import { normalizeGitHubRepositoryFileResponse } from "./github-repository-file-response.mjs";
 
 export {
   maximumRemoteWorkflowBytes,

@@ -26,19 +26,26 @@ describe("Hub trace HTTP cursor", () => {
   });
 
   it("rejects the wrong cursor kind, extra fields, and non-canonical encoding", () => {
-    expect(() => decodeRunCursor(encodeProjectCursor({
-      destinationId: "hub:primary",
-      projectId: "prj_allowed01",
-    }))).toThrow("cursor format");
-    const extra = Buffer.from(JSON.stringify({
-      v: 1,
-      kind: "event",
-      seq: 1,
-      extra: true,
-    })).toString("base64url");
+    expect(() =>
+      decodeRunCursor(
+        encodeProjectCursor({
+          destinationId: "hub:primary",
+          projectId: "prj_allowed01",
+        }),
+      ),
+    ).toThrow("cursor format");
+    const extra = Buffer.from(
+      JSON.stringify({
+        v: 1,
+        kind: "event",
+        seq: 1,
+        extra: true,
+      }),
+    ).toString("base64url");
     expect(() => decodeEventCursor(extra)).toThrow("event cursor format");
     expect(() => decodeEventCursor("not+base64url")).toThrow("cursor format");
-    expect(() => decodeKnowledgeGraphCursor(encodeEventCursor({ seq: 1 })))
-      .toThrow("cursor format");
+    expect(() => decodeKnowledgeGraphCursor(encodeEventCursor({ seq: 1 }))).toThrow(
+      "cursor format",
+    );
   });
 });

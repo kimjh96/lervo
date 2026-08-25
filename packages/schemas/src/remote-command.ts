@@ -50,14 +50,7 @@ export const managedRunRemoteCommandActionSchema = {
     },
     request: remoteCommandPayloadReferenceSchema,
   },
-  required: [
-    "kind",
-    "roleId",
-    "provider",
-    "risk",
-    "verificationSuiteIds",
-    "request",
-  ],
+  required: ["kind", "roleId", "provider", "risk", "verificationSuiteIds", "request"],
   additionalProperties: false,
 } as const;
 
@@ -292,20 +285,14 @@ export const remoteCommandDeliveryConfirmationSchema = {
 } as const;
 
 export type RemoteCommandTarget = FromSchema<typeof remoteCommandTargetSchema>;
-export type RemoteCommandPayloadReference = FromSchema<
-  typeof remoteCommandPayloadReferenceSchema
->;
-export type ManagedRunRemoteCommandAction = FromSchema<
-  typeof managedRunRemoteCommandActionSchema
->;
+export type RemoteCommandPayloadReference = FromSchema<typeof remoteCommandPayloadReferenceSchema>;
+export type ManagedRunRemoteCommandAction = FromSchema<typeof managedRunRemoteCommandActionSchema>;
 export type RemoteCommand = FromSchema<typeof remoteCommandSchema>;
 export type SignedRemoteCommand = FromSchema<
   typeof signedRemoteCommandSchema,
   { references: [typeof remoteCommandSchema] }
 >;
-export type RemoteCommandExecutionReceipt = FromSchema<
-  typeof remoteCommandExecutionReceiptSchema
->;
+export type RemoteCommandExecutionReceipt = FromSchema<typeof remoteCommandExecutionReceiptSchema>;
 export type RemoteCommandLease = FromSchema<
   typeof remoteCommandLeaseSchema,
   { references: [typeof remoteCommandSchema, typeof signedRemoteCommandSchema] }

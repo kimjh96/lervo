@@ -1,10 +1,7 @@
-import { inspectCliFirstPublicationWorkflowActivationCandidate } from
-  "./lib/cli-first-publication-workflow-activation-candidate.mjs";
+import { inspectCliFirstPublicationWorkflowActivationCandidate } from "./lib/cli-first-publication-workflow-activation-candidate.mjs";
 import { FirstPublicationBootstrapError } from "./lib/first-publication-bootstrap.mjs";
-import { formatFirstPublicationWorkflowActivationCandidate } from
-  "./lib/first-publication-workflow-activation-candidate-formatter.mjs";
-import { ReleaseAttestationVerificationError } from
-  "./lib/release-attestation-consumer.mjs";
+import { formatFirstPublicationWorkflowActivationCandidate } from "./lib/first-publication-workflow-activation-candidate-formatter.mjs";
+import { ReleaseAttestationVerificationError } from "./lib/release-attestation-consumer.mjs";
 
 function failArguments() {
   throw new FirstPublicationBootstrapError(
@@ -35,10 +32,12 @@ try {
   if (
     error instanceof FirstPublicationBootstrapError ||
     error instanceof ReleaseAttestationVerificationError
-  ) console.error(`${error.code}: ${error.message}`);
-  else console.error(
-    "first_publication_workflow_activation_candidate_failed: " +
-    "The CLI first-publication workflow activation candidate could not be created.",
-  );
+  )
+    console.error(`${error.code}: ${error.message}`);
+  else
+    console.error(
+      "first_publication_workflow_activation_candidate_failed: " +
+        "The CLI first-publication workflow activation candidate could not be created.",
+    );
   process.exitCode = 1;
 }

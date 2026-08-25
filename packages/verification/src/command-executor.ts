@@ -3,7 +3,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import type { VerificationCommand } from "@lervo/schemas";
 
 export interface RawCommandResult {
-  status: "passed" | "failed" | "timed_out" | "output_limit_exceeded" | "execution_error" | "cancelled";
+  status:
+    "passed" | "failed" | "timed_out" | "output_limit_exceeded" | "execution_error" | "cancelled";
   exitCode: number | null;
   startedAt: string;
   completedAt: string;

@@ -3,10 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
-import {
-  createTracePage,
-  readTracePageReport,
-} from "@lervo/diagnostics";
+import { createTracePage, readTracePageReport } from "@lervo/diagnostics";
 import { afterEach, describe, expect, it } from "vitest";
 
 const roots: string[] = [];
@@ -30,17 +27,18 @@ async function storeWithEvents(count: number): Promise<SQLiteEventStore> {
       actor: { kind: "system" },
       schemaVersion: 1,
       policyVersion: `sha256:${"a".repeat(64)}`,
-      payload: index % 2 === 0
-        ? {
-            failureCode: "fixture_failure",
-            retryable: false,
-            diagnosticDigest: `sha256:${"c".repeat(64)}`,
-          }
-        : {
-            requestDigest: `sha256:${"b".repeat(64)}`,
-            role: "developer",
-            risk: "low",
-          },
+      payload:
+        index % 2 === 0
+          ? {
+              failureCode: "fixture_failure",
+              retryable: false,
+              diagnosticDigest: `sha256:${"c".repeat(64)}`,
+            }
+          : {
+              requestDigest: `sha256:${"b".repeat(64)}`,
+              role: "developer",
+              risk: "low",
+            },
     });
   }
   return store;
@@ -71,11 +69,13 @@ describe("snapshot-bound local trace pages", () => {
     const store = await storeWithEvents(3);
     const first = createTracePage({ projectId, events: store, selector: "last", limit: 1 });
     const cursor = first.page.nextCursor!;
-    expect(() => createTracePage({
-      projectId,
-      events: store,
-      cursor: `${cursor.slice(0, -1)}${cursor.endsWith("0") ? "1" : "0"}`,
-    })).toThrowError(expect.objectContaining({ code: "trace_cursor_invalid" }));
+    expect(() =>
+      createTracePage({
+        projectId,
+        events: store,
+        cursor: `${cursor.slice(0, -1)}${cursor.endsWith("0") ? "1" : "0"}`,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "trace_cursor_invalid" }));
 
     store.append({
       eventId: "evt_trace_page_append",
@@ -101,10 +101,12 @@ describe("snapshot-bound local trace pages", () => {
     expect(() => readTracePageReport({ ...page, schemaVersion: 2 })).toThrowError(
       expect.objectContaining({ code: "trace_page_report_schema_unsupported" }),
     );
-    expect(() => readTracePageReport({
-      ...page,
-      page: { ...page.page, returnedCount: 2 },
-    })).toThrowError(expect.objectContaining({ code: "trace_page_report_invalid" }));
+    expect(() =>
+      readTracePageReport({
+        ...page,
+        page: { ...page.page, returnedCount: 2 },
+      }),
+    ).toThrowError(expect.objectContaining({ code: "trace_page_report_invalid" }));
     store.close();
   });
 
@@ -129,12 +131,14 @@ describe("snapshot-bound local trace pages", () => {
 
   it("distinguishes no filter matches from a missing run", async () => {
     const store = await storeWithEvents(3);
-    expect(() => createTracePage({
-      projectId,
-      events: store,
-      selector: "last",
-      eventTypes: ["run.completed"],
-    })).toThrowError(expect.objectContaining({ code: "trace_filter_empty" }));
+    expect(() =>
+      createTracePage({
+        projectId,
+        events: store,
+        selector: "last",
+        eventTypes: ["run.completed"],
+      }),
+    ).toThrowError(expect.objectContaining({ code: "trace_filter_empty" }));
     store.close();
   });
 });

@@ -24,15 +24,23 @@ export async function loadLeasedHubCommandArtifact(input: {
   try {
     bytes = await input.artifacts.get(binding.uri);
   } catch (error) {
-    throw new HubCommandError("artifact_store_failed", "The Hub command artifact could not be read.", {
-      cause: error,
-    });
+    throw new HubCommandError(
+      "artifact_store_failed",
+      "The Hub command artifact could not be read.",
+      {
+        cause: error,
+      },
+    );
   }
   if (
-    !(bytes instanceof Uint8Array) || bytes.byteLength !== binding.reference.byteCount ||
+    !(bytes instanceof Uint8Array) ||
+    bytes.byteLength !== binding.reference.byteCount ||
     sha256(bytes) !== binding.reference.contentHash
   ) {
-    throw new HubCommandError("artifact_integrity_failed", "The Hub command artifact source differs from its coordinates.");
+    throw new HubCommandError(
+      "artifact_integrity_failed",
+      "The Hub command artifact source differs from its coordinates.",
+    );
   }
   return { bytes, reference: structuredClone(binding.reference) };
 }

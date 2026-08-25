@@ -1,24 +1,14 @@
 import type { DeliberationPolicy } from "@lervo/schemas";
-import type {
-  DeliberationRuntime,
-  DeliberationTurnResult,
-} from "@lervo/deliberation-runtime";
+import type { DeliberationRuntime, DeliberationTurnResult } from "@lervo/deliberation-runtime";
 
 import {
   createNoConsensusOutcome,
   initialClaimId,
   reviewDetails,
 } from "./deliberation-contract.js";
-import {
-  proposalPrompt,
-  revisionPrompt,
-  reviewPrompt,
-} from "./deliberation-prompts.js";
+import { proposalPrompt, revisionPrompt, reviewPrompt } from "./deliberation-prompts.js";
 import type { DeliberationExecutionPlan } from "./deliberation-roles.js";
-import {
-  presentDeliberationOutcome,
-  recordDeliberationTurn,
-} from "./deliberation-turn.js";
+import { presentDeliberationOutcome, recordDeliberationTurn } from "./deliberation-turn.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type {
   ManagedDeliberationOutcome,
@@ -39,9 +29,7 @@ export interface UnresolvedDeliberationRounds {
   openBlockingObjectionIds: string[];
 }
 
-export type DeliberationRoundsResult =
-  | ApprovedDeliberationRounds
-  | UnresolvedDeliberationRounds;
+export type DeliberationRoundsResult = ApprovedDeliberationRounds | UnresolvedDeliberationRounds;
 
 export async function executeDeliberationRounds(input: {
   request: StartManagedDeliberationRequest;

@@ -73,12 +73,14 @@ export async function collectInstalledPackages(nodeModulesRoot) {
 
 function inferPlatformFamily(manifest) {
   const os = Array.isArray(manifest.os) && manifest.os.length === 1 ? manifest.os[0] : undefined;
-  const cpu = Array.isArray(manifest.cpu) && manifest.cpu.length === 1 ? manifest.cpu[0] : undefined;
+  const cpu =
+    Array.isArray(manifest.cpu) && manifest.cpu.length === 1 ? manifest.cpu[0] : undefined;
   const suffix = os && cpu ? `-${os}-${cpu}` : undefined;
   return {
-    prefix: suffix && manifest.name.endsWith(suffix)
-      ? `${manifest.name.slice(0, -suffix.length)}-`
-      : manifest.name,
+    prefix:
+      suffix && manifest.name.endsWith(suffix)
+        ? `${manifest.name.slice(0, -suffix.length)}-`
+        : manifest.name,
     version: manifest.version,
   };
 }
@@ -96,9 +98,12 @@ export function classifyDependencies(packages, expectedFamilies, updateMode) {
     }
     const inferred = inferPlatformFamily(manifest);
     inferredFamilies.set(`${inferred.prefix}@${inferred.version}`, inferred);
-    if (!updateMode && !expectedFamilies.some(({ prefix, version }) =>
-      manifest.name.startsWith(prefix) && manifest.version === version
-    )) {
+    if (
+      !updateMode &&
+      !expectedFamilies.some(
+        ({ prefix, version }) => manifest.name.startsWith(prefix) && manifest.version === version,
+      )
+    ) {
       throw new ReleaseArtifactManifestError(
         "release_artifact_platform_dependency_unexpected",
         "A disallowed platform-specific dependency is installed.",
@@ -110,8 +115,8 @@ export function classifyDependencies(packages, expectedFamilies, updateMode) {
     portable,
     platformSpecificFamilies: updateMode
       ? [...inferredFamilies.values()].sort((left, right) =>
-        `${left.prefix}@${left.version}`.localeCompare(`${right.prefix}@${right.version}`)
-      )
+          `${left.prefix}@${left.version}`.localeCompare(`${right.prefix}@${right.version}`),
+        )
       : expectedFamilies,
   };
 }

@@ -40,9 +40,12 @@ function scope(value: unknown): ContextScope {
   const candidate = object(value);
   if (candidate.kind === "full") return { kind: "full" };
   if (
-    candidate.kind === "sections" && Array.isArray(candidate.sections) &&
-    candidate.sections.length > 0 && candidate.sections.every((item) => typeof item === "string")
-  ) return { kind: "sections", sections: [...candidate.sections] as string[] };
+    candidate.kind === "sections" &&
+    Array.isArray(candidate.sections) &&
+    candidate.sections.length > 0 &&
+    candidate.sections.every((item) => typeof item === "string")
+  )
+    return { kind: "sections", sections: [...candidate.sections] as string[] };
   throw new ManagedContextCoverageError("Managed context scope is invalid.");
 }
 
@@ -79,7 +82,11 @@ interface VersionState {
 
 function eventStatus(events: readonly EventEnvelope[]): ManagedContextCoverageReport["status"] {
   const types = new Set(events.map((event) => event.type));
-  return types.has("run.failed") ? "failed" : types.has("run.completed") ? "completed" : "incomplete";
+  return types.has("run.failed")
+    ? "failed"
+    : types.has("run.completed")
+      ? "completed"
+      : "incomplete";
 }
 
 export function projectManagedContextCoverage(
@@ -91,11 +98,15 @@ export function projectManagedContextCoverage(
   const projectId = events[0]!.projectId;
   const runId = events[0]!.runId;
   if (events.some((event) => event.projectId !== projectId || event.runId !== runId)) {
-    throw new ManagedContextCoverageError("Managed coverage events cross project or run coordinates.");
+    throw new ManagedContextCoverageError(
+      "Managed coverage events cross project or run coordinates.",
+    );
   }
   const providers = new Set(adapterStarts.map((event) => string(event.actor.provider)));
   if (providers.size !== 1) {
-    throw new ManagedContextCoverageError("Managed coverage requires exactly one provider per run.");
+    throw new ManagedContextCoverageError(
+      "Managed coverage requires exactly one provider per run.",
+    );
   }
   const provider = [...providers][0]!;
 
@@ -142,7 +153,10 @@ export function projectManagedContextCoverage(
     versionKeysByDocument.set(documentId, keys);
   }
 
-  const deliveriesByReceipt = new Map<string, { key: string; delivery: VersionState["deliveries"][number] }>();
+  const deliveriesByReceipt = new Map<
+    string,
+    { key: string; delivery: VersionState["deliveries"][number] }
+  >();
   for (const event of events.filter((candidate) => candidate.type === "context.injected")) {
     const payload = object(event.payload);
     if (!Array.isArray(payload.documents)) continue;
@@ -152,12 +166,17 @@ export function projectManagedContextCoverage(
     const documentIds = Array.isArray(payload.documentIds) ? payload.documentIds.map(string) : [];
     const records = payload.documents.map(object);
     if (
-      records.length !== evidenceIds.length || records.length !== documentIds.length ||
-      records.some((record, index) =>
-        string(record.evidenceReceiptId) !== evidenceIds[index] ||
-        string(record.documentId) !== documentIds[index])
+      records.length !== evidenceIds.length ||
+      records.length !== documentIds.length ||
+      records.some(
+        (record, index) =>
+          string(record.evidenceReceiptId) !== evidenceIds[index] ||
+          string(record.documentId) !== documentIds[index],
+      )
     ) {
-      throw new ManagedContextCoverageError("Enhanced E3 document coordinates differ from aggregate receipt arrays.");
+      throw new ManagedContextCoverageError(
+        "Enhanced E3 document coordinates differ from aggregate receipt arrays.",
+      );
     }
     for (const record of records) {
       const documentId = string(record.documentId);
@@ -185,15 +204,20 @@ export function projectManagedContextCoverage(
     }
   }
 
-  const resultEvents = new Map(events.filter((event) => event.type === "adapter.result.captured")
-    .map((event) => [event.eventId, event]));
+  const resultEvents = new Map(
+    events
+      .filter((event) => event.type === "adapter.result.captured")
+      .map((event) => [event.eventId, event]),
+  );
   for (const event of events.filter((candidate) => candidate.type === "context.referenced")) {
     const payload = object(event.payload);
     const injectedReceiptId = string(payload.injectedEvidenceReceiptId);
     const injected = deliveriesByReceipt.get(injectedReceiptId);
     const source = resultEvents.get(string(payload.sourceEventId));
     if (injected === undefined || source === undefined) {
-      throw new ManagedContextCoverageError("E4 has no matching E3 receipt or captured result event.");
+      throw new ManagedContextCoverageError(
+        "E4 has no matching E3 receipt or captured result event.",
+      );
     }
     const sourcePayload = object(source.payload);
     const version = versions.get(injected.key)!;
@@ -206,13 +230,17 @@ export function projectManagedContextCoverage(
       string(payload.providerSessionId) !== injected.delivery.providerSessionId ||
       string(payload.targetTurnId) !== injected.delivery.targetTurnId ||
       integer(payload.contextGeneration) !== injected.delivery.contextGeneration ||
-      string(payload.provider) !== provider || event.actor.provider !== provider ||
+      string(payload.provider) !== provider ||
+      event.actor.provider !== provider ||
       string(payload.providerTurnId) !== string(sourcePayload.providerTurnId) ||
       string(payload.targetTurnId) !== string(sourcePayload.targetTurnId) ||
       string(payload.providerSessionId) !== string(sourcePayload.providerSessionId) ||
-      string(payload.citation) !== expectedCitation || payload.referenceKind !== "output_citation"
+      string(payload.citation) !== expectedCitation ||
+      payload.referenceKind !== "output_citation"
     ) {
-      throw new ManagedContextCoverageError("E4 does not match its exact E3 version and source result coordinates.");
+      throw new ManagedContextCoverageError(
+        "E4 does not match its exact E3 version and source result coordinates.",
+      );
     }
     version.references.push({
       eventId: event.eventId,
@@ -238,9 +266,12 @@ export function projectManagedContextCoverage(
         scope: version.scope,
         sourceRevisions: [...new Set(version.sourceRevisions)],
         required: selectionReasons.some((reason) => reason.required),
-        highestEvidence: version.references.length > 0
-          ? "referenced"
-          : version.deliveries.length > 0 ? "injected" : "loaded",
+        highestEvidence:
+          version.references.length > 0
+            ? "referenced"
+            : version.deliveries.length > 0
+              ? "injected"
+              : "loaded",
         selectionReasons,
         loadedEventIds: [...new Set(version.loadedEventIds)],
         deliveries: version.deliveries,
@@ -269,9 +300,10 @@ export function projectManagedContextCoverage(
       missingStages: ["E2", "E3", "E4"],
     });
   }
-  documents.sort((left, right) =>
-    left.documentId.localeCompare(right.documentId) ||
-    String(left.contentHash).localeCompare(String(right.contentHash))
+  documents.sort(
+    (left, right) =>
+      left.documentId.localeCompare(right.documentId) ||
+      String(left.contentHash).localeCompare(String(right.contentHash)),
   );
 
   const required = documents.filter((document) => document.required);
@@ -279,9 +311,14 @@ export function projectManagedContextCoverage(
   const deliveredRequired = required.filter((document) => document.deliveries.length > 0).length;
   const injected = documents.filter((document) => document.deliveries.length > 0);
   const referenced = injected.filter((document) => document.references.length > 0);
-  const recommendedIds = new Set(events.filter((event) => event.type === "context.recommended")
-    .map((event) => string(object(event.payload).documentId)));
-  const selectedRecommended = [...recommendedIds].filter((documentId) => selections.has(documentId)).length;
+  const recommendedIds = new Set(
+    events
+      .filter((event) => event.type === "context.recommended")
+      .map((event) => string(object(event.payload).documentId)),
+  );
+  const selectedRecommended = [...recommendedIds].filter((documentId) =>
+    selections.has(documentId),
+  ).length;
 
   const report: ManagedContextCoverageReport = {
     schemaVersion: 1,
@@ -294,9 +331,12 @@ export function projectManagedContextCoverage(
     status: eventStatus(events),
     capabilities: {
       controlledContextDelivery: injected.length > 0 ? "observed" : "supported_no_observation",
-      explicitOutputReference: referenced.length > 0
-        ? "observed"
-        : resultEvents.size > 0 ? "supported_no_observation" : "unavailable",
+      explicitOutputReference:
+        referenced.length > 0
+          ? "observed"
+          : resultEvents.size > 0
+            ? "supported_no_observation"
+            : "unavailable",
       internalUse: "unsupported",
     },
     documents,
@@ -306,19 +346,23 @@ export function projectManagedContextCoverage(
         : required.length === 0
           ? ratio(0, 0, "required_document_set_empty")
           : ratio(deliveredRequired, required.length),
-      explicitReference: resultEvents.size === 0
-        ? ratio(0, injected.length, "reference_telemetry_unavailable")
-        : injected.length === 0
-          ? ratio(0, 0, "injected_document_set_empty")
-          : ratio(referenced.length, injected.length),
+      explicitReference:
+        resultEvents.size === 0
+          ? ratio(0, injected.length, "reference_telemetry_unavailable")
+          : injected.length === 0
+            ? ratio(0, 0, "injected_document_set_empty")
+            : ratio(referenced.length, injected.length),
       relevance: ratio(0, 0, "reviewed_ground_truth_unavailable"),
-      candidateSelection: recommendedIds.size === 0
-        ? ratio(0, 0, "recommendations_unavailable")
-        : ratio(selectedRecommended, recommendedIds.size),
+      candidateSelection:
+        recommendedIds.size === 0
+          ? ratio(0, 0, "recommendations_unavailable")
+          : ratio(selectedRecommended, recommendedIds.size),
     },
   };
   if (!validateSchema("managedContextCoverageReport", report).valid) {
-    throw new ManagedContextCoverageError("Projected managed context coverage does not satisfy its schema.");
+    throw new ManagedContextCoverageError(
+      "Projected managed context coverage does not satisfy its schema.",
+    );
   }
   return report;
 }

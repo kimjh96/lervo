@@ -53,7 +53,10 @@ describe("durable Hub policy source", () => {
     const policyKeys = generateKeyPairSync("ed25519");
     const commandKeys = generateKeyPairSync("ed25519");
     const policySigner = new Ed25519PolicySigner("key_hub_policy_01", policyKeys.privateKey);
-    const commandSigner = new Ed25519RemoteCommandSigner("key_hub_command_01", commandKeys.privateKey);
+    const commandSigner = new Ed25519RemoteCommandSigner(
+      "key_hub_command_01",
+      commandKeys.privateKey,
+    );
     let store = await HubSyncSQLiteStore.open({ path });
     await registerStore(store, project);
     const secondaryDestinationId = "hub:policy-secondary";
@@ -190,15 +193,15 @@ describe("durable Hub policy source", () => {
     await store.close();
 
     const database = new DatabaseSync(path, { enableForeignKeyConstraints: true });
-    expect(() => database.exec(
-      "UPDATE hub_policy_snapshots SET published_at = published_at",
-    )).toThrow(/append-only/);
-    expect(() => database.exec(
-      "UPDATE hub_policy_approvals SET published_at = published_at",
-    )).toThrow(/append-only/);
-    expect(() => database.exec(
-      "UPDATE hub_policy_revocations SET published_at = published_at",
-    )).toThrow(/append-only/);
+    expect(() =>
+      database.exec("UPDATE hub_policy_snapshots SET published_at = published_at"),
+    ).toThrow(/append-only/);
+    expect(() =>
+      database.exec("UPDATE hub_policy_approvals SET published_at = published_at"),
+    ).toThrow(/append-only/);
+    expect(() =>
+      database.exec("UPDATE hub_policy_revocations SET published_at = published_at"),
+    ).toThrow(/append-only/);
     database.close();
 
     store = await HubSyncSQLiteStore.open({ path });
@@ -213,11 +216,13 @@ describe("durable Hub policy source", () => {
       revocations: [{ revocation: { revocationId: revocation.originalId } }],
     });
     expect(JSON.stringify(bundle)).not.toContain(principalId);
-    await expect(store.pullPolicyBundle({
-      destinationId: secondaryDestinationId,
-      target,
-      currentSnapshotId: secondarySnapshot.policySnapshotId,
-    })).resolves.toEqual(bundle);
+    await expect(
+      store.pullPolicyBundle({
+        destinationId: secondaryDestinationId,
+        target,
+        currentSnapshotId: secondarySnapshot.policySnapshotId,
+      }),
+    ).resolves.toEqual(bundle);
     await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await store.close();
   });
@@ -235,7 +240,14 @@ describe("durable Hub policy source", () => {
     const first = await authorPolicySnapshot({
       store,
       signer,
-      request: { destinationId, target, rules: [writeRule()], issuedAt, expiresAt, publishedAt: issuedAt },
+      request: {
+        destinationId,
+        target,
+        rules: [writeRule()],
+        issuedAt,
+        expiresAt,
+        publishedAt: issuedAt,
+      },
     });
     const concurrent = await Promise.allSettled([
       authorPolicySnapshot({
@@ -284,11 +296,13 @@ describe("durable Hub policy source", () => {
       currentSnapshotId: null,
     });
     expect(fresh?.snapshot.snapshot.snapshotId).toBe(next?.snapshot.snapshot.snapshotId);
-    await expect(store.pullPolicyBundle({
-      destinationId,
-      target,
-      currentSnapshotId: `pol_${"f".repeat(64)}`,
-    })).rejects.toMatchObject({ code: "policy_snapshot_conflict" });
+    await expect(
+      store.pullPolicyBundle({
+        destinationId,
+        target,
+        currentSnapshotId: `pol_${"f".repeat(64)}`,
+      }),
+    ).rejects.toMatchObject({ code: "policy_snapshot_conflict" });
     await store.close();
   });
 });

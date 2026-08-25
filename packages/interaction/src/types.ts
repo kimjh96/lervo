@@ -137,9 +137,7 @@ export type HandleConversationEventResult =
   | { status: "busy" }
   | {
       status: "retry_scheduled";
-      failureCode:
-        | "response_generation_failed"
-        | "publication_verification_failed";
+      failureCode: "response_generation_failed" | "publication_verification_failed";
       nextAttemptAt: string;
     };
 

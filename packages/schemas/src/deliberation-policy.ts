@@ -114,12 +114,7 @@ export const deliberationPolicySchema = {
         writingPolicyHash: sha256Schema,
         requiresWritingPermit: { const: true },
       },
-      required: [
-        "surface",
-        "writingPolicyId",
-        "writingPolicyHash",
-        "requiresWritingPermit",
-      ],
+      required: ["surface", "writingPolicyId", "writingPolicyHash", "requiresWritingPermit"],
       additionalProperties: false,
     },
   },

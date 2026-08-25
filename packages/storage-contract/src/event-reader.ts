@@ -29,7 +29,10 @@ function assertForwardPage(
 ): void {
   let previousSeq = afterSeq;
   for (const event of page) {
-    if (event.seq <= previousSeq || (expectedRunId !== undefined && event.runId !== expectedRunId)) {
+    if (
+      event.seq <= previousSeq ||
+      (expectedRunId !== undefined && event.runId !== expectedRunId)
+    ) {
       throw new EventReadError(
         "event_sequence_invalid",
         "The event store did not return a forward page matching the requested coordinates.",

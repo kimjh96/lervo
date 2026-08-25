@@ -17,10 +17,8 @@ const availableTools: Readonly<Record<string, readonly string[]>> = {
 };
 
 function runtimePlatform(): "darwin" | "linux" | "win32" {
-  if (
-    process.platform === "darwin" || process.platform === "linux" ||
-    process.platform === "win32"
-  ) return process.platform;
+  if (process.platform === "darwin" || process.platform === "linux" || process.platform === "win32")
+    return process.platform;
   throw new SkillResolutionError(
     "unsupported_runtime_platform",
     "Managed provider skill compatibility cannot be determined on the current platform.",
@@ -45,18 +43,18 @@ export async function resolveManagedProviderHostSkills(input: {
     );
   }
   const candidates = [
-    ...await discoverSkillRoot({
+    ...(await discoverSkillRoot({
       root: resolve(input.repositoryRoot, ".agents/skills"),
       sourceKind: "project",
       sourceUriPrefix: ".agents/skills",
       requestedSkillIds: skillIds,
-    }),
-    ...await discoverSkillRoot({
+    })),
+    ...(await discoverSkillRoot({
       root: input.userSkillRoot ?? resolve(homedir(), ".agents/skills"),
       sourceKind: "user",
       sourceUriPrefix: "~/.agents/skills",
       requestedSkillIds: skillIds,
-    }),
+    })),
   ];
   const resolution = resolveSkills({
     requestedSkillIds: skillIds,

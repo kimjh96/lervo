@@ -2,18 +2,17 @@ import {
   firstPublicationRegistryObservationLifetimeMs,
   FirstPublicationBootstrapError,
 } from "./first-publication-bootstrap.mjs";
-import { firstPublicationEvidenceTimestamp } from
-  "./first-publication-external-evidence-documents.mjs";
+import { firstPublicationEvidenceTimestamp } from "./first-publication-external-evidence-documents.mjs";
 import {
   validateFirstPublicationExternalEvidenceLocalInputs,
   validateFirstPublicationExternalPackageObservation,
 } from "./first-publication-external-evidence-policy.mjs";
-import {
-  canonicalDigest,
-  canonicalJson,
-} from "./release-artifact-manifest.mjs";
+import { canonicalDigest, canonicalJson } from "./release-artifact-manifest.mjs";
 
-function fail(code, message = "CLI first-publication external-requirements evidence could not be bound.") {
+function fail(
+  code,
+  message = "CLI first-publication external-requirements evidence could not be bound.",
+) {
   throw new FirstPublicationBootstrapError(code, message);
 }
 
@@ -28,11 +27,13 @@ function reportBody(input) {
     "first_publication_external_evidence_observation_invalid",
   );
   const observationValidUntilMs = observedAtMs + firstPublicationRegistryObservationLifetimeMs;
-  const validUntil = new Date(Math.min(
-    observationValidUntilMs,
-    Date.parse(input.scopeConfirmation.expiresAt),
-    Date.parse(input.firstPublicationApproval.expiresAt),
-  )).toISOString();
+  const validUntil = new Date(
+    Math.min(
+      observationValidUntilMs,
+      Date.parse(input.scopeConfirmation.expiresAt),
+      Date.parse(input.firstPublicationApproval.expiresAt),
+    ),
+  ).toISOString();
   const body = {
     schemaVersion: 1,
     status: "evidence_bound",

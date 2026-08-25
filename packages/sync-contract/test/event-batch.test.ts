@@ -2,10 +2,7 @@ import { computeEventHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
-import {
-  assertOutboundEventBatch,
-  createOutboundEventBatch,
-} from "../src/index.js";
+import { assertOutboundEventBatch, createOutboundEventBatch } from "../src/index.js";
 import { eventChain, manifest, registration } from "./fixture.js";
 
 describe("outbound event batch contract", () => {
@@ -23,14 +20,18 @@ describe("outbound event batch contract", () => {
       previousHash: null,
       headHash: events[1]?.eventHash,
     });
-    expect(() => assertOutboundEventBatch({
-      ...batch,
-      headHash: events[0]!.eventHash,
-    })).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
-    expect(() => createOutboundEventBatch({
-      registration: request,
-      events: [events[0]!, events[2]!],
-    })).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
+    expect(() =>
+      assertOutboundEventBatch({
+        ...batch,
+        headHash: events[0]!.eventHash,
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
+    expect(() =>
+      createOutboundEventBatch({
+        registration: request,
+        events: [events[0]!, events[2]!],
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
   });
 
   it("rejects a hash-valid event that contains payload outside the Hub allowlist", () => {
@@ -47,10 +48,12 @@ describe("outbound event batch contract", () => {
       eventHash: computeEventHash(withoutHash),
     };
 
-    expect(() => createOutboundEventBatch({
-      registration: request,
-      events: [unsafe],
-    })).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
+    expect(() =>
+      createOutboundEventBatch({
+        registration: request,
+        events: [unsafe],
+      }),
+    ).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
   });
 
   it("keeps a hash-valid legacy recommendation event syncable without rewriting its payload", () => {

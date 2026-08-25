@@ -60,10 +60,8 @@ export async function deliverPlatformMessageWithReplay(input: {
     }
     await input.replay.markUnknown(coordinate).catch(() => undefined);
     if (error instanceof ConversationPlatformError) throw error;
-    throw new ConversationPlatformError(
-      "platform_delivery_failed",
-      input.failureMessage,
-      { cause: error instanceof Error ? error : undefined },
-    );
+    throw new ConversationPlatformError("platform_delivery_failed", input.failureMessage, {
+      cause: error instanceof Error ? error : undefined,
+    });
   }
 }

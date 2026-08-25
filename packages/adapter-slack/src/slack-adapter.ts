@@ -32,14 +32,17 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
 
   constructor(private readonly options: SlackConversationAdapterOptions) {
     if (
-      options.apiAppId.length < 1 || options.apiAppId.length > 128 ||
-      options.allowedTeamIds.length < 1 || new Set(options.allowedTeamIds).size !== options.allowedTeamIds.length ||
+      options.apiAppId.length < 1 ||
+      options.apiAppId.length > 128 ||
+      options.allowedTeamIds.length < 1 ||
+      new Set(options.allowedTeamIds).size !== options.allowedTeamIds.length ||
       options.allowedTeamIds.some((teamId) => teamId.length < 1 || teamId.length > 128) ||
-      options.signingSecret.length < 16 || options.signingSecret.length > 512 ||
-      (options.maximumRequestBytes !== undefined && (
-        !Number.isSafeInteger(options.maximumRequestBytes) || options.maximumRequestBytes < 1 ||
-        options.maximumRequestBytes > 4 * 1024 * 1024
-      ))
+      options.signingSecret.length < 16 ||
+      options.signingSecret.length > 512 ||
+      (options.maximumRequestBytes !== undefined &&
+        (!Number.isSafeInteger(options.maximumRequestBytes) ||
+          options.maximumRequestBytes < 1 ||
+          options.maximumRequestBytes > 4 * 1024 * 1024))
     ) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
@@ -60,10 +63,16 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
 
   async receive(request: SlackSignedHttpRequest): Promise<SlackIngressResult> {
     if (!this.descriptor.capabilities.includes("messages.receive")) {
-      throw new ConversationPlatformError("unsupported_platform_event", "Slack message reception is disabled.");
+      throw new ConversationPlatformError(
+        "unsupported_platform_event",
+        "Slack message reception is disabled.",
+      );
     }
     if (request.body.byteLength < 1 || request.body.byteLength > this.maximumRequestBytes) {
-      throw new ConversationPlatformError("invalid_platform_payload", "The Slack request size is outside the allowed range.");
+      throw new ConversationPlatformError(
+        "invalid_platform_payload",
+        "The Slack request size is outside the allowed range.",
+      );
     }
     verifySlackRequest({
       headers: request.headers,
@@ -89,9 +98,8 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
         conversationKey: parsed.channelId,
         threadKey: parsed.threadTs === parsed.messageTs ? null : parsed.threadTs,
         sourceMessageKey: parsed.messageTs,
-        replyToMessageKey: parsed.threadTs !== null && parsed.threadTs !== parsed.messageTs
-          ? parsed.threadTs
-          : null,
+        replyToMessageKey:
+          parsed.threadTs !== null && parsed.threadTs !== parsed.messageTs ? parsed.threadTs : null,
         participantKey: parsed.participantKey,
         mentionedParticipantKeys: parsed.mentionedParticipantKeys,
         actorKindHint: parsed.actorKindHint,
@@ -108,22 +116,22 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
       artifactStore: this.options.artifactStore,
     });
     const event = createConversationInboundEvent({
-        sourceEventKeyHash: hashConversationSourceEventKey(`${parsed.teamId}:${parsed.eventId}`),
-        target: {
-          integrationId: this.descriptor.integrationId,
-          projectId: identity.projectId,
-          conversationId: identity.conversationId,
-          threadId: identity.threadId,
-        },
-        kind: "message.created",
-        actor: identity.actor,
-        content,
-        mentions: identity.mentions,
-        replyToEventId: identity.replyToEventId,
-        signalCode: null,
-        automationDepth: identity.automationDepth,
-        occurredAt: parsed.occurredAt,
-      });
+      sourceEventKeyHash: hashConversationSourceEventKey(`${parsed.teamId}:${parsed.eventId}`),
+      target: {
+        integrationId: this.descriptor.integrationId,
+        projectId: identity.projectId,
+        conversationId: identity.conversationId,
+        threadId: identity.threadId,
+      },
+      kind: "message.created",
+      actor: identity.actor,
+      content,
+      mentions: identity.mentions,
+      replyToEventId: identity.replyToEventId,
+      signalCode: null,
+      automationDepth: identity.automationDepth,
+      occurredAt: parsed.occurredAt,
+    });
     try {
       await this.options.identity.recordInbound({
         platform: "slack",
@@ -149,7 +157,10 @@ export class SlackConversationAdapter implements SlackConversationAdapterPort {
 
   async deliver(message: ConversationOutboundMessage): Promise<ConversationDeliveryReceipt> {
     if (!this.descriptor.capabilities.includes("messages.send")) {
-      throw new ConversationPlatformError("platform_delivery_failed", "Slack message delivery is disabled.");
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "Slack message delivery is disabled.",
+      );
     }
     return deliverSlackConversationMessage({
       descriptor: this.descriptor,

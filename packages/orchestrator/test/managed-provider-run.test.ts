@@ -1,10 +1,8 @@
-import { access, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
-import {
-  managedContextReferenceComment,
-} from "@lervo/adapter-contract";
+import { managedContextReferenceComment } from "@lervo/adapter-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -36,25 +34,25 @@ describe("managed provider run lifecycle", () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");
     const input = providerRunInput();
-    await expect(coordinator(
-      adapter,
-      data.root,
-      failOnEventType(data.store, "skill.resolved"),
-    ).run({
-      ...input,
-      repositoryRoot: data.root,
-      context: {
-        ...input.context,
-        role: { ...input.context.role, defaultSkills: ["repository/testing"] },
-      },
-      resolvedSkills: [{
-        skillId: "repository/testing",
-        version: "1.0.0",
-        contentHash: `sha256:${"a".repeat(64)}`,
-        sourceKind: "project",
-        trustStatus: "untrusted",
-      }],
-    })).rejects.toMatchObject({ code: "telemetry_recording_failed" });
+    await expect(
+      coordinator(adapter, data.root, failOnEventType(data.store, "skill.resolved")).run({
+        ...input,
+        repositoryRoot: data.root,
+        context: {
+          ...input.context,
+          role: { ...input.context.role, defaultSkills: ["repository/testing"] },
+        },
+        resolvedSkills: [
+          {
+            skillId: "repository/testing",
+            version: "1.0.0",
+            contentHash: `sha256:${"a".repeat(64)}`,
+            sourceKind: "project",
+            trustStatus: "untrusted",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "telemetry_recording_failed" });
 
     expect(data.store.list({ runId })).toEqual([]);
     expect(adapter.calls).toEqual([]);
@@ -84,8 +82,9 @@ describe("managed provider run lifecycle", () => {
         beforeRevision: result.afterRevision,
       });
       expect(result.session.executionMode).toBe("read_only");
-      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
-        .toBe("fixture provider result");
+      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8")).toBe(
+        "fixture provider result",
+      );
       expect(adapter.calls).toEqual([
         "start",
         "injectContext",
@@ -121,6 +120,81 @@ describe("managed provider run lifecycle", () => {
     },
   );
 
+  it("records provider-confirmed activation before starting the managed turn", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const input = providerRunInput();
+    const result = await coordinator(adapter, data.root, data.store).run({
+      ...input,
+      repositoryRoot: data.root,
+      capabilityActivations: [
+        {
+          kind: "capability_activation_request",
+          schemaVersion: 1,
+          capabilityId: "plugins/research",
+          capabilityKind: "provider_plugin",
+          version: "1.0.0",
+          contentHash: `sha256:${"a".repeat(64)}`,
+          runtime: {
+            kind: "provider_plugin",
+            provider: "codex",
+            pluginRoot: "/immutable/plugins/research",
+            pluginManifestPath: ".codex-plugin/plugin.json",
+          },
+        },
+      ],
+    });
+
+    expect(result.capabilityActivations).toHaveLength(1);
+    expect(adapter.calls.indexOf("confirmCapabilityActivation")).toBeLessThan(
+      adapter.calls.indexOf("startTurn"),
+    );
+    expect(
+      data.store.list({ runId }).filter((event) => event.type === "capability.activated"),
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          capabilityId: "plugins/research",
+          evidence: "plugin_loaded",
+        }),
+      }),
+    ]);
+    data.store.close();
+  });
+
+  it("fails closed before the turn when provider activation cannot be confirmed", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex", { failActivation: true });
+    const input = providerRunInput();
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        capabilityActivations: [
+          {
+            kind: "capability_activation_request",
+            schemaVersion: 1,
+            capabilityId: "plugins/research",
+            capabilityKind: "provider_plugin",
+            version: "1.0.0",
+            contentHash: `sha256:${"a".repeat(64)}`,
+            runtime: {
+              kind: "provider_plugin",
+              provider: "codex",
+              pluginRoot: "/immutable/plugins/research",
+              pluginManifestPath: ".codex-plugin/plugin.json",
+            },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "capability_activation_failed" });
+    expect(adapter.calls).not.toContain("startTurn");
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain(
+      "capability.activated",
+    );
+    data.store.close();
+  });
+
   it.each(["codex", "claude"] as const)(
     "records exact managed E4 output citations for %s without retaining the result body",
     async (provider) => {
@@ -150,8 +224,9 @@ describe("managed provider run lifecycle", () => {
       expect(events.filter((event) => event.type === "adapter.result.captured")).toHaveLength(1);
       expect(events.filter((event) => event.type === "context.referenced")).toHaveLength(1);
       expect(JSON.stringify(events)).not.toContain("Applied repository guidance");
-      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8"))
-        .toBe("Applied repository guidance.\n\n");
+      expect(Buffer.from(await artifactStore.get(result.resultArtifact.uri)).toString("utf8")).toBe(
+        "Applied repository guidance.\n\n",
+      );
       expect(result.resultArtifact.contentHash).not.toBe(
         events.find((event) => event.type === "adapter.result.captured")?.payload.resultDigest,
       );
@@ -164,11 +239,13 @@ describe("managed provider run lifecycle", () => {
     const adapter = new FakeManagedAdapter("codex");
     const input = providerRunInput();
 
-    await expect(coordinator(adapter, data.root, data.store).run({
-      ...input,
-      repositoryRoot: data.root,
-      context: { ...input.context, expectedPaths: [] },
-    })).resolves.toMatchObject({
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        context: { ...input.context, expectedPaths: [] },
+      }),
+    ).resolves.toMatchObject({
       status: "completed",
       session: { executionMode: "read_only" },
       managedChanges: [],
@@ -183,18 +260,18 @@ describe("managed provider run lifecycle", () => {
       const adapter = new FakeManagedAdapter("codex");
       const input = providerRunInput();
 
-      await expect(coordinator(adapter, data.root, data.store).run({
-        ...input,
-        repositoryRoot: data.root,
-        context: {
-          ...input.context,
-          role,
-          expectedPaths: ["src/other.ts", "src/result.ts"],
-        },
-        ...(scenario === "duplicate"
-          ? { createTargetTurnId: () => input.targetTurnId }
-          : {}),
-      })).rejects.toMatchObject({ code: "contract_validation_failed" });
+      await expect(
+        coordinator(adapter, data.root, data.store).run({
+          ...input,
+          repositoryRoot: data.root,
+          context: {
+            ...input.context,
+            role,
+            expectedPaths: ["src/other.ts", "src/result.ts"],
+          },
+          ...(scenario === "duplicate" ? { createTargetTurnId: () => input.targetTurnId } : {}),
+        }),
+      ).rejects.toMatchObject({ code: "contract_validation_failed" });
 
       expect(adapter.calls).toEqual([]);
       expect(data.store.list({ runId })).toEqual([]);
@@ -242,7 +319,8 @@ describe("managed provider run lifecycle", () => {
       paths: ["src/unmanaged.ts"],
     });
     expect(
-      data.store.list({ runId }).find((event) => event.type === "unmanaged_change.detected")?.payload,
+      data.store.list({ runId }).find((event) => event.type === "unmanaged_change.detected")
+        ?.payload,
     ).toMatchObject({ paths: ["src/unmanaged.ts"] });
     data.store.close();
   });
@@ -361,8 +439,9 @@ describe("managed provider run lifecycle", () => {
       artifacts,
     ).run({ ...providerRunInput(), repositoryRoot: data.root });
 
-    expect(Buffer.from(await artifacts.get(result.resultArtifact.uri)).toString("utf8"))
-      .toBe("fixture provider result");
+    expect(Buffer.from(await artifacts.get(result.resultArtifact.uri)).toString("utf8")).toBe(
+      "fixture provider result",
+    );
     expect(result.beforeRevision).toBe(result.afterRevision);
     data.store.close();
   });
@@ -472,5 +551,4 @@ describe("managed provider run lifecycle", () => {
       data.store.close();
     },
   );
-
 });

@@ -36,24 +36,23 @@ async function markUnknown(store, attempt, completedAt) {
   }
 }
 
-export async function executeFirstPublicationStageApproval({
-  authorization,
-  validateAuthorization,
-  assertUnchanged,
-}, {
-  store,
-  prepareApproval,
-  clock = () => new Date().toISOString(),
-}) {
+export async function executeFirstPublicationStageApproval(
+  { authorization, validateAuthorization, assertUnchanged },
+  { store, prepareApproval, clock = () => new Date().toISOString() },
+) {
   if (
     typeof validateAuthorization !== "function" ||
-    typeof assertUnchanged !== "function" || typeof prepareApproval !== "function" ||
-    typeof store?.reserve !== "function" || typeof store.complete !== "function" ||
-    typeof store.abort !== "function" || typeof store.markUnknown !== "function"
-  ) fail(
-    "first_publication_stage_approval_execution_input_invalid",
-    "The npm stage approval execution input is invalid.",
-  );
+    typeof assertUnchanged !== "function" ||
+    typeof prepareApproval !== "function" ||
+    typeof store?.reserve !== "function" ||
+    typeof store.complete !== "function" ||
+    typeof store.abort !== "function" ||
+    typeof store.markUnknown !== "function"
+  )
+    fail(
+      "first_publication_stage_approval_execution_input_invalid",
+      "The npm stage approval execution input is invalid.",
+    );
   validateAuthorization(clock());
   const prepared = await prepareApproval();
   try {

@@ -1,24 +1,12 @@
 import { createHash } from "node:crypto";
-import {
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import type { DocumentRegistry } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  createDocumentMigrationDryRun,
-  type DocumentImportAdapter,
-} from "../src/index.js";
+import { createDocumentMigrationDryRun, type DocumentImportAdapter } from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -55,7 +43,10 @@ async function treeSnapshot(root: string, current = root): Promise<Record<string
   const entries = await readdir(current, { withFileTypes: true });
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     const absolute = resolve(current, entry.name);
-    const path = absolute.slice(root.length + 1).split("\\").join("/");
+    const path = absolute
+      .slice(root.length + 1)
+      .split("\\")
+      .join("/");
     if (entry.isDirectory()) Object.assign(result, await treeSnapshot(root, absolute));
     else if (entry.isFile()) result[path] = hash(await readFile(absolute));
     else result[path] = `other:${entry.name}`;
@@ -98,14 +89,14 @@ describe("document migration discovery", () => {
       "README.md",
       "docs/notes.txt",
     ]);
-    expect(result.candidateArtifacts.map((artifact) => artifact.candidate.source.formatId))
-      .toEqual(["lervo_legacy_registry", "markdown", "unknown"]);
-    expect(result.candidateArtifacts.map((artifact) => artifact.candidate.importer))
-      .toEqual([
-        { adapterId: "lervo_legacy_registry", version: "1.0.0" },
-        { adapterId: "markdown", version: "1.1.0" },
-        { adapterId: "lervo_unknown", version: "1.0.0" },
-      ]);
+    expect(result.candidateArtifacts.map((artifact) => artifact.candidate.source.formatId)).toEqual(
+      ["lervo_legacy_registry", "markdown", "unknown"],
+    );
+    expect(result.candidateArtifacts.map((artifact) => artifact.candidate.importer)).toEqual([
+      { adapterId: "lervo_legacy_registry", version: "1.0.0" },
+      { adapterId: "markdown", version: "1.1.0" },
+      { adapterId: "lervo_unknown", version: "1.0.0" },
+    ]);
     expect(result.candidateArtifacts).toHaveLength(3);
     for (const artifact of result.candidateArtifacts) {
       const bytes = result.candidateArtifactBytes.get(artifact.artifactId);
@@ -163,9 +154,7 @@ describe("document migration discovery", () => {
       outcome: "review_required",
       warnings: expect.arrayContaining(["referenced_document_not_scanned"]),
     });
-    expect(result.plan.sources.map((source) => source.path)).toEqual([
-      ".lervo/documents.yaml",
-    ]);
+    expect(result.plan.sources.map((source) => source.path)).toEqual([".lervo/documents.yaml"]);
   });
 
   it("records existing and unsafe sidecar targets as conflicts without overwriting them", async () => {
@@ -187,7 +176,10 @@ describe("document migration discovery", () => {
       roots: ["README.md"],
       generatedAt: "2026-08-19T00:00:00Z",
     });
-    expect(existing.plan).toMatchObject({ outcome: "conflict", warnings: ["candidate_review_required", "target_exists"] });
+    expect(existing.plan).toMatchObject({
+      outcome: "conflict",
+      warnings: ["candidate_review_required", "target_exists"],
+    });
     expect(existing.plan.candidates[0]?.target).toMatchObject({
       expected: { kind: "file", contentHash: hash(await readFile(targetPath)) },
     });
@@ -202,7 +194,10 @@ describe("document migration discovery", () => {
       roots: ["README.md"],
       generatedAt: "2026-08-19T00:00:00Z",
     });
-    expect(unsafe.plan).toMatchObject({ outcome: "conflict", warnings: ["candidate_review_required", "target_unsafe"] });
+    expect(unsafe.plan).toMatchObject({
+      outcome: "conflict",
+      warnings: ["candidate_review_required", "target_unsafe"],
+    });
     expect(unsafe.plan.candidates[0]?.target).toMatchObject({
       expected: { kind: "unsafe", reasonCode: "target_unsafe" },
     });
@@ -212,17 +207,21 @@ describe("document migration discovery", () => {
     const root = await temporaryRoot();
     await writeFile(resolve(root, "source.md"), "# Source\n");
     await symlink(resolve(root, "source.md"), resolve(root, "linked.md"));
-    await expect(createDocumentMigrationDryRun({
-      repositoryRoot: root,
-      roots: ["linked.md"],
-      generatedAt: "2026-08-19T00:00:00Z",
-    })).rejects.toMatchObject({ code: "unsafe_source" });
-    await expect(createDocumentMigrationDryRun({
-      repositoryRoot: root,
-      roots: ["source.md"],
-      limits: { maximumFileBytes: 4 },
-      generatedAt: "2026-08-19T00:00:00Z",
-    })).rejects.toMatchObject({ code: "scan_limit_exceeded" });
+    await expect(
+      createDocumentMigrationDryRun({
+        repositoryRoot: root,
+        roots: ["linked.md"],
+        generatedAt: "2026-08-19T00:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "unsafe_source" });
+    await expect(
+      createDocumentMigrationDryRun({
+        repositoryRoot: root,
+        roots: ["source.md"],
+        limits: { maximumFileBytes: 4 },
+        generatedAt: "2026-08-19T00:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "scan_limit_exceeded" });
   });
 
   it("does not enter repository metadata, dependencies, state, or configured exclusions", async () => {
@@ -267,12 +266,14 @@ describe("document migration discovery", () => {
       supports: () => true,
       inspect: () => [draft],
     };
-    await expect(createDocumentMigrationDryRun({
-      repositoryRoot: root,
-      roots: ["README.md"],
-      adapters: [first, second],
-      generatedAt: "2026-08-19T00:00:00Z",
-    })).rejects.toMatchObject({ code: "ambiguous_import_adapter" });
+    await expect(
+      createDocumentMigrationDryRun({
+        repositoryRoot: root,
+        roots: ["README.md"],
+        adapters: [first, second],
+        generatedAt: "2026-08-19T00:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "ambiguous_import_adapter" });
 
     const mutating: DocumentImportAdapter = {
       descriptor: { adapterId: "mutating", version: "1.0.0" },
@@ -282,28 +283,34 @@ describe("document migration discovery", () => {
         return [draft];
       },
     };
-    await expect(createDocumentMigrationDryRun({
-      repositoryRoot: root,
-      roots: ["README.md"],
-      adapters: [mutating],
-      generatedAt: "2026-08-19T00:00:00Z",
-    })).rejects.toMatchObject({ code: "invalid_adapter_contract" });
+    await expect(
+      createDocumentMigrationDryRun({
+        repositoryRoot: root,
+        roots: ["README.md"],
+        adapters: [mutating],
+        generatedAt: "2026-08-19T00:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_adapter_contract" });
     expect(await readFile(resolve(root, "README.md"), "utf8")).toBe("# Adapter contract\n");
 
     const inconsistent: DocumentImportAdapter = {
       descriptor: { adapterId: "inconsistent", version: "1.0.0" },
       supports: () => true,
-      inspect: () => [{
-        ...draft,
-        disposition: "ready_for_approval",
-        confidence: "high",
-      }],
+      inspect: () => [
+        {
+          ...draft,
+          disposition: "ready_for_approval",
+          confidence: "high",
+        },
+      ],
     };
-    await expect(createDocumentMigrationDryRun({
-      repositoryRoot: root,
-      roots: ["README.md"],
-      adapters: [inconsistent],
-      generatedAt: "2026-08-19T00:00:00Z",
-    })).rejects.toMatchObject({ code: "invalid_adapter_contract" });
+    await expect(
+      createDocumentMigrationDryRun({
+        repositoryRoot: root,
+        roots: ["README.md"],
+        adapters: [inconsistent],
+        generatedAt: "2026-08-19T00:00:00Z",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_adapter_contract" });
   });
 });

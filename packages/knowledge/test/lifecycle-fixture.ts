@@ -19,8 +19,7 @@ export const promotionPolicy: KnowledgePromotionPolicy = {
   ...promotionPolicyContent,
   policyVersion: calculateKnowledgePromotionPolicyVersion(promotionPolicyContent),
 };
-export const pathHash =
-  "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+export const pathHash = "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 export const changedHash =
   "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 export const laterRevision =

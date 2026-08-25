@@ -1,4 +1,5 @@
 import {
+  type AdapterCapabilityActivationReceipt,
   type AdapterNormalizedEvent,
   type AdapterSession,
   type AdapterTurn,
@@ -13,15 +14,21 @@ import { managedResultReferenceSpecs } from "./managed-context-reference.js";
 import { createManagedWritePlan } from "./managed-write-plan.js";
 import {
   adapterStartedSpec,
+  capabilityActivatedSpecs,
+  capabilityResolutionSpecs,
+  capabilityInvocationSpecs,
   providerSignalSpec,
   runCompletedSpec,
   runFailedSpec,
   runRequestedSpecs,
   skillResolvedSpecs,
+  skillInvokedSpecs,
+  skillCompletedSpecs,
   unmanagedChangeSpec,
 } from "./provider-run-events.js";
 import {
   assertAdapterMessage,
+  assertCapabilityActivationReceipts,
   assertManagedSession,
   assertManagedTurn,
   assertTerminalTurn,
@@ -119,13 +126,15 @@ interface ManagedProviderRunExecutionState {
   verifications: ManagedProviderRunResult["verifications"];
   contextEvidence?: readonly ContextEvidence[];
   injected?: InjectedContext;
+  capabilityActivations: AdapterCapabilityActivationReceipt[];
   writeBridge?: ManagedProviderWriteBridge;
 }
 
 function resolveTargetTurnIds(input: ManagedProviderRunInput): string[] {
-  const turnCount = input.context.role.capabilities["filesystem.write"] === "deny"
-    ? 1
-    : input.context.expectedPaths.length;
+  const turnCount =
+    input.context.role.capabilities["filesystem.write"] === "deny"
+      ? 1
+      : input.context.expectedPaths.length;
   const targetTurnIds = [input.targetTurnId];
   try {
     while (targetTurnIds.length < turnCount) {
@@ -139,9 +148,10 @@ function resolveTargetTurnIds(input: ManagedProviderRunInput): string[] {
     );
   }
   if (
-    targetTurnIds.some((targetTurnId) =>
-      typeof targetTurnId !== "string" || targetTurnId.length === 0
-    ) || new Set(targetTurnIds).size !== targetTurnIds.length
+    targetTurnIds.some(
+      (targetTurnId) => typeof targetTurnId !== "string" || targetTurnId.length === 0,
+    ) ||
+    new Set(targetTurnIds).size !== targetTurnIds.length
   ) {
     throw new ManagedProviderRunError(
       "contract_validation_failed",
@@ -191,7 +201,10 @@ export class ManagedProviderRunCoordinator {
   private async execute(input: ManagedProviderRunInput): Promise<ManagedProviderRunResult> {
     validateManagedProviderRunInput(input, this.options);
     const targetTurnIds = resolveTargetTurnIds(input);
-    const state: ManagedProviderRunExecutionState = { verifications: [] };
+    const state: ManagedProviderRunExecutionState = {
+      verifications: [],
+      capabilityActivations: [],
+    };
     let monitor: ProviderSignalMonitor | undefined;
     let terminal: AdapterNormalizedEvent | undefined;
     const failures = new RunFailureLedger();
@@ -207,6 +220,12 @@ export class ManagedProviderRunCoordinator {
         occurredAt: requestedAt,
       }),
       ...skillResolvedSpecs(input.resolvedSkills, requestedAt),
+      ...capabilityResolutionSpecs({
+        recommendations: input.capabilityRecommendations ?? [],
+        capabilities: input.resolvedCapabilities ?? [],
+        queryDigest: input.requestDigest,
+        occurredAt: requestedAt,
+      }),
     ]);
 
     try {
@@ -247,6 +266,14 @@ export class ManagedProviderRunCoordinator {
           this.context.handleAdapterEvent(state.session!, event, this.date());
           const spec = providerSignalSpec(event, state.session!.provider, this.time());
           if (spec !== null) this.append([spec]);
+          const capabilitySpecs = capabilityInvocationSpecs({
+            event,
+            requests: input.capabilityActivations ?? [],
+            receipts: state.capabilityActivations,
+            provider: state.session!.provider,
+            recordedAt: this.time(),
+          });
+          if (capabilitySpecs.length > 0) this.append(capabilitySpecs);
         },
       });
 
@@ -270,9 +297,8 @@ export class ManagedProviderRunCoordinator {
         publications: input.context.publications,
         now: () => this.date(),
       });
-      const scheduledPaths: Array<string | null> = writePlan.executionMode === "read_only"
-        ? [null]
-        : [...writePlan.allowedPaths];
+      const scheduledPaths: Array<string | null> =
+        writePlan.executionMode === "read_only" ? [null] : [...writePlan.allowedPaths];
       let contextSnapshot = state.before;
       for (let index = 0; index < scheduledPaths.length; index += 1) {
         const expectedPath = scheduledPaths[index]!;
@@ -308,13 +334,40 @@ export class ManagedProviderRunCoordinator {
         state.injected = copy(injected);
         monitor.throwIfFailed();
         if (index === 0) {
-          phase = "write_bridge";
-          await this.options.adapter.attachManagedWriteBridge(
-            state.session,
-            state.writeBridge,
+          phase = "capability_activation";
+          state.capabilityActivations = await withinDeadline({
+            operation: () => {
+              const confirm = this.options.adapter.confirmCapabilityActivation;
+              if (confirm === undefined) {
+                if ((input.capabilityActivations ?? []).length === 0) return Promise.resolve([]);
+                return Promise.reject(
+                  new ManagedProviderRunError(
+                    "capability_activation_failed",
+                    "The provider adapter cannot confirm requested capability activation.",
+                  ),
+                );
+              }
+              return confirm.call(this.options.adapter, state.session!);
+            },
+            timeoutMs: this.deadlines.capabilityActivationMs,
+            failureCode: "capability_activation_failed",
+            label: "provider capability activation confirmation",
+          });
+          assertCapabilityActivationReceipts({
+            requests: input.capabilityActivations ?? [],
+            receipts: state.capabilityActivations,
+            session: state.session,
+          });
+          this.append(
+            capabilityActivatedSpecs(state.capabilityActivations, state.session.provider),
           );
+          phase = "write_bridge";
+          await this.options.adapter.attachManagedWriteBridge(state.session, state.writeBridge);
         }
         if (expectedPath !== null) state.writeBridge.beginTurn(expectedPath);
+
+        if (index === 0)
+          this.append(skillInvokedSpecs(input.resolvedSkills, input.requestDigest, this.time()));
 
         phase = "turn_start";
         const turnRequest: AdapterTurnRequest = {
@@ -326,14 +379,15 @@ export class ManagedProviderRunCoordinator {
           sessionId: state.session.sessionId,
           providerSessionId: state.session.providerSessionId,
           targetTurnId,
-          instructions: expectedPath === null || scheduledPaths.length === 1
-            ? input.instructions
-            : [
-                input.instructions,
-                "",
-                `Lervo managed file ${index + 1}/${scheduledPaths.length}: ${expectedPath}`,
-                "Change only the repository-relative path above in this turn.",
-              ].join("\n"),
+          instructions:
+            expectedPath === null || scheduledPaths.length === 1
+              ? input.instructions
+              : [
+                  input.instructions,
+                  "",
+                  `Lervo managed file ${index + 1}/${scheduledPaths.length}: ${expectedPath}`,
+                  "Change only the repository-relative path above in this turn.",
+                ].join("\n"),
           requestedAt: this.time(),
         };
         let acceptedTurn: AdapterTurn | undefined;
@@ -388,10 +442,7 @@ export class ManagedProviderRunCoordinator {
         }
         assertTerminalTurn(managedTurn, terminal);
         if (terminal.type === "provider.turn.failed") {
-          throw new ManagedProviderRunError(
-            "provider_turn_failed",
-            "The provider turn failed.",
-          );
+          throw new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
         }
         if (expectedPath !== null) state.writeBridge.assertTurnSettled(expectedPath);
         monitor.throwIfFailed();
@@ -417,12 +468,14 @@ export class ManagedProviderRunCoordinator {
             );
           }
           if (inspection.unmanagedPaths.length > 0) {
-            this.append([unmanagedChangeSpec({
-              paths: inspection.unmanagedPaths,
-              beforeRevision: state.before.revision,
-              afterRevision: contextSnapshot.revision,
-              detectedAt: this.time(),
-            })]);
+            this.append([
+              unmanagedChangeSpec({
+                paths: inspection.unmanagedPaths,
+                beforeRevision: state.before.revision,
+                afterRevision: contextSnapshot.revision,
+                detectedAt: this.time(),
+              }),
+            ]);
             throw new ManagedProviderRunError(
               "unmanaged_change_detected",
               "An unmanaged change was detected before the next managed file turn.",
@@ -487,7 +540,8 @@ export class ManagedProviderRunCoordinator {
     failures: RunFailureLedger,
   ): Promise<void> {
     if (
-      failures.empty && state.turnResult !== undefined &&
+      failures.empty &&
+      state.turnResult !== undefined &&
       state.publicationContent !== undefined
     ) {
       try {
@@ -496,14 +550,26 @@ export class ManagedProviderRunCoordinator {
           publicationContent: state.publicationContent,
           artifactStore: this.options.artifactStore,
         });
+        this.append(
+          skillCompletedSpecs(
+            input.resolvedSkills,
+            state.resultArtifact.artifactId,
+            state.resultArtifact.contentHash,
+            this.time(),
+          ),
+        );
       } catch (error) {
         failures.add(error, "result_store");
       }
     }
     if (
-      !failures.empty || state.resultArtifact === undefined || state.after === undefined ||
-      input.verificationSuites === undefined || this.options.projectVerifier === undefined
-    ) return;
+      !failures.empty ||
+      state.resultArtifact === undefined ||
+      state.after === undefined ||
+      input.verificationSuites === undefined ||
+      this.options.projectVerifier === undefined
+    )
+      return;
     try {
       state.verifications = await runRequiredProjectVerifications({
         suites: input.verificationSuites,
@@ -554,19 +620,21 @@ export class ManagedProviderRunCoordinator {
         "A required result is missing from the completed managed run.",
       );
     }
-    const verificationStatus = input.verificationSuites === undefined
-      ? "not_run" as const
-      : state.verifications.every((item) => item.result.status === "passed") &&
-          state.verifications.length === input.verificationSuites.length
-        ? "passed" as const
-        : "failed" as const;
-    this.append([runCompletedSpec({
-      resultArtifact: state.resultArtifact,
-      verificationStatus,
-      verificationArtifactIds: state.verifications.map((item) =>
-        item.resultArtifact.artifactId),
-      occurredAt: this.time(),
-    })]);
+    const verificationStatus =
+      input.verificationSuites === undefined
+        ? ("not_run" as const)
+        : state.verifications.every((item) => item.result.status === "passed") &&
+            state.verifications.length === input.verificationSuites.length
+          ? ("passed" as const)
+          : ("failed" as const);
+    this.append([
+      runCompletedSpec({
+        resultArtifact: state.resultArtifact,
+        verificationStatus,
+        verificationArtifactIds: state.verifications.map((item) => item.resultArtifact.artifactId),
+        occurredAt: this.time(),
+      }),
+    ]);
     return {
       status: "completed",
       session: copy(state.session),
@@ -574,6 +642,7 @@ export class ManagedProviderRunCoordinator {
       terminalEventId: terminal.eventId,
       resultArtifact: copy(state.resultArtifact),
       contextEvidence: copy(state.contextEvidence),
+      capabilityActivations: copy(state.capabilityActivations),
       managedChanges: state.writeBridge?.evidence() ?? [],
       contextGeneration: this.context.snapshot().contextGeneration,
       beforeRevision: state.before.revision,

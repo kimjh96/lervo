@@ -1,13 +1,6 @@
-import {
-  type AdapterStopRequest,
-  type AdapterTurn,
-  validateSchema,
-} from "@lervo/schemas";
+import { type AdapterStopRequest, type AdapterTurn, validateSchema } from "@lervo/schemas";
 
-import {
-  inspectContextEnvelopeBinding,
-  inspectContextReceiptBinding,
-} from "./context-binding.js";
+import { inspectContextEnvelopeBinding, inspectContextReceiptBinding } from "./context-binding.js";
 import { createManagedWriteDecision } from "./managed-write-binding.js";
 import { type AdapterContractFixture, type ProviderAdapter } from "./provider-adapter.js";
 import { inspectTurnResultBinding } from "./result-binding.js";
@@ -163,6 +156,40 @@ export async function evaluateAdapterContract(
     });
   }
 
+  const requestedActivations = fixture.startRequest.capabilityActivations ?? [];
+  const activationReceipts =
+    adapter.confirmCapabilityActivation === undefined
+      ? []
+      : await adapter.confirmCapabilityActivation(session);
+  if (activationReceipts.length !== requestedActivations.length) {
+    violations.push({
+      code: "session_mismatch",
+      detail: "adapter capability activation receipt count differs from the start request",
+    });
+  }
+  for (const activationReceipt of activationReceipts) {
+    addValidationViolation(violations, "session_mismatch", activationReceipt);
+    const requested = requestedActivations.find(
+      (item) =>
+        item.capabilityId === activationReceipt.capabilityId &&
+        item.version === activationReceipt.version &&
+        item.contentHash === activationReceipt.contentHash,
+    );
+    if (
+      requested === undefined ||
+      !sameCoordinates(activationReceipt, session) ||
+      activationReceipt.adapterId !== session.adapterId ||
+      activationReceipt.providerSessionId !== session.providerSessionId ||
+      requested.capabilityKind !== activationReceipt.capabilityKind
+    ) {
+      violations.push({
+        code: "session_mismatch",
+        detail:
+          "adapter capability activation receipt changed its exact request or session binding",
+      });
+    }
+  }
+
   await adapter.attachManagedWriteBridge(session, {
     authorize: async (request) =>
       createManagedWriteDecision({
@@ -172,7 +199,9 @@ export async function evaluateAdapterContract(
         decidedAt: request.requestedAt,
       }),
     complete: async () => {
-      throw new Error("Managed write completion cannot be reported during a read-only common contract run.");
+      throw new Error(
+        "Managed write completion cannot be reported during a read-only common contract run.",
+      );
     },
   });
 
@@ -240,7 +269,10 @@ export async function evaluateAdapterContract(
       }
       const event = next.value;
       addValidationViolation(violations, "normalized_event_invalid", event);
-      if (!sameCoordinates(event, session) || event.providerSessionId !== session.providerSessionId) {
+      if (
+        !sameCoordinates(event, session) ||
+        event.providerSessionId !== session.providerSessionId
+      ) {
         violations.push({
           code: "normalized_event_mismatch",
           detail: "normalized event is not bound to the managed adapter session",

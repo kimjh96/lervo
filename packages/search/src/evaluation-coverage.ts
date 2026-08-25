@@ -24,7 +24,7 @@ export function createSearchEvaluationCoverage(
   assertSearchEvaluationBundle(bundle, cases);
   const activeCases = bundle.activeCaseIds.length;
   const shortfall = Math.max(0, bundle.minimumActiveCases - activeCases);
-  const sampleState = shortfall === 0 ? "sufficient" as const : "insufficient" as const;
+  const sampleState = shortfall === 0 ? ("sufficient" as const) : ("insufficient" as const);
   const core = {
     projectId: bundle.projectId,
     bundleId: bundle.bundleId,
@@ -36,7 +36,8 @@ export function createSearchEvaluationCoverage(
     activeCases,
     shortfall,
     sampleState,
-    comparisonReadiness: sampleState === "sufficient" ? "ready" as const : "insufficient_sample" as const,
+    comparisonReadiness:
+      sampleState === "sufficient" ? ("ready" as const) : ("insufficient_sample" as const),
     embeddingDecision: "not_determined" as const,
   };
   const coverage: SearchEvaluationCoverage = {
@@ -53,40 +54,68 @@ export function assertSearchEvaluationCoverage(
   bundle?: SearchEvaluationBundle,
   cases?: readonly SearchEvaluationCase[],
 ): void {
-  if (coverage.schemaVersion !== 1 || !COVERAGE_ID_PATTERN.test(coverage.coverageId) ||
-    !SOURCE_ID_PATTERN.test(coverage.projectId) || !SEARCH_EVALUATION_BUNDLE_ID_PATTERN.test(coverage.bundleId) ||
+  if (
+    coverage.schemaVersion !== 1 ||
+    !COVERAGE_ID_PATTERN.test(coverage.coverageId) ||
+    !SOURCE_ID_PATTERN.test(coverage.projectId) ||
+    !SEARCH_EVALUATION_BUNDLE_ID_PATTERN.test(coverage.bundleId) ||
     coverage.bundleId.length > 100 ||
-    !SHA256_PATTERN.test(coverage.bundleHash) || typeof coverage.scope !== "object" || coverage.scope === null ||
-    !SEARCH_EVALUATION_SCOPE_ID_PATTERN.test(coverage.scope.roleId) || coverage.scope.roleId.length > 64 ||
-    !SEARCH_EVALUATION_SCOPE_ID_PATTERN.test(coverage.scope.taskType) || coverage.scope.taskType.length > 64 ||
-    !Number.isSafeInteger(coverage.minimumActiveCases) || coverage.minimumActiveCases < 1 ||
+    !SHA256_PATTERN.test(coverage.bundleHash) ||
+    typeof coverage.scope !== "object" ||
+    coverage.scope === null ||
+    !SEARCH_EVALUATION_SCOPE_ID_PATTERN.test(coverage.scope.roleId) ||
+    coverage.scope.roleId.length > 64 ||
+    !SEARCH_EVALUATION_SCOPE_ID_PATTERN.test(coverage.scope.taskType) ||
+    coverage.scope.taskType.length > 64 ||
+    !Number.isSafeInteger(coverage.minimumActiveCases) ||
+    coverage.minimumActiveCases < 1 ||
     coverage.minimumActiveCases > SEARCH_EVALUATION_MAX_ACTIVE_CASES ||
-    !Array.isArray(coverage.activeCaseIds) || coverage.activeCaseIds.length > SEARCH_EVALUATION_MAX_ACTIVE_CASES ||
+    !Array.isArray(coverage.activeCaseIds) ||
+    coverage.activeCaseIds.length > SEARCH_EVALUATION_MAX_ACTIVE_CASES ||
     coverage.activeCaseIds.some((caseId) => !SEARCH_EVALUATION_CASE_PATTERN.test(caseId)) ||
     new Set(coverage.activeCaseIds).size !== coverage.activeCaseIds.length ||
-    coverage.activeCaseIds.some((caseId, index) => index > 0 && coverage.activeCaseIds[index - 1]! >= caseId) ||
-    !Number.isSafeInteger(coverage.replacementCount) || coverage.replacementCount < 0 ||
-    coverage.replacementCount > SEARCH_EVALUATION_MAX_REPLACEMENTS || !Number.isSafeInteger(coverage.activeCases) ||
-    coverage.activeCases !== coverage.activeCaseIds.length || !Number.isSafeInteger(coverage.shortfall) ||
+    coverage.activeCaseIds.some(
+      (caseId, index) => index > 0 && coverage.activeCaseIds[index - 1]! >= caseId,
+    ) ||
+    !Number.isSafeInteger(coverage.replacementCount) ||
+    coverage.replacementCount < 0 ||
+    coverage.replacementCount > SEARCH_EVALUATION_MAX_REPLACEMENTS ||
+    !Number.isSafeInteger(coverage.activeCases) ||
+    coverage.activeCases !== coverage.activeCaseIds.length ||
+    !Number.isSafeInteger(coverage.shortfall) ||
     coverage.shortfall !== Math.max(0, coverage.minimumActiveCases - coverage.activeCases) ||
     !["sufficient", "insufficient"].includes(coverage.sampleState) ||
     coverage.sampleState !== (coverage.shortfall === 0 ? "sufficient" : "insufficient") ||
-    coverage.comparisonReadiness !== (coverage.sampleState === "sufficient" ? "ready" : "insufficient_sample") ||
-    coverage.embeddingDecision !== "not_determined") {
-    throw new SearchError("invalid_evaluation_coverage", "The search evaluation sample sufficiency contract is invalid.");
+    coverage.comparisonReadiness !==
+      (coverage.sampleState === "sufficient" ? "ready" : "insufficient_sample") ||
+    coverage.embeddingDecision !== "not_determined"
+  ) {
+    throw new SearchError(
+      "invalid_evaluation_coverage",
+      "The search evaluation sample sufficiency contract is invalid.",
+    );
   }
   if ((bundle === undefined) !== (cases === undefined)) {
-    throw new SearchError("invalid_evaluation_coverage", "Sample sufficiency verification requires both a bundle and cases.");
+    throw new SearchError(
+      "invalid_evaluation_coverage",
+      "Sample sufficiency verification requires both a bundle and cases.",
+    );
   }
   if (bundle !== undefined && cases !== undefined) {
     const expected = createSearchEvaluationCoverage(bundle, cases);
     if (expected.coverageId !== coverage.coverageId) {
-      throw new SearchError("invalid_evaluation_coverage", "Search evaluation sample sufficiency differs from the bundle source.");
+      throw new SearchError(
+        "invalid_evaluation_coverage",
+        "Search evaluation sample sufficiency differs from the bundle source.",
+      );
     }
     return;
   }
   const { schemaVersion: _schema, coverageId: _id, ...core } = coverage;
   if (contentId("secov", core) !== coverage.coverageId) {
-    throw new SearchError("invalid_evaluation_coverage", "The search evaluation sample sufficiency ID does not match its content.");
+    throw new SearchError(
+      "invalid_evaluation_coverage",
+      "The search evaluation sample sufficiency ID does not match its content.",
+    );
   }
 }

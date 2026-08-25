@@ -141,9 +141,7 @@ export class SQLiteEventStore implements OutboxStore {
     return this.transact((transaction) => transaction.reschedule(request));
   }
 
-  purgeAcknowledged(
-    request: PurgeAcknowledgedOutboxRequest,
-  ): PurgeAcknowledgedOutboxResult {
+  purgeAcknowledged(request: PurgeAcknowledgedOutboxRequest): PurgeAcknowledgedOutboxResult {
     return this.transact((transaction) => transaction.purgeAcknowledged(request));
   }
 
@@ -171,10 +169,7 @@ export class SQLiteEventStore implements OutboxStore {
     this.assertOpen();
     const mode = this.database.prepare("PRAGMA journal_mode;").get()?.journal_mode;
     if (typeof mode !== "string") {
-      throw new EventStoreError(
-        "integrity_failed",
-        "The SQLite journal mode cannot be inspected.",
-      );
+      throw new EventStoreError("integrity_failed", "The SQLite journal mode cannot be inspected.");
     }
     return mode;
   }
@@ -190,10 +185,7 @@ export class SQLiteEventStore implements OutboxStore {
     }
     const foreignKeyViolation = this.database.prepare("PRAGMA foreign_key_check;").get();
     if (foreignKeyViolation !== undefined) {
-      throw new EventStoreError(
-        "integrity_failed",
-        "The SQLite foreign-key check failed.",
-      );
+      throw new EventStoreError("integrity_failed", "The SQLite foreign-key check failed.");
     }
     this.outbox.verifyIntegrity();
     return this.events.verifyIntegrity();

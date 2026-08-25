@@ -150,11 +150,14 @@ function executionPlan(input: {
     responsibilities: [...definition.responsibilities],
   }));
   const proposer = participants.find((participant) =>
-    participant.responsibilities.includes("proposer"));
+    participant.responsibilities.includes("proposer"),
+  );
   const reviewers = participants.filter((participant) =>
-    participant.responsibilities.includes("reviewer"));
+    participant.responsibilities.includes("reviewer"),
+  );
   const verifier = participants.find((participant) =>
-    participant.responsibilities.includes("verifier"));
+    participant.responsibilities.includes("verifier"),
+  );
   if (proposer === undefined || reviewers.length === 0 || verifier === undefined) {
     throw new Error("The deliberation execution roles could not be resolved from the policy.");
   }
@@ -190,19 +193,22 @@ export function createInlineDeliberationExecutionPlan(input: {
     maxRounds: 2,
     verificationSuiteIds: input.verificationSuiteIds,
     writingContract: input.writingContract,
-    definitions: [{
-      roleId: deliberationRoleIds.proposer,
-      name: language.roles.proposerName,
-      description: language.roles.proposerDescription,
-      provider: input.proposerProvider,
-      responsibilities: ["proposer", "decision_owner"],
-    }, {
-      roleId: deliberationRoleIds.reviewer,
-      name: language.roles.reviewerName,
-      description: language.roles.reviewerDescription,
-      provider: input.reviewerProvider,
-      responsibilities: ["reviewer", "verifier"],
-    }],
+    definitions: [
+      {
+        roleId: deliberationRoleIds.proposer,
+        name: language.roles.proposerName,
+        description: language.roles.proposerDescription,
+        provider: input.proposerProvider,
+        responsibilities: ["proposer", "decision_owner"],
+      },
+      {
+        roleId: deliberationRoleIds.reviewer,
+        name: language.roles.reviewerName,
+        description: language.roles.reviewerDescription,
+        provider: input.reviewerProvider,
+        responsibilities: ["reviewer", "verifier"],
+      },
+    ],
   });
 }
 
@@ -240,10 +246,7 @@ export function createDeliberationEvaluatorRole(
     requestTypes: ["writing.evaluation"],
     requiredInputs: [],
     contextPolicy: {
-      requiredDocumentRuleIds: [
-        "repository.instructions",
-        "writing.evaluation.request",
-      ],
+      requiredDocumentRuleIds: ["repository.instructions", "writing.evaluation.request"],
       minimumAssurance: "E3",
       referencesRequired: true,
     },

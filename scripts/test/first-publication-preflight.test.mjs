@@ -5,23 +5,19 @@ import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
 
-import { createFileFirstPublicationReservationStore } from
-  "../lib/file-first-publication-reservation-store.mjs";
-import { observeFirstPublicationArtifact } from
-  "../lib/first-publication-artifact-observer.mjs";
+import { createFileFirstPublicationReservationStore } from "../lib/file-first-publication-reservation-store.mjs";
+import { observeFirstPublicationArtifact } from "../lib/first-publication-artifact-observer.mjs";
 import {
   createFirstPublicationPreflightReport,
   validateFirstPublicationPreflightReport,
 } from "../lib/first-publication-preflight.mjs";
-import { inspectFirstPublicationPreflight } from
-  "../lib/first-publication-preflight-inspector.mjs";
+import { inspectFirstPublicationPreflight } from "../lib/first-publication-preflight-inspector.mjs";
 import {
   createFirstPublicationReservation,
   firstPublicationReservationId,
 } from "../lib/first-publication-reservation.mjs";
 import { canonicalDigest } from "../lib/release-artifact-manifest.mjs";
-import { createNpmInteractiveFirstPublicationObservation } from
-  "../lib/npm-interactive-first-publication-policy.mjs";
+import { createNpmInteractiveFirstPublicationObservation } from "../lib/npm-interactive-first-publication-policy.mjs";
 import { createFirstPublicationFixture } from "./fixtures/first-publication.mjs";
 
 const tarball = Buffer.from("first-publication-preflight-tarball");
@@ -79,7 +75,10 @@ describe("first-publication preflight report", () => {
     const report = createFirstPublicationPreflightReport(input);
     assert.equal(report.status, "ready");
     assert.equal(report.advisoryOnly, true);
-    assert.deepEqual(report.checks.map(({ status }) => status), Array(5).fill("ready"));
+    assert.deepEqual(
+      report.checks.map(({ status }) => status),
+      Array(5).fill("ready"),
+    );
     assert.deepEqual(report.sideEffects, {
       reservation: "not_created",
       publication: "not_attempted",
@@ -96,29 +95,32 @@ describe("first-publication preflight report", () => {
       publicationAuthorization: source.publicationAuthorization,
       reservedAt: "2026-08-21T03:01:00Z",
     });
-    const report = createFirstPublicationPreflightReport(reportInput(source, {
-      checkedAt: "2026-08-21T03:10:00Z",
-      packageObservation: {
-        schemaVersion: 1,
-        source: "npm_public_registry",
-        state: "unavailable",
-        package: "@lervo/cli",
-        reason: "registry_unavailable",
-      },
-      reservationObservation: {
-        schemaVersion: 1,
-        source: "first_publication_reservation_store",
-        state: "reserved",
-        reservationId: reservation.reservationId,
-        bootstrapDigest: reservation.bootstrapDigest,
-        reservationDigest: reservation.reservationDigest,
-      },
-      npmObservation: readyNpm({ stdinIsTTY: false }),
-    }));
+    const report = createFirstPublicationPreflightReport(
+      reportInput(source, {
+        checkedAt: "2026-08-21T03:10:00Z",
+        packageObservation: {
+          schemaVersion: 1,
+          source: "npm_public_registry",
+          state: "unavailable",
+          package: "@lervo/cli",
+          reason: "registry_unavailable",
+        },
+        reservationObservation: {
+          schemaVersion: 1,
+          source: "first_publication_reservation_store",
+          state: "reserved",
+          reservationId: reservation.reservationId,
+          bootstrapDigest: reservation.bootstrapDigest,
+          reservationDigest: reservation.reservationDigest,
+        },
+        npmObservation: readyNpm({ stdinIsTTY: false }),
+      }),
+    );
     assert.equal(report.status, "blocked");
-    assert.deepEqual(report.checks.map(({ status }) => status), [
-      "blocked", "ready", "unknown", "blocked", "blocked",
-    ]);
+    assert.deepEqual(
+      report.checks.map(({ status }) => status),
+      ["blocked", "ready", "unknown", "blocked", "blocked"],
+    );
     assert.deepEqual(report.checks[4].reasons, ["terminal_not_interactive"]);
   });
 
@@ -163,29 +165,34 @@ describe("first-publication read-only observations", () => {
       const source = fixture();
       await writeFile(resolve(root, source.artifact.file), tarball);
       let writes = 0;
-      const result = await inspectFirstPublicationPreflight({
-        bootstrap: source.bootstrap,
-        publicationAuthorization: source.publicationAuthorization,
-        releaseDirectory: root,
-      }, {
-        reservationStore: {
-          observe: async (reservationId) => ({
-            schemaVersion: 1,
-            source: "first_publication_reservation_store",
-            state: "missing",
-            reservationId,
-          }),
-          reserve: async () => { writes += 1; },
+      const result = await inspectFirstPublicationPreflight(
+        {
+          bootstrap: source.bootstrap,
+          publicationAuthorization: source.publicationAuthorization,
+          releaseDirectory: root,
         },
-        observePackage: async () => ({
-          schemaVersion: 1,
-          source: "npm_public_registry",
-          state: "not_found",
-          package: "@lervo/cli",
-        }),
-        observeNpm: async () => readyNpm(),
-        clock: () => "2026-08-21T03:01:00Z",
-      });
+        {
+          reservationStore: {
+            observe: async (reservationId) => ({
+              schemaVersion: 1,
+              source: "first_publication_reservation_store",
+              state: "missing",
+              reservationId,
+            }),
+            reserve: async () => {
+              writes += 1;
+            },
+          },
+          observePackage: async () => ({
+            schemaVersion: 1,
+            source: "npm_public_registry",
+            state: "not_found",
+            package: "@lervo/cli",
+          }),
+          observeNpm: async () => readyNpm(),
+          clock: () => "2026-08-21T03:01:00Z",
+        },
+      );
       assert.equal(result.report.status, "ready");
       assert.equal(writes, 0);
     } finally {
@@ -198,21 +205,28 @@ describe("first-publication read-only observations", () => {
     try {
       const source = fixture();
       await writeFile(resolve(root, source.artifact.file), tarball);
-      const result = await inspectFirstPublicationPreflight({
-        bootstrap: source.bootstrap,
-        publicationAuthorization: source.publicationAuthorization,
-        releaseDirectory: root,
-      }, {
-        reservationStore: { observe: async () => { throw new Error("private path"); } },
-        observePackage: async () => ({
-          schemaVersion: 1,
-          source: "npm_public_registry",
-          state: "not_found",
-          package: "@lervo/cli",
-        }),
-        observeNpm: async () => readyNpm(),
-        clock: () => "2026-08-21T03:01:00Z",
-      });
+      const result = await inspectFirstPublicationPreflight(
+        {
+          bootstrap: source.bootstrap,
+          publicationAuthorization: source.publicationAuthorization,
+          releaseDirectory: root,
+        },
+        {
+          reservationStore: {
+            observe: async () => {
+              throw new Error("private path");
+            },
+          },
+          observePackage: async () => ({
+            schemaVersion: 1,
+            source: "npm_public_registry",
+            state: "not_found",
+            package: "@lervo/cli",
+          }),
+          observeNpm: async () => readyNpm(),
+          clock: () => "2026-08-21T03:01:00Z",
+        },
+      );
       assert.equal(result.report.status, "blocked");
       assert.deepEqual(result.report.checks[3], {
         id: "reservation_state",
@@ -231,7 +245,10 @@ describe("first-publication read-only observations", () => {
     try {
       const source = fixture();
       const store = createFileFirstPublicationReservationStore({ rootDirectory: stateRoot });
-      assert.equal((await store.observe(firstPublicationReservationId(source.bootstrap))).state, "missing");
+      assert.equal(
+        (await store.observe(firstPublicationReservationId(source.bootstrap))).state,
+        "missing",
+      );
       await assert.rejects(lstat(stateRoot), { code: "ENOENT" });
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -257,15 +274,25 @@ describe("first-publication read-only observations", () => {
       const source = fixture();
       const path = resolve(root, source.artifact.file);
       await writeFile(path, tarball);
-      assert.equal((await observeFirstPublicationArtifact({
-        publicationAuthorization: source.publicationAuthorization,
-        releaseDirectory: root,
-      })).state, "verified");
+      assert.equal(
+        (
+          await observeFirstPublicationArtifact({
+            publicationAuthorization: source.publicationAuthorization,
+            releaseDirectory: root,
+          })
+        ).state,
+        "verified",
+      );
       await writeFile(path, Buffer.from("changed"));
-      assert.equal((await observeFirstPublicationArtifact({
-        publicationAuthorization: source.publicationAuthorization,
-        releaseDirectory: root,
-      })).state, "changed");
+      assert.equal(
+        (
+          await observeFirstPublicationArtifact({
+            publicationAuthorization: source.publicationAuthorization,
+            releaseDirectory: root,
+          })
+        ).state,
+        "changed",
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }

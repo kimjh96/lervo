@@ -7,20 +7,13 @@ import {
   validateFirstPublicationArmingAuthorizationDocument,
 } from "./first-publication-arming-authorization.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { readFirstPublicationContractFiles } from
-  "./first-publication-contract-files.mjs";
-import { validateFirstPublicationExecutionReceipt } from
-  "./first-publication-execution-receipt.mjs";
-import { readFirstPublicationResolutionSources } from
-  "./first-publication-resolution-sources.mjs";
-import { readFirstPublicationStageEvidenceBundleSources } from
-  "./first-publication-stage-evidence-bundle-sources.mjs";
-import { readFirstPublicationStageEvidenceSetSources } from
-  "./first-publication-stage-evidence-set-sources.mjs";
-import { validateFirstPublicationResolutionDocument } from
-  "./first-publication-resolution.mjs";
-import { resolveFirstPublicationTransitionEvidence } from
-  "./first-publication-transition-evidence.mjs";
+import { readFirstPublicationContractFiles } from "./first-publication-contract-files.mjs";
+import { validateFirstPublicationExecutionReceipt } from "./first-publication-execution-receipt.mjs";
+import { readFirstPublicationResolutionSources } from "./first-publication-resolution-sources.mjs";
+import { readFirstPublicationStageEvidenceBundleSources } from "./first-publication-stage-evidence-bundle-sources.mjs";
+import { readFirstPublicationStageEvidenceSetSources } from "./first-publication-stage-evidence-set-sources.mjs";
+import { validateFirstPublicationResolutionDocument } from "./first-publication-resolution.mjs";
+import { resolveFirstPublicationTransitionEvidence } from "./first-publication-transition-evidence.mjs";
 import {
   assertReleaseFilesUnchanged,
   readRegularReleaseFile,
@@ -74,7 +67,8 @@ async function readExecutionSources(options) {
   if (
     !isAbsolute(options?.armingAuthorizationPath ?? "") ||
     !isAbsolute(options?.executionReceiptPath ?? "")
-  ) fail();
+  )
+    fail();
   const contracts = await readFirstPublicationContractFiles(options);
   const [armingSnapshot, receiptSnapshot] = await Promise.all([
     readSnapshot(options.armingAuthorizationPath),
@@ -134,18 +128,20 @@ async function readResolutionSources(options, dependencies) {
 }
 
 async function readStageApprovalSources(options, dependencies) {
-  const readStageSources = options.stageApprovalBundlePath === undefined
-    ? readFirstPublicationStageEvidenceSetSources
-    : readFirstPublicationStageEvidenceBundleSources;
-  const stageInput = options.stageApprovalBundlePath === undefined
-    ? {
-        stageReviewReportPath: options.stageApprovalReviewPath,
-        decisionPath: options.stageApprovalDecisionPath,
-        authorizationPath: options.stageApprovalAuthorizationPath,
-        resultDirectory: options.stageApprovalResultDirectory,
-        reconciliationReportPath: options.stageApprovalReconciliationPath,
-      }
-    : options.stageApprovalBundlePath;
+  const readStageSources =
+    options.stageApprovalBundlePath === undefined
+      ? readFirstPublicationStageEvidenceSetSources
+      : readFirstPublicationStageEvidenceBundleSources;
+  const stageInput =
+    options.stageApprovalBundlePath === undefined
+      ? {
+          stageReviewReportPath: options.stageApprovalReviewPath,
+          decisionPath: options.stageApprovalDecisionPath,
+          authorizationPath: options.stageApprovalAuthorizationPath,
+          resultDirectory: options.stageApprovalResultDirectory,
+          reconciliationReportPath: options.stageApprovalReconciliationPath,
+        }
+      : options.stageApprovalBundlePath;
   const [contracts, stageSources] = await Promise.all([
     readFirstPublicationContractFiles(options),
     readStageSources(stageInput, dependencies),
@@ -164,22 +160,20 @@ async function readStageApprovalSources(options, dependencies) {
     ...contracts,
     publicationEvidence,
     assertUnchanged: async () => {
-      await Promise.all([
-        contracts.assertUnchanged(),
-        stageSources.assertUnchanged(),
-      ]);
+      await Promise.all([contracts.assertUnchanged(), stageSources.assertUnchanged()]);
     },
   };
 }
 
 export async function readFirstPublicationTransitionSources(options, dependencies = {}) {
   if (
-    ![
-      "execution_receipt", "reconciliation_resolution", "stage_approval_reconciliation",
-    ].includes(options?.evidenceType) ||
+    !["execution_receipt", "reconciliation_resolution", "stage_approval_reconciliation"].includes(
+      options?.evidenceType,
+    ) ||
     !isAbsolute(options?.publicationAuthorizationPath ?? "") ||
     !isAbsolute(options?.bootstrapPath ?? "")
-  ) fail();
+  )
+    fail();
   const [sources, workflowSource] = await Promise.all([
     options.evidenceType === "execution_receipt"
       ? readExecutionSources(options)

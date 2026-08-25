@@ -73,10 +73,18 @@ const terminalTurnCoverageSchema = {
       properties: {
         hookContextPreparation: { const: "observed" },
         providerContextAcceptance: { const: "unsupported" },
-        explicitOutputReference: { type: "string", enum: ["observed", "supported_no_observation", "unavailable"] },
+        explicitOutputReference: {
+          type: "string",
+          enum: ["observed", "supported_no_observation", "unavailable"],
+        },
         internalUse: { const: "unsupported" },
       },
-      required: ["hookContextPreparation", "providerContextAcceptance", "explicitOutputReference", "internalUse"],
+      required: [
+        "hookContextPreparation",
+        "providerContextAcceptance",
+        "explicitOutputReference",
+        "internalUse",
+      ],
       additionalProperties: false,
     },
     documents: { type: "array", items: terminalDocumentObservationSchema, maxItems: 6 },

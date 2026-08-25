@@ -1,13 +1,9 @@
-import { validateFirstPublicationExecutionReceipt } from
-  "./first-publication-execution-receipt.mjs";
-import { validateFirstPublicationResolution } from
-  "./first-publication-resolution.mjs";
-import { validateFirstPublicationStageApprovalEvidenceSet } from
-  "./first-publication-stage-approval-evidence-set.mjs";
+import { validateFirstPublicationExecutionReceipt } from "./first-publication-execution-receipt.mjs";
+import { validateFirstPublicationResolution } from "./first-publication-resolution.mjs";
+import { validateFirstPublicationStageApprovalEvidenceSet } from "./first-publication-stage-approval-evidence-set.mjs";
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
 import { canonicalJson } from "./release-artifact-manifest.mjs";
-import { validateReleasePublicationAuthorization } from
-  "./release-publication-authorization.mjs";
+import { validateReleasePublicationAuthorization } from "./release-publication-authorization.mjs";
 
 function fail() {
   throw new FirstPublicationBootstrapError(
@@ -17,8 +13,12 @@ function fail() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 export function resolveFirstPublicationTransitionEvidence(publicationEvidence, sources) {
@@ -37,7 +37,12 @@ export function resolveFirstPublicationTransitionEvidence(publicationEvidence, s
   if (
     publicationEvidence?.type === "reconciliation_resolution" &&
     exactKeys(publicationEvidence, [
-      "type", "resolution", "reconciliationReport", "decision", "reservation", "terminal",
+      "type",
+      "resolution",
+      "reconciliationReport",
+      "decision",
+      "reservation",
+      "terminal",
     ])
   ) {
     validateFirstPublicationResolution(publicationEvidence.resolution, {
@@ -57,18 +62,17 @@ export function resolveFirstPublicationTransitionEvidence(publicationEvidence, s
   if (
     publicationEvidence?.type === "stage_approval_reconciliation" &&
     exactKeys(publicationEvidence, [
-      "type", "reconciliationReport", "stageReviewReport", "decision",
-      "authorization", "attempt", "terminal",
+      "type",
+      "reconciliationReport",
+      "stageReviewReport",
+      "decision",
+      "authorization",
+      "attempt",
+      "terminal",
     ])
   ) {
-    const {
-      reconciliationReport,
-      stageReviewReport,
-      decision,
-      authorization,
-      attempt,
-      terminal,
-    } = publicationEvidence;
+    const { reconciliationReport, stageReviewReport, decision, authorization, attempt, terminal } =
+      publicationEvidence;
     validateFirstPublicationStageApprovalEvidenceSet({
       reconciliationReport,
       stageReviewReport,
@@ -97,7 +101,8 @@ export function resolveFirstPublicationTransitionEvidence(publicationEvidence, s
       stageArtifact.sha256 !== bootstrap.release.artifact.sha256 ||
       stageArtifact.registryIntegrity !== bootstrap.release.artifact.registryIntegrity ||
       stageArtifact.registryShasum !== bootstrap.release.artifact.registryShasum
-    ) fail();
+    )
+      fail();
     return {
       type: "stage_approval_reconciliation",
       digest: reconciliationReport.evidenceDigest,

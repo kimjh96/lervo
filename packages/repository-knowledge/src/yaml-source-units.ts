@@ -39,7 +39,8 @@ export function extractYamlKeySpans(source: string): YamlKeySpan[] {
   } catch {
     return fail();
   }
-  if (documents.some((document) => document.errors.length > 0 || document.warnings.length > 0)) return fail();
+  if (documents.some((document) => document.errors.length > 0 || document.warnings.length > 0))
+    return fail();
 
   const spans: YamlKeySpan[] = [];
   for (const [documentIndex, document] of documents.entries()) {
@@ -54,7 +55,14 @@ export function extractYamlKeySpans(source: string): YamlKeySpan[] {
       if (isMap(current.node)) {
         for (let index = current.node.items.length - 1; index >= 0; index -= 1) {
           const pair = current.node.items[index];
-          if (pair === undefined || !isScalar(pair.key) || typeof pair.key.value !== "string" || pair.key.range === null || pair.key.range === undefined) return fail();
+          if (
+            pair === undefined ||
+            !isScalar(pair.key) ||
+            typeof pair.key.value !== "string" ||
+            pair.key.range === null ||
+            pair.key.range === undefined
+          )
+            return fail();
           const keyRange = pair.key.range;
           const parts = [...current.parts, escapedPointerPart(pair.key.value)];
           if (parts.length > MAX_YAML_DEPTH) return fail();

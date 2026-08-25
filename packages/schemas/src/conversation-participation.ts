@@ -129,6 +129,4 @@ export type ConversationParticipationPolicy = FromSchema<
 export type ConversationParticipationDecision = FromSchema<
   typeof conversationParticipationDecisionSchema
 >;
-export type ConversationParticipationReason = (
-  typeof conversationParticipationReasons
-)[number];
+export type ConversationParticipationReason = (typeof conversationParticipationReasons)[number];

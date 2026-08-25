@@ -1,8 +1,6 @@
 import { FirstPublicationBootstrapError } from "./first-publication-bootstrap.mjs";
-import { validateFirstPublicationPackageMetadataApplyPermit } from
-  "./first-publication-package-metadata-apply-permit.mjs";
-import { canonicalDigest, canonicalJson, sha256 } from
-  "./release-artifact-manifest.mjs";
+import { validateFirstPublicationPackageMetadataApplyPermit } from "./first-publication-package-metadata-apply-permit.mjs";
+import { canonicalDigest, canonicalJson, sha256 } from "./release-artifact-manifest.mjs";
 
 export {
   createFirstPublicationPackageMetadataApplyReceipt,
@@ -27,8 +25,10 @@ function fileBinding(id, snapshot, outputBytes) {
     !Buffer.isBuffer(snapshot?.contents) ||
     snapshot.byteCount !== snapshot.contents.length ||
     snapshot.sha256 !== sha256(snapshot.contents) ||
-    !Buffer.isBuffer(outputBytes) || outputBytes.length < 1
-  ) fail();
+    !Buffer.isBuffer(outputBytes) ||
+    outputBytes.length < 1
+  )
+    fail();
   return {
     id,
     relativePath: relativePaths[id],
@@ -42,7 +42,8 @@ function sourceBinding(id, snapshot) {
     !Buffer.isBuffer(snapshot?.contents) ||
     snapshot.byteCount !== snapshot.contents.length ||
     snapshot.sha256 !== sha256(snapshot.contents)
-  ) fail();
+  )
+    fail();
   return { id, byteCount: snapshot.byteCount, sha256: snapshot.sha256 };
 }
 
@@ -55,7 +56,8 @@ function planBody({ permit, permitInput, derivedRelease, sourceSnapshots }) {
   if (
     !Buffer.isBuffer(derivedRelease?.outputBytes?.packageManifest) ||
     !derivedRelease.outputBytes.packageManifest.equals(permitInput.candidateResult.outputBytes)
-  ) fail();
+  )
+    fail();
   const files = [
     fileBinding(
       "packageManifest",
@@ -67,13 +69,18 @@ function planBody({ permit, permitInput, derivedRelease, sourceSnapshots }) {
       sourceSnapshots?.releaseManifest,
       derivedRelease.outputBytes.releaseManifest,
     ),
-    fileBinding("releaseSbom", sourceSnapshots?.releaseSbom, derivedRelease.outputBytes.releaseSbom),
+    fileBinding(
+      "releaseSbom",
+      sourceSnapshots?.releaseSbom,
+      derivedRelease.outputBytes.releaseSbom,
+    ),
   ];
   if (
     files.some(({ before, after }) => before.sha256 === after.sha256) ||
     files[0].before.sha256 !== permit.binding.packageSourceSha256 ||
     files[0].after.sha256 !== permit.binding.outputSha256
-  ) fail();
+  )
+    fail();
   return {
     schemaVersion: 1,
     status: "ready_to_apply",
@@ -122,10 +129,12 @@ export function validateFirstPublicationPackageMetadataApplyPlan(result, input) 
   }
   if (
     canonicalJson(result?.plan) !== canonicalJson(expected.plan) ||
-    Object.keys(expected.outputBytes).some((id) =>
-      !Buffer.isBuffer(result?.outputBytes?.[id]) ||
-      !result.outputBytes[id].equals(expected.outputBytes[id])
+    Object.keys(expected.outputBytes).some(
+      (id) =>
+        !Buffer.isBuffer(result?.outputBytes?.[id]) ||
+        !result.outputBytes[id].equals(expected.outputBytes[id]),
     )
-  ) fail();
+  )
+    fail();
   return result;
 }

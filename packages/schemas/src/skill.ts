@@ -104,7 +104,7 @@ export const skillManifestSchema = {
     },
     supportedRoles: {
       type: "array",
-      items: roleIdSchema,
+      items: { oneOf: [roleIdSchema, { const: "*" }] },
       minItems: 1,
       uniqueItems: true,
     },
@@ -131,7 +131,7 @@ export const skillManifestSchema = {
         "minimumRuntimeVersion",
         "platforms",
         "requiredTools",
-        "unknownIsCompatible"
+        "unknownIsCompatible",
       ],
       additionalProperties: false,
     },
@@ -205,7 +205,7 @@ export const skillManifestSchema = {
     "contracts",
     "trust",
     "enabledScope",
-    "pinned"
+    "pinned",
   ],
   additionalProperties: false,
 } as const;

@@ -16,10 +16,7 @@ export interface ProjectRegistrationRecord {
   updatedAt: string;
 }
 
-function registrationIdentity(input: {
-  projectId: string;
-  createdAt: string;
-}): object {
+function registrationIdentity(input: { projectId: string; createdAt: string }): object {
   return {
     schemaVersion: 1,
     projectId: input.projectId,
@@ -27,10 +24,7 @@ function registrationIdentity(input: {
   };
 }
 
-function registrationCoordinate(input: {
-  destinationId: string;
-  identityHash: string;
-}): object {
+function registrationCoordinate(input: { destinationId: string; identityHash: string }): object {
   return {
     schemaVersion: 1,
     destinationId: input.destinationId,
@@ -59,11 +53,12 @@ export function calculateProjectRegistrationId(input: {
   return syncContentId("hpr", registrationCoordinate(input));
 }
 
-export function assertProjectRegistrationRequest(
-  request: ProjectRegistrationRequest,
-): void {
+export function assertProjectRegistrationRequest(request: ProjectRegistrationRequest): void {
   if (!validateSchema("projectRegistrationRequest", request).valid) {
-    throw new SyncContractError("invalid_registration", "The project registration contract is invalid.");
+    throw new SyncContractError(
+      "invalid_registration",
+      "The project registration contract is invalid.",
+    );
   }
   const identityHash = calculateProjectIdentityHash(request.project);
   const manifestHash = calculateProjectManifestHash(request.project);
@@ -131,7 +126,10 @@ export function assertProjectRegistrationResponse(input: {
 }): void {
   assertProjectRegistrationRequest(input.request);
   if (!validateSchema("projectRegistrationResponse", input.response).valid) {
-    throw new SyncContractError("invalid_registration", "The project registration response is invalid.");
+    throw new SyncContractError(
+      "invalid_registration",
+      "The project registration response is invalid.",
+    );
   }
   if (
     input.response.registrationId !== input.request.registrationId ||
@@ -168,9 +166,10 @@ export function planProjectRegistrationAcceptance(input: {
       );
     }
     registeredAt = input.current.registeredAt;
-    status = comparableRegistration(input.current.request) === comparableRegistration(input.request)
-      ? "unchanged"
-      : "updated";
+    status =
+      comparableRegistration(input.current.request) === comparableRegistration(input.request)
+        ? "unchanged"
+        : "updated";
   }
   const record: ProjectRegistrationRecord = {
     request: structuredClone(input.request),

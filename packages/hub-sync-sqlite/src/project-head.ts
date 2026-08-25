@@ -13,10 +13,14 @@ export function loadProjectHead(
   database: DatabaseSync,
   coordinate: HubProjectCoordinate,
 ): ProjectHead | null {
-  const row = database.prepare(`
+  const row = database
+    .prepare(
+      `
     SELECT ${PROJECT_COLUMNS}
     FROM hub_projects
     WHERE destination_id = ? AND project_id = ?
-  `).get(coordinate.destinationId, coordinate.projectId);
+  `,
+    )
+    .get(coordinate.destinationId, coordinate.projectId);
   return row === undefined ? null : decodeProjectHead(row);
 }

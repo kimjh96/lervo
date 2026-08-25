@@ -1,9 +1,5 @@
 import { computeEventHash } from "@lervo/event-contract";
-import {
-  defaultProjectDataPolicy,
-  type EventEnvelope,
-  type ProjectManifest,
-} from "@lervo/schemas";
+import { defaultProjectDataPolicy, type EventEnvelope, type ProjectManifest } from "@lervo/schemas";
 
 import { createProjectRegistrationRequest } from "../src/index.js";
 
@@ -57,9 +53,6 @@ export function eventChain(projectId: string, count: number): EventEnvelope[] {
   return events;
 }
 
-export function registration(
-  project: ProjectManifest,
-  requestedAt = "2026-08-19T01:00:00.000Z",
-) {
+export function registration(project: ProjectManifest, requestedAt = "2026-08-19T01:00:00.000Z") {
   return createProjectRegistrationRequest({ manifest: project, destinationId, requestedAt });
 }

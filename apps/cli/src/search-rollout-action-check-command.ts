@@ -15,7 +15,10 @@ const actions: Record<string, SearchRolloutActionKind> = {
   rollback: "execute_rollback",
 };
 
-export async function runSearchRolloutActionCheckCommand(args: string[], io: CliIo): Promise<number> {
+export async function runSearchRolloutActionCheckCommand(
+  args: string[],
+  io: CliIo,
+): Promise<number> {
   let parsed;
   try {
     parsed = parseArgs({
@@ -35,9 +38,15 @@ export async function runSearchRolloutActionCheckCommand(args: string[], io: Cli
     return 1;
   }
   const action = parsed.values.action === undefined ? undefined : actions[parsed.values.action];
-  if (parsed.positionals.length !== 1 || action === undefined || parsed.values.policy === undefined ||
-    parsed.values.operator === undefined) {
-    io.stderr(`A rollout review ID, keep|rollback action, action policy, and operator are required.\n${searchUsage}\n`);
+  if (
+    parsed.positionals.length !== 1 ||
+    action === undefined ||
+    parsed.values.policy === undefined ||
+    parsed.values.operator === undefined
+  ) {
+    io.stderr(
+      `A rollout review ID, keep|rollback action, action policy, and operator are required.\n${searchUsage}\n`,
+    );
     return 1;
   }
   try {
@@ -53,14 +62,18 @@ export async function runSearchRolloutActionCheckCommand(args: string[], io: Cli
       checkedAt: new Date(),
       registry: searchCandidateRegistry,
     });
-    io.stdout(parsed.values.json
-      ? `${JSON.stringify(result, null, 2)}\n`
-      : formatSearchRolloutActionPreflight(result));
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : formatSearchRolloutActionPreflight(result),
+    );
     return 0;
   } catch (error) {
-    io.stderr(`Could not check the search rollout action. (${searchErrorCode(error)}) ${
-      error instanceof Error ? error.message : "Unknown error."
-    }\n`);
+    io.stderr(
+      `Could not check the search rollout action. (${searchErrorCode(error)}) ${
+        error instanceof Error ? error.message : "Unknown error."
+      }\n`,
+    );
     return 1;
   }
 }

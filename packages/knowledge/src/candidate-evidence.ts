@@ -7,7 +7,7 @@ export type DecisionArtifact = Extract<DeliberationArtifact, { kind: "decision" 
 type VerificationArtifact = Extract<DeliberationArtifact, { kind: "verification" }>;
 
 export function uniqueSorted(values: readonly string[]): string[] {
-  return [...new Set(values)].sort((left, right) => left < right ? -1 : left > right ? 1 : 0);
+  return [...new Set(values)].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
 }
 
 export function validateOutcomeEvent(input: CreateKnowledgeCandidatesInput): void {
@@ -36,9 +36,7 @@ export function validateOutcomeEvent(input: CreateKnowledgeCandidatesInput): voi
   }
 }
 
-export function currentClaims(
-  artifacts: readonly DeliberationArtifact[],
-): Map<string, string> {
+export function currentClaims(artifacts: readonly DeliberationArtifact[]): Map<string, string> {
   const claims = new Map<string, string>();
   for (const artifact of artifacts) {
     if (artifact.kind !== "proposal" && artifact.kind !== "revision") continue;
@@ -51,11 +49,12 @@ export function recordedArtifactEvent(
   events: readonly EventEnvelope[],
   artifact: DeliberationArtifact,
 ): EventEnvelope {
-  const matches = events.filter((event) =>
-    event.type === "deliberation.artifact.recorded" &&
-    event.payload.deliberationArtifactId === artifact.deliberationArtifactId &&
-    event.payload.artifactId === artifact.content.artifactId &&
-    event.payload.contentHash === artifact.content.contentHash
+  const matches = events.filter(
+    (event) =>
+      event.type === "deliberation.artifact.recorded" &&
+      event.payload.deliberationArtifactId === artifact.deliberationArtifactId &&
+      event.payload.artifactId === artifact.content.artifactId &&
+      event.payload.contentHash === artifact.content.contentHash,
   );
   if (matches.length !== 1) {
     throw new KnowledgeError(
@@ -123,15 +122,17 @@ export function verificationEvidenceForClaim(input: {
         "The verification source linked to the accepted claim is missing.",
       );
     }
-    return [{
-      verificationArtifact: artifact as VerificationArtifact,
-      value: {
-        verificationArtifactId: artifact.deliberationArtifactId,
-        verificationId: evidence.result.verificationId,
-        resultArtifactId: evidence.resultArtifact.artifactId,
-        resultHash: evidence.resultArtifact.contentHash,
-        repositoryRevision: evidence.result.repositoryRevision,
+    return [
+      {
+        verificationArtifact: artifact as VerificationArtifact,
+        value: {
+          verificationArtifactId: artifact.deliberationArtifactId,
+          verificationId: evidence.result.verificationId,
+          resultArtifactId: evidence.resultArtifact.artifactId,
+          resultHash: evidence.resultArtifact.contentHash,
+          repositoryRevision: evidence.result.repositoryRevision,
+        },
       },
-    }];
+    ];
   });
 }

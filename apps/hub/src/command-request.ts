@@ -1,7 +1,4 @@
-import {
-  HUB_DESTINATION_ID_PATTERN,
-  HUB_PROJECT_ID_PATTERN,
-} from "./identifiers.js";
+import { HUB_DESTINATION_ID_PATTERN, HUB_PROJECT_ID_PATTERN } from "./identifiers.js";
 import { InvalidHubHttpRequestError } from "./request.js";
 
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
@@ -23,9 +20,12 @@ export function matchHubRemoteCommandRoute(pathname: string): HubRemoteCommandHt
   const segments = pathname.split("/");
   if (
     (segments.length !== 6 && segments.length !== 7) ||
-    segments[0] !== "" || segments[1] !== "v1" ||
-    segments[2] !== "commands" || segments[3] !== "projects"
-  ) return null;
+    segments[0] !== "" ||
+    segments[1] !== "v1" ||
+    segments[2] !== "commands" ||
+    segments[3] !== "projects"
+  )
+    return null;
   let projectId: string;
   try {
     projectId = decodeURIComponent(segments[4]!);
@@ -69,14 +69,14 @@ export function remoteCommandQuery(parameters: URLSearchParams): HubRemoteComman
     !HUB_DESTINATION_ID_PATTERN.test(destinationId) ||
     !HASH_PATTERN.test(projectIdentityHash) ||
     !NODE_ID_PATTERN.test(nodeId)
-  ) throw new InvalidHubHttpRequestError();
+  )
+    throw new InvalidHubHttpRequestError();
   return { destinationId, projectIdentityHash, nodeId };
 }
 
-export function remoteCommandAuthoringQuery(parameters: URLSearchParams): Omit<
-  HubRemoteCommandQuery,
-  "nodeId"
-> {
+export function remoteCommandAuthoringQuery(
+  parameters: URLSearchParams,
+): Omit<HubRemoteCommandQuery, "nodeId"> {
   const allowed = new Set(["destinationId", "projectIdentityHash"]);
   for (const key of parameters.keys()) {
     if (!allowed.has(key)) throw new InvalidHubHttpRequestError();
@@ -89,19 +89,26 @@ export function remoteCommandAuthoringQuery(parameters: URLSearchParams): Omit<
   return { destinationId, projectIdentityHash };
 }
 
-export function remoteCommandSubmissionBody(value: unknown): import("@lervo/hub-command").AuthorHubCommandRequest {
+export function remoteCommandSubmissionBody(
+  value: unknown,
+): import("@lervo/hub-command").AuthorHubCommandRequest {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new InvalidHubHttpRequestError();
   }
   const body = value as Record<string, unknown>;
   if (
-    Object.keys(body).length !== 8 || body.schemaVersion !== 1 ||
-    typeof body.idempotencyKey !== "string" || typeof body.lifetimeMs !== "number" ||
-    typeof body.roleId !== "string" || typeof body.provider !== "string" ||
-    typeof body.risk !== "string" || !Array.isArray(body.verificationSuiteIds) ||
+    Object.keys(body).length !== 8 ||
+    body.schemaVersion !== 1 ||
+    typeof body.idempotencyKey !== "string" ||
+    typeof body.lifetimeMs !== "number" ||
+    typeof body.roleId !== "string" ||
+    typeof body.provider !== "string" ||
+    typeof body.risk !== "string" ||
+    !Array.isArray(body.verificationSuiteIds) ||
     !body.verificationSuiteIds.every((item) => typeof item === "string") ||
     typeof body.request !== "string"
-  ) throw new InvalidHubHttpRequestError();
+  )
+    throw new InvalidHubHttpRequestError();
   return {
     idempotencyKey: body.idempotencyKey,
     lifetimeMs: body.lifetimeMs,
@@ -122,13 +129,16 @@ export function remoteCommandLeaseBody(value: unknown): {
   }
   const body = value as Record<string, unknown>;
   if (
-    Object.keys(body).length !== 3 || body.schemaVersion !== 1 ||
+    Object.keys(body).length !== 3 ||
+    body.schemaVersion !== 1 ||
     !Number.isSafeInteger(body.leaseDurationMs) ||
     (body.leaseDurationMs as number) < 1_000 ||
     (body.leaseDurationMs as number) > 5 * 60_000 ||
     !Number.isSafeInteger(body.limit) ||
-    (body.limit as number) < 1 || (body.limit as number) > 16
-  ) throw new InvalidHubHttpRequestError();
+    (body.limit as number) < 1 ||
+    (body.limit as number) > 16
+  )
+    throw new InvalidHubHttpRequestError();
   return {
     leaseDurationMs: body.leaseDurationMs as number,
     limit: body.limit as number,

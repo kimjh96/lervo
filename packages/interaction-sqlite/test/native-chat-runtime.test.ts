@@ -7,10 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
-import {
-  handleConversationEvent,
-  runConversationDeliveryCycle,
-} from "@lervo/interaction";
+import { handleConversationEvent, runConversationDeliveryCycle } from "@lervo/interaction";
 import type { WritingPublicationPermit } from "@lervo/schemas";
 import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
 
@@ -69,13 +66,15 @@ function responseCandidate() {
         locale: "ko-KR",
         checkedAt: "2026-08-20T00:00:02.000Z",
         evaluators: [{ kind: "deterministic" as const, evaluatorId: "fixture" }],
-        checks: [{
-          checkId: "fixture",
-          kind: "deterministic" as const,
-          status: "passed" as const,
-          violationCount: 0,
-          evidenceDigest: null,
-        }],
+        checks: [
+          {
+            checkId: "fixture",
+            kind: "deterministic" as const,
+            status: "passed" as const,
+            violationCount: 0,
+            evidenceDigest: null,
+          },
+        ],
         overallStatus: "passed" as const,
       },
       evaluationArtifact: {
@@ -150,17 +149,19 @@ describe("durable native chat interaction", () => {
     });
 
     const first = await SQLiteConversationInteractionStore.open({ path });
-    await expect(handleConversationEvent({
-      event,
-      policy,
-      workerId: "interaction-worker-1",
-      agentParticipantId: "ptc_agent001",
-      store: first,
-      responder: { respond: responder },
-      publicationVerifier: { verify },
-      relevanceEvaluator: { evaluate: relevance },
-      clock: () => new Date("2026-08-20T00:00:02.000Z"),
-    })).resolves.toMatchObject({
+    await expect(
+      handleConversationEvent({
+        event,
+        policy,
+        workerId: "interaction-worker-1",
+        agentParticipantId: "ptc_agent001",
+        store: first,
+        responder: { respond: responder },
+        publicationVerifier: { verify },
+        relevanceEvaluator: { evaluate: relevance },
+        clock: () => new Date("2026-08-20T00:00:02.000Z"),
+      }),
+    ).resolves.toMatchObject({
       status: "completed",
       decision: { action: "respond", reason: "relevant" },
       outbound: { publicationPermit: { surface: "chat" } },
@@ -174,38 +175,44 @@ describe("durable native chat interaction", () => {
     await first.close();
 
     const reopened = await SQLiteConversationInteractionStore.open({ path });
-    await expect(handleConversationEvent({
-      event,
-      policy,
-      workerId: "interaction-worker-2",
-      agentParticipantId: "ptc_agent001",
-      store: reopened,
-      responder: { respond: responder },
-      publicationVerifier: { verify },
-      relevanceEvaluator: { evaluate: relevance },
-      clock: () => new Date("2026-08-20T00:00:03.000Z"),
-    })).resolves.toMatchObject({ status: "duplicate" });
+    await expect(
+      handleConversationEvent({
+        event,
+        policy,
+        workerId: "interaction-worker-2",
+        agentParticipantId: "ptc_agent001",
+        store: reopened,
+        responder: { respond: responder },
+        publicationVerifier: { verify },
+        relevanceEvaluator: { evaluate: relevance },
+        clock: () => new Date("2026-08-20T00:00:03.000Z"),
+      }),
+    ).resolves.toMatchObject({ status: "duplicate" });
     expect(relevance).toHaveBeenCalledTimes(1);
     expect(responder).toHaveBeenCalledTimes(1);
     expect(verify).toHaveBeenCalledTimes(1);
 
-    await expect(runConversationDeliveryCycle({
-      adapter,
-      store: reopened,
-      workerId: "delivery-worker-1",
-      retryDelayMs: 1_000,
-      clock: () => new Date("2026-08-20T00:00:03.000Z"),
-    })).resolves.toEqual({
+    await expect(
+      runConversationDeliveryCycle({
+        adapter,
+        store: reopened,
+        workerId: "delivery-worker-1",
+        retryDelayMs: 1_000,
+        clock: () => new Date("2026-08-20T00:00:03.000Z"),
+      }),
+    ).resolves.toEqual({
       status: "processed",
       deliveredCount: 0,
       retryScheduledCount: 1,
     });
-    await expect(runConversationDeliveryCycle({
-      adapter,
-      store: reopened,
-      workerId: "delivery-worker-2",
-      clock: () => new Date("2026-08-20T00:00:04.000Z"),
-    })).resolves.toEqual({
+    await expect(
+      runConversationDeliveryCycle({
+        adapter,
+        store: reopened,
+        workerId: "delivery-worker-2",
+        clock: () => new Date("2026-08-20T00:00:04.000Z"),
+      }),
+    ).resolves.toEqual({
       status: "processed",
       deliveredCount: 1,
       retryScheduledCount: 0,
@@ -215,12 +222,16 @@ describe("durable native chat interaction", () => {
     await reopened.close();
 
     const database = new DatabaseSync(path);
-    expect(() => database.prepare(
-      "UPDATE conversation_inbox SET status = 'pending' WHERE event_id = ?",
-    ).run(event.eventId)).toThrow(/lifecycle/);
-    expect(() => database.prepare(
-      "UPDATE conversation_outbox SET status = 'pending' WHERE source_event_id = ?",
-    ).run(event.eventId)).toThrow(/lifecycle/);
+    expect(() =>
+      database
+        .prepare("UPDATE conversation_inbox SET status = 'pending' WHERE event_id = ?")
+        .run(event.eventId),
+    ).toThrow(/lifecycle/);
+    expect(() =>
+      database
+        .prepare("UPDATE conversation_outbox SET status = 'pending' WHERE source_event_id = ?")
+        .run(event.eventId),
+    ).toThrow(/lifecycle/);
     database.close();
 
     const bytes = (await readFile(path)).toString("latin1");
@@ -234,7 +245,9 @@ describe("durable native chat interaction", () => {
     const adapter = new NativeChatConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
-      delivery: { send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }) },
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
     });
     const event = adapter.normalizeInbound({
       sourceEventKey: "source-key",
@@ -254,16 +267,18 @@ describe("durable native chat interaction", () => {
       occurredAt: "2026-08-20T00:00:01.000Z",
     });
 
-    await expect(handleConversationEvent({
-      event,
-      policy: participationPolicy(["cnv_other001"]),
-      workerId: "interaction-worker",
-      agentParticipantId: "ptc_agent001",
-      store,
-      responder: { respond: async () => responseCandidate() },
-      publicationVerifier: { verify: async () => undefined },
-      clock: () => new Date("2026-08-20T00:00:02.000Z"),
-    })).rejects.toMatchObject({ code: "invalid_interaction_request" });
+    await expect(
+      handleConversationEvent({
+        event,
+        policy: participationPolicy(["cnv_other001"]),
+        workerId: "interaction-worker",
+        agentParticipantId: "ptc_agent001",
+        store,
+        responder: { respond: async () => responseCandidate() },
+        publicationVerifier: { verify: async () => undefined },
+        clock: () => new Date("2026-08-20T00:00:02.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "invalid_interaction_request" });
     expect(store.auditIntegrity()).toMatchObject({ inboxCount: 0 });
     await store.close();
   });
@@ -273,7 +288,9 @@ describe("durable native chat interaction", () => {
     const adapter = new NativeChatConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
-      delivery: { send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }) },
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
     });
     const event = adapter.normalizeInbound({
       sourceEventKey: "shared-message-key",
@@ -302,24 +319,30 @@ describe("durable native chat interaction", () => {
       clock: () => new Date("2026-08-20T00:00:02.000Z"),
     };
 
-    await expect(handleConversationEvent({
-      ...common,
-      policy: participationPolicy(["cnv_general01"], "role_reviewer"),
-      workerId: "reviewer-worker",
-      agentParticipantId: "ptc_agent001",
-    })).resolves.toMatchObject({ status: "completed", decision: { roleId: "role_reviewer" } });
-    await expect(handleConversationEvent({
-      ...common,
-      policy: participationPolicy(["cnv_general01"], "role_writer"),
-      workerId: "writer-worker",
-      agentParticipantId: "ptc_agent002",
-    })).resolves.toMatchObject({ status: "completed", decision: { roleId: "role_writer" } });
-    await expect(handleConversationEvent({
-      ...common,
-      policy: participationPolicy(["cnv_general01"], "role_reviewer", 30),
-      workerId: "reviewer-worker-after-policy-change",
-      agentParticipantId: "ptc_agent001",
-    })).resolves.toMatchObject({
+    await expect(
+      handleConversationEvent({
+        ...common,
+        policy: participationPolicy(["cnv_general01"], "role_reviewer"),
+        workerId: "reviewer-worker",
+        agentParticipantId: "ptc_agent001",
+      }),
+    ).resolves.toMatchObject({ status: "completed", decision: { roleId: "role_reviewer" } });
+    await expect(
+      handleConversationEvent({
+        ...common,
+        policy: participationPolicy(["cnv_general01"], "role_writer"),
+        workerId: "writer-worker",
+        agentParticipantId: "ptc_agent002",
+      }),
+    ).resolves.toMatchObject({ status: "completed", decision: { roleId: "role_writer" } });
+    await expect(
+      handleConversationEvent({
+        ...common,
+        policy: participationPolicy(["cnv_general01"], "role_reviewer", 30),
+        workerId: "reviewer-worker-after-policy-change",
+        agentParticipantId: "ptc_agent001",
+      }),
+    ).resolves.toMatchObject({
       status: "duplicate",
       decision: { roleId: "role_reviewer", reason: "relevant" },
     });
@@ -339,7 +362,9 @@ describe("durable native chat interaction", () => {
     const adapter = new NativeChatConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
-      delivery: { send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }) },
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
     });
     const event = adapter.normalizeInbound({
       sourceEventKey: "source-key",
@@ -368,9 +393,11 @@ describe("durable native chat interaction", () => {
     await store.close();
 
     const database = new DatabaseSync(path);
-    expect(() => database.prepare(
-      "UPDATE conversation_inbox SET event_json = ? WHERE event_id = ?",
-    ).run("{}", event.eventId)).toThrow(/immutable/);
+    expect(() =>
+      database
+        .prepare("UPDATE conversation_inbox SET event_json = ? WHERE event_id = ?")
+        .run("{}", event.eventId),
+    ).toThrow(/immutable/);
     database.close();
   });
 });

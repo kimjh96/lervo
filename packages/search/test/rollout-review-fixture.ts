@@ -7,13 +7,15 @@ import {
   type SearchSourceInput,
 } from "../src/index.js";
 
-const sources: SearchSourceInput[] = [{
-  kind: "document",
-  sourceId: "doc_rollout_01",
-  contentHash: `sha256:${"a".repeat(64)}`,
-  labels: ["rollout"],
-  text: "Search result to review.",
-}];
+const sources: SearchSourceInput[] = [
+  {
+    kind: "document",
+    sourceId: "doc_rollout_01",
+    contentHash: `sha256:${"a".repeat(64)}`,
+    labels: ["rollout"],
+    text: "Search result to review.",
+  },
+];
 
 export const rolloutTarget: SearchRolloutReviewTarget = {
   selectionTransitionId: `seact_${"b".repeat(24)}`,

@@ -90,11 +90,7 @@ export const managedBlockPatchCandidateSchema = {
         markerBytesUnchanged: { const: true },
         outputStructureValid: { const: true },
       },
-      required: [
-        "onlyTargetContentChanged",
-        "markerBytesUnchanged",
-        "outputStructureValid",
-      ],
+      required: ["onlyTargetContentChanged", "markerBytesUnchanged", "outputStructureValid"],
       additionalProperties: false,
     },
   },
@@ -129,9 +125,7 @@ export const managedBlockPatchCandidateArtifactSchema = {
   additionalProperties: false,
 } as const;
 
-export type ManagedBlockPatchCandidate = FromSchema<
-  typeof managedBlockPatchCandidateSchema
->;
+export type ManagedBlockPatchCandidate = FromSchema<typeof managedBlockPatchCandidateSchema>;
 export type ManagedBlockPatchCandidateArtifact = FromSchema<
   typeof managedBlockPatchCandidateArtifactSchema
 >;

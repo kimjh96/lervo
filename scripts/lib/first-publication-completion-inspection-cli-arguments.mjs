@@ -21,15 +21,13 @@ export function parseFirstPublicationCompletionInspectionArguments(args) {
       continue;
     }
     const value = args[index + 1];
-    if (!names.includes(name) || values.has(name) || value === undefined ||
-        value.startsWith("--")) fail();
+    if (!names.includes(name) || values.has(name) || value === undefined || value.startsWith("--"))
+      fail();
     values.set(name, value);
     index += 1;
   }
-  if (
-    values.size !== names.length ||
-    names.some((name) => !isAbsolute(values.get(name) ?? ""))
-  ) fail();
+  if (values.size !== names.length || names.some((name) => !isAbsolute(values.get(name) ?? "")))
+    fail();
   return {
     stageApprovalBundlePath: values.get("--stage-approval-bundle"),
     transitionReceiptPath: values.get("--transition-receipt"),

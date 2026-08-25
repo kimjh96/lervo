@@ -45,11 +45,10 @@ describe("local CLI release statement", () => {
 
     assert.equal(statement._type, inTotoStatementType);
     assert.equal(statement.predicateType, slsaProvenanceType);
-    assert.deepEqual(statement.subject.map(({ name }) => name), [
-      "lervo-cli-0.1.0.tgz",
-      "release-artifact-manifest.json",
-      "release-sbom.cdx.json",
-    ]);
+    assert.deepEqual(
+      statement.subject.map(({ name }) => name),
+      ["lervo-cli-0.1.0.tgz", "release-artifact-manifest.json", "release-sbom.cdx.json"],
+    );
     assert.equal(statement.subject[0].digest.sha256, sha256(inputs.tarballContents));
     assert.equal(statement.subject[1].digest.sha256, sha256(inputs.releaseManifestContents));
     assert.equal(statement.subject[2].digest.sha256, sha256(inputs.releaseSbomContents));
@@ -60,14 +59,17 @@ describe("local CLI release statement", () => {
     const statement = createLocalCliReleaseStatement(inputs);
     const { buildDefinition, runDetails } = statement.predicate;
 
-    assert.deepEqual(buildDefinition.resolvedDependencies.map(({ name }) => name), [
-      "apps/cli/README.md",
-      "apps/cli/dist/bin.js",
-      "apps/cli/package.json",
-      "apps/cli/release-artifact-manifest.json",
-      "apps/cli/release-sbom.cdx.json",
-      "pnpm-lock.yaml",
-    ]);
+    assert.deepEqual(
+      buildDefinition.resolvedDependencies.map(({ name }) => name),
+      [
+        "apps/cli/README.md",
+        "apps/cli/dist/bin.js",
+        "apps/cli/package.json",
+        "apps/cli/release-artifact-manifest.json",
+        "apps/cli/release-sbom.cdx.json",
+        "pnpm-lock.yaml",
+      ],
+    );
     assert.deepEqual(buildDefinition.externalParameters, {});
     assert.deepEqual(buildDefinition.internalParameters, {
       architecture: "x64",
@@ -85,10 +87,9 @@ describe("local CLI release statement", () => {
     const statement = createLocalCliReleaseStatement(inputs);
     statement.subject[0].digest.sha256 = "a".repeat(64);
 
-    assert.throws(
-      () => validateLocalCliReleaseStatement(statement, inputs),
-      { code: "release_attestation_statement_mismatch" },
-    );
+    assert.throws(() => validateLocalCliReleaseStatement(statement, inputs), {
+      code: "release_attestation_statement_mismatch",
+    });
   });
 
   it("rejects an unsigned local statement disguised as a signature envelope", () => {
@@ -96,18 +97,16 @@ describe("local CLI release statement", () => {
     const statement = createLocalCliReleaseStatement(inputs);
     statement.signatures = [];
 
-    assert.throws(
-      () => validateLocalCliReleaseStatement(statement, inputs),
-      { code: "release_attestation_envelope_unexpected" },
-    );
+    assert.throws(() => validateLocalCliReleaseStatement(statement, inputs), {
+      code: "release_attestation_envelope_unexpected",
+    });
   });
 
   it("requires the selected release tag to match the package version", () => {
     assert.equal(validateCliReleaseTag("0.1.0", "v0.1.0"), "v0.1.0");
-    assert.throws(
-      () => validateCliReleaseTag("0.1.0", "v0.1.1"),
-      { code: "release_attestation_tag_mismatch" },
-    );
+    assert.throws(() => validateCliReleaseTag("0.1.0", "v0.1.1"), {
+      code: "release_attestation_tag_mismatch",
+    });
   });
 
   it("prepares only the three release subjects and refuses to overwrite them", async () => {

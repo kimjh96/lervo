@@ -34,7 +34,10 @@ export async function checkLocalSearchRolloutAction(input: {
     loadSearchRolloutReviewPolicy(input.repositoryRoot, actionPolicy.rolloutPolicyId),
     actionPolicy.engineActivationPolicyId === null
       ? Promise.resolve(undefined)
-      : loadSearchEngineActivationPolicy(input.repositoryRoot, actionPolicy.engineActivationPolicyId),
+      : loadSearchEngineActivationPolicy(
+          input.repositoryRoot,
+          actionPolicy.engineActivationPolicyId,
+        ),
   ]);
   const result = createSearchRolloutActionPreflight({
     actionPolicy,

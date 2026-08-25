@@ -27,11 +27,12 @@ export async function inspectDoctorEnvironment(
     registry: searchCandidateRegistry,
     observedAt: options.observedAt ?? new Date(),
   };
-  const inspectSkills = () => inspectDoctorSkills({
-    repositoryRoot: input.repositoryRoot,
-    projectId: input.projectId,
-    ...(options.userSkillRoot === undefined ? {} : { userSkillRoot: options.userSkillRoot }),
-  });
+  const inspectSkills = () =>
+    inspectDoctorSkills({
+      repositoryRoot: input.repositoryRoot,
+      projectId: input.projectId,
+      ...(options.userSkillRoot === undefined ? {} : { userSkillRoot: options.userSkillRoot }),
+    });
   const inspectProviders = async (): Promise<DoctorInspection[]> => {
     const [codex, claude] = await Promise.all([
       (options.inspectCodex ?? inspectCodexRuntime)(),

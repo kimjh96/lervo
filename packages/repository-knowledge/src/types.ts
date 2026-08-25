@@ -19,7 +19,15 @@ export type RepositorySourceKind =
 
 export type SourceInventoryStatus = "included" | "excluded" | "unsupported";
 export type SourceClassification = "ordinary" | "sensitive" | "secret_candidate" | "unsupported";
-export type SourceUnitKind = "file" | "markdown_section" | "code_symbol" | "config_key" | "revision" | "verification" | "event" | "skill_contract";
+export type SourceUnitKind =
+  | "file"
+  | "markdown_section"
+  | "code_symbol"
+  | "config_key"
+  | "revision"
+  | "verification"
+  | "event"
+  | "skill_contract";
 
 export interface RepositoryAgentArtifact {
   profileId: string;
@@ -150,7 +158,7 @@ export interface KnowledgeFileOperation {
   path: string;
   action: KnowledgeOperationAction;
   ownership: "lervo_generated" | "managed_blocks";
-  mediaType: "text/markdown" | "application/yaml" | "application/json";
+  mediaType: "text/markdown" | "application/yaml" | "application/json" | "text/javascript";
   content?: string;
   expectedCurrentHash?: string;
   desiredHash: string;
@@ -191,11 +199,13 @@ export interface KnowledgeMigrationPlan {
     reviewRequired: number;
     nonstandard: number;
     byRole: Partial<Record<RepositoryAgentArtifact["role"], number>>;
-    items: Array<{
-      path: string;
-      status: SourceInventoryStatus;
-      classification: SourceClassification;
-    } & RepositoryAgentArtifact>;
+    items: Array<
+      {
+        path: string;
+        status: SourceInventoryStatus;
+        classification: SourceClassification;
+      } & RepositoryAgentArtifact
+    >;
   };
 }
 
@@ -208,7 +218,8 @@ export interface RepositoryEntrypointDisposition {
 }
 
 export type KnowledgeFreshness = "current" | "stale" | "unknown";
-export type KnowledgeImpactReason = "source_unit_changed" | "source_unit_missing" | "lineage_unavailable";
+export type KnowledgeImpactReason =
+  "source_unit_changed" | "source_unit_missing" | "lineage_unavailable";
 
 export interface KnowledgeImpactItem {
   subjectKind: "concept" | "claim" | "relation";
@@ -237,9 +248,7 @@ export interface KnowledgeImpactReport {
 }
 
 export type KnowledgeRefreshReviewAction =
-  | "revalidate"
-  | "consider_deprecation"
-  | "resolve_lineage";
+  "revalidate" | "consider_deprecation" | "resolve_lineage";
 
 export interface KnowledgeRefreshReviewItem {
   reviewItemId: string;

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_3c02375b601440474fc11592
+  - uv_7b656368a258a684c390619d
 title: "ADR-0003: Local Event Store, Outbox, and Content-Addressed Storage"
 type: decision

@@ -22,10 +22,7 @@ import {
 import { validateFileChange, validateWriteRequest } from "./validation.js";
 
 type AppendEvents = (specs: readonly ManagedEventSpec[]) => { eventId: string }[];
-type InvalidateContext = (
-  reason: ManagedContextInvalidationReason,
-  occurredAt: string,
-) => void;
+type InvalidateContext = (reason: ManagedContextInvalidationReason, occurredAt: string) => void;
 
 export class ManagedWriteController {
   constructor(
@@ -95,9 +92,7 @@ export class ManagedWriteController {
           missing: [],
         };
     const writePolicy = this.state.writePolicy;
-    let approval:
-      | { approvalId: string; policySnapshotId: string }
-      | undefined;
+    let approval: { approvalId: string; policySnapshotId: string } | undefined;
     let capabilityDecision: "allow" | "deny" | "require_approval";
     if (writePolicy === "deny") {
       capabilityDecision = "deny" as const;
@@ -145,7 +140,7 @@ export class ManagedWriteController {
         }
       }
     } else {
-      capabilityDecision = contextDecision.allowed ? "allow" as const : "deny" as const;
+      capabilityDecision = contextDecision.allowed ? ("allow" as const) : ("deny" as const);
     }
     let expectedBeforeHash: string | null = null;
     if (capabilityDecision === "allow") {
@@ -167,9 +162,8 @@ export class ManagedWriteController {
           occurredAt,
           decision: capabilityDecision,
           approvalId: approval?.approvalId ?? null,
-          policyRuleId: approval === undefined
-            ? "managed_context_e3"
-            : "managed_context_e3+signed_approval",
+          policyRuleId:
+            approval === undefined ? "managed_context_e3" : "managed_context_e3+signed_approval",
         }),
       );
     } catch (error) {
@@ -178,10 +172,7 @@ export class ManagedWriteController {
       }
       throw error;
     }
-    if (
-      writePolicy === "deny" ||
-      (writePolicy === "require_approval" && approval === undefined)
-    ) {
+    if (writePolicy === "deny" || (writePolicy === "require_approval" && approval === undefined)) {
       this.state.observeEvent(occurredAt);
       return {
         allowed: false,

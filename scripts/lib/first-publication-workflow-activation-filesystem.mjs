@@ -30,11 +30,7 @@ async function writeDurable(path, contents, mode) {
 async function replaceJournal(transactionRoot, journal, first = false) {
   const paths = workflowActivationPaths(transactionRoot);
   if (first) {
-    await writeDurable(
-      paths.journal,
-      Buffer.from(`${JSON.stringify(journal, null, 2)}\n`),
-      0o600,
-    );
+    await writeDurable(paths.journal, Buffer.from(`${JSON.stringify(journal, null, 2)}\n`), 0o600);
   } else {
     await writeDurable(
       paths.journalNext,
@@ -48,15 +44,19 @@ async function replaceJournal(transactionRoot, journal, first = false) {
 
 function validateInput({ transactionRoot, workflowFile, readOnlyFiles, plan }) {
   if (
-    !isAbsolute(transactionRoot ?? "") || !isAbsolute(workflowFile?.path ?? "") ||
+    !isAbsolute(transactionRoot ?? "") ||
+    !isAbsolute(workflowFile?.path ?? "") ||
     !Buffer.isBuffer(workflowFile?.outputBytes) ||
     canonicalJson(workflowFile.binding) !== canonicalJson(plan?.workflow) ||
-    !Array.isArray(readOnlyFiles) || readOnlyFiles.length !== plan?.readOnlySources?.length ||
-    readOnlyFiles.some((file, index) =>
-      !isAbsolute(file?.path ?? "") ||
-      canonicalJson(file.binding) !== canonicalJson(plan.readOnlySources[index])
+    !Array.isArray(readOnlyFiles) ||
+    readOnlyFiles.length !== plan?.readOnlySources?.length ||
+    readOnlyFiles.some(
+      (file, index) =>
+        !isAbsolute(file?.path ?? "") ||
+        canonicalJson(file.binding) !== canonicalJson(plan.readOnlySources[index]),
     )
-  ) workflowActivationFailed();
+  )
+    workflowActivationFailed();
 }
 
 export async function applyFirstPublicationWorkflowActivationFiles(input, dependencies = {}) {
@@ -90,7 +90,7 @@ export async function applyFirstPublicationWorkflowActivationFiles(input, depend
   };
   let interrupted = false;
   const checkpoint = async (name) => {
-    if (await dependencies.failureInjector?.(name) === "interrupt") {
+    if ((await dependencies.failureInjector?.(name)) === "interrupt") {
       interrupted = true;
       throw new Error("simulated interruption");
     }

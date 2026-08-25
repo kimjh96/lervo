@@ -566,13 +566,13 @@ export function migrateDatabase(database: DatabaseSync): void {
       database.exec(migrations[index] as string);
       database.exec(`PRAGMA user_version = ${index + 1};`);
     }
-    const storedVersion = database.prepare(
-      "SELECT value FROM hub_sync_meta WHERE key = ?",
-    ).get("storage_schema_version")?.value;
+    const storedVersion = database
+      .prepare("SELECT value FROM hub_sync_meta WHERE key = ?")
+      .get("storage_schema_version")?.value;
     if (storedVersion === undefined) {
-      database.prepare(
-        "INSERT INTO hub_sync_meta (key, value) VALUES (?, ?)",
-      ).run("storage_schema_version", String(hubSyncSchemaVersion));
+      database
+        .prepare("INSERT INTO hub_sync_meta (key, value) VALUES (?, ?)")
+        .run("storage_schema_version", String(hubSyncSchemaVersion));
     } else if (
       typeof storedVersion !== "string" ||
       !Number.isSafeInteger(Number(storedVersion)) ||
@@ -584,9 +584,9 @@ export function migrateDatabase(database: DatabaseSync): void {
         "The Hub sync SQLite metadata version is invalid.",
       );
     } else if (Number(storedVersion) < hubSyncSchemaVersion) {
-      database.prepare(
-        "UPDATE hub_sync_meta SET value = ? WHERE key = ?",
-      ).run(String(hubSyncSchemaVersion), "storage_schema_version");
+      database
+        .prepare("UPDATE hub_sync_meta SET value = ? WHERE key = ?")
+        .run(String(hubSyncSchemaVersion), "storage_schema_version");
     }
     database.exec("COMMIT;");
   } catch (error) {

@@ -24,21 +24,31 @@ function sameQueryIdentity(evaluationCase: SearchEvaluationCase, attempt?: Searc
   try {
     identity = identifySearchQuery(evaluationCase.query);
   } catch (error) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case query is invalid.", {
-      cause: error instanceof Error ? error : undefined,
-    });
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case query is invalid.",
+      {
+        cause: error instanceof Error ? error : undefined,
+      },
+    );
   }
-  const matchesCase = identity.queryDigest === evaluationCase.queryDigest &&
+  const matchesCase =
+    identity.queryDigest === evaluationCase.queryDigest &&
     identity.queryCharacterCount === evaluationCase.queryCharacterCount &&
     identity.queryTermCount === evaluationCase.queryTermCount;
-  return matchesCase && (attempt === undefined ||
-    identity.queryDigest === attempt.queryDigest &&
-    identity.queryCharacterCount === attempt.queryCharacterCount &&
-    identity.queryTermCount === attempt.queryTermCount);
+  return (
+    matchesCase &&
+    (attempt === undefined ||
+      (identity.queryDigest === attempt.queryDigest &&
+        identity.queryCharacterCount === attempt.queryCharacterCount &&
+        identity.queryTermCount === attempt.queryTermCount))
+  );
 }
 
 function reviewedSources(assessment: SearchAssessment): SearchAssessmentSource[] {
-  return assessment.expectedSources.length > 0 ? assessment.expectedSources : assessment.selectedSources;
+  return assessment.expectedSources.length > 0
+    ? assessment.expectedSources
+    : assessment.selectedSources;
 }
 
 export function createSearchEvaluationCase(input: {
@@ -59,10 +69,15 @@ export function createSearchEvaluationCase(input: {
       cause: error instanceof Error ? error : undefined,
     });
   }
-  if (identity.queryDigest !== input.attempt.queryDigest ||
+  if (
+    identity.queryDigest !== input.attempt.queryDigest ||
     identity.queryCharacterCount !== input.attempt.queryCharacterCount ||
-    identity.queryTermCount !== input.attempt.queryTermCount) {
-    throw new SearchError("invalid_evaluation_case", "The evaluation query differs from the source search attempt query coordinates.");
+    identity.queryTermCount !== input.attempt.queryTermCount
+  ) {
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The evaluation query differs from the source search attempt query coordinates.",
+    );
   }
   const reviewed = reviewedSources(input.assessment);
   if (reviewed.length === 0) {
@@ -71,16 +86,22 @@ export function createSearchEvaluationCase(input: {
       "Only sources expected or accepted by the reviewer can be used as replay evaluation ground truth.",
     );
   }
-  if (!Number.isSafeInteger(input.maximumRank) || input.maximumRank < 1 ||
-    input.maximumRank > input.attempt.requestedLimit) {
+  if (
+    !Number.isSafeInteger(input.maximumRank) ||
+    input.maximumRank < 1 ||
+    input.maximumRank > input.attempt.requestedLimit
+  ) {
     throw new SearchError(
       "invalid_evaluation_case",
       "Allowed ranks cannot exceed the result limit observed by the source search attempt.",
     );
   }
   const sources = normalizeEvaluationSources(input.sources ?? reviewed, "invalid_evaluation_case");
-  const reviewedKeys = new Set([...input.assessment.expectedSources, ...input.assessment.selectedSources]
-    .map(evaluationSourceKey));
+  const reviewedKeys = new Set(
+    [...input.assessment.expectedSources, ...input.assessment.selectedSources].map(
+      evaluationSourceKey,
+    ),
+  );
   if (sources.some((source) => !reviewedKeys.has(evaluationSourceKey(source)))) {
     throw new SearchError(
       "invalid_evaluation_case",
@@ -88,7 +109,7 @@ export function createSearchEvaluationCase(input: {
     );
   }
   const expectation = {
-    matchMode: input.matchMode ?? "any" as const,
+    matchMode: input.matchMode ?? ("any" as const),
     maximumRank: input.maximumRank,
     sources,
   };
@@ -117,7 +138,10 @@ export function createSearchEvaluationCase(input: {
     caseId: contentId("sec", core),
     ...core,
   };
-  assertSearchEvaluationCase(evaluationCase, { attempt: input.attempt, assessment: input.assessment });
+  assertSearchEvaluationCase(evaluationCase, {
+    attempt: input.attempt,
+    assessment: input.assessment,
+  });
   return evaluationCase;
 }
 
@@ -125,24 +149,39 @@ export function assertSearchEvaluationCase(
   evaluationCase: SearchEvaluationCase,
   evidence?: { attempt: SearchAttempt; assessment: SearchAssessment },
 ): void {
-  if (evaluationCase.schemaVersion !== 1 || !SEARCH_EVALUATION_CASE_PATTERN.test(evaluationCase.caseId) ||
+  if (
+    evaluationCase.schemaVersion !== 1 ||
+    !SEARCH_EVALUATION_CASE_PATTERN.test(evaluationCase.caseId) ||
     !SOURCE_ID_PATTERN.test(evaluationCase.projectId) ||
     !SHA256_PATTERN.test(evaluationCase.queryDigest) ||
-    !Number.isSafeInteger(evaluationCase.queryCharacterCount) || evaluationCase.queryCharacterCount < 1 ||
-    evaluationCase.queryCharacterCount > 500 || !Number.isSafeInteger(evaluationCase.queryTermCount) ||
-    evaluationCase.queryTermCount < 1 || evaluationCase.queryTermCount > 32 ||
-    typeof evaluationCase.expectation !== "object" || evaluationCase.expectation === null ||
+    !Number.isSafeInteger(evaluationCase.queryCharacterCount) ||
+    evaluationCase.queryCharacterCount < 1 ||
+    evaluationCase.queryCharacterCount > 500 ||
+    !Number.isSafeInteger(evaluationCase.queryTermCount) ||
+    evaluationCase.queryTermCount < 1 ||
+    evaluationCase.queryTermCount > 32 ||
+    typeof evaluationCase.expectation !== "object" ||
+    evaluationCase.expectation === null ||
     !["any", "all"].includes(evaluationCase.expectation.matchMode) ||
     !Number.isSafeInteger(evaluationCase.expectation?.maximumRank) ||
-    evaluationCase.expectation.maximumRank < 1 || evaluationCase.expectation.maximumRank > 50) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case contract is invalid.");
+    evaluationCase.expectation.maximumRank < 1 ||
+    evaluationCase.expectation.maximumRank > 50
+  ) {
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case contract is invalid.",
+    );
   }
   assertOrderedEvaluationSources(evaluationCase.expectation.sources, "invalid_evaluation_case");
   if (typeof evaluationCase.review !== "object" || evaluationCase.review === null) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case has no review source coordinates.");
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case has no review source coordinates.",
+    );
   }
   assertTimestamp(evaluationCase.review.assessedAt, "invalid_evaluation_case");
-  if (!/^sat_[a-f0-9]{24}$/.test(evaluationCase.review.attemptId) ||
+  if (
+    !/^sat_[a-f0-9]{24}$/.test(evaluationCase.review.attemptId) ||
     !/^sas_[a-f0-9]{24}$/.test(evaluationCase.review.assessmentId) ||
     !["human", "verification"].includes(evaluationCase.review.assessor) ||
     !["accepted", "failed"].includes(evaluationCase.review.outcome) ||
@@ -155,53 +194,93 @@ export function assertSearchEvaluationCase(
     evaluationCase.review.referenceRequestedLimit < evaluationCase.expectation.maximumRank ||
     evaluationCase.review.referenceRequestedLimit > 50 ||
     !["passed", "failed"].includes(evaluationCase.review.referenceStatus) ||
-    !Array.isArray(evaluationCase.review.referenceExpectedSourceRanks)) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case review source coordinates are invalid.");
+    !Array.isArray(evaluationCase.review.referenceExpectedSourceRanks)
+  ) {
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case review source coordinates are invalid.",
+    );
   }
   assertOrderedEvaluationSources(
     evaluationCase.review.referenceExpectedSourceRanks,
     "invalid_evaluation_case",
   );
-  const referenceRanks = evaluationCase.review.referenceExpectedSourceRanks
-    .flatMap((source) => source.rank === null ? [] : [source.rank]);
-  if (evaluationCase.review.referenceExpectedSourceRanks.length !== evaluationCase.expectation.sources.length ||
+  const referenceRanks = evaluationCase.review.referenceExpectedSourceRanks.flatMap((source) =>
+    source.rank === null ? [] : [source.rank],
+  );
+  if (
+    evaluationCase.review.referenceExpectedSourceRanks.length !==
+      evaluationCase.expectation.sources.length ||
     new Set(referenceRanks).size !== referenceRanks.length ||
-    evaluationCase.review.referenceExpectedSourceRanks.some((source, index) =>
-    evaluationSourceKey(source) !== evaluationSourceKey(evaluationCase.expectation.sources[index]!) ||
-    (source.rank !== null && (!Number.isSafeInteger(source.rank) || source.rank < 1 ||
-      source.rank > evaluationCase.review.referenceRequestedLimit)))) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case reference ranks differ from expected sources.");
+    evaluationCase.review.referenceExpectedSourceRanks.some(
+      (source, index) =>
+        evaluationSourceKey(source) !==
+          evaluationSourceKey(evaluationCase.expectation.sources[index]!) ||
+        (source.rank !== null &&
+          (!Number.isSafeInteger(source.rank) ||
+            source.rank < 1 ||
+            source.rank > evaluationCase.review.referenceRequestedLimit)),
+    )
+  ) {
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case reference ranks differ from expected sources.",
+    );
   }
-  const referenceWithinRank = evaluationCase.review.referenceExpectedSourceRanks.filter((source) =>
-    source.rank !== null && source.rank <= evaluationCase.expectation.maximumRank);
-  const referenceStatus = evaluationCase.expectation.matchMode === "any"
-    ? referenceWithinRank.length > 0 ? "passed" : "failed"
-    : referenceWithinRank.length === evaluationCase.expectation.sources.length ? "passed" : "failed";
+  const referenceWithinRank = evaluationCase.review.referenceExpectedSourceRanks.filter(
+    (source) => source.rank !== null && source.rank <= evaluationCase.expectation.maximumRank,
+  );
+  const referenceStatus =
+    evaluationCase.expectation.matchMode === "any"
+      ? referenceWithinRank.length > 0
+        ? "passed"
+        : "failed"
+      : referenceWithinRank.length === evaluationCase.expectation.sources.length
+        ? "passed"
+        : "failed";
   if (referenceStatus !== evaluationCase.review.referenceStatus) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case reference status differs from expected source ranks.");
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case reference status differs from expected source ranks.",
+    );
   }
   if (!sameQueryIdentity(evaluationCase, evidence?.attempt)) {
-    throw new SearchError("invalid_evaluation_case", "The evaluation query digest or size coordinates differ.");
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The evaluation query digest or size coordinates differ.",
+    );
   }
   if (evidence !== undefined) {
     assertSearchAttempt(evidence.attempt);
     assertSearchAssessment(evidence.assessment, evidence.attempt);
     const reference = measureSearchExpectation(evaluationCase.expectation, evidence.attempt.hits);
     const review = evaluationCase.review;
-    if (evaluationCase.projectId !== evidence.attempt.projectId ||
+    if (
+      evaluationCase.projectId !== evidence.attempt.projectId ||
       review.attemptId !== evidence.attempt.attemptId ||
       review.assessmentId !== evidence.assessment.assessmentId ||
-      review.assessor !== evidence.assessment.assessor || review.assessedAt !== evidence.assessment.assessedAt ||
-      review.outcome !== evidence.assessment.outcome || review.failureReason !== evidence.assessment.failureReason ||
-      review.indexId !== evidence.attempt.indexId || review.resultSetHash !== evidence.attempt.resultSetHash ||
+      review.assessor !== evidence.assessment.assessor ||
+      review.assessedAt !== evidence.assessment.assessedAt ||
+      review.outcome !== evidence.assessment.outcome ||
+      review.failureReason !== evidence.assessment.failureReason ||
+      review.indexId !== evidence.attempt.indexId ||
+      review.resultSetHash !== evidence.attempt.resultSetHash ||
       review.referenceRequestedLimit !== evidence.attempt.requestedLimit ||
       review.referenceStatus !== reference.status ||
-      JSON.stringify(review.referenceExpectedSourceRanks) !== JSON.stringify(reference.expectedSourceRanks)) {
-      throw new SearchError("invalid_evaluation_case", "The search evaluation case differs from the reviewed attempt or assessment.");
+      JSON.stringify(review.referenceExpectedSourceRanks) !==
+        JSON.stringify(reference.expectedSourceRanks)
+    ) {
+      throw new SearchError(
+        "invalid_evaluation_case",
+        "The search evaluation case differs from the reviewed attempt or assessment.",
+      );
     }
   }
   const { schemaVersion: _schema, caseId: _id, ...core } = evaluationCase;
   if (contentId("sec", core) !== evaluationCase.caseId) {
-    throw new SearchError("invalid_evaluation_case", "The search evaluation case ID does not match its content.");
+    throw new SearchError(
+      "invalid_evaluation_case",
+      "The search evaluation case ID does not match its content.",
+    );
   }
 }

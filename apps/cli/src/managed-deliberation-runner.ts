@@ -7,19 +7,13 @@ import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { RoleProfile, VerificationSuite } from "@lervo/schemas";
 import type { ManagedProviderRunResult } from "@lervo/orchestrator";
-import type {
-  SemanticWritingEvaluationRequest,
-  WritingSemanticEvaluator,
-} from "@lervo/writing";
+import type { SemanticWritingEvaluationRequest, WritingSemanticEvaluator } from "@lervo/writing";
 
 import { createDeliberationEvaluatorRole } from "./deliberation-roles.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type { RunProvider } from "./managed-run.js";
 import { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
-import {
-  prepareRunVerification,
-  type PreparedRunVerification,
-} from "./run-verification.js";
+import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
 
 export { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 
@@ -80,14 +74,15 @@ export class ManagedDeliberationRunner {
     verificationSuiteId?: string;
   }): Promise<ManagedDeliberationRunResult> {
     const repositoryRoot = this.storage.paths.repositoryRoot;
-    const verification = input.verificationSuiteId === undefined
-      ? undefined
-      : await this.dependencies.prepareVerification({
-        repositoryRoot,
-        suiteIds: [input.verificationSuiteId],
-        artifactStore: this.storage.artifacts,
-        now: this.dependencies.now,
-      });
+    const verification =
+      input.verificationSuiteId === undefined
+        ? undefined
+        : await this.dependencies.prepareVerification({
+            repositoryRoot,
+            suiteIds: [input.verificationSuiteId],
+            artifactStore: this.storage.artifacts,
+            now: this.dependencies.now,
+          });
     const runId = this.dependencies.createId("run");
     const sessionId = this.dependencies.createId("ses");
     const adapter = this.dependencies.createAdapter({
@@ -128,10 +123,10 @@ export class ManagedDeliberationRunner {
       },
       writingPolicy: humanPresentation
         ? {
-          writingPolicyId: this.workspace.writingContract.writingPolicyId,
-          documentId: this.workspace.writingPolicyDocumentId,
-          contentHash: this.workspace.writingPolicyContentHash,
-        }
+            writingPolicyId: this.workspace.writingContract.writingPolicyId,
+            documentId: this.workspace.writingPolicyDocumentId,
+            contentHash: this.workspace.writingPolicyContentHash,
+          }
         : null,
       resolvedSkills: [],
       ...(verification === undefined ? {} : { verificationSuites: verification.suites }),
@@ -140,7 +135,10 @@ export class ManagedDeliberationRunner {
     });
     const bytes = await this.storage.artifacts.get(run.resultArtifact.uri);
     const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    if (bytes.byteLength !== run.resultArtifact.byteCount || digest(content) !== run.resultArtifact.contentHash) {
+    if (
+      bytes.byteLength !== run.resultArtifact.byteCount ||
+      digest(content) !== run.resultArtifact.contentHash
+    ) {
       throw new Error("The deliberation provider result does not match its CAS coordinates.");
     }
     return {
@@ -162,19 +160,21 @@ export class ManagedDeliberationRunner {
     provider: RunProvider,
     request: SemanticWritingEvaluationRequest,
   ) {
-    const requestDocument = `${JSON.stringify({
-      schemaVersion: 1,
-      writingPolicyId: request.writingPolicyId,
-      locale: request.locale,
-      surface: request.surface,
-      artifactId: request.artifactId,
-      contentHash: request.contentHash,
-      content: request.content,
-      checks: request.checks,
-    }, null, 2)}\n`;
-    const documentId = await this.workspace.materializeSemanticEvaluationRequest(
-      requestDocument,
-    );
+    const requestDocument = `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        writingPolicyId: request.writingPolicyId,
+        locale: request.locale,
+        surface: request.surface,
+        artifactId: request.artifactId,
+        contentHash: request.contentHash,
+        content: request.content,
+        checks: request.checks,
+      },
+      null,
+      2,
+    )}\n`;
+    const documentId = await this.workspace.materializeSemanticEvaluationRequest(requestDocument);
     const role = createDeliberationEvaluatorRole(
       this.defaultVerificationSuiteId,
       this.workspace.writingContract,
@@ -185,7 +185,7 @@ export class ManagedDeliberationRunner {
       instructions: [
         "Evaluate the text and checks in the writing.evaluation.request document in a separate pass.",
         "Return exactly one JSON object without explanation or a Markdown code fence.",
-        "Shape: {\"checks\":[{\"checkId\":\"...\",\"status\":\"passed|failed\",\"violationCount\":0}]}",
+        'Shape: {"checks":[{"checkId":"...","status":"passed|failed","violationCount":0}]}',
         "Preserve the requested check order and evaluate every check.",
       ].join("\n"),
       documentRules: { "writing.evaluation.request": [documentId] },

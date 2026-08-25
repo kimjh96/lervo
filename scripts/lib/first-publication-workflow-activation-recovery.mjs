@@ -22,31 +22,45 @@ function invalidJournal() {
 }
 
 function exactKeys(value, keys) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) &&
-    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort())
+  );
 }
 
 function validateJournal(journal) {
   const workflow = journal?.workflow;
   if (
     !exactKeys(journal, [
-      "ownerPid", "phase", "planDigest", "schemaVersion", "transactionType", "workflow",
-    ]) || journal.schemaVersion !== 1 ||
+      "ownerPid",
+      "phase",
+      "planDigest",
+      "schemaVersion",
+      "transactionType",
+      "workflow",
+    ]) ||
+    journal.schemaVersion !== 1 ||
     journal.transactionType !== "first_publication_stage_only_workflow_activation" ||
     !digestPattern.test(journal.planDigest ?? "") ||
-    !Number.isSafeInteger(journal.ownerPid) || journal.ownerPid < 1 ||
+    !Number.isSafeInteger(journal.ownerPid) ||
+    journal.ownerPid < 1 ||
     !["preparing", "staged", "original_moved", "committed"].includes(journal.phase) ||
     !exactKeys(workflow, ["after", "before", "id", "relativePath"]) ||
     workflow.id !== "releaseWorkflow" ||
     workflow.relativePath !== ".github/workflows/cli-release-matrix.yml" ||
     !exactKeys(workflow.before, ["byteCount", "sha256"]) ||
-    !Number.isSafeInteger(workflow.before?.byteCount) || workflow.before.byteCount < 1 ||
+    !Number.isSafeInteger(workflow.before?.byteCount) ||
+    workflow.before.byteCount < 1 ||
     !digestPattern.test(workflow.before?.sha256 ?? "") ||
     !exactKeys(workflow.after, ["byteCount", "sha256"]) ||
-    !Number.isSafeInteger(workflow.after?.byteCount) || workflow.after.byteCount < 1 ||
+    !Number.isSafeInteger(workflow.after?.byteCount) ||
+    workflow.after.byteCount < 1 ||
     !digestPattern.test(workflow.after?.sha256 ?? "") ||
     workflow.before.sha256 === workflow.after.sha256
-  ) invalidJournal();
+  )
+    invalidJournal();
   return journal;
 }
 
@@ -66,7 +80,7 @@ export async function recoverFirstPublicationWorkflowActivationFiles({
   if (!isAbsolute(transactionRoot ?? "") || !isAbsolute(workflowPath ?? "")) {
     invalidJournal();
   }
-  if (!await workflowActivationPathExists(transactionRoot)) {
+  if (!(await workflowActivationPathExists(transactionRoot))) {
     failWorkflowActivation(
       "first_publication_workflow_activation_recovery_not_found",
       "There is no CLI first-publication workflow activation transaction to recover.",
@@ -75,9 +89,11 @@ export async function recoverFirstPublicationWorkflowActivationFiles({
   try {
     const metadata = await lstat(transactionRoot);
     if (
-      !metadata.isDirectory() || metadata.isSymbolicLink() ||
+      !metadata.isDirectory() ||
+      metadata.isSymbolicLink() ||
       (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
-    ) invalidJournal();
+    )
+      invalidJournal();
   } catch {
     invalidJournal();
   }
@@ -86,10 +102,13 @@ export async function recoverFirstPublicationWorkflowActivationFiles({
     const journalPath = workflowActivationPaths(transactionRoot).journal;
     const metadata = await lstat(journalPath);
     if (
-      !metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 ||
+      !metadata.isFile() ||
+      metadata.isSymbolicLink() ||
+      metadata.size < 1 ||
       metadata.size > maximumJournalBytes ||
       (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
-    ) invalidJournal();
+    )
+      invalidJournal();
     const contents = await readFile(journalPath);
     const parsed = JSON.parse(contents.toString("utf8"));
     if (!contents.equals(Buffer.from(`${JSON.stringify(parsed, null, 2)}\n`))) {

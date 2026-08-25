@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-24
+- Performance amendment: 2026-08-25
 
 ## Context
 
@@ -28,7 +29,13 @@ Validation rejects missing sections, changed skill names, dropped instruction fr
 
 General documents and prose instructions may condense inline examples. Exact human review, not byte equality, establishes semantic preservation; structural checks do not prove equivalent meaning. Each approval binds source bytes, output hashes, section coverage, skill-resource hashes, compiler build, language, and format version.
 
-Provider work uses content-bound shards with at most three isolated provider processes active concurrently. Each schema-valid response is cached in ignored local state, keyed by compiler build and the complete envelope. Interrupted or rejected work resumes at the first missing shard. Cache reuse cannot cross changes to source, policy, prompt, schema, provider, model, or adapter. Human-readable commands report shard start, completion, and reuse without adding progress to final JSON.
+Provider work starts in content-bound batches of at most two documents and 32 KiB of source bytes, with at most three isolated provider processes active concurrently. A source larger than the batch byte target remains one bounded document rather than being split without a section-preservation contract. If a multi-document provider call fails or returns an invalid response, Lervo retries its documents sequentially as single-document calls. A single-document failure is terminal for that attempt; it is not retried automatically.
+
+Every schema-valid document result is cached immediately in ignored local state, independently of its batch. The `document-v2` cache key binds the compiler descriptor and exact document input: language, format, no-capability control, path, profile, content hash and bytes, source-unit coordinates, protected fragments, and output constraints. It deliberately excludes the repository snapshot ID so an unchanged document may be reused after an unrelated repository change. The assembled candidate, each operation, approval, resource binding, and apply plan remain bound to the complete current repository snapshot, so cache reuse grants no cross-snapshot write authority.
+
+The cache record is `.lervo/state/knowledge/normalization-shards/<shard>/knormcache_<id>.json` with schema version, `document-v2` contract name, cache ID, compiler descriptor, document-input hash, and the validated response. It may contain normalized document bodies and therefore remains owner-only ignored local state; events and tracked publications retain only hashes and counts. Missing, malformed, oversized, compiler-stale, or contract-stale cache data is a miss and never establishes candidate validity. A provider or validation failure emits no success event. Completed document records survive a later sibling failure, so interruption resumes with only missing documents.
+
+Shard start, cache reuse, split retry, and completion are transient progress only. They expose ordinal and document counts, never paths, bodies, prompts, hashes, or provider output. Progress uses stderr for both human and JSON modes, leaving one final machine-readable JSON object on stdout.
 
 Loading and apply revalidate safe unique destinations, profile bounds, output hashes, complete coverage, operation and approval bindings, and the current repository's entire eligible-source and skill-resource set. Recomputing an outer candidate ID cannot conceal altered inner invariants.
 
@@ -45,7 +52,7 @@ Version 1 rewrites ordinary Markdown and portable Markdown skill material. It do
 - Migration completion requires current content-normalization records for eligible user Markdown; moved legacy bytes are insufficient.
 - Existing generated entrypoints are format-owned; existing user entrypoints require reviewed normalization.
 - Multi-topic documents may become short entrypoints with grouped sibling topics.
-- Interrupted normalization reruns only invalidated or incomplete shards.
+- Interrupted normalization reruns only invalidated or incomplete documents, even when their original batch or repository snapshot changes.
 - Skill prose may follow repository language and format, while scripts and assets retain operational meaning and can stale the skill.
 - Human approval remains the semantic-equivalence boundary.
 

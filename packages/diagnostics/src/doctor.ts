@@ -1,9 +1,6 @@
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 
-import {
-  doctorReportSchemaVersion,
-  readDoctorReport,
-} from "./doctor-report-contract.js";
+import { doctorReportSchemaVersion, readDoctorReport } from "./doctor-report-contract.js";
 import { environmentDoctorCheckIdsForScope } from "./doctor-scope-contract.js";
 import { inspectDoctorKnowledge } from "./knowledge-doctor-inspection.js";
 import { createDoctorRecoveryGuidance } from "./recovery-guidance.js";
@@ -65,8 +62,10 @@ export async function createDoctorReport(input: CreateDoctorReportInput): Promis
   }
   const inspections = input.inspections;
   const checks = [...localChecks, ...inspections.map((inspection) => inspection.check)];
-  const duplicateCheck = checks.find((check, index) =>
-    checks.findIndex((candidate) => candidate.checkId === check.checkId) !== index);
+  const duplicateCheck = checks.find(
+    (check, index) =>
+      checks.findIndex((candidate) => candidate.checkId === check.checkId) !== index,
+  );
   if (duplicateCheck !== undefined) {
     throw new TypeError(`Doctor check ID is duplicated: ${duplicateCheck.checkId}`);
   }

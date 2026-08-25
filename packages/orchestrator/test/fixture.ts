@@ -13,10 +13,7 @@ import type {
   RoleProfile,
 } from "@lervo/schemas";
 
-import {
-  ManagedContextRun,
-  type ManagedEventStore,
-} from "../src/index.js";
+import { ManagedContextRun, type ManagedEventStore } from "../src/index.js";
 
 export const projectId = "prj_orchestrator_01";
 export const runId = "run_orchestrator_01";
@@ -223,27 +220,20 @@ export function receiptFor(
   };
 }
 
-export async function injectFixtureContext(
-  run: ManagedContextRun,
-  session: AdapterSession,
-) {
+export async function injectFixtureContext(run: ManagedContextRun, session: AdapterSession) {
   return run.injectContext({
     session,
     writingPolicy: null,
     targetTurnId: "turn-orchestrator-1",
     publications: [],
-    injectContext: async (adapterSession, envelope) =>
-      receiptFor(adapterSession, envelope),
+    injectContext: async (adapterSession, envelope) => receiptFor(adapterSession, envelope),
     now: () => new Date("2026-08-18T01:02:00Z"),
     createEnvelopeId: () => "envelope-orchestrator-1",
     createEvidenceReceiptId: sequenceFactory("ctx_injected"),
   });
 }
 
-export function failOnEventType(
-  store: SQLiteEventStore,
-  eventType: string,
-): ManagedEventStore {
+export function failOnEventType(store: SQLiteEventStore, eventType: string): ManagedEventStore {
   return {
     transact: (work) =>
       store.transact((transaction) =>

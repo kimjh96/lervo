@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  defaultDataPolicy,
-  failureDispositions,
-  sanitizeEventPayload,
-} from "../src/index.js";
+import { defaultDataPolicy, failureDispositions, sanitizeEventPayload } from "../src/index.js";
 
 describe("M0 data policy and failure semantics", () => {
   it("defaults to local-only, digest-oriented storage", () => {

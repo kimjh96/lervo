@@ -38,14 +38,7 @@ export const tracePageReportSchema = {
           ],
         },
       },
-      required: [
-        "afterSeq",
-        "afterEventHash",
-        "limit",
-        "returnedCount",
-        "hasMore",
-        "nextCursor",
-      ],
+      required: ["afterSeq", "afterEventHash", "limit", "returnedCount", "hasMore", "nextCursor"],
       additionalProperties: true,
     },
     filter: {

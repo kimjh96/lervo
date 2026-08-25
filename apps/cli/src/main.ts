@@ -1,6 +1,7 @@
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
+import { capabilityUsage, runCapabilityCommand } from "./capability-command.js";
 import { deliberateUsage, runDeliberateCommand } from "./deliberate-command.js";
 import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { runInitCommand, initUsage } from "./init-command.js";
@@ -10,29 +11,40 @@ import { environmentUsage, runEnvironmentCommand } from "./environment-command.j
 import { executeEnvironmentQuery } from "./environment-services.js";
 import { migrateUsage, runMigrateCommand } from "./migrate-command.js";
 import { knowledgeUsage, runKnowledgeCommand } from "./knowledge-command.js";
+import { readmeUsage, runReadmeCommand } from "./readme-command.js";
+import { roleUsage, runRoleCommand } from "./role-command.js";
 import { repositoryUsage, runRepositoryCommand } from "./repository-command.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
+import { runStateCommand, stateUsage } from "./state-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
 import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
+import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
 import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
+import { runWorkforceCommand, workforceUsage } from "./workforce-command.js";
 
 const usage = `Usage:
 ${versionUsage}
 ${initUsage}
+${upgradeUsage}
 ${migrateUsage}
 ${knowledgeUsage}
 ${runUsage}
 ${deliberateUsage}
 ${traceUsage}
 ${searchUsage}
+${stateUsage}
 ${doctorUsage}
+${capabilityUsage}
 ${environmentUsage}
 ${repositoryUsage}
 ${terminalUsage}
 ${workstreamUsage}
+${workforceUsage}
+${roleUsage}
+${readmeUsage}
 `;
 
 const defaultServices: CliServices = {
@@ -58,17 +70,24 @@ export async function runCli(
     return runVersionCommand(args.slice(1), io);
   }
   if (command === "init") return runInitCommand(args.slice(1), io);
+  if (command === "upgrade") return runUpgradeCommand(args.slice(1), io);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);
   if (command === "search") return runSearchCommand(args.slice(1), io);
+  if (command === "state") return runStateCommand(args.slice(1), io);
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
+  if (command === "capability") return runCapabilityCommand(args.slice(1), io);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
   if (command === "terminal") return runTerminalCommand(args.slice(1), io);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
+  if (command === "workforce" || command === "agent" || command === "assignment")
+    return runWorkforceCommand(command, args.slice(1), io);
+  if (command === "role") return runRoleCommand(args.slice(1), io);
+  if (command === "readme") return runReadmeCommand(args.slice(1), io);
   io.stderr(`Unknown command: ${command}\n${usage}`);
   return 1;
 }

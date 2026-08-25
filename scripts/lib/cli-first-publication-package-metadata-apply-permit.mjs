@@ -1,6 +1,4 @@
-import {
-  createValidatedFirstPublicationPackageMetadataCandidateEvidence,
-} from "./cli-first-publication-package-metadata-candidate.mjs";
+import { createValidatedFirstPublicationPackageMetadataCandidateEvidence } from "./cli-first-publication-package-metadata-candidate.mjs";
 import {
   firstPublicationActivationSourcePaths,
   readFirstPublicationActivationSources,
@@ -9,8 +7,7 @@ import {
   createFirstPublicationPackageMetadataApplyPermit,
   validateFirstPublicationPackageMetadataApplyPermit,
 } from "./first-publication-package-metadata-apply-permit.mjs";
-import { validateFirstPublicationMetadataDecision } from
-  "./first-publication-metadata-decision.mjs";
+import { validateFirstPublicationMetadataDecision } from "./first-publication-metadata-decision.mjs";
 
 export async function inspectCliFirstPublicationPackageMetadataApplyPermit(
   decision,
@@ -20,8 +17,8 @@ export async function inspectCliFirstPublicationPackageMetadataApplyPermit(
 ) {
   validateFirstPublicationMetadataDecision(decision);
   const readSources = dependencies.readSources ?? readFirstPublicationActivationSources;
-  const createPermit = dependencies.createPermit ??
-    createFirstPublicationPackageMetadataApplyPermit;
+  const createPermit =
+    dependencies.createPermit ?? createFirstPublicationPackageMetadataApplyPermit;
   const sources = await readSources(paths);
   const evidence = await createValidatedFirstPublicationPackageMetadataCandidateEvidence(
     decision,

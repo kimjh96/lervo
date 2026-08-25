@@ -19,16 +19,11 @@ function fail() {
   );
 }
 
-export async function readFirstPublicationWorkflowExecutionSources(
-  reachabilityReportPath,
-) {
+export async function readFirstPublicationWorkflowExecutionSources(reachabilityReportPath) {
   if (!isAbsolute(reachabilityReportPath ?? "")) fail();
   let contents;
   try {
-    contents = await readRegularReleaseFile(
-      reachabilityReportPath,
-      maximumReachabilityReportBytes,
-    );
+    contents = await readRegularReleaseFile(reachabilityReportPath, maximumReachabilityReportBytes);
   } catch {
     fail();
   }

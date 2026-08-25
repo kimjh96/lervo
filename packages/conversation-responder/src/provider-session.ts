@@ -1,8 +1,7 @@
 import type { ManagedConversationProviderSessionPort } from "./types.js";
 
 /** Process-local default; distributed runners can inject a durable indexed port. */
-export class MemoryConversationProviderSessionRegistry
-  implements ManagedConversationProviderSessionPort {
+export class MemoryConversationProviderSessionRegistry implements ManagedConversationProviderSessionPort {
   private readonly claims = new Set<string>();
 
   async claim(input: Parameters<ManagedConversationProviderSessionPort["claim"]>[0]) {

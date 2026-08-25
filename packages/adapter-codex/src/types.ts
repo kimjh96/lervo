@@ -1,4 +1,9 @@
-import type { AdapterNormalizedEvent, AdapterSession, AdapterTurn } from "@lervo/schemas";
+import type {
+  AdapterCapabilityActivationRequest,
+  AdapterNormalizedEvent,
+  AdapterSession,
+  AdapterTurn,
+} from "@lervo/schemas";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
@@ -8,6 +13,11 @@ export interface CodexThreadStartOptions {
   model?: string;
   approvalPolicy: CodexApprovalPolicy;
   sandbox: CodexSandboxMode;
+  config?: Record<string, unknown>;
+  selectedCapabilityRoots?: Array<{
+    id: string;
+    location: { type: "environment"; environmentId: string; path: string };
+  }>;
 }
 
 export interface CodexThread {
@@ -21,6 +31,7 @@ export interface CodexTurn {
 export interface CodexAppServerClient {
   startThread(options: CodexThreadStartOptions): Promise<CodexThread>;
   injectItems(threadId: string, items: readonly unknown[]): Promise<void>;
+  listConnectedMcpServers?(threadId: string): Promise<string[]>;
   startTurn(threadId: string, instructions: string): Promise<CodexTurn>;
   respondFileChangeApproval(
     requestId: string | number,
@@ -63,6 +74,8 @@ export interface CodexSessionState {
   activeTurn?: AdapterTurn;
   activeProviderTurnId?: string;
   eventStreamClaimed: boolean;
+  capabilityActivations: AdapterCapabilityActivationRequest[];
+  activationConfirmed: boolean;
 }
 
 export type NormalizedCodexEvent = AdapterNormalizedEvent;
@@ -73,11 +86,15 @@ export type CodexAdapterErrorCode =
   | "session_mismatch"
   | "session_stopped"
   | "context_materialization_failed"
+  | "capability_activation_failed"
   | "provider_protocol_failed"
   | "provider_process_failed";
 
 export class CodexAdapterError extends Error {
-  constructor(readonly code: CodexAdapterErrorCode, message: string) {
+  constructor(
+    readonly code: CodexAdapterErrorCode,
+    message: string,
+  ) {
     super(message);
     this.name = "CodexAdapterError";
   }

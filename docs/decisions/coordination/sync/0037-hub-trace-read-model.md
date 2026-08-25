@@ -5,7 +5,7 @@
 
 ## Context
 
-The Hub stores registration, allowlisted events, and a contiguous cursor by destination and project. Exposing raw storage could leak payloads into project lists, present post-gap events as complete timelines, or combine coordinates and state from different snapshots. A separate accumulated read model would become another source requiring synchronization.
+The Hub stores registration, allowlisted events, and a contiguous cursor by destination and project. Exposing raw storage could leak payloads into project lists, present post-gap events as complete timelines, or combine coordinates and state from different snapshots. A separate accumulated read model would require synchronization as another source.
 
 ## Decision
 

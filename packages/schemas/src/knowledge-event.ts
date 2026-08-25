@@ -235,10 +235,23 @@ export const knowledgeReconciliationReviewedEventPayloadSchema = {
     reviewedAt: timestampSchema,
   },
   required: [
-    "compilationId", "candidateArtifactHash", "reconciliationPlanId", "sourceSnapshotId",
-    "registryDigest", "reviewId", "reviewArtifactId", "reviewArtifactHash", "decision",
-    "policyId", "policyVersion", "itemApprovalDigest", "acceptedDispositionIds", "skippedDispositionIds",
-    "dispositionListTruncated", "dispositionCount", "reviewedAt",
+    "compilationId",
+    "candidateArtifactHash",
+    "reconciliationPlanId",
+    "sourceSnapshotId",
+    "registryDigest",
+    "reviewId",
+    "reviewArtifactId",
+    "reviewArtifactHash",
+    "decision",
+    "policyId",
+    "policyVersion",
+    "itemApprovalDigest",
+    "acceptedDispositionIds",
+    "skippedDispositionIds",
+    "dispositionListTruncated",
+    "dispositionCount",
+    "reviewedAt",
   ],
   additionalProperties: false,
 } as const;
@@ -246,9 +259,7 @@ export const knowledgeReconciliationReviewedEventPayloadSchema = {
 export type KnowledgeReconciliationReviewedEventPayload = FromSchema<
   typeof knowledgeReconciliationReviewedEventPayloadSchema
 >;
-export type KnowledgeVerifiedEventPayload = FromSchema<
-  typeof knowledgeVerifiedEventPayloadSchema
->;
+export type KnowledgeVerifiedEventPayload = FromSchema<typeof knowledgeVerifiedEventPayloadSchema>;
 export type KnowledgeStaleDetectedEventPayload = FromSchema<
   typeof knowledgeStaleDetectedEventPayloadSchema
 >;

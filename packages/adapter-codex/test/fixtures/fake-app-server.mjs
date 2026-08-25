@@ -22,9 +22,32 @@ lines.on("line", (line) => {
     send({ id: message.id, result: {} });
     return;
   }
+  if (message.method === "mcpServerStatus/list") {
+    send({
+      id: message.id,
+      result: {
+        data: [
+          {
+            name: "research-search",
+            pluginId: null,
+            serverInfo: { name: "fixture", version: "1.0.0" },
+            tools: {},
+            resources: [],
+            resourceTemplates: [],
+            authStatus: "not_supported",
+          },
+        ],
+        nextCursor: null,
+      },
+    });
+    return;
+  }
   if (message.method === "turn/start") {
     send({ id: message.id, result: { turn: { id: "turn-stdio-1" } } });
-    send({ method: "turn/started", params: { threadId: "thread-stdio-1", turn: { id: "turn-stdio-1" } } });
+    send({
+      method: "turn/started",
+      params: { threadId: "thread-stdio-1", turn: { id: "turn-stdio-1" } },
+    });
     send({
       method: "item/started",
       params: {

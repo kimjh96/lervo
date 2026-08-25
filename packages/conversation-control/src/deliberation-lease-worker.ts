@@ -66,7 +66,8 @@ export async function runConversationDeliberationLeaseCycle<
   if (
     !conversationDeliberationPatterns.workerId.test(options.workerId) ||
     !Number.isSafeInteger(leaseDurationMs) ||
-    leaseDurationMs < 10_000 || leaseDurationMs > 60 * 60_000
+    leaseDurationMs < 10_000 ||
+    leaseDurationMs > 60 * 60_000
   ) {
     throw new ConversationControlError(
       "deliberation_source_failed",
@@ -83,19 +84,24 @@ export async function runConversationDeliberationLeaseCycle<
 
   let renewal = Promise.resolve();
   let renewalFailed = false;
-  const heartbeat = setInterval(() => {
-    renewal = renewal.then(async () => {
-      if (renewalFailed) return;
-      await options.store.renew({
-        deliberationId: lease.job.deliberationId,
-        leaseId: lease.leaseId,
-        renewedAt: now().toISOString(),
-        leaseDurationMs,
-      });
-    }).catch(() => {
-      renewalFailed = true;
-    });
-  }, Math.max(1_000, Math.floor(leaseDurationMs / 3)));
+  const heartbeat = setInterval(
+    () => {
+      renewal = renewal
+        .then(async () => {
+          if (renewalFailed) return;
+          await options.store.renew({
+            deliberationId: lease.job.deliberationId,
+            leaseId: lease.leaseId,
+            renewedAt: now().toISOString(),
+            leaseDurationMs,
+          });
+        })
+        .catch(() => {
+          renewalFailed = true;
+        });
+    },
+    Math.max(1_000, Math.floor(leaseDurationMs / 3)),
+  );
   heartbeat.unref();
 
   try {
@@ -109,8 +115,11 @@ export async function runConversationDeliberationLeaseCycle<
       );
     }
     assertConversationDeliberationSummary(summary, lease.job.deliberationId);
-    if (summary.status === "running" || summary.status === "unknown" ||
-      summary.status === "interrupted") {
+    if (
+      summary.status === "running" ||
+      summary.status === "unknown" ||
+      summary.status === "interrupted"
+    ) {
       throw new ConversationControlError(
         "deliberation_source_failed",
         "The deliberation worker execution result is not terminal.",
