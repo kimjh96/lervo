@@ -35207,7 +35207,7 @@ var require_postcss = __commonJS({
 });
 
 // apps/cli/src/terminal-hook-bin.ts
-import { createHash as createHash8 } from "node:crypto";
+import { createHash as createHash9 } from "node:crypto";
 import { readFile as readFile11 } from "node:fs/promises";
 import { dirname as dirname7, resolve as resolve31 } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45132,8 +45132,23 @@ async function readRepositoryFile(root2, path, maximumBytes = Number.MAX_SAFE_IN
   }
 }
 
+// packages/search/dist/integrity.js
+import { createHash as createHash3 } from "node:crypto";
+function contentId(prefix, value) {
+  return `${prefix}_${createHash3("sha256").update(canonicalJson(value)).digest("hex").slice(0, 24)}`;
+}
+
 // packages/search/dist/corpus.js
 var SEARCH_MAX_TOTAL_CHARACTERS = 16 * 1024 * 1024;
+
+// packages/search/dist/performance-benchmark.js
+var SEARCH_PERFORMANCE_BENCHMARK_BUILD_ID = contentId("spbuild", {
+  schemaVersion: 1,
+  quality: "success-recall-reciprocal-rank-v1",
+  taskComparison: "coverage-and-ranking-v1",
+  latency: "alternating-pairs-monotonic-v1",
+  thresholds: "repository-observation-v1"
+});
 
 // packages/context-delivery/dist/delivery-policy.js
 var defaultInlineByteLimit = 64 * 1024;
@@ -45148,7 +45163,7 @@ var defaultManagedProviderRunDeadlines = {
 };
 
 // packages/orchestrator/dist/repository-snapshot.js
-import { createHash as createHash3 } from "node:crypto";
+import { createHash as createHash4 } from "node:crypto";
 import { lstat as lstat2, readdir, readlink } from "node:fs/promises";
 import { relative as relative2, resolve as resolve3, sep as sep2 } from "node:path";
 var defaultRepositorySnapshotPolicy = Object.freeze({
@@ -45179,7 +45194,7 @@ var RepositorySnapshotError = class extends Error {
   }
 };
 function sha2563(value) {
-  return `sha256:${createHash3("sha256").update(value).digest("hex")}`;
+  return `sha256:${createHash4("sha256").update(value).digest("hex")}`;
 }
 function portablePath(root2, absolutePath) {
   return relative2(root2, absolutePath).split(sep2).join("/");
@@ -45277,7 +45292,7 @@ async function captureRepositorySnapshot(repositoryRoot, policy = defaultReposit
 }
 
 // packages/cas/dist/cas.js
-import { createHash as createHash4, randomUUID } from "node:crypto";
+import { createHash as createHash5, randomUUID } from "node:crypto";
 import { link, lstat as lstat3, mkdir, open as open2, readFile, unlink } from "node:fs/promises";
 import { resolve as resolve4 } from "node:path";
 var uriPattern = /^lervo-cas:\/\/sha256\/([a-f0-9]{64})$/;
@@ -45290,7 +45305,7 @@ var CasError = class extends Error {
   }
 };
 function digest(bytes) {
-  return createHash4("sha256").update(bytes).digest("hex");
+  return createHash5("sha256").update(bytes).digest("hex");
 }
 function uriForDigest(hash) {
   return `lervo-cas://sha256/${hash}`;
@@ -45353,7 +45368,7 @@ var FileSystemCas = class _FileSystemCas {
   async putStream(chunks) {
     const temporary = resolve4(this.root, ".tmp", `${randomUUID()}.tmp`);
     const handle = await open2(temporary, "wx");
-    const hashState = createHash4("sha256");
+    const hashState = createHash5("sha256");
     let byteCount = 0;
     let created = false;
     try {
@@ -46747,9 +46762,9 @@ function createProjectStorageOpener(backends) {
 var openProjectStorage = createProjectStorageOpener(defaultBackends);
 
 // packages/repository-knowledge/dist/integrity.js
-import { createHash as createHash5 } from "node:crypto";
+import { createHash as createHash6 } from "node:crypto";
 function sha2564(value) {
-  return `sha256:${createHash5("sha256").update(value).digest("hex")}`;
+  return `sha256:${createHash6("sha256").update(value).digest("hex")}`;
 }
 function canonical(value) {
   if (Array.isArray(value))
@@ -49228,7 +49243,7 @@ var SkillResolutionError = class extends Error {
 var MAX_LOCK_BYTES = 4 * 1024 * 1024;
 
 // packages/skills/dist/package-reader.js
-import { createHash as createHash6 } from "node:crypto";
+import { createHash as createHash7 } from "node:crypto";
 import { constants as constants5 } from "node:fs";
 import { lstat as lstat10, open as open5, readdir as readdir4 } from "node:fs/promises";
 import { basename as basename2, relative as relative4, resolve as resolve16, sep as sep4 } from "node:path";
@@ -49298,7 +49313,7 @@ async function listContentFiles(root2, current = root2) {
 }
 async function hashSkillPackage(directoryPath) {
   const files = await listContentFiles(directoryPath);
-  const packageHash = createHash6("sha256");
+  const packageHash = createHash7("sha256");
   let totalBytes = 0;
   for (const path of files.sort()) {
     const bytes = await regularFile(path);
@@ -59086,9 +59101,9 @@ import { lstat as lstat16, open as open9 } from "node:fs/promises";
 import { resolve as resolve24 } from "node:path";
 
 // packages/documents/dist/hash.js
-import { createHash as createHash7 } from "node:crypto";
+import { createHash as createHash8 } from "node:crypto";
 function sha2565(bytes) {
-  return `sha256:${createHash7("sha256").update(bytes).digest("hex")}`;
+  return `sha256:${createHash8("sha256").update(bytes).digest("hex")}`;
 }
 function canonicalValue(value) {
   if (Array.isArray(value))
@@ -63095,7 +63110,7 @@ async function verifiedRuntime() {
       await readFile11(resolve31(dirname7(runtimePath), "runtime-v2.json"), "utf8")
     );
     const content3 = await readFile11(runtimePath);
-    return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash8("sha256").update(content3).digest("hex")}`;
+    return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash9("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;
   }

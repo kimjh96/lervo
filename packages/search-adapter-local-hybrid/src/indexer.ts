@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   canonicalHash,
   contentId,
@@ -19,7 +17,7 @@ import {
 } from "@lervo/search";
 
 export const LOCAL_HYBRID_SEARCH_ENGINE = { id: "local-hybrid", version: 1 } as const;
-const IMPLEMENTATION_REVISION = 1;
+const IMPLEMENTATION_REVISION = 2;
 const EMBEDDING_DIMENSIONS = 4_096;
 const BRANCH_DEPTH = SEARCH_MAX_RESULTS;
 
@@ -28,57 +26,60 @@ export const LOCAL_HYBRID_ADAPTER_BUILD_ID = contentId("sebuild", {
   implementationRevision: IMPLEMENTATION_REVISION,
   engine: LOCAL_HYBRID_SEARCH_ENGINE,
   lexical: "lexical-v1",
-  embedding: "feature-hash-nfkc-trigram-v1",
-  fusion: "rank-sum-v1",
+  embedding: "feature-hash-codepoint-fnv1a-nfkc-trigram-v2",
+  fusion: "lexical-weighted-rank-sum-v2",
 });
 
 type FieldName = SearchHit["matchedFields"][number];
 type Vector = ReadonlyMap<number, number>;
 
-interface EmbeddedField {
+interface VectorPosting {
+  sourceIndex: number;
   name: FieldName;
-  vector: Vector;
-}
-
-interface EmbeddedSource {
-  input: SearchSourceInput;
-  fields: EmbeddedField[];
+  value: number;
 }
 
 function featureIndex(feature: string): number {
-  return createHash("sha256").update(feature).digest().readUInt32BE(0) % EMBEDDING_DIMENSIONS;
+  let hash = 2_166_136_261;
+  for (const character of feature) {
+    hash = Math.imul(hash ^ character.codePointAt(0)!, 16_777_619);
+  }
+  return (hash >>> 0) % EMBEDDING_DIMENSIONS;
 }
 
 function features(value: string): string[] {
   const normalized = normalizeSearchText(value);
   const tokens = normalized.match(/[\p{L}\p{N}]+/gu) ?? [];
-  const result = [...tokens.map((token) => `word:${token}`)];
-  for (let index = 0; index + 1 < tokens.length; index += 1) {
-    result.push(`bigram:${tokens[index]}\u0000${tokens[index + 1]}`);
-  }
+  const result = new Set<string>();
+  const uniqueTokens = new Set<string>();
   for (const token of tokens) {
+    result.add(`word:${token}`);
+    uniqueTokens.add(token);
+  }
+  for (let index = 0; index + 1 < tokens.length; index += 1) {
+    result.add(`bigram:${tokens[index]}\u0000${tokens[index + 1]}`);
+  }
+  for (const token of uniqueTokens) {
     const characters = [...token];
-    if (characters.length < 3) result.push(`short:${token}`);
+    if (characters.length < 3) result.add(`short:${token}`);
     for (let index = 0; index + 2 < characters.length; index += 1) {
-      result.push(`trigram:${characters.slice(index, index + 3).join("")}`);
+      result.add(`trigram:${characters.slice(index, index + 3).join("")}`);
     }
   }
-  return result;
+  return [...result];
 }
 
-function embed(value: string, weight = 1): Vector {
+function embed(value: string, weight = 1, cache?: Map<string, number>): Vector {
   const vector = new Map<number, number>();
   for (const feature of features(value)) {
-    const index = featureIndex(feature);
+    let index = cache?.get(feature);
+    if (index === undefined) {
+      index = featureIndex(feature);
+      cache?.set(feature, index);
+    }
     vector.set(index, (vector.get(index) ?? 0) + weight);
   }
   return vector;
-}
-
-function dot(left: Vector, right: Vector): number {
-  let score = 0;
-  for (const [index, value] of left) score += value * (right.get(index) ?? 0);
-  return score;
 }
 
 function responseHash(hits: readonly SearchHit[]): string {
@@ -102,31 +103,46 @@ export class LocalHybridSearchIndex implements SearchEvaluationIndexPort {
   readonly indexId: string;
   readonly corpusDigest: string;
   private readonly lexical: LexicalSearchIndex;
-  private readonly sources: EmbeddedSource[];
+  private readonly sources: SearchSourceInput[];
+  private readonly sourceByKey: ReadonlyMap<string, SearchSourceInput>;
+  private readonly postings: ReadonlyMap<number, readonly VectorPosting[]>;
 
   constructor(inputs: readonly SearchSourceInput[]) {
     const corpus = prepareSearchCorpus(inputs);
     this.corpusDigest = corpus.corpusDigest;
     this.lexical = new LexicalSearchIndex(corpus.sources);
-    this.sources = corpus.sources.map((input) => ({
-      input,
-      fields: [
-        input.title === undefined
-          ? null
-          : { name: "title" as const, vector: embed(input.title, 12) },
-        input.path === undefined ? null : { name: "path" as const, vector: embed(input.path, 8) },
-        ...input.labels.map((label) => ({ name: "label" as const, vector: embed(label, 10) })),
-        { name: "text" as const, vector: embed(input.text, 2) },
-      ].filter((field): field is EmbeddedField => field !== null),
-    }));
+    this.sources = corpus.sources;
+    this.sourceByKey = new Map(corpus.sources.map((input) => [searchSourceKey(input), input]));
+    const featureCache = new Map<string, number>();
+    const postings = new Map<number, VectorPosting[]>();
+    for (const [sourceIndex, input] of corpus.sources.entries()) {
+      const fields: Array<{ name: FieldName; value: string; weight: number }> = [
+        ...(input.title === undefined
+          ? []
+          : [{ name: "title" as const, value: input.title, weight: 12 }]),
+        ...(input.path === undefined
+          ? []
+          : [{ name: "path" as const, value: input.path, weight: 8 }]),
+        ...input.labels.map((value) => ({ name: "label" as const, value, weight: 10 })),
+        { name: "text" as const, value: input.text, weight: 2 },
+      ];
+      for (const field of fields) {
+        for (const [dimension, value] of embed(field.value, field.weight, featureCache)) {
+          const values = postings.get(dimension) ?? [];
+          values.push({ sourceIndex, name: field.name, value });
+          postings.set(dimension, values);
+        }
+      }
+    }
+    this.postings = postings;
     this.indexId = contentId("sidx", {
       engine: LOCAL_HYBRID_SEARCH_ENGINE,
       corpusDigest: corpus.corpusDigest,
       embedding: {
-        algorithm: "feature-hash-nfkc-trigram-v1",
+        algorithm: "feature-hash-codepoint-fnv1a-nfkc-trigram-v2",
         dimensions: EMBEDDING_DIMENSIONS,
       },
-      fusion: "rank-sum-v1",
+      fusion: "lexical-weighted-rank-sum-v2",
     });
   }
 
@@ -140,27 +156,28 @@ export class LocalHybridSearchIndex implements SearchEvaluationIndexPort {
     searchTerms(query, "invalid_query");
     const queryVector = embed(query);
     const lexicalHits = this.lexical.search(query, BRANCH_DEPTH).hits;
-    const vectorHits = this.sources
-      .map((source) => {
-        const fieldScores = source.fields.map((field) => ({
-          name: field.name,
-          score: dot(queryVector, field.vector),
-        }));
-        return {
-          source,
-          score: fieldScores.reduce((sum, field) => sum + field.score, 0),
-          matchedFields: fieldScores
-            .filter((field) => field.score > 0)
-            .map((field) => field.name)
-            .filter((field, index, values) => values.indexOf(field) === index)
-            .sort(),
+    const vectorScores = new Map<number, { score: number; matchedFields: Set<FieldName> }>();
+    for (const [dimension, queryValue] of queryVector) {
+      for (const posting of this.postings.get(dimension) ?? []) {
+        const current = vectorScores.get(posting.sourceIndex) ?? {
+          score: 0,
+          matchedFields: new Set<FieldName>(),
         };
-      })
-      .filter((item) => item.score > 0)
+        current.score += queryValue * posting.value;
+        current.matchedFields.add(posting.name);
+        vectorScores.set(posting.sourceIndex, current);
+      }
+    }
+    const vectorHits = [...vectorScores.entries()]
+      .map(([sourceIndex, observation]) => ({
+        input: this.sources[sourceIndex]!,
+        score: observation.score,
+        matchedFields: [...observation.matchedFields].sort(),
+      }))
       .sort(
         (left, right) =>
           right.score - left.score ||
-          compareText(searchSourceKey(left.source.input), searchSourceKey(right.source.input)),
+          compareText(searchSourceKey(left.input), searchSourceKey(right.input)),
       )
       .slice(0, BRANCH_DEPTH);
     const fused = new Map<
@@ -170,19 +187,19 @@ export class LocalHybridSearchIndex implements SearchEvaluationIndexPort {
     for (const [rank, hit] of lexicalHits.entries()) {
       const key = searchSourceKey(hit.source);
       fused.set(key, {
-        input: this.sources.find((source) => searchSourceKey(source.input) === key)!.input,
-        score: BRANCH_DEPTH + 1 - rank - 1,
+        input: this.sourceByKey.get(key)!,
+        score: (BRANCH_DEPTH - rank) * 2,
         matchedFields: new Set(hit.matchedFields),
       });
     }
     for (const [rank, hit] of vectorHits.entries()) {
-      const key = searchSourceKey(hit.source.input);
+      const key = searchSourceKey(hit.input);
       const current = fused.get(key) ?? {
-        input: hit.source.input,
+        input: hit.input,
         score: 0,
         matchedFields: new Set<FieldName>(),
       };
-      current.score += BRANCH_DEPTH + 1 - rank - 1;
+      current.score += BRANCH_DEPTH - rank;
       for (const field of hit.matchedFields) current.matchedFields.add(field);
       fused.set(key, current);
     }

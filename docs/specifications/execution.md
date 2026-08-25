@@ -1,7 +1,7 @@
 # Lervo Execution and Evidence Specification
 
 Status: `active`
-As of: 2026-08-24
+As of: 2026-08-25
 
 ## 1. Scope
 
@@ -18,13 +18,13 @@ requested -> resolved -> documents/capabilities recommended and selected
 
 Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
-Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime. Before preparation is committed and `UserPromptSubmit` returns, they may query, exact-hash load, and prepare up to 28 KiB of UTF-8 context. This creates no managed run and proves no acceptance, understanding, or use. Fail-closed `Stop` requires current migration, bridge, knowledge, lint, and normalization, and compares prepared and current repository-authored revisions. Unchanged turns create no artificial workstream history. After a changed turn, the working agent—not the user—must create or advance the workstream with an agent/provider coordinate and emit an exact-revision turn declaration. Stop records only bounded coordinates and exact output-reference tokens matching the prepared session and turn. If activated after the turn began, Stop requests one JSON continuation; if the turn already continued without context, Stop succeeds without evidence and remains unmanaged. New tokens are standalone Markdown HTML comments; legacy plain v1 tokens remain valid for in-flight sessions.
+Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime. Before preparation is committed and `UserPromptSubmit` returns, they may query, exact-hash load, and prepare at most 28 KiB of UTF-8 context. This creates no managed run and proves no acceptance, understanding, or use. Fail-closed `Stop` requires current migration, bridge, knowledge, lint, and normalization, and compares prepared and current repository-authored revisions. Unchanged turns create no artificial workstream history. After a changed turn, the working agent—not the user—must create or advance the workstream with an agent/provider coordinate and emit an exact-revision turn declaration. Stop records only bounded coordinates and exact output-reference tokens matching the prepared session and turn. If activated after the turn began, Stop requests one JSON continuation; if the turn already continued without context, Stop succeeds without evidence and remains unmanaged. New tokens are standalone Markdown HTML comments; legacy plain v1 tokens remain valid for in-flight sessions.
 
 A current workstream must match its latest `workstream.snapshot.recorded` event and CAS artifact. Managed runs select it through required rule `repository.workstream` and load exact bytes before E3. Direct hooks prepend at most 8 KiB and record only ID, revision, snapshot hash, delivered bytes, and full or prefix scope. Absence is valid only for an unchanged turn before the first checkpoint; invalid state fails immediately. After repository bytes change, direct completion fails until a verified first revision exists or the current revision exceeds the prompt-time revision. Bounded pending decisions and approvals are unresolved current state; resolved history belongs in canonical documents.
 
 Managed search records operational and repository-knowledge recommendations separately. If an AGENTS instruction or registered document appears in both, injection discovery must resolve one canonical document ID with identical metadata; unproven same-path identity fails before the turn.
 
-Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1-E3 evidence (ADR-0216, ADR-0217).
+Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217).
 
 ## 3. Context evidence
 
@@ -48,7 +48,7 @@ Every role declares `allow`, `deny`, or `require_approval` for filesystem reads 
 
 [Capability packages](execution/capabilities.md) cover skills, MCP servers, plugins, and bundles. Verified metadata supports deterministic natural-language selection. Recommendation, selection, load, activation, and invocation remain separate evidence; none proves semantic model use.
 
-Developer, researcher, marketer, designer, writer, and ideation are built-in `1.0.0` templates. Lazy tracked repository roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and no deeper than eight levels. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
+Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked repository roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and at most eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
 
 Write approval binds project, run, session, provider, role, risk, request digest, repository snapshot, expected paths, verification suite, policy snapshot, validity interval, and revocation. Revalidate it immediately before mutation.
 

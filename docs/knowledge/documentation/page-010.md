@@ -11,6 +11,7 @@
 - [Reviewed document normalization acceptance](../../evidence/pilots/reviewed-document-normalization.md) — `docs/evidence/pilots/reviewed-document-normalization.md`
 - [Shiflo v0 acceptance pilot](../../evidence/pilots/shiflo-v0.md) — `docs/evidence/pilots/shiflo-v0.md`
 - [WSL Hub and Shiflo release acceptance](../../evidence/pilots/wsl-hub-shiflo-release-acceptance.md) — `docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md`
+- [Repository retrieval performance observation v1](../../evidence/search/repository-retrieval-v1.md) — `docs/evidence/search/repository-retrieval-v1.md`
 - [Code convention](../../foundation/code-convention.md) — `docs/foundation/code-convention.md`
 - [Commit convention](../../foundation/commit-convention.md) — `docs/foundation/commit-convention.md`
 - [Provider instruction entrypoint research](../../research/provider-instruction-entrypoints.md) — `docs/research/provider-instruction-entrypoints.md`
@@ -26,4 +27,3 @@
 - [Lervo Execution and Evidence Specification](../../specifications/execution.md) — `docs/specifications/execution.md`
 - [Capability package supply chain](../../specifications/execution/capabilities.md) — `docs/specifications/execution/capabilities.md`
 - [Execution events and privacy](../../specifications/execution/events-and-privacy.md) — `docs/specifications/execution/events-and-privacy.md`
-- [Local data and state lifecycle](../../specifications/execution/state-lifecycle.md) — `docs/specifications/execution/state-lifecycle.md`

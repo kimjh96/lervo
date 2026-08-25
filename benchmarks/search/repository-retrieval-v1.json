@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "spbench_repository_retrieval.v1",
+  "publicQueries": true,
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": ["docs/evidence/search", "docs/knowledge"],
+  "taskTypes": [
+    { "taskType": "exact_repository_terminology", "minimumCases": 5 },
+    { "taskType": "wording_morphology_variation", "minimumCases": 5 },
+    { "taskType": "multiple_expected_sources", "minimumCases": 5 },
+    { "taskType": "ambiguous_near_neighbor", "minimumCases": 5 }
+  ],
+  "cases": [
+    {
+      "caseId": "spcase_exact_candidate_comparison",
+      "taskType": "exact_repository_terminology",
+      "provenance": "verification_authored",
+      "query": "provider-neutral search candidate comparison",
+      "expectedPaths": [
+        "docs/decisions/search/0057-provider-neutral-search-candidate-comparison.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_exact_hook_isolation",
+      "taskType": "exact_repository_terminology",
+      "provenance": "verification_authored",
+      "query": "managed provider terminal hook isolation",
+      "expectedPaths": [
+        "docs/decisions/execution/providers/hooks/0216-managed-provider-terminal-hook-isolation.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_exact_knowledge_compilation",
+      "taskType": "exact_repository_terminology",
+      "provenance": "verification_authored",
+      "query": "evidence-bound repository knowledge compilation",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_exact_hybrid_relation_context",
+      "taskType": "exact_repository_terminology",
+      "provenance": "verification_authored",
+      "query": "local hybrid search reviewed relation context",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_exact_bm25f_candidate",
+      "taskType": "exact_repository_terminology",
+      "provenance": "verification_authored",
+      "query": "deterministic BM25F search candidate",
+      "expectedPaths": ["docs/decisions/distribution/0058-deterministic-bm25f-search-candidate.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_wording_normalizing_documents",
+      "taskType": "wording_morphology_variation",
+      "provenance": "verification_authored",
+      "query": "normalizing reviewed documents",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_wording_isolating_hooks",
+      "taskType": "wording_morphology_variation",
+      "provenance": "verification_authored",
+      "query": "isolating terminal hooks in managed provider sessions",
+      "expectedPaths": [
+        "docs/decisions/execution/providers/hooks/0216-managed-provider-terminal-hook-isolation.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_wording_replaying_receipts",
+      "taskType": "wording_morphology_variation",
+      "provenance": "verification_authored",
+      "query": "replaying search candidate build receipts",
+      "expectedPaths": [
+        "docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_wording_renewing_leases",
+      "taskType": "wording_morphology_variation",
+      "provenance": "verification_authored",
+      "query": "renewing repository agent work leases",
+      "expectedPaths": [
+        "docs/decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_wording_recovering_materialization",
+      "taskType": "wording_morphology_variation",
+      "provenance": "verification_authored",
+      "query": "recovering interrupted knowledge materialization",
+      "expectedPaths": ["docs/specs/repository-knowledge-compilation.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_multi_context_states",
+      "taskType": "multiple_expected_sources",
+      "provenance": "verification_authored",
+      "query": "selected loaded injected used context evidence",
+      "expectedPaths": [
+        "docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md",
+        "docs/specifications/execution.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_multi_knowledge_lifecycle",
+      "taskType": "multiple_expected_sources",
+      "provenance": "verification_authored",
+      "query": "repository knowledge migration lint lifecycle",
+      "expectedPaths": ["AGENTS.md", "docs/specs/repository-knowledge-compilation.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_multi_provider_adapters",
+      "taskType": "multiple_expected_sources",
+      "provenance": "verification_authored",
+      "query": "Codex Claude managed provider adapters",
+      "expectedPaths": [
+        "docs/decisions/execution/providers/0009-codex-app-server-managed-adapter.md",
+        "docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_multi_search_activation",
+      "taskType": "multiple_expected_sources",
+      "provenance": "verification_authored",
+      "query": "search candidate activation rollback policy",
+      "expectedPaths": [
+        "docs/decisions/search/0060-policy-bound-search-engine-selection.md",
+        "docs/decisions/search/0065-human-search-rollout-review.md",
+        "docs/decisions/search/0068-explicit-search-rollout-actions.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_multi_agent_handoff",
+      "taskType": "multiple_expected_sources",
+      "provenance": "verification_authored",
+      "query": "repository agent handoff lease verification",
+      "expectedPaths": [
+        "docs/decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md",
+        "docs/specifications/execution.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_ambiguous_rollout_review_action",
+      "taskType": "ambiguous_near_neighbor",
+      "provenance": "verification_authored",
+      "query": "search rollout review versus action",
+      "expectedPaths": [
+        "docs/decisions/search/0065-human-search-rollout-review.md",
+        "docs/decisions/search/0068-explicit-search-rollout-actions.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_ambiguous_command_artifacts",
+      "taskType": "ambiguous_near_neighbor",
+      "provenance": "verification_authored",
+      "query": "Hub command artifact delivery lifecycle",
+      "expectedPaths": [
+        "docs/decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md",
+        "docs/decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_ambiguous_instruction_activation",
+      "taskType": "ambiguous_near_neighbor",
+      "provenance": "verification_authored",
+      "query": "provider instruction bridge activation",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md",
+        "docs/decisions/execution/providers/0211-provider-confirmed-capability-activation.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_ambiguous_stage_reconciliation",
+      "taskType": "ambiguous_near_neighbor",
+      "provenance": "verification_authored",
+      "query": "release stage approval reconciliation",
+      "expectedPaths": [
+        "docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md",
+        "docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_ambiguous_context_boundary",
+      "taskType": "ambiguous_near_neighbor",
+      "provenance": "verification_authored",
+      "query": "context recommendation evidence boundaries",
+      "expectedPaths": [
+        "docs/decisions/search/0054-search-recommendation-managed-context-boundary.md",
+        "docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md"
+      ],
+      "maximumRank": 10
+    }
+  ]
+}
