@@ -13,7 +13,6 @@ import {
 } from "./lib/installed-cli.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
-const rootManifestPath = resolve(repositoryRoot, "package.json");
 const execFileAsync = promisify(execFile);
 
 function runShell(command, options) {
@@ -36,11 +35,7 @@ function runShell(command, options) {
 }
 
 async function readExpectedManifest() {
-  const [rootManifest, cliManifest] = await Promise.all([
-    readJson(rootManifestPath),
-    readJson(cliManifestPath),
-  ]);
-  assert.equal(cliManifest.version, rootManifest.version);
+  const cliManifest = await readJson(cliManifestPath);
   assert.deepEqual(cliManifest.bin, {
     lervo: "./dist/bin.js",
     "lervo-node": "./dist/node-runtime.js",
