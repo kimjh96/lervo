@@ -57,6 +57,10 @@ try {
     console.error(
       "release_artifact_check_failed: The release artifact check could not be completed.",
     );
+    if (error instanceof Error) {
+      const code = typeof error.code === "string" ? ` (${error.code})` : "";
+      console.error(`${error.name}${code}: ${error.message}`);
+    }
   }
   process.exitCode = 1;
 }

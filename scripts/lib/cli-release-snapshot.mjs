@@ -26,6 +26,14 @@ const builtinModuleNames = new Set([
   ...builtinModules.map((name) => `node:${name}`),
 ]);
 
+export function isBuiltinModuleSpecifier(specifier, knownBuiltinModules = builtinModuleNames) {
+  return specifier.startsWith("node:") || knownBuiltinModules.has(specifier);
+}
+
+export function normalizeBundleMetadataPath(path) {
+  return path.replaceAll("\\", "/");
+}
+
 async function readPackFileList() {
   const { stdout } = await runPnpm(["--filter", "@lervo/cli", "pack", "--dry-run", "--json"]);
   const report = JSON.parse(stdout);
@@ -76,8 +84,8 @@ function externalPackageName(specifier) {
   return specifier.split("/", 1)[0];
 }
 
-function bundledPackageRoot(path) {
-  const parts = path.split("/");
+export function bundledPackageRoot(path) {
+  const parts = normalizeBundleMetadataPath(path).split("/");
   const nodeModulesIndex = parts.lastIndexOf("node_modules");
   if (nodeModulesIndex < 0 || nodeModulesIndex === parts.length - 1) return null;
   const packageEnd = parts[nodeModulesIndex + 1].startsWith("@")
@@ -86,9 +94,15 @@ function bundledPackageRoot(path) {
   return parts.slice(0, packageEnd).join("/");
 }
 
+export function bundleOutputMetadata(metafile) {
+  return Object.entries(metafile.outputs ?? {}).find(
+    ([path]) => normalizeBundleMetadataPath(path) === bundleOutputPath,
+  )?.[1];
+}
+
 async function createBundleSnapshot() {
   const metafile = await readJson(bundleMetafilePath);
-  const output = metafile.outputs?.[bundleOutputPath];
+  const output = bundleOutputMetadata(metafile);
   if (!output || !Array.isArray(output.imports)) {
     throw new ReleaseArtifactManifestError(
       "release_artifact_bundle_metadata_invalid",
@@ -99,7 +113,7 @@ async function createBundleSnapshot() {
   const packageDirectories = [
     ...new Set(
       Object.keys(metafile.inputs ?? {})
-        .map((path) => path.match(/^packages\/([^/]+)\/dist\//)?.[1])
+        .map((path) => normalizeBundleMetadataPath(path).match(/^packages\/([^/]+)\/dist\//)?.[1])
         .filter(Boolean),
     ),
   ].sort();
@@ -131,7 +145,7 @@ async function createBundleSnapshot() {
   const externalImports = [
     ...new Set(
       output.imports
-        .filter(({ external, path }) => external && !builtinModuleNames.has(path))
+        .filter(({ external, path }) => external && !isBuiltinModuleSpecifier(path))
         .map(({ path }) => externalPackageName(path)),
     ),
   ].sort();
