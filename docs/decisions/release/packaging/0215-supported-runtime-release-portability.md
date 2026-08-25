@@ -5,15 +5,16 @@ Decision date: 2026-08-25
 
 ## Context
 
-Lervo supports Node.js 22.13 and later. Release checks must not infer this boundary from the runtime executing them. Node 22.13 can load `node:sqlite`, but omits it from `builtinModules` and emits an experimental warning when loading it. On Windows, the repository and temporary deployment target may reside on different volumes, making pnpm's default package import strategy non-portable.
+Lervo supports Node.js 22.13 and later. Release checks must not infer this boundary from their executing runtime. Node 22.13 can load `node:sqlite`, but omits it from `builtinModules` and emits an experimental warning when loading it. On Windows, the repository and temporary deployment target may be on different volumes, making pnpm's default package import strategy non-portable.
 
 ## Decision
 
 - Classify every `node:` specifier as a Node built-in, regardless of the current runtime's `builtinModules` inventory. Use one shared classifier for CLI, Hub, and Node release validation.
-- Bundle a provider-neutral SQLite compatibility module into every executable. It must intercept only the exact Node `ExperimentalWarning` emitted when loading `node:sqlite`, synchronously restore `process.emitWarning`, and forward every other warning unchanged.
+- Bundle a provider-neutral SQLite compatibility module into every executable. It must intercept only the exact Node `ExperimentalWarning` emitted when loading `node:sqlite`, synchronously restore `process.emitWarning`, and forward all other warnings unchanged.
 - Keep `node:sqlite` external at the final runtime boundary. The compatibility module must not recursively resolve itself. Packed-consumer smoke tests must run `lervo init` on Node 22.13 with empty stderr.
+- Keep `@anthropic-ai/claude-agent-sdk` external in both provider-invoking CLI entrypoints, including the packaged Node runtime. The consumer installation, never the build host, must select its platform-native implementation.
 - Force the `copy` package import method and retain pnpm's shared-lockfile deploy implementation for temporary CLI and standalone Node deployments. macOS and Linux deployments must be offline.
-- On Windows, if the cross-volume content-addressable store cannot rematerialize a package, deployment may fetch an exact integrity-locked tarball. It must prefer the installed store and preserve the frozen lockfile closure.
+- On Windows, deployment may fetch an exact integrity-locked tarball only when the cross-volume content-addressable store cannot rematerialize a package. It must prefer the installed store and preserve the frozen lockfile closure.
 - Restore pnpm's rebuildable workspace-state cache after every deployment.
 - Enforce LF checkout bytes for repository text through `.gitattributes`, and normalize generated executable text to LF immediately after bundling. Public package files and release digests must be byte-identical across Windows, macOS, and Linux.
 - Normalize bundle metadata paths.
@@ -23,6 +24,6 @@ This decision adds no execution event or persistent runtime state. Release manif
 
 ## Consequences
 
-The minimum supported Node runtime becomes a tested consumer boundary instead of an assumption derived from a newer build host. Packaged commands remain quiet without globally disabling warnings, and the same release logic applies on macOS, Linux, and Windows.
+The minimum supported Node runtime becomes a tested consumer boundary rather than an assumption derived from a newer build host. Packaged commands remain quiet without globally disabling warnings, and the same release logic applies on macOS, Linux, and Windows.
 
 Future Node upgrades must retain the exact warning filter until the minimum supported runtime stops emitting the warning. The compatibility module may then be removed only with a regenerated manifest, SBOM, and matrix proof.

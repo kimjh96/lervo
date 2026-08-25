@@ -8,6 +8,7 @@ import { pnpmDeployFetchArgs } from "../lib/installed-cli.mjs";
 
 const workflowPath = resolve(import.meta.dirname, "../../.github/workflows/cli-release-matrix.yml");
 const gitAttributesPath = resolve(import.meta.dirname, "../../.gitattributes");
+const cliBuildScriptPath = resolve(import.meta.dirname, "../../apps/cli/scripts/build-bundle.mjs");
 
 async function readWorkflow() {
   return parse(await readFile(workflowPath, "utf8"));
@@ -16,6 +17,14 @@ async function readWorkflow() {
 describe("CLI release matrix workflow", () => {
   it("checks out release inputs with platform-independent line endings", async () => {
     assert.equal(await readFile(gitAttributesPath, "utf8"), "* text=auto eol=lf\n");
+  });
+
+  it("keeps provider-native code external in both packaged provider entrypoints", async () => {
+    const buildScript = await readFile(cliBuildScriptPath, "utf8");
+    assert.equal(
+      [...buildScript.matchAll(/external: \["@anthropic-ai\/claude-agent-sdk"\]/gu)].length,
+      2,
+    );
   });
 
   it("allows only Windows to fetch an exact locked tarball missing from its local store", () => {

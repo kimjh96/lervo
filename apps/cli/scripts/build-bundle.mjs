@@ -56,6 +56,7 @@ await build({
   banner: {
     js: 'import { createRequire as __lervoCreateRequire } from "node:module"; var require = __lervoCreateRequire(import.meta.url);',
   },
+  external: ["@anthropic-ai/claude-agent-sdk"],
   format: "esm",
   legalComments: "none",
   logLevel: "silent",
