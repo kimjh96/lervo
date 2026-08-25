@@ -21,6 +21,7 @@ import {
   matchingStageApprovalReconciliationObservation,
 } from "./fixtures/first-publication-stage-approval-reconciliation.mjs";
 import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowReleaseVersion } from "./fixtures/first-publication-workflow-reachability.mjs";
 import {
   createFirstPublicationTransitionFixture,
   firstPublicationStageOnlyWorkflow as stageOnlyWorkflow,
@@ -100,7 +101,10 @@ function options(prepared, evidenceType) {
 
 async function stageApprovalCommandFixture() {
   const stage = await createFirstPublicationStageApprovalReconciliationFixture();
-  const source = createFirstPublicationFixture({ sourceDigest: workflowRemoteSourceCommit });
+  const source = createFirstPublicationFixture({
+    version: workflowReleaseVersion,
+    sourceDigest: workflowRemoteSourceCommit,
+  });
   assert.equal(
     source.publicationAuthorization.authorizationDigest,
     stage.publicationAuthorization.authorizationDigest,

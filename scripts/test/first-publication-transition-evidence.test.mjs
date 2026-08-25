@@ -18,6 +18,7 @@ import {
   matchingStageApprovalReconciliationObservation,
 } from "./fixtures/first-publication-stage-approval-reconciliation.mjs";
 import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowReleaseVersion } from "./fixtures/first-publication-workflow-reachability.mjs";
 import {
   createFirstPublicationTransitionControls as controls,
   createFirstPublicationTransitionFixture as evidenceFixture,
@@ -28,6 +29,7 @@ describe("first-publication transition evidence union", () => {
     const stage = await createFirstPublicationStageApprovalReconciliationFixture();
     try {
       const source = createFirstPublicationFixture({
+        version: workflowReleaseVersion,
         sourceDigest: workflowRemoteSourceCommit,
       });
       assert.equal(

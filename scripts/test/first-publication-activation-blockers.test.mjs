@@ -67,9 +67,10 @@ describe("first-publication activation blocker report", () => {
 
   it("reports conflicting local metadata instead of choosing one source", async () => {
     const sources = await currentActivationSources();
+    const conflictingVersion = sources.packageManifest.version === "9.9.9" ? "8.8.8" : "9.9.9";
     sources.packageManifest = {
       ...sources.packageManifest,
-      version: "0.2.0",
+      version: conflictingVersion,
       license: "MIT",
       repository: { type: "git", url: "https://example.invalid/not-git" },
     };

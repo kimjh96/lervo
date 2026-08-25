@@ -17,7 +17,8 @@ const currentCliPackage = JSON.parse(
   readFileSync(resolve(repositoryRoot, "apps/cli/package.json"), "utf8"),
 );
 
-export const workflowReleaseTag = `v${currentCliPackage.version}`;
+export const workflowReleaseVersion = currentCliPackage.version;
+export const workflowReleaseTag = `v${workflowReleaseVersion}`;
 
 export async function createWorkflowReachabilityFixture() {
   const fixture = await createWorkflowRemoteDeploymentFixture();

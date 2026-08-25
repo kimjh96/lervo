@@ -14,7 +14,10 @@ import {
   workflowExecutionAttempt,
   workflowExecutionRunId,
 } from "./first-publication-workflow-execution.mjs";
-import { workflowReleaseTag } from "./first-publication-workflow-reachability.mjs";
+import {
+  workflowReleaseTag,
+  workflowReleaseVersion,
+} from "./first-publication-workflow-reachability.mjs";
 import { workflowRemoteSourceCommit } from "./first-publication-workflow-remote-deployment.mjs";
 import { workflowActivationRepository } from "./first-publication-workflow-activation.mjs";
 import { createZipArchive } from "./zip-archive.mjs";
@@ -34,7 +37,7 @@ export function createStageResultArchive({
   descriptor = true,
   terminalState = "staged",
   entryNames = ["attempt.json", "terminal.json"],
-  version = "0.1.0",
+  version = workflowReleaseVersion,
 } = {}) {
   const authorization = createFirstPublicationFixture({
     version,

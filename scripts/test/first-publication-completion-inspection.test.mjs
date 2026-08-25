@@ -23,12 +23,16 @@ import {
 } from "./fixtures/first-publication-stage-approval-reconciliation.mjs";
 import { createFirstPublicationTransitionControls } from "./fixtures/first-publication-transition.mjs";
 import { workflowRemoteSourceCommit } from "./fixtures/first-publication-workflow-remote-deployment.mjs";
+import { workflowReleaseVersion } from "./fixtures/first-publication-workflow-reachability.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 
 async function fixture() {
   const stage = await createFirstPublicationStageApprovalReconciliationFixture();
-  const source = createFirstPublicationFixture({ sourceDigest: workflowRemoteSourceCommit });
+  const source = createFirstPublicationFixture({
+    version: workflowReleaseVersion,
+    sourceDigest: workflowRemoteSourceCommit,
+  });
   const reconciliationReport = createFirstPublicationStageApprovalReconciliationReport({
     stageReviewReport: stage.stageReviewReport,
     authorization: stage.authorization,

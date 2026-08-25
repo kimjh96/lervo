@@ -23,7 +23,9 @@ export async function createExternalEvidenceFixture() {
       generateRelease: async () => metadata.derivedRelease.releaseManifest,
     },
   );
-  const publication = createFirstPublicationFixture();
+  const publication = createFirstPublicationFixture({
+    version: postApplyReport.target.version,
+  });
   const licenseApproval = {
     schemaVersion: 1,
     evidenceType: "first_publication_license_approval",
